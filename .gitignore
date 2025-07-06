@@ -67,8 +67,7 @@ poetry.lock
 # VS Code
 .vscode/
 
-# macOS
-.DS_Store
+
 
 # Environment variables
 .env
