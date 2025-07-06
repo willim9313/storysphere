@@ -1,0 +1,87 @@
+entities:
+  - type: Person
+    description: 人物角色（主角、配角、虛構或真實） / Characters (main, supporting, fictional, or real)
+    examples: [Harry Potter, Sherlock Holmes]
+
+  - type: Location
+    description: 地點（具體或虛構） / Locations (real or fictional)
+    examples: [Hogwarts, London]
+
+  - type: Organization
+    description: 組織、家族、派系等 / Organizations, families, or factions
+    examples: [Order of the Phoenix, Gryffindor House]
+
+  - type: Event
+    description: 故事事件或重大情節 / Key events or story plot points
+    examples: [Battle of Hogwarts, Murder Mystery Solving]
+
+  - type: Object
+    description: 特殊物品、道具 / Special items or artifacts
+    examples: [Invisibility Cloak, Death Note]
+
+  - type: Concept
+    description: 抽象概念或信念 / Abstract ideas or beliefs
+    examples: [Justice, Destiny, Fear]
+
+  - type: Time
+    description: 特定時間點或時間段 / Specific time points or periods
+    examples: [1980s, Full Moon Night]
+
+relations:
+  - type: knows
+    description: 認識、關係 / Acquaintance or relationship
+    examples: ["Harry Potter —knows→ Hermione Granger"]
+
+  - type: locatedIn
+    description: 所在地 / Location containment
+    examples: ["Hogwarts —locatedIn→ United Kingdom"]
+
+  - type: partOf
+    description: 組成、隸屬 / Membership or inclusion
+    examples: ["Harry Potter —partOf→ Order of the Phoenix"]
+
+  - type: possesses
+    description: 擁有（物品、能力） / Ownership of item or ability
+    examples: ["Harry Potter —possesses→ Invisibility Cloak"]
+
+  - type: participatesIn
+    description: 參與事件 / Participation in an event
+    examples: ["Harry Potter —participatesIn→ Battle of Hogwarts"]
+
+  - type: happensAt
+    description: 事件發生地 / Event location
+    examples: ["Battle of Hogwarts —happensAt→ Hogwarts"]
+
+  - type: occursDuring
+    description: 發生時間 / Time period of event
+    examples: ["Battle of Hogwarts —occursDuring→ Seventh Year"]
+
+  - type: createdBy
+    description: 創造者 / Creator of an object
+    examples: ["Death Note —createdBy→ Shinigami"]
+
+  - type: hasTrait
+    description: 角色特質 / Character trait or characteristic
+    examples: ["Hermione Granger —hasTrait→ Intelligent"]
+
+attributes:
+  - name: name
+    description: 名稱 / Name
+
+  - name: gender
+    description: 性別 / Gender
+
+  - name: role
+    description: 故事中的角色身份 / Role in the story
+
+  - name: description
+    description: 簡介 / Short description
+
+  - name: birthDate
+    description: 出生時間 / Date of birth
+
+  - name: deathDate
+    description: 死亡時間 / Date of death
+
+  - name: affiliation
+    description: 所屬陣營或派系 / Affiliated faction or organization

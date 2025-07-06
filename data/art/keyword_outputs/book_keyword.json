@@ -1,0 +1,66 @@
+[
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "keyword_scores": {
+      "animals": 0.19,
+      "england": 0.12,
+      "man": 0.1,
+      "comrades": 0.1,
+      "dogs": 0.09,
+      "beasts": 0.08,
+      "animal": 0.06,
+      "pigs": 0.06,
+      "major": 0.05,
+      "pig": 0.04
+    },
+    "keywords": [
+      "animals",
+      "england",
+      "man",
+      "comrades",
+      "dogs",
+      "beasts",
+      "animal",
+      "pigs",
+      "major",
+      "pig"
+    ],
+    "type": "book_keyword",
+    "source_chunk_ids": [
+      "41be8ebb-b716-4eef-98ec-e19976157d6c",
+      "e86dbfb7-2bb9-40f8-9e40-b2d1a5dc38b8"
+    ]
+  },
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "keyword_scores": {
+      "animals": 0.19,
+      "england": 0.12,
+      "man": 0.1,
+      "comrades": 0.1,
+      "dogs": 0.09,
+      "beasts": 0.08,
+      "animal": 0.06,
+      "pigs": 0.06,
+      "major": 0.05,
+      "pig": 0.04
+    },
+    "keywords": [
+      "animals",
+      "england",
+      "man",
+      "comrades",
+      "dogs",
+      "beasts",
+      "animal",
+      "pigs",
+      "major",
+      "pig"
+    ],
+    "type": "book_keyword",
+    "source_chunk_ids": [
+      "b23e1dbf-bb1f-4d01-b275-2190f18aa6d4",
+      "fe4f74c6-c923-45dd-b0ae-9e96246ab00a"
+    ]
+  }
+]

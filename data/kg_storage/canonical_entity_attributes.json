@@ -1,0 +1,6876 @@
+{
+  "Distributed Proofreaders Canada": {
+    "chunk_id": [
+      "a607031d-711c-40c9-be15-94fdc1bddf32",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization",
+      "Organization",
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {}
+  },
+  "Orwell, George": {
+    "chunk_id": [
+      "a607031d-711c-40c9-be15-94fdc1bddf32",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [
+        "1903"
+      ],
+      "deathDate": [
+        "1950"
+      ],
+      "affiliation": []
+    }
+  },
+  "Blair, Eric Arthur": {
+    "chunk_id": [
+      "a607031d-711c-40c9-be15-94fdc1bddf32",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [
+        "1903"
+      ],
+      "deathDate": [
+        "1950"
+      ],
+      "affiliation": []
+    }
+  },
+  "Animal Farm": {
+    "chunk_id": [
+      "a607031d-711c-40c9-be15-94fdc1bddf32",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+      "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+      "1965dfef-a33a-4084-89d4-195f18e1407f",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "0e5664e9-283c-4862-a41b-550d63aec5b8",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "4b1f75fe-2dd1-435c-9487-6796925dc0dd",
+      "a087f00a-848f-4d58-930c-1ad52daba8d4",
+      "94b5953c-2367-4bf5-84e3-76443d51e570",
+      "83b81c0d-9a89-469c-bcdb-6988cc6e05b8",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "6f071a8d-5557-4106-b78e-b1fd1a688ca0",
+      "65fa2e09-69bf-4680-8d89-b71473c0d079",
+      "de730b6c-3e6f-406d-ab7b-9ee04099f1c0",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "333c554c-cfe3-4d60-8a41-b1d1f4e69d3e",
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "b426ca22-b1ec-492f-be71-765044a8bb89",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02",
+      "b6ae890d-6198-43e0-a718-ef66b0397749",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4",
+      "240d6c0e-b946-4217-a808-a22f4fda0bfa"
+    ],
+    "entity_type": [
+      "Object",
+      "Location",
+      "Location",
+      "Location",
+      "Organization",
+      "Object",
+      "Object",
+      "Location",
+      "Location",
+      "Location",
+      "Object",
+      "Object",
+      "Location",
+      "Location",
+      "Location",
+      "Organization",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "1945": {
+    "chunk_id": [
+      "a607031d-711c-40c9-be15-94fdc1bddf32",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94b5953c-2367-4bf5-84e3-76443d51e570",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Date of first publication"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "1946": {
+    "chunk_id": [
+      "a607031d-711c-40c9-be15-94fdc1bddf32",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94b5953c-2367-4bf5-84e3-76443d51e570",
+      "83b81c0d-9a89-469c-bcdb-6988cc6e05b8",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "333c554c-cfe3-4d60-8a41-b1d1f4e69d3e",
+      "b426ca22-b1ec-492f-be71-765044a8bb89",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02",
+      "b6ae890d-6198-43e0-a718-ef66b0397749",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4",
+      "240d6c0e-b946-4217-a808-a22f4fda0bfa"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Copyright date"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "12 May 2011": {
+    "chunk_id": [
+      "a607031d-711c-40c9-be15-94fdc1bddf32",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "Sep. 5 2014": {
+    "chunk_id": [
+      "a607031d-711c-40c9-be15-94fdc1bddf32",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94b5953c-2367-4bf5-84e3-76443d51e570",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Date last updated"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Al Haines": {
+    "chunk_id": [
+      "a607031d-711c-40c9-be15-94fdc1bddf32",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94b5953c-2367-4bf5-84e3-76443d51e570",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [
+        "Producer"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "HARCOURT, BRACE AND COMPANY": {
+    "chunk_id": [
+      "12c164a3-ea39-40e6-9095-ba18f71945b3",
+      "0e5664e9-283c-4862-a41b-550d63aec5b8",
+      "83b81c0d-9a89-469c-bcdb-6988cc6e05b8",
+      "333c554c-cfe3-4d60-8a41-b1d1f4e69d3e",
+      "b426ca22-b1ec-492f-be71-765044a8bb89",
+      "b6ae890d-6198-43e0-a718-ef66b0397749",
+      "240d6c0e-b946-4217-a808-a22f4fda0bfa"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization",
+      "Organization",
+      "Organization",
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "New York": {
+    "chunk_id": [
+      "12c164a3-ea39-40e6-9095-ba18f71945b3",
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "0e5664e9-283c-4862-a41b-550d63aec5b8",
+      "83b81c0d-9a89-469c-bcdb-6988cc6e05b8",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "333c554c-cfe3-4d60-8a41-b1d1f4e69d3e",
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "b426ca22-b1ec-492f-be71-765044a8bb89",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02",
+      "b6ae890d-6198-43e0-a718-ef66b0397749",
+      "240d6c0e-b946-4217-a808-a22f4fda0bfa"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "UNITED STATES OF AMERICA": {
+    "chunk_id": [
+      "12c164a3-ea39-40e6-9095-ba18f71945b3",
+      "0e5664e9-283c-4862-a41b-550d63aec5b8",
+      "83b81c0d-9a89-469c-bcdb-6988cc6e05b8",
+      "333c554c-cfe3-4d60-8a41-b1d1f4e69d3e",
+      "b426ca22-b1ec-492f-be71-765044a8bb89",
+      "b6ae890d-6198-43e0-a718-ef66b0397749",
+      "240d6c0e-b946-4217-a808-a22f4fda0bfa"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "George Orwell": {
+    "chunk_id": [
+      "12c164a3-ea39-40e6-9095-ba18f71945b3",
+      "0e5664e9-283c-4862-a41b-550d63aec5b8",
+      "94b5953c-2367-4bf5-84e3-76443d51e570",
+      "83b81c0d-9a89-469c-bcdb-6988cc6e05b8",
+      "333c554c-cfe3-4d60-8a41-b1d1f4e69d3e",
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "b426ca22-b1ec-492f-be71-765044a8bb89",
+      "b6ae890d-6198-43e0-a718-ef66b0397749",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4",
+      "240d6c0e-b946-4217-a808-a22f4fda0bfa"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Author"
+      ],
+      "role": [
+        "Author"
+      ],
+      "name": [
+        "George Orwell"
+      ],
+      "birthDate": [
+        "1903"
+      ],
+      "deathDate": [
+        "1950"
+      ],
+      "affiliation": []
+    }
+  },
+  "SCRANTON, PA.": {
+    "chunk_id": [
+      "12c164a3-ea39-40e6-9095-ba18f71945b3",
+      "0e5664e9-283c-4862-a41b-550d63aec5b8",
+      "83b81c0d-9a89-469c-bcdb-6988cc6e05b8",
+      "333c554c-cfe3-4d60-8a41-b1d1f4e69d3e",
+      "b426ca22-b1ec-492f-be71-765044a8bb89",
+      "b6ae890d-6198-43e0-a718-ef66b0397749",
+      "240d6c0e-b946-4217-a808-a22f4fda0bfa"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Mr. Jones": {
+    "chunk_id": [
+      "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+      "121b723a-9f70-4cc6-8995-7c6b80a22304",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "4b1f75fe-2dd1-435c-9487-6796925dc0dd",
+      "5251d806-1363-45e4-bdd4-0a77212dbb94",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "77654b9a-8833-44e8-99a0-39ac52317007",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "c4144324-3744-43a2-9aee-87bd990d85de",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "65fa2e09-69bf-4680-8d89-b71473c0d079",
+      "006d1c95-d8ea-461e-a967-f66414acb9e4",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "a96a1854-e575-4492-bf14-ee85aa6b08c5",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "a21c3e5e-6de4-434b-bab1-401af7f3033c",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "71f97f57-bf42-4174-954e-2017c6ba4001",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "83bf5673-5439-4aad-9f9f-309cb49c7a8f",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572",
+      "233bb93c-a3f8-4f08-b895-9280d3998be2",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "a hard master",
+        "A hard master who had fallen on evil days"
+      ],
+      "role": [
+        "Former Owner",
+        "Master",
+        "Owner",
+        "Farmer"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": [
+        "Manor Farm"
+      ]
+    }
+  },
+  "Manor Farm": {
+    "chunk_id": [
+      "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+      "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "1965dfef-a33a-4084-89d4-195f18e1407f",
+      "121b723a-9f70-4cc6-8995-7c6b80a22304",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "a087f00a-848f-4d58-930c-1ad52daba8d4",
+      "5251d806-1363-45e4-bdd4-0a77212dbb94",
+      "c4144324-3744-43a2-9aee-87bd990d85de",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "de730b6c-3e6f-406d-ab7b-9ee04099f1c0",
+      "006d1c95-d8ea-461e-a967-f66414acb9e4",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad",
+      "a96a1854-e575-4492-bf14-ee85aa6b08c5",
+      "71f97f57-bf42-4174-954e-2017c6ba4001",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "hen-houses": {
+    "chunk_id": [
+      "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+      "121b723a-9f70-4cc6-8995-7c6b80a22304",
+      "5251d806-1363-45e4-bdd4-0a77212dbb94",
+      "006d1c95-d8ea-461e-a967-f66414acb9e4",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad",
+      "a96a1854-e575-4492-bf14-ee85aa6b08c5",
+      "71f97f57-bf42-4174-954e-2017c6ba4001",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Object",
+      "Object",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Mrs. Jones": {
+    "chunk_id": [
+      "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+      "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+      "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "121b723a-9f70-4cc6-8995-7c6b80a22304",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "5ba01acd-d204-4511-80eb-50ceaab6df2a",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "5251d806-1363-45e4-bdd4-0a77212dbb94",
+      "c4144324-3744-43a2-9aee-87bd990d85de",
+      "44e5c15b-598b-4fc2-8012-6ace4daf630f",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "006d1c95-d8ea-461e-a967-f66414acb9e4",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad",
+      "a96a1854-e575-4492-bf14-ee85aa6b08c5",
+      "71f97f57-bf42-4174-954e-2017c6ba4001",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Old Major": {
+    "chunk_id": [
+      "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+      "7b24a3c0-2683-4edf-ae2c-483b1e303298",
+      "121b723a-9f70-4cc6-8995-7c6b80a22304",
+      "b3f1fda9-9bf1-4fee-82c9-5826694a748b",
+      "29f530f5-c4f5-4451-8589-31abfa22f86c",
+      "006d1c95-d8ea-461e-a967-f66414acb9e4",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad",
+      "924f8876-1059-4f35-82d8-a0cb1cafd572",
+      "a96a1854-e575-4492-bf14-ee85aa6b08c5",
+      "3412cd93-b317-420e-9089-8228713c857b",
+      "a21c3e5e-6de4-434b-bab1-401af7f3033c",
+      "71f97f57-bf42-4174-954e-2017c6ba4001",
+      "bdba88cf-49e6-4c86-8d10-f2dc403fae92",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [
+        "Male"
+      ],
+      "description": [
+        "An old pig who sings 'Beasts of England'",
+        "the prize Middle White boar",
+        "prize Middle White boar",
+        "An old pig",
+        "An old animal with a hoarse voice"
+      ],
+      "role": [
+        "Singer"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "farm buildings": {
+    "chunk_id": [
+      "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "121b723a-9f70-4cc6-8995-7c6b80a22304",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "5ba01acd-d204-4511-80eb-50ceaab6df2a",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "5251d806-1363-45e4-bdd4-0a77212dbb94",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "006d1c95-d8ea-461e-a967-f66414acb9e4",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad",
+      "a96a1854-e575-4492-bf14-ee85aa6b08c5",
+      "71f97f57-bf42-4174-954e-2017c6ba4001",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "the big barn": {
+    "chunk_id": [
+      "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "121b723a-9f70-4cc6-8995-7c6b80a22304",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "5251d806-1363-45e4-bdd4-0a77212dbb94",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "006d1c95-d8ea-461e-a967-f66414acb9e4",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad",
+      "a96a1854-e575-4492-bf14-ee85aa6b08c5",
+      "71f97f57-bf42-4174-954e-2017c6ba4001",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Major": {
+    "chunk_id": [
+      "500dab47-96c0-42f8-b08f-1a2ffe1cad11",
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "64d76ce2-9421-4848-9e63-6216043176b8",
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "1db6f83d-5b8f-4a81-9aed-f53a7943566c",
+      "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "f8af89c3-2e50-4b97-9cab-c684493300b3",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "d0cb1fbf-c986-45da-8540-1db4fcdac5e1",
+      "0749c1a5-8786-4984-a9e6-439fa9b2974d",
+      "5251d806-1363-45e4-bdd4-0a77212dbb94",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "fa3c1c1a-9bc4-48df-bad6-baaf8a076f95",
+      "1ca49fd0-b4aa-4ca8-a5c9-3af443c14fcc",
+      "08651466-1cd9-4f2a-be57-ec396ac28a34",
+      "77654b9a-8833-44e8-99a0-39ac52317007",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "b94d36c1-e83c-4263-a269-f0b193eb66cd",
+      "c0517461-dc3b-41bc-a675-f98017c87263",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "3eae2fab-2edb-4335-8f70-c3d2734c85d9",
+      "d35dca47-28d2-41a5-a1cf-1a18cdc750bf",
+      "99d03598-08cf-4654-95f6-f2700fc8b393",
+      "7e03dab7-cd82-4346-8803-8a2901b907c4",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e",
+      "fd26c8be-740a-4e0d-ad7d-a5352b61ddea",
+      "8d67d46a-e938-4d0e-8109-f09b76245f60",
+      "233bb93c-a3f8-4f08-b895-9280d3998be2"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "old",
+        "pig",
+        "a majestic-looking pig",
+        "prize Middle White boar"
+      ],
+      "role": [
+        "speaker",
+        "leader",
+        "Speaker",
+        "animal",
+        "Leader",
+        "Pig"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [
+        "Some time after three nights",
+        "Three nights later"
+      ],
+      "affiliation": []
+    }
+  },
+  "lantern": {
+    "chunk_id": [
+      "500dab47-96c0-42f8-b08f-1a2ffe1cad11",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "006d1c95-d8ea-461e-a967-f66414acb9e4",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "Bluebell": {
+    "chunk_id": [
+      "500dab47-96c0-42f8-b08f-1a2ffe1cad11",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e"
+    ],
+    "entity_type": [
+      "Person",
+      "Organization",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "dog"
+      ],
+      "role": [
+        "dog"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Jessie": {
+    "chunk_id": [
+      "500dab47-96c0-42f8-b08f-1a2ffe1cad11",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e"
+    ],
+    "entity_type": [
+      "Person",
+      "Organization",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "dog"
+      ],
+      "role": [
+        "dog"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Pincher": {
+    "chunk_id": [
+      "500dab47-96c0-42f8-b08f-1a2ffe1cad11",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "dog"
+      ],
+      "role": [
+        "dog"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Boxer": {
+    "chunk_id": [
+      "500dab47-96c0-42f8-b08f-1a2ffe1cad11",
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "77d41bb2-a31c-4bc8-b622-7bf030c1cdfb",
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "2099a28f-152b-4abe-8358-6ec571148c6b",
+      "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "be7ea89d-3008-4383-a1c8-061506360c5f",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "2a33477f-c0f9-4fe7-b9ba-2c4b91a8cae7",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b",
+      "a0c3fd0a-78fd-448d-a6e5-e2a2fdcfb594",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "a24d4823-c9ca-49f0-b4da-f504f4b45d82",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "c1a84b63-c273-4dab-8e8d-5dfa502f8608",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "c501c090-1b09-4b1e-bec3-3a13ca069cef",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [
+        "Male"
+      ],
+      "description": [
+        "an enormous beast, nearly eighteen hands high, and as strong as any two ordinary horses put together",
+        "A horse",
+        "A hard worker",
+        "an enormous beast",
+        "an enormous beast, nearly eighteen hands high, and as strong as any two ordinary horses put together.",
+        "Devoted to Clover",
+        "cart-horse",
+        "Enormous beast, nearly eighteen hands high, and as strong as any two ordinary horses put together"
+      ],
+      "role": [
+        "cart-horse",
+        "Animal",
+        "Disciple"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Clover": {
+    "chunk_id": [
+      "500dab47-96c0-42f8-b08f-1a2ffe1cad11",
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "77d41bb2-a31c-4bc8-b622-7bf030c1cdfb",
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "2099a28f-152b-4abe-8358-6ec571148c6b",
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "be7ea89d-3008-4383-a1c8-061506360c5f",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "2a33477f-c0f9-4fe7-b9ba-2c4b91a8cae7",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4",
+      "a0c3fd0a-78fd-448d-a6e5-e2a2fdcfb594",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "a24d4823-c9ca-49f0-b4da-f504f4b45d82",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "c1a84b63-c273-4dab-8e8d-5dfa502f8608",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "c501c090-1b09-4b1e-bec3-3a13ca069cef",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "fd26c8be-740a-4e0d-ad7d-a5352b61ddea",
+      "fc3ecf08-f564-40de-bc43-0232d06f5130",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Object",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Object",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Object",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Object",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Object",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [
+        "Female"
+      ],
+      "description": [
+        "A horse",
+        "a stout motherly mare",
+        "a stout motherly mare approaching middle life",
+        "cart-horse",
+        "stout motherly mare",
+        "a stout motherly mare approaching middle life, who had never quite got her figure back after her fourth foal.",
+        "Stout motherly mare approaching middle life"
+      ],
+      "role": [
+        "cart-horse",
+        "Disciple"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Muriel": {
+    "chunk_id": [
+      "500dab47-96c0-42f8-b08f-1a2ffe1cad11",
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "a0c3fd0a-78fd-448d-a6e5-e2a2fdcfb594",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44",
+      "94029086-859a-417c-80b1-9b11657c222e"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "White goat",
+        "white goat",
+        "the white goat",
+        "the goat"
+      ],
+      "role": [
+        "Goat",
+        "goat"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Benjamin": {
+    "chunk_id": [
+      "500dab47-96c0-42f8-b08f-1a2ffe1cad11",
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "a0c3fd0a-78fd-448d-a6e5-e2a2fdcfb594",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44",
+      "94029086-859a-417c-80b1-9b11657c222e"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "the oldest animal on the farm",
+        "the oldest animal on the farm, and the worst tempered.",
+        "the donkey",
+        "Donkey, the oldest animal on the farm, and the worst tempered",
+        "the oldest animal on the farm, and the worst tempered",
+        "donkey"
+      ],
+      "role": [
+        "Donkey",
+        "donkey"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "paddock": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1"
+    ],
+    "entity_type": [
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "orchard": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "c0517461-dc3b-41bc-a675-f98017c87263",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "ducklings": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Barn": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+      "58a108ed-1454-4f8a-ad7e-90d50bf232ef",
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "77654b9a-8833-44e8-99a0-39ac52317007",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "a21c3e5e-6de4-434b-bab1-401af7f3033c",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "83bf5673-5439-4aad-9f9f-309cb49c7a8f",
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e",
+      "233bb93c-a3f8-4f08-b895-9280d3998be2",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Object",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "big barn"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Mollie": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+      "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "5ba01acd-d204-4511-80eb-50ceaab6df2a",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "44e5c15b-598b-4fc2-8012-6ace4daf630f",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b",
+      "a0c3fd0a-78fd-448d-a6e5-e2a2fdcfb594",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [
+        "Female"
+      ],
+      "description": [
+        "the white mare",
+        "White mare",
+        "foolish, pretty white mare",
+        "white mare",
+        "The foolish, pretty white mare",
+        "Foolish, pretty white mare"
+      ],
+      "role": [
+        "Animal"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "trap": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "94029086-859a-417c-80b1-9b11657c222e"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "sugar": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "mane": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "ribbons": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "cat": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "fa3c1c1a-9bc4-48df-bad6-baaf8a076f95",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "d66ab2df-5d31-429c-8ee3-69c564081682",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "8d67d46a-e938-4d0e-8109-f09b76245f60"
+    ],
+    "entity_type": [
+      "Person",
+      "Object",
+      "Person",
+      "Person",
+      "Person",
+      "Object",
+      "Person",
+      "Person",
+      "Object",
+      "Person",
+      "Person",
+      "Person",
+      "Object",
+      "Person",
+      "Object",
+      "Person",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [
+        "Female"
+      ],
+      "description": [
+        "A cat who avoids work"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Moses": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "c4144324-3744-43a2-9aee-87bd990d85de",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "fd26c8be-740a-4e0d-ad7d-a5352b61ddea",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "the tame raven",
+        "Tame raven",
+        "The tame raven",
+        "tame raven"
+      ],
+      "role": [
+        "Spy and tale-bearer"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "back door": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Object",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "dream": {
+    "chunk_id": [
+      "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "fa3c1c1a-9bc4-48df-bad6-baaf8a076f95",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Man": {
+    "chunk_id": [
+      "77d41bb2-a31c-4bc8-b622-7bf030c1cdfb",
+      "64d76ce2-9421-4848-9e63-6216043176b8",
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "7b24a3c0-2683-4edf-ae2c-483b1e303298",
+      "58a108ed-1454-4f8a-ad7e-90d50bf232ef",
+      "3b43bcdd-854f-4498-bf04-a6ff8fbe605e",
+      "be7ea89d-3008-4383-a1c8-061506360c5f",
+      "f8af89c3-2e50-4b97-9cab-c684493300b3",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "b3f1fda9-9bf1-4fee-82c9-5826694a748b",
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "2a33477f-c0f9-4fe7-b9ba-2c4b91a8cae7",
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "fa3c1c1a-9bc4-48df-bad6-baaf8a076f95",
+      "29f530f5-c4f5-4451-8589-31abfa22f86c",
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c",
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "a24d4823-c9ca-49f0-b4da-f504f4b45d82",
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9",
+      "924f8876-1059-4f35-82d8-a0cb1cafd572",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "c1a84b63-c273-4dab-8e8d-5dfa502f8608",
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "3412cd93-b317-420e-9089-8228713c857b",
+      "ac5d432d-e5b4-4c0b-ac13-97021358fb1b",
+      "c501c090-1b09-4b1e-bec3-3a13ca069cef",
+      "3eae2fab-2edb-4335-8f70-c3d2734c85d9",
+      "d35dca47-28d2-41a5-a1cf-1a18cdc750bf",
+      "bdba88cf-49e6-4c86-8d10-f2dc403fae92",
+      "fc3ecf08-f564-40de-bc43-0232d06f5130",
+      "8d67d46a-e938-4d0e-8109-f09b76245f60",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Concept",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Concept",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Tyrant",
+        "Creature that consumes without producing",
+        "The only creature that consumes without producing",
+        "The only real enemy",
+        "creature that consumes without producing",
+        "Creature that consumes without producing, lord of all the animals",
+        "human beings",
+        "the only real enemy"
+      ],
+      "role": [
+        "Tyrant"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Jones": {
+    "chunk_id": [
+      "77d41bb2-a31c-4bc8-b622-7bf030c1cdfb",
+      "64d76ce2-9421-4848-9e63-6216043176b8",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "2099a28f-152b-4abe-8358-6ec571148c6b",
+      "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "1965dfef-a33a-4084-89d4-195f18e1407f",
+      "be7ea89d-3008-4383-a1c8-061506360c5f",
+      "f8af89c3-2e50-4b97-9cab-c684493300b3",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "a087f00a-848f-4d58-930c-1ad52daba8d4",
+      "2a33477f-c0f9-4fe7-b9ba-2c4b91a8cae7",
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "de730b6c-3e6f-406d-ab7b-9ee04099f1c0",
+      "a24d4823-c9ca-49f0-b4da-f504f4b45d82",
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c",
+      "c1a84b63-c273-4dab-8e8d-5dfa502f8608",
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d",
+      "c501c090-1b09-4b1e-bec3-3a13ca069cef",
+      "3eae2fab-2edb-4335-8f70-c3d2734c85d9",
+      "fc3ecf08-f564-40de-bc43-0232d06f5130"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Turned out of his property"
+      ],
+      "role": [
+        "Farmer",
+        "Master",
+        "Former Owner",
+        "Oppressor",
+        "Former Farmer"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "milk": {
+    "chunk_id": [
+      "77d41bb2-a31c-4bc8-b622-7bf030c1cdfb",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d",
+      "a24d4823-c9ca-49f0-b4da-f504f4b45d82"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "eggs": {
+    "chunk_id": [
+      "77d41bb2-a31c-4bc8-b622-7bf030c1cdfb",
+      "a24d4823-c9ca-49f0-b4da-f504f4b45d82"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "knacker": {
+    "chunk_id": [
+      "64d76ce2-9421-4848-9e63-6216043176b8",
+      "f8af89c3-2e50-4b97-9cab-c684493300b3",
+      "623335ee-048b-40cf-9461-c9c5bda5845d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "foxhounds": {
+    "chunk_id": [
+      "64d76ce2-9421-4848-9e63-6216043176b8",
+      "f8af89c3-2e50-4b97-9cab-c684493300b3",
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d",
+      "3eae2fab-2edb-4335-8f70-c3d2734c85d9"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "dogs": {
+    "chunk_id": [
+      "64d76ce2-9421-4848-9e63-6216043176b8",
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "f8af89c3-2e50-4b97-9cab-c684493300b3",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "fa3c1c1a-9bc4-48df-bad6-baaf8a076f95",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "b94d36c1-e83c-4263-a269-f0b193eb66cd",
+      "d35dca47-28d2-41a5-a1cf-1a18cdc750bf",
+      "8d67d46a-e938-4d0e-8109-f09b76245f60",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Person",
+      "Object",
+      "Object",
+      "Person",
+      "Object",
+      "Object",
+      "Organization",
+      "Object",
+      "Object",
+      "Organization",
+      "Object",
+      "Object",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "clever ones"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "produce of our labour": {
+    "chunk_id": [
+      "64d76ce2-9421-4848-9e63-6216043176b8"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "rebellion": {
+    "chunk_id": [
+      "64d76ce2-9421-4848-9e63-6216043176b8",
+      "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+      "1965dfef-a33a-4084-89d4-195f18e1407f",
+      "f8af89c3-2e50-4b97-9cab-c684493300b3",
+      "0749c1a5-8786-4984-a9e6-439fa9b2974d",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "4b1f75fe-2dd1-435c-9487-6796925dc0dd",
+      "a087f00a-848f-4d58-930c-1ad52daba8d4",
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "08651466-1cd9-4f2a-be57-ec396ac28a34",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "c4144324-3744-43a2-9aee-87bd990d85de",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "65fa2e09-69bf-4680-8d89-b71473c0d079",
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c",
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d",
+      "c0517461-dc3b-41bc-a675-f98017c87263",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "3eae2fab-2edb-4335-8f70-c3d2734c85d9",
+      "7e03dab7-cd82-4346-8803-8a2901b907c4",
+      "83bf5673-5439-4aad-9f9f-309cb49c7a8f",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Event",
+      "Concept",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Concept",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Concept",
+      "Concept",
+      "Event",
+      "Concept",
+      "Concept",
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Event"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "on Animal Farm",
+        "predicted by Major",
+        "rebellion on Animal Farm"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "justice": {
+    "chunk_id": [
+      "64d76ce2-9421-4848-9e63-6216043176b8",
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c",
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "rats": {
+    "chunk_id": [
+      "64d76ce2-9421-4848-9e63-6216043176b8",
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "f8af89c3-2e50-4b97-9cab-c684493300b3",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "fa3c1c1a-9bc4-48df-bad6-baaf8a076f95",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9",
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "3eae2fab-2edb-4335-8f70-c3d2734c85d9",
+      "d35dca47-28d2-41a5-a1cf-1a18cdc750bf",
+      "8d67d46a-e938-4d0e-8109-f09b76245f60"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Person",
+      "Object",
+      "Object",
+      "Object",
+      "Person",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "wild creatures"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "holes": {
+    "chunk_id": [
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "rabbits": {
+    "chunk_id": [
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "fa3c1c1a-9bc4-48df-bad6-baaf8a076f95",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "d35dca47-28d2-41a5-a1cf-1a18cdc750bf"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Person",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "wild creatures"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "house": {
+    "chunk_id": [
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "bed": {
+    "chunk_id": [
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "clothes": {
+    "chunk_id": [
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "alcohol": {
+    "chunk_id": [
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "d35dca47-28d2-41a5-a1cf-1a18cdc750bf"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "tobacco": {
+    "chunk_id": [
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "d35dca47-28d2-41a5-a1cf-1a18cdc750bf"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "money": {
+    "chunk_id": [
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "d35dca47-28d2-41a5-a1cf-1a18cdc750bf"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "trade": {
+    "chunk_id": [
+      "69738ad0-8ace-45c1-a275-387b45aec51b",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de",
+      "d35dca47-28d2-41a5-a1cf-1a18cdc750bf"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "Beasts of England": {
+    "chunk_id": [
+      "7b24a3c0-2683-4edf-ae2c-483b1e303298",
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+      "b3f1fda9-9bf1-4fee-82c9-5826694a748b",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "4b1f75fe-2dd1-435c-9487-6796925dc0dd",
+      "29f530f5-c4f5-4451-8589-31abfa22f86c",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "d66ab2df-5d31-429c-8ee3-69c564081682",
+      "65fa2e09-69bf-4680-8d89-b71473c0d079",
+      "924f8876-1059-4f35-82d8-a0cb1cafd572",
+      "3412cd93-b317-420e-9089-8228713c857b",
+      "bdba88cf-49e6-4c86-8d10-f2dc403fae92",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Concept",
+      "Object",
+      "Object",
+      "Object",
+      "Concept",
+      "Concept",
+      "Object",
+      "Object",
+      "Object",
+      "Concept",
+      "Object",
+      "Object",
+      "Object",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "A song",
+        "An old song",
+        "Song"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "England": {
+    "chunk_id": [
+      "7b24a3c0-2683-4edf-ae2c-483b1e303298",
+      "1db6f83d-5b8f-4a81-9aed-f53a7943566c",
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "3b43bcdd-854f-4498-bf04-a6ff8fbe605e",
+      "b3f1fda9-9bf1-4fee-82c9-5826694a748b",
+      "d0cb1fbf-c986-45da-8540-1db4fcdac5e1",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "29f530f5-c4f5-4451-8589-31abfa22f86c",
+      "1ca49fd0-b4aa-4ca8-a5c9-3af443c14fcc",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "924f8876-1059-4f35-82d8-a0cb1cafd572",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "3412cd93-b317-420e-9089-8228713c857b",
+      "b94d36c1-e83c-4263-a269-f0b193eb66cd",
+      "ac5d432d-e5b4-4c0b-ac13-97021358fb1b",
+      "bdba88cf-49e6-4c86-8d10-f2dc403fae92",
+      "99d03598-08cf-4654-95f6-f2700fc8b393",
+      "fd26c8be-740a-4e0d-ad7d-a5352b61ddea",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "this land of ours"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Ireland": {
+    "chunk_id": [
+      "7b24a3c0-2683-4edf-ae2c-483b1e303298",
+      "1db6f83d-5b8f-4a81-9aed-f53a7943566c",
+      "b3f1fda9-9bf1-4fee-82c9-5826694a748b",
+      "d0cb1fbf-c986-45da-8540-1db4fcdac5e1",
+      "29f530f5-c4f5-4451-8589-31abfa22f86c",
+      "1ca49fd0-b4aa-4ca8-a5c9-3af443c14fcc",
+      "924f8876-1059-4f35-82d8-a0cb1cafd572",
+      "3412cd93-b317-420e-9089-8228713c857b",
+      "b94d36c1-e83c-4263-a269-f0b193eb66cd",
+      "bdba88cf-49e6-4c86-8d10-f2dc403fae92",
+      "99d03598-08cf-4654-95f6-f2700fc8b393",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Freedom": {
+    "chunk_id": [
+      "1db6f83d-5b8f-4a81-9aed-f53a7943566c",
+      "d0cb1fbf-c986-45da-8540-1db4fcdac5e1",
+      "99d03598-08cf-4654-95f6-f2700fc8b393"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "farm": {
+    "chunk_id": [
+      "1db6f83d-5b8f-4a81-9aed-f53a7943566c",
+      "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+      "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+      "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "0749c1a5-8786-4984-a9e6-439fa9b2974d",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "5ba01acd-d204-4511-80eb-50ceaab6df2a",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "1ca49fd0-b4aa-4ca8-a5c9-3af443c14fcc",
+      "08651466-1cd9-4f2a-be57-ec396ac28a34",
+      "77654b9a-8833-44e8-99a0-39ac52317007",
+      "44e5c15b-598b-4fc2-8012-6ace4daf630f",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b",
+      "a0c3fd0a-78fd-448d-a6e5-e2a2fdcfb594",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d",
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "b3a35fb7-dfea-4e92-b67e-8733637932a7",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "c0517461-dc3b-41bc-a675-f98017c87263",
+      "ac5d432d-e5b4-4c0b-ac13-97021358fb1b",
+      "7e03dab7-cd82-4346-8803-8a2901b907c4",
+      "83bf5673-5439-4aad-9f9f-309cb49c7a8f",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Organization",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Organization",
+      "Organization",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Organization",
+      "Organization",
+      "Location",
+      "Organization",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Organization",
+      "Organization",
+      "Organization",
+      "Object",
+      "Location",
+      "Object",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "single farm"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "three nights later": {
+    "chunk_id": [
+      "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+      "0749c1a5-8786-4984-a9e6-439fa9b2974d",
+      "08651466-1cd9-4f2a-be57-ec396ac28a34"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "the foot of the orchard": {
+    "chunk_id": [
+      "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+      "0749c1a5-8786-4984-a9e6-439fa9b2974d",
+      "08651466-1cd9-4f2a-be57-ec396ac28a34",
+      "7e03dab7-cd82-4346-8803-8a2901b907c4"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "early in March": {
+    "chunk_id": [
+      "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+      "08651466-1cd9-4f2a-be57-ec396ac28a34",
+      "233bb93c-a3f8-4f08-b895-9280d3998be2"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "the next three months": {
+    "chunk_id": [
+      "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+      "0749c1a5-8786-4984-a9e6-439fa9b2974d",
+      "08651466-1cd9-4f2a-be57-ec396ac28a34"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "the farm": {
+    "chunk_id": [
+      "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+      "2099a28f-152b-4abe-8358-6ec571148c6b"
+    ],
+    "entity_type": [
+      "Location",
+      "Organization"
+    ],
+    "entity_attributes": {}
+  },
+  "death": {
+    "chunk_id": [
+      "ba636e2c-f06e-476b-9413-16eb2b531a8c"
+    ],
+    "entity_type": [
+      "Event"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Major died peacefully in his sleep"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Snowball": {
+    "chunk_id": [
+      "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "58a108ed-1454-4f8a-ad7e-90d50bf232ef",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "5ba01acd-d204-4511-80eb-50ceaab6df2a",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "859c803e-9ea0-4cf6-af2e-e7f0346bf946",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "4b1f75fe-2dd1-435c-9487-6796925dc0dd",
+      "77654b9a-8833-44e8-99a0-39ac52317007",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "44e5c15b-598b-4fc2-8012-6ace4daf630f",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "6f071a8d-5557-4106-b78e-b1fd1a688ca0",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "d66ab2df-5d31-429c-8ee3-69c564081682",
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d",
+      "65fa2e09-69bf-4680-8d89-b71473c0d079",
+      "a21c3e5e-6de4-434b-bab1-401af7f3033c",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "83bf5673-5439-4aad-9f9f-309cb49c7a8f",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "233bb93c-a3f8-4f08-b895-9280d3998be2",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [
+        "Male"
+      ],
+      "description": [
+        "A vivacious pig, quicker in speech and more inventive than Napoleon",
+        "A more vivacious pig than Napoleon, quicker in speech and more inventive, but was not considered to have the same depth of character.",
+        "Pig",
+        "Pig on Animal Farm"
+      ],
+      "role": [
+        "Leader",
+        "Pig",
+        "pig"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Napoleon": {
+    "chunk_id": [
+      "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "5ba01acd-d204-4511-80eb-50ceaab6df2a",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "4b1f75fe-2dd1-435c-9487-6796925dc0dd",
+      "77654b9a-8833-44e8-99a0-39ac52317007",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "44e5c15b-598b-4fc2-8012-6ace4daf630f",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "d66ab2df-5d31-429c-8ee3-69c564081682",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d",
+      "65fa2e09-69bf-4680-8d89-b71473c0d079",
+      "a21c3e5e-6de4-434b-bab1-401af7f3033c",
+      "83bf5673-5439-4aad-9f9f-309cb49c7a8f",
+      "233bb93c-a3f8-4f08-b895-9280d3998be2"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [
+        "Male"
+      ],
+      "description": [
+        "A large, rather fierce-looking Berkshire boar, the only Berkshire on the farm, not much of a talker, but with a reputation for getting his own way.",
+        "A large, rather fierce-looking Berkshire boar, not much of a talker, but with a reputation for getting his own way."
+      ],
+      "role": [
+        "pig",
+        "Pig"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Squealer": {
+    "chunk_id": [
+      "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+      "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "859c803e-9ea0-4cf6-af2e-e7f0346bf946",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "77654b9a-8833-44e8-99a0-39ac52317007",
+      "6f071a8d-5557-4106-b78e-b1fd1a688ca0",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d",
+      "a21c3e5e-6de4-434b-bab1-401af7f3033c",
+      "83bf5673-5439-4aad-9f9f-309cb49c7a8f",
+      "233bb93c-a3f8-4f08-b895-9280d3998be2"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [
+        "Male"
+      ],
+      "description": [
+        "A small fat pig with very round cheeks, twinkling eyes, nimble movements, and a shrill voice. A brilliant talker.",
+        "Pig",
+        "small fat",
+        "A small fat pig with very round cheeks, twinkling eyes, nimble movements, and a shrill voice. He was a brilliant talker",
+        "A small fat pig named Squealer, with very round cheeks, twinkling eyes, nimble movements, and a shrill voice. He was a brilliant talker.",
+        "Pig on Animal Farm"
+      ],
+      "role": [
+        "Supporter",
+        "pig",
+        "Helper",
+        "Assistant",
+        "Pig"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Animalism": {
+    "chunk_id": [
+      "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "58a108ed-1454-4f8a-ad7e-90d50bf232ef",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "859c803e-9ea0-4cf6-af2e-e7f0346bf946",
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "77654b9a-8833-44e8-99a0-39ac52317007",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c",
+      "a21c3e5e-6de4-434b-bab1-401af7f3033c",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "83bf5673-5439-4aad-9f9f-309cb49c7a8f",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "233bb93c-a3f8-4f08-b895-9280d3998be2",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ],
+    "entity_type": [
+      "Concept",
+      "Organization",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Organization",
+      "Concept",
+      "Concept",
+      "Concept",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "A complete system of thought elaborated from old Major's teachings"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "oats": {
+    "chunk_id": [
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "hay": {
+    "chunk_id": [
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "2099a28f-152b-4abe-8358-6ec571148c6b",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Sugarcandy Mountain": {
+    "chunk_id": [
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "mysterious country",
+        "a mysterious country"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "liberty": {
+    "chunk_id": [
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "lump of sugar": {
+    "chunk_id": [
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "linseed cake": {
+    "chunk_id": [
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "4dbe5849-4172-44b1-87e6-cb738e05e1cb",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "pigs": {
+    "chunk_id": [
+      "1a577df6-6547-4397-9444-1765553d0f6c",
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b",
+      "d66ab2df-5d31-429c-8ee3-69c564081682",
+      "b94d36c1-e83c-4263-a269-f0b193eb66cd",
+      "2a39dcde-cdb5-401e-8a6c-aa55e91202f2",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Object",
+      "Person",
+      "Organization",
+      "Person",
+      "Organization",
+      "Object",
+      "Organization",
+      "Person",
+      "Organization",
+      "Person",
+      "Person",
+      "Person",
+      "Person",
+      "Organization",
+      "Organization",
+      "Organization",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "animals who put forward resolutions",
+        "group of pigs",
+        "clever ones",
+        "put forward the resolutions"
+      ],
+      "role": [
+        "Animals",
+        "Teachers"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Windsor chair": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Location",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "kitchen": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "June": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "Midsummer's Eve": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "Saturday": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "Willingdon": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "4b1f75fe-2dd1-435c-9487-6796925dc0dd",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "65fa2e09-69bf-4680-8d89-b71473c0d079",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "Red Lion": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "4b1f75fe-2dd1-435c-9487-6796925dc0dd",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "65fa2e09-69bf-4680-8d89-b71473c0d079",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "3e69cdd1-3084-4ecb-ba9d-a40470eccc96",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "taproom"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Sunday": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "bd60fa74-0b68-4dda-8a9c-79577afcc36d",
+      "24dd128b-6f91-4d07-93ca-e7aef3a44a8d",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "cows": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Organization",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "drawing-room sofa": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165"
+    ],
+    "entity_type": [
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "News of the World": {
+    "chunk_id": [
+      "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+      "ea6abd51-4fa8-4c67-981f-7b947bce3c81",
+      "8dc61846-7e99-4aff-bd7c-eaedf1b2c165",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "whips": {
+    "chunk_id": [
+      "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "c4144324-3744-43a2-9aee-87bd990d85de",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Cruel"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "harness-room": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "d66ab2df-5d31-429c-8ee3-69c564081682",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Object",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "a headquarters for themselves",
+        "as a headquarters"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "stables": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "bits": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "nose-rings": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "dog-chains": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "knives": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "cruel knives"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "lambs": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "well": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "reins": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "halters": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "blinkers": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "nosebags": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "degrading"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "yard": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "horses' manes": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "tails": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "market days": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "small straw hat": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "summer": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "store-shed": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "c4144324-3744-43a2-9aee-87bd990d85de",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "corn": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "73be7f40-d96f-414a-a861-277adfcce90d",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "biscuits": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "the night": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841"
+    ],
+    "entity_type": [
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "dawn": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "pasture": {
+    "chunk_id": [
+      "7c208a56-367a-485c-9053-16a2c63a7841",
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "farmhouse": {
+    "chunk_id": [
+      "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "5ba01acd-d204-4511-80eb-50ceaab6df2a",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "44e5c15b-598b-4fc2-8012-6ace4daf630f",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "museum"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "blue ribbon": {
+    "chunk_id": [
+      "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+      "5ba01acd-d204-4511-80eb-50ceaab6df2a",
+      "44e5c15b-598b-4fc2-8012-6ace4daf630f"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "barrel of beer": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "scullery": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "past three months": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2"
+    ],
+    "entity_type": [
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "old spelling book": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "rubbish heap": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Location",
+      "Object",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "pots of black and white paint": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "five-barred gate": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "main road": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "ladder": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "end wall": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "THE SEVEN COMMANDMENTS": {
+    "chunk_id": [
+      "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+      "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "58a108ed-1454-4f8a-ad7e-90d50bf232ef",
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "859c803e-9ea0-4cf6-af2e-e7f0346bf946",
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6",
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e",
+      "6f071a8d-5557-4106-b78e-b1fd1a688ca0",
+      "a0c3fd0a-78fd-448d-a6e5-e2a2fdcfb594",
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Object",
+      "Concept",
+      "Concept",
+      "Object",
+      "Object",
+      "Object",
+      "Concept",
+      "Object",
+      "Object",
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "A set of rules for the animals",
+        "1. Whatever goes upon two legs is an enemy.\n2. Whatever goes upon four legs, or has wings, is a\nfriend.\n3. No animal shall wear clothes.\n4. No animal shall sleep in a bed.\n5. No animal shall drink alcohol.\n6. No animal shall kill any other animal.\n7. All animals are equal.",
+        "List of Rules"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "tarred wall": {
+    "chunk_id": [
+      "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+      "859c803e-9ea0-4cf6-af2e-e7f0346bf946",
+      "6f071a8d-5557-4106-b78e-b1fd1a688ca0"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "hayfield": {
+    "chunk_id": [
+      "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+      "859c803e-9ea0-4cf6-af2e-e7f0346bf946",
+      "6f071a8d-5557-4106-b78e-b1fd1a688ca0"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "the pigs": {
+    "chunk_id": [
+      "2099a28f-152b-4abe-8358-6ec571148c6b"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [
+        "Leaders"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "the ducks": {
+    "chunk_id": [
+      "2099a28f-152b-4abe-8358-6ec571148c6b"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {}
+  },
+  "the hens": {
+    "chunk_id": [
+      "2099a28f-152b-4abe-8358-6ec571148c6b"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {}
+  },
+  "the cutter": {
+    "chunk_id": [
+      "2099a28f-152b-4abe-8358-6ec571148c6b"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "the horse-rake": {
+    "chunk_id": [
+      "2099a28f-152b-4abe-8358-6ec571148c6b",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "threshing machine": {
+    "chunk_id": [
+      "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "hens": {
+    "chunk_id": [
+      "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+      "58a108ed-1454-4f8a-ad7e-90d50bf232ef",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b",
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c"
+    ],
+    "entity_type": [
+      "Person",
+      "Organization",
+      "Organization",
+      "Person",
+      "Person",
+      "Organization",
+      "Person",
+      "Person",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [
+        "Animal"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "ducks": {
+    "chunk_id": [
+      "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+      "58a108ed-1454-4f8a-ad7e-90d50bf232ef",
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b",
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Person",
+      "Organization",
+      "Organization",
+      "Person",
+      "Organization",
+      "Person",
+      "Person",
+      "Organization",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [
+        "Animal"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "cockerels": {
+    "chunk_id": [
+      "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+      "147d7f8c-5089-498c-952b-18488f2fb898",
+      "f18ef052-24ac-4d86-bb27-62fc9d0ab85b"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [
+        "Animal"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "stone": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Old Benjamin": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "the donkey"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Sundays": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "green tablecloth": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "An old green tablecloth of Mrs. Jones's"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "hoof": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "horn": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "flagstaff": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "in the farmhouse garden"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "farmhouse garden": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb"
+    ],
+    "entity_type": [
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Republic of the Animals": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "which would arise when the human race had been finally overthrown"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "human race": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Meeting": {
+    "chunk_id": [
+      "2045d348-57f8-47d8-a18d-07bc2214257b",
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9"
+    ],
+    "entity_type": [
+      "Event",
+      "Event",
+      "Event",
+      "Event",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "general assembly"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "small paddock": {
+    "chunk_id": [
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "91c18cec-7895-40a0-b748-f54eaeadf011"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "behind the orchard"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Animal Committees": {
+    "chunk_id": [
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "d66ab2df-5d31-429c-8ee3-69c564081682"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Egg Production Committee": {
+    "chunk_id": [
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "d66ab2df-5d31-429c-8ee3-69c564081682"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "for the hens"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Clean Tails League": {
+    "chunk_id": [
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "d66ab2df-5d31-429c-8ee3-69c564081682"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "for the cows"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Wild Comrades' Re-education Committee": {
+    "chunk_id": [
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "d66ab2df-5d31-429c-8ee3-69c564081682"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "to tame the rats and rabbits"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Whiter Wool Movement": {
+    "chunk_id": [
+      "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "d66ab2df-5d31-429c-8ee3-69c564081682"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "for the sheep"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "newspaper": {
+    "chunk_id": [
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "a0c3fd0a-78fd-448d-a6e5-e2a2fdcfb594"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "reading and writing classes": {
+    "chunk_id": [
+      "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+      "a0c3fd0a-78fd-448d-a6e5-e2a2fdcfb594"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "the sheep": {
+    "chunk_id": [
+      "58a108ed-1454-4f8a-ad7e-90d50bf232ef"
+    ],
+    "entity_type": [
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "birds": {
+    "chunk_id": [
+      "58a108ed-1454-4f8a-ad7e-90d50bf232ef",
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "puppies": {
+    "chunk_id": [
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "nine sturdy puppies",
+        "nine sturdy"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "loft": {
+    "chunk_id": [
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "mash": {
+    "chunk_id": [
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "apples": {
+    "chunk_id": [
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Science": {
+    "chunk_id": [
+      "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "pigeons": {
+    "chunk_id": [
+      "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+      "4b1f75fe-2dd1-435c-9487-6796925dc0dd",
+      "65fa2e09-69bf-4680-8d89-b71473c0d079"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "Foxwood": {
+    "chunk_id": [
+      "1965dfef-a33a-4084-89d4-195f18e1407f",
+      "a087f00a-848f-4d58-930c-1ad52daba8d4",
+      "de730b6c-3e6f-406d-ab7b-9ee04099f1c0"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "a large, neglected, old-fashioned farm, much overgrown by woodland, with all its pastures worn out and its hedges in a disgraceful condition",
+        "A large, neglected, old-fashioned farm",
+        "a large, neglected, old-fashioned farm, much overgrown by woodland, with all its pastures worn out and its hedges in a disgraceful condition."
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Mr. Pilkington": {
+    "chunk_id": [
+      "1965dfef-a33a-4084-89d4-195f18e1407f",
+      "a087f00a-848f-4d58-930c-1ad52daba8d4",
+      "de730b6c-3e6f-406d-ab7b-9ee04099f1c0"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "an easy-going gentleman farmer",
+        "an easy-going gentleman farmer who spent most of his time in fishing or hunting according to the season",
+        "An easy-going gentleman farmer"
+      ],
+      "role": [
+        "Owner"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Pinchfield": {
+    "chunk_id": [
+      "1965dfef-a33a-4084-89d4-195f18e1407f",
+      "a087f00a-848f-4d58-930c-1ad52daba8d4",
+      "de730b6c-3e6f-406d-ab7b-9ee04099f1c0"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Smaller and better kept farm",
+        "smaller and better kept"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Mr. Frederick": {
+    "chunk_id": [
+      "1965dfef-a33a-4084-89d4-195f18e1407f",
+      "a087f00a-848f-4d58-930c-1ad52daba8d4",
+      "de730b6c-3e6f-406d-ab7b-9ee04099f1c0"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "a tough, shrewd man, perpetually involved in lawsuits and with a name for driving hard bargains",
+        "a tough, shrewd man",
+        "A tough, shrewd man"
+      ],
+      "role": [
+        "Owner"
+      ],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Harcourt, Brace": {
+    "chunk_id": [
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94b5953c-2367-4bf5-84e3-76443d51e570",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {}
+  },
+  "Canada": {
+    "chunk_id": [
+      "97861e77-66a5-4745-8813-e7e3abc55ef9",
+      "94c45580-063c-4931-a8f2-b391d2871418",
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "55ac114c-edf5-45e7-8fa2-a18ffa9afa02",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "book": {
+    "chunk_id": [
+      "0e5664e9-283c-4862-a41b-550d63aec5b8"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "bed of straw": {
+    "chunk_id": [
+      "ccd3c3d1-2285-43f8-81e7-25080c05ed60",
+      "26a30b44-77b0-4b38-8352-a75493c284d4",
+      "22dae67e-c726-4b4a-b914-ea7fd0b89849",
+      "f09c1ca9-aa95-442b-b1be-d641812f1f44"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "small paddock behind the orchard": {
+    "chunk_id": [
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "d66ab2df-5d31-429c-8ee3-69c564081682",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "a home of rest for animals who were past work"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "red ribbons": {
+    "chunk_id": [
+      "63cd4bb5-0aa8-452b-bc5a-72ab27fb67eb",
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Earth": {
+    "chunk_id": [
+      "3b43bcdd-854f-4498-bf04-a6ff8fbe605e",
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "a9cd7bad-8b92-4502-a7e7-794ac270e2c9",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de"
+    ],
+    "entity_type": [
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "tyranny of human beings": {
+    "chunk_id": [
+      "f8af89c3-2e50-4b97-9cab-c684493300b3"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "silence": {
+    "chunk_id": [
+      "5fde1424-8710-4376-9eb3-924101fe5286",
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "Comradeship": {
+    "chunk_id": [
+      "5fde1424-8710-4376-9eb3-924101fe5286"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "duty of enmity": {
+    "chunk_id": [
+      "5fde1424-8710-4376-9eb3-924101fe5286"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "equality": {
+    "chunk_id": [
+      "5fde1424-8710-4376-9eb3-924101fe5286"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "every land": {
+    "chunk_id": [
+      "d0cb1fbf-c986-45da-8540-1db4fcdac5e1"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "clime": {
+    "chunk_id": [
+      "d0cb1fbf-c986-45da-8540-1db4fcdac5e1"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "the golden future time": {
+    "chunk_id": [
+      "d0cb1fbf-c986-45da-8540-1db4fcdac5e1",
+      "99d03598-08cf-4654-95f6-f2700fc8b393"
+    ],
+    "entity_type": [
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "March": {
+    "chunk_id": [
+      "0749c1a5-8786-4984-a9e6-439fa9b2974d",
+      "c0517461-dc3b-41bc-a675-f98017c87263",
+      "7e03dab7-cd82-4346-8803-8a2901b907c4"
+    ],
+    "entity_type": [
+      "Time",
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "bins": {
+    "chunk_id": [
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "men": {
+    "chunk_id": [
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e",
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "bedroom window": {
+    "chunk_id": [
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "possessions": {
+    "chunk_id": [
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "carpet bag": {
+    "chunk_id": [
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "cart-track": {
+    "chunk_id": [
+      "e6abb386-8ac2-4efd-9fd3-12514a37676e"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "rubbish fire": {
+    "chunk_id": [
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "human being": {
+    "chunk_id": [
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "straw hat": {
+    "chunk_id": [
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9",
+      "73be7f40-d96f-414a-a861-277adfcce90d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "flies": {
+    "chunk_id": [
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "dog": {
+    "chunk_id": [
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "night": {
+    "chunk_id": [
+      "ea7d5f9b-5535-494c-bc11-f885333b99f9"
+    ],
+    "entity_type": [
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "Today": {
+    "chunk_id": [
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Time",
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "hay harvest": {
+    "chunk_id": [
+      "40da5307-49cf-42f2-8715-bf1d4bcc6ca5",
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Event",
+      "Event"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "paint-pot": {
+    "chunk_id": [
+      "859c803e-9ea0-4cf6-af2e-e7f0346bf946",
+      "6f071a8d-5557-4106-b78e-b1fd1a688ca0"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "paint-brush": {
+    "chunk_id": [
+      "859c803e-9ea0-4cf6-af2e-e7f0346bf946",
+      "6f071a8d-5557-4106-b78e-b1fd1a688ca0"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "horses": {
+    "chunk_id": [
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Organization",
+      "Person",
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "implements": {
+    "chunk_id": [
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "tool": {
+    "chunk_id": [
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "cutter": {
+    "chunk_id": [
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "harvest": {
+    "chunk_id": [
+      "d554eaec-e519-4f7f-9a92-765e105ef33b",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Event",
+      "Event"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "old green tablecloth": {
+    "chunk_id": [
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "flag": {
+    "chunk_id": [
+      "4877a649-7b6a-4cee-9a46-8722001ec2bb",
+      "a9d3b1f6-3aff-408a-92e2-aa92cadb07d4"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "home of rest": {
+    "chunk_id": [
+      "9f511b04-302c-4626-a20a-9bf53f559ccf"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "animals": {
+    "chunk_id": [
+      "9f511b04-302c-4626-a20a-9bf53f559ccf"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "animals who were past work"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "books": {
+    "chunk_id": [
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "d66ab2df-5d31-429c-8ee3-69c564081682"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "which they had brought out of the farmhouse"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "sheep": {
+    "chunk_id": [
+      "9f511b04-302c-4626-a20a-9bf53f559ccf",
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Person",
+      "Organization",
+      "Organization",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "scraps of newspaper": {
+    "chunk_id": [
+      "28ee959e-b2d1-43a1-b5f4-d08c356ccad6"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "animals on the farm": {
+    "chunk_id": [
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "field": {
+    "chunk_id": [
+      "245ab2b2-4ddc-4c17-8d08-7282d55fb106",
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Location",
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "committees": {
+    "chunk_id": [
+      "0a62f490-aa5a-4d52-a336-2de1983afbfb"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "May 2011": {
+    "chunk_id": [
+      "94b5953c-2367-4bf5-84e3-76443d51e570"
+    ],
+    "entity_type": [
+      "Time"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Date first posted"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "THE HADDON CRAFTSMEN": {
+    "chunk_id": [
+      "83b81c0d-9a89-469c-bcdb-6988cc6e05b8",
+      "333c554c-cfe3-4d60-8a41-b1d1f4e69d3e",
+      "b426ca22-b1ec-492f-be71-765044a8bb89",
+      "240d6c0e-b946-4217-a808-a22f4fda0bfa"
+    ],
+    "entity_type": [
+      "Organization",
+      "Organization",
+      "Organization",
+      "Organization"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "white mane": {
+    "chunk_id": [
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "perch": {
+    "chunk_id": [
+      "bab66fda-64be-4074-8bd3-be259c6817c8",
+      "91c18cec-7895-40a0-b748-f54eaeadf011",
+      "42eedbd9-3dc1-4823-818e-c9428ccca156",
+      "7dcc7954-db7a-4a18-8978-00c0f570fcc1"
+    ],
+    "entity_type": [
+      "Object",
+      "Object",
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "tyranny": {
+    "chunk_id": [
+      "623335ee-048b-40cf-9461-c9c5bda5845d",
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "comrades": {
+    "chunk_id": [
+      "fa3c1c1a-9bc4-48df-bad6-baaf8a076f95"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "song": {
+    "chunk_id": [
+      "1ca49fd0-b4aa-4ca8-a5c9-3af443c14fcc",
+      "b94d36c1-e83c-4263-a269-f0b193eb66cd"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "Beasts of England"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Life": {
+    "chunk_id": [
+      "08651466-1cd9-4f2a-be57-ec396ac28a34",
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "the nature of life on this earth",
+        "The nature of life on this earth"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "museum": {
+    "chunk_id": [
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "spelling book": {
+    "chunk_id": [
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Mr. Jones's children": {
+    "chunk_id": [
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "end wall of the big barn": {
+    "chunk_id": [
+      "a5de1cc3-cee5-454e-836b-d3d88c06717e"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "wastage": {
+    "chunk_id": [
+      "ae13ca02-fba9-4b3f-a3aa-3d17d2d45cf4"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "wing": {
+    "chunk_id": [
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "hand": {
+    "chunk_id": [
+      "f1c61513-5f7e-4db6-9c19-77d56bae1c3c"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "windfalls": {
+    "chunk_id": [
+      "b3a5e4f6-791b-49ab-9df5-17d69f84089d"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "late summer": {
+    "chunk_id": [
+      "65fa2e09-69bf-4680-8d89-b71473c0d079"
+    ],
+    "entity_type": [
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "boots": {
+    "chunk_id": [
+      "006d1c95-d8ea-461e-a967-f66414acb9e4",
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "Eric Arthur Blair": {
+    "chunk_id": [
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5",
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4"
+    ],
+    "entity_type": [
+      "Person",
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [
+        "Author"
+      ],
+      "name": [],
+      "birthDate": [
+        "1903"
+      ],
+      "deathDate": [
+        "1950"
+      ],
+      "affiliation": []
+    }
+  },
+  "Ebook": {
+    "chunk_id": [
+      "6a6c7db1-c470-4d79-9a5e-be92c7b394a5"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "glass of beer": {
+    "chunk_id": [
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "barrel": {
+    "chunk_id": [
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "bedroom": {
+    "chunk_id": [
+      "b90ba53a-fbda-4077-ae05-31b7ee40f0ad"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "happiness": {
+    "chunk_id": [
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "ac5d432d-e5b4-4c0b-ac13-97021358fb1b"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "Leisure": {
+    "chunk_id": [
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "ac5d432d-e5b4-4c0b-ac13-97021358fb1b"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "Misery": {
+    "chunk_id": [
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "ac5d432d-e5b4-4c0b-ac13-97021358fb1b"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "Slavery": {
+    "chunk_id": [
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "ac5d432d-e5b4-4c0b-ac13-97021358fb1b"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "Soil": {
+    "chunk_id": [
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "The soil of England"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "hunger": {
+    "chunk_id": [
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "ac5d432d-e5b4-4c0b-ac13-97021358fb1b"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "overwork": {
+    "chunk_id": [
+      "09a4f24c-d8f6-46e4-8656-6e080cd8c509",
+      "8c7cde7d-631e-4a3f-aa53-ac8c2ecd7d53",
+      "ac5d432d-e5b4-4c0b-ac13-97021358fb1b"
+    ],
+    "entity_type": [
+      "Concept",
+      "Concept",
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "produce": {
+    "chunk_id": [
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "labour": {
+    "chunk_id": [
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "prosperity": {
+    "chunk_id": [
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "interest": {
+    "chunk_id": [
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "perfect unity": {
+    "chunk_id": [
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "perfect comradeship": {
+    "chunk_id": [
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "brick": {
+    "chunk_id": [
+      "f7027260-bc1b-4bbe-a622-2f588b67d01c",
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "pond": {
+    "chunk_id": [
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "week": {
+    "chunk_id": [
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d"
+    ],
+    "entity_type": [
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "hundred years": {
+    "chunk_id": [
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d"
+    ],
+    "entity_type": [
+      "Time"
+    ],
+    "entity_attributes": {}
+  },
+  "straw": {
+    "chunk_id": [
+      "2acc98e2-31e1-4121-bfe3-ecc2e27be67d"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "enmity": {
+    "chunk_id": [
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "habits": {
+    "chunk_id": [
+      "d706589e-e862-4d8b-9c68-8471f7c6d3de"
+    ],
+    "entity_type": [
+      "Concept"
+    ],
+    "entity_attributes": {}
+  },
+  "New York: Harcourt, Brace": {
+    "chunk_id": [
+      "78540b46-2838-4fd4-9bfb-17c38c88dbb4"
+    ],
+    "entity_type": [
+      "Organization"
+    ],
+    "entity_attributes": {}
+  },
+  "Rings": {
+    "chunk_id": [
+      "bdba88cf-49e6-4c86-8d10-f2dc403fae92",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "For our noses"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Harness": {
+    "chunk_id": [
+      "bdba88cf-49e6-4c86-8d10-f2dc403fae92",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object",
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [
+        "For our back"
+      ],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "pig": {
+    "chunk_id": [
+      "8d67d46a-e938-4d0e-8109-f09b76245f60"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {}
+  },
+  "mother": {
+    "chunk_id": [
+      "8d67d46a-e938-4d0e-8109-f09b76245f60"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {}
+  },
+  "Bit": {
+    "chunk_id": [
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Spur": {
+    "chunk_id": [
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Wheat": {
+    "chunk_id": [
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Barley": {
+    "chunk_id": [
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Beans": {
+    "chunk_id": [
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Mangel-wurzels": {
+    "chunk_id": [
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Geese": {
+    "chunk_id": [
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "Turkeys": {
+    "chunk_id": [
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077"
+    ],
+    "entity_type": [
+      "Person"
+    ],
+    "entity_attributes": {
+      "gender": [],
+      "description": [],
+      "role": [],
+      "name": [],
+      "birthDate": [],
+      "deathDate": [],
+      "affiliation": []
+    }
+  },
+  "gun": {
+    "chunk_id": [
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "corner of his bedroom": {
+    "chunk_id": [
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "number 6 shot": {
+    "chunk_id": [
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  },
+  "wall of the barn": {
+    "chunk_id": [
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "drawing-room": {
+    "chunk_id": [
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Location"
+    ],
+    "entity_attributes": {}
+  },
+  "sofa": {
+    "chunk_id": [
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc"
+    ],
+    "entity_type": [
+      "Object"
+    ],
+    "entity_attributes": {}
+  }
+}

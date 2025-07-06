@@ -1,0 +1,610 @@
+[
+    {
+        "chunk_id": "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+        "relation_set": [
+            {
+                "chunk_id": "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+                "head": "hen-houses",
+                "relation": "partOf",
+                "tail": "Manor Farm"
+            },
+            {
+                "chunk_id": "7d6c78d5-714d-4f9f-8263-a72ab29461fd",
+                "head": "Mr. Jones",
+                "relation": "locatedIn",
+                "tail": "Manor Farm"
+            }
+        ]
+    },
+    {
+        "chunk_id": "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+        "relation_set": [
+            {
+                "chunk_id": "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+                "head": "Boxer",
+                "relation": "locatedIn",
+                "tail": "paddock"
+            },
+            {
+                "chunk_id": "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+                "head": "paddock",
+                "relation": "partOf",
+                "tail": "orchard"
+            },
+            {
+                "chunk_id": "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+                "head": "Mollie",
+                "relation": "possesses",
+                "tail": "trap"
+            },
+            {
+                "chunk_id": "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+                "head": "cat",
+                "relation": "locatedIn",
+                "tail": "barn"
+            },
+            {
+                "chunk_id": "7dd9453c-a6b0-4d14-919f-d4b6280f4e7c",
+                "head": "Moses",
+                "relation": "locatedIn",
+                "tail": "back door"
+            }
+        ]
+    },
+    {
+        "chunk_id": "77d41bb2-a31c-4bc8-b622-7bf030c1cdfb",
+        "relation_set": [
+            {
+                "chunk_id": "77d41bb2-a31c-4bc8-b622-7bf030c1cdfb",
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "milk"
+            },
+            {
+                "chunk_id": "77d41bb2-a31c-4bc8-b622-7bf030c1cdfb",
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "eggs"
+            }
+        ]
+    },
+    {
+        "chunk_id": "64d76ce2-9421-4848-9e63-6216043176b8",
+        "relation_set": [
+            {
+                "chunk_id": "64d76ce2-9421-4848-9e63-6216043176b8",
+                "head": "dogs",
+                "relation": "partOf",
+                "tail": "Jones"
+            }
+        ]
+    },
+    {
+        "chunk_id": "7b24a3c0-2683-4edf-ae2c-483b1e303298",
+        "relation_set": [
+            {
+                "chunk_id": "7b24a3c0-2683-4edf-ae2c-483b1e303298",
+                "head": "Old Major",
+                "relation": "createdBy",
+                "tail": "Beasts of England"
+            }
+        ]
+    },
+    {
+        "chunk_id": "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+        "relation_set": [
+            {
+                "chunk_id": "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+                "head": "Major",
+                "relation": "happensAt",
+                "tail": "death"
+            },
+            {
+                "chunk_id": "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+                "head": "Major",
+                "relation": "occursDuring",
+                "tail": "Three nights later"
+            },
+            {
+                "chunk_id": "ba636e2c-f06e-476b-9413-16eb2b531a8c",
+                "head": "Major",
+                "relation": "occursDuring",
+                "tail": "early in March"
+            }
+        ]
+    },
+    {
+        "chunk_id": "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+        "relation_set": [
+            {
+                "chunk_id": "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+                "head": "Snowball",
+                "relation": "partOf",
+                "tail": "farm"
+            },
+            {
+                "chunk_id": "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+                "head": "Napoleon",
+                "relation": "partOf",
+                "tail": "farm"
+            },
+            {
+                "chunk_id": "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+                "head": "Squealer",
+                "relation": "partOf",
+                "tail": "farm"
+            },
+            {
+                "chunk_id": "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+                "head": "Snowball",
+                "relation": "createdBy",
+                "tail": "Animalism"
+            },
+            {
+                "chunk_id": "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+                "head": "Napoleon",
+                "relation": "createdBy",
+                "tail": "Animalism"
+            },
+            {
+                "chunk_id": "69a5a006-fdb6-49c0-95e1-d4a15426e7a6",
+                "head": "Squealer",
+                "relation": "createdBy",
+                "tail": "Animalism"
+            }
+        ]
+    },
+    {
+        "chunk_id": "1a577df6-6547-4397-9444-1765553d0f6c",
+        "relation_set": [
+            {
+                "chunk_id": "1a577df6-6547-4397-9444-1765553d0f6c",
+                "head": "Mr. Jones",
+                "relation": "possesses",
+                "tail": "Moses"
+            },
+            {
+                "chunk_id": "1a577df6-6547-4397-9444-1765553d0f6c",
+                "head": "Moses",
+                "relation": "knows",
+                "tail": "Sugarcandy Mountain"
+            },
+            {
+                "chunk_id": "1a577df6-6547-4397-9444-1765553d0f6c",
+                "head": "pigs",
+                "relation": "partOf",
+                "tail": "Animalism"
+            }
+        ]
+    },
+    {
+        "chunk_id": "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+        "relation_set": [
+            {
+                "chunk_id": "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+                "head": "Boxer",
+                "relation": "partOf",
+                "tail": "pigs"
+            },
+            {
+                "chunk_id": "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+                "head": "Clover",
+                "relation": "partOf",
+                "tail": "pigs"
+            },
+            {
+                "chunk_id": "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+                "head": "Mr. Jones",
+                "relation": "possesses",
+                "tail": "Windsor chair"
+            },
+            {
+                "chunk_id": "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+                "head": "Mr. Jones",
+                "relation": "locatedIn",
+                "tail": "Willingdon"
+            },
+            {
+                "chunk_id": "9bbb21e2-2fa7-4e97-9672-632d18e78883",
+                "head": "Mr. Jones",
+                "relation": "happensAt",
+                "tail": "Red Lion"
+            }
+        ]
+    },
+    {
+        "chunk_id": "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+        "relation_set": [
+            {
+                "chunk_id": "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+                "head": "Mr. Jones",
+                "relation": "possesses",
+                "tail": "whips"
+            },
+            {
+                "chunk_id": "c2b4c54d-f81d-47fb-a292-dce243a1db95",
+                "head": "Rebellion",
+                "relation": "happensAt",
+                "tail": "Manor Farm"
+            }
+        ]
+    },
+    {
+        "chunk_id": "7c208a56-367a-485c-9053-16a2c63a7841",
+        "relation_set": [
+            {
+                "chunk_id": "7c208a56-367a-485c-9053-16a2c63a7841",
+                "head": "farm buildings",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            },
+            {
+                "chunk_id": "7c208a56-367a-485c-9053-16a2c63a7841",
+                "head": "harness-room",
+                "relation": "partOf",
+                "tail": "stables"
+            },
+            {
+                "chunk_id": "7c208a56-367a-485c-9053-16a2c63a7841",
+                "head": "horses' manes",
+                "relation": "partOf",
+                "tail": "horses' manes"
+            },
+            {
+                "chunk_id": "7c208a56-367a-485c-9053-16a2c63a7841",
+                "head": "tails",
+                "relation": "partOf",
+                "tail": "tails"
+            }
+        ]
+    },
+    {
+        "chunk_id": "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+        "relation_set": [
+            {
+                "chunk_id": "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+                "head": "Snowball",
+                "relation": "partOf",
+                "tail": "farm"
+            },
+            {
+                "chunk_id": "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+                "head": "Napoleon",
+                "relation": "partOf",
+                "tail": "farm"
+            },
+            {
+                "chunk_id": "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+                "head": "Mollie",
+                "relation": "partOf",
+                "tail": "farm"
+            },
+            {
+                "chunk_id": "ee8acae9-374f-4eeb-8e0f-980418b036a7",
+                "head": "Mrs. Jones",
+                "relation": "possesses",
+                "tail": "blue ribbon"
+            }
+        ]
+    },
+    {
+        "chunk_id": "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+        "relation_set": [
+            {
+                "chunk_id": "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+                "head": "Mr. Jones",
+                "relation": "possesses",
+                "tail": "old spelling book"
+            },
+            {
+                "chunk_id": "f6cdcc31-ccc4-4134-8651-fd2d718102c2",
+                "head": "Snowball",
+                "relation": "createdBy",
+                "tail": "ANIMAL FARM"
+            }
+        ]
+    },
+    {
+        "chunk_id": "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+        "relation_set": [
+            {
+                "chunk_id": "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+                "head": "Snowball",
+                "relation": "partOf",
+                "tail": "Animal Farm"
+            },
+            {
+                "chunk_id": "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+                "head": "Squealer",
+                "relation": "partOf",
+                "tail": "Animal Farm"
+            },
+            {
+                "chunk_id": "05f4096c-2c49-41b5-9795-43dbe9c0eb8b",
+                "head": "The Seven Commandments",
+                "relation": "happensAt",
+                "tail": "tarred wall"
+            }
+        ]
+    },
+    {
+        "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+        "relation_set": [
+            {
+                "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+                "head": "Boxer",
+                "relation": "participatesIn",
+                "tail": "the cutter"
+            },
+            {
+                "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+                "head": "Clover",
+                "relation": "participatesIn",
+                "tail": "the cutter"
+            },
+            {
+                "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+                "head": "Boxer",
+                "relation": "participatesIn",
+                "tail": "the horse-rake"
+            },
+            {
+                "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+                "head": "Clover",
+                "relation": "participatesIn",
+                "tail": "the horse-rake"
+            },
+            {
+                "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+                "head": "the pigs",
+                "relation": "locatedIn",
+                "tail": "the farm"
+            },
+            {
+                "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+                "head": "Boxer",
+                "relation": "locatedIn",
+                "tail": "the farm"
+            },
+            {
+                "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+                "head": "Clover",
+                "relation": "locatedIn",
+                "tail": "the farm"
+            },
+            {
+                "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+                "head": "the ducks",
+                "relation": "locatedIn",
+                "tail": "the farm"
+            },
+            {
+                "chunk_id": "2099a28f-152b-4abe-8358-6ec571148c6b",
+                "head": "the hens",
+                "relation": "locatedIn",
+                "tail": "the farm"
+            }
+        ]
+    },
+    {
+        "chunk_id": "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+        "relation_set": [
+            {
+                "chunk_id": "04b9b61a-b40f-422a-a35d-3cda60c4da5d",
+                "head": "Boxer",
+                "relation": "participatesIn",
+                "tail": "farm"
+            }
+        ]
+    },
+    {
+        "chunk_id": "2045d348-57f8-47d8-a18d-07bc2214257b",
+        "relation_set": [
+            {
+                "chunk_id": "2045d348-57f8-47d8-a18d-07bc2214257b",
+                "head": "Snowball",
+                "relation": "createdBy",
+                "tail": "hoof"
+            },
+            {
+                "chunk_id": "2045d348-57f8-47d8-a18d-07bc2214257b",
+                "head": "Snowball",
+                "relation": "createdBy",
+                "tail": "horn"
+            },
+            {
+                "chunk_id": "2045d348-57f8-47d8-a18d-07bc2214257b",
+                "head": "England",
+                "relation": "partOf",
+                "tail": "Republic of the Animals"
+            }
+        ]
+    },
+    {
+        "chunk_id": "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+        "relation_set": [
+            {
+                "chunk_id": "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+                "head": "Snowball",
+                "relation": "partOf",
+                "tail": "Animal Committees"
+            },
+            {
+                "chunk_id": "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+                "head": "Napoleon",
+                "relation": "partOf",
+                "tail": "Animal Committees"
+            },
+            {
+                "chunk_id": "4a2a6dd6-41cd-4404-b5cf-ae2a12a114d8",
+                "head": "cat",
+                "relation": "partOf",
+                "tail": "Wild Comrades' Re-education Committee"
+            }
+        ]
+    },
+    {
+        "chunk_id": "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+        "relation_set": [
+            {
+                "chunk_id": "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+                "head": "Muriel",
+                "relation": "locatedIn",
+                "tail": "Farm"
+            },
+            {
+                "chunk_id": "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+                "head": "Benjamin",
+                "relation": "locatedIn",
+                "tail": "Farm"
+            },
+            {
+                "chunk_id": "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+                "head": "Clover",
+                "relation": "locatedIn",
+                "tail": "Farm"
+            },
+            {
+                "chunk_id": "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+                "head": "Boxer",
+                "relation": "locatedIn",
+                "tail": "Farm"
+            },
+            {
+                "chunk_id": "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+                "head": "Mollie",
+                "relation": "locatedIn",
+                "tail": "Farm"
+            },
+            {
+                "chunk_id": "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+                "head": "dogs",
+                "relation": "locatedIn",
+                "tail": "Farm"
+            },
+            {
+                "chunk_id": "3bad279f-6c1f-4055-b33e-ded0b73f8c32",
+                "head": "pigs",
+                "relation": "locatedIn",
+                "tail": "Farm"
+            }
+        ]
+    },
+    {
+        "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+        "relation_set": [
+            {
+                "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+                "head": "puppies",
+                "relation": "partOf",
+                "tail": "Jessie"
+            },
+            {
+                "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+                "head": "puppies",
+                "relation": "partOf",
+                "tail": "Bluebell"
+            },
+            {
+                "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+                "head": "puppies",
+                "relation": "locatedIn",
+                "tail": "loft"
+            },
+            {
+                "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+                "head": "loft",
+                "relation": "partOf",
+                "tail": "harness-room"
+            },
+            {
+                "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+                "head": "mash",
+                "relation": "partOf",
+                "tail": "pigs"
+            },
+            {
+                "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+                "head": "Squealer",
+                "relation": "partOf",
+                "tail": "pigs"
+            },
+            {
+                "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+                "head": "farm",
+                "relation": "partOf",
+                "tail": "orchard"
+            },
+            {
+                "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+                "head": "Snowball",
+                "relation": "partOf",
+                "tail": "pigs"
+            },
+            {
+                "chunk_id": "79d1342e-a0a2-4b0a-a30b-6f1673a058b6",
+                "head": "Napoleon",
+                "relation": "partOf",
+                "tail": "pigs"
+            }
+        ]
+    },
+    {
+        "chunk_id": "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+        "relation_set": [
+            {
+                "chunk_id": "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+                "head": "Snowball",
+                "relation": "partOf",
+                "tail": "Animal Farm"
+            },
+            {
+                "chunk_id": "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+                "head": "Napoleon",
+                "relation": "partOf",
+                "tail": "Animal Farm"
+            },
+            {
+                "chunk_id": "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+                "head": "Mr. Jones",
+                "relation": "locatedIn",
+                "tail": "Red Lion"
+            },
+            {
+                "chunk_id": "e74efcd2-6a32-4207-ab85-23143dbd8ba7",
+                "head": "Red Lion",
+                "relation": "locatedIn",
+                "tail": "Willingdon"
+            }
+        ]
+    },
+    {
+        "chunk_id": "1965dfef-a33a-4084-89d4-195f18e1407f",
+        "relation_set": [
+            {
+                "chunk_id": "1965dfef-a33a-4084-89d4-195f18e1407f",
+                "head": "Foxwood",
+                "relation": "partOf",
+                "tail": "Animal Farm"
+            },
+            {
+                "chunk_id": "1965dfef-a33a-4084-89d4-195f18e1407f",
+                "head": "Mr. Pilkington",
+                "relation": "possesses",
+                "tail": "Foxwood"
+            },
+            {
+                "chunk_id": "1965dfef-a33a-4084-89d4-195f18e1407f",
+                "head": "Pinchfield",
+                "relation": "partOf",
+                "tail": "Animal Farm"
+            },
+            {
+                "chunk_id": "1965dfef-a33a-4084-89d4-195f18e1407f",
+                "head": "Mr. Frederick",
+                "relation": "possesses",
+                "tail": "Pinchfield"
+            }
+        ]
+    }
+]

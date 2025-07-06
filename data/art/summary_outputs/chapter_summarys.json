@@ -1,0 +1,83 @@
+[
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "chapter_seq": 0,
+    "summary": "Old Major, a respected boar, gathers the animals of Manor Farm to share his dream and wisdom, foretelling his death. He argues that their miserable lives stem from human exploitation, where humans consume without producing, stealing the fruits of animal labor, and leading to cruel deaths. He urges rebellion, advocating for animal unity against humans, teaching them the song \"Beasts of England\" about a future where animals are free and equal. The animals embrace the song, creating a ruckus that awakens Mr. Jones, who fires a shot, dispersing them. Major emphasizes enmity towards Man and warns against adopting human vices, advocating for equality and prohibiting animals from harming each other. He wants them to pass on the message to future generations.",
+    "type": "chapter_summary",
+    "source_chunk_ids": [
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e",
+      "8d67d46a-e938-4d0e-8109-f09b76245f60",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "aea3d87a-1594-49b6-a5cd-8cb4dbacf3fb",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "fc3ecf08-f564-40de-bc43-0232d06f5130",
+      "fd26c8be-740a-4e0d-ad7d-a5352b61ddea"
+    ]
+  },
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "chapter_seq": 1,
+    "summary": "After Major's death, pigs (Snowball, Napoleon, Squealer) secretly planned the Rebellion, systematizing his ideas into Animalism, facing resistance due to loyalty to Mr. Jones or concerns about survival. The pigs taught Animalism, singing 'Beasts of England' at clandestine meetings. The Rebellion erupted prematurely due to Mr. Jones's neglect and drunkenness, leading to the animals' hunger and revolt. The pigs struggled to convince all animals; some were apathetic, focused on immediate needs, or questioned the rebellion's value. Mollie feared losing luxuries, while Moses spread tales of Sugarcandy Mountain, which the pigs refuted. Boxer and Clover became the pigs' dedicated followers, promoting Animalism.",
+    "type": "chapter_summary",
+    "source_chunk_ids": [
+      "233bb93c-a3f8-4f08-b895-9280d3998be2",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ]
+  },
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "chapter_seq": 0,
+    "summary": "Old Major, a respected boar, gathers the animals of Manor Farm to share a dream of a world free from human tyranny. He attributes their miserable lives to humans who exploit their labor, stealing their produce and ultimately leading them to cruel deaths. He advocates rebellion, urging unity among animals and identifying humans as the enemy. He teaches them \"Beasts of England,\" a song about animal liberation, which they sing with enthusiasm. The noise awakens Mr. Jones, the farm owner, who fires a shot, ending the meeting but planting the seed of rebellion. Old Major emphasizes the importance of passing on the message of rebellion to future generations",
+    "type": "chapter_summary",
+    "source_chunk_ids": [
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e",
+      "8d67d46a-e938-4d0e-8109-f09b76245f60",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "aea3d87a-1594-49b6-a5cd-8cb4dbacf3fb",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "fc3ecf08-f564-40de-bc43-0232d06f5130",
+      "fd26c8be-740a-4e0d-ad7d-a5352b61ddea"
+    ]
+  },
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "chapter_seq": 1,
+    "summary": "After Major's death, pigs (Snowball, Napoleon, and Squealer) secretly planned the Rebellion, developing Animalism based on Major's ideas. They faced resistance from animals loyal to Mr. Jones or concerned about survival, while Mollie worried about losing luxuries, and Moses spoke of Sugarcandy Mountain. Despite challenges, the pigs spread Animalism, aided by loyal followers like Boxer and Clover. The Rebellion occurred prematurely due to Mr. Jones's neglect and the animals' starvation, leading to their revolt on Midsummer's Eve.",
+    "type": "chapter_summary",
+    "source_chunk_ids": [
+      "233bb93c-a3f8-4f08-b895-9280d3998be2",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ]
+  },
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "chapter_seq": 0,
+    "summary": "Old Major, a respected boar, gathers the animals of Manor Farm to share his dream of a world free from human tyranny. He attributes their suffering to humans who exploit their labor, stealing their produce and offering little in return. He envisions a rebellion where animals seize the fruits of their labor and live in equality, emphasizing unity and identifying humans as the enemy. He teaches them \"Beasts of England,\" a song of animal liberation. The animals sing it enthusiastically, awakening Mr. Jones and ending the meeting.",
+    "type": "chapter_summary",
+    "source_chunk_ids": [
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e",
+      "8d67d46a-e938-4d0e-8109-f09b76245f60",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "aea3d87a-1594-49b6-a5cd-8cb4dbacf3fb",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "fc3ecf08-f564-40de-bc43-0232d06f5130",
+      "fd26c8be-740a-4e0d-ad7d-a5352b61ddea"
+    ]
+  },
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "chapter_seq": 1,
+    "summary": "After Major's death, the pigs, led by Snowball, Napoleon, and Squealer, secretly planned the Rebellion, developing Animalism from Major's ideas and teaching it to the other animals in clandestine meetings. They faced resistance from animals loyal to Mr. Jones or concerned about the practicalities of rebellion. The pigs spread Animalism despite challenges like Mollie's materialism and Moses's tales of Sugarcandy Mountain. Boxer and Clover became key, unquestioning followers. The Rebellion occurred prematurely due to Mr. Jones's neglect and the farm's deteriorating conditions, sparked by the animals being left unfed on Midsummer's Eve.",
+    "type": "chapter_summary",
+    "source_chunk_ids": [
+      "233bb93c-a3f8-4f08-b895-9280d3998be2",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ]
+  }
+]

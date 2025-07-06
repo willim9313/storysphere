@@ -1,0 +1,75 @@
+[
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "chapter_seq": 0,
+    "keyword_scores": {
+      "england": 0.18,
+      "man": 0.14,
+      "comrades": 0.14,
+      "dogs": 0.13,
+      "beasts": 0.12,
+      "animals": 0.1,
+      "animal": 0.08,
+      "major": 0.07,
+      "pig": 0.06,
+      "jones": 0.05
+    },
+    "keywords": [
+      "england",
+      "man",
+      "comrades",
+      "dogs",
+      "beasts",
+      "animals",
+      "animal",
+      "major",
+      "pig",
+      "jones"
+    ],
+    "type": "chapter_keyword",
+    "source_chunk_ids": [
+      "197cafd7-a7d3-487b-83a8-974c2e25b04e",
+      "8d67d46a-e938-4d0e-8109-f09b76245f60",
+      "94029086-859a-417c-80b1-9b11657c222e",
+      "aea3d87a-1594-49b6-a5cd-8cb4dbacf3fb",
+      "b0ef982e-a9c8-4b13-a1f5-ef9d76a18572",
+      "d2d5d39f-99b1-4c30-9cba-0fd12b1c0077",
+      "fc3ecf08-f564-40de-bc43-0232d06f5130",
+      "fd26c8be-740a-4e0d-ad7d-a5352b61ddea"
+    ]
+  },
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "chapter_seq": 1,
+    "keyword_scores": {
+      "pigs": 0.09,
+      "animals": 0.07,
+      "snowball": 0.06,
+      "intelligent animals": 0.03,
+      "old major": 0.03,
+      "moses": 0.03,
+      "sugar": 0.03,
+      "farm": 0.02,
+      "napoleon": 0.02,
+      "boars": 0.02
+    },
+    "keywords": [
+      "pigs",
+      "animals",
+      "snowball",
+      "intelligent animals",
+      "old major",
+      "moses",
+      "sugar",
+      "farm",
+      "napoleon",
+      "boars"
+    ],
+    "type": "chapter_keyword",
+    "source_chunk_ids": [
+      "233bb93c-a3f8-4f08-b895-9280d3998be2",
+      "a04b7417-d15b-481b-bc0e-9eb8313569fc",
+      "c70a6757-a0b8-432f-b45f-57a56eb22dff"
+    ]
+  }
+]

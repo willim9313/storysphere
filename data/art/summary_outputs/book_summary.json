@@ -1,0 +1,31 @@
+[
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "summary": "Old Major inspires Manor Farm animals with a vision of freedom from human oppression, advocating rebellion and equality. He teaches them 'Beasts of England', igniting their desire for change. After Major's death, pigs (Snowball, Napoleon, Squealer) formulate Animalism based on his teachings, facing skepticism but gaining followers like Boxer and Clover. Mr. Jones's neglect triggers a premature but successful Rebellion, fueled by the animals' hunger and desire for a better life.",
+    "type": "book_summary",
+    "source_chunk_ids": [
+      "1e309e5b-2e61-4c68-908f-acf12dd908fc",
+      "c9cc71dd-4859-4847-ae9e-061e3853d746"
+    ]
+  },
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "summary": "Old Major inspires Manor Farm animals to rebel against human oppression, blaming humans for their suffering and advocating for animal unity. He introduces 'Beasts of England,' a song of liberation. After Major's death, pigs (Snowball, Napoleon, and Squealer) develop Animalism, based on Major's ideas. Despite facing resistance, the pigs, with support from animals like Boxer and Clover, spread Animalism. Mr. Jones' neglect triggers a premature Rebellion on Midsummer's Eve.",
+    "type": "book_summary",
+    "source_chunk_ids": [
+      "051bbeaa-6909-4ea6-a204-699805f07c12",
+      "7c311656-61d6-42a8-a391-dff8c2423828"
+    ]
+  },
+  {
+    "doc_id": "f0b16578-b3fb-4979-8a0a-19e1f6338b53",
+    "summary": "Old Major inspires Manor Farm animals with a dream of freedom from human oppression, attributing their suffering to exploitation. He calls for rebellion, emphasizing animal unity against the human enemy, and teaches them the song \"Beasts of England.\" After Major's death, pigs like Snowball, Napoleon, and Squealer develop Animalism and secretly plan the Rebellion, facing resistance but gaining followers like Boxer and Clover. The animals revolt prematurely due to Mr. Jones's neglect and starvation on Midsummer's Eve.",
+    "type": "book_summary",
+    "source_chunk_ids": [
+      "051bbeaa-6909-4ea6-a204-699805f07c12",
+      "d4d64587-0801-4896-beff-59d42f605426",
+      "33d41cc7-8c25-4312-8886-af75239d35ed",
+      "7c311656-61d6-42a8-a391-dff8c2423828"
+    ]
+  }
+]
