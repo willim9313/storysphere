@@ -73,10 +73,7 @@ poetry.lock
 # Environment variables
 .env
 
-# PDF and data
-*.pdf
-*.csv
-*.json
+
 
 # Ignore test cache
 *.pyc
