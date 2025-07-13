@@ -2,6 +2,9 @@
 # vector_process_store.py
 負責文本進入向量資料庫的處理模組。
 """
+# 這應該是舊的寫法
+# 新版不叫做custom vector store，而是叫做VectorStore
+
 # 標準函式庫
 import os
 import uuid

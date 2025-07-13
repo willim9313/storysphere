@@ -2,16 +2,11 @@
 向量資料庫操作模組：封裝 Qdrant 用法
 """
 import os
-import uuid
-import hashlib
-from collections import Counter
 from typing import List, Dict, Any, Optional, Union
 
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from sentence_transformers import SentenceTransformer
-from llama_index.core import Document
-from llama_index.core.node_parser import SentenceSplitter
 
 
 class VectorStore:

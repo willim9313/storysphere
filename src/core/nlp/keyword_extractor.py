@@ -8,9 +8,18 @@ from typing import Dict
 
 class KpeTool:
     def __init__(self):
+        """ 
+        初始化關鍵字提取工具
+        後面要可以開放換其他工具，這邊先寫死
+        """
         self.model = MultipartiteRank()
 
-    def extract_keywords(self, text: str, language: str = "en", n: int = 10) -> Dict[str, float]:
+    def extract_keywords(
+        self, 
+        text: str, 
+        language: str = "en", 
+        n: int = 10
+    ) -> Dict[str, float]:
         self.model.load_document(input=text, language=language)
         self.model.candidate_selection()
         self.model.candidate_weighting()

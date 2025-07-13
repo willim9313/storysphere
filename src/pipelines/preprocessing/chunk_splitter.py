@@ -7,8 +7,18 @@ from typing import List
 
 
 class ChunkSplitter:
-    def __init__(self, chunk_size: int = 512, chunk_overlap: int = 50):
-        self.splitter = TokenTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
+    def __init__(
+        self, 
+        chunk_size: int = 512, 
+        chunk_overlap: int = 50
+    ):
+        self.splitter = TokenTextSplitter(
+            chunk_size=chunk_size, 
+            chunk_overlap=chunk_overlap
+        )
 
-    def split(self, text: str) -> List[str]:
+    def split(
+        self, 
+        text: str
+    ) -> List[str]:
         return self.splitter.split_text(text)

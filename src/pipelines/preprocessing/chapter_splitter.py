@@ -7,7 +7,11 @@ from typing import List, Dict, Optional
 
 
 class ChapterPattern:
-    def __init__(self, name: str, pattern: str):
+    def __init__(
+        self, 
+        name: str, 
+        pattern: str
+    ):
         self.name = name
         self.regex = re.compile(pattern, flags=re.IGNORECASE)
 
@@ -46,6 +50,7 @@ class ChapterPattern:
 
 
 class ChapterExtractor:
+    """章節擷取器：使用多種正則表達式模式來識別章節"""
     def __init__(self):
         self.patterns = [
             ChapterPattern("chinese_number", r'^\s*(第\s*[\d一二三四五六七八九十百千萬零〇]+章)\s*(.*)$'),
@@ -57,7 +62,23 @@ class ChapterExtractor:
             ChapterPattern("chapter_with_roman_title", r'^\s*(Chapter|Ch\.|CHAPTER)\s+(\d+|[IVXLCDM]+)\s*[:\-\uFF1A]?\s*(.*)$'),
         ]
 
-    def extract(self, text: str) -> List[Dict]:
+    def extract(
+        self, 
+        text: str
+    ) -> List[Dict]:
+        """
+        從文本中擷取章節資訊。
+        Args:
+            text: 要處理的文本
+        Returns:
+            List[Dict]: 包含章節資訊的字典列表
+        
+            index: 章節在文本中的行號
+            full_line: 完整的章節行文本
+            info: 包含匹配類型、章節號碼、章節標題
+
+            # 但是info中的full_line可能與上層重複
+        """
         lines = text.splitlines()
         chapters = []
         for i, line in enumerate(lines):

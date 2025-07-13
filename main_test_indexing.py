@@ -1,7 +1,7 @@
 from src.core.vector_process_store import CustomVectorStore
 from src.core.nlp_utils import LlmOperator
 from dotenv import load_dotenv
-from llm.gemini_client import GeminiClient
+from src.core.llm.gemini_client import GeminiClient
 import os
 
 load_dotenv()
@@ -13,7 +13,7 @@ client = LlmOperator(GeminiClient(API_KEY, MODEL_NAME))
 
 # 實際上我們需要用chapter_seq來找，因為chapter_number可能為空，所以要先拿到chapter_seq
 vs = CustomVectorStore(
-    collection_name='Test_30p_Animal_Farm',
+    collection_name='Test_collection_set',
     encode_model='all-MiniLM-L6-v2',
     data=None)
 

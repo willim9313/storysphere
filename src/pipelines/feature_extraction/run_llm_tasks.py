@@ -12,10 +12,16 @@ def process_chunk_with_llm(
     kpe_tool
 ) -> Dict[str, Any]:
     """
-    對單一 chunk 執行 NLP 任務。
-    回傳 dict，包含 chunk_id、keywords、summary、roles、KG 結果等。
+    對單一 chunk 執行 NLP 任務, 會處理chunk summary, keywords, kg elements.
+    並針對產出提供一組chunk_id
+    Args:
+        chunk: 單一 chunk 的文本內容
+        llm_operator: LLM 操作介面實例
+        kpe_tool: 關鍵字抽取工具實例
+    Returns:
+        Dict[str, Any]: 包含 chunk_id, keywords, summary, roles, KG
     """
-    chunk_id = generate_uuid_id()
+    chunk_id = generate_uuid_id() # 外面沒有？？？？？
 
     # 關鍵字
     keyword_scores = kpe_tool.extract_keywords(chunk)
