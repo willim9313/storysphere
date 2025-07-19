@@ -1,0 +1,1137 @@
+[
+  {
+    "id": "seductive_muse",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "Seductive Muse",
+    "core_desire": "To inspire others and be pursued",
+    "greatest_fear": "Losing charm, being ignored",
+    "traits": [
+      "Attractive",
+      "Intuitive",
+      "Mysterious",
+      "Inspiring"
+    ],
+    "shadow_traits": [
+      "Manipulative",
+      "Indulgent in lust",
+      "Narcissistic"
+    ],
+    "narrative_function": "Inspires the protagonist and transformation, symbolizes creativity and love energy",
+    "arc_pattern": "Radiant charm → Misunderstood → Rediscovering true self and value",
+    "example_characters": [
+      "Aphrodite",
+      "Marilyn Monroe",
+      "Keira Knightley in The Holiday"
+    ]
+  },
+  {
+    "id": "femme_fatale",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "Femme Fatale",
+    "core_desire": "To control others for personal gain",
+    "greatest_fear": "Losing control, being abandoned",
+    "traits": [
+      "Sexy",
+      "Seductive",
+      "Captivating"
+    ],
+    "shadow_traits": [
+      "Manipulative",
+      "Betraying",
+      "Destructively seductive"
+    ],
+    "narrative_function": "Challenges the protagonist’s will, symbolizes destructive desire",
+    "arc_pattern": "Controlling men → Creating chaos → Facing consequences",
+    "example_characters": [
+      "Salome",
+      "Early Black Widow",
+      "Mia in Pulp Fiction"
+    ]
+  },
+  {
+    "id": "amazon",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "Amazon (Warrior Woman)",
+    "core_desire": "To prove women's strength and value",
+    "greatest_fear": "Being controlled, losing autonomy",
+    "traits": [
+      "Strong",
+      "Independent",
+      "Decisive",
+      "Action-oriented"
+    ],
+    "shadow_traits": [
+      "Cold",
+      "Rejects intimacy",
+      "Stubborn"
+    ],
+    "narrative_function": "Represents female agency and action, breaking traditional constraints",
+    "arc_pattern": "Challenging authority → Gaining recognition → Learning to soften",
+    "example_characters": [
+      "Wonder Woman",
+      "Miranda in The Devil Wears Prada",
+      "Mulan"
+    ]
+  },
+  {
+    "id": "gorgon",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "Gorgon (Witch)",
+    "core_desire": "To control through fear or supernatural power",
+    "greatest_fear": "Being denied existence, losing power",
+    "traits": [
+      "Powerful",
+      "Mysterious",
+      "Extraordinary"
+    ],
+    "shadow_traits": [
+      "Vengeful",
+      "Intimidating",
+      "Isolates others"
+    ],
+    "narrative_function": "Symbolizes repressed female power and vengeance",
+    "arc_pattern": "Wounded → Turns dark → Seeks validation or destruction",
+    "example_characters": [
+      "Medusa",
+      "Maleficent",
+      "Dark Elsa in Frozen"
+    ]
+  },
+  {
+    "id": "fathers_daughter",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "Father’s Daughter",
+    "core_desire": "To gain recognition and achievement",
+    "greatest_fear": "Rejection, being unseen",
+    "traits": [
+      "Rational",
+      "Self-disciplined",
+      "Highly competitive"
+    ],
+    "shadow_traits": [
+      "Emotionally repressed",
+      "Overly logical",
+      "Distant"
+    ],
+    "narrative_function": "Embodies traditionally successful woman with masculine traits",
+    "arc_pattern": "Strives for excellence → Emotional crisis → Integrates feminine energy",
+    "example_characters": [
+      "Erin Brockovich",
+      "Hermione",
+      "Ruth in On the Basis of Sex"
+    ]
+  },
+  {
+    "id": "backstabber",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "Backstabber",
+    "core_desire": "To sacrifice others for personal benefit",
+    "greatest_fear": "Being exposed or retaliated against",
+    "traits": [
+      "Clever",
+      "Slick",
+      "Good at manipulation"
+    ],
+    "shadow_traits": [
+      "Deceitful",
+      "Scheming",
+      "Opportunistic"
+    ],
+    "narrative_function": "Acts as a turning point in the plot, introduces conflict and betrayal",
+    "arc_pattern": "Appears loyal → Sabotages secretly → Pays the price",
+    "example_characters": [
+      "Emily in The Devil Wears Prada",
+      "Regina in Mean Girls"
+    ]
+  },
+  {
+    "id": "nurturer",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "Nurturer",
+    "core_desire": "To care for and support others",
+    "greatest_fear": "Losing children or being seen as worthless",
+    "traits": [
+      "Gentle",
+      "Attentive",
+      "Highly supportive"
+    ],
+    "shadow_traits": [
+      "Self-sacrificing",
+      "Overly interfering",
+      "Loses self"
+    ],
+    "narrative_function": "Symbolizes unconditional love and a source of security",
+    "arc_pattern": "Selfless devotion → Neglected → Learns self-love",
+    "example_characters": [
+      "Marmee from Little Women",
+      "Aunt Molly",
+      "Mother in Ratatouille"
+    ]
+  },
+  {
+    "id": "overcontrolling_mother",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "Overcontrolling Mother",
+    "core_desire": "To never let anyone leave her control",
+    "greatest_fear": "Being abandoned or losing her children",
+    "traits": [
+      "Highly controlling",
+      "Well-planned",
+      "Traditional"
+    ],
+    "shadow_traits": [
+      "Control freak",
+      "Emotional blackmail",
+      "Suppresses freedom"
+    ],
+    "narrative_function": "Symbolizes oppression, tradition, and generational conflict",
+    "arc_pattern": "Overprotection → Conflict escalates → Forced to let go",
+    "example_characters": [
+      "Mother in Carrie",
+      "Mother in Mamma, Can I Go Out and Kill Tonight?"
+    ]
+  },
+  {
+    "id": "matriarch",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "Matriarch",
+    "core_desire": "To build family, community, and legacy",
+    "greatest_fear": "Family collapse or losing leadership",
+    "traits": [
+      "Wise",
+      "Organized",
+      "Authoritative and steady"
+    ],
+    "shadow_traits": [
+      "Overcontrolling",
+      "Overly traditional",
+      "Exclusive"
+    ],
+    "narrative_function": "Stabilizes the structure and passes down values",
+    "arc_pattern": "Maintains tradition → Faces challenge → Learns inclusion and transformation",
+    "example_characters": [
+      "Mother in The Godfather",
+      "Dowager Countess in Downton Abbey"
+    ]
+  },
+  {
+    "id": "scorned_woman",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "Scorned Woman",
+    "core_desire": "Revenge and emotional release",
+    "greatest_fear": "Dying alone, being completely forgotten",
+    "traits": [
+      "Intense emotions",
+      "Stubborn",
+      "Unable to let go"
+    ],
+    "shadow_traits": [
+      "Resentful",
+      "Vengeful",
+      "Irrational"
+    ],
+    "narrative_function": "Creates emotional conflict, symbolizes unhealed wounds",
+    "arc_pattern": "Abandoned → Emotional struggle → Forgiveness or self-destruction",
+    "example_characters": [
+      "Catherine from Wuthering Heights",
+      "Protagonist of Black Swan"
+    ]
+  },
+  {
+    "id": "mystic",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "Mystic",
+    "core_desire": "To seek spirituality and inner truth",
+    "greatest_fear": "Separation from self, mental breakdown",
+    "traits": [
+      "Highly intuitive",
+      "Introspective",
+      "Quiet observer"
+    ],
+    "shadow_traits": [
+      "Escaping reality",
+      "Socially withdrawn",
+      "Overly mystical"
+    ],
+    "narrative_function": "Provides insight and guides others toward transformation",
+    "arc_pattern": "Inner awakening → Aids others → Faces real-world challenges",
+    "example_characters": [
+      "The Oracle from The Matrix",
+      "Autumn Fragrance in A Better Tomorrow"
+    ]
+  },
+  {
+    "id": "betrayer",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "Betrayer",
+    "core_desire": "To protect oneself by sacrificing others",
+    "greatest_fear": "Retribution, loss of trust",
+    "traits": [
+      "Realistic",
+      "Self-centered",
+      "Calculating"
+    ],
+    "shadow_traits": [
+      "Disloyal",
+      "Cold-blooded",
+      "Exploitative"
+    ],
+    "narrative_function": "Key turning point, reveals the dark side of human nature",
+    "arc_pattern": "Allies → Betrayal → Reversal or repentance",
+    "example_characters": [
+      "Cersei from Game of Thrones",
+      "Rita Skeeter from Harry Potter"
+    ]
+  },
+  {
+    "id": "female_messiah",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "Female Messiah",
+    "core_desire": "To save others and sacrifice herself",
+    "greatest_fear": "Unable to help those she loves",
+    "traits": [
+      "Selfless",
+      "Strong sense of justice",
+      "Morally steadfast"
+    ],
+    "shadow_traits": [
+      "Overly self-sacrificing",
+      "No personal boundaries",
+      "Refuses help"
+    ],
+    "narrative_function": "Symbol of hope, transforms the environment and characters",
+    "arc_pattern": "Devoted to mission → Suffers → Sparks change",
+    "example_characters": [
+      "Katniss from The Hunger Games",
+      "The linguist in Arrival"
+    ]
+  },
+  {
+    "id": "destroyer",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "Destroyer",
+    "core_desire": "To destroy anything that goes against her will",
+    "greatest_fear": "Unable to take revenge, losing power",
+    "traits": [
+      "Decisive",
+      "Highly destructive",
+      "Ruthless"
+    ],
+    "shadow_traits": [
+      "Cruel",
+      "Extreme",
+      "Unforgiving"
+    ],
+    "narrative_function": "Brings opportunities for destruction and rebirth",
+    "arc_pattern": "Destroys everything → Becomes isolated → Falls or reflects and transforms",
+    "example_characters": [
+      "The mother in Black Swan",
+      "Cheetah in Wonder Woman 1984"
+    ]
+  },
+  {
+    "id": "maiden",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "Maiden",
+    "core_desire": "To be loved and protected, remain innocent",
+    "greatest_fear": "Losing innocence or being tainted",
+    "traits": [
+      "Naive",
+      "Optimistic",
+      "Imaginative"
+    ],
+    "shadow_traits": [
+      "Overly dependent",
+      "Escapes reality",
+      "Immature"
+    ],
+    "narrative_function": "Symbol of hope and rebirth",
+    "arc_pattern": "Protected → Hurt → Grows independently",
+    "example_characters": [
+      "Snow White",
+      "Early Trinity in The Matrix"
+    ]
+  },
+  {
+    "id": "troubled_teen",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "Troubled Teen",
+    "core_desire": "To break free from constraints and explore herself",
+    "greatest_fear": "Being misunderstood and rejected",
+    "traits": [
+      "Challenges authority",
+      "Sensitive",
+      "Emotionally volatile"
+    ],
+    "shadow_traits": [
+      "Overly rebellious",
+      "Self-centered",
+      "Destructive behavior"
+    ],
+    "narrative_function": "Triggers conflict and reflection",
+    "arc_pattern": "Defies the system → Gets excluded → Finds her place",
+    "example_characters": [
+      "Chihiro from Spirited Away",
+      "Makoto from The Girl Who Leapt Through Time"
+    ]
+  },
+  {
+    "id": "king",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "King",
+    "core_desire": "To protect and lead his people, create order",
+    "greatest_fear": "Collapse of the kingdom, losing respect",
+    "traits": [
+      "Visionary",
+      "Stable",
+      "Benevolent",
+      "Just"
+    ],
+    "shadow_traits": [
+      "Tyrannical",
+      "Arrogant",
+      "Controlling"
+    ],
+    "narrative_function": "Establishes rules and order, symbolizes stability and structure",
+    "arc_pattern": "Rules wisely → Faces challenge → Evolves or declines",
+    "example_characters": [
+      "King Arthur",
+      "Mufasa from The Lion King"
+    ]
+  },
+  {
+    "id": "tyrant",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "Tyrant",
+    "core_desire": "To consolidate power and control everything",
+    "greatest_fear": "Losing power, being betrayed",
+    "traits": [
+      "Authoritative",
+      "Decisive",
+      "Possessive"
+    ],
+    "shadow_traits": [
+      "Brutal",
+      "Dictatorial",
+      "Intolerant"
+    ],
+    "narrative_function": "Represents extreme power, oppression, and corruption",
+    "arc_pattern": "Suppresses others → Sparks rebellion → Overthrown or awakened",
+    "example_characters": [
+      "Emperor Palpatine from Star Wars",
+      "Joffrey from Game of Thrones"
+    ]
+  },
+  {
+    "id": "warrior",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Warrior",
+    "core_desire": "To defend honor and goals",
+    "greatest_fear": "Losing the will to fight or betraying beliefs",
+    "traits": [
+      "Brave",
+      "Resilient",
+      "Loyal",
+      "Action-oriented"
+    ],
+    "shadow_traits": [
+      "Warlike",
+      "Merciless",
+      "Emotionally repressed"
+    ],
+    "narrative_function": "Fights for justice and grows into a hero",
+    "arc_pattern": "Fights → Encounters setbacks → Transforms spiritually",
+    "example_characters": [
+      "Achilles",
+      "Protagonist of Glory"
+    ]
+  },
+  {
+    "id": "mercenary",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "Mercenary",
+    "core_desire": "Personal profit and survival",
+    "greatest_fear": "Losing freedom or being devalued",
+    "traits": [
+      "Pragmatic",
+      "Flexible",
+      "Survival-savvy"
+    ],
+    "shadow_traits": [
+      "Greedy",
+      "Disloyal",
+      "Opportunistic"
+    ],
+    "narrative_function": "Provides a realistic view and value conflicts",
+    "arc_pattern": "Seeks profit → Faces conscience → Chooses a side",
+    "example_characters": [
+      "Early Han Solo",
+      "Cypher from The Matrix"
+    ]
+  },
+  {
+    "id": "mentor",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Mentor",
+    "core_desire": "To pass on wisdom and experience",
+    "greatest_fear": "Having no successor or losing value",
+    "traits": [
+      "Wise",
+      "Supportive",
+      "Visionary"
+    ],
+    "shadow_traits": [
+      "Pretentious",
+      "Controlling of pupils",
+      "Lacks practical action"
+    ],
+    "narrative_function": "Guides protagonist’s awakening and transformation",
+    "arc_pattern": "Inspires others → Faces personal loss → Enables legacy",
+    "example_characters": [
+      "Gandalf",
+      "Obi-Wan Kenobi"
+    ]
+  },
+  {
+    "id": "manipulator",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "Manipulator",
+    "core_desire": "To manipulate others to achieve his goals",
+    "greatest_fear": "Losing control or being exposed",
+    "traits": [
+      "Cunning",
+      "Eloquent",
+      "Psychologically adept"
+    ],
+    "shadow_traits": [
+      "Deceitful",
+      "Scheming",
+      "Emotionally exploitative"
+    ],
+    "narrative_function": "Sets traps and trials, drives twists",
+    "arc_pattern": "Meticulous planning → Backfire → Collapse or transformation",
+    "example_characters": [
+      "Loki",
+      "The Joker in The Dark Knight"
+    ]
+  },
+  {
+    "id": "fool",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Fool",
+    "core_desire": "To enjoy life freely and follow intuition",
+    "greatest_fear": "Being restricted or unable to express self",
+    "traits": [
+      "Humorous",
+      "Inspired",
+      "Easygoing"
+    ],
+    "shadow_traits": [
+      "Avoids responsibility",
+      "Immature",
+      "Unreliable"
+    ],
+    "narrative_function": "Breaks conventions, reveals truths or shifts",
+    "arc_pattern": "Carefree → Forced to face duty → Unexpected awakening",
+    "example_characters": [
+      "Jack Sparrow",
+      "Forrest Gump"
+    ]
+  },
+  {
+    "id": "traitor",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "Traitor",
+    "core_desire": "Self-preservation or revenge",
+    "greatest_fear": "Exposure and retribution",
+    "traits": [
+      "Two-faced",
+      "Secretive",
+      "Alert"
+    ],
+    "shadow_traits": [
+      "Treacherous",
+      "Sabotaging",
+      "Untrustworthy"
+    ],
+    "narrative_function": "Triggers protagonist’s crisis or plot twist",
+    "arc_pattern": "Hidden threat → Betrayal → Consequence or remorse",
+    "example_characters": [
+      "Gollum in The Lord of the Rings",
+      "Peter Pettigrew in Harry Potter"
+    ]
+  },
+  {
+    "id": "shadow_female",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "Female Shadow Archetype",
+    "core_desire": "To dominate, manipulate, or escape emotional pain",
+    "greatest_fear": "Having her true self exposed",
+    "traits": [
+      "Sly",
+      "Scheming",
+      "Distorted desires"
+    ],
+    "shadow_traits": [
+      "Sadistic",
+      "Controlling",
+      "Deceptive appearance"
+    ],
+    "narrative_function": "Provides a dark mirror to the protagonist",
+    "arc_pattern": "Emotional repression → Outburst → Darkness or redemption",
+    "example_characters": [
+      "Nina in Black Swan",
+      "Ruby in Cold Mountain"
+    ]
+  },
+  {
+    "id": "shadow_male",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "Male Shadow Archetype",
+    "core_desire": "To control the world to hide his vulnerability",
+    "greatest_fear": "Being seen as weak and fearful",
+    "traits": [
+      "Tough exterior",
+      "Repressed",
+      "Cold"
+    ],
+    "shadow_traits": [
+      "Violent",
+      "Domineering",
+      "Resistant to change"
+    ],
+    "narrative_function": "Reflects the protagonist’s inner darkness or serves as final adversary",
+    "arc_pattern": "Hides behind strength → Emotional breakdown → Ruin or transformation",
+    "example_characters": [
+      "Harvey Dent in The Dark Knight",
+      "Captain in Master and Commander"
+    ]
+  },
+  {
+    "id": "trickster",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "Trickster",
+    "core_desire": "To break rules, entertain, and disrupt order",
+    "greatest_fear": "Being exposed or ignored",
+    "traits": [
+      "Clever",
+      "Witty",
+      "Disruptive"
+    ],
+    "shadow_traits": [
+      "Mocks others",
+      "Self-centered",
+      "Avoids responsibility"
+    ],
+    "narrative_function": "Reveals truth and breaks stagnation",
+    "arc_pattern": "Disrupts order → Reveals contradictions → Enables transformation",
+    "example_characters": [
+      "Loki",
+      "Clerks staff from Clerks"
+    ]
+  },
+  {
+    "id": "destroyer_neutral",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": true,
+    "name": "Neutral Destroyer",
+    "core_desire": "To break down obstacles and the status quo",
+    "greatest_fear": "Achieving nothing, failed change",
+    "traits": [
+      "Intense",
+      "Determined",
+      "Destructive"
+    ],
+    "shadow_traits": [
+      "Hurts others",
+      "Overly radical",
+      "Lacks constructiveness"
+    ],
+    "narrative_function": "Causes major plot reversals",
+    "arc_pattern": "Destroys order → Faces cost → Rebuilds or descends",
+    "example_characters": [
+      "The Joker",
+      "V from V for Vendetta"
+    ]
+  },
+  {
+    "id": "orphan_hero",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "Orphan Hero",
+    "core_desire": "To find belonging and strength",
+    "greatest_fear": "Being abandoned and ignored",
+    "traits": [
+      "Resilient",
+      "Desires connection",
+      "Self-reliant"
+    ],
+    "shadow_traits": [
+      "Bitter toward society",
+      "Self-pity",
+      "Socially awkward"
+    ],
+    "narrative_function": "Symbolizes rise of marginalized individuals",
+    "arc_pattern": "Abandoned → Self-discovery → Becomes a leader",
+    "example_characters": [
+      "Harry Potter",
+      "The Phantom in Phantom of the Opera"
+    ]
+  },
+  {
+    "id": "lost_soul",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": true,
+    "name": "Lost Soul",
+    "core_desire": "To find purpose and direction",
+    "greatest_fear": "Forever lost",
+    "traits": [
+      "Confused",
+      "Emotional",
+      "Rootless"
+    ],
+    "shadow_traits": [
+      "Empty",
+      "Self-destructive",
+      "Easily influenced"
+    ],
+    "narrative_function": "Provokes protagonist’s reflection and contrast",
+    "arc_pattern": "Wandering → Facing reality → Finds meaning",
+    "example_characters": [
+      "Tim in About Time",
+      "Homeless person in Tokyo Godfathers"
+    ]
+  },
+  {
+    "id": "temptress",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": true,
+    "name": "Temptress (Neutral)",
+    "core_desire": "To lure others off their path",
+    "greatest_fear": "Being seen through as hollow",
+    "traits": [
+      "Charming",
+      "Mysterious",
+      "Seductive"
+    ],
+    "shadow_traits": [
+      "Scheming",
+      "Toying with emotions",
+      "Brings ruin"
+    ],
+    "narrative_function": "Tests the protagonist’s will and shifts the plot",
+    "arc_pattern": "Successful seduction → True nature revealed → Destruction or redemption",
+    "example_characters": [
+      "Mata Hari",
+      "Motoko Kusanagi from Ghost in the Shell"
+    ]
+  },
+  {
+    "id": "visionary",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "Visionary",
+    "core_desire": "To pursue grand ideals and innovation",
+    "greatest_fear": "Dreams falling apart",
+    "traits": [
+      "Idealistic",
+      "Forward-looking",
+      "Highly inspired"
+    ],
+    "shadow_traits": [
+      "Unrealistic",
+      "Isolated",
+      "Radical"
+    ],
+    "narrative_function": "Guides direction or challenges norms",
+    "arc_pattern": "Imagines the future → Faces resistance → Achieves or loses vision",
+    "example_characters": [
+      "Steve Jobs",
+      "Cooper from Interstellar"
+    ]
+  },
+  {
+    "id": "innocent",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "Innocent",
+    "core_desire": "To stay pure and avoid harm",
+    "greatest_fear": "Corruption and disappointment",
+    "traits": [
+      "Trusting",
+      "Simple",
+      "Idealistic"
+    ],
+    "shadow_traits": [
+      "Avoids reality",
+      "Easily hurt",
+      "Lacks discernment"
+    ],
+    "narrative_function": "Symbol of pure hope and transformative power",
+    "arc_pattern": "Trusts others → Gets betrayed → Gains maturity and awareness",
+    "example_characters": [
+      "Forrest Gump",
+      "Truman from The Truman Show"
+    ]
+  },
+  {
+    "id": "healer",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "Healer",
+    "core_desire": "To help others recover and grow",
+    "greatest_fear": "Losing healing abilities",
+    "traits": [
+      "Loving",
+      "Attentive listener",
+      "Patient"
+    ],
+    "shadow_traits": [
+      "Self-sacrificing",
+      "Over-attached",
+      "Avoids personal issues"
+    ],
+    "narrative_function": "Provides emotional support and transformation for protagonist",
+    "arc_pattern": "Supports others → Faces trauma → Heals self",
+    "example_characters": [
+      "Therapist in Good Will Hunting",
+      "Foster parents in Lion"
+    ]
+  },
+  {
+    "id": "child_magician",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "Child Magician",
+    "core_desire": "To explore and discover the world’s mysteries",
+    "greatest_fear": "Being ordinary",
+    "traits": [
+      "Smart",
+      "Curious",
+      "Full of potential"
+    ],
+    "shadow_traits": [
+      "Overconfident",
+      "Immature",
+      "Uncontrolled power"
+    ],
+    "narrative_function": "Guides or triggers plot developments",
+    "arc_pattern": "Shows talent → Misuses power → Learns responsibility",
+    "example_characters": [
+      "Harry Potter",
+      "Eleven from Stranger Things"
+    ]
+  },
+  {
+    "id": "wanderer",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "Wanderer",
+    "core_desire": "To find self and belonging",
+    "greatest_fear": "Never finding a home",
+    "traits": [
+      "Nomadic",
+      "Observant",
+      "Quiet"
+    ],
+    "shadow_traits": [
+      "Avoids commitment",
+      "Aimless",
+      "Withdrawn from society"
+    ],
+    "narrative_function": "Explores the world and protagonist’s inner change",
+    "arc_pattern": "Wanders → Faces pain → Finds inner home",
+    "example_characters": [
+      "Characters from Yukio Mishima",
+      "Kenshin from Rurouni Kenshin"
+    ]
+  },
+  {
+    "id": "priest",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Priest",
+    "core_desire": "To serve faith and guard spiritual order",
+    "greatest_fear": "Losing belief and moral authority",
+    "traits": [
+      "Devout",
+      "Reflective",
+      "Wise"
+    ],
+    "shadow_traits": [
+      "Dogmatic",
+      "Self-righteous",
+      "Emotionally repressed"
+    ],
+    "narrative_function": "Offers spiritual guidance and moral conflict",
+    "arc_pattern": "Guides others → Faith tested → Rebuilds belief",
+    "example_characters": [
+      "Moses",
+      "Priest in Constantine"
+    ]
+  },
+  {
+    "id": "coward",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "Coward",
+    "core_desire": "To avoid risk and pain",
+    "greatest_fear": "Facing truth or being forced to choose",
+    "traits": [
+      "Cautious",
+      "Sensitive",
+      "Self-preserving"
+    ],
+    "shadow_traits": [
+      "Avoids responsibility",
+      "Betrays others",
+      "Indecisive"
+    ],
+    "narrative_function": "Contrasts the hero’s resolve or causes loss of trust",
+    "arc_pattern": "Avoids conflict → Forced to decide → Faces fear or destruction",
+    "example_characters": [
+      "Peter Pettigrew",
+      "Early Arthur in Inception"
+    ]
+  },
+  {
+    "id": "rebel",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Rebel",
+    "core_desire": "To overthrow systems and authority",
+    "greatest_fear": "Being assimilated or tamed by the system",
+    "traits": [
+      "Independent",
+      "Determined",
+      "Challenger"
+    ],
+    "shadow_traits": [
+      "Radical",
+      "Obsessive",
+      "Destructive"
+    ],
+    "narrative_function": "Drives reform and inspires action",
+    "arc_pattern": "Rebels → Confronts oppression → Founds new order",
+    "example_characters": [
+      "V from V for Vendetta",
+      "Neo"
+    ]
+  },
+  {
+    "id": "everyman",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Everyman",
+    "core_desire": "To be accepted and live a normal life",
+    "greatest_fear": "Being isolated or different",
+    "traits": [
+      "Friendly",
+      "Practical",
+      "Loyal"
+    ],
+    "shadow_traits": [
+      "Conformist",
+      "Passive",
+      "Afraid of change"
+    ],
+    "narrative_function": "Represents the general public’s view",
+    "arc_pattern": "Ordinary life → Pulled into challenge → Discovers inner strength",
+    "example_characters": [
+      "Sam from The Lord of the Rings",
+      "Truman from The Truman Show"
+    ]
+  },
+  {
+    "id": "outlaw",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "Outlaw",
+    "core_desire": "To resist oppression and seek freedom",
+    "greatest_fear": "Imprisonment or total failure",
+    "traits": [
+      "Free-spirited",
+      "Witty",
+      "Resilient"
+    ],
+    "shadow_traits": [
+      "Impulsive",
+      "Breaks rules",
+      "Self-centered"
+    ],
+    "narrative_function": "Challenges authority and mainstream values",
+    "arc_pattern": "On the run → Clashes with system → Becomes legend or falls",
+    "example_characters": [
+      "Robin Hood",
+      "Jack Sparrow"
+    ]
+  },
+  {
+    "id": "seeker",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Seeker",
+    "core_desire": "To pursue truth and self-realization",
+    "greatest_fear": "Losing direction or finding nothing",
+    "traits": [
+      "Idealistic",
+      "Resolute",
+      "Internally driven"
+    ],
+    "shadow_traits": [
+      "Escapes reality",
+      "Never satisfied",
+      "Overidealistic"
+    ],
+    "narrative_function": "Inspires adventure and inner awakening",
+    "arc_pattern": "Sets off → Faces trials → Gains inner treasure",
+    "example_characters": [
+      "Life of Pi",
+      "Simba from The Lion King"
+    ]
+  },
+  {
+    "id": "magician",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Magician",
+    "core_desire": "To transform the world and self",
+    "greatest_fear": "Losing control or abusing power",
+    "traits": [
+      "Wise",
+      "Transformative",
+      "Mysterious"
+    ],
+    "shadow_traits": [
+      "Manipulative",
+      "Unrealistic",
+      "Power-hungry"
+    ],
+    "narrative_function": "Symbol of change and transcending limits",
+    "arc_pattern": "Gains power → Faces temptation → Transforms wisely",
+    "example_characters": [
+      "Gandalf",
+      "Doctor Strange"
+    ]
+  },
+  {
+    "id": "artist",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Artist",
+    "core_desire": "To express self and move others",
+    "greatest_fear": "Being forgotten or misunderstood",
+    "traits": [
+      "Creative",
+      "Sensitive",
+      "Truth-driven"
+    ],
+    "shadow_traits": [
+      "Self-absorbed",
+      "Emotional",
+      "Escapist"
+    ],
+    "narrative_function": "Adds emotional depth and poetic insight",
+    "arc_pattern": "Creates → Faces setback → Inspires or transcends",
+    "example_characters": [
+      "Van Gogh",
+      "Male lead in La La Land"
+    ]
+  },
+  {
+    "id": "prophet",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "Prophet",
+    "core_desire": "To speak truth and foretell the future",
+    "greatest_fear": "Being dismissed as mad or ignored",
+    "traits": [
+      "Insightful",
+      "Spiritually awakened",
+      "Visionary"
+    ],
+    "shadow_traits": [
+      "Obsessive",
+      "Extreme",
+      "Inflexible"
+    ],
+    "narrative_function": "Warns the world and inspires awakening",
+    "arc_pattern": "Foresees disaster → Ignored → Proved right or sacrificed",
+    "example_characters": [
+      "Moses",
+      "The Oracle from The Matrix"
+    ]
+  }
+]
