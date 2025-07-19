@@ -1,0 +1,134 @@
+[
+  {
+    "id": "innocent",
+    "name": "The Innocent",
+    "motto": "Be yourself and be free",
+    "core_desire": "To achieve paradise-like happiness",
+    "goal": "Happiness",
+    "greatest_fear": "Being punished for doing something wrong",
+    "strategy": "Do the right thing",
+    "weakness": "Naivety, vulnerability",
+    "talent": "Trust and optimism"
+  },
+  {
+    "id": "orphan",
+    "name": "The Orphan",
+    "motto": "All people are equal",
+    "core_desire": "To connect with others",
+    "goal": "Sense of belonging",
+    "greatest_fear": "Being excluded or left out",
+    "strategy": "Cultivate down-to-earth virtues, be a good companion",
+    "weakness": "Cynicism, giving up on oneself",
+    "talent": "Realism and empathy"
+  },
+  {
+    "id": "hero",
+    "name": "The Hero",
+    "motto": "Where there’s a will, there’s a way",
+    "core_desire": "To prove one's worth",
+    "goal": "Mastery and goal achievement",
+    "greatest_fear": "Weakness and failure",
+    "strategy": "Overcome obstacles with courage",
+    "weakness": "Arrogance, combativeness",
+    "talent": "Competence and bravery"
+  },
+  {
+    "id": "caregiver",
+    "name": "The Caregiver",
+    "motto": "Love your neighbor as yourself",
+    "core_desire": "To protect others",
+    "goal": "Helping others",
+    "greatest_fear": "Selfishness, neglect of others",
+    "strategy": "Diligently care for others",
+    "weakness": "Martyrdom, being exploited",
+    "talent": "Compassion and generosity"
+  },
+  {
+    "id": "explorer",
+    "name": "The Explorer",
+    "motto": "Don’t fence me in",
+    "core_desire": "To explore the world freely",
+    "goal": "A more fulfilling life",
+    "greatest_fear": "Feeling trapped, bored, or empty inside",
+    "strategy": "Search for a better, happier life",
+    "weakness": "Aimless wandering, non-committal",
+    "talent": "Independence and adventurous spirit"
+  },
+  {
+    "id": "rebel",
+    "name": "The Rebel",
+    "motto": "Rules are made to be broken",
+    "core_desire": "Revenge or revolution",
+    "goal": "Overthrow oppressive structures",
+    "greatest_fear": "Powerlessness or ineffectiveness",
+    "strategy": "Disrupt and shock",
+    "weakness": "Destructiveness, excessive negation",
+    "talent": "Radical freedom and transformative power"
+  },
+  {
+    "id": "lover",
+    "name": "The Lover",
+    "motto": "You are the center of my world",
+    "core_desire": "Intimacy and experience",
+    "goal": "To form meaningful connections",
+    "greatest_fear": "Being unloved or isolated",
+    "strategy": "Become more attractive",
+    "weakness": "Overeagerness to please",
+    "talent": "Passion and sensuality"
+  },
+  {
+    "id": "creator",
+    "name": "The Creator",
+    "motto": "If you can imagine it, you can create it",
+    "core_desire": "To create something of enduring value",
+    "goal": "To realize a vision",
+    "greatest_fear": "Mediocrity and incompletion",
+    "strategy": "Develop artistic and technical skills",
+    "weakness": "Perfectionism and over-control",
+    "talent": "Creativity and imagination"
+  },
+  {
+    "id": "jester",
+    "name": "The Jester",
+    "motto": "You only live once",
+    "core_desire": "Live in the moment and enjoy life",
+    "goal": "To bring joy to others and oneself",
+    "greatest_fear": "Boredom or dullness",
+    "strategy": "Play and make people laugh",
+    "weakness": "Superficiality, irresponsibility",
+    "talent": "Sense of humor and lightness"
+  },
+  {
+    "id": "sage",
+    "name": "The Sage",
+    "motto": "The truth will set you free",
+    "core_desire": "To seek truth and knowledge",
+    "goal": "Understand the world and others",
+    "greatest_fear": "Ignorance or being misled",
+    "strategy": "Think and observe",
+    "weakness": "Inaction, over-analysis",
+    "talent": "Wisdom and discernment"
+  },
+  {
+    "id": "magician",
+    "name": "The Magician",
+    "motto": "I make things happen",
+    "core_desire": "Understand the laws of the universe",
+    "goal": "To make dreams come true",
+    "greatest_fear": "Negative consequences or unintended outcomes",
+    "strategy": "Develop inner power",
+    "weakness": "Manipulation and arrogance",
+    "talent": "Transformation and inspiration"
+  },
+  {
+    "id": "ruler",
+    "name": "The Ruler",
+    "motto": "Power and responsibility go hand in hand",
+    "core_desire": "To control and create prosperity",
+    "goal": "Build a successful community or family",
+    "greatest_fear": "Chaos or being overthrown",
+    "strategy": "Use authority and create order",
+    "weakness": "Tyranny and control freak tendencies",
+    "talent": "Leadership and responsibility"
+  }
+]

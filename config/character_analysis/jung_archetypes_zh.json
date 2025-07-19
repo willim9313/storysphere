@@ -1,0 +1,134 @@
+[
+  {
+    "id": "innocent",
+    "name": "天真者",
+    "motto": "自由地做你自己",
+    "core_desire": "達到天堂般的幸福",
+    "goal": "快樂",
+    "greatest_fear": "被懲罰因為做錯事或犯錯",
+    "strategy": "做正確的事",
+    "weakness": "天真、容易受傷",
+    "talent": "信任與樂觀"
+  },
+  {
+    "id": "orphan",
+    "name": "孤兒",
+    "motto": "所有人都平等",
+    "core_desire": "與他人連結",
+    "goal": "歸屬感",
+    "greatest_fear": "被排斥、被孤立",
+    "strategy": "開展務實美德，成為好夥伴",
+    "weakness": "犬儒主義、放棄自己",
+    "talent": "現實感與同理心"
+  },
+  {
+    "id": "hero",
+    "name": "英雄",
+    "motto": "凡事皆有可能",
+    "core_desire": "證明自己的價值",
+    "goal": "專業掌握技藝、達成目標",
+    "greatest_fear": "軟弱與失敗",
+    "strategy": "勇往直前、擊敗困難",
+    "weakness": "傲慢、好戰",
+    "talent": "能力與勇氣"
+  },
+  {
+    "id": "caregiver",
+    "name": "照顧者",
+    "motto": "愛你的鄰舍如同你自己",
+    "core_desire": "保護他人",
+    "goal": "幫助他人",
+    "greatest_fear": "自私與忘記他人",
+    "strategy": "盡職地照料他人",
+    "weakness": "殉道、利用自己",
+    "talent": "同情與慷慨"
+  },
+  {
+    "id": "explorer",
+    "name": "探險家",
+    "motto": "別圍繞著我築牆",
+    "core_desire": "自由去探索世界",
+    "goal": "有更滿足的生活",
+    "greatest_fear": "被困、無聊、內在空虛",
+    "strategy": "尋找更好的世界、更快樂的生活",
+    "weakness": "無目的漂泊、不承諾",
+    "talent": "獨立與冒險精神"
+  },
+  {
+    "id": "rebel",
+    "name": "反叛者",
+    "motto": "規則是為了打破的",
+    "core_desire": "報復或革命",
+    "goal": "推翻壓迫性結構",
+    "greatest_fear": "無力、無影響力",
+    "strategy": "破壞、震撼",
+    "weakness": "毀滅性行為、過度否定",
+    "talent": "激進的自由與變革力量"
+  },
+  {
+    "id": "lover",
+    "name": "愛人",
+    "motto": "你是我世界的中心",
+    "core_desire": "親密與體驗",
+    "goal": "與人和事物建立關係",
+    "greatest_fear": "被孤立、不被愛",
+    "strategy": "變得更吸引人",
+    "weakness": "過度渴望取悅他人",
+    "talent": "激情、感官魅力"
+  },
+  {
+    "id": "creator",
+    "name": "創造者",
+    "motto": "如果你能想像它，就能創造它",
+    "core_desire": "創造有價值的東西",
+    "goal": "實現願景",
+    "greatest_fear": "平庸與未完成",
+    "strategy": "發展藝術與技藝",
+    "weakness": "完美主義與過度控制",
+    "talent": "創造力與想像力"
+  },
+  {
+    "id": "jester",
+    "name": "小丑",
+    "motto": "你只能活一次",
+    "core_desire": "活在當下、享受生活",
+    "goal": "娛樂他人與自己",
+    "greatest_fear": "無聊或無趣",
+    "strategy": "玩樂、使人發笑",
+    "weakness": "膚淺、不負責",
+    "talent": "喜劇感與輕鬆氛圍"
+  },
+  {
+    "id": "sage",
+    "name": "智者",
+    "motto": "真理將使你自由",
+    "core_desire": "尋找真理與知識",
+    "goal": "理解世界與他人",
+    "greatest_fear": "無知或被誤導",
+    "strategy": "思考與觀察",
+    "weakness": "不行動、過度分析",
+    "talent": "智慧與明辨"
+  },
+  {
+    "id": "magician",
+    "name": "魔法師",
+    "motto": "我創造我的現實",
+    "core_desire": "理解宇宙的法則",
+    "goal": "使夢想實現",
+    "greatest_fear": "負面結果、意外後果",
+    "strategy": "發展內在力量",
+    "weakness": "操縱與傲慢",
+    "talent": "蛻變與啟發"
+  },
+  {
+    "id": "ruler",
+    "name": "統治者",
+    "motto": "權責一致",
+    "core_desire": "控制、創造繁榮",
+    "goal": "創建成功的社會或家庭",
+    "greatest_fear": "混亂與被推翻",
+    "strategy": "運用權威、建立秩序",
+    "weakness": "專制與控制狂",
+    "talent": "領導與責任"
+  }
+]
