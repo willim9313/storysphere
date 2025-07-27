@@ -1,62 +1,40 @@
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
-from enum import Enum
+from .template_manager import MultilingualTemplateManager, TaskType
+from .base_templates import Language, BaseTemplate
 
-class Language(Enum):
-    CHINESE = "zh"
-    ENGLISH = "en"
+class TemplateBuilder:
+    """
+    負責根據任務、語言、用戶自訂參數動態構建 prompt
+    """
+    def __init__(
+        self, 
+        template_manager: MultilingualTemplateManager
+    ):
+        """
+        初始化模板管理器
+        :param template_manager: 多語言模板管理器實例
+        """
+        self.template_manager = template_manager
 
-@dataclass
-class BaseTemplate:
-    """基底模板結構"""
-    system_prompt: str = ""
-    task_instruction: str = ""
-    input_format: str = ""
-    output_format: str = ""
-    constraints: str = ""
-    examples: str = ""
-    language: Language = Language.CHINESE
-    
-    def render(self, **kwargs) -> str:
-        """渲染完整的 prompt"""
-        template = f"""
-{self.system_prompt}
-
-{self._get_section_header('task')}：
-{self.task_instruction}
-
-{self._get_section_header('input')}：
-{self.input_format}
-
-{self._get_section_header('output')}：
-{self.output_format}
-
-{self._get_section_header('constraints')}：
-{self.constraints}
-
-{self.examples}
-
-{self._get_section_header('actual_input')}：
-{kwargs.get('content', '')}
-"""
-        return template.strip().format(**kwargs)
-    
-    def _get_section_header(self, section: str) -> str:
-        """根據語言獲取段落標題"""
-        headers = {
-            Language.CHINESE: {
-                'task': '任務指示',
-                'input': '輸入格式',
-                'output': '輸出格式',
-                'constraints': '限制條件',
-                'actual_input': '實際輸入'
-            },
-            Language.ENGLISH: {
-                'task': 'Task Instructions',
-                'input': 'Input Format',
-                'output': 'Output Format',
-                'constraints': 'Constraints',
-                'actual_input': 'Actual Input'
-            }
-        }
-        return headers[self.language][section]
+    def build(
+        self,
+        task_type: TaskType,
+        language: Language = None,
+        overrides: dict = None,
+        **kwargs
+    ) -> str:
+        """
+        根據任務、語言和可選的覆寫內容，組裝最終 prompt
+        - task_type: 任務類型(增加設定請至template_manager.py處理)
+        - language: 語言
+        - overrides: 可選，覆寫模板中的任意欄位（如 task_instruction、constraints 等）
+        - kwargs: 傳給模板 render 的參數, 如 content、max_length 等
+        :return: 完整的 prompt 字符串
+        """
+        base_template: BaseTemplate = self.template_manager.get_template(task_type, language)
+        if not base_template:
+            raise ValueError(f"Template for {task_type} in {language} not found")
+        # 動態覆寫欄位
+        if overrides:
+            for k, v in overrides.items():
+                setattr(base_template, k, v)
+        return base_template.render(**kwargs)

@@ -1,3 +1,7 @@
+"""
+多語言基底模板模組
+設定完整的base prompt template結構
+"""
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 from enum import Enum
@@ -11,33 +15,33 @@ class BaseTemplate:
     """基底模板結構"""
     system_prompt: str = ""
     task_instruction: str = ""
-    input_format: str = ""
-    output_format: str = ""
-    constraints: str = ""
+    ref_info: Optional[str] = None  # 新增參考資訊欄位
     examples: str = ""
-    language: Language = Language.CHINESE
+    constraints: str = ""
+    output_format: str = ""
+    language: Language = Language.ENGLISH  # 預設語言為英文
     
     def render(self, **kwargs) -> str:
         """渲染完整的 prompt"""
-        template = f"""
-{self.system_prompt}
+        ref_info = kwargs.get("ref_info", self.ref_info)
+        examples = kwargs.get("examples", self.examples)
+        template = f"""{self.system_prompt}
 
-{self._get_section_header('task')}：
+{self._get_section_header('task')}:
 {self.task_instruction}
+{self._get_section_header('ref_info') if ref_info else ''}{':' if ref_info else ''}
+{self.ref_info if ref_info else ''}
+{self._get_section_header('examples') if examples else ''}{':' if examples else ''}
+{self.examples if examples else ''}
 
-{self._get_section_header('input')}：
-{self.input_format}
-
-{self._get_section_header('output')}：
-{self.output_format}
-
-{self._get_section_header('constraints')}：
+{self._get_section_header('constraints')}:
 {self.constraints}
 
-{self.examples}
-
-{self._get_section_header('actual_input')}：
+{self._get_section_header('input')}:
 {kwargs.get('content', '')}
+
+{self._get_section_header('output_format')}:
+{self.output_format}
 """
         return template.strip().format(**kwargs)
     
@@ -45,18 +49,20 @@ class BaseTemplate:
         """根據語言獲取段落標題"""
         headers = {
             Language.CHINESE: {
-                'task': '任務指示',
-                'input': '輸入格式',
-                'output': '輸出格式',
-                'constraints': '限制條件',
-                'actual_input': '實際輸入'
+                'task': '#任務指示',
+                'ref_info': '#參考資訊(可用選項)',
+                'examples': '#範例',
+                'constraints': '#限制條件',
+                'input': '#輸入資料',
+                'output_format': '#輸出格式',
             },
             Language.ENGLISH: {
-                'task': 'Task Instructions',
-                'input': 'Input Format',
-                'output': 'Output Format',
-                'constraints': 'Constraints',
-                'actual_input': 'Actual Input'
-            }
+                'task': '#Task Instructions',
+                'ref_info': '#Reference Information (Optional Choices)',
+                'examples': '#Examples',
+                'constraints': '#Constraints',
+                'input': '#Input Data',
+                'output_format': '#Output Format',
+            },
         }
         return headers[self.language][section]
