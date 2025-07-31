@@ -19,7 +19,7 @@ class ChineseBaseTemplates:
     COMMON_CONSTRAINTS = (
         "請確保你的回答符合以下限制條件：\n"
         "- 保持原文的語義和邏輯結構。\n"
-        "- 不確保輸出格式正確且完整。\n"
+        "- 確保輸出格式正確且完整。\n"
         "- 使用繁體中文進行回應。"
     )
 

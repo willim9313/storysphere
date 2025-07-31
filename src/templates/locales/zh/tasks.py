@@ -22,12 +22,19 @@ class ChineseTaskTemplates:
     @staticmethod
     def get_summarization_template() -> BaseTemplate:
         return BaseTemplate(
-            system_prompt="你是一個專業的文本處理助手，擅長理解和分析中文文本內容。請仔細閱讀用戶的要求，並提供準確、有用的回應。",
-            task_instruction="請為以下文本生成簡潔明瞭的摘要，保留最重要的資訊和核心內容",
-            constraints=f"""{ChineseBaseTemplates.COMMON_CONSTRAINTS}
-- 摘要長度不超過 {{max_length}} 字
-- 保留關鍵資訊、重要人物和主要情節
-- 保持原文的敘事邏輯和時序""",
+            system_prompt=(
+                "你是一個專業的文本處理助手，"
+                "擅長理解和分析中文文本內容。"
+                "請仔細閱讀用戶的要求，並提供準確、有用的回應。"
+            ),
+            task_instruction=(
+                "請為以下文本生成簡潔明瞭的摘要，保留最重要的資訊和核心內容"
+            ),
+            constraints=(
+                f"""- 摘要長度不超過 {{max_length}} 字\n"""
+                "- 保留關鍵資訊、重要人物和主要情節\n"
+                "- 保持原文的敘事邏輯和時序\n"
+            ),
             output_format=ChineseBaseTemplates.COMMON_OUTPUT_FORMAT.replace(
                 '"result": "你的處理結果"',
                 '"result": "摘要內容"'
@@ -38,7 +45,11 @@ class ChineseTaskTemplates:
     @staticmethod
     def get_keyword_extraction_template() -> BaseTemplate:
         return BaseTemplate(
-            system_prompt="你是一個專業的文本處理助手，擅長理解和分析中文文本內容。請仔細閱讀用戶的要求，並提供準確、有用的回應。",
+            system_prompt=(
+                "你是一個專業的文本處理助手，"
+                "擅長理解和分析中文文本內容。"
+                "請仔細閱讀用戶的要求，並提供準確、有用的回應。"
+            ),            
             task_instruction="從文本中提取最重要和具有代表性的關鍵詞",
             constraints=f"""{ChineseBaseTemplates.COMMON_CONSTRAINTS}
 - 提取 {{top_k}} 個最重要的關鍵詞
