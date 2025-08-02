@@ -22,12 +22,20 @@ class EnglishTaskTemplates:
     @staticmethod
     def get_summarization_template() -> BaseTemplate:
         return BaseTemplate(
-            system_prompt="You are a professional text processing assistant, skilled in understanding and analyzing text content. Please carefully read the user's requirements and provide accurate, helpful responses.",
-            task_instruction="Please generate a concise and clear summary for the following text, retaining the most important information and core content",
-            constraints=f"""{EnglishBaseTemplates.COMMON_CONSTRAINTS}
-- Summary length should not exceed {{max_length}} words
-- Retain key information, important characters, and main plot points
-- Maintain the original narrative logic and chronological order""",
+            system_prompt=(
+                "You are a professional text processing assistant,"
+                "skilled in understanding and analyzing text content." 
+                "Please carefully read the user's requirements and provide accurate, helpful responses."
+            ),
+            task_instruction=(
+                "Please generate a concise and clear summary for the following text,"
+                " retaining the most important information and core content"
+            ),
+            constraints=(
+                f"""- Summary length should not exceed {{max_length}} words"""
+                "- Retain key information, important characters, and main plot points"
+                "- Maintain the original narrative logic and chronological order"
+            ),
             output_format=EnglishBaseTemplates.COMMON_OUTPUT_FORMAT.replace(
                 '"result": "Your processing result"',
                 '"result": "Summary content"'
@@ -38,18 +46,26 @@ class EnglishTaskTemplates:
     @staticmethod
     def get_keyword_extraction_template() -> BaseTemplate:
         return BaseTemplate(
-            system_prompt="You are a professional text processing assistant, skilled in understanding and analyzing text content. Please carefully read the user's requirements and provide accurate, helpful responses.",
+            system_prompt=(
+                "You are a professional text processing assistant,"
+                "skilled in understanding and analyzing text content."
+                "Please carefully read the user's requirements and provide accurate,"
+                "helpful responses."
+            ),
             task_instruction="Extract the most important and representative keywords from the text",
-            constraints=f"""{EnglishBaseTemplates.COMMON_CONSTRAINTS}
-- Extract {{top_k}} most important keywords
-- Prioritize representative nouns and important concepts
-- Sort keywords by importance
-- Avoid overly generic terms""",
-            output_format="""
-Please output in JSON format:
-{{
-    "result": [{{"keyword1": "importance_score1"}}, {{"keyword2": "importance_score2"}}, {{"keyword3": "importance_score3"}}]
-}}
-""",
+            constraints=(
+                f"""{EnglishBaseTemplates.COMMON_CONSTRAINTS}"""
+                "- Extract {{top_k}} most important keywords"
+                "- Prioritize representative nouns and important concepts"
+                "- Sort keywords by importance"
+                "- Avoid overly generic terms"""
+            ),
+            output_format=(
+                "Please output in JSON format:\n"
+                "{{\n"
+                '    "result": [{{"keyword1": "importance_score1"}}, {{"keyword2": "importance_score2"}}, {{"keyword3": "importance_score3"}}]\n'
+                "}}"
+            ),
             language=Language.ENGLISH
         )
+

@@ -51,16 +51,18 @@ class ChineseTaskTemplates:
                 "請仔細閱讀用戶的要求，並提供準確、有用的回應。"
             ),            
             task_instruction="從文本中提取最重要和具有代表性的關鍵詞",
-            constraints=f"""{ChineseBaseTemplates.COMMON_CONSTRAINTS}
-- 提取 {{top_k}} 個最重要的關鍵詞
-- 優先選擇具有代表性的名詞和重要概念
-- 按重要性排序關鍵詞
-- 避免過於通用的詞彙""",
-            output_format="""
-請以 JSON 格式輸出：
-{{
-    "result": [{{"關鍵詞1": "重要性分數1"}}, {{"關鍵詞2": "重要性分數2"}}, {{"關鍵詞3": "重要性分數3"}}]
-}}
-""",
+            constraints=(
+                f"""{ChineseBaseTemplates.COMMON_CONSTRAINTS}"""
+                "- 提取 {{top_k}} 個最重要的關鍵詞"
+                "- 優先選擇具有代表性的名詞和重要概念"
+                "- 按重要性排序關鍵詞"
+                "- 避免過於通用的詞彙"""
+            ),
+            output_format=(
+                """請以 JSON 格式輸出："""
+                "{{\n"
+                '    "result": [{{"關鍵詞1": "重要性分數1"}}, {{"關鍵詞2": "重要性分數2"}}, {{"關鍵詞3": "重要性分數3"}}]\n'
+                "}}"
+            ),
             language=Language.CHINESE
         )
