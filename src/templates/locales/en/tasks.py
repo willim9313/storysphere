@@ -68,4 +68,49 @@ class EnglishTaskTemplates:
             ),
             language=Language.ENGLISH
         )
-
+    
+    @staticmethod
+    def get_entity_extraction_template() -> BaseTemplate:
+        return BaseTemplate(
+            system_prompt=(
+                "You are a professional text processing assistant,"
+                "skilled in understanding and analyzing text content."
+                "Please carefully read the user's requirements and provide accurate,"
+                "helpful responses."
+            ),
+            task_instruction="Extract structured entities from the text",
+            constraints=(
+                f"""{EnglishBaseTemplates.COMMON_CONSTRAINTS}"""
+                "- Extract meaningful entities and relations from the text"
+                "- Do not make up entities and relations that do not exist in the text"
+                "- Return JSON with keys: entities[], relations[]"
+            ),
+            output_format=(
+                "Please output in JSON format:\n"
+                "{{\n"
+                "  \"entities\": [\n"
+                "    {\n"
+                "      \"type\": \"Person\",\n"
+                "      \"name\": \"Character Name\",\n"
+                "      \"attributes\": {\n"
+                "        \"gender\": \"Male\",\n"
+                "        \"role\": \"Protagonist\",\n"
+                "        \"description\": \"The boy who lived\"\n"
+                "      }\n"
+                "    },\n"
+                "    {\n"
+                "      \"type\": \"Object\",\n"
+                "      \"name\": \"Object Name\"\n"
+                "    }\n"
+                "  ],\n"
+                "  \"relations\": [\n"
+                "    {\n"
+                "      \"head\": \"Character Name\",\n"
+                "      \"relation\": \"possesses\",\n"
+                "      \"tail\": \"Object Name\"\n"
+                "    }\n"
+                "  ]\n"
+                "}"
+            ),
+            language=Language.ENGLISH
+        )

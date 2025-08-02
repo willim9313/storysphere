@@ -236,7 +236,7 @@ class HierarchicalAggregator:
 
 if __name__ == "__main__":
     # 這裡可以放一些測試代碼，確保 HierarchicalAggregator 的功能正常
-    
+    # llmoperator要換成新的
 
     # 開始撰寫summary聚合流程
     # chapter summary
