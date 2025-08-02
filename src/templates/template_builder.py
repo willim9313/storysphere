@@ -1,3 +1,4 @@
+from typing import Dict
 from .template_manager import MultilingualTemplateManager, TaskType
 from .base_templates import Language, BaseTemplate
 
@@ -38,3 +39,25 @@ class TemplateBuilder:
             for k, v in overrides.items():
                 setattr(base_template, k, v)
         return base_template.render(**kwargs)
+    
+    def build_split(
+        self,
+        task_type: TaskType,
+        language: Language = None,
+        overrides: dict = None,
+        **kwargs
+    ) -> Dict[str, str]:
+        """
+        構建分離式的 prompt 結構
+        返回包含 system_message 和 user_message 的字典
+        未來可能會需要重構，因為只有輸出的調用不同
+        """
+        base_template: BaseTemplate = self.template_manager.get_template(task_type, language)
+        if not base_template:
+            raise ValueError(f"Template for {task_type} in {language} not found")
+        
+        if overrides:
+            for k, v in overrides.items():
+                setattr(base_template, k, v)
+        
+        return base_template.render_split(**kwargs)

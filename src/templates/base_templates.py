@@ -26,6 +26,7 @@ class BaseTemplate:
         """渲染完整的 prompt"""
         ref_info = kwargs.get("ref_info", self.ref_info)
         examples = kwargs.get("examples", self.examples)
+
         template = f"""{self._get_section_header('system_prompt')}:
 {self.system_prompt}
 
@@ -47,6 +48,43 @@ class BaseTemplate:
 """
         return template.strip().format(**kwargs)
     
+    def render_split(self, **kwargs) -> Dict[str, str]:
+        """
+        渲染分離式的 prompt 結構
+        適合可以分拆system instruction的LLM
+        將user input的部分限在 user_message
+        返回一個字典，包含 system_message 和 user_message
+        """
+        # 提取可選參數
+        ref_info = kwargs.get("ref_info", self.ref_info)
+        examples = kwargs.get("examples", self.examples)
+
+        # System message 部分
+        system_content = f"""{self._get_section_header('system_prompt')}:
+{self.system_prompt}
+
+{self._get_section_header('task')}:
+{self.task_instruction}
+{self._get_section_header('ref_info') if ref_info else ''}{':' if ref_info else ''}
+{self.ref_info if ref_info else ''}
+{self._get_section_header('examples') if examples else ''}{':' if examples else ''}
+{self.examples if examples else ''}
+
+{self._get_section_header('constraints')}:
+{self.constraints}
+
+{self._get_section_header('output_format')}:
+{self.output_format}""".strip()
+
+        # User message 部分
+        user_content = f"""{self._get_section_header('input')}:
+{kwargs.get('content', '')}""".strip()
+
+        return {
+            "system_message": system_content.format(**kwargs),
+            "user_message": user_content.format(**kwargs)
+        }
+
     def _get_section_header(self, section: str) -> str:
         """根據語言獲取段落標題"""
         headers = {

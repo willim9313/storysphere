@@ -23,6 +23,9 @@ from typing import Dict, Any
 from src.core.llm.gemini_client import GeminiClient
 from src.core.validators.kg_schema_validator import validate_kg_output
 from src.core.validators.nlp_utils_validator import validate_summary_output, validate_extracted_keywords
+from src.templates.template_builder import TemplateBuilder
+from src.templates.template_manager import MultilingualTemplateManager, TaskType
+from src.templates.base_templates import Language
 
 load_dotenv()
 API_KEY = os.getenv("GEMINI_API_KEY")
@@ -124,6 +127,41 @@ class LlmOperator:
         self.entity_types = [e["type"] for e in schema["entities"]]
         self.relation_types = [r["type"] for r in schema["relations"]]
         self.attribute_types = [a["name"] for a in schema["attributes"]]
+
+    def nu_chat(
+            self, 
+            content: str, 
+            ref_info: str = None,
+            language: Language = Language.ENGLISH
+        ) -> str:
+        """
+        使用 LLM 進行聊天任務
+        :param content: 用戶輸入的內容
+        :param ref_info: 可選的參考資訊
+        :return: LLM 的回應
+        """
+
+        template_manager = MultilingualTemplateManager()
+        builder = TemplateBuilder(
+            template_manager=template_manager
+        )
+
+        input_data = builder.build_split(
+            task_type=TaskType.CHATBOT,
+            language=Language.CHINESE,
+            content=content
+        )
+        
+        MAX_TRY = 3
+
+        for attempt in range(MAX_TRY):
+            resp = self.client.generate_response(prompt=input_data["user_message"],
+                                                 instruction=input_data["system_message"])
+            resp_json = extract_json_from_text(resp)
+            if resp_json:
+                return resp_json.get("respond", "")
+        
+        return None
 
     def summarize(self, text: str) -> str:
         '''
