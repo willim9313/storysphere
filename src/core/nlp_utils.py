@@ -9,6 +9,7 @@ import os
 import re
 import ast
 import json
+from pprint import pprint
 
 # 第三方套件
 import yaml
@@ -58,11 +59,11 @@ def extract_json_from_text(text: str) -> Dict[str, Any]:
 # Here are the extracted keywords in a structure less than 20 words:
 
 # {
-#   "respond": ["Napoleon", "Animal Farm", "Spontaneous Demonstration"]
+#   "result": ["Napoleon", "Animal Farm", "Spontaneous Demonstration"]
 # }
 # """
 # result = extract_dict_from_text(response)
-# print(result)  # {'respond': ['Napoleon', 'Animal Farm', 'Spontaneous Demonstration']}
+# print(result)  # {'result': ['Napoleon', 'Animal Farm', 'Spontaneous Demonstration']}
 
 
 # 自定義關鍵字提取（示例，可替換為你熟悉的 NLP 模型或算法）
@@ -145,13 +146,18 @@ class LlmOperator:
         builder = TemplateBuilder(
             template_manager=template_manager
         )
-
+        
         input_data = builder.build_split(
             task_type=TaskType.CHATBOT,
-            language=Language.CHINESE,
+            language=language,
+            ref_info=ref_info,
             content=content
         )
         
+        print('====== input_data ======')
+        pprint(input_data)
+        print('====== input_data ======')
+
         MAX_TRY = 3
 
         for attempt in range(MAX_TRY):
@@ -159,8 +165,8 @@ class LlmOperator:
                                                  instruction=input_data["system_message"])
             resp_json = extract_json_from_text(resp)
             if resp_json:
-                return resp_json.get("respond", "")
-        
+                return resp_json.get("result", "") ###### 要修正所有的respond 變成result或反之
+
         return None
 
     def summarize(self, text: str) -> str:
@@ -173,7 +179,7 @@ class LlmOperator:
 
         ### Output Format (in JSON):
         {{
-         "respond": "context"
+         "result": "context"
          }}
         ###
         """
@@ -186,7 +192,7 @@ class LlmOperator:
             resp_json = extract_json_from_text(resp)
             summary, error = validate_summary_output(resp_json)
             if summary:
-                return summary.respond
+                return summary.result
         
         return None
 
@@ -200,7 +206,7 @@ class LlmOperator:
         using the following structure:
         ### Output Format (in JSON):
         {
-         "respond": ["keyword1", "keyword2"]
+         "result": ["keyword1", "keyword2"]
          }
         ##
         """
@@ -212,8 +218,8 @@ class LlmOperator:
             resp_json = extract_json_from_text(resp)
             keyword_list, error = validate_extracted_keywords(resp_json)
             if keyword_list:
-                return keyword_list.respond
-        
+                return keyword_list.result
+
         return None
     
     def extract_kg_elements(self, text:str):
@@ -330,9 +336,7 @@ if __name__ == "__main__":
     gun, the crowing of the cockerel, and the fluttering of the
     flag, they were able to forget that their bellies were empty, at
     least part of the time.
-    """
-    from pprint import pprint
-    
+    """    
     # print(f'kpe_tool test')
     # tool = KpeTool()
     # print(tool.extract_keywords(text, n=10))

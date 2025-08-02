@@ -33,7 +33,7 @@ class LlmOperator:
         Return only the summary, keep it under 200 words.**
 
         ## Format:
-        {"respond": "summary text"}
+        {"result": "summary text"}
         """
         for _ in range(3):
             resp = self.client.generate_response(
@@ -43,20 +43,20 @@ class LlmOperator:
             data = extract_json_from_text(resp)
             summary, err = validate_summary_output(data)
             if summary:
-                return summary.respond
+                return summary.result
         return None
 
     def extract_keyword(self, text: str) -> list:
         instruction = """
         Extract up to 20 keywords from the given text. 
-        Format: {"respond": ["kw1", "kw2"]}
+        Format: {"result": ["kw1", "kw2"]}
         """
         for _ in range(3):
             resp = self.client.generate_response(text, instruction)
             data = extract_json_from_text(resp)
             keyword_list, err = validate_extracted_keywords(data)
             if keyword_list:
-                return keyword_list.respond
+                return keyword_list.result
         return None
 
     def extract_kg_elements(self, text: str) -> Any:

@@ -7,10 +7,10 @@ import re
 # Pydantic Models
 # ------------------
 class SummaryResponse(BaseModel):
-    respond: str = Field(..., description="The summarized context text")
+    result: str = Field(..., description="The summarized context text")
 
 class ExtractedKeywords(BaseModel):
-    respond: List[str] = Field(..., description="List of extracted keywords from the text")
+    result: List[str] = Field(..., description="List of extracted keywords from the text")
 
 
 # ------------------
@@ -46,10 +46,10 @@ def validate_extracted_keywords(output: Any) -> Tuple[Optional[ExtractedKeywords
     
 if __name__ == "__main__":
 
-    result = {"respond": "This is the summary."}
+    result = {"result": "This is the summary."}
     obj = SummaryResponse.model_validate(result)
-    print(obj.respond)  # ✅ OK
+    print(obj.result)  # ✅ OK
 
-    result = {"respond": ["keyword1", "keyword2"]}
+    result = {"result": ["keyword1", "keyword2"]}
     obj = ExtractedKeywords.model_validate(result)
-    print(obj.respond)  # ✅ OK
+    print(obj.result)  # ✅ OK
