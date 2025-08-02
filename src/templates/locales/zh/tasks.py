@@ -59,17 +59,7 @@ class ChineseTaskTemplates:
             output_format="""
 請以 JSON 格式輸出：
 {{
-    "result": ["關鍵詞1", "關鍵詞2", "關鍵詞3"],
-    "confidence": "信心度分數 (0-1)",
-    "metadata": {{
-        "total_keywords": "提取的關鍵詞總數",
-        "categories": {{
-            "人物": ["人物關鍵詞"],
-            "地點": ["地點關鍵詞"],
-            "事件": ["事件關鍵詞"],
-            "概念": ["概念關鍵詞"]
-        }}
-    }}
+    "result": [{{"關鍵詞1": "重要性分數1"}}, {{"關鍵詞2": "重要性分數2"}}, {{"關鍵詞3": "重要性分數3"}}]
 }}
 """,
             language=Language.CHINESE

@@ -130,11 +130,11 @@ class LlmOperator:
         self.attribute_types = [a["name"] for a in schema["attributes"]]
 
     def nu_chat(
-            self, 
-            content: str, 
-            ref_info: str = None,
-            language: Language = Language.ENGLISH
-        ) -> str:
+        self, 
+        content: str, 
+        ref_info: str = None,
+        language: Language = Language.ENGLISH
+    ) -> str:
         """
         使用 LLM 進行聊天任務
         :param content: 用戶輸入的內容
@@ -153,10 +153,6 @@ class LlmOperator:
             ref_info=ref_info,
             content=content
         )
-        
-        print('====== input_data ======')
-        pprint(input_data)
-        print('====== input_data ======')
 
         MAX_TRY = 3
 
@@ -165,7 +161,7 @@ class LlmOperator:
                                                  instruction=input_data["system_message"])
             resp_json = extract_json_from_text(resp)
             if resp_json:
-                return resp_json.get("result", "") ###### 要修正所有的respond 變成result或反之
+                return resp_json.get("result", "")
 
         return None
 
@@ -196,6 +192,42 @@ class LlmOperator:
         
         return None
 
+    def nu_summarize(
+        self, 
+        content: str, 
+        language: Language = Language.ENGLISH,
+        max_length: int = 200
+    ) -> str:
+        """
+        使用 LLM 進行文本摘要
+        :param content: 需要摘要的文本
+        :param language: 語言，預設為英文
+        :param max_length: 最大摘要長度，預設為200
+        :return: LLM 的摘要結果
+        """
+        template_manager = MultilingualTemplateManager()
+        builder = TemplateBuilder(
+            template_manager=template_manager
+        )
+        
+        input_data = builder.build_split(
+            task_type=TaskType.GENERAL_SUMMARIZATION,
+            language=language,
+            content=content,
+            max_length=max_length
+        )
+
+        MAX_TRY = 3
+
+        for attempt in range(MAX_TRY):
+            resp = self.client.generate_response(prompt=input_data["user_message"],
+                                                 instruction=input_data["system_message"])
+            resp_json = extract_json_from_text(resp)
+            if resp_json:
+                return resp_json.get("result", "")
+
+        return None
+
     def extract_keyword(self, text: str) -> list:
         '''
         文本關鍵字提取用途
@@ -222,6 +254,41 @@ class LlmOperator:
 
         return None
     
+    def nu_extract_keyword(
+        self, 
+        content: str,
+        language: Language = Language.ENGLISH,
+        top_k: int = 10
+    ) -> list:
+        '''
+        使用 LLM 進行關鍵字提取
+        :param content: 需要提取關鍵字的文本
+        :param language: 語言，預設為英文
+        :return: LLM 的關鍵字提取結果
+        '''
+        template_manager = MultilingualTemplateManager()
+        builder = TemplateBuilder(
+            template_manager=template_manager
+        )
+
+        input_data = builder.build_split(
+            task_type=TaskType.KEYWORD_EXTRACTION,
+            language=language,
+            content=content,
+            top_k=top_k
+        )
+
+        MAX_TRY = 3
+
+        for attempt in range(MAX_TRY):
+            resp = self.client.generate_response(prompt=input_data["user_message"],
+                                                 instruction=input_data["system_message"])
+            resp_json = extract_json_from_text(resp)
+            if resp_json:
+                return resp_json.get("result", [])
+
+        return None
+
     def extract_kg_elements(self, text:str):
         '''這是用來進行知識圖譜元素的提取'''
         instruction = '''
@@ -293,6 +360,40 @@ class LlmOperator:
                 print("Attribute Types:", self.attribute_types)
         return None
     
+    def nu_extract_kg_elements(
+        self, 
+        content: str,
+        language: Language = Language.ENGLISH
+        # 這邊還沒有把底層做好
+    ) -> dict:
+        '''
+        使用 LLM 進行知識圖譜元素提取
+        :param content: 需要提取的文本
+        :param language: 語言，預設為英文
+        :return: LLM 的知識圖譜元素提取結果
+        '''
+        template_manager = MultilingualTemplateManager()
+        builder = TemplateBuilder(
+            template_manager=template_manager
+        )
+
+        input_data = builder.build_split(
+            task_type=TaskType.KG_EXTRACTION,
+            language=language,
+            content=content
+        )
+
+        MAX_TRY = 3
+
+        for attempt in range(MAX_TRY):
+            resp = self.client.generate_response(prompt=input_data["user_message"],
+                                                 instruction=input_data["system_message"])
+            resp_json = extract_json_from_text(resp)
+            if resp_json:
+                return resp_json.get("result", [])
+
+        return None
+
     def close(self):
         del self.client
 
@@ -301,69 +402,3 @@ def get_kg_elements(text: str) -> dict:
     從給定的實體中，分離出實體、關係和屬性，並返回多個結構化的字典。
     """
     pass
-
-if __name__ == "__main__":
-    text = """
-    But if there were hardships to be borne, they were partly
-    offset by the fact that life nowadays had a greater dignity
-    than it had had before. There were more songs, more
-    speeches, more processions. Napoleon had commanded that
-    once a week there should be held something called a
-    Spontaneous Demonstration, the object of which was to
-    celebrate the struggles and triumphs of Animal Farm. At the
-    appointed time the animals would leave their work and
-    march round the precincts of the farm in military formation,
-    with the pigs leading, then the horses, then the cows, then the
-    sheep, and then the poultry. The dogs flanked the procession
-    and at the head of all marched Napoleon's black cockerel.
-    Boxer and Clover always carried between them a green
-    banner marked with the hoof and the horn and the caption,
-    "Long live Comrade Napoleon!" Afterwards there were
-    recitations of poems composed in Napoleon's honour, and a
-    speech by Squealer giving particulars of the latest increases
-    in the production of foodstuffs, and on occasion a shot was
-    fired from the gun. The sheep were the greatest devotees of
-    the Spontaneous Demonstration, and if anyone complained
-    (as a few animals sometimes did, when no pigs or dogs were
-    near) that they wasted time and meant a lot of standing about
-    in the cold, the sheep were sure to silence him with a
-    tremendous bleating of "Four legs good, two legs bad!" But
-    by and large the animals enjoyed these celebrations. They
-    found it comforting to be reminded that, after all, they were
-    truly their own masters and that the work they did was for
-    their own benefit. So that, what with the songs, the
-    processions, Squealer's lists of figures, the thunder of the
-    gun, the crowing of the cockerel, and the fluttering of the
-    flag, they were able to forget that their bellies were empty, at
-    least part of the time.
-    """    
-    # print(f'kpe_tool test')
-    # tool = KpeTool()
-    # print(tool.extract_keywords(text, n=10))
-    
-    
-    
-    print('\n')
-    # print(t.extract_keyword(text))
-    client = LlmOperator(GeminiClient(API_KEY, MODEL_NAME))
-    # print('client.entity_types')
-    # print(client.entity_types)
-    # print('client.relation_types')
-    # print(client.relation_types)
-    # print('client.attribute_types')
-    # print(client.attribute_types)
-    # resp = client.extract_kg_elements(text)
-    # pprint(resp.entities)
-    # print(type(resp))
-
-
-    resp = client.summarize(text)
-    print(f'summarize: \n{resp}\n')
-
-    # resp = client.extract_keyword(text)
-    # print(f'extract_keyword: \n{resp}\n')
-
-    resp = client.extract_kg_elements(text)
-    print(f'extract_kg_elements: \n{resp}\n')
-
-    client.close()

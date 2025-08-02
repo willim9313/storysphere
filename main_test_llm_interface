@@ -66,12 +66,19 @@ resp = client.nu_chat(content="Hi, can you help me with some questions?",
 print(f'nu_chat: \n{resp}\n')
 
 
+## test summarize
+# resp = client.summarize(text)
+# print(f'summarize: \n{resp}\n')
+# resp = client.nu_summarize(content=text, max_length=200)
+# print(f'nu_summarize: \n{resp}\n')
 
-resp = client.summarize(text)
-print(f'summarize: \n{resp}\n')
+## test extract_keyword
+resp = client.extract_keyword(text)
+print(f'extract_keyword: \n{resp}\n')
+resp = client.nu_extract_keyword(content=text, top_k=10)
+print(f'nu_extract_keyword: \n{resp}\n')
 
-# resp = client.extract_keyword(text)
-# print(f'extract_keyword: \n{resp}\n')
+
 
 # resp = client.extract_kg_elements(text)
 # print(f'extract_kg_elements: \n{resp}\n')

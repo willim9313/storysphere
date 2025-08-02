@@ -48,17 +48,7 @@ class EnglishTaskTemplates:
             output_format="""
 Please output in JSON format:
 {{
-    "result": ["keyword1", "keyword2", "keyword3"],
-    "confidence": "Confidence score (0-1)",
-    "metadata": {{
-        "total_keywords": "Total number of extracted keywords",
-        "categories": {{
-            "people": ["people keywords"],
-            "places": ["place keywords"],
-            "events": ["event keywords"],
-            "concepts": ["concept keywords"]
-        }}
-    }}
+    "result": [{{"keyword1": "importance_score1"}}, {{"keyword2": "importance_score2"}}, {{"keyword3": "importance_score3"}}]
 }}
 """,
             language=Language.ENGLISH
