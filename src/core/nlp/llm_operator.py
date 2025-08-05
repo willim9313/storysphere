@@ -6,12 +6,12 @@ import json
 from typing import Any, Dict
 import yaml
 
-from core.utils.output_extractor import extract_json_from_text
-from core.validators.kg_schema_validator import validate_kg_output
-from core.validators.nlp_utils_validator import validate_summary_output, validate_extracted_keywords
-from src.templates.template_builder import TemplateBuilder
-from src.templates.template_manager import MultilingualTemplateManager, TaskType
-from src.templates.base_templates import Language
+from ..utils.output_extractor import extract_json_from_text
+from ..validators.kg_schema_validator import validate_kg_output
+from ..validators.nlp_utils_validator import validate_summary_output, validate_extracted_keywords
+from ...templates.template_builder import TemplateBuilder
+from ...templates.template_manager import MultilingualTemplateManager, TaskType
+from ...templates.base_templates import Language
 
 class LlmOperator:
     """
@@ -240,11 +240,13 @@ class LlmOperator:
         :return: LLM 的知識圖譜元素提取結果
         '''
         ref_schema = (
-            f"""## Schema:
-            - Entity Types: {json.dumps(self.entity_types, indent=2)}
-            - Relation Types: {json.dumps(self.relation_types, indent=2)}
-            - Attributes: {json.dumps(self.attribute_types, indent=2)}
-            """
+            f"## Schema:"
+            "- Entity Types:"
+            f"{json.dumps(self.entity_types, indent=2)}"
+            "- Relation Types:"
+            f"{json.dumps(self.relation_types, indent=2)}"
+            "- Attributes:"
+            f"{json.dumps(self.attribute_types, indent=2)}"
         )
 
         template_manager = MultilingualTemplateManager()

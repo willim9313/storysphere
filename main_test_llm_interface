@@ -1,4 +1,5 @@
-from src.core.nlp_utils import LlmOperator
+# from src.core.nlp_utils import LlmOperator
+from src.core.nlp.llm_operator import LlmOperator
 from src.core.llm.gemini_client import GeminiClient
 from dotenv import load_dotenv
 import os
@@ -73,12 +74,14 @@ print(f'nu_chat: \n{resp}\n')
 # print(f'nu_summarize: \n{resp}\n')
 
 ## test extract_keyword
-resp = client.extract_keyword(text)
-print(f'extract_keyword: \n{resp}\n')
-resp = client.nu_extract_keyword(content=text, top_k=10)
-print(f'nu_extract_keyword: \n{resp}\n')
+# resp = client.extract_keyword(text)
+# print(f'extract_keyword: \n{resp}\n')
+# resp = client.nu_extract_keyword(content=text, top_k=10)
+# print(f'nu_extract_keyword: \n{resp}\n')
 
-
+## test extract_kg_elements
+resp = client.nu_extract_kg_elements(content=text)
+print(f'nu_extract_kg_elements: \n{resp}\n')
 
 # resp = client.extract_kg_elements(text)
 # print(f'extract_kg_elements: \n{resp}\n')

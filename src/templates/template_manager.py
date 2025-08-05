@@ -40,6 +40,7 @@ class MultilingualTemplateManager:
             TaskType.CHATBOT: ChineseTaskTemplates.get_chatbot_template(),
             TaskType.GENERAL_SUMMARIZATION: ChineseTaskTemplates.get_summarization_template(),
             TaskType.KEYWORD_EXTRACTION: ChineseTaskTemplates.get_keyword_extraction_template(),
+            # TaskType.ENTITY_EXTRACTION: ChineseTaskTemplates.get_entity_extraction_template(), # 中文部分還沒有做
         }
         
         # 載入英文模板
@@ -47,6 +48,7 @@ class MultilingualTemplateManager:
             TaskType.CHATBOT: EnglishTaskTemplates.get_chatbot_template(),
             TaskType.GENERAL_SUMMARIZATION: EnglishTaskTemplates.get_summarization_template(),
             TaskType.KEYWORD_EXTRACTION: EnglishTaskTemplates.get_keyword_extraction_template(),
+            TaskType.ENTITY_EXTRACTION: EnglishTaskTemplates.get_entity_extraction_template(),
         }
     
     def get_template(
