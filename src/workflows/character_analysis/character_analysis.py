@@ -6,6 +6,7 @@ from src.pipelines.kg.entity_attribute_extraction_pipeline import (
     create_entity_attribute_pipeline
 )
 from typing import Dict, List, Any, Optional, Union
+ 
 def run_character_analysis_workflow(
     target_role: List,
     kg_entity_path: str="/Users/williamhuang/projects/storysphere/data/kg_storage/kg_entity_set.json"
