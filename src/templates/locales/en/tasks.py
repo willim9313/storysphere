@@ -88,29 +88,29 @@ class EnglishTaskTemplates:
             output_format=(
                 "Please output in JSON format:\n"
                 "{{\n"
-                "  \"entities\": [\n"
-                "    {\n"
-                "      \"type\": \"Person\",\n"
-                "      \"name\": \"Character Name\",\n"
-                "      \"attributes\": {\n"
-                "        \"gender\": \"Male\",\n"
-                "        \"role\": \"Protagonist\",\n"
-                "        \"description\": \"The boy who lived\"\n"
-                "      }\n"
-                "    },\n"
-                "    {\n"
-                "      \"type\": \"Object\",\n"
-                "      \"name\": \"Object Name\"\n"
-                "    }\n"
+                '  \"entities\": [\n'
+                "    {{\n"
+                '      \"type\": \"Person\",\n'
+                '      \"name\": \"Character Name\",\n'
+                '      \"attributes\": {{\n'
+                '        \"gender\": \"Male\",\n'
+                '        \"role\": \"Protagonist\",\n'
+                '        \"description\": \"The boy who lived\"\n'
+                "      }}\n"
+                "    }},\n"
+                "    {{\n"
+                '      \"type\": \"Object\",\n'
+                '      \"name\": \"Object Name\"\n'
+                "    }}\n"
                 "  ],\n"
-                "  \"relations\": [\n"
-                "    {\n"
-                "      \"head\": \"Character Name\",\n"
-                "      \"relation\": \"possesses\",\n"
-                "      \"tail\": \"Object Name\"\n"
-                "    }\n"
+                '  \"relations\": [\n'
+                "    {{\n"
+                '      \"head\": \"Character Name\",\n'
+                '      \"relation\": \"possesses\",\n'
+                '      \"tail\": \"Object Name\"\n'
+                "    }}\n"
                 "  ]\n"
-                "}"
+                "}}"
             ),
             language=Language.ENGLISH
         )

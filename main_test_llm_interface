@@ -81,9 +81,9 @@ print(f'nu_chat: \n{resp}\n')
 
 ## test extract_kg_elements
 resp = client.nu_extract_kg_elements(content=text)
-print(f'nu_extract_kg_elements: \n{resp}\n')
-
-# resp = client.extract_kg_elements(text)
-# print(f'extract_kg_elements: \n{resp}\n')
+pprint(f'nu_extract_kg_elements: \n{resp}\n')
+print('-'*10)
+resp = client.extract_kg_elements(text)
+print(f'extract_kg_elements: \n{resp}\n')
 
 client.close()

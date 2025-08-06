@@ -66,3 +66,48 @@ class ChineseTaskTemplates:
             ),
             language=Language.CHINESE
         )
+    
+    @staticmethod
+    def get_entity_extraction_template() -> BaseTemplate:
+        return BaseTemplate(
+            system_prompt=(
+                "你是一個專業的文本處理助手，"
+                "擅長理解和分析中文文本內容。"
+                "請仔細閱讀用戶的要求，並提供準確、有用的回應。"
+            ),
+            task_instruction="從文本中提取結構化實體和關係",
+            constraints=(
+                f"""{ChineseBaseTemplates.COMMON_CONSTRAINTS}"""
+                "- 提取文本中的有意義的實體和關係"
+                "- 不要編造文本中不存在的實體和關係"
+                "- 返回 JSON，包含鍵：entities[]，relations[]"
+            ),
+            output_format=(
+                "請以 JSON 格式輸出：\n"
+                "{{\n"
+                '  \"entities\": [\n'
+                "    {{\n"
+                '      \"type\": \"Person\",\n'
+                '      \"name\": \"Character Name\",\n'
+                '      \"attributes\": {{\n'
+                '        \"gender\": \"Male\",\n'
+                '        \"role\": \"Protagonist\",\n'
+                '        \"description\": \"The boy who lived\"\n'
+                "      }}\n"
+                "    }},\n"
+                "    {{\n"
+                '      \"type\": \"Object\",\n'
+                '      \"name\": \"Object Name\"\n'
+                "    }}\n"
+                "  ],\n"
+                '  \"relations\": [\n'
+                "    {{\n"
+                '      \"head\": \"Character Name\",\n'
+                '      \"relation\": \"possesses\",\n'
+                '      \"tail\": \"Object Name\"\n'
+                "    }}\n"
+                "  ]\n"
+                "}}"
+            ),
+            language=Language.CHINESE
+        )

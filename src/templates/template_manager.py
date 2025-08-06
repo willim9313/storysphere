@@ -40,7 +40,7 @@ class MultilingualTemplateManager:
             TaskType.CHATBOT: ChineseTaskTemplates.get_chatbot_template(),
             TaskType.GENERAL_SUMMARIZATION: ChineseTaskTemplates.get_summarization_template(),
             TaskType.KEYWORD_EXTRACTION: ChineseTaskTemplates.get_keyword_extraction_template(),
-            # TaskType.ENTITY_EXTRACTION: ChineseTaskTemplates.get_entity_extraction_template(), # 中文部分還沒有做
+            TaskType.ENTITY_EXTRACTION: ChineseTaskTemplates.get_entity_extraction_template(),
         }
         
         # 載入英文模板
