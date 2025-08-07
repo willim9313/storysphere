@@ -17,6 +17,7 @@ from sentence_transformers import SentenceTransformer
 from llama_index.core.node_parser import SentenceSplitter
 from llama_index.core import Document
 from collections import Counter
+from qdrant_client.models import Filter, FieldCondition, MatchValue, MatchAny
 
 # 型別提示
 from typing import List, Dict, Any, Optional
@@ -428,12 +429,14 @@ class CustomVectorStore:
             return 0
 
     # yet validate
-    def retrieve_by_filter(self, 
-                           filter: Dict[str, Any],
-                           limit: int = 100, # 可以設定一個預設上限，避免一次撈取過多
-                           collection: Optional[str] = None,
-                           with_payload: bool | List[str] = True,
-                           with_vectors: bool | List[str] = False) -> List[Dict[str, Any]]:
+    def retrieve_by_filter(
+        self, 
+        filter: Dict[str, Any],
+        limit: int = 100, # 可以設定一個預設上限，避免一次撈取過多
+        collection: Optional[str] = None,
+        with_payload: bool | List[str] = True,
+        with_vectors: bool | List[str] = False
+    ) -> List[Dict[str, Any]]:
 
         """
         根據 payload 過濾器直接從 Qdrant 撈取資料，不需要 query 詞。
@@ -459,8 +462,8 @@ class CustomVectorStore:
         List[Dict[str, Any]]
             包含符合條件結果的字典列表。
         """
+        # memo: 目前沒有偵測不存在的欄位
         collection_name = collection or self.collection_name
-
         try:
             # 先使用 count_points 確認數量
             count = self.count_points(filter=filter)
@@ -496,6 +499,78 @@ class CustomVectorStore:
         except Exception as exc:
             print(f"[Qdrant] 根據 filter 撈取資料失敗：{exc}")
             return []
+
+    def retrieve_by_filter_advanced(
+        self, 
+        filter: Dict[str, Any],
+        limit: int = 100,
+        collection: Optional[str] = None,
+        with_payload: bool | List[str] = True,
+        with_vectors: bool | List[str] = False,
+        list_match_fields: Dict[str, str] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        進階過濾檢索，支援 list 欄位查詢
+        
+        Args:
+            filter: 過濾條件
+            list_match_fields: 指定 list 欄位的匹配模式 {'field_name': 'any'|'exact'}
+                            'any': 匹配 list 中任一元素
+                            'exact': 精確匹配整個 list
+        """
+        list_match_fields = list_match_fields or {}
+        collection_name = collection or self.collection_name
+        
+        conditions = []
+        for key, value in filter.items():
+            if key in list_match_fields:
+                match_mode = list_match_fields[key]
+                if match_mode == 'any':
+                    if isinstance(value, list):
+                        # 查詢包含任一元素
+                        conditions.append(FieldCondition(
+                            key=key,
+                            match=MatchAny(any=value)
+                        ))
+                    else:
+                        # 查詢包含特定元素
+                        conditions.append(FieldCondition(
+                            key=key,
+                            match=MatchValue(value=value)
+                        ))
+                elif match_mode == 'exact':
+                    # 精確匹配整個 list
+                    conditions.append(FieldCondition(
+                        key=key,
+                        match=MatchValue(value=value)
+                    ))
+            else:
+                # 一般欄位
+                conditions.append(FieldCondition(
+                    key=key,
+                    match=MatchValue(value=value)
+                ))
+        
+        # 先檢查數量
+        count_result = self.client.count(
+            collection_name=collection_name,
+            count_filter=Filter(must=conditions),
+            exact=True,
+        )
+        
+        if count_result.count == 0:
+            return []
+        
+        # 實際檢索
+        search_result = self.client.scroll(
+            collection_name=collection_name,
+            scroll_filter=Filter(must=conditions),
+            limit=limit,
+            with_payload=with_payload,
+            with_vectors=with_vectors,
+        )
+        
+        return [{"id": point.id, "payload": point.payload} for point in search_result[0]]
 
     def get_unique_metadata_values(self,
                                    collection_name: Optional[str] = None,
