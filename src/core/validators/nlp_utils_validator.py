@@ -10,7 +10,7 @@ class SummaryResponse(BaseModel):
     result: str = Field(..., description="The summarized context text")
 
 class ExtractedKeywords(BaseModel):
-    result: List[str] = Field(..., description="List of extracted keywords from the text")
+    result: dict = Field(..., description="A dictionary containing extracted keywords, e.g., {'keyword': 'score', 'keyword2': 'score2'}")
 
 
 # ------------------
