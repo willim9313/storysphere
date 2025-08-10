@@ -1,5 +1,6 @@
 """
 向量資料庫操作模組：封裝 Qdrant 用法
+note: 目前不會在此模組中進行chunking
 """
 import os
 from typing import List, Dict, Any, Optional, Union
@@ -7,6 +8,7 @@ from typing import List, Dict, Any, Optional, Union
 from qdrant_client import QdrantClient
 from qdrant_client.http import models
 from sentence_transformers import SentenceTransformer
+from collections import Counter
 
 
 class VectorStore:
@@ -27,9 +29,14 @@ class VectorStore:
         self._ensure_collection()
 
     def _ensure_collection(self) -> None:
-        """Ensure the collection exists with the correct settings."""
+        """
+        Ensure the collection exists with the correct settings.
+        """
         collections = self.client.get_collections().collections
         exists = any(col.name == self.collection_name for col in collections)
+
+        if exists:
+            print(f"[Qdrant] Collection '{self.collection_name}' already exists.")
         if not exists:
             self.client.create_collection(
                 collection_name=self.collection_name,
@@ -38,6 +45,15 @@ class VectorStore:
                     distance=models.Distance.COSINE
                 )
             )
+            print(f"[Qdrant] Collection '{self.collection_name}' created.")
+
+    def set_collection(self, collection_name: str) -> None:
+        """
+        Set the current collection to use. if you want to switch collections.
+        :param collection_name: Name of the collection to set
+        """
+        self.collection_name = collection_name
+        self._ensure_collection()
 
     def store_chunk(
         self, 
@@ -83,7 +99,13 @@ class VectorStore:
         :param limit: Maximum number of results to return
         :param filter: Optional filter to apply to the search
         :param with_payload: Whether to include payload in results
+            - True  → 回傳完整 payload（預設）
+            - False → 不回傳 payload
+            - list  → 只回傳指定欄位
         :param with_vectors: Whether to include vectors in results
+            - True  → 一併取回向量
+            - False → 不取回向量（預設）
+            - list  → 只取回指定名稱的向量
         :return: List of search results with IDs, scores, payloads, and vectors
         """
         query_vec = self.encoder.encode(query_text).tolist()
@@ -105,7 +127,7 @@ class VectorStore:
             "vector": r.vector if with_vectors else None
         } for r in results]
 
-    def get_by_id(
+    def get_node_by_id(
         self, 
         node_id: Union[str, int],
         with_payload: Union[bool, List[str]] = True,
@@ -115,7 +137,14 @@ class VectorStore:
         Retrieve a node by its ID.
         :param node_id: The ID of the node to retrieve
         :param with_payload: Whether to include payload in the result
+            - True  → 回傳完整 payload（預設）
+            - False → 不回傳 payload
+            - list  → 只回傳指定欄位
         :param with_vectors: Whether to include vectors in the result
+            - True  → 一併取回向量
+            - False → 不取回向量（預設）
+            - list  → 只取回指定名稱的向量
+
         :return: Node data if found, otherwise None
         """
         try:
@@ -130,42 +159,62 @@ class VectorStore:
             print(f"[Qdrant] Get node failed: {e}")
             return None
 
-    def update_metadata(
+    ### till here ###
+    def update_node_metadata(
         self, 
         node_id: Union[str, int], 
         new_metadata: Dict[str, Any], 
-        merge=True
+        merge: bool = True,
+        wait: bool = True
     ) -> bool:
+        """
+        Update(or overwrite) the metadata of a node in the collection.
+        :param node_id: The ID of the node to update
+        :param new_metadata: New metadata to set for the node
+        :param merge: If True, merge with existing metadata; if False, overwrite
+        :param wait: If True, wait for the operation to complete before returning
+        
+        :return: True if update was successful, False otherwise
+        """
         try:
             if merge:
+                # 部分更新：只寫入 new_metadata 中的欄位
                 self.client.set_payload(
                     collection_name=self.collection_name,
                     payload=new_metadata,
                     points=[node_id],
-                    wait=True
+                    wait=wait
                 )
             else:
+                # 完全覆蓋：old payload 會被整筆替換
                 self.client.overwrite_payload(
                     collection_name=self.collection_name,
                     payload=new_metadata,
                     points=[node_id],
-                    wait=True
+                    wait=wait
                 )
             return True
         except Exception as e:
-            print(f"[Qdrant] Update metadata failed: {e}")
+            print(f"[Qdrant] Update node {node_id} metadata failed: {e}")
             return False
 
-    def count(
+    def count_nodes(
         self, 
-        filter: Optional[Dict[str, Any]] = None
+        filter: Optional[Dict[str, Any]] = None,
+        exact: bool = True
     ) -> int:
+        """
+        Count the number of points in the collection with optional filtering.
+        :param filter: Optional filter to apply to the count
+        :param exact: If True, count only points that exactly match the filter
+        :return: Count of points matching the filter
+        """
         qdrant_filter = self._build_filter(filter) if filter else None
         try:
             result = self.client.count(
                 collection_name=self.collection_name,
                 count_filter=qdrant_filter,
-                exact=True
+                exact=exact
             )
             return result.count
         except Exception as e:
@@ -176,14 +225,31 @@ class VectorStore:
         self, 
         filter: Optional[Dict[str, Any]] = None, 
         limit: int = 100,
+        offset: Optional[str] = None,
         with_payload: Union[bool, List[str]] = True,
         with_vectors: Union[bool, List[str]] = False
     ) -> List[Dict[str, Any]]:
+        """
+        Scroll through points in the collection with optional filtering.
+        :param filter: Optional filter to apply to the scroll
+        :param limit: Maximum number of points to return
+        :param offset: Optional offset for pagination
+        :param with_payload: Whether to include payload in results
+            - True  → 回傳完整 payload（預設）
+            - False → 不回傳 payload
+            - list  → 只回傳指定欄位
+        :param with_vectors: Whether to include vectors in results
+            - True  → 一併取回向量
+            - False → 不取回向量（預設）
+            - list  → 只取回指定名稱的向量
+        :return: List of points with IDs, payloads, and vectors
+        """
         qdrant_filter = self._build_filter(filter) if filter else None
-        result, _ = self.client.scroll(
+        result, next_offset = self.client.scroll(
             collection_name=self.collection_name,
             scroll_filter=qdrant_filter,
             limit=limit,
+            offset=offset,
             with_payload=with_payload,
             with_vectors=with_vectors,
         )
@@ -195,20 +261,129 @@ class VectorStore:
 
     def _build_filter(
         self, 
-        fdict: Dict[str, Any]
+        fdict: Dict[str, Any],
+        list_fields: Optional[List[str]] = None
     ) -> models.Filter:
-        must = [
-            models.FieldCondition(
-                key=k,
-                match=models.MatchValue(value=v)
-            ) for k, v in fdict.items() if v is not None
-        ]
+        """
+        Build a Qdrant filter from a dictionary.
+        :param fdict: Dictionary containing filter conditions
+        :param list_fields: Optional list of fields to treat as lists
+        
+        :return: Qdrant Filter object
+        """
+        list_fields = list_fields or []
+        must = []
+        
+        for k, v in fdict.items():
+            if v is None:
+                continue
+                
+            if k in list_fields:
+                # 對於 list 欄位，使用 MatchValue 查詢包含關係
+                # 在 Qdrant 中，對 list 欄位使用 MatchValue 會自動檢查是否包含該值
+                # 最基本的條件符合對照方式
+                must.append(models.FieldCondition(
+                    key=k,
+                    match=models.MatchValue(value=v)
+                ))
+            elif isinstance(v, list):
+                # 如果傳入的值是 list，使用 MatchAny，有中就會被抓回
+                must.append(models.FieldCondition(
+                    key=k,
+                    match=models.MatchAny(any=v)
+                ))
+            else:
+                # 一般欄位使用 MatchValue
+                must.append(models.FieldCondition(
+                    key=k,
+                    match=models.MatchValue(value=v)
+                ))
+    
         return models.Filter(must=must)
+
+    def get_unique_metadata_values(
+        self,
+        collection_name: Optional[str] = None,
+        key: str = None,
+        batch_size: int = 1000
+    ) -> set:
+        """
+        Get unique values for a specific metadata key across all points in the collection.
+        :param collection_name: Name of the collection to query
+        :param key: Metadata key to get unique values for
+        :param batch_size: Number of points to process in each batch
+        :return: Set of unique values for the specified metadata key
+        """
+        if not collection_name:
+            collection_name = self.collection_name
+        
+        unique_values = set()
+        offset = None
+        
+        while True:
+            result = self.client.scroll(
+                collection_name=collection_name,
+                limit=batch_size,
+                offset=offset,
+                with_payload=True,
+            )
+            for point in result[0]:
+                value = point.payload.get(key)
+                if isinstance(value, list):
+                    unique_values.update(value)
+                else:
+                    unique_values.add(value)
+
+            if result[1] is None:
+                break
+            offset = result[1]
+
+        return unique_values
+
+    def get_metadata_value_counts(
+        self,
+        key: str,
+        batch_size: int = 1000,
+        filters: Optional[Dict[str, Any]] = None,
+    ) -> Counter:
+        """
+        統計 Qdrant 中指定 metadata 欄位每個值的出現次數。
+
+        :param key: 要統計的 payload 欄位名稱
+        :param batch_size: 每次 scroll 的筆數
+        :param filters: 可選的過濾條件
+        :return: Counter 物件，key 為 metadata 值，value 為出現次數
+        """
+        offset = None
+        value_counter = Counter()
+        qdrant_filter = self._build_filter(filters) if filters else None
+
+        while True:
+            result = self.client.scroll(
+                collection_name=self.collection_name,
+                limit=batch_size,
+                offset=offset,
+                with_payload=True,
+                scroll_filter=qdrant_filter,
+            )
+            for point in result[0]:
+                value = point.payload.get(key)
+                if isinstance(value, list):
+                    value_counter.update(value)
+                else:
+                    value_counter[value] += 1
+
+            if result[1] is None:
+                break
+            offset = result[1]
+
+        return value_counter
 
     def delete_points(
         self, 
         ids: Optional[List[int | str]] = None,
         filter: Optional[Dict[str, Any]] = None,
+        wait: bool = True
     ) -> bool:
         """
         從 Qdrant collection 中刪除指定的點。
@@ -216,14 +391,14 @@ class VectorStore:
         必定會等待資料庫處理完畢後才回傳
 
         Params
-        ----------
+        ------
         ids : 要刪除的點的 ID 列表。
         filter : 用於篩選要刪除的點的 payload 過濾器
 
         Returns
         -------
         bool
-            成功回傳 True；失敗回傳 False。
+            成功回傳 True; 失敗回傳 False。
         """
         if not ids and not filter:
             print("[Qdrant] 刪除點失敗：必須提供 IDs 或 filter。")
@@ -234,17 +409,34 @@ class VectorStore:
                 self.client.delete(
                     collection_name=self.collection_name,
                     points_selector=models.PointIdsSelector(points=ids),
-                    wait=True,
+                    wait=wait,
                 )
             elif filter:
                 # Convert dictionary filter to Qdrant Filter object
-                qdrant_filter = self._build_qdrant_filter(filter)
+                qdrant_filter = self._build_filter(filter)
                 self.client.delete(
                     collection_name=self.collection_name,
                     points_selector=models.PointStruct(filter=qdrant_filter),
-                    wait=True,
+                    wait=wait,
                 )
             return True
         except Exception as exc:
             print(f"[Qdrant] 刪除點失敗：{exc}")
             return False
+    
+    # 別名方法，保持向後兼容
+    def search_similar(self, *args, **kwargs):
+        """Alias for search method"""
+        return self.search(*args, **kwargs)
+    
+    def get_node_by_id(self, *args, **kwargs):
+        """Alias for get_by_id method"""
+        return self.get_by_id(*args, **kwargs)
+    
+    def update_node_metadata(self, *args, **kwargs):
+        """Alias for update_metadata method"""
+        return self.update_metadata(*args, **kwargs)
+    
+    def count_points(self, *args, **kwargs):
+        """Alias for count method"""
+        return self.count(*args, **kwargs)
