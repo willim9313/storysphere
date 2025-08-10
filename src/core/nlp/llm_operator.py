@@ -9,9 +9,9 @@ import yaml
 from ..utils.output_extractor import extract_json_from_text
 from ..validators.kg_schema_validator import validate_kg_output
 from ..validators.nlp_utils_validator import validate_summary_output, validate_extracted_keywords
-from ...templates.template_builder import TemplateBuilder
-from ...templates.template_manager import MultilingualTemplateManager, TaskType
-from ...templates.base_templates import Language
+from ...prompt_templates.template_builder import TemplateBuilder
+from ...prompt_templates.template_manager import MultilingualTemplateManager, TaskType
+from ...prompt_templates.base_templates import Language
 
 class LlmOperator:
     """

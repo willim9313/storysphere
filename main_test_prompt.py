@@ -1,6 +1,6 @@
-from src.templates.template_builder import TemplateBuilder
-from src.templates.template_manager import MultilingualTemplateManager, TaskType
-from src.templates.base_templates import Language
+from src.prompt_templates.template_builder import TemplateBuilder
+from src.prompt_templates.template_manager import MultilingualTemplateManager, TaskType
+from src.prompt_templates.base_templates import Language
 
 class test:
     """
