@@ -6,12 +6,67 @@ from src.pipelines.kg.entity_attribute_extraction_pipeline import (
     create_entity_attribute_pipeline
 )
 from typing import Dict, List, Any, Optional, Union
-from src.core.vector_process_store import CustomVectorStore
+from src.core.indexing.vector_store import VectorStore
+from src.core.nlp.llm_operator import LlmOperator
+from src.core.llm.gemini_client import GeminiClient
+import json
+import os
+from pathlib import Path
+
+def load_archetype_config(
+    archetype_type: str = "jung", 
+    language: str = "en"
+) -> List[Dict]:
+    """
+    載入角色原型設定檔
+    
+    Args:
+        archetype_type: 原型類型 ("jung" 或 "schmidt")
+        language: 語言 ("en" 或 "zh")
+    
+    Returns:
+        List[Dict]: 原型設定列表
+    """
+    config_dir = Path(__file__).parent.parent.parent.parent / "config" / "character_analysis"
+    
+    if archetype_type == "jung":
+        filename = f"jung_archetypes_{language}.json"
+    elif archetype_type == "schmidt":
+        filename = f"schmidt_archetypes_{language}.json"
+    else:
+        raise ValueError(f"不支援的原型類型: {archetype_type}")
+    
+    config_path = config_dir / filename
+    
+    if not config_path.exists():
+        raise FileNotFoundError(f"設定檔不存在: {config_path}")
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+def get_archetype_names(archetypes: List[Dict]) -> List[str]:
+    """
+    提取原型名稱列表
+    """
+    return [arch.get('name', arch.get('id', '')) for arch in archetypes]
 
 def run_character_analysis_workflow(
     target_role: List,
-    kg_entity_path: str="/Users/williamhuang/projects/storysphere/data/kg_storage/kg_entity_set.json"
+    api_key: str,
+    model_name: str,
+    kg_entity_path: str="/Users/williamhuang/projects/storysphere/data/kg_storage/kg_entity_set.json",
+    archetype_type: str = "jung",
+    language: str = "zh"
 ):  
+    # 載入原型設定
+    try:
+        archetypes = load_archetype_config(archetype_type, language)
+        archetype_names = get_archetype_names(archetypes)
+        print(f"載入了 {len(archetypes)} 個 {archetype_type} 原型 ({language})")
+    except Exception as e:
+        print(f"載入原型設定失敗: {e}")
+        return
+    
     for role in target_role:
         print(f"正在處理角色: {role}")
 
@@ -30,21 +85,42 @@ def run_character_analysis_workflow(
         print("角色屬性:", character_attrs, '\n')
 
         # archetype analysis
-        vs = CustomVectorStore(
-            collection_name='Test_collection_set',
+        vs = VectorStore(
+            collection_name='Test_10p_AnimalFarm',
             encode_model='all-MiniLM-L6-v2',
-            data=None
+            # data=None
         )
 
-        results = vs.retrieve_by_filter_advanced(
+        results = vs.scroll(
             filter={
                 "roles": role,
             },
-            list_match_fields={"roles": "any"},  # roles 欄位使用 any 匹配
+            list_fields={"roles": "any"},  # roles 欄位使用 any 匹配
+            with_payload=['chunk'],
             limit=100
         )
         print(f"角色 {role} 的DB篩選結果:", results, '\n')
+        print(f'[INFO] 角色 {role} 的DB篩選結果數量: {len(results)}', '\n')
 
+        # 這邊未來要加上，如果資料量太大，需要做過一次compression
+        n_info = [r['payload']['chunk'] for r in results if 'payload' in r]
+        print(f'[INFO] 角色 {role} 的DB篩選結果摘要: {n_info}', '\n')
+
+        client = LlmOperator(GeminiClient(
+            api_key=api_key,
+            model=model_name
+        ))
+
+        resp = client.chat(
+            content=(
+                f"請分析角色 {role} 的 archetype，"
+                f"可選的原型類型有：{', '.join(archetype_names)}。"
+                f"請根據以下該角色情節的行為和特徵，選擇最符合的原型並說明理由。"
+            ),
+            ref_info="\n".join(n_info)
+        )
+
+        print(f"角色 {role} 的原型分析結果:", resp)
 
         # psychological analysis
 

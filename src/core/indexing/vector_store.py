@@ -91,7 +91,8 @@ class VectorStore:
         limit: int = 5,
         filter: Optional[Dict[str, Any]] = None,
         with_payload: Union[bool, List[str]] = True,
-        with_vectors: Union[bool, List[str]] = False
+        with_vectors: Union[bool, List[str]] = False,
+        list_fields: Optional[Dict[str, str]] = None
     ) -> List[Dict[str, Any]]:
         """
         Search for similar text chunks based on a query string.
@@ -106,10 +107,12 @@ class VectorStore:
             - True  → 一併取回向量
             - False → 不取回向量（預設）
             - list  → 只取回指定名稱的向量
+        :param list_fields: 指定 list 欄位的匹配模式 {'field_name': 'any'|'exact'}
+        
         :return: List of search results with IDs, scores, payloads, and vectors
         """
         query_vec = self.encoder.encode(query_text).tolist()
-        qdrant_filter = self._build_filter(filter) if filter else None
+        qdrant_filter = self._build_filter(filter, list_fields) if filter else None
 
         results = self.client.search(
             collection_name=self.collection_name,
@@ -201,7 +204,8 @@ class VectorStore:
     def count_nodes(
         self, 
         filter: Optional[Dict[str, Any]] = None,
-        exact: bool = True
+        exact: bool = True,
+        list_fields: Optional[Dict[str, str]] = None
     ) -> int:
         """
         Count the number of points in the collection with optional filtering.
@@ -209,7 +213,7 @@ class VectorStore:
         :param exact: If True, count only points that exactly match the filter
         :return: Count of points matching the filter
         """
-        qdrant_filter = self._build_filter(filter) if filter else None
+        qdrant_filter = self._build_filter(filter, list_fields) if filter else None
         try:
             result = self.client.count(
                 collection_name=self.collection_name,
@@ -227,7 +231,8 @@ class VectorStore:
         limit: int = 100,
         offset: Optional[str] = None,
         with_payload: Union[bool, List[str]] = True,
-        with_vectors: Union[bool, List[str]] = False
+        with_vectors: Union[bool, List[str]] = False,
+        list_fields: Dict[str, str] = None
     ) -> List[Dict[str, Any]]:
         """
         Scroll through points in the collection with optional filtering.
@@ -242,9 +247,12 @@ class VectorStore:
             - True  → 一併取回向量
             - False → 不取回向量（預設）
             - list  → 只取回指定名稱的向量
+        list_fields: 指定 list 欄位的匹配模式 {'field_name': 'any'|'exact'}
+            - 'any': 匹配 list 中任一元素
+            - 'exact': 精確匹配整個 list
         :return: List of points with IDs, payloads, and vectors
         """
-        qdrant_filter = self._build_filter(filter) if filter else None
+        qdrant_filter = self._build_filter(filter, list_fields) if filter else None
         result, next_offset = self.client.scroll(
             collection_name=self.collection_name,
             scroll_filter=qdrant_filter,
@@ -262,45 +270,76 @@ class VectorStore:
     def _build_filter(
         self, 
         fdict: Dict[str, Any],
-        list_fields: Optional[List[str]] = None
+        list_fields: Optional[Dict[str, str]] = None
     ) -> models.Filter:
         """
         Build a Qdrant filter from a dictionary.
         :param fdict: Dictionary containing filter conditions
-        :param list_fields: Optional list of fields to treat as lists
+        :param list_fields: 指定 list 欄位的匹配模式 {'field_name': 'any'|'exact'}
         
         :return: Qdrant Filter object
         """
-        list_fields = list_fields or []
+        list_fields = list_fields or {}
         must = []
         
         for k, v in fdict.items():
             if v is None:
                 continue
                 
-            if k in list_fields:
-                # 對於 list 欄位，使用 MatchValue 查詢包含關係
-                # 在 Qdrant 中，對 list 欄位使用 MatchValue 會自動檢查是否包含該值
-                # 最基本的條件符合對照方式
-                must.append(models.FieldCondition(
-                    key=k,
-                    match=models.MatchValue(value=v)
-                ))
-            elif isinstance(v, list):
-                # 如果傳入的值是 list，使用 MatchAny，有中就會被抓回
-                must.append(models.FieldCondition(
-                    key=k,
-                    match=models.MatchAny(any=v)
-                ))
-            else:
-                # 一般欄位使用 MatchValue
-                must.append(models.FieldCondition(
-                    key=k,
-                    match=models.MatchValue(value=v)
-                ))
+        #     if k in list_fields:
+        #         # 對於 list 欄位，使用 MatchValue 查詢包含關係
+        #         # 在 Qdrant 中，對 list 欄位使用 MatchValue 會自動檢查是否包含該值
+        #         # 最基本的條件符合對照方式
+        #         must.append(models.FieldCondition(
+        #             key=k,
+        #             match=models.MatchValue(value=v)
+        #         ))
+        #     elif isinstance(v, list):
+        #         # 如果傳入的值是 list，使用 MatchAny，有中就會被抓回
+        #         must.append(models.FieldCondition(
+        #             key=k,
+        #             match=models.MatchAny(any=v)
+        #         ))
+        #     else:
+        #         # 一般欄位使用 MatchValue
+        #         must.append(models.FieldCondition(
+        #             key=k,
+        #             match=models.MatchValue(value=v)
+        #         ))
+    
+        # return models.Filter(must=must)
+            for k, v in fdict.items():
+                if v is None:
+                    continue
+                    
+                if k in list_fields:
+                    match_mode = list_fields[k]
+                    if match_mode == 'any':
+                        # 對於 list 欄位，使用 MatchValue 查詢包含關係
+                        must.append(models.FieldCondition(
+                            key=k,
+                            match=models.MatchValue(value=v)
+                        ))
+                    elif match_mode == 'exact':
+                        # 精確匹配整個 list
+                        must.append(models.FieldCondition(
+                            key=k,
+                            match=models.MatchValue(value=v)
+                        ))
+                elif isinstance(v, list):
+                    # 如果傳入的值是 list，使用 MatchAny
+                    must.append(models.FieldCondition(
+                        key=k,
+                        match=models.MatchAny(any=v)
+                    ))
+                else:
+                    # 一般欄位使用 MatchValue
+                    must.append(models.FieldCondition(
+                        key=k,
+                        match=models.MatchValue(value=v)
+                    ))
     
         return models.Filter(must=must)
-
     def get_unique_metadata_values(
         self,
         collection_name: Optional[str] = None,
@@ -345,6 +384,7 @@ class VectorStore:
         key: str,
         batch_size: int = 1000,
         filters: Optional[Dict[str, Any]] = None,
+        list_fields: Optional[Dict[str, str]] = None
     ) -> Counter:
         """
         統計 Qdrant 中指定 metadata 欄位每個值的出現次數。
@@ -356,7 +396,7 @@ class VectorStore:
         """
         offset = None
         value_counter = Counter()
-        qdrant_filter = self._build_filter(filters) if filters else None
+        qdrant_filter = self._build_filter(filters, list_fields) if filters else None
 
         while True:
             result = self.client.scroll(
@@ -383,7 +423,8 @@ class VectorStore:
         self, 
         ids: Optional[List[int | str]] = None,
         filter: Optional[Dict[str, Any]] = None,
-        wait: bool = True
+        wait: bool = True,
+        list_fields: Optional[Dict[str, str]] = None
     ) -> bool:
         """
         從 Qdrant collection 中刪除指定的點。
@@ -413,10 +454,11 @@ class VectorStore:
                 )
             elif filter:
                 # Convert dictionary filter to Qdrant Filter object
-                qdrant_filter = self._build_filter(filter)
+                qdrant_filter = self._build_filter(filter, list_fields) if filter else None
                 self.client.delete(
                     collection_name=self.collection_name,
                     points_selector=models.PointStruct(filter=qdrant_filter),
+                    # points_selector=models.FilterSelector(filter=qdrant_filter),  # 還沒用過，後面要確認
                     wait=wait,
                 )
             return True
