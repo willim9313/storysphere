@@ -114,3 +114,46 @@ class EnglishTaskTemplates:
             ),
             language=Language.ENGLISH
         )
+    
+    @staticmethod
+    # 具體用戶輸入要怎麼個模樣還要再確認一次
+    def get_character_evidence_pack_template() -> BaseTemplate:
+        return BaseTemplate(
+            system_prompt=(
+                "You are a novel narrative analysis assistant."
+                "Your goal is to consolidate original text excerpts related to a specific character into a Character Evidence Package (CEP)."
+                "Use only the provided original text; do not request additional information;"
+                "do not fabricate content."
+                'Prioritize retaining sentences that support a "behavior → motive / consequence" link;'
+                'whenever possible, keep both "verb + object" intact.'
+                'Each quotation should be ≤ 20 words and annotated with its chunk_id.'
+            ),
+            task_instruction=(
+                "From [CONTEXT], extract only the signals directly related to {{CHAR_NAME}} that can support archetype judgment:"
+                "actions (must have the character as the subject, or be a clearly identified agent)"
+                "traits (with the speaker’s perspective included)"
+                "relations (subject–relation–object format)"
+                "key_events (event → cause-effect)"
+                "representative_quotes (≤ 5, each must include chunk_id)"
+                "top_terms (verbs / adjectives / co-mentioned characters)"
+                "Produce a summary within 120 characters (covering what the character wants, how they act, and what consequences result)."
+                "Fill in coverage_quality (counts and gaps)."
+                "If evidence is insufficient, record the gaps truthfully, but do not request more information."
+            ),
+            constraints=(
+                f"""{EnglishBaseTemplates.COMMON_CONSTRAINTS}"""
+                "- Extract evidence related to the specified character"
+                "- Provide detailed descriptions and context for each piece of evidence"
+                "- Return results in a structured format"
+            ),
+            output_format=(
+                "Output as a single JSON object with keys and field meanings identical to the previous CEP example."
+            ),
+            language=Language.ENGLISH
+        )
+
+    @staticmethod
+    def get_archetype_classification_template() -> BaseTemplate:
+        return BaseTemplate(
+            pass
+        )
