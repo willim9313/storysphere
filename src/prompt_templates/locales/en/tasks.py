@@ -117,6 +117,7 @@ class EnglishTaskTemplates:
     
     @staticmethod
     # 具體用戶輸入要怎麼個模樣還要再確認一次
+    # 用戶輸入的是角色名稱與相關的情節片段
     def get_character_evidence_pack_template() -> BaseTemplate:
         return BaseTemplate(
             system_prompt=(
@@ -129,7 +130,7 @@ class EnglishTaskTemplates:
                 'Each quotation should be ≤ 20 words and annotated with its chunk_id.'
             ),
             task_instruction=(
-                "From [CONTEXT], extract only the signals directly related to {{CHAR_NAME}} that can support archetype judgment:"
+                "From [CONTEXT], extract only the signals directly related to {{character_name}} that can support archetype judgment:"
                 "actions (must have the character as the subject, or be a clearly identified agent)"
                 "traits (with the speaker’s perspective included)"
                 "relations (subject–relation–object format)"
@@ -140,8 +141,109 @@ class EnglishTaskTemplates:
                 "Fill in coverage_quality (counts and gaps)."
                 "If evidence is insufficient, record the gaps truthfully, but do not request more information."
             ),
+            examples=(
+                '{{'
+                '"character": {{'
+                '    "canonical_name": "Mr. Jones",'
+                '    "aliases": ["Jones", "farmer Jones"],'
+                '    "work_title": "Animal Farm",'
+                '    "doc_id": "string",'
+                '    "notes": "any short hints for disambiguation"'
+                '}},'
+                '"source_scope": {{'
+                '    "collection": "Animal Farm",'
+                '    "chunk_count": 27,'
+                '    "chapters_covered": ["Ch.1", "Ch.2", "Ch.4"],'
+                '    "time_span": "early-to-mid story",'
+                '    "retrieval_policy": "all chunks filtered by aliases; plus ±1 neighboring chunks"'
+                '}},'
+                '"evidence": {{'
+                '    "actions": ['
+                '        {{'
+                '            "claim": "Neglects farm duties due to heavy drinking",'
+                '            "quotes": ['
+                '                {{"text": "…drank heavily and neglected the farm.", "chunk_id": "uuid-1"}}'
+                '            ],'
+                '            "who_says": "narrator",'
+                '            "chapter": "Ch.1"'
+                '        }},'
+                '        {{'
+                '            "claim": "Loses control of the farm after an uprising",'
+                '            "quotes": ['
+                '                {{"text": "…the animals chased Jones off the farm.", "chunk_id": "uuid-7"}}'
+                '            ],'
+                '            "who_says": "narrator",'
+                '            "chapter": "Ch.2"'
+                '        }}'
+                '    ],'
+                '    "traits": ['
+                '        {{'
+                '            "trait": "negligent",'
+                '            "polarity": -1,'
+                '            "quotes": [{{"text": "…careless owner…", "chunk_id": "uuid-3"}}],'
+                '            "who_says": "narrator/others"'
+                '        }},'
+                '        {{'
+                '            "trait": "former authority figure",'
+                '            "polarity": 1,'
+                '            "quotes": [{{"text": "…the owner of Animal Farm…", "chunk_id": "uuid-2"}}]'
+                '        }}'
+                '    ],'
+                '    "relations": ['
+                '        {{'
+                '            "subject": "Mr. Jones",'
+                '            "relation": "former_owner_of",'
+                '            "object": "Animal Farm",'
+                '            "quotes": [{{"text": "…owner of Animal Farm…", "chunk_id": "uuid-2"}}]'
+                '        }},'
+                '        {{'
+                '            "subject": "Animals",'
+                '            "relation": "rebels_against",'
+                '            "object": "Mr. Jones",'
+                '            "quotes": [{{"text": "…drove out Jones…", "chunk_id": "uuid-6"}}]'
+                '        }}'
+                '    ],'
+                '    "key_events": ['
+                '        {{'
+                '            "event": "Uprising expels Mr. Jones",'
+                '            "cause": "Abuse/neglect",'
+                '            "effect": "Loss of power",'
+                '            "chapter": "Ch.2",'
+                '            "quotes": [{{"text": "…chased Jones off…", "chunk_id": "uuid-7"}}]'
+                '        }}'
+                '    ],'
+                '    "top_terms": {{'
+                '        "verbs": ["drink", "neglect", "lose", "flee"],'
+                '        "adjectives": ["negligent", "cruel", "former"],'
+                '        "co_mentioned_characters": ["Napoleon", "Boxer"]'
+                '    }},'
+                '    "representative_quotes": ['
+                '        {{"text": "…drank heavily and neglected the farm.", "chunk_id": "uuid-1"}},'
+                '        {{"text": "…the animals chased Jones off…", "chunk_id": "uuid-7"}}'
+                '    ]'
+                '}},'
+                '"coverage_quality": {{'
+                '    "action_signals": 5,'
+                '    "trait_signals": 3,'
+                '    "relation_signals": 2,'
+                '    "quote_count": 5,'
+                '    "gaps": ["few first-person motives", "limited late-story evidence"]'
+                '}}'
+                '"summary_120w": "Concise one-paragraph summary capturing want/motive/action/consequence.",'
+                '"build_meta": {{'
+                '    "version": "cep-1.0",'
+                '    "max_items": {{"actions": 6, "traits": 5, "relations": 4, "events": 4, "quotes": 5}},'
+                '    "token_budget": 700'
+                '}}'
+            ),
             constraints=(
-                f"""{EnglishBaseTemplates.COMMON_CONSTRAINTS}"""
+                "max_items:"
+                "  actions: 6"
+                "  traits: 5"
+                "  relations: 4"
+                "  events: 4"
+                "  quotes: 5"
+                "  token_budget: 700"
                 "- Extract evidence related to the specified character"
                 "- Provide detailed descriptions and context for each piece of evidence"
                 "- Return results in a structured format"
@@ -155,5 +257,13 @@ class EnglishTaskTemplates:
     @staticmethod
     def get_archetype_classification_template() -> BaseTemplate:
         return BaseTemplate(
-            pass
+            system_prompt=(
+            ),
+            task_instruction=(
+            ),
+            constraints=(
+            ),
+            output_format=(
+            ),
+            language=Language.ENGLISH
         )

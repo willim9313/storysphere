@@ -17,6 +17,8 @@ class TaskType(Enum):
     ENTITY_EXTRACTION = "entity_extraction"
     COMPRESSION = "compression"
     ANALYSIS = "analysis"
+    CHARACTER_EVIDENCE_PACK = "character_evidence_pack"
+    ARCHETYPE_CLASSIFICATION = "archetype_classification"
 
 class MultilingualTemplateManager:
     """
@@ -49,6 +51,8 @@ class MultilingualTemplateManager:
             TaskType.GENERAL_SUMMARIZATION: EnglishTaskTemplates.get_summarization_template(),
             TaskType.KEYWORD_EXTRACTION: EnglishTaskTemplates.get_keyword_extraction_template(),
             TaskType.ENTITY_EXTRACTION: EnglishTaskTemplates.get_entity_extraction_template(),
+            TaskType.CHARACTER_EVIDENCE_PACK: EnglishTaskTemplates.get_character_evidence_pack_template(),
+            TaskType.ARCHETYPE_CLASSIFICATION: EnglishTaskTemplates.get_archetype_classification_template(),
         }
     
     def get_template(

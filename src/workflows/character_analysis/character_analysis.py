@@ -111,13 +111,9 @@ def run_character_analysis_workflow(
             model=model_name
         ))
 
-        resp = client.chat(
-            content=(
-                f"請分析角色 {role} 的 archetype，"
-                f"可選的原型類型有：{', '.join(archetype_names)}。"
-                f"請根據以下該角色情節的行為和特徵，選擇最符合的原型並說明理由。"
-            ),
-            ref_info="\n".join(n_info)
+        resp = client.extract_character_evidence_pack(
+            content="\n".join(n_info),
+            character_name=role,
         )
 
         print(f"角色 {role} 的原型分析結果:", resp)

@@ -207,5 +207,54 @@ class LlmOperator:
                 print("Attribute Types:", self.attribute_types)
         return None
     
+    def extract_character_evidence_pack(
+        self, 
+        content: str,
+        language: Language = Language.ENGLISH,
+        character_name: str = None,
+    ) -> dict:
+        """
+        使用 LLM 提取角色證據包
+        :param content: 需要提取的文本，qdrant提取出的文本基礎
+        :param language: 語言，預設為英文
+        :param character_name: 角色名稱，可選
+        :return: LLM 的角色證據包提取結果
+        """
+        ref_info = (
+            '[Character Name]'
+            f'{character_name}\n'
+            '[Content]'
+            f'{content}\n'
+        )
+
+        template_manager = MultilingualTemplateManager()
+        builder = TemplateBuilder(
+            template_manager=template_manager
+        )
+
+        input_data = builder.build_split(
+            task_type=TaskType.CHARACTER_EVIDENCE_PACK,
+            language=language,
+            character_name=character_name,
+            overrides={
+                "ref_info": ref_info
+            }
+        )
+
+        MAX_TRY = 3
+
+        for attempt in range(MAX_TRY):
+            try:
+                resp = self.client.generate_response(prompt=input_data["user_message"],
+                                                     instruction=input_data["system_message"])
+                resp_json = extract_json_from_text(resp)
+                # validate the response structure, not yet
+                return resp_json.get("result", {})
+            except Exception as e:
+                print(f"[LLM] Character evidence pack extraction error: {e}")
+                print("Content:", content)
+                print("Language:", language)
+                print("Character Name:", character_name)
+        return None
     def close(self):
         del self.client
