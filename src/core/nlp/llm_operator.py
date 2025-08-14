@@ -242,12 +242,13 @@ class LlmOperator:
         )
 
         MAX_TRY = 3
-
         for attempt in range(MAX_TRY):
             try:
                 resp = self.client.generate_response(prompt=input_data["user_message"],
                                                      instruction=input_data["system_message"])
+                print(f"[LLM] Character evidence pack response: {resp}")
                 resp_json = extract_json_from_text(resp)
+                print(f"[LLM] Character evidence pack response JSON: {resp_json}")
                 # validate the response structure, not yet
                 return resp_json.get("result", {})
             except Exception as e:
