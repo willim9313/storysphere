@@ -9,6 +9,7 @@ from typing import Dict, List, Any, Optional, Union
 from src.core.indexing.vector_store import VectorStore
 from src.core.nlp.llm_operator import LlmOperator
 from src.core.llm.gemini_client import GeminiClient
+from src.core.utils.data_sanitizer import DataSanitizer
 import json
 import os
 from pathlib import Path
@@ -96,14 +97,17 @@ def run_character_analysis_workflow(
                 "roles": role,
             },
             list_fields={"roles": "any"},  # roles 欄位使用 any 匹配
-            with_payload=['chunk'],
+            with_payload=['chunk_id', 'chunk', 'kg_relations'],
             limit=100
         )
-        print(f"角色 {role} 的DB篩選結果:", results, '\n')
-        print(f'[INFO] 角色 {role} 的DB篩選結果數量: {len(results)}', '\n')
+        # print(f"角色 {role} 的DB篩選結果:", results, '\n')
+        # print(f'[INFO] 角色 {role} 的DB篩選結果數量: {len(results)}', '\n')
 
         # 這邊未來要加上，如果資料量太大，需要做過一次compression
-        n_info = [r['payload']['chunk'] for r in results if 'payload' in r]
+        # 但這邊這樣的寫法沒有辦法正確的將chunk id 拿出來
+        n_info = DataSanitizer.format_vector_store_results(results)
+
+
         print(f'[INFO] 角色 {role} 的DB篩選結果摘要: {n_info}', '\n')
 
         client = LlmOperator(GeminiClient(
@@ -118,6 +122,7 @@ def run_character_analysis_workflow(
 
         print(f"角色 {role} 的原型分析結果:", resp)
 
+        # resp = client.client_suggest_archetype(
         # psychological analysis
 
         # behavioral trace analysis

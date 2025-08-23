@@ -257,12 +257,12 @@ class LlmOperator:
             try:
                 resp = self.client.generate_response(prompt=input_data["user_message"],
                                                      instruction=input_data["system_message"])
-                print(f"[LLM] Character evidence pack response: {resp}")
+                # print(f"[LLM] Character evidence pack response: {resp}")
                 resp_json, json_error = extract_json_from_text(resp)
-                print(f"[LLM] Character evidence pack response JSON: {resp_json}")
+                # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
                 # validate the response structure, not yet
                 if resp_json:
-                    return resp_json.get("result", {})
+                    return resp_json
                 if json_error:
                     print(f"[LLM] JSON extraction error: {json_error}")
             except Exception as e:
@@ -271,5 +271,6 @@ class LlmOperator:
                 print("Language:", language)
                 print("Character Name:", character_name)
         return None
+    
     def close(self):
         del self.client

@@ -24,6 +24,7 @@ json extractor 流程
 import ast
 import json
 import re
+from typing import Tuple, Union
 
 
 CODE_BLOCK_RE = re.compile(r"```json\s*(\{.*?\}|\[.*?\])\s*```", re.DOTALL | re.IGNORECASE)
@@ -75,7 +76,7 @@ def _first_balanced_json(text: str):
                 start = None
     return None
 
-def extract_json_from_text(text: str):
+def extract_json_from_text(text: str) -> Tuple[Union[dict, list, None], Union[str, None]]:
     # 1) 先找 ```json code block, 這是json code fence
     m = CODE_BLOCK_RE.search(text)
     if not m:
@@ -103,9 +104,13 @@ def extract_json_from_text(text: str):
     except Exception as e:
         json_error = str(e)
 
+    print(f"DEBUG: candidate after fixes: {repr(candidate)}")
+
     # Fallback: 嘗試 ast.literal_eval (處理 Python 特有語法)
     try:
         result = ast.literal_eval(candidate)
+        print(f"DEBUG: ast.literal_eval result: {type(result).__name__} = {repr(result)}")
+
         # 確保結果是 dict 或 list (符合 JSON 格式)
         if isinstance(result, (dict, list)):
             return result, None
