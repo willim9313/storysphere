@@ -66,9 +66,11 @@ class LlmOperator:
         for attempt in range(MAX_TRY):
             resp = self.client.generate_response(prompt=input_data["user_message"],
                                                  instruction=input_data["system_message"])
-            resp_json = extract_json_from_text(resp)
+            resp_json, json_error = extract_json_from_text(resp)
             if resp_json:
                 return resp_json.get("result", "")
+            if json_error:
+                print(f"[LLM] JSON extraction error: {json_error}")
 
         return None
     
@@ -103,8 +105,13 @@ class LlmOperator:
             try:
                 resp = self.client.generate_response(prompt=input_data["user_message"],
                                                      instruction=input_data["system_message"])
-                resp_json = extract_json_from_text(resp)
-                result = validate_summary_output(resp_json)
+                resp_json, json_error = extract_json_from_text(resp)
+
+                if resp_json:
+                    result = validate_summary_output(resp_json)
+                else:
+                    print(f"[LLM] JSON extraction error: {json_error}")
+                    result = None
                 if result:
                     return result
             except Exception as e:
@@ -144,10 +151,12 @@ class LlmOperator:
             try:
                 resp = self.client.generate_response(prompt=input_data["user_message"],
                                                     instruction=input_data["system_message"])
-                resp_json = extract_json_from_text(resp)
+                resp_json, json_error = extract_json_from_text(resp)
                 result = validate_extracted_keywords(resp_json)
                 if result:
                     return result
+                if json_error:
+                    print(f"[LLM] JSON extraction error: {json_error}")
             except Exception as e:
                 print(f"[LLM] Keyword extraction error: {e}")
                 print("Content:", content)
@@ -196,10 +205,12 @@ class LlmOperator:
             try:
                 resp = self.client.generate_response(prompt=input_data["user_message"],
                                                      instruction=input_data["system_message"])
-                resp_json = extract_json_from_text(resp)
+                resp_json, json_error = extract_json_from_text(resp)
                 result = validate_kg_output(resp_json)
                 if result:
                     return result
+                if json_error:
+                    print(f"[LLM] JSON extraction error: {json_error}")
             except Exception as e:
                 print(f"[LLM] Entity extraction error: {e}")
                 print("Entity Types:", self.entity_types)
@@ -247,10 +258,13 @@ class LlmOperator:
                 resp = self.client.generate_response(prompt=input_data["user_message"],
                                                      instruction=input_data["system_message"])
                 print(f"[LLM] Character evidence pack response: {resp}")
-                resp_json = extract_json_from_text(resp)
+                resp_json, json_error = extract_json_from_text(resp)
                 print(f"[LLM] Character evidence pack response JSON: {resp_json}")
                 # validate the response structure, not yet
-                return resp_json.get("result", {})
+                if resp_json:
+                    return resp_json.get("result", {})
+                if json_error:
+                    print(f"[LLM] JSON extraction error: {json_error}")
             except Exception as e:
                 print(f"[LLM] Character evidence pack extraction error: {e}")
                 print("Content:", content)
