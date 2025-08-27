@@ -258,12 +258,54 @@ class EnglishTaskTemplates:
     def get_archetype_classification_template() -> BaseTemplate:
         return BaseTemplate(
             system_prompt=(
+                "You are a character archetype analyst."
+                "Use only the given Character Evidence Pack (CEP); you may not request additional information, nor may you reference knowledge outside the CEP."
+                "When evaluating, prioritize actions and causal events, followed by others' comments/relationships."
+                "If the evidence conflicts, you must point out the contradictions and adjust the confidence score accordingly."
             ),
             task_instruction=(
+                "Perform category-by-category comparison: align the functional descriptions in [ARCHETYPE_SET] with the behaviors, events, relations, and comments in the CEP.\n"
+                "Export with the following contents:\n"
+                "- primary_archetype: {id, score}\n"
+                "- secondary_archetypes: [{id, score}, … up to 2]\n"
+                "- rationale: array; each item must include maps_to (archetype ID) + evidence (short phrase) + quote (citation ≤20 characters) + chunk_id\n"
+                "- conflicts_or_limits: list contradictions / insufficient evidence\n"
+                "- confidence: 0-1"
             ),
             constraints=(
+                "You may not request additional information.\n"
+                "You must rely only on content from the CEP; each archetype score must include at least one piece of evidence with a chunk_id.\n"
+                "If a character has multiple facets, both primary and secondary archetypes are allowed.\n"
+                "If a “shadow” aspect is present (e.g., Ruler_Shadow), mark it with the _Shadow suffix, and explicitly cite the corresponding behaviors in the rationale.\n"
             ),
             output_format=(
+                '{{'
+                '   "character": "Mr. Jones",'
+                '   "primary_archetype": {{"id": "Ruler_Shadow", "score": 0.78}},'
+                '   "secondary_archetypes": ['
+                '       {{"id": "Orphan", "score": 0.42}},'
+                '       {{"id": "Jester_Shadow", "score": 0.31}}'
+                '   ],'
+                '   "rationale": ['
+                '       {{'
+                '           "maps_to": "Ruler_Shadow",'
+                '           "evidence": "Abuses authority; neglects duties; loses legitimacy",'
+                '           "quote": "…drank heavily and neglected the farm.",'
+                '           "chunk_id": "uuid-1"'
+                '       }},'
+                '       {{'
+                '           "maps_to": "Orphan",'
+                '           "evidence": "Dispossessed after uprising; loss of security",'
+                '           "quote": "…animals chased Jones off…",'
+                '           "chunk_id": "uuid-7"'
+                '       }}'
+                '   ],'
+                '   "conflicts_or_limits": ['
+                '       "Few first-person motives; most quotes are narrator-side."'
+                '   ],'
+                '   "confidence": 0.70'
+                '}}'
+
             ),
             language=Language.ENGLISH
         )

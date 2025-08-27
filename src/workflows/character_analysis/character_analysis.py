@@ -120,6 +120,8 @@ def run_character_analysis_workflow(
             character_name=role,
         )
 
+        
+
         print(f"角色 {role} 的原型分析結果:", resp)
 
         # resp = client.client_suggest_archetype(
