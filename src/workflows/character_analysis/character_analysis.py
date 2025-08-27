@@ -115,16 +115,15 @@ def run_character_analysis_workflow(
             model=model_name
         ))
 
-        resp = client.extract_character_evidence_pack(
+        resp = client.classify_archetype(
             content="\n".join(n_info),
-            character_name=role,
+            ref_info=json.dumps(archetypes, ensure_ascii=False, indent=2),
+            # ref_info="\n".join(archetypes)
         )
 
         
-
         print(f"角色 {role} 的原型分析結果:", resp)
 
-        # resp = client.client_suggest_archetype(
         # psychological analysis
 
         # behavioral trace analysis

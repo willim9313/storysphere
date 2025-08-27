@@ -271,6 +271,54 @@ class LlmOperator:
                 print("Language:", language)
                 print("Character Name:", character_name)
         return None
+
+    def classify_archetype(
+        self, 
+        content: str,
+        ref_info: str,
+        language: Language = Language.ENGLISH,
+    ) -> dict:
+        """
+        使用 LLM 針對角色證據進行判斷，並回傳角色原型分類結果
+        :param content: 角色證據包
+        :param ref_info: 參考資訊，像是角色原型用的資料
+        :param language: 語言，預設為英文
+        :param character_name: 角色名稱，可選
+        :return: LLM 的角色證據包提取結果
+        """
+
+        template_manager = MultilingualTemplateManager()
+        builder = TemplateBuilder(
+            template_manager=template_manager
+        )
+
+        input_data = builder.build_split(
+            task_type=TaskType.ARCHETYPE_CLASSIFICATION,
+            language=language,
+            # character_name=character_name,
+            overrides={
+                "ref_info": ref_info
+            }
+        )
+
+        MAX_TRY = 3
+        for attempt in range(MAX_TRY):
+            try:
+                resp = self.client.generate_response(prompt=input_data["user_message"],
+                                                     instruction=input_data["system_message"])
+                # print(f"[LLM] Character evidence pack response: {resp}")
+                resp_json, json_error = extract_json_from_text(resp)
+                # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
+                # validate the response structure, not yet
+                if resp_json:
+                    return resp_json
+                if json_error:
+                    print(f"[LLM] JSON extraction error: {json_error}")
+            except Exception as e:
+                print(f"[LLM] Classification error: {e}")
+                print("Content:", content)
+                print("Language:", language)
+        return None
     
     def close(self):
         del self.client

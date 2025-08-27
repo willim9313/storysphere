@@ -266,8 +266,8 @@ class EnglishTaskTemplates:
             task_instruction=(
                 "Perform category-by-category comparison: align the functional descriptions in [ARCHETYPE_SET] with the behaviors, events, relations, and comments in the CEP.\n"
                 "Export with the following contents:\n"
-                "- primary_archetype: {id, score}\n"
-                "- secondary_archetypes: [{id, score}, … up to 2]\n"
+                "- primary_archetype: {{id, score}}\n"
+                "- secondary_archetypes: [{{id, score}}, … up to 2]\n"
                 "- rationale: array; each item must include maps_to (archetype ID) + evidence (short phrase) + quote (citation ≤20 characters) + chunk_id\n"
                 "- conflicts_or_limits: list contradictions / insufficient evidence\n"
                 "- confidence: 0-1"
