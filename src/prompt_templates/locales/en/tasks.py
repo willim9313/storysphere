@@ -130,13 +130,13 @@ class EnglishTaskTemplates:
                 'Each quotation should be ≤ 20 words and annotated with its chunk_id.'
             ),
             task_instruction=(
-                "From [CONTEXT], extract only the signals directly related to {{character_name}} that can support archetype judgment:"
-                "actions (must have the character as the subject, or be a clearly identified agent)"
-                "traits (with the speaker’s perspective included)"
-                "relations (subject–relation–object format)"
-                "key_events (event → cause-effect)"
-                "representative_quotes (≤ 5, each must include chunk_id)"
-                "top_terms (verbs / adjectives / co-mentioned characters)"
+                "From [CONTEXT], extract only the signals directly related to {{character_name}} that can support archetype judgment:\n"
+                "- actions (must have the character as the subject, or be a clearly identified agent)\n"
+                "- traits (with the speaker’s perspective included)\n"
+                "- relations (subject–relation–object format)\n"
+                "- key_events (event → cause-effect)\n"
+                "- representative_quotes (≤ 5, each must include chunk_id)\n"
+                "- top_terms (verbs / adjectives / co-mentioned characters)\n"
                 "Produce a summary within 120 characters (covering what the character wants, how they act, and what consequences result)."
                 "Fill in coverage_quality (counts and gaps)."
                 "If evidence is insufficient, record the gaps truthfully, but do not request more information."
@@ -237,16 +237,15 @@ class EnglishTaskTemplates:
                 '}}'
             ),
             constraints=(
-                "max_items:"
-                "  actions: 6"
-                "  traits: 5"
-                "  relations: 4"
-                "  events: 4"
-                "  quotes: 5"
-                "  token_budget: 700"
-                "- Extract evidence related to the specified character"
-                "- Provide detailed descriptions and context for each piece of evidence"
-                "- Return results in a structured format"
+                "max_items:\n"
+                "  actions: 6\n"
+                "  traits: 5\n"
+                "  relations: 4\n"
+                "  events: 4\n"
+                "  quotes: 5\n"
+                "- Extract evidence related to the specified character\n"
+                "- Provide detailed descriptions and context for each piece of evidence\n"
+                "- Return results in a structured format\n"
             ),
             output_format=(
                 "Output as a single JSON object with keys and field meanings identical to the previous CEP example."
@@ -259,12 +258,14 @@ class EnglishTaskTemplates:
         return BaseTemplate(
             system_prompt=(
                 "You are a character archetype analyst."
-                "Use only the given Character Evidence Pack (CEP); you may not request additional information, nor may you reference knowledge outside the CEP."
+                "Use only the given Character Evidence Pack (CEP); you may not request additional information, "
+                "nor may you reference knowledge outside the CEP."
                 "When evaluating, prioritize actions and causal events, followed by others' comments/relationships."
                 "If the evidence conflicts, you must point out the contradictions and adjust the confidence score accordingly."
             ),
             task_instruction=(
-                "Perform category-by-category comparison: align the functional descriptions in [ARCHETYPE_SET] with the behaviors, events, relations, and comments in the CEP.\n"
+                "Perform category-by-category comparison: align the functional descriptions in [ARCHETYPE_SET] with the behaviors, "
+                "events, relations, and comments in the CEP.\n"
                 "Export with the following contents:\n"
                 "- primary_archetype: {{id, score}}\n"
                 "- secondary_archetypes: [{{id, score}}, … up to 2]\n"

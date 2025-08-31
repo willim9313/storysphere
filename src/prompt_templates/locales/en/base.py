@@ -13,18 +13,16 @@ class EnglishBaseTemplates:
         "helpful responses."
     )
 
-    COMMON_EXAMPLES_INTRO = "Example:"
-    
-    
     COMMON_CONSTRAINTS = (
         "Please ensure your responses adhere to the following constraints:\n"
         "- Maintain the semantic and logical structure of the original text.\n"
         "- Ensure the output format is correct and complete.\n"
-        "- Provide responses in English."
+        "- Provide responses in English.\n"
     )
 
-    COMMON_OUTPUT_FORMAT = """Please output the result in JSON format:
-{{
-    "result": "Your processing result"
-}}
-"""
+    COMMON_OUTPUT_FORMAT = (
+        "Please output the result in JSON format:\n"
+        "{{\n"
+        "    \"result\": \"Your processing result\"\n"
+        "}}\n"
+    )

@@ -2,17 +2,18 @@
 角色分析功能完整實現
 在指定角色下，完成所有相關的分析功能
 """
-from src.pipelines.kg.entity_attribute_extraction_pipeline import (
-    create_entity_attribute_pipeline
-)
+import json
+import os
+from pathlib import Path
 from typing import Dict, List, Any, Optional, Union
 from src.core.indexing.vector_store import VectorStore
 from src.core.nlp.llm_operator import LlmOperator
 from src.core.llm.gemini_client import GeminiClient
 from src.core.utils.data_sanitizer import DataSanitizer
-import json
-import os
-from pathlib import Path
+from src.core.utils.data_sanitizer import SafeFormatter
+from src.pipelines.kg.entity_attribute_extraction_pipeline import (
+    create_entity_attribute_pipeline
+)
 
 def load_archetype_config(
     archetype_type: str = "jung", 
@@ -115,12 +116,21 @@ def run_character_analysis_workflow(
             model=model_name
         ))
 
+
+        resp = client.extract_character_evidence_pack(
+            content="\n".join(n_info),
+            character_name=role,
+        )
+        print(f"角色 {role} 的CEP結果:", resp)
+        print('\n')
+        
+        ref_info = json.dumps(archetypes, ensure_ascii=False, indent=2)
+        safe_ref_info = SafeFormatter.escape_braces(ref_info)
+
         resp = client.classify_archetype(
             content="\n".join(n_info),
-            ref_info=json.dumps(archetypes, ensure_ascii=False, indent=2),
-            # ref_info="\n".join(archetypes)
+            ref_info=safe_ref_info,
         )
-
         
         print(f"角色 {role} 的原型分析結果:", resp)
 

@@ -103,3 +103,24 @@ class DataSanitizer:
             formatted.append("\n".join(info_parts) + "\n---")
         
         return formatted
+    
+class SafeFormatter:
+    @staticmethod
+    def escape_braces(text):
+        """轉義大括號以避免格式化衝突"""
+        return text.replace('{', '{{').replace('}', '}}')
+    
+    @staticmethod
+    def format_with_json(template, json_data, **kwargs):
+        """安全地格式化包含 JSON 的模板"""
+        # 如果是字典，先轉為 JSON 字符串
+        if isinstance(json_data, (dict, list)):
+            json_str = json.dumps(json_data, ensure_ascii=False, indent=2)
+        else:
+            json_str = str(json_data)
+        
+        # 轉義 JSON 中的大括號
+        escaped_json = SafeFormatter.escape_braces(json_str)
+        
+        # 安全格式化
+        return template.format(ref_info=escaped_json, **kwargs)
