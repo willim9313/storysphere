@@ -62,31 +62,31 @@ class BaseTemplate:
         examples = kwargs.get("examples", self.examples)
 
         # System message 部分
-        system_content = f"""{self._get_section_header('system_prompt')}:
-{self.system_prompt}
-
-{self._get_section_header('task')}:
-{self.task_instruction}
-{self._get_section_header('ref_info') if ref_info else ''}{':' if ref_info else ''}
-{self.ref_info if ref_info else ''}
-{self._get_section_header('examples') if examples else ''}{':' if examples else ''}
-{self.examples if examples else ''}
-
-{self._get_section_header('constraints')}:
-{self.constraints}
-
-{self._get_section_header('output_format')}:
-{self.output_format}""".strip()
+        system_content_template = (
+            f"{self._get_section_header('system_prompt')}:\n"
+            f"{self.system_prompt}\n\n"
+            f"{self._get_section_header('task')}:\n"
+            f"{self.task_instruction}\n"
+            f"{self._get_section_header('ref_info') if ref_info else ''}{':' if ref_info else ''}\n"
+            f"{self.ref_info if ref_info else ''}\n"
+            f"{self._get_section_header('examples') if examples else ''}{':' if examples else ''}\n"
+            f"{self.examples if examples else ''}\n"
+            f"{self._get_section_header('constraints')}:\n"
+            f"{self.constraints}\n"
+            f"{self._get_section_header('output_format')}:\n"
+            f"{self.output_format}"""
+        )
 
         # User message 部分
-        user_content = f"""{self._get_section_header('input')}:
-{kwargs.get('content', '')}""".strip()
-
+        user_content_template = (
+            f"{self._get_section_header('input')}:\n"
+            f"{kwargs.get('content', '')}\n"
+        )
 
         try:
             output = {
-                "system_message": system_content.format(**kwargs),
-                "user_message": user_content.format(**kwargs)
+                "system_message": system_content_template.strip().format(**kwargs),
+                "user_message": user_content_template.strip().format(**kwargs)
             }
         except KeyError as e:
             print(f"system_prompt = {self.system_prompt}")

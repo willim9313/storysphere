@@ -226,9 +226,9 @@ class LlmOperator:
     ) -> dict:
         """
         使用 LLM 提取角色證據包
-        :param content: 需要提取的文本，qdrant提取出的文本基礎
-        :param language: 語言，預設為英文
-        :param character_name: 角色名稱，可選
+        :param content: 需要提取的文本, qdrant提取出的文本基礎
+        :param language: 語言, 預設為英文
+        :param character_name: 角色名稱, 可選
         :return: LLM 的角色證據包提取結果
         """
         ref_info = (
