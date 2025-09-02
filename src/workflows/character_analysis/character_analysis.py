@@ -124,15 +124,19 @@ def run_character_analysis_workflow(
         print(f"角色 {role} 的CEP結果:", resp)
         print('\n')
         
+        # 輔助資訊與前次回覆做escape跟sanitize
         ref_info = json.dumps(archetypes, ensure_ascii=False, indent=2)
         safe_ref_info = SafeFormatter.escape_braces(ref_info)
+        prev_resp = DataSanitizer.sanitize_for_template(resp)
 
         resp = client.classify_archetype(
-            content="\n".join(n_info),
+            content=prev_resp,
             ref_info=safe_ref_info,
         )
         
         print(f"角色 {role} 的原型分析結果:", resp)
+        # 接下來需要將產出結果存放在指定位置
+
 
         # psychological analysis
 

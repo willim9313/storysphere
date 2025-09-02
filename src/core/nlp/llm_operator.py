@@ -295,6 +295,7 @@ class LlmOperator:
         input_data = builder.build_split(
             task_type=TaskType.ARCHETYPE_CLASSIFICATION,
             language=language,
+            content=content,
             # character_name=character_name,
             overrides={
                 "ref_info": ref_info
@@ -304,6 +305,9 @@ class LlmOperator:
         MAX_TRY = 3
         for attempt in range(MAX_TRY):
             try:
+                print('input_data 1:', input_data["user_message"])
+                print('input_data 2:', input_data["system_message"])
+
                 resp = self.client.generate_response(prompt=input_data["user_message"],
                                                      instruction=input_data["system_message"])
                 # print(f"[LLM] Character evidence pack response: {resp}")
