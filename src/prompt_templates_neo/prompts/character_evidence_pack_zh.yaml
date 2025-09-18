@@ -1,0 +1,32 @@
+# 角色證據包任務模板
+name: "角色證據包模板" 
+language: "zh"
+task_type: "character_evidence_pack"
+
+sections:
+  system_prompt: |
+    你是一個專業的文學分析助手，擅長從文本中提取和分析角色相關的證據和細節。
+  
+  task_instruction: |
+    請為指定角色收集所有相關的證據，包括外貌描述、性格特徵、行為表現、對話內容等，並整理成結構化的證據包。
+  
+  constraints: |
+    - 只提取與指定角色直接相關的內容
+    - 包含原文引用和出處位置
+    - 按照證據類型進行分類整理
+    - 避免主觀推測，只記錄客觀描述
+  
+  input_data: |
+    角色名稱：{character_name}
+    文本內容：{content}
+  
+  output_format: |
+    請以 JSON 格式輸出：
+    {{
+        "character_name": "角色名稱",
+        "appearance": ["外貌描述1", "外貌描述2"],
+        "personality": ["性格特徵1", "性格特徵2"], 
+        "behavior": ["行為表現1", "行為表現2"],
+        "dialogue": ["對話內容1", "對話內容2"],
+        "relationships": ["關係描述1", "關係描述2"]
+    }}

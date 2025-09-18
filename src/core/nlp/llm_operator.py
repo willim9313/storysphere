@@ -271,6 +271,79 @@ class LlmOperator:
                 print("Language:", language)
                 print("Character Name:", character_name)
         return None
+    
+    def extract_character_evidence_pack2(
+        self, 
+        content: str,
+        language: Language = Language.ENGLISH,
+        character_name: str = None,
+    ) -> dict:
+        """
+        使用 LLM 提取角色證據包
+        :param content: 需要提取的文本, qdrant提取出的文本基礎
+        :param language: 語言, 預設為英文
+        :param character_name: 角色名稱, 可選
+        :return: LLM 的角色證據包提取結果
+        """
+        from src.prompt_templates_neo.manager import PromptManager
+        from src.prompt_templates_neo.registry import TaskType, Language
+        pm = PromptManager()
+
+        try:
+            prompt = pm.render_split_prompt(
+                task_type=TaskType.CHARACTER_EVIDENCE_PACK,
+                language=Language.ENGLISH,
+                character_name=character_name,
+                content=content
+            )
+            print("✅ 角色證據包模板載入成功")
+            print("生成的 prompt:")
+            print(prompt[:200] + "..." if len(prompt) > 200 else prompt)
+            print("\n完整 prompt:")
+            print(prompt)
+        except Exception as e:
+            print(f"❌ 角色證據包模板載入失敗: {e}")
+
+        # ref_info = (
+        #     '[Character Name]'
+        #     f'{character_name}\n'
+        #     '[Content]'
+        #     f'{content}\n'
+        # )
+
+        # template_manager = MultilingualTemplateManager()
+        # builder = TemplateBuilder(
+        #     template_manager=template_manager
+        # )
+
+        # input_data = builder.build_split(
+        #     task_type=TaskType.CHARACTER_EVIDENCE_PACK,
+        #     language=language,
+        #     character_name=character_name,
+        #     overrides={
+        #         "ref_info": ref_info
+        #     }
+        # )
+
+        MAX_TRY = 3
+        for attempt in range(MAX_TRY):
+            try:
+                resp = self.client.generate_response(prompt=prompt["user_message"],
+                                                     instruction=prompt["system_message"])
+                # print(f"[LLM] Character evidence pack response: {resp}")
+                resp_json, json_error = extract_json_from_text(resp)
+                # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
+                # validate the response structure, not yet
+                if resp_json:
+                    return resp_json
+                if json_error:
+                    print(f"[LLM] JSON extraction error: {json_error}")
+            except Exception as e:
+                print(f"[LLM] Character evidence pack extraction error: {e}")
+                print("Content:", content)
+                print("Language:", language)
+                print("Character Name:", character_name)
+        return None
 
     def classify_archetype(
         self, 

@@ -116,8 +116,12 @@ def run_character_analysis_workflow(
             model=model_name
         ))
 
-
-        resp = client.extract_character_evidence_pack(
+        # content = "\n".join(n_info)
+        # content = SafeFormatter.escape_braces(content)
+        # content = DataSanitizer.sanitize_for_template(content)
+        # print("##### 準備送給CEP的內容如下 #####")
+        # print(content)
+        resp = client.extract_character_evidence_pack2(
             content="\n".join(n_info),
             character_name=role,
         )

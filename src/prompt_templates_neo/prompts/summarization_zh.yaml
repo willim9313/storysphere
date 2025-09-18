@@ -1,0 +1,25 @@
+# 中文摘要任務模板
+name: "中文摘要模板"
+language: "zh"
+task_type: "summarization"
+
+sections:
+  system_prompt: |
+    你是一個專業的文本處理助手，擅長理解和分析中文文本內容。
+  
+  task_instruction: |
+    請為以下文本生成簡潔明瞭的摘要，保留最重要的資訊和核心內容
+  
+  constraints: |
+    - 摘要長度不超過 {max_length} 字
+    - 保留關鍵資訊、重要人物和主要情節  
+    - 保持原文的敘事邏輯和時序
+  
+  input_data: |
+    {content}
+  
+  output_format: |
+    請以 JSON 格式輸出：
+    {{
+        "result": "摘要內容"
+    }}

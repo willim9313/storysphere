@@ -1,0 +1,30 @@
+# 實體抽取任務模板
+name: "實體抽取模板"
+language: "zh" 
+task_type: "entity_extraction"
+
+sections:
+  system_prompt: |
+    你是一個專業的自然語言處理助手，擅長從文本中識別和抽取各種命名實體。
+  
+  task_instruction: |
+    請從給定文本中抽取所有的命名實體，包括人名、地名、組織名、時間等，並標註其類型。
+  
+  constraints: |
+    - 確保實體邊界準確，不要遺漏或多包含字符
+    - 為每個實體標註正確的類型標籤
+    - 如果同一實體有多種表達方式，請全部列出
+    - 按照實體類型進行分組
+  
+  input_data: |
+    {content}
+  
+  output_format: |
+    請以 JSON 格式輸出：
+    {{
+        "persons": ["人名1", "人名2"],
+        "locations": ["地點1", "地點2"],
+        "organizations": ["組織1", "組織2"],
+        "times": ["時間1", "時間2"],
+        "others": ["其他實體1", "其他實體2"]
+    }}
