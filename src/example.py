@@ -48,3 +48,24 @@ available = registry.list_available_templates()
 print("📋 可用的模板:")
 for task, languages in available.items():
     print(f"  - {task}: {languages}")
+
+
+# 測試角色證據包 - 是否能處理字典型內容  
+try:
+    role_name = {"小豬大哥": "三隻小豬中最聰明、最勤勞的一隻，負責建造磚房以抵禦大野狼的攻擊。"}
+    context = {"三隻小豬的故事...": "三隻小豬分別建造了稻草屋、木屋和磚屋。大野狼先後吹倒了前兩座房子，但無法摧毀磚屋，最終三隻小豬得以安全避難。"}
+    prompt = pm.render_prompt(
+        task_type=TaskType.CHARACTER_EVIDENCE_PACK,
+        language=Language.CHINESE,
+        character_name=role_name,
+        content=context
+    )
+    print("✅ 角色證據包模板載入成功")
+    print("生成的 prompt:")
+    print(prompt[:200] + "..." if len(prompt) > 200 else prompt)
+    print("\n完整 prompt:")
+    print(prompt)
+except Exception as e:
+    print(f"❌ 角色證據包模板處理內容失敗: {e}")
+
+print("\n" + "="*50 + "\n")

@@ -134,5 +134,6 @@ class PromptLoader:
         
         return templates
 
+
 # 全局實例
 prompt_loader = PromptLoader()

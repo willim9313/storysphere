@@ -82,3 +82,144 @@ poetry.lock
 
 # Ignore data outputs
 data/
+
+
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+venv/
+env/
+
+# ================================
+# Database & Data Files
+# ================================
+
+# DuckDB database files
+*.duckdb
+*.duckdb.wal
+duckdb/db/
+duckdb/backups/
+
+# Neo4j data directories
+neo4j/data/
+neo4j/logs/
+neo4j/import/
+neo4j/plugins/
+neo4j/conf/neo4j.conf
+
+# Qdrant data directories
+qdrant/storage/
+qdrant/snapshots/
+qdrant/wal/
+
+# ================================
+# Configuration & Secrets
+# ================================
+
+# Environment files
+.env
+.env.local
+.env.production
+.env.staging
+.env.*.local
+
+# Configuration files with sensitive data
+config/local.yaml
+config/production.yaml
+secrets/
+
+# ================================
+# Logs & Temporary Files
+# ================================
+
+# Application logs
+logs/
+*.log
+*.log.*
+
+# Temporary processing files
+temp/
+tmp/
+*.tmp
+*.temp
+
+# Cache directories
+.cache/
+cache/
+.pytest_cache/
+
+# ================================
+# Development & IDE
+# ================================
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints/
+
+# VS Code settings (optional - 可以選擇保留或忽略)
+.vscode/settings.json
+.vscode/launch.json
+
+# PyCharm
+.idea/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# ================================
+# Model & Data Assets
+# ================================
+
+# Downloaded models (if stored locally)
+*.model
+*.pkl
+*.joblib
+
+# Large data files
+*.parquet
+*.csv.gz
+
+# Embedding cache
+embeddings_cache/
+vector_cache/
+
+# ================================
+# Backup & Export Files
+# ================================
+
+# Database exports
+*.dump
+*.backup
+*.sql.gz
+exports/
+backups/
+
+# Archive files
+*.zip
+*.tar.gz
+*.rar
+
+# ================================
+# System & Runtime
+# ================================
+
+# Process ID files
+*.pid
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Testing
+.pytest_cache/
+.tox/
