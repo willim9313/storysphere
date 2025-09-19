@@ -15,6 +15,9 @@ from ...prompt_templates.template_builder import TemplateBuilder
 from ...prompt_templates.template_manager import MultilingualTemplateManager, TaskType
 from ...prompt_templates.base_templates import Language
 
+from ...prompt_templates_neo.manager import PromptManager
+from ...prompt_templates_neo.registry import TaskType, Language
+
 class LlmOperator:
     """
     Using the llm to process related nlp task, such as summary, keyword extraction.
@@ -48,24 +51,35 @@ class LlmOperator:
         :param ref_info: 可選的參考資訊
         :return: LLM 的回應
         """
-
-        template_manager = MultilingualTemplateManager()
-        builder = TemplateBuilder(
-            template_manager=template_manager
-        )
+        # old
+        # template_manager = MultilingualTemplateManager()
+        # builder = TemplateBuilder(
+        #     template_manager=template_manager
+        # )
         
-        input_data = builder.build_split(
-            task_type=TaskType.CHATBOT,
-            language=language,
-            ref_info=ref_info,
-            content=content
-        )
+        # input_data = builder.build_split(
+        #     task_type=TaskType.CHATBOT,
+        #     language=language,
+        #     ref_info=ref_info,
+        #     content=content
+        # )
+
+        # new
+        try:
+            pm = PromptManager()
+            prompt = pm.render_split_prompt(
+                task_type=TaskType.CHATBOT,
+                language=language,
+                content=content
+            )
+        except Exception as e:
+            raise(f"❌ 聊天模板載入失敗: {e}")
 
         MAX_TRY = 3
 
         for attempt in range(MAX_TRY):
-            resp = self.client.generate_response(prompt=input_data["user_message"],
-                                                 instruction=input_data["system_message"])
+            resp = self.client.generate_response(prompt=prompt["user_message"],
+                                                 instruction=prompt["system_message"])
             resp_json, json_error = extract_json_from_text(resp)
             if resp_json:
                 return resp_json.get("result", "")
@@ -87,24 +101,37 @@ class LlmOperator:
         :param max_length: 最大摘要長度，預設為200
         :return: LLM 的摘要結果
         """
-        template_manager = MultilingualTemplateManager()
-        builder = TemplateBuilder(
-            template_manager=template_manager
-        )
+        # old
+        # template_manager = MultilingualTemplateManager()
+        # builder = TemplateBuilder(
+        #     template_manager=template_manager
+        # )
         
-        input_data = builder.build_split(
-            task_type=TaskType.GENERAL_SUMMARIZATION,
-            language=language,
-            content=content,
-            max_length=max_length
-        )
+        # input_data = builder.build_split(
+        #     task_type=TaskType.GENERAL_SUMMARIZATION,
+        #     language=language,
+        #     content=content,
+        #     max_length=max_length
+        # )
+
+        # new
+        try:
+            pm = PromptManager()
+            prompt = pm.render_split_prompt(
+                task_type=TaskType.SUMMARIZATION,
+                language=Language.ENGLISH,
+                content=content,
+                max_length=max_length
+            )
+        except Exception as e:
+            raise(f"❌ 摘要模板載入失敗: {e}")
 
         MAX_TRY = 3
 
         for attempt in range(MAX_TRY):
             try:
-                resp = self.client.generate_response(prompt=input_data["user_message"],
-                                                     instruction=input_data["system_message"])
+                resp = self.client.generate_response(prompt=prompt["user_message"],
+                                                     instruction=prompt["system_message"])
                 resp_json, json_error = extract_json_from_text(resp)
 
                 if resp_json:
@@ -133,24 +160,37 @@ class LlmOperator:
         :param language: 語言，預設為英文
         :return: LLM 的關鍵字提取結果
         '''
-        template_manager = MultilingualTemplateManager()
-        builder = TemplateBuilder(
-            template_manager=template_manager
-        )
+        # old
+        # template_manager = MultilingualTemplateManager()
+        # builder = TemplateBuilder(
+        #     template_manager=template_manager
+        # )
 
-        input_data = builder.build_split(
-            task_type=TaskType.KEYWORD_EXTRACTION,
-            language=language,
-            content=content,
-            top_k=top_k
-        )
+        # input_data = builder.build_split(
+        #     task_type=TaskType.KEYWORD_EXTRACTION,
+        #     language=language,
+        #     content=content,
+        #     top_k=top_k
+        # )
+
+        # new
+        try:
+            pm = PromptManager()
+            prompt = pm.render_split_prompt(
+                task_type=TaskType.KEYWORD_EXTRACTION,
+                language=language,
+                content=content,
+                top_k=top_k
+            )
+        except Exception as e:
+            raise(f"❌ 關鍵字提取模板載入失敗: {e}")
 
         MAX_TRY = 3
 
         for attempt in range(MAX_TRY):
             try:
-                resp = self.client.generate_response(prompt=input_data["user_message"],
-                                                    instruction=input_data["system_message"])
+                resp = self.client.generate_response(prompt=prompt["user_message"],
+                                                    instruction=prompt["system_message"])
                 resp_json, json_error = extract_json_from_text(resp)
                 result = validate_extracted_keywords(resp_json)
                 if result:
@@ -184,7 +224,7 @@ class LlmOperator:
             "- Attributes:"
             f"{json.dumps(self.attribute_types, indent=2)}"
         )
-
+        # old
         template_manager = MultilingualTemplateManager()
         builder = TemplateBuilder(
             template_manager=template_manager
@@ -199,12 +239,26 @@ class LlmOperator:
             }
         )
 
+        # new
+        try:
+            pm = PromptManager()
+            prompt = pm.render_split_prompt(
+                task_type=TaskType.ENTITY_EXTRACTION,
+                language=Language.ENGLISH,
+                content=content,
+                overrides={
+                    "ref_info": ref_schema
+                }
+            )
+        except Exception as e:
+            raise(f"❌ 實體提取模板載入失敗: {e}")
+
         MAX_TRY = 3
 
         for attempt in range(MAX_TRY):
             try:
-                resp = self.client.generate_response(prompt=input_data["user_message"],
-                                                     instruction=input_data["system_message"])
+                resp = self.client.generate_response(prompt=prompt["user_message"],
+                                                     instruction=prompt["system_message"])
                 resp_json, json_error = extract_json_from_text(resp)
                 result = validate_kg_output(resp_json)
                 if result:
@@ -237,7 +291,7 @@ class LlmOperator:
             '[Content]'
             f'{content}\n'
         )
-
+        # old
         template_manager = MultilingualTemplateManager()
         builder = TemplateBuilder(
             template_manager=template_manager
@@ -252,11 +306,23 @@ class LlmOperator:
             }
         )
 
+        # new
+        try:
+            pm = PromptManager()
+            prompt = pm.render_split_prompt(
+                task_type=TaskType.CHARACTER_EVIDENCE_PACK,
+                language=Language.ENGLISH,
+                character_name=character_name,
+                content=content
+            )
+        except Exception as e:
+            print(f"❌ 角色證據包模板載入失敗: {e}")
+
         MAX_TRY = 3
         for attempt in range(MAX_TRY):
             try:
-                resp = self.client.generate_response(prompt=input_data["user_message"],
-                                                     instruction=input_data["system_message"])
+                resp = self.client.generate_response(prompt=prompt["user_message"],
+                                                     instruction=prompt["system_message"])
                 # print(f"[LLM] Character evidence pack response: {resp}")
                 resp_json, json_error = extract_json_from_text(resp)
                 # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
@@ -359,7 +425,7 @@ class LlmOperator:
         :param character_name: 角色名稱，可選
         :return: LLM 的角色證據包提取結果
         """
-
+        # old
         template_manager = MultilingualTemplateManager()
         builder = TemplateBuilder(
             template_manager=template_manager
@@ -375,14 +441,28 @@ class LlmOperator:
             }
         )
 
+        # new
+        try:
+            pm = PromptManager()
+            prompt = pm.render_split_prompt(
+                task_type=TaskType.ARCHETYPE_CLASSIFICATION,
+                language=Language.ENGLISH,
+                content=content,
+                overrides={
+                    "ref_info": ref_info
+                }
+            )
+        except Exception as e:
+            print(f"❌ 角色原型分類模板載入失敗: {e}")
+
         MAX_TRY = 3
         for attempt in range(MAX_TRY):
             try:
                 print('input_data 1:', input_data["user_message"])
                 print('input_data 2:', input_data["system_message"])
 
-                resp = self.client.generate_response(prompt=input_data["user_message"],
-                                                     instruction=input_data["system_message"])
+                resp = self.client.generate_response(prompt=prompt["user_message"],
+                                                     instruction=prompt["system_message"])
                 # print(f"[LLM] Character evidence pack response: {resp}")
                 resp_json, json_error = extract_json_from_text(resp)
                 # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
