@@ -1,0 +1,52 @@
+# 英文實體萃取任務模板  
+name: "English Entity Extraction Template"
+language: "en"
+task_type: "entity_extraction"
+
+sections:
+  system_prompt: |
+    You are a professional text processing assistant,
+    skilled in understanding and analyzing text content.
+    Please carefully read the user's requirements and provide accurate, helpful responses.
+
+  task_instruction: |
+    Extract structured entities from the text
+  
+  constraints: |
+    Please ensure your responses adhere to the following constraints:
+    - Maintain the semantic and logical structure of the original text.
+    - Ensure the output format is correct and complete.
+    - Provide responses in English.
+    - Extract meaningful entities and relations from the text.
+    - Do not make up entities and relations that do not exist in the text.
+    - Return JSON with keys: entities[], relations[].
+
+  input_data: |
+    {content}
+  
+  output_format: |
+    Please output in JSON format:
+    {{
+      "entities": [
+        {{
+          "type": "Person",
+          "name": "Character Name",
+          "attributes": {{
+            "gender": "Male",
+            "role": "Protagonist",
+            "description": "The boy who lived"
+          }}
+        }},
+        {{
+          "type": "Object",
+          "name": "Object Name"
+        }}
+      ],
+      "relations": [
+        {{
+          "head": "Character Name",
+          "relation": "possesses",
+          "tail": "Object Name"
+        }}
+      ]
+    }}

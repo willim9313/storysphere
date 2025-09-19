@@ -1,6 +1,6 @@
 # 完全自動化版本使用範例
-from src.prompt_templates.manager import PromptManager
-from src.prompt_templates.registry import TaskType, Language
+from src.prompt_templates_neo.manager import PromptManager
+from src.prompt_templates_neo.registry import TaskType, Language
 
 # 初始化管理器
 pm = PromptManager()
@@ -42,7 +42,7 @@ except Exception as e:
 print("\n" + "="*50 + "\n")
 
 # 列出所有可用模板
-from src.prompt_templates.registry import TemplateRegistry
+from src.prompt_templates_neo.registry import TemplateRegistry
 registry = TemplateRegistry()
 available = registry.list_available_templates()
 print("📋 可用的模板:")
@@ -50,7 +50,8 @@ for task, languages in available.items():
     print(f"  - {task}: {languages}")
 
 
-# 測試角色證據包 - 是否能處理字典型內容  
+# 測試角色證據包 - 是否能處理字典型內容
+# 正常狀況下可以
 try:
     role_name = {"小豬大哥": "三隻小豬中最聰明、最勤勞的一隻，負責建造磚房以抵禦大野狼的攻擊。"}
     context = {"三隻小豬的故事...": "三隻小豬分別建造了稻草屋、木屋和磚屋。大野狼先後吹倒了前兩座房子，但無法摧毀磚屋，最終三隻小豬得以安全避難。"}

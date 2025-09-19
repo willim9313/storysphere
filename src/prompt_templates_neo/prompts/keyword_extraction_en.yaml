@@ -1,0 +1,35 @@
+# 英文關鍵字萃取任務模板  
+name: "English Keyword Extraction Template"
+language: "en"
+task_type: "keyword_extraction"
+
+sections:
+  system_prompt: |
+    You are a professional text processing assistant, skilled in understanding and analyzing text content.
+    Please carefully read the user's requirements and provide accurate, helpful responses.
+
+  task_instruction: |
+    Extract the most important and representative keywords from the text
+  
+  constraints: |
+    Please ensure your responses adhere to the following constraints:
+    - Maintain the semantic and logical structure of the original text.
+    - Ensure the output format is correct and complete.
+    - Provide responses in English.
+    - Extract {top_k} most important keywords
+    - Prioritize representative nouns and important concepts
+    - Sort keywords by importance
+    - Avoid overly generic terms
+
+  input_data: |
+    {content}
+  
+  output_format: |
+    Please output in JSON format:
+    {{
+        "result": [
+          {{"keyword1": "importance_score1"}}, 
+          {{"keyword2": "importance_score2"}}, 
+          {{"keyword3": "importance_score3"}}
+          ]
+    }}
