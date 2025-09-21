@@ -342,6 +342,41 @@ class TestTemplateBuilderIntegration:
         template = builder.build("override_test", "zh")
         assert len(template.sections) == 1  # Should only have one section
         assert template.sections[0].content == "Second system message"
+
+    def test_override_functionality(self):  # 添加 self 參數
+        """測試 override 功能"""
+        from src.prompt_templates.manager import PromptManager
+        from src.prompt_templates.registry import TaskType, Language
+        
+        pm = PromptManager()
+        
+        # 測試前的原始內容
+        original = pm.render_prompt(
+            task_type=TaskType.ENTITY_EXTRACTION,
+            language=Language.ENGLISH,
+            content="測試內容"
+        )
+        
+        # 測試 override
+        overridden = pm.render_prompt(
+            task_type=TaskType.ENTITY_EXTRACTION,
+            language=Language.ENGLISH,
+            content="測試內容",
+            overrides={
+                "examples": "這是覆寫後的範例內容",
+                "constraints": "這是覆寫後的限制條件"
+            }
+        )
+        
+        print("原始 prompt:")
+        print(original)
+        print("\n覆寫後的 prompt:")
+        print(overridden)
+        
+        # 驗證是否真的有差異
+        assert original != overridden, "Override 功能失效"
+        assert "這是覆寫後的範例內容" in overridden
+        assert "這是覆寫後的限制條件" in overridden
     
     def test_multiple_section_types_no_override(self):
         """Test that different section types don't override each other."""
@@ -355,6 +390,41 @@ class TestTemplateBuilderIntegration:
         # Verify task_instruction is preserved
         
         # Should handle gracefully or raise appropriate errors
+    def debug_override_issue(self):
+        """診斷 override 問題"""
+        from src.prompt_templates.manager import PromptManager
+        from src.prompt_templates.registry import TaskType, Language
+        from src.prompt_templates.components import SectionType
+        
+        pm = PromptManager()
+        
+        # 1. 檢查原始模板的段落結構
+        template = pm.registry.get_template(TaskType.ENTITY_EXTRACTION, Language.ENGLISH)
+        print("原始模板的段落:")
+        for i, section in enumerate(template.sections):
+            print(f"{i}: {section.section_type} - {section.content[:50]}...")
+        
+        # 2. 檢查 SectionType 的可用值
+        print("\nSectionType 枚舉值:")
+        for attr_name in dir(SectionType):
+            if not attr_name.startswith('_'):
+                print(f"  {attr_name}: {getattr(SectionType, attr_name)}")
+        
+        # 3. 測試 override 映射
+        overrides = {
+            "examples": "這是覆寫後的範例內容",
+            "constraints": "這是覆寫後的限制條件"
+        }
+        
+        print("\nOverride 映射測試:")
+        for section_name, new_content in overrides.items():
+            section_type = getattr(SectionType, section_name.upper(), None)
+            print(f"{section_name} -> {section_type}")
+            
+            if section_type:
+                # 檢查模板中是否有這個類型的段落
+                found = any(s.section_type == section_type for s in template.sections)
+                print(f"  在模板中找到: {found}")
 # Run specific test groups
 if __name__ == "__main__":
     # Run all tests

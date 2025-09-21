@@ -133,5 +133,55 @@
                 "tail": "Beasts of England"
             }
         ]
+    },
+    {
+        "chunk_id": "4060fafb-3a71-44ba-945b-9053fb725d6a",
+        "relation_set": [
+            {
+                "head": "labour",
+                "relation": "createdBy",
+                "tail": "animals"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "milk"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "eggs"
+            }
+        ]
+    },
+    {
+        "chunk_id": "9405efa6-d9c2-4162-b6c6-a61498199931",
+        "relation_set": [
+            {
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "Boxer"
+            }
+        ]
+    },
+    {
+        "chunk_id": "0372dd24-1436-48a1-95cf-2ddc4e19096e",
+        "relation_set": [
+            {
+                "head": "Old Major",
+                "relation": "participatesIn",
+                "tail": "Beasts of England"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "England"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "Ireland"
+            }
+        ]
     }
 ]

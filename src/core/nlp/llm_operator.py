@@ -254,7 +254,10 @@ class LlmOperator:
             raise(f"❌ 實體提取模板載入失敗: {e}")
 
         MAX_TRY = 3
-        
+        # print("Entity extraction prompt:")
+        # print(prompt)
+        # print("\n---\n")
+        # exit(1)
         for attempt in range(MAX_TRY):
             try:
                 resp = self.client.generate_response(prompt=prompt["user_message"],

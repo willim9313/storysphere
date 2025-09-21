@@ -28,9 +28,6 @@ def process_chunk_with_llm(
     keywords = list(keyword_scores.keys())
 
     # 摘要
-    print('-----chunk-----')
-    print(chunk)
-    print('---------------')
     summary = llm_operator.summarize(chunk)
 
     # 知識圖譜抽取

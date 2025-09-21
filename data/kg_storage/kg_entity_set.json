@@ -887,5 +887,506 @@
                 }
             }
         ]
+    },
+    {
+        "chunk_id": "a7cc5e9a-1435-44b6-8740-3badb6153275",
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Clover",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Major",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Moses",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the tame raven",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "England",
+                "attributes": {}
+            }
+        ]
+    },
+    {
+        "chunk_id": "4060fafb-3a71-44ba-945b-9053fb725d6a",
+        "entities": [
+            {
+                "type": "Concept",
+                "name": "comfort",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "state of ease and relaxation",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Concept",
+                "name": "dignity",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the state or quality of being worthy of honor or respect",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Concept",
+                "name": "labour",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "work, especially hard physical work",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "human beings",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Concept",
+                "name": "hunger",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a feeling of discomfort or weakness caused by lack of food",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Concept",
+                "name": "overwork",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the state of being forced to work too hard",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "milk",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a white nutritious liquid secreted by female mammals for the nourishment of their young",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "eggs",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the oval or round object laid by a female bird, reptile, fish, or invertebrate, usually containing a yolk and an embryo",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "plough",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a large farming implement with one or more blades fixed in a frame, drawn by draft animals or a tractor and used for plowing",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "rabbits",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a burrowing, plant-eating mammal with long ears, soft fur, and a short tail",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "animals",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a living organism that feeds on organic matter, typically having specialized sense organs and nervous system and able to respond rapidly to stimuli",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "soil",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the upper layer of earth in which plants grow",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "dung",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the excrement of animals",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "cows",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a fully grown female animal of a domesticated breed of ox",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "calves",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a young bovine animal, especially a domestic cow or bull in its first year",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "hens",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a female bird, especially of a domestic fowl",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "chickens",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a young domestic fowl",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Jones",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "Person's name",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Clover",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "Person's name",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "foals",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a young horse or related animal",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "fields",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "an area of open land, especially one planted with crops or pasture, typically bounded by hedges or fences",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "rations",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a fixed amount of a commodity officially allowed to each person during a time of shortage, as in wartime",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "stall",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a compartment for one animal in a stable or barn",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Time",
+                "name": "twelve years",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "age",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "children",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a young human being below the age of puberty or full physical development",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "pig",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "an omnivorous, domesticated hoofed mammal with sparse bristly hair and a flat snout",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "knife",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "an instrument composed of a blade fixed into a handle, used for cutting or as a weapon",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "porkers",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a pig being raised for pork",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "block",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "a large solid piece of wood, stone, or other material, typically rectangular",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            }
+        ]
+    },
+    {
+        "chunk_id": "9405efa6-d9c2-4162-b6c6-a61498199931",
+        "entities": [
+            {
+                "type": "Object",
+                "name": "pig",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Boxer",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Jones",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Major",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "rats",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "dogs",
+                "attributes": {}
+            }
+        ]
+    },
+    {
+        "chunk_id": "0372dd24-1436-48a1-95cf-2ddc4e19096e",
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Old Major",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "old and my voice is hoarse",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "England",
+                "attributes": {}
+            },
+            {
+                "type": "Location",
+                "name": "Ireland",
+                "attributes": {}
+            },
+            {
+                "type": "Concept",
+                "name": "Beasts of England",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "Tyrant",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            }
+        ]
     }
 ]
