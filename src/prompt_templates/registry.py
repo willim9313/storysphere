@@ -1,11 +1,12 @@
 # src/prompt_templates/registry.py
 from typing import Dict
 from enum import Enum
-from .template import FlexibleTemplate
-from .builders import TemplateBuilder
-from .prompt_loader import prompt_loader
+from src.prompt_templates.template import FlexibleTemplate
+from src.prompt_templates.builders import TemplateBuilder
+from src.prompt_templates.prompt_loader import prompt_loader
 
 class TaskType(Enum):
+    """定義專案下LLM的prompt任務類型"""
     CHATBOT = "chatbot"
     SUMMARIZATION = "summarization"
     KEYWORD_EXTRACTION = "keyword_extraction"

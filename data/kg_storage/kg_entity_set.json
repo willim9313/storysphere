@@ -636,5 +636,256 @@
                 }
             }
         ]
+    },
+    {
+        "chunk_id": "5abc415a-3d93-4841-812a-9d0ccea7e440",
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Mr. Jones",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": "Owner",
+                    "description": "Owner of the Manor Farm",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "Manor Farm",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Mrs. Jones",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Major",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": "Prize Middle White boar",
+                    "description": null,
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "farm",
+                "attributes": {}
+            },
+            {
+                "type": "Location",
+                "name": "big barn",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "Willingdon Beauty",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "straw",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "lantern",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "Bluebell",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "Jessie",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "Pincher",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "Boxer",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "Clover",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "stout motherly mare",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            }
+        ]
+    },
+    {
+        "chunk_id": "0b6b58fe-40ca-42b0-9c9b-32bdf5695166",
+        "entities": [
+            {
+                "type": "Concept",
+                "name": "comfort and dignity",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "living conditions",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Concept",
+                "name": "labour",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "produce of our labour",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the only real enemy",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Concept",
+                "name": "hunger and overwork",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "root cause",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "milk",
+                "attributes": {}
+            },
+            {
+                "type": "Object",
+                "name": "eggs",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Jones",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": "owner",
+                    "description": null,
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Clover",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "mare",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Concept",
+                "name": "bare rations",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "food",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            }
+        ]
+    },
+    {
+        "chunk_id": "5d401aa6-64ca-4c33-8ba1-82794a0869d2",
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Old Major",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "old and hoarse",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "England",
+                "attributes": {}
+            },
+            {
+                "type": "Location",
+                "name": "Ireland",
+                "attributes": {}
+            },
+            {
+                "type": "Concept",
+                "name": "Beasts of England",
+                "attributes": {}
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "Tyrant",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            }
+        ]
     }
 ]

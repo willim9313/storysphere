@@ -1,0 +1,153 @@
+# 測試用模板 - 包含各種測試場景和功能覆蓋
+name: "Test Template for Coverage"
+language: "zh-TW"
+task_type: "test_template"
+
+sections:
+  system_prompt: |
+    您是一個專業的測試助手，
+    擅長理解和分析各種類型的文本內容。
+    請仔細閱讀使用者的需求，並提供準確且有用的回應。
+    這是一個測試模板，用於驗證系統的各項功能。
+
+  task_instruction: |
+    執行多種測試任務，包括：
+    - 文本分析和處理
+    - 結構化數據提取
+    - 格式轉換和驗證
+    - 邊界條件測試
+  
+  constraints: |
+    請確保您的回應符合以下限制：
+    - 保持原始文本的語義和邏輯結構
+    - 確保輸出格式正確且完整
+    - 使用繁體中文回應
+    - 測試各種邊界情況和異常情況
+    - 不要編造不存在的資訊
+    - 支援多種輸出格式（JSON、XML、YAML）
+    - 處理空值、null值和特殊字符
+    - 驗證數據完整性和一致性
+  
+  examples: |
+    範例1 - 正常情況：
+    輸入：「小明在台北的公司工作，他擁有一台筆記型電腦。」
+    輸出：{"status": "success", "data": {...}}
+    
+    範例2 - 空白輸入：
+    輸入：""
+    輸出：{"status": "empty_input", "message": "輸入為空"}
+    
+    範例3 - 特殊字符：
+    輸入：「測試 @#$%^&*()_+ 特殊字符」
+    輸出：{"status": "success", "special_chars": true}
+    
+    範例4 - 多語言混合：
+    輸入：「Hello 世界 こんにちは」
+    輸出：{"status": "multilingual", "languages": ["en", "zh", "ja"]}
+
+  reference_info: |
+    {{
+      "test_scenarios": [
+        "normal_case",
+        "empty_input",
+        "null_input",
+        "special_characters",
+        "multilingual",
+        "large_text",
+        "malformed_data",
+        "boundary_values"
+      ],
+      "supported_formats": [
+        "json",
+        "xml",
+        "yaml",
+        "csv",
+        "plain_text"
+      ],
+      "validation_rules": [
+        "non_empty_required_fields",
+        "valid_data_types",
+        "character_encoding",
+        "length_limits",
+        "format_compliance"
+      ],
+      "error_codes": {{
+        "1000": "Success",
+        "2000": "Empty input",
+        "3000": "Invalid format",
+        "4000": "Processing error",
+        "5000": "Validation failed"
+      }}
+    }}
+
+  input_data: |
+    {{
+      "content": "{content}",
+      "test_mode": true,
+      "format": "json",
+      "validation": true,
+      "metadata": {{
+        "timestamp": "2025-09-21T00:00:00Z",
+        "version": "1.0.0",
+        "test_id": "test_{random_id}"
+      }}
+    }}
+  
+  output_format: |
+    請根據測試場景輸出對應格式：
+    
+    正常情況：
+    {{
+      "status": "success",
+      "error_code": 1000,
+      "data": {{
+        "processed_content": "處理後的內容",
+        "metadata": {{
+          "length": 100,
+          "language": "zh-TW",
+          "encoding": "UTF-8"
+        }},
+        "validation": {{
+          "is_valid": true,
+          "rules_passed": ["rule1", "rule2"],
+          "warnings": []
+        }}
+      }},
+      "test_info": {{
+        "scenario": "normal_case",
+        "execution_time": "0.123s",
+        "memory_usage": "1.2MB"
+      }}
+    }}
+    
+    異常情況：
+    {{
+      "status": "error",
+      "error_code": 4000,
+      "message": "處理錯誤描述",
+      "details": {{
+        "error_type": "processing_error",
+        "line_number": 10,
+        "character_position": 25
+      }},
+      "suggestions": [
+        "檢查輸入格式",
+        "確認數據完整性"
+      ]
+    }}
+    
+    邊界測試：
+    {{
+      "status": "boundary_test",
+      "test_results": {{
+        "empty_string": "passed",
+        "max_length": "passed",
+        "special_chars": "passed",
+        "unicode": "passed"
+      }},
+      "performance": {{
+        "min_time": "0.001s",
+        "max_time": "1.234s",
+        "avg_time": "0.456s"
+      }}
+    }}

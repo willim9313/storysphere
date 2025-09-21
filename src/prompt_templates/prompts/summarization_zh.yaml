@@ -6,6 +6,7 @@ task_type: "summarization"
 sections:
   system_prompt: |
     你是一個專業的文本處理助手，擅長理解和分析中文文本內容。
+    請仔細閱讀用戶的要求，並提供準確、有用的回應
   
   task_instruction: |
     請為以下文本生成簡潔明瞭的摘要，保留最重要的資訊和核心內容

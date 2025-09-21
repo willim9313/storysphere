@@ -1,6 +1,6 @@
 # 完全自動化版本使用範例
-from src.prompt_templates_neo.manager import PromptManager
-from src.prompt_templates_neo.registry import TaskType, Language
+from src.prompt_templates.manager import PromptManager
+from src.prompt_templates.registry import TaskType, Language
 
 # 初始化管理器
 pm = PromptManager()
@@ -42,7 +42,7 @@ except Exception as e:
 print("\n" + "="*50 + "\n")
 
 # 列出所有可用模板
-from src.prompt_templates_neo.registry import TemplateRegistry
+from src.prompt_templates.registry import TemplateRegistry
 registry = TemplateRegistry()
 available = registry.list_available_templates()
 print("📋 可用的模板:")

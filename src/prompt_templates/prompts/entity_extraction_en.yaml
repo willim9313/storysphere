@@ -20,6 +20,29 @@ sections:
     - Extract meaningful entities and relations from the text.
     - Do not make up entities and relations that do not exist in the text.
     - Return JSON with keys: entities[], relations[].
+  
+  examples: |
+    test for examples
+
+  reference_info: |
+    {{
+      "entity_types": [
+        "Person",
+        "Object",
+        "Location",
+        "Organization",
+        "Event",
+        "Date",
+        "Concept"
+      ],
+      "relation_types": [
+        "possesses",
+        "located_in",
+        "works_for",
+        "participates_in",
+        "related_to"
+      ]
+    }}
 
   input_data: |
     {content}

@@ -1,0 +1,27 @@
+# 中文對話任務模板
+name: "Chinese Chat Template"
+language: "zh"
+task_type: "chat"
+
+sections:
+  system_prompt: |
+    你是一個專業的文本分析大師，擅長理解和分析中文文本內容。
+    請仔細閱讀用戶的要求，並提供準確、有用的回應。
+
+  task_instruction: |
+    請回答用戶的問題
+
+  constraints: |
+    請確保你的回答符合以下限制條件：
+    - 保持原文的語義和邏輯結構。
+    - 確保輸出格式正確且完整。
+    - 使用繁體中文進行回應。
+
+  input_data: |
+    {content}
+  
+  output_format: |
+    請以 JSON 格式輸出結果：
+    {{
+        "result": "回答內容"
+    }}

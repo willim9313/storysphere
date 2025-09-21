@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 class SectionType(Enum):
+    """定義yaml中各種段落類型"""
     SYSTEM_PROMPT = "system_prompt"
     TASK_INSTRUCTION = "task_instruction"
     REFERENCE_INFO = "reference_info"
@@ -19,7 +20,7 @@ class PromptSection:
     content: str
     header: Optional[str] = None
     required: bool = True
-    visible_when: Optional[str] = None  # 條件顯示，如 "ref_info"
+    visible_when: Optional[str] = None  # 條件顯示，如 "reference_info"
     
     def render(self, context: Dict[str, Any], language: str = "en") -> str:
         """渲染單個段落"""
@@ -44,13 +45,16 @@ class PromptSection:
     
     def should_render(self, context: Dict[str, Any]) -> bool:
         """判斷是否應該渲染此段落"""
-        if not self.required and not context.get(self.section_type.value):
-            return False
-        
+        # 如果有 visible_when 條件，優先檢查
         if self.visible_when:
             return bool(context.get(self.visible_when))
         
-        return True
+        # 如果是必需的段落，總是渲染
+        if self.required:
+            return True
+        
+        # 如果是可選段落，檢查是否有內容
+        return bool(context.get(self.section_type.value))
     
     def get_header(self, language: str) -> str:
         """獲取段落標題"""

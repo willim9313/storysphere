@@ -1,0 +1,51 @@
+# 實體抽取任務模板
+name: "實體抽取模板"
+language: "zh" 
+task_type: "entity_extraction"
+
+sections:
+  system_prompt: |
+    你是一個專業的文本處理助手，擅長理解和分析中文文本內容。
+    請仔細閱讀用戶的要求，並提供準確、有用的回應。
+  
+  task_instruction: |
+    從文本中提取結構化實體和關係
+  
+  constraints: |
+    請確保你的回答符合以下限制條件：
+    - 保持原文的語義和邏輯結構。
+    - 確保輸出格式正確且完整。
+    - 使用繁體中文進行回應。
+    - 提取文本中的有意義的實體和關係
+    - 不要編造文本中不存在的實體和關係
+    - 返回 JSON，包含鍵：entities[]，relations[]
+
+  input_data: |
+    {content}
+  
+  output_format: |
+    請以 JSON 格式輸出：
+    {{
+      "entities": [
+        {{
+          "type": "Person",
+          "name": "Character Name",
+          "attributes": {{
+            "gender": "Male",
+            "role": "Protagonist",
+            "description": "The boy who lived"
+          }}
+        }},
+        {{
+          "type": "Object",
+          "name": "Object Name"
+        }}
+      ],
+      "relations": [
+        {{
+          "head": "Character Name",
+          "relation": "possesses",
+          "tail": "Object Name"
+        }}
+      ]
+    }}

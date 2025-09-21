@@ -11,12 +11,12 @@ import yaml
 from ..utils.output_extractor import extract_json_from_text
 from ..validators.kg_schema_validator import validate_kg_output
 from ..validators.nlp_utils_validator import validate_summary_output, validate_extracted_keywords
-from ...prompt_templates.template_builder import TemplateBuilder
-from ...prompt_templates.template_manager import MultilingualTemplateManager, TaskType
-from ...prompt_templates.base_templates import Language
+from src.prompt_templates_old.template_builder import TemplateBuilder
+from src.prompt_templates_old.template_manager import MultilingualTemplateManager, TaskType
+from src.prompt_templates_old.base_templates import Language
 
-from ...prompt_templates_neo.manager import PromptManager
-from ...prompt_templates_neo.registry import TaskType, Language
+from src.prompt_templates.manager import PromptManager
+from src.prompt_templates.registry import TaskType, Language
 
 class LlmOperator:
     """
@@ -225,19 +225,19 @@ class LlmOperator:
             f"{json.dumps(self.attribute_types, indent=2)}"
         )
         # old
-        template_manager = MultilingualTemplateManager()
-        builder = TemplateBuilder(
-            template_manager=template_manager
-        )
+        # template_manager = MultilingualTemplateManager()
+        # builder = TemplateBuilder(
+        #     template_manager=template_manager
+        # )
 
-        input_data = builder.build_split(
-            task_type=TaskType.ENTITY_EXTRACTION,
-            language=language,
-            content=content,
-            overrides={
-                "ref_info": ref_schema
-            }
-        )
+        # input_data = builder.build_split(
+        #     task_type=TaskType.ENTITY_EXTRACTION,
+        #     language=language,
+        #     content=content,
+        #     overrides={
+        #         "ref_info": ref_schema
+        #     }
+        # )
 
         # new
         try:
@@ -247,14 +247,14 @@ class LlmOperator:
                 language=Language.ENGLISH,
                 content=content,
                 overrides={
-                    "ref_info": ref_schema
+                    "reference_info": ref_schema
                 }
             )
         except Exception as e:
             raise(f"❌ 實體提取模板載入失敗: {e}")
 
         MAX_TRY = 3
-
+        
         for attempt in range(MAX_TRY):
             try:
                 resp = self.client.generate_response(prompt=prompt["user_message"],
@@ -292,19 +292,19 @@ class LlmOperator:
             f'{content}\n'
         )
         # old
-        template_manager = MultilingualTemplateManager()
-        builder = TemplateBuilder(
-            template_manager=template_manager
-        )
+        # template_manager = MultilingualTemplateManager()
+        # builder = TemplateBuilder(
+        #     template_manager=template_manager
+        # )
 
-        input_data = builder.build_split(
-            task_type=TaskType.CHARACTER_EVIDENCE_PACK,
-            language=language,
-            character_name=character_name,
-            overrides={
-                "ref_info": ref_info
-            }
-        )
+        # input_data = builder.build_split(
+        #     task_type=TaskType.CHARACTER_EVIDENCE_PACK,
+        #     language=language,
+        #     character_name=character_name,
+        #     overrides={
+        #         "ref_info": ref_info
+        #     }
+        # )
 
         # new
         try:
@@ -351,8 +351,8 @@ class LlmOperator:
         :param character_name: 角色名稱, 可選
         :return: LLM 的角色證據包提取結果
         """
-        from src.prompt_templates_neo.manager import PromptManager
-        from src.prompt_templates_neo.registry import TaskType, Language
+        from src.prompt_templates.manager import PromptManager
+        from src.prompt_templates.registry import TaskType, Language
         pm = PromptManager()
 
         try:

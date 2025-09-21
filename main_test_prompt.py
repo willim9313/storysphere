@@ -1,10 +1,10 @@
-from src.prompt_templates.template_builder import TemplateBuilder
-from src.prompt_templates.template_manager import MultilingualTemplateManager, TaskType
-from src.prompt_templates.base_templates import Language
+from src.prompt_templates_old.template_builder import TemplateBuilder
+from src.prompt_templates_old.template_manager import MultilingualTemplateManager, TaskType
+from src.prompt_templates_old.base_templates import Language
 
 # new
-from src.prompt_templates_neo.manager
-from src.prompt_templates_neo.registry import TaskType, Language
+from src.prompt_templates.manager import PromptManager
+from src.prompt_templates.registry import TaskType, Language
 
 class test:
     """

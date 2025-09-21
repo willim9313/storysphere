@@ -98,5 +98,40 @@
                 "tail": "Ireland"
             }
         ]
+    },
+    {
+        "chunk_id": "5abc415a-3d93-4841-812a-9d0ccea7e440",
+        "relation_set": [
+            {
+                "head": "Mr. Jones",
+                "relation": "partOf",
+                "tail": "Manor Farm"
+            },
+            {
+                "head": "Major",
+                "relation": "locatedIn",
+                "tail": "big barn"
+            },
+            {
+                "head": "Boxer",
+                "relation": "locatedIn",
+                "tail": "big barn"
+            },
+            {
+                "head": "Clover",
+                "relation": "locatedIn",
+                "tail": "big barn"
+            }
+        ]
+    },
+    {
+        "chunk_id": "5d401aa6-64ca-4c33-8ba1-82794a0869d2",
+        "relation_set": [
+            {
+                "head": "Old Major",
+                "relation": "participatesIn",
+                "tail": "Beasts of England"
+            }
+        ]
     }
 ]

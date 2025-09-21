@@ -43,6 +43,8 @@ class PromptManager:
         # 應用覆寫
         if overrides:
             for section_name, new_content in overrides.items():
+                print(f"Overriding section: {section_name}")
+                print(f"New content: {new_content}")
                 section_type = getattr(SectionType, section_name.upper(), None)
                 if section_type:
                     template.update_section(section_type, new_content)

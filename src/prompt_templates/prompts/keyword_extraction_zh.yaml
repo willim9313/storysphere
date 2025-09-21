@@ -1,0 +1,35 @@
+# 中文關鍵字萃取任務模板  
+name: "Chinese Keyword Extraction Template"
+language: "zh"
+task_type: "keyword_extraction"
+
+sections:
+  system_prompt: |
+    你是一個專業的文本處理助手，擅長理解和分析中文文本內容。
+    請仔細閱讀用戶的要求，並提供準確、有用的回應。
+
+  task_instruction: |
+    從文本中提取最重要和具有代表性的關鍵詞
+  
+  constraints: |
+    請確保你的回答符合以下限制條件：
+    - 保持原文的語義和邏輯結構。
+    - 確保輸出格式正確且完整。
+    - 使用繁體中文進行回應。
+    - 提取 {top_k} 個最重要的關鍵詞
+    - 優先選擇具有代表性的名詞和重要概念
+    - 按重要性排序關鍵詞
+    - 避免過於通用的詞彙
+
+  input_data: |
+    {content}
+  
+  output_format: |
+    請以 JSON 格式輸出：
+    {{
+      "result": [
+        {{"關鍵詞1": "重要性分數1"}}, 
+        {{"關鍵詞2": "重要性分數2"}}, 
+        {{"關鍵詞3": "重要性分數3"}}
+        ]
+    }}
