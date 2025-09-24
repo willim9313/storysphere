@@ -11,10 +11,6 @@ import yaml
 from ..utils.output_extractor import extract_json_from_text
 from ..validators.kg_schema_validator import validate_kg_output
 from ..validators.nlp_utils_validator import validate_summary_output, validate_extracted_keywords
-from src.prompt_templates_old.template_builder import TemplateBuilder
-from src.prompt_templates_old.template_manager import MultilingualTemplateManager, TaskType
-from src.prompt_templates_old.base_templates import Language
-
 from src.prompt_templates.manager import PromptManager
 from src.prompt_templates.registry import TaskType, Language
 
@@ -51,20 +47,6 @@ class LlmOperator:
         :param ref_info: 可選的參考資訊
         :return: LLM 的回應
         """
-        # old
-        # template_manager = MultilingualTemplateManager()
-        # builder = TemplateBuilder(
-        #     template_manager=template_manager
-        # )
-        
-        # input_data = builder.build_split(
-        #     task_type=TaskType.CHATBOT,
-        #     language=language,
-        #     ref_info=ref_info,
-        #     content=content
-        # )
-
-        # new
         try:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
@@ -73,7 +55,7 @@ class LlmOperator:
                 content=content
             )
         except Exception as e:
-            raise(f"❌ 聊天模板載入失敗: {e}")
+            raise Exception(f"ERROR, 聊天模板載入失敗: {e}")
 
         MAX_TRY = 3
 
@@ -87,10 +69,10 @@ class LlmOperator:
                 print(f"[LLM] JSON extraction error: {json_error}")
 
         return None
-    
+
     def summarize(
-        self, 
-        content: str, 
+        self,
+        content: str,
         language: Language = Language.ENGLISH,
         max_length: int = 200
     ) -> str:
@@ -101,20 +83,6 @@ class LlmOperator:
         :param max_length: 最大摘要長度，預設為200
         :return: LLM 的摘要結果
         """
-        # old
-        # template_manager = MultilingualTemplateManager()
-        # builder = TemplateBuilder(
-        #     template_manager=template_manager
-        # )
-        
-        # input_data = builder.build_split(
-        #     task_type=TaskType.GENERAL_SUMMARIZATION,
-        #     language=language,
-        #     content=content,
-        #     max_length=max_length
-        # )
-
-        # new
         try:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
@@ -124,7 +92,7 @@ class LlmOperator:
                 max_length=max_length
             )
         except Exception as e:
-            raise(f"❌ 摘要模板載入失敗: {e}")
+            raise Exception(f"ERROR 摘要模板載入失敗: {e}")
 
         MAX_TRY = 3
 
@@ -135,12 +103,12 @@ class LlmOperator:
                 resp_json, json_error = extract_json_from_text(resp)
 
                 if resp_json:
-                    result = validate_summary_output(resp_json)
+                    result, error_msg = validate_summary_output(resp_json)
                 else:
                     print(f"[LLM] JSON extraction error: {json_error}")
                     result = None
                 if result:
-                    return result
+                    return result['result']
             except Exception as e:
                 print(f"[LLM] Summary error: {e}")
                 print("Content:", content)
@@ -160,20 +128,6 @@ class LlmOperator:
         :param language: 語言，預設為英文
         :return: LLM 的關鍵字提取結果
         '''
-        # old
-        # template_manager = MultilingualTemplateManager()
-        # builder = TemplateBuilder(
-        #     template_manager=template_manager
-        # )
-
-        # input_data = builder.build_split(
-        #     task_type=TaskType.KEYWORD_EXTRACTION,
-        #     language=language,
-        #     content=content,
-        #     top_k=top_k
-        # )
-
-        # new
         try:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
@@ -224,22 +178,6 @@ class LlmOperator:
             "- Attributes:"
             f"{json.dumps(self.attribute_types, indent=2)}"
         )
-        # old
-        # template_manager = MultilingualTemplateManager()
-        # builder = TemplateBuilder(
-        #     template_manager=template_manager
-        # )
-
-        # input_data = builder.build_split(
-        #     task_type=TaskType.ENTITY_EXTRACTION,
-        #     language=language,
-        #     content=content,
-        #     overrides={
-        #         "ref_info": ref_schema
-        #     }
-        # )
-
-        # new
         try:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
@@ -294,22 +232,6 @@ class LlmOperator:
             '[Content]'
             f'{content}\n'
         )
-        # old
-        # template_manager = MultilingualTemplateManager()
-        # builder = TemplateBuilder(
-        #     template_manager=template_manager
-        # )
-
-        # input_data = builder.build_split(
-        #     task_type=TaskType.CHARACTER_EVIDENCE_PACK,
-        #     language=language,
-        #     character_name=character_name,
-        #     overrides={
-        #         "ref_info": ref_info
-        #     }
-        # )
-
-        # new
         try:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
@@ -372,27 +294,6 @@ class LlmOperator:
             print(prompt)
         except Exception as e:
             print(f"❌ 角色證據包模板載入失敗: {e}")
-
-        # ref_info = (
-        #     '[Character Name]'
-        #     f'{character_name}\n'
-        #     '[Content]'
-        #     f'{content}\n'
-        # )
-
-        # template_manager = MultilingualTemplateManager()
-        # builder = TemplateBuilder(
-        #     template_manager=template_manager
-        # )
-
-        # input_data = builder.build_split(
-        #     task_type=TaskType.CHARACTER_EVIDENCE_PACK,
-        #     language=language,
-        #     character_name=character_name,
-        #     overrides={
-        #         "ref_info": ref_info
-        #     }
-        # )
 
         MAX_TRY = 3
         for attempt in range(MAX_TRY):

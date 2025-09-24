@@ -1545,5 +1545,750 @@
             }
         ],
         "chunk_id": "0372dd24-1436-48a1-95cf-2ddc4e19096e"
+    },
+    {
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Mr. Jones",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": "Owner",
+                    "description": "Owner of the Manor Farm",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "Manor Farm",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Mrs. Jones",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Major",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the prize Middle White boar",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "farm",
+                "attributes": null
+            },
+            {
+                "type": "Location",
+                "name": "big barn",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "bed of straw",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "lantern",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Bluebell",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "dog",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Jessie",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "dog",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Pincher",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "dog",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Boxer",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "cart-horse",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Clover",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "cart-horse",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            }
+        ],
+        "relations": [
+            {
+                "head": "Mr. Jones",
+                "relation": "locatedIn",
+                "tail": "Manor Farm"
+            },
+            {
+                "head": "Major",
+                "relation": "locatedIn",
+                "tail": "farm"
+            },
+            {
+                "head": "Major",
+                "relation": "locatedIn",
+                "tail": "big barn"
+            }
+        ],
+        "chunk_id": "c81160ee-8d02-457e-8566-fa814e4156c6"
+    },
+    {
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "The only real enemy",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Jones",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Clover",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "milk",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "eggs",
+                "attributes": null
+            }
+        ],
+        "relations": [
+            {
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "milk"
+            },
+            {
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "eggs"
+            }
+        ],
+        "chunk_id": "c9995dc7-b525-46d1-833d-ecd2bb335432"
+    },
+    {
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Old Major",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "An old animal with a hoarse voice",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "England",
+                "attributes": null
+            },
+            {
+                "type": "Location",
+                "name": "Ireland",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "Beasts of England",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "A song sung by the animals",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "Tyrant",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Time",
+                "name": "the golden future time",
+                "attributes": null
+            }
+        ],
+        "relations": [
+            {
+                "head": "Old Major",
+                "relation": "createdBy",
+                "tail": "Beasts of England"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "England"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "Ireland"
+            }
+        ],
+        "chunk_id": "566f512c-437f-4ad5-b96b-a5692f7a256b"
+    },
+    {
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Mr. Jones",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": "Owner",
+                    "description": "Owner of the Manor Farm",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "Manor Farm",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "Farm owned by Mr. Jones",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Mrs. Jones",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Major",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "prize Middle White boar",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "farm buildings",
+                "attributes": null
+            },
+            {
+                "type": "Location",
+                "name": "big barn",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "lantern",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Bluebell",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Jessie",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Pincher",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Boxer",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Clover",
+                "attributes": null
+            }
+        ],
+        "relations": [
+            {
+                "head": "Mr. Jones",
+                "relation": "possesses",
+                "tail": "Manor Farm"
+            },
+            {
+                "head": "Major",
+                "relation": "locatedIn",
+                "tail": "big barn"
+            },
+            {
+                "head": "Bluebell",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            },
+            {
+                "head": "Jessie",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            },
+            {
+                "head": "Pincher",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            },
+            {
+                "head": "Boxer",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            },
+            {
+                "head": "Clover",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            }
+        ],
+        "chunk_id": "9390ea37-036e-449e-922d-5c80abe3d131"
+    },
+    {
+        "entities": [
+            {
+                "type": "Concept",
+                "name": "comfort and a dignity",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "living in a comfort and a dignity that are now almost beyond our imagining",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Concept",
+                "name": "produce of our labour",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "human beings",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the only real enemy we have",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Concept",
+                "name": "hunger and overwork",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "milk",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "eggs",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "plough",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "rabbits",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "animals",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "soil",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "dung",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "cows",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "gallons of milk",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "calves",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "hens",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "chickens",
+                "attributes": null
+            },
+            {
+                "type": "Location",
+                "name": "market",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Jones",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "men",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Clover",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "foals",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "fields",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "rations",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "stall",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "knife",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "porkers",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "block",
+                "attributes": null
+            }
+        ],
+        "relations": [
+            {
+                "head": "human beings",
+                "relation": "possesses",
+                "tail": "produce of our labour"
+            },
+            {
+                "head": "hunger and overwork",
+                "relation": "createdBy",
+                "tail": "Man"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "milk"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "eggs"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "plough"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "rabbits"
+            },
+            {
+                "head": "Jones",
+                "relation": "partOf",
+                "tail": "men"
+            },
+            {
+                "head": "Clover",
+                "relation": "possesses",
+                "tail": "foals"
+            }
+        ],
+        "chunk_id": "6a303129-aadb-4439-abd1-ff172efc1abb"
+    },
+    {
+        "entities": [
+            {
+                "type": "Object",
+                "name": "pig",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Boxer",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Jones",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Major",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "rats",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "dogs",
+                "attributes": null
+            }
+        ],
+        "relations": [
+            {
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "Boxer"
+            }
+        ],
+        "chunk_id": "7c17c4f3-d848-4ed9-960e-0c0390ba2e0b"
+    },
+    {
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Old Major",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "old and my voice is hoarse",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "song",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": null,
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "England",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": null,
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "Ireland",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": null,
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "Tyrant",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "Beasts of England",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": null,
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            }
+        ],
+        "relations": [
+            {
+                "head": "Old Major",
+                "relation": "participatesIn",
+                "tail": "song"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "England"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "Ireland"
+            }
+        ],
+        "chunk_id": "14eb0d4d-8159-4e90-8bce-911dbd9f6810"
     }
 ]

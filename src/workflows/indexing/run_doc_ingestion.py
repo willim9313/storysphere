@@ -25,7 +25,7 @@ def run_ingestion_pipeline(
     collection_name: str,
     api_key: str, 
     model_name: str,
-    limit_pages: int = None
+    limit_pages: int = 0
 ) -> None:
     """
     主流程：讀取文件 → 分章節 → 分 chunk → 呼叫 NLP → 儲存至向量庫
@@ -126,8 +126,8 @@ if __name__ == "__main__":
     import os
     load_dotenv()
     
-    api_key = os.getenv("GEMINI_API_KEY")
-    model = os.getenv("GEMINI_MODEL")
+    api_key = os.getenv("GEMINI_API_KEY", 'No Key')
+    model = os.getenv("GEMINI_MODEL", 'No Model')
 
     run_ingestion_pipeline(
         input_dir="./data/novella",

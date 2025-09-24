@@ -25,7 +25,7 @@ def embed_and_store_chunk(
     vs = VectorStore(collection_name)
     # chunk_text 這樣進去會被拿去向量化，因此原文會儲存在metadata中
     vs.store_chunk(
-        point_id=chunk_id, 
-        chunk=chunk_text, 
+        point_id=chunk_id,
+        chunk=chunk_text,
         metadata=metadata
     )

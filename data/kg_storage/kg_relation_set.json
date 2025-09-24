@@ -183,5 +183,175 @@
                 "tail": "Ireland"
             }
         ]
+    },
+    {
+        "chunk_id": "c81160ee-8d02-457e-8566-fa814e4156c6",
+        "relation_set": [
+            {
+                "head": "Mr. Jones",
+                "relation": "locatedIn",
+                "tail": "Manor Farm"
+            },
+            {
+                "head": "Major",
+                "relation": "locatedIn",
+                "tail": "farm"
+            },
+            {
+                "head": "Major",
+                "relation": "locatedIn",
+                "tail": "big barn"
+            }
+        ]
+    },
+    {
+        "chunk_id": "c9995dc7-b525-46d1-833d-ecd2bb335432",
+        "relation_set": [
+            {
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "milk"
+            },
+            {
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "eggs"
+            }
+        ]
+    },
+    {
+        "chunk_id": "566f512c-437f-4ad5-b96b-a5692f7a256b",
+        "relation_set": [
+            {
+                "head": "Old Major",
+                "relation": "createdBy",
+                "tail": "Beasts of England"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "England"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "Ireland"
+            }
+        ]
+    },
+    {
+        "chunk_id": "9390ea37-036e-449e-922d-5c80abe3d131",
+        "relation_set": [
+            {
+                "head": "Mr. Jones",
+                "relation": "possesses",
+                "tail": "Manor Farm"
+            },
+            {
+                "head": "Major",
+                "relation": "locatedIn",
+                "tail": "big barn"
+            },
+            {
+                "head": "Bluebell",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            },
+            {
+                "head": "Jessie",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            },
+            {
+                "head": "Pincher",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            },
+            {
+                "head": "Boxer",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            },
+            {
+                "head": "Clover",
+                "relation": "partOf",
+                "tail": "farm buildings"
+            }
+        ]
+    },
+    {
+        "chunk_id": "6a303129-aadb-4439-abd1-ff172efc1abb",
+        "relation_set": [
+            {
+                "head": "human beings",
+                "relation": "possesses",
+                "tail": "produce of our labour"
+            },
+            {
+                "head": "hunger and overwork",
+                "relation": "createdBy",
+                "tail": "Man"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "milk"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "eggs"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "plough"
+            },
+            {
+                "head": "animals",
+                "relation": "possesses",
+                "tail": "rabbits"
+            },
+            {
+                "head": "Jones",
+                "relation": "partOf",
+                "tail": "men"
+            },
+            {
+                "head": "Clover",
+                "relation": "possesses",
+                "tail": "foals"
+            }
+        ]
+    },
+    {
+        "chunk_id": "7c17c4f3-d848-4ed9-960e-0c0390ba2e0b",
+        "relation_set": [
+            {
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "Boxer"
+            }
+        ]
+    },
+    {
+        "chunk_id": "14eb0d4d-8159-4e90-8bce-911dbd9f6810",
+        "relation_set": [
+            {
+                "head": "Old Major",
+                "relation": "participatesIn",
+                "tail": "song"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "England"
+            },
+            {
+                "head": "Beasts of England",
+                "relation": "partOf",
+                "tail": "Ireland"
+            }
+        ]
     }
 ]

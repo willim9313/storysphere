@@ -76,7 +76,8 @@ def _first_balanced_json(text: str):
                 start = None
     return None
 
-def extract_json_from_text(text: str) -> Tuple[Union[dict, list, None], Union[str, None]]:
+
+def extract_json_from_text(text: str) -> Tuple[Union[dict, None], Union[str, None]]:
     # 1) 先找 ```json code block, 這是json code fence
     m = CODE_BLOCK_RE.search(text)
     if not m:
