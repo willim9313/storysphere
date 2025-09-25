@@ -7,7 +7,8 @@ from typing import Dict, Any
 
 
 def embed_and_store_chunk(
-    chunk_data: Dict[str, Any], 
+    chunk_data: Dict[str, Any],
+    embed_col_name: str,
     collection_name: str
 ) -> None:
     """
@@ -20,12 +21,14 @@ def embed_and_store_chunk(
     """
     chunk_id = chunk_data["chunk_id"]
     chunk_text = chunk_data["chunk"]
+    # 將要向量化的目標欄位置入, 沒有的話以預設的chunk_text處理
+    embed_target = chunk_data.get(embed_col_name, chunk_text)
     metadata = {k: v for k, v in chunk_data.items()}
 
     vs = VectorStore(collection_name)
     # chunk_text 這樣進去會被拿去向量化，因此原文會儲存在metadata中
     vs.store_chunk(
         point_id=chunk_id,
-        chunk=chunk_text,
+        chunk=embed_target,
         metadata=metadata
     )

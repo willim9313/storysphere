@@ -84,7 +84,11 @@ def run_ingestion_pipeline(
                 "chapter_title": chapter_title,
             })
 
-            embed_and_store_chunk(chunk_data, collection_name)
+            embed_and_store_chunk(
+                chunk_data=chunk_data, 
+                embed_col_name="summary", 
+                collection_name=collection_name
+            )
 
             # 若有 KG 結果則寫入 JSON 檔案
             # 這邊目前寫的不太好，後續再拆做分拆跟美化
@@ -119,20 +123,3 @@ def run_ingestion_pipeline(
 
     llm.close()
     print("[✓] 文件處理與向量儲存完成")
-
-
-if __name__ == "__main__":
-    from dotenv import load_dotenv
-    import os
-    load_dotenv()
-    
-    api_key = os.getenv("GEMINI_API_KEY", 'No Key')
-    model = os.getenv("GEMINI_MODEL", 'No Model')
-
-    run_ingestion_pipeline(
-        input_dir="./data/novella",
-        collection_name="AnimalFarm",
-        api_key=api_key,
-        model_name=model,
-        limit_pages=10
-    )
