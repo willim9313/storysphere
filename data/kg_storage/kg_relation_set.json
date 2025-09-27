@@ -353,5 +353,50 @@
                 "tail": "Ireland"
             }
         ]
+    },
+    {
+        "chunk_id": "e3efb183-1a91-4fc2-a6a1-837485c5bc8a",
+        "relation_set": [
+            {
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "Boxer"
+            },
+            {
+                "head": "Man",
+                "relation": "createdBy",
+                "tail": "evils"
+            },
+            {
+                "head": "human beings",
+                "relation": "hasTrait",
+                "tail": "tyranny"
+            }
+        ]
+    },
+    {
+        "chunk_id": "ec27c544-832c-4483-9779-254ec653ebbf",
+        "relation_set": [
+            {
+                "head": "produce of our labour",
+                "relation": "createdBy",
+                "tail": "human beings"
+            },
+            {
+                "head": "Man",
+                "relation": "hasTrait",
+                "tail": "enemy"
+            },
+            {
+                "head": "hunger",
+                "relation": "partOf",
+                "tail": "Man"
+            },
+            {
+                "head": "overwork",
+                "relation": "partOf",
+                "tail": "Man"
+            }
+        ]
     }
 ]

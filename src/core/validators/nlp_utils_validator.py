@@ -20,7 +20,7 @@ def validate_summary_output(output: Any,
                             schema_cls: Type[BaseModel]=SummaryResponse) -> Tuple[Optional[BaseModel], Optional[ValidationError]]:
     """
     將LLM輸出的JSON資料驗證成指定的Pydantic結構。
-    
+
     :param output: LLM回傳的資料（可為dict或json反序列化後的物件）
     :param schema_cls: 欲驗證的Pydantic類別
     :return: 驗證成功則回傳 (obj, None)，否則回傳 (None, error)

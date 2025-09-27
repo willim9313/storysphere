@@ -1,7 +1,8 @@
 # src/prompt_templates/components.py
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 from dataclasses import dataclass
 from enum import Enum
+
 
 class SectionType(Enum):
     """定義yaml中各種段落類型"""
@@ -13,6 +14,7 @@ class SectionType(Enum):
     INPUT_DATA = "input_data"
     OUTPUT_FORMAT = "output_format"
 
+
 @dataclass
 class PromptSection:
     """單個 prompt 段落組件"""
@@ -21,15 +23,15 @@ class PromptSection:
     header: Optional[str] = None
     required: bool = True
     visible_when: Optional[str] = None  # 條件顯示，如 "reference_info"
-    
+
     def render(self, context: Dict[str, Any], language: str = "en") -> str:
         """渲染單個段落"""
         if not self.should_render(context):
             return ""
-        
+
         # 獲取標題
         header = self.get_header(language) if self.header is None else self.header
-        
+
         # 渲染內容
         try:
             content = self.content.format(**context)
@@ -37,25 +39,25 @@ class PromptSection:
             if self.required:
                 raise ValueError(f"Missing required context key: {e}")
             return ""
-        
+
         if not content.strip():
             return ""
-        
+
         return f"{header}:\n{content}" if header else content
-    
+
     def should_render(self, context: Dict[str, Any]) -> bool:
         """判斷是否應該渲染此段落"""
         # 如果有 visible_when 條件，優先檢查
         if self.visible_when:
             return bool(context.get(self.visible_when))
-        
+
         # 如果是必需的段落，總是渲染
         if self.required:
             return True
-        
+
         # 如果是可選段落，檢查是否有內容
         return bool(context.get(self.section_type.value))
-    
+
     def get_header(self, language: str) -> str:
         """獲取段落標題"""
         headers = {

@@ -69,8 +69,8 @@ def run_ingestion_pipeline(
         # 處理每個 chunk
         for chunk_seq, chunk in enumerate(chunks):
             chunk_data = process_chunk_with_llm(
-                chunk, 
-                llm_operator=llm, 
+                chunk,
+                llm_operator=llm,
                 kpe_tool=kpe_tool
             )
             # 補 metadata
@@ -85,8 +85,8 @@ def run_ingestion_pipeline(
             })
 
             embed_and_store_chunk(
-                chunk_data=chunk_data, 
-                embed_col_name="summary", 
+                chunk_data=chunk_data,
+                embed_col_name="summary",
                 collection_name=collection_name
             )
 

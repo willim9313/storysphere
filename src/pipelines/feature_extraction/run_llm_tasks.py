@@ -1,14 +1,14 @@
 # pipeline/feature_extraction/run_llm_tasks.py
 """
-負責對單一 chunk 執行所有 LLM 任務：摘要、關鍵字、KG 擷取、角色偵測。
+負責對單一 chunk 執行所有 LLM 任務: 摘要, 關鍵字, KG 擷取, 角色偵測
 """
 from typing import Dict, Any
 from core.utils.id_generator import generate_uuid_id
 
 
 def process_chunk_with_llm(
-    chunk: str, 
-    llm_operator, 
+    chunk: str,
+    llm_operator,
     kpe_tool
 ) -> Dict[str, Any]:
     """
@@ -21,7 +21,7 @@ def process_chunk_with_llm(
     Returns:
         Dict[str, Any]: 包含 chunk_id, keywords, summary, roles, KG
     """
-    chunk_id = generate_uuid_id() # 外面沒有？？？？？
+    chunk_id = generate_uuid_id()  # 外面沒有？？？？？
 
     # 關鍵字
     keyword_scores = kpe_tool.extract_keywords(chunk)

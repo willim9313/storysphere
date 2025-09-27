@@ -23,6 +23,8 @@ def embed_and_store_chunk(
     chunk_text = chunk_data["chunk"]
     # 將要向量化的目標欄位置入, 沒有的話以預設的chunk_text處理
     embed_target = chunk_data.get(embed_col_name, chunk_text)
+    if embed_target is None:
+        embed_target = chunk_text
     metadata = {k: v for k, v in chunk_data.items()}
 
     vs = VectorStore(collection_name)

@@ -2290,5 +2290,356 @@
             }
         ],
         "chunk_id": "14eb0d4d-8159-4e90-8bce-911dbd9f6810"
+    },
+    {
+        "entities": [
+            {
+                "type": "Person",
+                "name": "Clover",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": null,
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Major",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": null,
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Moses",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "the tame raven",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Location",
+                "name": "England",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": null,
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            }
+        ],
+        "relations": [],
+        "chunk_id": "86dfe404-d684-4ba4-926c-3bba5e499967"
+    },
+    {
+        "entities": [
+            {
+                "type": "Object",
+                "name": "pig",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "knife",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "cruel",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "porkers",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "young",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Object",
+                "name": "block",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "cows",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "hens",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "sheep",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "horses",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "dogs",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Boxer",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "muscles",
+                "attributes": {
+                    "name": null,
+                    "gender": null,
+                    "role": null,
+                    "description": "great",
+                    "birthDate": null,
+                    "deathDate": null,
+                    "affiliation": null
+                }
+            },
+            {
+                "type": "Person",
+                "name": "Jones",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "knacker",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "foxhounds",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "brick",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "pond",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "evils",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "tyranny",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "human beings",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "produce of our labour",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "Rebellion",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "justice",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "straw",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "message",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "resolution",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "argument",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "common interest",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "prosperity",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "animals",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "unity",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "comradeship",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "men",
+                "attributes": null
+            },
+            {
+                "type": "Object",
+                "name": "rats",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Major",
+                "attributes": null
+            }
+        ],
+        "relations": [
+            {
+                "head": "Jones",
+                "relation": "possesses",
+                "tail": "Boxer"
+            },
+            {
+                "head": "Man",
+                "relation": "createdBy",
+                "tail": "evils"
+            },
+            {
+                "head": "human beings",
+                "relation": "hasTrait",
+                "tail": "tyranny"
+            }
+        ],
+        "chunk_id": "e3efb183-1a91-4fc2-a6a1-837485c5bc8a"
+    },
+    {
+        "entities": [
+            {
+                "type": "Object",
+                "name": "sheep",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "comfort",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "dignity",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "produce of our labour",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "human beings",
+                "attributes": null
+            },
+            {
+                "type": "Person",
+                "name": "Man",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "enemy",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "hunger",
+                "attributes": null
+            },
+            {
+                "type": "Concept",
+                "name": "overwork",
+                "attributes": null
+            }
+        ],
+        "relations": [
+            {
+                "head": "produce of our labour",
+                "relation": "createdBy",
+                "tail": "human beings"
+            },
+            {
+                "head": "Man",
+                "relation": "hasTrait",
+                "tail": "enemy"
+            },
+            {
+                "head": "hunger",
+                "relation": "partOf",
+                "tail": "Man"
+            },
+            {
+                "head": "overwork",
+                "relation": "partOf",
+                "tail": "Man"
+            }
+        ],
+        "chunk_id": "ec27c544-832c-4483-9779-254ec653ebbf"
     }
 ]

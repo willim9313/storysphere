@@ -6,6 +6,7 @@
 """
 import json
 from typing import Any, Dict
+import time
 import yaml
 
 from ..utils.output_extractor import extract_json_from_text
@@ -36,8 +37,8 @@ class LlmOperator:
         self.attribute_types = [a["name"] for a in schema["attributes"]]
 
     def chat(
-        self, 
-        content: str, 
+        self,
+        content: str,
         ref_info: str = None,
         language: Language = Language.ENGLISH
     ) -> str:
@@ -108,16 +109,17 @@ class LlmOperator:
                     print(f"[LLM] JSON extraction error: {json_error}")
                     result = None
                 if result:
-                    return result['result']
+                    return result.result
             except Exception as e:
                 print(f"[LLM] Summary error: {e}")
                 print("Content:", content)
                 print("Language:", language)
                 print("Max Length:", max_length)
+                time.sleep(5)
         return None
 
     def extract_keyword(
-        self, 
+        self,
         content: str,
         language: Language = Language.ENGLISH,
         top_k: int = 10
@@ -148,7 +150,7 @@ class LlmOperator:
                 resp_json, json_error = extract_json_from_text(resp)
                 result = validate_extracted_keywords(resp_json)
                 if result:
-                    return result
+                    return result.result
                 if json_error:
                     print(f"[LLM] JSON extraction error: {json_error}")
             except Exception as e:
@@ -156,6 +158,7 @@ class LlmOperator:
                 print("Content:", content)
                 print("Language:", language)
                 print("Top K:", top_k)
+                time.sleep(5)
         return None
 
     def extract_kg_elements(
@@ -211,10 +214,11 @@ class LlmOperator:
                 print("Entity Types:", self.entity_types)
                 print("Relation Types:", self.relation_types)
                 print("Attribute Types:", self.attribute_types)
+                time.sleep(5)
         return None
     
     def extract_character_evidence_pack(
-        self, 
+        self,
         content: str,
         language: Language = Language.ENGLISH,
         character_name: str = None,
@@ -261,6 +265,7 @@ class LlmOperator:
                 print("Content:", content)
                 print("Language:", language)
                 print("Character Name:", character_name)
+                time.sleep(5)
         return None
     
     def extract_character_evidence_pack2(
@@ -313,6 +318,7 @@ class LlmOperator:
                 print("Content:", content)
                 print("Language:", language)
                 print("Character Name:", character_name)
+                time.sleep(5)
         return None
 
     def classify_archetype(
@@ -329,23 +335,6 @@ class LlmOperator:
         :param character_name: 角色名稱，可選
         :return: LLM 的角色證據包提取結果
         """
-        # old
-        template_manager = MultilingualTemplateManager()
-        builder = TemplateBuilder(
-            template_manager=template_manager
-        )
-
-        input_data = builder.build_split(
-            task_type=TaskType.ARCHETYPE_CLASSIFICATION,
-            language=language,
-            content=content,
-            # character_name=character_name,
-            overrides={
-                "ref_info": ref_info
-            }
-        )
-
-        # new
         try:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
@@ -380,6 +369,6 @@ class LlmOperator:
                 print("Content:", content)
                 print("Language:", language)
         return None
-    
+
     def close(self):
         del self.client
