@@ -1,5 +1,5 @@
-from typing import List, Optional, Literal, Union
-from pydantic import BaseModel, Field, ValidationError, field_validator, model_validator
+from typing import List, Optional, Literal, Union, Tuple
+from pydantic import BaseModel, ValidationError, model_validator
 import json
 import re
 
@@ -62,7 +62,9 @@ class KnowledgeGraphOutput(BaseModel):
 # ------------------
 # Validation Function
 # ------------------
-def validate_kg_output(data: Union[str, dict]) -> Optional[KnowledgeGraphOutput]:
+def validate_kg_output(
+    data: Union[str, dict]
+) -> Tuple[Optional[KnowledgeGraphOutput], Optional[Exception]]:
     """
     將 LLM 產生的 JSON 結構驗證為 KnowledgeGraphOutput。
 
@@ -74,15 +76,10 @@ def validate_kg_output(data: Union[str, dict]) -> Optional[KnowledgeGraphOutput]
             match = re.search(r"(\[.*\]|\{.*\})", data, re.DOTALL)
             data = json.loads(match.group(0)) if match else {}
         result = KnowledgeGraphOutput.model_validate(data)
-        return result
+        return result, None
     except (ValidationError, json.JSONDecodeError, ValueError) as e:
-        print("X! Schema validation failed:")
-        if isinstance(e, ValidationError):
-            print(e.json(indent=2))
-            return None
-        else:
-            print(str(e))
-        return None
+        # 之後加入logging
+        return None, e
 
 
 if __name__ == "__main__":

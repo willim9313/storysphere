@@ -33,7 +33,11 @@ def process_chunk_with_llm(
     # 知識圖譜抽取
     kg_result = llm_operator.extract_kg_elements(chunk)
     if kg_result:
-        roles = [ent.name for ent in kg_result.entities if ent.type == "Person"]
+        roles = [
+            ent.name 
+            for ent in kg_result.entities
+            if ent.type == "Person"
+        ]
     else:
         roles = []
 

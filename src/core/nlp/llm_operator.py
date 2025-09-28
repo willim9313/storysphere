@@ -5,15 +5,47 @@
 
 """
 import json
-from typing import Any, Dict
+from typing import Optional
 import time
 import yaml
 
 from ..utils.output_extractor import extract_json_from_text
 from ..validators.kg_schema_validator import validate_kg_output
-from ..validators.nlp_utils_validator import validate_summary_output, validate_extracted_keywords
+from ..validators.nlp_utils_validator import (
+    validate_summary_output,
+    validate_extracted_keywords
+)
 from src.prompt_templates.manager import PromptManager
 from src.prompt_templates.registry import TaskType, Language
+
+
+class LLMOperatePromptError(Exception):
+    pass
+
+
+class LLMOperateSummarizeError(Exception):
+    pass
+
+
+class LLMOperateKeywordError(Exception):
+    pass
+
+
+class LLMOperateKGError(Exception):
+    pass
+
+
+class LLMOperateChatError(Exception):
+    pass
+
+
+class LLMOperateCharacterEvidencePackError(Exception):
+    pass
+
+
+class LLMOperateArcTypeClassificationError(Exception):
+    pass
+
 
 class LlmOperator:
     """
@@ -39,9 +71,9 @@ class LlmOperator:
     def chat(
         self,
         content: str,
-        ref_info: str = None,
+        ref_info: Optional[str] = None,
         language: Language = Language.ENGLISH
-    ) -> str:
+    ) -> Optional[str]:
         """
         使用 LLM 進行聊天任務
         :param content: 用戶輸入的內容
@@ -53,22 +85,35 @@ class LlmOperator:
             prompt = pm.render_split_prompt(
                 task_type=TaskType.CHATBOT,
                 language=language,
-                content=content
+                content=content,
+                overrides={
+                    "reference_info": ref_info or ""
+                }
             )
-        except Exception as e:
-            raise Exception(f"ERROR, 聊天模板載入失敗: {e}")
+        except LLMOperatePromptError as e:
+            raise LLMOperatePromptError(f"ERROR, 聊天模板載入失敗: {e}")
 
         MAX_TRY = 3
 
         for attempt in range(MAX_TRY):
-            resp = self.client.generate_response(prompt=prompt["user_message"],
-                                                 instruction=prompt["system_message"])
-            resp_json, json_error = extract_json_from_text(resp)
-            if resp_json:
-                return resp_json.get("result", "")
-            if json_error:
-                print(f"[LLM] JSON extraction error: {json_error}")
+            try:
+                resp = self.client.generate_response(
+                    prompt=prompt["user_message"],
+                    instruction=prompt["system_message"]
+                )
+                resp_json, json_error = extract_json_from_text(resp)
 
+                if resp_json:
+                    return resp_json.get("result", "")
+                else:
+                    raise LLMOperateChatError(f"[LLM] JSON extraction error: {json_error}")
+            except LLMOperateChatError as e:
+                print(f"[LLM] Chat error: the {attempt} attempts, {e}")
+                if attempt < MAX_TRY - 1:
+                    time.sleep(5)
+            except Exception as e:
+                print("api 問題，暫時粗暴地放置")
+                return None
         return None
 
     def summarize(
@@ -76,46 +121,51 @@ class LlmOperator:
         content: str,
         language: Language = Language.ENGLISH,
         max_length: int = 200
-    ) -> str:
+    ) -> Optional[str]:
         """
         使用 LLM 進行文本摘要
         :param content: 需要摘要的文本
-        :param language: 語言，預設為英文
-        :param max_length: 最大摘要長度，預設為200
+        :param language: 語言, 預設為英文
+        :param max_length: 最大摘要長度, 預設為200
         :return: LLM 的摘要結果
         """
         try:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
                 task_type=TaskType.SUMMARIZATION,
-                language=Language.ENGLISH,
+                language=language,
                 content=content,
                 max_length=max_length
             )
-        except Exception as e:
-            raise Exception(f"ERROR 摘要模板載入失敗: {e}")
+        except LLMOperatePromptError as e:
+            raise LLMOperatePromptError(f"ERROR 摘要模板載入失敗: {e}")
 
         MAX_TRY = 3
 
         for attempt in range(MAX_TRY):
             try:
-                resp = self.client.generate_response(prompt=prompt["user_message"],
-                                                     instruction=prompt["system_message"])
+                resp = self.client.generate_response(
+                    prompt=prompt["user_message"],
+                    instruction=prompt["system_message"]
+                )
                 resp_json, json_error = extract_json_from_text(resp)
 
                 if resp_json:
                     result, error_msg = validate_summary_output(resp_json)
+                    if result:
+                        return result.result
+                    else:
+                        raise LLMOperateSummarizeError(f"Validation error: {error_msg}")
                 else:
-                    print(f"[LLM] JSON extraction error: {json_error}")
-                    result = None
-                if result:
-                    return result.result
+                    raise LLMOperateSummarizeError(f"JSON extraction error: {json_error}")
+
+            except LLMOperateSummarizeError as e:
+                print(f"[LLM] Summary error: the {attempt} attempts, {e}")
+                if attempt < MAX_TRY - 1:
+                    time.sleep(5)
             except Exception as e:
-                print(f"[LLM] Summary error: {e}")
-                print("Content:", content)
-                print("Language:", language)
-                print("Max Length:", max_length)
-                time.sleep(5)
+                print("api 問題，暫時粗暴地放置")
+                return None
         return None
 
     def extract_keyword(
@@ -123,7 +173,7 @@ class LlmOperator:
         content: str,
         language: Language = Language.ENGLISH,
         top_k: int = 10
-    ) -> list:
+    ) -> Optional[list]:
         '''
         使用 LLM 進行關鍵字提取
         :param content: 需要提取關鍵字的文本
@@ -138,34 +188,41 @@ class LlmOperator:
                 content=content,
                 top_k=top_k
             )
-        except Exception as e:
-            raise(f"❌ 關鍵字提取模板載入失敗: {e}")
+        except LLMOperatePromptError as e:
+            raise LLMOperatePromptError(f"❌ 關鍵字提取模板載入失敗: {e}")
 
         MAX_TRY = 3
 
         for attempt in range(MAX_TRY):
             try:
-                resp = self.client.generate_response(prompt=prompt["user_message"],
-                                                    instruction=prompt["system_message"])
+                resp = self.client.generate_response(
+                    prompt=prompt["user_message"],
+                    instruction=prompt["system_message"]
+                )
                 resp_json, json_error = extract_json_from_text(resp)
-                result = validate_extracted_keywords(resp_json)
-                if result:
-                    return result.result
-                if json_error:
-                    print(f"[LLM] JSON extraction error: {json_error}")
+                if resp_json:
+                    result, error_msg = validate_extracted_keywords(resp_json)
+                    if result:
+                        return result.result
+                    else:
+                        raise LLMOperateKeywordError(f"Validation error: {error_msg}")
+                else:
+                    raise LLMOperateKeywordError(f"JSON extraction error: {json_error}")
+
+            except LLMOperateKeywordError as e:
+                print(f"[LLM] Keyword extraction error: the {attempt} attempts, {e}")
+                if attempt < MAX_TRY - 1:
+                    time.sleep(5)
             except Exception as e:
-                print(f"[LLM] Keyword extraction error: {e}")
-                print("Content:", content)
-                print("Language:", language)
-                print("Top K:", top_k)
-                time.sleep(5)
+                print("api 問題，暫時粗暴地放置")
+                return None
         return None
 
     def extract_kg_elements(
-        self, 
+        self,
         content: str,
         language: Language = Language.ENGLISH
-    ) -> dict:
+    ) -> Optional[dict]:
         '''
         使用 LLM 進行知識圖譜元素提取
         :param content: 需要提取的文本
@@ -185,44 +242,47 @@ class LlmOperator:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
                 task_type=TaskType.ENTITY_EXTRACTION,
-                language=Language.ENGLISH,
+                language=language,
                 content=content,
                 overrides={
                     "reference_info": ref_schema
                 }
             )
-        except Exception as e:
-            raise(f"❌ 實體提取模板載入失敗: {e}")
+        except LLMOperateKGError as e:
+            raise LLMOperateKGError(f"❌ 實體提取模板載入失敗: {e}")
 
         MAX_TRY = 3
-        # print("Entity extraction prompt:")
-        # print(prompt)
-        # print("\n---\n")
-        # exit(1)
         for attempt in range(MAX_TRY):
             try:
-                resp = self.client.generate_response(prompt=prompt["user_message"],
-                                                     instruction=prompt["system_message"])
+                resp = self.client.generate_response(
+                    prompt=prompt["user_message"],
+                    instruction=prompt["system_message"]
+                )
                 resp_json, json_error = extract_json_from_text(resp)
-                result = validate_kg_output(resp_json)
-                if result:
-                    return result
-                if json_error:
-                    print(f"[LLM] JSON extraction error: {json_error}")
+
+                if resp_json:
+                    result, error_msg = validate_kg_output(resp_json)
+                    if result:
+                        return result
+                    else:
+                        raise LLMOperateKGError(f"Validation error: {error_msg}")
+                else:
+                    raise LLMOperateKGError(f"JSON extraction error: {json_error}")
+            except LLMOperateKGError as e:
+                print(f"[LLM] Entity extraction error: the {attempt} attempts, {e}")
+                if attempt < MAX_TRY - 1:
+                    time.sleep(5)
             except Exception as e:
-                print(f"[LLM] Entity extraction error: {e}")
-                print("Entity Types:", self.entity_types)
-                print("Relation Types:", self.relation_types)
-                print("Attribute Types:", self.attribute_types)
-                time.sleep(5)
+                print("api 問題，暫時粗暴地放置")
+                return None
         return None
-    
+
     def extract_character_evidence_pack(
         self,
         content: str,
         language: Language = Language.ENGLISH,
-        character_name: str = None,
-    ) -> dict:
+        character_name: Optional[str] = None,
+    ) -> Optional[dict]:
         """
         使用 LLM 提取角色證據包
         :param content: 需要提取的文本, qdrant提取出的文本基礎
@@ -240,93 +300,90 @@ class LlmOperator:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
                 task_type=TaskType.CHARACTER_EVIDENCE_PACK,
-                language=Language.ENGLISH,
+                language=language,
                 character_name=character_name,
-                content=content
+                content=content,
+                overrides={
+                    "reference_info": ref_info
+                }
             )
-        except Exception as e:
-            print(f"❌ 角色證據包模板載入失敗: {e}")
+        except LLMOperateCharacterEvidencePackError as e:
+            raise LLMOperateCharacterEvidencePackError(f"❌ 角色證據包模板載入失敗: {e}")
 
         MAX_TRY = 3
         for attempt in range(MAX_TRY):
             try:
-                resp = self.client.generate_response(prompt=prompt["user_message"],
-                                                     instruction=prompt["system_message"])
-                # print(f"[LLM] Character evidence pack response: {resp}")
+                resp = self.client.generate_response(
+                    prompt=prompt["user_message"],
+                    instruction=prompt["system_message"]
+                )
                 resp_json, json_error = extract_json_from_text(resp)
-                # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
-                # validate the response structure, not yet
+
                 if resp_json:
                     return resp_json
                 if json_error:
-                    print(f"[LLM] JSON extraction error: {json_error}")
+                    raise LLMOperateCharacterEvidencePackError(f"JSON extraction error: {json_error}")
+            
+            except LLMOperateCharacterEvidencePackError as e:
+                print(f"[LLM] Character evidence pack extraction error: the {attempt} attempts, {e}")
+                if attempt < MAX_TRY - 1:
+                    time.sleep(5)
             except Exception as e:
-                print(f"[LLM] Character evidence pack extraction error: {e}")
-                print("Content:", content)
-                print("Language:", language)
-                print("Character Name:", character_name)
-                time.sleep(5)
+                print("api 問題，暫時粗暴地放置")
+                return None
         return None
-    
-    def extract_character_evidence_pack2(
-        self, 
-        content: str,
-        language: Language = Language.ENGLISH,
-        character_name: str = None,
-    ) -> dict:
-        """
-        使用 LLM 提取角色證據包
-        :param content: 需要提取的文本, qdrant提取出的文本基礎
-        :param language: 語言, 預設為英文
-        :param character_name: 角色名稱, 可選
-        :return: LLM 的角色證據包提取結果
-        """
-        from src.prompt_templates.manager import PromptManager
-        from src.prompt_templates.registry import TaskType, Language
-        pm = PromptManager()
 
-        try:
-            prompt = pm.render_split_prompt(
-                task_type=TaskType.CHARACTER_EVIDENCE_PACK,
-                language=Language.ENGLISH,
-                character_name=character_name,
-                content=content
-            )
-            print("✅ 角色證據包模板載入成功")
-            print("生成的 prompt:")
-            print(prompt[:200] + "..." if len(prompt) > 200 else prompt)
-            print("\n完整 prompt:")
-            print(prompt)
-        except Exception as e:
-            print(f"❌ 角色證據包模板載入失敗: {e}")
+    # def extract_character_evidence_pack2(
+    #     self, 
+    #     content: str,
+    #     language: Language = Language.ENGLISH,
+    #     character_name: str = None,
+    # ) -> dict:
+    #     """
+    #     使用 LLM 提取角色證據包
+    #     :param content: 需要提取的文本, qdrant提取出的文本基礎
+    #     :param language: 語言, 預設為英文
+    #     :param character_name: 角色名稱, 可選
+    #     :return: LLM 的角色證據包提取結果
+    #     """
+    #     from src.prompt_templates.manager import PromptManager
+    #     from src.prompt_templates.registry import TaskType, Language
+    #     pm = PromptManager()
 
-        MAX_TRY = 3
-        for attempt in range(MAX_TRY):
-            try:
-                resp = self.client.generate_response(prompt=prompt["user_message"],
-                                                     instruction=prompt["system_message"])
-                # print(f"[LLM] Character evidence pack response: {resp}")
-                resp_json, json_error = extract_json_from_text(resp)
-                # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
-                # validate the response structure, not yet
-                if resp_json:
-                    return resp_json
-                if json_error:
-                    print(f"[LLM] JSON extraction error: {json_error}")
-            except Exception as e:
-                print(f"[LLM] Character evidence pack extraction error: {e}")
-                print("Content:", content)
-                print("Language:", language)
-                print("Character Name:", character_name)
-                time.sleep(5)
-        return None
+    #     try:
+    #         prompt = pm.render_split_prompt(
+    #             task_type=TaskType.CHARACTER_EVIDENCE_PACK,
+    #             language=Language.ENGLISH,
+    #             character_name=character_name,
+    #             content=content
+    #         )
+    #     except Exception as e:
+    #         print(f"❌ 角色證據包模板載入失敗: {e}")
+
+    #     MAX_TRY = 3
+    #     for attempt in range(MAX_TRY):
+    #         try:
+    #             resp = self.client.generate_response(prompt=prompt["user_message"],
+    #                                                  instruction=prompt["system_message"])
+    #             # print(f"[LLM] Character evidence pack response: {resp}")
+    #             resp_json, json_error = extract_json_from_text(resp)
+    #             # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
+    #             # validate the response structure, not yet
+    #             if resp_json:
+    #                 return resp_json
+    #             if json_error:
+    #                 print(f"[LLM] JSON extraction error: {json_error}")
+    #         except Exception as e:
+    #             print(f"[LLM] Character evidence pack extraction error: the {attempt} attempts, {e}")
+    #             time.sleep(5)
+    #     return None
 
     def classify_archetype(
-        self, 
+        self,
         content: str,
         ref_info: str,
         language: Language = Language.ENGLISH,
-    ) -> dict:
+    ) -> Optional[dict]:
         """
         使用 LLM 針對角色證據進行判斷，並回傳角色原型分類結果
         :param content: 角色證據包
@@ -339,35 +396,36 @@ class LlmOperator:
             pm = PromptManager()
             prompt = pm.render_split_prompt(
                 task_type=TaskType.ARCHETYPE_CLASSIFICATION,
-                language=Language.ENGLISH,
+                language=language,
                 content=content,
                 overrides={
                     "ref_info": ref_info
                 }
             )
-        except Exception as e:
-            print(f"❌ 角色原型分類模板載入失敗: {e}")
+        except LLMOperatePromptError as e:
+            raise LLMOperatePromptError(f"❌ 角色原型分類模板載入失敗: {e}")
 
         MAX_TRY = 3
         for attempt in range(MAX_TRY):
             try:
-                print('input_data 1:', input_data["user_message"])
-                print('input_data 2:', input_data["system_message"])
-
-                resp = self.client.generate_response(prompt=prompt["user_message"],
-                                                     instruction=prompt["system_message"])
-                # print(f"[LLM] Character evidence pack response: {resp}")
+                resp = self.client.generate_response(
+                    prompt=prompt["user_message"],
+                    instruction=prompt["system_message"]
+                )
                 resp_json, json_error = extract_json_from_text(resp)
-                # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
-                # validate the response structure, not yet
+
                 if resp_json:
                     return resp_json
-                if json_error:
-                    print(f"[LLM] JSON extraction error: {json_error}")
+                else:
+                    raise LLMOperateArcTypeClassificationError(f"[LLM] JSON extraction error: {json_error}")
+
+            except LLMOperateArcTypeClassificationError as e:
+                print(f"[LLM] Classification error: the {attempt} attempts, {e}")
+                if attempt < MAX_TRY - 1:
+                    time.sleep(5)
             except Exception as e:
-                print(f"[LLM] Classification error: {e}")
-                print("Content:", content)
-                print("Language:", language)
+                print("api 問題，暫時粗暴地放置")
+                return None
         return None
 
     def close(self):
