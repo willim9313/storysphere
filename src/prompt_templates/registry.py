@@ -43,7 +43,9 @@ class TemplateRegistry:
             self._template_cache[key] = template
             return template
         except FileNotFoundError:
-            raise ValueError(f"Template not found: {key}. Please create prompts/{task_str}_{lang_str}.yaml")
+            raise ValueError(
+                f"Template not found: {key}. Please create prompts/{task_str}_{lang_str}.yaml"
+            )
 
     def _load_from_yaml(self, task_type: str, language: str) -> FlexibleTemplate:
         """從 YAML 文件載入模板"""

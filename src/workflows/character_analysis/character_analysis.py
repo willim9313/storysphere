@@ -121,13 +121,13 @@ def run_character_analysis_workflow(
         # content = DataSanitizer.sanitize_for_template(content)
         # print("##### 準備送給CEP的內容如下 #####")
         # print(content)
-        resp = client.extract_character_evidence_pack2(
+        resp = client.extract_character_evidence_pack(
             content="\n".join(n_info),
             character_name=role,
         )
         print(f"角色 {role} 的CEP結果:", resp)
         print('\n')
-        
+
         # 輔助資訊與前次回覆做escape跟sanitize
         ref_info = json.dumps(archetypes, ensure_ascii=False, indent=2)
         safe_ref_info = SafeFormatter.escape_braces(ref_info)

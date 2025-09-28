@@ -20,9 +20,6 @@ sections:
     - Extract meaningful entities and relations from the text.
     - Do not make up entities and relations that do not exist in the text.
     - Return JSON with keys: entities[], relations[].
-  
-  examples: |
-    test for examples
 
   reference_info: |
     {{

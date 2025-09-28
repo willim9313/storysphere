@@ -2,10 +2,10 @@
 """
 封裝各類 NLP 任務的 LLM 呼叫介面(摘要、關鍵字、KG)
 傳統的NLP處理工具請直接使用像是pke之類的tool
-
+目前prompt部分都用split_render的方式寫死, 後續可以針對合併再一起的處理
 """
 import json
-from typing import Optional
+from typing import Optional, Any, Dict
 import time
 import yaml
 
@@ -19,32 +19,11 @@ from src.prompt_templates.manager import PromptManager
 from src.prompt_templates.registry import TaskType, Language
 
 
-class LLMOperatePromptError(Exception):
-    pass
-
-
-class LLMOperateSummarizeError(Exception):
-    pass
-
-
-class LLMOperateKeywordError(Exception):
-    pass
-
-
-class LLMOperateKGError(Exception):
-    pass
-
-
-class LLMOperateChatError(Exception):
-    pass
-
-
-class LLMOperateCharacterEvidencePackError(Exception):
-    pass
-
-
-class LLMOperateArcTypeClassificationError(Exception):
-    pass
+class LLMOperationError(Exception):
+    """LLM 操作基礎異常"""
+    def __init__(self, operation: str, message: str):
+        self.operation = operation
+        super().__init__(f"[{operation}] {message}")
 
 
 class LlmOperator:
@@ -61,12 +40,60 @@ class LlmOperator:
         self.client = client  # e.g., GeminiClient, OllamaClient
         self._load_schema()
 
+    def _prepare_base_params(
+        self, 
+        content: str, 
+        language: Language, 
+        **kwargs
+    ) -> Dict[str, Any]:
+        """準備基礎參數, 目前還沒有使用(for future use)"""
+        return {
+            'content': content,
+            'language': language,
+            **kwargs
+        }
+    
     def _load_schema(self):
         with open("config/schema_kg_story.yaml", "r") as f:
             schema = yaml.safe_load(f)
         self.entity_types = [e["type"] for e in schema["entities"]]
         self.relation_types = [r["type"] for r in schema["relations"]]
         self.attribute_types = [a["name"] for a in schema["attributes"]]
+
+    def _execute_with_retry(
+        self,
+        operation_name: str,
+        prompt: dict,
+        validator_func=None,
+        max_retry: int = 3
+    ) -> Any:
+        """統一的重試執行邏輯"""
+        for attempt in range(max_retry):
+            try:
+                resp = self.client.generate_response(
+                    prompt=prompt["user_message"],
+                    instruction=prompt["system_message"]
+                )
+                resp_json, json_error = extract_json_from_text(resp)
+
+                if not resp_json:
+                    raise Exception(f"JSON extraction error: {json_error}")
+
+                if validator_func:
+                    result, error_msg = validator_func(resp_json)
+                    if not result:
+                        raise Exception(f"Validation error: {error_msg}")
+                    return result.result if hasattr(result, 'result') else result
+
+                return resp_json
+
+            except Exception as e:
+                print(f"[LLM] {operation_name} error: attempt {attempt + 1}, {e}")
+                if attempt < max_retry - 1:
+                    time.sleep(2)
+                else:
+                    return None
+        return None
 
     def chat(
         self,
@@ -90,31 +117,17 @@ class LlmOperator:
                     "reference_info": ref_info or ""
                 }
             )
-        except LLMOperatePromptError as e:
-            raise LLMOperatePromptError(f"ERROR, 聊天模板載入失敗: {e}")
+        except LLMOperationError as e:
+            raise LLMOperationError(
+                operation="Chat",
+                message=f"Prompt template error: {e}"
+            )
 
-        MAX_TRY = 3
-
-        for attempt in range(MAX_TRY):
-            try:
-                resp = self.client.generate_response(
-                    prompt=prompt["user_message"],
-                    instruction=prompt["system_message"]
-                )
-                resp_json, json_error = extract_json_from_text(resp)
-
-                if resp_json:
-                    return resp_json.get("result", "")
-                else:
-                    raise LLMOperateChatError(f"[LLM] JSON extraction error: {json_error}")
-            except LLMOperateChatError as e:
-                print(f"[LLM] Chat error: the {attempt} attempts, {e}")
-                if attempt < MAX_TRY - 1:
-                    time.sleep(5)
-            except Exception as e:
-                print("api 問題，暫時粗暴地放置")
-                return None
-        return None
+        return self._execute_with_retry(
+            operation_name="Chat",
+            prompt=prompt,
+            max_retry=3
+        )
 
     def summarize(
         self,
@@ -137,36 +150,18 @@ class LlmOperator:
                 content=content,
                 max_length=max_length
             )
-        except LLMOperatePromptError as e:
-            raise LLMOperatePromptError(f"ERROR 摘要模板載入失敗: {e}")
+        except LLMOperationError as e:
+            raise LLMOperationError(
+                operation="Summarization",
+                message=f"Prompt template error: {e}"
+            )
 
-        MAX_TRY = 3
-
-        for attempt in range(MAX_TRY):
-            try:
-                resp = self.client.generate_response(
-                    prompt=prompt["user_message"],
-                    instruction=prompt["system_message"]
-                )
-                resp_json, json_error = extract_json_from_text(resp)
-
-                if resp_json:
-                    result, error_msg = validate_summary_output(resp_json)
-                    if result:
-                        return result.result
-                    else:
-                        raise LLMOperateSummarizeError(f"Validation error: {error_msg}")
-                else:
-                    raise LLMOperateSummarizeError(f"JSON extraction error: {json_error}")
-
-            except LLMOperateSummarizeError as e:
-                print(f"[LLM] Summary error: the {attempt} attempts, {e}")
-                if attempt < MAX_TRY - 1:
-                    time.sleep(5)
-            except Exception as e:
-                print("api 問題，暫時粗暴地放置")
-                return None
-        return None
+        return self._execute_with_retry(
+            operation_name="Summarization",
+            prompt=prompt,
+            validator_func=validate_summary_output,
+            max_retry=3
+        )
 
     def extract_keyword(
         self,
@@ -188,35 +183,18 @@ class LlmOperator:
                 content=content,
                 top_k=top_k
             )
-        except LLMOperatePromptError as e:
-            raise LLMOperatePromptError(f"❌ 關鍵字提取模板載入失敗: {e}")
+        except LLMOperationError as e:
+            raise LLMOperationError(
+                operation="Keyword Extraction",
+                message=f"Prompt template error: {e}"
+            )
 
-        MAX_TRY = 3
-
-        for attempt in range(MAX_TRY):
-            try:
-                resp = self.client.generate_response(
-                    prompt=prompt["user_message"],
-                    instruction=prompt["system_message"]
-                )
-                resp_json, json_error = extract_json_from_text(resp)
-                if resp_json:
-                    result, error_msg = validate_extracted_keywords(resp_json)
-                    if result:
-                        return result.result
-                    else:
-                        raise LLMOperateKeywordError(f"Validation error: {error_msg}")
-                else:
-                    raise LLMOperateKeywordError(f"JSON extraction error: {json_error}")
-
-            except LLMOperateKeywordError as e:
-                print(f"[LLM] Keyword extraction error: the {attempt} attempts, {e}")
-                if attempt < MAX_TRY - 1:
-                    time.sleep(5)
-            except Exception as e:
-                print("api 問題，暫時粗暴地放置")
-                return None
-        return None
+        return self._execute_with_retry(
+            operation_name="Keyword Extraction",
+            prompt=prompt,
+            validator_func=validate_extracted_keywords,
+            max_retry=3
+        )
 
     def extract_kg_elements(
         self,
@@ -248,34 +226,19 @@ class LlmOperator:
                     "reference_info": ref_schema
                 }
             )
-        except LLMOperateKGError as e:
-            raise LLMOperateKGError(f"❌ 實體提取模板載入失敗: {e}")
 
-        MAX_TRY = 3
-        for attempt in range(MAX_TRY):
-            try:
-                resp = self.client.generate_response(
-                    prompt=prompt["user_message"],
-                    instruction=prompt["system_message"]
-                )
-                resp_json, json_error = extract_json_from_text(resp)
+        except LLMOperationError as e:
+            raise LLMOperationError(
+                operation="Entity Extraction",
+                message=f"Prompt template error: {e}"
+            )
 
-                if resp_json:
-                    result, error_msg = validate_kg_output(resp_json)
-                    if result:
-                        return result
-                    else:
-                        raise LLMOperateKGError(f"Validation error: {error_msg}")
-                else:
-                    raise LLMOperateKGError(f"JSON extraction error: {json_error}")
-            except LLMOperateKGError as e:
-                print(f"[LLM] Entity extraction error: the {attempt} attempts, {e}")
-                if attempt < MAX_TRY - 1:
-                    time.sleep(5)
-            except Exception as e:
-                print("api 問題，暫時粗暴地放置")
-                return None
-        return None
+        return self._execute_with_retry(
+            operation_name="Entity Extraction",
+            prompt=prompt,
+            validator_func=validate_kg_output,
+            max_retry=3
+        )
 
     def extract_character_evidence_pack(
         self,
@@ -307,76 +270,17 @@ class LlmOperator:
                     "reference_info": ref_info
                 }
             )
-        except LLMOperateCharacterEvidencePackError as e:
-            raise LLMOperateCharacterEvidencePackError(f"❌ 角色證據包模板載入失敗: {e}")
+        except LLMOperationError as e:
+            raise LLMOperationError(
+                operation="Character Evidence Pack",
+                message=f"Prompt template error: {e}"
+            )
 
-        MAX_TRY = 3
-        for attempt in range(MAX_TRY):
-            try:
-                resp = self.client.generate_response(
-                    prompt=prompt["user_message"],
-                    instruction=prompt["system_message"]
-                )
-                resp_json, json_error = extract_json_from_text(resp)
-
-                if resp_json:
-                    return resp_json
-                if json_error:
-                    raise LLMOperateCharacterEvidencePackError(f"JSON extraction error: {json_error}")
-            
-            except LLMOperateCharacterEvidencePackError as e:
-                print(f"[LLM] Character evidence pack extraction error: the {attempt} attempts, {e}")
-                if attempt < MAX_TRY - 1:
-                    time.sleep(5)
-            except Exception as e:
-                print("api 問題，暫時粗暴地放置")
-                return None
-        return None
-
-    # def extract_character_evidence_pack2(
-    #     self, 
-    #     content: str,
-    #     language: Language = Language.ENGLISH,
-    #     character_name: str = None,
-    # ) -> dict:
-    #     """
-    #     使用 LLM 提取角色證據包
-    #     :param content: 需要提取的文本, qdrant提取出的文本基礎
-    #     :param language: 語言, 預設為英文
-    #     :param character_name: 角色名稱, 可選
-    #     :return: LLM 的角色證據包提取結果
-    #     """
-    #     from src.prompt_templates.manager import PromptManager
-    #     from src.prompt_templates.registry import TaskType, Language
-    #     pm = PromptManager()
-
-    #     try:
-    #         prompt = pm.render_split_prompt(
-    #             task_type=TaskType.CHARACTER_EVIDENCE_PACK,
-    #             language=Language.ENGLISH,
-    #             character_name=character_name,
-    #             content=content
-    #         )
-    #     except Exception as e:
-    #         print(f"❌ 角色證據包模板載入失敗: {e}")
-
-    #     MAX_TRY = 3
-    #     for attempt in range(MAX_TRY):
-    #         try:
-    #             resp = self.client.generate_response(prompt=prompt["user_message"],
-    #                                                  instruction=prompt["system_message"])
-    #             # print(f"[LLM] Character evidence pack response: {resp}")
-    #             resp_json, json_error = extract_json_from_text(resp)
-    #             # print(f"[LLM] Character evidence pack response JSON: {resp_json}")
-    #             # validate the response structure, not yet
-    #             if resp_json:
-    #                 return resp_json
-    #             if json_error:
-    #                 print(f"[LLM] JSON extraction error: {json_error}")
-    #         except Exception as e:
-    #             print(f"[LLM] Character evidence pack extraction error: the {attempt} attempts, {e}")
-    #             time.sleep(5)
-    #     return None
+        return self._execute_with_retry(
+            operation_name="Character Evidence Pack",
+            prompt=prompt,
+            max_retry=3
+        )
 
     def classify_archetype(
         self,
@@ -402,31 +306,17 @@ class LlmOperator:
                     "ref_info": ref_info
                 }
             )
-        except LLMOperatePromptError as e:
-            raise LLMOperatePromptError(f"❌ 角色原型分類模板載入失敗: {e}")
+        except LLMOperationError as e:
+            raise LLMOperationError(
+                operation="Archetype Classification",
+                message=f"Prompt template error: {e}"
+            )
 
-        MAX_TRY = 3
-        for attempt in range(MAX_TRY):
-            try:
-                resp = self.client.generate_response(
-                    prompt=prompt["user_message"],
-                    instruction=prompt["system_message"]
-                )
-                resp_json, json_error = extract_json_from_text(resp)
-
-                if resp_json:
-                    return resp_json
-                else:
-                    raise LLMOperateArcTypeClassificationError(f"[LLM] JSON extraction error: {json_error}")
-
-            except LLMOperateArcTypeClassificationError as e:
-                print(f"[LLM] Classification error: the {attempt} attempts, {e}")
-                if attempt < MAX_TRY - 1:
-                    time.sleep(5)
-            except Exception as e:
-                print("api 問題，暫時粗暴地放置")
-                return None
-        return None
+        return self._execute_with_retry(
+            operation_name="Archetype Classification",
+            prompt=prompt,
+            max_retry=3
+        )
 
     def close(self):
         del self.client
