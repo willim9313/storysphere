@@ -21,9 +21,9 @@ from src.pipelines.vector_indexing.embed_and_store import embed_and_store_chunk
 
 
 def run_ingestion_pipeline(
-    input_dir: str, 
+    input_dir: str,
     collection_name: str,
-    api_key: str, 
+    api_key: str,
     model_name: str,
     limit_pages: int = 0
 ) -> None:

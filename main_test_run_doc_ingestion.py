@@ -13,5 +13,5 @@ run_ingestion_pipeline(
     collection_name="Test_10p_AnimalFarm",
     api_key=api_key,
     model_name=model,
-    limit_pages=6
+    limit_pages=10
 )
