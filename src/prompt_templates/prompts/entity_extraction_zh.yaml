@@ -18,7 +18,29 @@ sections:
     - 使用繁體中文進行回應。
     - 提取文本中的有意義的實體和關係
     - 不要編造文本中不存在的實體和關係
+    - relations中的head和tail必須是entities中已存在的name
+    - entity_type跟relation_type必須是schema中已存在的類型，不可以捏造新的類型
     - 返回 JSON，包含鍵：entities[]，relations[]
+
+  reference_info: |
+    {{
+      "entity_types": [
+        "Person",
+        "Object",
+        "Location",
+        "Organization",
+        "Event",
+        "Date",
+        "Concept"
+      ],
+      "relation_types": [
+        "possesses",
+        "located_in",
+        "works_for",
+        "participates_in",
+        "related_to"
+      ]
+    }}
 
   input_data: |
     {content}

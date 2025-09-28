@@ -19,6 +19,8 @@ sections:
     - Provide responses in English.
     - Extract meaningful entities and relations from the text.
     - Do not make up entities and relations that do not exist in the text.
+    - Relations' head and tail must be names that already exist in entities.
+    - Entity types and relation types must be from the schema; do not fabricate new types.
     - Return JSON with keys: entities[], relations[].
 
   reference_info: |

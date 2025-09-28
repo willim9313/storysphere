@@ -82,6 +82,9 @@ class LlmOperator:
                 if validator_func:
                     result, error_msg = validator_func(resp_json)
                     if not result:
+                        print("-----Validation failed-----")
+                        print(resp_json)
+                        print("---------------------------")
                         raise Exception(f"Validation error: {error_msg}")
                     return result.result if hasattr(result, 'result') else result
 
@@ -226,6 +229,9 @@ class LlmOperator:
                     "reference_info": ref_schema
                 }
             )
+            print("===== KG Extraction Prompt =====")
+            print(prompt)
+            print("================================")
 
         except LLMOperationError as e:
             raise LLMOperationError(
