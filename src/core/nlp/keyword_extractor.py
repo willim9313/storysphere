@@ -16,9 +16,9 @@ class KpeTool:
         self.model = MultipartiteRank()
 
     def extract_keywords(
-        self, 
-        text: str, 
-        language: str = "en", 
+        self,
+        text: str,
+        language: str = "en",
         n: int = 10
     ) -> Dict[str, float]:
         """
