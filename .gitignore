@@ -1,0 +1,67 @@
+# ============================================================
+# StorySphere .gitignore
+# ============================================================
+
+# ========== Environment & Secrets ==========
+.env
+.env.local
+.env.*.local
+
+# ========== Python ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+MANIFEST
+
+# ========== Virtual Environments ==========
+.venv/
+venv/
+env/
+ENV/
+
+# ========== Testing & Coverage ==========
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# ========== Type Checking ==========
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# ========== Linting ==========
+.ruff_cache/
+
+# ========== IDE ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ========== OS ==========
+.DS_Store
+Thumbs.db
+
+# ========== Database ==========
+*.db
+*.sqlite
+*.sqlite3
+
+# ========== Logs ==========
+*.log
+logs/
+
+# ========== Data & Uploads ==========
+data/uploads/
+data/processed/
+
+# ========== uv ==========
+# uv.lock    # Do NOT ignore - commit lock file for reproducibility
