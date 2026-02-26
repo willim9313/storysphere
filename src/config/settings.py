@@ -51,6 +51,21 @@ class Settings(BaseSettings):
     neo4j_user: str = "neo4j"
     neo4j_password: str = ""
 
+    # ── Embedding ──────────────────────────────────────────────────────────────
+    embedding_model_name: str = Field(
+        default="all-MiniLM-L6-v2",
+        description="sentence-transformers model id",
+    )
+    embedding_device: str = Field(
+        default="cpu",
+        description="Device for embedding inference: cpu | cuda | mps",
+    )
+    embedding_batch_size: int = Field(default=32, description="Batch size for embedding generation")
+    qdrant_vector_size: int = Field(
+        default=384,
+        description="Vector dimension — must match embedding model output",
+    )
+
     # ── Cache TTLs ─────────────────────────────────────────────────────────────
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
     analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")

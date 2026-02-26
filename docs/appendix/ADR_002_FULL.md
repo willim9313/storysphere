@@ -77,6 +77,51 @@ src/workflows/
 
 ---
 
+## 實作細節補充（Phase 2 完成後）
+
+### `base.py` 抽象介面
+
+```python
+class BasePipeline(ABC, Generic[InputT, OutputT]):
+    async def run(self, input_data: InputT) -> OutputT: ...
+    async def __call__(self, input_data) -> OutputT: ...
+    def _log_step(self, step: str, **kwargs): ...
+```
+
+`BaseWorkflow` 介面相同，定義於 `src/workflows/base.py`。
+
+### Pipeline 輸入/輸出合約
+
+| Pipeline | 輸入 | 輸出 |
+|----------|------|------|
+| `DocumentProcessingPipeline` | `Path` (PDF/DOCX) | `Document` |
+| `FeatureExtractionPipeline` | `Document` | `FeatureExtractionResult` |
+| `KnowledgeGraphPipeline` | `Document` | `KGExtractionResult` |
+
+### Services 層互動方式
+
+- Pipelines **不直接** import Services；Services 透過建構子注入（dependency injection）
+- `KnowledgeGraphPipeline(kg_service=...)` — 傳入 None 時只抽取，不寫入
+- `FeatureExtractionPipeline(qdrant_client=...)` — 傳入 None 時只生成 embedding
+
+### LangChain 使用邊界（決策 4）
+
+| 層次 | 使用方式 |
+|------|---------|
+| 文件載入 | 直接用 `pypdf` / `python-docx` |
+| Pipeline 編排 | 純 Python async |
+| LLM 抽取 | `LLMClient`（已封裝 LangChain）|
+| Embedding | `langchain_huggingface.HuggingFaceEmbeddings` |
+
+### Embedding 設定（決策 5）
+
+Settings 新增欄位：`embedding_model_name`, `embedding_device`,
+`embedding_batch_size`, `qdrant_vector_size`。
+
+預設：`all-MiniLM-L6-v2`（384 維，CPU，batch 32）。
+
+---
+
 ## 相關決策
 
 - [ADR-001: Agent 架構](ADR_001_FULL.md)
@@ -84,6 +129,6 @@ src/workflows/
 
 ---
 
-**最後更新**: 2026-02-22  
-**狀態**: ✅ Approved  
+**最後更新**: 2026-02-26
+**狀態**: ✅ Approved + Implemented
 **維護者**: William

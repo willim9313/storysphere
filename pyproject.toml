@@ -28,6 +28,7 @@ dependencies = [
     # ========== Data Storage ==========
     "sqlalchemy>=2.0",
     "aiosqlite>=0.19",
+    "greenlet>=3.0",
     "qdrant-client>=1.7",
 
     # ========== Knowledge Graph ==========
@@ -43,6 +44,10 @@ dependencies = [
     # ========== Document Processing ==========
     "pypdf>=4.0",
     "python-docx>=1.1",
+
+    # ========== Embeddings ==========
+    "sentence-transformers>=3.0",
+    "langchain-huggingface>=0.1.0",
 
     # ========== Utilities ==========
     "python-dotenv>=1.0",
