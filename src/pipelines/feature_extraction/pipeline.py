@@ -1,4 +1,22 @@
-"""Feature extraction pipeline: Document paragraphs → embeddings → Qdrant."""
+"""Feature extraction pipeline: Document paragraphs → embeddings → Qdrant.
+
+Memory strategy
+---------------
+Embeddings are processed **chapter by chapter** so peak memory scales with the
+largest chapter, not the entire book.
+
+With Qdrant enabled (production path):
+    embed chapter → upsert → vectors go out of scope (GC-able)
+    Paragraph.embedding is NOT set — Qdrant is the source of truth.
+
+Without Qdrant (dev / test path):
+    embed chapter → store on Paragraph.embedding
+    DocumentService will persist the embeddings to SQLite.
+
+Peak memory for a 1 000-page novel:
+    ≈ model (90 MB) + one chapter's vectors (~0.5 MB) instead of the full
+    book's worth (~330 MB) that a flat all-at-once approach would require.
+"""
 
 from __future__ import annotations
 
@@ -23,13 +41,10 @@ class FeatureExtractionResult:
 
 
 class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult]):
-    """Embed all paragraphs in a Document and upsert them into Qdrant.
+    """Embed all paragraphs in a Document and (optionally) upsert them into Qdrant.
 
-    Steps:
-        1. Collect all paragraphs across chapters.
-        2. Batch-embed using ``EmbeddingGenerator``.
-        3. Mutate ``Paragraph.embedding`` in-place (so the Document is updated).
-        4. Upsert into Qdrant (if a client is available).
+    Processing is **chapter-by-chapter** to keep memory usage bounded regardless
+    of book length.  See module docstring for the memory strategy.
     """
 
     def __init__(
@@ -41,7 +56,7 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         self._qdrant = qdrant_client  # optional; pass None to skip Qdrant upsert
 
     async def run(self, input_data: Document) -> FeatureExtractionResult:
-        """Embed paragraphs and (optionally) store in Qdrant.
+        """Embed paragraphs chapter by chapter and (optionally) store in Qdrant.
 
         Args:
             input_data: A ``Document`` populated by ``DocumentProcessingPipeline``.
@@ -50,33 +65,50 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
             ``FeatureExtractionResult`` with counts and Qdrant IDs.
         """
         doc = input_data
-        all_paragraphs: list[Paragraph] = [
-            para for chapter in doc.chapters for para in chapter.paragraphs
-        ]
+        total_embedded = 0
+        all_qdrant_ids: list[str] = []
 
-        if not all_paragraphs:
+        for chapter in doc.chapters:
+            paragraphs = chapter.paragraphs
+            if not paragraphs:
+                continue
+
+            texts = [p.text for p in paragraphs]
+            self._log_step("embed_chapter", chapter=chapter.number, paragraphs=len(texts))
+
+            # vectors: list[list[float]] — one 384-dim vector per paragraph
+            vectors = await self._embedder.aembed_texts(texts)
+
+            if self._qdrant is not None:
+                # Qdrant path: write immediately, do NOT keep embedding in memory.
+                # vectors will be GC-able once this iteration ends.
+                ids = await self._upsert_to_qdrant(doc, paragraphs, vectors)
+                all_qdrant_ids.extend(ids)
+            else:
+                # No-Qdrant path (dev / test): store on Paragraph so
+                # DocumentService can persist them to SQLite.
+                for para, vec in zip(paragraphs, vectors):
+                    para.embedding = vec
+
+            total_embedded += len(paragraphs)
+            # vectors goes out of scope here → eligible for GC
+
+        if total_embedded > 0:
+            qdrant_note = (
+                f", {len(all_qdrant_ids)} upserted to Qdrant" if all_qdrant_ids else ""
+            )
+            logger.info(
+                "FeatureExtractionPipeline done: %d paragraphs embedded%s",
+                total_embedded,
+                qdrant_note,
+            )
+        else:
             logger.warning("Document '%s' has no paragraphs — skipping embedding", doc.id)
-            return FeatureExtractionResult(document_id=doc.id)
-
-        texts = [p.text for p in all_paragraphs]
-        self._log_step("embed_start", paragraphs=len(texts))
-
-        vectors = await self._embedder.aembed_texts(texts)
-
-        # Mutate paragraph objects in-place
-        for para, vector in zip(all_paragraphs, vectors):
-            para.embedding = vector
-
-        self._log_step("embed_done", vectors=len(vectors))
-
-        qdrant_ids: list[str] = []
-        if self._qdrant is not None:
-            qdrant_ids = await self._upsert_to_qdrant(doc, all_paragraphs, vectors)
 
         return FeatureExtractionResult(
             document_id=doc.id,
-            paragraphs_embedded=len(all_paragraphs),
-            qdrant_ids=qdrant_ids,
+            paragraphs_embedded=total_embedded,
+            qdrant_ids=all_qdrant_ids,
         )
 
     # ── Qdrant helpers ───────────────────────────────────────────────────────
@@ -87,7 +119,7 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         paragraphs: list[Paragraph],
         vectors: list[list[float]],
     ) -> list[str]:
-        """Upsert paragraph vectors into Qdrant and return point IDs."""
+        """Upsert a single chapter's vectors into Qdrant and return point IDs."""
         from config.settings import get_settings  # noqa: PLC0415
         from qdrant_client.models import PointStruct  # noqa: PLC0415
 
@@ -110,5 +142,10 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         ]
 
         self._qdrant.upsert(collection_name=collection, points=points)
-        logger.info("Upserted %d points into Qdrant collection '%s'", len(points), collection)
+        logger.debug(
+            "Upserted %d points (chapter %s) into '%s'",
+            len(points),
+            paragraphs[0].chapter_number if paragraphs else "?",
+            collection,
+        )
         return [p.id for p in points]

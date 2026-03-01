@@ -107,11 +107,47 @@ class TestFeatureExtractionPipeline:
     @pytest.mark.asyncio
     async def test_document_id_in_result(self):
         doc = _make_document(num_chapters=2, paras_per_chapter=2)
-        total_paras = doc.total_paragraphs
         mock_gen = AsyncMock(spec=EmbeddingGenerator)
-        mock_gen.aembed_texts = AsyncMock(return_value=[[0.0] * 384] * total_paras)
+        # mock returns enough vectors regardless of batch size
+        mock_gen.aembed_texts = AsyncMock(return_value=[[0.0] * 384] * 10)
 
         pipeline = FeatureExtractionPipeline(embedding_generator=mock_gen, qdrant_client=None)
         result: FeatureExtractionResult = await pipeline.run(doc)
 
         assert result.document_id == doc.id
+
+    @pytest.mark.asyncio
+    async def test_qdrant_path_does_not_store_embeddings_on_paragraphs(self):
+        """With Qdrant enabled, Paragraph.embedding must stay None (memory strategy)."""
+        doc = _make_document(num_chapters=2, paras_per_chapter=2)
+        mock_gen = AsyncMock(spec=EmbeddingGenerator)
+        mock_gen.aembed_texts = AsyncMock(return_value=[[0.5] * 384] * 10)
+
+        # Minimal Qdrant stub that accepts upsert() calls
+        mock_qdrant = MagicMock()
+        mock_qdrant.upsert = MagicMock(return_value=None)
+
+        pipeline = FeatureExtractionPipeline(
+            embedding_generator=mock_gen, qdrant_client=mock_qdrant
+        )
+        result = await pipeline.run(doc)
+
+        assert result.paragraphs_embedded == doc.total_paragraphs
+        # Embeddings must NOT be cached on paragraph objects when Qdrant is used
+        all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
+        for para in all_paras:
+            assert para.embedding is None, (
+                f"Paragraph {para.id} should not hold embedding when Qdrant is available"
+            )
+
+    @pytest.mark.asyncio
+    async def test_chapter_by_chapter_calls(self):
+        """aembed_texts must be called once per chapter, not once for the whole doc."""
+        doc = _make_document(num_chapters=3, paras_per_chapter=2)
+        mock_gen = AsyncMock(spec=EmbeddingGenerator)
+        mock_gen.aembed_texts = AsyncMock(return_value=[[0.0] * 384] * 10)
+
+        pipeline = FeatureExtractionPipeline(embedding_generator=mock_gen, qdrant_client=None)
+        await pipeline.run(doc)
+
+        assert mock_gen.aembed_texts.call_count == 3  # once per chapter

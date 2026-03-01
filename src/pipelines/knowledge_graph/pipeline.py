@@ -63,6 +63,9 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         """
         doc = input_data
         all_raw_entities: list[Entity] = []
+        # chapter_texts holds full text per chapter for the relation/event pass.
+        # Entries are pop()-ed after use so already-processed chapters are
+        # released to the GC rather than accumulating for the whole run.
         chapter_texts: dict[int, str] = {}
 
         # ── Step 1: extract entities per chapter ────────────────────────────
@@ -96,7 +99,9 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         all_events: list[Event] = []
 
         for chapter in doc.chapters:
-            text = chapter_texts.get(chapter.number, "")
+            # pop() releases the chapter string once relation/event extraction
+            # is done — the dict shrinks as we progress through the book.
+            text = chapter_texts.pop(chapter.number, "")
             if not text:
                 continue
             # Use only entities that appear in this chapter

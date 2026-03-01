@@ -98,10 +98,28 @@ class BasePipeline(ABC, Generic[InputT, OutputT]):
 - 提供 `embed_texts()`（同步）和 `aembed_texts()`（異步，thread pool）
 
 #### `pipeline.py`
-1. 收集所有段落文字
-2. 批量向量化（`aembed_texts`）
-3. **就地**寫入 `Paragraph.embedding`（修改 Document 物件）
-4. 若有 Qdrant client，upsert 向量（payload 含 document_id, chapter, position, text）
+
+處理邏輯為**逐章（chapter-by-chapter）**，峰值記憶體隨最大章節規模而定，
+而非整本書的段落總量。
+
+```
+for chapter in doc.chapters:
+    vectors = embed(chapter.paragraphs)   # 單一章節，通常 20-50 段
+    if qdrant:
+        upsert(vectors)                   # 寫入後 vectors 超出 scope → GC
+    else:
+        para.embedding = vec              # dev/test：存入 Paragraph
+    # vectors 在此迭代結束後即可被 GC
+```
+
+| 路徑 | Paragraph.embedding | 向量去向 |
+|------|---------------------|---------|
+| 有 Qdrant（生產）| **不設定（None）** | Qdrant |
+| 無 Qdrant（開發/測試）| 設定 | DocumentService→SQLite |
+
+**峰值記憶體估算（1,000 頁書，~10,000 段）：**
+- 舊設計（全書一次）：模型 90MB + 三份向量 ~330MB ≈ **420MB+**
+- 新設計（逐章）：模型 90MB + 單章向量 ~0.5MB ≈ **~91MB**
 
 ---
 
@@ -126,9 +144,9 @@ class BasePipeline(ABC, Generic[InputT, OutputT]):
 
 #### `pipeline.py`
 順序：
-1. 每章節抽 entities
+1. 每章節抽 entities（文字存入 `chapter_texts` dict）
 2. 全文件 EntityLinker 去重
-3. 每章節（結合已知 entities）抽 relations + events
+3. 每章節抽 relations + events：用 `pop()` 取出章節文字並從 dict 移除 → 已處理章節的文字立即可被 GC
 4. 可選：寫入 KGService
 
 ---
