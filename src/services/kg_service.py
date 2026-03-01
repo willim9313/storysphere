@@ -160,6 +160,159 @@ class KGService:
         event_ids: list[str] = node_data.get("event_ids", [])
         return [self._events[eid] for eid in event_ids if eid in self._events]
 
+    # ── Timeline / Path / Subgraph queries ──────────────────────────────────
+
+    async def get_entity_timeline(self, entity_id: str) -> list[Event]:
+        """Return events involving *entity_id*, sorted by chapter number."""
+        events = await self.get_events(entity_id)
+        return sorted(events, key=lambda e: e.chapter)
+
+    async def get_relation_paths(
+        self,
+        source_id: str,
+        target_id: str,
+        max_length: int = 3,
+    ) -> list[list[dict]]:
+        """Find all simple paths between two entities (up to *max_length* hops).
+
+        Returns a list of paths.  Each path is a list of dicts::
+
+            [{"entity_id": "...", "name": "..."}, ...]
+
+        with the connecting relation info between consecutive nodes.
+        """
+        if source_id not in self._graph or target_id not in self._graph:
+            return []
+
+        # Use the undirected view so direction doesn't block reachability.
+        undirected = self._graph.to_undirected(as_view=True)
+        raw_paths: list[list[str]] = list(
+            nx.all_simple_paths(undirected, source_id, target_id, cutoff=max_length)
+        )
+
+        result: list[list[dict]] = []
+        for node_path in raw_paths:
+            path_repr: list[dict] = []
+            for i, node_id in enumerate(node_path):
+                entity = self._entities.get(node_id)
+                node_info: dict = {
+                    "entity_id": node_id,
+                    "name": entity.name if entity else node_id,
+                }
+                # Attach the relation leading *to* this node (except for the first).
+                if i > 0:
+                    prev = node_path[i - 1]
+                    edge_data = self._best_edge(prev, node_id)
+                    node_info["relation_from_prev"] = edge_data
+                path_repr.append(node_info)
+            result.append(path_repr)
+        return result
+
+    async def get_subgraph(self, entity_id: str, k_hops: int = 2) -> dict:
+        """Return the *k*-hop ego-graph around *entity_id*.
+
+        Returns::
+
+            {
+                "center": entity_id,
+                "nodes": [{"entity_id": "...", "name": "...", "entity_type": "..."}],
+                "edges": [{"source": "...", "target": "...", "relation_type": "...", ...}],
+            }
+        """
+        if entity_id not in self._graph:
+            return {"center": entity_id, "nodes": [], "edges": []}
+
+        ego: nx.MultiDiGraph = nx.ego_graph(
+            self._graph, entity_id, radius=k_hops, undirected=True
+        )
+        nodes: list[dict] = []
+        for nid in ego.nodes:
+            entity = self._entities.get(nid)
+            nodes.append(
+                {
+                    "entity_id": nid,
+                    "name": entity.name if entity else nid,
+                    "entity_type": entity.entity_type.value if entity else "unknown",
+                }
+            )
+        edges: list[dict] = []
+        seen_keys: set[str] = set()
+        for u, v, key, data in ego.edges(keys=True, data=True):
+            base_key = key[:-4] if key.endswith("_rev") else key
+            if base_key in seen_keys:
+                continue
+            seen_keys.add(base_key)
+            edges.append(
+                {
+                    "source": u,
+                    "target": v,
+                    "relation_type": data.get("relation_type", "unknown"),
+                    "description": data.get("description"),
+                    "weight": data.get("weight", 1.0),
+                }
+            )
+        return {"center": entity_id, "nodes": nodes, "edges": edges}
+
+    async def get_relation_stats(self, entity_id: str | None = None) -> dict:
+        """Return relation-type distribution and weight statistics.
+
+        If *entity_id* is given, scoped to that entity; otherwise global.
+
+        Returns::
+
+            {
+                "total_relations": int,
+                "type_distribution": {"family": 3, ...},
+                "weight_avg": float,
+                "weight_min": float,
+                "weight_max": float,
+            }
+        """
+        if entity_id is not None:
+            relations = await self.get_relations(entity_id)
+        else:
+            # Collect all unique relations (skip _rev duplicates).
+            relations = []
+            seen: set[str] = set()
+            for u, v, key, data in self._graph.edges(keys=True, data=True):
+                base_key = key[:-4] if key.endswith("_rev") else key
+                if base_key not in seen:
+                    seen.add(base_key)
+                    relations.append(self._edge_to_relation(key, u, v, data))
+
+        type_dist: dict[str, int] = {}
+        weights: list[float] = []
+        for rel in relations:
+            rtype = rel.relation_type.value
+            type_dist[rtype] = type_dist.get(rtype, 0) + 1
+            weights.append(rel.weight)
+
+        return {
+            "total_relations": len(relations),
+            "type_distribution": type_dist,
+            "weight_avg": sum(weights) / len(weights) if weights else 0.0,
+            "weight_min": min(weights) if weights else 0.0,
+            "weight_max": max(weights) if weights else 0.0,
+        }
+
+    # ── Private: edge lookup helper ───────────────────────────────────────────
+
+    def _best_edge(self, source: str, target: str) -> dict:
+        """Return data for the best (highest-weight) edge between two nodes."""
+        # Try forward direction first, then reverse.
+        edges = self._graph.get_edge_data(source, target)
+        if not edges:
+            edges = self._graph.get_edge_data(target, source)
+        if not edges:
+            return {}
+        # edges is a dict keyed by edge-key → pick highest weight
+        best = max(edges.values(), key=lambda d: d.get("weight", 0))
+        return {
+            "relation_type": best.get("relation_type", "unknown"),
+            "description": best.get("description"),
+            "weight": best.get("weight", 1.0),
+        }
+
     # ── Graph stats ──────────────────────────────────────────────────────────
 
     @property

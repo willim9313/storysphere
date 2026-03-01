@@ -226,6 +226,22 @@ class DocumentService:
                 for row in result.all()
             ]
 
+    async def get_chapter_summary(
+        self,
+        document_id: str,
+        chapter_number: int,
+    ) -> str | None:
+        """Return the summary text for a specific chapter, or None."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(_ChapterRow.summary).where(
+                    _ChapterRow.document_id == document_id,
+                    _ChapterRow.number == chapter_number,
+                )
+            )
+            row = result.scalar_one_or_none()
+            return row  # summary text or None
+
     async def get_paragraphs(
         self,
         document_id: str,
