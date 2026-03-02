@@ -1,4 +1,4 @@
-"""Unit tests for other tools (3 tools)."""
+"""Unit tests for other tools (2 tools)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from domain.entities import Entity, EntityType
-from tools.other_tools import CompareEntitiesTool, ExtractEntitiesFromTextTool, GetChapterSummaryTool
+from tools.other_tools import CompareEntitiesTool, ExtractEntitiesFromTextTool
 
 
 class TestExtractEntitiesFromTextTool:
@@ -58,19 +58,3 @@ class TestCompareEntitiesTool:
         tool = CompareEntitiesTool(kg_service=mock_kg_service)
         result = await tool._arun("Alice", "nonexistent")
         assert "not found" in result.lower()
-
-
-class TestGetChapterSummaryTool:
-    @pytest.mark.asyncio
-    async def test_returns_summary(self, mock_doc_service):
-        tool = GetChapterSummaryTool(doc_service=mock_doc_service)
-        result = json.loads(await tool._arun("doc-1", chapter_number=1))
-        assert result["chapter_number"] == 1
-        assert "summary" in result
-
-    @pytest.mark.asyncio
-    async def test_not_found(self, mock_doc_service):
-        mock_doc_service.get_chapter_summary.return_value = None
-        tool = GetChapterSummaryTool(doc_service=mock_doc_service)
-        result = json.loads(await tool._arun("doc-1", chapter_number=99))
-        assert "message" in result

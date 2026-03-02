@@ -46,6 +46,7 @@ class Document(BaseModel):
     file_path: str
     file_type: FileType
     chapters: list[Chapter] = Field(default_factory=list)
+    summary: Optional[str] = None  # book-level summary
     processed_at: Optional[datetime] = None
 
     @property

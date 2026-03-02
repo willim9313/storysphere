@@ -87,12 +87,12 @@ class VectorSearchInput(BaseModel):
 
 
 class GetSummaryInput(BaseModel):
-    """Input for retrieving a chapter or document summary."""
+    """Input for retrieving a chapter or book summary."""
 
     document_id: str = Field(description="The document ID.")
     chapter_number: Optional[int] = Field(
         default=None,
-        description="Specific chapter number. If omitted, returns all chapter summaries.",
+        description="Specific chapter number. If omitted, returns the book-level summary.",
     )
 
 
@@ -155,11 +155,14 @@ class CompareEntitiesInput(BaseModel):
     entity_b: str = Field(description="Second entity ID or name.")
 
 
-class GetChapterSummaryInput(BaseModel):
-    """Input for retrieving a specific chapter summary."""
+class GenSummaryInput(BaseModel):
+    """Input for (re)generating a chapter or book summary on demand."""
 
     document_id: str = Field(description="The document ID.")
-    chapter_number: int = Field(description="The chapter number.")
+    chapter_number: Optional[int] = Field(
+        default=None,
+        description="Chapter number to regenerate. If omitted, regenerates the book-level summary.",
+    )
 
 
 # ── Analysis Output Schemas (documentation / Phase 5 validation) ─────────

@@ -157,6 +157,9 @@ def mock_doc_service():
     svc.get_paragraphs = AsyncMock(return_value=paras)
 
     svc.get_chapter_summary = AsyncMock(return_value="Alice and Bob explore the garden together.")
+    svc.get_book_summary = AsyncMock(return_value="A tale of Alice and Bob navigating adventures together.")
+    svc.save_chapter_summary = AsyncMock()
+    svc.save_book_summary = AsyncMock()
 
     doc = Document(
         id="doc-1",
@@ -178,6 +181,7 @@ def mock_doc_service():
                 paragraphs=paras[2:],
             ),
         ],
+        summary="A tale of Alice and Bob navigating adventures together.",
     )
     svc.get_document = AsyncMock(return_value=doc)
     svc.list_documents = AsyncMock(return_value=[{"id": "doc-1", "title": "Test Novel", "file_type": "pdf"}])

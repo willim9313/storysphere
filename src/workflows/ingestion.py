@@ -23,6 +23,8 @@ from pipelines.feature_extraction import FeatureExtractionPipeline
 from pipelines.feature_extraction.pipeline import FeatureExtractionResult
 from pipelines.knowledge_graph import KnowledgeGraphPipeline
 from pipelines.knowledge_graph.pipeline import KGExtractionResult
+from pipelines.summarization import SummarizationPipeline
+from pipelines.summarization.pipeline import SummarizationResult
 from services.document_service import DocumentService
 from services.kg_service import KGService
 from workflows.base import BaseWorkflow
@@ -39,6 +41,8 @@ class IngestionResult:
     chapters: int = 0
     paragraphs: int = 0
     paragraphs_embedded: int = 0
+    chapters_summarized: int = 0
+    book_summary_generated: bool = False
     entities: int = 0
     relations: int = 0
     events: int = 0
@@ -64,11 +68,13 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         document_pipeline: Optional[DocumentProcessingPipeline] = None,
         feature_pipeline: Optional[FeatureExtractionPipeline] = None,
         kg_pipeline: Optional[KnowledgeGraphPipeline] = None,
+        summarization_pipeline: Optional[SummarizationPipeline] = None,
         document_service: Optional[DocumentService] = None,
         kg_service: Optional[KGService] = None,
         *,
         skip_qdrant: bool = False,
         skip_kg: bool = False,
+        skip_summarization: bool = False,
     ) -> None:
         """
         Args:
@@ -99,7 +105,9 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 kg_service=None if skip_kg else self._kg_service
             )
 
+        self._summarization_pipeline = summarization_pipeline or SummarizationPipeline()
         self._skip_kg = skip_kg
+        self._skip_summarization = skip_summarization
 
     async def run(self, input_data: Path) -> IngestionResult:
         """Ingest a novel file end-to-end.
@@ -125,6 +133,16 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             doc.total_chapters,
             doc.total_paragraphs,
         )
+
+        # ── Step 1b: summarization ───────────────────────────────────────────
+        summ_result = SummarizationResult(document_id=doc.id)
+        if not self._skip_summarization:
+            self._log_step("summarization")
+            try:
+                summ_result = await self._summarization_pipeline(doc)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Summarization failed: %s", exc)
+                errors.append(f"summarization: {exc}")
 
         # ── Step 2: feature extraction (embeddings) ──────────────────────────
         self._log_step("feature_extraction")
@@ -169,6 +187,8 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             chapters=doc.total_chapters,
             paragraphs=doc.total_paragraphs,
             paragraphs_embedded=feat_result.paragraphs_embedded,
+            chapters_summarized=summ_result.chapters_summarized,
+            book_summary_generated=summ_result.book_summary_generated,
             entities=len(kg_result.entities),
             relations=len(kg_result.relations),
             events=len(kg_result.events),

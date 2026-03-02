@@ -107,7 +107,7 @@
 
 ---
 
-## Retrieval Tools (3)
+## Retrieval Tools (4)
 
 ### 7. `vector_search`
 **Description:** Semantic search over novel paragraphs using vector embeddings.
@@ -127,18 +127,18 @@
 ---
 
 ### 8. `get_summary`
-**Description:** Get chapter summaries for a document.
+**Description:** Get a chapter summary or book-level summary for a document.
 
 | Aspect | Details |
 |--------|---------|
-| **Input** | `document_id`; `chapter_number` — optional (omit for all chapters) |
-| **Output** | Summary text or list of chapter summaries (JSON) |
-| **USE when** | User asks for chapter overview, "what happens in chapter X", plot summaries |
+| **Input** | `document_id`; `chapter_number` — optional (omit for book-level summary) |
+| **Output** | Summary text (JSON) |
+| **USE when** | User asks for chapter overview, "what happens in chapter X", book overview |
 | **DO NOT USE when** | User wants raw text (→ `get_paragraphs`) or semantic search (→ `vector_search`) |
 
 **Example queries:**
 - "Summarize chapter 3."
-- "Give me an overview of all chapters."
+- "Give me an overview of the book."
 
 ---
 
@@ -196,7 +196,24 @@
 
 ---
 
-## Other Tools (3)
+### 10b. `gen_summary` ✅
+**Description:** Regenerate a chapter or book summary on demand using the LLM.
+
+| Aspect | Details |
+|--------|---------|
+| **Input** | `document_id`; `chapter_number` — optional (omit to regenerate book summary) |
+| **Output** | Regenerated summary text with `regenerated: true` flag (JSON) |
+| **USE when** | User wants to refresh or regenerate a stale/missing summary |
+| **DO NOT USE when** | User only wants to read an existing summary (→ `get_summary`) |
+
+**Example queries:**
+- "Regenerate the summary for chapter 3."
+- "Create a new book summary."
+- "Refresh the summary."
+
+---
+
+## Other Tools (2)
 
 ### 11. `extract_entities_from_text` ✅
 **Description:** Extract named entities from free-form text using LLM-based NER.
@@ -222,25 +239,13 @@
 
 ---
 
-### 13. `get_chapter_summary` ✅
-**Description:** Get the summary of a specific chapter by document ID and chapter number.
-
-| Aspect | Details |
-|--------|---------|
-| **Input** | `document_id`, `chapter_number` |
-| **Output** | Chapter summary text (JSON) |
-| **USE when** | User asks "what happens in chapter X" for a known chapter number |
-| **DO NOT USE when** | User wants all chapter summaries (→ `get_summary`) |
-
----
-
 ## Summary
 
 | Category | Count | Status |
 |----------|-------|--------|
 | Graph Tools | 6 | ✅ Complete |
-| Retrieval Tools | 3 | ✅ Complete |
+| Retrieval Tools | 4 | ✅ Complete |
 | Analysis Tools | 1 | ✅ Complete |
 | Analysis Stubs | 2 | ❌ Phase 5 |
-| Other Tools | 3 | ✅ Complete |
+| Other Tools | 2 | ✅ Complete |
 | **Total** | **15** | **13 complete + 2 stubs** |

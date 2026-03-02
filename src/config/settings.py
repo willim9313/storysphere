@@ -66,6 +66,14 @@ class Settings(BaseSettings):
         description="Vector dimension — must match embedding model output",
     )
 
+    # ── Summarization ─────────────────────────────────────────────────────────
+    summary_max_chapter_chars: int = Field(
+        default=8000, description="Max chapter chars sent to LLM for summarization"
+    )
+    summary_temperature: float = Field(
+        default=0.3, description="LLM temperature for summary generation"
+    )
+
     # ── Cache TTLs ─────────────────────────────────────────────────────────────
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
     analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")

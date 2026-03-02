@@ -40,6 +40,7 @@ class _DocumentRow(_Base):
     file_path = Column(String, nullable=False)
     file_type = Column(String, nullable=False)
     processed_at = Column(String, nullable=True)
+    summary = Column(Text, nullable=True)
 
 
 class _ChapterRow(_Base):
@@ -116,6 +117,7 @@ class DocumentService:
                             if document.processed_at
                             else None
                         ),
+                        summary=document.summary,
                     )
                 )
 
@@ -208,6 +210,7 @@ class DocumentService:
                 file_path=doc_row.file_path,
                 file_type=FileType(doc_row.file_type),
                 chapters=chapters,
+                summary=doc_row.summary,
                 processed_at=(
                     datetime.fromisoformat(doc_row.processed_at)
                     if doc_row.processed_at
@@ -268,3 +271,35 @@ class DocumentService:
                 )
                 for pr in result.scalars().all()
             ]
+
+    async def get_book_summary(self, document_id: str) -> str | None:
+        """Return the book-level summary for a document, or None."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(_DocumentRow.summary).where(_DocumentRow.id == document_id)
+            )
+            return result.scalar_one_or_none()
+
+    async def save_chapter_summary(
+        self, document_id: str, chapter_number: int, summary: str
+    ) -> None:
+        """Update (or set) the summary for a single chapter."""
+        async with self._session_factory() as session:
+            async with session.begin():
+                result = await session.execute(
+                    select(_ChapterRow).where(
+                        _ChapterRow.document_id == document_id,
+                        _ChapterRow.number == chapter_number,
+                    )
+                )
+                row = result.scalar_one_or_none()
+                if row is not None:
+                    row.summary = summary
+
+    async def save_book_summary(self, document_id: str, summary: str) -> None:
+        """Update (or set) the book-level summary for a document."""
+        async with self._session_factory() as session:
+            async with session.begin():
+                row = await session.get(_DocumentRow, document_id)
+                if row is not None:
+                    row.summary = summary

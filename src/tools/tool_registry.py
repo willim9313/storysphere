@@ -20,8 +20,8 @@ from tools.graph_tools import (
     GetRelationStatsTool,
     GetSubgraphTool,
 )
-from tools.other_tools import CompareEntitiesTool, ExtractEntitiesFromTextTool, GetChapterSummaryTool
-from tools.retrieval_tools import GetParagraphsTool, GetSummaryTool, VectorSearchTool
+from tools.other_tools import CompareEntitiesTool, ExtractEntitiesFromTextTool
+from tools.retrieval_tools import GenSummaryTool, GetParagraphsTool, GetSummaryTool, VectorSearchTool
 
 
 def get_chat_tools(
@@ -31,6 +31,7 @@ def get_chat_tools(
     vector_service: Any,
     llm: Any = None,
     entity_extractor: Any = None,
+    summarizer: Any = None,
 ) -> list[BaseTool]:
     """Return all tools available to the chat agent (Phase 4).
 
@@ -40,6 +41,7 @@ def get_chat_tools(
         vector_service: VectorService instance.
         llm: Optional LangChain LLM for insight generation.
         entity_extractor: Optional EntityExtractor for NER tool.
+        summarizer: Optional ChapterSummarizer for on-demand summary generation.
 
     Returns:
         List of 13 fully-functional tools (stubs excluded from chat).
@@ -52,16 +54,16 @@ def get_chat_tools(
         GetRelationPathsTool(kg_service=kg_service),
         GetSubgraphTool(kg_service=kg_service),
         GetRelationStatsTool(kg_service=kg_service),
-        # Retrieval tools (3)
+        # Retrieval tools (4)
         VectorSearchTool(vector_service=vector_service),
         GetSummaryTool(doc_service=doc_service),
         GetParagraphsTool(doc_service=doc_service),
+        GenSummaryTool(doc_service=doc_service, summarizer=summarizer),
         # Analysis tools (1 — stubs excluded from chat)
         GenerateInsightTool(llm=llm),
-        # Other tools (3)
+        # Other tools (2)
         ExtractEntitiesFromTextTool(entity_extractor=entity_extractor),
         CompareEntitiesTool(kg_service=kg_service),
-        GetChapterSummaryTool(doc_service=doc_service),
     ]
 
 
@@ -71,6 +73,7 @@ def get_analysis_tools(
     doc_service: Any,
     vector_service: Any,
     llm: Any = None,
+    summarizer: Any = None,
 ) -> list[BaseTool]:
     """Return tools for the deep analysis workflow (Phase 5).
 
@@ -82,6 +85,7 @@ def get_analysis_tools(
             doc_service=doc_service,
             vector_service=vector_service,
             llm=llm,
+            summarizer=summarizer,
         ),
         AnalyzeCharacterTool(kg_service=kg_service, llm=llm),
         AnalyzeEventTool(kg_service=kg_service, llm=llm),
@@ -100,10 +104,10 @@ def get_all_tool_names() -> list[str]:
         "vector_search",
         "get_summary",
         "get_paragraphs",
+        "gen_summary",
         "generate_insight",
         "extract_entities_from_text",
         "compare_entities",
-        "get_chapter_summary",
         # Stubs (Phase 5)
         "analyze_character",
         "analyze_event",
