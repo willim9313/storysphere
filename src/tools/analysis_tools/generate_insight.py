@@ -1,4 +1,4 @@
-"""GenerateInsightTool — single LLM call to generate an analytical insight.
+"""GenerateInsightTool — delegates to AnalysisService for LLM insight generation.
 
 USE when: the user asks for interpretation, thematic analysis, or wants
     AI-generated commentary on a topic with supporting context.
@@ -20,17 +20,6 @@ from tools.schemas import GenerateInsightInput
 
 logger = logging.getLogger(__name__)
 
-_SYSTEM_PROMPT = """\
-You are a literary analysis expert. Given a topic and supporting context from
-a novel's knowledge graph and text, generate a concise, insightful observation.
-
-Guidelines:
-- Be specific and reference the provided context.
-- Keep the insight to 2-4 sentences.
-- Focus on literary significance, thematic meaning, or narrative implications.
-- If the context is insufficient, state what additional information would help.
-"""
-
 
 class GenerateInsightTool(BaseTool):
     """Generate a single analytical insight using an LLM call."""
@@ -46,32 +35,22 @@ class GenerateInsightTool(BaseTool):
     )
     args_schema: Type[GenerateInsightInput] = GenerateInsightInput
 
-    llm: Any = None  # LangChain BaseChatModel, injected
+    analysis_service: Any = None  # AnalysisService instance, injected
 
     class Config:
         arbitrary_types_allowed = True
 
     async def _arun(self, topic: str, context: str = "") -> str:
-        from langchain_core.messages import HumanMessage, SystemMessage
-
-        llm = self._resolve_llm()
-        messages = [
-            SystemMessage(content=_SYSTEM_PROMPT),
-            HumanMessage(
-                content=f"Topic: {topic}\n\nContext:\n{context}" if context
-                else f"Topic: {topic}\n\n(No additional context provided.)"
-            ),
-        ]
-        response = await llm.ainvoke(messages)
-        content = response.content if hasattr(response, "content") else str(response)
-        return format_tool_output({"topic": topic, "insight": content})
+        svc = self._resolve_service()
+        insight = await svc.generate_insight(topic, context)
+        return format_tool_output({"topic": topic, "insight": insight})
 
     def _run(self, topic: str, context: str = "") -> str:
         import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(topic, context))
 
-    def _resolve_llm(self):
-        if self.llm is not None:
-            return self.llm
-        from core.llm_client import get_llm_client
-        return get_llm_client().get_primary(temperature=0.3)
+    def _resolve_service(self):
+        if self.analysis_service is not None:
+            return self.analysis_service
+        from services.analysis_service import AnalysisService
+        return AnalysisService()

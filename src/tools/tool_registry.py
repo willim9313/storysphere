@@ -30,8 +30,9 @@ def get_chat_tools(
     doc_service: Any,
     vector_service: Any,
     llm: Any = None,
-    entity_extractor: Any = None,
-    summarizer: Any = None,
+    extraction_service: Any = None,
+    summary_service: Any = None,
+    analysis_service: Any = None,
 ) -> list[BaseTool]:
     """Return all tools available to the chat agent (Phase 4).
 
@@ -39,9 +40,10 @@ def get_chat_tools(
         kg_service: KGService instance.
         doc_service: DocumentService instance.
         vector_service: VectorService instance.
-        llm: Optional LangChain LLM for insight generation.
-        entity_extractor: Optional EntityExtractor for NER tool.
-        summarizer: Optional ChapterSummarizer for on-demand summary generation.
+        llm: Optional LangChain LLM (passed to stubs that need raw LLM).
+        extraction_service: Optional ExtractionService for NER tool.
+        summary_service: Optional SummaryService for on-demand summary generation.
+        analysis_service: Optional AnalysisService for insight generation.
 
     Returns:
         List of 13 fully-functional tools (stubs excluded from chat).
@@ -58,11 +60,11 @@ def get_chat_tools(
         VectorSearchTool(vector_service=vector_service),
         GetSummaryTool(doc_service=doc_service),
         GetParagraphsTool(doc_service=doc_service),
-        GenSummaryTool(doc_service=doc_service, summarizer=summarizer),
+        GenSummaryTool(doc_service=doc_service, summarizer=summary_service),
         # Analysis tools (1 — stubs excluded from chat)
-        GenerateInsightTool(llm=llm),
+        GenerateInsightTool(analysis_service=analysis_service),
         # Other tools (2)
-        ExtractEntitiesFromTextTool(entity_extractor=entity_extractor),
+        ExtractEntitiesFromTextTool(extraction_service=extraction_service),
         CompareEntitiesTool(kg_service=kg_service),
     ]
 
@@ -73,7 +75,8 @@ def get_analysis_tools(
     doc_service: Any,
     vector_service: Any,
     llm: Any = None,
-    summarizer: Any = None,
+    summary_service: Any = None,
+    analysis_service: Any = None,
 ) -> list[BaseTool]:
     """Return tools for the deep analysis workflow (Phase 5).
 
@@ -85,7 +88,8 @@ def get_analysis_tools(
             doc_service=doc_service,
             vector_service=vector_service,
             llm=llm,
-            summarizer=summarizer,
+            summary_service=summary_service,
+            analysis_service=analysis_service,
         ),
         AnalyzeCharacterTool(kg_service=kg_service, llm=llm),
         AnalyzeEventTool(kg_service=kg_service, llm=llm),

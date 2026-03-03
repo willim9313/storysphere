@@ -33,22 +33,22 @@ class ExtractEntitiesFromTextTool(BaseTool):
     )
     args_schema: Type[ExtractEntitiesInput] = ExtractEntitiesInput
 
-    entity_extractor: Any = None  # injected or lazy-created
+    extraction_service: Any = None  # ExtractionService instance, injected or lazy
 
     class Config:
         arbitrary_types_allowed = True
 
     async def _arun(self, text: str) -> str:
-        extractor = self._resolve_extractor()
-        entities = await extractor.extract(text, chapter_number=0)
+        svc = self._resolve_service()
+        entities = await svc.extract_entities(text, chapter_number=0)
         return format_tool_output([format_entity(e) for e in entities])
 
     def _run(self, text: str) -> str:
         import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(text))
 
-    def _resolve_extractor(self):
-        if self.entity_extractor is not None:
-            return self.entity_extractor
-        from pipelines.knowledge_graph.entity_extractor import EntityExtractor
-        return EntityExtractor()
+    def _resolve_service(self):
+        if self.extraction_service is not None:
+            return self.extraction_service
+        from services.extraction_service import ExtractionService
+        return ExtractionService()
