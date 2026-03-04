@@ -66,6 +66,52 @@ class TestDetectChapters:
         assert len(chapters) == 2
         assert chapters[0].segments[0][1] == "Author's note."
 
+    # ── new patterns (old_version parity) ──
+
+    def test_volume_book_part_headings(self):
+        """Volume/Book/Part/Act/Scene as standalone headings."""
+        for heading in ["Volume 1", "Book 3", "Part 2", "Act 1", "Scene 5", "Vol II"]:
+            segments = [(0, heading), (1, "Content.")]
+            chapters = detect_chapters(segments)
+            assert len(chapters) == 1, f"Failed for: {heading}"
+
+    def test_chapter_with_title_separator(self):
+        """Chapter heading followed by separator and title."""
+        for heading in [
+            "Chapter 3 - The Return",
+            "Chapter 5: Awakening",
+            "Ch. 2: Title",
+            "Chapter IV: The Quest",
+        ]:
+            segments = [(0, heading), (1, "Content.")]
+            chapters = detect_chapters(segments)
+            assert len(chapters) == 1, f"Failed for: {heading}"
+
+    def test_cjk_chapter_with_title(self):
+        """Chinese chapter heading with separator and title."""
+        for heading in ["第五章：歸來", "第1章: 開始", "第三節-啟程"]:
+            segments = [(0, heading), (1, "內容。")]
+            chapters = detect_chapters(segments)
+            assert len(chapters) == 1, f"Failed for: {heading}"
+
+    def test_compound_volume_chapter(self):
+        """Compound volume + chapter format."""
+        for heading in [
+            "Volume 1, Chapter 5",
+            "Book 2, Act 3",
+            "Part 1 Chapter 1",
+        ]:
+            segments = [(0, heading), (1, "Content.")]
+            chapters = detect_chapters(segments)
+            assert len(chapters) == 1, f"Failed for: {heading}"
+
+    def test_extended_cjk_characters(self):
+        """Chinese chapter with 萬/零/〇 characters."""
+        for heading in ["第零章", "第〇章"]:
+            segments = [(0, heading), (1, "內容。")]
+            chapters = detect_chapters(segments)
+            assert len(chapters) == 1, f"Failed for: {heading}"
+
 
 # ── chunker ─────────────────────────────────────────────────────────────────
 

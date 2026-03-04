@@ -12,19 +12,40 @@ from dataclasses import dataclass, field
 # Patterns that signal the start of a new chapter (case-insensitive).
 # Ordered from most specific to least specific.
 _CHAPTER_PATTERNS: list[re.Pattern[str]] = [
+    # Compound volume + chapter: "Volume 1, Chapter 5", "Book 2, Act 3"
+    re.compile(
+        r"^(volume|vol|book|part)\s*\d{1,4},?\s*(chapter|ch\.?|act|scene)\s*\d{1,4}$",
+        re.IGNORECASE,
+    ),
+    # Chapter/Ch + number/roman + separator + title:
+    # "Chapter 3 - The Return", "Ch. 2: Title", "Chapter IV: The Quest"
+    re.compile(
+        r"^(chapter|chap\.?|ch\.?)\s+(\d+|[ivxlcdm]+)\s*[:\-\u2014\u2013\uFF1A]\s*.+",
+        re.IGNORECASE,
+    ),
+    # "第1章：歸來", "第五章: 標題" (CJK chapter + separator + title)
+    re.compile(r"^第\s*[\d一二三四五六七八九十百千萬零〇]+\s*[章節]\s*[:\-\u2014\u2013\uFF1A]\s*.+"),
     # "Chapter 1", "Chapter One", "CHAPTER I" …
     re.compile(
         r"^(chapter|chap\.?|ch\.?)\s+(\d+|[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten)",
         re.IGNORECASE,
     ),
-    # "第一章", "第1章" (CJK novels)
-    re.compile(r"^第\s*[\d一二三四五六七八九十百千]+\s*[章節]"),
+    # "第一章", "第1章", "第零章" (CJK novels, extended character set)
+    re.compile(r"^第\s*[\d一二三四五六七八九十百千萬零〇]+\s*[章節]"),
+    # "Volume 1", "Book 2", "Part 3", "Act 1", "Scene 5"
+    re.compile(
+        r"^(volume|vol\.?|book|part|act|scene)\s+(\d+|[ivxlcdm]+)$",
+        re.IGNORECASE,
+    ),
     # Stand-alone roman numerals on their own line: "I", "II", "III" …
     re.compile(r"^[IVXLCDM]{1,6}$"),
     # Numeric-only heading: "1", "2" … on its own line (≤3 digits)
     re.compile(r"^\d{1,3}$"),
     # "Prologue" / "Epilogue" / "Preface" / "Introduction"
-    re.compile(r"^(prologue|epilogue|preface|introduction|foreword|afterword)$", re.IGNORECASE),
+    re.compile(
+        r"^(prologue|epilogue|preface|introduction|foreword|afterword)$",
+        re.IGNORECASE,
+    ),
 ]
 
 
