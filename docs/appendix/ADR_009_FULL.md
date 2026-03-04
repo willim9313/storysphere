@@ -212,6 +212,22 @@ PostgreSQL + Neo4j + Redis + Celery + Prometheus
 
 ---
 
+## 舊版演進備註
+
+### Multi-LLM Client 演進
+舊版用自建 Adapter Pattern（`GeminiClient`, `OpenAIClient`, `OllamaClient`），每個 client 實現統一介面。新版改用 LangChain 統一接口（`langchain-google-genai`, `langchain-openai`, `langchain-anthropic`），透過 `LLMClient` factory 建構，不再需要自建 client classes。
+
+### 文檔處理演進
+舊版用 LlamaIndex `SimpleDirectoryReader`（引入大量依賴），新版改用 `pypdf` + `python-docx` 直接處理（減少依賴，更可控）。
+
+### Token Counting（Phase 7 備案）
+舊版有 `TokenCounterFactory`：TikToken for OpenAI、Gemini API counter with local fallback。新版 Phase 7 監控階段可考慮移植，用於 LLM 成本追蹤和 prompt 長度管理。
+
+### 章節偵測
+舊版 `ChapterExtractor` 有 7 種 regex pattern，支持中英文章節標題偵測（如「第X章」、「Chapter X」、「卷X」等）。新版 `chapter_detector.py` 應確認已涵蓋這些 pattern。
+
+---
+
 ## 實施細節
 
 ### 安裝依賴

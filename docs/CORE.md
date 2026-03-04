@@ -94,12 +94,14 @@
 ---
 
 ### ADR-007: 風險管理 ⭐
-**決策**: 三層體系（預防、檢測、降級）  
-**四大風險**:
+**決策**: 三層體系（預防、檢測、降級）
+**六大風險**:
 1. 工具選擇錯誤 → 精確 description + 限制工具集
 2. 結構化輸出失敗 → Pydantic + Retry (3次)
 3. 工具執行失敗 → 超時管理 + 降級
 4. LLM 調用失敗 → 多提供商備份
+5. JSON 解析脆弱性 → 4 步 fallback chain（⚠️ 待移植）
+6. Prompt Injection → DataSanitizer（⚠️ 待移植）
 
 📄 [完整版](appendix/ADR_007_FULL.md)
 
@@ -220,6 +222,18 @@
 
 ---
 
+## 🧩 KG Schema
+
+```
+Entity Types (6): character, location, organization, object, concept, other
+Relation Types (10): family, friendship, romance, enemy, ally, subordinate,
+                     located_in, member_of, owns, other
+```
+
+📄 [Schema 演進備註](appendix/ADR_002_FULL.md#kg-schema-定義)
+
+---
+
 ## 💬 ChatState 定義
 
 ```python
@@ -331,6 +345,8 @@ storysphere/
 - 優先緩存邏輯
 - Pydantic + Retry
 - WebSocket 推送
+- Character Evidence Pack (CEP) extraction
+- Archetype classification（參考 `old_version/config/character_analysis/`）
 
 ### Phase 6: Parallel 優化 (1-2 週)
 → 📄 [guides/PHASE_6_OPTIMIZATION.md](guides/PHASE_6_OPTIMIZATION.md)
@@ -343,6 +359,14 @@ storysphere/
 - 工具選擇準確率追蹤
 
 **總計**: ~12-16 週
+
+---
+
+## 🌐 多語系策略
+
+- **Core prompts**: 統一英文
+- **Output language**: 透過 `output_language` 參數控制（`"Respond in {language}"`）
+- **UI 層**: 未來 i18n 框架（不影響 core）
 
 ---
 

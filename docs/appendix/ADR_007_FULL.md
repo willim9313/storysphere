@@ -237,6 +237,61 @@ async def call_llm_with_fallback(prompt: str):
 
 ---
 
+### 5. JSON 解析脆弱性（風險 5）⚠️ 待移植
+
+#### 現狀
+
+新版 `_parse_json_response()`（`extraction_service.py`）僅處理 markdown fence（`` ```json...``` ``），容易在 LLM 格式偏差時失敗。
+
+#### 舊版方案
+
+舊版 `extract_json_from_text()`（`old_version/src/core/utils/output_extractor.py`）實現了 4 步 fallback chain：
+
+```python
+# 1. ```json...``` code block（正則提取）
+# 2. <JSON>...</JSON> sentinel tags
+# 3. Bracket-balanced scanning（追蹤 {}/[] 嵌套深度）
+# 4. Repair heuristics:
+#    - 移除 // 和 /* */ 註釋
+#    - 移除尾逗號
+#    - 修復單引號 → 雙引號
+#    - Python literals → JSON (True→true, None→null)
+```
+
+#### 行動項
+
+- [ ] 將 `extract_json_from_text()` 移植到 `src/core/utils/output_extractor.py`
+- [ ] 替換 `extraction_service.py` 中的簡易 `_parse_json_response()`
+- [ ] 確保 `analysis_service.py`、`summary_service.py` 等所有 JSON 解析路徑統一使用
+
+---
+
+### 6. Prompt Injection 防護（風險 6）⚠️ 待移植
+
+#### 現狀
+
+Phase 4 Chat Agent 中用戶輸入將直接進入 prompt，目前沒有清理機制。
+
+#### 舊版方案
+
+舊版 `DataSanitizer`（`old_version/src/core/utils/data_sanitizer.py`）提供了：
+
+```python
+# SafeFormatter.escape_braces() — 轉義 {} 防止 format string injection
+# format_vector_store_results() — 清理向量 DB 返回的 payload
+#   - 截斷過長文本
+#   - 移除 prompt-like 內容
+#   - 統一格式化
+```
+
+#### 行動項
+
+- [ ] 將 `DataSanitizer` 移植到 `src/core/utils/data_sanitizer.py`
+- [ ] Phase 4 Chat Agent 的用戶輸入經過 `escape_braces()` 處理
+- [ ] 向量搜索結果經過 `format_vector_store_results()` 清理後再注入 prompt
+
+---
+
 ## 後果 (Consequences)
 
 ### 優點
@@ -252,9 +307,11 @@ async def call_llm_with_fallback(prompt: str):
 
 ### 成功指標
 - 工具選擇準確率 >85%
-- 結構化輸出解析成功率 >98%
+- 結構化輸出解析成功率 >98%（含 JSON fallback chain）
 - 工具執行成功率 >95%
 - Agent 端到端成功率 >90%
+- JSON 解析 fallback 成功率 >99%（4 步 chain）
+- Prompt injection 攔截率 >95%
 
 ---
 

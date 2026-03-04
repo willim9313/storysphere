@@ -120,6 +120,52 @@ Settings 新增欄位：`embedding_model_name`, `embedding_device`,
 
 預設：`all-MiniLM-L6-v2`（384 維，CPU，batch 32）。
 
+### KG Schema 定義
+
+```
+Entity Types (6): character, location, organization, object, concept, other
+Relation Types (10): family, friendship, romance, enemy, ally, subordinate,
+                     located_in, member_of, owns, other
+Event Types (10): plot, conflict, revelation, turning_point, meeting,
+                  battle, death, romance, alliance, other
+```
+
+> **舊版演進備註**: 舊版用 7 entity types（含 Person/Time/Event）+ 9 relation types（action-based: knows, possesses 等）。新版改為文學導向 schema：Person→character、移除 Time/Event entity type（Event 為獨立 domain model）、relation type 改為 relationship-category-based。
+
+### Entity Canonicalization（EntityLinker）
+
+已實現的 3 階段去重流程（`src/pipelines/knowledge_graph/entity_linker.py`）：
+
+1. **載入**: 將 entity/relation 載入結構化格式，正規化名稱（大小寫、空白、別名）
+2. **相似度聚類**: Embed entity names（all-MiniLM-L6-v2）→ cosine similarity（0.95 threshold）→ connected components → canonical name（longest / most-frequent strategy）
+3. **圖建構**: 以 canonical entities 重新建構知識圖譜，合併重複邊
+
+### 向量元數據 Schema
+
+Qdrant 每個 chunk 的 metadata payload：
+
+| 欄位 | 類型 | 說明 |
+|------|------|------|
+| `doc_id` | str | 文檔 ID |
+| `chapter_number` | int | 章節編號 |
+| `chapter_title` | str | 章節標題 |
+| `chunk_seq` | int | chunk 在章節內序號 |
+| `summary` | str | chunk 摘要 |
+| `keywords` | list[str] | 關鍵詞 |
+| `entities` | list[str] | 角色名列表 |
+
+> **舊版備註**: 舊版還在 metadata 中存放 `kg_entities`、`kg_relations`（raw KG data），新版可視檢索需求決定是否保留。
+
+### Keyword Aggregation（未來擴展）
+
+舊版 `KeywordAggregator` 提供了 hierarchical aggregation 設計（chunk→chapter→book）：
+
+- **聚合策略**: sum / avg / max
+- **頻率加權**: log normalization
+- **語義合併**: SentenceTransformer + AgglomerativeClustering
+
+標記為未來 `FeatureExtractionPipeline` 擴展，Phase 2 當前使用簡單的 chunk-level keywords。
+
 ---
 
 ## 相關決策
