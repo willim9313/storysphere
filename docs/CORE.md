@@ -328,6 +328,14 @@ storysphere/
 ### Phase 2: Pipelines 實現 (2-3 週)
 → 📄 [guides/PHASE_2_PIPELINES.md](guides/PHASE_2_PIPELINES.md)
 
+### Phase 2b: Keyword Extraction (1 週)
+→ 📄 [guides/PHASE_2B_KEYWORDS.md](guides/PHASE_2B_KEYWORDS.md)
+- **Ingestion 時觸發**（嵌入 FeatureExtractionPipeline，文檔載入即產出 keywords）
+- **多策略可插拔**：`BaseKeywordExtractor` 介面 + LLM / PKE / TF-IDF / Composite
+- `KeywordAggregator`（chunk → chapter → book 階層聚合）
+- Qdrant metadata `keywords` + `keyword_scores` 寫入
+- **Phase 5 前置條件**（CEP `top_terms` 依賴此功能）
+
 ### Phase 3: 基礎工具實現 (2-3 週) ⭐
 → 📄 [guides/PHASE_3_TOOLS.md](guides/PHASE_3_TOOLS.md)
 - 實現 15-18 個基礎工具
@@ -407,6 +415,7 @@ storysphere/
 ### 實施指南（按 Phase）
 - [Phase 1: Refactor](guides/PHASE_1_REFACTOR.md)
 - [Phase 2: Pipelines](guides/PHASE_2_PIPELINES.md)
+- [Phase 2b: Keyword Extraction](guides/PHASE_2B_KEYWORDS.md)
 - [Phase 3: 工具層](guides/PHASE_3_TOOLS.md)
 - [Phase 4: Chat Agent](guides/PHASE_4_CHAT_AGENT.md)
 - [Phase 5: Deep Analysis](guides/PHASE_5_DEEP_ANALYSIS.md)

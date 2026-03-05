@@ -156,15 +156,20 @@ Qdrant 每個 chunk 的 metadata payload：
 
 > **舊版備註**: 舊版還在 metadata 中存放 `kg_entities`、`kg_relations`（raw KG data），新版可視檢索需求決定是否保留。
 
-### Keyword Aggregation（未來擴展）
+### Keyword Extraction & Aggregation（Phase 2b 計畫）
 
-舊版 `KeywordAggregator` 提供了 hierarchical aggregation 設計（chunk→chapter→book）：
+📄 詳細實施指南: [guides/PHASE_2B_KEYWORDS.md](../guides/PHASE_2B_KEYWORDS.md)
 
-- **聚合策略**: sum / avg / max
-- **頻率加權**: log normalization
-- **語義合併**: SentenceTransformer + AgglomerativeClustering
+**Phase 2b** 將在 `FeatureExtractionPipeline` 中加入 keyword extraction：
 
-標記為未來 `FeatureExtractionPipeline` 擴展，Phase 2 當前使用簡單的 chunk-level keywords。
+1. **`KeywordExtractor`** — LLM 抽取 chunk-level keywords（雙軌：LLM + 統計備援）
+2. **`KeywordAggregator`** — 階層聚合（chunk → chapter → book）
+   - 聚合策略: sum / avg / max
+   - 頻率加權: log normalization
+   - 語義合併: SentenceTransformer + AgglomerativeClustering
+3. **Qdrant metadata** — 寫入 `keywords` 欄位供 Phase 5 CEP `top_terms` 使用
+
+> **依賴**: Phase 5 Deep Analysis 的 CEP `top_terms` 欄位依賴此功能完成。
 
 ---
 
