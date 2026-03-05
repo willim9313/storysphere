@@ -175,6 +175,39 @@ class GenSummaryInput(BaseModel):
     )
 
 
+# ── Composite Tool Inputs ──────────────────────────────────────────────────
+
+
+class GetEntityProfileInput(BaseModel):
+    """Input for comprehensive entity profile (composite tool)."""
+
+    entity_id: str = Field(
+        description="The entity ID (UUID) or exact entity name."
+    )
+
+
+class GetRelationshipInput(BaseModel):
+    """Input for complete relationship info between two entities."""
+
+    entity_a: str = Field(description="First entity ID or name.")
+    entity_b: str = Field(description="Second entity ID or name.")
+
+
+class GetCharacterArcInput(BaseModel):
+    """Input for character development arc analysis."""
+
+    entity_id: str = Field(
+        description="The character entity ID or name."
+    )
+
+
+class CompareCharactersInput(BaseModel):
+    """Input for side-by-side character comparison."""
+
+    entity_a: str = Field(description="First character entity ID or name.")
+    entity_b: str = Field(description="Second character entity ID or name.")
+
+
 # ── Analysis Output Schemas (documentation / Phase 5 validation) ─────────
 
 

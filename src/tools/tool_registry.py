@@ -12,6 +12,12 @@ from typing import Any
 from langchain_core.tools import BaseTool
 
 from tools.analysis_tools import AnalyzeCharacterTool, AnalyzeEventTool, GenerateInsightTool
+from tools.composite_tools import (
+    CompareCharactersTool,
+    GetCharacterArcTool,
+    GetEntityProfileTool,
+    GetEntityRelationshipTool,
+)
 from tools.graph_tools import (
     GetEntityAttributesTool,
     GetEntityRelationsTool,
@@ -69,6 +75,27 @@ def get_chat_tools(
         # Other tools (2)
         ExtractEntitiesFromTextTool(extraction_service=extraction_service),
         CompareEntitiesTool(kg_service=kg_service),
+        # Composite tools (4)
+        GetEntityProfileTool(
+            kg_service=kg_service,
+            doc_service=doc_service,
+            vector_service=vector_service,
+        ),
+        GetEntityRelationshipTool(
+            kg_service=kg_service,
+            doc_service=doc_service,
+            vector_service=vector_service,
+        ),
+        GetCharacterArcTool(
+            kg_service=kg_service,
+            vector_service=vector_service,
+            analysis_service=analysis_service,
+        ),
+        CompareCharactersTool(
+            kg_service=kg_service,
+            vector_service=vector_service,
+            analysis_service=analysis_service,
+        ),
     ]
 
 
@@ -118,6 +145,11 @@ def get_all_tool_names() -> list[str]:
         "generate_insight",
         "extract_entities_from_text",
         "compare_entities",
+        # Composite tools (Phase 4)
+        "get_entity_profile",
+        "get_entity_relationship",
+        "get_character_arc",
+        "compare_characters",
         # Stubs (Phase 5)
         "analyze_character",
         "analyze_event",

@@ -1,2 +1,224 @@
-"""Chat Agent - LangGraph-based streaming reasoning agent."""
-# TODO: Phase 4 implementation
+"""Chat Agent — LangGraph-based streaming reasoning agent.
+
+Wraps a ``create_react_agent`` graph with:
+- ``QueryPatternRecognizer`` pre-filter for fast-routing common queries
+- ``ChatState`` management (entity tracking, tool cache, pronoun resolution)
+- Streaming support via ``astream_events(version="v2")``
+"""
+
+from __future__ import annotations
+
+import logging
+from collections.abc import AsyncGenerator
+from typing import Any, Optional
+
+from langchain_core.messages import AIMessage, HumanMessage
+from langgraph.prebuilt import create_react_agent
+
+from agents.pattern_recognizer import QueryPatternRecognizer
+from agents.states import ChatState
+from tools.tool_registry import get_chat_tools
+
+logger = logging.getLogger(__name__)
+
+_SYSTEM_PROMPT = """\
+You are a novel analysis assistant. Help users explore story content using the available tools.
+
+TOOL SELECTION RULES:
+- For "Who is X?" → get_entity_profile (comprehensive) or get_entity_attributes (quick)
+- For "Relationship between X and Y?" → get_entity_relationship
+- For "How does X change?" → get_character_arc
+- For "Compare X and Y" → compare_characters
+- For finding passages → vector_search
+- For chapter overview → get_summary
+
+EXAMPLES:
+Q: "Who is Elizabeth Bennet?"
+→ get_entity_profile(entity_id="Elizabeth Bennet")
+
+Q: "What is the relationship between Elizabeth and Darcy?"
+→ get_entity_relationship(entity_a="Elizabeth Bennet", entity_b="Mr. Darcy")
+
+Q: "How does Elizabeth develop throughout the story?"
+→ get_character_arc(entity_id="Elizabeth Bennet")
+
+Q: "Compare Elizabeth and Jane"
+→ compare_characters(entity_a="Elizabeth Bennet", entity_b="Jane Bennet")
+
+DO NOT use vector_search for entity lookups. DO NOT use get_entity_attributes when the user wants relationships.
+Always respond in the same language the user uses.
+"""
+
+
+class ChatAgent:
+    """LangGraph-based chat agent for novel analysis.
+
+    Usage::
+
+        agent = ChatAgent(kg_service=kg, doc_service=doc, vector_service=vec)
+        state = ChatState()
+        answer = await agent.chat("Who is Alice?", state)
+    """
+
+    def __init__(
+        self,
+        *,
+        kg_service: Any,
+        doc_service: Any,
+        vector_service: Any,
+        llm: Any = None,
+        extraction_service: Any = None,
+        summary_service: Any = None,
+        analysis_service: Any = None,
+        keyword_service: Any = None,
+        system_prompt: str | None = None,
+    ) -> None:
+        self._kg_service = kg_service
+        self._doc_service = doc_service
+        self._vector_service = vector_service
+        self._analysis_service = analysis_service
+
+        # Build tools
+        self._tools = get_chat_tools(
+            kg_service=kg_service,
+            doc_service=doc_service,
+            vector_service=vector_service,
+            llm=llm,
+            extraction_service=extraction_service,
+            summary_service=summary_service,
+            analysis_service=analysis_service,
+            keyword_service=keyword_service,
+        )
+        self._tool_map = {t.name: t for t in self._tools}
+
+        # LLM
+        self._llm = llm or self._default_llm()
+
+        # Build the LangGraph agent
+        self._system_prompt = system_prompt or _SYSTEM_PROMPT
+        self._graph = create_react_agent(
+            model=self._llm,
+            tools=self._tools,
+            prompt=self._system_prompt,
+        )
+
+        # Fast-route recognizer
+        self._recognizer = QueryPatternRecognizer()
+
+    @staticmethod
+    def _default_llm():
+        from core.llm_client import get_llm_client  # noqa: PLC0415
+
+        from config.settings import get_settings  # noqa: PLC0415
+
+        settings = get_settings()
+        return get_llm_client().get_primary(temperature=settings.chat_agent_temperature)
+
+    async def chat(self, query: str, state: ChatState) -> str:
+        """Single-turn chat: returns the final assistant response text.
+
+        1. Try fast route via QueryPatternRecognizer
+        2. Fall back to full LangGraph ReAct loop
+        3. Update ChatState with entity mentions and tool results
+        """
+        # Pronoun resolution
+        resolved = state.resolve_pronoun(query.strip())
+        if resolved and len(query.split()) <= 3:
+            query = query.replace(query.strip(), resolved)
+
+        state.add_message("user", query)
+
+        # Fast route
+        match = self._recognizer.recognize(query)
+        if match and match.confidence > 0.8:
+            result = await self._fast_route(match, query, state)
+            if result is not None:
+                state.add_message("assistant", result)
+                state.last_query_type = match.pattern_name
+                return result
+
+        # Full agent loop
+        response = await self._agent_invoke(query)
+
+        # Update state
+        state.add_message("assistant", response)
+        if match:
+            state.last_query_type = match.pattern_name
+            for entity in match.extracted_entities:
+                state.add_entity_mention(entity)
+
+        state.trim_history(max_turns=20)
+        return response
+
+    async def astream(self, query: str, state: ChatState) -> AsyncGenerator[str, None]:
+        """Streaming chat: yields token chunks as they arrive.
+
+        Falls back to non-streaming ``chat()`` if streaming is not supported.
+        """
+        state.add_message("user", query)
+
+        messages = [HumanMessage(content=query)]
+        try:
+            async for event in self._graph.astream_events(
+                {"messages": messages}, version="v2"
+            ):
+                kind = event.get("event", "")
+                if kind == "on_chat_model_stream":
+                    chunk = event.get("data", {}).get("chunk")
+                    if chunk and hasattr(chunk, "content") and chunk.content:
+                        yield chunk.content
+        except Exception:
+            logger.exception("Streaming failed, falling back to non-streaming")
+            result = await self._agent_invoke(query)
+            yield result
+
+    async def _fast_route(
+        self, match, query: str, state: ChatState
+    ) -> Optional[str]:
+        """Execute the recommended tool directly, bypassing the ReAct loop."""
+        tool_name = match.suggested_tools[0] if match.suggested_tools else None
+        tool = self._tool_map.get(tool_name) if tool_name else None
+        if tool is None:
+            return None
+
+        entities = match.extracted_entities
+        try:
+            if match.pattern_name in ("entity_info", "timeline"):
+                if entities:
+                    result = await tool._arun(entity_id=entities[0])
+                else:
+                    return None
+            elif match.pattern_name in ("relationship", "comparison"):
+                if len(entities) >= 2:
+                    result = await tool._arun(
+                        entity_a=entities[0], entity_b=entities[1]
+                    )
+                else:
+                    return None
+            elif match.pattern_name == "summary":
+                return None  # Let agent handle (needs document_id)
+            elif match.pattern_name == "search":
+                result = await tool._arun(query=query)
+            else:
+                return None
+
+            # Cache the result
+            state.cache_tool_result(tool_name, result)
+            for entity in entities:
+                state.add_entity_mention(entity)
+            return result
+        except Exception:
+            logger.debug("Fast route failed for %s, falling back to agent", tool_name)
+            return None
+
+    async def _agent_invoke(self, query: str) -> str:
+        """Invoke the LangGraph agent and extract the final response text."""
+        messages = [HumanMessage(content=query)]
+        result = await self._graph.ainvoke({"messages": messages})
+
+        # Extract the last AI message
+        output_messages = result.get("messages", [])
+        for msg in reversed(output_messages):
+            if isinstance(msg, AIMessage) and msg.content:
+                return msg.content
+        return "I could not generate a response. Please try rephrasing your question."

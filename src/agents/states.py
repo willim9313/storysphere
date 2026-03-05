@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Optional
 
 from pydantic import BaseModel, Field
@@ -32,3 +33,52 @@ class ChatState(BaseModel):
 
     # 上次查詢類型
     last_query_type: Optional[str] = None
+
+    # ── Methods ────────────────────────────────────────────────────────────────
+
+    def add_entity_mention(self, entity: str) -> None:
+        """Track an entity mention and update focus entity."""
+        self.entity_mentions[entity] = self.entity_mentions.get(entity, 0) + 1
+        self.current_focus_entity = entity
+        if entity not in self.detected_entities:
+            self.detected_entities.append(entity)
+
+    def resolve_pronoun(self, pronoun: str) -> str | None:
+        """Resolve a pronoun to the current focus entity.
+
+        Supports: he, she, they, it, him, her, them,
+                  他, 她, 它, 他們, 她們, 它們
+        """
+        pronoun_set = {
+            "he", "she", "they", "it", "him", "her", "them",
+            "他", "她", "它", "他們", "她們", "它們",
+        }
+        if pronoun.lower().strip() in pronoun_set:
+            return self.current_focus_entity
+        return None
+
+    def cache_tool_result(self, tool_name: str, result: Any) -> None:
+        """Cache a tool result with timestamp."""
+        self.last_tool_results[tool_name] = {
+            "result": result,
+            "timestamp": datetime.now().isoformat(),
+        }
+
+    def get_cached_result(self, tool_name: str, ttl_seconds: int = 300) -> Any | None:
+        """Return cached result if it exists and is younger than *ttl_seconds*."""
+        entry = self.last_tool_results.get(tool_name)
+        if entry is None:
+            return None
+        cached_time = datetime.fromisoformat(entry["timestamp"])
+        if (datetime.now() - cached_time).total_seconds() > ttl_seconds:
+            return None
+        return entry["result"]
+
+    def add_message(self, role: str, content: str) -> None:
+        """Append a message to conversation history."""
+        self.conversation_history.append(Message(role=role, content=content))
+
+    def trim_history(self, max_turns: int = 10) -> None:
+        """Keep only the last *max_turns* messages."""
+        if len(self.conversation_history) > max_turns:
+            self.conversation_history = self.conversation_history[-max_turns:]

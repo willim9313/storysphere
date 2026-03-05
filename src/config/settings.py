@@ -91,6 +91,14 @@ class Settings(BaseSettings):
         description="Comma-separated extractor:weight pairs for composite mode",
     )
 
+    # ── Chat Agent ──────────────────────────────────────────────────────────────
+    chat_agent_max_iterations: int = Field(
+        default=10, description="Max ReAct loop iterations for chat agent"
+    )
+    chat_agent_temperature: float = Field(
+        default=0.3, description="LLM temperature for chat agent"
+    )
+
     # ── Cache TTLs ─────────────────────────────────────────────────────────────
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
     analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")
