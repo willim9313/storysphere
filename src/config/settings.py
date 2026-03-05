@@ -74,6 +74,23 @@ class Settings(BaseSettings):
         default=0.3, description="LLM temperature for summary generation"
     )
 
+    # ── Keyword Extraction ───────────────────────────────────────────────────
+    keyword_extractor_type: str = Field(
+        default="yake",
+        description="Keyword extractor: yake|llm|tfidf|composite|none",
+    )
+    keyword_max_per_paragraph: int = Field(default=10, description="Max keywords per paragraph")
+    keyword_max_per_chapter: int = Field(default=20, description="Max keywords per chapter")
+    keyword_max_per_book: int = Field(default=30, description="Max keywords per book")
+    keyword_aggregation_strategy: str = Field(
+        default="weighted_sum",
+        description="Aggregation: sum|avg|max|weighted_sum",
+    )
+    keyword_composite_weights: str = Field(
+        default="yake:0.4,llm:0.6",
+        description="Comma-separated extractor:weight pairs for composite mode",
+    )
+
     # ── Cache TTLs ─────────────────────────────────────────────────────────────
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
     analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")

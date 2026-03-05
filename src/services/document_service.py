@@ -41,6 +41,7 @@ class _DocumentRow(_Base):
     file_type = Column(String, nullable=False)
     processed_at = Column(String, nullable=True)
     summary = Column(Text, nullable=True)
+    keywords_json = Column(Text, nullable=True)  # JSON-encoded dict[str, float]
 
 
 class _ChapterRow(_Base):
@@ -51,6 +52,7 @@ class _ChapterRow(_Base):
     number = Column(Integer, nullable=False)
     title = Column(String, nullable=True)
     summary = Column(Text, nullable=True)
+    keywords_json = Column(Text, nullable=True)  # JSON-encoded dict[str, float]
 
 
 class _ParagraphRow(_Base):
@@ -303,3 +305,81 @@ class DocumentService:
                 row = await session.get(_DocumentRow, document_id)
                 if row is not None:
                     row.summary = summary
+
+    # ── Keywords ─────────────────────────────────────────────────────────────
+
+    async def save_chapter_keywords(
+        self, document_id: str, chapter_number: int, keywords: dict[str, float]
+    ) -> None:
+        """Store keyword scores for a chapter."""
+        async with self._session_factory() as session:
+            async with session.begin():
+                result = await session.execute(
+                    select(_ChapterRow).where(
+                        _ChapterRow.document_id == document_id,
+                        _ChapterRow.number == chapter_number,
+                    )
+                )
+                row = result.scalar_one_or_none()
+                if row is not None:
+                    row.keywords_json = json.dumps(keywords, ensure_ascii=False)
+
+    async def get_chapter_keywords(
+        self, document_id: str, chapter_number: int
+    ) -> dict[str, float] | None:
+        """Return keyword scores for a chapter, or None."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(_ChapterRow.keywords_json).where(
+                    _ChapterRow.document_id == document_id,
+                    _ChapterRow.number == chapter_number,
+                )
+            )
+            raw = result.scalar_one_or_none()
+            if raw is None:
+                return None
+            return json.loads(raw)
+
+    async def save_book_keywords(
+        self, document_id: str, keywords: dict[str, float]
+    ) -> None:
+        """Store keyword scores for a book."""
+        async with self._session_factory() as session:
+            async with session.begin():
+                row = await session.get(_DocumentRow, document_id)
+                if row is not None:
+                    row.keywords_json = json.dumps(keywords, ensure_ascii=False)
+
+    async def get_book_keywords(self, document_id: str) -> dict[str, float] | None:
+        """Return keyword scores for a book, or None."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(_DocumentRow.keywords_json).where(_DocumentRow.id == document_id)
+            )
+            raw = result.scalar_one_or_none()
+            if raw is None:
+                return None
+            return json.loads(raw)
+
+    async def search_chapters_by_keyword(
+        self, document_id: str, keyword: str
+    ) -> list[dict[str, object]]:
+        """Find chapters containing a specific keyword. Returns list of dicts."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(_ChapterRow).where(
+                    _ChapterRow.document_id == document_id,
+                    _ChapterRow.keywords_json.isnot(None),
+                ).order_by(_ChapterRow.number)
+            )
+            matches: list[dict[str, object]] = []
+            keyword_lower = keyword.lower()
+            for row in result.scalars().all():
+                kws = json.loads(row.keywords_json)
+                if keyword_lower in kws:
+                    matches.append({
+                        "chapter_number": row.number,
+                        "title": row.title,
+                        "score": kws[keyword_lower],
+                    })
+            return matches

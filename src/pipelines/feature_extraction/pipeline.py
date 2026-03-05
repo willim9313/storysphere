@@ -1,4 +1,4 @@
-"""Feature extraction pipeline: Document paragraphs → embeddings → Qdrant.
+"""Feature extraction pipeline: Document paragraphs → embeddings + keywords → Qdrant.
 
 Memory strategy
 ---------------
@@ -37,6 +37,7 @@ class FeatureExtractionResult:
 
     document_id: str
     paragraphs_embedded: int = 0
+    keywords_extracted: int = 0
     qdrant_ids: list[str] = field(default_factory=list)
 
 
@@ -51,9 +52,13 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         self,
         embedding_generator: EmbeddingGenerator | None = None,
         qdrant_client=None,  # type: ignore[assignment]
+        keyword_extractor=None,
+        keyword_aggregator=None,
     ) -> None:
         self._embedder = embedding_generator or EmbeddingGenerator()
         self._qdrant = qdrant_client  # optional; pass None to skip Qdrant upsert
+        self._keyword_extractor = keyword_extractor  # BaseKeywordExtractor | None
+        self._keyword_aggregator = keyword_aggregator  # KeywordAggregator | None
 
     async def run(self, input_data: Document) -> FeatureExtractionResult:
         """Embed paragraphs chapter by chapter and (optionally) store in Qdrant.
@@ -66,7 +71,9 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         """
         doc = input_data
         total_embedded = 0
+        total_keywords = 0
         all_qdrant_ids: list[str] = []
+        all_chapter_keywords: list[dict[str, float]] = []
 
         for chapter in doc.chapters:
             paragraphs = chapter.paragraphs
@@ -78,6 +85,34 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
 
             # vectors: list[list[float]] — one 384-dim vector per paragraph
             vectors = await self._embedder.aembed_texts(texts)
+
+            # ── Keyword extraction (per paragraph) ─────────────────────────
+            paragraph_keywords: list[dict[str, float]] = []
+            if self._keyword_extractor is not None:
+                from config.settings import get_settings  # noqa: PLC0415
+
+                settings = get_settings()
+                max_kw = settings.keyword_max_per_paragraph
+
+                for para in paragraphs:
+                    try:
+                        kws = await self._keyword_extractor.extract(para.text, max_kw)
+                        para.keywords = kws
+                        paragraph_keywords.append(kws)
+                        total_keywords += 1
+                    except Exception as exc:  # noqa: BLE001
+                        logger.warning(
+                            "Keyword extraction failed for para %s: %s", para.id, exc
+                        )
+                        paragraph_keywords.append({})
+
+                # Aggregate paragraph → chapter keywords
+                if paragraph_keywords and self._keyword_aggregator is not None:
+                    chapter.keywords = self._keyword_aggregator.aggregate(
+                        paragraph_keywords,
+                        top_k=settings.keyword_max_per_chapter,
+                    )
+                    all_chapter_keywords.append(chapter.keywords)
 
             if self._qdrant is not None:
                 # Qdrant path: write immediately, do NOT keep embedding in memory.
@@ -93,14 +128,26 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
             total_embedded += len(paragraphs)
             # vectors goes out of scope here → eligible for GC
 
+        # ── Aggregate chapter → book keywords ──────────────────────────────
+        if all_chapter_keywords and self._keyword_aggregator is not None:
+            from config.settings import get_settings  # noqa: PLC0415
+
+            settings = get_settings()
+            doc.keywords = self._keyword_aggregator.aggregate(
+                all_chapter_keywords,
+                top_k=settings.keyword_max_per_book,
+            )
+
         if total_embedded > 0:
             qdrant_note = (
                 f", {len(all_qdrant_ids)} upserted to Qdrant" if all_qdrant_ids else ""
             )
+            kw_note = f", {total_keywords} paragraphs with keywords" if total_keywords else ""
             logger.info(
-                "FeatureExtractionPipeline done: %d paragraphs embedded%s",
+                "FeatureExtractionPipeline done: %d paragraphs embedded%s%s",
                 total_embedded,
                 qdrant_note,
+                kw_note,
             )
         else:
             logger.warning("Document '%s' has no paragraphs — skipping embedding", doc.id)
@@ -108,6 +155,7 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         return FeatureExtractionResult(
             document_id=doc.id,
             paragraphs_embedded=total_embedded,
+            keywords_extracted=total_keywords,
             qdrant_ids=all_qdrant_ids,
         )
 
@@ -136,6 +184,8 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
                     "chapter_number": para.chapter_number,
                     "position": para.position,
                     "text": para.text,
+                    "keywords": list(para.keywords.keys()) if para.keywords else [],
+                    "keyword_scores": para.keywords if para.keywords else {},
                 },
             )
             for para, vec in zip(paragraphs, vectors)

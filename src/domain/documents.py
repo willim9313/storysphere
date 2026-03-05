@@ -21,6 +21,7 @@ class Paragraph(BaseModel):
     chapter_number: int
     position: int = Field(description="0-indexed position within the chapter")
     embedding: Optional[list[float]] = None
+    keywords: Optional[dict[str, float]] = None
 
 
 class Chapter(BaseModel):
@@ -31,6 +32,7 @@ class Chapter(BaseModel):
     title: Optional[str] = None
     paragraphs: list[Paragraph] = Field(default_factory=list)
     summary: Optional[str] = None
+    keywords: Optional[dict[str, float]] = None
 
     @property
     def word_count(self) -> int:
@@ -47,6 +49,7 @@ class Document(BaseModel):
     file_type: FileType
     chapters: list[Chapter] = Field(default_factory=list)
     summary: Optional[str] = None  # book-level summary
+    keywords: Optional[dict[str, float]] = None
     processed_at: Optional[datetime] = None
 
     @property

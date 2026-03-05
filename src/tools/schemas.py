@@ -155,6 +155,16 @@ class CompareEntitiesInput(BaseModel):
     entity_b: str = Field(description="Second entity ID or name.")
 
 
+class GetKeywordsInput(BaseModel):
+    """Input for retrieving keywords for a chapter or book."""
+
+    document_id: str = Field(description="The document ID.")
+    chapter_number: Optional[int] = Field(
+        default=None,
+        description="Specific chapter number. If omitted, returns book-level keywords.",
+    )
+
+
 class GenSummaryInput(BaseModel):
     """Input for (re)generating a chapter or book summary on demand."""
 

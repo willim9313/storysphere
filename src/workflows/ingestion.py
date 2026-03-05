@@ -41,6 +41,7 @@ class IngestionResult:
     chapters: int = 0
     paragraphs: int = 0
     paragraphs_embedded: int = 0
+    keywords_extracted: int = 0
     chapters_summarized: int = 0
     book_summary_generated: bool = False
     entities: int = 0
@@ -75,6 +76,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         skip_qdrant: bool = False,
         skip_kg: bool = False,
         skip_summarization: bool = False,
+        skip_keywords: bool = False,
     ) -> None:
         """
         Args:
@@ -95,7 +97,12 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             self._feature_pipeline = feature_pipeline
         else:
             qdrant_client = None if skip_qdrant else self._build_qdrant_client()
-            self._feature_pipeline = FeatureExtractionPipeline(qdrant_client=qdrant_client)
+            kw_extractor, kw_aggregator = self._build_keyword_components(skip_keywords)
+            self._feature_pipeline = FeatureExtractionPipeline(
+                qdrant_client=qdrant_client,
+                keyword_extractor=kw_extractor,
+                keyword_aggregator=kw_aggregator,
+            )
 
         # KG pipeline: pass kg_service so it writes directly
         if kg_pipeline is not None:
@@ -108,6 +115,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         self._summarization_pipeline = summarization_pipeline or SummarizationPipeline()
         self._skip_kg = skip_kg
         self._skip_summarization = skip_summarization
+        self._skip_keywords = skip_keywords
 
     async def run(self, input_data: Path) -> IngestionResult:
         """Ingest a novel file end-to-end.
@@ -187,6 +195,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             chapters=doc.total_chapters,
             paragraphs=doc.total_paragraphs,
             paragraphs_embedded=feat_result.paragraphs_embedded,
+            keywords_extracted=feat_result.keywords_extracted,
             chapters_summarized=summ_result.chapters_summarized,
             book_summary_generated=summ_result.book_summary_generated,
             entities=len(kg_result.entities),
@@ -205,6 +214,32 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         return result
 
     # ── private helpers ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _build_keyword_components(skip: bool = False):
+        """Build keyword extractor and aggregator from settings.
+
+        Returns:
+            Tuple of (extractor, aggregator), both None if skip=True.
+        """
+        if skip:
+            return None, None
+        try:
+            from config.settings import get_settings  # noqa: PLC0415
+            from services.keyword_service import (  # noqa: PLC0415
+                KeywordAggregator,
+                build_keyword_extractor,
+            )
+
+            settings = get_settings()
+            extractor = build_keyword_extractor(settings.keyword_extractor_type)
+            if extractor is None:
+                return None, None
+            aggregator = KeywordAggregator(strategy=settings.keyword_aggregation_strategy)
+            return extractor, aggregator
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Keyword extraction setup failed (%s) — keywords will be skipped", exc)
+            return None, None
 
     @staticmethod
     def _build_qdrant_client():

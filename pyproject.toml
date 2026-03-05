@@ -49,6 +49,9 @@ dependencies = [
     "sentence-transformers>=3.0",
     "langchain-huggingface>=0.1.0",
 
+    # ========== Keyword Extraction ==========
+    "yake>=0.4.8",
+
     # ========== Utilities ==========
     "python-dotenv>=1.0",
     "pyyaml>=6.0",

@@ -120,6 +120,56 @@ class VectorService:
             )
         return results
 
+    # ── Keyword search ──────────────────────────────────────────────────────
+
+    async def search_by_keyword(
+        self,
+        keyword: str,
+        top_k: int = 10,
+        document_id: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Search paragraphs by keyword match on the ``keywords`` payload field.
+
+        Returns list of dicts with: ``id``, ``text``, ``document_id``,
+        ``chapter_number``, ``position``, ``keyword_scores``.
+        """
+        conditions: list[models.FieldCondition] = [
+            models.FieldCondition(
+                key="keywords",
+                match=models.MatchValue(value=keyword.lower()),
+            )
+        ]
+        if document_id:
+            conditions.append(
+                models.FieldCondition(
+                    key="document_id",
+                    match=models.MatchValue(value=document_id),
+                )
+            )
+
+        scroll_result = self._client.scroll(
+            collection_name=self._collection,
+            scroll_filter=models.Filter(must=conditions),
+            limit=top_k,
+            with_payload=True,
+        )
+
+        results: list[dict[str, Any]] = []
+        points = scroll_result[0] if isinstance(scroll_result, tuple) else scroll_result
+        for point in points:
+            payload = point.payload or {}
+            results.append(
+                {
+                    "id": str(point.id),
+                    "text": payload.get("text", ""),
+                    "document_id": payload.get("document_id", ""),
+                    "chapter_number": payload.get("chapter_number", 0),
+                    "position": payload.get("position", 0),
+                    "keyword_scores": payload.get("keyword_scores", {}),
+                }
+            )
+        return results
+
     # ── Upsert (used by ingestion / tests) ────────────────────────────────────
 
     async def upsert_paragraphs(
@@ -145,6 +195,8 @@ class VectorService:
                     "document_id": p.get("document_id", ""),
                     "chapter_number": p.get("chapter_number", 0),
                     "position": p.get("position", 0),
+                    "keywords": p.get("keywords", []),
+                    "keyword_scores": p.get("keyword_scores", {}),
                 },
             )
             for p in paragraphs
