@@ -335,8 +335,9 @@ class KeywordService:
     Used by the tools layer (GetKeywordsTool) to retrieve stored keywords.
     """
 
-    def __init__(self, doc_service: Any) -> None:
+    def __init__(self, doc_service: Any, kg_service: Any = None) -> None:
         self._doc_service = doc_service
+        self._kg_service = kg_service
 
     async def get_chapter_keywords(
         self, document_id: str, chapter_number: int
@@ -350,6 +351,51 @@ class KeywordService:
         self, document_id: str, keyword: str
     ) -> list[dict[str, Any]]:
         return await self._doc_service.search_chapters_by_keyword(document_id, keyword)
+
+    async def get_entity_keywords(
+        self,
+        document_id: str,
+        entity_name: str,
+        top_k: int = 15,
+    ) -> dict[str, float]:
+        """Get keywords relevant to a specific entity.
+
+        Strategy: find chapters where the entity appears (via KGService timeline),
+        then aggregate per-chapter keywords. Falls back to book-level keywords
+        if kg_service is unavailable or the entity has no timeline.
+        """
+        chapter_keywords: list[dict[str, float]] = []
+
+        if self._kg_service is not None:
+            try:
+                entity = await self._kg_service.get_entity_by_name(entity_name)
+                if entity is not None:
+                    events = await self._kg_service.get_entity_timeline(entity.id)
+                    chapters_seen: set[int] = set()
+                    for evt in events:
+                        ch = getattr(evt, "chapter_number", None)
+                        if ch is not None and ch not in chapters_seen:
+                            chapters_seen.add(ch)
+                            kws = await self.get_chapter_keywords(document_id, ch)
+                            if kws:
+                                chapter_keywords.append(kws)
+            except Exception:
+                logger.warning(
+                    "Failed to get entity timeline for %r, falling back to book keywords",
+                    entity_name,
+                    exc_info=True,
+                )
+
+        if chapter_keywords:
+            aggregator = KeywordAggregator(strategy="weighted_sum")
+            return aggregator.aggregate(chapter_keywords, top_k=top_k)
+
+        # Fallback: book-level keywords
+        book_kws = await self.get_book_keywords(document_id)
+        if book_kws:
+            sorted_kws = sorted(book_kws.items(), key=lambda x: x[1], reverse=True)
+            return dict(sorted_kws[:top_k])
+        return {}
 
 
 # ── Factory ──────────────────────────────────────────────────────────────────

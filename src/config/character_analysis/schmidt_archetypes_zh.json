@@ -1,0 +1,1137 @@
+[
+  {
+    "id": "seductive_muse",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "誘惑的繆斯女神",
+    "core_desire": "啟發他人、成為被追求的對象",
+    "greatest_fear": "失去魅力、被忽視",
+    "traits": [
+      "具吸引力",
+      "直覺敏銳",
+      "神祕",
+      "激發靈感"
+    ],
+    "shadow_traits": [
+      "操弄他人",
+      "沉溺情慾",
+      "自戀"
+    ],
+    "narrative_function": "激發主角靈感與轉變，象徵創造與愛情能量",
+    "arc_pattern": "魅力四射 → 被誤解 → 找回真我與價值",
+    "example_characters": [
+      "阿芙蘿黛蒂",
+      "瑪麗蓮夢露",
+      "綺拉奈特莉在《戀愛沒有假期》"
+    ]
+  },
+  {
+    "id": "femme_fatale",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "蛇蠍美人",
+    "core_desire": "操控他人滿足自我",
+    "greatest_fear": "失去掌控權、被遺棄",
+    "traits": [
+      "性感",
+      "誘惑",
+      "魅力十足"
+    ],
+    "shadow_traits": [
+      "操縱",
+      "背叛",
+      "誘惑毀滅"
+    ],
+    "narrative_function": "挑戰主角意志、象徵毀滅性慾望",
+    "arc_pattern": "控制男性 → 製造混亂 → 自食惡果",
+    "example_characters": [
+      "莎樂美",
+      "黑寡婦初期形象",
+      "《黑色追緝令》的米亞"
+    ]
+  },
+  {
+    "id": "amazon",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "女戰士（亞馬遜）",
+    "core_desire": "證明女性的力量與價值",
+    "greatest_fear": "被控制、失去自主權",
+    "traits": [
+      "堅強",
+      "獨立",
+      "果斷",
+      "行動導向"
+    ],
+    "shadow_traits": [
+      "冷酷",
+      "拒絕親密",
+      "剛愎自用"
+    ],
+    "narrative_function": "代表女性主體性與行動力，突破傳統束縛",
+    "arc_pattern": "挑戰權威 → 建立地位 → 學習柔軟",
+    "example_characters": [
+      "神力女超人",
+      "米蘭達在《穿著Prada的惡魔》",
+      "花木蘭"
+    ]
+  },
+  {
+    "id": "gorgon",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "蛇髮女妖（魔女）",
+    "core_desire": "透過恐懼或超自然力量來掌控",
+    "greatest_fear": "被否定存在、被除去力量",
+    "traits": [
+      "強大",
+      "神秘",
+      "非凡"
+    ],
+    "shadow_traits": [
+      "報復",
+      "恐嚇",
+      "孤立他人"
+    ],
+    "narrative_function": "象徵壓抑的女性力量與復仇",
+    "arc_pattern": "受傷 → 黑化 → 尋求認同或毀滅",
+    "example_characters": [
+      "梅杜莎",
+      "黑魔女",
+      "《冰雪奇緣》的艾莎（黑化版本）"
+    ]
+  },
+  {
+    "id": "fathers_daughter",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "父親的女兒",
+    "core_desire": "獲得認同與成就",
+    "greatest_fear": "被拒絕、不被看見",
+    "traits": [
+      "理性",
+      "自律",
+      "競爭心強"
+    ],
+    "shadow_traits": [
+      "情感壓抑",
+      "過度理性",
+      "疏離"
+    ],
+    "narrative_function": "體現傳統成功女性，展現陽性特質",
+    "arc_pattern": "追求卓越 → 感情危機 → 整合陰性力量",
+    "example_characters": [
+      "《艾琳布洛科維奇》的主角",
+      "赫敏",
+      "《法律女王》裡的露絲"
+    ]
+  },
+  {
+    "id": "backstabber",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "背叛者",
+    "core_desire": "為自身利益不惜犧牲他人",
+    "greatest_fear": "被揭穿、遭報復",
+    "traits": [
+      "聰明",
+      "圓滑",
+      "擅長操縱"
+    ],
+    "shadow_traits": [
+      "欺騙",
+      "暗算",
+      "見風轉舵"
+    ],
+    "narrative_function": "作為劇情轉折點，帶來衝突與背叛感",
+    "arc_pattern": "表面忠誠 → 暗中破壞 → 付出代價",
+    "example_characters": [
+      "《穿著Prada的惡魔》中的艾蜜莉",
+      "《辣妹過招》的瑞吉娜"
+    ]
+  },
+  {
+    "id": "nurturer",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "撫育者",
+    "core_desire": "照顧、支持他人",
+    "greatest_fear": "失去孩子或被視為沒價值",
+    "traits": [
+      "溫柔",
+      "細心",
+      "支持性強"
+    ],
+    "shadow_traits": [
+      "自我犧牲",
+      "過度干涉",
+      "失去自我"
+    ],
+    "narrative_function": "象徵無私愛與安全感來源",
+    "arc_pattern": "無私奉獻 → 被忽略 → 學習自愛",
+    "example_characters": [
+      "《小婦人》的瑪蜜",
+      "茉莉阿姨",
+      "《料理鼠王》的媽媽"
+    ]
+  },
+  {
+    "id": "overcontrolling_mother",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "控制型母親",
+    "core_desire": "不讓任何人離開控制範圍",
+    "greatest_fear": "被拋棄、失去孩子",
+    "traits": [
+      "掌控慾強",
+      "計畫性強",
+      "傳統"
+    ],
+    "shadow_traits": [
+      "控制狂",
+      "情緒勒索",
+      "壓抑他人自由"
+    ],
+    "narrative_function": "象徵壓迫、傳統與子女間的矛盾",
+    "arc_pattern": "過度保護 → 激化衝突 → 必須放手",
+    "example_characters": [
+      "《魔女嘉莉》的母親",
+      "《媽媽再愛我一次》中的媽媽"
+    ]
+  },
+  {
+    "id": "matriarch",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "女家長",
+    "core_desire": "建立家庭、社群與傳承",
+    "greatest_fear": "家庭破碎、失去領導地位",
+    "traits": [
+      "有智慧",
+      "具組織能力",
+      "權威穩重"
+    ],
+    "shadow_traits": [
+      "過度控制",
+      "固守傳統",
+      "排外"
+    ],
+    "narrative_function": "穩定結構、傳承價值觀",
+    "arc_pattern": "維持傳統 → 面對挑戰 → 包容與轉型",
+    "example_characters": [
+      "《教父》裡的母親",
+      "唐頓莊園的老夫人"
+    ]
+  },
+  {
+    "id": "scorned_woman",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "怨婦",
+    "core_desire": "復仇與發洩情緒",
+    "greatest_fear": "孤獨終老、被徹底遺忘",
+    "traits": [
+      "感情強烈",
+      "固執",
+      "難以放下"
+    ],
+    "shadow_traits": [
+      "怨恨",
+      "報復心重",
+      "不理性"
+    ],
+    "narrative_function": "製造情感衝突、象徵未癒傷口",
+    "arc_pattern": "被拋棄 → 控制情緒 → 放下仇恨或自我毀滅",
+    "example_characters": [
+      "《咆哮山莊》的凱瑟琳",
+      "《黑天鵝》女主角"
+    ]
+  },
+  {
+    "id": "mystic",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "神秘者",
+    "core_desire": "追求靈性與內在真理",
+    "greatest_fear": "與自我分離、精神崩潰",
+    "traits": [
+      "直覺強",
+      "內省",
+      "靜默觀察"
+    ],
+    "shadow_traits": [
+      "逃避現實",
+      "與社會疏離",
+      "過度神秘"
+    ],
+    "narrative_function": "提供洞見、引導他人轉變",
+    "arc_pattern": "內在覺醒 → 協助他人 → 面對現實挑戰",
+    "example_characters": [
+      "《駭客任務》的神諭者",
+      "《英雄本色》中的秋香"
+    ]
+  },
+  {
+    "id": "betrayer",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "出賣者",
+    "core_desire": "犧牲他人保全自己",
+    "greatest_fear": "遭受報應、喪失信任",
+    "traits": [
+      "現實主義",
+      "自我優先",
+      "計算精明"
+    ],
+    "shadow_traits": [
+      "不忠",
+      "冷血",
+      "利用關係"
+    ],
+    "narrative_function": "關鍵轉折、揭露人性陰暗面",
+    "arc_pattern": "結盟 → 出賣 → 反轉/懺悔",
+    "example_characters": [
+      "《冰與火之歌》的瑟曦",
+      "《哈利波特》的麗塔記者"
+    ]
+  },
+  {
+    "id": "female_messiah",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "女救世主",
+    "core_desire": "拯救他人、犧牲自己",
+    "greatest_fear": "無法幫助所愛之人",
+    "traits": [
+      "無私",
+      "正義感強",
+      "道德堅定"
+    ],
+    "shadow_traits": [
+      "自我犧牲過度",
+      "失去個人界線",
+      "拒絕接受幫助"
+    ],
+    "narrative_function": "象徵希望、轉化環境與角色",
+    "arc_pattern": "投入使命 → 遭受損傷 → 催生變革",
+    "example_characters": [
+      "《飢餓遊戲》的凱妮絲",
+      "《異星入境》的語言學家"
+    ]
+  },
+  {
+    "id": "destroyer",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "破壞者",
+    "core_desire": "摧毀一切不合其意之物",
+    "greatest_fear": "無法報復、失去力量",
+    "traits": [
+      "果斷",
+      "破壞性強",
+      "無情"
+    ],
+    "shadow_traits": [
+      "殘忍",
+      "極端",
+      "無法原諒"
+    ],
+    "narrative_function": "帶來毀滅與重生的契機",
+    "arc_pattern": "摧毀一切 → 被孤立 → 落入深淵或反思轉化",
+    "example_characters": [
+      "《黑天鵝》的母親",
+      "《神力女超人1984》的豹女"
+    ]
+  },
+  {
+    "id": "maiden",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": false,
+    "name": "純潔少女",
+    "core_desire": "被愛與保護，保持天真",
+    "greatest_fear": "失去純真或被污染",
+    "traits": [
+      "天真",
+      "樂觀",
+      "有想像力"
+    ],
+    "shadow_traits": [
+      "過度依賴",
+      "逃避現實",
+      "不成熟"
+    ],
+    "narrative_function": "提供希望與重生的象徵",
+    "arc_pattern": "被保護 → 受創 → 獨立成長",
+    "example_characters": [
+      "白雪公主",
+      "《駭客任務》中的崔妮蒂初期形象"
+    ]
+  },
+  {
+    "id": "troubled_teen",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "叛逆少女",
+    "core_desire": "掙脫束縛、自我探索",
+    "greatest_fear": "被誤解與拒絕",
+    "traits": [
+      "挑戰權威",
+      "敏感",
+      "情緒起伏大"
+    ],
+    "shadow_traits": [
+      "叛逆過度",
+      "自我中心",
+      "破壞性行為"
+    ],
+    "narrative_function": "衝突與反思的觸發者",
+    "arc_pattern": "挑戰體制 → 遭排斥 → 尋得定位",
+    "example_characters": [
+      "《千與千尋》的千尋",
+      "《穿越時空的少女》的真琴"
+    ]
+  },
+  {
+    "id": "king",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "國王",
+    "core_desire": "保護與領導子民，創造秩序",
+    "greatest_fear": "王國崩解、失去尊重",
+    "traits": [
+      "有遠見",
+      "穩重",
+      "仁慈",
+      "正義"
+    ],
+    "shadow_traits": [
+      "獨裁",
+      "傲慢",
+      "控制慾強"
+    ],
+    "narrative_function": "建立規則與秩序，象徵穩定與結構",
+    "arc_pattern": "治理 → 遭挑戰 → 提升格局或衰敗",
+    "example_characters": [
+      "亞瑟王",
+      "《獅子王》的木法沙"
+    ]
+  },
+  {
+    "id": "tyrant",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "暴君",
+    "core_desire": "鞏固權力、操控一切",
+    "greatest_fear": "權力被奪、遭背叛",
+    "traits": [
+      "權威強",
+      "果斷",
+      "佔有慾"
+    ],
+    "shadow_traits": [
+      "殘暴",
+      "獨裁",
+      "不容異議"
+    ],
+    "narrative_function": "代表壓迫與腐敗的極端權力",
+    "arc_pattern": "壓制 → 引發反抗 → 被推翻或覺醒",
+    "example_characters": [
+      "《星際大戰》的帕爾帕廷皇帝",
+      "《權力遊戲》的喬佛里"
+    ]
+  },
+  {
+    "id": "warrior",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "戰士",
+    "core_desire": "捍衛榮譽與目標",
+    "greatest_fear": "失去戰鬥意志或背叛信仰",
+    "traits": [
+      "英勇",
+      "堅毅",
+      "忠誠",
+      "行動導向"
+    ],
+    "shadow_traits": [
+      "好戰",
+      "無情",
+      "情緒壓抑"
+    ],
+    "narrative_function": "為正義奮戰，成長為英雄",
+    "arc_pattern": "征戰 → 受挫 → 精神蛻變",
+    "example_characters": [
+      "阿基里斯",
+      "《榮耀戰場》的主角"
+    ]
+  },
+  {
+    "id": "mercenary",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "傭兵",
+    "core_desire": "個人利益與生存",
+    "greatest_fear": "失去自由或價值被踐踏",
+    "traits": [
+      "實用主義",
+      "靈活",
+      "懂得生存"
+    ],
+    "shadow_traits": [
+      "唯利是圖",
+      "不忠誠",
+      "投機取巧"
+    ],
+    "narrative_function": "提供現實視角，引發價值衝突",
+    "arc_pattern": "唯利是圖 → 面對良知 → 選擇立場",
+    "example_characters": [
+      "韓·索羅（初期）",
+      "《駭客任務》的賽佛"
+    ]
+  },
+  {
+    "id": "mentor",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "導師",
+    "core_desire": "傳授智慧與經驗",
+    "greatest_fear": "所傳無人接續、失去價值",
+    "traits": [
+      "睿智",
+      "包容",
+      "有遠見"
+    ],
+    "shadow_traits": [
+      "倚老賣老",
+      "操控徒弟",
+      "缺乏實踐"
+    ],
+    "narrative_function": "引導主角覺醒與轉變",
+    "arc_pattern": "啟發他人 → 面臨失落 → 協助完成傳承",
+    "example_characters": [
+      "甘道夫",
+      "《星際大戰》的歐比王"
+    ]
+  },
+  {
+    "id": "manipulator",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "操縱者",
+    "core_desire": "操縱他人達到目的",
+    "greatest_fear": "失控與被揭穿",
+    "traits": [
+      "狡猾",
+      "口才好",
+      "心理掌握力強"
+    ],
+    "shadow_traits": [
+      "虛偽",
+      "權謀",
+      "利用情感"
+    ],
+    "narrative_function": "設置陷阱與試煉，引發轉折",
+    "arc_pattern": "謀劃精密 → 情勢反噬 → 崩潰或轉化",
+    "example_characters": [
+      "洛基",
+      "《黑暗騎士》的小丑"
+    ]
+  },
+  {
+    "id": "fool",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "愚者",
+    "core_desire": "享樂、自由與直覺生活",
+    "greatest_fear": "被限制或無法表達自我",
+    "traits": [
+      "幽默",
+      "靈光乍現",
+      "輕鬆自在"
+    ],
+    "shadow_traits": [
+      "逃避責任",
+      "不成熟",
+      "難以信任"
+    ],
+    "narrative_function": "突破框架、帶來真相或轉折",
+    "arc_pattern": "玩世不恭 → 被迫承擔 → 意外覺醒",
+    "example_characters": [
+      "傑克·史派羅",
+      "《阿甘正傳》的阿甘"
+    ]
+  },
+  {
+    "id": "traitor",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "叛徒",
+    "core_desire": "自保或報復",
+    "greatest_fear": "被揭穿與背叛報復",
+    "traits": [
+      "雙面",
+      "隱密",
+      "反應靈敏"
+    ],
+    "shadow_traits": [
+      "背信棄義",
+      "暗中破壞",
+      "無法信任"
+    ],
+    "narrative_function": "導致主角危機或劇情轉折",
+    "arc_pattern": "潛藏陰影 → 出賣 → 承擔代價或懺悔",
+    "example_characters": [
+      "《魔戒》的咕嚕",
+      "《哈利波特》的彼得·佩迪魯"
+    ]
+  },
+  {
+    "id": "shadow_female",
+    "source": "schmidt",
+    "gender": "female",
+    "is_antagonist": true,
+    "name": "女性陰影原型",
+    "core_desire": "支配、操控或逃避情緒痛苦",
+    "greatest_fear": "被揭穿真面目",
+    "traits": [
+      "狡猾",
+      "心機",
+      "扭曲欲望"
+    ],
+    "shadow_traits": [
+      "虐待狂",
+      "控制狂",
+      "虛假表象"
+    ],
+    "narrative_function": "提供主角的對照與黑暗鏡像",
+    "arc_pattern": "壓抑情感 → 情緒失控 → 黑化或轉化",
+    "example_characters": [
+      "《黑天鵝》的尼娜",
+      "《冷山》的盧比"
+    ]
+  },
+  {
+    "id": "shadow_male",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "男性陰影原型",
+    "core_desire": "掌控世界以掩蓋脆弱",
+    "greatest_fear": "被他人看見其懦弱與恐懼",
+    "traits": [
+      "外強中乾",
+      "壓抑",
+      "冷酷"
+    ],
+    "shadow_traits": [
+      "暴力",
+      "支配慾",
+      "拒絕改變"
+    ],
+    "narrative_function": "反映主角內在黑暗，或作為終極敵人",
+    "arc_pattern": "強勢掩飾 → 情緒爆發 → 沉淪或破滅",
+    "example_characters": [
+      "《黑暗騎士》的雙面人",
+      "《怒海戰記》的艦長"
+    ]
+  },
+  {
+    "id": "trickster",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "騙徒",
+    "core_desire": "打破規則、娛樂與擾亂秩序",
+    "greatest_fear": "被揭穿或無人理會",
+    "traits": [
+      "狡猾",
+      "詼諧",
+      "擾亂常規"
+    ],
+    "shadow_traits": [
+      "戲謔他人",
+      "自我中心",
+      "逃避責任"
+    ],
+    "narrative_function": "揭露真相、打破僵局",
+    "arc_pattern": "擾亂秩序 → 揭露矛盾 → 協助轉變",
+    "example_characters": [
+      "洛基",
+      "《瘋狂店員》裡的店員"
+    ]
+  },
+  {
+    "id": "destroyer_neutral",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": true,
+    "name": "破壞者（中性）",
+    "core_desire": "摧毀障礙與現狀",
+    "greatest_fear": "一事無成、改變失敗",
+    "traits": [
+      "激烈",
+      "意志堅定",
+      "破壞性"
+    ],
+    "shadow_traits": [
+      "毀滅他人",
+      "過度激進",
+      "缺乏建設"
+    ],
+    "narrative_function": "引發劇情重大轉折",
+    "arc_pattern": "破壞秩序 → 面對代價 → 重新建構或沉淪",
+    "example_characters": [
+      "小丑",
+      "《V怪客》"
+    ]
+  },
+  {
+    "id": "orphan_hero",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "孤兒英雄",
+    "core_desire": "找到歸屬與力量",
+    "greatest_fear": "被遺棄與忽視",
+    "traits": [
+      "堅毅",
+      "渴望連結",
+      "自立自強"
+    ],
+    "shadow_traits": [
+      "怨恨社會",
+      "自憐",
+      "社交障礙"
+    ],
+    "narrative_function": "象徵社會邊緣者的奮起",
+    "arc_pattern": "被遺棄 → 自我尋找 → 成為領導者",
+    "example_characters": [
+      "哈利波特",
+      "《歌劇魅影》的魅影"
+    ]
+  },
+  {
+    "id": "lost_soul",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": true,
+    "name": "迷途者",
+    "core_desire": "尋找目標與方向",
+    "greatest_fear": "永遠迷失",
+    "traits": [
+      "困惑",
+      "感性",
+      "無根感"
+    ],
+    "shadow_traits": [
+      "空虛",
+      "自暴自棄",
+      "易受影響"
+    ],
+    "narrative_function": "使主角省思、對照轉變過程",
+    "arc_pattern": "漂泊無依 → 面對真實 → 找到存在意義",
+    "example_characters": [
+      "《真愛每一天》的提姆",
+      "《東京教父》的流浪者"
+    ]
+  },
+  {
+    "id": "temptress",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": true,
+    "name": "誘惑者（中性）",
+    "core_desire": "引誘他人離開正道",
+    "greatest_fear": "被看穿其虛無",
+    "traits": [
+      "充滿魅力",
+      "神秘",
+      "誘惑性"
+    ],
+    "shadow_traits": [
+      "心機重",
+      "玩弄感情",
+      "引發毀滅"
+    ],
+    "narrative_function": "考驗主角意志，轉折情節",
+    "arc_pattern": "誘惑成功 → 揭示本質 → 破滅或拯救",
+    "example_characters": [
+      "瑪塔哈麗",
+      "《攻殼機動隊》的草薙素子"
+    ]
+  },
+  {
+    "id": "visionary",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "願景者",
+    "core_desire": "追求遠大理想與創新",
+    "greatest_fear": "理想破滅",
+    "traits": [
+      "理想主義",
+      "前瞻性",
+      "靈感十足"
+    ],
+    "shadow_traits": [
+      "不切實際",
+      "孤立",
+      "極端思想"
+    ],
+    "narrative_function": "指引方向或挑戰現狀",
+    "arc_pattern": "構想未來 → 面臨阻礙 → 落實或迷失",
+    "example_characters": [
+      "賈伯斯",
+      "《星際效應》的庫珀"
+    ]
+  },
+  {
+    "id": "innocent",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "天真者",
+    "core_desire": "維持純真、遠離傷害",
+    "greatest_fear": "腐化與失望",
+    "traits": [
+      "信任他人",
+      "單純",
+      "理想化"
+    ],
+    "shadow_traits": [
+      "逃避現實",
+      "容易受傷",
+      "缺乏辨識力"
+    ],
+    "narrative_function": "象徵純粹希望與轉化力量",
+    "arc_pattern": "信任 → 被背叛 → 成熟與自覺",
+    "example_characters": [
+      "阿甘",
+      "《楚門的世界》的楚門"
+    ]
+  },
+  {
+    "id": "healer",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "療癒者",
+    "core_desire": "幫助他人康復與成長",
+    "greatest_fear": "失去療癒能力",
+    "traits": [
+      "慈愛",
+      "傾聽",
+      "耐心"
+    ],
+    "shadow_traits": [
+      "自我犧牲",
+      "依附",
+      "逃避自我問題"
+    ],
+    "narrative_function": "為主角提供情感支持與轉變",
+    "arc_pattern": "支持他人 → 面對創傷 → 自我療癒",
+    "example_characters": [
+      "《心靈捕手》的心理師",
+      "《返家十萬里》的養父母"
+    ]
+  },
+  {
+    "id": "child_magician",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "神童",
+    "core_desire": "探索與發現世界的奧秘",
+    "greatest_fear": "平凡無奇",
+    "traits": [
+      "聰明",
+      "好奇",
+      "具有潛能"
+    ],
+    "shadow_traits": [
+      "過度自信",
+      "不成熟",
+      "無法控制力量"
+    ],
+    "narrative_function": "引導主角或引爆劇情",
+    "arc_pattern": "展現天賦 → 誤用力量 → 學會責任",
+    "example_characters": [
+      "《哈利波特》的主角",
+      "《怪奇物語》的11號"
+    ]
+  },
+  {
+    "id": "wanderer",
+    "source": "schmidt",
+    "gender": "neutral",
+    "is_antagonist": false,
+    "name": "流浪者",
+    "core_desire": "尋找自我與歸屬",
+    "greatest_fear": "永遠無處可歸",
+    "traits": [
+      "漂泊",
+      "觀察敏銳",
+      "靜謐"
+    ],
+    "shadow_traits": [
+      "逃避承諾",
+      "缺乏目標",
+      "與世隔絕"
+    ],
+    "narrative_function": "探索世界與主角心靈變化",
+    "arc_pattern": "漂泊 → 面對傷痛 → 找到心靈歸屬",
+    "example_characters": [
+      "《三島由紀夫》的角色",
+      "《浪客劍心》的劍心"
+    ]
+  },
+  {
+    "id": "priest",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "祭司",
+    "core_desire": "服務信仰、守護精神秩序",
+    "greatest_fear": "失去信念與道德權威",
+    "traits": [
+      "虔誠",
+      "內省",
+      "智慧"
+    ],
+    "shadow_traits": [
+      "教條主義",
+      "自以為是",
+      "壓抑情感"
+    ],
+    "narrative_function": "提供主角精神導引與道德挑戰",
+    "arc_pattern": "引導他人 → 面對信仰考驗 → 重塑信念",
+    "example_characters": [
+      "摩西",
+      "《康斯坦汀》的神父"
+    ]
+  },
+  {
+    "id": "coward",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "懦夫",
+    "core_desire": "逃避風險與痛苦",
+    "greatest_fear": "面對真相或被逼表態",
+    "traits": [
+      "謹慎",
+      "敏感",
+      "自保"
+    ],
+    "shadow_traits": [
+      "逃避責任",
+      "背叛他人",
+      "猶豫不決"
+    ],
+    "narrative_function": "帶出主角堅定或喪失信任",
+    "arc_pattern": "逃避 → 被逼選擇 → 面對恐懼或毀滅",
+    "example_characters": [
+      "彼得·佩迪魯",
+      "《全面啟動》的阿瑟初期"
+    ]
+  },
+  {
+    "id": "rebel",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "反叛者",
+    "core_desire": "打破體制與權威",
+    "greatest_fear": "被體制吞沒或馴化",
+    "traits": [
+      "獨立",
+      "堅決",
+      "挑戰者"
+    ],
+    "shadow_traits": [
+      "激進",
+      "偏執",
+      "毀滅性"
+    ],
+    "narrative_function": "推動改革、啟發行動",
+    "arc_pattern": "起義 → 對抗壓迫 → 建立新秩序",
+    "example_characters": [
+      "V怪客",
+      "尼奧"
+    ]
+  },
+  {
+    "id": "everyman",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "平凡人",
+    "core_desire": "被接納並過正常生活",
+    "greatest_fear": "孤立或與眾不同",
+    "traits": [
+      "親切",
+      "實際",
+      "忠誠"
+    ],
+    "shadow_traits": [
+      "從眾",
+      "缺乏行動",
+      "恐懼改變"
+    ],
+    "narrative_function": "反映群體觀點、代表大眾",
+    "arc_pattern": "默默無聞 → 捲入挑戰 → 發掘潛力",
+    "example_characters": [
+      "山姆（魔戒）",
+      "《楚門的世界》的楚門"
+    ]
+  },
+  {
+    "id": "outlaw",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": true,
+    "name": "亡命者",
+    "core_desire": "反抗壓迫、追求自由",
+    "greatest_fear": "被關押或徹底失敗",
+    "traits": [
+      "自由奔放",
+      "機智",
+      "堅毅"
+    ],
+    "shadow_traits": [
+      "衝動",
+      "無視規則",
+      "自我中心"
+    ],
+    "narrative_function": "對抗權威、挑戰正統觀念",
+    "arc_pattern": "逃亡 → 對決體制 → 成為傳奇或殞落",
+    "example_characters": [
+      "羅賓漢",
+      "傑克·史派羅"
+    ]
+  },
+  {
+    "id": "seeker",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "追尋者",
+    "core_desire": "追尋真理、自我實現",
+    "greatest_fear": "迷失方向、一無所獲",
+    "traits": [
+      "理想主義",
+      "堅定",
+      "內在動力強"
+    ],
+    "shadow_traits": [
+      "逃避現實",
+      "永不滿足",
+      "過度理想化"
+    ],
+    "narrative_function": "啟發冒險與內心覺醒",
+    "arc_pattern": "出發 → 面對試煉 → 得到內在寶藏",
+    "example_characters": [
+      "《少年Pi》",
+      "辛巴（獅子王）"
+    ]
+  },
+  {
+    "id": "magician",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "魔法師",
+    "core_desire": "轉化世界與自我",
+    "greatest_fear": "失去控制與濫用力量",
+    "traits": [
+      "睿智",
+      "轉化性",
+      "神祕"
+    ],
+    "shadow_traits": [
+      "操縱他人",
+      "不切實際",
+      "沉溺權力"
+    ],
+    "narrative_function": "象徵變革與超越限制",
+    "arc_pattern": "獲得力量 → 面對誘惑 → 智慧轉化",
+    "example_characters": [
+      "甘道夫",
+      "奇異博士"
+    ]
+  },
+  {
+    "id": "artist",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "藝術家",
+    "core_desire": "表達自我並感動他人",
+    "greatest_fear": "被遺忘或誤解",
+    "traits": [
+      "創造力強",
+      "敏感",
+      "執著於真實"
+    ],
+    "shadow_traits": [
+      "自我中心",
+      "情緒化",
+      "逃避現實"
+    ],
+    "narrative_function": "提供情感深度與詩意觀點",
+    "arc_pattern": "創作 → 受挫 → 影響他人或自我超越",
+    "example_characters": [
+      "梵谷",
+      "《愛樂之城》的男主"
+    ]
+  },
+  {
+    "id": "prophet",
+    "source": "schmidt",
+    "gender": "male",
+    "is_antagonist": false,
+    "name": "先知",
+    "core_desire": "傳達真理並預示未來",
+    "greatest_fear": "被當成瘋子或忽視",
+    "traits": [
+      "洞察力強",
+      "精神覺醒",
+      "遠見"
+    ],
+    "shadow_traits": [
+      "偏執",
+      "極端化",
+      "拒絕妥協"
+    ],
+    "narrative_function": "警告世界、啟發覺醒",
+    "arc_pattern": "預見災難 → 被忽視 → 證明正確或犧牲",
+    "example_characters": [
+      "摩西",
+      "《駭客任務》的神諭者"
+    ]
+  }
+]

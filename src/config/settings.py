@@ -99,6 +99,17 @@ class Settings(BaseSettings):
         default=0.3, description="LLM temperature for chat agent"
     )
 
+    # ── Deep Analysis ──────────────────────────────────────────────────────────
+    analysis_cache_db_path: str = Field(
+        default="./data/analysis_cache.db", description="SQLite path for analysis cache"
+    )
+    analysis_temperature: float = Field(
+        default=0.3, description="LLM temperature for deep analysis"
+    )
+    analysis_max_evidence_chunks: int = Field(
+        default=20, description="Max vector search chunks for CEP extraction"
+    )
+
     # ── Cache TTLs ─────────────────────────────────────────────────────────────
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
     analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")

@@ -1,11 +1,20 @@
-"""Unit tests for analysis tools (1 complete + 2 stubs)."""
+"""Unit tests for analysis tools."""
 
 from __future__ import annotations
 
 import json
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from services.analysis_models import (
+    CEPResult,
+    CharacterAnalysisResult,
+    CharacterProfile,
+    CoverageMetrics,
+    ArchetypeResult,
+    ArcSegment,
+)
 from tools.analysis_tools import AnalyzeCharacterTool, AnalyzeEventTool, GenerateInsightTool
 
 
@@ -25,22 +34,62 @@ class TestGenerateInsightTool:
         assert result["topic"] == "love and loss"
 
 
-class TestAnalyzeCharacterToolStub:
-    @pytest.mark.asyncio
-    async def test_raises_not_implemented(self, mock_kg_service):
-        tool = AnalyzeCharacterTool(kg_service=mock_kg_service)
-        with pytest.raises(NotImplementedError, match="Phase 5"):
-            await tool._arun("ent-alice")
+class TestAnalyzeCharacterTool:
+    @staticmethod
+    def _make_mock_agent():
+        agent = AsyncMock()
+        agent.analyze_character = AsyncMock(return_value=CharacterAnalysisResult(
+            entity_id="ent-1",
+            entity_name="Alice",
+            document_id="doc-1",
+            profile=CharacterProfile(summary="Alice is a brave hero."),
+            cep=CEPResult(
+                actions=["fought the dragon"],
+                traits=["brave", "determined"],
+                relations=[{"target": "Bob", "type": "ally", "description": "friend"}],
+            ),
+            archetypes=[ArchetypeResult(
+                framework="jung", primary="hero", confidence=0.9, evidence=["fights bravely"],
+            )],
+            arc=[ArcSegment(chapter_range="1-5", phase="Setup", description="Intro")],
+            coverage=CoverageMetrics(action_count=1, trait_count=2, relation_count=1),
+        ))
+        return agent
 
-    def test_has_description(self):
+    @pytest.mark.asyncio
+    async def test_returns_json_with_analysis(self):
+        agent = self._make_mock_agent()
+        tool = AnalyzeCharacterTool(analysis_agent=agent)
+        raw = await tool._arun("Alice", document_id="doc-1")
+        result = json.loads(raw)
+
+        assert result["entity_name"] == "Alice"
+        assert result["summary"] == "Alice is a brave hero."
+        assert "brave" in result["traits"]
+        assert len(result["archetypes"]) == 1
+        assert result["archetypes"][0]["primary"] == "hero"
+
+    @pytest.mark.asyncio
+    async def test_no_agent_returns_error(self):
+        tool = AnalyzeCharacterTool(analysis_agent=None)
+        raw = await tool._arun("Alice")
+        result = json.loads(raw)
+        assert "error" in result
+
+    def test_has_description_and_schema(self):
         tool = AnalyzeCharacterTool()
         assert "character analysis" in tool.description.lower()
         assert tool.args_schema is not None
 
-    def test_sync_raises_not_implemented(self):
-        tool = AnalyzeCharacterTool()
-        with pytest.raises(NotImplementedError, match="Phase 5"):
-            tool._run("ent-alice")
+    @pytest.mark.asyncio
+    async def test_passes_frameworks_and_language(self):
+        agent = self._make_mock_agent()
+        tool = AnalyzeCharacterTool(analysis_agent=agent)
+        await tool._arun("Alice", document_id="doc-1", archetype_frameworks=["schmidt"], language="zh")
+
+        call_kwargs = agent.analyze_character.call_args[1]
+        assert call_kwargs["archetype_frameworks"] == ["schmidt"]
+        assert call_kwargs["language"] == "zh"
 
 
 class TestAnalyzeEventToolStub:

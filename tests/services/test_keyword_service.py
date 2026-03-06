@@ -234,6 +234,53 @@ class TestKeywordService:
         doc_svc.get_chapter_keywords.assert_awaited_once_with("doc1", 1)
         doc_svc.get_book_keywords.assert_awaited_once_with("doc1")
 
+    async def test_get_entity_keywords_with_timeline(self):
+        """When KG has timeline events, aggregate keywords from those chapters."""
+        doc_svc = AsyncMock()
+        doc_svc.get_chapter_keywords = AsyncMock(
+            side_effect=lambda _doc, ch: {"battle": 0.8, "sword": 0.6} if ch == 1 else {"peace": 0.7}
+        )
+        doc_svc.get_book_keywords = AsyncMock(return_value={})
+
+        kg_svc = AsyncMock()
+        entity_mock = MagicMock(id="ent-1")
+        kg_svc.get_entity_by_name = AsyncMock(return_value=entity_mock)
+        event1 = MagicMock(chapter_number=1)
+        event2 = MagicMock(chapter_number=3)
+        kg_svc.get_entity_timeline = AsyncMock(return_value=[event1, event2])
+
+        svc = KeywordService(doc_service=doc_svc, kg_service=kg_svc)
+        result = await svc.get_entity_keywords("doc1", "Alice", top_k=5)
+
+        assert isinstance(result, dict)
+        assert len(result) > 0
+        # Should have aggregated from chapters 1 and 3
+        assert doc_svc.get_chapter_keywords.await_count == 2
+
+    async def test_get_entity_keywords_no_kg_fallback(self):
+        """Without kg_service, falls back to book keywords."""
+        doc_svc = AsyncMock()
+        doc_svc.get_book_keywords = AsyncMock(return_value={"hero": 0.9, "quest": 0.8})
+
+        svc = KeywordService(doc_service=doc_svc, kg_service=None)
+        result = await svc.get_entity_keywords("doc1", "Alice", top_k=5)
+
+        assert result == {"hero": 0.9, "quest": 0.8}
+        doc_svc.get_book_keywords.assert_awaited_once()
+
+    async def test_get_entity_keywords_entity_not_found(self):
+        """Entity not found in KG → fall back to book keywords."""
+        doc_svc = AsyncMock()
+        doc_svc.get_book_keywords = AsyncMock(return_value={"theme": 0.7})
+
+        kg_svc = AsyncMock()
+        kg_svc.get_entity_by_name = AsyncMock(return_value=None)
+
+        svc = KeywordService(doc_service=doc_svc, kg_service=kg_svc)
+        result = await svc.get_entity_keywords("doc1", "NonExistent")
+
+        assert result == {"theme": 0.7}
+
 
 # ── Factory ─────────────────────────────────────────────────────────────────
 

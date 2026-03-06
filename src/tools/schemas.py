@@ -120,12 +120,20 @@ class GenerateInsightInput(BaseModel):
 
 
 class AnalyzeCharacterInput(BaseModel):
-    """Input for deep character analysis (stub — Phase 5)."""
+    """Input for deep character analysis."""
 
     entity_id: str = Field(description="Character entity ID or name.")
-    aspects: list[str] = Field(
-        default_factory=lambda: ["personality", "relationships", "arc"],
-        description="Analysis aspects: personality, relationships, arc, motivations.",
+    document_id: str = Field(
+        default="",
+        description="Document ID to scope analysis to. If empty, uses default.",
+    )
+    archetype_frameworks: list[str] = Field(
+        default_factory=lambda: ["jung"],
+        description="Archetype frameworks to classify: 'jung', 'schmidt'.",
+    )
+    language: str = Field(
+        default="en",
+        description="Language for archetype configs: 'en' or 'zh'.",
     )
 
 
@@ -212,15 +220,18 @@ class CompareCharactersInput(BaseModel):
 
 
 class CharacterAnalysisOutput(BaseModel):
-    """Expected output schema for AnalyzeCharacterTool (Phase 5)."""
+    """Expected output schema for AnalyzeCharacterTool."""
 
     entity_id: str
-    name: str
-    personality_traits: list[str] = Field(default_factory=list)
-    key_relationships: list[dict[str, Any]] = Field(default_factory=list)
-    character_arc: str = ""
-    motivations: list[str] = Field(default_factory=list)
+    entity_name: str
+    document_id: str
     summary: str = ""
+    actions: list[str] = Field(default_factory=list)
+    traits: list[str] = Field(default_factory=list)
+    relations: list[dict[str, str]] = Field(default_factory=list)
+    archetypes: list[dict[str, Any]] = Field(default_factory=list)
+    arc: list[dict[str, str]] = Field(default_factory=list)
+    coverage_gaps: list[str] = Field(default_factory=list)
 
 
 class EventAnalysisOutput(BaseModel):

@@ -40,6 +40,7 @@ def get_chat_tools(
     summary_service: Any = None,
     analysis_service: Any = None,
     keyword_service: Any = None,
+    analysis_agent: Any = None,
 ) -> list[BaseTool]:
     """Return all tools available to the chat agent (Phase 4).
 
@@ -52,9 +53,10 @@ def get_chat_tools(
         summary_service: Optional SummaryService for on-demand summary generation.
         analysis_service: Optional AnalysisService for insight generation.
         keyword_service: Optional KeywordService for keyword retrieval.
+        analysis_agent: Optional AnalysisAgent for deep character analysis.
 
     Returns:
-        List of 14 fully-functional tools (stubs excluded from chat).
+        List of fully-functional tools for the chat agent.
     """
     return [
         # Graph tools (6)
@@ -75,6 +77,12 @@ def get_chat_tools(
         # Other tools (2)
         ExtractEntitiesFromTextTool(extraction_service=extraction_service),
         CompareEntitiesTool(kg_service=kg_service),
+        # Analysis tools — deep (1, if analysis_agent is available)
+        *(
+            [AnalyzeCharacterTool(analysis_agent=analysis_agent)]
+            if analysis_agent is not None
+            else []
+        ),
         # Composite tools (4)
         GetEntityProfileTool(
             kg_service=kg_service,
@@ -108,10 +116,11 @@ def get_analysis_tools(
     summary_service: Any = None,
     analysis_service: Any = None,
     keyword_service: Any = None,
+    analysis_agent: Any = None,
 ) -> list[BaseTool]:
     """Return tools for the deep analysis workflow (Phase 5).
 
-    Includes stubs that will be implemented with domain knowledge.
+    Includes all chat tools plus analysis stubs.
     """
     return [
         *get_chat_tools(
@@ -122,8 +131,8 @@ def get_analysis_tools(
             summary_service=summary_service,
             analysis_service=analysis_service,
             keyword_service=keyword_service,
+            analysis_agent=analysis_agent,
         ),
-        AnalyzeCharacterTool(kg_service=kg_service, llm=llm),
         AnalyzeEventTool(kg_service=kg_service, llm=llm),
     ]
 

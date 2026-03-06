@@ -1,4 +1,4 @@
-"""AnalyzeCharacterTool — deep character analysis (STUB — Phase 5).
+"""AnalyzeCharacterTool — deep character analysis via AnalysisAgent.
 
 USE when: the user wants a comprehensive character analysis covering
     personality, relationships, arc, and motivations.
@@ -7,68 +7,84 @@ DO NOT USE when: the user only wants basic entity attributes
     (use GetEntityTimelineTool).
 Example queries: "Analyze Alice as a character.", "Deep dive into Bob's arc.",
     "Character study of the protagonist."
-
-This is a STUB: the full implementation requires domain knowledge
-and multi-step LLM reasoning (Phase 5).
 """
 
 from __future__ import annotations
 
+import json
+import logging
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.schemas import AnalyzeCharacterInput, CharacterAnalysisOutput
+from tools.schemas import AnalyzeCharacterInput
 
-_SYSTEM_PROMPT_TEMPLATE = """\
-You are a literary critic performing deep character analysis.
-
-Character: {character_name}
-Analysis aspects: {aspects}
-
-Instructions:
-1. Examine the character's personality traits based on actions and dialogue.
-2. Map key relationships and how they evolve.
-3. Trace the character arc from introduction to current state.
-4. Identify core motivations and how they drive the plot.
-
-Return a structured JSON matching this schema:
-{output_schema}
-
-Base your analysis on the following knowledge graph data and text passages:
-{context}
-"""
+logger = logging.getLogger(__name__)
 
 
 class AnalyzeCharacterTool(BaseTool):
-    """Deep character analysis — STUB (Phase 5: needs domain knowledge)."""
+    """Deep character analysis — delegates to AnalysisAgent."""
 
     name: str = "analyze_character"
     description: str = (
         "Perform comprehensive character analysis covering personality traits, "
-        "relationships, character arc, and motivations. "
+        "relationships, character arc, and archetype classification. "
         "USE for: deep character studies, 'analyze X as a character'. "
         "DO NOT USE for: basic entity info (use get_entity_attributes) "
         "or simple timeline (use get_entity_timeline). "
-        "Input: entity ID/name, optional analysis aspects. "
-        "NOTE: This tool is under development and may return limited results."
+        "Input: entity name, document_id, optional archetype frameworks."
     )
     args_schema: Type[AnalyzeCharacterInput] = AnalyzeCharacterInput
 
-    kg_service: Any = None
-    llm: Any = None
+    analysis_agent: Any = None
 
     class Config:
         arbitrary_types_allowed = True
 
-    async def _arun(self, entity_id: str, aspects: list[str] | None = None) -> str:
-        raise NotImplementedError(
-            "Phase 5: AnalyzeCharacterTool requires domain knowledge integration. "
-            "Use get_entity_attributes + get_entity_timeline + generate_insight "
-            "as a workaround."
-        )
+    async def _arun(
+        self,
+        entity_id: str,
+        document_id: str = "",
+        archetype_frameworks: list[str] | None = None,
+        language: str = "en",
+    ) -> str:
+        if self.analysis_agent is None:
+            return json.dumps({"error": "AnalysisAgent not configured."})
 
-    def _run(self, entity_id: str, aspects: list[str] | None = None) -> str:
-        raise NotImplementedError(
-            "Phase 5: AnalyzeCharacterTool requires domain knowledge integration."
+        try:
+            result = await self.analysis_agent.analyze_character(
+                entity_name=entity_id,
+                document_id=document_id,
+                archetype_frameworks=archetype_frameworks,
+                language=language,
+            )
+
+            output = {
+                "entity_id": result.entity_id,
+                "entity_name": result.entity_name,
+                "document_id": result.document_id,
+                "summary": result.profile.summary,
+                "actions": result.cep.actions,
+                "traits": result.cep.traits,
+                "relations": result.cep.relations,
+                "archetypes": [a.model_dump() for a in result.archetypes],
+                "arc": [s.model_dump() for s in result.arc],
+                "coverage_gaps": result.coverage.gaps,
+            }
+            return json.dumps(output, ensure_ascii=False, default=str)
+        except Exception as e:
+            logger.error("AnalyzeCharacterTool failed: %s", e, exc_info=True)
+            return json.dumps({"error": str(e)})
+
+    def _run(
+        self,
+        entity_id: str,
+        document_id: str = "",
+        archetype_frameworks: list[str] | None = None,
+        language: str = "en",
+    ) -> str:
+        import asyncio
+
+        return asyncio.get_event_loop().run_until_complete(
+            self._arun(entity_id, document_id, archetype_frameworks, language)
         )
