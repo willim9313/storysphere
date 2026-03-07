@@ -1,7 +1,7 @@
 # StorySphere 核心設計文檔
 
-**版本**: v2.0
-**更新日期**: 2026-02-22
+**版本**: v2.1
+**更新日期**: 2026-03-07
 **用途**: 開發時的核心參考（始終載入，~2K tokens）
 
 ---
@@ -100,8 +100,8 @@
 2. 結構化輸出失敗 → Pydantic + Retry (3次)
 3. 工具執行失敗 → 超時管理 + 降級
 4. LLM 調用失敗 → 多提供商備份
-5. JSON 解析脆弱性 → 4 步 fallback chain（⚠️ 待移植）
-6. Prompt Injection → DataSanitizer（⚠️ 待移植）
+5. JSON 解析脆弱性 → 4 步 fallback chain（✅ 已移植至 `src/core/utils/output_extractor.py`）
+6. Prompt Injection → DataSanitizer（✅ 已移植至 `src/core/utils/data_sanitizer.py`）
 
 📄 [完整版](appendix/ADR_007_FULL.md)
 
@@ -348,13 +348,22 @@ storysphere/
 - ChatState 實現
 - Chat Agent（LangGraph）
 
-### Phase 5: Deep Analysis Workflow (2-3 週)
+### Phase 5a: Deep Analysis — 角色分析 ✅ DONE
 → 📄 [guides/PHASE_5_DEEP_ANALYSIS.md](guides/PHASE_5_DEEP_ANALYSIS.md)
-- 優先緩存邏輯
-- Pydantic + Retry
-- WebSocket 推送
-- Character Evidence Pack (CEP) extraction
-- Archetype classification（參考 `old_version/config/character_analysis/`）
+- 優先緩存邏輯（SQLite 7天 TTL）
+- Pydantic + Retry (3次 + exponential backoff)
+- Character Evidence Profile (CEP) extraction
+- Archetype classification（Jung 12 + Schmidt 45）
+- 角色弧線分析（ArcSegment）
+- `AnalyzeCharacterTool` → `AnalysisAgent` → `AnalysisService`
+
+### Phase 5b: Deep Analysis — 事件分析 ✅ DONE
+→ 📄 [guides/PHASE_5B_EVENT_ANALYSIS.md](guides/PHASE_5B_EVENT_ANALYSIS.md)
+- Event Evidence Profile (EEP) extraction
+- 4 步 LLM pipeline（EEP → 因果分析 → 影響分析 → 摘要）
+- `KGService.get_event()` 單筆查詢
+- `AnalyzeEventTool` → `AnalysisAgent.analyze_event()`
+- 緩存 key: `event:{document_id}:{event_id}`
 
 ### Phase 6: Parallel 優化 (1-2 週)
 → 📄 [guides/PHASE_6_OPTIMIZATION.md](guides/PHASE_6_OPTIMIZATION.md)
@@ -418,7 +427,8 @@ storysphere/
 - [Phase 2b: Keyword Extraction](guides/PHASE_2B_KEYWORDS.md)
 - [Phase 3: 工具層](guides/PHASE_3_TOOLS.md)
 - [Phase 4: Chat Agent](guides/PHASE_4_CHAT_AGENT.md)
-- [Phase 5: Deep Analysis](guides/PHASE_5_DEEP_ANALYSIS.md)
+- [Phase 5a: Deep Analysis — 角色](guides/PHASE_5_DEEP_ANALYSIS.md)
+- [Phase 5b: Deep Analysis — 事件](guides/PHASE_5B_EVENT_ANALYSIS.md)
 - [Phase 6: Optimization](guides/PHASE_6_OPTIMIZATION.md)
 - [Phase 7: Monitoring](guides/PHASE_7_MONITORING.md)
 
@@ -447,9 +457,9 @@ storysphere/
 
 ---
 
-**維護者**: William  
-**最後更新**: 2026-02-22  
-**版本**: v2.0  
+**維護者**: William
+**最後更新**: 2026-03-07
+**版本**: v2.1
 **Token 估算**: ~2K tokens（始終載入）
 
 🚀 祝開發順利！
