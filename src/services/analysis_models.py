@@ -1,11 +1,12 @@
-"""Pydantic models for deep character analysis results.
+"""Pydantic models for deep character and event analysis results.
 
-Used by AnalysisService, AnalysisAgent, and AnalyzeCharacterTool.
+Used by AnalysisService, AnalysisAgent, AnalyzeCharacterTool, and AnalyzeEventTool.
 """
 
 from __future__ import annotations
 
 from datetime import datetime
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, Field
@@ -80,3 +81,80 @@ class CharacterAnalysisResult(BaseModel):
         default_factory=CoverageMetrics, description="Evidence coverage metrics"
     )
     analyzed_at: datetime = Field(default_factory=datetime.utcnow, description="Analysis timestamp")
+
+
+# ── Event Analysis Models ──────────────────────────────────────────────────────
+
+
+class ParticipantRoleType(str, Enum):
+    INITIATOR = "initiator"
+    ACTOR = "actor"
+    REACTOR = "reactor"
+    VICTIM = "victim"
+    BENEFICIARY = "beneficiary"
+
+
+class EventImportance(str, Enum):
+    KERNEL = "kernel"
+    SATELLITE = "satellite"
+
+
+class ParticipantRole(BaseModel):
+    entity_id: str
+    entity_name: str
+    role: ParticipantRoleType
+    impact_description: str
+
+
+class EventEvidenceProfile(BaseModel):
+    state_before: str
+    state_after: str
+    causal_factors: list[str] = Field(default_factory=list)
+    prior_event_ids: list[str] = Field(default_factory=list)
+    participant_roles: list[ParticipantRole] = Field(default_factory=list)
+    consequences: list[str] = Field(default_factory=list)
+    subsequent_event_ids: list[str] = Field(default_factory=list)
+    structural_role: str = ""
+    event_importance: EventImportance = EventImportance.SATELLITE
+    thematic_significance: str = ""
+    text_evidence: list[str] = Field(default_factory=list)
+    top_terms: dict[str, float] = Field(default_factory=dict)
+
+
+class CausalityAnalysis(BaseModel):
+    root_cause: str = ""
+    causal_chain: list[str] = Field(default_factory=list)
+    trigger_event_ids: list[str] = Field(default_factory=list)
+    chain_summary: str = ""
+
+
+class ImpactAnalysis(BaseModel):
+    affected_participant_ids: list[str] = Field(default_factory=list)
+    participant_impacts: list[str] = Field(default_factory=list)
+    relation_changes: list[str] = Field(default_factory=list)
+    subsequent_event_ids: list[str] = Field(default_factory=list)
+    impact_summary: str = ""
+
+
+class EventSummary(BaseModel):
+    summary: str = ""
+
+
+class EventCoverageMetrics(BaseModel):
+    evidence_chunk_count: int = 0
+    participant_count: int = 0
+    causal_event_count: int = 0
+    subsequent_event_count: int = 0
+    gaps: list[str] = Field(default_factory=list)
+
+
+class EventAnalysisResult(BaseModel):
+    event_id: str
+    title: str
+    document_id: str
+    eep: EventEvidenceProfile
+    causality: CausalityAnalysis
+    impact: ImpactAnalysis
+    summary: EventSummary
+    coverage: EventCoverageMetrics
+    analyzed_at: datetime

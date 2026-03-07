@@ -77,9 +77,14 @@ def get_chat_tools(
         # Other tools (2)
         ExtractEntitiesFromTextTool(extraction_service=extraction_service),
         CompareEntitiesTool(kg_service=kg_service),
-        # Analysis tools — deep (1, if analysis_agent is available)
+        # Analysis tools — deep (1-2, if analysis_agent is available)
         *(
             [AnalyzeCharacterTool(analysis_agent=analysis_agent)]
+            if analysis_agent is not None
+            else []
+        ),
+        *(
+            [AnalyzeEventTool(analysis_agent=analysis_agent)]
             if analysis_agent is not None
             else []
         ),
@@ -133,7 +138,6 @@ def get_analysis_tools(
             keyword_service=keyword_service,
             analysis_agent=analysis_agent,
         ),
-        AnalyzeEventTool(kg_service=kg_service, llm=llm),
     ]
 
 

@@ -152,6 +152,10 @@ class KGService:
                 self._graph.nodes[participant_id]["event_ids"] = node_events
         logger.debug("KGService.add_event: %s", event.id)
 
+    async def get_event(self, event_id: str) -> Optional[Event]:
+        """Return the event with the given ID, or None."""
+        return self._events.get(event_id)
+
     async def get_events(self, entity_id: Optional[str] = None) -> list[Event]:
         """Return all events, optionally filtered to those involving an entity."""
         if entity_id is None:

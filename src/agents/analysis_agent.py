@@ -10,7 +10,7 @@ import logging
 from typing import Any
 
 from services.analysis_cache import AnalysisCache
-from services.analysis_models import CharacterAnalysisResult
+from services.analysis_models import CharacterAnalysisResult, EventAnalysisResult
 
 logger = logging.getLogger(__name__)
 
@@ -72,6 +72,39 @@ class AnalysisAgent:
         )
 
         # 3. Store in cache
+        if self._cache is not None:
+            await self._cache.set(cache_key, result.model_dump(mode="json"))
+            logger.info("Cached result for %s", cache_key)
+
+        return result
+
+    async def analyze_event(
+        self,
+        event_id: str,
+        document_id: str,
+        force_refresh: bool = False,
+    ) -> EventAnalysisResult:
+        """Run event analysis with cache-first strategy.
+
+        Args:
+            event_id: Event ID from the KG.
+            document_id: Source document ID.
+            force_refresh: If True, skip cache and re-analyze.
+
+        Returns:
+            EventAnalysisResult.
+        """
+        cache_key = f"event:{document_id}:{event_id}"
+
+        if self._cache is not None and not force_refresh:
+            cached = await self._cache.get(cache_key)
+            if cached is not None:
+                logger.info("Cache HIT for %s", cache_key)
+                return EventAnalysisResult.model_validate(cached)
+            logger.info("Cache MISS for %s", cache_key)
+
+        result = await self._service.analyze_event(event_id=event_id, document_id=document_id)
+
         if self._cache is not None:
             await self._cache.set(cache_key, result.model_dump(mode="json"))
             logger.info("Cached result for %s", cache_key)

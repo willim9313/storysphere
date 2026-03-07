@@ -7,6 +7,7 @@ Tools delegate to this service.
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -17,9 +18,18 @@ from services.analysis_models import (
     ArcSegment,
     ArchetypeResult,
     CEPResult,
+    CausalityAnalysis,
     CharacterAnalysisResult,
     CharacterProfile,
     CoverageMetrics,
+    EventAnalysisResult,
+    EventCoverageMetrics,
+    EventEvidenceProfile,
+    EventImportance,
+    EventSummary,
+    ImpactAnalysis,
+    ParticipantRole,
+    ParticipantRoleType,
 )
 
 logger = logging.getLogger(__name__)
@@ -89,6 +99,85 @@ covering their role, personality, key relationships, and development arc.
 
 Return a JSON object with a single key "summary" containing the text.
 Write in third person, present tense. Be specific and insightful.
+"""
+
+_EEP_SYSTEM_PROMPT = """\
+You are a literary analyst. Given a narrative event and supporting evidence,
+extract a structured Event Evidence Profile.
+
+Return JSON with exactly these keys:
+{
+  "state_before": str,
+  "state_after": str,
+  "causal_factors": [str, ...],
+  "participant_roles": [
+    {
+      "entity_name": str,
+      "role": "initiator"|"actor"|"reactor"|"victim"|"beneficiary",
+      "impact_description": str
+    }, ...
+  ],
+  "structural_role": str,
+  "event_importance": "kernel"|"satellite",
+  "thematic_significance": str
+}
+
+structural_role must be one of: Setup, Inciting Incident, Turning Point,
+Escalation, Crisis, Climax, Resolution.
+"""
+
+_CAUSALITY_SYSTEM_PROMPT = """\
+You are a literary analyst specializing in narrative causality.
+Given a narrative event and its evidence profile, construct the causal chain
+that led to this event.
+
+Return JSON:
+{
+  "root_cause": str,
+  "causal_chain": [str, ...],
+  "trigger_event_ids": [str],
+  "chain_summary": str
+}
+
+trigger_event_ids must be a subset of the provided prior event IDs.
+causal_chain should be 3-6 ordered steps.
+chain_summary should be 2-3 sentences.
+"""
+
+_IMPACT_SYSTEM_PROMPT = """\
+You are a literary analyst specializing in narrative consequences.
+Given a narrative event and its evidence, analyze its impact on participants
+and the story world.
+
+Return JSON:
+{
+  "affected_participant_ids": [str],
+  "participant_impacts": [str],
+  "relation_changes": [str],
+  "subsequent_event_ids": [str],
+  "impact_summary": str
+}
+
+subsequent_event_ids must be a subset of the provided subsequent event IDs.
+impact_summary should be 2-3 sentences.
+"""
+
+_EVENT_SUMMARY_SYSTEM_PROMPT = """\
+You are a literary analyst. Write a concise ~150-word narrative summary of
+a story event, synthesizing its causes, participants, consequences, and
+thematic meaning.
+
+Return JSON:
+{
+  "summary": str
+}
+
+The summary must cover:
+1. What happened and what changed (state transition)
+2. Why it happened (causality)
+3. Who was involved and in what roles
+4. What it led to (consequences)
+5. Its structural role in the story and thematic significance
 """
 
 
@@ -392,6 +481,359 @@ class AnalysisService:
             return CharacterProfile(summary=raw[:500])
 
         return CharacterProfile(summary=parsed.get("summary", raw[:500]))
+
+    # ── Public: analyze_event (Phase 5b) ───────────────────────────────────────
+
+    async def analyze_event(
+        self,
+        event_id: str,
+        document_id: str,
+    ) -> EventAnalysisResult:
+        """Run full event analysis pipeline: EEP → causality → impact → summary.
+
+        Args:
+            event_id: Event ID from the KG.
+            document_id: Source document ID for vector search scoping.
+
+        Returns:
+            Complete EventAnalysisResult.
+        """
+        from datetime import timezone  # noqa: PLC0415
+
+        if self._kg_service is None:
+            raise ValueError("analyze_event requires kg_service")
+
+        event = await self._kg_service.get_event(event_id)
+        if event is None:
+            raise ValueError(f"Event not found: {event_id}")
+
+        eep = await self._extract_eep(event, document_id)
+        causality = await self._analyze_causality(eep, event)
+        impact = await self._analyze_impact(eep, event)
+        event_summary = await self._generate_event_summary(event, eep, causality, impact)
+        coverage = self._compute_event_coverage(eep)
+
+        return EventAnalysisResult(
+            event_id=event_id,
+            title=event.title,
+            document_id=document_id,
+            eep=eep,
+            causality=causality,
+            impact=impact,
+            summary=event_summary,
+            coverage=coverage,
+            analyzed_at=datetime.now(timezone.utc),
+        )
+
+    # ── Private: EEP Extraction ────────────────────────────────────────────────
+
+    @retry(
+        retry=retry_if_exception_type((ValueError, KeyError)),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+    )
+    async def _extract_eep(self, event: Any, document_id: str) -> EventEvidenceProfile:
+        """Assemble EEP from KG + vector evidence, then call LLM to fill fields."""
+        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
+        # Collect participant entities
+        participants = []
+        if self._kg_service is not None and event.participants:
+            for pid in event.participants:
+                entity = await self._kg_service.get_entity(pid)
+                if entity is not None:
+                    participants.append(entity)
+
+        # Find prior/subsequent events via participant timelines
+        prior_events: list[Any] = []
+        subsequent_events: list[Any] = []
+        seen_prior: set[str] = set()
+        seen_subsequent: set[str] = set()
+        if self._kg_service is not None:
+            for pid in event.participants:
+                timeline = await self._kg_service.get_entity_timeline(pid)
+                for e in timeline:
+                    if e.chapter < event.chapter and e.id not in seen_prior:
+                        seen_prior.add(e.id)
+                        prior_events.append(e)
+                    elif e.chapter > event.chapter and e.id not in seen_subsequent:
+                        seen_subsequent.add(e.id)
+                        subsequent_events.append(e)
+
+        # Vector search for text evidence
+        text_evidence: list[str] = []
+        if self._vector_service is not None:
+            try:
+                results = await self._vector_service.search(
+                    query_text=f"{event.title} {event.description}",
+                    top_k=10,
+                    document_id=document_id,
+                )
+                formatted = DataSanitizer.format_vector_store_results(results)
+                text_evidence = formatted[:10]
+            except Exception:
+                logger.debug("Vector search failed for event %s", event.id, exc_info=True)
+
+        # Keywords (optional)
+        top_terms: dict[str, float] = {}
+        if self._keyword_service is not None:
+            try:
+                top_terms = await self._keyword_service.get_chapter_keywords(
+                    document_id, event.chapter
+                )
+            except Exception:
+                logger.debug("Keyword retrieval failed for event %s", event.id, exc_info=True)
+
+        # Build context for LLM
+        participants_text = "\n".join(
+            f"- {e.name} ({e.entity_type.value})" for e in participants
+        ) or "(none)"
+        prior_text = "\n".join(
+            f"- Ch.{e.chapter}: {e.title}" for e in prior_events[:10]
+        ) or "(none)"
+        evidence_text = "\n".join(text_evidence[:8]) or "(none)"
+        consequences_text = DataSanitizer.sanitize_for_template(event.consequences)
+
+        human_content = (
+            f"EVENT:\n"
+            f"Title: {DataSanitizer.sanitize_for_template(event.title)}\n"
+            f"Type: {event.event_type.value}\n"
+            f"Chapter: {event.chapter}\n"
+            f"Description: {DataSanitizer.sanitize_for_template(event.description)}\n"
+            f"Significance: {DataSanitizer.sanitize_for_template(event.significance or 'not specified')}\n"
+            f"Consequences: {consequences_text}\n\n"
+            f"PARTICIPANTS:\n{participants_text}\n\n"
+            f"PRIOR EVENTS (same participants, earlier chapters):\n{prior_text}\n\n"
+            f"TEXT EVIDENCE:\n{evidence_text}"
+        )
+
+        llm = self._get_llm()
+        messages = [
+            SystemMessage(content=_EEP_SYSTEM_PROMPT),
+            HumanMessage(content=human_content),
+        ]
+        response = await llm.ainvoke(messages)
+        raw = response.content if hasattr(response, "content") else str(response)
+
+        parsed, err = extract_json_from_text(raw)
+        if err or not isinstance(parsed, dict):
+            raise ValueError(f"EEP extraction failed: {err}")
+
+        # Parse participant roles
+        parsed_roles = parsed.get("participant_roles", [])
+        participant_roles: list[ParticipantRole] = []
+        for pr in parsed_roles:
+            entity_name = pr.get("entity_name", "")
+            entity_id = next(
+                (e.id for e in participants if e.name == entity_name),
+                entity_name,
+            )
+            try:
+                role = ParticipantRoleType(pr.get("role", "actor"))
+            except ValueError:
+                role = ParticipantRoleType.ACTOR
+            participant_roles.append(ParticipantRole(
+                entity_id=entity_id,
+                entity_name=entity_name,
+                role=role,
+                impact_description=pr.get("impact_description", ""),
+            ))
+
+        try:
+            importance = EventImportance(parsed.get("event_importance", "satellite"))
+        except ValueError:
+            importance = EventImportance.SATELLITE
+
+        return EventEvidenceProfile(
+            state_before=parsed.get("state_before", ""),
+            state_after=parsed.get("state_after", ""),
+            causal_factors=parsed.get("causal_factors", []),
+            prior_event_ids=[e.id for e in prior_events],
+            participant_roles=participant_roles,
+            consequences=list(event.consequences),
+            subsequent_event_ids=[e.id for e in subsequent_events],
+            structural_role=parsed.get("structural_role", ""),
+            event_importance=importance,
+            thematic_significance=parsed.get("thematic_significance", ""),
+            text_evidence=text_evidence,
+            top_terms=top_terms,
+        )
+
+    # ── Private: Causality Analysis ────────────────────────────────────────────
+
+    @retry(
+        retry=retry_if_exception_type((ValueError, KeyError)),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+    )
+    async def _analyze_causality(self, eep: EventEvidenceProfile, event: Any) -> CausalityAnalysis:
+        """Construct narrative causal chain leading to this event."""
+        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
+        # Fetch prior event details
+        prior_details: list[str] = []
+        if self._kg_service is not None:
+            for eid in eep.prior_event_ids[:10]:
+                e = await self._kg_service.get_event(eid)
+                if e is not None:
+                    prior_details.append(f"[{eid}] Ch.{e.chapter}: {e.title} — {e.description}")
+
+        causal_text = "\n".join(
+            f"{i+1}. {f}" for i, f in enumerate(eep.causal_factors)
+        ) or "(none identified)"
+        prior_text = "\n".join(prior_details) or "(none)"
+
+        human_content = (
+            f"EVENT: {DataSanitizer.sanitize_for_template(event.title)} (Chapter {event.chapter})\n"
+            f"Description: {DataSanitizer.sanitize_for_template(event.description)}\n\n"
+            f"EEP CAUSAL FACTORS:\n{causal_text}\n\n"
+            f"PRIOR EVENTS (chronological):\n{prior_text}"
+        )
+
+        llm = self._get_llm()
+        messages = [
+            SystemMessage(content=_CAUSALITY_SYSTEM_PROMPT),
+            HumanMessage(content=human_content),
+        ]
+        response = await llm.ainvoke(messages)
+        raw = response.content if hasattr(response, "content") else str(response)
+
+        parsed, err = extract_json_from_text(raw)
+        if err or not isinstance(parsed, dict):
+            raise ValueError(f"Causality analysis failed: {err}")
+
+        return CausalityAnalysis(
+            root_cause=parsed.get("root_cause", ""),
+            causal_chain=parsed.get("causal_chain", []),
+            trigger_event_ids=parsed.get("trigger_event_ids", []),
+            chain_summary=parsed.get("chain_summary", ""),
+        )
+
+    # ── Private: Impact Analysis ───────────────────────────────────────────────
+
+    @retry(
+        retry=retry_if_exception_type((ValueError, KeyError)),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+    )
+    async def _analyze_impact(self, eep: EventEvidenceProfile, event: Any) -> ImpactAnalysis:
+        """Trace what happened because of this event."""
+        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
+        # Fetch subsequent event details
+        subsequent_details: list[str] = []
+        if self._kg_service is not None:
+            for eid in eep.subsequent_event_ids[:10]:
+                e = await self._kg_service.get_event(eid)
+                if e is not None:
+                    subsequent_details.append(f"[{eid}] Ch.{e.chapter}: {e.title} — {e.description}")
+
+        consequences_text = "\n".join(
+            f"{i+1}. {c}" for i, c in enumerate(eep.consequences)
+        ) or "(none)"
+        roles_text = "\n".join(
+            f"- {r.entity_name} ({r.role.value}): {r.impact_description}"
+            for r in eep.participant_roles
+        ) or "(none)"
+        subsequent_text = "\n".join(subsequent_details) or "(none)"
+
+        human_content = (
+            f"EVENT: {DataSanitizer.sanitize_for_template(event.title)} (Chapter {event.chapter})\n"
+            f"State after: {DataSanitizer.sanitize_for_template(eep.state_after)}\n\n"
+            f"EEP CONSEQUENCES:\n{consequences_text}\n\n"
+            f"PARTICIPANT ROLES:\n{roles_text}\n\n"
+            f"SUBSEQUENT EVENTS (chronological):\n{subsequent_text}"
+        )
+
+        llm = self._get_llm()
+        messages = [
+            SystemMessage(content=_IMPACT_SYSTEM_PROMPT),
+            HumanMessage(content=human_content),
+        ]
+        response = await llm.ainvoke(messages)
+        raw = response.content if hasattr(response, "content") else str(response)
+
+        parsed, err = extract_json_from_text(raw)
+        if err or not isinstance(parsed, dict):
+            raise ValueError(f"Impact analysis failed: {err}")
+
+        return ImpactAnalysis(
+            affected_participant_ids=parsed.get("affected_participant_ids", []),
+            participant_impacts=parsed.get("participant_impacts", []),
+            relation_changes=parsed.get("relation_changes", []),
+            subsequent_event_ids=parsed.get("subsequent_event_ids", []),
+            impact_summary=parsed.get("impact_summary", ""),
+        )
+
+    # ── Private: Event Summary ─────────────────────────────────────────────────
+
+    @retry(
+        retry=retry_if_exception_type((ValueError, KeyError)),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+    )
+    async def _generate_event_summary(
+        self,
+        event: Any,
+        eep: EventEvidenceProfile,
+        causality: CausalityAnalysis,
+        impact: ImpactAnalysis,
+    ) -> EventSummary:
+        """Synthesize all analysis into a ~150-word narrative paragraph."""
+        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
+        participants_text = ", ".join(
+            f"{r.entity_name} ({r.role.value})" for r in eep.participant_roles
+        ) or "(none)"
+
+        human_content = (
+            f"EVENT: {DataSanitizer.sanitize_for_template(event.title)} "
+            f"({event.event_type.value}, Chapter {event.chapter})\n"
+            f"Structural role: {eep.structural_role} ({eep.event_importance.value})\n"
+            f"Thematic significance: {DataSanitizer.sanitize_for_template(eep.thematic_significance)}\n\n"
+            f"CAUSALITY SUMMARY: {DataSanitizer.sanitize_for_template(causality.chain_summary)}\n"
+            f"IMPACT SUMMARY: {DataSanitizer.sanitize_for_template(impact.impact_summary)}\n"
+            f"PARTICIPANTS: {participants_text}"
+        )
+
+        llm = self._get_llm()
+        messages = [
+            SystemMessage(content=_EVENT_SUMMARY_SYSTEM_PROMPT),
+            HumanMessage(content=human_content),
+        ]
+        response = await llm.ainvoke(messages)
+        raw = response.content if hasattr(response, "content") else str(response)
+
+        parsed, err = extract_json_from_text(raw)
+        if err or not isinstance(parsed, dict):
+            return EventSummary(summary=raw[:500])
+
+        return EventSummary(summary=parsed.get("summary", raw[:500]))
+
+    # ── Private: Event Coverage (pure computation) ─────────────────────────────
+
+    @staticmethod
+    def _compute_event_coverage(eep: EventEvidenceProfile) -> EventCoverageMetrics:
+        gaps: list[str] = []
+        if not eep.prior_event_ids:
+            gaps.append("No prior events found for causal analysis")
+        if not eep.subsequent_event_ids:
+            gaps.append("No subsequent events found for impact analysis")
+        if not eep.text_evidence:
+            gaps.append("No text evidence chunks found")
+        if not eep.participant_roles:
+            gaps.append("No participant roles identified")
+        return EventCoverageMetrics(
+            evidence_chunk_count=len(eep.text_evidence),
+            participant_count=len(eep.participant_roles),
+            causal_event_count=len(eep.prior_event_ids),
+            subsequent_event_count=len(eep.subsequent_event_ids),
+            gaps=gaps,
+        )
 
     # ── Private: Coverage Metrics (pure computation) ───────────────────────────
 

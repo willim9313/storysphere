@@ -138,9 +138,13 @@ class AnalyzeCharacterInput(BaseModel):
 
 
 class AnalyzeEventInput(BaseModel):
-    """Input for deep event analysis (stub — Phase 5)."""
+    """Input for deep event analysis."""
 
     event_id: str = Field(description="Event ID to analyze.")
+    document_id: str = Field(
+        default="",
+        description="Document ID for vector search scoping.",
+    )
     include_consequences: bool = Field(
         default=True,
         description="Whether to include consequence chain analysis.",
@@ -235,12 +239,22 @@ class CharacterAnalysisOutput(BaseModel):
 
 
 class EventAnalysisOutput(BaseModel):
-    """Expected output schema for AnalyzeEventTool (Phase 5)."""
+    """Expected output schema for AnalyzeEventTool."""
 
     event_id: str
     title: str
-    significance_analysis: str = ""
-    cause_chain: list[str] = Field(default_factory=list)
-    consequence_chain: list[str] = Field(default_factory=list)
-    affected_characters: list[str] = Field(default_factory=list)
+    document_id: str = ""
+    state_before: str = ""
+    state_after: str = ""
+    structural_role: str = ""
+    event_importance: str = ""
+    causal_chain: list[str] = Field(default_factory=list)
+    root_cause: str = ""
+    chain_summary: str = ""
+    impact_summary: str = ""
+    relation_changes: list[str] = Field(default_factory=list)
+    participant_roles: list[dict] = Field(default_factory=list)
+    thematic_significance: str = ""
     summary: str = ""
+    coverage_gaps: list[str] = Field(default_factory=list)
+    analyzed_at: str = ""

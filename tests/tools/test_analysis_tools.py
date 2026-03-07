@@ -92,12 +92,13 @@ class TestAnalyzeCharacterTool:
         assert call_kwargs["language"] == "zh"
 
 
-class TestAnalyzeEventToolStub:
+class TestAnalyzeEventTool:
     @pytest.mark.asyncio
-    async def test_raises_not_implemented(self, mock_kg_service):
-        tool = AnalyzeEventTool(kg_service=mock_kg_service)
-        with pytest.raises(NotImplementedError, match="Phase 5"):
-            await tool._arun("event-1")
+    async def test_no_agent_returns_error_json(self):
+        tool = AnalyzeEventTool(analysis_agent=None)
+        raw = await tool._arun("event-1")
+        result = json.loads(raw)
+        assert "error" in result
 
     def test_has_description(self):
         tool = AnalyzeEventTool()
@@ -106,5 +107,5 @@ class TestAnalyzeEventToolStub:
 
     def test_sync_raises_not_implemented(self):
         tool = AnalyzeEventTool()
-        with pytest.raises(NotImplementedError, match="Phase 5"):
+        with pytest.raises(NotImplementedError):
             tool._run("event-1")
