@@ -9,10 +9,11 @@ Wraps a ``create_react_agent`` graph with:
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import AsyncGenerator
 from typing import Any, Optional
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from langgraph.prebuilt import create_react_agent
 
 from agents.pattern_recognizer import QueryPatternRecognizer
@@ -121,34 +122,60 @@ class ChatAgent:
         2. Fall back to full LangGraph ReAct loop
         3. Update ChatState with entity mentions and tool results
         """
-        # Pronoun resolution
-        resolved = state.resolve_pronoun(query.strip())
-        if resolved and len(query.split()) <= 3:
-            query = query.replace(query.strip(), resolved)
+        from core.metrics import get_metrics  # noqa: PLC0415
 
-        state.add_message("user", query)
+        _metrics = get_metrics()
+        _t0 = time.perf_counter()
+        _route = "agent_loop"
 
-        # Fast route
-        match = self._recognizer.recognize(query)
-        if match and match.confidence > 0.8:
-            result = await self._fast_route(match, query, state)
-            if result is not None:
-                state.add_message("assistant", result)
+        try:
+            # Pronoun resolution
+            resolved = state.resolve_pronoun(query.strip())
+            if resolved and len(query.split()) <= 3:
+                query = query.replace(query.strip(), resolved)
+
+            state.add_message("user", query)
+
+            # Fast route
+            match = self._recognizer.recognize(query)
+            if match and match.confidence > 0.8:
+                result = await self._fast_route(match, query, state)
+                if result is not None:
+                    state.add_message("assistant", result)
+                    state.last_query_type = match.pattern_name
+                    _route = "fast_route"
+                    _metrics.record_agent_query(
+                        success=True,
+                        latency_ms=(time.perf_counter() - _t0) * 1000,
+                        route=_route,
+                    )
+                    return result
+
+            # Full agent loop
+            response = await self._agent_invoke(query)
+
+            # Update state
+            state.add_message("assistant", response)
+            if match:
                 state.last_query_type = match.pattern_name
-                return result
+                for entity in match.extracted_entities:
+                    state.add_entity_mention(entity)
 
-        # Full agent loop
-        response = await self._agent_invoke(query)
-
-        # Update state
-        state.add_message("assistant", response)
-        if match:
-            state.last_query_type = match.pattern_name
-            for entity in match.extracted_entities:
-                state.add_entity_mention(entity)
-
-        state.trim_history(max_turns=20)
-        return response
+            state.trim_history(max_turns=20)
+            _metrics.record_agent_query(
+                success=True,
+                latency_ms=(time.perf_counter() - _t0) * 1000,
+                route=_route,
+            )
+            return response
+        except Exception as exc:
+            _metrics.record_agent_query(
+                success=False,
+                latency_ms=(time.perf_counter() - _t0) * 1000,
+                route=_route,
+                error=type(exc).__name__,
+            )
+            raise
 
     async def astream(self, query: str, state: ChatState) -> AsyncGenerator[str, None]:
         """Streaming chat: yields token chunks as they arrive.
@@ -176,6 +203,8 @@ class ChatAgent:
         self, match, query: str, state: ChatState
     ) -> Optional[str]:
         """Execute the recommended tool directly, bypassing the ReAct loop."""
+        from core.metrics import get_metrics  # noqa: PLC0415
+
         tool_name = match.suggested_tools[0] if match.suggested_tools else None
         tool = self._tool_map.get(tool_name) if tool_name else None
         if tool is None:
@@ -206,6 +235,11 @@ class ChatAgent:
             state.cache_tool_result(tool_name, result)
             for entity in entities:
                 state.add_entity_mention(entity)
+
+            # Record tool selection via fast route
+            get_metrics().record_tool_selection(
+                tool_name, source="fast_route", query_pattern=match.pattern_name
+            )
             return result
         except Exception:
             logger.debug("Fast route failed for %s, falling back to agent", tool_name)
@@ -213,11 +247,18 @@ class ChatAgent:
 
     async def _agent_invoke(self, query: str) -> str:
         """Invoke the LangGraph agent and extract the final response text."""
+        from core.metrics import get_metrics  # noqa: PLC0415
+
+        _metrics = get_metrics()
         messages = [HumanMessage(content=query)]
         result = await self._graph.ainvoke({"messages": messages})
 
-        # Extract the last AI message
+        # Extract the last AI message; record tool selections from ToolMessages
         output_messages = result.get("messages", [])
+        for msg in output_messages:
+            if isinstance(msg, ToolMessage) and msg.name:
+                _metrics.record_tool_selection(msg.name, source="agent_loop")
+
         for msg in reversed(output_messages):
             if isinstance(msg, AIMessage) and msg.content:
                 return msg.content

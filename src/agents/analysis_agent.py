@@ -53,6 +53,12 @@ class AnalysisAgent:
         Returns:
             CharacterAnalysisResult.
         """
+        import time  # noqa: PLC0415
+
+        from core.metrics import get_metrics  # noqa: PLC0415
+
+        _metrics = get_metrics()
+        _t0 = time.perf_counter()
         cache_key = AnalysisCache.make_key("character", document_id, entity_name)
 
         # 1. Check cache (unless force_refresh)
@@ -60,22 +66,38 @@ class AnalysisAgent:
             cached = await self._cache.get(cache_key)
             if cached is not None:
                 logger.info("Cache HIT for %s", cache_key)
+                _metrics.record_cache_event("character", hit=True, cache_key=cache_key)
                 return CharacterAnalysisResult.model_validate(cached)
             logger.info("Cache MISS for %s", cache_key)
+            _metrics.record_cache_event("character", hit=False, cache_key=cache_key)
 
         # 2. Run analysis
-        result = await self._service.analyze_character(
-            entity_name=entity_name,
-            document_id=document_id,
-            archetype_frameworks=archetype_frameworks,
-            language=language,
-        )
+        try:
+            result = await self._service.analyze_character(
+                entity_name=entity_name,
+                document_id=document_id,
+                archetype_frameworks=archetype_frameworks,
+                language=language,
+            )
+        except Exception as exc:
+            _metrics.record_tool_execution(
+                "analyze_character",
+                success=False,
+                latency_ms=(time.perf_counter() - _t0) * 1000,
+                error=type(exc).__name__,
+            )
+            raise
 
         # 3. Store in cache
         if self._cache is not None:
             await self._cache.set(cache_key, result.model_dump(mode="json"))
             logger.info("Cached result for %s", cache_key)
 
+        _metrics.record_tool_execution(
+            "analyze_character",
+            success=True,
+            latency_ms=(time.perf_counter() - _t0) * 1000,
+        )
         return result
 
     async def analyze_event(
@@ -94,19 +116,41 @@ class AnalysisAgent:
         Returns:
             EventAnalysisResult.
         """
+        import time  # noqa: PLC0415
+
+        from core.metrics import get_metrics  # noqa: PLC0415
+
+        _metrics = get_metrics()
+        _t0 = time.perf_counter()
         cache_key = f"event:{document_id}:{event_id}"
 
         if self._cache is not None and not force_refresh:
             cached = await self._cache.get(cache_key)
             if cached is not None:
                 logger.info("Cache HIT for %s", cache_key)
+                _metrics.record_cache_event("event", hit=True, cache_key=cache_key)
                 return EventAnalysisResult.model_validate(cached)
             logger.info("Cache MISS for %s", cache_key)
+            _metrics.record_cache_event("event", hit=False, cache_key=cache_key)
 
-        result = await self._service.analyze_event(event_id=event_id, document_id=document_id)
+        try:
+            result = await self._service.analyze_event(event_id=event_id, document_id=document_id)
+        except Exception as exc:
+            _metrics.record_tool_execution(
+                "analyze_event",
+                success=False,
+                latency_ms=(time.perf_counter() - _t0) * 1000,
+                error=type(exc).__name__,
+            )
+            raise
 
         if self._cache is not None:
             await self._cache.set(cache_key, result.model_dump(mode="json"))
             logger.info("Cached result for %s", cache_key)
 
+        _metrics.record_tool_execution(
+            "analyze_event",
+            success=True,
+            latency_ms=(time.perf_counter() - _t0) * 1000,
+        )
         return result
