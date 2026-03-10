@@ -7,13 +7,17 @@ Example queries: "Compare Alice and Bob", "Differences between X and Y."
 
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
 from tools.base import format_entity, handle_not_found
 from tools.schemas import CompareCharactersInput
+
+logger = logging.getLogger(__name__)
 
 
 class CompareCharactersTool(BaseTool):
@@ -42,11 +46,16 @@ class CompareCharactersTool(BaseTool):
         return entity
 
     async def _arun(self, entity_a: str, entity_b: str) -> str:
-        # 1. Resolve both entities
-        e1 = await self._resolve_entity(entity_a)
-        e2 = await self._resolve_entity(entity_b)
+        # 1. Resolve both entities in parallel
+        e1_r, e2_r = await asyncio.gather(
+            self._resolve_entity(entity_a),
+            self._resolve_entity(entity_b),
+            return_exceptions=True,
+        )
 
         errors = []
+        e1 = None if isinstance(e1_r, Exception) or e1_r is None else e1_r
+        e2 = None if isinstance(e2_r, Exception) or e2_r is None else e2_r
         if e1 is None:
             errors.append(f"Entity '{entity_a}' not found.")
         if e2 is None:
@@ -59,14 +68,21 @@ class CompareCharactersTool(BaseTool):
             "character_b": format_entity(e2),
         }
 
-        # 2. Relations for each
-        try:
-            rels_a = await self.kg_service.get_relations(e1.id)
-            rels_b = await self.kg_service.get_relations(e2.id)
-            result["character_a_relation_count"] = len(rels_a)
-            result["character_b_relation_count"] = len(rels_b)
-        except Exception:
-            pass
+        # 2. Relations for both entities in parallel
+        rels_a_r, rels_b_r = await asyncio.gather(
+            self.kg_service.get_relations(e1.id),
+            self.kg_service.get_relations(e2.id),
+            return_exceptions=True,
+        )
+
+        if not isinstance(rels_a_r, Exception):
+            result["character_a_relation_count"] = len(rels_a_r)
+        else:
+            logger.warning("CompareCharactersTool: rels_a fetch failed: %s", rels_a_r)
+        if not isinstance(rels_b_r, Exception):
+            result["character_b_relation_count"] = len(rels_b_r)
+        else:
+            logger.warning("CompareCharactersTool: rels_b fetch failed: %s", rels_b_r)
 
         # 3. LLM comparison insight (best-effort)
         if self.analysis_service is not None:

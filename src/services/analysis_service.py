@@ -6,6 +6,7 @@ Tools delegate to this service.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Any
@@ -252,25 +253,49 @@ class AnalysisService:
             if entity is not None:
                 entity_id = entity.id
 
-        # Step 1: Extract CEP
+        # Step 1: Extract CEP (must complete before steps 2-4)
         cep = await self._extract_cep(entity_name, document_id)
 
-        # Step 2: Classify archetypes
+        # Steps 2, 3, 4 in parallel: archetypes + arc + profile
+        archetype_coros = [
+            self._classify_archetype(cep, fw, language)
+            for fw in archetype_frameworks
+        ]
+        all_results = await asyncio.gather(
+            *archetype_coros,
+            self._generate_character_arc(cep),
+            self._generate_profile(entity_name, cep),
+            return_exceptions=True,
+        )
+
+        n = len(archetype_frameworks)
+        archetype_results = all_results[:n]
+        arc_result = all_results[n]
+        profile_result = all_results[n + 1]
+
         archetypes = []
-        for framework in archetype_frameworks:
-            try:
-                ar = await self._classify_archetype(cep, framework, language)
+        for i, ar in enumerate(archetype_results):
+            if isinstance(ar, Exception):
+                logger.warning(
+                    "Archetype classification failed for %s/%s: %s",
+                    archetype_frameworks[i], language, ar,
+                )
+            else:
                 archetypes.append(ar)
-            except Exception:
-                logger.warning("Archetype classification failed for %s/%s", framework, language, exc_info=True)
 
-        # Step 3: Generate character arc
-        arc = await self._generate_character_arc(cep)
+        if isinstance(arc_result, Exception):
+            logger.warning("Arc generation failed: %s", arc_result)
+            arc: list[ArcSegment] = []
+        else:
+            arc = arc_result
 
-        # Step 4: Generate profile summary
-        profile = await self._generate_profile(entity_name, cep)
+        if isinstance(profile_result, Exception):
+            logger.warning("Profile generation failed: %s", profile_result)
+            profile = CharacterProfile(summary="")
+        else:
+            profile = profile_result
 
-        # Step 5: Compute coverage metrics
+        # Step 5: Compute coverage metrics (pure computation)
         coverage = self._compute_coverage(cep)
 
         return CharacterAnalysisResult(
@@ -296,30 +321,37 @@ class AnalysisService:
         """Extract Character Evidence Profile from KG + vector + keywords + LLM."""
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
-        context_parts: list[str] = []
+        # --- Parallel data gathering: KG, vector search, keywords ---
 
-        # 1) KG relations
-        if self._kg_service is not None:
+        async def gather_kg() -> list[str]:
+            if self._kg_service is None:
+                return []
             entity = await self._kg_service.get_entity_by_name(entity_name)
-            if entity is not None:
-                relations = await self._kg_service.get_relations(entity.id)
-                if relations:
-                    rel_text = DataSanitizer.sanitize_for_template(
-                        [{"head": r.source_id, "relation": r.relation_type, "tail": r.target_id}
-                         for r in relations[:20]]
-                    )
-                    context_parts.append(f"== Knowledge Graph Relations ==\n{rel_text}")
+            if entity is None:
+                return []
+            parts: list[str] = []
+            relations_r, events_r = await asyncio.gather(
+                self._kg_service.get_relations(entity.id),
+                self._kg_service.get_entity_timeline(entity.id),
+                return_exceptions=True,
+            )
+            if not isinstance(relations_r, Exception) and relations_r:
+                rel_text = DataSanitizer.sanitize_for_template(
+                    [{"head": r.source_id, "relation": r.relation_type, "tail": r.target_id}
+                     for r in relations_r[:20]]
+                )
+                parts.append(f"== Knowledge Graph Relations ==\n{rel_text}")
+            if not isinstance(events_r, Exception) and events_r:
+                evt_text = "\n".join(
+                    f"- Ch.{getattr(e, 'chapter_number', '?')}: {e.description}"
+                    for e in events_r[:15]
+                )
+                parts.append(f"== Timeline Events ==\n{evt_text}")
+            return parts
 
-                events = await self._kg_service.get_entity_timeline(entity.id)
-                if events:
-                    evt_text = "\n".join(
-                        f"- Ch.{getattr(e, 'chapter_number', '?')}: {e.description}"
-                        for e in events[:15]
-                    )
-                    context_parts.append(f"== Timeline Events ==\n{evt_text}")
-
-        # 2) Vector search for relevant passages
-        if self._vector_service is not None:
+        async def gather_vector() -> list[str]:
+            if self._vector_service is None:
+                return []
             try:
                 from config.settings import get_settings  # noqa: PLC0415
                 max_chunks = get_settings().analysis_max_evidence_chunks
@@ -332,19 +364,43 @@ class AnalysisService:
             )
             if results:
                 formatted = DataSanitizer.format_vector_store_results(results)
-                context_parts.append(f"== Relevant Text Passages ==\n" + "\n".join(formatted[:10]))
+                return [f"== Relevant Text Passages ==\n" + "\n".join(formatted[:10])]
+            return []
 
-        # 3) Keywords
-        if self._keyword_service is not None:
+        async def gather_keywords() -> dict[str, float]:
+            if self._keyword_service is None:
+                return {}
             try:
                 kws = await self._keyword_service.get_entity_keywords(
                     document_id, entity_name, top_k=15
                 )
-                if kws:
-                    kw_text = ", ".join(f"{k} ({v:.2f})" for k, v in list(kws.items())[:15])
-                    context_parts.append(f"== Character Keywords ==\n{kw_text}")
+                return kws or {}
             except Exception:
                 logger.debug("Keyword retrieval failed for %s", entity_name, exc_info=True)
+                return {}
+
+        kg_parts_r, vector_parts_r, keywords_r = await asyncio.gather(
+            gather_kg(),
+            gather_vector(),
+            gather_keywords(),
+            return_exceptions=True,
+        )
+
+        context_parts: list[str] = []
+        for r in [kg_parts_r, vector_parts_r]:
+            if isinstance(r, Exception):
+                logger.warning("CEP data gathering failed: %s", r)
+            elif isinstance(r, list):
+                context_parts.extend(r)
+
+        keyword_map: dict[str, float] = {}
+        if isinstance(keywords_r, Exception):
+            logger.warning("CEP keyword gathering failed: %s", keywords_r)
+        elif isinstance(keywords_r, dict):
+            keyword_map = keywords_r
+            if keyword_map:
+                kw_text = ", ".join(f"{k} ({v:.2f})" for k, v in list(keyword_map.items())[:15])
+                context_parts.append(f"== Character Keywords ==\n{kw_text}")
 
         context = "\n\n".join(context_parts) if context_parts else "(No context available)"
 
@@ -360,23 +416,13 @@ class AnalysisService:
         if err or not isinstance(parsed, dict):
             raise ValueError(f"CEP extraction failed: {err}")
 
-        # Merge keywords into CEP
-        top_terms: dict[str, float] = {}
-        if self._keyword_service is not None:
-            try:
-                top_terms = await self._keyword_service.get_entity_keywords(
-                    document_id, entity_name, top_k=10
-                )
-            except Exception:
-                pass
-
         return CEPResult(
             actions=parsed.get("actions", []),
             traits=parsed.get("traits", []),
             relations=parsed.get("relations", []),
             key_events=parsed.get("key_events", []),
             quotes=parsed.get("quotes", []),
-            top_terms=top_terms,
+            top_terms=keyword_map,
         )
 
     # ── Private: Archetype Classification ──────────────────────────────────────
@@ -508,8 +554,34 @@ class AnalysisService:
             raise ValueError(f"Event not found: {event_id}")
 
         eep = await self._extract_eep(event, document_id)
-        causality = await self._analyze_causality(eep, event)
-        impact = await self._analyze_impact(eep, event)
+
+        # causality and impact are independent — run in parallel
+        causality_r, impact_r = await asyncio.gather(
+            self._analyze_causality(eep, event),
+            self._analyze_impact(eep, event),
+            return_exceptions=True,
+        )
+
+        if isinstance(causality_r, Exception):
+            logger.warning("Causality analysis failed: %s", causality_r)
+            causality = CausalityAnalysis(
+                root_cause="", causal_chain=[], trigger_event_ids=[], chain_summary=""
+            )
+        else:
+            causality = causality_r
+
+        if isinstance(impact_r, Exception):
+            logger.warning("Impact analysis failed: %s", impact_r)
+            impact = ImpactAnalysis(
+                affected_participant_ids=[],
+                participant_impacts=[],
+                relation_changes=[],
+                subsequent_event_ids=[],
+                impact_summary="",
+            )
+        else:
+            impact = impact_r
+
         event_summary = await self._generate_event_summary(event, eep, causality, impact)
         coverage = self._compute_event_coverage(eep)
 

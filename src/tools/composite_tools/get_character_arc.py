@@ -7,13 +7,17 @@ Example queries: "How does Elizabeth develop?", "Character arc of Alice."
 
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
 from tools.base import format_entity, format_event, handle_not_found
 from tools.schemas import GetCharacterArcInput
+
+logger = logging.getLogger(__name__)
 
 
 class GetCharacterArcTool(BaseTool):
@@ -45,25 +49,37 @@ class GetCharacterArcTool(BaseTool):
 
         result: dict[str, Any] = {"entity": format_entity(entity)}
 
-        # 2. Timeline events
-        try:
-            events = await self.kg_service.get_entity_timeline(entity.id)
-            result["timeline"] = [format_event(e) for e in events]
-        except Exception:
+        # 2+3. Timeline events and relevant passages — run in parallel
+        async def get_timeline() -> list:
+            return await self.kg_service.get_entity_timeline(entity.id)
+
+        async def get_passages() -> list:
+            if self.vector_service is None:
+                return []
+            return await self.vector_service.search(
+                query_text=f"{entity.name} development change growth",
+                top_k=5,
+            )
+
+        timeline_r, passages_r = await asyncio.gather(
+            get_timeline(),
+            get_passages(),
+            return_exceptions=True,
+        )
+
+        if isinstance(timeline_r, Exception):
+            logger.warning("GetCharacterArcTool: timeline fetch failed: %s", timeline_r)
             result["timeline"] = []
+        else:
+            result["timeline"] = [format_event(e) for e in timeline_r]
 
-        # 3. Relevant passages (best-effort)
-        if self.vector_service is not None:
-            try:
-                passages = await self.vector_service.search(
-                    query_text=f"{entity.name} development change growth",
-                    top_k=5,
-                )
-                result["relevant_passages"] = passages
-            except Exception:
-                result["relevant_passages"] = []
+        if isinstance(passages_r, Exception):
+            logger.warning("GetCharacterArcTool: passages fetch failed: %s", passages_r)
+            result["relevant_passages"] = []
+        else:
+            result["relevant_passages"] = passages_r
 
-        # 4. LLM insight (best-effort)
+        # 4. LLM insight (best-effort; runs after timeline is available)
         if self.analysis_service is not None:
             try:
                 context_parts = [f"Character: {entity.name} ({entity.description})"]

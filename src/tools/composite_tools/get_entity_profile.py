@@ -8,13 +8,17 @@ Example queries: "Who is Elizabeth Bennet?", "Tell me everything about London."
 
 from __future__ import annotations
 
+import asyncio
 import json
+import logging
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
 from tools.base import format_entity, handle_not_found
 from tools.schemas import GetEntityProfileInput
+
+logger = logging.getLogger(__name__)
 
 
 class GetEntityProfileTool(BaseTool):
@@ -37,7 +41,7 @@ class GetEntityProfileTool(BaseTool):
         arbitrary_types_allowed = True
 
     async def _arun(self, entity_id: str) -> str:
-        # 1. Resolve entity
+        # 1. Resolve entity (must complete first — subsequent steps need entity.id/name)
         entity = await self.kg_service.get_entity(entity_id)
         if entity is None:
             entity = await self.kg_service.get_entity_by_name(entity_id)
@@ -46,37 +50,54 @@ class GetEntityProfileTool(BaseTool):
 
         profile: dict[str, Any] = {"entity": format_entity(entity)}
 
-        # 2. First appearance summary (best-effort)
-        if self.doc_service is not None and entity.first_appearance_chapter:
-            try:
-                summary = await self.doc_service.get_chapter_summary(
-                    document_id=None,
-                    chapter_number=entity.first_appearance_chapter,
-                )
-                profile["first_appearance_summary"] = summary
-            except Exception:
-                profile["first_appearance_summary"] = None
-
-        # 3. Related passages via vector search (best-effort)
-        if self.vector_service is not None:
-            try:
-                passages = await self.vector_service.search(
-                    query_text=entity.name, top_k=3
-                )
-                profile["relevant_passages"] = passages
-            except Exception:
-                profile["relevant_passages"] = []
-
-        # 4. Relations summary
-        try:
-            relations = await self.kg_service.get_relations(entity.id)
-            profile["relation_count"] = len(relations)
-            profile["relation_types"] = list(
-                {r.relation_type.value if hasattr(r.relation_type, "value") else str(r.relation_type) for r in relations}
+        # 2-4. First appearance summary, relevant passages, relations — run in parallel
+        async def get_summary() -> Any:
+            if self.doc_service is None or not entity.first_appearance_chapter:
+                return None
+            return await self.doc_service.get_chapter_summary(
+                document_id=None,
+                chapter_number=entity.first_appearance_chapter,
             )
-        except Exception:
+
+        async def get_passages() -> list:
+            if self.vector_service is None:
+                return []
+            return await self.vector_service.search(query_text=entity.name, top_k=3)
+
+        async def get_relations() -> list:
+            return await self.kg_service.get_relations(entity.id)
+
+        summary_r, passages_r, relations_r = await asyncio.gather(
+            get_summary(),
+            get_passages(),
+            get_relations(),
+            return_exceptions=True,
+        )
+
+        if isinstance(summary_r, Exception):
+            logger.warning("GetEntityProfileTool: summary fetch failed: %s", summary_r)
+            profile["first_appearance_summary"] = None
+        else:
+            profile["first_appearance_summary"] = summary_r
+
+        if isinstance(passages_r, Exception):
+            logger.warning("GetEntityProfileTool: passages fetch failed: %s", passages_r)
+            profile["relevant_passages"] = []
+        else:
+            profile["relevant_passages"] = passages_r
+
+        if isinstance(relations_r, Exception):
+            logger.warning("GetEntityProfileTool: relations fetch failed: %s", relations_r)
             profile["relation_count"] = 0
             profile["relation_types"] = []
+        else:
+            profile["relation_count"] = len(relations_r)
+            profile["relation_types"] = list(
+                {
+                    r.relation_type.value if hasattr(r.relation_type, "value") else str(r.relation_type)
+                    for r in relations_r
+                }
+            )
 
         return json.dumps(profile, ensure_ascii=False, indent=2, default=str)
 
