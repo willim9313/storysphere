@@ -429,6 +429,9 @@ storysphere/
 - [並行化實現細節](appendix/PARALLEL_IMPL.md)
 - [風險管理策略](appendix/RISK_MANAGEMENT.md)
 
+### 待辦 & 缺口
+- [開發 Backlog](BACKLOG.md)
+
 ### 實施指南（按 Phase）
 - [Phase 1: Refactor](guides/PHASE_1_REFACTOR.md)
 - [Phase 2: Pipelines](guides/PHASE_2_PIPELINES.md)
