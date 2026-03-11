@@ -29,6 +29,11 @@ async def lifespan(app: FastAPI):
         get_analysis_agent,
     )
 
+    from core.tracing import configure_langsmith  # noqa: PLC0415
+    from config.settings import get_settings  # noqa: PLC0415
+
+    configure_langsmith(get_settings())
+
     logger.info("StorySphere API starting up — initialising services...")
     get_kg_service()
     get_doc_service()

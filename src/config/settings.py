@@ -114,6 +114,16 @@ class Settings(BaseSettings):
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
     analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")
 
+    # ── LangSmith Tracing ──────────────────────────────────────────────────────
+    langchain_tracing: bool = Field(
+        default=False, description="Enable LangSmith tracing (LANGCHAIN_TRACING_V2)"
+    )
+    langchain_api_key: str = Field(default="", description="LangSmith API key (ls__...)")
+    langchain_project: str = Field(default="storysphere", description="LangSmith project name")
+    langchain_endpoint: str = Field(
+        default="", description="LangSmith endpoint (leave empty for default)"
+    )
+
     # ── Task Store ─────────────────────────────────────────────────────────────
     task_store_backend: Literal["memory", "sqlite"] = Field(
         default="memory", description="Task status store: 'memory' (dev) or 'sqlite' (multi-worker)"

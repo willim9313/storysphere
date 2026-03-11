@@ -9,6 +9,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from langsmith import traceable
+
 from services.analysis_cache import AnalysisCache
 from services.analysis_models import CharacterAnalysisResult, EventAnalysisResult
 
@@ -33,6 +35,11 @@ class AnalysisAgent:
         self._service = analysis_service
         self._cache = cache
 
+    @traceable(
+        name="AnalysisAgent.analyze_character",
+        tags=["analysis", "character"],
+        metadata={"component": "analysis_agent"},
+    )
     async def analyze_character(
         self,
         entity_name: str,
@@ -100,6 +107,11 @@ class AnalysisAgent:
         )
         return result
 
+    @traceable(
+        name="AnalysisAgent.analyze_event",
+        tags=["analysis", "event"],
+        metadata={"component": "analysis_agent"},
+    )
     async def analyze_event(
         self,
         event_id: str,
