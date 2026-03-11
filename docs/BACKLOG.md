@@ -126,9 +126,9 @@
 
 | ID | 項目 | 優先 | 狀態 |
 |----|------|------|------|
-| B-001 | Relations Router | 🔴 高 | 待開始 |
-| B-002 | Documents Router | 🔴 高 | 待開始 |
-| B-003 | TaskStore 持久化 | 🔴 高 | 待開始 |
+| B-001 | Relations Router | 🔴 高 | ✅ 完成 |
+| B-002 | Documents Router | 🔴 高 | ✅ 完成 |
+| B-003 | TaskStore 持久化 | 🔴 高 | ✅ 完成 |
 | B-004 | LangSmith 監控 | 🟡 中 | 待開始 |
 | B-005 | Analysis WebSocket 推送 | 🟡 中 | 待開始 |
 | B-006 | Metrics API 端點 | 🟡 中 | 待開始 |

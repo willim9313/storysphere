@@ -73,6 +73,12 @@ def mock_kg():
         "edges": [],
     })
     svc.get_relation_stats = AsyncMock(return_value={"total_relations": 1})
+    svc.get_relation_paths = AsyncMock(return_value=[
+        [
+            {"entity_id": "ent-alice", "name": "Alice"},
+            {"entity_id": "ent-bob", "name": "Bob", "relation_type": "friendship"},
+        ]
+    ])
     return svc
 
 
@@ -82,6 +88,37 @@ def mock_vector():
     svc.search = AsyncMock(return_value=[
         {"id": "p1", "text": "Alice entered the garden.", "score": 0.95, "metadata": {}},
     ])
+    return svc
+
+
+@pytest.fixture
+def mock_doc():
+    from domain.documents import Chapter, Document, FileType, Paragraph  # noqa: PLC0415
+
+    paras = [
+        Paragraph(id="p1", text="Alice entered the garden.", chapter_number=1, position=0),
+        Paragraph(id="p2", text="Bob followed closely.", chapter_number=1, position=1),
+    ]
+    doc = Document(
+        id="doc-1",
+        title="Test Novel",
+        author="Author",
+        file_path="/tmp/test.pdf",
+        file_type=FileType.PDF,
+        chapters=[
+            Chapter(number=1, title="The Beginning", summary="Alice and Bob.", paragraphs=paras),
+            Chapter(number=2, title="The Storm", summary="A storm.", paragraphs=[]),
+        ],
+        summary="A tale of Alice and Bob.",
+    )
+    svc = AsyncMock()
+    svc.list_documents = AsyncMock(return_value=[
+        {"id": "doc-1", "title": "Test Novel", "file_type": "pdf"}
+    ])
+    async def _get_doc(doc_id):
+        return doc if doc_id == "doc-1" else None
+
+    svc.get_document = AsyncMock(side_effect=_get_doc)
     return svc
 
 
@@ -126,7 +163,7 @@ def mock_chat_agent():
 # ── App client with overridden deps ──────────────────────────────────────────
 
 @pytest.fixture
-def client(mock_kg, mock_vector, mock_analysis_agent, mock_chat_agent):
+def client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_agent):
     """TestClient with all deps overridden by mocks.
 
     The lifespan warmup is replaced by a no-op so tests don't need
@@ -150,6 +187,7 @@ def client(mock_kg, mock_vector, mock_analysis_agent, mock_chat_agent):
     app.router.lifespan_context = _noop_lifespan
 
     app.dependency_overrides[deps.get_kg_service] = lambda: mock_kg
+    app.dependency_overrides[deps.get_doc_service] = lambda: mock_doc
     app.dependency_overrides[deps.get_vector_service] = lambda: mock_vector
     app.dependency_overrides[deps.get_analysis_agent] = lambda: mock_analysis_agent
     app.dependency_overrides[deps.get_chat_agent] = lambda: mock_chat_agent

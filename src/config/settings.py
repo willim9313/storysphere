@@ -114,6 +114,14 @@ class Settings(BaseSettings):
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
     analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")
 
+    # ── Task Store ─────────────────────────────────────────────────────────────
+    task_store_backend: Literal["memory", "sqlite"] = Field(
+        default="memory", description="Task status store: 'memory' (dev) or 'sqlite' (multi-worker)"
+    )
+    task_store_db_path: str = Field(
+        default="./data/tasks.db", description="SQLite path for task store (only used when backend=sqlite)"
+    )
+
     # ── Application ────────────────────────────────────────────────────────────
     app_env: Literal["development", "production"] = "development"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"

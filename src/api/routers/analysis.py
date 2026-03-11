@@ -16,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException
 from api.deps import AnalysisAgentDep
 from api.schemas.analysis import CharacterAnalysisRequest, EventAnalysisRequest
 from api.schemas.common import TaskStatus
-from api.store import task_store
+from api.store import get_task, task_store
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +61,7 @@ async def analyze_character(
 
 @router.get("/character/{task_id}", response_model=TaskStatus)
 async def get_character_analysis(task_id: str) -> TaskStatus:
-    task = task_store.get(task_id)
+    task = await get_task(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
     return task
@@ -100,7 +100,7 @@ async def analyze_event(
 
 @router.get("/event/{task_id}", response_model=TaskStatus)
 async def get_event_analysis(task_id: str) -> TaskStatus:
-    task = task_store.get(task_id)
+    task = await get_task(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
     return task

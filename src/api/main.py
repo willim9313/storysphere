@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routers import analysis, chat_ws, entities, ingest, search
+from api.routers import analysis, chat_ws, documents, entities, ingest, relations, search
 
 logger = logging.getLogger(__name__)
 
@@ -77,6 +77,8 @@ def create_app() -> FastAPI:
     # ── Routers ───────────────────────────────────────────────────────────────
     prefix = "/api/v1"
     app.include_router(entities.router, prefix=prefix)
+    app.include_router(relations.router, prefix=prefix)
+    app.include_router(documents.router, prefix=prefix)
     app.include_router(search.router, prefix=prefix)
     app.include_router(ingest.router, prefix=prefix)
     app.include_router(analysis.router, prefix=prefix)

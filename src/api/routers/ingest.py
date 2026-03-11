@@ -14,7 +14,7 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
 
 from api.schemas.common import TaskStatus
-from api.store import task_store
+from api.store import get_task, task_store
 
 logger = logging.getLogger(__name__)
 
@@ -79,7 +79,7 @@ async def ingest_document(
 @router.get("/{task_id}", response_model=TaskStatus)
 async def get_ingest_status(task_id: str) -> TaskStatus:
     """Poll the status of a background ingestion task."""
-    task = task_store.get(task_id)
+    task = await get_task(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
     return task
