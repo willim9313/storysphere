@@ -375,7 +375,15 @@ storysphere/
 - 日誌和統計
 - 工具選擇準確率追蹤
 
-**總計**: ~12-16 週
+### Phase 8: FastAPI 層 (2-3 週)
+→ 📄 [guides/PHASE_8_API.md](guides/PHASE_8_API.md)
+- **同步查詢 API** (`GET /api/v1/entities`, `/relations` 等) — <100ms
+- **文件上傳 API** (`POST /api/v1/ingest`) — 觸發 IngestionWorkflow
+- **Deep Analysis API** (`POST /api/v1/analysis/character|event`) — task_id + 輪詢
+- **Chat WebSocket** (`WS /ws/chat`) — 流式串流
+- 依賴注入（Services/Agents 單例）、錯誤處理、API 文件（OpenAPI）
+
+**總計**: ~14-19 週
 
 ---
 
@@ -431,6 +439,7 @@ storysphere/
 - [Phase 5b: Deep Analysis — 事件](guides/PHASE_5B_EVENT_ANALYSIS.md)
 - [Phase 6: Optimization](guides/PHASE_6_OPTIMIZATION.md)
 - [Phase 7: Monitoring](guides/PHASE_7_MONITORING.md)
+- [Phase 8: FastAPI 層](guides/PHASE_8_API.md)
 
 ---
 
