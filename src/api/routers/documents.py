@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -73,3 +73,36 @@ async def get_document(document_id: str, doc: DocServiceDep) -> DocumentResponse
             for ch in document.chapters
         ],
     )
+
+
+class ParagraphResponse(BaseModel):
+    """Single paragraph within a chapter."""
+
+    id: str
+    text: str
+    chapter_number: int
+    position: int
+    keywords: dict[str, float] | None = None
+
+
+@router.get(
+    "/{document_id}/chapters/{chapter_number}/paragraphs",
+    response_model=list[ParagraphResponse],
+)
+async def get_chapter_paragraphs(
+    document_id: str, chapter_number: int, doc: DocServiceDep
+) -> list[ParagraphResponse]:
+    """Return all paragraphs for a specific chapter."""
+    paragraphs = await doc.get_paragraphs(document_id, chapter_number=chapter_number)
+    if not paragraphs:
+        raise HTTPException(status_code=404, detail="No paragraphs found")
+    return [
+        ParagraphResponse(
+            id=p.id,
+            text=p.text,
+            chapter_number=p.chapter_number,
+            position=p.position,
+            keywords=p.keywords,
+        )
+        for p in paragraphs
+    ]

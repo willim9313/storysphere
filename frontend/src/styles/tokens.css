@@ -1,0 +1,87 @@
+:root {
+  /* Colors — Light */
+  --color-bg: #faf8f5;
+  --color-bg-secondary: #f0ede8;
+  --color-surface: #ffffff;
+  --color-surface-hover: #f5f3f0;
+  --color-border: #e0dcd6;
+  --color-text: #2c2825;
+  --color-text-secondary: #6b6560;
+  --color-text-muted: #9e9891;
+  --color-accent: #7c5c3e;
+  --color-accent-hover: #6a4d33;
+  --color-accent-subtle: #f5ede4;
+
+  /* Entity highlight colors */
+  --color-entity-character: #d4a574;
+  --color-entity-location: #7cb894;
+  --color-entity-object: #8ba4d4;
+  --color-entity-event: #d49090;
+  --color-entity-concept: #b89ed4;
+  --color-entity-organization: #d4c874;
+
+  /* Status colors */
+  --color-success: #4caf50;
+  --color-warning: #ff9800;
+  --color-error: #f44336;
+  --color-info: #2196f3;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Typography */
+  --font-serif: 'Libre Baskerville', 'Noto Sans TC', Georgia, serif;
+  --font-sans: 'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+
+  /* Borders */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+}
+
+[data-theme='dark'] {
+  --color-bg: #1a1816;
+  --color-bg-secondary: #242120;
+  --color-surface: #2c2825;
+  --color-surface-hover: #3a3530;
+  --color-border: #4a4540;
+  --color-text: #e8e4e0;
+  --color-text-secondary: #a8a4a0;
+  --color-text-muted: #787470;
+  --color-accent: #d4a574;
+  --color-accent-hover: #e0b588;
+  --color-accent-subtle: #3a3028;
+
+  --color-entity-character: #d4a574;
+  --color-entity-location: #7cb894;
+  --color-entity-object: #8ba4d4;
+  --color-entity-event: #d49090;
+  --color-entity-concept: #b89ed4;
+  --color-entity-organization: #d4c874;
+
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
