@@ -62,6 +62,7 @@ logs/
 # ========== Data & Uploads ==========
 data/uploads/
 data/processed/
+data/knowledge_graph.json
 
 # ========== uv ==========
 # uv.lock    # Do NOT ignore - commit lock file for reproducibility
