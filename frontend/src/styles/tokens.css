@@ -1,24 +1,59 @@
 :root {
-  /* Colors — Light */
-  --color-bg: #faf8f5;
-  --color-bg-secondary: #f0ede8;
-  --color-surface: #ffffff;
-  --color-surface-hover: #f5f3f0;
-  --color-border: #e0dcd6;
-  --color-text: #2c2825;
-  --color-text-secondary: #6b6560;
-  --color-text-muted: #9e9891;
-  --color-accent: #7c5c3e;
-  --color-accent-hover: #6a4d33;
-  --color-accent-subtle: #f5ede4;
+  /* ── New Design Tokens (UI_SPEC) ─────────────────────────────── */
 
-  /* Entity highlight colors */
-  --color-entity-character: #d4a574;
-  --color-entity-location: #7cb894;
-  --color-entity-object: #8ba4d4;
-  --color-entity-event: #d49090;
-  --color-entity-concept: #b89ed4;
-  --color-entity-organization: #d4c874;
+  /* Primary backgrounds */
+  --bg-primary:   #faf8f4;
+  --bg-secondary: #f4ede0;
+  --bg-tertiary:  #efe8d8;
+
+  /* Foreground / text */
+  --fg-primary:   #1c1814;
+  --fg-secondary: #5a4f42;
+  --fg-muted:     #8a7a68;
+
+  /* Border */
+  --border:       #e0d4c4;
+
+  /* Accent */
+  --accent:       #8b5e3c;
+
+  /* Dark panels (tool surfaces) */
+  --panel-bg:         #221e18;
+  --panel-bg-card:    #2a2520;
+  --panel-border:     #2e2820;
+  --panel-fg:         #e2d9cc;
+  --panel-fg-muted:   #7a7060;
+
+  /* Entity pill node colors */
+  --entity-char-bg:    #eef4ff;
+  --entity-char-border:#bfdbfe;
+  --entity-char-fg:    #1e40af;
+  --entity-char-dot:   #3b82f6;
+
+  --entity-loc-bg:     #f0fdf4;
+  --entity-loc-border: #bbf7d0;
+  --entity-loc-fg:     #166534;
+  --entity-loc-dot:    #22c55e;
+
+  --entity-con-bg:     #f5f3ff;
+  --entity-con-border: #ddd6fe;
+  --entity-con-fg:     #5b21b6;
+  --entity-con-dot:    #8b5cf6;
+
+  --entity-evt-bg:     #fff1f2;
+  --entity-evt-border: #fecaca;
+  --entity-evt-fg:     #991b1b;
+  --entity-evt-dot:    #ef4444;
+
+  /* Graph node colors (fill / stroke) */
+  --graph-char-fill:   #dbeafe;
+  --graph-char-stroke: #3b82f6;
+  --graph-loc-fill:    #dcfce7;
+  --graph-loc-stroke:  #22c55e;
+  --graph-con-fill:    #ede9fe;
+  --graph-con-stroke:  #8b5cf6;
+  --graph-evt-fill:    #fee2e2;
+  --graph-evt-stroke:  #ef4444;
 
   /* Status colors */
   --color-success: #4caf50;
@@ -37,6 +72,7 @@
   /* Typography */
   --font-serif: 'Libre Baskerville', 'Noto Sans TC', Georgia, serif;
   --font-sans: 'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
+  --font-cjk: 'Noto Sans TC', sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
@@ -59,29 +95,4 @@
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
-}
-
-[data-theme='dark'] {
-  --color-bg: #1a1816;
-  --color-bg-secondary: #242120;
-  --color-surface: #2c2825;
-  --color-surface-hover: #3a3530;
-  --color-border: #4a4540;
-  --color-text: #e8e4e0;
-  --color-text-secondary: #a8a4a0;
-  --color-text-muted: #787470;
-  --color-accent: #d4a574;
-  --color-accent-hover: #e0b588;
-  --color-accent-subtle: #3a3028;
-
-  --color-entity-character: #d4a574;
-  --color-entity-location: #7cb894;
-  --color-entity-object: #8ba4d4;
-  --color-entity-event: #d49090;
-  --color-entity-concept: #b89ed4;
-  --color-entity-organization: #d4c874;
-
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.4);
 }

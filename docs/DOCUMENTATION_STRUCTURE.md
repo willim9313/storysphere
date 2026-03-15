@@ -1,7 +1,7 @@
 # 文檔重組說明
 
-**更新日期**: 2026-02-22
-**版本**: v2.0 → v3.0 (重組版)
+**更新日期**: 2026-03-15
+**版本**: v2.0 → v3.0 (重組版) → v3.1 (前端重構)
 
 ---
 
@@ -11,6 +11,9 @@
 storysphere/
 ├── docs/
 │   ├── CORE.md                      # ⭐ 核心文檔（始終載入，~2K tokens）
+│   ├── API_CONTRACT.md              # ⭐ 前後端 API 契約（所有端點 + 請求/回應格式）
+│   ├── UI_SPEC.md                   # ⭐ 前端 UI 規格（6 頁面 + 導航 + 設計 token）
+│   ├── BACKLOG.md                   # 開發 Backlog（B-001 ~ B-012）
 │   │
 │   ├── appendix/                    # 詳細參考（按需載入）
 │   │   ├── ADR_001_FULL.md         # Agent 架構
@@ -21,7 +24,7 @@ storysphere/
 │   │   ├── ADR_006_FULL.md         # 性能目標
 │   │   ├── ADR_007_FULL.md         # 風險管理
 │   │   ├── ADR_008_FULL.md         # 工具選擇準確性
-│   │   ├── ADR_009_FULL.md         # Tech Stack ⭐ NEW
+│   │   ├── ADR_009_FULL.md         # Tech Stack
 │   │   ├── TOOLS_CATALOG.md        # 工具目錄（18-22 個完整 description）
 │   │   ├── CHATSTATE_DESIGN.md     # ChatState 完整實現
 │   │   ├── PYDANTIC_MODELS.md      # 所有 Pydantic 模型
@@ -35,11 +38,25 @@ storysphere/
 │       ├── PHASE_4_CHAT_AGENT.md
 │       ├── PHASE_5_DEEP_ANALYSIS.md
 │       ├── PHASE_6_OPTIMIZATION.md
-│       └── PHASE_7_MONITORING.md
+│       ├── PHASE_7_MONITORING.md
+│       ├── FRONTEND_DEV_PLAN.md     # 前端開發計劃（已完成，含重構記錄）
+│       ├── FRONTEND_DEV_GUIDE.md    # 前端開發指南（已棄用 → 見 API_CONTRACT + UI_SPEC）
+│       └── LANGSMITH_SETUP.md       # LangSmith 監控設定
 │
-├── pyproject.toml                   # ⭐ 依賴配置
+├── frontend/                        # React 19 + TypeScript + Vite SPA
+│   ├── src/
+│   │   ├── api/                    # API 層（books, chapters, chunks, graph, analysis, ingest）
+│   │   ├── components/             # UI 元件（layout, library, reader, analysis, graph, upload, ui）
+│   │   ├── contexts/               # ThemeContext
+│   │   ├── hooks/                  # TanStack Query hooks
+│   │   ├── lib/                    # Cytoscape 設定、圖形轉換
+│   │   ├── pages/                  # 6 頁面（Library, Upload, Reader, Analysis, Graph, Frameworks）
+│   │   └── styles/                 # tokens.css + global.css
+│   └── package.json
+│
+├── pyproject.toml                   # ⭐ 後端依賴配置
 ├── README.md
-└── src/
+└── src/                             # 後端 Python 原始碼
 ```
 
 ---
@@ -179,16 +196,24 @@ Phase 3 開發工具層：
 2. 創建 guides/PHASE_X_*.md（7 個）
 3. 創建 appendix 詳細文檔（工具目錄、ChatState 等）
 
+### 前端開發
+```
+載入：
+✅ API_CONTRACT.md — 所有端點定義
+✅ UI_SPEC.md — 頁面設計規格
+📂 frontend/src/ — 原始碼
+```
+
 ---
 
 **建議策略**：**邊開發邊拆分**
 - Phase 1-2: 用 CORE.md 夠用
 - Phase 3: 需要時拆分 ADR_003_FULL.md + 創建 TOOLS_CATALOG.md
 - Phase 4: 需要時拆分 ADR_005_FULL.md + 創建 CHATSTATE_DESIGN.md
-- 以此類推
+- 前端開發: 用 API_CONTRACT.md + UI_SPEC.md
 
 ---
 
-**維護者**: William  
-**更新日期**: 2026-02-22  
-**版本**: v3.0 (重組版)
+**維護者**: William
+**更新日期**: 2026-03-15
+**版本**: v3.1 (前端重構)

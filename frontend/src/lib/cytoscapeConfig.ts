@@ -1,5 +1,16 @@
 import type cytoscape from 'cytoscape';
 
+const nodeColors: Record<string, { fill: string; stroke: string }> = {
+  character: { fill: '#dbeafe', stroke: '#3b82f6' },
+  location: { fill: '#dcfce7', stroke: '#22c55e' },
+  concept: { fill: '#ede9fe', stroke: '#8b5cf6' },
+  event: { fill: '#fee2e2', stroke: '#ef4444' },
+};
+
+function getNodeColor(type: string, field: 'fill' | 'stroke'): string {
+  return nodeColors[type]?.[field] ?? '#e5e7eb';
+}
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const cytoscapeStylesheet: any[] = [
   {
@@ -10,54 +21,40 @@ export const cytoscapeStylesheet: any[] = [
       'text-halign': 'center',
       'font-size': '10px',
       'font-family': 'DM Sans, system-ui, sans-serif',
-      color: 'var(--color-text)',
+      color: '#1c1814',
       'text-margin-y': 4,
-      'background-color': 'data(color)',
+      'background-color': (ele: cytoscape.NodeSingular) =>
+        getNodeColor(ele.data('entityType'), 'fill'),
       width: 'data(size)',
       height: 'data(size)',
       'border-width': 2,
-      'border-color': 'var(--color-border)',
+      'border-color': (ele: cytoscape.NodeSingular) =>
+        getNodeColor(ele.data('entityType'), 'stroke'),
     },
   },
   {
     selector: 'node:selected',
     style: {
       'border-width': 3,
-      'border-color': 'var(--color-accent)',
+      'border-color': '#8b5e3c',
     },
   },
   {
     selector: 'edge',
     style: {
-      width: 'data(weight)',
-      'line-color': 'var(--color-border)',
+      width: 1,
+      'line-color': '#e0d4c4',
       'curve-style': 'bezier',
       'target-arrow-shape': 'triangle',
-      'target-arrow-color': 'var(--color-border)',
+      'target-arrow-color': '#e0d4c4',
       'arrow-scale': 0.8,
       label: 'data(label)',
       'font-size': '8px',
       'text-rotation': 'autorotate',
-      color: 'var(--color-text-muted)',
-    },
-  },
-  {
-    selector: 'edge[?bidirectional]',
-    style: {
-      'source-arrow-shape': 'triangle',
-      'source-arrow-color': 'var(--color-border)',
+      color: '#8a7a68',
     },
   },
 ];
-
-export const entityTypeColors: Record<string, string> = {
-  character: 'var(--color-entity-character)',
-  location: 'var(--color-entity-location)',
-  object: 'var(--color-entity-object)',
-  event: 'var(--color-entity-event)',
-  concept: 'var(--color-entity-concept)',
-  organization: 'var(--color-entity-organization)',
-};
 
 export const layoutOptions: cytoscape.LayoutOptions = {
   name: 'cose',

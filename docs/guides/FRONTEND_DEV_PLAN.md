@@ -1,4 +1,15 @@
-# StorySphere 前端開發計劃
+# StorySphere 前端開發計劃（已完成）
+
+> **⚠️ 本計劃已完成。**
+> - Phase F-1 ~ F-5：初版前端建立（已完成）
+> - 前端重構（2026-03-15）：對齊 `API_CONTRACT.md` + `UI_SPEC.md`，全面重寫
+>   - 新導航：48px icon-only 左側 Sidebar + 書籍層級 Top Tab Nav
+>   - 新路由：`/frameworks` 框架索引頁、`/books/:bookId` 書籍空間（含閱讀/分析/圖譜）
+>   - 新 API 層：`books.ts`, `chapters.ts`, `chunks.ts`, `graph.ts`（取代舊 `documents/entities/paragraphs`）
+>   - 新 UI：3 欄閱讀頁 + Bezier 曲線、深色詳情面板、Segment-based 實體高亮、5 步 Timeline
+>   - 6 個頁面：書庫、上傳、閱讀、深度分析、知識圖譜、框架索引
+>
+> 後續開發請參考 `docs/API_CONTRACT.md` 和 `docs/UI_SPEC.md`。
 
 ## Context
 後端已完整實作（FastAPI + WebSocket + LangGraph + 深度分析），前端尚未建立。

@@ -1,7 +1,7 @@
 # StorySphere — 開發 Backlog
 
 **用途**: 記錄已識別但尚未排入 Phase 的開發項目
-**更新日期**: 2026-03-11
+**更新日期**: 2026-03-15
 
 ---
 
@@ -17,13 +17,14 @@
 
 ---
 
-### B-002 Documents Router（API 層遺漏）
+### B-002 Documents Router（API 層遺漏）→ ✅ 已完成
 **背景**: 架構圖有 Card Details，但沒有文件查詢 API
 **內容**:
-- `GET /api/v1/documents/` — 列出已 ingest 的文件
-- `GET /api/v1/documents/{id}` — 文件詳情（含 chapters 列表）
+- `GET /books` — 列出已 ingest 的書籍
+- `GET /books/:bookId` — 書籍詳情（含 chapters 列表）
 
 **實作提示**: 呼叫已有的 `DocumentService.list_documents()` 和 `get_document()`
+**備註**: 前端已對齊 `API_CONTRACT.md` 的 `/books` API（2026-03-15 重構完成）
 
 ---
 
@@ -137,8 +138,21 @@
 | B-009 | GetChapterSummaryTool | 🟢 低 | 待開始 |
 | B-010 | Composite Tool #5 | 🟢 低 | 待開始 |
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
+| B-012 | 前端後端 API 整合驗證 | 🟡 中 | 待開始 |
+
+---
+
+### B-012 前端後端 API 整合驗證
+**背景**: 前端已完成重構（2026-03-15），對齊 `API_CONTRACT.md` 的全部端點，但目前仍使用 mock 資料（`VITE_MOCK=true`）
+**內容**:
+- 驗證後端 `/books`, `/chapters`, `/chunks`, `/graph`, `/analysis` 端點回傳格式與前端 types 一致
+- 確保 `TaskStatus` 的 `status` 欄位為 `done/error`（非 `completed/failed`）、`progress: 0-100`、`stage: string`
+- Segment-based Chunk 回傳（後端需產出 `segments: Segment[]`）
+- 前端 `uploadBook(file)` 只傳 file（不含 title），後端 `POST /books/upload` 需對應
+
+**驗收**: `VITE_MOCK=false` 時，Library → Upload → Reader → Analysis → Graph 端到端可跑通
 
 ---
 
 **維護者**: William
-**最後更新**: 2026-03-11
+**最後更新**: 2026-03-15

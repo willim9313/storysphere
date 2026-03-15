@@ -1,121 +1,139 @@
-/* Backend-mirrored TypeScript types */
+/* API types — aligned with API_CONTRACT.md */
 
-// ── Common ──────────────────────────────────────────────────────
+// ── Entity type ─────────────────────────────────────────────────
 
-export interface TaskStatus {
-  task_id: string;
-  status: 'pending' | 'running' | 'completed' | 'failed';
-  result: unknown;
-  error: string | null;
-}
+export type EntityType = 'character' | 'location' | 'concept' | 'event';
 
-// ── Documents ───────────────────────────────────────────────────
+// ── Books ───────────────────────────────────────────────────────
 
-export interface DocumentSummary {
+export type BookStatus = 'processing' | 'ready' | 'analyzed' | 'error';
+
+export interface Book {
   id: string;
   title: string;
-  file_type: string;
+  author?: string;
+  status: BookStatus;
+  chapterCount: number;
+  entityCount?: number;
+  uploadedAt: string;
+  lastOpenedAt?: string;
 }
 
-export interface ChapterResponse {
-  id: string;
-  number: number;
-  title: string | null;
-  summary: string | null;
-  word_count: number;
-  paragraph_count: number;
+export interface BookDetail extends Book {
+  summary?: string;
+  chunkCount: number;
+  entityCount: number;
+  relationCount: number;
+  entityStats: {
+    character: number;
+    location: number;
+    concept: number;
+    event: number;
+  };
 }
 
-export interface DocumentResponse {
+// ── Chapters ────────────────────────────────────────────────────
+
+export interface Chapter {
   id: string;
+  bookId: string;
   title: string;
-  author: string | null;
-  file_type: string;
-  summary: string | null;
-  total_chapters: number;
-  total_paragraphs: number;
-  chapters: ChapterResponse[];
+  order: number;
+  chunkCount: number;
+  entityCount: number;
+  summary?: string;
+  topEntities?: {
+    id: string;
+    name: string;
+    type: EntityType;
+  }[];
 }
 
-export interface ParagraphResponse {
-  id: string;
+// ── Chunks & Segments ───────────────────────────────────────────
+
+export interface Segment {
   text: string;
-  chapter_number: number;
-  position: number;
-  keywords: Record<string, number> | null;
+  entity?: {
+    type: EntityType;
+    entityId: string;
+    name: string;
+  };
 }
 
-// ── Entities ────────────────────────────────────────────────────
+export interface Chunk {
+  id: string;
+  chapterId: string;
+  order: number;
+  content: string;
+  keywords: string[];
+  segments: Segment[];
+}
 
-export type EntityType =
-  | 'character'
-  | 'location'
-  | 'object'
-  | 'event'
-  | 'concept'
-  | 'organization';
+// ── Graph ───────────────────────────────────────────────────────
 
-export interface EntityResponse {
+export interface GraphNode {
   id: string;
   name: string;
-  entity_type: EntityType;
-  aliases: string[];
-  attributes: Record<string, unknown>;
-  description: string | null;
-  first_appearance_chapter: number | null;
-  mention_count: number;
+  type: EntityType;
+  description?: string;
+  chunkCount: number;
 }
 
-export interface EntityListResponse {
-  items: EntityResponse[];
-  total: number;
-}
-
-export interface RelationResponse {
+export interface GraphEdge {
   id: string;
-  source_id: string;
-  target_id: string;
-  relation_type: string;
-  description: string | null;
-  weight: number;
-  chapters: number[];
-  is_bidirectional: boolean;
+  source: string;
+  target: string;
+  label?: string;
 }
 
-export interface TimelineEntry {
-  event_id: string;
-  title: string;
-  chapter: number | null;
-  description: string | null;
-}
-
-export interface SubgraphResponse {
-  nodes: Record<string, unknown>[];
-  edges: Record<string, unknown>[];
-}
-
-// ── Search ──────────────────────────────────────────────────────
-
-export interface SearchResult {
-  id: string;
-  text: string;
-  score: number;
-  metadata: Record<string, unknown>;
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
 }
 
 // ── Analysis ────────────────────────────────────────────────────
 
-export interface CharacterAnalysisRequest {
-  entity_name: string;
-  document_id: string;
-  archetype_frameworks?: string[];
-  language?: string;
-  force_refresh?: boolean;
+export interface AnalysisItem {
+  id: string;
+  entityId: string;
+  section: 'characters' | 'events';
+  title: string;
+  archetypeType?: string;
+  chapterCount: number;
+  content: string;
+  framework: 'jung' | 'schmidt';
+  generatedAt: string;
 }
 
-export interface EventAnalysisRequest {
-  event_id: string;
-  document_id: string;
-  language?: string;
-  force_refresh?: boolean;
+export interface UnanalyzedEntity {
+  id: string;
+  name: string;
+  type: EntityType;
+  chapterCount: number;
+}
+
+export interface AnalysisListResponse {
+  analyzed: AnalysisItem[];
+  unanalyzed: UnanalyzedEntity[];
+}
+
+export interface EntityAnalysis {
+  entityId: string;
+  entityName: string;
+  content: string;
+  generatedAt: string;
+}
+
+// ── Tasks ───────────────────────────────────────────────────────
+
+export interface TaskStatus {
+  taskId: string;
+  status: 'pending' | 'running' | 'done' | 'error';
+  progress: number;
+  stage: string;
+  result?: {
+    bookId?: string;
+    [key: string]: unknown;
+  };
+  error?: string;
 }

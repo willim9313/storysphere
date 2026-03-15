@@ -4,176 +4,132 @@
  */
 
 import type {
-  DocumentSummary,
-  DocumentResponse,
-  ParagraphResponse,
-  EntityListResponse,
-  EntityResponse,
-  RelationResponse,
-  TimelineEntry,
-  SubgraphResponse,
-  SearchResult,
+  Book,
+  BookDetail,
+  Chapter,
+  Chunk,
+  GraphData,
   TaskStatus,
+  AnalysisListResponse,
+  EntityAnalysis,
 } from '../types';
 
 import {
-  mockDocuments,
-  mockDocument,
-  getMockParagraphs,
-  mockEntities,
-  mockRelations,
-  mockTimelines,
-  mockSubgraph,
-  mockCharacterAnalysisResult,
-  mockEventAnalysisResult,
+  mockBooks,
+  mockBookDetail,
+  mockChapters,
+  getMockChunks,
+  mockGraphData,
+  mockCharacterAnalyses,
+  mockEventAnalyses,
+  mockEntityAnalysis,
   createMockTask,
-  pollMockTask,
+  advanceMockTask,
 } from './data';
 
 // Simulate network latency
 const delay = (ms = 300) => new Promise((r) => setTimeout(r, ms + Math.random() * 200));
 
-// ── Documents ───────────────────────────────────────────────────
+// ── Books (#1, #2-a, #2-b) ─────────────────────────────────────
 
-export async function fetchDocuments(): Promise<DocumentSummary[]> {
+export async function fetchBooks(): Promise<Book[]> {
   await delay();
-  return mockDocuments;
+  return mockBooks;
 }
 
-export async function fetchDocument(id: string): Promise<DocumentResponse> {
+export async function fetchBook(bookId: string): Promise<BookDetail> {
   await delay();
-  if (id === 'doc-001') return mockDocument;
-  // Return the same doc with overridden id/title for any id
-  return { ...mockDocument, id };
+  if (bookId === 'book-001') return mockBookDetail;
+  return { ...mockBookDetail, id: bookId, title: `Book ${bookId}` };
 }
 
-// ── Paragraphs ──────────────────────────────────────────────────
-
-export async function fetchParagraphs(
-  _documentId: string,
-  chapterNumber: number,
-): Promise<ParagraphResponse[]> {
+export async function deleteBook(_bookId: string): Promise<void> {
   await delay(200);
-  return getMockParagraphs(chapterNumber);
 }
 
-// ── Entities ────────────────────────────────────────────────────
+// ── Chapters (#4) ──────────────────────────────────────────────
 
-export async function fetchEntities(params?: {
-  entity_type?: string;
-  limit?: number;
-  offset?: number;
-}): Promise<EntityListResponse> {
+export async function fetchChapters(_bookId: string): Promise<Chapter[]> {
   await delay();
-  let items = mockEntities;
-  if (params?.entity_type) {
-    items = items.filter((e) => e.entity_type === params.entity_type);
-  }
-  const offset = params?.offset ?? 0;
-  const limit = params?.limit ?? 500;
-  const sliced = items.slice(offset, offset + limit);
-  return { items: sliced, total: items.length };
+  return mockChapters;
 }
 
-export async function fetchEntity(id: string): Promise<EntityResponse> {
-  await delay(150);
-  const entity = mockEntities.find((e) => e.id === id);
-  if (!entity) throw new Error(`Entity ${id} not found`);
-  return entity;
-}
+// ── Chunks (#5) ────────────────────────────────────────────────
 
-export async function fetchEntityRelations(id: string): Promise<RelationResponse[]> {
-  await delay(150);
-  return mockRelations[id] ?? [];
-}
-
-export async function fetchEntityTimeline(id: string): Promise<TimelineEntry[]> {
-  await delay(150);
-  return mockTimelines[id] ?? [];
-}
-
-export async function fetchEntitySubgraph(
-  _id: string,
-  _kHops = 2,
-): Promise<SubgraphResponse> {
+export async function fetchChunks(
+  _bookId: string,
+  chapterId: string,
+): Promise<Chunk[]> {
   await delay(200);
-  return mockSubgraph;
+  return getMockChunks(chapterId);
 }
 
-// ── Ingest ──────────────────────────────────────────────────────
+// ── Graph (#9) ─────────────────────────────────────────────────
 
-const ingestTasks = new Map<string, number>();
+export async function fetchGraphData(_bookId: string): Promise<GraphData> {
+  await delay(200);
+  return mockGraphData;
+}
 
-export async function uploadDocument(
-  _file: File,
-  _title: string,
-): Promise<TaskStatus> {
+// ── Ingest (#2) ────────────────────────────────────────────────
+
+export async function uploadBook(_file: File): Promise<{ taskId: string }> {
   await delay(500);
-  const task = createMockTask();
-  ingestTasks.set(task.task_id, 0);
-  return task;
+  return createMockTask();
 }
 
-export async function fetchIngestStatus(taskId: string): Promise<TaskStatus> {
+// ── Task polling (#8) ──────────────────────────────────────────
+
+export async function fetchTaskStatus(taskId: string): Promise<TaskStatus> {
   await delay(300);
-  return pollMockTask(taskId, {
-    document_id: 'doc-001',
-    document_title: 'Pride and Prejudice',
-    chapters: 5,
-    entities: 12,
-    relations: 14,
-  });
+  return advanceMockTask(taskId);
 }
 
-// ── Analysis ────────────────────────────────────────────────────
+// ── Analysis (#6, #6a, #6b, #6c, #7a, #7b, #7c) ───────────────
 
-const analysisTasks = new Map<string, { type: 'character' | 'event' }>();
-
-export async function triggerCharacterAnalysis(): Promise<TaskStatus> {
+export async function triggerBookAnalysis(_bookId: string): Promise<{ taskId: string }> {
   await delay(300);
-  const task = createMockTask();
-  analysisTasks.set(task.task_id, { type: 'character' });
-  return task;
+  return createMockTask();
 }
 
-export async function pollCharacterAnalysis(taskId: string): Promise<TaskStatus> {
+export async function fetchCharacterAnalyses(_bookId: string): Promise<AnalysisListResponse> {
+  await delay();
+  return mockCharacterAnalyses;
+}
+
+export async function fetchEventAnalyses(_bookId: string): Promise<AnalysisListResponse> {
+  await delay();
+  return mockEventAnalyses;
+}
+
+export async function regenerateAnalysis(
+  _bookId: string,
+  _section: string,
+  _itemId: string,
+): Promise<{ taskId: string }> {
   await delay(300);
-  return pollMockTask(taskId, mockCharacterAnalysisResult);
+  return createMockTask();
 }
 
-export async function triggerEventAnalysis(): Promise<TaskStatus> {
+export async function fetchEntityAnalysis(
+  _bookId: string,
+  _entityId: string,
+): Promise<EntityAnalysis> {
+  await delay();
+  return mockEntityAnalysis;
+}
+
+export async function triggerEntityAnalysis(
+  _bookId: string,
+  _entityId: string,
+): Promise<{ taskId: string }> {
   await delay(300);
-  const task = createMockTask();
-  analysisTasks.set(task.task_id, { type: 'event' });
-  return task;
+  return createMockTask();
 }
 
-export async function pollEventAnalysis(taskId: string): Promise<TaskStatus> {
-  await delay(300);
-  return pollMockTask(taskId, mockEventAnalysisResult);
-}
-
-// ── Search ──────────────────────────────────────────────────────
-
-export async function semanticSearch(
-  q: string,
-  limit = 10,
-  _documentId?: string,
-): Promise<SearchResult[]> {
+export async function deleteEntityAnalysis(
+  _bookId: string,
+  _entityId: string,
+): Promise<void> {
   await delay(200);
-  const lower = q.toLowerCase();
-  const matching = mockEntities
-    .filter(
-      (e) =>
-        e.name.toLowerCase().includes(lower) ||
-        (e.description?.toLowerCase().includes(lower) ?? false),
-    )
-    .slice(0, limit);
-
-  return matching.map((e, i) => ({
-    id: e.id,
-    text: e.description ?? e.name,
-    score: 0.95 - i * 0.05,
-    metadata: { entity_name: e.name, entity_type: e.entity_type },
-  }));
 }

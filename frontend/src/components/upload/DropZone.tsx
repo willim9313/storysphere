@@ -5,15 +5,12 @@ interface DropZoneProps {
   onFileSelected: (file: File) => void;
 }
 
-const ACCEPTED = new Set(['.pdf', '.docx']);
-
 export function DropZone({ onFileSelected }: DropZoneProps) {
   const [dragging, setDragging] = useState(false);
 
   const handleFile = useCallback(
     (file: File) => {
-      const ext = '.' + file.name.split('.').pop()?.toLowerCase();
-      if (ACCEPTED.has(ext)) {
+      if (file.name.toLowerCase().endsWith('.pdf')) {
         onFileSelected(file);
       }
     },
@@ -45,24 +42,24 @@ export function DropZone({ onFileSelected }: DropZoneProps) {
       onDrop={onDrop}
       className="flex flex-col items-center justify-center gap-4 p-12 border-2 border-dashed rounded-xl cursor-pointer transition-colors"
       style={{
-        borderColor: dragging ? 'var(--color-accent)' : 'var(--color-border)',
-        backgroundColor: dragging ? 'var(--color-accent-subtle)' : 'transparent',
+        borderColor: dragging ? 'var(--accent)' : 'var(--border)',
+        backgroundColor: dragging ? 'var(--bg-tertiary)' : 'transparent',
       }}
       onClick={() => document.getElementById('file-input')?.click()}
     >
-      <Upload size={32} style={{ color: 'var(--color-text-muted)' }} />
+      <Upload size={32} style={{ color: 'var(--fg-muted)' }} />
       <div className="text-center">
-        <p className="font-medium" style={{ color: 'var(--color-text)' }}>
-          Drop a file here or click to browse
+        <p className="font-medium" style={{ color: 'var(--fg-primary)' }}>
+          拖曳 PDF 至此，或點擊選擇檔案
         </p>
-        <p className="text-sm mt-1" style={{ color: 'var(--color-text-muted)' }}>
-          Accepts .pdf and .docx
+        <p className="text-sm mt-1" style={{ color: 'var(--fg-muted)' }}>
+          支援 .pdf 格式
         </p>
       </div>
       <input
         id="file-input"
         type="file"
-        accept=".pdf,.docx"
+        accept=".pdf"
         className="hidden"
         onChange={onChange}
       />

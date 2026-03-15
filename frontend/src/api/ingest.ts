@@ -3,15 +3,16 @@ import { apiFetch, apiUpload } from './client';
 import * as mock from './mock/mockClient';
 import type { TaskStatus } from './types';
 
-export function uploadDocument(file: File, title: string): Promise<TaskStatus> {
-  if (MOCK_ENABLED) return mock.uploadDocument(file, title);
+// #2 — Upload book (PDF)
+export function uploadBook(file: File): Promise<{ taskId: string }> {
+  if (MOCK_ENABLED) return mock.uploadBook(file);
   const form = new FormData();
   form.append('file', file);
-  form.append('title', title);
-  return apiUpload<TaskStatus>('/ingest/', form);
+  return apiUpload<{ taskId: string }>('/books/upload', form);
 }
 
-export function fetchIngestStatus(taskId: string): Promise<TaskStatus> {
-  if (MOCK_ENABLED) return mock.fetchIngestStatus(taskId);
-  return apiFetch<TaskStatus>(`/ingest/${taskId}`);
+// #8 — Poll task status
+export function fetchTaskStatus(taskId: string): Promise<TaskStatus> {
+  if (MOCK_ENABLED) return mock.fetchTaskStatus(taskId);
+  return apiFetch<TaskStatus>(`/tasks/${taskId}/status`);
 }

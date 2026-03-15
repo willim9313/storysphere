@@ -7,8 +7,8 @@
 @layer base {
   body {
     font-family: var(--font-sans);
-    background-color: var(--color-bg);
-    color: var(--color-text);
+    background-color: var(--bg-primary);
+    color: var(--fg-primary);
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
   }
@@ -19,17 +19,17 @@
   }
 
   a {
-    color: var(--color-accent);
+    color: var(--accent);
     text-decoration: none;
     transition: color var(--transition-fast);
   }
 
   a:hover {
-    color: var(--color-accent-hover);
+    opacity: 0.85;
   }
 
   ::selection {
-    background-color: var(--color-accent-subtle);
+    background-color: var(--bg-tertiary);
   }
 }
 
@@ -48,29 +48,75 @@
   }
 
   .btn-primary {
-    background-color: var(--color-accent);
+    background-color: var(--accent);
     color: white;
   }
 
   .btn-primary:hover {
-    background-color: var(--color-accent-hover);
+    opacity: 0.9;
   }
 
   .btn-secondary {
-    background-color: var(--color-surface);
-    color: var(--color-text);
-    border-color: var(--color-border);
+    background-color: white;
+    color: var(--fg-primary);
+    border-color: var(--border);
   }
 
   .btn-secondary:hover {
-    background-color: var(--color-surface-hover);
+    background-color: var(--bg-secondary);
   }
 
   .card {
-    background-color: var(--color-surface);
-    border: 1px solid var(--color-border);
+    background-color: white;
+    border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
     box-shadow: var(--shadow-sm);
   }
+
+  /* ── Entity Pill styles ──────────────────────────────────────── */
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 20px;
+    white-space: nowrap;
+  }
+
+  .pill-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .pill-char {
+    background: var(--entity-char-bg);
+    border: 0.5px solid var(--entity-char-border);
+    color: var(--entity-char-fg);
+  }
+  .pill-char .pill-dot { background: var(--entity-char-dot); }
+
+  .pill-loc {
+    background: var(--entity-loc-bg);
+    border: 0.5px solid var(--entity-loc-border);
+    color: var(--entity-loc-fg);
+  }
+  .pill-loc .pill-dot { background: var(--entity-loc-dot); }
+
+  .pill-con {
+    background: var(--entity-con-bg);
+    border: 0.5px solid var(--entity-con-border);
+    color: var(--entity-con-fg);
+  }
+  .pill-con .pill-dot { background: var(--entity-con-dot); }
+
+  .pill-evt {
+    background: var(--entity-evt-bg);
+    border: 0.5px solid var(--entity-evt-border);
+    color: var(--entity-evt-fg);
+  }
+  .pill-evt .pill-dot { background: var(--entity-evt-dot); }
 }

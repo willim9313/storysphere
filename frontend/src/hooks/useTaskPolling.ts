@@ -1,27 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
+import { fetchTaskStatus } from '@/api/ingest';
 import type { TaskStatus } from '@/api/types';
 
-interface UseTaskPollingOptions {
-  queryKey: string[];
-  taskId: string | null;
-  pollFn: (taskId: string) => Promise<TaskStatus>;
-  intervalMs?: number;
-}
-
-export function useTaskPolling({
-  queryKey,
-  taskId,
-  pollFn,
-  intervalMs = 2000,
-}: UseTaskPollingOptions) {
-  return useQuery({
-    queryKey: [...queryKey, taskId],
-    queryFn: () => pollFn(taskId!),
+export function useTaskPolling(taskId: string | null) {
+  return useQuery<TaskStatus>({
+    queryKey: ['tasks', taskId],
+    queryFn: () => fetchTaskStatus(taskId!),
     enabled: !!taskId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (status === 'completed' || status === 'failed') return false;
-      return intervalMs;
+      if (status === 'done' || status === 'error') return false;
+      return 2000;
     },
   });
 }

@@ -5,7 +5,7 @@ export function ErrorMessage({ message }: { message: string }) {
     <div
       className="flex items-center gap-3 px-4 py-3 rounded-lg"
       style={{
-        backgroundColor: 'var(--color-accent-subtle)',
+        backgroundColor: '#fff1f2',
         color: 'var(--color-error)',
       }}
     >

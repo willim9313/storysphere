@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
-  description: string;
+  message: string;
   confirmLabel?: string;
   onConfirm: () => void;
   onCancel: () => void;
@@ -13,8 +13,8 @@ interface ConfirmDialogProps {
 export function ConfirmDialog({
   open,
   title,
-  description,
-  confirmLabel = 'Confirm',
+  message,
+  confirmLabel = '確認',
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -35,9 +35,9 @@ export function ConfirmDialog({
       ref={dialogRef}
       className="rounded-xl p-0 backdrop:bg-black/40"
       style={{
-        backgroundColor: 'var(--color-surface)',
-        color: 'var(--color-text)',
-        border: '1px solid var(--color-border)',
+        backgroundColor: 'white',
+        color: 'var(--fg-primary)',
+        border: '1px solid var(--border)',
         maxWidth: '400px',
         width: '90vw',
       }}
@@ -51,16 +51,16 @@ export function ConfirmDialog({
           >
             {title}
           </h3>
-          <button onClick={onCancel} style={{ color: 'var(--color-text-muted)' }}>
+          <button onClick={onCancel} style={{ color: 'var(--fg-muted)' }}>
             <X size={18} />
           </button>
         </div>
-        <p className="text-sm mb-6" style={{ color: 'var(--color-text-secondary)' }}>
-          {description}
+        <p className="text-sm mb-6" style={{ color: 'var(--fg-secondary)' }}>
+          {message}
         </p>
         <div className="flex gap-3 justify-end">
           <button className="btn btn-secondary" onClick={onCancel}>
-            Cancel
+            取消
           </button>
           <button className="btn btn-primary" onClick={onConfirm}>
             {confirmLabel}

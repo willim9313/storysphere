@@ -1,85 +1,196 @@
-import { X } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { fetchEntity } from '@/api/entities';
-import { EntityRelationsList } from './EntityRelationsList';
-import { EntityTimelineList } from './EntityTimelineList';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useState } from 'react';
+import { X, ChevronDown, ChevronRight, Loader } from 'lucide-react';
+import { useQuery, useMutation } from '@tanstack/react-query';
+import { fetchEntityAnalysis, triggerEntityAnalysis } from '@/api/analysis';
+import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import type { GraphNode, EntityType } from '@/api/types';
+
+const pillClass: Record<EntityType, string> = {
+  character: 'pill-char',
+  location: 'pill-loc',
+  concept: 'pill-con',
+  event: 'pill-evt',
+};
 
 interface EntityDetailPanelProps {
-  entityId: string;
+  node: GraphNode;
+  bookId: string;
   onClose: () => void;
+  onShowParagraphs: () => void;
 }
 
-export function EntityDetailPanel({ entityId, onClose }: EntityDetailPanelProps) {
-  const { data: entity, isLoading } = useQuery({
-    queryKey: ['entities', entityId],
-    queryFn: () => fetchEntity(entityId),
+export function EntityDetailPanel({ node, bookId, onClose, onShowParagraphs }: EntityDetailPanelProps) {
+  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['info', 'analysis']));
+  const [genTaskId, setGenTaskId] = useState<string | null>(null);
+
+  const { data: analysis, isLoading: analysisLoading } = useQuery({
+    queryKey: ['books', bookId, 'entities', node.id, 'analysis'],
+    queryFn: () => fetchEntityAnalysis(bookId, node.id),
+    retry: false,
   });
+
+  const triggerMut = useMutation({
+    mutationFn: () => triggerEntityAnalysis(bookId, node.id),
+    onSuccess: (data) => setGenTaskId(data.taskId),
+  });
+
+  const { data: genTask } = useTaskPolling(genTaskId);
+
+  const toggleSection = (key: string) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
 
   return (
     <div
-      className="w-80 h-full overflow-y-auto p-4 border-l"
+      className="flex-shrink-0 h-full overflow-y-auto"
       style={{
-        backgroundColor: 'var(--color-surface)',
-        borderColor: 'var(--color-border)',
+        width: 260,
+        backgroundColor: 'var(--panel-bg)',
+        borderLeft: '1px solid var(--panel-border)',
       }}
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold" style={{ fontFamily: 'var(--font-serif)' }}>
-          {isLoading ? '...' : entity?.name}
+      {/* Header */}
+      <div
+        className="flex items-center justify-between p-3"
+        style={{ borderBottom: '1px solid var(--panel-border)' }}
+      >
+        <h3
+          className="text-sm font-semibold truncate"
+          style={{ fontFamily: 'var(--font-serif)', color: 'var(--panel-fg)' }}
+        >
+          {node.name}
         </h3>
-        <button onClick={onClose} style={{ color: 'var(--color-text-muted)' }}>
-          <X size={18} />
+        <button onClick={onClose} style={{ color: 'var(--panel-fg-muted)' }}>
+          <X size={16} />
         </button>
       </div>
 
-      {isLoading ? (
-        <LoadingSpinner />
-      ) : entity ? (
-        <div className="space-y-6">
-          <div>
-            <span
-              className="inline-block px-2 py-0.5 text-xs rounded-full capitalize"
-              style={{
-                backgroundColor: 'var(--color-accent-subtle)',
-                color: 'var(--color-accent)',
-              }}
-            >
-              {entity.entity_type}
-            </span>
-            {entity.description && (
-              <p className="text-sm mt-2" style={{ color: 'var(--color-text-secondary)' }}>
-                {entity.description}
-              </p>
-            )}
-            <div className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
-              {entity.mention_count} mentions
-              {entity.first_appearance_chapter != null &&
-                ` · First appears in Ch. ${entity.first_appearance_chapter}`}
+      {/* Sections */}
+      <div className="p-2 space-y-1">
+        {/* Entity Info */}
+        <AccordionSection
+          title="實體資訊"
+          sectionKey="info"
+          isOpen={openSections.has('info')}
+          onToggle={toggleSection}
+        >
+          <span className={`pill ${pillClass[node.type]}`}>
+            <span className="pill-dot" />
+            {node.type}
+          </span>
+          {node.description && (
+            <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--panel-fg)' }}>
+              {node.description}
+            </p>
+          )}
+          <p className="text-xs mt-1" style={{ color: 'var(--panel-fg-muted)' }}>
+            出現於 {node.chunkCount} 個段落
+          </p>
+        </AccordionSection>
+
+        {/* Deep Analysis */}
+        <AccordionSection
+          title="深度分析"
+          sectionKey="analysis"
+          isOpen={openSections.has('analysis')}
+          onToggle={toggleSection}
+        >
+          {analysisLoading ? (
+            <div className="flex items-center gap-2">
+              <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
+              <span className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>載入中...</span>
             </div>
-          </div>
+          ) : analysis ? (
+            <div className="prose-dark">
+              <MarkdownRenderer content={analysis.content} />
+            </div>
+          ) : genTaskId && genTask && genTask.status !== 'done' ? (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
+                <span className="text-xs" style={{ color: 'var(--panel-fg)' }}>
+                  {genTask.stage} ({genTask.progress}%)
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>
+                尚未生成深度分析。此操作將消耗 token。
+              </p>
+              <button
+                className="text-xs px-2 py-1 rounded"
+                style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+                onClick={() => triggerMut.mutate()}
+                disabled={triggerMut.isPending}
+              >
+                生成深度分析 →
+              </button>
+            </div>
+          )}
+        </AccordionSection>
 
-          <div>
-            <h4
-              className="text-sm font-semibold mb-2"
-              style={{ color: 'var(--color-text-secondary)' }}
-            >
-              Relations
-            </h4>
-            <EntityRelationsList entityId={entityId} />
-          </div>
+        {/* Related Paragraphs */}
+        <AccordionSection
+          title="相關段落"
+          sectionKey="paragraphs"
+          isOpen={openSections.has('paragraphs')}
+          onToggle={toggleSection}
+        >
+          <p className="text-xs mb-2" style={{ color: 'var(--panel-fg-muted)' }}>
+            共 {node.chunkCount} 個段落
+          </p>
+          <button
+            className="text-xs px-2 py-1 rounded"
+            style={{ backgroundColor: 'var(--panel-bg-card)', color: 'var(--panel-fg)', border: '1px solid var(--panel-border)' }}
+            onClick={onShowParagraphs}
+          >
+            查看相關段落 →
+          </button>
+        </AccordionSection>
+      </div>
+    </div>
+  );
+}
 
-          <div>
-            <h4
-              className="text-sm font-semibold mb-2"
-              style={{ color: 'var(--color-text-secondary)' }}
-            >
-              Timeline
-            </h4>
-            <EntityTimelineList entityId={entityId} />
-          </div>
-        </div>
-      ) : null}
+function AccordionSection({
+  title,
+  sectionKey,
+  isOpen,
+  onToggle,
+  children,
+}: {
+  title: string;
+  sectionKey: string;
+  isOpen: boolean;
+  onToggle: (key: string) => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="rounded-md overflow-hidden"
+      style={{ backgroundColor: 'var(--panel-bg-card)' }}
+    >
+      <button
+        className="flex items-center gap-2 w-full px-3 py-2 text-left"
+        onClick={() => onToggle(sectionKey)}
+      >
+        {isOpen ? (
+          <ChevronDown size={12} style={{ color: 'var(--panel-fg-muted)' }} />
+        ) : (
+          <ChevronRight size={12} style={{ color: 'var(--panel-fg-muted)' }} />
+        )}
+        <span className="text-xs font-medium" style={{ color: 'var(--panel-fg)' }}>
+          {title}
+        </span>
+      </button>
+      {isOpen && <div className="px-3 pb-3">{children}</div>}
     </div>
   );
 }

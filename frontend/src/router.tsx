@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { BookLayout } from '@/components/layout/BookLayout';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 const LibraryPage = lazy(() => import('@/pages/LibraryPage'));
@@ -8,6 +9,7 @@ const UploadPage = lazy(() => import('@/pages/UploadPage'));
 const ReaderPage = lazy(() => import('@/pages/ReaderPage'));
 const AnalysisPage = lazy(() => import('@/pages/AnalysisPage'));
 const GraphPage = lazy(() => import('@/pages/GraphPage'));
+const FrameworksPage = lazy(() => import('@/pages/FrameworksPage'));
 
 function LazyWrapper({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>;
@@ -34,28 +36,42 @@ export const router = createBrowserRouter([
         ),
       },
       {
+        path: '/frameworks',
+        element: (
+          <LazyWrapper>
+            <FrameworksPage />
+          </LazyWrapper>
+        ),
+      },
+      {
         path: '/books/:bookId',
-        element: (
-          <LazyWrapper>
-            <ReaderPage />
-          </LazyWrapper>
-        ),
-      },
-      {
-        path: '/books/:bookId/analysis',
-        element: (
-          <LazyWrapper>
-            <AnalysisPage />
-          </LazyWrapper>
-        ),
-      },
-      {
-        path: '/graph',
-        element: (
-          <LazyWrapper>
-            <GraphPage />
-          </LazyWrapper>
-        ),
+        element: <BookLayout />,
+        children: [
+          {
+            index: true,
+            element: (
+              <LazyWrapper>
+                <ReaderPage />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: 'analysis',
+            element: (
+              <LazyWrapper>
+                <AnalysisPage />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: 'graph',
+            element: (
+              <LazyWrapper>
+                <GraphPage />
+              </LazyWrapper>
+            ),
+          },
+        ],
       },
     ],
   },

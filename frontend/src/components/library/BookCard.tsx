@@ -1,35 +1,46 @@
 import { Link } from 'react-router-dom';
 import { FileText } from 'lucide-react';
-import type { DocumentSummary } from '@/api/types';
+import type { Book } from '@/api/types';
+import { StatusBadge } from './StatusBadge';
 
-export function BookCard({ doc }: { doc: DocumentSummary }) {
+export function BookCard({ book }: { book: Book }) {
+  const isProcessing = book.status === 'processing';
+
   return (
     <Link
-      to={`/books/${doc.id}`}
-      className="card flex flex-col gap-3 hover:shadow-md transition-shadow"
+      to={isProcessing ? '/upload' : `/books/${book.id}`}
+      className="card flex flex-col gap-2 hover:shadow-md transition-shadow p-3"
     >
       <div
-        className="flex items-center justify-center h-32 rounded-md"
-        style={{ backgroundColor: 'var(--color-accent-subtle)' }}
+        className="flex items-center justify-center h-24 rounded-md"
+        style={{ backgroundColor: 'var(--bg-secondary)' }}
       >
-        <FileText size={32} style={{ color: 'var(--color-accent)' }} />
+        <FileText size={28} style={{ color: 'var(--accent)' }} />
       </div>
-      <div>
+      <div className="flex-1">
         <h3
-          className="font-semibold text-sm line-clamp-2"
+          className="font-semibold text-xs line-clamp-2 mb-1"
           style={{ fontFamily: 'var(--font-serif)' }}
         >
-          {doc.title}
+          {book.title}
         </h3>
-        <span
-          className="inline-block mt-1 px-2 py-0.5 text-xs rounded"
-          style={{
-            backgroundColor: 'var(--color-bg-secondary)',
-            color: 'var(--color-text-muted)',
-          }}
-        >
-          {doc.file_type.toUpperCase()}
-        </span>
+        {book.author && (
+          <p className="text-xs truncate mb-1" style={{ color: 'var(--fg-muted)' }}>
+            {book.author}
+          </p>
+        )}
+        <div className="flex items-center gap-2 mb-1">
+          <StatusBadge status={book.status} />
+        </div>
+        <div className="flex gap-3 text-xs" style={{ color: 'var(--fg-muted)' }}>
+          <span>{book.chapterCount} 章</span>
+          {book.entityCount != null && <span>{book.entityCount} 實體</span>}
+        </div>
+        {book.lastOpenedAt && (
+          <p className="text-xs mt-1" style={{ color: 'var(--fg-muted)' }}>
+            {new Date(book.lastOpenedAt).toLocaleDateString('zh-TW')}
+          </p>
+        )}
       </div>
     </Link>
   );

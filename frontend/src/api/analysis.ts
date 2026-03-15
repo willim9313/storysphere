@@ -1,38 +1,65 @@
 import { MOCK_ENABLED } from './mock';
-import { apiFetch } from './client';
+import { apiFetch, apiDelete } from './client';
 import * as mock from './mock/mockClient';
-import type {
-  CharacterAnalysisRequest,
-  EventAnalysisRequest,
-  TaskStatus,
-} from './types';
+import type { AnalysisListResponse, EntityAnalysis } from './types';
 
-export function triggerCharacterAnalysis(
-  req: CharacterAnalysisRequest,
-): Promise<TaskStatus> {
-  if (MOCK_ENABLED) return mock.triggerCharacterAnalysis();
-  return apiFetch<TaskStatus>('/analysis/character', {
-    method: 'POST',
-    body: JSON.stringify(req),
-  });
+// #6 — Trigger full-book analysis
+export function triggerBookAnalysis(bookId: string): Promise<{ taskId: string }> {
+  if (MOCK_ENABLED) return mock.triggerBookAnalysis(bookId);
+  return apiFetch<{ taskId: string }>(`/books/${bookId}/analyze`, { method: 'POST' });
 }
 
-export function pollCharacterAnalysis(taskId: string): Promise<TaskStatus> {
-  if (MOCK_ENABLED) return mock.pollCharacterAnalysis(taskId);
-  return apiFetch<TaskStatus>(`/analysis/character/${taskId}`);
+// #6a — Character analysis list
+export function fetchCharacterAnalyses(bookId: string): Promise<AnalysisListResponse> {
+  if (MOCK_ENABLED) return mock.fetchCharacterAnalyses(bookId);
+  return apiFetch<AnalysisListResponse>(`/books/${bookId}/analysis/characters`);
 }
 
-export function triggerEventAnalysis(
-  req: EventAnalysisRequest,
-): Promise<TaskStatus> {
-  if (MOCK_ENABLED) return mock.triggerEventAnalysis();
-  return apiFetch<TaskStatus>('/analysis/event', {
-    method: 'POST',
-    body: JSON.stringify(req),
-  });
+// #6b — Event analysis list
+export function fetchEventAnalyses(bookId: string): Promise<AnalysisListResponse> {
+  if (MOCK_ENABLED) return mock.fetchEventAnalyses(bookId);
+  return apiFetch<AnalysisListResponse>(`/books/${bookId}/analysis/events`);
 }
 
-export function pollEventAnalysis(taskId: string): Promise<TaskStatus> {
-  if (MOCK_ENABLED) return mock.pollEventAnalysis(taskId);
-  return apiFetch<TaskStatus>(`/analysis/event/${taskId}`);
+// #6c — Regenerate analysis item
+export function regenerateAnalysis(
+  bookId: string,
+  section: string,
+  itemId: string,
+): Promise<{ taskId: string }> {
+  if (MOCK_ENABLED) return mock.regenerateAnalysis(bookId, section, itemId);
+  return apiFetch<{ taskId: string }>(
+    `/books/${bookId}/analysis/${section}/${itemId}/regenerate`,
+    { method: 'POST' },
+  );
+}
+
+// #7a — Entity analysis detail
+export function fetchEntityAnalysis(
+  bookId: string,
+  entityId: string,
+): Promise<EntityAnalysis> {
+  if (MOCK_ENABLED) return mock.fetchEntityAnalysis(bookId, entityId);
+  return apiFetch<EntityAnalysis>(`/books/${bookId}/entities/${entityId}/analysis`);
+}
+
+// #7b — Trigger entity analysis
+export function triggerEntityAnalysis(
+  bookId: string,
+  entityId: string,
+): Promise<{ taskId: string }> {
+  if (MOCK_ENABLED) return mock.triggerEntityAnalysis(bookId, entityId);
+  return apiFetch<{ taskId: string }>(
+    `/books/${bookId}/entities/${entityId}/analyze`,
+    { method: 'POST' },
+  );
+}
+
+// #7c — Delete entity analysis
+export function deleteEntityAnalysis(
+  bookId: string,
+  entityId: string,
+): Promise<void> {
+  if (MOCK_ENABLED) return mock.deleteEntityAnalysis(bookId, entityId);
+  return apiDelete(`/books/${bookId}/entities/${entityId}/analysis`);
 }

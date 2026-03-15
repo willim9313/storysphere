@@ -7,7 +7,7 @@ export function MarkdownRenderer({ content }: { content: string }) {
       className="prose prose-sm max-w-none"
       style={{
         fontFamily: 'var(--font-serif)',
-        color: 'var(--color-text)',
+        color: 'var(--fg-primary)',
         lineHeight: 1.8,
       }}
     >

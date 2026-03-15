@@ -1,92 +1,134 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Menu, X } from 'lucide-react';
-import { fetchDocument } from '@/api/documents';
-import { useEntities } from '@/hooks/useEntities';
-import { ChapterList } from '@/components/reader/ChapterList';
-import { ChapterContent } from '@/components/reader/ChapterContent';
-import { AnalysisTrigger } from '@/components/reader/AnalysisTrigger';
+import { useBook } from '@/hooks/useBook';
+import { useChapters } from '@/hooks/useChapters';
+import { useChunks } from '@/hooks/useChunks';
+import { BookOverview } from '@/components/reader/BookOverview';
+import { ChapterCard } from '@/components/reader/ChapterCard';
+import { ChunkCard } from '@/components/reader/ChunkCard';
+import { BezierConnectors } from '@/components/reader/BezierConnectors';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
-  const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
+  const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
+  const [viewingChapterId, setViewingChapterId] = useState<string | null>(null);
 
-  const { data: doc, isLoading, error } = useQuery({
-    queryKey: ['documents', bookId],
-    queryFn: () => fetchDocument(bookId!),
-    enabled: !!bookId,
-  });
+  const col1Ref = useRef<HTMLDivElement>(null);
+  const col2Ref = useRef<HTMLDivElement>(null);
+  const col3Ref = useRef<HTMLDivElement>(null);
 
-  const { data: entityData } = useEntities({ limit: 500 });
-  const entities = entityData?.items ?? [];
+  const { data: book, isLoading: bookLoading, error: bookError } = useBook(bookId);
+  const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId);
+  const { data: chunks, isLoading: chunksLoading } = useChunks(bookId, viewingChapterId);
 
-  // Auto-select first chapter
-  if (doc && selectedChapter === null && doc.chapters.length > 0) {
-    setSelectedChapter(doc.chapters[0].number);
-  }
+  if (bookLoading || chaptersLoading) return <LoadingSpinner />;
+  if (bookError) return <ErrorMessage message={bookError.message} />;
+  if (!book) return <ErrorMessage message="Book not found" />;
 
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message={error.message} />;
-  if (!doc) return <ErrorMessage message="Document not found" />;
+  const chapterList = chapters ?? [];
+  const selectedChapterIdx = chapterList.findIndex((c) => c.id === expandedChapterId);
+  const viewingChapter = chapterList.find((c) => c.id === viewingChapterId);
 
-  const currentChapter = doc.chapters.find((c) => c.number === selectedChapter);
+  const handleSelectChapter = (chapterId: string) => {
+    if (expandedChapterId === chapterId) {
+      // Second click on expanded chapter = view content
+      setViewingChapterId(chapterId);
+    } else {
+      setExpandedChapterId(chapterId);
+      setSelectedChapterId(chapterId);
+    }
+  };
+
+  const handleViewContent = (chapterId: string) => {
+    setViewingChapterId(chapterId);
+  };
 
   return (
-    <div className="flex gap-0 -mx-6 -mt-6" style={{ height: 'calc(100vh - 57px)' }}>
-      {/* Sidebar */}
+    <div className="flex h-full relative">
+      <BezierConnectors
+        col1Ref={col1Ref}
+        col2Ref={col2Ref}
+        col3Ref={col3Ref}
+        selectedChapterIdx={selectedChapterIdx}
+        chapterCount={chapterList.length}
+        showCol3={!!viewingChapterId}
+      />
+
+      {/* Column 1: Book Overview */}
       <div
-        className={`${sidebarOpen ? 'w-64' : 'w-0'} flex-shrink-0 overflow-hidden transition-all duration-200 border-r`}
-        style={{ borderColor: 'var(--color-border)', backgroundColor: 'var(--color-surface)' }}
+        ref={col1Ref}
+        className="flex-shrink-0 overflow-y-auto"
+        style={{
+          width: 200,
+          borderRight: '1px solid var(--border)',
+          backgroundColor: 'var(--bg-secondary)',
+        }}
       >
-        <div className="w-64 p-4">
-          <h2
-            className="text-lg font-bold mb-4 truncate"
-            style={{ fontFamily: 'var(--font-serif)' }}
-          >
-            {doc.title}
-          </h2>
-          <ChapterList
-            chapters={doc.chapters}
-            selectedNumber={selectedChapter}
-            onSelect={setSelectedChapter}
-          />
-          <AnalysisTrigger bookId={bookId!} />
-        </div>
+        <BookOverview book={book} />
       </div>
 
-      {/* Content */}
-      <div className="flex-1 overflow-y-auto">
-        <div className="sticky top-0 z-10 flex items-center gap-2 px-6 py-2 border-b"
-          style={{ backgroundColor: 'var(--color-bg)', borderColor: 'var(--color-border)' }}
-        >
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1 rounded"
-            style={{ color: 'var(--color-text-secondary)' }}
-          >
-            {sidebarOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
-          {currentChapter && (
-            <span className="text-sm font-medium">
-              {currentChapter.title ?? `Chapter ${currentChapter.number}`}
-            </span>
-          )}
-        </div>
-        <div className="max-w-3xl mx-auto px-6 py-8">
-          {currentChapter ? (
-            <ChapterContent
-              documentId={bookId!}
-              chapter={currentChapter}
-              entities={entities}
+      {/* Column 2: Chapter List */}
+      <div
+        ref={col2Ref}
+        className="flex-shrink-0 overflow-y-auto p-2 space-y-1"
+        style={{
+          width: 220,
+          borderRight: '1px solid var(--border)',
+        }}
+      >
+        {chapterList.map((chapter) => (
+          <div key={chapter.id} data-chapter-card>
+            <ChapterCard
+              chapter={chapter}
+              isSelected={selectedChapterId === chapter.id}
+              isExpanded={expandedChapterId === chapter.id}
+              onSelect={() => handleSelectChapter(chapter.id)}
+              onViewContent={() => handleViewContent(chapter.id)}
             />
-          ) : (
-            <p style={{ color: 'var(--color-text-muted)' }}>Select a chapter to begin reading.</p>
-          )}
-        </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Column 3: Chunk Content */}
+      <div
+        ref={col3Ref}
+        className="flex-1 overflow-y-auto"
+        style={{ backgroundColor: 'var(--bg-primary)' }}
+      >
+        {viewingChapterId ? (
+          <div className="p-4">
+            {/* Header */}
+            <div
+              className="sticky top-0 z-10 pb-2 mb-3"
+              style={{ backgroundColor: 'var(--bg-primary)' }}
+            >
+              <h3
+                className="text-sm font-semibold"
+                style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+              >
+                {viewingChapter?.title}
+              </h3>
+              <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+                {chunks?.length ?? 0} chunks
+              </span>
+            </div>
+
+            {chunksLoading ? (
+              <LoadingSpinner />
+            ) : chunks ? (
+              chunks.map((chunk) => <ChunkCard key={chunk.id} chunk={chunk} />)
+            ) : null}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full">
+            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>
+              選擇章節以查看內容
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

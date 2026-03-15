@@ -1,97 +1,137 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
-import { uploadDocument, fetchIngestStatus } from '@/api/ingest';
+import { uploadBook } from '@/api/ingest';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { DropZone } from '@/components/upload/DropZone';
-import { TaskProgressBar } from '@/components/upload/TaskProgressBar';
+import { ProcessingTimeline } from '@/components/upload/ProcessingTimeline';
+import { ArrowRight } from 'lucide-react';
+
+interface UploadTask {
+  taskId: string;
+  fileName: string;
+}
 
 export default function UploadPage() {
-  const navigate = useNavigate();
-  const [file, setFile] = useState<File | null>(null);
-  const [title, setTitle] = useState('');
-  const [taskId, setTaskId] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<UploadTask[]>([]);
+  const [completedTasks, setCompletedTasks] = useState<{ taskId: string; fileName: string; bookId: string }[]>([]);
 
   const upload = useMutation({
-    mutationFn: () => uploadDocument(file!, title || file!.name.replace(/\.[^.]+$/, '')),
-    onSuccess: (data) => setTaskId(data.task_id),
+    mutationFn: (file: File) => uploadBook(file),
+    onSuccess: (data, file) => {
+      setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name }]);
+    },
   });
 
-  const polling = useTaskPolling({
-    queryKey: ['ingest'],
-    taskId,
-    pollFn: fetchIngestStatus,
-  });
+  const handleFileSelected = useCallback((file: File) => {
+    upload.mutate(file);
+  }, [upload]);
 
-  // Navigate on completion
-  useEffect(() => {
-    if (polling.data?.status === 'completed' && polling.data.result) {
-      const result = polling.data.result as Record<string, unknown>;
-      const docId = result.document_id as string | undefined;
-      if (docId) {
-        navigate(`/books/${docId}`);
-      }
-    }
-  }, [polling.data, navigate]);
-
-  const handleFileSelected = (f: File) => {
-    setFile(f);
-    if (!title) setTitle(f.name.replace(/\.[^.]+$/, ''));
-  };
-
-  const isProcessing = !!taskId && polling.data?.status !== 'completed' && polling.data?.status !== 'failed';
+  const handleTaskDone = useCallback((taskId: string, bookId: string, fileName: string) => {
+    setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+    setCompletedTasks((prev) => [...prev, { taskId, bookId, fileName }]);
+  }, []);
 
   return (
-    <div className="max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold mb-6" style={{ fontFamily: 'var(--font-serif)' }}>
-        Upload a Book
+    <div className="p-6 overflow-y-auto h-full max-w-2xl mx-auto">
+      <h1
+        className="text-2xl font-bold mb-6"
+        style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+      >
+        上傳 & 處理進度
       </h1>
 
+      {/* Upload zone */}
       <DropZone onFileSelected={handleFileSelected} />
 
-      {file && (
-        <div className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-secondary)' }}>
-              Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full px-3 py-2 rounded-md text-sm"
-              style={{
-                backgroundColor: 'var(--color-bg-secondary)',
-                color: 'var(--color-text)',
-                border: '1px solid var(--color-border)',
-              }}
-            />
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
-              {file.name} ({(file.size / 1024 / 1024).toFixed(1)} MB)
-            </span>
-          </div>
-          <button
-            className="btn btn-primary w-full justify-center"
-            onClick={() => upload.mutate()}
-            disabled={upload.isPending || isProcessing}
-          >
-            {upload.isPending ? 'Uploading...' : isProcessing ? 'Processing...' : 'Start Ingestion'}
-          </button>
+      {upload.error && (
+        <p className="text-sm mt-2" style={{ color: 'var(--color-error)' }}>
+          {upload.error.message}
+        </p>
+      )}
 
-          {upload.error && (
-            <p className="text-sm" style={{ color: 'var(--color-error)' }}>
-              {upload.error.message}
-            </p>
-          )}
-
-          <TaskProgressBar
-            status={polling.data?.status ?? (upload.isPending ? 'running' : null)}
-            error={polling.data?.error}
-          />
+      {/* Processing tasks */}
+      {tasks.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-secondary)' }}>
+            處理中
+          </h2>
+          <div className="space-y-4">
+            {tasks.map((t) => (
+              <ProcessingCard
+                key={t.taskId}
+                task={t}
+                onDone={handleTaskDone}
+              />
+            ))}
+          </div>
         </div>
       )}
+
+      {/* Completed list */}
+      {completedTasks.length > 0 && (
+        <div className="mt-8">
+          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-secondary)' }}>
+            已完成
+          </h2>
+          <div className="space-y-2">
+            {completedTasks.map((ct) => (
+              <div
+                key={ct.taskId}
+                className="flex items-center justify-between px-3 py-2 rounded-md"
+                style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
+              >
+                <div className="flex items-center gap-2">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: 'var(--color-success)' }}
+                  />
+                  <span className="text-sm">{ct.fileName}</span>
+                </div>
+                <Link
+                  to={`/books/${ct.bookId}`}
+                  className="text-xs font-medium flex items-center gap-1"
+                  style={{ color: 'var(--accent)' }}
+                >
+                  進入書籍 <ArrowRight size={12} />
+                </Link>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ProcessingCard({
+  task,
+  onDone,
+}: {
+  task: UploadTask;
+  onDone: (taskId: string, bookId: string, fileName: string) => void;
+}) {
+  const { data: status } = useTaskPolling(task.taskId);
+
+  if (status?.status === 'done' && status.result?.bookId) {
+    // Move to completed on next render cycle
+    setTimeout(() => onDone(task.taskId, status.result!.bookId!, task.fileName), 0);
+  }
+
+  return (
+    <div
+      className="card"
+      style={{ border: '1px solid var(--border)' }}
+    >
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-medium">{task.fileName}</span>
+        {status && (
+          <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+            {status.progress}%
+          </span>
+        )}
+      </div>
+      {status && <ProcessingTimeline task={status} />}
     </div>
   );
 }

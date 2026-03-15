@@ -8,7 +8,7 @@ export function ThemeToggle() {
     <button
       onClick={toggleTheme}
       className="p-2 rounded-md transition-colors"
-      style={{ color: 'var(--color-text-secondary)' }}
+      style={{ color: 'var(--fg-secondary)' }}
       aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
     >
       {theme === 'light' ? <Moon size={18} /> : <Sun size={18} />}

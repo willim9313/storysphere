@@ -1,417 +1,426 @@
 import type {
-  DocumentSummary,
-  DocumentResponse,
-  ParagraphResponse,
-  EntityResponse,
-  EntityListResponse,
-  RelationResponse,
-  TimelineEntry,
-  SubgraphResponse,
+  Book,
+  BookDetail,
+  Chapter,
+  Chunk,
+  GraphData,
+  AnalysisListResponse,
+  EntityAnalysis,
   TaskStatus,
 } from '../types';
 
-// ── Documents ───────────────────────────────────────────────────
+// ── Books ───────────────────────────────────────────────────────
 
-export const mockDocuments: DocumentSummary[] = [
-  { id: 'doc-001', title: 'Pride and Prejudice', file_type: 'pdf' },
-  { id: 'doc-002', title: 'The Great Gatsby', file_type: 'docx' },
-  { id: 'doc-003', title: 'Jane Eyre', file_type: 'pdf' },
+export const mockBooks: Book[] = [
+  {
+    id: 'book-001',
+    title: '傲慢與偏見',
+    author: 'Jane Austen',
+    status: 'analyzed',
+    chapterCount: 5,
+    entityCount: 12,
+    uploadedAt: '2025-12-01T10:00:00Z',
+    lastOpenedAt: '2026-03-14T09:30:00Z',
+  },
+  {
+    id: 'book-002',
+    title: '了不起的蓋茨比',
+    author: 'F. Scott Fitzgerald',
+    status: 'ready',
+    chapterCount: 9,
+    entityCount: 8,
+    uploadedAt: '2025-11-15T14:00:00Z',
+    lastOpenedAt: '2026-03-10T16:20:00Z',
+  },
+  {
+    id: 'book-003',
+    title: '三體',
+    author: '劉慈欣',
+    status: 'processing',
+    chapterCount: 0,
+    uploadedAt: '2026-03-15T08:00:00Z',
+  },
+  {
+    id: 'book-004',
+    title: '簡愛',
+    author: 'Charlotte Brontë',
+    status: 'ready',
+    chapterCount: 12,
+    entityCount: 15,
+    uploadedAt: '2025-10-20T09:00:00Z',
+  },
 ];
 
-export const mockDocument: DocumentResponse = {
-  id: 'doc-001',
-  title: 'Pride and Prejudice',
+export const mockBookDetail: BookDetail = {
+  id: 'book-001',
+  title: '傲慢與偏見',
   author: 'Jane Austen',
-  file_type: 'pdf',
+  status: 'analyzed',
   summary:
-    'A story of manners, upbringing, morality, and marriage in Regency-era England. The Bennet family navigates social expectations while daughters seek suitable matches.',
-  total_chapters: 5,
-  total_paragraphs: 42,
-  chapters: [
-    {
-      id: 'ch-001',
-      number: 1,
-      title: 'A Truth Universally Acknowledged',
-      summary: 'The Bennet family learns of Mr. Bingley\'s arrival at Netherfield Park.',
-      word_count: 2340,
-      paragraph_count: 8,
-    },
-    {
-      id: 'ch-002',
-      number: 2,
-      title: 'Mr. Bennet Visits',
-      summary: 'Mr. Bennet pays a secret visit to Mr. Bingley, delighting his wife.',
-      word_count: 1870,
-      paragraph_count: 7,
-    },
-    {
-      id: 'ch-003',
-      number: 3,
-      title: 'The Assembly Ball',
-      summary: 'The Bennets attend the ball. Bingley admires Jane, while Darcy slights Elizabeth.',
-      word_count: 3120,
-      paragraph_count: 10,
-    },
-    {
-      id: 'ch-004',
-      number: 4,
-      title: 'After the Ball',
-      summary: 'Jane and Elizabeth discuss the evening. Jane is enamored with Bingley.',
-      word_count: 2050,
-      paragraph_count: 9,
-    },
-    {
-      id: 'ch-005',
-      number: 5,
-      title: 'The Lucases Call',
-      summary: 'The Lucas family visits, and Charlotte shares her views on courtship.',
-      word_count: 1690,
-      paragraph_count: 8,
-    },
-  ],
+    '一部關於禮儀、教養、道德與婚姻的故事，設定於攝政時期的英國。班奈特家族在社會期望中周旋，女兒們尋找合適的婚姻對象。',
+  chapterCount: 5,
+  chunkCount: 42,
+  entityCount: 12,
+  relationCount: 14,
+  entityStats: {
+    character: 7,
+    location: 3,
+    concept: 1,
+    event: 1,
+  },
+  uploadedAt: '2025-12-01T10:00:00Z',
+  lastOpenedAt: '2026-03-14T09:30:00Z',
 };
 
-// ── Paragraphs ──────────────────────────────────────────────────
+// ── Chapters ────────────────────────────────────────────────────
 
-const chapterParagraphs: Record<number, ParagraphResponse[]> = {
-  1: [
-    {
-      id: 'p-1-1', chapter_number: 1, position: 1,
-      text: 'It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a wife.',
-      keywords: { truth: 0.9, fortune: 0.7, wife: 0.6 },
-    },
-    {
-      id: 'p-1-2', chapter_number: 1, position: 2,
-      text: 'However little known the feelings or views of such a man may be on his first entering a neighbourhood, this truth is so well fixed in the minds of the surrounding families, that he is considered as the rightful property of some one or other of their daughters.',
-      keywords: { neighbourhood: 0.8, feelings: 0.6, daughters: 0.5 },
-    },
-    {
-      id: 'p-1-3', chapter_number: 1, position: 3,
-      text: '"My dear Mr. Bennet," said his lady to him one day, "have you heard that Netherfield Park is let at last?"',
-      keywords: { Netherfield: 0.95, 'Mr. Bennet': 0.8 },
-    },
-    {
-      id: 'p-1-4', chapter_number: 1, position: 4,
-      text: 'Mr. Bennet replied that he had not. "But it is," returned she; "for Mrs. Long has just been here, and she told me all about it."',
-      keywords: { 'Mrs. Long': 0.7 },
-    },
-    {
-      id: 'p-1-5', chapter_number: 1, position: 5,
-      text: 'Mr. Bennet was so odd a mixture of quick parts, sarcastic humour, reserve, and caprice, that the experience of three-and-twenty years had been insufficient to make his wife understand his character.',
-      keywords: { humour: 0.6, character: 0.5, reserve: 0.4 },
-    },
-    {
-      id: 'p-1-6', chapter_number: 1, position: 6,
-      text: '"A single man of large fortune; four or five thousand a year. What a fine thing for our girls!" exclaimed Mrs. Bennet.',
-      keywords: { fortune: 0.8, girls: 0.6, 'Mrs. Bennet': 0.9 },
-    },
-    {
-      id: 'p-1-7', chapter_number: 1, position: 7,
-      text: '"Is he married or single?" "Oh! Single, my dear, to be sure! A single man of large fortune. His name is Bingley."',
-      keywords: { Bingley: 0.95, single: 0.7, married: 0.5 },
-    },
-    {
-      id: 'p-1-8', chapter_number: 1, position: 8,
-      text: '"Design! Nonsense, how can you talk so! But it is very likely that he may fall in love with one of them, and therefore you must visit him as soon as he comes."',
-      keywords: { love: 0.7, visit: 0.6 },
-    },
-  ],
-  2: [
-    {
-      id: 'p-2-1', chapter_number: 2, position: 1,
-      text: 'Mr. Bennet was among the earliest of those who waited on Mr. Bingley. He had always intended to visit him, though to the last always assuring his wife that he should not go.',
-      keywords: { 'Mr. Bennet': 0.9, Bingley: 0.8, visit: 0.7 },
-    },
-    {
-      id: 'p-2-2', chapter_number: 2, position: 2,
-      text: 'How good it was in you, my dear Mr. Bennet! But I knew I should persuade you at last. I was sure you could not be so beautiful a young man without wanting to know him.',
-      keywords: { persuade: 0.6, beautiful: 0.5 },
-    },
-    {
-      id: 'p-2-3', chapter_number: 2, position: 3,
-      text: '"I do not believe, Mrs. Long, that there is a finer young man in the whole country than Mr. Bingley," said Mrs. Bennet with great enthusiasm.',
-      keywords: { 'Mrs. Long': 0.7, 'Mrs. Bennet': 0.8, Bingley: 0.9 },
-    },
-  ],
-  3: [
-    {
-      id: 'p-3-1', chapter_number: 3, position: 1,
-      text: 'Not all that Mrs. Bennet, however, with the assistance of her five daughters, could ask on the subject, was sufficient to draw from her husband any satisfactory description of Mr. Bingley.',
-      keywords: { daughters: 0.7, Bingley: 0.8 },
-    },
-    {
-      id: 'p-3-2', chapter_number: 3, position: 2,
-      text: 'Mr. Bingley was good-looking and gentlemanlike; he had a pleasant countenance, and easy, unaffected manners. Mr. Darcy soon drew the attention of the room by his fine, tall person, handsome features, noble mien.',
-      keywords: { Bingley: 0.85, Darcy: 0.95, handsome: 0.6 },
-    },
-    {
-      id: 'p-3-3', chapter_number: 3, position: 3,
-      text: 'Mr. Darcy danced only once with Mrs. Hurst and once with Miss Bingley, declined being introduced to any other lady, and spent the rest of the evening in walking about the room.',
-      keywords: { Darcy: 0.9, 'Miss Bingley': 0.7, dance: 0.6 },
-    },
-    {
-      id: 'p-3-4', chapter_number: 3, position: 4,
-      text: '"She is tolerable, but not handsome enough to tempt me," said Mr. Darcy, speaking of Elizabeth. Elizabeth could easily forgive his pride, though it had mortified her.',
-      keywords: { Darcy: 0.9, Elizabeth: 0.95, pride: 0.8, tolerable: 0.7 },
-    },
-  ],
+export const mockChapters: Chapter[] = [
+  {
+    id: 'ch-001',
+    bookId: 'book-001',
+    title: '第一章：舉世公認的真理',
+    order: 1,
+    chunkCount: 8,
+    entityCount: 5,
+    summary: '班奈特一家得知彬格萊先生即將入住尼日斐莊園。',
+    topEntities: [
+      { id: 'ent-005', name: '班奈特太太', type: 'character' },
+      { id: 'ent-006', name: '班奈特先生', type: 'character' },
+      { id: 'ent-007', name: '尼日斐莊園', type: 'location' },
+    ],
+  },
+  {
+    id: 'ch-002',
+    bookId: 'book-001',
+    title: '第二章：班奈特先生的拜訪',
+    order: 2,
+    chunkCount: 7,
+    entityCount: 4,
+    summary: '班奈特先生秘密拜訪了彬格萊先生，令夫人喜出望外。',
+    topEntities: [
+      { id: 'ent-006', name: '班奈特先生', type: 'character' },
+      { id: 'ent-004', name: '彬格萊先生', type: 'character' },
+    ],
+  },
+  {
+    id: 'ch-003',
+    bookId: 'book-001',
+    title: '第三章：舞會',
+    order: 3,
+    chunkCount: 10,
+    entityCount: 7,
+    summary: '班奈特一家參加舞會。彬格萊傾慕珍，達西卻怠慢了伊莉莎白。',
+    topEntities: [
+      { id: 'ent-001', name: '伊莉莎白', type: 'character' },
+      { id: 'ent-002', name: '達西先生', type: 'character' },
+      { id: 'ent-010', name: '舞會', type: 'event' },
+    ],
+  },
+  {
+    id: 'ch-004',
+    bookId: 'book-001',
+    title: '第四章：舞會之後',
+    order: 4,
+    chunkCount: 9,
+    entityCount: 4,
+    summary: '珍與伊莉莎白討論當晚的經歷。珍對彬格萊心生愛慕。',
+    topEntities: [
+      { id: 'ent-003', name: '珍', type: 'character' },
+      { id: 'ent-001', name: '伊莉莎白', type: 'character' },
+    ],
+  },
+  {
+    id: 'ch-005',
+    bookId: 'book-001',
+    title: '第五章：盧卡斯家的來訪',
+    order: 5,
+    chunkCount: 8,
+    entityCount: 4,
+    summary: '盧卡斯一家到訪，夏綠蒂分享了她對婚姻的看法。',
+    topEntities: [
+      { id: 'ent-011', name: '夏綠蒂', type: 'character' },
+      { id: 'ent-012', name: '社會階級', type: 'concept' },
+    ],
+  },
+];
+
+// ── Chunks ──────────────────────────────────────────────────────
+
+const chapter1Chunks: Chunk[] = [
+  {
+    id: 'chunk-1-1',
+    chapterId: 'ch-001',
+    order: 1,
+    content: '凡是有財產的單身漢，必定需要娶位太太，這已經成了一條舉世公認的真理。',
+    keywords: ['真理', '財產', '太太'],
+    segments: [
+      { text: '凡是有財產的單身漢，必定需要娶位太太，這已經成了一條舉世公認的真理。' },
+    ],
+  },
+  {
+    id: 'chunk-1-2',
+    chapterId: 'ch-001',
+    order: 2,
+    content: '「親愛的班奈特先生，」有一天他太太對他說，「你有沒有聽說尼日斐莊園終於租出去了？」',
+    keywords: ['尼日斐莊園', '班奈特先生'],
+    segments: [
+      { text: '「親愛的' },
+      { text: '班奈特先生', entity: { type: 'character', entityId: 'ent-006', name: '班奈特先生' } },
+      { text: '，」有一天他太太對他說，「你有沒有聽說' },
+      { text: '尼日斐莊園', entity: { type: 'location', entityId: 'ent-007', name: '尼日斐莊園' } },
+      { text: '終於租出去了？」' },
+    ],
+  },
+  {
+    id: 'chunk-1-3',
+    chapterId: 'ch-001',
+    order: 3,
+    content: '班奈特先生回答說他沒有聽說。「可是確實租出去了，」她回答道；「因為朗太太剛剛來過，她把一切都告訴我了。」',
+    keywords: ['朗太太'],
+    segments: [
+      { text: '班奈特先生', entity: { type: 'character', entityId: 'ent-006', name: '班奈特先生' } },
+      { text: '回答說他沒有聽說。「可是確實租出去了，」她回答道；「因為朗太太剛剛來過，她把一切都告訴我了。」' },
+    ],
+  },
+  {
+    id: 'chunk-1-4',
+    chapterId: 'ch-001',
+    order: 4,
+    content: '「一個有大筆財產的單身漢；每年四五千磅的收入。我們的女兒們好福氣啊！」班奈特太太叫道。',
+    keywords: ['財產', '女兒', '班奈特太太'],
+    segments: [
+      { text: '「一個有大筆財產的單身漢；每年四五千磅的收入。我們的女兒們好福氣啊！」' },
+      { text: '班奈特太太', entity: { type: 'character', entityId: 'ent-005', name: '班奈特太太' } },
+      { text: '叫道。' },
+    ],
+  },
+];
+
+const chapter3Chunks: Chunk[] = [
+  {
+    id: 'chunk-3-1',
+    chapterId: 'ch-003',
+    order: 1,
+    content: '彬格萊先生儀表堂堂，紳士風度；他面貌和善，舉止自然大方。達西先生很快就以英俊的外貌、高大的身材、貴族的氣派引起了全場的注意。',
+    keywords: ['彬格萊', '達西', '英俊'],
+    segments: [
+      { text: '彬格萊先生', entity: { type: 'character', entityId: 'ent-004', name: '彬格萊先生' } },
+      { text: '儀表堂堂，紳士風度；他面貌和善，舉止自然大方。' },
+      { text: '達西先生', entity: { type: 'character', entityId: 'ent-002', name: '達西先生' } },
+      { text: '很快就以英俊的外貌、高大的身材、貴族的氣派引起了全場的注意。' },
+    ],
+  },
+  {
+    id: 'chunk-3-2',
+    chapterId: 'ch-003',
+    order: 2,
+    content: '「她還算過得去，可是還不夠漂亮，引不起我的興趣。」達西先生說的是伊莉莎白。伊莉莎白可以輕鬆地原諒他的傲慢，儘管這傲慢曾經傷了她的自尊。',
+    keywords: ['達西', '伊莉莎白', '傲慢'],
+    segments: [
+      { text: '「她還算過得去，可是還不夠漂亮，引不起我的興趣。」' },
+      { text: '達西先生', entity: { type: 'character', entityId: 'ent-002', name: '達西先生' } },
+      { text: '說的是' },
+      { text: '伊莉莎白', entity: { type: 'character', entityId: 'ent-001', name: '伊莉莎白' } },
+      { text: '。' },
+      { text: '伊莉莎白', entity: { type: 'character', entityId: 'ent-001', name: '伊莉莎白' } },
+      { text: '可以輕鬆地原諒他的傲慢，儘管這傲慢曾經傷了她的自尊。' },
+    ],
+  },
+];
+
+export const mockChunksByChapter: Record<string, Chunk[]> = {
+  'ch-001': chapter1Chunks,
+  'ch-003': chapter3Chunks,
 };
 
-export function getMockParagraphs(chapterNumber: number): ParagraphResponse[] {
-  return chapterParagraphs[chapterNumber] ?? chapterParagraphs[1];
+export function getMockChunks(chapterId: string): Chunk[] {
+  return mockChunksByChapter[chapterId] ?? chapter1Chunks;
 }
 
-// ── Entities ────────────────────────────────────────────────────
+// ── Graph ───────────────────────────────────────────────────────
 
-export const mockEntities: EntityResponse[] = [
-  {
-    id: 'ent-001', name: 'Elizabeth Bennet', entity_type: 'character',
-    aliases: ['Elizabeth', 'Lizzy', 'Eliza'],
-    attributes: { gender: 'female', age: '20' },
-    description: 'The second eldest Bennet daughter. Intelligent, witty, and with a keen eye for the absurd.',
-    first_appearance_chapter: 1, mention_count: 87,
-  },
-  {
-    id: 'ent-002', name: 'Mr. Darcy', entity_type: 'character',
-    aliases: ['Darcy', 'Fitzwilliam Darcy'],
-    attributes: { gender: 'male', income: '10000 per year' },
-    description: 'A wealthy gentleman from Derbyshire. Initially proud and aloof, but deeply honourable.',
-    first_appearance_chapter: 3, mention_count: 72,
-  },
-  {
-    id: 'ent-003', name: 'Jane Bennet', entity_type: 'character',
-    aliases: ['Jane'],
-    attributes: { gender: 'female' },
-    description: 'The eldest and most beautiful Bennet sister. Gentle, kind, and always sees the best in people.',
-    first_appearance_chapter: 1, mention_count: 54,
-  },
-  {
-    id: 'ent-004', name: 'Mr. Bingley', entity_type: 'character',
-    aliases: ['Bingley', 'Charles Bingley'],
-    attributes: { gender: 'male', income: '5000 per year' },
-    description: 'A cheerful, amiable young man who takes up residence at Netherfield Park.',
-    first_appearance_chapter: 1, mention_count: 48,
-  },
-  {
-    id: 'ent-005', name: 'Mrs. Bennet', entity_type: 'character',
-    aliases: [],
-    attributes: { gender: 'female' },
-    description: 'Mother of the five Bennet sisters. Obsessed with securing advantageous marriages for her daughters.',
-    first_appearance_chapter: 1, mention_count: 41,
-  },
-  {
-    id: 'ent-006', name: 'Mr. Bennet', entity_type: 'character',
-    aliases: [],
-    attributes: { gender: 'male' },
-    description: 'Father of the Bennet family. Sardonic and detached, preferring his library to company.',
-    first_appearance_chapter: 1, mention_count: 35,
-  },
-  {
-    id: 'ent-007', name: 'Netherfield Park', entity_type: 'location',
-    aliases: ['Netherfield'],
-    attributes: { type: 'estate' },
-    description: 'A large estate near Meryton, rented by Mr. Bingley.',
-    first_appearance_chapter: 1, mention_count: 22,
-  },
-  {
-    id: 'ent-008', name: 'Longbourn', entity_type: 'location',
-    aliases: ['Longbourn House'],
-    attributes: { type: 'estate' },
-    description: 'The Bennet family home, entailed to Mr. Collins.',
-    first_appearance_chapter: 1, mention_count: 18,
-  },
-  {
-    id: 'ent-009', name: 'Pemberley', entity_type: 'location',
-    aliases: [],
-    attributes: { type: 'estate', county: 'Derbyshire' },
-    description: 'Mr. Darcy\'s grand estate in Derbyshire.',
-    first_appearance_chapter: null, mention_count: 14,
-  },
-  {
-    id: 'ent-010', name: 'The Assembly Ball', entity_type: 'event',
-    aliases: ['Meryton Assembly', 'the ball'],
-    attributes: {},
-    description: 'The public ball at the Meryton assembly rooms where the Bennets first meet Bingley and Darcy.',
-    first_appearance_chapter: 3, mention_count: 8,
-  },
-  {
-    id: 'ent-011', name: 'Charlotte Lucas', entity_type: 'character',
-    aliases: ['Charlotte'],
-    attributes: { gender: 'female' },
-    description: 'Elizabeth\'s sensible friend. Pragmatic about marriage.',
-    first_appearance_chapter: 3, mention_count: 19,
-  },
-  {
-    id: 'ent-012', name: 'Social Class', entity_type: 'concept',
-    aliases: ['rank', 'station'],
-    attributes: {},
-    description: 'The rigid social hierarchy of Regency England that governs behaviour and marriage prospects.',
-    first_appearance_chapter: 1, mention_count: 12,
-  },
-];
-
-export const mockEntityList: EntityListResponse = {
-  items: mockEntities,
-  total: mockEntities.length,
-};
-
-// ── Relations ───────────────────────────────────────────────────
-
-export const mockRelations: Record<string, RelationResponse[]> = {
-  'ent-001': [
-    { id: 'rel-001', source_id: 'ent-001', target_id: 'ent-002', relation_type: 'romantic_interest', description: 'Complex attraction that evolves from prejudice to deep love', weight: 5, chapters: [3, 4, 5], is_bidirectional: true },
-    { id: 'rel-002', source_id: 'ent-001', target_id: 'ent-003', relation_type: 'sibling', description: 'Closest confidante among the sisters', weight: 4, chapters: [1, 2, 3, 4], is_bidirectional: true },
-    { id: 'rel-003', source_id: 'ent-001', target_id: 'ent-011', relation_type: 'friendship', description: 'Close friends with contrasting views on marriage', weight: 3, chapters: [3, 5], is_bidirectional: true },
+export const mockGraphData: GraphData = {
+  nodes: [
+    { id: 'ent-001', name: '伊莉莎白', type: 'character', description: '班家二小姐，聰慧機智，眼光敏銳。', chunkCount: 87 },
+    { id: 'ent-002', name: '達西先生', type: 'character', description: '來自德比郡的富紳。起初傲慢冷漠，但內心正直。', chunkCount: 72 },
+    { id: 'ent-003', name: '珍', type: 'character', description: '班家大小姐，溫柔善良，總是善解人意。', chunkCount: 54 },
+    { id: 'ent-004', name: '彬格萊先生', type: 'character', description: '開朗和善的年輕紳士，租住尼日斐莊園。', chunkCount: 48 },
+    { id: 'ent-005', name: '班奈特太太', type: 'character', description: '五個女兒的母親，一心想為女兒們覓得良緣。', chunkCount: 41 },
+    { id: 'ent-006', name: '班奈特先生', type: 'character', description: '班家之父，諷刺而超然，偏愛書房勝於社交。', chunkCount: 35 },
+    { id: 'ent-007', name: '尼日斐莊園', type: 'location', description: '梅里頓附近的大宅，由彬格萊先生租住。', chunkCount: 22 },
+    { id: 'ent-008', name: '朗伯恩', type: 'location', description: '班奈特家的宅邸，受限定繼承約束。', chunkCount: 18 },
+    { id: 'ent-009', name: '彭伯里', type: 'location', description: '達西先生在德比郡的壯麗莊園。', chunkCount: 14 },
+    { id: 'ent-010', name: '舞會', type: 'event', description: '梅里頓集會的公共舞會，班家初識彬格萊與達西。', chunkCount: 8 },
+    { id: 'ent-011', name: '夏綠蒂', type: 'character', description: '伊莉莎白的好友，對婚姻持務實態度。', chunkCount: 19 },
+    { id: 'ent-012', name: '社會階級', type: 'concept', description: '攝政時代英國嚴格的社會等級制度，影響行為與婚姻前景。', chunkCount: 12 },
   ],
-  'ent-002': [
-    { id: 'rel-001', source_id: 'ent-001', target_id: 'ent-002', relation_type: 'romantic_interest', description: 'Complex attraction that evolves from prejudice to deep love', weight: 5, chapters: [3, 4, 5], is_bidirectional: true },
-    { id: 'rel-004', source_id: 'ent-002', target_id: 'ent-004', relation_type: 'friendship', description: 'Close friends; Darcy influences Bingley\'s decisions', weight: 4, chapters: [3, 4], is_bidirectional: true },
-  ],
-  'ent-003': [
-    { id: 'rel-002', source_id: 'ent-001', target_id: 'ent-003', relation_type: 'sibling', description: 'Closest confidante among the sisters', weight: 4, chapters: [1, 2, 3, 4], is_bidirectional: true },
-    { id: 'rel-005', source_id: 'ent-003', target_id: 'ent-004', relation_type: 'romantic_interest', description: 'Mutual affection from their first meeting', weight: 4, chapters: [3, 4], is_bidirectional: true },
-  ],
-  'ent-004': [
-    { id: 'rel-004', source_id: 'ent-002', target_id: 'ent-004', relation_type: 'friendship', description: 'Close friends; Darcy influences Bingley\'s decisions', weight: 4, chapters: [3, 4], is_bidirectional: true },
-    { id: 'rel-005', source_id: 'ent-003', target_id: 'ent-004', relation_type: 'romantic_interest', description: 'Mutual affection from their first meeting', weight: 4, chapters: [3, 4], is_bidirectional: true },
-  ],
-};
-
-// ── Timeline ────────────────────────────────────────────────────
-
-export const mockTimelines: Record<string, TimelineEntry[]> = {
-  'ent-001': [
-    { event_id: 'evt-001', title: 'Introduced at Assembly Ball', chapter: 3, description: 'Elizabeth is slighted by Mr. Darcy at their first meeting.' },
-    { event_id: 'evt-002', title: 'Overhears Darcy\'s insult', chapter: 3, description: '"She is tolerable, but not handsome enough to tempt me."' },
-    { event_id: 'evt-003', title: 'Discusses the ball with Jane', chapter: 4, description: 'Elizabeth forms her first prejudice against Darcy.' },
-  ],
-  'ent-002': [
-    { event_id: 'evt-004', title: 'Arrives at Netherfield', chapter: 3, description: 'Darcy accompanies Bingley to Netherfield Park.' },
-    { event_id: 'evt-005', title: 'Attends Assembly Ball', chapter: 3, description: 'Darcy\'s proud behaviour makes a poor first impression.' },
-  ],
-};
-
-// ── Subgraph ────────────────────────────────────────────────────
-
-export const mockSubgraph: SubgraphResponse = {
-  nodes: mockEntities.map((e) => ({
-    id: e.id,
-    name: e.name,
-    entity_type: e.entity_type,
-    mention_count: e.mention_count,
-  })),
   edges: [
-    { source_id: 'ent-001', target_id: 'ent-002', relation_type: 'romantic_interest', weight: 5, is_bidirectional: true },
-    { source_id: 'ent-001', target_id: 'ent-003', relation_type: 'sibling', weight: 4, is_bidirectional: true },
-    { source_id: 'ent-001', target_id: 'ent-011', relation_type: 'friendship', weight: 3, is_bidirectional: true },
-    { source_id: 'ent-001', target_id: 'ent-005', relation_type: 'family', weight: 3, is_bidirectional: false },
-    { source_id: 'ent-001', target_id: 'ent-006', relation_type: 'family', weight: 3, is_bidirectional: false },
-    { source_id: 'ent-002', target_id: 'ent-004', relation_type: 'friendship', weight: 4, is_bidirectional: true },
-    { source_id: 'ent-002', target_id: 'ent-009', relation_type: 'resides_at', weight: 3, is_bidirectional: false },
-    { source_id: 'ent-003', target_id: 'ent-004', relation_type: 'romantic_interest', weight: 4, is_bidirectional: true },
-    { source_id: 'ent-004', target_id: 'ent-007', relation_type: 'resides_at', weight: 3, is_bidirectional: false },
-    { source_id: 'ent-005', target_id: 'ent-008', relation_type: 'resides_at', weight: 3, is_bidirectional: false },
-    { source_id: 'ent-006', target_id: 'ent-008', relation_type: 'resides_at', weight: 3, is_bidirectional: false },
-    { source_id: 'ent-010', target_id: 'ent-007', relation_type: 'located_at', weight: 2, is_bidirectional: false },
-    { source_id: 'ent-001', target_id: 'ent-012', relation_type: 'challenges', weight: 2, is_bidirectional: false },
-    { source_id: 'ent-002', target_id: 'ent-012', relation_type: 'embodies', weight: 2, is_bidirectional: false },
+    { id: 'edge-01', source: 'ent-001', target: 'ent-002', label: '戀愛關係' },
+    { id: 'edge-02', source: 'ent-001', target: 'ent-003', label: '姐妹' },
+    { id: 'edge-03', source: 'ent-001', target: 'ent-011', label: '朋友' },
+    { id: 'edge-04', source: 'ent-001', target: 'ent-005', label: '家庭' },
+    { id: 'edge-05', source: 'ent-001', target: 'ent-006', label: '家庭' },
+    { id: 'edge-06', source: 'ent-002', target: 'ent-004', label: '朋友' },
+    { id: 'edge-07', source: 'ent-002', target: 'ent-009', label: '居住' },
+    { id: 'edge-08', source: 'ent-003', target: 'ent-004', label: '戀愛關係' },
+    { id: 'edge-09', source: 'ent-004', target: 'ent-007', label: '居住' },
+    { id: 'edge-10', source: 'ent-005', target: 'ent-008', label: '居住' },
+    { id: 'edge-11', source: 'ent-006', target: 'ent-008', label: '居住' },
+    { id: 'edge-12', source: 'ent-010', target: 'ent-007', label: '地點' },
+    { id: 'edge-13', source: 'ent-001', target: 'ent-012', label: '挑戰' },
+    { id: 'edge-14', source: 'ent-002', target: 'ent-012', label: '體現' },
   ],
 };
 
-// ── Analysis Results ────────────────────────────────────────────
+// ── Analysis ────────────────────────────────────────────────────
 
-export const mockCharacterAnalysisResult = {
-  profile: `## Elizabeth Bennet
+export const mockCharacterAnalyses: AnalysisListResponse = {
+  analyzed: [
+    {
+      id: 'ana-001',
+      entityId: 'ent-001',
+      section: 'characters',
+      title: '伊莉莎白',
+      archetypeType: '革命者',
+      chapterCount: 5,
+      content: `## 伊莉莎白·班奈特
 
-Elizabeth is the protagonist and moral compass of the novel. She possesses a **sharp wit**, an independent mind, and a strong sense of justice. Unlike her mother, she refuses to view marriage as merely a financial transaction.
+### 原型定位
+伊莉莎白的主要原型為**革命者**——她始終挑戰時代加諸於女性的期望，從拒絕有利的婚姻到直面凱瑟琳夫人。
 
-### Key Traits
-- **Intelligence**: Quick-witted, well-read, and perceptive
-- **Independence**: Resists social pressure to marry for convenience
-- **Prejudice**: Forms hasty judgements, particularly about Darcy
-- **Growth**: Learns to balance first impressions with deeper understanding`,
+### 心理結構
+- **自我**：機智、獨立、有主見
+- **陰影**：容易形成偏見，對達西和韋翰的判斷過於倉促
+- **阿尼瑪斯**：在與達西的互動中逐漸顯現
 
-  archetypes: `### Jungian Archetypes
+### 角色弧線
+**第一幕 — 偏見形成**（第 1-3 章）
+在舞會上初遇達西，立即被他的傲慢所排斥。
 
-| Archetype | Confidence | Evidence |
-|-----------|-----------|----------|
-| **The Rebel** | 92% | Challenges social norms, refuses Mr. Collins, speaks her mind |
-| **The Explorer** | 78% | Curious about people's true nature, seeks truth behind appearances |
-| **The Sage** | 71% | Values knowledge, learns from her mistakes with Darcy and Wickham |
+**第二幕 — 假設受到挑戰**（第 4-5 章）
+通過反覆接觸和新的資訊，伊莉莎白開始質疑自己最初的判斷是否公平。
 
-Elizabeth's primary archetype is **The Rebel** — she consistently defies the expectations placed upon women of her era, from refusing advantageous marriages to confronting Lady Catherine de Bourgh.`,
+**第三幕 — 自我認知**（結局）
+伊莉莎白認識到自己的偏見，達到了真正的理解。
 
-  arc: `### Character Arc
+### 關係動力
+與達西的關係展現了經典的革命者-統治者原型互動。`,
+      framework: 'jung',
+      generatedAt: '2026-03-10T14:00:00Z',
+    },
+    {
+      id: 'ana-002',
+      entityId: 'ent-002',
+      section: 'characters',
+      title: '達西先生',
+      archetypeType: '統治者',
+      chapterCount: 4,
+      content: `## 達西先生
 
-**Act 1 — Prejudice Forms** (Ch. 1-3)
-Elizabeth meets Darcy at the assembly ball and is immediately put off by his pride. Her first impression solidifies into active dislike.
+### 原型定位
+達西的主要原型為**統治者**——他以財富、地位和責任感為核心特質。
 
-**Act 2 — Challenged Assumptions** (Ch. 4-5)
-Through repeated encounters and new information, Elizabeth begins to question whether her initial judgement was fair.
+### 心理結構
+- **自我**：正直、有責任感、重視榮譽
+- **陰影**：初始的傲慢掩蓋了真實的善良本性
+- **人格面具**：社交場合的冷漠與內心的熱情形成對比
 
-**Act 3 — Self-Awareness** (Resolution)
-Elizabeth recognizes her own prejudice and achieves genuine understanding — both of Darcy's character and her own blind spots.
-
-> "Till this moment I never knew myself." — Elizabeth Bennet`,
+### 角色弧線
+從傲慢的貴族到謙遜的愛人，達西的轉化是小說的核心弧線之一。`,
+      framework: 'jung',
+      generatedAt: '2026-03-10T14:30:00Z',
+    },
+  ],
+  unanalyzed: [
+    { id: 'ent-003', name: '珍', type: 'character', chapterCount: 4 },
+    { id: 'ent-004', name: '彬格萊先生', type: 'character', chapterCount: 3 },
+    { id: 'ent-005', name: '班奈特太太', type: 'character', chapterCount: 5 },
+    { id: 'ent-006', name: '班奈特先生', type: 'character', chapterCount: 5 },
+    { id: 'ent-011', name: '夏綠蒂', type: 'character', chapterCount: 2 },
+  ],
 };
 
-export const mockEventAnalysisResult = {
-  summary: `## The Assembly Ball
+export const mockEventAnalyses: AnalysisListResponse = {
+  analyzed: [
+    {
+      id: 'ana-evt-001',
+      entityId: 'ent-010',
+      section: 'events',
+      title: '舞會',
+      chapterCount: 2,
+      content: `## 舞會
 
-The Meryton Assembly Ball serves as the **inciting incident** of the novel, bringing together the central characters and establishing the conflicts that drive the entire plot.
+### 事件摘要
+梅里頓舞會是小說的**引發事件**，將核心角色聚集在一起，建立了推動整個情節的衝突。
 
-### Significance
-This single evening introduces the romantic pairings (Jane/Bingley, Elizabeth/Darcy), establishes character dynamics, and plants the seeds of both prejudice and attraction.`,
+### 因果鏈
+1. 彬格萊先生的到來引起鄰里的期待
+2. 舞會提供了介紹的社交場合
+3. 達西的怠慢直接導致了伊莉莎白的偏見
 
-  causality: `### Causal Chain
-
-1. **Mr. Bingley's arrival** at Netherfield creates anticipation in the neighbourhood
-2. **The ball** provides the social setting for introduction
-3. **Darcy's slight** ("She is tolerable...") directly causes Elizabeth's prejudice
-4. **Bingley's admiration** of Jane creates hope — and later heartbreak when he departs
-5. **Public perception** of Darcy as proud spreads through the community, compounding Elizabeth's bias`,
-
-  impact: `### Impact Assessment
-
-| Dimension | Score | Notes |
-|-----------|-------|-------|
-| **Plot** | 9/10 | Inciting incident — triggers all major conflicts |
-| **Character Development** | 8/10 | Establishes Elizabeth's wit and Darcy's pride |
-| **Thematic** | 9/10 | Introduces pride vs. prejudice, appearance vs. reality |
-| **Relationship** | 10/10 | Creates both central romantic pairings |
-
-The Assembly Ball is the most consequential single event in the novel. Without Darcy's initial rudeness, the entire arc of misunderstanding and eventual reconciliation would not exist.`,
+### 影響評估
+| 維度 | 評分 | 說明 |
+|------|------|------|
+| 情節 | 9/10 | 引發事件——觸發所有主要衝突 |
+| 角色發展 | 8/10 | 確立伊莉莎白的機智和達西的傲慢 |
+| 主題 | 9/10 | 引入傲慢與偏見、表象與現實的主題 |`,
+      framework: 'jung',
+      generatedAt: '2026-03-11T10:00:00Z',
+    },
+  ],
+  unanalyzed: [],
 };
 
-// ── Task simulation helper ──────────────────────────────────────
+export const mockEntityAnalysis: EntityAnalysis = {
+  entityId: 'ent-001',
+  entityName: '伊莉莎白',
+  content: `伊莉莎白是小說的主角與道德指南針。她擁有**敏銳的機智**、獨立的思想和強烈的正義感。
+
+### 關鍵特質
+- **智慧**：反應靈敏、博覽群書、觀察力強
+- **獨立**：抵抗社會壓力，拒絕出於便利的婚姻
+- **偏見**：容易形成急促的判斷，尤其針對達西
+- **成長**：學會平衡第一印象與更深層的理解`,
+  generatedAt: '2026-03-10T14:00:00Z',
+};
+
+// ── Task simulation ─────────────────────────────────────────────
+
+const STAGES = ['PDF 解析', '章節切分', 'Chunk 處理', '知識圖譜', '摘要生成'];
 
 let taskCounter = 0;
-const taskStore = new Map<string, { status: TaskStatus['status']; step: number }>();
+const taskStore = new Map<string, { step: number; maxSteps: number }>();
 
-export function createMockTask(): TaskStatus {
+export function createMockTask(): { taskId: string } {
   const taskId = `mock-task-${++taskCounter}`;
-  taskStore.set(taskId, { status: 'pending', step: 0 });
-  return { task_id: taskId, status: 'pending', result: null, error: null };
+  taskStore.set(taskId, { step: 0, maxSteps: 5 });
+  return { taskId };
 }
 
-export function pollMockTask(
-  taskId: string,
-  resultData: unknown,
-): TaskStatus {
+export function advanceMockTask(taskId: string, bookId?: string): TaskStatus {
   const task = taskStore.get(taskId);
-  if (!task) return { task_id: taskId, status: 'failed', result: null, error: 'Task not found' };
+  if (!task) {
+    return { taskId, status: 'error', progress: 0, stage: '', error: 'Task not found' };
+  }
 
   task.step++;
-  if (task.step === 1) {
-    task.status = 'running';
-  } else if (task.step >= 3) {
-    task.status = 'completed';
+  const progress = Math.min(Math.round((task.step / task.maxSteps) * 100), 100);
+  const stageIdx = Math.min(task.step - 1, STAGES.length - 1);
+
+  if (task.step >= task.maxSteps) {
+    return {
+      taskId,
+      status: 'done',
+      progress: 100,
+      stage: '完成',
+      result: { bookId: bookId ?? 'book-001' },
+    };
   }
 
   return {
-    task_id: taskId,
-    status: task.status,
-    result: task.status === 'completed' ? resultData : null,
-    error: null,
+    taskId,
+    status: 'running',
+    progress,
+    stage: STAGES[stageIdx],
   };
 }

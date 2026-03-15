@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useCallback } from 'react';
 import cytoscape from 'cytoscape';
 import { cytoscapeStylesheet, layoutOptions } from '@/lib/cytoscapeConfig';
 
@@ -10,6 +10,11 @@ interface GraphCanvasProps {
 export function GraphCanvas({ elements, onNodeTap }: GraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
+
+  const handleNodeTap = useCallback(
+    (nodeId: string) => onNodeTap?.(nodeId),
+    [onNodeTap],
+  );
 
   useEffect(() => {
     if (!containerRef.current || !elements.length) return;
@@ -24,7 +29,7 @@ export function GraphCanvas({ elements, onNodeTap }: GraphCanvasProps) {
     });
 
     cy.on('tap', 'node', (evt) => {
-      onNodeTap?.(evt.target.id());
+      handleNodeTap(evt.target.id());
     });
 
     cyRef.current = cy;
@@ -33,16 +38,17 @@ export function GraphCanvas({ elements, onNodeTap }: GraphCanvasProps) {
       cy.destroy();
       cyRef.current = null;
     };
-  }, [elements, onNodeTap]);
+  }, [elements, handleNodeTap]);
 
   return (
     <div
       ref={containerRef}
-      className="w-full h-full min-h-[500px] rounded-lg"
-      style={{
-        backgroundColor: 'var(--color-surface)',
-        border: '1px solid var(--color-border)',
-      }}
+      className="w-full h-full min-h-[500px]"
+      style={{ backgroundColor: 'var(--bg-primary)' }}
     />
   );
+}
+
+export function useGraphRef() {
+  return useRef<cytoscape.Core | null>(null);
 }
