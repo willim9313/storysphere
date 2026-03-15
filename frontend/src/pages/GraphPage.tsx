@@ -75,63 +75,70 @@ export default function GraphPage() {
   const edgeCount = data?.edges.length ?? 0;
 
   return (
-    <div className="flex h-full relative">
-      {/* Graph area */}
-      <div className="flex-1 relative">
-        <GraphCanvas elements={filteredElements} onNodeTap={handleNodeTap} />
+    <div className="relative h-full w-full">
+      {/* Graph canvas — fills entire area, never resizes */}
+      <GraphCanvas elements={filteredElements} onNodeTap={handleNodeTap} />
 
-        {/* Floating toolbar */}
-        <GraphToolbar
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          visibleTypes={visibleTypes}
-          onTypeToggle={handleTypeToggle}
-          onReset={handleReset}
-        />
+      {/* Floating toolbar (top-left) */}
+      <GraphToolbar
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        visibleTypes={visibleTypes}
+        onTypeToggle={handleTypeToggle}
+        onReset={handleReset}
+      />
 
-        {/* Zoom controls */}
-        <div className="absolute bottom-4 left-4 flex flex-col gap-1">
-          <button
-            className="w-8 h-8 rounded-md flex items-center justify-center"
-            style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
-          >
-            <Plus size={14} />
-          </button>
-          <button
-            className="w-8 h-8 rounded-md flex items-center justify-center"
-            style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
-          >
-            <Minus size={14} />
-          </button>
-        </div>
-
-        {/* Stats */}
-        <div
-          className="absolute bottom-4 right-4 text-xs px-2 py-1 rounded"
-          style={{ backgroundColor: 'white', border: '1px solid var(--border)', color: 'var(--fg-muted)' }}
+      {/* Zoom controls (bottom-left) */}
+      <div className="absolute bottom-4 left-4 flex flex-col gap-1 z-10">
+        <button
+          className="w-8 h-8 rounded-md flex items-center justify-center"
+          style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
         >
-          {nodeCount} 節點 · {edgeCount} 關係
-        </div>
+          <Plus size={14} />
+        </button>
+        <button
+          className="w-8 h-8 rounded-md flex items-center justify-center"
+          style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
+        >
+          <Minus size={14} />
+        </button>
       </div>
 
-      {/* Detail panel */}
+      {/* Stats (bottom-right) */}
+      <div
+        className="absolute bottom-4 text-xs px-2 py-1 rounded z-10"
+        style={{
+          right: selectedNode ? 276 : 16,
+          backgroundColor: 'white',
+          border: '1px solid var(--border)',
+          color: 'var(--fg-muted)',
+          transition: 'right 200ms ease',
+        }}
+      >
+        {nodeCount} 節點 · {edgeCount} 關係
+      </div>
+
+      {/* Detail panel — absolute overlay on right side */}
       {selectedNode && bookId && (
-        <EntityDetailPanel
-          node={selectedNode}
-          bookId={bookId}
-          onClose={() => {
-            setSelectedNodeId(null);
-            setShowParagraphPanel(false);
-          }}
-          onShowParagraphs={() => setShowParagraphPanel(true)}
-        />
+        <div className="absolute top-0 right-0 h-full z-20">
+          <EntityDetailPanel
+            node={selectedNode}
+            bookId={bookId}
+            onClose={() => {
+              setSelectedNodeId(null);
+              setShowParagraphPanel(false);
+            }}
+            onShowParagraphs={() => setShowParagraphPanel(true)}
+          />
+        </div>
       )}
 
-      {/* Paragraph panel placeholder */}
+      {/* Paragraph panel — pushes detail panel left */}
       {showParagraphPanel && selectedNode && (
         <div
-          className="flex-shrink-0 h-full overflow-y-auto p-4"
+          className="absolute top-0 h-full overflow-y-auto p-4 z-20"
           style={{
+            right: 260,
             width: 300,
             backgroundColor: 'var(--bg-primary)',
             borderLeft: '1px solid var(--border)',

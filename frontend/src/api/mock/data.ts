@@ -371,18 +371,58 @@ export const mockEventAnalyses: AnalysisListResponse = {
   unanalyzed: [],
 };
 
-export const mockEntityAnalysis: EntityAnalysis = {
-  entityId: 'ent-001',
-  entityName: '伊莉莎白',
-  content: `伊莉莎白是小說的主角與道德指南針。她擁有**敏銳的機智**、獨立的思想和強烈的正義感。
+// Per-entity analysis lookup (only analyzed entities have entries)
+export const mockEntityAnalysisMap: Record<string, EntityAnalysis> = {
+  'ent-001': {
+    entityId: 'ent-001',
+    entityName: '伊莉莎白',
+    content: `伊莉莎白是小說的主角與道德指南針。她擁有**敏銳的機智**、獨立的思想和強烈的正義感。
 
 ### 關鍵特質
 - **智慧**：反應靈敏、博覽群書、觀察力強
 - **獨立**：抵抗社會壓力，拒絕出於便利的婚姻
 - **偏見**：容易形成急促的判斷，尤其針對達西
 - **成長**：學會平衡第一印象與更深層的理解`,
-  generatedAt: '2026-03-10T14:00:00Z',
+    generatedAt: '2026-03-10T14:00:00Z',
+  },
+  'ent-002': {
+    entityId: 'ent-002',
+    entityName: '達西先生',
+    content: `達西先生是小說的男主角，德比郡彭伯里莊園的主人。
+
+### 關鍵特質
+- **正直**：內心善良，對待下屬體貼周到
+- **傲慢**：初始的社交冷漠源於對庸俗的厭惡
+- **責任感**：對妹妹和莊園的責任感極強
+- **成長**：從伊莉莎白的批評中學會謙遜`,
+    generatedAt: '2026-03-10T14:30:00Z',
+  },
+  'ent-007': {
+    entityId: 'ent-007',
+    entityName: '尼日斐莊園',
+    content: `尼日斐莊園是故事中重要的場景之一，位於梅里頓附近。
+
+### 場景意義
+- **社交中心**：彬格萊租住後成為鄰里社交焦點
+- **階級象徵**：大宅的租賃暗示了財富與社會流動性
+- **情節推進**：珍的生病與留宿推動了多條故事線`,
+    generatedAt: '2026-03-11T09:00:00Z',
+  },
+  'ent-010': {
+    entityId: 'ent-010',
+    entityName: '舞會',
+    content: `梅里頓舞會是小說的引發事件，建立核心衝突。
+
+### 事件影響
+- **第一印象**：達西的怠慢與彬格萊的開朗形成對比
+- **偏見種子**：伊莉莎白對達西的負面印象由此開始
+- **社會縮影**：舞會展現了攝政時期的社交規範與階級意識`,
+    generatedAt: '2026-03-11T10:00:00Z',
+  },
 };
+
+// Backward compat
+export const mockEntityAnalysis: EntityAnalysis = mockEntityAnalysisMap['ent-001']!;
 
 // ── Task simulation ─────────────────────────────────────────────
 

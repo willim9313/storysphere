@@ -22,7 +22,7 @@ import {
   mockGraphData,
   mockCharacterAnalyses,
   mockEventAnalyses,
-  mockEntityAnalysis,
+  mockEntityAnalysisMap,
   createMockTask,
   advanceMockTask,
 } from './data';
@@ -113,10 +113,14 @@ export async function regenerateAnalysis(
 
 export async function fetchEntityAnalysis(
   _bookId: string,
-  _entityId: string,
+  entityId: string,
 ): Promise<EntityAnalysis> {
   await delay();
-  return mockEntityAnalysis;
+  const analysis = mockEntityAnalysisMap[entityId];
+  if (!analysis) {
+    throw new Error('NOT_FOUND');
+  }
+  return analysis;
 }
 
 export async function triggerEntityAnalysis(

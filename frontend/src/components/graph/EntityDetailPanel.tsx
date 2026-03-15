@@ -24,7 +24,7 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowParagraphs }: E
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['info', 'analysis']));
   const [genTaskId, setGenTaskId] = useState<string | null>(null);
 
-  const { data: analysis, isLoading: analysisLoading } = useQuery({
+  const { data: analysis, isLoading: analysisLoading, isError: analysisNotFound } = useQuery({
     queryKey: ['books', bookId, 'entities', node.id, 'analysis'],
     queryFn: () => fetchEntityAnalysis(bookId, node.id),
     retry: false,
@@ -119,10 +119,16 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowParagraphs }: E
                 </span>
               </div>
             </div>
+          ) : genTaskId && genTask && genTask.status === 'done' ? (
+            <div className="space-y-1">
+              <p className="text-xs" style={{ color: 'var(--panel-fg)' }}>
+                深度分析已完成。重新載入後即可查看。
+              </p>
+            </div>
           ) : (
             <div className="space-y-2">
               <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>
-                尚未生成深度分析。此操作將消耗 token。
+                {analysisNotFound ? '尚未生成深度分析。' : '尚未生成深度分析。'}此操作將消耗 token。
               </p>
               <button
                 className="text-xs px-2 py-1 rounded"
