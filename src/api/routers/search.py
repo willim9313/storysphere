@@ -27,9 +27,9 @@ async def semantic_search(
     document_id: str | None = Query(default=None, description="Filter by document"),
 ) -> list[SearchResult]:
     results = await vector.search(
-        query=q,
+        query_text=q,
         top_k=limit,
-        filter_document_id=document_id,
+        document_id=document_id,
     )
     return [
         SearchResult(

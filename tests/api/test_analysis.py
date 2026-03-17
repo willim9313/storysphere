@@ -14,7 +14,7 @@ def test_analyze_character_returns_202(client):
     })
     assert resp.status_code == 202
     data = resp.json()
-    assert "task_id" in data
+    assert "taskId" in data
     assert data["status"] == "pending"
 
 
@@ -29,7 +29,7 @@ def test_analyze_character_poll_not_found(client):
 
 
 def test_analyze_character_background_completes(client):
-    """After the background task runs, polling returns completed status."""
+    """After the background task runs, polling returns done status."""
     resp = client.post("/api/v1/analysis/character", json={
         "entity_name": "Alice",
         "document_id": "doc-1",
@@ -37,19 +37,19 @@ def test_analyze_character_background_completes(client):
         "language": "en",
     })
     assert resp.status_code == 202
-    task_id = resp.json()["task_id"]
+    task_id = resp.json()["taskId"]
 
     # TestClient runs background tasks before context exits;
     # poll a few times to account for async scheduling
     for _ in range(5):
         poll = client.get(f"/api/v1/analysis/character/{task_id}")
         assert poll.status_code == 200
-        if poll.json()["status"] in ("completed", "failed"):
+        if poll.json()["status"] in ("done", "error"):
             break
         time.sleep(0.05)
 
     final = client.get(f"/api/v1/analysis/character/{task_id}").json()
-    assert final["status"] == "completed"
+    assert final["status"] == "done"
     assert final["result"]["entity_name"] == "Alice"
 
 
@@ -62,7 +62,7 @@ def test_analyze_event_returns_202(client):
     })
     assert resp.status_code == 202
     data = resp.json()
-    assert "task_id" in data
+    assert "taskId" in data
     assert data["status"] == "pending"
 
 
@@ -82,15 +82,15 @@ def test_analyze_event_background_completes(client):
         "document_id": "doc-1",
     })
     assert resp.status_code == 202
-    task_id = resp.json()["task_id"]
+    task_id = resp.json()["taskId"]
 
     for _ in range(5):
         poll = client.get(f"/api/v1/analysis/event/{task_id}")
         assert poll.status_code == 200
-        if poll.json()["status"] in ("completed", "failed"):
+        if poll.json()["status"] in ("done", "error"):
             break
         time.sleep(0.05)
 
     final = client.get(f"/api/v1/analysis/event/{task_id}").json()
-    assert final["status"] == "completed"
+    assert final["status"] == "done"
     assert final["result"]["event_id"] == "evt-1"

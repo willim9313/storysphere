@@ -62,14 +62,21 @@ class MemoryTaskStore:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"status": "completed", "result": result}
+                    update={"status": "done", "result": result, "progress": 100, "stage": "完成"}
                 )
 
     def set_failed(self, task_id: str, error: str) -> None:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"status": "failed", "error": error}
+                    update={"status": "error", "error": error, "stage": "失败"}
+                )
+
+    def set_progress(self, task_id: str, progress: int, stage: str) -> None:
+        with self._lock:
+            if task_id in self._store:
+                self._store[task_id] = self._store[task_id].model_copy(
+                    update={"progress": progress, "stage": stage}
                 )
 
 
@@ -79,6 +86,8 @@ _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS tasks (
     task_id   TEXT PRIMARY KEY,
     status    TEXT NOT NULL DEFAULT 'pending',
+    progress  INTEGER NOT NULL DEFAULT 0,
+    stage     TEXT NOT NULL DEFAULT '',
     result    TEXT,
     error     TEXT
 )
@@ -154,7 +163,7 @@ class SQLiteTaskStore:
 
     async def _async_get(self, task_id: str) -> TaskStatus | None:
         row = await self._fetchone(
-            "SELECT task_id, status, result, error FROM tasks WHERE task_id = ?",
+            "SELECT task_id, status, progress, stage, result, error FROM tasks WHERE task_id = ?",
             (task_id,),
         )
         if row is None:
@@ -162,8 +171,10 @@ class SQLiteTaskStore:
         return TaskStatus(
             task_id=row[0],
             status=row[1],
-            result=json.loads(row[2]) if row[2] else None,
-            error=row[3],
+            progress=row[2],
+            stage=row[3],
+            result=json.loads(row[4]) if row[4] else None,
+            error=row[5],
         )
 
     def set_running(self, task_id: str) -> None:
@@ -173,14 +184,20 @@ class SQLiteTaskStore:
 
     def set_completed(self, task_id: str, result: Any) -> None:
         self._run(self._execute(
-            "UPDATE tasks SET status = 'completed', result = ? WHERE task_id = ?",
+            "UPDATE tasks SET status = 'done', progress = 100, stage = '完成', result = ? WHERE task_id = ?",
             (json.dumps(result), task_id),
         ))
 
     def set_failed(self, task_id: str, error: str) -> None:
         self._run(self._execute(
-            "UPDATE tasks SET status = 'failed', error = ? WHERE task_id = ?",
+            "UPDATE tasks SET status = 'error', stage = '失败', error = ? WHERE task_id = ?",
             (error, task_id),
+        ))
+
+    def set_progress(self, task_id: str, progress: int, stage: str) -> None:
+        self._run(self._execute(
+            "UPDATE tasks SET progress = ?, stage = ? WHERE task_id = ?",
+            (progress, stage, task_id),
         ))
 
 

@@ -9,8 +9,12 @@
 ## Base URL
 
 ```
-開發環境：http://localhost:8000
+開發環境：http://localhost:8000/api/v1
 ```
+
+> **注意**：所有端點路徑均相對於 `/api/v1`。
+> 前端 Vite proxy 會將 `/api/*` 轉發至 `http://localhost:8000`。
+> 前端 `client.ts` 的 `BASE_URL` 預設為 `/api/v1`。
 
 ---
 
@@ -441,8 +445,13 @@ useQuery({
 
 ---
 
-## 待確認事項
+## 實作狀態（2026-03-17 更新）
 
-- [ ] **#9 GraphEdge.label**：圖譜 edge 的關係類型清單，開發知識圖譜頁前參考後端 repo 確認
-- [ ] **#3 summary / entityStats**：書籍摘要與實體統計欄位，確認後端是否提供
-- [ ] **#4 Chapter.summary / topEntities**：章節摘要與主要實體欄位，確認後端是否提供
+- [x] **後端路由對齊**：`src/api/routers/books.py` + `tasks.py` 已對齊本合約所有端點
+- [x] **camelCase 輸出**：所有前端 API 回應均使用 camelCase（Pydantic alias_generator）
+- [x] **TaskStatus 對齊**：status enum 改為 `done`/`error`，新增 `progress`/`stage`
+- [x] **#9 GraphEdge.label**：使用 KG relation_type 作為 label
+- [x] **#3 summary / entityStats**：已實作（entityStats 從 KG 計算）
+- [ ] **#4 Chapter.topEntities**：MVP 階段回傳空（待 entity-chapter mapping 完善）
+- [ ] **#5 Chunk.segments entity 標注**：MVP 階段每個 chunk 只有一個純文字 segment（待實作 entity inline 標注）
+- [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

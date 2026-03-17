@@ -15,7 +15,7 @@ def test_ingest_returns_202(client):
     )
     assert resp.status_code == 202
     data = resp.json()
-    assert "task_id" in data
+    assert "taskId" in data
     assert data["status"] == "pending"
 
 
@@ -55,6 +55,6 @@ def test_ingest_poll_tracks_status(client):
     resp = client.get(f"/api/v1/ingest/{task_id}")
     assert resp.status_code == 200
     data = resp.json()
-    assert data["task_id"] == task_id
-    assert data["status"] == "completed"
+    assert data["taskId"] == task_id
+    assert data["status"] == "done"
     assert data["result"]["entities"] == 5
