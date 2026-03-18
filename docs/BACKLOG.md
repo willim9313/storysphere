@@ -103,9 +103,10 @@
 
 ---
 
-### B-009 GetChapterSummaryTool 完整實作
+### B-009 GetChapterSummaryTool 完整實作 → ✅ 已完成
 **背景**: CORE.md 工具目錄 Tool #15 目前是 stub
 **內容**: 實作完整邏輯（目前 `DocumentService.get_chapter_summary()` 已存在，接線即可）
+**備註**: `chapter_number` 為必填（與 GetSummaryTool 的可選設計不同），已加入 `get_chat_tools()` 作為第 6 個 Retrieval Tool
 
 ---
 
@@ -135,7 +136,7 @@
 | B-006 | Metrics API 端點 | 🟡 中 | 待開始 |
 | B-007 | 多語系傳遞統一 | 🟡 中 | 待開始 |
 | B-008 | Neo4j Backend | 🟢 低 | 待開始 |
-| B-009 | GetChapterSummaryTool | 🟢 低 | 待開始 |
+| B-009 | GetChapterSummaryTool | 🟢 低 | ✅ 完成 |
 | B-010 | Composite Tool #5 | 🟢 低 | 待開始 |
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
 | B-012 | 前端後端 API 整合驗證 | 🟡 中 | 待開始 |

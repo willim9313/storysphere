@@ -96,6 +96,16 @@ class GetSummaryInput(BaseModel):
     )
 
 
+class GetChapterSummaryInput(BaseModel):
+    """Input for retrieving the pre-computed summary of a specific chapter."""
+
+    document_id: str = Field(description="The document ID.")
+    chapter_number: int = Field(
+        description="The chapter number whose summary to retrieve.",
+        ge=1,
+    )
+
+
 class GetParagraphsInput(BaseModel):
     """Input for retrieving raw paragraph texts."""
 

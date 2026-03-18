@@ -27,7 +27,14 @@ from tools.graph_tools import (
     GetSubgraphTool,
 )
 from tools.other_tools import CompareEntitiesTool, ExtractEntitiesFromTextTool
-from tools.retrieval_tools import GenSummaryTool, GetKeywordsTool, GetParagraphsTool, GetSummaryTool, VectorSearchTool
+from tools.retrieval_tools import (
+    GenSummaryTool,
+    GetChapterSummaryTool,
+    GetKeywordsTool,
+    GetParagraphsTool,
+    GetSummaryTool,
+    VectorSearchTool,
+)
 
 
 def get_chat_tools(
@@ -66,9 +73,10 @@ def get_chat_tools(
         GetRelationPathsTool(kg_service=kg_service),
         GetSubgraphTool(kg_service=kg_service),
         GetRelationStatsTool(kg_service=kg_service),
-        # Retrieval tools (5)
+        # Retrieval tools (6)
         VectorSearchTool(vector_service=vector_service),
         GetSummaryTool(doc_service=doc_service),
+        GetChapterSummaryTool(doc_service=doc_service),
         GetParagraphsTool(doc_service=doc_service),
         GenSummaryTool(doc_service=doc_service, summarizer=summary_service),
         GetKeywordsTool(keyword_service=keyword_service),
@@ -152,6 +160,7 @@ def get_all_tool_names() -> list[str]:
         "get_relation_stats",
         "vector_search",
         "get_summary",
+        "get_chapter_summary",
         "get_paragraphs",
         "gen_summary",
         "get_keywords",
