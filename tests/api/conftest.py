@@ -153,7 +153,7 @@ def mock_analysis_agent():
 @pytest.fixture
 def mock_chat_agent():
     agent = MagicMock()
-    async def _astream(query, state):
+    async def _astream(query, state, **kwargs):
         for chunk in ["Hello ", "world"]:
             yield chunk
     agent.astream = _astream
