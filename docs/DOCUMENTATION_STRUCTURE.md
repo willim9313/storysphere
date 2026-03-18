@@ -41,7 +41,8 @@ storysphere/
 │       ├── PHASE_7_MONITORING.md
 │       ├── FRONTEND_DEV_PLAN.md     # 前端開發計劃（已完成，含重構記錄）
 │       ├── FRONTEND_DEV_GUIDE.md    # 前端開發指南（已棄用 → 見 API_CONTRACT + UI_SPEC）
-│       └── LANGSMITH_SETUP.md       # LangSmith 監控設定
+│       ├── LANGSMITH_SETUP.md       # LangSmith 監控設定
+│       └── API_TESTING.md           # 用真實 PDF 驗測後端 API 輸出品質
 │
 ├── frontend/                        # React 19 + TypeScript + Vite SPA
 │   ├── src/
