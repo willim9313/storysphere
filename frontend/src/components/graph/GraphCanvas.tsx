@@ -25,8 +25,26 @@ export function GraphCanvas({ elements, onNodeTap }: GraphCanvasProps) {
       maxZoom: 3,
     });
 
+    const applyHighlight = (nodeId: string) => {
+      const node = cy.getElementById(nodeId);
+      const neighborhood = node.closedNeighborhood();
+      cy.elements().addClass('dimmed').removeClass('highlighted');
+      neighborhood.removeClass('dimmed').addClass('highlighted');
+    };
+
+    const clearHighlight = () => {
+      cy.elements().removeClass('dimmed').removeClass('highlighted');
+    };
+
     cy.on('tap', 'node', (evt) => {
+      applyHighlight(evt.target.id());
       onNodeTapRef.current?.(evt.target.id());
+    });
+
+    cy.on('tap', (evt) => {
+      if (evt.target === cy) {
+        clearHighlight();
+      }
     });
 
     cyRef.current = cy;

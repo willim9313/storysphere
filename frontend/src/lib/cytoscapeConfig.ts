@@ -40,6 +40,28 @@ export const cytoscapeStylesheet: any[] = [
     },
   },
   {
+    selector: '.dimmed',
+    style: {
+      opacity: 0.15,
+    },
+  },
+  {
+    selector: '.highlighted',
+    style: {
+      'border-width': 3,
+      'border-color': '#8b5e3c',
+    },
+  },
+  {
+    selector: 'edge.highlighted',
+    style: {
+      width: 2.5,
+      'line-color': '#8b5e3c',
+      'target-arrow-color': '#8b5e3c',
+      opacity: 1,
+    },
+  },
+  {
     selector: 'edge',
     style: {
       width: 1,

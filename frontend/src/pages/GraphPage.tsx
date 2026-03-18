@@ -58,19 +58,21 @@ export default function GraphPage() {
 
   const filteredElements = useMemo(() => {
     const lowerQ = searchQuery.toLowerCase();
+    const visibleNodeIds = new Set(
+      elements
+        .filter((el) => {
+          if (el.group !== 'nodes') return false;
+          if (!visibleTypes.has(String(el.data.entityType ?? ''))) return false;
+          if (lowerQ && !String(el.data.label ?? '').toLowerCase().includes(lowerQ)) return false;
+          return true;
+        })
+        .map((el) => el.data.id),
+    );
     return elements.filter((el) => {
       if (el.group === 'edges') {
-        const srcVisible = elements.some(
-          (n) => n.group === 'nodes' && n.data.id === el.data.source && visibleTypes.has(String(n.data.entityType ?? '')),
-        );
-        const tgtVisible = elements.some(
-          (n) => n.group === 'nodes' && n.data.id === el.data.target && visibleTypes.has(String(n.data.entityType ?? '')),
-        );
-        return srcVisible && tgtVisible;
+        return visibleNodeIds.has(el.data.source) && visibleNodeIds.has(el.data.target);
       }
-      if (!visibleTypes.has(String(el.data.entityType ?? ''))) return false;
-      if (lowerQ && !String(el.data.label ?? '').toLowerCase().includes(lowerQ)) return false;
-      return true;
+      return visibleNodeIds.has(el.data.id);
     });
   }, [elements, searchQuery, visibleTypes]);
 
