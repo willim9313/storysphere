@@ -17,6 +17,7 @@ from api.deps import AnalysisAgentDep
 from api.schemas.analysis import CharacterAnalysisRequest, EventAnalysisRequest
 from api.schemas.common import TaskStatus
 from api.store import get_task, task_store
+from api.ws_manager import manager
 
 logger = logging.getLogger(__name__)
 
@@ -28,6 +29,7 @@ router = APIRouter(prefix="/analysis", tags=["analysis"])
 
 async def _run_character_analysis(task_id: str, req: CharacterAnalysisRequest, agent) -> None:
     task_store.set_running(task_id)
+    await manager.push(task_id, {"task_id": task_id, "status": "running", "progress": 0, "stage": "", "result": None, "error": None})
     try:
         result = await agent.analyze_character(
             entity_name=req.entity_name,
@@ -40,6 +42,10 @@ async def _run_character_analysis(task_id: str, req: CharacterAnalysisRequest, a
     except Exception as exc:
         logger.exception("Character analysis task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
+    finally:
+        status = await get_task(task_id)
+        if status:
+            await manager.push(task_id, status.model_dump())
 
 
 @router.post("/character", response_model=TaskStatus, status_code=202)
@@ -72,6 +78,7 @@ async def get_character_analysis(task_id: str) -> TaskStatus:
 
 async def _run_event_analysis(task_id: str, req: EventAnalysisRequest, agent) -> None:
     task_store.set_running(task_id)
+    await manager.push(task_id, {"task_id": task_id, "status": "running", "progress": 0, "stage": "", "result": None, "error": None})
     try:
         result = await agent.analyze_event(
             event_id=req.event_id,
@@ -83,6 +90,10 @@ async def _run_event_analysis(task_id: str, req: EventAnalysisRequest, agent) ->
     except Exception as exc:
         logger.exception("Event analysis task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
+    finally:
+        status = await get_task(task_id)
+        if status:
+            await manager.push(task_id, status.model_dump())
 
 
 @router.post("/event", response_model=TaskStatus, status_code=202)

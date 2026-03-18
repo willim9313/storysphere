@@ -13,7 +13,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routers import analysis, books, chat_ws, documents, entities, ingest, relations, search, tasks
+from api.routers import analysis, books, chat_ws, documents, entities, ingest, relations, search, tasks, tasks_ws
 
 logger = logging.getLogger(__name__)
 
@@ -118,7 +118,8 @@ def create_app() -> FastAPI:
     app.include_router(search.router, prefix=prefix)
     app.include_router(ingest.router, prefix=prefix)
     app.include_router(analysis.router, prefix=prefix)
-    app.include_router(chat_ws.router)  # WS paths don't use /api/v1 prefix
+    app.include_router(chat_ws.router)   # WS paths don't use /api/v1 prefix
+    app.include_router(tasks_ws.router)  # WS /ws/tasks/{task_id}
 
     return app
 

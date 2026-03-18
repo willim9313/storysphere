@@ -67,13 +67,13 @@
 
 ---
 
-### B-005 Analysis WebSocket 推送
+### B-005 Analysis WebSocket 推送 → ✅ 已完成
 **背景**: ADR-004 設計是 task_id → **WebSocket 主動推送**結果，目前只實作了 polling
 **內容**:
-- `WS /ws/analysis` — 客戶端訂閱 task_id，完成時 server 主動推送結果
-- 或在現有 `/ws/chat` 協議中加入 `type: "analysis_result"` 訊息
-
-**實作提示**: `TaskStore` 需要支援 callback/observer 模式，或在背景任務完成後透過 WebSocket manager 廣播
+- `WS /ws/tasks/{task_id}` — 客戶端訂閱 task_id，server 主動推送 TaskStatus 更新
+- `api/ws_manager.py` — ConnectionManager singleton（task_id → list[WebSocket]）
+- background task 在 running / done / error 時呼叫 `manager.push()`
+- 連接後立即回傳目前狀態；若已 done/error 則直接關閉；進行中每 30s 送 ping
 
 ---
 
@@ -131,7 +131,7 @@
 | B-002 | Documents Router | 🔴 高 | ✅ 完成 |
 | B-003 | TaskStore 持久化 | 🔴 高 | ✅ 完成 |
 | B-004 | LangSmith 監控 | 🟡 中 | ✅ 完成 |
-| B-005 | Analysis WebSocket 推送 | 🟡 中 | 待開始 |
+| B-005 | Analysis WebSocket 推送 | 🟡 中 | ✅ 完成 |
 | B-006 | Metrics API 端點 | 🟡 中 | 待開始 |
 | B-007 | 多語系傳遞統一 | 🟡 中 | 待開始 |
 | B-008 | Neo4j Backend | 🟢 低 | 待開始 |
