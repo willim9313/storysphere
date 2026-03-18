@@ -36,6 +36,7 @@ def test_has_key_false_for_empty():
     assert not client._has_key(LLMProvider.GEMINI)
     assert not client._has_key(LLMProvider.OPENAI)
     assert not client._has_key(LLMProvider.ANTHROPIC)
+    assert not client._has_key(LLMProvider.LOCAL)
 
 
 def test_no_key_raises():
@@ -44,6 +45,43 @@ def test_no_key_raises():
     client = LLMClient(settings=s)
     with pytest.raises(RuntimeError, match="No LLM provider configured"):
         client.get_primary()
+
+
+def test_local_has_key_when_model_set():
+    from config.settings import Settings
+    s = Settings(
+        gemini_api_key="", openai_api_key="", anthropic_api_key="",
+        local_llm_model="qwen2.5:3b",
+    )
+    client = LLMClient(settings=s)
+    assert client._has_key(LLMProvider.LOCAL)
+
+
+def test_local_is_primary_when_only_local_configured():
+    from config.settings import Settings
+    s = Settings(
+        gemini_api_key="", openai_api_key="", anthropic_api_key="",
+        local_llm_model="qwen2.5:3b",
+    )
+    client = LLMClient(settings=s)
+    assert client._resolve_primary() == LLMProvider.LOCAL
+
+
+def test_get_local_raises_when_not_configured():
+    from config.settings import Settings
+    s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="")
+    client = LLMClient(settings=s)
+    with pytest.raises(RuntimeError, match="Local LLM not configured"):
+        client.get_local()
+
+
+def test_get_with_local_fallback_returns_primary_when_no_local():
+    from config.settings import Settings
+    s = Settings(gemini_api_key="fake-key", local_llm_model="")
+    client = LLMClient(settings=s)
+    # Should not raise; returns the primary (no .with_fallbacks wrapping)
+    llm = client.get_with_local_fallback()
+    assert llm is client.get_primary()
 
 
 # ── Integration tests (require GEMINI_API_KEY) ─────────────────────────────────

@@ -18,6 +18,28 @@ from api.routers import analysis, books, chat_ws, documents, entities, ingest, r
 logger = logging.getLogger(__name__)
 
 
+async def _check_local_llm(settings) -> None:  # type: ignore[type-arg]
+    """Ping the local LLM endpoint at startup. Warn but do not fail if unreachable."""
+    import httpx
+
+    url = settings.local_llm_base_url.rstrip("/") + "/models"
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            await client.get(url)
+        logger.info(
+            "Local LLM ready — model=%s endpoint=%s",
+            settings.local_llm_model,
+            settings.local_llm_base_url,
+        )
+    except Exception as exc:
+        logger.warning(
+            "Local LLM unreachable at %s (%s). "
+            "Local fallback will be unavailable until the server is started.",
+            settings.local_llm_base_url,
+            exc,
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Warm up singletons on startup so the first request is not slow."""
@@ -32,7 +54,8 @@ async def lifespan(app: FastAPI):
     from core.tracing import configure_langsmith  # noqa: PLC0415
     from config.settings import get_settings  # noqa: PLC0415
 
-    configure_langsmith(get_settings())
+    settings = get_settings()
+    configure_langsmith(settings)
 
     logger.info("StorySphere API starting up — initialising services...")
     get_kg_service()
@@ -40,6 +63,10 @@ async def lifespan(app: FastAPI):
     get_vector_service()
     get_chat_agent()
     get_analysis_agent()
+
+    if settings.has_local_llm:
+        await _check_local_llm(settings)
+
     logger.info("All services ready.")
     yield
     logger.info("StorySphere API shutting down.")

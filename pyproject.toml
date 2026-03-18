@@ -41,6 +41,7 @@ dependencies = [
     "langchain-openai>=0.2.0",
     "anthropic>=0.40",
     "langchain-anthropic>=0.3.0",
+    # Local LLM (llama.cpp / Ollama / LM Studio) reuses langchain-openai via OpenAI-compatible API
 
     # ========== Data Storage ==========
     "sqlalchemy>=2.0",

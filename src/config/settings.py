@@ -31,6 +31,17 @@ class Settings(BaseSettings):
     anthropic_api_key: str = Field(default="", description="Anthropic API key (second fallback)")
     anthropic_model: str = "claude-3-5-haiku-latest"
 
+    # Local LLM — OpenAI-compatible endpoint (llama.cpp server / Ollama / LM Studio)
+    # No API key required. Set local_llm_model to a non-empty value to enable.
+    local_llm_base_url: str = Field(
+        default="http://localhost:11434/v1",
+        description="Base URL of the local OpenAI-compatible endpoint (llama.cpp / Ollama / LM Studio)",
+    )
+    local_llm_model: str = Field(
+        default="",
+        description="Local model name (e.g. llama3.2, qwen2.5:3b). Leave empty to disable local LLM.",
+    )
+
     # ── Database ───────────────────────────────────────────────────────────────
     database_url: str = "sqlite+aiosqlite:///./storysphere.db"
 
@@ -155,6 +166,10 @@ class Settings(BaseSettings):
     @property
     def has_anthropic(self) -> bool:
         return bool(self.anthropic_api_key)
+
+    @property
+    def has_local_llm(self) -> bool:
+        return bool(self.local_llm_model)
 
     @property
     def analysis_cache_ttl_seconds(self) -> int:

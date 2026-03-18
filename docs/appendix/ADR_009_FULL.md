@@ -32,15 +32,19 @@ tenacity ^8.0             # 重試機制
 
 ### LLM 提供商
 ```python
-Primary: Gemini (google-generativeai ^0.4.0)  # ⭐ 用戶要求
-Fallback: OpenAI (openai ^1.0)
+Primary:  Gemini    (google-generativeai ^0.4.0)  # ⭐ 用戶要求
+Fallback: OpenAI    (openai ^1.0)
 Fallback: Anthropic (anthropic ^0.18)
+Fallback: Local LLM (via langchain-openai, OpenAI-compatible endpoint)
 ```
+
+**Fallback chain**: Gemini → OpenAI → Anthropic → Local
 
 **原因**：
 - Gemini: 性價比高，中文支持好
 - OpenAI: 備選，成熟穩定
 - Anthropic: Claude 作為第二備選
+- Local: 無需 API key，rate limit 或離線時自動降級（見下方）
 
 ### Web 框架
 ```python
@@ -217,6 +221,8 @@ PostgreSQL + Neo4j + Redis + Celery + Prometheus
 ### Multi-LLM Client 演進
 舊版用自建 Adapter Pattern（`GeminiClient`, `OpenAIClient`, `OllamaClient`），每個 client 實現統一介面。新版改用 LangChain 統一接口（`langchain-google-genai`, `langchain-openai`, `langchain-anthropic`），透過 `LLMClient` factory 建構，不再需要自建 client classes。
 
+Local LLM 支持透過 OpenAI-compatible endpoint 整合，重用 `langchain-openai`（`ChatOpenAI` + `base_url`），無需新增依賴。支援後端：llama.cpp server、Ollama (`/v1` path)、LM Studio 等。
+
 ### 文檔處理演進
 舊版用 LlamaIndex `SimpleDirectoryReader`（引入大量依賴），新版改用 `pypdf` + `python-docx` 直接處理（減少依賴，更可控）。
 
@@ -359,7 +365,7 @@ Neo4j: $65/month（Neo4j Aura Starter）
 
 ### 已決定
 - [x] Agent 框架: LangChain + LangGraph
-- [x] LLM: Gemini (Primary)
+- [x] LLM: Gemini (Primary) + Local fallback (OpenAI-compatible endpoint)
 - [x] Web 框架: FastAPI + WebSocket
 - [x] 關係型: SQLite（默認）→ PostgreSQL（可選）
 - [x] 知識圖譜: NetworkX（默認）↔ Neo4j（可選）
@@ -381,6 +387,7 @@ Neo4j: $65/month（Neo4j Aura Starter）
 | 版本 | 日期 | 變更 |
 |------|------|------|
 | 1.0 | 2026-02-22 | 初版：確定 MVP Tech Stack |
+| 1.1 | 2026-03-18 | 新增 Local LLM fallback（OpenAI-compatible endpoint，支援 llama.cpp / Ollama） |
 
 ---
 
