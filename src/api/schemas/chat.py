@@ -7,6 +7,7 @@ from pydantic import BaseModel
 
 class ChatIncomingMessage(BaseModel):
     message: str
+    language: str = "en"
 
 
 class ChatOutgoingMessage(BaseModel):

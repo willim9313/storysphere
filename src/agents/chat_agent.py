@@ -115,7 +115,9 @@ class ChatAgent:
         settings = get_settings()
         return get_llm_client().get_primary(temperature=settings.chat_agent_temperature)
 
-    async def chat(self, query: str, state: ChatState) -> str:
+    async def chat(
+        self, query: str, state: ChatState, language: str = "en"
+    ) -> str:
         """Single-turn chat: returns the final assistant response text.
 
         1. Try fast route via QueryPatternRecognizer
@@ -152,7 +154,7 @@ class ChatAgent:
                     return result
 
             # Full agent loop
-            response = await self._agent_invoke(query)
+            response = await self._agent_invoke(query, language=language)
 
             # Update state
             state.add_message("assistant", response)
@@ -177,14 +179,21 @@ class ChatAgent:
             )
             raise
 
-    async def astream(self, query: str, state: ChatState) -> AsyncGenerator[str, None]:
+    async def astream(
+        self, query: str, state: ChatState, language: str = "en"
+    ) -> AsyncGenerator[str, None]:
         """Streaming chat: yields token chunks as they arrive.
 
         Falls back to non-streaming ``chat()`` if streaming is not supported.
         """
         state.add_message("user", query)
 
-        messages = [HumanMessage(content=query)]
+        from langchain_core.messages import SystemMessage  # noqa: PLC0415
+
+        messages = [
+            SystemMessage(content=f"Always respond in {language}."),
+            HumanMessage(content=query),
+        ]
         try:
             async for event in self._graph.astream_events(
                 {"messages": messages}, version="v2"
@@ -196,7 +205,7 @@ class ChatAgent:
                         yield chunk.content
         except Exception:
             logger.exception("Streaming failed, falling back to non-streaming")
-            result = await self._agent_invoke(query)
+            result = await self._agent_invoke(query, language=language)
             yield result
 
     async def _fast_route(
@@ -245,12 +254,17 @@ class ChatAgent:
             logger.debug("Fast route failed for %s, falling back to agent", tool_name)
             return None
 
-    async def _agent_invoke(self, query: str) -> str:
+    async def _agent_invoke(self, query: str, language: str = "en") -> str:
         """Invoke the LangGraph agent and extract the final response text."""
+        from langchain_core.messages import SystemMessage  # noqa: PLC0415
+
         from core.metrics import get_metrics  # noqa: PLC0415
 
         _metrics = get_metrics()
-        messages = [HumanMessage(content=query)]
+        messages = [
+            SystemMessage(content=f"Always respond in {language}."),
+            HumanMessage(content=query),
+        ]
         result = await self._graph.ainvoke({"messages": messages})
 
         # Extract the last AI message; record tool selections from ToolMessages

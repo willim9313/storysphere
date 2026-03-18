@@ -229,13 +229,14 @@ async def _run_ingestion(task_id: str, file_path: Path, title: str) -> None:
 
 
 async def _run_entity_analysis(
-    task_id: str, entity_name: str, document_id: str, agent
+    task_id: str, entity_name: str, document_id: str, agent, language: str = "en"
 ) -> None:
     task_store.set_running(task_id)
     try:
         result = await agent.analyze_character(
             entity_name=entity_name,
             document_id=document_id,
+            language=language,
         )
         task_store.set_completed(task_id, result=result.model_dump())
     except Exception as exc:
@@ -598,6 +599,7 @@ async def trigger_entity_analysis(
     kg: KGServiceDep,
     agent: AnalysisAgentDep,
     background_tasks: BackgroundTasks,
+    language: str = "en",
 ) -> dict:
     """Trigger deep analysis for a single entity."""
     entity = await kg.get_entity(entity_id)
@@ -607,7 +609,7 @@ async def trigger_entity_analysis(
     task_id = str(uuid4())
     task_store.create(task_id)
     background_tasks.add_task(
-        _run_entity_analysis, task_id, entity.name, book_id, agent
+        _run_entity_analysis, task_id, entity.name, book_id, agent, language
     )
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)

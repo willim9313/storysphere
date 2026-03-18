@@ -50,6 +50,7 @@ class SummaryService:
         text: str,
         chapter_number: int,
         title: str | None = None,
+        language: str = "en",
     ) -> str:
         """Generate a 3-5 sentence summary for a chapter."""
         from config.settings import get_settings  # noqa: PLC0415
@@ -61,7 +62,7 @@ class SummaryService:
         if title:
             header += f": {title}"
 
-        summary = await self._call_llm_chapter(truncated, header)
+        summary = await self._call_llm_chapter(truncated, header, language)
         logger.info(
             "SummaryService: chapter=%d  summary_len=%d", chapter_number, len(summary)
         )
@@ -71,6 +72,7 @@ class SummaryService:
         self,
         chapter_summaries: list[dict[str, str]],
         book_title: str | None = None,
+        language: str = "en",
     ) -> str:
         """Generate a 5-10 sentence book summary from chapter summaries."""
         parts: list[str] = []
@@ -82,7 +84,7 @@ class SummaryService:
         combined = "\n\n".join(parts)
 
         header = f"Book: {book_title}" if book_title else "Book"
-        summary = await self._call_llm_book(combined, header)
+        summary = await self._call_llm_book(combined, header, language)
         logger.info("SummaryService: book summary generated  len=%d", len(summary))
         return summary
 
@@ -94,12 +96,15 @@ class SummaryService:
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
-    async def _call_llm_chapter(self, text: str, header: str) -> str:
+    async def _call_llm_chapter(
+        self, text: str, header: str, language: str = "en"
+    ) -> str:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
+        system_prompt = _CHAPTER_SYSTEM_PROMPT + f"\nRespond in {language}."
         messages = [
-            SystemMessage(content=_CHAPTER_SYSTEM_PROMPT),
+            SystemMessage(content=system_prompt),
             HumanMessage(content=f"{header}\n\n{text}"),
         ]
         response = await llm.ainvoke(messages)
@@ -114,12 +119,15 @@ class SummaryService:
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
-    async def _call_llm_book(self, chapter_text: str, header: str) -> str:
+    async def _call_llm_book(
+        self, chapter_text: str, header: str, language: str = "en"
+    ) -> str:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
+        system_prompt = _BOOK_SYSTEM_PROMPT + f"\nRespond in {language}."
         messages = [
-            SystemMessage(content=_BOOK_SYSTEM_PROMPT),
+            SystemMessage(content=system_prompt),
             HumanMessage(content=f"{header}\n\n{chapter_text}"),
         ]
         response = await llm.ainvoke(messages)

@@ -34,6 +34,9 @@ class ChatState(BaseModel):
     # 上次查詢類型
     last_query_type: Optional[str] = None
 
+    # 輸出語言（跨 turn 持續保留）
+    language: str = "en"
+
     # ── Methods ────────────────────────────────────────────────────────────────
 
     def add_entity_mention(self, entity: str) -> None:

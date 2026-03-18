@@ -86,12 +86,13 @@
 
 ---
 
-### B-007 多語系 `language` 參數統一傳遞
+### B-007 多語系 `language` 參數統一傳遞 → ✅ 已完成
 **背景**: CORE.md 多語系策略：透過 `output_language` 參數控制，但 API / Chat Agent 層未統一傳遞
 **內容**:
 - Chat WebSocket 訊息加入 `language` 欄位（預設 `"en"`）
 - `ChatAgent.chat()` / `astream()` 接受 `language` 參數並注入 system prompt
 - 同步查詢 API 加入 `?language=zh` query param（影響 summary 等文字輸出）
+**備註**: `ChatState.language` 持久保留 session 語言；entity analyze endpoint 加 `language` query param 並傳給 `AnalysisAgent`
 
 ---
 
@@ -135,7 +136,7 @@
 | B-004 | LangSmith 監控 | 🟡 中 | ✅ 完成 |
 | B-005 | Analysis WebSocket 推送 | 🟡 中 | ✅ 完成 |
 | B-006 | Metrics API 端點 | 🟡 中 | ✅ 完成 |
-| B-007 | 多語系傳遞統一 | 🟡 中 | 待開始 |
+| B-007 | 多語系傳遞統一 | 🟡 中 | ✅ 完成 |
 | B-008 | Neo4j Backend | 🟢 低 | 待開始 |
 | B-009 | GetChapterSummaryTool | 🟢 低 | ✅ 完成 |
 | B-010 | Composite Tool #5 | 🟢 低 | 待開始 |

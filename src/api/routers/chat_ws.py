@@ -64,8 +64,13 @@ async def chat_websocket(
                 await websocket.send_json({"type": "error", "detail": "Empty message"})
                 continue
 
+            language = data.get("language") or state.language
+            state.language = language
+
             try:
-                async for chunk in agent.astream(query, state):
+                async for chunk in agent.astream(
+                    query, state, language=language
+                ):
                     await websocket.send_json({"type": "chunk", "content": chunk})
                 await websocket.send_json({"type": "done"})
             except Exception as exc:
