@@ -117,6 +117,20 @@ logging.getLogger("storysphere.metrics").setLevel(logging.INFO)
 }
 ```
 
+## HTTP API（B-006）
+
+`GET /api/v1/metrics` 直接暴露 `get_stats()` 快照，永遠回傳 200。
+
+```bash
+curl http://localhost:8000/api/v1/metrics | python -m json.tool
+```
+
+**回應結構**與 `get_stats()` 相同（見上方）。
+
+實作：`src/api/routers/metrics.py`
+
+---
+
 ## 驗證指令
 
 ```bash
@@ -154,6 +168,6 @@ for cache_type, data in stats["cache_events"].items():
 ## 未來擴展（Phase 8+）
 
 - **ExtractionService 插樁**：追蹤結構化輸出解析成功率（>98% 閾值）
-- **Prometheus 匯出**：`MetricsCollector.export_prometheus()` → `/metrics` endpoint
+- **Prometheus 匯出**：`MetricsCollector.export_prometheus()` → 在 `/api/v1/metrics` 基礎上新增 Prometheus text format 輸出
 - **告警**：當 `success_rate` 低於閾值時發送告警（webhook/email）
 - **持久化**：將 `get_stats()` 快照定期寫入 SQLite 或 JSON 文件

@@ -77,11 +77,12 @@
 
 ---
 
-### B-006 Metrics API 端點
+### B-006 Metrics API 端點 → ✅ 已完成
 **背景**: Phase 7 `MetricsCollector` 收集了 7 個 KPI，但無法從外部查詢
 **內容**:
 - `GET /api/v1/metrics` — 回傳 `MetricsCollector.get_stats()` 的快照
-- 可選：`GET /api/v1/metrics/history` — 近 N 筆 JSON-line logs
+- 可選：`GET /api/v1/metrics/history` — 近 N 筆 JSON-line logs（略過，MetricsCollector 未維護 rolling buffer）
+**實作**: `src/api/routers/metrics.py`，直接呼叫 `get_metrics().get_stats()`
 
 ---
 
@@ -133,7 +134,7 @@
 | B-003 | TaskStore 持久化 | 🔴 高 | ✅ 完成 |
 | B-004 | LangSmith 監控 | 🟡 中 | ✅ 完成 |
 | B-005 | Analysis WebSocket 推送 | 🟡 中 | ✅ 完成 |
-| B-006 | Metrics API 端點 | 🟡 中 | 待開始 |
+| B-006 | Metrics API 端點 | 🟡 中 | ✅ 完成 |
 | B-007 | 多語系傳遞統一 | 🟡 中 | 待開始 |
 | B-008 | Neo4j Backend | 🟢 低 | 待開始 |
 | B-009 | GetChapterSummaryTool | 🟢 低 | ✅ 完成 |
@@ -156,4 +157,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-03-15
+**最後更新**: 2026-03-18
