@@ -169,10 +169,24 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
     ) -> list[str]:
         """Upsert a single chapter's vectors into Qdrant and return point IDs."""
         from config.settings import get_settings  # noqa: PLC0415
-        from qdrant_client.models import PointStruct  # noqa: PLC0415
+        from qdrant_client.models import Distance, PointStruct, VectorParams  # noqa: PLC0415
 
         settings = get_settings()
-        collection = settings.qdrant_collection
+        collection = f"{settings.qdrant_collection_prefix}_{doc.id}"
+
+        # Ensure per-book collection exists (cached after first check)
+        if not getattr(self, "_qdrant_collection_created", False):
+            existing = [c.name for c in self._qdrant.get_collections().collections]
+            if collection not in existing:
+                self._qdrant.create_collection(
+                    collection_name=collection,
+                    vectors_config=VectorParams(
+                        size=settings.qdrant_vector_size,
+                        distance=Distance.COSINE,
+                    ),
+                )
+                logger.info("Created per-book Qdrant collection '%s'", collection)
+            self._qdrant_collection_created = True
 
         points = [
             PointStruct(

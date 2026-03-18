@@ -48,7 +48,7 @@ class Settings(BaseSettings):
     # ── Vector DB (Qdrant) ─────────────────────────────────────────────────────
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str = ""
-    qdrant_collection: str = "storysphere"
+    qdrant_collection_prefix: str = "storysphere_book"
 
     # ── Knowledge Graph ────────────────────────────────────────────────────────
     kg_mode: Literal["networkx", "neo4j"] = "networkx"

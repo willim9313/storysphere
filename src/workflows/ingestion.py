@@ -243,27 +243,17 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
 
     @staticmethod
     def _build_qdrant_client():
-        """Try to build a Qdrant client; return None if Qdrant is unavailable."""
+        """Try to build a Qdrant client; return None if Qdrant is unavailable.
+
+        Per-book collection creation is handled by
+        ``FeatureExtractionPipeline._upsert_to_qdrant``.
+        """
         try:
             from config.settings import get_settings  # noqa: PLC0415
             from qdrant_client import QdrantClient  # noqa: PLC0415
-            from qdrant_client.models import Distance, VectorParams  # noqa: PLC0415
 
             settings = get_settings()
             client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key or None)
-            # Ensure collection exists
-            existing = [c.name for c in client.get_collections().collections]
-            if settings.qdrant_collection not in existing:
-                client.create_collection(
-                    collection_name=settings.qdrant_collection,
-                    vectors_config=VectorParams(
-                        size=settings.qdrant_vector_size,
-                        distance=Distance.COSINE,
-                    ),
-                )
-                logger.info(
-                    "Created Qdrant collection '%s'", settings.qdrant_collection
-                )
             return client
         except Exception as exc:  # noqa: BLE001
             logger.warning("Qdrant unavailable (%s) — embeddings will not be stored", exc)

@@ -16,7 +16,7 @@ from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from api.deps import AnalysisAgentDep, DocServiceDep, KGServiceDep
+from api.deps import AnalysisAgentDep, DocServiceDep, KGServiceDep, VectorServiceDep
 from api.schemas.common import TaskStatus
 from api.store import get_task, task_store
 
@@ -298,12 +298,13 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
 
 
 @router.delete("/{book_id}", status_code=204)
-async def delete_book(book_id: str, doc: DocServiceDep) -> None:
-    """Delete a book."""
+async def delete_book(book_id: str, doc: DocServiceDep, vector: VectorServiceDep) -> None:
+    """Delete a book and its vector collection."""
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
-    # TODO: implement doc_service.delete_document + KG cleanup
+    await vector.delete_collection(book_id)
+    # TODO: doc_service.delete_document + KG cleanup
     return None
 
 
