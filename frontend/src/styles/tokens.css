@@ -17,12 +17,12 @@
   /* Accent */
   --accent:       #8b5e3c;
 
-  /* Dark panels (tool surfaces) */
-  --panel-bg:         #221e18;
-  --panel-bg-card:    #2a2520;
-  --panel-border:     #2e2820;
-  --panel-fg:         #e2d9cc;
-  --panel-fg-muted:   #7a7060;
+  /* Panels (tool surfaces) */
+  --panel-bg:         #ede4d8;
+  --panel-bg-card:    #e4d9cc;
+  --panel-border:     #d4c8b8;
+  --panel-fg:         #1c1814;
+  --panel-fg-muted:   #8a7a68;
 
   /* Entity pill node colors */
   --entity-char-bg:    #eef4ff;

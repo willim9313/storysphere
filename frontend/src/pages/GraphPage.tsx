@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
-import { Plus, Minus } from 'lucide-react';
+import { Plus, Minus, X, Loader } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 import { useGraphData } from '@/hooks/useGraphData';
 import { toCytoscapeElements } from '@/lib/graphTransform';
 import { GraphCanvas } from '@/components/graph/GraphCanvas';
@@ -8,9 +9,18 @@ import { GraphToolbar } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import { fetchEntityAnalysis } from '@/api/analysis';
 import type { GraphNode } from '@/api/types';
 
 const ALL_TYPES = new Set(['character', 'location', 'concept', 'event']);
+
+type RightPanel = 'analysis' | 'paragraphs' | null;
+
+const RIGHT_PANEL_WIDTH: Record<NonNullable<RightPanel>, number> = {
+  analysis: 360,
+  paragraphs: 300,
+};
 
 export default function GraphPage() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -18,7 +28,7 @@ export default function GraphPage() {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleTypes, setVisibleTypes] = useState(new Set(ALL_TYPES));
-  const [showParagraphPanel, setShowParagraphPanel] = useState(false);
+  const [rightPanel, setRightPanel] = useState<RightPanel>(null);
 
   const handleTypeToggle = (type: string) => {
     setVisibleTypes((prev) => {
@@ -33,11 +43,12 @@ export default function GraphPage() {
     setSearchQuery('');
     setVisibleTypes(new Set(ALL_TYPES));
     setSelectedNodeId(null);
-    setShowParagraphPanel(false);
+    setRightPanel(null);
   };
 
   const handleNodeTap = useCallback((nodeId: string) => {
     setSelectedNodeId(nodeId);
+    setRightPanel(null);
   }, []);
 
   const elements = useMemo(() => {
@@ -73,6 +84,13 @@ export default function GraphPage() {
 
   const nodeCount = data?.nodes.length ?? 0;
   const edgeCount = data?.edges.length ?? 0;
+  const rightPanelWidth = rightPanel ? RIGHT_PANEL_WIDTH[rightPanel] : 0;
+  const entityPanelWidth = 260;
+  const statsRight = selectedNode
+    ? rightPanel
+      ? rightPanelWidth + entityPanelWidth + 16
+      : entityPanelWidth + 16
+    : 16;
 
   return (
     <div className="relative h-full w-full">
@@ -108,7 +126,7 @@ export default function GraphPage() {
       <div
         className="absolute bottom-4 text-xs px-2 py-1 rounded z-10"
         style={{
-          right: selectedNode ? 276 : 16,
+          right: statsRight,
           backgroundColor: 'white',
           border: '1px solid var(--border)',
           color: 'var(--fg-muted)',
@@ -118,40 +136,111 @@ export default function GraphPage() {
         {nodeCount} 節點 · {edgeCount} 關係
       </div>
 
-      {/* Detail panel — absolute overlay on right side */}
+      {/* Entity detail panel — slides left when right panel is open */}
       {selectedNode && bookId && (
-        <div className="absolute top-0 right-0 h-full z-20">
+        <div
+          className="absolute top-0 h-full z-20"
+          style={{
+            right: rightPanelWidth,
+            transition: 'right 200ms ease',
+          }}
+        >
           <EntityDetailPanel
             node={selectedNode}
             bookId={bookId}
             onClose={() => {
               setSelectedNodeId(null);
-              setShowParagraphPanel(false);
+              setRightPanel(null);
             }}
-            onShowParagraphs={() => setShowParagraphPanel(true)}
+            onShowAnalysis={() => setRightPanel('analysis')}
+            onShowParagraphs={() => setRightPanel('paragraphs')}
           />
         </div>
       )}
 
-      {/* Paragraph panel — pushes detail panel left */}
-      {showParagraphPanel && selectedNode && (
+      {/* Right detail panel — analysis or paragraphs */}
+      {rightPanel && selectedNode && bookId && (
         <div
-          className="absolute top-0 h-full overflow-y-auto p-4 z-20"
+          className="absolute top-0 right-0 h-full z-20"
           style={{
-            right: 260,
-            width: 300,
+            width: RIGHT_PANEL_WIDTH[rightPanel],
             backgroundColor: 'var(--bg-primary)',
             borderLeft: '1px solid var(--border)',
           }}
         >
-          <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-primary)' }}>
-            {selectedNode.name} — 相關段落
-          </h3>
-          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-            段落面板（待後端 API 對接後實作）
-          </p>
+          {rightPanel === 'analysis' ? (
+            <AnalysisPanel
+              bookId={bookId}
+              node={selectedNode}
+              onClose={() => setRightPanel(null)}
+            />
+          ) : (
+            <ParagraphsPanel
+              node={selectedNode}
+              onClose={() => setRightPanel(null)}
+            />
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphNode; onClose: () => void }) {
+  const { data: analysis, isLoading } = useQuery({
+    queryKey: ['books', bookId, 'entities', node.id, 'analysis'],
+    queryFn: () => fetchEntityAnalysis(bookId, node.id),
+    retry: false,
+  });
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div
+        className="flex items-center justify-between p-3 flex-shrink-0"
+        style={{ borderBottom: '1px solid var(--border)' }}
+      >
+        <h3 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
+          {node.name} — 深度分析
+        </h3>
+        <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
+          <X size={16} />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        {isLoading ? (
+          <div className="flex items-center gap-2">
+            <Loader size={12} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />
+            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>載入中...</span>
+          </div>
+        ) : analysis ? (
+          <MarkdownRenderer content={analysis.content} compact />
+        ) : (
+          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>尚無深度分析資料。</p>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ParagraphsPanel({ node, onClose }: { node: GraphNode; onClose: () => void }) {
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+      <div
+        className="flex items-center justify-between p-3 flex-shrink-0"
+        style={{ borderBottom: '1px solid var(--border)' }}
+      >
+        <h3 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
+          {node.name} — 相關段落
+        </h3>
+        <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
+          <X size={16} />
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4">
+        <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+          段落面板（待後端 API 對接後實作）
+        </p>
+      </div>
     </div>
   );
 }

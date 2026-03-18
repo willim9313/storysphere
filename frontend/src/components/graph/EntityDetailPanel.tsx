@@ -3,7 +3,7 @@ import { X, ChevronDown, ChevronRight, Loader } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { fetchEntityAnalysis, triggerEntityAnalysis } from '@/api/analysis';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
-import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+
 import type { GraphNode, EntityType } from '@/api/types';
 
 const pillClass: Record<EntityType, string> = {
@@ -17,14 +17,15 @@ interface EntityDetailPanelProps {
   node: GraphNode;
   bookId: string;
   onClose: () => void;
+  onShowAnalysis: () => void;
   onShowParagraphs: () => void;
 }
 
-export function EntityDetailPanel({ node, bookId, onClose, onShowParagraphs }: EntityDetailPanelProps) {
+export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onShowParagraphs }: EntityDetailPanelProps) {
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['info', 'analysis']));
   const [genTaskId, setGenTaskId] = useState<string | null>(null);
 
-  const { data: analysis, isLoading: analysisLoading, isError: analysisNotFound } = useQuery({
+  const { data: analysis, isLoading: analysisLoading } = useQuery({
     queryKey: ['books', bookId, 'entities', node.id, 'analysis'],
     queryFn: () => fetchEntityAnalysis(bookId, node.id),
     retry: false,
@@ -107,28 +108,33 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowParagraphs }: E
               <span className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>載入中...</span>
             </div>
           ) : analysis ? (
-            <div className="prose-dark">
-              <MarkdownRenderer content={analysis.content} />
+            <div className="space-y-2">
+              <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>
+                已生成 · {new Date(analysis.generatedAt).toLocaleDateString('zh-TW')}
+              </p>
+              <button
+                className="text-xs px-2 py-1 rounded"
+                style={{ backgroundColor: 'var(--panel-bg-card)', color: 'var(--panel-fg)', border: '1px solid var(--panel-border)' }}
+                onClick={onShowAnalysis}
+              >
+                查看深度分析 →
+              </button>
             </div>
           ) : genTaskId && genTask && genTask.status !== 'done' ? (
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
-                <span className="text-xs" style={{ color: 'var(--panel-fg)' }}>
-                  {genTask.stage} ({genTask.progress}%)
-                </span>
-              </div>
+            <div className="flex items-center gap-2">
+              <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
+              <span className="text-xs" style={{ color: 'var(--panel-fg)' }}>
+                {genTask.stage} ({genTask.progress}%)
+              </span>
             </div>
-          ) : genTaskId && genTask && genTask.status === 'done' ? (
-            <div className="space-y-1">
-              <p className="text-xs" style={{ color: 'var(--panel-fg)' }}>
-                深度分析已完成。重新載入後即可查看。
-              </p>
-            </div>
+          ) : genTaskId && genTask?.status === 'done' ? (
+            <p className="text-xs" style={{ color: 'var(--panel-fg)' }}>
+              深度分析已完成。重新載入後即可查看。
+            </p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>
-                {analysisNotFound ? '尚未生成深度分析。' : '尚未生成深度分析。'}此操作將消耗 token。
+                尚未生成深度分析。此操作將消耗 token。
               </p>
               <button
                 className="text-xs px-2 py-1 rounded"
