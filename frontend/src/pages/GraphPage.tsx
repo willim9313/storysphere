@@ -1,5 +1,5 @@
-import { useState, useMemo, useCallback } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useGraphData } from '@/hooks/useGraphData';
@@ -24,11 +24,19 @@ const RIGHT_PANEL_WIDTH: Record<NonNullable<RightPanel>, number> = {
 
 export default function GraphPage() {
   const { bookId } = useParams<{ bookId: string }>();
+  const [searchParams] = useSearchParams();
   const { data, isLoading, error } = useGraphData(bookId);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleTypes, setVisibleTypes] = useState(new Set(ALL_TYPES));
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
+
+  // Auto-select entity from query param (e.g. navigating from analysis page)
+  useEffect(() => {
+    if (!data) return;
+    const entityId = searchParams.get('entity');
+    if (entityId) setSelectedNodeId(entityId);
+  }, [data, searchParams]);
 
   const handleTypeToggle = (type: string) => {
     setVisibleTypes((prev) => {
@@ -97,7 +105,7 @@ export default function GraphPage() {
   return (
     <div className="relative h-full w-full">
       {/* Graph canvas — fills entire area, never resizes */}
-      <GraphCanvas elements={filteredElements} onNodeTap={handleNodeTap} />
+      <GraphCanvas elements={filteredElements} onNodeTap={handleNodeTap} selectedNodeId={selectedNodeId} />
 
       {/* Floating toolbar (top-left) */}
       <GraphToolbar

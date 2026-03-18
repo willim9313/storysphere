@@ -4,6 +4,7 @@ import type { Chunk } from '@/api/types';
 export function ChunkCard({ chunk }: { chunk: Chunk }) {
   return (
     <div
+      data-chunk-card
       className="rounded-lg p-4 mb-3"
       style={{
         backgroundColor: 'white',

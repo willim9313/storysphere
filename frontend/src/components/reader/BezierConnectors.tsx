@@ -6,6 +6,7 @@ interface BezierConnectorsProps {
   col3Ref: React.RefObject<HTMLDivElement | null>;
   selectedChapterIdx: number | null;
   chapterCount: number;
+  chunkCount: number;
   showCol3: boolean;
 }
 
@@ -21,6 +22,7 @@ export function BezierConnectors({
   col3Ref,
   selectedChapterIdx,
   chapterCount,
+  chunkCount,
   showCol3,
 }: BezierConnectorsProps) {
   const svgRef = useRef<SVGSVGElement>(null);
@@ -50,25 +52,43 @@ export function BezierConnectors({
       });
     }
 
-    // Col2 → Col3 connector (from selected chapter)
-    if (showCol3 && col2El && col3Ref.current && selectedChapterIdx !== null) {
+    // Col2 → Col3 connectors (from selected chapter to each chunk card)
+    if (showCol3 && col2El && col3Ref.current && selectedChapterIdx !== null && selectedChapterIdx >= 0) {
       const chapterCards = col2El.querySelectorAll('[data-chapter-card]');
       const selectedCard = chapterCards[selectedChapterIdx];
       if (selectedCard) {
         const cardRect = selectedCard.getBoundingClientRect();
-        const col3Rect = col3Ref.current.getBoundingClientRect();
-        newLines.push({
-          x1: cardRect.right - rect.left,
-          y1: cardRect.top + cardRect.height / 2 - rect.top,
-          x2: col3Rect.left - rect.left,
-          y2: col3Rect.top + 40 - rect.top,
-          active: true,
-        });
+        const x1 = cardRect.right - rect.left;
+        const y1 = cardRect.top + cardRect.height / 2 - rect.top;
+
+        const chunkCards = col3Ref.current.querySelectorAll('[data-chunk-card]');
+        if (chunkCards.length > 0) {
+          chunkCards.forEach((chunkCard) => {
+            const chunkRect = chunkCard.getBoundingClientRect();
+            newLines.push({
+              x1,
+              y1,
+              x2: chunkRect.left - rect.left,
+              y2: chunkRect.top + chunkRect.height / 2 - rect.top,
+              active: true,
+            });
+          });
+        } else {
+          // Fallback: single line to col3 header while chunks are loading
+          const col3Rect = col3Ref.current.getBoundingClientRect();
+          newLines.push({
+            x1,
+            y1,
+            x2: col3Rect.left - rect.left,
+            y2: col3Rect.top + 40 - rect.top,
+            active: true,
+          });
+        }
       }
     }
 
     setLines(newLines);
-  }, [col1Ref, col2Ref, col3Ref, selectedChapterIdx, chapterCount, showCol3]);
+  }, [col1Ref, col2Ref, col3Ref, selectedChapterIdx, chapterCount, chunkCount, showCol3]);
 
   return (
     <svg

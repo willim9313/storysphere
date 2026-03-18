@@ -196,6 +196,62 @@ const chapter1Chunks: Chunk[] = [
   },
 ];
 
+const chapter2Chunks: Chunk[] = [
+  {
+    id: 'chunk-2-1',
+    chapterId: 'ch-002',
+    order: 1,
+    content: '班奈特先生是鄰居中第一個去拜訪彬格萊先生的人，但他對家人保密了好幾天。',
+    keywords: ['班奈特先生', '彬格萊', '拜訪'],
+    segments: [
+      { text: '班奈特先生', entity: { type: 'character', entityId: 'ent-006', name: '班奈特先生' } },
+      { text: '是鄰居中第一個去拜訪' },
+      { text: '彬格萊先生', entity: { type: 'character', entityId: 'ent-004', name: '彬格萊先生' } },
+      { text: '的人，但他對家人保密了好幾天。' },
+    ],
+  },
+  {
+    id: 'chunk-2-2',
+    chapterId: 'ch-002',
+    order: 2,
+    content: '「我的好先生，」班奈特太太說，「你什麼時候才肯告訴我，你去拜訪過彬格萊先生了？」',
+    keywords: ['班奈特太太', '班奈特先生', '彬格萊'],
+    segments: [
+      { text: '「我的好先生，」' },
+      { text: '班奈特太太', entity: { type: 'character', entityId: 'ent-005', name: '班奈特太太' } },
+      { text: '說，「你什麼時候才肯告訴我，你去拜訪過' },
+      { text: '彬格萊先生', entity: { type: 'character', entityId: 'ent-004', name: '彬格萊先生' } },
+      { text: '了？」' },
+    ],
+  },
+  {
+    id: 'chunk-2-3',
+    chapterId: 'ch-002',
+    order: 3,
+    content: '「親愛的，你真是太難為情了。」班奈特先生笑著說，「我去拜訪過他了。」班奈特太太和所有女兒都又驚又喜。',
+    keywords: ['班奈特先生', '班奈特太太', '喜悅'],
+    segments: [
+      { text: '「親愛的，你真是太難為情了。」' },
+      { text: '班奈特先生', entity: { type: 'character', entityId: 'ent-006', name: '班奈特先生' } },
+      { text: '笑著說，「我去拜訪過他了。」' },
+      { text: '班奈特太太', entity: { type: 'character', entityId: 'ent-005', name: '班奈特太太' } },
+      { text: '和所有女兒都又驚又喜。' },
+    ],
+  },
+  {
+    id: 'chunk-2-4',
+    chapterId: 'ch-002',
+    order: 4,
+    content: '「你真是個好父親，班奈特先生！」她興奮地叫道，「我就知道你最後一定會去的。我知道你捨不得讓自己的孩子們吃虧。」',
+    keywords: ['班奈特太太', '父親', '女兒'],
+    segments: [
+      { text: '「你真是個好父親，' },
+      { text: '班奈特先生', entity: { type: 'character', entityId: 'ent-006', name: '班奈特先生' } },
+      { text: '！」她興奮地叫道，「我就知道你最後一定會去的。我知道你捨不得讓自己的孩子們吃虧。」' },
+    ],
+  },
+];
+
 const chapter3Chunks: Chunk[] = [
   {
     id: 'chunk-3-1',
@@ -226,11 +282,171 @@ const chapter3Chunks: Chunk[] = [
       { text: '可以輕鬆地原諒他的傲慢，儘管這傲慢曾經傷了她的自尊。' },
     ],
   },
+  {
+    id: 'chunk-3-3',
+    chapterId: 'ch-003',
+    order: 3,
+    content: '彬格萊和珍舞了兩次，達西和伊莉莎白竟也共舞了一回——這讓全場都大感意外。',
+    keywords: ['彬格萊', '珍', '達西', '舞會'],
+    segments: [
+      { text: '彬格萊', entity: { type: 'character', entityId: 'ent-004', name: '彬格萊先生' } },
+      { text: '和' },
+      { text: '珍', entity: { type: 'character', entityId: 'ent-003', name: '珍' } },
+      { text: '舞了兩次，' },
+      { text: '達西', entity: { type: 'character', entityId: 'ent-002', name: '達西先生' } },
+      { text: '和' },
+      { text: '伊莉莎白', entity: { type: 'character', entityId: 'ent-001', name: '伊莉莎白' } },
+      { text: '竟也共舞了一回——這讓全場都大感意外。' },
+    ],
+  },
+  {
+    id: 'chunk-3-4',
+    chapterId: 'ch-003',
+    order: 4,
+    content: '班奈特太太整晚都在向盧卡斯太太炫耀珍的成功，毫不掩飾她對彬格萊先生的期待。',
+    keywords: ['班奈特太太', '盧卡斯太太', '珍'],
+    segments: [
+      { text: '班奈特太太', entity: { type: 'character', entityId: 'ent-005', name: '班奈特太太' } },
+      { text: '整晚都在向盧卡斯太太炫耀' },
+      { text: '珍', entity: { type: 'character', entityId: 'ent-003', name: '珍' } },
+      { text: '的成功，毫不掩飾她對' },
+      { text: '彬格萊先生', entity: { type: 'character', entityId: 'ent-004', name: '彬格萊先生' } },
+      { text: '的期待。' },
+    ],
+  },
+];
+
+const chapter4Chunks: Chunk[] = [
+  {
+    id: 'chunk-4-1',
+    chapterId: 'ch-004',
+    order: 1,
+    content: '舞會結束後，珍和伊莉莎白在臥房裡交換感想。珍對彬格萊先生讚不絕口，而伊莉莎白則對達西先生的態度耿耿於懷。',
+    keywords: ['珍', '伊莉莎白', '舞會'],
+    segments: [
+      { text: '舞會結束後，' },
+      { text: '珍', entity: { type: 'character', entityId: 'ent-003', name: '珍' } },
+      { text: '和' },
+      { text: '伊莉莎白', entity: { type: 'character', entityId: 'ent-001', name: '伊莉莎白' } },
+      { text: '在臥房裡交換感想。珍對' },
+      { text: '彬格萊先生', entity: { type: 'character', entityId: 'ent-004', name: '彬格萊先生' } },
+      { text: '讚不絕口，而伊莉莎白則對' },
+      { text: '達西先生', entity: { type: 'character', entityId: 'ent-002', name: '達西先生' } },
+      { text: '的態度耿耿於懷。' },
+    ],
+  },
+  {
+    id: 'chunk-4-2',
+    chapterId: 'ch-004',
+    order: 2,
+    content: '「彬格萊先生真是我見過最討人喜歡的人！」珍輕聲說，雙頰微微泛紅，「他態度那麼親切，又那麼有風度。」',
+    keywords: ['珍', '彬格萊', '好感'],
+    segments: [
+      { text: '「' },
+      { text: '彬格萊先生', entity: { type: 'character', entityId: 'ent-004', name: '彬格萊先生' } },
+      { text: '真是我見過最討人喜歡的人！」' },
+      { text: '珍', entity: { type: 'character', entityId: 'ent-003', name: '珍' } },
+      { text: '輕聲說，雙頰微微泛紅，「他態度那麼親切，又那麼有風度。」' },
+    ],
+  },
+  {
+    id: 'chunk-4-3',
+    chapterId: 'ch-004',
+    order: 3,
+    content: '「你喜歡他是因為他值得你喜歡，」伊莉莎白笑著說，「這是世上最令人滿意的事。」',
+    keywords: ['伊莉莎白', '珍', '喜歡'],
+    segments: [
+      { text: '「你喜歡他是因為他值得你喜歡，」' },
+      { text: '伊莉莎白', entity: { type: 'character', entityId: 'ent-001', name: '伊莉莎白' } },
+      { text: '笑著說，「這是世上最令人滿意的事。」' },
+    ],
+  },
+  {
+    id: 'chunk-4-4',
+    chapterId: 'ch-004',
+    order: 4,
+    content: '班奈特先生退回書房，他對於自己保守秘密所帶來的效果感到十分滿意——那一刻家人們的驚喜反應是他最大的樂趣。',
+    keywords: ['班奈特先生', '書房', '樂趣'],
+    segments: [
+      { text: '班奈特先生', entity: { type: 'character', entityId: 'ent-006', name: '班奈特先生' } },
+      { text: '退回書房，他對於自己保守秘密所帶來的效果感到十分滿意——那一刻家人們的驚喜反應是他最大的樂趣。' },
+    ],
+  },
+];
+
+const chapter5Chunks: Chunk[] = [
+  {
+    id: 'chunk-5-1',
+    chapterId: 'ch-005',
+    order: 1,
+    content: '翌日，盧卡斯一家前來拜訪，大家一起討論舞會的種種，這是梅里頓附近的慣例。',
+    keywords: ['盧卡斯', '舞會', '梅里頓'],
+    segments: [
+      { text: '翌日，盧卡斯一家前來拜訪，大家一起討論舞會的種種，這是' },
+      { text: '梅里頓', entity: { type: 'location', entityId: 'ent-008', name: '朗伯恩' } },
+      { text: '附近的慣例。' },
+    ],
+  },
+  {
+    id: 'chunk-5-2',
+    chapterId: 'ch-005',
+    order: 2,
+    content: '「達西先生我倒不覺得有什麼，」夏綠蒂說，「他傲慢是傲慢，不過像他這樣的身分地位，傲慢一點也情有可原。」',
+    keywords: ['夏綠蒂', '達西', '傲慢'],
+    segments: [
+      { text: '「' },
+      { text: '達西先生', entity: { type: 'character', entityId: 'ent-002', name: '達西先生' } },
+      { text: '我倒不覺得有什麼，」' },
+      { text: '夏綠蒂', entity: { type: 'character', entityId: 'ent-011', name: '夏綠蒂' } },
+      { text: '說，「他傲慢是傲慢，不過像他這樣的身分地位，傲慢一點也情有可原。」' },
+    ],
+  },
+  {
+    id: 'chunk-5-3',
+    chapterId: 'ch-005',
+    order: 3,
+    content: '「我才不這麼認為，」伊莉莎白說，「有財有勢就可以傲慢，這種說法我向來不肯接受。」',
+    keywords: ['伊莉莎白', '傲慢', '財富'],
+    segments: [
+      { text: '「我才不這麼認為，」' },
+      { text: '伊莉莎白', entity: { type: 'character', entityId: 'ent-001', name: '伊莉莎白' } },
+      { text: '說，「有財有勢就可以傲慢，這種說法我向來不肯接受。」' },
+    ],
+  },
+  {
+    id: 'chunk-5-4',
+    chapterId: 'ch-005',
+    order: 4,
+    content: '夏綠蒂對婚姻的看法令伊莉莎白驚訝：「幸福婚姻，純粹是碰運氣的事。兩個人的性情不管多麼相投，都不會增加他們的幸福。」',
+    keywords: ['夏綠蒂', '婚姻', '幸福'],
+    segments: [
+      { text: '夏綠蒂', entity: { type: 'character', entityId: 'ent-011', name: '夏綠蒂' } },
+      { text: '對婚姻的看法令' },
+      { text: '伊莉莎白', entity: { type: 'character', entityId: 'ent-001', name: '伊莉莎白' } },
+      { text: '驚訝：「幸福婚姻，純粹是碰運氣的事。兩個人的性情不管多麼相投，都不會增加他們的幸福。」' },
+    ],
+  },
+  {
+    id: 'chunk-5-5',
+    chapterId: 'ch-005',
+    order: 5,
+    content: '伊莉莎白聽完哈哈大笑，她不知道夏綠蒂說的是心裡話。這段對話在她心中埋下一個疑問，關於婚姻究竟該以感情還是理智為基礎。',
+    keywords: ['伊莉莎白', '夏綠蒂', '婚姻觀'],
+    segments: [
+      { text: '伊莉莎白', entity: { type: 'character', entityId: 'ent-001', name: '伊莉莎白' } },
+      { text: '聽完哈哈大笑，她不知道' },
+      { text: '夏綠蒂', entity: { type: 'character', entityId: 'ent-011', name: '夏綠蒂' } },
+      { text: '說的是心裡話。這段對話在她心中埋下一個疑問，關於婚姻究竟該以感情還是理智為基礎。' },
+    ],
+  },
 ];
 
 export const mockChunksByChapter: Record<string, Chunk[]> = {
   'ch-001': chapter1Chunks,
+  'ch-002': chapter2Chunks,
   'ch-003': chapter3Chunks,
+  'ch-004': chapter4Chunks,
+  'ch-005': chapter5Chunks,
 };
 
 export function getMockChunks(chapterId: string): Chunk[] {

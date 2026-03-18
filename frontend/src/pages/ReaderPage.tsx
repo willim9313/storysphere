@@ -33,13 +33,9 @@ export default function ReaderPage() {
   const viewingChapter = chapterList.find((c) => c.id === viewingChapterId);
 
   const handleSelectChapter = (chapterId: string) => {
-    if (expandedChapterId === chapterId) {
-      // Second click on expanded chapter = view content
-      setViewingChapterId(chapterId);
-    } else {
-      setExpandedChapterId(chapterId);
-      setSelectedChapterId(chapterId);
-    }
+    setExpandedChapterId(chapterId);
+    setSelectedChapterId(chapterId);
+    setViewingChapterId(chapterId);
   };
 
   const handleViewContent = (chapterId: string) => {
@@ -54,6 +50,7 @@ export default function ReaderPage() {
         col3Ref={col3Ref}
         selectedChapterIdx={selectedChapterIdx}
         chapterCount={chapterList.length}
+        chunkCount={chunks?.length ?? 0}
         showCol3={!!viewingChapterId}
       />
 
@@ -69,6 +66,9 @@ export default function ReaderPage() {
       >
         <BookOverview book={book} />
       </div>
+
+      {/* Spacer between col1 and col2 — gives Bezier curves breathing room */}
+      <div className="flex-shrink-0" style={{ width: 28 }} />
 
       {/* Column 2: Chapter List */}
       <div
@@ -91,6 +91,9 @@ export default function ReaderPage() {
           </div>
         ))}
       </div>
+
+      {/* Spacer between col2 and col3 — gives Bezier curves breathing room */}
+      <div className="flex-shrink-0" style={{ width: 28 }} />
 
       {/* Column 3: Chunk Content */}
       <div
@@ -116,11 +119,8 @@ export default function ReaderPage() {
               </span>
             </div>
 
-            {chunksLoading ? (
-              <LoadingSpinner />
-            ) : chunks ? (
-              chunks.map((chunk) => <ChunkCard key={chunk.id} chunk={chunk} />)
-            ) : null}
+            {chunksLoading && <LoadingSpinner />}
+            {!chunksLoading && chunks?.map((chunk) => <ChunkCard key={chunk.id} chunk={chunk} />)}
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">

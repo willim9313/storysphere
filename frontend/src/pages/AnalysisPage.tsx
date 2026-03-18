@@ -202,7 +202,7 @@ export default function AnalysisPage() {
                   {selectedAnalyzed.framework.toUpperCase()}
                 </span>
                 <Link
-                  to={`/books/${bookId}/graph`}
+                  to={`/books/${bookId}/graph?entity=${selectedAnalyzed.entityId}`}
                   className="text-xs flex items-center gap-1"
                   style={{ color: 'var(--accent)' }}
                 >
