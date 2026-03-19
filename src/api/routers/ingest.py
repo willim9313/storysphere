@@ -25,10 +25,12 @@ async def _run_ingestion(task_id: str, file_path: Path, title: str) -> None:
     """Background task: run IngestionWorkflow and update task store."""
     task_store.set_running(task_id)
     try:
+        from api.deps import get_kg_service  # noqa: PLC0415
         from workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
 
-        workflow = IngestionWorkflow()
-        result = await workflow.run(file_path)
+        kg_service = get_kg_service()
+        workflow = IngestionWorkflow(kg_service=kg_service)
+        result = await workflow.run(file_path, title=title)
         task_store.set_completed(task_id, result=result.__dict__)
         logger.info("Ingestion task %s completed: %s entities", task_id, result.entities)
     except Exception as exc:

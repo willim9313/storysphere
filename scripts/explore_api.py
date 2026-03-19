@@ -123,7 +123,7 @@ def main(pdf_path: str) -> None:
 
     # ── Step 5：搜尋測試 ─────────────────────────────────────────────────────
     print("[5/6] 語意搜尋測試 ...")
-    r = client.post(f"{BASE}/search", json={"bookId": book_id, "query": "主角", "topK": 5})
+    r = client.post(f"{BASE}/search/", json={"bookId": book_id, "query": "主角", "topK": 5})
     save(out_dir, "search_sample", {"status_code": r.status_code, "body": r.json() if r.content else None})
 
     # ── Step 6：產生摘要（ingest 完成後已有，直接撈）────────────────────────

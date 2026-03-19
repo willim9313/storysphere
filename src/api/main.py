@@ -58,7 +58,8 @@ async def lifespan(app: FastAPI):
     configure_langsmith(settings)
 
     logger.info("StorySphere API starting up — initialising services...")
-    get_kg_service()
+    kg = get_kg_service()
+    await kg.load()
     get_doc_service()
     get_vector_service()
     get_chat_agent()

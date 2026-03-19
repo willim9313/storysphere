@@ -117,11 +117,13 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         self._skip_summarization = skip_summarization
         self._skip_keywords = skip_keywords
 
-    async def run(self, input_data: Path) -> IngestionResult:
+    async def run(self, input_data: Path, *, title: str | None = None) -> IngestionResult:
         """Ingest a novel file end-to-end.
 
         Args:
             input_data: Path to the PDF or DOCX file.
+            title: Optional book title override.  When provided this is used
+                   instead of the filename stem.
 
         Returns:
             ``IngestionResult`` summarising the ingestion.
@@ -135,6 +137,10 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         # ── Step 1: document processing ──────────────────────────────────────
         self._log_step("doc_processing", file=str(file_path))
         doc: Document = await self._doc_pipeline(file_path)
+
+        # Override document title if caller supplied one
+        if title:
+            doc.title = title
         logger.info(
             "IngestionWorkflow: doc '%s' — %d chapters, %d paragraphs",
             doc.title,
