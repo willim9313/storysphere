@@ -132,7 +132,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
 
         # ── Step 4 (optional): persist to KGService ─────────────────────────
         if self._kg_service is not None:
-            await self._persist_to_kg(result)
+            await self._persist_to_kg(result, document_id=doc.id)
 
         logger.info(
             "KGPipeline done: entities=%d  relations=%d  events=%d",
@@ -144,11 +144,19 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
 
     # ── Persistence ──────────────────────────────────────────────────────────
 
-    async def _persist_to_kg(self, result: KGExtractionResult) -> None:
+    async def _persist_to_kg(
+        self, result: KGExtractionResult, document_id: str | None = None
+    ) -> None:
         for entity in result.entities:
+            if document_id:
+                entity.document_id = document_id
             await self._kg_service.add_entity(entity)
         for relation in result.relations:
+            if document_id:
+                relation.document_id = document_id
             await self._kg_service.add_relation(relation)
         for event in result.events:
+            if document_id:
+                event.document_id = document_id
             await self._kg_service.add_event(event)
         logger.info("KGPipeline persisted to KGService")

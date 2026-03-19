@@ -25,6 +25,7 @@ class Entity(BaseModel):
     aliases: list[str] = Field(default_factory=list)
     attributes: dict[str, Any] = Field(default_factory=dict)
     description: Optional[str] = None
+    document_id: Optional[str] = None
     first_appearance_chapter: Optional[int] = None
     mention_count: int = 0
 

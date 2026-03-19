@@ -24,6 +24,7 @@ class Event(BaseModel):
     """A significant plot event extracted from a novel chapter."""
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    document_id: Optional[str] = None
     title: str
     event_type: EventType
     description: str

@@ -34,10 +34,9 @@ class AnalysisCache:
         self._initialised = False
 
     async def _ensure_table(self, db: aiosqlite.Connection) -> None:
-        if not self._initialised:
-            await db.execute(_CREATE_TABLE)
-            await db.commit()
-            self._initialised = True
+        await db.execute(_CREATE_TABLE)
+        await db.commit()
+        self._initialised = True
 
     async def get(self, key: str) -> dict | None:
         """Return cached result or None if missing/expired."""

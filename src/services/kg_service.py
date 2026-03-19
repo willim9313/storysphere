@@ -71,10 +71,14 @@ class KGService:
         return None
 
     async def list_entities(
-        self, entity_type: Optional[EntityType] = None
+        self,
+        entity_type: Optional[EntityType] = None,
+        document_id: Optional[str] = None,
     ) -> list[Entity]:
-        """Return all entities, optionally filtered by type."""
+        """Return all entities, optionally filtered by type and/or document."""
         entities = list(self._entities.values())
+        if document_id is not None:
+            entities = [e for e in entities if e.document_id == document_id]
         if entity_type is not None:
             entities = [e for e in entities if e.entity_type == entity_type]
         return entities
@@ -156,13 +160,21 @@ class KGService:
         """Return the event with the given ID, or None."""
         return self._events.get(event_id)
 
-    async def get_events(self, entity_id: Optional[str] = None) -> list[Event]:
-        """Return all events, optionally filtered to those involving an entity."""
+    async def get_events(
+        self,
+        entity_id: Optional[str] = None,
+        document_id: Optional[str] = None,
+    ) -> list[Event]:
+        """Return all events, optionally filtered to those involving an entity and/or document."""
         if entity_id is None:
-            return list(self._events.values())
-        node_data = self._graph.nodes.get(entity_id, {})
-        event_ids: list[str] = node_data.get("event_ids", [])
-        return [self._events[eid] for eid in event_ids if eid in self._events]
+            events = list(self._events.values())
+        else:
+            node_data = self._graph.nodes.get(entity_id, {})
+            event_ids: list[str] = node_data.get("event_ids", [])
+            events = [self._events[eid] for eid in event_ids if eid in self._events]
+        if document_id is not None:
+            events = [ev for ev in events if ev.document_id == document_id]
+        return events
 
     # ── Timeline / Path / Subgraph queries ──────────────────────────────────
 
@@ -330,6 +342,57 @@ class KGService:
     @property
     def event_count(self) -> int:
         return len(self._events)
+
+    # ── Document-scoped removal ─────────────────────────────────────────────
+
+    async def remove_by_document(self, document_id: str) -> dict[str, int]:
+        """Remove all entities, relations, and events that belong to a document.
+
+        Returns:
+            Dict with counts of removed entities, relations, events.
+        """
+        # Identify entity IDs belonging to this document
+        entity_ids = {
+            eid for eid, e in self._entities.items() if e.document_id == document_id
+        }
+
+        # Remove edges (relations) connected to those entities
+        edges_to_remove: list[tuple[str, str, str]] = []
+        for u, v, key in self._graph.edges(keys=True):
+            if u in entity_ids or v in entity_ids:
+                edges_to_remove.append((u, v, key))
+        for u, v, key in edges_to_remove:
+            self._graph.remove_edge(u, v, key=key)
+
+        # Remove events belonging to this document
+        event_ids = {
+            evid for evid, ev in self._events.items() if ev.document_id == document_id
+        }
+        for evid in event_ids:
+            del self._events[evid]
+
+        # Remove entity nodes
+        for eid in entity_ids:
+            del self._entities[eid]
+            if eid in self._graph:
+                self._graph.remove_node(eid)
+
+        # Persist the updated graph
+        await self.save()
+
+        counts = {
+            "entities": len(entity_ids),
+            "relations": len(edges_to_remove),
+            "events": len(event_ids),
+        }
+        logger.info(
+            "KGService.remove_by_document(%s): removed %d entities, %d relations, %d events",
+            document_id,
+            counts["entities"],
+            counts["relations"],
+            counts["events"],
+        )
+        return counts
 
     # ── Persistence ──────────────────────────────────────────────────────────
 

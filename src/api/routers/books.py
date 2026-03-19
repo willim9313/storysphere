@@ -181,10 +181,10 @@ class TaskIdResponse(BaseModel):
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
-def _entity_type_counts(kg) -> EntityStats:
-    """Count entities by type from KGService."""
+def _entity_type_counts(entities: list) -> EntityStats:
+    """Count entities by type from a list of Entity objects."""
     counts: dict[str, int] = {}
-    for entity in kg._entities.values():
+    for entity in entities:
         t = entity.entity_type.value
         counts[t] = counts.get(t, 0) + 1
     return EntityStats(
@@ -261,13 +261,14 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
     items = await doc.list_documents()
     results = []
     for item in items:
+        book_entities = await kg.list_entities(document_id=item["id"])
         results.append(
             BookResponse(
                 id=item["id"],
                 title=item["title"],
                 status="ready",
                 chapter_count=0,
-                entity_count=kg.entity_count,
+                entity_count=len(book_entities),
                 uploaded_at=_now_iso(),
             ).model_dump(by_alias=True)
         )
@@ -284,7 +285,16 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
-    stats = _entity_type_counts(kg)
+    book_entities = await kg.list_entities(document_id=book_id)
+    book_events = await kg.get_events(document_id=book_id)
+    stats = _entity_type_counts(book_entities)
+    # Count relations that connect entities of this book
+    book_entity_ids = {e.id for e in book_entities}
+    book_relation_count = sum(
+        1
+        for u, v, key in kg._graph.edges(keys=True)
+        if u in book_entity_ids and v in book_entity_ids and not key.endswith("_rev")
+    )
     return BookDetailResponse(
         id=document.id,
         title=document.title,
@@ -293,8 +303,8 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         summary=document.summary,
         chapter_count=document.total_chapters,
         chunk_count=document.total_paragraphs,
-        entity_count=kg.entity_count,
-        relation_count=kg.relation_count,
+        entity_count=len(book_entities),
+        relation_count=book_relation_count,
         entity_stats=stats,
         uploaded_at=(
             document.processed_at.isoformat() if document.processed_at else _now_iso()
@@ -307,13 +317,20 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
 
 @router.delete("/{book_id}", status_code=204)
 async def delete_book(
-    book_id: str, doc: DocServiceDep, vector: VectorServiceDep
+    book_id: str,
+    doc: DocServiceDep,
+    vector: VectorServiceDep,
+    kg: KGServiceDep,
+    agent: AnalysisAgentDep,
 ) -> None:
-    """Delete a book, its vector collection, and all database records."""
+    """Delete a book, its vector collection, KG data, analysis cache, and DB records."""
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
     await vector.delete_collection(book_id)
+    await kg.remove_by_document(book_id)
+    if agent._cache is not None:
+        await agent._cache.invalidate(f"%:{book_id}:%")
     await doc.delete_document(book_id)
     return None
 
@@ -378,7 +395,7 @@ async def list_chapters(
     # Fallback to KG runtime matching only for old data
     all_entities = None
     if not has_stored:
-        all_entities = await kg.list_entities()
+        all_entities = await kg.list_entities(document_id=book_id)
 
     results: list[dict] = []
     for ch in document.chapters:
@@ -555,7 +572,7 @@ async def get_chapter_chunks(
     # Fallback: fetch KG entities only if no stored entities exist
     all_entities = None
     if not has_stored:
-        all_entities = await kg.list_entities()
+        all_entities = await kg.list_entities(document_id=book_id)
 
     results: list[dict] = []
     for p in chapter.paragraphs:
@@ -588,8 +605,9 @@ async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> 
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
-    # Build nodes from all entities (MVP: not document-scoped)
-    entities = await kg.list_entities()
+    # Build nodes from entities belonging to this book
+    entities = await kg.list_entities(document_id=book_id)
+    entity_ids = {e.id for e in entities}
     nodes = [
         GraphNode(
             id=e.id,
@@ -601,10 +619,12 @@ async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> 
         for e in entities
     ]
 
-    # Build edges from graph
+    # Build edges — only those connecting entities of this book
     edges: list[dict] = []
     seen_keys: set[str] = set()
     for u, v, key, data in kg._graph.edges(keys=True, data=True):
+        if u not in entity_ids or v not in entity_ids:
+            continue
         base_key = key[:-4] if key.endswith("_rev") else key
         if base_key in seen_keys:
             continue
@@ -660,7 +680,9 @@ async def list_character_analyses(
 
     from domain.entities import EntityType  # noqa: PLC0415
 
-    characters = await kg.list_entities(entity_type=EntityType.CHARACTER)
+    characters = await kg.list_entities(
+        entity_type=EntityType.CHARACTER, document_id=book_id
+    )
     unanalyzed = [
         UnanalyzedEntity(
             id=e.id,
@@ -689,7 +711,7 @@ async def list_event_analyses(
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
-    events = await kg.get_events()
+    events = await kg.get_events(document_id=book_id)
     unanalyzed = [
         UnanalyzedEntity(
             id=ev.id,

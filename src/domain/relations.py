@@ -24,6 +24,7 @@ class Relation(BaseModel):
     """A directed relationship between two entities in the knowledge graph."""
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    document_id: Optional[str] = None
     source_id: str
     target_id: str
     relation_type: RelationType
