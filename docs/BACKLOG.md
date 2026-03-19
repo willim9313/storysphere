@@ -142,6 +142,19 @@
 | B-010 | Composite Tool #5 | 🟢 低 | 待開始 |
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
 | B-012 | 前端後端 API 整合驗證 | 🟡 中 | 待開始 |
+| B-013 | LLMKeywordExtractor 解析強化 | 🟡 中 | 待開始 |
+
+---
+
+### B-013 LLMKeywordExtractor 回傳解析強化
+**背景**: 本地小模型（3B）回傳 JSON 不穩定，`_parse_response` 目前有三個脆弱點：
+1. 只處理 ` ``` ` 開頭的 markdown fence，若 LLM 在 JSON 前加說明文字（如 `Here are the keywords:\n{...}`）直接 `JSONDecodeError`
+2. 不嘗試從回傳內文中抽取 `{...}` substring，整段不是合法 JSON 就失敗
+3. `retry` 只重試 `JSONDecodeError / ValueError / KeyError`，LLM API 錯誤不觸發 retry
+
+**建議修法**: 在 `_parse_response` 加 regex 抽取第一個 `\{.*\}` block（`re.search(r'\{.*\}', content, re.DOTALL)`）再 parse，提升對 noisy 輸出的容錯
+
+**相關檔案**: `src/services/keyword_service.py` — `LLMKeywordExtractor._parse_response()`（line ~172）
 
 ---
 
@@ -158,4 +171,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-03-18
+**最後更新**: 2026-03-19

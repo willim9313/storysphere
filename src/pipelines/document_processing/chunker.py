@@ -15,8 +15,11 @@ from domain.documents import Paragraph
 MIN_CHARS = 50
 MAX_CHARS = 1_200
 
-# Simple sentence splitter — ends with . ! ? followed by whitespace or EOL.
-_SENTENCE_END = re.compile(r"(?<=[.!?])\s+")
+# Sentence splitter — splits after ASCII (.!?) or CJK (。！？) sentence-ending
+# punctuation.  For CJK, the punctuation itself is kept at the end of the
+# preceding sentence (lookbehind), and we split on any following whitespace
+# OR directly at the next non-space character (zero-width split after 。！？).
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+|(?<=[。！？])")
 
 
 def chunk_segments(
@@ -42,30 +45,19 @@ def chunk_segments(
     Returns:
         Ordered list of ``Paragraph`` objects (no embeddings yet).
     """
-    # Step 1: flatten + split long segments
-    raw_chunks: list[str] = []
-    for _, text in segments:
-        text = text.strip()
-        if not text:
-            continue
-        if len(text) > max_chars:
-            raw_chunks.extend(_split_long(text, max_chars))
-        else:
-            raw_chunks.append(text)
+    # Step 1: join all lines into one text block, then split on sentence boundaries.
+    # This is necessary because the PDF loader emits one segment per line (~60-100
+    # chars each); merging line-by-line with a 50-char threshold would produce
+    # one chunk per line.  Joining first lets the sentence splitter produce
+    # properly-sized chunks regardless of how the loader segmented the file.
+    full_text = " ".join(text.strip() for _, text in segments if text.strip())
+    if not full_text:
+        return []
 
-    # Step 2: merge short consecutive chunks
-    merged: list[str] = []
-    buffer = ""
-    for chunk in raw_chunks:
-        if not buffer:
-            buffer = chunk
-        elif len(buffer) < min_chars:
-            buffer = buffer + " " + chunk
-        else:
-            merged.append(buffer)
-            buffer = chunk
-    if buffer:
-        merged.append(buffer)
+    merged = _split_long(full_text, max_chars)
+
+    # Drop chunks that are too short to be useful (e.g. stray punctuation lines)
+    merged = [c for c in merged if len(c) >= min_chars]
 
     # Step 3: build Paragraph objects
     paragraphs = [

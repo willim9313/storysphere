@@ -90,6 +90,10 @@ class Settings(BaseSettings):
         default="yake",
         description="Keyword extractor: yake|llm|tfidf|composite|none",
     )
+    yake_language: str = Field(
+        default="en",
+        description="Language code for YAKE extractor (e.g. 'en', 'zh', 'ja')",
+    )
     keyword_max_per_paragraph: int = Field(default=10, description="Max keywords per paragraph")
     keyword_max_per_chapter: int = Field(default=20, description="Max keywords per chapter")
     keyword_max_per_book: int = Field(default=30, description="Max keywords per book")

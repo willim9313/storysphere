@@ -35,19 +35,26 @@ def load_pdf(file_path: Path) -> list[tuple[int, str]]:
     if file_path.suffix.lower() != ".pdf":
         raise ValueError(f"Expected .pdf extension, got: {file_path.suffix}")
 
-    pages: list[tuple[int, str]] = []
+    segments: list[tuple[int, str]] = []
+    seg_idx = 0
     with open(file_path, "rb") as fh:
         reader = pypdf.PdfReader(fh)
-        for idx, page in enumerate(reader.pages):
+        for page_idx, page in enumerate(reader.pages):
             text = page.extract_text() or ""
-            text = text.strip()
-            if text:
-                pages.append((idx, text))
-            else:
-                logger.debug("PDF page %d is empty — skipped", idx)
+            if not text.strip():
+                logger.debug("PDF page %d is empty — skipped", page_idx)
+                continue
+            # Split each page into lines so chapter headings become standalone segments.
+            # This allows the chapter detector to match "第一章" etc. (≤80 chars)
+            # even when chapter titles appear in the middle of a page.
+            for line in text.splitlines():
+                line = line.replace("\x00", "").strip()
+                if line:
+                    segments.append((seg_idx, line))
+                    seg_idx += 1
 
-    logger.info("Loaded PDF '%s': %d non-empty pages", file_path.name, len(pages))
-    return pages
+    logger.info("Loaded PDF '%s': %d non-empty lines", file_path.name, len(segments))
+    return segments
 
 
 def load_docx(file_path: Path) -> list[tuple[int, str]]:

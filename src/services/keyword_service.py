@@ -69,6 +69,10 @@ class YakeKeywordExtractor(BaseKeywordExtractor):
     """
 
     def __init__(self, language: str = "en", n_grams: int = 2) -> None:
+        try:
+            import yake  # noqa: F401
+        except ImportError as exc:
+            raise ImportError("yake is required for keyword extraction: pip install yake") from exc
         self._language = language
         self._n_grams = n_grams
 
@@ -112,12 +116,17 @@ _LLM_KEYWORD_PROMPT = """\
 You are a keyword extraction system. Extract the most important keywords
 and key phrases from the following text.
 
+Rules:
+- Each keyword must be a SHORT noun phrase: 1–4 words (for English) or 2–8 characters (for Chinese/Japanese).
+- No full sentences. No clauses. No punctuation at the end.
+- Prefer named entities (people, places, objects) and core concepts over generic descriptions.
+
 Return ONLY a JSON object with a single key "keywords" whose value is a list
 of objects, each with "keyword" (str) and "score" (float, 0.0-1.0).
 Score indicates relevance (1.0 = most relevant).
 
-Example:
-{"keywords": [{"keyword": "dark forest", "score": 0.95}, {"keyword": "hero", "score": 0.8}]}
+Example (Chinese): {{"keywords": [{{"keyword": "灰石", "score": 0.95}}, {{"keyword": "茅草屋", "score": 0.8}}]}}
+Example (English): {{"keywords": [{{"keyword": "dark forest", "score": 0.95}}, {{"keyword": "hero", "score": 0.8}}]}}
 
 Extract at most {max_keywords} keywords.
 """
@@ -133,7 +142,7 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
         if self._llm is None:
             from core.llm_client import get_llm_client  # noqa: PLC0415
 
-            self._llm = get_llm_client().get_primary(temperature=0.0)
+            self._llm = get_llm_client().get_with_local_fallback(temperature=0.0)
         return self._llm
 
     async def extract(self, text: str, max_keywords: int = 10) -> dict[str, float]:
@@ -423,7 +432,9 @@ def build_keyword_extractor(
     if extractor_type == "none":
         return None
     elif extractor_type == "yake":
-        return YakeKeywordExtractor()
+        from config.settings import get_settings  # noqa: PLC0415
+
+        return YakeKeywordExtractor(language=get_settings().yake_language)
     elif extractor_type == "llm":
         return LLMKeywordExtractor(llm=llm)
     elif extractor_type == "tfidf":

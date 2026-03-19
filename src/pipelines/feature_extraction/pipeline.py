@@ -171,8 +171,12 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         from config.settings import get_settings  # noqa: PLC0415
         from qdrant_client.models import Distance, PointStruct, VectorParams  # noqa: PLC0415
 
+        from services.vector_service import title_slug  # noqa: PLC0415
+
         settings = get_settings()
-        collection = f"{settings.qdrant_collection_prefix}_{doc.id}"
+        collection = (
+            f"{settings.qdrant_collection_prefix}_{title_slug(doc.title)}"
+        )
 
         # Ensure per-book collection exists (cached after first check)
         if not getattr(self, "_qdrant_collection_created", False):

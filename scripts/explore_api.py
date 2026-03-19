@@ -77,10 +77,12 @@ def main(pdf_path: str) -> None:
     if task_result["status"] == "error":
         sys.exit(f"處理失敗：{task_result.get('error')}")
 
-    book_id = task_result.get("result", {}).get("bookId")
+    result_data = task_result.get("result") or {}
+    book_id = result_data.get("bookId") or result_data.get("document_id")
     if not book_id:
         # fallback：從 /books 找最新一本
-        books = client.get(f"{BASE}/books").json()
+        r = client.get(f"{BASE}/books")
+        books = r.json() if r.content else []
         book_id = books[0]["id"] if books else None
     if not book_id:
         sys.exit("無法取得 bookId")

@@ -1,17 +1,20 @@
 """VectorService — Qdrant-backed semantic search with per-book collections.
 
-Each book gets its own Qdrant collection (``storysphere_book_{document_id}``),
+Each book gets its own Qdrant collection (``storysphere_book_{title_slug}``),
 enabling clean isolation, fast deletion (drop collection), and simpler
 per-book management.
 
-In development/test mode (``app_env == "development"`` or explicit flag),
-an in-memory ``QdrantClient(":memory:")`` is used automatically.
+Collection names use a human-readable slug derived from the book title
+(e.g. ``storysphere_book_three_little_pigs``).  The service resolves a
+``document_id`` (UUID) to the correct collection at query time using a
+lazy scan-and-cache strategy.
 """
 
 from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from typing import Any
 
 from qdrant_client import QdrantClient, models
@@ -19,12 +22,28 @@ from qdrant_client import QdrantClient, models
 logger = logging.getLogger(__name__)
 
 
+def title_slug(title: str) -> str:
+    """Convert a book title to a Qdrant-safe collection name slug.
+
+    Examples::
+
+        title_slug("Three Little Pigs")  → "three_little_pigs"
+        title_slug("三隻小豬與小紅帽")   → "三隻小豬與小紅帽"
+        title_slug("My Book (2024)!")    → "my_book_2024"
+    """
+    slug = re.sub(r"[^\w\s]", "", title.lower())
+    slug = re.sub(r"\s+", "_", slug.strip())
+    slug = slug.strip("_")
+    return slug[:50] or "untitled"
+
+
 class VectorService:
     """Semantic search over paragraph embeddings stored in Qdrant.
 
     Each book's vectors live in a dedicated collection named
-    ``{prefix}_{document_id}``.  The service routes all operations
-    to the correct collection based on the ``document_id`` parameter.
+    ``{prefix}_{title_slug}`` (e.g. ``storysphere_book_three_little_pigs``).
+    The service resolves ``document_id`` (UUID) to the correct collection
+    at query time via a lazy scan-and-cache strategy.
 
     Usage::
 
@@ -49,31 +68,67 @@ class VectorService:
 
         if client is not None:
             self._client = client
+        elif in_memory is True:
+            self._client = QdrantClient(":memory:")
+            logger.info("VectorService: using in-memory Qdrant (explicit)")
         else:
-            use_memory = in_memory if in_memory is not None else settings.is_development
-            if use_memory:
-                self._client = QdrantClient(":memory:")
-                logger.info("VectorService: using in-memory Qdrant")
-            else:
-                self._client = QdrantClient(
-                    url=settings.qdrant_url,
-                    api_key=settings.qdrant_api_key or None,
-                )
-                logger.info("VectorService: connecting to %s", settings.qdrant_url)
+            # Always connect to the configured Qdrant URL.
+            # in_memory=True must be explicit — auto-in-memory silently splits
+            # ingestion and search into separate instances.
+            self._client = QdrantClient(
+                url=settings.qdrant_url,
+                api_key=settings.qdrant_api_key or None,
+            )
+            logger.info("VectorService: connecting to %s", settings.qdrant_url)
 
         self._embedding_fn = None  # lazy
-        self._created_collections: set[str] = set()  # local cache to avoid repeated checks
+        self._created_collections: set[str] = set()
+        # document_id (UUID) → Qdrant collection name; built lazily
+        self._doc_col_cache: dict[str, str] = {}
 
     # ── Collection naming ──────────────────────────────────────────────────
 
     @staticmethod
-    def collection_name_for(document_id: str, prefix: str = "storysphere_book") -> str:
+    def collection_name_for(
+        document_id: str, prefix: str = "storysphere_book"
+    ) -> str:
         """Derive the Qdrant collection name for a given book."""
         return f"{prefix}_{document_id}"
 
     def _col(self, document_id: str) -> str:
-        """Shorthand: collection name for *document_id* using this instance's prefix."""
-        return self.collection_name_for(document_id, self._prefix)
+        """Resolve document_id (UUID or slug) → Qdrant collection name.
+
+        Resolution order:
+        1. Cache hit (document_id → collection_name).
+        2. Direct name ``{prefix}_{document_id}`` exists in Qdrant.
+        3. Scan all book collections, read one payload point each to build
+           the UUID → collection_name cache, then retry lookup.
+        """
+        if document_id in self._doc_col_cache:
+            return self._doc_col_cache[document_id]
+
+        direct = f"{self._prefix}_{document_id}"
+        existing = [c.name for c in self._client.get_collections().collections]
+        if direct in existing:
+            return direct
+
+        # Slow path: scan collections to map document_id payloads → names
+        prefix_sep = f"{self._prefix}_"
+        for col_name in existing:
+            if not col_name.startswith(prefix_sep):
+                continue
+            result = self._client.scroll(
+                collection_name=col_name,
+                limit=1,
+                with_payload=["document_id"],
+            )
+            points = result[0] if isinstance(result, tuple) else result
+            if points:
+                did = (points[0].payload or {}).get("document_id", "")
+                if did:
+                    self._doc_col_cache[did] = col_name
+
+        return self._doc_col_cache.get(document_id, direct)
 
     # ── Collection management ─────────────────────────────────────────────
 
@@ -105,6 +160,10 @@ class VectorService:
             return False
         self._client.delete_collection(collection_name=name)
         self._created_collections.discard(name)
+        # Evict any cached document_id → name entries for this collection
+        self._doc_col_cache = {
+            k: v for k, v in self._doc_col_cache.items() if v != name
+        }
         logger.info("VectorService: deleted collection '%s'", name)
         return True
 

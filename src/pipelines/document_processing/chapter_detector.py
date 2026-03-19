@@ -37,10 +37,6 @@ _CHAPTER_PATTERNS: list[re.Pattern[str]] = [
         r"^(volume|vol\.?|book|part|act|scene)\s+(\d+|[ivxlcdm]+)$",
         re.IGNORECASE,
     ),
-    # Stand-alone roman numerals on their own line: "I", "II", "III" …
-    re.compile(r"^[IVXLCDM]{1,6}$"),
-    # Numeric-only heading: "1", "2" … on its own line (≤3 digits)
-    re.compile(r"^\d{1,3}$"),
     # "Prologue" / "Epilogue" / "Preface" / "Introduction"
     re.compile(
         r"^(prologue|epilogue|preface|introduction|foreword|afterword)$",
@@ -98,6 +94,14 @@ def detect_chapters(segments: list[tuple[int, str]]) -> list[ChapterSpan]:
 
     if current is not None:
         chapters.append(current)
+
+    # Drop chapters that have no content segments (e.g. TOC entries where a
+    # heading is immediately followed by another heading with no body text).
+    chapters = [c for c in chapters if c.segments]
+
+    # Re-number remaining chapters sequentially starting from 1.
+    for i, chapter in enumerate(chapters, start=1):
+        chapter.chapter_number = i
 
     return chapters
 

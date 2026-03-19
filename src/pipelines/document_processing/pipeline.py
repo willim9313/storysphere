@@ -55,10 +55,14 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
         if not spans:
             logger.warning("No chapters detected in '%s'", file_path.name)
 
-        # Step 3: chunk each chapter
+        # Step 3: chunk each chapter; skip chapters that produce no paragraphs
+        # (e.g. residual TOC segments that are all below min_chars).
         chapters: list[Chapter] = []
         for span in spans:
             paragraphs = chunk_segments(span.segments, chapter_number=span.chapter_number)
+            if not paragraphs:
+                logger.debug("Skipping empty chapter %d (%r)", span.chapter_number, span.title)
+                continue
             chapter = Chapter(
                 number=span.chapter_number,
                 title=span.title,
@@ -70,6 +74,12 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
                 chapter=span.chapter_number,
                 paragraphs=len(paragraphs),
             )
+
+        # Re-number chapters sequentially after any skips.
+        for i, chapter in enumerate(chapters, start=1):
+            chapter.number = i
+            for para in chapter.paragraphs:
+                para.chapter_number = i
 
         doc = Document(
             title=file_path.stem,
