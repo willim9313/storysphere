@@ -39,10 +39,11 @@ DocumentProcessingPipeline
     ├─────────────────────────────────────────┐
     ▼                                         ▼
 FeatureExtractionPipeline              KnowledgeGraphPipeline
-  ├── embedding_generator.py             ├── entity_extractor.py   (Gemini)
-  │   HuggingFaceEmbeddings              ├── relation_extractor.py (Gemini)
-  │   (all-MiniLM-L6-v2, 384 dims)      ├── entity_linker.py      (dedup)
-  └── pipeline.py → Qdrant               └── pipeline.py → KGService
+  ├── embedding_generator.py             ├── entity_extractor.py          (Gemini)
+  │   HuggingFaceEmbeddings              ├── relation_extractor.py        (Gemini)
+  │   (all-MiniLM-L6-v2, 384 dims)      ├── entity_linker.py             (dedup)
+  └── pipeline.py → Qdrant               ├── paragraph_entity_linker.py   (text match)
+                                          └── pipeline.py → KGService
     │                                         │
     └────────────────┬────────────────────────┘
                      ▼
@@ -142,11 +143,18 @@ for chapter in doc.chapters:
 - Alias 交叉比對（一個 entity 的 alias = 另一個 entity 的名稱）
 - 合併策略：mention_count 最高者為 canonical，合併所有 aliases + attributes
 
+#### `paragraph_entity_linker.py`
+- 純演算法（無 LLM），將 deduplicated entities 用 regex text matching 標記到每個 paragraph
+- 記錄 entity_id + 字元偏移（start/end）為 `ParagraphEntity`，寫入 `Paragraph.entities`
+- Regex 策略：longest-match-first, ASCII word boundary, CJK plain match
+- Compile 一次後複用所有段落
+
 #### `pipeline.py`
 順序：
 1. 每章節抽 entities（文字存入 `chapter_texts` dict）
 2. 全文件 EntityLinker 去重
 3. 每章節抽 relations + events：用 `pop()` 取出章節文字並從 dict 移除 → 已處理章節的文字立即可被 GC
+3.5. ParagraphEntityLinker 將 entities 標記到每個 paragraph（字元偏移），隨 Document 一起持久化
 4. 可選：寫入 KGService
 
 ---

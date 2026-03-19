@@ -13,6 +13,16 @@ class FileType(str, Enum):
     DOCX = "docx"
 
 
+class ParagraphEntity(BaseModel):
+    """An entity mention within a paragraph, with character offsets."""
+
+    entity_id: str
+    entity_name: str
+    entity_type: str  # EntityType.value
+    start: int  # character offset (inclusive)
+    end: int  # character offset (exclusive)
+
+
 class Paragraph(BaseModel):
     """A single text block within a chapter."""
 
@@ -22,6 +32,7 @@ class Paragraph(BaseModel):
     position: int = Field(description="0-indexed position within the chapter")
     embedding: Optional[list[float]] = None
     keywords: Optional[dict[str, float]] = None
+    entities: Optional[list[ParagraphEntity]] = None
 
 
 class Chapter(BaseModel):

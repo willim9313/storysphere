@@ -163,7 +163,7 @@
 **內容**:
 - 驗證後端 `/books`, `/chapters`, `/chunks`, `/graph`, `/analysis` 端點回傳格式與前端 types 一致
 - 確保 `TaskStatus` 的 `status` 欄位為 `done/error`（非 `completed/failed`）、`progress: 0-100`、`stage: string`
-- Segment-based Chunk 回傳（後端需產出 `segments: Segment[]`）
+- ~~Segment-based Chunk 回傳（後端需產出 `segments: Segment[]`）~~ ✅ 已實作（ingestion-time paragraph entity linking + stored offsets）
 - 前端 `uploadBook(file)` 只傳 file（不含 title），後端 `POST /books/upload` 需對應
 
 **驗收**: `VITE_MOCK=false` 時，Library → Upload → Reader → Analysis → Graph 端到端可跑通

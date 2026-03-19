@@ -117,13 +117,22 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         self._skip_summarization = skip_summarization
         self._skip_keywords = skip_keywords
 
-    async def run(self, input_data: Path, *, title: str | None = None) -> IngestionResult:
+    async def run(
+        self,
+        input_data: Path,
+        *,
+        title: str | None = None,
+        progress_cb: Optional[callable] = None,
+    ) -> IngestionResult:
         """Ingest a novel file end-to-end.
 
         Args:
             input_data: Path to the PDF or DOCX file.
             title: Optional book title override.  When provided this is used
                    instead of the filename stem.
+            progress_cb: Optional callback ``(progress: int, stage: str) -> None``
+                called between pipeline steps so callers (e.g. the API
+                background task) can push progress updates.
 
         Returns:
             ``IngestionResult`` summarising the ingestion.
@@ -131,10 +140,15 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         file_path = Path(input_data).resolve()
         errors: list[str] = []
 
+        def _progress(pct: int, stage: str) -> None:
+            if progress_cb is not None:
+                progress_cb(pct, stage)
+
         # ── Ensure DB tables exist ───────────────────────────────────────────
         await self._document_service.init_db()
 
         # ── Step 1: document processing ──────────────────────────────────────
+        _progress(5, "PDF 解析")
         self._log_step("doc_processing", file=str(file_path))
         doc: Document = await self._doc_pipeline(file_path)
 
@@ -149,6 +163,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         )
 
         # ── Step 1b: summarization ───────────────────────────────────────────
+        _progress(20, "章節切分")
         summ_result = SummarizationResult(document_id=doc.id)
         if not self._skip_summarization:
             self._log_step("summarization")
@@ -159,6 +174,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 errors.append(f"summarization: {exc}")
 
         # ── Step 2: feature extraction (embeddings) ──────────────────────────
+        _progress(40, "Chunk 處理")
         self._log_step("feature_extraction")
         feat_result: FeatureExtractionResult
         try:
@@ -171,6 +187,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             )
 
         # ── Step 3: knowledge graph extraction ──────────────────────────────
+        _progress(60, "知識圖譜")
         kg_result: KGExtractionResult = KGExtractionResult()
         if not self._skip_kg:
             self._log_step("kg_extraction")
@@ -181,6 +198,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 errors.append(f"kg_extraction: {exc}")
 
         # ── Step 4: persist document to SQLite ───────────────────────────────
+        _progress(80, "摘要生成")
         self._log_step("persist_document")
         try:
             await self._document_service.save_document(doc)

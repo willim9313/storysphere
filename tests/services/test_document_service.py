@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph
+from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
 from services.document_service import DocumentService
 
 
@@ -117,6 +117,70 @@ class TestDocumentServiceGetParagraphs:
         paragraphs = await service.get_paragraphs(doc.id, chapter_number=1)
         positions = [p.position for p in paragraphs]
         assert positions == sorted(positions)
+
+
+class TestDocumentServiceEntities:
+    @pytest.mark.asyncio
+    async def test_entities_roundtrip(self, service):
+        """ParagraphEntity list should survive save/load cycle."""
+        doc = _make_document(num_chapters=1, paras_per_chapter=1)
+        doc.chapters[0].paragraphs[0].entities = [
+            ParagraphEntity(
+                entity_id="ent-1",
+                entity_name="Alice",
+                entity_type="character",
+                start=0,
+                end=5,
+            ),
+            ParagraphEntity(
+                entity_id="ent-2",
+                entity_name="Bob",
+                entity_type="character",
+                start=10,
+                end=13,
+            ),
+        ]
+        await service.save_document(doc)
+
+        retrieved = await service.get_document(doc.id)
+        para = retrieved.chapters[0].paragraphs[0]
+        assert para.entities is not None
+        assert len(para.entities) == 2
+        assert para.entities[0].entity_id == "ent-1"
+        assert para.entities[0].entity_name == "Alice"
+        assert para.entities[0].start == 0
+        assert para.entities[0].end == 5
+        assert para.entities[1].entity_id == "ent-2"
+
+    @pytest.mark.asyncio
+    async def test_entities_none_roundtrip(self, service):
+        """Paragraphs without entities should roundtrip as None."""
+        doc = _make_document(num_chapters=1, paras_per_chapter=1)
+        assert doc.chapters[0].paragraphs[0].entities is None
+        await service.save_document(doc)
+
+        retrieved = await service.get_document(doc.id)
+        assert retrieved.chapters[0].paragraphs[0].entities is None
+
+    @pytest.mark.asyncio
+    async def test_entities_via_get_paragraphs(self, service):
+        """get_paragraphs() should also deserialize entities."""
+        doc = _make_document(num_chapters=1, paras_per_chapter=1)
+        doc.chapters[0].paragraphs[0].entities = [
+            ParagraphEntity(
+                entity_id="ent-1",
+                entity_name="Alice",
+                entity_type="character",
+                start=0,
+                end=5,
+            ),
+        ]
+        await service.save_document(doc)
+
+        paragraphs = await service.get_paragraphs(doc.id, chapter_number=1)
+        assert len(paragraphs) == 1
+        assert paragraphs[0].entities is not None
+        assert paragraphs[0].entities[0].entity_name == "Alice"
 
 
 class TestDocumentServiceIdempotency:

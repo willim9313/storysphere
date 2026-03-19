@@ -1,7 +1,30 @@
+import { useMemo } from 'react';
 import { SegmentRenderer } from './SegmentRenderer';
-import type { Chunk } from '@/api/types';
+import type { Chunk, Segment, EntityType } from '@/api/types';
+
+const pillClass: Record<EntityType, string> = {
+  character: 'pill-char',
+  location: 'pill-loc',
+  concept: 'pill-con',
+  event: 'pill-evt',
+};
+
+/** Deduplicate entities from segments by entityId, preserving first occurrence order. */
+function extractEntities(segments: Segment[]) {
+  const seen = new Set<string>();
+  const entities: { entityId: string; name: string; type: EntityType }[] = [];
+  for (const seg of segments) {
+    if (seg.entity && !seen.has(seg.entity.entityId)) {
+      seen.add(seg.entity.entityId);
+      entities.push(seg.entity);
+    }
+  }
+  return entities;
+}
 
 export function ChunkCard({ chunk }: { chunk: Chunk }) {
+  const entities = useMemo(() => extractEntities(chunk.segments), [chunk.segments]);
+
   return (
     <div
       data-chunk-card
@@ -15,15 +38,15 @@ export function ChunkCard({ chunk }: { chunk: Chunk }) {
         <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
           #{chunk.order}
         </span>
-        {chunk.keywords.length > 0 && (
-          <div className="flex gap-1">
-            {chunk.keywords.slice(0, 3).map((kw) => (
+        {entities.length > 0 && (
+          <div className="flex gap-1 flex-wrap">
+            {entities.map((e) => (
               <span
-                key={kw}
-                className="text-xs px-1.5 py-0.5 rounded"
-                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-muted)' }}
+                key={e.entityId}
+                className={`pill ${pillClass[e.type]}`}
               >
-                {kw}
+                <span className="pill-dot" />
+                {e.name}
               </span>
             ))}
           </div>

@@ -15,12 +15,12 @@ import json
 import logging
 from typing import Optional
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, select
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, select, text as sa_text
 from sqlalchemy import delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from domain.documents import Chapter, Document, FileType, Paragraph
+from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +66,7 @@ class _ParagraphRow(_Base):
     position = Column(Integer, nullable=False)
     text = Column(Text, nullable=False)
     embedding_json = Column(Text, nullable=True)  # JSON-encoded list[float]
+    entities_json = Column(Text, nullable=True)  # JSON-encoded list[ParagraphEntity]
 
 
 # ── Service ──────────────────────────────────────────────────────────────────
@@ -96,6 +97,14 @@ class DocumentService:
         """Create all tables (idempotent — safe to call on every startup)."""
         async with self._engine.begin() as conn:
             await conn.run_sync(_Base.metadata.create_all)
+        # Migration: add entities_json to existing paragraphs table
+        async with self._engine.begin() as conn:
+            try:
+                await conn.execute(
+                    sa_text("ALTER TABLE paragraphs ADD COLUMN entities_json TEXT")
+                )
+            except Exception:
+                pass  # column already exists
         logger.info("DocumentService: database tables initialised")
 
     # ── Save ─────────────────────────────────────────────────────────────────
@@ -146,6 +155,14 @@ class DocumentService:
                                 embedding_json=(
                                     json.dumps(para.embedding) if para.embedding else None
                                 ),
+                                entities_json=(
+                                    json.dumps(
+                                        [e.model_dump() for e in para.entities],
+                                        ensure_ascii=False,
+                                    )
+                                    if para.entities
+                                    else None
+                                ),
                             )
                         )
 
@@ -190,6 +207,11 @@ class DocumentService:
                         position=pr.position,
                         embedding=(
                             json.loads(pr.embedding_json) if pr.embedding_json else None
+                        ),
+                        entities=(
+                            [ParagraphEntity(**e) for e in json.loads(pr.entities_json)]
+                            if pr.entities_json
+                            else None
                         ),
                     )
                     for pr in para_rows
@@ -270,6 +292,11 @@ class DocumentService:
                     position=pr.position,
                     embedding=(
                         json.loads(pr.embedding_json) if pr.embedding_json else None
+                    ),
+                    entities=(
+                        [ParagraphEntity(**e) for e in json.loads(pr.entities_json)]
+                        if pr.entities_json
+                        else None
                     ),
                 )
                 for pr in result.scalars().all()

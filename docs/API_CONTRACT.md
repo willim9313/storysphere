@@ -452,6 +452,6 @@ useQuery({
 - [x] **TaskStatus 對齊**：status enum 改為 `done`/`error`，新增 `progress`/`stage`
 - [x] **#9 GraphEdge.label**：使用 KG relation_type 作為 label
 - [x] **#3 summary / entityStats**：已實作（entityStats 從 KG 計算）
-- [ ] **#4 Chapter.topEntities**：MVP 階段回傳空（待 entity-chapter mapping 完善）
-- [ ] **#5 Chunk.segments entity 標注**：MVP 階段每個 chunk 只有一個純文字 segment（待實作 entity inline 標注）
+- [x] **#4 Chapter.topEntities**：從 ingestion-time paragraph entity linking 聚合 unique entities（舊資料 fallback 到 KG runtime matching）
+- [x] **#5 Chunk.segments entity 標注**：ingestion 時建立 paragraph ↔ entity 偏移量，API 直接從 stored offsets 建 segments（舊資料 fallback 到 runtime regex matching）
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

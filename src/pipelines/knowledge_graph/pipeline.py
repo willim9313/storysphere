@@ -14,6 +14,7 @@ from pipelines.base import BasePipeline
 
 from .entity_extractor import EntityExtractor
 from .entity_linker import EntityLinker
+from .paragraph_entity_linker import ParagraphEntityLinker
 from .relation_extractor import RelationExtractor
 
 logger = logging.getLogger(__name__)
@@ -50,6 +51,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         self._entity_extractor = entity_extractor or EntityExtractor()
         self._relation_extractor = relation_extractor or RelationExtractor()
         self._entity_linker = entity_linker or EntityLinker()
+        self._paragraph_entity_linker = ParagraphEntityLinker()
         self._kg_service = kg_service  # optional KGService; pass None to skip write
 
     async def run(self, input_data: Document) -> KGExtractionResult:
@@ -117,6 +119,10 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
             )
             all_relations.extend(relations)
             all_events.extend(events)
+
+        # ── Step 3.5: link entities to paragraphs ─────────────────────────────
+        self._log_step("paragraph_entity_link")
+        self._paragraph_entity_linker.link(doc, unique_entities)
 
         result = KGExtractionResult(
             entities=unique_entities,
