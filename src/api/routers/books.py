@@ -9,10 +9,10 @@ import logging
 import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
@@ -298,13 +298,15 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
 
 
 @router.delete("/{book_id}", status_code=204)
-async def delete_book(book_id: str, doc: DocServiceDep, vector: VectorServiceDep) -> None:
-    """Delete a book and its vector collection."""
+async def delete_book(
+    book_id: str, doc: DocServiceDep, vector: VectorServiceDep
+) -> None:
+    """Delete a book, its vector collection, and all database records."""
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
     await vector.delete_collection(book_id)
-    # TODO: doc_service.delete_document + KG cleanup
+    await doc.delete_document(book_id)
     return None
 
 
@@ -315,6 +317,7 @@ async def delete_book(book_id: str, doc: DocServiceDep, vector: VectorServiceDep
 async def upload_book(
     background_tasks: BackgroundTasks,
     file: UploadFile,
+    title: Annotated[str | None, Form()] = None,
 ) -> dict:
     """Upload a PDF/DOCX and start background ingestion."""
     suffix = Path(file.filename or "upload").suffix.lower()
@@ -323,8 +326,8 @@ async def upload_book(
             status_code=422, detail="Only .pdf and .docx files are supported"
         )
 
-    # Extract title from filename
-    title = Path(file.filename or "Untitled").stem
+    # Use user-provided title if given, otherwise fall back to filename stem
+    title = (title.strip() if title and title.strip() else None) or Path(file.filename or "Untitled").stem
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:

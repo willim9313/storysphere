@@ -12,20 +12,28 @@ interface UploadTask {
   fileName: string;
 }
 
+interface PendingFile {
+  file: File;
+  title: string;
+}
+
 export default function UploadPage() {
+  const [pending, setPending] = useState<PendingFile | null>(null);
   const [tasks, setTasks] = useState<UploadTask[]>([]);
   const [completedTasks, setCompletedTasks] = useState<{ taskId: string; fileName: string; bookId: string }[]>([]);
 
   const upload = useMutation({
-    mutationFn: (file: File) => uploadBook(file),
-    onSuccess: (data, file) => {
+    mutationFn: ({ file, title }: { file: File; title: string }) => uploadBook(file, title),
+    onSuccess: (data, { file }) => {
       setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name }]);
+      setPending(null);
     },
   });
 
   const handleFileSelected = useCallback((file: File) => {
-    upload.mutate(file);
-  }, [upload]);
+    const stem = file.name.replace(/\.[^.]+$/, '');
+    setPending({ file, title: stem });
+  }, []);
 
   const handleTaskDone = useCallback((taskId: string, bookId: string, fileName: string) => {
     setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
@@ -42,7 +50,53 @@ export default function UploadPage() {
       </h1>
 
       {/* Upload zone */}
-      <DropZone onFileSelected={handleFileSelected} />
+      {!pending && <DropZone onFileSelected={handleFileSelected} />}
+
+      {/* Title confirmation step */}
+      {pending && (
+        <div
+          className="mt-4 p-4 rounded-lg"
+          style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-secondary)' }}
+        >
+          <p className="text-sm font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>
+            書籍名稱
+          </p>
+          <input
+            className="w-full px-3 py-2 rounded-md text-sm mb-3"
+            style={{
+              border: '1px solid var(--border)',
+              backgroundColor: 'white',
+              color: 'var(--fg-primary)',
+              outline: 'none',
+            }}
+            value={pending.title}
+            onChange={(e) => setPending({ ...pending, title: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && pending.title.trim()) {
+                upload.mutate({ file: pending.file, title: pending.title.trim() });
+              }
+            }}
+            autoFocus
+          />
+          <div className="flex gap-2 justify-end">
+            <button
+              className="text-sm px-3 py-1 rounded-md"
+              style={{ color: 'var(--fg-muted)', border: '1px solid var(--border)' }}
+              onClick={() => setPending(null)}
+            >
+              取消
+            </button>
+            <button
+              className="text-sm px-3 py-1 rounded-md font-medium"
+              style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}
+              disabled={!pending.title.trim() || upload.isPending}
+              onClick={() => upload.mutate({ file: pending.file, title: pending.title.trim() })}
+            >
+              確認上傳
+            </button>
+          </div>
+        </div>
+      )}
 
       {upload.error && (
         <p className="text-sm mt-2" style={{ color: 'var(--color-error)' }}>

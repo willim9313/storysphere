@@ -16,6 +16,7 @@ import logging
 from typing import Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, select
+from sqlalchemy import delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
@@ -383,3 +384,28 @@ class DocumentService:
                         "score": kws[keyword_lower],
                     })
             return matches
+
+    # ── Delete ────────────────────────────────────────────────────────────────
+
+    async def delete_document(self, document_id: str) -> None:
+        """Delete a document and all its chapters and paragraphs."""
+        async with self._session_factory() as session:
+            async with session.begin():
+                await session.execute(
+                    sa_delete(_ParagraphRow).where(
+                        _ParagraphRow.document_id == document_id
+                    )
+                )
+                await session.execute(
+                    sa_delete(_ChapterRow).where(
+                        _ChapterRow.document_id == document_id
+                    )
+                )
+                await session.execute(
+                    sa_delete(_DocumentRow).where(
+                        _DocumentRow.id == document_id
+                    )
+                )
+        logger.info(
+            "DocumentService.delete_document: id=%s", document_id
+        )
