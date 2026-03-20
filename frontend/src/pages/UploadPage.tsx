@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { uploadBook } from '@/api/ingest';
@@ -166,9 +166,10 @@ function ProcessingCard({
   onDone: (taskId: string, bookId: string, fileName: string) => void;
 }) {
   const { data: status } = useTaskPolling(task.taskId);
+  const notified = useRef(false);
 
-  if (status?.status === 'done' && status.result?.bookId) {
-    // Move to completed on next render cycle
+  if (status?.status === 'done' && status.result?.bookId && !notified.current) {
+    notified.current = true;
     setTimeout(() => onDone(task.taskId, status.result!.bookId!, task.fileName), 0);
   }
 

@@ -143,6 +143,25 @@
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
 | B-012 | 前端後端 API 整合驗證 | 🟡 中 | 待開始 |
 | B-013 | LLMKeywordExtractor 解析強化 | 🟡 中 | 待開始 |
+| B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
+
+---
+
+### B-014 Local LLM 選型評估
+**背景**: qwen2.5-3b JSON schema 遵從度不穩定（null 代替 []、malformed JSON），已換至 Phi-3.5-mini-instruct Q4_K_M（社群量化），功能正常但速度偏慢。
+
+**Local model 選型條件**:
+- JSON schema 遵從度：能穩定回傳 `[]` 而非 `null`，不截斷 JSON
+- 大小：Q4_K_M 量化後 ≤ 5GB
+- 格式：GGUF，相容 llama.cpp server（OpenAI-compatible `/v1` API）
+- 推理速度：single-turn < 30s 為可接受範圍
+
+**待評估候選**:
+- Phi-3.5-mini-instruct Q4_K_M（~2.2GB）← 目前使用，格式遵從佳但偏慢
+- Qwen2.5-7B-Instruct Q4_K_M（~4.7GB）← 同 family 升級版
+- Llama-3.2-3B-Instruct Q4_K_M（~2.0GB）← Meta 新一代 3B
+
+**目標**: 找到速度與格式穩定性平衡最佳的選項。
 
 ---
 
@@ -171,4 +190,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-03-19
+**最後更新**: 2026-03-20

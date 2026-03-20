@@ -32,13 +32,15 @@ class KGExtractionResult:
 class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
     """Three-step KG builder: extract entities → deduplicate → extract relations/events.
 
-    Steps per chapter:
-        1. ``EntityExtractor`` → raw entities from LLM.
-        2. ``EntityLinker``    → deduplicate all entities across chapters.
-        3. ``RelationExtractor`` → relations + events per chapter.
+    Steps:
+        1. ``EntityExtractor`` → raw entities per **paragraph** (keeps each
+           LLM call small enough for local models).
+        2. ``EntityLinker``    → deduplicate all entities across paragraphs.
+        3. ``RelationExtractor`` → relations + events per chapter (needs
+           broader context than a single paragraph).
 
-    The full document is processed chapter-by-chapter sequentially to keep
-    LLM token usage predictable.
+    Processing is paragraph-by-paragraph for entity extraction so that even
+    very long chapters don't produce oversized LLM responses.
     """
 
     def __init__(
@@ -70,18 +72,32 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         # released to the GC rather than accumulating for the whole run.
         chapter_texts: dict[int, str] = {}
 
-        # ── Step 1: extract entities per chapter ────────────────────────────
+        # ── Step 1: extract entities per paragraph ──────────────────────────
+        # Paragraph-level extraction keeps each LLM call small, avoiding
+        # truncation issues on long chapters with local models.
         for chapter in doc.chapters:
-            text = "\n\n".join(p.text for p in chapter.paragraphs)
-            if not text.strip():
+            chapter_text = "\n\n".join(p.text for p in chapter.paragraphs)
+            if not chapter_text.strip():
                 continue
-            chapter_texts[chapter.number] = text
-            self._log_step("entity_extract", chapter=chapter.number)
-            chapter_entities = await self._entity_extractor.extract(text, chapter.number)
-            # Track per-chapter mention counts heuristically
-            for entity in chapter_entities:
-                entity.mention_count = text.lower().count(entity.name.lower())
-            all_raw_entities.extend(chapter_entities)
+            chapter_texts[chapter.number] = chapter_text
+
+            for para in chapter.paragraphs:
+                if not para.text.strip():
+                    continue
+                self._log_step(
+                    "entity_extract",
+                    chapter=chapter.number,
+                    para=para.position,
+                )
+                para_entities = await self._entity_extractor.extract(
+                    para.text, chapter.number
+                )
+                # Count mentions across the full chapter text for context
+                for entity in para_entities:
+                    entity.mention_count = chapter_text.lower().count(
+                        entity.name.lower()
+                    )
+                all_raw_entities.extend(para_entities)
 
         # ── Step 2: deduplicate across chapters ─────────────────────────────
         self._log_step("entity_link", raw=len(all_raw_entities))

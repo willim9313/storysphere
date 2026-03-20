@@ -7,20 +7,75 @@ Run with:
 from __future__ import annotations
 
 import logging
+import logging.handlers
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from api.routers import analysis, books, chat_ws, documents, entities, ingest, metrics, relations, search, tasks, tasks_ws
+from api.routers import (
+    analysis,
+    books,
+    chat_ws,
+    documents,
+    entities,
+    ingest,
+    metrics,
+    relations,
+    search,
+    tasks,
+    tasks_ws,
+)
 
 logger = logging.getLogger(__name__)
 
 
+def _configure_file_logging() -> None:
+    """Attach a rotating file handler to the root logger.
+
+    Must be called inside lifespan (after uvicorn has configured its own
+    logging via dictConfig), otherwise uvicorn clears our handlers.
+    """
+    from config.settings import get_settings  # noqa: PLC0415
+
+    settings = get_settings()
+    if not settings.log_file:
+        return
+
+    # Skip if we already attached a file handler (e.g. on hot-reload).
+    root = logging.getLogger()
+    if any(
+        isinstance(h, logging.handlers.RotatingFileHandler)
+        for h in root.handlers
+    ):
+        return
+
+    level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    root.setLevel(level)
+
+    log_path = Path(settings.log_file)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fmt = logging.Formatter(
+        "%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    fh = logging.handlers.RotatingFileHandler(
+        log_path,
+        maxBytes=10 * 1024 * 1024,  # 10 MB per file
+        backupCount=5,
+        encoding="utf-8",
+    )
+    fh.setFormatter(fmt)
+    root.addHandler(fh)
+    logger.info("File logging enabled → %s", log_path)
+
+
 async def _check_local_llm(settings) -> None:  # type: ignore[type-arg]
-    """Ping the local LLM endpoint at startup. Warn but do not fail if unreachable."""
-    import httpx
+    """Ping the local LLM endpoint at startup. Warn but not fail if unreachable."""
+    import httpx  # noqa: PLC0415
 
     url = settings.local_llm_base_url.rstrip("/") + "/models"
     try:
@@ -44,18 +99,18 @@ async def _check_local_llm(settings) -> None:  # type: ignore[type-arg]
 async def lifespan(app: FastAPI):
     """Warm up singletons on startup so the first request is not slow."""
     from api.deps import (  # noqa: PLC0415
-        get_kg_service,
-        get_doc_service,
-        get_vector_service,
-        get_chat_agent,
         get_analysis_agent,
+        get_chat_agent,
+        get_doc_service,
+        get_kg_service,
+        get_vector_service,
     )
-
-    from core.tracing import configure_langsmith  # noqa: PLC0415
     from config.settings import get_settings  # noqa: PLC0415
+    from core.tracing import configure_langsmith  # noqa: PLC0415
 
     settings = get_settings()
     configure_langsmith(settings)
+    _configure_file_logging()
 
     logger.info("StorySphere API starting up — initialising services...")
     kg = get_kg_service()
@@ -87,7 +142,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # ── CORS ──────────────────────────────────────────────────────────────────
+    # ── CORS ──────────────────────────────────────────────────────────────
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"] if settings.is_development else [],
@@ -96,18 +151,24 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
 
-    # ── Global error handler ──────────────────────────────────────────────────
+    # ── Global error handler ──────────────────────────────────────────────
     @app.exception_handler(Exception)
-    async def _global_handler(request: Request, exc: Exception) -> JSONResponse:
-        logger.exception("Unhandled error on %s %s", request.method, request.url)
-        return JSONResponse(status_code=500, content={"detail": "Internal server error"})
+    async def _global_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
+        logger.exception(
+            "Unhandled error on %s %s", request.method, request.url
+        )
+        return JSONResponse(
+            status_code=500, content={"detail": "Internal server error"}
+        )
 
-    # ── Health check ──────────────────────────────────────────────────────────
+    # ── Health check ──────────────────────────────────────────────────────
     @app.get("/health", tags=["health"])
     async def health() -> dict:
         return {"status": "ok"}
 
-    # ── Routers ───────────────────────────────────────────────────────────────
+    # ── Routers ───────────────────────────────────────────────────────────
     prefix = "/api/v1"
     # Frontend-facing (aligned with API_CONTRACT.md)
     app.include_router(books.router, prefix=prefix)
@@ -120,7 +181,7 @@ def create_app() -> FastAPI:
     app.include_router(ingest.router, prefix=prefix)
     app.include_router(analysis.router, prefix=prefix)
     app.include_router(metrics.router, prefix=prefix)
-    app.include_router(chat_ws.router)   # WS paths don't use /api/v1 prefix
+    app.include_router(chat_ws.router)   # WS — no /api/v1 prefix
     app.include_router(tasks_ws.router)  # WS /ws/tasks/{task_id}
 
     return app

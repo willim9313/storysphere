@@ -182,8 +182,10 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
         keywords = data.get("keywords", [])
         result: dict[str, float] = {}
         for item in keywords:
-            kw = item["keyword"].lower()
-            score = max(0.0, min(1.0, float(item["score"])))
+            kw = item.get("keyword", "").lower()
+            if not kw:
+                continue
+            score = max(0.0, min(1.0, float(item.get("score", 1.0))))
             result[kw] = round(score, 4)
         return result
 

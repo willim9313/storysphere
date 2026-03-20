@@ -113,7 +113,7 @@ class ChatAgent:
         from config.settings import get_settings  # noqa: PLC0415
 
         settings = get_settings()
-        return get_llm_client().get_primary(temperature=settings.chat_agent_temperature)
+        return get_llm_client().get_with_local_fallback(temperature=settings.chat_agent_temperature)
 
     async def chat(
         self, query: str, state: ChatState, language: str = "en"

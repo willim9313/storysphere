@@ -33,7 +33,6 @@ dependencies = [
     "pydantic>=2.0",
     "pydantic-settings>=2.0",
     "tenacity>=8.0",
-
     # ========== LLM Providers ==========
     "google-generativeai>=0.8.0",
     "langchain-google-genai>=2.0.0",
@@ -42,38 +41,32 @@ dependencies = [
     "anthropic>=0.40",
     "langchain-anthropic>=0.3.0",
     # Local LLM (llama.cpp / Ollama / LM Studio) reuses langchain-openai via OpenAI-compatible API
-
     # ========== Data Storage ==========
     "sqlalchemy>=2.0",
     "aiosqlite>=0.19",
     "greenlet>=3.0",
     "qdrant-client>=1.7",
-
     # ========== Knowledge Graph ==========
     "networkx>=3.0",
     "neo4j>=5.0",
-
     # ========== Web Framework ==========
     "fastapi>=0.110",
     "uvicorn[standard]>=0.27",
     "websockets>=12.0",
     "python-multipart>=0.0.9",
-
     # ========== Document Processing ==========
     "pypdf>=4.0",
     "python-docx>=1.1",
-
     # ========== Embeddings ==========
     "sentence-transformers>=3.0",
     "langchain-huggingface>=0.1.0",
-
     # ========== Keyword Extraction ==========
     "yake>=0.4.8",
-
     # ========== Utilities ==========
     "python-dotenv>=1.0",
     "pyyaml>=6.0",
     "httpx>=0.27",
+    "json-repair>=0.58.6",
 ]
 
 [dependency-groups]

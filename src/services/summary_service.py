@@ -40,7 +40,7 @@ class SummaryService:
             from config.settings import get_settings  # noqa: PLC0415
 
             settings = get_settings()
-            self._llm = get_llm_client().get_primary(
+            self._llm = get_llm_client().get_with_local_fallback(
                 temperature=settings.summary_temperature
             )
         return self._llm

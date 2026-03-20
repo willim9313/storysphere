@@ -83,17 +83,30 @@ class LLMClient:
     def get_with_local_fallback(
         self, temperature: float = 0.1, **kwargs: object
     ) -> BaseChatModel:
-        """Return primary LLM chained with local fallback via LangChain .with_fallbacks().
+        """Return a cloud LLM chained with local fallback: cloud fails → local.
 
-        When the primary hits a rate-limit or transient error, LangChain
-        automatically retries with the local model.  If no local LLM is
-        configured the primary is returned as-is.
+        Fallback chain is intentionally flat (cloud → local only).
+        Multiple cloud providers are NOT chained — only the highest-priority
+        configured cloud is used as primary.
+
+        Scenarios:
+        - cloud + local configured : primary.with_fallbacks([local])
+        - cloud only               : primary (no fallback)
+        - local only               : local (no fallback)
         """
+        has_cloud = any(
+            self._has_key(p)
+            for p in (LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC)
+        )
+        has_local = self._has_key(LLMProvider.LOCAL)
+
         primary = self.get_primary(temperature=temperature, **kwargs)
-        if not self._has_key(LLMProvider.LOCAL):
-            return primary
-        local = self.get_local(temperature=temperature)
-        return primary.with_fallbacks([local])
+
+        if has_cloud and has_local:
+            local = self.get_local(temperature=temperature)
+            return primary.with_fallbacks([local])
+
+        return primary
 
     def get_llm(
         self,
@@ -197,6 +210,8 @@ class LLMClient:
             temperature=temperature,
             base_url=self._settings.local_llm_base_url,
             api_key="local",  # type: ignore[arg-type]  # dummy — not validated locally
+            max_tokens=4096,   # prevent runaway generation on local models
+            timeout=120,       # 120s hard timeout per request
             **kwargs,
         )
 

@@ -13,7 +13,7 @@ import json
 import logging
 from typing import Any
 
-from pydantic import BaseModel, Field, ValidationError
+from pydantic import BaseModel, Field, ValidationError, field_validator
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from domain.entities import Entity, EntityType
@@ -33,7 +33,17 @@ class _RawEntity(BaseModel):
     entity_type: str = "other"
     aliases: list[str] = Field(default_factory=list)
     description: str | None = None
-    attributes: dict[str, Any] = Field(default_factory=dict)
+    attributes: dict[str, Any] | None = Field(default_factory=dict)
+
+    @field_validator("aliases", mode="before")
+    @classmethod
+    def _coerce_aliases(cls, v: Any) -> list:
+        return v if isinstance(v, list) else []
+
+    @field_validator("attributes", mode="before")
+    @classmethod
+    def _coerce_attributes(cls, v: Any) -> dict:
+        return v if isinstance(v, dict) else {}
 
 
 class _EntityList(BaseModel):
@@ -59,6 +69,11 @@ class _RawEvent(BaseModel):
     participants: list[str] = Field(default_factory=list)
     significance: str | None = None
     consequences: list[str] = Field(default_factory=list)
+
+    @field_validator("participants", "consequences", mode="before")
+    @classmethod
+    def _coerce_list(cls, v: Any) -> list:
+        return v if isinstance(v, list) else []
 
 
 class _ExtractionResult(BaseModel):
@@ -129,7 +144,7 @@ class ExtractionService:
         if self._llm is None:
             from core.llm_client import get_llm_client  # noqa: PLC0415
 
-            self._llm = get_llm_client().get_primary(temperature=0.0)
+            self._llm = get_llm_client().get_with_local_fallback(temperature=0.0)
         return self._llm
 
     # -- Entity extraction ---------------------------------------------------
@@ -325,24 +340,39 @@ class ExtractionService:
 # -- Shared JSON parsers (also used by pipeline shims) -----------------------
 
 
-def _parse_json_response(content: str) -> _EntityList:
-    """Extract JSON from LLM text (may be wrapped in markdown fences)."""
+def _strip_markdown_fences(content: str) -> str:
+    """Remove ```json ... ``` fences if present."""
     content = content.strip()
     if content.startswith("```"):
         lines = content.splitlines()
         content = "\n".join(
             line for line in lines if not line.strip().startswith("```")
         ).strip()
-    data = json.loads(content)
+    return content
+
+
+def _loads_with_repair(content: str) -> Any:
+    """Try json.loads first; fall back to json_repair.loads on failure."""
+    try:
+        return json.loads(content)
+    except ValueError:
+        try:
+            from json_repair import loads as repair_loads  # noqa: PLC0415
+
+            logger.debug("json.loads failed — retrying with json_repair")
+            return repair_loads(content)
+        except Exception as exc:
+            raise ValueError(f"JSON repair also failed: {exc}") from exc
+
+
+def _parse_json_response(content: str) -> _EntityList:
+    """Extract JSON from LLM text (may be wrapped in markdown fences)."""
+    content = _strip_markdown_fences(content)
+    data = _loads_with_repair(content)
     return _EntityList.model_validate(data)
 
 
 def _parse_extraction_response(content: str) -> _ExtractionResult:
-    content = content.strip()
-    if content.startswith("```"):
-        lines = content.splitlines()
-        content = "\n".join(
-            line for line in lines if not line.strip().startswith("```")
-        ).strip()
-    data = json.loads(content)
+    content = _strip_markdown_fences(content)
+    data = _loads_with_repair(content)
     return _ExtractionResult.model_validate(data)

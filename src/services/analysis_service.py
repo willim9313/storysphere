@@ -202,7 +202,7 @@ class AnalysisService:
             from core.llm_client import get_llm_client  # noqa: PLC0415
 
             t = temperature if temperature is not None else 0.3
-            self._llm = get_llm_client().get_primary(temperature=t)
+            self._llm = get_llm_client().get_with_local_fallback(temperature=t)
         return self._llm
 
     # ── Public: generate_insight (Phase 3) ─────────────────────────────────────
