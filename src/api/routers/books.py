@@ -17,7 +17,8 @@ from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from api.deps import AnalysisAgentDep, DocServiceDep, KGServiceDep, VectorServiceDep
+from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, KGServiceDep, VectorServiceDep
+from services.analysis_cache import AnalysisCache
 from domain.documents import ParagraphEntity
 from api.schemas.common import TaskStatus
 from api.store import get_task, task_store
@@ -260,6 +261,7 @@ async def _run_ingestion(task_id: str, file_path: Path, title: str) -> None:
 async def _run_entity_analysis(
     task_id: str, entity_name: str, document_id: str, agent, language: str = "en"
 ) -> None:
+    logger.info("Entity analysis task %s started: entity=%s, doc=%s", task_id, entity_name, document_id)
     task_store.set_running(task_id)
     try:
         result = await agent.analyze_character(
@@ -268,8 +270,9 @@ async def _run_entity_analysis(
             language=language,
         )
         task_store.set_completed(task_id, result=result.model_dump())
+        logger.info("Entity analysis task %s completed: entity=%s", task_id, entity_name)
     except Exception as exc:
-        logger.exception("Entity analysis task %s failed", task_id)
+        logger.exception("Entity analysis task %s failed: entity=%s", task_id, entity_name)
         task_store.set_failed(task_id, error=str(exc))
 
 
@@ -692,7 +695,7 @@ async def trigger_book_analysis(
 
 @router.get("/{book_id}/analysis/characters", response_model=AnalysisListResponse)
 async def list_character_analyses(
-    book_id: str, doc: DocServiceDep, kg: KGServiceDep
+    book_id: str, doc: DocServiceDep, kg: KGServiceDep, cache: AnalysisCacheDep
 ) -> dict:
     """List character analyses (analyzed + unanalyzed)."""
     document = await doc.get_document(book_id)
@@ -700,22 +703,54 @@ async def list_character_analyses(
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
     from domain.entities import EntityType  # noqa: PLC0415
+    from services.analysis_models import CharacterAnalysisResult  # noqa: PLC0415
 
     characters = await kg.list_entities(
         entity_type=EntityType.CHARACTER, document_id=book_id
     )
-    unanalyzed = [
-        UnanalyzedEntity(
-            id=e.id,
-            name=e.name,
-            type="character",
-            chapter_count=0,
-        ).model_dump(by_alias=True)
-        for e in characters
-    ]
+    analyzed: list[dict] = []
+    unanalyzed: list[dict] = []
+    for e in characters:
+        cache_key = AnalysisCache.make_key("character", book_id, e.name)
+        cached = await cache.get(cache_key)
+        if cached is not None:
+            try:
+                result = CharacterAnalysisResult.model_validate(cached)
+                archetype_type = (
+                    result.archetypes[0].primary if result.archetypes else None
+                )
+                analyzed.append(
+                    AnalysisItem(
+                        id=e.id,
+                        entity_id=e.id,
+                        section="characters",
+                        title=e.name,
+                        archetype_type=archetype_type,
+                        content=result.profile.summary if result.profile else "",
+                        framework="jung",
+                        generated_at=(
+                            result.analyzed_at.isoformat()
+                            if result.analyzed_at
+                            else _now_iso()
+                        ),
+                    ).model_dump(by_alias=True)
+                )
+            except Exception:
+                logger.exception("Failed to parse cached analysis for %s", e.name)
+                unanalyzed.append(
+                    UnanalyzedEntity(
+                        id=e.id, name=e.name, type="character", chapter_count=0,
+                    ).model_dump(by_alias=True)
+                )
+        else:
+            unanalyzed.append(
+                UnanalyzedEntity(
+                    id=e.id, name=e.name, type="character", chapter_count=0,
+                ).model_dump(by_alias=True)
+            )
 
     return AnalysisListResponse(
-        analyzed=[],
+        analyzed=analyzed,
         unanalyzed=unanalyzed,
     ).model_dump(by_alias=True)
 
@@ -725,26 +760,55 @@ async def list_character_analyses(
 
 @router.get("/{book_id}/analysis/events", response_model=AnalysisListResponse)
 async def list_event_analyses(
-    book_id: str, doc: DocServiceDep, kg: KGServiceDep
+    book_id: str, doc: DocServiceDep, kg: KGServiceDep, cache: AnalysisCacheDep
 ) -> dict:
     """List event analyses (analyzed + unanalyzed)."""
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    from services.analysis_models import EventAnalysisResult  # noqa: PLC0415
+
     events = await kg.get_events(document_id=book_id)
-    unanalyzed = [
-        UnanalyzedEntity(
-            id=ev.id,
-            name=ev.title,
-            type="event",
-            chapter_count=0,
-        ).model_dump(by_alias=True)
-        for ev in events
-    ]
+    analyzed: list[dict] = []
+    unanalyzed: list[dict] = []
+    for ev in events:
+        cache_key = f"event:{book_id}:{ev.id}"
+        cached = await cache.get(cache_key)
+        if cached is not None:
+            try:
+                result = EventAnalysisResult.model_validate(cached)
+                analyzed.append(
+                    AnalysisItem(
+                        id=ev.id,
+                        entity_id=ev.id,
+                        section="events",
+                        title=ev.title,
+                        content=result.summary.summary if result.summary else "",
+                        framework="jung",
+                        generated_at=(
+                            result.analyzed_at.isoformat()
+                            if result.analyzed_at
+                            else _now_iso()
+                        ),
+                    ).model_dump(by_alias=True)
+                )
+            except Exception:
+                logger.warning("Failed to parse cached event analysis for %s", ev.id)
+                unanalyzed.append(
+                    UnanalyzedEntity(
+                        id=ev.id, name=ev.title, type="event", chapter_count=0,
+                    ).model_dump(by_alias=True)
+                )
+        else:
+            unanalyzed.append(
+                UnanalyzedEntity(
+                    id=ev.id, name=ev.title, type="event", chapter_count=0,
+                ).model_dump(by_alias=True)
+            )
 
     return AnalysisListResponse(
-        analyzed=[],
+        analyzed=analyzed,
         unanalyzed=unanalyzed,
     ).model_dump(by_alias=True)
 
@@ -829,23 +893,34 @@ async def get_entity_chunks(
     response_model=EntityAnalysisResponse,
 )
 async def get_entity_analysis(
-    book_id: str, entity_id: str, agent: AnalysisAgentDep
+    book_id: str,
+    entity_id: str,
+    cache: AnalysisCacheDep,
+    kg: KGServiceDep,
 ) -> dict:
     """Get analysis result for a specific entity."""
-    # Try to get from analysis cache
+    entity = await kg.get_entity(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
+
+    cache_key = AnalysisCache.make_key("character", book_id, entity.name)
     try:
-        cached = await agent.cache.get(entity_id)
+        cached = await cache.get(cache_key)
         if cached is not None:
+            logger.info("Entity analysis cache HIT: key=%s", cache_key)
+            from services.analysis_models import CharacterAnalysisResult
+            result = CharacterAnalysisResult.model_validate(cached)
             return EntityAnalysisResponse(
-                entity_id=cached.entity_id,
-                entity_name=cached.entity_name,
-                content=cached.profile.summary if cached.profile else "",
+                entity_id=entity_id,
+                entity_name=entity.name,
+                content=result.profile.summary if result.profile else "",
                 generated_at=(
-                    cached.analyzed_at.isoformat() if cached.analyzed_at else _now_iso()
+                    result.analyzed_at.isoformat() if result.analyzed_at else _now_iso()
                 ),
             ).model_dump(by_alias=True)
+        logger.info("Entity analysis cache MISS: key=%s", cache_key)
     except Exception:
-        pass
+        logger.exception("Entity analysis cache read failed: key=%s", cache_key)
 
     raise HTTPException(status_code=404, detail="Analysis not found")
 
@@ -861,15 +936,20 @@ async def trigger_entity_analysis(
     book_id: str,
     entity_id: str,
     kg: KGServiceDep,
+    doc: DocServiceDep,
     agent: AnalysisAgentDep,
     background_tasks: BackgroundTasks,
-    language: str = "en",
 ) -> dict:
     """Trigger deep analysis for a single entity."""
     entity = await kg.get_entity(entity_id)
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
+    language = await doc.get_document_language(book_id)
+    logger.info(
+        "Triggering entity analysis: entity=%s (%s), book=%s, lang=%s",
+        entity.name, entity_id, book_id, language,
+    )
     task_id = str(uuid4())
     task_store.create(task_id)
     background_tasks.add_task(
@@ -884,8 +964,13 @@ async def trigger_entity_analysis(
 
 @router.delete("/{book_id}/entities/{entity_id}/analysis", status_code=204)
 async def delete_entity_analysis(
-    book_id: str, entity_id: str, agent: AnalysisAgentDep
+    book_id: str, entity_id: str, cache: AnalysisCacheDep, kg: KGServiceDep
 ) -> None:
     """Delete entity analysis from cache."""
-    # TODO: implement cache.delete(entity_id)
-    return None
+    entity = await kg.get_entity(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
+
+    cache_key = AnalysisCache.make_key("character", book_id, entity.name)
+    await cache.invalidate(cache_key)
+    logger.info("Deleted entity analysis cache: key=%s", cache_key)

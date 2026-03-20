@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, ChevronDown, ChevronRight, Loader } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Loader, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { fetchEntityAnalysis, triggerEntityAnalysis } from '@/api/analysis';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
@@ -31,9 +31,12 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
     retry: false,
   });
 
+  const [triggerError, setTriggerError] = useState<string | null>(null);
+
   const triggerMut = useMutation({
     mutationFn: () => triggerEntityAnalysis(bookId, node.id),
-    onSuccess: (data) => setGenTaskId(data.taskId),
+    onSuccess: (data) => { setTriggerError(null); setGenTaskId(data.taskId); },
+    onError: () => setTriggerError('觸發分析失敗，請稍後再試。'),
   });
 
   const { data: genTask } = useTaskPolling(genTaskId);
@@ -120,6 +123,22 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
                 查看深度分析 →
               </button>
             </div>
+          ) : genTask?.status === 'error' ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-1">
+                <AlertTriangle size={12} style={{ color: 'var(--danger, #e53e3e)' }} />
+                <span className="text-xs" style={{ color: 'var(--danger, #e53e3e)' }}>
+                  分析失敗{genTask.error ? `：${genTask.error}` : ''}
+                </span>
+              </div>
+              <button
+                className="text-xs px-2 py-1 rounded"
+                style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+                onClick={() => { setGenTaskId(null); triggerMut.reset(); }}
+              >
+                重試 →
+              </button>
+            </div>
           ) : genTaskId && genTask && genTask.status !== 'done' ? (
             <div className="flex items-center gap-2">
               <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
@@ -136,6 +155,9 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
               <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>
                 尚未生成深度分析。此操作將消耗 token。
               </p>
+              {triggerError && (
+                <p className="text-xs" style={{ color: 'var(--danger, #e53e3e)' }}>{triggerError}</p>
+              )}
               <button
                 className="text-xs px-2 py-1 rounded"
                 style={{ backgroundColor: 'var(--accent)', color: 'white' }}

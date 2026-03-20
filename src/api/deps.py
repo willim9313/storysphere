@@ -89,14 +89,19 @@ def get_keyword_service():
 
 
 @lru_cache(maxsize=1)
-def get_analysis_agent():
+def get_analysis_cache():
     from services.analysis_cache import AnalysisCache  # noqa: PLC0415
-    from agents.analysis_agent import AnalysisAgent  # noqa: PLC0415
     from config.settings import get_settings  # noqa: PLC0415
 
     settings = get_settings()
-    cache = AnalysisCache(db_path=settings.analysis_cache_db_path)
-    return AnalysisAgent(analysis_service=get_analysis_service(), cache=cache)
+    return AnalysisCache(db_path=settings.analysis_cache_db_path)
+
+
+@lru_cache(maxsize=1)
+def get_analysis_agent():
+    from agents.analysis_agent import AnalysisAgent  # noqa: PLC0415
+
+    return AnalysisAgent(analysis_service=get_analysis_service(), cache=get_analysis_cache())
 
 
 @lru_cache(maxsize=1)
@@ -120,5 +125,6 @@ def get_chat_agent():
 KGServiceDep = Annotated[any, Depends(get_kg_service)]
 DocServiceDep = Annotated[any, Depends(get_doc_service)]
 VectorServiceDep = Annotated[any, Depends(get_vector_service)]
+AnalysisCacheDep = Annotated[any, Depends(get_analysis_cache)]
 AnalysisAgentDep = Annotated[any, Depends(get_analysis_agent)]
 ChatAgentDep = Annotated[any, Depends(get_chat_agent)]

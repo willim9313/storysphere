@@ -158,6 +158,7 @@ export default function GraphPage() {
           }}
         >
           <EntityDetailPanel
+            key={selectedNode.id}
             node={selectedNode}
             bookId={bookId}
             onClose={() => {

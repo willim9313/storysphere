@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation } from '@tanstack/react-query';
-import { Search, ExternalLink, RefreshCw } from 'lucide-react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Search, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis } from '@/api/analysis';
@@ -17,6 +17,7 @@ type Tab = 'characters' | 'events';
 type Framework = 'jung' | 'schmidt';
 
 export default function AnalysisPage() {
+  const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
   const [tab, setTab] = useState<Tab>('characters');
   const [framework, setFramework] = useState<Framework>('jung');
@@ -39,13 +40,25 @@ export default function AnalysisPage() {
   });
 
   // Trigger entity analysis
+  const [triggerError, setTriggerError] = useState<string | null>(null);
   const triggerMutation = useMutation({
     mutationFn: (entityId: string) => triggerEntityAnalysis(bookId!, entityId),
-    onSuccess: (data) => setGenerateTaskId(data.taskId),
+    onSuccess: (data) => { setTriggerError(null); setGenerateTaskId(data.taskId); },
+    onError: () => setTriggerError('觸發分析失敗，請稍後再試。'),
   });
 
   // Task polling for generation
   const { data: genTask } = useTaskPolling(generateTaskId);
+
+  // When generation task completes, refetch analysis data and reset task state
+  useEffect(() => {
+    if (genTask?.status === 'done') {
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'] });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+      setGenerateTaskId(null);
+    }
+  }, [genTask?.status, bookId, selectedEntityId, queryClient]);
 
   // Find selected item in analyzed list
   const selectedAnalyzed = activeData?.analyzed.find((a) => a.entityId === selectedEntityId);
@@ -89,7 +102,7 @@ export default function AnalysisPage() {
           {(['characters', 'events'] as Tab[]).map((t) => (
             <button
               key={t}
-              onClick={() => { setTab(t); setSelectedEntityId(null); }}
+              onClick={() => { setTab(t); setSelectedEntityId(null); setGenerateTaskId(null); setTriggerError(null); }}
               className="flex-1 py-2 text-xs font-medium border-b-2 -mb-px"
               style={{
                 borderColor: tab === t ? 'var(--accent)' : 'transparent',
@@ -233,12 +246,36 @@ export default function AnalysisPage() {
             </h2>
             <MarkdownRenderer content={entityAnalysis.content} />
           </div>
-        ) : generateTaskId && genTask ? (
+        ) : genTask?.status === 'error' ? (
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
+            <AlertTriangle size={24} style={{ color: 'var(--color-danger, #e53e3e)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-danger, #e53e3e)' }}>
+              分析失敗{genTask.error ? `：${genTask.error}` : ''}
+            </p>
+            <button
+              className="btn btn-secondary text-xs"
+              onClick={() => { setGenerateTaskId(null); triggerMutation.reset(); setTriggerError(null); }}
+            >
+              重試
+            </button>
+          </div>
+        ) : generateTaskId && genTask && genTask.status !== 'done' ? (
           <div className="flex flex-col items-center justify-center h-48 gap-2">
             <LoadingSpinner />
             <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>
               {genTask.stage} ({genTask.progress}%)
             </p>
+          </div>
+        ) : triggerError ? (
+          <div className="flex flex-col items-center justify-center h-48 gap-3">
+            <AlertTriangle size={24} style={{ color: 'var(--color-danger, #e53e3e)' }} />
+            <p className="text-sm" style={{ color: 'var(--color-danger, #e53e3e)' }}>{triggerError}</p>
+            <button
+              className="btn btn-secondary text-xs"
+              onClick={() => setTriggerError(null)}
+            >
+              確認
+            </button>
           </div>
         ) : (
           <div className="flex items-center justify-center h-48">
@@ -257,6 +294,10 @@ export default function AnalysisPage() {
             setConfirmRegenerate(false);
             if (selectedEntityId && bookId) {
               deleteEntityAnalysis(bookId, selectedEntityId).then(() => {
+                // Invalidate list so selectedAnalyzed becomes null, allowing spinner to show
+                queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
+                queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+                queryClient.invalidateQueries({ queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'] });
                 triggerMutation.mutate(selectedEntityId);
               });
             }
