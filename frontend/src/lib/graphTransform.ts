@@ -25,6 +25,8 @@ export function toCytoscapeElements(graphData: GraphData): CytoscapeElement[] {
         size: mapSize(node.chunkCount),
         chunkCount: node.chunkCount,
         description: node.description,
+        eventType: node.eventType,
+        chapter: node.chapter,
       },
     });
   }

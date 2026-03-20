@@ -116,6 +116,8 @@ class GraphNode(BaseModel):
     type: str
     description: str | None = None
     chunk_count: int = 0
+    event_type: str | None = None
+    chapter: int | None = None
 
 
 class GraphEdge(BaseModel):
@@ -662,7 +664,119 @@ async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> 
             ).model_dump(by_alias=True)
         )
 
+    # Add event nodes + edges
+    events = await kg.get_events(document_id=book_id)
+    for event in events:
+        nodes.append(
+            GraphNode(
+                id=event.id,
+                name=event.title,
+                type="event",
+                description=event.description,
+                chunk_count=len(event.participants),
+                event_type=event.event_type.value,
+                chapter=event.chapter,
+            ).model_dump(by_alias=True)
+        )
+        for pid in event.participants:
+            if pid in entity_ids:
+                edges.append(
+                    GraphEdge(
+                        id=f"evt-{event.id}-{pid}",
+                        source=event.id,
+                        target=pid,
+                        label="participates_in",
+                    ).model_dump(by_alias=True)
+                )
+        if event.location_id and event.location_id in entity_ids:
+            edges.append(
+                GraphEdge(
+                    id=f"evt-{event.id}-loc",
+                    source=event.id,
+                    target=event.location_id,
+                    label="occurs_at",
+                ).model_dump(by_alias=True)
+            )
+
     return GraphDataResponse(nodes=nodes, edges=edges).model_dump(by_alias=True)
+
+
+# ── #9a GET /books/:bookId/events/:eventId ───────────────────────────────────
+
+
+class EventParticipant(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    id: str
+    name: str
+    type: str
+
+
+class EventLocation(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    id: str
+    name: str
+
+
+class EventDetailResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    id: str
+    title: str
+    event_type: str
+    description: str
+    chapter: int
+    significance: str | None = None
+    consequences: list[str] = []
+    participants: list[EventParticipant] = []
+    location: EventLocation | None = None
+
+
+@router.get("/{book_id}/events/{event_id}", response_model=EventDetailResponse)
+async def get_event_detail(
+    book_id: str, event_id: str, doc: DocServiceDep, kg: KGServiceDep
+) -> dict:
+    """Get event detail with resolved participant and location names."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    event = await kg.get_event(event_id)
+    if event is None or event.document_id != book_id:
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
+
+    # Resolve participant names
+    participants: list[dict] = []
+    for pid in event.participants:
+        entity = await kg.get_entity(pid)
+        if entity:
+            participants.append(
+                EventParticipant(
+                    id=entity.id, name=entity.name, type=entity.entity_type.value
+                ).model_dump(by_alias=True)
+            )
+
+    # Resolve location name
+    location = None
+    if event.location_id:
+        loc_entity = await kg.get_entity(event.location_id)
+        if loc_entity:
+            location = EventLocation(
+                id=loc_entity.id, name=loc_entity.name
+            ).model_dump(by_alias=True)
+
+    return EventDetailResponse(
+        id=event.id,
+        title=event.title,
+        event_type=event.event_type.value,
+        description=event.description,
+        chapter=event.chapter,
+        significance=event.significance,
+        consequences=event.consequences,
+        participants=participants,
+        location=location,
+    ).model_dump(by_alias=True)
 
 
 # ── #6 POST /books/:bookId/analyze ──────────────────────────────────────────

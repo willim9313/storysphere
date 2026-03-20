@@ -7,10 +7,11 @@ import { toCytoscapeElements } from '@/lib/graphTransform';
 import { GraphCanvas } from '@/components/graph/GraphCanvas';
 import { GraphToolbar } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
+import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
-import { fetchEntityAnalysis } from '@/api/analysis';
+import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
 import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
 import type { GraphNode, EntityChunkItem } from '@/api/types';
@@ -157,17 +158,30 @@ export default function GraphPage() {
             transition: 'right 200ms ease',
           }}
         >
-          <EntityDetailPanel
-            key={selectedNode.id}
-            node={selectedNode}
-            bookId={bookId}
-            onClose={() => {
-              setSelectedNodeId(null);
-              setRightPanel(null);
-            }}
-            onShowAnalysis={() => setRightPanel('analysis')}
-            onShowParagraphs={() => setRightPanel('paragraphs')}
-          />
+          {selectedNode.type === 'event' ? (
+            <EventDetailPanel
+              key={selectedNode.id}
+              node={selectedNode}
+              bookId={bookId}
+              onClose={() => {
+                setSelectedNodeId(null);
+                setRightPanel(null);
+              }}
+              onShowAnalysis={() => setRightPanel('analysis')}
+            />
+          ) : (
+            <EntityDetailPanel
+              key={selectedNode.id}
+              node={selectedNode}
+              bookId={bookId}
+              onClose={() => {
+                setSelectedNodeId(null);
+                setRightPanel(null);
+              }}
+              onShowAnalysis={() => setRightPanel('analysis')}
+              onShowParagraphs={() => setRightPanel('paragraphs')}
+            />
+          )}
         </div>
       )}
 
@@ -201,11 +215,28 @@ export default function GraphPage() {
 }
 
 function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphNode; onClose: () => void }) {
-  const { data: analysis, isLoading } = useQuery({
+  const isEvent = node.type === 'event';
+
+  const { data: entityAnalysis, isLoading: entityLoading } = useQuery({
     queryKey: ['books', bookId, 'entities', node.id, 'analysis'],
     queryFn: () => fetchEntityAnalysis(bookId, node.id),
     retry: false,
+    enabled: !isEvent,
   });
+
+  const { data: eventAnalyses, isLoading: eventLoading } = useQuery({
+    queryKey: ['books', bookId, 'analysis', 'events'],
+    queryFn: () => fetchEventAnalyses(bookId),
+    retry: false,
+    enabled: isEvent,
+  });
+
+  const eventAnalysis = isEvent
+    ? eventAnalyses?.analyzed.find((a) => a.entityId === node.id)
+    : undefined;
+
+  const isLoading = isEvent ? eventLoading : entityLoading;
+  const content = isEvent ? eventAnalysis?.content : entityAnalysis?.content;
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -214,7 +245,7 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
         style={{ borderBottom: '1px solid var(--border)' }}
       >
         <h3 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
-          {node.name} — 深度分析
+          {node.name} — {isEvent ? '事件分析' : '深度分析'}
         </h3>
         <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
           <X size={16} />
@@ -226,10 +257,10 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
             <Loader size={12} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />
             <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>載入中...</span>
           </div>
-        ) : analysis ? (
-          <MarkdownRenderer content={analysis.content} compact />
+        ) : content ? (
+          <MarkdownRenderer content={content} compact />
         ) : (
-          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>尚無深度分析資料。</p>
+          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>尚無{isEvent ? '事件' : '深度'}分析資料。</p>
         )}
       </div>
     </div>

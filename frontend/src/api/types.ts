@@ -96,6 +96,20 @@ export interface GraphNode {
   type: EntityType;
   description?: string;
   chunkCount: number;
+  eventType?: string;
+  chapter?: number;
+}
+
+export interface EventDetail {
+  id: string;
+  title: string;
+  eventType: string;
+  description: string;
+  chapter: number;
+  significance?: string;
+  consequences: string[];
+  participants: { id: string; name: string; type: EntityType }[];
+  location?: { id: string; name: string };
 }
 
 export interface GraphEdge {
