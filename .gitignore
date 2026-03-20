@@ -58,6 +58,7 @@ Thumbs.db
 # ========== Logs ==========
 *.log
 logs/
+\# Optional log file path
 
 # ========== Data & Uploads ==========
 data/uploads/
