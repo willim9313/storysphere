@@ -44,6 +44,7 @@ class IngestionResult:
     keywords_extracted: int = 0
     chapters_summarized: int = 0
     book_summary_generated: bool = False
+    language: str = "en"
     entities: int = 0
     relations: int = 0
     events: int = 0
@@ -122,6 +123,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         input_data: Path,
         *,
         title: str | None = None,
+        language: str | None = None,
         progress_cb: Optional[callable] = None,
     ) -> IngestionResult:
         """Ingest a novel file end-to-end.
@@ -155,11 +157,17 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         # Override document title if caller supplied one
         if title:
             doc.title = title
+
+        # ── Language detection ────────────────────────────────────────────
+        from core.language_detection import detect_language_from_document  # noqa: PLC0415
+
+        doc.language = language or detect_language_from_document(doc)
         logger.info(
-            "IngestionWorkflow: doc '%s' — %d chapters, %d paragraphs",
+            "IngestionWorkflow: doc '%s' — %d chapters, %d paragraphs, lang=%s",
             doc.title,
             doc.total_chapters,
             doc.total_paragraphs,
+            doc.language,
         )
 
         # ── Step 1b: summarization ───────────────────────────────────────────
@@ -222,6 +230,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             keywords_extracted=feat_result.keywords_extracted,
             chapters_summarized=summ_result.chapters_summarized,
             book_summary_generated=summ_result.book_summary_generated,
+            language=doc.language,
             entities=len(kg_result.entities),
             relations=len(kg_result.relations),
             events=len(kg_result.events),

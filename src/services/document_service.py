@@ -43,6 +43,7 @@ class _DocumentRow(_Base):
     processed_at = Column(String, nullable=True)
     summary = Column(Text, nullable=True)
     keywords_json = Column(Text, nullable=True)  # JSON-encoded dict[str, float]
+    language = Column(String, nullable=False, server_default="en")
 
 
 class _ChapterRow(_Base):
@@ -97,14 +98,16 @@ class DocumentService:
         """Create all tables (idempotent — safe to call on every startup)."""
         async with self._engine.begin() as conn:
             await conn.run_sync(_Base.metadata.create_all)
-        # Migration: add entities_json to existing paragraphs table
+        # Migrations: add columns to existing tables
         async with self._engine.begin() as conn:
-            try:
-                await conn.execute(
-                    sa_text("ALTER TABLE paragraphs ADD COLUMN entities_json TEXT")
-                )
-            except Exception:
-                pass  # column already exists
+            for stmt in [
+                "ALTER TABLE paragraphs ADD COLUMN entities_json TEXT",
+                "ALTER TABLE documents ADD COLUMN language TEXT NOT NULL DEFAULT 'en'",
+            ]:
+                try:
+                    await conn.execute(sa_text(stmt))
+                except Exception:
+                    pass  # column already exists
         logger.info("DocumentService: database tables initialised")
 
     # ── Save ─────────────────────────────────────────────────────────────────
@@ -130,6 +133,7 @@ class DocumentService:
                             else None
                         ),
                         summary=document.summary,
+                        language=document.language,
                     )
                 )
 
@@ -236,12 +240,21 @@ class DocumentService:
                 file_type=FileType(doc_row.file_type),
                 chapters=chapters,
                 summary=doc_row.summary,
+                language=doc_row.language or "en",
                 processed_at=(
                     datetime.fromisoformat(doc_row.processed_at)
                     if doc_row.processed_at
                     else None
                 ),
             )
+
+    async def get_document_language(self, document_id: str) -> str:
+        """Return the detected/configured language for a document, or ``'en'``."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(_DocumentRow.language).where(_DocumentRow.id == document_id)
+            )
+            return result.scalar_one_or_none() or "en"
 
     async def list_documents(self) -> list[dict[str, str]]:
         """Return a lightweight list of {id, title, file_type} dicts."""

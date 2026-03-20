@@ -24,5 +24,7 @@ class EntityExtractor:
     def __init__(self, llm=None) -> None:
         self._svc = ExtractionService(llm=llm)
 
-    async def extract(self, text: str, chapter_number: int) -> list[Entity]:
-        return await self._svc.extract_entities(text, chapter_number)
+    async def extract(
+        self, text: str, chapter_number: int, language: str = "en"
+    ) -> list[Entity]:
+        return await self._svc.extract_entities(text, chapter_number, language=language)

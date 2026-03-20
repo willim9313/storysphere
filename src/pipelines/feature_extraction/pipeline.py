@@ -96,7 +96,9 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
 
                 for para in paragraphs:
                     try:
-                        kws = await self._keyword_extractor.extract(para.text, max_kw)
+                        kws = await self._keyword_extractor.extract(
+                            para.text, max_kw, language=doc.language
+                        )
                         para.keywords = kws
                         paragraph_keywords.append(kws)
                         total_keywords += 1

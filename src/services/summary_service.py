@@ -102,7 +102,10 @@ class SummaryService:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
-        system_prompt = _CHAPTER_SYSTEM_PROMPT + f"\nRespond in {language}."
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+
+        lang_name = get_language_display_name(language)
+        system_prompt = _CHAPTER_SYSTEM_PROMPT + f"\nRespond in {lang_name}."
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"{header}\n\n{text}"),
@@ -125,7 +128,10 @@ class SummaryService:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
-        system_prompt = _BOOK_SYSTEM_PROMPT + f"\nRespond in {language}."
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+
+        lang_name = get_language_display_name(language)
+        system_prompt = _BOOK_SYSTEM_PROMPT + f"\nRespond in {lang_name}."
         messages = [
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"{header}\n\n{chapter_text}"),

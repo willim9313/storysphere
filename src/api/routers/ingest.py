@@ -11,6 +11,8 @@ import tempfile
 from pathlib import Path
 from uuid import uuid4
 
+from typing import Optional
+
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
 
 from api.schemas.common import TaskStatus
@@ -21,7 +23,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/ingest", tags=["ingest"])
 
 
-async def _run_ingestion(task_id: str, file_path: Path, title: str) -> None:
+async def _run_ingestion(
+    task_id: str,
+    file_path: Path,
+    title: str,
+    language: Optional[str] = None,
+) -> None:
     """Background task: run IngestionWorkflow and update task store."""
     task_store.set_running(task_id)
     try:
@@ -30,7 +37,7 @@ async def _run_ingestion(task_id: str, file_path: Path, title: str) -> None:
 
         kg_service = get_kg_service()
         workflow = IngestionWorkflow(kg_service=kg_service)
-        result = await workflow.run(file_path, title=title)
+        result = await workflow.run(file_path, title=title, language=language)
         task_store.set_completed(task_id, result=result.__dict__)
         logger.info("Ingestion task %s completed: %s entities", task_id, result.entities)
     except Exception as exc:
@@ -49,6 +56,7 @@ async def ingest_document(
     background_tasks: BackgroundTasks,
     file: UploadFile,
     title: str = Form(...),
+    language: Optional[str] = Form(None),
 ) -> TaskStatus:
     """Upload a novel file (PDF or DOCX) and start ingestion in the background.
 
@@ -73,7 +81,7 @@ async def ingest_document(
 
     task_id = str(uuid4())
     task_store.create(task_id)
-    background_tasks.add_task(_run_ingestion, task_id, Path(tmp.name), title)
+    background_tasks.add_task(_run_ingestion, task_id, Path(tmp.name), title, language)
 
     return TaskStatus(task_id=task_id, status="pending")
 

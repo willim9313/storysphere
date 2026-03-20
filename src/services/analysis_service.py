@@ -205,14 +205,25 @@ class AnalysisService:
             self._llm = get_llm_client().get_with_local_fallback(temperature=t)
         return self._llm
 
+    @staticmethod
+    def _localize_prompt(prompt: str, language: str) -> str:
+        """Append a language instruction to a system prompt."""
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+
+        lang_name = get_language_display_name(language)
+        return prompt + f"\nRespond in {lang_name}."
+
     # ── Public: generate_insight (Phase 3) ─────────────────────────────────────
 
-    async def generate_insight(self, topic: str, context: str = "") -> str:
+    async def generate_insight(
+        self, topic: str, context: str = "", language: str = "en"
+    ) -> str:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
+        prompt = self._localize_prompt(_INSIGHT_SYSTEM_PROMPT, language)
         messages = [
-            SystemMessage(content=_INSIGHT_SYSTEM_PROMPT),
+            SystemMessage(content=prompt),
             HumanMessage(
                 content=f"Topic: {topic}\n\nContext:\n{context}" if context
                 else f"Topic: {topic}\n\n(No additional context provided.)"
@@ -254,7 +265,7 @@ class AnalysisService:
                 entity_id = entity.id
 
         # Step 1: Extract CEP (must complete before steps 2-4)
-        cep = await self._extract_cep(entity_name, document_id)
+        cep = await self._extract_cep(entity_name, document_id, language)
 
         # Steps 2, 3, 4 in parallel: archetypes + arc + profile
         archetype_coros = [
@@ -263,8 +274,8 @@ class AnalysisService:
         ]
         all_results = await asyncio.gather(
             *archetype_coros,
-            self._generate_character_arc(cep),
-            self._generate_profile(entity_name, cep),
+            self._generate_character_arc(cep, language),
+            self._generate_profile(entity_name, cep, language),
             return_exceptions=True,
         )
 
@@ -317,7 +328,9 @@ class AnalysisService:
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
-    async def _extract_cep(self, entity_name: str, document_id: str) -> CEPResult:
+    async def _extract_cep(
+        self, entity_name: str, document_id: str, language: str = "en"
+    ) -> CEPResult:
         """Extract Character Evidence Profile from KG + vector + keywords + LLM."""
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
@@ -405,8 +418,9 @@ class AnalysisService:
         context = "\n\n".join(context_parts) if context_parts else "(No context available)"
 
         llm = self._get_llm()
+        prompt = self._localize_prompt(_CEP_SYSTEM_PROMPT, language)
         messages = [
-            SystemMessage(content=_CEP_SYSTEM_PROMPT),
+            SystemMessage(content=prompt),
             HumanMessage(content=f"Character: {entity_name}\n\n{context}"),
         ]
         response = await llm.ainvoke(messages)
@@ -440,8 +454,11 @@ class AnalysisService:
         from config.archetypes import get_archetype_summary  # noqa: PLC0415
 
         archetype_list = get_archetype_summary(framework, language)
-        system_prompt = _ARCHETYPE_SYSTEM_PROMPT.format(
-            framework=framework, archetype_list=archetype_list
+        system_prompt = self._localize_prompt(
+            _ARCHETYPE_SYSTEM_PROMPT.format(
+                framework=framework, archetype_list=archetype_list
+            ),
+            language,
         )
 
         cep_text = cep.model_dump_json(indent=2)
@@ -474,14 +491,17 @@ class AnalysisService:
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
-    async def _generate_character_arc(self, cep: CEPResult) -> list[ArcSegment]:
+    async def _generate_character_arc(
+        self, cep: CEPResult, language: str = "en"
+    ) -> list[ArcSegment]:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         cep_text = cep.model_dump_json(indent=2)
 
         llm = self._get_llm()
+        prompt = self._localize_prompt(_ARC_SYSTEM_PROMPT, language)
         messages = [
-            SystemMessage(content=_ARC_SYSTEM_PROMPT),
+            SystemMessage(content=prompt),
             HumanMessage(content=f"Character Evidence Profile:\n{cep_text}"),
         ]
         response = await llm.ainvoke(messages)
@@ -508,14 +528,17 @@ class AnalysisService:
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
-    async def _generate_profile(self, entity_name: str, cep: CEPResult) -> CharacterProfile:
+    async def _generate_profile(
+        self, entity_name: str, cep: CEPResult, language: str = "en"
+    ) -> CharacterProfile:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         cep_text = cep.model_dump_json(indent=2)
 
         llm = self._get_llm()
+        prompt = self._localize_prompt(_PROFILE_SYSTEM_PROMPT, language)
         messages = [
-            SystemMessage(content=_PROFILE_SYSTEM_PROMPT),
+            SystemMessage(content=prompt),
             HumanMessage(content=f"Character: {entity_name}\n\nEvidence:\n{cep_text}"),
         ]
         response = await llm.ainvoke(messages)
@@ -534,6 +557,7 @@ class AnalysisService:
         self,
         event_id: str,
         document_id: str,
+        language: str = "en",
     ) -> EventAnalysisResult:
         """Run full event analysis pipeline: EEP → causality → impact → summary.
 
@@ -553,12 +577,12 @@ class AnalysisService:
         if event is None:
             raise ValueError(f"Event not found: {event_id}")
 
-        eep = await self._extract_eep(event, document_id)
+        eep = await self._extract_eep(event, document_id, language)
 
         # causality and impact are independent — run in parallel
         causality_r, impact_r = await asyncio.gather(
-            self._analyze_causality(eep, event),
-            self._analyze_impact(eep, event),
+            self._analyze_causality(eep, event, language),
+            self._analyze_impact(eep, event, language),
             return_exceptions=True,
         )
 
@@ -582,7 +606,7 @@ class AnalysisService:
         else:
             impact = impact_r
 
-        event_summary = await self._generate_event_summary(event, eep, causality, impact)
+        event_summary = await self._generate_event_summary(event, eep, causality, impact, language)
         coverage = self._compute_event_coverage(eep)
 
         return EventAnalysisResult(
@@ -605,7 +629,9 @@ class AnalysisService:
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
-    async def _extract_eep(self, event: Any, document_id: str) -> EventEvidenceProfile:
+    async def _extract_eep(
+        self, event: Any, document_id: str, language: str = "en"
+    ) -> EventEvidenceProfile:
         """Assemble EEP from KG + vector evidence, then call LLM to fill fields."""
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
@@ -681,8 +707,9 @@ class AnalysisService:
         )
 
         llm = self._get_llm()
+        prompt = self._localize_prompt(_EEP_SYSTEM_PROMPT, language)
         messages = [
-            SystemMessage(content=_EEP_SYSTEM_PROMPT),
+            SystemMessage(content=prompt),
             HumanMessage(content=human_content),
         ]
         response = await llm.ainvoke(messages)
@@ -740,7 +767,9 @@ class AnalysisService:
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
-    async def _analyze_causality(self, eep: EventEvidenceProfile, event: Any) -> CausalityAnalysis:
+    async def _analyze_causality(
+        self, eep: EventEvidenceProfile, event: Any, language: str = "en"
+    ) -> CausalityAnalysis:
         """Construct narrative causal chain leading to this event."""
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
@@ -765,8 +794,9 @@ class AnalysisService:
         )
 
         llm = self._get_llm()
+        prompt = self._localize_prompt(_CAUSALITY_SYSTEM_PROMPT, language)
         messages = [
-            SystemMessage(content=_CAUSALITY_SYSTEM_PROMPT),
+            SystemMessage(content=prompt),
             HumanMessage(content=human_content),
         ]
         response = await llm.ainvoke(messages)
@@ -791,7 +821,9 @@ class AnalysisService:
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
-    async def _analyze_impact(self, eep: EventEvidenceProfile, event: Any) -> ImpactAnalysis:
+    async def _analyze_impact(
+        self, eep: EventEvidenceProfile, event: Any, language: str = "en"
+    ) -> ImpactAnalysis:
         """Trace what happened because of this event."""
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
@@ -821,8 +853,9 @@ class AnalysisService:
         )
 
         llm = self._get_llm()
+        prompt = self._localize_prompt(_IMPACT_SYSTEM_PROMPT, language)
         messages = [
-            SystemMessage(content=_IMPACT_SYSTEM_PROMPT),
+            SystemMessage(content=prompt),
             HumanMessage(content=human_content),
         ]
         response = await llm.ainvoke(messages)
@@ -854,6 +887,7 @@ class AnalysisService:
         eep: EventEvidenceProfile,
         causality: CausalityAnalysis,
         impact: ImpactAnalysis,
+        language: str = "en",
     ) -> EventSummary:
         """Synthesize all analysis into a ~150-word narrative paragraph."""
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
@@ -873,8 +907,9 @@ class AnalysisService:
         )
 
         llm = self._get_llm()
+        prompt = self._localize_prompt(_EVENT_SUMMARY_SYSTEM_PROMPT, language)
         messages = [
-            SystemMessage(content=_EVENT_SUMMARY_SYSTEM_PROMPT),
+            SystemMessage(content=prompt),
             HumanMessage(content=human_content),
         ]
         response = await llm.ainvoke(messages)

@@ -50,7 +50,7 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
             text = "\n\n".join(p.text for p in chapter.paragraphs)
             self._log_step("summarize_chapter", chapter=chapter.number)
             chapter.summary = await self._summarizer.summarize_chapter(
-                text, chapter.number, chapter.title
+                text, chapter.number, chapter.title, language=doc.language
             )
             chapters_summarized += 1
 
@@ -69,7 +69,7 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
         if chapter_summaries:
             self._log_step("summarize_book")
             doc.summary = await self._summarizer.summarize_book(
-                chapter_summaries, doc.title
+                chapter_summaries, doc.title, language=doc.language
             )
             book_summary_generated = True
 

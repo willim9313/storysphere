@@ -90,7 +90,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
                     para=para.position,
                 )
                 para_entities = await self._entity_extractor.extract(
-                    para.text, chapter.number
+                    para.text, chapter.number, language=doc.language
                 )
                 # Count mentions across the full chapter text for context
                 for entity in para_entities:
@@ -131,7 +131,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
             ]
             self._log_step("relation_extract", chapter=chapter.number)
             relations, events = await self._relation_extractor.extract(
-                text, chapter_entities, chapter.number
+                text, chapter_entities, chapter.number, language=doc.language
             )
             all_relations.extend(relations)
             all_events.extend(events)

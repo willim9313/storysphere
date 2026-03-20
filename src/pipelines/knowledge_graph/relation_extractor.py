@@ -30,5 +30,8 @@ class RelationExtractor:
         text: str,
         entities: list[Entity],
         chapter_number: int,
+        language: str = "en",
     ) -> tuple[list[Relation], list[Event]]:
-        return await self._svc.extract_relations(text, entities, chapter_number)
+        return await self._svc.extract_relations(
+            text, entities, chapter_number, language=language
+        )

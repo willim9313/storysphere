@@ -61,6 +61,7 @@ class Document(BaseModel):
     chapters: list[Chapter] = Field(default_factory=list)
     summary: Optional[str] = None  # book-level summary
     keywords: Optional[dict[str, float]] = None
+    language: str = "en"  # ISO 639-1 code, auto-detected or user-specified
     processed_at: Optional[datetime] = None
 
     @property

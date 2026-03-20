@@ -45,7 +45,7 @@ class TestSummarizationPipeline:
     async def test_generates_chapter_and_book_summaries(self):
         mock_summarizer = AsyncMock(spec=ChapterSummarizer)
         mock_summarizer.summarize_chapter = AsyncMock(
-            side_effect=lambda text, num, title: f"Summary of chapter {num}."
+            side_effect=lambda text, num, title, language="en": f"Summary of chapter {num}."
         )
         mock_summarizer.summarize_book = AsyncMock(return_value="Full book summary.")
 

@@ -47,12 +47,15 @@ class BaseKeywordExtractor(ABC):
     """Abstract base class for keyword extractors."""
 
     @abstractmethod
-    async def extract(self, text: str, max_keywords: int = 10) -> dict[str, float]:
+    async def extract(
+        self, text: str, max_keywords: int = 10, language: str = "en"
+    ) -> dict[str, float]:
         """Extract keywords from text.
 
         Args:
             text: Input text.
             max_keywords: Maximum number of keywords to return.
+            language: ISO 639-1 code for the text language.
 
         Returns:
             Dict mapping keyword → score (higher = more relevant, range [0, 1]).
@@ -76,14 +79,19 @@ class YakeKeywordExtractor(BaseKeywordExtractor):
         self._language = language
         self._n_grams = n_grams
 
-    async def extract(self, text: str, max_keywords: int = 10) -> dict[str, float]:
+    async def extract(
+        self, text: str, max_keywords: int = 10, language: str = "en"
+    ) -> dict[str, float]:
         if not text.strip():
             return {}
 
         import yake  # noqa: PLC0415
 
+        from core.language_detection import to_yake_language  # noqa: PLC0415
+
+        yake_lang = to_yake_language(language)
         kw_extractor = yake.KeywordExtractor(
-            lan=self._language,
+            lan=yake_lang,
             n=self._n_grams,
             top=max_keywords,
             features=None,
@@ -145,10 +153,12 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
             self._llm = get_llm_client().get_with_local_fallback(temperature=0.0)
         return self._llm
 
-    async def extract(self, text: str, max_keywords: int = 10) -> dict[str, float]:
+    async def extract(
+        self, text: str, max_keywords: int = 10, language: str = "en"
+    ) -> dict[str, float]:
         if not text.strip():
             return {}
-        return await self._call_llm(text, max_keywords)
+        return await self._call_llm(text, max_keywords, language)
 
     @retry(
         retry=retry_if_exception_type((json.JSONDecodeError, ValueError, KeyError)),
@@ -156,12 +166,21 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
-    async def _call_llm(self, text: str, max_keywords: int) -> dict[str, float]:
+    async def _call_llm(
+        self, text: str, max_keywords: int, language: str = "en"
+    ) -> dict[str, float]:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+
+        lang_name = get_language_display_name(language)
+        prompt = (
+            _LLM_KEYWORD_PROMPT.format(max_keywords=max_keywords)
+            + f"\nExtract keywords in {lang_name}."
+        )
         llm = self._get_llm()
         messages = [
-            SystemMessage(content=_LLM_KEYWORD_PROMPT.format(max_keywords=max_keywords)),
+            SystemMessage(content=prompt),
             HumanMessage(content=text[:8000]),
         ]
         response = await llm.ainvoke(messages)
@@ -200,7 +219,9 @@ class TfidfKeywordExtractor(BaseKeywordExtractor):
     Uses raw term frequency normalised to [0, 1].
     """
 
-    async def extract(self, text: str, max_keywords: int = 10) -> dict[str, float]:
+    async def extract(
+        self, text: str, max_keywords: int = 10, language: str = "en"
+    ) -> dict[str, float]:
         if not text.strip():
             return {}
 
@@ -239,12 +260,14 @@ class CompositeKeywordExtractor(BaseKeywordExtractor):
             raise ValueError("CompositeKeywordExtractor requires at least one extractor")
         self._extractors = extractors
 
-    async def extract(self, text: str, max_keywords: int = 10) -> dict[str, float]:
+    async def extract(
+        self, text: str, max_keywords: int = 10, language: str = "en"
+    ) -> dict[str, float]:
         if not text.strip():
             return {}
 
         # Run all extractors concurrently
-        tasks = [ext.extract(text, max_keywords) for ext, _ in self._extractors]
+        tasks = [ext.extract(text, max_keywords, language=language) for ext, _ in self._extractors]
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
         # Weighted merge
