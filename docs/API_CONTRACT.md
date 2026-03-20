@@ -380,6 +380,40 @@ interface GraphEdge {
 
 ---
 
+### #9b GET /books/:bookId/entities/:entityId/chunks
+
+取得特定實體出現的所有段落，含實體標記。
+
+**Response 200**
+```ts
+EntityChunksResponse
+
+interface EntityChunksResponse {
+  entityId: string;
+  entityName: string;
+  total: number;
+  chunks: EntityChunkItem[];
+}
+
+interface EntityChunkItem {
+  id: string;
+  chapterId: string;
+  chapterTitle?: string;
+  chapterNumber: number;
+  order: number;
+  content: string;
+  segments: Segment[];        // 同 #5 的 Segment interface
+}
+```
+
+**Response 404**：書籍或實體不存在
+
+**說明**：回傳該實體出現的所有段落，依章節與段落順序排列。segments 包含 entity highlight 資訊，前端可直接用 SegmentRenderer 渲染。
+
+**UI 使用頁面**：知識圖譜頁「相關段落」面板
+
+---
+
 ## 非同步任務狀態
 
 ### #8 GET /tasks/:taskId/status
@@ -439,6 +473,7 @@ useQuery({
 ['books', bookId, 'analysis', 'characters']                 // #6a
 ['books', bookId, 'analysis', 'events']                     // #6b
 ['books', bookId, 'entities', entityId, 'analysis']         // #7a
+['books', bookId, 'entities', entityId, 'chunks']           // #9b
 ['books', bookId, 'graph']                                  // #9
 ['tasks', taskId]                                           // #8（polling）
 ```
@@ -454,4 +489,5 @@ useQuery({
 - [x] **#3 summary / entityStats**：已實作（entityStats 從 KG 計算）
 - [x] **#4 Chapter.topEntities**：從 ingestion-time paragraph entity linking 聚合 unique entities（舊資料 fallback 到 KG runtime matching）
 - [x] **#5 Chunk.segments entity 標注**：ingestion 時建立 paragraph ↔ entity 偏移量，API 直接從 stored offsets 建 segments（舊資料 fallback 到 runtime regex matching）
+- [x] **#9b Entity chunks**：實體相關段落 API + 前端 ParagraphsPanel 串接完成
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

@@ -178,6 +178,27 @@ class TaskIdResponse(BaseModel):
     task_id: str
 
 
+class EntityChunkItem(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    id: str
+    chapter_id: str
+    chapter_title: str | None = None
+    chapter_number: int
+    order: int
+    content: str
+    segments: list[Segment] = []
+
+
+class EntityChunksResponse(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    entity_id: str
+    entity_name: str
+    total: int
+    chunks: list[EntityChunkItem] = []
+
+
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
 
@@ -748,6 +769,56 @@ async def regenerate_analysis(
     # TODO: dispatch to correct analysis agent based on section
     task_store.set_completed(task_id, result={})
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+# ── #9b GET /books/:bookId/entities/:entityId/chunks ─────────────────────────
+
+
+@router.get(
+    "/{book_id}/entities/{entity_id}/chunks",
+    response_model=EntityChunksResponse,
+)
+async def get_entity_chunks(
+    book_id: str,
+    entity_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+) -> dict:
+    """Get all chunks (paragraphs) where a specific entity appears."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    entity = await kg.get_entity(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
+
+    rows = await doc.get_paragraphs_by_entity(book_id, entity_id)
+
+    chunks: list[dict] = []
+    for ch_id, ch_num, ch_title, p in rows:
+        if p.entities is not None:
+            segments = _build_segments_from_stored(p.text, p.entities)
+        else:
+            segments = [Segment(text=p.text)]
+        chunks.append(
+            EntityChunkItem(
+                id=p.id,
+                chapter_id=ch_id,
+                chapter_title=ch_title,
+                chapter_number=ch_num,
+                order=p.position,
+                content=p.text,
+                segments=segments,
+            ).model_dump(by_alias=True)
+        )
+
+    return EntityChunksResponse(
+        entity_id=entity_id,
+        entity_name=entity.name,
+        total=len(chunks),
+        chunks=chunks,
+    ).model_dump(by_alias=True)
 
 
 # ── #7a GET /books/:bookId/entities/:entityId/analysis ───────────────────────

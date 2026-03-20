@@ -69,6 +69,25 @@ export interface Chunk {
   segments: Segment[];
 }
 
+// ── Entity Chunks ──────────────────────────────────────────────
+
+export interface EntityChunkItem {
+  id: string;
+  chapterId: string;
+  chapterTitle?: string;
+  chapterNumber: number;
+  order: number;
+  content: string;
+  segments: Segment[];
+}
+
+export interface EntityChunksResponse {
+  entityId: string;
+  entityName: string;
+  total: number;
+  chunks: EntityChunkItem[];
+}
+
 // ── Graph ───────────────────────────────────────────────────────
 
 export interface GraphNode {

@@ -8,6 +8,7 @@ import type {
   BookDetail,
   Chapter,
   Chunk,
+  EntityChunksResponse,
   GraphData,
   TaskStatus,
   AnalysisListResponse,
@@ -62,6 +63,16 @@ export async function fetchChunks(
 ): Promise<Chunk[]> {
   await delay(200);
   return getMockChunks(chapterId);
+}
+
+// ── Entity Chunks (#9b) ───────────────────────────────────────
+
+export async function fetchEntityChunks(
+  _bookId: string,
+  entityId: string,
+): Promise<EntityChunksResponse> {
+  await delay(200);
+  return { entityId, entityName: 'Mock Entity', total: 0, chunks: [] };
 }
 
 // ── Graph (#9) ─────────────────────────────────────────────────

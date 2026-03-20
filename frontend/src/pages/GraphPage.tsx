@@ -11,7 +11,9 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { fetchEntityAnalysis } from '@/api/analysis';
-import type { GraphNode } from '@/api/types';
+import { fetchEntityChunks } from '@/api/chunks';
+import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
+import type { GraphNode, EntityChunkItem } from '@/api/types';
 
 const ALL_TYPES = new Set(['character', 'location', 'concept', 'event']);
 
@@ -19,7 +21,7 @@ type RightPanel = 'analysis' | 'paragraphs' | null;
 
 const RIGHT_PANEL_WIDTH: Record<NonNullable<RightPanel>, number> = {
   analysis: 360,
-  paragraphs: 300,
+  paragraphs: 400,
 };
 
 export default function GraphPage() {
@@ -186,6 +188,7 @@ export default function GraphPage() {
             />
           ) : (
             <ParagraphsPanel
+              bookId={bookId}
               node={selectedNode}
               onClose={() => setRightPanel(null)}
             />
@@ -232,7 +235,27 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
   );
 }
 
-function ParagraphsPanel({ node, onClose }: { node: GraphNode; onClose: () => void }) {
+function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: GraphNode; onClose: () => void }) {
+  const { data, isLoading } = useQuery({
+    queryKey: ['books', bookId, 'entities', node.id, 'chunks'],
+    queryFn: () => fetchEntityChunks(bookId, node.id),
+  });
+
+  // Group chunks by chapter
+  const grouped = useMemo(() => {
+    if (!data?.chunks) return [];
+    const map = new Map<number, { chapterId: string; title: string | undefined; chunks: EntityChunkItem[] }>();
+    for (const chunk of data.chunks) {
+      let group = map.get(chunk.chapterNumber);
+      if (!group) {
+        group = { chapterId: chunk.chapterId, title: chunk.chapterTitle, chunks: [] };
+        map.set(chunk.chapterNumber, group);
+      }
+      group.chunks.push(chunk);
+    }
+    return Array.from(map.entries()).sort(([a], [b]) => a - b);
+  }, [data]);
+
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <div
@@ -246,10 +269,42 @@ function ParagraphsPanel({ node, onClose }: { node: GraphNode; onClose: () => vo
           <X size={16} />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
-        <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-          段落面板（待後端 API 對接後實作）
-        </p>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {isLoading ? (
+          <div className="flex items-center gap-2">
+            <Loader size={12} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />
+            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>載入中...</span>
+          </div>
+        ) : data && data.total > 0 ? (
+          <>
+            <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+              共 {data.total} 個段落
+            </p>
+            {grouped.map(([chapterNum, group]) => (
+              <div key={chapterNum}>
+                <h4
+                  className="text-xs font-semibold mb-2 sticky top-0 py-1"
+                  style={{ color: 'var(--fg-secondary)', backgroundColor: 'var(--bg-primary)' }}
+                >
+                  {group.title || `第 ${chapterNum} 章`}
+                </h4>
+                <div className="space-y-2">
+                  {group.chunks.map((chunk) => (
+                    <div
+                      key={chunk.id}
+                      className="text-xs leading-relaxed p-2 rounded"
+                      style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-primary)' }}
+                    >
+                      <SegmentRenderer segments={chunk.segments} />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </>
+        ) : (
+          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>尚無相關段落資料。</p>
+        )}
       </div>
     </div>
   );

@@ -315,6 +315,47 @@ class DocumentService:
                 for pr in result.scalars().all()
             ]
 
+    async def get_paragraphs_by_entity(
+        self,
+        document_id: str,
+        entity_id: str,
+    ) -> list[tuple[str, int, str | None, Paragraph]]:
+        """Return paragraphs that mention a specific entity.
+
+        Returns a list of (chapter_id, chapter_number, chapter_title, Paragraph)
+        tuples, ordered by chapter_number then position.
+        """
+        async with self._session_factory() as session:
+            query = (
+                select(_ParagraphRow, _ChapterRow.id, _ChapterRow.title)
+                .join(_ChapterRow, _ParagraphRow.chapter_id == _ChapterRow.id)
+                .where(
+                    _ParagraphRow.document_id == document_id,
+                    _ParagraphRow.entities_json.isnot(None),
+                )
+                .order_by(_ParagraphRow.chapter_number, _ParagraphRow.position)
+            )
+            result = await session.execute(query)
+            rows = result.all()
+
+        matches: list[tuple[str, int, str | None, Paragraph]] = []
+        for pr, ch_id, ch_title in rows:
+            entities_list = json.loads(pr.entities_json)
+            if not any(e.get("entity_id") == entity_id for e in entities_list):
+                continue
+            paragraph = Paragraph(
+                id=pr.id,
+                text=pr.text,
+                chapter_number=pr.chapter_number,
+                position=pr.position,
+                embedding=(
+                    json.loads(pr.embedding_json) if pr.embedding_json else None
+                ),
+                entities=[ParagraphEntity(**e) for e in entities_list],
+            )
+            matches.append((ch_id, pr.chapter_number, ch_title, paragraph))
+        return matches
+
     async def get_book_summary(self, document_id: str) -> str | None:
         """Return the book-level summary for a document, or None."""
         async with self._session_factory() as session:
