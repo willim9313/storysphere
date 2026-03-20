@@ -677,9 +677,11 @@ class AnalysisService:
         top_terms: dict[str, float] = {}
         if self._keyword_service is not None:
             try:
-                top_terms = await self._keyword_service.get_chapter_keywords(
+                result = await self._keyword_service.get_chapter_keywords(
                     document_id, event.chapter
                 )
+                if result is not None:
+                    top_terms = result
             except Exception:
                 logger.debug("Keyword retrieval failed for event %s", event.id, exc_info=True)
 

@@ -82,7 +82,7 @@ class TestAnalyzeEventCacheMiss:
 
         assert isinstance(result, EventAnalysisResult)
         assert result.event_id == "evt-1"
-        service.analyze_event.assert_awaited_once_with(event_id="evt-1", document_id="doc-1")
+        service.analyze_event.assert_awaited_once_with(event_id="evt-1", document_id="doc-1", language="en")
         cache.set.assert_awaited_once()
         # Verify cache key format
         cache_key = cache.set.call_args[0][0]

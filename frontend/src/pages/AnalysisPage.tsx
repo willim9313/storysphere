@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
-import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis } from '@/api/analysis';
+import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis, triggerEventAnalysis, deleteEventAnalysis } from '@/api/analysis';
 import { AnalysisAccordion } from '@/components/analysis/AnalysisAccordion';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -36,13 +36,16 @@ export default function AnalysisPage() {
   const { data: entityAnalysis, isLoading: analysisLoading } = useQuery({
     queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'],
     queryFn: () => fetchEntityAnalysis(bookId!, selectedEntityId!),
-    enabled: !!bookId && !!selectedEntityId,
+    enabled: !!bookId && !!selectedEntityId && tab === 'characters',
   });
 
-  // Trigger entity analysis
+  // Trigger analysis (entity or event based on active tab)
   const [triggerError, setTriggerError] = useState<string | null>(null);
   const triggerMutation = useMutation({
-    mutationFn: (entityId: string) => triggerEntityAnalysis(bookId!, entityId),
+    mutationFn: (id: string) =>
+      tab === 'events'
+        ? triggerEventAnalysis(bookId!, id)
+        : triggerEntityAnalysis(bookId!, id),
     onSuccess: (data) => { setTriggerError(null); setGenerateTaskId(data.taskId); },
     onError: () => setTriggerError('觸發分析失敗，請稍後再試。'),
   });
@@ -293,7 +296,8 @@ export default function AnalysisPage() {
           onConfirm={() => {
             setConfirmRegenerate(false);
             if (selectedEntityId && bookId) {
-              deleteEntityAnalysis(bookId, selectedEntityId).then(() => {
+              const deleteFn = tab === 'events' ? deleteEventAnalysis : deleteEntityAnalysis;
+              deleteFn(bookId, selectedEntityId).then(() => {
                 // Invalidate list so selectedAnalyzed becomes null, allowing spinner to show
                 queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
                 queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });

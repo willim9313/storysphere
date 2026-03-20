@@ -1088,3 +1088,72 @@ async def delete_entity_analysis(
     cache_key = AnalysisCache.make_key("character", book_id, entity.name)
     await cache.invalidate(cache_key)
     logger.info("Deleted entity analysis cache: key=%s", cache_key)
+
+
+# ── #7d POST /books/:bookId/events/:eventId/analyze ─────────────────────────
+
+
+async def _run_event_analysis(
+    task_id: str, event_id: str, document_id: str, agent, language: str = "en"
+) -> None:
+    logger.info("Event analysis task %s started: event=%s, doc=%s", task_id, event_id, document_id)
+    task_store.set_running(task_id)
+    try:
+        result = await agent.analyze_event(
+            event_id=event_id,
+            document_id=document_id,
+            language=language,
+        )
+        task_store.set_completed(task_id, result=result.model_dump())
+        logger.info("Event analysis task %s completed: event=%s", task_id, event_id)
+    except Exception as exc:
+        logger.exception("Event analysis task %s failed: event=%s", task_id, event_id)
+        task_store.set_failed(task_id, error=str(exc))
+
+
+@router.post(
+    "/{book_id}/events/{event_id}/analyze",
+    response_model=TaskIdResponse,
+)
+async def trigger_event_analysis(
+    book_id: str,
+    event_id: str,
+    kg: KGServiceDep,
+    doc: DocServiceDep,
+    agent: AnalysisAgentDep,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Trigger deep analysis for a single event."""
+    event = await kg.get_event(event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
+
+    language = await doc.get_document_language(book_id)
+    logger.info(
+        "Triggering event analysis: event=%s (%s), book=%s, lang=%s",
+        event.title, event_id, book_id, language,
+    )
+    task_id = str(uuid4())
+    task_store.create(task_id)
+    background_tasks.add_task(
+        _run_event_analysis, task_id, event_id, book_id, agent, language
+    )
+
+    return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+# ── #7e DELETE /books/:bookId/events/:eventId/analysis ───────────────────────
+
+
+@router.delete("/{book_id}/events/{event_id}/analysis", status_code=204)
+async def delete_event_analysis(
+    book_id: str, event_id: str, cache: AnalysisCacheDep, kg: KGServiceDep
+) -> None:
+    """Delete event analysis from cache."""
+    event = await kg.get_event(event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
+
+    cache_key = f"event:{book_id}:{event_id}"
+    await cache.invalidate(cache_key)
+    logger.info("Deleted event analysis cache: key=%s", cache_key)

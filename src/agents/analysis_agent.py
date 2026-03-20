@@ -116,6 +116,7 @@ class AnalysisAgent:
         self,
         event_id: str,
         document_id: str,
+        language: str = "en",
         force_refresh: bool = False,
     ) -> EventAnalysisResult:
         """Run event analysis with cache-first strategy.
@@ -123,6 +124,7 @@ class AnalysisAgent:
         Args:
             event_id: Event ID from the KG.
             document_id: Source document ID.
+            language: Output language code (default "en").
             force_refresh: If True, skip cache and re-analyze.
 
         Returns:
@@ -146,7 +148,7 @@ class AnalysisAgent:
             _metrics.record_cache_event("event", hit=False, cache_key=cache_key)
 
         try:
-            result = await self._service.analyze_event(event_id=event_id, document_id=document_id)
+            result = await self._service.analyze_event(event_id=event_id, document_id=document_id, language=language)
         except Exception as exc:
             _metrics.record_tool_execution(
                 "analyze_event",

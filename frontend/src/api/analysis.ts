@@ -63,3 +63,24 @@ export function deleteEntityAnalysis(
   if (MOCK_ENABLED) return mock.deleteEntityAnalysis(bookId, entityId);
   return apiDelete(`/books/${bookId}/entities/${entityId}/analysis`);
 }
+
+// #7d — Trigger event analysis
+export function triggerEventAnalysis(
+  bookId: string,
+  eventId: string,
+): Promise<{ taskId: string }> {
+  if (MOCK_ENABLED) return mock.triggerEntityAnalysis(bookId, eventId);
+  return apiFetch<{ taskId: string }>(
+    `/books/${bookId}/events/${eventId}/analyze`,
+    { method: 'POST' },
+  );
+}
+
+// #7e — Delete event analysis
+export function deleteEventAnalysis(
+  bookId: string,
+  eventId: string,
+): Promise<void> {
+  if (MOCK_ENABLED) return mock.deleteEntityAnalysis(bookId, eventId);
+  return apiDelete(`/books/${bookId}/events/${eventId}/analysis`);
+}
