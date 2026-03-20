@@ -1,6 +1,9 @@
 import { useEffect, useRef } from 'react';
 import cytoscape from 'cytoscape';
+import fcose from 'cytoscape-fcose';
 import { cytoscapeStylesheet, layoutOptions } from '@/lib/cytoscapeConfig';
+
+cytoscape.use(fcose);
 
 interface GraphCanvasProps {
   readonly elements: cytoscape.ElementDefinition[];

@@ -6,10 +6,10 @@ interface CytoscapeElement {
 }
 
 function mapSize(chunkCount: number): number {
-  const min = 20;
-  const max = 60;
+  const min = 14;
+  const max = 32;
   const clamped = Math.min(Math.max(chunkCount, 1), 100);
-  return min + ((max - min) * Math.log(clamped)) / Math.log(100);
+  return min + (max - min) * Math.sqrt(clamped / 100);
 }
 
 export function toCytoscapeElements(graphData: GraphData): CytoscapeElement[] {
@@ -30,6 +30,7 @@ export function toCytoscapeElements(graphData: GraphData): CytoscapeElement[] {
   }
 
   for (const edge of graphData.edges) {
+    const w = edge.weight ?? 0.5;
     elements.push({
       group: 'edges',
       data: {
@@ -37,6 +38,8 @@ export function toCytoscapeElements(graphData: GraphData): CytoscapeElement[] {
         source: edge.source,
         target: edge.target,
         label: edge.label ?? '',
+        weight: w,
+        edgeLength: 190 - 100 * w,
       },
     });
   }

@@ -84,6 +84,7 @@ export interface GraphEdge {
   source: string;
   target: string;
   label?: string;
+  weight?: number;
 }
 
 export interface GraphData {

@@ -78,12 +78,15 @@ export const cytoscapeStylesheet: any[] = [
   },
 ];
 
-export const layoutOptions: cytoscape.LayoutOptions = {
-  name: 'cose',
+export const layoutOptions = {
+  name: 'fcose',
   animate: true,
   animationDuration: 500,
-  nodeRepulsion: () => 8000,
-  idealEdgeLength: () => 100,
-  gravity: 0.25,
+  quality: 'default',
+  nodeSeparation: 60,
+  idealEdgeLength: (edge: cytoscape.EdgeSingular) =>
+    edge.data('edgeLength') ?? 140,
+  nodeRepulsion: () => 45000,
+  gravity: 0.12,
   padding: 40,
 } as cytoscape.LayoutOptions;
