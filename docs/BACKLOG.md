@@ -112,9 +112,9 @@
 
 ---
 
-### B-010 Composite Tool #5（預留）
+### B-010 Composite Tool #5 → ✅ 已完成
 **背景**: CORE.md 設計 3-5 個 composite tools，目前只有 4 個
-**候選**: `GetEventProfileTool`（事件完整檔案：EEP + timeline + participants）
+**實作**: `GetEventProfileTool` — 輕量級 no-LLM 事件資料聚合器（事件屬性 + 參與者 + timeline context + 段落 + 章節摘要）
 
 ---
 
@@ -139,7 +139,7 @@
 | B-007 | 多語系傳遞統一 | 🟡 中 | ✅ 完成 |
 | B-008 | Neo4j Backend | 🟢 低 | 待開始 |
 | B-009 | GetChapterSummaryTool | 🟢 低 | ✅ 完成 |
-| B-010 | Composite Tool #5 | 🟢 低 | 待開始 |
+| B-010 | Composite Tool #5 | 🟢 低 | ✅ 完成 |
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
 | B-012 | 前端後端 API 整合驗證 | 🟡 中 | 待開始 |
 | B-013 | LLMKeywordExtractor 解析強化 | 🟡 中 | 待開始 |

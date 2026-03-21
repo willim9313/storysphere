@@ -230,6 +230,12 @@ class CompareCharactersInput(BaseModel):
     entity_b: str = Field(description="Second character entity ID or name.")
 
 
+class GetEventProfileInput(BaseModel):
+    """Input for comprehensive event profile (composite tool)."""
+
+    event_id: str = Field(description="The event ID (UUID).")
+
+
 # ── Analysis Output Schemas (documentation / Phase 5 validation) ─────────
 
 

@@ -98,10 +98,17 @@ def mock_kg_service():
     svc.get_relations = AsyncMock(return_value=[ALICE_BOB_REL])
 
     # Events / timeline
-    battle = make_event("The Battle", chapter=3, participants=["ent-alice"])
-    meeting = make_event("The Meeting", chapter=1, participants=["ent-alice", "ent-bob"])
+    battle = make_event("The Battle", chapter=3, participants=["ent-alice"], id="evt-battle")
+    meeting = make_event("The Meeting", chapter=1, participants=["ent-alice", "ent-bob"], id="evt-meeting")
     svc.get_events = AsyncMock(return_value=[battle, meeting])
     svc.get_entity_timeline = AsyncMock(return_value=[meeting, battle])
+
+    # Event lookup by ID
+    async def _get_event(eid):
+        events = {"evt-battle": battle, "evt-meeting": meeting}
+        return events.get(eid)
+
+    svc.get_event = AsyncMock(side_effect=_get_event)
 
     # Paths
     svc.get_relation_paths = AsyncMock(

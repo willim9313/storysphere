@@ -16,6 +16,7 @@ from tools.composite_tools import (
     CompareCharactersTool,
     GetCharacterArcTool,
     GetEntityProfileTool,
+    GetEventProfileTool,
     GetEntityRelationshipTool,
 )
 from tools.graph_tools import (
@@ -96,8 +97,13 @@ def get_chat_tools(
             if analysis_agent is not None
             else []
         ),
-        # Composite tools (4)
+        # Composite tools (5)
         GetEntityProfileTool(
+            kg_service=kg_service,
+            doc_service=doc_service,
+            vector_service=vector_service,
+        ),
+        GetEventProfileTool(
             kg_service=kg_service,
             doc_service=doc_service,
             vector_service=vector_service,
@@ -169,6 +175,7 @@ def get_all_tool_names() -> list[str]:
         "compare_entities",
         # Composite tools (Phase 4)
         "get_entity_profile",
+        "get_event_profile",
         "get_entity_relationship",
         "get_character_arc",
         "compare_characters",
