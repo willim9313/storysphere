@@ -161,7 +161,9 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
         return await self._call_llm(text, max_keywords, language)
 
     @retry(
-        retry=retry_if_exception_type((json.JSONDecodeError, ValueError, KeyError)),
+        retry=retry_if_exception_type(
+            (json.JSONDecodeError, ValueError, KeyError, ConnectionError, TimeoutError)
+        ),
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
@@ -189,15 +191,16 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
 
     @staticmethod
     def _parse_response(content: str) -> dict[str, float]:
-        """Parse LLM JSON response, stripping markdown fences if present."""
-        content = content.strip()
-        if content.startswith("```"):
-            lines = content.splitlines()
-            content = "\n".join(
-                line for line in lines if not line.strip().startswith("```")
-            ).strip()
+        """Parse LLM JSON response using robust 4-step fallback extractor."""
+        from core.utils.output_extractor import extract_json_from_text  # noqa: PLC0415
 
-        data = json.loads(content)
+        data, error_tag = extract_json_from_text(content)
+        if data is None:
+            raise ValueError(f"Failed to parse keyword JSON: {error_tag}")
+
+        if not isinstance(data, dict):
+            raise ValueError(f"Expected JSON object, got {type(data).__name__}")
+
         keywords = data.get("keywords", [])
         result: dict[str, float] = {}
         for item in keywords:

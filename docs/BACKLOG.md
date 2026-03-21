@@ -142,7 +142,7 @@
 | B-010 | Composite Tool #5 | 🟢 低 | ✅ 完成 |
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
 | B-012 | 前端後端 API 整合驗證 | 🟡 中 | 待開始 |
-| B-013 | LLMKeywordExtractor 解析強化 | 🟡 中 | 待開始 |
+| B-013 | LLMKeywordExtractor 解析強化 | 🟡 中 | ✅ 完成 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
 
 ---
@@ -165,7 +165,7 @@
 
 ---
 
-### B-013 LLMKeywordExtractor 回傳解析強化
+### B-013 LLMKeywordExtractor 回傳解析強化 → ✅ 已完成
 **背景**: 本地小模型（3B）回傳 JSON 不穩定，`_parse_response` 目前有三個脆弱點：
 1. 只處理 ` ``` ` 開頭的 markdown fence，若 LLM 在 JSON 前加說明文字（如 `Here are the keywords:\n{...}`）直接 `JSONDecodeError`
 2. 不嘗試從回傳內文中抽取 `{...}` substring，整段不是合法 JSON 就失敗
@@ -190,4 +190,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-03-20
+**最後更新**: 2026-03-21
