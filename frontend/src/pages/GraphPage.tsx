@@ -2,6 +2,8 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useChatContext } from '@/contexts/ChatContext';
+import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
 import { toCytoscapeElements } from '@/lib/graphTransform';
 import { GraphCanvas } from '@/components/graph/GraphCanvas';
@@ -28,6 +30,8 @@ const RIGHT_PANEL_WIDTH: Record<NonNullable<RightPanel>, number> = {
 export default function GraphPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const [searchParams] = useSearchParams();
+  const { setPageContext } = useChatContext();
+  const { data: book } = useBook(bookId);
   const { data, isLoading, error } = useGraphData(bookId);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -91,6 +95,19 @@ export default function GraphPage() {
     if (!selectedNodeId || !data) return null;
     return data.nodes.find((n) => n.id === selectedNodeId) ?? null;
   }, [selectedNodeId, data]);
+
+  // Publish chat context
+  useEffect(() => {
+    setPageContext({ page: 'graph', bookId, bookTitle: book?.title });
+  }, [bookId, book?.title, setPageContext]);
+
+  useEffect(() => {
+    if (selectedNode) {
+      setPageContext({ selectedEntity: { id: selectedNode.id, name: selectedNode.name, type: selectedNode.type } });
+    } else {
+      setPageContext({ selectedEntity: undefined });
+    }
+  }, [selectedNode, setPageContext]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;

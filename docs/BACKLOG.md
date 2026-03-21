@@ -144,6 +144,8 @@
 | B-012 | 前端後端 API 整合驗證 | 🟡 中 | 待開始 |
 | B-013 | LLMKeywordExtractor 解析強化 | 🟡 中 | ✅ 完成 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
+| B-015 | Chat Agent Prompt & Flow Review | 🔴 高 | 待開始 |
+| B-016 | Chat Context 切頁殘留 | 🔴 高 | 待開始 |
 
 ---
 
@@ -186,6 +188,29 @@
 - 前端 `uploadBook(file)` 只傳 file（不含 title），後端 `POST /books/upload` 需對應
 
 **驗收**: `VITE_MOCK=false` 時，Library → Upload → Reader → Analysis → Graph 端到端可跑通
+
+---
+
+### B-015 Chat Agent Prompt & Flow Review
+**背景**: Chat Agent 目前會直接傾倒工具原始輸出，未根據使用者問題整理回應。已加 `RESPONSE RULES` 但屬於臨時修補。
+**內容**:
+- 全面審視 `_SYSTEM_PROMPT`（`chat_agent.py`）的指令品質
+- 審視各 tool 的 `description` 是否足夠精確（影響 LLM tool selection 準確率）
+- 審視 `QueryPatternRecognizer` fast-route 邏輯與 agent loop 的分工
+- 審視 `_build_context_prompt` 動態注入的 context 格式
+- 考慮加入 few-shot examples 或輸出格式指引
+**目標**: agent 回應品質穩定達到「理解問題 → 選對工具 → 整理答案」三步驟
+
+---
+
+### B-016 Chat Context 切頁殘留
+**背景**: 從 Reader 切到 Graph 頁面時，chat agent 仍參考 Reader 的 chapter 資料。
+**原因**:
+1. 前端 `setPageContext` 用 merge（`{ ...prev, ...ctx }`），Graph 頁面未清除 `chapterId` / `chapterTitle`
+2. 後端 `ChatState` 的 `book_id` / `chapter_id` 是 per-session 持久的，新訊息的 context 會覆蓋但舊欄位不會自動清除
+**修法方向**:
+- 各頁面 `setPageContext` 應重置不屬於該頁面的欄位（如 Graph 清 `chapterId`/`chapterTitle`）
+- 後端 WebSocket handler 在 hydrate context 時，將未提供的欄位重置為 `None`
 
 ---
 

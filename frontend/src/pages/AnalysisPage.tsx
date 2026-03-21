@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useChatContext } from '@/contexts/ChatContext';
+import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis, triggerEventAnalysis, deleteEventAnalysis } from '@/api/analysis';
@@ -19,6 +21,8 @@ type Framework = 'jung' | 'schmidt';
 export default function AnalysisPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
+  const { setPageContext } = useChatContext();
+  const { data: book } = useBook(bookId);
   const [tab, setTab] = useState<Tab>('characters');
   const [framework, setFramework] = useState<Framework>('jung');
   const [searchQuery, setSearchQuery] = useState('');
@@ -65,6 +69,21 @@ export default function AnalysisPage() {
 
   // Find selected item in analyzed list
   const selectedAnalyzed = activeData?.analyzed.find((a) => a.entityId === selectedEntityId);
+
+  // Publish chat context
+  useEffect(() => {
+    setPageContext({ page: 'analysis', bookId, bookTitle: book?.title });
+  }, [bookId, book?.title, setPageContext]);
+
+  useEffect(() => {
+    if (selectedAnalyzed) {
+      setPageContext({
+        selectedEntity: { id: selectedAnalyzed.entityId, name: selectedAnalyzed.title, type: tab === 'characters' ? 'character' : 'event' },
+      });
+    } else {
+      setPageContext({ selectedEntity: undefined });
+    }
+  }, [selectedAnalyzed, tab, setPageContext]);
 
   // Filter by search
   const filterFn = (name: string) =>

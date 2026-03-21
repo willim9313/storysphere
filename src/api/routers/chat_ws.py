@@ -18,6 +18,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 
 from agents.states import ChatState
 from api.deps import ChatAgentDep, get_chat_agent
+from api.schemas.chat import ChatContext
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +67,16 @@ async def chat_websocket(
 
             language = data.get("language") or state.language
             state.language = language
+
+            # Hydrate page context into ChatState
+            raw_ctx = data.get("context")
+            if raw_ctx and isinstance(raw_ctx, dict):
+                ctx = ChatContext(**raw_ctx)
+                state.book_id = ctx.book_id
+                state.chapter_id = ctx.chapter_id
+                state.page_context = ctx.page
+                if ctx.selected_entity and ctx.selected_entity.get("name"):
+                    state.add_entity_mention(ctx.selected_entity["name"])
 
             try:
                 async for chunk in agent.astream(

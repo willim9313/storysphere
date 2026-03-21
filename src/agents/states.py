@@ -37,6 +37,11 @@ class ChatState(BaseModel):
     # 輸出語言（跨 turn 持續保留）
     language: str = "en"
 
+    # ===== Page context (injected from frontend) =====
+    book_id: Optional[str] = None
+    chapter_id: Optional[str] = None
+    page_context: Optional[str] = None  # "library" | "reader" | "graph" | "analysis"
+
     # ── Methods ────────────────────────────────────────────────────────────────
 
     def add_entity_mention(self, entity: str) -> None:

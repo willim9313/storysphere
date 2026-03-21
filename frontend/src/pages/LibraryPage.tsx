@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { useChatContext } from '@/contexts/ChatContext';
 import { useBooks } from '@/hooks/useBooks';
 import { BookCard } from '@/components/library/BookCard';
 import { RecentBookCard } from '@/components/library/RecentBookCard';
@@ -19,8 +20,13 @@ const filters: { key: Filter; label: string }[] = [
 ];
 
 export default function LibraryPage() {
+  const { setPageContext } = useChatContext();
   const { data: books, isLoading, error } = useBooks();
   const [filter, setFilter] = useState<Filter>('all');
+
+  useEffect(() => {
+    setPageContext({ page: 'library', bookId: undefined, bookTitle: undefined, chapterId: undefined, chapterTitle: undefined, selectedEntity: undefined });
+  }, [setPageContext]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;

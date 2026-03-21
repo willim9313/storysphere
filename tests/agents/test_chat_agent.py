@@ -109,6 +109,59 @@ class TestChatAgentChat:
         assert state.current_focus_entity == "Alice"
 
 
+class TestBuildContextPrompt:
+    def test_minimal_state(self):
+        state = ChatState()
+        prompt = ChatAgent._build_context_prompt(state, "en")
+        assert "Always respond in en" in prompt
+        assert "document_id" not in prompt
+
+    def test_auto_language(self):
+        state = ChatState()
+        prompt = ChatAgent._build_context_prompt(state, "auto")
+        assert "same language the user uses" in prompt
+
+    def test_with_book_id(self):
+        state = ChatState(book_id="book-123")
+        prompt = ChatAgent._build_context_prompt(state, "zh")
+        assert "Always respond in zh" in prompt
+        assert "book-123" in prompt
+        assert "document_id" in prompt
+
+    def test_with_chapter_id(self):
+        state = ChatState(chapter_id="ch-5")
+        prompt = ChatAgent._build_context_prompt(state, "en")
+        assert "ch-5" in prompt
+        assert "this chapter" in prompt
+
+    def test_with_focus_entity(self):
+        state = ChatState()
+        state.add_entity_mention("Elizabeth Bennet")
+        prompt = ChatAgent._build_context_prompt(state, "en")
+        assert "Elizabeth Bennet" in prompt
+
+    def test_with_page_context_graph(self):
+        state = ChatState(page_context="graph")
+        prompt = ChatAgent._build_context_prompt(state, "en")
+        assert "knowledge graph" in prompt
+
+    def test_with_page_context_reader(self):
+        state = ChatState(page_context="reader")
+        prompt = ChatAgent._build_context_prompt(state, "en")
+        assert "reader page" in prompt
+
+    def test_full_context(self):
+        state = ChatState(
+            book_id="b1", chapter_id="c2", page_context="reader"
+        )
+        state.add_entity_mention("Darcy")
+        prompt = ChatAgent._build_context_prompt(state, "en")
+        assert "b1" in prompt
+        assert "c2" in prompt
+        assert "Darcy" in prompt
+        assert "reader" in prompt
+
+
 class TestPatternRecognizerIntegration:
     def test_recognizer_is_attached(self, mock_services, mock_llm):
         kg, doc, vec = mock_services

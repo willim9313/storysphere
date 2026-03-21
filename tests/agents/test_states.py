@@ -74,6 +74,27 @@ class TestToolCache:
         assert state.get_cached_result("old_tool", ttl_seconds=300) is None
 
 
+class TestPageContextFields:
+    def test_defaults_none(self):
+        state = ChatState()
+        assert state.book_id is None
+        assert state.chapter_id is None
+        assert state.page_context is None
+
+    def test_set_page_context(self):
+        state = ChatState(book_id="b1", chapter_id="c1", page_context="reader")
+        assert state.book_id == "b1"
+        assert state.chapter_id == "c1"
+        assert state.page_context == "reader"
+
+    def test_page_context_update(self):
+        state = ChatState()
+        state.book_id = "b2"
+        state.page_context = "graph"
+        assert state.book_id == "b2"
+        assert state.page_context == "graph"
+
+
 class TestMessageHistory:
     def test_add_message(self):
         state = ChatState()

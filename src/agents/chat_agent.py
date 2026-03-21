@@ -25,6 +25,14 @@ logger = logging.getLogger(__name__)
 _SYSTEM_PROMPT = """\
 You are a novel analysis assistant. Help users explore story content using the available tools.
 
+RESPONSE RULES:
+- ALWAYS answer the user's actual question. Do NOT dump raw tool output.
+- Read the tool result, extract the relevant information, then compose a concise answer that directly addresses what the user asked.
+- If the user asks "how many", give a number first, then details if helpful.
+- If the user asks a yes/no question, answer yes or no first, then elaborate.
+- Keep answers focused and conversational. Avoid repeating the same information the user already saw.
+- Always respond in the same language the user uses.
+
 TOOL SELECTION RULES:
 - For "Who is X?" → get_entity_profile (comprehensive) or get_entity_attributes (quick)
 - For "Relationship between X and Y?" → get_entity_relationship
@@ -33,21 +41,7 @@ TOOL SELECTION RULES:
 - For finding passages → vector_search
 - For chapter overview → get_summary
 
-EXAMPLES:
-Q: "Who is Elizabeth Bennet?"
-→ get_entity_profile(entity_id="Elizabeth Bennet")
-
-Q: "What is the relationship between Elizabeth and Darcy?"
-→ get_entity_relationship(entity_a="Elizabeth Bennet", entity_b="Mr. Darcy")
-
-Q: "How does Elizabeth develop throughout the story?"
-→ get_character_arc(entity_id="Elizabeth Bennet")
-
-Q: "Compare Elizabeth and Jane"
-→ compare_characters(entity_a="Elizabeth Bennet", entity_b="Jane Bennet")
-
 DO NOT use vector_search for entity lookups. DO NOT use get_entity_attributes when the user wants relationships.
-Always respond in the same language the user uses.
 """
 
 
@@ -107,6 +101,58 @@ class ChatAgent:
         self._recognizer = QueryPatternRecognizer()
 
     @staticmethod
+    def _build_context_prompt(state: ChatState, language: str) -> str:
+        """Build a dynamic system message fragment from page context."""
+        if language and language.lower() not in ("auto", ""):
+            parts: list[str] = [f"Always respond in {language}."]
+        else:
+            parts: list[str] = ["Always reply in the same language the user uses."]
+
+        if state.book_id:
+            parts.append(
+                f"The user is currently viewing book (document_id={state.book_id}). "
+                "When calling tools that require document_id, use this value."
+            )
+        if state.chapter_id:
+            parts.append(
+                f"The user is viewing chapter_id={state.chapter_id}. "
+                'References like "this chapter" refer to this chapter.'
+            )
+        if state.current_focus_entity:
+            parts.append(
+                f"The user is focused on entity \"{state.current_focus_entity}\". "
+                "Pronouns (he/she/they/他/她) likely refer to this entity."
+            )
+        if state.page_context:
+            page_hints = {
+                "graph": "The user is on the knowledge graph page and likely interested in entities, relationships, or network structure.",
+                "reader": "The user is on the reader page and likely interested in chapter content, summaries, or passages.",
+                "analysis": "The user is on the analysis page and likely interested in character or event deep analysis.",
+                "library": "The user is on the library page browsing their books.",
+            }
+            hint = page_hints.get(state.page_context)
+            if hint:
+                parts.append(hint)
+
+        return "\n".join(parts)
+
+    @staticmethod
+    def _build_history_messages(state: ChatState) -> list:
+        """Convert ChatState conversation history to LangChain messages.
+
+        Excludes the last message (the current query) since it's added separately.
+        """
+        msgs = []
+        # All but the last message (which is the current user query just added)
+        history = state.conversation_history[:-1] if state.conversation_history else []
+        for m in history:
+            if m.role == "user":
+                msgs.append(HumanMessage(content=m.content))
+            elif m.role == "assistant":
+                msgs.append(AIMessage(content=m.content))
+        return msgs
+
+    @staticmethod
     def _default_llm():
         from core.llm_client import get_llm_client  # noqa: PLC0415
 
@@ -154,7 +200,7 @@ class ChatAgent:
                     return result
 
             # Full agent loop
-            response = await self._agent_invoke(query, language=language)
+            response = await self._agent_invoke(query, language=language, state=state)
 
             # Update state
             state.add_message("assistant", response)
@@ -190,8 +236,11 @@ class ChatAgent:
 
         from langchain_core.messages import SystemMessage  # noqa: PLC0415
 
+        context_prompt = self._build_context_prompt(state, language)
+        history = self._build_history_messages(state)
         messages = [
-            SystemMessage(content=f"Always respond in {language}."),
+            SystemMessage(content=context_prompt),
+            *history,
             HumanMessage(content=query),
         ]
         try:
@@ -205,7 +254,7 @@ class ChatAgent:
                         yield chunk.content
         except Exception:
             logger.exception("Streaming failed, falling back to non-streaming")
-            result = await self._agent_invoke(query, language=language)
+            result = await self._agent_invoke(query, language=language, state=state)
             yield result
 
     async def _fast_route(
@@ -254,15 +303,28 @@ class ChatAgent:
             logger.debug("Fast route failed for %s, falling back to agent", tool_name)
             return None
 
-    async def _agent_invoke(self, query: str, language: str = "en") -> str:
+    async def _agent_invoke(
+        self, query: str, language: str = "en", state: ChatState | None = None
+    ) -> str:
         """Invoke the LangGraph agent and extract the final response text."""
         from langchain_core.messages import SystemMessage  # noqa: PLC0415
 
         from core.metrics import get_metrics  # noqa: PLC0415
 
         _metrics = get_metrics()
+        context_prompt = (
+            self._build_context_prompt(state, language)
+            if state
+            else (
+                f"Always respond in {language}."
+                if language and language.lower() not in ("auto", "")
+                else "Always reply in the same language the user uses."
+            )
+        )
+        history = self._build_history_messages(state) if state else []
         messages = [
-            SystemMessage(content=f"Always respond in {language}."),
+            SystemMessage(content=context_prompt),
+            *history,
             HumanMessage(content=query),
         ]
         result = await self._graph.ainvoke({"messages": messages})

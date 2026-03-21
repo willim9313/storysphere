@@ -2,6 +2,43 @@
 
 from __future__ import annotations
 
+from api.schemas.chat import ChatContext, ChatIncomingMessage
+
+
+def test_chat_context_schema_defaults():
+    ctx = ChatContext()
+    assert ctx.page == "library"
+    assert ctx.book_id is None
+    assert ctx.selected_entity is None
+
+
+def test_chat_context_schema_full():
+    ctx = ChatContext(
+        page="graph",
+        book_id="b1",
+        book_title="Pride",
+        chapter_id="c1",
+        chapter_title="Ch 1",
+        selected_entity={"id": "e1", "name": "Elizabeth", "type": "character"},
+    )
+    assert ctx.page == "graph"
+    assert ctx.selected_entity["name"] == "Elizabeth"
+
+
+def test_chat_incoming_message_backward_compat():
+    msg = ChatIncomingMessage(message="hello")
+    assert msg.context is None
+
+
+def test_chat_incoming_message_with_context():
+    msg = ChatIncomingMessage(
+        message="Who?",
+        context={"page": "reader", "book_id": "b1"},
+    )
+    assert msg.context is not None
+    assert msg.context.page == "reader"
+    assert msg.context.book_id == "b1"
+
 
 def _recv_until_done(ws) -> list[dict]:
     """Receive messages until 'done' or 'error', preventing infinite hangs."""
@@ -55,3 +92,43 @@ def test_chat_ws_session_isolation(client):
         msgs = _recv_until_done(ws_b)
         assert any(m["type"] == "chunk" for m in msgs)
         assert msgs[-1]["type"] == "done"
+
+
+def test_chat_ws_with_context(client):
+    """Messages with context are accepted and processed without error."""
+    with client.websocket_connect("/ws/chat?session_id=ctx-test") as ws:
+        ws.send_json({
+            "message": "Who is this character?",
+            "context": {
+                "page": "graph",
+                "book_id": "b1",
+                "book_title": "Pride and Prejudice",
+                "selected_entity": {"id": "e1", "name": "Elizabeth", "type": "character"},
+            },
+        })
+        msgs = _recv_until_done(ws)
+        assert msgs[-1]["type"] == "done"
+
+
+def test_chat_ws_context_hydrates_state(client):
+    """Context data is written to the ChatState (check via entity mention)."""
+    from api.routers.chat_ws import _sessions, _sessions_lock
+
+    sid = "hydrate-test"
+    with client.websocket_connect(f"/ws/chat?session_id={sid}") as ws:
+        ws.send_json({
+            "message": "Tell me about her",
+            "context": {
+                "page": "analysis",
+                "book_id": "book-42",
+                "selected_entity": {"id": "e1", "name": "Jane Bennet", "type": "character"},
+            },
+        })
+        _recv_until_done(ws)
+
+        with _sessions_lock:
+            state = _sessions.get(sid)
+        if state:
+            assert state.book_id == "book-42"
+            assert state.page_context == "analysis"
+            assert "Jane Bennet" in state.detected_entities
