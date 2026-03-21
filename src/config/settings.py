@@ -118,6 +118,9 @@ class Settings(BaseSettings):
     analysis_cache_db_path: str = Field(
         default="./data/analysis_cache.db", description="SQLite path for analysis cache"
     )
+    token_usage_db_path: str = Field(
+        default="./data/token_usage.db", description="SQLite path for token usage tracking"
+    )
     analysis_temperature: float = Field(
         default=0.3, description="LLM temperature for deep analysis"
     )

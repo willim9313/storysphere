@@ -18,6 +18,7 @@ from langgraph.prebuilt import create_react_agent
 
 from agents.pattern_recognizer import QueryPatternRecognizer
 from agents.states import ChatState
+from core.token_callback import set_llm_service_context
 from tools.tool_registry import get_chat_tools
 
 logger = logging.getLogger(__name__)
@@ -243,6 +244,7 @@ class ChatAgent:
             *history,
             HumanMessage(content=query),
         ]
+        set_llm_service_context("chat")
         try:
             async for event in self._graph.astream_events(
                 {"messages": messages}, version="v2"
@@ -327,6 +329,7 @@ class ChatAgent:
             *history,
             HumanMessage(content=query),
         ]
+        set_llm_service_context("chat")
         result = await self._graph.ainvoke({"messages": messages})
 
         # Extract the last AI message; record tool selections from ToolMessages

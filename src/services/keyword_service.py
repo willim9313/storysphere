@@ -185,6 +185,9 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
             SystemMessage(content=prompt),
             HumanMessage(content=text[:8000]),
         ]
+        from core.token_callback import set_llm_service_context  # noqa: PLC0415
+
+        set_llm_service_context("keyword")
         response = await llm.ainvoke(messages)
         content = response.content if hasattr(response, "content") else str(response)
         return self._parse_response(content)

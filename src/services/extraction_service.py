@@ -235,6 +235,9 @@ class ExtractionService:
             SystemMessage(content=prompt),
             HumanMessage(content=f"Chapter text:\n\n{text[:8000]}"),
         ]
+        from core.token_callback import set_llm_service_context  # noqa: PLC0415
+
+        set_llm_service_context("extraction")
         response = await llm.ainvoke(messages)
         content = response.content if hasattr(response, "content") else str(response)
         return _parse_json_response(content)
@@ -267,6 +270,9 @@ class ExtractionService:
             SystemMessage(content=prompt),
             HumanMessage(content=user_content),
         ]
+        from core.token_callback import set_llm_service_context  # noqa: PLC0415
+
+        set_llm_service_context("extraction")
         response = await llm.ainvoke(messages)
         content = response.content if hasattr(response, "content") else str(response)
         return _parse_extraction_response(content)

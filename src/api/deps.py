@@ -85,6 +85,15 @@ def get_keyword_service():
     return KeywordService(doc_service=get_doc_service(), kg_service=get_kg_service())
 
 
+@lru_cache(maxsize=1)
+def get_token_store():
+    from config.settings import get_settings  # noqa: PLC0415
+    from core.token_store import TokenUsageStore  # noqa: PLC0415
+
+    settings = get_settings()
+    return TokenUsageStore(db_path=settings.token_usage_db_path)
+
+
 # ── Agent singletons ──────────────────────────────────────────────────────────
 
 

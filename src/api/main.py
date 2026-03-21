@@ -6,6 +6,7 @@ Run with:
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import logging.handlers
 from contextlib import asynccontextmanager
@@ -27,6 +28,7 @@ from api.routers import (
     search,
     tasks,
     tasks_ws,
+    token_usage,
 )
 
 logger = logging.getLogger(__name__)
@@ -103,9 +105,12 @@ async def lifespan(app: FastAPI):
         get_chat_agent,
         get_doc_service,
         get_kg_service,
+        get_token_store,
         get_vector_service,
     )
     from config.settings import get_settings  # noqa: PLC0415
+    from core.llm_client import get_llm_client  # noqa: PLC0415
+    from core.token_callback import set_main_event_loop  # noqa: PLC0415
     from core.tracing import configure_langsmith  # noqa: PLC0415
 
     settings = get_settings()
@@ -113,6 +118,14 @@ async def lifespan(app: FastAPI):
     _configure_file_logging()
 
     logger.info("StorySphere API starting up — initialising services...")
+
+    # Store main event loop reference for cross-thread token tracking
+    set_main_event_loop(asyncio.get_running_loop())
+
+    # Inject token store into LLM client before any LLM is built
+    token_store = get_token_store()
+    get_llm_client().set_token_store(token_store)
+
     kg = get_kg_service()
     await kg.load()
     get_doc_service()
@@ -181,6 +194,7 @@ def create_app() -> FastAPI:
     app.include_router(ingest.router, prefix=prefix)
     app.include_router(analysis.router, prefix=prefix)
     app.include_router(metrics.router, prefix=prefix)
+    app.include_router(token_usage.router, prefix=prefix)
     app.include_router(chat_ws.router)   # WS — no /api/v1 prefix
     app.include_router(tasks_ws.router)  # WS /ws/tasks/{task_id}
 

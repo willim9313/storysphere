@@ -110,6 +110,9 @@ class SummaryService:
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"{header}\n\n{text}"),
         ]
+        from core.token_callback import set_llm_service_context  # noqa: PLC0415
+
+        set_llm_service_context("summary")
         response = await llm.ainvoke(messages)
         content = response.content if hasattr(response, "content") else str(response)
         if not content.strip():
@@ -129,6 +132,7 @@ class SummaryService:
 
         llm = self._get_llm()
         from core.language_detection import get_language_display_name  # noqa: PLC0415
+        from core.token_callback import set_llm_service_context  # noqa: PLC0415
 
         lang_name = get_language_display_name(language)
         system_prompt = _BOOK_SYSTEM_PROMPT + f"\nRespond in {lang_name}."
@@ -136,6 +140,7 @@ class SummaryService:
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"{header}\n\n{chapter_text}"),
         ]
+        set_llm_service_context("summary")
         response = await llm.ainvoke(messages)
         content = response.content if hasattr(response, "content") else str(response)
         if not content.strip():

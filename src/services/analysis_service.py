@@ -13,6 +13,7 @@ from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from core.token_callback import set_llm_service_context
 from core.utils.data_sanitizer import DataSanitizer
 from core.utils.output_extractor import extract_json_from_text
 from services.analysis_models import (
@@ -229,6 +230,7 @@ class AnalysisService:
                 else f"Topic: {topic}\n\n(No additional context provided.)"
             ),
         ]
+        set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
         content = response.content if hasattr(response, "content") else str(response)
         logger.info("AnalysisService: generated insight for topic=%r  len=%d", topic, len(content))
@@ -423,6 +425,7 @@ class AnalysisService:
             SystemMessage(content=prompt),
             HumanMessage(content=f"Character: {entity_name}\n\n{context}"),
         ]
+        set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
         raw = response.content if hasattr(response, "content") else str(response)
 
@@ -468,6 +471,7 @@ class AnalysisService:
             SystemMessage(content=system_prompt),
             HumanMessage(content=f"Character Evidence Profile:\n{cep_text}"),
         ]
+        set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
         raw = response.content if hasattr(response, "content") else str(response)
 
@@ -504,6 +508,7 @@ class AnalysisService:
             SystemMessage(content=prompt),
             HumanMessage(content=f"Character Evidence Profile:\n{cep_text}"),
         ]
+        set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
         raw = response.content if hasattr(response, "content") else str(response)
 
@@ -541,6 +546,7 @@ class AnalysisService:
             SystemMessage(content=prompt),
             HumanMessage(content=f"Character: {entity_name}\n\nEvidence:\n{cep_text}"),
         ]
+        set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
         raw = response.content if hasattr(response, "content") else str(response)
 
@@ -714,6 +720,7 @@ class AnalysisService:
             SystemMessage(content=prompt),
             HumanMessage(content=human_content),
         ]
+        set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
         raw = response.content if hasattr(response, "content") else str(response)
 
@@ -801,6 +808,7 @@ class AnalysisService:
             SystemMessage(content=prompt),
             HumanMessage(content=human_content),
         ]
+        set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
         raw = response.content if hasattr(response, "content") else str(response)
 
@@ -860,6 +868,7 @@ class AnalysisService:
             SystemMessage(content=prompt),
             HumanMessage(content=human_content),
         ]
+        set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
         raw = response.content if hasattr(response, "content") else str(response)
 
@@ -914,6 +923,7 @@ class AnalysisService:
             SystemMessage(content=prompt),
             HumanMessage(content=human_content),
         ]
+        set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
         raw = response.content if hasattr(response, "content") else str(response)
 

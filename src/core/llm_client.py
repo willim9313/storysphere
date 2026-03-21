@@ -39,6 +39,17 @@ class LLMClient:
     def __init__(self, settings: Optional[Settings] = None) -> None:
         self._settings = settings or get_settings()
         self._cache: dict[str, BaseChatModel] = {}
+        self._token_store: object | None = None
+
+    def set_token_store(self, token_store: object) -> None:
+        """Inject a :class:`TokenUsageStore` for persistent token tracking.
+
+        Must be called before any ``get_*`` method so that newly built LLMs
+        include the tracking callback.  Clears the LLM cache to ensure all
+        future builds pick up the store.
+        """
+        self._token_store = token_store
+        self._cache.clear()
 
     # ── Public API ─────────────────────────────────────────────────────────────
 
@@ -167,33 +178,45 @@ class LLMClient:
             case LLMProvider.LOCAL:
                 return self._build_local(temperature, **kwargs)
 
+    def _make_callbacks(self, provider: str, model: str) -> list:
+        """Build callback list including token tracking if a store is set."""
+        from core.token_callback import TokenTrackingHandler
+
+        return [TokenTrackingHandler(provider=provider, model=model, token_store=self._token_store)]
+
     def _build_gemini(self, temperature: float, **kwargs: object) -> BaseChatModel:
         from langchain_google_genai import ChatGoogleGenerativeAI
 
+        model = str(kwargs.pop("model", self._settings.gemini_model))
         return ChatGoogleGenerativeAI(
-            model=str(kwargs.pop("model", self._settings.gemini_model)),
+            model=model,
             temperature=temperature,
             google_api_key=self._settings.gemini_api_key,
+            callbacks=self._make_callbacks("gemini", model),
             **kwargs,
         )
 
     def _build_openai(self, temperature: float, **kwargs: object) -> BaseChatModel:
         from langchain_openai import ChatOpenAI
 
+        model = str(kwargs.pop("model", self._settings.openai_model))
         return ChatOpenAI(
-            model=str(kwargs.pop("model", self._settings.openai_model)),
+            model=model,
             temperature=temperature,
             api_key=self._settings.openai_api_key,  # type: ignore[arg-type]
+            callbacks=self._make_callbacks("openai", model),
             **kwargs,
         )
 
     def _build_anthropic(self, temperature: float, **kwargs: object) -> BaseChatModel:
         from langchain_anthropic import ChatAnthropic
 
+        model = str(kwargs.pop("model", self._settings.anthropic_model))
         return ChatAnthropic(
-            model=str(kwargs.pop("model", self._settings.anthropic_model)),
+            model=model,
             temperature=temperature,
             api_key=self._settings.anthropic_api_key,  # type: ignore[arg-type]
+            callbacks=self._make_callbacks("anthropic", model),
             **kwargs,
         )
 
@@ -205,13 +228,15 @@ class LLMClient:
         """
         from langchain_openai import ChatOpenAI
 
+        model = str(kwargs.pop("model", self._settings.local_llm_model))
         return ChatOpenAI(
-            model=str(kwargs.pop("model", self._settings.local_llm_model)),
+            model=model,
             temperature=temperature,
             base_url=self._settings.local_llm_base_url,
             api_key="local",  # type: ignore[arg-type]  # dummy — not validated locally
             max_tokens=4096,   # prevent runaway generation on local models
             timeout=120,       # 120s hard timeout per request
+            callbacks=self._make_callbacks("local", model),
             **kwargs,
         )
 

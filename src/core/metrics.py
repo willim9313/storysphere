@@ -81,6 +81,21 @@ class MetricsCollector:
             "routes": collections.defaultdict(int),
             "errors": collections.defaultdict(int),
         }
+        # llm_calls: per-provider and per-service token accumulators
+        self._llm_calls: dict[str, Any] = {
+            "total": 0,
+            "success": 0,
+            "failure": 0,
+            "prompt_tokens": 0,
+            "completion_tokens": 0,
+            "total_tokens": 0,
+            "by_provider": collections.defaultdict(
+                lambda: {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            ),
+            "by_service": collections.defaultdict(
+                lambda: {"calls": 0, "prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+            ),
+        }
 
     # ------------------------------------------------------------------
     # Public record_* methods
@@ -223,24 +238,64 @@ class MetricsCollector:
         success: bool,
         latency_ms: float,
         error: str | None = None,
+        *,
+        model: str = "",
+        service: str = "",
+        prompt_tokens: int = 0,
+        completion_tokens: int = 0,
+        total_tokens: int = 0,
     ) -> None:
-        """Record an LLM API call (reserved for future instrumentation).
+        """Record an LLM API call with token usage.
 
         Args:
             provider: LLM provider name (e.g. ``"gemini"``, ``"openai"``).
             success: Whether the call succeeded.
             latency_ms: Call latency in milliseconds.
             error: Exception class name if failed.
+            model: Model identifier (e.g. ``"gemini-2.0-flash"``).
+            service: Service that made the call (e.g. ``"summary"``).
+            prompt_tokens: Number of prompt/input tokens.
+            completion_tokens: Number of completion/output tokens.
+            total_tokens: Total tokens consumed.
         """
         event: dict[str, Any] = {
             "event": "llm_call",
             "provider": provider,
+            "model": model,
+            "service": service,
             "success": success,
             "latency_ms": round(latency_ms, 2),
+            "prompt_tokens": prompt_tokens,
+            "completion_tokens": completion_tokens,
+            "total_tokens": total_tokens,
         }
         if error is not None:
             event["error"] = error
         _emit(event)
+
+        with self._lock:
+            lc = self._llm_calls
+            lc["total"] += 1
+            if success:
+                lc["success"] += 1
+            else:
+                lc["failure"] += 1
+            lc["prompt_tokens"] += prompt_tokens
+            lc["completion_tokens"] += completion_tokens
+            lc["total_tokens"] += total_tokens
+
+            bp = lc["by_provider"][provider]
+            bp["calls"] += 1
+            bp["prompt_tokens"] += prompt_tokens
+            bp["completion_tokens"] += completion_tokens
+            bp["total_tokens"] += total_tokens
+
+            if service:
+                bs = lc["by_service"][service]
+                bs["calls"] += 1
+                bs["prompt_tokens"] += prompt_tokens
+                bs["completion_tokens"] += completion_tokens
+                bs["total_tokens"] += total_tokens
 
     # ------------------------------------------------------------------
     # Stats snapshot
@@ -306,6 +361,19 @@ class MetricsCollector:
                     "routes": dict(q["routes"]),
                     "errors": dict(q["errors"]),
                 }
+            }
+
+            # llm_calls
+            lc = self._llm_calls
+            stats["llm_calls"] = {
+                "total": lc["total"],
+                "success": lc["success"],
+                "failure": lc["failure"],
+                "prompt_tokens": lc["prompt_tokens"],
+                "completion_tokens": lc["completion_tokens"],
+                "total_tokens": lc["total_tokens"],
+                "by_provider": {k: dict(v) for k, v in lc["by_provider"].items()},
+                "by_service": {k: dict(v) for k, v in lc["by_service"].items()},
             }
 
         return stats

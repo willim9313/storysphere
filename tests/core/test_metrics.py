@@ -208,3 +208,64 @@ class TestTimerContextManager:
         assert entry["total"] == 1
         assert entry["failure"] == 1
         assert entry["success"] == 0
+
+
+# ---------------------------------------------------------------------------
+# TestRecordLlmCall
+# ---------------------------------------------------------------------------
+
+
+class TestRecordLlmCall:
+    def test_accumulates_tokens(self):
+        m = MetricsCollector()
+        m.record_llm_call(
+            provider="gemini", success=True, latency_ms=200.0,
+            model="gemini-2.0-flash", service="summary",
+            prompt_tokens=100, completion_tokens=50, total_tokens=150,
+        )
+        m.record_llm_call(
+            provider="gemini", success=True, latency_ms=300.0,
+            model="gemini-2.0-flash", service="chat",
+            prompt_tokens=200, completion_tokens=80, total_tokens=280,
+        )
+        stats = m.get_stats()
+        lc = stats["llm_calls"]
+        assert lc["total"] == 2
+        assert lc["prompt_tokens"] == 300
+        assert lc["completion_tokens"] == 130
+        assert lc["total_tokens"] == 430
+
+    def test_by_provider_breakdown(self):
+        m = MetricsCollector()
+        m.record_llm_call(
+            provider="gemini", success=True, latency_ms=100.0,
+            model="gemini-2.0-flash", service="summary",
+            prompt_tokens=100, completion_tokens=50, total_tokens=150,
+        )
+        m.record_llm_call(
+            provider="openai", success=True, latency_ms=200.0,
+            model="gpt-4o-mini", service="chat",
+            prompt_tokens=200, completion_tokens=80, total_tokens=280,
+        )
+        stats = m.get_stats()
+        bp = stats["llm_calls"]["by_provider"]
+        assert bp["gemini"]["calls"] == 1
+        assert bp["openai"]["total_tokens"] == 280
+
+    def test_by_service_breakdown(self):
+        m = MetricsCollector()
+        m.record_llm_call(
+            provider="gemini", success=True, latency_ms=100.0,
+            model="gemini-2.0-flash", service="analysis",
+            prompt_tokens=500, completion_tokens=200, total_tokens=700,
+        )
+        stats = m.get_stats()
+        bs = stats["llm_calls"]["by_service"]
+        assert bs["analysis"]["calls"] == 1
+        assert bs["analysis"]["total_tokens"] == 700
+
+    def test_initial_stats_include_llm_calls(self):
+        m = MetricsCollector()
+        stats = m.get_stats()
+        assert stats["llm_calls"]["total"] == 0
+        assert stats["llm_calls"]["prompt_tokens"] == 0
