@@ -5,7 +5,10 @@ import type { BookDetail, EntityType } from '@/api/types';
 const entityTypeLabels: Record<EntityType, { label: string; cls: string }> = {
   character: { label: '角色', cls: 'pill-char' },
   location: { label: '地點', cls: 'pill-loc' },
+  organization: { label: '組織', cls: 'pill-org' },
+  object: { label: '物品', cls: 'pill-obj' },
   concept: { label: '概念', cls: 'pill-con' },
+  other: { label: '其他', cls: 'pill-other' },
   event: { label: '事件', cls: 'pill-evt' },
 };
 

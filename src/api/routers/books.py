@@ -49,8 +49,10 @@ class EntityStats(BaseModel):
 
     character: int = 0
     location: int = 0
+    organization: int = 0
+    object: int = 0
     concept: int = 0
-    event: int = 0
+    other: int = 0
 
 
 class BookDetailResponse(BookResponse):
@@ -214,8 +216,10 @@ def _entity_type_counts(entities: list) -> EntityStats:
     return EntityStats(
         character=counts.get("character", 0),
         location=counts.get("location", 0),
+        organization=counts.get("organization", 0),
+        object=counts.get("object", 0),
         concept=counts.get("concept", 0),
-        event=counts.get("event", 0),
+        other=counts.get("other", 0),
     )
 
 

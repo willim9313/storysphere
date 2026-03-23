@@ -2,7 +2,7 @@
 
 // ── Entity type ─────────────────────────────────────────────────
 
-export type EntityType = 'character' | 'location' | 'concept' | 'event';
+export type EntityType = 'character' | 'location' | 'organization' | 'object' | 'concept' | 'other' | 'event';
 
 // ── Books ───────────────────────────────────────────────────────
 
@@ -27,8 +27,10 @@ export interface BookDetail extends Book {
   entityStats: {
     character: number;
     location: number;
+    organization: number;
+    object: number;
     concept: number;
-    event: number;
+    other: number;
   };
 }
 

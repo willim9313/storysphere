@@ -9,7 +9,10 @@ import type { GraphNode, EntityType } from '@/api/types';
 const pillClass: Record<EntityType, string> = {
   character: 'pill-char',
   location: 'pill-loc',
+  organization: 'pill-org',
+  object: 'pill-obj',
   concept: 'pill-con',
+  other: 'pill-other',
   event: 'pill-evt',
 };
 

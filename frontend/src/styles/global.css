@@ -119,4 +119,25 @@
     color: var(--entity-evt-fg);
   }
   .pill-evt .pill-dot { background: var(--entity-evt-dot); }
+
+  .pill-org {
+    background: var(--entity-org-bg);
+    border: 0.5px solid var(--entity-org-border);
+    color: var(--entity-org-fg);
+  }
+  .pill-org .pill-dot { background: var(--entity-org-dot); }
+
+  .pill-obj {
+    background: var(--entity-obj-bg);
+    border: 0.5px solid var(--entity-obj-border);
+    color: var(--entity-obj-fg);
+  }
+  .pill-obj .pill-dot { background: var(--entity-obj-dot); }
+
+  .pill-other {
+    background: var(--entity-other-bg);
+    border: 0.5px solid var(--entity-other-border);
+    color: var(--entity-other-fg);
+  }
+  .pill-other .pill-dot { background: var(--entity-other-dot); }
 }

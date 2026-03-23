@@ -65,8 +65,10 @@ export const mockBookDetail: BookDetail = {
   entityStats: {
     character: 7,
     location: 3,
+    organization: 0,
+    object: 1,
     concept: 1,
-    event: 1,
+    other: 0,
   },
   uploadedAt: '2025-12-01T10:00:00Z',
   lastOpenedAt: '2026-03-14T09:30:00Z',

@@ -25,21 +25,43 @@
   --panel-fg-muted:   #8a7a68;
 
   /* Entity pill node colors */
-  --entity-char-bg:    #eef4ff;
+  /* character — 寶藍 220° */
+  --entity-char-bg:    #eff6ff;
   --entity-char-border:#bfdbfe;
-  --entity-char-fg:    #1e40af;
-  --entity-char-dot:   #3b82f6;
+  --entity-char-fg:    #1e3a8a;
+  --entity-char-dot:   #2563eb;
 
-  --entity-loc-bg:     #f0fdf4;
-  --entity-loc-border: #bbf7d0;
-  --entity-loc-fg:     #166534;
-  --entity-loc-dot:    #22c55e;
+  /* location — 翠綠 155° */
+  --entity-loc-bg:     #ecfdf5;
+  --entity-loc-border: #6ee7b7;
+  --entity-loc-fg:     #064e3b;
+  --entity-loc-dot:    #059669;
 
+  /* organization — 琥珀 38° */
+  --entity-org-bg:     #fffbeb;
+  --entity-org-border: #fcd34d;
+  --entity-org-fg:     #78350f;
+  --entity-org-dot:    #d97706;
+
+  /* object — 洋紅 300° */
+  --entity-obj-bg:     #fdf4ff;
+  --entity-obj-border: #e879f9;
+  --entity-obj-fg:     #701a75;
+  --entity-obj-dot:    #c026d3;
+
+  /* concept — 靛紫 265° */
   --entity-con-bg:     #f5f3ff;
-  --entity-con-border: #ddd6fe;
-  --entity-con-fg:     #5b21b6;
-  --entity-con-dot:    #8b5cf6;
+  --entity-con-border: #c4b5fd;
+  --entity-con-fg:     #4c1d95;
+  --entity-con-dot:    #7c3aed;
 
+  /* other — 石板灰 */
+  --entity-other-bg:     #f8fafc;
+  --entity-other-border: #cbd5e1;
+  --entity-other-fg:     #334155;
+  --entity-other-dot:    #64748b;
+
+  /* event — 緋紅（知識圖譜節點專用） */
   --entity-evt-bg:     #fff1f2;
   --entity-evt-border: #fecaca;
   --entity-evt-fg:     #991b1b;
