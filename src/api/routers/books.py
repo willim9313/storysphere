@@ -61,6 +61,7 @@ class BookDetailResponse(BookResponse):
     entity_count: int = 0
     relation_count: int = 0
     entity_stats: EntityStats = EntityStats()
+    keywords: dict[str, float] | None = None
 
 
 class TopEntity(BaseModel):
@@ -82,6 +83,7 @@ class ChapterResponse(BaseModel):
     entity_count: int = 0
     summary: str | None = None
     top_entities: list[TopEntity] | None = None
+    keywords: dict[str, float] | None = None
 
 
 class SegmentEntity(BaseModel):
@@ -297,7 +299,7 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
                 id=item["id"],
                 title=item["title"],
                 status="ready",
-                chapter_count=0,
+                chapter_count=item.get("chapter_count", 0),
                 entity_count=len(book_entities),
                 uploaded_at=_now_iso(),
             ).model_dump(by_alias=True)
@@ -336,6 +338,7 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         entity_count=len(book_entities),
         relation_count=book_relation_count,
         entity_stats=stats,
+        keywords=document.keywords,
         uploaded_at=(
             document.processed_at.isoformat() if document.processed_at else _now_iso()
         ),
@@ -466,6 +469,7 @@ async def list_chapters(
                 entity_count=entity_count,
                 summary=ch.summary,
                 top_entities=top,
+                keywords=ch.keywords,
             ).model_dump(by_alias=True)
         )
     return results

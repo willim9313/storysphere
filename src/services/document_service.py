@@ -15,7 +15,7 @@ import json
 import logging
 from typing import Optional
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, select, text as sa_text
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, func, select, text as sa_text
 from sqlalchemy import delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
@@ -133,6 +133,11 @@ class DocumentService:
                             else None
                         ),
                         summary=document.summary,
+                        keywords_json=(
+                            json.dumps(document.keywords, ensure_ascii=False)
+                            if document.keywords
+                            else None
+                        ),
                         language=document.language,
                     )
                 )
@@ -145,6 +150,11 @@ class DocumentService:
                             number=chapter.number,
                             title=chapter.title,
                             summary=chapter.summary,
+                            keywords_json=(
+                                json.dumps(chapter.keywords, ensure_ascii=False)
+                                if chapter.keywords
+                                else None
+                            ),
                         )
                     )
                     for para in chapter.paragraphs:
@@ -226,6 +236,11 @@ class DocumentService:
                         number=ch_row.number,
                         title=ch_row.title,
                         summary=ch_row.summary,
+                        keywords=(
+                            json.loads(ch_row.keywords_json)
+                            if ch_row.keywords_json
+                            else None
+                        ),
                         paragraphs=paragraphs,
                     )
                 )
@@ -240,6 +255,11 @@ class DocumentService:
                 file_type=FileType(doc_row.file_type),
                 chapters=chapters,
                 summary=doc_row.summary,
+                keywords=(
+                    json.loads(doc_row.keywords_json)
+                    if doc_row.keywords_json
+                    else None
+                ),
                 language=doc_row.language or "en",
                 processed_at=(
                     datetime.fromisoformat(doc_row.processed_at)
@@ -256,14 +276,29 @@ class DocumentService:
             )
             return result.scalar_one_or_none() or "en"
 
-    async def list_documents(self) -> list[dict[str, str]]:
-        """Return a lightweight list of {id, title, file_type} dicts."""
+    async def list_documents(self) -> list[dict]:
+        """Return a lightweight list of {id, title, file_type, chapter_count} dicts."""
         async with self._session_factory() as session:
+            chapter_count = (
+                func.count(_ChapterRow.id).label("chapter_count")
+            )
             result = await session.execute(
-                select(_DocumentRow.id, _DocumentRow.title, _DocumentRow.file_type)
+                select(
+                    _DocumentRow.id,
+                    _DocumentRow.title,
+                    _DocumentRow.file_type,
+                    chapter_count,
+                )
+                .outerjoin(_ChapterRow, _ChapterRow.document_id == _DocumentRow.id)
+                .group_by(_DocumentRow.id)
             )
             return [
-                {"id": row.id, "title": row.title, "file_type": row.file_type}
+                {
+                    "id": row.id,
+                    "title": row.title,
+                    "file_type": row.file_type,
+                    "chapter_count": row.chapter_count,
+                }
                 for row in result.all()
             ]
 

@@ -140,4 +140,17 @@
     color: var(--entity-other-fg);
   }
   .pill-other .pill-dot { background: var(--entity-other-dot); }
+
+  /* ── Keyword tag styles ────────────────────────────────────────── */
+  .kw-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 10px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    background: var(--bg-tertiary);
+    color: var(--fg-secondary);
+    border: 0.5px solid var(--border);
+  }
 }

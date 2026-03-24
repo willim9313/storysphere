@@ -32,6 +32,7 @@ export interface BookDetail extends Book {
     concept: number;
     other: number;
   };
+  keywords?: Record<string, number>;
 }
 
 // ── Chapters ────────────────────────────────────────────────────
@@ -49,6 +50,7 @@ export interface Chapter {
     name: string;
     type: EntityType;
   }[];
+  keywords?: Record<string, number>;
 }
 
 // ── Chunks & Segments ───────────────────────────────────────────

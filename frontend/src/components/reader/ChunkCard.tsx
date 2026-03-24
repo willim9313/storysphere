@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { SegmentRenderer } from './SegmentRenderer';
+import { KeywordTags } from './KeywordTags';
 import type { Chunk, Segment, EntityType } from '@/api/types';
 
 const pillClass: Record<EntityType, string> = {
@@ -61,6 +62,11 @@ export function ChunkCard({ chunk }: { chunk: Chunk }) {
       >
         <SegmentRenderer segments={chunk.segments} />
       </p>
+      {chunk.keywords.length > 0 && (
+        <div className="mt-2">
+          <KeywordTags keywords={chunk.keywords} limit={6} />
+        </div>
+      )}
     </div>
   );
 }

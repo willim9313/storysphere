@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react';
+import { KeywordTags } from './KeywordTags';
 import type { Chapter, EntityType } from '@/api/types';
 
 const pillClass: Record<EntityType, string> = {
@@ -68,6 +69,14 @@ export function ChapterCard({
             <p className="text-xs leading-relaxed" style={{ color: 'var(--fg-secondary)' }}>
               {chapter.summary}
             </p>
+          )}
+          {chapter.keywords && Object.keys(chapter.keywords).length > 0 && (
+            <div>
+              <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>關鍵字</span>
+              <div className="mt-0.5">
+                <KeywordTags keywords={chapter.keywords} limit={8} />
+              </div>
+            </div>
           )}
           <button
             className="flex items-center gap-1 text-xs font-medium"

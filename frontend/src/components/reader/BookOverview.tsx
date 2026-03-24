@@ -1,5 +1,6 @@
 import { FileText } from 'lucide-react';
 import { StatusBadge } from '@/components/library/StatusBadge';
+import { KeywordTags } from './KeywordTags';
 import type { BookDetail, EntityType } from '@/api/types';
 
 const entityTypeLabels: Record<EntityType, { label: string; cls: string }> = {
@@ -72,6 +73,16 @@ export function BookOverview({ book }: { book: BookDetail }) {
           </div>
         ))}
       </div>
+
+      {/* Book keywords */}
+      {book.keywords && Object.keys(book.keywords).length > 0 && (
+        <div>
+          <h3 className="text-xs font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>
+            全書關鍵字
+          </h3>
+          <KeywordTags keywords={book.keywords} limit={12} />
+        </div>
+      )}
 
       {/* Entity distribution */}
       <div>
