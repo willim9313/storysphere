@@ -1,9 +1,8 @@
-"""Chat Agent — LangGraph-based streaming reasoning agent.
+"""DeepChat Agent — DeepAgent-based streaming reasoning agent.
 
-Wraps a ``create_agent`` graph with:
-- ``QueryPatternRecognizer`` pre-filter for fast-routing common queries
-- ``ChatState`` management (entity tracking, tool cache, pronoun resolution)
-- Streaming support via ``astream(stream_mode="messages", version="v2")``
+Mirrors ``ChatAgent`` exactly but uses ``create_deep_agent`` instead of
+``create_agent``.  Shares the same tools, system prompt, ChatState management,
+and fast-route logic via ``chat_agent_base``.
 """
 
 from __future__ import annotations
@@ -11,9 +10,10 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import AsyncGenerator
-from typing import Any, Optional
+from typing import Any
 
-from langchain.agents import create_agent
+from deepagents import create_deep_agent
+from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 from agents.chat_agent_base import (
@@ -21,7 +21,6 @@ from agents.chat_agent_base import (
     build_context_prompt,
     build_history_messages,
     fast_route,
-    get_default_llm,
 )
 from agents.pattern_recognizer import QueryPatternRecognizer
 from agents.states import ChatState
@@ -31,12 +30,33 @@ from tools.tool_registry import get_chat_tools
 logger = logging.getLogger(__name__)
 
 
-class ChatAgent:
-    """LangGraph-based chat agent for novel analysis.
+def _extract_text(content: str | list | Any) -> str:
+    """Extract plain text from a message content field.
+
+    LLM responses may return ``str`` or a list of content blocks
+    (dicts with ``"type": "text"``).  This normalises both to ``str``.
+    """
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and block.get("text"):
+                parts.append(block["text"])
+        return "".join(parts)
+    return str(content) if content else ""
+
+
+class DeepChatAgent:
+    """DeepAgent-based chat agent for novel analysis.
+
+    Drop-in replacement for ``ChatAgent`` with identical public API.
 
     Usage::
 
-        agent = ChatAgent(kg_service=kg, doc_service=doc, vector_service=vec)
+        agent = DeepChatAgent(kg_service=kg, doc_service=doc, vector_service=vec)
         state = ChatState()
         answer = await agent.chat("Who is Alice?", state)
     """
@@ -59,7 +79,7 @@ class ChatAgent:
         self._vector_service = vector_service
         self._analysis_service = analysis_service
 
-        # Build tools
+        # Build tools (same BaseTool instances as ChatAgent)
         self._tools = get_chat_tools(
             kg_service=kg_service,
             doc_service=doc_service,
@@ -72,12 +92,16 @@ class ChatAgent:
         )
         self._tool_map = {t.name: t for t in self._tools}
 
-        # LLM
-        self._llm = llm or get_default_llm()
+        # LLM — must be a real BaseChatModel (not RunnableWithFallbacks)
+        # because create_deep_agent's resolve_model checks isinstance.
+        if isinstance(llm, BaseChatModel):
+            self._llm = llm
+        else:
+            self._llm = self._get_primary_llm()
 
-        # Build the LangGraph agent
+        # Build the DeepAgent graph
         self._system_prompt = system_prompt or SYSTEM_PROMPT
-        self._graph = create_agent(
+        self._graph = create_deep_agent(
             model=self._llm,
             tools=self._tools,
             system_prompt=self._system_prompt,
@@ -86,20 +110,26 @@ class ChatAgent:
         # Fast-route recognizer
         self._recognizer = QueryPatternRecognizer()
 
+    @staticmethod
+    def _get_primary_llm() -> BaseChatModel:
+        """Return the primary LLM (a real BaseChatModel, no fallback wrapper)."""
+        from core.llm_client import get_llm_client  # noqa: PLC0415
+        from config.settings import get_settings  # noqa: PLC0415
+
+        settings = get_settings()
+        return get_llm_client().get_primary(
+            temperature=settings.chat_agent_temperature,
+        )
+
     async def chat(
         self, query: str, state: ChatState, language: str = "en"
     ) -> str:
-        """Single-turn chat: returns the final assistant response text.
-
-        1. Try fast route via QueryPatternRecognizer
-        2. Fall back to full LangGraph ReAct loop
-        3. Update ChatState with entity mentions and tool results
-        """
+        """Single-turn chat: returns the final assistant response text."""
         from core.metrics import get_metrics  # noqa: PLC0415
 
         _metrics = get_metrics()
         _t0 = time.perf_counter()
-        _route = "agent_loop"
+        _route = "deep_agent_loop"
 
         try:
             # Pronoun resolution
@@ -126,7 +156,7 @@ class ChatAgent:
                     )
                     return result
 
-            # Full agent loop
+            # Full deep agent loop
             response = await self._agent_invoke(query, language=language, state=state)
 
             # Update state
@@ -155,12 +185,7 @@ class ChatAgent:
     async def astream(
         self, query: str, state: ChatState, language: str = "en"
     ) -> AsyncGenerator[str, None]:
-        """Streaming chat: yields token chunks as they arrive.
-
-        1. Try fast route via QueryPatternRecognizer (same as chat())
-        2. Fall back to full LangGraph ReAct loop with token streaming
-        3. Falls back to non-streaming _agent_invoke if streaming fails
-        """
+        """Streaming chat: yields token chunks as they arrive."""
         # Pronoun resolution
         resolved = state.resolve_pronoun(query.strip())
         if resolved and len(query.split()) <= 3:
@@ -197,21 +222,24 @@ class ChatAgent:
             ):
                 if chunk.get("type") == "messages":
                     message_chunk, _ = chunk["data"]
-                    # Only yield AI message chunks from the agent node,
-                    # skip tool calls, tool results, and replayed history
+                    # Only yield AI message chunks, skip tool calls/results/history
                     if (
                         isinstance(message_chunk, AIMessageChunk)
                         and message_chunk.content
                         and not message_chunk.tool_calls
                         and not message_chunk.tool_call_chunks
                     ):
-                        text = message_chunk.content if isinstance(message_chunk.content, str) else ""
+                        text = _extract_text(message_chunk.content)
                         if text:
                             full_response += text
                             yield text
         except Exception:
-            logger.exception("Streaming failed, falling back to non-streaming")
-            result = await self._agent_invoke(query, language=language, state=state)
+            logger.exception(
+                "DeepAgent streaming failed, falling back"
+            )
+            result = await self._agent_invoke(
+                query, language=language, state=state
+            )
             full_response = result
             yield result
 
@@ -227,7 +255,7 @@ class ChatAgent:
     async def _agent_invoke(
         self, query: str, language: str = "en", state: ChatState | None = None
     ) -> str:
-        """Invoke the LangGraph agent and extract the final response text."""
+        """Invoke the DeepAgent graph and extract the final response text."""
         from langchain_core.messages import SystemMessage  # noqa: PLC0415
 
         from core.metrics import get_metrics  # noqa: PLC0415
@@ -255,9 +283,9 @@ class ChatAgent:
         output_messages = result.get("messages", [])
         for msg in output_messages:
             if isinstance(msg, ToolMessage) and msg.name:
-                _metrics.record_tool_selection(msg.name, source="agent_loop")
+                _metrics.record_tool_selection(msg.name, source="deep_agent_loop")
 
         for msg in reversed(output_messages):
             if isinstance(msg, AIMessage) and msg.content:
-                return msg.content
+                return _extract_text(msg.content)
         return "I could not generate a response. Please try rephrasing your question."

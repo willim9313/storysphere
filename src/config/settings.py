@@ -106,6 +106,16 @@ class Settings(BaseSettings):
         description="Comma-separated extractor:weight pairs for composite mode",
     )
 
+    # ── LLM Thinking / Extended Reasoning ───────────────────────────────────────
+    llm_thinking_enabled: bool = Field(
+        default=False,
+        description="Enable extended thinking / reasoning for supported models (costs extra tokens)",
+    )
+    llm_thinking_budget: int = Field(
+        default=1024,
+        description="Token budget for thinking when enabled. Gemini 2.5: token count; -1 for dynamic",
+    )
+
     # ── Chat Agent ──────────────────────────────────────────────────────────────
     chat_agent_max_iterations: int = Field(
         default=10, description="Max ReAct loop iterations for chat agent"

@@ -1,8 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { SquarePen } from 'lucide-react';
-import { useChatContext } from '@/contexts/ChatContext';
+import type { PageContext } from '@/contexts/ChatContext';
+import type { UseWebSocketChatReturn } from '@/hooks/useWebSocketChat';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
+
+interface ChatWindowProps {
+  side?: 'left' | 'right';
+  title?: string;
+  accentColor?: string;
+  ws: UseWebSocketChatReturn;
+  pageContext: PageContext;
+  prefillMessage: string | null;
+  clearPrefill: () => void;
+}
 
 const SUGGESTED_PROMPTS: Record<string, (entity?: string) => string[]> = {
   graph: (entity) =>
@@ -17,8 +28,7 @@ const SUGGESTED_PROMPTS: Record<string, (entity?: string) => string[]> = {
   library: () => ['推薦我先分析哪本書？'],
 };
 
-function ContextBadge() {
-  const { pageContext } = useChatContext();
+function ContextBadge({ pageContext }: { pageContext: PageContext }) {
   const { page, bookTitle, chapterTitle, selectedEntity } = pageContext;
 
   if (page === 'library') return null;
@@ -127,9 +137,16 @@ function NewChatConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCanc
   );
 }
 
-export function ChatWindow() {
-  const { pageContext, prefillMessage, clearPrefill, ws } = useChatContext();
-  const { messages, sendMessage, isStreaming, isConnecting, clearMessages } = ws;
+export function ChatWindow({
+  side = 'right',
+  title = 'StorySphere Chat',
+  accentColor,
+  ws,
+  pageContext,
+  prefillMessage,
+  clearPrefill,
+}: ChatWindowProps) {
+  const { messages, sendMessage, isStreaming, isThinking, isConnecting, clearMessages } = ws;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false);
 
@@ -164,12 +181,14 @@ export function ChatWindow() {
   const entityName = pageContext.selectedEntity?.name;
   const suggestions = SUGGESTED_PROMPTS[pageContext.page]?.(entityName) ?? [];
 
+  const cursorColor = accentColor || 'var(--accent)';
+
   return (
     <div
       style={{
         position: 'fixed',
         bottom: '5.5rem',
-        right: '1.5rem',
+        ...(side === 'right' ? { right: '1.5rem' } : { left: '1.5rem' }),
         zIndex: 50,
         width: 380,
         height: 520,
@@ -214,9 +233,9 @@ export function ChatWindow() {
               color: 'var(--fg-primary)',
             }}
           >
-            StorySphere Chat
+            {title}
           </span>
-          <ContextBadge />
+          <ContextBadge pageContext={pageContext} />
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           <button
@@ -307,13 +326,59 @@ export function ChatWindow() {
           <ChatMessage key={i} message={msg} />
         ))}
 
-        {isStreaming && messages[messages.length - 1]?.role === 'assistant' && (
+        {isThinking && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '8px 12px',
+              borderRadius: '12px 12px 12px 0',
+              background: 'var(--bg-secondary)',
+              alignSelf: 'flex-start',
+              maxWidth: '85%',
+            }}
+          >
+            <span
+              style={{
+                display: 'flex',
+                gap: 4,
+                alignItems: 'center',
+              }}
+            >
+              {[0, 1, 2].map((i) => (
+                <span
+                  key={i}
+                  style={{
+                    width: 6,
+                    height: 6,
+                    borderRadius: '50%',
+                    background: cursorColor,
+                    opacity: 0.5,
+                    animation: `thinkingDot 1.4s ease-in-out ${i * 0.2}s infinite`,
+                  }}
+                />
+              ))}
+            </span>
+            <span
+              style={{
+                color: 'var(--fg-muted)',
+                fontSize: 'var(--font-size-xs)',
+                fontFamily: 'var(--font-sans)',
+              }}
+            >
+              思考中…
+            </span>
+          </div>
+        )}
+
+        {isStreaming && messages.at(-1)?.role === 'assistant' && (
           <span
             style={{
               display: 'inline-block',
               width: 6,
               height: 14,
-              background: 'var(--accent)',
+              background: cursorColor,
               marginLeft: 2,
               animation: 'blink 1s step-end infinite',
             }}
@@ -330,7 +395,7 @@ export function ChatWindow() {
       </div>
 
       {/* Input */}
-      <ChatInput onSend={handleSend} disabled={isStreaming} />
+      <ChatInput onSend={handleSend} disabled={isStreaming || isThinking} />
 
       <style>{`
         @keyframes chatWindowIn {
@@ -339,6 +404,10 @@ export function ChatWindow() {
         }
         @keyframes blink {
           50% { opacity: 0; }
+        }
+        @keyframes thinkingDot {
+          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+          40% { opacity: 1; transform: scale(1.1); }
         }
       `}</style>
     </div>

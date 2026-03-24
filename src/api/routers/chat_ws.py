@@ -1,4 +1,4 @@
-"""Chat WebSocket endpoint.
+"""Chat WebSocket endpoint (original LangGraph agent).
 
 WS /ws/chat?session_id=<uuid>
 
@@ -11,34 +11,18 @@ Message protocol:
 
 from __future__ import annotations
 
-import logging
 import threading
 
-from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, WebSocket
 
-from agents.states import ChatState
-from api.deps import ChatAgentDep, get_chat_agent
-from api.schemas.chat import ChatContext
-
-logger = logging.getLogger(__name__)
+from api.deps import ChatAgentDep
+from api.routers._chat_ws_shared import handle_chat_websocket
 
 router = APIRouter(tags=["chat"])
 
 # In-memory session store: session_id → ChatState
-_sessions: dict[str, ChatState] = {}
+_sessions: dict = {}
 _sessions_lock = threading.Lock()
-
-
-def _get_or_create_state(session_id: str) -> ChatState:
-    with _sessions_lock:
-        if session_id not in _sessions:
-            _sessions[session_id] = ChatState()
-        return _sessions[session_id]
-
-
-def _cleanup_state(session_id: str) -> None:
-    with _sessions_lock:
-        _sessions.pop(session_id, None)
 
 
 @router.websocket("/ws/chat")
@@ -52,45 +36,6 @@ async def chat_websocket(
     Connect with ``?session_id=<your-id>`` to maintain conversation state
     across multiple messages within the same session.
     """
-
-    await websocket.accept()
-    state = _get_or_create_state(session_id)
-    logger.info("WebSocket connected: session=%s", session_id)
-
-    try:
-        while True:
-            data = await websocket.receive_json()
-            query = (data.get("message") or "").strip()
-            if not query:
-                await websocket.send_json({"type": "error", "detail": "Empty message"})
-                continue
-
-            language = data.get("language") or state.language
-            state.language = language
-
-            # Hydrate page context into ChatState
-            raw_ctx = data.get("context")
-            if raw_ctx and isinstance(raw_ctx, dict):
-                ctx = ChatContext(**raw_ctx)
-                state.book_id = ctx.book_id
-                state.chapter_id = ctx.chapter_id
-                state.page_context = ctx.page
-                if ctx.selected_entity and ctx.selected_entity.get("name"):
-                    state.add_entity_mention(ctx.selected_entity["name"])
-
-            try:
-                async for chunk in agent.astream(
-                    query, state, language=language
-                ):
-                    await websocket.send_json({"type": "chunk", "content": chunk})
-                await websocket.send_json({"type": "done"})
-            except Exception as exc:
-                logger.exception("Chat error for session %s", session_id)
-                await websocket.send_json({"type": "error", "detail": str(exc)})
-
-    except WebSocketDisconnect:
-        logger.info("WebSocket disconnected: session=%s", session_id)
-        _cleanup_state(session_id)
-    except Exception:
-        logger.exception("Unexpected WebSocket error: session=%s", session_id)
-        _cleanup_state(session_id)
+    await handle_chat_websocket(
+        websocket, agent, session_id, _sessions, _sessions_lock
+    )

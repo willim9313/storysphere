@@ -13,27 +13,42 @@ export interface PageContext {
 interface ChatContextValue {
   pageContext: PageContext;
   setPageContext: (ctx: Partial<PageContext>) => void;
+  // Original agent (right side)
   isChatOpen: boolean;
   openChat: (prefill?: string) => void;
   closeChat: () => void;
   prefillMessage: string | null;
   clearPrefill: () => void;
-  // WebSocket chat (lifted so state survives open/close)
   ws: UseWebSocketChatReturn;
+  // DeepAgent (left side)
+  isDeepChatOpen: boolean;
+  openDeepChat: (prefill?: string) => void;
+  closeDeepChat: () => void;
+  deepPrefillMessage: string | null;
+  clearDeepPrefill: () => void;
+  deepWs: UseWebSocketChatReturn;
 }
 
 const ChatContext = createContext<ChatContextValue | null>(null);
 
 export function ChatContextProvider({ children }: { children: ReactNode }) {
   const [pageContext, setPageContextState] = useState<PageContext>({ page: 'library' });
+
+  // Original agent
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [prefillMessage, setPrefillMessage] = useState<string | null>(null);
-  const ws = useWebSocketChat();
+  const ws = useWebSocketChat('/ws/chat');
+
+  // DeepAgent
+  const [isDeepChatOpen, setIsDeepChatOpen] = useState(false);
+  const [deepPrefillMessage, setDeepPrefillMessage] = useState<string | null>(null);
+  const deepWs = useWebSocketChat('/ws/chat-deep');
 
   const setPageContext = useCallback((ctx: Partial<PageContext>) => {
     setPageContextState((prev) => ({ ...prev, ...ctx }));
   }, []);
 
+  // Original agent callbacks
   const openChat = useCallback((prefill?: string) => {
     if (prefill) setPrefillMessage(prefill);
     setIsChatOpen(true);
@@ -47,6 +62,20 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
     setPrefillMessage(null);
   }, []);
 
+  // DeepAgent callbacks
+  const openDeepChat = useCallback((prefill?: string) => {
+    if (prefill) setDeepPrefillMessage(prefill);
+    setIsDeepChatOpen(true);
+  }, []);
+
+  const closeDeepChat = useCallback(() => {
+    setIsDeepChatOpen(false);
+  }, []);
+
+  const clearDeepPrefill = useCallback(() => {
+    setDeepPrefillMessage(null);
+  }, []);
+
   return (
     <ChatContext.Provider
       value={{
@@ -58,6 +87,12 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
         prefillMessage,
         clearPrefill,
         ws,
+        isDeepChatOpen,
+        openDeepChat,
+        closeDeepChat,
+        deepPrefillMessage,
+        clearDeepPrefill,
+        deepWs,
       }}
     >
       {children}

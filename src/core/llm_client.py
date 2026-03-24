@@ -188,6 +188,11 @@ class LLMClient:
         from langchain_google_genai import ChatGoogleGenerativeAI
 
         model = str(kwargs.pop("model", self._settings.gemini_model))
+        # Thinking config: disable by default to save token costs
+        if self._settings.llm_thinking_enabled:
+            kwargs.setdefault("thinking_budget", self._settings.llm_thinking_budget)
+        else:
+            kwargs.setdefault("thinking_budget", 0)
         return ChatGoogleGenerativeAI(
             model=model,
             temperature=temperature,
@@ -212,6 +217,12 @@ class LLMClient:
         from langchain_anthropic import ChatAnthropic
 
         model = str(kwargs.pop("model", self._settings.anthropic_model))
+        # Thinking config: only pass when explicitly enabled
+        if self._settings.llm_thinking_enabled and "thinking" not in kwargs:
+            kwargs["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": self._settings.llm_thinking_budget,
+            }
         return ChatAnthropic(
             model=model,
             temperature=temperature,

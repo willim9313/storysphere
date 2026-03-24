@@ -1,21 +1,34 @@
-import { MessageCircle, X } from 'lucide-react';
-import { useChatContext } from '@/contexts/ChatContext';
+import { MessageCircle, X, Bot } from 'lucide-react';
 
-export function ChatBubble() {
-  const { isChatOpen, openChat, closeChat } = useChatContext();
+interface ChatBubbleProps {
+  side?: 'left' | 'right';
+  accentColor?: string;
+  isOpen: boolean;
+  onToggle: () => void;
+  icon?: 'message' | 'bot';
+}
+
+export function ChatBubble({
+  side = 'right',
+  accentColor = 'var(--accent)',
+  isOpen,
+  onToggle,
+  icon = 'message',
+}: ChatBubbleProps) {
+  const Icon = isOpen ? X : icon === 'bot' ? Bot : MessageCircle;
 
   return (
     <button
-      onClick={() => (isChatOpen ? closeChat() : openChat())}
+      onClick={onToggle}
       style={{
         position: 'fixed',
         bottom: '1.5rem',
-        right: '1.5rem',
+        ...(side === 'right' ? { right: '1.5rem' } : { left: '1.5rem' }),
         zIndex: 50,
         width: 48,
         height: 48,
         borderRadius: '50%',
-        background: 'var(--accent)',
+        background: accentColor,
         color: 'white',
         border: 'none',
         cursor: 'pointer',
@@ -27,9 +40,9 @@ export function ChatBubble() {
       }}
       onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
       onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-      aria-label={isChatOpen ? 'Close chat' : 'Open chat'}
+      aria-label={isOpen ? 'Close chat' : 'Open chat'}
     >
-      {isChatOpen ? <X size={22} /> : <MessageCircle size={22} />}
+      <Icon size={22} />
     </button>
   );
 }

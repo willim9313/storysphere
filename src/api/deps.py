@@ -129,6 +129,22 @@ def get_chat_agent():
     )
 
 
+@lru_cache(maxsize=1)
+def get_deep_chat_agent():
+    from agents.deep_chat_agent import DeepChatAgent  # noqa: PLC0415
+
+    return DeepChatAgent(
+        kg_service=get_kg_service(),
+        doc_service=get_doc_service(),
+        vector_service=get_vector_service(),
+        llm=get_llm(),
+        extraction_service=get_extraction_service(),
+        summary_service=get_summary_service(),
+        analysis_service=get_analysis_service(),
+        keyword_service=get_keyword_service(),
+    )
+
+
 # ── Annotated type aliases (use in router function signatures) ─────────────────
 
 KGServiceDep = Annotated[any, Depends(get_kg_service)]
@@ -137,3 +153,4 @@ VectorServiceDep = Annotated[any, Depends(get_vector_service)]
 AnalysisCacheDep = Annotated[any, Depends(get_analysis_cache)]
 AnalysisAgentDep = Annotated[any, Depends(get_analysis_agent)]
 ChatAgentDep = Annotated[any, Depends(get_chat_agent)]
+DeepChatAgentDep = Annotated[any, Depends(get_deep_chat_agent)]

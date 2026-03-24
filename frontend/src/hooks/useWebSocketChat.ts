@@ -11,6 +11,7 @@ export interface UseWebSocketChatReturn {
   sendMessage: (text: string, context: PageContext) => void;
   isConnecting: boolean;
   isStreaming: boolean;
+  isThinking: boolean;
   clearMessages: () => void;
 }
 
@@ -28,10 +29,11 @@ function toSnakeContext(ctx: PageContext): Record<string, unknown> {
   };
 }
 
-export function useWebSocketChat(): UseWebSocketChatReturn {
+export function useWebSocketChat(wsPath: string = '/ws/chat'): UseWebSocketChatReturn {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isConnecting, setIsConnecting] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
 
   const wsRef = useRef<WebSocket | null>(null);
   const sessionIdRef = useRef(crypto.randomUUID());
@@ -43,7 +45,7 @@ export function useWebSocketChat(): UseWebSocketChatReturn {
     if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) return;
 
     setIsConnecting(true);
-    const url = `${WS_BASE}/ws/chat?session_id=${sessionIdRef.current}`;
+    const url = `${WS_BASE}${wsPath}?session_id=${sessionIdRef.current}`;
     const ws = new WebSocket(url);
     wsRef.current = ws;
 
@@ -60,7 +62,10 @@ export function useWebSocketChat(): UseWebSocketChatReturn {
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
-      if (data.type === 'chunk') {
+      if (data.type === 'thinking') {
+        setIsThinking(true);
+      } else if (data.type === 'chunk') {
+        setIsThinking(false);
         streamBufferRef.current += data.content ?? '';
         // Update the last assistant message in-place for streaming
         setMessages((prev) => {
@@ -72,9 +77,11 @@ export function useWebSocketChat(): UseWebSocketChatReturn {
         });
       } else if (data.type === 'done') {
         setIsStreaming(false);
+        setIsThinking(false);
         streamBufferRef.current = '';
       } else if (data.type === 'error') {
         setIsStreaming(false);
+        setIsThinking(false);
         streamBufferRef.current = '';
         setMessages((prev) => [
           ...prev,
@@ -137,5 +144,5 @@ export function useWebSocketChat(): UseWebSocketChatReturn {
     sessionIdRef.current = crypto.randomUUID();
   }, []);
 
-  return { messages, sendMessage, isConnecting, isStreaming, clearMessages };
+  return { messages, sendMessage, isConnecting, isStreaming, isThinking, clearMessages };
 }
