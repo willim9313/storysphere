@@ -36,6 +36,7 @@ export default function ReaderPage() {
     setPageContext({
       chapterId: viewingChapterId ?? undefined,
       chapterTitle: chapter?.title,
+      chapterNumber: chapter?.order,
     });
   }, [viewingChapterId, chapters, setPageContext]);
 

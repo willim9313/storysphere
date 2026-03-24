@@ -211,9 +211,20 @@ class ChatAgent:
                             yield text
         except Exception:
             logger.exception("Streaming failed, falling back to non-streaming")
-            result = await self._agent_invoke(query, language=language, state=state)
-            full_response = result
-            yield result
+            try:
+                result = await self._agent_invoke(query, language=language, state=state)
+                full_response = result
+                yield result
+            except Exception:
+                logger.exception("Non-streaming fallback also failed")
+                fallback = "抱歉，處理您的問題時發生錯誤，請稍後再試。"
+                full_response = fallback
+                yield fallback
+
+        if not full_response:
+            fallback = "抱歉，無法生成回應，請嘗試換個方式提問。"
+            full_response = fallback
+            yield fallback
 
         # Save the full response to state for history continuity
         if full_response:

@@ -36,6 +36,12 @@ TOOL SELECTION RULES:
 - For "Compare X and Y" → compare_characters
 - For finding passages → vector_search
 - For chapter overview → get_summary
+- For "important characters/entities in this chapter" → get_summary (use the chapter_number from context) to read the summary, then identify the key characters mentioned. You can also use get_keywords with the chapter_number to supplement.
+- For keywords or themes → get_keywords (use chapter_number from context if asking about a specific chapter)
+
+CONTEXT USAGE RULES:
+- When the user references "this chapter", always use the chapter_number provided in the context.
+- When calling tools that need document_id, always use the document_id from the context.
 
 DO NOT use vector_search for entity lookups. DO NOT use get_entity_attributes when the user wants relationships.
 """
@@ -54,10 +60,14 @@ def build_context_prompt(state: ChatState, language: str) -> str:
             "When calling tools that require document_id, use this value."
         )
     if state.chapter_id:
-        parts.append(
-            f"The user is viewing chapter_id={state.chapter_id}. "
-            'References like "this chapter" refer to this chapter.'
+        chapter_hint = f"The user is viewing chapter_id={state.chapter_id}"
+        if state.chapter_number is not None:
+            chapter_hint += f" (chapter_number={state.chapter_number})"
+        chapter_hint += (
+            '. References like "this chapter" refer to this chapter. '
+            "When calling tools that require chapter_number, use this value."
         )
+        parts.append(chapter_hint)
     if state.current_focus_entity:
         parts.append(
             f"The user is focused on entity \"{state.current_focus_entity}\". "

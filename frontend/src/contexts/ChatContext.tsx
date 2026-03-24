@@ -7,6 +7,7 @@ export interface PageContext {
   bookTitle?: string;
   chapterId?: string;
   chapterTitle?: string;
+  chapterNumber?: number;
   selectedEntity?: { id: string; name: string; type: string };
 }
 
