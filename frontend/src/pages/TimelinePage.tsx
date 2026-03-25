@@ -379,53 +379,76 @@ function Toolbar({
         backgroundColor: 'white',
       }}
     >
-      {/* Left: order select + layout toggle + filter */}
+      {/* Left: view mode tabs + layout toggle + filter */}
       <div className="flex items-center gap-3">
-        <select
-          value={order}
-          onChange={(e) => onOrderChange(e.target.value as TimelineOrder)}
-          className="text-xs px-2 py-1 rounded-md"
-          style={{
-            border: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-primary)',
-            color: 'var(--fg-primary)',
-          }}
+        {/* View tabs — segmented control */}
+        <div
+          className="flex items-center gap-0.5 p-0.5 rounded-lg"
+          style={{ backgroundColor: 'var(--bg-secondary)' }}
         >
-          <option value="narrative">章節順序</option>
-          <option value="chronological">
-            故事時序{!hasRanks ? ' \u26A0\uFE0F' : ''}
-          </option>
-          <option value="matrix">
-            矩陣視圖{!hasRanks ? ' \u26A0\uFE0F' : ''}
-          </option>
-        </select>
+          {(
+            [
+              { value: 'narrative', label: '章節順序' },
+              { value: 'chronological', label: '故事時序', warn: !hasRanks },
+              { value: 'matrix', label: '矩陣視圖', warn: !hasRanks },
+            ] as { value: TimelineOrder; label: string; warn?: boolean }[]
+          ).map((tab) => {
+            const isActive = order === tab.value;
+            return (
+              <button
+                key={tab.value}
+                onClick={() => onOrderChange(tab.value)}
+                className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-md transition-all duration-150"
+                title={tab.warn ? '尚未計算時序，請先觸發時序計算' : undefined}
+                style={{
+                  backgroundColor: isActive ? 'white' : 'transparent',
+                  color: isActive ? 'var(--accent)' : 'var(--fg-muted)',
+                  fontWeight: isActive ? 500 : 400,
+                  boxShadow: isActive
+                    ? '0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.05)'
+                    : undefined,
+                }}
+              >
+                {tab.label}
+                {tab.warn && (
+                  <span
+                    style={{
+                      width: 5,
+                      height: 5,
+                      borderRadius: '50%',
+                      backgroundColor: '#f59e0b',
+                      display: 'inline-block',
+                      flexShrink: 0,
+                    }}
+                  />
+                )}
+              </button>
+            );
+          })}
+        </div>
 
-        {order !== 'matrix' && <button
-          onClick={() =>
-            onLayoutChange(
-              layout === 'horizontal' ? 'vertical' : 'horizontal',
-            )
-          }
-          className="flex items-center gap-1 text-xs px-2 py-1 rounded-md"
-          style={{
-            border: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-primary)',
-            color: 'var(--fg-secondary)',
-          }}
-          title={
-            layout === 'horizontal' ? '切換為垂直佈局' : '切換為水平佈局'
-          }
-        >
-          {layout === 'horizontal' ? (
-            <>
-              <ArrowLeftRight size={12} /> 水平
-            </>
-          ) : (
-            <>
-              <ArrowUpDown size={12} /> 垂直
-            </>
-          )}
-        </button>}
+        {order !== 'matrix' && (
+          <button
+            onClick={() =>
+              onLayoutChange(layout === 'horizontal' ? 'vertical' : 'horizontal')
+            }
+            className="flex items-center justify-center rounded-md transition-colors"
+            style={{
+              width: 28,
+              height: 28,
+              border: '1px solid var(--border)',
+              backgroundColor: 'var(--bg-primary)',
+              color: 'var(--fg-muted)',
+            }}
+            title={layout === 'horizontal' ? '切換為垂直佈局' : '切換為水平佈局'}
+          >
+            {layout === 'horizontal' ? (
+              <ArrowLeftRight size={13} />
+            ) : (
+              <ArrowUpDown size={13} />
+            )}
+          </button>
+        )}
 
         <button
           onClick={onToggleFilter}
@@ -837,7 +860,7 @@ function TimelineCanvas({
   const highlightedId = selectedEventId ?? hoveredEventId;
 
   return (
-    <div ref={innerRef} className="relative">
+    <div ref={innerRef} className="relative min-h-full" style={{ minWidth: '100%' }}>
       {/* SVG overlay for temporal relation lines */}
       {showRelationLines && lines.length > 0 && (
         <svg
@@ -893,13 +916,12 @@ function TimelineCanvas({
         </svg>
       )}
 
-      {/* Events */}
+      {/* Events — centered when fits, scrollable when overflows */}
       <div
-        className={`flex ${isHorizontal ? 'flex-row items-start' : 'flex-col items-start'} p-6 gap-0 relative`}
+        className={`flex ${isHorizontal ? 'flex-row items-start' : 'flex-col items-center'} p-8 gap-0 relative`}
         style={{
-          minWidth: isHorizontal
-            ? `${events.length * 140 + 80}px`
-            : undefined,
+          width: 'max-content',
+          margin: '0 auto',
           zIndex: 2,
         }}
       >
