@@ -183,3 +183,36 @@ export interface BatchEepResult {
   failed: number;
   skipped: number;
 }
+
+// ── Timeline ───────────────────────────────────────────────────
+
+export type NarrativeMode = 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown';
+export type EventImportance = 'KERNEL' | 'SATELLITE';
+export type TimelineOrder = 'narrative' | 'chronological';
+
+export interface TimelineEvent {
+  id: string;
+  title: string;
+  eventType: string;
+  description: string;
+  chapter: number;
+  chapterTitle?: string;
+  chronologicalRank: number | null;
+  narrativeMode: NarrativeMode;
+  eventImportance: EventImportance | null;
+  storyTimeHint?: string;
+  participants: { id: string; name: string; type: EntityType }[];
+  location?: { id: string; name: string };
+}
+
+export interface TimelineQuality {
+  eepCoverage: number;
+  analyzedCount: number;
+  totalCount: number;
+  hasChronologicalRanks: boolean;
+}
+
+export interface TimelineData {
+  events: TimelineEvent[];
+  quality: TimelineQuality;
+}

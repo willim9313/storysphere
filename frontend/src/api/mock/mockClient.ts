@@ -13,6 +13,8 @@ import type {
   TaskStatus,
   AnalysisListResponse,
   EntityAnalysis,
+  TimelineData,
+  TimelineOrder,
 } from '../types';
 
 import {
@@ -24,6 +26,7 @@ import {
   mockCharacterAnalyses,
   mockEventAnalyses,
   mockEntityAnalysisMap,
+  mockTimelineData,
   createMockTask,
   advanceMockTask,
 } from './data';
@@ -150,6 +153,23 @@ export async function deleteEntityAnalysis(
 }
 
 export async function triggerBatchEventAnalysis(
+  _bookId: string,
+): Promise<{ taskId: string }> {
+  await delay(300);
+  return createMockTask();
+}
+
+// ── Timeline (#9-timeline) ──────────────────────────────────────
+
+export async function fetchTimeline(
+  _bookId: string,
+  _order: TimelineOrder,
+): Promise<TimelineData> {
+  await delay();
+  return mockTimelineData;
+}
+
+export async function computeTimeline(
   _bookId: string,
 ): Promise<{ taskId: string }> {
   await delay(300);

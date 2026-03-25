@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useCallback, type ReactNode } from
 import { useWebSocketChat, type ChatMessage, type UseWebSocketChatReturn } from '@/hooks/useWebSocketChat';
 
 export interface PageContext {
-  page: 'library' | 'reader' | 'graph' | 'analysis' | 'other';
+  page: 'library' | 'reader' | 'graph' | 'analysis' | 'timeline' | 'other';
   bookId?: string;
   bookTitle?: string;
   chapterId?: string;

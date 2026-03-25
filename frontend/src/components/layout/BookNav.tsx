@@ -10,6 +10,7 @@ const tabs = [
   { label: '閱讀', path: '' },
   { label: '深度分析', path: '/analysis' },
   { label: '知識圖譜', path: '/graph' },
+  { label: '時間軸', path: '/timeline' },
 ];
 
 export function BookNav({ bookId, bookTitle }: BookNavProps) {

@@ -7,6 +7,7 @@ import type {
   AnalysisListResponse,
   EntityAnalysis,
   TaskStatus,
+  TimelineData,
 } from '../types';
 
 // ── Books ───────────────────────────────────────────────────────
@@ -753,6 +754,145 @@ export const mockEntityAnalysisMap: Record<string, EntityAnalysis> = {
 
 // Backward compat
 export const mockEntityAnalysis: EntityAnalysis = mockEntityAnalysisMap['ent-001']!;
+
+// ── Timeline ────────────────────────────────────────────────────
+
+export const mockTimelineData: TimelineData = {
+  events: [
+    {
+      id: 'evt-001',
+      title: '伊莉莎白初見達西',
+      eventType: 'action',
+      description: '在舞會上，伊莉莎白第一次遇見達西先生，對他的傲慢態度留下深刻印象。',
+      chapter: 1,
+      chapterTitle: '第一章：梅里頓舞會',
+      chronologicalRank: 0.1,
+      narrativeMode: 'present',
+      eventImportance: 'KERNEL',
+      participants: [
+        { id: 'ent-001', name: '伊莉莎白', type: 'character' },
+        { id: 'ent-002', name: '達西', type: 'character' },
+      ],
+      location: { id: 'loc-001', name: '梅里頓舞會廳' },
+    },
+    {
+      id: 'evt-002',
+      title: '達西拒絕邀舞',
+      eventType: 'dialogue',
+      description: '達西拒絕與伊莉莎白跳舞，稱她「尚可」，引發伊莉莎白的反感。',
+      chapter: 1,
+      chapterTitle: '第一章：梅里頓舞會',
+      chronologicalRank: 0.15,
+      narrativeMode: 'present',
+      eventImportance: 'SATELLITE',
+      participants: [
+        { id: 'ent-001', name: '伊莉莎白', type: 'character' },
+        { id: 'ent-002', name: '達西', type: 'character' },
+      ],
+      location: { id: 'loc-001', name: '梅里頓舞會廳' },
+    },
+    {
+      id: 'evt-003',
+      title: '韋翰講述往事',
+      eventType: 'revelation',
+      description: '韋翰向伊莉莎白講述達西對他的不公對待，加深了伊莉莎白對達西的偏見。',
+      chapter: 2,
+      chapterTitle: '第二章：韋翰的故事',
+      chronologicalRank: 0.05,
+      narrativeMode: 'flashback',
+      eventImportance: 'KERNEL',
+      storyTimeHint: '數年前',
+      participants: [
+        { id: 'ent-001', name: '伊莉莎白', type: 'character' },
+        { id: 'ent-003', name: '韋翰', type: 'character' },
+      ],
+      location: { id: 'loc-002', name: '梅里頓街道' },
+    },
+    {
+      id: 'evt-004',
+      title: '達西第一次求婚',
+      eventType: 'turning_point',
+      description: '達西向伊莉莎白求婚，但方式傲慢，被伊莉莎白斷然拒絕。',
+      chapter: 3,
+      chapterTitle: '第三章：亨斯福德',
+      chronologicalRank: 0.4,
+      narrativeMode: 'present',
+      eventImportance: 'KERNEL',
+      participants: [
+        { id: 'ent-001', name: '伊莉莎白', type: 'character' },
+        { id: 'ent-002', name: '達西', type: 'character' },
+      ],
+      location: { id: 'loc-003', name: '亨斯福德牧師館' },
+    },
+    {
+      id: 'evt-005',
+      title: '達西的信',
+      eventType: 'revelation',
+      description: '達西寫信解釋韋翰的真面目及對賓利姐妹的干預，改變了伊莉莎白的看法。',
+      chapter: 3,
+      chapterTitle: '第三章：亨斯福德',
+      chronologicalRank: 0.45,
+      narrativeMode: 'present',
+      eventImportance: 'KERNEL',
+      participants: [
+        { id: 'ent-001', name: '伊莉莎白', type: 'character' },
+        { id: 'ent-002', name: '達西', type: 'character' },
+      ],
+    },
+    {
+      id: 'evt-006',
+      title: '莉迪亞私奔',
+      eventType: 'action',
+      description: '莉迪亞與韋翰私奔，引發家族危機。',
+      chapter: 4,
+      chapterTitle: '第四章：危機',
+      chronologicalRank: 0.65,
+      narrativeMode: 'present',
+      eventImportance: 'KERNEL',
+      participants: [
+        { id: 'ent-004', name: '莉迪亞', type: 'character' },
+        { id: 'ent-003', name: '韋翰', type: 'character' },
+      ],
+    },
+    {
+      id: 'evt-007',
+      title: '達西暗中協助',
+      eventType: 'action',
+      description: '達西暗中出資促成韋翰與莉迪亞的婚姻，解除班奈特家的醜聞。',
+      chapter: 4,
+      chapterTitle: '第四章：危機',
+      chronologicalRank: 0.7,
+      narrativeMode: 'present',
+      eventImportance: 'SATELLITE',
+      participants: [
+        { id: 'ent-002', name: '達西', type: 'character' },
+        { id: 'ent-003', name: '韋翰', type: 'character' },
+      ],
+    },
+    {
+      id: 'evt-008',
+      title: '達西再次求婚',
+      eventType: 'turning_point',
+      description: '達西謙遜地再次向伊莉莎白求婚，這次獲得接受。',
+      chapter: 5,
+      chapterTitle: '第五章：圓滿',
+      chronologicalRank: 0.9,
+      narrativeMode: 'present',
+      eventImportance: 'KERNEL',
+      participants: [
+        { id: 'ent-001', name: '伊莉莎白', type: 'character' },
+        { id: 'ent-002', name: '達西', type: 'character' },
+      ],
+      location: { id: 'loc-004', name: '朗伯恩' },
+    },
+  ],
+  quality: {
+    eepCoverage: 0.4,
+    analyzedCount: 3,
+    totalCount: 8,
+    hasChronologicalRanks: true,
+  },
+};
 
 // ── Task simulation ─────────────────────────────────────────────
 
