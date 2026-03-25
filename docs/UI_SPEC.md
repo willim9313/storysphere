@@ -107,13 +107,14 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 ### 2.2 書籍層級（Top Nav Tab）
 
-進入特定書籍後，top nav 顯示三個 tab，切換書籍內頁面。
+進入特定書籍後，top nav 顯示四個 tab，切換書籍內頁面。
 
 | Tab | 路由 |
 |-----|------|
 | 閱讀 | `/books/:bookId` |
 | 深度分析 | `/books/:bookId/analysis` |
 | 知識圖譜 | `/books/:bookId/graph` |
+| 時間軸 | `/books/:bookId/timeline` |
 
 top nav 同時顯示書名與「← 書庫」返回入口。
 
@@ -127,7 +128,8 @@ top nav 同時顯示書名與「← 書庫」返回入口。
   └─ [書籍空間] /books/:bookId
        ├─ 閱讀        /books/:bookId
        ├─ 深度分析    /books/:bookId/analysis
-       └─ 知識圖譜    /books/:bookId/graph
+       ├─ 知識圖譜    /books/:bookId/graph
+       └─ 時間軸      /books/:bookId/timeline
 ```
 
 ---
@@ -155,7 +157,7 @@ top nav 同時顯示書名與「← 書庫」返回入口。
 
 | status | 快捷入口 |
 |--------|---------|
-| `analyzed` | 繼續閱讀、知識圖譜、深度分析 |
+| `analyzed` | 繼續閱讀、知識圖譜、深度分析、時間軸 |
 | `ready` | 開始閱讀、觸發分析 |
 | `processing` | 查看處理進度 |
 | `error` | 查看錯誤 |
@@ -345,8 +347,9 @@ error 狀態
 
 1. **Sub tab**：角色分析 / 事件分析
 2. **框架選擇**（角色分析 tab 下）：Jung 12 / Schmidt 45 + 「框架索引 ↗」連結
-3. **搜尋欄**：即時篩選清單，顯示當前總數
-4. **清單**（可捲動）：分「已分析」/ 「尚未分析」兩組
+3. **批次操作列**（事件分析 tab 下）：「一鍵生成全部 EEP」按鈕 + 進度顯示（見下方說明）
+4. **搜尋欄**：即時篩選清單，顯示當前總數
+5. **清單**（可捲動）：分「已分析」/ 「尚未分析」兩組
 
 清單 item 格式：
 - 已分析：彩色頭像（取名字首字）+ 名稱 + 原型類型 + 章節數 + 綠色狀態點
@@ -372,6 +375,39 @@ error 狀態
 4. 關係動力（與其他角色的原型互動）
 
 **事件分析維度**：依敘事理論框架，對接後端後確認維度名稱。
+
+#### 批次事件分析（事件分析 tab）
+
+事件分析 tab 的 Left Panel 頂部顯示批次操作區塊：
+
+```
+┌─────────────────────────────────┐
+│  事件分析  12/30 已完成          │
+│  ████████░░░░░░░  40%           │
+│                                 │
+│  [一鍵生成全部 EEP]              │
+│  已分析的事件會自動跳過           │
+└─────────────────────────────────┘
+```
+
+**按鈕狀態**：
+
+| 狀態 | 顯示 |
+|------|------|
+| 可執行 | 「一鍵生成全部 EEP」（primary 樣式） |
+| 全部已分析 | 「全部事件已分析 ✓」（disabled，灰色） |
+| 執行中 | spinner + "分析中 15/30…" + 進度條 |
+
+**確認視窗**：
+- 標題：「批次生成事件 EEP」
+- 內容：「將對 {N} 個尚未分析的事件執行深度分析，已分析的事件會自動跳過。此操作將消耗大量 token。」
+- 按鈕：「取消」/「確認執行」
+
+**執行中更新**：
+- polling `GET /tasks/:taskId/status` — result 中含 `progress`, `total`, `failed`, `skipped`
+- 進度條即時更新
+- 每完成一個事件，清單中對應 item 從「尚未分析」移至「已分析」
+- 完成後顯示摘要：「完成！已分析 {N} 個事件，跳過 {M} 個，失敗 {F} 個」
 
 #### 狀態流程
 
@@ -399,6 +435,13 @@ error 狀態
   → 顯示確認視窗（說明將覆蓋現有結果 + token 消耗）
   → 確認 → DELETE + POST（見 API_CONTRACT #7c、#7b）
   → 同上 polling 流程
+
+點擊「一鍵生成全部 EEP」（事件分析 tab）
+  → 顯示確認視窗（token 消耗提示 + 跳過已分析說明）
+  → 確認 → POST /books/:bookId/events/analyze-all
+  → polling GET /tasks/:taskId/status（每 3 秒）
+  → 進度條更新 + 清單即時反映已完成項目
+  → 完成後顯示摘要 toast
 ```
 
 #### API
@@ -599,6 +642,9 @@ error 狀態
 | 深度分析頁 | 點擊「在圖譜中查看 ↗」 | `/books/:bookId/graph`（定位節點） |
 | 深度分析頁 | 點擊「框架索引 ↗」 | `/frameworks?framework=jung` |
 | 知識圖譜頁 | （未來）點擊段落 | `/books/:bookId`（定位 chunk） |
+| 時間軸頁 | 點擊事件面板「前驅/後續事件」 | 同頁 scroll + 選中 |
+| 時間軸頁 | 點擊「尚未分析」引導連結 | `/books/:bookId/analysis`（定位該事件） |
+| 首頁最近開啟 | 點擊「時間軸」（status=analyzed） | `/books/:bookId/timeline` |
 
 ### 4.2 深度分析資料連動
 
@@ -618,37 +664,343 @@ error 狀態
 | 首次觸發實體深度分析 | 此操作將消耗 token，生成後可在深度分析頁查看 |
 | 覆蓋重新生成（實體） | 此操作將覆蓋現有結果並消耗 token |
 | 觸發整本書深度分析 | 此操作將消耗大量 token，請確認後執行 |
+| 一鍵生成全部事件 EEP | 將對 N 個尚未分析的事件執行深度分析，已分析的自動跳過，消耗大量 token |
+| 觸發時序計算 | 此操作將消耗 token，計算事件的故事世界時序排列 |
 
 ---
 
-## 6. 時間維度探索（待設計，Phase 9）
+## 6. 時間軸頁 `/books/:bookId/timeline`
 
 > 後端設計見 [`docs/guides/PHASE_9_TEMPORAL_TIMELINE.md`](guides/PHASE_9_TEMPORAL_TIMELINE.md)
 
-### 6.1 功能範圍
+#### 版面結構
 
-- **雙軸時間線視圖**：同時呈現「敘事順序」（章節）與「故事時序」（chronological_rank）兩條軸線，可切換
-- **敘事模式標示**：倒敘（flashback）、預敘（flashforward）事件以不同色或標記區分
-- **信心度視覺化**：`TemporalRelation.confidence > 0.8` 實線、`0.5~0.8` 虛線、`< 0.5` 不顯示連結
-- **因果鏈視圖**：僅顯示 `relation_type = causes` 的邊，呈現事件因果樹
-- **角色弧線（真實時序）**：選定角色後，以 `chronological_rank` 排列其相關事件，反映故事世界的成長/衰落軌跡
-- **主題框架的時序證據**：特定主題相關事件在故事時序軸上的分佈
+三區塊：工具列 + 時間軸主區 + 右側事件詳情面板（點擊展開）。
 
-### 6.2 關鍵 UI 狀態
+```
+[Left Sidebar] [Toolbar]  [時間軸主區]                    [事件詳情面板]
+                固定頂部    flex 剩餘空間                    固定寬 320px
+                                                           點擊事件後展開
+```
 
-| 狀態 | 說明 |
+#### 6.1 頂部工具列（固定）
+
+水平排列，左右分組：
+
+```
+左側:
+  [🔀 章節順序 ▾ / 故事時序 ▾ / 矩陣視圖 ▾]  ← 三選一 select，預設「章節順序」
+  [⇄ 水平 / ↕ 垂直]                          ← layout 方向切換（矩陣模式下隱藏）
+
+中央:
+  [品質指示器]                                ← 顯示 EEP 覆蓋率 + 時序計算狀態
+
+右側:
+  [Filter ▾]                                 ← 點擊展開 filter dropdown
+  [重新計算時序]                               ← 觸發 POST /timeline/compute
+```
+
+**三種視圖模式**：
+
+| 值 | API 參數 | 說明 |
+|----|---------|------|
+| 章節順序（預設） | `order=narrative` | 事件按 `chapter` 排列，時間軸模式 |
+| 故事時序 | `order=chronological` | 事件按 `chronological_rank` 排列，時間軸模式 |
+| 矩陣視圖 | 同 `order=narrative` | 散點圖，X 軸=敘事順序，Y 軸=故事時序（見 6.8） |
+
+- 若 `chronological_rank` 全為 null（Pipeline 未跑），故事時序 / 矩陣視圖選項旁顯示 ⚠️ badge + tooltip「尚未計算時序，請先觸發時序計算」
+- 切換時，事件節點以動畫重新排列（建議 300ms ease）
+
+**品質指示器**（讀取 API response 中的 `quality` 欄位）：
+
+```
+格式：
+  ■■■□□  12/30 事件已分析 (40%)  ·  時序已計算
+  ■□□□□   3/30 事件已分析 (10%)  ·  時序未計算
+
+  進度條 = quality.eepCoverage（5 格，每格 20%）
+  「時序已計算」/「時序未計算」= quality.hasChronologicalRanks
+
+tooltip 提示：
+  "分析更多事件可提升時序計算品質。前往深度分析頁 → 事件分析一鍵生成全部 EEP。"
+```
+
+- 點擊品質指示器文字 → navigate to `/books/:bookId/analysis`（事件分析 tab）
+
+**Layout 方向切換**：
+
+| 模式 | 說明 |
 |------|------|
-| `order = narrative` | 以章節號碼排列事件 |
-| `order = chronological` | 以 `chronological_rank` 排列事件 |
-| `narrative_mode = unknown` | 事件卡片顯示「時序待確認」標記 |
-| `chronological_rank = null` | 表示 TemporalPipeline 尚未執行，降級顯示章節排序 |
+| 水平（預設） | 時間軸左→右，事件節點沿水平軸排列，可水平捲動 |
+| 垂直 | 時間軸上→下，事件節點沿垂直軸排列，可垂直捲動 |
 
-### 6.3 設計待決項
+#### 6.2 時間軸主區
 
-- [ ] 獨立新頁面（TimelinePage）或作為現有頁面的分頁/模式切換？
-- [ ] 雙軸視圖的 layout 形式（水平捲動 / 垂直 / 二維矩陣）？
-- [ ] 與 GraphPage 的關係：共用事件節點互動，還是各自獨立？
-- [ ] filter 維度：角色、地點、事件類型、narrative_mode
+**主軸：事件節點**
+
+事件沿時間軸依序排列，每個事件為一個可點擊的節點：
+
+```
+節點樣式：
+  圓形，直徑依 event_importance 縮放：
+    KERNEL  → 48px
+    SATELLITE → 32px
+    未分類   → 36px
+
+  節點底色：event_type 對應色（同知識圖譜 event 節點色系）
+    #fee2e2 / #ef4444
+
+  節點內容：
+    上方 — 事件標題（截斷至 20 字）
+    下方 — 章節標記 "Ch.3"
+
+  narrative_mode 標記（左上角小 badge）：
+    present     → 不顯示
+    flashback   → ⏪ 半透明 badge
+    flashforward → ⏩ 半透明 badge
+    parallel    → ⏸ 半透明 badge
+    unknown     → 灰色 ? badge
+```
+
+**事件間連線（TemporalRelation 邊）**
+
+- 在故事時序模式下才顯示連線
+- 連線樣式依 confidence：
+
+| confidence | 樣式 |
+|-----------|------|
+| ≥ 0.8 | 實線，`stroke-width: 2px`，`opacity: 0.6` |
+| 0.5 ~ 0.8 | 虛線 `dasharray: 4,3`，`opacity: 0.4` |
+| < 0.5 | 不顯示 |
+
+- `relation_type = causes` 的邊使用 accent 色（`#8b5e3c`）+ 箭頭，與普通 BEFORE 邊區分
+- 章節順序模式下，連線全部隱藏（僅看敘事排列）
+
+**散開的角色 / 地點 pill（次要元素）**
+
+每個事件節點旁邊散開顯示其 `participants` 與 `location_id` 的 pill：
+
+```
+預設狀態：
+  pill 樣式同 1.4 實體 Pill，但 opacity: 0.25，不可點擊
+  位於事件節點上方/下方（水平 layout）或左側/右側（垂直 layout）
+
+事件被點擊/hover 後：
+  該事件相關的 pill → opacity: 1.0，transition: 200ms
+  其他事件的 pill → 維持 opacity: 0.25
+
+同一角色出現在多個事件：
+  相同角色的 pill 之間繪製淡色連線（opacity: 0.15），
+  角色被高亮時連線加深至 0.5，形成「角色弧線」視覺效果
+```
+
+**chapter 分組指示器**
+
+- 時間軸背景以交替淡色帶區分不同章節（類似表格斑馬紋）
+- 章節帶頂部標註章節名稱（小字，`--fg-muted`）
+- 故事時序模式下，分組帶消失（因為排序打亂了章節邊界）
+
+#### 6.3 Filter Dropdown
+
+點擊工具列右側 Filter 按鈕展開，多選 checkbox 組：
+
+```
+Filter 分組：
+  ┌─────────────────────────────┐
+  │ 事件類型                      │
+  │  ☑ 全部                      │
+  │  ☑ action   ☑ dialogue       │
+  │  ☑ decision ☑ revelation     │
+  │  ☑ turning_point ...         │
+  │                              │
+  │ 敘事模式                      │
+  │  ☑ 全部                      │
+  │  ☑ present ☑ flashback       │
+  │  ☑ flashforward ☑ parallel   │
+  │                              │
+  │ 角色（搜尋 + 多選）            │
+  │  🔍 搜尋角色...               │
+  │  ☑ 葉文潔  ☑ 羅輯            │
+  │  ☐ 章北海  ...               │
+  │                              │
+  │ 地點                          │
+  │  ☑ 全部                      │
+  │  ☑ 紅岸基地 ☑ 聯合國 ...      │
+  │                              │
+  │ 重要性                        │
+  │  ☑ KERNEL  ☑ SATELLITE       │
+  │                              │
+  │         [重置] [套用]         │
+  └─────────────────────────────┘
+```
+
+Filter 生效後：
+- 不符合條件的事件節點 `opacity: 0.1`，不可點擊
+- 工具列 Filter 按鈕顯示 active 數量 badge（如 `Filter (3)`）
+- 角色 filter 選中時，該角色的 pill 跨事件連線持續高亮
+
+#### 6.4 事件詳情面板（右側，深色 surface）
+
+點擊事件節點後從右側滑入，寬度 320px。
+
+**面板標題列**
+
+```
+事件名稱（serif）              [✕ 關閉]
+Ch.3 · flashback · KERNEL
+```
+
+**面板內容（可捲動，accordion 結構）**
+
+```
+1. 事件概要（預設展開）
+   ├─ 事件描述（event.description）
+   ├─ story_time_hint（如有）："三年前"
+   ├─ 參與者 pill 列表
+   └─ 地點 pill
+
+2. 時序關係（預設展開）
+   ├─ 前驅事件（prior_event_ids → 顯示事件名，可點擊跳轉）
+   ├─ 後續事件（subsequent_event_ids → 同上）
+   └─ chronological_rank 顯示："時序位置 0.35 / 1.0"
+
+3. 證據剖析 — EEP（預設收合，展開後顯示完整 EEP）
+   ├─ 狀態前（state_before）
+   ├─ 狀態後（state_after）
+   ├─ 因果因素（causal_factors 列表）
+   ├─ 結構角色（structural_role）
+   ├─ 重要性（event_importance badge）
+   ├─ 主題意義（thematic_significance）
+   └─ 文本證據（text_evidence 列表，每條可展開原文）
+
+4. 因果分析（預設收合，有 CausalityAnalysis 時顯示）
+   ├─ 根本原因（root_cause）
+   ├─ 因果鏈（causal_chain 列表）
+   └─ 因果摘要（chain_summary）
+
+5. 影響分析（預設收合，有 ImpactAnalysis 時顯示）
+   ├─ 受影響角色（affected_participant_ids → pill）
+   ├─ 關係變化（relation_changes 列表）
+   └─ 影響摘要（impact_summary）
+```
+
+**面板狀態處理**
+
+| 情境 | 行為 |
+|------|------|
+| 事件有 EEP（已跑 analysis） | 完整顯示所有 accordion 區塊 |
+| 事件無 EEP | Section 3/4/5 顯示「尚未執行深度分析」+ 引導至深度分析頁 |
+| 點擊前驅/後續事件名 | 時間軸 scroll 到該事件 + 選中 + 面板更新 |
+
+#### 6.5 狀態流程
+
+```
+進入頁面
+  → 載入時間軸資料（GET /books/:bookId/timeline?order=narrative）
+  → 渲染事件節點 + 章節分組帶
+  → 右側面板空白
+
+切換至「故事時序」
+  → 重新載入（GET /books/:bookId/timeline?order=chronological）
+  → 動畫重新排列事件節點
+  → 顯示 temporal_relations 連線
+  → 章節分組帶消失
+
+chronological_rank = null（Pipeline 未執行）
+  → 故事時序 / 矩陣選項旁顯示 ⚠️
+  → 「重新計算時序」按鈕可用
+  → 點擊 → 確認視窗（說明 token 消耗 + 品質提示）
+    → 確認 → POST /books/:bookId/timeline/compute
+    → polling GET /tasks/:taskId/status
+    → 計算中：按鈕變為 spinner + "計算中…"
+    → 完成：自動重新載入，品質指示器更新
+
+切換至「矩陣視圖」
+  → 主區替換為散點圖（見 6.8）
+  → layout 方向切換隱藏（矩陣固定為 2D）
+  → 右側面板仍可使用（點擊散點展開）
+
+點擊事件節點
+  → 該事件 pill 高亮（opacity: 1.0）
+  → 右側面板滑入
+  → 載入事件 EEP（GET /books/:bookId/events/:eventId/analysis）
+    → 404 → 顯示「尚未分析」
+    → 200 → 填入面板內容
+
+切換 layout 方向
+  → 事件軸旋轉 90°，動畫過渡
+  → pill 位置重新計算
+  → 面板位置不變（始終右側）
+
+套用 filter
+  → 不符條件的節點淡化
+  → 連線僅顯示可見事件之間的
+  → 角色 filter 時，選中角色的跨事件連線高亮
+```
+
+#### 6.6 API
+
+- `GET /books/:bookId/timeline`（`order`, `event_type` 參數）
+- `POST /books/:bookId/timeline/compute`
+- `GET /books/:bookId/events/:eventId/analysis`（複用深度分析 API）
+- `GET /tasks/:taskId/status`（見 API_CONTRACT #8）
+
+#### 6.7 矩陣視圖（Fabula-Sjuzhet Matrix）
+
+選擇「矩陣視圖」時，主區替換為二維散點圖。
+
+**軸線定義**
+
+```
+X 軸（→）= 敘事順序（Sjuzhet）
+  刻度 = chapter 順序，等距分佈
+  標籤 = "Ch.1", "Ch.2", ...
+
+Y 軸（↑）= 故事時序（Fabula）
+  刻度 = chronological_rank（0.0 → 1.0）
+  標籤 = "故事起點" ... "故事終點"
+```
+
+**散點樣式**
+
+```
+每個事件 = 一個圓點
+  位置：(chapter, chronological_rank)
+  大小：同時間軸模式，依 event_importance 縮放
+  顏色：依 narrative_mode 區分
+    present      → 主色（accent #8b5e3c）
+    flashback    → 藍 #3b82f6
+    flashforward → 橘 #f59e0b
+    parallel     → 紫 #8b5cf6
+    unknown      → 灰 #8a7a68
+
+  hover → tooltip 顯示事件標題 + 章節 + 時序位置
+  click → 右側面板展開（同 6.4）
+```
+
+**對角線參考線**
+
+- 繪製一條 45° 淡色虛線（左下→右上），代表「敘事順序 = 故事時序」
+- 落在對角線上的事件 = 線性敘事（按時間順序講述）
+- 偏離對角線的事件 = 非線性敘事：
+  - 對角線上方 = 事件在故事世界中較晚發生，但較早被講述（預敘）
+  - 對角線下方 = 事件在故事世界中較早發生，但較晚被講述（倒敘）
+
+**互動**
+
+- 框選（drag to select）多個散點 → 高亮選中事件 + 右側顯示選中列表
+- Filter 同樣生效（不符條件的散點淡化）
+- 角色 pill 不在矩陣中顯示（空間不足），改為 hover tooltip 帶出
+
+**降級狀態**
+
+- `chronological_rank = null` 的事件無法定位 Y 軸 → 統一放在 Y = -0.1 位置，以灰色半透明顯示，附提示「時序未計算」
+
+#### 6.8 未來擴充備註
+
+- **因果鏈聚焦模式**：工具列增加「僅顯示因果鏈」toggle，只保留 `relation_type = causes` 的邊與相關事件，呈現因果樹
+- **角色弧線模式**：選定角色後，僅顯示該角色參與的事件，以 chronological_rank 排列，形成該角色的成長/衰落時間線
+- **主題時序分佈**：選定主題標籤後，顯示相關事件在故事時序軸上的分佈密度
 
 ---
 

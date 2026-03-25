@@ -1167,6 +1167,124 @@ async def delete_event_analysis(
     logger.info("Deleted event analysis cache: key=%s", cache_key)
 
 
+# ── #7f POST /books/:bookId/events/analyze-all ───────────────────────────────
+
+
+async def _run_batch_event_analysis(
+    task_id: str,
+    document_id: str,
+    agent,
+    kg_service,
+    cache,
+    language: str = "en",
+) -> None:
+    """Background task: analyze all unanalyzed events."""
+    task_store.set_running(task_id)
+    events = await kg_service.get_events(document_id=document_id)
+    total = len(events)
+    done = 0
+    failed = 0
+    skipped = 0
+
+    for ev in events:
+        cache_key = f"event:{document_id}:{ev.id}"
+        if await cache.get(cache_key) is not None:
+            skipped += 1
+            done += 1
+            continue
+        try:
+            await agent.analyze_event(
+                event_id=ev.id,
+                document_id=document_id,
+                language=language,
+            )
+            done += 1
+        except Exception as exc:
+            logger.warning(
+                "Batch event analysis failed for %s: %s",
+                ev.id, exc,
+            )
+            failed += 1
+            done += 1
+
+        task_store.update(
+            task_id,
+            status="running",
+            result={
+                "progress": done,
+                "total": total,
+                "failed": failed,
+                "skipped": skipped,
+            },
+        )
+
+    task_store.update(
+        task_id,
+        status="completed",
+        result={
+            "progress": total,
+            "total": total,
+            "failed": failed,
+            "skipped": skipped,
+        },
+    )
+    logger.info(
+        "Batch event analysis complete: doc=%s, "
+        "total=%d, skipped=%d, failed=%d",
+        document_id, total, skipped, failed,
+    )
+
+
+@router.post(
+    "/{book_id}/events/analyze-all",
+    response_model=TaskIdResponse,
+    status_code=202,
+)
+async def trigger_batch_event_analysis(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    cache: AnalysisCacheDep,
+    agent: AnalysisAgentDep,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Trigger deep analysis for ALL events in a book.
+
+    Skips events that already have cached analysis.
+    Returns a task_id for progress tracking.
+    """
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Book '{book_id}' not found",
+        )
+
+    events = await kg.get_events(document_id=book_id)
+    if not events:
+        raise HTTPException(
+            status_code=400,
+            detail="No events found for this book",
+        )
+
+    language = await doc.get_document_language(book_id)
+    task_id = str(uuid4())
+    task_store.create(task_id)
+    background_tasks.add_task(
+        _run_batch_event_analysis,
+        task_id, book_id, agent, kg, cache, language,
+    )
+
+    logger.info(
+        "Triggered batch event analysis: book=%s, "
+        "events=%d, task=%s",
+        book_id, len(events), task_id,
+    )
+    return TaskIdResponse(task_id=task_id).model_dump(
+        by_alias=True,
+    )
+
+
 # ── Timeline endpoints ───────────────────────────────────────────────────────
 
 
@@ -1190,12 +1308,24 @@ class TemporalRelationEntry(BaseModel):
     confidence: float
 
 
+class TimelineQuality(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel, populate_by_name=True,
+    )
+    total_events: int = 0
+    analyzed_events: int = 0
+    eep_coverage: float = 0.0
+    has_chronological_ranks: bool = False
+    last_computed: str | None = None
+
+
 class TimelineResponse(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
     book_id: str
     order: str
     events: list[TimelineEventEntry]
     temporal_relations: list[TemporalRelationEntry]
+    quality: TimelineQuality
 
 
 @router.get("/{book_id}/timeline", response_model=TimelineResponse)
@@ -1203,34 +1333,68 @@ async def get_book_timeline(
     book_id: str,
     kg: KGServiceDep,
     doc: DocServiceDep,
+    cache: AnalysisCacheDep,
     order: str = "chronological",
     event_type: str | None = None,
 ) -> dict:
     """Get the global event timeline for a book.
 
     Query params:
-        order: "narrative" (chapter order) or "chronological" (story time).
+        order: "narrative" (chapter order) or "chronological".
         event_type: optional filter by event type.
     """
     document = await doc.get_document(book_id)
     if document is None:
-        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+        raise HTTPException(
+            status_code=404,
+            detail=f"Book '{book_id}' not found",
+        )
 
-    events = await kg.get_events(document_id=book_id)
+    all_events = await kg.get_events(document_id=book_id)
+
+    # Compute EEP coverage from all events (before filtering)
+    analyzed_count = 0
+    for ev in all_events:
+        cache_key = f"event:{book_id}:{ev.id}"
+        if await cache.get(cache_key) is not None:
+            analyzed_count += 1
+
+    total = len(all_events)
+    has_ranks = any(
+        e.chronological_rank is not None for e in all_events
+    )
+    quality = TimelineQuality(
+        total_events=total,
+        analyzed_events=analyzed_count,
+        eep_coverage=(
+            analyzed_count / total if total > 0 else 0.0
+        ),
+        has_chronological_ranks=has_ranks,
+    )
+
+    # Apply event_type filter after coverage calculation
+    events = all_events
     if event_type:
-        events = [e for e in events if e.event_type.value == event_type]
+        events = [
+            e for e in events
+            if e.event_type.value == event_type
+        ]
 
     if order == "chronological":
         events.sort(
             key=lambda e: (
-                e.chronological_rank if e.chronological_rank is not None else float("inf"),
+                e.chronological_rank
+                if e.chronological_rank is not None
+                else float("inf"),
                 e.chapter,
             )
         )
     else:
         events.sort(key=lambda e: e.chapter)
 
-    temporal_relations = await kg.get_temporal_relations(document_id=book_id)
+    temporal_relations = await kg.get_temporal_relations(
+        document_id=book_id,
+    )
 
     return TimelineResponse(
         book_id=book_id,
@@ -1257,6 +1421,7 @@ async def get_book_timeline(
             )
             for tr in temporal_relations
         ],
+        quality=quality,
     ).model_dump(by_alias=True)
 
 
