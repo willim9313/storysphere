@@ -23,6 +23,28 @@ class EntityIdInput(BaseModel):
     )
 
 
+class EntityTimelineInput(BaseModel):
+    """Input for entity timeline with optional sort order."""
+
+    entity_id: str = Field(
+        description="The entity ID (UUID) or exact entity name."
+    )
+    sort_by: str = Field(
+        default="narrative",
+        description="Sort order: 'narrative' (chapter order) or 'chronological' (story time).",
+    )
+
+
+class GlobalTimelineInput(BaseModel):
+    """Input for querying the global book timeline."""
+
+    document_id: str = Field(description="The book/document ID.")
+    order: str = Field(
+        default="chronological",
+        description="Sort order: 'narrative' (chapter order) or 'chronological' (story time).",
+    )
+
+
 class EntityRelationsInput(BaseModel):
     """Input for querying entity relations with optional direction filter."""
 

@@ -20,6 +20,16 @@ class EventType(str, Enum):
     OTHER = "other"
 
 
+class NarrativeMode(str, Enum):
+    """Whether this event is presented as present action, flashback, etc."""
+
+    PRESENT = "present"
+    FLASHBACK = "flashback"
+    FLASHFORWARD = "flashforward"
+    PARALLEL = "parallel"
+    UNKNOWN = "unknown"
+
+
 class Event(BaseModel):
     """A significant plot event extracted from a novel chapter."""
 
@@ -33,3 +43,11 @@ class Event(BaseModel):
     location_id: Optional[str] = None
     significance: Optional[str] = None
     consequences: list[str] = Field(default_factory=list)
+
+    # --- Narrative position (fine-grained within-book ordering) ---
+    narrative_position: Optional[int] = None
+
+    # --- Story-world temporal fields ---
+    narrative_mode: NarrativeMode = NarrativeMode.UNKNOWN
+    story_time_hint: Optional[str] = None
+    chronological_rank: Optional[float] = None

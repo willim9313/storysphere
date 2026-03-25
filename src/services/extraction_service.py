@@ -17,7 +17,7 @@ from pydantic import BaseModel, Field, ValidationError, field_validator
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from domain.entities import Entity, EntityType
-from domain.events import Event, EventType
+from domain.events import Event, EventType, NarrativeMode
 from domain.relations import Relation, RelationType
 
 logger = logging.getLogger(__name__)
@@ -69,6 +69,8 @@ class _RawEvent(BaseModel):
     participants: list[str] = Field(default_factory=list)
     significance: str | None = None
     consequences: list[str] = Field(default_factory=list)
+    narrative_mode: str = "unknown"
+    story_time_hint: str | None = None
 
     @field_validator("participants", "consequences", mode="before")
     @classmethod
@@ -126,6 +128,13 @@ Return ONLY a JSON object with two keys:
   - "participants"  (list[str])  Entity names involved.
   - "significance"  (str|null)
   - "consequences"  (list[str])
+  - "narrative_mode" (str)  One of: present, flashback, flashforward, parallel, unknown.
+                            Is this event part of the main timeline ("present"),
+                            a flashback to the past, a flash-forward to the future,
+                            or a parallel storyline?  Use "unknown" if unclear.
+  - "story_time_hint" (str|null)  Any explicit time reference in the text for when
+                            this event occurs, e.g. "three years ago", "the next morning",
+                            "when she was twelve".  Null if no time cue is present.
 
 Only extract relations between entities in the provided entity list.
 """
@@ -348,6 +357,10 @@ class ExtractionService:
             participant_ids = [
                 name_to_id[name] for name in raw.participants if name in name_to_id
             ]
+            try:
+                nmode = NarrativeMode(raw.narrative_mode.lower())
+            except ValueError:
+                nmode = NarrativeMode.UNKNOWN
             events.append(
                 Event(
                     title=raw.title,
@@ -357,6 +370,8 @@ class ExtractionService:
                     participants=participant_ids,
                     significance=raw.significance,
                     consequences=raw.consequences,
+                    narrative_mode=nmode,
+                    story_time_hint=raw.story_time_hint,
                 )
             )
         return events

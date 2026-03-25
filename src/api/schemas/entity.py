@@ -66,6 +66,8 @@ class TimelineEntry(BaseModel):
     title: str
     chapter: int | None
     description: str | None
+    chronological_rank: float | None = None
+    narrative_mode: str = "unknown"
 
 
 class SubgraphResponse(BaseModel):

@@ -39,7 +39,7 @@ def format_relation(relation: Any) -> dict:
 
 def format_event(event: Any) -> dict:
     """Return a serialisable dict for an Event domain object."""
-    return {
+    d = {
         "id": event.id,
         "title": event.title,
         "event_type": event.event_type.value if hasattr(event.event_type, "value") else str(event.event_type),
@@ -49,7 +49,15 @@ def format_event(event: Any) -> dict:
         "location_id": event.location_id,
         "significance": event.significance,
         "consequences": event.consequences,
+        "narrative_mode": getattr(event, "narrative_mode", "unknown"),
+        "story_time_hint": getattr(event, "story_time_hint", None),
+        "chronological_rank": getattr(event, "chronological_rank", None),
     }
+    # Resolve enum value if present
+    nm = d["narrative_mode"]
+    if hasattr(nm, "value"):
+        d["narrative_mode"] = nm.value
+    return d
 
 
 def handle_not_found(entity_name_or_id: str) -> str:

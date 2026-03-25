@@ -17,7 +17,7 @@ from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
-from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, KGServiceDep, VectorServiceDep
+from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, KGServiceDep, TemporalPipelineDep, VectorServiceDep
 from services.analysis_cache import AnalysisCache
 from domain.documents import ParagraphEntity
 from api.schemas.common import TaskStatus
@@ -1165,3 +1165,156 @@ async def delete_event_analysis(
     cache_key = f"event:{book_id}:{event_id}"
     await cache.invalidate(cache_key)
     logger.info("Deleted event analysis cache: key=%s", cache_key)
+
+
+# ── Timeline endpoints ───────────────────────────────────────────────────────
+
+
+class TimelineEventEntry(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    event_id: str
+    title: str
+    event_type: str
+    chapter: int
+    narrative_mode: str = "unknown"
+    chronological_rank: float | None = None
+    story_time_hint: str | None = None
+    participants: list[str] = []
+
+
+class TemporalRelationEntry(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    source: str
+    target: str
+    type: str
+    confidence: float
+
+
+class TimelineResponse(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    book_id: str
+    order: str
+    events: list[TimelineEventEntry]
+    temporal_relations: list[TemporalRelationEntry]
+
+
+@router.get("/{book_id}/timeline", response_model=TimelineResponse)
+async def get_book_timeline(
+    book_id: str,
+    kg: KGServiceDep,
+    doc: DocServiceDep,
+    order: str = "chronological",
+    event_type: str | None = None,
+) -> dict:
+    """Get the global event timeline for a book.
+
+    Query params:
+        order: "narrative" (chapter order) or "chronological" (story time).
+        event_type: optional filter by event type.
+    """
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    events = await kg.get_events(document_id=book_id)
+    if event_type:
+        events = [e for e in events if e.event_type.value == event_type]
+
+    if order == "chronological":
+        events.sort(
+            key=lambda e: (
+                e.chronological_rank if e.chronological_rank is not None else float("inf"),
+                e.chapter,
+            )
+        )
+    else:
+        events.sort(key=lambda e: e.chapter)
+
+    temporal_relations = await kg.get_temporal_relations(document_id=book_id)
+
+    return TimelineResponse(
+        book_id=book_id,
+        order=order,
+        events=[
+            TimelineEventEntry(
+                event_id=e.id,
+                title=e.title,
+                event_type=e.event_type.value,
+                chapter=e.chapter,
+                narrative_mode=e.narrative_mode.value,
+                chronological_rank=e.chronological_rank,
+                story_time_hint=e.story_time_hint,
+                participants=e.participants,
+            )
+            for e in events
+        ],
+        temporal_relations=[
+            TemporalRelationEntry(
+                source=tr.source_event_id,
+                target=tr.target_event_id,
+                type=tr.relation_type.value,
+                confidence=tr.confidence,
+            )
+            for tr in temporal_relations
+        ],
+    ).model_dump(by_alias=True)
+
+
+async def _run_temporal_pipeline(
+    task_id: str,
+    book_id: str,
+    pipeline: Any,
+    language: str,
+) -> None:
+    """Background task for temporal pipeline computation."""
+    try:
+        task_store.update(task_id, status="running")
+        result = await pipeline.run(document_id=book_id, language=language)
+        task_store.update(
+            task_id,
+            status="completed",
+            result={
+                "temporal_relations": result.temporal_relations,
+                "events_ranked": result.events_ranked,
+                "cycles_resolved": result.cycles_resolved,
+                "errors": result.errors,
+            },
+        )
+    except Exception as exc:
+        logger.error("Temporal pipeline failed: %s", exc)
+        task_store.update(task_id, status="failed", error=str(exc))
+
+
+@router.post(
+    "/{book_id}/timeline/compute",
+    response_model=TaskIdResponse,
+    status_code=202,
+)
+async def compute_book_timeline(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    pipeline: TemporalPipelineDep,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Trigger temporal timeline computation for a book.
+
+    Requires EEP (event analysis) to have been run first for best results.
+    """
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    events = await kg.get_events(document_id=book_id)
+    if not events:
+        raise HTTPException(status_code=400, detail="No events found for this book")
+
+    language = await doc.get_document_language(book_id)
+    task_id = str(uuid4())
+    task_store.create(task_id)
+    background_tasks.add_task(
+        _run_temporal_pipeline, task_id, book_id, pipeline, language
+    )
+
+    logger.info("Triggered temporal pipeline: book=%s, task=%s", book_id, task_id)
+    return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)

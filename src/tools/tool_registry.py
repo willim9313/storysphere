@@ -23,6 +23,7 @@ from tools.graph_tools import (
     GetEntityAttributesTool,
     GetEntityRelationsTool,
     GetEntityTimelineTool,
+    GetGlobalTimelineTool,
     GetRelationPathsTool,
     GetRelationStatsTool,
     GetSubgraphTool,
@@ -67,10 +68,11 @@ def get_chat_tools(
         List of fully-functional tools for the chat agent.
     """
     return [
-        # Graph tools (6)
+        # Graph tools (7)
         GetEntityAttributesTool(kg_service=kg_service),
         GetEntityRelationsTool(kg_service=kg_service),
         GetEntityTimelineTool(kg_service=kg_service),
+        GetGlobalTimelineTool(kg_service=kg_service),
         GetRelationPathsTool(kg_service=kg_service),
         GetSubgraphTool(kg_service=kg_service),
         GetRelationStatsTool(kg_service=kg_service),
@@ -161,6 +163,7 @@ def get_all_tool_names() -> list[str]:
         "get_entity_attributes",
         "get_entity_relations",
         "get_entity_timeline",
+        "get_global_timeline",
         "get_relation_paths",
         "get_subgraph",
         "get_relation_stats",

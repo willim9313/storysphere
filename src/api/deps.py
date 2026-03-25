@@ -114,6 +114,32 @@ def get_analysis_agent():
 
 
 @lru_cache(maxsize=1)
+def get_global_timeline_service():
+    from services.global_timeline_service import GlobalTimelineService  # noqa: PLC0415
+
+    return GlobalTimelineService()
+
+
+@lru_cache(maxsize=1)
+def get_timeline_agent():
+    from agents.timeline_agent import TimelineAgent  # noqa: PLC0415
+
+    return TimelineAgent(llm=get_llm())
+
+
+@lru_cache(maxsize=1)
+def get_temporal_pipeline():
+    from pipelines.temporal_pipeline import TemporalPipeline  # noqa: PLC0415
+
+    return TemporalPipeline(
+        kg_service=get_kg_service(),
+        analysis_cache=get_analysis_cache(),
+        timeline_agent=get_timeline_agent(),
+        timeline_service=get_global_timeline_service(),
+    )
+
+
+@lru_cache(maxsize=1)
 def get_chat_agent():
     from agents.chat_agent import ChatAgent  # noqa: PLC0415
 
@@ -154,3 +180,4 @@ AnalysisCacheDep = Annotated[any, Depends(get_analysis_cache)]
 AnalysisAgentDep = Annotated[any, Depends(get_analysis_agent)]
 ChatAgentDep = Annotated[any, Depends(get_chat_agent)]
 DeepChatAgentDep = Annotated[any, Depends(get_deep_chat_agent)]
+TemporalPipelineDep = Annotated[any, Depends(get_temporal_pipeline)]

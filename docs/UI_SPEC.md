@@ -621,6 +621,37 @@ error 狀態
 
 ---
 
+## 6. 時間維度探索（待設計，Phase 9）
+
+> 後端設計見 [`docs/guides/PHASE_9_TEMPORAL_TIMELINE.md`](guides/PHASE_9_TEMPORAL_TIMELINE.md)
+
+### 6.1 功能範圍
+
+- **雙軸時間線視圖**：同時呈現「敘事順序」（章節）與「故事時序」（chronological_rank）兩條軸線，可切換
+- **敘事模式標示**：倒敘（flashback）、預敘（flashforward）事件以不同色或標記區分
+- **信心度視覺化**：`TemporalRelation.confidence > 0.8` 實線、`0.5~0.8` 虛線、`< 0.5` 不顯示連結
+- **因果鏈視圖**：僅顯示 `relation_type = causes` 的邊，呈現事件因果樹
+- **角色弧線（真實時序）**：選定角色後，以 `chronological_rank` 排列其相關事件，反映故事世界的成長/衰落軌跡
+- **主題框架的時序證據**：特定主題相關事件在故事時序軸上的分佈
+
+### 6.2 關鍵 UI 狀態
+
+| 狀態 | 說明 |
+|------|------|
+| `order = narrative` | 以章節號碼排列事件 |
+| `order = chronological` | 以 `chronological_rank` 排列事件 |
+| `narrative_mode = unknown` | 事件卡片顯示「時序待確認」標記 |
+| `chronological_rank = null` | 表示 TemporalPipeline 尚未執行，降級顯示章節排序 |
+
+### 6.3 設計待決項
+
+- [ ] 獨立新頁面（TimelinePage）或作為現有頁面的分頁/模式切換？
+- [ ] 雙軸視圖的 layout 形式（水平捲動 / 垂直 / 二維矩陣）？
+- [ ] 與 GraphPage 的關係：共用事件節點互動，還是各自獨立？
+- [ ] filter 維度：角色、地點、事件類型、narrative_mode
+
+---
+
 ## 5. 未來備註
 
 以下功能已討論但不在本階段開發範圍：

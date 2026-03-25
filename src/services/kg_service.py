@@ -20,6 +20,7 @@ import networkx as nx
 from domain.entities import Entity, EntityType
 from domain.events import Event
 from domain.relations import Relation
+from domain.temporal import TemporalRelation
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +41,7 @@ class KGService:
         self._graph: nx.MultiDiGraph = nx.MultiDiGraph()
         self._events: dict[str, Event] = {}  # event_id → Event
         self._entities: dict[str, Entity] = {}  # entity_id → Entity
+        self._temporal_relations: dict[str, TemporalRelation] = {}  # tr_id → TemporalRelation
 
         from config.settings import get_settings  # noqa: PLC0415
 
@@ -176,11 +178,56 @@ class KGService:
             events = [ev for ev in events if ev.document_id == document_id]
         return events
 
+    # ── Temporal relation operations ──────────────────────────────────────────
+
+    async def add_temporal_relation(self, tr: TemporalRelation) -> None:
+        """Store a temporal relation between two events."""
+        self._temporal_relations[tr.id] = tr
+
+    async def get_temporal_relations(
+        self, document_id: Optional[str] = None
+    ) -> list[TemporalRelation]:
+        """Return all temporal relations, optionally filtered by document."""
+        trs = list(self._temporal_relations.values())
+        if document_id is not None:
+            trs = [t for t in trs if t.document_id == document_id]
+        return trs
+
+    async def remove_temporal_relations(self, document_id: str) -> int:
+        """Remove all temporal relations for a document. Returns count removed."""
+        to_remove = [
+            tid for tid, tr in self._temporal_relations.items()
+            if tr.document_id == document_id
+        ]
+        for tid in to_remove:
+            del self._temporal_relations[tid]
+        return len(to_remove)
+
+    async def update_event_rank(self, event_id: str, rank: float) -> None:
+        """Set the chronological_rank on an existing event."""
+        if event_id in self._events:
+            self._events[event_id].chronological_rank = rank
+
     # ── Timeline / Path / Subgraph queries ──────────────────────────────────
 
-    async def get_entity_timeline(self, entity_id: str) -> list[Event]:
-        """Return events involving *entity_id*, sorted by chapter number."""
+    async def get_entity_timeline(
+        self, entity_id: str, sort_by: str = "narrative"
+    ) -> list[Event]:
+        """Return events involving *entity_id*, sorted by chapter or chronological rank.
+
+        Args:
+            entity_id: The entity to get events for.
+            sort_by: ``"narrative"`` (chapter order) or ``"chronological"`` (story time).
+        """
         events = await self.get_events(entity_id)
+        if sort_by == "chronological":
+            return sorted(
+                events,
+                key=lambda e: (
+                    e.chronological_rank if e.chronological_rank is not None else float("inf"),
+                    e.chapter,
+                ),
+            )
         return sorted(events, key=lambda e: e.chapter)
 
     async def get_relation_paths(
@@ -371,6 +418,14 @@ class KGService:
         for evid in event_ids:
             del self._events[evid]
 
+        # Remove temporal relations belonging to this document
+        tr_ids = {
+            trid for trid, tr in self._temporal_relations.items()
+            if tr.document_id == document_id
+        }
+        for trid in tr_ids:
+            del self._temporal_relations[trid]
+
         # Remove entity nodes
         for eid in entity_ids:
             del self._entities[eid]
@@ -402,6 +457,9 @@ class KGService:
         payload = {
             "entities": {eid: e.model_dump() for eid, e in self._entities.items()},
             "events": {evid: ev.model_dump() for evid, ev in self._events.items()},
+            "temporal_relations": {
+                trid: tr.model_dump() for trid, tr in self._temporal_relations.items()
+            },
             "edges": [
                 {
                     "source": u,
@@ -429,6 +487,8 @@ class KGService:
             self._graph.add_node(eid, **self._entity_attrs(entity))
         for evid, evdata in payload.get("events", {}).items():
             self._events[evid] = Event.model_validate(evdata)
+        for trid, trdata in payload.get("temporal_relations", {}).items():
+            self._temporal_relations[trid] = TemporalRelation.model_validate(trdata)
         for edge in payload.get("edges", []):
             src = edge.pop("source")
             tgt = edge.pop("target")

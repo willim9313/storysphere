@@ -62,18 +62,22 @@ async def get_entity_relations(
 
 @router.get("/{entity_id}/timeline", response_model=list[TimelineEntry])
 async def get_entity_timeline(
-    entity_id: str, kg: KGServiceDep
+    entity_id: str,
+    kg: KGServiceDep,
+    order: str = Query(default="narrative", description="'narrative' or 'chronological'"),
 ) -> list[TimelineEntry]:
     entity = await kg.get_entity(entity_id)
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
-    events = await kg.get_entity_timeline(entity_id)
+    events = await kg.get_entity_timeline(entity_id, sort_by=order)
     return [
         TimelineEntry(
             event_id=e.id,
             title=e.title,
             chapter=e.chapter,
             description=e.description,
+            chronological_rank=e.chronological_rank,
+            narrative_mode=e.narrative_mode.value,
         )
         for e in events
     ]
