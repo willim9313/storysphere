@@ -6,14 +6,15 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
-import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis, triggerEventAnalysis, deleteEventAnalysis } from '@/api/analysis';
+import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis, triggerEventAnalysis, deleteEventAnalysis, triggerBatchEventAnalysis } from '@/api/analysis';
 import { AnalysisAccordion } from '@/components/analysis/AnalysisAccordion';
+import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
-import type { AnalysisItem, UnanalyzedEntity } from '@/api/types';
+import type { AnalysisItem, UnanalyzedEntity, BatchEepResult } from '@/api/types';
 
 type Tab = 'characters' | 'events';
 type Framework = 'jung' | 'schmidt';
@@ -29,6 +30,13 @@ export default function AnalysisPage() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+
+  // Batch EEP state
+  const [confirmBatchEep, setConfirmBatchEep] = useState(false);
+  const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [batchSummary, setBatchSummary] = useState<BatchEepResult | null>(null);
+  const [prevBatchProgress, setPrevBatchProgress] = useState(0);
 
   const { data: charData, isLoading: charLoading } = useCharacterAnalysis(bookId);
   const { data: evtData, isLoading: evtLoading } = useEventAnalysis(bookId);
@@ -66,6 +74,39 @@ export default function AnalysisPage() {
       setGenerateTaskId(null);
     }
   }, [genTask?.status, bookId, selectedEntityId, queryClient]);
+
+  // Batch EEP mutation
+  const batchMutation = useMutation({
+    mutationFn: () => triggerBatchEventAnalysis(bookId!),
+    onSuccess: (data) => { setBatchError(null); setBatchSummary(null); setPrevBatchProgress(0); setBatchTaskId(data.taskId); },
+    onError: () => setBatchError('觸發批次分析失敗，請稍後再試。'),
+  });
+
+  // Batch task polling (3s interval per spec)
+  const { data: batchTask } = useTaskPolling(batchTaskId);
+  const isBatchRunning = !!batchTaskId && !!batchTask && batchTask.status !== 'done' && batchTask.status !== 'error';
+
+  // Incrementally refresh event list as batch progresses
+  useEffect(() => {
+    if (!batchTask?.result) return;
+    const result = batchTask.result as BatchEepResult;
+    if (result.progress > prevBatchProgress) {
+      setPrevBatchProgress(result.progress);
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+    }
+  }, [batchTask?.result, prevBatchProgress, bookId, queryClient]);
+
+  // When batch completes
+  useEffect(() => {
+    if (batchTask?.status === 'done') {
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+      setBatchSummary(batchTask.result as BatchEepResult);
+      setBatchTaskId(null);
+    } else if (batchTask?.status === 'error') {
+      setBatchError(batchTask.error ?? '批次分析發生錯誤');
+      setBatchTaskId(null);
+    }
+  }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient]);
 
   // Find selected item in analyzed list
   const selectedAnalyzed = activeData?.analyzed.find((a) => a.entityId === selectedEntityId);
@@ -124,7 +165,7 @@ export default function AnalysisPage() {
           {(['characters', 'events'] as Tab[]).map((t) => (
             <button
               key={t}
-              onClick={() => { setTab(t); setSelectedEntityId(null); setGenerateTaskId(null); setTriggerError(null); }}
+              onClick={() => { setTab(t); setSelectedEntityId(null); setGenerateTaskId(null); setTriggerError(null); setBatchSummary(null); setBatchError(null); }}
               className="flex-1 py-2 text-xs font-medium border-b-2 -mb-px"
               style={{
                 borderColor: tab === t ? 'var(--accent)' : 'transparent',
@@ -160,6 +201,20 @@ export default function AnalysisPage() {
               框架索引 <ExternalLink size={10} />
             </Link>
           </div>
+        )}
+
+        {/* Batch EEP panel (events tab only) */}
+        {tab === 'events' && evtData && (
+          <BatchEepPanel
+            analyzedCount={evtData.analyzed.length}
+            totalCount={evtData.analyzed.length + evtData.unanalyzed.length}
+            batchTask={batchTask}
+            isBatchRunning={isBatchRunning}
+            batchError={batchError}
+            batchSummary={batchSummary}
+            onTrigger={() => setConfirmBatchEep(true)}
+            isPending={batchMutation.isPending}
+          />
         )}
 
         {/* Search */}
@@ -326,6 +381,19 @@ export default function AnalysisPage() {
             }
           }}
           onCancel={() => setConfirmRegenerate(false)}
+        />
+
+        {/* Batch EEP confirm */}
+        <ConfirmDialog
+          open={confirmBatchEep}
+          title="批次生成事件 EEP"
+          message={`將對 ${evtData?.unanalyzed.length ?? 0} 個尚未分析的事件執行深度分析，已分析的事件會自動跳過。此操作將消耗大量 token。`}
+          confirmLabel="確認執行"
+          onConfirm={() => {
+            setConfirmBatchEep(false);
+            batchMutation.mutate();
+          }}
+          onCancel={() => setConfirmBatchEep(false)}
         />
       </div>
     </div>

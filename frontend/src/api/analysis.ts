@@ -84,3 +84,14 @@ export function deleteEventAnalysis(
   if (MOCK_ENABLED) return mock.deleteEntityAnalysis(bookId, eventId);
   return apiDelete(`/books/${bookId}/events/${eventId}/analysis`);
 }
+
+// #7f — Batch event analysis (analyze all unanalyzed events)
+export function triggerBatchEventAnalysis(
+  bookId: string,
+): Promise<{ taskId: string }> {
+  if (MOCK_ENABLED) return mock.triggerBatchEventAnalysis(bookId);
+  return apiFetch<{ taskId: string }>(
+    `/books/${bookId}/events/analyze-all`,
+    { method: 'POST' },
+  );
+}

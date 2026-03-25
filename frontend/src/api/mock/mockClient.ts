@@ -148,3 +148,10 @@ export async function deleteEntityAnalysis(
 ): Promise<void> {
   await delay(200);
 }
+
+export async function triggerBatchEventAnalysis(
+  _bookId: string,
+): Promise<{ taskId: string }> {
+  await delay(300);
+  return createMockTask();
+}

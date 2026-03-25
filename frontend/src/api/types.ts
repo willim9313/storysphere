@@ -175,3 +175,11 @@ export interface TaskStatus {
   };
   error?: string;
 }
+
+/** Result shape for batch event analysis tasks */
+export interface BatchEepResult {
+  progress: number;
+  total: number;
+  failed: number;
+  skipped: number;
+}
