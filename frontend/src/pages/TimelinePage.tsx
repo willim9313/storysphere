@@ -27,6 +27,7 @@ import { computeTimeline } from '@/api/timeline';
 import { fetchEventAnalysisDetail } from '@/api/analysis';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { MatrixCanvas } from '@/components/timeline/MatrixCanvas';
 import type {
   TimelineOrder,
   TimelineEvent,
@@ -291,23 +292,32 @@ export default function TimelinePage() {
 
       {/* Main area: canvas + detail panel */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Timeline canvas */}
+        {/* Timeline / Matrix canvas */}
         <div className="flex-1 overflow-auto relative" ref={canvasRef}>
-          <TimelineCanvas
-            events={sortedEvents}
-            chapterGroups={chapterGroups}
-            layout={layout}
-            order={order}
-            temporalRelations={temporalRelations}
-            selectedEventId={selectedEventId}
-            hoveredEventId={hoveredEventId}
-            highlightedCharacters={filter.characters}
-            passesFilter={passesFilter}
-            nodeRefs={nodeRefs}
-            canvasRef={canvasRef}
-            onSelectEvent={setSelectedEventId}
-            onHoverEvent={setHoveredEventId}
-          />
+          {order === 'matrix' ? (
+            <MatrixCanvas
+              events={sortedEvents}
+              passesFilter={passesFilter}
+              selectedEventId={selectedEventId}
+              onSelectEvent={setSelectedEventId}
+            />
+          ) : (
+            <TimelineCanvas
+              events={sortedEvents}
+              chapterGroups={chapterGroups}
+              layout={layout}
+              order={order}
+              temporalRelations={temporalRelations}
+              selectedEventId={selectedEventId}
+              hoveredEventId={hoveredEventId}
+              highlightedCharacters={filter.characters}
+              passesFilter={passesFilter}
+              nodeRefs={nodeRefs}
+              canvasRef={canvasRef}
+              onSelectEvent={setSelectedEventId}
+              onHoverEvent={setHoveredEventId}
+            />
+          )}
         </div>
 
         {/* Event detail panel */}
@@ -385,9 +395,12 @@ function Toolbar({
           <option value="chronological">
             故事時序{!hasRanks ? ' \u26A0\uFE0F' : ''}
           </option>
+          <option value="matrix">
+            矩陣視圖{!hasRanks ? ' \u26A0\uFE0F' : ''}
+          </option>
         </select>
 
-        <button
+        {order !== 'matrix' && <button
           onClick={() =>
             onLayoutChange(
               layout === 'horizontal' ? 'vertical' : 'horizontal',
@@ -412,7 +425,7 @@ function Toolbar({
               <ArrowUpDown size={12} /> 垂直
             </>
           )}
-        </button>
+        </button>}
 
         <button
           onClick={onToggleFilter}

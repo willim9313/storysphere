@@ -188,7 +188,7 @@ export interface BatchEepResult {
 
 export type NarrativeMode = 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown';
 export type EventImportance = 'KERNEL' | 'SATELLITE';
-export type TimelineOrder = 'narrative' | 'chronological';
+export type TimelineOrder = 'narrative' | 'chronological' | 'matrix';
 
 export interface TimelineEvent {
   id: string;
