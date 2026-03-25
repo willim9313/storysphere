@@ -205,6 +205,13 @@ export interface TimelineEvent {
   location?: { id: string; name: string };
 }
 
+export interface TemporalRelation {
+  source: string;
+  target: string;
+  type: string;
+  confidence: number;
+}
+
 export interface TimelineQuality {
   eepCoverage: number;
   analyzedCount: number;
@@ -214,5 +221,55 @@ export interface TimelineQuality {
 
 export interface TimelineData {
   events: TimelineEvent[];
+  temporalRelations: TemporalRelation[];
   quality: TimelineQuality;
+}
+
+// ── Event Analysis Detail (EEP) ────────────────────────────────
+
+export interface ParticipantRole {
+  entityId: string;
+  entityName: string;
+  role: string;
+  impactDescription: string;
+}
+
+export interface EventEvidenceProfile {
+  stateBefore: string;
+  stateAfter: string;
+  causalFactors: string[];
+  priorEventIds: string[];
+  subsequentEventIds: string[];
+  participantRoles: ParticipantRole[];
+  consequences: string[];
+  structuralRole: string;
+  eventImportance: string;
+  thematicSignificance: string;
+  textEvidence: string[];
+  topTerms: Record<string, number>;
+}
+
+export interface CausalityAnalysis {
+  rootCause: string;
+  causalChain: string[];
+  triggerEventIds: string[];
+  chainSummary: string;
+}
+
+export interface ImpactAnalysis {
+  affectedParticipantIds: string[];
+  participantImpacts: string[];
+  relationChanges: string[];
+  subsequentEventIds: string[];
+  impactSummary: string;
+}
+
+export interface EventAnalysisDetail {
+  eventId: string;
+  title: string;
+  eep: EventEvidenceProfile;
+  causality: CausalityAnalysis;
+  impact: ImpactAnalysis;
+  summary: { summary: string };
+  analyzedAt: string;
 }

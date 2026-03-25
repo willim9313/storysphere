@@ -1,7 +1,7 @@
 import { MOCK_ENABLED } from './mock';
 import { apiFetch, apiDelete } from './client';
 import * as mock from './mock/mockClient';
-import type { AnalysisListResponse, EntityAnalysis } from './types';
+import type { AnalysisListResponse, EntityAnalysis, EventAnalysisDetail } from './types';
 
 // #6 — Trigger full-book analysis
 export function triggerBookAnalysis(bookId: string): Promise<{ taskId: string }> {
@@ -93,5 +93,16 @@ export function triggerBatchEventAnalysis(
   return apiFetch<{ taskId: string }>(
     `/books/${bookId}/events/analyze-all`,
     { method: 'POST' },
+  );
+}
+
+// #7d-get — Single event analysis detail (EEP + causality + impact)
+export function fetchEventAnalysisDetail(
+  bookId: string,
+  eventId: string,
+): Promise<EventAnalysisDetail> {
+  if (MOCK_ENABLED) return mock.fetchEventAnalysisDetail(bookId, eventId);
+  return apiFetch<EventAnalysisDetail>(
+    `/books/${bookId}/events/${eventId}/analysis`,
   );
 }

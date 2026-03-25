@@ -6,6 +6,8 @@ import type {
   GraphData,
   AnalysisListResponse,
   EntityAnalysis,
+  EventAnalysisDetail,
+  TemporalRelation,
   TaskStatus,
   TimelineData,
 } from '../types';
@@ -757,6 +759,91 @@ export const mockEntityAnalysis: EntityAnalysis = mockEntityAnalysisMap['ent-001
 
 // ── Timeline ────────────────────────────────────────────────────
 
+const mockTemporalRelations: TemporalRelation[] = [
+  { source: 'evt-001', target: 'evt-002', type: 'BEFORE', confidence: 0.95 },
+  { source: 'evt-002', target: 'evt-003', type: 'CAUSES', confidence: 0.85 },
+  { source: 'evt-003', target: 'evt-004', type: 'CAUSES', confidence: 0.8 },
+  { source: 'evt-004', target: 'evt-005', type: 'BEFORE', confidence: 0.92 },
+  { source: 'evt-005', target: 'evt-008', type: 'CAUSES', confidence: 0.75 },
+  { source: 'evt-006', target: 'evt-007', type: 'CAUSES', confidence: 0.9 },
+  { source: 'evt-007', target: 'evt-008', type: 'BEFORE', confidence: 0.6 },
+];
+
+export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
+  'evt-001': {
+    eventId: 'evt-001',
+    title: '伊莉莎白初見達西',
+    eep: {
+      stateBefore: '伊莉莎白對達西一無所知，帶著期待參加舞會。',
+      stateAfter: '伊莉莎白對達西形成負面第一印象，認為他傲慢無禮。',
+      causalFactors: ['社交場合的期待', '達西的沉默寡言', '班奈特家的社交地位'],
+      priorEventIds: [],
+      subsequentEventIds: ['evt-002'],
+      participantRoles: [
+        { entityId: 'ent-001', entityName: '伊莉莎白', role: 'reactor', impactDescription: '形成對達西的偏見' },
+        { entityId: 'ent-002', entityName: '達西', role: 'initiator', impactDescription: '因傲慢態度引發誤解' },
+      ],
+      consequences: ['伊莉莎白對達西產生偏見', '奠定全書核心衝突'],
+      structuralRole: '故事起始的核心衝突建立',
+      eventImportance: 'kernel',
+      thematicSignificance: '傲慢與偏見的主題在此首次體現——達西的傲慢與伊莉莎白的偏見同時萌芽。',
+      textEvidence: ['「她還算可以，但還沒漂亮到能打動我。」', '達西先生在整個晚會中只跳了兩次舞。'],
+      topTerms: { '傲慢': 0.9, '舞會': 0.8, '偏見': 0.7 },
+    },
+    causality: {
+      rootCause: '社會階級差異與達西的性格缺陷',
+      causalChain: ['達西拒絕社交 → 伊莉莎白形成偏見 → 後續誤解加深'],
+      triggerEventIds: [],
+      chainSummary: '達西在舞會上的傲慢行為是整個故事衝突的起點，直接導致伊莉莎白對他的偏見。',
+    },
+    impact: {
+      affectedParticipantIds: ['ent-001', 'ent-002'],
+      participantImpacts: ['伊莉莎白：形成對達西的負面印象', '達西：不自知地疏遠了伊莉莎白'],
+      relationChanges: ['伊莉莎白與達西：從陌生到反感'],
+      subsequentEventIds: ['evt-002', 'evt-004'],
+      impactSummary: '此事件奠定了兩位主角的關係基調，影響了後續所有互動。',
+    },
+    summary: { summary: '伊莉莎白在舞會上初遇達西，對其傲慢態度產生偏見，開啟全書核心衝突。' },
+    analyzedAt: '2025-06-01T10:00:00Z',
+  },
+  'evt-004': {
+    eventId: 'evt-004',
+    title: '達西第一次求婚',
+    eep: {
+      stateBefore: '伊莉莎白深受韋翰故事影響，對達西充滿偏見；達西則壓抑不住對伊莉莎白的愛慕。',
+      stateAfter: '達西求婚被拒，兩人關係降至冰點，但促使達西反省自身。',
+      causalFactors: ['達西對伊莉莎白的愛意', '達西的階級傲慢', '伊莉莎白對韋翰事件的憤怒'],
+      priorEventIds: ['evt-003'],
+      subsequentEventIds: ['evt-005'],
+      participantRoles: [
+        { entityId: 'ent-002', entityName: '達西', role: 'initiator', impactDescription: '以傲慢方式求婚，暴露階級偏見' },
+        { entityId: 'ent-001', entityName: '伊莉莎白', role: 'reactor', impactDescription: '斷然拒絕，指出達西的缺點' },
+      ],
+      consequences: ['達西開始反省自身傲慢', '伊莉莎白的偏見達到頂峰', '促使達西寫信澄清'],
+      structuralRole: '故事中段的高潮轉折點',
+      eventImportance: 'kernel',
+      thematicSignificance: '傲慢與偏見在此正面碰撞——達西的傲慢求婚遭到伊莉莎白偏見驅動的拒絕。',
+      textEvidence: ['「你以為任何方式的求婚都能打動我嗎？」'],
+      topTerms: { '求婚': 0.95, '拒絕': 0.9, '傲慢': 0.85 },
+    },
+    causality: {
+      rootCause: '達西無法放下階級優越感，同時伊莉莎白受韋翰謊言影響',
+      causalChain: ['韋翰的謊言加深偏見 → 達西傲慢求婚 → 伊莉莎白憤怒拒絕 → 達西寫信解釋'],
+      triggerEventIds: ['evt-003'],
+      chainSummary: '韋翰的挑撥與達西的傲慢態度共同導致了這次失敗的求婚，成為故事的重要轉折。',
+    },
+    impact: {
+      affectedParticipantIds: ['ent-001', 'ent-002'],
+      participantImpacts: ['達西：開始深刻反省自身行為', '伊莉莎白：偏見達到頂點但即將被打破'],
+      relationChanges: ['達西與伊莉莎白：從暗戀到公開衝突'],
+      subsequentEventIds: ['evt-005'],
+      impactSummary: '此轉折點迫使兩位主角面對自身缺陷，是故事從衝突走向和解的關鍵。',
+    },
+    summary: { summary: '達西以傲慢方式向伊莉莎白求婚被拒，成為全書核心轉折點。' },
+    analyzedAt: '2025-06-01T10:30:00Z',
+  },
+};
+
 export const mockTimelineData: TimelineData = {
   events: [
     {
@@ -886,6 +973,7 @@ export const mockTimelineData: TimelineData = {
       location: { id: 'loc-004', name: '朗伯恩' },
     },
   ],
+  temporalRelations: mockTemporalRelations,
   quality: {
     eepCoverage: 0.4,
     analyzedCount: 3,

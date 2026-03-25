@@ -1150,6 +1150,69 @@ async def trigger_event_analysis(
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
 
+# ── #7d-get GET /books/:bookId/events/:eventId/analysis ──────────────────────
+
+
+@router.get("/{book_id}/events/{event_id}/analysis")
+async def get_event_analysis(
+    book_id: str, event_id: str, cache: AnalysisCacheDep, kg: KGServiceDep
+) -> dict:
+    """Return cached EEP / causality / impact analysis for a single event."""
+    event = await kg.get_event(event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
+
+    cache_key = f"event:{book_id}:{event_id}"
+    cached = await cache.get(cache_key)
+    if cached is None:
+        raise HTTPException(status_code=404, detail="Event analysis not found. Run analysis first.")
+
+    from services.analysis_models import EventAnalysisResult  # noqa: PLC0415
+
+    result = EventAnalysisResult.model_validate(cached)
+    return {
+        "eventId": result.event_id,
+        "title": result.title,
+        "eep": {
+            "stateBefore": result.eep.state_before,
+            "stateAfter": result.eep.state_after,
+            "causalFactors": result.eep.causal_factors,
+            "priorEventIds": result.eep.prior_event_ids,
+            "subsequentEventIds": result.eep.subsequent_event_ids,
+            "participantRoles": [
+                {
+                    "entityId": pr.entity_id,
+                    "entityName": pr.entity_name,
+                    "role": pr.role.value,
+                    "impactDescription": pr.impact_description,
+                }
+                for pr in result.eep.participant_roles
+            ],
+            "consequences": result.eep.consequences,
+            "structuralRole": result.eep.structural_role,
+            "eventImportance": result.eep.event_importance.value,
+            "thematicSignificance": result.eep.thematic_significance,
+            "textEvidence": result.eep.text_evidence,
+            "topTerms": result.eep.top_terms,
+        },
+        "causality": {
+            "rootCause": result.causality.root_cause,
+            "causalChain": result.causality.causal_chain,
+            "triggerEventIds": result.causality.trigger_event_ids,
+            "chainSummary": result.causality.chain_summary,
+        },
+        "impact": {
+            "affectedParticipantIds": result.impact.affected_participant_ids,
+            "participantImpacts": result.impact.participant_impacts,
+            "relationChanges": result.impact.relation_changes,
+            "subsequentEventIds": result.impact.subsequent_event_ids,
+            "impactSummary": result.impact.impact_summary,
+        },
+        "summary": {"summary": result.summary.summary if result.summary else ""},
+        "analyzedAt": result.analyzed_at.isoformat() if result.analyzed_at else None,
+    }
+
+
 # ── #7e DELETE /books/:bookId/events/:eventId/analysis ───────────────────────
 
 

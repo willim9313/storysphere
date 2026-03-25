@@ -13,6 +13,7 @@ import type {
   TaskStatus,
   AnalysisListResponse,
   EntityAnalysis,
+  EventAnalysisDetail,
   TimelineData,
   TimelineOrder,
 } from '../types';
@@ -26,6 +27,7 @@ import {
   mockCharacterAnalyses,
   mockEventAnalyses,
   mockEntityAnalysisMap,
+  mockEventAnalysisMap,
   mockTimelineData,
   createMockTask,
   advanceMockTask,
@@ -174,4 +176,18 @@ export async function computeTimeline(
 ): Promise<{ taskId: string }> {
   await delay(300);
   return createMockTask();
+}
+
+// ── Event Analysis Detail (#7d-get) ─────────────────────────────
+
+export async function fetchEventAnalysisDetail(
+  _bookId: string,
+  eventId: string,
+): Promise<EventAnalysisDetail> {
+  await delay();
+  const detail = mockEventAnalysisMap[eventId];
+  if (!detail) {
+    throw new Error(`Event analysis not found for ${eventId}`);
+  }
+  return detail;
 }
