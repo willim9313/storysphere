@@ -246,6 +246,7 @@ export interface EventEvidenceProfile {
   eventImportance: string;
   thematicSignificance: string;
   textEvidence: string[];
+  keyQuotes: string[];
   topTerms: Record<string, number>;
 }
 

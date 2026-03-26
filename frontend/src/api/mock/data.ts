@@ -803,7 +803,11 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '文明的黑暗面在此顯現——人類對自身同類的殘酷摧毀了葉文潔對人類未來的信念。',
       textEvidence: [
-        '「那一刻，一個堅定的念頭在她心中形成：這個文明不值得拯救。」',
+        '那一刻，一個堅定的念頭在她心中形成：這個文明不值得拯救。',
+        '葉哲泰在批鬥台上緩緩倒下，沒有任何人伸出援手。',
+      ],
+      keyQuotes: [
+        '那一刻，一個堅定的念頭在她心中形成：這個文明不值得拯救。',
         '葉哲泰在批鬥台上緩緩倒下，沒有任何人伸出援手。',
       ],
       topTerms: { '文化大革命': 0.92, '葉哲泰': 0.88, '批鬥': 0.85, '絕望': 0.78 },
@@ -842,7 +846,8 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       structuralRole: '命運轉折——從受害者到歷史推動者',
       eventImportance: 'KERNEL',
       thematicSignificance: '個人命運與文明命運在此交匯，一個被文明拋棄的人反過來掌握文明的生死。',
-      textEvidence: ['「紅岸基地，這是她第一次聽到這個名字。」'],
+      textEvidence: ['紅岸基地，這是她第一次聽到這個名字。'],
+      keyQuotes: ['紅岸基地，這是她第一次聽到這個名字。'],
       topTerms: { '紅岸基地': 0.95, '葉文潔': 0.88, '招募': 0.72 },
     },
     causality: {
@@ -882,6 +887,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
         '「數字清晰地浮現在他的視野中，如同刻在視網膜上：1,253,643」',
         '汪淼看著那個數字，感到一種莫名的恐懼。',
       ],
+      keyQuotes: [],
       topTerms: { '倒計時': 0.94, '汪淼': 0.86, '奈米材料': 0.80, '恐懼': 0.75 },
     },
     causality: {
@@ -917,6 +923,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '人類第一次真正理解自己面對的威脅——不是幻想，而是確實存在的高等文明。',
       textEvidence: ['「這不是遊戲，這是真實宇宙的映射。」'],
+      keyQuotes: [],
       topTerms: { '三體遊戲': 0.95, '三體文明': 0.90, '汪淼': 0.82 },
     },
     causality: {
@@ -953,6 +960,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '一個被文明傷害的個體改變了整個文明的命運——個人創傷如何轉化為歷史力量。',
       textEvidence: ['「是的，是我發送的那封信，我沒有後悔。」'],
+      keyQuotes: [],
       topTerms: { '葉文潔': 0.95, 'ETO': 0.90, '真相': 0.85, '信號': 0.80 },
     },
     causality: {
@@ -995,6 +1003,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
         '「她按下了發射按鈕，然後平靜地等待。」',
         '「來吧，幫助我們消滅這個邪惡的文明。」',
       ],
+      keyQuotes: [],
       topTerms: { '信號': 0.96, '葉文潔': 0.90, '紅岸基地': 0.85, '三體': 0.82 },
     },
     causality: {
@@ -1030,6 +1039,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '在集體失敗面前，人類寄托於個人天才的孤注一擲——策略的不透明性作為最後武器。',
       textEvidence: ['「面壁者擁有一切人類資源，他們的思維是最後的防線。」'],
+      keyQuotes: [],
       topTerms: { '面壁計劃': 0.95, '聯合國': 0.88, '羅輯': 0.80 },
     },
     causality: {
@@ -1066,6 +1076,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '個人的渺小與使命的宏大之間的張力——一個不願承擔的人被迫承擔文明的重量。',
       textEvidence: ['「葉文潔看著他，說：宇宙是一片黑暗的森林……」'],
+      keyQuotes: [],
       topTerms: { '羅輯': 0.92, '面壁者': 0.88, '黑暗森林': 0.82, '葉文潔': 0.75 },
     },
     causality: {
@@ -1104,6 +1115,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
         '「宇宙就是一座黑暗森林，每個文明都是帶槍的獵人。」',
         '「暴露自己位置的文明，必然遭到滅絕。」',
       ],
+      keyQuotes: [],
       topTerms: { '黑暗森林': 0.98, '羅輯': 0.88, '宇宙社會學': 0.85, '威懾': 0.80 },
     },
     causality: {
@@ -1139,6 +1151,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '個人主義與集體主義的衝突——為了種族延續，一個人不惜背叛自己的文明。',
       textEvidence: ['「他知道這是背叛，但也知道這是必要的。」'],
+      keyQuotes: [],
       topTerms: { '章北海': 0.94, '自然選擇': 0.88, '兵變': 0.82 },
     },
     causality: {
@@ -1174,6 +1187,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '在極端壓力下，個體理性與集體存亡的衝突——逃跑是懦弱還是智慧？',
       textEvidence: ['「自然選擇號，為什麼要這樣做？」艦隊司令的呼叫沒有得到回應。'],
+      keyQuotes: [],
       topTerms: { '自然選擇': 0.96, '章北海': 0.88, '叛逃': 0.85, '深空': 0.78 },
     },
     causality: {
@@ -1215,6 +1229,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
         '「你們不敢殺我，因為我的死亡會觸發廣播。」',
         '「地球在等待，宇宙在等待，而羅輯孤身站在時代的中心。」',
       ],
+      keyQuotes: [],
       topTerms: { '黑暗森林威懾': 0.98, '羅輯': 0.92, '三體': 0.88, '廣播': 0.82 },
     },
     causality: {
@@ -1254,6 +1269,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '人類選擇了最「好」的人，卻不一定是最「適合」的人——慈悲與冷酷的悖論。',
       textEvidence: ['「地球人投票給了程心，因為她看起來從不會真的按下那個按鈕。」'],
+      keyQuotes: [],
       topTerms: { '程心': 0.94, '威懾者': 0.90, '羅輯': 0.82 },
     },
     causality: {
@@ -1296,6 +1312,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
         '「按下去，程心！」韋德的聲音透過通訊器傳來。',
         '「她的手指在顫抖，但始終沒有落下。」',
       ],
+      keyQuotes: [],
       topTerms: { '程心': 0.96, '廣播': 0.90, '威懾崩潰': 0.88, '慈悲': 0.82 },
     },
     causality: {
@@ -1336,6 +1353,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'SATELLITE',
       thematicSignificance: '科技遊戲與真實危機的界線逐漸模糊。',
       textEvidence: ['「那個遊戲，讓他感覺像是在窺視另一個宇宙。」'],
+      keyQuotes: [],
       topTerms: { '三體遊戲': 0.90, '汪淼': 0.85, 'ETO': 0.78 },
     },
     causality: {
@@ -1371,6 +1389,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '接觸的那一刻，也是末日的起點。',
       textEvidence: ['信號清晰而確定：「不要回答，不要回答，不要回答……」'],
+      keyQuotes: [],
       topTerms: { '三體': 0.95, '回應': 0.88, '葉文潔': 0.80 },
     },
     causality: {
@@ -1406,6 +1425,7 @@ export const mockEventAnalysisMap: Record<string, EventAnalysisDetail> = {
       eventImportance: 'KERNEL',
       thematicSignificance: '技術差距的殘酷體現——再多的船艦，在高等文明面前都只是紙糊的玩具。',
       textEvidence: ['「水滴穿過了每一艘艦船，如同穿過紙張一樣。」'],
+      keyQuotes: [],
       topTerms: { '水滴': 0.96, '艦隊': 0.88, '全滅': 0.85 },
     },
     causality: {

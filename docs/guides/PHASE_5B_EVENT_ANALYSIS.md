@@ -86,7 +86,8 @@ class EventEvidenceProfile(BaseModel):
     thematic_significance: str              # 基調、主題、象徵意義（1-2 句）
 
     # 文本證據
-    text_evidence: list[str]                # 來自 VectorService 的關鍵段落（最多 10 條）
+    text_evidence: list[str]                # 來自 VectorService 的原文段落（去除 metadata，最多 8 條）
+    key_quotes: list[str]                   # LLM 從原文中提取的 2-4 條精華引文（對白或關鍵描寫）
     top_terms: dict[str, float]             # 關鍵字與分數（來自 KeywordService）
 ```
 
@@ -101,6 +102,7 @@ EEP 欄位直接對應敘事理論概念（見 `event_analysis.md`）：
 | `participant_roles` | 角色在事件中的位置 | Role theory |
 | `structural_role` | 事件結構功能 | Vladimir Propp |
 | `event_importance` | Kernel vs Satellite | Seymour Chatman |
+| `key_quotes` | 具體文本錨點（對白、場景描寫） | Close reading |
 | `thematic_significance` | 主題 + 象徵意義 | 一般敘事學 |
 
 ---
@@ -398,7 +400,8 @@ Return JSON with exactly these keys:
   "structural_role": str,       // 其中之一：Setup, Inciting Incident, Turning Point,
                                 //   Escalation, Crisis, Climax, Resolution
   "event_importance": "kernel"|"satellite",
-  "thematic_significance": str  // 基調、主題、象徵意義（1-2 句）
+  "thematic_significance": str, // 基調、主題、象徵意義（1-2 句）
+  "key_quotes": [str, ...]      // 2-4 條從原文中提取的精華引文（對白或關鍵描寫，每條一句話）
 }
 
 Human message template:
@@ -449,8 +452,8 @@ EEP CAUSAL FACTORS:
 PRIOR EVENTS (chronological):
 {prior events with ids, titles, chapters, descriptions}
 
-PARTICIPANT RELATIONS:
-{key relation triples from KGService, sanitized}
+RELEVANT TEXT EXCERPTS:
+{eep.text_evidence[:3] — 原文段落，提供因果推理的文本依據}
 ---
 ```
 
@@ -474,6 +477,7 @@ Return JSON:
 Human message template:
 ---
 EVENT: {event.title} (Chapter {event.chapter})
+State before: {eep.state_before}
 State after: {eep.state_after}
 
 EEP CONSEQUENCES:
@@ -484,6 +488,9 @@ PARTICIPANT ROLES:
 
 SUBSEQUENT EVENTS (chronological):
 {subsequent events with ids, titles, chapters, descriptions}
+
+RELEVANT TEXT EXCERPTS:
+{eep.text_evidence[:3] — 原文段落，提供影響評估的文本依據}
 ---
 ```
 
@@ -491,7 +498,7 @@ SUBSEQUENT EVENTS (chronological):
 
 ```
 System:
-You are a literary analyst. Write a concise ~150-word narrative summary of
+You are a literary analyst. Write a vivid ~150-word narrative summary of
 a story event, synthesizing its causes, participants, consequences, and
 thematic meaning.
 
@@ -507,15 +514,33 @@ The summary must cover:
 4. 導致什麼後果
 5. 在故事中的結構角色與主題意義
 
+Style requirements:
+- 引用 KEY QUOTES 中的具體場景、對白或意象，讓摘要有文本細節支撐
+- 禁止使用模板化用語：「埋下伏筆」「預示著」「揭示了」「不僅…也…」「為後續…奠定基礎」
+- 用具體的因果描述取代抽象評論
+- 風格應具分析性但生動，非公式化
+
 Human message template:
 ---
 EVENT: {event.title} ({event.event_type}, Chapter {event.chapter})
 Structural role: {eep.structural_role} ({eep.event_importance})
-Thematic significance: {eep.thematic_significance}
 
-CAUSALITY SUMMARY: {causality.chain_summary}
+STATE BEFORE: {eep.state_before}
+STATE AFTER: {eep.state_after}
+
+CAUSAL CHAIN:
+{causality.causal_chain as numbered list}
+
 IMPACT SUMMARY: {impact.impact_summary}
+
+RELATION CHANGES: {impact.relation_changes, comma-separated}
+
 PARTICIPANTS: {comma-separated participant names with roles}
+
+KEY QUOTES FROM TEXT:
+{eep.key_quotes[:3], 以「」括起}
+
+THEMATIC SIGNIFICANCE: {eep.thematic_significance}
 ---
 ```
 

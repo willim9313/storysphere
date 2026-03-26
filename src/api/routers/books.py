@@ -1193,6 +1193,7 @@ async def get_event_analysis(
             "eventImportance": result.eep.event_importance.value,
             "thematicSignificance": result.eep.thematic_significance,
             "textEvidence": result.eep.text_evidence,
+            "keyQuotes": result.eep.key_quotes,
             "topTerms": result.eep.top_terms,
         },
         "causality": {
@@ -1270,20 +1271,14 @@ async def _run_batch_event_analysis(
             failed += 1
             done += 1
 
-        task_store.update(
+        task_store.set_progress(
             task_id,
-            status="running",
-            result={
-                "progress": done,
-                "total": total,
-                "failed": failed,
-                "skipped": skipped,
-            },
+            progress=int(done / total * 100) if total else 0,
+            stage=f"分析事件 {done}/{total}",
         )
 
-    task_store.update(
+    task_store.set_completed(
         task_id,
-        status="completed",
         result={
             "progress": total,
             "total": total,
@@ -1353,7 +1348,7 @@ async def trigger_batch_event_analysis(
 
 class TimelineEventEntry(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    event_id: str
+    id: str
     title: str
     event_type: str
     chapter: int
@@ -1464,7 +1459,7 @@ async def get_book_timeline(
         order=order,
         events=[
             TimelineEventEntry(
-                event_id=e.id,
+                id=e.id,
                 title=e.title,
                 event_type=e.event_type.value,
                 chapter=e.chapter,
@@ -1496,11 +1491,10 @@ async def _run_temporal_pipeline(
 ) -> None:
     """Background task for temporal pipeline computation."""
     try:
-        task_store.update(task_id, status="running")
+        task_store.set_running(task_id)
         result = await pipeline.run(document_id=book_id, language=language)
-        task_store.update(
+        task_store.set_completed(
             task_id,
-            status="completed",
             result={
                 "temporal_relations": result.temporal_relations,
                 "events_ranked": result.events_ranked,
@@ -1510,7 +1504,7 @@ async def _run_temporal_pipeline(
         )
     except Exception as exc:
         logger.error("Temporal pipeline failed: %s", exc)
-        task_store.update(task_id, status="failed", error=str(exc))
+        task_store.set_failed(task_id, error=str(exc))
 
 
 @router.post(

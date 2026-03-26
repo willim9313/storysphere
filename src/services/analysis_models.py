@@ -118,6 +118,7 @@ class EventEvidenceProfile(BaseModel):
     event_importance: EventImportance = EventImportance.SATELLITE
     thematic_significance: str = ""
     text_evidence: list[str] = Field(default_factory=list)
+    key_quotes: list[str] = Field(default_factory=list)
     top_terms: dict[str, float] = Field(default_factory=dict)
 
 

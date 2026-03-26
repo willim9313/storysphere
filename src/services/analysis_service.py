@@ -121,11 +121,17 @@ Return JSON with exactly these keys:
   ],
   "structural_role": str,
   "event_importance": "kernel"|"satellite",
-  "thematic_significance": str
+  "thematic_significance": str,
+  "key_quotes": [str, ...]
 }
 
 structural_role must be one of: Setup, Inciting Incident, Turning Point,
 Escalation, Crisis, Climax, Resolution.
+
+key_quotes: Extract 2-4 SHORT, vivid quotes (dialogue lines, key narrative
+sentences) directly from the TEXT EVIDENCE that best capture this event's
+emotional tone and significance. Each quote should be one sentence or
+dialogue line, not a full paragraph. Prefer dialogue over narration.
 """
 
 _CAUSALITY_SYSTEM_PROMPT = """\
@@ -165,7 +171,7 @@ impact_summary should be 2-3 sentences.
 """
 
 _EVENT_SUMMARY_SYSTEM_PROMPT = """\
-You are a literary analyst. Write a concise ~150-word narrative summary of
+You are a literary analyst. Write a vivid ~150-word narrative summary of
 a story event, synthesizing its causes, participants, consequences, and
 thematic meaning.
 
@@ -180,6 +186,14 @@ The summary must cover:
 3. Who was involved and in what roles
 4. What it led to (consequences)
 5. Its structural role in the story and thematic significance
+
+Style requirements:
+- Reference specific scenes, dialogue, or imagery from the KEY QUOTES when
+  available — ground the summary in concrete textual details.
+- AVOID generic template phrases such as "埋下伏筆", "預示著", "揭示了",
+  "不僅…也…", "為後續…奠定基礎". Instead, describe the SPECIFIC consequences.
+- Prefer concrete cause-and-effect over abstract commentary.
+- Write in a style that is analytical yet engaging, not formulaic.
 """
 
 
@@ -667,6 +681,7 @@ class AnalysisService:
 
         # Vector search for text evidence
         text_evidence: list[str] = []
+        raw_evidence_for_prompt: list[str] = []
         if self._vector_service is not None:
             try:
                 results = await self._vector_service.search(
@@ -674,8 +689,14 @@ class AnalysisService:
                     top_k=10,
                     document_id=document_id,
                 )
-                formatted = DataSanitizer.format_vector_store_results(results)
-                text_evidence = formatted[:10]
+                # Full format (with Chunk ID / Score) for LLM prompt context
+                raw_evidence_for_prompt = DataSanitizer.format_vector_store_results(results)[:8]
+                # Clean content only for storage / display
+                text_evidence = [
+                    DataSanitizer.sanitize_for_template(r.get("text", ""))
+                    for r in results[:8]
+                    if r.get("text")
+                ]
             except Exception:
                 logger.debug("Vector search failed for event %s", event.id, exc_info=True)
 
@@ -698,7 +719,7 @@ class AnalysisService:
         prior_text = "\n".join(
             f"- Ch.{e.chapter}: {e.title}" for e in prior_events[:10]
         ) or "(none)"
-        evidence_text = "\n".join(text_evidence[:8]) or "(none)"
+        evidence_text = "\n".join(raw_evidence_for_prompt) or "(none)"
         consequences_text = DataSanitizer.sanitize_for_template(event.consequences)
 
         human_content = (
@@ -765,6 +786,7 @@ class AnalysisService:
             event_importance=importance,
             thematic_significance=parsed.get("thematic_significance", ""),
             text_evidence=text_evidence,
+            key_quotes=parsed.get("key_quotes", []),
             top_terms=top_terms,
         )
 
@@ -794,12 +816,14 @@ class AnalysisService:
             f"{i+1}. {f}" for i, f in enumerate(eep.causal_factors)
         ) or "(none identified)"
         prior_text = "\n".join(prior_details) or "(none)"
+        evidence_snippets = "\n".join(eep.text_evidence[:3]) or "(none)"
 
         human_content = (
             f"EVENT: {DataSanitizer.sanitize_for_template(event.title)} (Chapter {event.chapter})\n"
             f"Description: {DataSanitizer.sanitize_for_template(event.description)}\n\n"
             f"EEP CAUSAL FACTORS:\n{causal_text}\n\n"
-            f"PRIOR EVENTS (chronological):\n{prior_text}"
+            f"PRIOR EVENTS (chronological):\n{prior_text}\n\n"
+            f"RELEVANT TEXT EXCERPTS:\n{evidence_snippets}"
         )
 
         llm = self._get_llm()
@@ -853,13 +877,16 @@ class AnalysisService:
             for r in eep.participant_roles
         ) or "(none)"
         subsequent_text = "\n".join(subsequent_details) or "(none)"
+        evidence_snippets = "\n".join(eep.text_evidence[:3]) or "(none)"
 
         human_content = (
             f"EVENT: {DataSanitizer.sanitize_for_template(event.title)} (Chapter {event.chapter})\n"
+            f"State before: {DataSanitizer.sanitize_for_template(eep.state_before)}\n"
             f"State after: {DataSanitizer.sanitize_for_template(eep.state_after)}\n\n"
             f"EEP CONSEQUENCES:\n{consequences_text}\n\n"
             f"PARTICIPANT ROLES:\n{roles_text}\n\n"
-            f"SUBSEQUENT EVENTS (chronological):\n{subsequent_text}"
+            f"SUBSEQUENT EVENTS (chronological):\n{subsequent_text}\n\n"
+            f"RELEVANT TEXT EXCERPTS:\n{evidence_snippets}"
         )
 
         llm = self._get_llm()
@@ -906,15 +933,25 @@ class AnalysisService:
         participants_text = ", ".join(
             f"{r.entity_name} ({r.role.value})" for r in eep.participant_roles
         ) or "(none)"
+        causal_chain_text = "\n".join(
+            f"{i+1}. {step}" for i, step in enumerate(causality.causal_chain)
+        ) or "(none)"
+        quotes_text = "\n".join(
+            f"「{q}」" for q in eep.key_quotes[:3]
+        ) or "(none)"
 
         human_content = (
             f"EVENT: {DataSanitizer.sanitize_for_template(event.title)} "
             f"({event.event_type.value}, Chapter {event.chapter})\n"
-            f"Structural role: {eep.structural_role} ({eep.event_importance.value})\n"
-            f"Thematic significance: {DataSanitizer.sanitize_for_template(eep.thematic_significance)}\n\n"
-            f"CAUSALITY SUMMARY: {DataSanitizer.sanitize_for_template(causality.chain_summary)}\n"
-            f"IMPACT SUMMARY: {DataSanitizer.sanitize_for_template(impact.impact_summary)}\n"
-            f"PARTICIPANTS: {participants_text}"
+            f"Structural role: {eep.structural_role} ({eep.event_importance.value})\n\n"
+            f"STATE BEFORE: {DataSanitizer.sanitize_for_template(eep.state_before)}\n"
+            f"STATE AFTER: {DataSanitizer.sanitize_for_template(eep.state_after)}\n\n"
+            f"CAUSAL CHAIN:\n{causal_chain_text}\n\n"
+            f"IMPACT SUMMARY: {DataSanitizer.sanitize_for_template(impact.impact_summary)}\n\n"
+            f"RELATION CHANGES: {', '.join(impact.relation_changes) or '(none)'}\n\n"
+            f"PARTICIPANTS: {participants_text}\n\n"
+            f"KEY QUOTES FROM TEXT:\n{quotes_text}\n\n"
+            f"THEMATIC SIGNIFICANCE: {DataSanitizer.sanitize_for_template(eep.thematic_significance)}"
         )
 
         llm = self._get_llm()

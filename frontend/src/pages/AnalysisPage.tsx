@@ -30,6 +30,7 @@ export default function AnalysisPage() {
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
+  const [generatingId, setGeneratingId] = useState<string | null>(null);
 
   // Batch EEP state
   const [confirmBatchEep, setConfirmBatchEep] = useState(false);
@@ -59,8 +60,14 @@ export default function AnalysisPage() {
         ? triggerEventAnalysis(bookId!, id)
         : triggerEntityAnalysis(bookId!, id),
     onSuccess: (data) => { setTriggerError(null); setGenerateTaskId(data.taskId); },
-    onError: () => setTriggerError('觸發分析失敗，請稍後再試。'),
+    onError: () => { setGeneratingId(null); setTriggerError('觸發分析失敗，請稍後再試。'); },
   });
+
+  const handleGenerate = (id: string) => {
+    setGeneratingId(id);
+    setSelectedEntityId(id);
+    triggerMutation.mutate(id);
+  };
 
   // Task polling for generation
   const { data: genTask } = useTaskPolling(generateTaskId);
@@ -72,6 +79,7 @@ export default function AnalysisPage() {
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
       setGenerateTaskId(null);
+      setGeneratingId(null);
     }
   }, [genTask?.status, bookId, selectedEntityId, queryClient]);
 
@@ -108,8 +116,9 @@ export default function AnalysisPage() {
     }
   }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient]);
 
-  // Find selected item in analyzed list
+  // Find selected item in analyzed / unanalyzed lists
   const selectedAnalyzed = activeData?.analyzed.find((a) => a.entityId === selectedEntityId);
+  const selectedUnanalyzed = activeData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
   // Publish chat context
   useEffect(() => {
@@ -165,7 +174,7 @@ export default function AnalysisPage() {
           {(['characters', 'events'] as Tab[]).map((t) => (
             <button
               key={t}
-              onClick={() => { setTab(t); setSelectedEntityId(null); setGenerateTaskId(null); setTriggerError(null); setBatchSummary(null); setBatchError(null); }}
+              onClick={() => { setTab(t); setSelectedEntityId(null); setGenerateTaskId(null); setGeneratingId(null); setTriggerError(null); setBatchSummary(null); setBatchError(null); }}
               className="flex-1 py-2 text-xs font-medium border-b-2 -mb-px"
               style={{
                 borderColor: tab === t ? 'var(--accent)' : 'transparent',
@@ -263,8 +272,8 @@ export default function AnalysisPage() {
                   item={item}
                   isSelected={selectedEntityId === item.id}
                   onSelect={() => setSelectedEntityId(item.id)}
-                  onGenerate={() => triggerMutation.mutate(item.id)}
-                  isGenerating={triggerMutation.isPending}
+                  onGenerate={() => handleGenerate(item.id)}
+                  isGenerating={generatingId === item.id}
                 />
               ))}
             </>
@@ -340,8 +349,22 @@ export default function AnalysisPage() {
           <div className="flex flex-col items-center justify-center h-48 gap-2">
             <LoadingSpinner />
             <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>
-              {genTask.stage} ({genTask.progress}%)
+              {genTask.stage || '分析中'}{genTask.progress > 0 ? ` (${genTask.progress}%)` : ''}
             </p>
+          </div>
+        ) : selectedUnanalyzed ? (
+          <div className="flex flex-col items-center justify-center h-48 gap-4">
+            <p className="text-base font-medium" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
+              {selectedUnanalyzed.name}
+            </p>
+            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>尚未進行深度分析</p>
+            <button
+              className="btn btn-primary text-sm px-4 py-1.5"
+              onClick={() => handleGenerate(selectedUnanalyzed.id)}
+              disabled={triggerMutation.isPending}
+            >
+              生成分析
+            </button>
           </div>
         ) : triggerError ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
@@ -452,38 +475,37 @@ function UnanalyzedItem({
   isGenerating: boolean;
 }) {
   return (
-    <button
-      className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-left transition-colors"
-      style={{
-        backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'transparent',
-      }}
-      onClick={onSelect}
+    <div
+      className="flex items-center gap-2 w-full rounded-md transition-colors"
+      style={{ backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'transparent' }}
     >
-      <div
-        className="w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0"
-        style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--fg-muted)' }}
-      >
-        {item.name[0]}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-xs truncate" style={{ color: 'var(--fg-muted)' }}>
-          {item.name}
-        </div>
-        <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-          尚未分析
-        </div>
-      </div>
       <button
-        className="text-xs px-1.5 py-0.5 rounded flex-shrink-0"
-        style={{ backgroundColor: 'var(--accent)', color: 'white' }}
-        onClick={(e) => {
-          e.stopPropagation();
-          onGenerate();
-        }}
+        className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1.5 text-left"
+        onClick={onSelect}
+      >
+        <div
+          className="w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0"
+          style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--fg-muted)' }}
+        >
+          {item.name[0]}
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-xs truncate" style={{ color: 'var(--fg-muted)' }}>
+            {item.name}
+          </div>
+          <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+            尚未分析
+          </div>
+        </div>
+      </button>
+      <button
+        className="text-xs px-1.5 py-0.5 rounded flex-shrink-0 mr-2"
+        style={{ backgroundColor: isGenerating ? 'var(--bg-tertiary)' : 'var(--accent)', color: isGenerating ? 'var(--fg-muted)' : 'white' }}
+        onClick={onGenerate}
         disabled={isGenerating}
       >
-        建立
+        {isGenerating ? '…' : '建立'}
       </button>
-    </button>
+    </div>
   );
 }

@@ -1536,6 +1536,40 @@ function EventDetailPanel({
                   </ul>
                 </div>
               )}
+              {/* Participant roles with impact */}
+              {analysis.eep.participantRoles.length > 0 && (
+                <div>
+                  <span style={{ color: 'var(--panel-fg-muted)' }}>
+                    角色參與：
+                  </span>
+                  <ul className="mt-0.5 space-y-1">
+                    {analysis.eep.participantRoles.map((r, i) => (
+                      <li key={i}>
+                        <span className="font-medium">{r.entityName}</span>
+                        <span style={{ color: 'var(--panel-fg-muted)' }}> ({r.role})</span>
+                        {r.impactDescription && (
+                          <p className="mt-0.5 pl-2" style={{ color: 'var(--panel-fg-muted)' }}>
+                            {r.impactDescription}
+                          </p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {/* Consequences */}
+              {analysis.eep.consequences.length > 0 && (
+                <div>
+                  <span style={{ color: 'var(--panel-fg-muted)' }}>
+                    後果：
+                  </span>
+                  <ul className="list-disc list-inside mt-0.5">
+                    {analysis.eep.consequences.map((c, i) => (
+                      <li key={i}>{c}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
               <LabeledField
                 label="結構角色"
                 value={analysis.eep.structuralRole}
@@ -1548,13 +1582,14 @@ function EventDetailPanel({
                 label="主題意義"
                 value={analysis.eep.thematicSignificance}
               />
-              {analysis.eep.textEvidence.length > 0 && (
+              {/* Key quotes (LLM-extracted short quotes) */}
+              {analysis.eep.keyQuotes?.length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    文本證據：
+                    關鍵引文：
                   </span>
                   <ul className="mt-0.5 space-y-1">
-                    {analysis.eep.textEvidence.map((t, i) => (
+                    {analysis.eep.keyQuotes.map((q, i) => (
                       <li
                         key={i}
                         className="italic pl-2"
@@ -1562,10 +1597,35 @@ function EventDetailPanel({
                           borderLeft: '2px solid var(--panel-border)',
                         }}
                       >
-                        {t}
+                        「{q}」
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+              {/* Top terms as keyword tags */}
+              {Object.keys(analysis.eep.topTerms).length > 0 && (
+                <div>
+                  <span style={{ color: 'var(--panel-fg-muted)' }}>
+                    關鍵詞：
+                  </span>
+                  <div className="flex flex-wrap gap-1 mt-0.5">
+                    {Object.entries(analysis.eep.topTerms)
+                      .sort(([, a], [, b]) => b - a)
+                      .slice(0, 8)
+                      .map(([term]) => (
+                        <span
+                          key={term}
+                          className="px-1.5 py-0.5 rounded text-xs"
+                          style={{
+                            backgroundColor: 'var(--bg-tertiary)',
+                            color: 'var(--panel-fg)',
+                          }}
+                        >
+                          {term}
+                        </span>
+                      ))}
+                  </div>
                 </div>
               )}
             </div>
@@ -1648,6 +1708,27 @@ function EventDetailPanel({
                       );
                     })}
                   </div>
+                </div>
+              )}
+              {/* Per-participant impact descriptions */}
+              {analysis.impact.participantImpacts.length > 0 && (
+                <div>
+                  <span style={{ color: 'var(--panel-fg-muted)' }}>
+                    角色影響：
+                  </span>
+                  <ul className="mt-0.5 space-y-1">
+                    {analysis.impact.participantImpacts.map((p, i) => (
+                      <li
+                        key={i}
+                        className="pl-2"
+                        style={{
+                          borderLeft: '2px solid var(--panel-border)',
+                        }}
+                      >
+                        {p}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
               {analysis.impact.relationChanges.length > 0 && (
