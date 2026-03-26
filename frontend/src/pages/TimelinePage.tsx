@@ -53,6 +53,14 @@ const NARRATIVE_BADGE: Record<NarrativeMode, string | null> = {
   unknown: '?',
 };
 
+const NARRATIVE_COLORS: Record<NarrativeMode, { border: string; bg: string }> = {
+  present:      { border: '#8b5e3c', bg: '#f5ede4' },
+  flashback:    { border: '#3b82f6', bg: '#dbeafe' },
+  flashforward: { border: '#f59e0b', bg: '#fef3c7' },
+  parallel:     { border: '#8b5cf6', bg: '#ede9fe' },
+  unknown:      { border: '#8a7a68', bg: '#f0ece6' },
+};
+
 const PILL_COLORS: Record<string, string> = {
   character: '#3b82f6',
   location: '#10b981',
@@ -757,6 +765,31 @@ function FilterCheckbox({
   );
 }
 
+/* ── Parallel group helpers ──────────────────────────────────── */
+
+type EventSegment =
+  | { type: 'single'; event: TimelineEvent }
+  | { type: 'parallel-group'; events: TimelineEvent[] };
+
+function groupIntoSegments(events: TimelineEvent[]): EventSegment[] {
+  const segments: EventSegment[] = [];
+  let i = 0;
+  while (i < events.length) {
+    if (events[i].narrativeMode === 'parallel') {
+      const group: TimelineEvent[] = [];
+      while (i < events.length && events[i].narrativeMode === 'parallel') {
+        group.push(events[i]);
+        i++;
+      }
+      segments.push({ type: 'parallel-group', events: group });
+    } else {
+      segments.push({ type: 'single', event: events[i] });
+      i++;
+    }
+  }
+  return segments;
+}
+
 /* ── Timeline Canvas ─────────────────────────────────────────── */
 
 interface TimelineCanvasProps {
@@ -782,6 +815,8 @@ interface LineCoord {
   y2: number;
   type: string;
   confidence: number;
+  isNarrative?: boolean;
+  isPositional?: boolean; // 故事時序模式底層順序線（無具體文本證據）
 }
 
 function TimelineCanvas({
@@ -802,6 +837,7 @@ function TimelineCanvas({
   const isHorizontal = layout === 'horizontal';
   const showChapterBands = order === 'narrative';
   const showRelationLines = order === 'chronological';
+  const showSequentialArrows = order === 'narrative';
 
   const [lines, setLines] = useState<LineCoord[]>([]);
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
@@ -809,7 +845,7 @@ function TimelineCanvas({
 
   // Compute SVG line coordinates after layout
   useLayoutEffect(() => {
-    if (!showRelationLines || !innerRef.current) {
+    if ((!showRelationLines && !showSequentialArrows) || !innerRef.current) {
       setLines([]);
       return;
     }
@@ -818,26 +854,65 @@ function TimelineCanvas({
     setCanvasSize({ w: container.scrollWidth, h: container.scrollHeight });
 
     const computed: LineCoord[] = [];
-    for (const rel of temporalRelations) {
-      if (rel.confidence < 0.5) continue;
-      const srcEl = nodeRefs.current.get(rel.source);
-      const tgtEl = nodeRefs.current.get(rel.target);
-      if (!srcEl || !tgtEl) continue;
 
-      const srcRect = srcEl.getBoundingClientRect();
-      const tgtRect = tgtEl.getBoundingClientRect();
-
-      computed.push({
-        x1: srcRect.left - rect.left + srcRect.width / 2,
-        y1: srcRect.top - rect.top + srcRect.height / 2,
-        x2: tgtRect.left - rect.left + tgtRect.width / 2,
-        y2: tgtRect.top - rect.top + tgtRect.height / 2,
-        type: rel.type,
-        confidence: rel.confidence,
-      });
+    if (showRelationLines) {
+      // 底層：相鄰事件的順序線（位置推斷，無具體文本證據）
+      for (let i = 0; i < events.length - 1; i++) {
+        const srcEl = nodeRefs.current.get(events[i].id);
+        const tgtEl = nodeRefs.current.get(events[i + 1].id);
+        if (!srcEl || !tgtEl) continue;
+        const srcRect = srcEl.getBoundingClientRect();
+        const tgtRect = tgtEl.getBoundingClientRect();
+        computed.push({
+          x1: srcRect.left - rect.left + srcRect.width / 2,
+          y1: srcRect.top - rect.top + srcRect.height / 2,
+          x2: tgtRect.left - rect.left + tgtRect.width / 2,
+          y2: tgtRect.top - rect.top + tgtRect.height / 2,
+          type: 'POSITIONAL',
+          confidence: 0,
+          isPositional: true,
+        });
+      }
+      // 上層：有文本證據的 TemporalRelation 邊
+      for (const rel of temporalRelations) {
+        if (rel.confidence < 0.5) continue;
+        const srcEl = nodeRefs.current.get(rel.source);
+        const tgtEl = nodeRefs.current.get(rel.target);
+        if (!srcEl || !tgtEl) continue;
+        const srcRect = srcEl.getBoundingClientRect();
+        const tgtRect = tgtEl.getBoundingClientRect();
+        computed.push({
+          x1: srcRect.left - rect.left + srcRect.width / 2,
+          y1: srcRect.top - rect.top + srcRect.height / 2,
+          x2: tgtRect.left - rect.left + tgtRect.width / 2,
+          y2: tgtRect.top - rect.top + tgtRect.height / 2,
+          type: rel.type,
+          confidence: rel.confidence,
+        });
+      }
     }
+
+    if (showSequentialArrows) {
+      for (let i = 0; i < events.length - 1; i++) {
+        const srcEl = nodeRefs.current.get(events[i].id);
+        const tgtEl = nodeRefs.current.get(events[i + 1].id);
+        if (!srcEl || !tgtEl) continue;
+        const srcRect = srcEl.getBoundingClientRect();
+        const tgtRect = tgtEl.getBoundingClientRect();
+        computed.push({
+          x1: srcRect.left - rect.left + srcRect.width / 2,
+          y1: srcRect.top - rect.top + srcRect.height / 2,
+          x2: tgtRect.left - rect.left + tgtRect.width / 2,
+          y2: tgtRect.top - rect.top + tgtRect.height / 2,
+          type: 'NARRATIVE',
+          confidence: 1,
+          isNarrative: true,
+        });
+      }
+    }
+
     setLines(computed);
-  }, [showRelationLines, temporalRelations, events, layout, nodeRefs]);
+  }, [showRelationLines, showSequentialArrows, temporalRelations, events, layout, nodeRefs, selectedEventId]);
 
   if (events.length === 0) {
     return (
@@ -861,8 +936,8 @@ function TimelineCanvas({
 
   return (
     <div ref={innerRef} className="relative min-h-full" style={{ minWidth: '100%' }}>
-      {/* SVG overlay for temporal relation lines */}
-      {showRelationLines && lines.length > 0 && (
+      {/* SVG overlay for relation lines and narrative sequence arrows */}
+      {lines.length > 0 && (
         <svg
           className="absolute inset-0 pointer-events-none"
           width={canvasSize.w}
@@ -892,13 +967,66 @@ function TimelineCanvas({
             >
               <polygon points="0 0, 10 3.5, 0 7" fill="var(--fg-muted)" />
             </marker>
+            <marker
+              id="arrow-narrative"
+              viewBox="0 0 10 7"
+              refX="10"
+              refY="3.5"
+              markerWidth="6"
+              markerHeight="5"
+              orient="auto"
+            >
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--fg-secondary)" />
+            </marker>
+            <marker
+              id="arrow-positional"
+              viewBox="0 0 10 7"
+              refX="10"
+              refY="3.5"
+              markerWidth="5"
+              markerHeight="4"
+              orient="auto"
+            >
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--fg-muted)" />
+            </marker>
           </defs>
-          {lines.map((line, i) => {
+          {/* 底層：positional 順序線（先渲染） */}
+          {lines.filter(l => l.isPositional).map((line, i) => (
+            <line
+              key={`pos-${i}`}
+              x1={line.x1}
+              y1={line.y1}
+              x2={line.x2}
+              y2={line.y2}
+              stroke="var(--fg-muted)"
+              strokeWidth={1}
+              strokeDasharray="3,4"
+              opacity={0.25}
+              markerEnd="url(#arrow-positional)"
+            />
+          ))}
+          {/* 上層：narrative 箭頭 & TemporalRelation 邊 */}
+          {lines.filter(l => !l.isPositional).map((line, i) => {
+            if (line.isNarrative) {
+              return (
+                <line
+                  key={`narr-${i}`}
+                  x1={line.x1}
+                  y1={line.y1}
+                  x2={line.x2}
+                  y2={line.y2}
+                  stroke="var(--fg-secondary)"
+                  strokeWidth={2}
+                  opacity={0.7}
+                  markerEnd="url(#arrow-narrative)"
+                />
+              );
+            }
             const isCausal = line.type === 'CAUSES';
             const isHighConf = line.confidence >= 0.8;
             return (
               <line
-                key={i}
+                key={`rel-${i}`}
                 x1={line.x1}
                 y1={line.y1}
                 x2={line.x2}
@@ -918,72 +1046,123 @@ function TimelineCanvas({
 
       {/* Events — centered when fits, scrollable when overflows */}
       <div
-        className={`flex ${isHorizontal ? 'flex-row items-start' : 'flex-col items-center'} p-8 gap-0 relative`}
-        style={{
-          width: 'max-content',
-          margin: '0 auto',
-          zIndex: 2,
-        }}
+        className={`flex ${isHorizontal ? 'flex-row items-start' : 'flex-col items-center'} p-8 relative`}
+        style={{ gap: 120, width: 'max-content', margin: '0 auto', zIndex: 2 }}
       >
         {showChapterBands
           ? bands.map((band, bi) => {
-              const bandEvents = events.slice(
-                band.startIdx,
-                band.startIdx + band.count,
-              );
+              const bandEvents = events.slice(band.startIdx, band.startIdx + band.count);
+              const segments = groupIntoSegments(bandEvents);
               return (
                 <div
                   key={band.chapter}
-                  className={`relative ${isHorizontal ? 'flex flex-row' : 'flex flex-col'}`}
+                  className="relative flex flex-col"
                   style={{
-                    backgroundColor:
-                      bi % 2 === 0 ? 'transparent' : 'var(--bg-secondary)',
-                    borderRadius: 8,
-                    padding: isHorizontal ? '8px 0' : '0 8px',
+                    borderLeft: isHorizontal ? '2px solid var(--accent)' : undefined,
+                    borderTop: !isHorizontal ? '2px solid var(--accent)' : undefined,
+                    paddingLeft: isHorizontal ? 12 : undefined,
+                    paddingTop: !isHorizontal ? 8 : undefined,
+                    backgroundColor: 'rgba(239,232,216,0.15)',
+                    borderRadius: 4,
                   }}
                 >
-                  {/* Chapter label */}
-                  <div
-                    className={`text-xs ${isHorizontal ? 'absolute -top-0.5 left-2' : 'mb-2 ml-2'}`}
-                    style={{ color: 'var(--fg-muted)', fontSize: 10 }}
-                  >
+                  <div className="font-medium mb-3" style={{ color: 'var(--fg-secondary)', fontSize: 13 }}>
                     {band.title || `Ch.${band.chapter}`}
                   </div>
                   <div
-                    className={`flex ${isHorizontal ? 'flex-row items-center' : 'flex-col items-center'} gap-2 ${isHorizontal ? 'pt-4' : 'pl-4'}`}
+                    className={`flex ${isHorizontal ? 'flex-row items-start' : 'flex-col items-center'}`}
+                    style={{ gap: 80 }}
                   >
-                    {bandEvents.map((evt) => (
-                      <EventNode
-                        key={evt.id}
-                        event={evt}
-                        isHorizontal={isHorizontal}
-                        isSelected={selectedEventId === evt.id}
-                        isHighlighted={highlightedId === evt.id}
-                        isFiltered={passesFilter.get(evt.id) ?? true}
-                        highlightedCharacters={highlightedCharacters}
-                        nodeRefs={nodeRefs}
-                        onSelect={() => onSelectEvent(evt.id === selectedEventId ? null : evt.id)}
-                        onHover={(h) => onHoverEvent(h ? evt.id : null)}
-                      />
-                    ))}
+                    {segments.map((seg, si) =>
+                      seg.type === 'parallel-group' ? (
+                        <div
+                          key={`pg-${bi}-${si}`}
+                          className={`flex ${isHorizontal ? 'flex-col' : 'flex-row'} items-center`}
+                          style={{
+                            gap: 40,
+                            backgroundColor: 'rgba(139,92,246,0.06)',
+                            border: '1px dashed rgba(139,92,246,0.3)',
+                            borderRadius: 8,
+                            padding: 8,
+                          }}
+                        >
+                          {seg.events.map((evt) => (
+                            <EventNode
+                              key={evt.id}
+                              event={evt}
+                              isHorizontal={isHorizontal}
+                              isSelected={selectedEventId === evt.id}
+                              isHighlighted={highlightedId === evt.id}
+                              isFiltered={passesFilter.get(evt.id) ?? true}
+                              highlightedCharacters={highlightedCharacters}
+                              nodeRefs={nodeRefs}
+                              onSelect={() => onSelectEvent(evt.id === selectedEventId ? null : evt.id)}
+                              onHover={(h) => onHoverEvent(h ? evt.id : null)}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <EventNode
+                          key={seg.event.id}
+                          event={seg.event}
+                          isHorizontal={isHorizontal}
+                          isSelected={selectedEventId === seg.event.id}
+                          isHighlighted={highlightedId === seg.event.id}
+                          isFiltered={passesFilter.get(seg.event.id) ?? true}
+                          highlightedCharacters={highlightedCharacters}
+                          nodeRefs={nodeRefs}
+                          onSelect={() => onSelectEvent(seg.event.id === selectedEventId ? null : seg.event.id)}
+                          onHover={(h) => onHoverEvent(h ? seg.event.id : null)}
+                        />
+                      )
+                    )}
                   </div>
                 </div>
               );
             })
-          : events.map((evt) => (
-              <EventNode
-                key={evt.id}
-                event={evt}
-                isHorizontal={isHorizontal}
-                isSelected={selectedEventId === evt.id}
-                isHighlighted={highlightedId === evt.id}
-                isFiltered={passesFilter.get(evt.id) ?? true}
-                highlightedCharacters={highlightedCharacters}
-                nodeRefs={nodeRefs}
-                onSelect={() => onSelectEvent(evt.id === selectedEventId ? null : evt.id)}
-                onHover={(h) => onHoverEvent(h ? evt.id : null)}
-              />
-            ))}
+          : groupIntoSegments(events).map((seg, si) =>
+              seg.type === 'parallel-group' ? (
+                <div
+                  key={`pg-${si}`}
+                  className={`flex ${isHorizontal ? 'flex-col' : 'flex-row'} items-center`}
+                  style={{
+                    gap: 40,
+                    backgroundColor: 'rgba(139,92,246,0.06)',
+                    border: '1px dashed rgba(139,92,246,0.3)',
+                    borderRadius: 8,
+                    padding: 8,
+                  }}
+                >
+                  {seg.events.map((evt) => (
+                    <EventNode
+                      key={evt.id}
+                      event={evt}
+                      isHorizontal={isHorizontal}
+                      isSelected={selectedEventId === evt.id}
+                      isHighlighted={highlightedId === evt.id}
+                      isFiltered={passesFilter.get(evt.id) ?? true}
+                      highlightedCharacters={highlightedCharacters}
+                      nodeRefs={nodeRefs}
+                      onSelect={() => onSelectEvent(evt.id === selectedEventId ? null : evt.id)}
+                      onHover={(h) => onHoverEvent(h ? evt.id : null)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <EventNode
+                  key={seg.event.id}
+                  event={seg.event}
+                  isHorizontal={isHorizontal}
+                  isSelected={selectedEventId === seg.event.id}
+                  isHighlighted={highlightedId === seg.event.id}
+                  isFiltered={passesFilter.get(seg.event.id) ?? true}
+                  highlightedCharacters={highlightedCharacters}
+                  nodeRefs={nodeRefs}
+                  onSelect={() => onSelectEvent(seg.event.id === selectedEventId ? null : seg.event.id)}
+                  onHover={(h) => onHoverEvent(h ? seg.event.id : null)}
+                />
+              )
+            )}
       </div>
     </div>
   );
@@ -1017,6 +1196,7 @@ function EventNode({
   const size = getEventSize(event);
   const badge = NARRATIVE_BADGE[event.narrativeMode];
   const dimmed = !isFiltered;
+  const nodeColor = NARRATIVE_COLORS[event.narrativeMode];
 
   // Register ref
   const circleRef = useCallback(
@@ -1096,8 +1276,8 @@ function EventNode({
         style={{
           width: size,
           height: size,
-          backgroundColor: '#fee2e2',
-          border: `2px solid ${isSelected ? 'var(--accent)' : '#ef4444'}`,
+          backgroundColor: nodeColor.bg,
+          border: `2px solid ${isSelected ? 'var(--accent)' : nodeColor.border}`,
           boxShadow: isSelected
             ? '0 0 0 3px rgba(139,94,60,0.3)'
             : undefined,
@@ -1111,11 +1291,8 @@ function EventNode({
               width: 16,
               height: 16,
               fontSize: 9,
-              backgroundColor:
-                event.narrativeMode === 'unknown'
-                  ? 'rgba(156,163,175,0.6)'
-                  : 'rgba(239,68,68,0.3)',
-              color: 'white',
+              backgroundColor: `${nodeColor.border}40`,
+              color: nodeColor.border,
             }}
           >
             {badge}
@@ -1133,14 +1310,13 @@ function EventNode({
             color: 'var(--fg-primary)',
             maxWidth: isHorizontal ? 110 : 160,
             overflow: 'hidden',
-            textOverflow: 'ellipsis',
-            whiteSpace: 'nowrap',
+            display: '-webkit-box',
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: 'vertical',
           }}
           title={event.title}
         >
-          {event.title.length > 20
-            ? event.title.slice(0, 20) + '\u2026'
-            : event.title}
+          {event.title}
         </span>
         <span
           className="text-xs"

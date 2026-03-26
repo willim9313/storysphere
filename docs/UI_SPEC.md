@@ -629,47 +629,7 @@ error 狀態
 
 ---
 
-## 4. 跨頁面互動與資料連動
-
-### 4.1 頁面跳轉對照表
-
-| 來源 | 觸發 | 目的地 |
-|------|------|--------|
-| 首頁書庫 | 點擊書籍卡片 | `/books/:bookId` |
-| 首頁最近開啟 | 點擊「知識圖譜」 | `/books/:bookId/graph` |
-| 首頁最近開啟 | 點擊「深度分析」 | `/books/:bookId/analysis` |
-| 上傳完成列表 | 點擊「進入書籍」 | `/books/:bookId` |
-| 深度分析頁 | 點擊「在圖譜中查看 ↗」 | `/books/:bookId/graph`（定位節點） |
-| 深度分析頁 | 點擊「框架索引 ↗」 | `/frameworks?framework=jung` |
-| 知識圖譜頁 | （未來）點擊段落 | `/books/:bookId`（定位 chunk） |
-| 時間軸頁 | 點擊事件面板「前驅/後續事件」 | 同頁 scroll + 選中 |
-| 時間軸頁 | 點擊「尚未分析」引導連結 | `/books/:bookId/analysis`（定位該事件） |
-| 首頁最近開啟 | 點擊「時間軸」（status=analyzed） | `/books/:bookId/timeline` |
-
-### 4.2 深度分析資料連動
-
-知識圖譜頁觸發的實體深度分析結果，與深度分析頁顯示的內容來自**同一份資料**。
-
-- 圖譜頁：從單一實體出發觸發生成
-- 深度分析頁：彙總顯示所有實體的生成結果
-
-確認視窗中需明確說明：「生成結果將同步至深度分析頁」。
-
-### 4.3 Token 消耗提示規則
-
-以下操作前均需顯示確認視窗：
-
-| 操作 | 確認視窗說明 |
-|------|------------|
-| 首次觸發實體深度分析 | 此操作將消耗 token，生成後可在深度分析頁查看 |
-| 覆蓋重新生成（實體） | 此操作將覆蓋現有結果並消耗 token |
-| 觸發整本書深度分析 | 此操作將消耗大量 token，請確認後執行 |
-| 一鍵生成全部事件 EEP | 將對 N 個尚未分析的事件執行深度分析，已分析的自動跳過，消耗大量 token |
-| 觸發時序計算 | 此操作將消耗 token，計算事件的故事世界時序排列 |
-
----
-
-## 6. 時間軸頁 `/books/:bookId/timeline`
+### 3.7 時間軸頁 `/books/:bookId/timeline`
 
 > 後端設計見 [`docs/guides/PHASE_9_TEMPORAL_TIMELINE.md`](guides/PHASE_9_TEMPORAL_TIMELINE.md)
 
@@ -683,7 +643,7 @@ error 狀態
                                                            點擊事件後展開
 ```
 
-#### 6.1 頂部工具列（固定）
+#### 3.7.1 頂部工具列（固定）
 
 水平排列，左右分組：
 
@@ -706,7 +666,7 @@ error 狀態
 |----|---------|------|
 | 章節順序（預設） | `order=narrative` | 事件按 `chapter` 排列，時間軸模式 |
 | 故事時序 | `order=chronological` | 事件按 `chronological_rank` 排列，時間軸模式 |
-| 矩陣視圖 | 同 `order=narrative` | 散點圖，X 軸=敘事順序，Y 軸=故事時序（見 6.8） |
+| 矩陣視圖 | 同 `order=narrative` | 散點圖，X 軸=敘事順序，Y 軸=故事時序（見 3.7.7） |
 
 - 若 `chronological_rank` 全為 null（Pipeline 未跑），故事時序 / 矩陣視圖選項旁顯示 ⚠️ badge + tooltip「尚未計算時序，請先觸發時序計算」
 - 切換時，事件節點以動畫重新排列（建議 300ms ease）
@@ -734,7 +694,11 @@ tooltip 提示：
 | 水平（預設） | 時間軸左→右，事件節點沿水平軸排列，可水平捲動 |
 | 垂直 | 時間軸上→下，事件節點沿垂直軸排列，可垂直捲動 |
 
-#### 6.2 時間軸主區
+右側事件詳情面板**位置固定在右側**，不隨 layout 方向改變，以降低認知成本。
+- 垂直模式：主區寬度縮窄，右側詳情面板固定 320px
+- 視窗寬度 < 900px：面板改為 overlay 模式（浮在主區上方），不壓縮主區
+
+#### 3.7.2 時間軸主區
 
 **主軸：事件節點**
 
@@ -747,14 +711,21 @@ tooltip 提示：
     SATELLITE → 32px
     未分類   → 36px
 
-  節點底色：event_type 對應色（同知識圖譜 event 節點色系）
-    #fee2e2 / #ef4444
+  節點底色：narrative_mode 對應色（空心圓 + 邊框，bg 填極淡底色）
+    present      → border: #8b5e3c，bg: #f5ede4
+    flashback    → border: #3b82f6，bg: #dbeafe
+    flashforward → border: #f59e0b，bg: #fef3c7
+    parallel     → border: #8b5cf6，bg: #ede9fe
+    unknown      → border: #8a7a68，bg: #f0ece6
+
+  注意：event_importance（KERNEL / SATELLITE）以大小承載，不做顏色雙重編碼。
 
   節點內容：
-    上方 — 事件標題（截斷至 20 字）
-    下方 — 章節標記 "Ch.3"
+    上方 — participant pill（預設 opacity: 0.25，見下方說明）
+    下方 — 事件標題（最多 2 行，超出截斷）
+    標題下方 — 章節標記 "Ch.3"（小字，--fg-muted）
 
-  narrative_mode 標記（左上角小 badge）：
+  narrative_mode 標記（節點左上角小 badge）：
     present     → 不顯示
     flashback   → ⏪ 半透明 badge
     flashforward → ⏩ 半透明 badge
@@ -762,10 +733,19 @@ tooltip 提示：
     unknown     → 灰色 ? badge
 ```
 
-**事件間連線（TemporalRelation 邊）**
+**事件間連線**
 
-- 在故事時序模式下才顯示連線
-- 連線樣式依 confidence：
+故事時序模式下採**雙層連線**，呈現不同確定度：
+
+**底層 — 順序線（位置推斷）**
+
+- 連接所有相鄰事件（依 `chronological_rank` 排序）
+- 樣式：`--fg-muted`，`stroke-width: 1px`，`dasharray: 3,4`，`opacity: 0.25`
+- 意義：pipeline 估算的時序位置，無具體文本證據支持
+
+**上層 — TemporalRelation 邊（文本證據）**
+
+- 僅顯示有具體文本證據的前後 / 因果關係，依 confidence 決定樣式：
 
 | confidence | 樣式 |
 |-----------|------|
@@ -774,7 +754,21 @@ tooltip 提示：
 | < 0.5 | 不顯示 |
 
 - `relation_type = causes` 的邊使用 accent 色（`#8b5e3c`）+ 箭頭，與普通 BEFORE 邊區分
-- 章節順序模式下，連線全部隱藏（僅看敘事排列）
+
+**章節順序模式**
+
+- 不顯示 TemporalRelation 邊
+- 改以順序箭頭（`--fg-secondary`，`stroke-width: 2px`，`opacity: 0.7`）連接所有相鄰事件，表示敘事閱讀順序
+
+**parallel 事件群組**
+
+`narrativeMode === 'parallel'` 的**連續事件**收為一個群組，與主序列並排顯示：
+
+- 水平 layout：群組內事件縱向排列（flex-col），佔用一個水平「時間槽」
+- 垂直 layout：群組內事件橫向並排（flex-row），佔用一個垂直「時間槽」
+- 群組外框：`rgba(139,92,246,0.06)` 底色 + 紫色虛線邊框，視覺上標示「同時發生」
+- 群組內間距：40px（小於主序列 80px，區分兩層間距）
+- 非連續的 parallel 事件各自獨立，不合併
 
 **散開的角色 / 地點 pill（次要元素）**
 
@@ -783,7 +777,7 @@ tooltip 提示：
 ```
 預設狀態：
   pill 樣式同 1.4 實體 Pill，但 opacity: 0.25，不可點擊
-  位於事件節點上方/下方（水平 layout）或左側/右側（垂直 layout）
+  位於事件節點上方（水平 layout）或左側（垂直 layout）
 
 事件被點擊/hover 後：
   該事件相關的 pill → opacity: 1.0，transition: 200ms
@@ -796,11 +790,20 @@ tooltip 提示：
 
 **chapter 分組指示器**
 
-- 時間軸背景以交替淡色帶區分不同章節（類似表格斑馬紋）
-- 章節帶頂部標註章節名稱（小字，`--fg-muted`）
-- 故事時序模式下，分組帶消失（因為排序打亂了章節邊界）
+- 章節與章節之間以分隔線 + 標題強化分群感（取代斑馬紋底色帶）
+- 章節標題：`--fg-secondary`，`13px`，左側 2px accent 色豎線作為視覺錨點
+- 底色帶可保留但設極低對比（`opacity: 0.3`），不作為主要分群視覺
+- 章節間距 > 章節內事件間距（見「節點間距」說明）
+- 故事時序模式下，分組帶與章節標題消失（排序打亂章節邊界）
+- Sticky 章節 header（捲動時固定頂部）列為後續優化，短期不實作
 
-#### 6.3 Filter Dropdown
+**節點間距**
+
+- 章節內事件間距：`80px`（固定值）
+- 章節間間距：`140px`，強化分群視覺
+- 故事時序模式下，目前維持等距；待後端提供時間資訊後，可考慮依 `chronological_rank` 差值動態計算
+
+#### 3.7.3 Filter Dropdown
 
 點擊工具列右側 Filter 按鈕展開，多選 checkbox 組：
 
@@ -839,7 +842,7 @@ Filter 生效後：
 - 工具列 Filter 按鈕顯示 active 數量 badge（如 `Filter (3)`）
 - 角色 filter 選中時，該角色的 pill 跨事件連線持續高亮
 
-#### 6.4 事件詳情面板（右側，深色 surface）
+#### 3.7.4 事件詳情面板（右側，深色 surface）
 
 點擊事件節點後從右側滑入，寬度 320px。
 
@@ -892,7 +895,7 @@ Ch.3 · flashback · KERNEL
 | 事件無 EEP | Section 3/4/5 顯示「尚未執行深度分析」+ 引導至深度分析頁 |
 | 點擊前驅/後續事件名 | 時間軸 scroll 到該事件 + 選中 + 面板更新 |
 
-#### 6.5 狀態流程
+#### 3.7.5 狀態流程
 
 ```
 進入頁面
@@ -916,7 +919,7 @@ chronological_rank = null（Pipeline 未執行）
     → 完成：自動重新載入，品質指示器更新
 
 切換至「矩陣視圖」
-  → 主區替換為散點圖（見 6.8）
+  → 主區替換為散點圖（見 3.7.7）
   → layout 方向切換隱藏（矩陣固定為 2D）
   → 右側面板仍可使用（點擊散點展開）
 
@@ -938,14 +941,14 @@ chronological_rank = null（Pipeline 未執行）
   → 角色 filter 時，選中角色的跨事件連線高亮
 ```
 
-#### 6.6 API
+#### 3.7.6 API
 
 - `GET /books/:bookId/timeline`（`order`, `event_type` 參數）
 - `POST /books/:bookId/timeline/compute`
 - `GET /books/:bookId/events/:eventId/analysis`（複用深度分析 API）
 - `GET /tasks/:taskId/status`（見 API_CONTRACT #8）
 
-#### 6.7 矩陣視圖（Fabula-Sjuzhet Matrix）
+#### 3.7.7 矩陣視圖（Fabula-Sjuzhet Matrix）
 
 選擇「矩陣視圖」時，主區替換為二維散點圖。
 
@@ -975,7 +978,7 @@ Y 軸（↑）= 故事時序（Fabula）
     unknown      → 灰 #8a7a68
 
   hover → tooltip 顯示事件標題 + 章節 + 時序位置
-  click → 右側面板展開（同 6.4）
+  click → 右側面板展開（同 3.7.4）
 ```
 
 **對角線參考線**
@@ -996,11 +999,51 @@ Y 軸（↑）= 故事時序（Fabula）
 
 - `chronological_rank = null` 的事件無法定位 Y 軸 → 統一放在 Y = -0.1 位置，以灰色半透明顯示，附提示「時序未計算」
 
-#### 6.8 未來擴充備註
+#### 3.7.8 未來擴充備註
 
 - **因果鏈聚焦模式**：工具列增加「僅顯示因果鏈」toggle，只保留 `relation_type = causes` 的邊與相關事件，呈現因果樹
 - **角色弧線模式**：選定角色後，僅顯示該角色參與的事件，以 chronological_rank 排列，形成該角色的成長/衰落時間線
 - **主題時序分佈**：選定主題標籤後，顯示相關事件在故事時序軸上的分佈密度
+
+---
+
+## 4. 跨頁面互動與資料連動
+
+### 4.1 頁面跳轉對照表
+
+| 來源 | 觸發 | 目的地 |
+|------|------|--------|
+| 首頁書庫 | 點擊書籍卡片 | `/books/:bookId` |
+| 首頁最近開啟 | 點擊「知識圖譜」 | `/books/:bookId/graph` |
+| 首頁最近開啟 | 點擊「深度分析」 | `/books/:bookId/analysis` |
+| 上傳完成列表 | 點擊「進入書籍」 | `/books/:bookId` |
+| 深度分析頁 | 點擊「在圖譜中查看 ↗」 | `/books/:bookId/graph`（定位節點） |
+| 深度分析頁 | 點擊「框架索引 ↗」 | `/frameworks?framework=jung` |
+| 知識圖譜頁 | （未來）點擊段落 | `/books/:bookId`（定位 chunk） |
+| 時間軸頁 | 點擊事件面板「前驅/後續事件」 | 同頁 scroll + 選中 |
+| 時間軸頁 | 點擊「尚未分析」引導連結 | `/books/:bookId/analysis`（定位該事件） |
+| 首頁最近開啟 | 點擊「時間軸」（status=analyzed） | `/books/:bookId/timeline` |
+
+### 4.2 深度分析資料連動
+
+知識圖譜頁觸發的實體深度分析結果，與深度分析頁顯示的內容來自**同一份資料**。
+
+- 圖譜頁：從單一實體出發觸發生成
+- 深度分析頁：彙總顯示所有實體的生成結果
+
+確認視窗中需明確說明：「生成結果將同步至深度分析頁」。
+
+### 4.3 Token 消耗提示規則
+
+以下操作前均需顯示確認視窗：
+
+| 操作 | 確認視窗說明 |
+|------|------------|
+| 首次觸發實體深度分析 | 此操作將消耗 token，生成後可在深度分析頁查看 |
+| 覆蓋重新生成（實體） | 此操作將覆蓋現有結果並消耗 token |
+| 觸發整本書深度分析 | 此操作將消耗大量 token，請確認後執行 |
+| 一鍵生成全部事件 EEP | 將對 N 個尚未分析的事件執行深度分析，已分析的自動跳過，消耗大量 token |
+| 觸發時序計算 | 此操作將消耗 token，計算事件的故事世界時序排列 |
 
 ---
 
