@@ -815,8 +815,6 @@ interface LineCoord {
   y2: number;
   type: string;
   confidence: number;
-  isNarrative?: boolean;
-  isPositional?: boolean; // 故事時序模式底層順序線（無具體文本證據）
 }
 
 function TimelineCanvas({
@@ -836,83 +834,66 @@ function TimelineCanvas({
 }: TimelineCanvasProps) {
   const isHorizontal = layout === 'horizontal';
   const showChapterBands = order === 'narrative';
-  const showRelationLines = order === 'chronological';
-  const showSequentialArrows = order === 'narrative';
+  // Show CAUSES edges in both modes; BEFORE/SIMULTANEOUS/DURING are redundant with visual order
+  const showRelationLines = order === 'chronological' || order === 'narrative';
 
   const [lines, setLines] = useState<LineCoord[]>([]);
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
+  const [spinePoints, setSpinePoints] = useState<{ x: number; y: number }[]>([]);
   const innerRef = useRef<HTMLDivElement>(null);
 
   // Compute SVG line coordinates after layout
   useLayoutEffect(() => {
-    if ((!showRelationLines && !showSequentialArrows) || !innerRef.current) {
+    if (!innerRef.current) {
       setLines([]);
+      setSpineY(null);
       return;
     }
     const container = innerRef.current;
     const rect = container.getBoundingClientRect();
     setCanvasSize({ w: container.scrollWidth, h: container.scrollHeight });
 
+    // Compute spine polyline through each node center in order
+    const pts: { x: number; y: number }[] = [];
+    for (const evt of events) {
+      const el = nodeRefs.current.get(evt.id);
+      if (el) {
+        const r = el.getBoundingClientRect();
+        pts.push({
+          x: r.left - rect.left + r.width / 2,
+          y: r.top - rect.top + r.height / 2,
+        });
+      }
+    }
+    setSpinePoints(pts);
+
+    // Only draw CAUSES edges — BEFORE/SIMULTANEOUS/DURING are already
+    // implied by visual ordering and would just create a noisy bundle.
+    if (!showRelationLines) {
+      setLines([]);
+      return;
+    }
+
     const computed: LineCoord[] = [];
-
-    if (showRelationLines) {
-      // 底層：相鄰事件的順序線（位置推斷，無具體文本證據）
-      for (let i = 0; i < events.length - 1; i++) {
-        const srcEl = nodeRefs.current.get(events[i].id);
-        const tgtEl = nodeRefs.current.get(events[i + 1].id);
-        if (!srcEl || !tgtEl) continue;
-        const srcRect = srcEl.getBoundingClientRect();
-        const tgtRect = tgtEl.getBoundingClientRect();
-        computed.push({
-          x1: srcRect.left - rect.left + srcRect.width / 2,
-          y1: srcRect.top - rect.top + srcRect.height / 2,
-          x2: tgtRect.left - rect.left + tgtRect.width / 2,
-          y2: tgtRect.top - rect.top + tgtRect.height / 2,
-          type: 'POSITIONAL',
-          confidence: 0,
-          isPositional: true,
-        });
-      }
-      // 上層：有文本證據的 TemporalRelation 邊
-      for (const rel of temporalRelations) {
-        if (rel.confidence < 0.5) continue;
-        const srcEl = nodeRefs.current.get(rel.source);
-        const tgtEl = nodeRefs.current.get(rel.target);
-        if (!srcEl || !tgtEl) continue;
-        const srcRect = srcEl.getBoundingClientRect();
-        const tgtRect = tgtEl.getBoundingClientRect();
-        computed.push({
-          x1: srcRect.left - rect.left + srcRect.width / 2,
-          y1: srcRect.top - rect.top + srcRect.height / 2,
-          x2: tgtRect.left - rect.left + tgtRect.width / 2,
-          y2: tgtRect.top - rect.top + tgtRect.height / 2,
-          type: rel.type,
-          confidence: rel.confidence,
-        });
-      }
+    for (const rel of temporalRelations) {
+      if (rel.type.toUpperCase() !== 'CAUSES') continue;
+      if (rel.confidence < 0.5) continue;
+      const srcEl = nodeRefs.current.get(rel.source);
+      const tgtEl = nodeRefs.current.get(rel.target);
+      if (!srcEl || !tgtEl) continue;
+      const srcRect = srcEl.getBoundingClientRect();
+      const tgtRect = tgtEl.getBoundingClientRect();
+      computed.push({
+        x1: srcRect.left - rect.left + srcRect.width / 2,
+        y1: srcRect.top - rect.top + srcRect.height / 2,
+        x2: tgtRect.left - rect.left + tgtRect.width / 2,
+        y2: tgtRect.top - rect.top + tgtRect.height / 2,
+        type: rel.type,
+        confidence: rel.confidence,
+      });
     }
-
-    if (showSequentialArrows) {
-      for (let i = 0; i < events.length - 1; i++) {
-        const srcEl = nodeRefs.current.get(events[i].id);
-        const tgtEl = nodeRefs.current.get(events[i + 1].id);
-        if (!srcEl || !tgtEl) continue;
-        const srcRect = srcEl.getBoundingClientRect();
-        const tgtRect = tgtEl.getBoundingClientRect();
-        computed.push({
-          x1: srcRect.left - rect.left + srcRect.width / 2,
-          y1: srcRect.top - rect.top + srcRect.height / 2,
-          x2: tgtRect.left - rect.left + tgtRect.width / 2,
-          y2: tgtRect.top - rect.top + tgtRect.height / 2,
-          type: 'NARRATIVE',
-          confidence: 1,
-          isNarrative: true,
-        });
-      }
-    }
-
     setLines(computed);
-  }, [showRelationLines, showSequentialArrows, temporalRelations, events, layout, nodeRefs, selectedEventId]);
+  }, [showRelationLines, temporalRelations, events, layout, isHorizontal, nodeRefs, selectedEventId]);
 
   if (events.length === 0) {
     return (
@@ -936,14 +917,23 @@ function TimelineCanvas({
 
   return (
     <div ref={innerRef} className="relative min-h-full" style={{ minWidth: '100%' }}>
-      {/* SVG overlay for relation lines and narrative sequence arrows */}
-      {lines.length > 0 && (
+      {/* SVG overlay — spine polyline + meaningful TemporalRelation edges */}
+      {(spinePoints.length > 1 || lines.length > 0) && (
         <svg
           className="absolute inset-0 pointer-events-none"
           width={canvasSize.w}
           height={canvasSize.h}
           style={{ zIndex: 1 }}
         >
+          {spinePoints.length > 1 && (
+            <polyline
+              points={spinePoints.map((p) => `${p.x},${p.y}`).join(' ')}
+              fill="none"
+              stroke="var(--fg-muted)"
+              strokeWidth={1}
+              opacity={0.3}
+            />
+          )}
           <defs>
             <marker
               id="arrow-accent"
@@ -967,61 +957,8 @@ function TimelineCanvas({
             >
               <polygon points="0 0, 10 3.5, 0 7" fill="var(--fg-muted)" />
             </marker>
-            <marker
-              id="arrow-narrative"
-              viewBox="0 0 10 7"
-              refX="10"
-              refY="3.5"
-              markerWidth="6"
-              markerHeight="5"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 3.5, 0 7" fill="var(--fg-secondary)" />
-            </marker>
-            <marker
-              id="arrow-positional"
-              viewBox="0 0 10 7"
-              refX="10"
-              refY="3.5"
-              markerWidth="5"
-              markerHeight="4"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 3.5, 0 7" fill="var(--fg-muted)" />
-            </marker>
           </defs>
-          {/* 底層：positional 順序線（先渲染） */}
-          {lines.filter(l => l.isPositional).map((line, i) => (
-            <line
-              key={`pos-${i}`}
-              x1={line.x1}
-              y1={line.y1}
-              x2={line.x2}
-              y2={line.y2}
-              stroke="var(--fg-muted)"
-              strokeWidth={1}
-              strokeDasharray="3,4"
-              opacity={0.25}
-              markerEnd="url(#arrow-positional)"
-            />
-          ))}
-          {/* 上層：narrative 箭頭 & TemporalRelation 邊 */}
-          {lines.filter(l => !l.isPositional).map((line, i) => {
-            if (line.isNarrative) {
-              return (
-                <line
-                  key={`narr-${i}`}
-                  x1={line.x1}
-                  y1={line.y1}
-                  x2={line.x2}
-                  y2={line.y2}
-                  stroke="var(--fg-secondary)"
-                  strokeWidth={2}
-                  opacity={0.7}
-                  markerEnd="url(#arrow-narrative)"
-                />
-              );
-            }
+          {lines.map((line, i) => {
             const isCausal = line.type === 'CAUSES';
             const isHighConf = line.confidence >= 0.8;
             return (
