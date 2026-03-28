@@ -5,6 +5,7 @@ Replaces the old /documents and /ingest routers for frontend-facing API.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 import tempfile
@@ -1346,16 +1347,33 @@ async def trigger_batch_event_analysis(
 # ── Timeline endpoints ───────────────────────────────────────────────────────
 
 
+class ParticipantRef(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    id: str
+    name: str
+    type: str
+
+
+class LocationRef(BaseModel):
+    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
+    id: str
+    name: str
+
+
 class TimelineEventEntry(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
     id: str
     title: str
     event_type: str
+    description: str
     chapter: int
+    chapter_title: str | None = None
     narrative_mode: str = "unknown"
     chronological_rank: float | None = None
     story_time_hint: str | None = None
-    participants: list[str] = []
+    event_importance: str | None = None
+    participants: list[ParticipantRef] = []
+    location: LocationRef | None = None
 
 
 class TemporalRelationEntry(BaseModel):
@@ -1370,8 +1388,8 @@ class TimelineQuality(BaseModel):
     model_config = ConfigDict(
         alias_generator=to_camel, populate_by_name=True,
     )
-    total_events: int = 0
-    analyzed_events: int = 0
+    total_count: int = 0
+    analyzed_count: int = 0
     eep_coverage: float = 0.0
     has_chronological_ranks: bool = False
     last_computed: str | None = None
@@ -1410,20 +1428,33 @@ async def get_book_timeline(
 
     all_events = await kg.get_events(document_id=book_id)
 
-    # Compute EEP coverage from all events (before filtering)
+    # Build chapter_title lookup from already-fetched document (zero extra I/O)
+    chapter_title_map: dict[int, str | None] = {
+        ch.number: ch.title for ch in document.chapters
+    }
+
+    # Compute EEP coverage; also extract event_importance from cache
+    from services.analysis_models import EventAnalysisResult  # noqa: PLC0415
     analyzed_count = 0
+    event_importance_map: dict[str, str] = {}
     for ev in all_events:
         cache_key = f"event:{book_id}:{ev.id}"
-        if await cache.get(cache_key) is not None:
+        cached = await cache.get(cache_key)
+        if cached is not None:
             analyzed_count += 1
+            try:
+                result = EventAnalysisResult.model_validate(cached)
+                event_importance_map[ev.id] = result.eep.event_importance.value
+            except Exception:
+                pass
 
     total = len(all_events)
     has_ranks = any(
         e.chronological_rank is not None for e in all_events
     )
     quality = TimelineQuality(
-        total_events=total,
-        analyzed_events=analyzed_count,
+        total_count=total,
+        analyzed_count=analyzed_count,
         eep_coverage=(
             analyzed_count / total if total > 0 else 0.0
         ),
@@ -1450,6 +1481,27 @@ async def get_book_timeline(
     else:
         events.sort(key=lambda e: e.chapter)
 
+    # Batch-fetch all participant + location entities
+    participant_ids: set[str] = set()
+    location_ids: set[str] = set()
+    for ev in events:
+        participant_ids.update(ev.participants)
+        if ev.location_id is not None:
+            location_ids.add(ev.location_id)
+
+    all_entity_ids = list(participant_ids | location_ids)
+    if all_entity_ids:
+        entity_results = await asyncio.gather(
+            *[kg.get_entity(eid) for eid in all_entity_ids],
+        )
+    else:
+        entity_results = []
+    entity_map = {
+        eid: ent
+        for eid, ent in zip(all_entity_ids, entity_results)
+        if ent is not None
+    }
+
     temporal_relations = await kg.get_temporal_relations(
         document_id=book_id,
     )
@@ -1462,11 +1514,29 @@ async def get_book_timeline(
                 id=e.id,
                 title=e.title,
                 event_type=e.event_type.value,
+                description=e.description,
                 chapter=e.chapter,
+                chapter_title=chapter_title_map.get(e.chapter),
                 narrative_mode=e.narrative_mode.value,
                 chronological_rank=e.chronological_rank,
                 story_time_hint=e.story_time_hint,
-                participants=e.participants,
+                event_importance=event_importance_map.get(e.id),
+                participants=[
+                    ParticipantRef(
+                        id=pid,
+                        name=entity_map[pid].name if pid in entity_map else pid,
+                        type=entity_map[pid].entity_type.value if pid in entity_map else "other",
+                    )
+                    for pid in e.participants
+                ],
+                location=(
+                    LocationRef(
+                        id=e.location_id,
+                        name=entity_map[e.location_id].name,
+                    )
+                    if e.location_id and e.location_id in entity_map
+                    else None
+                ),
             )
             for e in events
         ],
