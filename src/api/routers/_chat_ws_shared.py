@@ -65,7 +65,9 @@ async def handle_chat_websocket(
             if raw_ctx and isinstance(raw_ctx, dict):
                 ctx = ChatContext(**raw_ctx)
                 state.book_id = ctx.book_id
+                state.book_title = ctx.book_title
                 state.chapter_id = ctx.chapter_id
+                state.chapter_title = ctx.chapter_title
                 state.chapter_number = ctx.chapter_number
                 state.page_context = ctx.page
                 if ctx.selected_entity and ctx.selected_entity.get("name"):

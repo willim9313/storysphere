@@ -54,8 +54,10 @@ class GetEntityProfileTool(BaseTool):
         async def get_summary() -> Any:
             if self.doc_service is None or not entity.first_appearance_chapter:
                 return None
+            if not entity.document_id:
+                return None
             return await self.doc_service.get_chapter_summary(
-                document_id=None,
+                document_id=entity.document_id,
                 chapter_number=entity.first_appearance_chapter,
             )
 

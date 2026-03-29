@@ -21,6 +21,7 @@ SYSTEM_PROMPT = """\
 You are a novel analysis assistant. Help users explore story content using the available tools.
 
 RESPONSE RULES:
+- ALWAYS call the appropriate tool(s) FIRST before answering. Do NOT answer from general knowledge.
 - ALWAYS answer the user's actual question. Do NOT dump raw tool output.
 - Read the tool result, extract the relevant information, then compose a concise answer that directly addresses what the user asked.
 - If the user asks "how many", give a number first, then details if helpful.
@@ -28,20 +29,22 @@ RESPONSE RULES:
 - Keep answers focused and conversational. Avoid repeating the same information the user already saw.
 - Always respond in the same language the user uses.
 - If the user asks what you can do or what capabilities you have, describe them in plain conversational language. NEVER reproduce tool names, parameter names, JSON schemas, or any technical implementation details.
+- If a tool returns "not found" or empty results, tell the user clearly that the information is not available in the current book. Do NOT make up or infer answers from general knowledge.
 
 TOOL SELECTION RULES:
-- For "Who is X?" → get_entity_profile (comprehensive) or get_entity_attributes (quick)
-- For "Relationship between X and Y?" → get_entity_relationship
-- For "How does X change?" → get_character_arc
-- For "Compare X and Y" → compare_characters
-- For finding passages → vector_search
-- For chapter overview → get_summary
+- For "Who is X?" or "X是誰?" → get_entity_profile (comprehensive) or get_entity_attributes (quick)
+- For "Relationship between X and Y?" or "X和Y的關係?" → get_entity_relationship
+- For "How does X change?" or "X的發展?" → get_character_arc
+- For "Compare X and Y" or "比較X和Y" → compare_characters
+- For finding passages or searching content → vector_search
+- For chapter overview or "這章講什麼?" → get_summary or get_chapter_summary (use chapter_number from context)
 - For "important characters/entities in this chapter" → get_summary (use the chapter_number from context) to read the summary, then identify the key characters mentioned. You can also use get_keywords with the chapter_number to supplement.
 - For keywords or themes → get_keywords (use chapter_number from context if asking about a specific chapter)
 
 CONTEXT USAGE RULES:
-- When the user references "this chapter", always use the chapter_number provided in the context.
+- When the user references "this chapter" or "這章", always use the chapter_number provided in the context.
 - When calling tools that need document_id, always use the document_id from the context.
+- The book_title and chapter_title in context tell you which story and chapter the user is reading.
 
 DO NOT use vector_search for entity lookups. DO NOT use get_entity_attributes when the user wants relationships.
 """
@@ -55,16 +58,22 @@ def build_context_prompt(state: ChatState, language: str) -> str:
         parts: list[str] = ["Always reply in the same language the user uses."]
 
     if state.book_id:
-        parts.append(
-            f"The user is currently viewing book (document_id={state.book_id}). "
-            "When calling tools that require document_id, use this value."
-        )
-    if state.chapter_id:
-        chapter_hint = f"The user is viewing chapter_id={state.chapter_id}"
+        book_hint = "The user is currently viewing"
+        if state.book_title:
+            book_hint += f" the book \"{state.book_title}\""
+        book_hint += f" (document_id={state.book_id})."
+        book_hint += " When calling tools that require document_id, use this value."
+        parts.append(book_hint)
+    if state.chapter_id or state.chapter_number is not None:
+        chapter_hint = "The user is viewing"
+        if state.chapter_title:
+            chapter_hint += f" chapter \"{state.chapter_title}\""
+        else:
+            chapter_hint += " a chapter"
         if state.chapter_number is not None:
             chapter_hint += f" (chapter_number={state.chapter_number})"
         chapter_hint += (
-            '. References like "this chapter" refer to this chapter. '
+            '. References like "this chapter" or "這章" refer to this chapter. '
             "When calling tools that require chapter_number, use this value."
         )
         parts.append(chapter_hint)
@@ -102,55 +111,22 @@ def build_history_messages(state: ChatState) -> list:
     return msgs
 
 
-async def fast_route(
+def fast_route(
     recognizer: QueryPatternRecognizer,
     tool_map: dict[str, Any],
     match,
     query: str,
     state: ChatState,
-) -> Optional[str]:
-    """Execute the recommended tool directly, bypassing the ReAct loop."""
-    from core.metrics import get_metrics  # noqa: PLC0415
+) -> None:
+    """Update entity state from pattern match; always returns None.
 
-    tool_name = match.suggested_tools[0] if match.suggested_tools else None
-    tool = tool_map.get(tool_name) if tool_name else None
-    if tool is None:
-        return None
-
-    entities = match.extracted_entities
-    try:
-        if match.pattern_name in ("entity_info", "timeline"):
-            if entities:
-                result = await tool._arun(entity_id=entities[0])
-            else:
-                return None
-        elif match.pattern_name in ("relationship", "comparison"):
-            if len(entities) >= 2:
-                result = await tool._arun(
-                    entity_a=entities[0], entity_b=entities[1]
-                )
-            else:
-                return None
-        elif match.pattern_name == "summary":
-            return None  # Let agent handle (needs document_id)
-        elif match.pattern_name == "search":
-            result = await tool._arun(query=query)
-        else:
-            return None
-
-        # Cache the result
-        state.cache_tool_result(tool_name, result)
-        for entity in entities:
-            state.add_entity_mention(entity)
-
-        # Record tool selection via fast route
-        get_metrics().record_tool_selection(
-            tool_name, source="fast_route", query_pattern=match.pattern_name
-        )
-        return result
-    except Exception:
-        logger.debug("Fast route failed for %s, falling back to agent", tool_name)
-        return None
+    Fast-routing raw tool output directly to users was removed because it
+    bypassed LLM synthesis and exposed unformatted JSON.  This function now
+    only performs side-effects (entity tracking) so the agent loop always
+    handles response generation.
+    """
+    for entity in match.extracted_entities:
+        state.add_entity_mention(entity)
 
 
 def get_default_llm():

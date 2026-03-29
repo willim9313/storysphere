@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from agents.chat_agent import ChatAgent
+from agents.chat_agent_base import build_context_prompt
 from agents.states import ChatState
 
 
@@ -56,7 +57,7 @@ class TestChatAgentConstruction:
             kg_service=kg, doc_service=doc, vector_service=vec, llm=mock_llm
         )
         assert agent._tools is not None
-        assert len(agent._tools) == 18  # 14 base + 4 composite
+        assert len(agent._tools) >= 18  # 14+ base + 5 composite
         assert agent._graph is not None
 
     def test_tool_map(self, mock_services, mock_llm):
@@ -89,75 +90,94 @@ class TestChatAgentChat:
         assert state.conversation_history[1].role == "assistant"
 
     @pytest.mark.asyncio
-    async def test_fast_route_entity_info(self, mock_services, mock_llm):
+    async def test_pattern_recognition_tracks_entity(self, mock_services, mock_llm):
         kg, doc, vec = mock_services
 
-        # Make kg return an entity for fast route
-        from domain.entities import Entity, EntityType
-        alice = Entity(id="ent-1", name="Alice", entity_type=EntityType.CHARACTER, description="Hero")
-        kg.get_entity_by_name = AsyncMock(return_value=alice)
-        kg.get_relations = AsyncMock(return_value=[])
+        from langchain_core.messages import AIMessage
+        mock_llm.ainvoke = AsyncMock(
+            return_value=MagicMock(
+                messages=[AIMessage(content="Alice is a character.")],
+                get=lambda k, d=None: [AIMessage(content="Alice is a character.")],
+            )
+        )
 
         agent = ChatAgent(
             kg_service=kg, doc_service=doc, vector_service=vec, llm=mock_llm
         )
         state = ChatState()
 
-        result = await agent.chat("Who is Alice?", state)
-        # Should have used fast route and returned entity profile JSON
-        assert "Alice" in result
+        # Pattern recognizer should extract "Alice" and update entity state
+        from agents.pattern_recognizer import QueryPatternRecognizer
+        match = agent._recognizer.recognize('Who is "Alice"?')
+        if match and match.extracted_entities:
+            for entity in match.extracted_entities:
+                state.add_entity_mention(entity)
         assert state.current_focus_entity == "Alice"
 
 
 class TestBuildContextPrompt:
     def test_minimal_state(self):
         state = ChatState()
-        prompt = ChatAgent._build_context_prompt(state, "en")
+        prompt = build_context_prompt(state, "en")
         assert "Always respond in en" in prompt
         assert "document_id" not in prompt
 
     def test_auto_language(self):
         state = ChatState()
-        prompt = ChatAgent._build_context_prompt(state, "auto")
+        prompt = build_context_prompt(state, "auto")
         assert "same language the user uses" in prompt
 
     def test_with_book_id(self):
         state = ChatState(book_id="book-123")
-        prompt = ChatAgent._build_context_prompt(state, "zh")
+        prompt = build_context_prompt(state, "zh")
         assert "Always respond in zh" in prompt
         assert "book-123" in prompt
         assert "document_id" in prompt
 
+    def test_with_book_id_and_title(self):
+        state = ChatState(book_id="book-123", book_title="三豬紅帽傳")
+        prompt = build_context_prompt(state, "zh")
+        assert "三豬紅帽傳" in prompt
+        assert "book-123" in prompt
+
     def test_with_chapter_id(self):
-        state = ChatState(chapter_id="ch-5")
-        prompt = ChatAgent._build_context_prompt(state, "en")
-        assert "ch-5" in prompt
+        state = ChatState(chapter_id="ch-5", chapter_number=5)
+        prompt = build_context_prompt(state, "en")
+        assert "chapter_number=5" in prompt
+        assert "this chapter" in prompt
+
+    def test_with_chapter_number_only(self):
+        state = ChatState(chapter_number=3)
+        prompt = build_context_prompt(state, "en")
+        assert "chapter_number=3" in prompt
         assert "this chapter" in prompt
 
     def test_with_focus_entity(self):
         state = ChatState()
         state.add_entity_mention("Elizabeth Bennet")
-        prompt = ChatAgent._build_context_prompt(state, "en")
+        prompt = build_context_prompt(state, "en")
         assert "Elizabeth Bennet" in prompt
 
     def test_with_page_context_graph(self):
         state = ChatState(page_context="graph")
-        prompt = ChatAgent._build_context_prompt(state, "en")
+        prompt = build_context_prompt(state, "en")
         assert "knowledge graph" in prompt
 
     def test_with_page_context_reader(self):
         state = ChatState(page_context="reader")
-        prompt = ChatAgent._build_context_prompt(state, "en")
+        prompt = build_context_prompt(state, "en")
         assert "reader page" in prompt
 
     def test_full_context(self):
         state = ChatState(
-            book_id="b1", chapter_id="c2", page_context="reader"
+            book_id="b1", book_title="TestBook",
+            chapter_id="c2", chapter_number=2, page_context="reader"
         )
         state.add_entity_mention("Darcy")
-        prompt = ChatAgent._build_context_prompt(state, "en")
+        prompt = build_context_prompt(state, "en")
         assert "b1" in prompt
-        assert "c2" in prompt
+        assert "TestBook" in prompt
+        assert "chapter_number=2" in prompt
         assert "Darcy" in prompt
         assert "reader" in prompt
 

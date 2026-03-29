@@ -91,8 +91,8 @@ class ChatAgent:
     ) -> str:
         """Single-turn chat: returns the final assistant response text.
 
-        1. Try fast route via QueryPatternRecognizer
-        2. Fall back to full LangGraph ReAct loop
+        1. Run QueryPatternRecognizer for entity tracking side-effects
+        2. Run full LangGraph ReAct loop
         3. Update ChatState with entity mentions and tool results
         """
         from core.metrics import get_metrics  # noqa: PLC0415
@@ -109,22 +109,10 @@ class ChatAgent:
 
             state.add_message("user", query)
 
-            # Fast route
+            # Pattern recognition (entity tracking side-effects only)
             match = self._recognizer.recognize(query)
             if match and match.confidence > 0.8:
-                result = await fast_route(
-                    self._recognizer, self._tool_map, match, query, state
-                )
-                if result is not None:
-                    state.add_message("assistant", result)
-                    state.last_query_type = match.pattern_name
-                    _route = "fast_route"
-                    _metrics.record_agent_query(
-                        success=True,
-                        latency_ms=(time.perf_counter() - _t0) * 1000,
-                        route=_route,
-                    )
-                    return result
+                fast_route(self._recognizer, self._tool_map, match, query, state)
 
             # Full agent loop
             response = await self._agent_invoke(query, language=language, state=state)
@@ -157,8 +145,8 @@ class ChatAgent:
     ) -> AsyncGenerator[str, None]:
         """Streaming chat: yields token chunks as they arrive.
 
-        1. Try fast route via QueryPatternRecognizer (same as chat())
-        2. Fall back to full LangGraph ReAct loop with token streaming
+        1. Run QueryPatternRecognizer for entity tracking side-effects
+        2. Run full LangGraph ReAct loop with token streaming
         3. Falls back to non-streaming _agent_invoke if streaming fails
         """
         # Pronoun resolution
@@ -168,17 +156,10 @@ class ChatAgent:
 
         state.add_message("user", query)
 
-        # Fast route
+        # Pattern recognition (entity tracking side-effects only)
         match = self._recognizer.recognize(query)
         if match and match.confidence > 0.8:
-            result = await fast_route(
-                self._recognizer, self._tool_map, match, query, state
-            )
-            if result is not None:
-                state.add_message("assistant", result)
-                state.last_query_type = match.pattern_name
-                yield result
-                return
+            fast_route(self._recognizer, self._tool_map, match, query, state)
 
         from langchain_core.messages import AIMessageChunk, SystemMessage  # noqa: PLC0415
 

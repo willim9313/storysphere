@@ -39,7 +39,9 @@ class ChatState(BaseModel):
 
     # ===== Page context (injected from frontend) =====
     book_id: Optional[str] = None
+    book_title: Optional[str] = None
     chapter_id: Optional[str] = None
+    chapter_title: Optional[str] = None
     chapter_number: Optional[int] = None
     page_context: Optional[str] = None  # "library" | "reader" | "graph" | "analysis"
 
