@@ -1,8 +1,7 @@
-"""Shared logic for chat agents (ChatAgent & DeepChatAgent).
+"""Shared logic for the chat agent.
 
 Contains the system prompt, context builder, history builder, fast-route
-logic, and default LLM factory — used by both ``create_agent`` and
-``create_deep_agent`` backends.
+logic, and default LLM factory.
 """
 
 from __future__ import annotations

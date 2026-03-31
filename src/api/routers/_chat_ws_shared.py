@@ -1,7 +1,4 @@
-"""Shared WebSocket handler for chat agents.
-
-Used by both ``chat_ws.py`` (ChatAgent) and ``chat_deep_ws.py`` (DeepChatAgent).
-"""
+"""Shared WebSocket handler for the chat agent."""
 
 from __future__ import annotations
 

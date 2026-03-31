@@ -19,7 +19,6 @@ from fastapi.responses import JSONResponse
 from api.routers import (
     analysis,
     books,
-    chat_deep_ws,
     chat_ws,
     documents,
     entities,
@@ -104,7 +103,6 @@ async def lifespan(app: FastAPI):
     from api.deps import (  # noqa: PLC0415
         get_analysis_agent,
         get_chat_agent,
-        get_deep_chat_agent,
         get_doc_service,
         get_kg_service,
         get_token_store,
@@ -133,7 +131,6 @@ async def lifespan(app: FastAPI):
     get_doc_service()
     get_vector_service()
     get_chat_agent()
-    get_deep_chat_agent()
     get_analysis_agent()
 
     if settings.has_local_llm:
@@ -199,7 +196,6 @@ def create_app() -> FastAPI:
     app.include_router(metrics.router, prefix=prefix)
     app.include_router(token_usage.router, prefix=prefix)
     app.include_router(chat_ws.router)        # WS /ws/chat
-    app.include_router(chat_deep_ws.router)   # WS /ws/chat-deep
     app.include_router(tasks_ws.router)       # WS /ws/tasks/{task_id}
 
     return app
