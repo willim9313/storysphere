@@ -7,13 +7,13 @@
 
 ## 🔴 高優先（功能缺口）
 
-### B-001 Relations Router（API 層遺漏）
+### B-001 Relations Router（API 層遺漏）→ ✅ 已完成
 **背景**: Phase 8 guide 有規劃但未實作
 **內容**:
-- `GET /api/v1/relations/paths?from={id}&to={id}` — 兩實體間關係路徑
-- `GET /api/v1/relations/stats` — 全圖關係統計
+- `GET /api/v1/relations/paths?source_id={id}&target_id={id}` — 兩實體間關係路徑
+- `GET /api/v1/relations/stats?entity_id={id}` — 全圖關係統計（entity_id 可選）
 
-**實作提示**: 呼叫已有的 `KGService.get_relation_paths()` 和 `get_relation_stats()`，仿 `routers/entities.py` 模式
+**實作**: `src/api/routers/relations.py`，已掛載至 `main.py`
 
 ---
 
@@ -28,42 +28,23 @@
 
 ---
 
-### B-003 TaskStore 持久化（多進程安全）
+### B-003 TaskStore 持久化（多進程安全）→ ✅ 已完成
 **背景**: 目前 `api/store.py` 是 in-memory dict，多 worker (`uvicorn --workers 4`) 時 task 狀態會丟失
-**內容**: 將 `TaskStore` 後端改為 SQLite（或 Redis 可選），讀寫需 async
-**設定**: `task_store_backend: Literal["memory", "sqlite"] = "memory"`（Settings 已有此欄位）
+**實作**: `SQLiteTaskStore`（WAL mode）+ 啟動時自動清理 TTL 過期 task
+**設定**: `task_store_backend`, `task_store_db_path`, `task_store_ttl_days`（預設 30 天）
 
 ---
 
 ## 🟡 中優先（功能完善）
 
-### B-004 LangSmith 監控整合
-**背景**: 專案大量使用 LangChain / LangGraph，需要 LLM call tracing、prompt 版本管理、latency 分析
-**影響範圍**:
-- `ChatAgent` — LangGraph ReAct loop 的每次 invoke/stream
-- `AnalysisService` — CEP / archetype / arc / EEP 等 LLM calls
-- `SummaryService` / `ExtractionService` — 所有 LLM invocations
-- `GenerateInsightTool` — 工具層 LLM 呼叫
-
-**實作方式**:
-1. 新增環境變數（`.env.example`）：
-   ```
-   LANGCHAIN_TRACING_V2=true
-   LANGCHAIN_API_KEY=ls__...
-   LANGCHAIN_PROJECT=storysphere
-   LANGCHAIN_ENDPOINT=https://api.smith.langchain.com
-   ```
-2. 新增 Settings 欄位：
-   ```python
-   langchain_tracing: bool = False
-   langchain_api_key: str = ""
-   langchain_project: str = "storysphere"
-   ```
-3. 在 `api/main.py` lifespan 啟動時設定環境變數（LangChain 自動 patch）
-4. 可選：為關鍵 chain 加上 `@traceable` decorator 或手動設定 `run_name`
-
-**依賴**: `langsmith>=0.1.0`（通常隨 `langchain` 一起安裝，確認版本即可）
-**文件**: 新增 `docs/guides/LANGSMITH_SETUP.md`
+### B-004 Langfuse 監控整合 → ✅ 已完成
+**背景**: 改用 Langfuse（支援自託管）替代 LangSmith
+**實作**:
+- `src/core/tracing.py` — `configure_langfuse()` + `get_langfuse_handler()` singleton
+- `src/agents/chat_agent.py` — `ainvoke`/`astream` 注入 `CallbackHandler`
+- `src/agents/analysis_agent.py` — `@_langfuse_observe` 取代 `@traceable`
+- Settings: `langfuse_enabled`, `langfuse_public_key`, `langfuse_secret_key`, `langfuse_base_url`
+- **文件**: `docs/guides/LANGFUSE_SETUP.md`
 
 ---
 
@@ -474,7 +455,7 @@
 | B-001 | Relations Router | 🔴 高 | ✅ 完成 |
 | B-002 | Documents Router | 🔴 高 | ✅ 完成 |
 | B-003 | TaskStore 持久化 | 🔴 高 | ✅ 完成 |
-| B-004 | LangSmith 監控 | 🟡 中 | ✅ 完成 |
+| B-004 | Langfuse 監控 | 🟡 中 | ✅ 完成 |
 | B-005 | Analysis WebSocket 推送 | 🟡 中 | ✅ 完成 |
 | B-006 | Metrics API 端點 | 🟡 中 | ✅ 完成 |
 | B-007 | 多語系傳遞統一 | 🟡 中 | ✅ 完成 |

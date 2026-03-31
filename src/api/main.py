@@ -111,10 +111,10 @@ async def lifespan(app: FastAPI):
     from config.settings import get_settings  # noqa: PLC0415
     from core.llm_client import get_llm_client  # noqa: PLC0415
     from core.token_callback import set_main_event_loop  # noqa: PLC0415
-    from core.tracing import configure_langsmith  # noqa: PLC0415
+    from core.tracing import configure_langfuse  # noqa: PLC0415
 
     settings = get_settings()
-    configure_langsmith(settings)
+    configure_langfuse(settings)
     _configure_file_logging()
 
     logger.info("StorySphere API starting up — initialising services...")
@@ -135,6 +135,13 @@ async def lifespan(app: FastAPI):
 
     if settings.has_local_llm:
         await _check_local_llm(settings)
+
+    # Prune old completed/failed tasks from SQLite store
+    from api.store import task_store  # noqa: PLC0415
+    from api.store import SQLiteTaskStore  # noqa: PLC0415
+
+    if isinstance(task_store, SQLiteTaskStore) and settings.task_store_ttl_days > 0:
+        await task_store.cleanup(older_than_days=settings.task_store_ttl_days)
 
     logger.info("All services ready.")
     yield

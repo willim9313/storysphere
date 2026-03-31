@@ -170,11 +170,16 @@ class ChatAgent:
             *history,
             HumanMessage(content=query),
         ]
+        from core.tracing import get_langfuse_handler  # noqa: PLC0415
+
         set_llm_service_context("chat")
+        _lf = get_langfuse_handler()
+        _config = {"callbacks": [_lf]} if _lf else {}
         full_response = ""
         try:
             async for chunk in self._graph.astream(
-                {"messages": messages}, stream_mode="messages", version="v2"
+                {"messages": messages}, stream_mode="messages", version="v2",
+                config=_config,
             ):
                 if chunk.get("type") == "messages":
                     message_chunk, _ = chunk["data"]
@@ -240,8 +245,12 @@ class ChatAgent:
             *history,
             HumanMessage(content=query),
         ]
+        from core.tracing import get_langfuse_handler  # noqa: PLC0415
+
         set_llm_service_context("chat")
-        result = await self._graph.ainvoke({"messages": messages})
+        _lf = get_langfuse_handler()
+        _config = {"callbacks": [_lf]} if _lf else {}
+        result = await self._graph.ainvoke({"messages": messages}, config=_config)
 
         # Extract the last AI message; record tool selections from ToolMessages
         output_messages = result.get("messages", [])

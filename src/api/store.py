@@ -84,13 +84,19 @@ class MemoryTaskStore:
 
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS tasks (
-    task_id   TEXT PRIMARY KEY,
-    status    TEXT NOT NULL DEFAULT 'pending',
-    progress  INTEGER NOT NULL DEFAULT 0,
-    stage     TEXT NOT NULL DEFAULT '',
-    result    TEXT,
-    error     TEXT
+    task_id    TEXT PRIMARY KEY,
+    status     TEXT NOT NULL DEFAULT 'pending',
+    progress   INTEGER NOT NULL DEFAULT 0,
+    stage      TEXT NOT NULL DEFAULT '',
+    result     TEXT,
+    error      TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now'))
 )
+"""
+
+_ADD_CREATED_AT = """
+ALTER TABLE tasks ADD COLUMN
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now'))
 """
 
 
@@ -113,8 +119,37 @@ class SQLiteTaskStore:
             async with aiosqlite.connect(self._db_path) as db:
                 await db.execute("PRAGMA journal_mode=WAL")
                 await db.execute(_CREATE_TABLE)
+                # Migrate existing DBs that lack the created_at column
+                try:
+                    await db.execute(_ADD_CREATED_AT)
+                except Exception:
+                    pass  # column already exists
                 await db.commit()
             self._initialised = True
+
+    async def cleanup(self, older_than_days: int = 30) -> int:
+        """Delete completed/failed tasks older than *older_than_days*.
+
+        Returns the number of rows deleted.
+        """
+        import aiosqlite  # noqa: PLC0415
+
+        await self._ensure_init()
+        async with aiosqlite.connect(self._db_path) as db:
+            cursor = await db.execute(
+                """
+                DELETE FROM tasks
+                WHERE status IN ('done', 'error')
+                  AND created_at < strftime('%Y-%m-%dT%H:%M:%S',
+                        datetime('now', ? || ' days'))
+                """,
+                (f"-{older_than_days}",),
+            )
+            await db.commit()
+            deleted = cursor.rowcount
+        if deleted:
+            logger.info("TaskStore cleanup: removed %d tasks older than %d days", deleted, older_than_days)
+        return deleted
 
     async def _execute(self, sql: str, params: tuple = ()) -> None:
         import aiosqlite  # noqa: PLC0415

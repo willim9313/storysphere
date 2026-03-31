@@ -1,29 +1,31 @@
-"""LangSmith tracing configuration.
+"""Langfuse tracing configuration.
 
-LangChain auto-traces all LLM calls, chain invocations, and LangGraph steps
-when the following environment variables are set:
+Langfuse traces all LangChain / LangGraph calls when a ``CallbackHandler``
+is passed via ``config={"callbacks": [handler]}`` to each invoke/stream call.
 
-    LANGCHAIN_TRACING_V2=true
-    LANGCHAIN_API_KEY=ls__...
-    LANGCHAIN_PROJECT=storysphere
+Call ``configure_langfuse()`` once at application startup.  Use
+``get_langfuse_handler()`` to retrieve the singleton handler for injection.
 
-Call ``configure_langsmith()`` once at application startup (before any LLM
-calls are made) to activate tracing based on ``Settings``.
-
-For non-LangChain orchestration code, use the ``@traceable`` decorator from
-``langsmith`` to create custom spans that appear as parent traces in the UI.
+For non-LangChain code, use the ``@observe`` decorator from ``langfuse``
+to create custom spans that nest inside the active trace.
 """
 
 from __future__ import annotations
 
 import logging
 import os
+from typing import Optional
 
 logger = logging.getLogger(__name__)
 
+_handler: Optional[object] = None
 
-def configure_langsmith(settings=None) -> bool:
-    """Configure LangSmith tracing from Settings.
+
+def configure_langfuse(settings=None) -> bool:
+    """Configure Langfuse tracing from Settings.
+
+    Sets the required environment variables so that ``CallbackHandler()``
+    and ``@observe`` can initialise without explicit key arguments.
 
     Args:
         settings: ``Settings`` instance.  Reads from ``get_settings()`` if None.
@@ -31,34 +33,49 @@ def configure_langsmith(settings=None) -> bool:
     Returns:
         ``True`` if tracing was enabled, ``False`` otherwise.
     """
+    global _handler
+
     if settings is None:
         from config.settings import get_settings  # noqa: PLC0415
+
         settings = get_settings()
 
-    if not settings.langchain_tracing:
-        logger.debug("LangSmith tracing disabled (LANGCHAIN_TRACING=false)")
+    if not settings.langfuse_enabled:
+        logger.debug("Langfuse tracing disabled (LANGFUSE_ENABLED=false)")
         return False
 
-    if not settings.langchain_api_key:
+    if not settings.langfuse_public_key or not settings.langfuse_secret_key:
         logger.warning(
-            "LangSmith tracing enabled but LANGCHAIN_API_KEY is not set — tracing skipped"
+            "Langfuse tracing enabled but LANGFUSE_PUBLIC_KEY or "
+            "LANGFUSE_SECRET_KEY is not set — tracing skipped"
         )
         return False
 
-    os.environ["LANGCHAIN_TRACING_V2"] = "true"
-    os.environ["LANGCHAIN_API_KEY"] = settings.langchain_api_key
-    os.environ["LANGCHAIN_PROJECT"] = settings.langchain_project
-    if settings.langchain_endpoint:
-        os.environ["LANGCHAIN_ENDPOINT"] = settings.langchain_endpoint
+    os.environ["LANGFUSE_PUBLIC_KEY"] = settings.langfuse_public_key
+    os.environ["LANGFUSE_SECRET_KEY"] = settings.langfuse_secret_key
+    os.environ["LANGFUSE_TRACING_ENABLED"] = "true"
+    if settings.langfuse_base_url:
+        os.environ["LANGFUSE_BASE_URL"] = settings.langfuse_base_url
 
-    logger.info(
-        "LangSmith tracing enabled — project: %s endpoint: %s",
-        settings.langchain_project,
-        settings.langchain_endpoint or "https://api.smith.langchain.com",
-    )
-    return True
+    try:
+        from langfuse.langchain import CallbackHandler  # noqa: PLC0415
+
+        _handler = CallbackHandler()
+        logger.info(
+            "Langfuse tracing enabled — host: %s",
+            settings.langfuse_base_url or "https://cloud.langfuse.com",
+        )
+        return True
+    except Exception as exc:
+        logger.warning("Failed to initialise Langfuse CallbackHandler: %s", exc)
+        return False
+
+
+def get_langfuse_handler():
+    """Return the singleton ``CallbackHandler``, or ``None`` if tracing is off."""
+    return _handler
 
 
 def is_tracing_enabled() -> bool:
-    """Return True if LangSmith tracing is currently active."""
-    return os.environ.get("LANGCHAIN_TRACING_V2", "").lower() == "true"
+    """Return True if Langfuse tracing is currently active."""
+    return _handler is not None

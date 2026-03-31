@@ -9,7 +9,13 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from langsmith import traceable
+try:
+    from langfuse import observe as _langfuse_observe
+except ImportError:  # pragma: no cover
+    def _langfuse_observe(**_kw):  # type: ignore[misc]
+        def noop(fn):
+            return fn
+        return noop
 
 from services.analysis_cache import AnalysisCache
 from services.analysis_models import CharacterAnalysisResult, EventAnalysisResult
@@ -35,11 +41,7 @@ class AnalysisAgent:
         self._service = analysis_service
         self._cache = cache
 
-    @traceable(
-        name="AnalysisAgent.analyze_character",
-        tags=["analysis", "character"],
-        metadata={"component": "analysis_agent"},
-    )
+    @_langfuse_observe(name="AnalysisAgent.analyze_character")
     async def analyze_character(
         self,
         entity_name: str,
@@ -107,11 +109,7 @@ class AnalysisAgent:
         )
         return result
 
-    @traceable(
-        name="AnalysisAgent.analyze_event",
-        tags=["analysis", "event"],
-        metadata={"component": "analysis_agent"},
-    )
+    @_langfuse_observe(name="AnalysisAgent.analyze_event")
     async def analyze_event(
         self,
         event_id: str,

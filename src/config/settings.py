@@ -142,14 +142,14 @@ class Settings(BaseSettings):
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
     analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")
 
-    # ── LangSmith Tracing ──────────────────────────────────────────────────────
-    langchain_tracing: bool = Field(
-        default=False, description="Enable LangSmith tracing (LANGCHAIN_TRACING_V2)"
+    # ── Langfuse Tracing ───────────────────────────────────────────────────────
+    langfuse_enabled: bool = Field(
+        default=False, description="Enable Langfuse tracing (LANGFUSE_TRACING_ENABLED)"
     )
-    langchain_api_key: str = Field(default="", description="LangSmith API key (ls__...)")
-    langchain_project: str = Field(default="storysphere", description="LangSmith project name")
-    langchain_endpoint: str = Field(
-        default="", description="LangSmith endpoint (leave empty for default)"
+    langfuse_public_key: str = Field(default="", description="Langfuse public key (pk-lf-...)")
+    langfuse_secret_key: str = Field(default="", description="Langfuse secret key (sk-lf-...)")
+    langfuse_base_url: str = Field(
+        default="", description="Langfuse base URL (leave empty for cloud)"
     )
 
     # ── Task Store ─────────────────────────────────────────────────────────────
@@ -158,6 +158,9 @@ class Settings(BaseSettings):
     )
     task_store_db_path: str = Field(
         default="./data/tasks.db", description="SQLite path for task store (only used when backend=sqlite)"
+    )
+    task_store_ttl_days: int = Field(
+        default=30, description="Days to retain completed/failed tasks in SQLite store (0 = keep forever)"
     )
 
     # ── Application ────────────────────────────────────────────────────────────
