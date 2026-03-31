@@ -25,7 +25,7 @@ export default function LibraryPage() {
   const [filter, setFilter] = useState<Filter>('all');
 
   useEffect(() => {
-    setPageContext({ page: 'library', bookId: undefined, bookTitle: undefined, chapterId: undefined, chapterTitle: undefined, selectedEntity: undefined });
+    setPageContext({ page: 'library' });
   }, [setPageContext]);
 
   if (isLoading) return <LoadingSpinner />;

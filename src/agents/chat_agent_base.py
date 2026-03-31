@@ -86,11 +86,20 @@ def build_context_prompt(state: ChatState, language: str) -> str:
             "graph": "The user is on the knowledge graph page and likely interested in entities, relationships, or network structure.",
             "reader": "The user is on the reader page and likely interested in chapter content, summaries, or passages.",
             "analysis": "The user is on the analysis page and likely interested in character or event deep analysis.",
+            "timeline": "The user is on the timeline page and likely interested in event sequences, narrative order, or temporal relationships.",
             "library": "The user is on the library page browsing their books.",
         }
         hint = page_hints.get(state.page_context)
         if hint:
             parts.append(hint)
+    if state.analysis_tab:
+        tab_hints = {
+            "characters": "The user is viewing the character analysis tab; questions likely concern character profiles, archetypes, or arcs.",
+            "events": "The user is viewing the event analysis tab; questions likely concern event summaries, causality, or impact.",
+        }
+        tab_hint = tab_hints.get(state.analysis_tab)
+        if tab_hint:
+            parts.append(tab_hint)
 
     return "\n".join(parts)
 

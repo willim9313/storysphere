@@ -67,6 +67,7 @@ async def handle_chat_websocket(
                 state.chapter_title = ctx.chapter_title
                 state.chapter_number = ctx.chapter_number
                 state.page_context = ctx.page
+                state.analysis_tab = ctx.analysis_tab
                 if ctx.selected_entity and ctx.selected_entity.get("name"):
                     state.add_entity_mention(ctx.selected_entity["name"])
 

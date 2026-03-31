@@ -27,6 +27,7 @@ function toSnakeContext(ctx: PageContext): Record<string, unknown> {
     chapter_title: ctx.chapterTitle ?? null,
     chapter_number: ctx.chapterNumber ?? null,
     selected_entity: ctx.selectedEntity ?? null,
+    analysis_tab: ctx.analysisTab ?? null,
   };
 }
 

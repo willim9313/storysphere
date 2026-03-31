@@ -126,14 +126,22 @@ export default function AnalysisPage() {
   }, [bookId, book?.title, setPageContext]);
 
   useEffect(() => {
+    setPageContext({ analysisTab: tab });
+  }, [tab, setPageContext]);
+
+  useEffect(() => {
     if (selectedAnalyzed) {
       setPageContext({
         selectedEntity: { id: selectedAnalyzed.entityId, name: selectedAnalyzed.title, type: tab === 'characters' ? 'character' : 'event' },
       });
+    } else if (selectedUnanalyzed) {
+      setPageContext({
+        selectedEntity: { id: selectedUnanalyzed.id, name: selectedUnanalyzed.name, type: tab === 'characters' ? 'character' : 'event' },
+      });
     } else {
       setPageContext({ selectedEntity: undefined });
     }
-  }, [selectedAnalyzed, tab, setPageContext]);
+  }, [selectedAnalyzed, selectedUnanalyzed, tab, setPageContext]);
 
   // Filter by search
   const filterFn = (name: string) =>

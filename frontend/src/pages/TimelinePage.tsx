@@ -172,6 +172,17 @@ export default function TimelinePage() {
     setPageContext({ page: 'timeline', bookId, bookTitle: book?.title });
   }, [bookId, book?.title, setPageContext]);
 
+  useEffect(() => {
+    if (selectedEventId && data?.events) {
+      const event = data.events.find((e) => e.id === selectedEventId);
+      if (event) {
+        setPageContext({ selectedEntity: { id: event.id, name: event.title, type: 'event' } });
+        return;
+      }
+    }
+    setPageContext({ selectedEntity: undefined });
+  }, [selectedEventId, data?.events, setPageContext]);
+
   const handleCompute = useCallback(async () => {
     if (!bookId || isComputing) return;
     const { taskId } = await computeTimeline(bookId);

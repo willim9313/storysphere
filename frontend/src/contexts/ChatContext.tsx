@@ -9,7 +9,24 @@ export interface PageContext {
   chapterTitle?: string;
   chapterNumber?: number;
   selectedEntity?: { id: string; name: string; type: string };
+  analysisTab?: 'characters' | 'events';
 }
+
+// All clearable keys (everything except 'page')
+const ALL_CLEARABLE_KEYS: Array<keyof Omit<PageContext, 'page'>> = [
+  'bookId', 'bookTitle', 'chapterId', 'chapterTitle', 'chapterNumber',
+  'selectedEntity', 'analysisTab',
+];
+
+// Allowed fields per page — drives auto-clear on page navigation
+const PAGE_ALLOWED_FIELDS: Record<PageContext['page'], Array<keyof Omit<PageContext, 'page'>>> = {
+  library:  [],
+  reader:   ['bookId', 'bookTitle', 'chapterId', 'chapterTitle', 'chapterNumber'],
+  graph:    ['bookId', 'bookTitle', 'selectedEntity'],
+  analysis: ['bookId', 'bookTitle', 'selectedEntity', 'analysisTab'],
+  timeline: ['bookId', 'bookTitle', 'selectedEntity'],
+  other:    [],
+};
 
 interface ChatContextValue {
   pageContext: PageContext;
@@ -46,7 +63,19 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
   const deepWs = useWebSocketChat('/ws/chat-deep');
 
   const setPageContext = useCallback((ctx: Partial<PageContext>) => {
-    setPageContextState((prev) => ({ ...prev, ...ctx }));
+    setPageContextState((prev) => {
+      const next = { ...prev, ...ctx };
+      // On page change, auto-clear fields not allowed for the new page
+      if (ctx.page && ctx.page !== prev.page) {
+        const allowed = new Set<string>(PAGE_ALLOWED_FIELDS[ctx.page] ?? []);
+        for (const key of ALL_CLEARABLE_KEYS) {
+          if (!allowed.has(key)) {
+            (next as Record<string, unknown>)[key] = undefined;
+          }
+        }
+      }
+      return next;
+    });
   }, []);
 
   // Original agent callbacks

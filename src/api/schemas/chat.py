@@ -13,6 +13,7 @@ class ChatContext(BaseModel):
     chapter_title: Optional[str] = None
     chapter_number: Optional[int] = None
     selected_entity: Optional[dict] = None  # {id, name, type}
+    analysis_tab: Optional[str] = None  # "characters" | "events"
 
 
 class ChatIncomingMessage(BaseModel):
