@@ -467,7 +467,7 @@
 | B-013 | LLMKeywordExtractor 解析強化 | 🟡 中 | ✅ 完成 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
 | B-015 | Chat Agent Prompt & Flow Review | 🔴 高 | 待開始 |
-| B-016 | Chat Context 切頁殘留 | 🔴 高 | 待開始 |
+| B-016 | Chat Context 切頁殘留 | 🔴 高 | ✅ 完成 |
 | B-017 | 意象實體識別策略研究 | 🔴 高 | 待開始 |
 | B-018 | ImagerEntity Domain Model 設計 | 🟡 中 | 待開始 |
 | B-019 | 符號學 Layer 1：候選符號發現 Pipeline | 🟡 中 | 待開始 |
@@ -547,7 +547,7 @@
 
 ---
 
-### B-016 Chat Context 切頁殘留
+### B-016 Chat Context 切頁殘留 → ✅ 已完成
 **背景**: 從 Reader 切到 Graph 頁面時，chat agent 仍參考 Reader 的 chapter 資料。
 **原因**:
 1. 前端 `setPageContext` 用 merge（`{ ...prev, ...ctx }`），Graph 頁面未清除 `chapterId` / `chapterTitle`
@@ -559,4 +559,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-03-30
+**最後更新**: 2026-04-01
