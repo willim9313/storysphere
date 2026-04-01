@@ -416,7 +416,7 @@
 | B-021 | 詮釋輔助介面（Layer 3）符號時間軸 | 🟢 低 | 待開始 |
 | B-022 | 符號學 Pipeline 整合與 Deep Analysis 對接 | 🟢 低 | 待開始 |
 | B-023 | Event 節點張力欄位強化 | 🔴 高 | ✅ 完成 |
-| B-024 | Concept 節點 surface/inferred 分類強化 | 🔴 高 | 待開始 |
+| B-024 | Concept 節點 surface/inferred 分類強化 | 🔴 高 | ✅ 完成 |
 | B-025 | Pre-Analysis Step：Inferred Concept 節點產生 | 🟡 中 | 待開始 |
 | B-026 | TEU Domain Model + 組裝 Pipeline（模式 B） | 🟡 中 | 待開始 |
 | B-027 | TensionLine 自動 grouping + HITL 審核介面 | 🟢 低 | 待開始 |
@@ -435,4 +435,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-01（B-023+B-031 完成：Event schema 擴充張力與敘事學欄位）
+**最後更新**: 2026-04-01（B-024 完成：Entity 加入 extraction_method / SpanRef 欄位）
