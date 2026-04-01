@@ -255,6 +255,94 @@ class TensionService:
                 return lines[i]
         return None
 
+    # ── Public: Mode A (full-book batch) ─────────────────────────────────────
+
+    async def analyze_book_tensions(
+        self,
+        document_id: str,
+        kg_service,
+        doc_service,
+        language: str = "en",
+        force: bool = False,
+        concurrency: int = 5,
+        progress_callback=None,
+    ) -> dict:
+        """Batch-assemble TEUs for all qualifying events in a document (Mode A).
+
+        Filters events where tension_signal != "none".
+        Uses asyncio.Semaphore to limit parallel LLM calls.
+
+        Args:
+            progress_callback: Optional async callable(done: int, total: int).
+
+        Returns:
+            dict with total_events, candidates, assembled, failed counts.
+        """
+        import asyncio  # noqa: PLC0415
+
+        events = await kg_service.get_events(document_id=document_id)
+        candidates = [e for e in events if e.tension_signal != "none"]
+        total = len(candidates)
+
+        if not candidates:
+            logger.info(
+                "analyze_book_tensions: no qualifying events for document=%s",
+                document_id,
+            )
+            return {
+                "total_events": len(events),
+                "candidates": 0,
+                "assembled": 0,
+                "failed": 0,
+            }
+
+        sem = asyncio.Semaphore(concurrency)
+        assembled = 0
+        failed = 0
+
+        async def _assemble_one(event):
+            nonlocal assembled, failed
+            async with sem:
+                try:
+                    teu = await self.assemble_teu(
+                        event_id=event.id,
+                        document_id=document_id,
+                        kg_service=kg_service,
+                        doc_service=doc_service,
+                        language=language,
+                        force=force,
+                    )
+                    await self.save_teu(teu)
+                    assembled += 1
+                except Exception:
+                    logger.warning(
+                        "analyze_book_tensions: failed for event=%s",
+                        event.id,
+                        exc_info=True,
+                    )
+                    failed += 1
+            if progress_callback:
+                progress_callback(assembled + failed, total)
+
+        await asyncio.gather(
+            *[_assemble_one(e) for e in candidates],
+            return_exceptions=True,
+        )
+
+        logger.info(
+            "analyze_book_tensions: document=%s candidates=%d assembled=%d failed=%d",
+            document_id,
+            total,
+            assembled,
+            failed,
+        )
+        return {
+            "total_events": len(events),
+            "candidates": total,
+            "assembled": assembled,
+            "failed": failed,
+        }
+
     # ── Private ───────────────────────────────────────────────────────────────
 
     def _get_llm(self):
