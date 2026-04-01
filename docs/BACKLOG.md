@@ -418,7 +418,7 @@
 | B-023 | Event 節點張力欄位強化 | 🔴 高 | ✅ 完成 |
 | B-024 | Concept 節點 surface/inferred 分類強化 | 🔴 高 | ✅ 完成 |
 | B-025 | Pre-Analysis Step：Inferred Concept 節點產生 | 🟡 中 | ✅ 完成 |
-| B-026 | TEU Domain Model + 組裝 Pipeline（模式 B） | 🟡 中 | 待開始 |
+| B-026 | TEU Domain Model + 組裝 Pipeline（模式 B） | 🟡 中 | ✅ 完成 |
 | B-027 | TensionLine 自動 grouping + HITL 審核介面 | 🟢 低 | 待開始 |
 | B-028 | 模式 A：全書掃描批次 TEU 組裝 | 🟢 低 | 待開始 |
 | B-029 | TensionTheme 合成 + Frye/Booker 標籤對應 | 🟢 低 | 待開始 |
@@ -435,4 +435,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-01（B-025 完成：ConceptInferencePipeline — Inferred Concept 節點產生）
+**最後更新**: 2026-04-01（B-026 完成：TEU Domain Model + TensionService Mode B 組裝）
