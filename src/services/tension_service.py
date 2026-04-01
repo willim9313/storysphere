@@ -1,11 +1,13 @@
-"""TensionService — TEU assembly and persistence — B-026/B-027.
+"""TensionService — TEU assembly and persistence — B-026/B-027/B-028/B-029.
 
 Mode B (single-event trigger) is implemented here.
 Mode A (full-book batch) is implemented in B-028.
+TensionTheme synthesis is implemented in B-029.
 
 Persistence uses AnalysisCache (SQLite) with key patterns:
     teu:{event_id}
     tension_lines:{document_id}
+    tension_theme:{document_id}
 """
 
 from __future__ import annotations
@@ -17,8 +19,9 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 
 from core.token_callback import set_llm_service_context
 from core.utils.output_extractor import extract_json_from_text
+from config.mythos import get_mythos_summary
 from domain.entities import EntityType
-from domain.tension import TEU, TensionLine, TensionPole
+from domain.tension import TEU, TensionLine, TensionPole, TensionTheme
 
 if TYPE_CHECKING:
     from services.analysis_cache import AnalysisCache
@@ -29,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 _ASSEMBLER_TAG = "tension_service_v1"
 _GROUPER_TAG = "tension_grouper_v1"
+_SYNTHESIZER_TAG = "tension_synthesizer_v1"
 
 _GROUPING_SYSTEM_PROMPT = """\
 You are a literary tension analyst. Given a list of Tension Evidence Units (TEUs)
@@ -84,6 +88,30 @@ Return ONLY a JSON object with:
   "intensity": float           # 0.0–1.0
   "evidence": [str]            # 1-3 quotations or paraphrases from the scene
   "thematic_note": str | null  # Optional broader theme this serves
+"""
+
+
+_THEME_SYSTEM_PROMPT = """\
+You are a literary scholar specializing in narrative theory. Given the recurring tension patterns
+(TensionLines) found across a novel, synthesize them into a single book-level thematic proposition
+and classify the work using Frye's mythos and Booker's seven basic plots.
+
+You will receive:
+- A list of TensionLines (canonical pole labels, intensity, chapter range)
+- Frye's four mythoi with descriptions
+- Booker's seven basic plots with descriptions
+
+Your task:
+1. Write a PROPOSITION — a one or two sentence thematic claim that captures what the book argues
+   or reveals through its central tensions. Be specific, not generic (avoid "good vs. evil").
+2. Choose the most fitting FRYE MYTHOS (one id from the list provided).
+3. Choose the most fitting BOOKER PLOT (one id from the list provided).
+
+Return ONLY a JSON object with:
+  "proposition": str        # The book-level thematic claim (1-2 sentences)
+  "frye_mythos": str        # The Frye mythos id (e.g. "tragedy")
+  "booker_plot": str        # The Booker plot id (e.g. "overcoming_the_monster")
+  "reasoning": str          # Brief justification for your choices (2-3 sentences)
 """
 
 
@@ -254,6 +282,96 @@ class TensionService:
                 logger.debug("TensionService: updated review for line=%s status=%s", line_id, review_status)
                 return lines[i]
         return None
+
+    # ── Public: TensionTheme synthesis (B-029) ───────────────────────────────
+
+    async def synthesize_theme(
+        self,
+        document_id: str,
+        language: str = "en",
+        force: bool = False,
+    ) -> TensionTheme:
+        """Synthesize a book-level TensionTheme from approved TensionLines.
+
+        Uses all TensionLines if none have been approved yet (graceful fallback).
+        Returns cached result unless force=True.
+
+        Args:
+            document_id: The book's document ID.
+            language: LLM output language.
+            force: If True, bypass cache and re-synthesize.
+
+        Returns:
+            Synthesized TensionTheme (call save_theme() to persist).
+        """
+        cache_key = f"tension_theme:{document_id}"
+
+        if not force:
+            cached = await self._cache.get(cache_key)
+            if cached is not None:
+                logger.debug("TensionService: cache hit for %s", cache_key)
+                return TensionTheme.model_validate(cached)
+
+        lines = await self.get_lines(document_id)
+        if not lines:
+            raise ValueError(
+                f"TensionService: no TensionLines found for document={document_id!r}. "
+                "Run group_teus() first."
+            )
+
+        # Prefer reviewed lines; fall back to all lines
+        reviewed = [l for l in lines if l.review_status in {"approved", "modified"}]
+        input_lines = reviewed if reviewed else lines
+        logger.info(
+            "TensionService synthesize_theme: document=%s using %d/%d lines (reviewed=%d)",
+            document_id,
+            len(input_lines),
+            len(lines),
+            len(reviewed),
+        )
+
+        theme = await self._call_theme_llm(input_lines, document_id, language)
+        return theme
+
+    async def save_theme(self, theme: TensionTheme) -> None:
+        """Persist a TensionTheme to cache."""
+        key = f"tension_theme:{theme.document_id}"
+        await self._cache.set(key, theme.model_dump(mode="json"))
+        logger.debug("TensionService: saved TensionTheme for document=%s", theme.document_id)
+
+    async def get_theme(self, document_id: str) -> Optional[TensionTheme]:
+        """Retrieve a cached TensionTheme, or None if not found/expired."""
+        cached = await self._cache.get(f"tension_theme:{document_id}")
+        if cached is None:
+            return None
+        return TensionTheme.model_validate(cached)
+
+    async def update_theme_review(
+        self,
+        theme_id: str,
+        document_id: str,
+        review_status: str,
+        proposition: Optional[str] = None,
+    ) -> Optional[TensionTheme]:
+        """Update the review_status (and optionally the proposition) of a TensionTheme.
+
+        Returns the updated TensionTheme, or None if theme_id does not match.
+        """
+        theme = await self.get_theme(document_id)
+        if theme is None or theme.id != theme_id:
+            return None
+
+        updates: dict = {"review_status": review_status}
+        if proposition is not None:
+            updates["proposition"] = proposition
+        updated = theme.model_copy(update=updates)
+        await self.save_theme(updated)
+        logger.debug(
+            "TensionService: updated theme review document=%s status=%s",
+            document_id,
+            review_status,
+        )
+        return updated
 
     # ── Public: Mode A (full-book batch) ─────────────────────────────────────
 
@@ -529,6 +647,64 @@ class TensionService:
 
         logger.debug("TensionService grouping: produced %d TensionLines", len(result))
         return result
+
+    @retry(
+        retry=retry_if_exception_type(ValueError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+    )
+    async def _call_theme_llm(
+        self,
+        lines: list[TensionLine],
+        document_id: str,
+        language: str,
+    ) -> TensionTheme:
+        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
+        lang_key = "zh" if language.lower().startswith("zh") else "en"
+        frye_summary = get_mythos_summary("frye", lang_key)
+        booker_summary = get_mythos_summary("booker", lang_key)
+
+        human_parts = ["## TensionLines"]
+        for line in lines:
+            ch = f"ch{line.chapter_range[0]}-{line.chapter_range[-1]}" if line.chapter_range else "?"
+            human_parts.append(
+                f"- [{ch}] intensity={line.intensity_summary:.2f} | "
+                f"{line.canonical_pole_a!r} vs {line.canonical_pole_b!r} "
+                f"(status={line.review_status})"
+            )
+
+        human_parts += [
+            "\n## Frye's Four Mythoi",
+            frye_summary,
+            "\n## Booker's Seven Basic Plots",
+            booker_summary,
+        ]
+        human_content = "\n".join(human_parts)
+
+        system_prompt = self._localize_prompt(_THEME_SYSTEM_PROMPT, language)
+        llm = self._get_llm()
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=human_content),
+        ]
+        set_llm_service_context("analysis")
+        response = await llm.ainvoke(messages)
+        raw = response.content if hasattr(response, "content") else str(response)
+
+        parsed, err = extract_json_from_text(raw)
+        if err or not isinstance(parsed, dict):
+            raise ValueError(f"TensionService theme synthesis: LLM parse failed: {err!r}")
+
+        return TensionTheme(
+            document_id=document_id,
+            tension_line_ids=[l.id for l in lines],
+            proposition=parsed.get("proposition", ""),
+            frye_mythos=parsed.get("frye_mythos"),
+            booker_plot=parsed.get("booker_plot"),
+            assembled_by=_SYNTHESIZER_TAG,
+        )
 
     @staticmethod
     def _localize_prompt(prompt: str, language: str) -> str:

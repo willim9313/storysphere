@@ -421,7 +421,7 @@
 | B-026 | TEU Domain Model + 組裝 Pipeline（模式 B） | 🟡 中 | ✅ 完成 |
 | B-027 | TensionLine 自動 grouping + HITL 審核介面 | 🟢 低 | ✅ 完成 |
 | B-028 | 模式 A：全書掃描批次 TEU 組裝 | 🟢 低 | ✅ 完成 |
-| B-029 | TensionTheme 合成 + Frye/Booker 標籤對應 | 🟢 低 | 待開始 |
+| B-029 | TensionTheme 合成 + Frye/Booker 標籤對應 | 🟢 低 | ✅ 完成 |
 | B-030 | 張力分析 Deep Analysis Workflow 完整整合 | 🟢 低 | 待開始 |
 | B-031 | Event 節點敘事學欄位預留（已與 B-023 合併）| 🔴 高 | ✅ 完成 |
 | B-032 | Ingestion prompt 時間線索提取預留 | 🟡 中 | 待開始 |
@@ -435,4 +435,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-01（B-028 完成：Mode A 全書批次 TEU 組裝 + 進度追蹤 API）
+**最後更新**: 2026-04-01（B-029 完成：TensionTheme 合成 + Frye/Booker 標籤對應）

@@ -1,4 +1,4 @@
-"""Request/response schemas for tension analysis endpoints — B-027/B-028."""
+"""Request/response schemas for tension analysis endpoints — B-027/B-028/B-029."""
 
 from __future__ import annotations
 
@@ -25,3 +25,15 @@ class TensionLineReviewRequest(BaseModel):
     review_status: Literal["approved", "modified", "rejected"]
     canonical_pole_a: Optional[str] = None
     canonical_pole_b: Optional[str] = None
+
+
+class SynthesizeThemeRequest(BaseModel):
+    document_id: str
+    language: str = "en"
+    force: bool = False
+
+
+class TensionThemeReviewRequest(BaseModel):
+    document_id: str
+    review_status: Literal["approved", "modified", "rejected"]
+    proposition: Optional[str] = None  # Allow human to rewrite the thematic proposition

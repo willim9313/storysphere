@@ -1,0 +1,65 @@
+[
+  {
+    "id": "overcoming_the_monster",
+    "name": "Overcoming the Monster",
+    "core_pattern": "The protagonist sets out to defeat an evil, threatening force that endangers the protagonist's world",
+    "mood": "Heroism, danger, triumph",
+    "typical_arc": "Threat emerges → hero is called → preparation → confrontation → monster defeated → world restored",
+    "examples": "Beowulf, Dracula, Jaws, Star Wars",
+    "tension_signature": "Hero's strength vs. monster's power, order vs. chaos, courage vs. fear"
+  },
+  {
+    "id": "rags_to_riches",
+    "name": "Rags to Riches",
+    "core_pattern": "The humble, overlooked protagonist acquires power, wealth, or a mate, loses it all, then gains it back through genuine growth",
+    "mood": "Hope, aspiration, justice",
+    "typical_arc": "Initial deprivation → acquisition of gifts → initial success → crisis and loss → final redemption and true fulfillment",
+    "examples": "Cinderella, David Copperfield, Jane Eyre, Aladdin",
+    "tension_signature": "Worthiness vs. circumstance, inner virtue vs. outer status, authenticity vs. pretense"
+  },
+  {
+    "id": "the_quest",
+    "name": "The Quest",
+    "core_pattern": "The hero and companions journey to acquire an important object or reach a destination, overcoming temptations and obstacles",
+    "mood": "Adventure, camaraderie, purpose",
+    "typical_arc": "Call to quest → journey begins → trials and temptations → arrival at goal → goal achieved (often with sacrifice)",
+    "examples": "The Odyssey, Lord of the Rings, Indiana Jones",
+    "tension_signature": "Goal vs. obstacles, unity vs. division within the group, perseverance vs. despair"
+  },
+  {
+    "id": "voyage_and_return",
+    "name": "Voyage and Return",
+    "core_pattern": "The hero travels to a strange, disorienting world, struggles to cope, then escapes back home, changed by the experience",
+    "mood": "Wonder, disorientation, transformation",
+    "typical_arc": "Fall into strange world → initial wonder → shadow falls (threat or oppression) → thrilling escape → return home",
+    "examples": "Alice in Wonderland, The Time Machine, Narnia, Gone with the Wind",
+    "tension_signature": "Familiar vs. alien, belonging vs. exile, self vs. transformed self"
+  },
+  {
+    "id": "comedy",
+    "name": "Comedy",
+    "core_pattern": "A series of confusions and misunderstandings create a dark, threatening world which is resolved through the revelation of truth",
+    "mood": "Confusion, humor, resolution",
+    "typical_arc": "World of confusion → hero caught in web of misunderstanding → shadow of threat grows → everything comes to light → happy ending",
+    "examples": "A Midsummer Night's Dream, Much Ado About Nothing, Four Weddings and a Funeral",
+    "tension_signature": "Truth vs. illusion, freedom vs. constraint, individual vs. social expectation"
+  },
+  {
+    "id": "tragedy",
+    "name": "Tragedy",
+    "core_pattern": "A hero with great gifts becomes cut off from the world by an overriding obsession or fatal flaw, leading to catastrophic downfall",
+    "mood": "Inevitability, waste, catharsis",
+    "typical_arc": "Hero's gifts shine → fatal flaw or dark obsession appears → increasingly isolated → catastrophic end",
+    "examples": "Hamlet, Macbeth, Anna Karenina, Breaking Bad",
+    "tension_signature": "Strength vs. flaw, aspiration vs. limitation, isolation vs. connection"
+  },
+  {
+    "id": "rebirth",
+    "name": "Rebirth",
+    "core_pattern": "The hero falls under a dark spell or curse, living in a kind of death until finally liberated by a redemptive act or figure",
+    "mood": "Darkness, redemption, spiritual renewal",
+    "typical_arc": "Hero under dark shadow → initial freedom lost → imprisonment (literal or spiritual) → redemptive act or figure appears → liberation and new life",
+    "examples": "Sleeping Beauty, A Christmas Carol, The Secret Garden, Crime and Punishment",
+    "tension_signature": "Light vs. darkness, redemption vs. damnation, stagnation vs. renewal"
+  }
+]

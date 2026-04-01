@@ -98,15 +98,14 @@ class TensionLine(BaseModel):
 
 
 class TensionTheme(BaseModel):
-    """Book-level tension proposition — synthesised from TensionLines.
-
-    Stub model; full synthesis logic implemented in B-029.
-    """
+    """Book-level tension proposition — synthesised from TensionLines (B-029)."""
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     document_id: str
     tension_line_ids: list[str] = Field(default_factory=list)
     proposition: str = Field(default="", description="The book-level thematic claim")
-    frye_mythos: Optional[str] = Field(default=None, description="Frye mythos label")
-    booker_plot: Optional[str] = Field(default=None, description="Booker plot label")
+    frye_mythos: Optional[str] = Field(default=None, description="Frye mythos id")
+    booker_plot: Optional[str] = Field(default=None, description="Booker plot id")
+    assembled_by: str = Field(default="tension_synthesizer_v1")
+    assembled_at: datetime = Field(default_factory=datetime.utcnow)
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"

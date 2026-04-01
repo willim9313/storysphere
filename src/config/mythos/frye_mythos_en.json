@@ -1,0 +1,42 @@
+[
+  {
+    "id": "romance",
+    "name": "Romance",
+    "season": "Summer",
+    "core_pattern": "The hero succeeds in a quest, triumphing over adversity and achieving an idealized world",
+    "mood": "Wish-fulfillment, idealism, adventure",
+    "typical_arc": "Hero sets out → faces trials → defeats antagonist → harmony restored",
+    "examples": "Arthurian legend, The Lord of the Rings, fairy tales",
+    "tension_signature": "Good vs. evil, purity vs. corruption, freedom vs. captivity"
+  },
+  {
+    "id": "comedy",
+    "name": "Comedy",
+    "season": "Spring",
+    "core_pattern": "Society moves from a state of confusion or repression to a harmonious new order, often via marriage or social integration",
+    "mood": "Reconciliation, festivity, renewal",
+    "typical_arc": "Rigid old order → comic complications → young lovers or outsiders prevail → inclusive new society",
+    "examples": "A Midsummer Night's Dream, Pride and Prejudice, most romantic comedies",
+    "tension_signature": "Individual desire vs. social convention, flexibility vs. rigidity"
+  },
+  {
+    "id": "tragedy",
+    "name": "Tragedy",
+    "season": "Autumn",
+    "core_pattern": "An exceptional individual falls from a position of greatness due to a fatal flaw or circumstance, isolated from society",
+    "mood": "Catharsis, inevitability, loss",
+    "typical_arc": "Hero at height of power → hamartia or hubris emerges → reversal (peripeteia) → catastrophic fall → isolation or death",
+    "examples": "Hamlet, Macbeth, Oedipus Rex",
+    "tension_signature": "Individual will vs. fate, ambition vs. limitation, loyalty vs. self-interest"
+  },
+  {
+    "id": "irony_satire",
+    "name": "Irony / Satire",
+    "season": "Winter",
+    "core_pattern": "Reality fails to match ideals; the heroic or romantic is deflated; the world is exposed as absurd, corrupt, or indifferent",
+    "mood": "Disillusionment, dark humor, critique",
+    "typical_arc": "Apparent normality → gap between appearance and reality widens → exposure of futility or hypocrisy → no redemption or only ironic resolution",
+    "examples": "Catch-22, 1984, Waiting for Godot",
+    "tension_signature": "Ideal vs. reality, appearance vs. truth, hope vs. futility"
+  }
+]
