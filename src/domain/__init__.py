@@ -5,7 +5,7 @@ from domain.documents import (
     Paragraph,
     ParagraphEntity,
 )
-from domain.entities import Entity, EntityType
+from domain.entities import Entity, EntityType, SpanRef
 from domain.events import Event, EventType, NarrativeMode, StoryTimeRef
 from domain.relations import Relation, RelationType
 from domain.temporal import TemporalRelation, TemporalRelationType
@@ -13,6 +13,7 @@ from domain.temporal import TemporalRelation, TemporalRelationType
 __all__ = [
     "Entity",
     "EntityType",
+    "SpanRef",
     "Relation",
     "RelationType",
     "Event",

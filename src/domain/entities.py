@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -14,6 +14,15 @@ class EntityType(str, Enum):
     OBJECT = "object"
     CONCEPT = "concept"
     OTHER = "other"
+
+
+class SpanRef(BaseModel):
+    """A reference to a text span where a surface concept appears."""
+
+    chunk_id: str
+    start: int
+    end: int
+    text: str
 
 
 class Entity(BaseModel):
@@ -28,6 +37,12 @@ class Entity(BaseModel):
     document_id: Optional[str] = None
     first_appearance_chapter: Optional[int] = None
     mention_count: int = 0
+
+    # --- Concept provenance fields (B-024) ---
+    extraction_method: Literal["ner", "inferred"] = "ner"
+    source_spans: Optional[list[SpanRef]] = None
+    inferred_by: Optional[str] = None
+    confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
     def __hash__(self) -> int:
         return hash(self.id)

@@ -76,13 +76,16 @@ class KGService:
         self,
         entity_type: Optional[EntityType] = None,
         document_id: Optional[str] = None,
+        extraction_method: Optional[str] = None,
     ) -> list[Entity]:
-        """Return all entities, optionally filtered by type and/or document."""
+        """Return all entities, optionally filtered by type, document, and/or extraction_method."""
         entities = list(self._entities.values())
         if document_id is not None:
             entities = [e for e in entities if e.document_id == document_id]
         if entity_type is not None:
             entities = [e for e in entities if e.entity_type == entity_type]
+        if extraction_method is not None:
+            entities = [e for e in entities if e.extraction_method == extraction_method]
         return entities
 
     # ── Relation operations ──────────────────────────────────────────────────
