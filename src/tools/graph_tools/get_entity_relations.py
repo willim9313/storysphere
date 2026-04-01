@@ -27,7 +27,7 @@ class GetEntityRelationsTool(BaseTool):
         "Returns relation type, connected entity, weight, and chapters. "
         "USE for: relationship queries, social network exploration. "
         "DO NOT USE for: finding paths between two entities or entity attributes. "
-        "Input: entity ID/name and optional direction ('in', 'out', 'both')."
+        "Input: entity ID/name and optional direction ('both' (default), 'in', or 'out')."
     )
     args_schema: Type[EntityRelationsInput] = EntityRelationsInput
 

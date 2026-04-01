@@ -26,8 +26,10 @@ class GetEntityProfileTool(BaseTool):
 
     name: str = "get_entity_profile"
     description: str = (
-        "Get a comprehensive entity profile: attributes, first appearance context, "
-        "and relevant passages. USE for 'Who is X?' or 'Tell me about X' queries. "
+        "COMPREHENSIVE profile — slower but richer than get_entity_attributes. "
+        "Combines KG attributes + first appearance chapter summary + relevant passages from vector search + relation count. "
+        "USE for 'Who is X?' or 'Tell me everything about X' queries. "
+        "For quick attribute-only lookup, use get_entity_attributes instead. "
         "DO NOT USE for relationship questions (use get_entity_relationship). "
         "Input: entity ID or name."
     )

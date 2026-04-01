@@ -1,7 +1,7 @@
 """Shared logic for the chat agent.
 
-Contains the system prompt, context builder, history builder, fast-route
-logic, and default LLM factory.
+Contains the system prompt, context builder, history builder, entity-state
+update logic, and default LLM factory.
 """
 
 from __future__ import annotations
@@ -31,14 +31,17 @@ RESPONSE RULES:
 - If a tool returns "not found" or empty results, tell the user clearly that the information is not available in the current book. Do NOT make up or infer answers from general knowledge.
 
 TOOL SELECTION RULES:
-- For "Who is X?" or "X是誰?" → get_entity_profile (comprehensive) or get_entity_attributes (quick)
+- For "Who is X?" or "X是誰?" → get_entity_profile (comprehensive, includes passages + relations) or get_entity_attributes (quick, KG data only)
 - For "Relationship between X and Y?" or "X和Y的關係?" → get_entity_relationship
-- For "How does X change?" or "X的發展?" → get_character_arc
-- For "Compare X and Y" or "比較X和Y" → compare_characters
+- For "How does X change/develop?" or "X的發展?" → get_character_arc (includes LLM insight); for raw event list only → get_entity_timeline
+- For "Compare X and Y" (characters, narrative analysis) or "比較X和Y" → compare_characters (includes LLM analysis); for quick data diff or non-character entities → compare_entities (pure data, no LLM)
 - For finding passages or searching content → vector_search
 - For chapter overview or "這章講什麼?" → get_summary or get_chapter_summary (use chapter_number from context)
 - For "important characters/entities in this chapter" → get_summary (use the chapter_number from context) to read the summary, then identify the key characters mentioned. You can also use get_keywords with the chapter_number to supplement.
 - For keywords or themes → get_keywords (use chapter_number from context if asking about a specific chapter)
+- For "What happened in event X?" or details about a specific event → get_event_profile (full data, no LLM); for deep causal/impact analysis → analyze_event
+- For "Generate/refresh a summary" or "重新產生摘要" → gen_summary; for reading an existing summary → get_summary (preferred, faster)
+- For "Extract entities from <this passage>" (user-provided raw text, not KG query) → extract_entities_from_text
 
 CONTEXT USAGE RULES:
 - When the user references "this chapter" or "這章", always use the chapter_number provided in the context.
@@ -119,19 +122,17 @@ def build_history_messages(state: ChatState) -> list:
     return msgs
 
 
-def fast_route(
+def update_entity_state(
     recognizer: QueryPatternRecognizer,
     tool_map: dict[str, Any],
     match,
     query: str,
     state: ChatState,
 ) -> None:
-    """Update entity state from pattern match; always returns None.
+    """Update entity tracking state from a pattern match; always returns None.
 
-    Fast-routing raw tool output directly to users was removed because it
-    bypassed LLM synthesis and exposed unformatted JSON.  This function now
-    only performs side-effects (entity tracking) so the agent loop always
-    handles response generation.
+    The agent loop always handles response generation — this function only
+    performs the side-effect of recording entity mentions for pronoun resolution.
     """
     for entity in match.extracted_entities:
         state.add_entity_mention(entity)

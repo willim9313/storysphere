@@ -22,10 +22,12 @@ class GetEntityAttributesTool(BaseTool):
 
     name: str = "get_entity_attributes"
     description: str = (
-        "Retrieve an entity's full attribute profile (name, type, aliases, "
+        "QUICK lookup — no LLM. "
+        "Retrieve an entity's KG-stored attributes (name, type, aliases, "
         "description, custom attributes, first appearance chapter, mention count). "
-        "USE for: character/location/org info queries. "
-        "DO NOT USE for: relationship queries or event timelines. "
+        "USE for: fast character/location/org info queries when only attributes are needed. "
+        "For a comprehensive profile including passages and relations, use get_entity_profile instead. "
+        "DO NOT USE for: relationship queries (use get_entity_relations) or event timelines. "
         "Input: entity ID (UUID) or exact name."
     )
     args_schema: Type[EntityIdInput] = EntityIdInput

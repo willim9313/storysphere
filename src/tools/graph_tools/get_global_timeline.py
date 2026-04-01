@@ -28,7 +28,7 @@ class GetGlobalTimelineTool(BaseTool):
         "by story chronology or narrative order. "
         "USE for: full story timeline, event sequence. "
         "DO NOT USE for: single entity timeline. "
-        "Input: document_id, optional order."
+        "Input: document_id, optional order ('chronological' (default) or 'narrative')."
     )
     args_schema: Type[GlobalTimelineInput] = GlobalTimelineInput
 

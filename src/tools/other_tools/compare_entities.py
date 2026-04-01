@@ -23,9 +23,10 @@ class CompareEntitiesTool(BaseTool):
 
     name: str = "compare_entities"
     description: str = (
-        "Compare two entities side-by-side: attributes, relations, event counts. "
-        "Pure data comparison (no LLM involved). "
-        "USE for: 'compare X and Y', 'differences between A and B'. "
+        "Pure data comparison — NO LLM involved, faster than compare_characters. "
+        "Compares two entities side-by-side: attributes, relation counts, event counts, shared connections, shared events. "
+        "USE for: quick data queries, non-character entity comparisons, or when LLM analysis is not needed. "
+        "For character comparison with LLM-generated narrative insight, use compare_characters instead. "
         "DO NOT USE for: single entity queries or path finding. "
         "Input: two entity IDs or names."
     )

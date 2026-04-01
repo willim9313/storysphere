@@ -466,7 +466,7 @@
 | B-012 | 前端後端 API 整合驗證 | 🟡 中 | 待開始 |
 | B-013 | LLMKeywordExtractor 解析強化 | 🟡 中 | ✅ 完成 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
-| B-015 | Chat Agent Prompt & Flow Review | 🔴 高 | 待開始 |
+| B-015 | Chat Agent Prompt & Flow Review | 🔴 高 | ✅ 完成 |
 | B-016 | Chat Context 切頁殘留 | 🔴 高 | ✅ 完成 |
 | B-017 | 意象實體識別策略研究 | 🔴 高 | 待開始 |
 | B-018 | ImagerEntity Domain Model 設計 | 🟡 中 | 待開始 |
@@ -535,7 +535,7 @@
 
 ---
 
-### B-015 Chat Agent Prompt & Flow Review
+### B-015 Chat Agent Prompt & Flow Review → ✅ 已完成
 **背景**: Chat Agent 目前會直接傾倒工具原始輸出，未根據使用者問題整理回應。已加 `RESPONSE RULES` 但屬於臨時修補。
 **內容**:
 - 全面審視 `_SYSTEM_PROMPT`（`chat_agent.py`）的指令品質
@@ -559,4 +559,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-01
+**最後更新**: 2026-04-01（B-015 完成：LangGraph 低階 API 遷移 + Prompt & Tool Description 重構）

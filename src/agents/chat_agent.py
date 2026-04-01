@@ -1,7 +1,7 @@
 """Chat Agent — LangGraph-based streaming reasoning agent.
 
-Wraps a ``create_agent`` graph with:
-- ``QueryPatternRecognizer`` pre-filter for fast-routing common queries
+Builds a StateGraph (agent node + ToolNode) with:
+- ``QueryPatternRecognizer`` pre-filter for entity tracking
 - ``ChatState`` management (entity tracking, tool cache, pronoun resolution)
 - Streaming support via ``astream(stream_mode="messages", version="v2")``
 """
@@ -13,14 +13,15 @@ import time
 from collections.abc import AsyncGenerator
 from typing import Any, Optional
 
-from langchain.agents import create_agent
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.prebuilt import ToolNode, tools_condition
 
 from agents.chat_agent_base import (
     SYSTEM_PROMPT,
     build_context_prompt,
     build_history_messages,
-    fast_route,
+    update_entity_state,
     get_default_llm,
 )
 from agents.pattern_recognizer import QueryPatternRecognizer
@@ -77,14 +78,29 @@ class ChatAgent:
 
         # Build the LangGraph agent
         self._system_prompt = system_prompt or SYSTEM_PROMPT
-        self._graph = create_agent(
-            model=self._llm,
-            tools=self._tools,
-            system_prompt=self._system_prompt,
-        )
+        self._graph = self._build_graph()
 
-        # Fast-route recognizer
+        # Pattern recognizer for entity tracking
         self._recognizer = QueryPatternRecognizer()
+
+    def _build_graph(self):
+        """Build a ReAct StateGraph: agent node ↔ ToolNode loop."""
+        llm_with_tools = self._llm.bind_tools(self._tools)
+        tool_node = ToolNode(self._tools)
+
+        def call_model(state: MessagesState) -> dict:
+            # SystemMessage is injected at invocation time as messages[0]
+            # (see _agent_invoke and astream), so no static injection needed here.
+            response = llm_with_tools.invoke(state["messages"])
+            return {"messages": [response]}
+
+        graph = StateGraph(MessagesState)
+        graph.add_node("agent", call_model)
+        graph.add_node("tools", tool_node)
+        graph.add_edge(START, "agent")
+        graph.add_conditional_edges("agent", tools_condition)
+        graph.add_edge("tools", "agent")
+        return graph.compile()
 
     async def chat(
         self, query: str, state: ChatState, language: str = "en"
@@ -112,7 +128,7 @@ class ChatAgent:
             # Pattern recognition (entity tracking side-effects only)
             match = self._recognizer.recognize(query)
             if match and match.confidence > 0.8:
-                fast_route(self._recognizer, self._tool_map, match, query, state)
+                update_entity_state(self._recognizer, self._tool_map, match, query, state)
 
             # Full agent loop
             response = await self._agent_invoke(query, language=language, state=state)
@@ -159,7 +175,7 @@ class ChatAgent:
         # Pattern recognition (entity tracking side-effects only)
         match = self._recognizer.recognize(query)
         if match and match.confidence > 0.8:
-            fast_route(self._recognizer, self._tool_map, match, query, state)
+            update_entity_state(self._recognizer, self._tool_map, match, query, state)
 
         from langchain_core.messages import AIMessageChunk, SystemMessage  # noqa: PLC0415
 

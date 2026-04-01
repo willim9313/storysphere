@@ -25,9 +25,10 @@ class GetCharacterArcTool(BaseTool):
 
     name: str = "get_character_arc"
     description: str = (
-        "Analyze a character's development arc: timeline events, relevant passages, "
-        "and an LLM-generated insight about their growth. "
-        "USE for 'How does X change?' or 'character arc of X' queries. "
+        "Comprehensive character development analysis — includes LLM-generated growth insight. "
+        "Combines timeline events + relevant passages + LLM analysis of how the character changes. "
+        "USE for 'How does X change/develop/grow?' or 'character arc of X' queries. "
+        "For raw event list only (no LLM), use get_entity_timeline instead. "
         "Input: character entity ID or name."
     )
     args_schema: Type[GetCharacterArcInput] = GetCharacterArcInput

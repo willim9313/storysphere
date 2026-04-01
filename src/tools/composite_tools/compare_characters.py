@@ -25,9 +25,10 @@ class CompareCharactersTool(BaseTool):
 
     name: str = "compare_characters"
     description: str = (
-        "Compare two characters side-by-side: profiles, relationships, "
-        "and an LLM-generated comparison of similarities and differences. "
-        "USE for 'Compare X and Y' or 'How are X and Y different?' queries. "
+        "Compare two characters side-by-side with LLM-generated narrative analysis: "
+        "profiles, relationship counts, and an LLM insight on similarities, differences, and narrative roles. "
+        "USE for 'Compare X and Y' or 'How are X and Y different?' queries (characters, narrative analysis). "
+        "For quick pure-data comparison without LLM, use compare_entities instead. "
         "Input: two character entity IDs or names."
     )
     args_schema: Type[CompareCharactersInput] = CompareCharactersInput

@@ -23,14 +23,13 @@ class GetEntityTimelineTool(BaseTool):
 
     name: str = "get_entity_timeline"
     description: str = (
-        "Get a timeline of all events involving an entity. "
-        "Supports sorting by narrative order (chapter) or "
-        "chronological order (story time). Returns event "
-        "title, type, chapter, description, participants, "
-        "and temporal info. "
-        "USE for: character story arc, event history. "
+        "Raw event list — no LLM. "
+        "Get a timeline of all events involving an entity, sorted by narrative or chronological order. "
+        "Returns event title, type, chapter, description, participants, and temporal info. "
+        "USE for: event history queries, story arc data without interpretation. "
+        "For character development analysis with LLM-generated insight, use get_character_arc instead. "
         "DO NOT USE for: single event deep analysis. "
-        "Input: entity ID or name, optional sort_by."
+        "Input: entity ID or name, optional sort_by ('narrative' (default) or 'chronological')."
     )
     args_schema: Type[EntityTimelineInput] = EntityTimelineInput
 

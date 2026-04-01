@@ -1,8 +1,8 @@
-"""QueryPatternRecognizer — fast-route query classification.
+"""QueryPatternRecognizer — query pattern classification for entity tracking.
 
-Pre-filters user queries before they hit the LangGraph agent.
-High-confidence matches (>0.8) skip the ReAct loop and directly invoke
-the recommended tool, reducing latency for common patterns.
+Classifies user queries into known patterns and extracts entity mentions.
+Results are used to update entity tracking state (pronoun resolution) before
+the LangGraph ReAct loop runs. The agent loop always handles response generation.
 """
 
 from __future__ import annotations
