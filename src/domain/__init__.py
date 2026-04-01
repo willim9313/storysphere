@@ -8,6 +8,7 @@ from domain.documents import (
 from domain.entities import Entity, EntityType, SpanRef
 from domain.events import Event, EventType, NarrativeMode, StoryTimeRef
 from domain.relations import Relation, RelationType
+from domain.tension import TEU, TensionLine, TensionPole, TensionTheme
 from domain.temporal import TemporalRelation, TemporalRelationType
 
 __all__ = [
@@ -16,6 +17,10 @@ __all__ = [
     "SpanRef",
     "Relation",
     "RelationType",
+    "TEU",
+    "TensionLine",
+    "TensionPole",
+    "TensionTheme",
     "Event",
     "EventType",
     "NarrativeMode",
