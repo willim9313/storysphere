@@ -71,11 +71,36 @@ class _RawEvent(BaseModel):
     consequences: list[str] = Field(default_factory=list)
     narrative_mode: str = "unknown"
     story_time_hint: str | None = None
+    # B-023 tension fields
+    tension_signal: str = "none"
+    emotional_intensity: float | None = None
+    emotional_valence: str | None = None
 
     @field_validator("participants", "consequences", mode="before")
     @classmethod
     def _coerce_list(cls, v: Any) -> list:
         return v if isinstance(v, list) else []
+
+    @field_validator("tension_signal", mode="before")
+    @classmethod
+    def _coerce_tension_signal(cls, v: Any) -> str:
+        return v if v in ("none", "potential", "explicit") else "none"
+
+    @field_validator("emotional_intensity", mode="before")
+    @classmethod
+    def _coerce_emotional_intensity(cls, v: Any) -> float | None:
+        if v is None:
+            return None
+        try:
+            return max(0.0, min(1.0, float(v)))
+        except (TypeError, ValueError):
+            return None
+
+    @field_validator("emotional_valence", mode="before")
+    @classmethod
+    def _coerce_emotional_valence(cls, v: Any) -> str | None:
+        valid = ("positive", "negative", "mixed", "neutral")
+        return v if v in valid else None
 
 
 class _ExtractionResult(BaseModel):
@@ -135,6 +160,15 @@ Return ONLY a JSON object with two keys:
   - "story_time_hint" (str|null)  Any explicit time reference in the text for when
                             this event occurs, e.g. "three years ago", "the next morning",
                             "when she was twelve".  Null if no time cue is present.
+  - "tension_signal"  (str)    One of: "none", "potential", "explicit".
+                            "none" = neutral/transitional event;
+                            "potential" = tension is building or hinted;
+                            "explicit" = overt conflict, crisis, or climax.
+  - "emotional_intensity" (float|null)  0.0–1.0. How emotionally charged is this
+                            event? 0.0 = mundane, 1.0 = extremely intense.
+                            Null if the event has no clear emotional weight.
+  - "emotional_valence" (str|null)  One of: "positive", "negative", "mixed", "neutral".
+                            Null if emotional register is unclear.
 
 Only extract relations between entities in the provided entity list.
 """
@@ -372,6 +406,9 @@ class ExtractionService:
                     consequences=raw.consequences,
                     narrative_mode=nmode,
                     story_time_hint=raw.story_time_hint,
+                    tension_signal=raw.tension_signal,
+                    emotional_intensity=raw.emotional_intensity,
+                    emotional_valence=raw.emotional_valence,
                 )
             )
         return events
