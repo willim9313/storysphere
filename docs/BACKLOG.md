@@ -1,79 +1,43 @@
 # StorySphere — 開發 Backlog
 
 **用途**: 記錄已識別但尚未排入 Phase 的開發項目
-**更新日期**: 2026-03-15
+**更新日期**: 2026-04-01
+
+> 已完成項目歸檔於 [BACKLOG_ARCHIVE.md](BACKLOG_ARCHIVE.md)
 
 ---
 
 ## 🔴 高優先（功能缺口）
 
-### B-001 Relations Router（API 層遺漏）→ ✅ 已完成
-**背景**: Phase 8 guide 有規劃但未實作
+### B-012 前端後端 API 整合驗證
+**背景**: 前端已完成重構（2026-03-15），對齊 `API_CONTRACT.md` 的全部端點，但目前仍使用 mock 資料（`VITE_MOCK=true`）
 **內容**:
-- `GET /api/v1/relations/paths?source_id={id}&target_id={id}` — 兩實體間關係路徑
-- `GET /api/v1/relations/stats?entity_id={id}` — 全圖關係統計（entity_id 可選）
+- 驗證後端 `/books`, `/chapters`, `/chunks`, `/graph`, `/analysis` 端點回傳格式與前端 types 一致
+- 確保 `TaskStatus` 的 `status` 欄位為 `done/error`（非 `completed/failed`）、`progress: 0-100`、`stage: string`
+- ~~Segment-based Chunk 回傳（後端需產出 `segments: Segment[]`）~~ ✅ 已實作（ingestion-time paragraph entity linking + stored offsets）
+- 前端 `uploadBook(file)` 只傳 file（不含 title），後端 `POST /books/upload` 需對應
 
-**實作**: `src/api/routers/relations.py`，已掛載至 `main.py`
-
----
-
-### B-002 Documents Router（API 層遺漏）→ ✅ 已完成
-**背景**: 架構圖有 Card Details，但沒有文件查詢 API
-**內容**:
-- `GET /books` — 列出已 ingest 的書籍
-- `GET /books/:bookId` — 書籍詳情（含 chapters 列表）
-
-**實作提示**: 呼叫已有的 `DocumentService.list_documents()` 和 `get_document()`
-**備註**: 前端已對齊 `API_CONTRACT.md` 的 `/books` API（2026-03-15 重構完成）
-
----
-
-### B-003 TaskStore 持久化（多進程安全）→ ✅ 已完成
-**背景**: 目前 `api/store.py` 是 in-memory dict，多 worker (`uvicorn --workers 4`) 時 task 狀態會丟失
-**實作**: `SQLiteTaskStore`（WAL mode）+ 啟動時自動清理 TTL 過期 task
-**設定**: `task_store_backend`, `task_store_db_path`, `task_store_ttl_days`（預設 30 天）
+**驗收**: `VITE_MOCK=false` 時，Library → Upload → Reader → Analysis → Graph 端到端可跑通
 
 ---
 
 ## 🟡 中優先（功能完善）
 
-### B-004 Langfuse 監控整合 → ✅ 已完成
-**背景**: 改用 Langfuse（支援自託管）替代 LangSmith
-**實作**:
-- `src/core/tracing.py` — `configure_langfuse()` + `get_langfuse_handler()` singleton
-- `src/agents/chat_agent.py` — `ainvoke`/`astream` 注入 `CallbackHandler`
-- `src/agents/analysis_agent.py` — `@_langfuse_observe` 取代 `@traceable`
-- Settings: `langfuse_enabled`, `langfuse_public_key`, `langfuse_secret_key`, `langfuse_base_url`
-- **文件**: `docs/guides/LANGFUSE_SETUP.md`
+### B-014 Local LLM 選型評估（進行中）
+**背景**: qwen2.5-3b JSON schema 遵從度不穩定（null 代替 []、malformed JSON），已換至 Phi-3.5-mini-instruct Q4_K_M（社群量化），功能正常但速度偏慢。
 
----
+**Local model 選型條件**:
+- JSON schema 遵從度：能穩定回傳 `[]` 而非 `null`，不截斷 JSON
+- 大小：Q4_K_M 量化後 ≤ 5GB
+- 格式：GGUF，相容 llama.cpp server（OpenAI-compatible `/v1` API）
+- 推理速度：single-turn < 30s 為可接受範圍
 
-### B-005 Analysis WebSocket 推送 → ✅ 已完成
-**背景**: ADR-004 設計是 task_id → **WebSocket 主動推送**結果，目前只實作了 polling
-**內容**:
-- `WS /ws/tasks/{task_id}` — 客戶端訂閱 task_id，server 主動推送 TaskStatus 更新
-- `api/ws_manager.py` — ConnectionManager singleton（task_id → list[WebSocket]）
-- background task 在 running / done / error 時呼叫 `manager.push()`
-- 連接後立即回傳目前狀態；若已 done/error 則直接關閉；進行中每 30s 送 ping
+**待評估候選**:
+- Phi-3.5-mini-instruct Q4_K_M（~2.2GB）← 目前使用，格式遵從佳但偏慢
+- Qwen2.5-7B-Instruct Q4_K_M（~4.7GB）← 同 family 升級版
+- Llama-3.2-3B-Instruct Q4_K_M（~2.0GB）← Meta 新一代 3B
 
----
-
-### B-006 Metrics API 端點 → ✅ 已完成
-**背景**: Phase 7 `MetricsCollector` 收集了 7 個 KPI，但無法從外部查詢
-**內容**:
-- `GET /api/v1/metrics` — 回傳 `MetricsCollector.get_stats()` 的快照
-- 可選：`GET /api/v1/metrics/history` — 近 N 筆 JSON-line logs（略過，MetricsCollector 未維護 rolling buffer）
-**實作**: `src/api/routers/metrics.py`，直接呼叫 `get_metrics().get_stats()`
-
----
-
-### B-007 多語系 `language` 參數統一傳遞 → ✅ 已完成
-**背景**: CORE.md 多語系策略：透過 `output_language` 參數控制，但 API / Chat Agent 層未統一傳遞
-**內容**:
-- Chat WebSocket 訊息加入 `language` 欄位（預設 `"en"`）
-- `ChatAgent.chat()` / `astream()` 接受 `language` 參數並注入 system prompt
-- 同步查詢 API 加入 `?language=zh` query param（影響 summary 等文字輸出）
-**備註**: `ChatState.language` 持久保留 session 語言；entity analyze endpoint 加 `language` query param 並傳給 `AnalysisAgent`
+**目標**: 找到速度與格式穩定性平衡最佳的選項。
 
 ---
 
@@ -83,19 +47,6 @@
 **背景**: ADR-009 設計為 NetworkX（預設）↔ Neo4j（大規模可選），`kg_mode='neo4j'` 有 settings 但未實作
 **內容**: `KGService` 加入 Neo4j 分支，`kg_mode='neo4j'` 時使用 `neo4j` driver
 **前置條件**: 需要 Docker + Neo4j 實例
-
----
-
-### B-009 GetChapterSummaryTool 完整實作 → ✅ 已完成
-**背景**: CORE.md 工具目錄 Tool #15 目前是 stub
-**內容**: 實作完整邏輯（目前 `DocumentService.get_chapter_summary()` 已存在，接線即可）
-**備註**: `chapter_number` 為必填（與 GetSummaryTool 的可選設計不同），已加入 `get_chat_tools()` 作為第 6 個 Retrieval Tool
-
----
-
-### B-010 Composite Tool #5 → ✅ 已完成
-**背景**: CORE.md 設計 3-5 個 composite tools，目前只有 4 個
-**實作**: `GetEventProfileTool` — 輕量級 no-LLM 事件資料聚合器（事件屬性 + 參與者 + timeline context + 段落 + 章節摘要）
 
 ---
 
@@ -222,6 +173,8 @@
 
 **實作提示**: 提取 prompt 參考 EEP 的 `emotional_valence` 設計（已有類似概念）；三值設計比 boolean 更誠實，不強迫 LLM 二選一
 **前置依賴**: 無（可與 B-024 並行）
+
+> ⚠️ **與 B-031 強烈建議合併**：B-023（張力欄位）和 B-031（敘事學欄位）都修改 EventNode schema 和 ingestion prompt。合併成一次 migration，避免重複修改。
 
 ---
 
@@ -452,22 +405,10 @@
 
 | ID | 項目 | 優先 | 狀態 |
 |----|------|------|------|
-| B-001 | Relations Router | 🔴 高 | ✅ 完成 |
-| B-002 | Documents Router | 🔴 高 | ✅ 完成 |
-| B-003 | TaskStore 持久化 | 🔴 高 | ✅ 完成 |
-| B-004 | Langfuse 監控 | 🟡 中 | ✅ 完成 |
-| B-005 | Analysis WebSocket 推送 | 🟡 中 | ✅ 完成 |
-| B-006 | Metrics API 端點 | 🟡 中 | ✅ 完成 |
-| B-007 | 多語系傳遞統一 | 🟡 中 | ✅ 完成 |
 | B-008 | Neo4j Backend | 🟢 低 | 待開始 |
-| B-009 | GetChapterSummaryTool | 🟢 低 | ✅ 完成 |
-| B-010 | Composite Tool #5 | 🟢 低 | ✅ 完成 |
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
-| B-012 | 前端後端 API 整合驗證 | 🟡 中 | 待開始 |
-| B-013 | LLMKeywordExtractor 解析強化 | 🟡 中 | ✅ 完成 |
+| B-012 | 前端後端 API 整合驗證 | 🔴 高 | 待開始 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
-| B-015 | Chat Agent Prompt & Flow Review | 🔴 高 | ✅ 完成 |
-| B-016 | Chat Context 切頁殘留 | 🔴 高 | ✅ 完成 |
 | B-017 | 意象實體識別策略研究 | 🔴 高 | 待開始 |
 | B-018 | ImagerEntity Domain Model 設計 | 🟡 中 | 待開始 |
 | B-019 | 符號學 Layer 1：候選符號發現 Pipeline | 🟡 中 | 待開始 |
@@ -493,70 +434,5 @@
 
 ---
 
-### B-014 Local LLM 選型評估
-**背景**: qwen2.5-3b JSON schema 遵從度不穩定（null 代替 []、malformed JSON），已換至 Phi-3.5-mini-instruct Q4_K_M（社群量化），功能正常但速度偏慢。
-
-**Local model 選型條件**:
-- JSON schema 遵從度：能穩定回傳 `[]` 而非 `null`，不截斷 JSON
-- 大小：Q4_K_M 量化後 ≤ 5GB
-- 格式：GGUF，相容 llama.cpp server（OpenAI-compatible `/v1` API）
-- 推理速度：single-turn < 30s 為可接受範圍
-
-**待評估候選**:
-- Phi-3.5-mini-instruct Q4_K_M（~2.2GB）← 目前使用，格式遵從佳但偏慢
-- Qwen2.5-7B-Instruct Q4_K_M（~4.7GB）← 同 family 升級版
-- Llama-3.2-3B-Instruct Q4_K_M（~2.0GB）← Meta 新一代 3B
-
-**目標**: 找到速度與格式穩定性平衡最佳的選項。
-
----
-
-### B-013 LLMKeywordExtractor 回傳解析強化 → ✅ 已完成
-**背景**: 本地小模型（3B）回傳 JSON 不穩定，`_parse_response` 目前有三個脆弱點：
-1. 只處理 ` ``` ` 開頭的 markdown fence，若 LLM 在 JSON 前加說明文字（如 `Here are the keywords:\n{...}`）直接 `JSONDecodeError`
-2. 不嘗試從回傳內文中抽取 `{...}` substring，整段不是合法 JSON 就失敗
-3. `retry` 只重試 `JSONDecodeError / ValueError / KeyError`，LLM API 錯誤不觸發 retry
-
-**建議修法**: 在 `_parse_response` 加 regex 抽取第一個 `\{.*\}` block（`re.search(r'\{.*\}', content, re.DOTALL)`）再 parse，提升對 noisy 輸出的容錯
-
-**相關檔案**: `src/services/keyword_service.py` — `LLMKeywordExtractor._parse_response()`（line ~172）
-
----
-
-### B-012 前端後端 API 整合驗證
-**背景**: 前端已完成重構（2026-03-15），對齊 `API_CONTRACT.md` 的全部端點，但目前仍使用 mock 資料（`VITE_MOCK=true`）
-**內容**:
-- 驗證後端 `/books`, `/chapters`, `/chunks`, `/graph`, `/analysis` 端點回傳格式與前端 types 一致
-- 確保 `TaskStatus` 的 `status` 欄位為 `done/error`（非 `completed/failed`）、`progress: 0-100`、`stage: string`
-- ~~Segment-based Chunk 回傳（後端需產出 `segments: Segment[]`）~~ ✅ 已實作（ingestion-time paragraph entity linking + stored offsets）
-- 前端 `uploadBook(file)` 只傳 file（不含 title），後端 `POST /books/upload` 需對應
-
-**驗收**: `VITE_MOCK=false` 時，Library → Upload → Reader → Analysis → Graph 端到端可跑通
-
----
-
-### B-015 Chat Agent Prompt & Flow Review → ✅ 已完成
-**背景**: Chat Agent 目前會直接傾倒工具原始輸出，未根據使用者問題整理回應。已加 `RESPONSE RULES` 但屬於臨時修補。
-**內容**:
-- 全面審視 `_SYSTEM_PROMPT`（`chat_agent.py`）的指令品質
-- 審視各 tool 的 `description` 是否足夠精確（影響 LLM tool selection 準確率）
-- 審視 `QueryPatternRecognizer` fast-route 邏輯與 agent loop 的分工
-- 審視 `_build_context_prompt` 動態注入的 context 格式
-- 考慮加入 few-shot examples 或輸出格式指引
-**目標**: agent 回應品質穩定達到「理解問題 → 選對工具 → 整理答案」三步驟
-
----
-
-### B-016 Chat Context 切頁殘留 → ✅ 已完成
-**背景**: 從 Reader 切到 Graph 頁面時，chat agent 仍參考 Reader 的 chapter 資料。
-**原因**:
-1. 前端 `setPageContext` 用 merge（`{ ...prev, ...ctx }`），Graph 頁面未清除 `chapterId` / `chapterTitle`
-2. 後端 `ChatState` 的 `book_id` / `chapter_id` 是 per-session 持久的，新訊息的 context 會覆蓋但舊欄位不會自動清除
-**修法方向**:
-- 各頁面 `setPageContext` 應重置不屬於該頁面的欄位（如 Graph 清 `chapterId`/`chapterTitle`）
-- 後端 WebSocket handler 在 hydrate context 時，將未提供的欄位重置為 `None`
-
----
-
 **維護者**: William
-**最後更新**: 2026-04-01（B-015 完成：LangGraph 低階 API 遷移 + Prompt & Tool Description 重構）
+**最後更新**: 2026-04-01
