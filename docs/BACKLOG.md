@@ -415,7 +415,7 @@
 | B-020 | 符號共現網絡建構（Layer 2） | 🟡 中 | 待開始 |
 | B-021 | 詮釋輔助介面（Layer 3）符號時間軸 | 🟢 低 | 待開始 |
 | B-022 | 符號學 Pipeline 整合與 Deep Analysis 對接 | 🟢 低 | 待開始 |
-| B-023 | Event 節點張力欄位強化 | 🔴 高 | 待開始 |
+| B-023 | Event 節點張力欄位強化 | 🔴 高 | ✅ 完成 |
 | B-024 | Concept 節點 surface/inferred 分類強化 | 🔴 高 | 待開始 |
 | B-025 | Pre-Analysis Step：Inferred Concept 節點產生 | 🟡 中 | 待開始 |
 | B-026 | TEU Domain Model + 組裝 Pipeline（模式 B） | 🟡 中 | 待開始 |
@@ -423,7 +423,7 @@
 | B-028 | 模式 A：全書掃描批次 TEU 組裝 | 🟢 低 | 待開始 |
 | B-029 | TensionTheme 合成 + Frye/Booker 標籤對應 | 🟢 低 | 待開始 |
 | B-030 | 張力分析 Deep Analysis Workflow 完整整合 | 🟢 低 | 待開始 |
-| B-031 | Event 節點敘事學欄位預留（建議與 B-023 合併）| 🔴 高 | 待開始 |
+| B-031 | Event 節點敘事學欄位預留（已與 B-023 合併）| 🔴 高 | ✅ 完成 |
 | B-032 | Ingestion prompt 時間線索提取預留 | 🟡 中 | 待開始 |
 | B-033 | Kernel/Satellite 第一階段：摘要啟發式分類 | 🟡 中 | 待開始 |
 | B-034 | Kernel/Satellite 第二階段：LLM 細化分類 | 🟡 中 | 待開始 |
@@ -435,4 +435,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-01
+**最後更新**: 2026-04-01（B-023+B-031 完成：Event schema 擴充張力與敘事學欄位）
