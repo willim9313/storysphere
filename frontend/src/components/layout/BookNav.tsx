@@ -11,6 +11,7 @@ const tabs = [
   { label: '深度分析', path: '/analysis' },
   { label: '知識圖譜', path: '/graph' },
   { label: '時間軸', path: '/timeline' },
+  { label: '張力分析', path: '/tension' },
 ];
 
 export function BookNav({ bookId, bookTitle }: BookNavProps) {

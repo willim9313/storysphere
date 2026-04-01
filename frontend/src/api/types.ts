@@ -225,6 +225,55 @@ export interface TimelineData {
   quality: TimelineQuality;
 }
 
+// ── Tension Analysis ────────────────────────────────────────────
+
+export interface TensionPole {
+  concept_name: string;
+  concept_id?: string;
+  carrier_ids: string[];
+  carrier_names: string[];
+  stance?: string;
+}
+
+export interface TEU {
+  id: string;
+  event_id: string;
+  document_id: string;
+  chapter: number;
+  pole_a: TensionPole;
+  pole_b: TensionPole;
+  tension_description: string;
+  intensity: number;
+  evidence: string[];
+  thematic_note?: string;
+  assembled_by: string;
+  assembled_at: string;
+  review_status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface TensionLine {
+  id: string;
+  document_id: string;
+  teu_ids: string[];
+  canonical_pole_a: string;
+  canonical_pole_b: string;
+  intensity_summary: number;
+  chapter_range: number[];
+  review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+}
+
+export interface TensionTheme {
+  id: string;
+  document_id: string;
+  tension_line_ids: string[];
+  proposition: string;
+  frye_mythos?: string;
+  booker_plot?: string;
+  assembled_by: string;
+  assembled_at: string;
+  review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+}
+
 // ── Event Analysis Detail (EEP) ────────────────────────────────
 
 export interface ParticipantRole {

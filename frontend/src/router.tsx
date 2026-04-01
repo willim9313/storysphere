@@ -10,6 +10,7 @@ const ReaderPage = lazy(() => import('@/pages/ReaderPage'));
 const AnalysisPage = lazy(() => import('@/pages/AnalysisPage'));
 const GraphPage = lazy(() => import('@/pages/GraphPage'));
 const TimelinePage = lazy(() => import('@/pages/TimelinePage'));
+const TensionPage = lazy(() => import('@/pages/TensionPage'));
 const FrameworksPage = lazy(() => import('@/pages/FrameworksPage'));
 const TokenUsagePage = lazy(() => import('@/pages/TokenUsagePage'));
 
@@ -86,6 +87,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <TimelinePage />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: 'tension',
+            element: (
+              <LazyWrapper>
+                <TensionPage />
               </LazyWrapper>
             ),
           },
