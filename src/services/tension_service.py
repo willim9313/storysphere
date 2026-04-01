@@ -1,10 +1,11 @@
-"""TensionService — TEU assembly and persistence — B-026.
+"""TensionService — TEU assembly and persistence — B-026/B-027.
 
 Mode B (single-event trigger) is implemented here.
 Mode A (full-book batch) is implemented in B-028.
 
-Persistence uses AnalysisCache (SQLite) with key pattern:
+Persistence uses AnalysisCache (SQLite) with key patterns:
     teu:{event_id}
+    tension_lines:{document_id}
 """
 
 from __future__ import annotations
@@ -17,7 +18,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from core.token_callback import set_llm_service_context
 from core.utils.output_extractor import extract_json_from_text
 from domain.entities import EntityType
-from domain.tension import TEU, TensionPole
+from domain.tension import TEU, TensionLine, TensionPole
 
 if TYPE_CHECKING:
     from services.analysis_cache import AnalysisCache
@@ -27,6 +28,28 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _ASSEMBLER_TAG = "tension_service_v1"
+_GROUPER_TAG = "tension_grouper_v1"
+
+_GROUPING_SYSTEM_PROMPT = """\
+You are a literary tension analyst. Given a list of Tension Evidence Units (TEUs)
+from a novel, group them into recurring tension patterns (TensionLines).
+
+Each TEU has two opposing poles (pole_a, pole_b) and involves characters (carriers).
+
+Rules for grouping:
+- Group TEUs that express the same fundamental opposition (same conceptual conflict,
+  even if the surface labels differ slightly).
+- A TEU may belong to at most one TensionLine.
+- Do NOT group TEUs with unrelated oppositions just because they share a character.
+- Aim for 2-6 TensionLines per book. Each should have at least 2 TEUs.
+- Ungrouped TEUs (too unique to form a pattern) should be omitted.
+
+Return ONLY a JSON array. Each element must have:
+  "canonical_pole_a": str      # Canonical label for one side of the tension
+  "canonical_pole_b": str      # Canonical label for the opposing side
+  "teu_ids": [str]             # IDs of TEUs belonging to this TensionLine
+  "thematic_note": str|null    # Optional broader theme this line serves
+"""
 
 _TEU_SYSTEM_PROMPT = """\
 You are a literary tension analyst. Given evidence about a scene from a novel,
@@ -158,6 +181,80 @@ class TensionService:
             return None
         return TEU.model_validate(cached)
 
+    # ── Public: Mode B+ (TensionLine grouping) ────────────────────────────────
+
+    async def group_teus(
+        self,
+        document_id: str,
+        kg_service,
+        language: str = "en",
+        force: bool = False,
+    ) -> list[TensionLine]:
+        """Group all cached TEUs for a document into TensionLines (LLM-based).
+
+        Returns cached result unless force=True.
+        """
+        cache_key = f"tension_lines:{document_id}"
+        if not force:
+            cached = await self._cache.get(cache_key)
+            if cached is not None:
+                logger.debug("TensionService: cache hit for %s", cache_key)
+                return [TensionLine.model_validate(l) for l in cached["lines"]]
+
+        events = await kg_service.get_events(document_id=document_id)
+        teus: list[TEU] = []
+        for event in events:
+            teu = await self.get_teu(event.id)
+            if teu is not None:
+                teus.append(teu)
+
+        if not teus:
+            logger.info("TensionService: no TEUs found for document=%s", document_id)
+            return []
+
+        lines = await self._call_grouping_llm(teus, document_id, language)
+        await self.save_lines(lines, document_id)
+        return lines
+
+    async def save_lines(self, lines: list[TensionLine], document_id: str) -> None:
+        """Persist TensionLines for a document to cache."""
+        key = f"tension_lines:{document_id}"
+        await self._cache.set(key, {"lines": [l.model_dump(mode="json") for l in lines]})
+        logger.debug("TensionService: saved %d TensionLines for document=%s", len(lines), document_id)
+
+    async def get_lines(self, document_id: str) -> list[TensionLine]:
+        """Retrieve cached TensionLines for a document, or empty list if none."""
+        cached = await self._cache.get(f"tension_lines:{document_id}")
+        if not cached:
+            return []
+        return [TensionLine.model_validate(l) for l in cached["lines"]]
+
+    async def update_line_review(
+        self,
+        line_id: str,
+        document_id: str,
+        review_status: str,
+        canonical_pole_a: Optional[str] = None,
+        canonical_pole_b: Optional[str] = None,
+    ) -> Optional[TensionLine]:
+        """Update the review_status (and optionally pole labels) of a TensionLine.
+
+        Returns the updated TensionLine, or None if line_id is not found.
+        """
+        lines = await self.get_lines(document_id)
+        for i, line in enumerate(lines):
+            if line.id == line_id:
+                updates: dict = {"review_status": review_status}
+                if canonical_pole_a is not None:
+                    updates["canonical_pole_a"] = canonical_pole_a
+                if canonical_pole_b is not None:
+                    updates["canonical_pole_b"] = canonical_pole_b
+                lines[i] = line.model_copy(update=updates)
+                await self.save_lines(lines, document_id)
+                logger.debug("TensionService: updated review for line=%s status=%s", line_id, review_status)
+                return lines[i]
+        return None
+
     # ── Private ───────────────────────────────────────────────────────────────
 
     def _get_llm(self):
@@ -282,6 +379,68 @@ class TensionService:
             thematic_note=parsed.get("thematic_note"),
             assembled_by=_ASSEMBLER_TAG,
         )
+
+    @retry(
+        retry=retry_if_exception_type(ValueError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+    )
+    async def _call_grouping_llm(
+        self,
+        teus: list[TEU],
+        document_id: str,
+        language: str,
+    ) -> list[TensionLine]:
+        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
+        teu_index = {t.id: t for t in teus}
+        lines_input = []
+        for t in teus:
+            lines_input.append(
+                f"- id={t.id} | chapter={t.chapter} | intensity={t.intensity:.2f}"
+                f" | pole_a={t.pole_a.concept_name!r} (carriers: {t.pole_a.carrier_names})"
+                f" | pole_b={t.pole_b.concept_name!r} (carriers: {t.pole_b.carrier_names})"
+            )
+        human_content = "TEUs:\n" + "\n".join(lines_input)
+
+        system_prompt = self._localize_prompt(_GROUPING_SYSTEM_PROMPT, language)
+        llm = self._get_llm()
+        messages = [
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=human_content),
+        ]
+        set_llm_service_context("analysis")
+        response = await llm.ainvoke(messages)
+        raw = response.content if hasattr(response, "content") else str(response)
+
+        parsed, err = extract_json_from_text(raw)
+        if err or not isinstance(parsed, list):
+            raise ValueError(f"TensionService grouping: LLM parse failed: {err!r}")
+
+        result: list[TensionLine] = []
+        for item in parsed:
+            if not isinstance(item, dict):
+                continue
+            valid_ids = [tid for tid in item.get("teu_ids", []) if tid in teu_index]
+            if not valid_ids:
+                continue
+            constituent = [teu_index[tid] for tid in valid_ids]
+            chapters = [t.chapter for t in constituent]
+            intensities = [t.intensity for t in constituent]
+            result.append(
+                TensionLine(
+                    document_id=document_id,
+                    teu_ids=valid_ids,
+                    canonical_pole_a=item.get("canonical_pole_a", ""),
+                    canonical_pole_b=item.get("canonical_pole_b", ""),
+                    intensity_summary=sum(intensities) / len(intensities),
+                    chapter_range=[min(chapters), max(chapters)],
+                )
+            )
+
+        logger.debug("TensionService grouping: produced %d TensionLines", len(result))
+        return result
 
     @staticmethod
     def _localize_prompt(prompt: str, language: str) -> str:
