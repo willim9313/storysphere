@@ -157,98 +157,6 @@
 
 ---
 
-## 🟡 中優先（功能完善）— 主題分析：敘事學模組
-
-### B-032 Ingestion prompt 時間線索提取預留
-**背景**: 熱奈特時序分析的完整實作需要故事時間軸，但故事時間標記成本高。短期策略是在 ingestion 時提取文本中已存在的時間線索（「多年前」、「那個夏天」），成本增量極小，但為未來保留入口。
-**前置依賴**: 無（B-031 已完成，`StoryTimeRef` schema 已定義）
-
-**內容**:
-- 更新 Event 提取 prompt（`src/pipelines/entity_extractor.py`），新增選填項：
-  ```
-  如果段落中有明確的時間線索（例如「多年前」、「那個夏天」、「三天後」），
-  請提取並填入 time_anchor 欄位。如果沒有明確線索，留空。
-  ```
-- 僅提取文本中已存在的線索，不做推斷——此限制確保可靠性
-- 驗證：至少一本測試小說中有足夠比例的 Event 節點有 `time_anchor` 值
-
----
-
-### B-033 Kernel/Satellite 第一階段：摘要啟發式分類
-**背景**: 現有層級摘要（書/章/段）已隱含粗略的重要性分層——能進入章節摘要的 Event 本來就比只在段落層的 Event 重要。第一階段直接利用這個信號，不需要額外 LLM 調用。
-**前置依賴**: 無（B-031 已完成，`narrative_weight` 欄位已存在）
-
-**內容**:
-- 新增 `src/domain/narrative.py`：`NarrativeStructure`, `HeroJourneyStage`, `ProppFunctionRef` models
-- 新增 `src/services/narrative_service.py`：
-  - `classify_by_heuristic(book_id)` — 依層級摘要推斷 `narrative_weight`，標記 `source="summary_heuristic"`
-  - 規則：書級摘要出現 → kernel 候選；只在段落層 → satellite；中間層 → 待 LLM 細化
-- 用一本具體小說手動驗證啟發式規則的準確率，特別是邊界案例
-
-**實作提示**: `DocumentService.get_chapter_summary()` 已可查詢各層摘要；Event 的 `source_passages` 對應到摘要層級的邏輯已在 KGService 中有類似模式
-
----
-
-### B-034 Kernel/Satellite 第二階段：LLM 細化分類
-**背景**: 啟發式結果有誤差，特別是出現在章節摘要但語義上是渲染性的 Event。第二階段對不確定的候選集進行 LLM 完整判斷，核心問題：「刪去這個事件，後續因果鏈是否還能成立？」
-**前置依賴**: B-033
-
-**內容**:
-- `NarrativeService.refine_with_llm(event_ids)` — 輸入：候選 Event + 前後相鄰 Event + 所在章節摘要；LLM 輸出 `kernel | satellite` + 判斷依據 + 置信度
-- 定義衝突解決規則：若摘要層級信號和 LLM 判斷不一致，以哪個為準（建議：LLM 判斷優先，記錄分歧供人工審核）
-- `NarrativeService.get_kernel_spine(book_id)` — 返回 kernel 事件列表（情節骨幹）
-
----
-
-### B-035 坎伯英雄旅程 LLM 結構對應
-**背景**: Frye/Booker 輸出類型標籤（這本書是什麼故事），坎伯輸出結構對應（哪個章節對應旅程的哪個階段）。兩者輸入相同（章節摘要序列），但後者需要章節到階段的映射，允許重疊。
-**前置依賴**: 無（輸入為現有章節摘要，不依賴其他張力/敘事學模組）
-
-**內容**:
-- `NarrativeService.map_hero_journey(book_id)` — 輸入章節摘要序列，LLM 輸出 `HeroJourneyStage` 列表（12 個階段 × 對應章節範圍 + 代表性 Event + 置信度）
-- 設計決策：多主角作品（如群戲）採用哪種處理策略（分開分析 / 整合為一條旅程 / 跳過）
-- 設計決策：階段允許跨章節重疊（`chapter_range` 為列表而非單一值）
-- 新增 `src/config/hero_journey.py`（12 個階段定義，類比 `src/config/archetypes.py`）
-
-**實作提示**: 參考 `src/services/analysis_service.py` 的 archetype 分類模式，輸入/輸出結構高度相似
-
----
-
-## 🟢 低優先（可選升級）— 主題分析：敘事學模組
-
-### B-036 NarrativeStructure 節點儲存 + 查詢介面
-**背景**: 整合 Kernel/Satellite 分類結果和英雄旅程對應，存儲為書級 `NarrativeStructure` 節點，並提供 API 查詢介面。
-**前置依賴**: B-033, B-035
-
-**內容**:
-- `DocumentService.save_narrative_structure()` / `get_narrative_structure(book_id)`
-- API 端點：`GET /api/v1/narrative?book_id={id}` — 返回 `NarrativeStructure`（含 kernel 清單、英雄旅程對應、普羅普序列摘要）
-- `PATCH /api/v1/narrative/{id}/review` — 人工審核 / 修改 `review_status`
-
----
-
-### B-037 熱奈特時序分析（倒敘/預敘識別 + 時距計算）
-**背景**: 需要 B-032 的 `time_anchor` 覆蓋率達到足夠比例後才啟動評估。完整實作：文本位置排名 vs 故事時間排名的差值 = 倒敘/預敘量化指標。
-**前置依賴**: B-032，且需 `story_time` 覆蓋率評估通過（建議閾值：≥ 60% Event 節點有 `time_anchor`）
-
-**內容**:
-- 書級 `story_time_structure` 標記（`"linear"` / `"partially_linear"` / `"non_linear"`），非線性則跳過
-- `NarrativeService.analyze_temporal_order(book_id)` — 計算文本位置排名 vs 故事時間排名差值，識別顯著倒敘/預敘節點
-- 時距分析：Event 的段落字數 vs 故事時間長短的比例，識別作者不成比例渲染的場景
-
----
-
-### B-038 敘事結構視覺化 + Deep Analysis Workflow 完整整合
-**背景**: 將 B-033 ~ B-036 的所有元件整合為端到端敘事學分析工作流，並提供前端視覺化。
-**前置依賴**: B-033, B-035, B-036
-
-**內容**:
-- 前端：情節骨幹圖（Kernel 節點高亮於現有時間軸）、英雄旅程對應圖（12 個階段 × 章節範圍）
-- 整合進 `AnalysisAgent`（新入口，類比 `analyze_character` / `analyze_event`）
-- 完整流程文件：`docs/guides/PHASE_11_NARRATOLOGY.md`
-
----
-
 ## 📋 狀態追蹤
 
 | ID | 項目 | 優先 | 狀態 |
@@ -265,7 +173,7 @@
 | B-022 | 符號學 Pipeline 整合與 Deep Analysis 對接 | 🟢 低 | 待開始 |
 | B-032 | Ingestion prompt 時間線索提取預留 | 🟡 中 | ✅ 完成 |
 | B-033 | Kernel/Satellite 第一階段：摘要啟發式分類 | 🟡 中 | ✅ 完成 |
-| B-034 | Kernel/Satellite 第二階段：LLM 細化分類 | 🟡 中 | 待開始 |
+| B-034 | Kernel/Satellite 第二階段：LLM 細化分類 | 🟡 中 | ✅ 完成 |
 | B-035 | 坎伯英雄旅程 LLM 結構對應 | 🟡 中 | ✅ 完成 |
 | B-036 | NarrativeStructure 節點儲存 + 查詢介面 | 🟢 低 | ✅ 完成 |
 | B-037 | 熱奈特時序分析（倒敘/預敘識別）| 🟢 低 | ✅ 完成 |
