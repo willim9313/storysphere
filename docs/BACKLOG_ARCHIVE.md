@@ -200,3 +200,60 @@
 **實作**（與 B-023 合併為一次 migration）:
 - 更新 `src/domain/models.py` EventNode，新增：`narrative_weight`, `narrative_weight_source`, `story_time`
 - 新增 `StoryTimeRef` schema（`relative_order`, `time_anchor`, `absolute_time`, `confidence`）
+
+---
+
+## B-032 Ingestion prompt 時間線索提取預留 ✅ 完成
+**背景**: 熱奈特時序分析需要故事時間軸，ingestion 時提取文本中已存在的時間線索成本低。
+**實作**: `src/services/extraction_service.py` — `story_time_hint` 欄位已在 Event 提取 prompt 中（確認實作時發現已完成）
+
+---
+
+## B-033 Kernel/Satellite 第一階段：摘要啟發式分類 ✅ 完成
+**背景**: 現有層級摘要隱含粗略重要性分層，直接作為 Kernel/Satellite 第一階段信號。
+**實作**:
+- `src/domain/narrative.py`：`NarrativeStructure`, `HeroJourneyStage`, `ProppFunctionRef`, `KernelSatelliteResult`
+- `src/services/narrative_service.py`：`classify_by_heuristic(document_id)`, `get_kernel_spine(document_id)`
+
+---
+
+## B-034 Kernel/Satellite 第二階段：LLM 細化分類 ✅ 完成
+**背景**: 啟發式結果有誤差，特別是出現在章節摘要但語義上是渲染性的事件。
+**實作**: `NarrativeService.refine_with_llm()` — 預設對所有 satellite 進行 LLM 二次判斷；LLM 優先，分歧以 WARNING 記錄
+
+---
+
+## B-035 坎伯英雄旅程 LLM 結構對應 ✅ 完成
+**背景**: 輸入章節摘要序列，LLM 輸出英雄旅程階段映射。
+**實作**:
+- `src/config/hero_journey.py`：12 階段 loader + `get_hero_journey_summary()`
+- `src/config/hero_journey/hero_journey_{en,zh}.json`：階段定義
+- `NarrativeService.map_hero_journey(document_id)`：章節範圍允許重疊；無證據的階段省略
+
+---
+
+## B-036 NarrativeStructure 節點儲存 + 查詢介面 ✅ 完成
+**背景**: 整合 Kernel/Satellite 和英雄旅程結果，提供 API 查詢介面。
+**實作**:
+- `src/api/schemas/narrative.py`：request schemas
+- `src/api/routers/narrative.py`：9 個端點（async classify/refine/hero-journey + polling + sync kernel-spine + GET/PATCH structure）
+- `NarrativeService.get_cached_structure()` + `update_review()`
+
+---
+
+## B-037 熱奈特時序分析（倒敘/預敘識別）✅ 完成
+**背景**: 文本位置排名 vs 故事時間排名的差值，量化倒敘/預敘。
+**前置條件**: story_time_hint 覆蓋率 ≥ 60%（透過 GET /narrative/temporal/coverage 確認）
+**實作**:
+- `src/domain/narrative.py`：`TemporalAnalysis`, `TemporalDisplacement`
+- `NarrativeService.check_temporal_coverage()` + `analyze_temporal_order()`
+- API 端點：`POST /api/v1/narrative/temporal` + `GET /narrative/temporal/coverage`
+
+---
+
+## B-038 敘事結構視覺化 + Deep Analysis Workflow 完整整合 ✅ 完成
+**背景**: 將敘事學模組整合為端到端工作流並提供入口。
+**實作**:
+- `AnalysisAgent.analyze_narrative(document_id)` — 依序執行 heuristic → LLM refine → hero journey
+- `AnalysisAgent.__init__` 加入 `narrative_service` 參數
+- `docs/guides/PHASE_11_NARRATOLOGY.md`：完整流程文件

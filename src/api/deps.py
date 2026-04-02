@@ -110,7 +110,11 @@ def get_analysis_cache():
 def get_analysis_agent():
     from agents.analysis_agent import AnalysisAgent  # noqa: PLC0415
 
-    return AnalysisAgent(analysis_service=get_analysis_service(), cache=get_analysis_cache())
+    return AnalysisAgent(
+        analysis_service=get_analysis_service(),
+        cache=get_analysis_cache(),
+        narrative_service=get_narrative_service(),
+    )
 
 
 @lru_cache(maxsize=1)

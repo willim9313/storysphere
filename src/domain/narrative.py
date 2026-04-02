@@ -52,6 +52,66 @@ class HeroJourneyStage(BaseModel):
     notes: Optional[str] = None
 
 
+class TemporalDisplacement(BaseModel):
+    """Displacement between text order and story-world time order for one Event.
+
+    Negative displacement = analepsis (flashback): event appears later in text
+    than its story-world position.
+    Positive displacement = prolepsis (flash-forward): event appears earlier
+    in text than its story-world position.
+    Zero / near-zero = linear narration.
+    """
+
+    event_id: str
+    title: str
+    chapter: int
+    text_rank: int = Field(description="Position in narrative/text order (1-based)")
+    story_rank: float = Field(description="Position in story-world chronological order (1-based)")
+    displacement: float = Field(description="story_rank - text_rank; negative = analepsis")
+    displacement_type: Literal["analepsis", "prolepsis", "linear"]
+    story_time_hint: Optional[str] = Field(
+        default=None, description="Raw time hint from ingestion (e.g. '三年前')"
+    )
+
+
+class TemporalAnalysis(BaseModel):
+    """Book-level Genette temporal structure analysis result.
+
+    Populated by NarrativeService.analyze_temporal_order() (B-037).
+    Persisted via AnalysisCache with key: temporal_analysis:{document_id}
+    """
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    document_id: str
+
+    # Coverage assessment
+    total_events: int = 0
+    events_with_hint: int = 0
+    coverage: float = Field(
+        default=0.0,
+        description="Fraction of events with story_time_hint (0.0–1.0)",
+    )
+    coverage_sufficient: bool = Field(
+        default=False,
+        description="True when coverage >= threshold (default 0.60)",
+    )
+
+    # Structure classification (set by LLM or skipped if coverage insufficient)
+    story_time_structure: Literal["linear", "partially_linear", "non_linear", "unknown"] = "unknown"
+
+    # Displacement results (only populated if coverage_sufficient)
+    displacements: list[TemporalDisplacement] = Field(default_factory=list)
+    analepsis_event_ids: list[str] = Field(
+        default_factory=list, description="Event IDs identified as flashbacks"
+    )
+    prolepsis_event_ids: list[str] = Field(
+        default_factory=list, description="Event IDs identified as flash-forwards"
+    )
+
+    # HITL review
+    review_status: Literal["pending", "approved", "rejected"] = "pending"
+
+
 class NarrativeStructure(BaseModel):
     """Book-level narrative structure analysis result.
 

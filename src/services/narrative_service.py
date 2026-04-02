@@ -26,7 +26,7 @@ from config.hero_journey import get_hero_journey_summary, load_hero_journey
 from core.token_callback import set_llm_service_context
 from core.utils.output_extractor import extract_json_from_text
 from domain.events import Event
-from domain.narrative import HeroJourneyStage, KernelSatelliteResult, NarrativeStructure
+from domain.narrative import HeroJourneyStage, KernelSatelliteResult, NarrativeStructure, TemporalAnalysis, TemporalDisplacement
 
 if TYPE_CHECKING:
     from services.analysis_cache import AnalysisCache
@@ -37,6 +37,30 @@ logger = logging.getLogger(__name__)
 
 _CACHE_KEY_PREFIX = "narrative_structure"
 _HERO_JOURNEY_CACHE_PREFIX = "hero_journey"
+_TEMPORAL_CACHE_PREFIX = "temporal_analysis"
+_TEMPORAL_COVERAGE_THRESHOLD = 0.60
+
+_TEMPORAL_ORDER_SYSTEM_PROMPT = """\
+You are a literary analyst performing Genette temporal analysis.
+
+Given a list of story events with their text-order position and any time hints
+extracted from the text, do two things:
+
+1. CLASSIFY the overall temporal structure:
+   - "linear": events in text order mostly match story-world chronological order
+   - "partially_linear": some flashbacks/flash-forwards but mostly linear
+   - "non_linear": significant anachrony (e.g. in medias res, fragmented timeline)
+
+2. RANK events in story-world chronological order (1 = earliest in story time).
+   Use the time hints as primary evidence. For events with no hint, infer from
+   narrative context (consequences, cause-effect). Ties are allowed (same rank).
+
+Return ONLY a JSON object with:
+  "story_time_structure": "linear" | "partially_linear" | "non_linear"
+  "ranked_events": [
+    {"event_id": str, "story_rank": float, "reasoning": str | null}
+  ]
+"""
 
 # Heuristic confidence threshold below which LLM refinement is triggered
 _REFINEMENT_CONFIDENCE_THRESHOLD = 0.70
@@ -592,6 +616,202 @@ class NarrativeService:
         # Sort by first chapter in range to ensure narrative order
         stages.sort(key=lambda s: s.chapter_range[0])
         return stages
+
+    # ── B-037: Genette temporal analysis ─────────────────────────────────────
+
+    async def check_temporal_coverage(self, document_id: str) -> dict:
+        """Return coverage stats for story_time_hint fields.
+
+        Returns:
+            dict with keys: total_events, events_with_hint, coverage (0.0–1.0),
+            coverage_sufficient (bool, threshold = 0.60).
+        """
+        events = await self._kg.get_events(document_id=document_id)
+        total = len(events)
+        with_hint = sum(1 for e in events if e.story_time_hint)
+        coverage = with_hint / total if total > 0 else 0.0
+        return {
+            "total_events": total,
+            "events_with_hint": with_hint,
+            "coverage": coverage,
+            "coverage_sufficient": coverage >= _TEMPORAL_COVERAGE_THRESHOLD,
+        }
+
+    async def analyze_temporal_order(
+        self,
+        document_id: str,
+        language: str = "en",
+        force: bool = False,
+    ) -> TemporalAnalysis:
+        """B-037: Genette temporal analysis — analepsis/prolepsis identification.
+
+        Flow:
+        1. Check story_time_hint coverage. If < 60%, return early with
+           coverage_sufficient=False and no displacement data.
+        2. Send events + hints to LLM → story-world chronological ranking.
+        3. Compare text-order rank vs story-rank → displacement per event.
+        4. Classify displacements as analepsis / prolepsis / linear.
+        5. Update event.story_time.relative_order in KGService in-memory store.
+        6. Persist TemporalAnalysis to cache.
+        """
+        cache_key = f"{_TEMPORAL_CACHE_PREFIX}:{document_id}"
+        if not force:
+            cached = await self._cache.get(cache_key)
+            if cached:
+                return TemporalAnalysis(**cached)
+
+        events = await self._kg.get_events(document_id=document_id)
+        total = len(events)
+        with_hint = sum(1 for e in events if e.story_time_hint)
+        coverage = with_hint / total if total > 0 else 0.0
+        coverage_sufficient = coverage >= _TEMPORAL_COVERAGE_THRESHOLD
+
+        if not coverage_sufficient:
+            logger.warning(
+                "analyze_temporal_order: coverage %.0f%% < %.0f%% threshold for document=%s",
+                coverage * 100,
+                _TEMPORAL_COVERAGE_THRESHOLD * 100,
+                document_id,
+            )
+            result = TemporalAnalysis(
+                document_id=document_id,
+                total_events=total,
+                events_with_hint=with_hint,
+                coverage=coverage,
+                coverage_sufficient=False,
+            )
+            await self._cache.set(cache_key, result.model_dump())
+            return result
+
+        # Sort events by text order (chapter + narrative_position)
+        text_sorted = sorted(events, key=lambda e: (e.chapter, e.narrative_position or 0))
+        text_rank_by_id = {e.id: i + 1 for i, e in enumerate(text_sorted)}
+
+        # LLM: assign story-world chronological rank
+        story_time_structure, story_ranks = await self._call_temporal_order_llm(
+            text_sorted, language
+        )
+
+        # Update events in KGService in-memory store
+        from domain.events import StoryTimeRef  # noqa: PLC0415
+        for event in events:
+            rank = story_ranks.get(event.id)
+            if rank is not None:
+                event.story_time = StoryTimeRef(
+                    relative_order=rank,
+                    time_anchor=event.story_time_hint,
+                    confidence=0.7,
+                )
+
+        # Compute displacements
+        displacements, analepsis_ids, prolepsis_ids = self._compute_displacements(
+            text_sorted, text_rank_by_id, story_ranks
+        )
+
+        result = TemporalAnalysis(
+            document_id=document_id,
+            total_events=total,
+            events_with_hint=with_hint,
+            coverage=coverage,
+            coverage_sufficient=True,
+            story_time_structure=story_time_structure,
+            displacements=displacements,
+            analepsis_event_ids=analepsis_ids,
+            prolepsis_event_ids=prolepsis_ids,
+        )
+        await self._cache.set(cache_key, result.model_dump())
+        logger.info(
+            "analyze_temporal_order: document=%s structure=%s analepsis=%d prolepsis=%d",
+            document_id, story_time_structure, len(analepsis_ids), len(prolepsis_ids),
+        )
+        return result
+
+    @staticmethod
+    def _compute_displacements(
+        text_sorted: list,
+        text_rank_by_id: dict[str, int],
+        story_ranks: dict[str, float],
+        threshold: int = 3,
+    ) -> tuple[list[TemporalDisplacement], list[str], list[str]]:
+        """Classify each event's temporal displacement relative to text order."""
+        displacements: list[TemporalDisplacement] = []
+        analepsis_ids: list[str] = []
+        prolepsis_ids: list[str] = []
+        for event in text_sorted:
+            s_rank = story_ranks.get(event.id)
+            if s_rank is None:
+                continue
+            t_rank = text_rank_by_id[event.id]
+            delta = s_rank - t_rank
+            if abs(delta) < threshold:
+                d_type = "linear"
+            elif delta < 0:
+                d_type = "analepsis"
+                analepsis_ids.append(event.id)
+            else:
+                d_type = "prolepsis"
+                prolepsis_ids.append(event.id)
+            displacements.append(TemporalDisplacement(
+                event_id=event.id,
+                title=event.title,
+                chapter=event.chapter,
+                text_rank=t_rank,
+                story_rank=s_rank,
+                displacement=delta,
+                displacement_type=d_type,
+                story_time_hint=event.story_time_hint,
+            ))
+        return displacements, analepsis_ids, prolepsis_ids
+
+    @retry(
+        retry=retry_if_exception_type(ValueError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+    )
+    async def _call_temporal_order_llm(
+        self, events, language: str
+    ) -> tuple[str, dict[str, float]]:
+        """Call LLM to classify structure and assign story-world ranks.
+
+        Returns:
+            (story_time_structure, {event_id: story_rank})
+        """
+        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
+        lines = ["## EVENTS (in text/narrative order)"]
+        for i, e in enumerate(events, 1):
+            hint = f" [time hint: {e.story_time_hint}]" if e.story_time_hint else ""
+            lines.append(f"{i}. [{e.id}] Ch.{e.chapter} — {e.title}{hint}")
+            if e.description:
+                lines.append(f"   {e.description[:120]}")
+
+        human_content = "\n".join(lines)
+        system_prompt = self._localize_prompt(_TEMPORAL_ORDER_SYSTEM_PROMPT, language)
+
+        llm = self._get_llm()
+        set_llm_service_context("analysis")
+        response = await llm.ainvoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=human_content),
+        ])
+        raw = response.content if hasattr(response, "content") else str(response)
+        parsed, err = extract_json_from_text(raw)
+        if err or not isinstance(parsed, dict):
+            raise ValueError(f"NarrativeService temporal: LLM parse failed: {err!r}")
+
+        structure = parsed.get("story_time_structure", "unknown")
+        if structure not in ("linear", "partially_linear", "non_linear"):
+            structure = "unknown"
+
+        story_ranks: dict[str, float] = {}
+        for item in parsed.get("ranked_events", []):
+            eid = item.get("event_id")
+            rank = item.get("story_rank")
+            if eid and rank is not None:
+                story_ranks[eid] = float(rank)
+
+        return structure, story_ranks
 
     @staticmethod
     def _build_hero_journey_human_content(chapters, stage_summary: str) -> str:

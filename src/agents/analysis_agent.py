@@ -1,7 +1,7 @@
 """AnalysisAgent — cache-first orchestrator for deep analysis.
 
 NOT a LangGraph ReAct agent. Simple orchestrator that checks cache
-before delegating to AnalysisService, then stores results.
+before delegating to AnalysisService / NarrativeService, then stores results.
 """
 
 from __future__ import annotations
@@ -37,9 +37,11 @@ class AnalysisAgent:
         self,
         analysis_service: Any,
         cache: AnalysisCache | None = None,
+        narrative_service: Any = None,
     ) -> None:
         self._service = analysis_service
         self._cache = cache
+        self._narrative = narrative_service
 
     @_langfuse_observe(name="AnalysisAgent.analyze_character")
     async def analyze_character(
@@ -166,3 +168,54 @@ class AnalysisAgent:
             latency_ms=(time.perf_counter() - _t0) * 1000,
         )
         return result
+
+    @_langfuse_observe(name="AnalysisAgent.analyze_narrative")
+    async def analyze_narrative(
+        self,
+        document_id: str,
+        language: str = "en",
+        force_refresh: bool = False,
+    ) -> dict:
+        """Run full narrative structure analysis (B-038 entry point).
+
+        Runs in sequence:
+          1. classify_by_heuristic   — Kernel/Satellite (Phase 1)
+          2. refine_with_llm         — LLM refinement of satellites (Phase 2)
+          3. map_hero_journey        — Campbell stage mapping (Phase 3)
+
+        Temporal analysis (B-037) is NOT included here because it requires
+        ≥ 60% story_time_hint coverage, which must be verified separately.
+
+        Args:
+            document_id: Book document ID.
+            language: LLM output language.
+            force_refresh: If True, bypass cache and re-run all phases.
+
+        Returns:
+            dict with keys: narrative_structure, hero_journey_stages.
+        """
+        if self._narrative is None:
+            raise RuntimeError("AnalysisAgent: narrative_service not configured")
+
+        structure = await self._narrative.refine_with_llm(
+            document_id=document_id,
+            language=language,
+            force=force_refresh,
+        )
+        stages = await self._narrative.map_hero_journey(
+            document_id=document_id,
+            language=language,
+            force=force_refresh,
+        )
+
+        logger.info(
+            "AnalysisAgent.analyze_narrative: document=%s kernel=%d satellite=%d stages=%d",
+            document_id,
+            len(structure.kernel_event_ids),
+            len(structure.satellite_event_ids),
+            len(stages),
+        )
+        return {
+            "narrative_structure": structure.model_dump(),
+            "hero_journey_stages": [s.model_dump() for s in stages],
+        }

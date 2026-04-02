@@ -30,3 +30,9 @@ class HeroJourneyRequest(BaseModel):
 
 class NarrativeReviewRequest(BaseModel):
     review_status: Literal["approved", "rejected"]
+
+
+class TemporalAnalysisRequest(BaseModel):
+    document_id: str
+    language: str = "en"
+    force: bool = False
