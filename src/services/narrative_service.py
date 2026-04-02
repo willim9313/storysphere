@@ -1,4 +1,4 @@
-"""NarrativeService — Kernel/Satellite classification and narrative structure — B-033/B-034.
+"""NarrativeService — Kernel/Satellite classification and narrative structure — B-033/B-034/B-035.
 
 Phase 1 (B-033):
   classify_by_heuristic(document_id) — uses summary hierarchy as proxy for importance
@@ -12,6 +12,7 @@ Phase 3 (B-035):
 
 Persistence via AnalysisCache:
   narrative_structure:{document_id}
+  hero_journey:{document_id}
 """
 
 from __future__ import annotations
@@ -21,10 +22,11 @@ from typing import TYPE_CHECKING, Optional
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from config.hero_journey import get_hero_journey_summary, load_hero_journey
 from core.token_callback import set_llm_service_context
 from core.utils.output_extractor import extract_json_from_text
 from domain.events import Event
-from domain.narrative import KernelSatelliteResult, NarrativeStructure
+from domain.narrative import HeroJourneyStage, KernelSatelliteResult, NarrativeStructure
 
 if TYPE_CHECKING:
     from services.analysis_cache import AnalysisCache
@@ -34,9 +36,36 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _CACHE_KEY_PREFIX = "narrative_structure"
+_HERO_JOURNEY_CACHE_PREFIX = "hero_journey"
 
 # Heuristic confidence threshold below which LLM refinement is triggered
 _REFINEMENT_CONFIDENCE_THRESHOLD = 0.70
+
+_HERO_JOURNEY_SYSTEM_PROMPT = """\
+You are a literary scholar applying Campbell's Hero's Journey framework to a novel.
+
+Map the provided chapter summaries to the 12 stages of the Hero's Journey.
+
+Rules:
+- Each stage maps to one or more chapters (chapter_range is a list of chapter numbers).
+- Stages must appear in order, but chapter ranges may overlap between adjacent stages.
+- Not every stage needs to be present — omit stages that have no clear textual evidence.
+- Refusal of the Call and Meeting the Mentor are often brief or implied; mark them only if
+  there is clear evidence in the summaries.
+- For ensemble/multi-protagonist works: map the collective journey as a single arc,
+  noting in the "notes" field if a specific character primarily embodies that stage.
+- Confidence reflects how clearly the summaries support the mapping (0.0–1.0).
+
+You will receive:
+- CHAPTER SUMMARIES: numbered list of chapter summaries
+- HERO'S JOURNEY STAGES: stage definitions with ids, names, and narrative functions
+
+Return ONLY a JSON array. Each element must have:
+  "stage_id": str           # One of the provided stage ids
+  "chapter_range": [int]    # Chapter numbers for this stage (can overlap with adjacent stages)
+  "confidence": float       # 0.0–1.0
+  "notes": str | null       # Optional: specific characters, evidence, or caveats
+"""
 
 _REFINE_SYSTEM_PROMPT = """\
 You are a narratologist applying Chatman's story/discourse distinction to classify plot events.
@@ -429,3 +458,126 @@ class NarrativeService:
         if language.lower().startswith("ja"):
             return prompt + "\n\nRespond with all text fields in Japanese."
         return prompt
+
+    # ── Phase 3: Hero's Journey mapping ──────────────────────────────────────
+
+    async def map_hero_journey(
+        self,
+        document_id: str,
+        language: str = "en",
+        force: bool = False,
+    ) -> list[HeroJourneyStage]:
+        """Phase 3: Map chapter summaries to Campbell's 12 Hero's Journey stages.
+
+        Design decisions:
+        - Chapter ranges may overlap between adjacent stages.
+        - Stages with no clear evidence are omitted from the result.
+        - Multi-protagonist works are mapped as a single collective arc;
+          specific character mappings are noted in the 'notes' field.
+
+        Args:
+            document_id: Book document ID.
+            language: LLM output language for stage notes.
+            force: Re-run even if cached result exists.
+
+        Returns:
+            List of HeroJourneyStage (only stages with evidence, in order).
+            Also persisted to cache and merged into NarrativeStructure.
+        """
+        cache_key = f"{_HERO_JOURNEY_CACHE_PREFIX}:{document_id}"
+        if not force:
+            cached = await self._cache.get(cache_key)
+            if cached:
+                return [HeroJourneyStage(**s) for s in cached]
+
+        doc = await self._doc.get_document(document_id)
+        if not doc or not doc.chapters:
+            logger.warning("map_hero_journey: no chapters found for document=%s", document_id)
+            return []
+
+        chapters_with_summary = [ch for ch in doc.chapters if ch.summary]
+        if not chapters_with_summary:
+            logger.warning("map_hero_journey: no chapter summaries for document=%s", document_id)
+            return []
+
+        stages = await self._call_hero_journey_llm(chapters_with_summary, language)
+
+        # Persist stages list
+        await self._cache.set(cache_key, [s.model_dump() for s in stages])
+
+        # Merge into NarrativeStructure if it exists
+        ns_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
+        cached_ns = await self._cache.get(ns_key)
+        if cached_ns:
+            ns = NarrativeStructure(**cached_ns)
+            ns.hero_journey_stages = stages
+            await self._cache.set(ns_key, ns.model_dump())
+
+        logger.info(
+            "map_hero_journey: document=%s mapped %d stages", document_id, len(stages)
+        )
+        return stages
+
+    @retry(
+        retry=retry_if_exception_type(ValueError),
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        reraise=True,
+    )
+    async def _call_hero_journey_llm(self, chapters, language: str) -> list[HeroJourneyStage]:
+        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
+        stage_defs = load_hero_journey(language if language.startswith(("en", "zh")) else "en")
+        stage_summary = get_hero_journey_summary(
+            language if language.startswith(("en", "zh")) else "en"
+        )
+        human_content = self._build_hero_journey_human_content(chapters, stage_summary)
+        system_prompt = self._localize_prompt(_HERO_JOURNEY_SYSTEM_PROMPT, language)
+
+        llm = self._get_llm()
+        set_llm_service_context("analysis")
+        response = await llm.ainvoke([
+            SystemMessage(content=system_prompt),
+            HumanMessage(content=human_content),
+        ])
+        raw = response.content if hasattr(response, "content") else str(response)
+        parsed, err = extract_json_from_text(raw)
+        if err or not isinstance(parsed, list):
+            raise ValueError(f"NarrativeService hero journey: LLM parse failed: {err!r}")
+
+        valid_ids = {s["id"] for s in stage_defs}
+        stage_name_by_id = {s["id"]: s["name"] for s in stage_defs}
+        stages: list[HeroJourneyStage] = []
+        for item in parsed:
+            stage_id = item.get("stage_id", "")
+            if stage_id not in valid_ids:
+                logger.warning("map_hero_journey: unknown stage_id=%r, skipping", stage_id)
+                continue
+            chapter_range = item.get("chapter_range", [])
+            if not isinstance(chapter_range, list) or not chapter_range:
+                logger.warning("map_hero_journey: empty chapter_range for stage=%s, skipping", stage_id)
+                continue
+            stages.append(HeroJourneyStage(
+                stage_id=stage_id,
+                stage_name=stage_name_by_id[stage_id],
+                chapter_range=[int(c) for c in chapter_range],
+                confidence=float(item.get("confidence", 0.5)),
+                notes=item.get("notes"),
+            ))
+
+        # Sort by first chapter in range to ensure narrative order
+        stages.sort(key=lambda s: s.chapter_range[0])
+        return stages
+
+    @staticmethod
+    def _build_hero_journey_human_content(chapters, stage_summary: str) -> str:
+        lines = ["## CHAPTER SUMMARIES"]
+        for ch in chapters:
+            lines.append(f"\n### Chapter {ch.number}" + (f": {ch.title}" if ch.title else ""))
+            lines.append(ch.summary or "(no summary)")
+        lines += [
+            "",
+            "## HERO'S JOURNEY STAGES",
+            stage_summary,
+        ]
+        return "\n".join(lines)

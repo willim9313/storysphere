@@ -1,0 +1,98 @@
+[
+  {
+    "id": "ordinary_world",
+    "name": "The Ordinary World",
+    "phase": "departure",
+    "description": "The hero is shown in their everyday environment before the adventure begins. Their strengths, weaknesses, and the world they know are established.",
+    "narrative_function": "Establishes the baseline reality, introduces the protagonist, and creates the contrast that makes the adventure meaningful.",
+    "typical_position": "very_early"
+  },
+  {
+    "id": "call_to_adventure",
+    "name": "The Call to Adventure",
+    "phase": "departure",
+    "description": "Something disrupts the ordinary world — a challenge, problem, or opportunity arrives that invites or forces the hero out of their comfort zone.",
+    "narrative_function": "Inciting incident that sets the plot in motion. Opens the first major alternative: the hero can answer the call or refuse it.",
+    "typical_position": "early"
+  },
+  {
+    "id": "refusal_of_call",
+    "name": "Refusal of the Call",
+    "phase": "departure",
+    "description": "The hero hesitates or outright refuses the call, expressing fear, doubt, or reluctance. Not all stories include this stage explicitly.",
+    "narrative_function": "Humanizes the hero and raises the stakes by showing what must be overcome internally. Often brief or implied.",
+    "typical_position": "early"
+  },
+  {
+    "id": "meeting_the_mentor",
+    "name": "Meeting with the Mentor",
+    "phase": "departure",
+    "description": "The hero encounters a guide — a person, object, or experience — that provides wisdom, equipment, or motivation needed for the journey ahead.",
+    "narrative_function": "Prepares the hero for the crossing. May recur across the story. Mentor often cannot accompany the hero into the special world.",
+    "typical_position": "early"
+  },
+  {
+    "id": "crossing_threshold",
+    "name": "Crossing the First Threshold",
+    "phase": "departure",
+    "description": "The hero commits to the adventure and fully enters the special world. A point of no return is crossed, leaving the ordinary world behind.",
+    "narrative_function": "First major structural hinge. Marks the boundary between the known and unknown worlds. The story's real stakes begin here.",
+    "typical_position": "early_mid"
+  },
+  {
+    "id": "tests_allies_enemies",
+    "name": "Tests, Allies, and Enemies",
+    "phase": "initiation",
+    "description": "The hero navigates the special world, facing a series of tests and learning its rules. Allies are made, enemies identified, trust is built or broken.",
+    "narrative_function": "Longest phase. Establishes the special world's landscape and the hero's evolving capabilities. Multiple sub-goals pursued.",
+    "typical_position": "mid"
+  },
+  {
+    "id": "approach_innermost_cave",
+    "name": "Approach to the Inmost Cave",
+    "phase": "initiation",
+    "description": "The hero and allies regroup and prepare for the central ordeal. This approach often involves a second threshold, inner preparation, or a moment of doubt.",
+    "narrative_function": "Builds tension before the central crisis. Hero's deepest fears surface. Often includes a mini-ordeal or dark night of the soul.",
+    "typical_position": "mid_late"
+  },
+  {
+    "id": "ordeal",
+    "name": "The Ordeal",
+    "phase": "initiation",
+    "description": "The hero faces the greatest crisis of the journey — a life-or-death moment (literal or metaphorical). The hero must 'die' in some sense and be reborn.",
+    "narrative_function": "Central structural hinge and emotional climax of the initiation phase. The hero's transformation is forged here. Often the story's darkest moment.",
+    "typical_position": "late_mid"
+  },
+  {
+    "id": "reward",
+    "name": "Reward (Seizing the Sword)",
+    "phase": "initiation",
+    "description": "Having survived the ordeal, the hero claims the reward — a treasure, knowledge, reconciliation, or power. A moment of celebration before the return begins.",
+    "narrative_function": "Acknowledges the hero's achievement and raises the question: can they hold on to it? Sets up the return phase.",
+    "typical_position": "late_mid"
+  },
+  {
+    "id": "road_back",
+    "name": "The Road Back",
+    "phase": "return",
+    "description": "The hero begins the journey back to the ordinary world, often pursued or threatened. The decision to return may require sacrifice.",
+    "narrative_function": "Rekindles urgency. The hero must commit fully to the return, often facing a final chase or renewed antagonist pressure.",
+    "typical_position": "late"
+  },
+  {
+    "id": "resurrection",
+    "name": "The Resurrection",
+    "phase": "return",
+    "description": "A final climactic test — the hero is once again pushed to the brink. All lessons are applied. A last 'death and rebirth' purifies the hero before return.",
+    "narrative_function": "Final proof of transformation. The hero demonstrates they are no longer the same person who left the ordinary world.",
+    "typical_position": "very_late"
+  },
+  {
+    "id": "return_with_elixir",
+    "name": "Return with the Elixir",
+    "phase": "return",
+    "description": "The hero returns to the ordinary world bearing something of value — a literal treasure, wisdom, freedom, or love — that benefits their community.",
+    "narrative_function": "Closes the story loop and establishes the journey's meaning. The elixir is the proof that the adventure mattered.",
+    "typical_position": "end"
+  }
+]

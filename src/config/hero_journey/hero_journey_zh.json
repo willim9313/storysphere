@@ -1,0 +1,98 @@
+[
+  {
+    "id": "ordinary_world",
+    "name": "平凡世界",
+    "phase": "departure",
+    "description": "主角在冒險開始前的日常環境中被介紹給讀者。他的優點、缺點和所熟悉的世界都在這裡建立。",
+    "narrative_function": "建立基準現實，介紹主角，創造讓冒險意義得以成立的對比。",
+    "typical_position": "very_early"
+  },
+  {
+    "id": "call_to_adventure",
+    "name": "冒險的召喚",
+    "phase": "departure",
+    "description": "某件事打破了平凡世界——一個挑戰、問題或機遇出現，邀請或逼迫主角離開舒適圈。",
+    "narrative_function": "觸發情節的導火線。打開第一個重大選擇：主角可以回應召喚或拒絕它。",
+    "typical_position": "early"
+  },
+  {
+    "id": "refusal_of_call",
+    "name": "拒絕召喚",
+    "phase": "departure",
+    "description": "主角猶豫或直接拒絕召喚，表現出恐懼、懷疑或不情願。並非所有故事都明確包含這個階段。",
+    "narrative_function": "使主角更具人性，並通過展示內心必須克服的障礙來提升故事賭注。往往很短暫或只是暗示。",
+    "typical_position": "early"
+  },
+  {
+    "id": "meeting_the_mentor",
+    "name": "遇見導師",
+    "phase": "departure",
+    "description": "主角遇到一位嚮導——一個人物、物品或經歷——提供前方旅程所需的智慧、裝備或動力。",
+    "narrative_function": "為跨越門檻做準備。可能在故事中多次出現。導師通常無法陪伴主角進入特殊世界。",
+    "typical_position": "early"
+  },
+  {
+    "id": "crossing_threshold",
+    "name": "跨越第一道門檻",
+    "phase": "departure",
+    "description": "主角承諾踏上冒險，完全進入特殊世界。跨越一個不歸點，將平凡世界拋在身後。",
+    "narrative_function": "第一個重大結構轉折點。標誌著已知世界與未知世界的邊界。故事真正的賭注從這裡開始。",
+    "typical_position": "early_mid"
+  },
+  {
+    "id": "tests_allies_enemies",
+    "name": "考驗、盟友與敵人",
+    "phase": "initiation",
+    "description": "主角在特殊世界中前行，面對一系列考驗並學習其規則。結盟、識別敵人，信任被建立或打破。",
+    "narrative_function": "最長的階段。建立特殊世界的格局和主角不斷進化的能力。追求多個子目標。",
+    "typical_position": "mid"
+  },
+  {
+    "id": "approach_innermost_cave",
+    "name": "逼近最深處的洞穴",
+    "phase": "initiation",
+    "description": "主角和盟友重整旗鼓，為中心磨難做準備。這段逼近往往涉及第二道門檻、內心準備或一個懷疑的時刻。",
+    "narrative_function": "在核心危機前積累張力。主角最深的恐懼浮現。通常包含一個小型磨難或靈魂的黑暗之夜。",
+    "typical_position": "mid_late"
+  },
+  {
+    "id": "ordeal",
+    "name": "磨難",
+    "phase": "initiation",
+    "description": "主角面對旅程中最大的危機——一個生死存亡的時刻（字面或隱喻意義上）。主角必須在某種意義上「死去」並重生。",
+    "narrative_function": "中心結構轉折點，也是啟蒙階段的情感高潮。主角的蛻變在此鍛造完成。往往是故事最黑暗的時刻。",
+    "typical_position": "late_mid"
+  },
+  {
+    "id": "reward",
+    "name": "獎賞（奪取寶劍）",
+    "phase": "initiation",
+    "description": "在磨難中倖存後，主角獲得獎賞——寶藏、知識、和解或力量。在回歸開始前的一個慶祝時刻。",
+    "narrative_function": "承認主角的成就，並提出問題：他能守護這份獎賞嗎？為回歸階段埋下伏筆。",
+    "typical_position": "late_mid"
+  },
+  {
+    "id": "road_back",
+    "name": "回歸之路",
+    "phase": "return",
+    "description": "主角開始返回平凡世界的旅程，往往遭到追殺或威脅。回歸的決定可能需要犧牲。",
+    "narrative_function": "重新點燃緊迫感。主角必須全力投入回歸，往往面臨最後的追逐或對手的新一輪壓力。",
+    "typical_position": "late"
+  },
+  {
+    "id": "resurrection",
+    "name": "復活",
+    "phase": "return",
+    "description": "最後一次高潮考驗——主角再次被逼到極限。所有習得的教訓都被應用。最後的「死而復生」在回歸前淨化了主角。",
+    "narrative_function": "蛻變的最終證明。主角展示自己已不再是離開平凡世界時的那個人。",
+    "typical_position": "very_late"
+  },
+  {
+    "id": "return_with_elixir",
+    "name": "攜帶靈藥歸來",
+    "phase": "return",
+    "description": "主角帶著有價值的東西回到平凡世界——字面上的寶藏、智慧、自由或愛——使他的社群受益。",
+    "narrative_function": "閉合故事迴圈，確立旅程的意義。靈藥是冒險確實值得的證明。",
+    "typical_position": "end"
+  }
+]
