@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -19,10 +19,13 @@ import { useBook } from '@/hooks/useBook';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import {
   triggerTensionAnalysis,
+  fetchTensionAnalysisTask,
   fetchTensionLines,
   triggerGroupTensionLines,
+  fetchGroupTensionLinesTask,
   reviewTensionLine,
   triggerSynthesizeTensionTheme,
+  fetchSynthesizeThemeTask,
   fetchTensionTheme,
   reviewTensionTheme,
 } from '@/api/tension';
@@ -478,6 +481,45 @@ function StepButton({
   );
 }
 
+// ── useTensionTask ───────────────────────────────────────────────
+
+function useTensionTask(
+  fetcher: (id: string) => Promise<import('@/api/types').TaskStatus>,
+  onDone: (task: import('@/api/types').TaskStatus) => void,
+  defaultError: string,
+) {
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const { data: task } = useTaskPolling(taskId, fetcher);
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
+
+  useEffect(() => {
+    if (task?.status === 'done') {
+      onDoneRef.current(task);
+      setTaskId(null);
+    } else if (task?.status === 'error') {
+      setError(task.error ?? defaultError);
+      setTaskId(null);
+    }
+  }, [task, defaultError]);
+
+  const trigger = useCallback(async (
+    triggerFn: () => Promise<{ taskId: string }>,
+    triggerError: string,
+  ) => {
+    setError(null);
+    try {
+      const { taskId: id } = await triggerFn();
+      setTaskId(id);
+    } catch {
+      setError(triggerError);
+    }
+  }, []);
+
+  return { task, error, running: !!taskId, trigger };
+}
+
 // ── Main page ────────────────────────────────────────────────────
 
 export default function TensionPage() {
@@ -486,21 +528,7 @@ export default function TensionPage() {
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
 
-  // Task IDs for polling
-  const [analyzeTaskId, setAnalyzeTaskId] = useState<string | null>(null);
-  const [groupTaskId, setGroupTaskId] = useState<string | null>(null);
-  const [synthesizeTaskId, setSynthesizeTaskId] = useState<string | null>(null);
-
-  // Task results
   const [analyzeResult, setAnalyzeResult] = useState<Record<string, number> | null>(null);
-  const [analyzeError, setAnalyzeError] = useState<string | null>(null);
-  const [groupError, setGroupError] = useState<string | null>(null);
-  const [synthesizeError, setSynthesizeError] = useState<string | null>(null);
-
-  // Polling
-  const { data: analyzeTask } = useTaskPolling(analyzeTaskId);
-  const { data: groupTask } = useTaskPolling(groupTaskId);
-  const { data: synthesizeTask } = useTaskPolling(synthesizeTaskId);
 
   // Data queries
   const {
@@ -524,82 +552,38 @@ export default function TensionPage() {
     retry: false,
   });
 
-  // Handle task completions
-  useEffect(() => {
-    if (analyzeTask?.status === 'done') {
-      setAnalyzeResult(analyzeTask.result as Record<string, number>);
-      setAnalyzeTaskId(null);
-    } else if (analyzeTask?.status === 'error') {
-      setAnalyzeError(analyzeTask.error ?? '分析失敗');
-      setAnalyzeTaskId(null);
-    }
-  }, [analyzeTask]);
-
-  useEffect(() => {
-    if (groupTask?.status === 'done') {
-      refetchLines();
-      setGroupTaskId(null);
-    } else if (groupTask?.status === 'error') {
-      setGroupError(groupTask.error ?? '分組失敗');
-      setGroupTaskId(null);
-    }
-  }, [groupTask, refetchLines]);
-
-  useEffect(() => {
-    if (synthesizeTask?.status === 'done') {
-      refetchTheme();
-      setSynthesizeTaskId(null);
-    } else if (synthesizeTask?.status === 'error') {
-      setSynthesizeError(synthesizeTask.error ?? '合成失敗');
-      setSynthesizeTaskId(null);
-    }
-  }, [synthesizeTask, refetchTheme]);
+  const analyzeOp = useTensionTask(
+    fetchTensionAnalysisTask,
+    (task) => setAnalyzeResult(task.result as Record<string, number>),
+    '分析失敗',
+  );
+  const groupOp = useTensionTask(fetchGroupTensionLinesTask, () => refetchLines(), '分組失敗');
+  const synthesizeOp = useTensionTask(fetchSynthesizeThemeTask, () => refetchTheme(), '合成失敗');
 
   // Page context for chat
   useEffect(() => {
     if (book) {
       setPageContext({
-        page: 'tension',
+        page: 'analysis',
         bookId: bookId!,
         bookTitle: book.title,
       });
     }
-    return () => setPageContext(null);
+    return () => setPageContext({ page: 'other' });
   }, [book, bookId, setPageContext]);
 
   // Handlers
-  const handleAnalyze = useCallback(async () => {
-    if (!bookId) return;
-    setAnalyzeError(null);
-    try {
-      const { task_id } = await triggerTensionAnalysis(bookId);
-      setAnalyzeTaskId(task_id);
-    } catch {
-      setAnalyzeError('觸發分析失敗');
-    }
-  }, [bookId]);
+  const handleAnalyze = useCallback(() =>
+    analyzeOp.trigger(() => triggerTensionAnalysis(bookId!), '觸發分析失敗'),
+  [bookId, analyzeOp]);
 
-  const handleGroup = useCallback(async () => {
-    if (!bookId) return;
-    setGroupError(null);
-    try {
-      const { task_id } = await triggerGroupTensionLines(bookId);
-      setGroupTaskId(task_id);
-    } catch {
-      setGroupError('觸發分組失敗');
-    }
-  }, [bookId]);
+  const handleGroup = useCallback(() =>
+    groupOp.trigger(() => triggerGroupTensionLines(bookId!), '觸發分組失敗'),
+  [bookId, groupOp]);
 
-  const handleSynthesize = useCallback(async () => {
-    if (!bookId) return;
-    setSynthesizeError(null);
-    try {
-      const { task_id } = await triggerSynthesizeTensionTheme(bookId);
-      setSynthesizeTaskId(task_id);
-    } catch {
-      setSynthesizeError('觸發合成失敗');
-    }
-  }, [bookId]);
+  const handleSynthesize = useCallback(() =>
+    synthesizeOp.trigger(() => triggerSynthesizeTensionTheme(bookId!), '觸發合成失敗'),
+  [bookId, synthesizeOp]);
 
   const onLineReviewed = () => {
     queryClient.invalidateQueries({ queryKey: ['books', bookId, 'tension', 'lines'] });
@@ -614,9 +598,6 @@ export default function TensionPage() {
     return Math.max(m, ch);
   }, 1);
 
-  const analysisRunning = !!analyzeTaskId;
-  const groupRunning = !!groupTaskId;
-  const synthesizeRunning = !!synthesizeTaskId;
   const hasTeus = analyzeResult !== null || lines.length > 0;
   const hasLines = lines.length > 0;
   const hasTheme = !!theme;
@@ -644,17 +625,17 @@ export default function TensionPage() {
             desc={
               analyzeResult
                 ? `完成：${analyzeResult.assembled ?? 0} / ${analyzeResult.candidates ?? 0} 個場景已組裝`
-                : analyzeTask?.stage
-                  ? `進行中：${analyzeTask.stage}（${analyzeTask.progress ?? 0}%）`
+                : analyzeOp.task?.stage
+                  ? `進行中：${analyzeOp.task.stage}（${analyzeOp.task.progress ?? 0}%）`
                   : '掃描全書具張力訊號的場景並組裝 TEU'
             }
             onClick={handleAnalyze}
-            loading={analysisRunning}
+            loading={analyzeOp.running}
             done={hasTeus}
           />
-          {analyzeError && (
+          {analyzeOp.error && (
             <div className="flex items-center gap-1 text-xs px-3" style={{ color: '#ef4444' }}>
-              <AlertTriangle size={12} /> {analyzeError}
+              <AlertTriangle size={12} /> {analyzeOp.error}
             </div>
           )}
 
@@ -662,19 +643,19 @@ export default function TensionPage() {
             icon={<GitBranch size={18} />}
             label="Step 2：TensionLine 自動分組"
             desc={
-              groupTask?.stage && groupRunning
-                ? `進行中：${groupTask.stage}`
+              groupOp.task?.stage && groupOp.running
+                ? `進行中：${groupOp.task.stage}`
                 : hasLines
                   ? `完成：${lines.length} 條 TensionLine`
                   : 'LLM 將 TEU 歸納為跨場景張力模式'
             }
             onClick={handleGroup}
-            loading={groupRunning}
+            loading={groupOp.running}
             done={hasLines}
           />
-          {groupError && (
+          {groupOp.error && (
             <div className="flex items-center gap-1 text-xs px-3" style={{ color: '#ef4444' }}>
-              <AlertTriangle size={12} /> {groupError}
+              <AlertTriangle size={12} /> {groupOp.error}
             </div>
           )}
 
@@ -682,32 +663,23 @@ export default function TensionPage() {
             icon={<Sparkles size={18} />}
             label="Step 3：TensionTheme 合成"
             desc={
-              synthesizeTask?.stage && synthesizeRunning
-                ? `進行中：${synthesizeTask.stage}`
+              synthesizeOp.task?.stage && synthesizeOp.running
+                ? `進行中：${synthesizeOp.task.stage}`
                 : hasTheme
                   ? '完成：全書主題命題已產生'
                   : '根據已審核的 TensionLine，LLM 合成全書主題命題'
             }
             onClick={handleSynthesize}
-            loading={synthesizeRunning}
+            loading={synthesizeOp.running}
             done={hasTheme}
             disabled={!hasLines}
           />
-          {synthesizeError && (
+          {synthesizeOp.error && (
             <div className="flex items-center gap-1 text-xs px-3" style={{ color: '#ef4444' }}>
-              <AlertTriangle size={12} /> {synthesizeError}
+              <AlertTriangle size={12} /> {synthesizeOp.error}
             </div>
           )}
         </div>
-
-        {/* TensionTheme */}
-        {themeLoading ? (
-          <LoadingSpinner />
-        ) : theme ? (
-          <div className="mb-6">
-            <TensionThemePanel theme={theme} bookId={bookId!} onReviewed={onThemeReviewed} />
-          </div>
-        ) : null}
 
         {/* TensionLine trajectory + list */}
         {linesLoading ? (
@@ -765,6 +737,15 @@ export default function TensionPage() {
             <p className="text-xs mt-1">請先執行 Step 1 和 Step 2</p>
           </div>
         )}
+
+        {/* TensionTheme */}
+        {themeLoading ? (
+          <LoadingSpinner />
+        ) : theme ? (
+          <div className="mt-6">
+            <TensionThemePanel theme={theme} bookId={bookId!} onReviewed={onThemeReviewed} />
+          </div>
+        ) : null}
       </div>
     </div>
   );

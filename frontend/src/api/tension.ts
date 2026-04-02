@@ -8,8 +8,8 @@ export function triggerTensionAnalysis(
   language = 'zh',
   force = false,
   concurrency = 5,
-): Promise<{ task_id: string }> {
-  return apiFetch<{ task_id: string }>('/tension/analyze', {
+): Promise<{ taskId: string }> {
+  return apiFetch<{ taskId: string }>('/tension/analyze', {
     method: 'POST',
     body: JSON.stringify({ document_id: bookId, language, force, concurrency }),
   });
@@ -25,8 +25,8 @@ export function triggerGroupTensionLines(
   bookId: string,
   language = 'zh',
   force = false,
-): Promise<{ task_id: string }> {
-  return apiFetch<{ task_id: string }>('/tension/lines/group', {
+): Promise<{ taskId: string }> {
+  return apiFetch<{ taskId: string }>('/tension/lines/group', {
     method: 'POST',
     body: JSON.stringify({ document_id: bookId, language, force }),
   });
@@ -64,8 +64,8 @@ export function triggerSynthesizeTensionTheme(
   bookId: string,
   language = 'zh',
   force = false,
-): Promise<{ task_id: string }> {
-  return apiFetch<{ task_id: string }>('/tension/theme/synthesize', {
+): Promise<{ taskId: string }> {
+  return apiFetch<{ taskId: string }>('/tension/theme/synthesize', {
     method: 'POST',
     body: JSON.stringify({ document_id: bookId, language, force }),
   });
