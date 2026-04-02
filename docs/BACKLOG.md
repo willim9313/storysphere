@@ -267,11 +267,11 @@
 | B-033 | Kernel/Satellite 第一階段：摘要啟發式分類 | 🟡 中 | ✅ 完成 |
 | B-034 | Kernel/Satellite 第二階段：LLM 細化分類 | 🟡 中 | 待開始 |
 | B-035 | 坎伯英雄旅程 LLM 結構對應 | 🟡 中 | ✅ 完成 |
-| B-036 | NarrativeStructure 節點儲存 + 查詢介面 | 🟢 低 | 待開始 |
+| B-036 | NarrativeStructure 節點儲存 + 查詢介面 | 🟢 低 | ✅ 完成 |
 | B-037 | 熱奈特時序分析（倒敘/預敘識別）| 🟢 低 | 待開始 |
 | B-038 | 敘事結構視覺化 + Deep Analysis 整合 | 🟢 低 | 待開始 |
 
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-02（B-035 完成：Campbell 英雄旅程 12 階段 config + NarrativeService.map_hero_journey()）
+**最後更新**: 2026-04-02（B-036 完成：NarrativeService 存取層 + /api/v1/narrative 端點）

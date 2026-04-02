@@ -28,6 +28,7 @@ from api.routers import (
     search,
     tasks,
     tasks_ws,
+    narrative,
     tension,
     token_usage,
 )
@@ -201,6 +202,7 @@ def create_app() -> FastAPI:
     app.include_router(search.router, prefix=prefix)
     app.include_router(ingest.router, prefix=prefix)
     app.include_router(analysis.router, prefix=prefix)
+    app.include_router(narrative.router, prefix=prefix)
     app.include_router(tension.router, prefix=prefix)
     app.include_router(metrics.router, prefix=prefix)
     app.include_router(token_usage.router, prefix=prefix)

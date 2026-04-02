@@ -121,6 +121,17 @@ def get_tension_service():
 
 
 @lru_cache(maxsize=1)
+def get_narrative_service():
+    from services.narrative_service import NarrativeService  # noqa: PLC0415
+
+    return NarrativeService(
+        kg_service=get_kg_service(),
+        document_service=get_doc_service(),
+        cache=get_analysis_cache(),
+    )
+
+
+@lru_cache(maxsize=1)
 def get_global_timeline_service():
     from services.global_timeline_service import GlobalTimelineService  # noqa: PLC0415
 
@@ -172,3 +183,4 @@ AnalysisAgentDep = Annotated[any, Depends(get_analysis_agent)]
 ChatAgentDep = Annotated[any, Depends(get_chat_agent)]
 TemporalPipelineDep = Annotated[any, Depends(get_temporal_pipeline)]
 TensionServiceDep = Annotated[any, Depends(get_tension_service)]
+NarrativeServiceDep = Annotated[any, Depends(get_narrative_service)]

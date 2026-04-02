@@ -459,6 +459,30 @@ class NarrativeService:
             return prompt + "\n\nRespond with all text fields in Japanese."
         return prompt
 
+    # ── Cache accessors (B-036) ───────────────────────────────────────────────
+
+    async def get_cached_structure(self, document_id: str) -> Optional[NarrativeStructure]:
+        """Return the cached NarrativeStructure for a book, or None if not found."""
+        cached = await self._cache.get(f"{_CACHE_KEY_PREFIX}:{document_id}")
+        if cached is None:
+            return None
+        return NarrativeStructure(**cached)
+
+    async def update_review(
+        self,
+        document_id: str,
+        review_status: str,
+    ) -> Optional[NarrativeStructure]:
+        """Update the review_status of a cached NarrativeStructure."""
+        cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
+        cached = await self._cache.get(cache_key)
+        if cached is None:
+            return None
+        structure = NarrativeStructure(**cached)
+        structure.review_status = review_status  # type: ignore[assignment]
+        await self._cache.set(cache_key, structure.model_dump())
+        return structure
+
     # ── Phase 3: Hero's Journey mapping ──────────────────────────────────────
 
     async def map_hero_journey(
