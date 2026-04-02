@@ -1,23 +1,9 @@
 # StorySphere — 開發 Backlog
 
 **用途**: 記錄已識別但尚未排入 Phase 的開發項目
-**更新日期**: 2026-04-01
+**更新日期**: 2026-04-02
 
 > 已完成項目歸檔於 [BACKLOG_ARCHIVE.md](BACKLOG_ARCHIVE.md)
-
----
-
-## 🔴 高優先（功能缺口）
-
-### B-012 前端後端 API 整合驗證
-**背景**: 前端已完成重構（2026-03-15），對齊 `API_CONTRACT.md` 的全部端點，但目前仍使用 mock 資料（`VITE_MOCK=true`）
-**內容**:
-- 驗證後端 `/books`, `/chapters`, `/chunks`, `/graph`, `/analysis` 端點回傳格式與前端 types 一致
-- 確保 `TaskStatus` 的 `status` 欄位為 `done/error`（非 `completed/failed`）、`progress: 0-100`、`stage: string`
-- ~~Segment-based Chunk 回傳（後端需產出 `segments: Segment[]`）~~ ✅ 已實作（ingestion-time paragraph entity linking + stored offsets）
-- 前端 `uploadBook(file)` 只傳 file（不含 title），後端 `POST /books/upload` 需對應
-
-**驗收**: `VITE_MOCK=false` 時，Library → Upload → Reader → Analysis → Graph 端到端可跑通
 
 ---
 
@@ -58,94 +44,9 @@
 
 ---
 
----
-
-## 🔴 高優先（功能缺口）— 主題分析：符號學模組
-
-### B-017 意象實體識別策略研究（符號學前置依賴）
-**背景**: 符號學分析模組的核心技術挑戰。現有 NER pipeline 處理具體命名實體（人物/地點），但符號學需要識別「光」、「水」、「門」等**意象實體**，其邊界模糊、語境依賴、可能以隱喻形式出現，無法直接用現有 NER 解決。
-**設計文件**: `docs/notes/symbolic_analysis_design_notes.md` Section 四
-
-**內容**:
-- 評估三種識別策略的可行性：
-  1. **詞嵌入聚類**：用 `sentence-transformers`（已有）計算語義相似度，將「光」/「火焰」/「燭光」聚合成符號族群
-  2. **LLM 輔助標注**：prompt Gemini 識別段落中具有符號功能的意象詞彙
-  3. **人工種子 + 擴展**：分析者提供初始符號清單，系統擴展到語義相近詞彙
-- 用一本具體小說手動走完三層分析流程，驗證整體設計合理性
-- 評估現有向量搜索（Qdrant）能否支援語境採樣需求
-- 輸出可行性評估報告，確定最終策略（或組合策略）
-
-**實作提示**: 可先用 `src/services/keyword_service.py` 的 YAKE 提取高頻名詞作為候選意象，再用現有 `sentence-transformers` 做聚類實驗
-**前置依賴**: 無（本項是 B-018 ~ B-022 的前置依賴）
-
----
-
-## 🟡 中優先（功能完善）— 主題分析：符號學模組
-
-### B-018 ImagerEntity Domain Model 設計
-**背景**: 符號學模組需要新的實體類型表示意象實體，與現有 `Entity`（人物/地點）平行但語意不同。
-**前置依賴**: B-017（策略確定後才能設計 schema 邊界）
-
-**內容**:
-- 設計 `ImagerEntity` Pydantic model（`src/domain/imagery.py`）：
-  - `ImagerEntity`：符號本身（name, aliases, book_id, frequency, chapter_distribution）
-  - `SymbolOccurrence`：單次出現記錄（chunk_id, chapter, position, context_window, co_occurring_symbols）
-  - `SymbolCluster`：同義詞族群（canonical_name, variants, semantic_similarity_scores）
-- 設計對應的 `DocumentService` 存取方法（`save_symbol`, `get_symbol_occurrences`）
-
-**實作提示**: 參考 `src/domain/models.py` 的 `Entity` / `Event` 設計模式；存儲層沿用 SQLite（與 `analysis_cache.py` 一致）
-
----
-
-### B-019 符號學第一層：候選符號發現 Pipeline
-**背景**: 三層架構的第一層，回答「有什麼值得追蹤？」，為純統計工作（不涉及語義詮釋）。
-**前置依賴**: B-018
-
-**內容**:
-- 實作 `src/pipelines/symbol_discovery.py`：
-  - 高頻意象提取：去除停用詞後識別頻率異常高的名詞/意象（可複用 YAKE 結果）
-  - 情感密度標記：識別在情感強烈段落（衝突、死亡、轉折）密集出現的意象
-  - 分佈不均檢測：識別在特定章節突然大量出現或消失的意象
-- 輸出候選符號清單，附帶：出現頻率、章節分佈圖、情感密度分數
-- 整合進 `IngestionWorkflow`（可選，類似 keyword extraction 的整合方式）
-
-**實作提示**: 情感密度標記可借助現有 `EventAnalysis` 的情感標注結果；分佈分析直接基於 `DocumentService.get_chapter_keywords()` 的章節邊界
-
----
-
-### B-020 符號共現網絡建構（Layer 2）
-**背景**: 三層架構的第二層，回答「這些符號之間有什麼關係？」，建立符號關係網絡。
-**前置依賴**: B-019
-
-**內容**:
-- 共現矩陣：計算哪些意象總是一起出現、哪些從不同時出現（滑動窗口，window_size 可設定）
-- 語境採樣：每個符號出現時提取周圍語義場（複用 Qdrant 向量搜索找相似語境）
-- 語境變化追蹤：同一符號在不同章節的語境是否有系統性差異
-- **設計決策**：符號共現圖作為 NetworkX 的**平行圖層**（節點類型 `ImageryNode`，與現有 `EntityNode` 共存，不合併）
-
-**實作提示**: 共現圖資料結構與 `src/services/kg_service.py` 相同，可新建 `SymbolGraphService` 複用 NetworkX API；`KGService.get_subgraph()` 的查詢模式可直接借用
-
----
-
-## 🟢 低優先（可選升級）— 主題分析：符號學模組
-
-### B-021 詮釋輔助介面（Layer 3）— 符號時間軸
-**背景**: 三層架構的第三層，將前兩層統計結果組織成分析者可直接閱讀的格式。系統只呈現觀察，不提供詮釋。
-**前置依賴**: B-019, B-020
-
-**內容**:
-- API 端點：
-  - `GET /api/v1/symbols?book_id={id}` — 返回候選符號清單（含頻率、分佈）
-  - `GET /api/v1/symbols/{symbol_id}/timeline` — 某符號的所有出現實例，按章節排列附前後文
-  - `GET /api/v1/symbols/{symbol_id}/co-occurrences` — 共現關係最強的符號組
-- 自動標記語境發生明顯變化的位置（章節邊界的語境差異超過閾值）
-- 前端：符號時間軸視覺化元件（參考現有 EventTimeline 元件模式）
-
----
-
 ### B-022 符號學 Pipeline 整合與 Deep Analysis 對接
 **背景**: 將三層功能整合為完整 Pipeline，並接入現有 Deep Analysis Workflow，讓分析者可從 Character/Event 分析直接跳轉到相關符號追蹤。
-**前置依賴**: B-020, B-021
+**前置依賴**: B-020, B-021（均已完成）
 
 **內容**:
 - 整合 `SymbolDiscoveryPipeline` + `SymbolGraphService` + API layer 為完整符號學分析工作流
@@ -155,31 +56,16 @@
 
 ---
 
----
-
 ## 📋 狀態追蹤
 
 | ID | 項目 | 優先 | 狀態 |
 |----|------|------|------|
 | B-008 | Neo4j Backend | 🟢 低 | 待開始 |
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
-| B-012 | 前端後端 API 整合驗證 | 🔴 高 | 待開始 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
-| B-017 | 意象實體識別策略研究 | 🔴 高 | 待開始 |
-| B-018 | ImagerEntity Domain Model 設計 | 🟡 中 | 待開始 |
-| B-019 | 符號學 Layer 1：候選符號發現 Pipeline | 🟡 中 | 待開始 |
-| B-020 | 符號共現網絡建構（Layer 2） | 🟡 中 | 待開始 |
-| B-021 | 詮釋輔助介面（Layer 3）符號時間軸 | 🟢 低 | 待開始 |
 | B-022 | 符號學 Pipeline 整合與 Deep Analysis 對接 | 🟢 低 | 待開始 |
-| B-032 | Ingestion prompt 時間線索提取預留 | 🟡 中 | ✅ 完成 |
-| B-033 | Kernel/Satellite 第一階段：摘要啟發式分類 | 🟡 中 | ✅ 完成 |
-| B-034 | Kernel/Satellite 第二階段：LLM 細化分類 | 🟡 中 | ✅ 完成 |
-| B-035 | 坎伯英雄旅程 LLM 結構對應 | 🟡 中 | ✅ 完成 |
-| B-036 | NarrativeStructure 節點儲存 + 查詢介面 | 🟢 低 | ✅ 完成 |
-| B-037 | 熱奈特時序分析（倒敘/預敘識別）| 🟢 低 | ✅ 完成 |
-| B-038 | 敘事結構視覺化 + Deep Analysis 整合 | 🟢 低 | ✅ 完成 |
 
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-02（B-037/B-038 完成：敘事學模組全部實作完畢）
+**最後更新**: 2026-04-02（B-012/B-017~B-021 完成歸檔；B-032~B-038 已於上次歸檔）

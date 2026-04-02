@@ -25,6 +25,8 @@ from pipelines.knowledge_graph import KnowledgeGraphPipeline
 from pipelines.knowledge_graph.pipeline import KGExtractionResult
 from pipelines.summarization import SummarizationPipeline
 from pipelines.summarization.pipeline import SummarizationResult
+from pipelines.symbol_discovery import SymbolDiscoveryPipeline
+from pipelines.symbol_discovery.pipeline import SymbolDiscoveryResult
 from services.document_service import DocumentService
 from services.kg_service import KGService
 from workflows.base import BaseWorkflow
@@ -48,6 +50,7 @@ class IngestionResult:
     entities: int = 0
     relations: int = 0
     events: int = 0
+    imagery_extracted: int = 0
     errors: list[str] = field(default_factory=list)
 
     @property
@@ -73,11 +76,13 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         summarization_pipeline: Optional[SummarizationPipeline] = None,
         document_service: Optional[DocumentService] = None,
         kg_service: Optional[KGService] = None,
+        symbol_pipeline: Optional[SymbolDiscoveryPipeline] = None,
         *,
         skip_qdrant: bool = False,
         skip_kg: bool = False,
         skip_summarization: bool = False,
         skip_keywords: bool = False,
+        skip_symbols: bool = False,
     ) -> None:
         """
         Args:
@@ -114,9 +119,11 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             )
 
         self._summarization_pipeline = summarization_pipeline or SummarizationPipeline()
+        self._symbol_pipeline = symbol_pipeline or SymbolDiscoveryPipeline()
         self._skip_kg = skip_kg
         self._skip_summarization = skip_summarization
         self._skip_keywords = skip_keywords
+        self._skip_symbols = skip_symbols
 
     async def run(
         self,
@@ -205,6 +212,17 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 logger.error("KG extraction failed: %s", exc)
                 errors.append(f"kg_extraction: {exc}")
 
+        # ── Step 3b: symbol discovery ─────────────────────────────────────────
+        _progress(75, "符號分析")
+        symbol_result = SymbolDiscoveryResult(book_id=doc.id)
+        if not self._skip_symbols:
+            self._log_step("symbol_discovery")
+            try:
+                symbol_result = await self._symbol_pipeline(doc)
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Symbol discovery failed (non-fatal): %s", exc)
+                errors.append(f"symbol_discovery: {exc}")
+
         # ── Step 4: persist document to SQLite ───────────────────────────────
         _progress(80, "摘要生成")
         self._log_step("persist_document")
@@ -234,6 +252,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             entities=len(kg_result.entities),
             relations=len(kg_result.relations),
             events=len(kg_result.events),
+            imagery_extracted=symbol_result.imagery_count,
             errors=errors,
         )
         logger.info(

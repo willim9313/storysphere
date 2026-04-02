@@ -12,6 +12,7 @@ const tabs = [
   { label: '知識圖譜', path: '/graph' },
   { label: '時間軸', path: '/timeline' },
   { label: '張力分析', path: '/tension' },
+  { label: '符號意象', path: '/symbols' },
 ];
 
 export function BookNav({ bookId, bookTitle }: BookNavProps) {

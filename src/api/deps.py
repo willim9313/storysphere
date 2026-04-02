@@ -188,3 +188,21 @@ ChatAgentDep = Annotated[any, Depends(get_chat_agent)]
 TemporalPipelineDep = Annotated[any, Depends(get_temporal_pipeline)]
 TensionServiceDep = Annotated[any, Depends(get_tension_service)]
 NarrativeServiceDep = Annotated[any, Depends(get_narrative_service)]
+
+
+@lru_cache(maxsize=1)
+def get_symbol_service():
+    from services.symbol_service import SymbolService  # noqa: PLC0415
+
+    return SymbolService()
+
+
+@lru_cache(maxsize=1)
+def get_symbol_graph_service():
+    from services.symbol_graph_service import SymbolGraphService  # noqa: PLC0415
+
+    return SymbolGraphService()
+
+
+SymbolServiceDep = Annotated[any, Depends(get_symbol_service)]
+SymbolGraphServiceDep = Annotated[any, Depends(get_symbol_graph_service)]

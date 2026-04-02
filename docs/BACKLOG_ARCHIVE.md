@@ -257,3 +257,57 @@
 - `AnalysisAgent.analyze_narrative(document_id)` — 依序執行 heuristic → LLM refine → hero journey
 - `AnalysisAgent.__init__` 加入 `narrative_service` 參數
 - `docs/guides/PHASE_11_NARRATOLOGY.md`：完整流程文件
+
+---
+
+## B-012 前端後端 API 整合驗證 ✅ 完成
+**背景**: 前端已完成重構（2026-03-15），對齊 `API_CONTRACT.md` 的全部端點，但目前仍使用 mock 資料（`VITE_MOCK=true`）
+**驗收結論**:
+- 所有端點回傳格式（camelCase）與前端 types 一致
+- `TaskStatus.status` 為 `pending|running|done|error`，符合預期
+- `EventAnalysisDetail` 後端已手動構建 camelCase dict，完全對應
+- `uploadBook(file, title)` 前端傳兩欄位，後端 `title` 為 Optional，相容
+- `.env.local` 中 `VITE_MOCK` 已註解（mock 關閉）
+- Segment-based Chunk 回傳已實作（ingestion-time paragraph entity linking + stored offsets）
+
+---
+
+## B-017 意象實體識別策略研究（符號學前置依賴）✅ 完成
+**背景**: 符號學分析模組的核心技術挑戰。評估三種識別策略（詞嵌入聚類、LLM 輔助標注、人工種子+擴展）。
+**設計文件**: `docs/notes/symbolic_analysis_design_notes.md` Section 四
+**結論**: 採用 LLM 輔助標注（主）+ 詞嵌入聚類（同義詞合併），為 B-018~B-022 的前置依賴。
+
+---
+
+## B-018 ImagerEntity Domain Model 設計 ✅ 完成
+**背景**: 符號學模組需要新的實體類型表示意象實體，與現有 `Entity`（人物/地點）平行但語意不同。
+**實作**:
+- `src/domain/imagery.py`：`ImageryType` enum、`ImageryEntity`、`SymbolOccurrence`、`SymbolCluster`（純 Pydantic）
+- 持久層：`src/services/symbol_service.py`（aiosqlite，兩張表：`imagery_entities` + `symbol_occurrences`）
+
+---
+
+## B-019 符號學第一層：候選符號發現 Pipeline ✅ 完成
+**背景**: 三層架構的第一層，回答「有什麼值得追蹤？」。
+**實作**:
+- `src/services/imagery_extractor.py`：LLM 提取 + 貪心余弦相似度聚類（EmbeddingGenerator）
+- `src/pipelines/symbol_discovery/pipeline.py`：`SymbolDiscoveryPipeline(BasePipeline)`，章節順序處理
+- `src/workflows/ingestion.py`：新增 Step 3b（progress=75），`skip_symbols=True` 可跳過；`IngestionResult.imagery_extracted`
+
+---
+
+## B-020 符號共現網絡建構（Layer 2）✅ 完成
+**背景**: 三層架構的第二層，回答「這些符號之間有什麼關係？」。
+**實作**:
+- `src/services/symbol_graph_service.py`：`SymbolGraphService`，on-demand `build_graph()`，NetworkX `DiGraph`
+- 與 KGService 的 EntityNode 完全獨立，作為平行圖層
+
+---
+
+## B-021 詮釋輔助介面（Layer 3）— 符號時間軸 ✅ 完成
+**背景**: 三層架構的第三層，組織統計結果為可讀格式。系統只呈現觀察，不提供詮釋。
+**實作**:
+- `src/api/schemas/symbols.py`：`ImageryEntityResponse`、`ImageryListResponse`、`SymbolTimelineEntry`、`CoOccurrenceEntry`（snake_case）
+- `src/api/routers/symbols.py`：`GET /symbols`、`GET /symbols/{id}/timeline`、`GET /symbols/{id}/co-occurrences`
+- `src/api/deps.py`：`SymbolServiceDep`、`SymbolGraphServiceDep`
+- `frontend/src/api/symbols.ts` + `frontend/src/pages/SymbolsPage.tsx`：符號意象分析頁面
