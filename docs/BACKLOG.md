@@ -157,13 +157,11 @@
 
 ---
 
-## 🔴 高優先（功能缺口）— 主題分析：敘事學模組
-
 ## 🟡 中優先（功能完善）— 主題分析：敘事學模組
 
 ### B-032 Ingestion prompt 時間線索提取預留
 **背景**: 熱奈特時序分析的完整實作需要故事時間軸，但故事時間標記成本高。短期策略是在 ingestion 時提取文本中已存在的時間線索（「多年前」、「那個夏天」），成本增量極小，但為未來保留入口。
-**前置依賴**: B-031（schema 先定義）
+**前置依賴**: 無（B-031 已完成，`StoryTimeRef` schema 已定義）
 
 **內容**:
 - 更新 Event 提取 prompt（`src/pipelines/entity_extractor.py`），新增選填項：
@@ -178,7 +176,7 @@
 
 ### B-033 Kernel/Satellite 第一階段：摘要啟發式分類
 **背景**: 現有層級摘要（書/章/段）已隱含粗略的重要性分層——能進入章節摘要的 Event 本來就比只在段落層的 Event 重要。第一階段直接利用這個信號，不需要額外 LLM 調用。
-**前置依賴**: B-031
+**前置依賴**: 無（B-031 已完成，`narrative_weight` 欄位已存在）
 
 **內容**:
 - 新增 `src/domain/narrative.py`：`NarrativeStructure`, `HeroJourneyStage`, `ProppFunctionRef` models
@@ -276,4 +274,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-02（B-023 ~ B-031 張力分析模組全部歸檔至 BACKLOG_ARCHIVE.md）
+**最後更新**: 2026-04-02（移除空的敘事學高優先區塊；B-032、B-033 前置依賴 B-031 已完成，解除阻塞）
