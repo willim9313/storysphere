@@ -1,7 +1,7 @@
 # StorySphere 敘事學分析模組 — 規劃與設計筆記
 
 **建立日期**: 2026-03-30
-**狀態**: 概念規劃階段（Backlog）
+**狀態**: 部分實作中（B-031~B-034 完成，B-035~B-038 待開發）
 **來源**: 分析方法論討論
 
 ---
@@ -409,21 +409,20 @@ class HeroJourneyStage(BaseModel):
 
 ### 短期（前置作業，可在其他模組開發時同步完成）
 
-- [ ] **[B-031]** Event 節點敘事學欄位預留（`narrative_weight` + `story_time`）
-  - 前置依賴：無（**強烈建議與 B-023 的張力欄位合併進同一次 ingestion migration**，避免重複修改 schema 和 prompt）
-  - 預期產出：更新 `src/domain/models.py` EventNode，新增 `narrative_weight="unclassified"`（預設值）和 `story_time=None`（預留，允許空值）
-- [ ] **[B-032]** Ingestion prompt 時間線索提取預留
-  - 前置依賴：B-031（schema 先定義）
-  - 預期產出：更新 Event 提取 prompt，新增選填項「如有明確時間線索請填入 `time_anchor`」；成本增量極小（只提取文本已有的線索，不做推斷）
+- [x] **[B-031]** Event 節點敘事學欄位預留（`narrative_weight` + `story_time`）✅ 完成
+  - 已與 B-023 張力欄位合併為同一次 migration
+  - 實作：`src/domain/events.py` EventNode 新增 `narrative_weight`、`narrative_weight_source`、`story_time`、`story_time_hint`
+- [x] **[B-032]** Ingestion prompt 時間線索提取預留 ✅ 完成
+  - 實作：`src/services/extraction_service.py` — `story_time_hint` 已在 Event 提取 prompt 中
 
 ### 中期（本模組原型實作）
 
-- [ ] **[B-033]** Kernel/Satellite 第一階段：摘要啟發式分類
-  - 前置依賴：B-031
-  - 預期產出：`src/services/narrative_service.py` — `classify_by_heuristic(book_id)` 方法，依層級摘要推斷 `narrative_weight`，標記 `source="summary_heuristic"`；`NarrativeStructure` schema（`src/domain/narrative.py`）
-- [ ] **[B-034]** Kernel/Satellite 第二階段：LLM 細化分類
-  - 前置依賴：B-033（啟發式結果作為 LLM 細化的候選集）
-  - 預期產出：`NarrativeService.refine_with_llm(event_ids)` — 對啟發式不確定的 Event 進行 LLM 完整判斷；定義 Kernel/Satellite 分歧解決規則（摘要層級 vs LLM 衝突時以哪個為準）
+- [x] **[B-033]** Kernel/Satellite 第一階段：摘要啟發式分類 ✅ 完成
+  - 實作：`src/domain/narrative.py`（NarrativeStructure、HeroJourneyStage、ProppFunctionRef、KernelSatelliteResult）
+  - 實作：`src/services/narrative_service.py` — `classify_by_heuristic(document_id)`、`get_kernel_spine(document_id)`
+- [x] **[B-034]** Kernel/Satellite 第二階段：LLM 細化分類 ✅ 完成
+  - 實作：`NarrativeService.refine_with_llm(document_id)` — 對 satellite 事件進行 LLM 二次判斷
+  - 衝突解決：LLM 優先，分歧以 WARNING 記錄供人工審核
 - [ ] **[B-035]** 坎伯英雄旅程 LLM 結構對應
   - 前置依賴：無（輸入為章節摘要序列，現有資料即可）
   - 預期產出：`NarrativeService.map_hero_journey(book_id)` — 輸入章節摘要序列，LLM 輸出 `HeroJourneyStage` 列表，含章節範圍和置信度；解決多主角作品的設計決策
@@ -452,6 +451,5 @@ class HeroJourneyStage(BaseModel):
 
 ---
 
-**最後更新**: 2026-03-30
-**狀態**: 概念規劃階段，Ingestion 預留欄位（B-031, B-032）可提前與 B-023 合併處理
+**最後更新**: 2026-04-02（B-031~B-034 完成；B-035~B-038 待開發）
 **維護者**: William
