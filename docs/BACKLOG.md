@@ -263,8 +263,8 @@
 | B-020 | 符號共現網絡建構（Layer 2） | 🟡 中 | 待開始 |
 | B-021 | 詮釋輔助介面（Layer 3）符號時間軸 | 🟢 低 | 待開始 |
 | B-022 | 符號學 Pipeline 整合與 Deep Analysis 對接 | 🟢 低 | 待開始 |
-| B-032 | Ingestion prompt 時間線索提取預留 | 🟡 中 | 待開始 |
-| B-033 | Kernel/Satellite 第一階段：摘要啟發式分類 | 🟡 中 | 待開始 |
+| B-032 | Ingestion prompt 時間線索提取預留 | 🟡 中 | ✅ 完成 |
+| B-033 | Kernel/Satellite 第一階段：摘要啟發式分類 | 🟡 中 | ✅ 完成 |
 | B-034 | Kernel/Satellite 第二階段：LLM 細化分類 | 🟡 中 | 待開始 |
 | B-035 | 坎伯英雄旅程 LLM 結構對應 | 🟡 中 | 待開始 |
 | B-036 | NarrativeStructure 節點儲存 + 查詢介面 | 🟢 低 | 待開始 |
@@ -274,4 +274,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-02（移除空的敘事學高優先區塊；B-032、B-033 前置依賴 B-031 已完成，解除阻塞）
+**最後更新**: 2026-04-02（B-032 已實作確認；B-033 完成：narrative.py domain model + NarrativeService heuristic 分類）
