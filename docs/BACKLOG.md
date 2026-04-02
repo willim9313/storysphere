@@ -157,157 +157,7 @@
 
 ---
 
-## 🔴 高優先（功能缺口）— 主題分析：張力分析模組
-
-### B-023 Event 節點張力欄位強化
-**背景**: 張力分析的觸發機制依賴 Event 節點的 `tension_signal` 標記。目前 ingestion pipeline 提取 Event 節點時未產出此欄位，TEU 組裝無法啟動。
-**設計文件**: `docs/notes/tension_analysis_design_notes.md` Section 五
-
-**內容**:
-- 更新 `src/domain/models.py` EventNode schema，新增三個欄位：
-  - `tension_signal: Literal["none", "potential", "explicit"]`
-  - `emotional_intensity: float | None`（0-1，僅 tension != none 時填入）
-  - `emotional_valence: Literal["positive", "negative", "mixed", "neutral"] | None`
-- 更新 `src/pipelines/entity_extractor.py` 的 Event 提取 prompt，引導 LLM 同時輸出張力標記
-- 確認 schema migration 策略（舊 Event 節點補填 `tension_signal="none"` 或重新 ingest）
-
-**實作提示**: 提取 prompt 參考 EEP 的 `emotional_valence` 設計（已有類似概念）；三值設計比 boolean 更誠實，不強迫 LLM 二選一
-**前置依賴**: 無（可與 B-024 並行）
-
-> ⚠️ **與 B-031 強烈建議合併**：B-023（張力欄位）和 B-031（敘事學欄位）都修改 EventNode schema 和 ingestion prompt。合併成一次 migration，避免重複修改。
-
----
-
-### B-024 Concept 節點 surface/inferred 分類強化
-**背景**: 張力分析用 Concept 節點描述對立極點，但需要區分「文本直接說出的概念」（surface）和「LLM 從段落推斷的命題」（inferred），兩者可信度和使用方式不同。
-**設計文件**: `docs/notes/tension_analysis_design_notes.md` Section 四
-
-**內容**:
-- 更新 ConceptNode schema，新增欄位：
-  - `extraction_method: Literal["ner", "inferred"]`
-  - `source_spans: List[SpanRef] | None`（Surface 專用）
-  - `inferred_by: str | None`（Inferred 專用，e.g. `"tension_pre_analysis_v1"`）
-  - `confidence: float | None`（Inferred 專用）
-- ingestion pipeline 產出 Concept 節點時，自動標記 `extraction_method="ner"`
-- 驗證現有 KGService 查詢能否按 `extraction_method` 過濾
-
-**前置依賴**: 無（可與 B-023 並行）
-
----
-
-## 🟡 中優先（功能完善）— 主題分析：張力分析模組
-
-### B-025 Pre-Analysis Step：Inferred Concept 節點產生流程
-**背景**: Inferred Concept 節點（LLM 從段落群推斷的抽象命題，如「權力腐化善意」）不在 ingestion 時產出，而是 TEU 組裝的前置作業。此步驟有獨立的邊界。
-**前置依賴**: B-024
-
-**內容**:
-- 實作 `src/pipelines/concept_inference.py`：
-  - 輸入：候選段落群（可由 `emotional_intensity` 高的 Event 節點定位）
-  - LLM prompt：從段落群歸納隱性命題，產出帶置信度的 Concept 標籤
-  - 輸出：`ConceptNode`（`extraction_method="inferred"`, `inferred_by`, `confidence`），存入 KG
-- 設計 `inferred_by` 的命名規範（e.g. `"tension_pre_analysis_v1"`）
-- 此步驟可在用戶觸發張力分析時 lazy 執行
-
-**實作提示**: 參考 `src/services/analysis_service.py` 的 archetype 推斷流程（LLM + confidence + 結果持久化）
-
----
-
-### B-026 TEU Domain Model + 組裝 Pipeline（模式 B 優先）
-**背景**: TEU（Tension Evidence Unit）是張力分析的最小單元，描述一個場景內的對立關係。模式 B（按需、單 Event 觸發）優先實作，比全書掃描更易驗證。
-**前置依賴**: B-023, B-024, B-025
-
-**內容**:
-- 新增 `src/domain/tension.py`：`TensionPole`, `TEU`, `TensionLine`, `TensionTheme` Pydantic models
-- 新增 `src/services/tension_service.py`：
-  - `assemble_teu(event_id)` — 模式 B：單一 Event 觸發，從 KG 拉取 Character + Concept 節點 + Chapter Summary，LLM 組裝 TEU
-  - `save_teu()` / `get_teu()` 存取層
-- 輸入來源（TEU 組裝的原料）：
-  - Event 節點（含情感標記）
-  - Character 節點（來自 KGService）
-  - Concept 節點（Surface + Inferred）
-  - Chapter Summary（來自 DocumentService）
-  - CEP（可選，來自 AnalysisAgent）
-- 模式 A（全書掃描）延至 B-028
-
-**實作提示**: TEU 組裝 prompt 的結構類似 EEP，但主語從「事件」換成「對立關係本身」
-
----
-
-## 🟢 低優先（可選升級）— 主題分析：張力分析模組
-
-### B-027 TensionLine 自動 grouping + HITL 審核介面
-**背景**: TensionLine 是跨場景的對立模式，由多個 TEU 群集而成。群集需要 HITL（Human-in-the-Loop）介入，防止概念相似但實際獨立的主題被錯誤合併。
-**前置依賴**: B-026
-**開放問題**: intensity 聚合方式（平均值 / 最大值）、grouping 演算法（向量距離 vs LLM）待評估
-
-**內容**:
-- 自動 grouping 邏輯（兩個維度）：
-  - 概念相似性：TEU 的對立極點涉及相同或相關 Concept 節點（向量距離優先評估）
-  - 承載者重疊：TEU 涉及相同角色或陣營
-- API 端點：
-  - `GET /api/v1/tension/lines?book_id={id}` — 返回系統生成的 TensionLine 列表
-  - `PATCH /api/v1/tension/lines/{id}/review` — 更新 `review_status`（approve / modify / reject）
-- 前端 HITL 審核元件：每條 TensionLine 顯示組成 TEU、軌跡圖、極點標籤，供分析者快速判斷
-
----
-
-### B-028 模式 A：全書掃描批次 TEU 組裝
-**背景**: 模式 A 對全書所有 `tension_signal != "none"` 的 Event 節點批次組裝 TEU，作為完整分析的入口。
-**前置依賴**: B-026
-
-**內容**:
-- `TensionService.analyze_book_tensions(book_id)` — 批次模式，以 `asyncio.gather` 並發組裝
-- 整合進 `AnalysisAgent`（新入口，類比 `analyze_character` / `analyze_event`）
-- API 端點：`POST /api/v1/tension/analyze` → 返回 `task_id`（異步，WebSocket 推送進度）
-- 進度追蹤：每完成 N 個 TEU 推送一次 `stage: "teu_assembly"` 狀態更新
-
----
-
-### B-029 TensionTheme 合成 + Frye/Booker 標籤對應
-**背景**: TensionTheme 是全書層面的張力主題命題，由多條 TensionLine 合成。這是最需要人介入的步驟，系統提供組織好的輸入，LLM 產出命題草稿，人工審核確認。
-**前置依賴**: B-027
-
-**內容**:
-- `TensionService.synthesize_theme(book_id)` — 輸入已審核的 TensionLine + Frye/Booker 標籤 + Jung/Schmidt 原型，LLM 產出 `proposition`
-- API 端點：`GET /api/v1/tension/theme?book_id={id}` / `PATCH /api/v1/tension/theme/{id}/review`
-- Frye/Booker 標籤整合：參考 `src/config/archetypes.py` 模式，新增 `src/config/mythos.py`
-
----
-
-### B-030 張力分析與 Deep Analysis Workflow 完整整合
-**背景**: 將 B-023 ~ B-029 的所有元件串連為完整端到端工作流，從 ingestion → TEU → TensionLine（HITL）→ TensionTheme（人工審核）。
-**前置依賴**: B-028, B-029
-
-**內容**:
-- 完整流程文件（`docs/guides/PHASE_10_TENSION_ANALYSIS.md`）
-- 前端：張力分析儀表板（TensionLine 軌跡圖、TEU 列表、TensionTheme 命題展示）
-- 評估跨書比較可行性（同一張力模式在不同作品的呈現差異）
-
----
-
----
-
 ## 🔴 高優先（功能缺口）— 主題分析：敘事學模組
-
-### B-031 Event 節點敘事學欄位預留（narrative_weight + story_time）
-**背景**: Kernel/Satellite 分類（查特曼）和熱奈特時序分析都依賴 Event 節點的新欄位。這些欄位應在 ingestion 時以預設值填入，後續分析步驟再更新，不需要重新 ingest。
-**設計文件**: `docs/notes/narratology_analysis_design_notes.md` Section 五
-
-> ⚠️ **與 B-023 強烈建議合併**：B-023（張力欄位）和 B-031（敘事學欄位）都修改 EventNode schema 和 ingestion prompt。合併成一次 migration，避免重複修改。
-
-**內容**:
-- 更新 `src/domain/models.py` EventNode，新增：
-  - `narrative_weight: Literal["kernel", "satellite", "unclassified"] = "unclassified"`
-  - `narrative_weight_source: Literal["summary_heuristic", "llm_classified", "human_verified"] | None = None`
-  - `story_time: StoryTimeRef | None = None`（預留，允許空值）
-- 新增 `StoryTimeRef` schema（`relative_order`, `time_anchor`, `absolute_time`, `confidence`）
-- Ingestion 時 `narrative_weight` 以 `"unclassified"` 填入，`story_time` 以 `None` 填入
-
-**實作提示**: 預設值確保舊 Event 節點不需補填；`story_time` 欄位整個允許 `null`，不影響現有查詢
-**前置依賴**: 建議與 B-023 合併處理
-
----
 
 ## 🟡 中優先（功能完善）— 主題分析：敘事學模組
 
@@ -415,15 +265,6 @@
 | B-020 | 符號共現網絡建構（Layer 2） | 🟡 中 | 待開始 |
 | B-021 | 詮釋輔助介面（Layer 3）符號時間軸 | 🟢 低 | 待開始 |
 | B-022 | 符號學 Pipeline 整合與 Deep Analysis 對接 | 🟢 低 | 待開始 |
-| B-023 | Event 節點張力欄位強化 | 🔴 高 | ✅ 完成 |
-| B-024 | Concept 節點 surface/inferred 分類強化 | 🔴 高 | ✅ 完成 |
-| B-025 | Pre-Analysis Step：Inferred Concept 節點產生 | 🟡 中 | ✅ 完成 |
-| B-026 | TEU Domain Model + 組裝 Pipeline（模式 B） | 🟡 中 | ✅ 完成 |
-| B-027 | TensionLine 自動 grouping + HITL 審核介面 | 🟢 低 | ✅ 完成 |
-| B-028 | 模式 A：全書掃描批次 TEU 組裝 | 🟢 低 | ✅ 完成 |
-| B-029 | TensionTheme 合成 + Frye/Booker 標籤對應 | 🟢 低 | ✅ 完成 |
-| B-030 | 張力分析 Deep Analysis Workflow 完整整合 | 🟢 低 | ✅ 完成 |
-| B-031 | Event 節點敘事學欄位預留（已與 B-023 合併）| 🔴 高 | ✅ 完成 |
 | B-032 | Ingestion prompt 時間線索提取預留 | 🟡 中 | 待開始 |
 | B-033 | Kernel/Satellite 第一階段：摘要啟發式分類 | 🟡 中 | 待開始 |
 | B-034 | Kernel/Satellite 第二階段：LLM 細化分類 | 🟡 中 | 待開始 |
@@ -435,4 +276,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-01（B-030 完成：張力分析前端儀表板 + PHASE_10 流程文件）
+**最後更新**: 2026-04-02（B-023 ~ B-031 張力分析模組全部歸檔至 BACKLOG_ARCHIVE.md）
