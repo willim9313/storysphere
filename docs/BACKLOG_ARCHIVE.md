@@ -5,6 +5,26 @@
 
 ---
 
+## B-008 Neo4j Backend ✅ 完成
+**背景**: ADR-009 設計為 NetworkX（預設）↔ Neo4j（大規模可選），`kg_mode='neo4j'` 有 settings 但未實作。
+**內容**:
+- `KGServiceBase` ABC 定義 16 個抽象 method
+- `Neo4jKGService` 使用 neo4j async driver v6（`properties(r)` 取代 `.data()` 序列化 tuple bug）
+- Runtime 切換：`POST /api/v1/kg/switch`，清除 lru_cache，不需重啟
+- 雙向遷移：`POST /api/v1/kg/migrate`（nx↔neo4j），async task + task_store 追蹤
+- `GET /api/v1/kg/status` 顯示目前 backend、counts、連線狀態
+- 前端 `/settings` 頁面：mode toggle、stats、migration 進度
+- books.py 移除 `kg._graph` 直接存取，改用公開 API
+
+**注意事項**:
+- neo4j driver v6：`result.data()` 將 relationship 序列化為 tuple，需用 `properties(r)` in Cypher
+- Pydantic `to_camel` 對 `neo4j_*` 欄位會產生 `neo4J*`（數字後大寫），改用 `graph_db_*` 命名迴避
+- 前端型別必須用 `npm run gen:types` 生成，避免手寫欄位名錯誤
+
+**實作**: `src/services/kg_service_base.py`, `kg_service_neo4j.py`, `kg_migration.py`; `src/api/routers/kg_settings.py`; `frontend/src/pages/SettingsPage.tsx`
+
+---
+
 ## B-001 Relations Router（API 層遺漏）✅ 完成
 **背景**: Phase 8 guide 有規劃但未實作
 **內容**:

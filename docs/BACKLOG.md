@@ -29,13 +29,6 @@
 
 ## 🟢 低優先（可選升級）
 
-### B-008 Neo4j Backend
-**背景**: ADR-009 設計為 NetworkX（預設）↔ Neo4j（大規模可選），`kg_mode='neo4j'` 有 settings 但未實作
-**內容**: `KGService` 加入 Neo4j 分支，`kg_mode='neo4j'` 時使用 `neo4j` driver
-**前置條件**: 需要 Docker + Neo4j 實例
-
----
-
 ### B-011 生產環境配置
 **內容**:
 - Dockerfile + docker-compose（API + Qdrant + 可選 Neo4j）
@@ -60,7 +53,6 @@
 
 | ID | 項目 | 優先 | 狀態 |
 |----|------|------|------|
-| B-008 | Neo4j Backend | 🟢 低 | 待開始 |
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
 | B-022 | 符號學 Pipeline 整合與 Deep Analysis 對接 | 🟢 低 | 待開始 |
@@ -68,4 +60,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-02（B-012/B-017~B-021 完成歸檔；B-032~B-038 已於上次歸檔）
+**最後更新**: 2026-04-03（B-008 完成歸檔）
