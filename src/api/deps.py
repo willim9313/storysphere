@@ -14,6 +14,24 @@ from fastapi import Depends
 
 logger = logging.getLogger(__name__)
 
+# Runtime override for kg_mode — set via /api/v1/kg/switch endpoint.
+# Takes precedence over settings.kg_mode without requiring a restart.
+_runtime_kg_mode: str | None = None
+
+
+def set_kg_mode_override(mode: str) -> None:
+    """Switch the active KG backend at runtime and reinitialise all dependents."""
+    global _runtime_kg_mode
+    _runtime_kg_mode = mode
+    # Clear all caches that hold a reference to the old KGService instance
+    get_kg_service.cache_clear()
+    get_analysis_service.cache_clear()
+    get_keyword_service.cache_clear()
+    get_narrative_service.cache_clear()
+    get_chat_agent.cache_clear()
+    get_analysis_agent.cache_clear()
+    logger.info("KG mode switched to '%s'; all dependent singletons reset.", mode)
+
 
 # ── Service singletons ────────────────────────────────────────────────────────
 
@@ -21,11 +39,23 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=1)
 def get_kg_service():
     from config.settings import get_settings  # noqa: PLC0415
-    from services.kg_service import KGService  # noqa: PLC0415
 
     settings = get_settings()
-    svc = KGService(persistence_path=settings.kg_persistence_path)
-    logger.info("KGService initialised (mode=%s)", settings.kg_mode)
+    mode = _runtime_kg_mode or settings.kg_mode
+    if mode == "neo4j":
+        from services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
+
+        svc = Neo4jKGService(
+            url=settings.neo4j_url,
+            user=settings.neo4j_user,
+            password=settings.neo4j_password,
+        )
+        logger.info("KGService initialised (mode=neo4j, url=%s)", settings.neo4j_url)
+    else:
+        from services.kg_service import KGService  # noqa: PLC0415
+
+        svc = KGService(persistence_path=settings.kg_persistence_path)
+        logger.info("KGService initialised (mode=networkx)")
     return svc
 
 

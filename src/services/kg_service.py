@@ -4,8 +4,8 @@ Provides a thin async interface for adding and querying entities, relations,
 and events.  The graph is persisted to a JSON file on save and loaded on
 startup (if the file exists).
 
-Neo4j is out of scope for Phase 2; the interface is designed to be compatible
-with a future Neo4j backend swap (ADR-009).
+This class implements KGServiceBase.  For the Neo4j backend see
+``kg_service_neo4j.Neo4jKGService``.
 """
 
 from __future__ import annotations
@@ -21,11 +21,12 @@ from domain.entities import Entity, EntityType
 from domain.events import Event
 from domain.relations import Relation
 from domain.temporal import TemporalRelation
+from services.kg_service_base import KGServiceBase
 
 logger = logging.getLogger(__name__)
 
 
-class KGService:
+class KGService(KGServiceBase):
     """NetworkX-backed knowledge graph service.
 
     The graph is a ``MultiDiGraph`` where:
@@ -544,3 +545,7 @@ class KGService:
             chapters=data.get("chapters", []),
             is_bidirectional=data.get("is_bidirectional", False),
         )
+
+
+# Alias for code that imports by the new name.
+NetworkXKGService = KGService

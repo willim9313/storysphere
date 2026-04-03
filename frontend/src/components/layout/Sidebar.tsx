@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Upload, BookOpen, Search, BarChart3 } from 'lucide-react';
+import { Home, Upload, BookOpen, Search, BarChart3, Settings } from 'lucide-react';
 
 const items = [
   { to: '/', icon: Home, label: '書庫' },
@@ -7,6 +7,7 @@ const items = [
   { to: '/frameworks', icon: BookOpen, label: '框架索引' },
   { to: '#', icon: Search, label: '搜尋', disabled: true },
   { to: '/token-usage', icon: BarChart3, label: 'Token 用量' },
+  { to: '/settings', icon: Settings, label: '系統設定' },
 ];
 
 export function Sidebar() {

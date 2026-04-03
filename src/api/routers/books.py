@@ -323,11 +323,14 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
     stats = _entity_type_counts(book_entities)
     # Count relations that connect entities of this book
     book_entity_ids = {e.id for e in book_entities}
-    book_relation_count = sum(
-        1
-        for u, v, key in kg._graph.edges(keys=True)
-        if u in book_entity_ids and v in book_entity_ids and not key.endswith("_rev")
-    )
+    # Count unique outgoing relations whose both endpoints belong to this book.
+    # Works for both NetworkX and Neo4j backends (uses the public API only).
+    seen_rel_ids: set[str] = set()
+    for entity in book_entities:
+        for rel in await kg.get_relations(entity.id, direction="out"):
+            if rel.target_id in book_entity_ids and rel.id not in seen_rel_ids:
+                seen_rel_ids.add(rel.id)
+    book_relation_count = len(seen_rel_ids)
     return BookDetailResponse(
         id=document.id,
         title=document.title,
@@ -657,21 +660,19 @@ async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> 
     # Build edges — only those connecting entities of this book
     edges: list[dict] = []
     seen_keys: set[str] = set()
-    for u, v, key, data in kg._graph.edges(keys=True, data=True):
-        if u not in entity_ids or v not in entity_ids:
-            continue
-        base_key = key[:-4] if key.endswith("_rev") else key
-        if base_key in seen_keys:
-            continue
-        seen_keys.add(base_key)
-        edges.append(
-            GraphEdge(
-                id=base_key,
-                source=u,
-                target=v,
-                label=data.get("relation_type"),
-            ).model_dump(by_alias=True)
-        )
+    for entity in entities:
+        for rel in await kg.get_relations(entity.id, direction="out"):
+            if rel.target_id not in entity_ids or rel.id in seen_keys:
+                continue
+            seen_keys.add(rel.id)
+            edges.append(
+                GraphEdge(
+                    id=rel.id,
+                    source=rel.source_id,
+                    target=rel.target_id,
+                    label=rel.relation_type.value,
+                ).model_dump(by_alias=True)
+            )
 
     # Add event nodes + edges
     events = await kg.get_events(document_id=book_id)

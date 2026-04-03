@@ -14,6 +14,7 @@ const TensionPage = lazy(() => import('@/pages/TensionPage'));
 const SymbolsPage = lazy(() => import('@/pages/SymbolsPage'));
 const FrameworksPage = lazy(() => import('@/pages/FrameworksPage'));
 const TokenUsagePage = lazy(() => import('@/pages/TokenUsagePage'));
+const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 
 function LazyWrapper({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>;
@@ -52,6 +53,14 @@ export const router = createBrowserRouter([
         element: (
           <LazyWrapper>
             <TokenUsagePage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: '/settings',
+        element: (
+          <LazyWrapper>
+            <SettingsPage />
           </LazyWrapper>
         ),
       },

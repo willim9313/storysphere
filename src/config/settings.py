@@ -61,6 +61,8 @@ class Settings(BaseSettings):
     neo4j_url: str = "bolt://localhost:7687"
     neo4j_user: str = "neo4j"
     neo4j_password: str = ""
+    neo4j_connection_timeout: int = Field(default=10, description="Neo4j connection timeout in seconds")
+    neo4j_max_connection_pool_size: int = Field(default=50, description="Neo4j driver connection pool size")
 
     # ── Embedding ──────────────────────────────────────────────────────────────
     embedding_model_name: str = Field(

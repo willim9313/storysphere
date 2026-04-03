@@ -23,6 +23,7 @@ from api.routers import (
     documents,
     entities,
     ingest,
+    kg_settings,
     metrics,
     relations,
     search,
@@ -149,6 +150,12 @@ async def lifespan(app: FastAPI):
     logger.info("All services ready.")
     yield
     logger.info("StorySphere API shutting down.")
+    # Close Neo4j driver connection pool if applicable
+    from services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
+
+    if isinstance(kg, Neo4jKGService):
+        await kg.close()
+        logger.info("Neo4j driver closed.")
 
 
 def create_app() -> FastAPI:
@@ -206,6 +213,7 @@ def create_app() -> FastAPI:
     app.include_router(narrative.router, prefix=prefix)
     app.include_router(tension.router, prefix=prefix)
     app.include_router(symbols.router, prefix=prefix)
+    app.include_router(kg_settings.router, prefix=prefix)
     app.include_router(metrics.router, prefix=prefix)
     app.include_router(token_usage.router, prefix=prefix)
     app.include_router(chat_ws.router)        # WS /ws/chat
