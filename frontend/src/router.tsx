@@ -12,6 +12,7 @@ const GraphPage = lazy(() => import('@/pages/GraphPage'));
 const TimelinePage = lazy(() => import('@/pages/TimelinePage'));
 const TensionPage = lazy(() => import('@/pages/TensionPage'));
 const SymbolsPage = lazy(() => import('@/pages/SymbolsPage'));
+const UnravelingPage = lazy(() => import('@/pages/UnravelingPage'));
 const FrameworksPage = lazy(() => import('@/pages/FrameworksPage'));
 const TokenUsagePage = lazy(() => import('@/pages/TokenUsagePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
@@ -113,6 +114,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <SymbolsPage />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: 'unraveling',
+            element: (
+              <LazyWrapper>
+                <UnravelingPage />
               </LazyWrapper>
             ),
           },

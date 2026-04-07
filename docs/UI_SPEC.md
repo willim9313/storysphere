@@ -1007,6 +1007,90 @@ Y 軸（↑）= 故事時序（Fabula）
 
 ---
 
+### 3.8 展開卷軸頁 `/books/:bookId/unraveling`
+
+> **B-039** — 資料透視功能。以有向無環圖（DAG）將系統為每本書建立的所有資料層結構化呈現給用戶。
+
+#### 功能目的
+
+1. **可見性**：段落數、實體數、CEP 完成率等資料量體預設對用戶不可見，本頁一次性浮出水面，讓用戶清楚知道「這本書被分析到了什麼程度」。
+2. **診斷性**：功能不可用或結果不完整時，用戶可來此確認是哪個資料層尚未建立，而非在各功能頁間分散猜測。
+3. **依賴關係的呈現**：DAG 視覺語言正確反映建構依賴——同層平行節點並排，依賴方向由左至右流動，不製造錯誤從屬關係。
+
+#### 版面結構
+
+```
+[DAG Canvas — 全幅]  [Detail Panel — 點擊節點後展開，右側]
+```
+
+- DAG Canvas 佔剩餘全幅，支援 pan / zoom
+- Detail Panel 點擊節點後從右側滑入（寬約 280px），可關閉
+
+#### DAG 節點層次
+
+| Layer | 節點 ID | 節點名稱 |
+|-------|---------|---------|
+| 0 — Text Layer | `book_meta` | Book Meta |
+| 0 — Text Layer | `chapters` | Chapters |
+| 0 — Text Layer | `paragraphs` | Paragraphs |
+| 1 — KG Layer | `entities` | Entities |
+| 1 — KG Layer | `relations` | Relations |
+| 1 — KG Layer | `events` | Events |
+| 2 — Analysis Layer | `temporal` | Temporal |
+| 2 — Analysis Layer | `symbols` | Symbols |
+| 2 — Analysis Layer | `character_analysis` | Character Analysis |
+| 2 — Analysis Layer | `event_analysis` | Event Analysis |
+| 2 — Analysis Layer | `narrative_structure` | Narrative Structure |
+| 2 — Analysis Layer | `tension_analysis` | Tension Analysis |
+
+#### 節點狀態
+
+每個節點有三種狀態，以顏色區分：
+
+| 狀態 | 意義 | 顏色 |
+|------|------|------|
+| `complete` | 資料完整建立 | 綠底綠框 |
+| `partial` | 部分完成（如僅部分角色有 CEP） | 黃底黃框 |
+| `empty` | 尚未建立 | 灰底灰框 |
+
+#### 節點形狀（Layer 辨識）
+
+- Layer 0（Text）→ diamond
+- Layer 1（KG）→ rectangle
+- Layer 2（Analysis）→ round-rectangle
+
+#### DAG 邊（依賴關係）
+
+```
+book_meta → chapters, paragraphs
+chapters → entities, relations, events, symbols
+paragraphs → entities
+events → temporal, event_analysis, narrative_structure, tension_analysis
+entities → character_analysis
+temporal → narrative_structure
+```
+
+#### 節點互動
+
+**已實作：**
+- 點擊節點 → 右側 Detail Panel 顯示該節點的數量明細（counts）
+
+**規劃中（尚未實作）：**
+- **展開互動**：Detail Panel 可進一步瀏覽該層原始資料（表格或列表），例如 Entities 節點展開後可看實體清單
+- **觸發互動**：狀態為 `empty` 或 `partial` 的節點，可在 Detail Panel 內觸發對應 pipeline 的建構（含 token 消耗確認視窗）
+
+#### UI 風格備註
+
+節點視覺語言應延續整體**手繪古典風格**（暖色系背景、serif 字型），目前實作使用標準 Cytoscape 節點，未來視覺精修時需對齊 `tokens.css` 定義的設計語言。
+
+#### 後端
+
+- 端點：`GET /api/v1/books/{book_id}/unraveling`
+- 純資料統計，不涉及 LLM，預期延遲極低
+- 資料來源：DocumentService、KGService、AnalysisCache、SymbolService
+
+---
+
 ## 4. 跨頁面互動與資料連動
 
 ### 4.1 頁面跳轉對照表

@@ -33,6 +33,7 @@ from api.routers import (
     narrative,
     tension,
     token_usage,
+    unraveling,
 )
 
 logger = logging.getLogger(__name__)
@@ -202,6 +203,7 @@ def create_app() -> FastAPI:
     prefix = "/api/v1"
     # Frontend-facing (aligned with API_CONTRACT.md)
     app.include_router(books.router, prefix=prefix)
+    app.include_router(unraveling.router, prefix=prefix)
     app.include_router(tasks.router, prefix=prefix)
     # Internal / tool-facing (kept for chat agent and direct queries)
     app.include_router(entities.router, prefix=prefix)

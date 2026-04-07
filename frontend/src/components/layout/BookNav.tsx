@@ -13,6 +13,7 @@ const tabs = [
   { label: '時間軸', path: '/timeline' },
   { label: '張力分析', path: '/tension' },
   { label: '符號意象', path: '/symbols' },
+  { label: '展開卷軸', path: '/unraveling' },
 ];
 
 export function BookNav({ bookId, bookTitle }: BookNavProps) {

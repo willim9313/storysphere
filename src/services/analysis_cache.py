@@ -69,6 +69,30 @@ class AnalysisCache:
             await db.commit()
         logger.debug("Cache set for key=%s", key)
 
+    async def count_keys(self, pattern: str) -> int:
+        """Count non-expired cache entries matching a LIKE pattern.
+
+        Uses SQLite LIKE syntax (``%`` wildcard).  Mirrors ``invalidate()``
+        but uses ``SELECT COUNT`` instead of ``DELETE``, so it is safe to call
+        at any time without side-effects.
+
+        Args:
+            pattern: SQLite LIKE pattern, e.g. ``"character:doc-1:%"``
+
+        Returns:
+            Number of non-expired entries matching the pattern.
+        """
+        cutoff = time.time() - self._ttl
+        async with aiosqlite.connect(self._db_path) as db:
+            await self._ensure_table(db)
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM analysis_cache"
+                " WHERE key LIKE ? AND created > ?",
+                (pattern, cutoff),
+            )
+            row = await cursor.fetchone()
+        return row[0] if row else 0
+
     async def invalidate(self, pattern: str) -> int:
         """Delete cache entries matching a LIKE pattern. Returns count deleted."""
         async with aiosqlite.connect(self._db_path) as db:
