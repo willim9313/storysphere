@@ -32,19 +32,30 @@ router = APIRouter(prefix="/books", tags=["unraveling"])
 # ── Static DAG edges ──────────────────────────────────────────────────────────
 
 _EDGES: list[tuple[str, str]] = [
+    # ── Source text ───────────────────────────────────────────────────────────
     ("book_meta", "chapters"),
     ("book_meta", "paragraphs"),
+    # ── Extraction (layer 1) ──────────────────────────────────────────────────
+    ("chapters", "summaries"),
     ("chapters", "entities"),
     ("chapters", "relations"),
     ("chapters", "events"),
     ("chapters", "symbols"),
     ("paragraphs", "entities"),
-    ("events", "temporal"),
-    ("events", "event_analysis"),
-    ("events", "narrative_structure"),
-    ("events", "tension_analysis"),
-    ("entities", "character_analysis"),
-    ("temporal", "narrative_structure"),
+    # ── Analysis intermediates (layer 2) ─────────────────────────────────────
+    ("entities", "cep"),
+    ("events", "eep"),
+    ("events", "teu"),
+    ("events", "timeline"),
+    # ── Narrative track (layer 3) ─────────────────────────────────────────────
+    ("events", "narrative_structure"),      # kernel/satellite classification
+    ("summaries", "narrative_structure"),   # hero journey via chapter summaries
+    ("timeline", "narrative_structure"),    # temporal ordering context
+    ("events", "temporal_analysis"),        # Genette temporal displacement
+    ("timeline", "temporal_analysis"),      # TemporalRelation edges
+    # ── Tension track (layer 3 → 4) ──────────────────────────────────────────
+    ("teu", "tension_lines"),
+    ("tension_lines", "tension_theme"),
 ]
 
 # ── Response schemas ──────────────────────────────────────────────────────────
@@ -125,6 +136,7 @@ def _build_nodes(
     eep_count: int,
     temporal_analysis_present: bool,
     narrative_present: bool,
+    hero_journey_present: bool,
     tension_lines_present: bool,
     tension_theme_present: bool,
     teu_count: int,
@@ -157,14 +169,26 @@ def _build_nodes(
         layer=0,
         label="Chapters",
         status=_status(
+            complete=chapter_count > 0,
+            partial=False,
+        ),
+        counts={"chapters": chapter_count},
+    ))
+
+    # summaries (derived from chapters — tracks chapter summary completion)
+    nodes.append(NodeData(
+        node_id="summaries",
+        layer=1,
+        label="Summaries",
+        status=_status(
             complete=chapter_count > 0
             and chapters_with_summary == chapter_count,
             partial=chapter_count > 0
-            and chapters_with_summary < chapter_count,
+            and 0 < chapters_with_summary < chapter_count,
         ),
         counts={
-            "chapters": chapter_count,
-            "chapters_with_summary": chapters_with_summary,
+            "generated": chapters_with_summary,
+            "total": chapter_count,
         },
     ))
 
@@ -247,19 +271,20 @@ def _build_nodes(
 
     # ── Layer 2: 深度分析層 ────────────────────────────────────────────────────
 
-    # temporal
+    # timeline (events ranked by chronological order + TemporalRelation KG edges)
     tr_count = len(temporal_rels)
     nodes.append(NodeData(
-        node_id="temporal",
+        node_id="timeline",
         layer=2,
-        label="Temporal",
+        label="Timeline",
         status=_status(
-            complete=tr_count > 0 and temporal_analysis_present,
-            partial=tr_count > 0 and not temporal_analysis_present,
+            complete=event_count > 0 and events_ranked == event_count,
+            partial=events_ranked > 0 and events_ranked < event_count,
         ),
         counts={
+            "events_ranked": events_ranked,
+            "total_events": event_count,
             "temporal_relations": tr_count,
-            "has_temporal_analysis": int(temporal_analysis_present),
         },
     ))
 
@@ -280,12 +305,12 @@ def _build_nodes(
         },
     ))
 
-    # character_analysis
+    # cep (Character Emotional Profile)
     total_chars = by_type.get(EntityType.CHARACTER.value, 0)
     nodes.append(NodeData(
-        node_id="character_analysis",
+        node_id="cep",
         layer=2,
-        label="Character Analysis",
+        label="CEP",
         status=_status(
             complete=cep_count > 0
             and total_chars > 0
@@ -299,11 +324,11 @@ def _build_nodes(
         },
     ))
 
-    # event_analysis
+    # eep (Event Emotional Profile)
     nodes.append(NodeData(
-        node_id="event_analysis",
+        node_id="eep",
         layer=2,
-        label="Event Analysis",
+        label="EEP",
         status=_status(
             complete=eep_count > 0
             and event_count > 0
@@ -316,36 +341,76 @@ def _build_nodes(
         },
     ))
 
-    # narrative_structure
+    # teu (Tension Evidence Unit — per-event tension score, layer 2)
     nodes.append(NodeData(
-        node_id="narrative_structure",
+        node_id="teu",
         layer=2,
-        label="Narrative Structure",
-        status=_status(
-            complete=narrative_present,
-            partial=False,
-        ),
-        counts={"has_structure": int(narrative_present)},
-    ))
-
-    # tension_analysis
-    nodes.append(NodeData(
-        node_id="tension_analysis",
-        layer=2,
-        label="Tension Analysis",
+        label="TEU",
         status=_status(
             complete=teu_count > 0
-            and tension_lines_present
-            and tension_theme_present,
-            partial=teu_count > 0 and not (
-                tension_lines_present and tension_theme_present
-            ),
+            and event_count > 0
+            and teu_count >= event_count,
+            partial=teu_count > 0 and teu_count < event_count,
         ),
         counts={
-            "teus": teu_count,
-            "has_tension_lines": int(tension_lines_present),
-            "has_tension_theme": int(tension_theme_present),
+            "analyzed": teu_count,
+            "total_events": event_count,
         },
+    ))
+
+    # ── Layer 3: 合成層（三條平行分析線）────────────────────────────────────────
+
+    # narrative_structure (敘事學) — K/S classification + Hero Journey (layer 3)
+    nodes.append(NodeData(
+        node_id="narrative_structure",
+        layer=3,
+        label="Narrative Structure",
+        status=_status(
+            complete=narrative_present and hero_journey_present,
+            partial=narrative_present or hero_journey_present,
+        ),
+        counts={
+            "has_ks_classification": int(narrative_present),
+            "has_hero_journey": int(hero_journey_present),
+        },
+    ))
+
+    # temporal_analysis (敘事學) — Genette temporal displacement (layer 3)
+    nodes.append(NodeData(
+        node_id="temporal_analysis",
+        layer=3,
+        label="Temporal Analysis",
+        status=_status(
+            complete=temporal_analysis_present,
+            partial=False,
+        ),
+        counts={"built": int(temporal_analysis_present)},
+    ))
+
+    # tension_lines (張力學) — cross-scene tension patterns (layer 3)
+    nodes.append(NodeData(
+        node_id="tension_lines",
+        layer=3,
+        label="Tension Lines",
+        status=_status(
+            complete=tension_lines_present,
+            partial=False,
+        ),
+        counts={"built": int(tension_lines_present)},
+    ))
+
+    # ── Layer 4: 書籍層面合成 ─────────────────────────────────────────────────
+
+    # tension_theme (張力學) — book-level tension proposition (layer 4)
+    nodes.append(NodeData(
+        node_id="tension_theme",
+        layer=4,
+        label="Tension Theme",
+        status=_status(
+            complete=tension_theme_present,
+            partial=False,
+        ),
+        counts={"built": int(tension_theme_present)},
     ))
 
     return nodes
@@ -402,6 +467,7 @@ async def get_unraveling(
         eep_count,
         temporal_analysis_present,
         narrative_present,
+        hero_journey_present,
         tension_lines_present,
         tension_theme_present,
         teu_count,
@@ -410,6 +476,7 @@ async def get_unraveling(
         cache.count_keys(f"event:{book_id}:%"),
         _key_exists(cache, f"temporal_analysis:{book_id}"),
         _key_exists(cache, f"narrative_structure:{book_id}"),
+        _key_exists(cache, f"hero_journey:{book_id}"),
         _key_exists(cache, f"tension_lines:{book_id}"),
         _key_exists(cache, f"tension_theme:{book_id}"),
         _count_teu_keys(cache, event_ids),
@@ -426,6 +493,7 @@ async def get_unraveling(
         eep_count=eep_count,
         temporal_analysis_present=temporal_analysis_present,
         narrative_present=narrative_present,
+        hero_journey_present=hero_journey_present,
         tension_lines_present=tension_lines_present,
         tension_theme_present=tension_theme_present,
         teu_count=teu_count,

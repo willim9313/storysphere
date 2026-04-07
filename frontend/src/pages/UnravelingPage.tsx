@@ -14,7 +14,7 @@ import {
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
-const LAYER_X: Record<number, number> = { 0: 140, 1: 380, 2: 640 };
+const LAYER_X: Record<number, number> = { 0: 120, 1: 290, 2: 460, 3: 650, 4: 840 };
 const NODE_Y_SPACING = 90;
 const CANVAS_CENTER_Y = 280;
 
@@ -34,11 +34,13 @@ const STATUS_LABEL: Record<NodeStatus, string> = {
 
 // ── Cytoscape stylesheet ──────────────────────────────────────────────────────
 
-// Layer 0 → diamond, Layer 1 → rectangle, Layer 2 → round-rectangle
+// Layer 0 → diamond, Layer 1 → rectangle, Layer 2/3/4 → round-rectangle
 const LAYER_SHAPE: Record<number, string> = {
   0: 'diamond',
   1: 'rectangle',
   2: 'round-rectangle',
+  3: 'round-rectangle',
+  4: 'round-rectangle',
 };
 
 const STYLESHEET: cytoscape.Stylesheet[] = [
@@ -47,14 +49,16 @@ const STYLESHEET: cytoscape.Stylesheet[] = [
     style: {
       shape: 'data(shape)',
       width: 130,
-      height: 52,
+      height: 60,
       'background-color': 'data(bgColor)',
       'border-color': 'data(borderColor)',
       'border-width': 2,
       label: 'data(label)',
       'text-valign': 'center',
       'text-halign': 'center',
-      'font-size': 12,
+      'text-wrap': 'wrap',
+      'text-max-width': '115',
+      'font-size': 11,
       color: 'data(textColor)',
       'font-family': 'var(--font-sans, sans-serif)',
     } as cytoscape.Css.Node,
@@ -78,6 +82,35 @@ const STYLESHEET: cytoscape.Stylesheet[] = [
   },
 ];
 
+// ── Sublabel helpers ──────────────────────────────────────────────────────────
+
+function getSubLabel(n: UnravelingNode): string {
+  if (n.status === 'empty') return 'not built';
+  const check = n.status === 'complete' ? ' ✓' : '';
+  switch (n.nodeId) {
+    case 'summaries':
+      return `${n.counts.generated ?? 0} / ${n.counts.total ?? 0}${check}`;
+    case 'cep':
+      return `${n.counts.analyzed ?? 0} / ${n.counts.total_characters ?? 0}`;
+    case 'eep':
+      return `${n.counts.analyzed ?? 0} / ${n.counts.total_events ?? 0}`;
+    case 'teu':
+      return `${n.counts.analyzed ?? 0} / ${n.counts.total_events ?? 0}`;
+    case 'timeline':
+      return `${n.counts.events_ranked ?? 0} ranked${check}`;
+    case 'narrative_structure': {
+      const ks = n.counts.has_ks_classification ?? 0;
+      const hj = n.counts.has_hero_journey ?? 0;
+      if (ks && hj) return 'K/S + Hero Journey ✓';
+      if (ks) return 'K/S ✓ · Hero Journey —';
+      if (hj) return 'K/S — · Hero Journey ✓';
+      return '';
+    }
+    default:
+      return '';
+  }
+}
+
 // ── Element builder ───────────────────────────────────────────────────────────
 
 function buildElements(
@@ -95,11 +128,13 @@ function buildElements(
     const total = layerNodes.length;
     const y = CANVAS_CENTER_Y + (idx - (total - 1) / 2) * NODE_Y_SPACING;
     const { bg, border, text } = STATUS[n.status];
+    const sub = getSubLabel(n);
+    const label = sub ? `${n.label}\n${sub}` : n.label;
 
     return {
       data: {
         id: n.nodeId,
-        label: n.label,
+        label,
         shape: LAYER_SHAPE[n.layer] ?? 'round-rectangle',
         bgColor: bg,
         borderColor: border,
@@ -178,9 +213,11 @@ function UnravelingCanvas({ elements, onNodeTap }: CanvasProps) {
 
 const COUNT_LABELS: Record<string, string> = {
   chapters: 'chapters',
-  chapters_with_summary: 'chapters with summary',
   paragraphs: 'paragraphs',
-  total: 'total',
+  // summaries node
+  generated: 'summaries generated',
+  total: 'total chapters',
+  // entities
   character: 'CHARACTER',
   location: 'LOCATION',
   organization: 'ORGANIZATION',
@@ -189,19 +226,22 @@ const COUNT_LABELS: Record<string, string> = {
   other: 'OTHER',
   relations: 'relations',
   events: 'events',
-  events_with_chronological_rank: 'events with chronological_rank',
   events_classified: 'events classified (kernel/satellite)',
+  // timeline node
+  events_ranked: 'events ranked',
+  total_events: 'total events',
   temporal_relations: 'temporal relations',
-  has_temporal_analysis: 'has temporal analysis (Genette)',
+  // imagery / symbols
   imagery_entities: 'imagery entities',
   symbol_occurrences: 'symbol occurrences',
+  // cep / eep / teu
   analyzed: 'analyzed',
   total_characters: 'total characters',
-  total_events: 'total events',
-  has_structure: 'has narrative structure',
-  teus: 'TEUs',
-  has_tension_lines: 'has TensionLines',
-  has_tension_theme: 'has TensionTheme',
+  // narrative_structure
+  has_ks_classification: 'K/S classification built',
+  has_hero_journey: 'Hero Journey built',
+  // temporal_analysis / tension_lines / tension_theme
+  built: 'built',
 };
 
 interface DetailPanelProps {
