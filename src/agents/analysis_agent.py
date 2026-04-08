@@ -7,7 +7,7 @@ before delegating to AnalysisService / NarrativeService, then stores results.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Callable
 
 try:
     from langfuse import observe as _langfuse_observe
@@ -51,6 +51,7 @@ class AnalysisAgent:
         archetype_frameworks: list[str] | None = None,
         language: str = "en",
         force_refresh: bool = False,
+        progress_callback: Callable[[int, str], None] | None = None,
     ) -> CharacterAnalysisResult:
         """Run character analysis with cache-first strategy.
 
@@ -89,6 +90,7 @@ class AnalysisAgent:
                 document_id=document_id,
                 archetype_frameworks=archetype_frameworks,
                 language=language,
+                progress_callback=progress_callback,
             )
         except Exception as exc:
             _metrics.record_tool_execution(
@@ -118,6 +120,7 @@ class AnalysisAgent:
         document_id: str,
         language: str = "en",
         force_refresh: bool = False,
+        progress_callback: Callable[[int, str], None] | None = None,
     ) -> EventAnalysisResult:
         """Run event analysis with cache-first strategy.
 
@@ -148,7 +151,12 @@ class AnalysisAgent:
             _metrics.record_cache_event("event", hit=False, cache_key=cache_key)
 
         try:
-            result = await self._service.analyze_event(event_id=event_id, document_id=document_id, language=language)
+            result = await self._service.analyze_event(
+                event_id=event_id,
+                document_id=document_id,
+                language=language,
+                progress_callback=progress_callback,
+            )
         except Exception as exc:
             _metrics.record_tool_execution(
                 "analyze_event",

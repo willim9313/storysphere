@@ -18,7 +18,7 @@ Persistence via AnalysisCache:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -131,7 +131,11 @@ class NarrativeService:
 
     # ── Phase 1: Heuristic classification ────────────────────────────────────
 
-    async def classify_by_heuristic(self, document_id: str) -> NarrativeStructure:
+    async def classify_by_heuristic(
+        self,
+        document_id: str,
+        progress_callback: Callable[[int, str], None] | None = None,
+    ) -> NarrativeStructure:
         """Classify all events for a book using the summary hierarchy heuristic.
 
         Heuristic rules (in order of precedence):
@@ -164,12 +168,15 @@ class NarrativeService:
                 chapter_summaries[ch.number] = (ch.summary or "").lower()
 
         results: list[KernelSatelliteResult] = []
-        for event in events:
+        total = len(events)
+        for idx, event in enumerate(events):
             result = self._classify_event(event, book_summary, chapter_summaries)
             results.append(result)
             # Mutate in-place — events are references to KGService's in-memory objects
             event.narrative_weight = result.narrative_weight
             event.narrative_weight_source = "summary_heuristic"
+            if progress_callback:
+                progress_callback(int((idx + 1) / total * 100) if total else 0, f"classifying event {idx + 1}/{total}")
 
         kernel_ids = [r.event_id for r in results if r.narrative_weight == "kernel"]
         satellite_ids = [r.event_id for r in results if r.narrative_weight == "satellite"]
@@ -270,6 +277,7 @@ class NarrativeService:
         event_ids: Optional[list[str]] = None,
         language: str = "en",
         force: bool = False,
+        progress_callback: Callable[[int, str], None] | None = None,
     ) -> NarrativeStructure:
         """Phase 2: LLM refinement of low-confidence heuristic classifications.
 
@@ -325,7 +333,8 @@ class NarrativeService:
                 document_id,
             )
 
-        for event in targets:
+        total = len(targets)
+        for idx, event in enumerate(targets):
             prev_event, next_event = self._get_adjacent(event.id, sorted_ids, event_by_id)
             chapter_summary = await self._doc.get_chapter_summary(document_id, event.chapter)
             try:
@@ -349,6 +358,8 @@ class NarrativeService:
                     )
             except Exception:
                 logger.exception("refine_with_llm: failed for event=%s, keeping heuristic", event.id)
+            if progress_callback:
+                progress_callback(int((idx + 1) / total * 100) if total else 0, f"refining event {idx + 1}/{total}")
 
         # Rebuild and persist NarrativeStructure
         refreshed = await self._kg.get_events(document_id=document_id)
@@ -642,6 +653,7 @@ class NarrativeService:
         document_id: str,
         language: str = "en",
         force: bool = False,
+        progress_callback: Callable[[int, str], None] | None = None,
     ) -> TemporalAnalysis:
         """B-037: Genette temporal analysis — analepsis/prolepsis identification.
 
@@ -665,6 +677,8 @@ class NarrativeService:
         with_hint = sum(1 for e in events if e.story_time_hint)
         coverage = with_hint / total if total > 0 else 0.0
         coverage_sufficient = coverage >= _TEMPORAL_COVERAGE_THRESHOLD
+        if progress_callback:
+            progress_callback(10, "checking temporal hint coverage")
 
         if not coverage_sufficient:
             logger.warning(
@@ -688,9 +702,13 @@ class NarrativeService:
         text_rank_by_id = {e.id: i + 1 for i, e in enumerate(text_sorted)}
 
         # LLM: assign story-world chronological rank
+        if progress_callback:
+            progress_callback(25, "calling LLM for temporal ordering")
         story_time_structure, story_ranks = await self._call_temporal_order_llm(
             text_sorted, language
         )
+        if progress_callback:
+            progress_callback(65, "updating event story_time")
 
         # Update events in KGService in-memory store
         from domain.events import StoryTimeRef  # noqa: PLC0415
@@ -707,6 +725,8 @@ class NarrativeService:
         displacements, analepsis_ids, prolepsis_ids = self._compute_displacements(
             text_sorted, text_rank_by_id, story_ranks
         )
+        if progress_callback:
+            progress_callback(90, "computing temporal displacements")
 
         result = TemporalAnalysis(
             document_id=document_id,

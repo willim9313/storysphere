@@ -48,7 +48,10 @@ async def _run_classify(task_id: str, req: ClassifyNarrativeRequest, narrative_s
         {"task_id": task_id, "status": "running", "progress": 0, "stage": "heuristic_classify", "result": None, "error": None},
     )
     try:
-        structure = await narrative_service.classify_by_heuristic(req.document_id)
+        structure = await narrative_service.classify_by_heuristic(
+            req.document_id,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
+        )
         task_store.set_completed(task_id, result=structure.model_dump())
     except Exception as exc:
         logger.exception("Narrative classify task %s failed", task_id)
@@ -71,6 +74,7 @@ async def _run_refine(task_id: str, req: RefineNarrativeRequest, narrative_servi
             event_ids=req.event_ids,
             language=req.language,
             force=req.force,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
         task_store.set_completed(task_id, result=structure.model_dump())
     except Exception as exc:
@@ -89,11 +93,14 @@ async def _run_hero_journey(task_id: str, req: HeroJourneyRequest, narrative_ser
         {"task_id": task_id, "status": "running", "progress": 0, "stage": "hero_journey", "result": None, "error": None},
     )
     try:
+        task_store.set_progress(task_id, 10, "loading chapter summaries")
+        task_store.set_progress(task_id, 20, "calling LLM for hero journey mapping")
         stages = await narrative_service.map_hero_journey(
             document_id=req.document_id,
             language=req.language,
             force=req.force,
         )
+        task_store.set_progress(task_id, 90, "parsing hero journey stages")
         task_store.set_completed(task_id, result={"stages": [s.model_dump() for s in stages]})
     except Exception as exc:
         logger.exception("Hero journey task %s failed", task_id)
@@ -200,6 +207,7 @@ async def _run_temporal(task_id: str, req: TemporalAnalysisRequest, narrative_se
             document_id=req.document_id,
             language=req.language,
             force=req.force,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
         task_store.set_completed(task_id, result=result.model_dump())
     except Exception as exc:

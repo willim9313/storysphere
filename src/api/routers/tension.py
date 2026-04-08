@@ -56,6 +56,7 @@ async def _run_group_lines(
             kg_service=kg_service,
             language=req.language,
             force=req.force,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
         task_store.set_completed(task_id, result={"lines": [l.model_dump() for l in lines]})
     except Exception as exc:
@@ -222,11 +223,14 @@ async def _run_synthesize_theme(
         {"task_id": task_id, "status": "running", "progress": 0, "stage": "synthesizing", "result": None, "error": None},
     )
     try:
+        task_store.set_progress(task_id, 15, "loading tension lines")
+        task_store.set_progress(task_id, 25, "calling LLM for theme synthesis")
         theme = await tension_service.synthesize_theme(
             document_id=req.document_id,
             language=req.language,
             force=req.force,
         )
+        task_store.set_progress(task_id, 90, "saving theme result")
         await tension_service.save_theme(theme)
         task_store.set_completed(task_id, result=theme.model_dump())
     except Exception as exc:

@@ -277,6 +277,7 @@ async def _run_entity_analysis(
             entity_name=entity_name,
             document_id=document_id,
             language=language,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
         task_store.set_completed(task_id, result=result.model_dump())
         logger.info("Entity analysis task %s completed: entity=%s", task_id, entity_name)
@@ -1113,6 +1114,7 @@ async def _run_event_analysis(
             event_id=event_id,
             document_id=document_id,
             language=language,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
         task_store.set_completed(task_id, result=result.model_dump())
         logger.info("Event analysis task %s completed: event=%s", task_id, event_id)

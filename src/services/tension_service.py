@@ -13,7 +13,7 @@ Persistence uses AnalysisCache (SQLite) with key patterns:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -217,6 +217,7 @@ class TensionService:
         kg_service,
         language: str = "en",
         force: bool = False,
+        progress_callback: Callable[[int, str], None] | None = None,
     ) -> list[TensionLine]:
         """Group all cached TEUs for a document into TensionLines (LLM-based).
 
@@ -231,16 +232,23 @@ class TensionService:
 
         events = await kg_service.get_events(document_id=document_id)
         teus: list[TEU] = []
-        for event in events:
+        total_events = len(events)
+        for idx, event in enumerate(events):
             teu = await self.get_teu(event.id)
             if teu is not None:
                 teus.append(teu)
+            if progress_callback:
+                progress_callback(int((idx + 1) / total_events * 60) if total_events else 0, f"loading TEU {idx + 1}/{total_events}")
 
         if not teus:
             logger.info("TensionService: no TEUs found for document=%s", document_id)
             return []
 
+        if progress_callback:
+            progress_callback(60, "calling LLM for line grouping")
         lines = await self._call_grouping_llm(teus, document_id, language)
+        if progress_callback:
+            progress_callback(95, "saving tension lines")
         await self.save_lines(lines, document_id)
         return lines
 

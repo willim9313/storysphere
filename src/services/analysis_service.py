@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import datetime
-from typing import Any
+from typing import Any, Callable
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -258,6 +258,7 @@ class AnalysisService:
         document_id: str,
         archetype_frameworks: list[str] | None = None,
         language: str = "en",
+        progress_callback: Callable[[int, str], None] | None = None,
     ) -> CharacterAnalysisResult:
         """Run full character analysis pipeline: CEP → archetypes → arc → profile.
 
@@ -281,9 +282,13 @@ class AnalysisService:
                 entity_id = entity.id
 
         # Step 1: Extract CEP (must complete before steps 2-4)
+        if progress_callback:
+            progress_callback(5, "extracting character evidence profile (CEP)")
         cep = await self._extract_cep(entity_name, document_id, language)
 
         # Steps 2, 3, 4 in parallel: archetypes + arc + profile
+        if progress_callback:
+            progress_callback(30, "analyzing archetype, arc, and profile")
         archetype_coros = [
             self._classify_archetype(cep, fw, language)
             for fw in archetype_frameworks
@@ -323,6 +328,8 @@ class AnalysisService:
             profile = profile_result
 
         # Step 5: Compute coverage metrics (pure computation)
+        if progress_callback:
+            progress_callback(85, "computing coverage metrics")
         coverage = self._compute_coverage(cep)
 
         return CharacterAnalysisResult(
@@ -578,6 +585,7 @@ class AnalysisService:
         event_id: str,
         document_id: str,
         language: str = "en",
+        progress_callback: Callable[[int, str], None] | None = None,
     ) -> EventAnalysisResult:
         """Run full event analysis pipeline: EEP → causality → impact → summary.
 
@@ -597,9 +605,13 @@ class AnalysisService:
         if event is None:
             raise ValueError(f"Event not found: {event_id}")
 
+        if progress_callback:
+            progress_callback(5, "extracting event evidence profile (EEP)")
         eep = await self._extract_eep(event, document_id, language)
 
         # causality and impact are independent — run in parallel
+        if progress_callback:
+            progress_callback(30, "analyzing causality and impact")
         causality_r, impact_r = await asyncio.gather(
             self._analyze_causality(eep, event, language),
             self._analyze_impact(eep, event, language),
@@ -626,7 +638,11 @@ class AnalysisService:
         else:
             impact = impact_r
 
+        if progress_callback:
+            progress_callback(75, "generating event summary")
         event_summary = await self._generate_event_summary(event, eep, causality, impact, language)
+        if progress_callback:
+            progress_callback(95, "computing event coverage")
         coverage = self._compute_event_coverage(eep)
 
         return EventAnalysisResult(
