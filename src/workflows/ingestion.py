@@ -2,9 +2,12 @@
 
 Pipeline order:
     1. DocumentProcessingPipeline  → Document (chapters + paragraphs)
-    2. FeatureExtractionPipeline   → paragraph embeddings → Qdrant
-    3. KnowledgeGraphPipeline      → entities + relations + events → KGService
-    4. DocumentService.save_document() → persist document to SQLite
+    2. SummarizationPipeline       → chapter summaries + book summary
+    3. FeatureExtractionPipeline   → paragraph embeddings → Qdrant + keywords
+    4. KnowledgeGraphPipeline      → entities + relations + events → KGService
+    5. SymbolDiscoveryPipeline     → imagery / symbols
+    6. DocumentService.save_document() → persist document to SQLite
+    7. KGService.save()            → persist KG to disk
 
 The workflow accepts a file path (PDF or DOCX) and returns an
 ``IngestionResult`` summarising what was produced.
@@ -130,6 +133,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         input_data: Path,
         *,
         title: str | None = None,
+        author: str | None = None,
         language: str | None = None,
         progress_cb: Optional[callable] = None,
     ) -> IngestionResult:
@@ -138,7 +142,9 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         Args:
             input_data: Path to the PDF or DOCX file.
             title: Optional book title override.  When provided this is used
-                   instead of the filename stem.
+                   instead of the value extracted from file metadata.
+            author: Optional author override.  When provided this is used
+                    instead of the value extracted from file metadata.
             progress_cb: Optional callback ``(progress: int, stage: str) -> None``
                 called between pipeline steps so callers (e.g. the API
                 background task) can push progress updates.
@@ -161,9 +167,11 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         self._log_step("doc_processing", file=str(file_path))
         doc: Document = await self._doc_pipeline(file_path)
 
-        # Override document title if caller supplied one
+        # Caller-supplied values take precedence over file metadata
         if title:
             doc.title = title
+        if author:
+            doc.author = author
 
         # ── Language detection ────────────────────────────────────────────
         from core.language_detection import detect_language_from_document  # noqa: PLC0415

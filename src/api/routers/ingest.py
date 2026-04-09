@@ -27,6 +27,7 @@ async def _run_ingestion(
     task_id: str,
     file_path: Path,
     title: str,
+    author: Optional[str] = None,
     language: Optional[str] = None,
 ) -> None:
     """Background task: run IngestionWorkflow and update task store."""
@@ -37,7 +38,7 @@ async def _run_ingestion(
 
         kg_service = get_kg_service()
         workflow = IngestionWorkflow(kg_service=kg_service)
-        result = await workflow.run(file_path, title=title, language=language)
+        result = await workflow.run(file_path, title=title, author=author, language=language)
         task_store.set_completed(task_id, result=result.__dict__)
         logger.info("Ingestion task %s completed: %s entities", task_id, result.entities)
     except Exception as exc:
@@ -56,6 +57,7 @@ async def ingest_document(
     background_tasks: BackgroundTasks,
     file: UploadFile,
     title: str = Form(...),
+    author: Optional[str] = Form(None),
     language: Optional[str] = Form(None),
 ) -> TaskStatus:
     """Upload a novel file (PDF or DOCX) and start ingestion in the background.
@@ -81,7 +83,8 @@ async def ingest_document(
 
     task_id = str(uuid4())
     task_store.create(task_id)
-    background_tasks.add_task(_run_ingestion, task_id, Path(tmp.name), title, language)
+    author = author.strip() if author and author.strip() else None
+    background_tasks.add_task(_run_ingestion, task_id, Path(tmp.name), title, author, language)
 
     return TaskStatus(task_id=task_id, status="pending")
 

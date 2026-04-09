@@ -12,7 +12,7 @@ from pipelines.base import BasePipeline
 
 from .chapter_detector import detect_chapters
 from .chunker import chunk_segments
-from .loader import load_docx, load_pdf
+from .loader import DocumentMeta, load_docx, load_pdf
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
         self._log_step("load", path=str(file_path))
 
         # Step 1: load
-        segments = await asyncio.get_event_loop().run_in_executor(
+        segments, file_meta = await asyncio.get_event_loop().run_in_executor(
             None, self._load_sync, file_path
         )
         file_type = FileType.PDF if file_path.suffix.lower() == ".pdf" else FileType.DOCX
@@ -82,7 +82,8 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
                 para.chapter_number = i
 
         doc = Document(
-            title=file_path.stem,
+            title=file_meta.title or file_path.stem,
+            author=file_meta.author,
             file_path=str(file_path),
             file_type=file_type,
             chapters=chapters,
@@ -98,7 +99,7 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
     # ── sync helper (runs in thread pool) ───────────────────────────────────
 
     @staticmethod
-    def _load_sync(file_path: Path) -> list[tuple[int, str]]:
+    def _load_sync(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
         suffix = file_path.suffix.lower()
         if suffix == ".pdf":
             return load_pdf(file_path)

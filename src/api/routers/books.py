@@ -233,7 +233,12 @@ def _now_iso() -> str:
 # ── Background tasks ────────────────────────────────────────────────────────
 
 
-async def _run_ingestion(task_id: str, file_path: Path, title: str) -> None:
+async def _run_ingestion(
+    task_id: str,
+    file_path: Path,
+    title: str,
+    author: str | None = None,
+) -> None:
     task_store.set_running(task_id)
     task_store.set_progress(task_id, 5, "PDF 解析")
     try:
@@ -245,6 +250,7 @@ async def _run_ingestion(task_id: str, file_path: Path, title: str) -> None:
         result = await workflow.run(
             file_path,
             title=title,
+            author=author,
             progress_cb=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
         task_store.set_completed(
@@ -381,6 +387,7 @@ async def upload_book(
     background_tasks: BackgroundTasks,
     file: UploadFile,
     title: Annotated[str | None, Form()] = None,
+    author: Annotated[str | None, Form()] = None,
 ) -> dict:
     """Upload a PDF/DOCX and start background ingestion."""
     suffix = Path(file.filename or "upload").suffix.lower()
@@ -391,6 +398,7 @@ async def upload_book(
 
     # Use user-provided title if given, otherwise fall back to filename stem
     title = (title.strip() if title and title.strip() else None) or Path(file.filename or "Untitled").stem
+    author = author.strip() if author and author.strip() else None
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
@@ -406,7 +414,7 @@ async def upload_book(
 
     task_id = str(uuid4())
     task_store.create(task_id)
-    background_tasks.add_task(_run_ingestion, task_id, Path(tmp.name), title)
+    background_tasks.add_task(_run_ingestion, task_id, Path(tmp.name), title, author)
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
