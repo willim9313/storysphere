@@ -8,6 +8,7 @@ Tests cover:
 """
 
 from __future__ import annotations
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -205,3 +206,165 @@ class TestDocumentProcessingPipeline:
         assert result.title == "test"
         assert result.total_chapters >= 1
         assert result.total_paragraphs >= 1
+
+
+# ── loader: DocumentMeta extraction ─────────────────────────────────────────
+
+
+class TestLoaderMeta:
+    def test_load_pdf_extracts_author_and_title(self, tmp_path):
+        """load_pdf reads /Author and /Title from PDF metadata."""
+        from pipelines.document_processing.loader import load_pdf
+
+        fake_pdf = tmp_path / "novel.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        mock_page = MagicMock()
+        mock_page.extract_text.return_value = "Chapter 1\nSome content here."
+
+        mock_reader = MagicMock()
+        mock_reader.metadata = {"/Author": "Jane Austen", "/Title": "Pride and Prejudice"}
+        mock_reader.pages = [mock_page]
+
+        with patch("pypdf.PdfReader", return_value=mock_reader):
+            segments, meta = load_pdf(fake_pdf)
+
+        assert meta.author == "Jane Austen"
+        assert meta.title == "Pride and Prejudice"
+        assert len(segments) > 0
+
+    def test_load_pdf_handles_missing_metadata(self, tmp_path):
+        """load_pdf returns None fields when PDF has no metadata."""
+        from pipelines.document_processing.loader import load_pdf
+
+        fake_pdf = tmp_path / "novel.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        mock_page = MagicMock()
+        mock_page.extract_text.return_value = "Some content."
+
+        mock_reader = MagicMock()
+        mock_reader.metadata = {}
+        mock_reader.pages = [mock_page]
+
+        with patch("pypdf.PdfReader", return_value=mock_reader):
+            _, meta = load_pdf(fake_pdf)
+
+        assert meta.author is None
+        assert meta.title is None
+
+    def test_load_docx_extracts_author_and_title(self, tmp_path):
+        """load_docx reads author and title from core_properties."""
+        try:
+            import docx as docx_lib  # noqa: F401
+        except ImportError:
+            pytest.skip("python-docx not installed")
+
+        import docx as docx_lib
+
+        doc_file = tmp_path / "book.docx"
+        wdoc = docx_lib.Document()
+        wdoc.core_properties.author = "Leo Tolstoy"
+        wdoc.core_properties.title = "War and Peace"
+        wdoc.add_paragraph("Chapter 1")
+        wdoc.add_paragraph("The story begins on a dark night.")
+        wdoc.save(str(doc_file))
+
+        from pipelines.document_processing.loader import load_docx
+
+        segments, meta = load_docx(doc_file)
+
+        assert meta.author == "Leo Tolstoy"
+        assert meta.title == "War and Peace"
+        assert len(segments) > 0
+
+    def test_load_docx_handles_empty_metadata(self, tmp_path):
+        """load_docx returns None fields when core_properties are blank."""
+        try:
+            import docx as docx_lib  # noqa: F401
+        except ImportError:
+            pytest.skip("python-docx not installed")
+
+        import docx as docx_lib
+
+        doc_file = tmp_path / "blank_meta.docx"
+        wdoc = docx_lib.Document()
+        wdoc.add_paragraph("Some content here.")
+        wdoc.save(str(doc_file))
+
+        from pipelines.document_processing.loader import load_docx
+
+        _, meta = load_docx(doc_file)
+
+        # python-docx defaults: author may be system username, title is empty
+        assert meta.title is None
+
+
+# ── DocumentProcessingPipeline: metadata propagation ────────────────────────
+
+
+class TestDocumentProcessingPipelineMeta:
+    @pytest.mark.asyncio
+    async def test_metadata_title_takes_priority_over_filename(self, tmp_path):
+        """When PDF metadata has a title, it overrides the filename stem."""
+        from pipelines.document_processing.loader import DocumentMeta
+        from pipelines.document_processing.pipeline import DocumentProcessingPipeline
+
+        fake_pdf = tmp_path / "untitled_file.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        meta = DocumentMeta(title="Great Expectations", author="Charles Dickens")
+        segments = [(0, "Chapter 1"), (1, "It was the best of times.")]
+
+        with patch(
+            "pipelines.document_processing.pipeline.DocumentProcessingPipeline._load_sync",
+            return_value=(segments, meta),
+        ):
+            pipeline = DocumentProcessingPipeline()
+            result = await pipeline.run(fake_pdf)
+
+        assert result.title == "Great Expectations"
+        assert result.author == "Charles Dickens"
+
+    @pytest.mark.asyncio
+    async def test_filename_stem_used_when_metadata_title_absent(self, tmp_path):
+        """When metadata has no title, filename stem is used."""
+        from pipelines.document_processing.loader import DocumentMeta
+        from pipelines.document_processing.pipeline import DocumentProcessingPipeline
+
+        fake_pdf = tmp_path / "my_novel.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        meta = DocumentMeta(title=None, author=None)
+        segments = [(0, "Chapter 1"), (1, "Once upon a time in a land far away.")]
+
+        with patch(
+            "pipelines.document_processing.pipeline.DocumentProcessingPipeline._load_sync",
+            return_value=(segments, meta),
+        ):
+            pipeline = DocumentProcessingPipeline()
+            result = await pipeline.run(fake_pdf)
+
+        assert result.title == "my_novel"
+        assert result.author is None
+
+    @pytest.mark.asyncio
+    async def test_author_is_none_when_metadata_absent(self, tmp_path):
+        """doc.author stays None when loader finds no author in metadata."""
+        from pipelines.document_processing.loader import DocumentMeta
+        from pipelines.document_processing.pipeline import DocumentProcessingPipeline
+
+        fake_pdf = tmp_path / "anonymous.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        meta = DocumentMeta(title="Some Title", author=None)
+        segments = [(0, "Chapter 1"), (1, "The protagonist walked slowly down the hall.")]
+
+        with patch(
+            "pipelines.document_processing.pipeline.DocumentProcessingPipeline._load_sync",
+            return_value=(segments, meta),
+        ):
+            pipeline = DocumentProcessingPipeline()
+            result = await pipeline.run(fake_pdf)
+
+        assert result.author is None

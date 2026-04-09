@@ -58,3 +58,26 @@ def test_ingest_poll_tracks_status(client):
     assert data["taskId"] == task_id
     assert data["status"] == "done"
     assert data["result"]["entities"] == 5
+
+
+def test_ingest_with_author_returns_202(client):
+    """Uploading with an optional author field is accepted."""
+    fake_pdf = io.BytesIO(b"%PDF-1.4 fake content")
+    resp = client.post(
+        "/api/v1/ingest/",
+        data={"title": "Test Novel", "author": "Jane Austen"},
+        files={"file": ("novel.pdf", fake_pdf, "application/pdf")},
+    )
+    assert resp.status_code == 202
+    assert "taskId" in resp.json()
+
+
+def test_ingest_without_author_still_accepted(client):
+    """author field is optional — omitting it must not cause a 422."""
+    fake_pdf = io.BytesIO(b"%PDF-1.4 fake content")
+    resp = client.post(
+        "/api/v1/ingest/",
+        data={"title": "No Author Novel"},
+        files={"file": ("novel.pdf", fake_pdf, "application/pdf")},
+    )
+    assert resp.status_code == 202
