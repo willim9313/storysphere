@@ -15,6 +15,7 @@ interface UploadTask {
 interface PendingFile {
   file: File;
   title: string;
+  author: string;
 }
 
 export default function UploadPage() {
@@ -23,7 +24,7 @@ export default function UploadPage() {
   const [completedTasks, setCompletedTasks] = useState<{ taskId: string; fileName: string; bookId: string }[]>([]);
 
   const upload = useMutation({
-    mutationFn: ({ file, title }: { file: File; title: string }) => uploadBook(file, title),
+    mutationFn: ({ file, title, author }: { file: File; title: string; author?: string }) => uploadBook(file, title, author),
     onSuccess: (data, { file }) => {
       setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name }]);
       setPending(null);
@@ -32,7 +33,7 @@ export default function UploadPage() {
 
   const handleFileSelected = useCallback((file: File) => {
     const stem = file.name.replace(/\.[^.]+$/, '');
-    setPending({ file, title: stem });
+    setPending({ file, title: stem, author: '' });
   }, []);
 
   const handleTaskDone = useCallback((taskId: string, bookId: string, fileName: string) => {
@@ -62,7 +63,7 @@ export default function UploadPage() {
             書籍名稱
           </p>
           <input
-            className="w-full px-3 py-2 rounded-md text-sm mb-3"
+            className="w-full px-3 py-2 rounded-md text-sm mb-4"
             style={{
               border: '1px solid var(--border)',
               backgroundColor: 'white',
@@ -71,14 +72,29 @@ export default function UploadPage() {
             }}
             value={pending.title}
             onChange={(e) => setPending({ ...pending, title: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && pending.title.trim()) {
-                upload.mutate({ file: pending.file, title: pending.title.trim() });
-              }
-            }}
             autoFocus
           />
-          <div className="flex gap-2 justify-end">
+          <p className="text-sm font-medium mb-1" style={{ color: 'var(--fg-secondary)' }}>
+            作者
+          </p>
+          <input
+            className="w-full px-3 py-2 rounded-md text-sm"
+            style={{
+              border: '1px solid var(--border)',
+              backgroundColor: 'white',
+              color: 'var(--fg-primary)',
+              outline: 'none',
+            }}
+            placeholder="留空則由系統自動從文件 metadata 獲取"
+            value={pending.author}
+            onChange={(e) => setPending({ ...pending, author: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && pending.title.trim()) {
+                upload.mutate({ file: pending.file, title: pending.title.trim(), author: pending.author.trim() || undefined });
+              }
+            }}
+          />
+          <div className="flex gap-2 justify-end mt-3">
             <button
               className="text-sm px-3 py-1 rounded-md"
               style={{ color: 'var(--fg-muted)', border: '1px solid var(--border)' }}
@@ -90,7 +106,7 @@ export default function UploadPage() {
               className="text-sm px-3 py-1 rounded-md font-medium"
               style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}
               disabled={!pending.title.trim() || upload.isPending}
-              onClick={() => upload.mutate({ file: pending.file, title: pending.title.trim() })}
+              onClick={() => upload.mutate({ file: pending.file, title: pending.title.trim(), author: pending.author.trim() || undefined })}
             >
               確認上傳
             </button>

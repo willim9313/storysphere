@@ -48,7 +48,7 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         self._extractor = imagery_extractor or ImageryExtractor()
         self._symbol_service = symbol_service or SymbolService()
 
-    async def run(self, input_data: Document) -> SymbolDiscoveryResult:
+    async def run(self, input_data: Document, *, sub_cb=None) -> SymbolDiscoveryResult:
         """Run imagery extraction and persist results for a document.
 
         Args:
@@ -65,7 +65,7 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
 
         # Extract imagery from all chapters sequentially
         try:
-            raw_extractions = await self._extract_all_chapters(doc)
+            raw_extractions = await self._extract_all_chapters(doc, sub_cb=sub_cb)
         except Exception as exc:  # noqa: BLE001
             logger.error("Imagery extraction failed for book %s: %s", doc.id, exc)
             result.errors.append(f"extraction: {exc}")
@@ -94,10 +94,11 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         )
         return result
 
-    async def _extract_all_chapters(self, doc: Document) -> list[dict]:
+    async def _extract_all_chapters(self, doc: Document, sub_cb=None) -> list[dict]:
         """Extract imagery from every chapter sequentially."""
         all_raw: list[dict] = []
-        for chapter in doc.chapters:
+        total = len(doc.chapters)
+        for i, chapter in enumerate(doc.chapters):
             chapter_text = "\n".join(p.text for p in chapter.paragraphs)
             self._log_step("extract_chapter", chapter=chapter.number)
             chapter_items = await self._extractor.extract_chapter_imagery(
@@ -105,6 +106,8 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
                 chapter_number=chapter.number,
                 language=doc.language,
             )
+            if sub_cb:
+                sub_cb(i + 1, total)
             # Enrich with paragraph-level metadata
             for item in chapter_items:
                 item["paragraph_id"] = self._find_paragraph_id(

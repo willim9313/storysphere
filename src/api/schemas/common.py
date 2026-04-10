@@ -15,6 +15,8 @@ class TaskStatus(BaseModel):
     status: Literal["pending", "running", "done", "error"]
     progress: int = 0
     stage: str = ""
+    sub_progress: int | None = None
+    sub_total: int | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
 

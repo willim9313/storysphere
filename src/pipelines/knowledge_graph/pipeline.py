@@ -56,7 +56,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         self._paragraph_entity_linker = ParagraphEntityLinker()
         self._kg_service = kg_service  # optional KGService; pass None to skip write
 
-    async def run(self, input_data: Document) -> KGExtractionResult:
+    async def run(self, input_data: Document, *, sub_cb=None) -> KGExtractionResult:
         """Extract KG data from all chapters in the document.
 
         Args:
@@ -71,6 +71,12 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         # Entries are pop()-ed after use so already-processed chapters are
         # released to the GC rather than accumulating for the whole run.
         chapter_texts: dict[int, str] = {}
+        chapters_with_content = [
+            ch for ch in doc.chapters
+            if any(p.text.strip() for p in ch.paragraphs)
+        ]
+        total_chapters = len(chapters_with_content)
+        chapters_done = 0
 
         # ── Step 1: extract entities per paragraph ──────────────────────────
         # Paragraph-level extraction keeps each LLM call small, avoiding
@@ -98,6 +104,10 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
                         entity.name.lower()
                     )
                 all_raw_entities.extend(para_entities)
+
+            chapters_done += 1
+            if sub_cb:
+                sub_cb(chapters_done, total_chapters)
 
         # ── Step 2: deduplicate across chapters ─────────────────────────────
         self._log_step("entity_link", raw=len(all_raw_entities))

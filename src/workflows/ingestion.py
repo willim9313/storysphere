@@ -98,7 +98,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             skip_kg: Set True to skip KG extraction (text-only ingestion).
         """
         self._doc_pipeline = document_pipeline or DocumentProcessingPipeline()
-        self._kg_service = kg_service or KGService()
+        self._kg_service = kg_service or self._build_kg_service()
         self._document_service = document_service or DocumentService()
 
         # Feature pipeline: skip qdrant client if skip_qdrant=True
@@ -155,15 +155,15 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         file_path = Path(input_data).resolve()
         errors: list[str] = []
 
-        def _progress(pct: int, stage: str) -> None:
+        def _progress(pct: int, stage: str, *, sub_progress: int | None = None, sub_total: int | None = None) -> None:
             if progress_cb is not None:
-                progress_cb(pct, stage)
+                progress_cb(pct, stage, sub_progress=sub_progress, sub_total=sub_total)
 
         # ── Ensure DB tables exist ───────────────────────────────────────────
         await self._document_service.init_db()
 
         # ── Step 1: document processing ──────────────────────────────────────
-        _progress(5, "PDF 解析")
+        _progress(5, "Document processing")
         self._log_step("doc_processing", file=str(file_path))
         doc: Document = await self._doc_pipeline(file_path)
 
@@ -175,7 +175,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
 
         # ── Language detection ────────────────────────────────────────────
         from core.language_detection import detect_language_from_document  # noqa: PLC0415
-
+        _progress(10, "Language detection")
         doc.language = language or detect_language_from_document(doc)
         logger.info(
             "IngestionWorkflow: doc '%s' — %d chapters, %d paragraphs, lang=%s",
@@ -186,22 +186,28 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         )
 
         # ── Step 1b: summarization ───────────────────────────────────────────
-        _progress(20, "章節切分")
+        _progress(20, "Summary generation")
         summ_result = SummarizationResult(document_id=doc.id)
         if not self._skip_summarization:
             self._log_step("summarization")
             try:
-                summ_result = await self._summarization_pipeline(doc)
+                summ_result = await self._summarization_pipeline.run(
+                    doc,
+                    sub_cb=lambda cur, tot: _progress(20, "Summary generation", sub_progress=cur, sub_total=tot),
+                )
             except Exception as exc:  # noqa: BLE001
                 logger.error("Summarization failed: %s", exc)
                 errors.append(f"summarization: {exc}")
 
         # ── Step 2: feature extraction (embeddings) ──────────────────────────
-        _progress(40, "Chunk 處理")
+        _progress(40, "Feature extraction")
         self._log_step("feature_extraction")
         feat_result: FeatureExtractionResult
         try:
-            feat_result = await self._feature_pipeline(doc)
+            feat_result = await self._feature_pipeline.run(
+                doc,
+                sub_cb=lambda cur, tot: _progress(40, "Feature extraction", sub_progress=cur, sub_total=tot),
+            )
         except Exception as exc:  # noqa: BLE001
             logger.error("Feature extraction failed: %s", exc)
             errors.append(f"feature_extraction: {exc}")
@@ -210,29 +216,35 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             )
 
         # ── Step 3: knowledge graph extraction ──────────────────────────────
-        _progress(60, "知識圖譜")
+        _progress(60, "Knowledge graph extraction")
         kg_result: KGExtractionResult = KGExtractionResult()
         if not self._skip_kg:
             self._log_step("kg_extraction")
             try:
-                kg_result = await self._kg_pipeline(doc)
+                kg_result = await self._kg_pipeline.run(
+                    doc,
+                    sub_cb=lambda cur, tot: _progress(60, "Knowledge graph extraction", sub_progress=cur, sub_total=tot),
+                )
             except Exception as exc:  # noqa: BLE001
                 logger.error("KG extraction failed: %s", exc)
                 errors.append(f"kg_extraction: {exc}")
 
         # ── Step 3b: symbol discovery ─────────────────────────────────────────
-        _progress(75, "符號分析")
+        _progress(80, "Symbol discovery")
         symbol_result = SymbolDiscoveryResult(book_id=doc.id)
         if not self._skip_symbols:
             self._log_step("symbol_discovery")
             try:
-                symbol_result = await self._symbol_pipeline(doc)
+                symbol_result = await self._symbol_pipeline.run(
+                    doc,
+                    sub_cb=lambda cur, tot: _progress(80, "Symbol discovery", sub_progress=cur, sub_total=tot),
+                )
             except Exception as exc:  # noqa: BLE001
                 logger.error("Symbol discovery failed (non-fatal): %s", exc)
                 errors.append(f"symbol_discovery: {exc}")
 
         # ── Step 4: persist document to SQLite ───────────────────────────────
-        _progress(80, "摘要生成")
+        _progress(90, "Persisting document")
         self._log_step("persist_document")
         try:
             await self._document_service.save_document(doc)
@@ -274,6 +286,33 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         return result
 
     # ── private helpers ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _build_kg_service() -> KGService:
+        """Build a KGService based on ``settings.kg_mode``.
+
+        Returns a ``Neo4jKGService`` when ``kg_mode='neo4j'``, falling back to
+        the default ``KGService`` (NetworkX) if Neo4j is unavailable or
+        misconfigured.
+        """
+        try:
+            from config.settings import get_settings  # noqa: PLC0415
+
+            settings = get_settings()
+            if settings.kg_mode == "neo4j":
+                from services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
+
+                logger.info("IngestionWorkflow: using Neo4j KG backend (%s)", settings.neo4j_url)
+                return Neo4jKGService(
+                    url=settings.neo4j_url,
+                    user=settings.neo4j_user,
+                    password=settings.neo4j_password,
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Failed to build Neo4j KG service (%s) — falling back to NetworkX", exc
+            )
+        return KGService()
 
     @staticmethod
     def _build_keyword_components(skip: bool = False):

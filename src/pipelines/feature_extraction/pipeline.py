@@ -60,7 +60,7 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         self._keyword_extractor = keyword_extractor  # BaseKeywordExtractor | None
         self._keyword_aggregator = keyword_aggregator  # KeywordAggregator | None
 
-    async def run(self, input_data: Document) -> FeatureExtractionResult:
+    async def run(self, input_data: Document, *, sub_cb=None) -> FeatureExtractionResult:
         """Embed paragraphs chapter by chapter and (optionally) store in Qdrant.
 
         Args:
@@ -74,6 +74,9 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         total_keywords = 0
         all_qdrant_ids: list[str] = []
         all_chapter_keywords: list[dict[str, float]] = []
+        chapters_with_content = [ch for ch in doc.chapters if ch.paragraphs]
+        total_chapters = len(chapters_with_content)
+        chapters_done = 0
 
         for chapter in doc.chapters:
             paragraphs = chapter.paragraphs
@@ -128,6 +131,9 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
                     para.embedding = vec
 
             total_embedded += len(paragraphs)
+            chapters_done += 1
+            if sub_cb:
+                sub_cb(chapters_done, total_chapters)
             # vectors goes out of scope here → eligible for GC
 
         # ── Aggregate chapter → book keywords ──────────────────────────────

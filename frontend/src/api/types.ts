@@ -169,6 +169,8 @@ export interface TaskStatus {
   status: 'pending' | 'running' | 'done' | 'error';
   progress: number;
   stage: string;
+  subProgress?: number;
+  subTotal?: number;
   result?: {
     bookId?: string;
     [key: string]: unknown;

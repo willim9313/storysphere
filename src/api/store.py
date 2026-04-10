@@ -72,11 +72,24 @@ class MemoryTaskStore:
                     update={"status": "error", "error": error, "stage": "失败"}
                 )
 
-    def set_progress(self, task_id: str, progress: int, stage: str) -> None:
+    def set_progress(
+        self,
+        task_id: str,
+        progress: int,
+        stage: str,
+        *,
+        sub_progress: int | None = None,
+        sub_total: int | None = None,
+    ) -> None:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"progress": progress, "stage": stage}
+                    update={
+                        "progress": progress,
+                        "stage": stage,
+                        "sub_progress": sub_progress,
+                        "sub_total": sub_total,
+                    }
                 )
 
 
@@ -84,13 +97,15 @@ class MemoryTaskStore:
 
 _CREATE_TABLE = """
 CREATE TABLE IF NOT EXISTS tasks (
-    task_id    TEXT PRIMARY KEY,
-    status     TEXT NOT NULL DEFAULT 'pending',
-    progress   INTEGER NOT NULL DEFAULT 0,
-    stage      TEXT NOT NULL DEFAULT '',
-    result     TEXT,
-    error      TEXT,
-    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now'))
+    task_id      TEXT PRIMARY KEY,
+    status       TEXT NOT NULL DEFAULT 'pending',
+    progress     INTEGER NOT NULL DEFAULT 0,
+    stage        TEXT NOT NULL DEFAULT '',
+    sub_progress INTEGER,
+    sub_total    INTEGER,
+    result       TEXT,
+    error        TEXT,
+    created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now'))
 )
 """
 
@@ -98,6 +113,9 @@ _ADD_CREATED_AT = """
 ALTER TABLE tasks ADD COLUMN
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now'))
 """
+
+_ADD_SUB_PROGRESS = "ALTER TABLE tasks ADD COLUMN sub_progress INTEGER"
+_ADD_SUB_TOTAL = "ALTER TABLE tasks ADD COLUMN sub_total INTEGER"
 
 
 class SQLiteTaskStore:
@@ -122,6 +140,14 @@ class SQLiteTaskStore:
                 # Migrate existing DBs that lack the created_at column
                 try:
                     await db.execute(_ADD_CREATED_AT)
+                except Exception:
+                    pass  # column already exists
+                try:
+                    await db.execute(_ADD_SUB_PROGRESS)
+                except Exception:
+                    pass  # column already exists
+                try:
+                    await db.execute(_ADD_SUB_TOTAL)
                 except Exception:
                     pass  # column already exists
                 await db.commit()
@@ -198,7 +224,7 @@ class SQLiteTaskStore:
 
     async def _async_get(self, task_id: str) -> TaskStatus | None:
         row = await self._fetchone(
-            "SELECT task_id, status, progress, stage, result, error FROM tasks WHERE task_id = ?",
+            "SELECT task_id, status, progress, stage, sub_progress, sub_total, result, error FROM tasks WHERE task_id = ?",
             (task_id,),
         )
         if row is None:
@@ -208,8 +234,10 @@ class SQLiteTaskStore:
             status=row[1],
             progress=row[2],
             stage=row[3],
-            result=json.loads(row[4]) if row[4] else None,
-            error=row[5],
+            sub_progress=row[4],
+            sub_total=row[5],
+            result=json.loads(row[6]) if row[6] else None,
+            error=row[7],
         )
 
     def set_running(self, task_id: str) -> None:
@@ -229,10 +257,18 @@ class SQLiteTaskStore:
             (error, task_id),
         ))
 
-    def set_progress(self, task_id: str, progress: int, stage: str) -> None:
+    def set_progress(
+        self,
+        task_id: str,
+        progress: int,
+        stage: str,
+        *,
+        sub_progress: int | None = None,
+        sub_total: int | None = None,
+    ) -> None:
         self._run(self._execute(
-            "UPDATE tasks SET progress = ?, stage = ? WHERE task_id = ?",
-            (progress, stage, task_id),
+            "UPDATE tasks SET progress = ?, stage = ?, sub_progress = ?, sub_total = ? WHERE task_id = ?",
+            (progress, stage, sub_progress, sub_total, task_id),
         ))
 
 

@@ -37,9 +37,11 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
     def __init__(self, summarizer: ChapterSummarizer | None = None) -> None:
         self._summarizer = summarizer or ChapterSummarizer()
 
-    async def run(self, input_data: Document) -> SummarizationResult:
+    async def run(self, input_data: Document, *, sub_cb=None) -> SummarizationResult:
         doc = input_data
         chapters_summarized = 0
+        chapters_with_content = [ch for ch in doc.chapters if ch.paragraphs]
+        total = len(chapters_with_content)
 
         # Step 1: chapter summaries (sequential to avoid rate limits)
         for chapter in doc.chapters:
@@ -53,6 +55,8 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
                 text, chapter.number, chapter.title, language=doc.language
             )
             chapters_summarized += 1
+            if sub_cb:
+                sub_cb(chapters_summarized, total)
 
         # Step 2: book summary from chapter summaries
         chapter_summaries = [
