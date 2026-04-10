@@ -80,6 +80,7 @@ class MemoryTaskStore:
         *,
         sub_progress: int | None = None,
         sub_total: int | None = None,
+        sub_stage: str | None = None,
     ) -> None:
         with self._lock:
             if task_id in self._store:
@@ -89,6 +90,7 @@ class MemoryTaskStore:
                         "stage": stage,
                         "sub_progress": sub_progress,
                         "sub_total": sub_total,
+                        "sub_stage": sub_stage,
                     }
                 )
 
@@ -103,6 +105,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     stage        TEXT NOT NULL DEFAULT '',
     sub_progress INTEGER,
     sub_total    INTEGER,
+    sub_stage    TEXT,
     result       TEXT,
     error        TEXT,
     created_at   TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%S', 'now'))
@@ -116,6 +119,7 @@ ALTER TABLE tasks ADD COLUMN
 
 _ADD_SUB_PROGRESS = "ALTER TABLE tasks ADD COLUMN sub_progress INTEGER"
 _ADD_SUB_TOTAL = "ALTER TABLE tasks ADD COLUMN sub_total INTEGER"
+_ADD_SUB_STAGE = "ALTER TABLE tasks ADD COLUMN sub_stage TEXT"
 
 
 class SQLiteTaskStore:
@@ -148,6 +152,10 @@ class SQLiteTaskStore:
                     pass  # column already exists
                 try:
                     await db.execute(_ADD_SUB_TOTAL)
+                except Exception:
+                    pass  # column already exists
+                try:
+                    await db.execute(_ADD_SUB_STAGE)
                 except Exception:
                     pass  # column already exists
                 await db.commit()
@@ -224,7 +232,7 @@ class SQLiteTaskStore:
 
     async def _async_get(self, task_id: str) -> TaskStatus | None:
         row = await self._fetchone(
-            "SELECT task_id, status, progress, stage, sub_progress, sub_total, result, error FROM tasks WHERE task_id = ?",
+            "SELECT task_id, status, progress, stage, sub_progress, sub_total, sub_stage, result, error FROM tasks WHERE task_id = ?",
             (task_id,),
         )
         if row is None:
@@ -236,8 +244,9 @@ class SQLiteTaskStore:
             stage=row[3],
             sub_progress=row[4],
             sub_total=row[5],
-            result=json.loads(row[6]) if row[6] else None,
-            error=row[7],
+            sub_stage=row[6],
+            result=json.loads(row[7]) if row[7] else None,
+            error=row[8],
         )
 
     def set_running(self, task_id: str) -> None:
@@ -265,10 +274,11 @@ class SQLiteTaskStore:
         *,
         sub_progress: int | None = None,
         sub_total: int | None = None,
+        sub_stage: str | None = None,
     ) -> None:
         self._run(self._execute(
-            "UPDATE tasks SET progress = ?, stage = ?, sub_progress = ?, sub_total = ? WHERE task_id = ?",
-            (progress, stage, sub_progress, sub_total, task_id),
+            "UPDATE tasks SET progress = ?, stage = ?, sub_progress = ?, sub_total = ?, sub_stage = ? WHERE task_id = ?",
+            (progress, stage, sub_progress, sub_total, sub_stage, task_id),
         ))
 
 

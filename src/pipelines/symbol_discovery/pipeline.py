@@ -98,6 +98,10 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         """Extract imagery from every chapter sequentially."""
         all_raw: list[dict] = []
         total = len(doc.chapters)
+
+        if sub_cb:
+            sub_cb(0, total, "章節符號")
+
         for i, chapter in enumerate(doc.chapters):
             chapter_text = "\n".join(p.text for p in chapter.paragraphs)
             self._log_step("extract_chapter", chapter=chapter.number)
@@ -107,7 +111,7 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
                 language=doc.language,
             )
             if sub_cb:
-                sub_cb(i + 1, total)
+                sub_cb(i + 1, total, "章節符號")
             # Enrich with paragraph-level metadata
             for item in chapter_items:
                 item["paragraph_id"] = self._find_paragraph_id(

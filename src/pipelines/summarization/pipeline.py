@@ -43,6 +43,9 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
         chapters_with_content = [ch for ch in doc.chapters if ch.paragraphs]
         total = len(chapters_with_content)
 
+        if sub_cb:
+            sub_cb(0, total, "章節摘要")
+
         # Step 1: chapter summaries (sequential to avoid rate limits)
         for chapter in doc.chapters:
             if not chapter.paragraphs:
@@ -56,7 +59,7 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
             )
             chapters_summarized += 1
             if sub_cb:
-                sub_cb(chapters_summarized, total)
+                sub_cb(chapters_summarized, total, "章節摘要")
 
         # Step 2: book summary from chapter summaries
         chapter_summaries = [
@@ -71,6 +74,8 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
 
         book_summary_generated = False
         if chapter_summaries:
+            if sub_cb:
+                sub_cb(total, total, "全書摘要")
             self._log_step("summarize_book")
             doc.summary = await self._summarizer.summarize_book(
                 chapter_summaries, doc.title, language=doc.language

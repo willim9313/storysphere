@@ -155,9 +155,16 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         file_path = Path(input_data).resolve()
         errors: list[str] = []
 
-        def _progress(pct: int, stage: str, *, sub_progress: int | None = None, sub_total: int | None = None) -> None:
+        def _progress(
+            pct: int,
+            stage: str,
+            *,
+            sub_progress: int | None = None,
+            sub_total: int | None = None,
+            sub_stage: str | None = None,
+        ) -> None:
             if progress_cb is not None:
-                progress_cb(pct, stage, sub_progress=sub_progress, sub_total=sub_total)
+                progress_cb(pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage)
 
         # ── Ensure DB tables exist ───────────────────────────────────────────
         await self._document_service.init_db()
@@ -193,7 +200,10 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             try:
                 summ_result = await self._summarization_pipeline.run(
                     doc,
-                    sub_cb=lambda cur, tot: _progress(20, "Summary generation", sub_progress=cur, sub_total=tot),
+                    sub_cb=lambda cur, tot, label="章節摘要": _progress(
+                        20, "Summary generation",
+                        sub_progress=cur, sub_total=tot, sub_stage=label,
+                    ),
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.error("Summarization failed: %s", exc)
@@ -206,7 +216,10 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         try:
             feat_result = await self._feature_pipeline.run(
                 doc,
-                sub_cb=lambda cur, tot: _progress(40, "Feature extraction", sub_progress=cur, sub_total=tot),
+                sub_cb=lambda cur, tot, label="章節特徵": _progress(
+                    40, "Feature extraction",
+                    sub_progress=cur, sub_total=tot, sub_stage=label,
+                ),
             )
         except Exception as exc:  # noqa: BLE001
             logger.error("Feature extraction failed: %s", exc)
@@ -223,7 +236,10 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             try:
                 kg_result = await self._kg_pipeline.run(
                     doc,
-                    sub_cb=lambda cur, tot: _progress(60, "Knowledge graph extraction", sub_progress=cur, sub_total=tot),
+                    sub_cb=lambda cur, tot, label="": _progress(
+                        60, "Knowledge graph extraction",
+                        sub_progress=cur, sub_total=tot, sub_stage=label,
+                    ),
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.error("KG extraction failed: %s", exc)
@@ -237,7 +253,10 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             try:
                 symbol_result = await self._symbol_pipeline.run(
                     doc,
-                    sub_cb=lambda cur, tot: _progress(80, "Symbol discovery", sub_progress=cur, sub_total=tot),
+                    sub_cb=lambda cur, tot, label="章節符號": _progress(
+                        80, "Symbol discovery",
+                        sub_progress=cur, sub_total=tot, sub_stage=label,
+                    ),
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.error("Symbol discovery failed (non-fatal): %s", exc)

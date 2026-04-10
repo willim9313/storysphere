@@ -171,6 +171,7 @@ export interface TaskStatus {
   stage: string;
   subProgress?: number;
   subTotal?: number;
+  subStage?: string;
   result?: {
     bookId?: string;
     [key: string]: unknown;

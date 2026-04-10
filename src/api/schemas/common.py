@@ -17,6 +17,7 @@ class TaskStatus(BaseModel):
     stage: str = ""
     sub_progress: int | None = None
     sub_total: int | None = None
+    sub_stage: str | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
 

@@ -78,6 +78,9 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         total_chapters = len(chapters_with_content)
         chapters_done = 0
 
+        if sub_cb:
+            sub_cb(0, total_chapters, "章節特徵")
+
         for chapter in doc.chapters:
             paragraphs = chapter.paragraphs
             if not paragraphs:
@@ -133,7 +136,7 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
             total_embedded += len(paragraphs)
             chapters_done += 1
             if sub_cb:
-                sub_cb(chapters_done, total_chapters)
+                sub_cb(chapters_done, total_chapters, "章節特徵")
             # vectors goes out of scope here → eligible for GC
 
         # ── Aggregate chapter → book keywords ──────────────────────────────

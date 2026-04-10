@@ -78,6 +78,9 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         total_chapters = len(chapters_with_content)
         chapters_done = 0
 
+        if sub_cb:
+            sub_cb(0, total_chapters, "實體抽取")
+
         # ── Step 1: extract entities per paragraph ──────────────────────────
         # Paragraph-level extraction keeps each LLM call small, avoiding
         # truncation issues on long chapters with local models.
@@ -107,7 +110,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
 
             chapters_done += 1
             if sub_cb:
-                sub_cb(chapters_done, total_chapters)
+                sub_cb(chapters_done, total_chapters, "實體抽取")
 
         # ── Step 2: deduplicate across chapters ─────────────────────────────
         self._log_step("entity_link", raw=len(all_raw_entities))
@@ -125,6 +128,10 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         # ── Step 3: extract relations + events per chapter ──────────────────
         all_relations: list[Relation] = []
         all_events: list[Event] = []
+        rel_done = 0
+
+        if sub_cb:
+            sub_cb(0, total_chapters, "關係抽取")
 
         for chapter in doc.chapters:
             # pop() releases the chapter string once relation/event extraction
@@ -145,6 +152,9 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
             )
             all_relations.extend(relations)
             all_events.extend(events)
+            rel_done += 1
+            if sub_cb:
+                sub_cb(rel_done, total_chapters, "關係抽取")
 
         # ── Step 3.5: link entities to paragraphs ─────────────────────────────
         self._log_step("paragraph_entity_link")

@@ -251,7 +251,7 @@ async def _run_ingestion(
             file_path,
             title=title,
             author=author,
-            progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None: task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total),
+            progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None: task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
         )
         task_store.set_completed(
             task_id,

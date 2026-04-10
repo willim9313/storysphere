@@ -93,7 +93,7 @@ export function ProcessingTimeline({ task }: Readonly<ProcessingTimelineProps>) 
                   {hasSubProgress ? (
                     <>
                       <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-                        章節 {task.subProgress ?? 0} / {task.subTotal}
+                        {task.subStage ? `${task.subStage} ` : ''}{task.subProgress ?? 0} / {task.subTotal}
                       </span>
                       <div
                         className="mt-0.5 h-0.5 w-24 rounded overflow-hidden"
