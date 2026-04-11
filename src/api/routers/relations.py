@@ -42,7 +42,11 @@ async def get_relation_paths(
         target_id=target_id,
         max_length=max_length,
     )
-    return RelationPathsResponse(source_id=source_id, target_id=target_id, paths=paths)
+    return RelationPathsResponse(
+        source_id=source_id,
+        target_id=target_id,
+        paths=[[n.model_dump() for n in p.nodes] for p in paths],
+    )
 
 
 @router.get("/stats", response_model=RelationStatsResponse)
@@ -57,4 +61,4 @@ async def get_relation_stats(
             raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
     stats = await kg.get_relation_stats(entity_id=entity_id)
-    return RelationStatsResponse(stats=stats)
+    return RelationStatsResponse(stats=stats.model_dump())

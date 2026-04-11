@@ -37,10 +37,10 @@ async def semantic_search(
     )
     return [
         SearchResult(
-            id=r.get("id", ""),
-            text=r.get("text", ""),
-            score=r.get("score", 0.0),
-            metadata=r.get("metadata", {}),
+            id=r.id,
+            text=r.text,
+            score=r.score,
+            metadata={},
         )
         for r in results
     ]

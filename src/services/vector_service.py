@@ -17,6 +17,8 @@ import logging
 import re
 from typing import Any
 
+from services.query_models import KeywordSearchResult, VectorSearchResult
+
 from qdrant_client import QdrantClient, models
 
 logger = logging.getLogger(__name__)
@@ -183,7 +185,7 @@ class VectorService:
         query_text: str,
         top_k: int = 5,
         document_id: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[VectorSearchResult]:
         """Semantic search: embed *query_text* → Qdrant search → return scored paragraphs.
 
         When *document_id* is provided, searches only that book's collection.
@@ -221,19 +223,19 @@ class VectorService:
         ]
         results_lists = await asyncio.gather(*tasks, return_exceptions=True)
 
-        merged: list[dict[str, Any]] = []
+        merged: list[VectorSearchResult] = []
         for res in results_lists:
             if isinstance(res, Exception):
                 logger.warning("Cross-book search error: %s", res)
                 continue
             merged.extend(self._parse_hits(res))
 
-        merged.sort(key=lambda r: r["score"], reverse=True)
+        merged.sort(key=lambda r: r.score, reverse=True)
         return merged[:top_k]
 
     def _search_collection(
         self, collection_name: str, query_vector: list[float], top_k: int
-    ) -> list[dict[str, Any]]:
+    ) -> list[VectorSearchResult]:
         """Search a single collection (sync, called from async context)."""
         hits = self._client.query_points(
             collection_name=collection_name,
@@ -244,20 +246,20 @@ class VectorService:
         return self._parse_hits(hits)
 
     @staticmethod
-    def _parse_hits(hits) -> list[dict[str, Any]]:
-        """Extract result dicts from Qdrant query_points response."""
-        results: list[dict[str, Any]] = []
+    def _parse_hits(hits) -> list[VectorSearchResult]:
+        """Extract VectorSearchResult objects from Qdrant query_points response."""
+        results: list[VectorSearchResult] = []
         for point in hits.points:
             payload = point.payload or {}
             results.append(
-                {
-                    "id": str(point.id),
-                    "score": point.score,
-                    "text": payload.get("text", ""),
-                    "document_id": payload.get("document_id", ""),
-                    "chapter_number": payload.get("chapter_number", 0),
-                    "position": payload.get("position", 0),
-                }
+                VectorSearchResult(
+                    id=str(point.id),
+                    score=point.score,
+                    text=payload.get("text", ""),
+                    document_id=payload.get("document_id", ""),
+                    chapter_number=payload.get("chapter_number", 0),
+                    position=payload.get("position", 0),
+                )
             )
         return results
 
@@ -268,7 +270,7 @@ class VectorService:
         keyword: str,
         top_k: int = 10,
         document_id: str | None = None,
-    ) -> list[dict[str, Any]]:
+    ) -> list[KeywordSearchResult]:
         """Search paragraphs by keyword match on the ``keywords`` payload field.
 
         When *document_id* is provided, searches only that book's collection.
@@ -294,7 +296,7 @@ class VectorService:
         if not doc_ids:
             return []
 
-        merged: list[dict[str, Any]] = []
+        merged: list[KeywordSearchResult] = []
         for did in doc_ids:
             merged.extend(
                 self._scroll_keyword(self._col(did), kw_filter, top_k)
@@ -303,7 +305,7 @@ class VectorService:
 
     def _scroll_keyword(
         self, collection_name: str, kw_filter: models.Filter, top_k: int
-    ) -> list[dict[str, Any]]:
+    ) -> list[KeywordSearchResult]:
         """Scroll a single collection for keyword matches."""
         scroll_result = self._client.scroll(
             collection_name=collection_name,
@@ -312,19 +314,19 @@ class VectorService:
             with_payload=True,
         )
 
-        results: list[dict[str, Any]] = []
+        results: list[KeywordSearchResult] = []
         points = scroll_result[0] if isinstance(scroll_result, tuple) else scroll_result
         for point in points:
             payload = point.payload or {}
             results.append(
-                {
-                    "id": str(point.id),
-                    "text": payload.get("text", ""),
-                    "document_id": payload.get("document_id", ""),
-                    "chapter_number": payload.get("chapter_number", 0),
-                    "position": payload.get("position", 0),
-                    "keyword_scores": payload.get("keyword_scores", {}),
-                }
+                KeywordSearchResult(
+                    id=str(point.id),
+                    text=payload.get("text", ""),
+                    document_id=payload.get("document_id", ""),
+                    chapter_number=payload.get("chapter_number", 0),
+                    position=payload.get("position", 0),
+                    keyword_scores=payload.get("keyword_scores", {}),
+                )
             )
         return results
 

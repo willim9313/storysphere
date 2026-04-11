@@ -6,12 +6,12 @@ Both NetworkX (default) and Neo4j implementations must satisfy this contract.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
 from domain.entities import Entity, EntityType
 from domain.events import Event
 from domain.relations import Relation
 from domain.temporal import TemporalRelation
+from services.query_models import RelationPath, RelationStats, Subgraph
 
 
 class KGServiceBase(ABC):
@@ -24,19 +24,19 @@ class KGServiceBase(ABC):
         """Add or replace an entity node."""
 
     @abstractmethod
-    async def get_entity(self, entity_id: str) -> Optional[Entity]:
+    async def get_entity(self, entity_id: str) -> Entity | None:
         """Return the entity with the given ID, or None."""
 
     @abstractmethod
-    async def get_entity_by_name(self, name: str) -> Optional[Entity]:
+    async def get_entity_by_name(self, name: str) -> Entity | None:
         """Return the first entity whose name or alias matches (case-insensitive)."""
 
     @abstractmethod
     async def list_entities(
         self,
-        entity_type: Optional[EntityType] = None,
-        document_id: Optional[str] = None,
-        extraction_method: Optional[str] = None,
+        entity_type: EntityType | None = None,
+        document_id: str | None = None,
+        extraction_method: str | None = None,
     ) -> list[Entity]:
         """Return entities, optionally filtered by type / document / extraction_method."""
 
@@ -59,14 +59,14 @@ class KGServiceBase(ABC):
         """Store an event and attach it to participating entities."""
 
     @abstractmethod
-    async def get_event(self, event_id: str) -> Optional[Event]:
+    async def get_event(self, event_id: str) -> Event | None:
         """Return the event with the given ID, or None."""
 
     @abstractmethod
     async def get_events(
         self,
-        entity_id: Optional[str] = None,
-        document_id: Optional[str] = None,
+        entity_id: str | None = None,
+        document_id: str | None = None,
     ) -> list[Event]:
         """Return events, optionally filtered by entity and/or document."""
 
@@ -78,7 +78,7 @@ class KGServiceBase(ABC):
 
     @abstractmethod
     async def get_temporal_relations(
-        self, document_id: Optional[str] = None
+        self, document_id: str | None = None
     ) -> list[TemporalRelation]:
         """Return temporal relations, optionally filtered by document."""
 
@@ -104,15 +104,15 @@ class KGServiceBase(ABC):
         source_id: str,
         target_id: str,
         max_length: int = 3,
-    ) -> list[list[dict]]:
+    ) -> list[RelationPath]:
         """Find simple paths between two entities (up to max_length hops)."""
 
     @abstractmethod
-    async def get_subgraph(self, entity_id: str, k_hops: int = 2) -> dict:
+    async def get_subgraph(self, entity_id: str, k_hops: int = 2) -> Subgraph:
         """Return the k-hop ego-graph around entity_id."""
 
     @abstractmethod
-    async def get_relation_stats(self, entity_id: str | None = None) -> dict:
+    async def get_relation_stats(self, entity_id: str | None = None) -> RelationStats:
         """Return relation-type distribution and weight statistics."""
 
     # ── Document-scoped removal ─────────────────────────────────────────────

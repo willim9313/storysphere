@@ -301,13 +301,13 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
     items = await doc.list_documents()
     results = []
     for item in items:
-        book_entities = await kg.list_entities(document_id=item["id"])
+        book_entities = await kg.list_entities(document_id=item.id)
         results.append(
             BookResponse(
-                id=item["id"],
-                title=item["title"],
+                id=item.id,
+                title=item.title,
                 status="ready",
-                chapter_count=item.get("chapter_count", 0),
+                chapter_count=item.chapter_count,
                 entity_count=len(book_entities),
                 uploaded_at=_now_iso(),
             ).model_dump(by_alias=True)

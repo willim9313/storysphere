@@ -13,7 +13,7 @@ Persistence uses AnalysisCache (SQLite) with key patterns:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -202,7 +202,7 @@ class TensionService:
         await self._cache.set(key, teu.model_dump(mode="json"))
         logger.debug("TensionService: saved TEU for event=%s", teu.event_id)
 
-    async def get_teu(self, event_id: str) -> Optional[TEU]:
+    async def get_teu(self, event_id: str) -> TEU | None:
         """Retrieve a cached TEU by event_id, or None if not found/expired."""
         cached = await self._cache.get(f"teu:{event_id}")
         if cached is None:
@@ -270,9 +270,9 @@ class TensionService:
         line_id: str,
         document_id: str,
         review_status: str,
-        canonical_pole_a: Optional[str] = None,
-        canonical_pole_b: Optional[str] = None,
-    ) -> Optional[TensionLine]:
+        canonical_pole_a: str | None = None,
+        canonical_pole_b: str | None = None,
+    ) -> TensionLine | None:
         """Update the review_status (and optionally pole labels) of a TensionLine.
 
         Returns the updated TensionLine, or None if line_id is not found.
@@ -347,7 +347,7 @@ class TensionService:
         await self._cache.set(key, theme.model_dump(mode="json"))
         logger.debug("TensionService: saved TensionTheme for document=%s", theme.document_id)
 
-    async def get_theme(self, document_id: str) -> Optional[TensionTheme]:
+    async def get_theme(self, document_id: str) -> TensionTheme | None:
         """Retrieve a cached TensionTheme, or None if not found/expired."""
         cached = await self._cache.get(f"tension_theme:{document_id}")
         if cached is None:
@@ -359,8 +359,8 @@ class TensionService:
         theme_id: str,
         document_id: str,
         review_status: str,
-        proposition: Optional[str] = None,
-    ) -> Optional[TensionTheme]:
+        proposition: str | None = None,
+    ) -> TensionTheme | None:
         """Update the review_status (and optionally the proposition) of a TensionTheme.
 
         Returns the updated TensionTheme, or None if theme_id does not match.
@@ -489,7 +489,7 @@ class TensionService:
         event,
         characters,
         concepts,
-        chapter_summary: Optional[str],
+        chapter_summary: str | None,
         document_id: str,
         language: str,
     ) -> TEU:

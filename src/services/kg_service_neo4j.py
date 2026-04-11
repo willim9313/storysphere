@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from neo4j import AsyncGraphDatabase, AsyncDriver
 
@@ -38,6 +38,7 @@ from domain.events import Event, EventType, NarrativeMode
 from domain.relations import Relation, RelationType
 from domain.temporal import TemporalRelation, TemporalRelationType
 from services.kg_service_base import KGServiceBase
+from services.query_models import PathNode, RelationPath, RelationStats, Subgraph, SubgraphEdge, SubgraphNode
 
 logger = logging.getLogger(__name__)
 
@@ -73,7 +74,7 @@ class Neo4jKGService(KGServiceBase):
             )
         logger.debug("Neo4jKGService.add_entity: %s (%s)", entity.name, entity.id)
 
-    async def get_entity(self, entity_id: str) -> Optional[Entity]:
+    async def get_entity(self, entity_id: str) -> Entity | None:
         async with self._driver.session() as session:
             result = await session.run(
                 "MATCH (e:Entity {id: $id}) RETURN e", id=entity_id
@@ -83,7 +84,7 @@ class Neo4jKGService(KGServiceBase):
             return None
         return _node_to_entity(record["e"])
 
-    async def get_entity_by_name(self, name: str) -> Optional[Entity]:
+    async def get_entity_by_name(self, name: str) -> Entity | None:
         async with self._driver.session() as session:
             result = await session.run(
                 """
@@ -101,9 +102,9 @@ class Neo4jKGService(KGServiceBase):
 
     async def list_entities(
         self,
-        entity_type: Optional[EntityType] = None,
-        document_id: Optional[str] = None,
-        extraction_method: Optional[str] = None,
+        entity_type: EntityType | None = None,
+        document_id: str | None = None,
+        extraction_method: str | None = None,
     ) -> list[Entity]:
         conditions: list[str] = []
         params: dict[str, Any] = {}
@@ -210,7 +211,7 @@ class Neo4jKGService(KGServiceBase):
                 )
         logger.debug("Neo4jKGService.add_event: %s", event.id)
 
-    async def get_event(self, event_id: str) -> Optional[Event]:
+    async def get_event(self, event_id: str) -> Event | None:
         async with self._driver.session() as session:
             result = await session.run(
                 "MATCH (ev:Event {id: $id}) RETURN ev", id=event_id
@@ -222,8 +223,8 @@ class Neo4jKGService(KGServiceBase):
 
     async def get_events(
         self,
-        entity_id: Optional[str] = None,
-        document_id: Optional[str] = None,
+        entity_id: str | None = None,
+        document_id: str | None = None,
     ) -> list[Event]:
         if entity_id is not None:
             cypher = """
@@ -263,7 +264,7 @@ class Neo4jKGService(KGServiceBase):
             )
 
     async def get_temporal_relations(
-        self, document_id: Optional[str] = None
+        self, document_id: str | None = None
     ) -> list[TemporalRelation]:
         cypher = """
             MATCH (a:Event)-[t:TEMPORAL]->(b:Event)
@@ -318,7 +319,7 @@ class Neo4jKGService(KGServiceBase):
         source_id: str,
         target_id: str,
         max_length: int = 3,
-    ) -> list[list[dict]]:
+    ) -> list[RelationPath]:
         cypher = f"""
             MATCH path = (a:Entity {{id: $src}})-[:RELATION*1..{max_length}]-(b:Entity {{id: $tgt}})
             RETURN [n IN nodes(path) | n.id] AS node_ids,
@@ -334,21 +335,22 @@ class Neo4jKGService(KGServiceBase):
             result = await session.run(cypher, src=source_id, tgt=target_id)
             records = await result.data()
 
-        paths: list[list[dict]] = []
+        paths: list[RelationPath] = []
         for rec in records:
             node_ids: list[str] = rec["node_ids"]
             node_names: list[str] = rec["node_names"]
             rels: list[dict] = rec["rels"]
-            path_repr: list[dict] = []
+            nodes: list[PathNode] = []
             for i, (nid, nname) in enumerate(zip(node_ids, node_names)):
-                node_info: dict = {"entity_id": nid, "name": nname}
-                if i > 0:
-                    node_info["relation_from_prev"] = rels[i - 1]
-                path_repr.append(node_info)
-            paths.append(path_repr)
+                nodes.append(PathNode(
+                    entity_id=nid,
+                    name=nname,
+                    relation_from_prev=rels[i - 1] if i > 0 else None,
+                ))
+            paths.append(RelationPath(nodes=nodes))
         return paths
 
-    async def get_subgraph(self, entity_id: str, k_hops: int = 2) -> dict:
+    async def get_subgraph(self, entity_id: str, k_hops: int = 2) -> Subgraph:
         cypher = f"""
             MATCH (center:Entity {{id: $id}})
             OPTIONAL MATCH (center)-[:RELATION*0..{k_hops}]-(neighbor:Entity)
@@ -371,40 +373,40 @@ class Neo4jKGService(KGServiceBase):
             record = await result.single()
 
         if record is None or record["center"] is None:
-            return {"center": entity_id, "nodes": [], "edges": []}
+            return Subgraph(center=entity_id, nodes=[], edges=[])
 
         center_node = record["center"]
         all_nodes = [center_node] + [n for n in record["neighbors"] if n is not None]
 
-        nodes = []
+        nodes: list[SubgraphNode] = []
         seen_nodes: set[str] = set()
         for n in all_nodes:
             nid = n["id"]
             if nid not in seen_nodes:
                 seen_nodes.add(nid)
-                nodes.append({
-                    "entity_id": nid,
-                    "name": n.get("name", nid),
-                    "entity_type": n.get("entity_type", "unknown"),
-                })
+                nodes.append(SubgraphNode(
+                    entity_id=nid,
+                    name=n.get("name", nid),
+                    entity_type=n.get("entity_type", "unknown"),
+                ))
 
-        edges = []
+        edges: list[SubgraphEdge] = []
         seen_edges: set[str] = set()
         for e in record["edges"]:
             rid = e.get("id")
             if rid and rid not in seen_edges:
                 seen_edges.add(rid)
-                edges.append({
-                    "source": e["src"],
-                    "target": e["tgt"],
-                    "relation_type": e.get("relation_type", "unknown"),
-                    "description": e.get("description"),
-                    "weight": e.get("weight", 1.0),
-                })
+                edges.append(SubgraphEdge(
+                    source=e["src"],
+                    target=e["tgt"],
+                    relation_type=e.get("relation_type", "unknown"),
+                    description=e.get("description"),
+                    weight=e.get("weight", 1.0),
+                ))
 
-        return {"center": entity_id, "nodes": nodes, "edges": edges}
+        return Subgraph(center=entity_id, nodes=nodes, edges=edges)
 
-    async def get_relation_stats(self, entity_id: str | None = None) -> dict:
+    async def get_relation_stats(self, entity_id: str | None = None) -> RelationStats:
         if entity_id is not None:
             cypher = """
                 MATCH (e:Entity {id: $id})-[r:RELATION]-(o:Entity)
@@ -430,13 +432,13 @@ class Neo4jKGService(KGServiceBase):
             if rec["weight"] is not None:
                 weights.append(float(rec["weight"]))
 
-        return {
-            "total_relations": len(records),
-            "type_distribution": type_dist,
-            "weight_avg": sum(weights) / len(weights) if weights else 0.0,
-            "weight_min": min(weights) if weights else 0.0,
-            "weight_max": max(weights) if weights else 0.0,
-        }
+        return RelationStats(
+            total_relations=len(records),
+            type_distribution=type_dist,
+            weight_avg=sum(weights) / len(weights) if weights else 0.0,
+            weight_min=min(weights) if weights else 0.0,
+            weight_max=max(weights) if weights else 0.0,
+        )
 
     # ── Document-scoped removal ─────────────────────────────────────────────
 

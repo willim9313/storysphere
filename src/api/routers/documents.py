@@ -43,7 +43,7 @@ class DocumentResponse(BaseModel):
 async def list_documents(doc: DocServiceDep) -> list[DocumentSummary]:
     """List all ingested documents (lightweight)."""
     items = await doc.list_documents()
-    return [DocumentSummary(**item) for item in items]
+    return [DocumentSummary(id=item.id, title=item.title, file_type=item.file_type) for item in items]
 
 
 @router.get("/{document_id}", response_model=DocumentResponse)

@@ -94,8 +94,8 @@ async def get_entity_subgraph(
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
     subgraph = await kg.get_subgraph(entity_id, k_hops=k_hops)
     return SubgraphResponse(
-        nodes=subgraph.get("nodes", []),
-        edges=subgraph.get("edges", []),
+        nodes=[n.model_dump() for n in subgraph.nodes],
+        edges=[e.model_dump() for e in subgraph.edges],
     )
 
 
@@ -107,4 +107,4 @@ async def get_entity_relation_stats(
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
     stats = await kg.get_relation_stats(entity_id=entity_id)
-    return RelationStatsResponse(stats=stats)
+    return RelationStatsResponse(stats=stats.model_dump())

@@ -1,12 +1,14 @@
-"""Tests for GET /api/v1/search/ endpoint."""
+"""Tests for POST /api/v1/search/ endpoint."""
 
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
+from services.query_models import VectorSearchResult
+
 
 def test_search_returns_results(client):
-    resp = client.get("/api/v1/search/?q=Alice+garden")
+    resp = client.post("/api/v1/search/", json={"query": "Alice garden"})
     assert resp.status_code == 200
     results = resp.json()
     assert len(results) == 1
@@ -17,15 +19,13 @@ def test_search_returns_results(client):
 
 def test_search_limit(client, mock_vector):
     mock_vector.search = AsyncMock(return_value=[
-        {"id": f"p{i}", "text": f"chunk {i}", "score": 0.9 - i * 0.01, "metadata": {}}
+        VectorSearchResult(id=f"p{i}", text=f"chunk {i}", score=0.9 - i * 0.01, document_id="doc-1", chapter_number=1, position=i)
         for i in range(5)
     ])
-    resp = client.get("/api/v1/search/?q=test&limit=3")
-    assert resp.status_code == 200
-    # VectorService is called with top_k=3; mock returns 5 but that's on the service side
+    resp = client.post("/api/v1/search/", json={"query": "test", "topK": 3})
     assert resp.status_code == 200
 
 
 def test_search_missing_query(client):
-    resp = client.get("/api/v1/search/")
-    assert resp.status_code == 422  # q is required
+    resp = client.post("/api/v1/search/", json={})
+    assert resp.status_code == 422  # query is required

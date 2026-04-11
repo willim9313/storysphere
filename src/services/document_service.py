@@ -13,7 +13,6 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Optional
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, func, select, text as sa_text
 from sqlalchemy import delete as sa_delete
@@ -21,6 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase
 
 from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
+from services.query_models import ChapterKeywordMatch, DocumentSummary
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +84,7 @@ class DocumentService:
         doc = await service.get_document(doc_id)
     """
 
-    def __init__(self, database_url: Optional[str] = None) -> None:
+    def __init__(self, database_url: str | None = None) -> None:
         from config.settings import get_settings  # noqa: PLC0415
 
         settings = get_settings()
@@ -189,7 +189,7 @@ class DocumentService:
 
     # ── Fetch ─────────────────────────────────────────────────────────────────
 
-    async def get_document(self, document_id: str) -> Optional[Document]:
+    async def get_document(self, document_id: str) -> Document | None:
         """Retrieve a full ``Document`` (with chapters and paragraphs) by ID."""
         async with self._session_factory() as session:
             doc_row = await session.get(_DocumentRow, document_id)
@@ -276,8 +276,8 @@ class DocumentService:
             )
             return result.scalar_one_or_none() or "en"
 
-    async def list_documents(self) -> list[dict]:
-        """Return a lightweight list of {id, title, file_type, chapter_count} dicts."""
+    async def list_documents(self) -> list[DocumentSummary]:
+        """Return a lightweight list of all documents."""
         async with self._session_factory() as session:
             chapter_count = (
                 func.count(_ChapterRow.id).label("chapter_count")
@@ -293,12 +293,12 @@ class DocumentService:
                 .group_by(_DocumentRow.id)
             )
             return [
-                {
-                    "id": row.id,
-                    "title": row.title,
-                    "file_type": row.file_type,
-                    "chapter_count": row.chapter_count,
-                }
+                DocumentSummary(
+                    id=row.id,
+                    title=row.title,
+                    file_type=row.file_type,
+                    chapter_count=row.chapter_count,
+                )
                 for row in result.all()
             ]
 
@@ -321,7 +321,7 @@ class DocumentService:
     async def get_paragraphs(
         self,
         document_id: str,
-        chapter_number: Optional[int] = None,
+        chapter_number: int | None = None,
     ) -> list[Paragraph]:
         """Return paragraphs for a document, optionally filtered by chapter."""
         async with self._session_factory() as session:
@@ -480,8 +480,8 @@ class DocumentService:
 
     async def search_chapters_by_keyword(
         self, document_id: str, keyword: str
-    ) -> list[dict[str, object]]:
-        """Find chapters containing a specific keyword. Returns list of dicts."""
+    ) -> list[ChapterKeywordMatch]:
+        """Find chapters containing a specific keyword."""
         async with self._session_factory() as session:
             result = await session.execute(
                 select(_ChapterRow).where(
@@ -489,16 +489,16 @@ class DocumentService:
                     _ChapterRow.keywords_json.isnot(None),
                 ).order_by(_ChapterRow.number)
             )
-            matches: list[dict[str, object]] = []
+            matches: list[ChapterKeywordMatch] = []
             keyword_lower = keyword.lower()
             for row in result.scalars().all():
                 kws = json.loads(row.keywords_json)
                 if keyword_lower in kws:
-                    matches.append({
-                        "chapter_number": row.number,
-                        "title": row.title,
-                        "score": kws[keyword_lower],
-                    })
+                    matches.append(ChapterKeywordMatch(
+                        chapter_number=row.number,
+                        title=row.title,
+                        score=kws[keyword_lower],
+                    ))
             return matches
 
     # ── Delete ────────────────────────────────────────────────────────────────
@@ -522,6 +522,6 @@ class DocumentService:
                         _DocumentRow.id == document_id
                     )
                 )
-        logger.info(
+        logger.debug(
             "DocumentService.delete_document: id=%s", document_id
         )

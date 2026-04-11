@@ -15,7 +15,7 @@ from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_event, handle_not_found
+from tools.base import _json_default, format_event, handle_not_found
 from tools.schemas import GetEventProfileInput
 
 logger = logging.getLogger(__name__)
@@ -146,7 +146,7 @@ class GetEventProfileTool(BaseTool):
         else:
             profile["chapter_summary"] = summary_r
 
-        return json.dumps(profile, ensure_ascii=False, indent=2, default=str)
+        return json.dumps(profile, ensure_ascii=False, indent=2, default=_json_default)
 
     def _run(self, event_id: str) -> str:
         import asyncio

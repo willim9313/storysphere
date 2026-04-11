@@ -22,6 +22,7 @@ from uuid import uuid4
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
 from api.deps import DocServiceDep, KGServiceDep, NarrativeServiceDep
+from services.query_models import TemporalCoverageStats
 from api.schemas.common import TaskStatus
 from api.schemas.narrative import (
     ClassifyNarrativeRequest,
@@ -223,7 +224,7 @@ async def _run_temporal(task_id: str, req: TemporalAnalysisRequest, narrative_se
 async def temporal_coverage(
     book_id: str,
     narrative_service: NarrativeServiceDep,
-) -> dict:
+) -> TemporalCoverageStats:
     """Check story_time_hint coverage for a book.
 
     Returns coverage fraction and whether it meets the 60% threshold

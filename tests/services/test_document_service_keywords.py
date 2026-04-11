@@ -93,9 +93,9 @@ class TestSearchChaptersByKeyword:
 
         results = await service.search_chapters_by_keyword(doc.id, "hero")
         assert len(results) == 2
-        assert results[0]["chapter_number"] == 1
-        assert results[0]["score"] == 0.9
-        assert results[1]["chapter_number"] == 2
+        assert results[0].chapter_number == 1
+        assert results[0].score == 0.9
+        assert results[1].chapter_number == 2
 
     async def test_search_no_match(self, service):
         doc = _make_document()

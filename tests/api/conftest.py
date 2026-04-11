@@ -14,6 +14,16 @@ from fastapi.testclient import TestClient
 from domain.entities import Entity, EntityType
 from domain.events import Event, EventType
 from domain.relations import Relation, RelationType
+from services.query_models import (
+    DocumentSummary,
+    PathNode,
+    RelationPath,
+    RelationStats,
+    Subgraph,
+    SubgraphEdge,
+    SubgraphNode,
+    VectorSearchResult,
+)
 from services.analysis_models import (
     ArcSegment,
     ArchetypeResult,
@@ -68,16 +78,23 @@ def mock_kg():
     svc.list_entities = AsyncMock(return_value=[ALICE, BOB])
     svc.get_relations = AsyncMock(return_value=[ALICE_BOB_REL])
     svc.get_entity_timeline = AsyncMock(return_value=[MEETING])
-    svc.get_subgraph = AsyncMock(return_value={
-        "nodes": [{"entity_id": "ent-alice", "name": "Alice"}],
-        "edges": [],
-    })
-    svc.get_relation_stats = AsyncMock(return_value={"total_relations": 1})
+    svc.get_subgraph = AsyncMock(return_value=Subgraph(
+        center="ent-alice",
+        nodes=[SubgraphNode(entity_id="ent-alice", name="Alice", entity_type="character")],
+        edges=[],
+    ))
+    svc.get_relation_stats = AsyncMock(return_value=RelationStats(
+        total_relations=1,
+        type_distribution={"friendship": 1},
+        weight_avg=0.9,
+        weight_min=0.9,
+        weight_max=0.9,
+    ))
     svc.get_relation_paths = AsyncMock(return_value=[
-        [
-            {"entity_id": "ent-alice", "name": "Alice"},
-            {"entity_id": "ent-bob", "name": "Bob", "relation_type": "friendship"},
-        ]
+        RelationPath(nodes=[
+            PathNode(entity_id="ent-alice", name="Alice"),
+            PathNode(entity_id="ent-bob", name="Bob"),
+        ])
     ])
     return svc
 
@@ -86,7 +103,7 @@ def mock_kg():
 def mock_vector():
     svc = AsyncMock()
     svc.search = AsyncMock(return_value=[
-        {"id": "p1", "text": "Alice entered the garden.", "score": 0.95, "metadata": {}},
+        VectorSearchResult(id="p1", text="Alice entered the garden.", score=0.95, document_id="doc-1", chapter_number=1, position=0),
     ])
     return svc
 
@@ -113,7 +130,7 @@ def mock_doc():
     )
     svc = AsyncMock()
     svc.list_documents = AsyncMock(return_value=[
-        {"id": "doc-1", "title": "Test Novel", "file_type": "pdf"}
+        DocumentSummary(id="doc-1", title="Test Novel", file_type="pdf", chapter_count=2)
     ])
     async def _get_doc(doc_id):
         return doc if doc_id == "doc-1" else None

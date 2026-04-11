@@ -19,9 +19,11 @@ import math
 import re
 from abc import ABC, abstractmethod
 from collections import Counter
-from typing import Any, Optional
+from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
+from services.query_models import ChapterKeywordMatch
 
 logger = logging.getLogger(__name__)
 
@@ -381,15 +383,15 @@ class KeywordService:
 
     async def get_chapter_keywords(
         self, document_id: str, chapter_number: int
-    ) -> Optional[dict[str, float]]:
+    ) -> dict[str, float] | None:
         return await self._doc_service.get_chapter_keywords(document_id, chapter_number)
 
-    async def get_book_keywords(self, document_id: str) -> Optional[dict[str, float]]:
+    async def get_book_keywords(self, document_id: str) -> dict[str, float] | None:
         return await self._doc_service.get_book_keywords(document_id)
 
     async def search_chapters_by_keyword(
         self, document_id: str, keyword: str
-    ) -> list[dict[str, Any]]:
+    ) -> list[ChapterKeywordMatch]:
         return await self._doc_service.search_chapters_by_keyword(document_id, keyword)
 
     async def get_entity_keywords(

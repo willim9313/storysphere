@@ -14,7 +14,7 @@ from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_entity, format_event, handle_not_found
+from tools.base import _json_default, format_entity, format_event, handle_not_found
 from tools.schemas import GetCharacterArcInput
 
 logger = logging.getLogger(__name__)
@@ -97,7 +97,7 @@ class GetCharacterArcTool(BaseTool):
             except Exception:
                 result["insight"] = None
 
-        return json.dumps(result, ensure_ascii=False, indent=2, default=str)
+        return json.dumps(result, ensure_ascii=False, indent=2, default=_json_default)
 
     def _run(self, entity_id: str) -> str:
         import asyncio

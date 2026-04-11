@@ -65,8 +65,19 @@ def handle_not_found(entity_name_or_id: str) -> str:
     return f"Entity '{entity_name_or_id}' not found in the knowledge graph."
 
 
+def _json_default(obj: Any) -> Any:
+    """JSON default encoder that serialises Pydantic models as dicts."""
+    try:
+        from pydantic import BaseModel  # noqa: PLC0415
+        if isinstance(obj, BaseModel):
+            return obj.model_dump()
+    except ImportError:
+        pass
+    return str(obj)
+
+
 def format_tool_output(data: Any) -> str:
     """Convert data to a JSON-like string for LangChain tool output."""
     import json
 
-    return json.dumps(data, ensure_ascii=False, indent=2, default=str)
+    return json.dumps(data, ensure_ascii=False, indent=2, default=_json_default)

@@ -14,7 +14,7 @@ from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_entity, handle_not_found
+from tools.base import _json_default, format_entity, handle_not_found
 from tools.schemas import CompareCharactersInput
 
 logger = logging.getLogger(__name__)
@@ -101,7 +101,7 @@ class CompareCharactersTool(BaseTool):
             except Exception:
                 result["comparison_insight"] = None
 
-        return json.dumps(result, ensure_ascii=False, indent=2, default=str)
+        return json.dumps(result, ensure_ascii=False, indent=2, default=_json_default)
 
     def _run(self, entity_a: str, entity_b: str) -> str:
         import asyncio

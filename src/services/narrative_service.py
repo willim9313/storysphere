@@ -18,7 +18,7 @@ Persistence via AnalysisCache:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -27,6 +27,7 @@ from core.token_callback import set_llm_service_context
 from core.utils.output_extractor import extract_json_from_text
 from domain.events import Event
 from domain.narrative import HeroJourneyStage, KernelSatelliteResult, NarrativeStructure, TemporalAnalysis, TemporalDisplacement
+from services.query_models import TemporalCoverageStats
 
 if TYPE_CHECKING:
     from services.analysis_cache import AnalysisCache
@@ -274,7 +275,7 @@ class NarrativeService:
     async def refine_with_llm(
         self,
         document_id: str,
-        event_ids: Optional[list[str]] = None,
+        event_ids: list[str] | None = None,
         language: str = "en",
         force: bool = False,
         progress_callback: Callable[[int, str], None] | None = None,
@@ -383,7 +384,7 @@ class NarrativeService:
         event_id: str,
         sorted_ids: list[str],
         event_by_id: dict[str, Event],
-    ) -> tuple[Optional[Event], Optional[Event]]:
+    ) -> tuple[Event | None, Event | None]:
         """Return the (previous, next) events in narrative order."""
         try:
             idx = sorted_ids.index(event_id)
@@ -409,9 +410,9 @@ class NarrativeService:
     async def _call_refine_llm(
         self,
         event: Event,
-        prev_event: Optional[Event],
-        next_event: Optional[Event],
-        chapter_summary: Optional[str],
+        prev_event: Event | None,
+        next_event: Event | None,
+        chapter_summary: str | None,
         language: str,
     ) -> KernelSatelliteResult:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
@@ -446,9 +447,9 @@ class NarrativeService:
     @staticmethod
     def _build_refine_human_content(
         event: Event,
-        prev_event: Optional[Event],
-        next_event: Optional[Event],
-        chapter_summary: Optional[str],
+        prev_event: Event | None,
+        next_event: Event | None,
+        chapter_summary: str | None,
     ) -> str:
         lines = [
             "## TARGET EVENT",
@@ -496,7 +497,7 @@ class NarrativeService:
 
     # ── Cache accessors (B-036) ───────────────────────────────────────────────
 
-    async def get_cached_structure(self, document_id: str) -> Optional[NarrativeStructure]:
+    async def get_cached_structure(self, document_id: str) -> NarrativeStructure | None:
         """Return the cached NarrativeStructure for a book, or None if not found."""
         cached = await self._cache.get(f"{_CACHE_KEY_PREFIX}:{document_id}")
         if cached is None:
@@ -507,7 +508,7 @@ class NarrativeService:
         self,
         document_id: str,
         review_status: str,
-    ) -> Optional[NarrativeStructure]:
+    ) -> NarrativeStructure | None:
         """Update the review_status of a cached NarrativeStructure."""
         cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
         cached = await self._cache.get(cache_key)
@@ -630,23 +631,18 @@ class NarrativeService:
 
     # ── B-037: Genette temporal analysis ─────────────────────────────────────
 
-    async def check_temporal_coverage(self, document_id: str) -> dict:
-        """Return coverage stats for story_time_hint fields.
-
-        Returns:
-            dict with keys: total_events, events_with_hint, coverage (0.0–1.0),
-            coverage_sufficient (bool, threshold = 0.60).
-        """
+    async def check_temporal_coverage(self, document_id: str) -> TemporalCoverageStats:
+        """Return coverage stats for story_time_hint fields."""
         events = await self._kg.get_events(document_id=document_id)
         total = len(events)
         with_hint = sum(1 for e in events if e.story_time_hint)
         coverage = with_hint / total if total > 0 else 0.0
-        return {
-            "total_events": total,
-            "events_with_hint": with_hint,
-            "coverage": coverage,
-            "coverage_sufficient": coverage >= _TEMPORAL_COVERAGE_THRESHOLD,
-        }
+        return TemporalCoverageStats(
+            total_events=total,
+            events_with_hint=with_hint,
+            coverage=coverage,
+            coverage_sufficient=coverage >= _TEMPORAL_COVERAGE_THRESHOLD,
+        )
 
     async def analyze_temporal_order(
         self,

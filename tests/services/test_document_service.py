@@ -86,7 +86,7 @@ class TestDocumentServiceSave:
 
         docs = await service.list_documents()
         assert len(docs) == 2
-        titles = {d["title"] for d in docs}
+        titles = {d.title for d in docs}
         assert "Test Novel" in titles
         assert "Another Novel" in titles
 

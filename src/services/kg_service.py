@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 import networkx as nx
 
@@ -22,6 +22,7 @@ from domain.events import Event
 from domain.relations import Relation
 from domain.temporal import TemporalRelation
 from services.kg_service_base import KGServiceBase
+from services.query_models import PathNode, RelationPath, RelationStats, Subgraph, SubgraphEdge, SubgraphNode
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +39,7 @@ class KGService(KGServiceBase):
     Do not share an instance across OS threads.
     """
 
-    def __init__(self, persistence_path: Optional[str] = None) -> None:
+    def __init__(self, persistence_path: str | None = None) -> None:
         self._graph: nx.MultiDiGraph = nx.MultiDiGraph()
         self._events: dict[str, Event] = {}  # event_id → Event
         self._entities: dict[str, Entity] = {}  # entity_id → Entity
@@ -59,11 +60,11 @@ class KGService(KGServiceBase):
         self._graph.add_node(entity.id, **self._entity_attrs(entity))
         logger.debug("KGService.add_entity: %s (%s)", entity.name, entity.id)
 
-    async def get_entity(self, entity_id: str) -> Optional[Entity]:
+    async def get_entity(self, entity_id: str) -> Entity | None:
         """Return the entity with the given ID, or None."""
         return self._entities.get(entity_id)
 
-    async def get_entity_by_name(self, name: str) -> Optional[Entity]:
+    async def get_entity_by_name(self, name: str) -> Entity | None:
         """Return the first entity whose name or alias matches (case-insensitive)."""
         name_lower = name.lower()
         for entity in self._entities.values():
@@ -75,9 +76,9 @@ class KGService(KGServiceBase):
 
     async def list_entities(
         self,
-        entity_type: Optional[EntityType] = None,
-        document_id: Optional[str] = None,
-        extraction_method: Optional[str] = None,
+        entity_type: EntityType | None = None,
+        document_id: str | None = None,
+        extraction_method: str | None = None,
     ) -> list[Entity]:
         """Return all entities, optionally filtered by type, document, and/or extraction_method."""
         entities = list(self._entities.values())
@@ -162,14 +163,14 @@ class KGService(KGServiceBase):
                 self._graph.nodes[participant_id]["event_ids"] = node_events
         logger.debug("KGService.add_event: %s", event.id)
 
-    async def get_event(self, event_id: str) -> Optional[Event]:
+    async def get_event(self, event_id: str) -> Event | None:
         """Return the event with the given ID, or None."""
         return self._events.get(event_id)
 
     async def get_events(
         self,
-        entity_id: Optional[str] = None,
-        document_id: Optional[str] = None,
+        entity_id: str | None = None,
+        document_id: str | None = None,
     ) -> list[Event]:
         """Return all events, optionally filtered to those involving an entity and/or document."""
         if entity_id is None:
@@ -189,7 +190,7 @@ class KGService(KGServiceBase):
         self._temporal_relations[tr.id] = tr
 
     async def get_temporal_relations(
-        self, document_id: Optional[str] = None
+        self, document_id: str | None = None
     ) -> list[TemporalRelation]:
         """Return all temporal relations, optionally filtered by document."""
         trs = list(self._temporal_relations.values())
@@ -239,15 +240,8 @@ class KGService(KGServiceBase):
         source_id: str,
         target_id: str,
         max_length: int = 3,
-    ) -> list[list[dict]]:
-        """Find all simple paths between two entities (up to *max_length* hops).
-
-        Returns a list of paths.  Each path is a list of dicts::
-
-            [{"entity_id": "...", "name": "..."}, ...]
-
-        with the connecting relation info between consecutive nodes.
-        """
+    ) -> list[RelationPath]:
+        """Find all simple paths between two entities (up to *max_length* hops)."""
         if source_id not in self._graph or target_id not in self._graph:
             return []
 
@@ -257,83 +251,55 @@ class KGService(KGServiceBase):
             nx.all_simple_paths(undirected, source_id, target_id, cutoff=max_length)
         )
 
-        result: list[list[dict]] = []
+        result: list[RelationPath] = []
         for node_path in raw_paths:
-            path_repr: list[dict] = []
+            nodes: list[PathNode] = []
             for i, node_id in enumerate(node_path):
                 entity = self._entities.get(node_id)
-                node_info: dict = {
-                    "entity_id": node_id,
-                    "name": entity.name if entity else node_id,
-                }
-                # Attach the relation leading *to* this node (except for the first).
-                if i > 0:
-                    prev = node_path[i - 1]
-                    edge_data = self._best_edge(prev, node_id)
-                    node_info["relation_from_prev"] = edge_data
-                path_repr.append(node_info)
-            result.append(path_repr)
+                nodes.append(PathNode(
+                    entity_id=node_id,
+                    name=entity.name if entity else node_id,
+                    relation_from_prev=self._best_edge(node_path[i - 1], node_id) if i > 0 else None,
+                ))
+            result.append(RelationPath(nodes=nodes))
         return result
 
-    async def get_subgraph(self, entity_id: str, k_hops: int = 2) -> dict:
-        """Return the *k*-hop ego-graph around *entity_id*.
-
-        Returns::
-
-            {
-                "center": entity_id,
-                "nodes": [{"entity_id": "...", "name": "...", "entity_type": "..."}],
-                "edges": [{"source": "...", "target": "...", "relation_type": "...", ...}],
-            }
-        """
+    async def get_subgraph(self, entity_id: str, k_hops: int = 2) -> Subgraph:
+        """Return the *k*-hop ego-graph around *entity_id*."""
         if entity_id not in self._graph:
-            return {"center": entity_id, "nodes": [], "edges": []}
+            return Subgraph(center=entity_id, nodes=[], edges=[])
 
         ego: nx.MultiDiGraph = nx.ego_graph(
             self._graph, entity_id, radius=k_hops, undirected=True
         )
-        nodes: list[dict] = []
+        nodes: list[SubgraphNode] = []
         for nid in ego.nodes:
             entity = self._entities.get(nid)
-            nodes.append(
-                {
-                    "entity_id": nid,
-                    "name": entity.name if entity else nid,
-                    "entity_type": entity.entity_type.value if entity else "unknown",
-                }
-            )
-        edges: list[dict] = []
+            nodes.append(SubgraphNode(
+                entity_id=nid,
+                name=entity.name if entity else nid,
+                entity_type=entity.entity_type.value if entity else "unknown",
+            ))
+        edges: list[SubgraphEdge] = []
         seen_keys: set[str] = set()
         for u, v, key, data in ego.edges(keys=True, data=True):
             base_key = key[:-4] if key.endswith("_rev") else key
             if base_key in seen_keys:
                 continue
             seen_keys.add(base_key)
-            edges.append(
-                {
-                    "source": u,
-                    "target": v,
-                    "relation_type": data.get("relation_type", "unknown"),
-                    "description": data.get("description"),
-                    "weight": data.get("weight", 1.0),
-                }
-            )
-        return {"center": entity_id, "nodes": nodes, "edges": edges}
+            edges.append(SubgraphEdge(
+                source=u,
+                target=v,
+                relation_type=data.get("relation_type", "unknown"),
+                description=data.get("description"),
+                weight=data.get("weight", 1.0),
+            ))
+        return Subgraph(center=entity_id, nodes=nodes, edges=edges)
 
-    async def get_relation_stats(self, entity_id: str | None = None) -> dict:
+    async def get_relation_stats(self, entity_id: str | None = None) -> RelationStats:
         """Return relation-type distribution and weight statistics.
 
         If *entity_id* is given, scoped to that entity; otherwise global.
-
-        Returns::
-
-            {
-                "total_relations": int,
-                "type_distribution": {"family": 3, ...},
-                "weight_avg": float,
-                "weight_min": float,
-                "weight_max": float,
-            }
         """
         if entity_id is not None:
             relations = await self.get_relations(entity_id)
@@ -354,13 +320,13 @@ class KGService(KGServiceBase):
             type_dist[rtype] = type_dist.get(rtype, 0) + 1
             weights.append(rel.weight)
 
-        return {
-            "total_relations": len(relations),
-            "type_distribution": type_dist,
-            "weight_avg": sum(weights) / len(weights) if weights else 0.0,
-            "weight_min": min(weights) if weights else 0.0,
-            "weight_max": max(weights) if weights else 0.0,
-        }
+        return RelationStats(
+            total_relations=len(relations),
+            type_distribution=type_dist,
+            weight_avg=sum(weights) / len(weights) if weights else 0.0,
+            weight_min=min(weights) if weights else 0.0,
+            weight_max=max(weights) if weights else 0.0,
+        )
 
     # ── Private: edge lookup helper ───────────────────────────────────────────
 

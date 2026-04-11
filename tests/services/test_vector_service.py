@@ -149,8 +149,8 @@ class TestUpsertAndSearch:
             results = await service.search("hero bravery", top_k=2, document_id="doc1")
 
         assert len(results) == 2
-        assert results[0]["text"] == "The hero fought bravely."
-        assert results[0]["score"] > results[1]["score"]
+        assert results[0].text == "The hero fought bravely."
+        assert results[0].score > results[1].score
 
     @pytest.mark.asyncio
     async def test_cross_book_search(self, service):
@@ -186,5 +186,5 @@ class TestUpsertAndSearch:
             results = await service.search("content", top_k=5)
 
         assert len(results) == 2
-        doc_ids = {r["document_id"] for r in results}
+        doc_ids = {r.document_id for r in results}
         assert doc_ids == {"doc1", "doc2"}
