@@ -11,8 +11,6 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Optional
-
 from domain.documents import Document
 from pipelines.base import BasePipeline
 

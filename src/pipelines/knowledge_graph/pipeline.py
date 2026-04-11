@@ -114,7 +114,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
 
         # ── Step 2: deduplicate across chapters ─────────────────────────────
         self._log_step("entity_link", raw=len(all_raw_entities))
-        unique_entities = await asyncio.get_event_loop().run_in_executor(
+        unique_entities = await asyncio.get_running_loop().run_in_executor(
             None, self._entity_linker.link, all_raw_entities
         )
 

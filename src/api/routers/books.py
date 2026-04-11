@@ -1573,7 +1573,7 @@ async def _run_temporal_pipeline(
     """Background task for temporal pipeline computation."""
     try:
         task_store.set_running(task_id)
-        result = await pipeline.run(document_id=book_id, language=language)
+        result = await pipeline.run(book_id, language=language)
         task_store.set_completed(
             task_id,
             result={

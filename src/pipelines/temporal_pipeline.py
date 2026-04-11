@@ -11,6 +11,8 @@ import logging
 from dataclasses import dataclass, field
 from typing import Any
 
+from pipelines.base import BasePipeline
+
 logger = logging.getLogger(__name__)
 
 
@@ -25,7 +27,7 @@ class TemporalPipelineResult:
     errors: list[str] = field(default_factory=list)
 
 
-class TemporalPipeline:
+class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
     """Orchestrate temporal relation extraction and chronological ranking."""
 
     def __init__(
@@ -42,10 +44,15 @@ class TemporalPipeline:
 
     async def run(
         self,
-        document_id: str,
+        input_data: str,
+        *,
         language: str = "en",
     ) -> TemporalPipelineResult:
         """Run the full temporal pipeline for a book.
+
+        Args:
+            input_data: The document ID to process.
+            language: Language hint for the timeline agent.
 
         Steps:
             1. Clear existing temporal relations for this document.
@@ -57,6 +64,7 @@ class TemporalPipeline:
             7. Write ranks back to events.
             8. Persist to disk.
         """
+        document_id = input_data
         result = TemporalPipelineResult(document_id=document_id)
 
         # 1. Clear old temporal relations
@@ -65,6 +73,7 @@ class TemporalPipeline:
             logger.info("Cleared %d old temporal relations for %s", removed, document_id)
 
         # 2. Load all events
+        self._log_step("load_events", document_id=document_id)
         events = await self._kg_service.get_events(document_id=document_id)
         if not events:
             result.errors.append("No events found for document")
@@ -81,6 +90,7 @@ class TemporalPipeline:
         )
 
         # 4. Infer temporal relations
+        self._log_step("infer_relations", events=len(events), eeps=len(eep_map))
         try:
             relations = await self._timeline_agent.infer_temporal_relations(
                 events=events,
@@ -100,6 +110,7 @@ class TemporalPipeline:
             await self._kg_service.add_temporal_relation(tr)
 
         # 6. Build DAG and compute ranks
+        self._log_step("compute_ranks", relations=len(relations))
         events_dict = {e.id: e for e in events}
         ranks = self._timeline_service.build_and_rank(relations, events_dict)
         result.events_ranked = len(ranks)

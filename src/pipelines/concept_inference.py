@@ -6,11 +6,9 @@ TEU (Tension Evidence Unit) assembly in B-026.
 
 Usage (lazy, triggered when tension analysis is requested):
 
-    pipeline = ConceptInferencePipeline()
+    pipeline = ConceptInferencePipeline(kg_service=kg, doc_service=doc)
     concepts = await pipeline.run(
-        document_id=book_id,
-        kg_service=kg,
-        doc_service=doc,
+        ConceptInferenceInput(document_id=book_id)
     )
     for concept in concepts:
         await kg_service.add_entity(concept)
@@ -19,6 +17,7 @@ Usage (lazy, triggered when tension analysis is requested):
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -26,6 +25,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from core.token_callback import set_llm_service_context
 from core.utils.output_extractor import extract_json_from_text
 from domain.entities import Entity, EntityType
+from pipelines.base import BasePipeline
 
 if TYPE_CHECKING:
     from services.document_service import DocumentService
@@ -63,44 +63,58 @@ Return ONLY a JSON array. Each element must have:
 """
 
 
-class ConceptInferencePipeline:
+@dataclass
+class ConceptInferenceInput:
+    """Input for the concept inference pipeline."""
+
+    document_id: str
+    language: str = "en"
+    save: bool = True
+
+
+class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]):
     """Infer hidden thematic Concept nodes from high-tension passages.
 
     Args:
         llm: Optional pre-built LLM client (injected for testing).
+        kg_service: KGService instance (read events, optionally write concepts).
+        doc_service: DocumentService instance (read paragraphs).
         intensity_threshold: Minimum emotional_intensity to include an event's
             passages. Defaults to 0.6.
     """
 
-    def __init__(self, llm=None, intensity_threshold: float = 0.6) -> None:
+    def __init__(
+        self,
+        llm=None,
+        kg_service: KGService | None = None,
+        doc_service: DocumentService | None = None,
+        intensity_threshold: float = 0.6,
+    ) -> None:
         self._llm = llm
+        self._kg_service = kg_service
+        self._doc_service = doc_service
         self.intensity_threshold = intensity_threshold
 
     # ── Public API ────────────────────────────────────────────────────────────
 
-    async def run(
-        self,
-        document_id: str,
-        kg_service: KGService,
-        doc_service: DocumentService,
-        language: str = "en",
-        save: bool = True,
-    ) -> list[Entity]:
+    async def run(self, input_data: ConceptInferenceInput) -> list[Entity]:
         """Run the inference pipeline for one book.
 
         Args:
-            document_id: The book's document ID.
-            kg_service: KGService instance (read events, optionally write concepts).
-            doc_service: DocumentService instance (read paragraphs).
-            language: Output language for the LLM.
-            save: If True, persist inferred concepts to kg_service.
+            input_data: ``ConceptInferenceInput`` with document_id, language,
+                and save flag.
 
         Returns:
             List of inferred Entity objects (entity_type=CONCEPT,
             extraction_method="inferred").
         """
+        document_id = input_data.document_id
+        language = input_data.language
+        save = input_data.save
+
         # 1. Collect high-tension events
-        events = await kg_service.get_events(document_id=document_id)
+        self._log_step("load_events", document_id=document_id)
+        events = await self._kg_service.get_events(document_id=document_id)
         candidate_events = [
             e for e in events
             if e.tension_signal != "none"
@@ -121,7 +135,7 @@ class ConceptInferencePipeline:
         chapter_numbers = sorted({e.chapter for e in candidate_events})
         passage_texts: list[str] = []
         for ch in chapter_numbers:
-            paragraphs = await doc_service.get_paragraphs(document_id, chapter_number=ch)
+            paragraphs = await self._doc_service.get_paragraphs(document_id, chapter_number=ch)
             passage_texts.extend(p.content for p in paragraphs if p.content)
 
         if not passage_texts:
@@ -132,12 +146,13 @@ class ConceptInferencePipeline:
             return []
 
         # 3. Call LLM
+        self._log_step("infer_concepts", passages=len(passage_texts))
         concepts = await self._infer_concepts(passage_texts, language)
 
         # 4. Optionally persist
         if save:
             for concept in concepts:
-                await kg_service.add_entity(concept)
+                await self._kg_service.add_entity(concept)
             logger.info(
                 "ConceptInferencePipeline: saved %d inferred concepts for document=%s",
                 len(concepts),
