@@ -27,19 +27,19 @@ from domain.imagery import ImageryEntity, ImageryType, SymbolCluster, SymbolOccu
 logger = logging.getLogger(__name__)
 
 _IMAGERY_EXTRACTION_SYSTEM_PROMPT = """\
-從段落中識別具有符號潛力的具體意象元素。
+Identify concrete imagery elements with symbolic potential from the given passage.
 
-包含：
-- 物件：鏡子、門、鑰匙、書
-- 自然元素：水、光、火、風、月、雨
-- 空間元素：房間、門檻、道路、橋
-- 身體部位（被強調時）：手、眼、血
-- 顏色（作為主要意象而非形容詞時）
+Include:
+- Objects: mirror, door, key, book
+- Natural elements: water, light, fire, wind, moon, rain
+- Spatial elements: room, threshold, road, bridge
+- Body parts (when emphasised): hand, eye, blood
+- Colours (when serving as primary imagery rather than adjectives)
 
-排除：人名、地名、抽象概念（恐懼、希望、命運）、動詞
+Exclude: character names, place names, abstract concepts (fear, hope, fate), verbs.
 
-Output JSON: {{"items": [{{"term": "...", "imagery_type": "object|nature|spatial|body|color|other", "context_sentence": "..."}}]}}
-每段最多 {max_items} 個，不確定的略去。
+Return JSON only: {{"items": [{{"term": "...", "imagery_type": "object|nature|spatial|body|color|other", "context_sentence": "..."}}]}}
+Extract at most {max_items} items; omit anything uncertain.
 """
 
 _MAX_ITEMS_PER_PARAGRAPH = 5
@@ -95,7 +95,7 @@ class ImageryExtractor:
         """Cluster semantically similar terms using cosine similarity.
 
         Algorithm:
-        1. Embed all unique terms via EmbeddingGenerator (L2-normalised).
+        1. Embed all unique terms via SentenceTransformer (multilingual model, L2-normalised).
         2. Compute cosine similarity matrix (np.dot on normalised vectors).
         3. Greedy clustering by frequency: highest-frequency term becomes canonical;
            any unclustered term with similarity >= threshold is merged into it.
@@ -113,15 +113,31 @@ class ImageryExtractor:
         freq: Counter[str] = Counter(terms)
         unique_terms = list(freq.keys())
 
-        # Embed all unique terms
-        from pipelines.feature_extraction.embedding_generator import (  # noqa: PLC0415
-            EmbeddingGenerator,
+        # Embed all unique terms with the multilingual clustering model.
+        # SentenceTransformer.encode() is synchronous — run in thread pool to
+        # avoid blocking the event loop.
+        import asyncio  # noqa: PLC0415
+        import functools  # noqa: PLC0415
+
+        from sentence_transformers import SentenceTransformer  # noqa: PLC0415
+
+        from config.settings import get_settings  # noqa: PLC0415
+
+        settings = get_settings()
+        model = SentenceTransformer(settings.imagery_embedding_model_name)
+        loop = asyncio.get_event_loop()
+        mat = await loop.run_in_executor(
+            None,
+            functools.partial(
+                model.encode,
+                unique_terms,
+                normalize_embeddings=True,
+                show_progress_bar=False,
+                convert_to_numpy=True,
+            ),
         )
 
-        embedder = EmbeddingGenerator()
-        vectors = await embedder.aembed_texts(unique_terms)
-
-        if not vectors:
+        if mat is None or len(mat) == 0:
             return [
                 SymbolCluster(
                     canonical_term=t,
@@ -132,11 +148,7 @@ class ImageryExtractor:
                 for t in unique_terms
             ]
 
-        # L2-normalise (embedder already normalises, but be defensive)
-        mat = np.array(vectors, dtype=np.float32)
-        norms = np.linalg.norm(mat, axis=1, keepdims=True)
-        norms = np.where(norms == 0, 1.0, norms)
-        mat = mat / norms
+        mat = np.array(mat, dtype=np.float32)
 
         # Greedy clustering: process in descending frequency order
         sorted_terms = sorted(unique_terms, key=lambda t: freq[t], reverse=True)
@@ -260,6 +272,14 @@ class ImageryExtractor:
 
     # ── private ────────────────────────────────────────────────────────────────
 
+    @staticmethod
+    def _localize_prompt(prompt: str, language: str) -> str:
+        """Append a language instruction to a system prompt."""
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+
+        lang_name = get_language_display_name(language)
+        return prompt + f"\nRespond in {lang_name}."
+
     @retry(
         retry=retry_if_exception_type(
             (json.JSONDecodeError, ValueError, KeyError, ConnectionError, TimeoutError)
@@ -278,8 +298,9 @@ class ImageryExtractor:
 
         from core.token_callback import set_llm_service_context  # noqa: PLC0415
 
-        prompt = _IMAGERY_EXTRACTION_SYSTEM_PROMPT.format(
-            max_items=_MAX_ITEMS_PER_PARAGRAPH
+        prompt = self._localize_prompt(
+            _IMAGERY_EXTRACTION_SYSTEM_PROMPT.format(max_items=_MAX_ITEMS_PER_PARAGRAPH),
+            language,
         )
         llm = self._get_llm()
         messages = [

@@ -67,7 +67,7 @@ class Settings(BaseSettings):
     # ── Embedding ──────────────────────────────────────────────────────────────
     embedding_model_name: str = Field(
         default="all-MiniLM-L6-v2",
-        description="sentence-transformers model id",
+        description="sentence-transformers model id for paragraph embeddings (Qdrant)",
     )
     embedding_device: str = Field(
         default="cpu",
@@ -77,6 +77,10 @@ class Settings(BaseSettings):
     qdrant_vector_size: int = Field(
         default=384,
         description="Vector dimension — must match embedding model output",
+    )
+    imagery_embedding_model_name: str = Field(
+        default="paraphrase-multilingual-MiniLM-L12-v2",
+        description="sentence-transformers model for imagery term clustering (supports 50+ languages)",
     )
 
     # ── Summarization ─────────────────────────────────────────────────────────
