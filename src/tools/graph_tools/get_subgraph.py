@@ -11,11 +11,12 @@ Example queries: "Show me the network around Alice.",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_tool_output, handle_not_found
+from tools.base import format_tool_output, handle_not_found, resolve_entity
 from tools.schemas import SubgraphInput
 
 
@@ -38,15 +39,11 @@ class GetSubgraphTool(BaseTool):
         arbitrary_types_allowed = True
 
     async def _arun(self, entity_id: str, k_hops: int = 2) -> str:
-        entity = await self.kg_service.get_entity(entity_id)
-        if entity is None:
-            entity = await self.kg_service.get_entity_by_name(entity_id)
+        entity = await resolve_entity(self.kg_service, entity_id)
         if entity is None:
             return handle_not_found(entity_id)
-
         subgraph = await self.kg_service.get_subgraph(entity.id, k_hops=k_hops)
         return format_tool_output(subgraph)
 
     def _run(self, entity_id: str, k_hops: int = 2) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(entity_id, k_hops))

@@ -10,6 +10,7 @@ Example queries: "Regenerate the summary for chapter 3.",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
@@ -107,7 +108,6 @@ class GenSummaryTool(BaseTool):
         )
 
     def _run(self, document_id: str, chapter_number: int | None = None) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(
             self._arun(document_id, chapter_number)
         )

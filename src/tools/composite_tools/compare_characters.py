@@ -14,7 +14,7 @@ from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import _json_default, format_entity, handle_not_found
+from tools.base import _json_default, format_entity, handle_not_found, resolve_entity
 from tools.schemas import CompareCharactersInput
 
 logger = logging.getLogger(__name__)
@@ -40,17 +40,11 @@ class CompareCharactersTool(BaseTool):
     class Config:
         arbitrary_types_allowed = True
 
-    async def _resolve_entity(self, entity_id: str):
-        entity = await self.kg_service.get_entity(entity_id)
-        if entity is None:
-            entity = await self.kg_service.get_entity_by_name(entity_id)
-        return entity
-
     async def _arun(self, entity_a: str, entity_b: str) -> str:
         # 1. Resolve both entities in parallel
         e1_r, e2_r = await asyncio.gather(
-            self._resolve_entity(entity_a),
-            self._resolve_entity(entity_b),
+            resolve_entity(self.kg_service, entity_a),
+            resolve_entity(self.kg_service, entity_b),
             return_exceptions=True,
         )
 
@@ -104,8 +98,6 @@ class CompareCharactersTool(BaseTool):
         return json.dumps(result, ensure_ascii=False, indent=2, default=_json_default)
 
     def _run(self, entity_a: str, entity_b: str) -> str:
-        import asyncio
-
         return asyncio.get_event_loop().run_until_complete(
             self._arun(entity_a, entity_b)
         )

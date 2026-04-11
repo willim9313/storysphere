@@ -60,6 +60,14 @@ def format_event(event: Any) -> dict:
     return d
 
 
+async def resolve_entity(kg_service: Any, entity_id_or_name: str) -> Any | None:
+    """Resolve an entity by ID, falling back to name lookup."""
+    entity = await kg_service.get_entity(entity_id_or_name)
+    if entity is None:
+        entity = await kg_service.get_entity_by_name(entity_id_or_name)
+    return entity
+
+
 def handle_not_found(entity_name_or_id: str) -> str:
     """Return a standard not-found message for the agent."""
     return f"Entity '{entity_name_or_id}' not found in the knowledge graph."

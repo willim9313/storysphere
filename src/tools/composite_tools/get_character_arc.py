@@ -100,6 +100,4 @@ class GetCharacterArcTool(BaseTool):
         return json.dumps(result, ensure_ascii=False, indent=2, default=_json_default)
 
     def _run(self, entity_id: str) -> str:
-        import asyncio
-
         return asyncio.get_event_loop().run_until_complete(self._arun(entity_id))

@@ -128,34 +128,6 @@ def get_chat_tools(
     ]
 
 
-def get_analysis_tools(
-    *,
-    kg_service: Any,
-    doc_service: Any,
-    vector_service: Any,
-    llm: Any = None,
-    summary_service: Any = None,
-    analysis_service: Any = None,
-    keyword_service: Any = None,
-    analysis_agent: Any = None,
-) -> list[BaseTool]:
-    """Return tools for the deep analysis workflow (Phase 5).
-
-    Includes all chat tools plus analysis stubs.
-    """
-    return [
-        *get_chat_tools(
-            kg_service=kg_service,
-            doc_service=doc_service,
-            vector_service=vector_service,
-            llm=llm,
-            summary_service=summary_service,
-            analysis_service=analysis_service,
-            keyword_service=keyword_service,
-            analysis_agent=analysis_agent,
-        ),
-    ]
-
 
 def get_all_tool_names() -> list[str]:
     """Return the names of all registered tools (for documentation)."""

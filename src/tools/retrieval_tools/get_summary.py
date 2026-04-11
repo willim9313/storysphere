@@ -9,6 +9,7 @@ Example queries: "Summarize chapter 3.", "What happens in chapter 1?",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
@@ -64,7 +65,6 @@ class GetSummaryTool(BaseTool):
         )
 
     def _run(self, document_id: str, chapter_number: int | None = None) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(
             self._arun(document_id, chapter_number)
         )

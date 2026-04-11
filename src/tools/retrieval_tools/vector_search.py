@@ -10,6 +10,7 @@ Example queries: "Find passages about betrayal.", "Where is the garden described
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
@@ -48,7 +49,6 @@ class VectorSearchTool(BaseTool):
         return format_tool_output(results)
 
     def _run(self, query: str, top_k: int = 5, document_id: str | None = None) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(
             self._arun(query, top_k, document_id)
         )

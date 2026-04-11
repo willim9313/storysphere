@@ -11,6 +11,7 @@ Example queries: "Show the full timeline.", "What is the
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
@@ -69,8 +70,6 @@ class GetGlobalTimelineTool(BaseTool):
         document_id: str,
         order: str = "chronological",
     ) -> str:
-        import asyncio
-
         return asyncio.get_event_loop().run_until_complete(
             self._arun(document_id, order)
         )

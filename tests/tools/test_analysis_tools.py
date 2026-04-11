@@ -105,7 +105,8 @@ class TestAnalyzeEventTool:
         assert "event analysis" in tool.description.lower()
         assert tool.args_schema is not None
 
-    def test_sync_raises_not_implemented(self):
+    def test_sync_fallback_requires_analysis_agent(self):
+        """_run() is a sync fallback; without analysis_agent it returns an error JSON."""
         tool = AnalyzeEventTool()
-        with pytest.raises(NotImplementedError):
-            tool._run("event-1")
+        result = json.loads(tool._run("event-1"))
+        assert "error" in result

@@ -10,6 +10,7 @@ Example queries: "Show me the text of chapter 2.", "Read chapter 1 paragraphs.",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
@@ -57,7 +58,6 @@ class GetParagraphsTool(BaseTool):
         return format_tool_output(result)
 
     def _run(self, document_id: str, chapter_number: int | None = None) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(
             self._arun(document_id, chapter_number)
         )

@@ -10,11 +10,12 @@ Example queries: "Who are Alice's friends?", "What are Bob's relationships?",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_relation, format_tool_output, handle_not_found
+from tools.base import format_relation, format_tool_output, handle_not_found, resolve_entity
 from tools.schemas import EntityRelationsInput
 
 
@@ -37,15 +38,11 @@ class GetEntityRelationsTool(BaseTool):
         arbitrary_types_allowed = True
 
     async def _arun(self, entity_id: str, direction: str = "both") -> str:
-        entity = await self.kg_service.get_entity(entity_id)
-        if entity is None:
-            entity = await self.kg_service.get_entity_by_name(entity_id)
+        entity = await resolve_entity(self.kg_service, entity_id)
         if entity is None:
             return handle_not_found(entity_id)
-
         relations = await self.kg_service.get_relations(entity.id, direction=direction)
         return format_tool_output([format_relation(r) for r in relations])
 
     def _run(self, entity_id: str, direction: str = "both") -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(entity_id, direction))

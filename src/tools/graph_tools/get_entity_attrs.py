@@ -9,11 +9,12 @@ Example queries: "Who is Alice?", "What are Bob's aliases?", "Describe London."
 
 from __future__ import annotations
 
-from typing import Any, Optional, Type
+import asyncio
+from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_entity, format_tool_output, handle_not_found
+from tools.base import format_entity, format_tool_output, handle_not_found, resolve_entity
 from tools.schemas import EntityIdInput
 
 
@@ -38,13 +39,10 @@ class GetEntityAttributesTool(BaseTool):
         arbitrary_types_allowed = True
 
     async def _arun(self, entity_id: str) -> str:
-        entity = await self.kg_service.get_entity(entity_id)
-        if entity is None:
-            entity = await self.kg_service.get_entity_by_name(entity_id)
+        entity = await resolve_entity(self.kg_service, entity_id)
         if entity is None:
             return handle_not_found(entity_id)
         return format_tool_output(format_entity(entity))
 
     def _run(self, entity_id: str) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(entity_id))

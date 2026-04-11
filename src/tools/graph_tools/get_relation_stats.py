@@ -10,6 +10,7 @@ Example queries: "What types of relationships are most common?",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
@@ -42,5 +43,4 @@ class GetRelationStatsTool(BaseTool):
         return format_tool_output(stats)
 
     def _run(self, entity_id: str | None = None) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(entity_id))

@@ -11,6 +11,7 @@ Example queries: "Extract entities from this passage: ...",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
@@ -44,7 +45,6 @@ class ExtractEntitiesFromTextTool(BaseTool):
         return format_tool_output([format_entity(e) for e in entities])
 
     def _run(self, text: str) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(text))
 
     def _resolve_service(self):

@@ -7,7 +7,7 @@ but are NOT enforced at runtime (tools return JSON strings).
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -83,7 +83,7 @@ class SubgraphInput(BaseModel):
 class RelationStatsInput(BaseModel):
     """Input for relation statistics, optionally scoped to an entity."""
 
-    entity_id: Optional[str] = Field(
+    entity_id: str | None = Field(
         default=None,
         description="If provided, stats are scoped to this entity. Otherwise, global stats.",
     )
@@ -102,7 +102,7 @@ class VectorSearchInput(BaseModel):
         ge=1,
         le=20,
     )
-    document_id: Optional[str] = Field(
+    document_id: str | None = Field(
         default=None,
         description="If provided, restrict search to this document.",
     )
@@ -112,7 +112,7 @@ class GetSummaryInput(BaseModel):
     """Input for retrieving a chapter or book summary."""
 
     document_id: str = Field(description="The document ID.")
-    chapter_number: Optional[int] = Field(
+    chapter_number: int | None = Field(
         default=None,
         description="Specific chapter number. If omitted, returns the book-level summary.",
     )
@@ -132,7 +132,7 @@ class GetParagraphsInput(BaseModel):
     """Input for retrieving raw paragraph texts."""
 
     document_id: str = Field(description="The document ID.")
-    chapter_number: Optional[int] = Field(
+    chapter_number: int | None = Field(
         default=None,
         description="Specific chapter number. If omitted, returns all paragraphs.",
     )
@@ -203,7 +203,7 @@ class GetKeywordsInput(BaseModel):
     """Input for retrieving keywords for a chapter or book."""
 
     document_id: str = Field(description="The document ID.")
-    chapter_number: Optional[int] = Field(
+    chapter_number: int | None = Field(
         default=None,
         description="Specific chapter number. If omitted, returns book-level keywords.",
     )
@@ -213,7 +213,7 @@ class GenSummaryInput(BaseModel):
     """Input for (re)generating a chapter or book summary on demand."""
 
     document_id: str = Field(description="The document ID.")
-    chapter_number: Optional[int] = Field(
+    chapter_number: int | None = Field(
         default=None,
         description="Chapter number to regenerate. If omitted, regenerates the book-level summary.",
     )

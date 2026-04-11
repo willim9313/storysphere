@@ -11,6 +11,7 @@ Example queries: "Analyze Alice as a character.", "Deep dive into Bob's arc.",
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any, Type
@@ -83,8 +84,6 @@ class AnalyzeCharacterTool(BaseTool):
         archetype_frameworks: list[str] | None = None,
         language: str = "en",
     ) -> str:
-        import asyncio
-
         return asyncio.get_event_loop().run_until_complete(
             self._arun(entity_id, document_id, archetype_frameworks, language)
         )

@@ -10,11 +10,12 @@ Example queries: "Compare Alice and Bob.", "How do London and Paris differ?",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_entity, format_relation, format_tool_output, handle_not_found
+from tools.base import format_entity, format_relation, format_tool_output, handle_not_found, resolve_entity
 from tools.schemas import CompareEntitiesInput
 
 
@@ -38,10 +39,10 @@ class CompareEntitiesTool(BaseTool):
         arbitrary_types_allowed = True
 
     async def _arun(self, entity_a: str, entity_b: str) -> str:
-        a = await self._resolve(entity_a)
+        a = await resolve_entity(self.kg_service, entity_a)
         if a is None:
             return handle_not_found(entity_a)
-        b = await self._resolve(entity_b)
+        b = await resolve_entity(self.kg_service, entity_b)
         if b is None:
             return handle_not_found(entity_b)
 
@@ -53,7 +54,7 @@ class CompareEntitiesTool(BaseTool):
         # Find shared relations (entities both are connected to)
         a_targets = {r.target_id for r in rels_a} | {r.source_id for r in rels_a}
         b_targets = {r.target_id for r in rels_b} | {r.source_id for r in rels_b}
-        shared_connections = a_targets & b_targets - {a.id, b.id}
+        shared_connections = (a_targets & b_targets) - {a.id, b.id}
 
         # Find shared events
         a_event_ids = {e.id for e in events_a}
@@ -74,11 +75,4 @@ class CompareEntitiesTool(BaseTool):
         return format_tool_output(comparison)
 
     def _run(self, entity_a: str, entity_b: str) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(entity_a, entity_b))
-
-    async def _resolve(self, entity_id_or_name: str):
-        entity = await self.kg_service.get_entity(entity_id_or_name)
-        if entity is None:
-            entity = await self.kg_service.get_entity_by_name(entity_id_or_name)
-        return entity

@@ -10,11 +10,12 @@ Example queries: "How are Alice and Carol connected?",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_tool_output, handle_not_found
+from tools.base import format_tool_output, handle_not_found, resolve_entity
 from tools.schemas import RelationPathsInput
 
 
@@ -37,19 +38,11 @@ class GetRelationPathsTool(BaseTool):
     class Config:
         arbitrary_types_allowed = True
 
-    async def _arun(
-        self, source: str, target: str, max_length: int = 3
-    ) -> str:
-        # Resolve names to IDs
-        src_entity = await self.kg_service.get_entity(source)
-        if src_entity is None:
-            src_entity = await self.kg_service.get_entity_by_name(source)
+    async def _arun(self, source: str, target: str, max_length: int = 3) -> str:
+        src_entity = await resolve_entity(self.kg_service, source)
         if src_entity is None:
             return handle_not_found(source)
-
-        tgt_entity = await self.kg_service.get_entity(target)
-        if tgt_entity is None:
-            tgt_entity = await self.kg_service.get_entity_by_name(target)
+        tgt_entity = await resolve_entity(self.kg_service, target)
         if tgt_entity is None:
             return handle_not_found(target)
 
@@ -63,5 +56,4 @@ class GetRelationPathsTool(BaseTool):
         return format_tool_output({"paths": paths, "count": len(paths)})
 
     def _run(self, source: str, target: str, max_length: int = 3) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(source, target, max_length))

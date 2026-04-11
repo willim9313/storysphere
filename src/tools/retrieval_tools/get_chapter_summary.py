@@ -11,6 +11,7 @@ Example queries: "What is the summary of chapter 3?",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
@@ -62,7 +63,6 @@ class GetChapterSummaryTool(BaseTool):
         )
 
     def _run(self, document_id: str, chapter_number: int) -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(
             self._arun(document_id, chapter_number)
         )

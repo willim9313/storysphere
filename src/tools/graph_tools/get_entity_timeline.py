@@ -10,11 +10,12 @@ Example queries: "What happened to Alice?", "Show Bob's timeline.",
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any, Type
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_event, format_tool_output, handle_not_found
+from tools.base import format_event, format_tool_output, handle_not_found, resolve_entity
 from tools.schemas import EntityTimelineInput
 
 
@@ -38,29 +39,12 @@ class GetEntityTimelineTool(BaseTool):
     class Config:
         arbitrary_types_allowed = True
 
-    async def _arun(
-        self, entity_id: str, sort_by: str = "narrative"
-    ) -> str:
-        entity = await self.kg_service.get_entity(entity_id)
-        if entity is None:
-            entity = await self.kg_service.get_entity_by_name(
-                entity_id
-            )
+    async def _arun(self, entity_id: str, sort_by: str = "narrative") -> str:
+        entity = await resolve_entity(self.kg_service, entity_id)
         if entity is None:
             return handle_not_found(entity_id)
+        timeline = await self.kg_service.get_entity_timeline(entity.id, sort_by=sort_by)
+        return format_tool_output([format_event(e) for e in timeline])
 
-        timeline = await self.kg_service.get_entity_timeline(
-            entity.id, sort_by=sort_by
-        )
-        return format_tool_output(
-            [format_event(e) for e in timeline]
-        )
-
-    def _run(
-        self, entity_id: str, sort_by: str = "narrative"
-    ) -> str:
-        import asyncio
-
-        return asyncio.get_event_loop().run_until_complete(
-            self._arun(entity_id, sort_by)
-        )
+    def _run(self, entity_id: str, sort_by: str = "narrative") -> str:
+        return asyncio.get_event_loop().run_until_complete(self._arun(entity_id, sort_by))

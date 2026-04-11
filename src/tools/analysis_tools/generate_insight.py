@@ -10,6 +10,7 @@ Example queries: "What is the theme of the novel?",
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, Type
 
@@ -46,7 +47,6 @@ class GenerateInsightTool(BaseTool):
         return format_tool_output({"topic": topic, "insight": insight})
 
     def _run(self, topic: str, context: str = "") -> str:
-        import asyncio
         return asyncio.get_event_loop().run_until_complete(self._arun(topic, context))
 
     def _resolve_service(self):
