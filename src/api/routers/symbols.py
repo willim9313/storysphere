@@ -94,10 +94,11 @@ async def get_co_occurrences(
     )
 
     # Enrich with imagery_id and type for each co-occurring term
+    all_entities = await symbol_svc.get_imagery_list(entity.book_id)
+    term_to_entity = {e.term: e for e in all_entities}
     result: list[CoOccurrenceEntry] = []
     for co_term, count in co_pairs:
-        all_entities = await symbol_svc.get_imagery_list(entity.book_id)
-        co_entity = next((e for e in all_entities if e.term == co_term), None)
+        co_entity = term_to_entity.get(co_term)
         if co_entity is None:
             continue
         result.append(

@@ -15,196 +15,45 @@ from typing import Annotated, Any
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
 
 from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, KGServiceDep, TemporalPipelineDep, VectorServiceDep
-from services.analysis_cache import AnalysisCache
+from api.schemas.books import (
+    AnalysisItem,
+    AnalysisListResponse,
+    BookDetailResponse,
+    BookResponse,
+    ChapterResponse,
+    ChunkResponse,
+    EntityAnalysisResponse,
+    EntityChunkItem,
+    EntityChunksResponse,
+    EntityStats,
+    EventAnalysisFullResponse,
+    EventDetailResponse,
+    EventLocation,
+    EventParticipant,
+    GraphDataResponse,
+    GraphEdge,
+    GraphNode,
+    LocationRef,
+    ParticipantRef,
+    Segment,
+    SegmentEntity,
+    TaskIdResponse,
+    TemporalRelationEntry,
+    TimelineEventEntry,
+    TimelineQuality,
+    TimelineResponse,
+    TopEntity,
+    UnanalyzedEntity,
+)
+from api.store import task_store
 from domain.documents import ParagraphEntity
-from api.schemas.common import TaskStatus
-from api.store import get_task, task_store
+from services.analysis_cache import AnalysisCache
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/books", tags=["books"])
-
-
-# ── Response models (camelCase) ──────────────────────────────────────────────
-
-
-class BookResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    title: str
-    author: str | None = None
-    status: str = "ready"
-    chapter_count: int = 0
-    entity_count: int | None = None
-    uploaded_at: str = ""
-    last_opened_at: str | None = None
-
-
-class EntityStats(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    character: int = 0
-    location: int = 0
-    organization: int = 0
-    object: int = 0
-    concept: int = 0
-    other: int = 0
-
-
-class BookDetailResponse(BookResponse):
-    summary: str | None = None
-    chunk_count: int = 0
-    entity_count: int = 0
-    relation_count: int = 0
-    entity_stats: EntityStats = EntityStats()
-    keywords: dict[str, float] | None = None
-
-
-class TopEntity(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    name: str
-    type: str
-
-
-class ChapterResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    book_id: str
-    title: str
-    order: int
-    chunk_count: int = 0
-    entity_count: int = 0
-    summary: str | None = None
-    top_entities: list[TopEntity] | None = None
-    keywords: dict[str, float] | None = None
-
-
-class SegmentEntity(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    type: str
-    entity_id: str
-    name: str
-
-
-class Segment(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    text: str
-    entity: SegmentEntity | None = None
-
-
-class ChunkResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    chapter_id: str
-    order: int
-    content: str
-    keywords: list[str] = []
-    segments: list[Segment] = []
-
-
-class GraphNode(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    name: str
-    type: str
-    description: str | None = None
-    chunk_count: int = 0
-    event_type: str | None = None
-    chapter: int | None = None
-
-
-class GraphEdge(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    source: str
-    target: str
-    label: str | None = None
-
-
-class GraphDataResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    nodes: list[GraphNode] = []
-    edges: list[GraphEdge] = []
-
-
-class UnanalyzedEntity(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    name: str
-    type: str
-    chapter_count: int = 0
-
-
-class AnalysisItem(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    entity_id: str
-    section: str
-    title: str
-    archetype_type: str | None = None
-    chapter_count: int = 0
-    content: str = ""
-    framework: str = "jung"
-    generated_at: str = ""
-
-
-class AnalysisListResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    analyzed: list[AnalysisItem] = []
-    unanalyzed: list[UnanalyzedEntity] = []
-
-
-class EntityAnalysisResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    entity_id: str
-    entity_name: str
-    content: str
-    generated_at: str
-
-
-class TaskIdResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    task_id: str
-
-
-class EntityChunkItem(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    chapter_id: str
-    chapter_title: str | None = None
-    chapter_number: int
-    order: int
-    content: str
-    segments: list[Segment] = []
-
-
-class EntityChunksResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    entity_id: str
-    entity_name: str
-    total: int
-    chunks: list[EntityChunkItem] = []
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -299,20 +148,23 @@ async def _run_entity_analysis(
 async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
     """List all books."""
     items = await doc.list_documents()
-    results = []
-    for item in items:
-        book_entities = await kg.list_entities(document_id=item.id)
-        results.append(
-            BookResponse(
-                id=item.id,
-                title=item.title,
-                status="ready",
-                chapter_count=item.chapter_count,
-                entity_count=len(book_entities),
-                uploaded_at=_now_iso(),
-            ).model_dump(by_alias=True)
-        )
-    return results
+    # Parallel entity count fetch to avoid N+1
+    entity_lists = await asyncio.gather(
+        *[kg.list_entities(document_id=item.id) for item in items]
+    )
+    return [
+        BookResponse(
+            id=item.id,
+            title=item.title,
+            status="ready",
+            chapter_count=item.chapter_count,
+            entity_count=len(entities),
+            uploaded_at=(
+                item.processed_at.isoformat() if item.processed_at else ""
+            ),
+        ).model_dump(by_alias=True)
+        for item, entities in zip(items, entity_lists)
+    ]
 
 
 # ── #2-a GET /books/:bookId ──────────────────────────────────────────────────
@@ -365,7 +217,7 @@ async def delete_book(
     doc: DocServiceDep,
     vector: VectorServiceDep,
     kg: KGServiceDep,
-    agent: AnalysisAgentDep,
+    cache: AnalysisCacheDep,
 ) -> None:
     """Delete a book, its vector collection, KG data, analysis cache, and DB records."""
     document = await doc.get_document(book_id)
@@ -373,8 +225,7 @@ async def delete_book(
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
     await vector.delete_collection(book_id)
     await kg.remove_by_document(book_id)
-    if agent._cache is not None:
-        await agent._cache.invalidate(f"%:{book_id}:%")
+    await cache.invalidate(f"%:{book_id}:%")
     await doc.delete_document(book_id)
     return None
 
@@ -721,35 +572,6 @@ async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> 
 
 
 # ── #9a GET /books/:bookId/events/:eventId ───────────────────────────────────
-
-
-class EventParticipant(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    name: str
-    type: str
-
-
-class EventLocation(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    name: str
-
-
-class EventDetailResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    id: str
-    title: str
-    event_type: str
-    description: str
-    chapter: int
-    significance: str | None = None
-    consequences: list[str] = []
-    participants: list[EventParticipant] = []
-    location: EventLocation | None = None
 
 
 @router.get("/{book_id}/events/{event_id}", response_model=EventDetailResponse)
@@ -1165,10 +987,13 @@ async def trigger_event_analysis(
 # ── #7d-get GET /books/:bookId/events/:eventId/analysis ──────────────────────
 
 
-@router.get("/{book_id}/events/{event_id}/analysis")
+@router.get(
+    "/{book_id}/events/{event_id}/analysis",
+    response_model=EventAnalysisFullResponse,
+)
 async def get_event_analysis(
     book_id: str, event_id: str, cache: AnalysisCacheDep, kg: KGServiceDep
-) -> dict:
+) -> EventAnalysisFullResponse:
     """Return cached EEP / causality / impact analysis for a single event."""
     event = await kg.get_event(event_id)
     if event is None:
@@ -1179,51 +1004,57 @@ async def get_event_analysis(
     if cached is None:
         raise HTTPException(status_code=404, detail="Event analysis not found. Run analysis first.")
 
+    from api.schemas.books import (  # noqa: PLC0415
+        CausalityResponse,
+        EepParticipantRole,
+        EepResponse,
+        ImpactResponse,
+    )
     from services.analysis_models import EventAnalysisResult  # noqa: PLC0415
 
     result = EventAnalysisResult.model_validate(cached)
-    return {
-        "eventId": result.event_id,
-        "title": result.title,
-        "eep": {
-            "stateBefore": result.eep.state_before,
-            "stateAfter": result.eep.state_after,
-            "causalFactors": result.eep.causal_factors,
-            "priorEventIds": result.eep.prior_event_ids,
-            "subsequentEventIds": result.eep.subsequent_event_ids,
-            "participantRoles": [
-                {
-                    "entityId": pr.entity_id,
-                    "entityName": pr.entity_name,
-                    "role": pr.role.value,
-                    "impactDescription": pr.impact_description,
-                }
+    return EventAnalysisFullResponse(
+        event_id=result.event_id,
+        title=result.title,
+        eep=EepResponse(
+            state_before=result.eep.state_before,
+            state_after=result.eep.state_after,
+            causal_factors=result.eep.causal_factors,
+            prior_event_ids=result.eep.prior_event_ids,
+            subsequent_event_ids=result.eep.subsequent_event_ids,
+            participant_roles=[
+                EepParticipantRole(
+                    entity_id=pr.entity_id,
+                    entity_name=pr.entity_name,
+                    role=pr.role.value,
+                    impact_description=pr.impact_description,
+                )
                 for pr in result.eep.participant_roles
             ],
-            "consequences": result.eep.consequences,
-            "structuralRole": result.eep.structural_role,
-            "eventImportance": result.eep.event_importance.value,
-            "thematicSignificance": result.eep.thematic_significance,
-            "textEvidence": result.eep.text_evidence,
-            "keyQuotes": result.eep.key_quotes,
-            "topTerms": result.eep.top_terms,
-        },
-        "causality": {
-            "rootCause": result.causality.root_cause,
-            "causalChain": result.causality.causal_chain,
-            "triggerEventIds": result.causality.trigger_event_ids,
-            "chainSummary": result.causality.chain_summary,
-        },
-        "impact": {
-            "affectedParticipantIds": result.impact.affected_participant_ids,
-            "participantImpacts": result.impact.participant_impacts,
-            "relationChanges": result.impact.relation_changes,
-            "subsequentEventIds": result.impact.subsequent_event_ids,
-            "impactSummary": result.impact.impact_summary,
-        },
-        "summary": {"summary": result.summary.summary if result.summary else ""},
-        "analyzedAt": result.analyzed_at.isoformat() if result.analyzed_at else None,
-    }
+            consequences=result.eep.consequences,
+            structural_role=result.eep.structural_role,
+            event_importance=result.eep.event_importance.value,
+            thematic_significance=result.eep.thematic_significance,
+            text_evidence=result.eep.text_evidence,
+            key_quotes=result.eep.key_quotes,
+            top_terms=result.eep.top_terms,
+        ),
+        causality=CausalityResponse(
+            root_cause=result.causality.root_cause,
+            causal_chain=result.causality.causal_chain,
+            trigger_event_ids=result.causality.trigger_event_ids,
+            chain_summary=result.causality.chain_summary,
+        ),
+        impact=ImpactResponse(
+            affected_participant_ids=result.impact.affected_participant_ids,
+            participant_impacts=result.impact.participant_impacts,
+            relation_changes=result.impact.relation_changes,
+            subsequent_event_ids=result.impact.subsequent_event_ids,
+            impact_summary=result.impact.impact_summary,
+        ),
+        summary={"summary": result.summary.summary if result.summary else ""},
+        analyzed_at=result.analyzed_at.isoformat() if result.analyzed_at else None,
+    )
 
 
 # ── #7e DELETE /books/:bookId/events/:eventId/analysis ───────────────────────
@@ -1356,63 +1187,6 @@ async def trigger_batch_event_analysis(
 
 
 # ── Timeline endpoints ───────────────────────────────────────────────────────
-
-
-class ParticipantRef(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    id: str
-    name: str
-    type: str
-
-
-class LocationRef(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    id: str
-    name: str
-
-
-class TimelineEventEntry(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    id: str
-    title: str
-    event_type: str
-    description: str
-    chapter: int
-    chapter_title: str | None = None
-    narrative_mode: str = "unknown"
-    chronological_rank: float | None = None
-    story_time_hint: str | None = None
-    event_importance: str | None = None
-    participants: list[ParticipantRef] = []
-    location: LocationRef | None = None
-
-
-class TemporalRelationEntry(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    source: str
-    target: str
-    type: str
-    confidence: float
-
-
-class TimelineQuality(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=to_camel, populate_by_name=True,
-    )
-    total_count: int = 0
-    analyzed_count: int = 0
-    eep_coverage: float = 0.0
-    has_chronological_ranks: bool = False
-    last_computed: str | None = None
-
-
-class TimelineResponse(BaseModel):
-    model_config = ConfigDict(alias_generator=to_camel, populate_by_name=True)
-    book_id: str
-    order: str
-    events: list[TimelineEventEntry]
-    temporal_relations: list[TemporalRelationEntry]
-    quality: TimelineQuality
 
 
 @router.get("/{book_id}/timeline", response_model=TimelineResponse)

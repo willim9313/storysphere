@@ -9,48 +9,22 @@ GET  /api/v1/kg/migrate/{task_id} — poll migration task status (uses shared ta
 from __future__ import annotations
 
 import logging
-from typing import Any, Literal
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
 
 from api.schemas.common import TaskStatus
-from api.store import task_store
+from api.schemas.kg_settings import (
+    KgMigrateRequest,
+    KgStatusResponse,
+    KgSwitchRequest,
+    KgSwitchResponse,
+)
+from api.store import get_task, task_store
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/kg", tags=["kg-settings"])
-
-
-# ── Response models ───────────────────────────────────────────────────────────
-
-
-class KgStatusResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    mode: str
-    entity_count: int
-    relation_count: int
-    event_count: int
-    graph_db_connected: bool   # renamed to avoid neo4j → neo4J camelCase artifact
-    persistence_path: str | None
-
-
-class KgSwitchRequest(BaseModel):
-    mode: Literal["networkx", "neo4j"]
-
-
-class KgSwitchResponse(BaseModel):
-    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
-
-    mode: str
-    message: str
-
-
-class KgMigrateRequest(BaseModel):
-    direction: Literal["nx_to_neo4j", "neo4j_to_nx"]
 
 
 # ── Endpoints ─────────────────────────────────────────────────────────────────
@@ -173,13 +147,13 @@ async def start_migration(
     task_id = str(uuid4())
     task_store.create(task_id)
     background_tasks.add_task(_run_migration, task_id, body.direction)
-    return task_store.get(task_id)
+    return TaskStatus(task_id=task_id, status="pending")
 
 
 @router.get("/migrate/{task_id}", response_model=TaskStatus)
 async def get_migration_status(task_id: str) -> TaskStatus:
     """Poll migration task status."""
-    task = task_store.get(task_id)
+    task = await get_task(task_id)
     if task is None:
         raise HTTPException(status_code=404, detail="Migration task not found")
     return task

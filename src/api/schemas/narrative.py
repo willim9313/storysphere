@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -14,7 +14,7 @@ class ClassifyNarrativeRequest(BaseModel):
 
 class RefineNarrativeRequest(BaseModel):
     document_id: str
-    event_ids: Optional[list[str]] = Field(
+    event_ids: list[str] | None = Field(
         default=None,
         description="Specific event IDs to refine. If null, refines all satellite events.",
     )

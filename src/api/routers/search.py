@@ -5,7 +5,8 @@ from __future__ import annotations
 from typing import Any
 
 from fastapi import APIRouter, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 from api.deps import VectorServiceDep
 
@@ -13,9 +14,11 @@ router = APIRouter(prefix="/search", tags=["search"])
 
 
 class SearchRequest(BaseModel):
-    bookId: str | None = Field(default=None, alias="bookId")
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    book_id: str | None = None
     query: str
-    topK: int = Field(default=10, ge=1, le=50, alias="topK")
+    top_k: int = Field(default=10, ge=1, le=50)
 
 
 class SearchResult(BaseModel):
@@ -32,8 +35,8 @@ async def semantic_search(
 ) -> list[SearchResult]:
     results = await vector.search(
         query_text=body.query,
-        top_k=body.topK,
-        document_id=body.bookId,
+        top_k=body.top_k,
+        document_id=body.book_id,
     )
     return [
         SearchResult(

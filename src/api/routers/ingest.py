@@ -11,8 +11,6 @@ import tempfile
 from pathlib import Path
 from uuid import uuid4
 
-from typing import Optional
-
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
 
 from api.schemas.common import TaskStatus
@@ -27,8 +25,8 @@ async def _run_ingestion(
     task_id: str,
     file_path: Path,
     title: str,
-    author: Optional[str] = None,
-    language: Optional[str] = None,
+    author: str | None = None,
+    language: str | None = None,
 ) -> None:
     """Background task: run IngestionWorkflow and update task store."""
     task_store.set_running(task_id)
@@ -57,8 +55,8 @@ async def ingest_document(
     background_tasks: BackgroundTasks,
     file: UploadFile,
     title: str = Form(...),
-    author: Optional[str] = Form(None),
-    language: Optional[str] = Form(None),
+    author: str | None = Form(None),
+    language: str | None = Form(None),
 ) -> TaskStatus:
     """Upload a novel file (PDF or DOCX) and start ingestion in the background.
 

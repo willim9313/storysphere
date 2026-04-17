@@ -301,14 +301,11 @@ def _build_store() -> MemoryTaskStore | SQLiteTaskStore:
         backend = getattr(settings, "task_store_backend", "memory")
     except Exception:
         backend = "memory"
+        settings = None
 
     if backend == "sqlite":
         logger.info("TaskStore: using SQLite backend")
-        try:
-            from config.settings import get_settings  # noqa: PLC0415
-            db_path = getattr(get_settings(), "task_store_db_path", "./data/tasks.db")
-        except Exception:
-            db_path = "./data/tasks.db"
+        db_path = getattr(settings, "task_store_db_path", "./data/tasks.db") if settings else "./data/tasks.db"
         return SQLiteTaskStore(db_path=db_path)
 
     logger.info("TaskStore: using in-memory backend")

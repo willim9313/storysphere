@@ -1,25 +1,25 @@
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
 
 class ChatContext(BaseModel):
     page: str = "library"
-    book_id: Optional[str] = None
-    book_title: Optional[str] = None
-    chapter_id: Optional[str] = None
-    chapter_title: Optional[str] = None
-    chapter_number: Optional[int] = None
-    selected_entity: Optional[dict] = None  # {id, name, type}
-    analysis_tab: Optional[str] = None  # "characters" | "events"
+    book_id: str | None = None
+    book_title: str | None = None
+    chapter_id: str | None = None
+    chapter_title: str | None = None
+    chapter_number: int | None = None
+    selected_entity: dict | None = None  # {id, name, type}
+    analysis_tab: str | None = None  # "characters" | "events"
 
 
 class ChatIncomingMessage(BaseModel):
     message: str
     language: str = "en"
-    context: Optional[ChatContext] = None
+    context: ChatContext | None = None
 
 
 class ChatOutgoingMessage(BaseModel):

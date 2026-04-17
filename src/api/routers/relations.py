@@ -8,6 +8,7 @@ from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from api.deps import KGServiceDep
+from api.schemas.entity import RelationStatsResponse
 
 router = APIRouter(prefix="/relations", tags=["relations"])
 
@@ -16,10 +17,6 @@ class RelationPathsResponse(BaseModel):
     source_id: str
     target_id: str
     paths: list[list[dict[str, Any]]]
-
-
-class RelationStatsResponse(BaseModel):
-    stats: dict[str, Any]
 
 
 @router.get("/paths", response_model=RelationPathsResponse)

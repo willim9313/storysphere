@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -23,8 +23,8 @@ class AnalyzeBookTensionsRequest(BaseModel):
 class TensionLineReviewRequest(BaseModel):
     document_id: str
     review_status: Literal["approved", "modified", "rejected"]
-    canonical_pole_a: Optional[str] = None
-    canonical_pole_b: Optional[str] = None
+    canonical_pole_a: str | None = None
+    canonical_pole_b: str | None = None
 
 
 class SynthesizeThemeRequest(BaseModel):
@@ -36,4 +36,4 @@ class SynthesizeThemeRequest(BaseModel):
 class TensionThemeReviewRequest(BaseModel):
     document_id: str
     review_status: Literal["approved", "modified", "rejected"]
-    proposition: Optional[str] = None  # Allow human to rewrite the thematic proposition
+    proposition: str | None = None  # Allow human to rewrite the thematic proposition

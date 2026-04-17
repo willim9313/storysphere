@@ -2,41 +2,17 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
 
 from api.deps import DocServiceDep
+from api.schemas.documents import (
+    ChapterResponse,
+    DocumentResponse,
+    DocumentSummary,
+    ParagraphResponse,
+)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
-
-
-class DocumentSummary(BaseModel):
-    """Lightweight document entry for list responses."""
-    id: str
-    title: str
-    file_type: str
-
-
-class ChapterResponse(BaseModel):
-    id: str
-    number: int
-    title: Optional[str]
-    summary: Optional[str]
-    word_count: int
-    paragraph_count: int
-
-
-class DocumentResponse(BaseModel):
-    id: str
-    title: str
-    author: Optional[str]
-    file_type: str
-    summary: Optional[str]
-    total_chapters: int
-    total_paragraphs: int
-    chapters: list[ChapterResponse]
 
 
 @router.get("/", response_model=list[DocumentSummary])
@@ -73,16 +49,6 @@ async def get_document(document_id: str, doc: DocServiceDep) -> DocumentResponse
             for ch in document.chapters
         ],
     )
-
-
-class ParagraphResponse(BaseModel):
-    """Single paragraph within a chapter."""
-
-    id: str
-    text: str
-    chapter_number: int
-    position: int
-    keywords: dict[str, float] | None = None
 
 
 @router.get(

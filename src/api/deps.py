@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Any
 
 from fastapi import Depends
 
@@ -33,7 +33,7 @@ def set_kg_mode_override(mode: str) -> None:
     logger.info("KG mode switched to '%s'; all dependent singletons reset.", mode)
 
 
-# ── Service singletons ────────────────────────────────────────────────────────
+# ── Service singletons ──────────────────────────────────────────────────────
 
 
 @lru_cache(maxsize=1)
@@ -59,6 +59,9 @@ def get_kg_service():
     return svc
 
 
+KGServiceDep = Annotated[Any, Depends(get_kg_service)]
+
+
 @lru_cache(maxsize=1)
 def get_doc_service():
     from services.document_service import DocumentService  # noqa: PLC0415
@@ -66,11 +69,17 @@ def get_doc_service():
     return DocumentService()
 
 
+DocServiceDep = Annotated[Any, Depends(get_doc_service)]
+
+
 @lru_cache(maxsize=1)
 def get_vector_service():
     from services.vector_service import VectorService  # noqa: PLC0415
 
     return VectorService()
+
+
+VectorServiceDep = Annotated[Any, Depends(get_vector_service)]
 
 
 @lru_cache(maxsize=1)
@@ -124,16 +133,19 @@ def get_token_store():
     return TokenUsageStore(db_path=settings.token_usage_db_path)
 
 
-# ── Agent singletons ──────────────────────────────────────────────────────────
+# ── Cache / analysis singletons ─────────────────────────────────────────────
 
 
 @lru_cache(maxsize=1)
 def get_analysis_cache():
-    from services.analysis_cache import AnalysisCache  # noqa: PLC0415
     from config.settings import get_settings  # noqa: PLC0415
+    from services.analysis_cache import AnalysisCache  # noqa: PLC0415
 
     settings = get_settings()
     return AnalysisCache(db_path=settings.analysis_cache_db_path)
+
+
+AnalysisCacheDep = Annotated[Any, Depends(get_analysis_cache)]
 
 
 @lru_cache(maxsize=1)
@@ -147,11 +159,17 @@ def get_analysis_agent():
     )
 
 
+AnalysisAgentDep = Annotated[Any, Depends(get_analysis_agent)]
+
+
 @lru_cache(maxsize=1)
 def get_tension_service():
     from services.tension_service import TensionService  # noqa: PLC0415
 
     return TensionService(cache=get_analysis_cache())
+
+
+TensionServiceDep = Annotated[Any, Depends(get_tension_service)]
 
 
 @lru_cache(maxsize=1)
@@ -163,6 +181,12 @@ def get_narrative_service():
         document_service=get_doc_service(),
         cache=get_analysis_cache(),
     )
+
+
+NarrativeServiceDep = Annotated[Any, Depends(get_narrative_service)]
+
+
+# ── Timeline / temporal singletons ──────────────────────────────────────────
 
 
 @lru_cache(maxsize=1)
@@ -191,6 +215,12 @@ def get_temporal_pipeline():
     )
 
 
+TemporalPipelineDep = Annotated[Any, Depends(get_temporal_pipeline)]
+
+
+# ── Chat agent ───────────────────────────────────────────────────────────────
+
+
 @lru_cache(maxsize=1)
 def get_chat_agent():
     from agents.chat_agent import ChatAgent  # noqa: PLC0415
@@ -207,17 +237,10 @@ def get_chat_agent():
     )
 
 
-# ── Annotated type aliases (use in router function signatures) ─────────────────
+ChatAgentDep = Annotated[Any, Depends(get_chat_agent)]
 
-KGServiceDep = Annotated[any, Depends(get_kg_service)]
-DocServiceDep = Annotated[any, Depends(get_doc_service)]
-VectorServiceDep = Annotated[any, Depends(get_vector_service)]
-AnalysisCacheDep = Annotated[any, Depends(get_analysis_cache)]
-AnalysisAgentDep = Annotated[any, Depends(get_analysis_agent)]
-ChatAgentDep = Annotated[any, Depends(get_chat_agent)]
-TemporalPipelineDep = Annotated[any, Depends(get_temporal_pipeline)]
-TensionServiceDep = Annotated[any, Depends(get_tension_service)]
-NarrativeServiceDep = Annotated[any, Depends(get_narrative_service)]
+
+# ── Symbol / imagery singletons ─────────────────────────────────────────────
 
 
 @lru_cache(maxsize=1)
@@ -227,6 +250,9 @@ def get_symbol_service():
     return SymbolService()
 
 
+SymbolServiceDep = Annotated[Any, Depends(get_symbol_service)]
+
+
 @lru_cache(maxsize=1)
 def get_symbol_graph_service():
     from services.symbol_graph_service import SymbolGraphService  # noqa: PLC0415
@@ -234,5 +260,4 @@ def get_symbol_graph_service():
     return SymbolGraphService()
 
 
-SymbolServiceDep = Annotated[any, Depends(get_symbol_service)]
-SymbolGraphServiceDep = Annotated[any, Depends(get_symbol_graph_service)]
+SymbolGraphServiceDep = Annotated[Any, Depends(get_symbol_graph_service)]
