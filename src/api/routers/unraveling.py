@@ -34,28 +34,44 @@ router = APIRouter(prefix="/books", tags=["unraveling"])
 _EDGES: list[tuple[str, str]] = [
     # ── Source text ───────────────────────────────────────────────────────────
     ("book_meta", "chapters"),
-    ("book_meta", "paragraphs"),
-    # ── Extraction (layer 1) ──────────────────────────────────────────────────
+    ("chapters", "paragraphs"),
+    # ── Ingest outputs (layer 1) ──────────────────────────────────────────────
     ("chapters", "summaries"),
-    ("chapters", "entities"),
-    ("chapters", "relations"),
-    ("chapters", "events"),
-    ("chapters", "symbols"),
-    ("paragraphs", "entities"),
-    # ── Analysis intermediates (layer 2) ─────────────────────────────────────
-    ("entities", "cep"),
-    ("events", "eep"),
-    ("events", "teu"),
-    ("events", "timeline"),
-    # ── Narrative track (layer 3) ─────────────────────────────────────────────
-    ("events", "narrative_structure"),      # kernel/satellite classification
-    ("summaries", "narrative_structure"),   # hero journey via chapter summaries
-    ("timeline", "narrative_structure"),    # temporal ordering context
-    ("events", "temporal_analysis"),        # Genette temporal displacement
-    ("timeline", "temporal_analysis"),      # TemporalRelation edges
-    # ── Tension track (layer 3 → 4) ──────────────────────────────────────────
+    ("paragraphs", "keywords"),
+    ("paragraphs", "symbols"),
+    ("paragraphs", "kg_entity"),
+    ("paragraphs", "kg_concept"),
+    ("paragraphs", "kg_relation"),
+    ("paragraphs", "kg_event"),
+    # ── KG on-demand sub-nodes ────────────────────────────────────────────────
+    ("eep", "kg_temporal_relation"),
+    ("kg_event", "kg_temporal_relation"),
+    # ── Layer 2: analysis intermediates ──────────────────────────────────────
+    ("kg_entity", "cep"),
+    ("paragraphs", "cep"),
+    ("keywords", "cep"),
+    ("kg_event", "eep"),
+    ("kg_entity", "eep"),
+    ("paragraphs", "eep"),
+    ("kg_event", "teu"),
+    ("kg_concept", "teu"),
+    ("summaries", "teu"),
+    # ── Layer 3: derived results ──────────────────────────────────────────────
+    ("cep", "character_analysis_result"),
+    ("eep", "causality_analysis"),
+    ("kg_event", "causality_analysis"),
+    ("eep", "impact_analysis"),
+    ("kg_event", "impact_analysis"),
     ("teu", "tension_lines"),
+    ("summaries", "narrative_structure"),
+    ("kg_event", "narrative_structure"),
+    ("eep", "narrative_structure"),
+    ("summaries", "hero_journey_stage"),
+    ("eep", "temporal_analysis"),
+    ("kg_event", "temporal_analysis"),
+    # ── Layer 4 ───────────────────────────────────────────────────────────────
     ("tension_lines", "tension_theme"),
+    ("kg_temporal_relation", "chronological_rank"),
 ]
 
 # ── Response schemas ──────────────────────────────────────────────────────────
@@ -74,6 +90,7 @@ class NodeData(BaseModel):
     status: NodeStatus
     counts: dict[str, int]
     meta: dict[str, Any] = {}
+    parent_id: str | None = None
 
 
 class EdgeData(BaseModel):
@@ -145,7 +162,6 @@ def _build_nodes(
 
     # ── Layer 0: 原生文本層 ────────────────────────────────────────────────────
 
-    # book_meta
     nodes.append(NodeData(
         node_id="book_meta",
         layer=0,
@@ -159,258 +175,255 @@ def _build_nodes(
         },
     ))
 
-    # chapters
     chapter_count = len(doc.chapters)
-    chapters_with_summary = sum(
-        1 for ch in doc.chapters if ch.summary
-    )
     nodes.append(NodeData(
         node_id="chapters",
         layer=0,
         label="Chapters",
-        status=_status(
-            complete=chapter_count > 0,
-            partial=False,
-        ),
+        status=_status(complete=chapter_count > 0, partial=False),
         counts={"chapters": chapter_count},
     ))
 
-    # summaries (derived from chapters — tracks chapter summary completion)
-    nodes.append(NodeData(
-        node_id="summaries",
-        layer=1,
-        label="Summaries",
-        status=_status(
-            complete=chapter_count > 0
-            and chapters_with_summary == chapter_count,
-            partial=chapter_count > 0
-            and 0 < chapters_with_summary < chapter_count,
-        ),
-        counts={
-            "generated": chapters_with_summary,
-            "total": chapter_count,
-        },
-    ))
-
-    # paragraphs
     all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
     para_count = len(all_paras)
     nodes.append(NodeData(
         node_id="paragraphs",
         layer=0,
-        label="Paragraphs",
-        status=_status(
-            complete=para_count > 0,
-            partial=False,
-        ),
+        label="Chunks",
+        status=_status(complete=para_count > 0, partial=False),
         counts={"paragraphs": para_count},
     ))
 
-    # ── Layer 1: 知識圖譜層 ────────────────────────────────────────────────────
+    # ── Layer 1: 知識抽取層 ────────────────────────────────────────────────────
 
-    # entities
-    entity_count = len(entities)
-    by_type: dict[str, int] = {t.value: 0 for t in EntityType}
-    for e in entities:
-        by_type[e.entity_type.value] = by_type.get(
-            e.entity_type.value, 0
-        ) + 1
+    chapters_with_summary = sum(1 for ch in doc.chapters if ch.summary)
     nodes.append(NodeData(
-        node_id="entities",
+        node_id="summaries",
         layer=1,
-        label="Entities",
+        label="Summaries",
         status=_status(
-            complete=entity_count > 0,
-            partial=False,
+            complete=chapter_count > 0 and chapters_with_summary == chapter_count,
+            partial=chapter_count > 0 and 0 < chapters_with_summary < chapter_count,
         ),
-        counts={"total": entity_count, **by_type},
+        counts={"generated": chapters_with_summary, "total": chapter_count},
     ))
 
-    # relations (global count — KGService has no document_id filter)
+    chapters_with_keywords = sum(1 for ch in doc.chapters if ch.keywords)
     nodes.append(NodeData(
-        node_id="relations",
+        node_id="keywords",
         layer=1,
-        label="Relations",
+        label="Keywords",
         status=_status(
-            complete=relation_count_global > 0,
-            partial=False,
+            complete=chapter_count > 0 and chapters_with_keywords == chapter_count,
+            partial=chapter_count > 0 and 0 < chapters_with_keywords < chapter_count,
         ),
-        counts={"relations": relation_count_global},
-        meta={"scope": "global"},
+        counts={"generated": chapters_with_keywords, "total": chapter_count},
     ))
 
-    # events
-    event_count = len(events)
-    events_ranked = sum(
-        1 for ev in events if ev.chronological_rank is not None
-    )
-    events_classified = sum(
-        1 for ev in events
-        if ev.narrative_weight
-        and ev.narrative_weight != "unclassified"
-    )
-    nodes.append(NodeData(
-        node_id="events",
-        layer=1,
-        label="Events",
-        status=_status(
-            complete=event_count > 0
-            and events_ranked == event_count
-            and events_classified == event_count,
-            partial=event_count > 0 and (
-                events_ranked < event_count
-                or events_classified < event_count
-            ),
-        ),
-        counts={
-            "events": event_count,
-            "events_with_chronological_rank": events_ranked,
-            "events_classified": events_classified,
-        },
-    ))
-
-    # ── Layer 2: 深度分析層 ────────────────────────────────────────────────────
-
-    # timeline (events ranked by chronological order + TemporalRelation KG edges)
-    tr_count = len(temporal_rels)
-    nodes.append(NodeData(
-        node_id="timeline",
-        layer=2,
-        label="Timeline",
-        status=_status(
-            complete=event_count > 0 and events_ranked == event_count,
-            partial=events_ranked > 0 and events_ranked < event_count,
-        ),
-        counts={
-            "events_ranked": events_ranked,
-            "total_events": event_count,
-            "temporal_relations": tr_count,
-        },
-    ))
-
-    # symbols
     imagery_count = len(imagery)
     occurrence_count = sum(img.frequency for img in imagery)
     nodes.append(NodeData(
         node_id="symbols",
-        layer=2,
+        layer=1,
         label="Symbols",
-        status=_status(
-            complete=imagery_count > 0,
-            partial=False,
-        ),
-        counts={
-            "imagery_entities": imagery_count,
-            "symbol_occurrences": occurrence_count,
-        },
+        status=_status(complete=imagery_count > 0, partial=False),
+        counts={"imagery_entities": imagery_count, "symbol_occurrences": occurrence_count},
     ))
 
-    # cep (Character Emotional Profile)
+    # ── Layer 1: KG 子節點（compound group = kg_features）────────────────────
+
+    # Partition entities: concepts vs non-concepts
+    concept_entities = [e for e in entities if e.entity_type == EntityType.CONCEPT]
+    non_concept_entities = [e for e in entities if e.entity_type != EntityType.CONCEPT]
+
+    by_type: dict[str, int] = {t.value: 0 for t in EntityType if t != EntityType.CONCEPT}
+    for e in non_concept_entities:
+        by_type[e.entity_type.value] = by_type.get(e.entity_type.value, 0) + 1
+
+    entity_count = len(non_concept_entities)
+    nodes.append(NodeData(
+        node_id="kg_entity",
+        layer=1,
+        label="Entities",
+        status=_status(complete=entity_count > 0, partial=False),
+        counts={"total": entity_count, **by_type},
+        parent_id="kg_features",
+    ))
+
+    concept_ner = sum(1 for e in concept_entities if e.extraction_method == "ner")
+    concept_inferred = sum(1 for e in concept_entities if e.extraction_method == "inferred")
+    nodes.append(NodeData(
+        node_id="kg_concept",
+        layer=1,
+        label="Concepts",
+        status=_status(complete=len(concept_entities) > 0, partial=False),
+        counts={"ner": concept_ner, "inferred": concept_inferred, "total": len(concept_entities)},
+        parent_id="kg_features",
+    ))
+
+    nodes.append(NodeData(
+        node_id="kg_relation",
+        layer=1,
+        label="Relations",
+        status=_status(complete=relation_count_global > 0, partial=False),
+        counts={"relations": relation_count_global},
+        meta={"scope": "global"},
+        parent_id="kg_features",
+    ))
+
+    event_count = len(events)
+    events_classified = sum(
+        1 for ev in events
+        if ev.narrative_weight and ev.narrative_weight != "unclassified"
+    )
+    nodes.append(NodeData(
+        node_id="kg_event",
+        layer=1,
+        label="Events",
+        status=_status(
+            complete=event_count > 0 and events_classified == event_count,
+            partial=event_count > 0 and events_classified < event_count,
+        ),
+        counts={"events": event_count, "events_classified": events_classified},
+        parent_id="kg_features",
+    ))
+
+    tr_count = len(temporal_rels)
+    events_ranked = sum(1 for ev in events if ev.chronological_rank is not None)
+    nodes.append(NodeData(
+        node_id="kg_temporal_relation",
+        layer=1,
+        label="Temporal\nRelations",
+        status=_status(
+            complete=tr_count > 0 and events_ranked == event_count and event_count > 0,
+            partial=tr_count > 0,
+        ),
+        counts={"temporal_relations": tr_count, "events_ranked": events_ranked},
+        parent_id="kg_features",
+    ))
+
+    # ── Layer 2: 分析中間層 ────────────────────────────────────────────────────
+
     total_chars = by_type.get(EntityType.CHARACTER.value, 0)
     nodes.append(NodeData(
         node_id="cep",
         layer=2,
         label="CEP",
         status=_status(
-            complete=cep_count > 0
-            and total_chars > 0
-            and cep_count >= total_chars,
-            partial=cep_count > 0
-            and cep_count < total_chars,
+            complete=cep_count > 0 and total_chars > 0 and cep_count >= total_chars,
+            partial=cep_count > 0 and cep_count < total_chars,
         ),
-        counts={
-            "analyzed": cep_count,
-            "total_characters": total_chars,
-        },
+        counts={"analyzed": cep_count, "total_characters": total_chars},
     ))
 
-    # eep (Event Emotional Profile)
     nodes.append(NodeData(
         node_id="eep",
         layer=2,
         label="EEP",
         status=_status(
-            complete=eep_count > 0
-            and event_count > 0
-            and eep_count >= event_count,
+            complete=eep_count > 0 and event_count > 0 and eep_count >= event_count,
             partial=eep_count > 0 and eep_count < event_count,
         ),
-        counts={
-            "analyzed": eep_count,
-            "total_events": event_count,
-        },
+        counts={"analyzed": eep_count, "total_events": event_count},
     ))
 
-    # teu (Tension Evidence Unit — per-event tension score, layer 2)
     nodes.append(NodeData(
         node_id="teu",
         layer=2,
         label="TEU",
         status=_status(
-            complete=teu_count > 0
-            and event_count > 0
-            and teu_count >= event_count,
+            complete=teu_count > 0 and event_count > 0 and teu_count >= event_count,
             partial=teu_count > 0 and teu_count < event_count,
         ),
-        counts={
-            "analyzed": teu_count,
-            "total_events": event_count,
-        },
+        counts={"analyzed": teu_count, "total_events": event_count},
     ))
 
-    # ── Layer 3: 合成層（三條平行分析線）────────────────────────────────────────
+    # ── Layer 3: 合成結果層 ────────────────────────────────────────────────────
 
-    # narrative_structure (敘事學) — K/S classification + Hero Journey (layer 3)
     nodes.append(NodeData(
-        node_id="narrative_structure",
+        node_id="character_analysis_result",
         layer=3,
-        label="Narrative Structure",
+        label="Character\nAnalysis",
         status=_status(
-            complete=narrative_present and hero_journey_present,
-            partial=narrative_present or hero_journey_present,
+            complete=cep_count > 0 and total_chars > 0 and cep_count >= total_chars,
+            partial=cep_count > 0 and cep_count < total_chars,
         ),
-        counts={
-            "has_ks_classification": int(narrative_present),
-            "has_hero_journey": int(hero_journey_present),
-        },
+        counts={"analyzed": cep_count, "total_characters": total_chars},
     ))
 
-    # temporal_analysis (敘事學) — Genette temporal displacement (layer 3)
     nodes.append(NodeData(
-        node_id="temporal_analysis",
+        node_id="causality_analysis",
         layer=3,
-        label="Temporal Analysis",
+        label="Causality\nAnalysis",
         status=_status(
-            complete=temporal_analysis_present,
-            partial=False,
+            complete=eep_count > 0 and event_count > 0 and eep_count >= event_count,
+            partial=eep_count > 0 and eep_count < event_count,
         ),
-        counts={"built": int(temporal_analysis_present)},
+        counts={"analyzed": eep_count, "total_events": event_count},
     ))
 
-    # tension_lines (張力學) — cross-scene tension patterns (layer 3)
+    nodes.append(NodeData(
+        node_id="impact_analysis",
+        layer=3,
+        label="Impact\nAnalysis",
+        status=_status(
+            complete=eep_count > 0 and event_count > 0 and eep_count >= event_count,
+            partial=eep_count > 0 and eep_count < event_count,
+        ),
+        counts={"analyzed": eep_count, "total_events": event_count},
+    ))
+
     nodes.append(NodeData(
         node_id="tension_lines",
         layer=3,
         label="Tension Lines",
-        status=_status(
-            complete=tension_lines_present,
-            partial=False,
-        ),
+        status=_status(complete=tension_lines_present, partial=False),
         counts={"built": int(tension_lines_present)},
+    ))
+
+    nodes.append(NodeData(
+        node_id="narrative_structure",
+        layer=3,
+        label="Narrative\nStructure",
+        status=_status(complete=narrative_present, partial=False),
+        counts={"has_ks_classification": int(narrative_present)},
+    ))
+
+    nodes.append(NodeData(
+        node_id="hero_journey_stage",
+        layer=3,
+        label="Hero Journey",
+        status=_status(complete=hero_journey_present, partial=False),
+        counts={"built": int(hero_journey_present)},
+    ))
+
+    nodes.append(NodeData(
+        node_id="temporal_analysis",
+        layer=3,
+        label="Temporal\nAnalysis",
+        status=_status(complete=temporal_analysis_present, partial=False),
+        counts={"built": int(temporal_analysis_present)},
     ))
 
     # ── Layer 4: 書籍層面合成 ─────────────────────────────────────────────────
 
-    # tension_theme (張力學) — book-level tension proposition (layer 4)
     nodes.append(NodeData(
         node_id="tension_theme",
         layer=4,
         label="Tension Theme",
-        status=_status(
-            complete=tension_theme_present,
-            partial=False,
-        ),
+        status=_status(complete=tension_theme_present, partial=False),
         counts={"built": int(tension_theme_present)},
+    ))
+
+    nodes.append(NodeData(
+        node_id="chronological_rank",
+        layer=4,
+        label="Chronological\nRank",
+        status=_status(
+            complete=event_count > 0 and events_ranked == event_count,
+            partial=events_ranked > 0 and events_ranked < event_count,
+        ),
+        counts={"events_ranked": events_ranked, "total_events": event_count},
     ))
 
     return nodes

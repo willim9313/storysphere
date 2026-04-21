@@ -159,9 +159,7 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
             status="ready",
             chapter_count=item.chapter_count,
             entity_count=len(entities),
-            uploaded_at=(
-                item.processed_at.isoformat() if item.processed_at else ""
-            ),
+            uploaded_at="",
         ).model_dump(by_alias=True)
         for item, entities in zip(items, entity_lists)
     ]

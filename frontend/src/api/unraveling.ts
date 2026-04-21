@@ -9,6 +9,7 @@ export interface UnravelingNode {
   status: NodeStatus;
   counts: Record<string, number>;
   meta: Record<string, string | number | boolean>;
+  parentId?: string;
 }
 
 export interface UnravelingEdge {
