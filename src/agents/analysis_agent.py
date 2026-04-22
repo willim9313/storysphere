@@ -17,6 +17,7 @@ except ImportError:  # pragma: no cover
             return fn
         return noop
 
+from domain.symbol_analysis import SymbolInterpretation
 from services.analysis_cache import AnalysisCache
 from services.analysis_models import CharacterAnalysisResult, EventAnalysisResult
 
@@ -38,10 +39,18 @@ class AnalysisAgent:
         analysis_service: Any,
         cache: AnalysisCache | None = None,
         narrative_service: Any = None,
+        symbol_analysis_service: Any = None,
+        symbol_service: Any = None,
+        doc_service: Any = None,
+        kg_service: Any = None,
     ) -> None:
         self._service = analysis_service
         self._cache = cache
         self._narrative = narrative_service
+        self._symbol_analysis = symbol_analysis_service
+        self._symbol_service = symbol_service
+        self._doc_service = doc_service
+        self._kg_service = kg_service
 
     @_langfuse_observe(name="AnalysisAgent.analyze_character")
     async def analyze_character(
@@ -172,6 +181,73 @@ class AnalysisAgent:
 
         _metrics.record_tool_execution(
             "analyze_event",
+            success=True,
+            latency_ms=(time.perf_counter() - _t0) * 1000,
+        )
+        return result
+
+    @_langfuse_observe(name="AnalysisAgent.analyze_symbol")
+    async def analyze_symbol(
+        self,
+        imagery_id: str,
+        book_id: str,
+        language: str = "en",
+        force_refresh: bool = False,
+        progress_callback: Callable[[int, str], None] | None = None,
+    ) -> SymbolInterpretation:
+        """Run symbol interpretation with cache-first strategy (B-040).
+
+        Args:
+            imagery_id: ImageryEntity ID.
+            book_id: Book document ID.
+            language: LLM output language.
+            force_refresh: If True, bypass cache and re-interpret.
+
+        Returns:
+            SymbolInterpretation.
+        """
+        import time  # noqa: PLC0415
+
+        from core.metrics import get_metrics  # noqa: PLC0415
+
+        if self._symbol_analysis is None:
+            raise RuntimeError("AnalysisAgent: symbol_analysis_service not configured")
+
+        _metrics = get_metrics()
+        _t0 = time.perf_counter()
+        cache_key = f"symbol_analysis:{book_id}:{imagery_id}"
+
+        if self._cache is not None and not force_refresh:
+            cached = await self._cache.get(cache_key)
+            if cached is not None:
+                logger.info("Cache HIT for %s", cache_key)
+                _metrics.record_cache_event("symbol", hit=True, cache_key=cache_key)
+                return SymbolInterpretation.model_validate(cached)
+            logger.info("Cache MISS for %s", cache_key)
+            _metrics.record_cache_event("symbol", hit=False, cache_key=cache_key)
+
+        try:
+            result = await self._symbol_analysis.analyze_symbol(
+                imagery_id=imagery_id,
+                book_id=book_id,
+                symbol_service=self._symbol_service,
+                doc_service=self._doc_service,
+                kg_service=self._kg_service,
+                language=language,
+                force=force_refresh,
+                progress_callback=progress_callback,
+            )
+        except Exception as exc:
+            _metrics.record_tool_execution(
+                "analyze_symbol",
+                success=False,
+                latency_ms=(time.perf_counter() - _t0) * 1000,
+                error=type(exc).__name__,
+            )
+            raise
+
+        _metrics.record_tool_execution(
+            "analyze_symbol",
             success=True,
             latency_ms=(time.perf_counter() - _t0) * 1000,
         )

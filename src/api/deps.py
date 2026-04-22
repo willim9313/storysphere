@@ -156,6 +156,10 @@ def get_analysis_agent():
         analysis_service=get_analysis_service(),
         cache=get_analysis_cache(),
         narrative_service=get_narrative_service(),
+        symbol_analysis_service=get_symbol_analysis_service(),
+        symbol_service=get_symbol_service(),
+        doc_service=get_doc_service(),
+        kg_service=get_kg_service(),
     )
 
 
@@ -261,3 +265,13 @@ def get_symbol_graph_service():
 
 
 SymbolGraphServiceDep = Annotated[Any, Depends(get_symbol_graph_service)]
+
+
+@lru_cache(maxsize=1)
+def get_symbol_analysis_service():
+    from services.symbol_analysis_service import SymbolAnalysisService  # noqa: PLC0415
+
+    return SymbolAnalysisService(cache=get_analysis_cache())
+
+
+SymbolAnalysisServiceDep = Annotated[Any, Depends(get_symbol_analysis_service)]

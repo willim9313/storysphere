@@ -85,7 +85,29 @@ def mock_cache():
 
 
 @pytest.fixture
-def client(mock_symbol_svc, mock_symbol_graph, mock_doc_service, mock_kg_service, mock_cache):
+def mock_symbol_analysis_svc():
+    svc = AsyncMock()
+    svc.get_interpretation = AsyncMock(return_value=None)
+    svc.update_interpretation_review = AsyncMock(return_value=None)
+    return svc
+
+
+@pytest.fixture
+def mock_analysis_agent():
+    agent = AsyncMock()
+    return agent
+
+
+@pytest.fixture
+def client(
+    mock_symbol_svc,
+    mock_symbol_graph,
+    mock_doc_service,
+    mock_kg_service,
+    mock_cache,
+    mock_symbol_analysis_svc,
+    mock_analysis_agent,
+):
     import sys
 
     sys.path.insert(0, "src")
@@ -105,6 +127,10 @@ def client(mock_symbol_svc, mock_symbol_graph, mock_doc_service, mock_kg_service
     app.dependency_overrides[deps.get_doc_service] = lambda: mock_doc_service
     app.dependency_overrides[deps.get_kg_service] = lambda: mock_kg_service
     app.dependency_overrides[deps.get_analysis_cache] = lambda: mock_cache
+    app.dependency_overrides[deps.get_symbol_analysis_service] = (
+        lambda: mock_symbol_analysis_svc
+    )
+    app.dependency_overrides[deps.get_analysis_agent] = lambda: mock_analysis_agent
 
     with TestClient(app, raise_server_exceptions=True) as c:
         yield c
@@ -221,6 +247,120 @@ class TestSEPEndpoint:
     def test_imagery_not_found_returns_404(self, client, mock_symbol_svc):
         mock_symbol_svc.get_imagery_by_id = AsyncMock(return_value=None)
         resp = client.get("/api/v1/symbols/missing/sep")
+        assert resp.status_code == 404
+
+
+class TestSymbolAnalyze:
+    def test_analyze_returns_202(self, client, mock_analysis_agent):
+        from domain.symbol_analysis import SymbolInterpretation
+        mock_analysis_agent.analyze_symbol = AsyncMock(
+            return_value=SymbolInterpretation(
+                imagery_id="img-1", book_id="book-1", term="mirror",
+                theme="self-doubt", polarity="negative",
+            )
+        )
+        resp = client.post(
+            "/api/v1/symbols/img-1/analyze",
+            json={"book_id": "book-1", "language": "en"},
+        )
+        assert resp.status_code == 202
+        data = resp.json()
+        assert "taskId" in data
+        assert data["status"] == "pending"
+
+    def test_analyze_imagery_not_found_returns_404(
+        self, client, mock_symbol_svc
+    ):
+        mock_symbol_svc.get_imagery_by_id = AsyncMock(return_value=None)
+        resp = client.post(
+            "/api/v1/symbols/missing/analyze",
+            json={"book_id": "book-1"},
+        )
+        assert resp.status_code == 404
+
+
+class TestSymbolInterpretationGet:
+    def test_returns_cached_interpretation(
+        self, client, mock_symbol_analysis_svc
+    ):
+        from domain.symbol_analysis import SymbolInterpretation
+        interp = SymbolInterpretation(
+            imagery_id="img-1", book_id="book-1", term="mirror",
+            theme="self-recognition", polarity="mixed", confidence=0.7,
+        )
+        mock_symbol_analysis_svc.get_interpretation = AsyncMock(return_value=interp)
+        resp = client.get(
+            "/api/v1/symbols/img-1/interpretation?book_id=book-1"
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["imagery_id"] == "img-1"
+        assert data["theme"] == "self-recognition"
+        assert data["polarity"] == "mixed"
+
+    def test_missing_returns_404(self, client, mock_symbol_analysis_svc):
+        mock_symbol_analysis_svc.get_interpretation = AsyncMock(return_value=None)
+        resp = client.get(
+            "/api/v1/symbols/img-1/interpretation?book_id=book-1"
+        )
+        assert resp.status_code == 404
+
+    def test_imagery_not_found_returns_404(self, client, mock_symbol_svc):
+        mock_symbol_svc.get_imagery_by_id = AsyncMock(return_value=None)
+        resp = client.get(
+            "/api/v1/symbols/missing/interpretation?book_id=book-1"
+        )
+        assert resp.status_code == 404
+
+
+class TestSymbolInterpretationReview:
+    def test_patch_approves(self, client, mock_symbol_analysis_svc):
+        from domain.symbol_analysis import SymbolInterpretation
+        updated = SymbolInterpretation(
+            imagery_id="img-1", book_id="book-1", term="mirror",
+            theme="self-doubt", polarity="negative", review_status="approved",
+        )
+        mock_symbol_analysis_svc.update_interpretation_review = AsyncMock(
+            return_value=updated
+        )
+        resp = client.patch(
+            "/api/v1/symbols/img-1/interpretation",
+            json={"book_id": "book-1", "review_status": "approved"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["review_status"] == "approved"
+
+    def test_patch_modifies_theme(self, client, mock_symbol_analysis_svc):
+        from domain.symbol_analysis import SymbolInterpretation
+        updated = SymbolInterpretation(
+            imagery_id="img-1", book_id="book-1", term="mirror",
+            theme="new theme", polarity="positive", review_status="modified",
+        )
+        mock_symbol_analysis_svc.update_interpretation_review = AsyncMock(
+            return_value=updated
+        )
+        resp = client.patch(
+            "/api/v1/symbols/img-1/interpretation",
+            json={
+                "book_id": "book-1",
+                "review_status": "modified",
+                "theme": "new theme",
+                "polarity": "positive",
+            },
+        )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["theme"] == "new theme"
+        assert data["polarity"] == "positive"
+
+    def test_patch_missing_returns_404(self, client, mock_symbol_analysis_svc):
+        mock_symbol_analysis_svc.update_interpretation_review = AsyncMock(
+            return_value=None
+        )
+        resp = client.patch(
+            "/api/v1/symbols/img-1/interpretation",
+            json={"book_id": "book-1", "review_status": "approved"},
+        )
         assert resp.status_code == 404
 
 

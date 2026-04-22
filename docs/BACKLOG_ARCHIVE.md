@@ -5,6 +5,32 @@
 
 ---
 
+## B-040 符號深度分析（Symbol Deep Analysis）✅ 完成（2026-04-22）
+**背景**: B-022 SEP 完成後的下一層 — 以 SEP 為輸入，LLM 產出符號意義命題與跨層連結。架構類比 B-027~B-029（TensionLine → TensionTheme）與 B-026（CEP → CharacterAnalysisResult）。
+
+**內容**:
+- `domain/symbol_analysis.py` 新增 `SymbolInterpretation` — 欄位：`theme` / `polarity`(positive|negative|neutral|mixed) / `evidence_summary` / `linked_characters` / `linked_events` / `confidence` / `review_status`(pending|approved|modified|rejected)
+- `services/symbol_analysis_service.py` — `SymbolAnalysisService.analyze_symbol(imagery_id, book_id, ...)` cache-first，讀取 SEP → LLM 詮釋 → 存入 `symbol_analysis:{book_id}:{imagery_id}`；`update_interpretation_review()` 支援 HITL
+- `agents/analysis_agent.py` — `AnalysisAgent.analyze_symbol()` 入口，async task + metrics tracking
+- API endpoints：
+  - `POST /api/v1/symbols/{imagery_id}/analyze` → 202 + task_id
+  - `GET  /api/v1/symbols/{imagery_id}/analyze/{task_id}` 輪詢
+  - `GET  /api/v1/symbols/{imagery_id}/interpretation?book_id=` 取回詮釋
+  - `PATCH /api/v1/symbols/{imagery_id}/interpretation` HITL review（可修改 theme/polarity）
+- Unraveling DAG：Layer 3 新增 `symbol_analysis_result` 節點，edges `sep→` / `kg_entity→` / `kg_event→`；cache.count_keys 統計 `symbol_analysis:{book_id}:%`
+
+**關鍵設計**:
+- LLM 產生的 `linked_characters` / `linked_events` 必須在 SEP 的 `co_occurring_*_ids` 白名單內，超出範圍會被過濾（防幻覺）
+- `confidence` clamp 到 [0.0, 1.0]；`polarity` 強制四選一，非法值 fallback 到 `"neutral"`
+- tenacity retry 3 次（ValueError / KeyError），透過 `extract_json_from_text` 容錯 LLM 輸出
+- 跨書比較（optional）延後評估，複雜度高
+
+**實作**: `src/domain/symbol_analysis.py`（SymbolInterpretation）, `src/services/symbol_analysis_service.py`, `src/agents/analysis_agent.py`（analyze_symbol）, `src/api/routers/symbols.py`（analyze/interpretation endpoints）, `src/api/routers/unraveling.py`（symbol_analysis_result node）
+
+**測試**: `tests/services/test_symbol_analysis_service.py`（9 tests — cache hit/miss/force、LLM ID 過濾、confidence clamp、polarity 校驗、HITL review）、`tests/api/test_symbols.py`（新增 analyze/interpretation/review 測試）、`tests/api/test_unraveling.py`（加入 `symbol_analysis_result` 到 expected nodes）
+
+---
+
 ## B-008 Neo4j Backend ✅ 完成
 **背景**: ADR-009 設計為 NetworkX（預設）↔ Neo4j（大規模可選），`kg_mode='neo4j'` 有 settings 但未實作。
 **內容**:

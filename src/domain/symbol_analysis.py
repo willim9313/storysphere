@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -63,3 +64,42 @@ class SEP(BaseModel):
 
     assembled_by: str = Field(default="symbol_service_v1")
     assembled_at: datetime = Field(default_factory=datetime.utcnow)
+
+
+class SymbolInterpretation(BaseModel):
+    """LLM-derived interpretation of an imagery symbol — B-040.
+
+    Consumes an SEP and produces a structured reading of the symbol's
+    thematic role. Persisted in AnalysisCache under
+    ``symbol_analysis:{book_id}:{imagery_id}`` with HITL review support
+    (analogous to TensionLine / TensionTheme).
+    """
+
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    imagery_id: str
+    book_id: str
+    term: str = Field(description="Canonical imagery term")
+
+    theme: str = Field(
+        default="",
+        description="One-to-two sentence thematic proposition for the symbol",
+    )
+    polarity: Literal["positive", "negative", "neutral", "mixed"] = "neutral"
+    evidence_summary: str = Field(
+        default="", description="2-3 sentence synthesis grounded in SEP evidence"
+    )
+    linked_characters: list[str] = Field(
+        default_factory=list,
+        description="Entity IDs (characters) the symbol is most tied to",
+    )
+    linked_events: list[str] = Field(
+        default_factory=list,
+        description="Event IDs where the symbol carries the most weight",
+    )
+    confidence: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="LLM self-reported confidence"
+    )
+
+    assembled_by: str = Field(default="symbol_analysis_service_v1")
+    assembled_at: datetime = Field(default_factory=datetime.utcnow)
+    review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"

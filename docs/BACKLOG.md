@@ -37,29 +37,14 @@
 
 ---
 
-### B-040 符號深度分析（Symbol Deep Analysis）
-**背景**: 以 SEP 為輸入，進行 LLM 詮釋，產出符號意義命題與跨層連結。對應 B-022a 完成後的下一層，架構上類比 B-027~B-029（TensionLine → TensionTheme）。
-**前置依賴**: B-022
-
-**內容**:
-- `src/domain/symbol_analysis.py` 補充：`SymbolInterpretation` — 欄位包含 `theme`（主題命題）、`polarity`（正/負/中性）、`evidence_summary`、`linked_characters`、`linked_events`、`confidence`
-- `SymbolAnalysisService.analyze_symbol(imagery_id, book_id)` — LLM 讀取 SEP 產出 `SymbolInterpretation`，存入 `AnalysisCache`（key: `symbol_analysis:{book_id}:{imagery_id}`）
-- `AnalysisAgent.analyze_symbol()` — 入口方法（類比 `analyze_character` / `analyze_event`），async task + WebSocket 推送
-- API 端點：`POST /api/v1/symbols/{imagery_id}/analyze` → task_id；`GET /api/v1/symbols/{imagery_id}/interpretation`
-- 詮釋持久化：`PATCH /api/v1/symbols/{imagery_id}/interpretation` 支援人工修訂（HITL，類比 TensionLine review）
-- 跨書比較留待評估（選配，複雜度高）
-
----
-
 ## 📋 狀態追蹤
 
 | ID | 項目 | 優先 | 狀態 |
 |----|------|------|------|
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
-| B-040 | 符號深度分析（Symbol Deep Analysis）| 🟢 低 | 待開始 |
 
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-22（B-022 SEP 完成並歸檔，B-040 仍待開始）
+**最後更新**: 2026-04-22（B-040 符號深度分析完成並歸檔）

@@ -1,32 +1,46 @@
 """Symbolic imagery query endpoints.
 
-GET /api/v1/symbols                         — list imagery for a book
-GET /api/v1/symbols/{imagery_id}/timeline   — occurrences sorted by chapter/position
-GET /api/v1/symbols/{imagery_id}/co-occurrences — top-k co-occurring terms
-GET /api/v1/symbols/{imagery_id}/sep        — Symbol Evidence Profile (B-022)
+GET   /api/v1/symbols                           — list imagery for a book
+GET   /api/v1/symbols/{imagery_id}/timeline     — occurrences sorted by chapter/position
+GET   /api/v1/symbols/{imagery_id}/co-occurrences — top-k co-occurring terms
+GET   /api/v1/symbols/{imagery_id}/sep          — Symbol Evidence Profile (B-022)
+POST  /api/v1/symbols/{imagery_id}/analyze      — start LLM symbol interpretation (B-040)
+GET   /api/v1/symbols/{imagery_id}/analyze/{task_id} — poll interpretation task
+GET   /api/v1/symbols/{imagery_id}/interpretation — cached SymbolInterpretation (B-040)
+PATCH /api/v1/symbols/{imagery_id}/interpretation — HITL review of interpretation
 """
 
 from __future__ import annotations
 
 import logging
+from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
 
 from api.deps import (
+    AnalysisAgentDep,
     AnalysisCacheDep,
     DocServiceDep,
     KGServiceDep,
+    SymbolAnalysisServiceDep,
     SymbolGraphServiceDep,
     SymbolServiceDep,
 )
+from api.schemas.analysis import (
+    SymbolAnalysisRequest,
+    SymbolInterpretationReviewRequest,
+)
+from api.schemas.common import TaskStatus
 from api.schemas.symbols import (
     CoOccurrenceEntry,
     ImageryEntityResponse,
     ImageryListResponse,
     SymbolTimelineEntry,
 )
+from api.store import get_task, task_store
+from api.ws_manager import manager
 from domain.imagery import ImageryType
-from domain.symbol_analysis import SEP
+from domain.symbol_analysis import SEP, SymbolInterpretation
 
 logger = logging.getLogger(__name__)
 
@@ -150,3 +164,128 @@ async def get_sep(
         cache=cache,
         force=force,
     )
+
+
+# ── Symbol Analysis (B-040) ───────────────────────────────────────────────────
+
+
+async def _run_symbol_analysis(
+    task_id: str,
+    imagery_id: str,
+    req: SymbolAnalysisRequest,
+    agent,
+) -> None:
+    task_store.set_running(task_id)
+    await manager.push(
+        task_id,
+        {"task_id": task_id, "status": "running", "progress": 0, "stage": "",
+         "result": None, "error": None},
+    )
+    try:
+        def _on_progress(pct: int, stage: str) -> None:
+            task_store.set_progress(task_id, progress=pct, stage=stage)
+
+        result = await agent.analyze_symbol(
+            imagery_id=imagery_id,
+            book_id=req.book_id,
+            language=req.language,
+            force_refresh=req.force_refresh,
+            progress_callback=_on_progress,
+        )
+        task_store.set_completed(task_id, result=result.model_dump(mode="json"))
+    except Exception as exc:
+        logger.exception("Symbol analysis task %s failed", task_id)
+        task_store.set_failed(task_id, error=str(exc))
+    finally:
+        status = await get_task(task_id)
+        if status:
+            await manager.push(task_id, status.model_dump())
+
+
+@router.post(
+    "/{imagery_id}/analyze", response_model=TaskStatus, status_code=202
+)
+async def analyze_symbol(
+    imagery_id: str,
+    req: SymbolAnalysisRequest,
+    background_tasks: BackgroundTasks,
+    agent: AnalysisAgentDep,
+    symbol_svc: SymbolServiceDep,
+) -> TaskStatus:
+    """Start LLM-based symbol interpretation (B-040).
+
+    Returns 202 with ``task_id``. Poll
+    ``GET /api/v1/symbols/{imagery_id}/analyze/{task_id}`` until
+    ``status`` is ``"completed"`` or ``"failed"``.
+    """
+    entity = await symbol_svc.get_imagery_by_id(imagery_id)
+    if entity is None:
+        raise HTTPException(
+            status_code=404, detail=f"Imagery '{imagery_id}' not found"
+        )
+
+    task_id = str(uuid4())
+    task_store.create(task_id)
+    background_tasks.add_task(_run_symbol_analysis, task_id, imagery_id, req, agent)
+    return TaskStatus(task_id=task_id, status="pending")
+
+
+@router.get(
+    "/{imagery_id}/analyze/{task_id}", response_model=TaskStatus
+)
+async def get_symbol_analysis_task(imagery_id: str, task_id: str) -> TaskStatus:
+    task = await get_task(task_id)
+    if task is None:
+        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
+    return task
+
+
+@router.get("/{imagery_id}/interpretation", response_model=SymbolInterpretation)
+async def get_symbol_interpretation(
+    imagery_id: str,
+    symbol_analysis_svc: SymbolAnalysisServiceDep,
+    symbol_svc: SymbolServiceDep,
+    book_id: str = Query(..., description="Book identifier"),
+) -> SymbolInterpretation:
+    """Return the cached SymbolInterpretation for an imagery entity."""
+    entity = await symbol_svc.get_imagery_by_id(imagery_id)
+    if entity is None:
+        raise HTTPException(
+            status_code=404, detail=f"Imagery '{imagery_id}' not found"
+        )
+
+    interp = await symbol_analysis_svc.get_interpretation(imagery_id, book_id)
+    if interp is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No interpretation cached for imagery '{imagery_id}'. "
+            f"Run POST /symbols/{imagery_id}/analyze first.",
+        )
+    return interp
+
+
+@router.patch("/{imagery_id}/interpretation", response_model=SymbolInterpretation)
+async def review_symbol_interpretation(
+    imagery_id: str,
+    req: SymbolInterpretationReviewRequest,
+    symbol_analysis_svc: SymbolAnalysisServiceDep,
+) -> SymbolInterpretation:
+    """Update the review_status (and optionally theme/polarity) of a SymbolInterpretation.
+
+    Optionally override ``theme`` / ``polarity`` when
+    ``review_status`` is ``"modified"``.
+    """
+    updated = await symbol_analysis_svc.update_interpretation_review(
+        imagery_id=imagery_id,
+        book_id=req.book_id,
+        review_status=req.review_status,
+        theme=req.theme,
+        polarity=req.polarity,
+    )
+    if updated is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No interpretation found for imagery '{imagery_id}' "
+            f"in book '{req.book_id}'",
+        )
+    return updated

@@ -184,7 +184,8 @@ class TestUnravelingManifestStructure:
             "summaries", "keywords", "symbols",
             "kg_entity", "kg_concept", "kg_relation", "kg_event", "kg_temporal_relation",
             "cep", "eep", "teu", "sep",
-            "character_analysis_result", "causality_analysis", "impact_analysis",
+            "character_analysis_result", "symbol_analysis_result",
+            "causality_analysis", "impact_analysis",
             "tension_lines", "narrative_structure", "hero_journey_stage", "temporal_analysis",
             "tension_theme", "chronological_rank",
         }
