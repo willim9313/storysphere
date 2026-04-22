@@ -280,6 +280,31 @@
 
 ---
 
+## B-022 SEP Domain Model + 組裝 Pipeline ✅ 完成
+**背景**: 符號學原止於原始提取（`ImageryEntity` + 共現圖），缺乏結構化的語境 profile，無法作為 LLM 詮釋的輸入。本 ticket 對應 B-026（TEU 組裝）的符號學等價物，只做結構化、不做 LLM 詮釋。下游的 LLM 詮釋步驟拆分為 B-040。
+**前置依賴**: B-020, B-021（均已完成）
+
+**實作**:
+- `src/domain/symbol_analysis.py`：`SEP`（Symbol Evidence Profile）+ `SEPOccurrenceContext`，欄位包含 `imagery_id`, `book_id`, `term`, `imagery_type`, `frequency`, `occurrence_contexts`（段落文字 + 章節位置）、`co_occurring_entity_ids`、`co_occurring_event_ids`、`chapter_distribution`、`peak_chapters`
+- `SymbolService.assemble_sep(imagery_id, book_id, doc_service, kg_service, cache)` — `asyncio.gather` 並行拉取 imagery + occurrences + document + events，組裝 SEP 後存入 `AnalysisCache`（key: `sep:{book_id}:{imagery_id}`）
+- `SymbolService.get_sep(imagery_id, book_id, cache)` — cache 查詢
+- `GET /api/v1/symbols/{imagery_id}/sep?force=false` — 查詢已組裝的 SEP；cache miss 時即時組裝並持久化
+- Unraveling DAG：Layer 2 新增 `sep` 節點（counts: analyzed / total_imagery），邊 `symbols → sep`、`kg_entity → sep`；`cache.count_keys(f"sep:{book_id}:%")` 計數
+
+**設計決策**:
+- SEP 存入 `AnalysisCache` 而非 SQLite，與 CEP/EEP/TEU 一致
+- `co_occurring_entity_ids` 來源：在 imagery occurrence 所屬 paragraph 的 `paragraph.entities` 欄位；`co_occurring_event_ids` 取章節交集（事件所屬 chapter 出現在 imagery 的 `chapter_distribution` 鍵中）
+- `peak_chapters` 取 top 3（`_SEP_PEAK_CHAPTER_COUNT`）
+- `assemble_sep` 的依賴透過方法參數注入（類比 `TensionService.assemble_teu`），保持 `SymbolService` 仍為純資料層 + 組裝入口
+
+**測試**: `tests/services/test_symbol_service.py::TestAssembleSEP`（5 案例）+ `tests/api/test_symbols.py::TestSEPEndpoint`（2 案例）
+
+**後續**: B-040 LLM 詮釋以 SEP 為輸入，完成後需在 unraveling DAG 補 `sep → symbol_analysis_result` 邊
+
+**實作**: `src/domain/symbol_analysis.py`, `src/services/symbol_service.py`, `src/api/routers/symbols.py`, `src/api/routers/unraveling.py`
+
+---
+
 ## B-039 展開卷軸（Unraveling）— 資料透明度 DAG ✅ 完成
 **背景**: 系統為每本書建立的資料量體對用戶不可見，功能不可用時也難以診斷是哪個資料層尚未建立。
 **實作**:

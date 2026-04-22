@@ -56,6 +56,8 @@ _EDGES: list[tuple[str, str]] = [
     ("kg_event", "teu"),
     ("kg_concept", "teu"),
     ("summaries", "teu"),
+    ("symbols", "sep"),
+    ("kg_entity", "sep"),
     # ── Layer 3: derived results ──────────────────────────────────────────────
     ("cep", "character_analysis_result"),
     ("eep", "causality_analysis"),
@@ -157,6 +159,7 @@ def _build_nodes(
     tension_lines_present: bool,
     tension_theme_present: bool,
     teu_count: int,
+    sep_count: int,
 ) -> list[NodeData]:
     nodes: list[NodeData] = []
 
@@ -338,6 +341,17 @@ def _build_nodes(
         counts={"analyzed": teu_count, "total_events": event_count},
     ))
 
+    nodes.append(NodeData(
+        node_id="sep",
+        layer=2,
+        label="SEP",
+        status=_status(
+            complete=sep_count > 0 and imagery_count > 0 and sep_count >= imagery_count,
+            partial=sep_count > 0 and sep_count < imagery_count,
+        ),
+        counts={"analyzed": sep_count, "total_imagery": imagery_count},
+    ))
+
     # ── Layer 3: 合成結果層 ────────────────────────────────────────────────────
 
     nodes.append(NodeData(
@@ -484,6 +498,7 @@ async def get_unraveling(
         tension_lines_present,
         tension_theme_present,
         teu_count,
+        sep_count,
     ) = await asyncio.gather(
         cache.count_keys(f"character:{book_id}:%"),
         cache.count_keys(f"event:{book_id}:%"),
@@ -493,6 +508,7 @@ async def get_unraveling(
         _key_exists(cache, f"tension_lines:{book_id}"),
         _key_exists(cache, f"tension_theme:{book_id}"),
         _count_teu_keys(cache, event_ids),
+        cache.count_keys(f"sep:{book_id}:%"),
     )
 
     nodes = _build_nodes(
@@ -510,6 +526,7 @@ async def get_unraveling(
         tension_lines_present=tension_lines_present,
         tension_theme_present=tension_theme_present,
         teu_count=teu_count,
+        sep_count=sep_count,
     )
 
     edges = [

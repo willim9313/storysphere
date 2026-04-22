@@ -3,6 +3,7 @@
 GET /api/v1/symbols                         — list imagery for a book
 GET /api/v1/symbols/{imagery_id}/timeline   — occurrences sorted by chapter/position
 GET /api/v1/symbols/{imagery_id}/co-occurrences — top-k co-occurring terms
+GET /api/v1/symbols/{imagery_id}/sep        — Symbol Evidence Profile (B-022)
 """
 
 from __future__ import annotations
@@ -11,7 +12,13 @@ import logging
 
 from fastapi import APIRouter, HTTPException, Query
 
-from api.deps import SymbolGraphServiceDep, SymbolServiceDep
+from api.deps import (
+    AnalysisCacheDep,
+    DocServiceDep,
+    KGServiceDep,
+    SymbolGraphServiceDep,
+    SymbolServiceDep,
+)
 from api.schemas.symbols import (
     CoOccurrenceEntry,
     ImageryEntityResponse,
@@ -19,6 +26,7 @@ from api.schemas.symbols import (
     SymbolTimelineEntry,
 )
 from domain.imagery import ImageryType
+from domain.symbol_analysis import SEP
 
 logger = logging.getLogger(__name__)
 
@@ -111,3 +119,34 @@ async def get_co_occurrences(
         )
 
     return result
+
+
+@router.get("/{imagery_id}/sep", response_model=SEP)
+async def get_sep(
+    imagery_id: str,
+    symbol_svc: SymbolServiceDep,
+    doc_service: DocServiceDep,
+    kg_service: KGServiceDep,
+    cache: AnalysisCacheDep,
+    force: bool = Query(default=False, description="Bypass cache and re-assemble"),
+) -> SEP:
+    """Return the Symbol Evidence Profile (SEP) for an imagery entity.
+
+    Pure data aggregation (no LLM). On cache miss the profile is assembled
+    from SymbolService + DocumentService + KGService and persisted under
+    ``sep:{book_id}:{imagery_id}``.
+    """
+    entity = await symbol_svc.get_imagery_by_id(imagery_id)
+    if entity is None:
+        raise HTTPException(
+            status_code=404, detail=f"Imagery '{imagery_id}' not found"
+        )
+
+    return await symbol_svc.assemble_sep(
+        imagery_id=imagery_id,
+        book_id=entity.book_id,
+        doc_service=doc_service,
+        kg_service=kg_service,
+        cache=cache,
+        force=force,
+    )

@@ -3,18 +3,33 @@
 Connection management follows src/services/analysis_cache.py conventions:
 - Each public method opens its own aiosqlite connection context
 - _ensure_tables() is called on every connection (idempotent via IF NOT EXISTS)
+
+Also hosts the SEP (Symbol Evidence Profile) assembler — a pure data-aggregation
+step (no LLM) that pulls from SymbolService + DocumentService + KGService and
+persists the result in AnalysisCache under ``sep:{book_id}:{imagery_id}``.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+from typing import TYPE_CHECKING
 
 import aiosqlite
 
 from domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
+from domain.symbol_analysis import SEP, SEPOccurrenceContext
+
+if TYPE_CHECKING:
+    from services.analysis_cache import AnalysisCache
+    from services.document_service import DocumentService
+    from services.kg_service import KGService
 
 logger = logging.getLogger(__name__)
+
+_SEP_ASSEMBLER_TAG = "symbol_service_v1"
+_SEP_PEAK_CHAPTER_COUNT = 3
 
 _CREATE_IMAGERY_TABLE = """\
 CREATE TABLE IF NOT EXISTS imagery_entities (
@@ -238,3 +253,136 @@ class SymbolService:
             context_window=ctx,
             co_occurring_terms=json.loads(co_json),
         )
+
+    # ── SEP (Symbol Evidence Profile) — B-022 ─────────────────────────────────
+
+    async def assemble_sep(
+        self,
+        imagery_id: str,
+        book_id: str,
+        doc_service: "DocumentService",
+        kg_service: "KGService",
+        cache: "AnalysisCache",
+        force: bool = False,
+    ) -> SEP:
+        """Assemble a SEP for a single imagery entity.
+
+        Pure data aggregation (no LLM). Pulls ImageryEntity + occurrences
+        (self), paragraphs (doc_service), and events (kg_service) in parallel,
+        then persists the result under ``sep:{book_id}:{imagery_id}``.
+
+        Args:
+            imagery_id: The imagery entity ID.
+            book_id: The book's document ID.
+            doc_service: DocumentService for paragraph lookup.
+            kg_service: KGService for event lookup.
+            cache: AnalysisCache for persistence.
+            force: If True, bypass cache and re-assemble.
+
+        Returns:
+            The assembled SEP (also persisted to cache).
+
+        Raises:
+            ValueError: If the imagery entity is not found or book_id mismatches.
+        """
+        cache_key = _sep_cache_key(book_id, imagery_id)
+
+        if not force:
+            cached = await cache.get(cache_key)
+            if cached is not None:
+                logger.debug("SymbolService: cache hit for %s", cache_key)
+                return SEP.model_validate(cached)
+
+        entity, occurrences, document, events = await asyncio.gather(
+            self.get_imagery_by_id(imagery_id),
+            self.get_occurrences(imagery_id),
+            doc_service.get_document(book_id),
+            kg_service.get_events(document_id=book_id),
+        )
+
+        if entity is None:
+            raise ValueError(f"SymbolService: imagery not found: {imagery_id!r}")
+        if entity.book_id != book_id:
+            raise ValueError(
+                f"SymbolService: imagery {imagery_id!r} belongs to "
+                f"book {entity.book_id!r}, not {book_id!r}"
+            )
+        if document is None:
+            raise ValueError(f"SymbolService: book not found: {book_id!r}")
+
+        paragraph_by_id = {
+            p.id: p for ch in document.chapters for p in ch.paragraphs
+        }
+
+        occurrence_contexts: list[SEPOccurrenceContext] = []
+        entity_ids: set[str] = set()
+        for occ in occurrences:
+            paragraph = paragraph_by_id.get(occ.paragraph_id)
+            paragraph_text = paragraph.text if paragraph is not None else ""
+            occurrence_contexts.append(
+                SEPOccurrenceContext(
+                    occurrence_id=occ.id,
+                    paragraph_id=occ.paragraph_id,
+                    chapter_number=occ.chapter_number,
+                    position=occ.position,
+                    paragraph_text=paragraph_text,
+                    context_window=occ.context_window,
+                )
+            )
+            if paragraph is not None and paragraph.entities:
+                for pe in paragraph.entities:
+                    entity_ids.add(pe.entity_id)
+
+        chapters_with_imagery = set(entity.chapter_distribution.keys())
+        event_ids = [
+            ev.id for ev in events if ev.chapter in chapters_with_imagery
+        ]
+
+        peak_chapters = [
+            ch for ch, _ in sorted(
+                entity.chapter_distribution.items(),
+                key=lambda kv: kv[1],
+                reverse=True,
+            )
+        ][:_SEP_PEAK_CHAPTER_COUNT]
+
+        sep = SEP(
+            imagery_id=entity.id,
+            book_id=entity.book_id,
+            term=entity.term,
+            imagery_type=entity.imagery_type.value,
+            frequency=entity.frequency,
+            occurrence_contexts=occurrence_contexts,
+            co_occurring_entity_ids=sorted(entity_ids),
+            co_occurring_event_ids=event_ids,
+            chapter_distribution=dict(entity.chapter_distribution),
+            peak_chapters=peak_chapters,
+            assembled_by=_SEP_ASSEMBLER_TAG,
+        )
+
+        await cache.set(cache_key, sep.model_dump(mode="json"))
+        logger.debug(
+            "SymbolService: assembled SEP imagery=%s book=%s contexts=%d entities=%d events=%d",
+            imagery_id,
+            book_id,
+            len(occurrence_contexts),
+            len(entity_ids),
+            len(event_ids),
+        )
+        return sep
+
+    async def get_sep(
+        self,
+        imagery_id: str,
+        book_id: str,
+        cache: "AnalysisCache",
+    ) -> SEP | None:
+        """Return a cached SEP or None if missing/expired."""
+        cached = await cache.get(_sep_cache_key(book_id, imagery_id))
+        if cached is None:
+            return None
+        return SEP.model_validate(cached)
+
+
+def _sep_cache_key(book_id: str, imagery_id: str) -> str:
+    return f"sep:{book_id}:{imagery_id}"

@@ -1,7 +1,7 @@
 # StorySphere — 開發 Backlog
 
 **用途**: 記錄已識別但尚未排入 Phase 的開發項目
-**更新日期**: 2026-04-02
+**更新日期**: 2026-04-22
 
 > 已完成項目歸檔於 [BACKLOG_ARCHIVE.md](BACKLOG_ARCHIVE.md)
 
@@ -37,26 +37,6 @@
 
 ---
 
-### B-022 SEP Domain Model + 組裝 Pipeline
-**背景**: 符號學目前止於原始提取（`ImageryEntity` + 共現圖），缺乏結構化的語境 profile，無法作為 LLM 詮釋的輸入。本 ticket 對應 B-026（TEU 組裝）的符號學等價物，只做結構化、不做 LLM 詮釋。
-**前置依賴**: B-020, B-021（均已完成）
-
-**內容**:
-- `src/domain/symbol_analysis.py`：`SEP`（Symbol Evidence Profile）— 欄位包含 `imagery_id`, `book_id`, `occurrence_contexts`（段落文字 + 章節位置）、`co_occurring_entities`（人物/事件 ID）、`chapter_distribution`（各章出現頻率）、`peak_chapters`
-- `SymbolService.assemble_sep(imagery_id, book_id)` — 從 `SymbolService`、`SymbolGraphService`、`DocumentService` 並行拉取資料組裝 SEP，存入 `AnalysisCache`（key: `sep:{book_id}:{imagery_id}`）
-- `GET /api/v1/symbols/{imagery_id}/sep` — 查詢已組裝的 SEP；若 cache miss 則即時組裝
-- SEP 不含任何 LLM 呼叫，純資料彙整
-
-**設計決策**:
-- SEP 存入 `AnalysisCache` 而非 SQLite，與 CEP/EEP/TEU 一致
-- `co_occurring_entities` 只記錄 entity ID，不展開完整資料（避免 SEP 過大）
-
-**連帶更新**:
-- `src/api/routers/unraveling.py`：Layer 2 補充 `sep` 節點，計數用 `cache.count_keys(f"sep:{book_id}:%")`；補充邊 `symbols → sep`、`kg_entity → sep`
-- B-040 完成後再補 `sep → symbol_analysis_result`（Layer 3）節點與邊
-
----
-
 ### B-040 符號深度分析（Symbol Deep Analysis）
 **背景**: 以 SEP 為輸入，進行 LLM 詮釋，產出符號意義命題與跨層連結。對應 B-022a 完成後的下一層，架構上類比 B-027~B-029（TensionLine → TensionTheme）。
 **前置依賴**: B-022
@@ -77,10 +57,9 @@
 |----|------|------|------|
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
-| B-022 | SEP Domain Model + 組裝 Pipeline | 🟢 低 | 待開始 |
 | B-040 | 符號深度分析（Symbol Deep Analysis）| 🟢 低 | 待開始 |
 
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-22（B-022 拆分為 B-022 SEP + B-040 符號深度分析）
+**最後更新**: 2026-04-22（B-022 SEP 完成並歸檔，B-040 仍待開始）

@@ -65,7 +65,27 @@ def mock_symbol_graph():
 
 
 @pytest.fixture
-def client(mock_symbol_svc, mock_symbol_graph):
+def mock_doc_service():
+    return AsyncMock()
+
+
+@pytest.fixture
+def mock_kg_service():
+    svc = AsyncMock()
+    svc.get_events = AsyncMock(return_value=[])
+    return svc
+
+
+@pytest.fixture
+def mock_cache():
+    cache = AsyncMock()
+    cache.get = AsyncMock(return_value=None)
+    cache.set = AsyncMock()
+    return cache
+
+
+@pytest.fixture
+def client(mock_symbol_svc, mock_symbol_graph, mock_doc_service, mock_kg_service, mock_cache):
     import sys
 
     sys.path.insert(0, "src")
@@ -82,6 +102,9 @@ def client(mock_symbol_svc, mock_symbol_graph):
     app.router.lifespan_context = _noop_lifespan
     app.dependency_overrides[deps.get_symbol_service] = lambda: mock_symbol_svc
     app.dependency_overrides[deps.get_symbol_graph_service] = lambda: mock_symbol_graph
+    app.dependency_overrides[deps.get_doc_service] = lambda: mock_doc_service
+    app.dependency_overrides[deps.get_kg_service] = lambda: mock_kg_service
+    app.dependency_overrides[deps.get_analysis_cache] = lambda: mock_cache
 
     with TestClient(app, raise_server_exceptions=True) as c:
         yield c
@@ -167,6 +190,38 @@ class TestCoOccurrences:
         mock_symbol_svc.get_imagery_list = AsyncMock(return_value=[_make_entity(), door_entity])
         client.get("/api/v1/symbols/img-1/co-occurrences")
         mock_symbol_graph.build_graph.assert_called_once()
+
+
+class TestSEPEndpoint:
+    def test_returns_assembled_sep(self, client, mock_symbol_svc):
+        from domain.symbol_analysis import SEP
+
+        sep = SEP(
+            imagery_id="img-1",
+            book_id="book-1",
+            term="mirror",
+            imagery_type="object",
+            frequency=5,
+            chapter_distribution={1: 3, 2: 2},
+            peak_chapters=[1, 2],
+            co_occurring_entity_ids=["ent-alice"],
+            co_occurring_event_ids=["ev-1"],
+        )
+        mock_symbol_svc.assemble_sep = AsyncMock(return_value=sep)
+
+        resp = client.get("/api/v1/symbols/img-1/sep")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["imagery_id"] == "img-1"
+        assert data["term"] == "mirror"
+        assert data["peak_chapters"] == [1, 2]
+        assert data["co_occurring_entity_ids"] == ["ent-alice"]
+        mock_symbol_svc.assemble_sep.assert_called_once()
+
+    def test_imagery_not_found_returns_404(self, client, mock_symbol_svc):
+        mock_symbol_svc.get_imagery_by_id = AsyncMock(return_value=None)
+        resp = client.get("/api/v1/symbols/missing/sep")
+        assert resp.status_code == 404
 
 
 class TestIngestionRegression:
