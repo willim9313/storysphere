@@ -7,24 +7,6 @@
 
 ---
 
-## 🔴 高優先（核心功能）
-
-### B-039 展開卷軸（Unraveling）— 資料透明度 DAG
-**背景**: 系統為每本書建立的資料量體對用戶不可見，功能不可用時也難以診斷是哪個資料層尚未建立。
-
-**內容**:
-- `GET /api/v1/books/{book_id}/unraveling` 聚合端點，向各 service 查詢計數並組裝 manifest JSON
-- 三層 DAG 節點：原生文本層（book_meta / chapters / paragraphs）、知識圖譜層（entities / relations / events）、深度分析層（temporal / symbols / character_analysis / event_analysis / narrative_structure / tension_analysis）
-- 橫向 DAG 前端頁面，用 Cytoscape.js preset 佈局（layer 欄位驅動 x 座標）
-- `AnalysisCache` 新增 `count_keys(pattern)` 方法（非破壞性，含 TTL 過濾）
-- TEU 計數特殊處理：先取 event_id 清單，再並行查詢 `teu:{event_id}` 快取鍵
-
-**設計決策**:
-- Relation count v1 使用全域 `kg_service.relation_count`（KGService 無 document_id filter），在 meta 標注 `"scope": "global"`
-- Symbol occurrence count 用 `sum(e.frequency for e in imagery_entities)`，避免載入所有 SymbolOccurrence
-
----
-
 ## 🟡 中優先（功能完善）
 
 ### B-014 Local LLM 選型評估（進行中）
@@ -71,7 +53,6 @@
 
 | ID | 項目 | 優先 | 狀態 |
 |----|------|------|------|
-| B-039 | 展開卷軸（Unraveling）| 🔴 高 | 進行中 |
 | B-011 | 生產環境配置 | 🟢 低 | 待開始 |
 | B-014 | Local LLM 選型評估 | 🟡 中 | 進行中 |
 | B-022 | 符號學 Pipeline 整合與 Deep Analysis 對接 | 🟢 低 | 待開始 |
@@ -79,4 +60,4 @@
 ---
 
 **維護者**: William
-**最後更新**: 2026-04-07（B-039 展開卷軸開始開發）
+**最後更新**: 2026-04-22（B-039 展開卷軸完成，移至 archive）

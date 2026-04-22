@@ -280,6 +280,24 @@
 
 ---
 
+## B-039 展開卷軸（Unraveling）— 資料透明度 DAG ✅ 完成
+**背景**: 系統為每本書建立的資料量體對用戶不可見，功能不可用時也難以診斷是哪個資料層尚未建立。
+**實作**:
+- `GET /api/v1/books/{book_id}/unraveling` — 聚合端點，兩輪並行查詢（服務計數 + cache key 計數）組裝 manifest JSON
+- 5 層 DAG 節點（layer 0–4）：原生文本層（book_meta/chapters/paragraphs）、知識抽取層（summaries/keywords/symbols + KG compound group）、分析中間層（CEP/EEP/TEU）、合成結果層（character/causality/impact/tension/narrative/hero-journey/temporal）、書籍層面合成（tension_theme/chronological_rank）
+- KG 子節點（kg_entity/kg_concept/kg_relation/kg_event/kg_temporal_relation）統一放入 `kg_features` compound group
+- 前端 Cytoscape.js DAG 視圖，支援節點點擊高亮與 counts 展示
+- `AnalysisCache.count_keys(pattern)` 非破壞性計數（含 TTL 過濾）
+- TEU 計數特殊處理：fan-out per event_id（`teu:{event_id}` 鍵）並行查詢後加總
+
+**設計決策**:
+- Relation count v1 使用全域 `kg_service.relation_count`（KGService 無 document_id filter），meta 標注 `"scope": "global"`
+- Symbol occurrence count 用 `sum(e.frequency for e in imagery_entities)`，避免載入所有 SymbolOccurrence
+
+**實作**: `src/api/routers/unraveling.py`; `frontend/src/api/unraveling.ts`
+
+---
+
 ## B-012 前端後端 API 整合驗證 ✅ 完成
 **背景**: 前端已完成重構（2026-03-15），對齊 `API_CONTRACT.md` 的全部端點，但目前仍使用 mock 資料（`VITE_MOCK=true`）
 **驗收結論**:
