@@ -14,6 +14,7 @@ import {
   ChevronRight,
   AlertTriangle,
 } from 'lucide-react';
+import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import {
@@ -524,7 +525,13 @@ function useTensionTask(
 export default function TensionPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
+  const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
+
+  useEffect(() => {
+    if (book) setPageContext({ page: 'analysis', bookId: bookId!, bookTitle: book.title });
+    return () => setPageContext({ page: 'other' });
+  }, [book, bookId, setPageContext]);
 
   const [analyzeResult, setAnalyzeResult] = useState<Record<string, number> | null>(null);
 

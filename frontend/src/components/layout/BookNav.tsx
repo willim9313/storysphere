@@ -8,7 +8,8 @@ interface BookNavProps {
 
 const tabs = [
   { label: '閱讀', path: '' },
-  { label: '深度分析', path: '/analysis' },
+  { label: '角色分析', path: '/characters' },
+  { label: '事件分析', path: '/events' },
   { label: '知識圖譜', path: '/graph' },
   { label: '時間軸', path: '/timeline' },
   { label: '張力分析', path: '/tension' },

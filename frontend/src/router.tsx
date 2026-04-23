@@ -7,7 +7,8 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 const LibraryPage = lazy(() => import('@/pages/LibraryPage'));
 const UploadPage = lazy(() => import('@/pages/UploadPage'));
 const ReaderPage = lazy(() => import('@/pages/ReaderPage'));
-const AnalysisPage = lazy(() => import('@/pages/AnalysisPage'));
+const CharacterAnalysisPage = lazy(() => import('@/pages/CharacterAnalysisPage'));
+const EventAnalysisPage = lazy(() => import('@/pages/EventAnalysisPage'));
 const GraphPage = lazy(() => import('@/pages/GraphPage'));
 const TimelinePage = lazy(() => import('@/pages/TimelinePage'));
 const TensionPage = lazy(() => import('@/pages/TensionPage'));
@@ -78,10 +79,18 @@ export const router = createBrowserRouter([
             ),
           },
           {
-            path: 'analysis',
+            path: 'characters',
             element: (
               <LazyWrapper>
-                <AnalysisPage />
+                <CharacterAnalysisPage />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: 'events',
+            element: (
+              <LazyWrapper>
+                <EventAnalysisPage />
               </LazyWrapper>
             ),
           },

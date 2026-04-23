@@ -19,6 +19,8 @@ import {
   Filter,
   Search,
 } from 'lucide-react';
+import { useChatContext } from '@/contexts/ChatContext';
+import { useBook } from '@/hooks/useBook';
 import { useTimeline } from '@/hooks/useTimeline';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { computeTimeline } from '@/api/timeline';
@@ -142,8 +144,25 @@ export default function TimelinePage() {
   const [filter, setFilter] = useState<FilterState>(createDefaultFilter);
   const [filterOpen, setFilterOpen] = useState(false);
 
+  const { setPageContext } = useChatContext();
+  const { data: book } = useBook(bookId);
   const { data, isLoading, error } = useTimeline(bookId, order);
   const { data: computeTask } = useTaskPolling(computeTaskId);
+
+  useEffect(() => {
+    setPageContext({ page: 'timeline', bookId, bookTitle: book?.title });
+  }, [bookId, book?.title, setPageContext]);
+
+  useEffect(() => {
+    if (selectedEventId && data?.events) {
+      const event = data.events.find((e) => e.id === selectedEventId);
+      if (event) {
+        setPageContext({ selectedEntity: { id: event.id, name: event.title, type: 'event' } });
+        return;
+      }
+    }
+    setPageContext({ selectedEntity: undefined });
+  }, [selectedEventId, data?.events, setPageContext]);
 
   // Node ref map for SVG lines
   const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
