@@ -14,7 +14,6 @@ import {
   ChevronRight,
   AlertTriangle,
 } from 'lucide-react';
-import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import {
@@ -525,7 +524,6 @@ function useTensionTask(
 export default function TensionPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
-  const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
 
   const [analyzeResult, setAnalyzeResult] = useState<Record<string, number> | null>(null);
@@ -559,18 +557,6 @@ export default function TensionPage() {
   );
   const groupOp = useTensionTask(fetchGroupTensionLinesTask, () => refetchLines(), '分組失敗');
   const synthesizeOp = useTensionTask(fetchSynthesizeThemeTask, () => refetchTheme(), '合成失敗');
-
-  // Page context for chat
-  useEffect(() => {
-    if (book) {
-      setPageContext({
-        page: 'analysis',
-        bookId: bookId!,
-        bookTitle: book.title,
-      });
-    }
-    return () => setPageContext({ page: 'other' });
-  }, [book, bookId, setPageContext]);
 
   // Handlers
   const handleAnalyze = useCallback(() =>

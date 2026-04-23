@@ -1,9 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Telescope, Search, BookOpen, Link2 } from 'lucide-react';
-import { useChatContext } from '@/contexts/ChatContext';
-import { useBook } from '@/hooks/useBook';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   fetchSymbols,
@@ -179,8 +177,6 @@ function TimelineRow({ entry }: { entry: { chapter_number: number; position: num
 
 export default function SymbolsPage() {
   const { bookId } = useParams<{ bookId: string }>();
-  const { setPageContext } = useChatContext();
-  const { data: book } = useBook(bookId);
 
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
@@ -210,12 +206,6 @@ export default function SymbolsPage() {
     queryFn: () => fetchCoOccurrences(selectedId!, 12),
     enabled: !!selectedId,
   });
-
-  // Chat context
-  useEffect(() => {
-    if (book) setPageContext({ page: 'analysis', bookId: bookId!, bookTitle: book.title });
-    return () => setPageContext({ page: 'other' });
-  }, [book, bookId, setPageContext]);
 
   const entities = listData?.items ?? [];
   const filtered = entities.filter(

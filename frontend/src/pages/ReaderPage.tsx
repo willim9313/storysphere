@@ -1,6 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useChapters } from '@/hooks/useChapters';
 import { useChunks } from '@/hooks/useChunks';
@@ -21,24 +20,9 @@ export default function ReaderPage() {
   const col2Ref = useRef<HTMLDivElement>(null);
   const col3Ref = useRef<HTMLDivElement>(null);
 
-  const { setPageContext } = useChatContext();
   const { data: book, isLoading: bookLoading, error: bookError } = useBook(bookId);
   const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId);
   const { data: chunks, isLoading: chunksLoading } = useChunks(bookId, viewingChapterId);
-
-  // Publish chat context
-  useEffect(() => {
-    setPageContext({ page: 'reader', bookId, bookTitle: book?.title });
-  }, [bookId, book?.title, setPageContext]);
-
-  useEffect(() => {
-    const chapter = chapters?.find((c) => c.id === viewingChapterId);
-    setPageContext({
-      chapterId: viewingChapterId ?? undefined,
-      chapterTitle: chapter?.title,
-      chapterNumber: chapter?.order,
-    });
-  }, [viewingChapterId, chapters, setPageContext]);
 
   if (bookLoading || chaptersLoading) return <LoadingSpinner />;
   if (bookError) return <ErrorMessage message={bookError.message} />;

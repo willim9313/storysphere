@@ -19,8 +19,6 @@ import {
   Filter,
   Search,
 } from 'lucide-react';
-import { useChatContext } from '@/contexts/ChatContext';
-import { useBook } from '@/hooks/useBook';
 import { useTimeline } from '@/hooks/useTimeline';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { computeTimeline } from '@/api/timeline';
@@ -136,9 +134,6 @@ export default function TimelinePage() {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { setPageContext } = useChatContext();
-  const { data: book } = useBook(bookId);
-
   const [order, setOrder] = useState<TimelineOrder>('narrative');
   const [layout, setLayout] = useState<LayoutDirection>('horizontal');
   const [computeTaskId, setComputeTaskId] = useState<string | null>(null);
@@ -166,22 +161,6 @@ export default function TimelinePage() {
     computeTaskId !== null &&
     computeTask?.status !== 'done' &&
     computeTask?.status !== 'error';
-
-  // Chat context
-  useEffect(() => {
-    setPageContext({ page: 'timeline', bookId, bookTitle: book?.title });
-  }, [bookId, book?.title, setPageContext]);
-
-  useEffect(() => {
-    if (selectedEventId && data?.events) {
-      const event = data.events.find((e) => e.id === selectedEventId);
-      if (event) {
-        setPageContext({ selectedEntity: { id: event.id, name: event.title, type: 'event' } });
-        return;
-      }
-    }
-    setPageContext({ selectedEntity: undefined });
-  }, [selectedEventId, data?.events, setPageContext]);
 
   const handleCompute = useCallback(async () => {
     if (!bookId || isComputing) return;
