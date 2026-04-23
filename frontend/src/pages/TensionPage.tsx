@@ -17,6 +17,7 @@ import {
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { useTranslation } from 'react-i18next';
 import {
   triggerTensionAnalysis,
   fetchTensionAnalysisTask,
@@ -34,11 +35,11 @@ import type { TensionLine, TensionTheme } from '@/api/types';
 
 // ── Palette ──────────────────────────────────────────────────────
 
-const STATUS_STYLE: Record<string, { border: string; bg: string; label: string }> = {
-  pending:  { border: '#94a3b8', bg: '#f8fafc', label: '待審核' },
-  approved: { border: '#22c55e', bg: '#f0fdf4', label: '已核准' },
-  modified: { border: '#3b82f6', bg: '#eff6ff', label: '已修改' },
-  rejected: { border: '#ef4444', bg: '#fef2f2', label: '已拒絕' },
+const STATUS_COLORS: Record<string, { border: string; bg: string }> = {
+  pending:  { border: '#94a3b8', bg: '#f8fafc' },
+  approved: { border: '#22c55e', bg: '#f0fdf4' },
+  modified: { border: '#3b82f6', bg: '#eff6ff' },
+  rejected: { border: '#ef4444', bg: '#fef2f2' },
 };
 
 function intensityColor(v: number): string {
@@ -141,11 +142,13 @@ function TensionLineCard({
   bookId: string;
   onReviewed: () => void;
 }) {
+  const { t } = useTranslation('analysis');
+  const { t: tc } = useTranslation('common');
   const [expanded, setExpanded] = useState(false);
   const [editing, setEditing] = useState(false);
   const [poleA, setPoleA] = useState(line.canonical_pole_a);
   const [poleB, setPoleB] = useState(line.canonical_pole_b);
-  const style = STATUS_STYLE[line.review_status] ?? STATUS_STYLE.pending;
+  const colors = STATUS_COLORS[line.review_status] ?? STATUS_COLORS.pending;
 
   const reviewMutation = useMutation({
     mutationFn: ({
@@ -168,8 +171,8 @@ function TensionLineCard({
   return (
     <div
       style={{
-        border: `1px solid ${style.border}`,
-        background: style.bg,
+        border: `1px solid ${colors.border}`,
+        background: colors.bg,
         borderRadius: 8,
         marginBottom: 8,
         overflow: 'hidden',
@@ -193,16 +196,15 @@ function TensionLineCard({
         </span>
         <span
           className="text-xs px-1.5 py-0.5 rounded"
-          style={{ background: style.border + '22', color: style.border }}
+          style={{ background: colors.border + '22', color: colors.border }}
         >
-          {style.label}
+          {t(`tension.status.${line.review_status}`)}
         </span>
       </div>
 
       {/* Body */}
       {expanded && (
         <div className="px-3 pb-3 flex flex-col gap-2">
-          {/* Edit poles */}
           {editing ? (
             <div className="flex gap-2 items-center">
               <input
@@ -226,14 +228,14 @@ function TensionLineCard({
                 className="text-xs px-2 py-1 rounded"
                 style={{ background: '#3b82f6', color: 'white' }}
               >
-                {reviewMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : '儲存'}
+                {reviewMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : t('tension.save')}
               </button>
               <button
                 onClick={() => { setEditing(false); setPoleA(line.canonical_pole_a); setPoleB(line.canonical_pole_b); }}
                 className="text-xs px-2 py-1 rounded"
                 style={{ background: 'var(--bg-tertiary)', color: 'var(--fg-secondary)' }}
               >
-                取消
+                {tc('cancel')}
               </button>
             </div>
           ) : (
@@ -244,7 +246,7 @@ function TensionLineCard({
                 className="flex items-center gap-1 text-xs px-2 py-1 rounded"
                 style={{ background: '#dcfce7', color: '#166534' }}
               >
-                <CheckCircle size={12} /> 核准
+                <CheckCircle size={12} /> {t('tension.approve')}
               </button>
               <button
                 onClick={() => setEditing(true)}
@@ -252,7 +254,7 @@ function TensionLineCard({
                 className="flex items-center gap-1 text-xs px-2 py-1 rounded"
                 style={{ background: '#dbeafe', color: '#1e40af' }}
               >
-                <Edit3 size={12} /> 修改標籤
+                <Edit3 size={12} /> {t('tension.modifyLabel')}
               </button>
               <button
                 onClick={handleReject}
@@ -260,10 +262,10 @@ function TensionLineCard({
                 className="flex items-center gap-1 text-xs px-2 py-1 rounded"
                 style={{ background: '#fee2e2', color: '#991b1b' }}
               >
-                <XCircle size={12} /> 拒絕
+                <XCircle size={12} /> {t('tension.reject')}
               </button>
               {reviewMutation.isError && (
-                <span className="text-xs" style={{ color: '#ef4444' }}>操作失敗</span>
+                <span className="text-xs" style={{ color: '#ef4444' }}>{t('tension.operationFailed')}</span>
               )}
             </div>
           )}
@@ -275,23 +277,6 @@ function TensionLineCard({
 
 // ── TensionTheme panel ───────────────────────────────────────────
 
-const FRYE_NAMES: Record<string, string> = {
-  romance: '浪漫傳奇',
-  comedy: '喜劇',
-  tragedy: '悲劇',
-  irony_satire: '諷刺／反諷',
-};
-
-const BOOKER_NAMES: Record<string, string> = {
-  overcoming_the_monster: '征服怪物',
-  rags_to_riches: '從貧到富',
-  the_quest: '追尋',
-  voyage_and_return: '旅程與歸返',
-  comedy: '喜劇',
-  tragedy: '悲劇',
-  rebirth: '重生',
-};
-
 function TensionThemePanel({
   theme,
   bookId,
@@ -301,9 +286,11 @@ function TensionThemePanel({
   bookId: string;
   onReviewed: () => void;
 }) {
+  const { t } = useTranslation('analysis');
+  const { t: tc } = useTranslation('common');
   const [editing, setEditing] = useState(false);
   const [proposition, setProposition] = useState(theme.proposition);
-  const style = STATUS_STYLE[theme.review_status] ?? STATUS_STYLE.pending;
+  const colors = STATUS_COLORS[theme.review_status] ?? STATUS_COLORS.pending;
 
   const reviewMutation = useMutation({
     mutationFn: ({
@@ -319,8 +306,8 @@ function TensionThemePanel({
   return (
     <div
       style={{
-        border: `1.5px solid ${style.border}`,
-        background: style.bg,
+        border: `1.5px solid ${colors.border}`,
+        background: colors.bg,
         borderRadius: 10,
         padding: '16px 20px',
       }}
@@ -328,13 +315,13 @@ function TensionThemePanel({
       <div className="flex items-center gap-2 mb-3">
         <Sparkles size={16} style={{ color: '#f59e0b' }} />
         <span className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
-          全書張力主題命題
+          {t('tension.themeTitle')}
         </span>
         <span
           className="text-xs px-1.5 py-0.5 rounded ml-auto"
-          style={{ background: style.border + '22', color: style.border }}
+          style={{ background: colors.border + '22', color: colors.border }}
         >
-          {style.label}
+          {t(`tension.status.${theme.review_status}`)}
         </span>
       </div>
 
@@ -349,7 +336,7 @@ function TensionThemePanel({
         />
       ) : (
         <p className="text-sm mb-3" style={{ color: 'var(--fg-primary)', lineHeight: 1.7 }}>
-          {theme.proposition || <span style={{ color: 'var(--fg-muted)' }}>（尚無命題）</span>}
+          {theme.proposition || <span style={{ color: 'var(--fg-muted)' }}>{t('tension.noProposition')}</span>}
         </p>
       )}
 
@@ -362,7 +349,7 @@ function TensionThemePanel({
               className="text-xs font-medium px-2 py-0.5 rounded"
               style={{ background: '#fef9c3', color: '#713f12' }}
             >
-              {FRYE_NAMES[theme.frye_mythos] ?? theme.frye_mythos}
+              {t(`tension.frye.${theme.frye_mythos}`, { defaultValue: theme.frye_mythos })}
             </span>
           </div>
         )}
@@ -373,7 +360,7 @@ function TensionThemePanel({
               className="text-xs font-medium px-2 py-0.5 rounded"
               style={{ background: '#ede9fe', color: '#4c1d95' }}
             >
-              {BOOKER_NAMES[theme.booker_plot] ?? theme.booker_plot}
+              {t(`tension.booker.${theme.booker_plot}`, { defaultValue: theme.booker_plot })}
             </span>
           </div>
         )}
@@ -389,14 +376,14 @@ function TensionThemePanel({
               className="flex items-center gap-1 text-xs px-2 py-1 rounded"
               style={{ background: '#3b82f6', color: 'white' }}
             >
-              {reviewMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : '儲存修改'}
+              {reviewMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : t('tension.saveModify')}
             </button>
             <button
               onClick={() => { setEditing(false); setProposition(theme.proposition); }}
               className="text-xs px-2 py-1 rounded"
               style={{ background: 'var(--bg-tertiary)', color: 'var(--fg-secondary)' }}
             >
-              取消
+              {tc('cancel')}
             </button>
           </>
         ) : (
@@ -407,7 +394,7 @@ function TensionThemePanel({
               className="flex items-center gap-1 text-xs px-2 py-1 rounded"
               style={{ background: '#dcfce7', color: '#166534' }}
             >
-              <CheckCircle size={12} /> 核准
+              <CheckCircle size={12} /> {t('tension.approve')}
             </button>
             <button
               onClick={() => setEditing(true)}
@@ -415,7 +402,7 @@ function TensionThemePanel({
               className="flex items-center gap-1 text-xs px-2 py-1 rounded"
               style={{ background: '#dbeafe', color: '#1e40af' }}
             >
-              <Edit3 size={12} /> 修改命題
+              <Edit3 size={12} /> {t('tension.modifyProposition')}
             </button>
             <button
               onClick={() => reviewMutation.mutate({ status: 'rejected' })}
@@ -423,10 +410,10 @@ function TensionThemePanel({
               className="flex items-center gap-1 text-xs px-2 py-1 rounded"
               style={{ background: '#fee2e2', color: '#991b1b' }}
             >
-              <XCircle size={12} /> 拒絕
+              <XCircle size={12} /> {t('tension.reject')}
             </button>
             {reviewMutation.isError && (
-              <span className="text-xs" style={{ color: '#ef4444' }}>操作失敗</span>
+              <span className="text-xs" style={{ color: '#ef4444' }}>{t('tension.operationFailed')}</span>
             )}
           </>
         )}
@@ -527,6 +514,7 @@ export default function TensionPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
+  const { t } = useTranslation('analysis');
 
   useEffect(() => {
     if (book) setPageContext({ page: 'analysis', bookId: bookId!, bookTitle: book.title });
@@ -560,23 +548,23 @@ export default function TensionPage() {
   const analyzeOp = useTensionTask(
     fetchTensionAnalysisTask,
     (task) => setAnalyzeResult(task.result as Record<string, number>),
-    '分析失敗',
+    t('tension.errors.analysisFailed'),
   );
-  const groupOp = useTensionTask(fetchGroupTensionLinesTask, () => refetchLines(), '分組失敗');
-  const synthesizeOp = useTensionTask(fetchSynthesizeThemeTask, () => refetchTheme(), '合成失敗');
+  const groupOp = useTensionTask(fetchGroupTensionLinesTask, () => refetchLines(), t('tension.errors.groupFailed'));
+  const synthesizeOp = useTensionTask(fetchSynthesizeThemeTask, () => refetchTheme(), t('tension.errors.synthFailed'));
 
   // Handlers
   const handleAnalyze = useCallback(() =>
-    analyzeOp.trigger(() => triggerTensionAnalysis(bookId!), '觸發分析失敗'),
-  [bookId, analyzeOp]);
+    analyzeOp.trigger(() => triggerTensionAnalysis(bookId!), t('tension.errors.triggerAnalysis')),
+  [bookId, analyzeOp, t]);
 
   const handleGroup = useCallback(() =>
-    groupOp.trigger(() => triggerGroupTensionLines(bookId!), '觸發分組失敗'),
-  [bookId, groupOp]);
+    groupOp.trigger(() => triggerGroupTensionLines(bookId!), t('tension.errors.triggerGroup')),
+  [bookId, groupOp, t]);
 
   const handleSynthesize = useCallback(() =>
-    synthesizeOp.trigger(() => triggerSynthesizeTensionTheme(bookId!), '觸發合成失敗'),
-  [bookId, synthesizeOp]);
+    synthesizeOp.trigger(() => triggerSynthesizeTensionTheme(bookId!), t('tension.errors.triggerSynth')),
+  [bookId, synthesizeOp, t]);
 
   const onLineReviewed = () => {
     queryClient.invalidateQueries({ queryKey: ['books', bookId, 'tension', 'lines'] });
@@ -603,7 +591,7 @@ export default function TensionPage() {
         <div className="flex items-center gap-2 mb-6">
           <Zap size={20} style={{ color: 'var(--accent)' }} />
           <h1 className="text-base font-semibold" style={{ color: 'var(--fg-primary)' }}>
-            張力分析
+            {t('tension.title')}
           </h1>
           {book && (
             <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>— {book.title}</span>
@@ -614,13 +602,13 @@ export default function TensionPage() {
         <div className="flex flex-col gap-2 mb-6">
           <StepButton
             icon={<Zap size={18} />}
-            label="Step 1：批次 TEU 組裝"
+            label={t('tension.step1.label')}
             desc={
               analyzeResult
-                ? `完成：${analyzeResult.assembled ?? 0} / ${analyzeResult.candidates ?? 0} 個場景已組裝`
+                ? t('tension.step1.done', { assembled: analyzeResult.assembled ?? 0, candidates: analyzeResult.candidates ?? 0 })
                 : analyzeOp.task?.stage
-                  ? `進行中：${analyzeOp.task.stage}（${analyzeOp.task.progress ?? 0}%）`
-                  : '掃描全書具張力訊號的場景並組裝 TEU'
+                  ? t('tension.step1.running', { stage: analyzeOp.task.stage, progress: analyzeOp.task.progress ?? 0 })
+                  : t('tension.step1.desc')
             }
             onClick={handleAnalyze}
             loading={analyzeOp.running}
@@ -634,13 +622,13 @@ export default function TensionPage() {
 
           <StepButton
             icon={<GitBranch size={18} />}
-            label="Step 2：TensionLine 自動分組"
+            label={t('tension.step2.label')}
             desc={
               groupOp.task?.stage && groupOp.running
-                ? `進行中：${groupOp.task.stage}`
+                ? t('tension.step2.running', { stage: groupOp.task.stage })
                 : hasLines
-                  ? `完成：${lines.length} 條 TensionLine`
-                  : 'LLM 將 TEU 歸納為跨場景張力模式'
+                  ? t('tension.step2.done', { count: lines.length })
+                  : t('tension.step2.desc')
             }
             onClick={handleGroup}
             loading={groupOp.running}
@@ -654,13 +642,13 @@ export default function TensionPage() {
 
           <StepButton
             icon={<Sparkles size={18} />}
-            label="Step 3：TensionTheme 合成"
+            label={t('tension.step3.label')}
             desc={
               synthesizeOp.task?.stage && synthesizeOp.running
-                ? `進行中：${synthesizeOp.task.stage}`
+                ? t('tension.step3.running', { stage: synthesizeOp.task.stage })
                 : hasTheme
-                  ? '完成：全書主題命題已產生'
-                  : '根據已審核的 TensionLine，LLM 合成全書主題命題'
+                  ? t('tension.step3.done')
+                  : t('tension.step3.desc')
             }
             onClick={handleSynthesize}
             loading={synthesizeOp.running}
@@ -687,10 +675,10 @@ export default function TensionPage() {
               <div className="flex items-center gap-2 mb-3">
                 <GitBranch size={14} style={{ color: 'var(--accent)' }} />
                 <span className="text-xs font-medium" style={{ color: 'var(--fg-secondary)' }}>
-                  TensionLine 軌跡圖
+                  {t('tension.trajectoryTitle')}
                 </span>
                 <span className="text-xs ml-auto" style={{ color: 'var(--fg-muted)' }}>
-                  強度：低 → 高（橙色）
+                  {t('tension.intensityHint')}
                 </span>
               </div>
               <TensionTrajectoryChart lines={lines} maxChapter={maxChapter} />
@@ -700,14 +688,14 @@ export default function TensionPage() {
             <div>
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-medium" style={{ color: 'var(--fg-secondary)' }}>
-                  TensionLine 審核（{lines.length} 條）
+                  {t('tension.reviewTitle', { count: lines.length })}
                 </span>
                 <button
                   onClick={() => refetchLines()}
                   className="ml-auto flex items-center gap-1 text-xs"
                   style={{ color: 'var(--fg-muted)' }}
                 >
-                  <RefreshCw size={12} /> 刷新
+                  <RefreshCw size={12} /> {t('tension.refresh')}
                 </button>
               </div>
               {lines.map((line) => (
@@ -726,8 +714,8 @@ export default function TensionPage() {
             style={{ color: 'var(--fg-muted)' }}
           >
             <Zap size={36} style={{ marginBottom: 12, opacity: 0.3 }} />
-            <p className="text-sm">尚無張力分析資料</p>
-            <p className="text-xs mt-1">請先執行 Step 1 和 Step 2</p>
+            <p className="text-sm">{t('tension.empty')}</p>
+            <p className="text-xs mt-1">{t('tension.emptyHint')}</p>
           </div>
         )}
 

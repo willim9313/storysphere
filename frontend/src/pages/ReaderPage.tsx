@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useChapters } from '@/hooks/useChapters';
@@ -13,6 +14,7 @@ import { ErrorMessage } from '@/components/ui/ErrorMessage';
 
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
+  const { t } = useTranslation('reader');
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
   const [viewingChapterId, setViewingChapterId] = useState<string | null>(null);
@@ -140,7 +142,7 @@ export default function ReaderPage() {
         ) : (
           <div className="flex items-center justify-center h-full">
             <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>
-              選擇章節以查看內容
+              {t('selectChapter')}
             </p>
           </div>
         )}

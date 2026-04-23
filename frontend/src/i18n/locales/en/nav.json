@@ -1,0 +1,18 @@
+{
+  "library": "Library",
+  "upload": "Upload",
+  "frameworks": "Frameworks",
+  "search": "Search",
+  "tokenUsage": "Token Usage",
+  "settings": "Settings",
+  "tabs": {
+    "read": "Read",
+    "characterAnalysis": "Characters",
+    "eventAnalysis": "Events",
+    "knowledgeGraph": "Knowledge Graph",
+    "timeline": "Timeline",
+    "tensionAnalysis": "Tension",
+    "symbolImagery": "Symbols",
+    "unraveling": "Unraveling"
+  }
+}

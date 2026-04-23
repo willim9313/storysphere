@@ -1,0 +1,18 @@
+{
+  "library": "書庫",
+  "upload": "上傳",
+  "frameworks": "框架索引",
+  "search": "搜尋",
+  "tokenUsage": "Token 用量",
+  "settings": "系統設定",
+  "tabs": {
+    "read": "閱讀",
+    "characterAnalysis": "角色分析",
+    "eventAnalysis": "事件分析",
+    "knowledgeGraph": "知識圖譜",
+    "timeline": "時間軸",
+    "tensionAnalysis": "張力分析",
+    "symbolImagery": "符號意象",
+    "unraveling": "展開卷軸"
+  }
+}

@@ -1,90 +1,88 @@
+import { useTranslation } from 'react-i18next';
 import type { CharacterAnalysisDetail } from '@/api/types';
 import { AnalysisAccordion } from './AnalysisAccordion';
 
-function confidenceLabel(c: number): string {
-  if (c >= 0.8) return '高';
-  if (c >= 0.5) return '中';
-  return '低';
+type TFunc = (key: string, opts?: object) => string;
+
+function confidenceLabel(c: number, t: TFunc): string {
+  if (c >= 0.8) return t('character.confidenceHigh');
+  if (c >= 0.5) return t('character.confidenceMid');
+  return t('character.confidenceLow');
 }
 
-function buildSections(data: CharacterAnalysisDetail) {
+function buildSections(data: CharacterAnalysisDetail, t: TFunc) {
   const sections: { title: string; subtitle?: string; content: string }[] = [];
 
-  // Profile summary
   if (data.profileSummary) {
-    sections.push({ title: '角色簡介', content: data.profileSummary });
+    sections.push({ title: t('character.sections.profile'), content: data.profileSummary });
   }
 
-  // Archetypes
   for (const a of data.archetypes) {
-    const frameworkLabel = a.framework === 'jung' ? 'Jung 12 原型' : 'Schmidt 45 原型';
+    const frameworkLabel = a.framework === 'jung'
+      ? t('character.sections.jungArchetype')
+      : t('character.sections.schmidtArchetype');
     const primary = a.primary;
-    const secondary = a.secondary ? `，次要：**${a.secondary}**` : '';
-    const confidence = `信心度：${confidenceLabel(a.confidence)}（${Math.round(a.confidence * 100)}%）`;
+    const secondary = a.secondary ? `，${t('character.secondaryArchetype')}：**${a.secondary}**` : '';
+    const confidence = `${t('character.confidence')}：${confidenceLabel(a.confidence, t)}（${Math.round(a.confidence * 100)}%）`;
     const evidenceLines = a.evidence.length
-      ? '\n\n**依據：**\n' + a.evidence.map((e) => `- ${e}`).join('\n')
+      ? '\n\n**' + t('character.evidence') + '：**\n' + a.evidence.map((e) => `- ${e}`).join('\n')
       : '';
     sections.push({
       title: frameworkLabel,
       subtitle: primary,
-      content: `**主要原型：${primary}**${secondary}\n\n${confidence}${evidenceLines}`,
+      content: `**${t('character.primaryArchetype')}：${primary}**${secondary}\n\n${confidence}${evidenceLines}`,
     });
   }
 
-  // Traits
   if (data.cep?.traits.length) {
     sections.push({
-      title: '個性特質',
-      content: data.cep.traits.map((t) => `- ${t}`).join('\n'),
+      title: t('character.sections.traits'),
+      content: data.cep.traits.map((tr) => `- ${tr}`).join('\n'),
     });
   }
 
-  // Actions
   if (data.cep?.actions.length) {
     sections.push({
-      title: '主要行動',
+      title: t('character.sections.actions'),
       content: data.cep.actions.map((a) => `- ${a}`).join('\n'),
     });
   }
 
-  // Relations
   if (data.cep?.relations.length) {
     const lines = data.cep.relations.map((r) => {
-      const target = r.target ?? r['targetName'] ?? '—';
+      const target = r.target ?? (r as Record<string, unknown>)['targetName'] as string ?? '—';
       const type = r.type ?? '—';
       const desc = r.description ?? '';
       return `- **${target}**（${type}）${desc ? '：' + desc : ''}`;
     });
-    sections.push({ title: '重要關係', content: lines.join('\n') });
+    sections.push({ title: t('character.sections.relations'), content: lines.join('\n') });
   }
 
-  // Key events
   if (data.cep?.keyEvents.length) {
     const lines = data.cep.keyEvents.map((ev) => {
-      const eventName = (ev['event'] as string) ?? (ev['title'] as string) ?? (ev['name'] as string) ?? '—';
-      const chapter = ev['chapter'] as string | undefined;
-      const significance = (ev['significance'] as string) ?? (ev['description'] as string) ?? '';
-      const chapterTag = chapter && chapter !== '未知' ? `（第 ${chapter} 章）` : '';
+      const rec = ev as Record<string, unknown>;
+      const eventName = (rec['event'] as string) ?? (rec['title'] as string) ?? (rec['name'] as string) ?? '—';
+      const chapter = rec['chapter'] as string | undefined;
+      const significance = (rec['significance'] as string) ?? (rec['description'] as string) ?? '';
+      const chapterTag = chapter && chapter !== '未知' ? `（${t('character.chapter', { range: chapter })}）` : '';
       const sigLine = significance ? '\n  ' + significance : '';
       return `- **${eventName}**${chapterTag}${sigLine}`;
     });
-    sections.push({ title: '關鍵事件', content: lines.join('\n') });
+    sections.push({ title: t('character.sections.keyEvents'), content: lines.join('\n') });
   }
 
-  // Quotes
   if (data.cep?.quotes.length) {
     sections.push({
-      title: '代表引言',
+      title: t('character.sections.quotes'),
       content: data.cep.quotes.map((q) => `> ${q}`).join('\n\n'),
     });
   }
 
-  // Development arc
   if (data.arc.length) {
     const lines = data.arc.map(
-      (seg) => `**第 ${seg.chapterRange} 章 — ${seg.phase}**\n\n${seg.description}`,
+      (seg) => `**${t('character.chapter', { range: seg.chapterRange })} — ${seg.phase}**\n\n${seg.description}`,
     );
-    sections.push({ title: '發展弧線', content: lines.join('\n\n---\n\n') });
+    sections.push({ title: t('character.sections.arc'), content: lines.join('\n\n---\n\n') });
   }
 
   return sections;
@@ -95,5 +93,6 @@ interface Props {
 }
 
 export function CharacterAnalysisDetail({ data }: Props) {
-  return <AnalysisAccordion sections={buildSections(data)} />;
+  const { t } = useTranslation('analysis');
+  return <AnalysisAccordion sections={buildSections(data, t)} />;
 }

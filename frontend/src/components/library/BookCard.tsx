@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Trash2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { Book } from '@/api/types';
 import { StatusBadge } from './StatusBadge';
 import { useDeleteBook } from '@/hooks/useDeleteBook';
@@ -9,6 +10,8 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
   const isProcessing = book.status === 'processing';
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { mutate: deleteBook, isPending: isDeleting } = useDeleteBook();
+  const { t } = useTranslation('library');
+  const { t: tc } = useTranslation('common');
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -54,12 +57,12 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
             <StatusBadge status={book.status} />
           </div>
           <div className="flex gap-3 text-xs" style={{ color: 'var(--fg-muted)' }}>
-            <span>{book.chapterCount} 章</span>
-            {book.entityCount != null && <span>{book.entityCount} 實體</span>}
+            <span>{book.chapterCount} {t('card.chapters')}</span>
+            {book.entityCount != null && <span>{book.entityCount} {t('card.entities')}</span>}
           </div>
           {book.lastOpenedAt && (
             <p className="text-xs mt-1" style={{ color: 'var(--fg-muted)' }}>
-              {new Date(book.lastOpenedAt).toLocaleDateString('zh-TW')}
+              {new Date(book.lastOpenedAt).toLocaleDateString()}
             </p>
           )}
         </div>
@@ -75,21 +78,21 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              確認
+              {tc('confirm')}
             </button>
             <button
               className="text-xs px-2 py-0.5 rounded"
               style={{ border: '1px solid var(--border)', backgroundColor: 'white' }}
               onClick={handleCancelDelete}
             >
-              取消
+              {tc('cancel')}
             </button>
           </div>
         ) : (
           <button
             className="p-1 rounded"
             style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
-            title="刪除書籍"
+            title={t('card.deleteBook')}
             onClick={handleDelete}
           >
             <Trash2 size={13} style={{ color: 'var(--fg-muted)' }} />

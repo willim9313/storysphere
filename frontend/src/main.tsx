@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router-dom';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { queryClient } from '@/api/queryClient';
 import { router } from '@/router';
+import './i18n';
 import './styles/global.css';
 
 createRoot(document.getElementById('root')!).render(

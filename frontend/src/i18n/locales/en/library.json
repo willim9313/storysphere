@@ -1,0 +1,29 @@
+{
+  "recentlyOpened": "Recently Opened",
+  "allBooks": "Library",
+  "uploadNew": "Upload Book",
+  "filters": {
+    "all": "All",
+    "analyzed": "Analyzed",
+    "ready": "Ready",
+    "processing": "Processing"
+  },
+  "empty": {
+    "title": "No books in library",
+    "description": "Upload a novel to start intelligent analysis."
+  },
+  "card": {
+    "chapters": "ch",
+    "entities": "entities",
+    "deleteBook": "Delete Book"
+  },
+  "shortcuts": {
+    "continueReading": "Continue Reading",
+    "knowledgeGraph": "Knowledge Graph",
+    "deepAnalysis": "Deep Analysis",
+    "startReading": "Start Reading",
+    "triggerAnalysis": "Trigger Analysis",
+    "viewProgress": "View Progress",
+    "viewError": "View Error"
+  }
+}

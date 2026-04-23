@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
 import { BookOpen } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function EmptyLibrary() {
+  const { t } = useTranslation('library');
   return (
     <div className="flex flex-col items-center justify-center py-20 text-center h-full">
       <BookOpen size={48} style={{ color: 'var(--fg-muted)' }} />
@@ -9,13 +11,13 @@ export function EmptyLibrary() {
         className="mt-4 text-xl font-semibold"
         style={{ fontFamily: 'var(--font-serif)' }}
       >
-        書庫尚無書籍
+        {t('empty.title')}
       </h2>
       <p className="mt-2 text-sm" style={{ color: 'var(--fg-secondary)' }}>
-        上傳一本小說，開始智能分析之旅。
+        {t('empty.description')}
       </p>
       <Link to="/upload" className="btn btn-primary mt-6">
-        上傳新書
+        {t('uploadNew')}
       </Link>
     </div>
   );

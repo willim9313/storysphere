@@ -1,0 +1,78 @@
+{
+  "title": "系統設定",
+  "kg": {
+    "title": "知識圖譜後端",
+    "currentBackend": "目前後端",
+    "refresh": "重新整理",
+    "connected": "已連線",
+    "disconnected": "未連線",
+    "entities": "實體",
+    "relations": "關係",
+    "events": "事件",
+    "switchBackend": "切換查詢後端",
+    "switchNote": "切換後端不需重啟，但兩個後端的資料彼此獨立，需手動執行遷移。",
+    "loadingStatus": "載入中…",
+    "loadError": "無法取得狀態"
+  },
+  "migration": {
+    "title": "資料遷移",
+    "idempotentNote": "遷移為冪等操作，重複執行不會產生重複資料。",
+    "nxToNeo4j": "NetworkX JSON → Neo4j",
+    "nxToNeo4jSub": "將本機 JSON 匯入 Neo4j（MERGE）",
+    "neo4jToNx": "Neo4j → NetworkX JSON",
+    "neo4jToNxSub": "從 Neo4j 匯出至本機 JSON 檔",
+    "running": "遷移中…",
+    "done": "遷移完成：{{entities}} 實體，{{relations}} 關係，{{events}} 事件",
+    "failed": "遷移失敗：{{error}}"
+  },
+  "token": {
+    "title": "Token 用量",
+    "today": "今天",
+    "days7": "7 天",
+    "days30": "30 天",
+    "all": "全部",
+    "totalCalls": "總呼叫次數",
+    "byService": "服務別用量",
+    "byModel": "模型別用量",
+    "dailyTrend": "每日趨勢",
+    "noData": "尚無使用記錄",
+    "colName": "名稱",
+    "colCompletion": "Completion",
+    "colTotal": "合計",
+    "colCalls": "呼叫",
+    "services": {
+      "analysis": "深度分析",
+      "chat": "對話",
+      "summary": "摘要",
+      "extraction": "擷取",
+      "keyword": "關鍵字",
+      "unknown": "其他"
+    }
+  },
+  "symbols": {
+    "searchPlaceholder": "搜尋意象…",
+    "all": "全部",
+    "noData": "尚無意象資料",
+    "noResults": "無符合結果",
+    "chapterDist": "章節分布",
+    "firstSeen": "首見第 {{chapter}} 章",
+    "coOccurrences": "共現意象",
+    "noCoOccurrences": "尚無共現資料",
+    "occurrences": "出現紀錄",
+    "occurrenceCount": "{{count}} 筆",
+    "noOccurrences": "尚無出現紀錄",
+    "frequency": "出現 {{count}} 次",
+    "aliases": "異體：",
+    "selectPrompt": "選擇左側意象以查看詳細資訊",
+    "emptyTitle": "尚無符號意象資料",
+    "emptyHint": "重新上傳書籍後將自動執行意象萃取",
+    "types": {
+      "object": "物件",
+      "nature": "自然",
+      "spatial": "空間",
+      "body": "身體",
+      "color": "色彩",
+      "other": "其他"
+    }
+  }
+}

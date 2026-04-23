@@ -16,9 +16,11 @@
     "cytoscape": "^3.33.1",
     "cytoscape-fcose": "^2.2.0",
     "d3": "^7.9.0",
+    "i18next": "^26.0.7",
     "lucide-react": "^0.577.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "react-i18next": "^17.0.4",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^6.30.3",
     "remark-gfm": "^4.0.1"

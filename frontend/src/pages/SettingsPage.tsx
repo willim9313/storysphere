@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Database, RefreshCw, ArrowRight, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import {
   fetchKgStatus,
   switchKgMode,
@@ -11,8 +12,6 @@ import {
 } from '@/api/kgSettings';
 import type { TaskStatus } from '@/api/types';
 
-// ── KG status hook ──────────────────────────────────────────────────────────
-
 function useKgStatus() {
   return useQuery<KgStatus>({
     queryKey: ['kg-status'],
@@ -20,8 +19,6 @@ function useKgStatus() {
     refetchInterval: 10_000,
   });
 }
-
-// ── Migration task polling hook ─────────────────────────────────────────────
 
 function useMigrationTask(taskId: string | null) {
   return useQuery<TaskStatus>({
@@ -34,8 +31,6 @@ function useMigrationTask(taskId: string | null) {
     },
   });
 }
-
-// ── Stat card ───────────────────────────────────────────────────────────────
 
 function StatCard({ label, value }: { label: string; value: number | string }) {
   return (
@@ -50,8 +45,6 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
     </div>
   );
 }
-
-// ── Backend mode badge ──────────────────────────────────────────────────────
 
 function ModeBadge({ mode }: { mode: string }) {
   const isNeo4j = mode === 'neo4j';
@@ -68,15 +61,8 @@ function ModeBadge({ mode }: { mode: string }) {
   );
 }
 
-// ── Migration progress ──────────────────────────────────────────────────────
-
-function MigrationProgress({
-  taskId,
-  onDone,
-}: {
-  taskId: string;
-  onDone: () => void;
-}) {
+function MigrationProgress({ taskId, onDone }: { taskId: string; onDone: () => void }) {
+  const { t } = useTranslation('settings');
   const { data: task } = useMigrationTask(taskId);
 
   if (!task) return null;
@@ -95,7 +81,11 @@ function MigrationProgress({
       >
         <CheckCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} />
         <div style={{ color: 'var(--fg-secondary)' }}>
-          遷移完成：{r?.entities ?? 0} 實體，{r?.relations ?? 0} 關係，{r?.events ?? 0} 事件
+          {t('migration.done', {
+            entities: r?.entities ?? 0,
+            relations: r?.relations ?? 0,
+            events: r?.events ?? 0,
+          })}
         </div>
       </div>
     );
@@ -108,7 +98,7 @@ function MigrationProgress({
         style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
       >
         <XCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#f87171' }} />
-        <div style={{ color: 'var(--fg-secondary)' }}>遷移失敗：{task.error}</div>
+        <div style={{ color: 'var(--fg-secondary)' }}>{t('migration.failed', { error: task.error })}</div>
       </div>
     );
   }
@@ -120,7 +110,7 @@ function MigrationProgress({
         style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
       >
         <Loader2 size={16} className="animate-spin flex-shrink-0" style={{ color: 'var(--accent)' }} />
-        <span style={{ color: 'var(--fg-muted)' }}>遷移中…</span>
+        <span style={{ color: 'var(--fg-muted)' }}>{t('migration.running')}</span>
       </div>
     );
   }
@@ -128,10 +118,9 @@ function MigrationProgress({
   return null;
 }
 
-// ── Main page ───────────────────────────────────────────────────────────────
-
 export default function SettingsPage() {
   const queryClient = useQueryClient();
+  const { t } = useTranslation('settings');
   const { data: kgStatus, isLoading, error, refetch } = useKgStatus();
   const [migrationTaskId, setMigrationTaskId] = useState<string | null>(null);
   const [switchError, setSwitchError] = useState<string | null>(null);
@@ -159,13 +148,9 @@ export default function SettingsPage() {
 
   return (
     <div className="p-6 overflow-y-auto h-full max-w-2xl">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <h2
-          className="text-lg font-bold"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
-        >
-          系統設定
+        <h2 className="text-lg font-bold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
+          {t('title')}
         </h2>
       </div>
 
@@ -174,34 +159,33 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2 mb-4">
           <Database size={16} style={{ color: 'var(--accent)' }} />
           <h3 className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
-            知識圖譜後端
+            {t('kg.title')}
           </h3>
         </div>
 
         {isLoading ? (
           <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
             <Loader2 size={14} className="animate-spin" />
-            載入中…
+            {t('kg.loadingStatus')}
           </div>
         ) : error ? (
-          <div className="text-sm" style={{ color: '#f87171' }}>無法取得狀態</div>
+          <div className="text-sm" style={{ color: '#f87171' }}>{t('kg.loadError')}</div>
         ) : kgStatus ? (
           <>
-            {/* Current mode + connectivity */}
             <div
               className="rounded-lg p-4 mb-4"
               style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>目前後端</span>
+                  <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>{t('kg.currentBackend')}</span>
                   <ModeBadge mode={currentMode} />
                 </div>
                 <button
                   onClick={() => refetch()}
                   className="rounded p-1 transition-colors"
                   style={{ color: 'var(--fg-muted)' }}
-                  title="重新整理"
+                  title={t('kg.refresh')}
                 >
                   <RefreshCw size={14} />
                 </button>
@@ -212,7 +196,7 @@ export default function SettingsPage() {
                   className="inline-block w-2 h-2 rounded-full"
                   style={{ backgroundColor: kgStatus.graphDbConnected ? '#4ade80' : '#6b7280' }}
                 />
-                Neo4j {kgStatus.graphDbConnected ? '已連線' : '未連線'}
+                Neo4j {kgStatus.graphDbConnected ? t('kg.connected') : t('kg.disconnected')}
                 {kgStatus.persistencePath && (
                   <span className="ml-2 truncate" style={{ maxWidth: 200 }}>
                     · {kgStatus.persistencePath}
@@ -221,17 +205,15 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            {/* Stats */}
             <div className="grid grid-cols-3 gap-3 mb-4">
-              <StatCard label="實體" value={kgStatus.entityCount} />
-              <StatCard label="關係" value={kgStatus.relationCount} />
-              <StatCard label="事件" value={kgStatus.eventCount} />
+              <StatCard label={t('kg.entities')} value={kgStatus.entityCount} />
+              <StatCard label={t('kg.relations')} value={kgStatus.relationCount} />
+              <StatCard label={t('kg.events')} value={kgStatus.eventCount} />
             </div>
 
-            {/* Mode switch */}
             <div className="mb-1">
               <div className="text-xs font-medium mb-2" style={{ color: 'var(--fg-muted)' }}>
-                切換查詢後端
+                {t('kg.switchBackend')}
               </div>
               <div className="flex gap-2">
                 {(['networkx', 'neo4j'] as const).map((m) => (
@@ -258,7 +240,7 @@ export default function SettingsPage() {
                 <p className="text-xs mt-1.5" style={{ color: '#f87171' }}>{switchError}</p>
               )}
               <p className="text-xs mt-2" style={{ color: 'var(--fg-muted)' }}>
-                切換後端不需重啟，但兩個後端的資料彼此獨立，需手動執行遷移。
+                {t('kg.switchNote')}
               </p>
             </div>
           </>
@@ -270,7 +252,7 @@ export default function SettingsPage() {
         <div className="flex items-center gap-2 mb-4">
           <ArrowRight size={16} style={{ color: 'var(--accent)' }} />
           <h3 className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
-            資料遷移
+            {t('migration.title')}
           </h3>
         </div>
 
@@ -279,19 +261,19 @@ export default function SettingsPage() {
           style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
         >
           <div className="text-xs mb-4" style={{ color: 'var(--fg-muted)' }}>
-            遷移為冪等操作，重複執行不會產生重複資料。
+            {t('migration.idempotentNote')}
           </div>
 
           <div className="flex flex-col gap-2">
             <MigrationButton
-              label="NetworkX JSON → Neo4j"
-              sublabel="將本機 JSON 匯入 Neo4j（MERGE）"
+              label={t('migration.nxToNeo4j')}
+              sublabel={t('migration.nxToNeo4jSub')}
               disabled={migrateMutation.isPending || !!migrationTaskId}
               onClick={() => migrateMutation.mutate('nx_to_neo4j')}
             />
             <MigrationButton
-              label="Neo4j → NetworkX JSON"
-              sublabel="從 Neo4j 匯出至本機 JSON 檔"
+              label={t('migration.neo4jToNx')}
+              sublabel={t('migration.neo4jToNxSub')}
               disabled={migrateMutation.isPending || !!migrationTaskId}
               onClick={() => migrateMutation.mutate('neo4j_to_nx')}
             />

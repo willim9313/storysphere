@@ -1,0 +1,17 @@
+{
+  "cancel": "Cancel",
+  "confirm": "Confirm",
+  "loading": "Loading…",
+  "search": "Search…",
+  "retry": "Retry",
+  "create": "Create",
+  "triggerFailed": "Failed to trigger analysis. Please try again later.",
+  "status": {
+    "analyzed": "Analyzed",
+    "notAnalyzed": "Not Analyzed",
+    "processing": "Processing",
+    "ready": "Ready",
+    "completed": "Completed",
+    "error": "Error"
+  }
+}

@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
+import { useTranslation } from 'react-i18next';
 import type { TimelineEvent, NarrativeMode } from '@/api/types';
 
 /* ── Constants ──────────────────────────────────────────────── */
@@ -45,6 +46,7 @@ export function MatrixCanvas({
   onSelectEvent,
   onBrushSelect,
 }: MatrixCanvasProps) {
+  const { t } = useTranslation('analysis');
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -146,7 +148,7 @@ export function MatrixCanvas({
       .attr('text-anchor', 'middle')
       .attr('fill', 'var(--fg-muted)')
       .attr('font-size', 11)
-      .text('敘事順序 (Sjuzhet) →');
+      .text(t('timeline.matrix.xAxisLabel'));
 
     // Y axis (chronological rank 0 → 1)
     const yTicks = [0, 0.2, 0.4, 0.6, 0.8, 1.0];
@@ -154,8 +156,8 @@ export function MatrixCanvas({
       .axisLeft(yScale)
       .tickValues(yTicks)
       .tickFormat((d) => {
-        if (d === 0) return '故事起點';
-        if (d === 1) return '故事終點';
+        if (d === 0) return t('timeline.matrix.storyStart');
+        if (d === 1) return t('timeline.matrix.storyEnd');
         return String(d);
       });
 
@@ -185,7 +187,7 @@ export function MatrixCanvas({
       .attr('text-anchor', 'middle')
       .attr('fill', 'var(--fg-muted)')
       .attr('font-size', 11)
-      .text('↑ 故事時序 (Fabula)');
+      .text(t('timeline.matrix.yAxisLabel'));
 
     /* ── Degraded zone ──────────────────────────────── */
 
@@ -206,7 +208,7 @@ export function MatrixCanvas({
       .attr('fill', 'var(--fg-muted)')
       .attr('font-size', 9)
       .attr('opacity', 0.6)
-      .text('時序未計算');
+      .text(t('timeline.matrix.unranked'));
 
     /* ── 45° Reference line ─────────────────────────── */
 
@@ -258,7 +260,7 @@ export function MatrixCanvas({
         const rankText =
           d.chronologicalRank != null
             ? d.chronologicalRank.toFixed(2)
-            : '未計算';
+            : t('timeline.matrix.tooltipUnranked');
         const participants = d.participants
           .map((p) => p.name)
           .join('、');
@@ -270,8 +272,8 @@ export function MatrixCanvas({
           .html(
             `<strong>${d.title}</strong><br/>` +
               `Ch.${d.chapter} · ${d.narrativeMode}<br/>` +
-              `時序: ${rankText}` +
-              (participants ? `<br/>角色: ${participants}` : ''),
+              `${t('timeline.matrix.tooltipRank')}: ${rankText}` +
+              (participants ? `<br/>${t('timeline.matrix.tooltipParticipants')}: ${participants}` : ''),
           );
       })
       .on('mouseleave', () => {
@@ -371,6 +373,7 @@ export function MatrixCanvas({
     brushedIds,
     onSelectEvent,
     onBrushSelect,
+    t,
   ]);
 
   return (

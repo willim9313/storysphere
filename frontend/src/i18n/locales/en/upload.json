@@ -1,0 +1,23 @@
+{
+  "title": "Upload & Processing",
+  "bookTitle": "Book Title",
+  "author": "Author",
+  "authorPlaceholder": "Leave blank to auto-detect from file metadata",
+  "confirmUpload": "Confirm Upload",
+  "enterBook": "Enter Book",
+  "processingSection": "Processing",
+  "completedSection": "Completed",
+  "dropzone": {
+    "dragText": "Drag PDF here, or click to select file",
+    "supportText": "Supports .pdf format"
+  },
+  "steps": {
+    "pdfParsing": "PDF Parsing",
+    "languageDetect": "Language Detection",
+    "summarization": "Summarization",
+    "featureExtraction": "Feature Extraction",
+    "knowledgeGraph": "Knowledge Graph",
+    "symbolExploration": "Symbol Exploration",
+    "dataStorage": "Data Storage"
+  }
+}

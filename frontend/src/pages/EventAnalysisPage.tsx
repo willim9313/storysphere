@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
@@ -25,6 +26,8 @@ export default function EventAnalysisPage() {
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [triggerError, setTriggerError] = useState<string | null>(null);
+  const { t } = useTranslation('analysis');
+  const { t: tc } = useTranslation('common');
 
   const [confirmBatchEep, setConfirmBatchEep] = useState(false);
   const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
@@ -48,7 +51,7 @@ export default function EventAnalysisPage() {
   const triggerMutation = useMutation({
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id),
     onSuccess: (data) => { setTriggerError(null); setGenerateTaskId(data.taskId); },
-    onError: () => { setGeneratingId(null); setTriggerError('觸發分析失敗，請稍後再試。'); },
+    onError: () => { setGeneratingId(null); setTriggerError(t('triggerFailed')); },
   });
 
   const handleGenerate = (id: string) => {
@@ -71,7 +74,7 @@ export default function EventAnalysisPage() {
   const batchMutation = useMutation({
     mutationFn: () => triggerBatchEventAnalysis(bookId!),
     onSuccess: (data) => { setBatchError(null); setBatchSummary(null); setPrevBatchProgress(0); setBatchTaskId(data.taskId); },
-    onError: () => setBatchError('觸發批次分析失敗，請稍後再試。'),
+    onError: () => setBatchError(t('batchTriggerFailed')),
   });
 
   const { data: batchTask } = useTaskPolling(batchTaskId);
@@ -92,10 +95,10 @@ export default function EventAnalysisPage() {
       setBatchSummary(batchTask.result as BatchEepResult);
       setBatchTaskId(null);
     } else if (batchTask?.status === 'error') {
-      setBatchError(batchTask.error ?? '批次分析發生錯誤');
+      setBatchError(batchTask.error ?? t('batchTriggerFailed'));
       setBatchTaskId(null);
     }
-  }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient]);
+  }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient, t]);
 
   const selectedUnanalyzed = evtData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
@@ -113,7 +116,6 @@ export default function EventAnalysisPage() {
         className="flex-shrink-0 flex flex-col overflow-hidden"
         style={{ width: 260, borderRight: '1px solid var(--border)', backgroundColor: 'var(--bg-secondary)' }}
       >
-        {/* Batch EEP panel */}
         {evtData && (
           <BatchEepPanel
             analyzedCount={evtData.analyzed.length}
@@ -136,7 +138,7 @@ export default function EventAnalysisPage() {
             <Search size={12} style={{ color: 'var(--fg-muted)' }} />
             <input
               type="text"
-              placeholder="搜尋..."
+              placeholder={t('search')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="bg-transparent text-xs flex-1 outline-none"
@@ -150,7 +152,7 @@ export default function EventAnalysisPage() {
           {filteredAnalyzed.length > 0 && (
             <>
               <div className="text-xs px-2 py-1" style={{ color: 'var(--fg-muted)' }}>
-                已分析 ({filteredAnalyzed.length})
+                {t('analyzed')} ({filteredAnalyzed.length})
               </div>
               {filteredAnalyzed.map((item) => (
                 <AnalyzedItem
@@ -165,7 +167,7 @@ export default function EventAnalysisPage() {
           {filteredUnanalyzed.length > 0 && (
             <>
               <div className="text-xs px-2 py-1 mt-2" style={{ color: 'var(--fg-muted)' }}>
-                尚未分析 ({filteredUnanalyzed.length})
+                {t('notAnalyzed')} ({filteredUnanalyzed.length})
               </div>
               {filteredUnanalyzed.map((item) => (
                 <UnanalyzedItem
@@ -199,7 +201,7 @@ export default function EventAnalysisPage() {
                 className="btn btn-secondary text-xs"
                 onClick={() => setConfirmRegenerate(true)}
               >
-                覆蓋重新生成
+                {t('regenerate')}
               </button>
             </div>
             <EventAnalysisDetail data={eventDetail} />
@@ -208,20 +210,20 @@ export default function EventAnalysisPage() {
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <AlertTriangle size={24} style={{ color: 'var(--color-danger, #e53e3e)' }} />
             <p className="text-sm" style={{ color: 'var(--color-danger, #e53e3e)' }}>
-              分析失敗{genTask.error ? `：${genTask.error}` : ''}
+              {t('analysisFailed')}{genTask.error ? `：${genTask.error}` : ''}
             </p>
             <button
               className="btn btn-secondary text-xs"
               onClick={() => { setGenerateTaskId(null); triggerMutation.reset(); setTriggerError(null); }}
             >
-              重試
+              {tc('retry')}
             </button>
           </div>
         ) : generateTaskId && genTask && genTask.status !== 'done' ? (
           <div className="flex flex-col items-center justify-center h-48 gap-2">
             <LoadingSpinner />
             <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>
-              {genTask.stage || '分析中'}{genTask.progress > 0 ? ` (${genTask.progress}%)` : ''}
+              {genTask.stage || t('analyzing')}{genTask.progress > 0 ? ` (${genTask.progress}%)` : ''}
             </p>
           </div>
         ) : selectedUnanalyzed ? (
@@ -229,13 +231,13 @@ export default function EventAnalysisPage() {
             <p className="text-base font-medium" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
               {selectedUnanalyzed.name}
             </p>
-            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>尚未進行深度分析</p>
+            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>{t('noAnalysis')}</p>
             <button
               className="btn btn-primary text-sm px-4 py-1.5"
               onClick={() => handleGenerate(selectedUnanalyzed.id)}
               disabled={triggerMutation.isPending}
             >
-              生成分析
+              {t('generate')}
             </button>
           </div>
         ) : triggerError ? (
@@ -243,19 +245,19 @@ export default function EventAnalysisPage() {
             <AlertTriangle size={24} style={{ color: 'var(--color-danger, #e53e3e)' }} />
             <p className="text-sm" style={{ color: 'var(--color-danger, #e53e3e)' }}>{triggerError}</p>
             <button className="btn btn-secondary text-xs" onClick={() => setTriggerError(null)}>
-              確認
+              {tc('confirm')}
             </button>
           </div>
         ) : (
           <div className="flex items-center justify-center h-48">
-            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>選擇事件以查看或生成分析</p>
+            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>{t('selectEvent')}</p>
           </div>
         )}
 
         <ConfirmDialog
           open={confirmRegenerate}
-          title="覆蓋重新生成"
-          message="此操作將覆蓋現有結果並消耗 token，確認後執行？"
+          title={t('regenerateTitle')}
+          message={t('regenerateMessage')}
           onConfirm={() => {
             setConfirmRegenerate(false);
             if (selectedEntityId && bookId) {
@@ -270,9 +272,9 @@ export default function EventAnalysisPage() {
 
         <ConfirmDialog
           open={confirmBatchEep}
-          title="批次生成事件 EEP"
-          message={`將對 ${evtData?.unanalyzed.length ?? 0} 個尚未分析的事件執行深度分析，已分析的事件會自動跳過。此操作將消耗大量 token。`}
-          confirmLabel="確認執行"
+          title={t('event.batchTitle')}
+          message={t('event.batchMessage', { count: evtData?.unanalyzed.length ?? 0 })}
+          confirmLabel={t('event.batchConfirm')}
           onConfirm={() => {
             setConfirmBatchEep(false);
             batchMutation.mutate();

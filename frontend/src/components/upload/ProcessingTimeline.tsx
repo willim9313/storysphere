@@ -1,14 +1,17 @@
 import { Check, X, Loader } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import type { TaskStatus } from '@/api/types';
 
-const STEPS = [
-  { name: 'PDF 解析',  pct: 5  },
-  { name: '語言偵測',  pct: 10 },
-  { name: '摘要生成',  pct: 20 },
-  { name: '特徵提取',  pct: 40 },
-  { name: '知識圖譜',  pct: 60 },
-  { name: '符號探索',  pct: 80 },
-  { name: '資料儲存',  pct: 90 },
+type StepKey = 'pdfParsing' | 'languageDetect' | 'summarization' | 'featureExtraction' | 'knowledgeGraph' | 'symbolExploration' | 'dataStorage';
+
+const STEPS: { key: StepKey; pct: number }[] = [
+  { key: 'pdfParsing', pct: 5 },
+  { key: 'languageDetect', pct: 10 },
+  { key: 'summarization', pct: 20 },
+  { key: 'featureExtraction', pct: 40 },
+  { key: 'knowledgeGraph', pct: 60 },
+  { key: 'symbolExploration', pct: 80 },
+  { key: 'dataStorage', pct: 90 },
 ];
 
 interface ProcessingTimelineProps {
@@ -40,6 +43,8 @@ function circleBg(state: 'done' | 'running' | 'pending' | 'error'): string {
 }
 
 export function ProcessingTimeline({ task }: Readonly<ProcessingTimelineProps>) {
+  const { t } = useTranslation('upload');
+
   return (
     <div className="flex flex-col gap-0">
       {STEPS.map((step, idx) => {
@@ -48,7 +53,7 @@ export function ProcessingTimeline({ task }: Readonly<ProcessingTimelineProps>) 
         const hasSubProgress = state === 'running' && task.subTotal != null;
 
         return (
-          <div key={step.name} className="flex gap-3">
+          <div key={step.key} className="flex gap-3">
             {/* Vertical line + circle */}
             <div className="flex flex-col items-center">
               <div
@@ -85,7 +90,7 @@ export function ProcessingTimeline({ task }: Readonly<ProcessingTimelineProps>) 
                   color: state === 'pending' ? 'var(--fg-muted)' : 'var(--fg-primary)',
                 }}
               >
-                {step.name}
+                {t(`steps.${step.key}`)}
               </span>
 
               {state === 'running' && (

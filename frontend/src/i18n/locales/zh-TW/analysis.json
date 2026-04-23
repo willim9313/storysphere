@@ -1,0 +1,230 @@
+{
+  "search": "搜尋…",
+  "analyzed": "已分析",
+  "notAnalyzed": "尚未分析",
+  "noAnalysis": "尚未進行深度分析",
+  "generate": "生成分析",
+  "regenerate": "覆蓋重新生成",
+  "analyzing": "分析中",
+  "analysisFailed": "分析失敗",
+  "retry": "重試",
+  "triggerFailed": "觸發分析失敗，請稍後再試。",
+  "batchTriggerFailed": "觸發批次分析失敗，請稍後再試。",
+  "selectCharacter": "選擇角色以查看或生成分析",
+  "selectEvent": "選擇事件以查看或生成分析",
+  "viewInGraph": "在圖譜中查看",
+  "frameworkIndex": "框架索引",
+  "regenerateTitle": "覆蓋重新生成",
+  "regenerateMessage": "此操作將覆蓋現有結果並消耗 token，確認後執行？",
+  "character": {
+    "sections": {
+      "profile": "角色簡介",
+      "jungArchetype": "Jung 12 原型",
+      "schmidtArchetype": "Schmidt 45 原型",
+      "traits": "個性特質",
+      "actions": "主要行動",
+      "relations": "重要關係",
+      "keyEvents": "關鍵事件",
+      "quotes": "代表引言",
+      "arc": "發展弧線"
+    },
+    "confidence": "信心度",
+    "confidenceHigh": "高",
+    "confidenceMid": "中",
+    "confidenceLow": "低",
+    "primaryArchetype": "主要原型",
+    "secondaryArchetype": "次要",
+    "evidence": "依據",
+    "chapter": "第 {{range}} 章"
+  },
+  "event": {
+    "batchTitle": "批次生成事件 EEP",
+    "batchMessage": "將對 {{count}} 個尚未分析的事件執行深度分析，已分析的事件會自動跳過。此操作將消耗大量 token。",
+    "batchConfirm": "確認執行",
+    "sections": {
+      "summary": "事件摘要",
+      "stateChange": "事件前後狀態",
+      "stateBefore": "事件前",
+      "stateAfter": "事件後",
+      "structuralRole": "結構角色",
+      "importance": "重要性",
+      "thematicSignificance": "主題意義",
+      "participantRoles": "參與者角色",
+      "causality": "因果分析",
+      "rootCause": "根本原因",
+      "causalChain": "因果鏈",
+      "chainSummary": "因果摘要",
+      "impact": "影響分析",
+      "participantImpacts": "角色影響",
+      "relationChanges": "關係變化",
+      "causalFactors": "促成因素",
+      "consequences": "後續影響",
+      "keyQuotes": "關鍵引言"
+    },
+    "roles": {
+      "initiator": "發起者",
+      "actor": "行動者",
+      "reactor": "反應者",
+      "victim": "受害者",
+      "beneficiary": "受益者"
+    },
+    "importance": {
+      "kernel": "核心事件",
+      "satellite": "衛星事件"
+    }
+  },
+  "batch": {
+    "header": "事件分析",
+    "completed": "已完成",
+    "running": "分析中",
+    "doneMessage": "完成！已分析 {{analyzed}} 個事件",
+    "skipped": "跳過 {{count}} 個",
+    "failed": "失敗 {{count}} 個",
+    "allDone": "全部事件已分析 ✓",
+    "triggerAll": "一鍵生成全部 EEP",
+    "autoSkip": "已分析的事件會自動跳過"
+  },
+  "tension": {
+    "title": "張力分析",
+    "status": {
+      "pending": "待審核",
+      "approved": "已核准",
+      "modified": "已修改",
+      "rejected": "已拒絕"
+    },
+    "approve": "核准",
+    "modifyLabel": "修改標籤",
+    "modifyProposition": "修改命題",
+    "reject": "拒絕",
+    "save": "儲存",
+    "saveModify": "儲存修改",
+    "operationFailed": "操作失敗",
+    "themeTitle": "全書張力主題命題",
+    "noProposition": "（尚無命題）",
+    "step1": {
+      "label": "Step 1：批次 TEU 組裝",
+      "desc": "掃描全書具張力訊號的場景並組裝 TEU",
+      "done": "完成：{{assembled}} / {{candidates}} 個場景已組裝",
+      "running": "進行中：{{stage}}（{{progress}}%）"
+    },
+    "step2": {
+      "label": "Step 2：TensionLine 自動分組",
+      "desc": "LLM 將 TEU 歸納為跨場景張力模式",
+      "done": "完成：{{count}} 條 TensionLine",
+      "running": "進行中：{{stage}}"
+    },
+    "step3": {
+      "label": "Step 3：TensionTheme 合成",
+      "desc": "根據已審核的 TensionLine，LLM 合成全書主題命題",
+      "done": "完成：全書主題命題已產生",
+      "running": "進行中：{{stage}}"
+    },
+    "errors": {
+      "analysisFailed": "分析失敗",
+      "groupFailed": "分組失敗",
+      "synthFailed": "合成失敗",
+      "triggerAnalysis": "觸發分析失敗",
+      "triggerGroup": "觸發分組失敗",
+      "triggerSynth": "觸發合成失敗"
+    },
+    "trajectoryTitle": "TensionLine 軌跡圖",
+    "intensityHint": "強度：低 → 高（橙色）",
+    "reviewTitle": "TensionLine 審核（{{count}} 條）",
+    "refresh": "刷新",
+    "empty": "尚無張力分析資料",
+    "emptyHint": "請先執行 Step 1 和 Step 2",
+    "frye": {
+      "romance": "浪漫傳奇",
+      "comedy": "喜劇",
+      "tragedy": "悲劇",
+      "irony_satire": "諷刺／反諷"
+    },
+    "booker": {
+      "overcoming_the_monster": "征服怪物",
+      "rags_to_riches": "從貧到富",
+      "the_quest": "追尋",
+      "voyage_and_return": "旅程與歸返",
+      "comedy": "喜劇",
+      "tragedy": "悲劇",
+      "rebirth": "重生"
+    }
+  },
+  "timeline": {
+    "tabs": {
+      "narrative": "章節順序",
+      "chronological": "故事時序",
+      "matrix": "矩陣視圖"
+    },
+    "noRanksTooltip": "尚未計算時序，請先觸發時序計算",
+    "switchToVertical": "切換為垂直佈局",
+    "switchToHorizontal": "切換為水平佈局",
+    "qualityText": "{{analyzed}}/{{total}} 事件已分析 ({{pct}}%)",
+    "ranked": "時序已計算",
+    "notRanked": "時序未計算",
+    "qualityTooltip": "分析更多事件可提升時序計算品質。前往深度分析頁 → 事件分析一鍵生成全部 EEP。",
+    "computing": "計算中…",
+    "recompute": "重新計算時序",
+    "filter": "Filter",
+    "filterSections": {
+      "eventTypes": "事件類型",
+      "narrativeModes": "敘事模式",
+      "characters": "角色",
+      "locations": "地點",
+      "importance": "重要性"
+    },
+    "charSearch": "搜尋角色...",
+    "reset": "重置",
+    "apply": "套用",
+    "noEvents": "尚無事件資料。",
+    "panel": {
+      "summary": "事件概要",
+      "temporal": "時序關係",
+      "eep": "證據剖析 — EEP",
+      "causality": "因果分析",
+      "impact": "影響分析"
+    },
+    "storyTime": "故事時間：",
+    "priorEvents": "前驅事件",
+    "subsequentEvents": "後續事件",
+    "chronologicalPosition": "時序位置",
+    "noAnalysisData": "尚未分析，無前驅/後續資料。",
+    "eep": {
+      "stateBefore": "狀態前",
+      "stateAfter": "狀態後",
+      "causalFactors": "因果因素：",
+      "participantRoles": "角色參與：",
+      "consequences": "後果：",
+      "structuralRole": "結構角色",
+      "importance": "重要性",
+      "thematicSignificance": "主題意義",
+      "keyQuotes": "關鍵引文：",
+      "topTerms": "關鍵詞：",
+      "noEep": "尚未進行 EEP 分析。"
+    },
+    "causality": {
+      "rootCause": "根本原因",
+      "causalChain": "因果鏈：",
+      "chainSummary": "因果摘要",
+      "noCausality": "尚無因果分析。"
+    },
+    "impact": {
+      "affectedParticipants": "受影響角色：",
+      "participantImpacts": "角色影響：",
+      "relationChanges": "關係變化：",
+      "impactSummary": "影響摘要",
+      "noImpact": "尚無影響分析。"
+    },
+    "loading": "載入中...",
+    "matrix": {
+      "xAxisLabel": "敘事順序 (Sjuzhet) →",
+      "yAxisLabel": "↑ 故事時序 (Fabula)",
+      "storyStart": "故事起點",
+      "storyEnd": "故事終點",
+      "unranked": "時序未計算",
+      "tooltipRank": "時序",
+      "tooltipParticipants": "角色",
+      "tooltipUnranked": "未計算"
+    }
+  },
+  "unravelingLoadError": "無法載入展開卷軸資料"
+}

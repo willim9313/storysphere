@@ -1,0 +1,230 @@
+{
+  "search": "Search…",
+  "analyzed": "Analyzed",
+  "notAnalyzed": "Not Analyzed",
+  "noAnalysis": "No analysis yet",
+  "generate": "Generate Analysis",
+  "regenerate": "Regenerate",
+  "analyzing": "Analyzing",
+  "analysisFailed": "Analysis Failed",
+  "retry": "Retry",
+  "triggerFailed": "Failed to trigger analysis. Please try again later.",
+  "batchTriggerFailed": "Failed to trigger batch analysis. Please try again later.",
+  "selectCharacter": "Select a character to view or generate analysis",
+  "selectEvent": "Select an event to view or generate analysis",
+  "viewInGraph": "View in Graph",
+  "frameworkIndex": "Frameworks",
+  "regenerateTitle": "Regenerate Analysis",
+  "regenerateMessage": "This will overwrite the existing result and consume tokens. Proceed?",
+  "character": {
+    "sections": {
+      "profile": "Character Profile",
+      "jungArchetype": "Jung 12 Archetypes",
+      "schmidtArchetype": "Schmidt 45 Types",
+      "traits": "Personality Traits",
+      "actions": "Key Actions",
+      "relations": "Key Relationships",
+      "keyEvents": "Key Events",
+      "quotes": "Representative Quotes",
+      "arc": "Development Arc"
+    },
+    "confidence": "Confidence",
+    "confidenceHigh": "High",
+    "confidenceMid": "Medium",
+    "confidenceLow": "Low",
+    "primaryArchetype": "Primary Archetype",
+    "secondaryArchetype": "Secondary",
+    "evidence": "Evidence",
+    "chapter": "Ch. {{range}}"
+  },
+  "event": {
+    "batchTitle": "Batch Generate Event EEP",
+    "batchMessage": "Will run deep analysis on {{count}} unanalyzed events. Already-analyzed events will be skipped. This will consume significant tokens.",
+    "batchConfirm": "Confirm",
+    "sections": {
+      "summary": "Event Summary",
+      "stateChange": "State Before/After",
+      "stateBefore": "Before",
+      "stateAfter": "After",
+      "structuralRole": "Structural Role",
+      "importance": "Importance",
+      "thematicSignificance": "Thematic Significance",
+      "participantRoles": "Participant Roles",
+      "causality": "Causal Analysis",
+      "rootCause": "Root Cause",
+      "causalChain": "Causal Chain",
+      "chainSummary": "Causal Summary",
+      "impact": "Impact Analysis",
+      "participantImpacts": "Character Impacts",
+      "relationChanges": "Relationship Changes",
+      "causalFactors": "Contributing Factors",
+      "consequences": "Consequences",
+      "keyQuotes": "Key Quotes"
+    },
+    "roles": {
+      "initiator": "Initiator",
+      "actor": "Actor",
+      "reactor": "Reactor",
+      "victim": "Victim",
+      "beneficiary": "Beneficiary"
+    },
+    "importance": {
+      "kernel": "Kernel Event",
+      "satellite": "Satellite Event"
+    }
+  },
+  "batch": {
+    "header": "Event Analysis",
+    "completed": "Completed",
+    "running": "Analyzing",
+    "doneMessage": "Done! Analyzed {{analyzed}} events",
+    "skipped": "skipped {{count}}",
+    "failed": "failed {{count}}",
+    "allDone": "All events analyzed ✓",
+    "triggerAll": "Generate All EEP",
+    "autoSkip": "Already-analyzed events will be skipped"
+  },
+  "tension": {
+    "title": "Tension Analysis",
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "modified": "Modified",
+      "rejected": "Rejected"
+    },
+    "approve": "Approve",
+    "modifyLabel": "Edit Label",
+    "modifyProposition": "Edit Proposition",
+    "reject": "Reject",
+    "save": "Save",
+    "saveModify": "Save Changes",
+    "operationFailed": "Operation failed",
+    "themeTitle": "Book-wide Tension Theme",
+    "noProposition": "(No proposition yet)",
+    "step1": {
+      "label": "Step 1: Batch TEU Assembly",
+      "desc": "Scan the book for tension-signal scenes and assemble TEUs",
+      "done": "Done: {{assembled}} / {{candidates}} scenes assembled",
+      "running": "Running: {{stage}} ({{progress}}%)"
+    },
+    "step2": {
+      "label": "Step 2: TensionLine Auto-grouping",
+      "desc": "LLM groups TEUs into cross-scene tension patterns",
+      "done": "Done: {{count}} TensionLines",
+      "running": "Running: {{stage}}"
+    },
+    "step3": {
+      "label": "Step 3: TensionTheme Synthesis",
+      "desc": "LLM synthesizes the book-wide theme proposition from reviewed TensionLines",
+      "done": "Done: Book-wide theme proposition generated",
+      "running": "Running: {{stage}}"
+    },
+    "errors": {
+      "analysisFailed": "Analysis failed",
+      "groupFailed": "Grouping failed",
+      "synthFailed": "Synthesis failed",
+      "triggerAnalysis": "Failed to trigger analysis",
+      "triggerGroup": "Failed to trigger grouping",
+      "triggerSynth": "Failed to trigger synthesis"
+    },
+    "trajectoryTitle": "TensionLine Trajectory",
+    "intensityHint": "Intensity: Low → High (orange)",
+    "reviewTitle": "TensionLine Review ({{count}})",
+    "refresh": "Refresh",
+    "empty": "No tension analysis data yet",
+    "emptyHint": "Run Step 1 and Step 2 first",
+    "frye": {
+      "romance": "Romance",
+      "comedy": "Comedy",
+      "tragedy": "Tragedy",
+      "irony_satire": "Irony / Satire"
+    },
+    "booker": {
+      "overcoming_the_monster": "Overcoming the Monster",
+      "rags_to_riches": "Rags to Riches",
+      "the_quest": "The Quest",
+      "voyage_and_return": "Voyage and Return",
+      "comedy": "Comedy",
+      "tragedy": "Tragedy",
+      "rebirth": "Rebirth"
+    }
+  },
+  "timeline": {
+    "tabs": {
+      "narrative": "Narrative Order",
+      "chronological": "Chronological",
+      "matrix": "Matrix View"
+    },
+    "noRanksTooltip": "Chronological order not yet computed. Run timeline computation first.",
+    "switchToVertical": "Switch to Vertical Layout",
+    "switchToHorizontal": "Switch to Horizontal Layout",
+    "qualityText": "{{analyzed}}/{{total}} events analyzed ({{pct}}%)",
+    "ranked": "Timeline computed",
+    "notRanked": "Timeline not computed",
+    "qualityTooltip": "Analyze more events to improve timeline quality. Go to Deep Analysis → Events to generate all EEPs at once.",
+    "computing": "Computing…",
+    "recompute": "Recompute Timeline",
+    "filter": "Filter",
+    "filterSections": {
+      "eventTypes": "Event Types",
+      "narrativeModes": "Narrative Modes",
+      "characters": "Characters",
+      "locations": "Locations",
+      "importance": "Importance"
+    },
+    "charSearch": "Search characters...",
+    "reset": "Reset",
+    "apply": "Apply",
+    "noEvents": "No events yet.",
+    "panel": {
+      "summary": "Event Summary",
+      "temporal": "Temporal Relations",
+      "eep": "Evidence Profile — EEP",
+      "causality": "Causal Analysis",
+      "impact": "Impact Analysis"
+    },
+    "storyTime": "Story time: ",
+    "priorEvents": "Prior Events",
+    "subsequentEvents": "Subsequent Events",
+    "chronologicalPosition": "Chronological position",
+    "noAnalysisData": "Not yet analyzed. No prior/subsequent data available.",
+    "eep": {
+      "stateBefore": "State Before",
+      "stateAfter": "State After",
+      "causalFactors": "Causal Factors:",
+      "participantRoles": "Participant Roles:",
+      "consequences": "Consequences:",
+      "structuralRole": "Structural Role",
+      "importance": "Importance",
+      "thematicSignificance": "Thematic Significance",
+      "keyQuotes": "Key Quotes:",
+      "topTerms": "Keywords:",
+      "noEep": "EEP analysis not yet performed."
+    },
+    "causality": {
+      "rootCause": "Root Cause",
+      "causalChain": "Causal Chain:",
+      "chainSummary": "Causal Summary",
+      "noCausality": "No causal analysis yet."
+    },
+    "impact": {
+      "affectedParticipants": "Affected Participants:",
+      "participantImpacts": "Character Impacts:",
+      "relationChanges": "Relationship Changes:",
+      "impactSummary": "Impact Summary",
+      "noImpact": "No impact analysis yet."
+    },
+    "loading": "Loading...",
+    "matrix": {
+      "xAxisLabel": "Narrative Order (Sjuzhet) →",
+      "yAxisLabel": "↑ Story Chronology (Fabula)",
+      "storyStart": "Story Start",
+      "storyEnd": "Story End",
+      "unranked": "Unranked",
+      "tooltipRank": "Rank",
+      "tooltipParticipants": "Participants",
+      "tooltipUnranked": "Unranked"
+    }
+  },
+  "unravelingLoadError": "Failed to load unraveling data"
+}

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import cytoscape from 'cytoscape';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
@@ -493,6 +494,7 @@ function Legend() {
 
 export default function UnravelingPage() {
   const { bookId } = useParams<{ bookId: string }>();
+  const { t } = useTranslation('analysis');
   const [selectedNode, setSelectedNode] = useState<UnravelingNode | null>(null);
 
   const { data, isLoading, error } = useQuery({
@@ -503,7 +505,7 @@ export default function UnravelingPage() {
   });
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message="無法載入展開卷軸資料" />;
+  if (error) return <ErrorMessage message={t('unravelingLoadError')} />;
   if (!data) return null;
 
   const elements = buildElements(data);

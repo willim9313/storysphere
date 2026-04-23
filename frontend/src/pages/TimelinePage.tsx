@@ -8,6 +8,7 @@ import {
 } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import {
   ArrowLeftRight,
   ArrowUpDown,
@@ -388,6 +389,13 @@ function Toolbar({
   filterCount,
   onToggleFilter,
 }: ToolbarProps) {
+  const { t } = useTranslation('analysis');
+  const tabs = [
+    { value: 'narrative' as TimelineOrder, label: t('timeline.tabs.narrative') },
+    { value: 'chronological' as TimelineOrder, label: t('timeline.tabs.chronological'), warn: !hasRanks },
+    { value: 'matrix' as TimelineOrder, label: t('timeline.tabs.matrix'), warn: !hasRanks },
+  ];
+
   return (
     <div
       className="flex items-center justify-between px-4 py-2 flex-shrink-0 gap-4"
@@ -403,20 +411,14 @@ function Toolbar({
           className="flex items-center gap-0.5 p-0.5 rounded-lg"
           style={{ backgroundColor: 'var(--bg-secondary)' }}
         >
-          {(
-            [
-              { value: 'narrative', label: '章節順序' },
-              { value: 'chronological', label: '故事時序', warn: !hasRanks },
-              { value: 'matrix', label: '矩陣視圖', warn: !hasRanks },
-            ] as { value: TimelineOrder; label: string; warn?: boolean }[]
-          ).map((tab) => {
+          {tabs.map((tab) => {
             const isActive = order === tab.value;
             return (
               <button
                 key={tab.value}
                 onClick={() => onOrderChange(tab.value)}
                 className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-md transition-all duration-150"
-                title={tab.warn ? '尚未計算時序，請先觸發時序計算' : undefined}
+                title={tab.warn ? t('timeline.noRanksTooltip') : undefined}
                 style={{
                   backgroundColor: isActive ? 'white' : 'transparent',
                   color: isActive ? 'var(--accent)' : 'var(--fg-muted)',
@@ -457,7 +459,7 @@ function Toolbar({
               backgroundColor: 'var(--bg-primary)',
               color: 'var(--fg-muted)',
             }}
-            title={layout === 'horizontal' ? '切換為垂直佈局' : '切換為水平佈局'}
+            title={layout === 'horizontal' ? t('timeline.switchToVertical') : t('timeline.switchToHorizontal')}
           >
             {layout === 'horizontal' ? (
               <ArrowLeftRight size={13} />
@@ -479,7 +481,7 @@ function Toolbar({
           }}
         >
           <Filter size={12} />
-          Filter{filterCount > 0 ? ` (${filterCount})` : ''}
+          {t('timeline.filter')}{filterCount > 0 ? ` (${filterCount})` : ''}
         </button>
       </div>
 
@@ -504,11 +506,11 @@ function Toolbar({
       >
         {isComputing ? (
           <>
-            <Loader2 size={12} className="animate-spin" /> 計算中…
+            <Loader2 size={12} className="animate-spin" /> {t('timeline.computing')}
           </>
         ) : (
           <>
-            <RefreshCw size={12} /> 重新計算時序
+            <RefreshCw size={12} /> {t('timeline.recompute')}
           </>
         )}
       </button>
@@ -530,6 +532,7 @@ function QualityIndicator({
   };
   onClick: () => void;
 }) {
+  const { t } = useTranslation('analysis');
   const blocks = 5;
   const filled = Math.round(quality.eepCoverage * blocks);
   const pct = Math.round(quality.eepCoverage * 100);
@@ -539,7 +542,7 @@ function QualityIndicator({
       onClick={onClick}
       className="flex items-center gap-2 text-xs px-2 py-1 rounded-md hover:opacity-80 transition-opacity"
       style={{ color: 'var(--fg-secondary)' }}
-      title="分析更多事件可提升時序計算品質。前往深度分析頁 → 事件分析一鍵生成全部 EEP。"
+      title={t('timeline.qualityTooltip')}
     >
       <span
         className="tracking-wider"
@@ -557,7 +560,7 @@ function QualityIndicator({
         ))}
       </span>
       <span>
-        {quality.analyzedCount}/{quality.totalCount} 事件已分析 ({pct}%)
+        {t('timeline.qualityText', { analyzed: quality.analyzedCount, total: quality.totalCount, pct })}
       </span>
       <span style={{ color: 'var(--border)' }}>{'\u00B7'}</span>
       <span
@@ -567,7 +570,7 @@ function QualityIndicator({
             : 'var(--fg-muted)',
         }}
       >
-        {quality.hasChronologicalRanks ? '時序已計算' : '時序未計算'}
+        {quality.hasChronologicalRanks ? t('timeline.ranked') : t('timeline.notRanked')}
       </span>
     </button>
   );
@@ -593,6 +596,7 @@ function FilterDropdown({
   onChange,
   onClose,
 }: FilterDropdownProps) {
+  const { t } = useTranslation('analysis');
   const [charSearch, setCharSearch] = useState('');
 
   const toggleSet = (
@@ -624,19 +628,19 @@ function FilterDropdown({
     >
       <div className="p-3 space-y-3">
         {/* Event types */}
-        <FilterGroup title="事件類型">
-          {options.eventTypes.map((t) => (
+        <FilterGroup title={t('timeline.filterSections.eventTypes')}>
+          {options.eventTypes.map((et) => (
             <FilterCheckbox
-              key={t}
-              label={t}
-              checked={filter.eventTypes.has(t)}
-              onChange={() => toggleSet('eventTypes', t)}
+              key={et}
+              label={et}
+              checked={filter.eventTypes.has(et)}
+              onChange={() => toggleSet('eventTypes', et)}
             />
           ))}
         </FilterGroup>
 
         {/* Narrative modes */}
-        <FilterGroup title="敘事模式">
+        <FilterGroup title={t('timeline.filterSections.narrativeModes')}>
           {options.narrativeModes.map((m) => (
             <FilterCheckbox
               key={m}
@@ -648,7 +652,7 @@ function FilterDropdown({
         </FilterGroup>
 
         {/* Characters (searchable) */}
-        <FilterGroup title="角色">
+        <FilterGroup title={t('timeline.filterSections.characters')}>
           <div className="relative mb-1">
             <Search
               size={12}
@@ -659,7 +663,7 @@ function FilterDropdown({
               type="text"
               value={charSearch}
               onChange={(e) => setCharSearch(e.target.value)}
-              placeholder="搜尋角色..."
+              placeholder={t('timeline.charSearch')}
               className="w-full text-xs pl-6 pr-2 py-1 rounded"
               style={{
                 border: '1px solid var(--border)',
@@ -680,7 +684,7 @@ function FilterDropdown({
 
         {/* Locations */}
         {options.locations.length > 0 && (
-          <FilterGroup title="地點">
+          <FilterGroup title={t('timeline.filterSections.locations')}>
             {options.locations.map((l) => (
               <FilterCheckbox
                 key={l.id}
@@ -693,7 +697,7 @@ function FilterDropdown({
         )}
 
         {/* Importance */}
-        <FilterGroup title="重要性">
+        <FilterGroup title={t('timeline.filterSections.importance')}>
           <FilterCheckbox
             label="KERNEL"
             checked={filter.importance.has('KERNEL')}
@@ -713,7 +717,7 @@ function FilterDropdown({
             className="text-xs px-3 py-1 rounded"
             style={{ color: 'var(--fg-muted)' }}
           >
-            重置
+            {t('timeline.reset')}
           </button>
           <button
             onClick={onClose}
@@ -723,7 +727,7 @@ function FilterDropdown({
               color: 'white',
             }}
           >
-            套用
+            {t('timeline.apply')}
           </button>
         </div>
       </div>
@@ -904,11 +908,13 @@ function TimelineCanvas({
     setLines(computed);
   }, [showRelationLines, temporalRelations, events, layout, isHorizontal, nodeRefs, selectedEventId]);
 
+  const { t } = useTranslation('analysis');
+
   if (events.length === 0) {
     return (
       <div className="flex items-center justify-center h-full">
         <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>
-          尚無事件資料。
+          {t('timeline.noEvents')}
         </p>
       </div>
     );
@@ -1292,6 +1298,7 @@ function EventDetailPanel({
   onClose,
   onJumpToEvent,
 }: EventDetailPanelProps) {
+  const { t } = useTranslation('analysis');
   const [openSections, setOpenSections] = useState<Set<string>>(
     new Set(['summary', 'temporal']),
   );
@@ -1363,7 +1370,7 @@ function EventDetailPanel({
       <div className="p-2 space-y-1">
         {/* 1. Event summary */}
         <PanelAccordion
-          title="事件概要"
+          title={t('timeline.panel.summary')}
           sectionKey="summary"
           isOpen={openSections.has('summary')}
           onToggle={toggleSection}
@@ -1379,7 +1386,7 @@ function EventDetailPanel({
               className="text-xs mt-1"
               style={{ color: 'var(--panel-fg-muted)' }}
             >
-              故事時間：{event.storyTimeHint}
+              {t('timeline.storyTime')}{event.storyTimeHint}
             </p>
           )}
           {/* Participant pills */}
@@ -1403,21 +1410,21 @@ function EventDetailPanel({
 
         {/* 2. Temporal relations */}
         <PanelAccordion
-          title="時序關係"
+          title={t('timeline.panel.temporal')}
           sectionKey="temporal"
           isOpen={openSections.has('temporal')}
           onToggle={toggleSection}
         >
           {/* Prior events */}
           <EventLinkList
-            label="前驅事件"
+            label={t('timeline.priorEvents')}
             eventIds={analysis?.eep.priorEventIds ?? []}
             eventMap={eventMap}
             onJump={onJumpToEvent}
           />
           {/* Subsequent events */}
           <EventLinkList
-            label="後續事件"
+            label={t('timeline.subsequentEvents')}
             eventIds={analysis?.eep.subsequentEventIds ?? []}
             eventMap={eventMap}
             onJump={onJumpToEvent}
@@ -1428,7 +1435,7 @@ function EventDetailPanel({
               className="text-xs mt-2"
               style={{ color: 'var(--panel-fg-muted)' }}
             >
-              時序位置{' '}
+              {t('timeline.chronologicalPosition')}{' '}
               <span style={{ color: 'var(--panel-fg)' }}>
                 {event.chronologicalRank.toFixed(2)}
               </span>{' '}
@@ -1440,14 +1447,14 @@ function EventDetailPanel({
               className="text-xs mt-1"
               style={{ color: 'var(--panel-fg-muted)' }}
             >
-              尚未分析，無前驅/後續資料。
+              {t('timeline.noAnalysisData')}
             </p>
           )}
         </PanelAccordion>
 
         {/* 3. EEP */}
         <PanelAccordion
-          title="證據剖析 — EEP"
+          title={t('timeline.panel.eep')}
           sectionKey="eep"
           isOpen={openSections.has('eep')}
           onToggle={toggleSection}
@@ -1463,17 +1470,17 @@ function EventDetailPanel({
                 className="text-xs"
                 style={{ color: 'var(--panel-fg-muted)' }}
               >
-                載入中...
+                {t('timeline.loading')}
               </span>
             </div>
           ) : analysis ? (
             <div className="space-y-2 text-xs" style={{ color: 'var(--panel-fg)' }}>
-              <LabeledField label="狀態前" value={analysis.eep.stateBefore} />
-              <LabeledField label="狀態後" value={analysis.eep.stateAfter} />
+              <LabeledField label={t('timeline.eep.stateBefore')} value={analysis.eep.stateBefore} />
+              <LabeledField label={t('timeline.eep.stateAfter')} value={analysis.eep.stateAfter} />
               {analysis.eep.causalFactors.length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    因果因素：
+                    {t('timeline.eep.causalFactors')}
                   </span>
                   <ul className="list-disc list-inside mt-0.5">
                     {analysis.eep.causalFactors.map((f, i) => (
@@ -1486,7 +1493,7 @@ function EventDetailPanel({
               {analysis.eep.participantRoles.length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    角色參與：
+                    {t('timeline.eep.participantRoles')}
                   </span>
                   <ul className="mt-0.5 space-y-1">
                     {analysis.eep.participantRoles.map((r, i) => (
@@ -1507,7 +1514,7 @@ function EventDetailPanel({
               {analysis.eep.consequences.length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    後果：
+                    {t('timeline.eep.consequences')}
                   </span>
                   <ul className="list-disc list-inside mt-0.5">
                     {analysis.eep.consequences.map((c, i) => (
@@ -1517,22 +1524,22 @@ function EventDetailPanel({
                 </div>
               )}
               <LabeledField
-                label="結構角色"
+                label={t('timeline.eep.structuralRole')}
                 value={analysis.eep.structuralRole}
               />
               <LabeledField
-                label="重要性"
+                label={t('timeline.eep.importance')}
                 value={analysis.eep.eventImportance}
               />
               <LabeledField
-                label="主題意義"
+                label={t('timeline.eep.thematicSignificance')}
                 value={analysis.eep.thematicSignificance}
               />
-              {/* Key quotes (LLM-extracted short quotes) */}
+              {/* Key quotes */}
               {analysis.eep.keyQuotes?.length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    關鍵引文：
+                    {t('timeline.eep.keyQuotes')}
                   </span>
                   <ul className="mt-0.5 space-y-1">
                     {analysis.eep.keyQuotes.map((q, i) => (
@@ -1553,7 +1560,7 @@ function EventDetailPanel({
               {Object.keys(analysis.eep.topTerms).length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    關鍵詞：
+                    {t('timeline.eep.topTerms')}
                   </span>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {Object.entries(analysis.eep.topTerms)
@@ -1580,14 +1587,14 @@ function EventDetailPanel({
               className="text-xs"
               style={{ color: 'var(--panel-fg-muted)' }}
             >
-              尚未進行 EEP 分析。
+              {t('timeline.eep.noEep')}
             </p>
           )}
         </PanelAccordion>
 
         {/* 4. Causality analysis */}
         <PanelAccordion
-          title="因果分析"
+          title={t('timeline.panel.causality')}
           sectionKey="causality"
           isOpen={openSections.has('causality')}
           onToggle={toggleSection}
@@ -1595,13 +1602,13 @@ function EventDetailPanel({
           {analysis?.causality ? (
             <div className="space-y-2 text-xs" style={{ color: 'var(--panel-fg)' }}>
               <LabeledField
-                label="根本原因"
+                label={t('timeline.causality.rootCause')}
                 value={analysis.causality.rootCause}
               />
               {analysis.causality.causalChain.length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    因果鏈：
+                    {t('timeline.causality.causalChain')}
                   </span>
                   <ol className="list-decimal list-inside mt-0.5">
                     {analysis.causality.causalChain.map((c, i) => (
@@ -1611,7 +1618,7 @@ function EventDetailPanel({
                 </div>
               )}
               <LabeledField
-                label="因果摘要"
+                label={t('timeline.causality.chainSummary')}
                 value={analysis.causality.chainSummary}
               />
             </div>
@@ -1620,14 +1627,14 @@ function EventDetailPanel({
               className="text-xs"
               style={{ color: 'var(--panel-fg-muted)' }}
             >
-              {analysisLoading ? '載入中...' : '尚無因果分析。'}
+              {analysisLoading ? t('timeline.loading') : t('timeline.causality.noCausality')}
             </p>
           )}
         </PanelAccordion>
 
         {/* 5. Impact analysis */}
         <PanelAccordion
-          title="影響分析"
+          title={t('timeline.panel.impact')}
           sectionKey="impact"
           isOpen={openSections.has('impact')}
           onToggle={toggleSection}
@@ -1638,7 +1645,7 @@ function EventDetailPanel({
               {analysis.impact.affectedParticipantIds.length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    受影響角色：
+                    {t('timeline.impact.affectedParticipants')}
                   </span>
                   <div className="flex flex-wrap gap-1 mt-0.5">
                     {analysis.impact.affectedParticipantIds.map((pid) => {
@@ -1660,7 +1667,7 @@ function EventDetailPanel({
               {analysis.impact.participantImpacts.length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    角色影響：
+                    {t('timeline.impact.participantImpacts')}
                   </span>
                   <ul className="mt-0.5 space-y-1">
                     {analysis.impact.participantImpacts.map((p, i) => (
@@ -1680,7 +1687,7 @@ function EventDetailPanel({
               {analysis.impact.relationChanges.length > 0 && (
                 <div>
                   <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    關係變化：
+                    {t('timeline.impact.relationChanges')}
                   </span>
                   <ul className="list-disc list-inside mt-0.5">
                     {analysis.impact.relationChanges.map((r, i) => (
@@ -1690,7 +1697,7 @@ function EventDetailPanel({
                 </div>
               )}
               <LabeledField
-                label="影響摘要"
+                label={t('timeline.impact.impactSummary')}
                 value={analysis.impact.impactSummary}
               />
             </div>
@@ -1699,7 +1706,7 @@ function EventDetailPanel({
               className="text-xs"
               style={{ color: 'var(--panel-fg-muted)' }}
             >
-              {analysisLoading ? '載入中...' : '尚無影響分析。'}
+              {analysisLoading ? t('timeline.loading') : t('timeline.impact.noImpact')}
             </p>
           )}
         </PanelAccordion>

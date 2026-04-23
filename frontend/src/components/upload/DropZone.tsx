@@ -1,5 +1,6 @@
 import { useCallback, useState, type DragEvent, type ChangeEvent } from 'react';
 import { Upload } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface DropZoneProps {
   onFileSelected: (file: File) => void;
@@ -7,6 +8,7 @@ interface DropZoneProps {
 
 export function DropZone({ onFileSelected }: DropZoneProps) {
   const [dragging, setDragging] = useState(false);
+  const { t } = useTranslation('upload');
 
   const handleFile = useCallback(
     (file: File) => {
@@ -50,10 +52,10 @@ export function DropZone({ onFileSelected }: DropZoneProps) {
       <Upload size={32} style={{ color: 'var(--fg-muted)' }} />
       <div className="text-center">
         <p className="font-medium" style={{ color: 'var(--fg-primary)' }}>
-          拖曳 PDF 至此，或點擊選擇檔案
+          {t('dropzone.dragText')}
         </p>
         <p className="text-sm mt-1" style={{ color: 'var(--fg-muted)' }}>
-          支援 .pdf 格式
+          {t('dropzone.supportText')}
         </p>
       </div>
       <input

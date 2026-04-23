@@ -1,0 +1,60 @@
+{
+  "entityTypes": {
+    "character": "Character",
+    "location": "Location",
+    "organization": "Organization",
+    "object": "Object",
+    "concept": "Concept",
+    "event": "Event",
+    "other": "Other"
+  },
+  "toolbar": {
+    "searchPlaceholder": "Search entities...",
+    "resetView": "Reset View"
+  },
+  "stats": "{{nodes}} nodes · {{edges}} relations",
+  "panel": {
+    "entityInfo": "Entity Info",
+    "deepAnalysis": "Deep Analysis",
+    "relatedParagraphs": "Related Paragraphs",
+    "eventInfo": "Event Info",
+    "participants": "Participants",
+    "eventAnalysis": "Event Analysis"
+  },
+  "entity": {
+    "appearances": "Appears in {{count}} paragraphs",
+    "triggerFailed": "Failed to trigger analysis. Please try again later.",
+    "loading": "Loading...",
+    "generated": "Generated · {{date}}",
+    "viewAnalysis": "View Deep Analysis →",
+    "analysisFailed": "Analysis failed",
+    "retry": "Retry →",
+    "analysisDone": "Deep analysis complete. Reload to view.",
+    "noAnalysis": "No deep analysis yet. This will consume tokens.",
+    "generate": "Generate Deep Analysis →",
+    "paragraphCount": "{{count}} paragraphs total",
+    "viewParagraphs": "View Related Paragraphs →"
+  },
+  "event": {
+    "chapter": "Chapter {{chapter}}",
+    "significance": "Significance: ",
+    "consequences": "Consequences:",
+    "loading": "Loading...",
+    "noParticipants": "No participant data.",
+    "viewEventAnalysis": "View Event Analysis →"
+  },
+  "analysisPanel": {
+    "entityTitle": "{{name}} — Deep Analysis",
+    "eventTitle": "{{name}} — Event Analysis",
+    "loading": "Loading...",
+    "noEntityAnalysis": "No deep analysis data yet.",
+    "noEventAnalysis": "No event analysis data yet."
+  },
+  "paragraphsPanel": {
+    "title": "{{name}} — Related Paragraphs",
+    "loading": "Loading...",
+    "total": "{{count}} paragraphs total",
+    "chapterTitle": "Chapter {{chapter}}",
+    "noData": "No related paragraph data yet."
+  }
+}

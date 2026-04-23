@@ -1,0 +1,17 @@
+{
+  "cancel": "取消",
+  "confirm": "確認",
+  "loading": "載入中…",
+  "search": "搜尋…",
+  "retry": "重試",
+  "create": "建立",
+  "triggerFailed": "觸發分析失敗，請稍後再試。",
+  "status": {
+    "analyzed": "已分析",
+    "notAnalyzed": "尚未分析",
+    "processing": "處理中",
+    "ready": "已就緒",
+    "completed": "已完成",
+    "error": "錯誤"
+  }
+}

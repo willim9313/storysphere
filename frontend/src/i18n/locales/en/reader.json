@@ -1,0 +1,15 @@
+{
+  "bookKeywords": "Book Keywords",
+  "entityDistribution": "Entity Distribution",
+  "stats": {
+    "chapters": "Chapters",
+    "entities": "Entities",
+    "relations": "Relations"
+  },
+  "chapter": {
+    "entities": "{{count}} entities",
+    "keywords": "Keywords",
+    "viewContent": "View Content"
+  },
+  "selectChapter": "Select a chapter to view content"
+}

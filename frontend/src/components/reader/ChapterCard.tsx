@@ -1,4 +1,5 @@
 import { ChevronRight } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { KeywordTags } from './KeywordTags';
 import type { Chapter, EntityType } from '@/api/types';
 
@@ -27,6 +28,7 @@ export function ChapterCard({
   onSelect,
   onViewContent,
 }: ChapterCardProps) {
+  const { t } = useTranslation('reader');
   return (
     <div
       className="rounded-lg p-2.5 cursor-pointer transition-all"
@@ -47,7 +49,7 @@ export function ChapterCard({
       </div>
       <div className="flex gap-2 mt-1 text-xs" style={{ color: 'var(--fg-muted)' }}>
         <span>{chapter.chunkCount} chunks</span>
-        <span>{chapter.entityCount} 實體</span>
+        <span>{t('chapter.entities', { count: chapter.entityCount })}</span>
       </div>
 
       {/* Top entities pills */}
@@ -72,7 +74,7 @@ export function ChapterCard({
           )}
           {chapter.keywords && Object.keys(chapter.keywords).length > 0 && (
             <div>
-              <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>關鍵字</span>
+              <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('chapter.keywords')}</span>
               <div className="mt-0.5">
                 <KeywordTags keywords={chapter.keywords} limit={8} />
               </div>
@@ -86,7 +88,7 @@ export function ChapterCard({
               onViewContent();
             }}
           >
-            查看內容 <ChevronRight size={12} />
+            {t('chapter.viewContent')} <ChevronRight size={12} />
           </button>
         </div>
       )}

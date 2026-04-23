@@ -1,25 +1,27 @@
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface BookNavProps {
   bookId: string;
   bookTitle: string;
 }
 
-const tabs = [
-  { label: '閱讀', path: '' },
-  { label: '角色分析', path: '/characters' },
-  { label: '事件分析', path: '/events' },
-  { label: '知識圖譜', path: '/graph' },
-  { label: '時間軸', path: '/timeline' },
-  { label: '張力分析', path: '/tension' },
-  { label: '符號意象', path: '/symbols' },
-  { label: '展開卷軸', path: '/unraveling' },
-];
-
 export function BookNav({ bookId, bookTitle }: BookNavProps) {
   const location = useLocation();
+  const { t } = useTranslation('nav');
   const base = `/books/${bookId}`;
+
+  const tabs = [
+    { label: t('tabs.read'), path: '' },
+    { label: t('tabs.characterAnalysis'), path: '/characters' },
+    { label: t('tabs.eventAnalysis'), path: '/events' },
+    { label: t('tabs.knowledgeGraph'), path: '/graph' },
+    { label: t('tabs.timeline'), path: '/timeline' },
+    { label: t('tabs.tensionAnalysis'), path: '/tension' },
+    { label: t('tabs.symbolImagery'), path: '/symbols' },
+    { label: t('tabs.unraveling'), path: '/unraveling' },
+  ];
 
   return (
     <div
@@ -35,7 +37,7 @@ export function BookNav({ bookId, bookTitle }: BookNavProps) {
         style={{ color: 'var(--fg-muted)' }}
       >
         <ArrowLeft size={14} />
-        書庫
+        {t('library')}
       </Link>
 
       <span

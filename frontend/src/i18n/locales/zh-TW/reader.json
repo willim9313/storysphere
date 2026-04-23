@@ -1,0 +1,15 @@
+{
+  "bookKeywords": "全書關鍵字",
+  "entityDistribution": "實體分佈",
+  "stats": {
+    "chapters": "章節",
+    "entities": "實體",
+    "relations": "關係"
+  },
+  "chapter": {
+    "entities": "{{count}} 實體",
+    "keywords": "關鍵字",
+    "viewContent": "查看內容"
+  },
+  "selectChapter": "選擇章節以查看內容"
+}

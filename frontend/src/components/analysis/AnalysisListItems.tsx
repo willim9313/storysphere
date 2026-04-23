@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { AnalysisItem, UnanalyzedEntity } from '@/api/types';
 
 export function parseSections(content: string) {
@@ -62,6 +63,8 @@ export function UnanalyzedItem({
   onGenerate: () => void;
   isGenerating: boolean;
 }) {
+  const { t } = useTranslation('analysis');
+
   return (
     <div
       className="flex items-center gap-2 w-full rounded-md transition-colors"
@@ -82,7 +85,7 @@ export function UnanalyzedItem({
             {item.name}
           </div>
           <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-            尚未分析
+            {t('notAnalyzed')}
           </div>
         </div>
       </button>
@@ -95,7 +98,7 @@ export function UnanalyzedItem({
         onClick={onGenerate}
         disabled={isGenerating}
       >
-        {isGenerating ? '…' : '建立'}
+        {isGenerating ? '…' : t('generate')}
       </button>
     </div>
   );

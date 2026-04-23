@@ -2,6 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
@@ -32,6 +33,7 @@ export default function GraphPage() {
   const [searchParams] = useSearchParams();
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
+  const { t: tStats } = useTranslation('graph');
   const { data, isLoading, error } = useGraphData(bookId);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,7 +164,7 @@ export default function GraphPage() {
           transition: 'right 200ms ease',
         }}
       >
-        {nodeCount} 節點 · {edgeCount} 關係
+        {tStats('stats', { nodes: nodeCount, edges: edgeCount })}
       </div>
 
       {/* Entity detail panel — slides left when right panel is open */}
@@ -231,6 +233,7 @@ export default function GraphPage() {
 }
 
 function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphNode; onClose: () => void }) {
+  const { t } = useTranslation('graph');
   const isEvent = node.type === 'event';
 
   const { data: entityAnalysis, isLoading: entityLoading } = useQuery({
@@ -261,7 +264,7 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
         style={{ borderBottom: '1px solid var(--border)' }}
       >
         <h3 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
-          {node.name} — {isEvent ? '事件分析' : '深度分析'}
+          {isEvent ? t('analysisPanel.eventTitle', { name: node.name }) : t('analysisPanel.entityTitle', { name: node.name })}
         </h3>
         <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
           <X size={16} />
@@ -271,12 +274,14 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
         {isLoading ? (
           <div className="flex items-center gap-2">
             <Loader size={12} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>載入中...</span>
+            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('analysisPanel.loading')}</span>
           </div>
         ) : content ? (
           <MarkdownRenderer content={content} compact />
         ) : (
-          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>尚無{isEvent ? '事件' : '深度'}分析資料。</p>
+          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+            {isEvent ? t('analysisPanel.noEventAnalysis') : t('analysisPanel.noEntityAnalysis')}
+          </p>
         )}
       </div>
     </div>
@@ -284,6 +289,7 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
 }
 
 function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: GraphNode; onClose: () => void }) {
+  const { t } = useTranslation('graph');
   const { data, isLoading } = useQuery({
     queryKey: ['books', bookId, 'entities', node.id, 'chunks'],
     queryFn: () => fetchEntityChunks(bookId, node.id),
@@ -311,7 +317,7 @@ function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: Grap
         style={{ borderBottom: '1px solid var(--border)' }}
       >
         <h3 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
-          {node.name} — 相關段落
+          {t('paragraphsPanel.title', { name: node.name })}
         </h3>
         <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
           <X size={16} />
@@ -321,12 +327,12 @@ function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: Grap
         {isLoading ? (
           <div className="flex items-center gap-2">
             <Loader size={12} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>載入中...</span>
+            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('paragraphsPanel.loading')}</span>
           </div>
         ) : data && data.total > 0 ? (
           <>
             <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-              共 {data.total} 個段落
+              {t('paragraphsPanel.total', { count: data.total })}
             </p>
             {grouped.map(([chapterNum, group]) => (
               <div key={chapterNum}>
@@ -334,7 +340,7 @@ function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: Grap
                   className="text-xs font-semibold mb-2 sticky top-0 py-1"
                   style={{ color: 'var(--fg-secondary)', backgroundColor: 'var(--bg-primary)' }}
                 >
-                  {group.title || `第 ${chapterNum} 章`}
+                  {group.title || t('paragraphsPanel.chapterTitle', { chapter: chapterNum })}
                 </h4>
                 <div className="space-y-2">
                   {group.chunks.map((chunk) => (
@@ -351,7 +357,7 @@ function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: Grap
             ))}
           </>
         ) : (
-          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>尚無相關段落資料。</p>
+          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('paragraphsPanel.noData')}</p>
         )}
       </div>
     </div>

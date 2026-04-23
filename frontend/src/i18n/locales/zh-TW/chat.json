@@ -1,0 +1,19 @@
+{
+  "title": "StorySphere Chat",
+  "newChat": "新對話",
+  "newChatConfirm": "開啟新對話？目前的對話紀錄將會清除。",
+  "thinking": "思考中…",
+  "emptyPrompt": "Ask me anything about this story",
+  "prompts": {
+    "whoIs": "{{entity}} 是誰？",
+    "relationNetwork": "{{entity}} 的關係網？",
+    "mainCharacters": "這本書的主要角色有哪些？",
+    "importantEvents": "最重要的事件是什麼？",
+    "chapterSummary": "總結這一章",
+    "chapterCharacters": "這章的重要角色？",
+    "chapterEvents": "這章發生了什麼事件？",
+    "deepAnalysis": "深入分析 {{entity}}",
+    "archetype": "{{entity}} 的角色原型？",
+    "recommend": "推薦我先分析哪本書？"
+  }
+}

@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -14,11 +15,12 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = '確認',
+  confirmLabel,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const { t } = useTranslation('common');
 
   useEffect(() => {
     if (open) {
@@ -60,10 +62,10 @@ export function ConfirmDialog({
         </p>
         <div className="flex gap-3 justify-end">
           <button className="btn btn-secondary" onClick={onCancel}>
-            取消
+            {t('cancel')}
           </button>
           <button className="btn btn-primary" onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel ?? t('confirm')}
           </button>
         </div>
       </div>

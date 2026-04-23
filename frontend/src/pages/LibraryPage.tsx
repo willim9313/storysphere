@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBooks } from '@/hooks/useBooks';
 import { BookCard } from '@/components/library/BookCard';
@@ -12,17 +13,18 @@ import type { BookStatus } from '@/api/types';
 
 type Filter = 'all' | 'analyzed' | 'ready' | 'processing';
 
-const filters: { key: Filter; label: string }[] = [
-  { key: 'all', label: '全部' },
-  { key: 'analyzed', label: '已分析' },
-  { key: 'ready', label: '已就緒' },
-  { key: 'processing', label: '處理中' },
-];
-
 export default function LibraryPage() {
   const { setPageContext } = useChatContext();
   const { data: books, isLoading, error } = useBooks();
   const [filter, setFilter] = useState<Filter>('all');
+  const { t } = useTranslation('library');
+
+  const filters: { key: Filter; label: string }[] = [
+    { key: 'all', label: t('filters.all') },
+    { key: 'analyzed', label: t('filters.analyzed') },
+    { key: 'ready', label: t('filters.ready') },
+    { key: 'processing', label: t('filters.processing') },
+  ];
 
   useEffect(() => {
     setPageContext({ page: 'library' });
@@ -49,7 +51,7 @@ export default function LibraryPage() {
             className="text-lg font-bold mb-4"
             style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
           >
-            最近開啟
+            {t('recentlyOpened')}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
             {recent.map((book) => (
@@ -65,7 +67,7 @@ export default function LibraryPage() {
           className="text-lg font-bold"
           style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
         >
-          書庫
+          {t('allBooks')}
         </h2>
       </div>
 
@@ -102,7 +104,7 @@ export default function LibraryPage() {
           }}
         >
           <Plus size={24} />
-          <span className="text-xs font-medium">上傳新書</span>
+          <span className="text-xs font-medium">{t('uploadNew')}</span>
         </Link>
       </div>
     </div>

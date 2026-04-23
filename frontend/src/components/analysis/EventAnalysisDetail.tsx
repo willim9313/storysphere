@@ -1,97 +1,82 @@
+import { useTranslation } from 'react-i18next';
 import type { EventAnalysisDetail } from '@/api/types';
 import { AnalysisAccordion } from './AnalysisAccordion';
 
-const ROLE_LABELS: Record<string, string> = {
-  initiator: '發起者',
-  actor: '行動者',
-  reactor: '反應者',
-  victim: '受害者',
-  beneficiary: '受益者',
-};
+type TFunc = (key: string, opts?: object) => string;
 
-const IMPORTANCE_LABELS: Record<string, string> = {
-  kernel: '核心事件',
-  satellite: '衛星事件',
-};
-
-function buildSections(data: EventAnalysisDetail) {
+function buildSections(data: EventAnalysisDetail, t: TFunc) {
   const sections: { title: string; subtitle?: string; content: string }[] = [];
 
-  // Summary
+  const roleLabel = (role: string) => t(`event.roles.${role}`) || role;
+  const importanceLabel = (imp: string) => t(`event.importance.${imp}`) || imp;
+
   if (data.summary?.summary) {
-    sections.push({ title: '事件摘要', content: data.summary.summary });
+    sections.push({ title: t('event.sections.summary'), content: data.summary.summary });
   }
 
-  // EEP — state before/after
   const { eep } = data;
   if (eep.stateBefore || eep.stateAfter) {
     const lines: string[] = [];
-    if (eep.stateBefore) lines.push(`**事件前：** ${eep.stateBefore}`);
-    if (eep.stateAfter) lines.push(`\n**事件後：** ${eep.stateAfter}`);
-    if (eep.structuralRole) lines.push(`\n**結構角色：** ${eep.structuralRole}`);
-    if (eep.eventImportance) lines.push(`**重要性：** ${IMPORTANCE_LABELS[eep.eventImportance] ?? eep.eventImportance}`);
-    if (eep.thematicSignificance) lines.push(`\n**主題意義：** ${eep.thematicSignificance}`);
-    sections.push({ title: '事件前後狀態', content: lines.join('\n') });
+    if (eep.stateBefore) lines.push(`**${t('event.sections.stateBefore')}：** ${eep.stateBefore}`);
+    if (eep.stateAfter) lines.push(`\n**${t('event.sections.stateAfter')}：** ${eep.stateAfter}`);
+    if (eep.structuralRole) lines.push(`\n**${t('event.sections.structuralRole')}：** ${eep.structuralRole}`);
+    if (eep.eventImportance) lines.push(`**${t('event.sections.importance')}：** ${importanceLabel(eep.eventImportance)}`);
+    if (eep.thematicSignificance) lines.push(`\n**${t('event.sections.thematicSignificance')}：** ${eep.thematicSignificance}`);
+    sections.push({ title: t('event.sections.stateChange'), content: lines.join('\n') });
   }
 
-  // Participant roles
   if (eep.participantRoles.length) {
     const lines = eep.participantRoles.map((p) => {
-      const role = ROLE_LABELS[p.role] ?? p.role;
+      const role = roleLabel(p.role);
       return `- **${p.entityName}**（${role}）：${p.impactDescription}`;
     });
-    sections.push({ title: '參與者角色', content: lines.join('\n') });
+    sections.push({ title: t('event.sections.participantRoles'), content: lines.join('\n') });
   }
 
-  // Causality
   const { causality } = data;
   if (causality.rootCause || causality.causalChain.length) {
     const lines: string[] = [];
-    if (causality.rootCause) lines.push(`**根本原因：** ${causality.rootCause}`);
+    if (causality.rootCause) lines.push(`**${t('event.sections.rootCause')}：** ${causality.rootCause}`);
     if (causality.causalChain.length) {
-      lines.push('\n**因果鏈：**');
+      lines.push(`\n**${t('event.sections.causalChain')}：**`);
       causality.causalChain.forEach((step, i) => lines.push(`${i + 1}. ${step}`));
     }
     if (causality.chainSummary) lines.push(`\n${causality.chainSummary}`);
-    sections.push({ title: '因果分析', content: lines.join('\n') });
+    sections.push({ title: t('event.sections.causality'), content: lines.join('\n') });
   }
 
-  // Impact
   const { impact } = data;
   if (impact.impactSummary || impact.participantImpacts.length || impact.relationChanges.length) {
     const lines: string[] = [];
     if (impact.impactSummary) lines.push(impact.impactSummary);
     if (impact.participantImpacts.length) {
-      lines.push('\n**角色影響：**');
+      lines.push(`\n**${t('event.sections.participantImpacts')}：**`);
       impact.participantImpacts.forEach((p) => lines.push(`- ${p}`));
     }
     if (impact.relationChanges.length) {
-      lines.push('\n**關係變化：**');
+      lines.push(`\n**${t('event.sections.relationChanges')}：**`);
       impact.relationChanges.forEach((r) => lines.push(`- ${r}`));
     }
-    sections.push({ title: '影響分析', content: lines.join('\n') });
+    sections.push({ title: t('event.sections.impact'), content: lines.join('\n') });
   }
 
-  // Causal factors
   if (eep.causalFactors.length) {
     sections.push({
-      title: '促成因素',
+      title: t('event.sections.causalFactors'),
       content: eep.causalFactors.map((f) => `- ${f}`).join('\n'),
     });
   }
 
-  // Consequences
   if (eep.consequences.length) {
     sections.push({
-      title: '後續影響',
+      title: t('event.sections.consequences'),
       content: eep.consequences.map((c) => `- ${c}`).join('\n'),
     });
   }
 
-  // Key quotes
   if (eep.keyQuotes.length) {
     sections.push({
-      title: '關鍵引言',
+      title: t('event.sections.keyQuotes'),
       content: eep.keyQuotes.map((q) => `> ${q}`).join('\n\n'),
     });
   }
@@ -104,5 +89,6 @@ interface Props {
 }
 
 export function EventAnalysisDetail({ data }: Props) {
-  return <AnalysisAccordion sections={buildSections(data)} />;
+  const { t } = useTranslation('analysis');
+  return <AnalysisAccordion sections={buildSections(data, t)} />;
 }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, ChevronDown, ChevronRight, Loader, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { fetchEntityAnalysis, triggerEntityAnalysis } from '@/api/analysis';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 
@@ -25,6 +26,7 @@ interface EntityDetailPanelProps {
 }
 
 export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onShowParagraphs }: EntityDetailPanelProps) {
+  const { t } = useTranslation('graph');
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['info', 'analysis']));
   const [genTaskId, setGenTaskId] = useState<string | null>(null);
 
@@ -39,7 +41,7 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
   const triggerMut = useMutation({
     mutationFn: () => triggerEntityAnalysis(bookId, node.id),
     onSuccess: (data) => { setTriggerError(null); setGenTaskId(data.taskId); },
-    onError: () => setTriggerError('觸發分析失敗，請稍後再試。'),
+    onError: () => setTriggerError(t('entity.triggerFailed')),
   });
 
   const { data: genTask } = useTaskPolling(genTaskId);
@@ -82,7 +84,7 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
       <div className="p-2 space-y-1">
         {/* Entity Info */}
         <AccordionSection
-          title="實體資訊"
+          title={t('panel.entityInfo')}
           sectionKey="info"
           isOpen={openSections.has('info')}
           onToggle={toggleSection}
@@ -97,13 +99,13 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
             </p>
           )}
           <p className="text-xs mt-1" style={{ color: 'var(--panel-fg-muted)' }}>
-            出現於 {node.chunkCount} 個段落
+            {t('entity.appearances', { count: node.chunkCount })}
           </p>
         </AccordionSection>
 
         {/* Deep Analysis */}
         <AccordionSection
-          title="深度分析"
+          title={t('panel.deepAnalysis')}
           sectionKey="analysis"
           isOpen={openSections.has('analysis')}
           onToggle={toggleSection}
@@ -111,19 +113,19 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
           {analysisLoading ? (
             <div className="flex items-center gap-2">
               <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
-              <span className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>載入中...</span>
+              <span className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>{t('entity.loading')}</span>
             </div>
           ) : analysis ? (
             <div className="space-y-2">
               <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>
-                已生成 · {new Date(analysis.generatedAt).toLocaleDateString('zh-TW')}
+                {t('entity.generated', { date: new Date(analysis.generatedAt).toLocaleDateString() })}
               </p>
               <button
                 className="text-xs px-2 py-1 rounded"
                 style={{ backgroundColor: 'var(--panel-bg-card)', color: 'var(--panel-fg)', border: '1px solid var(--panel-border)' }}
                 onClick={onShowAnalysis}
               >
-                查看深度分析 →
+                {t('entity.viewAnalysis')}
               </button>
             </div>
           ) : genTask?.status === 'error' ? (
@@ -131,7 +133,7 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
               <div className="flex items-center gap-1">
                 <AlertTriangle size={12} style={{ color: 'var(--danger, #e53e3e)' }} />
                 <span className="text-xs" style={{ color: 'var(--danger, #e53e3e)' }}>
-                  分析失敗{genTask.error ? `：${genTask.error}` : ''}
+                  {t('entity.analysisFailed')}{genTask.error ? `：${genTask.error}` : ''}
                 </span>
               </div>
               <button
@@ -139,7 +141,7 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
                 style={{ backgroundColor: 'var(--accent)', color: 'white' }}
                 onClick={() => { setGenTaskId(null); triggerMut.reset(); }}
               >
-                重試 →
+                {t('entity.retry')}
               </button>
             </div>
           ) : genTaskId && genTask && genTask.status !== 'done' ? (
@@ -151,12 +153,12 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
             </div>
           ) : genTaskId && genTask?.status === 'done' ? (
             <p className="text-xs" style={{ color: 'var(--panel-fg)' }}>
-              深度分析已完成。重新載入後即可查看。
+              {t('entity.analysisDone')}
             </p>
           ) : (
             <div className="space-y-2">
               <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>
-                尚未生成深度分析。此操作將消耗 token。
+                {t('entity.noAnalysis')}
               </p>
               {triggerError && (
                 <p className="text-xs" style={{ color: 'var(--danger, #e53e3e)' }}>{triggerError}</p>
@@ -167,7 +169,7 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
                 onClick={() => triggerMut.mutate()}
                 disabled={triggerMut.isPending}
               >
-                生成深度分析 →
+                {t('entity.generate')}
               </button>
             </div>
           )}
@@ -175,20 +177,20 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
 
         {/* Related Paragraphs */}
         <AccordionSection
-          title="相關段落"
+          title={t('panel.relatedParagraphs')}
           sectionKey="paragraphs"
           isOpen={openSections.has('paragraphs')}
           onToggle={toggleSection}
         >
           <p className="text-xs mb-2" style={{ color: 'var(--panel-fg-muted)' }}>
-            共 {node.chunkCount} 個段落
+            {t('entity.paragraphCount', { count: node.chunkCount })}
           </p>
           <button
             className="text-xs px-2 py-1 rounded"
             style={{ backgroundColor: 'var(--panel-bg-card)', color: 'var(--panel-fg)', border: '1px solid var(--panel-border)' }}
             onClick={onShowParagraphs}
           >
-            查看相關段落 →
+            {t('entity.viewParagraphs')}
           </button>
         </AccordionSection>
       </div>

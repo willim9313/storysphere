@@ -1,0 +1,19 @@
+{
+  "title": "StorySphere Chat",
+  "newChat": "New Chat",
+  "newChatConfirm": "Start a new conversation? Current chat history will be cleared.",
+  "thinking": "Thinking…",
+  "emptyPrompt": "Ask me anything about this story",
+  "prompts": {
+    "whoIs": "Who is {{entity}}?",
+    "relationNetwork": "{{entity}}'s relationship network?",
+    "mainCharacters": "Who are the main characters?",
+    "importantEvents": "What are the most important events?",
+    "chapterSummary": "Summarize this chapter",
+    "chapterCharacters": "Key characters in this chapter?",
+    "chapterEvents": "What events happened in this chapter?",
+    "deepAnalysis": "Deep analysis of {{entity}}",
+    "archetype": "{{entity}}'s character archetype?",
+    "recommend": "Which book should I analyze first?"
+  }
+}

@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { uploadBook } from '@/api/ingest';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { DropZone } from '@/components/upload/DropZone';
@@ -22,6 +23,8 @@ export default function UploadPage() {
   const [pending, setPending] = useState<PendingFile | null>(null);
   const [tasks, setTasks] = useState<UploadTask[]>([]);
   const [completedTasks, setCompletedTasks] = useState<{ taskId: string; fileName: string; bookId: string }[]>([]);
+  const { t } = useTranslation('upload');
+  const { t: tc } = useTranslation('common');
 
   const upload = useMutation({
     mutationFn: ({ file, title, author }: { file: File; title: string; author?: string }) => uploadBook(file, title, author),
@@ -47,7 +50,7 @@ export default function UploadPage() {
         className="text-2xl font-bold mb-6"
         style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
       >
-        上傳 & 處理進度
+        {t('title')}
       </h1>
 
       {/* Upload zone */}
@@ -60,7 +63,7 @@ export default function UploadPage() {
           style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-secondary)' }}
         >
           <p className="text-sm font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>
-            書籍名稱
+            {t('bookTitle')}
           </p>
           <input
             className="w-full px-3 py-2 rounded-md text-sm mb-4"
@@ -75,7 +78,7 @@ export default function UploadPage() {
             autoFocus
           />
           <p className="text-sm font-medium mb-1" style={{ color: 'var(--fg-secondary)' }}>
-            作者
+            {t('author')}
           </p>
           <input
             className="w-full px-3 py-2 rounded-md text-sm"
@@ -85,7 +88,7 @@ export default function UploadPage() {
               color: 'var(--fg-primary)',
               outline: 'none',
             }}
-            placeholder="留空則由系統自動從文件 metadata 獲取"
+            placeholder={t('authorPlaceholder')}
             value={pending.author}
             onChange={(e) => setPending({ ...pending, author: e.target.value })}
             onKeyDown={(e) => {
@@ -100,7 +103,7 @@ export default function UploadPage() {
               style={{ color: 'var(--fg-muted)', border: '1px solid var(--border)' }}
               onClick={() => setPending(null)}
             >
-              取消
+              {tc('cancel')}
             </button>
             <button
               className="text-sm px-3 py-1 rounded-md font-medium"
@@ -108,7 +111,7 @@ export default function UploadPage() {
               disabled={!pending.title.trim() || upload.isPending}
               onClick={() => upload.mutate({ file: pending.file, title: pending.title.trim(), author: pending.author.trim() || undefined })}
             >
-              確認上傳
+              {t('confirmUpload')}
             </button>
           </div>
         </div>
@@ -124,13 +127,13 @@ export default function UploadPage() {
       {tasks.length > 0 && (
         <div className="mt-8">
           <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-secondary)' }}>
-            處理中
+            {t('processingSection')}
           </h2>
           <div className="space-y-4">
-            {tasks.map((t) => (
+            {tasks.map((task) => (
               <ProcessingCard
-                key={t.taskId}
-                task={t}
+                key={task.taskId}
+                task={task}
                 onDone={handleTaskDone}
               />
             ))}
@@ -142,7 +145,7 @@ export default function UploadPage() {
       {completedTasks.length > 0 && (
         <div className="mt-8">
           <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-secondary)' }}>
-            已完成
+            {t('completedSection')}
           </h2>
           <div className="space-y-2">
             {completedTasks.map((ct) => (
@@ -163,7 +166,7 @@ export default function UploadPage() {
                   className="text-xs font-medium flex items-center gap-1"
                   style={{ color: 'var(--accent)' }}
                 >
-                  進入書籍 <ArrowRight size={12} />
+                  {t('enterBook')} <ArrowRight size={12} />
                 </Link>
               </div>
             ))}

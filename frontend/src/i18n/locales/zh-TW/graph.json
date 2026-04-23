@@ -1,0 +1,60 @@
+{
+  "entityTypes": {
+    "character": "角色",
+    "location": "地點",
+    "organization": "組織",
+    "object": "物品",
+    "concept": "概念",
+    "event": "事件",
+    "other": "其他"
+  },
+  "toolbar": {
+    "searchPlaceholder": "搜尋實體...",
+    "resetView": "重置視圖"
+  },
+  "stats": "{{nodes}} 節點 · {{edges}} 關係",
+  "panel": {
+    "entityInfo": "實體資訊",
+    "deepAnalysis": "深度分析",
+    "relatedParagraphs": "相關段落",
+    "eventInfo": "事件資訊",
+    "participants": "參與者",
+    "eventAnalysis": "事件分析"
+  },
+  "entity": {
+    "appearances": "出現於 {{count}} 個段落",
+    "triggerFailed": "觸發分析失敗，請稍後再試。",
+    "loading": "載入中...",
+    "generated": "已生成 · {{date}}",
+    "viewAnalysis": "查看深度分析 →",
+    "analysisFailed": "分析失敗",
+    "retry": "重試 →",
+    "analysisDone": "深度分析已完成。重新載入後即可查看。",
+    "noAnalysis": "尚未生成深度分析。此操作將消耗 token。",
+    "generate": "生成深度分析 →",
+    "paragraphCount": "共 {{count}} 個段落",
+    "viewParagraphs": "查看相關段落 →"
+  },
+  "event": {
+    "chapter": "第 {{chapter}} 章",
+    "significance": "重要性：",
+    "consequences": "後果：",
+    "loading": "載入中...",
+    "noParticipants": "無參與者資料。",
+    "viewEventAnalysis": "查看事件分析 →"
+  },
+  "analysisPanel": {
+    "entityTitle": "{{name}} — 深度分析",
+    "eventTitle": "{{name}} — 事件分析",
+    "loading": "載入中...",
+    "noEntityAnalysis": "尚無深度分析資料。",
+    "noEventAnalysis": "尚無事件分析資料。"
+  },
+  "paragraphsPanel": {
+    "title": "{{name}} — 相關段落",
+    "loading": "載入中...",
+    "total": "共 {{count}} 個段落",
+    "chapterTitle": "第 {{chapter}} 章",
+    "noData": "尚無相關段落資料。"
+  }
+}

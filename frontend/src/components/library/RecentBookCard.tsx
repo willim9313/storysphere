@@ -1,33 +1,36 @@
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import type { Book } from '@/api/types';
 
 interface RecentBookCardProps {
   book: Book;
 }
 
-function statusShortcuts(book: Book) {
-  const base = `/books/${book.id}`;
-  switch (book.status) {
-    case 'analyzed':
-      return [
-        { label: '繼續閱讀', to: base },
-        { label: '知識圖譜', to: `${base}/graph` },
-        { label: '深度分析', to: `${base}/analysis` },
-      ];
-    case 'ready':
-      return [
-        { label: '開始閱讀', to: base },
-        { label: '觸發分析', to: base },
-      ];
-    case 'processing':
-      return [{ label: '查看處理進度', to: '/upload' }];
-    case 'error':
-      return [{ label: '查看錯誤', to: '/upload' }];
-  }
-}
-
 export function RecentBookCard({ book }: RecentBookCardProps) {
-  const shortcuts = statusShortcuts(book);
+  const { t } = useTranslation('library');
+  const base = `/books/${book.id}`;
+
+  function statusShortcuts() {
+    switch (book.status) {
+      case 'analyzed':
+        return [
+          { label: t('shortcuts.continueReading'), to: base },
+          { label: t('shortcuts.knowledgeGraph'), to: `${base}/graph` },
+          { label: t('shortcuts.deepAnalysis'), to: `${base}/analysis` },
+        ];
+      case 'ready':
+        return [
+          { label: t('shortcuts.startReading'), to: base },
+          { label: t('shortcuts.triggerAnalysis'), to: base },
+        ];
+      case 'processing':
+        return [{ label: t('shortcuts.viewProgress'), to: '/upload' }];
+      case 'error':
+        return [{ label: t('shortcuts.viewError'), to: '/upload' }];
+    }
+  }
+
+  const shortcuts = statusShortcuts();
 
   return (
     <div

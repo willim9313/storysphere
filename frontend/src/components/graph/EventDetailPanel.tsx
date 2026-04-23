@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { X, ChevronDown, ChevronRight, Loader } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { fetchEventDetail } from '@/api/graph';
 
 import type { GraphNode } from '@/api/types';
@@ -13,6 +14,7 @@ interface EventDetailPanelProps {
 }
 
 export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: EventDetailPanelProps) {
+  const { t } = useTranslation('graph');
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['info', 'participants', 'analysis']));
 
   const { data: detail, isLoading } = useQuery({
@@ -58,7 +60,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
       <div className="p-2 space-y-1">
         {/* Event Info */}
         <AccordionSection
-          title="事件資訊"
+          title={t('panel.eventInfo')}
           sectionKey="info"
           isOpen={openSections.has('info')}
           onToggle={toggleSection}
@@ -69,7 +71,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
           </span>
           {node.chapter != null && (
             <p className="text-xs mt-1" style={{ color: 'var(--panel-fg-muted)' }}>
-              第 {node.chapter} 章
+              {t('event.chapter', { chapter: node.chapter })}
             </p>
           )}
           {node.description && (
@@ -79,12 +81,12 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
           )}
           {detail?.significance && (
             <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--panel-fg-muted)' }}>
-              <strong>重要性：</strong>{detail.significance}
+              <strong>{t('event.significance')}</strong>{detail.significance}
             </p>
           )}
           {detail && detail.consequences.length > 0 && (
             <div className="mt-2">
-              <p className="text-xs font-medium" style={{ color: 'var(--panel-fg-muted)' }}>後果：</p>
+              <p className="text-xs font-medium" style={{ color: 'var(--panel-fg-muted)' }}>{t('event.consequences')}</p>
               <ul className="text-xs mt-1 space-y-0.5 list-disc list-inside" style={{ color: 'var(--panel-fg)' }}>
                 {detail.consequences.map((c, i) => (
                   <li key={i}>{c}</li>
@@ -96,7 +98,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
 
         {/* Participants */}
         <AccordionSection
-          title="參與者"
+          title={t('panel.participants')}
           sectionKey="participants"
           isOpen={openSections.has('participants')}
           onToggle={toggleSection}
@@ -104,7 +106,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
           {isLoading ? (
             <div className="flex items-center gap-2">
               <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
-              <span className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>載入中...</span>
+              <span className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>{t('event.loading')}</span>
             </div>
           ) : detail && detail.participants.length > 0 ? (
             <ul className="space-y-1">
@@ -119,7 +121,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
               ))}
             </ul>
           ) : (
-            <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>無參與者資料。</p>
+            <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>{t('event.noParticipants')}</p>
           )}
           {detail?.location && (
             <div className="mt-2 flex items-center gap-1.5">
@@ -134,7 +136,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
 
         {/* Analysis */}
         <AccordionSection
-          title="事件分析"
+          title={t('panel.eventAnalysis')}
           sectionKey="analysis"
           isOpen={openSections.has('analysis')}
           onToggle={toggleSection}
@@ -144,7 +146,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
             style={{ backgroundColor: 'var(--panel-bg-card)', color: 'var(--panel-fg)', border: '1px solid var(--panel-border)' }}
             onClick={onShowAnalysis}
           >
-            查看事件分析 →
+            {t('event.viewEventAnalysis')}
           </button>
         </AccordionSection>
       </div>

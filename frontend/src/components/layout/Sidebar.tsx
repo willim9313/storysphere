@@ -1,17 +1,23 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Upload, BookOpen, Search, BarChart3, Settings } from 'lucide-react';
-
-const items = [
-  { to: '/', icon: Home, label: '書庫' },
-  { to: '/upload', icon: Upload, label: '上傳' },
-  { to: '/frameworks', icon: BookOpen, label: '框架索引' },
-  { to: '#', icon: Search, label: '搜尋', disabled: true },
-  { to: '/token-usage', icon: BarChart3, label: 'Token 用量' },
-  { to: '/settings', icon: Settings, label: '系統設定' },
-];
+import { Home, Upload, BookOpen, Search, BarChart3, Settings, Globe } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export function Sidebar() {
   const location = useLocation();
+  const { t, i18n } = useTranslation('nav');
+
+  const items = [
+    { to: '/', icon: Home, label: t('library') },
+    { to: '/upload', icon: Upload, label: t('upload') },
+    { to: '/frameworks', icon: BookOpen, label: t('frameworks') },
+    { to: '#', icon: Search, label: t('search'), disabled: true },
+    { to: '/token-usage', icon: BarChart3, label: t('tokenUsage') },
+    { to: '/settings', icon: Settings, label: t('settings') },
+  ];
+
+  const toggleLang = () => {
+    i18n.changeLanguage(i18n.language === 'zh-TW' ? 'en' : 'zh-TW');
+  };
 
   return (
     <nav
@@ -29,7 +35,7 @@ export function Sidebar() {
 
         return (
           <Link
-            key={label}
+            key={to}
             to={disabled ? '#' : to}
             title={label}
             className="flex items-center justify-center rounded-md transition-colors"
@@ -51,6 +57,27 @@ export function Sidebar() {
           </Link>
         );
       })}
+
+      <div className="flex-1" />
+
+      <button
+        onClick={toggleLang}
+        title={i18n.language === 'zh-TW' ? 'Switch to English' : '切換至繁體中文'}
+        className="flex items-center justify-center rounded-md transition-colors"
+        style={{
+          width: 36,
+          height: 36,
+          backgroundColor: 'transparent',
+          color: 'var(--fg-secondary)',
+          cursor: 'pointer',
+          border: 'none',
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: 0,
+        }}
+      >
+        <Globe size={16} />
+      </button>
     </nav>
   );
 }

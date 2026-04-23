@@ -1,19 +1,30 @@
 import { FileText } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/library/StatusBadge';
 import { KeywordTags } from './KeywordTags';
 import type { BookDetail, EntityType } from '@/api/types';
 
-const entityTypeLabels: Record<EntityType, { label: string; cls: string }> = {
-  character: { label: '角色', cls: 'pill-char' },
-  location: { label: '地點', cls: 'pill-loc' },
-  organization: { label: '組織', cls: 'pill-org' },
-  object: { label: '物品', cls: 'pill-obj' },
-  concept: { label: '概念', cls: 'pill-con' },
-  other: { label: '其他', cls: 'pill-other' },
-  event: { label: '事件', cls: 'pill-evt' },
+const entityTypeCls: Record<EntityType, string> = {
+  character: 'pill-char',
+  location: 'pill-loc',
+  organization: 'pill-org',
+  object: 'pill-obj',
+  concept: 'pill-con',
+  other: 'pill-other',
+  event: 'pill-evt',
 };
 
 export function BookOverview({ book }: { book: BookDetail }) {
+  const { t } = useTranslation('reader');
+  const { t: tg } = useTranslation('graph');
+
+  const stats = [
+    { key: 'chapters', value: book.chapterCount },
+    { key: 'chunks', value: book.chunkCount },
+    { key: 'entities', value: book.entityCount },
+    { key: 'relations', value: book.relationCount },
+  ];
+
   return (
     <div className="p-3 space-y-4">
       {/* Cover placeholder */}
@@ -50,17 +61,10 @@ export function BookOverview({ book }: { book: BookDetail }) {
       )}
 
       {/* Stats grid */}
-      <div
-        className="grid grid-cols-2 gap-2 text-center"
-      >
-        {[
-          { label: '章節', value: book.chapterCount },
-          { label: 'Chunks', value: book.chunkCount },
-          { label: '實體', value: book.entityCount },
-          { label: '關係', value: book.relationCount },
-        ].map(({ label, value }) => (
+      <div className="grid grid-cols-2 gap-2 text-center">
+        {stats.map(({ key, value }) => (
           <div
-            key={label}
+            key={key}
             className="rounded-md py-1.5 px-2"
             style={{ backgroundColor: 'var(--bg-secondary)' }}
           >
@@ -68,7 +72,7 @@ export function BookOverview({ book }: { book: BookDetail }) {
               {value}
             </div>
             <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-              {label}
+              {key === 'chunks' ? 'Chunks' : t(`stats.${key}`)}
             </div>
           </div>
         ))}
@@ -78,7 +82,7 @@ export function BookOverview({ book }: { book: BookDetail }) {
       {book.keywords && Object.keys(book.keywords).length > 0 && (
         <div>
           <h3 className="text-xs font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>
-            全書關鍵字
+            {t('bookKeywords')}
           </h3>
           <KeywordTags keywords={book.keywords} limit={12} />
         </div>
@@ -87,16 +91,16 @@ export function BookOverview({ book }: { book: BookDetail }) {
       {/* Entity distribution */}
       <div>
         <h3 className="text-xs font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>
-          實體分佈
+          {t('entityDistribution')}
         </h3>
         <div className="flex flex-wrap gap-1.5">
           {(Object.entries(book.entityStats) as [EntityType, number][]).map(
             ([type, count]) => {
-              const { label, cls } = entityTypeLabels[type];
+              const cls = entityTypeCls[type];
               return (
                 <span key={type} className={`pill ${cls}`}>
                   <span className="pill-dot" />
-                  {label} {count}
+                  {tg(`entityTypes.${type}`)} {count}
                 </span>
               );
             },

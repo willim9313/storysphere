@@ -1,0 +1,78 @@
+{
+  "title": "Settings",
+  "kg": {
+    "title": "Knowledge Graph Backend",
+    "currentBackend": "Current Backend",
+    "refresh": "Refresh",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "entities": "Entities",
+    "relations": "Relations",
+    "events": "Events",
+    "switchBackend": "Switch Query Backend",
+    "switchNote": "Switching backends requires no restart, but data between backends is independent and requires manual migration.",
+    "loadingStatus": "Loading…",
+    "loadError": "Unable to get status"
+  },
+  "migration": {
+    "title": "Data Migration",
+    "idempotentNote": "Migration is idempotent — running it multiple times will not create duplicates.",
+    "nxToNeo4j": "NetworkX JSON → Neo4j",
+    "nxToNeo4jSub": "Import local JSON into Neo4j (MERGE)",
+    "neo4jToNx": "Neo4j → NetworkX JSON",
+    "neo4jToNxSub": "Export from Neo4j to local JSON file",
+    "running": "Migrating…",
+    "done": "Migration complete: {{entities}} entities, {{relations}} relations, {{events}} events",
+    "failed": "Migration failed: {{error}}"
+  },
+  "token": {
+    "title": "Token Usage",
+    "today": "Today",
+    "days7": "7 Days",
+    "days30": "30 Days",
+    "all": "All",
+    "totalCalls": "Total Calls",
+    "byService": "Usage by Service",
+    "byModel": "Usage by Model",
+    "dailyTrend": "Daily Trend",
+    "noData": "No usage records yet",
+    "colName": "Name",
+    "colCompletion": "Completion",
+    "colTotal": "Total",
+    "colCalls": "Calls",
+    "services": {
+      "analysis": "Deep Analysis",
+      "chat": "Chat",
+      "summary": "Summary",
+      "extraction": "Extraction",
+      "keyword": "Keywords",
+      "unknown": "Other"
+    }
+  },
+  "symbols": {
+    "searchPlaceholder": "Search imagery…",
+    "all": "All",
+    "noData": "No imagery data",
+    "noResults": "No matching results",
+    "chapterDist": "Chapter Distribution",
+    "firstSeen": "First seen Ch. {{chapter}}",
+    "coOccurrences": "Co-occurring Imagery",
+    "noCoOccurrences": "No co-occurrence data",
+    "occurrences": "Occurrences",
+    "occurrenceCount": "{{count}} entries",
+    "noOccurrences": "No occurrence records",
+    "frequency": "{{count}} occurrences",
+    "aliases": "Aliases: ",
+    "selectPrompt": "Select imagery on the left to view details",
+    "emptyTitle": "No symbol imagery data",
+    "emptyHint": "Re-upload the book to run imagery extraction",
+    "types": {
+      "object": "Object",
+      "nature": "Nature",
+      "spatial": "Space",
+      "body": "Body",
+      "color": "Color",
+      "other": "Other"
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "recentlyOpened": "最近開啟",
+  "allBooks": "書庫",
+  "uploadNew": "上傳新書",
+  "filters": {
+    "all": "全部",
+    "analyzed": "已分析",
+    "ready": "已就緒",
+    "processing": "處理中"
+  },
+  "empty": {
+    "title": "書庫尚無書籍",
+    "description": "上傳一本小說，開始智能分析之旅。"
+  },
+  "card": {
+    "chapters": "章",
+    "entities": "實體",
+    "deleteBook": "刪除書籍"
+  },
+  "shortcuts": {
+    "continueReading": "繼續閱讀",
+    "knowledgeGraph": "知識圖譜",
+    "deepAnalysis": "深度分析",
+    "startReading": "開始閱讀",
+    "triggerAnalysis": "觸發分析",
+    "viewProgress": "查看處理進度",
+    "viewError": "查看錯誤"
+  }
+}
