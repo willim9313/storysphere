@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, AlertTriangle } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
-import { triggerEventAnalysis, deleteEventAnalysis, triggerBatchEventAnalysis } from '@/api/analysis';
-import { AnalysisAccordion } from '@/components/analysis/AnalysisAccordion';
+import { triggerEventAnalysis, deleteEventAnalysis, triggerBatchEventAnalysis, fetchEventAnalysisDetail } from '@/api/analysis';
 import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
-import { AnalyzedItem, UnanalyzedItem, parseSections } from '@/components/analysis/AnalysisListItems';
+import { EventAnalysisDetail } from '@/components/analysis/EventAnalysisDetail';
+import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
@@ -39,6 +39,12 @@ export default function EventAnalysisPage() {
 
   const { data: evtData, isLoading } = useEventAnalysis(bookId);
 
+  const { data: eventDetail, isLoading: detailLoading } = useQuery({
+    queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
+    queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
+    enabled: !!bookId && !!selectedEntityId,
+  });
+
   const triggerMutation = useMutation({
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id),
     onSuccess: (data) => { setTriggerError(null); setGenerateTaskId(data.taskId); },
@@ -56,10 +62,11 @@ export default function EventAnalysisPage() {
   useEffect(() => {
     if (genTask?.status === 'done') {
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'] });
       setGenerateTaskId(null);
       setGeneratingId(null);
     }
-  }, [genTask?.status, bookId, queryClient]);
+  }, [genTask?.status, bookId, selectedEntityId, queryClient]);
 
   const batchMutation = useMutation({
     mutationFn: () => triggerBatchEventAnalysis(bookId!),
@@ -90,7 +97,6 @@ export default function EventAnalysisPage() {
     }
   }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient]);
 
-  const selectedAnalyzed = evtData?.analyzed.find((a) => a.entityId === selectedEntityId);
   const selectedUnanalyzed = evtData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
   const filterFn = (name: string) =>
@@ -178,14 +184,16 @@ export default function EventAnalysisPage() {
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto p-6">
-        {selectedEntityId && selectedAnalyzed ? (
+        {selectedEntityId && detailLoading ? (
+          <LoadingSpinner />
+        ) : selectedEntityId && eventDetail ? (
           <>
             <div className="flex items-center justify-between mb-6">
               <h2
                 className="text-xl font-bold"
                 style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
               >
-                {selectedAnalyzed.title}
+                {eventDetail.title}
               </h2>
               <button
                 className="btn btn-secondary text-xs"
@@ -194,7 +202,7 @@ export default function EventAnalysisPage() {
                 覆蓋重新生成
               </button>
             </div>
-            <AnalysisAccordion sections={parseSections(selectedAnalyzed.content)} />
+            <EventAnalysisDetail data={eventDetail} />
           </>
         ) : genTask?.status === 'error' ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">

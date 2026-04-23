@@ -6,9 +6,8 @@ import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis } from '@/api/analysis';
-import { AnalysisAccordion } from '@/components/analysis/AnalysisAccordion';
-import { AnalyzedItem, UnanalyzedItem, parseSections } from '@/components/analysis/AnalysisListItems';
-import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import { CharacterAnalysisDetail } from '@/components/analysis/CharacterAnalysisDetail';
+import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
@@ -162,7 +161,9 @@ export default function CharacterAnalysisPage() {
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto p-6">
-        {selectedEntityId && selectedAnalyzed ? (
+        {selectedEntityId && analysisLoading ? (
+          <LoadingSpinner />
+        ) : selectedEntityId && entityAnalysis ? (
           <>
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center gap-3">
@@ -170,16 +171,18 @@ export default function CharacterAnalysisPage() {
                   className="text-xl font-bold"
                   style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
                 >
-                  {selectedAnalyzed.title}
+                  {entityAnalysis.entityName}
                 </h2>
-                <span
-                  className="text-xs px-2 py-0.5 rounded-full"
-                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-muted)' }}
-                >
-                  {selectedAnalyzed.framework.toUpperCase()}
-                </span>
+                {selectedAnalyzed && (
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-muted)' }}
+                  >
+                    {selectedAnalyzed.framework.toUpperCase()}
+                  </span>
+                )}
                 <Link
-                  to={`/books/${bookId}/graph?entity=${selectedAnalyzed.entityId}`}
+                  to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
                   className="text-xs flex items-center gap-1"
                   style={{ color: 'var(--accent)' }}
                 >
@@ -194,20 +197,8 @@ export default function CharacterAnalysisPage() {
                 覆蓋重新生成
               </button>
             </div>
-            <AnalysisAccordion sections={parseSections(selectedAnalyzed.content)} />
+            <CharacterAnalysisDetail data={entityAnalysis} />
           </>
-        ) : selectedEntityId && analysisLoading ? (
-          <LoadingSpinner />
-        ) : selectedEntityId && entityAnalysis ? (
-          <div>
-            <h2
-              className="text-xl font-bold mb-4"
-              style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
-            >
-              {entityAnalysis.entityName}
-            </h2>
-            <MarkdownRenderer content={entityAnalysis.content} />
-          </div>
         ) : genTask?.status === 'error' ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">
             <AlertTriangle size={24} style={{ color: 'var(--color-danger, #e53e3e)' }} />

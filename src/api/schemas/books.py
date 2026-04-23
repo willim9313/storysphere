@@ -266,6 +266,47 @@ class EntityAnalysisResponse(BaseModel):
     generated_at: str
 
 
+class CepResponse(BaseModel):
+    model_config = _CAMEL
+
+    actions: list[str] = []
+    traits: list[str] = []
+    relations: list[dict[str, str]] = []
+    key_events: list[dict[str, Any]] = []
+    quotes: list[str] = []
+    top_terms: dict[str, float] = {}
+
+
+class ArchetypeDetailResponse(BaseModel):
+    model_config = _CAMEL
+
+    framework: str
+    primary: str
+    secondary: str | None = None
+    confidence: float = 0.0
+    evidence: list[str] = []
+
+
+class ArcSegmentResponse(BaseModel):
+    model_config = _CAMEL
+
+    chapter_range: str
+    phase: str
+    description: str
+
+
+class CharacterAnalysisDetailResponse(BaseModel):
+    model_config = _CAMEL
+
+    entity_id: str
+    entity_name: str
+    profile_summary: str
+    archetypes: list[ArchetypeDetailResponse] = []
+    cep: CepResponse | None = None
+    arc: list[ArcSegmentResponse] = []
+    generated_at: str
+
+
 # ── Entity chunks ────────────────────────────────────────────────────────────
 
 

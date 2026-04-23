@@ -24,6 +24,10 @@ from api.schemas.books import (
     BookResponse,
     ChapterResponse,
     ChunkResponse,
+    ArcSegmentResponse,
+    ArchetypeDetailResponse,
+    CepResponse,
+    CharacterAnalysisDetailResponse,
     EntityAnalysisResponse,
     EntityChunkItem,
     EntityChunksResponse,
@@ -843,7 +847,7 @@ async def get_entity_chunks(
 
 @router.get(
     "/{book_id}/entities/{entity_id}/analysis",
-    response_model=EntityAnalysisResponse,
+    response_model=CharacterAnalysisDetailResponse,
 )
 async def get_entity_analysis(
     book_id: str,
@@ -851,7 +855,7 @@ async def get_entity_analysis(
     cache: AnalysisCacheDep,
     kg: KGServiceDep,
 ) -> dict:
-    """Get analysis result for a specific entity."""
+    """Get full analysis result for a specific character entity."""
     entity = await kg.get_entity(entity_id)
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
@@ -863,10 +867,36 @@ async def get_entity_analysis(
             logger.info("Entity analysis cache HIT: key=%s", cache_key)
             from services.analysis_models import CharacterAnalysisResult
             result = CharacterAnalysisResult.model_validate(cached)
-            return EntityAnalysisResponse(
+            return CharacterAnalysisDetailResponse(
                 entity_id=entity_id,
                 entity_name=entity.name,
-                content=result.profile.summary if result.profile else "",
+                profile_summary=result.profile.summary if result.profile else "",
+                archetypes=[
+                    ArchetypeDetailResponse(
+                        framework=a.framework,
+                        primary=a.primary,
+                        secondary=a.secondary,
+                        confidence=a.confidence,
+                        evidence=a.evidence,
+                    )
+                    for a in result.archetypes
+                ],
+                cep=CepResponse(
+                    actions=result.cep.actions,
+                    traits=result.cep.traits,
+                    relations=result.cep.relations,
+                    key_events=result.cep.key_events,
+                    quotes=result.cep.quotes,
+                    top_terms=result.cep.top_terms,
+                ) if result.cep else None,
+                arc=[
+                    ArcSegmentResponse(
+                        chapter_range=seg.chapter_range,
+                        phase=seg.phase,
+                        description=seg.description,
+                    )
+                    for seg in result.arc
+                ],
                 generated_at=(
                     result.analyzed_at.isoformat() if result.analyzed_at else _now_iso()
                 ),

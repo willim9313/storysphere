@@ -1,7 +1,7 @@
 import { MOCK_ENABLED } from './mock';
 import { apiFetch, apiDelete } from './client';
 import * as mock from './mock/mockClient';
-import type { AnalysisListResponse, EntityAnalysis, EventAnalysisDetail } from './types';
+import type { AnalysisListResponse, CharacterAnalysisDetail, EventAnalysisDetail } from './types';
 
 // #6 — Trigger full-book analysis
 export function triggerBookAnalysis(bookId: string): Promise<{ taskId: string }> {
@@ -34,13 +34,13 @@ export function regenerateAnalysis(
   );
 }
 
-// #7a — Entity analysis detail
+// #7a — Entity analysis detail (full structured result)
 export function fetchEntityAnalysis(
   bookId: string,
   entityId: string,
-): Promise<EntityAnalysis> {
-  if (MOCK_ENABLED) return mock.fetchEntityAnalysis(bookId, entityId);
-  return apiFetch<EntityAnalysis>(`/books/${bookId}/entities/${entityId}/analysis`);
+): Promise<CharacterAnalysisDetail> {
+  if (MOCK_ENABLED) return mock.fetchEntityAnalysis(bookId, entityId) as Promise<CharacterAnalysisDetail>;
+  return apiFetch<CharacterAnalysisDetail>(`/books/${bookId}/entities/${entityId}/analysis`);
 }
 
 // #7b — Trigger entity analysis

@@ -162,6 +162,39 @@ export interface EntityAnalysis {
   generatedAt: string;
 }
 
+export interface CepData {
+  actions: string[];
+  traits: string[];
+  relations: Array<{ target: string; type: string; description: string }>;
+  keyEvents: Array<Record<string, unknown>>;
+  quotes: string[];
+  topTerms: Record<string, number>;
+}
+
+export interface ArchetypeDetail {
+  framework: string;
+  primary: string;
+  secondary: string | null;
+  confidence: number;
+  evidence: string[];
+}
+
+export interface ArcSegment {
+  chapterRange: string;
+  phase: string;
+  description: string;
+}
+
+export interface CharacterAnalysisDetail {
+  entityId: string;
+  entityName: string;
+  profileSummary: string;
+  archetypes: ArchetypeDetail[];
+  cep: CepData | null;
+  arc: ArcSegment[];
+  generatedAt: string;
+}
+
 // ── Tasks ───────────────────────────────────────────────────────
 
 export interface TaskStatus {
