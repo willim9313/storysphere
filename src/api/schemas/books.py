@@ -190,7 +190,7 @@ class EepResponse(BaseModel):
     thematic_significance: str
     text_evidence: list[str]
     key_quotes: list[str]
-    top_terms: list[str]
+    top_terms: dict[str, float]
 
 
 class CausalityResponse(BaseModel):
@@ -206,7 +206,7 @@ class ImpactResponse(BaseModel):
     model_config = _CAMEL
 
     affected_participant_ids: list[str]
-    participant_impacts: dict[str, str]
+    participant_impacts: list[str]
     relation_changes: list[str]
     subsequent_event_ids: list[str]
     impact_summary: str
