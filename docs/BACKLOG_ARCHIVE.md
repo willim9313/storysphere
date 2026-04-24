@@ -306,6 +306,99 @@
 
 ---
 
+## I 系列（多語系 / i18n）— I-01 ~ I-07 ✅ 完成（2026-04-24）
+
+**技術選型**: `react-i18next` + `i18next`
+**完成範圍**: I-01 基礎設置、I-02 共用字串、I-03 導覽 & 書庫、I-04 上傳 & 處理、I-05 深度分析、I-06 張力 & 時間軸、I-07 圖譜 & 閱讀器
+**字串數**: 約 240–260 個（共 9 個 namespace JSON 檔）
+**剩餘**: I-08（settings/chat，~75 字串）、I-09（frameworks 特殊處理，~142+ 字串）
+
+### I-01：基礎設置
+
+**工作量**: ~1–2 小時
+**內容**:
+- `cd frontend && npm install react-i18next i18next`
+- 建立 `frontend/src/i18n/index.ts` — 初始化 i18next（語言偵測、fallback=en）
+- 建立翻譯檔目錄結構：
+  ```
+  frontend/src/i18n/
+    index.ts
+    locales/
+      zh-TW/
+        common.json     ← 共用字串（取消、確認、載入中…）
+        nav.json        ← 導覽 / Sidebar
+        library.json    ← 書庫相關
+        upload.json     ← 上傳相關
+        analysis.json   ← 深度分析
+        graph.json      ← 圖譜
+        reader.json     ← 閱讀器
+        settings.json   ← 設定 / Token 用量
+        chat.json       ← 對話介面
+        frameworks.json ← 框架索引（大量靜態內容）
+      en/
+        (同上結構)
+  ```
+- `frontend/src/main.tsx` 引入 `i18n/index.ts`
+- Sidebar 新增語言切換按鈕（zh-TW / EN），以 `i18n.changeLanguage()` 切換
+
+---
+
+### I-02：共用字串（common.json）
+
+**工作量**: ~1 小時
+**涉及元件**: `components/ui/ConfirmDialog.tsx`、`components/library/StatusBadge.tsx`、`components/analysis/AnalysisListItems.tsx`
+**預估字串數**: ~20 個
+**代表字串**: 取消、確認、載入中…、搜尋…、重試、錯誤、已分析、尚未分析、處理中、已就緒、已完成、建立、觸發分析失敗，請稍後再試。
+
+---
+
+### I-03：導覽 & 書庫（nav.json + library.json）
+
+**工作量**: ~1.5 小時
+**涉及元件**: `components/layout/Sidebar.tsx`、`components/layout/BookNav.tsx`、`pages/LibraryPage.tsx`、`components/library/BookCard.tsx`、`components/library/EmptyLibrary.tsx`、`components/library/RecentBookCard.tsx`
+**預估字串數**: ~45 個
+**代表字串**: 書庫、上傳、框架索引、Token 用量、系統設定、閱讀、角色分析、事件分析、知識圖譜、時間軸、張力分析、符號意象、展開卷軸、最近開啟、全部、已分析、上傳新書、繼續閱讀、開始閱讀、查看處理進度、確認、取消、刪除書籍
+
+---
+
+### I-04：上傳 & 處理（upload.json）
+
+**工作量**: ~1 小時
+**涉及元件**: `pages/UploadPage.tsx`、`components/upload/DropZone.tsx`、`components/upload/ProcessingTimeline.tsx`
+**預估字串數**: ~25 個
+**代表字串**: 上傳 & 處理進度、書籍名稱、作者、留空則由系統自動從文件 metadata 獲取、取消、確認上傳、進入書籍、拖曳 PDF 至此，或點擊選擇檔案、支援 .pdf 格式、PDF 解析、語言偵測、摘要生成、特徵提取、知識圖譜、符號探索、資料儲存
+
+---
+
+### I-05：深度分析（analysis.json）
+
+**工作量**: ~2 小時
+**涉及元件**: `pages/CharacterAnalysisPage.tsx`、`pages/EventAnalysisPage.tsx`、`components/analysis/CharacterAnalysisDetail.tsx`、`components/analysis/EventAnalysisDetail.tsx`、`components/analysis/AnalysisListItems.tsx`、`components/analysis/BatchEepPanel.tsx`
+**預估字串數**: ~60 個
+**代表字串**: 已分析、尚未分析、搜尋…、選擇角色以查看或生成分析、生成分析、覆蓋重新生成、角色簡介、Jung 12 原型、Schmidt 45 原型、信心度、主要原型、發展弧線、事件摘要、事件前後狀態、結構角色、因果分析、根本原因、影響分析
+
+---
+
+### I-06：張力 & 時間軸（分散至 analysis.json）
+
+**工作量**: ~2 小時
+**涉及元件**: `pages/TensionPage.tsx`、`pages/TimelinePage.tsx`、`components/timeline/MatrixCanvas.tsx`
+**預估字串數**: ~55 個
+**代表字串**: 張力分析、Step 1–3 標題、待審核、已核准、已修改、已拒絕、核准、修改標籤、拒絕、儲存、全書張力主題命題、重新計算時序、計算中…、章節順序、故事時序、矩陣視圖、敘事順序 (Sjuzhet)、故事時序 (Fabula)、時序未計算
+
+---
+
+### I-07：圖譜 & 閱讀器（graph.json + reader.json）
+
+**工作量**: ~1.5 小時
+**涉及元件**: `pages/GraphPage.tsx`、`components/graph/GraphToolbar.tsx`、`components/graph/EntityDetailPanel.tsx`、`components/graph/EventDetailPanel.tsx`、`pages/ReaderPage.tsx`、`components/reader/BookOverview.tsx`、`components/reader/ChapterCard.tsx`
+**預估字串數**: ~35 個
+**代表字串**: 節點、關係、搜尋實體…、角色、地點、概念、事件、重置視圖、事件分析、深度分析、相關段落、實體資訊、生成分析、章節、Chunks、實體、關係、全書關鍵字、實體分佈
+
+**實作**: `frontend/src/i18n/locales/{zh-TW,en}/{common,nav,library,upload,analysis,graph,reader}.json`，35+ 個元件 / 頁面遷移至 `useTranslation()` hook
+
+---
+
 ## B-022 SEP Domain Model + 組裝 Pipeline ✅ 完成
 **背景**: 符號學原止於原始提取（`ImageryEntity` + 共現圖），缺乏結構化的語境 profile，無法作為 LLM 詮釋的輸入。本 ticket 對應 B-026（TEU 組裝）的符號學等價物，只做結構化、不做 LLM 詮釋。下游的 LLM 詮釋步驟拆分為 B-040。
 **前置依賴**: B-020, B-021（均已完成）
