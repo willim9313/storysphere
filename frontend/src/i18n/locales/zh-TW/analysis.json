@@ -226,5 +226,40 @@
       "tooltipUnranked": "未計算"
     }
   },
-  "unravelingLoadError": "無法載入展開卷軸資料"
+  "unravelingLoadError": "無法載入展開卷軸資料",
+  "unraveling": {
+    "status": {
+      "complete": "完整",
+      "partial": "部分",
+      "empty": "未建立"
+    },
+    "notBuilt": "未建立",
+    "kgFeatures": "KG 特徵",
+    "ranked": "已排序",
+    "counts": {
+      "chapters": "章節",
+      "paragraphs": "chunks",
+      "generated": "已產出",
+      "total": "總計",
+      "character": "人物",
+      "location": "地點",
+      "organization": "組織",
+      "object": "物件",
+      "other": "其他",
+      "ner": "NER 提取",
+      "inferred": "推斷",
+      "relations": "關係",
+      "events": "事件",
+      "events_classified": "已分類（kernel/satellite）",
+      "events_ranked": "已排序事件",
+      "total_events": "事件總數",
+      "temporal_relations": "時間關係",
+      "imagery_entities": "意象實體",
+      "symbol_occurrences": "符號出現次數",
+      "analyzed": "已分析",
+      "total_characters": "角色總數",
+      "has_ks_classification": "K/S 分類已建立",
+      "built": "已建立"
+    }
+  }
 }

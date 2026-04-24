@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { X } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { useTranslation, type TFunction } from 'react-i18next';
 import cytoscape from 'cytoscape';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
@@ -38,11 +38,9 @@ const STATUS: Record<NodeStatus, { bg: string; border: string; text: string }> =
   empty:    { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' },
 };
 
-const STATUS_LABEL: Record<NodeStatus, string> = {
-  complete: 'complete',
-  partial:  'partial',
-  empty:    'empty',
-};
+function statusLabel(t: TFunction, status: NodeStatus): string {
+  return t(`unraveling.status.${status}`);
+}
 
 // ── Cytoscape stylesheet ──────────────────────────────────────────────────────
 
@@ -142,8 +140,8 @@ const LAYER_SHAPE: Record<number, string> = {
 
 // ── Sublabel helpers ──────────────────────────────────────────────────────────
 
-function getSubLabel(n: UnravelingNode): string {
-  if (n.status === 'empty') return 'not built';
+function getSubLabel(t: TFunction, n: UnravelingNode): string {
+  if (n.status === 'empty') return t('unraveling.notBuilt');
   const check = n.status === 'complete' ? ' ✓' : '';
   switch (n.nodeId) {
     case 'summaries':
@@ -160,15 +158,15 @@ function getSubLabel(n: UnravelingNode): string {
       return `${n.counts.analyzed ?? 0} / ${n.counts.total_events ?? 0}`;
     case 'kg_temporal_relation':
     case 'chronological_rank':
-      return `${n.counts.events_ranked ?? 0} ranked${check}`;
+      return `${n.counts.events_ranked ?? 0} ${t('unraveling.ranked')}${check}`;
     case 'kg_event':
-      return `${n.counts.events ?? 0} events`;
+      return `${n.counts.events ?? 0} ${t('unraveling.counts.events')}`;
     case 'kg_entity':
-      return `${n.counts.total ?? 0} entities`;
+      return `${n.counts.total ?? 0} ${t('unraveling.counts.total')}`;
     case 'kg_concept':
-      return `${n.counts.total ?? 0} concepts`;
+      return `${n.counts.total ?? 0} ${t('unraveling.counts.total')}`;
     case 'kg_relation':
-      return `${n.counts.relations ?? 0} relations`;
+      return `${n.counts.relations ?? 0} ${t('unraveling.counts.relations')}`;
     default:
       return '';
   }
@@ -177,6 +175,7 @@ function getSubLabel(n: UnravelingNode): string {
 // ── Element builder ───────────────────────────────────────────────────────────
 
 function buildElements(
+  t: TFunction,
   manifest: UnravelingManifest,
 ): cytoscape.ElementDefinition[] {
   // Separate KG children from regular nodes
@@ -210,7 +209,7 @@ function buildElements(
       y = CANVAS_CENTER_Y + (idx - (total - 1) / 2) * NODE_Y_SPACING;
     }
     const { bg, border, text } = STATUS[n.status];
-    const sub = getSubLabel(n);
+    const sub = getSubLabel(t, n);
     const label = sub ? `${n.label}\n${sub}` : n.label;
 
     return {
@@ -229,7 +228,7 @@ function buildElements(
 
   // KG compound group (parent)
   const groupEl: cytoscape.ElementDefinition = {
-    data: { id: KG_GROUP_ID, label: 'KG Features' },
+    data: { id: KG_GROUP_ID, label: t('unraveling.kgFeatures') },
   };
 
   // KG child nodes — stacked below Layer 1 regular nodes, same x column
@@ -238,7 +237,7 @@ function buildElements(
   const kgChildEls: cytoscape.ElementDefinition[] = kgChildren.map((n, idx) => {
     const y = kgStartY + idx * NODE_Y_SPACING;
     const { bg, border, text } = STATUS[n.status];
-    const sub = getSubLabel(n);
+    const sub = getSubLabel(t, n);
     const label = sub ? `${n.label}\n${sub}` : n.label;
 
     return {
@@ -349,39 +348,11 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
 
 // ── Detail panel ──────────────────────────────────────────────────────────────
 
-const COUNT_LABELS: Record<string, string> = {
-  chapters: 'chapters',
-  paragraphs: 'chunks',
-  // summaries / keywords
-  generated: 'generated',
-  total: 'total',
-  // kg_entity
-  character: 'CHARACTER',
-  location: 'LOCATION',
-  organization: 'ORGANIZATION',
-  object: 'OBJECT',
-  other: 'OTHER',
-  // kg_concept
-  ner: 'NER extracted',
-  inferred: 'inferred',
-  // kg_relation / kg_event
-  relations: 'relations',
-  events: 'events',
-  events_classified: 'events classified (kernel/satellite)',
-  // kg_temporal_relation / chronological_rank
-  events_ranked: 'events ranked',
-  total_events: 'total events',
-  temporal_relations: 'temporal relations',
-  // symbols
-  imagery_entities: 'imagery entities',
-  symbol_occurrences: 'symbol occurrences',
-  // cep / eep / teu / character_analysis_result / causality / impact
-  analyzed: 'analyzed',
-  total_characters: 'total characters',
-  // narrative / hero journey / temporal_analysis / tension
-  has_ks_classification: 'K/S classification built',
-  built: 'built',
-};
+function countLabel(t: TFunction, key: string): string {
+  const k = `unraveling.counts.${key}`;
+  const val = t(k, { defaultValue: '' });
+  return val || key;
+}
 
 interface DetailPanelProps {
   node: UnravelingNode;
@@ -389,6 +360,7 @@ interface DetailPanelProps {
 }
 
 function NodeDetailPanel({ node, onClose }: Readonly<DetailPanelProps>) {
+  const { t } = useTranslation('analysis');
   const { bg, border, text } = STATUS[node.status];
 
   return (
@@ -417,7 +389,7 @@ function NodeDetailPanel({ node, onClose }: Readonly<DetailPanelProps>) {
             className="text-xs px-2 py-0.5 rounded-full font-medium"
             style={{ backgroundColor: bg, color: text, border: `1px solid ${border}` }}
           >
-            {STATUS_LABEL[node.status]}
+            {statusLabel(t, node.status)}
           </span>
         </div>
         <button
@@ -437,7 +409,7 @@ function NodeDetailPanel({ node, onClose }: Readonly<DetailPanelProps>) {
             className="flex items-center justify-between text-xs"
             style={{ color: 'var(--fg-secondary)' }}
           >
-            <span>{COUNT_LABELS[key] ?? key}</span>
+            <span>{countLabel(t, key)}</span>
             <span
               className="font-mono font-semibold"
               style={{ color: 'var(--fg-primary)' }}
@@ -466,6 +438,7 @@ function NodeDetailPanel({ node, onClose }: Readonly<DetailPanelProps>) {
 // ── Legend ────────────────────────────────────────────────────────────────────
 
 function Legend() {
+  const { t } = useTranslation('analysis');
   return (
     <div
       className="absolute bottom-4 left-4 flex items-center gap-4 px-3 py-2 rounded-lg text-xs"
@@ -482,7 +455,7 @@ function Legend() {
               className="w-3 h-3 rounded-sm"
               style={{ backgroundColor: bg, border: `1px solid ${border}` }}
             />
-            <span style={{ color: text }}>{STATUS_LABEL[status]}</span>
+            <span style={{ color: text }}>{statusLabel(t, status)}</span>
           </div>
         ),
       )}
@@ -508,7 +481,7 @@ export default function UnravelingPage() {
   if (error) return <ErrorMessage message={t('unravelingLoadError')} />;
   if (!data) return null;
 
-  const elements = buildElements(data);
+  const elements = buildElements(t, data);
 
   return (
     <div className="flex h-full" style={{ minHeight: 0 }}>

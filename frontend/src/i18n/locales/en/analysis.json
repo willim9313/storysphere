@@ -226,5 +226,40 @@
       "tooltipUnranked": "Unranked"
     }
   },
-  "unravelingLoadError": "Failed to load unraveling data"
+  "unravelingLoadError": "Failed to load unraveling data",
+  "unraveling": {
+    "status": {
+      "complete": "complete",
+      "partial": "partial",
+      "empty": "not built"
+    },
+    "notBuilt": "not built",
+    "kgFeatures": "KG Features",
+    "ranked": "ranked",
+    "counts": {
+      "chapters": "chapters",
+      "paragraphs": "chunks",
+      "generated": "generated",
+      "total": "total",
+      "character": "CHARACTER",
+      "location": "LOCATION",
+      "organization": "ORGANIZATION",
+      "object": "OBJECT",
+      "other": "OTHER",
+      "ner": "NER extracted",
+      "inferred": "inferred",
+      "relations": "relations",
+      "events": "events",
+      "events_classified": "events classified (kernel/satellite)",
+      "events_ranked": "events ranked",
+      "total_events": "total events",
+      "temporal_relations": "temporal relations",
+      "imagery_entities": "imagery entities",
+      "symbol_occurrences": "symbol occurrences",
+      "analyzed": "analyzed",
+      "total_characters": "total characters",
+      "has_ks_classification": "K/S classification built",
+      "built": "built"
+    }
+  }
 }
