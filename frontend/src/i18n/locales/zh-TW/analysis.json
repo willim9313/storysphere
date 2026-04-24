@@ -35,7 +35,8 @@
     "primaryArchetype": "主要原型",
     "secondaryArchetype": "次要",
     "evidence": "依據",
-    "chapter": "第 {{range}} 章"
+    "chapter": "第 {{range}} 章",
+    "noData": "（無對應資訊）"
   },
   "event": {
     "batchTitle": "批次生成事件 EEP",
@@ -228,6 +229,10 @@
   },
   "unravelingLoadError": "無法載入展開卷軸資料",
   "unraveling": {
+    "info": {
+      "title": "資料底層架構",
+      "body": "本頁呈現驅動所有分析功能的完整資料處理流程。每個節點代表一個已處理的資料結構——從原始文本切片與關鍵詞擷取，到知識圖譜建構，再到角色分析與事件因果鏈推論。節點顏色反映建構狀態：已完成、部分完成，或尚未建構。點擊任意節點可查看詳細數據。"
+    },
     "status": {
       "complete": "完整",
       "partial": "部分",

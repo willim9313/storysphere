@@ -35,7 +35,8 @@
     "primaryArchetype": "Primary Archetype",
     "secondaryArchetype": "Secondary",
     "evidence": "Evidence",
-    "chapter": "Ch. {{range}}"
+    "chapter": "Ch. {{range}}",
+    "noData": "(No data available)"
   },
   "event": {
     "batchTitle": "Batch Generate Event EEP",
@@ -228,6 +229,10 @@
   },
   "unravelingLoadError": "Failed to load unraveling data",
   "unraveling": {
+    "info": {
+      "title": "Data Foundation",
+      "body": "This view maps the complete data pipeline underlying every analysis on this book. Each node represents a processed data structure — from raw text chunks and extracted keywords, through the Knowledge Graph, up to character profiles and event causality chains. Node color reflects build status: complete, partial, or not yet built. Click any node to inspect its details."
+    },
     "status": {
       "complete": "complete",
       "partial": "partial",

@@ -435,6 +435,33 @@ function NodeDetailPanel({ node, onClose }: Readonly<DetailPanelProps>) {
   );
 }
 
+// ── Info panel ────────────────────────────────────────────────────────────────
+
+function InfoPanel() {
+  const { t } = useTranslation('analysis');
+  return (
+    <div
+      className="flex-shrink-0 flex flex-col gap-3 p-5"
+      style={{
+        width: 220,
+        borderRight: '1px solid var(--border)',
+        backgroundColor: 'var(--bg-secondary)',
+        color: 'var(--fg-secondary)',
+      }}
+    >
+      <p
+        className="text-sm font-semibold"
+        style={{ color: 'var(--fg-primary)' }}
+      >
+        {t('unraveling.info.title')}
+      </p>
+      <p className="text-xs leading-relaxed">
+        {t('unraveling.info.body')}
+      </p>
+    </div>
+  );
+}
+
 // ── Legend ────────────────────────────────────────────────────────────────────
 
 function Legend() {
@@ -485,6 +512,9 @@ export default function UnravelingPage() {
 
   return (
     <div className="flex h-full" style={{ minHeight: 0 }}>
+      {/* Info Panel */}
+      <InfoPanel />
+
       {/* DAG Canvas */}
       <div className="relative flex-1" style={{ minHeight: 0 }}>
         <UnravelingCanvas
