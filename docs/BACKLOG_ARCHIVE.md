@@ -306,12 +306,31 @@
 
 ---
 
-## I 系列（多語系 / i18n）— I-01 ~ I-07 ✅ 完成（2026-04-24）
+## I 系列（多語系 / i18n）— I-01 ~ I-09 ✅ 全部完成（2026-04-24）
 
 **技術選型**: `react-i18next` + `i18next`
-**完成範圍**: I-01 基礎設置、I-02 共用字串、I-03 導覽 & 書庫、I-04 上傳 & 處理、I-05 深度分析、I-06 張力 & 時間軸、I-07 圖譜 & 閱讀器
-**字串數**: 約 240–260 個（共 9 個 namespace JSON 檔）
-**剩餘**: I-08（settings/chat，~75 字串）、I-09（frameworks 特殊處理，~142+ 字串）
+**完成範圍**: 所有 9 個 ticket，涵蓋前端全部 35+ 元件 / 頁面
+**字串數**: 約 380–420 個（共 10 個 namespace JSON 檔 + frameworksData.ts 雙語資料）
+
+### I-08：其餘頁面（settings.json + chat.json）
+
+**工作量**: ~2 小時
+**涉及元件**: `pages/SettingsPage.tsx`、`pages/TokenUsagePage.tsx`、`pages/SymbolsPage.tsx`、`pages/UnravelingPage.tsx`、`components/chat/ChatWindow.tsx`
+**預估字串數**: ~75 個
+**實作說明**: SettingsPage / TokenUsagePage / SymbolsPage / ChatWindow 在 I-01~I-07 commit 時已順帶完成。UnravelingPage 的 `STATUS_LABEL`、`COUNT_LABELS`、`'not built'`、`'KG Features'` 在 I-08 專屬 commit 中遷移，新增 `unraveling.*` keys 至 analysis.json，並將 module-level const 重構為 `t()`-backed helper function（`statusLabel`、`countLabel`），TFunction 透過 `buildElements` 和 `getSubLabel` 參數傳入以支援 cytoscape canvas 標籤翻譯。
+
+### I-09：框架索引頁（frameworks.json）⚠️ 特殊處理
+
+**工作量**: ~3 小時
+**涉及元件**: `pages/FrameworksPage.tsx`
+**預估字串數**: 142+ 個（最大單頁）
+**實作說明**: 採用雙層策略。UI 骨架字串（目錄、參考文獻、全站提示）存於 `frameworks.json` namespace。大量靜態內容資料（Jung/Schmidt 原型、英雄旅程、Frye/Booker 框架、SEP 步驟，共 6 個 framework × zh-TW + en）提取至 `src/data/frameworksData.ts`，以 `getFrameworks(lang)` 根據語言回傳對應資料集，FrameworksPage 透過 `i18n.language` 取得當前語言並載入對應資料。
+
+**實作**: `frontend/src/data/frameworksData.ts`（Framework 介面 + FRAMEWORKS_ZH + FRAMEWORKS_EN + getFrameworks）, `frontend/src/i18n/locales/{zh-TW,en}/frameworks.json`, `frontend/src/i18n/index.ts`（新增 frameworks namespace）
+
+---
+
+### I-01 ~ I-07 詳細內容
 
 ### I-01：基礎設置
 

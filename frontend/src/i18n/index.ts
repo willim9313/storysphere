@@ -10,6 +10,7 @@ import zhTWSettings from './locales/zh-TW/settings.json';
 import zhTWChat from './locales/zh-TW/chat.json';
 import zhTWGraph from './locales/zh-TW/graph.json';
 import zhTWReader from './locales/zh-TW/reader.json';
+import zhTWFrameworks from './locales/zh-TW/frameworks.json';
 
 import enCommon from './locales/en/common.json';
 import enNav from './locales/en/nav.json';
@@ -20,6 +21,7 @@ import enSettings from './locales/en/settings.json';
 import enChat from './locales/en/chat.json';
 import enGraph from './locales/en/graph.json';
 import enReader from './locales/en/reader.json';
+import enFrameworks from './locales/en/frameworks.json';
 
 const savedLang = localStorage.getItem('lang') ?? 'zh-TW';
 
@@ -37,6 +39,7 @@ i18n
         chat: zhTWChat,
         graph: zhTWGraph,
         reader: zhTWReader,
+        frameworks: zhTWFrameworks,
       },
       en: {
         common: enCommon,
@@ -48,6 +51,7 @@ i18n
         chat: enChat,
         graph: enGraph,
         reader: enReader,
+        frameworks: enFrameworks,
       },
     },
     lng: savedLang,
