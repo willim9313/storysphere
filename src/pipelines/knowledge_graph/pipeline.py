@@ -8,7 +8,7 @@ from dataclasses import dataclass, field
 
 from domain.documents import Document
 from domain.entities import Entity
-from domain.events import Event
+from domain.events import Event, EventType
 from domain.relations import Relation
 from pipelines.base import BasePipeline
 
@@ -160,6 +160,9 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         self._log_step("paragraph_entity_link")
         self._paragraph_entity_linker.link(doc, unique_entities)
 
+        self._fill_relation_valid_to(all_relations)
+        self._fill_entity_valid_to(unique_entities, all_events)
+
         result = KGExtractionResult(
             entities=unique_entities,
             relations=all_relations,
@@ -196,3 +199,77 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
                 event.document_id = document_id
             await self._kg_service.add_event(event)
         logger.info("KGPipeline persisted to KGService")
+
+    # ── Timeline post-processing ─────────────────────────────────────────────
+
+    @staticmethod
+    def _fill_relation_valid_to(relations: list[Relation]) -> None:
+        """Set valid_to_chapter where a pair's relationship type changes.
+
+        Groups by (source_id, target_id), sorts by valid_from_chapter, and marks
+        each phase's end as the next phase's start. Consecutive same-type phases
+        are merged (duplicates dropped).
+        """
+        from collections import defaultdict  # noqa: PLC0415
+
+        pair_map: dict[tuple[str, str], list[Relation]] = defaultdict(list)
+        for rel in relations:
+            pair_map[(rel.source_id, rel.target_id)].append(rel)
+
+        to_remove = KnowledgeGraphPipeline._annotate_relation_phases(pair_map)
+        KnowledgeGraphPipeline._remove_merged_relations(relations, to_remove)
+
+    @staticmethod
+    def _annotate_relation_phases(
+        pair_map: dict[tuple[str, str], list[Relation]],
+    ) -> set[int]:
+        to_remove: set[int] = set()
+        for pair_rels in pair_map.values():
+            pair_rels.sort(key=lambda r: r.valid_from_chapter or 0)
+            i = 0
+            while i < len(pair_rels):
+                current = pair_rels[i]
+                j = i + 1
+                same_type = current.relation_type
+                while j < len(pair_rels) and pair_rels[j].relation_type == same_type:
+                    to_remove.add(id(pair_rels[j]))
+                    j += 1
+                if j < len(pair_rels):
+                    current.valid_to_chapter = pair_rels[j].valid_from_chapter
+                i = j
+        return to_remove
+
+    @staticmethod
+    def _remove_merged_relations(
+        relations: list[Relation], to_remove: set[int]
+    ) -> None:
+        i = 0
+        while i < len(relations):
+            if id(relations[i]) in to_remove:
+                relations.pop(i)
+            else:
+                i += 1
+
+    @staticmethod
+    def _fill_entity_valid_to(
+        entities: list[Entity], events: list[Event]
+    ) -> None:
+        """Set valid_to_chapter on entities that have a DEATH event.
+
+        valid_to is exclusive — entity absent from chapter after death.
+        Multiple death events: the last one wins.
+        """
+        entity_map = {e.id: e for e in entities}
+        for event in events:
+            if event.event_type != EventType.DEATH:
+                continue
+            for entity_id in event.participants:
+                entity = entity_map.get(entity_id)
+                if entity is None:
+                    continue
+                new_valid_to = event.chapter + 1
+                if (
+                    entity.valid_to_chapter is None
+                    or new_valid_to > entity.valid_to_chapter
+                ):
+                    entity.valid_to_chapter = new_valid_to

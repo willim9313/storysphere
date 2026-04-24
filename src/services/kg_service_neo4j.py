@@ -298,6 +298,35 @@ class Neo4jKGService(KGServiceBase):
                 rank=rank,
             )
 
+    async def update_event_chron_index(self, event_id: str, chron_index: int) -> None:
+        async with self._driver.session() as session:
+            await session.run(
+                "MATCH (ev:Event {id: $id}) SET ev.chron_index = $chron_index",
+                id=event_id,
+                chron_index=chron_index,
+            )
+
+    async def update_entity_chron_index(self, entity_id: str, first_chron_index: int) -> None:
+        async with self._driver.session() as session:
+            await session.run(
+                "MATCH (en:Entity {id: $id}) SET en.first_chron_index = $idx",
+                id=entity_id,
+                idx=first_chron_index,
+            )
+
+    async def list_relations(
+        self, document_id: str | None = None
+    ) -> list[Relation]:
+        raise NotImplementedError("list_relations not implemented for Neo4j backend")
+
+    async def get_snapshot(
+        self,
+        book_id: str,
+        mode: str,
+        position: int,
+    ) -> tuple:
+        raise NotImplementedError("get_snapshot not implemented for Neo4j backend")
+
     # ── Timeline / Path / Subgraph queries ──────────────────────────────────
 
     async def get_entity_timeline(

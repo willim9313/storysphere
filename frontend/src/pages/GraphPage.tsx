@@ -11,6 +11,7 @@ import { GraphCanvas } from '@/components/graph/GraphCanvas';
 import { GraphToolbar } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
 import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
+import { TimelineControls, type TimelineState } from '@/components/graph/TimelineControls';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
@@ -34,7 +35,8 @@ export default function GraphPage() {
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
   const { t: tStats } = useTranslation('graph');
-  const { data, isLoading, error } = useGraphData(bookId);
+  const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
+  const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleTypes, setVisibleTypes] = useState(new Set(ALL_TYPES));
@@ -136,6 +138,11 @@ export default function GraphPage() {
         onTypeToggle={handleTypeToggle}
         onReset={handleReset}
       />
+
+      {/* Timeline snapshot controls (bottom-left, above zoom) */}
+      {bookId && (
+        <TimelineControls bookId={bookId} onChange={setTimelineState} />
+      )}
 
       {/* Zoom controls (bottom-left) */}
       <div className="absolute bottom-4 left-4 flex flex-col gap-1 z-10">

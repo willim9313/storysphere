@@ -10,6 +10,7 @@ from domain.events import Event, EventType, NarrativeMode, StoryTimeRef
 from domain.relations import Relation, RelationType
 from domain.tension import TEU, TensionLine, TensionPole, TensionTheme
 from domain.temporal import TemporalRelation, TemporalRelationType
+from domain.timeline import TimelineConfig, TimelineDetectionResult
 
 __all__ = [
     "Entity",
@@ -32,4 +33,6 @@ __all__ = [
     "Paragraph",
     "ParagraphEntity",
     "FileType",
+    "TimelineConfig",
+    "TimelineDetectionResult",
 ]

@@ -90,6 +90,31 @@ class KGServiceBase(ABC):
     async def update_event_rank(self, event_id: str, rank: float) -> None:
         """Set the chronological_rank on an existing event."""
 
+    @abstractmethod
+    async def update_event_chron_index(self, event_id: str, chron_index: int) -> None:
+        """Set the chron_index on an existing event."""
+
+    @abstractmethod
+    async def update_entity_chron_index(
+        self, entity_id: str, first_chron_index: int
+    ) -> None:
+        """Set the first_chron_index on an existing entity."""
+
+    @abstractmethod
+    async def list_relations(
+        self, document_id: str | None = None
+    ) -> list[Relation]:
+        """Return all relations, optionally filtered by document."""
+
+    @abstractmethod
+    async def get_snapshot(
+        self,
+        book_id: str,
+        mode: str,
+        position: int,
+    ) -> tuple[list[Event], list[Entity], list[Relation]]:
+        """Return (events, entities, relations) visible at the given position."""
+
     # ── Timeline / Path / Subgraph queries ──────────────────────────────────
 
     @abstractmethod

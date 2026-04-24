@@ -64,6 +64,7 @@ class Event(BaseModel):
     narrative_mode: NarrativeMode = NarrativeMode.UNKNOWN
     story_time_hint: Optional[str] = None
     chronological_rank: Optional[float] = None
+    chron_index: Optional[int] = None   # 1-based story-world order; set by TemporalPipeline
 
     # --- Tension / emotional fields (B-023) ---
     tension_signal: Literal["none", "potential", "explicit"] = "none"

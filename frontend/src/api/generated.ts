@@ -135,10 +135,58 @@ export interface paths {
         /**
          * Get Book Graph
          * @description Get knowledge graph data for a book.
+         *
+         *     Optional snapshot parameters:
+         *     - mode: "chapter" (reading order) or "story" (chronological)
+         *     - position: chapter number or chron_index depending on mode
          */
         get: operations["get_book_graph_api_v1_books__book_id__graph_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/timeline-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Timeline Config
+         * @description Get the timeline snapshot configuration for a book.
+         */
+        get: operations["get_timeline_config_api_v1_books__book_id__timeline_config_get"];
+        /**
+         * Update Timeline Config
+         * @description Update (confirm or change) the timeline snapshot configuration.
+         */
+        put: operations["update_timeline_config_api_v1_books__book_id__timeline_config_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/detect-timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Detect Timeline
+         * @description Re-run timeline structure detection for a book.
+         */
+        post: operations["detect_timeline_api_v1_books__book_id__detect_timeline_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -274,7 +322,7 @@ export interface paths {
         };
         /**
          * Get Entity Analysis
-         * @description Get analysis result for a specific entity.
+         * @description Get full analysis result for a specific character entity.
          */
         get: operations["get_entity_analysis_api_v1_books__book_id__entities__entity_id__analysis_get"];
         put?: never;
@@ -416,6 +464,32 @@ export interface paths {
          *     Requires EEP (event analysis) to have been run first for best results.
          */
         post: operations["compute_book_timeline_api_v1_books__book_id__timeline_compute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/unraveling": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Data-layer transparency manifest (Unraveling)
+         * @description Return the Unraveling manifest for *book_id*.
+         *
+         *     Aggregates counts from DocumentService, KGService, AnalysisCache,
+         *     and SymbolService in two parallel rounds, then computes a status
+         *     (complete / partial / empty) for each DAG node.
+         *
+         *     All queries are read-only and involve no LLM calls.
+         */
+        get: operations["get_unraveling_api_v1_books__book_id__unraveling_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1301,6 +1375,98 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/symbols/{imagery_id}/sep": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Sep
+         * @description Return the Symbol Evidence Profile (SEP) for an imagery entity.
+         *
+         *     Pure data aggregation (no LLM). On cache miss the profile is assembled
+         *     from SymbolService + DocumentService + KGService and persisted under
+         *     ``sep:{book_id}:{imagery_id}``.
+         */
+        get: operations["get_sep_api_v1_symbols__imagery_id__sep_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/symbols/{imagery_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze Symbol
+         * @description Start LLM-based symbol interpretation (B-040).
+         *
+         *     Returns 202 with ``task_id``. Poll
+         *     ``GET /api/v1/symbols/{imagery_id}/analyze/{task_id}`` until
+         *     ``status`` is ``"completed"`` or ``"failed"``.
+         */
+        post: operations["analyze_symbol_api_v1_symbols__imagery_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/symbols/{imagery_id}/analyze/{task_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Symbol Analysis Task */
+        get: operations["get_symbol_analysis_task_api_v1_symbols__imagery_id__analyze__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/symbols/{imagery_id}/interpretation": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Symbol Interpretation
+         * @description Return the cached SymbolInterpretation for an imagery entity.
+         */
+        get: operations["get_symbol_interpretation_api_v1_symbols__imagery_id__interpretation_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Review Symbol Interpretation
+         * @description Update the review_status (and optionally theme/polarity) of a SymbolInterpretation.
+         *
+         *     Optionally override ``theme`` / ``polarity`` when
+         *     ``review_status`` is ``"modified"``.
+         */
+        patch: operations["review_symbol_interpretation_api_v1_symbols__imagery_id__interpretation_patch"];
+        trace?: never;
+    };
     "/api/v1/kg/status": {
         parameters: {
             query?: never;
@@ -1504,12 +1670,42 @@ export interface components {
              */
             concurrency: number;
         };
+        /** ArcSegmentResponse */
+        ArcSegmentResponse: {
+            /** Chapterrange */
+            chapterRange: string;
+            /** Phase */
+            phase: string;
+            /** Description */
+            description: string;
+        };
+        /** ArchetypeDetailResponse */
+        ArchetypeDetailResponse: {
+            /** Framework */
+            framework: string;
+            /** Primary */
+            primary: string;
+            /** Secondary */
+            secondary?: string | null;
+            /**
+             * Confidence
+             * @default 0
+             */
+            confidence: number;
+            /**
+             * Evidence
+             * @default []
+             */
+            evidence: string[];
+        };
         /** Body_ingest_document_api_v1_ingest__post */
         Body_ingest_document_api_v1_ingest__post: {
             /** File */
             file: string;
             /** Title */
             title: string;
+            /** Author */
+            author?: string | null;
             /** Language */
             language?: string | null;
         };
@@ -1519,6 +1715,8 @@ export interface components {
             file: string;
             /** Title */
             title?: string | null;
+            /** Author */
+            author?: string | null;
         };
         /** BookDetailResponse */
         BookDetailResponse: {
@@ -1605,6 +1803,78 @@ export interface components {
             uploadedAt: string;
             /** Lastopenedat */
             lastOpenedAt?: string | null;
+        };
+        /** CausalityResponse */
+        CausalityResponse: {
+            /** Rootcause */
+            rootCause: string;
+            /** Causalchain */
+            causalChain: string[];
+            /** Triggereventids */
+            triggerEventIds: string[];
+            /** Chainsummary */
+            chainSummary: string;
+        };
+        /** CepResponse */
+        CepResponse: {
+            /**
+             * Actions
+             * @default []
+             */
+            actions: string[];
+            /**
+             * Traits
+             * @default []
+             */
+            traits: string[];
+            /**
+             * Relations
+             * @default []
+             */
+            relations: {
+                [key: string]: string;
+            }[];
+            /**
+             * Keyevents
+             * @default []
+             */
+            keyEvents: {
+                [key: string]: unknown;
+            }[];
+            /**
+             * Quotes
+             * @default []
+             */
+            quotes: string[];
+            /**
+             * Topterms
+             * @default {}
+             */
+            topTerms: {
+                [key: string]: number;
+            };
+        };
+        /** CharacterAnalysisDetailResponse */
+        CharacterAnalysisDetailResponse: {
+            /** Entityid */
+            entityId: string;
+            /** Entityname */
+            entityName: string;
+            /** Profilesummary */
+            profileSummary: string;
+            /**
+             * Archetypes
+             * @default []
+             */
+            archetypes: components["schemas"]["ArchetypeDetailResponse"][];
+            cep?: components["schemas"]["CepResponse"] | null;
+            /**
+             * Arc
+             * @default []
+             */
+            arc: components["schemas"]["ArcSegmentResponse"][];
+            /** Generatedat */
+            generatedAt: string;
         };
         /** CharacterAnalysisRequest */
         CharacterAnalysisRequest: {
@@ -1698,7 +1968,7 @@ export interface components {
             /** Total Paragraphs */
             total_paragraphs: number;
             /** Chapters */
-            chapters: components["schemas"]["api__routers__documents__ChapterResponse"][];
+            chapters: components["schemas"]["api__schemas__documents__ChapterResponse"][];
         };
         /**
          * DocumentSummary
@@ -1712,16 +1982,54 @@ export interface components {
             /** File Type */
             file_type: string;
         };
-        /** EntityAnalysisResponse */
-        EntityAnalysisResponse: {
+        /** EdgeData */
+        EdgeData: {
+            /** Source */
+            source: string;
+            /** Target */
+            target: string;
+        };
+        /** EepParticipantRole */
+        EepParticipantRole: {
             /** Entityid */
             entityId: string;
             /** Entityname */
             entityName: string;
-            /** Content */
-            content: string;
-            /** Generatedat */
-            generatedAt: string;
+            /** Role */
+            role: string;
+            /** Impactdescription */
+            impactDescription: string;
+        };
+        /** EepResponse */
+        EepResponse: {
+            /** Statebefore */
+            stateBefore: string;
+            /** Stateafter */
+            stateAfter: string;
+            /** Causalfactors */
+            causalFactors: string[];
+            /** Prioreventids */
+            priorEventIds: string[];
+            /** Subsequenteventids */
+            subsequentEventIds: string[];
+            /** Participantroles */
+            participantRoles: components["schemas"]["EepParticipantRole"][];
+            /** Consequences */
+            consequences: string[];
+            /** Structuralrole */
+            structuralRole: string;
+            /** Eventimportance */
+            eventImportance: string;
+            /** Thematicsignificance */
+            thematicSignificance: string;
+            /** Textevidence */
+            textEvidence: string[];
+            /** Keyquotes */
+            keyQuotes: string[];
+            /** Topterms */
+            topTerms: {
+                [key: string]: number;
+            };
         };
         /** EntityChunkItem */
         EntityChunkItem: {
@@ -1822,6 +2130,22 @@ export interface components {
          * @enum {string}
          */
         EntityType: "character" | "location" | "organization" | "object" | "concept" | "other";
+        /** EventAnalysisFullResponse */
+        EventAnalysisFullResponse: {
+            /** Eventid */
+            eventId: string;
+            /** Title */
+            title: string;
+            eep: components["schemas"]["EepResponse"];
+            causality: components["schemas"]["CausalityResponse"];
+            impact: components["schemas"]["ImpactResponse"];
+            /** Summary */
+            summary: {
+                [key: string]: string;
+            };
+            /** Analyzedat */
+            analyzedAt?: string | null;
+        };
         /** EventAnalysisRequest */
         EventAnalysisRequest: {
             /**
@@ -1998,6 +2322,19 @@ export interface components {
             /** Book Id */
             book_id: string;
         };
+        /** ImpactResponse */
+        ImpactResponse: {
+            /** Affectedparticipantids */
+            affectedParticipantIds: string[];
+            /** Participantimpacts */
+            participantImpacts: string[];
+            /** Relationchanges */
+            relationChanges: string[];
+            /** Subsequenteventids */
+            subsequentEventIds: string[];
+            /** Impactsummary */
+            impactSummary: string;
+        };
         /** KgMigrateRequest */
         KgMigrateRequest: {
             /**
@@ -2050,6 +2387,33 @@ export interface components {
              * @enum {string}
              */
             review_status: "approved" | "rejected";
+        };
+        /** NodeData */
+        NodeData: {
+            /** Nodeid */
+            nodeId: string;
+            /** Layer */
+            layer: number;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "complete" | "partial" | "empty";
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /**
+             * Meta
+             * @default {}
+             */
+            meta: {
+                [key: string]: unknown;
+            };
+            /** Parentid */
+            parentId?: string | null;
         };
         /**
          * ParagraphResponse
@@ -2139,6 +2503,96 @@ export interface components {
          * @enum {string}
          */
         RelationType: "family" | "friendship" | "romance" | "enemy" | "ally" | "subordinate" | "located_in" | "member_of" | "owns" | "other";
+        /**
+         * SEP
+         * @description Symbol Evidence Profile — structured evidence for an imagery entity.
+         *
+         *     Assembled from SymbolService, DocumentService, and KGService with no LLM.
+         *     Persisted in AnalysisCache under key ``sep:{book_id}:{imagery_id}``.
+         */
+        SEP: {
+            /** Id */
+            id?: string;
+            /** Imagery Id */
+            imagery_id: string;
+            /** Book Id */
+            book_id: string;
+            /**
+             * Term
+             * @description Canonical imagery term
+             */
+            term: string;
+            /**
+             * Imagery Type
+             * @description ImageryType value
+             */
+            imagery_type: string;
+            /**
+             * Frequency
+             * @default 0
+             */
+            frequency: number;
+            /** Occurrence Contexts */
+            occurrence_contexts?: components["schemas"]["SEPOccurrenceContext"][];
+            /**
+             * Co Occurring Entity Ids
+             * @description Entity IDs mentioned in paragraphs where this imagery occurs
+             */
+            co_occurring_entity_ids?: string[];
+            /**
+             * Co Occurring Event Ids
+             * @description Event IDs occurring in chapters where this imagery appears
+             */
+            co_occurring_event_ids?: string[];
+            /**
+             * Chapter Distribution
+             * @description {chapter_num: count}
+             */
+            chapter_distribution?: {
+                [key: string]: number;
+            };
+            /**
+             * Peak Chapters
+             * @description Top chapters by occurrence frequency (descending)
+             */
+            peak_chapters?: number[];
+            /**
+             * Assembled By
+             * @default symbol_service_v1
+             */
+            assembled_by: string;
+            /**
+             * Assembled At
+             * Format: date-time
+             */
+            assembled_at?: string;
+        };
+        /**
+         * SEPOccurrenceContext
+         * @description A single imagery occurrence with its paragraph text and chapter location.
+         */
+        SEPOccurrenceContext: {
+            /** Occurrence Id */
+            occurrence_id: string;
+            /** Paragraph Id */
+            paragraph_id: string;
+            /** Chapter Number */
+            chapter_number: number;
+            /** Position */
+            position: number;
+            /**
+             * Paragraph Text
+             * @description Full paragraph text
+             * @default
+             */
+            paragraph_text: string;
+            /**
+             * Context Window
+             * @description ~200-char window around the term
+             * @default
+             */
+            context_window: string;
+        };
         /** SearchRequest */
         SearchRequest: {
             /** Bookid */
@@ -2189,6 +2643,115 @@ export interface components {
             edges: {
                 [key: string]: unknown;
             }[];
+        };
+        /** SymbolAnalysisRequest */
+        SymbolAnalysisRequest: {
+            /**
+             * Book Id
+             * @description Book document ID
+             */
+            book_id: string;
+            /**
+             * Language
+             * @description Output language
+             * @default en
+             */
+            language: string;
+            /**
+             * Force Refresh
+             * @description Bypass cache
+             * @default false
+             */
+            force_refresh: boolean;
+        };
+        /**
+         * SymbolInterpretation
+         * @description LLM-derived interpretation of an imagery symbol — B-040.
+         *
+         *     Consumes an SEP and produces a structured reading of the symbol's
+         *     thematic role. Persisted in AnalysisCache under
+         *     ``symbol_analysis:{book_id}:{imagery_id}`` with HITL review support
+         *     (analogous to TensionLine / TensionTheme).
+         */
+        SymbolInterpretation: {
+            /** Id */
+            id?: string;
+            /** Imagery Id */
+            imagery_id: string;
+            /** Book Id */
+            book_id: string;
+            /**
+             * Term
+             * @description Canonical imagery term
+             */
+            term: string;
+            /**
+             * Theme
+             * @description One-to-two sentence thematic proposition for the symbol
+             * @default
+             */
+            theme: string;
+            /**
+             * Polarity
+             * @default neutral
+             * @enum {string}
+             */
+            polarity: "positive" | "negative" | "neutral" | "mixed";
+            /**
+             * Evidence Summary
+             * @description 2-3 sentence synthesis grounded in SEP evidence
+             * @default
+             */
+            evidence_summary: string;
+            /**
+             * Linked Characters
+             * @description Entity IDs (characters) the symbol is most tied to
+             */
+            linked_characters?: string[];
+            /**
+             * Linked Events
+             * @description Event IDs where the symbol carries the most weight
+             */
+            linked_events?: string[];
+            /**
+             * Confidence
+             * @description LLM self-reported confidence
+             * @default 0
+             */
+            confidence: number;
+            /**
+             * Assembled By
+             * @default symbol_analysis_service_v1
+             */
+            assembled_by: string;
+            /**
+             * Assembled At
+             * Format: date-time
+             */
+            assembled_at?: string;
+            /**
+             * Review Status
+             * @default pending
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
+        };
+        /** SymbolInterpretationReviewRequest */
+        SymbolInterpretationReviewRequest: {
+            /**
+             * Book Id
+             * @description Book document ID
+             */
+            book_id: string;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "approved" | "modified" | "rejected";
+            /** Theme */
+            theme?: string | null;
+            /** Polarity */
+            polarity?: ("positive" | "negative" | "neutral" | "mixed") | null;
         };
         /** SymbolTimelineEntry */
         SymbolTimelineEntry: {
@@ -2245,6 +2808,12 @@ export interface components {
              * @default
              */
             stage: string;
+            /** Subprogress */
+            subProgress?: number | null;
+            /** Subtotal */
+            subTotal?: number | null;
+            /** Substage */
+            subStage?: string | null;
             /** Result */
             result?: {
                 [key: string]: unknown;
@@ -2266,6 +2835,32 @@ export interface components {
              * @default false
              */
             force: boolean;
+        };
+        /**
+         * TemporalCoverageStats
+         * @description Story-time coverage stats returned by ``NarrativeService.check_temporal_coverage``.
+         */
+        TemporalCoverageStats: {
+            /**
+             * Total Events
+             * @description Total events in the document
+             */
+            total_events: number;
+            /**
+             * Events With Hint
+             * @description Events that have a story_time_hint
+             */
+            events_with_hint: number;
+            /**
+             * Coverage
+             * @description Fraction of events with a hint (0.0–1.0)
+             */
+            coverage: number;
+            /**
+             * Coverage Sufficient
+             * @description True when coverage meets the minimum threshold for temporal analysis
+             */
+            coverage_sufficient: boolean;
         };
         /** TemporalRelationEntry */
         TemporalRelationEntry: {
@@ -2303,6 +2898,80 @@ export interface components {
             review_status: "approved" | "modified" | "rejected";
             /** Proposition */
             proposition?: string | null;
+        };
+        /** TimelineConfigResponse */
+        TimelineConfigResponse: {
+            /**
+             * Chaptermodeenabled
+             * @default false
+             */
+            chapterModeEnabled: boolean;
+            /**
+             * Storymodeenabled
+             * @default false
+             */
+            storyModeEnabled: boolean;
+            /**
+             * Defaultmode
+             * @default chapter
+             * @enum {string}
+             */
+            defaultMode: "chapter" | "story";
+            /**
+             * Totalchapters
+             * @default 0
+             */
+            totalChapters: number;
+            /**
+             * Totalevents
+             * @default 0
+             */
+            totalEvents: number;
+            /**
+             * Totalrankedevents
+             * @default 0
+             */
+            totalRankedEvents: number;
+            /**
+             * Chaptermodeconfigured
+             * @default false
+             */
+            chapterModeConfigured: boolean;
+            /**
+             * Storymodeconfigured
+             * @default false
+             */
+            storyModeConfigured: boolean;
+            /** Configuredat */
+            configuredAt?: string | null;
+        };
+        /** TimelineConfigUpdate */
+        TimelineConfigUpdate: {
+            /** Chaptermodeenabled */
+            chapterModeEnabled?: boolean | null;
+            /** Storymodeenabled */
+            storyModeEnabled?: boolean | null;
+            /** Defaultmode */
+            defaultMode?: ("chapter" | "story") | null;
+            /** Chaptermodeconfigured */
+            chapterModeConfigured?: boolean | null;
+            /** Storymodeconfigured */
+            storyModeConfigured?: boolean | null;
+        };
+        /** TimelineDetectionResponse */
+        TimelineDetectionResponse: {
+            /** Bookid */
+            bookId: string;
+            /** Chaptercount */
+            chapterCount: number;
+            /** Eventcount */
+            eventCount: number;
+            /** Rankedeventcount */
+            rankedEventCount: number;
+            /** Chaptermodeviable */
+            chapterModeViable: boolean;
+            /** Storymodeviable */
+            storyModeViable: boolean;
         };
         /** TimelineEntry */
         TimelineEntry: {
@@ -2414,6 +3083,15 @@ export interface components {
              */
             chapterCount: number;
         };
+        /** UnravelingManifest */
+        UnravelingManifest: {
+            /** Bookid */
+            bookId: string;
+            /** Nodes */
+            nodes: components["schemas"]["NodeData"][];
+            /** Edges */
+            edges: components["schemas"]["EdgeData"][];
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -2428,7 +3106,7 @@ export interface components {
             ctx?: Record<string, never>;
         };
         /** ChapterResponse */
-        api__routers__books__ChapterResponse: {
+        api__schemas__books__ChapterResponse: {
             /** Id */
             id: string;
             /** Bookid */
@@ -2457,7 +3135,7 @@ export interface components {
             } | null;
         };
         /** ChapterResponse */
-        api__routers__documents__ChapterResponse: {
+        api__schemas__documents__ChapterResponse: {
             /** Id */
             id: string;
             /** Number */
@@ -2632,7 +3310,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["api__routers__books__ChapterResponse"][];
+                    "application/json": components["schemas"]["api__schemas__books__ChapterResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -2680,7 +3358,10 @@ export interface operations {
     };
     get_book_graph_api_v1_books__book_id__graph_get: {
         parameters: {
-            query?: never;
+            query?: {
+                mode?: string | null;
+                position?: number | null;
+            };
             header?: never;
             path: {
                 book_id: string;
@@ -2696,6 +3377,103 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GraphDataResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_timeline_config_api_v1_books__book_id__timeline_config_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelineConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_timeline_config_api_v1_books__book_id__timeline_config_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TimelineConfigUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelineConfigResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detect_timeline_api_v1_books__book_id__detect_timeline_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelineDetectionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -2917,7 +3695,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EntityAnalysisResponse"];
+                    "application/json": components["schemas"]["CharacterAnalysisDetailResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3043,9 +3821,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["EventAnalysisFullResponse"];
                 };
             };
             /** @description Validation Error */
@@ -3172,6 +3948,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_unraveling_api_v1_books__book_id__unraveling_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnravelingManifest"];
                 };
             };
             /** @description Validation Error */
@@ -3998,9 +4805,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TemporalCoverageStats"];
                 };
             };
             /** @description Validation Error */
@@ -4597,6 +5402,176 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CoOccurrenceEntry"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_sep_api_v1_symbols__imagery_id__sep_get: {
+        parameters: {
+            query?: {
+                /** @description Bypass cache and re-assemble */
+                force?: boolean;
+            };
+            header?: never;
+            path: {
+                imagery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SEP"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_symbol_api_v1_symbols__imagery_id__analyze_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imagery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SymbolAnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_symbol_analysis_task_api_v1_symbols__imagery_id__analyze__task_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imagery_id: string;
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_symbol_interpretation_api_v1_symbols__imagery_id__interpretation_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+            };
+            header?: never;
+            path: {
+                imagery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SymbolInterpretation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    review_symbol_interpretation_api_v1_symbols__imagery_id__interpretation_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                imagery_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SymbolInterpretationReviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SymbolInterpretation"];
                 };
             };
             /** @description Validation Error */

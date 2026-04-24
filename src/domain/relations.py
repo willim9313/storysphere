@@ -32,3 +32,11 @@ class Relation(BaseModel):
     weight: float = Field(default=1.0, ge=0.0, le=1.0, description="Relationship strength")
     chapters: list[int] = Field(default_factory=list, description="Chapters where this appears")
     is_bidirectional: bool = False
+
+    # --- Timeline snapshot fields (F-02) ---
+    # Reading-order mode: which chapters this relation is active (inclusive start, exclusive end)
+    valid_from_chapter: Optional[int] = None
+    valid_to_chapter: Optional[int] = None   # exclusive; None = still active at end of book
+    # Story-chronology mode: filled in after TemporalPipeline runs
+    valid_from_chron_index: Optional[int] = None
+    valid_to_chron_index: Optional[int] = None  # exclusive

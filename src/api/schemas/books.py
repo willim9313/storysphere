@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from datetime import datetime
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -129,6 +130,44 @@ class GraphDataResponse(BaseModel):
 
     nodes: list[GraphNode] = []
     edges: list[GraphEdge] = []
+
+
+# ── Timeline config ──────────────────────────────────────────────────────────
+
+
+class TimelineConfigResponse(BaseModel):
+    model_config = _CAMEL
+
+    chapter_mode_enabled: bool = False
+    story_mode_enabled: bool = False
+    default_mode: Literal["chapter", "story"] = "chapter"
+    total_chapters: int = 0
+    total_events: int = 0
+    total_ranked_events: int = 0
+    chapter_mode_configured: bool = False
+    story_mode_configured: bool = False
+    configured_at: Optional[datetime] = None
+
+
+class TimelineConfigUpdate(BaseModel):
+    model_config = _CAMEL
+
+    chapter_mode_enabled: Optional[bool] = None
+    story_mode_enabled: Optional[bool] = None
+    default_mode: Optional[Literal["chapter", "story"]] = None
+    chapter_mode_configured: Optional[bool] = None
+    story_mode_configured: Optional[bool] = None
+
+
+class TimelineDetectionResponse(BaseModel):
+    model_config = _CAMEL
+
+    book_id: str
+    chapter_count: int
+    event_count: int
+    ranked_event_count: int
+    chapter_mode_viable: bool
+    story_mode_viable: bool
 
 
 # ── Event detail ─────────────────────────────────────────────────────────────

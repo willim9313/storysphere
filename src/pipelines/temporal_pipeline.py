@@ -119,7 +119,10 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
         for event_id, rank in ranks.items():
             await self._kg_service.update_event_rank(event_id, rank)
 
-        # 8. Persist
+        # 8. Assign chron_index and back-fill entity first_chron_index
+        await self._assign_chron_indices(document_id, ranks, events_dict)
+
+        # 9. Persist
         try:
             await self._kg_service.save()
         except Exception as exc:  # noqa: BLE001
@@ -133,6 +136,57 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
             result.events_ranked,
         )
         return result
+
+    async def _assign_chron_indices(
+        self,
+        document_id: str,
+        ranks: dict[str, float],
+        events_dict: dict[str, Any],
+    ) -> None:
+        """Assign 1-based chron_index to ranked events and back-fill entity first_chron_index."""
+        if not ranks:
+            return
+
+        sorted_ids = self._sort_by_rank(ranks, events_dict)
+        await self._write_event_chron_indices(sorted_ids, events_dict)
+        entity_first = self._build_entity_first_map(sorted_ids, events_dict)
+        await self._write_entity_chron_indices(entity_first)
+
+        logger.info(
+            "chron_index assigned for %d events, %d entities back-filled",
+            len(sorted_ids),
+            len(entity_first),
+        )
+
+    @staticmethod
+    def _sort_by_rank(ranks: dict[str, float], events_dict: dict[str, Any]) -> list[str]:
+        def _key(eid: str) -> tuple[float, int]:
+            evt = events_dict.get(eid)
+            return (ranks[eid], evt.chapter if evt is not None else 0)
+        return sorted(ranks, key=_key)
+
+    async def _write_event_chron_indices(
+        self, sorted_ids: list[str], events_dict: dict[str, Any]
+    ) -> None:
+        for idx, event_id in enumerate(sorted_ids, start=1):
+            await self._kg_service.update_event_chron_index(event_id, idx)
+
+    @staticmethod
+    def _build_entity_first_map(
+        sorted_ids: list[str], events_dict: dict[str, Any]
+    ) -> dict[str, int]:
+        entity_first: dict[str, int] = {}
+        for idx, event_id in enumerate(sorted_ids, start=1):
+            event = events_dict.get(event_id)
+            if event is None:
+                continue
+            for entity_id in event.participants:
+                entity_first.setdefault(entity_id, idx)
+        return entity_first
+
+    async def _write_entity_chron_indices(self, entity_first: dict[str, int]) -> None:
+        for entity_id, first_idx in entity_first.items():
+            await self._kg_service.update_entity_chron_index(entity_id, first_idx)
 
     async def _load_eep_map(
         self,

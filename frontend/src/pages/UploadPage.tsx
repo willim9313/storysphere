@@ -6,7 +6,9 @@ import { uploadBook } from '@/api/ingest';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { DropZone } from '@/components/upload/DropZone';
 import { ProcessingTimeline } from '@/components/upload/ProcessingTimeline';
+import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
 import { ArrowRight } from 'lucide-react';
+import type { TimelineDetectionResponse } from '@/api/graph';
 
 interface UploadTask {
   taskId: string;
@@ -23,6 +25,7 @@ export default function UploadPage() {
   const [pending, setPending] = useState<PendingFile | null>(null);
   const [tasks, setTasks] = useState<UploadTask[]>([]);
   const [completedTasks, setCompletedTasks] = useState<{ taskId: string; fileName: string; bookId: string }[]>([]);
+  const [timelineModal, setTimelineModal] = useState<{ bookId: string; detection: TimelineDetectionResponse } | null>(null);
   const { t } = useTranslation('upload');
   const { t: tc } = useTranslation('common');
 
@@ -39,10 +42,16 @@ export default function UploadPage() {
     setPending({ file, title: stem, author: '' });
   }, []);
 
-  const handleTaskDone = useCallback((taskId: string, bookId: string, fileName: string) => {
-    setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
-    setCompletedTasks((prev) => [...prev, { taskId, bookId, fileName }]);
-  }, []);
+  const handleTaskDone = useCallback(
+    (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => {
+      setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+      setCompletedTasks((prev) => [...prev, { taskId, bookId, fileName }]);
+      if (detection?.chapterModeViable) {
+        setTimelineModal({ bookId, detection });
+      }
+    },
+    [],
+  );
 
   return (
     <div className="p-6 overflow-y-auto h-full max-w-2xl mx-auto">
@@ -173,6 +182,13 @@ export default function UploadPage() {
           </div>
         </div>
       )}
+      {timelineModal && (
+        <TimelineConfigModal
+          bookId={timelineModal.bookId}
+          detection={timelineModal.detection}
+          onClose={() => setTimelineModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -182,14 +198,15 @@ function ProcessingCard({
   onDone,
 }: {
   task: UploadTask;
-  onDone: (taskId: string, bookId: string, fileName: string) => void;
+  onDone: (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => void;
 }) {
   const { data: status } = useTaskPolling(task.taskId);
   const notified = useRef(false);
 
   if (status?.status === 'done' && status.result?.bookId && !notified.current) {
     notified.current = true;
-    setTimeout(() => onDone(task.taskId, status.result!.bookId!, task.fileName), 0);
+    const detection = status.result.timelineDetection as TimelineDetectionResponse | undefined;
+    setTimeout(() => onDone(task.taskId, status.result!.bookId!, task.fileName, detection), 0);
   }
 
   return (

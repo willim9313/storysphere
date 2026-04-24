@@ -372,6 +372,7 @@ class ExtractionService:
                     weight=max(0.0, min(1.0, raw.weight)),
                     chapters=[chapter_number],
                     is_bidirectional=raw.is_bidirectional,
+                    valid_from_chapter=chapter_number,
                 )
             )
         return relations

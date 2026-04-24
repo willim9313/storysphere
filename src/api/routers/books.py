@@ -48,6 +48,9 @@ from api.schemas.books import (
     TimelineEventEntry,
     TimelineQuality,
     TimelineResponse,
+    TimelineConfigResponse,
+    TimelineConfigUpdate,
+    TimelineDetectionResponse,
     TopEntity,
     UnanalyzedEntity,
 )
@@ -106,10 +109,10 @@ async def _run_ingestion(
             author=author,
             progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None: task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
         )
-        task_store.set_completed(
-            task_id,
-            result={"bookId": result.document_id},
-        )
+        task_result: dict = {"bookId": result.document_id}
+        if result.timeline_detection is not None:
+            task_result["timelineDetection"] = result.timeline_detection.model_dump(by_alias=True)
+        task_store.set_completed(task_id, result=task_result)
         logger.info(
             "Ingestion task %s completed: %s chapters, %s entities",
             task_id,
@@ -499,15 +502,38 @@ async def get_chapter_chunks(
 
 
 @router.get("/{book_id}/graph", response_model=GraphDataResponse)
-async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
-    """Get knowledge graph data for a book."""
+async def get_book_graph(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    mode: str | None = None,
+    position: int | None = None,
+) -> dict:
+    """Get knowledge graph data for a book.
+
+    Optional snapshot parameters:
+    - mode: "chapter" (reading order) or "story" (chronological)
+    - position: chapter number or chron_index depending on mode
+    """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
-    # Build nodes from entities belonging to this book
-    entities = await kg.list_entities(document_id=book_id)
+    # Snapshot mode: use get_snapshot() when mode+position provided
+    if mode is not None and position is not None:
+        if mode not in ("chapter", "story"):
+            raise HTTPException(
+                status_code=422,
+                detail="mode must be 'chapter' or 'story'",
+            )
+        events, entities, relations = await kg.get_snapshot(book_id, mode, position)
+    else:
+        entities = await kg.list_entities(document_id=book_id)
+        relations = await kg.list_relations(document_id=book_id)
+        events = await kg.get_events(document_id=book_id)
+
     entity_ids = {e.id for e in entities}
+
     nodes = [
         GraphNode(
             id=e.id,
@@ -519,25 +545,17 @@ async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> 
         for e in entities
     ]
 
-    # Build edges — only those connecting entities of this book
-    edges: list[dict] = []
-    seen_keys: set[str] = set()
-    for entity in entities:
-        for rel in await kg.get_relations(entity.id, direction="out"):
-            if rel.target_id not in entity_ids or rel.id in seen_keys:
-                continue
-            seen_keys.add(rel.id)
-            edges.append(
-                GraphEdge(
-                    id=rel.id,
-                    source=rel.source_id,
-                    target=rel.target_id,
-                    label=rel.relation_type.value,
-                ).model_dump(by_alias=True)
-            )
+    edges: list[dict] = [
+        GraphEdge(
+            id=rel.id,
+            source=rel.source_id,
+            target=rel.target_id,
+            label=rel.relation_type.value,
+        ).model_dump(by_alias=True)
+        for rel in relations
+        if rel.source_id in entity_ids and rel.target_id in entity_ids
+    ]
 
-    # Add event nodes + edges
-    events = await kg.get_events(document_id=book_id)
     for event in events:
         nodes.append(
             GraphNode(
@@ -571,6 +589,90 @@ async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> 
             )
 
     return GraphDataResponse(nodes=nodes, edges=edges).model_dump(by_alias=True)
+
+
+# ── Timeline config endpoints ────────────────────────────────────────────────
+
+
+@router.get("/{book_id}/timeline-config", response_model=TimelineConfigResponse)
+async def get_timeline_config(book_id: str, doc: DocServiceDep) -> dict:
+    """Get the timeline snapshot configuration for a book."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+    if document.timeline_config is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Timeline config not yet set. Run ingestion first.",
+        )
+    return document.timeline_config.model_dump()
+
+
+@router.put("/{book_id}/timeline-config", response_model=TimelineConfigResponse)
+async def update_timeline_config(
+    book_id: str,
+    body: TimelineConfigUpdate,
+    doc: DocServiceDep,
+) -> dict:
+    """Update (confirm or change) the timeline snapshot configuration."""
+    from datetime import datetime  # noqa: PLC0415
+    from domain.timeline import TimelineConfig  # noqa: PLC0415
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    cfg = document.timeline_config or TimelineConfig()
+    update = body.model_dump(exclude_none=True)
+    updated = cfg.model_copy(update={**update, "configured_at": datetime.utcnow()})
+    document.timeline_config = updated
+    await doc.save_document(document)
+    return updated.model_dump()
+
+
+@router.post("/{book_id}/detect-timeline", response_model=TimelineDetectionResponse)
+async def detect_timeline(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+) -> dict:
+    """Re-run timeline structure detection for a book."""
+    from domain.timeline import TimelineConfig, TimelineDetectionResult  # noqa: PLC0415
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    events = await kg.get_events(document_id=book_id)
+    distinct_chapters = {
+        e.chapter for e in events if e.chapter and e.chapter > 0
+    }
+    ranked_count = sum(1 for e in events if e.chronological_rank is not None)
+    chapter_count = len(distinct_chapters)
+
+    result = TimelineDetectionResult(
+        book_id=book_id,
+        chapter_count=chapter_count,
+        event_count=len(events),
+        ranked_event_count=ranked_count,
+        chapter_mode_viable=chapter_count > 1,
+        story_mode_viable=ranked_count > 0,
+    )
+
+    # Update config, preserving any existing user choices
+    existing = document.timeline_config
+    document.timeline_config = TimelineConfig(
+        chapter_mode_enabled=existing.chapter_mode_enabled if existing else False,
+        story_mode_enabled=existing.story_mode_enabled if existing else False,
+        default_mode=existing.default_mode if existing else "chapter",
+        total_chapters=chapter_count,
+        total_events=len(events),
+        total_ranked_events=ranked_count,
+        chapter_mode_configured=existing.chapter_mode_configured if existing else False,
+        story_mode_configured=existing.story_mode_configured if existing else False,
+    )
+    await doc.save_document(document)
+    return result.model_dump()
 
 
 # ── #9a GET /books/:bookId/events/:eventId ───────────────────────────────────

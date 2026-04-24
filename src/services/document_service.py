@@ -44,6 +44,7 @@ class _DocumentRow(_Base):
     summary = Column(Text, nullable=True)
     keywords_json = Column(Text, nullable=True)  # JSON-encoded dict[str, float]
     language = Column(String, nullable=False, server_default="en")
+    timeline_config_json = Column(Text, nullable=True)  # JSON-encoded TimelineConfig
 
 
 class _ChapterRow(_Base):
@@ -103,6 +104,7 @@ class DocumentService:
             for stmt in [
                 "ALTER TABLE paragraphs ADD COLUMN entities_json TEXT",
                 "ALTER TABLE documents ADD COLUMN language TEXT NOT NULL DEFAULT 'en'",
+                "ALTER TABLE documents ADD COLUMN timeline_config_json TEXT",
             ]:
                 try:
                     await conn.execute(sa_text(stmt))
@@ -139,6 +141,11 @@ class DocumentService:
                             else None
                         ),
                         language=document.language,
+                        timeline_config_json=(
+                            document.timeline_config.model_dump_json()
+                            if document.timeline_config
+                            else None
+                        ),
                     )
                 )
 
@@ -247,6 +254,8 @@ class DocumentService:
 
             from datetime import datetime  # noqa: PLC0415
 
+            from domain.timeline import TimelineConfig  # noqa: PLC0415
+
             return Document(
                 id=doc_row.id,
                 title=doc_row.title,
@@ -264,6 +273,11 @@ class DocumentService:
                 processed_at=(
                     datetime.fromisoformat(doc_row.processed_at)
                     if doc_row.processed_at
+                    else None
+                ),
+                timeline_config=(
+                    TimelineConfig.model_validate_json(doc_row.timeline_config_json)
+                    if doc_row.timeline_config_json
                     else None
                 ),
             )

@@ -44,6 +44,13 @@ class Entity(BaseModel):
     inferred_by: Optional[str] = None
     confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
 
+    # --- Timeline snapshot fields (F-02) ---
+    # Reading-order mode: entity disappears after this chapter (e.g. death)
+    valid_to_chapter: Optional[int] = None
+    # Story-chronology mode: filled in after TemporalPipeline runs
+    first_chron_index: Optional[int] = None   # story-world first appearance index
+    valid_to_chron_index: Optional[int] = None  # story-world disappearance index
+
     def __hash__(self) -> int:
         return hash(self.id)
 
