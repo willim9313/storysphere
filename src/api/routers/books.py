@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Query, UploadFile
 
-from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, EpistemicStateServiceDep, KGServiceDep, TemporalPipelineDep, VectorServiceDep
+from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, EpistemicStateServiceDep, KGServiceDep, TemporalPipelineDep, VectorServiceDep, VoiceProfilingServiceDep
 from api.schemas.books import (
     AnalysisItem,
     AnalysisListResponse,
@@ -56,6 +56,7 @@ from api.schemas.books import (
     ClassifyVisibilityResponse,
     EpistemicStateResponse,
     MisbeliefItemSchema,
+    VoiceProfileResponse,
 )
 from api.store import task_store
 from domain.documents import ParagraphEntity
@@ -1636,3 +1637,76 @@ async def compute_book_timeline(
 
     logger.info("Triggered temporal pipeline: book=%s, task=%s", book_id, task_id)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+# ── F-04 GET /books/:bookId/entities/:entityId/voice ─────────────────────────
+
+
+@router.get(
+    "/{book_id}/entities/{entity_id}/voice",
+    response_model=VoiceProfileResponse,
+)
+async def get_entity_voice_profile(
+    book_id: str,
+    entity_id: str,
+    voice_svc: VoiceProfilingServiceDep,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+) -> dict:
+    """Return the voice profile for a character.
+
+    Computes quantitative linguistic metrics and LLM qualitative description
+    on first call; subsequent calls are served from SQLite cache.
+    """
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    entity = await kg.get_entity(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
+
+    try:
+        profile = await voice_svc.get_voice_profile(
+            document_id=book_id,
+            character_id=entity_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return VoiceProfileResponse(
+        character_id=profile.character_id,
+        character_name=profile.character_name,
+        document_id=profile.document_id,
+        avg_sentence_length=profile.avg_sentence_length,
+        question_ratio=profile.question_ratio,
+        exclamation_ratio=profile.exclamation_ratio,
+        lexical_diversity=profile.lexical_diversity,
+        paragraphs_analyzed=profile.paragraphs_analyzed,
+        speech_style=profile.speech_style,
+        distinctive_patterns=profile.distinctive_patterns,
+        tone=profile.tone,
+        representative_quotes=profile.representative_quotes,
+        analyzed_at=profile.analyzed_at,
+    ).model_dump(by_alias=True)
+
+
+@router.delete("/{book_id}/entities/{entity_id}/voice", status_code=204)
+async def delete_entity_voice_profile(
+    book_id: str,
+    entity_id: str,
+    voice_svc: VoiceProfilingServiceDep,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+) -> None:
+    """Invalidate the cached voice profile so the next GET recomputes it."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    entity = await kg.get_entity(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
+
+    await voice_svc.invalidate(document_id=book_id, character_id=entity_id)
+    logger.info("Invalidated voice profile cache: book=%s entity=%s", book_id, entity_id)

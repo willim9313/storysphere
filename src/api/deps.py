@@ -292,3 +292,21 @@ def get_epistemic_state_service():
 
 
 EpistemicStateServiceDep = Annotated[Any, Depends(get_epistemic_state_service)]
+
+
+# ── Voice Profiling (F-04) ───────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1)
+def get_voice_profiling_service():
+    from services.voice_profiling_service import VoiceProfilingService  # noqa: PLC0415
+
+    return VoiceProfilingService(
+        kg_service=get_kg_service(),
+        doc_service=get_doc_service(),
+        llm=get_llm(),
+        cache=get_analysis_cache(),
+    )
+
+
+VoiceProfilingServiceDep = Annotated[Any, Depends(get_voice_profiling_service)]

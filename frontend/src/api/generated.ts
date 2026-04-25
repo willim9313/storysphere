@@ -512,6 +512,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/entities/{entity_id}/voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Entity Voice Profile
+         * @description Return the voice profile for a character.
+         *
+         *     Computes quantitative linguistic metrics and LLM qualitative description
+         *     on first call; subsequent calls are served from SQLite cache.
+         */
+        get: operations["get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/unraveling": {
         parameters: {
             query?: never;
@@ -3179,6 +3202,38 @@ export interface components {
             /** Context */
             ctx?: Record<string, never>;
         };
+        /** VoiceProfileResponse */
+        VoiceProfileResponse: {
+            /** Characterid */
+            characterId: string;
+            /** Charactername */
+            characterName: string;
+            /** Documentid */
+            documentId: string;
+            /** Avgsentencelength */
+            avgSentenceLength: number;
+            /** Questionratio */
+            questionRatio: number;
+            /** Exclamationratio */
+            exclamationRatio: number;
+            /** Lexicaldiversity */
+            lexicalDiversity: number;
+            /** Paragraphsanalyzed */
+            paragraphsAnalyzed: number;
+            /** Speechstyle */
+            speechStyle: string;
+            /** Distinctivepatterns */
+            distinctivePatterns: string[];
+            /** Tone */
+            tone: string;
+            /** Representativequotes */
+            representativeQuotes: string[];
+            /**
+             * Analyzedat
+             * Format: date-time
+             */
+            analyzedAt: string;
+        };
         /** ChapterResponse */
         api__schemas__books__ChapterResponse: {
             /** Id */
@@ -4087,6 +4142,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoiceProfileResponse"];
                 };
             };
             /** @description Validation Error */

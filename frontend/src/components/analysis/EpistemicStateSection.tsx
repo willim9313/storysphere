@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
 import { useQueryClient } from '@tanstack/react-query';
@@ -17,6 +18,7 @@ export function EpistemicStateSection({
 }: EpistemicStateSectionProps) {
   const [upToChapter, setUpToChapter] = useState(totalChapters);
   const queryClient = useQueryClient();
+  const { t } = useTranslation('analysis');
 
   const { data: state, isFetching } = useEpistemicState(bookId, characterId, upToChapter);
 
@@ -26,10 +28,10 @@ export function EpistemicStateSection({
       <div className="flex flex-col gap-1">
         <div className="flex items-center justify-between">
           <span className="text-xs" style={{ color: 'var(--fg-secondary)' }}>
-            截止章節
+            {t('character.epistemic.upToChapter')}
           </span>
           <span className="text-xs font-medium" style={{ color: 'var(--fg-primary)' }}>
-            第 {upToChapter} 章
+            {t('character.epistemic.chapterN', { n: upToChapter })}
           </span>
         </div>
         <input
@@ -43,14 +45,16 @@ export function EpistemicStateSection({
       </div>
 
       {isFetching && (
-        <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>計算中…</p>
+        <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+          {t('character.epistemic.computing')}
+        </p>
       )}
 
       {state && !state.dataComplete && (
         <div className="flex flex-wrap items-center gap-2">
           <p className="text-xs flex items-center gap-1" style={{ color: 'var(--warning, #f59e0b)' }}>
             <AlertTriangle size={11} />
-            此書尚無 visibility 資料（事件均為預設 public）
+            {t('character.epistemic.noVisibilityData')}
           </p>
           <ClassifyVisibilityButton
             bookId={bookId}
@@ -69,10 +73,12 @@ export function EpistemicStateSection({
           <section>
             <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#16a34a' }}>
               <Eye size={12} />
-              已知事件（{state.knownEvents.length}）
+              {t('character.epistemic.knownEvents', { count: state.knownEvents.length })}
             </h4>
             {state.knownEvents.length === 0 ? (
-              <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>無已知事件</p>
+              <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+                {t('character.epistemic.noKnownEvents')}
+              </p>
             ) : (
               <ul className="flex flex-col gap-1">
                 {(state.knownEvents as Record<string, unknown>[]).map((ev, i) => (
@@ -95,10 +101,12 @@ export function EpistemicStateSection({
           <section>
             <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#d97706' }}>
               <EyeOff size={12} />
-              未知事件（{state.unknownEvents.length}）
+              {t('character.epistemic.unknownEvents', { count: state.unknownEvents.length })}
             </h4>
             {state.unknownEvents.length === 0 ? (
-              <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>無未知事件</p>
+              <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+                {t('character.epistemic.noUnknownEvents')}
+              </p>
             ) : (
               <ul className="flex flex-col gap-1">
                 {(state.unknownEvents as Record<string, unknown>[]).map((ev, i) => (
@@ -121,10 +129,12 @@ export function EpistemicStateSection({
           <section>
             <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#dc2626' }}>
               <AlertTriangle size={12} />
-              誤信（{state.misbeliefs.length}）
+              {t('character.epistemic.misbeliefs', { count: state.misbeliefs.length })}
             </h4>
             {state.misbeliefs.length === 0 ? (
-              <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>無推斷誤信</p>
+              <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+                {t('character.epistemic.noMisbeliefs')}
+              </p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {state.misbeliefs.map((m) => (
@@ -134,13 +144,15 @@ export function EpistemicStateSection({
                     style={{ border: '1px solid #fca5a5', backgroundColor: '#fff5f5' }}
                   >
                     <p style={{ color: '#dc2626' }}>
-                      <span className="font-semibold">誤信：</span>{m.characterBelief}
+                      <span className="font-semibold">{t('character.epistemic.misbeliefLabel')}</span>
+                      {m.characterBelief}
                     </p>
                     <p className="mt-1" style={{ color: '#6b7280' }}>
-                      <span className="font-semibold">實情：</span>{m.actualTruth}
+                      <span className="font-semibold">{t('character.epistemic.actualTruth')}</span>
+                      {m.actualTruth}
                     </p>
                     <p className="mt-1 opacity-50" style={{ color: '#9ca3af' }}>
-                      信心度 {Math.round(m.confidence * 100)}%
+                      {t('character.epistemic.confidence', { pct: Math.round(m.confidence * 100) })}
                     </p>
                   </li>
                 ))}

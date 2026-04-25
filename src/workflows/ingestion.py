@@ -15,6 +15,7 @@ The workflow accepts a file path (PDF or DOCX) and returns an
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -308,15 +309,17 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             except Exception as exc:  # noqa: BLE001
                 logger.warning("KG save failed (non-fatal): %s", exc)
 
-        # Invalidate epistemic state cache so stale results are not served
+        # Invalidate per-document analysis caches so stale results are not served
         try:
             from config.settings import get_settings  # noqa: PLC0415
             from services.analysis_cache import AnalysisCache  # noqa: PLC0415
-            await AnalysisCache(db_path=get_settings().analysis_cache_db_path).invalidate(
-                f"epistemic:{doc.id}:%"
+            cache = AnalysisCache(db_path=get_settings().analysis_cache_db_path)
+            await asyncio.gather(
+                cache.invalidate(f"epistemic:{doc.id}:%"),
+                cache.invalidate(f"voice_profile:{doc.id}:%"),
             )
         except Exception as exc:  # noqa: BLE001
-            logger.warning("Epistemic cache invalidation failed (non-fatal): %s", exc)
+            logger.warning("Analysis cache invalidation failed (non-fatal): %s", exc)
 
         result = IngestionResult(
             document_id=doc.id,

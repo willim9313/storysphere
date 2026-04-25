@@ -36,7 +36,42 @@
     "secondaryArchetype": "次要",
     "evidence": "依據",
     "chapter": "第 {{range}} 章",
-    "noData": "（無對應資訊）"
+    "noData": "（無對應資訊）",
+    "tabs": {
+      "overview": "總覽",
+      "voice": "語音側寫"
+    },
+    "voice": {
+      "avgSentenceLength": "平均句長",
+      "questionRatio": "問句比例",
+      "exclamationRatio": "感嘆句比例",
+      "lexicalDiversity": "詞彙多樣性",
+      "wordsUnit": "字",
+      "speechStyle": "說話風格",
+      "distinctivePatterns": "語言特徵",
+      "tone": "語氣基調",
+      "representativeQuotes": "代表性引文",
+      "analyze": "分析語音側寫",
+      "analyzing": "語音側寫分析中…",
+      "noData": "尚無語音側寫",
+      "paragraphsAnalyzed": "已分析 {{count}} 個段落"
+    },
+    "epistemicState": "認識論狀態",
+    "epistemic": {
+      "upToChapter": "截止章節",
+      "chapterN": "第 {{n}} 章",
+      "computing": "計算中…",
+      "noVisibilityData": "此書尚無 visibility 資料（事件均為預設 public）",
+      "knownEvents": "已知事件（{{count}}）",
+      "noKnownEvents": "無已知事件",
+      "unknownEvents": "未知事件（{{count}}）",
+      "noUnknownEvents": "無未知事件",
+      "misbeliefs": "誤信（{{count}}）",
+      "noMisbeliefs": "無推斷誤信",
+      "misbeliefLabel": "誤信：",
+      "actualTruth": "實情：",
+      "confidence": "信心度 {{pct}}%"
+    }
   },
   "event": {
     "batchTitle": "批次生成事件 EEP",

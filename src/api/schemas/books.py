@@ -479,3 +479,24 @@ class ClassifyVisibilityResponse(BaseModel):
     skipped: int
     total: int
 
+
+# ── Voice Profile (F-04) ─────────────────────────────────────────────────────
+
+
+class VoiceProfileResponse(BaseModel):
+    model_config = _CAMEL
+
+    character_id: str
+    character_name: str
+    document_id: str
+    avg_sentence_length: float
+    question_ratio: float
+    exclamation_ratio: float
+    lexical_diversity: float
+    paragraphs_analyzed: int
+    speech_style: str
+    distinctive_patterns: list[str]
+    tone: str
+    representative_quotes: list[str]
+    analyzed_at: datetime
+
