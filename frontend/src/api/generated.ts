@@ -357,6 +357,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/entities/{entity_id}/epistemic-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Entity Epistemic State
+         * @description Return what a character knows and doesn't know up to a given chapter.
+         */
+        get: operations["get_entity_epistemic_state_api_v1_books__book_id__entities__entity_id__epistemic_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/classify-visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Classify Book Visibility
+         * @description Retroactively classify event visibility for a book using LLM.
+         *
+         *     Temporary endpoint — may be replaced once a full re-ingest pipeline is available.
+         */
+        post: operations["classify_book_visibility_api_v1_books__book_id__classify_visibility_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/events/{event_id}/analyze": {
         parameters: {
             query?: never;
@@ -2130,6 +2172,27 @@ export interface components {
          * @enum {string}
          */
         EntityType: "character" | "location" | "organization" | "object" | "concept" | "other";
+        /** EpistemicStateResponse */
+        EpistemicStateResponse: {
+            /** Characterid */
+            characterId: string;
+            /** Charactername */
+            characterName: string;
+            /** Uptochapter */
+            upToChapter: number;
+            /** Knownevents */
+            knownEvents: {
+                [key: string]: unknown;
+            }[];
+            /** Unknownevents */
+            unknownEvents: {
+                [key: string]: unknown;
+            }[];
+            /** Misbeliefs */
+            misbeliefs: components["schemas"]["MisbeliefItemSchema"][];
+            /** Datacomplete */
+            dataComplete: boolean;
+        };
         /** EventAnalysisFullResponse */
         EventAnalysisFullResponse: {
             /** Eventid */
@@ -2379,6 +2442,17 @@ export interface components {
             id: string;
             /** Name */
             name: string;
+        };
+        /** MisbeliefItemSchema */
+        MisbeliefItemSchema: {
+            /** Characterbelief */
+            characterBelief: string;
+            /** Actualtruth */
+            actualTruth: string;
+            /** Sourceeventid */
+            sourceEventId: string;
+            /** Confidence */
+            confidence: number;
         };
         /** NarrativeReviewRequest */
         NarrativeReviewRequest: {
@@ -3753,6 +3827,71 @@ export interface operations {
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_entity_epistemic_state_api_v1_books__book_id__entities__entity_id__epistemic_state_get: {
+        parameters: {
+            query: {
+                up_to_chapter: number;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EpistemicStateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    classify_book_visibility_api_v1_books__book_id__classify_visibility_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };

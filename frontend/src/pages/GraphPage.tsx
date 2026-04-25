@@ -12,6 +12,7 @@ import { GraphToolbar, type AnimationMode } from '@/components/graph/GraphToolba
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
 import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
 import { TimelineControls, type TimelineState } from '@/components/graph/TimelineControls';
+import { EpistemicOverlay } from '@/components/graph/EpistemicOverlay';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
@@ -42,6 +43,7 @@ export default function GraphPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleTypes, setVisibleTypes] = useState(new Set(ALL_TYPES));
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
+  const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
 
   // Auto-select entity from query param (e.g. navigating from analysis page)
   useEffect(() => {
@@ -96,6 +98,21 @@ export default function GraphPage() {
     });
   }, [elements, searchQuery, visibleTypes]);
 
+  // Epistemic dim: grey out nodes the selected character doesn't know about
+  const epistemicStylesheet = useMemo(() => {
+    if (unknownEntityIds.size === 0) return [];
+    return Array.from(unknownEntityIds).map((id) => ({
+      selector: `node[id = "${id}"]`,
+      style: {
+        'background-color': '#e5e7eb',
+        'border-color': '#9ca3af',
+        'border-style': 'dashed',
+        'border-width': 2,
+        color: '#9ca3af',
+      } as Record<string, unknown>,
+    }));
+  }, [unknownEntityIds]);
+
   const selectedNode: GraphNode | null = useMemo(() => {
     if (!selectedNodeId || !data) return null;
     return data.nodes.find((n) => n.id === selectedNodeId) ?? null;
@@ -129,7 +146,13 @@ export default function GraphPage() {
   return (
     <div className="relative h-full w-full">
       {/* Graph canvas — fills entire area, never resizes */}
-      <GraphCanvas elements={filteredElements} onNodeTap={handleNodeTap} selectedNodeId={selectedNodeId} animationMode={animationMode} />
+      <GraphCanvas
+        elements={filteredElements}
+        onNodeTap={handleNodeTap}
+        selectedNodeId={selectedNodeId}
+        animationMode={animationMode}
+        extraStylesheet={epistemicStylesheet}
+      />
 
       {/* Floating toolbar (top-left) */}
       <GraphToolbar
@@ -145,6 +168,16 @@ export default function GraphPage() {
       {/* Timeline snapshot controls (bottom-left, above zoom) */}
       {bookId && (
         <TimelineControls bookId={bookId} onChange={setTimelineState} />
+      )}
+
+      {/* Epistemic overlay — character perspective (above TimelineControls) */}
+      {bookId && data && (
+        <EpistemicOverlay
+          bookId={bookId}
+          nodes={data.nodes}
+          timelineChapter={timelineState?.mode === 'chapter' ? timelineState.position : null}
+          onUnknownEntityIds={setUnknownEntityIds}
+        />
       )}
 
       {/* Zoom controls (bottom-right) */}

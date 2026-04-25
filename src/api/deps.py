@@ -275,3 +275,20 @@ def get_symbol_analysis_service():
 
 
 SymbolAnalysisServiceDep = Annotated[Any, Depends(get_symbol_analysis_service)]
+
+
+# ── Epistemic State (F-03) ───────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1)
+def get_epistemic_state_service():
+    from services.epistemic_state_service import EpistemicStateService  # noqa: PLC0415
+
+    return EpistemicStateService(
+        kg_service=get_kg_service(),
+        llm=get_llm(),
+        cache=get_analysis_cache(),
+    )
+
+
+EpistemicStateServiceDep = Annotated[Any, Depends(get_epistemic_state_service)]

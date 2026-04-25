@@ -8,6 +8,7 @@ import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis } from '@/api/analysis';
 import { CharacterAnalysisDetail } from '@/components/analysis/CharacterAnalysisDetail';
+import { EpistemicStateSection } from '@/components/analysis/EpistemicStateSection';
 import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -201,6 +202,18 @@ export default function CharacterAnalysisPage() {
               </button>
             </div>
             <CharacterAnalysisDetail data={entityAnalysis} />
+            {bookId && selectedEntityId && book && (
+              <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-primary)' }}>
+                  認識論狀態
+                </h3>
+                <EpistemicStateSection
+                  bookId={bookId}
+                  characterId={selectedEntityId}
+                  totalChapters={book.chapterCount}
+                />
+              </div>
+            )}
           </>
         ) : genTask?.status === 'error' ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">

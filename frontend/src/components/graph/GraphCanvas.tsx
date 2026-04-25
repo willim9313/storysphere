@@ -11,6 +11,7 @@ interface GraphCanvasProps {
   readonly onNodeTap?: (nodeId: string) => void;
   readonly selectedNodeId?: string | null;
   readonly animationMode?: AnimationMode;
+  readonly extraStylesheet?: cytoscape.StylesheetStyle[];
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -70,6 +71,7 @@ export function GraphCanvas({
   onNodeTap,
   selectedNodeId,
   animationMode = 'fade',
+  extraStylesheet = [],
 }: GraphCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
@@ -175,6 +177,14 @@ export function GraphCanvas({
     applyHighlight(cy, selectedNodeId);
     cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 400 });
   }, [selectedNodeId]);
+
+  // Apply epistemic dim stylesheet on top of base styles
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    const combined = [...cytoscapeStylesheet, ...extraStylesheet];
+    cy.style(combined as cytoscape.StylesheetStyle[]);
+  }, [extraStylesheet]);
 
   return (
     <div

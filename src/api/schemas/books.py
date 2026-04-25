@@ -441,3 +441,41 @@ class TimelineResponse(BaseModel):
     events: list[TimelineEventEntry]
     temporal_relations: list[TemporalRelationEntry]
     quality: TimelineQuality
+
+
+# ── Epistemic State (F-03) ───────────────────────────────────────────────────
+
+
+class MisbeliefItemSchema(BaseModel):
+    model_config = _CAMEL
+
+    character_belief: str
+    actual_truth: str
+    source_event_id: str
+    confidence: float
+
+
+class EpistemicStateResponse(BaseModel):
+    model_config = _CAMEL
+
+    character_id: str
+    character_name: str
+    up_to_chapter: int
+    known_events: list[dict[str, Any]]
+    unknown_events: list[dict[str, Any]]
+    misbeliefs: list[MisbeliefItemSchema]
+    data_complete: bool
+
+
+class ClassifyVisibilityResponse(BaseModel):
+    """Result of retroactive visibility classification.
+
+    Temporary feature — may be replaced by a dedicated re-ingest pipeline.
+    """
+
+    model_config = _CAMEL
+
+    classified: int
+    skipped: int
+    total: int
+

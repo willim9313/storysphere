@@ -7,6 +7,9 @@ import type { components } from './generated';
 export type TimelineConfigResponse = components['schemas']['TimelineConfigResponse'];
 export type TimelineConfigUpdate = components['schemas']['TimelineConfigUpdate'];
 export type TimelineDetectionResponse = components['schemas']['TimelineDetectionResponse'];
+export type EpistemicStateResponse = components['schemas']['EpistemicStateResponse'];
+export type MisbeliefItemSchema = components['schemas']['MisbeliefItemSchema'];
+export type ClassifyVisibilityResponse = components['schemas']['ClassifyVisibilityResponse'];
 
 export interface GraphSnapshotParams {
   mode?: 'chapter' | 'story';
@@ -43,4 +46,18 @@ export function detectTimeline(bookId: string): Promise<TimelineDetectionRespons
 
 export function fetchEventDetail(bookId: string, eventId: string): Promise<EventDetail> {
   return apiFetch<EventDetail>(`/books/${bookId}/events/${eventId}`);
+}
+
+export function triggerClassifyVisibility(bookId: string): Promise<{ taskId: string }> {
+  return apiFetch<{ taskId: string }>(`/books/${bookId}/classify-visibility`, { method: 'POST' });
+}
+
+export function fetchEpistemicState(
+  bookId: string,
+  entityId: string,
+  upToChapter: number,
+): Promise<EpistemicStateResponse> {
+  return apiFetch<EpistemicStateResponse>(
+    `/books/${bookId}/entities/${entityId}/epistemic-state?up_to_chapter=${upToChapter}`,
+  );
 }

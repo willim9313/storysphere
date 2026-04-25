@@ -11,6 +11,7 @@ from domain.relations import Relation, RelationType
 from domain.tension import TEU, TensionLine, TensionPole, TensionTheme
 from domain.temporal import TemporalRelation, TemporalRelationType
 from domain.timeline import TimelineConfig, TimelineDetectionResult
+from domain.epistemic_state import CharacterEpistemicState, MisbeliefItem
 
 __all__ = [
     "Entity",
@@ -35,4 +36,6 @@ __all__ = [
     "FileType",
     "TimelineConfig",
     "TimelineDetectionResult",
+    "CharacterEpistemicState",
+    "MisbeliefItem",
 ]

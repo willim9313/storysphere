@@ -14,9 +14,9 @@ from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Query, UploadFile
 
-from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, KGServiceDep, TemporalPipelineDep, VectorServiceDep
+from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, EpistemicStateServiceDep, KGServiceDep, TemporalPipelineDep, VectorServiceDep
 from api.schemas.books import (
     AnalysisItem,
     AnalysisListResponse,
@@ -53,6 +53,9 @@ from api.schemas.books import (
     TimelineDetectionResponse,
     TopEntity,
     UnanalyzedEntity,
+    ClassifyVisibilityResponse,
+    EpistemicStateResponse,
+    MisbeliefItemSchema,
 )
 from api.store import task_store
 from domain.documents import ParagraphEntity
@@ -1061,6 +1064,112 @@ async def delete_entity_analysis(
     cache_key = AnalysisCache.make_key("character", book_id, entity.name)
     await cache.invalidate(cache_key)
     logger.info("Deleted entity analysis cache: key=%s", cache_key)
+
+
+# ── F-03 GET /books/:bookId/entities/:entityId/epistemic-state ───────────────
+
+
+@router.get(
+    "/{book_id}/entities/{entity_id}/epistemic-state",
+    response_model=EpistemicStateResponse,
+)
+async def get_entity_epistemic_state(
+    book_id: str,
+    entity_id: str,
+    up_to_chapter: int = Query(..., ge=1),
+    epistemic_svc: EpistemicStateServiceDep = None,
+    doc: DocServiceDep = None,
+    kg: KGServiceDep = None,
+) -> dict:
+    """Return what a character knows and doesn't know up to a given chapter."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    entity = await kg.get_entity(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
+
+    state = await epistemic_svc.get_character_knowledge(
+        character_id=entity_id,
+        document_id=book_id,
+        up_to_chapter=up_to_chapter,
+    )
+
+    # data_complete = False when the book was ingested before F-03 added visibility.
+    # Check ALL events in the book (not just the current chapter range) so that
+    # chapters with legitimately all-public events don't produce false negatives.
+    all_book_events = await kg.get_events(document_id=book_id)
+    data_complete = any(ev.visibility != "public" for ev in all_book_events)
+
+    return EpistemicStateResponse(
+        character_id=state.character_id,
+        character_name=state.character_name,
+        up_to_chapter=state.up_to_chapter,
+        known_events=[ev.model_dump() for ev in state.known_events],
+        unknown_events=[ev.model_dump() for ev in state.unknown_events],
+        misbeliefs=[
+            MisbeliefItemSchema(
+                character_belief=m.character_belief,
+                actual_truth=m.actual_truth,
+                source_event_id=m.source_event_id,
+                confidence=m.confidence,
+            )
+            for m in state.misbeliefs
+        ],
+        data_complete=data_complete,
+    ).model_dump(by_alias=True)
+
+
+# ── F-03b POST /books/:bookId/classify-visibility (temporary) ───────────────
+# TODO: replace with re-ingest pipeline once a per-book re-extraction endpoint exists
+
+
+async def _run_classify_visibility(
+    task_id: str, book_id: str, svc: Any
+) -> None:
+    task_store.set_running(task_id)
+    try:
+        counts = await svc.classify_event_visibility(
+            document_id=book_id,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
+        )
+        task_store.set_completed(
+            task_id,
+            result=ClassifyVisibilityResponse(
+                classified=counts["classified"],
+                skipped=counts["skipped"],
+                total=counts["classified"] + counts["skipped"],
+            ).model_dump(by_alias=True),
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.error("classify_visibility task %s failed: %s", task_id, exc)
+        task_store.set_failed(task_id, error=str(exc))
+
+
+@router.post(
+    "/{book_id}/classify-visibility",
+    response_model=TaskIdResponse,
+    status_code=202,
+)
+async def classify_book_visibility(
+    book_id: str,
+    background_tasks: BackgroundTasks,
+    epistemic_svc: EpistemicStateServiceDep = None,
+    doc: DocServiceDep = None,
+) -> dict:
+    """Retroactively classify event visibility for a book using LLM.
+
+    Temporary endpoint — may be replaced once a full re-ingest pipeline is available.
+    """
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    task_id = str(uuid4())
+    task_store.create(task_id)
+    background_tasks.add_task(_run_classify_visibility, task_id, book_id, epistemic_svc)
+    return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
 
 # ── #7d POST /books/:bookId/events/:eventId/analyze ─────────────────────────

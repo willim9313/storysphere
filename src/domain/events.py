@@ -79,3 +79,9 @@ class Event(BaseModel):
         Literal["summary_heuristic", "llm_classified", "human_verified"]
     ] = None
     story_time: Optional[StoryTimeRef] = None
+
+    # --- Epistemic visibility (F-03) ---
+    # public  = information naturally known to all (public battles, announced deaths, spread gossip)
+    # private = only direct participants know (closed meetings, personal letters)
+    # secret  = actively concealed (staged accidents, deliberate lies, hidden alliances)
+    visibility: Literal["public", "private", "secret"] = "public"

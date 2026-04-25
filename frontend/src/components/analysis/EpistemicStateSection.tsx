@@ -1,0 +1,154 @@
+import { useState } from 'react';
+import { Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { useEpistemicState } from '@/hooks/useEpistemicState';
+import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
+import { useQueryClient } from '@tanstack/react-query';
+
+interface EpistemicStateSectionProps {
+  bookId: string;
+  characterId: string;
+  totalChapters: number;
+}
+
+export function EpistemicStateSection({
+  bookId,
+  characterId,
+  totalChapters,
+}: EpistemicStateSectionProps) {
+  const [upToChapter, setUpToChapter] = useState(totalChapters);
+  const queryClient = useQueryClient();
+
+  const { data: state, isFetching } = useEpistemicState(bookId, characterId, upToChapter);
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Chapter slider */}
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center justify-between">
+          <span className="text-xs" style={{ color: 'var(--fg-secondary)' }}>
+            截止章節
+          </span>
+          <span className="text-xs font-medium" style={{ color: 'var(--fg-primary)' }}>
+            第 {upToChapter} 章
+          </span>
+        </div>
+        <input
+          type="range"
+          min={1}
+          max={totalChapters}
+          value={upToChapter}
+          onChange={(e) => setUpToChapter(Number(e.target.value))}
+          className="w-full"
+        />
+      </div>
+
+      {isFetching && (
+        <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>計算中…</p>
+      )}
+
+      {state && !state.dataComplete && (
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="text-xs flex items-center gap-1" style={{ color: 'var(--warning, #f59e0b)' }}>
+            <AlertTriangle size={11} />
+            此書尚無 visibility 資料（事件均為預設 public）
+          </p>
+          <ClassifyVisibilityButton
+            bookId={bookId}
+            onComplete={() =>
+              queryClient.invalidateQueries({
+                queryKey: ['books', bookId, 'epistemic-state'],
+              })
+            }
+          />
+        </div>
+      )}
+
+      {state && (
+        <>
+          {/* Known events */}
+          <section>
+            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#16a34a' }}>
+              <Eye size={12} />
+              已知事件（{state.knownEvents.length}）
+            </h4>
+            {state.knownEvents.length === 0 ? (
+              <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>無已知事件</p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {(state.knownEvents as Record<string, unknown>[]).map((ev, i) => (
+                  <li
+                    key={String(ev.id ?? i)}
+                    className="text-xs px-2 py-1 rounded flex justify-between items-start gap-2"
+                    style={{ backgroundColor: '#f0fdf4' }}
+                  >
+                    <span style={{ color: '#15803d' }}>{String(ev.title ?? '')}</span>
+                    <span className="flex-shrink-0 text-xs opacity-60" style={{ color: '#16a34a' }}>
+                      Ch.{String(ev.chapter ?? '')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Unknown events */}
+          <section>
+            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#d97706' }}>
+              <EyeOff size={12} />
+              未知事件（{state.unknownEvents.length}）
+            </h4>
+            {state.unknownEvents.length === 0 ? (
+              <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>無未知事件</p>
+            ) : (
+              <ul className="flex flex-col gap-1">
+                {(state.unknownEvents as Record<string, unknown>[]).map((ev, i) => (
+                  <li
+                    key={String(ev.id ?? i)}
+                    className="text-xs px-2 py-1 rounded flex justify-between items-start gap-2"
+                    style={{ backgroundColor: '#fffbeb' }}
+                  >
+                    <span style={{ color: '#92400e' }}>{String(ev.title ?? '')}</span>
+                    <span className="flex-shrink-0 text-xs opacity-60" style={{ color: '#d97706' }}>
+                      Ch.{String(ev.chapter ?? '')}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* Misbeliefs */}
+          <section>
+            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#dc2626' }}>
+              <AlertTriangle size={12} />
+              誤信（{state.misbeliefs.length}）
+            </h4>
+            {state.misbeliefs.length === 0 ? (
+              <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>無推斷誤信</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {state.misbeliefs.map((m) => (
+                  <li
+                    key={m.sourceEventId}
+                    className="text-xs px-3 py-2 rounded"
+                    style={{ border: '1px solid #fca5a5', backgroundColor: '#fff5f5' }}
+                  >
+                    <p style={{ color: '#dc2626' }}>
+                      <span className="font-semibold">誤信：</span>{m.characterBelief}
+                    </p>
+                    <p className="mt-1" style={{ color: '#6b7280' }}>
+                      <span className="font-semibold">實情：</span>{m.actualTruth}
+                    </p>
+                    <p className="mt-1 opacity-50" style={{ color: '#9ca3af' }}>
+                      信心度 {Math.round(m.confidence * 100)}%
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </>
+      )}
+    </div>
+  );
+}

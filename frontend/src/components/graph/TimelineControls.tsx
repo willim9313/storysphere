@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchTimelineConfig, detectTimeline } from '@/api/graph';
 import { TimelineConfigModal } from './TimelineConfigModal';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import type { TimelineDetectionResponse } from '@/api/graph';
 
 export interface TimelineState {
@@ -17,10 +18,10 @@ interface TimelineControlsProps {
 }
 
 export function TimelineControls({ bookId, onChange }: TimelineControlsProps) {
-  const [expanded, setExpanded] = useState(false);
-  const [enabled, setEnabled] = useState(false);
-  const [mode, setMode] = useState<'chapter' | 'story'>('chapter');
-  const [position, setPosition] = useState(1);
+  const [expanded, setExpanded] = useLocalStorage(`graph:${bookId}:timeline:expanded`, false);
+  const [enabled, setEnabled] = useLocalStorage(`graph:${bookId}:timeline:enabled`, false);
+  const [mode, setMode] = useLocalStorage<'chapter' | 'story'>(`graph:${bookId}:timeline:mode`, 'chapter');
+  const [position, setPosition] = useLocalStorage(`graph:${bookId}:timeline:position`, 1);
   const [pendingDetection, setPendingDetection] = useState<TimelineDetectionResponse | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
