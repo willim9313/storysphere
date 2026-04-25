@@ -2,6 +2,8 @@ import { Search, RotateCcw } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityType } from '@/api/types';
 
+export type AnimationMode = 'fade' | 'stagger';
+
 const ENTITY_TYPE_KEYS: { type: EntityType; cls: string }[] = [
   { type: 'character', cls: 'pill-char' },
   { type: 'location', cls: 'pill-loc' },
@@ -15,6 +17,8 @@ interface GraphToolbarProps {
   visibleTypes: Set<string>;
   onTypeToggle: (type: string) => void;
   onReset: () => void;
+  animationMode: AnimationMode;
+  onAnimationModeChange: (mode: AnimationMode) => void;
 }
 
 export function GraphToolbar({
@@ -23,6 +27,8 @@ export function GraphToolbar({
   visibleTypes,
   onTypeToggle,
   onReset,
+  animationMode,
+  onAnimationModeChange,
 }: GraphToolbarProps) {
   const { t } = useTranslation('graph');
 
@@ -78,6 +84,28 @@ export function GraphToolbar({
         <RotateCcw size={12} />
         {t('toolbar.resetView')}
       </button>
+
+      {/* Animation mode toggle */}
+      <div>
+        <p className="text-[10px] mb-1" style={{ color: 'var(--fg-muted)' }}>
+          {t('toolbar.animationMode')}
+        </p>
+        <div className="flex rounded-md overflow-hidden" style={{ border: '1px solid var(--border)' }}>
+          {(['fade', 'stagger'] as AnimationMode[]).map((m) => (
+            <button
+              key={m}
+              onClick={() => onAnimationModeChange(m)}
+              className="flex-1 text-[11px] py-1 transition-colors"
+              style={{
+                backgroundColor: animationMode === m ? 'var(--accent)' : 'var(--bg-secondary)',
+                color: animationMode === m ? 'white' : 'var(--fg-secondary)',
+              }}
+            >
+              {t(`toolbar.anim_${m}`)}
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

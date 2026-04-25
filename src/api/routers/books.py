@@ -111,7 +111,9 @@ async def _run_ingestion(
         )
         task_result: dict = {"bookId": result.document_id}
         if result.timeline_detection is not None:
-            task_result["timelineDetection"] = result.timeline_detection.model_dump(by_alias=True)
+            task_result["timelineDetection"] = TimelineDetectionResponse.model_validate(
+                result.timeline_detection.model_dump()
+            ).model_dump(by_alias=True)
         task_store.set_completed(task_id, result=task_result)
         logger.info(
             "Ingestion task %s completed: %s chapters, %s entities",

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, Clock, X, CheckCircle } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { updateTimelineConfig, type TimelineConfigResponse, type TimelineDetectionResponse } from '@/api/graph';
 
 interface TimelineConfigModalProps {
@@ -12,9 +13,11 @@ interface TimelineConfigModalProps {
 export function TimelineConfigModal({ bookId, detection, onClose }: TimelineConfigModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const queryClient = useQueryClient();
+  const { t } = useTranslation('graph');
+  const { t: tc } = useTranslation('common');
 
   const [chapterEnabled, setChapterEnabled] = useState(detection.chapterModeViable);
-  const [storyEnabled, setStoryEnabled] = useState(false); // story mode requires TemporalPipeline
+  const [storyEnabled, setStoryEnabled] = useState(false);
 
   useEffect(() => {
     dialogRef.current?.showModal();
@@ -49,14 +52,14 @@ export function TimelineConfigModal({ bookId, detection, onClose }: TimelineConf
       <div className="p-6">
         <div className="flex items-center justify-between mb-1">
           <h3 className="text-base font-semibold" style={{ fontFamily: 'var(--font-serif)' }}>
-            Timeline Structure Detected
+            {t('timeline.modal.title')}
           </h3>
           <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
             <X size={18} />
           </button>
         </div>
         <p className="text-sm mb-5" style={{ color: 'var(--fg-secondary)' }}>
-          Your book has been analysed. Choose which timeline modes to enable for the knowledge graph.
+          {t('timeline.modal.subtitle')}
         </p>
 
         {/* Detection summary */}
@@ -64,31 +67,31 @@ export function TimelineConfigModal({ bookId, detection, onClose }: TimelineConf
           className="rounded-lg p-3 mb-5 grid grid-cols-3 gap-3 text-center"
           style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
         >
-          <Stat label="Chapters" value={detection.chapterCount} />
-          <Stat label="Events" value={detection.eventCount} />
-          <Stat label="Ranked events" value={detection.rankedEventCount} />
+          <Stat label={t('timeline.modal.chapters')} value={detection.chapterCount} />
+          <Stat label={t('timeline.modal.events')} value={detection.eventCount} />
+          <Stat label={t('timeline.modal.rankedEvents')} value={detection.rankedEventCount} />
         </div>
 
         {/* Mode cards */}
         <div className="space-y-3 mb-6">
           <ModeCard
             icon={<BookOpen size={16} />}
-            title="Reading-order mode"
-            description="Slice the graph by chapter — see the world as you read through the book."
+            title={t('timeline.modal.chapterMode.title')}
+            description={t('timeline.modal.chapterMode.description')}
             viable={detection.chapterModeViable}
             enabled={chapterEnabled}
             onToggle={() => setChapterEnabled((v) => !v)}
           />
           <ModeCard
             icon={<Clock size={16} />}
-            title="Story-chronology mode"
-            description="Slice by story-world time order, derived from the temporal analysis. Requires Timeline Compute to run first."
+            title={t('timeline.modal.storyMode.title')}
+            description={t('timeline.modal.storyMode.description')}
             viable={detection.storyModeViable}
             enabled={storyEnabled}
             locked={!detection.storyModeViable}
             lockedNote={
               detection.rankedEventCount === 0
-                ? 'Run Timeline Compute to unlock'
+                ? t('timeline.modal.storyMode.locked')
                 : undefined
             }
             onToggle={() => setStoryEnabled((v) => !v)}
@@ -101,7 +104,7 @@ export function TimelineConfigModal({ bookId, detection, onClose }: TimelineConf
             style={{ color: 'var(--fg-secondary)', border: '1px solid var(--border)' }}
             onClick={onClose}
           >
-            Skip for now
+            {t('timeline.modal.skip')}
           </button>
           <button
             className="px-4 py-2 rounded-md text-sm font-medium"
@@ -109,7 +112,7 @@ export function TimelineConfigModal({ bookId, detection, onClose }: TimelineConf
             disabled={mutation.isPending}
             onClick={() => mutation.mutate()}
           >
-            {mutation.isPending ? 'Saving…' : 'Confirm'}
+            {mutation.isPending ? t('timeline.modal.saving') : tc('confirm')}
           </button>
         </div>
 

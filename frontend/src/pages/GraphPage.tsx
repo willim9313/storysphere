@@ -8,7 +8,7 @@ import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
 import { toCytoscapeElements } from '@/lib/graphTransform';
 import { GraphCanvas } from '@/components/graph/GraphCanvas';
-import { GraphToolbar } from '@/components/graph/GraphToolbar';
+import { GraphToolbar, type AnimationMode } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
 import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
 import { TimelineControls, type TimelineState } from '@/components/graph/TimelineControls';
@@ -36,6 +36,7 @@ export default function GraphPage() {
   const { data: book } = useBook(bookId);
   const { t: tStats } = useTranslation('graph');
   const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
+  const [animationMode, setAnimationMode] = useState<AnimationMode>('fade');
   const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
@@ -128,7 +129,7 @@ export default function GraphPage() {
   return (
     <div className="relative h-full w-full">
       {/* Graph canvas — fills entire area, never resizes */}
-      <GraphCanvas elements={filteredElements} onNodeTap={handleNodeTap} selectedNodeId={selectedNodeId} />
+      <GraphCanvas elements={filteredElements} onNodeTap={handleNodeTap} selectedNodeId={selectedNodeId} animationMode={animationMode} />
 
       {/* Floating toolbar (top-left) */}
       <GraphToolbar
@@ -137,6 +138,8 @@ export default function GraphPage() {
         visibleTypes={visibleTypes}
         onTypeToggle={handleTypeToggle}
         onReset={handleReset}
+        animationMode={animationMode}
+        onAnimationModeChange={setAnimationMode}
       />
 
       {/* Timeline snapshot controls (bottom-left, above zoom) */}
@@ -144,8 +147,8 @@ export default function GraphPage() {
         <TimelineControls bookId={bookId} onChange={setTimelineState} />
       )}
 
-      {/* Zoom controls (bottom-left) */}
-      <div className="absolute bottom-4 left-4 flex flex-col gap-1 z-10">
+      {/* Zoom controls (bottom-right) */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
         <button
           className="w-8 h-8 rounded-md flex items-center justify-center"
           style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}

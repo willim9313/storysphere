@@ -10,7 +10,39 @@
   },
   "toolbar": {
     "searchPlaceholder": "搜尋實體...",
-    "resetView": "重置視圖"
+    "resetView": "重置視圖",
+    "animationMode": "入場動畫",
+    "anim_fade": "淡入",
+    "anim_stagger": "逐個"
+  },
+  "timeline": {
+    "modal": {
+      "title": "偵測到時間結構",
+      "subtitle": "書籍分析完成，請選擇要為知識圖譜啟用的時間軸模式。",
+      "chapters": "章節",
+      "events": "事件",
+      "rankedEvents": "已排序事件",
+      "chapterMode": {
+        "title": "閱讀順序模式",
+        "description": "依章節切割圖譜，隨閱讀進度探索故事世界。"
+      },
+      "storyMode": {
+        "title": "故事時序模式",
+        "description": "依故事世界時間順序排列，需先執行時序運算。",
+        "locked": "執行時序運算以解鎖"
+      },
+      "skip": "稍後再說",
+      "saving": "儲存中…"
+    },
+    "controls": {
+      "title": "時間軸快照",
+      "reconfigure": "重新設定時間軸",
+      "enable": "啟用快照",
+      "modeReading": "閱讀",
+      "modeStory": "故事",
+      "upToChapter": "截至第...章",
+      "upToEvent": "截至第...事件"
+    }
   },
   "stats": "{{nodes}} 節點 · {{edges}} 關係",
   "panel": {

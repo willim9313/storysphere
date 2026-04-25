@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, Clock, ChevronDown, ChevronUp, Settings } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { fetchTimelineConfig, detectTimeline } from '@/api/graph';
 import { TimelineConfigModal } from './TimelineConfigModal';
 import type { TimelineDetectionResponse } from '@/api/graph';
@@ -23,6 +24,7 @@ export function TimelineControls({ bookId, onChange }: TimelineControlsProps) {
   const [pendingDetection, setPendingDetection] = useState<TimelineDetectionResponse | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+  const { t } = useTranslation('graph');
 
   const { data: config } = useQuery({
     queryKey: ['books', bookId, 'timeline-config'],
@@ -96,7 +98,7 @@ export function TimelineControls({ bookId, onChange }: TimelineControlsProps) {
         >
           <div className="flex items-center gap-2">
             <Clock size={13} style={{ color: 'var(--accent)' }} />
-            <span>Timeline Snapshot</span>
+            <span>{t('timeline.controls.title')}</span>
             {enabled && (
               <span
                 className="px-1.5 py-0.5 rounded text-[10px]"
@@ -109,7 +111,7 @@ export function TimelineControls({ bookId, onChange }: TimelineControlsProps) {
           {expanded ? <ChevronDown size={13} /> : <ChevronUp size={13} />}
         </button>
         <button
-          title="Reconfigure timeline"
+          title={t('timeline.controls.reconfigure')}
           disabled={detectMutation.isPending}
           onClick={() => detectMutation.mutate()}
           className="px-2 py-2 flex-shrink-0"
@@ -126,7 +128,7 @@ export function TimelineControls({ bookId, onChange }: TimelineControlsProps) {
         >
           {/* Enable toggle */}
           <div className="flex items-center justify-between pt-2">
-            <span className="text-xs" style={{ color: 'var(--fg-secondary)' }}>Enable snapshot</span>
+            <span className="text-xs" style={{ color: 'var(--fg-secondary)' }}>{t('timeline.controls.enable')}</span>
             <button
               onClick={() => setEnabled((v) => !v)}
               className="relative inline-flex h-5 w-9 items-center rounded-full transition-colors"
@@ -156,7 +158,7 @@ export function TimelineControls({ bookId, onChange }: TimelineControlsProps) {
                       }}
                     >
                       {m === 'chapter' ? <BookOpen size={10} /> : <Clock size={10} />}
-                      {m === 'chapter' ? 'Reading' : 'Story'}
+                      {m === 'chapter' ? t('timeline.controls.modeReading') : t('timeline.controls.modeStory')}
                     </button>
                   ))}
                 </div>
@@ -166,7 +168,7 @@ export function TimelineControls({ bookId, onChange }: TimelineControlsProps) {
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-[11px]" style={{ color: 'var(--fg-muted)' }}>
-                    {mode === 'chapter' ? 'Up to chapter' : 'Up to event'}
+                    {mode === 'chapter' ? t('timeline.controls.upToChapter') : t('timeline.controls.upToEvent')}
                   </span>
                   <span className="text-[11px] font-semibold tabular-nums" style={{ color: 'var(--fg-primary)' }}>
                     {position} / {currentMax}

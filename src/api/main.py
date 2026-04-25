@@ -133,7 +133,8 @@ async def lifespan(app: FastAPI):
 
     kg = get_kg_service()
     await kg.load()
-    get_doc_service()
+    doc = get_doc_service()
+    await doc.init_db()
     get_vector_service()
     get_chat_agent()
     get_analysis_agent()
