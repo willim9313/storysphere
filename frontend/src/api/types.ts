@@ -122,7 +122,12 @@ export interface GraphEdge {
   target: string;
   label?: string;
   weight?: number;
+  // F-01 inferred relation fields
+  inferred?: boolean;
+  confidence?: number;
+  inferredId?: string;
 }
+
 
 export interface GraphData {
   nodes: GraphNode[];

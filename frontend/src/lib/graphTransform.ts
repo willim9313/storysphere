@@ -42,6 +42,9 @@ export function toCytoscapeElements(graphData: GraphData): CytoscapeElement[] {
         label: edge.label ?? '',
         weight: w,
         edgeLength: 190 - 100 * w,
+        inferred: edge.inferred ?? false,
+        inferredId: edge.inferredId ?? null,
+        confidence: edge.confidence ?? null,
       },
     });
   }

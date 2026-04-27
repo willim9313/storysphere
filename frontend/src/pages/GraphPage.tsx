@@ -19,6 +19,7 @@ import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
 import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
+import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
 import type { GraphNode, EntityChunkItem } from '@/api/types';
 
 const ALL_TYPES = new Set(['character', 'location', 'concept', 'event']);
@@ -38,12 +39,18 @@ export default function GraphPage() {
   const { t: tStats } = useTranslation('graph');
   const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
   const [animationMode, setAnimationMode] = useState<AnimationMode>('fade');
-  const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined);
+  const [showInferred, setShowInferred] = useState(false);
+  const [selectedInferredId, setSelectedInferredId] = useState<string | null>(null);
+  const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined, showInferred);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleTypes, setVisibleTypes] = useState(new Set(ALL_TYPES));
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
   const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
+
+  const handleEdgeTap = useCallback((_edgeId: string, inferredId: string | null) => {
+    if (inferredId) setSelectedInferredId(inferredId);
+  }, []);
 
   // Auto-select entity from query param (e.g. navigating from analysis page)
   useEffect(() => {
@@ -149,6 +156,7 @@ export default function GraphPage() {
       <GraphCanvas
         elements={filteredElements}
         onNodeTap={handleNodeTap}
+        onEdgeTap={handleEdgeTap}
         selectedNodeId={selectedNodeId}
         animationMode={animationMode}
         extraStylesheet={epistemicStylesheet}
@@ -163,7 +171,23 @@ export default function GraphPage() {
         onReset={handleReset}
         animationMode={animationMode}
         onAnimationModeChange={setAnimationMode}
+        showInferred={showInferred}
+        onShowInferredChange={(v) => {
+          setShowInferred(v);
+          if (!v) setSelectedInferredId(null);
+        }}
       />
+
+      {/* Inferred edge detail panel */}
+      {selectedInferredId && bookId && (
+        <InferredEdgePanel
+          bookId={bookId}
+          inferredId={selectedInferredId}
+          onClose={() => setSelectedInferredId(null)}
+          onConfirmed={() => setSelectedInferredId(null)}
+          onRejected={() => setSelectedInferredId(null)}
+        />
+      )}
 
       {/* Timeline snapshot controls (bottom-left, above zoom) */}
       {bookId && (

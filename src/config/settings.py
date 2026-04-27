@@ -144,6 +144,18 @@ class Settings(BaseSettings):
         default=20, description="Max vector search chunks for CEP extraction"
     )
 
+    # ── Link Prediction (F-01) ─────────────────────────────────────────────────
+    link_prediction_db_path: str = Field(
+        default="./data/inferred_relations.db",
+        description="SQLite path for link prediction (inferred relations) store",
+    )
+    link_prediction_max_candidates: int = Field(
+        default=20, description="Max inferred relation candidates per book"
+    )
+    link_prediction_min_common_neighbors: int = Field(
+        default=1, description="Min common neighbors to generate a candidate"
+    )
+
     # ── Cache TTLs ─────────────────────────────────────────────────────────────
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
     analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")

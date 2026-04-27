@@ -9,6 +9,7 @@ cytoscape.use(fcose);
 interface GraphCanvasProps {
   readonly elements: cytoscape.ElementDefinition[];
   readonly onNodeTap?: (nodeId: string) => void;
+  readonly onEdgeTap?: (edgeId: string, inferredId: string | null) => void;
   readonly selectedNodeId?: string | null;
   readonly animationMode?: AnimationMode;
   readonly extraStylesheet?: cytoscape.StylesheetStyle[];
@@ -69,6 +70,7 @@ const clearHighlight = (cy: cytoscape.Core) => {
 export function GraphCanvas({
   elements,
   onNodeTap,
+  onEdgeTap,
   selectedNodeId,
   animationMode = 'fade',
   extraStylesheet = [],
@@ -77,6 +79,8 @@ export function GraphCanvas({
   const cyRef = useRef<cytoscape.Core | null>(null);
   const onNodeTapRef = useRef(onNodeTap);
   onNodeTapRef.current = onNodeTap;
+  const onEdgeTapRef = useRef(onEdgeTap);
+  onEdgeTapRef.current = onEdgeTap;
   const prevIdsRef = useRef<Set<string>>(new Set());
   const animModeRef = useRef(animationMode);
   animModeRef.current = animationMode;
@@ -96,6 +100,13 @@ export function GraphCanvas({
     cy.on('tap', 'node', (evt) => {
       applyHighlight(cy, evt.target.id());
       onNodeTapRef.current?.(evt.target.id());
+    });
+
+    cy.on('tap', 'edge', (evt) => {
+      const data = evt.target.data();
+      if (data.inferred) {
+        onEdgeTapRef.current?.(evt.target.id(), data.inferredId ?? null);
+      }
     });
 
     cy.on('tap', (evt) => {

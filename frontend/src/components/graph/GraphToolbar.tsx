@@ -1,4 +1,4 @@
-import { Search, RotateCcw } from 'lucide-react';
+import { Search, RotateCcw, Link } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityType } from '@/api/types';
 
@@ -19,6 +19,8 @@ interface GraphToolbarProps {
   onReset: () => void;
   animationMode: AnimationMode;
   onAnimationModeChange: (mode: AnimationMode) => void;
+  showInferred: boolean;
+  onShowInferredChange: (v: boolean) => void;
 }
 
 export function GraphToolbar({
@@ -29,6 +31,8 @@ export function GraphToolbar({
   onReset,
   animationMode,
   onAnimationModeChange,
+  showInferred,
+  onShowInferredChange,
 }: GraphToolbarProps) {
   const { t } = useTranslation('graph');
 
@@ -83,6 +87,20 @@ export function GraphToolbar({
       >
         <RotateCcw size={12} />
         {t('toolbar.resetView')}
+      </button>
+
+      {/* Inferred relations toggle */}
+      <button
+        className="flex items-center gap-1.5 text-xs w-full justify-center py-1 rounded-md transition-colors"
+        style={{
+          backgroundColor: showInferred ? '#fef3c7' : 'var(--bg-secondary)',
+          color: showInferred ? '#b45309' : 'var(--fg-secondary)',
+          border: showInferred ? '1px solid #f59e0b' : '1px solid var(--border)',
+        }}
+        onClick={() => onShowInferredChange(!showInferred)}
+      >
+        <Link size={12} />
+        {t('toolbar.showInferred', '推斷關係')}
       </button>
 
       {/* Animation mode toggle */}

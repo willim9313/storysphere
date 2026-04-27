@@ -16,7 +16,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Query, UploadFile
 
-from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, EpistemicStateServiceDep, KGServiceDep, TemporalPipelineDep, VectorServiceDep, VoiceProfilingServiceDep
+from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, EpistemicStateServiceDep, KGServiceDep, LinkPredictionServiceDep, TemporalPipelineDep, VectorServiceDep, VoiceProfilingServiceDep
 from api.schemas.books import (
     AnalysisItem,
     AnalysisListResponse,
@@ -54,8 +54,12 @@ from api.schemas.books import (
     TopEntity,
     UnanalyzedEntity,
     ClassifyVisibilityResponse,
+    ConfirmInferredRequest,
     EpistemicStateResponse,
+    InferredRelationResponse,
+    InferredRelationsResponse,
     MisbeliefItemSchema,
+    RunInferenceRequest,
     VoiceProfileResponse,
 )
 from api.store import task_store
@@ -229,6 +233,7 @@ async def delete_book(
     vector: VectorServiceDep,
     kg: KGServiceDep,
     cache: AnalysisCacheDep,
+    lp: LinkPredictionServiceDep,
 ) -> None:
     """Delete a book, its vector collection, KG data, analysis cache, and DB records."""
     document = await doc.get_document(book_id)
@@ -237,6 +242,7 @@ async def delete_book(
     await vector.delete_collection(book_id)
     await kg.remove_by_document(book_id)
     await cache.invalidate(f"%:{book_id}:%")
+    await lp.delete_by_document(book_id)
     await doc.delete_document(book_id)
     return None
 
@@ -512,8 +518,10 @@ async def get_book_graph(
     book_id: str,
     doc: DocServiceDep,
     kg: KGServiceDep,
+    lp: LinkPredictionServiceDep,
     mode: str | None = None,
     position: int | None = None,
+    include_inferred: bool = False,
 ) -> dict:
     """Get knowledge graph data for a book.
 
@@ -594,7 +602,155 @@ async def get_book_graph(
                 ).model_dump(by_alias=True)
             )
 
+    if include_inferred:
+        from domain.inferred_relations import InferenceStatus  # noqa: PLC0415
+        inferred = await lp.list_inferred(book_id, status=InferenceStatus.PENDING)
+        for ir in inferred:
+            if ir.source_id not in entity_ids or ir.target_id not in entity_ids:
+                continue
+            if position is not None and ir.visible_from_chapter is not None:
+                if ir.visible_from_chapter > position:
+                    continue
+            edges.append(
+                GraphEdge(
+                    id=f"ir-{ir.id}",
+                    source=ir.source_id,
+                    target=ir.target_id,
+                    label=ir.suggested_relation_type.value,
+                    confidence=ir.confidence,
+                    inferred=True,
+                    inferred_id=ir.id,
+                ).model_dump(by_alias=True)
+            )
+
     return GraphDataResponse(nodes=nodes, edges=edges).model_dump(by_alias=True)
+
+
+# ── Link Prediction / Inferred Relations (F-01) ──────────────────────────────
+
+
+@router.post("/{book_id}/inferred-relations/run", response_model=InferredRelationsResponse)
+async def run_link_inference(
+    book_id: str,
+    body: RunInferenceRequest,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    lp: LinkPredictionServiceDep,
+) -> dict:
+    """Run Common Neighbors + Adamic-Adar inference on the full book graph."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from config.settings import get_settings  # noqa: PLC0415
+    settings = get_settings()
+    entity_map = {e.id: e for e in await kg.list_entities(document_id=book_id)}
+    items = await lp.run_inference(
+        document_id=book_id,
+        max_candidates=settings.link_prediction_max_candidates,
+        min_common_neighbors=settings.link_prediction_min_common_neighbors,
+        force_refresh=body.force_refresh,
+    )
+    responses = [_ir_to_response(ir, entity_map) for ir in items]
+    return InferredRelationsResponse(items=responses, total=len(responses)).model_dump(by_alias=True)
+
+
+@router.get("/{book_id}/inferred-relations", response_model=InferredRelationsResponse)
+async def list_inferred_relations(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    lp: LinkPredictionServiceDep,
+    status: str | None = None,
+) -> dict:
+    """List inferred relation candidates for a book."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from domain.inferred_relations import InferenceStatus  # noqa: PLC0415
+    status_filter = None
+    if status is not None:
+        try:
+            status_filter = InferenceStatus(status)
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Invalid status '{status}'")
+
+    entity_map = {e.id: e for e in await kg.list_entities(document_id=book_id)}
+    items = await lp.list_inferred(book_id, status=status_filter)
+    responses = [_ir_to_response(ir, entity_map) for ir in items]
+    return InferredRelationsResponse(items=responses, total=len(responses)).model_dump(by_alias=True)
+
+
+@router.post("/{book_id}/inferred-relations/{ir_id}/confirm", status_code=201)
+async def confirm_inferred_relation(
+    book_id: str,
+    ir_id: str,
+    body: ConfirmInferredRequest,
+    doc: DocServiceDep,
+    lp: LinkPredictionServiceDep,
+) -> dict:
+    """Confirm an inferred relation; writes it as a real Relation to the KG."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from domain.relations import RelationType  # noqa: PLC0415
+    try:
+        relation_type = RelationType(body.relation_type)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Invalid relation_type '{body.relation_type}'")
+
+    ir = await lp.get_inferred(ir_id)
+    if ir is None or ir.document_id != book_id:
+        raise HTTPException(status_code=404, detail=f"InferredRelation '{ir_id}' not found")
+
+    relation = await lp.confirm(ir_id, relation_type)
+    if relation is None:
+        raise HTTPException(status_code=404, detail=f"InferredRelation '{ir_id}' not found")
+    return {"relationId": relation.id}
+
+
+@router.post("/{book_id}/inferred-relations/{ir_id}/reject", status_code=204)
+async def reject_inferred_relation(
+    book_id: str,
+    ir_id: str,
+    doc: DocServiceDep,
+    lp: LinkPredictionServiceDep,
+) -> None:
+    """Reject (dismiss) an inferred relation candidate."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    ir = await lp.get_inferred(ir_id)
+    if ir is None or ir.document_id != book_id:
+        raise HTTPException(status_code=404, detail=f"InferredRelation '{ir_id}' not found")
+
+    await lp.reject(ir_id)
+    return None
+
+
+def _ir_to_response(ir: Any, entity_map: dict) -> InferredRelationResponse:
+    src = entity_map.get(ir.source_id)
+    tgt = entity_map.get(ir.target_id)
+    return InferredRelationResponse(
+        id=ir.id,
+        document_id=ir.document_id,
+        source_id=ir.source_id,
+        target_id=ir.target_id,
+        source_name=src.name if src else ir.source_id,
+        target_name=tgt.name if tgt else ir.target_id,
+        common_neighbor_count=ir.common_neighbor_count,
+        adamic_adar_score=ir.adamic_adar_score,
+        confidence=ir.confidence,
+        suggested_relation_type=ir.suggested_relation_type.value,
+        reasoning=ir.reasoning,
+        status=ir.status.value,
+        visible_from_chapter=ir.visible_from_chapter,
+        confirmed_relation_id=ir.confirmed_relation_id,
+        created_at=ir.created_at,
+    )
 
 
 # ── Timeline config endpoints ────────────────────────────────────────────────

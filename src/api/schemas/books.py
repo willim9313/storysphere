@@ -123,6 +123,11 @@ class GraphEdge(BaseModel):
     source: str
     target: str
     label: str | None = None
+    weight: float | None = None
+    # F-01 inferred relation fields
+    inferred: bool = False
+    confidence: float | None = None
+    inferred_id: str | None = None
 
 
 class GraphDataResponse(BaseModel):
@@ -478,6 +483,48 @@ class ClassifyVisibilityResponse(BaseModel):
     classified: int
     skipped: int
     total: int
+
+
+# ── Link Prediction / Inferred Relations (F-01) ───────────────────────────────
+
+
+class InferredRelationResponse(BaseModel):
+    model_config = _CAMEL
+
+    id: str
+    document_id: str
+    source_id: str
+    target_id: str
+    source_name: str
+    target_name: str
+    common_neighbor_count: int
+    adamic_adar_score: float
+    confidence: float
+    suggested_relation_type: str
+    reasoning: str
+    status: str
+    visible_from_chapter: Optional[int] = None
+    confirmed_relation_id: Optional[str] = None
+    created_at: float
+
+
+class InferredRelationsResponse(BaseModel):
+    model_config = _CAMEL
+
+    items: list[InferredRelationResponse] = []
+    total: int = 0
+
+
+class RunInferenceRequest(BaseModel):
+    model_config = _CAMEL
+
+    force_refresh: bool = False
+
+
+class ConfirmInferredRequest(BaseModel):
+    model_config = _CAMEL
+
+    relation_type: str
 
 
 # ── Voice Profile (F-04) ─────────────────────────────────────────────────────

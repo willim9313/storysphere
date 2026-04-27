@@ -149,6 +149,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/inferred-relations/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Link Inference
+         * @description Run Common Neighbors + Adamic-Adar inference on the full book graph.
+         */
+        post: operations["run_link_inference_api_v1_books__book_id__inferred_relations_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-relations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Inferred Relations
+         * @description List inferred relation candidates for a book.
+         */
+        get: operations["list_inferred_relations_api_v1_books__book_id__inferred_relations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-relations/{ir_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Inferred Relation
+         * @description Confirm an inferred relation; writes it as a real Relation to the KG.
+         */
+        post: operations["confirm_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-relations/{ir_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Inferred Relation
+         * @description Reject (dismiss) an inferred relation candidate.
+         */
+        post: operations["reject_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/timeline-config": {
         parameters: {
             query?: never;
@@ -529,7 +609,11 @@ export interface paths {
         get: operations["get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete Entity Voice Profile
+         * @description Invalidate the cached voice profile so the next GET recomputes it.
+         */
+        delete: operations["delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -2016,6 +2100,11 @@ export interface components {
             /** Imagery Type */
             imagery_type: string;
         };
+        /** ConfirmInferredRequest */
+        ConfirmInferredRequest: {
+            /** Relationtype */
+            relationType: string;
+        };
         /** DocumentResponse */
         DocumentResponse: {
             /** Id */
@@ -2322,6 +2411,17 @@ export interface components {
             target: string;
             /** Label */
             label?: string | null;
+            /** Weight */
+            weight?: number | null;
+            /**
+             * Inferred
+             * @default false
+             */
+            inferred: boolean;
+            /** Confidence */
+            confidence?: number | null;
+            /** Inferredid */
+            inferredId?: string | null;
         };
         /** GraphNode */
         GraphNode: {
@@ -2420,6 +2520,52 @@ export interface components {
             subsequentEventIds: string[];
             /** Impactsummary */
             impactSummary: string;
+        };
+        /** InferredRelationResponse */
+        InferredRelationResponse: {
+            /** Id */
+            id: string;
+            /** Documentid */
+            documentId: string;
+            /** Sourceid */
+            sourceId: string;
+            /** Targetid */
+            targetId: string;
+            /** Sourcename */
+            sourceName: string;
+            /** Targetname */
+            targetName: string;
+            /** Commonneighborcount */
+            commonNeighborCount: number;
+            /** Adamicadarscore */
+            adamicAdarScore: number;
+            /** Confidence */
+            confidence: number;
+            /** Suggestedrelationtype */
+            suggestedRelationType: string;
+            /** Reasoning */
+            reasoning: string;
+            /** Status */
+            status: string;
+            /** Visiblefromchapter */
+            visibleFromChapter?: number | null;
+            /** Confirmedrelationid */
+            confirmedRelationId?: string | null;
+            /** Createdat */
+            createdAt: number;
+        };
+        /** InferredRelationsResponse */
+        InferredRelationsResponse: {
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["InferredRelationResponse"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
         };
         /** KgMigrateRequest */
         KgMigrateRequest: {
@@ -2600,6 +2746,14 @@ export interface components {
          * @enum {string}
          */
         RelationType: "family" | "friendship" | "romance" | "enemy" | "ally" | "subordinate" | "located_in" | "member_of" | "owns" | "other";
+        /** RunInferenceRequest */
+        RunInferenceRequest: {
+            /**
+             * Forcerefresh
+             * @default false
+             */
+            forceRefresh: boolean;
+        };
         /**
          * SEP
          * @description Symbol Evidence Profile — structured evidence for an imagery entity.
@@ -3490,6 +3644,7 @@ export interface operations {
             query?: {
                 mode?: string | null;
                 position?: number | null;
+                include_inferred?: boolean;
             };
             header?: never;
             path: {
@@ -3507,6 +3662,142 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["GraphDataResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_link_inference_api_v1_books__book_id__inferred_relations_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RunInferenceRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InferredRelationsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_inferred_relations_api_v1_books__book_id__inferred_relations_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InferredRelationsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                ir_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmInferredRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                ir_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -4175,6 +4466,36 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["VoiceProfileResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
