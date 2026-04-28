@@ -87,7 +87,7 @@ title   (書名字串，必填)
 author  (作者字串，選填)
 ```
 
-**Response 200**
+**Response 202**
 ```ts
 { taskId: string }
 ```
@@ -394,7 +394,7 @@ interface EventEvidenceProfile {
 
 批次觸發所有未分析事件的 EEP 分析（已分析自動跳過）。
 
-**Response 200**：`{ taskId: string }`
+**Response 202**：`{ taskId: string }`
 
 **說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。
 
@@ -461,7 +461,7 @@ useQuery({
 | 角色實體深度分析 | #7b |
 | 事件深度分析（單一） | #7e |
 | 批次事件 EEP | #7g |
-| 時序計算 | #11b |
+| 時序計算 | #13b |
 | 可見性分類 | #12d |
 
 ---
@@ -584,7 +584,7 @@ interface InferredRelationsResponse {
 { relationType: string }
 ```
 
-**Response 200**：`{ relationId: string }`
+**Response 201**：`{ relationId: string }`
 
 **UI 使用頁面**：知識圖譜頁 InferredEdgePanel「Confirm」按鈕
 
@@ -594,7 +594,7 @@ interface InferredRelationsResponse {
 
 拒絕推斷關係。
 
-**Response 200**：無 body
+**Response 204**
 
 **UI 使用頁面**：知識圖譜頁 InferredEdgePanel「Reject」按鈕
 
@@ -663,7 +663,7 @@ interface EventDetail {
 
 觸發事件可見性分類（epistemic 視角所需前置步驟）。
 
-**Response 200**：`{ taskId: string }`
+**Response 202**：`{ taskId: string }`
 
 **說明**：polling #8。
 
@@ -737,7 +737,7 @@ interface TimelineQuality {
 
 觸發時序計算（計算 `chronological_rank`）。
 
-**Response 200**：`{ taskId: string }`
+**Response 202**：`{ taskId: string }`
 
 **說明**：polling #8，完成後重新拉取 #13a。
 
@@ -764,7 +764,7 @@ Step 1：觸發全書 TEU 組裝。
 }
 ```
 
-**Response 200**：`{ taskId: string }`
+**Response 202**：`TaskStatus`（含 taskId）
 
 ---
 
@@ -789,7 +789,7 @@ Step 2：觸發 TensionLine 聚合。
 }
 ```
 
-**Response 200**：`{ taskId: string }`
+**Response 202**：`TaskStatus`（含 taskId）
 
 ---
 
@@ -861,7 +861,7 @@ Step 3：觸發 TensionTheme 合成。
 }
 ```
 
-**Response 200**：`{ taskId: string }`
+**Response 202**：`TaskStatus`（含 taskId）
 
 ---
 
@@ -1003,15 +1003,141 @@ interface CoOccurrenceEntry {
 
 ---
 
+### #15d GET /symbols/:imageryId/sep
+
+取得 Symbol Evidence Profile（SEP）——純資料彙整，無 LLM。
+
+**Query Params**：`force=true`（選填，繞過快取重新組裝）
+
+**Response 200**
+```ts
+// 欄位為 snake_case（domain/ model）
+interface SEP {
+  id: string;
+  imagery_id: string;
+  book_id: string;
+  term: string;
+  imagery_type: string;
+  frequency: number;
+  occurrence_contexts: {
+    occurrence_id: string;
+    paragraph_id: string;
+    chapter_number: number;
+    position: number;
+    paragraph_text: string;
+    context_window: string;
+  }[];
+  co_occurring_entity_ids: string[];
+  co_occurring_event_ids: string[];
+  chapter_distribution: Record<string, number>;   // { "1": 3, "2": 1, ... }
+  peak_chapters: number[];
+  assembled_by: string;
+  assembled_at: string;
+}
+```
+
+**Response 404**：imagery 不存在
+
+**UI 使用頁面**：象徵意象頁（內部前置步驟，觸發 #15e 前呼叫）
+
+---
+
+### #15e POST /symbols/:imageryId/analyze
+
+觸發 LLM 象徵詮釋（B-040）。
+
+**Request Body**
+```ts
+{
+  book_id: string;
+  language?: string;      // 預設 'en'
+  force_refresh?: boolean;
+}
+```
+
+**Response 202**：`TaskStatus`（含 taskId）
+
+**說明**：polling 走 #15f（不走 #8）。完成後結果存入快取，可由 #15g 取得。
+
+**UI 使用頁面**：象徵意象頁詳情區「生成詮釋」按鈕
+
+---
+
+### #15f GET /symbols/:imageryId/analyze/:taskId
+
+#15e 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`（同 #8）
+
+---
+
+### #15g GET /symbols/:imageryId/interpretation
+
+取得快取的 SymbolInterpretation（LLM 詮釋結果）。
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**
+```ts
+// 欄位為 snake_case（domain/ model）
+interface SymbolInterpretation {
+  id: string;
+  imagery_id: string;
+  book_id: string;
+  term: string;
+  theme: string;                // 1-2 句主題命題
+  polarity: 'positive' | 'negative' | 'neutral' | 'mixed';
+  evidence_summary: string;     // 2-3 句 SEP 佐證綜述
+  linked_characters: string[];  // 關聯 entity IDs
+  linked_events: string[];      // 關聯 event IDs
+  confidence: number;           // 0–1
+  assembled_by: string;
+  assembled_at: string;
+  review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+}
+```
+
+**Response 404**：尚未生成（需先呼叫 #15e）
+
+**UI 使用頁面**：象徵意象頁詳情區「詮釋」面板
+
+---
+
+### #15h PATCH /symbols/:imageryId/interpretation
+
+HITL 審核 / 修改 SymbolInterpretation。
+
+**Request Body**
+```ts
+{
+  book_id: string;
+  review_status: 'approved' | 'modified' | 'rejected';
+  theme?: string;     // modified 時填入
+  polarity?: 'positive' | 'negative' | 'neutral' | 'mixed';
+}
+```
+
+**Response 200**：`SymbolInterpretation`（更新後）
+
+**Response 404**：interpretation 不存在
+
+**UI 使用頁面**：象徵意象頁詳情區「審核」按鈕
+
+---
+
 ## 語音風格
 
 ### #16a GET /books/:bookId/entities/:entityId/voice
 
 取得角色語音風格分析結果（VoiceProfile）。
 
+**行為說明**：Lazy 生成 — 第一次呼叫時直接計算並快取，後續從快取回傳。無「尚未生成」的 404；404 僅在 book 或 entity 不存在時回傳。
+
 **Response 200**：`VoiceProfileResponse`（見 generated.ts）
 
-**Response 404**：尚未生成（前端 `retry: false`，直接顯示引導狀態）
+**Response 404**：book 或 entity 不存在
+
+**Response 422**：entity 無對話段落可分析
 
 **UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel
 
@@ -1095,7 +1221,7 @@ interface DailyUsage extends TokenBucket {
 
 **Request Body**：`{ direction: 'nx_to_neo4j' | 'neo4j_to_nx' }`
 
-**Response 200**：`TaskStatus`（立即回傳 running 狀態，含 taskId）
+**Response 202**：`TaskStatus`（立即回傳 running 狀態，含 taskId）
 
 > **注意**：此 endpoint 直接回傳 TaskStatus，polling 走 #18d（不走 #8）。
 
@@ -1154,6 +1280,243 @@ interface UnravelingEdge {
 
 ---
 
+## 深度分析（通用非同步路由）
+
+> **URL 前綴**：`/analysis/`，不帶 bookId。bookId 由 request body 的 `document_id` 傳入。
+> **Polling 模式**：各端點有專用 polling（不走 #8）。
+
+### #20a POST /analysis/character
+
+觸發角色深度分析（cache-first，已有快取則直接回傳舊結果除非 `force_refresh`）。
+
+**Request Body**
+```ts
+{
+  entity_name: string;        // 必須與 KG entity name 完全一致
+  document_id: string;
+  archetype_frameworks?: string[];  // ['jung'] | ['schmidt'] | ['jung','schmidt']，預設 ['jung']
+  language?: string;          // 預設 'en'
+  force_refresh?: boolean;
+}
+```
+
+**Response 202**：`TaskStatus`（含 taskId）
+
+**說明**：polling 走 #20b。
+
+---
+
+### #20b GET /analysis/character/:taskId
+
+#20a 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`（同 #8；`result` 為 CharacterAnalysisResult）
+
+---
+
+### #20c POST /analysis/event
+
+觸發事件深度分析（EEP + 因果 + 影響）。
+
+**Request Body**
+```ts
+{
+  event_id: string;
+  document_id: string;
+  language?: string;
+  force_refresh?: boolean;
+}
+```
+
+**Response 202**：`TaskStatus`（含 taskId）
+
+**說明**：polling 走 #20d。
+
+---
+
+### #20d GET /analysis/event/:taskId
+
+#20c 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`（同 #8；`result` 為 EventAnalysisResult）
+
+---
+
+## 敘事結構分析
+
+> **URL 前綴**：`/narrative/`，不帶 bookId。bookId 由 request body 的 `document_id` 或 query param `book_id` 傳入。
+> **Polling 模式**：各非同步端點有專用 polling（不走 #8）。
+
+### #21a POST /narrative/classify
+
+觸發啟發式 Kernel / Satellite 分類（B-036）。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  force?: boolean;
+}
+```
+
+**Response 202**：`TaskStatus`（含 taskId）
+
+**說明**：polling 走 #21b。
+
+---
+
+### #21b GET /narrative/classify/:taskId
+
+#21a 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`（`result` 為 NarrativeStructure）
+
+---
+
+### #21c POST /narrative/refine
+
+觸發 LLM 精煉 Kernel/Satellite 分類（B-036）。需先執行 #21a。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  event_ids?: string[];   // 指定特定 event；null = 精煉所有 satellite
+  language?: string;      // 預設 'en'
+  force?: boolean;
+}
+```
+
+**Response 202**：`TaskStatus`（含 taskId）
+
+**說明**：polling 走 #21d。
+
+---
+
+### #21d GET /narrative/refine/:taskId
+
+#21c 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`（`result` 為 NarrativeStructure）
+
+---
+
+### #21e POST /narrative/hero-journey
+
+觸發 Campbell 英雄旅程階段映射（B-037）。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  language?: string;
+  force?: boolean;
+}
+```
+
+**Response 202**：`TaskStatus`（含 taskId；`result.stages` 為 HeroJourneyStage[]）
+
+**說明**：polling 走 #21f。
+
+---
+
+### #21f GET /narrative/hero-journey/:taskId
+
+#21e 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`
+
+---
+
+### #21g GET /narrative/temporal/coverage
+
+檢查 `story_time_hint` 覆蓋率（同步，無 LLM）。
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**：`TemporalCoverageStats`（含覆蓋率 fraction 及是否達 60% 門檻）
+
+**說明**：覆蓋率 ≥ 60% 才能觸發 #21h。
+
+---
+
+### #21h POST /narrative/temporal
+
+觸發 Genette 時間序分析（B-037）。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  language?: string;
+  force?: boolean;
+}
+```
+
+**Response 202**：`TaskStatus`（含 taskId）
+
+**說明**：polling 走 #21i。需先確認 #21g 覆蓋率 ≥ 60%。
+
+---
+
+### #21i GET /narrative/temporal/:taskId
+
+#21h 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`
+
+---
+
+### #21j GET /narrative/kernel-spine
+
+取得 Kernel 事件清單（情節骨幹），依章節和敘事位置排序。若尚未分類則自動觸發啟發式分類。
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**
+```ts
+{
+  id: string;
+  title: string;
+  chapter: number;
+  event_type: string;
+  description: string;
+  significance?: string;
+  narrative_weight: number;
+  narrative_weight_source: string;
+  narrative_position: number;
+}[]
+```
+
+---
+
+### #21k GET /narrative
+
+取得書籍快取的 NarrativeStructure（含 Kernel/Satellite 分類 + 英雄旅程）。
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**：`NarrativeStructure`（model_dump 格式）
+
+**Response 404**：尚未執行 #21a
+
+---
+
+### #21l PATCH /narrative/:documentId/review
+
+HITL 審核 NarrativeStructure（approved / rejected）。
+
+**Request Body**
+```ts
+{
+  review_status: 'approved' | 'rejected';
+}
+```
+
+**Response 200**：`NarrativeStructure`（更新後）
+
+---
+
 ## TanStack Query Key 對照
 
 ```ts
@@ -1179,6 +1542,11 @@ interface UnravelingEdge {
 ['symbols', bookId]                                         // #15a
 ['symbols', imageryId, 'timeline']                          // #15b
 ['symbols', imageryId, 'co-occurrences']                    // #15c
+['symbols', imageryId, 'sep']                               // #15d
+['symbols', imageryId, 'interpretation']                    // #15g
+['narrative', bookId]                                       // #21k
+['narrative', bookId, 'kernel-spine']                       // #21j
+['narrative', bookId, 'temporal-coverage']                  // #21g
 ['token-usage', range]                                      // #17
 ['kg', 'status']                                            // #18a
 ['tasks', taskId]                                           // #8（polling）
@@ -1193,7 +1561,10 @@ interface UnravelingEdge {
 - [x] **TaskStatus 欄位**：`subProgress`、`subTotal`、`subStage` 已加入（批次任務使用）
 - [x] **#9 GraphEdge 推斷欄位**：`inferred`、`confidence`、`inferredId` 已加入
 - [x] **#14 張力分析系列**：專用 polling pattern 已實作（非走 #8）
+- [x] **#15d-#15h 象徵意象進階分析**：SEP + LLM 詮釋 + HITL 審核已實作（`src/api/routers/symbols.py`）
+- [x] **#16a VoiceProfile**：GET lazy 生成（無 404 表示未生成），DELETE 清快取；無另外的 POST trigger
 - [x] **#18c KG 遷移**：直接回傳 TaskStatus，polling 走 #18d（非走 #8）
+- [x] **#20 系列 `/analysis` 路由**：character + event 非同步深度分析，各有專用 polling（`src/api/routers/analysis.py`）
+- [x] **#21 系列 `/narrative` 路由**：Kernel/Satellite 分類 + LLM 精煉 + Hero's Journey + Genette 時間序（`src/api/routers/narrative.py`）
 - [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）
-- [ ] **#16a VoiceProfile 觸發**：目前 GET 404 表示未生成，觸發生成的 endpoint 尚未記錄（待確認後端是否已實作）
