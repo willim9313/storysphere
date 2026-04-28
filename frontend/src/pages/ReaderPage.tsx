@@ -59,9 +59,6 @@ export default function ReaderPage() {
     setViewingChapterId(chapterId);
   };
 
-  const handleViewContent = (chapterId: string) => {
-    setViewingChapterId(chapterId);
-  };
 
   return (
     <div className="flex h-full relative">
@@ -107,7 +104,6 @@ export default function ReaderPage() {
               isSelected={selectedChapterId === chapter.id}
               isExpanded={expandedChapterId === chapter.id}
               onSelect={() => handleSelectChapter(chapter.id)}
-              onViewContent={() => handleViewContent(chapter.id)}
             />
           </div>
         ))}

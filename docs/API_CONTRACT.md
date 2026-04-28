@@ -1,8 +1,8 @@
 # StorySphere — API Contract
 
 > 本文件為前後端對接的唯一 API 規格參考。
-> UI_SPEC.md 中的 API 引用均以本文件編號為準（如「見 API_CONTRACT #1」）。
-> 前端依本文件格式撰寫 mock data 進行開發，後端依本文件格式實作。
+> UI_SPEC.md 中的 API 引用以本文件編號為準（如「見 API_CONTRACT #1」）。
+> 欄位名稱規則：`api/schemas/` 下的 model 輸出 camelCase；`domain/` 下輸出 snake_case。詳見 `docs/type-generation.md`。
 
 ---
 
@@ -12,8 +12,7 @@
 開發環境：http://localhost:8000/api/v1
 ```
 
-> **注意**：所有端點路徑均相對於 `/api/v1`。
-> 前端 Vite proxy 會將 `/api/*` 轉發至 `http://localhost:8000`。
+> Vite proxy 將 `/api/*` 轉發至 `http://localhost:8000`。
 > 前端 `client.ts` 的 `BASE_URL` 預設為 `/api/v1`。
 
 ---
@@ -45,7 +44,7 @@ interface Book {
   chapterCount: number;
   entityCount?: number;
   uploadedAt: string;
-  lastOpenedAt?: string;
+  lastOpenedAt?: string;   // 後端尚未實作寫入，目前永遠為 undefined
 }
 ```
 
@@ -55,16 +54,13 @@ interface Book {
 
 ### #2-a GET /books/:bookId
 
-單本書 metadata。
+單本書 metadata（書庫列表欄位）。
 
-**Response 200**
-```ts
-Book  // 同 #1 的 Book interface，單筆
-```
+**Response 200**：同 `Book`（#1 的 Book interface）
 
 **Response 404**：書籍不存在
 
-**UI 使用頁面**：閱讀頁、深度分析頁、知識圖譜頁（取書名、status 顯示用）
+**UI 使用頁面**：閱讀頁、知識圖譜頁（取書名、status 顯示用）
 
 ---
 
@@ -86,56 +82,52 @@ Book  // 同 #1 的 Book interface，單筆
 
 **Request**：`multipart/form-data`
 ```
-field: file  (PDF 檔案)
+file    (PDF 檔案，必填)
+title   (書名字串，必填)
+author  (作者字串，選填)
 ```
 
 **Response 200**
 ```ts
-{
-  taskId: string;
-}
+{ taskId: string }
 ```
 
-**說明**：取得 taskId 後，前端開始 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。
+**說明**：取得 taskId 後，前端 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。
 
 **UI 使用頁面**：上傳頁 `/upload`
 
 ---
 
-## 章節與內容
+## 書籍詳情
 
 ### #3 GET /books/:bookId
 
-（同 #2-a，閱讀頁使用時另列以利查閱）
-
-取得書籍基本資料，含摘要與統計數字供閱讀頁欄 1 顯示。
+（與 #2-a 同一 endpoint，以下記錄完整 BookDetail 結構，閱讀頁欄 1 使用此格式）
 
 **Response 200**
 ```ts
-{
-  id: string;
-  title: string;
-  author?: string;
-  status: 'processing' | 'ready' | 'analyzed' | 'error';
-  summary?: string;          // 書籍摘要，供閱讀頁欄 1 顯示
-  chapterCount: number;
+interface BookDetail extends Book {
+  summary?: string;
   chunkCount: number;
   entityCount: number;
   relationCount: number;
-  entityStats: {             // 各類型實體數量，供欄 1 分佈顯示
+  entityStats: {
     character: number;
     location: number;
+    organization: number;
+    object: number;
     concept: number;
-    event: number;
+    other: number;
   };
-  uploadedAt: string;
-  lastOpenedAt?: string;
+  keywords?: Record<string, number>;
 }
 ```
 
 **UI 使用頁面**：閱讀頁欄 1
 
 ---
+
+## 章節與內容
 
 ### #4 GET /books/:bookId/chapters
 
@@ -152,12 +144,13 @@ interface Chapter {
   order: number;
   chunkCount: number;
   entityCount: number;
-  summary?: string;          // 章節摘要，點擊展開時顯示
-  topEntities?: {            // 主要實體，供 pill 顯示，最多 5 筆
+  summary?: string;
+  topEntities?: {
     id: string;
     name: string;
-    type: 'character' | 'location' | 'concept' | 'event';
+    type: EntityType;   // 見下方 EntityType
   }[];
+  keywords?: Record<string, number>;   // TF-IDF 關鍵字 → 權重
 }
 ```
 
@@ -177,22 +170,26 @@ interface Chunk {
   id: string;
   chapterId: string;
   order: number;
-  content: string;           // 純文字原文（備用）
+  content: string;
   keywords: string[];
-  segments: Segment[];       // 切分後的 inline 片段，含實體標記
+  segments: Segment[];
 }
 
 interface Segment {
   text: string;
   entity?: {
-    type: 'character' | 'location' | 'concept' | 'event';
+    type: EntityType;
     entityId: string;
     name: string;
   };
 }
+
+type EntityType =
+  | 'character' | 'location' | 'organization'
+  | 'object' | 'concept' | 'other' | 'event';
 ```
 
-**說明**：一次拉取整個章節所有 chunks，TanStack Query 以 `['books', bookId, 'chapters', chapterId, 'chunks']` 做快取，同一章節不重複請求。
+**說明**：一次拉取整個章節所有 chunks，TanStack Query key：`['books', bookId, 'chapters', chapterId, 'chunks']`。
 
 **UI 使用頁面**：閱讀頁欄 3
 
@@ -202,18 +199,13 @@ interface Segment {
 
 ### #6 POST /books/:bookId/analyze
 
-觸發整本書深度分析。需使用者確認（token 消耗提示）後才呼叫。
+觸發整本書深度分析。需確認視窗（token 消耗提示）後才呼叫。
 
-**Response 200**
-```ts
-{
-  taskId: string;
-}
-```
+**Response 200**：`{ taskId: string }`
 
-**說明**：取得 taskId 後 polling #8。完成後書籍 `status` 變為 `'analyzed'`。
+**說明**：polling #8，完成後書籍 `status` 變為 `'analyzed'`。
 
-**UI 使用頁面**：閱讀頁（觸發按鈕）、首頁最近開啟（觸發分析快捷）
+**UI 使用頁面**：閱讀頁（觸發按鈕）
 
 ---
 
@@ -225,28 +217,30 @@ interface Segment {
 ```ts
 {
   analyzed: AnalysisItem[];
-  unanalyzed: {
-    id: string;
-    name: string;
-    type: 'character';
-    chapterCount: number;
-  }[];
+  unanalyzed: UnanalyzedEntity[];
 }
 
 interface AnalysisItem {
   id: string;
   entityId: string;
-  section: 'characters';
-  title: string;             // 角色名
-  archetypeType?: string;    // 原型類型，如「革命者」
+  section: 'characters' | 'events';
+  title: string;
+  archetypeType?: string;
   chapterCount: number;
-  content: string;           // 分析文本（Markdown）
+  content: string;
   framework: 'jung' | 'schmidt';
   generatedAt: string;
 }
+
+interface UnanalyzedEntity {
+  id: string;
+  name: string;
+  type: EntityType;
+  chapterCount: number;
+}
 ```
 
-**UI 使用頁面**：深度分析頁左側清單
+**UI 使用頁面**：角色分析頁左側清單
 
 ---
 
@@ -254,163 +248,166 @@ interface AnalysisItem {
 
 取得事件分析清單（含已分析與未分析）。
 
-**Response 200**
-```ts
-{
-  analyzed: AnalysisItem[];   // section: 'events'
-  unanalyzed: {
-    id: string;
-    name: string;
-    type: 'event';
-    chapterCount: number;
-  }[];
-}
-```
+**Response 200**：同 #6a 格式，`section: 'events'`
 
-**UI 使用頁面**：深度分析頁左側清單（切換至事件 tab）
+**UI 使用頁面**：事件分析頁左側清單
 
 ---
 
 ### #6c POST /books/:bookId/analysis/:section/:itemId/regenerate
 
-單一條目重新生成。需確認視窗（說明覆蓋現有結果 + token 消耗）後才呼叫。
+單一條目重新生成。需確認視窗後才呼叫。
 
 ```
-section: characters | events | timeline | themes
+section: characters | events
 ```
 
-**Response 200**
-```ts
-{
-  taskId: string;
-}
-```
+**Response 200**：`{ taskId: string }`
 
-**說明**：polling #8。生成期間該條目顯示 loading，其他條目維持可讀。
+**說明**：polling #8。
 
-**UI 使用頁面**：深度分析頁「覆蓋重新生成」按鈕
+**UI 使用頁面**：角色分析頁 / 事件分析頁「覆蓋重新生成」按鈕
 
 ---
 
-## 深度分析（實體層級）
+## 深度分析（角色實體層級）
 
 ### #7a GET /books/:bookId/entities/:entityId/analysis
 
-取得實體深度分析結果。
+取得角色實體深度分析結果（結構化多維度）。
 
 **Response 200**
 ```ts
-EntityAnalysis
-
-interface EntityAnalysis {
+interface CharacterAnalysisDetail {
   entityId: string;
   entityName: string;
-  content: string;           // 分析文本（Markdown）
+  profileSummary: string;
+  archetypes: ArchetypeDetail[];
+  cep: CepData | null;
+  arc: ArcSegment[];
   generatedAt: string;
+}
+
+interface ArchetypeDetail {
+  framework: string;
+  primary: string;
+  secondary: string | null;
+  confidence: number;
+  evidence: string[];
+}
+
+interface ArcSegment {
+  chapterRange: string;
+  phase: string;
+  description: string;
 }
 ```
 
-**Response 404**：尚未生成，前端顯示「未生成」狀態
+**Response 404**：尚未生成，前端顯示「未生成」引導按鈕
 
-**UI 使用頁面**：知識圖譜頁詳情面板、深度分析頁內容區
+**UI 使用頁面**：知識圖譜頁詳情面板、角色分析頁內容區
 
 ---
 
 ### #7b POST /books/:bookId/entities/:entityId/analyze
 
-觸發實體深度分析。需確認視窗（說明 token 消耗 + 結果將同步至深度分析頁）後才呼叫。
+觸發角色實體深度分析。需確認視窗（說明 token 消耗 + 結果將同步至角色分析頁）後才呼叫。
 
-**Response 200**
-```ts
-{
-  taskId: string;
-}
-```
+**Response 200**：`{ taskId: string }`
 
-**說明**：polling #8。生成中面板其他內容維持可讀。完成後填入分析文字。
-
-**UI 使用頁面**：知識圖譜頁詳情面板「生成深度分析」按鈕、深度分析頁「建立」按鈕
+**UI 使用頁面**：知識圖譜頁「生成深度分析」按鈕、角色分析頁「建立」按鈕
 
 ---
 
 ### #7c DELETE /books/:bookId/entities/:entityId/analysis
 
-清除實體深度分析結果。通常與 #7b 連用（先 DELETE 再 POST）。
+清除角色實體深度分析結果。通常與 #7b 連用（先 DELETE 再 POST）。
 
-**Response 204**：清除成功，無 body
+**Response 204**
 
-**UI 使用頁面**：知識圖譜頁「清除並重新生成」、深度分析頁「覆蓋重新生成」
+**UI 使用頁面**：角色分析頁「覆蓋重新生成」
 
 ---
 
-## 知識圖譜
+## 深度分析（事件層級）
 
-### #9 GET /books/:bookId/graph
+### #7d GET /books/:bookId/events/:eventId/analysis
 
-取得圖譜節點與邊資料。
+取得單一事件深度分析結果（EEP + 因果 + 影響）。
 
 **Response 200**
 ```ts
-GraphData
-
-interface GraphData {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
+interface EventAnalysisDetail {
+  eventId: string;
+  title: string;
+  eep: EventEvidenceProfile;
+  causality: CausalityAnalysis;
+  impact: ImpactAnalysis;
+  summary: { summary: string };
+  analyzedAt: string;
 }
 
-interface GraphNode {
-  id: string;
-  name: string;
-  type: 'character' | 'location' | 'concept' | 'event';
-  description?: string;
-  chunkCount: number;        // 決定節點大小（20px–60px）
-}
-
-interface GraphEdge {
-  id: string;
-  source: string;            // node id
-  target: string;            // node id
-  label?: string;            // 關係類型，待後端確認實際清單
+interface EventEvidenceProfile {
+  stateBefore: string;
+  stateAfter: string;
+  causalFactors: string[];
+  priorEventIds: string[];
+  subsequentEventIds: string[];
+  participantRoles: ParticipantRole[];
+  consequences: string[];
+  structuralRole: string;
+  eventImportance: string;   // 'KERNEL' | 'SATELLITE'
+  thematicSignificance: string;
+  textEvidence: string[];
+  keyQuotes: string[];
+  topTerms: Record<string, number>;
 }
 ```
 
-**說明**：節點詳情（名稱、類型、描述）從此資料直接取，不需額外 API。實體分析狀態另呼叫 #7a。
+**Response 404**：尚未生成
 
-**UI 使用頁面**：知識圖譜頁
+**UI 使用頁面**：事件分析頁內容區
 
 ---
 
-### #9b GET /books/:bookId/entities/:entityId/chunks
+### #7e POST /books/:bookId/events/:eventId/analyze
 
-取得特定實體出現的所有段落，含實體標記。
+觸發單一事件深度分析（EEP）。
 
-**Response 200**
+**Response 200**：`{ taskId: string }`
+
+**UI 使用頁面**：事件分析頁「建立」按鈕
+
+---
+
+### #7f DELETE /books/:bookId/events/:eventId/analysis
+
+清除事件深度分析結果。
+
+**Response 204**
+
+**UI 使用頁面**：事件分析頁「覆蓋重新生成」
+
+---
+
+### #7g POST /books/:bookId/events/analyze-all
+
+批次觸發所有未分析事件的 EEP 分析（已分析自動跳過）。
+
+**Response 200**：`{ taskId: string }`
+
+**說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。
+
 ```ts
-EntityChunksResponse
-
-interface EntityChunksResponse {
-  entityId: string;
-  entityName: string;
+interface BatchEepResult {
+  progress: number;
   total: number;
-  chunks: EntityChunkItem[];
-}
-
-interface EntityChunkItem {
-  id: string;
-  chapterId: string;
-  chapterTitle?: string;
-  chapterNumber: number;
-  order: number;
-  content: string;
-  segments: Segment[];        // 同 #5 的 Segment interface
+  failed: number;
+  skipped: number;
 }
 ```
 
-**Response 404**：書籍或實體不存在
-
-**說明**：回傳該實體出現的所有段落，依章節與段落順序排列。segments 包含 entity highlight 資訊，前端可直接用 SegmentRenderer 渲染。
-
-**UI 使用頁面**：知識圖譜頁「相關段落」面板
+**UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」
 
 ---
 
@@ -418,19 +415,23 @@ interface EntityChunkItem {
 
 ### #8 GET /tasks/:taskId/status
 
-輪詢任務進度。所有非同步任務共用同一個 endpoint。
+輪詢任務進度。大多數非同步任務共用此 endpoint。
+
+> **注意**：張力分析（#14 系列）與 KG 遷移（#19c）有各自的 polling endpoint，不走此路徑。
 
 **Response 200**
 ```ts
-TaskStatus
-
 interface TaskStatus {
   taskId: string;
   status: 'pending' | 'running' | 'done' | 'error';
-  progress: number;          // 0–100
-  stage: string;             // UI 顯示文字，如「建構知識圖譜中」
+  progress: number;        // 0–100
+  stage: string;           // UI 顯示文字，如「建構知識圖譜中」
+  subProgress?: number;    // 子任務進度（批次任務使用）
+  subTotal?: number;
+  subStage?: string;
   result?: {
-    bookId?: string;         // 上傳完成時提供，用於導向 /books/:bookId
+    bookId?: string;       // 上傳完成時提供，用於導向 /books/:bookId
+    [key: string]: unknown;
   };
   error?: string;
 }
@@ -452,14 +453,704 @@ useQuery({
 
 **觸發點對照**
 
-| 觸發操作 | 對應 API | 說明 |
-|----------|----------|------|
-| PDF 上傳 | #2 | 完成後 `result.bookId` 供導向 |
-| 整本書深度分析 | #6 | 完成後書籍 status 變 `analyzed` |
-| 條目重新生成 | #6c | 完成後更新該條目內容 |
-| 實體深度分析 | #7b | 完成後填入詳情面板 |
+| 觸發操作 | 對應 API |
+|----------|----------|
+| PDF 上傳 | #2 |
+| 整本書深度分析 | #6 |
+| 條目重新生成 | #6c |
+| 角色實體深度分析 | #7b |
+| 事件深度分析（單一） | #7e |
+| 批次事件 EEP | #7g |
+| 時序計算 | #11b |
+| 可見性分類 | #12d |
 
-**UI 使用頁面**：上傳頁（步驟 timeline）、各確認視窗後的 loading 狀態
+---
+
+## 知識圖譜
+
+### #9 GET /books/:bookId/graph
+
+取得圖譜節點與邊資料。
+
+**Query Params**（均選填）
+
+| 參數 | 說明 |
+|------|------|
+| `mode` | `chapter` 或 `story`，搭配 `position` 做 temporal snapshot |
+| `position` | 章節序號（integer），`mode` 存在時必填 |
+| `include_inferred` | `true` → 回傳中含推斷邊 |
+
+**Response 200**
+```ts
+interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
+
+interface GraphNode {
+  id: string;
+  name: string;
+  type: EntityType;
+  description?: string;
+  chunkCount: number;
+  eventType?: string;   // type === 'event' 時有值
+  chapter?: number;     // type === 'event' 時有值
+}
+
+interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  label?: string;
+  weight?: number;
+  inferred?: boolean;       // 推斷關係標記
+  confidence?: number;      // 推斷關係信心度
+  inferredId?: string;      // 對應 InferredRelation ID
+}
+```
+
+**UI 使用頁面**：知識圖譜頁
+
+---
+
+### #9b GET /books/:bookId/entities/:entityId/chunks
+
+取得特定實體出現的所有段落。
+
+**Response 200**
+```ts
+interface EntityChunksResponse {
+  entityId: string;
+  entityName: string;
+  total: number;
+  chunks: EntityChunkItem[];
+}
+
+interface EntityChunkItem {
+  id: string;
+  chapterId: string;
+  chapterTitle?: string;
+  chapterNumber: number;
+  order: number;
+  content: string;
+  segments: Segment[];   // 同 #5 的 Segment interface
+}
+```
+
+**UI 使用頁面**：知識圖譜頁「相關段落」面板
+
+---
+
+## 推斷關係（Link Prediction）
+
+### #10a POST /books/:bookId/inferred-relations/run
+
+執行 Common Neighbors + Adamic-Adar 演算法，計算候選推斷關係。
+
+**Request Body**
+```ts
+{ forceRefresh?: boolean }
+```
+
+**Response 200**：`InferredRelationsResponse`（見 #10b）
+
+**UI 使用頁面**：知識圖譜頁工具欄「執行推論」按鈕
+
+---
+
+### #10b GET /books/:bookId/inferred-relations
+
+取得推斷關係列表。
+
+**Query Params**（選填）：`status=pending|confirmed|rejected`
+
+**Response 200**
+```ts
+interface InferredRelationsResponse {
+  // 結構見 generated.ts: components['schemas']['InferredRelationsResponse']
+}
+```
+
+**UI 使用頁面**：知識圖譜頁工具欄「顯示推斷關係」
+
+---
+
+### #10c POST /books/:bookId/inferred-relations/:irId/confirm
+
+確認推斷關係，將其加入正式圖譜。
+
+**Request Body**
+```ts
+{ relationType: string }
+```
+
+**Response 200**：`{ relationId: string }`
+
+**UI 使用頁面**：知識圖譜頁 InferredEdgePanel「Confirm」按鈕
+
+---
+
+### #10d POST /books/:bookId/inferred-relations/:irId/reject
+
+拒絕推斷關係。
+
+**Response 200**：無 body
+
+**UI 使用頁面**：知識圖譜頁 InferredEdgePanel「Reject」按鈕
+
+---
+
+## 事件詳情
+
+### #11 GET /books/:bookId/events/:eventId
+
+取得事件基本詳情（圖譜頁 EventDetailPanel 使用）。
+
+**Response 200**
+```ts
+interface EventDetail {
+  id: string;
+  title: string;
+  eventType: string;
+  description: string;
+  chapter: number;
+  significance?: string;
+  consequences: string[];
+  participants: { id: string; name: string; type: EntityType }[];
+  location?: { id: string; name: string };
+}
+```
+
+**UI 使用頁面**：知識圖譜頁 EventDetailPanel、時間軸頁事件詳情面板
+
+---
+
+## 知識圖譜 — 附加設定與視角
+
+### #12a GET /books/:bookId/timeline-config
+
+取得圖譜頁 TimelineControls 的章節設定。
+
+**Response 200**：`TimelineConfigResponse`（見 generated.ts）
+
+**UI 使用頁面**：知識圖譜頁 TimelineControls
+
+---
+
+### #12b PUT /books/:bookId/timeline-config
+
+更新圖譜頁的 TimelineControls 設定。
+
+**Request Body**：`TimelineConfigUpdate`（見 generated.ts）
+
+**Response 200**：`TimelineConfigResponse`
+
+**UI 使用頁面**：知識圖譜頁 TimelineControls
+
+---
+
+### #12c POST /books/:bookId/detect-timeline
+
+偵測圖譜中的時間軸結構（知識圖譜頁用）。
+
+**Response 200**：`TimelineDetectionResponse`（見 generated.ts）
+
+**UI 使用頁面**：知識圖譜頁（內部觸發）
+
+---
+
+### #12d POST /books/:bookId/classify-visibility
+
+觸發事件可見性分類（epistemic 視角所需前置步驟）。
+
+**Response 200**：`{ taskId: string }`
+
+**說明**：polling #8。
+
+**UI 使用頁面**：知識圖譜頁 EpistemicOverlay（內部觸發）
+
+---
+
+### #12e GET /books/:bookId/entities/:entityId/epistemic-state
+
+取得角色在指定章節前的認知狀態。
+
+**Query Params**：`up_to_chapter=<number>`（必填）
+
+**Response 200**：`EpistemicStateResponse`（見 generated.ts）
+
+**UI 使用頁面**：知識圖譜頁 EpistemicOverlay、閱讀頁 EpistemicSidePanel
+
+---
+
+## 時間軸頁
+
+### #13a GET /books/:bookId/timeline
+
+取得時間軸資料。
+
+**Query Params**：`order=narrative|chronological|matrix`
+
+**Response 200**
+```ts
+interface TimelineData {
+  events: TimelineEvent[];
+  temporalRelations: TemporalRelation[];
+  quality: TimelineQuality;
+}
+
+interface TimelineEvent {
+  id: string;
+  title: string;
+  eventType: string;
+  description: string;
+  chapter: number;
+  chapterTitle?: string;
+  chronologicalRank: number | null;   // null = 尚未計算
+  narrativeMode: 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown';
+  eventImportance: 'KERNEL' | 'SATELLITE' | null;
+  storyTimeHint?: string;
+  participants: { id: string; name: string; type: EntityType }[];
+  location?: { id: string; name: string };
+}
+
+interface TemporalRelation {
+  source: string;    // event id
+  target: string;    // event id
+  type: string;      // 'before' | 'causes'
+  confidence: number;
+}
+
+interface TimelineQuality {
+  eepCoverage: number;
+  analyzedCount: number;
+  totalCount: number;
+  hasChronologicalRanks: boolean;
+}
+```
+
+**UI 使用頁面**：時間軸頁
+
+---
+
+### #13b POST /books/:bookId/timeline/compute
+
+觸發時序計算（計算 `chronological_rank`）。
+
+**Response 200**：`{ taskId: string }`
+
+**說明**：polling #8，完成後重新拉取 #13a。
+
+**UI 使用頁面**：時間軸頁工具列「重新計算時序」
+
+---
+
+## 張力分析
+
+> **URL 前綴**：張力分析 API 使用 `/tension/` 前綴，而非 `/books/:bookId/tension/`。
+> **Polling 模式**：各步驟有專用的 polling endpoint（而非走 #8 的 `/tasks/:taskId/status`）。
+
+### #14a POST /tension/analyze
+
+Step 1：觸發全書 TEU 組裝。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  language?: string;    // 'zh'（預設）
+  force?: boolean;
+  concurrency?: number; // 預設 5
+}
+```
+
+**Response 200**：`{ taskId: string }`
+
+---
+
+### #14b GET /tension/analyze/:taskId
+
+Step 1 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`（同 #8）
+
+---
+
+### #14c POST /tension/lines/group
+
+Step 2：觸發 TensionLine 聚合。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  language?: string;
+  force?: boolean;
+}
+```
+
+**Response 200**：`{ taskId: string }`
+
+---
+
+### #14d GET /tension/lines/group/:taskId
+
+Step 2 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`
+
+---
+
+### #14e GET /tension/lines
+
+取得書籍的 TensionLine 清單。
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**
+```ts
+TensionLine[]
+
+// TensionLine 欄位為 snake_case（domain/ model，無 alias_generator）
+interface TensionLine {
+  id: string;
+  document_id: string;
+  teu_ids: string[];
+  canonical_pole_a: string;
+  canonical_pole_b: string;
+  intensity_summary: number;   // 0–1
+  chapter_range: number[];     // [firstChapter, lastChapter]
+  review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+}
+```
+
+**UI 使用頁面**：張力分析頁（軌跡圖 + 審核列表）
+
+---
+
+### #14f PATCH /tension/lines/:lineId/review
+
+審核 TensionLine（approve / modify / reject）。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  review_status: 'approved' | 'modified' | 'rejected';
+  canonical_pole_a?: string;   // modify 時填入
+  canonical_pole_b?: string;
+}
+```
+
+**Response 200**：`TensionLine`（更新後）
+
+**UI 使用頁面**：張力分析頁 TensionLineCard 審核按鈕
+
+---
+
+### #14g POST /tension/theme/synthesize
+
+Step 3：觸發 TensionTheme 合成。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  language?: string;
+  force?: boolean;
+}
+```
+
+**Response 200**：`{ taskId: string }`
+
+---
+
+### #14h GET /tension/theme/synthesize/:taskId
+
+Step 3 專用 polling endpoint。
+
+**Response 200**：`TaskStatus`
+
+---
+
+### #14i GET /tension/theme
+
+取得書籍的 TensionTheme。
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**
+```ts
+// 欄位為 snake_case（domain/ model）
+interface TensionTheme {
+  id: string;
+  document_id: string;
+  tension_line_ids: string[];
+  proposition: string;
+  frye_mythos?: string;   // 'romance' | 'tragedy' | 'comedy' | 'irony'
+  booker_plot?: string;
+  assembled_by: string;
+  assembled_at: string;
+  review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+}
+```
+
+**UI 使用頁面**：張力分析頁 TensionThemePanel
+
+---
+
+### #14j PATCH /tension/theme/:themeId/review
+
+審核 TensionTheme。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  review_status: 'approved' | 'modified' | 'rejected';
+  proposition?: string;   // modify 時填入
+}
+```
+
+**Response 200**：`TensionTheme`（更新後）
+
+**UI 使用頁面**：張力分析頁 TensionThemePanel 審核按鈕
+
+---
+
+## 象徵意象
+
+> **URL 前綴**：象徵意象 API 使用 `/symbols/` 前綴，非 `/books/:bookId/symbols/`。
+> **欄位格式**：回應欄位為 snake_case（直接對應 domain model）。
+
+### #15a GET /symbols
+
+取得象徵意象列表。
+
+**Query Params**
+
+| 參數 | 說明 |
+|------|------|
+| `book_id` | 必填 |
+| `imagery_type` | 選填，篩選類型（object / nature / spatial / body / color / other） |
+| `min_frequency` | 選填，最低出現次數 |
+| `limit` | 選填，最大回傳數 |
+
+**Response 200**
+```ts
+interface ImageryListResponse {
+  items: ImageryEntity[];
+  total: number;
+  book_id: string;
+}
+
+interface ImageryEntity {
+  id: string;
+  book_id: string;
+  term: string;
+  imagery_type: string;
+  aliases: string[];
+  frequency: number;
+  chapter_distribution: Record<string, number>;  // { "1": 3, "2": 1, ... }
+  first_chapter: number | null;
+}
+```
+
+**UI 使用頁面**：象徵意象頁左側清單
+
+---
+
+### #15b GET /symbols/:imageryId/timeline
+
+取得意象的所有出現紀錄（含前後文 context window）。
+
+**Response 200**
+```ts
+SymbolTimelineEntry[]
+
+interface SymbolTimelineEntry {
+  chapter_number: number;
+  position: number;
+  context_window: string;
+  co_occurring_terms: string[];
+  occurrence_id: string;
+}
+```
+
+**UI 使用頁面**：象徵意象頁詳情區「出現紀錄」
+
+---
+
+### #15c GET /symbols/:imageryId/co-occurrences
+
+取得意象的共現詞列表。
+
+**Query Params**：`top_k=<number>`（選填，預設 10）
+
+**Response 200**
+```ts
+CoOccurrenceEntry[]
+
+interface CoOccurrenceEntry {
+  term: string;
+  imagery_id: string;
+  co_occurrence_count: number;
+  imagery_type: string;
+}
+```
+
+**UI 使用頁面**：象徵意象頁詳情區「共現詞」
+
+---
+
+## 語音風格
+
+### #16a GET /books/:bookId/entities/:entityId/voice
+
+取得角色語音風格分析結果（VoiceProfile）。
+
+**Response 200**：`VoiceProfileResponse`（見 generated.ts）
+
+**Response 404**：尚未生成（前端 `retry: false`，直接顯示引導狀態）
+
+**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel
+
+---
+
+### #16b DELETE /books/:bookId/entities/:entityId/voice
+
+清除語音風格分析結果（搭配重新生成使用）。
+
+**Response 204**
+
+**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel「重新生成」
+
+---
+
+## Token 用量
+
+### #17 GET /token-usage
+
+取得 Token 用量統計。
+
+**Query Params**：`range=today|7d|30d|all`
+
+**Response 200**
+```ts
+interface TokenUsageResponse {
+  summary: {
+    totalPromptTokens: number;
+    totalCompletionTokens: number;
+    totalTokens: number;
+    totalCalls: number;
+  };
+  byService: Record<string, TokenBucket>;
+  byModel: Record<string, TokenBucket>;
+  daily: DailyUsage[];
+}
+
+interface TokenBucket {
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  calls: number;
+}
+
+interface DailyUsage extends TokenBucket {
+  date: string;   // 'YYYY-MM-DD'
+}
+```
+
+**UI 使用頁面**：Token 用量頁 `/token-usage`
+
+---
+
+## KG 設定
+
+### #18a GET /kg/status
+
+取得知識圖譜後端狀態（NetworkX / Neo4j 及連線狀態）。
+
+**Response 200**：`KgStatusResponse`（見 generated.ts）
+
+**UI 使用頁面**：設定頁 `/settings`
+
+---
+
+### #18b POST /kg/switch
+
+切換 KG 後端模式。
+
+**Request Body**：`{ mode: 'networkx' | 'neo4j' }`
+
+**Response 200**：`KgSwitchResponse`（見 generated.ts）
+
+**UI 使用頁面**：設定頁 KG Backend 區塊切換按鈕
+
+---
+
+### #18c POST /kg/migrate
+
+觸發 KG 資料遷移。
+
+**Request Body**：`{ direction: 'nx_to_neo4j' | 'neo4j_to_nx' }`
+
+**Response 200**：`TaskStatus`（立即回傳 running 狀態，含 taskId）
+
+> **注意**：此 endpoint 直接回傳 TaskStatus，polling 走 #18d（不走 #8）。
+
+---
+
+### #18d GET /kg/migrate/:taskId
+
+KG 遷移專用 polling endpoint。
+
+**Response 200**：`TaskStatus`
+
+完成時 `result` 含遷移數量：
+```ts
+result: {
+  entities?: number;
+  relations?: number;
+  events?: number;
+}
+```
+
+**UI 使用頁面**：設定頁資料遷移區塊
+
+---
+
+## 展開卷軸
+
+### #19 GET /books/:bookId/unraveling
+
+取得書籍資料層 DAG 狀態（各節點完整度）。
+
+**Response 200**
+```ts
+interface UnravelingManifest {
+  bookId: string;
+  nodes: UnravelingNode[];
+  edges: UnravelingEdge[];
+}
+
+interface UnravelingNode {
+  nodeId: string;
+  layer: number;             // 0 = Text / 1 = KG / 2 = Analysis
+  label: string;
+  status: 'complete' | 'partial' | 'empty';
+  counts: Record<string, number>;
+  meta: Record<string, string | number | boolean>;
+  parentId?: string;
+}
+
+interface UnravelingEdge {
+  source: string;
+  target: string;
+}
+```
+
+**UI 使用頁面**：展開卷軸頁 `/books/:bookId/unraveling`
 
 ---
 
@@ -473,21 +1164,36 @@ useQuery({
 ['books', bookId, 'analysis', 'characters']                 // #6a
 ['books', bookId, 'analysis', 'events']                     // #6b
 ['books', bookId, 'entities', entityId, 'analysis']         // #7a
+['books', bookId, 'events', eventId, 'analysis']            // #7d
 ['books', bookId, 'entities', entityId, 'chunks']           // #9b
 ['books', bookId, 'graph']                                  // #9
+['books', bookId, 'inferred-relations']                     // #10b
+['books', bookId, 'timeline-config']                        // #12a
+['books', bookId, 'timeline']                               // #13a
+['books', bookId, 'events', eventId]                        // #11
+['books', bookId, 'entities', entityId, 'epistemic-state']  // #12e
+['books', bookId, 'entities', entityId, 'voice']            // #16a
+['books', bookId, 'unraveling']                             // #19
+['tension', 'lines', bookId]                                // #14e
+['tension', 'theme', bookId]                                // #14i
+['symbols', bookId]                                         // #15a
+['symbols', imageryId, 'timeline']                          // #15b
+['symbols', imageryId, 'co-occurrences']                    // #15c
+['token-usage', range]                                      // #17
+['kg', 'status']                                            // #18a
 ['tasks', taskId]                                           // #8（polling）
 ```
 
 ---
 
-## 實作狀態（2026-03-17 更新）
+## 實作狀態（2026-04-28 更新）
 
-- [x] **後端路由對齊**：`src/api/routers/books.py` + `tasks.py` 已對齊本合約所有端點
-- [x] **camelCase 輸出**：所有前端 API 回應均使用 camelCase（Pydantic alias_generator）
-- [x] **TaskStatus 對齊**：status enum 改為 `done`/`error`，新增 `progress`/`stage`
-- [x] **#9 GraphEdge.label**：使用 KG relation_type 作為 label
-- [x] **#3 summary / entityStats**：已實作（entityStats 從 KG 計算）
-- [x] **#4 Chapter.topEntities**：從 ingestion-time paragraph entity linking 聚合 unique entities（舊資料 fallback 到 KG runtime matching）
-- [x] **#5 Chunk.segments entity 標注**：ingestion 時建立 paragraph ↔ entity 偏移量，API 直接從 stored offsets 建 segments（舊資料 fallback 到 runtime regex matching）
-- [x] **#9b Entity chunks**：實體相關段落 API + 前端 ParagraphsPanel 串接完成
+- [x] **後端路由對齊**：`src/api/routers/` 已對齊本合約所有已知端點
+- [x] **camelCase / snake_case 分區**：`api/schemas/` 輸出 camelCase；`domain/` 輸出 snake_case（見 `docs/type-generation.md`）
+- [x] **TaskStatus 欄位**：`subProgress`、`subTotal`、`subStage` 已加入（批次任務使用）
+- [x] **#9 GraphEdge 推斷欄位**：`inferred`、`confidence`、`inferredId` 已加入
+- [x] **#14 張力分析系列**：專用 polling pattern 已實作（非走 #8）
+- [x] **#18c KG 遷移**：直接回傳 TaskStatus，polling 走 #18d（非走 #8）
+- [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）
+- [ ] **#16a VoiceProfile 觸發**：目前 GET 404 表示未生成，觸發生成的 endpoint 尚未記錄（待確認後端是否已實作）
