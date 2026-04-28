@@ -1,7 +1,7 @@
 # StorySphere — 開發 Backlog
 
 **用途**: 記錄已識別但尚未排入 Phase 的開發項目
-**更新日期**: 2026-04-23
+**更新日期**: 2026-04-28
 
 > 已完成項目歸檔於 [BACKLOG_ARCHIVE.md](BACKLOG_ARCHIVE.md)
 
@@ -58,137 +58,31 @@
 
 **前置閱讀**: `docs/CORE.md`
 
-新功能依依賴關係分為五個波次，需在既有 Backlog 的 Wave 0 前置項目完成後啟動。
+新功能依依賴關係分為五個波次。
 
 ```
-Wave 0（前置）  →  Wave 1（底層）  →  Wave 2（輕量分析）
-                                  →  Wave 3（深度分析）
-                                  →  Wave 4（體驗功能）
-                                  →  Wave 5（整合大功能）
-                   + 加分項（無硬依賴，可插入任意波次）
+Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）← 目前可開始
+                                      →  Wave 3（深度分析）
+                                      →  Wave 4（體驗功能）
+                                      →  Wave 5（整合大功能）
+                     + 加分項（無硬依賴，可插入任意波次）
 ```
 
-**Wave 0 前置項目**（沿用既有 Backlog）：
+**Wave 0 前置項目** ✅ 全部完成（已歸檔於 BACKLOG_ARCHIVE.md）：
 - B-023 + B-031 合併 migration（EventNode 欄位）
 - B-015 Chat Agent 品質審視
 - B-012 前後端 API 整合驗證
 
 ---
 
-### 🟢 Wave 1 — 底層基礎建設
+### ✅ Wave 1 — 底層基礎建設（已完成，詳情見 BACKLOG_ARCHIVE.md）
 
-#### F-01 隱性關係推論層（KG Link Prediction）
-**分類**: 加分項（無硬依賴，可插入 Wave 1 或之後任意時機）
-**設計文件**: `docs/notes/link_prediction_design_notes.md`（待建立）
-
-**背景**: 現有 KG 只記錄文本明說的關係。Link Prediction 透過圖嵌入模型推斷「文本未明說但結構上暗示存在」的隱性關係，讓 KG 從「轉錄工具」變成「推理工具」。
-
-**所需資料**:
-- 現有 KG 的節點與邊（已有）
-
-**開發方法**:
-- 輕量路徑：共同鄰居統計 + Adamic-Adar 指數（規則式，無需訓練）
-- 進階路徑：PyKEEN 框架的 TransE / RotatE / ComplEx，把節點和關係投影到向量空間
-- 輸出需包含置信度，圖譜上用虛線顯示，與明確關係視覺區分
-- 用戶可確認或否定推斷關係，確認的進入正式 KG
-
-**內容**:
-- `src/services/link_prediction_service.py`：實作推斷邏輯，輸出帶置信度的候選關係列表
-- KGService 新增 `get_inferred_relations(entity_id, min_confidence)` 查詢
-- API 端點：`GET /books/:bookId/graph/inferred` — 返回推斷關係（附置信度）
-- 前端圖譜：虛線邊 + 置信度 badge，可點擊確認/否定
-- `PATCH /books/:bookId/graph/relations/:id/confirm` — 確認推斷關係進入正式 KG
-
-**解鎖的後續功能**: F-07（主題共鳴圖）、F-15（世界觀建構）品質提升
-
----
-
-#### F-02 進度感知 KG（章節時間切片）
-**分類**: 底層基礎 — Wave 1 核心
-**狀態**: ✅ 已完成（2026-04-24，commit `4be9613`）
-
-**背景**: 現有圖譜是全書靜態快照。進度感知 KG 讓系統知道「讀者在第 N 章時，世界的狀態是什麼」，這是動態圖譜視覺化、閱讀分身認識論邊界、What-If 時間點鎖定的共同基礎。
-
-**已實作內容**:
-- Domain: `Entity` / `Relation` / `Event` 新增時態欄位（`valid_from/to_chapter`, `chron_index`）；新增 `TimelineConfig` / `TimelineDetectionResult` model
-- `KGService.get_snapshot(mode, position)` — 支援 chapter 模式與 story chronology 模式
-- `TemporalPipeline` Step 8 分配 `chron_index`，回填 `Entity.first_chron_index`
-- Ingestion 自動偵測章節結構，建立 `TimelineConfig`
-- API: `GET /graph?mode=&position=`、`GET/PUT /timeline-config`、`POST /detect-timeline`
-- 前端: `TimelineControls`（浮動面板，debounced slider）、`TimelineConfigModal`（confirm dialog）
-- `GraphPage` + `UploadPage` 已整合
-
-**解鎖的後續功能**: F-03、F-05（What-If）、F-12（閱讀記憶）、F-13（Role Agent）
-
----
-
-#### F-01 隱性關係推論（KG Link Prediction）
-**分類**: 加分項（無硬依賴）
-**狀態**: ✅ 已完成（2026-04-27）
-
-**已實作內容**:
-- Domain: `InferredRelation`（含 `visible_from_chapter`、`confidence`、`status`）
-- `LinkPredictionStore`：aiosqlite SQLite 持久化
-- `LinkPredictionService`：Common Neighbors + Adamic-Adar 算法（NetworkX 原生 `adamic_adar_index`），規則型關係分類，confirm/reject 流程
-- API: `POST /inferred-relations/run`、`GET /inferred-relations`、`POST .../confirm`、`POST .../reject`
-- `GET /graph?include_inferred=true`：推斷邊以 `inferred=true` 附加，快照過濾時使用 `visible_from_chapter`
-- 前端：Cytoscape 虛線邊（amber 色）、GraphToolbar Toggle、`InferredEdgePanel`（確認/否定 UI）
-- **Neo4j 支援缺口**：見 B-035
-
----
-
-#### F-03 角色認識論狀態
-**分類**: 底層基礎 — Wave 1 核心
-**狀態**: ✅ 已完成（2026-04-25，commit `4729861`）
-**設計文件**: `docs/notes/epistemic_state_design_notes.md`（待建立）
-
-**背景**: 每個角色在每個時間點，對世界的認識是不完整且可能有誤的。F-03 讓系統可以回答「第 N 章時，角色 A 知道哪些事、不知道哪些事」，這是 Role Agent 真實性和 What-If 約束的核心。
-
-**所需資料**:
-- F-02 的章節快照（依賴 F-02）
-- EEP 的 `participant_roles`（已有）
-- Event 的 `participants` 欄位（已有）
-
-**開發方法**:
-- 核心邏輯：角色「知道」某事件，當且僅當 (a) 他是該事件的 participant，或 (b) 事件 `visibility = "public"`
-- Event 節點需新增 `visibility: Literal["public", "private", "secret"] = "public"` 欄位（ingestion prompt 引導 LLM 判斷）
-- `EpistemicStateService.get_character_knowledge(character_id, up_to_chapter)` — 返回該角色已知的事件列表和未知的重要事件列表
-
-**內容**:
-- EventNode 新增 `visibility` 欄位（配合 B-023+031 migration 一起加，或單獨做）
-- `src/services/epistemic_state_service.py`：計算角色認識論狀態
-- Domain Model：`CharacterEpistemicState`（known_events, unknown_events, misbeliefs）
-- API 端點：`GET /books/:bookId/entities/:entityId/epistemic-state?up_to_chapter={N}`
-
-**解鎖的後續功能**: F-05（What-If 約束）、F-10（敘事視角分析）、F-13（Role Agent 認識論邊界）
-
----
-
-#### F-04 角色語音側寫（Voice Profiling）
-**分類**: 底層基礎 — Wave 1
-**狀態**: ✅ 已完成（2026-04-25）
-**設計文件**: `docs/notes/voice_fingerprint_design_notes.md`（待建立）
-
-**背景**: 每個角色的對話和內心獨白有獨特的語言模式。聲音指紋讓系統可以識別角色辨識度、輔助創作時保持角色一致性，也是 Role Agent 對話生成的風格約束來源。
-
-**所需資料**:
-- 章節文本中角色的對話段落（需從 chunks 識別對話歸屬）
-- Qdrant 的 chunk 語意搜索（已有）
-
-**開發方法**:
-- 用角色名稱 + 對話關鍵詞做語意搜索，從 Qdrant chunks 找到角色相關段落
-- 量化特徵提取：平均句長、情感詞密度（VADER 或類似工具）、常用連接詞/副詞分佈、問句比例
-- LLM 補充質性描述：「傾向使用隱喻」、「說話直接不迂迴」、「常用反問句」等
-- Domain Model：`VoiceFingerprint`（定量指標 + LLM 質性描述 + 代表性引文）
-
-**內容**:
-- `src/services/voice_fingerprint_service.py`：提取並存儲角色聲音指紋
-- `src/domain/voice.py`：`VoiceFingerprint` Pydantic model
-- API 端點：`GET /books/:bookId/entities/:entityId/voice` — 返回聲音指紋
-- 前端：角色詳情面板新增「聲音風格」tab（展示指紋 + 代表性引文）
-- 角色一致性檢查入口：輸入一段對話，對比聲音指紋，輸出一致性評分
-
-**解鎖的後續功能**: F-10（敘事視角）、F-13（Role Agent 對話風格約束）
+| ID | 功能 | 完成日期 |
+|----|------|----------|
+| F-01 | 隱性關係推論（Link Prediction） | 2026-04-27 |
+| F-02 | 進度感知 KG（章節快照） | 2026-04-24 |
+| F-03 | 角色認識論狀態 | 2026-04-25 |
+| F-04 | 角色語音側寫（Voice Profiling） | 2026-04-25 |
 
 ---
 
@@ -203,8 +97,8 @@ Wave 0（前置）  →  Wave 1（底層）  →  Wave 2（輕量分析）
 **所需資料**:
 - 章節列表（已有）
 - Event 節點的 `chapter` 欄位（已有）
-- `emotional_intensity`（B-023 完成後有）
-- `narrative_weight`（B-033 完成後有）
+- `emotional_intensity`（B-023 ✅ 已完成）
+- `narrative_weight`（B-033 ✅ 已完成）
 - 新角色首次出現的章節（可從 KG 查詢）
 
 **開發方法**:
@@ -222,7 +116,7 @@ Wave 0（前置）  →  Wave 1（底層）  →  Wave 2（輕量分析）
 - 前端：深度分析頁新增「敘事節奏」tab，渲染多維折線圖（Recharts）
 - 可與情感溫度圖疊加顯示（同一 X 軸）
 
-**前置依賴**: B-023（emotional_intensity）、B-033（narrative_weight）
+**前置依賴**: ~~B-023~~（✅ 已完成）、~~B-033~~（✅ 已完成）→ **前置依賴已全部滿足**
 
 ---
 
@@ -233,7 +127,7 @@ Wave 0（前置）  →  Wave 1（底層）  →  Wave 2（輕量分析）
 **背景**: 找出「重要但低調」的事件節點——這些是作者埋下的伏筆，讀者往往在第一遍閱讀時忽略。選取邏輯完全基於 KG 結構性查詢，不需要額外 LLM。
 
 **所需資料**:
-- `narrative_weight = "kernel"`（B-033 完成後有）
+- `narrative_weight = "kernel"`（B-033 ✅ 已完成）
 - Event 的 chunk 出現次數（已有）
 - EEP 的 `subsequent_event_ids`（已有）
 
@@ -251,7 +145,7 @@ Wave 0（前置）  →  Wave 1（底層）  →  Wave 2（輕量分析）
 - 前端：閱讀頁新增「伏筆提示」浮動按鈕（讀完後解鎖），點擊展開列表
 - 每個伏筆項目：事件標題 + 出現章節 + 後來呼應的事件 + 原文引用段落
 
-**前置依賴**: B-023（tension_signal）、B-033（narrative_weight）
+**前置依賴**: ~~B-023~~（✅ 已完成）、~~B-033~~（✅ 已完成）→ **前置依賴已全部滿足**
 
 ---
 
@@ -319,7 +213,7 @@ Wave 0（前置）  →  Wave 1（底層）  →  Wave 2（輕量分析）
 - 前端：圖譜頁事件節點右鍵選單新增「建立 What-If 分支」
 - 分支視覺化：主線 + 分支以不同顏色顯示，分歧點有特殊標記
 
-**前置依賴**: F-02、F-03、B-023（tension_signal 用於識別高影響節點）
+**前置依賴**: F-02、F-03、~~B-023~~（✅ 已完成）
 
 ---
 
