@@ -33,6 +33,7 @@
 - 執行 `ruff check src/` 無新增錯誤
 - 執行 `cd frontend && npm run lint` 無新增錯誤
 - 若有 API 變動，已依「API Contract 維護紀律」更新文件
+- 若功能對應 BACKLOG.md 條目，已將詳細內容移至 `docs/BACKLOG_ARCHIVE.md`，並更新 `docs/BACKLOG.md` 狀態表
 
 ## 規劃文件存檔
 
