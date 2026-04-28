@@ -11,6 +11,29 @@
 - 欄位命名規則：`api/schemas/` → camelCase；`domain/` → snake_case
 - 背景說明見 @docs/type-generation.md
 
+## 開發前的必要 Checkpoint
+
+**開始任何實作前，必須在回覆中明確列出：**
+
+1. 會新增 / 修改哪些 API endpoint → 確認是否需要更新 `docs/API_CONTRACT.md`
+2. 涉及哪些 UI 元件、有無新元件 → 確認是否需要更新 `docs/UI_SPEC.md`
+3. 哪些檔案會被修改 → 防止範疇擴散
+
+未完成此 checkpoint 前不得開始寫程式碼。
+
+## API Contract 維護紀律
+
+任何新增或修改 API endpoint，**實作完成後必須同步更新 `docs/API_CONTRACT.md`**，並在 commit message 標註 `[api-contract updated]`。
+
+## Definition of Done
+
+實作完成後，提交前必須確認：
+
+- 實作範疇未超出開發前 checkpoint 所列的檔案與 endpoint
+- 執行 `ruff check src/` 無新增錯誤
+- 執行 `cd frontend && npm run lint` 無新增錯誤
+- 若有 API 變動，已依「API Contract 維護紀律」更新文件
+
 ## 規劃文件存檔
 
 涉及演算邏輯、框架整合、或架構決策的高複雜度開發任務，除了產出規劃文件供用戶確認外，**同時**將該文件儲存至 `docs/plans/`。
