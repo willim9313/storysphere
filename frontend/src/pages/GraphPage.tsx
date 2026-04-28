@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
@@ -20,6 +20,7 @@ import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
 import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
 import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
+import { runInference } from '@/api/graph';
 import type { GraphNode, EntityChunkItem } from '@/api/types';
 
 const ALL_TYPES = new Set(['character', 'location', 'concept', 'event']);
@@ -41,7 +42,17 @@ export default function GraphPage() {
   const [animationMode, setAnimationMode] = useState<AnimationMode>('fade');
   const [showInferred, setShowInferred] = useState(false);
   const [selectedInferredId, setSelectedInferredId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined, showInferred);
+
+  const inferMutation = useMutation({
+    mutationFn: () => runInference(bookId!, true),
+    onSuccess: () => {
+      setShowInferred(true);
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
+    },
+  });
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleTypes, setVisibleTypes] = useState(new Set(ALL_TYPES));
@@ -176,6 +187,9 @@ export default function GraphPage() {
           setShowInferred(v);
           if (!v) setSelectedInferredId(null);
         }}
+        onRunInference={() => inferMutation.mutate()}
+        isRunningInference={inferMutation.isPending}
+        hasInferredData={inferMutation.data !== undefined}
       />
 
       {/* Inferred edge detail panel */}

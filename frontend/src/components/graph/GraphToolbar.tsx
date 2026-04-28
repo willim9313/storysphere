@@ -1,4 +1,4 @@
-import { Search, RotateCcw, Link } from 'lucide-react';
+import { Search, RotateCcw, Link, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { EntityType } from '@/api/types';
 
@@ -12,15 +12,18 @@ const ENTITY_TYPE_KEYS: { type: EntityType; cls: string }[] = [
 ];
 
 interface GraphToolbarProps {
-  searchQuery: string;
-  onSearchChange: (q: string) => void;
-  visibleTypes: Set<string>;
-  onTypeToggle: (type: string) => void;
-  onReset: () => void;
-  animationMode: AnimationMode;
-  onAnimationModeChange: (mode: AnimationMode) => void;
-  showInferred: boolean;
-  onShowInferredChange: (v: boolean) => void;
+  readonly searchQuery: string;
+  readonly onSearchChange: (q: string) => void;
+  readonly visibleTypes: Set<string>;
+  readonly onTypeToggle: (type: string) => void;
+  readonly onReset: () => void;
+  readonly animationMode: AnimationMode;
+  readonly onAnimationModeChange: (mode: AnimationMode) => void;
+  readonly showInferred: boolean;
+  readonly onShowInferredChange: (v: boolean) => void;
+  readonly onRunInference: () => void;
+  readonly isRunningInference: boolean;
+  readonly hasInferredData: boolean;
 }
 
 export function GraphToolbar({
@@ -33,8 +36,26 @@ export function GraphToolbar({
   onAnimationModeChange,
   showInferred,
   onShowInferredChange,
+  onRunInference,
+  isRunningInference,
+  hasInferredData,
 }: GraphToolbarProps) {
   const { t } = useTranslation('graph');
+
+  function inferredButton() {
+    if (isRunningInference) {
+      return { label: t('toolbar.runningInference', '推論中…'), icon: <Loader size={12} className="animate-spin" />, bg: 'var(--bg-secondary)', color: 'var(--fg-muted)', border: '1px solid var(--border)', onClick: undefined };
+    }
+    if (showInferred) {
+      return { label: t('toolbar.hideInferred', '隱藏推斷關係'), icon: <Link size={12} />, bg: '#fef3c7', color: '#b45309', border: '1px solid #f59e0b', onClick: () => onShowInferredChange(false) };
+    }
+    if (hasInferredData) {
+      return { label: t('toolbar.showInferred', '顯示推斷關係'), icon: <Link size={12} />, bg: 'var(--bg-secondary)', color: '#b45309', border: '1px solid #f59e0b', onClick: () => onShowInferredChange(true) };
+    }
+    return { label: t('toolbar.runInference', '執行推論'), icon: <Link size={12} />, bg: 'var(--bg-secondary)', color: 'var(--fg-secondary)', border: '1px solid var(--border)', onClick: onRunInference };
+  }
+
+  const btn = inferredButton();
 
   return (
     <div
@@ -89,18 +110,15 @@ export function GraphToolbar({
         {t('toolbar.resetView')}
       </button>
 
-      {/* Inferred relations toggle */}
+      {/* Inferred relations — single button, state-driven */}
       <button
         className="flex items-center gap-1.5 text-xs w-full justify-center py-1 rounded-md transition-colors"
-        style={{
-          backgroundColor: showInferred ? '#fef3c7' : 'var(--bg-secondary)',
-          color: showInferred ? '#b45309' : 'var(--fg-secondary)',
-          border: showInferred ? '1px solid #f59e0b' : '1px solid var(--border)',
-        }}
-        onClick={() => onShowInferredChange(!showInferred)}
+        style={{ backgroundColor: btn.bg, color: btn.color, border: btn.border }}
+        onClick={btn.onClick}
+        disabled={isRunningInference}
       >
-        <Link size={12} />
-        {t('toolbar.showInferred', '推斷關係')}
+        {btn.icon}
+        {btn.label}
       </button>
 
       {/* Animation mode toggle */}
