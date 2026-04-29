@@ -20,26 +20,9 @@
 
 ### 1.2 CSS Token
 
-沿用 `FRONTEND_DEV_GUIDE.md` 中的 CSS Variables，以下為關鍵 token：
+完整 token 定義與主題對照見 [`DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。關鍵 token 名稱參考如下（值見 DESIGN_TOKENS）：
 
-```css
-/* 主要背景層次 */
---bg-primary:   #faf8f4   /* 主內容區底色 */
---bg-secondary: #f4ede0   /* sidebar、欄位底色 */
---bg-tertiary:  #efe8d8   /* 選中狀態、hover 底色 */
-
-/* 文字 */
---fg-primary:   #1c1814
---fg-secondary: #5a4f42
---fg-muted:     #8a7a68
-
-/* 邊框 */
---border:       #e0d4c4
-
-/* Accent */
---accent:       #8b5e3c
-
-```
+`--bg-primary`、`--bg-secondary`、`--bg-tertiary`、`--fg-primary`、`--fg-secondary`、`--fg-muted`、`--border`、`--accent`、`--panel-bg`、`--panel-fg`
 
 ### 1.3 字體
 
@@ -51,23 +34,18 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 ### 1.4 實體 Pill 樣式（帶色點）
 
+色碼定義見 [`DESIGN_TOKENS.md`](DESIGN_TOKENS.md) — 實體 Pill 章節。
+
 ```tsx
 <span className="pill pill-char">
   <span className="pill-dot" />
   葉文潔
 </span>
 
-// CSS
+// CSS 結構（色碼值見 DESIGN_TOKENS）
 .pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; padding: 2px 7px; border-radius: 20px; }
 .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
-.pill-char { background: #eef4ff; border: 0.5px solid #bfdbfe; color: #1e40af; }
-.pill-char .pill-dot { background: #3b82f6; }
-.pill-loc  { background: #f0fdf4; border: 0.5px solid #bbf7d0; color: #166534; }
-.pill-loc .pill-dot  { background: #22c55e; }
-.pill-con  { background: #f5f3ff; border: 0.5px solid #ddd6fe; color: #5b21b6; }
-.pill-con .pill-dot  { background: #8b5cf6; }
-.pill-evt  { background: #fff1f2; border: 0.5px solid #fecaca; color: #991b1b; }
-.pill-evt .pill-dot  { background: #ef4444; }
+// .pill-char / .pill-loc / .pill-con / .pill-evt — background / border / color / dot 色碼見 DESIGN_TOKENS.md
 ```
 
 ---
@@ -741,10 +719,38 @@ Prompt Tokens / Completion Tokens / 總請求次數
 #### 版面結構
 
 ```
-[單欄，maxWidth: 2xl，左對齊]
+[Left Sidebar] [主內容區，單欄表單佈局]
+  ├─ 介面主題區塊
   ├─ KG Backend 區塊
   └─ 資料遷移區塊
 ```
+
+#### 介面主題區塊
+
+標題「介面主題」。
+
+以**卡片選擇器（card picker）**呈現各主題，每張卡片顯示：
+- 主題名稱
+- 簡短描述
+- 縮圖色塊預覽：由該主題的 `--bg-primary`、`--accent`、`--fg-primary` 三色組成的小色條
+
+選中狀態：accent 色邊框。
+
+選擇後**立即套用**（即時預覽），並寫入 `localStorage`（key：`storysphere:theme`）。
+
+**狀態流程**：
+
+```
+進入頁面
+  → 從 localStorage 讀取目前主題
+  → 對應卡片顯示選中狀態
+
+點擊主題卡片
+  → ThemeContext 更新 <html data-theme="..."> → 全站即時套用
+  → 寫入 localStorage
+```
+
+**API**：無，純前端 localStorage。主題清單見 [`DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。
 
 #### KG Backend 區塊
 

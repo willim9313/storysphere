@@ -33,7 +33,15 @@
 - 執行 `ruff check src/` 無新增錯誤
 - 執行 `cd frontend && npm run lint` 無新增錯誤
 - 若有 API 變動，已依「API Contract 維護紀律」更新文件
+- 若有 CSS token 變動，已同步更新 `docs/DESIGN_TOKENS.md` 的對照表
 - 若功能對應 BACKLOG.md 條目，已將詳細內容移至 `docs/BACKLOG_ARCHIVE.md`，並更新 `docs/BACKLOG.md` 狀態表
+
+## 主題系統
+
+- 所有顏色、字體 token 一律使用 CSS variable（`var(--*)`），禁止在元件中硬編碼色碼
+- Token 實作位於 `frontend/src/styles/tokens.css`；新增或修改任何 token 時，必須同步更新 `docs/DESIGN_TOKENS.md` 的對照表
+- `FRONTEND_DEV_GUIDE.md` 為歷史參考文件，不得修改
+- 主題切換邏輯唯一入口為 ThemeContext，不得在元件內直接讀寫 localStorage 或操作 `data-theme`
 
 ## 規劃文件存檔
 
