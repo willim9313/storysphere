@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +6,9 @@ import { uploadBook } from '@/api/ingest';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { DropZone } from '@/components/upload/DropZone';
 import { ProcessingTimeline } from '@/components/upload/ProcessingTimeline';
+import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
 import { ArrowRight } from 'lucide-react';
+import type { TimelineDetectionResponse } from '@/api/graph';
 
 interface UploadTask {
   taskId: string;
@@ -21,8 +23,24 @@ interface PendingFile {
 
 export default function UploadPage() {
   const [pending, setPending] = useState<PendingFile | null>(null);
-  const [tasks, setTasks] = useState<UploadTask[]>([]);
+  const [tasks, setTasks] = useState<UploadTask[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('upload-tasks');
+      return saved ? (JSON.parse(saved) as UploadTask[]) : [];
+    } catch {
+      return [];
+    }
+  });
   const [completedTasks, setCompletedTasks] = useState<{ taskId: string; fileName: string; bookId: string }[]>([]);
+  const [timelineModal, setTimelineModal] = useState<{ bookId: string; detection: TimelineDetectionResponse } | null>(null);
+  useEffect(() => {
+    if (tasks.length === 0) {
+      sessionStorage.removeItem('upload-tasks');
+    } else {
+      sessionStorage.setItem('upload-tasks', JSON.stringify(tasks));
+    }
+  }, [tasks]);
+
   const { t } = useTranslation('upload');
   const { t: tc } = useTranslation('common');
 
@@ -39,9 +57,19 @@ export default function UploadPage() {
     setPending({ file, title: stem, author: '' });
   }, []);
 
-  const handleTaskDone = useCallback((taskId: string, bookId: string, fileName: string) => {
+  const handleTaskDone = useCallback(
+    (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => {
+      setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+      setCompletedTasks((prev) => [...prev, { taskId, bookId, fileName }]);
+      if (detection?.chapterModeViable) {
+        setTimelineModal({ bookId, detection });
+      }
+    },
+    [],
+  );
+
+  const handleTaskError = useCallback((taskId: string) => {
     setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
-    setCompletedTasks((prev) => [...prev, { taskId, bookId, fileName }]);
   }, []);
 
   return (
@@ -135,6 +163,7 @@ export default function UploadPage() {
                 key={task.taskId}
                 task={task}
                 onDone={handleTaskDone}
+                onError={handleTaskError}
               />
             ))}
           </div>
@@ -173,6 +202,13 @@ export default function UploadPage() {
           </div>
         </div>
       )}
+      {timelineModal && (
+        <TimelineConfigModal
+          bookId={timelineModal.bookId}
+          detection={timelineModal.detection}
+          onClose={() => setTimelineModal(null)}
+        />
+      )}
     </div>
   );
 }
@@ -180,16 +216,24 @@ export default function UploadPage() {
 function ProcessingCard({
   task,
   onDone,
+  onError,
 }: {
   task: UploadTask;
-  onDone: (taskId: string, bookId: string, fileName: string) => void;
+  onDone: (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => void;
+  onError: (taskId: string) => void;
 }) {
-  const { data: status } = useTaskPolling(task.taskId);
+  const { data: status, isError } = useTaskPolling(task.taskId);
   const notified = useRef(false);
 
   if (status?.status === 'done' && status.result?.bookId && !notified.current) {
     notified.current = true;
-    setTimeout(() => onDone(task.taskId, status.result!.bookId!, task.fileName), 0);
+    const detection = status.result.timelineDetection as TimelineDetectionResponse | undefined;
+    setTimeout(() => onDone(task.taskId, status.result!.bookId!, task.fileName, detection), 0);
+  }
+
+  if ((status?.status === 'error' || isError) && !notified.current) {
+    notified.current = true;
+    setTimeout(() => onError(task.taskId), 0);
   }
 
   return (

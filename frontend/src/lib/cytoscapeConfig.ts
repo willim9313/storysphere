@@ -76,6 +76,28 @@ export const cytoscapeStylesheet: any[] = [
       color: '#8a7a68',
     },
   },
+  // F-01: inferred (dashed) edges
+  {
+    selector: 'edge[?inferred]',
+    style: {
+      'line-style': 'dashed',
+      'line-dash-pattern': [6, 3],
+      'line-color': '#f59e0b',
+      'target-arrow-color': '#f59e0b',
+      width: 1.5,
+      opacity: 0.7,
+      color: '#b45309',
+    },
+  },
+  {
+    selector: 'edge[?inferred].highlighted',
+    style: {
+      'line-color': '#d97706',
+      'target-arrow-color': '#d97706',
+      opacity: 1,
+      width: 2,
+    },
+  },
 ];
 
 export const layoutOptions = {

@@ -15,12 +15,14 @@ The workflow accepts a file path (PDF or DOCX) and returns an
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
 from domain.documents import Document
+from domain.timeline import TimelineConfig, TimelineDetectionResult
 from pipelines.document_processing import DocumentProcessingPipeline
 from pipelines.feature_extraction import FeatureExtractionPipeline
 from pipelines.feature_extraction.pipeline import FeatureExtractionResult
@@ -55,6 +57,7 @@ class IngestionResult:
     events: int = 0
     imagery_extracted: int = 0
     errors: list[str] = field(default_factory=list)
+    timeline_detection: Optional[TimelineDetectionResult] = None
 
     @property
     def success(self) -> bool:
@@ -262,6 +265,34 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 logger.error("Symbol discovery failed (non-fatal): %s", exc)
                 errors.append(f"symbol_discovery: {exc}")
 
+        # ── Step 3c: timeline detection ──────────────────────────────────────
+        timeline_detection: Optional[TimelineDetectionResult] = None
+        if not self._skip_kg and kg_result.events:
+            distinct_chapters = {e.chapter for e in kg_result.events if e.chapter and e.chapter > 0}
+            ranked_count = sum(1 for e in kg_result.events if e.chronological_rank is not None)
+            chapter_count = len(distinct_chapters)
+            timeline_detection = TimelineDetectionResult(
+                book_id=doc.id,
+                chapter_count=chapter_count,
+                event_count=len(kg_result.events),
+                ranked_event_count=ranked_count,
+                chapter_mode_viable=chapter_count > 1,
+                story_mode_viable=ranked_count > 0,
+            )
+            doc.timeline_config = TimelineConfig(
+                total_chapters=chapter_count,
+                total_events=len(kg_result.events),
+                total_ranked_events=ranked_count,
+                chapter_mode_configured=False,
+                story_mode_configured=False,
+            )
+            logger.info(
+                "Timeline detection: chapters=%d events=%d ranked=%d",
+                chapter_count,
+                len(kg_result.events),
+                ranked_count,
+            )
+
         # ── Step 4: persist document to SQLite ───────────────────────────────
         _progress(90, "Persisting document")
         self._log_step("persist_document")
@@ -278,6 +309,18 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             except Exception as exc:  # noqa: BLE001
                 logger.warning("KG save failed (non-fatal): %s", exc)
 
+        # Invalidate per-document analysis caches so stale results are not served
+        try:
+            from config.settings import get_settings  # noqa: PLC0415
+            from services.analysis_cache import AnalysisCache  # noqa: PLC0415
+            cache = AnalysisCache(db_path=get_settings().analysis_cache_db_path)
+            await asyncio.gather(
+                cache.invalidate(f"epistemic:{doc.id}:%"),
+                cache.invalidate(f"voice_profile:{doc.id}:%"),
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Analysis cache invalidation failed (non-fatal): %s", exc)
+
         result = IngestionResult(
             document_id=doc.id,
             document_title=doc.title,
@@ -293,6 +336,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             events=len(kg_result.events),
             imagery_extracted=symbol_result.imagery_count,
             errors=errors,
+            timeline_detection=timeline_detection,
         )
         logger.info(
             "IngestionWorkflow done: %s  entities=%d  relations=%d  events=%d  errors=%d",

@@ -4,35 +4,42 @@
 
 - Python 套件一律使用 `uv` 管理，安裝依賴用 `uv add`，不要用 `pip install`
 
-## 前後端型別一致性
+## TypeScript 型別
 
-### 問題背景
-後端 Pydantic model 輸出的 JSON 欄位命名**不一致**：
-- `api/schemas/` 下的 model（如 `TaskStatus`）有 `alias_generator=to_camel` → 輸出 **camelCase**（`taskId`, `reviewStatus`）
-- `domain/` 下的 model（如 `TensionLine`, `TensionTheme`）無 alias → 輸出 **snake_case**（`document_id`, `canonical_pole_a`）
+- API response type **一律從 `frontend/src/api/generated.ts`** 取用，不要在 `types.ts` 手寫新增
+- 修改任何 Pydantic model 或 endpoint 後，執行 `npm run gen:types`（在 `frontend/` 下執行）
+- 欄位命名規則：`api/schemas/` → camelCase；`domain/` → snake_case
+- 背景說明見 @docs/type-generation.md
 
-手寫 TypeScript type 非常容易與實際 JSON 欄位不符，且 TypeScript 在 runtime 不會警告。
+## 開發前的必要 Checkpoint
 
-### 正確做法：從 OpenAPI spec 自動產生型別
+**開始任何實作前，必須在回覆中明確列出：**
 
-後端啟動後，在 `frontend/` 執行：
+1. 會新增 / 修改哪些 API endpoint → 確認是否需要更新 `docs/API_CONTRACT.md`
+2. 涉及哪些 UI 元件、有無新元件 → 確認是否需要更新 `docs/UI_SPEC.md`
+3. 哪些檔案會被修改 → 防止範疇擴散
 
-```bash
-npm run gen:types
-```
+未完成此 checkpoint 前不得開始寫程式碼。
 
-這會從 `http://localhost:8000/openapi.json` 抓取 schema，自動生成 `frontend/src/api/generated.ts`，欄位名稱保證與實際 JSON 一致。
+## API Contract 維護紀律
 
-**觸發時機：**
-- 新增或修改任何 Pydantic response model（`api/schemas/` 或 `domain/`）
-- 新增後端 API endpoint
-- 修改現有 endpoint 的回傳型別
+任何新增或修改 API endpoint，**實作完成後必須同步更新 `docs/API_CONTRACT.md`**，並在 commit message 標註 `[api-contract updated]`。
 
-**使用方式：**
-- 新 API 的 TypeScript type 優先從 `generated.ts` 的 `components["schemas"]` 取用，不要手寫
-- 現有 `types.ts` 的手寫型別可逐步遷移，但不要在裡面繼續新增 API response type
+## Definition of Done
 
-### 確認欄位名稱的快速方法
-不確定某個欄位是 camelCase 還是 snake_case 時：
-1. 看後端 model 是否有 `alias_generator=to_camel` → 有則 camelCase
-2. 或直接查 `http://localhost:8000/docs` 的 Response Schema
+實作完成後，提交前必須確認：
+
+- 實作範疇未超出開發前 checkpoint 所列的檔案與 endpoint
+- 執行 `ruff check src/` 無新增錯誤
+- 執行 `cd frontend && npm run lint` 無新增錯誤
+- 若有 API 變動，已依「API Contract 維護紀律」更新文件
+- 若功能對應 BACKLOG.md 條目，已將詳細內容移至 `docs/BACKLOG_ARCHIVE.md`，並更新 `docs/BACKLOG.md` 狀態表
+
+## 規劃文件存檔
+
+涉及演算邏輯、框架整合、或架構決策的高複雜度開發任務，除了產出規劃文件供用戶確認外，**同時**將該文件儲存至 `docs/plans/`。
+
+**命名格式：** `YYYYMMDD-<簡短功能描述>.md`
+例如：`20250428-tension-scoring-algorithm.md`
+
+**存檔時機：** 開始實作前，規劃內容確認後立即存檔。

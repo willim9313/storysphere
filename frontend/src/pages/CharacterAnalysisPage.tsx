@@ -8,12 +8,15 @@ import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis } from '@/api/analysis';
 import { CharacterAnalysisDetail } from '@/components/analysis/CharacterAnalysisDetail';
+import { EpistemicStateSection } from '@/components/analysis/EpistemicStateSection';
+import { VoiceProfilingPanel } from '@/components/analysis/VoiceProfilingPanel';
 import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 
 type Framework = 'jung' | 'schmidt';
+type DetailTab = 'overview' | 'voice';
 
 export default function CharacterAnalysisPage() {
   const queryClient = useQueryClient();
@@ -23,6 +26,7 @@ export default function CharacterAnalysisPage() {
   const [framework, setFramework] = useState<Framework>('jung');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [detailTab, setDetailTab] = useState<DetailTab>('overview');
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -49,9 +53,14 @@ export default function CharacterAnalysisPage() {
     onError: () => { setGeneratingId(null); setTriggerError(t('triggerFailed')); },
   });
 
+  const handleSelectEntity = (id: string) => {
+    setSelectedEntityId(id);
+    setDetailTab('overview');
+  };
+
   const handleGenerate = (id: string) => {
     setGeneratingId(id);
-    setSelectedEntityId(id);
+    handleSelectEntity(id);
     triggerMutation.mutate(id);
   };
 
@@ -137,7 +146,7 @@ export default function CharacterAnalysisPage() {
                   key={item.id}
                   item={item}
                   isSelected={selectedEntityId === item.entityId}
-                  onSelect={() => setSelectedEntityId(item.entityId)}
+                  onSelect={() => handleSelectEntity(item.entityId)}
                 />
               ))}
             </>
@@ -152,7 +161,7 @@ export default function CharacterAnalysisPage() {
                   key={item.id}
                   item={item}
                   isSelected={selectedEntityId === item.id}
-                  onSelect={() => setSelectedEntityId(item.id)}
+                  onSelect={() => handleSelectEntity(item.id)}
                   onGenerate={() => handleGenerate(item.id)}
                   isGenerating={generatingId === item.id}
                 />
@@ -200,7 +209,44 @@ export default function CharacterAnalysisPage() {
                 {t('regenerate')}
               </button>
             </div>
-            <CharacterAnalysisDetail data={entityAnalysis} />
+            {/* Detail tabs */}
+            <div
+              className="flex items-center gap-0.5 p-0.5 rounded-lg mb-4"
+              style={{ backgroundColor: 'var(--bg-secondary)', width: 'fit-content' }}
+            >
+              {(['overview', 'voice'] as DetailTab[]).map((tab) => (
+                <button
+                  key={tab}
+                  onClick={() => setDetailTab(tab)}
+                  className="text-xs px-3 py-1 rounded-md transition-all"
+                  style={{
+                    backgroundColor: detailTab === tab ? 'white' : 'transparent',
+                    color: detailTab === tab ? 'var(--accent)' : 'var(--fg-muted)',
+                    fontWeight: detailTab === tab ? 600 : 400,
+                  }}
+                >
+                  {t(`character.tabs.${tab}`)}
+                </button>
+              ))}
+            </div>
+
+            {detailTab === 'overview' && <CharacterAnalysisDetail data={entityAnalysis} />}
+            {detailTab === 'voice' && bookId && selectedEntityId && (
+              <VoiceProfilingPanel bookId={bookId} entityId={selectedEntityId} />
+            )}
+
+            {bookId && selectedEntityId && book && (
+              <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
+                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-primary)' }}>
+                  {t('character.epistemicState')}
+                </h3>
+                <EpistemicStateSection
+                  bookId={bookId}
+                  characterId={selectedEntityId}
+                  totalChapters={book.chapterCount}
+                />
+              </div>
+            )}
           </>
         ) : genTask?.status === 'error' ? (
           <div className="flex flex-col items-center justify-center h-48 gap-3">

@@ -213,6 +213,123 @@ class KGService(KGServiceBase):
         if event_id in self._events:
             self._events[event_id].chronological_rank = rank
 
+    async def update_event_chron_index(self, event_id: str, chron_index: int) -> None:
+        """Set the chron_index on an existing event."""
+        if event_id in self._events:
+            self._events[event_id].chron_index = chron_index
+
+    async def update_entity_chron_index(
+        self, entity_id: str, first_chron_index: int
+    ) -> None:
+        """Set the first_chron_index on an existing entity."""
+        if entity_id in self._entities:
+            self._entities[entity_id].first_chron_index = first_chron_index
+
+    async def list_relations(
+        self, document_id: str | None = None
+    ) -> list[Relation]:
+        """Return all relations, optionally filtered by document."""
+        relations: list[Relation] = []
+        seen: set[str] = set()
+        for u, v, key, data in self._graph.edges(keys=True, data=True):
+            if key.endswith("_rev"):
+                continue
+            if document_id and data.get("document_id") != document_id:
+                continue
+            if key not in seen:
+                seen.add(key)
+                relations.append(self._edge_to_relation(key, u, v, data))
+        return relations
+
+    async def get_snapshot(
+        self,
+        book_id: str,
+        mode: str,
+        position: int,
+    ) -> tuple[list[Event], list[Entity], list[Relation]]:
+        """Return the KG state visible at a given reading or story position.
+
+        Args:
+            book_id: Document ID.
+            mode: ``"chapter"`` (reading order) or ``"story"`` (chronological).
+            position: Chapter number (chapter mode) or chron_index (story mode).
+
+        Returns:
+            Tuple of (events, entities, relations) visible at *position*.
+        """
+        all_events = await self.get_events(document_id=book_id)
+        all_entities = await self.list_entities(document_id=book_id)
+        all_relations = await self.list_relations(document_id=book_id)
+
+        if mode == "chapter":
+            return self._snapshot_by_chapter(
+                position, all_events, all_entities, all_relations
+            )
+        return self._snapshot_by_chron(
+            position, all_events, all_entities, all_relations
+        )
+
+    @staticmethod
+    def _snapshot_by_chapter(
+        chapter: int,
+        events: list[Event],
+        entities: list[Entity],
+        relations: list[Relation],
+    ) -> tuple[list[Event], list[Entity], list[Relation]]:
+        filtered_events = [
+            e for e in events if (e.chapter or 0) <= chapter
+        ]
+        filtered_entities = [
+            e for e in entities
+            if (e.first_appearance_chapter or 0) <= chapter
+            and (e.valid_to_chapter is None or e.valid_to_chapter > chapter)
+        ]
+        entity_ids = {e.id for e in filtered_entities}
+        filtered_relations = [
+            r for r in relations
+            if r.source_id in entity_ids
+            and r.target_id in entity_ids
+            and (r.valid_from_chapter is None or r.valid_from_chapter <= chapter)
+            and (r.valid_to_chapter is None or r.valid_to_chapter > chapter)
+        ]
+        return filtered_events, filtered_entities, filtered_relations
+
+    @staticmethod
+    def _snapshot_by_chron(
+        chron_index: int,
+        events: list[Event],
+        entities: list[Entity],
+        relations: list[Relation],
+    ) -> tuple[list[Event], list[Entity], list[Relation]]:
+        filtered_events = [
+            e for e in events
+            if e.chron_index is not None and e.chron_index <= chron_index
+        ]
+        filtered_entities = [
+            e for e in entities
+            if e.first_chron_index is not None
+            and e.first_chron_index <= chron_index
+            and (
+                e.valid_to_chron_index is None
+                or e.valid_to_chron_index > chron_index
+            )
+        ]
+        entity_ids = {e.id for e in filtered_entities}
+        filtered_relations = [
+            r for r in relations
+            if r.source_id in entity_ids
+            and r.target_id in entity_ids
+            and (
+                r.valid_from_chron_index is None
+                or r.valid_from_chron_index <= chron_index
+            )
+            and (
+                r.valid_to_chron_index is None
+                or r.valid_to_chron_index > chron_index
+            )
+        ]
+        return filtered_events, filtered_entities, filtered_relations
+
     # ── Timeline / Path / Subgraph queries ──────────────────────────────────
 
     async def get_entity_timeline(
@@ -490,6 +607,11 @@ class KGService(KGServiceBase):
             "weight": relation.weight,
             "chapters": relation.chapters,
             "is_bidirectional": relation.is_bidirectional,
+            "document_id": relation.document_id,
+            "valid_from_chapter": relation.valid_from_chapter,
+            "valid_to_chapter": relation.valid_to_chapter,
+            "valid_from_chron_index": relation.valid_from_chron_index,
+            "valid_to_chron_index": relation.valid_to_chron_index,
         }
 
     @staticmethod
@@ -510,6 +632,11 @@ class KGService(KGServiceBase):
             weight=data.get("weight", 1.0),
             chapters=data.get("chapters", []),
             is_bidirectional=data.get("is_bidirectional", False),
+            document_id=data.get("document_id"),
+            valid_from_chapter=data.get("valid_from_chapter"),
+            valid_to_chapter=data.get("valid_to_chapter"),
+            valid_from_chron_index=data.get("valid_from_chron_index"),
+            valid_to_chron_index=data.get("valid_to_chron_index"),
         )
 
 

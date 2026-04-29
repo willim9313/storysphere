@@ -36,7 +36,42 @@
     "secondaryArchetype": "Secondary",
     "evidence": "Evidence",
     "chapter": "Ch. {{range}}",
-    "noData": "(No data available)"
+    "noData": "(No data available)",
+    "tabs": {
+      "overview": "Overview",
+      "voice": "Voice Profile"
+    },
+    "voice": {
+      "avgSentenceLength": "Avg. Sentence Length",
+      "questionRatio": "Question Ratio",
+      "exclamationRatio": "Exclamation Ratio",
+      "lexicalDiversity": "Lexical Diversity",
+      "wordsUnit": "words",
+      "speechStyle": "Speech Style",
+      "distinctivePatterns": "Distinctive Patterns",
+      "tone": "Tone",
+      "representativeQuotes": "Representative Quotes",
+      "analyze": "Analyze Voice Profile",
+      "analyzing": "Analyzing voice profile…",
+      "noData": "No voice profile yet",
+      "paragraphsAnalyzed": "{{count}} passages analyzed"
+    },
+    "epistemicState": "Epistemic State",
+    "epistemic": {
+      "upToChapter": "Up to Chapter",
+      "chapterN": "Chapter {{n}}",
+      "computing": "Computing…",
+      "noVisibilityData": "No visibility data for this book (all events default to public)",
+      "knownEvents": "Known Events ({{count}})",
+      "noKnownEvents": "No known events",
+      "unknownEvents": "Unknown Events ({{count}})",
+      "noUnknownEvents": "No unknown events",
+      "misbeliefs": "Misbeliefs ({{count}})",
+      "noMisbeliefs": "No inferred misbeliefs",
+      "misbeliefLabel": "Misbelief:",
+      "actualTruth": "Truth:",
+      "confidence": "Confidence {{pct}}%"
+    }
   },
   "event": {
     "batchTitle": "Batch Generate Event EEP",

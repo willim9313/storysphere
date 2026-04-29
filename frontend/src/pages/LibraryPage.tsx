@@ -1,9 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus } from 'lucide-react';
+import { Plus, Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useQueryClient } from '@tanstack/react-query';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBooks } from '@/hooks/useBooks';
+import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { BookCard } from '@/components/library/BookCard';
 import { RecentBookCard } from '@/components/library/RecentBookCard';
 import { EmptyLibrary } from '@/components/library/EmptyLibrary';
@@ -11,12 +13,71 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import type { BookStatus } from '@/api/types';
 
+interface PendingTask { taskId: string; fileName: string }
+
+function readPendingTasks(): PendingTask[] {
+  try {
+    const raw = sessionStorage.getItem('upload-tasks');
+    return raw ? (JSON.parse(raw) as PendingTask[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+function removePendingTask(taskId: string) {
+  const tasks = readPendingTasks().filter((t) => t.taskId !== taskId);
+  if (tasks.length === 0) sessionStorage.removeItem('upload-tasks');
+  else sessionStorage.setItem('upload-tasks', JSON.stringify(tasks));
+}
+
+function ProcessingBookCard({ task, onSettled }: { task: PendingTask; onSettled: () => void }) {
+  const { t } = useTranslation('library');
+  const queryClient = useQueryClient();
+  const { data: status, isError } = useTaskPolling(task.taskId);
+  const notified = useRef(false);
+
+  useEffect(() => {
+    const done = status?.status === 'done' || status?.status === 'error' || isError;
+    if (done && !notified.current) {
+      notified.current = true;
+      removePendingTask(task.taskId);
+      queryClient.invalidateQueries({ queryKey: ['books'] });
+      onSettled();
+    }
+  }, [status, isError, task.taskId, queryClient, onSettled]);
+
+  return (
+    <div
+      className="card flex flex-col gap-2 p-3"
+      style={{ border: '1px solid var(--border)', opacity: 0.75 }}
+    >
+      <div
+        className="flex items-center justify-center h-24 rounded-md"
+        style={{ backgroundColor: 'var(--bg-secondary)' }}
+      >
+        <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
+      </div>
+      <h3
+        className="font-semibold text-xs line-clamp-2"
+        style={{ fontFamily: 'var(--font-serif)' }}
+      >
+        {task.fileName}
+      </h3>
+      <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+        {status?.stage || t('filters.processing')}
+        {status?.progress != null ? ` ${status.progress}%` : ''}
+      </span>
+    </div>
+  );
+}
+
 type Filter = 'all' | 'analyzed' | 'ready' | 'processing';
 
 export default function LibraryPage() {
   const { setPageContext } = useChatContext();
   const { data: books, isLoading, error } = useBooks();
   const [filter, setFilter] = useState<Filter>('all');
+  const [pendingTasks, setPendingTasks] = useState<PendingTask[]>(readPendingTasks);
   const { t } = useTranslation('library');
 
   const filters: { key: Filter; label: string }[] = [
@@ -32,16 +93,17 @@ export default function LibraryPage() {
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;
-  if (!books?.length) return <EmptyLibrary />;
+  if (!books?.length && pendingTasks.length === 0) return <EmptyLibrary />;
 
-  const recent = [...books]
+  const safeBooks = books ?? [];
+  const recent = [...safeBooks]
     .filter((b) => b.lastOpenedAt)
     .sort((a, b) => new Date(b.lastOpenedAt!).getTime() - new Date(a.lastOpenedAt!).getTime())
     .slice(0, 3);
 
   const filtered = filter === 'all'
-    ? books
-    : books.filter((b) => b.status === (filter as BookStatus));
+    ? safeBooks
+    : safeBooks.filter((b) => b.status === (filter as BookStatus));
 
   return (
     <div className="p-6 overflow-y-auto h-full">
@@ -91,6 +153,13 @@ export default function LibraryPage() {
         className="grid gap-4"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}
       >
+        {pendingTasks.map((task) => (
+          <ProcessingBookCard
+            key={task.taskId}
+            task={task}
+            onSettled={() => setPendingTasks((prev) => prev.filter((t) => t.taskId !== task.taskId))}
+          />
+        ))}
         {filtered.map((book) => (
           <BookCard key={book.id} book={book} />
         ))}

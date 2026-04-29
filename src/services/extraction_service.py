@@ -75,6 +75,8 @@ class _RawEvent(BaseModel):
     tension_signal: str = "none"
     emotional_intensity: float | None = None
     emotional_valence: str | None = None
+    # F-03 epistemic visibility
+    visibility: str = "public"
 
     @field_validator("participants", "consequences", mode="before")
     @classmethod
@@ -101,6 +103,11 @@ class _RawEvent(BaseModel):
     def _coerce_emotional_valence(cls, v: Any) -> str | None:
         valid = ("positive", "negative", "mixed", "neutral")
         return v if v in valid else None
+
+    @field_validator("visibility", mode="before")
+    @classmethod
+    def _coerce_visibility(cls, v: Any) -> str:
+        return v if v in ("public", "private", "secret") else "public"
 
 
 class _ExtractionResult(BaseModel):
@@ -169,6 +176,17 @@ Return ONLY a JSON object with two keys:
                             Null if the event has no clear emotional weight.
   - "emotional_valence" (str|null)  One of: "positive", "negative", "mixed", "neutral".
                             Null if emotional register is unclear.
+  - "visibility" (str)  One of: "public", "private", "secret".
+                            "public"  = information naturally known to all characters
+                                        (public battles, announced deaths, spread gossip,
+                                         events witnessed by a crowd).
+                            "private" = only direct participants present would know
+                                        (closed-door meetings, personal letters,
+                                         one-on-one conversations in private).
+                            "secret"  = actively concealed from others
+                                        (staged accidents, deliberate lies told to
+                                         deceive another character, hidden alliances,
+                                         crimes covered up).
 
 Only extract relations between entities in the provided entity list.
 """
@@ -372,6 +390,7 @@ class ExtractionService:
                     weight=max(0.0, min(1.0, raw.weight)),
                     chapters=[chapter_number],
                     is_bidirectional=raw.is_bidirectional,
+                    valid_from_chapter=chapter_number,
                 )
             )
         return relations
@@ -409,6 +428,7 @@ class ExtractionService:
                     tension_signal=raw.tension_signal,
                     emotional_intensity=raw.emotional_intensity,
                     emotional_valence=raw.emotional_valence,
+                    visibility=raw.visibility,
                 )
             )
         return events

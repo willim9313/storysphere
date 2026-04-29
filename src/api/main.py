@@ -22,7 +22,6 @@ from api.routers import (
     chat_ws,
     documents,
     entities,
-    ingest,
     kg_settings,
     metrics,
     relations,
@@ -133,7 +132,8 @@ async def lifespan(app: FastAPI):
 
     kg = get_kg_service()
     await kg.load()
-    get_doc_service()
+    doc = get_doc_service()
+    await doc.init_db()
     get_vector_service()
     get_chat_agent()
     get_analysis_agent()
@@ -210,7 +210,6 @@ def create_app() -> FastAPI:
     app.include_router(relations.router, prefix=prefix)
     app.include_router(documents.router, prefix=prefix)
     app.include_router(search.router, prefix=prefix)
-    app.include_router(ingest.router, prefix=prefix)
     app.include_router(analysis.router, prefix=prefix)
     app.include_router(narrative.router, prefix=prefix)
     app.include_router(tension.router, prefix=prefix)

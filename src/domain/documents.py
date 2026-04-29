@@ -7,6 +7,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from .timeline import TimelineConfig
+
 
 class FileType(str, Enum):
     PDF = "pdf"
@@ -63,6 +65,7 @@ class Document(BaseModel):
     keywords: Optional[dict[str, float]] = None
     language: str = "en"  # ISO 639-1 code, auto-detected or user-specified
     processed_at: Optional[datetime] = None
+    timeline_config: Optional[TimelineConfig] = None
 
     @property
     def total_chapters(self) -> int:

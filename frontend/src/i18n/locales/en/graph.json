@@ -10,7 +10,39 @@
   },
   "toolbar": {
     "searchPlaceholder": "Search entities...",
-    "resetView": "Reset View"
+    "resetView": "Reset View",
+    "animationMode": "Entry animation",
+    "anim_fade": "Fade",
+    "anim_stagger": "Stagger"
+  },
+  "timeline": {
+    "modal": {
+      "title": "Timeline Structure Detected",
+      "subtitle": "Your book has been analysed. Choose which timeline modes to enable for the knowledge graph.",
+      "chapters": "Chapters",
+      "events": "Events",
+      "rankedEvents": "Ranked events",
+      "chapterMode": {
+        "title": "Reading-order mode",
+        "description": "Slice the graph by chapter — see the world as you read through the book."
+      },
+      "storyMode": {
+        "title": "Story-chronology mode",
+        "description": "Slice by story-world time order, derived from the temporal analysis. Requires Timeline Compute to run first.",
+        "locked": "Run Timeline Compute to unlock"
+      },
+      "skip": "Skip for now",
+      "saving": "Saving…"
+    },
+    "controls": {
+      "title": "Timeline Snapshot",
+      "reconfigure": "Reconfigure timeline",
+      "enable": "Enable snapshot",
+      "modeReading": "Reading",
+      "modeStory": "Story",
+      "upToChapter": "Up to chapter",
+      "upToEvent": "Up to event"
+    }
   },
   "stats": "{{nodes}} nodes · {{edges}} relations",
   "panel": {

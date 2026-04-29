@@ -14,9 +14,9 @@ from pathlib import Path
 from typing import Annotated, Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Query, UploadFile
 
-from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, KGServiceDep, TemporalPipelineDep, VectorServiceDep
+from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, EpistemicStateServiceDep, KGServiceDep, LinkPredictionServiceDep, TemporalPipelineDep, VectorServiceDep, VoiceProfilingServiceDep
 from api.schemas.books import (
     AnalysisItem,
     AnalysisListResponse,
@@ -48,8 +48,19 @@ from api.schemas.books import (
     TimelineEventEntry,
     TimelineQuality,
     TimelineResponse,
+    TimelineConfigResponse,
+    TimelineConfigUpdate,
+    TimelineDetectionResponse,
     TopEntity,
     UnanalyzedEntity,
+    ClassifyVisibilityResponse,
+    ConfirmInferredRequest,
+    EpistemicStateResponse,
+    InferredRelationResponse,
+    InferredRelationsResponse,
+    MisbeliefItemSchema,
+    RunInferenceRequest,
+    VoiceProfileResponse,
 )
 from api.store import task_store
 from domain.documents import ParagraphEntity
@@ -106,10 +117,12 @@ async def _run_ingestion(
             author=author,
             progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None: task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
         )
-        task_store.set_completed(
-            task_id,
-            result={"bookId": result.document_id},
-        )
+        task_result: dict = {"bookId": result.document_id}
+        if result.timeline_detection is not None:
+            task_result["timelineDetection"] = TimelineDetectionResponse.model_validate(
+                result.timeline_detection.model_dump()
+            ).model_dump(by_alias=True)
+        task_store.set_completed(task_id, result=task_result)
         logger.info(
             "Ingestion task %s completed: %s chapters, %s entities",
             task_id,
@@ -220,6 +233,7 @@ async def delete_book(
     vector: VectorServiceDep,
     kg: KGServiceDep,
     cache: AnalysisCacheDep,
+    lp: LinkPredictionServiceDep,
 ) -> None:
     """Delete a book, its vector collection, KG data, analysis cache, and DB records."""
     document = await doc.get_document(book_id)
@@ -228,6 +242,7 @@ async def delete_book(
     await vector.delete_collection(book_id)
     await kg.remove_by_document(book_id)
     await cache.invalidate(f"%:{book_id}:%")
+    await lp.delete_by_document(book_id)
     await doc.delete_document(book_id)
     return None
 
@@ -499,15 +514,40 @@ async def get_chapter_chunks(
 
 
 @router.get("/{book_id}/graph", response_model=GraphDataResponse)
-async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
-    """Get knowledge graph data for a book."""
+async def get_book_graph(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    lp: LinkPredictionServiceDep,
+    mode: str | None = None,
+    position: int | None = None,
+    include_inferred: bool = False,
+) -> dict:
+    """Get knowledge graph data for a book.
+
+    Optional snapshot parameters:
+    - mode: "chapter" (reading order) or "story" (chronological)
+    - position: chapter number or chron_index depending on mode
+    """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
-    # Build nodes from entities belonging to this book
-    entities = await kg.list_entities(document_id=book_id)
+    # Snapshot mode: use get_snapshot() when mode+position provided
+    if mode is not None and position is not None:
+        if mode not in ("chapter", "story"):
+            raise HTTPException(
+                status_code=422,
+                detail="mode must be 'chapter' or 'story'",
+            )
+        events, entities, relations = await kg.get_snapshot(book_id, mode, position)
+    else:
+        entities = await kg.list_entities(document_id=book_id)
+        relations = await kg.list_relations(document_id=book_id)
+        events = await kg.get_events(document_id=book_id)
+
     entity_ids = {e.id for e in entities}
+
     nodes = [
         GraphNode(
             id=e.id,
@@ -519,25 +559,17 @@ async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> 
         for e in entities
     ]
 
-    # Build edges — only those connecting entities of this book
-    edges: list[dict] = []
-    seen_keys: set[str] = set()
-    for entity in entities:
-        for rel in await kg.get_relations(entity.id, direction="out"):
-            if rel.target_id not in entity_ids or rel.id in seen_keys:
-                continue
-            seen_keys.add(rel.id)
-            edges.append(
-                GraphEdge(
-                    id=rel.id,
-                    source=rel.source_id,
-                    target=rel.target_id,
-                    label=rel.relation_type.value,
-                ).model_dump(by_alias=True)
-            )
+    edges: list[dict] = [
+        GraphEdge(
+            id=rel.id,
+            source=rel.source_id,
+            target=rel.target_id,
+            label=rel.relation_type.value,
+        ).model_dump(by_alias=True)
+        for rel in relations
+        if rel.source_id in entity_ids and rel.target_id in entity_ids
+    ]
 
-    # Add event nodes + edges
-    events = await kg.get_events(document_id=book_id)
     for event in events:
         nodes.append(
             GraphNode(
@@ -570,7 +602,239 @@ async def get_book_graph(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> 
                 ).model_dump(by_alias=True)
             )
 
+    if include_inferred:
+        from domain.inferred_relations import InferenceStatus  # noqa: PLC0415
+        inferred = await lp.list_inferred(book_id, status=InferenceStatus.PENDING)
+        for ir in inferred:
+            if ir.source_id not in entity_ids or ir.target_id not in entity_ids:
+                continue
+            if position is not None and ir.visible_from_chapter is not None:
+                if ir.visible_from_chapter > position:
+                    continue
+            edges.append(
+                GraphEdge(
+                    id=f"ir-{ir.id}",
+                    source=ir.source_id,
+                    target=ir.target_id,
+                    label=ir.suggested_relation_type.value,
+                    confidence=ir.confidence,
+                    inferred=True,
+                    inferred_id=ir.id,
+                ).model_dump(by_alias=True)
+            )
+
     return GraphDataResponse(nodes=nodes, edges=edges).model_dump(by_alias=True)
+
+
+# ── Link Prediction / Inferred Relations (F-01) ──────────────────────────────
+
+
+@router.post("/{book_id}/inferred-relations/run", response_model=InferredRelationsResponse)
+async def run_link_inference(
+    book_id: str,
+    body: RunInferenceRequest,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    lp: LinkPredictionServiceDep,
+) -> dict:
+    """Run Common Neighbors + Adamic-Adar inference on the full book graph."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from config.settings import get_settings  # noqa: PLC0415
+    settings = get_settings()
+    entity_map = {e.id: e for e in await kg.list_entities(document_id=book_id)}
+    items = await lp.run_inference(
+        document_id=book_id,
+        max_candidates=settings.link_prediction_max_candidates,
+        min_common_neighbors=settings.link_prediction_min_common_neighbors,
+        force_refresh=body.force_refresh,
+    )
+    responses = [_ir_to_response(ir, entity_map) for ir in items]
+    return InferredRelationsResponse(items=responses, total=len(responses)).model_dump(by_alias=True)
+
+
+@router.get("/{book_id}/inferred-relations", response_model=InferredRelationsResponse)
+async def list_inferred_relations(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    lp: LinkPredictionServiceDep,
+    status: str | None = None,
+) -> dict:
+    """List inferred relation candidates for a book."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from domain.inferred_relations import InferenceStatus  # noqa: PLC0415
+    status_filter = None
+    if status is not None:
+        try:
+            status_filter = InferenceStatus(status)
+        except ValueError:
+            raise HTTPException(status_code=422, detail=f"Invalid status '{status}'")
+
+    entity_map = {e.id: e for e in await kg.list_entities(document_id=book_id)}
+    items = await lp.list_inferred(book_id, status=status_filter)
+    responses = [_ir_to_response(ir, entity_map) for ir in items]
+    return InferredRelationsResponse(items=responses, total=len(responses)).model_dump(by_alias=True)
+
+
+@router.post("/{book_id}/inferred-relations/{ir_id}/confirm", status_code=201)
+async def confirm_inferred_relation(
+    book_id: str,
+    ir_id: str,
+    body: ConfirmInferredRequest,
+    doc: DocServiceDep,
+    lp: LinkPredictionServiceDep,
+) -> dict:
+    """Confirm an inferred relation; writes it as a real Relation to the KG."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from domain.relations import RelationType  # noqa: PLC0415
+    try:
+        relation_type = RelationType(body.relation_type)
+    except ValueError:
+        raise HTTPException(status_code=422, detail=f"Invalid relation_type '{body.relation_type}'")
+
+    ir = await lp.get_inferred(ir_id)
+    if ir is None or ir.document_id != book_id:
+        raise HTTPException(status_code=404, detail=f"InferredRelation '{ir_id}' not found")
+
+    relation = await lp.confirm(ir_id, relation_type)
+    if relation is None:
+        raise HTTPException(status_code=404, detail=f"InferredRelation '{ir_id}' not found")
+    return {"relationId": relation.id}
+
+
+@router.post("/{book_id}/inferred-relations/{ir_id}/reject", status_code=204)
+async def reject_inferred_relation(
+    book_id: str,
+    ir_id: str,
+    doc: DocServiceDep,
+    lp: LinkPredictionServiceDep,
+) -> None:
+    """Reject (dismiss) an inferred relation candidate."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    ir = await lp.get_inferred(ir_id)
+    if ir is None or ir.document_id != book_id:
+        raise HTTPException(status_code=404, detail=f"InferredRelation '{ir_id}' not found")
+
+    await lp.reject(ir_id)
+    return None
+
+
+def _ir_to_response(ir: Any, entity_map: dict) -> InferredRelationResponse:
+    src = entity_map.get(ir.source_id)
+    tgt = entity_map.get(ir.target_id)
+    return InferredRelationResponse(
+        id=ir.id,
+        document_id=ir.document_id,
+        source_id=ir.source_id,
+        target_id=ir.target_id,
+        source_name=src.name if src else ir.source_id,
+        target_name=tgt.name if tgt else ir.target_id,
+        common_neighbor_count=ir.common_neighbor_count,
+        adamic_adar_score=ir.adamic_adar_score,
+        confidence=ir.confidence,
+        suggested_relation_type=ir.suggested_relation_type.value,
+        reasoning=ir.reasoning,
+        status=ir.status.value,
+        visible_from_chapter=ir.visible_from_chapter,
+        confirmed_relation_id=ir.confirmed_relation_id,
+        created_at=ir.created_at,
+    )
+
+
+# ── Timeline config endpoints ────────────────────────────────────────────────
+
+
+@router.get("/{book_id}/timeline-config", response_model=TimelineConfigResponse)
+async def get_timeline_config(book_id: str, doc: DocServiceDep) -> dict:
+    """Get the timeline snapshot configuration for a book."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+    if document.timeline_config is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Timeline config not yet set. Run ingestion first.",
+        )
+    return document.timeline_config.model_dump()
+
+
+@router.put("/{book_id}/timeline-config", response_model=TimelineConfigResponse)
+async def update_timeline_config(
+    book_id: str,
+    body: TimelineConfigUpdate,
+    doc: DocServiceDep,
+) -> dict:
+    """Update (confirm or change) the timeline snapshot configuration."""
+    from datetime import datetime  # noqa: PLC0415
+    from domain.timeline import TimelineConfig  # noqa: PLC0415
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    cfg = document.timeline_config or TimelineConfig()
+    update = body.model_dump(exclude_none=True)
+    updated = cfg.model_copy(update={**update, "configured_at": datetime.utcnow()})
+    document.timeline_config = updated
+    await doc.save_document(document)
+    return updated.model_dump()
+
+
+@router.post("/{book_id}/detect-timeline", response_model=TimelineDetectionResponse)
+async def detect_timeline(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+) -> dict:
+    """Re-run timeline structure detection for a book."""
+    from domain.timeline import TimelineConfig, TimelineDetectionResult  # noqa: PLC0415
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    events = await kg.get_events(document_id=book_id)
+    distinct_chapters = {
+        e.chapter for e in events if e.chapter and e.chapter > 0
+    }
+    ranked_count = sum(1 for e in events if e.chronological_rank is not None)
+    chapter_count = len(distinct_chapters)
+
+    result = TimelineDetectionResult(
+        book_id=book_id,
+        chapter_count=chapter_count,
+        event_count=len(events),
+        ranked_event_count=ranked_count,
+        chapter_mode_viable=chapter_count > 1,
+        story_mode_viable=ranked_count > 0,
+    )
+
+    # Update config, preserving any existing user choices
+    existing = document.timeline_config
+    document.timeline_config = TimelineConfig(
+        chapter_mode_enabled=existing.chapter_mode_enabled if existing else False,
+        story_mode_enabled=existing.story_mode_enabled if existing else False,
+        default_mode=existing.default_mode if existing else "chapter",
+        total_chapters=chapter_count,
+        total_events=len(events),
+        total_ranked_events=ranked_count,
+        chapter_mode_configured=existing.chapter_mode_configured if existing else False,
+        story_mode_configured=existing.story_mode_configured if existing else False,
+    )
+    await doc.save_document(document)
+    return result.model_dump()
 
 
 # ── #9a GET /books/:bookId/events/:eventId ───────────────────────────────────
@@ -957,6 +1221,112 @@ async def delete_entity_analysis(
     cache_key = AnalysisCache.make_key("character", book_id, entity.name)
     await cache.invalidate(cache_key)
     logger.info("Deleted entity analysis cache: key=%s", cache_key)
+
+
+# ── F-03 GET /books/:bookId/entities/:entityId/epistemic-state ───────────────
+
+
+@router.get(
+    "/{book_id}/entities/{entity_id}/epistemic-state",
+    response_model=EpistemicStateResponse,
+)
+async def get_entity_epistemic_state(
+    book_id: str,
+    entity_id: str,
+    up_to_chapter: int = Query(..., ge=1),
+    epistemic_svc: EpistemicStateServiceDep = None,
+    doc: DocServiceDep = None,
+    kg: KGServiceDep = None,
+) -> dict:
+    """Return what a character knows and doesn't know up to a given chapter."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    entity = await kg.get_entity(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
+
+    state = await epistemic_svc.get_character_knowledge(
+        character_id=entity_id,
+        document_id=book_id,
+        up_to_chapter=up_to_chapter,
+    )
+
+    # data_complete = False when the book was ingested before F-03 added visibility.
+    # Check ALL events in the book (not just the current chapter range) so that
+    # chapters with legitimately all-public events don't produce false negatives.
+    all_book_events = await kg.get_events(document_id=book_id)
+    data_complete = any(ev.visibility != "public" for ev in all_book_events)
+
+    return EpistemicStateResponse(
+        character_id=state.character_id,
+        character_name=state.character_name,
+        up_to_chapter=state.up_to_chapter,
+        known_events=[ev.model_dump() for ev in state.known_events],
+        unknown_events=[ev.model_dump() for ev in state.unknown_events],
+        misbeliefs=[
+            MisbeliefItemSchema(
+                character_belief=m.character_belief,
+                actual_truth=m.actual_truth,
+                source_event_id=m.source_event_id,
+                confidence=m.confidence,
+            )
+            for m in state.misbeliefs
+        ],
+        data_complete=data_complete,
+    ).model_dump(by_alias=True)
+
+
+# ── F-03b POST /books/:bookId/classify-visibility (temporary) ───────────────
+# TODO: replace with re-ingest pipeline once a per-book re-extraction endpoint exists
+
+
+async def _run_classify_visibility(
+    task_id: str, book_id: str, svc: Any
+) -> None:
+    task_store.set_running(task_id)
+    try:
+        counts = await svc.classify_event_visibility(
+            document_id=book_id,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
+        )
+        task_store.set_completed(
+            task_id,
+            result=ClassifyVisibilityResponse(
+                classified=counts["classified"],
+                skipped=counts["skipped"],
+                total=counts["classified"] + counts["skipped"],
+            ).model_dump(by_alias=True),
+        )
+    except Exception as exc:  # noqa: BLE001
+        logger.error("classify_visibility task %s failed: %s", task_id, exc)
+        task_store.set_failed(task_id, error=str(exc))
+
+
+@router.post(
+    "/{book_id}/classify-visibility",
+    response_model=TaskIdResponse,
+    status_code=202,
+)
+async def classify_book_visibility(
+    book_id: str,
+    background_tasks: BackgroundTasks,
+    epistemic_svc: EpistemicStateServiceDep = None,
+    doc: DocServiceDep = None,
+) -> dict:
+    """Retroactively classify event visibility for a book using LLM.
+
+    Temporary endpoint — may be replaced once a full re-ingest pipeline is available.
+    """
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    task_id = str(uuid4())
+    task_store.create(task_id)
+    background_tasks.add_task(_run_classify_visibility, task_id, book_id, epistemic_svc)
+    return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
 
 # ── #7d POST /books/:bookId/events/:eventId/analyze ─────────────────────────
@@ -1423,3 +1793,76 @@ async def compute_book_timeline(
 
     logger.info("Triggered temporal pipeline: book=%s, task=%s", book_id, task_id)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+# ── F-04 GET /books/:bookId/entities/:entityId/voice ─────────────────────────
+
+
+@router.get(
+    "/{book_id}/entities/{entity_id}/voice",
+    response_model=VoiceProfileResponse,
+)
+async def get_entity_voice_profile(
+    book_id: str,
+    entity_id: str,
+    voice_svc: VoiceProfilingServiceDep,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+) -> dict:
+    """Return the voice profile for a character.
+
+    Computes quantitative linguistic metrics and LLM qualitative description
+    on first call; subsequent calls are served from SQLite cache.
+    """
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    entity = await kg.get_entity(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
+
+    try:
+        profile = await voice_svc.get_voice_profile(
+            document_id=book_id,
+            character_id=entity_id,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    return VoiceProfileResponse(
+        character_id=profile.character_id,
+        character_name=profile.character_name,
+        document_id=profile.document_id,
+        avg_sentence_length=profile.avg_sentence_length,
+        question_ratio=profile.question_ratio,
+        exclamation_ratio=profile.exclamation_ratio,
+        lexical_diversity=profile.lexical_diversity,
+        paragraphs_analyzed=profile.paragraphs_analyzed,
+        speech_style=profile.speech_style,
+        distinctive_patterns=profile.distinctive_patterns,
+        tone=profile.tone,
+        representative_quotes=profile.representative_quotes,
+        analyzed_at=profile.analyzed_at,
+    ).model_dump(by_alias=True)
+
+
+@router.delete("/{book_id}/entities/{entity_id}/voice", status_code=204)
+async def delete_entity_voice_profile(
+    book_id: str,
+    entity_id: str,
+    voice_svc: VoiceProfilingServiceDep,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+) -> None:
+    """Invalidate the cached voice profile so the next GET recomputes it."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    entity = await kg.get_entity(entity_id)
+    if entity is None:
+        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
+
+    await voice_svc.invalidate(document_id=book_id, character_id=entity_id)
+    logger.info("Invalidated voice profile cache: book=%s entity=%s", book_id, entity_id)

@@ -74,6 +74,9 @@ _EDGES: list[tuple[str, str]] = [
     ("summaries", "hero_journey_stage"),
     ("eep", "temporal_analysis"),
     ("kg_event", "temporal_analysis"),
+    # ── Layer 3: voice profile ────────────────────────────────────────────────
+    ("kg_entity", "voice_profile"),
+    ("paragraphs", "voice_profile"),
     # ── Layer 4 ───────────────────────────────────────────────────────────────
     ("tension_lines", "tension_theme"),
     ("kg_temporal_relation", "chronological_rank"),
@@ -164,6 +167,7 @@ def _build_nodes(
     teu_count: int,
     sep_count: int,
     symbol_analysis_count: int,
+    voice_profile_count: int,
 ) -> list[NodeData]:
     nodes: list[NodeData] = []
 
@@ -369,6 +373,19 @@ def _build_nodes(
         counts={"analyzed": cep_count, "total_characters": total_chars},
     ))
 
+    # Voice profiles are built on-demand per character; no batch endpoint exists yet,
+    # so "complete" is never set — partial once any profile exists.
+    nodes.append(NodeData(
+        node_id="voice_profile",
+        layer=3,
+        label="Voice\nProfile",
+        status=_status(
+            complete=False,
+            partial=voice_profile_count > 0,
+        ),
+        counts={"analyzed": voice_profile_count, "total_characters": total_chars},
+    ))
+
     nodes.append(NodeData(
         node_id="symbol_analysis_result",
         layer=3,
@@ -519,6 +536,7 @@ async def get_unraveling(
         teu_count,
         sep_count,
         symbol_analysis_count,
+        voice_profile_count,
     ) = await asyncio.gather(
         cache.count_keys(f"character:{book_id}:%"),
         cache.count_keys(f"event:{book_id}:%"),
@@ -530,6 +548,7 @@ async def get_unraveling(
         _count_teu_keys(cache, event_ids),
         cache.count_keys(f"sep:{book_id}:%"),
         cache.count_keys(f"symbol_analysis:{book_id}:%"),
+        cache.count_keys(f"voice_profile:{book_id}:%"),
     )
 
     nodes = _build_nodes(
@@ -549,6 +568,7 @@ async def get_unraveling(
         teu_count=teu_count,
         sep_count=sep_count,
         symbol_analysis_count=symbol_analysis_count,
+        voice_profile_count=voice_profile_count,
     )
 
     edges = [

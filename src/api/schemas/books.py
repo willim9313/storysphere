@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any
+from datetime import datetime
+from typing import Any, Literal, Optional
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
@@ -122,6 +123,11 @@ class GraphEdge(BaseModel):
     source: str
     target: str
     label: str | None = None
+    weight: float | None = None
+    # F-01 inferred relation fields
+    inferred: bool = False
+    confidence: float | None = None
+    inferred_id: str | None = None
 
 
 class GraphDataResponse(BaseModel):
@@ -129,6 +135,44 @@ class GraphDataResponse(BaseModel):
 
     nodes: list[GraphNode] = []
     edges: list[GraphEdge] = []
+
+
+# ── Timeline config ──────────────────────────────────────────────────────────
+
+
+class TimelineConfigResponse(BaseModel):
+    model_config = _CAMEL
+
+    chapter_mode_enabled: bool = False
+    story_mode_enabled: bool = False
+    default_mode: Literal["chapter", "story"] = "chapter"
+    total_chapters: int = 0
+    total_events: int = 0
+    total_ranked_events: int = 0
+    chapter_mode_configured: bool = False
+    story_mode_configured: bool = False
+    configured_at: Optional[datetime] = None
+
+
+class TimelineConfigUpdate(BaseModel):
+    model_config = _CAMEL
+
+    chapter_mode_enabled: Optional[bool] = None
+    story_mode_enabled: Optional[bool] = None
+    default_mode: Optional[Literal["chapter", "story"]] = None
+    chapter_mode_configured: Optional[bool] = None
+    story_mode_configured: Optional[bool] = None
+
+
+class TimelineDetectionResponse(BaseModel):
+    model_config = _CAMEL
+
+    book_id: str
+    chapter_count: int
+    event_count: int
+    ranked_event_count: int
+    chapter_mode_viable: bool
+    story_mode_viable: bool
 
 
 # ── Event detail ─────────────────────────────────────────────────────────────
@@ -402,3 +446,104 @@ class TimelineResponse(BaseModel):
     events: list[TimelineEventEntry]
     temporal_relations: list[TemporalRelationEntry]
     quality: TimelineQuality
+
+
+# ── Epistemic State (F-03) ───────────────────────────────────────────────────
+
+
+class MisbeliefItemSchema(BaseModel):
+    model_config = _CAMEL
+
+    character_belief: str
+    actual_truth: str
+    source_event_id: str
+    confidence: float
+
+
+class EpistemicStateResponse(BaseModel):
+    model_config = _CAMEL
+
+    character_id: str
+    character_name: str
+    up_to_chapter: int
+    known_events: list[dict[str, Any]]
+    unknown_events: list[dict[str, Any]]
+    misbeliefs: list[MisbeliefItemSchema]
+    data_complete: bool
+
+
+class ClassifyVisibilityResponse(BaseModel):
+    """Result of retroactive visibility classification.
+
+    Temporary feature — may be replaced by a dedicated re-ingest pipeline.
+    """
+
+    model_config = _CAMEL
+
+    classified: int
+    skipped: int
+    total: int
+
+
+# ── Link Prediction / Inferred Relations (F-01) ───────────────────────────────
+
+
+class InferredRelationResponse(BaseModel):
+    model_config = _CAMEL
+
+    id: str
+    document_id: str
+    source_id: str
+    target_id: str
+    source_name: str
+    target_name: str
+    common_neighbor_count: int
+    adamic_adar_score: float
+    confidence: float
+    suggested_relation_type: str
+    reasoning: str
+    status: str
+    visible_from_chapter: Optional[int] = None
+    confirmed_relation_id: Optional[str] = None
+    created_at: float
+
+
+class InferredRelationsResponse(BaseModel):
+    model_config = _CAMEL
+
+    items: list[InferredRelationResponse] = []
+    total: int = 0
+
+
+class RunInferenceRequest(BaseModel):
+    model_config = _CAMEL
+
+    force_refresh: bool = False
+
+
+class ConfirmInferredRequest(BaseModel):
+    model_config = _CAMEL
+
+    relation_type: str
+
+
+# ── Voice Profile (F-04) ─────────────────────────────────────────────────────
+
+
+class VoiceProfileResponse(BaseModel):
+    model_config = _CAMEL
+
+    character_id: str
+    character_name: str
+    document_id: str
+    avg_sentence_length: float
+    question_ratio: float
+    exclamation_ratio: float
+    lexical_diversity: float
+    paragraphs_analyzed: int
+    speech_style: str
+    distinctive_patterns: list[str]
+    tone: str
+    representative_quotes: list[str]
+    analyzed_at: datetime
+

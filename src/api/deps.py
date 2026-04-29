@@ -30,6 +30,7 @@ def set_kg_mode_override(mode: str) -> None:
     get_narrative_service.cache_clear()
     get_chat_agent.cache_clear()
     get_analysis_agent.cache_clear()
+    get_link_prediction_service.cache_clear()
     logger.info("KG mode switched to '%s'; all dependent singletons reset.", mode)
 
 
@@ -275,3 +276,63 @@ def get_symbol_analysis_service():
 
 
 SymbolAnalysisServiceDep = Annotated[Any, Depends(get_symbol_analysis_service)]
+
+
+# ── Epistemic State (F-03) ───────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1)
+def get_epistemic_state_service():
+    from services.epistemic_state_service import EpistemicStateService  # noqa: PLC0415
+
+    return EpistemicStateService(
+        kg_service=get_kg_service(),
+        llm=get_llm(),
+        cache=get_analysis_cache(),
+    )
+
+
+EpistemicStateServiceDep = Annotated[Any, Depends(get_epistemic_state_service)]
+
+
+# ── Voice Profiling (F-04) ───────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1)
+def get_voice_profiling_service():
+    from services.voice_profiling_service import VoiceProfilingService  # noqa: PLC0415
+
+    return VoiceProfilingService(
+        kg_service=get_kg_service(),
+        doc_service=get_doc_service(),
+        llm=get_llm(),
+        cache=get_analysis_cache(),
+    )
+
+
+VoiceProfilingServiceDep = Annotated[Any, Depends(get_voice_profiling_service)]
+
+
+# ── Link Prediction (F-01) ───────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1)
+def get_link_prediction_store():
+    from config.settings import get_settings  # noqa: PLC0415
+    from services.link_prediction_store import LinkPredictionStore  # noqa: PLC0415
+
+    settings = get_settings()
+    return LinkPredictionStore(db_path=settings.link_prediction_db_path)
+
+
+@lru_cache(maxsize=1)
+def get_link_prediction_service():
+    from services.link_prediction_service import LinkPredictionService  # noqa: PLC0415
+
+    return LinkPredictionService(
+        kg_service=get_kg_service(),
+        store=get_link_prediction_store(),
+    )
+
+
+LinkPredictionServiceDep = Annotated[Any, Depends(get_link_prediction_service)]

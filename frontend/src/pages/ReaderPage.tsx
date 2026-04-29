@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { Brain } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useChapters } from '@/hooks/useChapters';
@@ -9,6 +10,7 @@ import { BookOverview } from '@/components/reader/BookOverview';
 import { ChapterCard } from '@/components/reader/ChapterCard';
 import { ChunkCard } from '@/components/reader/ChunkCard';
 import { BezierConnectors } from '@/components/reader/BezierConnectors';
+import { EpistemicSidePanel } from '@/components/reader/EpistemicSidePanel';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 
@@ -18,6 +20,7 @@ export default function ReaderPage() {
   const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
   const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
   const [viewingChapterId, setViewingChapterId] = useState<string | null>(null);
+  const [epistemicOpen, setEpistemicOpen] = useState(false);
 
   const col1Ref = useRef<HTMLDivElement>(null);
   const col2Ref = useRef<HTMLDivElement>(null);
@@ -48,6 +51,7 @@ export default function ReaderPage() {
   const chapterList = chapters ?? [];
   const selectedChapterIdx = chapterList.findIndex((c) => c.id === expandedChapterId);
   const viewingChapter = chapterList.find((c) => c.id === viewingChapterId);
+  const viewingChapterOrder = viewingChapter?.order ?? null;
 
   const handleSelectChapter = (chapterId: string) => {
     setExpandedChapterId(chapterId);
@@ -55,9 +59,6 @@ export default function ReaderPage() {
     setViewingChapterId(chapterId);
   };
 
-  const handleViewContent = (chapterId: string) => {
-    setViewingChapterId(chapterId);
-  };
 
   return (
     <div className="flex h-full relative">
@@ -103,7 +104,6 @@ export default function ReaderPage() {
               isSelected={selectedChapterId === chapter.id}
               isExpanded={expandedChapterId === chapter.id}
               onSelect={() => handleSelectChapter(chapter.id)}
-              onViewContent={() => handleViewContent(chapter.id)}
             />
           </div>
         ))}
@@ -120,20 +120,34 @@ export default function ReaderPage() {
       >
         {viewingChapterId ? (
           <div className="p-4">
-            {/* Header */}
+            {/* Header with epistemic toggle */}
             <div
-              className="sticky top-0 z-10 pb-2 mb-3"
+              className="sticky top-0 z-10 pb-2 mb-3 flex items-start justify-between"
               style={{ backgroundColor: 'var(--bg-primary)' }}
             >
-              <h3
-                className="text-sm font-semibold"
-                style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+              <div>
+                <h3
+                  className="text-sm font-semibold"
+                  style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+                >
+                  {viewingChapter?.title}
+                </h3>
+                <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+                  {chunks?.length ?? 0} chunks
+                </span>
+              </div>
+              <button
+                onClick={() => setEpistemicOpen((v) => !v)}
+                title="認識論狀態"
+                className="p-1.5 rounded hover:opacity-70 flex-shrink-0"
+                style={{
+                  backgroundColor: epistemicOpen ? 'var(--accent)' : 'var(--bg-secondary)',
+                  color: epistemicOpen ? 'white' : 'var(--fg-muted)',
+                  border: '1px solid var(--border)',
+                }}
               >
-                {viewingChapter?.title}
-              </h3>
-              <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-                {chunks?.length ?? 0} chunks
-              </span>
+                <Brain size={14} />
+              </button>
             </div>
 
             {chunksLoading && <LoadingSpinner />}
@@ -147,6 +161,26 @@ export default function ReaderPage() {
           </div>
         )}
       </div>
+
+      {/* Column 4: Epistemic Side Panel */}
+      {bookId && (
+        <div
+          className="flex-shrink-0 overflow-hidden"
+          style={{
+            width: epistemicOpen ? 280 : 0,
+            transition: 'width 200ms ease',
+          }}
+        >
+          {epistemicOpen && (
+            <EpistemicSidePanel
+              bookId={bookId}
+              chapters={chapterList}
+              currentChapterOrder={viewingChapterOrder}
+              onClose={() => setEpistemicOpen(false)}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

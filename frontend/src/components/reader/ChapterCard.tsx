@@ -1,4 +1,4 @@
-import { ChevronRight } from 'lucide-react';
+
 import { useTranslation } from 'react-i18next';
 import { KeywordTags } from './KeywordTags';
 import type { Chapter, EntityType } from '@/api/types';
@@ -18,7 +18,6 @@ interface ChapterCardProps {
   isSelected: boolean;
   isExpanded: boolean;
   onSelect: () => void;
-  onViewContent: () => void;
 }
 
 export function ChapterCard({
@@ -26,7 +25,6 @@ export function ChapterCard({
   isSelected,
   isExpanded,
   onSelect,
-  onViewContent,
 }: ChapterCardProps) {
   const { t } = useTranslation('reader');
   return (
@@ -80,16 +78,6 @@ export function ChapterCard({
               </div>
             </div>
           )}
-          <button
-            className="flex items-center gap-1 text-xs font-medium"
-            style={{ color: 'var(--accent)' }}
-            onClick={(e) => {
-              e.stopPropagation();
-              onViewContent();
-            }}
-          >
-            {t('chapter.viewContent')} <ChevronRight size={12} />
-          </button>
         </div>
       )}
     </div>

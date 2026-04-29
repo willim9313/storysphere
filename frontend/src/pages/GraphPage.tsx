@@ -1,22 +1,26 @@
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
 import { toCytoscapeElements } from '@/lib/graphTransform';
 import { GraphCanvas } from '@/components/graph/GraphCanvas';
-import { GraphToolbar } from '@/components/graph/GraphToolbar';
+import { GraphToolbar, type AnimationMode } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
 import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
+import { TimelineControls, type TimelineState } from '@/components/graph/TimelineControls';
+import { EpistemicOverlay } from '@/components/graph/EpistemicOverlay';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
 import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
+import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
+import { runInference } from '@/api/graph';
 import type { GraphNode, EntityChunkItem } from '@/api/types';
 
 const ALL_TYPES = new Set(['character', 'location', 'concept', 'event']);
@@ -34,11 +38,30 @@ export default function GraphPage() {
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
   const { t: tStats } = useTranslation('graph');
-  const { data, isLoading, error } = useGraphData(bookId);
+  const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
+  const [animationMode, setAnimationMode] = useState<AnimationMode>('fade');
+  const [showInferred, setShowInferred] = useState(false);
+  const [selectedInferredId, setSelectedInferredId] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+  const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined, showInferred);
+
+  const inferMutation = useMutation({
+    mutationFn: () => runInference(bookId!, true),
+    onSuccess: () => {
+      setShowInferred(true);
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
+    },
+  });
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [visibleTypes, setVisibleTypes] = useState(new Set(ALL_TYPES));
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
+  const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
+
+  const handleEdgeTap = useCallback((_edgeId: string, inferredId: string | null) => {
+    if (inferredId) setSelectedInferredId(inferredId);
+  }, []);
 
   // Auto-select entity from query param (e.g. navigating from analysis page)
   useEffect(() => {
@@ -93,6 +116,21 @@ export default function GraphPage() {
     });
   }, [elements, searchQuery, visibleTypes]);
 
+  // Epistemic dim: grey out nodes the selected character doesn't know about
+  const epistemicStylesheet = useMemo(() => {
+    if (unknownEntityIds.size === 0) return [];
+    return Array.from(unknownEntityIds).map((id) => ({
+      selector: `node[id = "${id}"]`,
+      style: {
+        'background-color': '#e5e7eb',
+        'border-color': '#9ca3af',
+        'border-style': 'dashed',
+        'border-width': 2,
+        color: '#9ca3af',
+      } as Record<string, unknown>,
+    }));
+  }, [unknownEntityIds]);
+
   const selectedNode: GraphNode | null = useMemo(() => {
     if (!selectedNodeId || !data) return null;
     return data.nodes.find((n) => n.id === selectedNodeId) ?? null;
@@ -126,7 +164,14 @@ export default function GraphPage() {
   return (
     <div className="relative h-full w-full">
       {/* Graph canvas — fills entire area, never resizes */}
-      <GraphCanvas elements={filteredElements} onNodeTap={handleNodeTap} selectedNodeId={selectedNodeId} />
+      <GraphCanvas
+        elements={filteredElements}
+        onNodeTap={handleNodeTap}
+        onEdgeTap={handleEdgeTap}
+        selectedNodeId={selectedNodeId}
+        animationMode={animationMode}
+        extraStylesheet={epistemicStylesheet}
+      />
 
       {/* Floating toolbar (top-left) */}
       <GraphToolbar
@@ -135,10 +180,46 @@ export default function GraphPage() {
         visibleTypes={visibleTypes}
         onTypeToggle={handleTypeToggle}
         onReset={handleReset}
+        animationMode={animationMode}
+        onAnimationModeChange={setAnimationMode}
+        showInferred={showInferred}
+        onShowInferredChange={(v) => {
+          setShowInferred(v);
+          if (!v) setSelectedInferredId(null);
+        }}
+        onRunInference={() => inferMutation.mutate()}
+        isRunningInference={inferMutation.isPending}
+        hasInferredData={inferMutation.data !== undefined}
       />
 
-      {/* Zoom controls (bottom-left) */}
-      <div className="absolute bottom-4 left-4 flex flex-col gap-1 z-10">
+      {/* Inferred edge detail panel */}
+      {selectedInferredId && bookId && (
+        <InferredEdgePanel
+          bookId={bookId}
+          inferredId={selectedInferredId}
+          onClose={() => setSelectedInferredId(null)}
+          onConfirmed={() => setSelectedInferredId(null)}
+          onRejected={() => setSelectedInferredId(null)}
+        />
+      )}
+
+      {/* Timeline snapshot controls (bottom-left, above zoom) */}
+      {bookId && (
+        <TimelineControls bookId={bookId} onChange={setTimelineState} />
+      )}
+
+      {/* Epistemic overlay — character perspective (above TimelineControls) */}
+      {bookId && data && (
+        <EpistemicOverlay
+          bookId={bookId}
+          nodes={data.nodes}
+          timelineChapter={timelineState?.mode === 'chapter' ? timelineState.position : null}
+          onUnknownEntityIds={setUnknownEntityIds}
+        />
+      )}
+
+      {/* Zoom controls (bottom-right) */}
+      <div className="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
         <button
           className="w-8 h-8 rounded-md flex items-center justify-center"
           style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}

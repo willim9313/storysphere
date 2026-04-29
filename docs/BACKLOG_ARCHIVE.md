@@ -5,6 +5,64 @@
 
 ---
 
+## Wave 1 — 底層基礎建設 ✅ 全部完成（2026-04-28）
+
+### F-02 進度感知 KG（章節時間切片）✅ 完成（2026-04-24，commit `4be9613`）
+**分類**: 底層基礎 — Wave 1 核心
+
+**已實作內容**:
+- Domain: `Entity` / `Relation` / `Event` 新增時態欄位（`valid_from/to_chapter`, `chron_index`）；新增 `TimelineConfig` / `TimelineDetectionResult` model
+- `KGService.get_snapshot(mode, position)` — 支援 chapter 模式與 story chronology 模式
+- `TemporalPipeline` Step 8 分配 `chron_index`，回填 `Entity.first_chron_index`
+- Ingestion 自動偵測章節結構，建立 `TimelineConfig`
+- API: `GET /graph?mode=&position=`、`GET/PUT /timeline-config`、`POST /detect-timeline`
+- 前端: `TimelineControls`（浮動面板，debounced slider）、`TimelineConfigModal`（confirm dialog）
+- `GraphPage` + `UploadPage` 已整合
+
+**解鎖**: F-03、F-05（What-If）、F-12（閱讀記憶）、F-13（Role Agent）
+
+---
+
+### F-01 隱性關係推論（KG Link Prediction）✅ 完成（2026-04-27）
+**分類**: 加分項（無硬依賴）
+
+**已實作內容**:
+- Domain: `InferredRelation`（含 `visible_from_chapter`、`confidence`、`status`）
+- `LinkPredictionStore`：aiosqlite SQLite 持久化
+- `LinkPredictionService`：Common Neighbors + Adamic-Adar 算法，規則型關係分類，confirm/reject 流程
+- API: `POST /inferred-relations/run`、`GET /inferred-relations`、`POST .../confirm`、`POST .../reject`
+- `GET /graph?include_inferred=true`：推斷邊以 `inferred=true` 附加，快照過濾時使用 `visible_from_chapter`
+- 前端：Cytoscape 虛線邊（amber 色）、GraphToolbar Toggle、`InferredEdgePanel`（確認/否定 UI）
+- **注意**: Neo4j 支援缺口仍追蹤於 B-035
+
+---
+
+### F-03 角色認識論狀態 ✅ 完成（2026-04-25，commit `4729861`）
+**分類**: 底層基礎 — Wave 1 核心
+
+**已實作內容**:
+- EventNode 新增 `visibility: Literal["public", "private", "secret"]` 欄位
+- `src/services/epistemic_state_service.py`：計算角色認識論狀態
+- Domain Model：`CharacterEpistemicState`（known_events, unknown_events, misbeliefs）
+- API 端點：`GET /books/:bookId/entities/:entityId/epistemic-state?up_to_chapter={N}`
+
+**解鎖**: F-05（What-If 約束）、F-10（敘事視角分析）、F-13（Role Agent 認識論邊界）
+
+---
+
+### F-04 角色語音側寫（Voice Profiling）✅ 完成（2026-04-25）
+**分類**: 底層基礎 — Wave 1
+
+**已實作內容**:
+- `src/domain/voice.py`：`VoiceFingerprint` Pydantic model（定量指標 + LLM 質性描述 + 代表性引文）
+- `src/services/voice_profiling_service.py`：用 Qdrant 語意搜索 + 量化特徵提取 + LLM 質性描述
+- API 端點：`GET /books/:bookId/entities/:entityId/voice`（同步，SQLite cached）
+- 前端：角色詳情面板新增「Voice Profile」tab（展示指紋 + 代表性引文）
+
+**解鎖**: F-10（敘事視角）、F-13（Role Agent 對話風格約束）
+
+---
+
 ## B-040 符號深度分析（Symbol Deep Analysis）✅ 完成（2026-04-22）
 **背景**: B-022 SEP 完成後的下一層 — 以 SEP 為輸入，LLM 產出符號意義命題與跨層連結。架構類比 B-027~B-029（TensionLine → TensionTheme）與 B-026（CEP → CharacterAnalysisResult）。
 

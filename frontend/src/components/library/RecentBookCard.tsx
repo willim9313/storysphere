@@ -16,7 +16,7 @@ export function RecentBookCard({ book }: RecentBookCardProps) {
         return [
           { label: t('shortcuts.continueReading'), to: base },
           { label: t('shortcuts.knowledgeGraph'), to: `${base}/graph` },
-          { label: t('shortcuts.deepAnalysis'), to: `${base}/analysis` },
+          { label: t('shortcuts.deepAnalysis'), to: `${base}/characters` },
         ];
       case 'ready':
         return [

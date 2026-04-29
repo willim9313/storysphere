@@ -64,6 +64,7 @@ class Event(BaseModel):
     narrative_mode: NarrativeMode = NarrativeMode.UNKNOWN
     story_time_hint: Optional[str] = None
     chronological_rank: Optional[float] = None
+    chron_index: Optional[int] = None   # 1-based story-world order; set by TemporalPipeline
 
     # --- Tension / emotional fields (B-023) ---
     tension_signal: Literal["none", "potential", "explicit"] = "none"
@@ -78,3 +79,9 @@ class Event(BaseModel):
         Literal["summary_heuristic", "llm_classified", "human_verified"]
     ] = None
     story_time: Optional[StoryTimeRef] = None
+
+    # --- Epistemic visibility (F-03) ---
+    # public  = information naturally known to all (public battles, announced deaths, spread gossip)
+    # private = only direct participants know (closed meetings, personal letters)
+    # secret  = actively concealed (staged accidents, deliberate lies, hidden alliances)
+    visibility: Literal["public", "private", "secret"] = "public"
