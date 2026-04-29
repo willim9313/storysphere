@@ -1,104 +1,107 @@
 import type cytoscape from 'cytoscape';
 
-const nodeColors: Record<string, { fill: string; stroke: string }> = {
-  character: { fill: '#dbeafe', stroke: '#3b82f6' },
-  location: { fill: '#dcfce7', stroke: '#22c55e' },
-  concept: { fill: '#ede9fe', stroke: '#8b5cf6' },
-  event: { fill: '#fee2e2', stroke: '#ef4444' },
-};
+const v = (name: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
-function getNodeColor(type: string, field: 'fill' | 'stroke'): string {
-  return nodeColors[type]?.[field] ?? '#e5e7eb';
+export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
+  const fills: Record<string, string> = {
+    character: v('--graph-char-fill') || '#dbeafe',
+    location:  v('--graph-loc-fill')  || '#dcfce7',
+    concept:   v('--graph-con-fill')  || '#ede9fe',
+    event:     v('--graph-evt-fill')  || '#fee2e2',
+  };
+  const strokes: Record<string, string> = {
+    character: v('--graph-char-stroke') || '#3b82f6',
+    location:  v('--graph-loc-stroke')  || '#22c55e',
+    concept:   v('--graph-con-stroke')  || '#8b5cf6',
+    event:     v('--graph-evt-stroke')  || '#ef4444',
+  };
+  const accent    = v('--accent')       || '#8b5e3c';
+  const border    = v('--border')       || '#e0d4c4';
+  const fgPrimary = v('--fg-primary')   || '#1c1814';
+  const fgMuted   = v('--fg-muted')     || '#8a7a68';
+  const fgSecondary = v('--fg-secondary') || '#5a4f42';
+  const fontSans  = v('--font-sans')    || 'DM Sans, system-ui, sans-serif';
+
+  return [
+    {
+      selector: 'node',
+      style: {
+        label: 'data(label)',
+        'text-valign': 'bottom',
+        'text-halign': 'center',
+        'font-size': '10px',
+        'font-family': fontSans,
+        color: fgPrimary,
+        'text-margin-y': 4,
+        'background-color': (ele: cytoscape.NodeSingular) =>
+          fills[ele.data('entityType') as string] ?? '#e5e7eb',
+        width: 'data(size)',
+        height: 'data(size)',
+        'border-width': 2,
+        'border-color': (ele: cytoscape.NodeSingular) =>
+          strokes[ele.data('entityType') as string] ?? border,
+      },
+    },
+    {
+      selector: 'node:selected',
+      style: { 'border-width': 3, 'border-color': accent },
+    },
+    {
+      selector: '.dimmed',
+      style: { opacity: 0.15 },
+    },
+    {
+      selector: '.highlighted',
+      style: { 'border-width': 3, 'border-color': accent },
+    },
+    {
+      selector: 'edge.highlighted',
+      style: {
+        width: 2.5,
+        'line-color': accent,
+        'target-arrow-color': accent,
+        opacity: 1,
+      },
+    },
+    {
+      selector: 'edge',
+      style: {
+        width: 1,
+        'line-color': border,
+        'curve-style': 'bezier',
+        'target-arrow-shape': 'triangle',
+        'target-arrow-color': border,
+        'arrow-scale': 0.8,
+        label: 'data(label)',
+        'font-size': '8px',
+        'text-rotation': 'autorotate',
+        color: fgMuted,
+      },
+    },
+    {
+      selector: 'edge[?inferred]',
+      style: {
+        'line-style': 'dashed',
+        'line-dash-pattern': [6, 3],
+        'line-color': accent,
+        'target-arrow-color': accent,
+        width: 1.5,
+        opacity: 0.7,
+        color: fgSecondary,
+      },
+    },
+    {
+      selector: 'edge[?inferred].highlighted',
+      style: {
+        'line-color': accent,
+        'target-arrow-color': accent,
+        opacity: 1,
+        width: 2,
+      },
+    },
+  ];
 }
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const cytoscapeStylesheet: any[] = [
-  {
-    selector: 'node',
-    style: {
-      label: 'data(label)',
-      'text-valign': 'bottom',
-      'text-halign': 'center',
-      'font-size': '10px',
-      'font-family': 'DM Sans, system-ui, sans-serif',
-      color: '#1c1814',
-      'text-margin-y': 4,
-      'background-color': (ele: cytoscape.NodeSingular) =>
-        getNodeColor(ele.data('entityType'), 'fill'),
-      width: 'data(size)',
-      height: 'data(size)',
-      'border-width': 2,
-      'border-color': (ele: cytoscape.NodeSingular) =>
-        getNodeColor(ele.data('entityType'), 'stroke'),
-    },
-  },
-  {
-    selector: 'node:selected',
-    style: {
-      'border-width': 3,
-      'border-color': '#8b5e3c',
-    },
-  },
-  {
-    selector: '.dimmed',
-    style: {
-      opacity: 0.15,
-    },
-  },
-  {
-    selector: '.highlighted',
-    style: {
-      'border-width': 3,
-      'border-color': '#8b5e3c',
-    },
-  },
-  {
-    selector: 'edge.highlighted',
-    style: {
-      width: 2.5,
-      'line-color': '#8b5e3c',
-      'target-arrow-color': '#8b5e3c',
-      opacity: 1,
-    },
-  },
-  {
-    selector: 'edge',
-    style: {
-      width: 1,
-      'line-color': '#e0d4c4',
-      'curve-style': 'bezier',
-      'target-arrow-shape': 'triangle',
-      'target-arrow-color': '#e0d4c4',
-      'arrow-scale': 0.8,
-      label: 'data(label)',
-      'font-size': '8px',
-      'text-rotation': 'autorotate',
-      color: '#8a7a68',
-    },
-  },
-  // F-01: inferred (dashed) edges
-  {
-    selector: 'edge[?inferred]',
-    style: {
-      'line-style': 'dashed',
-      'line-dash-pattern': [6, 3],
-      'line-color': '#f59e0b',
-      'target-arrow-color': '#f59e0b',
-      width: 1.5,
-      opacity: 0.7,
-      color: '#b45309',
-    },
-  },
-  {
-    selector: 'edge[?inferred].highlighted',
-    style: {
-      'line-color': '#d97706',
-      'target-arrow-color': '#d97706',
-      opacity: 1,
-      width: 2,
-    },
-  },
-];
 
 export const layoutOptions = {
   name: 'fcose',

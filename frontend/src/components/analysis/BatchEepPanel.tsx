@@ -47,10 +47,9 @@ export function BatchEepPanel({
 
       <div className="h-1.5 rounded-full overflow-hidden mb-3" style={{ backgroundColor: 'var(--border)' }}>
         <div
-          className="h-full rounded-full transition-all duration-300"
+          className="h-full rounded-full transition-all duration-300 theme-progress-fill"
           style={{
             width: `${isBatchRunning ? progressPct : (totalCount > 0 ? (analyzedCount / totalCount) * 100 : 0)}%`,
-            backgroundColor: 'var(--accent)',
           }}
         />
       </div>

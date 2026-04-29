@@ -1,7 +1,8 @@
 import { useEffect, useRef } from 'react';
 import cytoscape from 'cytoscape';
 import fcose from 'cytoscape-fcose';
-import { cytoscapeStylesheet, layoutOptions } from '@/lib/cytoscapeConfig';
+import { getCytoscapeStylesheet, layoutOptions } from '@/lib/cytoscapeConfig';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { AnimationMode } from './GraphToolbar';
 
 cytoscape.use(fcose);
@@ -75,6 +76,7 @@ export function GraphCanvas({
   animationMode = 'fade',
   extraStylesheet = [],
 }: GraphCanvasProps) {
+  const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const onNodeTapRef = useRef(onNodeTap);
@@ -92,7 +94,7 @@ export function GraphCanvas({
     const cy = cytoscape({
       container: containerRef.current,
       elements: [],
-      style: cytoscapeStylesheet,
+      style: getCytoscapeStylesheet(),
       minZoom: 0.2,
       maxZoom: 3,
     });
@@ -189,13 +191,12 @@ export function GraphCanvas({
     cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 400 });
   }, [selectedNodeId]);
 
-  // Apply epistemic dim stylesheet on top of base styles
+  // Re-apply stylesheet on theme change or epistemic overlay change
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
-    const combined = [...cytoscapeStylesheet, ...extraStylesheet];
-    cy.style(combined as cytoscape.StylesheetStyle[]);
-  }, [extraStylesheet]);
+    cy.style([...getCytoscapeStylesheet(), ...extraStylesheet] as cytoscape.StylesheetStyle[]);
+  }, [theme, extraStylesheet]);
 
   return (
     <div

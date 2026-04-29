@@ -33,6 +33,23 @@
   }
 }
 
+/* ── Theme-specific progress bar stripe overrides (outside @layer for specificity) ── */
+[data-theme="manuscript"] .theme-progress-fill {
+  background: repeating-linear-gradient(
+    0deg,
+    var(--fg-primary) 0px, var(--fg-primary) 1px,
+    transparent 1px, transparent 3px
+  );
+}
+
+[data-theme="pulp"] .theme-progress-fill {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--fg-primary) 0px, var(--fg-primary) 2px,
+    transparent 2px, transparent 4px
+  );
+}
+
 @layer components {
   .btn {
     display: inline-flex;
@@ -140,6 +157,11 @@
     color: var(--entity-other-fg);
   }
   .pill-other .pill-dot { background: var(--entity-other-dot); }
+
+  /* ── Theme-aware progress bar fill ──────────────────────────────── */
+  .theme-progress-fill {
+    background-color: var(--accent);
+  }
 
   /* ── Keyword tag styles ────────────────────────────────────────── */
   .kw-tag {
