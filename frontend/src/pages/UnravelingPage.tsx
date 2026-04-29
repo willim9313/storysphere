@@ -6,6 +6,7 @@ import { useTranslation, type TFunction } from 'react-i18next';
 import cytoscape from 'cytoscape';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   fetchUnraveling,
   type NodeStatus,
@@ -44,89 +45,99 @@ function statusLabel(t: TFunction, status: NodeStatus): string {
 
 // ── Cytoscape stylesheet ──────────────────────────────────────────────────────
 
-const STYLESHEET: cytoscape.Stylesheet[] = [
-  // Compound group node (KG Features)
-  {
-    selector: `#${KG_GROUP_ID}`,
-    style: {
-      shape: 'round-rectangle',
-      'background-color': '#f5ede0',
-      'background-opacity': 0.6,
-      'border-color': '#8b7355',
-      'border-width': 2.5,
-      'border-style': 'dashed',
-      label: 'data(label)',
-      'text-valign': 'top',
-      'text-halign': 'center',
-      'text-margin-y': -18,
-      'font-size': 18,
-      'font-weight': 'bold',
-      color: '#5c4a32',
-      padding: 26,
-    } as cytoscape.Css.Node,
-  },
-  // Regular nodes
-  {
-    selector: `node:not(#${KG_GROUP_ID})`,
-    style: {
-      shape: 'data(shape)',
-      width: 120,
-      height: 52,
-      'background-color': 'data(bgColor)',
-      'border-color': 'data(borderColor)',
-      'border-width': 2,
-      label: 'data(label)',
-      'text-valign': 'center',
-      'text-halign': 'center',
-      'text-wrap': 'wrap',
-      'text-max-width': '108',
-      'font-size': 10,
-      color: 'data(textColor)',
-      'font-family': 'var(--font-sans, sans-serif)',
-    } as cytoscape.Css.Node,
-  },
-  {
-    selector: 'node:selected',
-    style: {
-      'border-width': 3,
-      'border-color': '#8b5e3c',
-    } as cytoscape.Css.Node,
-  },
-  {
-    selector: 'edge',
-    style: {
-      'curve-style': 'bezier',
-      'target-arrow-shape': 'triangle',
-      'line-color': '#d4c8b8',
-      'target-arrow-color': '#d4c8b8',
-      width: 1.5,
-    } as cytoscape.Css.Edge,
-  },
-  // Highlighted node (the tapped node + its direct neighbors)
-  {
-    selector: 'node.highlighted',
-    style: {
-      'border-width': 3,
-      'border-color': '#8b5e3c',
-    } as cytoscape.Css.Node,
-  },
-  // Highlighted edge (connected to tapped node)
-  {
-    selector: 'edge.highlighted',
-    style: {
-      'line-color': '#8b5e3c',
-      'target-arrow-color': '#8b5e3c',
-      width: 2.5,
-    } as cytoscape.Css.Edge,
-  },
-  // Faded — everything not related to the tapped node
-  {
-    selector: '.faded',
-    style: {
-      opacity: 0.25,
-    } as cytoscape.Css.Node,
-  },
-];
+function getUnravelingStylesheet(): cytoscape.Stylesheet[] {
+  const v = (name: string) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  const accent    = v('--accent')       || '#8b5e3c';
+  const border    = v('--border')       || '#e0d4c4';
+  const bgTertiary  = v('--bg-tertiary')  || '#f5ede0';
+  const fgSecondary = v('--fg-secondary') || '#5a4f42';
+  const fontSans  = v('--font-sans')    || 'DM Sans, system-ui, sans-serif';
+
+  return [
+    // Compound group node (KG Features)
+    {
+      selector: `#${KG_GROUP_ID}`,
+      style: {
+        shape: 'round-rectangle',
+        'background-color': bgTertiary,
+        'background-opacity': 0.6,
+        'border-color': accent,
+        'border-width': 2.5,
+        'border-style': 'dashed',
+        label: 'data(label)',
+        'text-valign': 'top',
+        'text-halign': 'center',
+        'text-margin-y': -18,
+        'font-size': 18,
+        'font-weight': 'bold',
+        color: fgSecondary,
+        padding: 26,
+      } as cytoscape.Css.Node,
+    },
+    // Regular nodes
+    {
+      selector: `node:not(#${KG_GROUP_ID})`,
+      style: {
+        shape: 'data(shape)',
+        width: 120,
+        height: 52,
+        'background-color': 'data(bgColor)',
+        'border-color': 'data(borderColor)',
+        'border-width': 2,
+        label: 'data(label)',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'text-wrap': 'wrap',
+        'text-max-width': '108',
+        'font-size': 10,
+        color: 'data(textColor)',
+        'font-family': fontSans,
+      } as cytoscape.Css.Node,
+    },
+    {
+      selector: 'node:selected',
+      style: {
+        'border-width': 3,
+        'border-color': accent,
+      } as cytoscape.Css.Node,
+    },
+    {
+      selector: 'edge',
+      style: {
+        'curve-style': 'bezier',
+        'target-arrow-shape': 'triangle',
+        'line-color': border,
+        'target-arrow-color': border,
+        width: 1.5,
+      } as cytoscape.Css.Edge,
+    },
+    // Highlighted node (the tapped node + its direct neighbors)
+    {
+      selector: 'node.highlighted',
+      style: {
+        'border-width': 3,
+        'border-color': accent,
+      } as cytoscape.Css.Node,
+    },
+    // Highlighted edge (connected to tapped node)
+    {
+      selector: 'edge.highlighted',
+      style: {
+        'line-color': accent,
+        'target-arrow-color': accent,
+        width: 2.5,
+      } as cytoscape.Css.Edge,
+    },
+    // Faded — everything not related to the tapped node
+    {
+      selector: '.faded',
+      style: {
+        opacity: 0.25,
+      } as cytoscape.Css.Node,
+    },
+  ];
+}
 
 // ── Shape per layer ───────────────────────────────────────────────────────────
 
@@ -276,6 +287,7 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
   const cyRef = useRef<cytoscape.Core | null>(null);
   const onTapRef = useRef(onNodeTap);
   onTapRef.current = onNodeTap;
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!containerRef.current || !elements.length) return;
@@ -283,7 +295,7 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
     const cy = cytoscape({
       container: containerRef.current,
       elements,
-      style: STYLESHEET,
+      style: getUnravelingStylesheet(),
       layout: { name: 'preset' },
       userZoomingEnabled: true,
       userPanningEnabled: true,
@@ -336,6 +348,12 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
       cyRef.current = null;
     };
   }, [elements]);
+
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    cy.style(getUnravelingStylesheet());
+  }, [theme]);
 
   return (
     <div

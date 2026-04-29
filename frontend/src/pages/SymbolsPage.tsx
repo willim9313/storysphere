@@ -14,12 +14,12 @@ import {
 } from '@/api/symbols';
 
 const TYPE_STYLE: Record<string, { bg: string; fg: string; dot: string }> = {
-  object:  { bg: '#dbeafe', fg: '#1e40af', dot: '#3b82f6' },
-  nature:  { bg: '#dcfce7', fg: '#166534', dot: '#22c55e' },
-  spatial: { bg: '#fef9c3', fg: '#713f12', dot: '#eab308' },
-  body:    { bg: '#fee2e2', fg: '#991b1b', dot: '#ef4444' },
-  color:   { bg: '#ede9fe', fg: '#4c1d95', dot: '#8b5cf6' },
-  other:   { bg: '#f1f5f9', fg: '#475569', dot: '#94a3b8' },
+  object:  { bg: 'var(--symbol-object-bg)',  fg: 'var(--symbol-object-fg)',  dot: 'var(--symbol-object-dot)'  },
+  nature:  { bg: 'var(--symbol-nature-bg)',  fg: 'var(--symbol-nature-fg)',  dot: 'var(--symbol-nature-dot)'  },
+  spatial: { bg: 'var(--symbol-spatial-bg)', fg: 'var(--symbol-spatial-fg)', dot: 'var(--symbol-spatial-dot)' },
+  body:    { bg: 'var(--symbol-body-bg)',    fg: 'var(--symbol-body-fg)',    dot: 'var(--symbol-body-dot)'    },
+  color:   { bg: 'var(--symbol-color-bg)',   fg: 'var(--symbol-color-fg)',   dot: 'var(--symbol-color-dot)'   },
+  other:   { bg: 'var(--symbol-other-bg)',   fg: 'var(--symbol-other-fg)',   dot: 'var(--symbol-other-dot)'   },
 };
 
 const ALL_TYPES = Object.keys(TYPE_STYLE);
@@ -299,7 +299,7 @@ function SymbolDetail({
                   style={{ background: coStyle.bg, color: coStyle.fg }}
                 >
                   <span>{co.term}</span>
-                  <span className="font-semibold px-1 rounded-full text-xs" style={{ background: coStyle.dot + '33', color: coStyle.fg }}>
+                  <span className="font-semibold px-1 rounded-full text-xs" style={{ background: coStyle.bg, color: coStyle.fg }}>
                     {co.co_occurrence_count}
                   </span>
                 </button>

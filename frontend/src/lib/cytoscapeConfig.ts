@@ -16,6 +16,12 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
     concept:   v('--graph-con-stroke')  || '#8b5cf6',
     event:     v('--graph-evt-stroke')  || '#ef4444',
   };
+  const labels: Record<string, string> = {
+    character: v('--graph-char-label') || '#1e3a8a',
+    location:  v('--graph-loc-label')  || '#064e3b',
+    concept:   v('--graph-con-label')  || '#4c1d95',
+    event:     v('--graph-evt-label')  || '#991b1b',
+  };
   const accent    = v('--accent')       || '#8b5e3c';
   const border    = v('--border')       || '#e0d4c4';
   const fgPrimary = v('--fg-primary')   || '#1c1814';
@@ -32,7 +38,8 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'text-halign': 'center',
         'font-size': '10px',
         'font-family': fontSans,
-        color: fgPrimary,
+        color: (ele: cytoscape.NodeSingular) =>
+          labels[ele.data('entityType') as string] ?? fgPrimary,
         'text-margin-y': 4,
         'background-color': (ele: cytoscape.NodeSingular) =>
           fills[ele.data('entityType') as string] ?? '#e5e7eb',
@@ -41,6 +48,15 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'border-width': 2,
         'border-color': (ele: cytoscape.NodeSingular) =>
           strokes[ele.data('entityType') as string] ?? border,
+        shape: (ele: cytoscape.NodeSingular) => {
+          const shapes: Record<string, string> = {
+            character: 'ellipse',
+            location:  'round-rectangle',
+            concept:   'diamond',
+            event:     'pentagon',
+          };
+          return (shapes[ele.data('entityType') as string] ?? 'ellipse') as cytoscape.Css.PropertyValue<string>;
+        },
       },
     },
     {

@@ -145,18 +145,76 @@
 | text（`--entity-other-fg`） | `#334155` | `#555555` | `#888888` | `#555555` |
 | dot（`--entity-other-dot`） | `#64748b` | `#cccccc` | `#cccccc` | `#aaaaaa` |
 
-### 3.8 知識圖譜節點
+### 3.8 象徵意象類型（Symbol Pills）
+
+B&W 主題採 **6 階梯度**策略（manuscript = 淺→深灰階；minimal-ink / pulp = 填充極性 black→white），確保 6 個類型在無彩色環境下仍可區分。
+
+#### object
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| bg（`--symbol-object-bg`） | `#dbeafe` | `#f2f2f2` | `#000000` | `#000000` |
+| text（`--symbol-object-fg`） | `#1e40af` | `#0d0d0d` | `#ffffff` | `#ffffff` |
+| dot（`--symbol-object-dot`） | `#3b82f6` | `#111111` | `#ffffff` | `#ffffff` |
+
+#### nature
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| bg（`--symbol-nature-bg`） | `#dcfce7` | `#e0e0e0` | `#3a3a3a` | `#333333` |
+| text（`--symbol-nature-fg`） | `#166534` | `#0d0d0d` | `#ffffff` | `#ffffff` |
+| dot（`--symbol-nature-dot`） | `#22c55e` | `#333333` | `#cccccc` | `#ffffff` |
+
+#### spatial
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| bg（`--symbol-spatial-bg`） | `#fef9c3` | `#cccccc` | `#777777` | `#777777` |
+| text（`--symbol-spatial-fg`） | `#713f12` | `#0d0d0d` | `#ffffff` | `#ffffff` |
+| dot（`--symbol-spatial-dot`） | `#eab308` | `#555555` | `#ffffff` | `#ffffff` |
+
+#### body
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| bg（`--symbol-body-bg`） | `#fee2e2` | `#888888` | `#c0c0c0` | `#bbbbbb` |
+| text（`--symbol-body-fg`） | `#991b1b` | `#ffffff` | `#000000` | `#000000` |
+| dot（`--symbol-body-dot`） | `#ef4444` | `#eeeeee` | `#000000` | `#000000` |
+
+#### color
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| bg（`--symbol-color-bg`） | `#ede9fe` | `#444444` | `#e8e8e8` | `#e5e5e5` |
+| text（`--symbol-color-fg`） | `#4c1d95` | `#ffffff` | `#000000` | `#000000` |
+| dot（`--symbol-color-dot`） | `#8b5cf6` | `#cccccc` | `#555555` | `#555555` |
+
+#### other
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| bg（`--symbol-other-bg`） | `#f1f5f9` | `#111111` | `#f5f5f5` | `#f5f5f5` |
+| text（`--symbol-other-fg`） | `#475569` | `#f2f2f2` | `#888888` | `#555555` |
+| dot（`--symbol-other-dot`） | `#94a3b8` | `#888888` | `#cccccc` | `#aaaaaa` |
+
+### 3.9 知識圖譜節點
+
+label 顏色隨 fill 亮度翻轉（深色 fill → 白色 label），由 `getCytoscapeStylesheet()` per-type selector 實現。
 
 | 類型 | Token | default | manuscript | minimal-ink | pulp |
 |------|-------|---------|-----------|-------------|------|
-| character | `--graph-char-fill` | `#dbeafe` | `#e0e0e0` | `#000000` | `#000000` |
+| character | `--graph-char-fill` | `#dbeafe` | `#d8d8d8` | `#000000` | `#000000` |
 | | `--graph-char-stroke` | `#3b82f6` | `#000000` | `#000000` | `#000000` |
-| location | `--graph-loc-fill` | `#dcfce7` | `#c8c8c8` | `#ffffff` | `#ffffff` |
+| | `--graph-char-label` | `#1e3a8a` | `#0d0d0d` | `#ffffff` | `#ffffff` |
+| location | `--graph-loc-fill` | `#dcfce7` | `#b8b8b8` | `#ffffff` | `#ffffff` |
 | | `--graph-loc-stroke` | `#22c55e` | `#333333` | `#000000` | `#000000` |
-| concept | `--graph-con-fill` | `#ede9fe` | `#b0b0b0` | `#aaaaaa` | `#aaaaaa` |
+| | `--graph-loc-label` | `#064e3b` | `#0d0d0d` | `#000000` | `#000000` |
+| concept | `--graph-con-fill` | `#ede9fe` | `#909090` | `#aaaaaa` | `#aaaaaa` |
 | | `--graph-con-stroke` | `#8b5cf6` | `#555555` | `#000000` | `#000000` |
-| event | `--graph-evt-fill` | `#fee2e2` | `#111111` | `#555555` | `#000000` |
+| | `--graph-con-label` | `#4c1d95` | `#ffffff` | `#000000` | `#000000` |
+| event | `--graph-evt-fill` | `#fee2e2` | `#3a3a3a` | `#555555` | `#444444` |
 | | `--graph-evt-stroke` | `#ef4444` | `#000000` | `#000000` | `#000000` |
+| | `--graph-evt-label` | `#991b1b` | `#ffffff` | `#ffffff` | `#ffffff` |
 
 ---
 

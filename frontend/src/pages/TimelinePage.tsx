@@ -55,20 +55,20 @@ const NARRATIVE_BADGE: Record<NarrativeMode, string | null> = {
 };
 
 const NARRATIVE_COLORS: Record<NarrativeMode, { border: string; bg: string }> = {
-  present:      { border: '#8b5e3c', bg: '#f5ede4' },
-  flashback:    { border: '#3b82f6', bg: '#dbeafe' },
-  flashforward: { border: '#f59e0b', bg: '#fef3c7' },
-  parallel:     { border: '#8b5cf6', bg: '#ede9fe' },
-  unknown:      { border: '#8a7a68', bg: '#f0ece6' },
+  present:      { border: 'var(--narrative-present-border)',      bg: 'var(--narrative-present-bg)'      },
+  flashback:    { border: 'var(--narrative-flashback-border)',    bg: 'var(--narrative-flashback-bg)'    },
+  flashforward: { border: 'var(--narrative-flashforward-border)', bg: 'var(--narrative-flashforward-bg)' },
+  parallel:     { border: 'var(--narrative-parallel-border)',     bg: 'var(--narrative-parallel-bg)'     },
+  unknown:      { border: 'var(--narrative-unknown-border)',      bg: 'var(--narrative-unknown-bg)'      },
 };
 
-const PILL_COLORS: Record<string, string> = {
-  character: '#3b82f6',
-  location: '#10b981',
-  organization: '#f59e0b',
-  object: '#8b5cf6',
-  concept: '#ec4899',
-  other: '#6b7280',
+const PILL_STYLE: Record<string, { color: string; bg: string }> = {
+  character:    { color: 'var(--entity-char-dot)',  bg: 'var(--entity-char-bg)'  },
+  location:     { color: 'var(--entity-loc-dot)',   bg: 'var(--entity-loc-bg)'   },
+  organization: { color: 'var(--entity-org-dot)',   bg: 'var(--entity-org-bg)'   },
+  object:       { color: 'var(--entity-obj-dot)',   bg: 'var(--entity-obj-bg)'   },
+  concept:      { color: 'var(--entity-con-dot)',   bg: 'var(--entity-con-bg)'   },
+  other:        { color: 'var(--entity-other-dot)', bg: 'var(--entity-other-bg)' },
 };
 
 function getEventSize(event: TimelineEvent): number {
@@ -401,7 +401,7 @@ function Toolbar({
       className="flex items-center justify-between px-4 py-2 flex-shrink-0 gap-4"
       style={{
         borderBottom: '1px solid var(--border)',
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
       }}
     >
       {/* Left: view mode tabs + layout toggle + filter */}
@@ -435,7 +435,7 @@ function Toolbar({
                       width: 5,
                       height: 5,
                       borderRadius: '50%',
-                      backgroundColor: '#f59e0b',
+                      backgroundColor: 'var(--color-warning)',
                       display: 'inline-block',
                       flexShrink: 0,
                     }}
@@ -959,7 +959,7 @@ function TimelineCanvas({
               markerHeight="6"
               orient="auto"
             >
-              <polygon points="0 0, 10 3.5, 0 7" fill="#8b5e3c" />
+              <polygon points="0 0, 10 3.5, 0 7" style={{ fill: 'var(--timeline-causal-stroke)' }} />
             </marker>
             <marker
               id="arrow-default"
@@ -970,7 +970,7 @@ function TimelineCanvas({
               markerHeight="6"
               orient="auto"
             >
-              <polygon points="0 0, 10 3.5, 0 7" fill="var(--fg-muted)" />
+              <polygon points="0 0, 10 3.5, 0 7" style={{ fill: 'var(--fg-muted)' }} />
             </marker>
           </defs>
           {lines.map((line, i) => {
@@ -983,7 +983,7 @@ function TimelineCanvas({
                 y1={line.y1}
                 x2={line.x2}
                 y2={line.y2}
-                stroke={isCausal ? '#8b5e3c' : 'var(--fg-muted)'}
+                stroke={isCausal ? 'var(--timeline-causal-stroke)' : 'var(--fg-muted)'}
                 strokeWidth={2}
                 strokeDasharray={isHighConf ? undefined : '4,3'}
                 opacity={isHighConf ? 0.6 : 0.4}
@@ -1014,7 +1014,7 @@ function TimelineCanvas({
                     borderTop: !isHorizontal ? '2px solid var(--accent)' : undefined,
                     paddingLeft: isHorizontal ? 12 : undefined,
                     paddingTop: !isHorizontal ? 8 : undefined,
-                    backgroundColor: 'rgba(239,232,216,0.15)',
+                    backgroundColor: 'var(--timeline-chapter-bg)',
                     borderRadius: 4,
                   }}
                 >
@@ -1032,8 +1032,8 @@ function TimelineCanvas({
                           className={`flex ${isHorizontal ? 'flex-col' : 'flex-row'} items-center`}
                           style={{
                             gap: 40,
-                            backgroundColor: 'rgba(139,92,246,0.06)',
-                            border: '1px dashed rgba(139,92,246,0.3)',
+                            backgroundColor: 'var(--timeline-parallel-bg)',
+                            border: '1px dashed var(--timeline-parallel-border)',
                             borderRadius: 8,
                             padding: 8,
                           }}
@@ -1191,14 +1191,15 @@ function EventNode({
         {pills.map((p) => {
           const isCharHighlighted =
             highlightedCharacters.size > 0 && highlightedCharacters.has(p.id);
+          const ps = PILL_STYLE[p.type] ?? PILL_STYLE.other;
           return (
             <span
               key={p.id}
               className="inline-flex items-center gap-0.5 text-xs px-1 rounded-full"
               style={{
                 fontSize: 9,
-                color: PILL_COLORS[p.type] ?? PILL_COLORS.other,
-                backgroundColor: `${PILL_COLORS[p.type] ?? PILL_COLORS.other}10`,
+                color: ps.color,
+                backgroundColor: ps.bg,
                 opacity: pillHighlight || isCharHighlighted ? 1.0 : 0.25,
                 transition: 'opacity 200ms',
                 whiteSpace: 'nowrap',
@@ -1209,7 +1210,7 @@ function EventNode({
                   width: 5,
                   height: 5,
                   borderRadius: '50%',
-                  backgroundColor: PILL_COLORS[p.type] ?? PILL_COLORS.other,
+                  backgroundColor: ps.color,
                   display: 'inline-block',
                   flexShrink: 0,
                 }}
@@ -1231,7 +1232,7 @@ function EventNode({
           backgroundColor: nodeColor.bg,
           border: `2px solid ${isSelected ? 'var(--accent)' : nodeColor.border}`,
           boxShadow: isSelected
-            ? '0 0 0 3px rgba(139,94,60,0.3)'
+            ? `0 0 0 3px var(--timeline-selected-ring)`
             : undefined,
         }}
       >
@@ -1763,14 +1764,14 @@ function PanelAccordion({
 }
 
 function PillTag({ name, type }: { name: string; type: string }) {
-  const color = PILL_COLORS[type] ?? PILL_COLORS.other;
+  const ps = PILL_STYLE[type] ?? PILL_STYLE.other;
   return (
     <span
       className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full"
       style={{
         fontSize: 10,
-        color,
-        backgroundColor: `${color}15`,
+        color: ps.color,
+        backgroundColor: ps.bg,
       }}
     >
       <span
@@ -1778,7 +1779,7 @@ function PillTag({ name, type }: { name: string; type: string }) {
           width: 5,
           height: 5,
           borderRadius: '50%',
-          backgroundColor: color,
+          backgroundColor: ps.color,
           display: 'inline-block',
           flexShrink: 0,
         }}
