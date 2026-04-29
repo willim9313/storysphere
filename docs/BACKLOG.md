@@ -226,7 +226,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 
 #### F-17 UI 主題風格切換系統（Black & White Theme System）
 **分類**: UI 系統 — Wave 2
-**設計文件**: `docs/storysphere_theme_spec_v2.docx`、`docs/DESIGN_TOKENS.md`、`docs/UI_SPEC.md` Section 3.13
+**設計文件**: `docs/plans/20260429-theme-system-bw.md`、`docs/DESIGN_TOKENS.md`、`docs/UI_SPEC.md` Section 3.13
 
 **背景**: StorySphere 的設計 token 已在 `frontend/src/styles/tokens.css` 中抽離，主題切換的架構基礎（`data-theme` on `<html>`、ThemeContext、DESIGN_TOKENS.md 對照表）已於前次 commit 就位。F-17 是真正填入第二、三主題 token 值並實作切換 UI 的功能票。
 
