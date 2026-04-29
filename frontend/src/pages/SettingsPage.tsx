@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Database, RefreshCw, ArrowRight, CheckCircle, XCircle, Loader2 } from 'lucide-react';
+import { Database, RefreshCw, ArrowRight, CheckCircle, XCircle, Loader2, Palette } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useTheme, type Theme } from '@/contexts/ThemeContext';
 import {
   fetchKgStatus,
   switchKgMode,
@@ -11,6 +12,101 @@ import {
   type MigrationDirection,
 } from '@/api/kgSettings';
 import type { TaskStatus } from '@/api/types';
+
+// ── Theme picker ────────────────────────────────────────────────
+
+type ThemeOption = {
+  id: Theme;
+  nameKey: string;
+  descKey: string;
+  preview: { bg: string; accent: string; fg: string };
+};
+
+const THEME_OPTIONS: ThemeOption[] = [
+  {
+    id: 'default',
+    nameKey: 'theme.default',
+    descKey: 'theme.defaultDesc',
+    preview: { bg: '#faf8f4', accent: '#8b5e3c', fg: '#1c1814' },
+  },
+  {
+    id: 'manuscript',
+    nameKey: 'theme.manuscript',
+    descKey: 'theme.manuscriptDesc',
+    preview: { bg: '#f8f6f2', accent: '#000000', fg: '#0d0d0d' },
+  },
+  {
+    id: 'minimal-ink',
+    nameKey: 'theme.minimalInk',
+    descKey: 'theme.minimalInkDesc',
+    preview: { bg: '#ffffff', accent: '#000000', fg: '#000000' },
+  },
+  {
+    id: 'pulp',
+    nameKey: 'theme.pulp',
+    descKey: 'theme.pulpDesc',
+    preview: { bg: '#ffffff', accent: '#000000', fg: '#1a1a1a' },
+  },
+];
+
+function ThemePicker() {
+  const { t } = useTranslation('settings');
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <section className="mb-8">
+      <div className="flex items-center gap-2 mb-4">
+        <Palette size={16} style={{ color: 'var(--accent)' }} />
+        <h3 className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
+          {t('theme.title')}
+        </h3>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        {THEME_OPTIONS.map((opt) => {
+          const isActive = theme === opt.id;
+          return (
+            <button
+              key={opt.id}
+              onClick={() => setTheme(opt.id)}
+              className="text-left rounded-lg p-3 transition-all"
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                border: isActive
+                  ? '2px solid var(--accent)'
+                  : '1px solid var(--border)',
+                cursor: 'pointer',
+              }}
+            >
+              {/* colour swatch */}
+              <div
+                className="flex gap-1 mb-2 rounded"
+                style={{
+                  height: 20,
+                  backgroundColor: opt.preview.bg,
+                  border: '1px solid var(--border)',
+                  overflow: 'hidden',
+                }}
+              >
+                <div style={{ width: '60%', backgroundColor: opt.preview.bg }} />
+                <div style={{ width: '25%', backgroundColor: opt.preview.accent }} />
+                <div style={{ width: '15%', backgroundColor: opt.preview.fg }} />
+              </div>
+              <div className="text-xs font-semibold mb-0.5" style={{ color: 'var(--fg-primary)' }}>
+                {t(opt.nameKey)}
+              </div>
+              <div className="text-xs leading-snug" style={{ color: 'var(--fg-muted)' }}>
+                {t(opt.descKey)}
+              </div>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+// ── KG settings ────────────────────────────────────────────────
 
 function useKgStatus() {
   return useQuery<KgStatus>({
@@ -32,7 +128,7 @@ function useMigrationTask(taskId: string | null) {
   });
 }
 
-function StatCard({ label, value }: { label: string; value: number | string }) {
+function StatCard({ label, value }: Readonly<{ label: string; value: number | string }>) {
   return (
     <div
       className="rounded-lg p-4"
@@ -46,7 +142,7 @@ function StatCard({ label, value }: { label: string; value: number | string }) {
   );
 }
 
-function ModeBadge({ mode }: { mode: string }) {
+function ModeBadge({ mode }: Readonly<{ mode: string }>) {
   const isNeo4j = mode === 'neo4j';
   return (
     <span
@@ -61,17 +157,13 @@ function ModeBadge({ mode }: { mode: string }) {
   );
 }
 
-function MigrationProgress({ taskId, onDone }: { taskId: string; onDone: () => void }) {
+function MigrationProgress({ taskId, onDone }: Readonly<{ taskId: string; onDone: () => void }>) {
   const { t } = useTranslation('settings');
   const { data: task } = useMigrationTask(taskId);
 
   if (!task) return null;
 
-  const isDone = task.status === 'done';
-  const isError = task.status === 'error';
-  const isRunning = task.status === 'running' || task.status === 'pending';
-
-  if (isDone) {
+  if (task.status === 'done') {
     const r = task.result as Record<string, number> | null;
     setTimeout(onDone, 3000);
     return (
@@ -91,7 +183,7 @@ function MigrationProgress({ taskId, onDone }: { taskId: string; onDone: () => v
     );
   }
 
-  if (isError) {
+  if (task.status === 'error') {
     return (
       <div
         className="mt-3 rounded-lg p-3 flex items-start gap-2 text-sm"
@@ -103,7 +195,7 @@ function MigrationProgress({ taskId, onDone }: { taskId: string; onDone: () => v
     );
   }
 
-  if (isRunning) {
+  if (task.status === 'running' || task.status === 'pending') {
     return (
       <div
         className="mt-3 rounded-lg p-3 flex items-center gap-2 text-sm"
@@ -117,6 +209,8 @@ function MigrationProgress({ taskId, onDone }: { taskId: string; onDone: () => v
 
   return null;
 }
+
+// ── Page ────────────────────────────────────────────────────────
 
 export default function SettingsPage() {
   const queryClient = useQueryClient();
@@ -153,6 +247,8 @@ export default function SettingsPage() {
           {t('title')}
         </h2>
       </div>
+
+      <ThemePicker />
 
       {/* KG Backend Section */}
       <section className="mb-8">
@@ -303,12 +399,12 @@ function MigrationButton({
   sublabel,
   disabled,
   onClick,
-}: {
+}: Readonly<{
   label: string;
   sublabel: string;
   disabled: boolean;
   onClick: () => void;
-}) {
+}>) {
   return (
     <button
       disabled={disabled}

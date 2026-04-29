@@ -1,5 +1,16 @@
 {
   "title": "系統設定",
+  "theme": {
+    "title": "介面主題",
+    "default": "Warm Analytical",
+    "defaultDesc": "暖白底、serif 正文，書房閱讀感",
+    "manuscript": "Manuscript",
+    "manuscriptDesc": "手稿斜線紋、dashed 邊框，學術研究感",
+    "minimalInk": "Minimal Ink",
+    "minimalInkDesc": "極端黑白對比、大留白，編輯設計感",
+    "pulp": "Pulp",
+    "pulpDesc": "厚重邊框、offset shadow，漫畫輕小說感"
+  },
   "kg": {
     "title": "知識圖譜後端",
     "currentBackend": "目前後端",

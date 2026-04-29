@@ -117,4 +117,232 @@
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
+
+  /* Theme-specific (defaults — overridden per theme) */
+  --line-weight:   1px;
+  --border-style:  solid;
+  --node-shadow:   none;
+  --divider-style: 1px solid var(--border);
+}
+
+/* ── Manuscript ──────────────────────────────────────────────── */
+[data-theme="manuscript"] {
+  --bg-primary:   #f8f6f2;
+  --bg-secondary: #f0ede6;
+  --bg-tertiary:  #e8e4db;
+
+  --fg-primary:   #0d0d0d;
+  --fg-secondary: #333333;
+  --fg-muted:     #888888;
+
+  --border: #333333;
+  --accent: #000000;
+
+  --panel-bg:       #ede9e0;
+  --panel-bg-card:  #e4e0d5;
+  --panel-border:   #555555;
+  --panel-fg:       #0d0d0d;
+  --panel-fg-muted: #888888;
+
+  --font-serif: 'IM Fell English', Georgia, serif;
+  --font-sans:  'IM Fell English', Georgia, serif;
+
+  --line-weight:   1px;
+  --border-style:  dashed;
+  --node-shadow:   none;
+  --divider-style: 1px solid #333333;
+
+  /* entity pills — systematic grayscale by prominence */
+  --entity-char-bg:    #f0f0f0;
+  --entity-char-border:#111111;
+  --entity-char-fg:    #0d0d0d;
+  --entity-char-dot:   #111111;
+
+  --entity-loc-bg:    #e8e8e8;
+  --entity-loc-border:#444444;
+  --entity-loc-fg:    #0d0d0d;
+  --entity-loc-dot:   #444444;
+
+  --entity-org-bg:    #f5f5f5;
+  --entity-org-border:#666666;
+  --entity-org-fg:    #222222;
+  --entity-org-dot:   #666666;
+
+  --entity-obj-bg:    #ebebeb;
+  --entity-obj-border:#888888;
+  --entity-obj-fg:    #222222;
+  --entity-obj-dot:   #888888;
+
+  --entity-con-bg:    #f0f0f0;
+  --entity-con-border:#aaaaaa;
+  --entity-con-fg:    #333333;
+  --entity-con-dot:   #aaaaaa;
+
+  --entity-evt-bg:    #111111;
+  --entity-evt-border:#000000;
+  --entity-evt-fg:    #f8f6f2;
+  --entity-evt-dot:   #f8f6f2;
+
+  --entity-other-bg:    #e0e0e0;
+  --entity-other-border:#cccccc;
+  --entity-other-fg:    #555555;
+  --entity-other-dot:   #cccccc;
+
+  /* graph nodes */
+  --graph-char-fill:   #e0e0e0;
+  --graph-char-stroke: #000000;
+  --graph-loc-fill:    #c8c8c8;
+  --graph-loc-stroke:  #333333;
+  --graph-con-fill:    #b0b0b0;
+  --graph-con-stroke:  #555555;
+  --graph-evt-fill:    #111111;
+  --graph-evt-stroke:  #000000;
+}
+
+/* ── Minimal Ink ─────────────────────────────────────────────── */
+[data-theme="minimal-ink"] {
+  --bg-primary:   #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary:  #ebebeb;
+
+  --fg-primary:   #000000;
+  --fg-secondary: #333333;
+  --fg-muted:     #888888;
+
+  --border: #000000;
+  --accent: #000000;
+
+  --panel-bg:       #eeeeee;
+  --panel-bg-card:  #e5e5e5;
+  --panel-border:   #000000;
+  --panel-fg:       #000000;
+  --panel-fg-muted: #888888;
+
+  --font-serif: system-ui, -apple-system, sans-serif;
+  --font-sans:  system-ui, -apple-system, sans-serif;
+
+  --line-weight:   0.5px;
+  --border-style:  solid;
+  --node-shadow:   none;
+  --divider-style: 1.5px solid #000000;
+
+  /* entity pills — fill polarity: char=black, concept=hairline, others=gray */
+  --entity-char-bg:    #000000;
+  --entity-char-border:#000000;
+  --entity-char-fg:    #ffffff;
+  --entity-char-dot:   #ffffff;
+
+  --entity-loc-bg:    #ffffff;
+  --entity-loc-border:#000000;
+  --entity-loc-fg:    #000000;
+  --entity-loc-dot:   #000000;
+
+  --entity-org-bg:    #e0e0e0;
+  --entity-org-border:#000000;
+  --entity-org-fg:    #000000;
+  --entity-org-dot:   #000000;
+
+  --entity-obj-bg:    #f0f0f0;
+  --entity-obj-border:#aaaaaa;
+  --entity-obj-fg:    #333333;
+  --entity-obj-dot:   #555555;
+
+  --entity-con-bg:    #ffffff;
+  --entity-con-border:#aaaaaa;
+  --entity-con-fg:    #888888;
+  --entity-con-dot:   #aaaaaa;
+
+  --entity-evt-bg:    #555555;
+  --entity-evt-border:#000000;
+  --entity-evt-fg:    #ffffff;
+  --entity-evt-dot:   #ffffff;
+
+  --entity-other-bg:    #f5f5f5;
+  --entity-other-border:#cccccc;
+  --entity-other-fg:    #888888;
+  --entity-other-dot:   #cccccc;
+
+  /* graph nodes — char=solid black, loc=outline, con=gray, evt=dark */
+  --graph-char-fill:   #000000;
+  --graph-char-stroke: #000000;
+  --graph-loc-fill:    #ffffff;
+  --graph-loc-stroke:  #000000;
+  --graph-con-fill:    #aaaaaa;
+  --graph-con-stroke:  #000000;
+  --graph-evt-fill:    #555555;
+  --graph-evt-stroke:  #000000;
+}
+
+/* ── Pulp ────────────────────────────────────────────────────── */
+[data-theme="pulp"] {
+  --bg-primary:   #ffffff;
+  --bg-secondary: #f2f2f2;
+  --bg-tertiary:  #e5e5e5;
+
+  --fg-primary:   #000000;
+  --fg-secondary: #1a1a1a;
+  --fg-muted:     #666666;
+
+  --border: #000000;
+  --accent: #000000;
+
+  --panel-bg:       #eeeeee;
+  --panel-bg-card:  #e0e0e0;
+  --panel-border:   #000000;
+  --panel-fg:       #000000;
+  --panel-fg-muted: #666666;
+
+  --font-serif: 'Permanent Marker', cursive;
+  --font-sans:  'Space Mono', 'Courier New', monospace;
+
+  --line-weight:   2px;
+  --border-style:  solid;
+  --node-shadow:   2px 2px 0 #000000;
+  --divider-style: 2px dashed #888888;
+
+  /* entity pills — bold, high contrast */
+  --entity-char-bg:    #000000;
+  --entity-char-border:#000000;
+  --entity-char-fg:    #ffffff;
+  --entity-char-dot:   #ffffff;
+
+  --entity-loc-bg:    #ffffff;
+  --entity-loc-border:#000000;
+  --entity-loc-fg:    #000000;
+  --entity-loc-dot:   #000000;
+
+  --entity-org-bg:    #e0e0e0;
+  --entity-org-border:#000000;
+  --entity-org-fg:    #000000;
+  --entity-org-dot:   #000000;
+
+  --entity-obj-bg:    #f0f0f0;
+  --entity-obj-border:#000000;
+  --entity-obj-fg:    #000000;
+  --entity-obj-dot:   #000000;
+
+  --entity-con-bg:    #ffffff;
+  --entity-con-border:#888888;
+  --entity-con-fg:    #555555;
+  --entity-con-dot:   #555555;
+
+  --entity-evt-bg:    #000000;
+  --entity-evt-border:#000000;
+  --entity-evt-fg:    #ffffff;
+  --entity-evt-dot:   #ffffff;
+
+  --entity-other-bg:    #f5f5f5;
+  --entity-other-border:#aaaaaa;
+  --entity-other-fg:    #555555;
+  --entity-other-dot:   #aaaaaa;
+
+  /* graph nodes */
+  --graph-char-fill:   #000000;
+  --graph-char-stroke: #000000;
+  --graph-loc-fill:    #ffffff;
+  --graph-loc-stroke:  #000000;
+  --graph-con-fill:    #aaaaaa;
+  --graph-con-stroke:  #000000;
+  --graph-evt-fill:    #000000;
+  --graph-evt-stroke:  #000000;
 }
