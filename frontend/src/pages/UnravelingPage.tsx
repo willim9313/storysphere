@@ -33,11 +33,28 @@ const KG_CHILD_IDS = new Set(['kg_entity', 'kg_concept', 'kg_relation', 'kg_even
 
 // ── Status colour palette ─────────────────────────────────────────────────────
 
-const STATUS: Record<NodeStatus, { bg: string; border: string; text: string }> = {
-  complete: { bg: '#f0fdf4', border: '#22c55e', text: '#15803d' },
-  partial:  { bg: '#fffbeb', border: '#f59e0b', text: '#92400e' },
-  empty:    { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' },
-};
+const v = (name: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+function getStatusPalette(): Record<NodeStatus, { bg: string; border: string; text: string }> {
+  return {
+    complete: {
+      bg:     v('--status-complete-bg')     || '#f0fdf4',
+      border: v('--status-complete-border') || '#22c55e',
+      text:   v('--status-complete-fg')     || '#15803d',
+    },
+    partial: {
+      bg:     v('--status-partial-bg')     || '#fffbeb',
+      border: v('--status-partial-border') || '#f59e0b',
+      text:   v('--status-partial-fg')     || '#92400e',
+    },
+    empty: {
+      bg:     v('--status-empty-bg')     || '#f3f4f6',
+      border: v('--status-empty-border') || '#d1d5db',
+      text:   v('--status-empty-fg')     || '#6b7280',
+    },
+  };
+}
 
 function statusLabel(t: TFunction, status: NodeStatus): string {
   return t(`unraveling.status.${status}`);
@@ -46,13 +63,15 @@ function statusLabel(t: TFunction, status: NodeStatus): string {
 // ── Cytoscape stylesheet ──────────────────────────────────────────────────────
 
 function getUnravelingStylesheet(): cytoscape.Stylesheet[] {
-  const v = (name: string) =>
-    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   const accent    = v('--accent')       || '#8b5e3c';
   const border    = v('--border')       || '#e0d4c4';
   const bgTertiary  = v('--bg-tertiary')  || '#f5ede0';
   const fgSecondary = v('--fg-secondary') || '#5a4f42';
   const fontSans  = v('--font-sans')    || 'DM Sans, system-ui, sans-serif';
+  const palette = getStatusPalette();
+  const statusFill = (key: 'bg' | 'border' | 'text') =>
+    (ele: cytoscape.NodeSingular) =>
+      palette[ele.data('status') as NodeStatus]?.[key] ?? palette.empty[key];
 
   return [
     // Compound group node (KG Features)
@@ -82,8 +101,8 @@ function getUnravelingStylesheet(): cytoscape.Stylesheet[] {
         shape: 'data(shape)',
         width: 120,
         height: 52,
-        'background-color': 'data(bgColor)',
-        'border-color': 'data(borderColor)',
+        'background-color': statusFill('bg'),
+        'border-color': statusFill('border'),
         'border-width': 2,
         label: 'data(label)',
         'text-valign': 'center',
@@ -91,7 +110,7 @@ function getUnravelingStylesheet(): cytoscape.Stylesheet[] {
         'text-wrap': 'wrap',
         'text-max-width': '108',
         'font-size': 10,
-        color: 'data(textColor)',
+        color: statusFill('text'),
         'font-family': fontSans,
       } as cytoscape.Css.Node,
     },
@@ -219,7 +238,6 @@ function buildElements(
       const total = layerNodes.length;
       y = CANVAS_CENTER_Y + (idx - (total - 1) / 2) * NODE_Y_SPACING;
     }
-    const { bg, border, text } = STATUS[n.status];
     const sub = getSubLabel(t, n);
     const label = sub ? `${n.label}\n${sub}` : n.label;
 
@@ -228,9 +246,7 @@ function buildElements(
         id: n.nodeId,
         label,
         shape: LAYER_SHAPE[n.layer] ?? 'round-rectangle',
-        bgColor: bg,
-        borderColor: border,
-        textColor: text,
+        status: n.status,
         nodeData: n,
       },
       position: { x: LAYER_X[n.layer] ?? 100, y },
@@ -247,7 +263,6 @@ function buildElements(
     layer1TopY + layer1Regular.length * NODE_Y_SPACING + KG_VERTICAL_GAP;
   const kgChildEls: cytoscape.ElementDefinition[] = kgChildren.map((n, idx) => {
     const y = kgStartY + idx * NODE_Y_SPACING;
-    const { bg, border, text } = STATUS[n.status];
     const sub = getSubLabel(t, n);
     const label = sub ? `${n.label}\n${sub}` : n.label;
 
@@ -257,9 +272,7 @@ function buildElements(
         parent: KG_GROUP_ID,
         label,
         shape: 'rectangle',
-        bgColor: bg,
-        borderColor: border,
-        textColor: text,
+        status: n.status,
         nodeData: n,
       },
       position: { x: KG_CHILD_X, y },
@@ -379,7 +392,9 @@ interface DetailPanelProps {
 
 function NodeDetailPanel({ node, onClose }: Readonly<DetailPanelProps>) {
   const { t } = useTranslation('analysis');
-  const { bg, border, text } = STATUS[node.status];
+  const bg = `var(--status-${node.status}-bg)`;
+  const border = `var(--status-${node.status}-border)`;
+  const text = `var(--status-${node.status}-fg)`;
 
   return (
     <div
@@ -493,17 +508,18 @@ function Legend() {
         color: 'var(--fg-muted)',
       }}
     >
-      {(Object.entries(STATUS) as [NodeStatus, typeof STATUS[NodeStatus]][]).map(
-        ([status, { bg, border, text }]) => (
-          <div key={status} className="flex items-center gap-1.5">
-            <div
-              className="w-3 h-3 rounded-sm"
-              style={{ backgroundColor: bg, border: `1px solid ${border}` }}
-            />
-            <span style={{ color: text }}>{statusLabel(t, status)}</span>
-          </div>
-        ),
-      )}
+      {(['complete', 'partial', 'empty'] as NodeStatus[]).map((status) => (
+        <div key={status} className="flex items-center gap-1.5">
+          <div
+            className="w-3 h-3 rounded-sm"
+            style={{
+              backgroundColor: `var(--status-${status}-bg)`,
+              border: `1px solid var(--status-${status}-border)`,
+            }}
+          />
+          <span style={{ color: `var(--status-${status}-fg)` }}>{statusLabel(t, status)}</span>
+        </div>
+      ))}
     </div>
   );
 }

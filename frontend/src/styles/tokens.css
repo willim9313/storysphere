@@ -113,6 +113,17 @@
   --color-info:       #2563eb;
   --color-info-bg:    #eff6ff;
 
+  /* Unraveling DAG node status (complete / partial / empty) */
+  --status-complete-bg:     #f0fdf4;
+  --status-complete-border: #22c55e;
+  --status-complete-fg:     #15803d;
+  --status-partial-bg:      #fffbeb;
+  --status-partial-border:  #f59e0b;
+  --status-partial-fg:      #92400e;
+  --status-empty-bg:        #f3f4f6;
+  --status-empty-border:    #d1d5db;
+  --status-empty-fg:        #6b7280;
+
   /* Spacing */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
@@ -261,6 +272,17 @@
   --color-error-bg:   #e8e4db;
   --color-info:       #888888;
   --color-info-bg:    #e8e4db;
+
+  /* Unraveling DAG status — greyscale gradient by completion */
+  --status-complete-bg:     #d8d8d8;
+  --status-complete-border: #000000;
+  --status-complete-fg:     #0d0d0d;
+  --status-partial-bg:      #ebebeb;
+  --status-partial-border:  #555555;
+  --status-partial-fg:      #333333;
+  --status-empty-bg:        #f5f5f5;
+  --status-empty-border:    #aaaaaa;
+  --status-empty-fg:        #888888;
 }
 
 /* ── Minimal Ink ─────────────────────────────────────────────── */
@@ -369,6 +391,17 @@
   --color-error-bg:   #ebebeb;
   --color-info:       #888888;
   --color-info-bg:    #ebebeb;
+
+  /* Unraveling DAG status — fill polarity gradient by completion */
+  --status-complete-bg:     #000000;
+  --status-complete-border: #000000;
+  --status-complete-fg:     #ffffff;
+  --status-partial-bg:      #aaaaaa;
+  --status-partial-border:  #000000;
+  --status-partial-fg:      #000000;
+  --status-empty-bg:        #ffffff;
+  --status-empty-border:    #aaaaaa;
+  --status-empty-fg:        #888888;
 }
 
 /* ── Pulp ────────────────────────────────────────────────────── */
@@ -477,4 +510,15 @@
   --color-error-bg:   #e5e5e5;
   --color-info:       #888888;
   --color-info-bg:    #e5e5e5;
+
+  /* Unraveling DAG status — bold fill polarity gradient by completion */
+  --status-complete-bg:     #000000;
+  --status-complete-border: #000000;
+  --status-complete-fg:     #ffffff;
+  --status-partial-bg:      #aaaaaa;
+  --status-partial-border:  #000000;
+  --status-partial-fg:      #000000;
+  --status-empty-bg:        #ffffff;
+  --status-empty-border:    #000000;
+  --status-empty-fg:        #555555;
 }

@@ -212,7 +212,23 @@ B&W 主題採 **6 階梯度**策略（manuscript = 淺→深灰階；minimal-ink
 | `--color-info` | `#2563eb` | `#888888` | `#888888` | `#888888` |
 | `--color-info-bg` | `#eff6ff` | `#e8e4db` | `#ebebeb` | `#e5e5e5` |
 
-### 3.10 知識圖譜節點
+### 3.10 Unraveling DAG 節點狀態
+
+依完成度（complete / partial / empty）區分。default 主題保留彩色（綠/橘/灰）；B&W 主題改採填充密度梯度（complete = 最深 / 最強對比；empty = 最淺 / 最弱對比）。
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| `--status-complete-bg` | `#f0fdf4` | `#d8d8d8` | `#000000` | `#000000` |
+| `--status-complete-border` | `#22c55e` | `#000000` | `#000000` | `#000000` |
+| `--status-complete-fg` | `#15803d` | `#0d0d0d` | `#ffffff` | `#ffffff` |
+| `--status-partial-bg` | `#fffbeb` | `#ebebeb` | `#aaaaaa` | `#aaaaaa` |
+| `--status-partial-border` | `#f59e0b` | `#555555` | `#000000` | `#000000` |
+| `--status-partial-fg` | `#92400e` | `#333333` | `#000000` | `#000000` |
+| `--status-empty-bg` | `#f3f4f6` | `#f5f5f5` | `#ffffff` | `#ffffff` |
+| `--status-empty-border` | `#d1d5db` | `#aaaaaa` | `#aaaaaa` | `#000000` |
+| `--status-empty-fg` | `#6b7280` | `#888888` | `#888888` | `#555555` |
+
+### 3.11 知識圖譜節點
 
 label 渲染於節點下方外部（`text-valign: 'bottom'`），背景為 `--bg-primary`，因此 label 顏色一律設為可讀於頁面背景的深色（B&W 主題對齊 `--fg-primary`），不依賴 fill 亮度。fill / stroke 的色階仍依類型區分。
 
