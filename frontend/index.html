@@ -11,6 +11,18 @@
       rel="stylesheet"
     />
     <title>StorySphere</title>
+    <script>
+      // FOUC prevention: apply persisted theme before React mounts.
+      // Mirrors VALID_THEMES in src/contexts/ThemeContext.tsx.
+      try {
+        var t = localStorage.getItem('storysphere:theme');
+        if (t && ['default', 'manuscript', 'minimal-ink', 'pulp'].includes(t)) {
+          document.documentElement.dataset.theme = t;
+        }
+      } catch (e) {
+        console.warn('Theme bootstrap skipped:', e);
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>
