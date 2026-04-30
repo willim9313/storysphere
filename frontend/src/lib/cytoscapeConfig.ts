@@ -48,15 +48,15 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'border-width': 2,
         'border-color': (ele: cytoscape.NodeSingular) =>
           strokes[ele.data('entityType') as string] ?? border,
-        shape: (ele: cytoscape.NodeSingular) => {
-          const shapes: Record<string, string> = {
+        shape: ((ele: cytoscape.NodeSingular) => {
+          const shapes: Record<string, cytoscape.Css.NodeShape> = {
             character: 'ellipse',
             location:  'round-rectangle',
             concept:   'diamond',
             event:     'pentagon',
           };
-          return (shapes[ele.data('entityType') as string] ?? 'ellipse') as cytoscape.Css.PropertyValue<string>;
-        },
+          return shapes[ele.data('entityType') as string] ?? 'ellipse';
+        }) as cytoscape.Css.PropertyValueNode<cytoscape.Css.NodeShape>,
       },
     },
     {

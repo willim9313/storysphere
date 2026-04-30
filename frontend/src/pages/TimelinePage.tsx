@@ -859,7 +859,7 @@ function TimelineCanvas({
   useLayoutEffect(() => {
     if (!innerRef.current) {
       setLines([]);
-      setSpineY(null);
+      setSpinePoints([]);
       return;
     }
     const container = innerRef.current;
@@ -1079,8 +1079,8 @@ function TimelineCanvas({
                   className={`flex ${isHorizontal ? 'flex-col' : 'flex-row'} items-center`}
                   style={{
                     gap: 40,
-                    backgroundColor: 'rgba(139,92,246,0.06)',
-                    border: '1px dashed rgba(139,92,246,0.3)',
+                    backgroundColor: 'var(--timeline-parallel-bg)',
+                    border: '1px dashed var(--timeline-parallel-border)',
                     borderRadius: 8,
                     padding: 8,
                   }}
