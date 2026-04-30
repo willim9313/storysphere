@@ -45,7 +45,7 @@ export function BatchEepPanel({
         </span>
       </div>
 
-      <div className="h-1.5 rounded-full overflow-hidden mb-3" style={{ backgroundColor: 'var(--border)' }}>
+      <div className="h-1.5 rounded-full overflow-hidden mb-3" style={{ backgroundColor: 'var(--bg-primary)' }}>
         <div
           className="h-full rounded-full transition-all duration-300 theme-progress-fill"
           style={{
@@ -64,13 +64,13 @@ export function BatchEepPanel({
       )}
 
       {batchError && (
-        <p className="text-xs mb-2" style={{ color: 'var(--color-danger, #e53e3e)' }}>
+        <p className="text-xs mb-2" style={{ color: 'var(--color-error)' }}>
           {batchError}
         </p>
       )}
 
       {batchSummary && !isBatchRunning && (
-        <p className="text-xs mb-2" style={{ color: 'var(--color-success, #38a169)' }}>
+        <p className="text-xs mb-2" style={{ color: 'var(--color-success)' }}>
           {t('batch.doneMessage', { analyzed: batchSummary.total - batchSummary.skipped - batchSummary.failed })}
           {batchSummary.skipped > 0 && `，${t('batch.skipped', { count: batchSummary.skipped })}`}
           {batchSummary.failed > 0 && `，${t('batch.failed', { count: batchSummary.failed })}`}
