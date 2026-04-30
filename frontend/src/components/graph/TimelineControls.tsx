@@ -182,7 +182,6 @@ export function TimelineControls({ bookId, onChange }: TimelineControlsProps) {
                   value={position}
                   onChange={(e) => handlePositionChange(Number(e.target.value))}
                   className="w-full"
-                  style={{ accentColor: 'var(--accent)' }}
                 />
               </div>
             </>

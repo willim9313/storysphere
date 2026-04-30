@@ -31,6 +31,13 @@
   ::selection {
     background-color: var(--bg-tertiary);
   }
+
+  /* Native form controls follow the theme accent (checkbox tick, radio dot, range thumb/track) */
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    accent-color: var(--accent);
+  }
 }
 
 /* ── Theme-specific progress bar stripe overrides (outside @layer for specificity) ── */

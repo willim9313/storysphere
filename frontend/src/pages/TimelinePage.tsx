@@ -771,7 +771,6 @@ function FilterCheckbox({
         checked={checked}
         onChange={onChange}
         className="rounded"
-        style={{ accentColor: 'var(--accent)' }}
       />
       {label}
     </label>
