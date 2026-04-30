@@ -52,7 +52,7 @@ export function EpistemicStateSection({
 
       {state && !state.dataComplete && (
         <div className="flex flex-wrap items-center gap-2">
-          <p className="text-xs flex items-center gap-1" style={{ color: 'var(--warning, #f59e0b)' }}>
+          <p className="text-xs flex items-center gap-1" style={{ color: 'var(--color-warning)' }}>
             <AlertTriangle size={11} />
             {t('character.epistemic.noVisibilityData')}
           </p>
@@ -71,7 +71,7 @@ export function EpistemicStateSection({
         <>
           {/* Known events */}
           <section>
-            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#16a34a' }}>
+            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: 'var(--color-success)' }}>
               <Eye size={12} />
               {t('character.epistemic.knownEvents', { count: state.knownEvents.length })}
             </h4>
@@ -85,10 +85,10 @@ export function EpistemicStateSection({
                   <li
                     key={String(ev.id ?? i)}
                     className="text-xs px-2 py-1 rounded flex justify-between items-start gap-2"
-                    style={{ backgroundColor: '#f0fdf4' }}
+                    style={{ backgroundColor: 'var(--color-success-bg)' }}
                   >
-                    <span style={{ color: '#15803d' }}>{String(ev.title ?? '')}</span>
-                    <span className="flex-shrink-0 text-xs opacity-60" style={{ color: '#16a34a' }}>
+                    <span style={{ color: 'var(--color-success)' }}>{String(ev.title ?? '')}</span>
+                    <span className="flex-shrink-0 text-xs opacity-60" style={{ color: 'var(--color-success)' }}>
                       Ch.{String(ev.chapter ?? '')}
                     </span>
                   </li>
@@ -99,7 +99,7 @@ export function EpistemicStateSection({
 
           {/* Unknown events */}
           <section>
-            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#d97706' }}>
+            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: 'var(--color-warning)' }}>
               <EyeOff size={12} />
               {t('character.epistemic.unknownEvents', { count: state.unknownEvents.length })}
             </h4>
@@ -113,10 +113,10 @@ export function EpistemicStateSection({
                   <li
                     key={String(ev.id ?? i)}
                     className="text-xs px-2 py-1 rounded flex justify-between items-start gap-2"
-                    style={{ backgroundColor: '#fffbeb' }}
+                    style={{ backgroundColor: 'var(--color-warning-bg)' }}
                   >
-                    <span style={{ color: '#92400e' }}>{String(ev.title ?? '')}</span>
-                    <span className="flex-shrink-0 text-xs opacity-60" style={{ color: '#d97706' }}>
+                    <span style={{ color: 'var(--color-warning)' }}>{String(ev.title ?? '')}</span>
+                    <span className="flex-shrink-0 text-xs opacity-60" style={{ color: 'var(--color-warning)' }}>
                       Ch.{String(ev.chapter ?? '')}
                     </span>
                   </li>
@@ -127,7 +127,7 @@ export function EpistemicStateSection({
 
           {/* Misbeliefs */}
           <section>
-            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: '#dc2626' }}>
+            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1" style={{ color: 'var(--color-error)' }}>
               <AlertTriangle size={12} />
               {t('character.epistemic.misbeliefs', { count: state.misbeliefs.length })}
             </h4>
@@ -141,17 +141,17 @@ export function EpistemicStateSection({
                   <li
                     key={m.sourceEventId}
                     className="text-xs px-3 py-2 rounded"
-                    style={{ border: '1px solid #fca5a5', backgroundColor: '#fff5f5' }}
+                    style={{ border: '1px solid var(--color-error)', backgroundColor: 'var(--color-error-bg)' }}
                   >
-                    <p style={{ color: '#dc2626' }}>
+                    <p style={{ color: 'var(--color-error)' }}>
                       <span className="font-semibold">{t('character.epistemic.misbeliefLabel')}</span>
                       {m.characterBelief}
                     </p>
-                    <p className="mt-1" style={{ color: '#6b7280' }}>
+                    <p className="mt-1" style={{ color: 'var(--fg-muted)' }}>
                       <span className="font-semibold">{t('character.epistemic.actualTruth')}</span>
                       {m.actualTruth}
                     </p>
-                    <p className="mt-1 opacity-50" style={{ color: '#9ca3af' }}>
+                    <p className="mt-1 opacity-50" style={{ color: 'var(--fg-muted)' }}>
                       {t('character.epistemic.confidence', { pct: Math.round(m.confidence * 100) })}
                     </p>
                   </li>

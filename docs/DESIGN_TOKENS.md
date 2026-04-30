@@ -197,7 +197,22 @@ B&W 主題採 **6 階梯度**策略（manuscript = 淺→深灰階；minimal-ink
 | text（`--symbol-other-fg`） | `#475569` | `#f2f2f2` | `#888888` | `#555555` |
 | dot（`--symbol-other-dot`） | `#94a3b8` | `#888888` | `#cccccc` | `#aaaaaa` |
 
-### 3.9 知識圖譜節點
+### 3.9 狀態色（Status）
+
+通用語意色，由 `--color-success / warning / error / info` 與其 `-bg` 變體組成。default 主題保持彩色語意（綠/橘/紅/藍）；B&W 主題改採嚴格灰階（狀態以 icon 形態與權重傳達，非色相）。
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| `--color-success` | `#16a34a` | `#0d0d0d` | `#000000` | `#000000` |
+| `--color-success-bg` | `#f0fdf4` | `#e8e4db` | `#ebebeb` | `#e5e5e5` |
+| `--color-warning` | `#d97706` | `#555555` | `#555555` | `#555555` |
+| `--color-warning-bg` | `#fffbeb` | `#e8e4db` | `#ebebeb` | `#e5e5e5` |
+| `--color-error` | `#dc2626` | `#0d0d0d` | `#000000` | `#000000` |
+| `--color-error-bg` | `#fff5f5` | `#e8e4db` | `#ebebeb` | `#e5e5e5` |
+| `--color-info` | `#2563eb` | `#888888` | `#888888` | `#888888` |
+| `--color-info-bg` | `#eff6ff` | `#e8e4db` | `#ebebeb` | `#e5e5e5` |
+
+### 3.10 知識圖譜節點
 
 label 渲染於節點下方外部（`text-valign: 'bottom'`），背景為 `--bg-primary`，因此 label 顏色一律設為可讀於頁面背景的深色（B&W 主題對齊 `--fg-primary`），不依賴 fill 亮度。fill / stroke 的色階仍依類型區分。
 

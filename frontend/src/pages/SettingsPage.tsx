@@ -171,7 +171,7 @@ function MigrationProgress({ taskId, onDone }: Readonly<{ taskId: string; onDone
         className="mt-3 rounded-lg p-3 flex items-start gap-2 text-sm"
         style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
       >
-        <CheckCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#4ade80' }} />
+        <CheckCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-success)' }} />
         <div style={{ color: 'var(--fg-secondary)' }}>
           {t('migration.done', {
             entities: r?.entities ?? 0,
@@ -189,7 +189,7 @@ function MigrationProgress({ taskId, onDone }: Readonly<{ taskId: string; onDone
         className="mt-3 rounded-lg p-3 flex items-start gap-2 text-sm"
         style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
       >
-        <XCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: '#f87171' }} />
+        <XCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-error)' }} />
         <div style={{ color: 'var(--fg-secondary)' }}>{t('migration.failed', { error: task.error })}</div>
       </div>
     );
@@ -265,7 +265,7 @@ export default function SettingsPage() {
             {t('kg.loadingStatus')}
           </div>
         ) : error ? (
-          <div className="text-sm" style={{ color: '#f87171' }}>{t('kg.loadError')}</div>
+          <div className="text-sm" style={{ color: 'var(--color-error)' }}>{t('kg.loadError')}</div>
         ) : kgStatus ? (
           <>
             <div
@@ -290,7 +290,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
                 <span
                   className="inline-block w-2 h-2 rounded-full"
-                  style={{ backgroundColor: kgStatus.graphDbConnected ? '#4ade80' : '#6b7280' }}
+                  style={{ backgroundColor: kgStatus.graphDbConnected ? 'var(--color-success)' : 'var(--fg-muted)' }}
                 />
                 Neo4j {kgStatus.graphDbConnected ? t('kg.connected') : t('kg.disconnected')}
                 {kgStatus.persistencePath && (
@@ -333,7 +333,7 @@ export default function SettingsPage() {
                 )}
               </div>
               {switchError && (
-                <p className="text-xs mt-1.5" style={{ color: '#f87171' }}>{switchError}</p>
+                <p className="text-xs mt-1.5" style={{ color: 'var(--color-error)' }}>{switchError}</p>
               )}
               <p className="text-xs mt-2" style={{ color: 'var(--fg-muted)' }}>
                 {t('kg.switchNote')}
@@ -376,7 +376,7 @@ export default function SettingsPage() {
           </div>
 
           {migrateError && (
-            <p className="text-xs mt-2" style={{ color: '#f87171' }}>{migrateError}</p>
+            <p className="text-xs mt-2" style={{ color: 'var(--color-error)' }}>{migrateError}</p>
           )}
 
           {migrationTaskId && (

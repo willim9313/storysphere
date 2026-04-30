@@ -85,7 +85,7 @@ export function EpistemicSidePanel({
         )}
         {state && !state.dataComplete && (
           <div className="mt-1 flex flex-col gap-1">
-            <p className="text-xs flex items-center gap-1" style={{ color: 'var(--warning, #f59e0b)' }}>
+            <p className="text-xs flex items-center gap-1" style={{ color: 'var(--color-warning)' }}>
               <AlertTriangle size={11} /> 尚無 visibility 資料
             </p>
             <ClassifyVisibilityButton
@@ -110,7 +110,7 @@ export function EpistemicSidePanel({
           <>
             {/* Known events */}
             <section>
-              <h4 className="text-xs font-semibold mb-1" style={{ color: '#16a34a' }}>
+              <h4 className="text-xs font-semibold mb-1" style={{ color: 'var(--color-success)' }}>
                 <Eye size={11} className="inline mr-1" />
                 已知事件（{state.knownEvents.length}）
               </h4>
@@ -122,7 +122,7 @@ export function EpistemicSidePanel({
                     <li
                       key={String(ev.id ?? i)}
                       className="text-xs px-2 py-1 rounded"
-                      style={{ backgroundColor: '#f0fdf4', color: '#15803d' }}
+                      style={{ backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)' }}
                     >
                       <span className="font-medium">{String(ev.title ?? '')}</span>
                       <span className="ml-1 opacity-60">Ch.{String(ev.chapter ?? '')}</span>
@@ -134,7 +134,7 @@ export function EpistemicSidePanel({
 
             {/* Unknown events */}
             <section>
-              <h4 className="text-xs font-semibold mb-1" style={{ color: '#d97706' }}>
+              <h4 className="text-xs font-semibold mb-1" style={{ color: 'var(--color-warning)' }}>
                 <EyeOff size={11} className="inline mr-1" />
                 未知事件（{state.unknownEvents.length}）
               </h4>
@@ -146,7 +146,7 @@ export function EpistemicSidePanel({
                     <li
                       key={String(ev.id ?? i)}
                       className="text-xs px-2 py-1 rounded"
-                      style={{ backgroundColor: '#fffbeb', color: '#92400e' }}
+                      style={{ backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}
                     >
                       <span className="font-medium">{String(ev.title ?? '')}</span>
                       <span className="ml-1 opacity-60">Ch.{String(ev.chapter ?? '')}</span>
@@ -159,7 +159,7 @@ export function EpistemicSidePanel({
             {/* Misbeliefs */}
             {state.misbeliefs.length > 0 && (
               <section>
-                <h4 className="text-xs font-semibold mb-1" style={{ color: '#dc2626' }}>
+                <h4 className="text-xs font-semibold mb-1" style={{ color: 'var(--color-error)' }}>
                   <AlertTriangle size={11} className="inline mr-1" />
                   誤信（{state.misbeliefs.length}）
                 </h4>
@@ -168,12 +168,12 @@ export function EpistemicSidePanel({
                     <li
                       key={m.sourceEventId}
                       className="text-xs px-2 py-1.5 rounded"
-                      style={{ border: '1px solid #fca5a5', backgroundColor: '#fff5f5' }}
+                      style={{ border: '1px solid var(--color-error)', backgroundColor: 'var(--color-error-bg)' }}
                     >
-                      <p style={{ color: '#dc2626' }}>
+                      <p style={{ color: 'var(--color-error)' }}>
                         <span className="font-medium">誤信：</span>{m.characterBelief}
                       </p>
-                      <p className="mt-0.5" style={{ color: '#6b7280' }}>
+                      <p className="mt-0.5" style={{ color: 'var(--fg-muted)' }}>
                         <span className="font-medium">實情：</span>{m.actualTruth}
                       </p>
                       <p className="mt-0.5 opacity-50">信心度 {Math.round(m.confidence * 100)}%</p>

@@ -103,11 +103,15 @@
   --timeline-causal-stroke: #8b5e3c;
   --timeline-selected-ring: rgba(139,94,60,0.3);
 
-  /* Status colors */
-  --color-success: #4caf50;
-  --color-warning: #ff9800;
-  --color-error: #f44336;
-  --color-info: #2196f3;
+  /* Status colors — saturated indicator + light surface tint */
+  --color-success:    #16a34a;
+  --color-success-bg: #f0fdf4;
+  --color-warning:    #d97706;
+  --color-warning-bg: #fffbeb;
+  --color-error:      #dc2626;
+  --color-error-bg:   #fff5f5;
+  --color-info:       #2563eb;
+  --color-info-bg:    #eff6ff;
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -247,6 +251,16 @@
   --timeline-parallel-border: rgba(0,0,0,0.12);
   --timeline-causal-stroke: #000000;
   --timeline-selected-ring: rgba(0,0,0,0.2);
+
+  /* status — strict greyscale: state is conveyed by icon glyph, not hue */
+  --color-success:    #0d0d0d;
+  --color-success-bg: #e8e4db;
+  --color-warning:    #555555;
+  --color-warning-bg: #e8e4db;
+  --color-error:      #0d0d0d;
+  --color-error-bg:   #e8e4db;
+  --color-info:       #888888;
+  --color-info-bg:    #e8e4db;
 }
 
 /* ── Minimal Ink ─────────────────────────────────────────────── */
@@ -345,6 +359,16 @@
   --timeline-parallel-border: rgba(0,0,0,0.12);
   --timeline-causal-stroke: #000000;
   --timeline-selected-ring: rgba(0,0,0,0.2);
+
+  /* status — strict greyscale: state is conveyed by icon glyph, not hue */
+  --color-success:    #000000;
+  --color-success-bg: #ebebeb;
+  --color-warning:    #555555;
+  --color-warning-bg: #ebebeb;
+  --color-error:      #000000;
+  --color-error-bg:   #ebebeb;
+  --color-info:       #888888;
+  --color-info-bg:    #ebebeb;
 }
 
 /* ── Pulp ────────────────────────────────────────────────────── */
@@ -443,4 +467,14 @@
   --timeline-parallel-border: rgba(0,0,0,0.15);
   --timeline-causal-stroke: #000000;
   --timeline-selected-ring: rgba(0,0,0,0.25);
+
+  /* status — strict greyscale: state is conveyed by icon glyph, not hue */
+  --color-success:    #000000;
+  --color-success-bg: #e5e5e5;
+  --color-warning:    #555555;
+  --color-warning-bg: #e5e5e5;
+  --color-error:      #000000;
+  --color-error-bg:   #e5e5e5;
+  --color-info:       #888888;
+  --color-info-bg:    #e5e5e5;
 }

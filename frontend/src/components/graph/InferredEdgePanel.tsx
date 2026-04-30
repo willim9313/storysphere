@@ -58,14 +58,14 @@ export function InferredEdgePanel({
     <div
       className="absolute right-4 top-4 z-20 rounded-lg p-4 space-y-3"
       style={{
-        backgroundColor: 'white',
-        border: '1px solid #f59e0b',
+        backgroundColor: 'var(--bg-primary)',
+        border: '1px solid var(--color-warning)',
         boxShadow: 'var(--shadow-md)',
         width: 280,
       }}
     >
       <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold" style={{ color: '#b45309' }}>
+        <span className="text-xs font-semibold" style={{ color: 'var(--color-warning)' }}>
           推斷關係
         </span>
         <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
@@ -75,7 +75,7 @@ export function InferredEdgePanel({
 
       {isLoading && (
         <div className="flex justify-center py-4">
-          <Loader size={18} className="animate-spin" style={{ color: '#f59e0b' }} />
+          <Loader size={18} className="animate-spin" style={{ color: 'var(--color-warning)' }} />
         </div>
       )}
 
@@ -91,14 +91,14 @@ export function InferredEdgePanel({
             <div className="flex items-center gap-1.5">
               <span
                 className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-                style={{ backgroundColor: '#dbeafe', color: '#1d4ed8' }}
+                style={{ backgroundColor: 'var(--entity-char-bg)', color: 'var(--entity-char-fg)' }}
               >
                 {ir.sourceName}
               </span>
               <span style={{ color: 'var(--fg-muted)' }}>↔</span>
               <span
                 className="px-2 py-0.5 rounded-full text-[10px] font-medium"
-                style={{ backgroundColor: '#dbeafe', color: '#1d4ed8' }}
+                style={{ backgroundColor: 'var(--entity-char-bg)', color: 'var(--entity-char-fg)' }}
               >
                 {ir.targetName}
               </span>
@@ -114,13 +114,13 @@ export function InferredEdgePanel({
                 <div className="flex items-center gap-1.5">
                   <div
                     className="h-1.5 rounded-full"
-                    style={{ width: 60, backgroundColor: '#e5e7eb' }}
+                    style={{ width: 60, backgroundColor: 'var(--border)' }}
                   >
                     <div
                       className="h-full rounded-full"
                       style={{
                         width: `${Math.round(ir.confidence * 100)}%`,
-                        backgroundColor: '#f59e0b',
+                        backgroundColor: 'var(--color-warning)',
                       }}
                     />
                   </div>
@@ -164,8 +164,8 @@ export function InferredEdgePanel({
             <button
               className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-md transition-colors"
               style={{
-                backgroundColor: isBusy ? '#e5e7eb' : '#dcfce7',
-                color: isBusy ? '#9ca3af' : '#15803d',
+                backgroundColor: isBusy ? 'var(--bg-tertiary)' : 'var(--color-success-bg)',
+                color: isBusy ? 'var(--fg-muted)' : 'var(--color-success)',
               }}
               onClick={() => confirmMutation.mutate()}
               disabled={isBusy}
@@ -180,8 +180,8 @@ export function InferredEdgePanel({
             <button
               className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-md transition-colors"
               style={{
-                backgroundColor: isBusy ? '#e5e7eb' : '#fee2e2',
-                color: isBusy ? '#9ca3af' : '#dc2626',
+                backgroundColor: isBusy ? 'var(--bg-tertiary)' : 'var(--color-error-bg)',
+                color: isBusy ? 'var(--fg-muted)' : 'var(--color-error)',
               }}
               onClick={() => rejectMutation.mutate()}
               disabled={isBusy}
