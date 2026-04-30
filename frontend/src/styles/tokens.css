@@ -214,7 +214,7 @@
   --entity-other-fg:    #555555;
   --entity-other-dot:   #cccccc;
 
-  /* graph nodes — systematic grayscale; label flips to white for dark fills */
+  /* graph nodes — systematic grayscale; labels rendered below node, dark for readability on bg */
   --graph-char-fill:   #d8d8d8;
   --graph-char-stroke: #000000;
   --graph-char-label:  #0d0d0d;
@@ -223,10 +223,10 @@
   --graph-loc-label:   #0d0d0d;
   --graph-con-fill:    #909090;
   --graph-con-stroke:  #555555;
-  --graph-con-label:   #ffffff;
+  --graph-con-label:   #0d0d0d;
   --graph-evt-fill:    #3a3a3a;
   --graph-evt-stroke:  #000000;
-  --graph-evt-label:   #ffffff;
+  --graph-evt-label:   #0d0d0d;
 
   /* symbol type pills — 6-step grayscale gradient */
   --symbol-object-bg:   #f2f2f2; --symbol-object-fg:   #0d0d0d; --symbol-object-dot:   #111111;
@@ -312,10 +312,10 @@
   --entity-other-fg:    #888888;
   --entity-other-dot:   #cccccc;
 
-  /* graph nodes — fill polarity; label white on dark fills */
+  /* graph nodes — fill polarity; labels rendered below node, dark for readability on bg */
   --graph-char-fill:   #000000;
   --graph-char-stroke: #000000;
-  --graph-char-label:  #ffffff;
+  --graph-char-label:  #000000;
   --graph-loc-fill:    #ffffff;
   --graph-loc-stroke:  #000000;
   --graph-loc-label:   #000000;
@@ -324,7 +324,7 @@
   --graph-con-label:   #000000;
   --graph-evt-fill:    #555555;
   --graph-evt-stroke:  #000000;
-  --graph-evt-label:   #ffffff;
+  --graph-evt-label:   #000000;
 
   /* symbol type pills — 6-step fill polarity */
   --symbol-object-bg:   #000000; --symbol-object-fg:   #ffffff; --symbol-object-dot:   #ffffff;
@@ -410,10 +410,10 @@
   --entity-other-fg:    #555555;
   --entity-other-dot:   #aaaaaa;
 
-  /* graph nodes — bold fill polarity; white labels on dark fills */
+  /* graph nodes — bold fill polarity; labels rendered below node, dark for readability on bg */
   --graph-char-fill:   #000000;
   --graph-char-stroke: #000000;
-  --graph-char-label:  #ffffff;
+  --graph-char-label:  #000000;
   --graph-loc-fill:    #ffffff;
   --graph-loc-stroke:  #000000;
   --graph-loc-label:   #000000;
@@ -422,7 +422,7 @@
   --graph-con-label:   #000000;
   --graph-evt-fill:    #444444;
   --graph-evt-stroke:  #000000;
-  --graph-evt-label:   #ffffff;
+  --graph-evt-label:   #000000;
 
   /* symbol type pills — 6-step fill polarity */
   --symbol-object-bg:   #000000; --symbol-object-fg:   #ffffff; --symbol-object-dot:   #ffffff;
