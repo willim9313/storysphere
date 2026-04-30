@@ -175,8 +175,8 @@ function DailyChart({ daily }: { daily: { date: string; totalTokens: number; cal
               </span>
               <div className="flex-1 h-5 rounded overflow-hidden" style={{ backgroundColor: 'var(--bg-tertiary)' }}>
                 <div
-                  className="h-full rounded transition-all"
-                  style={{ width: `${Math.max(pct, 0.5)}%`, backgroundColor: 'var(--accent)', opacity: 0.85 }}
+                  className="h-full rounded transition-all theme-progress-fill"
+                  style={{ width: `${Math.max(pct, 0.5)}%`, opacity: 0.85 }}
                 />
               </div>
               <span className="w-20 text-right shrink-0 tabular-nums" style={{ color: 'var(--fg-secondary)' }}>
