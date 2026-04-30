@@ -522,7 +522,7 @@ function Legend() {
               border: `1px solid var(--status-${status}-border)`,
             }}
           />
-          <span style={{ color: `var(--status-${status}-fg)` }}>{statusLabel(t, status)}</span>
+          <span style={{ color: 'var(--fg-secondary)' }}>{statusLabel(t, status)}</span>
         </div>
       ))}
     </div>
