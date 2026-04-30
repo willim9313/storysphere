@@ -68,6 +68,10 @@ function getUnravelingStylesheet(): cytoscape.Stylesheet[] {
   const bgTertiary  = v('--bg-tertiary')  || '#f5ede0';
   const fgSecondary = v('--fg-secondary') || '#5a4f42';
   const fontSans  = v('--font-sans')    || 'DM Sans, system-ui, sans-serif';
+  const lineWeight = Number.parseFloat(v('--line-weight')) || 1;
+  const edgeStyle: 'dashed' | 'solid' =
+    v('--border-style') === 'dashed' ? 'dashed' : 'solid';
+  const nodeBorderWidth = Math.max(1, lineWeight * 2);
   const palette = getStatusPalette();
   const statusFill = (key: 'bg' | 'border' | 'text') =>
     (ele: cytoscape.NodeSingular) =>
@@ -103,7 +107,7 @@ function getUnravelingStylesheet(): cytoscape.Stylesheet[] {
         height: 52,
         'background-color': statusFill('bg'),
         'border-color': statusFill('border'),
-        'border-width': 2,
+        'border-width': nodeBorderWidth,
         label: 'data(label)',
         'text-valign': 'center',
         'text-halign': 'center',
@@ -127,8 +131,9 @@ function getUnravelingStylesheet(): cytoscape.Stylesheet[] {
         'curve-style': 'bezier',
         'target-arrow-shape': 'triangle',
         'line-color': border,
+        'line-style': edgeStyle,
         'target-arrow-color': border,
-        width: 1.5,
+        width: Math.max(1, lineWeight * 1.5),
       } as cytoscape.Css.Edge,
     },
     // Highlighted node (the tapped node + its direct neighbors)

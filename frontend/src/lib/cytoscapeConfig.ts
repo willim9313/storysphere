@@ -28,6 +28,9 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
   const fgMuted   = v('--fg-muted')     || '#8a7a68';
   const fgSecondary = v('--fg-secondary') || '#5a4f42';
   const fontSans  = v('--font-sans')    || 'DM Sans, system-ui, sans-serif';
+  const borderStyle: 'dashed' | 'solid' = v('--border-style') === 'dashed' ? 'dashed' : 'solid';
+  const lineWeight  = Number.parseFloat(v('--line-weight')) || 1;
+  const nodeBorderWidth = Math.max(1, lineWeight * 2);
 
   return [
     {
@@ -45,7 +48,7 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
           fills[ele.data('entityType') as string] ?? border,
         width: 'data(size)',
         height: 'data(size)',
-        'border-width': 2,
+        'border-width': nodeBorderWidth,
         'border-color': (ele: cytoscape.NodeSingular) =>
           strokes[ele.data('entityType') as string] ?? border,
         shape: ((ele: cytoscape.NodeSingular) => {
@@ -83,8 +86,9 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
     {
       selector: 'edge',
       style: {
-        width: 1,
+        width: lineWeight,
         'line-color': border,
+        'line-style': borderStyle,
         'curve-style': 'bezier',
         'target-arrow-shape': 'triangle',
         'target-arrow-color': border,

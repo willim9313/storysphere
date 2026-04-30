@@ -91,6 +91,11 @@
     box-shadow: var(--shadow-sm);
   }
 
+  /* Pulp theme: offset shadow on card surfaces (overrides --shadow-sm) */
+  [data-theme="pulp"] .card {
+    box-shadow: var(--node-shadow);
+  }
+
   /* ── Entity Pill styles ──────────────────────────────────────── */
   .pill {
     display: inline-flex;

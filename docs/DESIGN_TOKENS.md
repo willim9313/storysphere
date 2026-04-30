@@ -256,9 +256,9 @@ label 渲染於節點下方外部（`text-valign: 'bottom'`），背景為 `--bg
 | 主題 | 差異項目 | 說明 |
 |------|---------|------|
 | `manuscript` | KG 節點 fill | 設計稿要求斜線紋（SVG `<pattern>`）；token 層僅定義灰階色，紋理實作於元件層（子任務 F-17.4） |
-| `manuscript` | 進度條 fill | 設計稿要求水平條紋；實作於元件層（子任務 F-17.5） |
-| `pulp` | 所有節點 shadow | `--node-shadow: 2px 2px 0 #000` token 已定義；元件需讀取並套用（子任務 F-17.4） |
-| `pulp` | 進度條 fill | 設計稿要求垂直條紋；實作於元件層（子任務 F-17.5） |
+| `manuscript` | KG / Unraveling edge | `--border-style: dashed` 由 `cytoscapeConfig.ts` 與 `UnravelingPage` 的 `getUnravelingStylesheet()` 讀取後套用為 `line-style: dashed`（已實作） |
+| `pulp` | HTML 表面 shadow | `--node-shadow: 2px 2px 0 #000` 在 `[data-theme="pulp"] .card` 套用 `box-shadow`（已實作）。**Cytoscape 限制**：canvas 渲染不支援 box-shadow，KG / Unraveling 節點不套用 shadow |
+| `minimal-ink` / `pulp` | KG node border-width | `--line-weight` 由 cytoscapeConfig 讀取後套為 `border-width = max(1, lineWeight × 2)`（已實作；minimal-ink hairline、pulp bold） |
 
 ---
 
