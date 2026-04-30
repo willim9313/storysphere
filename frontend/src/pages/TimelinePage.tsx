@@ -420,7 +420,7 @@ function Toolbar({
                 className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-md transition-all duration-150"
                 title={tab.warn ? t('timeline.noRanksTooltip') : undefined}
                 style={{
-                  backgroundColor: isActive ? 'white' : 'transparent',
+                  backgroundColor: isActive ? 'var(--bg-primary)' : 'transparent',
                   color: isActive ? 'var(--accent)' : 'var(--fg-muted)',
                   fontWeight: isActive ? 500 : 400,
                   boxShadow: isActive
@@ -620,7 +620,7 @@ function FilterDropdown({
     <div
       className="absolute left-4 top-12 z-50 rounded-lg shadow-lg overflow-y-auto"
       style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
         maxHeight: 480,
         width: 320,

@@ -74,7 +74,7 @@
   }
 
   .btn-secondary {
-    background-color: white;
+    background-color: var(--bg-primary);
     color: var(--fg-primary);
     border-color: var(--border);
   }
@@ -84,7 +84,7 @@
   }
 
   .card {
-    background-color: white;
+    background-color: var(--bg-primary);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);

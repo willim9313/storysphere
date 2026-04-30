@@ -61,7 +61,7 @@ export function GraphToolbar({
     <div
       className="absolute top-4 left-4 z-10 rounded-lg p-3 space-y-3"
       style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
         boxShadow: 'var(--shadow-md)',
         width: 200,

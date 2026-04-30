@@ -42,7 +42,7 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
           labels[ele.data('entityType') as string] ?? fgPrimary,
         'text-margin-y': 4,
         'background-color': (ele: cytoscape.NodeSingular) =>
-          fills[ele.data('entityType') as string] ?? '#e5e7eb',
+          fills[ele.data('entityType') as string] ?? border,
         width: 'data(size)',
         height: 'data(size)',
         'border-width': 2,
