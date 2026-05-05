@@ -67,21 +67,62 @@
   --entity-evt-fg:     #991b1b;
   --entity-evt-dot:    #ef4444;
 
-  /* Graph node colors (fill / stroke) */
+  /* Graph node colors (fill / stroke / label) */
   --graph-char-fill:   #dbeafe;
   --graph-char-stroke: #3b82f6;
+  --graph-char-label:  #1e3a8a;
   --graph-loc-fill:    #dcfce7;
   --graph-loc-stroke:  #22c55e;
+  --graph-loc-label:   #064e3b;
   --graph-con-fill:    #ede9fe;
   --graph-con-stroke:  #8b5cf6;
+  --graph-con-label:   #4c1d95;
   --graph-evt-fill:    #fee2e2;
   --graph-evt-stroke:  #ef4444;
+  --graph-evt-label:   #991b1b;
 
-  /* Status colors */
-  --color-success: #4caf50;
-  --color-warning: #ff9800;
-  --color-error: #f44336;
-  --color-info: #2196f3;
+  /* Symbol type pill colors */
+  --symbol-object-bg:   #dbeafe; --symbol-object-fg:   #1e40af; --symbol-object-dot:   #3b82f6;
+  --symbol-nature-bg:   #dcfce7; --symbol-nature-fg:   #166534; --symbol-nature-dot:   #22c55e;
+  --symbol-spatial-bg:  #fef9c3; --symbol-spatial-fg:  #713f12; --symbol-spatial-dot:  #eab308;
+  --symbol-body-bg:     #fee2e2; --symbol-body-fg:     #991b1b; --symbol-body-dot:     #ef4444;
+  --symbol-color-bg:    #ede9fe; --symbol-color-fg:    #4c1d95; --symbol-color-dot:    #8b5cf6;
+  --symbol-other-bg:    #f1f5f9; --symbol-other-fg:    #475569; --symbol-other-dot:    #94a3b8;
+
+  /* Timeline narrative mode colors */
+  --narrative-present-border:     #8b5e3c; --narrative-present-bg:     #f5ede4;
+  --narrative-flashback-border:   #3b82f6; --narrative-flashback-bg:   #dbeafe;
+  --narrative-flashforward-border:#f59e0b; --narrative-flashforward-bg:#fef3c7;
+  --narrative-parallel-border:    #8b5cf6; --narrative-parallel-bg:    #ede9fe;
+  --narrative-unknown-border:     #8a7a68; --narrative-unknown-bg:     #f0ece6;
+
+  /* Timeline structural colors */
+  --timeline-chapter-bg:    rgba(239,232,216,0.15);
+  --timeline-parallel-bg:   rgba(139,92,246,0.06);
+  --timeline-parallel-border: rgba(139,92,246,0.3);
+  --timeline-causal-stroke: #8b5e3c;
+  --timeline-selected-ring: rgba(139,94,60,0.3);
+
+  /* Status colors — saturated indicator + light surface tint */
+  --color-success:    #16a34a;
+  --color-success-bg: #f0fdf4;
+  --color-warning:    #d97706;
+  --color-warning-bg: #fffbeb;
+  --color-error:      #dc2626;
+  --color-error-bg:   #fff5f5;
+  --color-info:       #2563eb;
+  --color-info-bg:    #eff6ff;
+
+  /* Unraveling DAG node status (complete / partial / empty) */
+  --status-complete-bg:     #f0fdf4;
+  --status-complete-border: #22c55e;
+  --status-complete-fg:     #15803d;
+  --status-partial-bg:      #fffbeb;
+  --status-partial-border:  #f59e0b;
+  --status-partial-fg:      #92400e;
+  --status-empty-bg:        #f3f4f6;
+  --status-empty-border:    #d1d5db;
+  --status-empty-fg:        #6b7280;
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -117,4 +158,367 @@
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
+
+  /* Theme-specific (defaults — overridden per theme) */
+  --line-weight:   1px;
+  --border-style:  solid;
+  --node-shadow:   none;
+  --divider-style: 1px solid var(--border);
+}
+
+/* ── Manuscript ──────────────────────────────────────────────── */
+[data-theme="manuscript"] {
+  --bg-primary:   #f8f6f2;
+  --bg-secondary: #f0ede6;
+  --bg-tertiary:  #e8e4db;
+
+  --fg-primary:   #0d0d0d;
+  --fg-secondary: #333333;
+  --fg-muted:     #888888;
+
+  --border: #333333;
+  --accent: #000000;
+
+  --panel-bg:       #ede9e0;
+  --panel-bg-card:  #e4e0d5;
+  --panel-border:   #555555;
+  --panel-fg:       #0d0d0d;
+  --panel-fg-muted: #888888;
+
+  --font-serif: 'IM Fell English', Georgia, serif;
+  --font-sans:  'IM Fell English', Georgia, serif;
+
+  --line-weight:   1px;
+  --border-style:  dashed;
+  --node-shadow:   none;
+  --divider-style: 1px solid #333333;
+
+  /* entity pills — systematic grayscale by prominence */
+  --entity-char-bg:    #f0f0f0;
+  --entity-char-border:#111111;
+  --entity-char-fg:    #0d0d0d;
+  --entity-char-dot:   #111111;
+
+  --entity-loc-bg:    #e8e8e8;
+  --entity-loc-border:#444444;
+  --entity-loc-fg:    #0d0d0d;
+  --entity-loc-dot:   #444444;
+
+  --entity-org-bg:    #f5f5f5;
+  --entity-org-border:#666666;
+  --entity-org-fg:    #222222;
+  --entity-org-dot:   #666666;
+
+  --entity-obj-bg:    #ebebeb;
+  --entity-obj-border:#888888;
+  --entity-obj-fg:    #222222;
+  --entity-obj-dot:   #888888;
+
+  --entity-con-bg:    #f0f0f0;
+  --entity-con-border:#aaaaaa;
+  --entity-con-fg:    #333333;
+  --entity-con-dot:   #aaaaaa;
+
+  --entity-evt-bg:    #111111;
+  --entity-evt-border:#000000;
+  --entity-evt-fg:    #f8f6f2;
+  --entity-evt-dot:   #f8f6f2;
+
+  --entity-other-bg:    #e0e0e0;
+  --entity-other-border:#cccccc;
+  --entity-other-fg:    #555555;
+  --entity-other-dot:   #cccccc;
+
+  /* graph nodes — systematic grayscale; labels rendered below node, dark for readability on bg */
+  --graph-char-fill:   #d8d8d8;
+  --graph-char-stroke: #000000;
+  --graph-char-label:  #0d0d0d;
+  --graph-loc-fill:    #b8b8b8;
+  --graph-loc-stroke:  #333333;
+  --graph-loc-label:   #0d0d0d;
+  --graph-con-fill:    #909090;
+  --graph-con-stroke:  #555555;
+  --graph-con-label:   #0d0d0d;
+  --graph-evt-fill:    #3a3a3a;
+  --graph-evt-stroke:  #000000;
+  --graph-evt-label:   #0d0d0d;
+
+  /* symbol type pills — 6-step grayscale gradient */
+  --symbol-object-bg:   #f2f2f2; --symbol-object-fg:   #0d0d0d; --symbol-object-dot:   #111111;
+  --symbol-nature-bg:   #e0e0e0; --symbol-nature-fg:   #0d0d0d; --symbol-nature-dot:   #333333;
+  --symbol-spatial-bg:  #cccccc; --symbol-spatial-fg:  #0d0d0d; --symbol-spatial-dot:  #555555;
+  --symbol-body-bg:     #888888; --symbol-body-fg:     #ffffff; --symbol-body-dot:     #eeeeee;
+  --symbol-color-bg:    #444444; --symbol-color-fg:    #ffffff; --symbol-color-dot:    #cccccc;
+  --symbol-other-bg:    #111111; --symbol-other-fg:    #f2f2f2; --symbol-other-dot:    #888888;
+
+  /* timeline narrative modes — grayscale by prominence */
+  --narrative-present-border:     #000000; --narrative-present-bg:     #f0f0f0;
+  --narrative-flashback-border:   #666666; --narrative-flashback-bg:   #e8e8e8;
+  --narrative-flashforward-border:#333333; --narrative-flashforward-bg:#d8d8d8;
+  --narrative-parallel-border:    #888888; --narrative-parallel-bg:    #f5f5f5;
+  --narrative-unknown-border:     #aaaaaa; --narrative-unknown-bg:     #f8f8f8;
+  --timeline-chapter-bg:    rgba(0,0,0,0.02);
+  --timeline-parallel-bg:   rgba(0,0,0,0.02);
+  --timeline-parallel-border: rgba(0,0,0,0.12);
+  --timeline-causal-stroke: #000000;
+  --timeline-selected-ring: rgba(0,0,0,0.2);
+
+  /* status — strict greyscale: state is conveyed by icon glyph, not hue */
+  --color-success:    #0d0d0d;
+  --color-success-bg: #e8e4db;
+  --color-warning:    #555555;
+  --color-warning-bg: #e8e4db;
+  --color-error:      #0d0d0d;
+  --color-error-bg:   #e8e4db;
+  --color-info:       #888888;
+  --color-info-bg:    #e8e4db;
+
+  /* Unraveling DAG status — greyscale gradient by completion */
+  --status-complete-bg:     #d8d8d8;
+  --status-complete-border: #000000;
+  --status-complete-fg:     #0d0d0d;
+  --status-partial-bg:      #ebebeb;
+  --status-partial-border:  #555555;
+  --status-partial-fg:      #333333;
+  --status-empty-bg:        #f5f5f5;
+  --status-empty-border:    #aaaaaa;
+  --status-empty-fg:        #888888;
+}
+
+/* ── Minimal Ink ─────────────────────────────────────────────── */
+[data-theme="minimal-ink"] {
+  --bg-primary:   #ffffff;
+  --bg-secondary: #f5f5f5;
+  --bg-tertiary:  #ebebeb;
+
+  --fg-primary:   #000000;
+  --fg-secondary: #333333;
+  --fg-muted:     #888888;
+
+  --border: #000000;
+  --accent: #000000;
+
+  --panel-bg:       #eeeeee;
+  --panel-bg-card:  #e5e5e5;
+  --panel-border:   #000000;
+  --panel-fg:       #000000;
+  --panel-fg-muted: #888888;
+
+  --font-serif: system-ui, -apple-system, sans-serif;
+  --font-sans:  system-ui, -apple-system, sans-serif;
+
+  --line-weight:   0.5px;
+  --border-style:  solid;
+  --node-shadow:   none;
+  --divider-style: 1.5px solid #000000;
+
+  /* entity pills — fill polarity: char=black, concept=hairline, others=gray */
+  --entity-char-bg:    #000000;
+  --entity-char-border:#000000;
+  --entity-char-fg:    #ffffff;
+  --entity-char-dot:   #ffffff;
+
+  --entity-loc-bg:    #ffffff;
+  --entity-loc-border:#000000;
+  --entity-loc-fg:    #000000;
+  --entity-loc-dot:   #000000;
+
+  --entity-org-bg:    #e0e0e0;
+  --entity-org-border:#000000;
+  --entity-org-fg:    #000000;
+  --entity-org-dot:   #000000;
+
+  --entity-obj-bg:    #f0f0f0;
+  --entity-obj-border:#aaaaaa;
+  --entity-obj-fg:    #333333;
+  --entity-obj-dot:   #555555;
+
+  --entity-con-bg:    #ffffff;
+  --entity-con-border:#aaaaaa;
+  --entity-con-fg:    #888888;
+  --entity-con-dot:   #aaaaaa;
+
+  --entity-evt-bg:    #555555;
+  --entity-evt-border:#000000;
+  --entity-evt-fg:    #ffffff;
+  --entity-evt-dot:   #ffffff;
+
+  --entity-other-bg:    #f5f5f5;
+  --entity-other-border:#cccccc;
+  --entity-other-fg:    #888888;
+  --entity-other-dot:   #cccccc;
+
+  /* graph nodes — fill polarity; labels rendered below node, dark for readability on bg */
+  --graph-char-fill:   #000000;
+  --graph-char-stroke: #000000;
+  --graph-char-label:  #000000;
+  --graph-loc-fill:    #ffffff;
+  --graph-loc-stroke:  #000000;
+  --graph-loc-label:   #000000;
+  --graph-con-fill:    #aaaaaa;
+  --graph-con-stroke:  #000000;
+  --graph-con-label:   #000000;
+  --graph-evt-fill:    #555555;
+  --graph-evt-stroke:  #000000;
+  --graph-evt-label:   #000000;
+
+  /* symbol type pills — 6-step fill polarity */
+  --symbol-object-bg:   #000000; --symbol-object-fg:   #ffffff; --symbol-object-dot:   #ffffff;
+  --symbol-nature-bg:   #3a3a3a; --symbol-nature-fg:   #ffffff; --symbol-nature-dot:   #cccccc;
+  --symbol-spatial-bg:  #777777; --symbol-spatial-fg:  #ffffff; --symbol-spatial-dot:  #ffffff;
+  --symbol-body-bg:     #c0c0c0; --symbol-body-fg:     #000000; --symbol-body-dot:     #000000;
+  --symbol-color-bg:    #e8e8e8; --symbol-color-fg:    #000000; --symbol-color-dot:    #555555;
+  --symbol-other-bg:    #f5f5f5; --symbol-other-fg:    #888888; --symbol-other-dot:    #cccccc;
+
+  /* timeline narrative modes */
+  --narrative-present-border:     #000000; --narrative-present-bg:     #f5f5f5;
+  --narrative-flashback-border:   #555555; --narrative-flashback-bg:   #e5e5e5;
+  --narrative-flashforward-border:#222222; --narrative-flashforward-bg:#d5d5d5;
+  --narrative-parallel-border:    #888888; --narrative-parallel-bg:    #f8f8f8;
+  --narrative-unknown-border:     #aaaaaa; --narrative-unknown-bg:     #fafafa;
+  --timeline-chapter-bg:    rgba(0,0,0,0.02);
+  --timeline-parallel-bg:   rgba(0,0,0,0.02);
+  --timeline-parallel-border: rgba(0,0,0,0.12);
+  --timeline-causal-stroke: #000000;
+  --timeline-selected-ring: rgba(0,0,0,0.2);
+
+  /* status — strict greyscale: state is conveyed by icon glyph, not hue */
+  --color-success:    #000000;
+  --color-success-bg: #ebebeb;
+  --color-warning:    #555555;
+  --color-warning-bg: #ebebeb;
+  --color-error:      #000000;
+  --color-error-bg:   #ebebeb;
+  --color-info:       #888888;
+  --color-info-bg:    #ebebeb;
+
+  /* Unraveling DAG status — fill polarity gradient by completion */
+  --status-complete-bg:     #000000;
+  --status-complete-border: #000000;
+  --status-complete-fg:     #ffffff;
+  --status-partial-bg:      #aaaaaa;
+  --status-partial-border:  #000000;
+  --status-partial-fg:      #000000;
+  --status-empty-bg:        #ffffff;
+  --status-empty-border:    #aaaaaa;
+  --status-empty-fg:        #888888;
+}
+
+/* ── Pulp ────────────────────────────────────────────────────── */
+[data-theme="pulp"] {
+  --bg-primary:   #ffffff;
+  --bg-secondary: #f2f2f2;
+  --bg-tertiary:  #e5e5e5;
+
+  --fg-primary:   #000000;
+  --fg-secondary: #1a1a1a;
+  --fg-muted:     #666666;
+
+  --border: #000000;
+  --accent: #000000;
+
+  --panel-bg:       #eeeeee;
+  --panel-bg-card:  #e0e0e0;
+  --panel-border:   #000000;
+  --panel-fg:       #000000;
+  --panel-fg-muted: #666666;
+
+  --font-serif: 'Permanent Marker', cursive;
+  --font-sans:  'Space Mono', 'Courier New', monospace;
+
+  --line-weight:   2px;
+  --border-style:  solid;
+  --node-shadow:   2px 2px 0 #000000;
+  --divider-style: 2px dashed #888888;
+
+  /* entity pills — bold, high contrast */
+  --entity-char-bg:    #000000;
+  --entity-char-border:#000000;
+  --entity-char-fg:    #ffffff;
+  --entity-char-dot:   #ffffff;
+
+  --entity-loc-bg:    #ffffff;
+  --entity-loc-border:#000000;
+  --entity-loc-fg:    #000000;
+  --entity-loc-dot:   #000000;
+
+  --entity-org-bg:    #e0e0e0;
+  --entity-org-border:#000000;
+  --entity-org-fg:    #000000;
+  --entity-org-dot:   #000000;
+
+  --entity-obj-bg:    #f0f0f0;
+  --entity-obj-border:#000000;
+  --entity-obj-fg:    #000000;
+  --entity-obj-dot:   #000000;
+
+  --entity-con-bg:    #ffffff;
+  --entity-con-border:#888888;
+  --entity-con-fg:    #555555;
+  --entity-con-dot:   #555555;
+
+  --entity-evt-bg:    #000000;
+  --entity-evt-border:#000000;
+  --entity-evt-fg:    #ffffff;
+  --entity-evt-dot:   #ffffff;
+
+  --entity-other-bg:    #f5f5f5;
+  --entity-other-border:#aaaaaa;
+  --entity-other-fg:    #555555;
+  --entity-other-dot:   #aaaaaa;
+
+  /* graph nodes — bold fill polarity; labels rendered below node, dark for readability on bg */
+  --graph-char-fill:   #000000;
+  --graph-char-stroke: #000000;
+  --graph-char-label:  #000000;
+  --graph-loc-fill:    #ffffff;
+  --graph-loc-stroke:  #000000;
+  --graph-loc-label:   #000000;
+  --graph-con-fill:    #aaaaaa;
+  --graph-con-stroke:  #000000;
+  --graph-con-label:   #000000;
+  --graph-evt-fill:    #444444;
+  --graph-evt-stroke:  #000000;
+  --graph-evt-label:   #000000;
+
+  /* symbol type pills — 6-step fill polarity */
+  --symbol-object-bg:   #000000; --symbol-object-fg:   #ffffff; --symbol-object-dot:   #ffffff;
+  --symbol-nature-bg:   #333333; --symbol-nature-fg:   #ffffff; --symbol-nature-dot:   #ffffff;
+  --symbol-spatial-bg:  #777777; --symbol-spatial-fg:  #ffffff; --symbol-spatial-dot:  #ffffff;
+  --symbol-body-bg:     #bbbbbb; --symbol-body-fg:     #000000; --symbol-body-dot:     #000000;
+  --symbol-color-bg:    #e5e5e5; --symbol-color-fg:    #000000; --symbol-color-dot:    #555555;
+  --symbol-other-bg:    #f5f5f5; --symbol-other-fg:    #555555; --symbol-other-dot:    #aaaaaa;
+
+  /* timeline narrative modes */
+  --narrative-present-border:     #000000; --narrative-present-bg:     #f0f0f0;
+  --narrative-flashback-border:   #666666; --narrative-flashback-bg:   #e0e0e0;
+  --narrative-flashforward-border:#000000; --narrative-flashforward-bg:#d0d0d0;
+  --narrative-parallel-border:    #888888; --narrative-parallel-bg:    #f5f5f5;
+  --narrative-unknown-border:     #aaaaaa; --narrative-unknown-bg:     #f8f8f8;
+  --timeline-chapter-bg:    rgba(0,0,0,0.02);
+  --timeline-parallel-bg:   rgba(0,0,0,0.03);
+  --timeline-parallel-border: rgba(0,0,0,0.15);
+  --timeline-causal-stroke: #000000;
+  --timeline-selected-ring: rgba(0,0,0,0.25);
+
+  /* status — strict greyscale: state is conveyed by icon glyph, not hue */
+  --color-success:    #000000;
+  --color-success-bg: #e5e5e5;
+  --color-warning:    #555555;
+  --color-warning-bg: #e5e5e5;
+  --color-error:      #000000;
+  --color-error-bg:   #e5e5e5;
+  --color-info:       #888888;
+  --color-info-bg:    #e5e5e5;
+
+  /* Unraveling DAG status — bold fill polarity gradient by completion */
+  --status-complete-bg:     #000000;
+  --status-complete-border: #000000;
+  --status-complete-fg:     #ffffff;
+  --status-partial-bg:      #aaaaaa;
+  --status-partial-border:  #000000;
+  --status-partial-fg:      #000000;
+  --status-empty-bg:        #ffffff;
+  --status-empty-border:    #000000;
+  --status-empty-fg:        #555555;
 }

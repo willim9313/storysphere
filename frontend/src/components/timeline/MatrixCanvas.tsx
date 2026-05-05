@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
 import { useTranslation } from 'react-i18next';
+import { useTheme } from '@/contexts/ThemeContext';
 import type { TimelineEvent, NarrativeMode } from '@/api/types';
 
 /* ── Constants ──────────────────────────────────────────────── */
@@ -8,13 +9,17 @@ import type { TimelineEvent, NarrativeMode } from '@/api/types';
 const MARGIN = { top: 32, right: 32, bottom: 56, left: 72 };
 const DEGRADED_Y = -0.1; // Y position for events without chronological_rank
 
-const MODE_COLOR: Record<NarrativeMode, string> = {
-  present: '#8b5e3c',
-  flashback: '#3b82f6',
-  flashforward: '#f59e0b',
-  parallel: '#8b5cf6',
-  unknown: '#8a7a68',
-};
+function modeColor(mode: NarrativeMode): string {
+  const v = (name: string) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  switch (mode) {
+    case 'present':      return v('--narrative-present-border')      || '#8b5e3c';
+    case 'flashback':    return v('--narrative-flashback-border')    || '#3b82f6';
+    case 'flashforward': return v('--narrative-flashforward-border') || '#f59e0b';
+    case 'parallel':     return v('--narrative-parallel-border')     || '#8b5cf6';
+    default:             return v('--narrative-unknown-border')      || '#8a7a68';
+  }
+}
 
 const IMPORTANCE_RADIUS: Record<string, number> = {
   KERNEL: 8,
@@ -47,6 +52,7 @@ export function MatrixCanvas({
   onBrushSelect,
 }: MatrixCanvasProps) {
   const { t } = useTranslation('analysis');
+  const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
@@ -237,8 +243,8 @@ export function MatrixCanvas({
       .attr('cy', (d) => pos(d).y)
       .attr('r', (d) => dotRadius(d))
       .attr('fill', (d) => {
-        if (d.chronologicalRank == null) return '#8a7a68';
-        return MODE_COLOR[d.narrativeMode] ?? MODE_COLOR.unknown;
+        if (d.chronologicalRank == null) return modeColor('unknown');
+        return modeColor(d.narrativeMode);
       })
       .attr('stroke', (d) =>
         d.id === selectedEventId ? 'var(--fg-primary)' : 'none',
@@ -331,10 +337,10 @@ export function MatrixCanvas({
     /* ── Legend ──────────────────────────────────────── */
 
     const legendData: { label: string; color: string }[] = [
-      { label: 'present', color: MODE_COLOR.present },
-      { label: 'flashback', color: MODE_COLOR.flashback },
-      { label: 'flashforward', color: MODE_COLOR.flashforward },
-      { label: 'parallel', color: MODE_COLOR.parallel },
+      { label: 'present', color: modeColor('present') },
+      { label: 'flashback', color: modeColor('flashback') },
+      { label: 'flashforward', color: modeColor('flashforward') },
+      { label: 'parallel', color: modeColor('parallel') },
     ];
 
     const legendG = g
@@ -374,6 +380,7 @@ export function MatrixCanvas({
     onSelectEvent,
     onBrushSelect,
     t,
+    theme,
   ]);
 
   return (

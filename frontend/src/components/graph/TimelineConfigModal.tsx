@@ -117,7 +117,7 @@ export function TimelineConfigModal({ bookId, detection, onClose }: TimelineConf
         </div>
 
         {mutation.isError && (
-          <p className="text-xs mt-2 text-right" style={{ color: '#f87171' }}>
+          <p className="text-xs mt-2 text-right" style={{ color: 'var(--color-error)' }}>
             {(mutation.error as Error).message}
           </p>
         )}
@@ -161,7 +161,7 @@ function ModeCard({
       className="rounded-lg p-3"
       style={{
         border: `1px solid ${enabled ? 'var(--accent)' : 'var(--border)'}`,
-        backgroundColor: enabled ? 'color-mix(in srgb, var(--accent) 5%, white)' : 'var(--bg-secondary)',
+        backgroundColor: enabled ? 'color-mix(in srgb, var(--accent) 5%, var(--bg-primary))' : 'var(--bg-secondary)',
         opacity: locked ? 0.55 : 1,
       }}
     >
@@ -173,7 +173,7 @@ function ModeCard({
           <div className="min-w-0">
             <div className="text-sm font-medium flex items-center gap-1.5" style={{ color: 'var(--fg-primary)' }}>
               {title}
-              {viable && <CheckCircle size={12} style={{ color: '#4ade80' }} />}
+              {viable && <CheckCircle size={12} style={{ color: 'var(--color-success)' }} />}
             </div>
             <p className="text-xs mt-0.5" style={{ color: 'var(--fg-secondary)' }}>{description}</p>
             {lockedNote && (

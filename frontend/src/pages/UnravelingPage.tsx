@@ -6,6 +6,7 @@ import { useTranslation, type TFunction } from 'react-i18next';
 import cytoscape from 'cytoscape';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { useTheme } from '@/contexts/ThemeContext';
 import {
   fetchUnraveling,
   type NodeStatus,
@@ -32,11 +33,28 @@ const KG_CHILD_IDS = new Set(['kg_entity', 'kg_concept', 'kg_relation', 'kg_even
 
 // ── Status colour palette ─────────────────────────────────────────────────────
 
-const STATUS: Record<NodeStatus, { bg: string; border: string; text: string }> = {
-  complete: { bg: '#f0fdf4', border: '#22c55e', text: '#15803d' },
-  partial:  { bg: '#fffbeb', border: '#f59e0b', text: '#92400e' },
-  empty:    { bg: '#f3f4f6', border: '#d1d5db', text: '#6b7280' },
-};
+const v = (name: string) =>
+  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+function getStatusPalette(): Record<NodeStatus, { bg: string; border: string; text: string }> {
+  return {
+    complete: {
+      bg:     v('--status-complete-bg')     || '#f0fdf4',
+      border: v('--status-complete-border') || '#22c55e',
+      text:   v('--status-complete-fg')     || '#15803d',
+    },
+    partial: {
+      bg:     v('--status-partial-bg')     || '#fffbeb',
+      border: v('--status-partial-border') || '#f59e0b',
+      text:   v('--status-partial-fg')     || '#92400e',
+    },
+    empty: {
+      bg:     v('--status-empty-bg')     || '#f3f4f6',
+      border: v('--status-empty-border') || '#d1d5db',
+      text:   v('--status-empty-fg')     || '#6b7280',
+    },
+  };
+}
 
 function statusLabel(t: TFunction, status: NodeStatus): string {
   return t(`unraveling.status.${status}`);
@@ -44,89 +62,106 @@ function statusLabel(t: TFunction, status: NodeStatus): string {
 
 // ── Cytoscape stylesheet ──────────────────────────────────────────────────────
 
-const STYLESHEET: cytoscape.Stylesheet[] = [
-  // Compound group node (KG Features)
-  {
-    selector: `#${KG_GROUP_ID}`,
-    style: {
-      shape: 'round-rectangle',
-      'background-color': '#f5ede0',
-      'background-opacity': 0.6,
-      'border-color': '#8b7355',
-      'border-width': 2.5,
-      'border-style': 'dashed',
-      label: 'data(label)',
-      'text-valign': 'top',
-      'text-halign': 'center',
-      'text-margin-y': -18,
-      'font-size': 18,
-      'font-weight': 'bold',
-      color: '#5c4a32',
-      padding: 26,
-    } as cytoscape.Css.Node,
-  },
-  // Regular nodes
-  {
-    selector: `node:not(#${KG_GROUP_ID})`,
-    style: {
-      shape: 'data(shape)',
-      width: 120,
-      height: 52,
-      'background-color': 'data(bgColor)',
-      'border-color': 'data(borderColor)',
-      'border-width': 2,
-      label: 'data(label)',
-      'text-valign': 'center',
-      'text-halign': 'center',
-      'text-wrap': 'wrap',
-      'text-max-width': '108',
-      'font-size': 10,
-      color: 'data(textColor)',
-      'font-family': 'var(--font-sans, sans-serif)',
-    } as cytoscape.Css.Node,
-  },
-  {
-    selector: 'node:selected',
-    style: {
-      'border-width': 3,
-      'border-color': '#8b5e3c',
-    } as cytoscape.Css.Node,
-  },
-  {
-    selector: 'edge',
-    style: {
-      'curve-style': 'bezier',
-      'target-arrow-shape': 'triangle',
-      'line-color': '#d4c8b8',
-      'target-arrow-color': '#d4c8b8',
-      width: 1.5,
-    } as cytoscape.Css.Edge,
-  },
-  // Highlighted node (the tapped node + its direct neighbors)
-  {
-    selector: 'node.highlighted',
-    style: {
-      'border-width': 3,
-      'border-color': '#8b5e3c',
-    } as cytoscape.Css.Node,
-  },
-  // Highlighted edge (connected to tapped node)
-  {
-    selector: 'edge.highlighted',
-    style: {
-      'line-color': '#8b5e3c',
-      'target-arrow-color': '#8b5e3c',
-      width: 2.5,
-    } as cytoscape.Css.Edge,
-  },
-  // Faded — everything not related to the tapped node
-  {
-    selector: '.faded',
-    style: {
-      opacity: 0.25,
-    } as cytoscape.Css.Node,
-  },
-];
+function getUnravelingStylesheet(): cytoscape.Stylesheet[] {
+  const accent    = v('--accent')       || '#8b5e3c';
+  const border    = v('--border')       || '#e0d4c4';
+  const bgTertiary  = v('--bg-tertiary')  || '#f5ede0';
+  const fgSecondary = v('--fg-secondary') || '#5a4f42';
+  const fontSans  = v('--font-sans')    || 'DM Sans, system-ui, sans-serif';
+  const lineWeight = Number.parseFloat(v('--line-weight')) || 1;
+  const edgeStyle: 'dashed' | 'solid' =
+    v('--border-style') === 'dashed' ? 'dashed' : 'solid';
+  const nodeBorderWidth = Math.max(1, lineWeight * 2);
+  const palette = getStatusPalette();
+  const statusFill = (key: 'bg' | 'border' | 'text') =>
+    (ele: cytoscape.NodeSingular) =>
+      palette[ele.data('status') as NodeStatus]?.[key] ?? palette.empty[key];
+
+  return [
+    // Compound group node (KG Features)
+    {
+      selector: `#${KG_GROUP_ID}`,
+      style: {
+        shape: 'round-rectangle',
+        'background-color': bgTertiary,
+        'background-opacity': 0.6,
+        'border-color': accent,
+        'border-width': 2.5,
+        'border-style': 'dashed',
+        label: 'data(label)',
+        'text-valign': 'top',
+        'text-halign': 'center',
+        'text-margin-y': -18,
+        'font-size': 18,
+        'font-weight': 'bold',
+        color: fgSecondary,
+        padding: 26,
+      } as cytoscape.Css.Node,
+    },
+    // Regular nodes
+    {
+      selector: `node:not(#${KG_GROUP_ID})`,
+      style: {
+        shape: 'data(shape)',
+        width: 120,
+        height: 52,
+        'background-color': statusFill('bg'),
+        'border-color': statusFill('border'),
+        'border-width': nodeBorderWidth,
+        label: 'data(label)',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'text-wrap': 'wrap',
+        'text-max-width': '108',
+        'font-size': 10,
+        color: statusFill('text'),
+        'font-family': fontSans,
+      } as cytoscape.Css.Node,
+    },
+    {
+      selector: 'node:selected',
+      style: {
+        'border-width': 3,
+        'border-color': accent,
+      } as cytoscape.Css.Node,
+    },
+    {
+      selector: 'edge',
+      style: {
+        'curve-style': 'bezier',
+        'target-arrow-shape': 'triangle',
+        'line-color': border,
+        'line-style': edgeStyle,
+        'target-arrow-color': border,
+        width: Math.max(1, lineWeight * 1.5),
+      } as cytoscape.Css.Edge,
+    },
+    // Highlighted node (the tapped node + its direct neighbors)
+    {
+      selector: 'node.highlighted',
+      style: {
+        'border-width': 3,
+        'border-color': accent,
+      } as cytoscape.Css.Node,
+    },
+    // Highlighted edge (connected to tapped node)
+    {
+      selector: 'edge.highlighted',
+      style: {
+        'line-color': accent,
+        'target-arrow-color': accent,
+        width: 2.5,
+      } as cytoscape.Css.Edge,
+    },
+    // Faded — everything not related to the tapped node
+    {
+      selector: '.faded',
+      style: {
+        opacity: 0.25,
+      } as cytoscape.Css.Node,
+    },
+  ];
+}
 
 // ── Shape per layer ───────────────────────────────────────────────────────────
 
@@ -208,7 +243,6 @@ function buildElements(
       const total = layerNodes.length;
       y = CANVAS_CENTER_Y + (idx - (total - 1) / 2) * NODE_Y_SPACING;
     }
-    const { bg, border, text } = STATUS[n.status];
     const sub = getSubLabel(t, n);
     const label = sub ? `${n.label}\n${sub}` : n.label;
 
@@ -217,9 +251,7 @@ function buildElements(
         id: n.nodeId,
         label,
         shape: LAYER_SHAPE[n.layer] ?? 'round-rectangle',
-        bgColor: bg,
-        borderColor: border,
-        textColor: text,
+        status: n.status,
         nodeData: n,
       },
       position: { x: LAYER_X[n.layer] ?? 100, y },
@@ -236,7 +268,6 @@ function buildElements(
     layer1TopY + layer1Regular.length * NODE_Y_SPACING + KG_VERTICAL_GAP;
   const kgChildEls: cytoscape.ElementDefinition[] = kgChildren.map((n, idx) => {
     const y = kgStartY + idx * NODE_Y_SPACING;
-    const { bg, border, text } = STATUS[n.status];
     const sub = getSubLabel(t, n);
     const label = sub ? `${n.label}\n${sub}` : n.label;
 
@@ -246,9 +277,7 @@ function buildElements(
         parent: KG_GROUP_ID,
         label,
         shape: 'rectangle',
-        bgColor: bg,
-        borderColor: border,
-        textColor: text,
+        status: n.status,
         nodeData: n,
       },
       position: { x: KG_CHILD_X, y },
@@ -276,6 +305,7 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
   const cyRef = useRef<cytoscape.Core | null>(null);
   const onTapRef = useRef(onNodeTap);
   onTapRef.current = onNodeTap;
+  const { theme } = useTheme();
 
   useEffect(() => {
     if (!containerRef.current || !elements.length) return;
@@ -283,7 +313,7 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
     const cy = cytoscape({
       container: containerRef.current,
       elements,
-      style: STYLESHEET,
+      style: getUnravelingStylesheet(),
       layout: { name: 'preset' },
       userZoomingEnabled: true,
       userPanningEnabled: true,
@@ -337,6 +367,12 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
     };
   }, [elements]);
 
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    cy.style(getUnravelingStylesheet());
+  }, [theme]);
+
   return (
     <div
       ref={containerRef}
@@ -361,7 +397,9 @@ interface DetailPanelProps {
 
 function NodeDetailPanel({ node, onClose }: Readonly<DetailPanelProps>) {
   const { t } = useTranslation('analysis');
-  const { bg, border, text } = STATUS[node.status];
+  const bg = `var(--status-${node.status}-bg)`;
+  const border = `var(--status-${node.status}-border)`;
+  const text = `var(--status-${node.status}-fg)`;
 
   return (
     <div
@@ -475,17 +513,18 @@ function Legend() {
         color: 'var(--fg-muted)',
       }}
     >
-      {(Object.entries(STATUS) as [NodeStatus, typeof STATUS[NodeStatus]][]).map(
-        ([status, { bg, border, text }]) => (
-          <div key={status} className="flex items-center gap-1.5">
-            <div
-              className="w-3 h-3 rounded-sm"
-              style={{ backgroundColor: bg, border: `1px solid ${border}` }}
-            />
-            <span style={{ color: text }}>{statusLabel(t, status)}</span>
-          </div>
-        ),
-      )}
+      {(['complete', 'partial', 'empty'] as NodeStatus[]).map((status) => (
+        <div key={status} className="flex items-center gap-1.5">
+          <div
+            className="w-3 h-3 rounded-sm"
+            style={{
+              backgroundColor: `var(--status-${status}-bg)`,
+              border: `1px solid var(--status-${status}-border)`,
+            }}
+          />
+          <span style={{ color: 'var(--fg-secondary)' }}>{statusLabel(t, status)}</span>
+        </div>
+      ))}
     </div>
   );
 }

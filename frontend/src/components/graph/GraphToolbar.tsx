@@ -47,10 +47,10 @@ export function GraphToolbar({
       return { label: t('toolbar.runningInference', '推論中…'), icon: <Loader size={12} className="animate-spin" />, bg: 'var(--bg-secondary)', color: 'var(--fg-muted)', border: '1px solid var(--border)', onClick: undefined };
     }
     if (showInferred) {
-      return { label: t('toolbar.hideInferred', '隱藏推斷關係'), icon: <Link size={12} />, bg: '#fef3c7', color: '#b45309', border: '1px solid #f59e0b', onClick: () => onShowInferredChange(false) };
+      return { label: t('toolbar.hideInferred', '隱藏推斷關係'), icon: <Link size={12} />, bg: 'var(--color-warning-bg)', color: 'var(--color-warning)', border: '1px solid var(--color-warning)', onClick: () => onShowInferredChange(false) };
     }
     if (hasInferredData) {
-      return { label: t('toolbar.showInferred', '顯示推斷關係'), icon: <Link size={12} />, bg: 'var(--bg-secondary)', color: '#b45309', border: '1px solid #f59e0b', onClick: () => onShowInferredChange(true) };
+      return { label: t('toolbar.showInferred', '顯示推斷關係'), icon: <Link size={12} />, bg: 'var(--bg-secondary)', color: 'var(--color-warning)', border: '1px solid var(--color-warning)', onClick: () => onShowInferredChange(true) };
     }
     return { label: t('toolbar.runInference', '執行推論'), icon: <Link size={12} />, bg: 'var(--bg-secondary)', color: 'var(--fg-secondary)', border: '1px solid var(--border)', onClick: onRunInference };
   }
@@ -61,7 +61,7 @@ export function GraphToolbar({
     <div
       className="absolute top-4 left-4 z-10 rounded-lg p-3 space-y-3"
       style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
         boxShadow: 'var(--shadow-md)',
         width: 200,

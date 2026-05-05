@@ -31,6 +31,76 @@
   ::selection {
     background-color: var(--bg-tertiary);
   }
+
+  /* Native form controls follow the theme accent (checkbox tick, radio dot, range thumb/track) */
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    accent-color: var(--accent);
+  }
+}
+
+/* ── Splash screen (outside @layer for specificity) ─────────────── */
+@keyframes splash-bar {
+  0%   { transform: translateX(-100%); }
+  50%  { transform: translateX(180%); }
+  100% { transform: translateX(380%); }
+}
+
+.splash-bg-img {
+  opacity: 0.18;
+  filter: grayscale(0.4) contrast(0.95);
+}
+[data-theme="default"] .splash-bg-img     { opacity: 0.22; filter: sepia(0.15) contrast(0.95); }
+[data-theme="manuscript"] .splash-bg-img  { opacity: 0.28; filter: grayscale(1) contrast(1.0); mix-blend-mode: multiply; }
+[data-theme="minimal-ink"] .splash-bg-img { opacity: 0.10; filter: grayscale(1) contrast(1.2); }
+[data-theme="pulp"] .splash-bg-img        { opacity: 0.16; filter: grayscale(1) contrast(1.6); }
+
+.splash-loader-track {
+  width: 90px;
+  height: 2px;
+  background: var(--bg-tertiary);
+  border-radius: 1px;
+  overflow: hidden;
+  margin-top: 4px;
+}
+[data-theme="pulp"] .splash-loader-track {
+  height: 4px;
+  border: 1px solid var(--fg-primary);
+}
+
+.splash-loader-bar {
+  width: 30%;
+  height: 100%;
+  background: var(--accent);
+  animation: splash-bar 1.4s ease-in-out infinite;
+}
+[data-theme="manuscript"] .splash-loader-bar {
+  background: repeating-linear-gradient(45deg, #000 0 1px, transparent 1px 4px), #000;
+}
+[data-theme="pulp"] .splash-loader-bar {
+  background: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 4px);
+}
+
+[data-theme="pulp"] .splash-wordmark {
+  text-shadow: 4px 4px 0 var(--bg-tertiary);
+}
+
+/* ── Theme-specific progress bar stripe overrides (outside @layer for specificity) ── */
+[data-theme="manuscript"] .theme-progress-fill {
+  background: repeating-linear-gradient(
+    0deg,
+    var(--fg-primary) 0px, var(--fg-primary) 1px,
+    transparent 1px, transparent 3px
+  );
+}
+
+[data-theme="pulp"] .theme-progress-fill {
+  background: repeating-linear-gradient(
+    90deg,
+    var(--fg-primary) 0px, var(--fg-primary) 2px,
+    transparent 2px, transparent 4px
+  );
 }
 
 @layer components {
@@ -57,7 +127,7 @@
   }
 
   .btn-secondary {
-    background-color: white;
+    background-color: var(--bg-primary);
     color: var(--fg-primary);
     border-color: var(--border);
   }
@@ -67,11 +137,16 @@
   }
 
   .card {
-    background-color: white;
+    background-color: var(--bg-primary);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     padding: var(--space-lg);
     box-shadow: var(--shadow-sm);
+  }
+
+  /* Pulp theme: offset shadow on card surfaces (overrides --shadow-sm) */
+  [data-theme="pulp"] .card {
+    box-shadow: var(--node-shadow);
   }
 
   /* ── Entity Pill styles ──────────────────────────────────────── */
@@ -140,6 +215,11 @@
     color: var(--entity-other-fg);
   }
   .pill-other .pill-dot { background: var(--entity-other-dot); }
+
+  /* ── Theme-aware progress bar fill ──────────────────────────────── */
+  .theme-progress-fill {
+    background-color: var(--accent);
+  }
 
   /* ── Keyword tag styles ────────────────────────────────────────── */
   .kw-tag {

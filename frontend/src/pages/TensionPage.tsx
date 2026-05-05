@@ -36,10 +36,10 @@ import type { TensionLine, TensionTheme } from '@/api/types';
 // ── Palette ──────────────────────────────────────────────────────
 
 const STATUS_COLORS: Record<string, { border: string; bg: string }> = {
-  pending:  { border: '#94a3b8', bg: '#f8fafc' },
-  approved: { border: '#22c55e', bg: '#f0fdf4' },
-  modified: { border: '#3b82f6', bg: '#eff6ff' },
-  rejected: { border: '#ef4444', bg: '#fef2f2' },
+  pending:  { border: 'var(--fg-muted)',      bg: 'var(--bg-tertiary)'    },
+  approved: { border: 'var(--color-success)', bg: 'var(--color-success-bg)' },
+  modified: { border: 'var(--color-info)',    bg: 'var(--color-info-bg)'    },
+  rejected: { border: 'var(--color-error)',   bg: 'var(--color-error-bg)'   },
 };
 
 function intensityColor(v: number): string {
@@ -83,7 +83,7 @@ function TensionTrajectoryChart({ lines, maxChapter }: { lines: TensionLine[]; m
             : [line.chapter_range[0] ?? 1, line.chapter_range[0] ?? 1];
           const x1 = chToX(ch1);
           const x2 = Math.max(chToX(ch2), x1 + 16);
-          const color = rejected ? '#cbd5e1' : intensityColor(line.intensity_summary);
+          const color = rejected ? 'var(--bg-tertiary)' : intensityColor(line.intensity_summary);
           const label = `${line.canonical_pole_a} vs ${line.canonical_pole_b}`;
 
           return (
@@ -104,7 +104,7 @@ function TensionTrajectoryChart({ lines, maxChapter }: { lines: TensionLine[]; m
                 width={x2 - x1} height={18}
                 rx={4}
                 fill={color}
-                stroke={rejected ? '#94a3b8' : '#f97316'}
+                stroke={rejected ? 'var(--fg-muted)' : 'var(--accent)'}
                 strokeWidth={rejected ? 1 : 1.5}
               />
               {/* Intensity label */}
@@ -113,7 +113,7 @@ function TensionTrajectoryChart({ lines, maxChapter }: { lines: TensionLine[]; m
                   x={(x1 + x2) / 2} y={y + 4}
                   textAnchor="middle"
                   fontSize={10}
-                  fill={line.intensity_summary > 0.5 ? '#7c2d12' : '#374151'}
+                  fill={line.intensity_summary > 0.5 ? 'var(--fg-primary)' : 'var(--fg-secondary)'}
                 >
                   {(line.intensity_summary * 100).toFixed(0)}%
                 </text>
@@ -196,7 +196,10 @@ function TensionLineCard({
         </span>
         <span
           className="text-xs px-1.5 py-0.5 rounded"
-          style={{ background: colors.border + '22', color: colors.border }}
+          style={{
+            background: `color-mix(in srgb, ${colors.border} 13%, transparent)`,
+            color: colors.border,
+          }}
         >
           {t(`tension.status.${line.review_status}`)}
         </span>
@@ -226,7 +229,7 @@ function TensionLineCard({
                 onClick={handleModify}
                 disabled={reviewMutation.isPending}
                 className="text-xs px-2 py-1 rounded"
-                style={{ background: '#3b82f6', color: 'white' }}
+                style={{ background: 'var(--accent)', color: 'white' }}
               >
                 {reviewMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : t('tension.save')}
               </button>
@@ -244,7 +247,7 @@ function TensionLineCard({
                 onClick={handleApprove}
                 disabled={reviewMutation.isPending || line.review_status === 'approved'}
                 className="flex items-center gap-1 text-xs px-2 py-1 rounded"
-                style={{ background: '#dcfce7', color: '#166534' }}
+                style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}
               >
                 <CheckCircle size={12} /> {t('tension.approve')}
               </button>
@@ -252,7 +255,7 @@ function TensionLineCard({
                 onClick={() => setEditing(true)}
                 disabled={reviewMutation.isPending}
                 className="flex items-center gap-1 text-xs px-2 py-1 rounded"
-                style={{ background: '#dbeafe', color: '#1e40af' }}
+                style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}
               >
                 <Edit3 size={12} /> {t('tension.modifyLabel')}
               </button>
@@ -260,12 +263,12 @@ function TensionLineCard({
                 onClick={handleReject}
                 disabled={reviewMutation.isPending || line.review_status === 'rejected'}
                 className="flex items-center gap-1 text-xs px-2 py-1 rounded"
-                style={{ background: '#fee2e2', color: '#991b1b' }}
+                style={{ background: 'var(--color-error-bg)', color: 'var(--color-error)' }}
               >
                 <XCircle size={12} /> {t('tension.reject')}
               </button>
               {reviewMutation.isError && (
-                <span className="text-xs" style={{ color: '#ef4444' }}>{t('tension.operationFailed')}</span>
+                <span className="text-xs" style={{ color: 'var(--color-error)' }}>{t('tension.operationFailed')}</span>
               )}
             </div>
           )}
@@ -313,13 +316,16 @@ function TensionThemePanel({
       }}
     >
       <div className="flex items-center gap-2 mb-3">
-        <Sparkles size={16} style={{ color: '#f59e0b' }} />
+        <Sparkles size={16} style={{ color: 'var(--accent)' }} />
         <span className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
           {t('tension.themeTitle')}
         </span>
         <span
           className="text-xs px-1.5 py-0.5 rounded ml-auto"
-          style={{ background: colors.border + '22', color: colors.border }}
+          style={{
+            background: `color-mix(in srgb, ${colors.border} 13%, transparent)`,
+            color: colors.border,
+          }}
         >
           {t(`tension.status.${theme.review_status}`)}
         </span>
@@ -332,7 +338,7 @@ function TensionThemePanel({
           onChange={(e) => setProposition(e.target.value)}
           rows={3}
           className="text-sm w-full border rounded px-3 py-2 mb-3"
-          style={{ borderColor: 'var(--border)', resize: 'vertical', background: 'white' }}
+          style={{ borderColor: 'var(--border)', resize: 'vertical', background: 'var(--bg-primary)' }}
         />
       ) : (
         <p className="text-sm mb-3" style={{ color: 'var(--fg-primary)', lineHeight: 1.7 }}>
@@ -347,7 +353,7 @@ function TensionThemePanel({
             <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>Frye Mythos</span>
             <span
               className="text-xs font-medium px-2 py-0.5 rounded"
-              style={{ background: '#fef9c3', color: '#713f12' }}
+              style={{ background: 'var(--entity-org-bg)', color: 'var(--entity-org-fg)' }}
             >
               {t(`tension.frye.${theme.frye_mythos}`, { defaultValue: theme.frye_mythos })}
             </span>
@@ -358,7 +364,7 @@ function TensionThemePanel({
             <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>Booker Plot</span>
             <span
               className="text-xs font-medium px-2 py-0.5 rounded"
-              style={{ background: '#ede9fe', color: '#4c1d95' }}
+              style={{ background: 'var(--entity-con-bg)', color: 'var(--entity-con-fg)' }}
             >
               {t(`tension.booker.${theme.booker_plot}`, { defaultValue: theme.booker_plot })}
             </span>
@@ -374,7 +380,7 @@ function TensionThemePanel({
               onClick={() => reviewMutation.mutate({ status: 'modified', prop: proposition })}
               disabled={reviewMutation.isPending}
               className="flex items-center gap-1 text-xs px-2 py-1 rounded"
-              style={{ background: '#3b82f6', color: 'white' }}
+              style={{ background: 'var(--accent)', color: 'white' }}
             >
               {reviewMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : t('tension.saveModify')}
             </button>
@@ -392,7 +398,7 @@ function TensionThemePanel({
               onClick={() => reviewMutation.mutate({ status: 'approved' })}
               disabled={reviewMutation.isPending || theme.review_status === 'approved'}
               className="flex items-center gap-1 text-xs px-2 py-1 rounded"
-              style={{ background: '#dcfce7', color: '#166534' }}
+              style={{ background: 'var(--color-success-bg)', color: 'var(--color-success)' }}
             >
               <CheckCircle size={12} /> {t('tension.approve')}
             </button>
@@ -400,7 +406,7 @@ function TensionThemePanel({
               onClick={() => setEditing(true)}
               disabled={reviewMutation.isPending}
               className="flex items-center gap-1 text-xs px-2 py-1 rounded"
-              style={{ background: '#dbeafe', color: '#1e40af' }}
+              style={{ background: 'var(--color-info-bg)', color: 'var(--color-info)' }}
             >
               <Edit3 size={12} /> {t('tension.modifyProposition')}
             </button>
@@ -408,12 +414,12 @@ function TensionThemePanel({
               onClick={() => reviewMutation.mutate({ status: 'rejected' })}
               disabled={reviewMutation.isPending || theme.review_status === 'rejected'}
               className="flex items-center gap-1 text-xs px-2 py-1 rounded"
-              style={{ background: '#fee2e2', color: '#991b1b' }}
+              style={{ background: 'var(--color-error-bg)', color: 'var(--color-error)' }}
             >
               <XCircle size={12} /> {t('tension.reject')}
             </button>
             {reviewMutation.isError && (
-              <span className="text-xs" style={{ color: '#ef4444' }}>{t('tension.operationFailed')}</span>
+              <span className="text-xs" style={{ color: 'var(--color-error)' }}>{t('tension.operationFailed')}</span>
             )}
           </>
         )}
@@ -447,14 +453,14 @@ function StepButton({
       disabled={loading || disabled}
       className="flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors"
       style={{
-        border: `1px solid ${done ? '#22c55e' : 'var(--border)'}`,
-        background: done ? '#f0fdf4' : 'var(--bg-secondary)',
+        border: `1px solid ${done ? 'var(--color-success)' : 'var(--border)'}`,
+        background: done ? 'var(--color-success-bg)' : 'var(--bg-secondary)',
         opacity: disabled ? 0.5 : 1,
         cursor: disabled ? 'not-allowed' : 'pointer',
         width: '100%',
       }}
     >
-      <span style={{ color: done ? '#22c55e' : 'var(--accent)' }}>
+      <span style={{ color: done ? 'var(--color-success)' : 'var(--accent)' }}>
         {loading ? <Loader2 size={18} className="animate-spin" /> : icon}
       </span>
       <div>
@@ -463,7 +469,7 @@ function StepButton({
         </div>
         <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>{desc}</div>
       </div>
-      {done && <CheckCircle size={16} style={{ color: '#22c55e', marginLeft: 'auto' }} />}
+      {done && <CheckCircle size={16} style={{ color: 'var(--color-success)', marginLeft: 'auto' }} />}
     </button>
   );
 }
@@ -615,7 +621,7 @@ export default function TensionPage() {
             done={hasTeus}
           />
           {analyzeOp.error && (
-            <div className="flex items-center gap-1 text-xs px-3" style={{ color: '#ef4444' }}>
+            <div className="flex items-center gap-1 text-xs px-3" style={{ color: 'var(--color-error)' }}>
               <AlertTriangle size={12} /> {analyzeOp.error}
             </div>
           )}
@@ -635,7 +641,7 @@ export default function TensionPage() {
             done={hasLines}
           />
           {groupOp.error && (
-            <div className="flex items-center gap-1 text-xs px-3" style={{ color: '#ef4444' }}>
+            <div className="flex items-center gap-1 text-xs px-3" style={{ color: 'var(--color-error)' }}>
               <AlertTriangle size={12} /> {groupOp.error}
             </div>
           )}
@@ -656,7 +662,7 @@ export default function TensionPage() {
             disabled={!hasLines}
           />
           {synthesizeOp.error && (
-            <div className="flex items-center gap-1 text-xs px-3" style={{ color: '#ef4444' }}>
+            <div className="flex items-center gap-1 text-xs px-3" style={{ color: 'var(--color-error)' }}>
               <AlertTriangle size={12} /> {synthesizeOp.error}
             </div>
           )}

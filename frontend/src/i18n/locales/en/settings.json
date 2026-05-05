@@ -1,5 +1,16 @@
 {
   "title": "Settings",
+  "theme": {
+    "title": "Interface Theme",
+    "default": "Warm Analytical",
+    "defaultDesc": "Warm off-white, serif body — library reading feel",
+    "manuscript": "Manuscript",
+    "manuscriptDesc": "Hatching stripes, dashed borders — scholarly aesthetic",
+    "minimalInk": "Minimal Ink",
+    "minimalInkDesc": "Extreme B&W contrast, maximum white space — editorial feel",
+    "pulp": "Pulp",
+    "pulpDesc": "Bold borders, offset shadows — comic & light novel feel"
+  },
   "kg": {
     "title": "Knowledge Graph Backend",
     "currentBackend": "Current Backend",
