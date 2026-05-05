@@ -51,12 +51,14 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
     def __init__(
         self,
         embedding_generator: EmbeddingGenerator | None = None,
-        qdrant_client=None,  # type: ignore[assignment]
+        vector_service=None,
+        qdrant_client=None,  # legacy: used by tests; vector_service takes priority
         keyword_extractor=None,
         keyword_aggregator=None,
     ) -> None:
         self._embedder = embedding_generator or EmbeddingGenerator()
-        self._qdrant = qdrant_client  # optional; pass None to skip Qdrant upsert
+        self._vector_service = vector_service  # VectorService | None
+        self._qdrant = qdrant_client  # raw QdrantClient | None (legacy / test path)
         self._keyword_extractor = keyword_extractor  # BaseKeywordExtractor | None
         self._keyword_aggregator = keyword_aggregator  # KeywordAggregator | None
 
@@ -122,7 +124,7 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
                     )
                     all_chapter_keywords.append(chapter.keywords)
 
-            if self._qdrant is not None:
+            if self._vector_service is not None or self._qdrant is not None:
                 # Qdrant path: write immediately, do NOT keep embedding in memory.
                 # vectors will be GC-able once this iteration ends.
                 ids = await self._upsert_to_qdrant(doc, paragraphs, vectors)
@@ -178,18 +180,57 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         paragraphs: list[Paragraph],
         vectors: list[list[float]],
     ) -> list[str]:
-        """Upsert a single chapter's vectors into Qdrant and return point IDs."""
-        from config.settings import get_settings  # noqa: PLC0415
-        from qdrant_client.models import Distance, PointStruct, VectorParams  # noqa: PLC0415
+        """Upsert a single chapter's vectors into Qdrant and return point IDs.
 
+        Uses VectorService when available (production path); falls back to the
+        raw QdrantClient for the legacy test path (qdrant_client= param).
+        """
+        if self._vector_service is not None:
+            return await self._upsert_via_vector_service(doc, paragraphs, vectors)
+        return await self._upsert_via_raw_client(doc, paragraphs, vectors)
+
+    async def _upsert_via_vector_service(
+        self,
+        doc: Document,
+        paragraphs: list[Paragraph],
+        vectors: list[list[float]],
+    ) -> list[str]:
+        """Production path: delegate to VectorService (single client owner)."""
+        para_dicts = [
+            {
+                "id": para.id,
+                "embedding": vec,
+                "text": para.text,
+                "document_id": doc.id,
+                "chapter_number": para.chapter_number,
+                "position": para.position,
+                "keywords": list(para.keywords.keys()) if para.keywords else [],
+                "keyword_scores": para.keywords if para.keywords else {},
+            }
+            for para, vec in zip(paragraphs, vectors, strict=False)
+        ]
+        await self._vector_service.upsert_paragraphs(para_dicts, document_id=doc.id)
+        logger.debug(
+            "Upserted %d points (chapter %s) via VectorService",
+            len(para_dicts),
+            paragraphs[0].chapter_number if paragraphs else "?",
+        )
+        return [p["id"] for p in para_dicts]
+
+    async def _upsert_via_raw_client(
+        self,
+        doc: Document,
+        paragraphs: list[Paragraph],
+        vectors: list[list[float]],
+    ) -> list[str]:
+        """Legacy path: raw QdrantClient (used by tests with mock_qdrant)."""
+        from qdrant_client.models import Distance, PointStruct, VectorParams  # noqa: PLC0415
+        from config.settings import get_settings  # noqa: PLC0415
         from services.vector_service import title_slug  # noqa: PLC0415
 
         settings = get_settings()
-        collection = (
-            f"{settings.qdrant_collection_prefix}_{title_slug(doc.title)}"
-        )
+        collection = f"{settings.qdrant_collection_prefix}_{title_slug(doc.title)}"
 
-        # Ensure per-book collection exists (cached after first check)
         if not getattr(self, "_qdrant_collection_created", False):
             existing = [c.name for c in self._qdrant.get_collections().collections]
             if collection not in existing:
@@ -217,9 +258,8 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
                     "keyword_scores": para.keywords if para.keywords else {},
                 },
             )
-            for para, vec in zip(paragraphs, vectors)
+            for para, vec in zip(paragraphs, vectors, strict=False)
         ]
-
         self._qdrant.upsert(collection_name=collection, points=points)
         logger.debug(
             "Upserted %d points (chapter %s) into '%s'",

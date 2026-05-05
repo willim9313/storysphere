@@ -104,14 +104,16 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         self._kg_service = kg_service or self._build_kg_service()
         self._document_service = document_service or DocumentService()
 
-        # Feature pipeline: skip qdrant client if skip_qdrant=True
+        # Feature pipeline: use VectorService singleton (skip if skip_qdrant=True)
         if feature_pipeline is not None:
             self._feature_pipeline = feature_pipeline
         else:
-            qdrant_client = None if skip_qdrant else self._build_qdrant_client()
+            from services.vector_service import get_vector_service  # noqa: PLC0415
+
+            vector_svc = None if skip_qdrant else get_vector_service()
             kw_extractor, kw_aggregator = self._build_keyword_components(skip_keywords)
             self._feature_pipeline = FeatureExtractionPipeline(
-                qdrant_client=qdrant_client,
+                vector_service=vector_svc,
                 keyword_extractor=kw_extractor,
                 keyword_aggregator=kw_aggregator,
             )
@@ -403,20 +405,3 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             logger.warning("Keyword extraction setup failed (%s) — keywords will be skipped", exc)
             return None, None
 
-    @staticmethod
-    def _build_qdrant_client():
-        """Try to build a Qdrant client; return None if Qdrant is unavailable.
-
-        Per-book collection creation is handled by
-        ``FeatureExtractionPipeline._upsert_to_qdrant``.
-        """
-        try:
-            from config.settings import get_settings  # noqa: PLC0415
-            from qdrant_client import QdrantClient  # noqa: PLC0415
-
-            settings = get_settings()
-            client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key or None)
-            return client
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Qdrant unavailable (%s) — embeddings will not be stored", exc)
-            return None

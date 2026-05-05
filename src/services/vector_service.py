@@ -73,15 +73,28 @@ class VectorService:
         elif in_memory is True:
             self._client = QdrantClient(":memory:")
             logger.info("VectorService: using in-memory Qdrant (explicit)")
+        elif settings.qdrant_mode == "local":
+            local_path = settings.qdrant_local_path_absolute
+            local_path.mkdir(parents=True, exist_ok=True)
+            self._client = QdrantClient(path=str(local_path))
+            logger.info(
+                "VectorService: using local Qdrant at %s "
+                "(switching modes requires migration, see I-002)",
+                local_path,
+            )
         else:
-            # Always connect to the configured Qdrant URL.
-            # in_memory=True must be explicit — auto-in-memory silently splits
-            # ingestion and search into separate instances.
             self._client = QdrantClient(
                 url=settings.qdrant_url,
                 api_key=settings.qdrant_api_key or None,
             )
-            logger.info("VectorService: connecting to %s", settings.qdrant_url)
+            try:
+                self._client.get_collections()
+            except Exception as exc:
+                raise RuntimeError(
+                    f"VectorService: cannot connect to Qdrant at {settings.qdrant_url} "
+                    f"(DEPLOY_MODE=standard requires Qdrant service running): {exc}"
+                ) from exc
+            logger.info("VectorService: connected to %s", settings.qdrant_url)
 
         self._embedding_fn = None  # lazy
         self._created_collections: set[str] = set()
@@ -396,3 +409,16 @@ class VectorService:
             None, self._embedding_fn.embed_query, text
         )
         return vector
+
+
+# ── Singleton ──────────────────────────────────────────────────────────────────
+
+_service: VectorService | None = None
+
+
+def get_vector_service() -> VectorService:
+    """Return the global VectorService singleton."""
+    global _service
+    if _service is None:
+        _service = VectorService()
+    return _service

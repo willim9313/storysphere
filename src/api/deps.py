@@ -73,11 +73,10 @@ def get_doc_service():
 DocServiceDep = Annotated[Any, Depends(get_doc_service)]
 
 
-@lru_cache(maxsize=1)
 def get_vector_service():
-    from services.vector_service import VectorService  # noqa: PLC0415
+    from services.vector_service import get_vector_service as _get  # noqa: PLC0415
 
-    return VectorService()
+    return _get()
 
 
 VectorServiceDep = Annotated[Any, Depends(get_vector_service)]

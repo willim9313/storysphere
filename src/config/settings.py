@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -45,10 +49,14 @@ class Settings(BaseSettings):
     # ── Database ───────────────────────────────────────────────────────────────
     database_url: str = "sqlite+aiosqlite:///./storysphere.db"
 
+    # ── Deployment Mode ────────────────────────────────────────────────────────
+    deploy_mode: Literal["lightweight", "standard"] = "lightweight"
+
     # ── Vector DB (Qdrant) ─────────────────────────────────────────────────────
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str = ""
     qdrant_collection_prefix: str = "storysphere_book"
+    qdrant_local_path: str = "./data/qdrant_local"
 
     # ── Knowledge Graph ────────────────────────────────────────────────────────
     kg_mode: Literal["networkx", "neo4j"] = "networkx"
@@ -188,7 +196,26 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8000
 
+    # ── Validators ────────────────────────────────────────────────────────────
+    @model_validator(mode="after")
+    def enforce_lightweight_constraints(self) -> Settings:
+        if self.deploy_mode == "lightweight" and self.kg_mode != "networkx":
+            logger.warning(
+                "deploy_mode=lightweight forces kg_mode=networkx (ignoring kg_mode=%s)",
+                self.kg_mode,
+            )
+            self.kg_mode = "networkx"
+        return self
+
     # ── Derived helpers ────────────────────────────────────────────────────────
+    @property
+    def qdrant_mode(self) -> Literal["local", "remote"]:
+        return "local" if self.deploy_mode == "lightweight" else "remote"
+
+    @property
+    def qdrant_local_path_absolute(self) -> Path:
+        return Path(self.qdrant_local_path).resolve()
+
     @property
     def is_development(self) -> bool:
         return self.app_env == "development"
