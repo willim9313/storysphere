@@ -26,13 +26,17 @@ class Settings(BaseSettings):
     )
 
     # ── LLM Providers ──────────────────────────────────────────────────────────
-    gemini_api_key: str = Field(default="", description="Google Gemini API key (primary)")
+    primary_llm_provider: Literal["gemini", "openai", "anthropic", "local"] = Field(
+        default="gemini",
+        description="Primary LLM provider. Only this provider's API key is required.",
+    )
+    gemini_api_key: str = Field(default="", description="Google Gemini API key")
     gemini_model: str = "gemini-2.0-flash"
 
-    openai_api_key: str = Field(default="", description="OpenAI API key (fallback)")
+    openai_api_key: str = Field(default="", description="OpenAI API key")
     openai_model: str = "gpt-4o-mini"
 
-    anthropic_api_key: str = Field(default="", description="Anthropic API key (second fallback)")
+    anthropic_api_key: str = Field(default="", description="Anthropic API key")
     anthropic_model: str = "claude-3-5-haiku-latest"
 
     # Local LLM — OpenAI-compatible endpoint (llama.cpp server / Ollama / LM Studio)

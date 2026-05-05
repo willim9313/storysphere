@@ -56,7 +56,7 @@ class LLMClient:
     def get_primary(
         self, temperature: float = 0.1, **kwargs: object
     ) -> BaseChatModel:
-        """Return the primary LLM (Gemini if configured, else first available)."""
+        """Return the primary LLM as configured by PRIMARY_LLM_PROVIDER."""
         return self.get_llm(
             provider=self._resolve_primary(), temperature=temperature, **kwargs
         )
@@ -64,19 +64,21 @@ class LLMClient:
     def get_fallback(
         self, temperature: float = 0.1, **kwargs: object
     ) -> BaseChatModel:
-        """Return the first available fallback LLM (OpenAI → Anthropic → Local)."""
+        """Return the first available fallback LLM, excluding the primary provider."""
+        primary = LLMProvider(self._settings.primary_llm_provider)
         for provider in (
+            LLMProvider.GEMINI,
             LLMProvider.OPENAI,
             LLMProvider.ANTHROPIC,
             LLMProvider.LOCAL,
         ):
-            if self._has_key(provider):
+            if provider != primary and self._has_key(provider):
                 return self.get_llm(
                     provider=provider, temperature=temperature, **kwargs
                 )
         raise RuntimeError(
-            "No fallback LLM configured. "
-            "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or LOCAL_LLM_MODEL in .env."
+            "No fallback LLM configured (excluding primary provider). "
+            "Set at least one additional provider key in .env."
         )
 
     def get_local(
@@ -105,9 +107,8 @@ class LLMClient:
         - cloud only               : primary (no fallback)
         - local only               : local (no fallback)
         """
-        has_cloud = any(
-            self._has_key(p)
-            for p in (LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC)
+        has_cloud = LLMProvider(self._settings.primary_llm_provider) in (
+            LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC
         )
         has_local = self._has_key(LLMProvider.LOCAL)
 
@@ -135,24 +136,19 @@ class LLMClient:
     # ── Internal helpers ───────────────────────────────────────────────────────
 
     def _resolve_primary(self) -> LLMProvider:
-        for provider in (
-            LLMProvider.GEMINI,
-            LLMProvider.OPENAI,
-            LLMProvider.ANTHROPIC,
-            LLMProvider.LOCAL,
-        ):
-            if self._has_key(provider):
-                if provider != LLMProvider.GEMINI:
-                    logger.warning(
-                        "GEMINI_API_KEY not set. Using %s as primary LLM.",
-                        provider.value,
-                    )
-                return provider
-        raise RuntimeError(
-            "No LLM provider configured. "
-            "Set GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, "
-            "or LOCAL_LLM_MODEL in .env."
-        )
+        target = LLMProvider(self._settings.primary_llm_provider)
+        if not self._has_key(target):
+            key_hint = {
+                LLMProvider.GEMINI: "GEMINI_API_KEY",
+                LLMProvider.OPENAI: "OPENAI_API_KEY",
+                LLMProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
+                LLMProvider.LOCAL: "LOCAL_LLM_MODEL",
+            }[target]
+            raise RuntimeError(
+                f"PRIMARY_LLM_PROVIDER={target.value} but {key_hint} is not set. "
+                f"Set {key_hint} in .env or change PRIMARY_LLM_PROVIDER."
+            )
+        return target
 
     def _has_key(self, provider: LLMProvider) -> bool:
         match provider:
