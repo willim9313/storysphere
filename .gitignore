@@ -67,6 +67,7 @@ logs/
 data/uploads/
 data/processed/
 data/knowledge_graph.json
+data/qdrant_local/
 
 # ========== uv ==========
 # uv.lock    # Do NOT ignore - commit lock file for reproducibility
