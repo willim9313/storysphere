@@ -123,6 +123,13 @@ async def lifespan(app: FastAPI):
 
     logger.info("StorySphere API starting up — initialising services...")
 
+    if settings.deploy_mode == "lightweight":
+        logger.warning(
+            "deploy_mode=lightweight: local Qdrant and NetworkX KG are active. "
+            "Do NOT run with multiple uvicorn workers (--workers > 1) — "
+            "local Qdrant does not support concurrent multi-process writes."
+        )
+
     # Store main event loop reference for cross-thread token tracking
     set_main_event_loop(asyncio.get_running_loop())
 

@@ -15,11 +15,12 @@ from __future__ import annotations
 import asyncio
 import logging
 import re
+from functools import partial
 from typing import Any
 
-from services.query_models import KeywordSearchResult, VectorSearchResult
-
 from qdrant_client import QdrantClient, models
+
+from services.query_models import KeywordSearchResult, VectorSearchResult
 
 logger = logging.getLogger(__name__)
 
@@ -115,16 +116,22 @@ class VectorService:
 
         Resolution order:
         1. Cache hit (document_id → collection_name).
-        2. Direct name ``{prefix}_{document_id}`` exists in Qdrant.
-        3. Scan all book collections, read one payload point each to build
+        2. Already-created collection (_created_collections) — no Qdrant call.
+        3. Direct name ``{prefix}_{document_id}`` exists in Qdrant.
+        4. Scan all book collections, read one payload point each to build
            the UUID → collection_name cache, then retry lookup.
         """
         if document_id in self._doc_col_cache:
             return self._doc_col_cache[document_id]
 
         direct = f"{self._prefix}_{document_id}"
+        # Fast path: collection was created in this process — skip network call.
+        if direct in self._created_collections:
+            return direct
+
         existing = [c.name for c in self._client.get_collections().collections]
         if direct in existing:
+            self._doc_col_cache[document_id] = direct  # cache for next time
             return direct
 
         # Slow path: scan collections to map document_id payloads → names
@@ -149,31 +156,45 @@ class VectorService:
 
     async def ensure_collection(self, document_id: str) -> None:
         """Create the per-book collection if it doesn't exist (idempotent)."""
-        name = self._col(document_id)
+        # Use the direct name — avoid calling _col() here to prevent a redundant
+        # get_collections() call when the collection doesn't exist yet.
+        name = f"{self._prefix}_{document_id}"
         if name in self._created_collections:
             return
-        existing = [c.name for c in self._client.get_collections().collections]
+        loop = asyncio.get_running_loop()
+        cols = await loop.run_in_executor(None, self._client.get_collections)
+        existing = [c.name for c in cols.collections]
         if name in existing:
             self._created_collections.add(name)
+            self._doc_col_cache[document_id] = name
             logger.debug("VectorService: collection '%s' already exists", name)
             return
-        self._client.create_collection(
-            collection_name=name,
-            vectors_config=models.VectorParams(
-                size=self._vector_size,
-                distance=models.Distance.COSINE,
+        await loop.run_in_executor(
+            None,
+            partial(
+                self._client.create_collection,
+                collection_name=name,
+                vectors_config=models.VectorParams(
+                    size=self._vector_size,
+                    distance=models.Distance.COSINE,
+                ),
             ),
         )
         self._created_collections.add(name)
+        self._doc_col_cache[document_id] = name
         logger.info("VectorService: created collection '%s'", name)
 
     async def delete_collection(self, document_id: str) -> bool:
         """Drop a book's collection. Returns True if deleted."""
         name = self._col(document_id)
-        existing = [c.name for c in self._client.get_collections().collections]
+        loop = asyncio.get_running_loop()
+        cols = await loop.run_in_executor(None, self._client.get_collections)
+        existing = [c.name for c in cols.collections]
         if name not in existing:
             return False
-        self._client.delete_collection(collection_name=name)
+        await loop.run_in_executor(
+            None, partial(self._client.delete_collection, collection_name=name)
+        )
         self._created_collections.discard(name)
         # Evict any cached document_id → name entries for this collection
         self._doc_col_cache = {
@@ -211,8 +232,11 @@ class VectorService:
         query_vector = await self._embed(query_text)
 
         if document_id is not None:
-            return self._search_collection(
-                self._col(document_id), query_vector, top_k
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(
+                None,
+                # _col() is evaluated inside the executor, not on the event loop.
+                lambda: self._search_collection(self._col(document_id), query_vector, top_k),
             )
 
         # Cross-book search
@@ -220,12 +244,14 @@ class VectorService:
         if not doc_ids:
             return []
 
+        loop = asyncio.get_running_loop()
         tasks = [
             asyncio.ensure_future(
-                asyncio.get_running_loop().run_in_executor(
+                loop.run_in_executor(
                     None,
-                    lambda col=self._col(did): self._client.query_points(
-                        collection_name=col,
+                    # did= default-arg capture; _col(did) runs inside the executor.
+                    lambda did=did: self._client.query_points(
+                        collection_name=self._col(did),
                         query=query_vector,
                         limit=top_k,
                         with_payload=True,
@@ -302,18 +328,34 @@ class VectorService:
         )
 
         if document_id is not None:
-            return self._scroll_keyword(self._col(document_id), kw_filter, top_k)
+            loop = asyncio.get_running_loop()
+            return await loop.run_in_executor(
+                None,
+                # _col() is evaluated inside the executor, not on the event loop.
+                lambda: self._scroll_keyword(self._col(document_id), kw_filter, top_k),
+            )
 
         # Cross-book keyword search
         doc_ids = self.list_book_collections()
         if not doc_ids:
             return []
 
-        merged: list[KeywordSearchResult] = []
-        for did in doc_ids:
-            merged.extend(
-                self._scroll_keyword(self._col(did), kw_filter, top_k)
+        loop = asyncio.get_running_loop()
+        kw_tasks = [
+            loop.run_in_executor(
+                None,
+                # did= default-arg capture; _col(did) runs inside the executor.
+                lambda did=did: self._scroll_keyword(self._col(did), kw_filter, top_k),
             )
+            for did in doc_ids
+        ]
+        results_lists = await asyncio.gather(*kw_tasks, return_exceptions=True)
+        merged: list[KeywordSearchResult] = []
+        for res in results_lists:
+            if isinstance(res, Exception):
+                logger.warning("Cross-book keyword search error: %s", res)
+                continue
+            merged.extend(res)
         return merged[:top_k]
 
     def _scroll_keyword(
@@ -385,9 +427,10 @@ class VectorService:
             )
             for p in paragraphs
         ]
-        self._client.upsert(
-            collection_name=collection_name,
-            points=points,
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(
+            None,
+            partial(self._client.upsert, collection_name=collection_name, points=points),
         )
         return len(points)
 

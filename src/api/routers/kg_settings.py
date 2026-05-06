@@ -96,6 +96,12 @@ async def switch_kg_mode(body: KgSwitchRequest) -> KgSwitchResponse:
     settings = get_settings()
     new_mode = body.mode
 
+    if settings.deploy_mode == "lightweight" and new_mode == "neo4j":
+        raise HTTPException(
+            status_code=422,
+            detail="deploy_mode=lightweight does not support neo4j backend; set DEPLOY_MODE=standard to enable Neo4j",
+        )
+
     # Validate Neo4j connectivity before switching to it
     if new_mode == "neo4j":
         try:
