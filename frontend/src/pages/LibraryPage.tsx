@@ -153,7 +153,7 @@ export default function LibraryPage() {
         className="grid gap-4"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}
       >
-        {pendingTasks.map((task) => (
+        {(filter === 'all' || filter === 'processing') && pendingTasks.map((task) => (
           <ProcessingBookCard
             key={task.taskId}
             task={task}

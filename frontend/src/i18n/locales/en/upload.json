@@ -9,7 +9,10 @@
   "completedSection": "Completed",
   "dropzone": {
     "dragText": "Drag PDF here, or click to select file",
-    "supportText": "Supports .pdf format"
+    "supportText": "Supports .pdf format, max 50 MB",
+    "errorNotPdf": "Please upload a PDF file",
+    "errorTooLarge": "File exceeds the {{max}} MB size limit",
+    "errorOneFileOnly": "Only one file can be uploaded at a time"
   },
   "steps": {
     "pdfParsing": "PDF Parsing",

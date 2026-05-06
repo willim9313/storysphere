@@ -9,7 +9,10 @@
   "completedSection": "已完成",
   "dropzone": {
     "dragText": "拖曳 PDF 至此，或點擊選擇檔案",
-    "supportText": "支援 .pdf 格式"
+    "supportText": "支援 .pdf 格式，檔案大小上限 50 MB",
+    "errorNotPdf": "請上傳 PDF 格式的檔案",
+    "errorTooLarge": "檔案大小超過 {{max}} MB 上限",
+    "errorOneFileOnly": "一次只能上傳一個檔案"
   },
   "steps": {
     "pdfParsing": "PDF 解析",

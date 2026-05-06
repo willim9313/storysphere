@@ -7,7 +7,7 @@ import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { DropZone } from '@/components/upload/DropZone';
 import { ProcessingTimeline } from '@/components/upload/ProcessingTimeline';
 import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, X } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 
 interface UploadTask {
@@ -15,10 +15,22 @@ interface UploadTask {
   fileName: string;
 }
 
+interface ErroredTask {
+  taskId: string;
+  fileName: string;
+  message?: string;
+}
+
 interface PendingFile {
   file: File;
   title: string;
   author: string;
+}
+
+interface CompletedTask {
+  taskId: string;
+  fileName: string;
+  bookId: string;
 }
 
 export default function UploadPage() {
@@ -31,31 +43,71 @@ export default function UploadPage() {
       return [];
     }
   });
-  const [completedTasks, setCompletedTasks] = useState<{ taskId: string; fileName: string; bookId: string }[]>([]);
-  const [timelineModal, setTimelineModal] = useState<{ bookId: string; detection: TimelineDetectionResponse } | null>(null);
-  useEffect(() => {
-    if (tasks.length === 0) {
-      sessionStorage.removeItem('upload-tasks');
-    } else {
-      sessionStorage.setItem('upload-tasks', JSON.stringify(tasks));
+  const [completedTasks, setCompletedTasks] = useState<CompletedTask[]>(() => {
+    try {
+      const saved = sessionStorage.getItem('completed-tasks');
+      return saved ? (JSON.parse(saved) as CompletedTask[]) : [];
+    } catch {
+      return [];
     }
+  });
+  const [erroredTasks, setErroredTasks] = useState<ErroredTask[]>([]);
+  const [timelineModal, setTimelineModal] = useState<{ bookId: string; detection: TimelineDetectionResponse } | null>(null);
+
+  useEffect(() => {
+    if (tasks.length === 0) sessionStorage.removeItem('upload-tasks');
+    else sessionStorage.setItem('upload-tasks', JSON.stringify(tasks));
   }, [tasks]);
+
+  useEffect(() => {
+    if (completedTasks.length === 0) sessionStorage.removeItem('completed-tasks');
+    else sessionStorage.setItem('completed-tasks', JSON.stringify(completedTasks));
+  }, [completedTasks]);
 
   const { t } = useTranslation('upload');
   const { t: tc } = useTranslation('common');
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const upload = useMutation({
-    mutationFn: ({ file, title, author }: { file: File; title: string; author?: string }) => uploadBook(file, title, author),
+    mutationFn: ({ file, title, author, signal }: { file: File; title: string; author?: string; signal: AbortSignal }) =>
+      uploadBook(file, title, author, signal),
     onSuccess: (data, { file }) => {
       setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name }]);
       setPending(null);
     },
+    onError: (err: Error) => {
+      if (err.name === 'AbortError') return;
+    },
   });
 
-  const handleFileSelected = useCallback((file: File) => {
-    const stem = file.name.replace(/\.[^.]+$/, '');
-    setPending({ file, title: stem, author: '' });
-  }, []);
+  const handleFileSelected = useCallback(
+    (file: File) => {
+      upload.reset();
+      const stem = file.name.replace(/\.[^.]+$/, '');
+      setPending({ file, title: stem, author: '' });
+    },
+    [upload],
+  );
+
+  const handleConfirmUpload = useCallback(() => {
+    if (!pending || !pending.title.trim()) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    upload.mutate({
+      file: pending.file,
+      title: pending.title.trim(),
+      author: pending.author.trim() || undefined,
+      signal: controller.signal,
+    });
+  }, [pending, upload]);
+
+  const handleCancel = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    upload.reset();
+    setPending(null);
+  }, [upload]);
 
   const handleTaskDone = useCallback(
     (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => {
@@ -68,8 +120,13 @@ export default function UploadPage() {
     [],
   );
 
-  const handleTaskError = useCallback((taskId: string) => {
+  const handleTaskError = useCallback((taskId: string, fileName: string, message?: string) => {
     setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+    setErroredTasks((prev) => [...prev, { taskId, fileName, message }]);
+  }, []);
+
+  const dismissErroredTask = useCallback((taskId: string) => {
+    setErroredTasks((prev) => prev.filter((t) => t.taskId !== taskId));
   }, []);
 
   return (
@@ -97,7 +154,7 @@ export default function UploadPage() {
             className="w-full px-3 py-2 rounded-md text-sm mb-4"
             style={{
               border: '1px solid var(--border)',
-              backgroundColor: 'white',
+              backgroundColor: 'var(--bg-primary)',
               color: 'var(--fg-primary)',
               outline: 'none',
             }}
@@ -112,7 +169,7 @@ export default function UploadPage() {
             className="w-full px-3 py-2 rounded-md text-sm"
             style={{
               border: '1px solid var(--border)',
-              backgroundColor: 'white',
+              backgroundColor: 'var(--bg-primary)',
               color: 'var(--fg-primary)',
               outline: 'none',
             }}
@@ -120,16 +177,14 @@ export default function UploadPage() {
             value={pending.author}
             onChange={(e) => setPending({ ...pending, author: e.target.value })}
             onKeyDown={(e) => {
-              if (e.key === 'Enter' && pending.title.trim()) {
-                upload.mutate({ file: pending.file, title: pending.title.trim(), author: pending.author.trim() || undefined });
-              }
+              if (e.key === 'Enter') handleConfirmUpload();
             }}
           />
           <div className="flex gap-2 justify-end mt-3">
             <button
               className="text-sm px-3 py-1 rounded-md"
               style={{ color: 'var(--fg-muted)', border: '1px solid var(--border)' }}
-              onClick={() => setPending(null)}
+              onClick={handleCancel}
             >
               {tc('cancel')}
             </button>
@@ -137,7 +192,7 @@ export default function UploadPage() {
               className="text-sm px-3 py-1 rounded-md font-medium"
               style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}
               disabled={!pending.title.trim() || upload.isPending}
-              onClick={() => upload.mutate({ file: pending.file, title: pending.title.trim(), author: pending.author.trim() || undefined })}
+              onClick={handleConfirmUpload}
             >
               {t('confirmUpload')}
             </button>
@@ -145,7 +200,7 @@ export default function UploadPage() {
         </div>
       )}
 
-      {upload.error && (
+      {upload.error && upload.error.name !== 'AbortError' && (
         <p className="text-sm mt-2" style={{ color: 'var(--color-error)' }}>
           {upload.error.message}
         </p>
@@ -181,7 +236,7 @@ export default function UploadPage() {
               <div
                 key={ct.taskId}
                 className="flex items-center justify-between px-3 py-2 rounded-md"
-                style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
+                style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}
               >
                 <div className="flex items-center gap-2">
                   <span
@@ -202,6 +257,38 @@ export default function UploadPage() {
           </div>
         </div>
       )}
+
+      {/* Errored tasks */}
+      {erroredTasks.length > 0 && (
+        <div className="mt-6 space-y-2">
+          {erroredTasks.map((et) => (
+            <div
+              key={et.taskId}
+              className="flex items-center justify-between px-3 py-2 rounded-md"
+              style={{ backgroundColor: 'var(--color-error-bg)', border: '1px solid var(--color-error)' }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-error)' }} />
+                <div>
+                  <span className="text-sm">{et.fileName}</span>
+                  {et.message && (
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-error)' }}>
+                      {et.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button
+                onClick={() => dismissErroredTask(et.taskId)}
+                style={{ color: 'var(--fg-muted)' }}
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {timelineModal && (
         <TimelineConfigModal
           bookId={timelineModal.bookId}
@@ -220,21 +307,22 @@ function ProcessingCard({
 }: {
   task: UploadTask;
   onDone: (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => void;
-  onError: (taskId: string) => void;
+  onError: (taskId: string, fileName: string, message?: string) => void;
 }) {
   const { data: status, isError } = useTaskPolling(task.taskId);
-  const notified = useRef(false);
+  const doneRef = useRef(false);
 
-  if (status?.status === 'done' && status.result?.bookId && !notified.current) {
-    notified.current = true;
-    const detection = status.result.timelineDetection as TimelineDetectionResponse | undefined;
-    setTimeout(() => onDone(task.taskId, status.result!.bookId!, task.fileName, detection), 0);
-  }
-
-  if ((status?.status === 'error' || isError) && !notified.current) {
-    notified.current = true;
-    setTimeout(() => onError(task.taskId), 0);
-  }
+  useEffect(() => {
+    if (!status || doneRef.current) return;
+    if (status.status === 'done' && status.result?.bookId) {
+      doneRef.current = true;
+      const detection = status.result.timelineDetection as TimelineDetectionResponse | undefined;
+      onDone(task.taskId, status.result.bookId, task.fileName, detection);
+    } else if (status.status === 'error' || isError) {
+      doneRef.current = true;
+      onError(task.taskId, task.fileName, status.error);
+    }
+  }, [status, isError, task, onDone, onError]);
 
   return (
     <div
