@@ -202,6 +202,26 @@ export interface CharacterAnalysisDetail {
 
 // ── Tasks ───────────────────────────────────────────────────────
 
+export type MurmurStepKey =
+  | 'pdfParsing'
+  | 'summarization'
+  | 'featureExtraction'
+  | 'knowledgeGraph'
+  | 'symbolExploration';
+
+export type MurmurEventType =
+  | 'character' | 'location' | 'org' | 'event'
+  | 'topic' | 'symbol' | 'raw';
+
+export interface MurmurEvent {
+  seq: number;
+  stepKey: MurmurStepKey;
+  type: MurmurEventType;
+  content: string;
+  meta?: Record<string, unknown>;
+  rawContent?: string;
+}
+
 export interface TaskStatus {
   taskId: string;
   status: 'pending' | 'running' | 'done' | 'error';
@@ -215,6 +235,7 @@ export interface TaskStatus {
     [key: string]: unknown;
   };
   error?: string;
+  murmurEvents?: MurmurEvent[];
 }
 
 /** Result shape for batch event analysis tasks */

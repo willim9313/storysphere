@@ -2,14 +2,12 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import type { TimelineDetectionResponse } from '@/api/graph';
 import { uploadBook } from '@/api/ingest';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { DropZone } from '@/components/upload/DropZone';
-import { ProcessingTimeline } from '@/components/upload/ProcessingTimeline';
+import { ProcessingCard } from '@/components/upload/ProcessingCard';
 import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
 import { ArrowRight, X } from 'lucide-react';
-import type { TimelineDetectionResponse } from '@/api/graph';
-
 interface UploadTask {
   taskId: string;
   fileName: string;
@@ -300,44 +298,3 @@ export default function UploadPage() {
   );
 }
 
-function ProcessingCard({
-  task,
-  onDone,
-  onError,
-}: {
-  task: UploadTask;
-  onDone: (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => void;
-  onError: (taskId: string, fileName: string, message?: string) => void;
-}) {
-  const { data: status, isError } = useTaskPolling(task.taskId);
-  const doneRef = useRef(false);
-
-  useEffect(() => {
-    if (!status || doneRef.current) return;
-    if (status.status === 'done' && status.result?.bookId) {
-      doneRef.current = true;
-      const detection = status.result.timelineDetection as TimelineDetectionResponse | undefined;
-      onDone(task.taskId, status.result.bookId, task.fileName, detection);
-    } else if (status.status === 'error' || isError) {
-      doneRef.current = true;
-      onError(task.taskId, task.fileName, status.error);
-    }
-  }, [status, isError, task, onDone, onError]);
-
-  return (
-    <div
-      className="card"
-      style={{ border: '1px solid var(--border)' }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium">{task.fileName}</span>
-        {status && (
-          <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-            {status.progress}%
-          </span>
-        )}
-      </div>
-      {status && <ProcessingTimeline task={status} />}
-    </div>
-  );
-}

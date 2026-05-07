@@ -26,7 +26,7 @@ import threading
 from pathlib import Path
 from typing import Any
 
-from api.schemas.common import TaskStatus
+from api.schemas.common import MurmurEvent, TaskStatus
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +39,7 @@ class MemoryTaskStore:
 
     def __init__(self) -> None:
         self._store: dict[str, TaskStatus] = {}
+        self._murmur: dict[str, list[MurmurEvent]] = {}
         self._lock = threading.Lock()
 
     def create(self, task_id: str) -> TaskStatus:
@@ -94,6 +95,18 @@ class MemoryTaskStore:
                     }
                 )
 
+    async def append_murmur(self, task_id: str, event: MurmurEvent) -> None:
+        with self._lock:
+            if task_id not in self._murmur:
+                self._murmur[task_id] = []
+            events = self._murmur[task_id]
+            event = event.model_copy(update={"seq": len(events)})
+            events.append(event)
+
+    async def get_murmur_events(self, task_id: str, after: int = 0) -> list[MurmurEvent]:
+        with self._lock:
+            return list(self._murmur.get(task_id, [])[after:])
+
 
 # ── SQLite backend ────────────────────────────────────────────────────────────
 
@@ -121,6 +134,19 @@ _ADD_SUB_PROGRESS = "ALTER TABLE tasks ADD COLUMN sub_progress INTEGER"
 _ADD_SUB_TOTAL = "ALTER TABLE tasks ADD COLUMN sub_total INTEGER"
 _ADD_SUB_STAGE = "ALTER TABLE tasks ADD COLUMN sub_stage TEXT"
 
+_CREATE_MURMUR_TABLE = """
+CREATE TABLE IF NOT EXISTS task_murmur_events (
+    task_id   TEXT    NOT NULL,
+    seq       INTEGER NOT NULL,
+    step_key  TEXT    NOT NULL,
+    type      TEXT    NOT NULL,
+    content   TEXT    NOT NULL DEFAULT '',
+    meta      TEXT,
+    raw_content TEXT,
+    PRIMARY KEY (task_id, seq)
+)
+"""
+
 
 class SQLiteTaskStore:
     """Async SQLite-backed store. Works across multiple uvicorn workers."""
@@ -141,6 +167,7 @@ class SQLiteTaskStore:
             async with aiosqlite.connect(self._db_path) as db:
                 await db.execute("PRAGMA journal_mode=WAL")
                 await db.execute(_CREATE_TABLE)
+                await db.execute(_CREATE_MURMUR_TABLE)
                 # Migrate existing DBs that lack the created_at column
                 try:
                     await db.execute(_ADD_CREATED_AT)
@@ -170,6 +197,19 @@ class SQLiteTaskStore:
 
         await self._ensure_init()
         async with aiosqlite.connect(self._db_path) as db:
+            # Cascade delete murmur events for old tasks in the same transaction
+            await db.execute(
+                """
+                DELETE FROM task_murmur_events
+                WHERE task_id IN (
+                    SELECT task_id FROM tasks
+                    WHERE status IN ('done', 'error')
+                      AND created_at < strftime('%Y-%m-%dT%H:%M:%S',
+                            datetime('now', ? || ' days'))
+                )
+                """,
+                (f"-{older_than_days}",),
+            )
             cursor = await db.execute(
                 """
                 DELETE FROM tasks
@@ -280,6 +320,51 @@ class SQLiteTaskStore:
             "UPDATE tasks SET progress = ?, stage = ?, sub_progress = ?, sub_total = ?, sub_stage = ? WHERE task_id = ?",
             (progress, stage, sub_progress, sub_total, sub_stage, task_id),
         ))
+
+    async def append_murmur(self, task_id: str, event: MurmurEvent) -> None:
+        import aiosqlite  # noqa: PLC0415
+        await self._ensure_init()
+        async with aiosqlite.connect(self._db_path) as db:
+            # Atomically assign seq = MAX(seq)+1 within the same transaction
+            row = await (await db.execute(
+                "SELECT COALESCE(MAX(seq) + 1, 0) FROM task_murmur_events WHERE task_id = ?",
+                (task_id,),
+            )).fetchone()
+            seq = row[0] if row else 0
+            await db.execute(
+                "INSERT INTO task_murmur_events (task_id, seq, step_key, type, content, meta, raw_content) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    task_id,
+                    seq,
+                    event.step_key,
+                    event.type,
+                    event.content,
+                    json.dumps(event.meta) if event.meta is not None else None,
+                    event.raw_content,
+                ),
+            )
+            await db.commit()
+
+    async def get_murmur_events(self, task_id: str, after: int = 0) -> list[MurmurEvent]:
+        import aiosqlite  # noqa: PLC0415
+        await self._ensure_init()
+        async with aiosqlite.connect(self._db_path) as db:
+            async with db.execute(
+                "SELECT seq, step_key, type, content, meta, raw_content FROM task_murmur_events WHERE task_id = ? AND seq >= ? ORDER BY seq",
+                (task_id, after),
+            ) as cursor:
+                rows = await cursor.fetchall()
+        return [
+            MurmurEvent(
+                seq=row[0],
+                step_key=row[1],
+                type=row[2],
+                content=row[3],
+                meta=json.loads(row[4]) if row[4] else None,
+                raw_content=row[5],
+            )
+            for row in rows
+        ]
 
 
 # ── Async-native GET for router use ──────────────────────────────────────────

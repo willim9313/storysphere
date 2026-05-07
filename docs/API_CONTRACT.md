@@ -419,8 +419,26 @@ interface BatchEepResult {
 
 > **注意**：張力分析（#14 系列）與 KG 遷移（#19c）有各自的 polling endpoint，不走此路徑。
 
+**Query Parameters**
+
+| 參數 | 型別 | 預設 | 說明 |
+|---|---|---|---|
+| `after` | `integer` | `0` | 只回傳 `seq >= after` 的 murmur events（delta 語意，client 負責累積） |
+
 **Response 200**
 ```ts
+type MurmurStepKey = 'pdfParsing' | 'summarization' | 'featureExtraction' | 'knowledgeGraph' | 'symbolExploration';
+type MurmurEventType = 'character' | 'location' | 'org' | 'event' | 'topic' | 'symbol' | 'raw';
+
+interface MurmurEvent {
+  seq: number;             // server 端原子配發，client 排序 / 去重用
+  stepKey: MurmurStepKey;
+  type: MurmurEventType;
+  content: string;         // 截斷上限 1 KB
+  meta?: Record<string, unknown>;  // e.g. { chapter: 1, role: "天體物理學家" }
+  rawContent?: string;     // type === 'raw' 時使用，截斷上限 4 KB
+}
+
 interface TaskStatus {
   taskId: string;
   status: 'pending' | 'running' | 'done' | 'error';
@@ -434,6 +452,7 @@ interface TaskStatus {
     [key: string]: unknown;
   };
   error?: string;
+  murmurEvents?: MurmurEvent[];  // delta slice（seq >= after 的事件）
 }
 ```
 
@@ -441,7 +460,7 @@ interface TaskStatus {
 ```ts
 useQuery({
   queryKey: ['tasks', taskId],
-  queryFn: () => fetchTaskStatus(taskId),
+  queryFn: () => fetchTaskStatus(taskId, cursor),  // cursor 由 client 累積
   enabled: !!taskId,
   refetchInterval: (data) => {
     if (!data) return 2000;

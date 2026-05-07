@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
+
 from domain.documents import Document
 from pipelines.base import BasePipeline
 
@@ -46,7 +47,7 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         self._extractor = imagery_extractor or ImageryExtractor()
         self._symbol_service = symbol_service or SymbolService()
 
-    async def run(self, input_data: Document, *, sub_cb=None) -> SymbolDiscoveryResult:
+    async def run(self, input_data: Document, *, sub_cb=None, murmur_cb=None) -> SymbolDiscoveryResult:
         """Run imagery extraction and persist results for a document.
 
         Args:
@@ -76,7 +77,7 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         # Cluster and persist
         try:
             imagery_count, occurrence_count = await self._build_and_persist(
-                doc, raw_extractions
+                doc, raw_extractions, murmur_cb=murmur_cb
             )
             result.imagery_count = imagery_count
             result.occurrence_count = occurrence_count
@@ -125,7 +126,7 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         return all_raw
 
     async def _build_and_persist(
-        self, doc: Document, raw_extractions: list[dict]
+        self, doc: Document, raw_extractions: list[dict], *, murmur_cb=None
     ) -> tuple[int, int]:
         """Cluster synonyms, build domain objects, and write to SQLite."""
         terms = [ex.get("term", "") for ex in raw_extractions if ex.get("term")]
@@ -138,6 +139,15 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
 
         for entity in entities:
             await self._symbol_service.save_imagery(entity)
+            if murmur_cb:
+                try:
+                    await murmur_cb(
+                        "symbolExploration", "symbol",
+                        getattr(entity, "term", str(entity)),
+                        meta={"occurrences": len(occurrences)},
+                    )
+                except Exception:  # noqa: BLE001
+                    pass
         for occ in occurrences:
             await self._symbol_service.save_occurrence(occ)
 

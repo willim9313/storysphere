@@ -14,7 +14,8 @@ export function uploadBook(file: File, title: string, author?: string, signal?: 
 }
 
 // #8 — Poll task status
-export function fetchTaskStatus(taskId: string): Promise<TaskStatus> {
+export function fetchTaskStatus(taskId: string, after = 0): Promise<TaskStatus> {
   if (MOCK_ENABLED) return mock.fetchTaskStatus(taskId);
-  return apiFetch<TaskStatus>(`/tasks/${taskId}/status`);
+  const params = after > 0 ? `?after=${after}` : '';
+  return apiFetch<TaskStatus>(`/tasks/${taskId}/status${params}`);
 }

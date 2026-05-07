@@ -37,7 +37,7 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
     def __init__(self, summarizer: ChapterSummarizer | None = None) -> None:
         self._summarizer = summarizer or ChapterSummarizer()
 
-    async def run(self, input_data: Document, *, sub_cb=None) -> SummarizationResult:
+    async def run(self, input_data: Document, *, sub_cb=None, murmur_cb=None) -> SummarizationResult:
         doc = input_data
         chapters_summarized = 0
         chapters_with_content = [ch for ch in doc.chapters if ch.paragraphs]
@@ -60,6 +60,11 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
             chapters_summarized += 1
             if sub_cb:
                 sub_cb(chapters_summarized, total, "章節摘要")
+            if murmur_cb:
+                try:
+                    await murmur_cb(chapter.number)
+                except Exception:  # noqa: BLE001
+                    pass
 
         # Step 2: book summary from chapter summaries
         chapter_summaries = [

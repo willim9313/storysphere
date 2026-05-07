@@ -56,7 +56,20 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         self._paragraph_entity_linker = ParagraphEntityLinker()
         self._kg_service = kg_service  # optional KGService; pass None to skip write
 
-    async def run(self, input_data: Document, *, sub_cb=None) -> KGExtractionResult:
+    # entity_type → murmur type mapping
+    _ENTITY_TYPE_MAP: dict[str, str] = {
+        "character": "character",
+        "person": "character",
+        "location": "location",
+        "place": "location",
+        "organization": "org",
+        "org": "org",
+        "event": "event",
+        "object": "topic",
+        "concept": "topic",
+    }
+
+    async def run(self, input_data: Document, *, sub_cb=None, murmur_cb=None) -> KGExtractionResult:
         """Extract KG data from all chapters in the document.
 
         Args:
@@ -106,6 +119,21 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
                     entity.mention_count = chapter_text.lower().count(
                         entity.name.lower()
                     )
+                    if murmur_cb:
+                        try:
+                            murmur_type = self._ENTITY_TYPE_MAP.get(
+                                str(getattr(entity, "entity_type", "")).lower(), "topic"
+                            )
+                            role = getattr(entity, "role", None) or getattr(entity, "description", None)
+                            await murmur_cb(
+                                "featureExtraction", murmur_type, entity.name,
+                                meta={
+                                    "chapter": chapter.number,
+                                    **({"role": str(role)[:80]} if role else {}),
+                                },
+                            )
+                        except Exception:  # noqa: BLE001
+                            pass
                 all_raw_entities.extend(para_entities)
 
             chapters_done += 1

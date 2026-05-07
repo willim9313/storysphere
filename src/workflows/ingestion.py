@@ -17,10 +17,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
+from api.schemas.common import MurmurEvent
 from domain.documents import Document
 from domain.timeline import TimelineConfig, TimelineDetectionResult
 from pipelines.document_processing import DocumentProcessingPipeline
@@ -57,7 +58,7 @@ class IngestionResult:
     events: int = 0
     imagery_extracted: int = 0
     errors: list[str] = field(default_factory=list)
-    timeline_detection: Optional[TimelineDetectionResult] = None
+    timeline_detection: TimelineDetectionResult | None = None
 
     @property
     def success(self) -> bool:
@@ -76,13 +77,13 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
 
     def __init__(
         self,
-        document_pipeline: Optional[DocumentProcessingPipeline] = None,
-        feature_pipeline: Optional[FeatureExtractionPipeline] = None,
-        kg_pipeline: Optional[KnowledgeGraphPipeline] = None,
-        summarization_pipeline: Optional[SummarizationPipeline] = None,
-        document_service: Optional[DocumentService] = None,
-        kg_service: Optional[KGService] = None,
-        symbol_pipeline: Optional[SymbolDiscoveryPipeline] = None,
+        document_pipeline: DocumentProcessingPipeline | None = None,
+        feature_pipeline: FeatureExtractionPipeline | None = None,
+        kg_pipeline: KnowledgeGraphPipeline | None = None,
+        summarization_pipeline: SummarizationPipeline | None = None,
+        document_service: DocumentService | None = None,
+        kg_service: KGService | None = None,
+        symbol_pipeline: SymbolDiscoveryPipeline | None = None,
         *,
         skip_qdrant: bool = False,
         skip_kg: bool = False,
@@ -140,7 +141,8 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         title: str | None = None,
         author: str | None = None,
         language: str | None = None,
-        progress_cb: Optional[callable] = None,
+        progress_cb: Callable | None = None,
+        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
     ) -> IngestionResult:
         """Ingest a novel file end-to-end.
 
@@ -171,6 +173,31 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             if progress_cb is not None:
                 progress_cb(pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage)
 
+        async def _murmur(
+            step_key: str,
+            event_type: str,
+            content: str,
+            *,
+            meta: dict | None = None,
+            raw_content: str | None = None,
+        ) -> None:
+            if murmur_cb is None:
+                return
+            try:
+                truncated = content[:1024]
+                raw_truncated = raw_content[:4096] if raw_content else None
+                event = MurmurEvent(
+                    seq=0,  # seq assigned by store
+                    step_key=step_key,
+                    type=event_type,
+                    content=truncated,
+                    meta=meta,
+                    raw_content=raw_truncated,
+                )
+                await murmur_cb(event)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("murmur emit failed (%s): %s", step_key, exc)
+
         # ── Ensure DB tables exist ───────────────────────────────────────────
         await self._document_service.init_db()
 
@@ -189,6 +216,11 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         from core.language_detection import detect_language_from_document  # noqa: PLC0415
         _progress(10, "Language detection")
         doc.language = language or detect_language_from_document(doc)
+        await _murmur(
+            "pdfParsing", "topic",
+            f"偵測到 {doc.total_paragraphs} 個段落，{doc.total_chapters} 章，{doc.language}",
+            meta={"chapters": doc.total_chapters, "paragraphs": doc.total_paragraphs, "language": doc.language},
+        )
         logger.info(
             "IngestionWorkflow: doc '%s' — %d chapters, %d paragraphs, lang=%s",
             doc.title,
@@ -203,12 +235,27 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         if not self._skip_summarization:
             self._log_step("summarization")
             try:
+                _summ_chapter_idx = 0
+
+                async def _summ_murmur_cb(chapter_number: int) -> None:
+                    chapter = next((c for c in doc.chapters if c.number == chapter_number), None)
+                    if chapter and chapter.summary:
+                        # Extract first 3 sentences as topic hint
+                        sentences = [s.strip() for s in chapter.summary.split("。") if s.strip()]
+                        preview = "。".join(sentences[:2]) + ("。" if sentences else "")
+                        await _murmur(
+                            "summarization", "topic",
+                            preview or chapter.summary,
+                            meta={"chapter": chapter_number},
+                        )
+
                 summ_result = await self._summarization_pipeline.run(
                     doc,
                     sub_cb=lambda cur, tot, label="章節摘要": _progress(
                         20, "Summary generation",
                         sub_progress=cur, sub_total=tot, sub_stage=label,
                     ),
+                    murmur_cb=_summ_murmur_cb,
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.error("Summarization failed: %s", exc)
@@ -245,6 +292,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                         60, "Knowledge graph extraction",
                         sub_progress=cur, sub_total=tot, sub_stage=label,
                     ),
+                    murmur_cb=_murmur,
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.error("KG extraction failed: %s", exc)
@@ -262,13 +310,14 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                         80, "Symbol discovery",
                         sub_progress=cur, sub_total=tot, sub_stage=label,
                     ),
+                    murmur_cb=_murmur,
                 )
             except Exception as exc:  # noqa: BLE001
                 logger.error("Symbol discovery failed (non-fatal): %s", exc)
                 errors.append(f"symbol_discovery: {exc}")
 
         # ── Step 3c: timeline detection ──────────────────────────────────────
-        timeline_detection: Optional[TimelineDetectionResult] = None
+        timeline_detection: TimelineDetectionResult | None = None
         if not self._skip_kg and kg_result.events:
             distinct_chapters = {e.chapter for e in kg_result.events if e.chapter and e.chapter > 0}
             ranked_count = sum(1 for e in kg_result.events if e.chronological_rank is not None)

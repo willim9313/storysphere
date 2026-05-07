@@ -477,7 +477,7 @@ function StepButton({
 // ── useTensionTask ───────────────────────────────────────────────
 
 function useTensionTask(
-  fetcher: (id: string) => Promise<import('@/api/types').TaskStatus>,
+  fetcher: (id: string, after: number) => Promise<import('@/api/types').TaskStatus>,
   onDone: (task: import('@/api/types').TaskStatus) => void,
   defaultError: string,
 ) {
