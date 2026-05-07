@@ -202,25 +202,11 @@ export interface CharacterAnalysisDetail {
 
 // ── Tasks ───────────────────────────────────────────────────────
 
-export type MurmurStepKey =
-  | 'pdfParsing'
-  | 'summarization'
-  | 'featureExtraction'
-  | 'knowledgeGraph'
-  | 'symbolExploration';
+import type { components } from './generated';
 
-export type MurmurEventType =
-  | 'character' | 'location' | 'org' | 'event'
-  | 'topic' | 'symbol' | 'raw';
-
-export interface MurmurEvent {
-  seq: number;
-  stepKey: MurmurStepKey;
-  type: MurmurEventType;
-  content: string;
-  meta?: Record<string, unknown>;
-  rawContent?: string;
-}
+export type MurmurEvent = components['schemas']['MurmurEvent'];
+export type MurmurStepKey = MurmurEvent['stepKey'];
+export type MurmurEventType = MurmurEvent['type'];
 
 export interface TaskStatus {
   taskId: string;

@@ -655,6 +655,9 @@ export interface paths {
         /**
          * Get Task Status
          * @description Poll the status of a background task.
+         *
+         *     Pass ``?after=N`` to receive only murmur events added since the last poll
+         *     (delta semantics). The client is responsible for accumulating events.
          */
         get: operations["get_task_status_api_v1_tasks__task_id__status_get"];
         put?: never;
@@ -878,48 +881,6 @@ export interface paths {
         put?: never;
         /** Semantic Search */
         post: operations["semantic_search_api_v1_search__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingest/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Ingest Document
-         * @description Upload a novel file (PDF or DOCX) and start ingestion in the background.
-         *
-         *     Returns a ``task_id`` for polling via ``GET /api/v1/ingest/{task_id}``.
-         */
-        post: operations["ingest_document_api_v1_ingest__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingest/{task_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Ingest Status
-         * @description Poll the status of a background ingestion task.
-         */
-        get: operations["get_ingest_status_api_v1_ingest__task_id__get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1847,17 +1808,6 @@ export interface components {
              */
             evidence: string[];
         };
-        /** Body_ingest_document_api_v1_ingest__post */
-        Body_ingest_document_api_v1_ingest__post: {
-            /** File */
-            file: string;
-            /** Title */
-            title: string;
-            /** Author */
-            author?: string | null;
-            /** Language */
-            language?: string | null;
-        };
         /** Body_upload_book_api_v1_books_upload_post */
         Body_upload_book_api_v1_books_upload_post: {
             /** File */
@@ -2623,6 +2573,32 @@ export interface components {
             /** Confidence */
             confidence: number;
         };
+        /**
+         * MurmurEvent
+         * @description A single murmur event emitted during ingestion.
+         */
+        MurmurEvent: {
+            /** Seq */
+            seq: number;
+            /**
+             * Stepkey
+             * @enum {string}
+             */
+            stepKey: "pdfParsing" | "summarization" | "featureExtraction" | "knowledgeGraph" | "symbolExploration";
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "character" | "location" | "org" | "event" | "topic" | "symbol" | "raw";
+            /** Content */
+            content: string;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+            /** Rawcontent */
+            rawContent?: string | null;
+        };
         /** NarrativeReviewRequest */
         NarrativeReviewRequest: {
             /**
@@ -3071,6 +3047,11 @@ export interface components {
             } | null;
             /** Error */
             error?: string | null;
+            /**
+             * Murmurevents
+             * @default []
+             */
+            murmurEvents: components["schemas"]["MurmurEvent"][];
         };
         /** TemporalAnalysisRequest */
         TemporalAnalysisRequest: {
@@ -4541,7 +4522,10 @@ export interface operations {
     };
     get_task_status_api_v1_tasks__task_id__status_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description Return only murmur events with seq >= after */
+                after?: number;
+            };
             header?: never;
             path: {
                 task_id: string;
@@ -4938,70 +4922,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResult"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ingest_document_api_v1_ingest__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_ingest_document_api_v1_ingest__post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskStatus"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_ingest_status_api_v1_ingest__task_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                task_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskStatus"];
                 };
             };
             /** @description Validation Error */
