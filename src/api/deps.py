@@ -14,6 +14,26 @@ from fastapi import Depends
 
 logger = logging.getLogger(__name__)
 
+# ── Ingestion graph singleton (initialised in lifespan) ─────────────────────
+
+_ingestion_graph = None
+
+
+def get_ingestion_graph():
+    """Return the compiled LangGraph ingestion graph.
+
+    Must be initialised via ``set_ingestion_graph()`` in lifespan before use.
+    """
+    if _ingestion_graph is None:
+        raise RuntimeError("ingestion_graph not initialised — check lifespan setup")
+    return _ingestion_graph
+
+
+def set_ingestion_graph(graph) -> None:
+    global _ingestion_graph
+    _ingestion_graph = graph
+
+
 # Runtime override for kg_mode — set via /api/v1/kg/switch endpoint.
 # Takes precedence over settings.kg_mode without requiring a restart.
 _runtime_kg_mode: str | None = None

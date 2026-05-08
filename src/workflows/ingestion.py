@@ -9,8 +9,10 @@ Pipeline order:
     6. DocumentService.save_document() → persist document to SQLite
     7. KGService.save()            → persist KG to disk
 
-The workflow accepts a file path (PDF or DOCX) and returns an
-``IngestionResult`` summarising what was produced.
+The workflow is split into two phases for LangGraph HITL chapter review:
+  - run_phase1(): Parse → language detect → save document
+  - run_phase2(doc_id): Summarization → KG → finalize
+  - run(): Backward-compat wrapper that calls phase1 + phase2 directly.
 """
 
 from __future__ import annotations
@@ -68,9 +70,9 @@ class IngestionResult:
 def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
     """Reconstruct Chapter objects from a reviewed chapter list.
 
-    *reviewed* is the list of ``{"title": str, "startParagraphIndex": int}``
+    *reviewed* is the list of ``{"title": str, "start_paragraph_index": int}``
     dicts submitted via POST /review.  Paragraphs are re-assigned to new
-    chapters based on the ``startParagraphIndex`` boundaries.
+    chapters based on the ``start_paragraph_index`` boundaries.
     """
     all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
     new_chapters: list[Chapter] = []
@@ -78,8 +80,8 @@ def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
     for i, rc in enumerate(reviewed):
         ch_num = i + 1
         title = rc.get("title") or None
-        start = rc["startParagraphIndex"]
-        end = reviewed[i + 1]["startParagraphIndex"] if i + 1 < len(reviewed) else len(all_paras)
+        start = rc["start_paragraph_index"]
+        end = reviewed[i + 1]["start_paragraph_index"] if i + 1 < len(reviewed) else len(all_paras)
 
         ch_paras = [
             p.model_copy(update={"chapter_number": ch_num, "position": pos})
@@ -159,33 +161,114 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         self._skip_keywords = skip_keywords
         self._skip_symbols = skip_symbols
 
-    async def run(
+    async def run_phase1(
         self,
-        input_data: Path,
+        file_path: Path,
         *,
-        task_id: str | None = None,
         title: str | None = None,
         author: str | None = None,
         language: str | None = None,
         progress_cb: Callable | None = None,
         murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
-    ) -> IngestionResult:
-        """Ingest a novel file end-to-end.
+    ) -> Document:
+        """Phase 1: Parse file → detect language → save document.
 
-        Args:
-            input_data: Path to the PDF or DOCX file.
-            title: Optional book title override.  When provided this is used
-                   instead of the value extracted from file metadata.
-            author: Optional author override.  When provided this is used
-                    instead of the value extracted from file metadata.
-            progress_cb: Optional callback ``(progress: int, stage: str) -> None``
-                called between pipeline steps so callers (e.g. the API
-                background task) can push progress updates.
-
-        Returns:
-            ``IngestionResult`` summarising the ingestion.
+        Returns the persisted Document. Raises on document persistence failure.
         """
-        file_path = Path(input_data).resolve()
+        file_path = Path(file_path).resolve()
+
+        def _progress(
+            pct: int,
+            stage: str,
+            *,
+            sub_progress: int | None = None,
+            sub_total: int | None = None,
+            sub_stage: str | None = None,
+        ) -> None:
+            if progress_cb is not None:
+                progress_cb(pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage)
+
+        async def _murmur(
+            step_key: str,
+            event_type: str,
+            content: str,
+            *,
+            meta: dict | None = None,
+            raw_content: str | None = None,
+        ) -> None:
+            if murmur_cb is None:
+                return
+            try:
+                event = MurmurEvent(
+                    seq=0,
+                    step_key=step_key,
+                    type=event_type,
+                    content=content[:1024],
+                    meta=meta,
+                    raw_content=raw_content[:4096] if raw_content else None,
+                )
+                await murmur_cb(event)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("murmur emit failed (%s): %s", step_key, exc)
+
+        # ── Ensure DB tables exist ─────────────────────────────────────────
+        await self._document_service.init_db()
+
+        # ── Step 1: document processing ───────────────────────────────────
+        _progress(5, "Document processing")
+        self._log_step("doc_processing", file=str(file_path))
+        doc: Document = await self._doc_pipeline(file_path)
+
+        if title:
+            doc.title = title
+        if author:
+            doc.author = author
+
+        # ── Language detection ────────────────────────────────────────────
+        from core.language_detection import detect_language_from_document  # noqa: PLC0415
+        _progress(10, "Language detection")
+        doc.language = language or detect_language_from_document(doc)
+        await _murmur(
+            "pdfParsing", "topic",
+            f"偵測到 {doc.total_paragraphs} 個段落，{doc.total_chapters} 章，{doc.language}",
+            meta={"chapters": doc.total_chapters, "paragraphs": doc.total_paragraphs, "language": doc.language},
+        )
+        logger.info(
+            "IngestionWorkflow: doc '%s' — %d chapters, %d paragraphs, lang=%s",
+            doc.title,
+            doc.total_chapters,
+            doc.total_paragraphs,
+            doc.language,
+        )
+
+        # ── Step 1b: persist document early (book enters library now) ─────
+        _progress(15, "Persisting document")
+        self._log_step("persist_document")
+        try:
+            await self._document_service.save_document(doc)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Document persistence failed: %s", exc)
+            raise
+
+        return doc
+
+    async def run_phase2(
+        self,
+        doc_id: str,
+        *,
+        task_id: str | None = None,
+        progress_cb: Callable | None = None,
+        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
+    ) -> IngestionResult:
+        """Phase 2: Summarization → feature extraction → KG → symbols → finalize.
+
+        Loads the document from DB using *doc_id*. Expects Phase 1 (and optional
+        chapter review) to have already completed.
+        """
+        doc = await self._document_service.get_document(doc_id)
+        if doc is None:
+            raise ValueError(f"Document '{doc_id}' not found — Phase 1 may not have completed")
+
         errors: list[str] = []
 
         def _progress(
@@ -210,89 +293,21 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             if murmur_cb is None:
                 return
             try:
-                truncated = content[:1024]
-                raw_truncated = raw_content[:4096] if raw_content else None
                 event = MurmurEvent(
-                    seq=0,  # seq assigned by store
+                    seq=0,
                     step_key=step_key,
                     type=event_type,
-                    content=truncated,
+                    content=content[:1024],
                     meta=meta,
-                    raw_content=raw_truncated,
+                    raw_content=raw_content[:4096] if raw_content else None,
                 )
                 await murmur_cb(event)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("murmur emit failed (%s): %s", step_key, exc)
 
-        # ── Ensure DB tables exist ───────────────────────────────────────────
-        await self._document_service.init_db()
+        _progress(20, "開始分析")
 
-        # ── Step 1: document processing ──────────────────────────────────────
-        _progress(5, "Document processing")
-        self._log_step("doc_processing", file=str(file_path))
-        doc: Document = await self._doc_pipeline(file_path)
-
-        # Caller-supplied values take precedence over file metadata
-        if title:
-            doc.title = title
-        if author:
-            doc.author = author
-
-        # ── Language detection ────────────────────────────────────────────
-        from core.language_detection import detect_language_from_document  # noqa: PLC0415
-        _progress(10, "Language detection")
-        doc.language = language or detect_language_from_document(doc)
-        await _murmur(
-            "pdfParsing", "topic",
-            f"偵測到 {doc.total_paragraphs} 個段落，{doc.total_chapters} 章，{doc.language}",
-            meta={"chapters": doc.total_chapters, "paragraphs": doc.total_paragraphs, "language": doc.language},
-        )
-        logger.info(
-            "IngestionWorkflow: doc '%s' — %d chapters, %d paragraphs, lang=%s",
-            doc.title,
-            doc.total_chapters,
-            doc.total_paragraphs,
-            doc.language,
-        )
-
-        # ── Step 1b: persist document early (book enters library now) ────────
-        _progress(15, "Persisting document")
-        self._log_step("persist_document")
-        try:
-            await self._document_service.save_document(doc)
-        except Exception as exc:  # noqa: BLE001
-            logger.error("Document persistence failed: %s", exc)
-            errors.append(f"document_persist: {exc}")
-            # If we can't persist the base document, abort — no point enriching
-            return IngestionResult(
-                document_id=doc.id,
-                document_title=doc.title,
-                chapters=doc.total_chapters,
-                paragraphs=doc.total_paragraphs,
-                language=doc.language,
-                errors=errors,
-            )
-
-        # ── Step 1c: pause for chapter review ────────────────────────────────
-        if task_id:
-            from api.review_registry import register  # noqa: PLC0415
-            from api.review_registry import wait as registry_wait
-            from api.store import task_store  # noqa: PLC0415
-
-            _progress(18, "章節審閱")
-            task_store.set_awaiting_review(task_id)
-            register(doc.id)
-            reviewed_chapters = await registry_wait(doc.id)
-            if reviewed_chapters is not None:
-                doc.chapters = _rebuild_chapters(doc, reviewed_chapters)
-                await self._document_service.replace_chapters(doc)
-                logger.info(
-                    "Chapter review applied: %d chapters", len(doc.chapters)
-                )
-            task_store.set_running(task_id)
-            _progress(20, "開始分析")
-
-        # ── Step 2: summarization ────────────────────────────────────────────
+        # ── Step 2: summarization ─────────────────────────────────────────
         _progress(25, "Summary generation")
         summ_result = SummarizationResult(document_id=doc.id)
         if not self._skip_summarization:
@@ -324,7 +339,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 doc.pipeline_status.summarization = StepStatus.failed
             await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
 
-        # ── Step 3: feature extraction (embeddings) ──────────────────────────
+        # ── Step 3: feature extraction (embeddings) ───────────────────────
         _progress(45, "Feature extraction")
         self._log_step("feature_extraction")
         feat_result: FeatureExtractionResult
@@ -346,7 +361,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             doc.pipeline_status.feature_extraction = StepStatus.failed
         await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
 
-        # ── Step 4: knowledge graph extraction ──────────────────────────────
+        # ── Step 4: knowledge graph extraction ───────────────────────────
         _progress(65, "Knowledge graph extraction")
         kg_result: KGExtractionResult = KGExtractionResult()
         if not self._skip_kg:
@@ -367,7 +382,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 doc.pipeline_status.knowledge_graph = StepStatus.failed
             await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
 
-        # ── Step 4b: symbol discovery ─────────────────────────────────────────
+        # ── Step 4b: symbol discovery ─────────────────────────────────────
         _progress(82, "Symbol discovery")
         symbol_result = SymbolDiscoveryResult(book_id=doc.id)
         if not self._skip_symbols:
@@ -388,7 +403,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 doc.pipeline_status.symbol_discovery = StepStatus.failed
             await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
 
-        # ── Step 4c: timeline detection ──────────────────────────────────────
+        # ── Step 4c: timeline detection ───────────────────────────────────
         timeline_detection: TimelineDetectionResult | None = None
         if not self._skip_kg and kg_result.events:
             distinct_chapters = {e.chapter for e in kg_result.events if e.chapter and e.chapter > 0}
@@ -415,13 +430,12 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 len(kg_result.events),
                 ranked_count,
             )
-            # Persist updated timeline_config
             try:
                 await self._document_service.save_document(doc)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Timeline config persist failed (non-fatal): %s", exc)
 
-        # ── Step 5: persist KG to disk ───────────────────────────────────────
+        # ── Step 5: persist KG to disk ────────────────────────────────────
         if not self._skip_kg and doc.pipeline_status.knowledge_graph == StepStatus.done:
             try:
                 await self._kg_service.save()
@@ -466,6 +480,38 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             len(errors),
         )
         return result
+
+    async def run(
+        self,
+        input_data: Path,
+        *,
+        task_id: str | None = None,
+        title: str | None = None,
+        author: str | None = None,
+        language: str | None = None,
+        progress_cb: Callable | None = None,
+        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
+    ) -> IngestionResult:
+        """Ingest a novel file end-to-end (Phase 1 + Phase 2, no review pause).
+
+        For the interactive chapter-review flow use the LangGraph ingestion
+        graph (``src/workflows/ingestion_graph.py``) — it pauses between
+        phases for HITL chapter review.
+        """
+        doc = await self.run_phase1(
+            file_path=input_data,
+            title=title,
+            author=author,
+            language=language,
+            progress_cb=progress_cb,
+            murmur_cb=murmur_cb,
+        )
+        return await self.run_phase2(
+            doc.id,
+            task_id=task_id,
+            progress_cb=progress_cb,
+            murmur_cb=murmur_cb,
+        )
 
     # ── private helpers ──────────────────────────────────────────────────────
 
@@ -521,4 +567,3 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         except Exception as exc:  # noqa: BLE001
             logger.warning("Keyword extraction setup failed (%s) — keywords will be skipped", exc)
             return None, None
-

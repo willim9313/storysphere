@@ -1594,7 +1594,7 @@ interface UnravelingEdge {
 
 ### #22b POST /books/:bookId/review
 
-提交審閱後的章節邊界，解除流程暫停並繼續後續分析。
+提交審閱後的章節邊界，解除流程暫停並繼續後續分析（LangGraph graph resume）。
 
 **Request Body**
 ```ts
@@ -1606,7 +1606,9 @@ interface UnravelingEdge {
 }
 ```
 
-**Response 200**：`{}`（空 JSON）
+**Response 204**：無 body
+
+**409**：任務不在 `awaiting_review` 狀態（包含重複提交）
 
 ---
 

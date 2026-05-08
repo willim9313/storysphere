@@ -41,7 +41,6 @@ from api.schemas.books import (
     ChunkResponse,
     ClassifyVisibilityResponse,
     ConfirmInferredRequest,
-    EntityAnalysisResponse,
     EntityChunkItem,
     EntityChunksResponse,
     EntityStats,
@@ -132,43 +131,46 @@ def _pipeline_status_response_from_domain(ps: PipelineStatus):
 # ── Background tasks ────────────────────────────────────────────────────────
 
 
-async def _run_ingestion(
+async def _run_ingestion_graph(
     task_id: str,
     file_path: Path,
     title: str,
     author: str | None = None,
 ) -> None:
+    from langgraph.errors import GraphInterrupt  # noqa: PLC0415
+
+    from api.deps import get_ingestion_graph  # noqa: PLC0415
+
     task_store.set_running(task_id)
     task_store.set_progress(task_id, 5, "PDF 解析")
-    try:
-        from api.deps import get_kg_service  # noqa: PLC0415
-        from workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
 
-        kg_service = get_kg_service()
-        workflow = IngestionWorkflow(kg_service=kg_service)
-        result = await workflow.run(
-            file_path,
-            task_id=task_id,
-            title=title,
-            author=author,
-            progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None: task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
-            murmur_cb=lambda event: task_store.append_murmur(task_id, event),
-        )
-        task_result: dict = {
-            "bookId": result.document_id,
-            "failedSteps": result.errors,
-        }
-        if result.timeline_detection is not None:
-            task_result["timelineDetection"] = TimelineDetectionResponse.model_validate(
-                result.timeline_detection.model_dump()
-            ).model_dump(by_alias=True)
-        task_store.set_completed(task_id, result=task_result)
-        logger.info(
-            "Ingestion task %s completed: %s chapters, %s entities",
-            task_id,
-            result.chapters,
-            result.entities,
-        )
+    config = {"configurable": {"thread_id": task_id}}
+    initial_state = {
+        "file_path": str(file_path),
+        "title": title,
+        "author": author,
+        "language": None,
+        "task_id": task_id,
+        "doc_id": None,
+        "errors": [],
+        "chapters": 0,
+        "paragraphs": 0,
+        "paragraphs_embedded": 0,
+        "keywords_extracted": 0,
+        "chapters_summarized": 0,
+        "book_summary_generated": False,
+        "entities": 0,
+        "relations": 0,
+        "events": 0,
+        "imagery_count": 0,
+        "timeline_detection": None,
+    }
+    graph = get_ingestion_graph()
+    try:
+        await graph.ainvoke(initial_state, config=config)
+    except GraphInterrupt:
+        # Expected pause for chapter review — graph is checkpointed, not an error
+        logger.info("Ingestion task %s paused for chapter review", task_id)
     except asyncio.CancelledError:
         logger.info("Ingestion task %s cancelled", task_id)
         task_store.set_failed(task_id, error="cancelled")
@@ -182,6 +184,24 @@ async def _run_ingestion(
             file_path.unlink(missing_ok=True)
         except Exception:
             pass
+
+
+async def _resume_ingestion_graph(task_id: str, chapters_data: list[dict]) -> None:
+    from langgraph.types import Command  # noqa: PLC0415
+
+    from api.deps import get_ingestion_graph  # noqa: PLC0415
+
+    config = {"configurable": {"thread_id": task_id}}
+    graph = get_ingestion_graph()
+    try:
+        await graph.ainvoke(Command(resume=chapters_data), config=config)
+    except asyncio.CancelledError:
+        logger.info("Resume of ingestion task %s cancelled", task_id)
+        task_store.set_failed(task_id, error="cancelled")
+        raise
+    except Exception as exc:
+        logger.exception("Resume of ingestion task %s failed", task_id)
+        task_store.set_failed(task_id, error=str(exc))
 
 
 async def _run_entity_analysis(
@@ -410,9 +430,16 @@ async def get_review_data(
     doc: DocServiceDep,
 ) -> ReviewDataResponse:
     """Return chapter/paragraph data for review. Only available while awaiting_review."""
-    from api.review_registry import is_waiting  # noqa: PLC0415
+    from api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
 
-    if not is_waiting(book_id):
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+    status = await get_task(task_id)
+    if status is None or status.status != "awaiting_review":
         raise HTTPException(
             status_code=409,
             detail="Book is not currently awaiting chapter review",
@@ -459,21 +486,25 @@ async def submit_review(
     body: ReviewSubmitRequest,
 ) -> None:
     """Submit reviewed chapter structure and resume the ingestion pipeline."""
-    from api.review_registry import is_waiting, notify  # noqa: PLC0415
+    from api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
 
-    if not is_waiting(book_id):
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is None:
         raise HTTPException(
             status_code=409,
             detail="Book is not currently awaiting chapter review",
         )
-
-    chapters_data = [ch.model_dump(by_alias=False) for ch in body.chapters]
-    notified = notify(book_id, chapters_data)
-    if not notified:
+    status = await get_task(task_id)
+    if status is None or status.status != "awaiting_review":
         raise HTTPException(
             status_code=409,
             detail="Review window has already been closed",
         )
+
+    # Optimistic status update prevents a second submit from racing in
+    task_store.set_running(task_id)
+    chapters_data = [ch.model_dump(by_alias=False) for ch in body.chapters]
+    asyncio.create_task(_resume_ingestion_graph(task_id, chapters_data))
 
 
 # ── #2 POST /books/upload ────────────────────────────────────────────────────
@@ -519,7 +550,7 @@ async def upload_book(
 
     task_id = str(uuid4())
     task_store.create(task_id)
-    task = asyncio.create_task(_run_ingestion(task_id, Path(tmp.name), title, author))
+    task = asyncio.create_task(_run_ingestion_graph(task_id, Path(tmp.name), title, author))
     task_registry.register(task_id, task)
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)

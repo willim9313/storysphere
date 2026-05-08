@@ -184,13 +184,17 @@ class Settings(BaseSettings):
 
     # ── Task Store ─────────────────────────────────────────────────────────────
     task_store_backend: Literal["memory", "sqlite"] = Field(
-        default="memory", description="Task status store: 'memory' (dev) or 'sqlite' (multi-worker)"
+        default="sqlite", description="Task status store: 'memory' (dev) or 'sqlite' (multi-worker)"
     )
     task_store_db_path: str = Field(
         default="./data/tasks.db", description="SQLite path for task store (only used when backend=sqlite)"
     )
     task_store_ttl_days: int = Field(
         default=30, description="Days to retain completed/failed tasks in SQLite store (0 = keep forever)"
+    )
+    ingestion_checkpoint_db_path: str = Field(
+        default="./data/ingestion_checkpoints.db",
+        description="SQLite path for LangGraph ingestion graph checkpoints",
     )
 
     # ── Application ────────────────────────────────────────────────────────────

@@ -59,11 +59,11 @@ class MemoryTaskStore:
                     update={"status": "running"}
                 )
 
-    def set_awaiting_review(self, task_id: str) -> None:
+    def set_awaiting_review(self, task_id: str, book_id: str) -> None:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"status": "awaiting_review", "stage": "章節審閱"}
+                    update={"status": "awaiting_review", "stage": "章節審閱", "result": {"bookId": book_id}}
                 )
 
     def set_completed(self, task_id: str, result: Any) -> None:
@@ -113,6 +113,13 @@ class MemoryTaskStore:
     async def get_murmur_events(self, task_id: str, after: int = 0) -> list[MurmurEvent]:
         with self._lock:
             return list(self._murmur.get(task_id, [])[after:])
+
+    def get_task_id_by_book_id(self, book_id: str) -> str | None:
+        with self._lock:
+            for task_id, status in self._store.items():
+                if isinstance(status.result, dict) and status.result.get("bookId") == book_id:
+                    return task_id
+        return None
 
 
 # ── SQLite backend ────────────────────────────────────────────────────────────
@@ -296,10 +303,10 @@ class SQLiteTaskStore:
             error=row[8],
         )
 
-    def set_awaiting_review(self, task_id: str) -> None:
+    def set_awaiting_review(self, task_id: str, book_id: str) -> None:
         self._run(self._execute(
-            "UPDATE tasks SET status = 'awaiting_review', stage = '章節審閱' WHERE task_id = ?",
-            (task_id,),
+            "UPDATE tasks SET status = 'awaiting_review', stage = '章節審閱', result = ? WHERE task_id = ?",
+            (json.dumps({"bookId": book_id}), task_id),
         ))
 
     def set_running(self, task_id: str) -> None:
@@ -379,6 +386,23 @@ class SQLiteTaskStore:
             for row in rows
         ]
 
+    async def _async_get_task_id_by_book_id(self, book_id: str) -> str | None:
+        row = await self._fetchone(
+            "SELECT task_id FROM tasks WHERE json_extract(result, '$.bookId') = ? LIMIT 1",
+            (book_id,),
+        )
+        return row[0] if row else None
+
+    def get_task_id_by_book_id(self, book_id: str) -> str | None:
+        """Sync interface — prefer the module-level async helper in router code."""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                return None  # use async variant
+            return loop.run_until_complete(self._async_get_task_id_by_book_id(book_id))
+        except RuntimeError:
+            return asyncio.run(self._async_get_task_id_by_book_id(book_id))
+
 
 # ── Async-native GET for router use ──────────────────────────────────────────
 
@@ -387,6 +411,13 @@ async def get_task(task_id: str) -> TaskStatus | None:
     if isinstance(task_store, SQLiteTaskStore):
         return await task_store._async_get(task_id)
     return task_store.get(task_id)
+
+
+async def get_task_id_by_book_id(book_id: str) -> str | None:
+    """Async-native book→task lookup — use this in router handlers."""
+    if isinstance(task_store, SQLiteTaskStore):
+        return await task_store._async_get_task_id_by_book_id(book_id)
+    return task_store.get_task_id_by_book_id(book_id)
 
 
 # ── Process-level singleton ───────────────────────────────────────────────────

@@ -24,12 +24,12 @@ from api.routers import (
     entities,
     kg_settings,
     metrics,
+    narrative,
     relations,
     search,
     symbols,
     tasks,
     tasks_ws,
-    narrative,
     tension,
     token_usage,
     unraveling,
@@ -104,6 +104,8 @@ async def _check_local_llm(settings) -> None:  # type: ignore[type-arg]
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Warm up singletons on startup so the first request is not slow."""
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # noqa: PLC0415
+
     from api.deps import (  # noqa: PLC0415
         get_analysis_agent,
         get_chat_agent,
@@ -111,11 +113,13 @@ async def lifespan(app: FastAPI):
         get_kg_service,
         get_token_store,
         get_vector_service,
+        set_ingestion_graph,
     )
     from config.settings import get_settings  # noqa: PLC0415
     from core.llm_client import get_llm_client  # noqa: PLC0415
     from core.token_callback import set_main_event_loop  # noqa: PLC0415
     from core.tracing import configure_langfuse  # noqa: PLC0415
+    from workflows.ingestion_graph import build_ingestion_graph  # noqa: PLC0415
 
     settings = get_settings()
     configure_langfuse(settings)
@@ -149,14 +153,22 @@ async def lifespan(app: FastAPI):
         await _check_local_llm(settings)
 
     # Prune old completed/failed tasks from SQLite store
-    from api.store import task_store  # noqa: PLC0415
-    from api.store import SQLiteTaskStore  # noqa: PLC0415
+    from api.store import SQLiteTaskStore, task_store  # noqa: PLC0415
 
     if isinstance(task_store, SQLiteTaskStore) and settings.task_store_ttl_days > 0:
         await task_store.cleanup(older_than_days=settings.task_store_ttl_days)
 
-    logger.info("All services ready.")
-    yield
+    # Initialise LangGraph ingestion graph with persistent SQLite checkpointer
+    Path(settings.ingestion_checkpoint_db_path).parent.mkdir(parents=True, exist_ok=True)
+    async with AsyncSqliteSaver.from_conn_string(settings.ingestion_checkpoint_db_path) as checkpointer:
+        await checkpointer.setup()
+        set_ingestion_graph(build_ingestion_graph(checkpointer))
+        logger.info(
+            "Ingestion graph ready (checkpoint db: %s)", settings.ingestion_checkpoint_db_path
+        )
+        logger.info("All services ready.")
+        yield
+
     logger.info("StorySphere API shutting down.")
     # Close Neo4j driver connection pool if applicable
     from services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
