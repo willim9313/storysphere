@@ -71,6 +71,7 @@ class _ParagraphRow(_Base):
     text = Column(Text, nullable=False)
     embedding_json = Column(Text, nullable=True)  # JSON-encoded list[float]
     entities_json = Column(Text, nullable=True)  # JSON-encoded list[ParagraphEntity]
+    title_span_json = Column(Text, nullable=True)  # JSON-encoded [start, end] or null
 
 
 # ── Service ──────────────────────────────────────────────────────────────────
@@ -108,6 +109,7 @@ class DocumentService:
                 "ALTER TABLE documents ADD COLUMN language TEXT NOT NULL DEFAULT 'en'",
                 "ALTER TABLE documents ADD COLUMN timeline_config_json TEXT",
                 "ALTER TABLE documents ADD COLUMN pipeline_status_json TEXT",
+                "ALTER TABLE paragraphs ADD COLUMN title_span_json TEXT",
             ]:
                 try:
                     await conn.execute(sa_text(stmt))
@@ -188,11 +190,83 @@ class DocumentService:
                                     if para.entities
                                     else None
                                 ),
+                                title_span_json=(
+                                    json.dumps(list(para.title_span))
+                                    if para.title_span is not None
+                                    else None
+                                ),
                             )
                         )
 
         logger.info(
             "DocumentService.save_document: id=%s chapters=%d paragraphs=%d",
+            document.id,
+            document.total_chapters,
+            document.total_paragraphs,
+        )
+
+    async def replace_chapters(self, document: Document) -> None:
+        """Delete all chapters/paragraphs for a document and re-insert.
+
+        Used after a chapter-review step changes the chapter structure.
+        The document row itself is not modified.
+        """
+        async with self._session_factory() as session:
+            async with session.begin():
+                await session.execute(
+                    sa_delete(_ParagraphRow).where(
+                        _ParagraphRow.document_id == document.id
+                    )
+                )
+                await session.execute(
+                    sa_delete(_ChapterRow).where(
+                        _ChapterRow.document_id == document.id
+                    )
+                )
+                for chapter in document.chapters:
+                    session.add(
+                        _ChapterRow(
+                            id=chapter.id,
+                            document_id=document.id,
+                            number=chapter.number,
+                            title=chapter.title,
+                            summary=chapter.summary,
+                            keywords_json=(
+                                json.dumps(chapter.keywords, ensure_ascii=False)
+                                if chapter.keywords
+                                else None
+                            ),
+                        )
+                    )
+                    for para in chapter.paragraphs:
+                        session.add(
+                            _ParagraphRow(
+                                id=para.id,
+                                chapter_id=chapter.id,
+                                document_id=document.id,
+                                chapter_number=para.chapter_number,
+                                position=para.position,
+                                text=para.text,
+                                embedding_json=(
+                                    json.dumps(para.embedding) if para.embedding else None
+                                ),
+                                entities_json=(
+                                    json.dumps(
+                                        [e.model_dump() for e in para.entities],
+                                        ensure_ascii=False,
+                                    )
+                                    if para.entities
+                                    else None
+                                ),
+                                title_span_json=(
+                                    json.dumps(list(para.title_span))
+                                    if para.title_span is not None
+                                    else None
+                                ),
+                            )
+                        )
+        logger.info(
+            "DocumentService.replace_chapters: id=%s chapters=%d paragraphs=%d",
             document.id,
             document.total_chapters,
             document.total_paragraphs,
@@ -236,6 +310,11 @@ class DocumentService:
                         entities=(
                             [ParagraphEntity(**e) for e in json.loads(pr.entities_json)]
                             if pr.entities_json
+                            else None
+                        ),
+                        title_span=(
+                            tuple(json.loads(pr.title_span_json))
+                            if pr.title_span_json
                             else None
                         ),
                     )

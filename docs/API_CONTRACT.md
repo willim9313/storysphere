@@ -1570,6 +1570,46 @@ interface UnravelingEdge {
 
 ---
 
+### #22a GET /books/:bookId/review-data
+
+上傳流程章節審閱：取得系統偵測的章節與段落資料，供前端顯示。只在任務狀態為 `awaiting_review` 時有效。
+
+**Response 200**
+```ts
+{
+  chapters: Array<{
+    chapterIdx: number;
+    title: string | null;
+    paragraphs: Array<{
+      paragraphIndex: number;  // book-level global index
+      text: string;
+      titleSpan: [number, number] | null;  // char offsets of heading within text
+      sentences: string[];
+    }>;
+  }>;
+}
+```
+
+---
+
+### #22b POST /books/:bookId/review
+
+提交審閱後的章節邊界，解除流程暫停並繼續後續分析。
+
+**Request Body**
+```ts
+{
+  chapters: Array<{
+    title: string;
+    startParagraphIndex: number;  // book-level global index
+  }>;
+}
+```
+
+**Response 200**：`{}`（空 JSON）
+
+---
+
 ### #21l PATCH /narrative/:documentId/review
 
 HITL 審核 NarrativeStructure（approved / rejected）。

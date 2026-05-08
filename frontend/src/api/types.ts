@@ -221,9 +221,31 @@ export type MurmurEvent = components['schemas']['MurmurEvent'];
 export type MurmurStepKey = MurmurEvent['stepKey'];
 export type MurmurEventType = MurmurEvent['type'];
 
+export interface ReviewParagraph {
+  paragraphIndex: number;
+  text: string;
+  titleSpan: [number, number] | null;
+  sentences: string[];
+}
+
+export interface ReviewChapter {
+  chapterIdx: number;
+  title: string | null;
+  paragraphs: ReviewParagraph[];
+}
+
+export interface ReviewData {
+  chapters: ReviewChapter[];
+}
+
+export interface ReviewSubmitChapter {
+  title: string;
+  startParagraphIndex: number;
+}
+
 export interface TaskStatus {
   taskId: string;
-  status: 'pending' | 'running' | 'done' | 'error';
+  status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_review';
   progress: number;
   stage: string;
   subProgress?: number;

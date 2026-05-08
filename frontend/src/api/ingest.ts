@@ -20,6 +20,20 @@ export function fetchTaskStatus(taskId: string, after = 0): Promise<TaskStatus> 
   return apiFetch<TaskStatus>(`/tasks/${taskId}/status${params}`);
 }
 
+// #review — Fetch review data for awaiting_review task
+export function fetchReviewData(bookId: string): Promise<import('./types').ReviewData> {
+  return apiFetch<import('./types').ReviewData>(`/books/${bookId}/review-data`);
+}
+
+// #review — Submit chapter review
+export function submitReview(bookId: string, chapters: import('./types').ReviewSubmitChapter[]): Promise<void> {
+  return apiFetch<void>(`/books/${bookId}/review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ chapters }),
+  });
+}
+
 // Cancel a running task
 export function cancelTask(taskId: string): Promise<void> {
   return apiFetch<void>(`/tasks/${taskId}/cancel`, { method: 'POST' });

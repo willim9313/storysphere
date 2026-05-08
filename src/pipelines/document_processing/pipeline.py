@@ -59,7 +59,18 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
         # (e.g. residual TOC segments that are all below min_chars).
         chapters: list[Chapter] = []
         for span in spans:
-            paragraphs = chunk_segments(span.segments, chapter_number=span.chapter_number)
+            segments = span.segments
+            # Direction-A title_span: prepend the detected heading text to the
+            # first segment so it becomes part of paragraph text, then annotate
+            # the first paragraph with the character offsets of the title.
+            if span.title and segments:
+                first_idx, first_text = segments[0]
+                segments = [(first_idx, span.title + "\n" + first_text)] + list(segments[1:])
+            paragraphs = chunk_segments(segments, chapter_number=span.chapter_number)
+            if span.title and paragraphs and paragraphs[0].text.startswith(span.title):
+                paragraphs[0] = paragraphs[0].model_copy(
+                    update={"title_span": (0, len(span.title))}
+                )
             if not paragraphs:
                 logger.debug("Skipping empty chapter %d (%r)", span.chapter_number, span.title)
                 continue

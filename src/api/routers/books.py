@@ -58,6 +58,10 @@ from api.schemas.books import (
     LocationRef,
     MisbeliefItemSchema,
     ParticipantRef,
+    ReviewChapterResponse,
+    ReviewDataResponse,
+    ReviewParagraphResponse,
+    ReviewSubmitRequest,
     RunInferenceRequest,
     Segment,
     SegmentEntity,
@@ -144,6 +148,7 @@ async def _run_ingestion(
         workflow = IngestionWorkflow(kg_service=kg_service)
         result = await workflow.run(
             file_path,
+            task_id=task_id,
             title=title,
             author=author,
             progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None: task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
@@ -392,6 +397,83 @@ async def rerun_pipeline_step(
     task = asyncio.create_task(_run_rerun_step(task_id, book_id, step, doc, kg))
     task_registry.register(task_id, task)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+# ── #8d GET /books/:bookId/review-data ───────────────────────────────────────
+
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+|(?<=[。！？])")
+
+
+@router.get("/{book_id}/review-data", response_model=ReviewDataResponse)
+async def get_review_data(
+    book_id: str,
+    doc: DocServiceDep,
+) -> ReviewDataResponse:
+    """Return chapter/paragraph data for review. Only available while awaiting_review."""
+    from api.review_registry import is_waiting  # noqa: PLC0415
+
+    if not is_waiting(book_id):
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    global_idx = 0
+    review_chapters: list[ReviewChapterResponse] = []
+    for ch_idx, chapter in enumerate(document.chapters):
+        paras: list[ReviewParagraphResponse] = []
+        for para in chapter.paragraphs:
+            sentences = [s for s in _SENTENCE_END.split(para.text) if s.strip()]
+            if not sentences:
+                sentences = [para.text]
+            paras.append(
+                ReviewParagraphResponse(
+                    paragraph_index=global_idx,
+                    text=para.text,
+                    title_span=list(para.title_span) if para.title_span else None,
+                    sentences=sentences,
+                )
+            )
+            global_idx += 1
+        review_chapters.append(
+            ReviewChapterResponse(
+                chapter_idx=ch_idx,
+                title=chapter.title,
+                paragraphs=paras,
+            )
+        )
+
+    return ReviewDataResponse(chapters=review_chapters)
+
+
+# ── #8e POST /books/:bookId/review ───────────────────────────────────────────
+
+
+@router.post("/{book_id}/review", status_code=204)
+async def submit_review(
+    book_id: str,
+    body: ReviewSubmitRequest,
+) -> None:
+    """Submit reviewed chapter structure and resume the ingestion pipeline."""
+    from api.review_registry import is_waiting, notify  # noqa: PLC0415
+
+    if not is_waiting(book_id):
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+
+    chapters_data = [ch.model_dump(by_alias=False) for ch in body.chapters]
+    notified = notify(book_id, chapters_data)
+    if not notified:
+        raise HTTPException(
+            status_code=409,
+            detail="Review window has already been closed",
+        )
 
 
 # ── #2 POST /books/upload ────────────────────────────────────────────────────

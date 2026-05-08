@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from api.schemas.common import MurmurEvent
-from domain.documents import Document, StepStatus
+from domain.documents import Chapter, Document, StepStatus
 from domain.timeline import TimelineConfig, TimelineDetectionResult
 from pipelines.document_processing import DocumentProcessingPipeline
 from pipelines.feature_extraction import FeatureExtractionPipeline
@@ -63,6 +63,31 @@ class IngestionResult:
     @property
     def success(self) -> bool:
         return len(self.errors) == 0
+
+
+def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
+    """Reconstruct Chapter objects from a reviewed chapter list.
+
+    *reviewed* is the list of ``{"title": str, "startParagraphIndex": int}``
+    dicts submitted via POST /review.  Paragraphs are re-assigned to new
+    chapters based on the ``startParagraphIndex`` boundaries.
+    """
+    all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
+    new_chapters: list[Chapter] = []
+
+    for i, rc in enumerate(reviewed):
+        ch_num = i + 1
+        title = rc.get("title") or None
+        start = rc["startParagraphIndex"]
+        end = reviewed[i + 1]["startParagraphIndex"] if i + 1 < len(reviewed) else len(all_paras)
+
+        ch_paras = [
+            p.model_copy(update={"chapter_number": ch_num, "position": pos})
+            for pos, p in enumerate(all_paras[start:end])
+        ]
+        new_chapters.append(Chapter(number=ch_num, title=title, paragraphs=ch_paras))
+
+    return new_chapters
 
 
 class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
@@ -138,6 +163,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         self,
         input_data: Path,
         *,
+        task_id: str | None = None,
         title: str | None = None,
         author: str | None = None,
         language: str | None = None,
@@ -246,6 +272,25 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 language=doc.language,
                 errors=errors,
             )
+
+        # ── Step 1c: pause for chapter review ────────────────────────────────
+        if task_id:
+            from api.review_registry import register  # noqa: PLC0415
+            from api.review_registry import wait as registry_wait
+            from api.store import task_store  # noqa: PLC0415
+
+            _progress(18, "章節審閱")
+            task_store.set_awaiting_review(task_id)
+            register(doc.id)
+            reviewed_chapters = await registry_wait(doc.id)
+            if reviewed_chapters is not None:
+                doc.chapters = _rebuild_chapters(doc, reviewed_chapters)
+                await self._document_service.replace_chapters(doc)
+                logger.info(
+                    "Chapter review applied: %d chapters", len(doc.chapters)
+                )
+            task_store.set_running(task_id)
+            _progress(20, "開始分析")
 
         # ── Step 2: summarization ────────────────────────────────────────────
         _progress(25, "Summary generation")

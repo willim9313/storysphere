@@ -59,6 +59,13 @@ class MemoryTaskStore:
                     update={"status": "running"}
                 )
 
+    def set_awaiting_review(self, task_id: str) -> None:
+        with self._lock:
+            if task_id in self._store:
+                self._store[task_id] = self._store[task_id].model_copy(
+                    update={"status": "awaiting_review", "stage": "章節審閱"}
+                )
+
     def set_completed(self, task_id: str, result: Any) -> None:
         with self._lock:
             if task_id in self._store:
@@ -288,6 +295,12 @@ class SQLiteTaskStore:
             result=json.loads(row[7]) if row[7] else None,
             error=row[8],
         )
+
+    def set_awaiting_review(self, task_id: str) -> None:
+        self._run(self._execute(
+            "UPDATE tasks SET status = 'awaiting_review', stage = '章節審閱' WHERE task_id = ?",
+            (task_id,),
+        ))
 
     def set_running(self, task_id: str) -> None:
         self._run(self._execute(

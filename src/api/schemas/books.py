@@ -60,6 +60,45 @@ class BookDetailResponse(BookResponse):
     keywords: dict[str, float] | None = None
 
 
+# ── Chapter review ───────────────────────────────────────────────────────────
+
+
+class ReviewParagraphResponse(BaseModel):
+    model_config = _CAMEL
+
+    paragraph_index: int
+    text: str
+    title_span: list[int] | None = None  # [start, end] char offsets, or null
+    sentences: list[str]
+
+
+class ReviewChapterResponse(BaseModel):
+    model_config = _CAMEL
+
+    chapter_idx: int
+    title: str | None = None
+    paragraphs: list[ReviewParagraphResponse]
+
+
+class ReviewDataResponse(BaseModel):
+    model_config = _CAMEL
+
+    chapters: list[ReviewChapterResponse]
+
+
+class ReviewChapterInput(BaseModel):
+    model_config = _CAMEL
+
+    title: str = ""
+    start_paragraph_index: int
+
+
+class ReviewSubmitRequest(BaseModel):
+    model_config = _CAMEL
+
+    chapters: list[ReviewChapterInput]
+
+
 # ── Chapter / chunk ──────────────────────────────────────────────────────────
 
 

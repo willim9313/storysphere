@@ -48,6 +48,10 @@ class Paragraph(BaseModel):
     embedding: Optional[list[float]] = None
     keywords: Optional[dict[str, float]] = None
     entities: Optional[list[ParagraphEntity]] = None
+    title_span: Optional[tuple[int, int]] = Field(
+        default=None,
+        description="(start, end) char offsets of chapter title within text; None if no title",
+    )
 
 
 class Chapter(BaseModel):

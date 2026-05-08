@@ -15,6 +15,21 @@
     "errorTooLarge": "檔案大小超過 {{max}} MB 上限",
     "errorOneFileOnly": "一次只能上傳一個檔案"
   },
+  "review": {
+    "title": "審閱章節結構",
+    "hint": "確認或調整系統偵測到的章節邊界，完成後提交以繼續分析。",
+    "chapterLabel": "第 {{n}} 章",
+    "noTitle": "（無標題）",
+    "addChapterBefore": "在此前插入新章節",
+    "deleteChapter": "刪除此章節",
+    "submit": "確認並繼續",
+    "submitting": "提交中…",
+    "pipelineRunning": "分析進行中…",
+    "done": "分析完成",
+    "goToBook": "前往《{{title}}》",
+    "errorLoad": "無法載入章節資料，請稍後再試。",
+    "errorSubmit": "提交失敗，請稍後再試。"
+  },
   "steps": {
     "pdfParsing": "PDF 解析",
     "languageDetect": "語言偵測",

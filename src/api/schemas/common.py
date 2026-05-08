@@ -28,7 +28,7 @@ class TaskStatus(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
     task_id: str
-    status: Literal["pending", "running", "done", "error"]
+    status: Literal["pending", "running", "done", "error", "awaiting_review"]
     progress: int = 0
     stage: str = ""
     sub_progress: int | None = None

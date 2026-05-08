@@ -17,6 +17,7 @@ const UnravelingPage = lazy(() => import('@/pages/UnravelingPage'));
 const FrameworksPage = lazy(() => import('@/pages/FrameworksPage'));
 const TokenUsagePage = lazy(() => import('@/pages/TokenUsagePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const ChapterReviewPage = lazy(() => import('@/pages/upload/ChapterReviewPage'));
 
 function LazyWrapper({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>;
@@ -39,6 +40,14 @@ export const router = createBrowserRouter([
         element: (
           <LazyWrapper>
             <UploadPage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: '/upload/review/:bookId',
+        element: (
+          <LazyWrapper>
+            <ChapterReviewPage />
           </LazyWrapper>
         ),
       },
