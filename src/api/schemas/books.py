@@ -17,6 +17,15 @@ _CAMEL = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 # ── Book list / detail ───────────────────────────────────────────────────────
 
 
+class PipelineStatusResponse(BaseModel):
+    model_config = _CAMEL
+
+    summarization: str = "pending"
+    feature_extraction: str = "pending"
+    knowledge_graph: str = "pending"
+    symbol_discovery: str = "pending"
+
+
 class BookResponse(BaseModel):
     model_config = _CAMEL
 
@@ -28,6 +37,7 @@ class BookResponse(BaseModel):
     entity_count: int | None = None
     uploaded_at: str = ""
     last_opened_at: str | None = None
+    pipeline_status: PipelineStatusResponse = PipelineStatusResponse()
 
 
 class EntityStats(BaseModel):

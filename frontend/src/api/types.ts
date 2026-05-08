@@ -7,6 +7,14 @@ export type EntityType = 'character' | 'location' | 'organization' | 'object' | 
 // ── Books ───────────────────────────────────────────────────────
 
 export type BookStatus = 'processing' | 'ready' | 'analyzed' | 'error';
+export type StepStatus = 'pending' | 'done' | 'failed';
+
+export interface PipelineStatus {
+  summarization: StepStatus;
+  featureExtraction: StepStatus;
+  knowledgeGraph: StepStatus;
+  symbolDiscovery: StepStatus;
+}
 
 export interface Book {
   id: string;
@@ -17,6 +25,11 @@ export interface Book {
   entityCount?: number;
   uploadedAt: string;
   lastOpenedAt?: string;
+  pipelineStatus: PipelineStatus;
+}
+
+export interface RerunTaskResult {
+  taskId: string;
 }
 
 export interface BookDetail extends Book {

@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from api.schemas.common import MurmurEvent
-from domain.documents import Document
+from domain.documents import Document, StepStatus
 from domain.timeline import TimelineConfig, TimelineDetectionResult
 from pipelines.document_processing import DocumentProcessingPipeline
 from pipelines.feature_extraction import FeatureExtractionPipeline
@@ -229,18 +229,33 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             doc.language,
         )
 
-        # ── Step 1b: summarization ───────────────────────────────────────────
-        _progress(20, "Summary generation")
+        # ── Step 1b: persist document early (book enters library now) ────────
+        _progress(15, "Persisting document")
+        self._log_step("persist_document")
+        try:
+            await self._document_service.save_document(doc)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Document persistence failed: %s", exc)
+            errors.append(f"document_persist: {exc}")
+            # If we can't persist the base document, abort — no point enriching
+            return IngestionResult(
+                document_id=doc.id,
+                document_title=doc.title,
+                chapters=doc.total_chapters,
+                paragraphs=doc.total_paragraphs,
+                language=doc.language,
+                errors=errors,
+            )
+
+        # ── Step 2: summarization ────────────────────────────────────────────
+        _progress(25, "Summary generation")
         summ_result = SummarizationResult(document_id=doc.id)
         if not self._skip_summarization:
             self._log_step("summarization")
             try:
-                _summ_chapter_idx = 0
-
                 async def _summ_murmur_cb(chapter_number: int) -> None:
                     chapter = next((c for c in doc.chapters if c.number == chapter_number), None)
                     if chapter and chapter.summary:
-                        # Extract first 3 sentences as topic hint
                         sentences = [s.strip() for s in chapter.summary.split("。") if s.strip()]
                         preview = "。".join(sentences[:2]) + ("。" if sentences else "")
                         await _murmur(
@@ -252,36 +267,42 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 summ_result = await self._summarization_pipeline.run(
                     doc,
                     sub_cb=lambda cur, tot, label="章節摘要": _progress(
-                        20, "Summary generation",
+                        25, "Summary generation",
                         sub_progress=cur, sub_total=tot, sub_stage=label,
                     ),
                     murmur_cb=_summ_murmur_cb,
                 )
+                doc.pipeline_status.summarization = StepStatus.done
             except Exception as exc:  # noqa: BLE001
                 logger.error("Summarization failed: %s", exc)
                 errors.append(f"summarization: {exc}")
+                doc.pipeline_status.summarization = StepStatus.failed
+            await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
 
-        # ── Step 2: feature extraction (embeddings) ──────────────────────────
-        _progress(40, "Feature extraction")
+        # ── Step 3: feature extraction (embeddings) ──────────────────────────
+        _progress(45, "Feature extraction")
         self._log_step("feature_extraction")
         feat_result: FeatureExtractionResult
         try:
             feat_result = await self._feature_pipeline.run(
                 doc,
                 sub_cb=lambda cur, tot, label="章節特徵": _progress(
-                    40, "Feature extraction",
+                    45, "Feature extraction",
                     sub_progress=cur, sub_total=tot, sub_stage=label,
                 ),
             )
+            doc.pipeline_status.feature_extraction = StepStatus.done
         except Exception as exc:  # noqa: BLE001
             logger.error("Feature extraction failed: %s", exc)
             errors.append(f"feature_extraction: {exc}")
             feat_result = FeatureExtractionResult(
                 document_id=doc.id, paragraphs_embedded=0
             )
+            doc.pipeline_status.feature_extraction = StepStatus.failed
+        await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
 
-        # ── Step 3: knowledge graph extraction ──────────────────────────────
-        _progress(60, "Knowledge graph extraction")
+        # ── Step 4: knowledge graph extraction ──────────────────────────────
+        _progress(65, "Knowledge graph extraction")
         kg_result: KGExtractionResult = KGExtractionResult()
         if not self._skip_kg:
             self._log_step("kg_extraction")
@@ -289,17 +310,20 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 kg_result = await self._kg_pipeline.run(
                     doc,
                     sub_cb=lambda cur, tot, label="": _progress(
-                        60, "Knowledge graph extraction",
+                        65, "Knowledge graph extraction",
                         sub_progress=cur, sub_total=tot, sub_stage=label,
                     ),
                     murmur_cb=_murmur,
                 )
+                doc.pipeline_status.knowledge_graph = StepStatus.done
             except Exception as exc:  # noqa: BLE001
                 logger.error("KG extraction failed: %s", exc)
                 errors.append(f"kg_extraction: {exc}")
+                doc.pipeline_status.knowledge_graph = StepStatus.failed
+            await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
 
-        # ── Step 3b: symbol discovery ─────────────────────────────────────────
-        _progress(80, "Symbol discovery")
+        # ── Step 4b: symbol discovery ─────────────────────────────────────────
+        _progress(82, "Symbol discovery")
         symbol_result = SymbolDiscoveryResult(book_id=doc.id)
         if not self._skip_symbols:
             self._log_step("symbol_discovery")
@@ -307,16 +331,19 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 symbol_result = await self._symbol_pipeline.run(
                     doc,
                     sub_cb=lambda cur, tot, label="章節符號": _progress(
-                        80, "Symbol discovery",
+                        82, "Symbol discovery",
                         sub_progress=cur, sub_total=tot, sub_stage=label,
                     ),
                     murmur_cb=_murmur,
                 )
+                doc.pipeline_status.symbol_discovery = StepStatus.done
             except Exception as exc:  # noqa: BLE001
                 logger.error("Symbol discovery failed (non-fatal): %s", exc)
                 errors.append(f"symbol_discovery: {exc}")
+                doc.pipeline_status.symbol_discovery = StepStatus.failed
+            await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
 
-        # ── Step 3c: timeline detection ──────────────────────────────────────
+        # ── Step 4c: timeline detection ──────────────────────────────────────
         timeline_detection: TimelineDetectionResult | None = None
         if not self._skip_kg and kg_result.events:
             distinct_chapters = {e.chapter for e in kg_result.events if e.chapter and e.chapter > 0}
@@ -343,18 +370,14 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 len(kg_result.events),
                 ranked_count,
             )
-
-        # ── Step 4: persist document to SQLite ───────────────────────────────
-        _progress(90, "Persisting document")
-        self._log_step("persist_document")
-        try:
-            await self._document_service.save_document(doc)
-        except Exception as exc:  # noqa: BLE001
-            logger.error("Document persistence failed: %s", exc)
-            errors.append(f"document_persist: {exc}")
+            # Persist updated timeline_config
+            try:
+                await self._document_service.save_document(doc)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Timeline config persist failed (non-fatal): %s", exc)
 
         # ── Step 5: persist KG to disk ───────────────────────────────────────
-        if not self._skip_kg and not errors:
+        if not self._skip_kg and doc.pipeline_status.knowledge_graph == StepStatus.done:
             try:
                 await self._kg_service.save()
             except Exception as exc:  # noqa: BLE001

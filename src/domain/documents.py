@@ -15,6 +15,19 @@ class FileType(str, Enum):
     DOCX = "docx"
 
 
+class StepStatus(str, Enum):
+    pending = "pending"
+    done = "done"
+    failed = "failed"
+
+
+class PipelineStatus(BaseModel):
+    summarization: StepStatus = StepStatus.pending
+    feature_extraction: StepStatus = StepStatus.pending
+    knowledge_graph: StepStatus = StepStatus.pending
+    symbol_discovery: StepStatus = StepStatus.pending
+
+
 class ParagraphEntity(BaseModel):
     """An entity mention within a paragraph, with character offsets."""
 
@@ -66,6 +79,7 @@ class Document(BaseModel):
     language: str = "en"  # ISO 639-1 code, auto-detected or user-specified
     processed_at: Optional[datetime] = None
     timeline_config: Optional[TimelineConfig] = None
+    pipeline_status: PipelineStatus = Field(default_factory=PipelineStatus)
 
     @property
     def total_chapters(self) -> int:

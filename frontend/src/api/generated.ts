@@ -65,6 +65,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/rerun/{step}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rerun Pipeline Step
+         * @description Trigger a rerun of a single failed pipeline step for a book.
+         */
+        post: operations["rerun_pipeline_step_api_v1_books__book_id__rerun__step__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/upload": {
         parameters: {
             query?: never;
@@ -662,6 +682,29 @@ export interface paths {
         get: operations["get_task_status_api_v1_tasks__task_id__status_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Task
+         * @description Cancel a running background task.
+         *
+         *     Returns 204 on success. Returns 404 if the task does not exist,
+         *     409 if the task is already completed or not cancellable.
+         */
+        post: operations["cancel_task_api_v1_tasks__task_id__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1847,6 +1890,15 @@ export interface components {
             uploadedAt: string;
             /** Lastopenedat */
             lastOpenedAt?: string | null;
+            /**
+             * @default {
+             *       "summarization": "pending",
+             *       "featureExtraction": "pending",
+             *       "knowledgeGraph": "pending",
+             *       "symbolDiscovery": "pending"
+             *     }
+             */
+            pipelineStatus: components["schemas"]["PipelineStatusResponse"];
             /** Summary */
             summary?: string | null;
             /**
@@ -1902,6 +1954,15 @@ export interface components {
             uploadedAt: string;
             /** Lastopenedat */
             lastOpenedAt?: string | null;
+            /**
+             * @default {
+             *       "summarization": "pending",
+             *       "featureExtraction": "pending",
+             *       "knowledgeGraph": "pending",
+             *       "symbolDiscovery": "pending"
+             *     }
+             */
+            pipelineStatus: components["schemas"]["PipelineStatusResponse"];
         };
         /** CausalityResponse */
         CausalityResponse: {
@@ -2660,6 +2721,29 @@ export interface components {
             name: string;
             /** Type */
             type: string;
+        };
+        /** PipelineStatusResponse */
+        PipelineStatusResponse: {
+            /**
+             * Summarization
+             * @default pending
+             */
+            summarization: string;
+            /**
+             * Featureextraction
+             * @default pending
+             */
+            featureExtraction: string;
+            /**
+             * Knowledgegraph
+             * @default pending
+             */
+            knowledgeGraph: string;
+            /**
+             * Symboldiscovery
+             * @default pending
+             */
+            symbolDiscovery: string;
         };
         /** RefineNarrativeRequest */
         RefineNarrativeRequest: {
@@ -3512,6 +3596,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rerun_pipeline_step_api_v1_books__book_id__rerun__step__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                step: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskIdResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -4542,6 +4658,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_task_api_v1_tasks__task_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

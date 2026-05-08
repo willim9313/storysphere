@@ -36,6 +36,13 @@
 ```ts
 Book[]
 
+interface PipelineStatus {
+  summarization: 'pending' | 'done' | 'failed';
+  featureExtraction: 'pending' | 'done' | 'failed';
+  knowledgeGraph: 'pending' | 'done' | 'failed';
+  symbolDiscovery: 'pending' | 'done' | 'failed';
+}
+
 interface Book {
   id: string;
   title: string;
@@ -45,6 +52,7 @@ interface Book {
   entityCount?: number;
   uploadedAt: string;
   lastOpenedAt?: string;   // 後端尚未實作寫入，目前永遠為 undefined
+  pipelineStatus: PipelineStatus;
 }
 ```
 
@@ -56,7 +64,7 @@ interface Book {
 
 單本書 metadata（書庫列表欄位）。
 
-**Response 200**：同 `Book`（#1 的 Book interface）
+**Response 200**：同 `Book`（#1 的 Book interface，含 `pipelineStatus`）
 
 **Response 404**：書籍不存在
 
@@ -448,7 +456,8 @@ interface TaskStatus {
   subTotal?: number;
   subStage?: string;
   result?: {
-    bookId?: string;       // 上傳完成時提供，用於導向 /books/:bookId
+    bookId?: string;        // 上傳完成時提供，用於導向 /books/:bookId
+    failedSteps?: string[]; // 上傳任務：部分步驟失敗時回傳失敗描述列表
     [key: string]: unknown;
   };
   error?: string;
@@ -478,6 +487,46 @@ useQuery({
 | 整本書深度分析 | #6 |
 | 條目重新生成 | #6c |
 | 角色實體深度分析 | #7b |
+
+---
+
+### #8b POST /tasks/:taskId/cancel
+
+中止正在執行的 background task（真正中斷 asyncio.Task）。
+
+**Response 204**：中止成功
+
+**Response 404**：task 不存在
+
+**Response 409**：task 已完成或無法中止
+
+**說明**：
+- 書進庫**前**取消 → 書不存在，等同上傳失敗
+- 書進庫**後**取消 → 書留在庫裡，剩餘 enrichment 步驟中斷，`pipelineStatus` 中未完成步驟標為 `failed`，可透過 #8c 補跑
+
+---
+
+### #8c POST /books/:bookId/rerun/:step
+
+對單一失敗步驟觸發補跑，回傳 taskId 供 polling（走 #8）。
+
+**Path Parameters**
+
+| 參數 | 說明 |
+|------|------|
+| `bookId` | 書籍 UUID |
+| `step` | `summarization` \| `feature-extraction` \| `knowledge-graph` \| `symbol-discovery` |
+
+**Response 202**
+```ts
+{ taskId: string }
+```
+
+**Response 404**：書籍不存在
+
+**Response 422**：step 名稱無效
+
+**說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `['book', bookId]` query 以重整書籍資料。
 | 事件深度分析（單一） | #7e |
 | 批次事件 EEP | #7g |
 | 時序計算 | #13b |

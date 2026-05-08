@@ -14,12 +14,13 @@ from __future__ import annotations
 import json
 import logging
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, func, select, text as sa_text
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, func, select
 from sqlalchemy import delete as sa_delete
+from sqlalchemy import text as sa_text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
+from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity, PipelineStatus
 from services.query_models import ChapterKeywordMatch, DocumentSummary
 
 logger = logging.getLogger(__name__)
@@ -45,6 +46,7 @@ class _DocumentRow(_Base):
     keywords_json = Column(Text, nullable=True)  # JSON-encoded dict[str, float]
     language = Column(String, nullable=False, server_default="en")
     timeline_config_json = Column(Text, nullable=True)  # JSON-encoded TimelineConfig
+    pipeline_status_json = Column(Text, nullable=True)  # JSON-encoded PipelineStatus
 
 
 class _ChapterRow(_Base):
@@ -105,6 +107,7 @@ class DocumentService:
                 "ALTER TABLE paragraphs ADD COLUMN entities_json TEXT",
                 "ALTER TABLE documents ADD COLUMN language TEXT NOT NULL DEFAULT 'en'",
                 "ALTER TABLE documents ADD COLUMN timeline_config_json TEXT",
+                "ALTER TABLE documents ADD COLUMN pipeline_status_json TEXT",
             ]:
                 try:
                     await conn.execute(sa_text(stmt))
@@ -146,6 +149,7 @@ class DocumentService:
                             if document.timeline_config
                             else None
                         ),
+                        pipeline_status_json=document.pipeline_status.model_dump_json(),
                     )
                 )
 
@@ -280,7 +284,23 @@ class DocumentService:
                     if doc_row.timeline_config_json
                     else None
                 ),
+                pipeline_status=(
+                    PipelineStatus.model_validate_json(doc_row.pipeline_status_json)
+                    if doc_row.pipeline_status_json
+                    else PipelineStatus()
+                ),
             )
+
+    async def update_pipeline_status(self, document_id: str, pipeline_status: PipelineStatus) -> None:
+        """Update only the pipeline_status column for a document."""
+        async with self._session_factory() as session:
+            async with session.begin():
+                await session.execute(
+                    sa_text(
+                        "UPDATE documents SET pipeline_status_json = :json WHERE id = :id"
+                    ),
+                    {"json": pipeline_status.model_dump_json(), "id": document_id},
+                )
 
     async def get_document_language(self, document_id: str) -> str:
         """Return the detected/configured language for a document, or ``'en'``."""
@@ -301,6 +321,7 @@ class DocumentService:
                     _DocumentRow.id,
                     _DocumentRow.title,
                     _DocumentRow.file_type,
+                    _DocumentRow.pipeline_status_json,
                     chapter_count,
                 )
                 .outerjoin(_ChapterRow, _ChapterRow.document_id == _DocumentRow.id)
@@ -312,6 +333,7 @@ class DocumentService:
                     title=row.title,
                     file_type=row.file_type,
                     chapter_count=row.chapter_count,
+                    pipeline_status_json=row.pipeline_status_json,
                 )
                 for row in result.all()
             ]

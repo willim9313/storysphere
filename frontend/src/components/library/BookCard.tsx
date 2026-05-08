@@ -1,10 +1,17 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FileText, Trash2 } from 'lucide-react';
+import { FileText, Trash2, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { Book } from '@/api/types';
+import type { Book, PipelineStatus } from '@/api/types';
 import { StatusBadge } from './StatusBadge';
 import { useDeleteBook } from '@/hooks/useDeleteBook';
+
+const STEP_LABELS: Record<keyof PipelineStatus, string> = {
+  summarization: '摘要',
+  featureExtraction: '特徵',
+  knowledgeGraph: '知識圖譜',
+  symbolDiscovery: '符號',
+};
 
 export function BookCard({ book }: Readonly<{ book: Book }>) {
   const isProcessing = book.status === 'processing';
@@ -12,6 +19,12 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
   const { mutate: deleteBook, isPending: isDeleting } = useDeleteBook();
   const { t } = useTranslation('library');
   const { t: tc } = useTranslation('common');
+
+  const failedSteps = book.pipelineStatus
+    ? (Object.entries(book.pipelineStatus) as [keyof PipelineStatus, string][])
+        .filter(([, v]) => v === 'failed')
+        .map(([k]) => STEP_LABELS[k])
+    : [];
 
   const handleDelete = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -56,6 +69,14 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
           <div className="flex items-center gap-2 mb-1">
             <StatusBadge status={book.status} />
           </div>
+          {failedSteps.length > 0 && (
+            <div className="flex items-center gap-1 mb-1">
+              <AlertTriangle size={11} style={{ color: 'var(--color-warning, #d97706)', flexShrink: 0 }} />
+              <span className="text-xs truncate" style={{ color: 'var(--color-warning, #d97706)' }}>
+                {failedSteps.join('、')} 不可用
+              </span>
+            </div>
+          )}
           <div className="flex gap-3 text-xs" style={{ color: 'var(--fg-muted)' }}>
             <span>{book.chapterCount} {t('card.chapters')}</span>
             {book.entityCount != null && <span>{book.entityCount} {t('card.entities')}</span>}

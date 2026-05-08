@@ -16,22 +16,36 @@ from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Query, UploadFile
 
-from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, EpistemicStateServiceDep, KGServiceDep, LinkPredictionServiceDep, TemporalPipelineDep, VectorServiceDep, VoiceProfilingServiceDep
+from api import task_registry
+from api.deps import (
+    AnalysisAgentDep,
+    AnalysisCacheDep,
+    DocServiceDep,
+    EpistemicStateServiceDep,
+    KGServiceDep,
+    LinkPredictionServiceDep,
+    TemporalPipelineDep,
+    VectorServiceDep,
+    VoiceProfilingServiceDep,
+)
 from api.schemas.books import (
     AnalysisItem,
     AnalysisListResponse,
+    ArchetypeDetailResponse,
+    ArcSegmentResponse,
     BookDetailResponse,
     BookResponse,
-    ChapterResponse,
-    ChunkResponse,
-    ArcSegmentResponse,
-    ArchetypeDetailResponse,
     CepResponse,
+    ChapterResponse,
     CharacterAnalysisDetailResponse,
+    ChunkResponse,
+    ClassifyVisibilityResponse,
+    ConfirmInferredRequest,
     EntityAnalysisResponse,
     EntityChunkItem,
     EntityChunksResponse,
     EntityStats,
+    EpistemicStateResponse,
     EventAnalysisFullResponse,
     EventDetailResponse,
     EventLocation,
@@ -39,31 +53,28 @@ from api.schemas.books import (
     GraphDataResponse,
     GraphEdge,
     GraphNode,
+    InferredRelationResponse,
+    InferredRelationsResponse,
     LocationRef,
+    MisbeliefItemSchema,
     ParticipantRef,
+    RunInferenceRequest,
     Segment,
     SegmentEntity,
     TaskIdResponse,
     TemporalRelationEntry,
-    TimelineEventEntry,
-    TimelineQuality,
-    TimelineResponse,
     TimelineConfigResponse,
     TimelineConfigUpdate,
     TimelineDetectionResponse,
+    TimelineEventEntry,
+    TimelineQuality,
+    TimelineResponse,
     TopEntity,
     UnanalyzedEntity,
-    ClassifyVisibilityResponse,
-    ConfirmInferredRequest,
-    EpistemicStateResponse,
-    InferredRelationResponse,
-    InferredRelationsResponse,
-    MisbeliefItemSchema,
-    RunInferenceRequest,
     VoiceProfileResponse,
 )
 from api.store import task_store
-from domain.documents import ParagraphEntity
+from domain.documents import ParagraphEntity, PipelineStatus, StepStatus
 from services.analysis_cache import AnalysisCache
 
 logger = logging.getLogger(__name__)
@@ -96,6 +107,24 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _pipeline_status_response(pipeline_status_json: str | None):
+    from api.schemas.books import PipelineStatusResponse  # noqa: PLC0415
+    if pipeline_status_json is None:
+        return PipelineStatusResponse()
+    ps = PipelineStatus.model_validate_json(pipeline_status_json)
+    return _pipeline_status_response_from_domain(ps)
+
+
+def _pipeline_status_response_from_domain(ps: PipelineStatus):
+    from api.schemas.books import PipelineStatusResponse  # noqa: PLC0415
+    return PipelineStatusResponse(
+        summarization=ps.summarization.value,
+        feature_extraction=ps.feature_extraction.value,
+        knowledge_graph=ps.knowledge_graph.value,
+        symbol_discovery=ps.symbol_discovery.value,
+    )
+
+
 # ── Background tasks ────────────────────────────────────────────────────────
 
 
@@ -120,7 +149,10 @@ async def _run_ingestion(
             progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None: task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
             murmur_cb=lambda event: task_store.append_murmur(task_id, event),
         )
-        task_result: dict = {"bookId": result.document_id}
+        task_result: dict = {
+            "bookId": result.document_id,
+            "failedSteps": result.errors,
+        }
         if result.timeline_detection is not None:
             task_result["timelineDetection"] = TimelineDetectionResponse.model_validate(
                 result.timeline_detection.model_dump()
@@ -132,10 +164,15 @@ async def _run_ingestion(
             result.chapters,
             result.entities,
         )
+    except asyncio.CancelledError:
+        logger.info("Ingestion task %s cancelled", task_id)
+        task_store.set_failed(task_id, error="cancelled")
+        raise
     except Exception as exc:
         logger.exception("Ingestion task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
     finally:
+        task_registry.unregister(task_id)
         try:
             file_path.unlink(missing_ok=True)
         except Exception:
@@ -180,8 +217,9 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
             chapter_count=item.chapter_count,
             entity_count=len(entities),
             uploaded_at="",
+            pipeline_status=_pipeline_status_response(item.pipeline_status_json),
         ).model_dump(by_alias=True)
-        for item, entities in zip(items, entity_lists)
+        for item, entities in zip(items, entity_lists, strict=False)
     ]
 
 
@@ -223,6 +261,7 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         uploaded_at=(
             document.processed_at.isoformat() if document.processed_at else _now_iso()
         ),
+        pipeline_status=_pipeline_status_response_from_domain(document.pipeline_status),
     ).model_dump(by_alias=True)
 
 
@@ -250,12 +289,116 @@ async def delete_book(
     return None
 
 
+# ── Rerun endpoints ──────────────────────────────────────────────────────────
+
+_RERUN_STEPS = {
+    "summarization",
+    "feature-extraction",
+    "knowledge-graph",
+    "symbol-discovery",
+}
+
+
+async def _run_rerun_step(
+    task_id: str,
+    book_id: str,
+    step: str,
+    doc_service,
+    kg_service,
+) -> None:
+    task_store.set_running(task_id)
+    try:
+        document = await doc_service.get_document(book_id)
+        if document is None:
+            task_store.set_failed(task_id, error=f"Book '{book_id}' not found")
+            return
+
+        from workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
+        wf = IngestionWorkflow(kg_service=kg_service)
+
+        if step == "summarization":
+            try:
+                await wf._summarization_pipeline.run(document)
+                document.pipeline_status.summarization = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                document.pipeline_status.summarization = StepStatus.failed
+                task_store.set_failed(task_id, error=str(exc))
+                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                return
+
+        elif step == "feature-extraction":
+            try:
+                await wf._feature_pipeline.run(document)
+                document.pipeline_status.feature_extraction = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                document.pipeline_status.feature_extraction = StepStatus.failed
+                task_store.set_failed(task_id, error=str(exc))
+                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                return
+
+        elif step == "knowledge-graph":
+            try:
+                await wf._kg_pipeline.run(document)
+                await wf._kg_service.save()
+                document.pipeline_status.knowledge_graph = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                document.pipeline_status.knowledge_graph = StepStatus.failed
+                task_store.set_failed(task_id, error=str(exc))
+                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                return
+
+        elif step == "symbol-discovery":
+            try:
+                await wf._symbol_pipeline.run(document)
+                document.pipeline_status.symbol_discovery = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                document.pipeline_status.symbol_discovery = StepStatus.failed
+                task_store.set_failed(task_id, error=str(exc))
+                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                return
+
+        await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+        task_store.set_completed(task_id, result={"bookId": book_id, "step": step})
+
+    except asyncio.CancelledError:
+        task_store.set_failed(task_id, error="cancelled")
+        raise
+    except Exception as exc:
+        logger.exception("Rerun task %s (%s) failed", task_id, step)
+        task_store.set_failed(task_id, error=str(exc))
+    finally:
+        task_registry.unregister(task_id)
+
+
+@router.post("/{book_id}/rerun/{step}", response_model=TaskIdResponse, status_code=202)
+async def rerun_pipeline_step(
+    book_id: str,
+    step: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+) -> dict:
+    """Trigger a rerun of a single failed pipeline step for a book."""
+    if step not in _RERUN_STEPS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown step '{step}'. Valid steps: {sorted(_RERUN_STEPS)}",
+        )
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    task_id = str(uuid4())
+    task_store.create(task_id)
+    task = asyncio.create_task(_run_rerun_step(task_id, book_id, step, doc, kg))
+    task_registry.register(task_id, task)
+    return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
 # ── #2 POST /books/upload ────────────────────────────────────────────────────
 
 
 @router.post("/upload", response_model=TaskIdResponse, status_code=202)
 async def upload_book(
-    background_tasks: BackgroundTasks,
     file: UploadFile,
     title: Annotated[str | None, Form()] = None,
     author: Annotated[str | None, Form()] = None,
@@ -294,7 +437,8 @@ async def upload_book(
 
     task_id = str(uuid4())
     task_store.create(task_id)
-    background_tasks.add_task(_run_ingestion, task_id, Path(tmp.name), title, author)
+    task = asyncio.create_task(_run_ingestion(task_id, Path(tmp.name), title, author))
+    task_registry.register(task_id, task)
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
@@ -790,6 +934,7 @@ async def update_timeline_config(
 ) -> dict:
     """Update (confirm or change) the timeline snapshot configuration."""
     from datetime import datetime  # noqa: PLC0415
+
     from domain.timeline import TimelineConfig  # noqa: PLC0415
 
     document = await doc.get_document(book_id)
