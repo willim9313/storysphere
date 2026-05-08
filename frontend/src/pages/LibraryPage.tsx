@@ -13,7 +13,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import type { BookStatus } from '@/api/types';
 
-interface PendingTask { taskId: string; fileName: string }
+interface PendingTask { taskId: string; fileName: string; title?: string }
 
 function readPendingTasks(): PendingTask[] {
   try {
@@ -30,7 +30,7 @@ function removePendingTask(taskId: string) {
   else sessionStorage.setItem('upload-tasks', JSON.stringify(tasks));
 }
 
-function ProcessingBookCard({ task, onSettled }: { task: PendingTask; onSettled: () => void }) {
+function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; onSettled: () => void }>) {
   const { t } = useTranslation('library');
   const queryClient = useQueryClient();
   const { data: status, isError } = useTaskPolling(task.taskId);
@@ -61,12 +61,25 @@ function ProcessingBookCard({ task, onSettled }: { task: PendingTask; onSettled:
         className="font-semibold text-xs line-clamp-2"
         style={{ fontFamily: 'var(--font-serif)' }}
       >
-        {task.fileName}
+        {task.title ?? task.fileName}
       </h3>
+      {task.title && (
+        <p className="text-xs truncate" style={{ color: 'var(--fg-muted)' }}>
+          {task.fileName}
+        </p>
+      )}
       <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
         {status?.stage || t('filters.processing')}
         {status?.progress != null ? ` ${status.progress}%` : ''}
       </span>
+      <Link
+        to={`/upload#${task.taskId}`}
+        className="text-xs font-medium mt-auto"
+        style={{ color: 'var(--accent)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        查看進度 →
+      </Link>
     </div>
   );
 }

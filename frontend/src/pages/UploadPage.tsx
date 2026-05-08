@@ -1,16 +1,18 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { Loader2, X } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 import { uploadBook } from '@/api/ingest';
 import { DropZone } from '@/components/upload/DropZone';
 import { ProcessingCard } from '@/components/upload/ProcessingCard';
 import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
-import { ArrowRight, X } from 'lucide-react';
+
 interface UploadTask {
   taskId: string;
   fileName: string;
+  title: string;
 }
 
 interface ErroredTask {
@@ -25,13 +27,9 @@ interface PendingFile {
   author: string;
 }
 
-interface CompletedTask {
-  taskId: string;
-  fileName: string;
-  bookId: string;
-}
-
 export default function UploadPage() {
+  const location = useLocation();
+
   const [pending, setPending] = useState<PendingFile | null>(null);
   const [tasks, setTasks] = useState<UploadTask[]>(() => {
     try {
@@ -41,26 +39,23 @@ export default function UploadPage() {
       return [];
     }
   });
-  const [completedTasks, setCompletedTasks] = useState<CompletedTask[]>(() => {
-    try {
-      const saved = sessionStorage.getItem('completed-tasks');
-      return saved ? (JSON.parse(saved) as CompletedTask[]) : [];
-    } catch {
-      return [];
-    }
-  });
+  const [doneTaskIds, setDoneTaskIds] = useState<Set<string>>(new Set());
   const [erroredTasks, setErroredTasks] = useState<ErroredTask[]>([]);
   const [timelineModal, setTimelineModal] = useState<{ bookId: string; detection: TimelineDetectionResponse } | null>(null);
 
   useEffect(() => {
-    if (tasks.length === 0) sessionStorage.removeItem('upload-tasks');
-    else sessionStorage.setItem('upload-tasks', JSON.stringify(tasks));
-  }, [tasks]);
+    const activeTasks = tasks.filter((t) => !doneTaskIds.has(t.taskId));
+    if (activeTasks.length === 0) sessionStorage.removeItem('upload-tasks');
+    else sessionStorage.setItem('upload-tasks', JSON.stringify(activeTasks));
+  }, [tasks, doneTaskIds]);
 
   useEffect(() => {
-    if (completedTasks.length === 0) sessionStorage.removeItem('completed-tasks');
-    else sessionStorage.setItem('completed-tasks', JSON.stringify(completedTasks));
-  }, [completedTasks]);
+    if (!location.hash) return;
+    const id = location.hash.slice(1);
+    setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, [location.hash]);
 
   const { t } = useTranslation('upload');
   const { t: tc } = useTranslation('common');
@@ -70,8 +65,8 @@ export default function UploadPage() {
   const upload = useMutation({
     mutationFn: ({ file, title, author, signal }: { file: File; title: string; author?: string; signal: AbortSignal }) =>
       uploadBook(file, title, author, signal),
-    onSuccess: (data, { file }) => {
-      setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name }]);
+    onSuccess: (data, { file, title }) => {
+      setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name, title }]);
       setPending(null);
     },
     onError: (err: Error) => {
@@ -108,9 +103,8 @@ export default function UploadPage() {
   }, [upload]);
 
   const handleTaskDone = useCallback(
-    (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => {
-      setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
-      setCompletedTasks((prev) => [...prev, { taskId, bookId, fileName }]);
+    (taskId: string, bookId: string, _fileName: string, detection?: TimelineDetectionResponse) => {
+      setDoneTaskIds((prev) => new Set([...prev, taskId]));
       if (detection?.chapterModeViable) {
         setTimelineModal({ bookId, detection });
       }
@@ -149,7 +143,7 @@ export default function UploadPage() {
             {t('bookTitle')}
           </p>
           <input
-            className="w-full px-3 py-2 rounded-md text-sm mb-4"
+            className="w-full px-3 py-2 rounded-md text-sm mb-1"
             style={{
               border: '1px solid var(--border)',
               backgroundColor: 'var(--bg-primary)',
@@ -160,6 +154,9 @@ export default function UploadPage() {
             onChange={(e) => setPending({ ...pending, title: e.target.value })}
             autoFocus
           />
+          <p className="text-xs mb-3" style={{ color: 'var(--fg-muted)' }}>
+            {t('titleHint')}
+          </p>
           <p className="text-sm font-medium mb-1" style={{ color: 'var(--fg-secondary)' }}>
             {t('author')}
           </p>
@@ -187,11 +184,12 @@ export default function UploadPage() {
               {tc('cancel')}
             </button>
             <button
-              className="text-sm px-3 py-1 rounded-md font-medium"
+              className="text-sm px-3 py-1 rounded-md font-medium flex items-center gap-1.5"
               style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}
               disabled={!pending.title.trim() || upload.isPending}
               onClick={handleConfirmUpload}
             >
+              {upload.isPending && <Loader2 size={13} className="animate-spin" />}
               {t('confirmUpload')}
             </button>
           </div>
@@ -212,44 +210,12 @@ export default function UploadPage() {
           </h2>
           <div className="space-y-4">
             {tasks.map((task) => (
-              <ProcessingCard
-                key={task.taskId}
-                task={task}
-                onDone={handleTaskDone}
-                onError={handleTaskError}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Completed list */}
-      {completedTasks.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-secondary)' }}>
-            {t('completedSection')}
-          </h2>
-          <div className="space-y-2">
-            {completedTasks.map((ct) => (
-              <div
-                key={ct.taskId}
-                className="flex items-center justify-between px-3 py-2 rounded-md"
-                style={{ backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)' }}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: 'var(--color-success)' }}
-                  />
-                  <span className="text-sm">{ct.fileName}</span>
-                </div>
-                <Link
-                  to={`/books/${ct.bookId}`}
-                  className="text-xs font-medium flex items-center gap-1"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  {t('enterBook')} <ArrowRight size={12} />
-                </Link>
+              <div key={task.taskId} id={task.taskId}>
+                <ProcessingCard
+                  task={task}
+                  onDone={handleTaskDone}
+                  onError={handleTaskError}
+                />
               </div>
             ))}
           </div>
@@ -297,4 +263,3 @@ export default function UploadPage() {
     </div>
   );
 }
-
