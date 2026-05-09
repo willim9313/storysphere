@@ -13,7 +13,7 @@ const ROLE_LABELS: Record<string, string> = {
   preamble: '前言',
 };
 
-const ROLE_CYCLE: string[] = ['body', 'separator', 'section', 'epigraph', 'preamble'];
+const NON_BODY_ROLES: string[] = ['separator', 'section', 'epigraph', 'preamble'];
 
 type Phase = 'reviewing' | 'submitting' | 'error';
 
@@ -80,16 +80,23 @@ export default function ChapterReviewPage() {
     });
   }, []);
 
-  const handleRoleToggle = useCallback((paragraphIndex: number, currentRole: string) => {
-    const currentIdx = ROLE_CYCLE.indexOf(currentRole);
-    const nextRole = ROLE_CYCLE[(currentIdx + 1) % ROLE_CYCLE.length];
+  const handleRoleToggle = useCallback((paragraphIndex: number, currentRole: string, originalRole: string) => {
     setRoleOverrides((prev) => {
-      if (nextRole === 'body') {
-        const next = { ...prev };
-        delete next[String(paragraphIndex)];
-        return next;
+      if (currentRole !== 'body') {
+        // Any non-body → body in one click
+        if (originalRole === 'body') {
+          // Underlying is body; remove override to restore default
+          const next = { ...prev };
+          delete next[String(paragraphIndex)];
+          return next;
+        }
+        // Underlying is non-body; need explicit 'body' override
+        return { ...prev, [String(paragraphIndex)]: 'body' };
       }
-      return { ...prev, [String(paragraphIndex)]: nextRole };
+      // Body → cycle through non-body starting at separator
+      const currentOverrideIdx = NON_BODY_ROLES.indexOf(prev[String(paragraphIndex)] ?? '');
+      const nextIdx = currentOverrideIdx >= 0 ? (currentOverrideIdx + 1) % NON_BODY_ROLES.length : 0;
+      return { ...prev, [String(paragraphIndex)]: NON_BODY_ROLES[nextIdx] };
     });
   }, []);
 
@@ -259,7 +266,7 @@ export default function ChapterReviewPage() {
                             fontVariantNumeric: 'tabular-nums',
                           }}
                           title={t('review.toggleRole')}
-                          onClick={() => handleRoleToggle(para.paragraphIndex, effectiveRole)}
+                          onClick={() => handleRoleToggle(para.paragraphIndex, effectiveRole, para.role ?? 'body')}
                         >
                           {isBody ? '▸' : roleLabel}
                         </button>
