@@ -240,3 +240,201 @@ class TestRebuildChapters:
         reviewed = [{"title": "", "start_paragraph_index": 0}]
         result = _rebuild_chapters(doc, reviewed)
         assert result[0].title is None
+
+
+# ── GET /review-data: role field ──────────────────────────────────────────────
+
+
+class TestReviewDataRoleField:
+    """The role field added to ReviewParagraphResponse must be returned."""
+
+    def _setup_awaiting(self) -> tuple[str, str]:
+        """Return fresh (book_id, task_id) to avoid cross-test task_store pollution."""
+        import uuid
+        from api.store import task_store
+        book_id = f"book-role-rd-{uuid.uuid4()}"
+        task_id = f"task-role-rd-{uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, book_id)
+        return book_id, task_id
+
+    def test_paragraphs_include_role_field(self, client, mock_doc):
+        from domain.documents import Chapter, Document, FileType, Paragraph
+
+        doc = Document(
+            id="doc-role-rd",
+            title="T",
+            file_path="/tmp/t.pdf",
+            file_type=FileType.PDF,
+            chapters=[Chapter(number=1, paragraphs=[
+                Paragraph(id="p0", text="Body text.", chapter_number=1, position=0),
+            ])],
+        )
+        async def _get_doc(doc_id):
+            return doc if doc_id == "doc-role-rd" else None
+        mock_doc.get_document.side_effect = _get_doc
+
+        book_id, _ = self._setup_awaiting()
+        # Map the unique book_id to our doc
+        from api.store import task_store
+        import uuid
+        task_id2 = f"task-rrd-{uuid.uuid4()}"
+        task_store.create(task_id2)
+        task_store.set_awaiting_review(task_id2, "doc-role-rd")
+
+        resp = client.get("/api/v1/books/doc-role-rd/review-data")
+        assert resp.status_code == 200
+        data = resp.json()
+        for ch in data["chapters"]:
+            for para in ch["paragraphs"]:
+                assert "role" in para, f"'role' missing in paragraph {para}"
+
+    def test_default_role_is_body(self, client, mock_doc):
+        """Paragraphs created without a role default to 'body'."""
+        from domain.documents import Chapter, Document, FileType, Paragraph
+        import uuid as _uuid
+        from api.store import task_store
+
+        doc_id = f"doc-body-{_uuid.uuid4()}"
+        doc = Document(
+            id=doc_id,
+            title="T",
+            file_path="/tmp/t.pdf",
+            file_type=FileType.PDF,
+            chapters=[Chapter(number=1, paragraphs=[
+                Paragraph(id="p0", text="Body text.", chapter_number=1, position=0),
+                Paragraph(id="p1", text="More body.", chapter_number=1, position=1),
+            ])],
+        )
+        async def _get_doc(did):
+            return doc if did == doc_id else None
+        mock_doc.get_document.side_effect = _get_doc
+
+        task_id = f"task-body-{_uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, doc_id)
+
+        resp = client.get(f"/api/v1/books/{doc_id}/review-data")
+        assert resp.status_code == 200
+        roles = [p["role"] for ch in resp.json()["chapters"] for p in ch["paragraphs"]]
+        assert all(r == "body" for r in roles)
+
+    def test_separator_paragraph_role_returned(self, client, mock_doc):
+        """A paragraph with role=separator is surfaced through the endpoint."""
+        from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphRole
+
+        sep_para = Paragraph(
+            id="sep-p",
+            text="***",
+            chapter_number=1,
+            position=2,
+            role=ParagraphRole.separator,
+        )
+        doc_with_sep = Document(
+            id="doc-sep",
+            title="Test",
+            file_path="/tmp/t.pdf",
+            file_type=FileType.PDF,
+            chapters=[
+                Chapter(
+                    number=1,
+                    title="Ch1",
+                    paragraphs=[
+                        Paragraph(id="b0", text="Body text.", chapter_number=1, position=0),
+                        sep_para,
+                    ],
+                )
+            ],
+        )
+
+        import uuid
+        from api.store import task_store
+        from unittest.mock import AsyncMock
+
+        task_id = f"test-{uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, "doc-sep")
+
+        # Override mock_doc to return the doc_with_sep for this book_id
+        original_side_effect = mock_doc.get_document.side_effect
+        async def _get_doc(doc_id):
+            if doc_id == "doc-sep":
+                return doc_with_sep
+            return None
+        mock_doc.get_document.side_effect = _get_doc
+
+        resp = client.get("/api/v1/books/doc-sep/review-data")
+        mock_doc.get_document.side_effect = original_side_effect
+
+        assert resp.status_code == 200
+        paras = resp.json()["chapters"][0]["paragraphs"]
+        roles = {p["paragraphIndex"]: p["role"] for p in paras}
+        assert roles[0] == "body"
+        assert roles[1] == "separator"
+
+
+# ── POST /review: roleOverrides ───────────────────────────────────────────────
+
+
+class TestSubmitReviewRoleOverrides:
+    """roleOverrides field is accepted (204) and forwarded to the graph resume."""
+
+    def _setup_awaiting(self) -> tuple[str, str]:
+        """Return a fresh (book_id, task_id) pair so each test is isolated."""
+        import uuid
+        from api.store import task_store
+        book_id = f"book-role-{uuid.uuid4()}"
+        task_id = f"task-role-{uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, book_id)
+        return book_id, task_id
+
+    def test_role_overrides_accepted_with_204(self, client):
+        book_id, _ = self._setup_awaiting()
+        payload = {
+            "chapters": [{"title": "Ch1", "startParagraphIndex": 0}],
+            "roleOverrides": {"1": "separator"},
+        }
+        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+
+    def test_empty_role_overrides_accepted(self, client):
+        book_id, _ = self._setup_awaiting()
+        payload = {
+            "chapters": [{"title": "Ch1", "startParagraphIndex": 0}],
+            "roleOverrides": {},
+        }
+        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+
+    def test_omitting_role_overrides_accepted(self, client):
+        """roleOverrides is optional; omitting it defaults to {}."""
+        book_id, _ = self._setup_awaiting()
+        payload = {"chapters": [{"title": "Ch1", "startParagraphIndex": 0}]}
+        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+
+    def test_role_overrides_forwarded_in_resume_value(self, client):
+        """The resume value passed to the graph should contain roleOverrides.
+
+        asyncio.create_task(mock(args)) calls the mock synchronously to obtain
+        the coroutine object, so call_args is populated before the assertion.
+        """
+        book_id, _ = self._setup_awaiting()
+        payload = {
+            "chapters": [{"title": "Ch1", "startParagraphIndex": 0}],
+            "roleOverrides": {"0": "preamble", "1": "separator"},
+        }
+
+        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+
+        assert resp.status_code == 204
+        mock_resume.assert_called_once()
+        # Positional args: (task_id, resume_value)
+        _, resume_value = mock_resume.call_args[0]
+        assert isinstance(resume_value, dict)
+        assert resume_value["role_overrides"] == {"0": "preamble", "1": "separator"}
