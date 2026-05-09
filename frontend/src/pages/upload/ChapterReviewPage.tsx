@@ -1,24 +1,23 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, Loader2 } from 'lucide-react';
-import { fetchReviewData, fetchTaskStatus, submitReview } from '@/api/ingest';
+import { Loader2 } from 'lucide-react';
+import { fetchReviewData, submitReview } from '@/api/ingest';
 import type { ReviewChapter, ReviewSubmitChapter } from '@/api/types';
 
-type Phase = 'reviewing' | 'submitting' | 'pipeline_running' | 'done' | 'error';
+type Phase = 'reviewing' | 'submitting' | 'error';
 
 export default function ChapterReviewPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const [searchParams] = useSearchParams();
   const taskId = searchParams.get('taskId');
   const { t } = useTranslation('upload');
+  const navigate = useNavigate();
 
   const [phase, setPhase] = useState<Phase>('reviewing');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [chapters, setChapters] = useState<ReviewChapter[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
-  const [doneBookId, setDoneBookId] = useState<string | null>(null);
-  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Load review data on mount
   useEffect(() => {
@@ -31,28 +30,6 @@ export default function ChapterReviewPage() {
       });
   }, [bookId, t]);
 
-  // Poll task status while pipeline_running
-  useEffect(() => {
-    if (phase !== 'pipeline_running' || !taskId) return;
-    pollRef.current = setInterval(async () => {
-      try {
-        const status = await fetchTaskStatus(taskId);
-        if (status.status === 'done' && status.result?.bookId) {
-          clearInterval(pollRef.current!);
-          setDoneBookId(String(status.result.bookId));
-          setPhase('done');
-        } else if (status.status === 'error') {
-          clearInterval(pollRef.current!);
-          setPhase('error');
-          setErrorMsg(status.error ?? '分析失敗');
-        }
-      } catch {
-        // transient — keep polling
-      }
-    }, 2000);
-    return () => clearInterval(pollRef.current!);
-  }, [phase, taskId]);
-
   const handleSubmit = useCallback(async () => {
     if (!bookId) return;
     setPhase('submitting');
@@ -62,12 +39,12 @@ export default function ChapterReviewPage() {
         startParagraphIndex: ch.paragraphs[0]?.paragraphIndex ?? 0,
       }));
       await submitReview(bookId, payload);
-      setPhase('pipeline_running');
+      navigate(taskId ? `/upload#${taskId}` : '/upload');
     } catch {
       setPhase('error');
       setErrorMsg(t('review.errorSubmit'));
     }
-  }, [bookId, chapters, t]);
+  }, [bookId, chapters, t, navigate, taskId]);
 
   const handleChapterTitleChange = useCallback((idx: number, value: string) => {
     setChapters((prev) =>
@@ -111,37 +88,6 @@ export default function ChapterReviewPage() {
     });
     setSelectedIdx((prev) => Math.max(0, prev - (chapterIdx <= prev ? 1 : 0)));
   }, []);
-
-  if (phase === 'done') {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-4">
-        <CheckCircle size={40} style={{ color: 'var(--color-success)' }} />
-        <p className="text-base font-medium" style={{ color: 'var(--fg-primary)' }}>
-          {t('review.done')}
-        </p>
-        {doneBookId && (
-          <Link
-            to={`/books/${doneBookId}`}
-            className="text-sm font-medium"
-            style={{ color: 'var(--accent)' }}
-          >
-            {t('review.goToBook', { title: doneBookId })}
-          </Link>
-        )}
-      </div>
-    );
-  }
-
-  if (phase === 'pipeline_running') {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-3">
-        <Loader2 size={32} className="animate-spin" style={{ color: 'var(--accent)' }} />
-        <p className="text-sm" style={{ color: 'var(--fg-secondary)' }}>
-          {t('review.pipelineRunning')}
-        </p>
-      </div>
-    );
-  }
 
   if (phase === 'error') {
     return (

@@ -420,6 +420,17 @@ async def get_task_id_by_book_id(book_id: str) -> str | None:
     return task_store.get_task_id_by_book_id(book_id)
 
 
+async def set_task_running(task_id: str) -> None:
+    """Async-native set_running — use this in router handlers so the write commits
+    before the HTTP response is sent (avoids frontend seeing stale awaiting_review)."""
+    if isinstance(task_store, SQLiteTaskStore):
+        await task_store._execute(
+            "UPDATE tasks SET status = 'running' WHERE task_id = ?", (task_id,)
+        )
+    else:
+        task_store.set_running(task_id)
+
+
 # ── Process-level singleton ───────────────────────────────────────────────────
 
 

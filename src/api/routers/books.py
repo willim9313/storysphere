@@ -501,9 +501,11 @@ async def submit_review(
             detail="Review window has already been closed",
         )
 
-    # Optimistic status update prevents a second submit from racing in
-    task_store.set_running(task_id)
     chapters_data = [ch.model_dump(by_alias=False) for ch in body.chapters]
+    # Await the write so the frontend sees 'running' on its very next poll —
+    # the sync fire-and-forget path would race with the immediately-following navigate.
+    from api.store import set_task_running  # noqa: PLC0415
+    await set_task_running(task_id)
     asyncio.create_task(_resume_ingestion_graph(task_id, chapters_data))
 
 

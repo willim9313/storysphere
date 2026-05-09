@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 import { fetchReviewData, submitReview } from '@/api/ingest';
@@ -22,8 +23,10 @@ interface ProcessingCardProps {
 
 export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCardProps>) {
   const { data: status, isError, murmurEvents } = useTaskPolling(task.taskId);
+  const queryClient = useQueryClient();
   const doneRef = useRef(false);
   const [acceptingChapters, setAcceptingChapters] = useState(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
 
   const failedSteps = status?.result?.failedSteps as string[] | undefined;
   const isPartialSuccess = status?.status === 'done' && !!status.result?.bookId && failedSteps && failedSteps.length > 0;
@@ -55,12 +58,15 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
         startParagraphIndex: ch.paragraphs[0]?.paragraphIndex ?? 0,
       }));
       await submitReview(bookId, chapters);
+      setReviewError(null);
+      queryClient.invalidateQueries({ queryKey: ['tasks', task.taskId] });
     } catch {
-      // best-effort: if it fails the pipeline will eventually error
+      setReviewError('章節審閱提交失敗，pipeline 可能已中斷，請刪除此書並重新上傳。');
+      queryClient.invalidateQueries({ queryKey: ['tasks', task.taskId] });
     } finally {
       setAcceptingChapters(false);
     }
-  }, [bookId]);
+  }, [bookId, queryClient, task.taskId]);
 
   if (isDone && bookId) {
     return (
@@ -111,6 +117,11 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
           <p className="text-xs mb-3" style={{ color: 'var(--entity-con-fg)' }}>
             系統偵測到章節結構，請確認是否正確。
           </p>
+          {reviewError && (
+            <p className="text-xs mb-2" style={{ color: 'var(--color-error)' }}>
+              {reviewError}
+            </p>
+          )}
           <div className="flex gap-2">
             <button
               className="text-xs px-3 py-1.5 rounded-md font-medium flex items-center gap-1.5"

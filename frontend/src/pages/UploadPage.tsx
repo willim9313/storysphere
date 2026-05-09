@@ -42,6 +42,17 @@ export default function UploadPage() {
   const [doneTaskIds, setDoneTaskIds] = useState<Set<string>>(new Set());
   const [erroredTasks, setErroredTasks] = useState<ErroredTask[]>([]);
   const [timelineModal, setTimelineModal] = useState<{ bookId: string; detection: TimelineDetectionResponse } | null>(null);
+  // Persisted across navigation so re-mounting doesn't re-fire the timeline modal for already-completed tasks
+  const completedTaskIdsRef = useRef<Set<string>>(
+    (() => {
+      try {
+        const saved = sessionStorage.getItem('upload-completed-tasks');
+        return saved ? new Set(JSON.parse(saved) as string[]) : new Set<string>();
+      } catch {
+        return new Set<string>();
+      }
+    })(),
+  );
 
   useEffect(() => {
     const activeTasks = tasks.filter((t) => !doneTaskIds.has(t.taskId));
@@ -104,8 +115,15 @@ export default function UploadPage() {
 
   const handleTaskDone = useCallback(
     (taskId: string, bookId: string, _fileName: string, detection?: TimelineDetectionResponse) => {
+      const alreadySeen = completedTaskIdsRef.current.has(taskId);
+      completedTaskIdsRef.current.add(taskId);
+      try {
+        sessionStorage.setItem('upload-completed-tasks', JSON.stringify([...completedTaskIdsRef.current]));
+      } catch {
+        // ignore storage errors
+      }
       setDoneTaskIds((prev) => new Set([...prev, taskId]));
-      if (detection?.chapterModeViable) {
+      if (!alreadySeen && detection?.chapterModeViable) {
         setTimelineModal({ bookId, detection });
       }
     },

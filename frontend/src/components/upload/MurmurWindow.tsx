@@ -98,46 +98,48 @@ export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProp
           animation: slideUp 0.25s ease-out forwards;
         }
       `}</style>
-      <div
-        ref={containerRef}
-        onScroll={checkAtBottom}
-        style={{
-          height: 260,
-          overflowY: 'auto',
-          borderRadius: 8,
-          border: '1px solid var(--border)',
-          backgroundColor: 'var(--bg-secondary)',
-          position: 'relative',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: events.length === 0 ? 'center' : undefined,
-        }}
-      >
-        {events.length === 0 ? (
-          <p className="text-xs text-center" style={{ color: 'var(--fg-muted)', padding: '0 16px' }}>
-            等待系統開始處理…
-          </p>
-        ) : (
-          <div className="flex flex-col py-1">
-            {events.map((event, idx) => (
-              <MurmurEventRow
-                key={event.seq}
-                event={event}
-                isNew={idx === events.length - 1}
-              />
-            ))}
-          </div>
-        )}
+      {/* Outer wrapper is the position:relative anchor so CharacterSlot
+          stays pinned to the visible corner, not the scrollable content */}
+      <div style={{ position: 'relative' }}>
+        <div
+          ref={containerRef}
+          onScroll={checkAtBottom}
+          style={{
+            height: 260,
+            overflowY: 'auto',
+            borderRadius: 8,
+            border: '1px solid var(--border)',
+            backgroundColor: 'var(--bg-secondary)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: events.length === 0 ? 'center' : undefined,
+          }}
+        >
+          {events.length === 0 ? (
+            <p className="text-xs text-center" style={{ color: 'var(--fg-muted)', padding: '0 16px' }}>
+              等待系統開始處理…
+            </p>
+          ) : (
+            <div className="flex flex-col py-1">
+              {events.map((event, idx) => (
+                <MurmurEventRow
+                  key={event.seq}
+                  event={event}
+                  isNew={idx === events.length - 1}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
-        {/* CharacterSlot pinned to bottom-right */}
+        {/* CharacterSlot pinned to visible bottom-right of the scroll container */}
         <div
           style={{
-            position: 'sticky',
+            position: 'absolute',
             bottom: 8,
             right: 8,
-            float: 'right',
-            marginRight: 8,
             pointerEvents: 'none',
+            zIndex: 1,
           }}
         >
           <CharacterSlot src={characterSrc} />

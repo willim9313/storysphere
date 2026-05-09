@@ -32,7 +32,7 @@ export function useTaskPolling(
     enabled: !!taskId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
-      if (status === 'done' || status === 'error' || status === 'awaiting_review') return false;
+      if (status === 'done' || status === 'error') return false;
       return 2000;
     },
   });
