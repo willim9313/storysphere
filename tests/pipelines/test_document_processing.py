@@ -12,7 +12,12 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pipelines.document_processing.chapter_detector import ChapterSpan, detect_chapters
+from pipelines.document_processing.chapter_detector import (
+    ChapterSpan,
+    _is_inline_title,
+    _match_heading,
+    detect_chapters,
+)
 from pipelines.document_processing.chunker import chunk_segments
 
 
@@ -112,6 +117,114 @@ class TestDetectChapters:
             segments = [(0, heading), (1, "內容。")]
             chapters = detect_chapters(segments)
             assert len(chapters) == 1, f"Failed for: {heading}"
+
+
+# ── _match_heading title extraction ─────────────────────────────────────────
+
+
+class TestMatchHeadingTitleExtraction:
+    def test_en_chapter_with_separator_extracts_title(self):
+        assert _match_heading("Chapter 3 - The Return") == (True, "The Return")
+        assert _match_heading("Ch. 2: Awakening") == (True, "Awakening")
+        assert _match_heading("Chapter IV: The Quest") == (True, "The Quest")
+
+    def test_cjk_chapter_with_separator_extracts_title(self):
+        assert _match_heading("第五章：歸來") == (True, "歸來")
+        assert _match_heading("第1章: 開始") == (True, "開始")
+        assert _match_heading("第三節-啟程") == (True, "啟程")
+
+    def test_cjk_chapter_with_space_extracts_title(self):
+        assert _match_heading("第二章 茅草、木頭與一封奇信") == (True, "茅草、木頭與一封奇信")
+        assert _match_heading("第三章 英雄登場") == (True, "英雄登場")
+
+    def test_number_only_headings_have_no_title(self):
+        assert _match_heading("Chapter 1") == (True, None)
+        assert _match_heading("第一章") == (True, None)
+        assert _match_heading("Prologue") == (True, None)
+        assert _match_heading("Volume 1") == (True, None)
+
+    def test_non_heading_returns_false(self):
+        is_h, title = _match_heading("Some random body text that is long enough.")
+        assert is_h is False
+        assert title is None
+
+    def test_over_80_chars_not_heading(self):
+        long = "第" + "一" * 81 + "章 title"
+        assert _match_heading(long) == (False, None)
+
+
+# ── _is_inline_title heuristic ───────────────────────────────────────────────
+
+
+class TestIsInlineTitle:
+    def test_short_cjk_no_punct_is_title(self):
+        assert _is_inline_title("茅草、木頭與一封奇信") is True
+        assert _is_inline_title("英雄登場") is True
+        assert _is_inline_title("The Return") is True
+
+    def test_ends_with_sentence_punct_not_title(self):
+        assert _is_inline_title("龍出現了。") is False
+        assert _is_inline_title("The beginning.") is False
+        assert _is_inline_title("戰鬥開始！") is False
+
+    def test_too_long_not_title(self):
+        assert _is_inline_title("茅" * 31) is False
+
+    def test_empty_not_title(self):
+        assert _is_inline_title("") is False
+        assert _is_inline_title("   ") is False
+
+    def test_starts_with_non_word_not_title(self):
+        assert _is_inline_title("— 47 —") is False
+        assert _is_inline_title("***") is False
+
+
+# ── detect_chapters inline title promotion ───────────────────────────────────
+
+
+class TestDetectChaptersInlineTitlePromotion:
+    def test_short_title_segment_after_heading_promoted(self):
+        """First body segment promoted to title when heading has no title."""
+        segments = [(0, "第二章"), (1, "茅草與奇信"), (2, "三兄弟離家的那年。")]
+        chapters = detect_chapters(segments)
+        assert len(chapters) == 1
+        assert chapters[0].title == "茅草與奇信"
+        # title segment should NOT appear in body
+        body_texts = [t for _, t in chapters[0].segments]
+        assert "茅草與奇信" not in body_texts
+
+    def test_sentence_segment_after_heading_stays_as_body(self):
+        """First segment ending with 。 is NOT promoted — stays as body content."""
+        segments = [(0, "第一章"), (1, "龍出現了。"), (2, "繼續戰鬥。")]
+        chapters = detect_chapters(segments)
+        assert chapters[0].title is None
+        assert any("龍出現了" in t for _, t in chapters[0].segments)
+
+    def test_inline_title_extracted_from_heading_line(self):
+        """Title embedded in heading line (第X章 title) is extracted directly."""
+        segments = [(0, "第二章 茅草、木頭與一封奇信"), (1, "三兄弟離家的那年。")]
+        chapters = detect_chapters(segments)
+        assert len(chapters) == 1
+        assert chapters[0].title == "茅草、木頭與一封奇信"
+
+    def test_inline_title_not_promoted_if_heading_already_has_title(self):
+        """When heading itself has a title, next segment is always body."""
+        segments = [(0, "第五章：歸來"), (1, "英雄"), (2, "故事繼續。")]
+        chapters = detect_chapters(segments)
+        assert chapters[0].title == "歸來"
+        # "英雄" should remain in segments (heading already had a title)
+        body_texts = [t for _, t in chapters[0].segments]
+        assert "英雄" in body_texts
+
+    def test_multiple_chapters_each_get_inline_title(self):
+        segments = [
+            (0, "第一章"), (1, "英雄登場"), (2, "内容一。"),
+            (3, "第二章"), (4, "反派出現"), (5, "内容二。"),
+        ]
+        chapters = detect_chapters(segments)
+        assert len(chapters) == 2
+        assert chapters[0].title == "英雄登場"
+        assert chapters[1].title == "反派出現"
 
 
 # ── chunker ─────────────────────────────────────────────────────────────────
