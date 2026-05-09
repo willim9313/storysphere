@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -46,16 +46,24 @@ function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; o
     }
   }, [status, isError, task.taskId, queryClient, onSettled]);
 
+  const isAwaitingReview = status?.status === 'awaiting_review';
+  const bookId = isAwaitingReview
+    ? (status?.result as Record<string, string> | null)?.bookId
+    : undefined;
+
   return (
     <div
       className="card flex flex-col gap-2 p-3"
-      style={{ border: '1px solid var(--border)', opacity: 0.75 }}
+      style={{ border: `1px solid ${isAwaitingReview ? 'var(--accent)' : 'var(--border)'}`, opacity: 0.9 }}
     >
       <div
         className="flex items-center justify-center h-24 rounded-md"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
       >
-        <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
+        {isAwaitingReview
+          ? <BookOpen size={28} style={{ color: 'var(--accent)' }} />
+          : <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
+        }
       </div>
       <h3
         className="font-semibold text-xs line-clamp-2"
@@ -68,18 +76,30 @@ function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; o
           {task.fileName}
         </p>
       )}
-      <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-        {status?.stage || t('filters.processing')}
-        {status?.progress != null ? ` ${status.progress}%` : ''}
+      <span className="text-xs" style={{ color: isAwaitingReview ? 'var(--accent)' : 'var(--fg-muted)' }}>
+        {isAwaitingReview
+          ? '等待章節審閱'
+          : `${status?.stage || t('filters.processing')}${status?.progress != null ? ` ${status.progress}%` : ''}`
+        }
       </span>
-      <Link
-        to={`/upload#${task.taskId}`}
-        className="text-xs font-medium mt-auto"
-        style={{ color: 'var(--accent)' }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        查看進度 →
-      </Link>
+      {isAwaitingReview && bookId ? (
+        <Link
+          to={`/upload/review/${bookId}?taskId=${task.taskId}`}
+          className="text-xs font-medium mt-auto"
+          style={{ color: 'var(--accent)' }}
+        >
+          審閱章節 →
+        </Link>
+      ) : (
+        <Link
+          to={`/upload#${task.taskId}`}
+          className="text-xs font-medium mt-auto"
+          style={{ color: 'var(--accent)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          查看進度 →
+        </Link>
+      )}
     </div>
   );
 }

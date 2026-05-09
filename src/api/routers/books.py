@@ -228,11 +228,29 @@ async def _run_entity_analysis(
 
 @router.get("/", response_model=list[BookResponse])
 async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
-    """List all books."""
+    """List all books.
+
+    Books with an active ingestion task (pending / running / awaiting_review)
+    are excluded — they are shown as ProcessingBookCard in the frontend instead.
+    """
+    from api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
+
     items = await doc.list_documents()
+
+    # Filter out books whose ingestion task is still active
+    settled: list = []
+    for item in items:
+        task_id = await get_task_id_by_book_id(item.id)
+        if task_id is None:
+            settled.append(item)
+        else:
+            task = await get_task(task_id)
+            if task is None or task.status in ("done", "error"):
+                settled.append(item)
+
     # Parallel entity count fetch to avoid N+1
     entity_lists = await asyncio.gather(
-        *[kg.list_entities(document_id=item.id) for item in items]
+        *[kg.list_entities(document_id=item.id) for item in settled]
     )
     return [
         BookResponse(
@@ -244,7 +262,7 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
             uploaded_at="",
             pipeline_status=_pipeline_status_response(item.pipeline_status_json),
         ).model_dump(by_alias=True)
-        for item, entities in zip(items, entity_lists, strict=False)
+        for item, entities in zip(settled, entity_lists, strict=False)
     ]
 
 
