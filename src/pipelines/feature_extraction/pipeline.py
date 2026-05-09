@@ -23,7 +23,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-from domain.documents import Document, Paragraph
+from domain.documents import Document, Paragraph, ParagraphRole, extract_body_text
 from pipelines.base import BasePipeline
 
 from .embedding_generator import EmbeddingGenerator
@@ -88,11 +88,22 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
             if not paragraphs:
                 continue
 
-            texts = [p.text for p in paragraphs]
-            self._log_step("embed_chapter", chapter=chapter.number, paragraphs=len(texts))
+            # Only embed/index body paragraphs; skip structural separators etc.
+            body_paras: list[Paragraph] = []
+            body_texts: list[str] = []
+            for p in paragraphs:
+                text = extract_body_text(p)
+                if text:
+                    body_paras.append(p)
+                    body_texts.append(text)
 
-            # vectors: list[list[float]] — one 384-dim vector per paragraph
-            vectors = await self._embedder.aembed_texts(texts)
+            if not body_paras:
+                continue
+
+            self._log_step("embed_chapter", chapter=chapter.number, paragraphs=len(body_paras))
+
+            # vectors: list[list[float]] — one 384-dim vector per body paragraph
+            vectors = await self._embedder.aembed_texts(body_texts)
 
             # ── Keyword extraction (per paragraph) ─────────────────────────
             paragraph_keywords: list[dict[str, float]] = []
@@ -102,10 +113,10 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
                 settings = get_settings()
                 max_kw = settings.keyword_max_per_paragraph
 
-                for para in paragraphs:
+                for para, text in zip(body_paras, body_texts):
                     try:
                         kws = await self._keyword_extractor.extract(
-                            para.text, max_kw, language=doc.language
+                            text, max_kw, language=doc.language
                         )
                         para.keywords = kws
                         paragraph_keywords.append(kws)
@@ -127,15 +138,15 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
             if self._vector_service is not None or self._qdrant is not None:
                 # Qdrant path: write immediately, do NOT keep embedding in memory.
                 # vectors will be GC-able once this iteration ends.
-                ids = await self._upsert_to_qdrant(doc, paragraphs, vectors)
+                ids = await self._upsert_to_qdrant(doc, body_paras, vectors)
                 all_qdrant_ids.extend(ids)
             else:
                 # No-Qdrant path (dev / test): store on Paragraph so
                 # DocumentService can persist them to SQLite.
-                for para, vec in zip(paragraphs, vectors):
+                for para, vec in zip(body_paras, vectors):
                     para.embedding = vec
 
-            total_embedded += len(paragraphs)
+            total_embedded += len(body_paras)
             chapters_done += 1
             if sub_cb:
                 sub_cb(chapters_done, total_chapters, "章節特徵")

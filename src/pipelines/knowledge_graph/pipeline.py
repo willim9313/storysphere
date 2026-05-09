@@ -6,7 +6,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
-from domain.documents import Document
+from domain.documents import Document, extract_body_text
 from domain.entities import Entity
 from domain.events import Event, EventType
 from domain.relations import Relation
@@ -86,7 +86,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         chapter_texts: dict[int, str] = {}
         chapters_with_content = [
             ch for ch in doc.chapters
-            if any(p.text.strip() for p in ch.paragraphs)
+            if any(extract_body_text(p) for p in ch.paragraphs)
         ]
         total_chapters = len(chapters_with_content)
         chapters_done = 0
@@ -98,21 +98,25 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         # Paragraph-level extraction keeps each LLM call small, avoiding
         # truncation issues on long chapters with local models.
         for chapter in doc.chapters:
-            chapter_text = "\n\n".join(p.text for p in chapter.paragraphs)
+            # Only process body paragraphs; separators carry no narrative content.
+            body_texts_ch = [
+                (p, extract_body_text(p))
+                for p in chapter.paragraphs
+            ]
+            body_texts_ch = [(p, t) for p, t in body_texts_ch if t]
+            chapter_text = "\n\n".join(t for _, t in body_texts_ch)
             if not chapter_text.strip():
                 continue
             chapter_texts[chapter.number] = chapter_text
 
-            for para in chapter.paragraphs:
-                if not para.text.strip():
-                    continue
+            for para, body_text in body_texts_ch:
                 self._log_step(
                     "entity_extract",
                     chapter=chapter.number,
                     para=para.position,
                 )
                 para_entities = await self._entity_extractor.extract(
-                    para.text, chapter.number, language=doc.language
+                    body_text, chapter.number, language=doc.language
                 )
                 # Count mentions across the full chapter text for context
                 for entity in para_entities:

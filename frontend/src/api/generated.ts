@@ -85,6 +85,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/review-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Review Data
+         * @description Return chapter/paragraph data for review. Only available while awaiting_review.
+         */
+        get: operations["get_review_data_api_v1_books__book_id__review_data_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Review
+         * @description Submit reviewed chapter structure and resume the ingestion pipeline.
+         */
+        post: operations["submit_review_api_v1_books__book_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/upload": {
         parameters: {
             query?: never;
@@ -2806,6 +2846,46 @@ export interface components {
          * @enum {string}
          */
         RelationType: "family" | "friendship" | "romance" | "enemy" | "ally" | "subordinate" | "located_in" | "member_of" | "owns" | "other";
+        /** ReviewChapterInput */
+        ReviewChapterInput: {
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /** Startparagraphindex */
+            startParagraphIndex: number;
+        };
+        /** ReviewChapterResponse */
+        ReviewChapterResponse: {
+            /** Chapteridx */
+            chapterIdx: number;
+            /** Title */
+            title?: string | null;
+            /** Paragraphs */
+            paragraphs: components["schemas"]["ReviewParagraphResponse"][];
+        };
+        /** ReviewDataResponse */
+        ReviewDataResponse: {
+            /** Chapters */
+            chapters: components["schemas"]["ReviewChapterResponse"][];
+        };
+        /** ReviewParagraphResponse */
+        ReviewParagraphResponse: {
+            /** Paragraphindex */
+            paragraphIndex: number;
+            /** Text */
+            text: string;
+            /** Titlespan */
+            titleSpan?: number[] | null;
+            /** Sentences */
+            sentences: string[];
+        };
+        /** ReviewSubmitRequest */
+        ReviewSubmitRequest: {
+            /** Chapters */
+            chapters: components["schemas"]["ReviewChapterInput"][];
+        };
         /** RunInferenceRequest */
         RunInferenceRequest: {
             /**
@@ -3108,7 +3188,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "pending" | "running" | "done" | "error";
+            status: "pending" | "running" | "done" | "error" | "awaiting_review";
             /**
              * Progress
              * @default 0
@@ -3628,6 +3708,70 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TaskIdResponse"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_data_api_v1_books__book_id__review_data_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDataResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_review_api_v1_books__book_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSubmitRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

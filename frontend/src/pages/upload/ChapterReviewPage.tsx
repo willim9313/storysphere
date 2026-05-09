@@ -5,6 +5,16 @@ import { Loader2 } from 'lucide-react';
 import { fetchReviewData, submitReview } from '@/api/ingest';
 import type { ReviewChapter, ReviewSubmitChapter } from '@/api/types';
 
+const ROLE_LABELS: Record<string, string> = {
+  body: '',
+  separator: '分隔',
+  section: '小節',
+  epigraph: '題詞',
+  preamble: '前言',
+};
+
+const ROLE_CYCLE: string[] = ['body', 'separator', 'section', 'epigraph', 'preamble'];
+
 type Phase = 'reviewing' | 'submitting' | 'error';
 
 export default function ChapterReviewPage() {
@@ -18,6 +28,8 @@ export default function ChapterReviewPage() {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [chapters, setChapters] = useState<ReviewChapter[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
+  // role overrides: Record<globalParaIdx, role>
+  const [roleOverrides, setRoleOverrides] = useState<Record<string, string>>({});
 
   // Load review data on mount
   useEffect(() => {
@@ -38,13 +50,13 @@ export default function ChapterReviewPage() {
         title: ch.title ?? '',
         startParagraphIndex: ch.paragraphs[0]?.paragraphIndex ?? 0,
       }));
-      await submitReview(bookId, payload);
+      await submitReview(bookId, payload, roleOverrides);
       navigate(taskId ? `/upload#${taskId}` : '/upload');
     } catch {
       setPhase('error');
       setErrorMsg(t('review.errorSubmit'));
     }
-  }, [bookId, chapters, t, navigate, taskId]);
+  }, [bookId, chapters, roleOverrides, t, navigate, taskId]);
 
   const handleChapterTitleChange = useCallback((idx: number, value: string) => {
     setChapters((prev) =>
@@ -65,6 +77,19 @@ export default function ChapterReviewPage() {
       };
       const next = [...prev.slice(0, chapterIdx), before, after, ...prev.slice(chapterIdx + 1)];
       return next.map((c, i) => ({ ...c, chapterIdx: i }));
+    });
+  }, []);
+
+  const handleRoleToggle = useCallback((paragraphIndex: number, currentRole: string) => {
+    const currentIdx = ROLE_CYCLE.indexOf(currentRole);
+    const nextRole = ROLE_CYCLE[(currentIdx + 1) % ROLE_CYCLE.length];
+    setRoleOverrides((prev) => {
+      if (nextRole === 'body') {
+        const next = { ...prev };
+        delete next[String(paragraphIndex)];
+        return next;
+      }
+      return { ...prev, [String(paragraphIndex)]: nextRole };
     });
   }, []);
 
@@ -186,12 +211,15 @@ export default function ChapterReviewPage() {
 
             <div className="space-y-2">
               {selectedChapter.paragraphs.map((para, pIdx) => {
+                const effectiveRole = roleOverrides[String(para.paragraphIndex)] ?? para.role ?? 'body';
+                const isBody = effectiveRole === 'body';
                 const isTitle = para.titleSpan !== null;
                 const titleText = isTitle ? para.text.slice(0, para.titleSpan![1]) : null;
                 const bodyText = isTitle ? para.text.slice(para.titleSpan![1]).trimStart() : para.text;
+                const roleLabel = ROLE_LABELS[effectiveRole] ?? effectiveRole;
                 return (
                   <div key={para.paragraphIndex}>
-                    {pIdx > 0 && (
+                    {pIdx > 0 && isBody && (
                       <button
                         className="w-full text-xs py-0.5 mb-1 opacity-0 hover:opacity-100 transition-opacity"
                         style={{ color: 'var(--entity-con-fg)', borderTop: '1px dashed var(--entity-con-border)' }}
@@ -205,19 +233,37 @@ export default function ChapterReviewPage() {
                       style={{
                         border: `1px solid ${isTitle ? 'var(--entity-con-border)' : 'var(--border)'}`,
                         backgroundColor: isTitle ? 'var(--entity-con-bg)' : 'var(--bg-secondary)',
+                        opacity: isBody ? 1 : 0.6,
                       }}
                     >
-                      {isTitle && (
-                        <p
-                          className="text-xs font-semibold mb-1"
-                          style={{ color: 'var(--entity-con-fg)' }}
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                          {isTitle && (
+                            <p
+                              className="text-xs font-semibold mb-1"
+                              style={{ color: 'var(--entity-con-fg)' }}
+                            >
+                              {titleText}
+                            </p>
+                          )}
+                          <p className="text-xs leading-relaxed" style={{ color: 'var(--fg-secondary)' }}>
+                            {bodyText}
+                          </p>
+                        </div>
+                        <button
+                          className="shrink-0 text-xs px-1.5 py-0.5 rounded"
+                          style={{
+                            border: `1px solid ${isBody ? 'var(--border)' : 'var(--accent)'}`,
+                            color: isBody ? 'var(--fg-muted)' : 'var(--accent)',
+                            backgroundColor: isBody ? 'transparent' : 'var(--accent-bg)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}
+                          title={t('review.toggleRole')}
+                          onClick={() => handleRoleToggle(para.paragraphIndex, effectiveRole)}
                         >
-                          {titleText}
-                        </p>
-                      )}
-                      <p className="text-xs leading-relaxed" style={{ color: 'var(--fg-secondary)' }}>
-                        {bodyText}
-                      </p>
+                          {isBody ? '▸' : roleLabel}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

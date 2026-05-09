@@ -224,6 +224,7 @@ export type MurmurEventType = MurmurEvent['type'];
 export interface ReviewParagraph {
   paragraphIndex: number;
   text: string;
+  role: string;
   titleSpan: [number, number] | null;
   sentences: string[];
 }

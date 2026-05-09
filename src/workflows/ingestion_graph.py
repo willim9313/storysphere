@@ -81,15 +81,24 @@ async def chapter_review_node(state: IngestionState) -> dict:
     """
     from api.store import task_store  # noqa: PLC0415
     from services.document_service import DocumentService  # noqa: PLC0415
-    from workflows.ingestion import _rebuild_chapters  # noqa: PLC0415
+    from workflows.ingestion import _apply_role_overrides, _rebuild_chapters  # noqa: PLC0415
 
-    chapters_data: list[dict] | None = interrupt({"doc_id": state["doc_id"]})
+    resume_value: list[dict] | dict | None = interrupt({"doc_id": state["doc_id"]})
 
-    if chapters_data:
+    if resume_value:
+        # Support both old list format and new dict format for resume values
+        if isinstance(resume_value, list):
+            chapters_data = resume_value
+            role_overrides: dict[str, str] = {}
+        else:
+            chapters_data = resume_value.get("chapters", [])
+            role_overrides = resume_value.get("role_overrides", {})
+
         doc_svc = DocumentService()
         await doc_svc.init_db()
         doc = await doc_svc.get_document(state["doc_id"])
         if doc is not None:
+            _apply_role_overrides(doc, role_overrides)
             doc.chapters = _rebuild_chapters(doc, chapters_data)
             await doc_svc.replace_chapters(doc)
             logger.info(

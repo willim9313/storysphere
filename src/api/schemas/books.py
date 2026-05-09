@@ -68,6 +68,7 @@ class ReviewParagraphResponse(BaseModel):
 
     paragraph_index: int
     text: str
+    role: str = "body"
     title_span: list[int] | None = None  # [start, end] char offsets, or null
     sentences: list[str]
 
@@ -97,6 +98,7 @@ class ReviewSubmitRequest(BaseModel):
     model_config = _CAMEL
 
     chapters: list[ReviewChapterInput]
+    role_overrides: dict[str, str] = {}  # str(globalIdx) → role value
 
 
 # ── Chapter / chunk ──────────────────────────────────────────────────────────

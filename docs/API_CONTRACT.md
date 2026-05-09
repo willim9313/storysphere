@@ -1583,6 +1583,7 @@ interface UnravelingEdge {
     paragraphs: Array<{
       paragraphIndex: number;  // book-level global index
       text: string;
+      role: string;            // "body" | "separator" | "section" | "epigraph" | "preamble"
       titleSpan: [number, number] | null;  // char offsets of heading within text
       sentences: string[];
     }>;
@@ -1603,6 +1604,7 @@ interface UnravelingEdge {
     title: string;
     startParagraphIndex: number;  // book-level global index
   }>;
+  roleOverrides: Record<string, string>;  // str(globalParagraphIdx) → role value; omitted = {}
 }
 ```
 

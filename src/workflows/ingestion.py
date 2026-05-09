@@ -67,6 +67,27 @@ class IngestionResult:
         return len(self.errors) == 0
 
 
+def _apply_role_overrides(doc: Document, role_overrides: dict[str, str]) -> None:
+    """Mutate paragraph roles in *doc* according to user overrides.
+
+    *role_overrides* maps str(global_paragraph_index) → ParagraphRole value.
+    The global index follows the same flat order as _rebuild_chapters.
+    """
+    from domain.documents import ParagraphRole  # noqa: PLC0415
+
+    if not role_overrides:
+        return
+    all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
+    for idx_str, role_str in role_overrides.items():
+        try:
+            idx = int(idx_str)
+            role = ParagraphRole(role_str)
+        except (ValueError, KeyError):
+            continue
+        if 0 <= idx < len(all_paras):
+            all_paras[idx].role = role
+
+
 def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
     """Reconstruct Chapter objects from a reviewed chapter list.
 

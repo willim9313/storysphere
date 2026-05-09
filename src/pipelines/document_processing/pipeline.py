@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from domain.documents import Chapter, Document, FileType
+from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphRole
 from pipelines.base import BasePipeline
 
 from .chapter_detector import detect_chapters
@@ -15,6 +16,34 @@ from .chunker import chunk_segments
 from .loader import DocumentMeta, load_docx, load_pdf
 
 logger = logging.getLogger(__name__)
+
+# ── Separator detection ───────────────────────────────────────────────────────
+
+_CONTENT_CHAR = re.compile(r'\w', re.UNICODE)
+_MAX_SEP_LEN = 40
+
+
+def _is_separator_segment(text: str) -> bool:
+    """True if a raw segment looks like a visual divider (e.g. ***, ---, ◇◇◇)."""
+    stripped = text.strip()
+    return bool(stripped) and len(stripped) <= _MAX_SEP_LEN and not _CONTENT_CHAR.search(stripped)
+
+
+def _split_at_separators(
+    segs: list[tuple[int, str]],
+) -> list[tuple[str | None, list[tuple[int, str]]]]:
+    """Partition segments at separator lines.
+
+    Returns a list of (separator_text | None, body_segments) pairs.
+    The first item always has separator_text=None (no preceding separator).
+    """
+    groups: list[tuple[str | None, list[tuple[int, str]]]] = [(None, [])]
+    for idx, text in segs:
+        if _is_separator_segment(text):
+            groups.append((text.strip(), []))
+        else:
+            groups[-1][1].append((idx, text))
+    return groups
 
 
 class DocumentProcessingPipeline(BasePipeline[Path, Document]):
@@ -59,19 +88,45 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
         # (e.g. residual TOC segments that are all below min_chars).
         chapters: list[Chapter] = []
         for span in spans:
-            segments = span.segments
+            segs = list(span.segments)
             # Direction-A title_span: prepend the detected heading text to the
             # first segment so it becomes part of paragraph text, then annotate
             # the first paragraph with the character offsets of the title.
-            if span.title and segments:
-                first_idx, first_text = segments[0]
-                segments = [(first_idx, span.title + "\n" + first_text)] + list(segments[1:])
-            paragraphs = chunk_segments(segments, chapter_number=span.chapter_number)
-            if span.title and paragraphs and paragraphs[0].text.startswith(span.title):
-                paragraphs[0] = paragraphs[0].model_copy(
-                    update={"title_span": (0, len(span.title))}
-                )
-            if not paragraphs:
+            if span.title and segs:
+                first_idx, first_text = segs[0]
+                segs = [(first_idx, span.title + "\n" + first_text)] + segs[1:]
+
+            # Split segments at visual separator lines, chunk body groups
+            # separately so separators are not merged into body text.
+            groups = _split_at_separators(segs)
+            paragraphs: list[Paragraph] = []
+            pos = 0
+            for sep_text, body_segs in groups:
+                if sep_text is not None:
+                    paragraphs.append(
+                        Paragraph(
+                            text=sep_text,
+                            chapter_number=span.chapter_number,
+                            position=pos,
+                            role=ParagraphRole.separator,
+                        )
+                    )
+                    pos += 1
+                if body_segs:
+                    body_paras = chunk_segments(body_segs, chapter_number=span.chapter_number)
+                    for para in body_paras:
+                        paragraphs.append(para.model_copy(update={"position": pos}))
+                        pos += 1
+
+            if span.title and paragraphs:
+                # Apply title_span to the first body paragraph (skip leading separators)
+                for i, p in enumerate(paragraphs):
+                    if p.role == ParagraphRole.body and p.text.startswith(span.title):
+                        paragraphs[i] = p.model_copy(update={"title_span": (0, len(span.title))})
+                        break
+
+            body_count = sum(1 for p in paragraphs if p.role == ParagraphRole.body)
+            if body_count == 0:
                 logger.debug("Skipping empty chapter %d (%r)", span.chapter_number, span.title)
                 continue
             chapter = Chapter(

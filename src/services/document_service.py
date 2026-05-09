@@ -20,7 +20,7 @@ from sqlalchemy import text as sa_text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity, PipelineStatus
+from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity, ParagraphRole, PipelineStatus
 from services.query_models import ChapterKeywordMatch, DocumentSummary
 
 logger = logging.getLogger(__name__)
@@ -72,6 +72,7 @@ class _ParagraphRow(_Base):
     embedding_json = Column(Text, nullable=True)  # JSON-encoded list[float]
     entities_json = Column(Text, nullable=True)  # JSON-encoded list[ParagraphEntity]
     title_span_json = Column(Text, nullable=True)  # JSON-encoded [start, end] or null
+    role = Column(String, nullable=False, server_default="body")
 
 
 # ── Service ──────────────────────────────────────────────────────────────────
@@ -110,6 +111,7 @@ class DocumentService:
                 "ALTER TABLE documents ADD COLUMN timeline_config_json TEXT",
                 "ALTER TABLE documents ADD COLUMN pipeline_status_json TEXT",
                 "ALTER TABLE paragraphs ADD COLUMN title_span_json TEXT",
+                "ALTER TABLE paragraphs ADD COLUMN role TEXT NOT NULL DEFAULT 'body'",
             ]:
                 try:
                     await conn.execute(sa_text(stmt))
@@ -179,6 +181,7 @@ class DocumentService:
                                 chapter_number=para.chapter_number,
                                 position=para.position,
                                 text=para.text,
+                                role=para.role.value,
                                 embedding_json=(
                                     json.dumps(para.embedding) if para.embedding else None
                                 ),
@@ -247,6 +250,7 @@ class DocumentService:
                                 chapter_number=para.chapter_number,
                                 position=para.position,
                                 text=para.text,
+                                role=para.role.value,
                                 embedding_json=(
                                     json.dumps(para.embedding) if para.embedding else None
                                 ),
@@ -304,6 +308,7 @@ class DocumentService:
                         text=pr.text,
                         chapter_number=pr.chapter_number,
                         position=pr.position,
+                        role=ParagraphRole(pr.role) if pr.role else ParagraphRole.body,
                         embedding=(
                             json.loads(pr.embedding_json) if pr.embedding_json else None
                         ),
@@ -453,6 +458,7 @@ class DocumentService:
                     text=pr.text,
                     chapter_number=pr.chapter_number,
                     position=pr.position,
+                    role=ParagraphRole(pr.role) if pr.role else ParagraphRole.body,
                     embedding=(
                         json.loads(pr.embedding_json) if pr.embedding_json else None
                     ),
@@ -498,6 +504,7 @@ class DocumentService:
                 text=pr.text,
                 chapter_number=pr.chapter_number,
                 position=pr.position,
+                role=ParagraphRole(pr.role) if pr.role else ParagraphRole.body,
                 embedding=(
                     json.loads(pr.embedding_json) if pr.embedding_json else None
                 ),

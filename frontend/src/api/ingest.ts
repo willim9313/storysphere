@@ -26,11 +26,15 @@ export function fetchReviewData(bookId: string): Promise<import('./types').Revie
 }
 
 // #review — Submit chapter review
-export function submitReview(bookId: string, chapters: import('./types').ReviewSubmitChapter[]): Promise<void> {
+export function submitReview(
+  bookId: string,
+  chapters: import('./types').ReviewSubmitChapter[],
+  roleOverrides: Record<string, string> = {},
+): Promise<void> {
   return apiFetch<void>(`/books/${bookId}/review`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chapters }),
+    body: JSON.stringify({ chapters, roleOverrides }),
   });
 }
 
