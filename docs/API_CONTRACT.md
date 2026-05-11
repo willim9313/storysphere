@@ -32,6 +32,8 @@
 
 書庫列表。
 
+**說明**：進行中任務（`pending` / `running` / `awaiting_review`）的書籍不出現在此列表，由前端另行以 `ProcessingBookCard` 呈現。
+
 **Response 200**
 ```ts
 Book[]
@@ -86,12 +88,12 @@ interface Book {
 
 ### #2 POST /books/upload
 
-上傳 PDF，觸發後端處理流程。
+上傳 PDF 或 DOCX，觸發後端處理流程。
 
 **Request**：`multipart/form-data`
 ```
-file    (PDF 檔案，必填)
-title   (書名字串，必填)
+file    (PDF 或 DOCX 檔案，必填；最大 200 MB)
+title   (書名字串，選填；省略時自動取檔名 stem)
 author  (作者字串，選填)
 ```
 
@@ -100,7 +102,11 @@ author  (作者字串，選填)
 { taskId: string }
 ```
 
-**說明**：取得 taskId 後，前端 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。
+**Response 413**：檔案超過 200 MB
+
+**Response 422**：非 .pdf / .docx 格式
+
+**說明**：取得 taskId 後，前端 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。流程中可能出現 `awaiting_review` 狀態（章節審閱暫停），見 #8「特殊狀態」說明。
 
 **UI 使用頁面**：上傳頁 `/upload`
 
@@ -449,14 +455,14 @@ interface MurmurEvent {
 
 interface TaskStatus {
   taskId: string;
-  status: 'pending' | 'running' | 'done' | 'error';
+  status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_review';
   progress: number;        // 0–100
   stage: string;           // UI 顯示文字，如「建構知識圖譜中」
   subProgress?: number;    // 子任務進度（批次任務使用）
   subTotal?: number;
   subStage?: string;
   result?: {
-    bookId?: string;        // 上傳完成時提供，用於導向 /books/:bookId
+    bookId?: string;        // 上傳完成 or awaiting_review 時提供，用於導向 /books/:bookId
     failedSteps?: string[]; // 上傳任務：部分步驟失敗時回傳失敗描述列表
     [key: string]: unknown;
   };
@@ -479,11 +485,20 @@ useQuery({
 })
 ```
 
+**特殊狀態：`awaiting_review`**
+
+上傳流程在 PDF/DOCX 解析、章節偵測完成後，會**暫停**並將任務置為 `awaiting_review`，等待使用者確認章節邊界。
+
+- 此時 `result.bookId` 已有值（書籍已入庫）
+- 前端應導向章節審閱畫面，呼叫 `#22a GET /books/:bookId/review-data` 取得章節與段落資料
+- 使用者確認後呼叫 `#22b POST /books/:bookId/review`，pipeline 繼續執行
+- 完整流程：`pending → running → awaiting_review → (review submitted) → running → done`
+
 **觸發點對照**
 
 | 觸發操作 | 對應 API |
 |----------|----------|
-| PDF 上傳 | #2 |
+| PDF / DOCX 上傳 | #2 |
 | 整本書深度分析 | #6 |
 | 條目重新生成 | #6c |
 | 角色實體深度分析 | #7b |
@@ -1574,6 +1589,10 @@ interface UnravelingEdge {
 
 上傳流程章節審閱：取得系統偵測的章節與段落資料，供前端顯示。只在任務狀態為 `awaiting_review` 時有效。
 
+**Response 404**：書籍不存在
+
+**Response 409**：書籍目前不在 `awaiting_review` 狀態（包含已完成、尚未開始、重複呼叫）
+
 **Response 200**
 ```ts
 {
@@ -1636,6 +1655,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 ['books', bookId]                                            // #2-a / #3
 ['books', bookId, 'chapters']                               // #4
 ['books', bookId, 'chapters', chapterId, 'chunks']          // #5
+['books', bookId, 'review-data']                            // #22a
 ['books', bookId, 'analysis', 'characters']                 // #6a
 ['books', bookId, 'analysis', 'events']                     // #6b
 ['books', bookId, 'entities', entityId, 'analysis']         // #7a
