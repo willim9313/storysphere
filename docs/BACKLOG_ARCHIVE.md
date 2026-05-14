@@ -5,6 +5,30 @@
 
 ---
 
+## B-043 閱讀頁：欄 2 章節搜尋 ✅ 完成（2026-05-14）
+**背景**: 欄 2 章節列表為純線性排列，用戶記得角色或關鍵詞但不記得章節時摩擦極高。
+**實作**:
+- `ReaderPage.tsx`：`searchQuery` state + `useMemo` filter（title / topEntities[].name / keywords）
+- 欄 2 結構改為 `flex flex-col`，搜尋欄 sticky、章節列表獨立 scroll
+- 選章節時自動清空搜尋（`handleSelectChapter` 內加 `setSearchQuery('')`）
+- 結果為空時顯示 empty state（i18n `searchEmpty` key）
+- `BezierConnectors`：`chapterCount` prop 改為 `chapterKey`（filtered id 串接字串），確保過濾後 DOM 重算
+- Opus review 後修正：`e.name?.` null guard、Rules of Hooks（useMemo 移到 early return 前）
+
+---
+
+## B-044 閱讀頁：EpistemicSidePanel 入口可發現性優化 ✅ 完成（2026-05-14）
+**背景**: Brain icon 按鈕無文字說明，功能完全不可發現；`title` tooltip 在行動裝置不顯示。
+**實作**:
+- Brain button 加常態文字標籤（`角色視角` / `收起`），`minWidth: 5rem` 防寬度跳動
+- 首次進入 onboarding popover：`localStorage` flag `storysphere:reader-epistemic-hint-shown`，5 秒 auto-dismiss 或點擊消失，z-index 20
+- `EPISTEMIC_HINT_KEY` 提取為 module 層級常數（防 magic string 重複）
+- localStorage 讀寫均加 try/catch（Safari 隱私模式防護）
+- useEffect timer 內 inline dismiss 邏輯（避免 stale closure lint 警告）
+- 新增 i18n key：`epistemicLabel`、`epistemicClose`、`epistemicHint`（zh-TW + en）
+
+---
+
 ## Wave 1 — 底層基礎建設 ✅ 全部完成（2026-04-28）
 
 ### F-02 進度感知 KG（章節時間切片）✅ 完成（2026-04-24，commit `4be9613`）
