@@ -1,37 +1,37 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Trash2 } from 'lucide-react';
 import { fetchReviewData, submitReview } from '@/api/ingest';
+import { deleteBook } from '@/api/books';
 import type { ReviewChapter, ReviewSubmitChapter } from '@/api/types';
 
 const ROLE_LABELS: Record<string, string> = {
-  body: '',
+  body:      '',
   separator: '分隔',
-  section: '小節',
-  epigraph: '題詞',
-  preamble: '前言',
+  section:   '小節',
+  epigraph:  '題詞',
+  preamble:  '前言',
 };
 
 const NON_BODY_ROLES: string[] = ['separator', 'section', 'epigraph', 'preamble'];
 
-type Phase = 'reviewing' | 'submitting' | 'error';
+type Phase = 'reviewing' | 'submitting' | 'cancelling' | 'error';
 
 export default function ChapterReviewPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const [searchParams] = useSearchParams();
   const taskId = searchParams.get('taskId');
   const { t } = useTranslation('upload');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
 
   const [phase, setPhase] = useState<Phase>('reviewing');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [chapters, setChapters] = useState<ReviewChapter[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
-  // role overrides: Record<globalParaIdx, role>
   const [roleOverrides, setRoleOverrides] = useState<Record<string, string>>({});
 
-  // Load review data on mount
   useEffect(() => {
     if (!bookId) return;
     fetchReviewData(bookId)
@@ -58,6 +58,35 @@ export default function ChapterReviewPage() {
     }
   }, [bookId, chapters, roleOverrides, t, navigate, taskId]);
 
+  const handleCancel = useCallback(async () => {
+    if (!bookId) return;
+    setPhase('cancelling');
+    try {
+      await deleteBook(bookId);
+      if (taskId) {
+        try {
+          const saved = sessionStorage.getItem('upload-tasks');
+          if (saved) {
+            const all = JSON.parse(saved) as { taskId: string }[];
+            const filtered = all.filter((t) => t.taskId !== taskId);
+            if (filtered.length === 0) sessionStorage.removeItem('upload-tasks');
+            else sessionStorage.setItem('upload-tasks', JSON.stringify(filtered));
+          }
+          const completed = sessionStorage.getItem('upload-completed-tasks');
+          if (completed) {
+            const ids = new Set(JSON.parse(completed) as string[]);
+            ids.delete(taskId);
+            sessionStorage.setItem('upload-completed-tasks', JSON.stringify([...ids]));
+          }
+        } catch {
+          // ignore storage errors
+        }
+      }
+    } finally {
+      navigate('/upload');
+    }
+  }, [bookId, taskId, navigate]);
+
   const handleChapterTitleChange = useCallback((idx: number, value: string) => {
     setChapters((prev) =>
       prev.map((ch, i) => (i === idx ? { ...ch, title: value } : ch)),
@@ -69,7 +98,7 @@ export default function ChapterReviewPage() {
       const ch = prev[chapterIdx];
       const splitAt = ch.paragraphs.findIndex((p) => p.paragraphIndex === paragraphIndex);
       if (splitAt <= 0) return prev;
-      const before = { ...ch, paragraphs: ch.paragraphs.slice(0, splitAt), chapterIdx: chapterIdx };
+      const before = { ...ch, paragraphs: ch.paragraphs.slice(0, splitAt), chapterIdx };
       const after: ReviewChapter = {
         chapterIdx: chapterIdx + 1,
         title: null,
@@ -83,17 +112,13 @@ export default function ChapterReviewPage() {
   const handleRoleToggle = useCallback((paragraphIndex: number, currentRole: string, originalRole: string) => {
     setRoleOverrides((prev) => {
       if (currentRole !== 'body') {
-        // Any non-body → body in one click
         if (originalRole === 'body') {
-          // Underlying is body; remove override to restore default
           const next = { ...prev };
           delete next[String(paragraphIndex)];
           return next;
         }
-        // Underlying is non-body; need explicit 'body' override
         return { ...prev, [String(paragraphIndex)]: 'body' };
       }
-      // Body → cycle through non-body starting at separator
       const currentOverrideIdx = NON_BODY_ROLES.indexOf(prev[String(paragraphIndex)] ?? '');
       const nextIdx = currentOverrideIdx >= 0 ? (currentOverrideIdx + 1) % NON_BODY_ROLES.length : 0;
       return { ...prev, [String(paragraphIndex)]: NON_BODY_ROLES[nextIdx] };
@@ -151,9 +176,10 @@ export default function ChapterReviewPage() {
             {chapters.length} 章
           </p>
         </div>
+
         <ul className="flex-1 py-2">
           {chapters.map((ch, i) => (
-            <li key={i}>
+            <li key={ch.chapterIdx}>
               <button
                 className="w-full text-left px-4 py-2 text-xs"
                 style={{
@@ -173,15 +199,31 @@ export default function ChapterReviewPage() {
             </li>
           ))}
         </ul>
-        <div className="p-3 border-t" style={{ borderColor: 'var(--border)' }}>
+
+        <div className="p-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border)' }}>
           <button
             className="w-full text-xs px-3 py-2 rounded-md font-medium flex items-center justify-center gap-1.5"
             style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}
-            disabled={phase === 'submitting' || chapters.length === 0}
+            disabled={phase === 'submitting' || phase === 'cancelling' || chapters.length === 0}
             onClick={handleSubmit}
           >
             {phase === 'submitting' && <Loader2 size={11} className="animate-spin" />}
             {phase === 'submitting' ? t('review.submitting') : t('review.submit')}
+          </button>
+          <button
+            className="w-full text-xs px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5"
+            style={{
+              color: 'var(--fg-muted)',
+              border: '1px solid var(--border)',
+              backgroundColor: 'transparent',
+            }}
+            disabled={phase === 'submitting' || phase === 'cancelling'}
+            onClick={handleCancel}
+          >
+            {phase === 'cancelling'
+              ? <><Loader2 size={11} className="animate-spin" />{tc('cancel')}</>
+              : <><Trash2 size={11} />放棄上傳</>
+            }
           </button>
         </div>
       </aside>
@@ -219,17 +261,20 @@ export default function ChapterReviewPage() {
             <div className="space-y-2">
               {selectedChapter.paragraphs.map((para, pIdx) => {
                 const effectiveRole = roleOverrides[String(para.paragraphIndex)] ?? para.role ?? 'body';
-                const isBody = effectiveRole === 'body';
-                const isTitle = para.titleSpan !== null;
+                const isBody   = effectiveRole === 'body';
+                const isTitle  = para.titleSpan !== null;
                 const titleText = isTitle ? para.text.slice(0, para.titleSpan![1]) : null;
-                const bodyText = isTitle ? para.text.slice(para.titleSpan![1]).trimStart() : para.text;
+                const bodyText  = isTitle ? para.text.slice(para.titleSpan![1]).trimStart() : para.text;
                 const roleLabel = ROLE_LABELS[effectiveRole] ?? effectiveRole;
                 return (
                   <div key={para.paragraphIndex}>
                     {pIdx > 0 && isBody && (
                       <button
                         className="w-full text-xs py-0.5 mb-1 opacity-0 hover:opacity-100 transition-opacity"
-                        style={{ color: 'var(--entity-con-fg)', borderTop: '1px dashed var(--entity-con-border)' }}
+                        style={{
+                          color: 'var(--entity-con-fg)',
+                          borderTop: '1px dashed var(--entity-con-border)',
+                        }}
                         onClick={() => handleSplitBefore(selectedIdx, para.paragraphIndex)}
                       >
                         {t('review.addChapterBefore')}
@@ -246,10 +291,7 @@ export default function ChapterReviewPage() {
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           {isTitle && (
-                            <p
-                              className="text-xs font-semibold mb-1"
-                              style={{ color: 'var(--entity-con-fg)' }}
-                            >
+                            <p className="text-xs font-semibold mb-1" style={{ color: 'var(--entity-con-fg)' }}>
                               {titleText}
                             </p>
                           )}

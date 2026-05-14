@@ -46,6 +46,31 @@
 
 ---
 
+#### B-042 章節審閱頁面：段落 Role 自動識別（preamble / section / epigraph）
+**背景**: `ParagraphRole` enum 定義了五種 role（`body`、`separator`、`section`、`epigraph`、`preamble`），其中後三者在後端原始碼中標注為 `# v2`，代表**尚未實作自動偵測邏輯**。目前使用者可在 ChapterReviewPage 手動切換 role badge，前端 UI 支援完整；但後端 `DocumentProcessingPipeline` 產出的段落一律為 `body` 或 `separator`，前言、小節標題、題詞需靠使用者自行標記。
+
+**目前行為**:
+- `separator`：已自動偵測（regex 無文字字元 + 長度 ≤ 40）
+- `preamble`：無自動偵測，前言段落以 `body` 進入 RAG / KG pipeline，可能產生噪音
+- `section`：無自動偵測（小節標題類段落）
+- `epigraph`：無自動偵測（引言、題詞類段落）
+
+**目錄（TOC）的處理現況**:
+- 目錄整頁的每一行被 chapter detector 識別為 heading，但因為 heading 之間沒有正文段落，形成空白 chapter 被過濾掉（`chapters = [c for c in chapters if c.segments]`）
+- 這是間接排除，不是主動識別；若目錄行夾雜少量正文或格式不規則，仍可能漏入
+
+**待辦內容**:
+- 後端 `document_processing` pipeline 新增 preamble / epigraph 啟發式偵測規則（例如：章節開頭短段、引號包圍段落）
+- 或改為 LLM-assisted role 分類，在 chapter_review_node 進入 HITL 前預標注
+- 前端 ChapterReviewPage 可針對非 body role 加上更明確的視覺提示（目前僅 dim 效果）
+- 考慮是否需要在章節審閱頁面提供「全章套用同一 role」的批次操作
+
+**觸發時機**: 上傳流程穩定後、RAG / KG 品質優化階段
+
+**前置依賴**: 無（可獨立進行）
+
+---
+
 #### B-035 Neo4j Link Prediction 支援缺口
 **背景**: F-01 隱性關係推論（Link Prediction）的算法層直接使用 `nx.adamic_adar_index()`，耦合 NetworkX。Neo4j backend 無法執行此功能。Neo4j GDS library 有對應的 `gds.alpha.linkprediction.adamicAdar()` Cypher 呼叫，但介面完全不同。
 

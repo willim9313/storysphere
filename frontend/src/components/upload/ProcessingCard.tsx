@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
-import { fetchReviewData, submitReview } from '@/api/ingest';
+import { deleteBook } from '@/api/books';
+import { cancelTask, fetchReviewData, submitReview } from '@/api/ingest';
 import type { ReviewSubmitChapter } from '@/api/types';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { ProcessingTimeline } from './ProcessingTimeline';
@@ -26,12 +27,13 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
   const queryClient = useQueryClient();
   const doneRef = useRef(false);
   const [acceptingChapters, setAcceptingChapters] = useState(false);
+  const [terminating, setTerminating] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
 
-  const failedSteps = status?.result?.failedSteps as string[] | undefined;
+  const failedSteps     = status?.result?.failedSteps as string[] | undefined;
   const isPartialSuccess = status?.status === 'done' && !!status.result?.bookId && failedSteps && failedSteps.length > 0;
-  const bookId = status?.result?.bookId ? String(status.result.bookId) : null;
-  const isDone = !!status && status.status === 'done' && !!bookId && (!failedSteps || failedSteps.length === 0);
+  const bookId           = status?.result?.bookId ? String(status.result.bookId) : null;
+  const isDone           = !!status && status.status === 'done' && !!bookId && (!failedSteps || failedSteps.length === 0);
   const isAwaitingReview = status?.status === 'awaiting_review' && !!bookId;
 
   useEffect(() => {
@@ -68,6 +70,18 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
     }
   }, [bookId, queryClient, task.taskId]);
 
+  const handleTerminate = useCallback(async () => {
+    if (!bookId) return;
+    setTerminating(true);
+    try {
+      await cancelTask(task.taskId).catch(() => {});
+      await deleteBook(bookId);
+    } finally {
+      onError(task.taskId, task.fileName);
+    }
+  }, [bookId, task.taskId, task.fileName, onError]);
+
+  /* ── Done ── */
   if (isDone && bookId) {
     return (
       <div
@@ -93,89 +107,151 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
     );
   }
 
+  const progress = status?.progress ?? 0;
+  const stageLabel = status?.stage ? `${status.stage} · ` : '';
+
   return (
-    <div className="card" style={{ border: '1px solid var(--border)' }}>
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium">{task.title}</span>
+    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+      {/* Card header */}
+      <div
+        style={{
+          padding: '14px 20px',
+          borderBottom: '1px solid var(--border)',
+          display: 'flex',
+          alignItems: 'baseline',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
+        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 700, color: 'var(--fg-primary)' }}>
+          {task.title}
+        </span>
         {status && !isPartialSuccess && !isAwaitingReview && (
-          <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-            {status.stage ? `${status.stage} · ` : ''}{status.progress}%
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--fg-muted)', flexShrink: 0 }}>
+            {stageLabel}{progress}%
           </span>
         )}
         {isPartialSuccess && (
-          <span className="text-xs font-medium" style={{ color: 'var(--status-partial-fg)' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 500, color: 'var(--status-partial-fg)', flexShrink: 0 }}>
             部分完成
+          </span>
+        )}
+        {isAwaitingReview && (
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--fg-muted)', flexShrink: 0 }}>
+            等待審閱
           </span>
         )}
       </div>
 
-      {isAwaitingReview && bookId && (
-        <div
-          className="mb-3 p-3 rounded-md"
-          style={{ backgroundColor: 'var(--entity-con-bg)', border: '1px solid var(--entity-con-border)' }}
-        >
-          <p className="text-xs mb-3" style={{ color: 'var(--entity-con-fg)' }}>
-            系統偵測到章節結構，請確認是否正確。
-          </p>
-          {reviewError && (
-            <p className="text-xs mb-2" style={{ color: 'var(--color-error)' }}>
-              {reviewError}
+      {/* Progress bar (shown during active processing only) */}
+      {status && !isPartialSuccess && !isAwaitingReview && (
+        <div style={{ height: 2, backgroundColor: 'var(--bg-tertiary)' }}>
+          <div
+            className="theme-progress-fill"
+            style={{ height: '100%', width: `${progress}%`, transition: 'width 800ms ease' }}
+          />
+        </div>
+      )}
+
+      {/* Card body */}
+      <div style={{ padding: 20 }}>
+        {/* Awaiting review prompt */}
+        {isAwaitingReview && bookId && (
+          <div
+            className="mb-4 p-3 rounded-md"
+            style={{ backgroundColor: 'var(--entity-con-bg)', border: '1px solid var(--entity-con-border)' }}
+          >
+            <p className="text-xs mb-3" style={{ color: 'var(--entity-con-fg)' }}>
+              系統偵測到章節結構，請確認是否正確。
             </p>
-          )}
-          <div className="flex gap-2">
-            <button
-              className="text-xs px-3 py-1.5 rounded-md font-medium flex items-center gap-1.5"
-              style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}
-              disabled={acceptingChapters}
-              onClick={handleAcceptChapters}
-            >
-              {acceptingChapters && <Loader2 size={11} className="animate-spin" />}
-              接受系統判斷
-            </button>
+            {reviewError && (
+              <p className="text-xs mb-2" style={{ color: 'var(--color-error)' }}>
+                {reviewError}
+              </p>
+            )}
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex gap-2">
+                <button
+                  className="text-xs px-3 py-1.5 rounded-md font-medium flex items-center gap-1.5"
+                  style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}
+                  disabled={acceptingChapters || terminating}
+                  onClick={handleAcceptChapters}
+                >
+                  {acceptingChapters && <Loader2 size={11} className="animate-spin" />}
+                  接受系統判斷
+                </button>
+                <Link
+                  to={`/upload/review/${bookId}?taskId=${task.taskId}`}
+                  className="text-xs px-3 py-1.5 rounded-md font-medium"
+                  style={{ color: 'var(--entity-con-fg)', border: '1px solid var(--entity-con-border)', backgroundColor: 'transparent' }}
+                >
+                  開始審閱 →
+                </Link>
+              </div>
+              <button
+                className="btn text-xs flex items-center gap-1"
+                style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+                disabled={acceptingChapters || terminating}
+                onClick={handleTerminate}
+              >
+                {terminating && <Loader2 size={10} className="animate-spin" />}
+                終止處理
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Partial success */}
+        {isPartialSuccess && bookId && (
+          <div
+            className="p-3 rounded-md"
+            style={{ backgroundColor: 'var(--status-partial-bg)', border: '1px solid var(--status-partial-border)' }}
+          >
+            <p className="text-xs mb-2" style={{ color: 'var(--status-partial-fg)' }}>
+              書籍已儲存，但以下功能未能完成：
+            </p>
+            <ul className="text-xs mb-3" style={{ color: 'var(--status-partial-fg)' }}>
+              {failedSteps?.map((s) => (
+                <li key={s}>· {s.replace(/^(\w+):.*/, '$1')}</li>
+              ))}
+            </ul>
             <Link
-              to={`/upload/review/${bookId}?taskId=${task.taskId}`}
-              className="text-xs px-3 py-1.5 rounded-md font-medium"
-              style={{ color: 'var(--entity-con-fg)', border: '1px solid var(--entity-con-border)', backgroundColor: 'transparent' }}
+              to={`/books/${bookId}`}
+              className="text-xs font-medium"
+              style={{ color: 'var(--status-partial-fg)' }}
             >
-              開始審閱 →
+              前往書庫查看 →
             </Link>
           </div>
-        </div>
-      )}
+        )}
 
-      {isPartialSuccess && bookId && (
-        <div
-          className="mb-3 p-3 rounded-md"
-          style={{ backgroundColor: 'var(--status-partial-bg)', border: '1px solid var(--status-partial-border)' }}
-        >
-          <p className="text-xs mb-2" style={{ color: 'var(--status-partial-fg)' }}>
-            書籍已儲存，但以下功能未能完成：
-          </p>
-          <ul className="text-xs mb-3" style={{ color: 'var(--status-partial-fg)' }}>
-            {failedSteps?.map((s) => (
-              <li key={s}>· {s.replace(/^(\w+):.*/, '$1')}</li>
-            ))}
-          </ul>
-          <Link
-            to={`/books/${bookId}`}
-            className="text-xs font-medium"
-            style={{ color: 'var(--status-partial-fg)' }}
-          >
-            前往書庫查看 →
-          </Link>
-        </div>
-      )}
-
-      {status && !isPartialSuccess && !isAwaitingReview && (
-        <div className="flex gap-4">
-          <div style={{ minWidth: 160 }}>
-            <ProcessingTimeline task={status} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <MurmurWindow events={murmurEvents} />
-          </div>
-        </div>
-      )}
+        {/* Timeline + murmur (normal processing) */}
+        {status && !isPartialSuccess && !isAwaitingReview && (
+          <>
+            <div className="flex gap-4">
+              <div style={{ minWidth: 160 }}>
+                <ProcessingTimeline task={status} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <MurmurWindow events={murmurEvents} />
+              </div>
+            </div>
+            {bookId && (
+              <div className="flex justify-end mt-3">
+                <button
+                  className="btn text-xs flex items-center gap-1"
+                  style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+                  disabled={terminating}
+                  onClick={handleTerminate}
+                >
+                  {terminating && <Loader2 size={10} className="animate-spin" />}
+                  終止處理
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

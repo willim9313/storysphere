@@ -2,7 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Loader2, X } from 'lucide-react';
+import { FileText, Loader2, X } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 import { uploadBook } from '@/api/ingest';
 import { DropZone } from '@/components/upload/DropZone';
@@ -42,7 +42,6 @@ export default function UploadPage() {
   const [doneTaskIds, setDoneTaskIds] = useState<Set<string>>(new Set());
   const [erroredTasks, setErroredTasks] = useState<ErroredTask[]>([]);
   const [timelineModal, setTimelineModal] = useState<{ bookId: string; detection: TimelineDetectionResponse } | null>(null);
-  // Persisted across navigation so re-mounting doesn't re-fire the timeline modal for already-completed tasks
   const completedTaskIdsRef = useRef<Set<string>>(
     (() => {
       try {
@@ -139,71 +138,167 @@ export default function UploadPage() {
     setErroredTasks((prev) => prev.filter((t) => t.taskId !== taskId));
   }, []);
 
+  const fileSizeMB = pending ? (pending.file.size / 1024 / 1024).toFixed(1) : '';
+
   return (
-    <div className="p-6 overflow-y-auto h-full max-w-2xl mx-auto">
+    <div className="overflow-y-auto flex-1">
+      <div className="py-9 px-9 max-w-2xl mx-auto">
       <h1
-        className="text-2xl font-bold mb-6"
-        style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+        className="font-bold mb-6"
+        style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--fg-primary)' }}
       >
         {t('title')}
       </h1>
 
-      {/* Upload zone */}
+      {/* Upload zone — idle */}
       {!pending && <DropZone onFileSelected={handleFileSelected} />}
 
-      {/* Title confirmation step */}
+      {/* Upload zone — file selected (compact bar) */}
       {pending && (
         <div
-          className="mt-4 p-4 rounded-lg"
-          style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-secondary)' }}
+          style={{
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            backgroundColor: 'var(--bg-primary)',
+            padding: '14px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
         >
-          <p className="text-sm font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>
-            {t('bookTitle')}
-          </p>
-          <input
-            className="w-full px-3 py-2 rounded-md text-sm mb-1"
-            style={{
-              border: '1px solid var(--border)',
-              backgroundColor: 'var(--bg-primary)',
-              color: 'var(--fg-primary)',
-              outline: 'none',
-            }}
-            value={pending.title}
-            onChange={(e) => setPending({ ...pending, title: e.target.value })}
-            autoFocus
-          />
-          <p className="text-xs mb-3" style={{ color: 'var(--fg-muted)' }}>
-            {t('titleHint')}
-          </p>
-          <p className="text-sm font-medium mb-1" style={{ color: 'var(--fg-secondary)' }}>
-            {t('author')}
-          </p>
-          <input
-            className="w-full px-3 py-2 rounded-md text-sm"
-            style={{
-              border: '1px solid var(--border)',
-              backgroundColor: 'var(--bg-primary)',
-              color: 'var(--fg-primary)',
-              outline: 'none',
-            }}
-            placeholder={t('authorPlaceholder')}
-            value={pending.author}
-            onChange={(e) => setPending({ ...pending, author: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleConfirmUpload();
-            }}
-          />
-          <div className="flex gap-2 justify-end mt-3">
-            <button
-              className="text-sm px-3 py-1 rounded-md"
-              style={{ color: 'var(--fg-muted)', border: '1px solid var(--border)' }}
-              onClick={handleCancel}
+          <FileText size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 14,
+                fontWeight: 600,
+                color: 'var(--fg-primary)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
             >
+              {pending.file.name}
+            </div>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-muted)', marginTop: 2 }}>
+              {fileSizeMB}&nbsp;MB · PDF
+            </div>
+          </div>
+          <button
+            onClick={handleCancel}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              fontSize: 11,
+              color: 'var(--fg-muted)',
+              flexShrink: 0,
+            }}
+          >
+            更換檔案
+          </button>
+        </div>
+      )}
+
+      {/* Metadata card */}
+      {pending && (
+        <div
+          className="card mt-4"
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
+        >
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 12,
+                fontWeight: 500,
+                color: 'var(--fg-secondary)',
+                marginBottom: 6,
+              }}
+            >
+              {t('bookTitle')}
+            </label>
+            <input
+              className="w-full"
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 14,
+                color: 'var(--fg-primary)',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 12px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color var(--transition-fast)',
+              }}
+              value={pending.title}
+              onChange={(e) => setPending({ ...pending, title: e.target.value })}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmUpload(); }}
+              autoFocus
+            />
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-muted)', margin: '4px 0 0' }}>
+              {t('titleHint')}
+            </p>
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 12,
+                fontWeight: 500,
+                color: 'var(--fg-secondary)',
+                marginBottom: 6,
+              }}
+            >
+              {t('author')}
+            </label>
+            <input
+              className="w-full"
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 14,
+                color: 'var(--fg-primary)',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 12px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color var(--transition-fast)',
+              }}
+              placeholder={t('authorPlaceholder')}
+              value={pending.author}
+              onChange={(e) => setPending({ ...pending, author: e.target.value })}
+              onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmUpload(); }}
+            />
+          </div>
+
+          {upload.error && upload.error.name !== 'AbortError' && (
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--color-error)', margin: 0 }}>
+              {upload.error.message}
+            </p>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 8,
+              paddingTop: 'var(--space-sm)',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            <button className="btn btn-secondary" onClick={handleCancel}>
               {tc('cancel')}
             </button>
             <button
-              className="text-sm px-3 py-1 rounded-md font-medium flex items-center gap-1.5"
-              style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}
+              className="btn btn-primary"
               disabled={!pending.title.trim() || upload.isPending}
               onClick={handleConfirmUpload}
             >
@@ -214,26 +309,26 @@ export default function UploadPage() {
         </div>
       )}
 
-      {upload.error && upload.error.name !== 'AbortError' && (
-        <p className="text-sm mt-2" style={{ color: 'var(--color-error)' }}>
-          {upload.error.message}
-        </p>
-      )}
-
       {/* Processing tasks */}
       {tasks.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-secondary)' }}>
+          <p
+            className="mb-3"
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 11,
+              fontWeight: 500,
+              color: 'var(--fg-muted)',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
             {t('processingSection')}
-          </h2>
+          </p>
           <div className="space-y-4">
             {tasks.map((task) => (
               <div key={task.taskId} id={task.taskId}>
-                <ProcessingCard
-                  task={task}
-                  onDone={handleTaskDone}
-                  onError={handleTaskError}
-                />
+                <ProcessingCard task={task} onDone={handleTaskDone} onError={handleTaskError} />
               </div>
             ))}
           </div>
@@ -260,10 +355,7 @@ export default function UploadPage() {
                   )}
                 </div>
               </div>
-              <button
-                onClick={() => dismissErroredTask(et.taskId)}
-                style={{ color: 'var(--fg-muted)' }}
-              >
+              <button onClick={() => dismissErroredTask(et.taskId)} style={{ color: 'var(--fg-muted)' }}>
                 <X size={14} />
               </button>
             </div>
@@ -278,6 +370,7 @@ export default function UploadPage() {
           onClose={() => setTimelineModal(null)}
         />
       )}
+    </div>
     </div>
   );
 }

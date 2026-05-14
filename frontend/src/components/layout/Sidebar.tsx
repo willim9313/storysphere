@@ -12,7 +12,6 @@ export function Sidebar() {
     { to: '/frameworks', icon: BookOpen, label: t('frameworks') },
     { to: '#', icon: Search, label: t('search'), disabled: true },
     { to: '/token-usage', icon: BarChart3, label: t('tokenUsage') },
-    { to: '/settings', icon: Settings, label: t('settings') },
   ];
 
   const toggleLang = () => {
@@ -59,6 +58,20 @@ export function Sidebar() {
       })}
 
       <div className="flex-1" />
+
+      <Link
+        to="/settings"
+        title={t('settings')}
+        className="flex items-center justify-center rounded-md transition-colors"
+        style={{
+          width: 36,
+          height: 36,
+          backgroundColor: location.pathname.startsWith('/settings') ? 'var(--bg-tertiary)' : 'transparent',
+          color: location.pathname.startsWith('/settings') ? 'var(--accent)' : 'var(--fg-secondary)',
+        }}
+      >
+        <Settings size={18} />
+      </Link>
 
       <button
         onClick={toggleLang}

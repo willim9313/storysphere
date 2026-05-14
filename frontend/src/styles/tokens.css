@@ -135,6 +135,7 @@
   /* Typography */
   --font-serif: 'Libre Baskerville', 'Noto Sans TC', Georgia, serif;
   --font-sans: 'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
+  --font-mono: 'Fira Code', 'Courier New', monospace;
   --font-cjk: 'Noto Sans TC', sans-serif;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -187,6 +188,7 @@
 
   --font-serif: 'IM Fell English', Georgia, serif;
   --font-sans:  'IM Fell English', Georgia, serif;
+  --font-mono:  'Courier New', monospace;
 
   --line-weight:   1px;
   --border-style:  dashed;
@@ -425,6 +427,7 @@
 
   --font-serif: 'Permanent Marker', cursive;
   --font-sans:  'Space Mono', 'Courier New', monospace;
+  --font-mono:  'Space Mono', 'Courier New', monospace;
 
   --line-weight:   2px;
   --border-style:  solid;

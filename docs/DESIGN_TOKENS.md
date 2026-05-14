@@ -70,6 +70,7 @@
 |-------|---------|-----------|-------------|------|
 | `--font-serif` | `'Libre Baskerville', Georgia, serif` | `'IM Fell English', Georgia, serif` | `system-ui, -apple-system, sans-serif` | `'Permanent Marker', cursive` |
 | `--font-sans` | `'DM Sans', system-ui, sans-serif` | `'IM Fell English', Georgia, serif` | `system-ui, -apple-system, sans-serif` | `'Space Mono', 'Courier New', monospace` |
+| `--font-mono` | `'Fira Code', 'Courier New', monospace` | `'Courier New', monospace` | `'Fira Code', 'Courier New', monospace` | `'Space Mono', 'Courier New', monospace` |
 
 ### 3.6 主題專用 Token
 
