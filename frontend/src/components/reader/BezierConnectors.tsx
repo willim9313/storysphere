@@ -5,7 +5,7 @@ interface BezierConnectorsProps {
   col2Ref: React.RefObject<HTMLDivElement | null>;
   col3Ref: React.RefObject<HTMLDivElement | null>;
   selectedChapterIdx: number | null;
-  chapterCount: number;
+  chapterKey: string;
   chunkCount: number;
   showCol3: boolean;
 }
@@ -21,7 +21,7 @@ export function BezierConnectors({
   col2Ref,
   col3Ref,
   selectedChapterIdx,
-  chapterCount,
+  chapterKey,
   chunkCount,
   showCol3,
 }: BezierConnectorsProps) {
@@ -88,7 +88,7 @@ export function BezierConnectors({
     }
 
     setLines(newLines);
-  }, [col1Ref, col2Ref, col3Ref, selectedChapterIdx, chapterCount, chunkCount, showCol3]);
+  }, [col1Ref, col2Ref, col3Ref, selectedChapterIdx, chapterKey, chunkCount, showCol3]);
 
   return (
     <svg

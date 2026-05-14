@@ -11,5 +11,10 @@
     "keywords": "關鍵字",
     "viewContent": "查看內容"
   },
-  "selectChapter": "選擇章節以查看內容"
+  "selectChapter": "選擇章節以查看內容",
+  "search": "搜尋章節、角色、關鍵字…",
+  "searchEmpty": "沒有章節含「{{query}}」",
+  "epistemicLabel": "角色視角",
+  "epistemicClose": "收起",
+  "epistemicHint": "選擇角色，查看他在這個章節前知道的事"
 }

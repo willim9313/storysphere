@@ -11,5 +11,10 @@
     "keywords": "Keywords",
     "viewContent": "View Content"
   },
-  "selectChapter": "Select a chapter to view content"
+  "selectChapter": "Select a chapter to view content",
+  "search": "Search chapters, characters, keywords…",
+  "searchEmpty": "No chapters matching \"{{query}}\"",
+  "epistemicLabel": "Character View",
+  "epistemicClose": "Collapse",
+  "epistemicHint": "Select a character to see what they know up to this chapter"
 }
