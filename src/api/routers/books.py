@@ -213,6 +213,7 @@ async def _run_entity_analysis(
         result = await agent.analyze_character(
             entity_name=entity_name,
             document_id=document_id,
+            archetype_frameworks=["jung", "schmidt"],
             language=language,
             progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
@@ -1231,18 +1232,15 @@ async def list_character_analyses(
         if cached is not None:
             try:
                 result = CharacterAnalysisResult.model_validate(cached)
-                archetype_type = (
-                    result.archetypes[0].primary if result.archetypes else None
-                )
+                archetypes = {a.framework: a.primary for a in result.archetypes}
                 analyzed.append(
                     AnalysisItem(
                         id=e.id,
                         entity_id=e.id,
                         section="characters",
                         title=e.name,
-                        archetype_type=archetype_type,
+                        archetypes=archetypes,
                         content=result.profile.summary if result.profile else "",
-                        framework="jung",
                         generated_at=(
                             result.analyzed_at.isoformat()
                             if result.analyzed_at

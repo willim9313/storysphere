@@ -502,7 +502,7 @@ export const mockCharacterAnalyses: AnalysisListResponse = {
       entityId: 'ent-001',
       section: 'characters',
       title: '伊莉莎白',
-      archetypeType: '革命者',
+      archetypes: { jung: '革命者', schmidt: '反叛少女' },
       chapterCount: 5,
       content: `## 伊莉莎白·班奈特
 
@@ -526,7 +526,6 @@ export const mockCharacterAnalyses: AnalysisListResponse = {
 
 ### 關係動力
 與達西的關係展現了經典的革命者-統治者原型互動。`,
-      framework: 'jung',
       generatedAt: '2026-03-10T14:00:00Z',
     },
     {
@@ -534,7 +533,7 @@ export const mockCharacterAnalyses: AnalysisListResponse = {
       entityId: 'ent-002',
       section: 'characters',
       title: '達西先生',
-      archetypeType: '統治者',
+      archetypes: { jung: '統治者', schmidt: '貴族領主' },
       chapterCount: 4,
       content: `## 達西先生
 
@@ -548,7 +547,6 @@ export const mockCharacterAnalyses: AnalysisListResponse = {
 
 ### 角色弧線
 從傲慢的貴族到謙遜的愛人，達西的轉化是小說的核心弧線之一。`,
-      framework: 'jung',
       generatedAt: '2026-03-10T14:30:00Z',
     },
   ],
@@ -568,6 +566,7 @@ export const mockEventAnalyses: AnalysisListResponse = {
       entityId: 'ent-010',
       section: 'events',
       title: '舞會',
+      archetypes: {},
       chapterCount: 2,
       content: `## 舞會
 
@@ -585,7 +584,6 @@ export const mockEventAnalyses: AnalysisListResponse = {
 | 情節 | 9/10 | 引發事件——觸發所有主要衝突 |
 | 角色發展 | 8/10 | 確立伊莉莎白的機智和達西的傲慢 |
 | 主題 | 9/10 | 引入傲慢與偏見、表象與現實的主題 |`,
-      framework: 'jung',
       generatedAt: '2026-03-11T10:00:00Z',
     },
   ],

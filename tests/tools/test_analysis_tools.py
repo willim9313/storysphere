@@ -82,13 +82,13 @@ class TestAnalyzeCharacterTool:
         assert tool.args_schema is not None
 
     @pytest.mark.asyncio
-    async def test_passes_frameworks_and_language(self):
+    async def test_always_runs_both_frameworks_and_passes_language(self):
         agent = self._make_mock_agent()
         tool = AnalyzeCharacterTool(analysis_agent=agent)
-        await tool._arun("Alice", document_id="doc-1", archetype_frameworks=["schmidt"], language="zh")
+        await tool._arun("Alice", document_id="doc-1", language="zh")
 
         call_kwargs = agent.analyze_character.call_args[1]
-        assert call_kwargs["archetype_frameworks"] == ["schmidt"]
+        assert call_kwargs["archetype_frameworks"] == ["jung", "schmidt"]
         assert call_kwargs["language"] == "zh"
 
 

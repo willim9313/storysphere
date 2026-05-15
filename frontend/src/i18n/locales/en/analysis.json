@@ -37,6 +37,7 @@
     "evidence": "Evidence",
     "chapter": "Ch. {{range}}",
     "noData": "(No data available)",
+    "archetypeMissing": "This archetype framework hasn't been analyzed yet. Regenerating will produce both Jung and Schmidt archetypes.",
     "tabs": {
       "overview": "Overview",
       "voice": "Voice Profile"

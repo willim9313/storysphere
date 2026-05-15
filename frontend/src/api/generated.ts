@@ -31,6 +31,9 @@ export interface paths {
         /**
          * List Books
          * @description List all books.
+         *
+         *     Books with an active ingestion task (pending / running / awaiting_review)
+         *     are excluded — they are shown as ProcessingBookCard in the frontend instead.
          */
         get: operations["list_books_api_v1_books__get"];
         put?: never;
@@ -1807,8 +1810,13 @@ export interface components {
             section: string;
             /** Title */
             title: string;
-            /** Archetypetype */
-            archetypeType?: string | null;
+            /**
+             * Archetypes
+             * @default {}
+             */
+            archetypes: {
+                [key: string]: string;
+            };
             /**
              * Chaptercount
              * @default 0
@@ -1819,11 +1827,6 @@ export interface components {
              * @default
              */
             content: string;
-            /**
-             * Framework
-             * @default jung
-             */
-            framework: string;
             /**
              * Generatedat
              * @default
@@ -2876,6 +2879,11 @@ export interface components {
             paragraphIndex: number;
             /** Text */
             text: string;
+            /**
+             * Role
+             * @default body
+             */
+            role: string;
             /** Titlespan */
             titleSpan?: number[] | null;
             /** Sentences */
@@ -2885,6 +2893,13 @@ export interface components {
         ReviewSubmitRequest: {
             /** Chapters */
             chapters: components["schemas"]["ReviewChapterInput"][];
+            /**
+             * Roleoverrides
+             * @default {}
+             */
+            roleOverrides: {
+                [key: string]: string;
+            };
         };
         /** RunInferenceRequest */
         RunInferenceRequest: {

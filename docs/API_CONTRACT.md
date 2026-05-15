@@ -239,10 +239,9 @@ interface AnalysisItem {
   entityId: string;
   section: 'characters' | 'events';
   title: string;
-  archetypeType?: string;
+  archetypes: Record<string, string>;  // framework → primary archetype id（characters 才會填，events 為空 map）
   chapterCount: number;
   content: string;
-  framework: 'jung' | 'schmidt';
   generatedAt: string;
 }
 
@@ -328,6 +327,8 @@ interface ArcSegment {
 觸發角色實體深度分析。需確認視窗（說明 token 消耗 + 結果將同步至角色分析頁）後才呼叫。
 
 **Response 200**：`{ taskId: string }`
+
+**說明**：每次觸發**一律同時產生 Jung 與 Schmidt 兩種 archetype**，無需傳 framework 參數。前端的 framework 切換僅影響顯示，不影響 trigger 行為。
 
 **UI 使用頁面**：知識圖譜頁「生成深度分析」按鈕、角色分析頁「建立」按鈕
 

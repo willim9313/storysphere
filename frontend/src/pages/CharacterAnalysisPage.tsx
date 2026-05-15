@@ -64,6 +64,15 @@ export default function CharacterAnalysisPage() {
     triggerMutation.mutate(id);
   };
 
+  const handleRegenerate = () => {
+    if (!selectedEntityId || !bookId) return;
+    deleteEntityAnalysis(bookId, selectedEntityId).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'] });
+      triggerMutation.mutate(selectedEntityId);
+    });
+  };
+
   const { data: genTask } = useTaskPolling(generateTaskId);
 
   useEffect(() => {
@@ -145,6 +154,7 @@ export default function CharacterAnalysisPage() {
                 <AnalyzedItem
                   key={item.id}
                   item={item}
+                  framework={framework}
                   isSelected={selectedEntityId === item.entityId}
                   onSelect={() => handleSelectEntity(item.entityId)}
                 />
@@ -190,7 +200,7 @@ export default function CharacterAnalysisPage() {
                     className="text-xs px-2 py-0.5 rounded-full"
                     style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-muted)' }}
                   >
-                    {selectedAnalyzed.framework.toUpperCase()}
+                    {framework.toUpperCase()}
                   </span>
                 )}
                 <Link
@@ -230,7 +240,15 @@ export default function CharacterAnalysisPage() {
               ))}
             </div>
 
-            {detailTab === 'overview' && <CharacterAnalysisDetail data={entityAnalysis} />}
+            {detailTab === 'overview' && (
+              <CharacterAnalysisDetail
+                data={entityAnalysis}
+                framework={framework}
+                onFrameworkChange={setFramework}
+                onRegenerate={handleRegenerate}
+                isRegenerating={triggerMutation.isPending || (!!generateTaskId && genTask?.status !== 'done')}
+              />
+            )}
             {detailTab === 'voice' && bookId && selectedEntityId && (
               <VoiceProfilingPanel bookId={bookId} entityId={selectedEntityId} />
             )}
@@ -302,13 +320,7 @@ export default function CharacterAnalysisPage() {
           message={t('regenerateMessage')}
           onConfirm={() => {
             setConfirmRegenerate(false);
-            if (selectedEntityId && bookId) {
-              deleteEntityAnalysis(bookId, selectedEntityId).then(() => {
-                queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
-                queryClient.invalidateQueries({ queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'] });
-                triggerMutation.mutate(selectedEntityId);
-              });
-            }
+            handleRegenerate();
           }}
           onCancel={() => setConfirmRegenerate(false)}
         />

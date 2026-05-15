@@ -338,10 +338,9 @@ class AnalysisItem(BaseModel):
     entity_id: str
     section: str
     title: str
-    archetype_type: str | None = None
+    archetypes: dict[str, str] = {}
     chapter_count: int = 0
     content: str = ""
-    framework: str = "jung"
     generated_at: str = ""
 
 

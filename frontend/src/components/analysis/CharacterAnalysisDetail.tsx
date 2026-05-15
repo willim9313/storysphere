@@ -1,9 +1,16 @@
 import { useTranslation } from 'react-i18next';
+import { RefreshCw } from 'lucide-react';
 import type { CharacterAnalysisDetail, ArchetypeDetail } from '@/api/types';
 import { AnalysisAccordion } from './AnalysisAccordion';
 
 type TFunc = (key: string, opts?: object) => string;
 type Section = { title: string; subtitle?: string; content: string };
+type Framework = 'jung' | 'schmidt';
+
+const FRAMEWORK_LABEL: Record<Framework, string> = {
+  jung: 'Jung 12',
+  schmidt: 'Schmidt 45',
+};
 
 function confidenceLabel(c: number, t: TFunc): string {
   if (c >= 0.8) return t('character.confidenceHigh');
@@ -11,18 +18,14 @@ function confidenceLabel(c: number, t: TFunc): string {
   return t('character.confidenceLow');
 }
 
-function archetypeSection(label: string, a: ArchetypeDetail | undefined, noData: string, t: TFunc): Section {
-  if (!a) return { title: label, content: noData };
+function archetypeContent(a: ArchetypeDetail | undefined, missingText: string, t: TFunc): string {
+  if (!a) return missingText;
   const secondary = a.secondary ? `，${t('character.secondaryArchetype')}：**${a.secondary}**` : '';
   const confidence = `${t('character.confidence')}：${confidenceLabel(a.confidence, t)}（${Math.round(a.confidence * 100)}%）`;
   const evidenceLines = a.evidence.length
     ? '\n\n**' + t('character.evidence') + '：**\n' + a.evidence.map((e) => `- ${e}`).join('\n')
     : '';
-  return {
-    title: label,
-    subtitle: a.primary,
-    content: `**${t('character.primaryArchetype')}：${a.primary}**${secondary}\n\n${confidence}${evidenceLines}`,
-  };
+  return `**${t('character.primaryArchetype')}：${a.primary}**${secondary}\n\n${confidence}${evidenceLines}`;
 }
 
 function relationsContent(data: CharacterAnalysisDetail, noData: string): string {
@@ -50,14 +53,27 @@ function keyEventsContent(data: CharacterAnalysisDetail, noData: string, t: TFun
     .join('\n');
 }
 
-function buildSections(data: CharacterAnalysisDetail, t: TFunc): Section[] {
+function buildSections(
+  data: CharacterAnalysisDetail,
+  framework: Framework,
+  archetypeMissing: boolean,
+  t: TFunc,
+): Section[] {
   const noData = t('character.noData');
   const archetypeMap = new Map(data.archetypes.map((a) => [a.framework, a]));
+  const sectionLabel =
+    framework === 'jung'
+      ? t('character.sections.jungArchetype')
+      : t('character.sections.schmidtArchetype');
+  const missingText = archetypeMissing ? t('character.archetypeMissing') : noData;
 
   return [
     { title: t('character.sections.profile'), content: data.profileSummary || noData },
-    archetypeSection(t('character.sections.jungArchetype'), archetypeMap.get('jung'), noData, t),
-    archetypeSection(t('character.sections.schmidtArchetype'), archetypeMap.get('schmidt'), noData, t),
+    {
+      title: sectionLabel,
+      subtitle: archetypeMap.get(framework)?.primary,
+      content: archetypeContent(archetypeMap.get(framework), missingText, t),
+    },
     {
       title: t('character.sections.traits'),
       content: data.cep?.traits.length ? data.cep.traits.map((tr) => `- ${tr}`).join('\n') : noData,
@@ -85,9 +101,63 @@ function buildSections(data: CharacterAnalysisDetail, t: TFunc): Section[] {
 
 interface Props {
   readonly data: CharacterAnalysisDetail;
+  readonly framework: Framework;
+  readonly onFrameworkChange: (f: Framework) => void;
+  readonly onRegenerate?: () => void;
+  readonly isRegenerating?: boolean;
 }
 
-export function CharacterAnalysisDetail({ data }: Props) {
+export function CharacterAnalysisDetail({
+  data,
+  framework,
+  onFrameworkChange,
+  onRegenerate,
+  isRegenerating = false,
+}: Props) {
   const { t } = useTranslation('analysis');
-  return <AnalysisAccordion sections={buildSections(data, t)} />;
+  const hasFrameworkResult = data.archetypes.some((a) => a.framework === framework);
+  const archetypeMissing = !hasFrameworkResult;
+
+  return (
+    <div>
+      <div
+        className="flex items-center gap-0.5 p-0.5 rounded-lg mb-3"
+        style={{ backgroundColor: 'var(--bg-secondary)', width: 'fit-content' }}
+      >
+        {(['jung', 'schmidt'] as Framework[]).map((f) => (
+          <button
+            key={f}
+            onClick={() => onFrameworkChange(f)}
+            className="text-xs px-3 py-1 rounded-md transition-all"
+            style={{
+              backgroundColor: framework === f ? 'white' : 'transparent',
+              color: framework === f ? 'var(--accent)' : 'var(--fg-muted)',
+              fontWeight: framework === f ? 600 : 400,
+            }}
+          >
+            {FRAMEWORK_LABEL[f]}
+          </button>
+        ))}
+      </div>
+      {archetypeMissing && onRegenerate && (
+        <div
+          className="flex items-center justify-between gap-3 mb-3 px-3 py-2 rounded-md"
+          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+        >
+          <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+            {t('character.archetypeMissing')}
+          </span>
+          <button
+            className="btn btn-secondary text-xs flex-shrink-0"
+            onClick={onRegenerate}
+            disabled={isRegenerating}
+          >
+            <RefreshCw size={12} />
+            {t('regenerate')}
+          </button>
+        </div>
+      )}
+      <AnalysisAccordion sections={buildSections(data, framework, archetypeMissing, t)} />
+    </div>
+  );
 }

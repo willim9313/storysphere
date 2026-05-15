@@ -154,10 +154,9 @@ export interface AnalysisItem {
   entityId: string;
   section: 'characters' | 'events';
   title: string;
-  archetypeType?: string;
+  archetypes: Record<string, string>;
   chapterCount: number;
   content: string;
-  framework: 'jung' | 'schmidt';
   generatedAt: string;
 }
 

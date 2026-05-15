@@ -16,13 +16,16 @@ export function parseSections(content: string) {
 
 export function AnalyzedItem({
   item,
+  framework,
   isSelected,
   onSelect,
 }: {
   item: AnalysisItem;
+  framework: string;
   isSelected: boolean;
   onSelect: () => void;
 }) {
+  const archetypeLabel = item.archetypes?.[framework];
   return (
     <button
       className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-left transition-colors"
@@ -39,9 +42,9 @@ export function AnalyzedItem({
         <div className="text-xs font-medium truncate" style={{ color: 'var(--fg-primary)' }}>
           {item.title}
         </div>
-        {item.archetypeType && (
+        {archetypeLabel && (
           <div className="text-xs truncate" style={{ color: 'var(--fg-muted)' }}>
-            {item.archetypeType}
+            {archetypeLabel}
           </div>
         )}
       </div>

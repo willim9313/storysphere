@@ -37,6 +37,7 @@
     "evidence": "依據",
     "chapter": "第 {{range}} 章",
     "noData": "（無對應資訊）",
+    "archetypeMissing": "此原型框架尚未分析。點擊重生成將同時產出 Jung 與 Schmidt 兩種原型。",
     "tabs": {
       "overview": "總覽",
       "voice": "語音側寫"
