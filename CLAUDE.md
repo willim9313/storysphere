@@ -1,5 +1,14 @@
 # CLAUDE.md
 
+## 測試規範
+
+- 測試分三層：**純函數單元測試**（無 fixture）、**API 端點測試**（用 `tests/api/conftest.py` 的 `client` fixture）、**服務整合測試**（真實 SQLite + `tmp_path`）
+- 測試分組用 `class TestXxx`；方法命名 `test_<情境>` 或 `test_<條件>_<預期>`
+- `AsyncMock.side_effect` 一律用**同步函數**，不加 `async`，除非實際有 `await`
+- 若端點需要 `conftest.py` 未涵蓋的依賴，在**測試檔案內**建立局部 fixture 擴充，不修改共用 `conftest.py`
+- `task_store` 是全域單例，測試寫入時用 `uuid4()` 產生唯一 ID 避免跨測試污染
+- 完整說明見 @docs/guides/TESTING.md
+
 ## 套件管理
 
 - Python 套件一律使用 `uv` 管理，安裝依賴用 `uv add`，不要用 `pip install`
