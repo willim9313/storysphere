@@ -32,10 +32,13 @@ export function ChunkCard({ chunk }: { chunk: Chunk }) {
   return (
     <div
       data-chunk-card
-      className="rounded-lg p-4 mb-3"
       style={{
-        backgroundColor: 'white',
+        backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
+        borderRadius: 10,
+        padding: '14px 16px',
+        marginBottom: 10,
+        boxShadow: 'var(--shadow-sm)',
       }}
     >
       <div className="flex items-center justify-between mb-2">

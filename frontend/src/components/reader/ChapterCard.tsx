@@ -31,8 +31,8 @@ export function ChapterCard({
     <div
       className="rounded-lg p-2.5 cursor-pointer transition-all"
       style={{
-        backgroundColor: isSelected ? 'white' : 'transparent',
-        border: isSelected ? '1px solid var(--accent)' : '1px solid transparent',
+        backgroundColor: isSelected ? 'var(--bg-primary)' : 'var(--bg-secondary)',
+        border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
         borderLeft: isSelected ? '3px solid var(--accent)' : '3px solid transparent',
       }}
       onClick={onSelect}

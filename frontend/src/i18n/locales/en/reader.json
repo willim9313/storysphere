@@ -16,5 +16,9 @@
   "searchEmpty": "No chapters matching \"{{query}}\"",
   "epistemicLabel": "Character View",
   "epistemicClose": "Collapse",
-  "epistemicHint": "Select a character to see what they know up to this chapter"
+  "epistemicHint": "Select a character to see what they know up to this chapter",
+  "col1Expand": "Expand book overview",
+  "col1Collapse": "Collapse book overview",
+  "col2Expand": "Expand chapter list",
+  "col2Collapse": "Collapse chapter list"
 }
