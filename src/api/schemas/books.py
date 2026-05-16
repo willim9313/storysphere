@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
@@ -580,6 +580,20 @@ class ConfirmInferredRequest(BaseModel):
 # ── Voice Profile (F-04) ─────────────────────────────────────────────────────
 
 
+class ToneSegmentResponse(BaseModel):
+    model_config = _CAMEL
+
+    label: str
+    value: float
+
+
+class HistogramBucketResponse(BaseModel):
+    model_config = _CAMEL
+
+    bucket: str
+    value: int
+
+
 class VoiceProfileResponse(BaseModel):
     model_config = _CAMEL
 
@@ -591,6 +605,8 @@ class VoiceProfileResponse(BaseModel):
     exclamation_ratio: float
     lexical_diversity: float
     paragraphs_analyzed: int
+    tone_distribution: list[ToneSegmentResponse] = Field(default_factory=list)
+    sentence_length_histogram: list[HistogramBucketResponse] = Field(default_factory=list)
     speech_style: str
     distinctive_patterns: list[str]
     tone: str

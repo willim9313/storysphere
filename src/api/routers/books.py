@@ -2131,6 +2131,14 @@ async def get_entity_voice_profile(
         exclamation_ratio=profile.exclamation_ratio,
         lexical_diversity=profile.lexical_diversity,
         paragraphs_analyzed=profile.paragraphs_analyzed,
+        tone_distribution=[
+            {"label": seg.label, "value": seg.value}
+            for seg in profile.tone_distribution
+        ],
+        sentence_length_histogram=[
+            {"bucket": b.bucket, "value": b.value}
+            for b in profile.sentence_length_histogram
+        ],
         speech_style=profile.speech_style,
         distinctive_patterns=profile.distinctive_patterns,
         tone=profile.tone,

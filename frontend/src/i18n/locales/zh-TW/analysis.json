@@ -39,8 +39,55 @@
     "noData": "（無對應資訊）",
     "archetypeMissing": "此原型框架尚未分析。點擊重生成將同時產出 Jung 與 Schmidt 兩種原型。",
     "tabs": {
-      "overview": "總覽",
-      "voice": "語音側寫"
+      "overview": "人物概覽",
+      "voice": "語音風格",
+      "epistemic": "認知狀態"
+    },
+    "subtabs": {
+      "persona": "人格",
+      "behavior": "行為",
+      "relations": "關係",
+      "arc": "弧線"
+    },
+    "tip": {
+      "prefix": "研究者導覽：",
+      "body": "本頁分三個層級——<strong>人物概覽</strong>看「她是誰」（人格 / 行為 / 關係 / 弧線），<strong>語音風格</strong>看「她如何說話」，<strong>認知狀態</strong>看「她在第 N 章知道什麼」。框架（Jung / Schmidt）只影響原型那一節。"
+    },
+    "compare": {
+      "open": "框架對照",
+      "close": "關閉",
+      "title": "框架對照 — {{name}}",
+      "fromSidebar": "對照 Jung vs Schmidt",
+      "switchTo": "切到對照",
+      "confidencePct": "{{pct}}% 信心",
+      "evidenceLabel": "證據",
+      "notGenerated": "此框架尚未生成",
+      "secondaryLabel": "次：{{name}}"
+    },
+    "persona": {
+      "profileSub": "一句話總結",
+      "archetypeLabelJung": "Jung 原型 — {{name}}",
+      "archetypeLabelSchmidt": "Schmidt 類型 — {{name}}",
+      "archetypeNotGenerated": "未生成",
+      "evidenceHeading": "支持證據",
+      "traitsCount": "{{count}} 項"
+    },
+    "behavior": {
+      "actionsCount": "{{count}} 項",
+      "keyEventsSub": "{{count}} 項，依章節序"
+    },
+    "relations": {
+      "relationsCount": "{{count}} 段關係",
+      "quotesCount": "{{count}} 句"
+    },
+    "arcPane": {
+      "stagesCount": "{{count}} 個階段",
+      "stageN": "階段 {{n}}"
+    },
+    "list": {
+      "searchPlaceholder": "搜尋 {{count}} 位角色",
+      "frameworkLabel": "分析框架",
+      "chapterCount": "Ch.{{count}}"
     },
     "voice": {
       "avgSentenceLength": "平均句長",
@@ -51,11 +98,25 @@
       "speechStyle": "說話風格",
       "distinctivePatterns": "語言特徵",
       "tone": "語氣基調",
+      "dominantTone": "主導語調",
       "representativeQuotes": "代表性引文",
-      "analyze": "分析語音側寫",
-      "analyzing": "語音側寫分析中…",
-      "noData": "尚無語音側寫",
-      "paragraphsAnalyzed": "已分析 {{count}} 個段落"
+      "analyze": "分析語音風格",
+      "analyzing": "語音風格分析中…",
+      "noData": "尚無語音風格",
+      "paragraphsAnalyzed": "已分析 {{count}} 個段落",
+      "toneDistribution": "語氣分布",
+      "toneDistributionSub": "句法分類比例",
+      "sentenceLength": "句長分布",
+      "sentenceLengthSub": "字數區間頻次",
+      "speechStyleSub": "質性描述",
+      "dominantToneSub": "一句話描述",
+      "distinctivePatternsCount": "{{count}} 項",
+      "representativeQuotesCount": "{{count}} 句",
+      "tones": {
+        "declarative": "陳述",
+        "interrogative": "疑問",
+        "exclamatory": "感嘆"
+      }
     },
     "epistemicState": "認識論狀態",
     "epistemic": {
@@ -71,7 +132,21 @@
       "noMisbeliefs": "無推斷誤信",
       "misbeliefLabel": "誤信：",
       "actualTruth": "實情：",
-      "confidence": "信心度 {{pct}}%"
+      "confidence": "信心度 {{pct}}%",
+      "summarySubtitle": "拖曳游標查看角色於不同章節的認知狀態",
+      "knownLabel": "已知",
+      "unknownLabel": "未知",
+      "misbeliefShortLabel": "誤信",
+      "knownTitle": "已知事件",
+      "unknownTitle": "未知事件",
+      "misbeliefTitle": "誤信",
+      "knownEmpty": "此章節前，角色尚未經歷任何已分類事件。",
+      "unknownEmpty": "角色已知所有事件。",
+      "misbeliefEmpty": "未發現顯著誤信。",
+      "unknownRevealAt": "將於 Ch.{{n}} 揭露",
+      "characterBelieves": "角色相信：",
+      "actually": "實際：",
+      "misbeliefMeta": "信心 {{pct}}% · 起源 Ch.{{n}}"
     }
   },
   "event": {

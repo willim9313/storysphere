@@ -6,7 +6,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.voice_profiling_service import _compute_metrics, _empty_qualitative
+from services.voice_profiling_service import (
+    _bucket_histogram,
+    _compute_metrics,
+    _empty_qualitative,
+    _tone_distribution,
+)
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
@@ -22,12 +27,14 @@ def _para(text: str):
 class TestComputeMetrics:
     def test_empty_paragraphs_returns_zeros(self):
         result = _compute_metrics([])
-        assert result == {
-            "avg_sentence_length": 0.0,
-            "question_ratio": 0.0,
-            "exclamation_ratio": 0.0,
-            "lexical_diversity": 0.0,
-        }
+        assert result["avg_sentence_length"] == 0.0
+        assert result["question_ratio"] == 0.0
+        assert result["exclamation_ratio"] == 0.0
+        assert result["lexical_diversity"] == 0.0
+        # Distributions are still emitted (with empty/declarative-only values)
+        assert len(result["tone_distribution"]) == 3
+        assert len(result["sentence_length_histogram"]) == 6
+        assert all(b["value"] == 0 for b in result["sentence_length_histogram"])
 
     def test_single_english_sentence(self):
         result = _compute_metrics([_para("Hello world.")])
@@ -111,3 +118,53 @@ def test_empty_qualitative_structure():
     assert result["distinctive_patterns"] == []
     assert result["tone"] == ""
     assert result["representative_quotes"] == []
+
+
+# ── _tone_distribution ────────────────────────────────────────────────────────
+
+class TestToneDistribution:
+    def test_sums_to_one_for_pure_declarative(self):
+        result = _tone_distribution(0.0, 0.0)
+        assert [s["label"] for s in result] == ["declarative", "interrogative", "exclamatory"]
+        assert result[0]["value"] == pytest.approx(1.0)
+        assert result[1]["value"] == 0.0
+        assert result[2]["value"] == 0.0
+
+    def test_balanced_ratios(self):
+        result = _tone_distribution(0.3, 0.2)
+        assert result[0]["value"] == pytest.approx(0.5)
+        assert result[1]["value"] == pytest.approx(0.3)
+        assert result[2]["value"] == pytest.approx(0.2)
+
+    def test_clamps_negative_declarative_to_zero(self):
+        # Rounding edge case: question + exclamation could exceed 1 by epsilon
+        result = _tone_distribution(0.6, 0.5)
+        assert result[0]["value"] == 0.0
+
+
+# ── _bucket_histogram ─────────────────────────────────────────────────────────
+
+class TestBucketHistogram:
+    def test_empty_returns_six_zero_buckets(self):
+        result = _bucket_histogram([])
+        assert [b["bucket"] for b in result] == ["1-10", "11-20", "21-30", "31-40", "41-50", "51+"]
+        assert all(b["value"] == 0 for b in result)
+
+    def test_assigns_to_correct_bucket(self):
+        result = _bucket_histogram([3, 15, 25, 35, 45, 60, 100])
+        values = {b["bucket"]: b["value"] for b in result}
+        assert values["1-10"] == 1
+        assert values["11-20"] == 1
+        assert values["21-30"] == 1
+        assert values["31-40"] == 1
+        assert values["41-50"] == 1
+        assert values["51+"] == 2  # 60 and 100 both land in 51+
+
+    def test_boundary_inclusive(self):
+        # Boundary values land in the lower bucket
+        result = _bucket_histogram([10, 20, 50, 51])
+        values = {b["bucket"]: b["value"] for b in result}
+        assert values["1-10"] == 1
+        assert values["11-20"] == 1
+        assert values["41-50"] == 1
+        assert values["51+"] == 1

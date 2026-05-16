@@ -1219,11 +1219,28 @@ HITL 審核 / 修改 SymbolInterpretation。
 
 **Response 200**：`VoiceProfileResponse`（見 generated.ts）
 
+新增欄位（用於語音風格 tab 的圖表）：
+```ts
+interface ToneSegment {
+  label: string;   // 'declarative' | 'interrogative' | 'exclamatory'
+  value: number;   // 0.0–1.0；同陣列內各 segment 加總接近 1
+}
+interface HistogramBucket {
+  bucket: string;  // '1-10' | '11-20' | '21-30' | '31-40' | '41-50' | '51+'
+  value: number;   // 該區間的句子數（int）
+}
+// VoiceProfileResponse 新增：
+toneDistribution: ToneSegment[];          // 3 segments；依 question/exclamation ratio 推導
+sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
+```
+
+`toneDistribution` 由 backend 直接從 `question_ratio` / `exclamation_ratio` 推導（declarative = 1 − Q − E），不額外打 LLM。`sentenceLengthHistogram` 由 `_compute_metrics` 計算句長後分桶。兩欄位皆為**可選**（舊快取 entries 預設為空陣列），不會破壞既有資料。
+
 **Response 404**：book 或 entity 不存在
 
 **Response 422**：entity 無對話段落可分析
 
-**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel
+**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel（ToneDistribution 堆疊條 + SentenceHistogram 直方圖）
 
 ---
 

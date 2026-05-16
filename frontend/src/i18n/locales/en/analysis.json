@@ -40,7 +40,54 @@
     "archetypeMissing": "This archetype framework hasn't been analyzed yet. Regenerating will produce both Jung and Schmidt archetypes.",
     "tabs": {
       "overview": "Overview",
-      "voice": "Voice Profile"
+      "voice": "Voice",
+      "epistemic": "Epistemic"
+    },
+    "subtabs": {
+      "persona": "Persona",
+      "behavior": "Behavior",
+      "relations": "Relations",
+      "arc": "Arc"
+    },
+    "tip": {
+      "prefix": "Quick guide:",
+      "body": "This page has three levels — <strong>Overview</strong> shows who they are (persona / behavior / relations / arc), <strong>Voice</strong> shows how they speak, <strong>Epistemic</strong> shows what they know at any chapter. The framework toggle (Jung / Schmidt) only affects the archetype section."
+    },
+    "compare": {
+      "open": "Compare Frameworks",
+      "close": "Close",
+      "title": "Framework Compare — {{name}}",
+      "fromSidebar": "Compare Jung vs Schmidt",
+      "switchTo": "Switch to compare",
+      "confidencePct": "{{pct}}% confidence",
+      "evidenceLabel": "Evidence",
+      "notGenerated": "This framework hasn't been generated yet",
+      "secondaryLabel": "Secondary: {{name}}"
+    },
+    "persona": {
+      "profileSub": "One-line summary",
+      "archetypeLabelJung": "Jung Archetype — {{name}}",
+      "archetypeLabelSchmidt": "Schmidt Type — {{name}}",
+      "archetypeNotGenerated": "Not generated",
+      "evidenceHeading": "Supporting Evidence",
+      "traitsCount": "{{count}} traits"
+    },
+    "behavior": {
+      "actionsCount": "{{count}} items",
+      "keyEventsSub": "{{count}} events, in chapter order"
+    },
+    "relations": {
+      "relationsCount": "{{count}} relations",
+      "quotesCount": "{{count}} quotes"
+    },
+    "arcPane": {
+      "stagesCount": "{{count}} stages",
+      "stageN": "Stage {{n}}"
+    },
+    "list": {
+      "searchPlaceholder": "Search {{count}} characters",
+      "frameworkLabel": "Analysis framework",
+      "chapterCount": "Ch.{{count}}"
     },
     "voice": {
       "avgSentenceLength": "Avg. Sentence Length",
@@ -51,11 +98,25 @@
       "speechStyle": "Speech Style",
       "distinctivePatterns": "Distinctive Patterns",
       "tone": "Tone",
+      "dominantTone": "Dominant Tone",
       "representativeQuotes": "Representative Quotes",
       "analyze": "Analyze Voice Profile",
       "analyzing": "Analyzing voice profile…",
       "noData": "No voice profile yet",
-      "paragraphsAnalyzed": "{{count}} passages analyzed"
+      "paragraphsAnalyzed": "{{count}} passages analyzed",
+      "toneDistribution": "Tone Distribution",
+      "toneDistributionSub": "Sentence-type breakdown",
+      "sentenceLength": "Sentence Length",
+      "sentenceLengthSub": "Word-count buckets",
+      "speechStyleSub": "Qualitative description",
+      "dominantToneSub": "One-line summary",
+      "distinctivePatternsCount": "{{count}} items",
+      "representativeQuotesCount": "{{count}} quotes",
+      "tones": {
+        "declarative": "Declarative",
+        "interrogative": "Interrogative",
+        "exclamatory": "Exclamatory"
+      }
     },
     "epistemicState": "Epistemic State",
     "epistemic": {
@@ -71,7 +132,21 @@
       "noMisbeliefs": "No inferred misbeliefs",
       "misbeliefLabel": "Misbelief:",
       "actualTruth": "Truth:",
-      "confidence": "Confidence {{pct}}%"
+      "confidence": "Confidence {{pct}}%",
+      "summarySubtitle": "Drag the cursor to see what the character knows at each chapter",
+      "knownLabel": "Known",
+      "unknownLabel": "Unknown",
+      "misbeliefShortLabel": "Misbelief",
+      "knownTitle": "Known Events",
+      "unknownTitle": "Unknown Events",
+      "misbeliefTitle": "Misbeliefs",
+      "knownEmpty": "No classified events known to the character by this chapter.",
+      "unknownEmpty": "The character knows all events.",
+      "misbeliefEmpty": "No significant misbeliefs detected.",
+      "unknownRevealAt": "Reveals at Ch.{{n}}",
+      "characterBelieves": "Believes:",
+      "actually": "Actually:",
+      "misbeliefMeta": "Confidence {{pct}}% · Origin Ch.{{n}}"
     }
   },
   "event": {

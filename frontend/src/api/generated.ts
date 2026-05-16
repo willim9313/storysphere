@@ -2532,6 +2532,13 @@ export interface components {
              */
             force: boolean;
         };
+        /** HistogramBucketResponse */
+        HistogramBucketResponse: {
+            /** Bucket */
+            bucket: string;
+            /** Value */
+            value: number;
+        };
         /** ImageryEntityResponse */
         ImageryEntityResponse: {
             /** Id */
@@ -3471,6 +3478,13 @@ export interface components {
             temporalRelations: components["schemas"]["TemporalRelationEntry"][];
             quality: components["schemas"]["TimelineQuality"];
         };
+        /** ToneSegmentResponse */
+        ToneSegmentResponse: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: number;
+        };
         /** TopEntity */
         TopEntity: {
             /** Id */
@@ -3534,6 +3548,10 @@ export interface components {
             lexicalDiversity: number;
             /** Paragraphsanalyzed */
             paragraphsAnalyzed: number;
+            /** Tonedistribution */
+            toneDistribution?: components["schemas"]["ToneSegmentResponse"][];
+            /** Sentencelengthhistogram */
+            sentenceLengthHistogram?: components["schemas"]["HistogramBucketResponse"][];
             /** Speechstyle */
             speechStyle: string;
             /** Distinctivepatterns */

@@ -1,38 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Search, ExternalLink, RefreshCw, AlertTriangle } from 'lucide-react';
+import {
+  Search,
+  ExternalLink,
+  RefreshCw,
+  AlertTriangle,
+  GitCompare,
+} from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import '@/styles/character-analysis.css';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
-import { fetchEntityAnalysis, triggerEntityAnalysis, deleteEntityAnalysis } from '@/api/analysis';
-import { CharacterAnalysisDetail } from '@/components/analysis/CharacterAnalysisDetail';
+import {
+  fetchEntityAnalysis,
+  triggerEntityAnalysis,
+  deleteEntityAnalysis,
+} from '@/api/analysis';
+import {
+  CharacterAnalysisDetail,
+  type OverviewSubTab,
+} from '@/components/analysis/CharacterAnalysisDetail';
 import { EpistemicStateSection } from '@/components/analysis/EpistemicStateSection';
 import { VoiceProfilingPanel } from '@/components/analysis/VoiceProfilingPanel';
+import { FrameworkCompareDrawer } from '@/components/analysis/FrameworkCompareDrawer';
+import { CharacterTipRibbon } from '@/components/analysis/CharacterTipRibbon';
 import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 
 type Framework = 'jung' | 'schmidt';
-type DetailTab = 'overview' | 'voice';
+type PrimaryTab = 'overview' | 'voice' | 'epistemic';
+
+const PRIMARY_TABS: PrimaryTab[] = ['overview', 'voice', 'epistemic'];
 
 export default function CharacterAnalysisPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
+  const { t } = useTranslation('analysis');
+  const { t: tc } = useTranslation('common');
+
   const [framework, setFramework] = useState<Framework>('jung');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-  const [detailTab, setDetailTab] = useState<DetailTab>('overview');
+  const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('overview');
+  const [overviewSubTab, setOverviewSubTab] = useState<OverviewSubTab>('persona');
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [triggerError, setTriggerError] = useState<string | null>(null);
-  const { t } = useTranslation('analysis');
-  const { t: tc } = useTranslation('common');
 
   useEffect(() => {
     if (book) setPageContext({ page: 'analysis', bookId, bookTitle: book.title, analysisTab: 'characters' });
@@ -49,13 +70,21 @@ export default function CharacterAnalysisPage() {
 
   const triggerMutation = useMutation({
     mutationFn: (id: string) => triggerEntityAnalysis(bookId!, id),
-    onSuccess: (data) => { setTriggerError(null); setGenerateTaskId(data.taskId); },
-    onError: () => { setGeneratingId(null); setTriggerError(t('triggerFailed')); },
+    onSuccess: (data) => {
+      setTriggerError(null);
+      setGenerateTaskId(data.taskId);
+    },
+    onError: () => {
+      setGeneratingId(null);
+      setTriggerError(t('triggerFailed'));
+    },
   });
 
   const handleSelectEntity = (id: string) => {
     setSelectedEntityId(id);
-    setDetailTab('overview');
+    // Reset sub-tab when switching characters so each one starts at persona
+    setOverviewSubTab('persona');
+    setCompareOpen(false);
   };
 
   const handleGenerate = (id: string) => {
@@ -92,239 +121,278 @@ export default function CharacterAnalysisPage() {
   const filteredAnalyzed = charData?.analyzed.filter((a) => filterFn(a.title)) ?? [];
   const filteredUnanalyzed = charData?.unanalyzed.filter((u) => filterFn(u.name)) ?? [];
 
+  const totalCharacters = (charData?.analyzed.length ?? 0) + (charData?.unanalyzed.length ?? 0);
+
+  // Title bar archetype badge label
+  const titleArchetypeName = entityAnalysis
+    ? entityAnalysis.archetypes.find((a) => a.framework === framework)?.primary
+    : undefined;
+
   if (isLoading) return <LoadingSpinner />;
 
   return (
-    <div className="flex h-full">
-      {/* Left Panel */}
-      <div
-        className="flex-shrink-0 flex flex-col overflow-hidden"
-        style={{ width: 260, borderRight: '1px solid var(--border)', backgroundColor: 'var(--bg-secondary)' }}
-      >
-        {/* Framework selector */}
-        <div className="px-3 py-2 flex items-center gap-2 border-b" style={{ borderColor: 'var(--border)' }}>
-          {(['jung', 'schmidt'] as Framework[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFramework(f)}
-              className="text-xs px-2 py-0.5 rounded-full"
-              style={{
-                backgroundColor: framework === f ? 'var(--accent)' : 'var(--bg-tertiary)',
-                color: framework === f ? 'white' : 'var(--fg-secondary)',
-              }}
-            >
-              {f === 'jung' ? 'Jung 12' : 'Schmidt 45'}
-            </button>
-          ))}
-          <Link
-            to={`/frameworks?framework=${framework}`}
-            className="text-xs flex items-center gap-0.5 ml-auto"
-            style={{ color: 'var(--accent)' }}
-          >
-            {t('frameworkIndex')} <ExternalLink size={10} />
-          </Link>
-        </div>
-
-        {/* Search */}
-        <div className="px-3 py-2">
-          <div
-            className="flex items-center gap-2 px-2 py-1 rounded-md"
-            style={{ backgroundColor: 'var(--bg-tertiary)' }}
-          >
-            <Search size={12} style={{ color: 'var(--fg-muted)' }} />
-            <input
-              type="text"
-              placeholder={t('search')}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent text-xs flex-1 outline-none"
-              style={{ color: 'var(--fg-primary)' }}
-            />
-          </div>
-        </div>
-
-        {/* List */}
-        <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1">
-          {filteredAnalyzed.length > 0 && (
-            <>
-              <div className="text-xs px-2 py-1" style={{ color: 'var(--fg-muted)' }}>
-                {t('analyzed')} ({filteredAnalyzed.length})
-              </div>
-              {filteredAnalyzed.map((item) => (
-                <AnalyzedItem
-                  key={item.id}
-                  item={item}
-                  framework={framework}
-                  isSelected={selectedEntityId === item.entityId}
-                  onSelect={() => handleSelectEntity(item.entityId)}
-                />
-              ))}
-            </>
-          )}
-          {filteredUnanalyzed.length > 0 && (
-            <>
-              <div className="text-xs px-2 py-1 mt-2" style={{ color: 'var(--fg-muted)' }}>
-                {t('notAnalyzed')} ({filteredUnanalyzed.length})
-              </div>
-              {filteredUnanalyzed.map((item) => (
-                <UnanalyzedItem
-                  key={item.id}
-                  item={item}
-                  isSelected={selectedEntityId === item.id}
-                  onSelect={() => handleSelectEntity(item.id)}
-                  onGenerate={() => handleGenerate(item.id)}
-                  isGenerating={generatingId === item.id}
-                />
-              ))}
-            </>
-          )}
-        </div>
-      </div>
-
-      {/* Content Area */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {selectedEntityId && analysisLoading ? (
-          <LoadingSpinner />
-        ) : selectedEntityId && entityAnalysis ? (
-          <>
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <h2
-                  className="text-xl font-bold"
-                  style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
-                >
-                  {entityAnalysis.entityName}
-                </h2>
-                {selectedAnalyzed && (
-                  <span
-                    className="text-xs px-2 py-0.5 rounded-full"
-                    style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-muted)' }}
-                  >
-                    {framework.toUpperCase()}
-                  </span>
-                )}
-                <Link
-                  to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
-                  className="text-xs flex items-center gap-1"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  {t('viewInGraph')} <ExternalLink size={10} />
-                </Link>
-              </div>
-              <button
-                className="btn btn-secondary text-xs"
-                onClick={() => setConfirmRegenerate(true)}
-              >
-                <RefreshCw size={12} />
-                {t('regenerate')}
-              </button>
-            </div>
-            {/* Detail tabs */}
-            <div
-              className="flex items-center gap-0.5 p-0.5 rounded-lg mb-4"
-              style={{ backgroundColor: 'var(--bg-secondary)', width: 'fit-content' }}
-            >
-              {(['overview', 'voice'] as DetailTab[]).map((tab) => (
+    <div className="ca-page">
+      <div className="ca-body">
+        {/* ── Left panel ── */}
+        <aside className="ca-left">
+          <div className="ca-left-section">
+            <p className="ca-left-section-label">{t('list.frameworkLabel')}</p>
+            <div className="ca-fw-chips">
+              {(['jung', 'schmidt'] as Framework[]).map((f) => (
                 <button
-                  key={tab}
-                  onClick={() => setDetailTab(tab)}
-                  className="text-xs px-3 py-1 rounded-md transition-all"
-                  style={{
-                    backgroundColor: detailTab === tab ? 'white' : 'transparent',
-                    color: detailTab === tab ? 'var(--accent)' : 'var(--fg-muted)',
-                    fontWeight: detailTab === tab ? 600 : 400,
-                  }}
+                  key={f}
+                  type="button"
+                  className={'ca-fw-chip' + (framework === f ? ' active' : '')}
+                  onClick={() => setFramework(f)}
                 >
-                  {t(`character.tabs.${tab}`)}
+                  {f === 'jung' ? 'Jung 12' : 'Schmidt 45'}
                 </button>
               ))}
             </div>
+            <div className="ca-fw-meta">
+              <button
+                type="button"
+                onClick={() => {
+                  if (entityAnalysis) setCompareOpen(true);
+                }}
+                disabled={!entityAnalysis}
+              >
+                <GitCompare size={10} />
+                {t('compare.fromSidebar')}
+              </button>
+              <Link to={`/frameworks?framework=${framework}`}>
+                {t('frameworkIndex')} <ExternalLink size={9} />
+              </Link>
+            </div>
+          </div>
 
-            {detailTab === 'overview' && (
-              <CharacterAnalysisDetail
-                data={entityAnalysis}
-                framework={framework}
-                onFrameworkChange={setFramework}
-                onRegenerate={handleRegenerate}
-                isRegenerating={triggerMutation.isPending || (!!generateTaskId && genTask?.status !== 'done')}
+          <div className="ca-left-section tight">
+            <div className="ca-search">
+              <Search size={12} style={{ color: 'var(--fg-muted)' }} />
+              <input
+                type="text"
+                placeholder={t('list.searchPlaceholder', { count: totalCharacters })}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
-            )}
-            {detailTab === 'voice' && bookId && selectedEntityId && (
-              <VoiceProfilingPanel bookId={bookId} entityId={selectedEntityId} />
-            )}
+            </div>
+          </div>
 
-            {bookId && selectedEntityId && book && (
-              <div className="mt-4 border-t pt-4" style={{ borderColor: 'var(--border)' }}>
-                <h3 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-primary)' }}>
-                  {t('character.epistemicState')}
-                </h3>
-                <EpistemicStateSection
-                  bookId={bookId}
-                  characterId={selectedEntityId}
-                  totalChapters={book.chapterCount}
-                />
+          <div className="ca-list">
+            {filteredAnalyzed.length > 0 && (
+              <div className="ca-list-group">
+                <div className="ca-list-group-head">
+                  <span>{t('analyzed')}</span>
+                  <span className="count">{filteredAnalyzed.length}</span>
+                </div>
+                {filteredAnalyzed.map((item) => (
+                  <AnalyzedItem
+                    key={item.id}
+                    item={item}
+                    framework={framework}
+                    isSelected={selectedEntityId === item.entityId}
+                    onSelect={() => handleSelectEntity(item.entityId)}
+                  />
+                ))}
               </div>
             )}
-          </>
-        ) : genTask?.status === 'error' ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3">
-            <AlertTriangle size={24} style={{ color: 'var(--color-danger, #e53e3e)' }} />
-            <p className="text-sm" style={{ color: 'var(--color-danger, #e53e3e)' }}>
-              {t('analysisFailed')}{genTask.error ? `：${genTask.error}` : ''}
-            </p>
-            <button
-              className="btn btn-secondary text-xs"
-              onClick={() => { setGenerateTaskId(null); triggerMutation.reset(); setTriggerError(null); }}
-            >
-              {tc('retry')}
-            </button>
+            {filteredUnanalyzed.length > 0 && (
+              <div className="ca-list-group">
+                <div className="ca-list-group-head">
+                  <span>{t('notAnalyzed')}</span>
+                  <span className="count">{filteredUnanalyzed.length}</span>
+                </div>
+                {filteredUnanalyzed.map((item) => (
+                  <UnanalyzedItem
+                    key={item.id}
+                    item={item}
+                    isSelected={selectedEntityId === item.id}
+                    onSelect={() => handleSelectEntity(item.id)}
+                    onGenerate={() => handleGenerate(item.id)}
+                    isGenerating={generatingId === item.id}
+                  />
+                ))}
+              </div>
+            )}
           </div>
-        ) : generateTaskId && genTask && genTask.status !== 'done' ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-2">
-            <LoadingSpinner />
-            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>
-              {genTask.stage || t('analyzing')}{genTask.progress > 0 ? ` (${genTask.progress}%)` : ''}
-            </p>
-          </div>
-        ) : selectedUnanalyzed ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-4">
-            <p className="text-base font-medium" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
-              {selectedUnanalyzed.name}
-            </p>
-            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>{t('noAnalysis')}</p>
-            <button
-              className="btn btn-primary text-sm px-4 py-1.5"
-              onClick={() => handleGenerate(selectedUnanalyzed.id)}
-              disabled={triggerMutation.isPending}
-            >
-              {t('generate')}
-            </button>
-          </div>
-        ) : triggerError ? (
-          <div className="flex flex-col items-center justify-center h-48 gap-3">
-            <AlertTriangle size={24} style={{ color: 'var(--color-danger, #e53e3e)' }} />
-            <p className="text-sm" style={{ color: 'var(--color-danger, #e53e3e)' }}>{triggerError}</p>
-            <button className="btn btn-secondary text-xs" onClick={() => setTriggerError(null)}>
-              {tc('confirm')}
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center justify-center h-48">
-            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>{t('selectCharacter')}</p>
-          </div>
-        )}
+        </aside>
 
-        <ConfirmDialog
-          open={confirmRegenerate}
-          title={t('regenerateTitle')}
-          message={t('regenerateMessage')}
-          onConfirm={() => {
-            setConfirmRegenerate(false);
-            handleRegenerate();
-          }}
-          onCancel={() => setConfirmRegenerate(false)}
-        />
+        {/* ── Content area ── */}
+        <div className="ca-content">
+          <div className="ca-content-scroll">
+            <CharacterTipRibbon />
+
+            {selectedEntityId && analysisLoading ? (
+              <LoadingSpinner />
+            ) : selectedEntityId && entityAnalysis ? (
+              <>
+                {/* Title bar */}
+                <div className="ca-titlebar">
+                  <div>
+                    <div className="ca-titlebar-main">
+                      <h1 className="ca-title">{entityAnalysis.entityName}</h1>
+                      {selectedAnalyzed && (
+                        <span className="ca-title-badge">
+                          <span className="ca-title-badge-dot" />
+                          {framework === 'jung' ? 'Jung · ' : 'Schmidt · '}
+                          {titleArchetypeName || t('character.persona.archetypeNotGenerated')}
+                        </span>
+                      )}
+                      {selectedAnalyzed && (
+                        <span className="ca-title-meta">
+                          {t('list.chapterCount', { count: selectedAnalyzed.chapterCount })}
+                        </span>
+                      )}
+                      <Link
+                        to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
+                        className="ca-title-link"
+                      >
+                        {t('viewInGraph')} <ExternalLink size={10} />
+                      </Link>
+                    </div>
+                  </div>
+                  <div className="ca-titlebar-actions">
+                    <button
+                      type="button"
+                      className="ca-btn"
+                      onClick={() => setCompareOpen(true)}
+                    >
+                      <GitCompare size={12} /> {t('compare.open')}
+                    </button>
+                    <button
+                      type="button"
+                      className="ca-btn"
+                      onClick={() => setConfirmRegenerate(true)}
+                    >
+                      <RefreshCw size={12} /> {t('regenerate')}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Primary tabs */}
+                <div className="ca-tabs" role="tablist">
+                  {PRIMARY_TABS.map((tab) => (
+                    <button
+                      key={tab}
+                      type="button"
+                      role="tab"
+                      aria-selected={primaryTab === tab}
+                      className={'ca-tab' + (primaryTab === tab ? ' active' : '')}
+                      onClick={() => setPrimaryTab(tab)}
+                    >
+                      {t(`character.tabs.${tab}`)}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab panels */}
+                {primaryTab === 'overview' && (
+                  <CharacterAnalysisDetail
+                    data={entityAnalysis}
+                    framework={framework}
+                    subTab={overviewSubTab}
+                    onSubTabChange={setOverviewSubTab}
+                    onOpenCompare={() => setCompareOpen(true)}
+                    onRegenerate={handleRegenerate}
+                    isRegenerating={
+                      triggerMutation.isPending ||
+                      (!!generateTaskId && genTask?.status !== 'done')
+                    }
+                  />
+                )}
+                {primaryTab === 'voice' && bookId && selectedEntityId && (
+                  <VoiceProfilingPanel bookId={bookId} entityId={selectedEntityId} />
+                )}
+                {primaryTab === 'epistemic' && bookId && selectedEntityId && book && (
+                  <EpistemicStateSection
+                    bookId={bookId}
+                    characterId={selectedEntityId}
+                    totalChapters={book.chapterCount}
+                  />
+                )}
+              </>
+            ) : genTask?.status === 'error' ? (
+              <div className="ca-empty">
+                <div className="ca-empty-icon">
+                  <AlertTriangle size={22} />
+                </div>
+                <div className="ca-empty-title">{t('analysisFailed')}</div>
+                {genTask.error && (
+                  <p className="ca-empty-sub">{genTask.error}</p>
+                )}
+                <button
+                  type="button"
+                  className="ca-btn"
+                  onClick={() => {
+                    setGenerateTaskId(null);
+                    triggerMutation.reset();
+                    setTriggerError(null);
+                  }}
+                >
+                  {tc('retry')}
+                </button>
+              </div>
+            ) : generateTaskId && genTask && genTask.status !== 'done' ? (
+              <div className="ca-empty">
+                <LoadingSpinner />
+                <p className="ca-empty-sub">
+                  {genTask.stage || t('analyzing')}
+                  {genTask.progress > 0 ? ` (${genTask.progress}%)` : ''}
+                </p>
+              </div>
+            ) : selectedUnanalyzed ? (
+              <div className="ca-empty">
+                <p className="ca-empty-title">{selectedUnanalyzed.name}</p>
+                <p className="ca-empty-sub">{t('noAnalysis')}</p>
+                <button
+                  type="button"
+                  className="ca-btn ca-btn-primary"
+                  onClick={() => handleGenerate(selectedUnanalyzed.id)}
+                  disabled={triggerMutation.isPending}
+                >
+                  {t('generate')}
+                </button>
+              </div>
+            ) : triggerError ? (
+              <div className="ca-empty">
+                <div className="ca-empty-icon">
+                  <AlertTriangle size={22} />
+                </div>
+                <p className="ca-empty-sub">{triggerError}</p>
+                <button
+                  type="button"
+                  className="ca-btn"
+                  onClick={() => setTriggerError(null)}
+                >
+                  {tc('confirm')}
+                </button>
+              </div>
+            ) : (
+              <div className="ca-empty">
+                <p className="ca-empty-sub">{t('selectCharacter')}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Compare drawer overlays content area only */}
+          <FrameworkCompareDrawer
+            open={compareOpen}
+            data={entityAnalysis}
+            onClose={() => setCompareOpen(false)}
+          />
+        </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmRegenerate}
+        title={t('regenerateTitle')}
+        message={t('regenerateMessage')}
+        onConfirm={() => {
+          setConfirmRegenerate(false);
+          handleRegenerate();
+        }}
+        onCancel={() => setConfirmRegenerate(false)}
+      />
     </div>
   );
 }

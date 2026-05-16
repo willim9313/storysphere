@@ -217,6 +217,43 @@ def _empty_qualitative() -> dict:
     }
 
 
+_HISTOGRAM_BUCKETS: tuple[tuple[str, int, int | None], ...] = (
+    ("1-10", 1, 10),
+    ("11-20", 11, 20),
+    ("21-30", 21, 30),
+    ("31-40", 31, 40),
+    ("41-50", 41, 50),
+    ("51+", 51, None),
+)
+
+
+def _bucket_histogram(sentence_lengths: list[int]) -> list[dict]:
+    """Bucket sentence lengths into the 6 fixed ranges UI expects."""
+    counts = [0] * len(_HISTOGRAM_BUCKETS)
+    for length in sentence_lengths:
+        for i, (_, lo, hi) in enumerate(_HISTOGRAM_BUCKETS):
+            if length >= lo and (hi is None or length <= hi):
+                counts[i] += 1
+                break
+    return [{"bucket": label, "value": counts[i]} for i, (label, *_) in enumerate(_HISTOGRAM_BUCKETS)]
+
+
+def _tone_distribution(
+    question_ratio: float, exclamation_ratio: float
+) -> list[dict]:
+    """Derive a 3-segment tone distribution from punctuation ratios.
+
+    Faithful to actual sentence-terminator data; no LLM call needed.
+    Declarative is the remainder; clamped to [0, 1] so rounding doesn't make it negative.
+    """
+    declarative = max(0.0, 1.0 - question_ratio - exclamation_ratio)
+    return [
+        {"label": "declarative", "value": round(declarative, 4)},
+        {"label": "interrogative", "value": round(question_ratio, 4)},
+        {"label": "exclamatory", "value": round(exclamation_ratio, 4)},
+    ]
+
+
 def _compute_metrics(paragraphs: list[Paragraph]) -> dict:
     """Compute quantitative linguistic metrics from paragraph text."""
     all_sentences: list[str] = []
@@ -239,6 +276,8 @@ def _compute_metrics(paragraphs: list[Paragraph]) -> dict:
             "question_ratio": 0.0,
             "exclamation_ratio": 0.0,
             "lexical_diversity": 0.0,
+            "tone_distribution": _tone_distribution(0.0, 0.0),
+            "sentence_length_histogram": _bucket_histogram([]),
         }
 
     sentence_lengths = []
@@ -257,12 +296,16 @@ def _compute_metrics(paragraphs: list[Paragraph]) -> dict:
 
     n = len(all_sentences)
     total_words = len(all_words)
+    question_ratio = round(question_count / n, 4) if n else 0.0
+    exclamation_ratio = round(exclamation_count / n, 4) if n else 0.0
 
     return {
         "avg_sentence_length": round(sum(sentence_lengths) / n, 2) if n else 0.0,
-        "question_ratio": round(question_count / n, 4) if n else 0.0,
-        "exclamation_ratio": round(exclamation_count / n, 4) if n else 0.0,
+        "question_ratio": question_ratio,
+        "exclamation_ratio": exclamation_ratio,
         "lexical_diversity": (
             round(len(set(all_words)) / total_words, 4) if total_words >= 10 else 0.0
         ),
+        "tone_distribution": _tone_distribution(question_ratio, exclamation_ratio),
+        "sentence_length_histogram": _bucket_histogram(sentence_lengths),
     }

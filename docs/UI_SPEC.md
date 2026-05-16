@@ -211,68 +211,108 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 ### 3.4 角色分析頁 `/books/:bookId/characters`
 
+> 2026-05-16 重新設計：3-tab 平級結構（人物概覽 / 語音風格 / 認知狀態）、Overview 內 4 個 sub-tab、Framework 切換只在左清單、新增「框架對照」抽屜。設計交接見 `docs/plans/20260516-character-analysis-page-redesign.md` 與設計 project HANDOFF.md。
+
 #### 版面結構
 
 ```
-[Left Panel 260px] [Content Area flex]
+[Left Panel 268px] [Content Area flex (relative — drawer overlays here)]
 ```
 
 #### Left Panel — 角色清單
 
 由上至下：
 
-1. **框架選擇**：Jung 12 / Schmidt 45 + 「框架索引 ↗」連結
-2. **搜尋欄**：即時篩選，顯示當前總數
-3. **清單**（可捲動）：分「已分析」/ 「尚未分析」兩組
+1. **框架選擇**：Jung 12 / Schmidt 45 chip + 「對照 Jung vs Schmidt」按鈕（觸發 drawer）+「框架索引 ↗」連結
+2. **搜尋欄**：即時篩選，placeholder 顯示總人數
+3. **清單**（可捲動）：分「已分析」/「尚未分析」兩組
 
-清單 item：
-- 已分析：彩色頭像（取名字首字）+ 名稱 + 原型類型 + 綠色狀態點
-- 未分析：灰色頭像 + 名稱（淡色）+ 「建立」按鈕 + 灰色狀態點
+清單 item（卡片式）：
+- 已分析：依名字首字 hash 出 entity 配色頭像 + 名稱（serif）+ 當前框架的原型名 + Ch.X meta + 綠色狀態點
+- 未分析：muted 頭像 + 名稱（淡色）+ Ch.X meta + 「建立」按鈕
 
 #### Content Area — 角色分析內容
 
-**標題列**：角色名（serif）、框架 badge、「在圖譜中查看 ↗」、「覆蓋重新生成」按鈕
+頂部固定一條 **Tip Ribbon**（首次進入顯示，localStorage `storysphere:tip-dismissed:character-analysis` 永久 dismiss）。
 
-**Detail Tab**（標題列下方，二選一）：
+**標題列**：角色名（serif 28px）+ Framework badge（顯示當前 framework + primary archetype，不可點擊切換）+ Ch.X 提及 meta + 「在圖譜中查看 ↗」+「框架對照」+「覆蓋重新生成」按鈕
+
+**Primary Tab**（標題列下方，三選一，underline 樣式）：
 
 | Tab | 內容 |
 |-----|------|
-| 概覽 (overview) | 角色深度分析內容（Accordion 結構，見下） |
-| 語音風格 (voice) | VoiceProfilingPanel — 角色語言風格分析 |
+| 人物概覽 (overview) | 4 個 sub-tab pill segmented control → 對應 4 個 pane |
+| 語音風格 (voice) | VoiceProfilingPanel — 4 stat card + ToneDistribution 堆疊條 + SentenceHistogram 直方圖 + 質性 section |
+| 認知狀態 (epistemic) | EpistemicStateSection — Summary counts + ChapterTimeline（拖曳游標 + 事件 marker）+ 已知/未知 並排 + 誤信跨欄置底 |
 
-**概覽 tab — 分析維度（Jung）**：
-1. 原型定位（顯示對應原型 tag）
-2. 心理結構（自我、陰影、阿尼瑪斯）
-3. 角色弧線（轉化歷程與關鍵節點）
-4. 關係動力（與其他角色的原型互動）
+**Overview sub-tabs**（pill segmented control）：
 
-**概覽 tab 底部 — 認知狀態（EpistemicStateSection）**：
+| Sub-tab | 來源欄位 |
+|---------|---------|
+| 人格 (persona) | `profileSummary` + `archetypes[framework]`（含信心度條 + 證據）+ `cep.traits`（tag grid）|
+| 行為 (behavior) | `cep.actions` + `cep.keyEvents` |
+| 關係 (relations) | `cep.relations` + `cep.quotes` |
+| 弧線 (arc) | `arc[]` |
 
-位於概覽 tab 最下方，分隔線後，顯示「直到第 N 章，此角色已知哪些實體與事件」。
-- 使用 slider 或 chapter selector 選擇章節
-- 清楚分類：已知實體、未知實體（灰色虛線樣式）
+**Framework 切換**：唯一入口在左清單頂部 chip；切換只影響顯示（archetype 跟著切換），不重打 API。標題列 badge 僅顯示當前框架，不可點擊。
+
+**框架對照 Drawer**（右側 640px 抽屜）：
+- 觸發點：標題列「框架對照」按鈕、PersonaPane 內 archetype section 的「切到對照」連結、左清單下方「對照 Jung vs Schmidt」連結
+- 內容：2 欄並排，Jung 12 / Schmidt 45，各欄顯示 primary / secondary / 信心度條 + % / 證據
+- 關閉：點 backdrop / 點關閉按鈕 / Esc 鍵
+
+**Chapter Timeline（Epistemic tab）**：
+- 拖曳游標更新章節；**200ms debounce** 後才打 epistemic API
+- 拖曳期間以最近一次的回應做樂觀更新（filter `chapter <= cursor`）
+- 全寬 axis + ticks（章節 5 等分）+ 事件 marker（綠 / 橘 / 紅）+ 拖曳游標
+- 切換角色時自動 reset 到 totalChapters
 
 #### 狀態流程
 
 ```
 進入頁面
-  → 載入角色清單
-  → 預設選中第一個已分析角色，載入分析內容
+  → 載入角色清單；TipRibbon 顯示（除非已 dismiss）
+  → 不預設選中任何角色
 
-點擊「建立」（未分析角色）
-  → 觸發分析 → polling → 完成後填入內容
+點擊角色：
+  → 載入該角色分析（#7a），預設 overview tab + persona sub-tab
+  → sub-tab 選擇切角色時 reset 到 persona；切回原角色保留
 
-點擊「覆蓋重新生成」
-  → 確認視窗（token 消耗提示）→ 刪除舊資料 → 重新觸發 → polling
+點擊「建立」（未分析角色）：
+  → 觸發 #7b → polling #8 → 完成後 invalidate + 刷新
 
-切換 Detail Tab
-  → overview：顯示 CharacterAnalysisDetail + EpistemicStateSection
-  → voice：顯示 VoiceProfilingPanel
+點擊「覆蓋重新生成」：
+  → ConfirmDialog → DELETE 舊 → 重觸發 → polling
+
+切換 Framework chip：
+  → 不打 API；archetype badge 與 PersonaPane 重渲染
+
+點 Voice tab：
+  → 若 localStorage `voice_generated:${bookId}:${entityId}` 為 1 → 自動載入
+  → 否則顯示空狀態 + 「分析」按鈕
+
+點 Epistemic tab：
+  → 拖曳 Chapter Timeline → 200ms debounce → 打 #12e
+  → 拖曳期間用快取資料做樂觀過濾
 ```
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#6a（角色清單）、#6c（重新生成）、#7a（角色分析詳情）、#7b（觸發分析）、#7c（清除分析）、#8（任務 polling）、#12e（認知狀態）、#16a（語音風格）、#16b（清除語音風格）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#6a（角色清單）、#6c（重新生成）、#7a（角色分析詳情）、#7b（觸發分析）、#7c（清除分析）、#8（任務 polling）、#12e（認知狀態）、#16a（語音風格，含新增的 toneDistribution / sentenceLengthHistogram）、#16b（清除語音風格）
+
+#### 元件對照（檔案路徑）
+
+| 元件 | 檔案 |
+|------|------|
+| 頁面 shell | `frontend/src/pages/CharacterAnalysisPage.tsx` |
+| 列表 item | `frontend/src/components/analysis/AnalysisListItems.tsx` |
+| Overview shell + sub-tabs | `frontend/src/components/analysis/CharacterAnalysisDetail.tsx` |
+| Overview 4 panes | `frontend/src/components/analysis/sections/{Persona,Behavior,Relations,Arc}Pane.tsx` |
+| Voice 視覺化 | `frontend/src/components/analysis/VoiceProfilingPanel.tsx` |
+| Epistemic 主視覺 | `frontend/src/components/analysis/EpistemicStateSection.tsx` + `ChapterTimeline.tsx` |
+| 框架對照 drawer | `frontend/src/components/analysis/FrameworkCompareDrawer.tsx` |
+| Tip ribbon | `frontend/src/components/analysis/CharacterTipRibbon.tsx` |
+| 樣式 | `frontend/src/styles/character-analysis.css`（`.ca-*` prefix） |
 
 ---
 

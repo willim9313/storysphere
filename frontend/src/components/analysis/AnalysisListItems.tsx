@@ -1,17 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import type { AnalysisItem, UnanalyzedEntity } from '@/api/types';
 
-export function parseSections(content: string) {
-  const sections: { title: string; content: string }[] = [];
-  const parts = content.split(/^### /m).filter(Boolean);
-  for (const part of parts) {
-    const newline = part.indexOf('\n');
-    if (newline === -1) continue;
-    const title = part.slice(0, newline).trim();
-    const body = part.slice(newline + 1).trim();
-    if (body) sections.push({ title, content: body });
-  }
-  return sections.length > 0 ? sections : [{ title: '分析內容', content }];
+const AVATAR_PALETTES = ['char', 'loc', 'org', 'obj', 'con', 'evt'] as const;
+
+function avatarStyle(seed: string): React.CSSProperties {
+  const code = seed.length > 0 ? seed.charCodeAt(0) : 0;
+  const p = AVATAR_PALETTES[code % AVATAR_PALETTES.length];
+  return {
+    background: `var(--entity-${p}-bg)`,
+    color: `var(--entity-${p}-fg)`,
+    border: `1px solid var(--entity-${p}-border)`,
+  };
 }
 
 export function AnalyzedItem({
@@ -25,30 +24,27 @@ export function AnalyzedItem({
   isSelected: boolean;
   onSelect: () => void;
 }) {
+  const { t } = useTranslation('analysis');
   const archetypeLabel = item.archetypes?.[framework];
   return (
     <button
-      className="flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-left transition-colors"
-      style={{ backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'transparent' }}
+      type="button"
+      className={'ca-item' + (isSelected ? ' selected' : '')}
       onClick={onSelect}
     >
-      <div
-        className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0"
-        style={{ backgroundColor: 'var(--entity-char-bg)', color: 'var(--entity-char-fg)' }}
-      >
+      <div className="ca-avatar" style={avatarStyle(item.title)}>
         {item.title[0]}
       </div>
-      <div className="flex-1 min-w-0">
-        <div className="text-xs font-medium truncate" style={{ color: 'var(--fg-primary)' }}>
-          {item.title}
+      <div className="ca-item-body">
+        <div className="ca-item-row">
+          <span className="ca-item-name">{item.title}</span>
         </div>
-        {archetypeLabel && (
-          <div className="text-xs truncate" style={{ color: 'var(--fg-muted)' }}>
-            {archetypeLabel}
-          </div>
-        )}
+        {archetypeLabel && <div className="ca-item-archetype">{archetypeLabel}</div>}
+        <div className="ca-item-meta">
+          <span>{t('list.chapterCount', { count: item.chapterCount })}</span>
+        </div>
       </div>
-      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: 'var(--color-success)' }} />
+      <div className="ca-item-dot" />
     </button>
   );
 }
@@ -70,35 +66,34 @@ export function UnanalyzedItem({
 
   return (
     <div
-      className="flex items-center gap-2 w-full rounded-md transition-colors"
-      style={{ backgroundColor: isSelected ? 'var(--bg-tertiary)' : 'transparent' }}
+      className={'ca-item' + (isSelected ? ' selected' : '')}
+      onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
     >
-      <button
-        className="flex items-center gap-2 flex-1 min-w-0 px-2 py-1.5 text-left"
-        onClick={onSelect}
-      >
-        <div
-          className="w-6 h-6 rounded-full flex items-center justify-center text-xs flex-shrink-0"
-          style={{ backgroundColor: 'var(--bg-tertiary)', color: 'var(--fg-muted)' }}
-        >
-          {item.name[0]}
+      <div className="ca-avatar muted">{item.name[0]}</div>
+      <div className="ca-item-body">
+        <div className="ca-item-row">
+          <span className="ca-item-name muted">{item.name}</span>
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="text-xs truncate" style={{ color: 'var(--fg-muted)' }}>
-            {item.name}
-          </div>
-          <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-            {t('notAnalyzed')}
-          </div>
+        <div className="ca-item-meta">
+          <span>{t('notAnalyzed')}</span>
+          <span>· {t('list.chapterCount', { count: item.chapterCount })}</span>
         </div>
-      </button>
+      </div>
       <button
-        className="text-xs px-1.5 py-0.5 rounded flex-shrink-0 mr-2"
-        style={{
-          backgroundColor: isGenerating ? 'var(--bg-tertiary)' : 'var(--accent)',
-          color: isGenerating ? 'var(--fg-muted)' : 'white',
+        type="button"
+        className="ca-item-mini-btn"
+        onClick={(e) => {
+          e.stopPropagation();
+          onGenerate();
         }}
-        onClick={onGenerate}
         disabled={isGenerating}
       >
         {isGenerating ? '…' : t('generate')}
