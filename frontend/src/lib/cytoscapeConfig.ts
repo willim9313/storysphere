@@ -86,28 +86,32 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
     {
       selector: 'edge',
       style: {
-        width: lineWeight,
-        'line-color': border,
+        width: Math.max(1.2, lineWeight),
+        'line-color': fgMuted,
         'line-style': borderStyle,
         'curve-style': 'bezier',
         'target-arrow-shape': 'triangle',
-        'target-arrow-color': border,
+        'target-arrow-color': fgMuted,
         'arrow-scale': 0.8,
+        opacity: 0.7,
         label: 'data(label)',
         'font-size': '8px',
         'text-rotation': 'autorotate',
         color: fgMuted,
       },
     },
+    // V1: inferred edges distinguish via color + opacity, NOT dashed.
+    // width = 1 + confidence × 1.6, opacity = 0.42 + confidence × 0.25
     {
       selector: 'edge[?inferred]',
       style: {
-        'line-style': 'dashed',
-        'line-dash-pattern': [6, 3],
+        'line-style': 'solid',
         'line-color': accent,
         'target-arrow-color': accent,
-        width: 1.5,
-        opacity: 0.7,
+        width: ((ele: cytoscape.EdgeSingular) =>
+          1 + (Number(ele.data('confidence')) || 0) * 1.6) as cytoscape.Css.PropertyValueEdge<number>,
+        opacity: ((ele: cytoscape.EdgeSingular) =>
+          0.42 + (Number(ele.data('confidence')) || 0) * 0.25) as cytoscape.Css.PropertyValueEdge<number>,
         color: fgSecondary,
       },
     },
@@ -118,6 +122,45 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'target-arrow-color': accent,
         opacity: 1,
         width: 2,
+      },
+    },
+    // Cluster super-nodes (cluster mode "類型" / "社群")
+    {
+      selector: 'node[?cluster]',
+      style: {
+        shape: 'ellipse',
+        'background-color': (ele: cytoscape.NodeSingular) =>
+          fills[ele.data('clusterType') as string] ?? border,
+        'background-opacity': 0.18,
+        'border-color': (ele: cytoscape.NodeSingular) =>
+          strokes[ele.data('clusterType') as string] ?? accent,
+        'border-style': 'dashed',
+        'border-width': 2,
+        width: 'data(size)',
+        height: 'data(size)',
+        label: 'data(label)',
+        'text-valign': 'center',
+        'text-halign': 'center',
+        'font-size': '12px',
+        'font-weight': 600,
+        color: (ele: cytoscape.NodeSingular) =>
+          labels[ele.data('clusterType') as string] ?? fgPrimary,
+      } as cytoscape.Css.Node,
+    },
+    // Aggregated edges between cluster super-nodes
+    {
+      selector: 'edge[?aggregated]',
+      style: {
+        width: ((ele: cytoscape.EdgeSingular) => {
+          const w = Number(ele.data('weight')) || 1;
+          return Math.min(1 + w * 0.6, 6);
+        }) as cytoscape.Css.PropertyValueEdge<number>,
+        'line-color': fgMuted,
+        'target-arrow-color': fgMuted,
+        opacity: 0.55,
+        label: 'data(label)',
+        'font-size': '9px',
+        color: fgMuted,
       },
     },
   ];

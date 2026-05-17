@@ -88,5 +88,79 @@
     "total": "共 {{count}} 個段落",
     "chapterTitle": "第 {{chapter}} 章",
     "noData": "尚無相關段落資料。"
+  },
+  "v1": {
+    "toolbar": {
+      "searchPlaceholder": "搜尋實體…",
+      "reset": "重置",
+      "inferredChip": "推斷 · {{n}}"
+    },
+    "cluster": {
+      "label": "群集模式",
+      "mode": {
+        "node": "個別",
+        "type": "類型",
+        "community": "社群"
+      },
+      "communityDisabled": "派系分析開發中（F-16）",
+      "overview": "群集概觀",
+      "drillInTitle": "{{typeName}}群集 · {{n}} 個成員",
+      "members": "{{n}} 個成員",
+      "memberCount": "{{n}}",
+      "noTopMembers": "（無成員）",
+      "sortImportance": "依重要性",
+      "sortName": "依名稱",
+      "back": "上一階"
+    },
+    "search": {
+      "section": {
+        "entity": "實體",
+        "chapter": "章節",
+        "paragraph": "段落內文"
+      },
+      "noResults": "無相符結果",
+      "entityMeta": "登場 {{count}} 段",
+      "chapterMeta": "第 {{order}} 章",
+      "paragraphComingSoon": "全文搜尋待後端實作"
+    },
+    "inferred": {
+      "review": {
+        "title": "推斷關係審查 · {{n}} 條",
+        "evidence": "證據",
+        "evidenceFallback": "共同鄰居 {{common}} 個 · Adamic-Adar {{score}}",
+        "adopt": "採用",
+        "reject": "否決",
+        "empty": "尚無待審查推斷關係"
+      }
+    },
+    "compare": {
+      "title": "多選比較",
+      "suggested": "建議推斷關係",
+      "noSuggested": "兩者之間目前沒有候選推斷關係。",
+      "basicInfo": "基本資料",
+      "appearances": "出場章節",
+      "attributes": "屬性",
+      "type": "類型",
+      "appearanceCount": "出現段數"
+    },
+    "legend": {
+      "title": "圖例 / 圖層",
+      "inferred": "推斷"
+    },
+    "lens": {
+      "title": "視角",
+      "timeline": "時間範圍 · Timeline",
+      "epistemic": "認知視角 · Epistemic",
+      "bookmarks": "已標記 · Bookmarks",
+      "chapter": "第 {{n}} 章 / {{total}}",
+      "allChapters": "全部",
+      "selectPerspective": "選擇視角",
+      "perspectiveOf": "{{name}} 視角",
+      "perspectiveHint": "依賴 ↑ 章節 {{chapter}}",
+      "clearPerspective": "清除視角",
+      "noCharacters": "無可選角色",
+      "noBookmarks": "尚未標記實體",
+      "removeBookmark": "移除標記"
+    }
   }
 }

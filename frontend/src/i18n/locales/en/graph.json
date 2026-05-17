@@ -88,5 +88,79 @@
     "total": "{{count}} paragraphs total",
     "chapterTitle": "Chapter {{chapter}}",
     "noData": "No related paragraph data yet."
+  },
+  "v1": {
+    "toolbar": {
+      "searchPlaceholder": "Search entities…",
+      "reset": "Reset",
+      "inferredChip": "Inferred · {{n}}"
+    },
+    "cluster": {
+      "label": "Cluster mode",
+      "mode": {
+        "node": "Nodes",
+        "type": "By type",
+        "community": "Community"
+      },
+      "communityDisabled": "Coming soon · Faction analysis (F-16)",
+      "overview": "Cluster overview",
+      "drillInTitle": "{{typeName}} cluster · {{n}} members",
+      "members": "{{n}} members",
+      "memberCount": "{{n}}",
+      "noTopMembers": "(no members)",
+      "sortImportance": "By importance",
+      "sortName": "By name",
+      "back": "Back"
+    },
+    "search": {
+      "section": {
+        "entity": "Entities",
+        "chapter": "Chapters",
+        "paragraph": "Paragraphs"
+      },
+      "noResults": "No matches",
+      "entityMeta": "{{count}} appearances",
+      "chapterMeta": "Chapter {{order}}",
+      "paragraphComingSoon": "Full-text search pending backend"
+    },
+    "inferred": {
+      "review": {
+        "title": "Inferred review · {{n}}",
+        "evidence": "Evidence",
+        "evidenceFallback": "{{common}} common neighbors · Adamic-Adar {{score}}",
+        "adopt": "Adopt",
+        "reject": "Reject",
+        "empty": "No inferred relations awaiting review"
+      }
+    },
+    "compare": {
+      "title": "Compare",
+      "suggested": "Suggested inferences",
+      "noSuggested": "No candidate inferences between them yet.",
+      "basicInfo": "Basic info",
+      "appearances": "Appearances",
+      "attributes": "Attributes",
+      "type": "Type",
+      "appearanceCount": "Appearance count"
+    },
+    "legend": {
+      "title": "Legend / Layers",
+      "inferred": "Inferred"
+    },
+    "lens": {
+      "title": "Lens",
+      "timeline": "Time Range",
+      "epistemic": "Perspective",
+      "bookmarks": "Bookmarks",
+      "chapter": "Chapter {{n}} / {{total}}",
+      "allChapters": "All",
+      "selectPerspective": "Choose perspective",
+      "perspectiveOf": "{{name}}'s view",
+      "perspectiveHint": "depends on ↑ chapter {{chapter}}",
+      "clearPerspective": "Clear perspective",
+      "noCharacters": "No characters available",
+      "noBookmarks": "No bookmarked entities",
+      "removeBookmark": "Remove bookmark"
+    }
   }
 }

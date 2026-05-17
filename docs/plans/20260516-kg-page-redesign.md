@@ -169,3 +169,9 @@ interface GraphEdge {
 - UI 規格細節：`docs/UI_SPEC.md` § 3.6（知識圖譜頁）
 - API 規格：`docs/API_CONTRACT.md` § 9, 9b, 10a–d, 11, 12a–e
 - Token 對照表：`docs/DESIGN_TOKENS.md`
+
+---
+
+## 10. 實作計劃
+
+→ 見 [`20260517-kg-page-redesign-v1-impl.md`](./20260517-kg-page-redesign-v1-impl.md)

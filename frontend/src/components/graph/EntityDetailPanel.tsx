@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, ChevronDown, ChevronRight, Loader, AlertTriangle } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Loader, AlertTriangle, Bookmark } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchEntityAnalysis, triggerEntityAnalysis } from '@/api/analysis';
@@ -23,9 +23,19 @@ interface EntityDetailPanelProps {
   onClose: () => void;
   onShowAnalysis: () => void;
   onShowParagraphs: () => void;
+  isBookmarked?: boolean;
+  onBookmarkToggle?: () => void;
 }
 
-export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onShowParagraphs }: EntityDetailPanelProps) {
+export function EntityDetailPanel({
+  node,
+  bookId,
+  onClose,
+  onShowAnalysis,
+  onShowParagraphs,
+  isBookmarked,
+  onBookmarkToggle,
+}: EntityDetailPanelProps) {
   const { t } = useTranslation('graph');
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['info', 'analysis']));
   const [genTaskId, setGenTaskId] = useState<string | null>(null);
@@ -75,9 +85,21 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
         >
           {node.name}
         </h3>
-        <button onClick={onClose} style={{ color: 'var(--panel-fg-muted)' }}>
-          <X size={16} />
-        </button>
+        <div className="flex items-center gap-2">
+          {onBookmarkToggle && (
+            <button
+              onClick={onBookmarkToggle}
+              style={{ color: isBookmarked ? 'var(--accent)' : 'var(--panel-fg-muted)' }}
+              aria-label={isBookmarked ? 'Remove bookmark' : 'Add bookmark'}
+              aria-pressed={isBookmarked}
+            >
+              <Bookmark size={14} fill={isBookmarked ? 'currentColor' : 'none'} />
+            </button>
+          )}
+          <button onClick={onClose} style={{ color: 'var(--panel-fg-muted)' }}>
+            <X size={16} />
+          </button>
+        </div>
       </div>
 
       {/* Sections */}

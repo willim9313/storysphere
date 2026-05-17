@@ -382,109 +382,123 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 ### 3.6 知識圖譜頁 `/books/:bookId/graph`
 
+> V1 重新設計：2026-05-17 起以本節為準。實作計劃見 `docs/plans/20260517-kg-page-redesign-v1-impl.md`。
+
 #### 版面結構
 
-最多三層，第三層切換時替換：
-
 ```
-[圖譜 Canvas（全幅）] [實體詳情面板（right）] [第三層：分析或段落（rightmost）]
+                        [BreadcrumbBar（drill-in 時顯示）]
+[Toolbar]                                                          [Legend]
+                       [圖譜 Canvas（全幅）]                       [右側面板]
+[Lens]                                                             [MiniMap]
+                                                                    [Stats]
 ```
 
-所有面板均為**暖白底**（`var(--bg-primary)`），`border-left: 1px solid var(--border)`。
+所有面板均為**暖白底**（`var(--bg-primary)`），`border-left: 1px solid var(--border)`、`border-radius: var(--radius-lg)`、`box-shadow: var(--shadow-sm)`。
 
 #### 圖譜 Canvas
 
-- Cytoscape.js 渲染，force-directed layout
-- 節點大小依 `chunkCount` 縮放（20px–60px）
-- 節點顏色依實體類型（character 藍 / location 綠 / concept 紫 / event 紅）
-- 選中節點：accent 色邊框，連出 edge 加深，其餘淡化
+- Cytoscape.js 渲染（fcose layout）
+- 節點大小依 `chunkCount` 縮放
+- 節點顏色依實體類型（角色 / 地點 / 概念 / 事件）— 使用 `--graph-{type}-fill / -stroke / -label` token
+- 選中態：accent 邊框；連出 edge 加深，其餘淡化（`.dimmed` opacity 0.15）
+
+**Canonical edge**：`var(--fg-muted)` stroke / 1.2px / opacity 0.7。
+
+**Inferred edge**（V1 變更，不再使用 dashed）：
+- color = `var(--accent)`
+- width = `1 + confidence × 1.6` px
+- opacity = `0.42 + confidence × 0.25`
+
+**Super-node**（cluster mode 'type'/'community' 使用）：
+- 虛擬節點，原始節點不進 cytoscape
+- dashed border + 半透明 type 色填充
+- label 顯示 type 名稱 + 成員數
 
 #### 浮動工具欄（左上角，GraphToolbar）
 
 ```
-[搜尋欄]
-[type checkbox: character / location / concept / event]
-[重置視圖]
-[推斷關係按鈕（狀態驅動，見下）]
+[搜尋欄] ← typing 開啟 SearchDropdown
+[Cluster 模式: 個別 / 類型 / 社群(disabled, F-16)]
+[推斷 · N chip — 預設 OFF]
+[重置]
 [動畫模式: fade / stagger]
 ```
 
-**推斷關係按鈕**（InferredEdge / Link Prediction）：
+**推斷 chip**（V1 變更，warning-flavored）：
+- 預設 **OFF**；用戶主動點才顯示推斷邊
+- 三狀態：未執行（「執行推論」）/ 執行中（spinner）/ 有資料（「推斷 · N」chip）
+- chip 開啟時同時開啟右側 **InferredReviewPanel**
 
-| 狀態 | 顯示 | 樣式 |
-|------|------|------|
-| 未執行 | 「執行推論」 | 預設灰色 |
-| 執行中 | spinner + 「推論中…」 | disabled |
-| 有資料（隱藏中） | 「顯示推斷關係」 | 橘色邊框 |
-| 顯示中 | 「隱藏推斷關係」 | 橘色背景 |
+#### LensCard（左下角，合併卡）
 
-推斷邊（Common Neighbors + Adamic-Adar 演算法）以虛線樣式呈現，點擊後從右側展開 **InferredEdgePanel**（可確認或拒絕該推斷關係）。
+三段垂直堆疊：
 
-#### 附加控制工具
+1. **時間範圍 · Timeline** — slider [0..totalChapters]，0 = 全部章節（disabled）
+2. **認知視角 · Epistemic** — 24px avatar + 角色名 + 「依賴 ↑ 章節 N」hint
+3. **已標記 · Bookmarks** — pin icon + entity pill 列表
 
-**TimelineControls（左下角，章節快照）**：
-- 選擇章節 N → 圖譜僅顯示該章節前出現過的節點與關係（temporal snapshot 模式）
-- 讓用戶「從頭追蹤圖譜的演變」
+localStorage key（**必須保留**）：`graph:${bookId}:timeline:*`、`graph:${bookId}:epistemic:*`、`graph:${bookId}:bookmarks`、`graph:${bookId}:clusterMode`。
 
-**EpistemicOverlay（章節快照上方，認知視角疊加）**：
-- 選擇一個角色 → 灰底虛線標示「此角色在指定章節前尚不知曉的節點」
-- 需搭配 TimelineControls 指定章節
-- 狀態持久化至 localStorage（`graph:${bookId}:epistemic:*`）
+#### LegendCard（右上角，常駐圖例）
 
-**縮放控制（右下角）**：+ / − 按鈕
+4 個 entity types（角色/地點/概念/事件）+ 對應成員數，點擊 row → toggle 該類型可見性。底部分隔線 + 「推斷 · N」row（toggle inferred 圖層）。
 
-**統計（右下角）**：節點數、關係數（動態位移，避免與面板重疊）
+#### MiniMap（右下角 180×120）
 
-#### 實體詳情面板（EntityDetailPanel / EventDetailPanel）
+- SVG 重繪：所有節點為小點（依 type 上色）+ 細淡 edges
+- Viewport rect 顯示當前 camera bounds
+- 互動：click → 立即定位；drag viewport rect → 持續 pan
 
-節點類型 ≠ `event` → 使用 EntityDetailPanel；節點類型 = `event` → 使用 EventDetailPanel。
+#### BreadcrumbBar（上方置中，drill-in 時出現）
 
-面板寬 260px，固定在右側，選中節點後出現。
+例：`知識圖譜 › 類型群集 › 角色`（最後一段是當前；前面 segments 可點回上層）
 
-**EntityDetailPanel** 包含（accordion）：
-1. **實體資訊**（預設展開）：名稱、類型 pill、描述
-2. **深度分析**（預設展開）：已生成顯示文字 + 重生成按鈕；未生成顯示引導按鈕「生成深度分析 →」
-3. **相關段落**（預設收合）：chunk 總數，點擊 → 推出第三層段落面板
+#### 右側面板（優先序，同時只顯示一個）
 
-**EventDetailPanel** 包含事件相關資訊（參與者、時序位置等）。
+| 條件 | 面板 | 寬度 |
+|---|---|---|
+| Shift+Click 選了 2 個節點 | **EntityComparePanel**（Scenario E）| 560px |
+| 推斷 chip 開啟 OR 點到推斷邊 | **InferredEdgePanel**（Scenario F 審查列表）| 380px |
+| Cluster mode 'type' 且無選中節點 | **ClusterOverviewPanel** / drill-in 成員列表（Scenarios A/C）| 280px |
+| 單選節點 | EntityDetailPanel / EventDetailPanel（既有）| 260px |
 
-#### 第三層面板（右側次面板，width 依類型）
+**第三層面板**（AnalysisPanel / ParagraphsPanel）行為不變，從 EntityDetailPanel 觸發。
 
-三種面板**同時只能顯示一種**，切換時替換不疊加。
+**EntityDetailPanel 新增**：header 加 bookmark toggle 按鈕（pin icon，會寫入 `graph:${bookId}:bookmarks`）。
 
-| 類型 | 寬度 | 觸發方式 |
-|------|------|---------|
-| AnalysisPanel（分析全文） | 360px | 點擊「查看分析」|
-| ParagraphsPanel（相關段落） | 400px | 點擊「相關段落」|
-| InferredEdgePanel（推斷關係審核）| — | 點擊推斷邊 |
+#### 多選比較（Scenario E，cap 2）
 
-**ParagraphsPanel** 段落按章節分組（sticky 章節標題），每條 chunk 顯示 SegmentRenderer（保留實體高亮）。
+Shift+Click 第 2 個 → 並排比較；第 3 個 → 踢掉最早選的。共同鄰居加 `--accent` 虛線高亮，其餘節點 opacity 0.35。
 
-#### 狀態流程
+#### Cluster mode
 
-```
-進入頁面
-  → 載入圖譜資料
-  → 解析 query param ?entity= → 自動選中對應節點
+- **個別**（預設）：原本行為，所有節點獨立顯示
+- **類型**：純前端 group-by（`frontend/src/services/kgClustering.ts`），4–7 個 super-nodes（依書中 entity types）
+- **社群**：disabled，tooltip「派系分析開發中（F-16）」— 待 backend F-16 接 `GET /books/:bookId/analysis/factions`
 
-點擊節點
-  → 若 event 節點 → EventDetailPanel
-  → 若 entity 節點 → EntityDetailPanel
+Mode 切換以 localStorage `graph:${bookId}:clusterMode` per-book 記憶。
 
-點擊「查看分析」→ 推出 AnalysisPanel（第三層）
-點擊「相關段落」→ 推出 ParagraphsPanel（第三層）
-點擊其他節點（第三層開啟中）→ 第三層隨選中節點同步更新
+#### Search dropdown（Scenario D）
 
-點擊推斷邊 → 推出 InferredEdgePanel → 可確認或拒絕
-執行推論 → 刷新圖譜與推斷關係資料
+Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 
-TimelineControls 切換章節 → 重新請求圖譜（帶 timeline 參數）
-EpistemicOverlay 選擇角色 → 疊加灰化樣式（不重新請求圖譜）
-```
+- **實體**：matching graph nodes + type dot + 登場段數
+- **章節**：matching chapter titles
+- **段落內文**：placeholder「全文搜尋待後端實作」
+
+鍵盤：↑↓ 選擇、↵ 開啟、Esc 關閉。Debounce 200ms。
+
+#### Transition / hover
+
+- 所有 transition 用 `color / background-color / opacity / box-shadow`，duration `var(--transition-fast)` (150ms) 或 `--transition-normal` (250ms)，easing `ease`
+- Hover：背景下降一階（`--bg-primary → --bg-secondary` 等）；**不使用 transform / translate**
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#9（圖譜資料）、#9b（實體相關段落）、#10a–#10d（推斷關係 run / fetch / confirm / reject）、#11（事件詳情）、#12a–#12b（TimelineConfig）、#12c（detect-timeline）、#12d（classify-visibility）、#12e（認知狀態）、#7a（實體分析）、#7b（觸發實體分析）、#8（任務 polling）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#9（圖譜資料）、#9b（實體相關段落）、#10a–#10d（推斷關係 run / fetch / confirm/採用 / reject/否決）、#11（事件詳情）、#12a–#12b（TimelineConfig）、#12c（detect-timeline）、#12d（classify-visibility）、#12e（認知狀態）、#7a（實體分析）、#7b（觸發實體分析）、#8（任務 polling）、#4（章節清單供 SearchDropdown）。
+
+**V1 不新增任何 API 端點**。Cluster「社群」模式待 F-16 後接 `GET /books/:bookId/analysis/factions`。
 
 ---
 

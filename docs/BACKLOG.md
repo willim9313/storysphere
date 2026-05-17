@@ -257,10 +257,12 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
   - `GET /books/:bookId/analysis/factions` — 返回完整派系分析
   - `GET /books/:bookId/analysis/factions?chapter={N}` — 返回指定章節快照的派系狀態（需 F-02）
 - 前端（兩處）：
-  - 圖譜頁：新增「派系視圖」切換按鈕，以節點顏色標示派系歸屬、敵對邊以紅色虛線標示
+  - 圖譜頁：cluster mode 的「社群」按鈕目前 `disabled`（V1 已上 placeholder + tooltip 指向 F-16）。F-16 完成後：解除 disabled、把 `frontend/src/services/kgClustering.ts` 的 `byCommunity()` 從 throw 換成 fetch `GET /books/:bookId/analysis/factions`、`SuperNode.label` 改取 `Faction.label`。視覺：handoff 規格的 multi-color dot ring + 派系歸屬顏色、敵對邊以紅色虛線標示。
   - 深度分析頁：新增「派系分析」tab，展示派系清單（成員列表 + 凝聚力分數）+ 派系間關係熱圖（Recharts `ResponsiveContainer` + 自訂格狀 cell）
 
 **前置依賴**: KG 角色關係（已有）→ **前置依賴已全部滿足**；~~F-01~~（✅ 已完成，可選強化邊）；F-02（可選，用於章節快照模式）
+
+**V1 銜接點**（2026-05-17）: KG 頁面 V1 重新設計已預留接點，見 `docs/plans/20260517-kg-page-redesign-v1-impl.md`。
 
 ---
 
