@@ -182,7 +182,58 @@
     },
     "importance": {
       "kernel": "Kernel Event",
-      "satellite": "Satellite Event"
+      "satellite": "Satellite Event",
+      "kernelShort": "Kernel",
+      "satelliteShort": "Satellite",
+      "kernelTagline": "Kernel · Pivotal turning point",
+      "satelliteTagline": "Satellite · Supporting detail"
+    },
+    "narrative": {
+      "flashback": "Flashback",
+      "flashforward": "Flashforward",
+      "parallel": "Parallel",
+      "present": "Present",
+      "unknown": "Unknown"
+    },
+    "roles2": {
+      "driver": "Driver",
+      "victim": "Victim",
+      "witness": "Witness"
+    },
+    "labels": {
+      "before": "Before",
+      "after": "After",
+      "stateChangeSub": "State before → after",
+      "causalitySub": "root cause · chain",
+      "impactSub": "people · relations",
+      "rootCauseLabel": "Root cause",
+      "participantImpacts": "On participants",
+      "relationChanges": "Relationship shifts",
+      "factorsLabel": "Causal Factors",
+      "consequencesLabel": "Consequences",
+      "thematicSignificance": "Thematic Significance",
+      "summaryLabel": "Event Summary",
+      "participantsCount": "{{count}} people",
+      "factorsConsequences": "Factors & Consequences",
+      "factorsConsequencesSub": "factors · consequences",
+      "keyQuotesCount": "{{count}} quotes"
+    },
+    "list": {
+      "searchPlaceholder": "Search {{count}} events…",
+      "chapterShort": "Ch.{{n}}",
+      "kernelAbbr": "K",
+      "satelliteAbbr": "S"
+    },
+    "empty": {
+      "title": "Pick an event",
+      "subtitle": "Select an analyzed event from the left to view its EEP details, or click \"Create\" on an unanalyzed event to trigger deep analysis.",
+      "unanalyzedTitle": "{{name}}",
+      "unanalyzedSubtitle": "This event has no EEP analysis yet. Triggering will extract state changes, participant roles, causal chain, and impact.",
+      "createBtn": "Create analysis"
+    },
+    "generating": {
+      "title": "Analyzing event",
+      "stage": "{{stage}} · {{progress}}%"
     }
   },
   "batch": {
@@ -194,7 +245,19 @@
     "failed": "failed {{count}}",
     "allDone": "All events analyzed ✓",
     "triggerAll": "Generate All EEP",
-    "autoSkip": "Already-analyzed events will be skipped"
+    "autoSkip": "Already-analyzed events will be skipped",
+    "remaining": "{{count}} pending",
+    "stat": {
+      "generated": "Generated",
+      "skipped": "Skipped",
+      "failed": "Failed"
+    },
+    "summaryProgress": "Processed {{count}} this batch",
+    "toastTitle": "Batch EEP Complete",
+    "toastBody": "Generated {{generated}} · Skipped {{skipped}} · Failed {{failed}}",
+    "toastClose": "Close",
+    "errorFallback": "Batch run failed",
+    "runningWithCount": "Analyzing {{current}}/{{total}}…"
   },
   "tension": {
     "title": "Tension Analysis",

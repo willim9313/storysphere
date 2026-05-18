@@ -1300,11 +1300,21 @@ async def list_event_analyses(
     analyzed: list[dict] = []
     unanalyzed: list[dict] = []
     for ev in events:
+        narrative_mode = (
+            ev.narrative_mode.value
+            if ev.narrative_mode is not None and hasattr(ev.narrative_mode, "value")
+            else (ev.narrative_mode if isinstance(ev.narrative_mode, str) else None)
+        )
         cache_key = f"event:{book_id}:{ev.id}"
         cached = await cache.get(cache_key)
         if cached is not None:
             try:
                 result = EventAnalysisResult.model_validate(cached)
+                importance = (
+                    result.eep.event_importance.value
+                    if result.eep and hasattr(result.eep.event_importance, "value")
+                    else None
+                )
                 analyzed.append(
                     AnalysisItem(
                         id=ev.id,
@@ -1312,25 +1322,37 @@ async def list_event_analyses(
                         section="events",
                         title=ev.title,
                         content=result.summary.summary if result.summary else "",
-                        framework="jung",
                         generated_at=(
                             result.analyzed_at.isoformat()
                             if result.analyzed_at
                             else _now_iso()
                         ),
+                        chapter=ev.chapter,
+                        narrative_mode=narrative_mode,
+                        importance=importance,
                     ).model_dump(by_alias=True)
                 )
             except Exception:
                 logger.warning("Failed to parse cached event analysis for %s", ev.id)
                 unanalyzed.append(
                     UnanalyzedEntity(
-                        id=ev.id, name=ev.title, type="event", chapter_count=0,
+                        id=ev.id,
+                        name=ev.title,
+                        type="event",
+                        chapter_count=0,
+                        chapter=ev.chapter,
+                        narrative_mode=narrative_mode,
                     ).model_dump(by_alias=True)
                 )
         else:
             unanalyzed.append(
                 UnanalyzedEntity(
-                    id=ev.id, name=ev.title, type="event", chapter_count=0,
+                    id=ev.id,
+                    name=ev.title,
+                    type="event",
+                    chapter_count=0,
+                    chapter=ev.chapter,
+                    narrative_mode=narrative_mode,
                 ).model_dump(by_alias=True)
             )
 
@@ -1758,6 +1780,13 @@ async def get_event_analysis(
         ),
         summary={"summary": result.summary.summary if result.summary else ""},
         analyzed_at=result.analyzed_at.isoformat() if result.analyzed_at else None,
+        chapter=event.chapter,
+        chunk=event.narrative_position,
+        narrative_mode=(
+            event.narrative_mode.value
+            if event.narrative_mode is not None and hasattr(event.narrative_mode, "value")
+            else (event.narrative_mode if isinstance(event.narrative_mode, str) else None)
+        ),
     )
 
 

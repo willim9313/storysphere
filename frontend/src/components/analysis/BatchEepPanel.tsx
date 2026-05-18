@@ -1,4 +1,4 @@
-import { Loader2 } from 'lucide-react';
+import { Sparkles, Check, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TaskStatus, BatchEepResult } from '@/api/types';
 
@@ -10,6 +10,7 @@ interface BatchEepPanelProps {
   batchError: string | null;
   batchSummary: BatchEepResult | null;
   onTrigger: () => void;
+  onDismissSummary?: () => void;
   isPending: boolean;
 }
 
@@ -21,80 +22,118 @@ export function BatchEepPanel({
   batchError,
   batchSummary,
   onTrigger,
+  onDismissSummary,
   isPending,
 }: BatchEepPanelProps) {
   const { t } = useTranslation('analysis');
-  const allDone = analyzedCount === totalCount && totalCount > 0;
+  const allDone = analyzedCount >= totalCount && totalCount > 0;
   const batchResult = batchTask?.result as BatchEepResult | undefined;
 
   const progressCurrent = batchResult?.progress ?? 0;
-  const progressTotal = batchResult?.total ?? totalCount;
-  const progressPct = progressTotal > 0 ? Math.round((progressCurrent / progressTotal) * 100) : 0;
+  const runningAnalyzed = isBatchRunning ? analyzedCount + progressCurrent : analyzedCount;
+  const pct =
+    totalCount > 0
+      ? Math.round(
+          (isBatchRunning ? runningAnalyzed : analyzedCount) / totalCount * 100,
+        )
+      : 0;
+  const showSummary = !isBatchRunning && batchSummary !== null;
+  const stage = batchTask?.stage ?? '';
 
   return (
-    <div
-      className="mx-3 my-2 p-3 rounded-lg"
-      style={{ backgroundColor: 'var(--bg-tertiary)', border: '1px solid var(--border)' }}
-    >
-      <div className="flex items-center justify-between mb-1.5">
-        <span className="text-xs font-medium" style={{ color: 'var(--fg-primary)' }}>
-          {t('batch.header')}
-        </span>
-        <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-          {analyzedCount}/{totalCount} {t('batch.completed')}
+    <div className={'ea-batch' + (isBatchRunning ? ' running' : '')}>
+      <div className="ea-batch-head">
+        <span className="ea-batch-label">{t('batch.header')}</span>
+        <span className="ea-batch-count">
+          {runningAnalyzed}/{totalCount}
+          <span className="total"> · {pct}%</span>
         </span>
       </div>
 
-      <div className="h-1.5 rounded-full overflow-hidden mb-3" style={{ backgroundColor: 'var(--bg-primary)' }}>
-        <div
-          className="h-full rounded-full transition-all duration-300 theme-progress-fill"
-          style={{
-            width: `${isBatchRunning ? progressPct : (totalCount > 0 ? (analyzedCount / totalCount) * 100 : 0)}%`,
-          }}
-        />
+      <div
+        className="ea-batch-track"
+        role="progressbar"
+        aria-valuenow={pct}
+        aria-valuemin={0}
+        aria-valuemax={100}
+      >
+        <div className="ea-batch-fill" style={{ width: pct + '%' }} />
       </div>
 
-      {isBatchRunning && (
-        <div className="flex items-center gap-2 mb-2">
-          <Loader2 size={14} className="animate-spin" style={{ color: 'var(--accent)' }} />
-          <span className="text-xs" style={{ color: 'var(--fg-secondary)' }}>
-            {t('batch.running')} {progressCurrent}/{progressTotal}…
+      <div className="ea-batch-pct">
+        {isBatchRunning ? (
+          <>
+            <span className="stage" title={stage}>
+              {stage || t('batch.running')}
+            </span>
+            <span className="live">
+              <Play size={9} /> live
+            </span>
+          </>
+        ) : batchError ? (
+          <span style={{ color: 'var(--color-error)' }}>
+            {batchError || t('batch.errorFallback')}
           </span>
+        ) : showSummary && batchSummary ? (
+          <span>{t('batch.summaryProgress', { count: batchSummary.progress })}</span>
+        ) : allDone ? (
+          <span>{t('batch.allDone')}</span>
+        ) : (
+          <span>{t('batch.remaining', { count: totalCount - analyzedCount })}</span>
+        )}
+      </div>
+
+      {showSummary && batchSummary && (
+        <div className="ea-batch-stats">
+          <div className="ea-batch-stat">
+            <span className="ea-batch-stat-n">
+              {batchSummary.progress - batchSummary.skipped - batchSummary.failed}
+            </span>
+            <span className="ea-batch-stat-l">{t('batch.stat.generated')}</span>
+          </div>
+          <div className="ea-batch-stat skipped">
+            <span className="ea-batch-stat-n">{batchSummary.skipped}</span>
+            <span className="ea-batch-stat-l">{t('batch.stat.skipped')}</span>
+          </div>
+          <div className="ea-batch-stat failed">
+            <span className="ea-batch-stat-n">{batchSummary.failed}</span>
+            <span className="ea-batch-stat-l">{t('batch.stat.failed')}</span>
+          </div>
         </div>
       )}
 
-      {batchError && (
-        <p className="text-xs mb-2" style={{ color: 'var(--color-error)' }}>
-          {batchError}
-        </p>
+      {isBatchRunning ? (
+        <button className="ea-batch-btn running" disabled type="button">
+          <span className="ea-mini-spinner" />
+          {t('batch.runningWithCount', { current: runningAnalyzed, total: totalCount })}
+        </button>
+      ) : allDone ? (
+        <button className="ea-batch-btn" disabled type="button">
+          <Check size={12} /> {t('batch.allDone')}
+        </button>
+      ) : (
+        <button
+          className="ea-batch-btn"
+          type="button"
+          onClick={onTrigger}
+          disabled={isPending}
+        >
+          <Sparkles size={12} /> {t('batch.triggerAll')}
+        </button>
       )}
 
-      {batchSummary && !isBatchRunning && (
-        <p className="text-xs mb-2" style={{ color: 'var(--color-success)' }}>
-          {t('batch.doneMessage', { analyzed: batchSummary.total - batchSummary.skipped - batchSummary.failed })}
-          {batchSummary.skipped > 0 && `，${t('batch.skipped', { count: batchSummary.skipped })}`}
-          {batchSummary.failed > 0 && `，${t('batch.failed', { count: batchSummary.failed })}`}
-        </p>
+      {!showSummary && !isBatchRunning && !allDone && (
+        <p className="ea-batch-hint">{t('batch.autoSkip')}</p>
       )}
-
-      <button
-        className="w-full text-xs py-1.5 rounded-md font-medium transition-colors"
-        style={{
-          backgroundColor: allDone || isBatchRunning ? 'var(--border)' : 'var(--accent)',
-          color: allDone || isBatchRunning ? 'var(--fg-muted)' : 'white',
-          cursor: allDone || isBatchRunning || isPending ? 'not-allowed' : 'pointer',
-        }}
-        disabled={allDone || isBatchRunning || isPending}
-        onClick={onTrigger}
-      >
-        {allDone ? t('batch.allDone') : t('batch.triggerAll')}
-      </button>
-
-      {!allDone && !isBatchRunning && (
-        <p className="text-xs mt-1.5 text-center" style={{ color: 'var(--fg-muted)' }}>
-          {t('batch.autoSkip')}
+      {showSummary && onDismissSummary && (
+        <p className="ea-batch-hint row">
+          <span>{t('batch.toastTitle')}</span>
+          <button type="button" className="dismiss" onClick={onDismissSummary}>
+            {t('batch.toastClose')}
+          </button>
         </p>
       )}
     </div>
   );
 }
+

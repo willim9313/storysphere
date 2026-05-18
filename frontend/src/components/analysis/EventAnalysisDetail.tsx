@@ -1,94 +1,315 @@
+import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { EventAnalysisDetail } from '@/api/types';
-import { AnalysisAccordion } from './AnalysisAccordion';
-
-type TFunc = (key: string, opts?: object) => string;
-
-function buildSections(data: EventAnalysisDetail, t: TFunc) {
-  const sections: { title: string; subtitle?: string; content: string }[] = [];
-
-  const roleLabel = (role: string) => t(`event.roles.${role}`) || role;
-  const importanceLabel = (imp: string) => t(`event.importance.${imp}`) || imp;
-
-  if (data.summary?.summary) {
-    sections.push({ title: t('event.sections.summary'), content: data.summary.summary });
-  }
-
-  const { eep } = data;
-  if (eep.stateBefore || eep.stateAfter) {
-    const lines: string[] = [];
-    if (eep.stateBefore) lines.push(`**${t('event.sections.stateBefore')}：** ${eep.stateBefore}`);
-    if (eep.stateAfter) lines.push(`\n**${t('event.sections.stateAfter')}：** ${eep.stateAfter}`);
-    if (eep.structuralRole) lines.push(`\n**${t('event.sections.structuralRole')}：** ${eep.structuralRole}`);
-    if (eep.eventImportance) lines.push(`**${t('event.sections.importance')}：** ${importanceLabel(eep.eventImportance)}`);
-    if (eep.thematicSignificance) lines.push(`\n**${t('event.sections.thematicSignificance')}：** ${eep.thematicSignificance}`);
-    sections.push({ title: t('event.sections.stateChange'), content: lines.join('\n') });
-  }
-
-  if (eep.participantRoles.length) {
-    const lines = eep.participantRoles.map((p) => {
-      const role = roleLabel(p.role);
-      return `- **${p.entityName}**（${role}）：${p.impactDescription}`;
-    });
-    sections.push({ title: t('event.sections.participantRoles'), content: lines.join('\n') });
-  }
-
-  const { causality } = data;
-  if (causality.rootCause || causality.causalChain.length) {
-    const lines: string[] = [];
-    if (causality.rootCause) lines.push(`**${t('event.sections.rootCause')}：** ${causality.rootCause}`);
-    if (causality.causalChain.length) {
-      lines.push(`\n**${t('event.sections.causalChain')}：**`);
-      causality.causalChain.forEach((step, i) => lines.push(`${i + 1}. ${step}`));
-    }
-    if (causality.chainSummary) lines.push(`\n${causality.chainSummary}`);
-    sections.push({ title: t('event.sections.causality'), content: lines.join('\n') });
-  }
-
-  const { impact } = data;
-  if (impact.impactSummary || impact.participantImpacts.length || impact.relationChanges.length) {
-    const lines: string[] = [];
-    if (impact.impactSummary) lines.push(impact.impactSummary);
-    if (impact.participantImpacts.length) {
-      lines.push(`\n**${t('event.sections.participantImpacts')}：**`);
-      impact.participantImpacts.forEach((p) => lines.push(`- ${p}`));
-    }
-    if (impact.relationChanges.length) {
-      lines.push(`\n**${t('event.sections.relationChanges')}：**`);
-      impact.relationChanges.forEach((r) => lines.push(`- ${r}`));
-    }
-    sections.push({ title: t('event.sections.impact'), content: lines.join('\n') });
-  }
-
-  if (eep.causalFactors.length) {
-    sections.push({
-      title: t('event.sections.causalFactors'),
-      content: eep.causalFactors.map((f) => `- ${f}`).join('\n'),
-    });
-  }
-
-  if (eep.consequences.length) {
-    sections.push({
-      title: t('event.sections.consequences'),
-      content: eep.consequences.map((c) => `- ${c}`).join('\n'),
-    });
-  }
-
-  if (eep.keyQuotes.length) {
-    sections.push({
-      title: t('event.sections.keyQuotes'),
-      content: eep.keyQuotes.map((q) => `> ${q}`).join('\n\n'),
-    });
-  }
-
-  return sections;
-}
+import type {
+  EventAnalysisDetail as EventAnalysisDetailType,
+  ParticipantRole,
+  CausalityAnalysis,
+  ImpactAnalysis,
+} from '@/api/types';
 
 interface Props {
-  data: EventAnalysisDetail;
+  data: EventAnalysisDetailType;
+  causalVariant?: 'timeline' | 'stepped' | 'flat';
+  showHero?: boolean;
 }
 
-export function EventAnalysisDetail({ data }: Props) {
+function EventHero({ data }: { data: EventAnalysisDetailType }) {
   const { t } = useTranslation('analysis');
-  return <AnalysisAccordion sections={buildSections(data, t)} />;
+  const imp = data.eep.eventImportance;
+  const isKernel = imp === 'KERNEL';
+  if (!data.eep.thematicSignificance && !data.summary?.summary) return null;
+  return (
+    <div className="ea-hero" data-importance={isKernel ? 'kernel' : 'satellite'}>
+      {data.eep.thematicSignificance && (
+        <>
+          <span className="ea-hero-thematic-label">
+            {t('event.labels.thematicSignificance')}
+          </span>
+          <p className="ea-hero-thematic">{data.eep.thematicSignificance}</p>
+        </>
+      )}
+      {data.summary?.summary && (
+        <>
+          <span className="ea-hero-summary-label">{t('event.labels.summaryLabel')}</span>
+          <p className="ea-hero-summary">{data.summary.summary}</p>
+        </>
+      )}
+    </div>
+  );
+}
+
+function StateSection({ data }: { data: EventAnalysisDetailType }) {
+  const { t } = useTranslation('analysis');
+  const { eep } = data;
+  if (!eep.stateBefore && !eep.stateAfter && !eep.structuralRole && !eep.eventImportance) {
+    return null;
+  }
+  return (
+    <div className="ea-section">
+      <div className="ea-section-head">
+        <div className="ea-section-titlewrap">
+          <h3 className="ea-section-title">{t('event.sections.stateChange')}</h3>
+          <span className="ea-section-sub">{t('event.labels.stateChangeSub')}</span>
+        </div>
+      </div>
+      {(eep.stateBefore || eep.stateAfter) && (
+        <div className="ea-state-grid">
+          <div className="ea-state before">
+            <span className="ea-state-label">{t('event.labels.before')}</span>
+            <p className="ea-state-text">{eep.stateBefore}</p>
+          </div>
+          <div className="ea-state-arrow" aria-hidden="true">
+            <ArrowRight size={20} color="var(--accent)" />
+          </div>
+          <div className="ea-state after">
+            <span className="ea-state-label">{t('event.labels.after')}</span>
+            <p className="ea-state-text">{eep.stateAfter}</p>
+          </div>
+        </div>
+      )}
+      {(eep.structuralRole || eep.eventImportance) && (
+        <div className="ea-state-meta">
+          {eep.structuralRole && (
+            <div className="ea-state-meta-item">
+              <span className="label">{t('event.sections.structuralRole')}</span>
+              <p className="value">{eep.structuralRole}</p>
+            </div>
+          )}
+          {eep.eventImportance && (
+            <div className="ea-state-meta-item">
+              <span className="label">{t('event.sections.importance')}</span>
+              <p className="value">
+                {eep.eventImportance === 'KERNEL'
+                  ? t('event.importance.kernelTagline')
+                  : t('event.importance.satelliteTagline')}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const ROLE_CLASS_MAP: Record<string, string> = {
+  driver: 'driver',
+  initiator: 'driver',
+  actor: 'driver',
+  victim: 'victim',
+  reactor: 'victim',
+  beneficiary: 'witness',
+  witness: 'witness',
+};
+
+function roleLabel(role: string, t: ReturnType<typeof useTranslation>['t']): string {
+  const lc = role.toLowerCase();
+  const r2 = t(`event.roles2.${lc}`, { defaultValue: '' });
+  if (r2) return r2;
+  const r1 = t(`event.roles.${lc}`, { defaultValue: '' });
+  return r1 || role;
+}
+
+function ParticipantCard({ p }: { p: ParticipantRole }) {
+  const { t } = useTranslation('analysis');
+  const cls = ROLE_CLASS_MAP[p.role.toLowerCase()] ?? '';
+  const initial = p.entityName.charAt(0);
+  return (
+    <div className="ea-participant">
+      <div className="ea-participant-avatar">{initial}</div>
+      <div className="ea-participant-body">
+        <div className="ea-participant-head">
+          <span className="ea-participant-name">{p.entityName}</span>
+          <span className={'ea-participant-role ' + cls}>{roleLabel(p.role, t)}</span>
+        </div>
+        <p className="ea-participant-impact">{p.impactDescription}</p>
+      </div>
+    </div>
+  );
+}
+
+function ParticipantsSection({ data }: { data: EventAnalysisDetailType }) {
+  const { t } = useTranslation('analysis');
+  const roles = data.eep.participantRoles ?? [];
+  if (roles.length === 0) return null;
+  return (
+    <div className="ea-section">
+      <div className="ea-section-head">
+        <div className="ea-section-titlewrap">
+          <h3 className="ea-section-title">{t('event.sections.participantRoles')}</h3>
+          <span className="ea-section-sub">
+            {t('event.labels.participantsCount', { count: roles.length })}
+          </span>
+        </div>
+      </div>
+      <div className="ea-participants">
+        {roles.map((p) => (
+          <ParticipantCard key={p.entityId} p={p} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CausalitySection({
+  data,
+  variant = 'stepped',
+}: {
+  data: { causality: CausalityAnalysis };
+  variant?: 'timeline' | 'stepped' | 'flat';
+}) {
+  const { t } = useTranslation('analysis');
+  const c = data.causality;
+  if (!c.rootCause && c.causalChain.length === 0 && !c.chainSummary) return null;
+  return (
+    <div className="ea-section">
+      <div className="ea-section-head">
+        <div className="ea-section-titlewrap">
+          <h3 className="ea-section-title">{t('event.sections.causality')}</h3>
+          <span className="ea-section-sub">{t('event.labels.causalitySub')}</span>
+        </div>
+      </div>
+      <div className={'ea-causal ' + variant}>
+        {c.rootCause && (
+          <div className="ea-causal-root">
+            <span className="ea-causal-root-label">{t('event.labels.rootCauseLabel')}</span>
+            <p className="ea-causal-root-text">{c.rootCause}</p>
+          </div>
+        )}
+        {c.causalChain.length > 0 && (
+          <div className="ea-causal-chain">
+            {c.causalChain.map((step, i) => (
+              <div key={i} className="ea-causal-step">
+                <span className="ea-causal-step-marker">{i + 1}</span>
+                <p className="ea-causal-step-text">{step}</p>
+              </div>
+            ))}
+          </div>
+        )}
+        {c.chainSummary && <p className="ea-causal-summary">{c.chainSummary}</p>}
+      </div>
+    </div>
+  );
+}
+
+function ImpactSection({ data }: { data: { impact: ImpactAnalysis } }) {
+  const { t } = useTranslation('analysis');
+  const i = data.impact;
+  if (!i.impactSummary && i.participantImpacts.length === 0 && i.relationChanges.length === 0) {
+    return null;
+  }
+  return (
+    <div className="ea-section">
+      <div className="ea-section-head">
+        <div className="ea-section-titlewrap">
+          <h3 className="ea-section-title">{t('event.sections.impact')}</h3>
+          <span className="ea-section-sub">{t('event.labels.impactSub')}</span>
+        </div>
+      </div>
+      {i.impactSummary && <p className="ea-impact-summary">{i.impactSummary}</p>}
+      <div className="ea-impact-grid">
+        <div className="ea-impact-col">
+          <div className="ea-impact-col-label">{t('event.labels.participantImpacts')}</div>
+          <ul className="ea-impact-list">
+            {i.participantImpacts.map((p, idx) => (
+              <li key={idx} className="ea-impact-item">
+                <span>{p}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="ea-impact-col">
+          <div className="ea-impact-col-label">{t('event.labels.relationChanges')}</div>
+          <ul className="ea-impact-list">
+            {i.relationChanges.map((r, idx) => (
+              <li key={idx} className="ea-impact-item">
+                <span>{r}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FactorsSection({ data }: { data: EventAnalysisDetailType }) {
+  const { t } = useTranslation('analysis');
+  const factors = data.eep.causalFactors ?? [];
+  const consequences = data.eep.consequences ?? [];
+  if (factors.length === 0 && consequences.length === 0) return null;
+  return (
+    <div className="ea-section">
+      <div className="ea-section-head">
+        <div className="ea-section-titlewrap">
+          <h3 className="ea-section-title">{t('event.labels.factorsConsequences')}</h3>
+          <span className="ea-section-sub">{t('event.labels.factorsConsequencesSub')}</span>
+        </div>
+      </div>
+      <div className="ea-fc-grid">
+        {factors.length > 0 && (
+          <div>
+            <div className="ea-fc-col-label">{t('event.labels.factorsLabel')}</div>
+            <ul className="ea-bullets">
+              {factors.map((f, i) => (
+                <li key={i}>{f}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+        {consequences.length > 0 && (
+          <div>
+            <div className="ea-fc-col-label">{t('event.labels.consequencesLabel')}</div>
+            <ul className="ea-bullets consequences">
+              {consequences.map((c, i) => (
+                <li key={i}>{c}</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function QuotesSection({ data }: { data: EventAnalysisDetailType }) {
+  const { t } = useTranslation('analysis');
+  const quotes = data.eep.keyQuotes ?? [];
+  if (quotes.length === 0) return null;
+  return (
+    <div className="ea-section">
+      <div className="ea-section-head">
+        <div className="ea-section-titlewrap">
+          <h3 className="ea-section-title">{t('event.sections.keyQuotes')}</h3>
+          <span className="ea-section-sub">
+            {t('event.labels.keyQuotesCount', { count: quotes.length })}
+          </span>
+        </div>
+      </div>
+      <div className="ea-quotes">
+        {quotes.map((q, i) => (
+          <div key={i} className="ea-quote">
+            {q}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+export function EventAnalysisDetail({
+  data,
+  causalVariant = 'stepped',
+  showHero = true,
+}: Props) {
+  return (
+    <>
+      {showHero && <EventHero data={data} />}
+      <StateSection data={data} />
+      <ParticipantsSection data={data} />
+      <CausalitySection data={data} variant={causalVariant} />
+      <ImpactSection data={data} />
+      <FactorsSection data={data} />
+      <QuotesSection data={data} />
+    </>
+  );
 }

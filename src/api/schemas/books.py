@@ -317,6 +317,9 @@ class EventAnalysisFullResponse(BaseModel):
     impact: ImpactResponse
     summary: dict[str, str]
     analyzed_at: str | None = None
+    chapter: int | None = None
+    chunk: int | None = None
+    narrative_mode: str | None = None
 
 
 # ── Analysis list ────────────────────────────────────────────────────────────
@@ -329,6 +332,9 @@ class UnanalyzedEntity(BaseModel):
     name: str
     type: str
     chapter_count: int = 0
+    chapter: int | None = None
+    narrative_mode: str | None = None
+    importance: str | None = None
 
 
 class AnalysisItem(BaseModel):
@@ -342,6 +348,9 @@ class AnalysisItem(BaseModel):
     chapter_count: int = 0
     content: str = ""
     generated_at: str = ""
+    chapter: int | None = None
+    narrative_mode: str | None = None
+    importance: str | None = None
 
 
 class AnalysisListResponse(BaseModel):

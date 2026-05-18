@@ -261,6 +261,30 @@ label 渲染於節點下方外部（`text-valign: 'bottom'`），背景為 `--bg
 | `pulp` | HTML 表面 shadow | `--node-shadow: 2px 2px 0 #000` 在 `[data-theme="pulp"] .card` 套用 `box-shadow`（已實作）。**Cytoscape 限制**：canvas 渲染不支援 box-shadow，KG / Unraveling 節點不套用 shadow |
 | `minimal-ink` / `pulp` | KG node border-width | `--line-weight` 由 cytoscapeConfig 讀取後套為 `border-width = max(1, lineWeight × 2)`（已實作；minimal-ink hairline、pulp bold） |
 
+### 4.1 事件分析頁（`.ea-*`）
+
+事件分析頁 V1 重設計（2026-05-18）**未新增任何 token**，全部沿用既有 token：
+
+| 用途 | 採用的既有 token |
+|------|----------------|
+| KERNEL 事件強調色 | `--accent` + `--bg-primary`（對比文字） |
+| SATELLITE 事件 muted | `--bg-secondary` / `--bg-tertiary` + `--fg-muted` / `--fg-secondary` |
+| BatchEepPanel 進度條 fill | `--accent`，運行中疊加 45° 條紋動畫（純 CSS overlay） |
+| Just-done 清單列高亮 | `--color-success-bg` → `--bg-primary` 1.5s fade |
+| Hero card 頂部色帶 | KERNEL → `--accent`（0.85 opacity）；SATELLITE → `--fg-muted`（0.4 opacity） |
+| Causality timeline 軌跡 | `--accent`（0.45 opacity），節點 marker 用 `--accent` |
+| Participant role badge | `driver` → `--accent`；`victim` → `--color-error` + `--color-error-bg`；`witness` → `--bg-secondary` + `--fg-muted` |
+| Toast | `--color-success` 左邊框 + `--shadow-lg` |
+| Narrative mode mini-chip | 沿用 `--narrative-{mode}-bg/-border`（已存在於 timeline tokens） |
+
+**Pulp 主題備註**：`.ea-section` / `.ea-hero` 使用 `--shadow-sm`，**不會**自動承接 Pulp 的 `--node-shadow`。若 PR 審查時發現一致性問題，可加：
+```css
+[data-theme="pulp"] .ea-section,
+[data-theme="pulp"] .ea-hero { box-shadow: var(--node-shadow); }
+```
+
+CSS prefix 規則：`.ea-*` 嚴格平行 `.ca-*`（角色分析頁），未交叉污染。
+
 ---
 
 ## 5. 新增主題 SOP

@@ -158,6 +158,9 @@ export interface AnalysisItem {
   chapterCount: number;
   content: string;
   generatedAt: string;
+  chapter?: number | null;
+  narrativeMode?: string | null;
+  importance?: string | null;
 }
 
 export interface UnanalyzedEntity {
@@ -165,6 +168,9 @@ export interface UnanalyzedEntity {
   name: string;
   type: EntityType;
   chapterCount: number;
+  chapter?: number | null;
+  narrativeMode?: string | null;
+  importance?: string | null;
 }
 
 export interface AnalysisListResponse {
@@ -405,4 +411,7 @@ export interface EventAnalysisDetail {
   impact: ImpactAnalysis;
   summary: { summary: string };
   analyzedAt: string;
+  chapter?: number | null;
+  chunk?: number | null;
+  narrativeMode?: string | null;
 }

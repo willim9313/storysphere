@@ -1832,6 +1832,12 @@ export interface components {
              * @default
              */
             generatedAt: string;
+            /** Chapter */
+            chapter?: number | null;
+            /** Narrativemode */
+            narrativeMode?: string | null;
+            /** Importance */
+            importance?: string | null;
         };
         /** AnalysisListResponse */
         AnalysisListResponse: {
@@ -2374,6 +2380,12 @@ export interface components {
             };
             /** Analyzedat */
             analyzedAt?: string | null;
+            /** Chapter */
+            chapter?: number | null;
+            /** Chunk */
+            chunk?: number | null;
+            /** Narrativemode */
+            narrativeMode?: string | null;
         };
         /** EventAnalysisRequest */
         EventAnalysisRequest: {
@@ -3507,6 +3519,12 @@ export interface components {
              * @default 0
              */
             chapterCount: number;
+            /** Chapter */
+            chapter?: number | null;
+            /** Narrativemode */
+            narrativeMode?: string | null;
+            /** Importance */
+            importance?: string | null;
         };
         /** UnravelingManifest */
         UnravelingManifest: {

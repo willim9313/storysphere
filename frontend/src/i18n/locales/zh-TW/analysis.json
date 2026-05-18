@@ -182,7 +182,58 @@
     },
     "importance": {
       "kernel": "核心事件",
-      "satellite": "衛星事件"
+      "satellite": "衛星事件",
+      "kernelShort": "核心",
+      "satelliteShort": "衛星",
+      "kernelTagline": "Kernel · 影響故事走向的關鍵節點",
+      "satelliteTagline": "Satellite · 補充細節"
+    },
+    "narrative": {
+      "flashback": "倒敘",
+      "flashforward": "預敘",
+      "parallel": "平行",
+      "present": "順敘",
+      "unknown": "未知"
+    },
+    "roles2": {
+      "driver": "驅動者",
+      "victim": "承受者",
+      "witness": "見證者"
+    },
+    "labels": {
+      "before": "Before",
+      "after": "After",
+      "stateChangeSub": "State before → after",
+      "causalitySub": "root cause · chain",
+      "impactSub": "people · relations",
+      "rootCauseLabel": "根本原因",
+      "participantImpacts": "對參與者",
+      "relationChanges": "關係變化",
+      "factorsLabel": "因果因素 · Causal Factors",
+      "consequencesLabel": "後果 · Consequences",
+      "thematicSignificance": "主題意義 · Thematic Significance",
+      "summaryLabel": "事件摘要",
+      "participantsCount": "{{count}} 人",
+      "factorsConsequences": "因果因素與後果",
+      "factorsConsequencesSub": "factors · consequences",
+      "keyQuotesCount": "{{count}} 段"
+    },
+    "list": {
+      "searchPlaceholder": "搜尋 {{count}} 件事件…",
+      "chapterShort": "Ch.{{n}}",
+      "kernelAbbr": "K",
+      "satelliteAbbr": "S"
+    },
+    "empty": {
+      "title": "選擇一個事件",
+      "subtitle": "從左側清單選擇任一已分析事件以查看其 EEP 詳情；或點擊「建立」為未分析事件觸發深度分析。",
+      "unanalyzedTitle": "{{name}}",
+      "unanalyzedSubtitle": "此事件尚未生成 EEP 分析。觸發後將抽取狀態變化、參與者角色、因果鏈與影響等維度。",
+      "createBtn": "建立分析"
+    },
+    "generating": {
+      "title": "事件分析中",
+      "stage": "{{stage}} · {{progress}}%"
     }
   },
   "batch": {
@@ -194,7 +245,19 @@
     "failed": "失敗 {{count}} 個",
     "allDone": "全部事件已分析 ✓",
     "triggerAll": "一鍵生成全部 EEP",
-    "autoSkip": "已分析的事件會自動跳過"
+    "autoSkip": "已分析的事件會自動跳過",
+    "remaining": "{{count}} 件待生成",
+    "stat": {
+      "generated": "已生成",
+      "skipped": "已跳過",
+      "failed": "失敗"
+    },
+    "summaryProgress": "本批次共處理 {{count}} 件",
+    "toastTitle": "批次 EEP 分析完成",
+    "toastBody": "已生成 {{generated}} 件 · 跳過 {{skipped}} · 失敗 {{failed}}",
+    "toastClose": "關閉",
+    "errorFallback": "批次執行失敗",
+    "runningWithCount": "分析中 {{current}}/{{total}}…"
   },
   "tension": {
     "title": "張力分析",
