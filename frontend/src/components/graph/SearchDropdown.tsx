@@ -10,23 +10,20 @@ export interface SearchChapter {
 }
 
 interface SearchDropdownProps {
-  query: string;
-  entities: GraphNode[];
-  chapters: SearchChapter[];
-  open: boolean;
-  onClose: () => void;
-  onSelectEntity: (id: string) => void;
-  onSelectChapter: (chapterId: string) => void;
+  readonly query: string;
+  readonly entities: GraphNode[];
+  readonly chapters: SearchChapter[];
+  readonly open: boolean;
+  readonly onClose: () => void;
+  readonly onSelectEntity: (id: string) => void;
+  readonly onSelectChapter: (chapterId: string) => void;
 }
 
-type Section = 'entity' | 'chapter' | 'paragraph';
+type SectionName = 'entity' | 'chapter' | 'paragraph';
 
 interface FlatResult {
-  section: Section;
+  section: SectionName;
   id: string;
-  label: string;
-  meta?: string;
-  type?: EntityType;
 }
 
 const MAX_PER_SECTION = 8;
@@ -46,7 +43,15 @@ function highlight(text: string, query: string) {
   return (
     <>
       {text.slice(0, idx)}
-      <span style={{ color: 'var(--accent)', fontWeight: 600 }}>
+      <span
+        style={{
+          backgroundColor: 'var(--color-warning-bg, #fff3c4)',
+          color: 'var(--fg-primary)',
+          padding: '0 2px',
+          borderRadius: 2,
+          fontWeight: 600,
+        }}
+      >
         {text.slice(idx, idx + query.length)}
       </span>
       {text.slice(idx + query.length)}
@@ -83,23 +88,11 @@ export function SearchDropdown({
 
   const flat = useMemo<FlatResult[]>(() => {
     return [
-      ...filteredEntities.map((e) => ({
-        section: 'entity' as const,
-        id: e.id,
-        label: e.name,
-        meta: t('v1.search.entityMeta', { count: e.chunkCount }),
-        type: e.type as EntityType,
-      })),
-      ...filteredChapters.map((c) => ({
-        section: 'chapter' as const,
-        id: c.id,
-        label: c.title,
-        meta: t('v1.search.chapterMeta', { order: c.order }),
-      })),
+      ...filteredEntities.map((e) => ({ section: 'entity' as const, id: e.id })),
+      ...filteredChapters.map((c) => ({ section: 'chapter' as const, id: c.id })),
     ];
-  }, [filteredEntities, filteredChapters, t]);
+  }, [filteredEntities, filteredChapters]);
 
-  // Reset active index when query / open state changes (React "compute during render" pattern)
   const [prevKey, setPrevKey] = useState(`${query}|${open}`);
   const currentKey = `${query}|${open}`;
   if (prevKey !== currentKey) {
@@ -139,117 +132,210 @@ export function SearchDropdown({
   return (
     <div
       ref={listRef}
-      className="absolute z-20"
+      className="absolute z-20 flex flex-col"
       style={{
-        top: 'calc(4rem + 32px + 8px)',
-        left: 'calc(4rem - 1rem)',
-        width: 360,
+        // Anchored just under the toolbar (top:12 + ~32 toolbar height + 12 gap)
+        top: 56,
+        left: 12,
+        width: 460,
+        maxHeight: 'calc(100% - 80px)',
         backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-md)',
-        maxHeight: '60vh',
-        overflowY: 'auto',
+        borderRadius: 'var(--radius-md)',
+        boxShadow: 'var(--shadow-lg, var(--shadow-md))',
+        overflow: 'hidden',
       }}
       role="listbox"
     >
-      <Section header={t('v1.search.section.entity')}>
-        {filteredEntities.length === 0 ? (
-          <Empty>{t('v1.search.noResults')}</Empty>
-        ) : (
-          filteredEntities.map((e, i) => {
-            const flatIdx = i;
-            const active = activeIdx === flatIdx;
-            return (
-              <Row
-                key={e.id}
-                active={active}
-                onClick={() => onSelectEntity(e.id)}
-                left={
-                  <span
-                    className="inline-block rounded-full"
-                    style={{
-                      width: 8,
-                      height: 8,
-                      backgroundColor: `var(--entity-${dotKeyFor(e.type as EntityType)}-dot, var(--accent))`,
-                    }}
-                  />
-                }
-                label={highlight(e.name, query)}
-                meta={t('v1.search.entityMeta', { count: e.chunkCount })}
-              />
-            );
-          })
-        )}
-      </Section>
+      <div className="flex-1 overflow-y-auto">
+        <Group
+          header={t('v1.search.section.entity')}
+          count={filteredEntities.length}
+          isLast={false}
+        >
+          {filteredEntities.length === 0 ? (
+            <Empty>{t('v1.search.noResults')}</Empty>
+          ) : (
+            filteredEntities.map((e, i) => {
+              const flatIdx = i;
+              const active = activeIdx === flatIdx;
+              return (
+                <Row
+                  key={e.id}
+                  active={active}
+                  onClick={() => onSelectEntity(e.id)}
+                  left={
+                    <span
+                      className="inline-block rounded-full"
+                      style={{
+                        width: 8,
+                        height: 8,
+                        backgroundColor: `var(--entity-${dotKeyFor(e.type as EntityType)}-dot, var(--accent))`,
+                      }}
+                    />
+                  }
+                  name={highlight(e.name, query)}
+                  meta={t('v1.search.entityMeta', { count: e.chunkCount })}
+                />
+              );
+            })
+          )}
+        </Group>
 
-      <Section header={t('v1.search.section.chapter')}>
-        {filteredChapters.length === 0 ? (
-          <Empty>{t('v1.search.noResults')}</Empty>
-        ) : (
-          filteredChapters.map((c, i) => {
-            const flatIdx = filteredEntities.length + i;
-            const active = activeIdx === flatIdx;
-            return (
-              <Row
-                key={c.id}
-                active={active}
-                onClick={() => onSelectChapter(c.id)}
-                label={highlight(c.title, query)}
-                meta={t('v1.search.chapterMeta', { order: c.order })}
-              />
-            );
-          })
-        )}
-      </Section>
+        <Group
+          header={t('v1.search.section.chapter')}
+          count={filteredChapters.length}
+          isLast={false}
+        >
+          {filteredChapters.length === 0 ? (
+            <Empty>{t('v1.search.noResults')}</Empty>
+          ) : (
+            filteredChapters.map((c, i) => {
+              const flatIdx = filteredEntities.length + i;
+              const active = activeIdx === flatIdx;
+              return (
+                <Row
+                  key={c.id}
+                  active={active}
+                  onClick={() => onSelectChapter(c.id)}
+                  left={
+                    <span
+                      className="inline-flex items-center justify-center rounded-full tabular-nums"
+                      style={{
+                        width: 22,
+                        height: 22,
+                        backgroundColor: 'var(--bg-tertiary)',
+                        fontFamily: 'var(--font-mono, monospace)',
+                        fontSize: 10,
+                        color: 'var(--fg-secondary)',
+                      }}
+                    >
+                      {c.order}
+                    </span>
+                  }
+                  name={highlight(c.title, query)}
+                  meta={t('v1.search.chapterMeta', { order: c.order })}
+                />
+              );
+            })
+          )}
+        </Group>
 
-      <Section header={t('v1.search.section.paragraph')}>
-        <Empty>{t('v1.search.paragraphComingSoon')}</Empty>
-      </Section>
+        <Group
+          header={t('v1.search.section.paragraph')}
+          count={0}
+          isLast
+        >
+          <Empty>{t('v1.search.paragraphComingSoon')}</Empty>
+        </Group>
+      </div>
+
+      {/* Keyboard hint footer */}
+      <div
+        className="flex items-center"
+        style={{
+          gap: 12,
+          padding: '6px 14px',
+          backgroundColor: 'var(--bg-secondary)',
+          borderTop: '1px solid var(--border)',
+          fontSize: 10,
+          color: 'var(--fg-muted)',
+          flexShrink: 0,
+        }}
+      >
+        <span className="inline-flex items-center" style={{ gap: 4 }}>
+          <Kbd>↑↓</Kbd>
+          {t('v1.search.kbd.navigate')}
+        </span>
+        <span className="inline-flex items-center" style={{ gap: 4 }}>
+          <Kbd>↵</Kbd>
+          {t('v1.search.kbd.select')}
+        </span>
+        <span className="inline-flex items-center" style={{ gap: 4 }}>
+          <Kbd>esc</Kbd>
+          {t('v1.search.kbd.close')}
+        </span>
+        <span style={{ marginLeft: 'auto' }}>{t('v1.search.kbd.advanced')}</span>
+      </div>
     </div>
   );
 }
 
-function Section({ header, children }: { header: string; children: React.ReactNode }) {
+interface GroupProps {
+  readonly header: string;
+  readonly count: number;
+  readonly isLast: boolean;
+  readonly children: React.ReactNode;
+}
+
+function Group({ header, count, isLast, children }: GroupProps) {
   return (
-    <div className="py-1.5">
+    <div style={{ padding: '6px 0', borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
       <div
-        className="px-3 pt-1 pb-0.5 text-[10px] font-semibold uppercase"
-        style={{ color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
+        className="flex items-center justify-between"
+        style={{
+          padding: '4px 14px',
+          fontSize: 9,
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          letterSpacing: '0.06em',
+          color: 'var(--fg-muted)',
+        }}
       >
-        {header}
+        <span>{header}</span>
+        {count > 0 && (
+          <span
+            className="tabular-nums"
+            style={{ fontFamily: 'var(--font-mono, monospace)' }}
+          >
+            {count}
+          </span>
+        )}
       </div>
       {children}
     </div>
   );
 }
 
-function Row({
-  active,
-  onClick,
-  left,
-  label,
-  meta,
-}: {
-  active: boolean;
-  onClick: () => void;
-  left?: React.ReactNode;
-  label: React.ReactNode;
-  meta?: string;
-}) {
+interface RowProps {
+  readonly active: boolean;
+  readonly onClick: () => void;
+  readonly left?: React.ReactNode;
+  readonly name: React.ReactNode;
+  readonly meta?: string;
+}
+
+function Row({ active, onClick, left, name, meta }: RowProps) {
   return (
     <button
       onClick={onClick}
-      className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-left"
+      className="w-full flex items-center text-left"
       style={{
-        backgroundColor: active ? 'var(--bg-secondary)' : 'transparent',
+        gap: 8,
+        padding: '6px 14px',
+        fontSize: 12,
+        backgroundColor: active ? 'var(--bg-tertiary)' : 'transparent',
         color: 'var(--fg-primary)',
+        border: 0,
+        cursor: 'pointer',
+        fontFamily: 'inherit',
+      }}
+      onMouseEnter={(e) => {
+        if (!active) e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+      }}
+      onMouseLeave={(e) => {
+        if (!active) e.currentTarget.style.backgroundColor = 'transparent';
       }}
     >
       {left}
-      <span className="flex-1 truncate">{label}</span>
+      <span
+        className="flex-1 truncate"
+        style={{ fontFamily: 'var(--font-serif)' }}
+      >
+        {name}
+      </span>
       {meta && (
-        <span className="text-[10px]" style={{ color: 'var(--fg-muted)' }}>
+        <span style={{ fontSize: 10, color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>
           {meta}
         </span>
       )}
@@ -257,10 +343,30 @@ function Row({
   );
 }
 
-function Empty({ children }: { children: React.ReactNode }) {
+function Empty({ children }: { readonly children: React.ReactNode }) {
   return (
-    <div className="px-3 py-1.5 text-[11px]" style={{ color: 'var(--fg-muted)' }}>
+    <div
+      style={{ padding: '6px 14px', fontSize: 11, color: 'var(--fg-muted)' }}
+    >
       {children}
     </div>
+  );
+}
+
+function Kbd({ children }: { readonly children: React.ReactNode }) {
+  return (
+    <span
+      style={{
+        fontFamily: 'var(--font-mono, monospace)',
+        fontWeight: 600,
+        fontSize: 10,
+        padding: '0 4px',
+        borderRadius: 3,
+        backgroundColor: 'var(--bg-tertiary)',
+        color: 'var(--fg-secondary)',
+      }}
+    >
+      {children}
+    </span>
   );
 }

@@ -45,13 +45,21 @@
     }
   },
   "stats": "{{nodes}} 節點 · {{edges}} 關係",
+  "statsInferred": "+{{n}} 推斷",
+  "statsNodeLabel": "節點",
+  "statsEdgeLabel": "關係",
   "panel": {
     "entityInfo": "實體資訊",
     "deepAnalysis": "深度分析",
     "relatedParagraphs": "相關段落",
     "eventInfo": "事件資訊",
     "participants": "參與者",
-    "eventAnalysis": "事件分析"
+    "eventAnalysis": "事件分析",
+    "appearancesMeta": "登場 {{count}} 段",
+    "bookmark": "標記",
+    "bookmarked": "已標記",
+    "regenerate": "覆蓋重生成",
+    "paragraphsCount": "{{count}} 段"
   },
   "entity": {
     "appearances": "出現於 {{count}} 個段落",
@@ -121,7 +129,13 @@
       "noResults": "無相符結果",
       "entityMeta": "登場 {{count}} 段",
       "chapterMeta": "第 {{order}} 章",
-      "paragraphComingSoon": "全文搜尋待後端實作"
+      "paragraphComingSoon": "全文搜尋待後端實作",
+      "kbd": {
+        "navigate": "切換",
+        "select": "跳轉",
+        "close": "關閉",
+        "advanced": "進階搜尋"
+      }
     },
     "inferred": {
       "review": {
@@ -130,7 +144,13 @@
         "evidenceFallback": "共同鄰居 {{common}} 個 · Adamic-Adar {{score}}",
         "adopt": "採用",
         "reject": "否決",
-        "empty": "尚無待審查推斷關係"
+        "empty": "尚無待審查推斷關係",
+        "rerun": "重跑",
+        "rerunTitle": "重新計算（保留歷史決定）",
+        "rerunForce": "重跡",
+        "rerunForceTitle": "強制重算",
+        "rerunForceConfirm": "重跡會把所有「已採用 / 已否決」的決定重設為待審查，原本寫入圖譜的關係不會被刪除，但會以待審查狀態再次出現。確定繼續嗎？",
+        "rerunning": "重新計算中…"
       }
     },
     "compare": {
@@ -149,6 +169,8 @@
     },
     "lens": {
       "title": "視角",
+      "subtitle": "Lens · 章節 {{n}} / {{total}}",
+      "subtitleAll": "Lens · 全部章節",
       "timeline": "時間範圍 · Timeline",
       "epistemic": "認知視角 · Epistemic",
       "bookmarks": "已標記 · Bookmarks",

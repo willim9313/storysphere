@@ -45,13 +45,21 @@
     }
   },
   "stats": "{{nodes}} nodes · {{edges}} relations",
+  "statsInferred": "+{{n}} inferred",
+  "statsNodeLabel": "nodes",
+  "statsEdgeLabel": "relations",
   "panel": {
     "entityInfo": "Entity Info",
     "deepAnalysis": "Deep Analysis",
     "relatedParagraphs": "Related Paragraphs",
     "eventInfo": "Event Info",
     "participants": "Participants",
-    "eventAnalysis": "Event Analysis"
+    "eventAnalysis": "Event Analysis",
+    "appearancesMeta": "{{count}} appearances",
+    "bookmark": "Bookmark",
+    "bookmarked": "Bookmarked",
+    "regenerate": "Regenerate",
+    "paragraphsCount": "{{count}}"
   },
   "entity": {
     "appearances": "Appears in {{count}} paragraphs",
@@ -121,7 +129,13 @@
       "noResults": "No matches",
       "entityMeta": "{{count}} appearances",
       "chapterMeta": "Chapter {{order}}",
-      "paragraphComingSoon": "Full-text search pending backend"
+      "paragraphComingSoon": "Full-text search pending backend",
+      "kbd": {
+        "navigate": "Navigate",
+        "select": "Select",
+        "close": "Close",
+        "advanced": "Advanced search"
+      }
     },
     "inferred": {
       "review": {
@@ -130,7 +144,13 @@
         "evidenceFallback": "{{common}} common neighbors · Adamic-Adar {{score}}",
         "adopt": "Adopt",
         "reject": "Reject",
-        "empty": "No inferred relations awaiting review"
+        "empty": "No inferred relations awaiting review",
+        "rerun": "Re-run",
+        "rerunTitle": "Recompute scores (keeps past decisions)",
+        "rerunForce": "Reset",
+        "rerunForceTitle": "Reset all decisions and recompute",
+        "rerunForceConfirm": "This resets every adopted / rejected decision back to pending. Relations already written to the graph remain, but they will reappear here for review. Continue?",
+        "rerunning": "Recomputing…"
       }
     },
     "compare": {
@@ -149,6 +169,8 @@
     },
     "lens": {
       "title": "Lens",
+      "subtitle": "Lens · Chapter {{n}} / {{total}}",
+      "subtitleAll": "Lens · All chapters",
       "timeline": "Time Range",
       "epistemic": "Perspective",
       "bookmarks": "Bookmarks",

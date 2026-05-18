@@ -574,7 +574,10 @@ class RunInferenceRequest(BaseModel):
 class ConfirmInferredRequest(BaseModel):
     model_config = _CAMEL
 
-    relation_type: str
+    # Optional override; when absent, the confirm endpoint promotes the
+    # InferredRelationType to its canonical RelationType (see
+    # domain.inferred_relations.promote_inferred_type).
+    relation_type: str | None = None
 
 
 # ── Voice Profile (F-04) ─────────────────────────────────────────────────────

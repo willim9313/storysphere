@@ -46,6 +46,25 @@
 
 ---
 
+#### B-043 知識圖譜：非預設主題下節點類型識別困難
+**背景**: KG V1 設計稿（`docs/plans/20260517-kg-page-redesign-v1-impl.md` 對應的 `design_handoff_v1/`）統一節點形狀為圓形，類型靠 `--graph-{char,loc,con,evt}-fill` / `-stroke` 區分。default 主題下色彩飽和度足夠，類型一眼可辨；但 **manuscript / minimal-ink / pulp** 三個主題把所有 entity token 收斂到灰階或單一強調色，圓形 + 灰階 = 類型幾乎無法區分。
+
+**歷史**: V1 之前的實作用 `ellipse / round-rectangle / diamond / pentagon` 四種形狀區分類型，正是為了規避這個問題。V1 落實設計稿時改回全圓，當下做的決策是「視覺一致性優先 > 跨主題識別性」，但這個缺口在 manuscript 等主題下會明顯影響可用性。
+
+**待辦內容**:
+- 觀察 manuscript / minimal-ink / pulp 主題下實際的識別痛感（可走 user testing 或自己讀一遍）
+- 候選方案：
+  1. 在非預設主題下，於圓形節點內疊加類型 icon（人形 / 地標 / 燈泡 / 旗幟）
+  2. 在節點標籤前加 type dot prefix（與 LegendCard / Pill 一致的色點）
+  3. 為非預設主題單獨保留 shape variation（cytoscapeConfig 依 `data-theme` 切換 shape function）
+- 與設計稿規範權衡後選定一案，更新 `cytoscapeConfig.ts` + `docs/DESIGN_TOKENS.md` 對照表
+
+**觸發時機**: 任一非預設主題正式對外（目前 F-17 已實作主題切換系統，但 KG 頁的實際 dogfood 可能會先暴露此問題）
+
+**前置依賴**: F-17 主題系統已完成
+
+---
+
 #### B-042 章節審閱頁面：段落 Role 自動識別（preamble / section / epigraph）
 **背景**: `ParagraphRole` enum 定義了五種 role（`body`、`separator`、`section`、`epigraph`、`preamble`），其中後三者在後端原始碼中標注為 `# v2`，代表**尚未實作自動偵測邏輯**。目前使用者可在 ChapterReviewPage 手動切換 role badge，前端 UI 支援完整；但後端 `DocumentProcessingPipeline` 產出的段落一律為 `body` 或 `separator`，前言、小節標題、題詞需靠使用者自行標記。
 

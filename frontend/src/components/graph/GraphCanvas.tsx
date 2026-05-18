@@ -108,6 +108,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
   const prevIdsRef = useRef<Set<string>>(new Set());
   const animModeRef = useRef(animationMode);
   const viewportRafRef = useRef<number | null>(null);
+  // Per-node position cache, keyed by node id. Snapshotted on removal and
+  // restored on re-add so switching cluster modes (or toggling filters) keeps
+  // layouts stable instead of re-randomizing each time.
+  const positionCacheRef = useRef<Map<string, { x: number; y: number }>>(new Map());
 
   useEffect(() => {
     onNodeTapRef.current = onNodeTap;
@@ -210,6 +214,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       cy.destroy();
       cyRef.current = null;
       prevIdsRef.current = new Set();
+      positionCacheRef.current = new Map();
     };
   }, []);
 
@@ -221,12 +226,23 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     const prevIds = prevIdsRef.current;
     const nextIds = new Set(elements.map((e) => e.data.id as string));
     const isInitialLoad = prevIds.size === 0 && elements.length > 0;
+    const overlapCount = [...prevIds].reduce((n, id) => n + (nextIds.has(id) ? 1 : 0), 0);
+    // When prev and next sets don't overlap (e.g. switching cluster mode),
+    // there are no anchor nodes to seed new positions from — fall back to a
+    // fresh randomized layout instead of starting fcose from stacked (0,0).
+    const needsFreshLayout = prevIds.size > 0 && overlapCount === 0 && elements.length > 0;
 
     const toRemoveIds = [...prevIds].filter((id) => !nextIds.has(id));
     if (toRemoveIds.length > 0) {
       toRemoveIds.forEach((id) => {
         const el = cy.getElementById(id);
-        if (el.length) el.remove();
+        if (el.length) {
+          if (el.isNode()) {
+            const p = el.position();
+            positionCacheRef.current.set(id, { x: p.x, y: p.y });
+          }
+          el.remove();
+        }
       });
     }
 
@@ -234,15 +250,28 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
 
     if (toAdd.length > 0) {
       const added = cy.add(toAdd);
+      const newNodeAdds = toAdd.filter((e) => e.data.source == null);
+      const newNodeIds = new Set(newNodeAdds.map((e) => e.data.id as string));
+      const allNewCached =
+        newNodeAdds.length > 0 &&
+        newNodeAdds.every((e) => positionCacheRef.current.has(e.data.id as string));
 
-      if (isInitialLoad) {
+      if (allNewCached) {
+        added.nodes().forEach((node) => {
+          const p = positionCacheRef.current.get(node.id());
+          if (p) node.position(p);
+        });
+        animateIn(added, animModeRef.current, 100);
+      } else if (isInitialLoad || needsFreshLayout) {
         layout(cy, { randomize: true, animationDuration: 400 });
         animateIn(added, animModeRef.current, 450);
       } else {
-        const newNodeIds = new Set(
-          toAdd.filter((e) => e.data.source == null).map((e) => e.data.id as string),
-        );
         added.nodes().forEach((node) => {
+          const cached = positionCacheRef.current.get(node.id());
+          if (cached) {
+            node.position(cached);
+            return;
+          }
           const existing = node
             .neighborhood()
             .nodes()

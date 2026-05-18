@@ -980,24 +980,38 @@ async def list_inferred_relations(
 async def confirm_inferred_relation(
     book_id: str,
     ir_id: str,
-    body: ConfirmInferredRequest,
     doc: DocServiceDep,
     lp: LinkPredictionServiceDep,
+    body: ConfirmInferredRequest | None = None,
 ) -> dict:
-    """Confirm an inferred relation; writes it as a real Relation to the KG."""
+    """Confirm an inferred relation; writes it as a real Relation to the KG.
+
+    Body is optional. When `relationType` is omitted, the inferred relation's
+    suggested_relation_type is promoted to its canonical RelationType via
+    INFERRED_TO_CANONICAL (see domain.inferred_relations).
+    """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
-    from domain.relations import RelationType  # noqa: PLC0415
-    try:
-        relation_type = RelationType(body.relation_type)
-    except ValueError:
-        raise HTTPException(status_code=422, detail=f"Invalid relation_type '{body.relation_type}'")
-
     ir = await lp.get_inferred(ir_id)
     if ir is None or ir.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"InferredRelation '{ir_id}' not found")
+
+    from domain.inferred_relations import promote_inferred_type  # noqa: PLC0415
+    from domain.relations import RelationType  # noqa: PLC0415
+
+    override = body.relation_type if body is not None else None
+    if override is not None:
+        try:
+            relation_type = RelationType(override)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid relation_type '{override}'",
+            ) from exc
+    else:
+        relation_type = promote_inferred_type(ir.suggested_relation_type)
 
     relation = await lp.confirm(ir_id, relation_type)
     if relation is None:

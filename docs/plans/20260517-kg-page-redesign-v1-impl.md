@@ -176,3 +176,4 @@ graph.v1.cluster.communityDisabled  // tooltip 文案（zh-TW / EN 各一條）
 - **Mini-map 渲染成本**：使用第二個 cytoscape instance vs SVG 重繪需要實測；500+ 節點若卡頓改 SVG
 - **i18n 漏字串**：handoff 提供的 24 key 不一定涵蓋所有新元件（例如 ClusterOverviewPanel 細節文字），實作時若新增字串要回頭補進 handoff key 表 + `docs/UI_SPEC.md`
 - **既有 `EpistemicOverlay` / `TimelineControls` 的 localStorage key**（`graph:${bookId}:epistemic:*`）必須保留 — 邏輯搬到 LensCard 時不可改 key
+- **節點形狀單一化的識別性 trade-off**：V1 設計稿規範所有節點為圓形（差異靠色彩 + 標籤 + dot），但 manuscript / minimal-ink / pulp 主題會把 entity 色彩收斂到灰階，導致在這些主題下類型難以辨別。先前實作用 4 種形狀（ellipse / round-rectangle / diamond / pentagon）規避此問題，V1 改回圓形時刻意接受此缺口，後續解法追蹤於 `docs/BACKLOG.md` **B-043**。動 cytoscape node shape 前請先看那條 backlog。

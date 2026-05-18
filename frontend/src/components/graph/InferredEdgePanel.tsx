@@ -1,8 +1,13 @@
 import { useEffect, useRef } from 'react';
-import { X, Check, Loader, XOctagon } from 'lucide-react';
+import { X, Check, Loader, XOctagon, RefreshCw, RotateCcw } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { fetchInferredRelations, confirmInferred, rejectInferred } from '@/api/graph';
+import {
+  fetchInferredRelations,
+  confirmInferred,
+  rejectInferred,
+  runInference,
+} from '@/api/graph';
 import type { InferredRelation } from '@/api/graph';
 
 interface InferredReviewPanelProps {
@@ -21,6 +26,32 @@ export function InferredEdgePanel({ bookId, focusInferredId, onClose }: Inferred
   });
 
   const items = data?.items ?? [];
+
+  const invalidateAll = () => {
+    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
+    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
+  };
+
+  // Safe rerun: score only new entity pairs; existing PENDING/CONFIRMED/REJECTED untouched.
+  const rerunSafe = useMutation({
+    mutationFn: () => runInference(bookId),
+    onSuccess: invalidateAll,
+  });
+
+  // Destructive rerun: bypasses skip list. Upsert resets every record's
+  // status to PENDING, wiping prior adopt/reject decisions. Requires user
+  // confirmation before invoking.
+  const rerunForce = useMutation({
+    mutationFn: () => runInference(bookId, true),
+    onSuccess: invalidateAll,
+  });
+
+  const handleForceRerun = () => {
+    const ok = globalThis.confirm(t('v1.inferred.review.rerunForceConfirm'));
+    if (ok) rerunForce.mutate();
+  };
+
+  const rerunning = rerunSafe.isPending || rerunForce.isPending;
 
   return (
     <div
@@ -42,9 +73,52 @@ export function InferredEdgePanel({ bookId, focusInferredId, onClose }: Inferred
         >
           {t('v1.inferred.review.title', { n: items.length })}
         </h3>
-        <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
-          <X size={16} />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => rerunSafe.mutate()}
+            disabled={rerunning}
+            title={t('v1.inferred.review.rerunTitle')}
+            aria-label={t('v1.inferred.review.rerunTitle')}
+            style={{
+              color: 'var(--fg-muted)',
+              padding: 4,
+              borderRadius: 'var(--radius-sm)',
+              opacity: rerunning ? 0.5 : 1,
+              cursor: rerunning ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {rerunSafe.isPending ? (
+              <Loader size={13} className="animate-spin" />
+            ) : (
+              <RefreshCw size={13} />
+            )}
+          </button>
+          <button
+            onClick={handleForceRerun}
+            disabled={rerunning}
+            title={t('v1.inferred.review.rerunForceTitle')}
+            aria-label={t('v1.inferred.review.rerunForceTitle')}
+            style={{
+              color: 'var(--color-warning)',
+              padding: 4,
+              borderRadius: 'var(--radius-sm)',
+              opacity: rerunning ? 0.5 : 1,
+              cursor: rerunning ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {rerunForce.isPending ? (
+              <Loader size={13} className="animate-spin" />
+            ) : (
+              <RotateCcw size={13} />
+            )}
+          </button>
+          <button
+            onClick={onClose}
+            style={{ color: 'var(--fg-muted)', marginLeft: 4 }}
+          >
+            <X size={16} />
+          </button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -101,7 +175,8 @@ function InferredRow({ ir, bookId, focus, onSuccess, onGraphInvalidate }: Inferr
   }, [focus]);
 
   const adopt = useMutation({
-    mutationFn: () => confirmInferred(bookId, ir.id, ir.suggestedRelationType),
+    // No relationType arg → backend promotes ir.suggestedRelationType to canonical
+    mutationFn: () => confirmInferred(bookId, ir.id),
     onSuccess: () => {
       onSuccess();
       onGraphInvalidate();

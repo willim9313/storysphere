@@ -38,106 +38,105 @@ export function LegendCard({
     <div
       className="absolute top-4 right-4 z-10"
       style={{
-        width: 180,
+        minWidth: 140,
         backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         boxShadow: 'var(--shadow-sm)',
-        fontSize: 12,
+        padding: '8px 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 5,
       }}
     >
       <div
-        className="px-3 py-2"
-        style={{ borderBottom: '1px solid var(--border)' }}
+        className="font-semibold uppercase"
+        style={{
+          fontSize: 9,
+          color: 'var(--fg-muted)',
+          letterSpacing: '0.06em',
+          paddingBottom: 4,
+          borderBottom: '1px solid var(--border)',
+        }}
       >
-        <span
-          className="text-[10px] font-semibold uppercase"
-          style={{ color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
-        >
-          {t('v1.legend.title')}
-        </span>
+        {t('v1.legend.title')}
       </div>
-      <ul className="py-1">
-        {LEGEND_TYPES.map((type) => {
-          const dotKey = type === 'concept' ? 'con' : type === 'event' ? 'evt' : type === 'location' ? 'loc' : 'char';
-          const visible = visibleTypes.has(type);
-          return (
-            <li key={type}>
-              <button
-                onClick={() => onTypeToggle(type)}
-                className="w-full flex items-center gap-2 px-3 py-1.5"
-                style={{
-                  color: visible ? 'var(--fg-primary)' : 'var(--fg-muted)',
-                  opacity: visible ? 1 : 0.5,
-                  transition: 'opacity var(--transition-fast, 150ms) ease',
-                }}
-                onMouseEnter={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'var(--bg-secondary)')
-                }
-                onMouseLeave={(e) =>
-                  (e.currentTarget.style.backgroundColor = 'transparent')
-                }
-              >
-                <span
-                  className="inline-block rounded-full flex-shrink-0"
-                  style={{
-                    width: 8,
-                    height: 8,
-                    backgroundColor: `var(--entity-${dotKey}-dot, var(--graph-${dotKey}-fill, var(--accent)))`,
-                  }}
-                />
-                <span className="flex-1 text-left text-xs">
-                  {t(`entityTypes.${type}`)}
-                </span>
-                <span
-                  className="text-[11px] tabular-nums"
-                  style={{ color: 'var(--fg-muted)' }}
-                >
-                  {typeCounts.get(type) ?? 0}
-                </span>
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-      {inferredCount > 0 && (
-        <div style={{ borderTop: '1px solid var(--border)' }}>
+      {LEGEND_TYPES.map((type) => {
+        const dotKey = type === 'concept' ? 'con' : type === 'event' ? 'evt' : type === 'location' ? 'loc' : 'char';
+        const visible = visibleTypes.has(type);
+        return (
           <button
-            onClick={onInferredToggle}
-            className="w-full flex items-center gap-2 px-3 py-1.5"
+            key={type}
+            onClick={() => onTypeToggle(type)}
+            className="flex items-center w-full text-left"
             style={{
-              opacity: inferredVisible ? 1 : 0.5,
+              gap: 6,
+              fontSize: 11,
+              color: visible ? 'var(--fg-secondary)' : 'var(--fg-muted)',
+              opacity: visible ? 1 : 0.5,
+              textDecoration: visible ? 'none' : 'line-through',
               transition: 'opacity var(--transition-fast, 150ms) ease',
             }}
-            onMouseEnter={(e) =>
-              (e.currentTarget.style.backgroundColor = 'var(--bg-secondary)')
-            }
-            onMouseLeave={(e) =>
-              (e.currentTarget.style.backgroundColor = 'transparent')
-            }
           >
             <span
-              className="inline-block flex-shrink-0"
+              className="inline-block rounded-full flex-shrink-0"
               style={{
-                width: 14,
-                height: 2,
-                backgroundColor: 'var(--accent)',
+                width: 9,
+                height: 9,
+                backgroundColor: `var(--entity-${dotKey}-dot, var(--graph-${dotKey}-fill, var(--accent)))`,
               }}
             />
+            <span className="flex-1">{t(`entityTypes.${type}`)}</span>
             <span
-              className="flex-1 text-left text-xs"
-              style={{ color: 'var(--fg-primary)' }}
+              className="tabular-nums"
+              style={{ fontSize: 10, color: 'var(--fg-muted)' }}
             >
-              {t('v1.legend.inferred')}
-            </span>
-            <span
-              className="text-[11px] tabular-nums"
-              style={{ color: 'var(--fg-muted)' }}
-            >
-              {inferredCount}
+              {typeCounts.get(type) ?? 0}
             </span>
           </button>
-        </div>
+        );
+      })}
+      {inferredCount > 0 && (
+        <button
+          onClick={onInferredToggle}
+          className="flex items-center w-full text-left"
+          style={{
+            gap: 6,
+            fontSize: 11,
+            color: 'var(--fg-secondary)',
+            marginTop: 4,
+            paddingTop: 4,
+            borderTop: '1px solid var(--border)',
+            opacity: inferredVisible ? 1 : 0.5,
+            transition: 'opacity var(--transition-fast, 150ms) ease',
+          }}
+        >
+          <span
+            className="flex-shrink-0"
+            style={{
+              width: 16,
+              height: 6,
+              display: 'inline-flex',
+              alignItems: 'center',
+            }}
+          >
+            <span
+              style={{
+                width: 16,
+                height: 1.5,
+                backgroundColor: 'var(--accent)',
+                opacity: 0.6,
+              }}
+            />
+          </span>
+          <span className="flex-1">{t('v1.legend.inferred')}</span>
+          <span
+            className="tabular-nums"
+            style={{ fontSize: 10, color: 'var(--fg-muted)' }}
+          >
+            {inferredCount}
+          </span>
+        </button>
       )}
     </div>
   );

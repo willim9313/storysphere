@@ -51,15 +51,25 @@ export function fetchInferredRelations(
   return apiFetch<InferredRelationsResponse>(`/books/${bookId}/inferred-relations${qs}`);
 }
 
+/**
+ * Confirm (adopt) an inferred relation. When `relationType` is omitted the
+ * backend promotes the inferred relation's `suggestedRelationType` to its
+ * canonical RelationType (see domain.inferred_relations.INFERRED_TO_CANONICAL).
+ * Pass an explicit `relationType` only to override the auto-promotion.
+ */
 export function confirmInferred(
   bookId: string,
   irId: string,
-  relationType: string,
+  relationType?: string,
 ): Promise<{ relationId: string }> {
-  return apiFetch<{ relationId: string }>(`/books/${bookId}/inferred-relations/${irId}/confirm`, {
-    method: 'POST',
-    body: JSON.stringify({ relationType }),
-  });
+  const init: RequestInit = { method: 'POST' };
+  if (relationType !== undefined) {
+    init.body = JSON.stringify({ relationType });
+  }
+  return apiFetch<{ relationId: string }>(
+    `/books/${bookId}/inferred-relations/${irId}/confirm`,
+    init,
+  );
 }
 
 export function rejectInferred(bookId: string, irId: string): Promise<void> {

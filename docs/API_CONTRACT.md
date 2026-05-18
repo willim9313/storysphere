@@ -661,16 +661,30 @@ interface InferredRelationsResponse {
 
 ### #10c POST /books/:bookId/inferred-relations/:irId/confirm
 
-確認推斷關係，將其加入正式圖譜。
+確認（採用）推斷關係，將其加入正式圖譜。
 
-**Request Body**
+**Request Body（選填）**
 ```ts
-{ relationType: string }
+{ relationType?: string }   // 整個 body 可省略
 ```
+
+省略 `relationType` 時，後端依下表將 `InferredRelationType` 提升為 `RelationType`：
+
+| InferredRelationType | → RelationType |
+|---|---|
+| `potential_ally` | `ally` |
+| `potential_enemy` | `enemy` |
+| `potential_friendship` | `friendship` |
+| `potential_associate` | `other` |
+| `unknown` | `other` |
+
+完整對照表定義於 `domain.inferred_relations.INFERRED_TO_CANONICAL`。
+
+帶 `relationType` 則覆寫自動映射，必須是有效的 `RelationType` 值，否則 422。
 
 **Response 201**：`{ relationId: string }`
 
-**UI 使用頁面**：知識圖譜頁 InferredEdgePanel「Confirm」按鈕
+**UI 使用頁面**：知識圖譜頁 InferredEdgePanel「採用」按鈕（預設不傳 body，使用後端映射）
 
 ---
 

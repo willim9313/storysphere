@@ -145,11 +145,15 @@ export function LensCard({
   }, [nodes, bookmarkedIds]);
 
   // ── Render ────────────────────────────────────────────────────────
+  const headerSubtitle = tlEnabled && tlPosition > 0 && currentMax > 0
+    ? t('v1.lens.subtitle', { n: tlPosition, total: currentMax })
+    : t('v1.lens.subtitleAll');
+
   return (
     <div
       className="absolute bottom-4 left-4 z-10"
       style={{
-        width: 280,
+        width: 360,
         backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
@@ -157,17 +161,33 @@ export function LensCard({
         fontSize: 13,
       }}
     >
-      {/* Header */}
+      {/* Header — serif title + small subtitle (design: 視角  Lens · 章節 N / total) */}
       <div
-        className="flex items-center justify-between px-4 py-2.5"
+        className="flex items-baseline justify-between px-4 py-2.5"
         style={{ borderBottom: '1px solid var(--border)' }}
       >
-        <span
-          className="text-xs font-semibold uppercase tracking-wider"
-          style={{ color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
-        >
-          {t('v1.lens.title')}
-        </span>
+        <div className="flex items-baseline gap-2 min-w-0">
+          <span
+            className="font-bold"
+            style={{
+              fontFamily: 'var(--font-serif)',
+              fontSize: 13,
+              color: 'var(--fg-primary)',
+            }}
+          >
+            {t('v1.lens.title')}
+          </span>
+          <span
+            className="truncate"
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 10,
+              color: 'var(--fg-muted)',
+            }}
+          >
+            {headerSubtitle}
+          </span>
+        </div>
         {anyTimelineAvailable && (
           <button
             title={t('timeline.controls.reconfigure')}

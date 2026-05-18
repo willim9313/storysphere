@@ -82,8 +82,11 @@ export default function GraphPage() {
     enabled: !!bookId,
   });
 
+  // Safe default: only score new entity pairs; preserves any existing
+  // adopted/rejected decisions. The InferredEdgePanel exposes a separate
+  // affordance for the destructive force_refresh=true path.
   const inferMutation = useMutation({
-    mutationFn: () => runInference(bookId!, true),
+    mutationFn: () => runInference(bookId!),
     onSuccess: () => {
       setShowInferred(true);
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
@@ -105,8 +108,10 @@ export default function GraphPage() {
   const elements = useMemo(() => {
     if (!data) return [];
     if (clusteredGraph) {
+      // 2-line label: cluster name on top, "{count} 個節點" sublabel below
+      // (rendered via text-wrap: wrap in cytoscapeConfig).
       return toClusteredCytoscapeElements(clusteredGraph, (type, count) => {
-        return `${t(`entityTypes.${type}`)} · ${count}`;
+        return `${t(`entityTypes.${type}`)}\n${t('v1.cluster.members', { n: count })}`;
       });
     }
     return toCytoscapeElements(data);
@@ -278,7 +283,8 @@ export default function GraphPage() {
   const showEntityDetail = !showCompare && !showInferredReview && !showClusterOverview && !!selectedNode;
   const rightOpen = showCompare || showInferredReview || showClusterOverview || showEntityDetail || !!rightPanel;
   const rightPanelExtraWidth = rightPanel ? RIGHT_PANEL_WIDTH[rightPanel] : 0;
-  const statsRight = rightOpen ? 16 + 280 + rightPanelExtraWidth : 16;
+  // Shared right-anchor for the bottom-right widget column (mini-map / stats / zoom).
+  const bottomRightAnchor = rightOpen ? 16 + 280 + rightPanelExtraWidth : 16;
 
   return (
     <div className="relative h-full w-full">
@@ -303,6 +309,8 @@ export default function GraphPage() {
         }}
         onSearchFocus={() => searchQuery.length > 0 && setSearchOpen(true)}
         onReset={handleReset}
+        visibleTypes={visibleTypes}
+        onTypeToggle={handleTypeToggle}
         clusterMode={clusterMode}
         onClusterModeChange={(m) => {
           setClusterMode(m);
@@ -377,53 +385,92 @@ export default function GraphPage() {
 
       {/* Mini-map (bottom-right) */}
       {viewportSnap && (
-        <MiniMap
-          nodes={viewportSnap.nodes}
-          edges={viewportSnap.edges}
-          viewport={viewportSnap.viewport}
-          onRecenter={(gx, gy) => canvasRef.current?.centerOn(gx, gy)}
-          onPanByGraph={(dx, dy) => canvasRef.current?.panByGraph(dx, dy)}
-        />
+        <div
+          className="absolute z-10"
+          style={{
+            bottom: 16,
+            right: bottomRightAnchor,
+            transition: 'right var(--transition-normal, 250ms) ease',
+          }}
+        >
+          <MiniMap
+            nodes={viewportSnap.nodes}
+            edges={viewportSnap.edges}
+            viewport={viewportSnap.viewport}
+            onRecenter={(gx, gy) => canvasRef.current?.centerOn(gx, gy)}
+            onPanByGraph={(dx, dy) => canvasRef.current?.panByGraph(dx, dy)}
+          />
+        </div>
       )}
 
-      {/* Zoom controls (above mini-map) */}
-      <div className="absolute right-4 flex flex-col gap-1 z-10" style={{ bottom: 140 }}>
-        <button
-          className="w-8 h-8 rounded-md flex items-center justify-center"
-          style={{
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            color: 'var(--fg-secondary)',
-          }}
-          aria-label="Zoom in"
-        >
-          <Plus size={14} />
-        </button>
-        <button
-          className="w-8 h-8 rounded-md flex items-center justify-center"
-          style={{
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            color: 'var(--fg-secondary)',
-          }}
-          aria-label="Zoom out"
-        >
-          <Minus size={14} />
-        </button>
-      </div>
-
-      {/* Stats */}
+      {/* Stats — sits just above the mini-map */}
       <div
-        className="absolute bottom-4 text-xs px-2 py-1 rounded z-10"
+        className="absolute z-10 flex items-center gap-2 px-2 py-1"
         style={{
-          right: statsRight,
-          backgroundColor: 'var(--bg-primary)',
-          border: '1px solid var(--border)',
+          bottom: 144,
+          right: bottomRightAnchor,
+          fontSize: 10,
           color: 'var(--fg-muted)',
           transition: 'right var(--transition-normal, 250ms) ease',
         }}
       >
-        {tStats('stats', { nodes: nodeCount, edges: edgeCount })}
+        <span>
+          <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{nodeCount}</strong>{' '}
+          {tStats('statsNodeLabel')}
+        </span>
+        <span style={{ opacity: 0.4 }}>·</span>
+        <span>
+          <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{edgeCount}</strong>{' '}
+          {tStats('statsEdgeLabel')}
+        </span>
+        {inferredCount > 0 && (
+          <>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span style={{ color: 'var(--accent)' }}>
+              {tStats('statsInferred', { n: inferredCount })}
+            </span>
+          </>
+        )}
+      </div>
+
+      {/* Zoom controls (above stats) */}
+      <div
+        className="absolute z-10 flex flex-col"
+        style={{
+          bottom: 176,
+          right: bottomRightAnchor,
+          transition: 'right var(--transition-normal, 250ms) ease',
+        }}
+      >
+        <button
+          className="flex items-center justify-center"
+          style={{
+            width: 26,
+            height: 26,
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+            color: 'var(--fg-secondary)',
+          }}
+          aria-label="Zoom in"
+        >
+          <Plus size={12} />
+        </button>
+        <button
+          className="flex items-center justify-center"
+          style={{
+            width: 26,
+            height: 26,
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            borderTop: 'none',
+            borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+            color: 'var(--fg-secondary)',
+          }}
+          aria-label="Zoom out"
+        >
+          <Minus size={12} />
+        </button>
       </div>
 
       {/* Right-side panels — priority: compare > inferred review > cluster overview > entity */}
