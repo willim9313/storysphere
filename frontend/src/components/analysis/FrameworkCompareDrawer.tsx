@@ -31,9 +31,9 @@ export function FrameworkCompareDrawer({ open, data, onClose }: Props) {
       <div className="ca-compare-backdrop" onClick={onClose} />
       <aside className="ca-compare-drawer" role="dialog" aria-modal="true">
         <header className="ca-compare-head">
-          <h3>{t('compare.title', { name: data.entityName })}</h3>
+          <h3>{t('character.compare.title', { name: data.entityName })}</h3>
           <button className="ca-btn ca-btn-ghost" onClick={onClose}>
-            <X size={14} /> {t('compare.close')}
+            <X size={14} /> {t('character.compare.close')}
           </button>
         </header>
         <div className="ca-compare-body">
@@ -60,7 +60,7 @@ function CompareColumn({
         <div className="ca-compare-col-head">
           <h4>{title}</h4>
         </div>
-        <p className="ca-compare-empty">{t('compare.notGenerated')}</p>
+        <p className="ca-compare-empty">{t('character.compare.notGenerated')}</p>
       </div>
     );
   }
@@ -70,7 +70,7 @@ function CompareColumn({
     <div className="ca-compare-col">
       <div className="ca-compare-col-head">
         <h4>{title}</h4>
-        <span className="pct">{t('compare.confidencePct', { pct })}</span>
+        <span className="pct">{t('character.compare.confidencePct', { pct })}</span>
       </div>
       <div className="ca-conf-track">
         <div className="ca-conf-fill" style={{ width: `${pct}%` }} />
@@ -80,10 +80,10 @@ function CompareColumn({
       </div>
       {archetype.secondary && (
         <div className="ca-compare-secondary">
-          {t('compare.secondaryLabel', { name: archetype.secondary })}
+          {t('character.compare.secondaryLabel', { name: archetype.secondary })}
         </div>
       )}
-      <p className="ca-compare-evidence-label">{t('compare.evidenceLabel')}</p>
+      <p className="ca-compare-evidence-label">{t('character.compare.evidenceLabel')}</p>
       <ul className="ca-compare-evidence" style={{ paddingLeft: 18, margin: 0 }}>
         {archetype.evidence.map((e, i) => (
           <li key={i}>{e}</li>

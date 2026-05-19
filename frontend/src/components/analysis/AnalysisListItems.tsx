@@ -41,7 +41,7 @@ export function AnalyzedItem({
         </div>
         {archetypeLabel && <div className="ca-item-archetype">{archetypeLabel}</div>}
         <div className="ca-item-meta">
-          <span>{t('list.chapterCount', { count: item.chapterCount })}</span>
+          <span>{t('character.list.chapterCount', { count: item.chapterCount })}</span>
         </div>
       </div>
       <div className="ca-item-dot" />
@@ -84,7 +84,7 @@ export function UnanalyzedItem({
         </div>
         <div className="ca-item-meta">
           <span>{t('notAnalyzed')}</span>
-          <span>· {t('list.chapterCount', { count: item.chapterCount })}</span>
+          <span>· {t('character.list.chapterCount', { count: item.chapterCount })}</span>
         </div>
       </div>
       <button

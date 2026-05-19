@@ -136,7 +136,7 @@ export default function CharacterAnalysisPage() {
         {/* ── Left panel ── */}
         <aside className="ca-left">
           <div className="ca-left-section">
-            <p className="ca-left-section-label">{t('list.frameworkLabel')}</p>
+            <p className="ca-left-section-label">{t('character.list.frameworkLabel')}</p>
             <div className="ca-fw-chips">
               {(['jung', 'schmidt'] as Framework[]).map((f) => (
                 <button
@@ -158,7 +158,7 @@ export default function CharacterAnalysisPage() {
                 disabled={!entityAnalysis}
               >
                 <GitCompare size={10} />
-                {t('compare.fromSidebar')}
+                {t('character.compare.fromSidebar')}
               </button>
               <Link to={`/frameworks?framework=${framework}`}>
                 {t('frameworkIndex')} <ExternalLink size={9} />
@@ -171,7 +171,7 @@ export default function CharacterAnalysisPage() {
               <Search size={12} style={{ color: 'var(--fg-muted)' }} />
               <input
                 type="text"
-                placeholder={t('list.searchPlaceholder', { count: totalCharacters })}
+                placeholder={t('character.list.searchPlaceholder', { count: totalCharacters })}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -240,7 +240,7 @@ export default function CharacterAnalysisPage() {
                       )}
                       {selectedAnalyzed && (
                         <span className="ca-title-meta">
-                          {t('list.chapterCount', { count: selectedAnalyzed.chapterCount })}
+                          {t('character.list.chapterCount', { count: selectedAnalyzed.chapterCount })}
                         </span>
                       )}
                       <Link
@@ -257,7 +257,7 @@ export default function CharacterAnalysisPage() {
                       className="ca-btn"
                       onClick={() => setCompareOpen(true)}
                     >
-                      <GitCompare size={12} /> {t('compare.open')}
+                      <GitCompare size={12} /> {t('character.compare.open')}
                     </button>
                     <button
                       type="button"

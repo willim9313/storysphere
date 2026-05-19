@@ -76,7 +76,7 @@ export function PersonaPane({
                 className="ca-btn ca-btn-ghost"
                 onClick={onOpenCompare}
               >
-                <GitCompare size={11} /> {t('compare.switchTo')}
+                <GitCompare size={11} /> {t('character.compare.switchTo')}
               </button>
             </div>
           )}
