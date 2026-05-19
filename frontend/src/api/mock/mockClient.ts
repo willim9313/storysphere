@@ -161,6 +161,13 @@ export async function triggerBatchEventAnalysis(
   return createMockTask();
 }
 
+export async function triggerBatchEntityAnalysis(
+  _bookId: string,
+): Promise<{ taskId: string }> {
+  await delay(300);
+  return createMockTask();
+}
+
 // ── Timeline (#9-timeline) ──────────────────────────────────────
 
 export async function fetchTimeline(

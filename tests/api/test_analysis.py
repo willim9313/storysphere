@@ -244,3 +244,100 @@ class TestRunEntityAnalysisFrameworks:
         assert kwargs.get("archetype_frameworks") == ["jung", "schmidt"]
         assert kwargs.get("entity_name") == "Alice"
         assert kwargs.get("document_id") == "doc-1"
+
+
+# ── Batch character analysis (#7h) ────────────────────────────────────────────
+
+
+@pytest.fixture
+def batch_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_agent):
+    """TestClient with a mock analysis cache so batch skip logic is controllable."""
+    from contextlib import asynccontextmanager
+
+    from api import deps
+    from api.main import create_app
+
+    cache_store: dict = {}
+    mock_cache = AsyncMock()
+
+    def _get(key):
+        return cache_store.get(key)
+
+    def _invalidate(key):
+        cache_store.pop(key, None)
+
+    mock_cache.get.side_effect = _get
+    mock_cache.set = AsyncMock()
+    mock_cache.invalidate.side_effect = _invalidate
+
+    app = create_app()
+
+    @asynccontextmanager
+    async def _noop_lifespan(app):
+        yield
+
+    app.router.lifespan_context = _noop_lifespan
+
+    app.dependency_overrides[deps.get_kg_service] = lambda: mock_kg
+    app.dependency_overrides[deps.get_doc_service] = lambda: mock_doc
+    app.dependency_overrides[deps.get_vector_service] = lambda: mock_vector
+    app.dependency_overrides[deps.get_analysis_agent] = lambda: mock_analysis_agent
+    app.dependency_overrides[deps.get_chat_agent] = lambda: mock_chat_agent
+    app.dependency_overrides[deps.get_analysis_cache] = lambda: mock_cache
+
+    with TestClient(app, raise_server_exceptions=True) as c:
+        c._cache_store = cache_store  # noqa: SLF001 — expose for test setup
+        yield c
+
+    app.dependency_overrides.clear()
+
+
+class TestBatchEntityAnalysis:
+    """POST /books/:bookId/entities/analyze-all — batch character analysis."""
+
+    def test_returns_202_with_task_id(self, batch_client):
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        assert resp.status_code == 202
+        assert "taskId" in resp.json()
+
+    def test_returns_404_for_unknown_book(self, batch_client):
+        resp = batch_client.post("/api/v1/books/no-such-book/entities/analyze-all")
+        assert resp.status_code == 404
+
+    def test_returns_400_when_no_characters(self, batch_client, mock_kg):
+        mock_kg.list_entities = AsyncMock(return_value=[])
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        assert resp.status_code == 400
+
+    def test_skips_cached_characters(self, batch_client, mock_analysis_agent, mock_doc):
+        """Characters with cache hits should be skipped, not re-analyzed."""
+        from services.analysis_cache import AnalysisCache
+
+        mock_doc.get_document_language = AsyncMock(return_value="en")
+        # Pre-populate cache for Alice → should be skipped
+        batch_client._cache_store[  # noqa: SLF001
+            AnalysisCache.make_key("character", "doc-1", "Alice")
+        ] = {"any": "value"}
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        assert resp.status_code == 202
+        task_id = resp.json()["taskId"]
+
+        for _ in range(20):
+            poll = batch_client.get(f"/api/v1/tasks/{task_id}/status")
+            if poll.status_code == 200 and poll.json()["status"] in ("done", "error"):
+                break
+            time.sleep(0.05)
+
+        final = batch_client.get(f"/api/v1/tasks/{task_id}/status").json()
+        assert final["status"] == "done"
+        result = final["result"]
+        assert result["total"] == 2  # ALICE + BOB from conftest
+        assert result["skipped"] == 1  # Alice cached
+        assert result["failed"] == 0
+        # Only Bob should have been analyzed
+        names_analyzed = [
+            call.kwargs.get("entity_name")
+            for call in mock_analysis_agent.analyze_character.await_args_list
+        ]
+        assert names_analyzed == ["Bob"]

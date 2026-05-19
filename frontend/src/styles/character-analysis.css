@@ -2,6 +2,8 @@
    All values come from tokens defined in styles/tokens.css.
    Naming: .ca-* (character-analysis prefix). */
 
+@import './analysis-batch.css';
+
 /* ─── Page shell ─── */
 .ca-page {
   background: var(--bg-primary);
@@ -827,4 +829,43 @@
   border-radius: var(--radius-md);
   margin-bottom: 14px;
   font-size: 12px; color: var(--fg-secondary);
+}
+
+/* ─── Batch completion toast ─── */
+.ca-toast {
+  position: absolute;
+  bottom: 24px;
+  right: 28px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--color-success);
+  border-radius: var(--radius-md);
+  padding: 12px 16px;
+  display: flex;
+  gap: 12px;
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  max-width: 360px;
+  z-index: 9;
+  animation: ca-toast-in 220ms ease;
+}
+@keyframes ca-toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.ca-toast-icon { flex-shrink: 0; color: var(--color-success); margin-top: 1px; }
+.ca-toast-main { flex: 1; min-width: 0; }
+.ca-toast-title {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  color: var(--fg-primary);
+  margin-bottom: 2px;
+}
+.ca-toast-body { color: var(--fg-secondary); line-height: 1.5; }
+.ca-toast-close {
+  background: none; border: none; cursor: pointer;
+  color: var(--fg-muted); padding: 0;
+  align-self: flex-start; font-size: 14px;
+  font-family: var(--font-sans);
 }

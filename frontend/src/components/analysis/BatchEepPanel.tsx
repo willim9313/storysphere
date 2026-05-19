@@ -12,6 +12,10 @@ interface BatchEepPanelProps {
   onTrigger: () => void;
   onDismissSummary?: () => void;
   isPending: boolean;
+  /** i18n key prefix; defaults to `'batch'` (event analysis page).
+   * Character page passes `'character.batch'` so keys live under
+   * the `character.*` namespace alongside other character-specific strings. */
+  i18nPrefix?: string;
 }
 
 export function BatchEepPanel({
@@ -24,8 +28,10 @@ export function BatchEepPanel({
   onTrigger,
   onDismissSummary,
   isPending,
+  i18nPrefix = 'batch',
 }: BatchEepPanelProps) {
   const { t } = useTranslation('analysis');
+  const k = (suffix: string) => `${i18nPrefix}.${suffix}`;
   const allDone = analyzedCount >= totalCount && totalCount > 0;
   const batchResult = batchTask?.result as BatchEepResult | undefined;
 
@@ -43,7 +49,7 @@ export function BatchEepPanel({
   return (
     <div className={'ea-batch' + (isBatchRunning ? ' running' : '')}>
       <div className="ea-batch-head">
-        <span className="ea-batch-label">{t('batch.header')}</span>
+        <span className="ea-batch-label">{t(k('header'))}</span>
         <span className="ea-batch-count">
           {runningAnalyzed}/{totalCount}
           <span className="total"> · {pct}%</span>
@@ -64,7 +70,7 @@ export function BatchEepPanel({
         {isBatchRunning ? (
           <>
             <span className="stage" title={stage}>
-              {stage || t('batch.running')}
+              {stage || t(k('running'))}
             </span>
             <span className="live">
               <Play size={9} /> live
@@ -72,14 +78,14 @@ export function BatchEepPanel({
           </>
         ) : batchError ? (
           <span style={{ color: 'var(--color-error)' }}>
-            {batchError || t('batch.errorFallback')}
+            {batchError || t(k('errorFallback'))}
           </span>
         ) : showSummary && batchSummary ? (
-          <span>{t('batch.summaryProgress', { count: batchSummary.progress })}</span>
+          <span>{t(k('summaryProgress'), { count: batchSummary.progress })}</span>
         ) : allDone ? (
-          <span>{t('batch.allDone')}</span>
+          <span>{t(k('allDone'))}</span>
         ) : (
-          <span>{t('batch.remaining', { count: totalCount - analyzedCount })}</span>
+          <span>{t(k('remaining'), { count: totalCount - analyzedCount })}</span>
         )}
       </div>
 
@@ -89,15 +95,15 @@ export function BatchEepPanel({
             <span className="ea-batch-stat-n">
               {batchSummary.progress - batchSummary.skipped - batchSummary.failed}
             </span>
-            <span className="ea-batch-stat-l">{t('batch.stat.generated')}</span>
+            <span className="ea-batch-stat-l">{t(k('stat.generated'))}</span>
           </div>
           <div className="ea-batch-stat skipped">
             <span className="ea-batch-stat-n">{batchSummary.skipped}</span>
-            <span className="ea-batch-stat-l">{t('batch.stat.skipped')}</span>
+            <span className="ea-batch-stat-l">{t(k('stat.skipped'))}</span>
           </div>
           <div className="ea-batch-stat failed">
             <span className="ea-batch-stat-n">{batchSummary.failed}</span>
-            <span className="ea-batch-stat-l">{t('batch.stat.failed')}</span>
+            <span className="ea-batch-stat-l">{t(k('stat.failed'))}</span>
           </div>
         </div>
       )}
@@ -105,11 +111,11 @@ export function BatchEepPanel({
       {isBatchRunning ? (
         <button className="ea-batch-btn running" disabled type="button">
           <span className="ea-mini-spinner" />
-          {t('batch.runningWithCount', { current: runningAnalyzed, total: totalCount })}
+          {t(k('runningWithCount'), { current: runningAnalyzed, total: totalCount })}
         </button>
       ) : allDone ? (
         <button className="ea-batch-btn" disabled type="button">
-          <Check size={12} /> {t('batch.allDone')}
+          <Check size={12} /> {t(k('allDone'))}
         </button>
       ) : (
         <button
@@ -118,18 +124,18 @@ export function BatchEepPanel({
           onClick={onTrigger}
           disabled={isPending}
         >
-          <Sparkles size={12} /> {t('batch.triggerAll')}
+          <Sparkles size={12} /> {t(k('triggerAll'))}
         </button>
       )}
 
       {!showSummary && !isBatchRunning && !allDone && (
-        <p className="ea-batch-hint">{t('batch.autoSkip')}</p>
+        <p className="ea-batch-hint">{t(k('autoSkip'))}</p>
       )}
       {showSummary && onDismissSummary && (
         <p className="ea-batch-hint row">
-          <span>{t('batch.toastTitle')}</span>
+          <span>{t(k('toastTitle'))}</span>
           <button type="button" className="dismiss" onClick={onDismissSummary}>
-            {t('batch.toastClose')}
+            {t(k('toastClose'))}
           </button>
         </p>
       )}

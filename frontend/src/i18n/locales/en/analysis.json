@@ -89,6 +89,29 @@
       "frameworkLabel": "Analysis framework",
       "chapterCount": "Ch.{{count}}"
     },
+    "batch": {
+      "header": "Character analysis",
+      "running": "Analyzing",
+      "allDone": "All characters analyzed ✓",
+      "triggerAll": "Generate all character analyses",
+      "autoSkip": "Already-analyzed characters are skipped automatically",
+      "remaining": "{{count}} remaining",
+      "summaryProgress": "Processed {{count}} characters",
+      "errorFallback": "Batch run failed",
+      "runningWithCount": "Analyzing {{current}}/{{total}}…",
+      "stat": {
+        "generated": "Generated",
+        "skipped": "Skipped",
+        "failed": "Failed"
+      },
+      "toastTitle": "Batch character analysis complete",
+      "toastBody": "{{generated}} generated · {{skipped}} skipped · {{failed}} failed",
+      "toastClose": "Close",
+      "confirmTitle": "Generate all character analyses",
+      "confirmMessage": "Run deep analysis on {{count}} unanalyzed characters. Already-analyzed characters are skipped. This consumes a significant amount of tokens.",
+      "confirmBtn": "Confirm",
+      "triggerFailed": "Failed to trigger batch analysis. Please try again later."
+    },
     "voice": {
       "avgSentenceLength": "Avg. Sentence Length",
       "questionRatio": "Question Ratio",

@@ -1551,6 +1551,132 @@ async def delete_entity_analysis(
     logger.info("Deleted entity analysis cache: key=%s", cache_key)
 
 
+# ── #7h POST /books/:bookId/entities/analyze-all ─────────────────────────────
+
+
+async def _run_batch_entity_analysis(
+    task_id: str,
+    document_id: str,
+    agent,
+    kg_service,
+    cache,
+    language: str = "en",
+) -> None:
+    """Background task: analyze all unanalyzed character entities."""
+    from domain.entities import EntityType  # noqa: PLC0415
+
+    task_store.set_running(task_id)
+    characters = await kg_service.list_entities(
+        entity_type=EntityType.CHARACTER, document_id=document_id
+    )
+    total = len(characters)
+    done = 0
+    failed = 0
+    skipped = 0
+
+    for entity in characters:
+        cache_key = AnalysisCache.make_key("character", document_id, entity.name)
+        if await cache.get(cache_key) is not None:
+            skipped += 1
+            done += 1
+            task_store.set_progress(
+                task_id,
+                progress=int(done / total * 100) if total else 0,
+                stage=f"分析角色 {done}/{total}",
+            )
+            continue
+        try:
+            await agent.analyze_character(
+                entity_name=entity.name,
+                document_id=document_id,
+                archetype_frameworks=["jung", "schmidt"],
+                language=language,
+            )
+            done += 1
+        except Exception as exc:
+            logger.warning(
+                "Batch character analysis failed for %s: %s",
+                entity.name, exc,
+            )
+            failed += 1
+            done += 1
+
+        task_store.set_progress(
+            task_id,
+            progress=int(done / total * 100) if total else 0,
+            stage=f"分析角色 {done}/{total}",
+        )
+
+    task_store.set_completed(
+        task_id,
+        result={
+            "progress": total,
+            "total": total,
+            "failed": failed,
+            "skipped": skipped,
+        },
+    )
+    logger.info(
+        "Batch character analysis complete: doc=%s, "
+        "total=%d, skipped=%d, failed=%d",
+        document_id, total, skipped, failed,
+    )
+
+
+@router.post(
+    "/{book_id}/entities/analyze-all",
+    response_model=TaskIdResponse,
+    status_code=202,
+)
+async def trigger_batch_entity_analysis(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    cache: AnalysisCacheDep,
+    agent: AnalysisAgentDep,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Trigger deep analysis for ALL character entities in a book.
+
+    Skips characters that already have cached analysis.
+    Returns a task_id for progress tracking.
+    """
+    from domain.entities import EntityType  # noqa: PLC0415
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Book '{book_id}' not found",
+        )
+
+    characters = await kg.list_entities(
+        entity_type=EntityType.CHARACTER, document_id=book_id
+    )
+    if not characters:
+        raise HTTPException(
+            status_code=400,
+            detail="No characters found for this book",
+        )
+
+    language = await doc.get_document_language(book_id)
+    task_id = str(uuid4())
+    task_store.create(task_id)
+    background_tasks.add_task(
+        _run_batch_entity_analysis,
+        task_id, book_id, agent, kg, cache, language,
+    )
+
+    logger.info(
+        "Triggered batch character analysis: book=%s, "
+        "characters=%d, task=%s",
+        book_id, len(characters), task_id,
+    )
+    return TaskIdResponse(task_id=task_id).model_dump(
+        by_alias=True,
+    )
+
+
 # ── F-03 GET /books/:bookId/entities/:entityId/epistemic-state ───────────────
 
 

@@ -7,6 +7,8 @@ import {
   RefreshCw,
   AlertTriangle,
   GitCompare,
+  Check,
+  X,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import '@/styles/character-analysis.css';
@@ -17,7 +19,10 @@ import {
   fetchEntityAnalysis,
   triggerEntityAnalysis,
   deleteEntityAnalysis,
+  triggerBatchEntityAnalysis,
 } from '@/api/analysis';
+import type { BatchEepResult } from '@/api/types';
+import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
 import {
   CharacterAnalysisDetail,
   type OverviewSubTab,
@@ -54,6 +59,13 @@ export default function CharacterAnalysisPage() {
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [triggerError, setTriggerError] = useState<string | null>(null);
+
+  const [confirmBatch, setConfirmBatch] = useState(false);
+  const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
+  const [batchError, setBatchError] = useState<string | null>(null);
+  const [batchSummary, setBatchSummary] = useState<BatchEepResult | null>(null);
+  const [prevBatchProgress, setPrevBatchProgress] = useState(0);
+  const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
     if (book) setPageContext({ page: 'analysis', bookId, bookTitle: book.title, analysisTab: 'characters' });
@@ -113,6 +125,52 @@ export default function CharacterAnalysisPage() {
     }
   }, [genTask?.status, bookId, selectedEntityId, queryClient]);
 
+  const batchMutation = useMutation({
+    mutationFn: () => triggerBatchEntityAnalysis(bookId!),
+    onSuccess: (data) => {
+      setBatchError(null);
+      setBatchSummary(null);
+      setPrevBatchProgress(0);
+      setBatchTaskId(data.taskId);
+    },
+    onError: () => setBatchError(t('character.batch.triggerFailed')),
+  });
+
+  const { data: batchTask } = useTaskPolling(batchTaskId);
+  const isBatchRunning =
+    !!batchTaskId &&
+    !!batchTask &&
+    batchTask.status !== 'done' &&
+    batchTask.status !== 'error';
+
+  useEffect(() => {
+    if (!batchTask?.result) return;
+    const result = batchTask.result as BatchEepResult;
+    if (result.progress > prevBatchProgress) {
+      setPrevBatchProgress(result.progress);
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
+    }
+  }, [batchTask?.result, prevBatchProgress, bookId, queryClient]);
+
+  useEffect(() => {
+    if (batchTask?.status === 'done') {
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
+      const result = batchTask.result as BatchEepResult;
+      setBatchSummary(result);
+      setBatchTaskId(null);
+      setToastVisible(true);
+    } else if (batchTask?.status === 'error') {
+      setBatchError(batchTask.error ?? t('character.batch.triggerFailed'));
+      setBatchTaskId(null);
+    }
+  }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient, t]);
+
+  useEffect(() => {
+    if (!toastVisible) return;
+    const timer = setTimeout(() => setToastVisible(false), 5000);
+    return () => clearTimeout(timer);
+  }, [toastVisible]);
+
   const selectedAnalyzed = charData?.analyzed.find((a) => a.entityId === selectedEntityId);
   const selectedUnanalyzed = charData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
@@ -135,6 +193,21 @@ export default function CharacterAnalysisPage() {
       <div className="ca-body">
         {/* ── Left panel ── */}
         <aside className="ca-left">
+          {charData && (
+            <BatchEepPanel
+              i18nPrefix="character.batch"
+              analyzedCount={charData.analyzed.length}
+              totalCount={totalCharacters}
+              batchTask={batchTask}
+              isBatchRunning={isBatchRunning}
+              batchError={batchError}
+              batchSummary={batchSummary}
+              onTrigger={() => setConfirmBatch(true)}
+              onDismissSummary={() => setBatchSummary(null)}
+              isPending={batchMutation.isPending}
+            />
+          )}
+
           <div className="ca-left-section">
             <p className="ca-left-section-label">{t('character.list.frameworkLabel')}</p>
             <div className="ca-fw-chips">
@@ -374,6 +447,34 @@ export default function CharacterAnalysisPage() {
             )}
           </div>
 
+          {/* Batch completion toast */}
+          {toastVisible && batchSummary && (
+            <div className="ca-toast" role="status">
+              <div className="ca-toast-icon">
+                <Check size={18} strokeWidth={2.2} />
+              </div>
+              <div className="ca-toast-main">
+                <div className="ca-toast-title">{t('character.batch.toastTitle')}</div>
+                <div className="ca-toast-body">
+                  {t('character.batch.toastBody', {
+                    generated:
+                      batchSummary.progress - batchSummary.skipped - batchSummary.failed,
+                    skipped: batchSummary.skipped,
+                    failed: batchSummary.failed,
+                  })}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="ca-toast-close"
+                onClick={() => setToastVisible(false)}
+                aria-label={t('character.batch.toastClose')}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          )}
+
           {/* Compare drawer overlays content area only */}
           <FrameworkCompareDrawer
             open={compareOpen}
@@ -392,6 +493,20 @@ export default function CharacterAnalysisPage() {
           handleRegenerate();
         }}
         onCancel={() => setConfirmRegenerate(false)}
+      />
+
+      <ConfirmDialog
+        open={confirmBatch}
+        title={t('character.batch.confirmTitle')}
+        message={t('character.batch.confirmMessage', {
+          count: charData?.unanalyzed.length ?? 0,
+        })}
+        confirmLabel={t('character.batch.confirmBtn')}
+        onConfirm={() => {
+          setConfirmBatch(false);
+          batchMutation.mutate();
+        }}
+        onCancel={() => setConfirmBatch(false)}
       />
     </div>
   );

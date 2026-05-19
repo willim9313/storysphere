@@ -96,6 +96,17 @@ export function triggerBatchEventAnalysis(
   );
 }
 
+// #7h — Batch entity analysis (analyze all unanalyzed characters)
+export function triggerBatchEntityAnalysis(
+  bookId: string,
+): Promise<{ taskId: string }> {
+  if (MOCK_ENABLED) return mock.triggerBatchEntityAnalysis(bookId);
+  return apiFetch<{ taskId: string }>(
+    `/books/${bookId}/entities/analyze-all`,
+    { method: 'POST' },
+  );
+}
+
 // #7d-get — Single event analysis detail (EEP + causality + impact)
 export function fetchEventAnalysisDetail(
   bookId: string,

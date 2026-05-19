@@ -352,6 +352,21 @@ interface ArcSegment {
 
 ---
 
+### #7h POST /books/:bookId/entities/analyze-all
+
+批次觸發所有未分析角色（`entity_type=character`）的深度分析（已分析自動跳過）。Archetype frameworks 固定為 `["jung", "schmidt"]`。
+
+**Response 202**：`{ taskId: string }`
+
+**Response 404**：書本不存在
+**Response 400**：書本內無 character 類型實體
+
+**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）。polling #8。
+
+**UI 使用頁面**：角色分析頁「一鍵生成全部角色分析」
+
+---
+
 ## 深度分析（事件層級）
 
 ### #7d GET /books/:bookId/events/:eventId/analysis

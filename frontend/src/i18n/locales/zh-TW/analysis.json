@@ -89,6 +89,29 @@
       "frameworkLabel": "分析框架",
       "chapterCount": "Ch.{{count}}"
     },
+    "batch": {
+      "header": "角色分析",
+      "running": "分析中",
+      "allDone": "全部角色已分析 ✓",
+      "triggerAll": "一鍵生成全部角色分析",
+      "autoSkip": "已分析的角色會自動跳過",
+      "remaining": "{{count}} 位待生成",
+      "summaryProgress": "本批次共處理 {{count}} 位",
+      "errorFallback": "批次執行失敗",
+      "runningWithCount": "分析中 {{current}}/{{total}}…",
+      "stat": {
+        "generated": "已生成",
+        "skipped": "已跳過",
+        "failed": "失敗"
+      },
+      "toastTitle": "批次角色分析完成",
+      "toastBody": "已生成 {{generated}} 位 · 跳過 {{skipped}} · 失敗 {{failed}}",
+      "toastClose": "關閉",
+      "confirmTitle": "批次生成角色分析",
+      "confirmMessage": "將對 {{count}} 個尚未分析的角色執行深度分析，已分析的角色會自動跳過。此操作將消耗大量 token。",
+      "confirmBtn": "確認執行",
+      "triggerFailed": "觸發批次分析失敗，請稍後再試。"
+    },
     "voice": {
       "avgSentenceLength": "平均句長",
       "questionRatio": "問句比例",
