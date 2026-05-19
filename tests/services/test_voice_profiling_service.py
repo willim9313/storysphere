@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from services.voice_profiling_service import (
+    VoiceProfilingService,
     _bucket_histogram,
     _compute_metrics,
     _empty_qualitative,
@@ -168,3 +169,58 @@ class TestBucketHistogram:
         assert values["11-20"] == 1
         assert values["41-50"] == 1
         assert values["51+"] == 1
+
+
+# ── _llm_qualitative prompt localization ─────────────────────────────────────
+
+class TestLlmQualitativeLocalization:
+    """Regression guard for the bug where voice profiling emitted English
+    qualitative fields against Chinese passages because the system prompt
+    lacked a Respond-in directive (parity with AnalysisService._localize_prompt).
+    """
+
+    def _make_service_with_captured_llm(self):
+        """Return (service, captured) where captured['messages'] holds the
+        SystemMessage/HumanMessage list passed to LLM.ainvoke.
+        """
+        captured: dict = {}
+
+        def _capture(messages):
+            captured["messages"] = messages
+            resp = MagicMock()
+            resp.content = (
+                '{"speech_style": "x", "distinctive_patterns": [],'
+                ' "tone": "y", "representative_quotes": []}'
+            )
+            return resp
+
+        llm = MagicMock()
+        llm.ainvoke = AsyncMock(side_effect=_capture)
+        return VoiceProfilingService(llm=llm), captured
+
+    @pytest.mark.asyncio
+    async def test_zh_appends_respond_in_chinese(self):
+        # langdetect emits zh-cn / zh-tw (never bare "zh"); these are the
+        # codes get_document_language returns and hand-off to the service.
+        service, captured = self._make_service_with_captured_llm()
+        await service._llm_qualitative(
+            "甲乙", [_para("你好嗎？")], language="zh-tw"
+        )
+        system_msg = captured["messages"][0].content
+        assert "Respond in Chinese." in system_msg
+
+    @pytest.mark.asyncio
+    async def test_en_appends_respond_in_english(self):
+        service, captured = self._make_service_with_captured_llm()
+        await service._llm_qualitative(
+            "Alice", [_para("Hello.")], language="en"
+        )
+        system_msg = captured["messages"][0].content
+        assert "Respond in English." in system_msg
+
+    @pytest.mark.asyncio
+    async def test_default_language_is_english(self):
+        service, captured = self._make_service_with_captured_llm()
+        await service._llm_qualitative("Alice", [_para("Hello.")])
+        system_msg = captured["messages"][0].content
+        assert "Respond in English." in system_msg

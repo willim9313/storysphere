@@ -2283,10 +2283,12 @@ async def get_entity_voice_profile(
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
+    language = await doc.get_document_language(book_id)
     try:
         profile = await voice_svc.get_voice_profile(
             document_id=book_id,
             character_id=entity_id,
+            language=language,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
