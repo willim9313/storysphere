@@ -1311,8 +1311,8 @@ async def list_event_analyses(
             try:
                 result = EventAnalysisResult.model_validate(cached)
                 importance = (
-                    result.eep.event_importance.value
-                    if result.eep and hasattr(result.eep.event_importance, "value")
+                    result.eep.event_importance.name
+                    if result.eep and hasattr(result.eep.event_importance, "name")
                     else None
                 )
                 analyzed.append(
@@ -1759,7 +1759,7 @@ async def get_event_analysis(
             ],
             consequences=result.eep.consequences,
             structural_role=result.eep.structural_role,
-            event_importance=result.eep.event_importance.value,
+            event_importance=result.eep.event_importance.name,
             thematic_significance=result.eep.thematic_significance,
             text_evidence=result.eep.text_evidence,
             key_quotes=result.eep.key_quotes,
@@ -1962,7 +1962,7 @@ async def get_book_timeline(
             analyzed_count += 1
             try:
                 result = EventAnalysisResult.model_validate(cached)
-                event_importance_map[ev.id] = result.eep.event_importance.value
+                event_importance_map[ev.id] = result.eep.event_importance.name
             except Exception:
                 pass
 
