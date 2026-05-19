@@ -166,7 +166,6 @@
       "knownEmpty": "No classified events known to the character by this chapter.",
       "unknownEmpty": "The character knows all events.",
       "misbeliefEmpty": "No significant misbeliefs detected.",
-      "unknownRevealAt": "Reveals at Ch.{{n}}",
       "characterBelieves": "Believes:",
       "actually": "Actually:",
       "misbeliefMeta": "Confidence {{pct}}% · Origin Ch.{{n}}"

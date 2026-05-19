@@ -166,7 +166,6 @@
       "knownEmpty": "此章節前，角色尚未經歷任何已分類事件。",
       "unknownEmpty": "角色已知所有事件。",
       "misbeliefEmpty": "未發現顯著誤信。",
-      "unknownRevealAt": "將於 Ch.{{n}} 揭露",
       "characterBelieves": "角色相信：",
       "actually": "實際：",
       "misbeliefMeta": "信心 {{pct}}% · 起源 Ch.{{n}}"

@@ -64,23 +64,23 @@ export function EpistemicStateSection({
 
   const { data: state, isFetching } = useEpistemicState(bookId, characterId, queriedChapter);
 
-  // Optimistic filtering — while debouncing, derive visible/unknown events
-  // from the most recent payload using the displayed cursor position.
+  // Backend already partitions events into known/unknown by the character's
+  // epistemic access (participant OR public visibility → known; otherwise →
+  // unknown) and only returns events with chapter ≤ up_to_chapter. We surface
+  // those buckets directly here. The local filter narrows further to
+  // displayedChapter so the panels feel responsive while the debounced query
+  // is in-flight — important when dragging the slider backwards.
   const optimistic = useMemo(() => {
     if (!state) return null;
-    const allKnown = state.knownEvents as Record<string, unknown>[];
-    const allUnknown = state.unknownEvents as Record<string, unknown>[];
-
-    // Union of both lists; partition by displayedChapter.
-    const merged = [...allKnown, ...allUnknown];
-    const visible: Record<string, unknown>[] = [];
-    const future: Record<string, unknown>[] = [];
-    for (const ev of merged) {
-      const ch = getChapter(ev);
-      if (ch == null || ch <= displayedChapter) visible.push(ev);
-      else future.push(ev);
-    }
-    return { visible, future };
+    const filterByChapter = (events: Record<string, unknown>[]) =>
+      events.filter((ev) => {
+        const ch = getChapter(ev);
+        return ch == null || ch <= displayedChapter;
+      });
+    return {
+      known: filterByChapter(state.knownEvents as Record<string, unknown>[]),
+      unknown: filterByChapter(state.unknownEvents as Record<string, unknown>[]),
+    };
   }, [state, displayedChapter]);
 
   const markers: TimelineMarker[] = useMemo(() => {
@@ -92,7 +92,7 @@ export function EpistemicStateSection({
       all.push({
         id: getId(ev, i),
         chapter: ch,
-        category: ch <= displayedChapter ? 'known' : 'unknown',
+        category: 'known',
         title: getTitle(ev),
       });
     });
@@ -102,12 +102,12 @@ export function EpistemicStateSection({
       all.push({
         id: getId(ev, i + 10000),
         chapter: ch,
-        category: ch <= displayedChapter ? 'known' : 'unknown',
+        category: 'unknown',
         title: getTitle(ev),
       });
     });
     return all;
-  }, [state, displayedChapter]);
+  }, [state]);
 
   if (state && !state.dataComplete) {
     return (
@@ -135,12 +135,12 @@ export function EpistemicStateSection({
         <div className="ca-epi-counts">
           <div className="ca-epi-count">
             <span className="ca-epi-count-dot known" />
-            <span className="ca-epi-count-n">{optimistic?.visible.length ?? 0}</span>
+            <span className="ca-epi-count-n">{optimistic?.known.length ?? 0}</span>
             <span className="ca-epi-count-l">{t('character.epistemic.knownLabel')}</span>
           </div>
           <div className="ca-epi-count">
             <span className="ca-epi-count-dot unknown" />
-            <span className="ca-epi-count-n">{optimistic?.future.length ?? 0}</span>
+            <span className="ca-epi-count-n">{optimistic?.unknown.length ?? 0}</span>
             <span className="ca-epi-count-l">{t('character.epistemic.unknownLabel')}</span>
           </div>
           <div className="ca-epi-count">
@@ -171,14 +171,14 @@ export function EpistemicStateSection({
                 <Eye size={12} />
                 {t('character.epistemic.knownTitle')}
               </span>
-              <span className="ca-epi-block-count">{optimistic.visible.length}</span>
+              <span className="ca-epi-block-count">{optimistic.known.length}</span>
             </div>
-            {optimistic.visible.length === 0 ? (
+            {optimistic.known.length === 0 ? (
               <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-muted)' }}>
                 {t('character.epistemic.knownEmpty')}
               </p>
             ) : (
-              optimistic.visible.map((ev, i) => {
+              optimistic.known.map((ev, i) => {
                 const ch = getChapter(ev);
                 return (
                   <div key={getId(ev, i)} className="ca-epi-event-row">
@@ -197,23 +197,19 @@ export function EpistemicStateSection({
                 <EyeOff size={12} />
                 {t('character.epistemic.unknownTitle')}
               </span>
-              <span className="ca-epi-block-count">{optimistic.future.length}</span>
+              <span className="ca-epi-block-count">{optimistic.unknown.length}</span>
             </div>
-            {optimistic.future.length === 0 ? (
+            {optimistic.unknown.length === 0 ? (
               <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-muted)' }}>
                 {t('character.epistemic.unknownEmpty')}
               </p>
             ) : (
-              optimistic.future.map((ev, i) => {
+              optimistic.unknown.map((ev, i) => {
                 const ch = getChapter(ev);
                 return (
                   <div key={getId(ev, i + 10000)} className="ca-epi-event-row unknown-row">
                     <span className="ca-epi-event-name">{getTitle(ev)}</span>
-                    {ch != null && (
-                      <span className="ca-epi-event-ch">
-                        {t('character.epistemic.unknownRevealAt', { n: ch })}
-                      </span>
-                    )}
+                    {ch != null && <span className="ca-epi-event-ch">Ch.{ch}</span>}
                   </div>
                 );
               })
