@@ -352,6 +352,36 @@
       "chronological": "故事時序",
       "matrix": "矩陣視圖"
     },
+    "modeSub": {
+      "narrative": "依書中出現順序，含章節分組",
+      "chronological": "依事件實際發生先後（Fabula）",
+      "matrix": "章節 × 時序，看敘事順序與真實時序的偏離"
+    },
+    "narrativeModes": {
+      "present": "當下敘事",
+      "flashback": "回敘",
+      "flashforward": "預敘",
+      "parallel": "並行",
+      "unknown": "未明"
+    },
+    "importanceKernel": "KERNEL 核心",
+    "importanceSatellite": "SATELLITE 附屬",
+    "currentEvent": "當前事件",
+    "closePanel": "關閉",
+    "layoutToggle": "佈局切換",
+    "appliedPrefix": "已套用：",
+    "clearAll": "全部清除",
+    "removeFilter": "移除篩選",
+    "analyzedShort": "已分析",
+    "gotoAnalysis": "前往深度分析頁觸發 EEP",
+    "banner": {
+      "title": "尚未計算故事時序",
+      "sub": "「故事時序」與「矩陣視圖」需要事件的 chronological rank，先重新計算以解鎖完整視圖。目前已分析 {{analyzed}}/{{total}} 事件（{{pct}}%）。"
+    },
+    "empty": {
+      "title": "尚無事件資料",
+      "body": "本書尚未抽出任何事件。請先在「事件分析」頁觸發事件抽取。"
+    },
     "noRanksTooltip": "尚未計算時序，請先觸發時序計算",
     "switchToVertical": "切換為垂直佈局",
     "switchToHorizontal": "切換為水平佈局",
@@ -361,7 +391,7 @@
     "qualityTooltip": "分析更多事件可提升時序計算品質。前往深度分析頁 → 事件分析一鍵生成全部 EEP。",
     "computing": "計算中…",
     "recompute": "重新計算時序",
-    "filter": "Filter",
+    "filter": "篩選",
     "filterSections": {
       "eventTypes": "事件類型",
       "narrativeModes": "敘事模式",
@@ -369,20 +399,20 @@
       "locations": "地點",
       "importance": "重要性"
     },
-    "charSearch": "搜尋角色...",
+    "charSearch": "搜尋角色…",
     "reset": "重置",
     "apply": "套用",
     "noEvents": "尚無事件資料。",
     "panel": {
       "summary": "事件概要",
       "temporal": "時序關係",
-      "eep": "證據剖析 — EEP",
+      "eep": "EEP 證據剖析",
       "causality": "因果分析",
       "impact": "影響分析"
     },
     "storyTime": "故事時間：",
-    "priorEvents": "前驅事件",
-    "subsequentEvents": "後續事件",
+    "priorEvents": "前驅 · prior",
+    "subsequentEvents": "後續 · subsequent",
     "chronologicalPosition": "時序位置",
     "noAnalysisData": "尚未分析，無前驅/後續資料。",
     "eep": {
@@ -420,7 +450,12 @@
       "unranked": "時序未計算",
       "tooltipRank": "時序",
       "tooltipParticipants": "角色",
-      "tooltipUnranked": "未計算"
+      "tooltipUnranked": "未計算",
+      "eventsUnit": "事件",
+      "marginalLabel": "事件密度",
+      "prolepsisZone": "預敘區（早期章節 / 晚期時序）",
+      "analepsisZone": "倒敘區（晚期章節 / 早期時序）",
+      "unrankedZone": "未排序事件"
     }
   },
   "unravelingLoadError": "無法載入展開卷軸資料",

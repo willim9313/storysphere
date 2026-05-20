@@ -505,54 +505,115 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 ### 3.7 時間軸頁 `/books/:bookId/timeline`
 
 > 後端設計見 [`docs/guides/PHASE_9_TEMPORAL_TIMELINE.md`](guides/PHASE_9_TEMPORAL_TIMELINE.md)
+> 規劃 brief 見 [`docs/plans/20260519-timeline-page-redesign.md`](plans/20260519-timeline-page-redesign.md)
 
 #### 版面結構
 
 ```
-[Toolbar 固定頂部] [時間軸主區 flex] [事件詳情面板 320px，點擊後展開]
+[Toolbar 上：3 視圖卡 + 工具]
+[QualityBanner（僅當 hasChronologicalRanks=false 時出現）]
+[ActiveFilters Bar（有套用篩選時出現）]
+[時間軸主區 flex] [事件詳情面板 360px，點擊事件後展開]
 ```
 
-#### 3.7.1 頂部工具列（固定）
+#### 3.7.1 頂部工具列（V2 / 進取版）
 
 ```
-左側:
-  [章節順序 ▾ / 故事時序 ▾ / 矩陣視圖 ▾]  ← 三選一 select
-  [⇄ 水平 / ↕ 垂直]                        ← layout 方向（矩陣模式下隱藏）
-
-中央:
-  [品質指示器] — EEP 覆蓋率 + 時序計算狀態
+左側 — 三卡視圖切換（每張：圖示 + 標題 + 為什麼用的副標）:
+  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  │ ☰ 章節順序        │ │ ↗ 故事時序        │ │ ▦ 矩陣視圖        │
+  │ 依書中出現順序... │ │ 依事件實際發生... │ │ 章節 × 時序...    │
+  └──────────────────┘ └──────────────────┘ └──────────────────┘
+  （未排序時序時，後 2 張卡右上有黃色 warning dot）
 
 右側:
-  [Filter ▾]
-  [重新計算時序]
+  [⇄ ↕] layout 切換（矩陣模式下隱藏）
+  [☰ 篩選 (n)]  ← n 為已套用群組數
+  [████░ 65% 已分析]  ← QualityChip（hasChronologicalRanks=true 時）
+  [↻ 重新計算時序 / 計算中…]
 ```
 
-#### 3.7.2 時間軸主區
+#### 3.7.2 QualityBanner（hasChronologicalRanks=false 時頂部出現）
 
-事件節點大小依 `event_importance`（KERNEL 48px / SATELLITE 32px）；顏色依 `narrative_mode`（見 `docs/domain-glossary.md`）。
+```
+[⚠]  尚未計算故事時序
+     「故事時序」與「矩陣視圖」需要事件的 chronological rank...
+     已分析 N/M 事件（P%）                       [↻ 重新計算時序]
+```
 
-連線雙層：底層順序線（虛線低透明度）+ 上層 TemporalRelation 邊（依 confidence 實線或虛線）。
+橘色 `--color-warning-bg` 底色，把行動 CTA 直接擺在橫幅上引導。
 
-Parallel 事件群組：`narrativeMode === 'parallel'` 的連續事件收為群組，外框紫色虛線。
+#### 3.7.3 ActiveFilters Bar（有套用篩選時出現）
 
-#### 3.7.3 Filter Dropdown
+```
+已套用：[葉文潔 ×] [回敘 ×] [KERNEL ×]   全部清除
+```
 
-多選 checkbox：事件類型 / 敘事模式 / 角色 / 地點 / 重要性（KERNEL / SATELLITE）。
+每個 chip 可單獨移除；「全部清除」一鍵 reset filter。
 
-#### 3.7.4 事件詳情面板（右側 320px）
+#### 3.7.4 時間軸主區（EventCard 視覺）
 
-accordion 結構：
-1. 事件概要（預設展開）
-2. 時序關係（預設展開）：前驅 / 後續事件（可點擊跳轉）
-3. EEP 證據剖析（預設收合）
-4. 因果分析（有資料時顯示）
-5. 影響分析（有資料時顯示）
+V2 用卡片化節點取代圓點：
+- 左側 3px (KERNEL) / 1px (SATELLITE) 色帶寬度兼任 narrative mode 上色與 importance 強化
+- 卡頭：NarrativeIcon（自繪 lucide-style）+ K/S 標籤 + Ch.N
+- 標題（serif，2 行 clamp）+ pills（至多 3 個，超出顯示 +N）
 
-#### 3.7.5 矩陣視圖（Fabula-Sjuzhet Matrix）
+NarrativeIcon 5 種圖示替代原本錄影機字符 `⏪ ⏩ ⏸`（語意錯位）。每個圖示是小型「時間軸 + 跳躍方向」線性圖：
+- **present** — 時間線 + 實心點 + 前進箭頭
+- **flashback** — 時間線 + 往回的弧線箭頭
+- **flashforward** — 時間線 + 向前的弧線箭頭
+- **parallel** — 兩條錯位平行線
+- **unknown** — 虛線圓 + 問號
 
-X 軸 = 敘事順序（章節），Y 軸 = 故事時序（`chronological_rank` 0.0→1.0）。
-散點顏色依 `narrative_mode`，框選多個散點可批次查看。
-`chronological_rank = null` 的事件放在 Y = -0.1，灰色半透明。
+Parallel 事件群組：`narrativeMode === 'parallel'` 的連續事件收為群組，左側雙線紫色 + 其餘虛線紫框；標題 `⤳ 並行支線`。
+
+SVG overlay：底層 spine polyline（淡灰）+ CAUSES 邊（confidence ≥ 0.5 才畫；≥ 0.8 實線 / < 0.8 虛線）。
+
+#### 3.7.5 Filter Sheet（下拉面板）
+
+chip 風格 toggle（不是 checkbox），分區：事件類型 / 敘事模式 / 重要性 / 角色（含搜尋）/ 地點。
+
+#### 3.7.6 事件詳情面板（右側 360px，hero 風格）
+
+```
+[← 關閉]
+[KERNEL 核心 NarrativeIcon][· 回敘][Ch.5]   ← 上方 meta chip 列
+事件標題（serif, 17px）
+章節標題 · 故事時間提示                       ← subtitle
+┌─ 主題意義 ──────────────────────┐
+│ 葉文潔的紅岸決策……               │  ← thematic block（accent left bar）
+└────────────────────────────────┘
+
+事件概要：description + participants/location pills
+
+時序關係（mini-timeline）：
+  ○─ 前驅 · prior：xxx (Ch.3 · 當下敘事)
+  │
+  ●─ 當前事件：本事件標題 (Ch.5 · rank 0.42)
+  │
+  ○─ 後續 · subsequent：xxx (Ch.7 · 當下敘事)
+
+[EEP 證據剖析 ▾]（預設展開）
+[因果分析 ▸]（預設收合）
+[影響分析 ▸]（預設收合）
+```
+
+當未分析時，hero 下方提供「前往深度分析頁觸發 EEP」CTA。
+
+#### 3.7.7 矩陣視圖（Fabula-Sjuzhet Matrix，V2）
+
+- X 軸 = 章節（離散），Y 軸 = `chronological_rank` 0.0→1.0
+- **頂部邊際 histogram**：每章節事件密度直方圖（accent 色，alpha 隨密度遞增）
+- **45° 對照線**：虛線，表示「完全按故事順序敘事」
+- **degraded row（Y = -0.1）**：warning 色，放 `chronological_rank == null` 事件
+- **Quadrant labels**：「↖ 預敘區 / ↘ 倒敘區 / ⤵ 未排序事件」三象限標籤
+- Dot 半徑：KERNEL 8 / SATELLITE 5 / 預設 6；顏色依 narrative mode
+- 框選（brush）：未選中 dot opacity 降至 0.15
+- Tooltip：hover 顯示 title / Ch / mode / rank / participants
+
+#### 樣式檔案
+
+`frontend/src/styles/timeline.css`（`.tl-*` prefix），與 character-analysis / event-analysis 並列；不修改 design tokens。
 
 #### API 參考
 

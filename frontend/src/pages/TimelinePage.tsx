@@ -17,8 +17,12 @@ import {
   X,
   ChevronDown,
   ChevronRight,
-  Filter,
+  SlidersHorizontal,
   Search,
+  AlertTriangle,
+  List,
+  TrendingUp,
+  LayoutGrid,
 } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
@@ -29,51 +33,17 @@ import { fetchEventAnalysisDetail } from '@/api/analysis';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MatrixCanvas } from '@/components/timeline/MatrixCanvas';
+import { NarrativeIcon } from '@/components/timeline/NarrativeIcon';
 import type {
   TimelineOrder,
   TimelineEvent,
   TemporalRelation,
-  NarrativeMode,
   EventAnalysisDetail,
   EntityType,
 } from '@/api/types';
+import '@/styles/timeline.css';
 
 type LayoutDirection = 'horizontal' | 'vertical';
-
-const IMPORTANCE_SIZE: Record<string, number> = {
-  KERNEL: 48,
-  SATELLITE: 32,
-};
-const DEFAULT_SIZE = 36;
-
-const NARRATIVE_BADGE: Record<NarrativeMode, string | null> = {
-  present: null,
-  flashback: '\u23EA',
-  flashforward: '\u23E9',
-  parallel: '\u23F8',
-  unknown: '?',
-};
-
-const NARRATIVE_COLORS: Record<NarrativeMode, { border: string; bg: string }> = {
-  present:      { border: 'var(--narrative-present-border)',      bg: 'var(--narrative-present-bg)'      },
-  flashback:    { border: 'var(--narrative-flashback-border)',    bg: 'var(--narrative-flashback-bg)'    },
-  flashforward: { border: 'var(--narrative-flashforward-border)', bg: 'var(--narrative-flashforward-bg)' },
-  parallel:     { border: 'var(--narrative-parallel-border)',     bg: 'var(--narrative-parallel-bg)'     },
-  unknown:      { border: 'var(--narrative-unknown-border)',      bg: 'var(--narrative-unknown-bg)'      },
-};
-
-const PILL_STYLE: Record<string, { color: string; bg: string }> = {
-  character:    { color: 'var(--entity-char-dot)',  bg: 'var(--entity-char-bg)'  },
-  location:     { color: 'var(--entity-loc-dot)',   bg: 'var(--entity-loc-bg)'   },
-  organization: { color: 'var(--entity-org-dot)',   bg: 'var(--entity-org-bg)'   },
-  object:       { color: 'var(--entity-obj-dot)',   bg: 'var(--entity-obj-bg)'   },
-  concept:      { color: 'var(--entity-con-dot)',   bg: 'var(--entity-con-bg)'   },
-  other:        { color: 'var(--entity-other-dot)', bg: 'var(--entity-other-bg)' },
-};
-
-function getEventSize(event: TimelineEvent): number {
-  return IMPORTANCE_SIZE[event.eventImportance ?? ''] ?? DEFAULT_SIZE;
-}
 
 /* ── Filter state ───────────────────────────────────────────── */
 
@@ -131,6 +101,61 @@ function eventPassesFilter(event: TimelineEvent, filter: FilterState): boolean {
   return true;
 }
 
+interface ActiveFilterTag {
+  key: string;
+  label: string;
+  remove: () => void;
+}
+
+function buildActiveFilterTags(
+  filter: FilterState,
+  onChange: (f: FilterState) => void,
+  options: FilterOptions,
+  modeLabel: (mode: string) => string,
+): ActiveFilterTag[] {
+  const tags: ActiveFilterTag[] = [];
+  const removeFrom = (key: keyof FilterState, value: string) => {
+    const next = { ...filter, [key]: new Set(filter[key]) };
+    next[key].delete(value);
+    onChange(next);
+  };
+  filter.eventTypes.forEach((v) =>
+    tags.push({ key: `et-${v}`, label: v, remove: () => removeFrom('eventTypes', v) }),
+  );
+  filter.narrativeModes.forEach((v) =>
+    tags.push({ key: `nm-${v}`, label: modeLabel(v), remove: () => removeFrom('narrativeModes', v) }),
+  );
+  filter.characters.forEach((id) => {
+    const name = options.characters.find((c) => c.id === id)?.name ?? id;
+    tags.push({ key: `ch-${id}`, label: name, remove: () => removeFrom('characters', id) });
+  });
+  filter.locations.forEach((id) => {
+    const name = options.locations.find((l) => l.id === id)?.name ?? id;
+    tags.push({ key: `lo-${id}`, label: name, remove: () => removeFrom('locations', id) });
+  });
+  filter.importance.forEach((v) =>
+    tags.push({ key: `im-${v}`, label: v, remove: () => removeFrom('importance', v) }),
+  );
+  return tags;
+}
+
+interface FilterOptions {
+  eventTypes: string[];
+  narrativeModes: string[];
+  characters: { id: string; name: string }[];
+  locations: { id: string; name: string }[];
+}
+
+/* ── Helpers ────────────────────────────────────────────────── */
+
+function chapterLabel(ch: number): string {
+  return `Ch.${ch}`;
+}
+
+function pillTypeClass(type: EntityType): string {
+  return `tl-pill tl-pill-${type}`;
+}
+
 /* ── Main component ─────────────────────────────────────────── */
 
 export default function TimelinePage() {
@@ -141,9 +166,14 @@ export default function TimelinePage() {
   const [layout, setLayout] = useState<LayoutDirection>('horizontal');
   const [computeTaskId, setComputeTaskId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
-  const [hoveredEventId, setHoveredEventId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterState>(createDefaultFilter);
   const [filterOpen, setFilterOpen] = useState(false);
+  const { t } = useTranslation('analysis');
+
+  const modeLabel = useCallback(
+    (mode: string) => t(`timeline.narrativeModes.${mode}`, mode),
+    [t],
+  );
 
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
@@ -165,11 +195,9 @@ export default function TimelinePage() {
     setPageContext({ selectedEntity: undefined });
   }, [selectedEventId, data?.events, setPageContext]);
 
-  // Node ref map for SVG lines
   const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const canvasRef = useRef<HTMLDivElement>(null);
 
-  // When compute finishes, refresh timeline data
   useEffect(() => {
     if (computeTask?.status === 'done') {
       setComputeTaskId(null);
@@ -188,7 +216,6 @@ export default function TimelinePage() {
     setComputeTaskId(taskId);
   }, [bookId, isComputing]);
 
-  // Sort events based on order
   const sortedEvents = useMemo(() => {
     if (!data?.events) return [];
     const events = [...data.events];
@@ -202,8 +229,7 @@ export default function TimelinePage() {
 
   const temporalRelations = data?.temporalRelations ?? [];
 
-  // Collect filter options from events
-  const filterOptions = useMemo(() => {
+  const filterOptions: FilterOptions = useMemo(() => {
     const eventTypes = new Set<string>();
     const narrativeModes = new Set<string>();
     const characters = new Map<string, string>();
@@ -224,7 +250,6 @@ export default function TimelinePage() {
     };
   }, [sortedEvents]);
 
-  // Which events pass the filter
   const passesFilter = useMemo(() => {
     const active = isFilterActive(filter);
     const map = new Map<string, boolean>();
@@ -234,7 +259,6 @@ export default function TimelinePage() {
     return map;
   }, [sortedEvents, filter]);
 
-  // Group events by chapter for chapter bands (narrative order only)
   const chapterGroups = useMemo(() => {
     if (order !== 'narrative') return [];
     const groups: { chapter: number; title?: string; count: number }[] = [];
@@ -250,27 +274,21 @@ export default function TimelinePage() {
     return groups;
   }, [sortedEvents, order]);
 
-  // Build event lookup
   const eventMap = useMemo(() => {
     const map = new Map<string, TimelineEvent>();
     for (const evt of sortedEvents) map.set(evt.id, evt);
     return map;
   }, [sortedEvents]);
 
-  // Navigate to event (scroll + select + panel update)
-  const jumpToEvent = useCallback(
-    (eventId: string) => {
-      setSelectedEventId(eventId);
-      const node = nodeRefs.current.get(eventId);
-      if (node) {
-        node.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-      }
-    },
-    [],
-  );
+  const jumpToEvent = useCallback((eventId: string) => {
+    setSelectedEventId(eventId);
+    const node = nodeRefs.current.get(eventId);
+    if (node) {
+      node.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+    }
+  }, []);
 
   const selectedEvent = selectedEventId ? eventMap.get(selectedEventId) : undefined;
-  const highlightedId = selectedEventId ?? hoveredEventId;
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;
@@ -278,12 +296,10 @@ export default function TimelinePage() {
   const quality = data?.quality;
   const hasRanks = quality?.hasChronologicalRanks ?? false;
 
+  const activeTags = buildActiveFilterTags(filter, setFilter, filterOptions, modeLabel);
+
   return (
-    <div
-      className="flex flex-col h-full overflow-hidden"
-      style={{ backgroundColor: 'var(--bg-primary)' }}
-    >
-      {/* Toolbar */}
+    <div className="tl">
       <Toolbar
         order={order}
         onOrderChange={setOrder}
@@ -293,25 +309,20 @@ export default function TimelinePage() {
         hasRanks={hasRanks}
         isComputing={isComputing}
         onCompute={handleCompute}
-        onGoToAnalysis={() => navigate(`/books/${bookId}/analysis`)}
         filterCount={activeFilterCount(filter)}
+        filterOpen={filterOpen}
         onToggleFilter={() => setFilterOpen((v) => !v)}
+        onCloseFilter={() => setFilterOpen(false)}
+        filter={filter}
+        onFilterChange={setFilter}
+        filterOptions={filterOptions}
+        modeLabel={modeLabel}
+        activeTags={activeTags}
+        onClearFilters={() => setFilter(createDefaultFilter())}
       />
 
-      {/* Filter dropdown */}
-      {filterOpen && (
-        <FilterDropdown
-          options={filterOptions}
-          filter={filter}
-          onChange={setFilter}
-          onClose={() => setFilterOpen(false)}
-        />
-      )}
-
-      {/* Main area: canvas + detail panel */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Timeline / Matrix canvas */}
-        <div className="flex-1 overflow-auto relative" ref={canvasRef}>
+      <div className="tl-main">
+        <div className="tl-canvas" ref={canvasRef}>
           {order === 'matrix' ? (
             <MatrixCanvas
               events={sortedEvents}
@@ -327,18 +338,14 @@ export default function TimelinePage() {
               order={order}
               temporalRelations={temporalRelations}
               selectedEventId={selectedEventId}
-              hoveredEventId={hoveredEventId}
-              highlightedCharacters={filter.characters}
               passesFilter={passesFilter}
               nodeRefs={nodeRefs}
               canvasRef={canvasRef}
               onSelectEvent={setSelectedEventId}
-              onHoverEvent={setHoveredEventId}
             />
           )}
         </div>
 
-        {/* Event detail panel */}
         {selectedEvent && bookId && (
           <EventDetailPanel
             event={selectedEvent}
@@ -346,6 +353,8 @@ export default function TimelinePage() {
             eventMap={eventMap}
             onClose={() => setSelectedEventId(null)}
             onJumpToEvent={jumpToEvent}
+            onGoToAnalysis={() => navigate(`/books/${bookId}/analysis`)}
+            modeLabel={modeLabel}
           />
         )}
       </div>
@@ -371,9 +380,16 @@ interface ToolbarProps {
   hasRanks: boolean;
   isComputing: boolean;
   onCompute: () => void;
-  onGoToAnalysis: () => void;
   filterCount: number;
+  filterOpen: boolean;
   onToggleFilter: () => void;
+  onCloseFilter: () => void;
+  filter: FilterState;
+  onFilterChange: (f: FilterState) => void;
+  filterOptions: FilterOptions;
+  modeLabel: (mode: string) => string;
+  activeTags: ActiveFilterTag[];
+  onClearFilters: () => void;
 }
 
 function Toolbar({
@@ -385,224 +401,237 @@ function Toolbar({
   hasRanks,
   isComputing,
   onCompute,
-  onGoToAnalysis,
   filterCount,
+  filterOpen,
   onToggleFilter,
+  onCloseFilter,
+  filter,
+  onFilterChange,
+  filterOptions,
+  modeLabel,
+  activeTags,
+  onClearFilters,
 }: ToolbarProps) {
   const { t } = useTranslation('analysis');
-  const tabs = [
-    { value: 'narrative' as TimelineOrder, label: t('timeline.tabs.narrative') },
-    { value: 'chronological' as TimelineOrder, label: t('timeline.tabs.chronological'), warn: !hasRanks },
-    { value: 'matrix' as TimelineOrder, label: t('timeline.tabs.matrix'), warn: !hasRanks },
+  const noRanks = !hasRanks;
+  const coverage = quality?.eepCoverage ?? 0;
+  const lowCoverage = coverage < 0.5;
+
+  const modes: {
+    value: TimelineOrder;
+    icon: React.ReactNode;
+    title: string;
+    sub: string;
+    warn: boolean;
+  }[] = [
+    {
+      value: 'narrative',
+      icon: <List size={14} />,
+      title: t('timeline.tabs.narrative'),
+      sub: t('timeline.modeSub.narrative'),
+      warn: false,
+    },
+    {
+      value: 'chronological',
+      icon: <TrendingUp size={14} />,
+      title: t('timeline.tabs.chronological'),
+      sub: t('timeline.modeSub.chronological'),
+      warn: noRanks,
+    },
+    {
+      value: 'matrix',
+      icon: <LayoutGrid size={14} />,
+      title: t('timeline.tabs.matrix'),
+      sub: t('timeline.modeSub.matrix'),
+      warn: noRanks,
+    },
   ];
 
   return (
-    <div
-      className="flex items-center justify-between px-4 py-2 flex-shrink-0 gap-4"
-      style={{
-        borderBottom: '1px solid var(--border)',
-        backgroundColor: 'var(--bg-primary)',
-      }}
-    >
-      {/* Left: view mode tabs + layout toggle + filter */}
-      <div className="flex items-center gap-3">
-        {/* View tabs — segmented control */}
-        <div
-          className="flex items-center gap-0.5 p-0.5 rounded-lg"
-          style={{ backgroundColor: 'var(--bg-secondary)' }}
-        >
-          {tabs.map((tab) => {
-            const isActive = order === tab.value;
-            return (
-              <button
-                key={tab.value}
-                onClick={() => onOrderChange(tab.value)}
-                className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-md transition-all duration-150"
-                title={tab.warn ? t('timeline.noRanksTooltip') : undefined}
-                style={{
-                  backgroundColor: isActive ? 'var(--bg-primary)' : 'transparent',
-                  color: isActive ? 'var(--accent)' : 'var(--fg-muted)',
-                  fontWeight: isActive ? 500 : 400,
-                  boxShadow: isActive
-                    ? '0 1px 3px rgba(0,0,0,0.08), 0 0 0 0.5px rgba(0,0,0,0.05)'
-                    : undefined,
-                }}
-              >
-                {tab.label}
-                {tab.warn && (
-                  <span
-                    style={{
-                      width: 5,
-                      height: 5,
-                      borderRadius: '50%',
-                      backgroundColor: 'var(--color-warning)',
-                      display: 'inline-block',
-                      flexShrink: 0,
-                    }}
-                  />
-                )}
-              </button>
-            );
-          })}
+    <div className="tl-toolbar" style={{ position: 'relative' }}>
+      <div className="tl-tb-row">
+        <div className="tl-mode-rail">
+          {modes.map((m) => (
+            <button
+              key={m.value}
+              type="button"
+              className="tl-mode-card"
+              aria-selected={order === m.value}
+              onClick={() => onOrderChange(m.value)}
+            >
+              {m.warn && <span className="tl-warn-dot" title={t('timeline.noRanksTooltip')} />}
+              <div className="tl-mode-card-title">
+                <span className="tl-mode-card-icon">{m.icon}</span>
+                {m.title}
+              </div>
+              <div className="tl-mode-card-sub">{m.sub}</div>
+            </button>
+          ))}
         </div>
 
-        {order !== 'matrix' && (
+        <div className="tl-tb-actions">
+          {order !== 'matrix' && (
+            <div className="tl-layout-toggle" role="group" aria-label={t('timeline.layoutToggle')}>
+              <button
+                type="button"
+                aria-selected={layout === 'horizontal'}
+                onClick={() => onLayoutChange('horizontal')}
+                title={t('timeline.switchToHorizontal')}
+              >
+                <ArrowLeftRight size={13} />
+              </button>
+              <button
+                type="button"
+                aria-selected={layout === 'vertical'}
+                onClick={() => onLayoutChange('vertical')}
+                title={t('timeline.switchToVertical')}
+              >
+                <ArrowUpDown size={13} />
+              </button>
+            </div>
+          )}
+
+          <button type="button" className="tl-btn" onClick={onToggleFilter}>
+            <SlidersHorizontal size={13} />
+            {t('timeline.filter')}
+            {filterCount > 0 && <span className="tl-badge">{filterCount}</span>}
+          </button>
+
+          {!noRanks && quality && (
+            <button
+              type="button"
+              className="tl-quality-chip"
+              title={t('timeline.qualityTooltip')}
+            >
+              <div className="tl-quality-bar">
+                <div
+                  className={`tl-quality-bar-fill${lowCoverage ? ' low' : ''}`}
+                  style={{ width: `${coverage * 100}%` }}
+                />
+              </div>
+              <span className="tl-quality-pct">{Math.round(coverage * 100)}%</span>
+              <span className="tl-muted">{t('timeline.analyzedShort')}</span>
+            </button>
+          )}
+
           <button
-            onClick={() =>
-              onLayoutChange(layout === 'horizontal' ? 'vertical' : 'horizontal')
-            }
-            className="flex items-center justify-center rounded-md transition-colors"
-            style={{
-              width: 28,
-              height: 28,
-              border: '1px solid var(--border)',
-              backgroundColor: 'var(--bg-primary)',
-              color: 'var(--fg-muted)',
-            }}
-            title={layout === 'horizontal' ? t('timeline.switchToVertical') : t('timeline.switchToHorizontal')}
+            type="button"
+            className="tl-btn"
+            onClick={onCompute}
+            disabled={isComputing}
           >
-            {layout === 'horizontal' ? (
-              <ArrowLeftRight size={13} />
+            {isComputing ? (
+              <>
+                <Loader2 size={12} className="tl-spin" /> {t('timeline.computing')}
+              </>
             ) : (
-              <ArrowUpDown size={13} />
+              <>
+                <RefreshCw size={12} /> {t('timeline.recompute')}
+              </>
             )}
           </button>
-        )}
-
-        <button
-          onClick={onToggleFilter}
-          className="flex items-center gap-1 text-xs px-2 py-1 rounded-md"
-          style={{
-            border: '1px solid var(--border)',
-            backgroundColor:
-              filterCount > 0 ? 'var(--bg-tertiary)' : 'var(--bg-primary)',
-            color:
-              filterCount > 0 ? 'var(--accent)' : 'var(--fg-secondary)',
-          }}
-        >
-          <Filter size={12} />
-          {t('timeline.filter')}{filterCount > 0 ? ` (${filterCount})` : ''}
-        </button>
+        </div>
       </div>
 
-      {/* Center: quality indicator */}
-      {quality && (
-        <QualityIndicator quality={quality} onClick={onGoToAnalysis} />
+      {noRanks && quality && (
+        <div className="tl-quality-banner">
+          <div className="tl-quality-banner-icon">
+            <AlertTriangle size={16} />
+          </div>
+          <div className="tl-quality-banner-text">
+            <div className="tl-quality-banner-title">{t('timeline.banner.title')}</div>
+            <div className="tl-quality-banner-sub">
+              {t('timeline.banner.sub', {
+                analyzed: quality.analyzedCount,
+                total: quality.totalCount,
+                pct: Math.round(coverage * 100),
+              })}
+            </div>
+          </div>
+          <button
+            type="button"
+            className="tl-btn tl-btn-warning"
+            onClick={onCompute}
+            disabled={isComputing}
+          >
+            {isComputing ? (
+              <>
+                <Loader2 size={13} className="tl-spin" /> {t('timeline.computing')}
+              </>
+            ) : (
+              <>
+                <RefreshCw size={13} /> {t('timeline.recompute')}
+              </>
+            )}
+          </button>
+        </div>
       )}
 
-      {/* Right: compute button */}
-      <button
-        onClick={onCompute}
-        disabled={isComputing}
-        className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md transition-colors"
-        style={{
-          border: '1px solid var(--border)',
-          backgroundColor: isComputing
-            ? 'var(--bg-tertiary)'
-            : 'var(--bg-primary)',
-          color: isComputing ? 'var(--fg-muted)' : 'var(--fg-primary)',
-          cursor: isComputing ? 'not-allowed' : 'pointer',
-        }}
-      >
-        {isComputing ? (
-          <>
-            <Loader2 size={12} className="animate-spin" /> {t('timeline.computing')}
-          </>
-        ) : (
-          <>
-            <RefreshCw size={12} /> {t('timeline.recompute')}
-          </>
-        )}
-      </button>
+      {activeTags.length > 0 && (
+        <div className="tl-active-filters">
+          <span className="tl-muted">{t('timeline.appliedPrefix')}</span>
+          {activeTags.map((tag) => (
+            <span key={tag.key} className="tl-active-filter">
+              {tag.label}
+              <button type="button" onClick={tag.remove} aria-label={t('timeline.removeFilter')}>
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+          <button type="button" className="tl-active-clear" onClick={onClearFilters}>
+            {t('timeline.clearAll')}
+          </button>
+        </div>
+      )}
+
+      {filterOpen && (
+        <FilterSheet
+          filter={filter}
+          onChange={onFilterChange}
+          onClose={onCloseFilter}
+          options={filterOptions}
+          modeLabel={modeLabel}
+        />
+      )}
     </div>
   );
 }
 
-/* ── Quality Indicator ───────────────────────────────────────── */
+/* ── Filter Sheet (dropdown) ─────────────────────────────────── */
 
-function QualityIndicator({
-  quality,
+interface FilterSheetProps {
+  filter: FilterState;
+  onChange: (f: FilterState) => void;
+  onClose: () => void;
+  options: FilterOptions;
+  modeLabel: (mode: string) => string;
+}
+
+function FilterChip({
+  active,
   onClick,
+  label,
 }: {
-  quality: {
-    eepCoverage: number;
-    analyzedCount: number;
-    totalCount: number;
-    hasChronologicalRanks: boolean;
-  };
+  active: boolean;
   onClick: () => void;
+  label: React.ReactNode;
 }) {
-  const { t } = useTranslation('analysis');
-  const blocks = 5;
-  const filled = Math.round(quality.eepCoverage * blocks);
-  const pct = Math.round(quality.eepCoverage * 100);
-
   return (
     <button
+      type="button"
+      className={`tl-filter-chip${active ? ' active' : ''}`}
       onClick={onClick}
-      className="flex items-center gap-2 text-xs px-2 py-1 rounded-md hover:opacity-80 transition-opacity"
-      style={{ color: 'var(--fg-secondary)' }}
-      title={t('timeline.qualityTooltip')}
     >
-      <span
-        className="tracking-wider"
-        style={{ fontFamily: 'monospace' }}
-      >
-        {Array.from({ length: blocks }, (_, i) => (
-          <span
-            key={i}
-            style={{
-              color: i < filled ? 'var(--accent)' : 'var(--border)',
-            }}
-          >
-            {'\u25A0'}
-          </span>
-        ))}
-      </span>
-      <span>
-        {t('timeline.qualityText', { analyzed: quality.analyzedCount, total: quality.totalCount, pct })}
-      </span>
-      <span style={{ color: 'var(--border)' }}>{'\u00B7'}</span>
-      <span
-        style={{
-          color: quality.hasChronologicalRanks
-            ? 'var(--accent)'
-            : 'var(--fg-muted)',
-        }}
-      >
-        {quality.hasChronologicalRanks ? t('timeline.ranked') : t('timeline.notRanked')}
-      </span>
+      {label}
     </button>
   );
 }
 
-/* ── Filter Dropdown ─────────────────────────────────────────── */
-
-interface FilterDropdownProps {
-  options: {
-    eventTypes: string[];
-    narrativeModes: string[];
-    characters: { id: string; name: string }[];
-    locations: { id: string; name: string }[];
-  };
-  filter: FilterState;
-  onChange: (f: FilterState) => void;
-  onClose: () => void;
-}
-
-function FilterDropdown({
-  options,
-  filter,
-  onChange,
-  onClose,
-}: FilterDropdownProps) {
+function FilterSheet({ filter, onChange, onClose, options, modeLabel }: FilterSheetProps) {
   const { t } = useTranslation('analysis');
   const [charSearch, setCharSearch] = useState('');
 
-  const toggleSet = (
-    key: keyof FilterState,
-    value: string,
-  ) => {
+  const toggleSet = (key: keyof FilterState, value: string) => {
     const next = { ...filter, [key]: new Set(filter[key]) };
     const set = next[key];
     if (set.has(value)) set.delete(value);
@@ -617,163 +646,101 @@ function FilterDropdown({
   );
 
   return (
-    <div
-      className="absolute left-4 top-12 z-50 rounded-lg shadow-lg overflow-y-auto"
-      style={{
-        backgroundColor: 'var(--bg-primary)',
-        border: '1px solid var(--border)',
-        maxHeight: 480,
-        width: 320,
-      }}
-    >
-      <div className="p-3 space-y-3">
-        {/* Event types */}
-        <FilterGroup title={t('timeline.filterSections.eventTypes')}>
-          {options.eventTypes.map((et) => (
-            <FilterCheckbox
-              key={et}
-              label={et}
-              checked={filter.eventTypes.has(et)}
-              onChange={() => toggleSet('eventTypes', et)}
+    <div className="tl-filter-sheet">
+      <div className="tl-filter-sheet-section">
+        <div className="tl-filter-sheet-label">{t('timeline.filterSections.eventTypes')}</div>
+        <div className="tl-filter-chips">
+          {options.eventTypes.map((v) => (
+            <FilterChip
+              key={v}
+              label={v}
+              active={filter.eventTypes.has(v)}
+              onClick={() => toggleSet('eventTypes', v)}
             />
           ))}
-        </FilterGroup>
-
-        {/* Narrative modes */}
-        <FilterGroup title={t('timeline.filterSections.narrativeModes')}>
-          {options.narrativeModes.map((m) => (
-            <FilterCheckbox
-              key={m}
-              label={m}
-              checked={filter.narrativeModes.has(m)}
-              onChange={() => toggleSet('narrativeModes', m)}
-            />
-          ))}
-        </FilterGroup>
-
-        {/* Characters (searchable) */}
-        <FilterGroup title={t('timeline.filterSections.characters')}>
-          <div className="relative mb-1">
-            <Search
-              size={12}
-              className="absolute left-2 top-1/2 -translate-y-1/2"
-              style={{ color: 'var(--fg-muted)' }}
-            />
-            <input
-              type="text"
-              value={charSearch}
-              onChange={(e) => setCharSearch(e.target.value)}
-              placeholder={t('timeline.charSearch')}
-              className="w-full text-xs pl-6 pr-2 py-1 rounded"
-              style={{
-                border: '1px solid var(--border)',
-                backgroundColor: 'var(--bg-primary)',
-                color: 'var(--fg-primary)',
-              }}
-            />
-          </div>
-          {filteredChars.map((c) => (
-            <FilterCheckbox
-              key={c.id}
-              label={c.name}
-              checked={filter.characters.has(c.id)}
-              onChange={() => toggleSet('characters', c.id)}
-            />
-          ))}
-        </FilterGroup>
-
-        {/* Locations */}
-        {options.locations.length > 0 && (
-          <FilterGroup title={t('timeline.filterSections.locations')}>
-            {options.locations.map((l) => (
-              <FilterCheckbox
-                key={l.id}
-                label={l.name}
-                checked={filter.locations.has(l.id)}
-                onChange={() => toggleSet('locations', l.id)}
-              />
-            ))}
-          </FilterGroup>
-        )}
-
-        {/* Importance */}
-        <FilterGroup title={t('timeline.filterSections.importance')}>
-          <FilterCheckbox
-            label="KERNEL"
-            checked={filter.importance.has('KERNEL')}
-            onChange={() => toggleSet('importance', 'KERNEL')}
-          />
-          <FilterCheckbox
-            label="SATELLITE"
-            checked={filter.importance.has('SATELLITE')}
-            onChange={() => toggleSet('importance', 'SATELLITE')}
-          />
-        </FilterGroup>
-
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t" style={{ borderColor: 'var(--border)' }}>
-          <button
-            onClick={reset}
-            className="text-xs px-3 py-1 rounded"
-            style={{ color: 'var(--fg-muted)' }}
-          >
-            {t('timeline.reset')}
-          </button>
-          <button
-            onClick={onClose}
-            className="text-xs px-3 py-1 rounded"
-            style={{
-              backgroundColor: 'var(--accent)',
-              color: 'white',
-            }}
-          >
-            {t('timeline.apply')}
-          </button>
         </div>
       </div>
-    </div>
-  );
-}
 
-function FilterGroup({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <p
-        className="text-xs font-medium mb-1"
-        style={{ color: 'var(--fg-primary)' }}
-      >
-        {title}
-      </p>
-      <div className="flex flex-wrap gap-x-3 gap-y-1">{children}</div>
-    </div>
-  );
-}
+      <div className="tl-filter-sheet-section">
+        <div className="tl-filter-sheet-label">{t('timeline.filterSections.narrativeModes')}</div>
+        <div className="tl-filter-chips">
+          {options.narrativeModes.map((v) => (
+            <FilterChip
+              key={v}
+              label={modeLabel(v)}
+              active={filter.narrativeModes.has(v)}
+              onClick={() => toggleSet('narrativeModes', v)}
+            />
+          ))}
+        </div>
+      </div>
 
-function FilterCheckbox({
-  label,
-  checked,
-  onChange,
-}: {
-  label: string;
-  checked: boolean;
-  onChange: () => void;
-}) {
-  return (
-    <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: 'var(--fg-secondary)' }}>
-      <input
-        type="checkbox"
-        checked={checked}
-        onChange={onChange}
-        className="rounded"
-      />
-      {label}
-    </label>
+      <div className="tl-filter-sheet-section">
+        <div className="tl-filter-sheet-label">{t('timeline.filterSections.importance')}</div>
+        <div className="tl-filter-chips">
+          <FilterChip
+            label="KERNEL"
+            active={filter.importance.has('KERNEL')}
+            onClick={() => toggleSet('importance', 'KERNEL')}
+          />
+          <FilterChip
+            label="SATELLITE"
+            active={filter.importance.has('SATELLITE')}
+            onClick={() => toggleSet('importance', 'SATELLITE')}
+          />
+        </div>
+      </div>
+
+      <div className="tl-filter-sheet-section">
+        <div className="tl-filter-sheet-label">{t('timeline.filterSections.characters')}</div>
+        <div className="tl-filter-search">
+          <span className="tl-filter-search-icon">
+            <Search size={12} />
+          </span>
+          <input
+            type="text"
+            value={charSearch}
+            onChange={(e) => setCharSearch(e.target.value)}
+            placeholder={t('timeline.charSearch')}
+          />
+        </div>
+        <div className="tl-filter-chips" style={{ maxHeight: 120, overflowY: 'auto' }}>
+          {filteredChars.map((c) => (
+            <FilterChip
+              key={c.id}
+              label={c.name}
+              active={filter.characters.has(c.id)}
+              onClick={() => toggleSet('characters', c.id)}
+            />
+          ))}
+        </div>
+      </div>
+
+      {options.locations.length > 0 && (
+        <div className="tl-filter-sheet-section">
+          <div className="tl-filter-sheet-label">{t('timeline.filterSections.locations')}</div>
+          <div className="tl-filter-chips">
+            {options.locations.map((l) => (
+              <FilterChip
+                key={l.id}
+                label={l.name}
+                active={filter.locations.has(l.id)}
+                onClick={() => toggleSet('locations', l.id)}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="tl-filter-sheet-foot">
+        <button type="button" className="tl-btn" onClick={reset}>
+          {t('timeline.reset')}
+        </button>
+        <button type="button" className="tl-btn tl-btn-primary" onClick={onClose}>
+          {t('timeline.apply')}
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -811,13 +778,10 @@ interface TimelineCanvasProps {
   order: TimelineOrder;
   temporalRelations: TemporalRelation[];
   selectedEventId: string | null;
-  hoveredEventId: string | null;
-  highlightedCharacters: Set<string>;
   passesFilter: Map<string, boolean>;
   nodeRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
   canvasRef: React.RefObject<HTMLDivElement | null>;
   onSelectEvent: (id: string | null) => void;
-  onHoverEvent: (id: string | null) => void;
 }
 
 interface LineCoord {
@@ -825,7 +789,6 @@ interface LineCoord {
   y1: number;
   x2: number;
   y2: number;
-  type: string;
   confidence: number;
 }
 
@@ -836,25 +799,19 @@ function TimelineCanvas({
   order,
   temporalRelations,
   selectedEventId,
-  hoveredEventId,
-  highlightedCharacters,
   passesFilter,
   nodeRefs,
-  canvasRef,
   onSelectEvent,
-  onHoverEvent,
 }: TimelineCanvasProps) {
+  const { t } = useTranslation('analysis');
   const isHorizontal = layout === 'horizontal';
   const showChapterBands = order === 'narrative';
-  // Show CAUSES edges in both modes; BEFORE/SIMULTANEOUS/DURING are redundant with visual order
-  const showRelationLines = order === 'chronological' || order === 'narrative';
 
   const [lines, setLines] = useState<LineCoord[]>([]);
-  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
   const [spinePoints, setSpinePoints] = useState<{ x: number; y: number }[]>([]);
+  const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
   const innerRef = useRef<HTMLDivElement>(null);
 
-  // Compute SVG line coordinates after layout
   useLayoutEffect(() => {
     if (!innerRef.current) {
       setLines([]);
@@ -865,7 +822,6 @@ function TimelineCanvas({
     const rect = container.getBoundingClientRect();
     setCanvasSize({ w: container.scrollWidth, h: container.scrollHeight });
 
-    // Compute spine polyline through each node center in order
     const pts: { x: number; y: number }[] = [];
     for (const evt of events) {
       const el = nodeRefs.current.get(evt.id);
@@ -878,13 +834,6 @@ function TimelineCanvas({
       }
     }
     setSpinePoints(pts);
-
-    // Only draw CAUSES edges — BEFORE/SIMULTANEOUS/DURING are already
-    // implied by visual ordering and would just create a noisy bundle.
-    if (!showRelationLines) {
-      setLines([]);
-      return;
-    }
 
     const computed: LineCoord[] = [];
     for (const rel of temporalRelations) {
@@ -900,26 +849,24 @@ function TimelineCanvas({
         y1: srcRect.top - rect.top + srcRect.height / 2,
         x2: tgtRect.left - rect.left + tgtRect.width / 2,
         y2: tgtRect.top - rect.top + tgtRect.height / 2,
-        type: rel.type,
         confidence: rel.confidence,
       });
     }
     setLines(computed);
-  }, [showRelationLines, temporalRelations, events, layout, isHorizontal, nodeRefs, selectedEventId]);
-
-  const { t } = useTranslation('analysis');
+  }, [temporalRelations, events, layout, nodeRefs]);
 
   if (events.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>
-          {t('timeline.noEvents')}
-        </p>
+      <div className="tl-state-center">
+        <div className="tl-state-icon">
+          <List size={26} />
+        </div>
+        <div className="tl-state-title">{t('timeline.empty.title')}</div>
+        <div className="tl-state-body">{t('timeline.empty.body')}</div>
       </div>
     );
   }
 
-  // Compute chapter band positions
   let bandOffset = 0;
   const bands = chapterGroups.map((g) => {
     const start = bandOffset;
@@ -927,230 +874,199 @@ function TimelineCanvas({
     return { ...g, startIdx: start };
   });
 
-  const highlightedId = selectedEventId ?? hoveredEventId;
-
   return (
-    <div ref={innerRef} className="relative min-h-full" style={{ minWidth: '100%' }}>
-      {/* SVG overlay — spine polyline + meaningful TemporalRelation edges */}
+    <div className="tl-canvas-inner" ref={innerRef}>
       {(spinePoints.length > 1 || lines.length > 0) && (
         <svg
-          className="absolute inset-0 pointer-events-none"
+          className="tl-svg-overlay"
           width={canvasSize.w}
           height={canvasSize.h}
-          style={{ zIndex: 1 }}
         >
-          {spinePoints.length > 1 && (
-            <polyline
-              points={spinePoints.map((p) => `${p.x},${p.y}`).join(' ')}
-              fill="none"
-              stroke="var(--fg-muted)"
-              strokeWidth={1}
-              opacity={0.3}
-            />
-          )}
           <defs>
             <marker
-              id="arrow-accent"
+              id="tl-arrow-v2"
               viewBox="0 0 10 7"
-              refX="10"
+              refX="9"
               refY="3.5"
-              markerWidth="8"
-              markerHeight="6"
+              markerWidth="6"
+              markerHeight="5"
               orient="auto"
             >
-              <polygon points="0 0, 10 3.5, 0 7" style={{ fill: 'var(--timeline-causal-stroke)' }} />
-            </marker>
-            <marker
-              id="arrow-default"
-              viewBox="0 0 10 7"
-              refX="10"
-              refY="3.5"
-              markerWidth="8"
-              markerHeight="6"
-              orient="auto"
-            >
-              <polygon points="0 0, 10 3.5, 0 7" style={{ fill: 'var(--fg-muted)' }} />
+              <polygon points="0 0, 10 3.5, 0 7" fill="var(--timeline-causal-stroke)" />
             </marker>
           </defs>
-          {lines.map((line, i) => {
-            const isCausal = line.type === 'CAUSES';
-            const isHighConf = line.confidence >= 0.8;
-            return (
-              <line
-                key={`rel-${i}`}
-                x1={line.x1}
-                y1={line.y1}
-                x2={line.x2}
-                y2={line.y2}
-                stroke={isCausal ? 'var(--timeline-causal-stroke)' : 'var(--fg-muted)'}
-                strokeWidth={2}
-                strokeDasharray={isHighConf ? undefined : '4,3'}
-                opacity={isHighConf ? 0.6 : 0.4}
-                markerEnd={
-                  isCausal ? 'url(#arrow-accent)' : 'url(#arrow-default)'
-                }
-              />
-            );
-          })}
+          {spinePoints.length > 1 && (
+            <polyline
+              className="tl-spine"
+              points={spinePoints.map((p) => `${p.x},${p.y}`).join(' ')}
+            />
+          )}
+          {lines.map((line, i) => (
+            <path
+              key={`rel-${i}`}
+              className={`tl-causal-edge ${line.confidence >= 0.8 ? 'high' : 'low'}`}
+              d={curvedPath(line)}
+              markerEnd="url(#tl-arrow-v2)"
+            />
+          ))}
         </svg>
       )}
 
-      {/* Events — centered when fits, scrollable when overflows */}
-      <div
-        className={`flex ${isHorizontal ? 'flex-row items-start' : 'flex-col items-center'} p-8 relative`}
-        style={{ gap: 120, width: 'max-content', margin: '0 auto', zIndex: 2 }}
-      >
+      <div className={`tl-canvas-row${isHorizontal ? '' : ' vertical'}`}>
         {showChapterBands
           ? bands.map((band, bi) => {
               const bandEvents = events.slice(band.startIdx, band.startIdx + band.count);
               const segments = groupIntoSegments(bandEvents);
               return (
-                <div
-                  key={band.chapter}
-                  className="relative flex flex-col"
-                  style={{
-                    borderLeft: isHorizontal ? '2px solid var(--accent)' : undefined,
-                    borderTop: !isHorizontal ? '2px solid var(--accent)' : undefined,
-                    paddingLeft: isHorizontal ? 12 : undefined,
-                    paddingTop: !isHorizontal ? 8 : undefined,
-                    backgroundColor: 'var(--timeline-chapter-bg)',
-                    borderRadius: 4,
-                  }}
+                <ChapterBand
+                  key={`band-${bi}`}
+                  label={band.title}
+                  chapter={band.chapter}
+                  count={band.count}
+                  isHorizontal={isHorizontal}
                 >
-                  <div className="font-medium mb-3" style={{ color: 'var(--fg-secondary)', fontSize: 13 }}>
-                    {band.title || `Ch.${band.chapter}`}
-                  </div>
-                  <div
-                    className={`flex ${isHorizontal ? 'flex-row items-start' : 'flex-col items-center'}`}
-                    style={{ gap: 80 }}
-                  >
-                    {segments.map((seg, si) =>
-                      seg.type === 'parallel-group' ? (
-                        <div
-                          key={`pg-${bi}-${si}`}
-                          className={`flex ${isHorizontal ? 'flex-col' : 'flex-row'} items-center`}
-                          style={{
-                            gap: 40,
-                            backgroundColor: 'var(--timeline-parallel-bg)',
-                            border: '1px dashed var(--timeline-parallel-border)',
-                            borderRadius: 8,
-                            padding: 8,
-                          }}
-                        >
-                          {seg.events.map((evt) => (
-                            <EventNode
-                              key={evt.id}
-                              event={evt}
-                              isHorizontal={isHorizontal}
-                              isSelected={selectedEventId === evt.id}
-                              isHighlighted={highlightedId === evt.id}
-                              isFiltered={passesFilter.get(evt.id) ?? true}
-                              highlightedCharacters={highlightedCharacters}
-                              nodeRefs={nodeRefs}
-                              onSelect={() => onSelectEvent(evt.id === selectedEventId ? null : evt.id)}
-                              onHover={(h) => onHoverEvent(h ? evt.id : null)}
-                            />
-                          ))}
-                        </div>
-                      ) : (
-                        <EventNode
-                          key={seg.event.id}
-                          event={seg.event}
-                          isHorizontal={isHorizontal}
-                          isSelected={selectedEventId === seg.event.id}
-                          isHighlighted={highlightedId === seg.event.id}
-                          isFiltered={passesFilter.get(seg.event.id) ?? true}
-                          highlightedCharacters={highlightedCharacters}
-                          nodeRefs={nodeRefs}
-                          onSelect={() => onSelectEvent(seg.event.id === selectedEventId ? null : seg.event.id)}
-                          onHover={(h) => onHoverEvent(h ? seg.event.id : null)}
-                        />
-                      )
-                    )}
-                  </div>
-                </div>
+                  {segments.map((seg, si) =>
+                    seg.type === 'parallel-group' ? (
+                      <ParallelGroup
+                        key={`pg-${bi}-${si}`}
+                        events={seg.events}
+                        isHorizontal={isHorizontal}
+                        selectedEventId={selectedEventId}
+                        passesFilter={passesFilter}
+                        nodeRefs={nodeRefs}
+                        onSelectEvent={onSelectEvent}
+                      />
+                    ) : (
+                      <EventCard
+                        key={seg.event.id}
+                        event={seg.event}
+                        selected={selectedEventId === seg.event.id}
+                        dim={!(passesFilter.get(seg.event.id) ?? true)}
+                        nodeRefs={nodeRefs}
+                        onSelect={() =>
+                          onSelectEvent(seg.event.id === selectedEventId ? null : seg.event.id)
+                        }
+                      />
+                    ),
+                  )}
+                </ChapterBand>
               );
             })
           : groupIntoSegments(events).map((seg, si) =>
               seg.type === 'parallel-group' ? (
-                <div
+                <ParallelGroup
                   key={`pg-${si}`}
-                  className={`flex ${isHorizontal ? 'flex-col' : 'flex-row'} items-center`}
-                  style={{
-                    gap: 40,
-                    backgroundColor: 'var(--timeline-parallel-bg)',
-                    border: '1px dashed var(--timeline-parallel-border)',
-                    borderRadius: 8,
-                    padding: 8,
-                  }}
-                >
-                  {seg.events.map((evt) => (
-                    <EventNode
-                      key={evt.id}
-                      event={evt}
-                      isHorizontal={isHorizontal}
-                      isSelected={selectedEventId === evt.id}
-                      isHighlighted={highlightedId === evt.id}
-                      isFiltered={passesFilter.get(evt.id) ?? true}
-                      highlightedCharacters={highlightedCharacters}
-                      nodeRefs={nodeRefs}
-                      onSelect={() => onSelectEvent(evt.id === selectedEventId ? null : evt.id)}
-                      onHover={(h) => onHoverEvent(h ? evt.id : null)}
-                    />
-                  ))}
-                </div>
+                  events={seg.events}
+                  isHorizontal={isHorizontal}
+                  selectedEventId={selectedEventId}
+                  passesFilter={passesFilter}
+                  nodeRefs={nodeRefs}
+                  onSelectEvent={onSelectEvent}
+                />
               ) : (
-                <EventNode
+                <EventCard
                   key={seg.event.id}
                   event={seg.event}
-                  isHorizontal={isHorizontal}
-                  isSelected={selectedEventId === seg.event.id}
-                  isHighlighted={highlightedId === seg.event.id}
-                  isFiltered={passesFilter.get(seg.event.id) ?? true}
-                  highlightedCharacters={highlightedCharacters}
+                  selected={selectedEventId === seg.event.id}
+                  dim={!(passesFilter.get(seg.event.id) ?? true)}
                   nodeRefs={nodeRefs}
-                  onSelect={() => onSelectEvent(seg.event.id === selectedEventId ? null : seg.event.id)}
-                  onHover={(h) => onHoverEvent(h ? seg.event.id : null)}
+                  onSelect={() =>
+                    onSelectEvent(seg.event.id === selectedEventId ? null : seg.event.id)
+                  }
                 />
-              )
+              ),
             )}
       </div>
     </div>
   );
 }
 
-/* ── Event Node ──────────────────────────────────────────────── */
-
-interface EventNodeProps {
-  event: TimelineEvent;
-  isHorizontal: boolean;
-  isSelected: boolean;
-  isHighlighted: boolean;
-  isFiltered: boolean;
-  highlightedCharacters: Set<string>;
-  nodeRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
-  onSelect: () => void;
-  onHover: (hovering: boolean) => void;
+function curvedPath(line: { x1: number; y1: number; x2: number; y2: number }): string {
+  const dx = line.x2 - line.x1;
+  const dy = line.y2 - line.y1;
+  if (Math.abs(dx) > Math.abs(dy)) {
+    const mid = (line.x1 + line.x2) / 2;
+    const ctrl = -Math.min(48, Math.abs(dx) * 0.22);
+    return `M ${line.x1} ${line.y1} Q ${mid} ${line.y1 + ctrl} ${line.x2} ${line.y2}`;
+  }
+  const mid = (line.y1 + line.y2) / 2;
+  return `M ${line.x1} ${line.y1} Q ${line.x1 + 30} ${mid} ${line.x2} ${line.y2}`;
 }
 
-function EventNode({
-  event,
+function ChapterBand({
+  label,
+  chapter,
+  count,
   isHorizontal,
-  isSelected,
-  isHighlighted,
-  isFiltered,
-  highlightedCharacters,
+  children,
+}: {
+  label?: string;
+  chapter: number;
+  count: number;
+  isHorizontal: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={`tl-chapter-band${isHorizontal ? '' : ' vertical'}`}>
+      <div className="tl-chapter-label">
+        <strong>{chapterLabel(chapter)}</strong>
+        {label && <span>· {label}</span>}
+        <span className="tl-chapter-count">{count}</span>
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function ParallelGroup({
+  events,
+  isHorizontal,
+  selectedEventId,
+  passesFilter,
+  nodeRefs,
+  onSelectEvent,
+}: {
+  events: TimelineEvent[];
+  isHorizontal: boolean;
+  selectedEventId: string | null;
+  passesFilter: Map<string, boolean>;
+  nodeRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+  onSelectEvent: (id: string | null) => void;
+}) {
+  return (
+    <div className={`tl-parallel-group${isHorizontal ? ' horizontal' : ' vertical'}`}>
+      {events.map((evt) => (
+        <EventCard
+          key={evt.id}
+          event={evt}
+          selected={selectedEventId === evt.id}
+          dim={!(passesFilter.get(evt.id) ?? true)}
+          nodeRefs={nodeRefs}
+          onSelect={() => onSelectEvent(evt.id === selectedEventId ? null : evt.id)}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* ── Event Card ──────────────────────────────────────────────── */
+
+function EventCard({
+  event,
+  selected,
+  dim,
   nodeRefs,
   onSelect,
-  onHover,
-}: EventNodeProps) {
-  const size = getEventSize(event);
-  const badge = NARRATIVE_BADGE[event.narrativeMode];
-  const dimmed = !isFiltered;
-  const nodeColor = NARRATIVE_COLORS[event.narrativeMode];
-
-  // Register ref
-  const circleRef = useCallback(
+}: {
+  event: TimelineEvent;
+  selected: boolean;
+  dim: boolean;
+  nodeRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
+  onSelect: () => void;
+}) {
+  const { t } = useTranslation('analysis');
+  const importance = event.eventImportance;
+  const cardRef = useCallback(
     (el: HTMLDivElement | null) => {
       if (el) nodeRefs.current.set(event.id, el);
       else nodeRefs.current.delete(event.id);
@@ -1158,130 +1074,71 @@ function EventNode({
     [event.id, nodeRefs],
   );
 
-  // Collect pills
   const pills: { id: string; name: string; type: EntityType }[] = [
-    ...event.participants,
+    ...event.participants.slice(0, 2),
     ...(event.location
-      ? [{ id: event.location.id, name: event.location.name, type: 'location' as EntityType }]
+      ? [
+          {
+            id: event.location.id,
+            name: event.location.name,
+            type: 'location' as EntityType,
+          },
+        ]
       : []),
   ];
-
-  const pillHighlight = isHighlighted || isSelected;
+  const totalPillCount = event.participants.length + (event.location ? 1 : 0);
+  const overflowCount = totalPillCount - pills.length;
 
   return (
     <div
-      className={`flex ${isHorizontal ? 'flex-col items-center' : 'flex-row items-center'} gap-1.5`}
-      style={{
-        width: isHorizontal ? 120 : undefined,
-        minHeight: isHorizontal ? undefined : 80,
-        padding: '8px 4px',
-        opacity: dimmed ? 0.1 : 1,
-        pointerEvents: dimmed ? 'none' : 'auto',
-        transition: 'opacity 200ms',
+      ref={cardRef}
+      className={`tl-card${importance === 'KERNEL' ? ' kernel' : ''}${selected ? ' selected' : ''}${dim ? ' dim' : ''}`}
+      style={{ ['--card-narrative' as string]: `var(--narrative-${event.narrativeMode}-border)` }}
+      onClick={onSelect}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect();
+        }
       }}
-      onMouseEnter={() => onHover(true)}
-      onMouseLeave={() => onHover(false)}
     >
-      {/* Pills above/left */}
-      <div
-        className={`flex ${isHorizontal ? 'flex-row flex-wrap justify-center' : 'flex-col'} gap-0.5`}
-        style={{ minHeight: isHorizontal ? 16 : undefined }}
-      >
-        {pills.map((p) => {
-          const isCharHighlighted =
-            highlightedCharacters.size > 0 && highlightedCharacters.has(p.id);
-          const ps = PILL_STYLE[p.type] ?? PILL_STYLE.other;
-          return (
-            <span
-              key={p.id}
-              className="inline-flex items-center gap-0.5 text-xs px-1 rounded-full"
-              style={{
-                fontSize: 9,
-                color: ps.color,
-                backgroundColor: ps.bg,
-                opacity: pillHighlight || isCharHighlighted ? 1.0 : 0.25,
-                transition: 'opacity 200ms',
-                whiteSpace: 'nowrap',
-              }}
-            >
-              <span
-                style={{
-                  width: 5,
-                  height: 5,
-                  borderRadius: '50%',
-                  backgroundColor: ps.color,
-                  display: 'inline-block',
-                  flexShrink: 0,
-                }}
-              />
+      <div className="tl-card-head">
+        <span
+          className="tl-card-mode-icon"
+          title={t(`timeline.narrativeModes.${event.narrativeMode}`, event.narrativeMode)}
+        >
+          <NarrativeIcon mode={event.narrativeMode} size={13} />
+        </span>
+        <span
+          className={`tl-card-importance${importance === 'KERNEL' ? ' kernel' : ''}`}
+        >
+          {importance === 'KERNEL' ? 'K' : importance === 'SATELLITE' ? 'S' : '·'}
+        </span>
+        <span className="tl-card-ch">{chapterLabel(event.chapter)}</span>
+      </div>
+      <div className="tl-card-title" title={event.title}>
+        {event.title}
+      </div>
+      {pills.length > 0 && (
+        <div className="tl-card-pills">
+          {pills.map((p) => (
+            <span key={p.id} className={pillTypeClass(p.type)}>
+              <span className="tl-pill-dot" />
               {p.name}
             </span>
-          );
-        })}
-      </div>
-
-      {/* Node circle */}
-      <div
-        ref={circleRef}
-        onClick={onSelect}
-        className="relative flex items-center justify-center rounded-full flex-shrink-0 cursor-pointer transition-transform hover:scale-110"
-        style={{
-          width: size,
-          height: size,
-          backgroundColor: nodeColor.bg,
-          border: `2px solid ${isSelected ? 'var(--accent)' : nodeColor.border}`,
-          boxShadow: isSelected
-            ? `0 0 0 3px var(--timeline-selected-ring)`
-            : undefined,
-        }}
-      >
-        {/* Narrative mode badge */}
-        {badge && (
-          <span
-            className="absolute -top-1 -left-1 text-xs rounded-full flex items-center justify-center"
-            style={{
-              width: 16,
-              height: 16,
-              fontSize: 9,
-              backgroundColor: `${nodeColor.border}40`,
-              color: nodeColor.border,
-            }}
-          >
-            {badge}
-          </span>
-        )}
-      </div>
-
-      {/* Label */}
-      <div
-        className={`flex flex-col ${isHorizontal ? 'items-center text-center' : 'items-start'}`}
-      >
-        <span
-          className="text-xs font-medium leading-tight"
-          style={{
-            color: 'var(--fg-primary)',
-            maxWidth: isHorizontal ? 110 : 160,
-            overflow: 'hidden',
-            display: '-webkit-box',
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: 'vertical',
-          }}
-          title={event.title}
-        >
-          {event.title}
-        </span>
-        <span
-          className="text-xs"
-          style={{ color: 'var(--fg-muted)', fontSize: 10 }}
-        >
-          Ch.{event.chapter}
-        </span>
-      </div>
+          ))}
+          {overflowCount > 0 && (
+            <span className="tl-pill tl-pill-overflow">+{overflowCount}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
-/* ── Event Detail Panel (right side, dark surface) ───────────── */
+/* ── Event Detail Panel ──────────────────────────────────────── */
 
 interface EventDetailPanelProps {
   event: TimelineEvent;
@@ -1289,6 +1146,8 @@ interface EventDetailPanelProps {
   eventMap: Map<string, TimelineEvent>;
   onClose: () => void;
   onJumpToEvent: (eventId: string) => void;
+  onGoToAnalysis: () => void;
+  modeLabel: (mode: string) => string;
 }
 
 function EventDetailPanel({
@@ -1297,544 +1156,482 @@ function EventDetailPanel({
   eventMap,
   onClose,
   onJumpToEvent,
+  onGoToAnalysis,
+  modeLabel,
 }: EventDetailPanelProps) {
   const { t } = useTranslation('analysis');
-  const [openSections, setOpenSections] = useState<Set<string>>(
-    new Set(['summary', 'temporal']),
-  );
+  const [open, setOpen] = useState({ eep: true, causality: false, impact: false });
+  const toggle = (k: keyof typeof open) => setOpen((o) => ({ ...o, [k]: !o[k] }));
 
-  // Fetch EEP analysis for this event
-  const { data: analysis, isLoading: analysisLoading } =
-    useQuery<EventAnalysisDetail>({
-      queryKey: ['books', bookId, 'events', event.id, 'analysis'],
-      queryFn: () => fetchEventAnalysisDetail(bookId, event.id),
-      retry: false,
-    });
+  const { data: analysis, isLoading: analysisLoading } = useQuery<EventAnalysisDetail>({
+    queryKey: ['books', bookId, 'events', event.id, 'analysis'],
+    queryFn: () => fetchEventAnalysisDetail(bookId, event.id),
+    retry: false,
+  });
 
-  const toggleSection = (key: string) => {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
-
-  const importanceBadge = event.eventImportance ?? '—';
-  const modeBadge = event.narrativeMode !== 'present' ? event.narrativeMode : null;
+  const isKernel = event.eventImportance === 'KERNEL';
 
   return (
-    <div
-      className="flex-shrink-0 h-full overflow-y-auto"
-      style={{
-        width: 320,
-        backgroundColor: 'var(--panel-bg)',
-        borderLeft: '1px solid var(--panel-border)',
-      }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-start justify-between p-4"
-        style={{ borderBottom: '1px solid var(--panel-border)' }}
-      >
-        <div className="flex-1 min-w-0">
-          <h3
-            className="text-sm font-semibold truncate"
-            style={{
-              fontFamily: 'var(--font-serif)',
-              color: 'var(--panel-fg)',
-            }}
-          >
-            {event.title}
-          </h3>
-          <p
-            className="text-xs mt-0.5"
-            style={{ color: 'var(--panel-fg-muted)' }}
-          >
-            Ch.{event.chapter}
-            {modeBadge ? ` · ${modeBadge}` : ''}
-            {' · '}
-            {importanceBadge}
-          </p>
-        </div>
+    <div className="tl-panel">
+      <div className="tl-panel-header">
         <button
+          type="button"
+          className="tl-panel-close"
           onClick={onClose}
-          className="ml-2 flex-shrink-0"
-          style={{ color: 'var(--panel-fg-muted)' }}
+          aria-label={t('timeline.closePanel')}
         >
-          <X size={16} />
+          <X size={14} />
         </button>
+        <div className="tl-panel-meta-row">
+          <span className={`tl-panel-importance-chip${isKernel ? '' : ' satellite'}`}>
+            <NarrativeIcon mode={event.narrativeMode} size={12} />
+            <span style={{ marginLeft: 2 }}>
+              {isKernel
+                ? t('timeline.importanceKernel')
+                : event.eventImportance === 'SATELLITE'
+                  ? t('timeline.importanceSatellite')
+                  : '—'}
+            </span>
+          </span>
+          <span className="tl-panel-mode-text">· {modeLabel(event.narrativeMode)}</span>
+          <span className="tl-panel-ch">{chapterLabel(event.chapter)}</span>
+        </div>
+        <div className="tl-panel-title">{event.title}</div>
+        <div className="tl-panel-subtitle">
+          {event.chapterTitle && <span>{event.chapterTitle}</span>}
+          {event.storyTimeHint && (
+            <>
+              <span className="tl-dot" />
+              <span>{event.storyTimeHint}</span>
+            </>
+          )}
+        </div>
+        {analysis?.eep.thematicSignificance && (
+          <div className="tl-panel-thematic">
+            <span className="tl-panel-thematic-label">
+              {t('timeline.eep.thematicSignificance')}
+            </span>
+            {analysis.eep.thematicSignificance}
+          </div>
+        )}
       </div>
 
-      {/* Accordion sections */}
-      <div className="p-2 space-y-1">
-        {/* 1. Event summary */}
-        <PanelAccordion
-          title={t('timeline.panel.summary')}
-          sectionKey="summary"
-          isOpen={openSections.has('summary')}
-          onToggle={toggleSection}
-        >
-          <p
-            className="text-xs leading-relaxed"
-            style={{ color: 'var(--panel-fg)' }}
-          >
+      <div className="tl-panel-body">
+        <div className="tl-panel-body-section">
+          <div className="tl-field-label">{t('timeline.panel.summary')}</div>
+          <p className="tl-description" style={{ marginTop: 6 }}>
             {event.description}
           </p>
-          {event.storyTimeHint && (
-            <p
-              className="text-xs mt-1"
-              style={{ color: 'var(--panel-fg-muted)' }}
-            >
-              {t('timeline.storyTime')}{event.storyTimeHint}
-            </p>
-          )}
-          {/* Participant pills */}
-          {event.participants.length > 0 && (
-            <div className="flex flex-wrap gap-1 mt-2">
+          {(event.participants.length > 0 || event.location) && (
+            <div className="tl-pill-group">
               {event.participants.map((p) => (
-                <PillTag key={p.id} name={p.name} type={p.type} />
+                <span key={p.id} className={pillTypeClass(p.type)}>
+                  <span className="tl-pill-dot" />
+                  {p.name}
+                </span>
               ))}
+              {event.location && (
+                <span className={pillTypeClass('location')}>
+                  <span className="tl-pill-dot" />
+                  {event.location.name}
+                </span>
+              )}
             </div>
           )}
-          {/* Location pill */}
-          {event.location && (
-            <div className="mt-1">
-              <PillTag
-                name={event.location.name}
-                type="location"
-              />
-            </div>
-          )}
-        </PanelAccordion>
+        </div>
 
-        {/* 2. Temporal relations */}
-        <PanelAccordion
-          title={t('timeline.panel.temporal')}
-          sectionKey="temporal"
-          isOpen={openSections.has('temporal')}
-          onToggle={toggleSection}
-        >
-          {/* Prior events */}
-          <EventLinkList
-            label={t('timeline.priorEvents')}
-            eventIds={analysis?.eep.priorEventIds ?? []}
-            eventMap={eventMap}
-            onJump={onJumpToEvent}
-          />
-          {/* Subsequent events */}
-          <EventLinkList
-            label={t('timeline.subsequentEvents')}
-            eventIds={analysis?.eep.subsequentEventIds ?? []}
-            eventMap={eventMap}
-            onJump={onJumpToEvent}
-          />
-          {/* Chronological rank */}
-          {event.chronologicalRank != null && (
-            <p
-              className="text-xs mt-2"
-              style={{ color: 'var(--panel-fg-muted)' }}
-            >
-              {t('timeline.chronologicalPosition')}{' '}
-              <span style={{ color: 'var(--panel-fg)' }}>
-                {event.chronologicalRank.toFixed(2)}
-              </span>{' '}
-              / 1.0
-            </p>
-          )}
-          {!analysis && !analysisLoading && (
-            <p
-              className="text-xs mt-1"
-              style={{ color: 'var(--panel-fg-muted)' }}
-            >
-              {t('timeline.noAnalysisData')}
-            </p>
-          )}
-        </PanelAccordion>
+        <MiniTimeline
+          event={event}
+          analysis={analysis ?? null}
+          analysisLoading={analysisLoading}
+          eventMap={eventMap}
+          onJumpToEvent={onJumpToEvent}
+          modeLabel={modeLabel}
+        />
 
-        {/* 3. EEP */}
-        <PanelAccordion
+        {!analysis && !analysisLoading && (
+          <div style={{ padding: '0 20px 10px' }}>
+            <button
+              type="button"
+              className="tl-btn"
+              onClick={onGoToAnalysis}
+              style={{ width: '100%', justifyContent: 'center' }}
+            >
+              {t('timeline.gotoAnalysis')}
+            </button>
+          </div>
+        )}
+
+        <AccordionSection
           title={t('timeline.panel.eep')}
-          sectionKey="eep"
-          isOpen={openSections.has('eep')}
-          onToggle={toggleSection}
+          open={open.eep}
+          onToggle={() => toggle('eep')}
         >
           {analysisLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader2
-                size={12}
-                className="animate-spin"
-                style={{ color: 'var(--panel-fg-muted)' }}
-              />
-              <span
-                className="text-xs"
-                style={{ color: 'var(--panel-fg-muted)' }}
-              >
-                {t('timeline.loading')}
-              </span>
-            </div>
+            <PanelLoading />
           ) : analysis ? (
-            <div className="space-y-2 text-xs" style={{ color: 'var(--panel-fg)' }}>
-              <LabeledField label={t('timeline.eep.stateBefore')} value={analysis.eep.stateBefore} />
-              <LabeledField label={t('timeline.eep.stateAfter')} value={analysis.eep.stateAfter} />
-              {analysis.eep.causalFactors.length > 0 && (
-                <div>
-                  <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    {t('timeline.eep.causalFactors')}
-                  </span>
-                  <ul className="list-disc list-inside mt-0.5">
-                    {analysis.eep.causalFactors.map((f, i) => (
-                      <li key={i}>{f}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {/* Participant roles with impact */}
-              {analysis.eep.participantRoles.length > 0 && (
-                <div>
-                  <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    {t('timeline.eep.participantRoles')}
-                  </span>
-                  <ul className="mt-0.5 space-y-1">
-                    {analysis.eep.participantRoles.map((r, i) => (
-                      <li key={i}>
-                        <span className="font-medium">{r.entityName}</span>
-                        <span style={{ color: 'var(--panel-fg-muted)' }}> ({r.role})</span>
-                        {r.impactDescription && (
-                          <p className="mt-0.5 pl-2" style={{ color: 'var(--panel-fg-muted)' }}>
-                            {r.impactDescription}
-                          </p>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {/* Consequences */}
-              {analysis.eep.consequences.length > 0 && (
-                <div>
-                  <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    {t('timeline.eep.consequences')}
-                  </span>
-                  <ul className="list-disc list-inside mt-0.5">
-                    {analysis.eep.consequences.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <LabeledField
-                label={t('timeline.eep.structuralRole')}
-                value={analysis.eep.structuralRole}
-              />
-              <LabeledField
-                label={t('timeline.eep.importance')}
-                value={analysis.eep.eventImportance}
-              />
-              <LabeledField
-                label={t('timeline.eep.thematicSignificance')}
-                value={analysis.eep.thematicSignificance}
-              />
-              {/* Key quotes */}
-              {analysis.eep.keyQuotes?.length > 0 && (
-                <div>
-                  <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    {t('timeline.eep.keyQuotes')}
-                  </span>
-                  <ul className="mt-0.5 space-y-1">
-                    {analysis.eep.keyQuotes.map((q, i) => (
-                      <li
-                        key={i}
-                        className="italic pl-2"
-                        style={{
-                          borderLeft: '2px solid var(--panel-border)',
-                        }}
-                      >
-                        「{q}」
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {/* Top terms as keyword tags */}
-              {Object.keys(analysis.eep.topTerms).length > 0 && (
-                <div>
-                  <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    {t('timeline.eep.topTerms')}
-                  </span>
-                  <div className="flex flex-wrap gap-1 mt-0.5">
-                    {Object.entries(analysis.eep.topTerms)
-                      .sort(([, a], [, b]) => b - a)
-                      .slice(0, 8)
-                      .map(([term]) => (
-                        <span
-                          key={term}
-                          className="px-1.5 py-0.5 rounded text-xs"
-                          style={{
-                            backgroundColor: 'var(--bg-tertiary)',
-                            color: 'var(--panel-fg)',
-                          }}
-                        >
-                          {term}
-                        </span>
-                      ))}
-                  </div>
-                </div>
-              )}
-            </div>
+            <EepBody analysis={analysis} />
           ) : (
-            <p
-              className="text-xs"
-              style={{ color: 'var(--panel-fg-muted)' }}
-            >
-              {t('timeline.eep.noEep')}
-            </p>
+            <span className="tl-muted">{t('timeline.eep.noEep')}</span>
           )}
-        </PanelAccordion>
+        </AccordionSection>
 
-        {/* 4. Causality analysis */}
-        <PanelAccordion
+        <AccordionSection
           title={t('timeline.panel.causality')}
-          sectionKey="causality"
-          isOpen={openSections.has('causality')}
-          onToggle={toggleSection}
+          open={open.causality}
+          onToggle={() => toggle('causality')}
         >
-          {analysis?.causality ? (
-            <div className="space-y-2 text-xs" style={{ color: 'var(--panel-fg)' }}>
-              <LabeledField
-                label={t('timeline.causality.rootCause')}
-                value={analysis.causality.rootCause}
-              />
-              {analysis.causality.causalChain.length > 0 && (
-                <div>
-                  <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    {t('timeline.causality.causalChain')}
-                  </span>
-                  <ol className="list-decimal list-inside mt-0.5">
-                    {analysis.causality.causalChain.map((c, i) => (
-                      <li key={i}>{c}</li>
-                    ))}
-                  </ol>
-                </div>
-              )}
-              <LabeledField
-                label={t('timeline.causality.chainSummary')}
-                value={analysis.causality.chainSummary}
-              />
-            </div>
+          {analysisLoading ? (
+            <PanelLoading />
+          ) : analysis?.causality ? (
+            <CausalityBody analysis={analysis} />
           ) : (
-            <p
-              className="text-xs"
-              style={{ color: 'var(--panel-fg-muted)' }}
-            >
-              {analysisLoading ? t('timeline.loading') : t('timeline.causality.noCausality')}
-            </p>
+            <span className="tl-muted">{t('timeline.causality.noCausality')}</span>
           )}
-        </PanelAccordion>
+        </AccordionSection>
 
-        {/* 5. Impact analysis */}
-        <PanelAccordion
+        <AccordionSection
           title={t('timeline.panel.impact')}
-          sectionKey="impact"
-          isOpen={openSections.has('impact')}
-          onToggle={toggleSection}
+          open={open.impact}
+          onToggle={() => toggle('impact')}
         >
-          {analysis?.impact ? (
-            <div className="space-y-2 text-xs" style={{ color: 'var(--panel-fg)' }}>
-              {/* Affected participants as pills */}
-              {analysis.impact.affectedParticipantIds.length > 0 && (
-                <div>
-                  <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    {t('timeline.impact.affectedParticipants')}
-                  </span>
-                  <div className="flex flex-wrap gap-1 mt-0.5">
-                    {analysis.impact.affectedParticipantIds.map((pid) => {
-                      const p = event.participants.find(
-                        (pp) => pp.id === pid,
-                      );
-                      return (
-                        <PillTag
-                          key={pid}
-                          name={p?.name ?? pid}
-                          type={p?.type ?? 'character'}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              {/* Per-participant impact descriptions */}
-              {analysis.impact.participantImpacts.length > 0 && (
-                <div>
-                  <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    {t('timeline.impact.participantImpacts')}
-                  </span>
-                  <ul className="mt-0.5 space-y-1">
-                    {analysis.impact.participantImpacts.map((p, i) => (
-                      <li
-                        key={i}
-                        className="pl-2"
-                        style={{
-                          borderLeft: '2px solid var(--panel-border)',
-                        }}
-                      >
-                        {p}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {analysis.impact.relationChanges.length > 0 && (
-                <div>
-                  <span style={{ color: 'var(--panel-fg-muted)' }}>
-                    {t('timeline.impact.relationChanges')}
-                  </span>
-                  <ul className="list-disc list-inside mt-0.5">
-                    {analysis.impact.relationChanges.map((r, i) => (
-                      <li key={i}>{r}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              <LabeledField
-                label={t('timeline.impact.impactSummary')}
-                value={analysis.impact.impactSummary}
-              />
-            </div>
+          {analysisLoading ? (
+            <PanelLoading />
+          ) : analysis?.impact ? (
+            <ImpactBody analysis={analysis} event={event} />
           ) : (
-            <p
-              className="text-xs"
-              style={{ color: 'var(--panel-fg-muted)' }}
-            >
-              {analysisLoading ? t('timeline.loading') : t('timeline.impact.noImpact')}
-            </p>
+            <span className="tl-muted">{t('timeline.impact.noImpact')}</span>
           )}
-        </PanelAccordion>
+        </AccordionSection>
       </div>
     </div>
   );
 }
 
-/* ── Panel sub-components ────────────────────────────────────── */
+function MiniTimeline({
+  event,
+  analysis,
+  analysisLoading,
+  eventMap,
+  onJumpToEvent,
+  modeLabel,
+}: {
+  event: TimelineEvent;
+  analysis: EventAnalysisDetail | null;
+  analysisLoading: boolean;
+  eventMap: Map<string, TimelineEvent>;
+  onJumpToEvent: (id: string) => void;
+  modeLabel: (mode: string) => string;
+}) {
+  const { t } = useTranslation('analysis');
+  const priors = (analysis?.eep.priorEventIds ?? [])
+    .map((id) => eventMap.get(id))
+    .filter((e): e is TimelineEvent => !!e);
+  const subsequents = (analysis?.eep.subsequentEventIds ?? [])
+    .map((id) => eventMap.get(id))
+    .filter((e): e is TimelineEvent => !!e);
+  const showSection = priors.length > 0 || subsequents.length > 0 || event.chronologicalRank != null;
 
-function PanelAccordion({
+  return (
+    <div>
+      <div className="tl-panel-body-section">
+        <div className="tl-field-label">{t('timeline.panel.temporal')}</div>
+      </div>
+      {!showSection && analysisLoading && <PanelLoading />}
+      {!showSection && !analysisLoading && (
+        <div style={{ padding: '0 20px 12px' }}>
+          <span className="tl-muted" style={{ fontSize: 12 }}>
+            {t('timeline.noAnalysisData')}
+          </span>
+        </div>
+      )}
+      {showSection && (
+        <div className="tl-mini-timeline">
+          {priors.map((e) => (
+            <MiniRow
+              key={`prior-${e.id}`}
+              role="prior"
+              label={t('timeline.priorEvents')}
+              event={e}
+              onJump={() => onJumpToEvent(e.id)}
+              modeLabel={modeLabel}
+            />
+          ))}
+          <MiniRow
+            role="current"
+            label={t('timeline.currentEvent')}
+            event={event}
+            current
+            modeLabel={modeLabel}
+          />
+          {subsequents.map((e) => (
+            <MiniRow
+              key={`sub-${e.id}`}
+              role="subsequent"
+              label={t('timeline.subsequentEvents')}
+              event={e}
+              onJump={() => onJumpToEvent(e.id)}
+              modeLabel={modeLabel}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MiniRow({
+  role,
+  label,
+  event,
+  current,
+  onJump,
+  modeLabel,
+}: {
+  role: 'prior' | 'current' | 'subsequent';
+  label: string;
+  event: TimelineEvent;
+  current?: boolean;
+  onJump?: () => void;
+  modeLabel: (mode: string) => string;
+}) {
+  const meta = current
+    ? `${chapterLabel(event.chapter)} · rank ${event.chronologicalRank?.toFixed(2) ?? '—'}`
+    : `${chapterLabel(event.chapter)} · ${modeLabel(event.narrativeMode)}`;
+  return (
+    <div className={`tl-mini-row ${role}`}>
+      <div className="tl-mini-marker">
+        <div className="tl-mini-dot" />
+        <div className="tl-mini-stem" />
+      </div>
+      <div className="tl-mini-content">
+        <div className="tl-mini-label">{label}</div>
+        <div
+          className={`tl-mini-title${current ? ' current' : ''}`}
+          onClick={onJump}
+          role={onJump ? 'button' : undefined}
+          tabIndex={onJump ? 0 : undefined}
+          onKeyDown={(e) => {
+            if (onJump && (e.key === 'Enter' || e.key === ' ')) {
+              e.preventDefault();
+              onJump();
+            }
+          }}
+        >
+          {event.title}
+        </div>
+        <div className="tl-mini-meta">{meta}</div>
+      </div>
+    </div>
+  );
+}
+
+function AccordionSection({
   title,
-  sectionKey,
-  isOpen,
+  open,
   onToggle,
   children,
 }: {
   title: string;
-  sectionKey: string;
-  isOpen: boolean;
-  onToggle: (key: string) => void;
+  open: boolean;
+  onToggle: () => void;
   children: React.ReactNode;
 }) {
   return (
-    <div
-      className="rounded-md overflow-hidden"
-      style={{ backgroundColor: 'var(--panel-bg-card)' }}
-    >
-      <button
-        className="flex items-center gap-2 w-full px-3 py-2 text-left"
-        onClick={() => onToggle(sectionKey)}
-      >
-        {isOpen ? (
-          <ChevronDown
-            size={12}
-            style={{ color: 'var(--panel-fg-muted)' }}
-          />
-        ) : (
-          <ChevronRight
-            size={12}
-            style={{ color: 'var(--panel-fg-muted)' }}
-          />
-        )}
-        <span
-          className="text-xs font-medium"
-          style={{ color: 'var(--panel-fg)' }}
-        >
-          {title}
+    <div className="tl-acc">
+      <button type="button" className="tl-acc-header" onClick={onToggle}>
+        <span className="tl-acc-chev">
+          {open ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
         </span>
+        {title}
       </button>
-      {isOpen && <div className="px-3 pb-3">{children}</div>}
+      {open && <div className="tl-acc-body">{children}</div>}
     </div>
   );
 }
 
-function PillTag({ name, type }: { name: string; type: string }) {
-  const ps = PILL_STYLE[type] ?? PILL_STYLE.other;
+function PanelLoading() {
+  const { t } = useTranslation('analysis');
   return (
-    <span
-      className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded-full"
-      style={{
-        fontSize: 10,
-        color: ps.color,
-        backgroundColor: ps.bg,
-      }}
-    >
-      <span
-        style={{
-          width: 5,
-          height: 5,
-          borderRadius: '50%',
-          backgroundColor: ps.color,
-          display: 'inline-block',
-          flexShrink: 0,
-        }}
-      />
-      {name}
-    </span>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+      <Loader2 size={12} className="tl-spin" />
+      <span className="tl-muted">{t('timeline.loading')}</span>
+    </div>
   );
 }
 
-function LabeledField({
-  label,
-  value,
+function EepBody({ analysis }: { analysis: EventAnalysisDetail }) {
+  const { t } = useTranslation('analysis');
+  const eep = analysis.eep;
+  return (
+    <>
+      {eep.stateBefore && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.eep.stateBefore')}</div>
+          <div className="tl-field-value">{eep.stateBefore}</div>
+        </div>
+      )}
+      {eep.stateAfter && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.eep.stateAfter')}</div>
+          <div className="tl-field-value">{eep.stateAfter}</div>
+        </div>
+      )}
+      {eep.causalFactors.length > 0 && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.eep.causalFactors')}</div>
+          <ul className="tl-field-list">
+            {eep.causalFactors.map((f, i) => (
+              <li key={i}>{f}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {eep.participantRoles.length > 0 && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.eep.participantRoles')}</div>
+          <ul className="tl-field-list">
+            {eep.participantRoles.map((r, i) => (
+              <li key={i}>
+                <strong>{r.entityName}</strong>
+                <span className="tl-muted"> ({r.role})</span>
+                {r.impactDescription && <div className="tl-muted">{r.impactDescription}</div>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {eep.consequences.length > 0 && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.eep.consequences')}</div>
+          <ul className="tl-field-list">
+            {eep.consequences.map((c, i) => (
+              <li key={i}>{c}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {eep.structuralRole && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.eep.structuralRole')}</div>
+          <div className="tl-field-value">{eep.structuralRole}</div>
+        </div>
+      )}
+      {eep.keyQuotes.length > 0 && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.eep.keyQuotes')}</div>
+          {eep.keyQuotes.map((q, i) => (
+            <div key={i} className="tl-field-quote">
+              「{q}」
+            </div>
+          ))}
+        </div>
+      )}
+      {Object.keys(eep.topTerms ?? {}).length > 0 && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.eep.topTerms')}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {Object.entries(eep.topTerms)
+              .sort(([, a], [, b]) => b - a)
+              .slice(0, 8)
+              .map(([term]) => (
+                <span key={term} className="tl-field-term">
+                  {term}
+                </span>
+              ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function CausalityBody({ analysis }: { analysis: EventAnalysisDetail }) {
+  const { t } = useTranslation('analysis');
+  const c = analysis.causality;
+  return (
+    <>
+      {c.rootCause && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.causality.rootCause')}</div>
+          <div className="tl-field-value">{c.rootCause}</div>
+        </div>
+      )}
+      {c.causalChain.length > 0 && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.causality.causalChain')}</div>
+          <ol className="tl-field-list" style={{ listStyleType: 'decimal' }}>
+            {c.causalChain.map((step, i) => (
+              <li key={i}>{step}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+      {c.chainSummary && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.causality.chainSummary')}</div>
+          <div className="tl-field-value">{c.chainSummary}</div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function ImpactBody({
+  analysis,
+  event,
 }: {
-  label: string;
-  value: string;
+  analysis: EventAnalysisDetail;
+  event: TimelineEvent;
 }) {
-  if (!value) return null;
+  const { t } = useTranslation('analysis');
+  const imp = analysis.impact;
   return (
-    <div>
-      <span style={{ color: 'var(--panel-fg-muted)' }}>{label}：</span>
-      <span>{value}</span>
-    </div>
+    <>
+      {imp.affectedParticipantIds.length > 0 && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.impact.affectedParticipants')}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            {imp.affectedParticipantIds.map((pid) => {
+              const p = event.participants.find((pp) => pp.id === pid);
+              const type: EntityType = (p?.type ?? 'character') as EntityType;
+              return (
+                <span key={pid} className={pillTypeClass(type)}>
+                  <span className="tl-pill-dot" />
+                  {p?.name ?? pid}
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      {imp.participantImpacts.length > 0 && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.impact.participantImpacts')}</div>
+          {imp.participantImpacts.map((p, i) => (
+            <div key={i} className="tl-field-quote" style={{ borderColor: 'var(--panel-border)' }}>
+              {p}
+            </div>
+          ))}
+        </div>
+      )}
+      {imp.relationChanges.length > 0 && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.impact.relationChanges')}</div>
+          <ul className="tl-field-list">
+            {imp.relationChanges.map((r, i) => (
+              <li key={i}>{r}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      {imp.impactSummary && (
+        <div className="tl-field">
+          <div className="tl-field-label">{t('timeline.impact.impactSummary')}</div>
+          <div className="tl-field-value">{imp.impactSummary}</div>
+        </div>
+      )}
+    </>
   );
 }
 
-function EventLinkList({
-  label,
-  eventIds,
-  eventMap,
-  onJump,
-}: {
-  label: string;
-  eventIds: string[];
-  eventMap: Map<string, TimelineEvent>;
-  onJump: (id: string) => void;
-}) {
-  if (eventIds.length === 0) return null;
-  return (
-    <div className="text-xs">
-      <span style={{ color: 'var(--panel-fg-muted)' }}>{label}：</span>
-      <ul className="mt-0.5 space-y-0.5">
-        {eventIds.map((eid) => {
-          const evt = eventMap.get(eid);
-          return (
-            <li key={eid}>
-              <button
-                onClick={() => onJump(eid)}
-                className="underline hover:opacity-80"
-                style={{ color: 'var(--accent)' }}
-              >
-                {evt?.title ?? eid}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}

@@ -352,6 +352,36 @@
       "chronological": "Chronological",
       "matrix": "Matrix View"
     },
+    "modeSub": {
+      "narrative": "Order in which events appear, grouped by chapter",
+      "chronological": "Order in which events actually occurred (Fabula)",
+      "matrix": "Chapter × story-time — see how narration diverges from chronology"
+    },
+    "narrativeModes": {
+      "present": "Present",
+      "flashback": "Flashback",
+      "flashforward": "Flashforward",
+      "parallel": "Parallel",
+      "unknown": "Unknown"
+    },
+    "importanceKernel": "KERNEL",
+    "importanceSatellite": "SATELLITE",
+    "currentEvent": "Current event",
+    "closePanel": "Close",
+    "layoutToggle": "Layout",
+    "appliedPrefix": "Active:",
+    "clearAll": "Clear all",
+    "removeFilter": "Remove filter",
+    "analyzedShort": "analyzed",
+    "gotoAnalysis": "Open Event Analysis to generate EEP",
+    "banner": {
+      "title": "Chronological order not yet computed",
+      "sub": "“Chronological” and “Matrix View” require per-event chronological ranks. Recompute the timeline to unlock the full views. {{analyzed}}/{{total}} events analyzed ({{pct}}%)."
+    },
+    "empty": {
+      "title": "No events yet",
+      "body": "No events have been extracted for this book. Trigger event extraction from the Event Analysis page first."
+    },
     "noRanksTooltip": "Chronological order not yet computed. Run timeline computation first.",
     "switchToVertical": "Switch to Vertical Layout",
     "switchToHorizontal": "Switch to Horizontal Layout",
@@ -369,20 +399,20 @@
       "locations": "Locations",
       "importance": "Importance"
     },
-    "charSearch": "Search characters...",
+    "charSearch": "Search characters…",
     "reset": "Reset",
     "apply": "Apply",
     "noEvents": "No events yet.",
     "panel": {
       "summary": "Event Summary",
       "temporal": "Temporal Relations",
-      "eep": "Evidence Profile — EEP",
+      "eep": "EEP Evidence Profile",
       "causality": "Causal Analysis",
       "impact": "Impact Analysis"
     },
     "storyTime": "Story time: ",
-    "priorEvents": "Prior Events",
-    "subsequentEvents": "Subsequent Events",
+    "priorEvents": "Prior",
+    "subsequentEvents": "Subsequent",
     "chronologicalPosition": "Chronological position",
     "noAnalysisData": "Not yet analyzed. No prior/subsequent data available.",
     "eep": {
@@ -420,7 +450,12 @@
       "unranked": "Unranked",
       "tooltipRank": "Rank",
       "tooltipParticipants": "Participants",
-      "tooltipUnranked": "Unranked"
+      "tooltipUnranked": "Unranked",
+      "eventsUnit": "events",
+      "marginalLabel": "Events / chapter",
+      "prolepsisZone": "Prolepsis (early chapter / late story-time)",
+      "analepsisZone": "Analepsis (late chapter / early story-time)",
+      "unrankedZone": "Unranked events"
     }
   },
   "unravelingLoadError": "Failed to load unraveling data",
