@@ -293,9 +293,8 @@
 .tl-canvas-inner {
   position: relative;
   min-height: 100%;
-  min-width: 100%;
   width: max-content;
-  margin: 0 auto;
+  max-width: 100%;
 }
 
 /* SVG overlay (spine + CAUSES edges) */
@@ -320,7 +319,7 @@
 
 /* Canvas row container (groups go inside) */
 .tl-canvas-row {
-  display: flex;
+  display: inline-flex;
   align-items: flex-start;
   gap: 28px;
   padding: 12px 0 28px;
@@ -329,23 +328,26 @@
 }
 .tl-canvas-row.vertical {
   flex-direction: column;
-  align-items: stretch;
+  align-items: flex-start;
 }
 
-/* Chapter band (V2) */
+/* Chapter band (V2) — sized to content, never stretched */
 .tl-chapter-band {
   position: relative;
   background: var(--bg-primary);
   border: 1px dashed var(--border);
   border-radius: var(--radius-lg);
   padding: 30px 18px 22px;
-  display: flex;
+  display: inline-flex;
   gap: 28px;
   align-items: flex-start;
+  flex: 0 0 auto;
+  width: max-content;
+  max-width: 100%;
 }
 .tl-chapter-band.vertical {
   flex-direction: column;
-  align-items: stretch;
+  align-items: flex-start;
 }
 .tl-chapter-band::before {
   content: '';
@@ -907,25 +909,114 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.tl-filter-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.tl-filter-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+
+/* Filter chip — neutral base. Variants below override colors to match
+   the design-system entity / narrative-mode pill language so the
+   filter visually reads like the chips it controls. */
 .tl-filter-chip {
+  --chip-bg: var(--bg-primary);
+  --chip-border: var(--border);
+  --chip-fg: var(--fg-secondary);
+  --chip-dot: var(--fg-muted);
   display: inline-flex;
   align-items: center;
   gap: 4px;
   padding: 3px 9px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
+  background: var(--chip-bg);
+  border: 1px solid var(--chip-border);
   border-radius: 14px;
   font-size: 11px;
-  color: var(--fg-secondary);
+  color: var(--chip-fg);
   cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
+  transition:
+    background var(--transition-fast),
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast);
 }
-.tl-filter-chip:hover { background: var(--bg-tertiary); }
+.tl-filter-chip::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chip-dot);
+  flex: 0 0 auto;
+}
+.tl-filter-chip.no-dot::before { display: none; }
+.tl-filter-chip:hover { background: var(--bg-secondary); border-color: var(--chip-fg); }
 .tl-filter-chip.active {
-  background: var(--accent);
+  background: var(--chip-dot);
   color: #fff;
-  border-color: var(--accent);
+  border-color: var(--chip-dot);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--chip-dot) 25%, transparent);
+}
+.tl-filter-chip.active::before { background: #fff; opacity: 0.85; }
+
+/* Entity-type variants — match .tl-pill-* tokens */
+.tl-filter-chip.character {
+  --chip-bg: var(--entity-char-bg);
+  --chip-border: var(--entity-char-border);
+  --chip-fg: var(--entity-char-fg);
+  --chip-dot: var(--entity-char-dot);
+}
+.tl-filter-chip.location {
+  --chip-bg: var(--entity-loc-bg);
+  --chip-border: var(--entity-loc-border);
+  --chip-fg: var(--entity-loc-fg);
+  --chip-dot: var(--entity-loc-dot);
+}
+
+/* Narrative-mode variants */
+.tl-filter-chip.narrative-present {
+  --chip-bg: var(--narrative-present-bg);
+  --chip-border: var(--narrative-present-border);
+  --chip-fg: var(--narrative-present-border);
+  --chip-dot: var(--narrative-present-border);
+}
+.tl-filter-chip.narrative-flashback {
+  --chip-bg: var(--narrative-flashback-bg);
+  --chip-border: var(--narrative-flashback-border);
+  --chip-fg: var(--narrative-flashback-border);
+  --chip-dot: var(--narrative-flashback-border);
+}
+.tl-filter-chip.narrative-flashforward {
+  --chip-bg: var(--narrative-flashforward-bg);
+  --chip-border: var(--narrative-flashforward-border);
+  --chip-fg: var(--narrative-flashforward-border);
+  --chip-dot: var(--narrative-flashforward-border);
+}
+.tl-filter-chip.narrative-parallel {
+  --chip-bg: var(--narrative-parallel-bg);
+  --chip-border: var(--narrative-parallel-border);
+  --chip-fg: var(--narrative-parallel-border);
+  --chip-dot: var(--narrative-parallel-border);
+}
+.tl-filter-chip.narrative-unknown {
+  --chip-bg: var(--narrative-unknown-bg);
+  --chip-border: var(--narrative-unknown-border);
+  --chip-fg: var(--narrative-unknown-border);
+  --chip-dot: var(--narrative-unknown-border);
+}
+
+/* Importance variants — KERNEL filled accent, SATELLITE neutral */
+.tl-filter-chip.importance-kernel {
+  --chip-bg: var(--bg-primary);
+  --chip-border: var(--accent);
+  --chip-fg: var(--accent);
+  --chip-dot: var(--accent);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+.tl-filter-chip.importance-satellite {
+  --chip-bg: var(--bg-primary);
+  --chip-border: var(--border);
+  --chip-fg: var(--fg-muted);
+  --chip-dot: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
 }
 .tl-filter-search {
   position: relative;

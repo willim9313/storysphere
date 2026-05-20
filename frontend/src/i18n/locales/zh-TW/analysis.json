@@ -364,6 +364,18 @@
       "parallel": "並行",
       "unknown": "未明"
     },
+    "eventTypes": {
+      "plot": "情節推進",
+      "conflict": "衝突",
+      "revelation": "揭露",
+      "turning_point": "轉折點",
+      "meeting": "會面",
+      "battle": "戰鬥",
+      "death": "死亡",
+      "romance": "愛情",
+      "alliance": "結盟",
+      "other": "其他"
+    },
     "importanceKernel": "KERNEL 核心",
     "importanceSatellite": "SATELLITE 附屬",
     "currentEvent": "當前事件",

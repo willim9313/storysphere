@@ -112,6 +112,7 @@ function buildActiveFilterTags(
   onChange: (f: FilterState) => void,
   options: FilterOptions,
   modeLabel: (mode: string) => string,
+  eventTypeLabel: (type: string) => string,
 ): ActiveFilterTag[] {
   const tags: ActiveFilterTag[] = [];
   const removeFrom = (key: keyof FilterState, value: string) => {
@@ -120,7 +121,7 @@ function buildActiveFilterTags(
     onChange(next);
   };
   filter.eventTypes.forEach((v) =>
-    tags.push({ key: `et-${v}`, label: v, remove: () => removeFrom('eventTypes', v) }),
+    tags.push({ key: `et-${v}`, label: eventTypeLabel(v), remove: () => removeFrom('eventTypes', v) }),
   );
   filter.narrativeModes.forEach((v) =>
     tags.push({ key: `nm-${v}`, label: modeLabel(v), remove: () => removeFrom('narrativeModes', v) }),
@@ -172,6 +173,10 @@ export default function TimelinePage() {
 
   const modeLabel = useCallback(
     (mode: string) => t(`timeline.narrativeModes.${mode}`, mode),
+    [t],
+  );
+  const eventTypeLabel = useCallback(
+    (type: string) => t(`timeline.eventTypes.${type}`, type),
     [t],
   );
 
@@ -296,7 +301,7 @@ export default function TimelinePage() {
   const quality = data?.quality;
   const hasRanks = quality?.hasChronologicalRanks ?? false;
 
-  const activeTags = buildActiveFilterTags(filter, setFilter, filterOptions, modeLabel);
+  const activeTags = buildActiveFilterTags(filter, setFilter, filterOptions, modeLabel, eventTypeLabel);
 
   return (
     <div className="tl">
@@ -317,6 +322,7 @@ export default function TimelinePage() {
         onFilterChange={setFilter}
         filterOptions={filterOptions}
         modeLabel={modeLabel}
+        eventTypeLabel={eventTypeLabel}
         activeTags={activeTags}
         onClearFilters={() => setFilter(createDefaultFilter())}
       />
@@ -388,6 +394,7 @@ interface ToolbarProps {
   onFilterChange: (f: FilterState) => void;
   filterOptions: FilterOptions;
   modeLabel: (mode: string) => string;
+  eventTypeLabel: (type: string) => string;
   activeTags: ActiveFilterTag[];
   onClearFilters: () => void;
 }
@@ -409,6 +416,7 @@ function Toolbar({
   onFilterChange,
   filterOptions,
   modeLabel,
+  eventTypeLabel,
   activeTags,
   onClearFilters,
 }: ToolbarProps) {
@@ -591,6 +599,7 @@ function Toolbar({
           onClose={onCloseFilter}
           options={filterOptions}
           modeLabel={modeLabel}
+          eventTypeLabel={eventTypeLabel}
         />
       )}
     </div>
@@ -605,21 +614,26 @@ interface FilterSheetProps {
   onClose: () => void;
   options: FilterOptions;
   modeLabel: (mode: string) => string;
+  eventTypeLabel: (type: string) => string;
 }
 
 function FilterChip({
   active,
   onClick,
   label,
+  variant,
+  noDot,
 }: {
   active: boolean;
   onClick: () => void;
   label: React.ReactNode;
+  variant?: string;
+  noDot?: boolean;
 }) {
   return (
     <button
       type="button"
-      className={`tl-filter-chip${active ? ' active' : ''}`}
+      className={`tl-filter-chip${variant ? ` ${variant}` : ''}${noDot ? ' no-dot' : ''}${active ? ' active' : ''}`}
       onClick={onClick}
     >
       {label}
@@ -627,7 +641,7 @@ function FilterChip({
   );
 }
 
-function FilterSheet({ filter, onChange, onClose, options, modeLabel }: FilterSheetProps) {
+function FilterSheet({ filter, onChange, onClose, options, modeLabel, eventTypeLabel }: FilterSheetProps) {
   const { t } = useTranslation('analysis');
   const [charSearch, setCharSearch] = useState('');
 
@@ -653,7 +667,7 @@ function FilterSheet({ filter, onChange, onClose, options, modeLabel }: FilterSh
           {options.eventTypes.map((v) => (
             <FilterChip
               key={v}
-              label={v}
+              label={eventTypeLabel(v)}
               active={filter.eventTypes.has(v)}
               onClick={() => toggleSet('eventTypes', v)}
             />
@@ -670,6 +684,7 @@ function FilterSheet({ filter, onChange, onClose, options, modeLabel }: FilterSh
               label={modeLabel(v)}
               active={filter.narrativeModes.has(v)}
               onClick={() => toggleSet('narrativeModes', v)}
+              variant={`narrative-${v}`}
             />
           ))}
         </div>
@@ -680,13 +695,17 @@ function FilterSheet({ filter, onChange, onClose, options, modeLabel }: FilterSh
         <div className="tl-filter-chips">
           <FilterChip
             label="KERNEL"
+            variant="importance-kernel"
             active={filter.importance.has('KERNEL')}
             onClick={() => toggleSet('importance', 'KERNEL')}
+            noDot
           />
           <FilterChip
             label="SATELLITE"
+            variant="importance-satellite"
             active={filter.importance.has('SATELLITE')}
             onClick={() => toggleSet('importance', 'SATELLITE')}
+            noDot
           />
         </div>
       </div>
@@ -709,6 +728,7 @@ function FilterSheet({ filter, onChange, onClose, options, modeLabel }: FilterSh
             <FilterChip
               key={c.id}
               label={c.name}
+              variant="character"
               active={filter.characters.has(c.id)}
               onClick={() => toggleSet('characters', c.id)}
             />
@@ -724,6 +744,7 @@ function FilterSheet({ filter, onChange, onClose, options, modeLabel }: FilterSh
               <FilterChip
                 key={l.id}
                 label={l.name}
+                variant="location"
                 active={filter.locations.has(l.id)}
                 onClick={() => toggleSet('locations', l.id)}
               />

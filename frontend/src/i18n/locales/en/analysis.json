@@ -364,6 +364,18 @@
       "parallel": "Parallel",
       "unknown": "Unknown"
     },
+    "eventTypes": {
+      "plot": "Plot",
+      "conflict": "Conflict",
+      "revelation": "Revelation",
+      "turning_point": "Turning Point",
+      "meeting": "Meeting",
+      "battle": "Battle",
+      "death": "Death",
+      "romance": "Romance",
+      "alliance": "Alliance",
+      "other": "Other"
+    },
     "importanceKernel": "KERNEL",
     "importanceSatellite": "SATELLITE",
     "currentEvent": "Current event",
