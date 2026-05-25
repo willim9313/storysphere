@@ -211,6 +211,7 @@ async def analyze_symbol(
     background_tasks: BackgroundTasks,
     agent: AnalysisAgentDep,
     symbol_svc: SymbolServiceDep,
+    doc: DocServiceDep,
 ) -> TaskStatus:
     """Start LLM-based symbol interpretation (B-040).
 
@@ -223,6 +224,9 @@ async def analyze_symbol(
         raise HTTPException(
             status_code=404, detail=f"Imagery '{imagery_id}' not found"
         )
+
+    language = await doc.get_document_language(req.book_id)
+    req = req.model_copy(update={"language": language})
 
     task_id = str(uuid4())
     task_store.create(task_id)
