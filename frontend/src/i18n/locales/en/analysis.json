@@ -547,5 +547,93 @@
       "has_ks_classification": "K/S classification built",
       "built": "built"
     }
+  },
+  "symbol": {
+    "searchPlaceholder": "Search imagery…",
+    "typeLabel": "Type",
+    "all": "All",
+    "noData": "No imagery data",
+    "noResults": "No matching results",
+    "chapterDist": "Chapter distribution",
+    "firstSeen": "First seen Ch. {{chapter}}",
+    "peakChapters": "Peak at Ch. {{chapter}}",
+    "densityLow": "Low",
+    "densityMid": "Mid",
+    "densityHigh": "High",
+    "densityPeak": "Peak",
+    "coOccurrences": "Co-occurrence network",
+    "noCoOccurrences": "No co-occurrence data",
+    "occurrences": "Occurrences",
+    "occurrenceCount": "{{count}} entries",
+    "occurrenceSpan": "{{count}} entries · across {{chapters}} chapters",
+    "chapterN": "Ch. {{n}}",
+    "chapterOccurrences": "{{count}}×",
+    "noOccurrences": "No occurrence records",
+    "frequency": "{{count}} occurrences",
+    "aliases": "Aliases",
+    "selectPrompt": "Select an imagery on the left",
+    "selectPromptDesc": "View its chapter distribution, co-occurrence network, occurrences, and trigger LLM interpretation.",
+    "emptyTitle": "No symbol imagery data",
+    "emptyHint": "Re-upload the book to run imagery extraction.",
+    "sort": "Sort",
+    "sortBy": {
+      "freq": "Frequency",
+      "firstCh": "First seen",
+      "review": "Review"
+    },
+    "types": {
+      "object": "Object",
+      "nature": "Nature",
+      "spatial": "Space",
+      "body": "Body",
+      "color": "Color",
+      "other": "Other"
+    },
+    "polarity": {
+      "label": "Narrative polarity",
+      "positive": "Positive",
+      "negative": "Negative",
+      "neutral": "Neutral",
+      "mixed": "Mixed"
+    },
+    "review": {
+      "label": "HITL review",
+      "pending": "Pending",
+      "approved": "Approved",
+      "modified": "Modified",
+      "rejected": "Rejected",
+      "approve": "Approve",
+      "modify": "Modify",
+      "reject": "Reject",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "interpretation": {
+      "tag": "LLM interpretation",
+      "evidence": "Evidence summary",
+      "confidence": "Model confidence",
+      "confidenceNote": "Based on {{count}} occurrences",
+      "linkedCharacters": "Linked characters",
+      "linkedEvents": "Linked events",
+      "linkedEmpty": "No linked records",
+      "ctaTitle": "Interpretation not yet generated",
+      "ctaDesc": "Triggering will assemble the Symbol Evidence Profile (occurrence contexts + linked characters/events + chapter distribution), pass it to the LLM to produce a thematic proposition, polarity, confidence and evidence summary, then enter HITL review.",
+      "ctaButton": "Generate interpretation",
+      "generating": "Generating",
+      "generatingDesc": "Assembling symbol evidence profile",
+      "regenerate": "Regenerate",
+      "regenerateConfirm": "Regenerating will overwrite the existing interpretation and review status. Continue?",
+      "themeEditPlaceholder": "Enter revised thematic proposition…"
+    },
+    "tabs": {
+      "symbol": "Imagery",
+      "character": "Characters",
+      "event": "Events"
+    },
+    "error": {
+      "generic": "Operation failed. Please try again.",
+      "triggerFailed": "Failed to trigger interpretation. Please try again.",
+      "reviewFailed": "Failed to update review status."
+    }
   }
 }

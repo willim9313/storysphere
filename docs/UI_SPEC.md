@@ -732,30 +732,78 @@ Step 1 → Step 2 → Step 3 各自獨立觸發
 
 ### 3.9 象徵意象頁 `/books/:bookId/symbols`
 
+頁面分為兩欄：左側清單（240–260px）+ 右側意象詳情。i18n namespace 為 `analysis.json` 的 `symbol.*`（與其他分析頁對齊；舊 `settings.json/symbols.*` 已搬移）。
+
 #### 版面結構
 
 ```
-[Left Panel 240px] [Content Area flex]
+[Left Panel 260px] [Content Area flex]
 ```
 
 #### Left Panel — 意象清單
 
-頂部類型 filter chip（all / object / nature / spatial / body / color / other，依實際資料動態顯示）。
+- 類型 chip row（all / object / nature / spatial / body / color / other；只顯示有資料的類型）
+- 搜尋輸入框（match `term` 與 `aliases`）
+- 排序維度切換：頻率 / 首見 / 審核
+- 清單項：
+  - 類型色點
+  - 詞條（serif）+ polarity dot（若已有 interpretation）
+  - 異體（最多 2 個，` · ` 串接）
+  - DensityStrip — 章節密度縮影（每章一格，依密度上色）
+  - 右側：出現次數 + ReviewBadge（若已有 interpretation）
 
-搜尋欄 + 清單（每項：色點 + 詞條 + 別名 + 出現次數）。
+#### Content Area — 意象詳情
 
-#### Content Area — 意象詳情（SymbolDetail）
+選中意象後依序顯示五個區塊：
 
-選中意象後顯示：
+1. **標題列**：詞條 h1（serif）+ TypePill + 出現次數；下方為異體 pill 列。
+2. **詮釋區（依狀態切換）**：
+   - **生成中**（`InterpretationGenerating`）：藍色卡，stage / progress bar / taskId。
+   - **已生成**（`InterpretationHero`）：
+     - 上：`LLM 詮釋` tag + assembled_by + 日期 + ReviewBadge（右）
+     - 主題命題（serif italic）
+     - polarity 方塊（圖示 + 標籤）+ confidence meter
+     - 證據綜述（evidence_summary）
+     - 相關角色 / 相關事件 chips（從 `linked_characters` / `linked_events`）
+     - HITL 三按鈕（通過 / 修訂 / 駁回）+ 重新生成 ghost 按鈕；按修訂時切換 inline edit theme + polarity → 儲存 / 取消
+   - **尚未生成**（`InterpretationCta`）：sparkles 圖示 + 說明 + 主按鈕「生成 LLM 詮釋」
+3. **章節分布卡（`ChapterDistChart`）**：SVG 長條，密度漸層（low/mid/high）+ 峰值三角 marker（前 3 名章節，client-side 推導）+ hover tooltip + 密度圖例
+4. **共現網絡卡（`CoOccurrencePanel`）**：3 個 tab
+   - 共現意象：彩色 pill grid（依 imagery_type 著色 + 共現次數 chip），點擊切換選中
+   - 共現角色：來自 interpretation.linked_characters，藍 dot + 角色 id（後續可接 KG 跳轉）
+   - 共現事件：來自 interpretation.linked_events，紅 dot + 事件 id
+5. **出現紀錄卡（`OccurrencesTimeline`）**：按章節分組，每組 header「第 N 章 · M 次」+ 分隔線；每筆顯示 `#position` + 前後文（term / aliases highlight）+ 共現詞 tags（最多 3）
 
-1. **標題區**：詞條（serif）+ 類型 pill + 出現頻率 + 別名列表
-2. **章節分布圖（ChapterDistChart）**：SVG 長條圖，X 軸為章節序號，Y 軸為出現次數，右上角顯示首次出現章節
-3. **共現詞（Co-Occurrences）**：同一 chunk 中常與此詞共現的其他意象，以 pill 呈現，點擊 pill → 切換選中意象（支援導覽）
-4. **出現紀錄（Timeline）**：每次出現一列，顯示：Ch.N / #position、前後文 context window、共現詞 tags
+#### 狀態
+
+| 條件 | 顯示 |
+|------|------|
+| list loading | 右側 LoadingSpinner |
+| `entities.length === 0` | EmptyState — `emptyTitle` + `emptyHint` |
+| 未選中且有資料 | EmptyState — `selectPrompt` + `selectPromptDesc` |
+| 選中但 interpretation 不存在（404） | `InterpretationCta` |
+| 選中且 polling | `InterpretationGenerating` |
+| 選中且有 interpretation | `InterpretationHero`（HITL 可操作） |
+
+#### 設計 token
+
+- 意象類型：`--symbol-{object,nature,spatial,body,color,other}-{bg,fg,dot}`（既有）
+- 詮釋極性：`--polarity-{positive,negative,neutral,mixed}-{bg,fg,edge,dot}`（新增）
+- 章節密度：`--symbol-density-{low,mid,high,peak}`（新增）
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#15a（意象列表）、#15b（出現紀錄）、#15c（共現詞）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：
+- 已接：#15a 列表 / #15b 出現紀錄 / #15c 共現詞
+- 本次新接：#15d SEP（保留供後續顯示更詳細證據；目前僅作可選資源）/ #15e 觸發詮釋 / #15f 詮釋 polling / #15g 取得 interpretation / #15h HITL 審核
+
+#### 元件位置
+
+- 主頁：[`frontend/src/pages/SymbolsPage.tsx`](../frontend/src/pages/SymbolsPage.tsx)
+- 元件：[`frontend/src/components/symbols/`](../frontend/src/components/symbols/)
+- CSS：[`frontend/src/styles/symbols.css`](../frontend/src/styles/symbols.css)（`.sym-*` prefix）
+- API caller：[`frontend/src/api/symbols.ts`](../frontend/src/api/symbols.ts)
+- Hook：[`frontend/src/components/symbols/hooks/useSymbolInterpretationTask.ts`](../frontend/src/components/symbols/hooks/useSymbolInterpretationTask.ts)
 
 ---
 

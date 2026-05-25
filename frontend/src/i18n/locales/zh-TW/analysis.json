@@ -547,5 +547,93 @@
       "has_ks_classification": "K/S 分類已建立",
       "built": "已建立"
     }
+  },
+  "symbol": {
+    "searchPlaceholder": "搜尋意象…",
+    "typeLabel": "類型",
+    "all": "全部",
+    "noData": "尚無意象資料",
+    "noResults": "無符合結果",
+    "chapterDist": "章節分布",
+    "firstSeen": "首見第 {{chapter}} 章",
+    "peakChapters": "峰值第 {{chapter}} 章",
+    "densityLow": "低",
+    "densityMid": "中",
+    "densityHigh": "高",
+    "densityPeak": "峰值",
+    "coOccurrences": "共現網絡",
+    "noCoOccurrences": "尚無共現資料",
+    "occurrences": "出現紀錄",
+    "occurrenceCount": "{{count}} 筆",
+    "occurrenceSpan": "{{count}} 筆 · 跨 {{chapters}} 章",
+    "chapterN": "第 {{n}} 章",
+    "chapterOccurrences": "{{count}} 次",
+    "noOccurrences": "尚無出現紀錄",
+    "frequency": "{{count}} 次出現",
+    "aliases": "異體",
+    "selectPrompt": "從左側清單選擇一個意象",
+    "selectPromptDesc": "可看到該意象的章節分布、共現網絡、出現脈絡，並觸發 LLM 詮釋。",
+    "emptyTitle": "尚無符號意象資料",
+    "emptyHint": "重新上傳書籍後將自動執行意象萃取。",
+    "sort": "排序",
+    "sortBy": {
+      "freq": "頻率",
+      "firstCh": "首見",
+      "review": "審核"
+    },
+    "types": {
+      "object": "器物",
+      "nature": "自然",
+      "spatial": "空間",
+      "body": "身體",
+      "color": "色彩",
+      "other": "其他"
+    },
+    "polarity": {
+      "label": "敘事極性",
+      "positive": "正向",
+      "negative": "負向",
+      "neutral": "中性",
+      "mixed": "複合"
+    },
+    "review": {
+      "label": "HITL 審核",
+      "pending": "待審",
+      "approved": "已通過",
+      "modified": "已修訂",
+      "rejected": "已駁回",
+      "approve": "通過",
+      "modify": "修訂",
+      "reject": "駁回",
+      "save": "儲存",
+      "cancel": "取消"
+    },
+    "interpretation": {
+      "tag": "LLM 詮釋",
+      "evidence": "證據綜述",
+      "confidence": "模型信心",
+      "confidenceNote": "基於 {{count}} 次出現的證據",
+      "linkedCharacters": "相關角色",
+      "linkedEvents": "相關事件",
+      "linkedEmpty": "無相關記錄",
+      "ctaTitle": "尚未生成 LLM 詮釋",
+      "ctaDesc": "觸發詮釋會彙整此意象的證據檔（出現脈絡 + 共現角色 / 事件 + 章節分布），交由 LLM 生成主題命題、敘事極性、信心度與佐證綜述，並進入 HITL 審核流程。",
+      "ctaButton": "生成 LLM 詮釋",
+      "generating": "生成中",
+      "generatingDesc": "正在分析符號證據檔",
+      "regenerate": "重新生成",
+      "regenerateConfirm": "重新生成將覆蓋現有詮釋與審核狀態，確認執行？",
+      "themeEditPlaceholder": "輸入修訂後的主題命題…"
+    },
+    "tabs": {
+      "symbol": "共現意象",
+      "character": "共現角色",
+      "event": "共現事件"
+    },
+    "error": {
+      "generic": "操作失敗，請稍後再試。",
+      "triggerFailed": "觸發詮釋失敗，請稍後再試。",
+      "reviewFailed": "更新審核狀態失敗。"
+    }
   }
 }

@@ -89,6 +89,18 @@
   --symbol-color-bg:    #ede9fe; --symbol-color-fg:    #4c1d95; --symbol-color-dot:    #8b5cf6;
   --symbol-other-bg:    #f1f5f9; --symbol-other-fg:    #475569; --symbol-other-dot:    #94a3b8;
 
+  /* Symbol polarity — LLM interpretation polarity (4 values) */
+  --polarity-positive-bg:    #ecfdf5; --polarity-positive-fg:    #166534; --polarity-positive-edge:  #6ee7b7; --polarity-positive-dot:   #22c55e;
+  --polarity-negative-bg:    #fef2f2; --polarity-negative-fg:    #991b1b; --polarity-negative-edge:  #fecaca; --polarity-negative-dot:   #ef4444;
+  --polarity-neutral-bg:     #f4ede0; --polarity-neutral-fg:     #5a4f42; --polarity-neutral-edge:   #d4c8b8; --polarity-neutral-dot:    #8a7a68;
+  --polarity-mixed-bg:       #fef3c7; --polarity-mixed-fg:       #92400e; --polarity-mixed-edge:     #fcd34d; --polarity-mixed-dot:      #d97706;
+
+  /* Symbol chapter-distribution density — 3-step gradient + peak marker */
+  --symbol-density-low:   #efe8d8;
+  --symbol-density-mid:   #c9a37a;
+  --symbol-density-high:  #8b5e3c;
+  --symbol-density-peak:  #4a2e16;
+
   /* Timeline narrative mode colors */
   --narrative-present-border:     #8b5e3c; --narrative-present-bg:     #f5ede4;
   --narrative-flashback-border:   #3b82f6; --narrative-flashback-bg:   #dbeafe;
@@ -276,6 +288,17 @@
   --symbol-color-bg:    #444444; --symbol-color-fg:    #ffffff; --symbol-color-dot:    #cccccc;
   --symbol-other-bg:    #111111; --symbol-other-fg:    #f2f2f2; --symbol-other-dot:    #888888;
 
+  /* polarity — grayscale by prominence */
+  --polarity-positive-bg:    #ebebeb; --polarity-positive-fg:    #0d0d0d; --polarity-positive-edge:  #555555; --polarity-positive-dot:   #0d0d0d;
+  --polarity-negative-bg:    #555555; --polarity-negative-fg:    #ffffff; --polarity-negative-edge:  #000000; --polarity-negative-dot:   #ffffff;
+  --polarity-neutral-bg:     #f5f5f5; --polarity-neutral-fg:     #555555; --polarity-neutral-edge:   #aaaaaa; --polarity-neutral-dot:    #888888;
+  --polarity-mixed-bg:       #d8d8d8; --polarity-mixed-fg:       #0d0d0d; --polarity-mixed-edge:     #888888; --polarity-mixed-dot:      #444444;
+
+  --symbol-density-low:  #ebebeb;
+  --symbol-density-mid:  #888888;
+  --symbol-density-high: #0d0d0d;
+  --symbol-density-peak: #000000;
+
   /* timeline narrative modes — grayscale by prominence */
   --narrative-present-border:     #000000; --narrative-present-bg:     #f0f0f0;
   --narrative-flashback-border:   #666666; --narrative-flashback-bg:   #e8e8e8;
@@ -409,6 +432,17 @@
   --symbol-body-bg:     #c0c0c0; --symbol-body-fg:     #000000; --symbol-body-dot:     #000000;
   --symbol-color-bg:    #e8e8e8; --symbol-color-fg:    #000000; --symbol-color-dot:    #555555;
   --symbol-other-bg:    #f5f5f5; --symbol-other-fg:    #888888; --symbol-other-dot:    #cccccc;
+
+  /* polarity — fill polarity */
+  --polarity-positive-bg:    #ffffff; --polarity-positive-fg:    #000000; --polarity-positive-edge:  #000000; --polarity-positive-dot:   #000000;
+  --polarity-negative-bg:    #000000; --polarity-negative-fg:    #ffffff; --polarity-negative-edge:  #000000; --polarity-negative-dot:   #ffffff;
+  --polarity-neutral-bg:     #f5f5f5; --polarity-neutral-fg:     #888888; --polarity-neutral-edge:   #cccccc; --polarity-neutral-dot:    #aaaaaa;
+  --polarity-mixed-bg:       #aaaaaa; --polarity-mixed-fg:       #ffffff; --polarity-mixed-edge:     #000000; --polarity-mixed-dot:      #000000;
+
+  --symbol-density-low:  #ebebeb;
+  --symbol-density-mid:  #aaaaaa;
+  --symbol-density-high: #000000;
+  --symbol-density-peak: #000000;
 
   /* timeline narrative modes */
   --narrative-present-border:     #000000; --narrative-present-bg:     #f5f5f5;
@@ -544,6 +578,17 @@
   --symbol-body-bg:     #bbbbbb; --symbol-body-fg:     #000000; --symbol-body-dot:     #000000;
   --symbol-color-bg:    #e5e5e5; --symbol-color-fg:    #000000; --symbol-color-dot:    #555555;
   --symbol-other-bg:    #f5f5f5; --symbol-other-fg:    #555555; --symbol-other-dot:    #aaaaaa;
+
+  /* polarity — bold high-contrast fill */
+  --polarity-positive-bg:    #ffffff; --polarity-positive-fg:    #000000; --polarity-positive-edge:  #000000; --polarity-positive-dot:   #000000;
+  --polarity-negative-bg:    #000000; --polarity-negative-fg:    #ffffff; --polarity-negative-edge:  #000000; --polarity-negative-dot:   #ffffff;
+  --polarity-neutral-bg:     #e5e5e5; --polarity-neutral-fg:     #555555; --polarity-neutral-edge:   #000000; --polarity-neutral-dot:    #888888;
+  --polarity-mixed-bg:       #999999; --polarity-mixed-fg:       #ffffff; --polarity-mixed-edge:     #000000; --polarity-mixed-dot:      #000000;
+
+  --symbol-density-low:  #e5e5e5;
+  --symbol-density-mid:  #999999;
+  --symbol-density-high: #000000;
+  --symbol-density-peak: #000000;
 
   /* timeline narrative modes */
   --narrative-present-border:     #000000; --narrative-present-bg:     #f0f0f0;

@@ -198,6 +198,40 @@ B&W 主題採 **6 階梯度**策略（manuscript = 淺→深灰階；minimal-ink
 | text（`--symbol-other-fg`） | `#475569` | `#f2f2f2` | `#888888` | `#555555` |
 | dot（`--symbol-other-dot`） | `#94a3b8` | `#888888` | `#cccccc` | `#aaaaaa` |
 
+#### 符號詮釋極性（Polarity）
+
+LLM 對單一意象詮釋的敘事極性（4 值）。default 採與 status 同邏輯的飽和指示色 + 淡色表面；B&W 主題改採填充極性（fill polarity）—— 用色階深淺取代色相。
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| `--polarity-positive-bg` | `#ecfdf5` | `#ebebeb` | `#ffffff` | `#ffffff` |
+| `--polarity-positive-fg` | `#166534` | `#0d0d0d` | `#000000` | `#000000` |
+| `--polarity-positive-edge` | `#6ee7b7` | `#555555` | `#000000` | `#000000` |
+| `--polarity-positive-dot` | `#22c55e` | `#0d0d0d` | `#000000` | `#000000` |
+| `--polarity-negative-bg` | `#fef2f2` | `#555555` | `#000000` | `#000000` |
+| `--polarity-negative-fg` | `#991b1b` | `#ffffff` | `#ffffff` | `#ffffff` |
+| `--polarity-negative-edge` | `#fecaca` | `#000000` | `#000000` | `#000000` |
+| `--polarity-negative-dot` | `#ef4444` | `#ffffff` | `#ffffff` | `#ffffff` |
+| `--polarity-neutral-bg` | `#f4ede0` | `#f5f5f5` | `#f5f5f5` | `#e5e5e5` |
+| `--polarity-neutral-fg` | `#5a4f42` | `#555555` | `#888888` | `#555555` |
+| `--polarity-neutral-edge` | `#d4c8b8` | `#aaaaaa` | `#cccccc` | `#000000` |
+| `--polarity-neutral-dot` | `#8a7a68` | `#888888` | `#aaaaaa` | `#888888` |
+| `--polarity-mixed-bg` | `#fef3c7` | `#d8d8d8` | `#aaaaaa` | `#999999` |
+| `--polarity-mixed-fg` | `#92400e` | `#0d0d0d` | `#ffffff` | `#ffffff` |
+| `--polarity-mixed-edge` | `#fcd34d` | `#888888` | `#000000` | `#000000` |
+| `--polarity-mixed-dot` | `#d97706` | `#444444` | `#000000` | `#000000` |
+
+#### 符號章節密度（Symbol density）
+
+用於 `ChapterDistChart` 章節分布長條與 `DensityStrip` 列表縮影；低 / 中 / 高三段 + 峰值 marker。
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| `--symbol-density-low` | `#efe8d8` | `#ebebeb` | `#ebebeb` | `#e5e5e5` |
+| `--symbol-density-mid` | `#c9a37a` | `#888888` | `#aaaaaa` | `#999999` |
+| `--symbol-density-high` | `#8b5e3c` | `#0d0d0d` | `#000000` | `#000000` |
+| `--symbol-density-peak` | `#4a2e16` | `#000000` | `#000000` | `#000000` |
+
 ### 3.9 狀態色（Status）
 
 通用語意色，由 `--color-success / warning / error / info` 與其 `-bg` 變體組成。default 主題保持彩色語意（綠/橘/紅/藍）；B&W 主題改採嚴格灰階（狀態以 icon 形態與權重傳達，非色相）。

@@ -59,31 +59,5 @@
       "keyword": "關鍵字",
       "unknown": "其他"
     }
-  },
-  "symbols": {
-    "searchPlaceholder": "搜尋意象…",
-    "all": "全部",
-    "noData": "尚無意象資料",
-    "noResults": "無符合結果",
-    "chapterDist": "章節分布",
-    "firstSeen": "首見第 {{chapter}} 章",
-    "coOccurrences": "共現意象",
-    "noCoOccurrences": "尚無共現資料",
-    "occurrences": "出現紀錄",
-    "occurrenceCount": "{{count}} 筆",
-    "noOccurrences": "尚無出現紀錄",
-    "frequency": "出現 {{count}} 次",
-    "aliases": "異體：",
-    "selectPrompt": "選擇左側意象以查看詳細資訊",
-    "emptyTitle": "尚無符號意象資料",
-    "emptyHint": "重新上傳書籍後將自動執行意象萃取",
-    "types": {
-      "object": "物件",
-      "nature": "自然",
-      "spatial": "空間",
-      "body": "身體",
-      "color": "色彩",
-      "other": "其他"
-    }
   }
 }
