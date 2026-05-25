@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -7,28 +8,36 @@ import { typeStyle } from './tokens';
 
 type Tab = 'symbol' | 'character' | 'event';
 
+interface ResolvedItem {
+  id: string;
+  name: string;
+}
+
 interface Props {
+  bookId: string;
   coOccurrences: CoOccurrenceEntry[];
-  linkedCharacterIds: string[];
-  linkedEventIds: string[];
+  linkedCharacters: ResolvedItem[];
+  linkedEvents: ResolvedItem[];
   loading: boolean;
   onSelectCo: (id: string) => void;
 }
 
 export function CoOccurrencePanel({
+  bookId,
   coOccurrences,
-  linkedCharacterIds,
-  linkedEventIds,
+  linkedCharacters,
+  linkedEvents,
   loading,
   onSelectCo,
 }: Props) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('symbol');
 
   const tabs: { k: Tab; n: number }[] = [
     { k: 'symbol', n: coOccurrences.length },
-    { k: 'character', n: linkedCharacterIds.length },
-    { k: 'event', n: linkedEventIds.length },
+    { k: 'character', n: linkedCharacters.length },
+    { k: 'event', n: linkedEvents.length },
   ];
 
   return (
@@ -79,27 +88,39 @@ export function CoOccurrencePanel({
                 </div>
               ))}
             {tab === 'character' &&
-              (linkedCharacterIds.length === 0 ? (
+              (linkedCharacters.length === 0 ? (
                 <p className="sym-card-empty">{t('symbol.interpretation.linkedEmpty')}</p>
               ) : (
                 <div className="sym-link-list">
-                  {linkedCharacterIds.map((id) => (
-                    <button key={id} type="button" className="sym-link-row" title={id}>
+                  {linkedCharacters.map(({ id, name }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className="sym-link-row"
+                      title={id}
+                      onClick={() => navigate(`/books/${bookId}/characters`, { state: { selectId: id } })}
+                    >
                       <span className="sym-link-dot" style={{ background: 'var(--entity-char-dot)' }} />
-                      <span className="sym-link-name">{id}</span>
+                      <span className="sym-link-name">{name}</span>
                     </button>
                   ))}
                 </div>
               ))}
             {tab === 'event' &&
-              (linkedEventIds.length === 0 ? (
+              (linkedEvents.length === 0 ? (
                 <p className="sym-card-empty">{t('symbol.interpretation.linkedEmpty')}</p>
               ) : (
                 <div className="sym-link-list">
-                  {linkedEventIds.map((id) => (
-                    <button key={id} type="button" className="sym-link-row" title={id}>
+                  {linkedEvents.map(({ id, name }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      className="sym-link-row"
+                      title={id}
+                      onClick={() => navigate(`/books/${bookId}/events`, { state: { selectId: id } })}
+                    >
                       <span className="sym-link-dot" style={{ background: 'var(--entity-evt-dot)' }} />
-                      <span className="sym-link-name">{id}</span>
+                      <span className="sym-link-name">{name}</span>
                     </button>
                   ))}
                 </div>

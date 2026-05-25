@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Sparkles, RefreshCw, ExternalLink, AlertCircle, User, Flag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ImageryEntity, Polarity, SymbolInterpretation } from '@/api/symbols';
@@ -6,9 +7,16 @@ import { POLARITY_STYLE, POLARITY_VALUES } from './tokens';
 import { ReviewBadge } from './Badges';
 import { ReviewActions } from './ReviewActions';
 
+interface ResolvedItem {
+  id: string;
+  name: string;
+}
+
 interface Props {
   entity: ImageryEntity;
   interpretation: SymbolInterpretation;
+  resolvedCharacters: ResolvedItem[];
+  resolvedEvents: ResolvedItem[];
   pending: boolean;
   error?: string | null;
   onApprove: () => void;
@@ -20,6 +28,8 @@ interface Props {
 export function InterpretationHero({
   entity,
   interpretation,
+  resolvedCharacters,
+  resolvedEvents,
   pending,
   error,
   onApprove,
@@ -28,6 +38,7 @@ export function InterpretationHero({
   onRegenerate,
 }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
   const [draftTheme, setDraftTheme] = useState(interpretation.theme);
   const [draftPolarity, setDraftPolarity] = useState<Polarity>(interpretation.polarity);
@@ -125,12 +136,14 @@ export function InterpretationHero({
         <LinkedRow
           label={t('symbol.interpretation.linkedCharacters')}
           icon={<User size={12} />}
-          items={interpretation.linked_characters}
+          items={resolvedCharacters}
+          onNavigate={(id) => navigate(`/books/${entity.book_id}/characters`, { state: { selectId: id } })}
         />
         <LinkedRow
           label={t('symbol.interpretation.linkedEvents')}
           icon={<Flag size={12} />}
-          items={interpretation.linked_events}
+          items={resolvedEvents}
+          onNavigate={(id) => navigate(`/books/${entity.book_id}/events`, { state: { selectId: id } })}
         />
       </div>
 
@@ -192,7 +205,17 @@ export function InterpretationHero({
   );
 }
 
-function LinkedRow({ label, icon, items }: Readonly<{ label: string; icon: React.ReactNode; items: string[] }>) {
+function LinkedRow({
+  label,
+  icon,
+  items,
+  onNavigate,
+}: Readonly<{
+  label: string;
+  icon: React.ReactNode;
+  items: { id: string; name: string }[];
+  onNavigate: (id: string) => void;
+}>) {
   const { t } = useTranslation('analysis');
   return (
     <div className="sym-linked-row">
@@ -204,9 +227,9 @@ function LinkedRow({ label, icon, items }: Readonly<{ label: string; icon: React
         <div className="sym-linked-empty">{t('symbol.interpretation.linkedEmpty')}</div>
       ) : (
         <div className="sym-linked-items">
-          {items.map((id) => (
-            <button key={id} type="button" className="sym-linked-chip" title={id}>
-              <span className="sym-linked-text">{id}</span>
+          {items.map(({ id, name }) => (
+            <button key={id} type="button" className="sym-linked-chip" title={id} onClick={() => onNavigate(id)}>
+              <span className="sym-linked-text">{name}</span>
               <ExternalLink size={10} style={{ color: 'var(--fg-muted)' }} />
             </button>
           ))}

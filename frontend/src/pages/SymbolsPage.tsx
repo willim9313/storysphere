@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
+import { useQuery, useQueries, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Telescope, BookOpen, GitBranch } from 'lucide-react';
 
@@ -19,6 +19,7 @@ import {
   type SymbolInterpretation,
 } from '@/api/symbols';
 
+import { fetchEntityById, fetchEventDetail } from '@/api/graph';
 import { SymbolList, type SymbolSort } from '@/components/symbols/SymbolList';
 import { TypePill } from '@/components/symbols/Badges';
 import { InterpretationCta } from '@/components/symbols/InterpretationCta';
@@ -59,21 +60,44 @@ export default function SymbolsPage() {
   });
   const entities: ImageryEntity[] = useMemo(() => listData?.items ?? [], [listData]);
 
-  // For sort-by-review we need interpretations for every entity. The interpretation
-  // queries below are only fired for the selected entity (list view shows
-  // review badge only when the user has already opened that imagery). We mirror
-  // the cached interpretation in a local lookup so the list keeps its badge
-  // after the user navigates away.
+  // Eagerly fetch all interpretations so sidebar badges appear without requiring
+  // the user to click each symbol. React Query deduplicates network calls when
+  // the selected entity's key is also in this batch.
+  const allInterpretationQueries = useQueries({
+    queries: entities.map((e) => ({
+      queryKey: INTERPRETATION_KEY(bookId, e.id),
+      queryFn: async () => {
+        try {
+          return await fetchSymbolInterpretation(e.id, bookId!);
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 404) return null;
+          throw err;
+        }
+      },
+      enabled: !!bookId,
+      retry: false,
+      staleTime: 30_000,
+    })),
+  });
+
+  // Sidebar badge map — reactive because it depends on live query results.
   const interpretations = useMemo(() => {
     const map: Record<string, SymbolInterpretation | undefined> = {};
-    entities.forEach((e) => {
-      const cached = queryClient.getQueryData<SymbolInterpretation | null>(
-        INTERPRETATION_KEY(bookId, e.id),
-      );
-      if (cached) map[e.id] = cached;
+    entities.forEach((e, i) => {
+      const data = allInterpretationQueries[i]?.data;
+      if (data) map[e.id] = data;
     });
     return map;
-  }, [entities, queryClient, bookId]);
+  }, [entities, allInterpretationQueries]);
+
+  // Derive the selected entity's interpretation from the batch results.
+  const selectedIndex = useMemo(
+    () => (selectedId ? entities.findIndex((e) => e.id === selectedId) : -1),
+    [entities, selectedId],
+  );
+  const interpretation = selectedIndex >= 0
+    ? (allInterpretationQueries[selectedIndex]?.data ?? null)
+    : null;
 
   const { data: timeline = [], isLoading: timelineLoading } = useQuery({
     queryKey: ['books', bookId, 'symbols', selectedId, 'timeline'],
@@ -87,19 +111,35 @@ export default function SymbolsPage() {
     enabled: !!selectedId,
   });
 
-  const { data: interpretation } = useQuery<SymbolInterpretation | null>({
-    queryKey: INTERPRETATION_KEY(bookId, selectedId),
-    queryFn: async () => {
-      try {
-        return await fetchSymbolInterpretation(selectedId!, bookId!);
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 404) return null;
-        throw err;
-      }
-    },
-    enabled: !!selectedId && !!bookId,
-    retry: false,
+  // ── Resolve linked character / event IDs → human-readable names ─────────────
+  const charIds = interpretation?.linked_characters ?? [];
+  const eventIds = interpretation?.linked_events ?? [];
+
+  const characterQueries = useQueries({
+    queries: charIds.map((id) => ({
+      queryKey: ['entities', id],
+      queryFn: () => fetchEntityById(id),
+      staleTime: Infinity,
+    })),
   });
+
+  const eventQueries = useQueries({
+    queries: eventIds.map((id) => ({
+      queryKey: ['events', bookId, id],
+      queryFn: () => fetchEventDetail(bookId!, id),
+      staleTime: Infinity,
+    })),
+  });
+
+  const resolvedCharacters = charIds.map((id, i) => ({
+    id,
+    name: characterQueries[i]?.data?.name ?? id,
+  }));
+
+  const resolvedEvents = eventIds.map((id, i) => ({
+    id,
+    name: eventQueries[i]?.data?.title ?? id,
+  }));
 
   // ── Generation task ──────────────────────────────────────────
   const refetchInterpretation = () => {
@@ -174,9 +214,11 @@ export default function SymbolsPage() {
   } else if (interpretation) {
     interpretationBlock = (
       <InterpretationHero
-        key={interpretation.id}
+        key={interpretation.id ?? interpretation.imagery_id}
         entity={selected!}
         interpretation={interpretation}
+        resolvedCharacters={resolvedCharacters}
+        resolvedEvents={resolvedEvents}
         pending={reviewMutation.isPending}
         error={reviewError}
         onApprove={handleApprove}
@@ -242,9 +284,10 @@ export default function SymbolsPage() {
         <ChapterCard entity={selected} totalChapters={totalChapters} />
 
         <CoOccurrencePanel
+          bookId={bookId!}
           coOccurrences={coOccurrences}
-          linkedCharacterIds={interpretation?.linked_characters ?? []}
-          linkedEventIds={interpretation?.linked_events ?? []}
+          linkedCharacters={resolvedCharacters}
+          linkedEvents={resolvedEvents}
           loading={coLoading}
           onSelectCo={setSelectedId}
         />

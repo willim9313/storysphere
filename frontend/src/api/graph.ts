@@ -103,6 +103,12 @@ export function fetchEventDetail(bookId: string, eventId: string): Promise<Event
   return apiFetch<EventDetail>(`/books/${bookId}/events/${eventId}`);
 }
 
+export type EntitySummary = Pick<components['schemas']['EntityResponse'], 'id' | 'name'>;
+
+export function fetchEntityById(entityId: string): Promise<EntitySummary> {
+  return apiFetch<EntitySummary>(`/entities/${entityId}`);
+}
+
 export function triggerClassifyVisibility(bookId: string): Promise<{ taskId: string }> {
   return apiFetch<{ taskId: string }>(`/books/${bookId}/classify-visibility`, { method: 'POST' });
 }

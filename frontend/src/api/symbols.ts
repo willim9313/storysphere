@@ -1,84 +1,24 @@
 import { apiFetch } from './client';
 import type { TaskStatus } from './types';
+import type { components } from './generated';
 
+// ── Types from generated schema ───────────────────────────────────────────────
+export type ImageryEntity = components['schemas']['ImageryEntityResponse'];
+export type ImageryListResponse = components['schemas']['ImageryListResponse'];
+export type SymbolTimelineEntry = components['schemas']['SymbolTimelineEntry'];
+export type CoOccurrenceEntry = components['schemas']['CoOccurrenceEntry'];
+export type SEP = components['schemas']['SEP'];
+export type SEPOccurrenceContext = components['schemas']['SEPOccurrenceContext'];
+export type SymbolInterpretation = components['schemas']['SymbolInterpretation'];
+
+// ── Derived literal types ─────────────────────────────────────────────────────
+// ImageryType: backend exposes imagery_type as plain str (not an OpenAPI enum),
+// so the literal union lives here as application-level knowledge.
 export type ImageryType = 'object' | 'nature' | 'spatial' | 'body' | 'color' | 'other';
+export type Polarity = SymbolInterpretation['polarity'];
+export type SymbolReviewStatus = SymbolInterpretation['review_status'];
 
-export type Polarity = 'positive' | 'negative' | 'neutral' | 'mixed';
-
-export type SymbolReviewStatus = 'pending' | 'approved' | 'modified' | 'rejected';
-
-export interface ImageryEntity {
-  id: string;
-  book_id: string;
-  term: string;
-  imagery_type: ImageryType;
-  aliases: string[];
-  frequency: number;
-  chapter_distribution: Record<string, number>;
-  first_chapter: number | null;
-}
-
-export interface ImageryListResponse {
-  items: ImageryEntity[];
-  total: number;
-  book_id: string;
-}
-
-export interface SymbolTimelineEntry {
-  chapter_number: number;
-  position: number;
-  context_window: string;
-  co_occurring_terms: string[];
-  occurrence_id: string;
-}
-
-export interface CoOccurrenceEntry {
-  term: string;
-  imagery_id: string;
-  co_occurrence_count: number;
-  imagery_type: ImageryType;
-}
-
-export interface SEPOccurrenceContext {
-  occurrence_id: string;
-  paragraph_id: string;
-  chapter_number: number;
-  position: number;
-  paragraph_text: string;
-  context_window: string;
-}
-
-export interface SEP {
-  id: string;
-  imagery_id: string;
-  book_id: string;
-  term: string;
-  imagery_type: string;
-  frequency: number;
-  occurrence_contexts: SEPOccurrenceContext[];
-  co_occurring_entity_ids: string[];
-  co_occurring_event_ids: string[];
-  chapter_distribution: Record<string, number>;
-  peak_chapters: number[];
-  assembled_by: string;
-  assembled_at: string;
-}
-
-export interface SymbolInterpretation {
-  id: string;
-  imagery_id: string;
-  book_id: string;
-  term: string;
-  theme: string;
-  polarity: Polarity;
-  evidence_summary: string;
-  linked_characters: string[];
-  linked_events: string[];
-  confidence: number;
-  assembled_by: string;
-  assembled_at: string;
-  review_status: SymbolReviewStatus;
-}
+// ── API functions ─────────────────────────────────────────────────────────────
 
 export function fetchSymbols(
   bookId: string,
@@ -88,7 +28,7 @@ export function fetchSymbols(
   if (opts.imageryType) params.set('imagery_type', opts.imageryType);
   if (opts.minFrequency != null) params.set('min_frequency', String(opts.minFrequency));
   if (opts.limit != null) params.set('limit', String(opts.limit));
-  return apiFetch<ImageryListResponse>(`/symbols?${params}`);
+  return apiFetch<ImageryListResponse>(`/symbols/?${params}`);
 }
 
 export function fetchSymbolTimeline(imageryId: string): Promise<SymbolTimelineEntry[]> {

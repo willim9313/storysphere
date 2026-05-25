@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
@@ -49,9 +49,13 @@ export default function CharacterAnalysisPage() {
   const { t } = useTranslation('analysis');
   const { t: tc } = useTranslation('common');
 
+  const location = useLocation();
+
   const [framework, setFramework] = useState<Framework>('jung');
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
+    (location.state as { selectId?: string } | null)?.selectId ?? null,
+  );
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('overview');
   const [overviewSubTab, setOverviewSubTab] = useState<OverviewSubTab>('persona');
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);

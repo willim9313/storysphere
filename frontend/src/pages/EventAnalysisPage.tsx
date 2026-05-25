@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, useLocation, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
@@ -37,8 +37,12 @@ export default function EventAnalysisPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
+  const location = useLocation();
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
+  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
+    (location.state as { selectId?: string } | null)?.selectId ?? null,
+  );
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
