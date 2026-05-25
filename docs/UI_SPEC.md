@@ -625,61 +625,88 @@ chip 風格 toggle（不是 checkbox），分區：事件類型 / 敘事模式 /
 
 > 術語定義（TEU、TensionLine、TensionTheme 等）見 `docs/domain-glossary.md`。
 
-#### 版面結構
+#### 版面結構（2026-05 重設計）
 
 ```
-[主內容區，單欄 maxWidth: 800px 置中]
-  ├─ Header（頁面標題 + 書名）
-  ├─ 三步驟工作流
-  ├─ TensionLine 軌跡圖
-  ├─ TensionLine 審核列表
-  └─ TensionTheme 面板
+[全寬內容區 max-width: 1280px，padding 24px 28px 80px]
+  ├─ Stepper Strip                  (三步驟橫排 strip，內嵌 scope label + 進度條)
+  ├─ Theme Hero / Onboarding Hero   (合成完成 → 命題 hero；尚未 → 三層管線教學)
+  ├─ Trajectory Dashboard           (全寬，章節 TEU 密度 marginal + 每條 line 散點)
+  ├─ Summary Chip Bar               (pending / approved / modified / rejected 統計 + 過濾)
+  └─ TensionLine 審核列表            (LineCard 摘要+展開：thematic_note → carriers → evidence)
 ```
 
-#### 三步驟工作流（StepButton）
+CSS 入口：`frontend/src/styles/tension.css`（class prefix `.tn-*`）。
+元件入口：`frontend/src/components/tension/`（StepperStrip / ThemeHero / OnboardingHero / TrajectoryDashboard / SummaryChips / LineCard / StatusBadge / hooks/useTensionTask）。
 
-每個步驟以卡片按鈕呈現，已完成的步驟顯示綠色邊框 + ✓；執行中顯示 spinner；步驟 3 在步驟 2 未完成時 disabled。
+#### 三步驟 Stepper Strip
 
-| 步驟 | 完成後顯示 |
-|------|----------|
-| Step 1：分析 TEU | 組裝 N 個 TEU，找出 M 個候選 |
-| Step 2：聚合 TensionLine | 找出 N 條張力線 |
-| Step 3：合成 TensionTheme | 主題命題已生成 |
+`.tn-stepper` 把三個 step 水平排在同一卡片中；每格內顯示「scope eyebrow（SCENE / CROSS-SCENE / BOOK）→ label → desc」，狀態語意：
 
-每個步驟 polling 進度，顯示 `stage` 和 `progress`。
+| 視覺狀態 | class | 表現 |
+|----------|-------|------|
+| idle / active | `.tn-step` / `.is-active` | 中性色 num badge，可點 |
+| running | `.is-running` | num badge 變 info 色，inline spinner，底部 2px progress bar 顯示 `progress%` |
+| done | `.is-done` | num badge 變 success 色 + ✓，CTA 改為 ↻（可重跑） |
+| disabled | `disabled` attribute | opacity 0.45，desc 顯示 lock 文案（e.g. `step3.lock` = "需先完成 Step 2"） |
+| error | `.tn-step-error` 橫條 | 對應 step 下方插入 error 橫條（i18n `tension.errors.*`） |
 
-#### TensionLine 軌跡圖
+| 步驟 | 完成後 desc |
+|------|------------|
+| Step 1 TEU 組裝 | `組裝完成 · {assembled} / {candidates} 場景` |
+| Step 2 TensionLine 聚合 | `聚合完成 · {count} 條張力線` |
+| Step 3 TensionTheme 合成 | `主題已合成` |
 
-SVG 橫條圖（`overflowX: auto`）：
-- X 軸 = 章節序號（垂直輔助線）
-- 每條 TensionLine 一列橫條，顯示 `chapter_range` 跨度
-- 橫條顏色依 `intensity_summary`（低→藍，高→橘紅）
-- 被 reject 的 TensionLine `opacity: 0.4`，橫條色退灰
+#### Theme Hero（`.tn-hero`）
 
-#### TensionLine 審核（TensionLineCard）
+合成完成（或 lines 存在但 theme 尚無）時取代舊「面板」配置，作為頁面 anchor：
 
-每條 TensionLine 一張 accordion 卡片，展開後可執行：
-- ✓ **Approve**（綠）：確認這條張力線
-- ✎ **Modify**（藍）：inline 編輯兩極名稱（Pole A / Pole B），送出後狀態變 `modified`
-- ✕ **Reject**（紅）：標記排除
+- **Eyebrow**：`全書張力主題 · TensionTheme` + 右上 StatusBadge
+- **命題**：`<p>` 用 `var(--font-serif)` 28px serif 大字（可 inline 編輯為 `<textarea>`）
+- **Meta 欄**：Frye badge（`data-mode=` 對應 `--frye-*` token）／Booker badge（共用 `--booker-*` + § 字符）／合成來源（line 數）
+- **Actions**：Approve / Modify proposition / Reject（樣式同 LineCard），右下顯示 `assembled_by · assembled_at`
 
-卡片標題列顯示：`PoleA vs PoleB`、TEU 數量、章節跨度、強度百分比、狀態 badge（`pending / approved / modified / rejected`）
+無資料時：渲染 `OnboardingHero` — eyebrow + 引言 + 三張 layer card（TEU SCENE / TensionLine CROSS-SCENE / TensionTheme BOOK）說明三層聚合語意。
 
-狀態對應邊框顏色：
-- pending → 灰
-- approved → 綠
-- modified → 藍
-- rejected → 紅
+#### Trajectory Dashboard（`.tn-traj`）
 
-#### TensionTheme 面板（TensionThemePanel）
+由 SVG 改為 CSS Grid（`grid-template-columns: 200px 1fr`），全寬填滿；不再硬編色：
 
-位於頁面最下方，Step 3 完成後出現。
+- 章節 TEU **密度直方圖**作為 marginal，bar 用 `--accent` + opacity 0.55
+- 每條 line 一列 `.tn-traj-row`：左側 label（poles + meta + 小型 status icon），右側 canvas 顯示橫條
+- 橫條色用 `intensityBucket(intensity_summary)` 對應 `--tension-intensity-{low|mid|high}-{bg,fg,edge}`（不再 hardcode `rgb()`）
+- 每個 TEU 在自己章節位置疊一顆 `.tn-traj-row-dot` 圓點，半徑 = 3 + intensity × 4
+- 點 row 觸發 `onFocus(line.id)` 平滑捲動到下方對應 LineCard
 
-內容：
-- 主題命題（`proposition`）文字，可 inline 編輯
-- Frye Mythos badge（`romance / tragedy / comedy / irony`）
-- Booker Plot badge（7 大基本情節）
-- 審核操作：Approve / Modify proposition / Reject
+#### Summary Chip Bar（`.tn-summary`）
+
+新增的審核 dashboard 條，列在 trajectory 之下、列表之上：
+
+- 「全部 N」+ pending / approved / modified / rejected 四顆 chip（顯示計數，點擊作為列表過濾）
+- 右側「隱藏已拒絕」checkbox + 重新整理按鈕
+
+#### LineCard（`.tn-card`）— **解決盲審**
+
+折疊狀態：chevron + `PoleA vs PoleB` + 80px mini intensity bar + meta（TEU 數 / ch 跨度 / 強度 %）+ StatusBadge。
+
+展開狀態（`.tn-card-body`）依序：
+
+1. `tn-card-note`：line-level `thematic_note`（serif italic 引言區塊；若 grouping LLM 沒回則略過）
+2. `tn-poles` 兩欄：每極顯示 eyebrow + 名稱 + carrier pills（從各 TEU 的 `pole_a_carriers` / `pole_b_carriers` 去重合併）
+3. `tn-evidence`：列出構成此線的 TEU（chapter + 進度條式 intensity bar + tension_description + evidence 引文）。預設 density=summary 顯示第 1 筆 + 「+ 還有 N 則」inline 提示；可點「展開全部 {n} 則」切換為 full
+4. `tn-card-actions`：Approve / Modify Label（inline 編輯 PoleA / PoleB）/ Reject
+
+#### 與舊版差異
+
+| 面向 | 舊版 | 新版 |
+|------|------|------|
+| 版面寬度 | 800px 單欄 | 1280px 全寬 |
+| 三步驟 | 垂直堆疊卡片 | 水平 stepper strip，含 scope eyebrow + 進度條 |
+| 軌跡圖 | 560px SVG，hardcoded rgb() 漸層 | CSS Grid 全寬 dashboard + 密度直方圖 + TEU 散點，色用 `--tension-intensity-*` |
+| LineCard 展開 | 只有三按鈕 | 加 thematic_note + carriers + TEU 證據（解決盲審） |
+| Frye / Booker badge | 借用 entity-org / entity-con 配色 | 獨立 `--frye-*` / `--booker-*` token |
+| 審核總覽 | 散落 | Summary chip bar 集中顯示 + 過濾 |
+| 結構 | 單檔 inline style | `components/tension/*` + `styles/tension.css` |
 
 #### 狀態流程
 

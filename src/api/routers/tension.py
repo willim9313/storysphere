@@ -25,8 +25,11 @@ from api.schemas.tension import (
     AnalyzeBookTensionsRequest,
     GroupTensionLinesRequest,
     SynthesizeThemeRequest,
+    TensionLineDetail,
     TensionLineReviewRequest,
+    TensionThemeResponse,
     TensionThemeReviewRequest,
+    TEUSummary,
 )
 from api.store import get_task, task_store
 from api.ws_manager import manager
@@ -97,18 +100,49 @@ async def get_group_tension_lines(task_id: str) -> TaskStatus:
 # ── Cached TensionLines ────────────────────────────────────────────────────────
 
 
-@router.get("/lines")
+@router.get("/lines", response_model=list[TensionLineDetail])
 async def list_tension_lines(
     book_id: str,
     tension_service: TensionServiceDep,
-) -> list:
-    """Return cached TensionLines for a book.
+) -> list[TensionLineDetail]:
+    """Return cached TensionLines for a book, with constituent TEUs embedded.
 
-    Returns an empty list if grouping has not been run yet.
-    Trigger grouping first with ``POST /tension/lines/group``.
+    Each line includes a ``teus`` list (chapter, intensity, description, evidence,
+    carrier names per pole) so the UI can render evidence inline without a second
+    request. Returns an empty list if grouping has not been run yet — trigger
+    grouping first with ``POST /tension/lines/group``.
     """
-    lines = await tension_service.get_lines(book_id)
-    return [l.model_dump() for l in lines]
+    rows = await tension_service.get_lines_with_teus(book_id)
+    result: list[TensionLineDetail] = []
+    for r in rows:
+        teus_payload: list[TEUSummary] = []
+        for teu in r.get("teus", []):
+            teus_payload.append(
+                TEUSummary(
+                    id=teu.get("id", ""),
+                    chapter=int(teu.get("chapter", 0)),
+                    intensity=float(teu.get("intensity", 0.0)),
+                    tension_description=teu.get("tension_description", ""),
+                    evidence=list(teu.get("evidence") or []),
+                    pole_a_carriers=list((teu.get("pole_a") or {}).get("carrier_names") or []),
+                    pole_b_carriers=list((teu.get("pole_b") or {}).get("carrier_names") or []),
+                )
+            )
+        result.append(
+            TensionLineDetail(
+                id=r["id"],
+                document_id=r["document_id"],
+                teu_ids=r.get("teu_ids", []),
+                canonical_pole_a=r.get("canonical_pole_a", ""),
+                canonical_pole_b=r.get("canonical_pole_b", ""),
+                intensity_summary=float(r.get("intensity_summary", 0.0)),
+                chapter_range=r.get("chapter_range", []),
+                thematic_note=r.get("thematic_note"),
+                review_status=r.get("review_status", "pending"),
+                teus=teus_payload,
+            )
+        )
+    return result
 
 
 # ── HITL Review ────────────────────────────────────────────────────────────────
@@ -268,11 +302,11 @@ async def get_synthesize_tension_theme(task_id: str) -> TaskStatus:
     return task
 
 
-@router.get("/theme")
+@router.get("/theme", response_model=TensionThemeResponse)
 async def get_tension_theme(
     book_id: str,
     tension_service: TensionServiceDep,
-) -> dict:
+) -> TensionThemeResponse:
     """Return the cached TensionTheme for a book.
 
     Returns 404 if synthesis has not been run yet.
@@ -284,7 +318,17 @@ async def get_tension_theme(
             status_code=404,
             detail=f"No TensionTheme found for book '{book_id}'. Run synthesis first.",
         )
-    return theme.model_dump()
+    return TensionThemeResponse(
+        id=theme.id,
+        document_id=theme.document_id,
+        tension_line_ids=theme.tension_line_ids,
+        proposition=theme.proposition,
+        frye_mythos=theme.frye_mythos,
+        booker_plot=theme.booker_plot,
+        assembled_by=theme.assembled_by,
+        assembled_at=theme.assembled_at.isoformat() if hasattr(theme.assembled_at, "isoformat") else str(theme.assembled_at),
+        review_status=theme.review_status,
+    )
 
 
 @router.patch("/theme/{theme_id}/review")

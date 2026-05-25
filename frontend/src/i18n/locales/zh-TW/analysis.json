@@ -284,11 +284,12 @@
   "tension": {
     "title": "張力分析",
     "status": {
-      "pending": "待審核",
+      "pending": "待審",
       "approved": "已核准",
       "modified": "已修改",
       "rejected": "已拒絕"
     },
+    "all": "全部",
     "approve": "核准",
     "modifyLabel": "修改標籤",
     "modifyProposition": "修改命題",
@@ -298,23 +299,39 @@
     "operationFailed": "操作失敗",
     "themeTitle": "全書張力主題命題",
     "noProposition": "（尚無命題）",
+    "heroEyebrow": "全書張力主題 · TensionTheme",
+    "heroSourceLabel": "合成來源",
+    "heroSource": "合成自 {{count}} 條已審核張力線",
+    "fryeLabel": "Frye Mythos · 神話模式",
+    "bookerLabel": "Booker Plot · 基本情節",
+    "onboardingEyebrow": "張力分析 · 三層聚合管線",
+    "onboardingIntro": "系統將從場景級的 TEU 出發，向上聚合為跨章節 TensionLine，最終合成全書的命題。",
+    "onboarding": {
+      "teu":   { "scope": "SCENE · 場景",      "name": "TEU",          "desc": "每個事件提取出的對立極對，是張力分析的最小單元。" },
+      "line":  { "scope": "CROSS-SCENE · 跨章節", "name": "TensionLine",  "desc": "相似 TEU 聚合而成、持續存在的對立軸；可逐條審核。" },
+      "theme": { "scope": "BOOK · 全書",       "name": "TensionTheme", "desc": "從已審核的張力線合成一句話命題與框架歸類。" }
+    },
     "step1": {
-      "label": "Step 1：批次 TEU 組裝",
-      "desc": "掃描全書具張力訊號的場景並組裝 TEU",
-      "done": "完成：{{assembled}} / {{candidates}} 個場景已組裝",
-      "running": "進行中：{{stage}}（{{progress}}%）"
+      "label": "TEU 組裝",
+      "scope": "SCENE 場景級",
+      "desc": "掃描全書事件，提取對立極對",
+      "done": "組裝完成 · {{assembled}} / {{candidates}} 場景",
+      "running": "進行中 · {{stage}}（{{progress}}%）"
     },
     "step2": {
-      "label": "Step 2：TensionLine 自動分組",
-      "desc": "LLM 將 TEU 歸納為跨場景張力模式",
-      "done": "完成：{{count}} 條 TensionLine",
-      "running": "進行中：{{stage}}"
+      "label": "TensionLine 聚合",
+      "scope": "CROSS-SCENE 跨場景",
+      "desc": "LLM 將 TEU 歸納為跨章節張力模式",
+      "done": "聚合完成 · {{count}} 條張力線",
+      "running": "進行中 · {{stage}}"
     },
     "step3": {
-      "label": "Step 3：TensionTheme 合成",
-      "desc": "根據已審核的 TensionLine，LLM 合成全書主題命題",
-      "done": "完成：全書主題命題已產生",
-      "running": "進行中：{{stage}}"
+      "label": "TensionTheme 合成",
+      "scope": "BOOK 全書級",
+      "desc": "從已審核的 TensionLine 合成全書主題命題",
+      "done": "主題已合成",
+      "running": "進行中 · {{stage}}",
+      "lock": "需先完成 Step 2"
     },
     "errors": {
       "analysisFailed": "分析失敗",
@@ -324,23 +341,44 @@
       "triggerGroup": "觸發分組失敗",
       "triggerSynth": "觸發合成失敗"
     },
-    "trajectoryTitle": "TensionLine 軌跡圖",
-    "intensityHint": "強度：低 → 高（橙色）",
+    "trajectoryTitle": "TensionLine 軌跡",
+    "trajectorySub": "{{count}} 條 · 1 → {{max}} 章",
+    "intensityLabel": "強度",
+    "intensityLow": "低",
+    "intensityMid": "中",
+    "intensityHigh": "高",
+    "density": "TEU 密度",
+    "intensityHint": "強度：低 → 高",
+    "reviewSummary": "審核狀態",
+    "hideRejected": "隱藏已拒絕",
+    "reviewListTitle": "TensionLine 審核",
+    "reviewListSub": "{{shown}} / {{total}} 條",
     "reviewTitle": "TensionLine 審核（{{count}} 條）",
-    "refresh": "刷新",
+    "refresh": "重新整理",
+    "poleA": "POLE A",
+    "poleB": "POLE B",
+    "noCarrier": "未指派 carrier",
+    "evidence": "證據",
+    "evidenceCount": "{{count}} 則",
+    "evidenceHidden": "+ 還有 {{count}} 則 TEU 證據未顯示",
+    "showAll": "展開全部 {{count}} 則",
+    "showSummary": "收合",
+    "rerun": "重跑此條",
+    "noFilterResult": "篩選結果為空，調整上方狀態 chip 試試。",
     "empty": "尚無張力分析資料",
     "emptyHint": "請先執行 Step 1 和 Step 2",
     "frye": {
       "romance": "浪漫傳奇",
       "comedy": "喜劇",
       "tragedy": "悲劇",
+      "irony": "反諷",
       "irony_satire": "諷刺／反諷"
     },
     "booker": {
-      "overcoming_the_monster": "征服怪物",
-      "rags_to_riches": "從貧到富",
-      "the_quest": "追尋",
-      "voyage_and_return": "旅程與歸返",
+      "overcoming_the_monster": "克服怪物",
+      "rags_to_riches": "白手起家",
+      "the_quest": "追尋之旅",
+      "voyage_and_return": "出走與歸返",
       "comedy": "喜劇",
       "tragedy": "悲劇",
       "rebirth": "重生"

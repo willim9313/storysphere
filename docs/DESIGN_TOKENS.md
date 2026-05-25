@@ -248,6 +248,46 @@ label 渲染於節點下方外部（`text-valign: 'bottom'`），背景為 `--bg
 | | `--graph-evt-stroke` | `#ef4444` | `#000000` | `#000000` | `#000000` |
 | | `--graph-evt-label` | `#991b1b` | `#0d0d0d` | `#000000` | `#000000` |
 
+### 3.12 張力強度（Tension Intensity）
+
+離散三階（low / mid / high），用於 `.tn-traj-row-bar` 填色與 `.tn-traj-legend` 圖例。`intensityBucket(v)` 在 [components/tension/intensity.ts](../frontend/src/components/tension/intensity.ts) 切桶（< 0.4 / < 0.75 / 其餘）。
+
+| 階段 | Token | default | manuscript | minimal-ink | pulp |
+|------|-------|---------|-----------|-------------|------|
+| low  | `--tension-intensity-low-bg`    | `#efe8d8` | `#ebebeb` | `#ffffff` | `#ffffff` |
+| | `--tension-intensity-low-fg`    | `#8a7a68` | `#555555` | `#888888` | `#666666` |
+| | `--tension-intensity-low-edge`  | `#d4c8b8` | `#888888` | `#cccccc` | `#000000` |
+| mid  | `--tension-intensity-mid-bg`    | `#d9b896` | `#888888` | `#aaaaaa` | `#999999` |
+| | `--tension-intensity-mid-fg`    | `#4a2e16` | `#ffffff` | `#ffffff` | `#ffffff` |
+| | `--tension-intensity-mid-edge`  | `#b8956a` | `#444444` | `#000000` | `#000000` |
+| high | `--tension-intensity-high-bg`   | `#8b5e3c` | `#0d0d0d` | `#000000` | `#000000` |
+| | `--tension-intensity-high-fg`   | `#fff5e6` | `#ffffff` | `#ffffff` | `#ffffff` |
+| | `--tension-intensity-high-edge` | `#6b4528` | `#000000` | `#000000` | `#000000` |
+
+### 3.13 Frye Mythos · 神話模式
+
+四種 mythos 各自一組 bg / fg / border，用於 `.tn-frye-badge[data-mode="..."]`。
+
+| Mythos | Token | default | manuscript | minimal-ink | pulp |
+|--------|-------|---------|-----------|-------------|------|
+| romance | `--frye-romance-bg` / `-fg` / `-border` | `#fdf1de` / `#7a4a18` / `#d9b378` | `#ebebeb` / `#0d0d0d` / `#aaaaaa` | `#ffffff` / `#000000` / `#000000` | `#ffffff` / `#000000` / `#000000` |
+| comedy | `--frye-comedy-bg` / `-fg` / `-border` | `#eef5e2` / `#4a6420` / `#a8c476` | `#d8d8d8` / `#0d0d0d` / `#666666` | `#eeeeee` / `#000000` / `#000000` | `#dddddd` / `#000000` / `#000000` |
+| tragedy | `--frye-tragedy-bg` / `-fg` / `-border` | `#f4e3e0` / `#6e2a20` / `#c47a6e` | `#555555` / `#ffffff` / `#000000` | `#000000` / `#ffffff` / `#000000` | `#000000` / `#ffffff` / `#000000` |
+| irony | `--frye-irony-bg` / `-fg` / `-border` | `#e5ecf2` / `#2c476a` / `#7c98b4` | `#f5f5f5` / `#333333` / `#888888` | `#aaaaaa` / `#ffffff` / `#000000` | `#888888` / `#ffffff` / `#000000` |
+
+`data-mode="irony_satire"` 共用 `irony` 配色。
+
+### 3.14 Booker Plot · 基本情節
+
+七種 plot 共用單一 muted-cream 框架色（`§` 字符標記在 `--booker-accent`）。
+
+| Token | default | manuscript | minimal-ink | pulp |
+|-------|---------|-----------|-------------|------|
+| `--booker-bg`     | `#f6efe2` | `#e8e4db` | `#ebebeb` | `#e5e5e5` |
+| `--booker-fg`     | `#4a3f30` | `#0d0d0d` | `#000000` | `#000000` |
+| `--booker-border` | `#c4b5a0` | `#555555` | `#000000` | `#000000` |
+| `--booker-accent` | `#8b5e3c` | `#000000` | `#000000` | `#000000` |
+
 ---
 
 ## 4. 元件層差異

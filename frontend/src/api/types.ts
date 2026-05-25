@@ -340,6 +340,16 @@ export interface TEU {
   review_status: 'pending' | 'approved' | 'rejected';
 }
 
+export interface TEUSummary {
+  id: string;
+  chapter: number;
+  intensity: number;
+  tension_description: string;
+  evidence: string[];
+  pole_a_carriers: string[];
+  pole_b_carriers: string[];
+}
+
 export interface TensionLine {
   id: string;
   document_id: string;
@@ -348,7 +358,9 @@ export interface TensionLine {
   canonical_pole_b: string;
   intensity_summary: number;
   chapter_range: number[];
+  thematic_note?: string | null;
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  teus?: TEUSummary[];
 }
 
 export interface TensionTheme {

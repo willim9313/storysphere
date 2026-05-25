@@ -289,6 +289,7 @@
       "modified": "Modified",
       "rejected": "Rejected"
     },
+    "all": "All",
     "approve": "Approve",
     "modifyLabel": "Edit Label",
     "modifyProposition": "Edit Proposition",
@@ -298,23 +299,39 @@
     "operationFailed": "Operation failed",
     "themeTitle": "Book-wide Tension Theme",
     "noProposition": "(No proposition yet)",
+    "heroEyebrow": "Book-wide Tension Theme · TensionTheme",
+    "heroSourceLabel": "Synthesized from",
+    "heroSource": "Synthesized from {{count}} reviewed tension lines",
+    "fryeLabel": "Frye Mythos",
+    "bookerLabel": "Booker Plot",
+    "onboardingEyebrow": "Tension Analysis · Three-Layer Pipeline",
+    "onboardingIntro": "Starting from scene-level TEUs, the system aggregates them into cross-scene TensionLines and finally synthesizes a book-wide proposition.",
+    "onboarding": {
+      "teu":   { "scope": "SCENE",       "name": "TEU",          "desc": "The smallest tension unit — one opposing pole pair extracted from a single event." },
+      "line":  { "scope": "CROSS-SCENE", "name": "TensionLine",  "desc": "A recurring axis of opposition aggregated from similar TEUs; reviewed individually." },
+      "theme": { "scope": "BOOK",        "name": "TensionTheme", "desc": "One-sentence proposition + framework classification synthesized from reviewed lines." }
+    },
     "step1": {
-      "label": "Step 1: Batch TEU Assembly",
+      "label": "TEU Assembly",
+      "scope": "SCENE level",
       "desc": "Scan the book for tension-signal scenes and assemble TEUs",
-      "done": "Done: {{assembled}} / {{candidates}} scenes assembled",
-      "running": "Running: {{stage}} ({{progress}}%)"
+      "done": "Assembled · {{assembled}} / {{candidates}} scenes",
+      "running": "Running · {{stage}} ({{progress}}%)"
     },
     "step2": {
-      "label": "Step 2: TensionLine Auto-grouping",
+      "label": "TensionLine Grouping",
+      "scope": "CROSS-SCENE",
       "desc": "LLM groups TEUs into cross-scene tension patterns",
-      "done": "Done: {{count}} TensionLines",
-      "running": "Running: {{stage}}"
+      "done": "Grouped · {{count}} tension lines",
+      "running": "Running · {{stage}}"
     },
     "step3": {
-      "label": "Step 3: TensionTheme Synthesis",
-      "desc": "LLM synthesizes the book-wide theme proposition from reviewed TensionLines",
-      "done": "Done: Book-wide theme proposition generated",
-      "running": "Running: {{stage}}"
+      "label": "TensionTheme Synthesis",
+      "scope": "BOOK level",
+      "desc": "Synthesize a book-wide proposition from reviewed TensionLines",
+      "done": "Theme synthesized",
+      "running": "Running · {{stage}}",
+      "lock": "Finish Step 2 first"
     },
     "errors": {
       "analysisFailed": "Analysis failed",
@@ -325,15 +342,36 @@
       "triggerSynth": "Failed to trigger synthesis"
     },
     "trajectoryTitle": "TensionLine Trajectory",
-    "intensityHint": "Intensity: Low → High (orange)",
+    "trajectorySub": "{{count}} lines · 1 → {{max}} chapters",
+    "intensityLabel": "Intensity",
+    "intensityLow": "Low",
+    "intensityMid": "Mid",
+    "intensityHigh": "High",
+    "density": "TEU density",
+    "intensityHint": "Intensity: Low → High",
+    "reviewSummary": "Review status",
+    "hideRejected": "Hide rejected",
+    "reviewListTitle": "TensionLine Review",
+    "reviewListSub": "{{shown}} / {{total}}",
     "reviewTitle": "TensionLine Review ({{count}})",
     "refresh": "Refresh",
+    "poleA": "POLE A",
+    "poleB": "POLE B",
+    "noCarrier": "no assigned carrier",
+    "evidence": "Evidence",
+    "evidenceCount": "{{count}} entries",
+    "evidenceHidden": "+ {{count}} more TEU entries hidden",
+    "showAll": "Show all {{count}}",
+    "showSummary": "Collapse",
+    "rerun": "Re-run",
+    "noFilterResult": "No lines match the current filter. Adjust the status chips above.",
     "empty": "No tension analysis data yet",
     "emptyHint": "Run Step 1 and Step 2 first",
     "frye": {
       "romance": "Romance",
       "comedy": "Comedy",
       "tragedy": "Tragedy",
+      "irony": "Irony",
       "irony_satire": "Irony / Satire"
     },
     "booker": {

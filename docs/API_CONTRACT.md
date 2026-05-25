@@ -927,28 +927,42 @@ Step 2 專用 polling endpoint。
 
 ### #14e GET /tension/lines
 
-取得書籍的 TensionLine 清單。
+取得書籍的 TensionLine 清單，**並內嵌每條線的 TEU 證據**（供審核頁直接顯示，不需第二次請求）。
 
 **Query Params**：`book_id=<bookId>`（必填）
 
 **Response 200**
 ```ts
-TensionLine[]
+TensionLineDetail[]
 
-// TensionLine 欄位為 snake_case（domain/ model，無 alias_generator）
-interface TensionLine {
+// 欄位為 snake_case（domain/ model，無 alias_generator）
+interface TensionLineDetail {
   id: string;
   document_id: string;
   teu_ids: string[];
   canonical_pole_a: string;
   canonical_pole_b: string;
-  intensity_summary: number;   // 0–1
-  chapter_range: number[];     // [firstChapter, lastChapter]
+  intensity_summary: number;            // 0–1
+  chapter_range: number[];              // [firstChapter, ..., lastChapter]
+  thematic_note?: string | null;        // LLM 在分組時提出的全線主題註記
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  teus: TEUSummary[];                   // 構成此線的 TEU 證據，依 teu_ids 順序
+}
+
+interface TEUSummary {
+  id: string;
+  chapter: number;
+  intensity: number;                    // 0–1
+  tension_description: string;
+  evidence: string[];                   // 1–3 段文本引用
+  pole_a_carriers: string[];            // 對應 pole A 的角色名（denormalized）
+  pole_b_carriers: string[];
 }
 ```
 
-**UI 使用頁面**：張力分析頁（軌跡圖 + 審核列表）
+**UI 使用頁面**：張力分析頁（hero / 軌跡圖 dashboard / 審核 LineCard 證據區）
+
+**備註**：`teus[]` 由 `TensionService.get_lines_with_teus()` 透過 `AnalysisCache.list_by_prefix("teu:")` 一次取出，過濾掉與 `teu_ids` 不匹配的條目；若 TEU 已逾 TTL，該條 line 的 `teus` 為空陣列（line 仍照常回傳）。
 
 ---
 

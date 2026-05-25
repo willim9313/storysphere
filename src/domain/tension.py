@@ -94,6 +94,10 @@ class TensionLine(BaseModel):
     canonical_pole_b: str = Field(default="", description="Canonical label for pole B")
     intensity_summary: float = Field(default=0.0, ge=0.0, le=1.0)
     chapter_range: list[int] = Field(default_factory=list)
+    thematic_note: str | None = Field(
+        default=None,
+        description="Optional: the broader theme this line serves (LLM-suggested at grouping time)",
+    )
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"
 
 

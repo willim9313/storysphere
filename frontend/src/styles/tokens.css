@@ -165,6 +165,29 @@
   --border-style:  solid;
   --node-shadow:   none;
   --divider-style: 1px solid var(--border);
+
+  /* Tension intensity — 3-step discrete scale (low → mid → high) */
+  --tension-intensity-low-bg:    #efe8d8;
+  --tension-intensity-low-fg:    #8a7a68;
+  --tension-intensity-low-edge:  #d4c8b8;
+  --tension-intensity-mid-bg:    #d9b896;
+  --tension-intensity-mid-fg:    #4a2e16;
+  --tension-intensity-mid-edge:  #b8956a;
+  --tension-intensity-high-bg:   #8b5e3c;
+  --tension-intensity-high-fg:   #fff5e6;
+  --tension-intensity-high-edge: #6b4528;
+
+  /* Frye Mythos — 4 seasonal modes */
+  --frye-romance-bg:     #fdf1de; --frye-romance-fg:     #7a4a18; --frye-romance-border: #d9b378;
+  --frye-comedy-bg:      #eef5e2; --frye-comedy-fg:      #4a6420; --frye-comedy-border:  #a8c476;
+  --frye-tragedy-bg:     #f4e3e0; --frye-tragedy-fg:     #6e2a20; --frye-tragedy-border: #c47a6e;
+  --frye-irony-bg:       #e5ecf2; --frye-irony-fg:       #2c476a; --frye-irony-border:   #7c98b4;
+
+  /* Booker Plot — 7 plot families share one muted-cream frame; glyph differentiates */
+  --booker-bg:           #f6efe2;
+  --booker-fg:           #4a3f30;
+  --booker-border:       #c4b5a0;
+  --booker-accent:       #8b5e3c;
 }
 
 /* ── Manuscript ──────────────────────────────────────────────── */
@@ -285,6 +308,21 @@
   --status-empty-bg:        #f5f5f5;
   --status-empty-border:    #aaaaaa;
   --status-empty-fg:        #888888;
+
+  /* tension intensity — strict greyscale by step */
+  --tension-intensity-low-bg:  #ebebeb; --tension-intensity-low-fg:  #555555; --tension-intensity-low-edge: #888888;
+  --tension-intensity-mid-bg:  #888888; --tension-intensity-mid-fg:  #ffffff; --tension-intensity-mid-edge: #444444;
+  --tension-intensity-high-bg: #0d0d0d; --tension-intensity-high-fg: #ffffff; --tension-intensity-high-edge:#000000;
+
+  --frye-romance-bg: #ebebeb; --frye-romance-fg: #0d0d0d; --frye-romance-border: #aaaaaa;
+  --frye-comedy-bg:  #d8d8d8; --frye-comedy-fg:  #0d0d0d; --frye-comedy-border:  #666666;
+  --frye-tragedy-bg: #555555; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
+  --frye-irony-bg:   #f5f5f5; --frye-irony-fg:   #333333; --frye-irony-border:   #888888;
+
+  --booker-bg:     #e8e4db;
+  --booker-fg:     #0d0d0d;
+  --booker-border: #555555;
+  --booker-accent: #000000;
 }
 
 /* ── Minimal Ink ─────────────────────────────────────────────── */
@@ -404,6 +442,21 @@
   --status-empty-bg:        #ffffff;
   --status-empty-border:    #aaaaaa;
   --status-empty-fg:        #888888;
+
+  /* tension intensity — fill polarity */
+  --tension-intensity-low-bg:  #ffffff; --tension-intensity-low-fg:  #888888; --tension-intensity-low-edge: #cccccc;
+  --tension-intensity-mid-bg:  #aaaaaa; --tension-intensity-mid-fg:  #ffffff; --tension-intensity-mid-edge: #000000;
+  --tension-intensity-high-bg: #000000; --tension-intensity-high-fg: #ffffff; --tension-intensity-high-edge:#000000;
+
+  --frye-romance-bg: #ffffff; --frye-romance-fg: #000000; --frye-romance-border: #000000;
+  --frye-comedy-bg:  #eeeeee; --frye-comedy-fg:  #000000; --frye-comedy-border:  #000000;
+  --frye-tragedy-bg: #000000; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
+  --frye-irony-bg:   #aaaaaa; --frye-irony-fg:   #ffffff; --frye-irony-border:   #000000;
+
+  --booker-bg:     #ebebeb;
+  --booker-fg:     #000000;
+  --booker-border: #000000;
+  --booker-accent: #000000;
 }
 
 /* ── Pulp ────────────────────────────────────────────────────── */
@@ -524,4 +577,19 @@
   --status-empty-bg:        #ffffff;
   --status-empty-border:    #000000;
   --status-empty-fg:        #555555;
+
+  /* tension intensity — bold polarity offset */
+  --tension-intensity-low-bg:  #ffffff; --tension-intensity-low-fg:  #666666; --tension-intensity-low-edge: #000000;
+  --tension-intensity-mid-bg:  #999999; --tension-intensity-mid-fg:  #ffffff; --tension-intensity-mid-edge: #000000;
+  --tension-intensity-high-bg: #000000; --tension-intensity-high-fg: #ffffff; --tension-intensity-high-edge:#000000;
+
+  --frye-romance-bg: #ffffff; --frye-romance-fg: #000000; --frye-romance-border: #000000;
+  --frye-comedy-bg:  #dddddd; --frye-comedy-fg:  #000000; --frye-comedy-border:  #000000;
+  --frye-tragedy-bg: #000000; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
+  --frye-irony-bg:   #888888; --frye-irony-fg:   #ffffff; --frye-irony-border:   #000000;
+
+  --booker-bg:     #e5e5e5;
+  --booker-fg:     #000000;
+  --booker-border: #000000;
+  --booker-accent: #000000;
 }
