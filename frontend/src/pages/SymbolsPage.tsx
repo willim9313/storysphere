@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Telescope, BookOpen } from 'lucide-react';
+import { Telescope, BookOpen, GitBranch } from 'lucide-react';
 
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
@@ -28,6 +28,7 @@ import { ChapterDistChart } from '@/components/symbols/ChapterDistChart';
 import { CoOccurrencePanel } from '@/components/symbols/CoOccurrencePanel';
 import { OccurrencesTimeline } from '@/components/symbols/OccurrencesTimeline';
 import { useSymbolInterpretationTask } from '@/components/symbols/hooks/useSymbolInterpretationTask';
+import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
 
 import '@/styles/symbols.css';
 
@@ -202,7 +203,17 @@ export default function SymbolsPage() {
       </div>
     );
   } else if (selected === null) {
-    detailBody = <EmptyState hasData={entities.length > 0} />;
+    if (entities.length > 0) {
+      detailBody = (
+        <SymbolsDashboard
+          entities={entities}
+          interpretations={interpretations}
+          totalChapters={totalChapters}
+        />
+      );
+    } else {
+      detailBody = <EmptyState />;
+    }
   } else {
     detailBody = (
       <>
@@ -309,17 +320,31 @@ function ChapterCard({ entity, totalChapters }: Readonly<{ entity: ImageryEntity
   );
 }
 
-function EmptyState({ hasData }: Readonly<{ hasData: boolean }>) {
+function EmptyState() {
   const { t } = useTranslation('analysis');
   return (
     <div className="sym-empty">
-      <div className="sym-empty-icon">
-        <Telescope size={40} />
+      <div className="sym-empty-illust">
+        <Telescope size={56} strokeWidth={1.25} />
       </div>
-      <h2 className="sym-empty-title">
-        {hasData ? t('symbol.selectPrompt') : t('symbol.emptyTitle')}
-      </h2>
-      <p className="sym-empty-desc">{hasData ? t('symbol.selectPromptDesc') : t('symbol.emptyHint')}</p>
+      <h2 className="sym-empty-title">{t('symbol.emptyTitle')}</h2>
+      <p className="sym-empty-desc">{t('symbol.emptyHint')}</p>
+      <div className="sym-empty-steps">
+        {([1, 2, 3] as const).map((n) => (
+          <div key={n} className="sym-empty-step">
+            <div className="sym-empty-step-n">{n}</div>
+            <div>
+              <div className="sym-empty-step-t">{t(`symbol.emptyStep${n}Title`)}</div>
+              <div className="sym-empty-step-d">{t(`symbol.emptyStep${n}Desc`)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="sym-empty-cta">
+        <button className="sym-btn-secondary">
+          <GitBranch size={13} /> {t('symbol.emptyUnravelingBtn')}
+        </button>
+      </div>
     </div>
   );
 }

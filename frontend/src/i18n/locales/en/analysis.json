@@ -307,9 +307,21 @@
     "onboardingEyebrow": "Tension Analysis · Three-Layer Pipeline",
     "onboardingIntro": "Starting from scene-level TEUs, the system aggregates them into cross-scene TensionLines and finally synthesizes a book-wide proposition.",
     "onboarding": {
-      "teu":   { "scope": "SCENE",       "name": "TEU",          "desc": "The smallest tension unit — one opposing pole pair extracted from a single event." },
-      "line":  { "scope": "CROSS-SCENE", "name": "TensionLine",  "desc": "A recurring axis of opposition aggregated from similar TEUs; reviewed individually." },
-      "theme": { "scope": "BOOK",        "name": "TensionTheme", "desc": "One-sentence proposition + framework classification synthesized from reviewed lines." }
+      "teu": {
+        "scope": "SCENE",
+        "name": "TEU",
+        "desc": "The smallest tension unit — one opposing pole pair extracted from a single event."
+      },
+      "line": {
+        "scope": "CROSS-SCENE",
+        "name": "TensionLine",
+        "desc": "A recurring axis of opposition aggregated from similar TEUs; reviewed individually."
+      },
+      "theme": {
+        "scope": "BOOK",
+        "name": "TensionTheme",
+        "desc": "One-sentence proposition + framework classification synthesized from reviewed lines."
+      }
     },
     "step1": {
       "label": "TEU Assembly",
@@ -634,6 +646,31 @@
       "generic": "Operation failed. Please try again.",
       "triggerFailed": "Failed to trigger interpretation. Please try again.",
       "reviewFailed": "Failed to update review status."
-    }
+    },
+    "dashboard": {
+      "totalSymbols": "Total imagery",
+      "totalOccurrences": "Total occurrences",
+      "analyzedCount": "Interpreted",
+      "approvedCount": "Approved",
+      "donutLabel": "imagery",
+      "typeDistTitle": "Type distribution",
+      "typeCount": "{{count}} types",
+      "polarityDistTitle": "Polarity distribution",
+      "polarityMeta": "Interpreted {{analyzed}}/{{total}}",
+      "polarityUnanalyzed": "Uninterpreted",
+      "freqTitle": "Frequency long-tail",
+      "freqMeta": "Top {{count}}",
+      "heatTitle": "Chapter density heatmap",
+      "heatMeta": "Imagery × {{chapters}} chapters",
+      "heatLegendLow": "Low density",
+      "heatLegendHigh": "High density"
+    },
+    "emptyStep1Title": "Confirm paragraph tokenisation is complete",
+    "emptyStep1Desc": "Imagery extraction relies on paragraph-level tokens — if the paragraph layer has not been built, extraction will not run automatically.",
+    "emptyStep2Title": "Check status on the Unraveling page",
+    "emptyStep2Desc": "The Unraveling DAG will clearly mark the \"Symbols\" node as empty, partial, or complete.",
+    "emptyStep3Title": "Trigger manually if needed",
+    "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Unraveling page.",
+    "emptyUnravelingBtn": "Open Unraveling"
   }
 }

@@ -307,9 +307,21 @@
     "onboardingEyebrow": "張力分析 · 三層聚合管線",
     "onboardingIntro": "系統將從場景級的 TEU 出發，向上聚合為跨章節 TensionLine，最終合成全書的命題。",
     "onboarding": {
-      "teu":   { "scope": "SCENE · 場景",      "name": "TEU",          "desc": "每個事件提取出的對立極對，是張力分析的最小單元。" },
-      "line":  { "scope": "CROSS-SCENE · 跨章節", "name": "TensionLine",  "desc": "相似 TEU 聚合而成、持續存在的對立軸；可逐條審核。" },
-      "theme": { "scope": "BOOK · 全書",       "name": "TensionTheme", "desc": "從已審核的張力線合成一句話命題與框架歸類。" }
+      "teu": {
+        "scope": "SCENE · 場景",
+        "name": "TEU",
+        "desc": "每個事件提取出的對立極對，是張力分析的最小單元。"
+      },
+      "line": {
+        "scope": "CROSS-SCENE · 跨章節",
+        "name": "TensionLine",
+        "desc": "相似 TEU 聚合而成、持續存在的對立軸；可逐條審核。"
+      },
+      "theme": {
+        "scope": "BOOK · 全書",
+        "name": "TensionTheme",
+        "desc": "從已審核的張力線合成一句話命題與框架歸類。"
+      }
     },
     "step1": {
       "label": "TEU 組裝",
@@ -634,6 +646,31 @@
       "generic": "操作失敗，請稍後再試。",
       "triggerFailed": "觸發詮釋失敗，請稍後再試。",
       "reviewFailed": "更新審核狀態失敗。"
-    }
+    },
+    "dashboard": {
+      "totalSymbols": "意象總數",
+      "totalOccurrences": "總出現次數",
+      "analyzedCount": "已生成詮釋",
+      "approvedCount": "已通過審核",
+      "donutLabel": "意象",
+      "typeDistTitle": "類型分布",
+      "typeCount": "{{count}} 類",
+      "polarityDistTitle": "極性分布",
+      "polarityMeta": "已詮釋 {{analyzed}}/{{total}}",
+      "polarityUnanalyzed": "未詮釋",
+      "freqTitle": "頻率長尾",
+      "freqMeta": "前 {{count}} 名",
+      "heatTitle": "章節密度熱圖",
+      "heatMeta": "每意象 × {{chapters}} 章",
+      "heatLegendLow": "低密度",
+      "heatLegendHigh": "高密度"
+    },
+    "emptyStep1Title": "確認文本切分已完成",
+    "emptyStep1Desc": "意象萃取依賴段落層次的 token——若段落層尚未建立，意象不會自動執行。",
+    "emptyStep2Title": "至展開卷軸頁確認狀態",
+    "emptyStep2Desc": "Unraveling DAG 會明確標示「Symbols」節點為 empty / partial / complete。",
+    "emptyStep3Title": "必要時手動觸發",
+    "emptyStep3Desc": "若依賴層完整但仍為空，可從 Unraveling 頁的對應節點觸發意象萃取 pipeline。",
+    "emptyUnravelingBtn": "開啟展開卷軸"
   }
 }
