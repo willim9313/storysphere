@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Brain, Search, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -57,6 +57,43 @@ export default function ReaderPage() {
   const { data: book, isLoading: bookLoading, error: bookError } = useBook(bookId);
   const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId);
   const { data: chunks, isLoading: chunksLoading } = useChunks(bookId, viewingChapterId);
+
+  // Deep-link from other pages (currently SymbolsPage occurrence rows) into a
+  // specific paragraph. Caller passes { paragraphId, chapterNumber } via
+  // location.state — paragraphId matches Chunk.id on the wire.
+  const location = useLocation();
+  const jumpTarget = (location.state as { paragraphId?: string; chapterNumber?: number } | null) ?? null;
+  const jumpHandledRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!jumpTarget?.paragraphId || !chapters) return;
+    if (jumpHandledRef.current === jumpTarget.paragraphId) return;
+    const target = chapters.find((c) => c.order === jumpTarget.chapterNumber);
+    if (!target) return;
+    // setState-in-effect is the standard sync-from-URL pattern for deep-links;
+    // the alternative (compute in render) would force callers to also push a
+    // chapter id into the URL which couples symbol-page state to reader state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpandedChapterId(target.id);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedChapterId(target.id);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setViewingChapterId(target.id);
+  }, [jumpTarget, chapters]);
+
+  useEffect(() => {
+    const pid = jumpTarget?.paragraphId;
+    if (!pid || !chunks || chunksLoading) return;
+    if (jumpHandledRef.current === pid) return;
+    if (!chunks.some((c) => c.id === pid)) return;
+    const el = document.querySelector(`[data-chunk-id="${pid}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('chunk-jump-flash');
+      globalThis.setTimeout(() => el.classList.remove('chunk-jump-flash'), 2000);
+      jumpHandledRef.current = pid;
+    }
+  }, [jumpTarget, chunks, chunksLoading]);
 
   useEffect(() => {
     setPageContext({ page: 'reader', bookId, bookTitle: book?.title });
@@ -346,7 +383,12 @@ export default function ReaderPage() {
             {/* Chunks */}
             <div style={{ padding: '16px' }}>
               {chunksLoading && <LoadingSpinner />}
-              {!chunksLoading && chunks?.map((chunk) => <ChunkCard key={chunk.id} chunk={chunk} />)}
+              {!chunksLoading &&
+                chunks?.map((chunk) => (
+                  <div key={chunk.id} data-chunk-id={chunk.id}>
+                    <ChunkCard chunk={chunk} />
+                  </div>
+                ))}
             </div>
           </div>
         ) : (

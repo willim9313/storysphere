@@ -218,6 +218,9 @@ class TestAssembleSEP:
         assert len(sep.occurrence_contexts) == 2
         assert sep.occurrence_contexts[0].paragraph_text.startswith("She gazed")
         assert sep.co_occurring_entity_ids == ["ent-alice"]
+        # ent-alice is mentioned in p1 (which has 1 occurrence of the imagery);
+        # p2 has no entities, so total count is 1.
+        assert sep.co_occurring_entity_counts == {"ent-alice": 1}
         assert sep.co_occurring_event_ids == ["ev-1", "ev-3"]
         assert sep.chapter_distribution == {1: 2, 3: 1, 5: 3}
         assert sep.peak_chapters == [5, 1, 3]  # sorted by count desc

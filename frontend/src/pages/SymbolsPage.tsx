@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueries, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Telescope, BookOpen, GitBranch } from 'lucide-react';
+import { Telescope, BookOpen, GitBranch, RefreshCw } from 'lucide-react';
 
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
@@ -13,6 +13,7 @@ import {
   fetchSymbolTimeline,
   fetchCoOccurrences,
   fetchSymbolInterpretation,
+  fetchSep,
   reviewSymbolInterpretation,
   type ImageryEntity,
   type Polarity,
@@ -111,6 +112,18 @@ export default function SymbolsPage() {
     enabled: !!selectedId,
   });
 
+  // SEP carries per-entity co-occurrence counts (added 2026-05-26 via
+  // co_occurring_entity_counts). We fetch lazily because SEP assembly is
+  // medium-cost, and only need it once interpretation exists (linked_characters
+  // are otherwise empty).
+  const { data: sep } = useQuery({
+    queryKey: ['books', bookId, 'symbols', selectedId, 'sep'],
+    queryFn: () => fetchSep(selectedId!),
+    enabled: !!selectedId && !!bookId,
+    staleTime: 5 * 60_000,
+  });
+  const entityCounts = sep?.co_occurring_entity_counts ?? {};
+
   // ── Resolve linked character / event IDs → human-readable names ─────────────
   const charIds = interpretation?.linked_characters ?? [];
   const eventIds = interpretation?.linked_events ?? [];
@@ -131,15 +144,25 @@ export default function SymbolsPage() {
     })),
   });
 
-  const resolvedCharacters = charIds.map((id, i) => ({
-    id,
-    name: characterQueries[i]?.data?.name ?? id,
-  }));
+  const resolvedCharacters = charIds.map((id, i) => {
+    const count = entityCounts[id];
+    return {
+      id,
+      name: characterQueries[i]?.data?.name ?? id,
+      hint: count != null && count > 0
+        ? t('symbol.interpretation.linkedCharHint', { count })
+        : undefined,
+    };
+  });
 
-  const resolvedEvents = eventIds.map((id, i) => ({
-    id,
-    name: eventQueries[i]?.data?.title ?? id,
-  }));
+  const resolvedEvents = eventIds.map((id, i) => {
+    const ev = eventQueries[i]?.data;
+    return {
+      id,
+      name: ev?.title ?? id,
+      hint: ev?.chapter != null ? t('symbol.interpretation.linkedEventHint', { chapter: ev.chapter }) : undefined,
+    };
+  });
 
   // ── Generation task ──────────────────────────────────────────
   const refetchInterpretation = () => {
@@ -210,7 +233,14 @@ export default function SymbolsPage() {
 
   let interpretationBlock: React.ReactNode;
   if (isGenerating) {
-    interpretationBlock = <InterpretationGenerating task={interpretationTask.task} />;
+    interpretationBlock = (
+      <InterpretationGenerating
+        task={interpretationTask.task}
+        term={selected?.term ?? ''}
+        occurrenceCount={selected?.frequency}
+        onCancel={interpretationTask.cancel}
+      />
+    );
   } else if (interpretation) {
     interpretationBlock = (
       <InterpretationHero
@@ -254,7 +284,7 @@ export default function SymbolsPage() {
         />
       );
     } else {
-      detailBody = <EmptyState />;
+      detailBody = <EmptyState bookId={bookId!} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['books', bookId, 'symbols'] })} />;
     }
   } else {
     detailBody = (
@@ -297,6 +327,7 @@ export default function SymbolsPage() {
           loading={timelineLoading}
           term={selected.term}
           aliases={selected.aliases}
+          bookId={bookId!}
         />
       </>
     );
@@ -363,8 +394,9 @@ function ChapterCard({ entity, totalChapters }: Readonly<{ entity: ImageryEntity
   );
 }
 
-function EmptyState() {
+function EmptyState({ bookId, onRefresh }: Readonly<{ bookId: string; onRefresh: () => void }>) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   return (
     <div className="sym-empty">
       <div className="sym-empty-illust">
@@ -384,8 +416,15 @@ function EmptyState() {
         ))}
       </div>
       <div className="sym-empty-cta">
-        <button className="sym-btn-secondary">
+        <button
+          type="button"
+          className="sym-btn-secondary"
+          onClick={() => navigate(`/books/${bookId}/unraveling`)}
+        >
           <GitBranch size={13} /> {t('symbol.emptyUnravelingBtn')}
+        </button>
+        <button type="button" className="sym-btn-ghost-large" onClick={onRefresh}>
+          <RefreshCw size={13} /> {t('symbol.emptyRecheckBtn')}
         </button>
       </div>
     </div>

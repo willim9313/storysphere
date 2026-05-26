@@ -758,7 +758,7 @@ Step 1 → Step 2 → Step 3 各自獨立觸發
 
 1. **標題列**：詞條 h1（serif）+ TypePill + 出現次數；下方為異體 pill 列。
 2. **詮釋區（依狀態切換）**：
-   - **生成中**（`InterpretationGenerating`）：藍色卡，stage / progress bar / taskId。
+   - **生成中**（`InterpretationGenerating`）：中央卡片含五階段 checklist（彙整 SEP 證據檔 / 採樣段落脈絡 N/N / 連結 KG 角色 / LLM 詮釋 / 寫入待審紀錄），上方為整體進度條 + taskId，下方為取消按鈕與輪詢註記。後端 `_run_symbol_analysis` 只 emit 3 個 progress event（10/40/90），前端把 10 之前的三個敘事步視為「assemble SEP」原子塊，達 10 後一起標 done；採樣 N/N 顯示的是 `entity.frequency`（與 `len(sep.occurrence_contexts)` 等價），非逐筆計數。詳見 [`InterpretationGenerating.tsx`](../frontend/src/components/symbols/InterpretationGenerating.tsx) 的 `deriveStages` 註解。
    - **已生成**（`InterpretationHero`）：
      - 上：`LLM 詮釋` tag + assembled_by + 日期 + ReviewBadge（右）
      - 主題命題（serif italic）

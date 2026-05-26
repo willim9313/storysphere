@@ -12,7 +12,7 @@ interface Props {
   entities: ImageryEntity[];
   interpretations: Record<string, SymbolInterpretation | undefined>;
   selectedId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
   typeFilter: string | null;
   setTypeFilter: (v: string | null) => void;
   sort: SymbolSort;
@@ -76,8 +76,16 @@ export function SymbolList({
         <div className="sym-chip-row">
           <button
             type="button"
-            className={'sym-chip-all' + (typeFilter === null ? ' is-active' : '')}
-            onClick={() => setTypeFilter(null)}
+            className={
+              'sym-chip-all' +
+              (typeFilter === null && selectedId === null ? ' is-active' : '')
+            }
+            onClick={() => {
+              setTypeFilter(null);
+              // Also deselect so the dashboard returns — this is the only way
+              // back to the overview after clicking into a symbol.
+              onSelect(null);
+            }}
           >
             {t('symbol.all')} <span className="sym-chip-count">{entities.length}</span>
           </button>

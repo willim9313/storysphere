@@ -10,6 +10,7 @@ import { ReviewActions } from './ReviewActions';
 interface ResolvedItem {
   id: string;
   name: string;
+  hint?: string;
 }
 
 interface Props {
@@ -213,7 +214,7 @@ function LinkedRow({
 }: Readonly<{
   label: string;
   icon: React.ReactNode;
-  items: { id: string; name: string }[];
+  items: ResolvedItem[];
   onNavigate: (id: string) => void;
 }>) {
   const { t } = useTranslation('analysis');
@@ -227,9 +228,10 @@ function LinkedRow({
         <div className="sym-linked-empty">{t('symbol.interpretation.linkedEmpty')}</div>
       ) : (
         <div className="sym-linked-items">
-          {items.map(({ id, name }) => (
+          {items.map(({ id, name, hint }) => (
             <button key={id} type="button" className="sym-linked-chip" title={id} onClick={() => onNavigate(id)}>
               <span className="sym-linked-text">{name}</span>
+              {hint && <span className="sym-linked-hint">{hint}</span>}
               <ExternalLink size={10} style={{ color: 'var(--fg-muted)' }} />
             </button>
           ))}

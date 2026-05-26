@@ -1,5 +1,6 @@
 import { useMemo, type ReactNode } from 'react';
-import { Telescope } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { ExternalLink, Telescope } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import type { SymbolTimelineEntry } from '@/api/symbols';
@@ -9,6 +10,7 @@ interface Props {
   loading: boolean;
   term: string;
   aliases: string[];
+  bookId: string;
 }
 
 const ESCAPE_REGEX = /[.*+?^${}()|[\]\\]/g;
@@ -42,6 +44,7 @@ function renderBody({
   grouped,
   term,
   aliases,
+  onJump,
   t,
 }: {
   loading: boolean;
@@ -49,6 +52,7 @@ function renderBody({
   grouped: ReadonlyArray<readonly [number, SymbolTimelineEntry[]]>;
   term: string;
   aliases: string[];
+  onJump: (paragraphId: string, chapterNumber: number) => void;
   t: (key: string, opts?: Record<string, unknown>) => string;
 }): ReactNode {
   if (loading) {
@@ -86,6 +90,14 @@ function renderBody({
                     {tag}
                   </span>
                 ))}
+                <button
+                  type="button"
+                  className="sym-occ-jump"
+                  title={t('symbol.interpretation.occurrenceJumpTitle')}
+                  onClick={() => onJump(item.paragraph_id, item.chapter_number)}
+                >
+                  <ExternalLink size={11} />
+                </button>
               </div>
             </div>
           ))}
@@ -95,8 +107,9 @@ function renderBody({
   );
 }
 
-export function OccurrencesTimeline({ timeline, loading, term, aliases }: Readonly<Props>) {
+export function OccurrencesTimeline({ timeline, loading, term, aliases, bookId }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const grouped = useMemo(() => {
     const g: Record<number, SymbolTimelineEntry[]> = {};
     timeline.forEach((e) => {
@@ -118,7 +131,20 @@ export function OccurrencesTimeline({ timeline, loading, term, aliases }: Readon
           {t('symbol.occurrenceSpan', { count: timeline.length, chapters: grouped.length })}
         </span>
       </div>
-      {renderBody({ loading, timeline, grouped, term, aliases, t })}
+      {renderBody({
+        loading,
+        timeline,
+        grouped,
+        term,
+        aliases,
+        // ReaderPage is mounted at the index route /books/:bookId (not /read),
+        // see router.tsx:86. It loads chunks one chapter at a time, so we pass
+        // both paragraphId (= Chunk.id on the wire) and chapterNumber so it can
+        // pick the right chapter before scrolling to the paragraph.
+        onJump: (paragraphId, chapterNumber) =>
+          navigate(`/books/${bookId}`, { state: { paragraphId, chapterNumber } }),
+        t,
+      })}
     </section>
   );
 }

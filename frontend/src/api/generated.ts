@@ -2965,6 +2965,13 @@ export interface components {
              */
             co_occurring_entity_ids?: string[];
             /**
+             * Co Occurring Entity Counts
+             * @description Per-entity count of imagery occurrences whose paragraph mentions the entity. Used by the UI to display 'N co-occurrences' hints.
+             */
+            co_occurring_entity_counts?: {
+                [key: string]: number;
+            };
+            /**
              * Co Occurring Event Ids
              * @description Event IDs occurring in chapters where this imagery appears
              */
@@ -3190,6 +3197,8 @@ export interface components {
             co_occurring_terms: string[];
             /** Occurrence Id */
             occurrence_id: string;
+            /** Paragraph Id */
+            paragraph_id: string;
         };
         /** SynthesizeThemeRequest */
         SynthesizeThemeRequest: {

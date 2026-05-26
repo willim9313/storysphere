@@ -912,6 +912,22 @@
   padding: 1px 6px;
   border-radius: 4px;
 }
+.sym-occ-jump {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  background: var(--bg-tertiary);
+  border: 0;
+  color: var(--fg-secondary);
+  cursor: pointer;
+}
+.sym-occ-jump:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+}
 
 /* ── Buttons ─────────────────────────────────────────────── */
 .sym-btn-primary {
@@ -950,6 +966,20 @@
 .sym-btn-ghost:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+.sym-btn-ghost-large {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--fg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
 }
 .sym-review-btn {
   display: inline-flex;
@@ -1281,28 +1311,46 @@
   cursor: pointer;
 }
 
-/* ── Generating (LLM polling) ────────────────────────────── */
+/* ── Generating (LLM polling) ──────────────────────────────
+ * NOTE on the "N/N" sub-counter shown in the 採樣段落脈絡 step:
+ * It uses the symbol's total occurrence count (entity.frequency) rather
+ * than a live counter. Backend `assemble_sep` builds one occurrence_context
+ * per occurrence inside a single in-memory loop that completes before any
+ * progress callback fires, so there is no streamable per-paragraph progress
+ * to report. The figure is correct semantically (matches len(sep
+ * .occurrence_contexts)) — it just doesn't tick up. See
+ * InterpretationGenerating.tsx::deriveStages for the full mapping.
+ * ───────────────────────────────────────────────────────── */
 .sym-gen {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.sym-gen-card {
+  width: 100%;
+  max-width: 560px;
+  background: var(--bg-primary);
+  border: 1.5px var(--border-style) var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 18px 20px;
-  border: 1.5px var(--border-style) var(--color-info);
-  border-radius: var(--radius-lg);
-  background: var(--bg-primary);
-  box-shadow: var(--shadow-sm);
+  gap: 18px;
 }
 .sym-gen-head {
   display: grid;
-  grid-template-columns: 36px 1fr auto;
-  gap: 12px;
+  grid-template-columns: 44px 1fr auto;
+  gap: 14px;
   align-items: center;
 }
 .sym-gen-icon {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  background: var(--color-info);
+  background: var(--accent);
   color: var(--bg-primary);
   display: flex;
   align-items: center;
@@ -1310,35 +1358,50 @@
 }
 .sym-gen-eye {
   font-family: var(--font-sans);
-  font-size: 10.5px;
+  font-size: 11px;
   color: var(--fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 700;
 }
 .sym-gen-title {
-  font-family: var(--font-sans);
-  font-weight: 600;
-  font-size: 14px;
-  color: var(--fg-primary);
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-style: italic;
+  font-size: 22px;
   margin: 2px 0 0;
+  color: var(--fg-primary);
 }
-.sym-gen-task-id {
+.sym-gen-task {
   font-family: var(--font-mono);
   font-size: 10.5px;
-  color: var(--fg-secondary);
-  font-weight: 700;
+  color: var(--fg-muted);
   text-align: right;
 }
+.sym-gen-task-label {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+.sym-gen-task-id {
+  color: var(--fg-secondary);
+  font-weight: 700;
+}
+.sym-gen-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .sym-gen-progress-bar {
-  height: 6px;
+  height: 8px;
   background: var(--bg-tertiary);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
 }
 .sym-gen-progress-fill {
   height: 100%;
-  background: var(--color-info);
+  background: var(--accent);
   transition: width 200ms ease;
 }
 .sym-gen-progress-meta {
@@ -1352,6 +1415,101 @@
   font-weight: 700;
   color: var(--fg-primary);
   font-variant-numeric: tabular-nums;
+}
+.sym-gen-stages {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sym-gen-stage {
+  display: grid;
+  grid-template-columns: 20px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.sym-gen-stage.is-running {
+  background: var(--color-info-bg);
+}
+.sym-gen-stage.is-done {
+  opacity: 0.7;
+}
+.sym-gen-stage-bullet {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  color: var(--fg-muted);
+}
+.sym-gen-stage.is-done .sym-gen-stage-bullet {
+  background: var(--color-success);
+  color: var(--bg-primary);
+}
+.sym-gen-stage.is-running .sym-gen-stage-bullet {
+  background: var(--color-info);
+  color: var(--bg-primary);
+}
+.sym-gen-stage-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.sym-gen-spinner {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--bg-primary);
+  border-top-color: transparent;
+  animation: sym-spin 700ms linear infinite;
+}
+@keyframes sym-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.sym-gen-stage-label {
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  color: var(--fg-primary);
+  font-weight: 500;
+}
+.sym-gen-stage.is-done .sym-gen-stage-label {
+  color: var(--fg-secondary);
+}
+.sym-gen-stage-pct {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.sym-gen-stage-pct-done {
+  color: var(--color-success);
+}
+.sym-gen-stage-pct-pending {
+  color: var(--fg-muted);
+  opacity: 0.5;
+}
+.sym-gen-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.sym-gen-foot-note {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  color: var(--fg-muted);
 }
 
 /* ── Theme tweaks ────────────────────────────────────────── */

@@ -635,7 +635,27 @@
       "generatingDesc": "正在分析符號證據檔",
       "regenerate": "重新生成",
       "regenerateConfirm": "重新生成將覆蓋現有詮釋與審核狀態，確認執行？",
-      "themeEditPlaceholder": "輸入修訂後的主題命題…"
+      "themeEditPlaceholder": "輸入修訂後的主題命題…",
+      "linkedCharHint": "{{count}} 次共現",
+      "linkedEventHint": "第 {{chapter}} 章",
+      "coOccurrenceCount": "{{count}} 次共現",
+      "occurrenceJumpTitle": "跳至閱讀頁"
+    },
+    "generating": {
+      "eyebrow": "LLM 詮釋進行中",
+      "taskLabel": "TASK ID",
+      "overallProgress": "整體進度",
+      "cancel": "取消",
+      "footerNote": "預計 ~12 秒 · 每 2 秒輪詢狀態",
+      "stageDone": "完成",
+      "stagePending": "等待",
+      "stages": {
+        "sep": "彙整 SEP 證據檔",
+        "context": "採樣段落脈絡 ({{done}}/{{total}})",
+        "link": "連結 KG 角色 / 事件",
+        "llm": "LLM 詮釋 · 生成主題命題",
+        "review": "寫入待審紀錄"
+      }
     },
     "tabs": {
       "symbol": "共現意象",
@@ -671,6 +691,7 @@
     "emptyStep2Desc": "Unraveling DAG 會明確標示「Symbols」節點為 empty / partial / complete。",
     "emptyStep3Title": "必要時手動觸發",
     "emptyStep3Desc": "若依賴層完整但仍為空，可從 Unraveling 頁的對應節點觸發意象萃取 pipeline。",
-    "emptyUnravelingBtn": "開啟展開卷軸"
+    "emptyUnravelingBtn": "開啟展開卷軸",
+    "emptyRecheckBtn": "重新檢查狀態"
   }
 }

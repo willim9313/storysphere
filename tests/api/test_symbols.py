@@ -184,6 +184,7 @@ class TestSymbolTimeline:
         assert len(data) == 1
         assert data[0]["chapter_number"] == 1
         assert data[0]["context_window"] == "She gazed into the mirror."
+        assert data[0]["paragraph_id"] == "p1"
 
     def test_imagery_not_found_returns_404(self, client, mock_symbol_svc):
         mock_symbol_svc.get_imagery_by_id = AsyncMock(return_value=None)

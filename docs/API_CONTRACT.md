@@ -1112,6 +1112,7 @@ interface SymbolTimelineEntry {
   context_window: string;
   co_occurring_terms: string[];
   occurrence_id: string;
+  paragraph_id: string;
 }
 ```
 
@@ -1166,6 +1167,7 @@ interface SEP {
     context_window: string;
   }[];
   co_occurring_entity_ids: string[];
+  co_occurring_entity_counts: Record<string, number>;  // { entityId: N occurrences whose paragraph mentions this entity }
   co_occurring_event_ids: string[];
   chapter_distribution: Record<string, number>;   // { "1": 3, "2": 1, ... }
   peak_chapters: number[];

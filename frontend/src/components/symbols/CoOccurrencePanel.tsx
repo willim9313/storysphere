@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Link2 } from 'lucide-react';
+import { ExternalLink, Link2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import type { CoOccurrenceEntry } from '@/api/symbols';
@@ -11,6 +11,7 @@ type Tab = 'symbol' | 'character' | 'event';
 interface ResolvedItem {
   id: string;
   name: string;
+  hint?: string;
 }
 
 interface Props {
@@ -29,10 +30,16 @@ export function CoOccurrencePanel({
   linkedEvents,
   loading,
   onSelectCo,
-}: Props) {
+}: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>('symbol');
+
+  // Weight-driven border emphasis: scale 0.5–1.0 of max co-occurrence count → 1–2px border.
+  const coMax = useMemo(
+    () => coOccurrences.reduce((m, c) => Math.max(m, c.co_occurrence_count), 0) || 1,
+    [coOccurrences],
+  );
 
   const tabs: { k: Tab; n: number }[] = [
     { k: 'symbol', n: coOccurrences.length },
@@ -71,12 +78,20 @@ export function CoOccurrencePanel({
                 <div className="sym-pill-grid">
                   {coOccurrences.map((co) => {
                     const s = typeStyle(co.imagery_type);
+                    const weight = 0.5 + (co.co_occurrence_count / coMax) * 0.5;
+                    const borderWidth = Math.max(1, Math.round(weight * 2));
                     return (
                       <button
                         key={co.imagery_id}
                         type="button"
                         className="sym-co-pill"
-                        style={{ background: s.bg, color: s.fg, borderColor: s.dot }}
+                        style={{
+                          background: s.bg,
+                          color: s.fg,
+                          borderColor: s.dot,
+                          borderWidth,
+                          borderStyle: 'solid',
+                        }}
                         onClick={() => onSelectCo(co.imagery_id)}
                       >
                         <span className="sym-co-dot" style={{ background: s.dot }} />
@@ -92,7 +107,7 @@ export function CoOccurrencePanel({
                 <p className="sym-card-empty">{t('symbol.interpretation.linkedEmpty')}</p>
               ) : (
                 <div className="sym-link-list">
-                  {linkedCharacters.map(({ id, name }) => (
+                  {linkedCharacters.map(({ id, name, hint }) => (
                     <button
                       key={id}
                       type="button"
@@ -102,6 +117,8 @@ export function CoOccurrencePanel({
                     >
                       <span className="sym-link-dot" style={{ background: 'var(--entity-char-dot)' }} />
                       <span className="sym-link-name">{name}</span>
+                      {hint && <span className="sym-link-meta">{hint}</span>}
+                      <ExternalLink size={11} style={{ color: 'var(--fg-muted)' }} />
                     </button>
                   ))}
                 </div>
@@ -111,7 +128,7 @@ export function CoOccurrencePanel({
                 <p className="sym-card-empty">{t('symbol.interpretation.linkedEmpty')}</p>
               ) : (
                 <div className="sym-link-list">
-                  {linkedEvents.map(({ id, name }) => (
+                  {linkedEvents.map(({ id, name, hint }) => (
                     <button
                       key={id}
                       type="button"
@@ -121,6 +138,8 @@ export function CoOccurrencePanel({
                     >
                       <span className="sym-link-dot" style={{ background: 'var(--entity-evt-dot)' }} />
                       <span className="sym-link-name">{name}</span>
+                      {hint && <span className="sym-link-meta">{hint}</span>}
+                      <ExternalLink size={11} style={{ color: 'var(--fg-muted)' }} />
                     </button>
                   ))}
                 </div>

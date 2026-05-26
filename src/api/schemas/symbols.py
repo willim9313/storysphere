@@ -47,6 +47,7 @@ class SymbolTimelineEntry(BaseModel):
     context_window: str
     co_occurring_terms: list[str]
     occurrence_id: str
+    paragraph_id: str
 
     @classmethod
     def from_domain(cls, occ: SymbolOccurrence) -> "SymbolTimelineEntry":
@@ -56,6 +57,7 @@ class SymbolTimelineEntry(BaseModel):
             context_window=occ.context_window,
             co_occurring_terms=occ.co_occurring_terms,
             occurrence_id=occ.id,
+            paragraph_id=occ.paragraph_id,
         )
 
 

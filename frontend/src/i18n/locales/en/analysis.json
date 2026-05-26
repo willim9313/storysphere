@@ -635,7 +635,27 @@
       "generatingDesc": "Assembling symbol evidence profile",
       "regenerate": "Regenerate",
       "regenerateConfirm": "Regenerating will overwrite the existing interpretation and review status. Continue?",
-      "themeEditPlaceholder": "Enter revised thematic proposition…"
+      "themeEditPlaceholder": "Enter revised thematic proposition…",
+      "linkedCharHint": "{{count}} co-occurrences",
+      "linkedEventHint": "Ch. {{chapter}}",
+      "coOccurrenceCount": "{{count}} co-occurrences",
+      "occurrenceJumpTitle": "Jump to reader"
+    },
+    "generating": {
+      "eyebrow": "Interpreting symbol",
+      "taskLabel": "TASK ID",
+      "overallProgress": "Overall progress",
+      "cancel": "Cancel",
+      "footerNote": "~12s expected · polling every 2s",
+      "stageDone": "Done",
+      "stagePending": "Waiting",
+      "stages": {
+        "sep": "Assemble SEP evidence profile",
+        "context": "Sample paragraph contexts ({{done}}/{{total}})",
+        "link": "Link KG characters / events",
+        "llm": "LLM interpretation · thematic proposition",
+        "review": "Persist for review"
+      }
     },
     "tabs": {
       "symbol": "Imagery",
@@ -671,6 +691,7 @@
     "emptyStep2Desc": "The Unraveling DAG will clearly mark the \"Symbols\" node as empty, partial, or complete.",
     "emptyStep3Title": "Trigger manually if needed",
     "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Unraveling page.",
-    "emptyUnravelingBtn": "Open Unraveling"
+    "emptyUnravelingBtn": "Open Unraveling",
+    "emptyRecheckBtn": "Re-check status"
   }
 }

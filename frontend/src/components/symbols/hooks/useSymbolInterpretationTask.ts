@@ -12,6 +12,7 @@ export interface UseSymbolInterpretationTaskResult {
   error: string | null;
   running: boolean;
   trigger: (imageryId: string, opts: TriggerSymbolAnalysisOpts) => Promise<void>;
+  cancel: () => void;
   reset: () => void;
 }
 
@@ -65,11 +66,17 @@ export function useSymbolInterpretationTask(
     setTriggerErr(null);
   }, []);
 
+  // Cancel only stops the UI overlay; the backend task continues to run and
+  // its result will still land in the cache. There is no server-side cancel
+  // endpoint for symbol analysis, so we drop the local taskId to close the
+  // modal and let the user re-trigger or move on.
+  const cancel = reset;
+
   const running = !!taskId && task?.status !== 'done' && task?.status !== 'error';
   let error: string | null = triggerErr;
   if (!error && task?.status === 'error') {
     error = task.error ?? defaultError;
   }
 
-  return { task, error, running, trigger, reset };
+  return { task, error, running, trigger, cancel, reset };
 }

@@ -479,3 +479,15 @@
   [data-theme="minimal-ink"] .ss-btn-danger:hover,
   [data-theme="pulp"] .ss-btn-danger:hover { background: var(--bg-tertiary); }
 }
+
+/* Deep-link jump highlight — used when navigating into a specific paragraph
+ * from another page (e.g. SymbolsPage occurrence rows). Fades back to normal
+ * after a short delay; see ReaderPage.tsx jump effect. */
+@keyframes chunk-jump-flash-anim {
+  0%   { box-shadow: 0 0 0 0 var(--accent); }
+  20%  { box-shadow: 0 0 0 4px var(--accent); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.chunk-jump-flash > [data-chunk-card] {
+  animation: chunk-jump-flash-anim 2s ease-out;
+}
