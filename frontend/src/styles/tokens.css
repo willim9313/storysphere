@@ -174,6 +174,7 @@
 
   /* Theme-specific (defaults — overridden per theme) */
   --line-weight:   1px;
+  --border-width:  1px;
   --border-style:  solid;
   --node-shadow:   none;
   --divider-style: 1px solid var(--border);
@@ -226,6 +227,7 @@
   --font-mono:  'Courier New', monospace;
 
   --line-weight:   1px;
+  --border-width:  1px;
   --border-style:  dashed;
   --node-shadow:   none;
   --divider-style: 1px solid #333333;
@@ -371,6 +373,7 @@
   --font-sans:  system-ui, -apple-system, sans-serif;
 
   --line-weight:   0.5px;
+  --border-width:  0.5px;
   --border-style:  solid;
   --node-shadow:   none;
   --divider-style: 1.5px solid #000000;
@@ -517,6 +520,7 @@
   --font-mono:  'Space Mono', 'Courier New', monospace;
 
   --line-weight:   2px;
+  --border-width:  2px;
   --border-style:  solid;
   --node-shadow:   2px 2px 0 #000000;
   --divider-style: 2px dashed #888888;

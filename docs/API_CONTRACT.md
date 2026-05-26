@@ -1437,6 +1437,37 @@ interface UnravelingEdge {
 
 ---
 
+### #19b GET /books/:bookId/unraveling/chapter-distribution
+
+取得 chapter-aware 節點的章節分佈計數（用於建構概覽 detail panel 的章節分佈 sparkline）。
+
+**Response 200**
+```ts
+interface ChapterDistribution {
+  bookId: string;
+  totalChapters: number;
+  // nodeId → 12-cell（依書籍實際章節數）counts；
+  // 不在此 map 中的 nodeId 表示該節點無 chapter-aware 資料
+  distributions: Record<string, number[]>;
+}
+```
+
+**支援的 `nodeId`**（其他節點不會出現在 `distributions`）：
+
+| nodeId | 計算邏輯 |
+|--------|---------|
+| `paragraphs` | 每章 `paragraphs` 數量 |
+| `summaries` | 每章 `summary` 是否存在（0/1） |
+| `keywords` | 每章 `keywords` 是否存在（0/1） |
+| `kg_event` | 每章 events 數量（`event.chapter == n`） |
+| `symbols` | 每章意象出現次數（`imagery.chapter_distribution` 加總） |
+
+**404**：當 `bookId` 不存在。
+
+**UI 使用頁面**：建構概覽頁 `/books/:bookId/unraveling`（NodeDetail panel）
+
+---
+
 ## 深度分析（通用非同步路由）
 
 > **URL 前綴**：`/analysis/`，不帶 bookId。bookId 由 request body 的 `document_id` 傳入。

@@ -1,530 +1,839 @@
-import { useEffect, useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { X } from 'lucide-react';
 import { useTranslation, type TFunction } from 'react-i18next';
-import cytoscape from 'cytoscape';
+import {
+  AlertTriangle,
+  ChevronLeft,
+  ExternalLink,
+  Filter,
+  Layers,
+  PlayCircle,
+  RotateCw,
+} from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
-import { useTheme } from '@/contexts/ThemeContext';
 import {
   fetchBuildOverview,
+  fetchChapterDistribution,
   type NodeStatus,
   type BuildOverviewManifest,
   type BuildOverviewNode,
+  type ChapterDistribution,
 } from '@/api/buildOverview';
+import '@/styles/build-overview.css';
 
-// ── Layout constants ──────────────────────────────────────────────────────────
+// ── DAG layout constants (matching design hand-off) ────────────────────────────
 
-// X positions per layer
-const LAYER_X: Record<number, number> = { 0: 100, 1: 320, 2: 580, 3: 780, 4: 980 };
-// KG compound group sits in the same vertical column as Layer 1 (below summaries/keywords)
-const KG_CHILD_X = LAYER_X[1];
-const NODE_Y_SPACING = 85;
-const CANVAS_CENTER_Y = 320;
-// Gap between Layer 1 regular nodes and the KG group below them
-// (needs to accommodate the "KG Features" label that sits above the group box)
-const KG_VERTICAL_GAP = 110;
+const DAG_W = 980;
+const DAG_H = 660;
+const NODE_W = 130;
+const NODE_H = 38;
+const DIAMOND_W = 110;
+const DIAMOND_H = 46;
 
-// KG compound group node ID
-const KG_GROUP_ID = 'kg_features';
-// Node IDs that are children of the KG group
-const KG_CHILD_IDS = new Set(['kg_entity', 'kg_concept', 'kg_relation', 'kg_event', 'kg_temporal_relation']);
-
-// ── Status colour palette ─────────────────────────────────────────────────────
-
-const v = (name: string) =>
-  getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-
-function getStatusPalette(): Record<NodeStatus, { bg: string; border: string; text: string }> {
-  return {
-    complete: {
-      bg:     v('--status-complete-bg')     || '#f0fdf4',
-      border: v('--status-complete-border') || '#22c55e',
-      text:   v('--status-complete-fg')     || '#15803d',
-    },
-    partial: {
-      bg:     v('--status-partial-bg')     || '#fffbeb',
-      border: v('--status-partial-border') || '#f59e0b',
-      text:   v('--status-partial-fg')     || '#92400e',
-    },
-    empty: {
-      bg:     v('--status-empty-bg')     || '#f3f4f6',
-      border: v('--status-empty-border') || '#d1d5db',
-      text:   v('--status-empty-fg')     || '#6b7280',
-    },
-  };
-}
-
-function statusLabel(t: TFunction, status: NodeStatus): string {
-  return t(`unraveling.status.${status}`);
-}
-
-// ── Cytoscape stylesheet ──────────────────────────────────────────────────────
-
-function getBuildOverviewStylesheet(): cytoscape.Stylesheet[] {
-  const accent    = v('--accent')       || '#8b5e3c';
-  const border    = v('--border')       || '#e0d4c4';
-  const bgTertiary  = v('--bg-tertiary')  || '#f5ede0';
-  const fgSecondary = v('--fg-secondary') || '#5a4f42';
-  const fontSans  = v('--font-sans')    || 'DM Sans, system-ui, sans-serif';
-  const lineWeight = Number.parseFloat(v('--line-weight')) || 1;
-  const edgeStyle: 'dashed' | 'solid' =
-    v('--border-style') === 'dashed' ? 'dashed' : 'solid';
-  const nodeBorderWidth = Math.max(1, lineWeight * 2);
-  const palette = getStatusPalette();
-  const statusFill = (key: 'bg' | 'border' | 'text') =>
-    (ele: cytoscape.NodeSingular) =>
-      palette[ele.data('status') as NodeStatus]?.[key] ?? palette.empty[key];
-
-  return [
-    // Compound group node (KG Features)
-    {
-      selector: `#${KG_GROUP_ID}`,
-      style: {
-        shape: 'round-rectangle',
-        'background-color': bgTertiary,
-        'background-opacity': 0.6,
-        'border-color': accent,
-        'border-width': 2.5,
-        'border-style': 'dashed',
-        label: 'data(label)',
-        'text-valign': 'top',
-        'text-halign': 'center',
-        'text-margin-y': -18,
-        'font-size': 18,
-        'font-weight': 'bold',
-        color: fgSecondary,
-        padding: 26,
-      } as cytoscape.Css.Node,
-    },
-    // Regular nodes
-    {
-      selector: `node:not(#${KG_GROUP_ID})`,
-      style: {
-        shape: 'data(shape)',
-        width: 120,
-        height: 52,
-        'background-color': statusFill('bg'),
-        'border-color': statusFill('border'),
-        'border-width': nodeBorderWidth,
-        label: 'data(label)',
-        'text-valign': 'center',
-        'text-halign': 'center',
-        'text-wrap': 'wrap',
-        'text-max-width': '108',
-        'font-size': 10,
-        color: statusFill('text'),
-        'font-family': fontSans,
-      } as cytoscape.Css.Node,
-    },
-    {
-      selector: 'node:selected',
-      style: {
-        'border-width': 3,
-        'border-color': accent,
-      } as cytoscape.Css.Node,
-    },
-    {
-      selector: 'edge',
-      style: {
-        'curve-style': 'bezier',
-        'target-arrow-shape': 'triangle',
-        'line-color': border,
-        'line-style': edgeStyle,
-        'target-arrow-color': border,
-        width: Math.max(1, lineWeight * 1.5),
-      } as cytoscape.Css.Edge,
-    },
-    // Highlighted node (the tapped node + its direct neighbors)
-    {
-      selector: 'node.highlighted',
-      style: {
-        'border-width': 3,
-        'border-color': accent,
-      } as cytoscape.Css.Node,
-    },
-    // Highlighted edge (connected to tapped node)
-    {
-      selector: 'edge.highlighted',
-      style: {
-        'line-color': accent,
-        'target-arrow-color': accent,
-        width: 2.5,
-      } as cytoscape.Css.Edge,
-    },
-    // Faded — everything not related to the tapped node
-    {
-      selector: '.faded',
-      style: {
-        opacity: 0.25,
-      } as cytoscape.Css.Node,
-    },
-  ];
-}
-
-// ── Shape per layer ───────────────────────────────────────────────────────────
-
-const LAYER_SHAPE: Record<number, string> = {
-  0: 'diamond',
-  1: 'rectangle',
-  2: 'round-rectangle',
-  3: 'round-rectangle',
-  4: 'round-rectangle',
+const NODE_POS: Record<string, { x: number; y: number }> = {
+  // Layer 0 — diamonds
+  book_meta:  { x: 95, y: 244 },
+  chapters:   { x: 95, y: 320 },
+  paragraphs: { x: 95, y: 396 },
+  // Layer 1 regular
+  summaries: { x: 280, y: 80 },
+  keywords:  { x: 280, y: 140 },
+  symbols:   { x: 280, y: 200 },
+  // Layer 1 KG group children
+  kg_entity:            { x: 280, y: 268 },
+  kg_concept:           { x: 280, y: 320 },
+  kg_relation:          { x: 280, y: 372 },
+  kg_event:             { x: 280, y: 424 },
+  kg_temporal_relation: { x: 280, y: 476 },
+  // Layer 2
+  cep: { x: 470, y: 200 },
+  eep: { x: 470, y: 270 },
+  teu: { x: 470, y: 340 },
+  sep: { x: 470, y: 410 },
+  // Layer 3
+  character_analysis_result: { x: 670, y:  80 },
+  causality_analysis:        { x: 670, y: 145 },
+  impact_analysis:           { x: 670, y: 210 },
+  tension_lines:             { x: 670, y: 275 },
+  symbol_analysis_result:    { x: 670, y: 340 },
+  narrative_structure:       { x: 670, y: 405 },
+  hero_journey_stage:        { x: 670, y: 470 },
+  temporal_analysis:         { x: 670, y: 535 },
+  voice_profile:             { x: 670, y: 600 },
+  // Layer 4
+  tension_theme:      { x: 880, y: 280 },
+  chronological_rank: { x: 880, y: 360 },
 };
 
-// ── Sublabel helpers ──────────────────────────────────────────────────────────
+const KG_GROUP = { x: 215, y: 240, w: 130, h: 270 };
+const KG_CHILD_IDS = new Set([
+  'kg_entity', 'kg_concept', 'kg_relation', 'kg_event', 'kg_temporal_relation',
+]);
 
-function getSubLabel(t: TFunction, n: BuildOverviewNode): string {
+const LAYERS = [0, 1, 2, 3, 4] as const;
+
+// Each layer's column center x (matches NODE_POS entries above).
+const LAYER_CENTER_X: Record<number, number> = {
+  0:  95,
+  1: 280,
+  2: 470,
+  3: 670,
+  4: 880,
+};
+
+// Lane bands: boundaries fall at midpoints between adjacent layer centers,
+// so bands tile the canvas with no gaps and the band center matches the
+// node column.
+const LANES = LAYERS.map((layer, i) => {
+  const center = LAYER_CENTER_X[layer];
+  const prev = i > 0 ? LAYER_CENTER_X[LAYERS[i - 1]] : null;
+  const next = i < LAYERS.length - 1 ? LAYER_CENTER_X[LAYERS[i + 1]] : null;
+  return {
+    layer,
+    center,
+    start: prev !== null ? (prev + center) / 2 : 0,
+    end:   next !== null ? (center + next) / 2 : DAG_W,
+  };
+});
+
+// Map node → corresponding in-book page (empty when no useful destination).
+const NODE_TO_ROUTE: Record<string, string> = {
+  book_meta: '',
+  chapters: '',
+  paragraphs: '',
+  summaries: '',
+  keywords: '',
+  kg_entity: 'graph',
+  kg_concept: 'graph',
+  kg_relation: 'graph',
+  kg_event: 'graph',
+  kg_temporal_relation: 'timeline',
+  symbols: 'symbols',
+  sep: 'symbols',
+  symbol_analysis_result: 'symbols',
+  cep: 'characters',
+  character_analysis_result: 'characters',
+  hero_journey_stage: 'characters',
+  voice_profile: 'characters',
+  eep: 'events',
+  causality_analysis: 'events',
+  impact_analysis: 'events',
+  narrative_structure: 'events',
+  teu: 'timeline',
+  temporal_analysis: 'timeline',
+  chronological_rank: 'timeline',
+  tension_lines: 'tension',
+  tension_theme: 'tension',
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function nodeLabel(t: TFunction, n: BuildOverviewNode): string {
+  // Strip API \n line breaks and prefer i18n; fall back to the raw API label.
+  const apiLabel = (n.label || '').replace(/\n/g, ' ');
+  return t(`unraveling.node.${n.nodeId}`, { defaultValue: apiLabel });
+}
+
+function nodeSubLabel(t: TFunction, n: BuildOverviewNode): string {
   if (n.status === 'empty') return t('unraveling.notBuilt');
-  const check = n.status === 'complete' ? ' ✓' : '';
+  const c = n.counts;
   switch (n.nodeId) {
     case 'summaries':
     case 'keywords':
-      return `${n.counts.generated ?? 0} / ${n.counts.total ?? 0}${check}`;
+      return `${c.generated ?? 0} / ${c.total ?? 0} ${t('unraveling.counts.chapters')}`;
+    case 'symbols':
+      return `${c.imagery_entities ?? c.generated ?? 0}`;
     case 'cep':
     case 'character_analysis_result':
-      return `${n.counts.analyzed ?? 0} / ${n.counts.total_characters ?? 0}`;
+      return `${c.analyzed ?? 0} / ${c.total_characters ?? 0}`;
     case 'eep':
+    case 'teu':
     case 'causality_analysis':
     case 'impact_analysis':
-      return `${n.counts.analyzed ?? 0} / ${n.counts.total_events ?? 0}`;
-    case 'teu':
-      return `${n.counts.analyzed ?? 0} / ${n.counts.total_events ?? 0}`;
+      return `${c.analyzed ?? 0} / ${c.total_events ?? 0}`;
     case 'kg_temporal_relation':
     case 'chronological_rank':
-      return `${n.counts.events_ranked ?? 0} ${t('unraveling.ranked')}${check}`;
+      return `${c.events_ranked ?? 0} ${t('unraveling.ranked')}`;
     case 'kg_event':
-      return `${n.counts.events ?? 0} ${t('unraveling.counts.events')}`;
+      return `${c.events ?? 0}`;
     case 'kg_entity':
-      return `${n.counts.total ?? 0} ${t('unraveling.counts.total')}`;
     case 'kg_concept':
-      return `${n.counts.total ?? 0} ${t('unraveling.counts.total')}`;
+      return `${c.total ?? 0}`;
     case 'kg_relation':
-      return `${n.counts.relations ?? 0} ${t('unraveling.counts.relations')}`;
+      return `${c.relations ?? 0}`;
+    case 'book_meta':
+      return `${c.fields ?? Object.keys(n.meta).length} ${t('unraveling.counts.fields', { defaultValue: 'fields' })}`;
+    case 'chapters':
+      return `${c.chapters ?? c.total ?? 0}`;
+    case 'paragraphs':
+      return `${c.paragraphs ?? c.total ?? 0}`;
     default:
-      return '';
+      return n.status === 'complete' ? t('unraveling.status.complete') : '';
   }
 }
 
-// ── Element builder ───────────────────────────────────────────────────────────
+interface LayerProgress {
+  layer: number;
+  total: number;
+  complete: number;
+  partial: number;
+  empty: number;
+  score: number;
+}
 
-function buildElements(
-  t: TFunction,
+function aggregate(nodes: BuildOverviewNode[]): LayerProgress {
+  const total = nodes.length;
+  const complete = nodes.filter(n => n.status === 'complete').length;
+  const partial = nodes.filter(n => n.status === 'partial').length;
+  const empty = nodes.filter(n => n.status === 'empty').length;
+  const score = total === 0 ? 0 : (complete + partial * 0.5) / total;
+  return { layer: -1, total, complete, partial, empty, score };
+}
+
+function layerProgress(nodes: BuildOverviewNode[], layer: number): LayerProgress {
+  const sub = nodes.filter(n => n.layer === layer);
+  return { ...aggregate(sub), layer };
+}
+
+function getBlockers(
+  nodeId: string,
   manifest: BuildOverviewManifest,
-): cytoscape.ElementDefinition[] {
-  // Separate KG children from regular nodes
-  const regularNodes = manifest.nodes.filter(n => !KG_CHILD_IDS.has(n.nodeId));
-  const kgChildren = manifest.nodes.filter(n => KG_CHILD_IDS.has(n.nodeId));
+): BuildOverviewNode[] {
+  const nodeById = new Map(manifest.nodes.map(n => [n.nodeId, n]));
+  const incoming = manifest.edges.filter(e => e.target === nodeId);
+  return incoming
+    .map(e => nodeById.get(e.source))
+    .filter((n): n is BuildOverviewNode => !!n && n.status !== 'complete');
+}
 
-  // Group regular nodes by layer for vertical centering
-  const byLayer: Record<number, BuildOverviewNode[]> = {};
-  for (const node of regularNodes) {
-    byLayer[node.layer] = byLayer[node.layer] ?? [];
-    byLayer[node.layer].push(node);
+// ── DAG: nodes ────────────────────────────────────────────────────────────────
+
+function nodeRect(nodeId: string, layer: number) {
+  const p = NODE_POS[nodeId];
+  if (!p) return null;
+  const isDiamond = layer === 0;
+  const w = isDiamond ? DIAMOND_W : NODE_W;
+  const h = isDiamond ? DIAMOND_H : NODE_H;
+  return { x: p.x - w / 2, y: p.y - h / 2, w, h, cx: p.x, cy: p.y, isDiamond };
+}
+
+interface DagNodeProps {
+  node: BuildOverviewNode;
+  selected: boolean;
+  faded: boolean;
+  onClick: () => void;
+  t: TFunction;
+}
+
+function DagNode({ node, selected, faded, onClick, t }: Readonly<DagNodeProps>) {
+  const rect = nodeRect(node.nodeId, node.layer);
+  if (!rect) return null;
+
+  const bg = `var(--status-${node.status}-bg)`;
+  const text = `var(--status-${node.status}-fg)`;
+  const border = `var(--status-${node.status}-border)`;
+  const accent = 'var(--accent)';
+  const stroke = selected ? accent : border;
+  const strokeW = selected ? 2.4 : 1.4;
+  const opacity = faded ? 0.28 : 1;
+  const ry = node.layer === 1 ? 2 : 8;
+
+  const sub = nodeSubLabel(t, node);
+
+  const labelTexts = (
+    <>
+      <text
+        x={rect.cx} y={rect.cy - 2}
+        fill={text} fontSize={10.5} fontWeight={600}
+        textAnchor="middle"
+        style={{ fontFamily: 'var(--font-sans)' }}
+      >
+        {nodeLabel(t, node)}
+      </text>
+      {sub && (
+        <text
+          x={rect.cx} y={rect.cy + 11}
+          fill={text} fontSize={9} opacity={0.85}
+          textAnchor="middle"
+          style={{ fontFamily: 'var(--font-sans)' }}
+        >
+          {sub}
+        </text>
+      )}
+    </>
+  );
+
+  if (rect.isDiamond) {
+    const pts = [
+      [rect.cx, rect.y],
+      [rect.x + rect.w, rect.cy],
+      [rect.cx, rect.y + rect.h],
+      [rect.x, rect.cy],
+    ].map(p => p.join(',')).join(' ');
+    return (
+      <g style={{ opacity, cursor: 'pointer', transition: 'opacity 200ms ease' }} onClick={onClick}>
+        <polygon
+          points={pts}
+          fill={bg}
+          stroke={stroke}
+          strokeWidth={strokeW}
+          style={{ transition: 'stroke 200ms ease, stroke-width 200ms ease' }}
+        />
+        {labelTexts}
+      </g>
+    );
   }
 
-  // Layer 1 is a special column: regular nodes on top + KG compound group below
-  const layer1Regular = byLayer[1] ?? [];
-  const layer1TotalCount = layer1Regular.length + kgChildren.length;
-  const layer1ColumnHeight =
-    (layer1TotalCount - 1) * NODE_Y_SPACING + KG_VERTICAL_GAP;
-  const layer1TopY = CANVAS_CENTER_Y - layer1ColumnHeight / 2;
-
-  // Regular node elements
-  const regularEls: cytoscape.ElementDefinition[] = regularNodes.map((n) => {
-    let y: number;
-    if (n.layer === 1) {
-      const idx = layer1Regular.indexOf(n);
-      y = layer1TopY + idx * NODE_Y_SPACING;
-    } else {
-      const layerNodes = byLayer[n.layer];
-      const idx = layerNodes.indexOf(n);
-      const total = layerNodes.length;
-      y = CANVAS_CENTER_Y + (idx - (total - 1) / 2) * NODE_Y_SPACING;
-    }
-    const sub = getSubLabel(t, n);
-    const label = sub ? `${n.label}\n${sub}` : n.label;
-
-    return {
-      data: {
-        id: n.nodeId,
-        label,
-        shape: LAYER_SHAPE[n.layer] ?? 'round-rectangle',
-        status: n.status,
-        nodeData: n,
-      },
-      position: { x: LAYER_X[n.layer] ?? 100, y },
-    };
-  });
-
-  // KG compound group (parent)
-  const groupEl: cytoscape.ElementDefinition = {
-    data: { id: KG_GROUP_ID, label: t('unraveling.kgFeatures') },
-  };
-
-  // KG child nodes — stacked below Layer 1 regular nodes, same x column
-  const kgStartY =
-    layer1TopY + layer1Regular.length * NODE_Y_SPACING + KG_VERTICAL_GAP;
-  const kgChildEls: cytoscape.ElementDefinition[] = kgChildren.map((n, idx) => {
-    const y = kgStartY + idx * NODE_Y_SPACING;
-    const sub = getSubLabel(t, n);
-    const label = sub ? `${n.label}\n${sub}` : n.label;
-
-    return {
-      data: {
-        id: n.nodeId,
-        parent: KG_GROUP_ID,
-        label,
-        shape: 'rectangle',
-        status: n.status,
-        nodeData: n,
-      },
-      position: { x: KG_CHILD_X, y },
-    };
-  });
-
-  const edgeEls: cytoscape.ElementDefinition[] = manifest.edges.map(
-    (e, i) => ({
-      data: { id: `e${i}`, source: e.source, target: e.target },
-    }),
+  return (
+    <g style={{ opacity, cursor: 'pointer', transition: 'opacity 200ms ease' }} onClick={onClick}>
+      <rect
+        x={rect.x} y={rect.y}
+        width={rect.w} height={rect.h}
+        rx={ry} ry={ry}
+        fill={bg}
+        stroke={stroke}
+        strokeWidth={strokeW}
+        style={{ transition: 'stroke 200ms ease, stroke-width 200ms ease' }}
+      />
+      {labelTexts}
+    </g>
   );
-
-  return [...regularEls, groupEl, ...kgChildEls, ...edgeEls];
 }
 
-// ── Canvas component ──────────────────────────────────────────────────────────
+// ── DAG: edges ────────────────────────────────────────────────────────────────
 
-interface CanvasProps {
-  elements: cytoscape.ElementDefinition[];
-  onNodeTap: (node: BuildOverviewNode) => void;
+interface DagEdgeProps {
+  source: string;
+  target: string;
+  sourceLayer: number;
+  targetLayer: number;
+  highlighted: boolean;
+  faded: boolean;
 }
 
-function BuildOverviewCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const cyRef = useRef<cytoscape.Core | null>(null);
-  const onTapRef = useRef(onNodeTap);
-  onTapRef.current = onNodeTap;
-  const { theme } = useTheme();
+function DagEdge({
+  source, target, sourceLayer, targetLayer, highlighted, faded,
+}: Readonly<DagEdgeProps>) {
+  const a = nodeRect(source, sourceLayer);
+  const b = nodeRect(target, targetLayer);
+  if (!a || !b) return null;
 
-  useEffect(() => {
-    if (!containerRef.current || !elements.length) return;
+  const x1 = a.x + a.w;
+  const y1 = a.cy;
+  const x2 = b.x;
+  const y2 = b.cy;
+  const dx = Math.max(40, (x2 - x1) * 0.4);
+  const cx1 = x1 + dx;
+  const cy1 = y1;
+  const cx2 = x2 - dx;
+  const cy2 = y2;
+  const path = `M ${x1} ${y1} C ${cx1} ${cy1} ${cx2} ${cy2} ${x2} ${y2}`;
 
-    const cy = cytoscape({
-      container: containerRef.current,
-      elements,
-      style: getBuildOverviewStylesheet(),
-      layout: { name: 'preset' },
-      userZoomingEnabled: true,
-      userPanningEnabled: true,
-      minZoom: 0.3,
-      maxZoom: 3,
-    });
-
-    cy.fit(undefined, 48);
-
-    const clearHighlight = () => {
-      cy.elements().removeClass('highlighted faded');
-    };
-
-    cy.on('tap', 'node', (evt) => {
-      const node = evt.target as cytoscape.NodeSingular;
-
-      // KG compound group: highlight group + all its children + their connected edges
-      let targets: cytoscape.Collection = node;
-      if (node.id() === KG_GROUP_ID || node.isParent()) {
-        targets = node.children();
-      }
-
-      const connectedEdges = targets.connectedEdges();
-      const neighborNodes = connectedEdges.connectedNodes();
-      const highlightSet = targets.union(neighborNodes).union(connectedEdges);
-
-      cy.elements().addClass('faded');
-      highlightSet.removeClass('faded').addClass('highlighted');
-      // Keep the compound group itself visible (not faded) when a child is highlighted
-      if (targets.parents().length) {
-        targets.parents().removeClass('faded');
-      }
-
-      const nodeData = node.data('nodeData') as BuildOverviewNode | undefined;
-      if (nodeData) onTapRef.current(nodeData);
-    });
-
-    cy.on('tap', (evt) => {
-      if (evt.target === cy) clearHighlight();
-    });
-
-    cyRef.current = cy;
-
-    const ro = new ResizeObserver(() => cy.resize());
-    ro.observe(containerRef.current);
-
-    return () => {
-      ro.disconnect();
-      cy.destroy();
-      cyRef.current = null;
-    };
-  }, [elements]);
-
-  useEffect(() => {
-    const cy = cyRef.current;
-    if (!cy) return;
-    cy.style(getBuildOverviewStylesheet());
-  }, [theme]);
+  const stroke = highlighted ? 'var(--accent)' : 'var(--border)';
+  const sw = highlighted ? 1.8 : 1.1;
+  const op = faded ? 0.18 : (highlighted ? 1 : 0.55);
 
   return (
-    <div
-      ref={containerRef}
-      className="absolute inset-0"
-      style={{ backgroundColor: 'var(--bg-primary)' }}
-    />
+    <g style={{ opacity: op, transition: 'opacity 200ms ease' }}>
+      <path
+        d={path}
+        fill="none"
+        stroke={stroke}
+        strokeWidth={sw}
+        markerEnd={highlighted ? 'url(#bo-arrow-hi)' : 'url(#bo-arrow)'}
+      />
+    </g>
   );
 }
 
-// ── Detail panel ──────────────────────────────────────────────────────────────
+// ── DAG canvas ────────────────────────────────────────────────────────────────
 
-function countLabel(t: TFunction, key: string): string {
-  const k = `unraveling.counts.${key}`;
-  const val = t(k, { defaultValue: '' });
-  return val || key;
+interface DagCanvasProps {
+  manifest: BuildOverviewManifest;
+  selectedId: string | null;
+  onSelect: (id: string | null) => void;
 }
 
-interface DetailPanelProps {
-  node: BuildOverviewNode;
-  onClose: () => void;
-}
-
-function NodeDetailPanel({ node, onClose }: Readonly<DetailPanelProps>) {
+function DagCanvas({ manifest, selectedId, onSelect }: Readonly<DagCanvasProps>) {
   const { t } = useTranslation('analysis');
-  const bg = `var(--status-${node.status}-bg)`;
-  const border = `var(--status-${node.status}-border)`;
-  const text = `var(--status-${node.status}-fg)`;
+  const layerById = useMemo(
+    () => new Map(manifest.nodes.map(n => [n.nodeId, n.layer])),
+    [manifest.nodes],
+  );
+
+  const { highlightedNodes, highlightedEdgeIdx } = useMemo(() => {
+    const nodes = new Set<string>();
+    const edges = new Set<number>();
+    if (selectedId) {
+      nodes.add(selectedId);
+      manifest.edges.forEach((e, i) => {
+        if (e.source === selectedId || e.target === selectedId) {
+          edges.add(i);
+          nodes.add(e.source);
+          nodes.add(e.target);
+        }
+      });
+    }
+    return { highlightedNodes: nodes, highlightedEdgeIdx: edges };
+  }, [selectedId, manifest.edges]);
+
+  const isFaded = (id: string) => !!selectedId && !highlightedNodes.has(id);
+
+  const kgGroupActive = !selectedId
+    || highlightedNodes.has('kg_features')
+    || [...KG_CHILD_IDS].some(c => highlightedNodes.has(c));
 
   return (
-    <div
-      className="flex-shrink-0 flex flex-col"
-      style={{
-        width: 280,
-        borderLeft: '1px solid var(--border)',
-        backgroundColor: 'var(--bg-secondary)',
-        overflowY: 'auto',
+    <svg
+      className="bo-dag-svg"
+      viewBox={`0 0 ${DAG_W} ${DAG_H}`}
+      preserveAspectRatio="xMidYMid meet"
+      onClick={(e) => {
+        // Background click clears selection
+        if (e.target === e.currentTarget) onSelect(null);
       }}
     >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <div className="flex items-center gap-2">
-          <span
-            className="text-sm font-semibold"
-            style={{ color: 'var(--fg-primary)' }}
+      <defs>
+        <marker id="bo-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="var(--border)" />
+        </marker>
+        <marker id="bo-arrow-hi" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)" />
+        </marker>
+      </defs>
+
+      {/* Alternating lane backgrounds — bands tile the canvas with no gaps */}
+      {LANES.map((l, i) => i % 2 === 1 ? (
+        <rect
+          key={l.layer}
+          x={l.start} y={0}
+          width={l.end - l.start} height={DAG_H}
+          fill="var(--bg-secondary)"
+          opacity={0.35}
+        />
+      ) : null)}
+
+      {/* Lane headers — centered on the node column */}
+      {LANES.map(l => (
+        <g key={l.layer}>
+          <text
+            x={l.center} y={20}
+            fill="var(--fg-muted)"
+            fontSize={10} fontWeight={700}
+            textAnchor="middle"
+            style={{ fontFamily: 'var(--font-sans)', letterSpacing: '0.12em' }}
           >
-            {node.label}
-          </span>
-          <span
-            className="text-xs px-2 py-0.5 rounded-full font-medium"
-            style={{ backgroundColor: bg, color: text, border: `1px solid ${border}` }}
+            LAYER {l.layer}
+          </text>
+          <text
+            x={l.center} y={36}
+            fill="var(--fg-secondary)"
+            fontSize={11.5} fontWeight={600}
+            textAnchor="middle"
+            style={{ fontFamily: 'var(--font-serif)' }}
           >
-            {statusLabel(t, node.status)}
+            {t(`unraveling.laneName.${l.layer}`)}
+          </text>
+        </g>
+      ))}
+
+      {/* KG compound group */}
+      <g style={{ opacity: kgGroupActive ? 1 : 0.4, transition: 'opacity 200ms ease' }}>
+        <rect
+          x={KG_GROUP.x} y={KG_GROUP.y}
+          width={KG_GROUP.w} height={KG_GROUP.h}
+          rx={8} ry={8}
+          fill="var(--bg-tertiary)" fillOpacity={0.55}
+          stroke="var(--accent)" strokeWidth={1.4}
+          strokeDasharray="4 3"
+        />
+        <text
+          x={KG_GROUP.x + KG_GROUP.w / 2} y={KG_GROUP.y - 6}
+          fill="var(--accent)"
+          fontSize={11} fontWeight={700}
+          textAnchor="middle"
+          style={{ fontFamily: 'var(--font-sans)', letterSpacing: '0.04em' }}
+        >
+          {t('unraveling.node.kg_features')}
+        </text>
+      </g>
+
+      {/* Edges */}
+      {manifest.edges.map((e, i) => {
+        const srcLayer = layerById.get(e.source);
+        const tgtLayer = layerById.get(e.target);
+        if (srcLayer === undefined || tgtLayer === undefined) return null;
+        return (
+          <DagEdge
+            key={`${e.source}-${e.target}-${i}`}
+            source={e.source}
+            target={e.target}
+            sourceLayer={srcLayer}
+            targetLayer={tgtLayer}
+            highlighted={highlightedEdgeIdx.has(i)}
+            faded={!!selectedId && !highlightedEdgeIdx.has(i)}
+          />
+        );
+      })}
+
+      {/* Nodes */}
+      {manifest.nodes.map(n => (
+        <DagNode
+          key={n.nodeId}
+          node={n}
+          selected={n.nodeId === selectedId}
+          faded={isFaded(n.nodeId)}
+          onClick={() => onSelect(n.nodeId)}
+          t={t}
+        />
+      ))}
+    </svg>
+  );
+}
+
+// ── Status badge ──────────────────────────────────────────────────────────────
+
+function StatusBadge({ status, label }: Readonly<{ status: NodeStatus; label: string }>) {
+  return (
+    <span className={`bo-statbadge ${status}`}>
+      <span className="bo-statbadge-dot" />
+      {label}
+    </span>
+  );
+}
+
+// ── Summary strip ─────────────────────────────────────────────────────────────
+
+function SummaryStrip({ manifest }: Readonly<{ manifest: BuildOverviewManifest }>) {
+  const { t } = useTranslation('analysis');
+  const ov = aggregate(manifest.nodes);
+  const pct = Math.round(ov.score * 100);
+
+  return (
+    <div className="bo-summary">
+      <div className="bo-summary-left">
+        <div className="bo-eyebrow">{t('unraveling.summary.eyebrow')}</div>
+        <div className="bo-headline">
+          <div className="bo-pct">
+            {pct}
+            <span className="bo-pct-unit">%</span>
+          </div>
+        </div>
+        <div className="bo-headline-sub">
+          <strong>{ov.complete}</strong> {t('unraveling.summary.complete')} ·{' '}
+          <strong>{ov.partial}</strong> {t('unraveling.summary.partial')} ·{' '}
+          <strong>{ov.empty}</strong> {t('unraveling.summary.empty')}
+          <span style={{ color: 'var(--fg-muted)' }}>
+            {' · '}
+            {t('unraveling.summary.totalNodes', { n: ov.total })}
           </span>
         </div>
-        <button
-          onClick={onClose}
-          className="p-1 rounded"
-          style={{ color: 'var(--fg-muted)' }}
-        >
-          <X size={14} />
-        </button>
       </div>
 
-      {/* Counts */}
-      <div className="p-4 flex flex-col gap-2">
-        {Object.entries(node.counts).map(([key, value]) => (
-          <div
-            key={key}
-            className="flex items-center justify-between text-xs"
-            style={{ color: 'var(--fg-secondary)' }}
-          >
-            <span>{countLabel(t, key)}</span>
-            <span
-              className="font-mono font-semibold"
-              style={{ color: 'var(--fg-primary)' }}
-            >
-              {value}
-            </span>
+      <div className="bo-summary-mid">
+        <div className="bo-stackedbar">
+          <div className="seg-complete" style={{ width: `${(ov.complete / Math.max(1, ov.total)) * 100}%` }} />
+          <div className="seg-partial"  style={{ width: `${(ov.partial / Math.max(1, ov.total)) * 100}%` }} />
+          <div className="seg-empty"    style={{ width: `${(ov.empty / Math.max(1, ov.total)) * 100}%` }} />
+        </div>
+
+        <div className="bo-layerchips">
+          {LAYERS.map(layer => {
+            const lp = layerProgress(manifest.nodes, layer);
+            return (
+              <div key={layer} className="bo-layerchip">
+                <div className="bo-layerchip-head">
+                  <span>L{layer}</span>
+                  <span style={{ color: 'var(--fg-secondary)' }}>·</span>
+                  <span className="name">{t(`unraveling.layer.${layer}`)}</span>
+                </div>
+                <div className="bo-layerchip-progress">
+                  <div
+                    className="bo-layerchip-progress-fill"
+                    style={{ width: `${lp.score * 100}%` }}
+                  />
+                </div>
+                <div className="bo-layerchip-meta">
+                  <span>{lp.complete}/{lp.total}</span>
+                  {lp.partial > 0 && <span>· {lp.partial} {t('unraveling.summary.partial')}</span>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Inspector — layer list ────────────────────────────────────────────────────
+
+interface LayerListProps {
+  manifest: BuildOverviewManifest;
+  selectedId: string | null;
+  onSelect: (nodeId: string) => void;
+}
+
+function LayerList({ manifest, selectedId, onSelect }: Readonly<LayerListProps>) {
+  const { t } = useTranslation('analysis');
+  return (
+    <div className="bo-layerlist">
+      {LAYERS.map(layer => {
+        const nodes = manifest.nodes.filter(n => n.layer === layer);
+        const lp = layerProgress(manifest.nodes, layer);
+        return (
+          <div key={layer} className="bo-layergroup">
+            <div className="bo-layergroup-head">
+              <div className="bo-layergroup-num">L{layer}</div>
+              <div className="bo-layergroup-name">{t(`unraveling.layer.${layer}`)}</div>
+              <div className="bo-layergroup-progress">
+                {lp.complete}/{lp.total} · {Math.round(lp.score * 100)}%
+              </div>
+            </div>
+            <div>
+              {nodes.map(n => (
+                <button
+                  key={n.nodeId}
+                  type="button"
+                  className={`bo-noderow ${selectedId === n.nodeId ? 'selected' : ''}`}
+                  onClick={() => onSelect(n.nodeId)}
+                >
+                  <div className={`bo-noderow-status ${n.status}`} />
+                  <div className="bo-noderow-name">{nodeLabel(t, n)}</div>
+                  <div className="bo-noderow-sub">{nodeSubLabel(t, n)}</div>
+                </button>
+              ))}
+            </div>
           </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Inspector — chapter distribution sparkline ────────────────────────────────
+
+function ChapterDistMini({ values }: Readonly<{ values: number[] }>) {
+  if (values.length === 0) return null;
+  const max = Math.max(1, ...values);
+  return (
+    <div>
+      <div className="bo-chapdist">
+        {values.map((v, i) => (
+          <div
+            key={i}
+            className={`bo-chapdist-bar ${v === 0 ? 'empty' : ''}`}
+            style={{
+              height: `${(v / max) * 100}%`,
+              minHeight: v === 0 ? '2px' : '4px',
+            }}
+            title={`Ch.${i + 1}: ${v}`}
+          />
         ))}
       </div>
+      <div className="bo-chapdist-labels">
+        {values.map((_, i) => (
+          <span key={i}>{(i + 1) % 3 === 1 || i === values.length - 1 ? i + 1 : ''}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
 
-      {/* Meta */}
-      {Object.keys(node.meta).length > 0 && (
-        <div
-          className="px-4 pb-4 text-xs"
-          style={{ color: 'var(--fg-muted)' }}
-        >
-          {Object.entries(node.meta).map(([k, v]) => (
-            <div key={k}>{`${k}: ${v}`}</div>
-          ))}
+// ── Inspector — node detail ───────────────────────────────────────────────────
+
+interface NodeDetailProps {
+  node: BuildOverviewNode;
+  bookId: string;
+  manifest: BuildOverviewManifest;
+  chapterDist?: number[];
+  onBack: () => void;
+}
+
+interface ProgressNumbers {
+  num: number;
+  denom: number;
+  numLabel: string;
+  denomLabel: string;
+}
+
+function progressFor(node: BuildOverviewNode, t: TFunction): ProgressNumbers | null {
+  const c = node.counts;
+  const tCounts = (k: string) => t(`unraveling.counts.${k}`, { defaultValue: k });
+
+  if (node.nodeId === 'summaries' || node.nodeId === 'keywords') {
+    if (!c.total) return null;
+    return {
+      num: c.generated ?? 0,
+      denom: c.total,
+      numLabel: tCounts('generated'),
+      denomLabel: tCounts('chapters'),
+    };
+  }
+  if (node.nodeId === 'cep' || node.nodeId === 'character_analysis_result') {
+    if (!c.total_characters) return null;
+    return {
+      num: c.analyzed ?? 0,
+      denom: c.total_characters,
+      numLabel: tCounts('analyzed'),
+      denomLabel: tCounts('total_characters'),
+    };
+  }
+  if (['eep', 'teu', 'causality_analysis', 'impact_analysis'].includes(node.nodeId)) {
+    if (!c.total_events) return null;
+    return {
+      num: c.analyzed ?? 0,
+      denom: c.total_events,
+      numLabel: tCounts('analyzed'),
+      denomLabel: tCounts('total_events'),
+    };
+  }
+  if (node.nodeId === 'chronological_rank') {
+    if (!c.total_events) return null;
+    return {
+      num: c.events_ranked ?? 0,
+      denom: c.total_events,
+      numLabel: tCounts('events_ranked'),
+      denomLabel: tCounts('total_events'),
+    };
+  }
+  return null;
+}
+
+function NodeDetail({
+  node, bookId, manifest, chapterDist, onBack,
+}: Readonly<NodeDetailProps>) {
+  const { t } = useTranslation('analysis');
+  const statusLabel = t(`unraveling.status.${node.status}`);
+  const progress = progressFor(node, t);
+  const blockers = getBlockers(node.nodeId, manifest);
+  const hasBlockers = blockers.length > 0 && node.status !== 'complete';
+  const route = NODE_TO_ROUTE[node.nodeId];
+
+  const openPageButton = route ? (
+    <Link to={`/books/${bookId}/${route}`} className="bo-cta secondary">
+      <ExternalLink size={12} />
+      {t('unraveling.detail.openPage')}
+    </Link>
+  ) : (
+    <button type="button" className="bo-cta secondary bo-cta-disabled" disabled>
+      <ExternalLink size={12} />
+      {t('unraveling.detail.openPage')}
+      <span className="bo-cta-hint-inline">· {t('unraveling.openPageNotImplemented')}</span>
+    </button>
+  );
+
+  return (
+    <div className="bo-detail">
+      <button type="button" className="bo-inspector-back" onClick={onBack}>
+        <ChevronLeft size={11} />
+        {t('unraveling.inspector.backToList')}
+      </button>
+
+      <div>
+        <div className="bo-detail-title-row">
+          <div className="bo-detail-title">{nodeLabel(t, node)}</div>
+          <div className="bo-detail-id">L{node.layer} · {node.nodeId}</div>
+        </div>
+        <div style={{ marginTop: 4 }}>
+          <StatusBadge status={node.status} label={statusLabel} />
+        </div>
+      </div>
+
+      {progress && (
+        <div className="bo-progress-card">
+          <div className="bo-detail-section-h">{progress.numLabel}</div>
+          <div className="bo-progress-row">
+            <div className="bo-progress-num">{progress.num}</div>
+            <div className="bo-progress-of">/ {progress.denom}</div>
+            <div className="bo-progress-of">{progress.denomLabel}</div>
+          </div>
+          <div className="bo-progress-bar">
+            <div
+              className="bo-progress-bar-fill"
+              style={{ width: `${(progress.num / progress.denom) * 100}%` }}
+            />
+          </div>
         </div>
       )}
-    </div>
-  );
-}
 
-// ── Info panel ────────────────────────────────────────────────────────────────
-
-function InfoPanel() {
-  const { t } = useTranslation('analysis');
-  return (
-    <div
-      className="flex-shrink-0 flex flex-col gap-3 p-5"
-      style={{
-        width: 220,
-        borderRight: '1px solid var(--border)',
-        backgroundColor: 'var(--bg-secondary)',
-        color: 'var(--fg-secondary)',
-      }}
-    >
-      <p
-        className="text-sm font-semibold"
-        style={{ color: 'var(--fg-primary)' }}
-      >
-        {t('unraveling.info.title')}
-      </p>
-      <p className="text-xs leading-relaxed">
-        {t('unraveling.info.body')}
-      </p>
-    </div>
-  );
-}
-
-// ── Legend ────────────────────────────────────────────────────────────────────
-
-function Legend() {
-  const { t } = useTranslation('analysis');
-  return (
-    <div
-      className="absolute bottom-4 left-4 flex items-center gap-4 px-3 py-2 rounded-lg text-xs"
-      style={{
-        backgroundColor: 'var(--bg-secondary)',
-        border: '1px solid var(--border)',
-        color: 'var(--fg-muted)',
-      }}
-    >
-      {(['complete', 'partial', 'empty'] as NodeStatus[]).map((status) => (
-        <div key={status} className="flex items-center gap-1.5">
-          <div
-            className="w-3 h-3 rounded-sm"
-            style={{
-              backgroundColor: `var(--status-${status}-bg)`,
-              border: `1px solid var(--status-${status}-border)`,
-            }}
-          />
-          <span style={{ color: 'var(--fg-secondary)' }}>{statusLabel(t, status)}</span>
+      {chapterDist && chapterDist.length > 0 && (
+        <div className="bo-detail-section">
+          <div className="bo-detail-section-h">{t('unraveling.detail.chapterDist')}</div>
+          <ChapterDistMini values={chapterDist} />
         </div>
-      ))}
+      )}
+
+      {node.status !== 'complete' && (
+        <div className="bo-detail-section">
+          {hasBlockers ? (
+            <>
+              <div className="bo-detail-section-h">{t('unraveling.detail.blockedTitle')}</div>
+              <div className="bo-blockers">
+                {blockers.map(b => (
+                  <div key={b.nodeId} className="bo-blocker-chip">
+                    <div
+                      className="bo-blocker-chip-dot"
+                      style={{ background: `var(--status-${b.status}-border)` }}
+                    />
+                    <span>{nodeLabel(t, b)}</span>
+                  </div>
+                ))}
+              </div>
+              <button type="button" className="bo-cta bo-cta-disabled" disabled>
+                <AlertTriangle size={12} />
+                {t('unraveling.detail.blockedHint', { n: blockers.length })}
+              </button>
+            </>
+          ) : (
+            <button type="button" className="bo-cta bo-cta-disabled" disabled>
+              <PlayCircle size={12} />
+              {t('unraveling.detail.triggerSoon')}
+            </button>
+          )}
+          {openPageButton}
+        </div>
+      )}
+
+      {node.status === 'complete' && (
+        <div className="bo-detail-section">
+          {openPageButton}
+        </div>
+      )}
+
+      {Object.keys(node.counts).length > 0 && (
+        <div className="bo-detail-section">
+          <div className="bo-detail-section-h">{t('unraveling.detail.rawCounts')}</div>
+          <div className="bo-counts">
+            {Object.entries(node.counts).map(([k, v]) => (
+              <div key={k} className="bo-counts-row">
+                <span className="bo-counts-key">
+                  {t(`unraveling.counts.${k}`, { defaultValue: k })}
+                </span>
+                <span className="bo-counts-val">{v}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {Object.keys(node.meta).length > 0 && (
+        <div className="bo-detail-section">
+          <div className="bo-detail-section-h">{t('unraveling.detail.meta')}</div>
+          <div className="bo-counts">
+            {Object.entries(node.meta).map(([k, v]) => (
+              <div key={k} className="bo-counts-row">
+                <span className="bo-counts-key">
+                  {t(`unraveling.counts.${k}`, { defaultValue: k })}
+                </span>
+                <span className="bo-counts-val">{String(v)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -534,42 +843,92 @@ function Legend() {
 export default function BuildOverviewPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { t } = useTranslation('analysis');
-  const [selectedNode, setSelectedNode] = useState<BuildOverviewNode | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useQuery({
+  const { data: manifest, isLoading, error } = useQuery({
     queryKey: ['buildOverview', bookId],
     queryFn: () => fetchBuildOverview(bookId!),
     enabled: !!bookId,
     staleTime: 60_000,
   });
 
+  const { data: chapterDist } = useQuery<ChapterDistribution>({
+    queryKey: ['buildOverview', bookId, 'chapter-distribution'],
+    queryFn: () => fetchChapterDistribution(bookId!),
+    enabled: !!bookId,
+    staleTime: 60_000,
+  });
+
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={t('unravelingLoadError')} />;
-  if (!data) return null;
+  if (!manifest || !bookId) return null;
 
-  const elements = buildElements(t, data);
+  const selectedNode = selectedId
+    ? manifest.nodes.find(n => n.nodeId === selectedId) ?? null
+    : null;
 
   return (
-    <div className="flex h-full" style={{ minHeight: 0 }}>
-      {/* Info Panel */}
-      <InfoPanel />
+    <div className="bo-page">
+      <SummaryStrip manifest={manifest} />
 
-      {/* DAG Canvas */}
-      <div className="relative flex-1" style={{ minHeight: 0 }}>
-        <BuildOverviewCanvas
-          elements={elements}
-          onNodeTap={setSelectedNode}
-        />
-        <Legend />
+      <div className="bo-body">
+        <div className="bo-dag">
+          <DagCanvas
+            manifest={manifest}
+            selectedId={selectedId}
+            onSelect={setSelectedId}
+          />
+          {selectedId && (
+            <div className="bo-dag-toolbar">
+              <button
+                type="button"
+                onClick={() => setSelectedId(null)}
+                title={t('unraveling.toolbar.clearSelection')}
+              >
+                <RotateCw size={11} />
+                {t('unraveling.toolbar.showAll')}
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="bo-inspector">
+          <div className="bo-inspector-head">
+            {selectedNode ? (
+              <Layers size={14} style={{ color: 'var(--fg-secondary)', flexShrink: 0 }} />
+            ) : (
+              <Filter size={14} style={{ color: 'var(--fg-secondary)', flexShrink: 0 }} />
+            )}
+            <h3>
+              {selectedNode
+                ? t('unraveling.inspector.nodeDetail')
+                : t('unraveling.inspector.layerList')}
+            </h3>
+            <div className="bo-inspector-head-meta">
+              {selectedNode
+                ? t('unraveling.inspector.layerLabel', { n: selectedNode.layer })
+                : t('unraveling.inspector.nodeCount', { n: manifest.nodes.length })}
+            </div>
+          </div>
+          <div className="bo-inspector-body">
+            {selectedNode ? (
+              <NodeDetail
+                node={selectedNode}
+                bookId={bookId}
+                manifest={manifest}
+                chapterDist={chapterDist?.distributions[selectedNode.nodeId]}
+                onBack={() => setSelectedId(null)}
+              />
+            ) : (
+              <LayerList
+                manifest={manifest}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
+              />
+            )}
+          </div>
+        </div>
       </div>
-
-      {/* Detail Panel */}
-      {selectedNode && (
-        <NodeDetailPanel
-          node={selectedNode}
-          onClose={() => setSelectedNode(null)}
-        />
-      )}
     </div>
   );
 }

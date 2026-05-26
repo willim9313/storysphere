@@ -1,4 +1,5 @@
 import { apiFetch } from './client';
+import type { components } from './generated';
 
 export type NodeStatus = 'complete' | 'partial' | 'empty';
 
@@ -23,6 +24,12 @@ export interface BuildOverviewManifest {
   edges: BuildOverviewEdge[];
 }
 
+export type ChapterDistribution = components['schemas']['ChapterDistribution'];
+
 export function fetchBuildOverview(bookId: string): Promise<BuildOverviewManifest> {
   return apiFetch<BuildOverviewManifest>(`/books/${bookId}/unraveling`);
+}
+
+export function fetchChapterDistribution(bookId: string): Promise<ChapterDistribution> {
+  return apiFetch<ChapterDistribution>(`/books/${bookId}/unraveling/chapter-distribution`);
 }

@@ -534,6 +534,79 @@
     "notBuilt": "未建立",
     "kgFeatures": "KG 特徵",
     "ranked": "已排序",
+    "summary": {
+      "eyebrow": "Build Overview · 建構概覽",
+      "complete": "已建立",
+      "partial": "部分",
+      "empty": "未建立",
+      "totalNodes": "共 {{n}} 節點"
+    },
+    "inspector": {
+      "layerList": "層次清單",
+      "nodeDetail": "節點細節",
+      "backToList": "返回層次清單",
+      "nodeCount": "{{n}} 節點",
+      "layerLabel": "L{{n}}"
+    },
+    "detail": {
+      "progress": "進度",
+      "chapterDist": "章節分佈",
+      "blockedTitle": "尚未就緒",
+      "blockedHint": "需先完成上游 {{n}} 個依賴",
+      "openPage": "前往對應頁面瀏覽",
+      "runAgain": "重新建構（會耗 Token）",
+      "rawCounts": "原始計數",
+      "meta": "附加資訊",
+      "triggerSoon": "觸發建構功能規劃中"
+    },
+    "layer": {
+      "0": "文本層",
+      "1": "知識圖譜",
+      "2": "分析中間產物",
+      "3": "衍生分析",
+      "4": "全書合成"
+    },
+    "laneName": {
+      "0": "Text",
+      "1": "KG",
+      "2": "Analysis",
+      "3": "Results",
+      "4": "Synthesis"
+    },
+    "node": {
+      "book_meta": "書籍元資料",
+      "chapters": "章節",
+      "paragraphs": "段落",
+      "summaries": "章節摘要",
+      "keywords": "關鍵字",
+      "symbols": "象徵",
+      "kg_entity": "實體",
+      "kg_concept": "概念",
+      "kg_relation": "關係",
+      "kg_event": "事件",
+      "kg_temporal_relation": "時序關係",
+      "kg_features": "KG 特徵",
+      "cep": "角色證據檔 CEP",
+      "eep": "事件證據檔 EEP",
+      "teu": "時序事件單元 TEU",
+      "sep": "象徵證據檔 SEP",
+      "character_analysis_result": "角色分析",
+      "causality_analysis": "因果分析",
+      "impact_analysis": "影響力分析",
+      "tension_lines": "張力線",
+      "symbol_analysis_result": "象徵分析",
+      "narrative_structure": "敘事結構",
+      "hero_journey_stage": "英雄旅程",
+      "temporal_analysis": "時序分析",
+      "voice_profile": "敘事聲音",
+      "tension_theme": "張力主題",
+      "chronological_rank": "故事時序排名"
+    },
+    "toolbar": {
+      "clearSelection": "清除選取",
+      "showAll": "全部"
+    },
+    "openPageNotImplemented": "尚未實作",
     "counts": {
       "chapters": "章節",
       "paragraphs": "chunks",

@@ -534,6 +534,79 @@
     "notBuilt": "not built",
     "kgFeatures": "KG Features",
     "ranked": "ranked",
+    "summary": {
+      "eyebrow": "Build Overview",
+      "complete": "complete",
+      "partial": "partial",
+      "empty": "not built",
+      "totalNodes": "{{n}} nodes total"
+    },
+    "inspector": {
+      "layerList": "Layer list",
+      "nodeDetail": "Node detail",
+      "backToList": "Back to layer list",
+      "nodeCount": "{{n}} nodes",
+      "layerLabel": "L{{n}}"
+    },
+    "detail": {
+      "progress": "Progress",
+      "chapterDist": "Per-chapter distribution",
+      "blockedTitle": "Not ready",
+      "blockedHint": "Requires {{n}} upstream dependencies",
+      "openPage": "Open the matching page",
+      "runAgain": "Rebuild (costs tokens)",
+      "rawCounts": "Raw counts",
+      "meta": "Metadata",
+      "triggerSoon": "Build trigger coming soon"
+    },
+    "layer": {
+      "0": "Text",
+      "1": "Knowledge Graph",
+      "2": "Analysis intermediates",
+      "3": "Derived analyses",
+      "4": "Book synthesis"
+    },
+    "laneName": {
+      "0": "Text",
+      "1": "KG",
+      "2": "Analysis",
+      "3": "Results",
+      "4": "Synthesis"
+    },
+    "node": {
+      "book_meta": "Book Meta",
+      "chapters": "Chapters",
+      "paragraphs": "Paragraphs",
+      "summaries": "Summaries",
+      "keywords": "Keywords",
+      "symbols": "Symbols",
+      "kg_entity": "Entity",
+      "kg_concept": "Concept",
+      "kg_relation": "Relation",
+      "kg_event": "Event",
+      "kg_temporal_relation": "Temporal Rel.",
+      "kg_features": "KG Features",
+      "cep": "CEP",
+      "eep": "EEP",
+      "teu": "TEU",
+      "sep": "SEP",
+      "character_analysis_result": "Character Analysis",
+      "causality_analysis": "Causality",
+      "impact_analysis": "Impact",
+      "tension_lines": "Tension Lines",
+      "symbol_analysis_result": "Symbol Analysis",
+      "narrative_structure": "Narrative Structure",
+      "hero_journey_stage": "Hero Journey",
+      "temporal_analysis": "Temporal Analysis",
+      "voice_profile": "Voice Profile",
+      "tension_theme": "Tension Theme",
+      "chronological_rank": "Chronological Rank"
+    },
+    "toolbar": {
+      "clearSelection": "Clear selection",
+      "showAll": "Show all"
+    },
+    "openPageNotImplemented": "Not yet wired",
     "counts": {
       "chapters": "chapters",
       "paragraphs": "chunks",

@@ -46,6 +46,22 @@
 
 ---
 
+#### B-044 建構概覽：節點「觸發建構」CTA 對接 pipeline endpoint
+**背景**: 建構概覽頁（`/books/:bookId/unraveling`）2026-05-26 重設計（Direction A · Diagnostic Dashboard）把 detail panel 升級為含 progress card + 章節分佈 + blocker chips + CTA 的診斷儀表板。設計稿在「status≠complete 且無 blockers」情境下提供主色 active CTA 帶具體動作文字（例：「補齊剩餘章節摘要」「萃取關鍵字」），意圖讓用戶從 unraveling 直接觸發對應 pipeline。
+
+**目前狀態**: CTA 已以 **disabled 灰按鈕** 形式呈現（文案「觸發建構功能規劃中」），誠實標示尚未實作。視覺占位完成，pipeline 觸發未接。
+
+**待辦內容**:
+- 為每個 chapter-aware 節點定義對應的觸發 endpoint（例：summaries → `POST /summarize/batch`、kg_entity → `POST /kg/extract`、cep/eep → 既有 `/analysis/*`）
+- 前端：將 `BuildOverviewPage.tsx` 內 `NodeDetail` 的 disabled CTA 改為 active，按下 → 呼叫對應 endpoint + 顯示 task polling 狀態
+- 文案：把設計稿 `data.js:NODE_CTA` 對照表搬到 i18n（`unraveling.cta.*`），每個 nodeId 對 partial / empty 兩種狀態各一句具體動作
+- Token 消耗確認視窗：依 [UI_SPEC.md](UI_SPEC.md) §5.3「Token 消耗提示規則」加 confirm dialog
+- 後端：若對應 pipeline 尚未有獨立 endpoint（如 `kg_temporal_relation`、`teu`、Layer 3+ 衍生分析），需新增；可分階段做（先做最常用的 summaries/keywords/kg_entity/cep/eep）
+
+**前置依賴**: 對應 pipeline 的後端 endpoint 存在；無則需先新增。
+
+---
+
 #### B-043 知識圖譜：非預設主題下節點類型識別困難
 **背景**: KG V1 設計稿（`docs/plans/20260517-kg-page-redesign-v1-impl.md` 對應的 `design_handoff_v1/`）統一節點形狀為圓形，類型靠 `--graph-{char,loc,con,evt}-fill` / `-stroke` 區分。default 主題下色彩飽和度足夠，類型一眼可辨；但 **manuscript / minimal-ink / pulp** 三個主題把所有 entity token 收斂到灰階或單一強調色，圓形 + 灰階 = 類型幾乎無法區分。
 

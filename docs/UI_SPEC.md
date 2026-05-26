@@ -811,41 +811,82 @@ Step 1 → Step 2 → Step 3 各自獨立觸發
 
 #### 功能目的
 
-1. **可見性**：讓用戶清楚知道「這本書被分析到了什麼程度」
-2. **診斷性**：功能不可用時，可來此確認哪個資料層尚未建立
+1. **可見性**：讓用戶清楚知道「這本書被分析到了什麼程度」（含全局完成度 %）
+2. **診斷性**：功能不可用時，可來此確認哪個資料層、哪個上游節點尚未建立
 3. **依賴關係的呈現**：DAG 反映建構依賴——同層平行，依賴方向左→右
+4. **行動引導**：選取節點後可直接跳轉到對應頁面（symbols / characters / events / timeline / tension），未來可觸發對應建構 pipeline
 
-#### 版面結構
+#### 版面結構（重設計 Direction A · Diagnostic Dashboard）
 
 ```
-[DAG Canvas — 全幅，支援 pan/zoom] [Detail Panel 280px，點擊節點後展開]
+┌────────────────────────────────────────────────────────────────┐
+│ Summary Strip（頂部，flex-shrink: 0）                          │
+│  ├─ 大百分比 + complete/partial/empty 計數                      │
+│  └─ Stacked bar + 5 個 Layer chips（L0–L4 進度）                │
+├────────────────────────────────────────────────────────────────┤
+│ DAG Canvas（flex 1）              │ Inspector（360px）          │
+│  └─ Cytoscape preset layout      │  ├─ 預設：層次清單           │
+│     pan/zoom + 浮動 toolbar       │  └─ 選中後：節點細節         │
+└────────────────────────────────────────────────────────────────┘
 ```
+
+舊版的 220px 左側 `InfoPanel`、底部 `Legend` 浮層已移除；其功能由 Summary Strip 與 Inspector 取代。
+
+#### Summary Strip
+
+- 左側：`{pct}%` 完成度（大字體）+ 子標題（`complete / partial / empty` 計數 + 總節點數）
+- 右側：14px 高 stacked bar（complete + partial + empty 三段）+ 5 個 Layer chips（L0–L4 各自進度條 + `complete/total` 計數）；點 chip 等同選中該層第一個節點
+
+#### Inspector — 預設「層次清單」
+
+依 Layer 0–4 分組顯示所有節點，每列含狀態點、節點名稱、sub-label（依 nodeId 顯示計數，如 `9 / 12 章`）。點任一節點切換到「節點細節」。
+
+#### Inspector — 「節點細節」
+
+- Header：節點名稱 + `L{n} · {nodeId}` + 狀態 badge
+- **Progress card**（僅在節點有意義 `numerator/denominator` 時顯示）：大數字 + 進度條
+- **章節分佈 sparkline**（僅 5 個支援的節點：`paragraphs / summaries / keywords / kg_event / symbols`）：12-bar mini chart，資料來自 #19b
+- **行動區**（status ≠ complete 時）：
+  - 若有未完成上游依賴：顯示 blocker chips + disabled CTA「需先完成上游 N 個依賴」
+  - 否則：disabled CTA「觸發建構功能規劃中」（Backlog #7 視覺占位）
+  - 若節點對應某書內頁面：顯示 secondary CTA「前往對應頁面瀏覽」（連結至 graph / symbols / characters / events / timeline / tension）
+- **原始計數**：`counts` raw key/value 列表
+- **附加資訊**：`meta` raw key/value 列表
 
 #### DAG 節點層次
 
 | Layer | 節點名稱 | 形狀 |
 |-------|---------|------|
 | 0 — Text Layer | Book Meta / Chapters / Paragraphs | diamond |
-| 1 — KG Layer | Entities / Relations / Events | rectangle |
-| 2 — Analysis Layer | Temporal / Symbols / Character Analysis / Event Analysis / Narrative Structure / Tension Analysis | round-rectangle |
+| 1 — KG Layer | Summaries / Keywords / Symbols + KG compound（Entity / Concept / Relation / Event / Temporal Relation） | rectangle |
+| 2 — Analysis | CEP / EEP / TEU / SEP | round-rectangle |
+| 3 — Derived | Character / Causality / Impact / Tension Lines / Symbol / Narrative / Hero Journey / Temporal / Voice Profile | round-rectangle |
+| 4 — Synthesis | Tension Theme / Chronological Rank | round-rectangle |
 
 #### 節點狀態
 
-| 狀態 | 顏色 |
-|------|------|
+| 狀態 | 顏色（default 主題） |
+|------|----------------------|
 | `complete` | 綠底綠框 |
 | `partial` | 黃底黃框 |
 | `empty` | 灰底灰框 |
 
-**已實作**：點擊節點 → Detail Panel 顯示數量明細（counts）
+`--status-*` token 在 4 主題各自定義；詳見 [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。
 
-**規劃中（尚未實作）**：
-- 展開互動：Detail Panel 瀏覽該層原始資料
-- 觸發互動：`empty/partial` 節點可觸發對應 pipeline 建構
+**已實作**：
+- 全局進度 Summary Strip
+- 點擊節點 → Inspector 切到節點細節（含進度、章節分佈、blockers、跳轉 CTA）
+- DAG 內 highlight + fade 鄰居節點
+
+**規劃中（Backlog）**：
+- Backlog #7：CTA「觸發建構」實際呼叫對應 pipeline endpoint
+- 章節分佈擴展到 `kg_entity` / `kg_concept`（需 domain model 加上 chapter linkage）
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#19（建構概覽 DAG）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：
+- #19（建構概覽 manifest）
+- #19b（章節分佈，用於 NodeDetail panel）
 
 ---
 

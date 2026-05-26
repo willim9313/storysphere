@@ -264,6 +264,10 @@ export interface paths {
         /**
          * Confirm Inferred Relation
          * @description Confirm an inferred relation; writes it as a real Relation to the KG.
+         *
+         *     Body is optional. When `relationType` is omitted, the inferred relation's
+         *     suggested_relation_type is promoted to its canonical RelationType via
+         *     INFERRED_TO_CANONICAL (see domain.inferred_relations).
          */
         post: operations["confirm_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__confirm_post"];
         delete?: never;
@@ -500,6 +504,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/entities/analyze-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Batch Entity Analysis
+         * @description Trigger deep analysis for ALL character entities in a book.
+         *
+         *     Skips characters that already have cached analysis.
+         *     Returns a task_id for progress tracking.
+         */
+        post: operations["trigger_batch_entity_analysis_api_v1_books__book_id__entities_analyze_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/entities/{entity_id}/epistemic-state": {
         parameters: {
             query?: never;
@@ -700,6 +727,30 @@ export interface paths {
          *     All queries are read-only and involve no LLM calls.
          */
         get: operations["get_unraveling_api_v1_books__book_id__unraveling_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/unraveling/chapter-distribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Per-chapter distribution for chapter-aware DAG nodes
+         * @description Return per-chapter counts for the subset of unraveling nodes whose
+         *     underlying data is naturally chapter-indexed.
+         *
+         *     Supported nodeIds: ``paragraphs``, ``summaries``, ``keywords``,
+         *     ``kg_event``, ``symbols``. Other nodes are omitted from the response.
+         */
+        get: operations["get_chapter_distribution_api_v1_books__book_id__unraveling_chapter_distribution_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1347,10 +1398,12 @@ export interface paths {
         };
         /**
          * List Tension Lines
-         * @description Return cached TensionLines for a book.
+         * @description Return cached TensionLines for a book, with constituent TEUs embedded.
          *
-         *     Returns an empty list if grouping has not been run yet.
-         *     Trigger grouping first with ``POST /tension/lines/group``.
+         *     Each line includes a ``teus`` list (chapter, intensity, description, evidence,
+         *     carrier names per pole) so the UI can render evidence inline without a second
+         *     request. Returns an empty list if grouping has not been run yet — trigger
+         *     grouping first with ``POST /tension/lines/group``.
          */
         get: operations["list_tension_lines_api_v1_tension_lines_get"];
         put?: never;
@@ -2063,6 +2116,24 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /**
+         * ChapterDistribution
+         * @description Per-chapter counts for chapter-aware nodes.
+         *
+         *     Only nodes whose underlying data is naturally indexed by chapter
+         *     appear in ``distributions``. Other nodes (book-level synthesis,
+         *     cache-keyed analyses, KG entities without chapter linkage) are omitted.
+         */
+        ChapterDistribution: {
+            /** Bookid */
+            bookId: string;
+            /** Totalchapters */
+            totalChapters: number;
+            /** Distributions */
+            distributions: {
+                [key: string]: number[];
+            };
+        };
         /** CharacterAnalysisDetailResponse */
         CharacterAnalysisDetailResponse: {
             /** Entityid */
@@ -2163,7 +2234,7 @@ export interface components {
         /** ConfirmInferredRequest */
         ConfirmInferredRequest: {
             /** Relationtype */
-            relationType: string;
+            relationType?: string | null;
         };
         /** DocumentResponse */
         DocumentResponse: {
@@ -3215,6 +3286,26 @@ export interface components {
              */
             force: boolean;
         };
+        /**
+         * TEUSummary
+         * @description Per-line TEU rollup used by the tension page evidence section.
+         */
+        TEUSummary: {
+            /** Id */
+            id: string;
+            /** Chapter */
+            chapter: number;
+            /** Intensity */
+            intensity: number;
+            /** Tension Description */
+            tension_description: string;
+            /** Evidence */
+            evidence?: string[];
+            /** Pole A Carriers */
+            pole_a_carriers?: string[];
+            /** Pole B Carriers */
+            pole_b_carriers?: string[];
+        };
         /** TaskIdResponse */
         TaskIdResponse: {
             /** Taskid */
@@ -3312,6 +3403,35 @@ export interface components {
             /** Confidence */
             confidence: number;
         };
+        /**
+         * TensionLineDetail
+         * @description A TensionLine with its constituent TEUs embedded for in-page review.
+         */
+        TensionLineDetail: {
+            /** Id */
+            id: string;
+            /** Document Id */
+            document_id: string;
+            /** Teu Ids */
+            teu_ids?: string[];
+            /** Canonical Pole A */
+            canonical_pole_a: string;
+            /** Canonical Pole B */
+            canonical_pole_b: string;
+            /** Intensity Summary */
+            intensity_summary: number;
+            /** Chapter Range */
+            chapter_range?: number[];
+            /** Thematic Note */
+            thematic_note?: string | null;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
+            /** Teus */
+            teus?: components["schemas"]["TEUSummary"][];
+        };
         /** TensionLineReviewRequest */
         TensionLineReviewRequest: {
             /** Document Id */
@@ -3325,6 +3445,30 @@ export interface components {
             canonical_pole_a?: string | null;
             /** Canonical Pole B */
             canonical_pole_b?: string | null;
+        };
+        /** TensionThemeResponse */
+        TensionThemeResponse: {
+            /** Id */
+            id: string;
+            /** Document Id */
+            document_id: string;
+            /** Tension Line Ids */
+            tension_line_ids?: string[];
+            /** Proposition */
+            proposition: string;
+            /** Frye Mythos */
+            frye_mythos?: string | null;
+            /** Booker Plot */
+            booker_plot?: string | null;
+            /** Assembled By */
+            assembled_by: string;
+            /** Assembled At */
+            assembled_at: string;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
         };
         /** TensionThemeReviewRequest */
         TensionThemeReviewRequest: {
@@ -4053,9 +4197,9 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["ConfirmInferredRequest"];
+                "application/json": components["schemas"]["ConfirmInferredRequest"] | null;
             };
         };
         responses: {
@@ -4492,6 +4636,37 @@ export interface operations {
             };
         };
     };
+    trigger_batch_entity_analysis_api_v1_books__book_id__entities_analyze_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_entity_epistemic_state_api_v1_books__book_id__entities__entity_id__epistemic_state_get: {
         parameters: {
             query: {
@@ -4827,6 +5002,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UnravelingManifest"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_chapter_distribution_api_v1_books__book_id__unraveling_chapter_distribution_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChapterDistribution"];
                 };
             };
             /** @description Validation Error */
@@ -5881,7 +6087,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown[];
+                    "application/json": components["schemas"]["TensionLineDetail"][];
                 };
             };
             /** @description Validation Error */
@@ -6077,9 +6283,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TensionThemeResponse"];
                 };
             };
             /** @description Validation Error */

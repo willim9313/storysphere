@@ -77,9 +77,12 @@
 | Token | default | manuscript | minimal-ink | pulp |
 |-------|---------|-----------|-------------|------|
 | `--line-weight` | `1px` | `1px` | `0.5px` | `2px` |
+| `--border-width` | `1px` | `1px` | `0.5px` | `2px` |
 | `--border-style` | `solid` | `dashed` | `solid` | `solid` |
 | `--node-shadow` | `none` | `none` | `none` | `2px 2px 0 #000000` |
 | `--divider-style` | `1px solid var(--border)` | `1px solid #333333` | `1.5px solid #000000` | `2px dashed #888888` |
+
+> `--border-width` 與 `--line-weight` 數值同步；`--line-weight` 給 Cytoscape canvas（需 JS `getComputedStyle` 讀取後轉成像素值），`--border-width` 給 CSS（直接用於 `border` shorthand 的寬度欄）。
 
 ### 3.7 實體 Pill 顏色
 
