@@ -79,7 +79,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 | 時間軸 | `/books/:bookId/timeline` |
 | 張力分析 | `/books/:bookId/tension` |
 | 象徵意象 | `/books/:bookId/symbols` |
-| 展開卷軸 | `/books/:bookId/unraveling` |
+| 建構概覽 | `/books/:bookId/unraveling` |
 
 ### 2.3 頁面層級關係
 
@@ -98,7 +98,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
        ├─ 時間軸        /books/:bookId/timeline
        ├─ 張力分析      /books/:bookId/tension
        ├─ 象徵意象      /books/:bookId/symbols
-       └─ 展開卷軸      /books/:bookId/unraveling
+       └─ 建構概覽      /books/:bookId/unraveling
 ```
 
 ---
@@ -807,7 +807,7 @@ Step 1 → Step 2 → Step 3 各自獨立觸發
 
 ---
 
-### 3.10 展開卷軸頁 `/books/:bookId/unraveling`
+### 3.10 建構概覽頁 `/books/:bookId/unraveling`
 
 #### 功能目的
 
@@ -845,7 +845,7 @@ Step 1 → Step 2 → Step 3 各自獨立觸發
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#19（展開卷軸 DAG）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#19（建構概覽 DAG）
 
 ---
 
@@ -1048,7 +1048,7 @@ WebSocket 連線，含訊息列表 + 輸入框。
 4. **框架索引反查角色**：從原型反查書中對應角色，需配合書籍層級資料對接。
 5. **全站搜尋**：sidebar 搜尋 icon 為未來功能佔位。
 6. **知識圖譜 → 閱讀頁定位**：從圖譜段落面板點擊 chunk，跳轉至閱讀頁並定位對應位置。
-7. **展開卷軸 — 觸發互動**：在 UnravelingPage 的 Detail Panel 內直接觸發對應 pipeline 建構。
+7. **建構概覽 — 觸發互動**：在 UnravelingPage 的 Detail Panel 內直接觸發對應 pipeline 建構。
 8. **時間軸 — 因果鏈聚焦模式**：toggle 僅顯示 `relation_type = causes` 的邊與相關事件。
 9. **時間軸 — 角色弧線模式**：選定角色後，僅顯示該角色參與的事件。
 10. **設定頁大改版**：當前 KG backend 切換方式過於技術導向，未來改為更清晰的儲存後端設定模式，或由系統自動管理。

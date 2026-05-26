@@ -520,7 +520,7 @@
       "unrankedZone": "未排序事件"
     }
   },
-  "unravelingLoadError": "無法載入展開卷軸資料",
+  "unravelingLoadError": "無法載入建構概覽資料",
   "unraveling": {
     "info": {
       "title": "資料底層架構",
@@ -687,11 +687,11 @@
     },
     "emptyStep1Title": "確認文本切分已完成",
     "emptyStep1Desc": "意象萃取依賴段落層次的 token——若段落層尚未建立，意象不會自動執行。",
-    "emptyStep2Title": "至展開卷軸頁確認狀態",
-    "emptyStep2Desc": "Unraveling DAG 會明確標示「Symbols」節點為 empty / partial / complete。",
+    "emptyStep2Title": "至建構概覽頁確認狀態",
+    "emptyStep2Desc": "建構概覽 DAG 會明確標示「Symbols」節點為 empty / partial / complete。",
     "emptyStep3Title": "必要時手動觸發",
-    "emptyStep3Desc": "若依賴層完整但仍為空，可從 Unraveling 頁的對應節點觸發意象萃取 pipeline。",
-    "emptyUnravelingBtn": "開啟展開卷軸",
+    "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。",
+    "emptyUnravelingBtn": "開啟建構概覽",
     "emptyRecheckBtn": "重新檢查狀態"
   }
 }

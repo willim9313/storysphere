@@ -520,7 +520,7 @@
       "unrankedZone": "Unranked events"
     }
   },
-  "unravelingLoadError": "Failed to load unraveling data",
+  "unravelingLoadError": "Failed to load build overview data",
   "unraveling": {
     "info": {
       "title": "Data Foundation",
@@ -687,11 +687,11 @@
     },
     "emptyStep1Title": "Confirm paragraph tokenisation is complete",
     "emptyStep1Desc": "Imagery extraction relies on paragraph-level tokens — if the paragraph layer has not been built, extraction will not run automatically.",
-    "emptyStep2Title": "Check status on the Unraveling page",
-    "emptyStep2Desc": "The Unraveling DAG will clearly mark the \"Symbols\" node as empty, partial, or complete.",
+    "emptyStep2Title": "Check status on the Build Overview page",
+    "emptyStep2Desc": "The Build Overview DAG will clearly mark the \"Symbols\" node as empty, partial, or complete.",
     "emptyStep3Title": "Trigger manually if needed",
-    "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Unraveling page.",
-    "emptyUnravelingBtn": "Open Unraveling",
+    "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Build Overview page.",
+    "emptyUnravelingBtn": "Open Build Overview",
     "emptyRecheckBtn": "Re-check status"
   }
 }

@@ -2,7 +2,7 @@ import { apiFetch } from './client';
 
 export type NodeStatus = 'complete' | 'partial' | 'empty';
 
-export interface UnravelingNode {
+export interface BuildOverviewNode {
   nodeId: string;
   layer: number;
   label: string;
@@ -12,17 +12,17 @@ export interface UnravelingNode {
   parentId?: string;
 }
 
-export interface UnravelingEdge {
+export interface BuildOverviewEdge {
   source: string;
   target: string;
 }
 
-export interface UnravelingManifest {
+export interface BuildOverviewManifest {
   bookId: string;
-  nodes: UnravelingNode[];
-  edges: UnravelingEdge[];
+  nodes: BuildOverviewNode[];
+  edges: BuildOverviewEdge[];
 }
 
-export function fetchUnraveling(bookId: string): Promise<UnravelingManifest> {
-  return apiFetch<UnravelingManifest>(`/books/${bookId}/unraveling`);
+export function fetchBuildOverview(bookId: string): Promise<BuildOverviewManifest> {
+  return apiFetch<BuildOverviewManifest>(`/books/${bookId}/unraveling`);
 }

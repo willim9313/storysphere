@@ -8,11 +8,11 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
-  fetchUnraveling,
+  fetchBuildOverview,
   type NodeStatus,
-  type UnravelingManifest,
-  type UnravelingNode,
-} from '@/api/unraveling';
+  type BuildOverviewManifest,
+  type BuildOverviewNode,
+} from '@/api/buildOverview';
 
 // ── Layout constants ──────────────────────────────────────────────────────────
 
@@ -62,7 +62,7 @@ function statusLabel(t: TFunction, status: NodeStatus): string {
 
 // ── Cytoscape stylesheet ──────────────────────────────────────────────────────
 
-function getUnravelingStylesheet(): cytoscape.Stylesheet[] {
+function getBuildOverviewStylesheet(): cytoscape.Stylesheet[] {
   const accent    = v('--accent')       || '#8b5e3c';
   const border    = v('--border')       || '#e0d4c4';
   const bgTertiary  = v('--bg-tertiary')  || '#f5ede0';
@@ -175,7 +175,7 @@ const LAYER_SHAPE: Record<number, string> = {
 
 // ── Sublabel helpers ──────────────────────────────────────────────────────────
 
-function getSubLabel(t: TFunction, n: UnravelingNode): string {
+function getSubLabel(t: TFunction, n: BuildOverviewNode): string {
   if (n.status === 'empty') return t('unraveling.notBuilt');
   const check = n.status === 'complete' ? ' ✓' : '';
   switch (n.nodeId) {
@@ -211,14 +211,14 @@ function getSubLabel(t: TFunction, n: UnravelingNode): string {
 
 function buildElements(
   t: TFunction,
-  manifest: UnravelingManifest,
+  manifest: BuildOverviewManifest,
 ): cytoscape.ElementDefinition[] {
   // Separate KG children from regular nodes
   const regularNodes = manifest.nodes.filter(n => !KG_CHILD_IDS.has(n.nodeId));
   const kgChildren = manifest.nodes.filter(n => KG_CHILD_IDS.has(n.nodeId));
 
   // Group regular nodes by layer for vertical centering
-  const byLayer: Record<number, UnravelingNode[]> = {};
+  const byLayer: Record<number, BuildOverviewNode[]> = {};
   for (const node of regularNodes) {
     byLayer[node.layer] = byLayer[node.layer] ?? [];
     byLayer[node.layer].push(node);
@@ -297,10 +297,10 @@ function buildElements(
 
 interface CanvasProps {
   elements: cytoscape.ElementDefinition[];
-  onNodeTap: (node: UnravelingNode) => void;
+  onNodeTap: (node: BuildOverviewNode) => void;
 }
 
-function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
+function BuildOverviewCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const onTapRef = useRef(onNodeTap);
@@ -313,7 +313,7 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
     const cy = cytoscape({
       container: containerRef.current,
       elements,
-      style: getUnravelingStylesheet(),
+      style: getBuildOverviewStylesheet(),
       layout: { name: 'preset' },
       userZoomingEnabled: true,
       userPanningEnabled: true,
@@ -347,7 +347,7 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
         targets.parents().removeClass('faded');
       }
 
-      const nodeData = node.data('nodeData') as UnravelingNode | undefined;
+      const nodeData = node.data('nodeData') as BuildOverviewNode | undefined;
       if (nodeData) onTapRef.current(nodeData);
     });
 
@@ -370,7 +370,7 @@ function UnravelingCanvas({ elements, onNodeTap }: Readonly<CanvasProps>) {
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
-    cy.style(getUnravelingStylesheet());
+    cy.style(getBuildOverviewStylesheet());
   }, [theme]);
 
   return (
@@ -391,7 +391,7 @@ function countLabel(t: TFunction, key: string): string {
 }
 
 interface DetailPanelProps {
-  node: UnravelingNode;
+  node: BuildOverviewNode;
   onClose: () => void;
 }
 
@@ -531,14 +531,14 @@ function Legend() {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function UnravelingPage() {
+export default function BuildOverviewPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { t } = useTranslation('analysis');
-  const [selectedNode, setSelectedNode] = useState<UnravelingNode | null>(null);
+  const [selectedNode, setSelectedNode] = useState<BuildOverviewNode | null>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['unraveling', bookId],
-    queryFn: () => fetchUnraveling(bookId!),
+    queryKey: ['buildOverview', bookId],
+    queryFn: () => fetchBuildOverview(bookId!),
     enabled: !!bookId,
     staleTime: 60_000,
   });
@@ -556,7 +556,7 @@ export default function UnravelingPage() {
 
       {/* DAG Canvas */}
       <div className="relative flex-1" style={{ minHeight: 0 }}>
-        <UnravelingCanvas
+        <BuildOverviewCanvas
           elements={elements}
           onNodeTap={setSelectedNode}
         />

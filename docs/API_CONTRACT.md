@@ -1403,7 +1403,7 @@ result: {
 
 ---
 
-## 展開卷軸
+## 建構概覽
 
 ### #19 GET /books/:bookId/unraveling
 
@@ -1433,7 +1433,7 @@ interface UnravelingEdge {
 }
 ```
 
-**UI 使用頁面**：展開卷軸頁 `/books/:bookId/unraveling`
+**UI 使用頁面**：建構概覽頁 `/books/:bookId/unraveling`
 
 ---
 

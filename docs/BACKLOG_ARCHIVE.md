@@ -458,7 +458,7 @@
 **工作量**: ~1.5 小時
 **涉及元件**: `components/layout/Sidebar.tsx`、`components/layout/BookNav.tsx`、`pages/LibraryPage.tsx`、`components/library/BookCard.tsx`、`components/library/EmptyLibrary.tsx`、`components/library/RecentBookCard.tsx`
 **預估字串數**: ~45 個
-**代表字串**: 書庫、上傳、框架索引、Token 用量、系統設定、閱讀、角色分析、事件分析、知識圖譜、時間軸、張力分析、符號意象、展開卷軸、最近開啟、全部、已分析、上傳新書、繼續閱讀、開始閱讀、查看處理進度、確認、取消、刪除書籍
+**代表字串**: 書庫、上傳、框架索引、Token 用量、系統設定、閱讀、角色分析、事件分析、知識圖譜、時間軸、張力分析、符號意象、建構概覽、最近開啟、全部、已分析、上傳新書、繼續閱讀、開始閱讀、查看處理進度、確認、取消、刪除書籍
 
 ---
 
@@ -525,7 +525,7 @@
 
 ---
 
-## B-039 展開卷軸（Unraveling）— 資料透明度 DAG ✅ 完成
+## B-039 建構概覽（Unraveling）— 資料透明度 DAG ✅ 完成
 **背景**: 系統為每本書建立的資料量體對用戶不可見，功能不可用時也難以診斷是哪個資料層尚未建立。
 **實作**:
 - `GET /api/v1/books/{book_id}/unraveling` — 聚合端點，兩輪並行查詢（服務計數 + cache key 計數）組裝 manifest JSON
