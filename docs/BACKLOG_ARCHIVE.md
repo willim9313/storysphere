@@ -594,3 +594,62 @@
 - `src/api/routers/symbols.py`：`GET /symbols`、`GET /symbols/{id}/timeline`、`GET /symbols/{id}/co-occurrences`
 - `src/api/deps.py`：`SymbolServiceDep`、`SymbolGraphServiceDep`
 - `frontend/src/api/symbols.ts` + `frontend/src/pages/SymbolsPage.tsx`：符號意象分析頁面
+
+---
+
+## F-17 UI 主題風格切換系統（B&W Theme System）✅ 完成（2026-05-28）
+**分類**: UI 系統 — Wave 2
+**設計文件**: `docs/plans/20260429-theme-system-bw.md`、`docs/DESIGN_TOKENS.md`、`docs/UI_SPEC.md` Section 3.13
+
+**背景**: StorySphere 設計 token 已在 `tokens.css` 中抽離，主題切換架構基礎（`data-theme` on `<html>`、ThemeContext）已就位。F-17 完成填入第二、三主題 token 值並實作設定頁切換 UI。
+
+**已實作**:
+- `frontend/src/styles/tokens.css`：新增 `[data-theme="manuscript"]`、`[data-theme="minimal-ink"]`、`[data-theme="pulp"]` 三個覆蓋區塊（共 644 行）
+- 三個 B&W 主題嚴格使用黑白灰，`default` 暖色 token 不受影響
+- `frontend/src/contexts/ThemeContext.tsx`：localStorage key `storysphere:theme`，讀寫主題並套用 `data-theme` attribute
+- `frontend/src/pages/SettingsPage.tsx`：card picker UI（三色縮圖預覽、選中 accent 邊框、即時套用）
+- Cytoscape 節點、BarFill、Stat 卡、Keyword tag 等元件均已 tokenise
+- 多個修正 commit 補全 B&W 主題下各元件的可讀性（tensor page、build overview legend、native form controls、BatchEepPanel progress track）
+- `docs/DESIGN_TOKENS.md` 對照表同步更新
+
+---
+
+## F-18 系統啟動 Splash Screen ✅ 完成（2026-05-28）
+**分類**: UI 體驗 — Wave 2
+
+**背景**: 每個新 session 顯示全螢幕品牌印象畫面，以 `sessionStorage` 判斷是否已顯示，強化第一印象。
+
+**已實作**:
+- `frontend/src/components/SplashScreen.tsx`：全螢幕 overlay，`position: fixed; inset: 0; z-index: 9999`；淡入（0.4s）→ 停留（1.5s）→ 淡出（0.4s）後 unmount；點擊可立即略過；背景色 `var(--bg-primary)`
+- `frontend/src/hooks/useSplash.ts`：讀寫 `sessionStorage` key `storysphere:splash-shown`，返回 `{ needsSplash, markDone }`
+- `frontend/src/components/AppRoot.tsx`：頂層條件渲染 `{needsSplash && <SplashScreen onDone={markDone} />}`
+- 後續強化 commit：theme-aware splash（faded bg）、imagery pool、loader bar
+
+---
+
+## I-001 輕量化部署模式（Lightweight Deployment Mode）✅ 完成（2026-05-28）
+**性質**: Infrastructure Refactor
+**設計文件**: `docs/plans/20260505-i001-lightweight-deployment.md`
+
+**背景**: 系統原預設需要 Qdrant service，對新用戶不友善，且現有 fallback 靜默跳過造成資料狀態不明確。新增兩個明確的部署模式，不做跨模式自動降級。
+
+**已實作**:
+- `src/config/settings.py`：新增 `deploy_mode: Literal["lightweight", "standard"] = "lightweight"`、`qdrant_local_path`；lightweight 模式強制 `kg_mode=networkx` 並 log warning
+- `src/services/vector_service.py`：依 `deploy_mode` 決定 Qdrant client（local file path vs. remote URL）；standard 模式連線失敗拋明確錯誤
+- `src/api/main.py`：lifespan 啟動時針對 lightweight 模式發出多 worker 警告
+- `.env.example`：新增 `DEPLOY_MODE=lightweight` 說明，最低配置僅需填 `PRIMARY_LLM_PROVIDER` + 對應 key
+- 後續 fix commit 修正 lightweight 模式下多處 API 正確性問題
+
+---
+
+## I-003 主要 LLM Provider 可配置化 ✅ 完成（2026-05-28）
+**性質**: Infrastructure Refactor
+**設計文件**: `docs/plans/20260505-i003-primary-llm-provider.md`
+
+**背景**: `_resolve_primary()` 原固定 Gemini → OpenAI → Anthropic → Local 的 fallback 順序，非 Gemini 用戶只能被動降級並收到 warning，且 `.env.example` 隱含「必須填 Gemini key」的假設。
+
+**已實作**:
+- `src/config/settings.py`：新增 `primary_llm_provider: Literal["gemini", "openai", "anthropic", "local"] = "gemini"`
+- `src/core/llm_client.py`：`_resolve_primary()` 改為直接讀取 `settings.primary_llm_provider`；指定 provider 的 key 未設定時啟動報明確錯誤，不靜默降級
+- `.env.example`：新增 `PRIMARY_LLM_PROVIDER` 說明，更新「最低配置」範例（只填 provider + 對應 key）
+- 與 I-001 同批實作（commit `b6cdd53`、`5d1754a`）
