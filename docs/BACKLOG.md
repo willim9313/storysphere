@@ -145,7 +145,6 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 
 **Wave 0 前置項目** ✅ 全部完成（已歸檔於 BACKLOG_ARCHIVE.md）：
 - B-023 + B-031 合併 migration（EventNode 欄位）
-- B-015 Chat Agent 品質審視
 - B-012 前後端 API 整合驗證
 
 ---
