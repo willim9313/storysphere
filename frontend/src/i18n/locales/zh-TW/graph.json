@@ -48,6 +48,9 @@
   "statsInferred": "+{{n}} 推斷",
   "statsNodeLabel": "節點",
   "statsEdgeLabel": "關係",
+  "statsFactionLabel": "群集",
+  "statsAggregatedEdgeLabel": "聚合關係",
+  "statsUnderlyingNodeLabel": "底層節點",
   "panel": {
     "entityInfo": "實體資訊",
     "deepAnalysis": "深度分析",
@@ -110,15 +113,30 @@
         "type": "類型",
         "community": "社群"
       },
-      "communityDisabled": "派系分析開發中（F-16）",
       "overview": "群集概觀",
       "drillInTitle": "{{typeName}}群集 · {{n}} 個成員",
+      "drillInFactionTitle": "{{name}} · {{n}} 名成員",
       "members": "{{n}} 個成員",
       "memberCount": "{{n}}",
       "noTopMembers": "（無成員）",
       "sortImportance": "依重要性",
       "sortName": "依名稱",
-      "back": "上一階"
+      "back": "上一階",
+      "toggleSort": "切換排序",
+      "cohesion": "凝聚 {{v}}",
+      "unaffiliated": "無派系 ({{n}})",
+      "drillIn": {
+        "summary": "群集摘要",
+        "summaryBody": "本派系含 {{n}} 名角色，核心成員為 {{top}}；凝聚度 {{cohesion}}。",
+        "outward": "對外關係（{{n}}）"
+      },
+      "settings": {
+        "heading": "群集設定",
+        "algorithm": "偵測算法",
+        "resolution": "解析度",
+        "minSize": "最小群集大小",
+        "recompute": "重新運算"
+      }
     },
     "search": {
       "section": {

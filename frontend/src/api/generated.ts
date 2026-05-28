@@ -1716,6 +1716,34 @@ export interface paths {
         patch: operations["review_symbol_interpretation_api_v1_symbols__imagery_id__interpretation_patch"];
         trace?: never;
     };
+    "/api/v1/books/{book_id}/analysis/factions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Faction Analysis
+         * @description Return faction structure for a book, optionally at a chapter snapshot.
+         *
+         *     Query params:
+         *         chapter: chapter snapshot (reading order); omit for full book.
+         *         resolution: modularity resolution (0.1–4.0, default 1.0). Higher → more,
+         *             smaller factions; lower → fewer, larger ones.
+         *         min_cluster_size: communities smaller than this go to unaffiliated (≥ 2).
+         *
+         *     Empty book / no characters → empty factions list (200, not 404).
+         */
+        get: operations["get_faction_analysis_api_v1_books__book_id__analysis_factions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/kg/status": {
         parameters: {
             query?: never;
@@ -2524,6 +2552,45 @@ export interface components {
             name: string;
             /** Type */
             type: string;
+        };
+        /** FactionAnalysisResponse */
+        FactionAnalysisResponse: {
+            /** Bookid */
+            bookId: string;
+            /** Chapter */
+            chapter?: number | null;
+            /** Factions */
+            factions?: components["schemas"]["FactionResponse"][];
+            /** Relations */
+            relations?: components["schemas"]["FactionRelationResponse"][];
+            /** Unaffiliatedentityids */
+            unaffiliatedEntityIds?: string[];
+            /** Unaffiliatednames */
+            unaffiliatedNames?: string[];
+        };
+        /** FactionRelationResponse */
+        FactionRelationResponse: {
+            /** Sourcefactionid */
+            sourceFactionId: string;
+            /** Targetfactionid */
+            targetFactionId: string;
+            /** Cooperation */
+            cooperation: number;
+            /** Rivalry */
+            rivalry: number;
+        };
+        /** FactionResponse */
+        FactionResponse: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Memberids */
+            memberIds?: string[];
+            /** Cohesionscore */
+            cohesionScore: number;
+            /** Topmembernames */
+            topMemberNames?: string[];
         };
         /** GraphDataResponse */
         GraphDataResponse: {
@@ -6592,6 +6659,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SymbolInterpretation"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_faction_analysis_api_v1_books__book_id__analysis_factions_get: {
+        parameters: {
+            query?: {
+                chapter?: number | null;
+                resolution?: number;
+                min_cluster_size?: number;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FactionAnalysisResponse"];
                 };
             };
             /** @description Validation Error */

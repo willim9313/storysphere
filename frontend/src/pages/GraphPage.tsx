@@ -8,7 +8,8 @@ import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { toCytoscapeElements, toClusteredCytoscapeElements } from '@/lib/graphTransform';
-import { byType, isSuperNodeId } from '@/services/kgClustering';
+import { byCommunity, byType, isSuperNodeId } from '@/services/kgClustering';
+import { fetchFactionAnalysis } from '@/api/factions';
 import { GraphCanvas, type GraphCanvasHandle, type ViewportSnapshot } from '@/components/graph/GraphCanvas';
 import { GraphToolbar, type AnimationMode, type ClusterMode } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
@@ -17,7 +18,8 @@ import { LensCard, type TimelineState } from '@/components/graph/LensCard';
 import { LegendCard } from '@/components/graph/LegendCard';
 import { MiniMap } from '@/components/graph/MiniMap';
 import { SearchDropdown } from '@/components/graph/SearchDropdown';
-import { ClusterOverviewPanel } from '@/components/graph/ClusterOverviewPanel';
+import { ClusterOverviewPanel, type FactionSettings } from '@/components/graph/ClusterOverviewPanel';
+import { FactionCanvas, layoutFactions } from '@/components/graph/FactionCanvas';
 import { BreadcrumbBar } from '@/components/graph/BreadcrumbBar';
 import { EntityComparePanel } from '@/components/graph/EntityComparePanel';
 import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
@@ -58,7 +60,7 @@ export default function GraphPage() {
     `graph:${bookId ?? '-'}:clusterMode`,
     'node',
   );
-  const [clusterDrillIn, setClusterDrillIn] = useState<EntityType | null>(null);
+  const [clusterDrillIn, setClusterDrillIn] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -99,11 +101,67 @@ export default function GraphPage() {
     [data],
   );
 
-  // Cluster transform — only when mode is 'type' (community is disabled in V1)
+  // Faction detection params. `draft` is bound to UI sliders; `applied` is
+  // what the query actually uses — pressing "Recompute" promotes draft→applied,
+  // avoiding a refetch on every slider tick.
+  const [factionDraft, setFactionDraft] = useState<FactionSettings>({
+    resolution: 1.0,
+    minClusterSize: 2,
+  });
+  const [factionApplied, setFactionApplied] = useState<FactionSettings>({
+    resolution: 1.0,
+    minClusterSize: 2,
+  });
+
+  // Faction analysis — only fetched when community mode is active.
+  const { data: factionData, isFetching: isFactionFetching } = useQuery({
+    queryKey: [
+      'books',
+      bookId,
+      'analysis',
+      'factions',
+      factionApplied.resolution,
+      factionApplied.minClusterSize,
+    ],
+    queryFn: () =>
+      fetchFactionAnalysis(bookId!, {
+        resolution: factionApplied.resolution,
+        minClusterSize: factionApplied.minClusterSize,
+      }),
+    enabled: !!bookId && clusterMode === 'community',
+    staleTime: 5 * 60 * 1000,
+  });
+
+  // Cluster transform — picks up 'type' or 'community' grouping.
   const clusteredGraph = useMemo(() => {
-    if (clusterMode !== 'type' || !data) return null;
-    return byType(data);
-  }, [clusterMode, data]);
+    if (clusterMode === 'node' || !data) return null;
+    if (clusterMode === 'type') return byType(data);
+    if (clusterMode === 'community' && factionData) return byCommunity(data, factionData);
+    return null;
+  }, [clusterMode, data, factionData]);
+
+  // Faction positions for the bottom-right mini-map (community mode).
+  // Mirrors FactionCanvas's layout so the mini-map and main canvas stay aligned.
+  const factionMiniMap = useMemo(() => {
+    if (!factionData?.factions?.length) {
+      return { nodes: [] as { id: string; x: number; y: number; type: string }[], edges: [] as { source: string; target: string }[] };
+    }
+    const positions = layoutFactions(factionData.factions, null);
+    const nodes = factionData.factions
+      .map((f) => {
+        const p = positions.get(f.id);
+        if (!p) return null;
+        return { id: f.id, x: p.x, y: p.y, type: 'character' };
+      })
+      .filter((n): n is { id: string; x: number; y: number; type: string } => n !== null);
+    const edges = (factionData.relations ?? []).map((r) => ({
+      source: r.sourceFactionId,
+      target: r.targetFactionId,
+    }));
+    return { nodes, edges };
+  }, [factionData]);
+  const factionMiniMapNodes = factionMiniMap.nodes;
+  const factionMiniMapEdges = factionMiniMap.edges;
 
   const elements = useMemo(() => {
     if (!data) return [];
@@ -111,7 +169,9 @@ export default function GraphPage() {
       // 2-line label: cluster name on top, "{count} 個節點" sublabel below
       // (rendered via text-wrap: wrap in cytoscapeConfig).
       return toClusteredCytoscapeElements(clusteredGraph, (type, count) => {
-        return `${t(`entityTypes.${type}`)}\n${t('v1.cluster.members', { n: count })}`;
+        const sn = clusteredGraph.superNodes.find((s) => s.clusterType === type);
+        const title = sn?.label ?? t(`entityTypes.${type}`);
+        return `${title}\n${t('v1.cluster.members', { n: count })}`;
       });
     }
     return toCytoscapeElements(data);
@@ -168,7 +228,7 @@ export default function GraphPage() {
       if (isSuperNodeId(nodeId)) {
         if (clusteredGraph) {
           const sn = clusteredGraph.superNodes.find((s) => s.id === nodeId);
-          if (sn) setClusterDrillIn(sn.clusterType as EntityType);
+          if (sn) setClusterDrillIn(sn.clusterType);
         }
         return;
       }
@@ -260,15 +320,19 @@ export default function GraphPage() {
   // Breadcrumb items for drill-in
   const breadcrumbItems = useMemo(() => {
     if (clusterMode === 'node') return [];
+    const modeLabelKey =
+      clusterMode === 'community' ? 'v1.cluster.mode.community' : 'v1.cluster.mode.type';
     const items = [
       { label: t('toolbar.graphRoot', '知識圖譜'), onClick: () => { setClusterMode('node'); setClusterDrillIn(null); } },
-      { label: t('v1.cluster.mode.type'), onClick: clusterDrillIn ? () => setClusterDrillIn(null) : undefined },
+      { label: t(modeLabelKey), onClick: clusterDrillIn ? () => setClusterDrillIn(null) : undefined },
     ];
     if (clusterDrillIn) {
-      items.push({ label: t(`entityTypes.${clusterDrillIn}`), onClick: undefined });
+      const sn = clusteredGraph?.superNodes.find((s) => s.clusterType === clusterDrillIn);
+      const drillLabel = sn?.label ?? t(`entityTypes.${clusterDrillIn}`);
+      items.push({ label: drillLabel, onClick: undefined });
     }
     return items;
-  }, [clusterMode, clusterDrillIn, t, setClusterMode]);
+  }, [clusterMode, clusterDrillIn, clusteredGraph, t, setClusterMode]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;
@@ -279,26 +343,47 @@ export default function GraphPage() {
   // Decide right panel rendering
   const showCompare = !!compareNodes;
   const showInferredReview = !showCompare && (inferredReviewOpen || !!selectedInferredId);
-  const showClusterOverview = !showCompare && !showInferredReview && clusterMode === 'type' && !selectedNode;
+  const showClusterOverview =
+    !showCompare &&
+    !showInferredReview &&
+    (clusterMode === 'type' || clusterMode === 'community') &&
+    !selectedNode;
   const showEntityDetail = !showCompare && !showInferredReview && !showClusterOverview && !!selectedNode;
   const rightOpen = showCompare || showInferredReview || showClusterOverview || showEntityDetail || !!rightPanel;
   const rightPanelExtraWidth = rightPanel ? RIGHT_PANEL_WIDTH[rightPanel] : 0;
   // Shared right-anchor for the bottom-right widget column (mini-map / stats / zoom).
   const bottomRightAnchor = rightOpen ? 16 + 280 + rightPanelExtraWidth : 16;
 
+  const isCommunityMode = clusterMode === 'community';
+
   return (
     <div className="relative h-full w-full">
-      <GraphCanvas
-        ref={canvasRef}
-        elements={filteredElements}
-        onNodeTap={handleNodeTap}
-        onEdgeTap={handleEdgeTap}
-        selectedNodeId={selectedNodeId}
-        selectedNodeIds={selectedNodeIds}
-        animationMode={animationMode}
-        extraStylesheet={epistemicStylesheet}
-        onViewportChange={handleViewportChange}
-      />
+      {isCommunityMode && factionData ? (
+        <FactionCanvas
+          analysis={factionData}
+          graphNodes={data?.nodes ?? []}
+          drillInFactionId={clusterDrillIn}
+          onSuperNodeClick={(factionId) => setClusterDrillIn(factionId)}
+          onMemberClick={(id) => {
+            setSelectedNodeId(id);
+            setClusterMode('node');
+            setClusterDrillIn(null);
+          }}
+          onExitDrillIn={() => setClusterDrillIn(null)}
+        />
+      ) : (
+        <GraphCanvas
+          ref={canvasRef}
+          elements={filteredElements}
+          onNodeTap={handleNodeTap}
+          onEdgeTap={handleEdgeTap}
+          selectedNodeId={selectedNodeId}
+          selectedNodeIds={selectedNodeIds}
+          animationMode={animationMode}
+          extraStylesheet={epistemicStylesheet}
+          onViewportChange={handleViewportChange}
+        />
+      )}
 
       {/* Toolbar (top-left) */}
       <GraphToolbar
@@ -353,19 +438,28 @@ export default function GraphPage() {
       {/* Breadcrumb (Scenario C) */}
       <BreadcrumbBar items={breadcrumbItems} />
 
-      {/* Legend (top-right) */}
-      <LegendCard
-        graph={data}
-        visibleTypes={visibleTypes}
-        onTypeToggle={handleTypeToggle}
-        inferredCount={inferredCount}
-        inferredVisible={showInferred}
-        onInferredToggle={() => {
-          const v = !showInferred;
-          setShowInferred(v);
-          setInferredReviewOpen(v);
+      {/* Legend (top-right) — shifts left when right panel is open */}
+      <div
+        className="absolute z-10"
+        style={{
+          top: 16,
+          right: bottomRightAnchor,
+          transition: 'right var(--transition-normal, 250ms) ease',
         }}
-      />
+      >
+        <LegendCard
+          graph={data}
+          visibleTypes={visibleTypes}
+          onTypeToggle={handleTypeToggle}
+          inferredCount={inferredCount}
+          inferredVisible={showInferred}
+          onInferredToggle={() => {
+            const v = !showInferred;
+            setShowInferred(v);
+            setInferredReviewOpen(v);
+          }}
+        />
+      </div>
 
       {/* Lens card (bottom-left) — consolidates timeline / epistemic / bookmarks */}
       {bookId && (
@@ -383,8 +477,8 @@ export default function GraphPage() {
         />
       )}
 
-      {/* Mini-map (bottom-right) */}
-      {viewportSnap && (
+      {/* Mini-map (bottom-right) — same slot for all modes */}
+      {isCommunityMode && factionData ? (
         <div
           className="absolute z-10"
           style={{
@@ -394,41 +488,92 @@ export default function GraphPage() {
           }}
         >
           <MiniMap
-            nodes={viewportSnap.nodes}
-            edges={viewportSnap.edges}
-            viewport={viewportSnap.viewport}
-            onRecenter={(gx, gy) => canvasRef.current?.centerOn(gx, gy)}
-            onPanByGraph={(dx, dy) => canvasRef.current?.panByGraph(dx, dy)}
+            nodes={factionMiniMapNodes}
+            edges={factionMiniMapEdges}
+            viewport={null}
+            onRecenter={() => {}}
           />
         </div>
+      ) : (
+        viewportSnap && (
+          <div
+            className="absolute z-10"
+            style={{
+              bottom: 16,
+              right: bottomRightAnchor,
+              transition: 'right var(--transition-normal, 250ms) ease',
+            }}
+          >
+            <MiniMap
+              nodes={viewportSnap.nodes}
+              edges={viewportSnap.edges}
+              viewport={viewportSnap.viewport}
+              onRecenter={(gx, gy) => canvasRef.current?.centerOn(gx, gy)}
+              onPanByGraph={(dx, dy) => canvasRef.current?.panByGraph(dx, dy)}
+            />
+          </div>
+        )
       )}
 
-      {/* Stats — sits just above the mini-map */}
+      {/* Stats — card just above the mini-map (same slot for all modes) */}
       <div
-        className="absolute z-10 flex items-center gap-2 px-2 py-1"
+        className="absolute z-10 flex items-center"
         style={{
           bottom: 144,
           right: bottomRightAnchor,
+          gap: 8,
+          padding: '4px 10px',
           fontSize: 10,
           color: 'var(--fg-muted)',
+          backgroundColor: 'var(--bg-primary)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
           transition: 'right var(--transition-normal, 250ms) ease',
         }}
       >
-        <span>
-          <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{nodeCount}</strong>{' '}
-          {tStats('statsNodeLabel')}
-        </span>
-        <span style={{ opacity: 0.4 }}>·</span>
-        <span>
-          <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{edgeCount}</strong>{' '}
-          {tStats('statsEdgeLabel')}
-        </span>
-        {inferredCount > 0 && (
+        {isCommunityMode && factionData ? (
           <>
-            <span style={{ opacity: 0.4 }}>·</span>
-            <span style={{ color: 'var(--accent)' }}>
-              {tStats('statsInferred', { n: inferredCount })}
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>
+                {factionData.factions?.length ?? 0}
+              </strong>{' '}
+              {tStats('statsFactionLabel')}
             </span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>
+                {factionData.relations?.length ?? 0}
+              </strong>{' '}
+              {tStats('statsAggregatedEdgeLabel')}
+            </span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>
+                {nodeCount}
+              </strong>{' '}
+              {tStats('statsUnderlyingNodeLabel')}
+            </span>
+          </>
+        ) : (
+          <>
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{nodeCount}</strong>{' '}
+              {tStats('statsNodeLabel')}
+            </span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{edgeCount}</strong>{' '}
+              {tStats('statsEdgeLabel')}
+            </span>
+            {inferredCount > 0 && (
+              <>
+                <span style={{ opacity: 0.4 }}>·</span>
+                <span style={{ color: 'var(--accent)' }}>
+                  {tStats('statsInferred', { n: inferredCount })}
+                </span>
+              </>
+            )}
           </>
         )}
       </div>
@@ -507,6 +652,13 @@ export default function GraphPage() {
             clustered={clusteredGraph}
             graphNodes={data?.nodes ?? []}
             drillInType={clusterDrillIn}
+            factionAnalysis={isCommunityMode ? factionData ?? null : null}
+            factionSettings={isCommunityMode ? factionDraft : undefined}
+            onFactionSettingsChange={isCommunityMode ? setFactionDraft : undefined}
+            onFactionRecompute={
+              isCommunityMode ? () => setFactionApplied(factionDraft) : undefined
+            }
+            isRecomputing={isCommunityMode && isFactionFetching}
             onClose={() => {
               setClusterMode('node');
               setClusterDrillIn(null);

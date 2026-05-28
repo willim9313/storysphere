@@ -13,13 +13,17 @@ export function BreadcrumbBar({ items }: BreadcrumbBarProps) {
   if (items.length === 0) return null;
   return (
     <div
-      className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5"
+      className="absolute z-10 flex items-center"
       style={{
+        top: 60,
+        left: 12,
+        gap: 6,
+        padding: '5px 10px',
         backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
+        borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-sm)',
-        fontSize: 12,
+        fontSize: 11,
       }}
     >
       {items.map((item, idx) => {

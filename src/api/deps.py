@@ -51,6 +51,7 @@ def set_kg_mode_override(mode: str) -> None:
     get_chat_agent.cache_clear()
     get_analysis_agent.cache_clear()
     get_link_prediction_service.cache_clear()
+    get_faction_service.cache_clear()
     logger.info("KG mode switched to '%s'; all dependent singletons reset.", mode)
 
 
@@ -355,3 +356,16 @@ def get_link_prediction_service():
 
 
 LinkPredictionServiceDep = Annotated[Any, Depends(get_link_prediction_service)]
+
+
+# ── Faction detection (F-16) ─────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1)
+def get_faction_service():
+    from services.faction_service import FactionService  # noqa: PLC0415
+
+    return FactionService(kg_service=get_kg_service())
+
+
+FactionServiceDep = Annotated[Any, Depends(get_faction_service)]

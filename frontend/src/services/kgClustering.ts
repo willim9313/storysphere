@@ -1,3 +1,4 @@
+import type { FactionAnalysisResponse } from '@/api/factions';
 import type { EntityType, GraphData, GraphEdge, GraphNode } from '@/api/types';
 
 export interface SuperNodeMember {
@@ -9,10 +10,15 @@ export interface SuperNodeMember {
 export interface SuperNode {
   id: string;
   kind: 'super';
-  clusterType: EntityType;
+  // For 'type' cluster mode this is an EntityType value; for 'community'
+  // mode it is the backend faction id (e.g. "faction:0").
+  clusterType: string;
   count: number;
   memberIds: string[];
   topMembers: SuperNodeMember[];
+  // Optional override for display label (community mode → "Faction 1"…);
+  // falls back to t(`entityTypes.${clusterType}`) when absent.
+  label?: string;
 }
 
 export interface AggregatedEdge {
@@ -21,6 +27,9 @@ export interface AggregatedEdge {
   target: string;
   weight: number;
   inferredCount: number;
+  // Community mode only — true if this aggregated edge is sourced from
+  // ENEMY relations (rendered as a red dashed edge).
+  isRivalry?: boolean;
 }
 
 export interface ClusteredGraph {
@@ -32,6 +41,10 @@ const TOP_MEMBER_COUNT = 3;
 
 export function clusterIdForType(type: EntityType): string {
   return `cluster:type:${type}`;
+}
+
+export function clusterIdForFaction(factionId: string): string {
+  return `cluster:${factionId}`;
 }
 
 export function byType(graph: GraphData): ClusteredGraph {
@@ -87,12 +100,63 @@ export function byType(graph: GraphData): ClusteredGraph {
   return { superNodes, edges: [...edgeMap.values()] };
 }
 
-export function byCommunity(graph: GraphData): ClusteredGraph {
-  throw new Error(
-    `kgClustering.byCommunity is not implemented in V1 (got ${graph.nodes.length} nodes). ` +
-      'Pending backend F-16 (faction detection): GET /books/:bookId/analysis/factions. ' +
-      'See docs/BACKLOG.md F-16.',
-  );
+export function byCommunity(
+  graph: GraphData,
+  analysis: FactionAnalysisResponse,
+): ClusteredGraph {
+  const nodeMap = new Map(graph.nodes.map((n) => [n.id, n]));
+  const factions = analysis.factions ?? [];
+
+  const superNodes: SuperNode[] = factions.map((f) => {
+    const clusterId = clusterIdForFaction(f.id);
+    const members = (f.memberIds ?? [])
+      .map((id) => nodeMap.get(id))
+      .filter((n): n is GraphNode => !!n);
+    const sorted = [...members].sort((a, b) => b.chunkCount - a.chunkCount);
+    return {
+      id: clusterId,
+      kind: 'super',
+      clusterType: f.id,
+      label: f.label,
+      count: f.memberIds?.length ?? 0,
+      memberIds: f.memberIds ?? [],
+      topMembers: sorted.slice(0, TOP_MEMBER_COUNT).map((m) => ({
+        id: m.id,
+        name: m.name,
+        chunkCount: m.chunkCount,
+      })),
+    };
+  });
+
+  // Aggregate inter-faction edges from FactionRelation (authoritative source
+  // for cooperation/rivalry) so the visual matches the panel's matrix.
+  const edges: AggregatedEdge[] = [];
+  for (const rel of analysis.relations ?? []) {
+    const src = clusterIdForFaction(rel.sourceFactionId);
+    const tgt = clusterIdForFaction(rel.targetFactionId);
+    if (src === tgt) continue;
+    if (rel.cooperation > 0) {
+      edges.push({
+        id: `agg:coop:${src}::${tgt}`,
+        source: src,
+        target: tgt,
+        weight: rel.cooperation,
+        inferredCount: 0,
+      });
+    }
+    if (rel.rivalry > 0) {
+      edges.push({
+        id: `agg:riv:${src}::${tgt}`,
+        source: src,
+        target: tgt,
+        weight: rel.rivalry,
+        inferredCount: 0,
+        isRivalry: true,
+      });
+    }
+  }
+
+  return { superNodes, edges };
 }
 
 export function isSuperNodeId(id: string): boolean {

@@ -18,6 +18,7 @@ StorySphere 的 KG 已有豐富的角色關係邊（ALLY、ENEMY、FAMILY 等）
 ### 輸入
 - **正向關係**（納入社群偵測圖）：ALLY、FAMILY、FRIENDSHIP、MEMBER_OF、ROMANCE → 加權邊
 - **敵對關係**（排除但另行記錄）：ENEMY → 計算跨派系 rivalry
+- **刻意排除**：SUBORDINATE（上下屬不必然同派系，例如敵營細作、跨組織臣屬）、LOCATED_IN / OWNS / OTHER（非人際情感連結）
 - 節點限縮：只取 `EntityType.CHARACTER`
 
 ### 演算法
@@ -69,8 +70,9 @@ FactionAnalysis: book_id, chapter?, factions[], relations[], unaffiliated_entity
 | 檔案 | 修改項 |
 |------|--------|
 | `frontend/src/services/kgClustering.ts` | `SuperNode.clusterType` 改為 `EntityType \| string`；新增 `SuperNode.label?: string`；`AggregatedEdge.isRivalry?: boolean`；實作 `byCommunity(graph, factionAnalysis)` |
-| `frontend/src/components/graph/ClusterOverviewPanel.tsx` | 支援 faction label；概覽層底部加入 N×N 派系關係矩陣 |
-| `frontend/src/pages/GraphPage.tsx` | `clusterDrillIn` 型別 `EntityType \| null` → `string \| null`；clusteredGraph useMemo 擴展 'community'；新增 `useQuery` 取 factionData（when mode==='community'） |
+| `frontend/src/lib/cytoscapeConfig.ts` | `toClusteredCytoscapeElements` 把 `AggregatedEdge.isRivalry` 寫入 element `data.isRivalry`；新增 community 模式 stylesheet selector `edge[?isRivalry]` |
+| `frontend/src/components/graph/ClusterOverviewPanel.tsx` | 支援 faction label；dotKey 推導改為 `clusterMode === 'community'` 走 `FACTION_COLORS[index % N]`、其餘維持原邏輯；概覽層底部加入 N×N 派系關係矩陣 |
+| `frontend/src/pages/GraphPage.tsx` | `clusterDrillIn` 型別 `EntityType \| null` → `string \| null`（連帶移除 `handleNodeTap` 內 `as EntityType` cast）；`clusteredGraph` useMemo 擴展 'community'；`showClusterOverview` 條件擴為 `(clusterMode === 'type' \|\| clusterMode === 'community')`；`breadcrumbItems` 中段 label 依 `clusterMode` 切 `v1.cluster.mode.type` / `v1.cluster.mode.community`；新增 `useQuery` 取 factionData（when mode==='community'） |
 | `frontend/src/components/graph/GraphToolbar.tsx` | community 項目移除 `disabled: true` 和 `tooltipKey` |
 | `frontend/src/i18n/locales/zh-TW/graph.json` | 移除 `communityDisabled`；新增 faction 相關鍵 |
 | `frontend/src/i18n/locales/en/graph.json` | 同上英文版 |
@@ -257,26 +259,54 @@ const clusteredGraph = useMemo(() => {
   if (clusterMode === 'community' && factionData) return byCommunity(data, factionData);
   return null;
 }, [clusterMode, data, factionData]);
+
+// 4. handleNodeTap 內 super-node 點擊（line 168-173）移除型別 cast
+if (sn) setClusterDrillIn(sn.clusterType);   // 原本: as EntityType
+
+// 5. showClusterOverview 條件擴充（line 282）
+const showClusterOverview =
+  !showCompare &&
+  !showInferredReview &&
+  (clusterMode === 'type' || clusterMode === 'community') &&
+  !selectedNode;
+
+// 6. breadcrumbItems 中段 label 依模式切換（line 265）
+const modeLabelKey =
+  clusterMode === 'community' ? 'v1.cluster.mode.community' : 'v1.cluster.mode.type';
+items.push({
+  label: t(modeLabelKey),
+  onClick: clusterDrillIn ? () => setClusterDrillIn(null) : undefined,
+});
 ```
 
-`ClusterOverviewPanel` 的 `onDrillIn` / `drillInType` props 型別從 `EntityType` 改為 `string`，`handleNodeTap` 對 super-node 的處理已用 `sn.clusterType`，型別放寬後自動相容。
+`ClusterOverviewPanel` 的 `onDrillIn` / `drillInType` props 型別從 `EntityType` 改為 `string`，`handleNodeTap` 對 super-node 的處理已用 `sn.clusterType`，型別放寬後自動相容（cast 移除如上 #4）。
 
 ### `frontend/src/components/graph/ClusterOverviewPanel.tsx` 改動
 
 **概覽層（community 模式）**：
 1. Faction 卡標題：`c.label ?? t(`entityTypes.${c.clusterType}`)`
-2. 色點：`FACTION_COLORS[index % FACTION_COLORS.length]`（用現有 graph token 循環）
+2. 色點推導必須條件化：原本的 `dotKey` 三元判斷只對 `EntityType` 有意義；community 模式改走 `FACTION_COLORS[index % FACTION_COLORS.length]`（用現有 graph token 循環），不再走 `var(--entity-${dotKey}-dot)`
 3. 卡內顯示 `topMembers` 名稱 + cohesion score
 4. 概覽層底部新增「派系關係」區塊：N×N CSS grid，cell 顏色編碼 cooperation（暖色 opacity）+ rivalry（紅色 opacity）
+
+**props 介面**：`drillInType` / `onDrillIn` 型別 `EntityType` → `string`（與 GraphPage.clusterDrillIn 一致）
 
 **Drill-in 層**（與 type cluster 完全相同行為，只是 label 用 faction name）
 
 ### Cytoscape 敵對邊樣式（`frontend/src/lib/cytoscapeConfig.ts`）
 
-在 community 模式的 stylesheet 中新增 selector：
+兩處改動缺一不可：
+
+1. **`toClusteredCytoscapeElements`** 把 `AggregatedEdge.isRivalry` 寫入 element `data`：
+```ts
+{ group: 'edges', data: { id, source, target, weight, inferredCount, isRivalry: e.isRivalry ?? false } }
+```
+2. stylesheet 新增 selector（community 模式生效）：
 ```js
 { selector: 'edge[?isRivalry]', style: { 'line-color': 'var(--color-error, #ef4444)', 'line-style': 'dashed' } }
 ```
+
+未寫入 `data.isRivalry` 時 selector 永遠 match 不到，敵對邊樣式不會出現。
 
 ---
 

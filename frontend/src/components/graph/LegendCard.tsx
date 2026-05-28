@@ -36,7 +36,6 @@ export function LegendCard({
 
   return (
     <div
-      className="absolute top-4 right-4 z-10"
       style={{
         minWidth: 140,
         backgroundColor: 'var(--bg-primary)',

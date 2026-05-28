@@ -213,6 +213,17 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         color: fgMuted,
       },
     },
+    // Faction rivalry edges (community mode) — red dashed line
+    {
+      selector: 'edge[?isRivalry]',
+      style: {
+        'line-color': 'var(--color-error, #ef4444)',
+        'target-arrow-color': 'var(--color-error, #ef4444)',
+        'line-style': 'dashed',
+        opacity: 0.7,
+        color: 'var(--color-error, #ef4444)',
+      },
+    },
   ];
 }
 

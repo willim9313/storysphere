@@ -31,7 +31,7 @@ interface GraphToolbarProps {
 const CLUSTER_MODES: { mode: ClusterMode; labelKey: string; disabled?: boolean; tooltipKey?: string }[] = [
   { mode: 'node', labelKey: 'v1.cluster.mode.node' },
   { mode: 'type', labelKey: 'v1.cluster.mode.type' },
-  { mode: 'community', labelKey: 'v1.cluster.mode.community', disabled: true, tooltipKey: 'v1.cluster.communityDisabled' },
+  { mode: 'community', labelKey: 'v1.cluster.mode.community' },
 ];
 
 const TYPE_CHIPS: { type: EntityType; dotKey: string }[] = [

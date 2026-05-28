@@ -159,7 +159,6 @@ export function MiniMap({
 
   return (
     <div
-      className="absolute bottom-4 right-4 z-10"
       style={{
         backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',

@@ -94,6 +94,7 @@ export function toClusteredCytoscapeElements(
         edgeLength: Math.max(80, 200 - edge.weight * 6),
         aggregated: true,
         inferredCount: edge.inferredCount,
+        isRivalry: edge.isRivalry ?? false,
       },
     });
   }

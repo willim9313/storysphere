@@ -275,6 +275,44 @@ interface UnanalyzedEntity {
 
 ---
 
+### #6d GET /books/:bookId/analysis/factions
+
+派系結構偵測（F-16）。對角色子圖跑 NetworkX `greedy_modularity_communities`，正向關係（ALLY/FAMILY/FRIENDSHIP/MEMBER_OF/ROMANCE）作為加權邊；ENEMY 邊另行彙整為跨派系 rivalry。
+
+**Query**：
+- `chapter` (int, optional, ≥ 1) — 指定章節時回傳該章閱讀順序快照下的派系；省略則使用全書狀態
+- `resolution` (float, optional, 0.1–4.0, default 1.0) — modularity 解析度；越大 → 派系數量多但每個小，越小 → 派系少而大
+- `min_cluster_size` (int, optional, ≥ 2, default 2) — 小於此值的社群歸入 `unaffiliatedEntityIds`
+
+**Response 200**：`FactionAnalysisResponse`
+```ts
+interface FactionAnalysisResponse {
+  bookId: string;
+  chapter: number | null;
+  factions: Array<{
+    id: string;            // "faction:0", "faction:1"…
+    label: string;         // "Faction 1"…
+    memberIds: string[];
+    cohesionScore: number; // intra-faction edge weight / member count
+    topMemberNames: string[]; // up to 3, descending by mention_count
+  }>;
+  relations: Array<{
+    sourceFactionId: string;
+    targetFactionId: string;
+    cooperation: number;   // [0, 1], normalised by |fa| × |fb|
+    rivalry: number;       // [0, 1]
+  }>;
+  unaffiliatedEntityIds: string[];
+  unaffiliatedNames: string[];
+}
+```
+
+**說明**：同步端點，純圖計算，無 task polling；空書 / 無角色 → `factions: []`、200。
+
+**UI 使用頁面**：圖譜頁工具列「社群」模式 → `ClusterOverviewPanel` 派系卡與底部 N×N 關係矩陣
+
+---
+
 ### #6c POST /books/:bookId/analysis/:section/:itemId/regenerate
 
 單一條目重新生成。需確認視窗後才呼叫。
@@ -1763,6 +1801,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 ['books', bookId, 'review-data']                            // #22a
 ['books', bookId, 'analysis', 'characters']                 // #6a
 ['books', bookId, 'analysis', 'events']                     // #6b
+['books', bookId, 'analysis', 'factions']                   // #6d
 ['books', bookId, 'entities', entityId, 'analysis']         // #7a
 ['books', bookId, 'events', eventId, 'analysis']            // #7d
 ['books', bookId, 'entities', entityId, 'chunks']           // #9b

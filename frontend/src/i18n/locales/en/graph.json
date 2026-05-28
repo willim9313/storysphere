@@ -48,6 +48,9 @@
   "statsInferred": "+{{n}} inferred",
   "statsNodeLabel": "nodes",
   "statsEdgeLabel": "relations",
+  "statsFactionLabel": "factions",
+  "statsAggregatedEdgeLabel": "aggregated",
+  "statsUnderlyingNodeLabel": "underlying nodes",
   "panel": {
     "entityInfo": "Entity Info",
     "deepAnalysis": "Deep Analysis",
@@ -110,15 +113,30 @@
         "type": "By type",
         "community": "Community"
       },
-      "communityDisabled": "Coming soon · Faction analysis (F-16)",
       "overview": "Cluster overview",
       "drillInTitle": "{{typeName}} cluster · {{n}} members",
+      "drillInFactionTitle": "{{name}} · {{n}} members",
       "members": "{{n}} members",
       "memberCount": "{{n}}",
       "noTopMembers": "(no members)",
       "sortImportance": "By importance",
       "sortName": "By name",
-      "back": "Back"
+      "back": "Back",
+      "toggleSort": "Toggle sort",
+      "cohesion": "Cohesion {{v}}",
+      "unaffiliated": "Unaffiliated ({{n}})",
+      "drillIn": {
+        "summary": "Faction summary",
+        "summaryBody": "{{n}} characters; core members {{top}}; cohesion {{cohesion}}.",
+        "outward": "Outward relations ({{n}})"
+      },
+      "settings": {
+        "heading": "Cluster settings",
+        "algorithm": "Algorithm",
+        "resolution": "Resolution",
+        "minSize": "Min cluster size",
+        "recompute": "Recompute"
+      }
     },
     "search": {
       "section": {
