@@ -1,224 +1,326 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Database, RefreshCw, ArrowRight, CheckCircle, XCircle, Loader2, Palette } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import {
+  Palette, Languages, Cpu, Server, Database, Info, Keyboard,
+  FlaskConical, Check, ArrowRight, ArrowLeft, AlertTriangle,
+  HardDrive, Network, Loader2, Folder, Type, CheckCircle, XCircle,
+  RefreshCw,
+} from 'lucide-react';
 import { useTheme, type Theme } from '@/contexts/ThemeContext';
 import {
-  fetchKgStatus,
-  switchKgMode,
-  startMigration,
-  fetchMigrationStatus,
-  type KgStatus,
-  type MigrationDirection,
+  fetchKgStatus, switchKgMode, startMigration, fetchMigrationStatus,
+  type KgStatus, type MigrationDirection,
 } from '@/api/kgSettings';
+import { fetchSettingsInfo, type SettingsInfo } from '@/api/settingsInfo';
 import type { TaskStatus } from '@/api/types';
+import '@/styles/settings.css';
 
-// ── Theme picker ────────────────────────────────────────────────
+// ── Nav model ───────────────────────────────────────────────
 
-type ThemeOption = {
-  id: Theme;
-  nameKey: string;
-  descKey: string;
-  preview: { bg: string; accent: string; fg: string };
-};
+type PanelId = 'appearance' | 'language' | 'llm' | 'env' | 'shortcuts' | 'experimental' | 'about';
 
-const THEME_OPTIONS: ThemeOption[] = [
+const NAV_GROUPS: { labelKey: string; items: { id: PanelId; labelKey: string; badge?: 'dev' | 'merged' | 'planned' }[] }[] = [
   {
-    id: 'default',
-    nameKey: 'theme.default',
-    descKey: 'theme.defaultDesc',
-    preview: { bg: '#faf8f4', accent: '#8b5e3c', fg: '#1c1814' },
+    labelKey: 'nav.groupPrefs',
+    items: [
+      { id: 'appearance', labelKey: 'nav.appearance' },
+      { id: 'language', labelKey: 'nav.language', badge: 'merged' },
+    ],
   },
   {
-    id: 'manuscript',
-    nameKey: 'theme.manuscript',
-    descKey: 'theme.manuscriptDesc',
-    preview: { bg: '#f8f6f2', accent: '#000000', fg: '#0d0d0d' },
+    labelKey: 'nav.groupSystem',
+    items: [
+      { id: 'llm', labelKey: 'nav.llm' },
+      { id: 'env', labelKey: 'nav.env', badge: 'dev' },
+    ],
   },
   {
-    id: 'minimal-ink',
-    nameKey: 'theme.minimalInk',
-    descKey: 'theme.minimalInkDesc',
-    preview: { bg: '#ffffff', accent: '#000000', fg: '#000000' },
-  },
-  {
-    id: 'pulp',
-    nameKey: 'theme.pulp',
-    descKey: 'theme.pulpDesc',
-    preview: { bg: '#ffffff', accent: '#000000', fg: '#1a1a1a' },
+    labelKey: 'nav.groupOther',
+    items: [
+      { id: 'shortcuts', labelKey: 'nav.shortcuts', badge: 'planned' },
+      { id: 'experimental', labelKey: 'nav.experimental', badge: 'planned' },
+      { id: 'about', labelKey: 'nav.about' },
+    ],
   },
 ];
 
-function ThemePicker() {
-  const { t } = useTranslation('settings');
-  const { theme, setTheme } = useTheme();
+const NAV_ICONS: Record<PanelId, React.ReactNode> = {
+  appearance: <Palette size={15} />,
+  language: <Languages size={15} />,
+  llm: <Cpu size={15} />,
+  env: <Server size={15} />,
+  shortcuts: <Keyboard size={15} />,
+  experimental: <FlaskConical size={15} />,
+  about: <Info size={15} />,
+};
 
+// ── Shared helpers ───────────────────────────────────────────
+
+function PanelHead({ title, sub }: { title: string; sub?: string }) {
   return (
-    <section className="mb-8">
-      <div className="flex items-center gap-2 mb-4">
-        <Palette size={16} style={{ color: 'var(--accent)' }} />
-        <h3 className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
-          {t('theme.title')}
-        </h3>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3">
-        {THEME_OPTIONS.map((opt) => {
-          const isActive = theme === opt.id;
-          return (
-            <button
-              key={opt.id}
-              onClick={() => setTheme(opt.id)}
-              className="text-left rounded-lg p-3 transition-all"
-              style={{
-                backgroundColor: 'var(--bg-secondary)',
-                border: isActive
-                  ? '2px solid var(--accent)'
-                  : '1px solid var(--border)',
-                cursor: 'pointer',
-              }}
-            >
-              {/* colour swatch */}
-              <div
-                className="flex gap-1 mb-2 rounded"
-                style={{
-                  height: 20,
-                  backgroundColor: opt.preview.bg,
-                  border: '1px solid var(--border)',
-                  overflow: 'hidden',
-                }}
-              >
-                <div style={{ width: '60%', backgroundColor: opt.preview.bg }} />
-                <div style={{ width: '25%', backgroundColor: opt.preview.accent }} />
-                <div style={{ width: '15%', backgroundColor: opt.preview.fg }} />
-              </div>
-              <div className="text-xs font-semibold mb-0.5" style={{ color: 'var(--fg-primary)' }}>
-                {t(opt.nameKey)}
-              </div>
-              <div className="text-xs leading-snug" style={{ color: 'var(--fg-muted)' }}>
-                {t(opt.descKey)}
-              </div>
-            </button>
-          );
-        })}
-      </div>
-    </section>
-  );
-}
-
-// ── KG settings ────────────────────────────────────────────────
-
-function useKgStatus() {
-  return useQuery<KgStatus>({
-    queryKey: ['kg-status'],
-    queryFn: fetchKgStatus,
-    refetchInterval: 10_000,
-  });
-}
-
-function useMigrationTask(taskId: string | null) {
-  return useQuery<TaskStatus>({
-    queryKey: ['kg-migration', taskId],
-    queryFn: () => fetchMigrationStatus(taskId!),
-    enabled: !!taskId,
-    refetchInterval: (query) => {
-      const s = query.state.data?.status;
-      return s === 'done' || s === 'error' ? false : 2000;
-    },
-  });
-}
-
-function StatCard({ label, value }: Readonly<{ label: string; value: number | string }>) {
-  return (
-    <div
-      className="rounded-lg p-4"
-      style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-    >
-      <div className="text-xs mb-1" style={{ color: 'var(--fg-muted)' }}>{label}</div>
-      <div className="text-xl font-semibold tabular-nums" style={{ color: 'var(--fg-primary)' }}>
-        {typeof value === 'number' ? value.toLocaleString() : value}
-      </div>
+    <div className="st-panel-head">
+      <h2 className="st-panel-title">{title}</h2>
+      {sub && <p className="st-panel-sub">{sub}</p>}
     </div>
   );
 }
 
-function ModeBadge({ mode }: Readonly<{ mode: string }>) {
-  const isNeo4j = mode === 'neo4j';
+function StSection({ icon, title, note, children }: {
+  icon?: React.ReactNode; title: string; note?: string; children: React.ReactNode;
+}) {
   return (
-    <span
-      className="px-2 py-0.5 rounded text-xs font-semibold"
-      style={{
-        backgroundColor: isNeo4j ? 'var(--accent)' : 'var(--bg-tertiary)',
-        color: isNeo4j ? 'white' : 'var(--fg-secondary)',
-      }}
-    >
-      {isNeo4j ? 'Neo4j' : 'NetworkX'}
-    </span>
+    <section className="st-section">
+      <div className="st-section-head">
+        {icon && <span className="st-section-ico">{icon}</span>}
+        <h3 className="st-section-title">{title}</h3>
+      </div>
+      {children}
+      {note && <p className="st-section-note">{note}</p>}
+    </section>
   );
 }
 
-function MigrationProgress({ taskId, onDone }: Readonly<{ taskId: string; onDone: () => void }>) {
+// ── Theme previews (literal swatches — documented hex exception for cross-theme preview) ──
+
+function ThemePreview({ id }: { id: Theme }) {
+  if (id === 'default') {
+    return (
+      <div className="st-theme-preview" style={{ background: '#faf8f4' }}>
+        <div style={{ position: 'absolute', left: 12, top: 12, width: '46%', height: 6, background: '#8b5e3c', borderRadius: 2 }} />
+        <div style={{ position: 'absolute', left: 12, top: 26, width: '74%', height: 4, background: '#d8ccb8', borderRadius: 2 }} />
+        <div style={{ position: 'absolute', left: 12, top: 36, width: '60%', height: 4, background: '#e2d8c6', borderRadius: 2 }} />
+        <div style={{ position: 'absolute', left: 12, top: 46, width: '68%', height: 4, background: '#e2d8c6', borderRadius: 2 }} />
+      </div>
+    );
+  }
+  if (id === 'manuscript') {
+    return (
+      <div className="st-theme-preview" style={{
+        background: '#f8f6f2',
+        backgroundImage: 'repeating-linear-gradient(#f8f6f2, #f8f6f2 6px, #e0dbd0 6px, #e0dbd0 7px)',
+      }}>
+        <div style={{ position: 'absolute', left: 12, top: 11, right: 12, bottom: 11, border: '1px dashed #333', borderRadius: 2 }} />
+        <div style={{ position: 'absolute', left: 18, top: 17, width: '40%', height: 5, background: '#0d0d0d', borderRadius: 1 }} />
+      </div>
+    );
+  }
+  if (id === 'minimal-ink') {
+    return (
+      <div className="st-theme-preview" style={{ background: '#ffffff' }}>
+        <div style={{ position: 'absolute', left: 12, top: 12, width: 22, height: 40, background: '#000' }} />
+        <div style={{ position: 'absolute', left: 42, top: 12, width: 22, height: 40, background: '#fff', border: '0.5px solid #000' }} />
+        <div style={{ position: 'absolute', left: 74, top: 16, width: '40%', height: 4, background: '#000' }} />
+        <div style={{ position: 'absolute', left: 74, top: 26, width: '30%', height: 3, background: '#888' }} />
+      </div>
+    );
+  }
+  return (
+    <div className="st-theme-preview" style={{ background: '#ffffff' }}>
+      <div style={{ position: 'absolute', left: 12, top: 13, width: 38, height: 22, background: '#fff', border: '2px solid #000', boxShadow: '2px 2px 0 #000' }} />
+      <div style={{ position: 'absolute', left: 62, top: 16, width: '36%', height: 6, background: '#000' }} />
+      <div style={{ position: 'absolute', left: 62, top: 28, width: '24%', height: 5, background: '#000' }} />
+      <div style={{ position: 'absolute', left: 12, top: 44, width: '70%', height: 4, background: '#000' }} />
+    </div>
+  );
+}
+
+// ── Migration progress ───────────────────────────────────────
+
+function MigrationProgress({ taskId, onDone }: { taskId: string; onDone: () => void }) {
   const { t } = useTranslation('settings');
-  const { data: task } = useMigrationTask(taskId);
+  const { data: task } = useQuery<TaskStatus>({
+    queryKey: ['kg-migration', taskId],
+    queryFn: () => fetchMigrationStatus(taskId),
+    enabled: !!taskId,
+    refetchInterval: (q) => {
+      const s = q.state.data?.status;
+      return s === 'done' || s === 'error' ? false : 2000;
+    },
+  });
+
+  useEffect(() => {
+    if (task?.status !== 'done') return;
+    const timer = setTimeout(onDone, 3000);
+    return () => clearTimeout(timer);
+  }, [task?.status, onDone]);
 
   if (!task) return null;
 
   if (task.status === 'done') {
     const r = task.result as Record<string, number> | null;
-    setTimeout(onDone, 3000);
     return (
-      <div
-        className="mt-3 rounded-lg p-3 flex items-start gap-2 text-sm"
-        style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-      >
-        <CheckCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-success)' }} />
-        <div style={{ color: 'var(--fg-secondary)' }}>
-          {t('migration.done', {
-            entities: r?.entities ?? 0,
-            relations: r?.relations ?? 0,
-            events: r?.events ?? 0,
-          })}
-        </div>
+      <div className="st-mig-progress">
+        <CheckCircle size={16} style={{ color: 'var(--color-success)', flexShrink: 0, marginTop: 1 }} />
+        <span style={{ color: 'var(--fg-secondary)' }}>
+          {t('env.migTitle')} — {r?.entities ?? 0} {t('env.entities')}、{r?.relations ?? 0} {t('env.relations')}、{r?.events ?? 0} {t('env.events')}
+        </span>
       </div>
     );
   }
-
   if (task.status === 'error') {
     return (
-      <div
-        className="mt-3 rounded-lg p-3 flex items-start gap-2 text-sm"
-        style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-      >
-        <XCircle size={16} className="mt-0.5 flex-shrink-0" style={{ color: 'var(--color-error)' }} />
-        <div style={{ color: 'var(--fg-secondary)' }}>{t('migration.failed', { error: task.error })}</div>
+      <div className="st-mig-progress">
+        <XCircle size={16} style={{ color: 'var(--color-error)', flexShrink: 0, marginTop: 1 }} />
+        <span style={{ color: 'var(--fg-secondary)' }}>{task.error}</span>
       </div>
     );
   }
-
-  if (task.status === 'running' || task.status === 'pending') {
-    return (
-      <div
-        className="mt-3 rounded-lg p-3 flex items-center gap-2 text-sm"
-        style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-      >
-        <Loader2 size={16} className="animate-spin flex-shrink-0" style={{ color: 'var(--accent)' }} />
-        <span style={{ color: 'var(--fg-muted)' }}>{t('migration.running')}</span>
-      </div>
-    );
-  }
-
-  return null;
+  return (
+    <div className="st-mig-progress">
+      <Loader2 size={16} className="animate-spin" style={{ color: 'var(--accent)', flexShrink: 0 }} />
+      <span style={{ color: 'var(--fg-muted)' }}>{t('env.migrating')}</span>
+    </div>
+  );
 }
 
-// ── Page ────────────────────────────────────────────────────────
+// ── Appearance panel ─────────────────────────────────────────
 
-export default function SettingsPage() {
-  const queryClient = useQueryClient();
+const THEME_OPTS: { id: Theme; nameKey: string; descKey: string }[] = [
+  { id: 'default',      nameKey: 'appearance.default',    descKey: 'appearance.defaultDesc' },
+  { id: 'manuscript',   nameKey: 'appearance.manuscript', descKey: 'appearance.manuscriptDesc' },
+  { id: 'minimal-ink',  nameKey: 'appearance.minimalInk', descKey: 'appearance.minimalInkDesc' },
+  { id: 'pulp',         nameKey: 'appearance.pulp',       descKey: 'appearance.pulpDesc' },
+];
+
+function AppearancePanel() {
   const { t } = useTranslation('settings');
-  const { data: kgStatus, isLoading, error, refetch } = useKgStatus();
+  const { theme, setTheme } = useTheme();
+
+  return (
+    <div className="st-panel">
+      <PanelHead title={t('appearance.title')} sub={t('appearance.sub')} />
+      <StSection icon={<Palette size={16} />} title={t('appearance.sectionTitle')}>
+        <div className="st-theme-grid">
+          {THEME_OPTS.map((o) => (
+            <button
+              key={o.id}
+              className={'st-theme-card' + (theme === o.id ? ' active' : '')}
+              onClick={() => setTheme(o.id)}
+            >
+              {theme === o.id && (
+                <span className="st-theme-current">
+                  <Check size={10} strokeWidth={3} />
+                  {t('appearance.current')}
+                </span>
+              )}
+              <ThemePreview id={o.id} />
+              <div className="st-theme-meta">
+                <div className="st-theme-name">{t(o.nameKey)}</div>
+                <div className="st-theme-desc">{t(o.descKey)}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </StSection>
+    </div>
+  );
+}
+
+// ── Language panel ───────────────────────────────────────────
+
+function LanguagePanel() {
+  const { t, i18n } = useTranslation('settings');
+  const lang = i18n.language;
+
+  return (
+    <div className="st-panel">
+      <PanelHead title={t('language.title')} sub={t('language.sub')} />
+      <div className="st-card">
+        <div className="st-field">
+          <div className="st-field-label">
+            <Languages size={15} style={{ color: 'var(--accent)' }} />
+            {t('language.uiLanguage')}
+          </div>
+          <div className="st-pill-toggle">
+            <button
+              className={'st-pill' + (lang === 'zh-TW' ? ' active' : '')}
+              onClick={() => i18n.changeLanguage('zh-TW')}
+            >
+              {t('language.zhTW')}
+            </button>
+            <button
+              className={'st-pill' + (lang === 'en' ? ' active' : '')}
+              onClick={() => i18n.changeLanguage('en')}
+            >
+              {t('language.en')}
+            </button>
+          </div>
+          <p className="st-field-hint">{t('language.uiLanguageHint')}</p>
+        </div>
+        <div className="st-field">
+          <div className="st-field-label">
+            <Cpu size={15} style={{ color: 'var(--fg-muted)' }} />
+            {t('language.outputLanguage')}
+            <span className="st-tag-soon">{t('language.soon')}</span>
+          </div>
+          <div className="st-pill-toggle">
+            <button className="st-pill active" disabled>{t('language.followUi')}</button>
+            <button className="st-pill" disabled>{t('language.custom')}</button>
+          </div>
+          <p className="st-field-hint">{t('language.outputLanguageHint')}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── LLM panel ────────────────────────────────────────────────
+
+function LlmPanel() {
+  const { t } = useTranslation('settings');
+  const { data, isLoading, error } = useQuery<SettingsInfo>({
+    queryKey: ['settings-info'],
+    queryFn: fetchSettingsInfo,
+  });
+
+  return (
+    <div className="st-panel">
+      <PanelHead title={t('llm.title')} sub={t('llm.sub')} />
+      <StSection icon={<Cpu size={16} />} title={t('llm.sectionTitle')} note={t('llm.note')}>
+        {isLoading ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 13 }}>
+            <Loader2 size={14} className="animate-spin" /> {t('common.loading')}
+          </div>
+        ) : error || !data ? (
+          <div style={{ color: 'var(--color-error)', fontSize: 13 }}>{t('llm.loadError')}</div>
+        ) : (
+          <div className="st-kv">
+            <div className="st-kv-key">{t('llm.provider')}</div>
+            <div className="st-kv-val">{data.primaryLlmProvider}</div>
+            <div className="st-kv-key">{t('llm.primaryModel')}</div>
+            <div className="st-kv-val mono">{data.primaryModel}</div>
+            <div className="st-kv-key">{t('llm.analysisTemp')}</div>
+            <div className="st-kv-val mono">{data.analysisTemperature}</div>
+            <div className="st-kv-key">{t('llm.chatTemp')}</div>
+            <div className="st-kv-val mono">{data.chatAgentTemperature}</div>
+            <div className="st-kv-key">{t('llm.localModel')}</div>
+            <div className="st-kv-val mono">{data.localLlmModel}</div>
+          </div>
+        )}
+      </StSection>
+    </div>
+  );
+}
+
+// ── Environment panel ────────────────────────────────────────
+
+function EnvPanel() {
+  const { t } = useTranslation('settings');
+  const queryClient = useQueryClient();
+
+  const { data: kg, isLoading: kgLoading, error: kgError, refetch } = useQuery<KgStatus>({
+    queryKey: ['kg-status'],
+    queryFn: fetchKgStatus,
+    refetchInterval: 15_000,
+  });
+
+  const [uiModeOverride, setUiMode] = useState<'lightweight' | 'standard' | null>(null);
+  const [kgBackendOverride, setKgBackendState] = useState<'networkx' | 'neo4j' | null>(null);
+  const uiMode = uiModeOverride ?? (kg?.deployMode as 'lightweight' | 'standard') ?? 'lightweight';
+  const kgBackend = kgBackendOverride ?? (kg?.mode as 'networkx' | 'neo4j') ?? 'networkx';
   const [migrationTaskId, setMigrationTaskId] = useState<string | null>(null);
   const [switchError, setSwitchError] = useState<string | null>(null);
-  const [migrateError, setMigrateError] = useState<string | null>(null);
 
   const switchMutation = useMutation({
     mutationFn: (mode: 'networkx' | 'neo4j') => switchKgMode(mode),
@@ -226,198 +328,442 @@ export default function SettingsPage() {
       setSwitchError(null);
       queryClient.invalidateQueries({ queryKey: ['kg-status'] });
     },
-    onError: (err: Error) => setSwitchError(err.message),
+    onError: (err: Error) => {
+      setSwitchError(err.message);
+      setKgBackendState(null);
+    },
   });
 
   const migrateMutation = useMutation({
     mutationFn: (direction: MigrationDirection) => startMigration(direction),
-    onSuccess: (task) => {
-      setMigrateError(null);
-      setMigrationTaskId(task.taskId);
-    },
-    onError: (err: Error) => setMigrateError(err.message),
+    onSuccess: (task) => setMigrationTaskId(task.taskId),
+    onError: () => setMigrationTaskId(null),
   });
 
-  const currentMode = kgStatus?.mode ?? 'networkx';
+  const handleKgBackendChange = (mode: 'networkx' | 'neo4j') => {
+    setKgBackendState(mode);
+    if (uiMode === 'standard') {
+      switchMutation.mutate(mode);
+    }
+  };
+
+  const isStd = uiMode === 'standard';
+  const actualDeployMode = kg?.deployMode ?? 'lightweight';
+  const kgEnabled = isStd && kgBackend === 'neo4j' && !migrateMutation.isPending && !migrationTaskId;
 
   return (
-    <div className="p-6 overflow-y-auto h-full max-w-2xl">
-      <div className="flex items-center justify-between mb-8">
-        <h2 className="text-lg font-bold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
-          {t('title')}
-        </h2>
-      </div>
+    <div className="st-panel">
+      <PanelHead title={t('env.title')} sub={t('env.sub')} />
 
-      <ThemePicker />
-
-      {/* KG Backend Section */}
-      <section className="mb-8">
-        <div className="flex items-center gap-2 mb-4">
-          <Database size={16} style={{ color: 'var(--accent)' }} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
-            {t('kg.title')}
-          </h3>
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center gap-2 text-sm" style={{ color: 'var(--fg-muted)' }}>
-            <Loader2 size={14} className="animate-spin" />
-            {t('kg.loadingStatus')}
+      {/* A. Deploy mode radio cards */}
+      <StSection icon={<Server size={16} />} title={t('env.deployTitle')}>
+        {kgLoading ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 13 }}>
+            <Loader2 size={14} className="animate-spin" /> {t('common.loading')}
           </div>
-        ) : error ? (
-          <div className="text-sm" style={{ color: 'var(--color-error)' }}>{t('kg.loadError')}</div>
-        ) : kgStatus ? (
-          <>
-            <div
-              className="rounded-lg p-4 mb-4"
-              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
+        ) : kgError ? (
+          <div style={{ color: 'var(--color-error)', fontSize: 13 }}>{t('env.loadError')}</div>
+        ) : (
+          <div className="st-radio-grid">
+            {/* Lightweight */}
+            <button
+              className={'st-radio-card' + (!isStd ? ' active' : '')}
+              onClick={() => setUiMode('lightweight')}
             >
-              <div className="flex items-center justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm" style={{ color: 'var(--fg-muted)' }}>{t('kg.currentBackend')}</span>
-                  <ModeBadge mode={currentMode} />
-                </div>
-                <button
-                  onClick={() => refetch()}
-                  className="rounded p-1 transition-colors"
-                  style={{ color: 'var(--fg-muted)' }}
-                  title={t('kg.refresh')}
-                >
-                  <RefreshCw size={14} />
-                </button>
-              </div>
-
-              <div className="flex items-center gap-2 text-xs" style={{ color: 'var(--fg-muted)' }}>
-                <span
-                  className="inline-block w-2 h-2 rounded-full"
-                  style={{ backgroundColor: kgStatus.graphDbConnected ? 'var(--color-success)' : 'var(--fg-muted)' }}
-                />
-                Neo4j {kgStatus.graphDbConnected ? t('kg.connected') : t('kg.disconnected')}
-                {kgStatus.persistencePath && (
-                  <span className="ml-2 truncate" style={{ maxWidth: 200 }}>
-                    · {kgStatus.persistencePath}
-                  </span>
+              <div className="st-radio-head">
+                <span className="st-radio-dot" />
+                <span className="st-radio-name">{t('env.lightweight')}</span>
+                {actualDeployMode === 'lightweight' && (
+                  <span className="st-radio-cur">{t('env.currentTag')}</span>
                 )}
               </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-3 mb-4">
-              <StatCard label={t('kg.entities')} value={kgStatus.entityCount} />
-              <StatCard label={t('kg.relations')} value={kgStatus.relationCount} />
-              <StatCard label={t('kg.events')} value={kgStatus.eventCount} />
-            </div>
-
-            <div className="mb-1">
-              <div className="text-xs font-medium mb-2" style={{ color: 'var(--fg-muted)' }}>
-                {t('kg.switchBackend')}
+              <div className="st-radio-desc">{t('env.lwDesc')}</div>
+              <div className="st-radio-specs">
+                <div className="st-radio-spec"><b>{t('env.qdrant')}</b><span>{t('env.qdrantLw')}</span></div>
+                <div className="st-radio-spec"><b>{t('env.kg')}</b><span>{t('env.kgLw')}</span></div>
               </div>
-              <div className="flex gap-2">
-                {(['networkx', 'neo4j'] as const).map((m) => (
-                  <button
-                    key={m}
-                    disabled={currentMode === m || switchMutation.isPending}
-                    onClick={() => switchMutation.mutate(m)}
-                    className="px-4 py-2 rounded-md text-sm font-medium transition-colors disabled:opacity-40"
-                    style={{
-                      backgroundColor: currentMode === m ? 'var(--accent)' : 'var(--bg-secondary)',
-                      color: currentMode === m ? 'white' : 'var(--fg-secondary)',
-                      border: '1px solid var(--border)',
-                      cursor: currentMode === m ? 'default' : 'pointer',
-                    }}
-                  >
-                    {m === 'networkx' ? 'NetworkX' : 'Neo4j'}
-                  </button>
-                ))}
+            </button>
+            {/* Standard */}
+            <button
+              className={'st-radio-card' + (isStd ? ' active' : '')}
+              onClick={() => setUiMode('standard')}
+            >
+              <div className="st-radio-head">
+                <span className="st-radio-dot" />
+                <span className="st-radio-name">{t('env.standard')}</span>
+                {actualDeployMode === 'standard' && (
+                  <span className="st-radio-cur">{t('env.currentTag')}</span>
+                )}
+              </div>
+              <div className="st-radio-desc">{t('env.stDesc')}</div>
+              <div className="st-radio-specs">
+                <div className="st-radio-spec"><b>{t('env.qdrant')}</b><span>{t('env.qdrantSt')}</span></div>
+                <div className="st-radio-spec"><b>{t('env.kg')}</b><span>{t('env.kgSt')}</span></div>
+              </div>
+            </button>
+          </div>
+        )}
+      </StSection>
+
+      {/* B. Lightweight read-only status */}
+      {!isStd && kg && (
+        <StSection icon={<HardDrive size={16} />} title={t('env.statusTitle')}>
+          <div className="st-kv" style={{ marginBottom: 16 }}>
+            <div className="st-kv-key">{t('env.qdrantBackend')}</div>
+            <div className="st-kv-val">{t('env.qdrantLw')}</div>
+            <div className="st-kv-key">{t('env.qdrantPath')}</div>
+            <div className="st-kv-val mono">{kg.qdrantLocalPath ?? '—'}</div>
+            <div className="st-kv-key">{t('env.vectorCount')}</div>
+            <div className="st-kv-val mono">
+              {kg.vectorCount != null ? kg.vectorCount.toLocaleString() : '—'}
+            </div>
+            <div className="st-kv-key">{t('env.kgBackend')}</div>
+            <div className="st-kv-val">
+              <span className="st-modebadge nx">NetworkX</span>
+              <span style={{ color: 'var(--fg-muted)', fontSize: 11, marginLeft: 8 }}>{t('env.kgFixed')}</span>
+            </div>
+            <div className="st-kv-key">{t('env.kgPath')}</div>
+            <div className="st-kv-val mono">{kg.persistencePath ?? '—'}</div>
+          </div>
+          <div className="st-stats">
+            <div className="st-stat">
+              <div className="st-stat-label">{t('env.entities')}</div>
+              <div className="st-stat-val">{kg.entityCount.toLocaleString()}</div>
+            </div>
+            <div className="st-stat">
+              <div className="st-stat-label">{t('env.relations')}</div>
+              <div className="st-stat-val">{kg.relationCount.toLocaleString()}</div>
+            </div>
+            <div className="st-stat">
+              <div className="st-stat-label">{t('env.events')}</div>
+              <div className="st-stat-val">{kg.eventCount.toLocaleString()}</div>
+            </div>
+          </div>
+        </StSection>
+      )}
+
+      {/* C. Standard conditional config */}
+      {isStd && (
+        <>
+          <div className="st-banner warn" style={{ marginBottom: 28 }}>
+            <span className="st-banner-ico"><AlertTriangle size={16} /></span>
+            <span>{t('env.stWarn')}</span>
+          </div>
+
+          <StSection icon={<Database size={16} />} title={t('env.qdrantSvcTitle')}>
+            <div className="st-card">
+              <div className="st-input-row">
+                <label className="st-input-label">
+                  {t('env.qdrantUrl')}
+                  <span className="st-input-flag restart">{t('env.restartFlag')}</span>
+                </label>
+                <input className="st-input" placeholder="http://localhost:6333" />
+              </div>
+              <div className="st-input-row">
+                <label className="st-input-label">
+                  {t('env.qdrantKey')}
+                  <span style={{ color: 'var(--fg-muted)', fontWeight: 400, fontSize: 11 }}>{t('env.qdrantKeyOpt')}</span>
+                  <span className="st-input-flag restart">{t('env.restartFlag')}</span>
+                </label>
+                <input className="st-input" type="password" placeholder="••••••••" />
+              </div>
+              <p className="st-input-note">{t('env.qdrantHint')}</p>
+            </div>
+          </StSection>
+
+          <StSection icon={<Network size={16} />} title={t('env.kgBackendTitle')}>
+            <div className="st-card">
+              <div className="st-input-label" style={{ marginBottom: 10 }}>
+                {t('env.kgBackend')}
+                <span className="st-input-flag live">{t('env.kgLiveFlag')}</span>
+              </div>
+              <div className="st-seg">
+                <button
+                  className={'st-seg-btn' + (kgBackend === 'networkx' ? ' active' : '')}
+                  onClick={() => handleKgBackendChange('networkx')}
+                  disabled={switchMutation.isPending}
+                >
+                  NetworkX
+                </button>
+                <button
+                  className={'st-seg-btn' + (kgBackend === 'neo4j' ? ' active' : '')}
+                  onClick={() => handleKgBackendChange('neo4j')}
+                  disabled={switchMutation.isPending}
+                >
+                  Neo4j
+                </button>
                 {switchMutation.isPending && (
-                  <Loader2 size={16} className="animate-spin self-center ml-1" style={{ color: 'var(--accent)' }} />
+                  <Loader2 size={14} className="animate-spin" style={{ alignSelf: 'center', marginLeft: 8, color: 'var(--accent)' }} />
                 )}
               </div>
               {switchError && (
-                <p className="text-xs mt-1.5" style={{ color: 'var(--color-error)' }}>{switchError}</p>
+                <p style={{ fontSize: 12, marginTop: 6, color: 'var(--color-error)' }}>{switchError}</p>
               )}
-              <p className="text-xs mt-2" style={{ color: 'var(--fg-muted)' }}>
-                {t('kg.switchNote')}
-              </p>
+              <p className="st-input-note" style={{ marginTop: 8 }}>{t('env.neoNote')}</p>
+
+              {kgBackend === 'neo4j' && (
+                <div style={{ marginTop: 16, paddingTop: 16, borderTop: 'var(--border-width) var(--border-style) var(--border)' }}>
+                  <div className="st-input-row">
+                    <label className="st-input-label">
+                      {t('env.neoUrl')}
+                      <span className="st-input-flag restart">{t('env.restartFlag')}</span>
+                    </label>
+                    <input className="st-input" placeholder="bolt://localhost:7687" />
+                  </div>
+                  <div className="st-input-row">
+                    <label className="st-input-label">
+                      {t('env.neoUser')}
+                      <span className="st-input-flag restart">{t('env.restartFlag')}</span>
+                    </label>
+                    <input className="st-input" placeholder="neo4j" />
+                  </div>
+                  <div className="st-input-row">
+                    <label className="st-input-label">
+                      {t('env.neoPass')}
+                      <span className="st-input-flag restart">{t('env.restartFlag')}</span>
+                    </label>
+                    <input className="st-input" type="password" placeholder="••••••••" />
+                  </div>
+                </div>
+              )}
             </div>
-          </>
-        ) : null}
-      </section>
+          </StSection>
+        </>
+      )}
 
-      {/* Migration Section */}
-      <section>
-        <div className="flex items-center gap-2 mb-4">
-          <ArrowRight size={16} style={{ color: 'var(--accent)' }} />
-          <h3 className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
-            {t('migration.title')}
-          </h3>
+      {/* D. Migration — both modes, KG enabled only when Standard + Neo4j */}
+      <StSection icon={<ArrowRight size={16} />} title={t('env.migTitle')} note={t('env.migIdem')}>
+        <div className="st-mig">
+          {/* Qdrant migration: always disabled (not yet implemented) */}
+          <button className="st-mig-row" disabled title={t('env.notImpl')}>
+            <span className="st-mig-dir"><ArrowRight size={16} /></span>
+            <span className="st-mig-body">
+              <span className="st-mig-label">{t('env.migQdrant')}</span>
+              <span className="st-mig-sub">{t('env.migQdrantSub')}</span>
+            </span>
+            <span className="st-mig-flag">{t('env.notImpl')}</span>
+          </button>
+          {/* KG: NetworkX → Neo4j */}
+          <button
+            className="st-mig-row"
+            disabled={!kgEnabled}
+            onClick={() => kgEnabled && migrateMutation.mutate('nx_to_neo4j')}
+            title={!kgEnabled ? t('env.notImpl') : undefined}
+          >
+            <span className="st-mig-dir"><ArrowRight size={16} /></span>
+            <span className="st-mig-body">
+              <span className="st-mig-label">{t('env.migNxNeo')}</span>
+              <span className="st-mig-sub">{t('env.migNxNeoSub')}</span>
+            </span>
+            <span className="st-mig-flag">{kgEnabled ? t('env.kgLiveFlag') : t('env.notImpl')}</span>
+          </button>
+          {/* KG: Neo4j → NetworkX */}
+          <button
+            className="st-mig-row"
+            disabled={!kgEnabled}
+            onClick={() => kgEnabled && migrateMutation.mutate('neo4j_to_nx')}
+            title={!kgEnabled ? t('env.notImpl') : undefined}
+          >
+            <span className="st-mig-dir"><ArrowLeft size={16} /></span>
+            <span className="st-mig-body">
+              <span className="st-mig-label">{t('env.migNeoNx')}</span>
+              <span className="st-mig-sub">{t('env.migNeoNxSub')}</span>
+            </span>
+            <span className="st-mig-flag">{kgEnabled ? t('env.kgLiveFlag') : t('env.notImpl')}</span>
+          </button>
         </div>
+        {migrationTaskId && (
+          <MigrationProgress
+            taskId={migrationTaskId}
+            onDone={() => {
+              setMigrationTaskId(null);
+              queryClient.invalidateQueries({ queryKey: ['kg-status'] });
+            }}
+          />
+        )}
+      </StSection>
 
-        <div
-          className="rounded-lg p-4"
-          style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)' }}
-        >
-          <div className="text-xs mb-4" style={{ color: 'var(--fg-muted)' }}>
-            {t('migration.idempotentNote')}
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <MigrationButton
-              label={t('migration.nxToNeo4j')}
-              sublabel={t('migration.nxToNeo4jSub')}
-              disabled={migrateMutation.isPending || !!migrationTaskId}
-              onClick={() => migrateMutation.mutate('nx_to_neo4j')}
-            />
-            <MigrationButton
-              label={t('migration.neo4jToNx')}
-              sublabel={t('migration.neo4jToNxSub')}
-              disabled={migrateMutation.isPending || !!migrationTaskId}
-              onClick={() => migrateMutation.mutate('neo4j_to_nx')}
-            />
-          </div>
-
-          {migrateError && (
-            <p className="text-xs mt-2" style={{ color: 'var(--color-error)' }}>{migrateError}</p>
-          )}
-
-          {migrationTaskId && (
-            <MigrationProgress
-              taskId={migrationTaskId}
-              onDone={() => {
-                setMigrationTaskId(null);
-                queryClient.invalidateQueries({ queryKey: ['kg-status'] });
-              }}
-            />
-          )}
+      {/* Refresh button */}
+      {kg && (
+        <div style={{ marginTop: 8 }}>
+          <button
+            onClick={() => refetch()}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          >
+            <RefreshCw size={12} />
+            {t('env.refresh')}
+          </button>
         </div>
-      </section>
+      )}
     </div>
   );
 }
 
-function MigrationButton({
-  label,
-  sublabel,
-  disabled,
-  onClick,
-}: Readonly<{
-  label: string;
-  sublabel: string;
-  disabled: boolean;
-  onClick: () => void;
-}>) {
+// ── About panel ──────────────────────────────────────────────
+
+function AboutPanel() {
+  const { t } = useTranslation('settings');
+  const { data, isLoading, error } = useQuery<SettingsInfo>({
+    queryKey: ['settings-info'],
+    queryFn: fetchSettingsInfo,
+  });
+
   return (
-    <button
-      disabled={disabled}
-      onClick={onClick}
-      className="w-full text-left rounded-md px-3 py-2.5 transition-colors disabled:opacity-40"
-      style={{
-        backgroundColor: 'var(--bg-primary)',
-        border: '1px solid var(--border)',
-        cursor: disabled ? 'default' : 'pointer',
-      }}
-    >
-      <div className="text-sm font-medium" style={{ color: 'var(--fg-primary)' }}>{label}</div>
-      <div className="text-xs mt-0.5" style={{ color: 'var(--fg-muted)' }}>{sublabel}</div>
-    </button>
+    <div className="st-panel">
+      <PanelHead title={t('about.title')} sub={t('about.sub')} />
+
+      <section className="st-section">
+        <div className="st-about-hero">
+          <div className="st-about-logo">S</div>
+          <div>
+            <div className="st-about-name">StorySphere</div>
+            {data && (
+              <div className="st-about-ver">
+                v{data.appVersion}
+                <span className="st-env-pill">{data.appEnv}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {isLoading ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 13 }}>
+          <Loader2 size={14} className="animate-spin" /> {t('common.loading')}
+        </div>
+      ) : error || !data ? (
+        <div style={{ color: 'var(--color-error)', fontSize: 13 }}>{t('about.loadError')}</div>
+      ) : (
+        <>
+          <StSection icon={<Type size={16} />} title={t('about.frontend')}>
+            <div className="st-card muted">
+              <div className="st-pkg-grid">
+                {data.frontendPackages.map(([name, ver]) => (
+                  <div className="st-pkg-row" key={name}>
+                    <span className="st-pkg-name">{name}</span>
+                    <span className="st-pkg-ver">{ver}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </StSection>
+
+          <StSection icon={<Server size={16} />} title={t('about.backend')}>
+            <div className="st-card muted">
+              <div className="st-pkg-grid">
+                {data.backendPackages.map(([name, ver]) => (
+                  <div className="st-pkg-row" key={name}>
+                    <span className="st-pkg-name">{name}</span>
+                    <span className="st-pkg-ver">{ver}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </StSection>
+
+          <StSection icon={<Folder size={16} />} title={t('about.paths')}>
+            <div className="st-kv">
+              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>qdrantLocalPath</div>
+              <div className="st-kv-val mono">{data.qdrantLocalPath}</div>
+              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>kgPersistencePath</div>
+              <div className="st-kv-val mono">{data.kgPersistencePath}</div>
+              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>databaseUrl</div>
+              <div className="st-kv-val mono">{data.databaseUrl}</div>
+              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>analysisCacheDbPath</div>
+              <div className="st-kv-val mono">{data.analysisCacheDbPath}</div>
+            </div>
+          </StSection>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Planned panel ────────────────────────────────────────────
+
+function PlannedPanel({ kind }: { kind: 'shortcuts' | 'experimental' }) {
+  const { t } = useTranslation('settings');
+  const isShortcuts = kind === 'shortcuts';
+  return (
+    <div className="st-panel">
+      <div className="st-empty">
+        <div className="st-empty-ico">
+          {isShortcuts ? <Keyboard size={26} strokeWidth={1.6} /> : <FlaskConical size={26} strokeWidth={1.6} />}
+        </div>
+        <div className="st-empty-badge">{t('planned.badge')}</div>
+        <div className="st-empty-title">
+          {isShortcuts ? t('planned.shortcutsTitle') : t('planned.experimentalTitle')}
+        </div>
+        <div className="st-empty-sub">
+          {isShortcuts ? t('planned.shortcutsSub') : t('planned.experimentalSub')}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Main page ────────────────────────────────────────────────
+
+export default function SettingsPage() {
+  const { t } = useTranslation('settings');
+  const [active, setActive] = useState<PanelId>('appearance');
+
+  const { data: settingsInfo } = useQuery<SettingsInfo>({
+    queryKey: ['settings-info'],
+    queryFn: fetchSettingsInfo,
+  });
+
+  const renderPanel = () => {
+    switch (active) {
+      case 'appearance':   return <AppearancePanel />;
+      case 'language':     return <LanguagePanel />;
+      case 'llm':          return <LlmPanel />;
+      case 'env':          return <EnvPanel />;
+      case 'shortcuts':    return <PlannedPanel kind="shortcuts" />;
+      case 'experimental': return <PlannedPanel kind="experimental" />;
+      case 'about':        return <AboutPanel />;
+    }
+  };
+
+  return (
+    <div className="st-settings">
+      {/* 172px left nav */}
+      <nav className="st-nav" data-variant="bar">
+        <div className="st-nav-title">{t('nav.title')}</div>
+        <div className="st-nav-divider" />
+        {NAV_GROUPS.map((g) => (
+          <div className="st-nav-group" key={g.labelKey}>
+            <div className="st-nav-group-label">{t(g.labelKey)}</div>
+            {g.items.map((it) => (
+              <button
+                key={it.id}
+                className={[
+                  'st-nav-item',
+                  active === it.id ? 'active' : '',
+                  it.badge === 'planned' ? 'is-planned' : '',
+                ].filter(Boolean).join(' ')}
+                onClick={() => setActive(it.id)}
+              >
+                <span className="st-nav-ico">{NAV_ICONS[it.id]}</span>
+                <span className="st-nav-label">{t(it.labelKey)}</span>
+                {it.badge && (
+                  <span className={`st-nav-badge ${it.badge}`}>
+                    {t(`nav.badge${it.badge.charAt(0).toUpperCase()}${it.badge.slice(1)}`)}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        ))}
+        <div className="st-nav-foot">
+          StorySphere {settingsInfo ? `v${settingsInfo.appVersion}` : ''}
+        </div>
+      </nav>
+
+      {/* Content area */}
+      <div className="st-content" key={active}>
+        {renderPanel()}
+      </div>
+    </div>
   );
 }

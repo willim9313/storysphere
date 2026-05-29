@@ -2790,6 +2790,8 @@ export interface components {
         KgStatusResponse: {
             /** Mode */
             mode: string;
+            /** Deploymode */
+            deployMode: string;
             /** Entitycount */
             entityCount: number;
             /** Relationcount */
@@ -2800,6 +2802,39 @@ export interface components {
             graphDbConnected: boolean;
             /** Persistencepath */
             persistencePath: string | null;
+            /** Qdrantlocalpath */
+            qdrantLocalPath: string | null;
+            /** Vectorcount */
+            vectorCount: number | null;
+        };
+        /** SettingsInfoResponse */
+        SettingsInfoResponse: {
+            /** Appversion */
+            appVersion: string;
+            /** Appenv */
+            appEnv: string;
+            /** Primaryllmprovider */
+            primaryLlmProvider: string;
+            /** Primarymodel */
+            primaryModel: string;
+            /** Analysistemperature */
+            analysisTemperature: number;
+            /** Chatagenttemperature */
+            chatAgentTemperature: number;
+            /** Localllmmodel */
+            localLlmModel: string;
+            /** Databaseurl */
+            databaseUrl: string;
+            /** Analysiscachedbpath */
+            analysisCacheDbPath: string;
+            /** Qdrantlocalpath */
+            qdrantLocalPath: string;
+            /** Kgpersistencepath */
+            kgPersistencePath: string;
+            /** Frontendpackages */
+            frontendPackages: string[][];
+            /** Backendpackages */
+            backendPackages: string[][];
         };
         /** KgSwitchRequest */
         KgSwitchRequest: {

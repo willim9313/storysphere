@@ -28,6 +28,7 @@ from api.routers import (
     narrative,
     relations,
     search,
+    settings_info,
     symbols,
     tasks,
     tasks_ws,
@@ -236,6 +237,7 @@ def create_app() -> FastAPI:
     app.include_router(symbols.router, prefix=prefix)
     app.include_router(factions.router, prefix=prefix)
     app.include_router(kg_settings.router, prefix=prefix)
+    app.include_router(settings_info.router, prefix=prefix)
     app.include_router(metrics.router, prefix=prefix)
     app.include_router(token_usage.router, prefix=prefix)
     app.include_router(chat_ws.router)        # WS /ws/chat
