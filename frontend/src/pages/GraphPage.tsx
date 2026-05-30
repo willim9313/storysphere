@@ -767,9 +767,30 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
     : undefined;
 
   const isLoading = isEvent ? eventLoading : entityLoading;
-  const content = isEvent
-    ? eventAnalysis?.content
-    : (entityAnalysis as unknown as { content?: string } | undefined)?.content;
+
+  // Build displayable markdown content from the appropriate analysis shape.
+  // Events return AnalysisItem (has .content); entities return CharacterAnalysisDetail
+  // (has .profileSummary + .archetypes + .arc — no .content field).
+  let content: string | undefined;
+  if (isEvent) {
+    content = eventAnalysis?.content;
+  } else if (entityAnalysis) {
+    const parts: string[] = [];
+    if (entityAnalysis.profileSummary) parts.push(entityAnalysis.profileSummary);
+    if (entityAnalysis.archetypes?.length) {
+      const arcLines = entityAnalysis.archetypes
+        .map((a) => `**${a.framework}**: ${a.primary}${a.secondary ? ` / ${a.secondary}` : ''}`)
+        .join('\n');
+      parts.push(`\n**原型**\n${arcLines}`);
+    }
+    if (entityAnalysis.arc?.length) {
+      const arcSegLines = entityAnalysis.arc
+        .map((s) => `- **${s.phase}**（${s.chapterRange}）${s.description}`)
+        .join('\n');
+      parts.push(`\n**發展弧線**\n${arcSegLines}`);
+    }
+    content = parts.join('\n\n') || undefined;
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">

@@ -323,16 +323,25 @@ export function MatrixCanvas({
             : t('timeline.matrix.tooltipUnranked');
         const participants = d.participants.map((p) => p.name).join('、');
 
+        // Render content first so we can measure the actual rendered width.
         tooltip
           .style('display', 'block')
-          .style('left', `${x + 12}px`)
-          .style('top', `${y - 8}px`)
+          .style('left', '-9999px')
           .html(
             `<strong>${d.title}</strong><br/>` +
               `Ch.${d.chapter} · ${d.narrativeMode}<br/>` +
               `${t('timeline.matrix.tooltipRank')}: ${rankText}` +
               (participants ? `<br/>${t('timeline.matrix.tooltipParticipants')}: ${participants}` : ''),
           );
+
+        const ttWidth = tooltipRef.current?.offsetWidth ?? 260;
+        const containerWidth = containerRef.current?.clientWidth ?? size.width;
+        const leftPos = x + 12 + ttWidth > containerWidth ? x - ttWidth - 12 : x + 12;
+        const topPos = Math.max(0, y - 8);
+
+        tooltip
+          .style('left', `${leftPos}px`)
+          .style('top', `${topPos}px`);
       })
       .on('mouseleave', () => {
         tooltip.style('display', 'none');

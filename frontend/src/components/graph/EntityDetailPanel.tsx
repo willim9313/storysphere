@@ -3,6 +3,7 @@ import { X, ChevronDown, ChevronRight, Loader, AlertTriangle, Pin } from 'lucide
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchEntityAnalysis, triggerEntityAnalysis } from '@/api/analysis';
+import { fetchEntityChunks } from '@/api/chunks';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 
 import type { GraphNode, EntityType } from '@/api/types';
@@ -45,6 +46,12 @@ export function EntityDetailPanel({
     queryFn: () => fetchEntityAnalysis(bookId, node.id),
     retry: false,
   });
+
+  const { data: chunksData } = useQuery({
+    queryKey: ['books', bookId, 'entities', node.id, 'chunks'],
+    queryFn: () => fetchEntityChunks(bookId, node.id),
+  });
+  const paragraphCount = chunksData?.total ?? null;
 
   const [triggerError, setTriggerError] = useState<string | null>(null);
 
@@ -153,8 +160,8 @@ export function EntityDetailPanel({
           )}
         </Section>
 
-        {/* 深度分析 */}
-        <Section
+        {/* 深度分析 — 僅 character 有後端支援 */}
+        {node.type === 'character' && <Section
           title={t('panel.deepAnalysis')}
           isOpen={openSections.has('analysis')}
           onToggle={() => toggleSection('analysis')}
@@ -272,7 +279,7 @@ export function EntityDetailPanel({
               </button>
             </div>
           )}
-        </Section>
+        </Section>}
 
         {/* 相關段落 (collapsed by default, right-aligned count) */}
         <Section
@@ -280,20 +287,22 @@ export function EntityDetailPanel({
           isOpen={openSections.has('paragraphs')}
           onToggle={() => toggleSection('paragraphs')}
           headerExtra={
-            <span
-              style={{
-                marginLeft: 'auto',
-                fontSize: 10,
-                color: 'var(--panel-fg-muted)',
-                fontVariantNumeric: 'tabular-nums',
-              }}
-            >
-              {t('panel.paragraphsCount', { count: node.chunkCount })}
-            </span>
+            paragraphCount !== null ? (
+              <span
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: 10,
+                  color: 'var(--panel-fg-muted)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {t('panel.paragraphsCount', { count: paragraphCount })}
+              </span>
+            ) : null
           }
         >
           <SectionBody>
-            <p>{t('entity.paragraphCount', { count: node.chunkCount })}</p>
+            <p>{paragraphCount !== null ? t('entity.paragraphCount', { count: paragraphCount }) : ''}</p>
           </SectionBody>
           <button
             onClick={onShowParagraphs}
