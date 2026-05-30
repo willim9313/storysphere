@@ -73,6 +73,4 @@ class AnalyzeEventTool(BaseTool):
             return json.dumps({"error": str(e)})
 
     def _run(self, event_id: str, document_id: str = "", include_consequences: bool = True) -> str:
-        return asyncio.get_event_loop().run_until_complete(
-            self._arun(event_id, document_id, include_consequences)
-        )
+        return asyncio.run(self._arun(event_id, document_id, include_consequences))

@@ -49,6 +49,10 @@ _HEADING_NO_TITLE: list[re.Pattern[str]] = [
         r"^(?:volume|vol\.?|book|part|act|scene)\s+(?:\d+|[ivxlcdm]+)$",
         re.IGNORECASE,
     ),
+    # Standalone uppercase roman numerals (I, II, III, IV … MMMCMXCIX)
+    re.compile(
+        r"^(?=[MDCLXVI])M{0,4}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$"
+    ),
     # "Prologue", "Epilogue", "Preface", "Introduction", …
     re.compile(
         r"^(?:prologue|epilogue|preface|introduction|foreword|afterword)$",

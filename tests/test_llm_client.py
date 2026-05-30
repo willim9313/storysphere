@@ -31,7 +31,7 @@ def test_singleton():
 
 def test_has_key_false_for_empty():
     from config.settings import Settings
-    s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="")
+    s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="", local_llm_model="")
     client = LLMClient(settings=s)
     assert not client._has_key(LLMProvider.GEMINI)
     assert not client._has_key(LLMProvider.OPENAI)
@@ -41,9 +41,9 @@ def test_has_key_false_for_empty():
 
 def test_no_key_raises():
     from config.settings import Settings
-    s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="")
+    s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="", local_llm_model="")
     client = LLMClient(settings=s)
-    with pytest.raises(RuntimeError, match="No LLM provider configured"):
+    with pytest.raises(RuntimeError, match="GEMINI_API_KEY is not set"):
         client.get_primary()
 
 
@@ -62,6 +62,7 @@ def test_local_is_primary_when_only_local_configured():
     s = Settings(
         gemini_api_key="", openai_api_key="", anthropic_api_key="",
         local_llm_model="qwen2.5:3b",
+        primary_llm_provider="local",
     )
     client = LLMClient(settings=s)
     assert client._resolve_primary() == LLMProvider.LOCAL
@@ -69,7 +70,7 @@ def test_local_is_primary_when_only_local_configured():
 
 def test_get_local_raises_when_not_configured():
     from config.settings import Settings
-    s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="")
+    s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="", local_llm_model="")
     client = LLMClient(settings=s)
     with pytest.raises(RuntimeError, match="Local LLM not configured"):
         client.get_local()

@@ -236,7 +236,7 @@ class TestChunkSegments:
         assert result == []
 
     def test_normal_segment_becomes_paragraph(self):
-        segments = [(0, "This is a sentence about something interesting.")]
+        segments = [(0, "This is a longer sentence about something interesting enough to keep.")]
         paragraphs = chunk_segments(segments, chapter_number=1)
         assert len(paragraphs) == 1
         assert paragraphs[0].chapter_number == 1
@@ -244,11 +244,11 @@ class TestChunkSegments:
 
     def test_short_segments_are_merged(self):
         """Two short segments should be merged into one paragraph."""
-        segments = [(0, "Hi."), (1, "Bye.")]
+        segments = [(0, "Hello world."), (1, "Goodbye world.")]
         paragraphs = chunk_segments(segments, chapter_number=2, min_chars=10)
-        # "Hi." (3) + " " + "Bye." (4) = 8 chars → still below 10, merged into 1
+        # "Hello world." + " " + "Goodbye world." = 27 chars → above 10, merged into 1
         assert len(paragraphs) == 1
-        assert "Hi." in paragraphs[0].text
+        assert "Hello world." in paragraphs[0].text
 
     def test_long_segment_is_split(self):
         """A segment exceeding max_chars should be split into multiple paragraphs."""

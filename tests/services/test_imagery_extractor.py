@@ -133,33 +133,34 @@ class TestClusterSynonyms:
 
     async def test_similar_terms_merged_into_cluster(self):
         # mirror and looking-glass are very similar (sim ≈ 1.0)
-        # fire and water are dissimilar (sim ≈ 0.0)
+        # fire is dissimilar to mirror (orthogonal)
         vec_mirror = [1.0, 0.0]
         vec_glass = [0.99, 0.14]   # high similarity to mirror
         vec_fire = [0.0, 1.0]      # orthogonal
 
-        # Normalise
         def norm(v):
             n = sum(x**2 for x in v) ** 0.5
             return [x / n for x in v]
 
-        vecs = [norm(vec_mirror), norm(vec_glass), norm(vec_fire)]
+        # unique_terms order matches Counter: mirror, looking-glass, fire
+        vecs = np.array(
+            [norm(vec_mirror), norm(vec_glass), norm(vec_fire)],
+            dtype=np.float32,
+        )
 
-        with patch(
-            "pipelines.feature_extraction.embedding_generator.EmbeddingGenerator.aembed_texts",
-            new=AsyncMock(return_value=vecs),
-        ):
+        mock_model = MagicMock()
+        mock_model.encode.return_value = vecs
+
+        with patch("sentence_transformers.SentenceTransformer", return_value=mock_model):
             extractor = ImageryExtractor()
-            # mirror appears 3x, glass 1x, fire 2x → order: mirror, fire, glass
+            # mirror appears 3x, glass 1x, fire 2x → sorted: mirror, fire, glass
             result = await extractor.cluster_synonyms(
                 ["mirror", "mirror", "mirror", "looking-glass", "fire", "fire"]
             )
 
         terms_in_clusters = {c.canonical_term: c.variants for c in result}
-        # mirror should be canonical with looking-glass as variant
         assert "mirror" in terms_in_clusters
         assert "looking-glass" in terms_in_clusters["mirror"]
-        # fire should be its own cluster
         assert "fire" in terms_in_clusters
         assert terms_in_clusters["fire"] == []
 
