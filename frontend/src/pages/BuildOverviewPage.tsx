@@ -153,6 +153,11 @@ function nodeSubLabel(t: TFunction, n: BuildOverviewNode): string {
     case 'causality_analysis':
     case 'impact_analysis':
       return `${c.analyzed ?? 0} / ${c.total_events ?? 0}`;
+    case 'sep':
+    case 'symbol_analysis_result':
+      return `${c.analyzed ?? 0} / ${c.total_imagery ?? 0}`;
+    case 'voice_profile':
+      return `${c.analyzed ?? 0} / ${c.total_characters ?? 0}`;
     case 'kg_temporal_relation':
     case 'chronological_rank':
       return `${c.events_ranked ?? 0} ${t('unraveling.ranked')}`;
@@ -688,6 +693,24 @@ function progressFor(node: BuildOverviewNode, t: TFunction): ProgressNumbers | n
       denom: c.total_events,
       numLabel: tCounts('analyzed'),
       denomLabel: tCounts('total_events'),
+    };
+  }
+  if (['sep', 'symbol_analysis_result'].includes(node.nodeId)) {
+    if (!c.total_imagery) return null;
+    return {
+      num: c.analyzed ?? 0,
+      denom: c.total_imagery,
+      numLabel: tCounts('analyzed'),
+      denomLabel: tCounts('total_imagery'),
+    };
+  }
+  if (node.nodeId === 'voice_profile') {
+    if (!c.total_characters) return null;
+    return {
+      num: c.analyzed ?? 0,
+      denom: c.total_characters,
+      numLabel: tCounts('analyzed'),
+      denomLabel: tCounts('total_characters'),
     };
   }
   if (node.nodeId === 'chronological_rank') {
