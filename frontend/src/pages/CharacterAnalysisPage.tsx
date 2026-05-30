@@ -237,7 +237,7 @@ export default function CharacterAnalysisPage() {
                 <GitCompare size={10} />
                 {t('character.compare.fromSidebar')}
               </button>
-              <Link to={`/frameworks?framework=${framework}`}>
+              <Link to={`/methodology?framework=${framework}`}>
                 {t('frameworkIndex')} <ExternalLink size={9} />
               </Link>
             </div>

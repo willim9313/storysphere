@@ -14,7 +14,7 @@ const TimelinePage = lazy(() => import('@/pages/TimelinePage'));
 const TensionPage = lazy(() => import('@/pages/TensionPage'));
 const SymbolsPage = lazy(() => import('@/pages/SymbolsPage'));
 const BuildOverviewPage = lazy(() => import('@/pages/BuildOverviewPage'));
-const FrameworksPage = lazy(() => import('@/pages/FrameworksPage'));
+const MethodologyPage = lazy(() => import('@/pages/MethodologyPage'));
 const TokenUsagePage = lazy(() => import('@/pages/TokenUsagePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const ChapterReviewPage = lazy(() => import('@/pages/upload/ChapterReviewPage'));
@@ -52,10 +52,10 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: '/frameworks',
+        path: '/methodology',
         element: (
           <LazyWrapper>
-            <FrameworksPage />
+            <MethodologyPage />
           </LazyWrapper>
         ),
       },

@@ -60,7 +60,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 |------|--------|------|------|
 | Home | 書庫首頁 | `/` | 已實作 |
 | Upload | 上傳 & 處理進度 | `/upload` | 已實作 |
-| BookOpen | 框架索引 | `/frameworks` | 已實作 |
+| BookOpen | 方法論 | `/methodology` | 已實作（前身 `/frameworks`） |
 | Search | 全站搜尋 | — | 佔位（disabled） |
 | BarChart3 | Token 用量 | `/token-usage` | 已實作 |
 | Settings | 設定 | `/settings` | 已實作 |
@@ -87,7 +87,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 全站 Sidebar
   ├─ 首頁              /
   ├─ 上傳 & 處理進度   /upload
-  ├─ 框架索引          /frameworks
+  ├─ 方法論            /methodology
   ├─ Token 用量        /token-usage
   ├─ 設定              /settings
   └─ [書籍空間]        /books/:bookId
@@ -890,22 +890,57 @@ Step 1 → Step 2 → Step 3 各自獨立觸發
 
 ---
 
-### 3.11 框架索引頁 `/frameworks`
+### 3.11 方法論頁 `/methodology`
 
-全站層級，不屬於任何書籍。三層閱讀結構：
+> **2026-05-30 重新設計**：原 `/frameworks` 重新定位為 **Methodology（方法論）** 頁面，作為整套分析方法的說明與教育中心。「方法論」「Methodology」皆為暫定佔位名稱，等產品語言確定後一起調整。設計交接見 `methodology-page/` 設計包。
+
+全站層級，不屬於任何書籍。**三欄閱讀結構**：
 
 ```
-[Left Sidebar] [框架列表 200px] [TOC 180px] [文件內容 flex]
+[Left Sidebar 48px] [方法論導覽 262px] [主內容 flex] [本頁目錄 188px]
 ```
 
-框架分組：角色分析（Jung 12 / Schmidt 45）、事件分析（敘事理論）、未來框架（佔位）。
+- **左欄方法論導覽**：依分析類型分群（角色分析 / 敘事弧 / 張力 / 象徵），每群可收合（搜尋時自動展開）；首項為「總覽」入口。
+- **主內容**：總覽頁顯示分類卡 + 方法列；點任一方法進入單一方法頁。
+- **頂部分頁**：理論與方法（About）/ 跨書查閱（Cross-book）；流程型方法（如 SEP）自動停用跨書分頁。
+- **右側本頁目錄**：sticky 錨點 TOC，scroll-spy 高亮當前章節。
+
+#### 單一方法頁閱讀流程
+
+引言 → **概念架構**（每個方法獨立設計的概念圖）→ 類型一覽（卡片網格）→ 系統如何分析（pipeline + 輸出欄位）→ **分析品質與信心值**（amber 誠實說明框 + 三層級唯讀說明）→ 參考文獻。
+
+| 方法 | 概念圖 |
+|------|--------|
+| Jung 原型 | 12 原型輪盤 + 4 動機取向象限 |
+| Schmidt 類型 | 性別對偶雙欄（8 女性 + 8 男性 + 配角／反派 = 45） |
+| 英雄旅程 | 12 階段環形圖（平凡／非常世界雙半球） |
+| Frye 四季神話 | 四季 × 四神話圓環 |
+| Booker 七情節 | 七條「故事形狀」曲線 |
+| SEP 象徵分析 | 資料層 → 詮釋層狀態流程（含 HITL 退回回饋線） |
+
+#### 信心值說明（amber 誠實框）
+
+刻意保留的設計重點：信心值是 LLM 推論當下的自我評估，非可逐項稽核的確定性公式。三個層級為唯讀說明（已確立 / 推定 / 暫定），**頁面內不提供滑桿類互動**——避免暗示信心值是可計算的。
+
+#### 跨書查閱（Coming soon）
+
+當前為佔位空殼，標「即將推出」。需接後端真實聚合結果，計劃支援列表與矩陣兩種視圖、右側細節面板。
 
 #### 從角色分析頁跳入
 
 ```
-/frameworks?framework=jung     → 自動選中 Jung 原型
-/frameworks?framework=schmidt  → 自動選中 Schmidt 類型
+/methodology?framework=jung     → 自動選中 Jung 原型（About 分頁）
+/methodology?framework=schmidt  → 自動選中 Schmidt 類型
 ```
+
+#### 元件位置
+
+| 區塊 | 位置 |
+|------|------|
+| 頁面入口 | `frontend/src/pages/MethodologyPage.tsx` |
+| 概念圖（六種） | `frontend/src/components/methodology/ConceptDiagram.tsx` |
+| 範圍 CSS | `frontend/src/styles/methodology.css` |
+| 資料來源 | `frontend/src/data/frameworksData.ts`（含 `pipeline / output / categoryId / crossBook`） |
 
 ---
 
