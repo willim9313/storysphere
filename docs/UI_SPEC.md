@@ -79,6 +79,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 | 時間軸 | `/books/:bookId/timeline` |
 | 張力分析 | `/books/:bookId/tension` |
 | 象徵意象 | `/books/:bookId/symbols` |
+| 敘事結構 | `/books/:bookId/narrative` |
 | 建構概覽 | `/books/:bookId/unraveling` |
 
 ### 2.3 頁面層級關係
@@ -98,6 +99,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
        ├─ 時間軸        /books/:bookId/timeline
        ├─ 張力分析      /books/:bookId/tension
        ├─ 象徵意象      /books/:bookId/symbols
+       ├─ 敘事結構      /books/:bookId/narrative
        └─ 建構概覽      /books/:bookId/unraveling
 ```
 
@@ -1041,6 +1043,45 @@ Prompt Tokens / Completion Tokens / 總請求次數
 見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#18a（KG 狀態）、#18b（切換後端）、#18c（觸發遷移）、#18d（遷移 polling）
 
 > 注意：KG 遷移 polling 走 #18d 專用 endpoint，不走 #8。
+
+---
+
+### 3.14 敘事結構頁 `/books/:bookId/narrative`
+
+張力（3.8）、符號（3.9）之外的第三條平行分析線。i18n namespace 為 `analysis.json` 的 `narrative.*`。頁面為單欄垂直捲動，分兩個 section：上方英雄旅程主視圖（佔大部分），下方情節骨幹摘要次區塊。
+
+#### 版面結構
+
+```
+[英雄旅程區塊 — 主視圖：標題列 + HITL + 佈局切換器 + 選定佈局]
+[情節骨幹摘要 — 次區塊：比例條 + 統計 + 核心事件骨幹 + 跳轉]
+```
+
+#### 英雄旅程主視圖（`HeroJourneySection`）
+
+- **標題列**：「英雄旅程」h2（serif）+ 副標（Campbell · Vogler 12 階段）；下方為「已映射 N／12 階段」+「缺席的階段是有意義的敘事選擇，而非未完成」原則註記。右側為**書級** HITL：核可 / 標記不適用 按鈕 + ReviewBadge（走 #21l）。
+- **佈局切換器**：segmented control，四種佈局並存可切換：
+  - **A 水平軌跡（`LayoutTrack`）**：departure→initiation→return 三相位橫向流，12 階段 disc + 底部詳情抽屜。
+  - **B 三相位分欄（`LayoutColumns`）**：三欄堆疊階段列 + 右側固定詳情面板（360px）。
+  - **C 圓環循環（`LayoutRing`）**：Campbell 環形 monomyth，中心顯示選定階段詳情，虛線分隔平凡／特殊世界。
+  - **D 章節對位帶（`LayoutBand`）**：甘特式條帶（x 軸＝章節），一眼可見階段重疊與缺席。
+- **三態視覺語言**（一眼可區分，不用進度條語意）：
+  - `filled`（conf ≥ 0.6）：accent 填色，深淺隨 confidence 加深。
+  - `low`（0 < conf < 0.6）：警示三角（`--color-warning`）+ 虛線邊框。
+  - `absent`（chapter_range 空）：虛線空殼顯示「—」，不留空白。
+- **點擊展開詳情（`StageDetail`）**：相位 + 章節 + 階段名 + 狀態徽章 + confidence meter + 系統詮釋 notes + 代表性 Kernel 事件 pill + 理論描述／敘事功能（理論文案取自 `frameworksData.ts` hero_journey，localized）。
+- **Legend**：filled / low / absent 三態圖例。
+
+#### 情節骨幹摘要（`PlotSpine`）
+
+- 標題列 + 分類來源 chip（啟發式／LLM／人工驗證）+ ReviewBadge。
+- Kernel / Satellite / Unclassified 比例條 + 計數 + 總事件數。
+- 核心事件骨幹：依章節排列的 kernel 事件時間線（上下交錯標籤）。
+- 底部「前往事件分析頁」跳轉（Kernel/Satellite 細節在事件分析頁）。
+
+#### API 參考
+
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#21e（觸發英雄旅程）、#21f（polling）、#21k（取 NarrativeStructure）、#21j（kernel-spine）、#21l（HITL 書級審核）。封裝於 `frontend/src/api/narrative.ts`。
 
 ---
 

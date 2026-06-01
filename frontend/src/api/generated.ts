@@ -1832,6 +1832,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Settings Info
+         * @description Return read-only snapshot of the current runtime configuration.
+         */
+        get: operations["get_settings_info_api_v1_settings_info_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/metrics": {
         parameters: {
             query?: never;
@@ -2682,6 +2702,36 @@ export interface components {
              */
             force: boolean;
         };
+        /**
+         * HeroJourneyStage
+         * @description One stage of Campbell's Hero's Journey, mapped to chapter ranges.
+         *
+         *     Populated by NarrativeService.map_hero_journey() (B-035).
+         *     Stages are defined in src/config/hero_journey.py.
+         */
+        HeroJourneyStage: {
+            /**
+             * Stage Id
+             * @description Stage identifier, e.g. 'ordinary_world'
+             */
+            stage_id: string;
+            /** Stage Name */
+            stage_name: string;
+            /**
+             * Chapter Range
+             * @description Chapters corresponding to this stage (may overlap adjacent stages)
+             */
+            chapter_range: number[];
+            /** Representative Event Ids */
+            representative_event_ids?: string[];
+            /**
+             * Confidence
+             * @default 0
+             */
+            confidence: number;
+            /** Notes */
+            notes?: string | null;
+        };
         /** HistogramBucketResponse */
         HistogramBucketResponse: {
             /** Bucket */
@@ -2778,6 +2828,33 @@ export interface components {
              */
             total: number;
         };
+        /**
+         * KernelSpineEvent
+         * @description One kernel event in the plot spine (response shape for #21j).
+         *
+         *     Mirrors the dict assembled in ``get_kernel_spine``. Field names stay
+         *     snake_case (no camel alias) to match the existing JSON contract.
+         */
+        KernelSpineEvent: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Chapter */
+            chapter: number;
+            /** Event Type */
+            event_type: string;
+            /** Description */
+            description: string;
+            /** Significance */
+            significance?: string | null;
+            /** Narrative Weight */
+            narrative_weight: string;
+            /** Narrative Weight Source */
+            narrative_weight_source: string;
+            /** Narrative Position */
+            narrative_position: number;
+        };
         /** KgMigrateRequest */
         KgMigrateRequest: {
             /**
@@ -2806,35 +2883,6 @@ export interface components {
             qdrantLocalPath: string | null;
             /** Vectorcount */
             vectorCount: number | null;
-        };
-        /** SettingsInfoResponse */
-        SettingsInfoResponse: {
-            /** Appversion */
-            appVersion: string;
-            /** Appenv */
-            appEnv: string;
-            /** Primaryllmprovider */
-            primaryLlmProvider: string;
-            /** Primarymodel */
-            primaryModel: string;
-            /** Analysistemperature */
-            analysisTemperature: number;
-            /** Chatagenttemperature */
-            chatAgentTemperature: number;
-            /** Localllmmodel */
-            localLlmModel: string;
-            /** Databaseurl */
-            databaseUrl: string;
-            /** Analysiscachedbpath */
-            analysisCacheDbPath: string;
-            /** Qdrantlocalpath */
-            qdrantLocalPath: string;
-            /** Kgpersistencepath */
-            kgPersistencePath: string;
-            /** Frontendpackages */
-            frontendPackages: string[][];
-            /** Backendpackages */
-            backendPackages: string[][];
         };
         /** KgSwitchRequest */
         KgSwitchRequest: {
@@ -2902,6 +2950,41 @@ export interface components {
              * @enum {string}
              */
             review_status: "approved" | "rejected";
+        };
+        /**
+         * NarrativeStructure
+         * @description Book-level narrative structure analysis result.
+         *
+         *     Aggregates Kernel/Satellite classification and Hero's Journey mapping.
+         *     Persisted via AnalysisCache with key: narrative_structure:{document_id}
+         */
+        NarrativeStructure: {
+            /** Id */
+            id?: string;
+            /** Document Id */
+            document_id: string;
+            /** Kernel Event Ids */
+            kernel_event_ids?: string[];
+            /** Satellite Event Ids */
+            satellite_event_ids?: string[];
+            /** Unclassified Event Ids */
+            unclassified_event_ids?: string[];
+            /**
+             * Classification Source
+             * @default summary_heuristic
+             * @enum {string}
+             */
+            classification_source: "summary_heuristic" | "llm_classified" | "human_verified";
+            /** Hero Journey Stages */
+            hero_journey_stages?: components["schemas"]["HeroJourneyStage"][];
+            /** Propp Functions */
+            propp_functions?: components["schemas"]["ProppFunctionRef"][];
+            /**
+             * Review Status
+             * @default pending
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "rejected";
         };
         /** NodeData */
         NodeData: {
@@ -2979,6 +3062,28 @@ export interface components {
              * @default pending
              */
             symbolDiscovery: string;
+        };
+        /**
+         * ProppFunctionRef
+         * @description Reference to a Propp narrative function mapped to an event.
+         *
+         *     Only populated when B-034 LLM refinement runs Propp analysis.
+         */
+        ProppFunctionRef: {
+            /**
+             * Function Id
+             * @description Propp function code, e.g. 'A' (villainy), 'D' (task)
+             */
+            function_id: string;
+            /** Function Name */
+            function_name: string;
+            /** Event Id */
+            event_id: string;
+            /**
+             * Confidence
+             * @default 0
+             */
+            confidence: number;
         };
         /** RefineNarrativeRequest */
         RefineNarrativeRequest: {
@@ -3237,6 +3342,35 @@ export interface components {
             entityId: string;
             /** Name */
             name: string;
+        };
+        /** SettingsInfoResponse */
+        SettingsInfoResponse: {
+            /** Appversion */
+            appVersion: string;
+            /** Appenv */
+            appEnv: string;
+            /** Primaryllmprovider */
+            primaryLlmProvider: string;
+            /** Primarymodel */
+            primaryModel: string;
+            /** Analysistemperature */
+            analysisTemperature: number;
+            /** Chatagenttemperature */
+            chatAgentTemperature: number;
+            /** Localllmmodel */
+            localLlmModel: string;
+            /** Databaseurl */
+            databaseUrl: string;
+            /** Analysiscachedbpath */
+            analysisCacheDbPath: string;
+            /** Qdrantlocalpath */
+            qdrantLocalPath: string;
+            /** Kgpersistencepath */
+            kgPersistencePath: string;
+            /** Frontendpackages */
+            frontendPackages: string[][];
+            /** Backendpackages */
+            backendPackages: string[][];
         };
         /** SubgraphResponse */
         SubgraphResponse: {
@@ -6024,7 +6158,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown[];
+                    "application/json": components["schemas"]["KernelSpineEvent"][];
                 };
             };
             /** @description Validation Error */
@@ -6055,9 +6189,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["NarrativeStructure"];
                 };
             };
             /** @description Validation Error */
@@ -6092,9 +6224,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["NarrativeStructure"];
                 };
             };
             /** @description Validation Error */
@@ -6855,6 +6985,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_info_api_v1_settings_info_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsInfoResponse"];
                 };
             };
         };

@@ -766,5 +766,74 @@
     "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Build Overview page.",
     "emptyUnravelingBtn": "Open Build Overview",
     "emptyRecheckBtn": "Re-check status"
+  },
+  "narrative": {
+    "heroJourney": "Hero's Journey",
+    "hjSub": "Campbell's monomyth · Vogler's 12 stages",
+    "phase": {
+      "departure": "Departure",
+      "initiation": "Initiation",
+      "return": "Return"
+    },
+    "state": {
+      "filled": "Identified",
+      "low": "Low confidence",
+      "absent": "Not identified"
+    },
+    "confidence": "Confidence",
+    "chapterLabel": "Ch. {{range}}",
+    "noChapters": "No chapters mapped",
+    "repEvents": "Representative Kernel events",
+    "description": "Theory",
+    "narrativeFunction": "Narrative function",
+    "notes": "System interpretation",
+    "review": {
+      "pending": "System-generated · unreviewed",
+      "approved": "Approved",
+      "rejected": "Marked not applicable"
+    },
+    "approve": "Approve",
+    "markNA": "Mark N/A",
+    "coverage": "Mapped {{mapped}}",
+    "ofTotal": "/ {{total}} stages",
+    "notProgress": "Absent stages are deliberate narrative choices — not \"incomplete\"",
+    "legend": "Legend",
+    "layout": {
+      "track": "Horizontal track",
+      "columns": "Three-phase columns",
+      "ring": "Monomyth ring",
+      "band": "Chapter band"
+    },
+    "ring": {
+      "knownWorld": "KNOWN WORLD",
+      "specialWorld": "SPECIAL WORLD"
+    },
+    "stageColumn": "Stage",
+    "spine": {
+      "title": "Plot Spine Summary",
+      "subtitle": "Book-level Kernel / Satellite statistics",
+      "kernel": "Kernel",
+      "satellite": "Satellite",
+      "unclassified": "Unclassified",
+      "events": "events",
+      "kernelSpine": "Kernel spine (by chapter)",
+      "footnote": "Kernel / Satellite detail lives on the event analysis page",
+      "jump": "Go to event analysis"
+    },
+    "source": {
+      "heuristic": "Heuristic",
+      "llm": "LLM-classified",
+      "human": "Human-verified"
+    },
+    "empty": {
+      "title": "No Hero's Journey yet",
+      "message": "The Hero's Journey relies on chapter summaries to map the whole book onto Campbell's 12-stage arc. Click below to start the analysis.",
+      "trigger": "Start Hero's Journey analysis",
+      "running": "Analyzing… {{progress}}%"
+    },
+    "errors": {
+      "triggerHero": "Failed to start the Hero's Journey analysis. Please try again.",
+      "heroFailed": "Hero's Journey analysis failed."
+    }
   }
 }

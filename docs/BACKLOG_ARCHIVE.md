@@ -653,3 +653,19 @@
 - `src/core/llm_client.py`：`_resolve_primary()` 改為直接讀取 `settings.primary_llm_provider`；指定 provider 的 key 未設定時啟動報明確錯誤，不靜默降級
 - `.env.example`：新增 `PRIMARY_LLM_PROVIDER` 說明，更新「最低配置」範例（只填 provider + 對應 key）
 - 與 I-001 同批實作（commit `b6cdd53`、`5d1754a`）
+
+---
+
+## B-045 敘事結構頁：英雄旅程主視圖 + 情節骨幹摘要 ✅ 完成（2026-06-01）
+**設計文件**: `docs/plans/20260601-narrative-page-hero-journey.md`（Claude Design 交付，四佈局比較稿）
+
+**背景**: 後端 `/narrative/*`（#21e/#21f/#21k/#21l）已實作，但前端無 `narrative.ts`、無頁面、無 BookNav 入口，建構概覽頁的 `hero_journey_stage` 節點永遠顯示「未建立」。
+
+**已實作**:
+- 後端型別：`GET /narrative`、`PATCH /narrative/{id}/review` 加 `response_model=NarrativeStructure`；`GET /narrative/kernel-spine` 加 `response_model=list[KernelSpineEvent]`（新增 schema）。回傳 shape 不變，`generated.ts` 重新產生後有 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。
+- 前端 `api/narrative.ts`：`triggerHeroJourney` / `fetchHeroJourneyTask` / `fetchNarrativeStructure` / `fetchKernelSpine` / `reviewNarrativeStructure`。
+- 新頁 `/books/:bookId/narrative`（`NarrativePage.tsx`）+ BookNav「敘事結構」入口（張力／符號之外的第三條平行分析線）。
+- 英雄旅程主視圖：四種佈局可切換（A 水平軌跡 / B 三相位分欄 / C 圓環循環 / D 章節對位帶），共用三態視覺語言（filled 填色深淺 / low 警示三角+虛線 / absent「—」虛線空殼），點擊階段展開詮釋 + 章節 + 代表 Kernel 事件 pill + 理論描述/敘事功能。
+- 情節骨幹摘要次區塊：書級 Kernel/Satellite 比例條 + 統計 + 依章節的核心事件骨幹 + 跳轉事件分析頁。
+- HITL 調整為**書級**（API 只支援 `review_status`，不支援每階段）：區塊標題列 approve / 標記不適用 + 審核狀態徽章，走 #21l。
+- 理論文案來源 `frameworksData.ts` hero_journey（localized）；i18n key 前綴 `narrative.*`（`analysis` namespace，zh-TW + en）。所有色彩走既有 token（無新增 token，`DESIGN_TOKENS.md` 不變）。

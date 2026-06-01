@@ -1842,5 +1842,6 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 - [x] **#18c KG 遷移**：直接回傳 TaskStatus，polling 走 #18d（非走 #8）
 - [x] **#20 系列 `/analysis` 路由**：character + event 非同步深度分析，各有專用 polling（`src/api/routers/analysis.py`）
 - [x] **#21 系列 `/narrative` 路由**：Kernel/Satellite 分類 + LLM 精煉 + Hero's Journey + Genette 時間序（`src/api/routers/narrative.py`）
+  - 2026-06-01：#21k / #21l 加 `response_model=NarrativeStructure`，#21j 加 `response_model=list[KernelSpineEvent]`（新增 schema），讓 `generated.ts` 取得 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。回傳 JSON shape 不變（皆為既有 snake_case domain dump）。前端封裝於 `frontend/src/api/narrative.ts`，頁面為 `/books/:bookId/narrative`（B-045）。
 - [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

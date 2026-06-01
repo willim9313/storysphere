@@ -21,18 +21,20 @@ from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from api.deps import DocServiceDep, KGServiceDep, NarrativeServiceDep
-from services.query_models import TemporalCoverageStats
+from api.deps import NarrativeServiceDep
 from api.schemas.common import TaskStatus
 from api.schemas.narrative import (
     ClassifyNarrativeRequest,
     HeroJourneyRequest,
+    KernelSpineEvent,
     NarrativeReviewRequest,
     RefineNarrativeRequest,
     TemporalAnalysisRequest,
 )
 from api.store import get_task, task_store
 from api.ws_manager import manager
+from domain.narrative import NarrativeStructure
+from services.query_models import TemporalCoverageStats
 
 logger = logging.getLogger(__name__)
 
@@ -261,7 +263,7 @@ async def get_temporal_task(task_id: str) -> TaskStatus:
 # ── Sync queries ──────────────────────────────────────────────────────────────
 
 
-@router.get("/kernel-spine")
+@router.get("/kernel-spine", response_model=list[KernelSpineEvent])
 async def get_kernel_spine(
     book_id: str,
     narrative_service: NarrativeServiceDep,
@@ -288,7 +290,7 @@ async def get_kernel_spine(
     ]
 
 
-@router.get("")
+@router.get("", response_model=NarrativeStructure)
 async def get_narrative_structure(
     book_id: str,
     narrative_service: NarrativeServiceDep,
@@ -309,7 +311,7 @@ async def get_narrative_structure(
 # ── HITL Review ───────────────────────────────────────────────────────────────
 
 
-@router.patch("/{document_id}/review")
+@router.patch("/{document_id}/review", response_model=NarrativeStructure)
 async def review_narrative_structure(
     document_id: str,
     req: NarrativeReviewRequest,

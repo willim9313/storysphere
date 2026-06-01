@@ -13,6 +13,7 @@ const GraphPage = lazy(() => import('@/pages/GraphPage'));
 const TimelinePage = lazy(() => import('@/pages/TimelinePage'));
 const TensionPage = lazy(() => import('@/pages/TensionPage'));
 const SymbolsPage = lazy(() => import('@/pages/SymbolsPage'));
+const NarrativePage = lazy(() => import('@/pages/NarrativePage'));
 const BuildOverviewPage = lazy(() => import('@/pages/BuildOverviewPage'));
 const MethodologyPage = lazy(() => import('@/pages/MethodologyPage'));
 const TokenUsagePage = lazy(() => import('@/pages/TokenUsagePage'));
@@ -132,6 +133,14 @@ export const router = createBrowserRouter([
             element: (
               <LazyWrapper>
                 <SymbolsPage />
+              </LazyWrapper>
+            ),
+          },
+          {
+            path: 'narrative',
+            element: (
+              <LazyWrapper>
+                <NarrativePage />
               </LazyWrapper>
             ),
           },

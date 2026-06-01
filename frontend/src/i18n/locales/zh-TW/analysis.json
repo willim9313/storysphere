@@ -766,5 +766,74 @@
     "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。",
     "emptyUnravelingBtn": "開啟建構概覽",
     "emptyRecheckBtn": "重新檢查狀態"
+  },
+  "narrative": {
+    "heroJourney": "英雄旅程",
+    "hjSub": "Campbell《千面英雄》· Vogler 12 階段",
+    "phase": {
+      "departure": "啟程",
+      "initiation": "啟蒙",
+      "return": "歸返"
+    },
+    "state": {
+      "filled": "已識別",
+      "low": "低信心",
+      "absent": "未識別"
+    },
+    "confidence": "信心",
+    "chapterLabel": "第 {{range}} 章",
+    "noChapters": "無對應章節",
+    "repEvents": "代表性 Kernel 事件",
+    "description": "理論描述",
+    "narrativeFunction": "敘事功能",
+    "notes": "系統詮釋",
+    "review": {
+      "pending": "系統生成 · 未審閱",
+      "approved": "已核可",
+      "rejected": "標記為不適用"
+    },
+    "approve": "核可",
+    "markNA": "標記不適用",
+    "coverage": "已映射 {{mapped}}",
+    "ofTotal": "／ {{total}} 階段",
+    "notProgress": "缺席的階段是有意義的敘事選擇，而非「未完成」",
+    "legend": "圖例",
+    "layout": {
+      "track": "水平軌跡",
+      "columns": "三相位分欄",
+      "ring": "圓環循環",
+      "band": "章節對位帶"
+    },
+    "ring": {
+      "knownWorld": "平凡世界",
+      "specialWorld": "特殊世界"
+    },
+    "stageColumn": "階段",
+    "spine": {
+      "title": "情節骨幹摘要",
+      "subtitle": "書級 Kernel / Satellite 統計",
+      "kernel": "核心事件",
+      "satellite": "衛星事件",
+      "unclassified": "未分類",
+      "events": "事件",
+      "kernelSpine": "核心事件骨幹（依章節）",
+      "footnote": "Kernel / Satellite 細節在事件分析頁",
+      "jump": "前往事件分析頁"
+    },
+    "source": {
+      "heuristic": "啟發式分類",
+      "llm": "LLM 分類",
+      "human": "人工驗證"
+    },
+    "empty": {
+      "title": "尚未產生英雄旅程",
+      "message": "英雄旅程依賴章節摘要，將整本書映射為 Campbell 12 階段的敘事弧。點擊下方按鈕開始分析。",
+      "trigger": "開始英雄旅程分析",
+      "running": "分析中… {{progress}}%"
+    },
+    "errors": {
+      "triggerHero": "觸發英雄旅程分析失敗，請稍後再試。",
+      "heroFailed": "英雄旅程分析失敗。"
+    }
   }
 }

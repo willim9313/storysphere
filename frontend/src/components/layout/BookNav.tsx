@@ -20,6 +20,7 @@ export function BookNav({ bookId, bookTitle }: BookNavProps) {
     { label: t('tabs.timeline'), path: '/timeline' },
     { label: t('tabs.tensionAnalysis'), path: '/tension' },
     { label: t('tabs.symbolImagery'), path: '/symbols' },
+    { label: t('tabs.narrativeStructure'), path: '/narrative' },
     { label: t('tabs.unraveling'), path: '/unraveling' },
   ];
 
