@@ -755,8 +755,7 @@ class TensionService:
 
     @staticmethod
     def _localize_prompt(prompt: str, language: str) -> str:
-        if language.lower().startswith("zh"):
-            return prompt + "\n\nRespond with all text fields in Traditional Chinese."
-        if language.lower().startswith("ja"):
-            return prompt + "\n\nRespond with all text fields in Japanese."
-        return prompt
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+
+        lang_name = get_language_display_name(language)
+        return prompt + f"\nRespond in {lang_name}."
