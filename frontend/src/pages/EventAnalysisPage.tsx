@@ -158,7 +158,7 @@ export default function EventAnalysisPage() {
 
   useEffect(() => {
     if (!batchTask?.result) return;
-    const result = batchTask.result as BatchEepResult;
+    const result = batchTask.result as unknown as BatchEepResult;
     if (result.progress > prevBatchProgress) {
       setPrevBatchProgress(result.progress);
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
@@ -168,7 +168,7 @@ export default function EventAnalysisPage() {
   useEffect(() => {
     if (batchTask?.status === 'done') {
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
-      const result = batchTask.result as BatchEepResult;
+      const result = batchTask.result as unknown as BatchEepResult;
       setBatchSummary(result);
       setBatchTaskId(null);
       setToastVisible(true);

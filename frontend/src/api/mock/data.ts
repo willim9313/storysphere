@@ -24,6 +24,7 @@ export const mockBooks: Book[] = [
     entityCount: 12,
     uploadedAt: '2025-12-01T10:00:00Z',
     lastOpenedAt: '2026-03-14T09:30:00Z',
+    pipelineStatus: { summarization: 'done', featureExtraction: 'done', knowledgeGraph: 'done', symbolDiscovery: 'done' },
   },
   {
     id: 'book-002',
@@ -34,6 +35,7 @@ export const mockBooks: Book[] = [
     entityCount: 8,
     uploadedAt: '2025-11-15T14:00:00Z',
     lastOpenedAt: '2026-03-10T16:20:00Z',
+    pipelineStatus: { summarization: 'done', featureExtraction: 'done', knowledgeGraph: 'done', symbolDiscovery: 'pending' },
   },
   {
     id: 'book-003',
@@ -42,6 +44,7 @@ export const mockBooks: Book[] = [
     status: 'processing',
     chapterCount: 0,
     uploadedAt: '2026-03-15T08:00:00Z',
+    pipelineStatus: { summarization: 'pending', featureExtraction: 'pending', knowledgeGraph: 'pending', symbolDiscovery: 'pending' },
   },
   {
     id: 'book-004',
@@ -51,6 +54,7 @@ export const mockBooks: Book[] = [
     chapterCount: 12,
     entityCount: 15,
     uploadedAt: '2025-10-20T09:00:00Z',
+    pipelineStatus: { summarization: 'done', featureExtraction: 'done', knowledgeGraph: 'done', symbolDiscovery: 'pending' },
   },
 ];
 
@@ -75,6 +79,7 @@ export const mockBookDetail: BookDetail = {
   },
   uploadedAt: '2025-12-01T10:00:00Z',
   lastOpenedAt: '2026-03-14T09:30:00Z',
+  pipelineStatus: { summarization: 'done', featureExtraction: 'done', knowledgeGraph: 'done', symbolDiscovery: 'done' },
 };
 
 // ── Chapters ────────────────────────────────────────────────────

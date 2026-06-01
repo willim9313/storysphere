@@ -13,7 +13,6 @@ export type TimelineConfigUpdate = components['schemas']['TimelineConfigUpdate']
 export type TimelineDetectionResponse = components['schemas']['TimelineDetectionResponse'];
 export type EpistemicStateResponse = components['schemas']['EpistemicStateResponse'];
 export type MisbeliefItemSchema = components['schemas']['MisbeliefItemSchema'];
-export type ClassifyVisibilityResponse = components['schemas']['ClassifyVisibilityResponse'];
 
 export interface GraphSnapshotParams {
   mode?: 'chapter' | 'story';

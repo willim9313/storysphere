@@ -1,11 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle, Edit3, GitBranch, XCircle } from 'lucide-react';
 import type { TensionLine } from '@/api/types';
 
 type ReviewStatus = TensionLine['review_status'];
 
-const STATUS_ICONS: Record<ReviewStatus, JSX.Element> = {
+const STATUS_ICONS: Record<ReviewStatus, ReactElement> = {
   approved: <CheckCircle size={11} />,
   modified: <Edit3 size={11} />,
   rejected: <XCircle size={11} />,

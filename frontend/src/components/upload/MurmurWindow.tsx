@@ -52,9 +52,9 @@ function MurmurEventRow({ event, isNew }: Readonly<{ event: MurmurEvent; isNew: 
               } : {}),
             }}
           >
-            {event.type !== 'raw' && event.meta?.role && (
+            {event.type !== 'raw' && Boolean(event.meta?.role) && (
               <span style={{ color: 'var(--fg-secondary)', fontWeight: 500 }}>
-                {String(event.meta.role)} ·{' '}
+                {String(event.meta?.role)} ·{' '}
               </span>
             )}
             {event.rawContent ?? event.content}

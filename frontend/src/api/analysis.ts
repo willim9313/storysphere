@@ -39,7 +39,7 @@ export function fetchEntityAnalysis(
   bookId: string,
   entityId: string,
 ): Promise<CharacterAnalysisDetail> {
-  if (MOCK_ENABLED) return mock.fetchEntityAnalysis(bookId, entityId) as Promise<CharacterAnalysisDetail>;
+  if (MOCK_ENABLED) return mock.fetchEntityAnalysis(bookId, entityId) as unknown as Promise<CharacterAnalysisDetail>;
   return apiFetch<CharacterAnalysisDetail>(`/books/${bookId}/entities/${entityId}/analysis`);
 }
 
