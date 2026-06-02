@@ -817,6 +817,9 @@
       "unclassified": "未分類",
       "events": "事件",
       "kernelSpine": "核心事件骨幹（依章節）",
+      "multiEvChapter": "同章多事件",
+      "chapterUnit": "第 {{ch}} 章",
+      "eventsUnit": "件事件",
       "footnote": "Kernel / Satellite 細節在事件分析頁",
       "jump": "前往事件分析頁"
     },

@@ -111,7 +111,7 @@ export default function NarrativePage() {
               onReview={(status) => reviewMutation.mutate(status)}
               reviewPending={reviewMutation.isPending}
             />
-            <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} />
+            <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />
           </>
         ) : (
           <div className="nl-empty">
@@ -128,7 +128,7 @@ export default function NarrativePage() {
             </button>
             {structure && (
               <div style={{ width: '100%', maxWidth: 1100, marginTop: 28 }}>
-                <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} />
+                <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />
               </div>
             )}
           </div>

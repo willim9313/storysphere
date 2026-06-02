@@ -817,6 +817,9 @@
       "unclassified": "Unclassified",
       "events": "events",
       "kernelSpine": "Kernel spine (by chapter)",
+      "multiEvChapter": "Multi-event chapters",
+      "chapterUnit": "Ch. {{ch}}",
+      "eventsUnit": "events",
       "footnote": "Kernel / Satellite detail lives on the event analysis page",
       "jump": "Go to event analysis"
     },
