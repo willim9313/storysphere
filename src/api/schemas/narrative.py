@@ -52,5 +52,5 @@ class KernelSpineEvent(BaseModel):
     description: str
     significance: str | None = None
     narrative_weight: str
-    narrative_weight_source: str
-    narrative_position: int
+    narrative_weight_source: str | None = None
+    narrative_position: int | None = None

@@ -48,10 +48,10 @@ async def _run_classify(task_id: str, req: ClassifyNarrativeRequest, narrative_s
     task_store.set_running(task_id)
     await manager.push(
         task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "heuristic_classify", "result": None, "error": None},
+        {"task_id": task_id, "status": "running", "progress": 0, "stage": "eep_classify", "result": None, "error": None},
     )
     try:
-        structure = await narrative_service.classify_by_heuristic(
+        structure = await narrative_service.classify_from_eep(
             req.document_id,
             progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )

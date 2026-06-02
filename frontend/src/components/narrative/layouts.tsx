@@ -211,7 +211,7 @@ export function LayoutRing({ stages, theory, events }: LayoutProps) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12, flex: 1, minHeight: 0 }}>
-      <div style={{ flex: 1, minHeight: 0, position: 'relative' }}>
+      <div style={{ flex: 1, minHeight: 760, position: 'relative' }}>
         <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: 720, height: 720 }}>
           <svg width="720" height="720" style={{ position: 'absolute', inset: 0 }}>
             <circle cx={cx} cy={cy} r={R} fill="none" stroke="var(--border)" strokeWidth="2" strokeDasharray="2 6" />

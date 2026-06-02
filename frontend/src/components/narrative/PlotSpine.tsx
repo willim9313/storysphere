@@ -53,8 +53,12 @@ export function PlotSpine({ structure, kernelEvents, bookId }: PlotSpineProps) {
   const N = Math.max(1, kEvents.reduce((m, e) => Math.max(m, e.chapter), 1));
 
   const seg = (count: number, color: string, label: string) => (
-    <div style={{ flex: count || 0.001, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div style={{ height: 12, background: color, borderRadius: 3 }} />
+    <div style={{
+      flex: count > 0 ? count : '0 0 auto',
+      minWidth: count > 0 ? 0 : undefined,
+      display: 'flex', flexDirection: 'column', gap: 6,
+    }}>
+      <div style={{ height: 12, background: count > 0 ? color : 'transparent', borderRadius: 3 }} />
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg-primary)', lineHeight: 1 }}>{count}</span>
         <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-secondary)' }}>{label}</span>
@@ -95,11 +99,12 @@ export function PlotSpine({ structure, kernelEvents, bookId }: PlotSpineProps) {
         </div>
       </div>
 
-      {/* ratio bar + stats */}
+      {/* ratio bar + stats: each non-zero category gets a flex segment so the count
+          label sits directly below its bar slice (zero-count segments are omitted). */}
       <div style={{ display: 'flex', gap: 14, alignItems: 'flex-end' }}>
-        {seg(counts.kernel, 'var(--accent)', t('narrative.spine.kernel'))}
-        {seg(counts.satellite, 'color-mix(in oklab, var(--accent) 34%, var(--bg-primary))', t('narrative.spine.satellite'))}
-        {seg(counts.unclassified, 'var(--bg-tertiary)', t('narrative.spine.unclassified'))}
+        {seg(counts.kernel,      'var(--accent)',                                              t('narrative.spine.kernel'))}
+        {seg(counts.satellite,   'color-mix(in oklab, var(--accent) 34%, var(--bg-primary))', t('narrative.spine.satellite'))}
+        {seg(counts.unclassified, 'var(--bg-tertiary)',                                       t('narrative.spine.unclassified'))}
         <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, paddingLeft: 6 }}>
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg-muted)', lineHeight: 1 }}>{total}</span>
           <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-muted)' }}>{t('narrative.spine.events')}</span>

@@ -1,8 +1,8 @@
 """NarrativeService — Kernel/Satellite classification and narrative structure — B-033/B-034/B-035.
 
 Phase 1 (B-033):
-  classify_by_heuristic(document_id) — uses summary hierarchy as proxy for importance
-  get_kernel_spine(document_id)       — returns kernel events sorted by narrative position
+  classify_from_eep(document_id) — reads EEP event_importance as authoritative K/S signal
+  get_kernel_spine(document_id)  — returns kernel events sorted by narrative position
 
 Phase 2 (B-034):
   refine_with_llm(document_id)        — LLM refinement of low-confidence classifications
@@ -132,139 +132,94 @@ class NarrativeService:
 
     # ── Phase 1: Heuristic classification ────────────────────────────────────
 
-    async def classify_by_heuristic(
+    async def classify_from_eep(
         self,
         document_id: str,
         progress_callback: Callable[[int, str], None] | None = None,
     ) -> NarrativeStructure:
-        """Classify all events for a book using the summary hierarchy heuristic.
+        """Classify events using EEP analysis results as the authoritative signal.
 
-        Heuristic rules (in order of precedence):
-        1. Event title/significance found in book-level summary  → kernel (confidence 0.85)
-        2. Event title/significance found in same-chapter summary → kernel (confidence 0.65)
-        3. Not found in any summary                               → satellite (confidence 0.60)
+        Events with EEP event_importance=KERNEL  → narrative_weight="kernel"
+        Events with EEP event_importance=SATELLITE → narrative_weight="satellite"
+        Events without an EEP result              → narrative_weight="unclassified"
 
         Side-effect: updates Event.narrative_weight and narrative_weight_source
-        directly in KGService's in-memory store.
+        in KGService's in-memory store.
 
         Returns:
             NarrativeStructure with classified event ID lists, persisted to cache.
         """
-        cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
-        cached = await self._cache.get(cache_key)
-        if cached:
-            return NarrativeStructure(**cached)
+        from services.analysis_models import EventAnalysisResult  # noqa: PLC0415
 
         events = await self._kg.get_events(document_id=document_id)
         if not events:
-            logger.warning("classify_by_heuristic: no events found for document=%s", document_id)
+            logger.warning("classify_from_eep: no events for document=%s", document_id)
             return NarrativeStructure(document_id=document_id)
 
-        # Fetch document (includes book summary + all chapter summaries)
-        doc = await self._doc.get_document(document_id)
-        book_summary = (doc.summary or "").lower() if doc else ""
-        chapter_summaries: dict[int, str] = {}
-        if doc:
-            for ch in doc.chapters:
-                chapter_summaries[ch.number] = (ch.summary or "").lower()
-
-        results: list[KernelSatelliteResult] = []
+        kernel_ids: list[str] = []
+        satellite_ids: list[str] = []
+        unclassified_ids: list[str] = []
         total = len(events)
-        for idx, event in enumerate(events):
-            result = self._classify_event(event, book_summary, chapter_summaries)
-            results.append(result)
-            # Mutate in-place — events are references to KGService's in-memory objects
-            event.narrative_weight = result.narrative_weight
-            event.narrative_weight_source = "summary_heuristic"
-            if progress_callback:
-                progress_callback(int((idx + 1) / total * 100) if total else 0, f"classifying event {idx + 1}/{total}")
 
-        kernel_ids = [r.event_id for r in results if r.narrative_weight == "kernel"]
-        satellite_ids = [r.event_id for r in results if r.narrative_weight == "satellite"]
-        unclassified_ids = [r.event_id for r in results if r.narrative_weight == "unclassified"]
+        for idx, event in enumerate(events):
+            eep_cached = await self._cache.get(f"event:{document_id}:{event.id}")
+            if eep_cached is not None:
+                try:
+                    result = EventAnalysisResult.model_validate(eep_cached)
+                    if result.eep.event_importance.name == "KERNEL":
+                        kernel_ids.append(event.id)
+                        event.narrative_weight = "kernel"
+                    else:
+                        satellite_ids.append(event.id)
+                        event.narrative_weight = "satellite"
+                    event.narrative_weight_source = "llm_classified"
+                except Exception:
+                    unclassified_ids.append(event.id)
+                    event.narrative_weight = "unclassified"
+            else:
+                unclassified_ids.append(event.id)
+                event.narrative_weight = "unclassified"
+            if progress_callback:
+                progress_callback(
+                    int((idx + 1) / total * 100) if total else 0,
+                    f"classifying event {idx + 1}/{total}",
+                )
 
         logger.info(
-            "classify_by_heuristic: document=%s kernel=%d satellite=%d unclassified=%d",
-            document_id,
-            len(kernel_ids),
-            len(satellite_ids),
-            len(unclassified_ids),
+            "classify_from_eep: document=%s kernel=%d satellite=%d unclassified=%d",
+            document_id, len(kernel_ids), len(satellite_ids), len(unclassified_ids),
         )
+
+        # Preserve hero_journey_stages and review_status that may already exist
+        cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
+        existing_raw = await self._cache.get(cache_key)
+        existing = NarrativeStructure(**existing_raw) if existing_raw else None
 
         structure = NarrativeStructure(
             document_id=document_id,
             kernel_event_ids=kernel_ids,
             satellite_event_ids=satellite_ids,
             unclassified_event_ids=unclassified_ids,
-            classification_source="summary_heuristic",
+            classification_source="llm_classified",
+            hero_journey_stages=existing.hero_journey_stages if existing else [],
+            review_status=existing.review_status if existing else "pending",
         )
         await self._cache.set(cache_key, structure.model_dump())
         return structure
-
-    def _classify_event(
-        self,
-        event: Event,
-        book_summary: str,
-        chapter_summaries: dict[int, str],
-    ) -> KernelSatelliteResult:
-        """Classify a single event via text matching against summary levels."""
-        # Build search terms from event title and significance
-        # Only use terms longer than 3 chars to avoid noise from short words
-        terms: list[str] = []
-        if event.title and len(event.title.strip()) > 3:
-            terms.append(event.title.strip().lower())
-        if event.significance and len(event.significance.strip()) > 3:
-            # Use first 80 chars of significance to avoid over-matching
-            terms.append(event.significance.strip().lower()[:80])
-
-        if not terms:
-            return KernelSatelliteResult(
-                event_id=event.id,
-                narrative_weight="unclassified",
-                confidence=0.0,
-                reasoning="Event has no title or significance to match against",
-            )
-
-        # Rule 1: found in book-level summary → strong kernel signal
-        if book_summary and any(term in book_summary for term in terms):
-            return KernelSatelliteResult(
-                event_id=event.id,
-                narrative_weight="kernel",
-                confidence=0.85,
-                reasoning="Event found in book-level summary",
-            )
-
-        # Rule 2: found in chapter summary → moderate kernel signal
-        chapter_summary = chapter_summaries.get(event.chapter, "")
-        if chapter_summary and any(term in chapter_summary for term in terms):
-            return KernelSatelliteResult(
-                event_id=event.id,
-                narrative_weight="kernel",
-                confidence=0.65,
-                reasoning="Event found in chapter summary",
-            )
-
-        # Rule 3: not found anywhere → satellite
-        return KernelSatelliteResult(
-            event_id=event.id,
-            narrative_weight="satellite",
-            confidence=0.60,
-            reasoning="Event not found in book or chapter summary",
-        )
 
     # ── Kernel spine query ────────────────────────────────────────────────────
 
     async def get_kernel_spine(self, document_id: str) -> list[Event]:
         """Return kernel events (plot spine) sorted by chapter then narrative position.
 
-        If events have not been classified yet, runs classify_by_heuristic first.
+        If events have not been classified yet, runs classify_from_eep first.
         """
         events = await self._kg.get_events(document_id=document_id)
 
-        # Auto-classify if no events have been classified yet
+        # Auto-classify from EEP if no events have been classified yet
         all_unclassified = all(e.narrative_weight == "unclassified" for e in events)
         if all_unclassified and events:
-            await self.classify_by_heuristic(document_id)
+            await self.classify_from_eep(document_id)
             events = await self._kg.get_events(document_id=document_id)
 
         kernels = [e for e in events if e.narrative_weight == "kernel"]
@@ -300,11 +255,11 @@ class NarrativeService:
         Returns:
             Updated NarrativeStructure persisted to cache.
         """
-        # Ensure heuristic has run first
+        # Ensure EEP-based classification has run first
         all_events = await self._kg.get_events(document_id=document_id)
         all_unclassified = all(e.narrative_weight == "unclassified" for e in all_events)
         if all_unclassified and all_events:
-            await self.classify_by_heuristic(document_id)
+            await self.classify_from_eep(document_id)
             all_events = await self._kg.get_events(document_id=document_id)
 
         # Build event lookup and sorted order for adjacency
@@ -497,11 +452,26 @@ class NarrativeService:
     # ── Cache accessors (B-036) ───────────────────────────────────────────────
 
     async def get_cached_structure(self, document_id: str) -> NarrativeStructure | None:
-        """Return the cached NarrativeStructure for a book, or None if not found."""
+        """Return the cached NarrativeStructure for a book, or None if not found.
+
+        Structures created by the old text-matching heuristic are migrated on
+        first read: classify_from_eep is called, the result replaces the stale
+        cache, and future reads see the EEP-based counts immediately.
+        """
         cached = await self._cache.get(f"{_CACHE_KEY_PREFIX}:{document_id}")
         if cached is None:
             return None
-        return NarrativeStructure(**cached)
+        structure = NarrativeStructure(**cached)
+        # Migrate any structure left over from the removed heuristic classifier
+        if structure.classification_source == "summary_heuristic":
+            return await self.classify_from_eep(document_id)
+        # Recover hero_journey_stages from dedicated cache if NarrativeStructure lost them
+        if not structure.hero_journey_stages:
+            hj_cached = await self._cache.get(f"{_HERO_JOURNEY_CACHE_PREFIX}:{document_id}")
+            if hj_cached:
+                structure.hero_journey_stages = [HeroJourneyStage(**s) for s in hj_cached]
+                await self._cache.set(f"{_CACHE_KEY_PREFIX}:{document_id}", structure.model_dump())
+        return structure
 
     async def update_review(
         self,
@@ -547,7 +517,17 @@ class NarrativeService:
         if not force:
             cached = await self._cache.get(cache_key)
             if cached:
-                return [HeroJourneyStage(**s) for s in cached]
+                stages = [HeroJourneyStage(**s) for s in cached]
+                # Always ensure NarrativeStructure reflects these stages,
+                # even on cache hit — classify_from_eep may have cleared them.
+                ns_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
+                cached_ns = await self._cache.get(ns_key)
+                if cached_ns:
+                    ns = NarrativeStructure(**cached_ns)
+                    if not ns.hero_journey_stages:
+                        ns.hero_journey_stages = stages
+                        await self._cache.set(ns_key, ns.model_dump())
+                return stages
 
         doc = await self._doc.get_document(document_id)
         if not doc or not doc.chapters:
