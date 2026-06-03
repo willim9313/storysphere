@@ -326,6 +326,29 @@ export default function TimelinePage() {
 
   const activeTags = buildActiveFilterTags(filter, setFilter, filterOptions, modeLabel, eventTypeLabel);
 
+  const genettBanner = (() => {
+    if (!genettTaskId) return null;
+    const status = genettTask?.status;
+    if (status === 'error') {
+      return { type: 'error' as const, task: null, error: genettTask?.error ?? '未知錯誤' };
+    }
+    if (status === 'done') {
+      const r = genettTask?.result ?? {};
+      return {
+        type: (r.coverage_sufficient ? 'success' : 'warning') as 'success' | 'warning',
+        task: {
+          coverageSufficient: r.coverage_sufficient as boolean,
+          coverage: r.coverage as number,
+          structure: r.story_time_structure as string,
+          analepsisCount: (r.analepsis_event_ids as unknown[])?.length ?? 0,
+          prolepsisCount: (r.prolepsis_event_ids as unknown[])?.length ?? 0,
+        },
+        error: null,
+      };
+    }
+    return null;
+  })();
+
   return (
     <div className="tl">
       <Toolbar
@@ -353,6 +376,13 @@ export default function TimelinePage() {
         activeTags={activeTags}
         onClearFilters={() => setFilter(createDefaultFilter())}
       />
+
+      {genettBanner && (
+        <GenettBanner
+          banner={genettBanner}
+          onDismiss={() => setGenettTaskId(null)}
+        />
+      )}
 
       <div className="tl-main">
         <div className="tl-canvas" ref={canvasRef}>
@@ -391,6 +421,70 @@ export default function TimelinePage() {
           />
         )}
       </div>
+    </div>
+  );
+}
+
+/* ── Genette result banner ───────────────────────────────────── */
+
+type GenettBannerData =
+  | { type: 'error'; task: null; error: string }
+  | { type: 'success' | 'warning'; task: { coverageSufficient: boolean; coverage: number; structure: string; analepsisCount: number; prolepsisCount: number }; error: null };
+
+function GenettBanner({ banner, onDismiss }: { banner: GenettBannerData; onDismiss: () => void }) {
+  const { t } = useTranslation('analysis');
+
+  const structureLabel = (s: string) =>
+    t(`timeline.genett.structure.${s}`, {
+      defaultValue: s === 'linear' ? '線性' : s === 'partially_linear' ? '部分線性' : s === 'non_linear' ? '非線性' : '未知',
+    });
+
+  return (
+    <div className={`tl-genett-banner tl-genett-banner--${banner.type}`}>
+      <div className="tl-genett-banner-body">
+        {banner.type === 'error' && (
+          <>
+            <span className="tl-genett-banner-icon">✕</span>
+            <span>
+              {t('timeline.genett.banner.error', { defaultValue: 'Genette 分析失敗：' })}
+              {banner.error}
+            </span>
+          </>
+        )}
+        {banner.type === 'warning' && banner.task && (
+          <>
+            <span className="tl-genett-banner-icon">⚠</span>
+            <span>
+              {t('timeline.genett.banner.lowCoverage', {
+                pct: Math.round(banner.task.coverage * 100),
+                defaultValue: `story_time_hint 覆蓋率僅 ${Math.round(banner.task.coverage * 100)}%，未達 60% 閾值，Genette 時序分析無法執行。`,
+              })}
+            </span>
+          </>
+        )}
+        {banner.type === 'success' && banner.task && (
+          <>
+            <span className="tl-genett-banner-icon">✓</span>
+            <span>
+              {t('timeline.genett.banner.success', { defaultValue: 'Genette 分析完成' })}
+              {' · '}
+              {structureLabel(banner.task.structure)}
+              {banner.task.analepsisCount > 0 && (
+                <> · {t('timeline.genett.banner.analepsis', { n: banner.task.analepsisCount, defaultValue: `倒敘 ${banner.task.analepsisCount} 個` })}</>
+              )}
+              {banner.task.prolepsisCount > 0 && (
+                <> · {t('timeline.genett.banner.prolepsis', { n: banner.task.prolepsisCount, defaultValue: `預敘 ${banner.task.prolepsisCount} 個` })}</>
+              )}
+              {banner.task.analepsisCount === 0 && banner.task.prolepsisCount === 0 && (
+                <> · {t('timeline.genett.banner.noDisplacement', { defaultValue: '無時序錯位' })}</>
+              )}
+            </span>
+          </>
+        )}
+      </div>
+      <button type="button" className="tl-genett-banner-close" onClick={onDismiss} aria-label="關閉">
+        <X size={13} />
+      </button>
     </div>
   );
 }
