@@ -351,38 +351,39 @@ export default function TimelinePage() {
 
   return (
     <div className="tl">
-      <Toolbar
-        order={order}
-        onOrderChange={setOrder}
-        layout={layout}
-        onLayoutChange={setLayout}
-        quality={quality}
-        hasRanks={hasRanks}
-        isComputing={isComputing}
-        onCompute={handleCompute}
-        isRunningGenett={isRunningGenett}
-        genettStatus={genettTask?.status}
-        coverage={coverage}
-        onGenettAnalysis={handleGenettAnalysis}
-        filterCount={activeFilterCount(filter)}
-        filterOpen={filterOpen}
-        onToggleFilter={() => setFilterOpen((v) => !v)}
-        onCloseFilter={() => setFilterOpen(false)}
-        filter={filter}
-        onFilterChange={setFilter}
-        filterOptions={filterOptions}
-        modeLabel={modeLabel}
-        eventTypeLabel={eventTypeLabel}
-        activeTags={activeTags}
-        onClearFilters={() => setFilter(createDefaultFilter())}
-      />
-
-      {genettBanner && (
-        <GenettBanner
-          banner={genettBanner}
-          onDismiss={() => setGenettTaskId(null)}
+      <div>
+        <Toolbar
+          order={order}
+          onOrderChange={setOrder}
+          layout={layout}
+          onLayoutChange={setLayout}
+          quality={quality}
+          hasRanks={hasRanks}
+          isComputing={isComputing}
+          onCompute={handleCompute}
+          isRunningGenett={isRunningGenett}
+          genettStatus={genettTask?.status}
+          coverage={coverage}
+          onGenettAnalysis={handleGenettAnalysis}
+          filterCount={activeFilterCount(filter)}
+          filterOpen={filterOpen}
+          onToggleFilter={() => setFilterOpen((v) => !v)}
+          onCloseFilter={() => setFilterOpen(false)}
+          filter={filter}
+          onFilterChange={setFilter}
+          filterOptions={filterOptions}
+          modeLabel={modeLabel}
+          eventTypeLabel={eventTypeLabel}
+          activeTags={activeTags}
+          onClearFilters={() => setFilter(createDefaultFilter())}
         />
-      )}
+        {genettBanner && (
+          <GenettBanner
+            banner={genettBanner}
+            onDismiss={() => setGenettTaskId(null)}
+          />
+        )}
+      </div>
 
       <div className="tl-main">
         <div className="tl-canvas" ref={canvasRef}>
