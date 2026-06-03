@@ -1,8 +1,18 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import * as d3 from 'd3';
 import { useTranslation } from 'react-i18next';
+import { GitBranch } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import type { TimelineEvent, NarrativeMode } from '@/api/types';
+
+export interface GenettDataShape {
+  structure: string;
+  analepsisIds: Set<string>;
+  prolepsisIds: Set<string>;
+  analepsisCount: number;
+  prolepsisCount: number;
+  displacementByEvent: Map<string, string>;
+}
 
 /* ── Constants ──────────────────────────────────────────────── */
 
@@ -18,6 +28,16 @@ function modeColor(mode: NarrativeMode): string {
     case 'flashforward': return v('--narrative-flashforward-border') || '#f59e0b';
     case 'parallel':     return v('--narrative-parallel-border')     || '#8b5cf6';
     default:             return v('--narrative-unknown-border')      || '#8a7a68';
+  }
+}
+
+function displacementColor(type: string): string {
+  const v = (name: string) =>
+    getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  switch (type) {
+    case 'analepsis': return v('--narrative-flashback-border') || '#3b82f6';
+    case 'prolepsis': return v('--narrative-flashforward-border') || '#f59e0b';
+    default:          return v('--fg-muted') || '#8a7a68';
   }
 }
 
@@ -40,6 +60,7 @@ export interface MatrixCanvasProps {
   onSelectEvent: (id: string | null) => void;
   /** Called with array of selected event IDs after brush selection */
   onBrushSelect?: (ids: string[]) => void;
+  genettData?: GenettDataShape | null;
 }
 
 /* ── Component ──────────────────────────────────────────────── */
@@ -50,6 +71,7 @@ export function MatrixCanvas({
   selectedEventId,
   onSelectEvent,
   onBrushSelect,
+  genettData,
 }: MatrixCanvasProps) {
   const { t } = useTranslation('analysis');
   const { theme } = useTheme();
@@ -58,6 +80,7 @@ export function MatrixCanvas({
   const tooltipRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const [brushedIds, setBrushedIds] = useState<Set<string>>(new Set());
+  const [colorByGenett, setColorByGenett] = useState(false);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -283,6 +306,19 @@ export function MatrixCanvas({
         .attr('stroke-width', 1.5)
         .attr('stroke-dasharray', '6,4')
         .attr('opacity', 0.5);
+
+      const midX = (xScale(0) + xScale(chapters.length - 1)) / 2;
+      const midY = (yScale(0) + yScale(1)) / 2;
+      g.append('text')
+        .attr('x', midX + 8)
+        .attr('y', midY - 8)
+        .attr('fill', 'var(--fg-muted)')
+        .attr('font-size', 9)
+        .attr('opacity', 0.55)
+        .text(colorByGenett && genettData
+          ? t('timeline.matrix.diagonalBaselineLabel', { defaultValue: '零位移基準線' })
+          : t('timeline.matrix.diagonalLabel', { defaultValue: '完全按故事順序敘事' })
+        );
     }
 
     /* ── Dots ───────────────────────────────────────── */
@@ -298,6 +334,12 @@ export function MatrixCanvas({
       .attr('cy', (d) => pos(d).y)
       .attr('r', (d) => dotRadius(d))
       .attr('fill', (d) => {
+        if (colorByGenett && genettData) {
+          const dispType = genettData.displacementByEvent.get(d.id);
+          if (dispType !== undefined) return displacementColor(dispType);
+          if (d.chronologicalRank == null) return modeColor('unknown');
+          return modeColor(d.narrativeMode);
+        }
         if (d.chronologicalRank == null) return modeColor('unknown');
         return modeColor(d.narrativeMode);
       })
@@ -393,12 +435,19 @@ export function MatrixCanvas({
 
     /* ── Legend ──────────────────────────────────────── */
 
-    const legendData: { label: string; color: string; mode: NarrativeMode }[] = [
-      { label: t('timeline.narrativeModes.present'), color: modeColor('present'), mode: 'present' },
-      { label: t('timeline.narrativeModes.flashback'), color: modeColor('flashback'), mode: 'flashback' },
-      { label: t('timeline.narrativeModes.flashforward'), color: modeColor('flashforward'), mode: 'flashforward' },
-      { label: t('timeline.narrativeModes.parallel'), color: modeColor('parallel'), mode: 'parallel' },
-    ];
+    const legendData: { label: string; color: string; dotOpacity?: number }[] = colorByGenett && genettData
+      ? [
+          { label: t('timeline.matrix.genettLegendAnalepsis', { defaultValue: '倒敘' }), color: displacementColor('analepsis') },
+          { label: t('timeline.matrix.genettLegendProlepsis', { defaultValue: '預敘' }), color: displacementColor('prolepsis') },
+          { label: t('timeline.matrix.genettLinear', { defaultValue: '線性（無錯位）' }), color: displacementColor('linear') },
+          { label: t('timeline.matrix.genettUnclassified', { defaultValue: '其他（敘事模式色）' }), color: modeColor('present'), dotOpacity: 0.45 },
+        ]
+      : [
+          { label: t('timeline.narrativeModes.present'), color: modeColor('present') },
+          { label: t('timeline.narrativeModes.flashback'), color: modeColor('flashback') },
+          { label: t('timeline.narrativeModes.flashforward'), color: modeColor('flashforward') },
+          { label: t('timeline.narrativeModes.parallel'), color: modeColor('parallel') },
+        ];
 
     const legendG = g
       .append('g')
@@ -425,7 +474,7 @@ export function MatrixCanvas({
         .attr('cy', 0)
         .attr('r', 4)
         .attr('fill', d.color)
-        .attr('opacity', 0.85);
+        .attr('opacity', d.dotOpacity ?? 0.85);
       row
         .append('text')
         .attr('x', 16)
@@ -449,6 +498,8 @@ export function MatrixCanvas({
     brushedIds,
     onSelectEvent,
     onBrushSelect,
+    colorByGenett,
+    genettData,
     t,
     theme,
   ]);
@@ -471,21 +522,22 @@ export function MatrixCanvas({
 
       {showQuadrants && (
         <>
-          {/* Top-left: prolepsis zone (early chapter, late story-time) */}
-          <div
-            className="tl-quadrant-label"
-            style={{ left: plotLeft + 6, top: plotTop + 4 }}
-          >
-            ↖ {t('timeline.matrix.prolepsisZone')}
-          </div>
-          {/* Bottom-right: analepsis zone (late chapter, early story-time) */}
-          <div
-            className="tl-quadrant-label"
-            style={{ right: size.width - plotRight + 6, bottom: size.height - plotBottom + 36 }}
-          >
-            ↘ {t('timeline.matrix.analepsisZone')}
-          </div>
-          {/* Bottom-left: unranked stripe */}
+          {(!colorByGenett || !genettData) && (
+            <div
+              className="tl-quadrant-label"
+              style={{ left: plotLeft + 6, top: plotTop + 4 }}
+            >
+              ↖ {t('timeline.matrix.prolepsisZone')}
+            </div>
+          )}
+          {(!colorByGenett || !genettData) && (
+            <div
+              className="tl-quadrant-label"
+              style={{ right: size.width - plotRight + 6, bottom: size.height - plotBottom + 36 }}
+            >
+              ↘ {t('timeline.matrix.analepsisZone')}
+            </div>
+          )}
           <div
             className="tl-quadrant-label warn"
             style={{ left: plotLeft + 6, bottom: size.height - plotBottom + 6 }}
@@ -493,6 +545,21 @@ export function MatrixCanvas({
             ⤵ {t('timeline.matrix.unrankedZone')}
           </div>
         </>
+      )}
+
+      {genettData && (
+        <button
+          type="button"
+          className={`tl-genett-color-toggle${colorByGenett ? ' active' : ''}`}
+          style={{ right: size.width - plotRight + 6, top: 4 }}
+          onClick={() => setColorByGenett((v) => !v)}
+        >
+          <GitBranch size={10} />
+          {colorByGenett
+            ? t('timeline.matrix.genettColorToggleOn', { defaultValue: 'Genette 著色（開）' })
+            : t('timeline.matrix.genettColorToggle', { defaultValue: 'Genette 著色' })
+          }
+        </button>
       )}
 
       <div

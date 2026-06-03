@@ -517,7 +517,39 @@
       "marginalLabel": "事件密度",
       "prolepsisZone": "預敘區（早期章節 / 晚期時序）",
       "analepsisZone": "倒敘區（晚期章節 / 早期時序）",
-      "unrankedZone": "未排序事件"
+      "unrankedZone": "未排序事件",
+      "diagonalLabel": "完全按故事順序敘事",
+      "diagonalBaselineLabel": "零位移基準線",
+      "genettColorToggle": "Genette 著色",
+      "genettColorToggleOn": "Genette 著色（開）",
+      "genettLinear": "線性（無錯位）",
+      "genettLegendAnalepsis": "倒敘",
+      "genettLegendProlepsis": "預敘",
+      "genettUnclassified": "其他（敘事模式色）"
+    },
+    "genett": {
+      "structure": {
+        "linear": "線性",
+        "partially_linear": "部分線性",
+        "non_linear": "非線性",
+        "unknown": "未知"
+      },
+      "chip": {
+        "analepsis": "倒敘 {{n}}",
+        "prolepsis": "預敘 {{n}}"
+      },
+      "banner": {
+        "error": "Genette 分析失敗：",
+        "lowCoverage": "story_time_hint 覆蓋率僅 {{pct}}%，未達 60% 閾值，Genette 時序分析無法執行。",
+        "success": "Genette 分析完成",
+        "analepsis": "倒敘 {{n}} 個",
+        "prolepsis": "預敘 {{n}} 個",
+        "noDisplacement": "無時序錯位"
+      },
+      "trigger": "Genette 分析",
+      "running": "分析中...",
+      "tooltip": "執行 Genette 時序分析（倒敘/預敘識別）",
+      "lowCoverageTooltip": "故事時間提示覆蓋率 {{pct}}%，低於 60% 閾值"
     }
   },
   "unravelingLoadError": "無法載入建構概覽資料",

@@ -1126,3 +1126,76 @@
   color: var(--color-success, #22c55e);
   margin-left: 2px;
 }
+
+/* ── Genette structure chip (toolbar) ───────────────────────── */
+.tl-genett-structure-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--fg-secondary);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  letter-spacing: 0.01em;
+}
+.tl-genett-structure-chip.linear {
+  border-color: color-mix(in srgb, var(--color-success) 50%, var(--border));
+  color: var(--color-success);
+  background: color-mix(in srgb, var(--color-success) 6%, var(--bg-secondary));
+}
+.tl-genett-structure-chip.partial {
+  border-color: color-mix(in srgb, var(--color-warning) 50%, var(--border));
+  color: var(--color-warning);
+  background: color-mix(in srgb, var(--color-warning) 6%, var(--bg-secondary));
+}
+.tl-genett-structure-chip.nonlinear {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, var(--bg-secondary));
+}
+
+/* ── Event card right displacement band ─────────────────────── */
+.tl-card.displaced::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  background: var(--card-displacement);
+  border-radius: 2px 0 0 2px;
+}
+.tl-card.kernel.displaced::after { width: 5px; }
+
+/* ── Matrix Genette coloring toggle ─────────────────────────── */
+.tl-genett-color-toggle {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  color: var(--fg-muted);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-family: var(--font-mono);
+  padding: 3px 7px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  z-index: 2;
+  transition: background var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+.tl-genett-color-toggle:hover {
+  background: var(--bg-secondary);
+  color: var(--fg-secondary);
+}
+.tl-genett-color-toggle.active {
+  background: color-mix(in srgb, var(--accent) 10%, var(--bg-primary));
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
+  color: var(--accent);
+}

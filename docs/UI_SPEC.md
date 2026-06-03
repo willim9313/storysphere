@@ -533,7 +533,15 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
   [☰ 篩選 (n)]  ← n 為已套用群組數
   [████░ 65% 已分析]  ← QualityChip（hasChronologicalRanks=true 時）
   [↻ 重新計算時序 / 計算中…]
+  [⎇ Genette 分析 ✓]  [非線性 · 倒敘 3 · 預敘 1]  ← GenettStructureChip（分析完成且覆蓋率足夠時出現）
 ```
+
+**GenettStructureChip（`tl-genett-structure-chip`）**：Genette 分析成功後顯示於按鈕右側的細框 badge，顏色依 `story_time_structure`：
+- `linear` → 綠色（`--color-success`）
+- `partially_linear` → 琥珀（`--color-warning`）
+- `non_linear` → 藍紫（`--accent`）
+
+覆蓋率不足時不顯示 chip（只有 banner 提示原因）。關閉 banner 後 chip **仍保留**（data 與 banner 解耦）。
 
 #### 3.7.2 QualityBanner（hasChronologicalRanks=false 時頂部出現）
 
@@ -556,7 +564,8 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 #### 3.7.4 時間軸主區（EventCard 視覺）
 
 V2 用卡片化節點取代圓點：
-- 左側 3px (KERNEL) / 1px (SATELLITE) 色帶寬度兼任 narrative mode 上色與 importance 強化
+- 左側 3px (KERNEL) / 5px (KERNEL) 色帶：`::before`，`--card-narrative` 顏色，依 `narrativeMode`
+- **右側 3px 色帶（Genette displacement）**：`::after`，`--card-displacement` 顏色，僅當事件命中 `analepsis_event_ids` 或 `prolepsis_event_ids` 時顯示（加 `.displaced` class）；倒敘 = `--narrative-flashback-border`（藍），預敘 = `--narrative-flashforward-border`（琥珀）；不與左側 narrativeMode 色衝突（左 narrative / 右 displacement）
 - 卡頭：NarrativeIcon（自繪 lucide-style）+ K/S 標籤 + Ch.N
 - 標題（serif，2 行 clamp）+ pills（至多 3 個，超出顯示 +N）
 
@@ -608,8 +617,10 @@ chip 風格 toggle（不是 checkbox），分區：事件類型 / 敘事模式 /
 - **頂部邊際 histogram**：每章節事件密度直方圖（accent 色，alpha 隨密度遞增）
 - **45° 對照線**：虛線，表示「完全按故事順序敘事」
 - **degraded row（Y = -0.1）**：warning 色，放 `chronological_rank == null` 事件
-- **Quadrant labels**：「↖ 預敘區 / ↘ 倒敘區 / ⤵ 未排序事件」三象限標籤
-- Dot 半徑：KERNEL 8 / SATELLITE 5 / 預設 6；顏色依 narrative mode
+- **Quadrant labels**：「↖ 預敘區 / ↘ 倒敘區 / ⤵ 未排序事件」三象限標籤（Genette 著色開啟時，前兩個隱藏，只保留未排序）
+- **Genette 著色 toggle（`tl-genett-color-toggle`）**：有 genettData 時才顯示於右上角（與象限標籤同層 HTML overlay）；開啟時 dot 顏色改為 displacement_type 著色（analepsis 藍 / prolepsis 琥珀 / linear 灰），legend 同步切換三類；關閉時還原 narrativeMode 著色
+- **45° 對照線標籤**：Genette 著色關閉時顯示「完全按故事順序敘事」，開啟時改為「零位移基準線」
+- Dot 半徑：KERNEL 8 / SATELLITE 5 / 預設 6；顏色依 narrative mode（Genette 著色關閉時）
 - 框選（brush）：未選中 dot opacity 降至 0.15
 - Tooltip：hover 顯示 title / Ch / mode / rank / participants
 

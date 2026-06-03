@@ -517,7 +517,39 @@
       "marginalLabel": "Events / chapter",
       "prolepsisZone": "Prolepsis (early chapter / late story-time)",
       "analepsisZone": "Analepsis (late chapter / early story-time)",
-      "unrankedZone": "Unranked events"
+      "unrankedZone": "Unranked events",
+      "diagonalLabel": "Perfect narrative order",
+      "diagonalBaselineLabel": "Zero-displacement baseline",
+      "genettColorToggle": "Genette coloring",
+      "genettColorToggleOn": "Genette coloring (on)",
+      "genettLinear": "Linear (no displacement)",
+      "genettLegendAnalepsis": "Analepsis",
+      "genettLegendProlepsis": "Prolepsis",
+      "genettUnclassified": "Other (mode color)"
+    },
+    "genett": {
+      "structure": {
+        "linear": "Linear",
+        "partially_linear": "Partially linear",
+        "non_linear": "Non-linear",
+        "unknown": "Unknown"
+      },
+      "chip": {
+        "analepsis": "analepsis {{n}}",
+        "prolepsis": "prolepsis {{n}}"
+      },
+      "banner": {
+        "error": "Genette analysis failed: ",
+        "lowCoverage": "story_time_hint coverage is only {{pct}}%, below the 60% threshold — Genette temporal analysis cannot run.",
+        "success": "Genette analysis complete",
+        "analepsis": "{{n}} analepsis",
+        "prolepsis": "{{n}} prolepsis",
+        "noDisplacement": "No temporal displacement"
+      },
+      "trigger": "Genette analysis",
+      "running": "Analyzing...",
+      "tooltip": "Run Genette temporal analysis (analepsis/prolepsis detection)",
+      "lowCoverageTooltip": "story_time_hint coverage {{pct}}%, below the 60% threshold"
     }
   },
   "unravelingLoadError": "Failed to load build overview data",

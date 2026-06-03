@@ -35,7 +35,7 @@ import type { TemporalCoverageStats } from '@/api/narrative';
 import { fetchEventAnalysisDetail } from '@/api/analysis';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
-import { MatrixCanvas } from '@/components/timeline/MatrixCanvas';
+import { MatrixCanvas, type GenettDataShape } from '@/components/timeline/MatrixCanvas';
 import { NarrativeIcon } from '@/components/timeline/NarrativeIcon';
 import type {
   TimelineOrder,
@@ -47,6 +47,16 @@ import type {
 import '@/styles/timeline.css';
 
 type LayoutDirection = 'horizontal' | 'vertical';
+
+/* Phase 1 only — replaced by generated.ts TemporalAnalysis in Phase 2 */
+interface TemporalResultShape {
+  coverage_sufficient?: boolean;
+  coverage?: number;
+  story_time_structure?: string;
+  analepsis_event_ids?: string[];
+  prolepsis_event_ids?: string[];
+  displacements?: { event_id: string; displacement_type: string; displacement: number }[];
+}
 
 /* ── Filter state ───────────────────────────────────────────── */
 
@@ -170,6 +180,8 @@ export default function TimelinePage() {
   const [layout, setLayout] = useState<LayoutDirection>('horizontal');
   const [computeTaskId, setComputeTaskId] = useState<string | null>(null);
   const [genettTaskId, setGenettTaskId] = useState<string | null>(null);
+  const [genettResult, setGenettResult] = useState<TemporalResultShape | null>(null);
+  const [genettBannerDismissed, setGenettBannerDismissed] = useState(false);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterState>(createDefaultFilter);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -231,6 +243,32 @@ export default function TimelinePage() {
     genettTaskId !== null &&
     genettTask?.status !== 'done' &&
     genettTask?.status !== 'error';
+
+  useEffect(() => {
+    if (genettTask?.status === 'done' && genettTask.result) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setGenettResult(genettTask.result as TemporalResultShape);
+      setGenettBannerDismissed(false);
+    } else if (genettTask?.status === 'error') {
+      setGenettResult(null);
+      setGenettBannerDismissed(false);
+    }
+  }, [genettTask?.status, genettTask?.result]);
+
+  const genettData = useMemo((): GenettDataShape | null => {
+    if (!genettResult?.coverage_sufficient) return null;
+    const dispMap = new Map<string, string>(
+      (genettResult.displacements ?? []).map((d) => [d.event_id, d.displacement_type]),
+    );
+    return {
+      structure: genettResult.story_time_structure ?? 'unknown',
+      analepsisIds: new Set(genettResult.analepsis_event_ids ?? []),
+      prolepsisIds: new Set(genettResult.prolepsis_event_ids ?? []),
+      analepsisCount: genettResult.analepsis_event_ids?.length ?? 0,
+      prolepsisCount: genettResult.prolepsis_event_ids?.length ?? 0,
+      displacementByEvent: dispMap,
+    };
+  }, [genettResult]);
 
   const handleCompute = useCallback(async () => {
     if (!bookId || isComputing) return;
@@ -365,6 +403,7 @@ export default function TimelinePage() {
           genettStatus={genettTask?.status}
           coverage={coverage}
           onGenettAnalysis={handleGenettAnalysis}
+          genettData={genettData}
           filterCount={activeFilterCount(filter)}
           filterOpen={filterOpen}
           onToggleFilter={() => setFilterOpen((v) => !v)}
@@ -377,10 +416,10 @@ export default function TimelinePage() {
           activeTags={activeTags}
           onClearFilters={() => setFilter(createDefaultFilter())}
         />
-        {genettBanner && (
+        {genettBanner && !genettBannerDismissed && (
           <GenettBanner
             banner={genettBanner}
-            onDismiss={() => setGenettTaskId(null)}
+            onDismiss={() => setGenettBannerDismissed(true)}
           />
         )}
       </div>
@@ -393,6 +432,7 @@ export default function TimelinePage() {
               passesFilter={passesFilter}
               selectedEventId={selectedEventId}
               onSelectEvent={setSelectedEventId}
+              genettData={genettData}
             />
           ) : (
             <TimelineCanvas
@@ -406,6 +446,8 @@ export default function TimelinePage() {
               nodeRefs={nodeRefs}
               canvasRef={canvasRef}
               onSelectEvent={setSelectedEventId}
+              analepsisIds={genettData?.analepsisIds ?? new Set()}
+              prolepsisIds={genettData?.prolepsisIds ?? new Set()}
             />
           )}
         </div>
@@ -490,6 +532,45 @@ function GenettBanner({ banner, onDismiss }: { banner: GenettBannerData; onDismi
   );
 }
 
+/* ── Genette structure chip ──────────────────────────────────── */
+
+function GenettStructureChip({
+  structure,
+  analepsisCount,
+  prolepsisCount,
+}: {
+  structure: string;
+  analepsisCount: number;
+  prolepsisCount: number;
+}) {
+  const { t } = useTranslation('analysis');
+  const variant =
+    structure === 'linear' ? 'linear' :
+    structure === 'partially_linear' ? 'partial' :
+    structure === 'non_linear' ? 'nonlinear' : '';
+
+  const structureLabel = t(`timeline.genett.structure.${structure}`, {
+    defaultValue:
+      structure === 'linear' ? '線性' :
+      structure === 'partially_linear' ? '部分線性' :
+      structure === 'non_linear' ? '非線性' : '未知',
+  });
+
+  const parts: string[] = [structureLabel];
+  if (analepsisCount > 0) {
+    parts.push(t('timeline.genett.chip.analepsis', { n: analepsisCount, defaultValue: `倒敘 ${analepsisCount}` }));
+  }
+  if (prolepsisCount > 0) {
+    parts.push(t('timeline.genett.chip.prolepsis', { n: prolepsisCount, defaultValue: `預敘 ${prolepsisCount}` }));
+  }
+
+  return (
+    <div className={`tl-genett-structure-chip${variant ? ` ${variant}` : ''}`}>
+      {parts.join(' · ')}
+    </div>
+  );
+}
+
 /* ── Toolbar ─────────────────────────────────────────────────── */
 
 interface ToolbarProps {
@@ -512,6 +593,7 @@ interface ToolbarProps {
   genettStatus: string | undefined;
   coverage: TemporalCoverageStats | undefined;
   onGenettAnalysis: () => void;
+  genettData: GenettDataShape | null;
   filterCount: number;
   filterOpen: boolean;
   onToggleFilter: () => void;
@@ -538,6 +620,7 @@ function Toolbar({
   genettStatus,
   coverage,
   onGenettAnalysis,
+  genettData,
   filterCount,
   filterOpen,
   onToggleFilter,
@@ -703,6 +786,13 @@ function Toolbar({
               </>
             )}
           </button>
+          {genettData && (
+            <GenettStructureChip
+              structure={genettData.structure}
+              analepsisCount={genettData.analepsisCount}
+              prolepsisCount={genettData.prolepsisCount}
+            />
+          )}
         </div>
       </div>
 
@@ -968,6 +1058,8 @@ interface TimelineCanvasProps {
   nodeRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
   canvasRef: React.RefObject<HTMLDivElement | null>;
   onSelectEvent: (id: string | null) => void;
+  analepsisIds: Set<string>;
+  prolepsisIds: Set<string>;
 }
 
 interface LineCoord {
@@ -988,6 +1080,8 @@ function TimelineCanvas({
   passesFilter,
   nodeRefs,
   onSelectEvent,
+  analepsisIds,
+  prolepsisIds,
 }: TimelineCanvasProps) {
   const { t } = useTranslation('analysis');
   const isHorizontal = layout === 'horizontal';
@@ -1121,6 +1215,8 @@ function TimelineCanvas({
                         passesFilter={passesFilter}
                         nodeRefs={nodeRefs}
                         onSelectEvent={onSelectEvent}
+                        analepsisIds={analepsisIds}
+                        prolepsisIds={prolepsisIds}
                       />
                     ) : (
                       <EventCard
@@ -1132,6 +1228,8 @@ function TimelineCanvas({
                         onSelect={() =>
                           onSelectEvent(seg.event.id === selectedEventId ? null : seg.event.id)
                         }
+                        analepsisIds={analepsisIds}
+                        prolepsisIds={prolepsisIds}
                       />
                     ),
                   )}
@@ -1148,6 +1246,8 @@ function TimelineCanvas({
                   passesFilter={passesFilter}
                   nodeRefs={nodeRefs}
                   onSelectEvent={onSelectEvent}
+                  analepsisIds={analepsisIds}
+                  prolepsisIds={prolepsisIds}
                 />
               ) : (
                 <EventCard
@@ -1159,6 +1259,8 @@ function TimelineCanvas({
                   onSelect={() =>
                     onSelectEvent(seg.event.id === selectedEventId ? null : seg.event.id)
                   }
+                  analepsisIds={analepsisIds}
+                  prolepsisIds={prolepsisIds}
                 />
               ),
             )}
@@ -1211,6 +1313,8 @@ function ParallelGroup({
   passesFilter,
   nodeRefs,
   onSelectEvent,
+  analepsisIds,
+  prolepsisIds,
 }: {
   events: TimelineEvent[];
   isHorizontal: boolean;
@@ -1218,6 +1322,8 @@ function ParallelGroup({
   passesFilter: Map<string, boolean>;
   nodeRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
   onSelectEvent: (id: string | null) => void;
+  analepsisIds: Set<string>;
+  prolepsisIds: Set<string>;
 }) {
   return (
     <div className={`tl-parallel-group${isHorizontal ? ' horizontal' : ' vertical'}`}>
@@ -1229,6 +1335,8 @@ function ParallelGroup({
           dim={!(passesFilter.get(evt.id) ?? true)}
           nodeRefs={nodeRefs}
           onSelect={() => onSelectEvent(evt.id === selectedEventId ? null : evt.id)}
+          analepsisIds={analepsisIds}
+          prolepsisIds={prolepsisIds}
         />
       ))}
     </div>
@@ -1243,12 +1351,16 @@ function EventCard({
   dim,
   nodeRefs,
   onSelect,
+  analepsisIds,
+  prolepsisIds,
 }: {
   event: TimelineEvent;
   selected: boolean;
   dim: boolean;
   nodeRefs: React.MutableRefObject<Map<string, HTMLDivElement>>;
   onSelect: () => void;
+  analepsisIds: Set<string>;
+  prolepsisIds: Set<string>;
 }) {
   const { t } = useTranslation('analysis');
   const importance = event.eventImportance;
@@ -1259,6 +1371,12 @@ function EventCard({
     },
     [event.id, nodeRefs],
   );
+
+  const displacement = analepsisIds.has(event.id)
+    ? 'var(--narrative-flashback-border)'
+    : prolepsisIds.has(event.id)
+      ? 'var(--narrative-flashforward-border)'
+      : undefined;
 
   const pills: { id: string; name: string; type: EntityType }[] = [
     ...event.participants.slice(0, 2),
@@ -1278,8 +1396,11 @@ function EventCard({
   return (
     <div
       ref={cardRef}
-      className={`tl-card${importance === 'KERNEL' ? ' kernel' : ''}${selected ? ' selected' : ''}${dim ? ' dim' : ''}`}
-      style={{ ['--card-narrative' as string]: `var(--narrative-${event.narrativeMode}-border)` }}
+      className={`tl-card${importance === 'KERNEL' ? ' kernel' : ''}${selected ? ' selected' : ''}${dim ? ' dim' : ''}${displacement ? ' displaced' : ''}`}
+      style={{
+        ['--card-narrative' as string]: `var(--narrative-${event.narrativeMode}-border)`,
+        ...(displacement ? { ['--card-displacement' as string]: displacement } : {}),
+      }}
       onClick={onSelect}
       role="button"
       tabIndex={0}
