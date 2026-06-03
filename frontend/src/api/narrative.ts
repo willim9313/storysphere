@@ -6,6 +6,7 @@ import type { TaskStatus } from './types';
 export type NarrativeStructure = components['schemas']['NarrativeStructure'];
 export type HeroJourneyStage = components['schemas']['HeroJourneyStage'];
 export type KernelSpineEvent = components['schemas']['KernelSpineEvent'];
+export type TemporalCoverageStats = components['schemas']['TemporalCoverageStats'];
 
 export type NarrativeReviewStatus = 'pending' | 'approved' | 'rejected';
 
@@ -36,6 +37,27 @@ export function fetchNarrativeStructure(bookId: string): Promise<NarrativeStruct
 
 export function fetchKernelSpine(bookId: string): Promise<KernelSpineEvent[]> {
   return apiFetch<KernelSpineEvent[]>(`/narrative/kernel-spine?book_id=${bookId}`);
+}
+
+// ── Temporal analysis (Genette) ──────────────────────────────────
+
+export function fetchTemporalCoverage(bookId: string): Promise<TemporalCoverageStats> {
+  return apiFetch<TemporalCoverageStats>(`/narrative/temporal/coverage?book_id=${bookId}`);
+}
+
+export function triggerTemporalAnalysis(
+  bookId: string,
+  language = 'zh',
+  force = false,
+): Promise<TaskStatus> {
+  return apiFetch<TaskStatus>('/narrative/temporal', {
+    method: 'POST',
+    body: JSON.stringify({ document_id: bookId, language, force }),
+  });
+}
+
+export function fetchTemporalTask(taskId: string): Promise<TaskStatus> {
+  return apiFetch<TaskStatus>(`/narrative/temporal/${taskId}`);
 }
 
 // ── HITL review (#21l) — book-level review_status ────────────────

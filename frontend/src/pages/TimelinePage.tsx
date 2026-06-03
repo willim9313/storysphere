@@ -23,12 +23,15 @@ import {
   List,
   TrendingUp,
   LayoutGrid,
+  GitBranch,
 } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useTimeline } from '@/hooks/useTimeline';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { computeTimeline } from '@/api/timeline';
+import { triggerTemporalAnalysis, fetchTemporalCoverage } from '@/api/narrative';
+import type { TemporalCoverageStats } from '@/api/narrative';
 import { fetchEventAnalysisDetail } from '@/api/analysis';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
@@ -166,6 +169,7 @@ export default function TimelinePage() {
   const [order, setOrder] = useState<TimelineOrder>('narrative');
   const [layout, setLayout] = useState<LayoutDirection>('horizontal');
   const [computeTaskId, setComputeTaskId] = useState<string | null>(null);
+  const [genettTaskId, setGenettTaskId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterState>(createDefaultFilter);
   const [filterOpen, setFilterOpen] = useState(false);
@@ -184,6 +188,14 @@ export default function TimelinePage() {
   const { data: book } = useBook(bookId);
   const { data, isLoading, error } = useTimeline(bookId, order);
   const { data: computeTask } = useTaskPolling(computeTaskId);
+  const { data: genettTask } = useTaskPolling(genettTaskId);
+
+  const { data: coverage } = useQuery({
+    queryKey: ['narrative', bookId, 'temporal-coverage'],
+    queryFn: () => fetchTemporalCoverage(bookId!),
+    enabled: !!bookId,
+    staleTime: 60_000,
+  });
 
   useEffect(() => {
     setPageContext({ page: 'timeline', bookId, bookTitle: book?.title });
@@ -215,11 +227,22 @@ export default function TimelinePage() {
     computeTask?.status !== 'done' &&
     computeTask?.status !== 'error';
 
+  const isRunningGenett =
+    genettTaskId !== null &&
+    genettTask?.status !== 'done' &&
+    genettTask?.status !== 'error';
+
   const handleCompute = useCallback(async () => {
     if (!bookId || isComputing) return;
     const { taskId } = await computeTimeline(bookId);
     setComputeTaskId(taskId);
   }, [bookId, isComputing]);
+
+  const handleGenettAnalysis = useCallback(async () => {
+    if (!bookId || isRunningGenett) return;
+    const task = await triggerTemporalAnalysis(bookId);
+    setGenettTaskId(task.taskId);
+  }, [bookId, isRunningGenett]);
 
   const sortedEvents = useMemo(() => {
     if (!data?.events) return [];
@@ -314,6 +337,10 @@ export default function TimelinePage() {
         hasRanks={hasRanks}
         isComputing={isComputing}
         onCompute={handleCompute}
+        isRunningGenett={isRunningGenett}
+        genettStatus={genettTask?.status}
+        coverage={coverage}
+        onGenettAnalysis={handleGenettAnalysis}
         filterCount={activeFilterCount(filter)}
         filterOpen={filterOpen}
         onToggleFilter={() => setFilterOpen((v) => !v)}
@@ -386,6 +413,10 @@ interface ToolbarProps {
   hasRanks: boolean;
   isComputing: boolean;
   onCompute: () => void;
+  isRunningGenett: boolean;
+  genettStatus: string | undefined;
+  coverage: TemporalCoverageStats | undefined;
+  onGenettAnalysis: () => void;
   filterCount: number;
   filterOpen: boolean;
   onToggleFilter: () => void;
@@ -408,6 +439,10 @@ function Toolbar({
   hasRanks,
   isComputing,
   onCompute,
+  isRunningGenett,
+  genettStatus,
+  coverage,
+  onGenettAnalysis,
   filterCount,
   filterOpen,
   onToggleFilter,
@@ -422,8 +457,10 @@ function Toolbar({
 }: ToolbarProps) {
   const { t } = useTranslation('analysis');
   const noRanks = !hasRanks;
-  const coverage = quality?.eepCoverage ?? 0;
-  const lowCoverage = coverage < 0.5;
+  const eepCoverage = quality?.eepCoverage ?? 0;
+  const lowCoverage = eepCoverage < 0.5;
+  const genettCoverage = coverage?.coverage ?? 0;
+  const genettSufficient = coverage?.coverage_sufficient ?? false;
 
   const modes: {
     value: TimelineOrder;
@@ -514,10 +551,10 @@ function Toolbar({
               <div className="tl-quality-bar">
                 <div
                   className={`tl-quality-bar-fill${lowCoverage ? ' low' : ''}`}
-                  style={{ width: `${coverage * 100}%` }}
+                  style={{ width: `${eepCoverage * 100}%` }}
                 />
               </div>
-              <span className="tl-quality-pct">{Math.round(coverage * 100)}%</span>
+              <span className="tl-quality-pct">{Math.round(eepCoverage * 100)}%</span>
               <span className="tl-muted">{t('timeline.analyzedShort')}</span>
             </button>
           )}
@@ -538,6 +575,39 @@ function Toolbar({
               </>
             )}
           </button>
+
+          <button
+            type="button"
+            className={`tl-btn${!genettSufficient && coverage ? ' tl-btn-muted' : ''}`}
+            onClick={onGenettAnalysis}
+            disabled={isRunningGenett}
+            title={
+              !genettSufficient && coverage
+                ? t('timeline.genett.lowCoverageTooltip', {
+                    pct: Math.round(genettCoverage * 100),
+                    defaultValue: `故事時間提示覆蓋率 ${Math.round(genettCoverage * 100)}%，低於 60% 閾值`,
+                  })
+                : t('timeline.genett.tooltip', { defaultValue: '執行 Genette 時序分析（倒敘/預敘識別）' })
+            }
+          >
+            {isRunningGenett ? (
+              <>
+                <Loader2 size={12} className="tl-spin" />
+                {t('timeline.genett.running', { defaultValue: '分析中...' })}
+              </>
+            ) : (
+              <>
+                <GitBranch size={12} />
+                {t('timeline.genett.trigger', { defaultValue: 'Genette 分析' })}
+                {genettStatus === 'done' && (
+                  <span className="tl-badge tl-badge-done">✓</span>
+                )}
+                {!genettSufficient && coverage && (
+                  <span className="tl-warn-dot" />
+                )}
+              </>
+            )}
+          </button>
         </div>
       </div>
 
@@ -552,7 +622,7 @@ function Toolbar({
               {t('timeline.banner.sub', {
                 analyzed: quality.analyzedCount,
                 total: quality.totalCount,
-                pct: Math.round(coverage * 100),
+                pct: Math.round(eepCoverage * 100),
               })}
             </div>
           </div>
