@@ -4,12 +4,19 @@ import * as mock from './mock/mockClient';
 import type { TaskStatus } from './types';
 
 // #2 — Upload book (PDF)
-export function uploadBook(file: File, title: string, author?: string, signal?: AbortSignal): Promise<{ taskId: string }> {
+export function uploadBook(
+  file: File,
+  title: string,
+  author?: string,
+  language?: string,
+  signal?: AbortSignal,
+): Promise<{ taskId: string }> {
   if (MOCK_ENABLED) return mock.uploadBook(file);
   const form = new FormData();
   form.append('file', file);
   form.append('title', title);
   if (author) form.append('author', author);
+  if (language) form.append('language', language);
   return apiUpload<{ taskId: string }>('/books/upload', form, signal);
 }
 

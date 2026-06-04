@@ -21,10 +21,24 @@ interface ErroredTask {
   message?: string;
 }
 
+const LANGUAGE_OPTIONS = [
+  { value: '', labelKey: 'languageAuto' },
+  { value: 'zh', labelKey: 'languageZh' },
+  { value: 'en', labelKey: 'languageEn' },
+  { value: 'ja', labelKey: 'languageJa' },
+  { value: 'ko', labelKey: 'languageKo' },
+  { value: 'fr', labelKey: 'languageFr' },
+  { value: 'es', labelKey: 'languageEs' },
+  { value: 'de', labelKey: 'languageDe' },
+  { value: 'pt', labelKey: 'languagePt' },
+  { value: 'ru', labelKey: 'languageRu' },
+] as const;
+
 interface PendingFile {
   file: File;
   title: string;
   author: string;
+  language: string;
 }
 
 export default function UploadPage() {
@@ -73,8 +87,8 @@ export default function UploadPage() {
   const abortRef = useRef<AbortController | null>(null);
 
   const upload = useMutation({
-    mutationFn: ({ file, title, author, signal }: { file: File; title: string; author?: string; signal: AbortSignal }) =>
-      uploadBook(file, title, author, signal),
+    mutationFn: ({ file, title, author, language, signal }: { file: File; title: string; author?: string; language?: string; signal: AbortSignal }) =>
+      uploadBook(file, title, author, language, signal),
     onSuccess: (data, { file, title }) => {
       setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name, title }]);
       setPending(null);
@@ -88,7 +102,7 @@ export default function UploadPage() {
     (file: File) => {
       upload.reset();
       const stem = file.name.replace(/\.[^.]+$/, '');
-      setPending({ file, title: stem, author: '' });
+      setPending({ file, title: stem, author: '', language: '' });
     },
     [upload],
   );
@@ -101,6 +115,7 @@ export default function UploadPage() {
       file: pending.file,
       title: pending.title.trim(),
       author: pending.author.trim() || undefined,
+      language: pending.language || undefined,
       signal: controller.signal,
     });
   }, [pending, upload]);
@@ -237,7 +252,7 @@ export default function UploadPage() {
               }}
               value={pending.title}
               onChange={(e) => setPending({ ...pending, title: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmUpload(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleConfirmUpload(); }}
               autoFocus
             />
             <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-muted)', margin: '4px 0 0' }}>
@@ -275,8 +290,47 @@ export default function UploadPage() {
               placeholder={t('authorPlaceholder')}
               value={pending.author}
               onChange={(e) => setPending({ ...pending, author: e.target.value })}
-              onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmUpload(); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleConfirmUpload(); }}
             />
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 12,
+                fontWeight: 500,
+                color: 'var(--fg-secondary)',
+                marginBottom: 6,
+              }}
+            >
+              {t('language')}
+            </label>
+            <select
+              className="w-full"
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 14,
+                color: 'var(--fg-primary)',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 12px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color var(--transition-fast)',
+                cursor: 'pointer',
+              }}
+              value={pending.language}
+              onChange={(e) => setPending({ ...pending, language: e.target.value })}
+            >
+              {LANGUAGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {t(opt.labelKey)}
+                </option>
+              ))}
+            </select>
           </div>
 
           {upload.error && upload.error.name !== 'AbortError' && (

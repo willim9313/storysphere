@@ -3,6 +3,7 @@ import { Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_MB = 50;
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.txt'];
 
 interface DropZoneProps {
   readonly onFileSelected: (file: File) => void;
@@ -15,8 +16,9 @@ export function DropZone({ onFileSelected }: DropZoneProps) {
 
   const handleFile = useCallback(
     (file: File) => {
-      if (!file.name.toLowerCase().endsWith('.pdf') || file.type !== 'application/pdf') {
-        setError(t('dropzone.errorNotPdf'));
+      const name = file.name.toLowerCase();
+      if (!ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
+        setError(t('dropzone.errorInvalidFormat'));
         return;
       }
       if (file.size > MAX_FILE_MB * 1024 * 1024) {
@@ -79,7 +81,7 @@ export function DropZone({ onFileSelected }: DropZoneProps) {
         <input
           id="file-input"
           type="file"
-          accept=".pdf"
+          accept=".pdf,.docx,.txt"
           className="hidden"
           onChange={onChange}
         />

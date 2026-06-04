@@ -13,6 +13,7 @@ from .timeline import TimelineConfig
 class FileType(str, Enum):
     PDF = "pdf"
     DOCX = "docx"
+    TXT = "txt"
 
 
 class StepStatus(str, Enum):

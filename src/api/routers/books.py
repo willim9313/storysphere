@@ -136,6 +136,7 @@ async def _run_ingestion_graph(
     file_path: Path,
     title: str,
     author: str | None = None,
+    language: str | None = None,
 ) -> None:
     from langgraph.errors import GraphInterrupt  # noqa: PLC0415
 
@@ -149,7 +150,7 @@ async def _run_ingestion_graph(
         "file_path": str(file_path),
         "title": title,
         "author": author,
-        "language": None,
+        "language": language,
         "task_id": task_id,
         "doc_id": None,
         "errors": [],
@@ -540,17 +541,20 @@ async def upload_book(
     file: UploadFile,
     title: Annotated[str | None, Form()] = None,
     author: Annotated[str | None, Form()] = None,
+    language: Annotated[str | None, Form()] = None,
 ) -> dict:
-    """Upload a PDF/DOCX and start background ingestion."""
+    """Upload a PDF/DOCX/TXT and start background ingestion."""
     suffix = Path(file.filename or "upload").suffix.lower()
-    if suffix not in {".pdf", ".docx"}:
+    if suffix not in {".pdf", ".docx", ".txt"}:
         raise HTTPException(
-            status_code=422, detail="Only .pdf and .docx files are supported"
+            status_code=422,
+            detail="Only .pdf, .docx and .txt files are supported",
         )
 
     # Use user-provided title if given, otherwise fall back to filename stem
     title = (title.strip() if title and title.strip() else None) or Path(file.filename or "Untitled").stem
     author = author.strip() if author and author.strip() else None
+    language = language.strip() or None if language else None
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
@@ -575,7 +579,7 @@ async def upload_book(
 
     task_id = str(uuid4())
     task_store.create(task_id)
-    task = asyncio.create_task(_run_ingestion_graph(task_id, Path(tmp.name), title, author))
+    task = asyncio.create_task(_run_ingestion_graph(task_id, Path(tmp.name), title, author, language))
     task_registry.register(task_id, task)
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
