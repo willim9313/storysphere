@@ -181,7 +181,8 @@ class LLMClient:
         return [TokenTrackingHandler(provider=provider, model=model, token_store=self._token_store)]
 
     def _build_gemini(self, temperature: float, **kwargs: object) -> BaseChatModel:
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        from google.genai.types import HarmBlockThreshold, HarmCategory  # noqa: PLC0415
+        from langchain_google_genai import ChatGoogleGenerativeAI  # noqa: PLC0415
 
         model = str(kwargs.pop("model", self._settings.gemini_model))
         # Thinking config: disable by default to save token costs
@@ -189,10 +190,17 @@ class LLMClient:
             kwargs.setdefault("thinking_budget", self._settings.llm_thinking_budget)
         else:
             kwargs.setdefault("thinking_budget", 0)
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.BLOCK_NONE,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.BLOCK_NONE,
+        }
         return ChatGoogleGenerativeAI(
             model=model,
             temperature=temperature,
             google_api_key=self._settings.gemini_api_key,
+            safety_settings=safety_settings,
             callbacks=self._make_callbacks("gemini", model),
             **kwargs,
         )
