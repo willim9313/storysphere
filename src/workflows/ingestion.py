@@ -354,6 +354,14 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                     murmur_cb=_summ_murmur_cb,
                 )
                 doc.pipeline_status.summarization = StepStatus.done
+                if (
+                    summ_result.chapters_total > 0
+                    and summ_result.chapters_summarized < summ_result.chapters_total
+                ):
+                    skipped = summ_result.chapters_total - summ_result.chapters_summarized
+                    errors.append(
+                        f"summarization: {skipped}/{summ_result.chapters_total} chapters skipped"
+                    )
             except Exception as exc:  # noqa: BLE001
                 logger.error("Summarization failed: %s", exc)
                 errors.append(f"summarization: {exc}")

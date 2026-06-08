@@ -65,6 +65,9 @@ Thumbs.db
 logs/
 \# Optional log file path
 
+# ========== Experiments (local only, never commit) ==========
+experiments/
+
 # ========== Data & Uploads ==========
 data/uploads/
 data/processed/

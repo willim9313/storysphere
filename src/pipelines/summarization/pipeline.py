@@ -24,6 +24,7 @@ class SummarizationResult:
 
     document_id: str
     chapters_summarized: int = 0
+    chapters_total: int = 0
     book_summary_generated: bool = False
 
 
@@ -39,40 +40,17 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
 
     async def run(self, input_data: Document, *, sub_cb=None, murmur_cb=None) -> SummarizationResult:
         doc = input_data
-        chapters_summarized = 0
-        chapters_with_content = [ch for ch in doc.chapters if ch.paragraphs]
-        total = len(chapters_with_content)
+        total = sum(1 for ch in doc.chapters if ch.paragraphs)
 
         if sub_cb:
             sub_cb(0, total, "章節摘要")
 
-        # Step 1: chapter summaries (sequential to avoid rate limits)
-        for chapter in doc.chapters:
-            if not chapter.paragraphs:
-                logger.debug("Skipping chapter %d — no paragraphs", chapter.number)
-                continue
+        chapters_summarized = await self._summarize_chapters(
+            doc, total=total, sub_cb=sub_cb, murmur_cb=murmur_cb
+        )
 
-            text = "\n\n".join(p.text for p in chapter.paragraphs)
-            self._log_step("summarize_chapter", chapter=chapter.number)
-            chapter.summary = await self._summarizer.summarize_chapter(
-                text, chapter.number, chapter.title, language=doc.language
-            )
-            chapters_summarized += 1
-            if sub_cb:
-                sub_cb(chapters_summarized, total, "章節摘要")
-            if murmur_cb:
-                try:
-                    await murmur_cb(chapter.number)
-                except Exception:  # noqa: BLE001
-                    pass
-
-        # Step 2: book summary from chapter summaries
         chapter_summaries = [
-            {
-                "chapter_number": ch.number,
-                "title": ch.title or "",
-                "summary": ch.summary,
-            }
+            {"chapter_number": ch.number, "title": ch.title or "", "summary": ch.summary}
             for ch in doc.chapters
             if ch.summary
         ]
@@ -82,13 +60,49 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
             if sub_cb:
                 sub_cb(total, total, "全書摘要")
             self._log_step("summarize_book")
-            doc.summary = await self._summarizer.summarize_book(
-                chapter_summaries, doc.title, language=doc.language
-            )
-            book_summary_generated = True
+            try:
+                doc.summary = await self._summarizer.summarize_book(
+                    chapter_summaries, doc.title, language=doc.language
+                )
+                book_summary_generated = True
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Book summary failed (skipped): %s", exc)
 
         return SummarizationResult(
             document_id=doc.id,
             chapters_summarized=chapters_summarized,
+            chapters_total=total,
             book_summary_generated=book_summary_generated,
         )
+
+    async def _summarize_chapters(
+        self, doc: Document, *, total: int, sub_cb=None, murmur_cb=None
+    ) -> int:
+        """Summarize each chapter individually; failed chapters are skipped."""
+        chapters_summarized = 0
+        for chapter in doc.chapters:
+            if not chapter.paragraphs:
+                logger.debug("Skipping chapter %d — no paragraphs", chapter.number)
+                continue
+
+            text = "\n\n".join(p.text for p in chapter.paragraphs)
+            self._log_step("summarize_chapter", chapter=chapter.number)
+            try:
+                chapter.summary = await self._summarizer.summarize_chapter(
+                    text, chapter.number, chapter.title, language=doc.language
+                )
+                chapters_summarized += 1
+            except Exception as exc:  # noqa: BLE001
+                logger.warning(
+                    "Chapter %d summarization failed (skipped): %s", chapter.number, exc
+                )
+
+            if sub_cb:
+                sub_cb(chapters_summarized, total, "章節摘要")
+            if murmur_cb:
+                try:
+                    await murmur_cb(chapter.number)
+                except Exception:  # noqa: BLE001
+                    pass
+
+        return chapters_summarized
