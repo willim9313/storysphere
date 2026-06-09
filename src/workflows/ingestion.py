@@ -367,6 +367,11 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 errors.append(f"summarization: {exc}")
                 doc.pipeline_status.summarization = StepStatus.failed
             await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
+            # Persist chapter summaries immediately so they survive a later KG failure
+            try:
+                await self._document_service.save_document(doc)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Summary persist failed (non-fatal): %s", exc)
 
         # ── Step 3: feature extraction (embeddings) ───────────────────────
         _progress(45, "Feature extraction")
@@ -390,6 +395,11 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             )
             doc.pipeline_status.feature_extraction = StepStatus.failed
         await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
+        # Persist chapter keywords immediately so they survive a later KG failure
+        try:
+            await self._document_service.save_document(doc)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Feature extraction persist failed (non-fatal): %s", exc)
 
         # ── Step 4: knowledge graph extraction ───────────────────────────
         _progress(65, "Knowledge graph extraction")
