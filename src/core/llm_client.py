@@ -201,6 +201,7 @@ class LLMClient:
             temperature=temperature,
             google_api_key=self._settings.gemini_api_key,
             safety_settings=safety_settings,
+            request_timeout=120,
             callbacks=self._make_callbacks("gemini", model),
             **kwargs,
         )
@@ -213,6 +214,7 @@ class LLMClient:
             model=model,
             temperature=temperature,
             api_key=self._settings.openai_api_key,  # type: ignore[arg-type]
+            timeout=120,
             callbacks=self._make_callbacks("openai", model),
             **kwargs,
         )
@@ -231,6 +233,7 @@ class LLMClient:
             model=model,
             temperature=temperature,
             api_key=self._settings.anthropic_api_key,  # type: ignore[arg-type]
+            timeout=120,
             callbacks=self._make_callbacks("anthropic", model),
             **kwargs,
         )

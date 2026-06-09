@@ -379,6 +379,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                     45, "Feature extraction",
                     sub_progress=cur, sub_total=tot, sub_stage=label,
                 ),
+                murmur_cb=_murmur,
             )
             doc.pipeline_status.feature_extraction = StepStatus.done
         except Exception as exc:  # noqa: BLE001

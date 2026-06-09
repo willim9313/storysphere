@@ -9,6 +9,7 @@ Uses tenacity retry (3 attempts, exponential backoff).
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 from typing import Any
@@ -276,9 +277,11 @@ class ExtractionService:
     # -- LLM calls with retry -----------------------------------------------
 
     @retry(
-        retry=retry_if_exception_type((ValidationError, json.JSONDecodeError, ValueError)),
+        retry=retry_if_exception_type(
+            (ValidationError, json.JSONDecodeError, ValueError, asyncio.TimeoutError, TimeoutError)
+        ),
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True,
     )
     async def _call_entity_llm(self, text: str, language: str = "en") -> _EntityList:
@@ -299,14 +302,16 @@ class ExtractionService:
         from core.token_callback import set_llm_service_context  # noqa: PLC0415
 
         set_llm_service_context("extraction")
-        response = await llm.ainvoke(messages)
+        response = await asyncio.wait_for(llm.ainvoke(messages), timeout=150)
         content = response.content if hasattr(response, "content") else str(response)
         return _parse_json_response(content)
 
     @retry(
-        retry=retry_if_exception_type((ValidationError, json.JSONDecodeError, ValueError)),
+        retry=retry_if_exception_type(
+            (ValidationError, json.JSONDecodeError, ValueError, asyncio.TimeoutError, TimeoutError)
+        ),
         stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=True,
     )
     async def _call_relation_llm(
@@ -334,7 +339,7 @@ class ExtractionService:
         from core.token_callback import set_llm_service_context  # noqa: PLC0415
 
         set_llm_service_context("extraction")
-        response = await llm.ainvoke(messages)
+        response = await asyncio.wait_for(llm.ainvoke(messages), timeout=150)
         content = response.content if hasattr(response, "content") else str(response)
         return _parse_extraction_response(content)
 
