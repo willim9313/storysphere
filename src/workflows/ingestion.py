@@ -421,6 +421,11 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 errors.append(f"kg_extraction: {exc}")
                 doc.pipeline_status.knowledge_graph = StepStatus.failed
             await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
+            if doc.pipeline_status.knowledge_graph == StepStatus.done:
+                try:
+                    await self._kg_service.save()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("KG save failed (non-fatal): %s", exc)
 
         # ── Step 4b: symbol discovery ─────────────────────────────────────
         _progress(82, "Symbol discovery")
@@ -474,13 +479,6 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 await self._document_service.save_document(doc)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Timeline config persist failed (non-fatal): %s", exc)
-
-        # ── Step 5: persist KG to disk ────────────────────────────────────
-        if not self._skip_kg and doc.pipeline_status.knowledge_graph == StepStatus.done:
-            try:
-                await self._kg_service.save()
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("KG save failed (non-fatal): %s", exc)
 
         # Invalidate per-document analysis caches so stale results are not served
         try:
