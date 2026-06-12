@@ -14,8 +14,17 @@ from typing import Any, Callable
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from core.token_callback import set_llm_service_context
+from core.tracing import update_span as _lf_update_span
 from core.utils.data_sanitizer import DataSanitizer
 from core.utils.output_extractor import extract_json_from_text
+
+try:
+    from langfuse import observe as _lf_observe
+except ImportError:
+    def _lf_observe(**_kw):  # type: ignore[misc]
+        def _d(fn): return fn
+        return _d
+
 from services.analysis_models import (
     ArcSegment,
     ArchetypeResult,
@@ -230,9 +239,11 @@ class AnalysisService:
 
     # ── Public: generate_insight (Phase 3) ─────────────────────────────────────
 
+    @_lf_observe(name="analysis.insight", as_type="chain", capture_input=False, capture_output=False)
     async def generate_insight(
         self, topic: str, context: str = "", language: str = "en"
     ) -> str:
+        _lf_update_span(metadata={"topic": topic[:200], "language": language, "has_context": bool(context)})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
@@ -252,6 +263,7 @@ class AnalysisService:
 
     # ── Public: analyze_character (Phase 5) ────────────────────────────────────
 
+    @_lf_observe(name="analysis.character", as_type="chain", capture_input=False, capture_output=False)
     async def analyze_character(
         self,
         entity_name: str,
@@ -273,6 +285,13 @@ class AnalysisService:
         """
         if archetype_frameworks is None:
             archetype_frameworks = ["jung"]
+
+        _lf_update_span(metadata={
+            "entity_name": entity_name,
+            "document_id": document_id,
+            "frameworks": archetype_frameworks,
+            "language": language,
+        })
 
         # Resolve entity
         entity_id = entity_name
@@ -345,6 +364,7 @@ class AnalysisService:
 
     # ── Private: CEP Extraction ────────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.character.cep", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -355,6 +375,7 @@ class AnalysisService:
         self, entity_name: str, document_id: str, language: str = "en"
     ) -> CEPResult:
         """Extract Character Evidence Profile from KG + vector + keywords + LLM."""
+        _lf_update_span(metadata={"entity_name": entity_name, "document_id": document_id, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # --- Parallel data gathering: KG, vector search, keywords ---
@@ -465,6 +486,7 @@ class AnalysisService:
 
     # ── Private: Archetype Classification ──────────────────────────────────────
 
+    @_lf_observe(name="analysis.character.archetype", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -474,6 +496,7 @@ class AnalysisService:
     async def _classify_archetype(
         self, cep: CEPResult, framework: str, language: str
     ) -> ArchetypeResult:
+        _lf_update_span(metadata={"framework": framework, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
         from config.archetypes import get_archetype_summary  # noqa: PLC0415
 
@@ -510,6 +533,7 @@ class AnalysisService:
 
     # ── Private: Character Arc Generation ──────────────────────────────────────
 
+    @_lf_observe(name="analysis.character.arc", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -519,6 +543,7 @@ class AnalysisService:
     async def _generate_character_arc(
         self, cep: CEPResult, language: str = "en"
     ) -> list[ArcSegment]:
+        _lf_update_span(metadata={"language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         cep_text = cep.model_dump_json(indent=2)
@@ -548,6 +573,7 @@ class AnalysisService:
 
     # ── Private: Profile Summary ───────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.character.profile", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -557,6 +583,7 @@ class AnalysisService:
     async def _generate_profile(
         self, entity_name: str, cep: CEPResult, language: str = "en"
     ) -> CharacterProfile:
+        _lf_update_span(metadata={"entity_name": entity_name, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         cep_text = cep.model_dump_json(indent=2)
@@ -580,6 +607,7 @@ class AnalysisService:
 
     # ── Public: analyze_event (Phase 5b) ───────────────────────────────────────
 
+    @_lf_observe(name="analysis.event", as_type="chain", capture_input=False, capture_output=False)
     async def analyze_event(
         self,
         event_id: str,
@@ -596,6 +624,7 @@ class AnalysisService:
         Returns:
             Complete EventAnalysisResult.
         """
+        _lf_update_span(metadata={"event_id": event_id, "document_id": document_id, "language": language})
         from datetime import timezone  # noqa: PLC0415
 
         if self._kg_service is None:
@@ -659,6 +688,7 @@ class AnalysisService:
 
     # ── Private: EEP Extraction ────────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.event.eep", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -669,6 +699,12 @@ class AnalysisService:
         self, event: Any, document_id: str, language: str = "en"
     ) -> EventEvidenceProfile:
         """Assemble EEP from KG + vector evidence, then call LLM to fill fields."""
+        _lf_update_span(metadata={
+            "event_id": event.id,
+            "event_title": event.title,
+            "document_id": document_id,
+            "language": language,
+        })
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Collect participant entities
@@ -808,6 +844,7 @@ class AnalysisService:
 
     # ── Private: Causality Analysis ────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.event.causality", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -818,6 +855,7 @@ class AnalysisService:
         self, eep: EventEvidenceProfile, event: Any, language: str = "en"
     ) -> CausalityAnalysis:
         """Construct narrative causal chain leading to this event."""
+        _lf_update_span(metadata={"event_id": event.id, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Fetch prior event details
@@ -865,6 +903,7 @@ class AnalysisService:
 
     # ── Private: Impact Analysis ───────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.event.impact", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -875,6 +914,7 @@ class AnalysisService:
         self, eep: EventEvidenceProfile, event: Any, language: str = "en"
     ) -> ImpactAnalysis:
         """Trace what happened because of this event."""
+        _lf_update_span(metadata={"event_id": event.id, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Fetch subsequent event details
@@ -929,6 +969,7 @@ class AnalysisService:
 
     # ── Private: Event Summary ─────────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.event.summary", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -944,6 +985,7 @@ class AnalysisService:
         language: str = "en",
     ) -> EventSummary:
         """Synthesize all analysis into a ~150-word narrative paragraph."""
+        _lf_update_span(metadata={"event_id": event.id, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         participants_text = ", ".join(
