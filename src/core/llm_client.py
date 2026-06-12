@@ -177,8 +177,12 @@ class LLMClient:
     def _make_callbacks(self, provider: str, model: str) -> list:
         """Build callback list including token tracking if a store is set."""
         from core.token_callback import TokenTrackingHandler
+        from core.tracing import get_langfuse_handler
 
-        return [TokenTrackingHandler(provider=provider, model=model, token_store=self._token_store)]
+        handlers: list = [TokenTrackingHandler(provider=provider, model=model, token_store=self._token_store)]
+        if lf := get_langfuse_handler():
+            handlers.append(lf)
+        return handlers
 
     def _build_gemini(self, temperature: float, **kwargs: object) -> BaseChatModel:
         from google.genai.types import HarmBlockThreshold, HarmCategory  # noqa: PLC0415
