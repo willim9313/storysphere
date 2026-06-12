@@ -12,7 +12,16 @@ import logging
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from core.tracing import update_span as _lf_update_span
+
 logger = logging.getLogger(__name__)
+
+try:
+    from langfuse import observe as _lf_observe
+except ImportError:
+    def _lf_observe(**_kw):  # type: ignore[misc]
+        def _d(fn): return fn
+        return _d
 
 
 _CHAPTER_SYSTEM_PROMPT = """\
@@ -35,9 +44,8 @@ class SummaryService:
 
     def _get_llm(self):
         if self._llm is None:
-            from core.llm_client import get_llm_client  # noqa: PLC0415
-
             from config.settings import get_settings  # noqa: PLC0415
+            from core.llm_client import get_llm_client  # noqa: PLC0415
 
             settings = get_settings()
             self._llm = get_llm_client().get_with_local_fallback(
@@ -45,6 +53,7 @@ class SummaryService:
             )
         return self._llm
 
+    @_lf_observe(name="summary.chapter", as_type="chain", capture_input=False, capture_output=False)
     async def summarize_chapter(
         self,
         text: str,
@@ -53,6 +62,8 @@ class SummaryService:
         language: str = "en",
     ) -> str:
         """Generate a 3-5 sentence summary for a chapter."""
+        _lf_update_span(metadata={"chapter": chapter_number, "title": title or ""})
+
         from config.settings import get_settings  # noqa: PLC0415
 
         settings = get_settings()
@@ -68,6 +79,7 @@ class SummaryService:
         )
         return summary
 
+    @_lf_observe(name="summary.book", as_type="chain", capture_input=False, capture_output=False)
     async def summarize_book(
         self,
         chapter_summaries: list[dict[str, str]],
@@ -75,6 +87,7 @@ class SummaryService:
         language: str = "en",
     ) -> str:
         """Generate a 5-10 sentence book summary from chapter summaries."""
+        _lf_update_span(metadata={"book_title": book_title or "", "chapter_count": len(chapter_summaries)})
         parts: list[str] = []
         for cs in chapter_summaries:
             label = f"Chapter {cs['chapter_number']}"

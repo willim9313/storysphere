@@ -23,9 +23,17 @@ from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from core.tracing import update_span as _lf_update_span
 from services.query_models import ChapterKeywordMatch
 
 logger = logging.getLogger(__name__)
+
+try:
+    from langfuse import observe as _lf_observe
+except ImportError:
+    def _lf_observe(**_kw):  # type: ignore[misc]
+        def _d(fn): return fn
+        return _d
 
 # -- Stop words (minimal English set for TF-IDF) ----------------------------
 
@@ -170,6 +178,7 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
         wait=wait_exponential(multiplier=1, min=1, max=5),
         reraise=True,
     )
+    @_lf_observe(name="extract.keywords", as_type="chain", capture_input=False, capture_output=False)
     async def _call_llm(
         self, text: str, max_keywords: int, language: str = "en"
     ) -> dict[str, float]:
@@ -189,6 +198,7 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
         ]
         from core.token_callback import set_llm_service_context  # noqa: PLC0415
 
+        _lf_update_span(metadata={"max_keywords": max_keywords})
         set_llm_service_context("keyword")
         response = await llm.ainvoke(messages)
         content = response.content if hasattr(response, "content") else str(response)

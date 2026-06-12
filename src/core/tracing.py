@@ -79,3 +79,15 @@ def get_langfuse_handler():
 def is_tracing_enabled() -> bool:
     """Return True if Langfuse tracing is currently active."""
     return _handler is not None
+
+
+def update_span(**kwargs) -> None:
+    """Update the current Langfuse span with metadata. No-op when tracing is off."""
+    if _handler is None:
+        return
+    try:
+        from langfuse import get_client as _get_client  # noqa: PLC0415
+
+        _get_client().update_current_span(**kwargs)
+    except Exception:
+        pass

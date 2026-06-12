@@ -24,6 +24,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from api.schemas.common import MurmurEvent
+from core.tracing import update_span as _lf_update_span
 from domain.documents import Chapter, Document, StepStatus
 from domain.timeline import TimelineConfig, TimelineDetectionResult
 from pipelines.document_processing import DocumentProcessingPipeline
@@ -40,6 +41,13 @@ from services.kg_service import KGService
 from workflows.base import BaseWorkflow
 
 logger = logging.getLogger(__name__)
+
+try:
+    from langfuse import observe as _lf_observe
+except ImportError:
+    def _lf_observe(**_kw):  # type: ignore[misc]
+        def _d(fn): return fn
+        return _d
 
 
 @dataclass
@@ -273,6 +281,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
 
         return doc
 
+    @_lf_observe(name="ingest.phase2", as_type="agent", capture_input=False, capture_output=False)
     async def run_phase2(
         self,
         doc_id: str,
@@ -289,6 +298,14 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         doc = await self._document_service.get_document(doc_id)
         if doc is None:
             raise ValueError(f"Document '{doc_id}' not found — Phase 1 may not have completed")
+
+        _lf_update_span(metadata={
+            "doc_id": doc_id,
+            "title": doc.title,
+            "language": doc.language,
+            "chapters": doc.total_chapters,
+            "paragraphs": doc.total_paragraphs,
+        })
 
         errors: list[str] = []
 
