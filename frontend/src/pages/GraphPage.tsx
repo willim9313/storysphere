@@ -4,6 +4,7 @@ import { Plus, Minus, X, Loader } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -33,6 +34,8 @@ import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
 import { runInference } from '@/api/graph';
 import type { EntityType, GraphNode, EntityChunkItem } from '@/api/types';
 
+const readCssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
 const ALL_TYPES = new Set<string>(['character', 'location', 'concept', 'event', 'organization', 'object', 'other']);
 const MULTI_SELECT_CAP = 2;
 
@@ -50,6 +53,7 @@ export default function GraphPage() {
   const { data: book } = useBook(bookId);
   const { t, t: tStats } = useTranslation('graph');
   const queryClient = useQueryClient();
+  const { theme } = useTheme();
 
   const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
   const [animationMode, setAnimationMode] = useState<AnimationMode>('fade');
@@ -202,17 +206,20 @@ export default function GraphPage() {
   // Epistemic dim: greying selected character's unknown nodes
   const epistemicStylesheet = useMemo(() => {
     if (unknownEntityIds.size === 0) return [];
+    const dimBg = readCssVar('--bg-tertiary');
+    const dimFg = readCssVar('--fg-muted');
     return Array.from(unknownEntityIds).map((id) => ({
       selector: `node[id = "${id}"]`,
       style: {
-        'background-color': '#e5e7eb',
-        'border-color': '#9ca3af',
+        'background-color': dimBg,
+        'border-color': dimFg,
         'border-style': 'dashed',
         'border-width': 2,
-        color: '#9ca3af',
+        color: dimFg,
       } as Record<string, unknown>,
     }));
-  }, [unknownEntityIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars (getComputedStyle reads the live data-theme) when the theme switches
+  }, [unknownEntityIds, theme]);
 
   // Auto-select entity from query param
   useEffect(() => {
