@@ -75,6 +75,23 @@
 | `--font-sans` | `'DM Sans', system-ui, sans-serif` | `'IM Fell English', Georgia, serif` | `system-ui, -apple-system, sans-serif` | `'Space Mono', 'Courier New', monospace` |
 | `--font-mono` | `'Fira Code', 'Courier New', monospace` | `'Courier New', monospace` | `'Fira Code', 'Courier New', monospace` | `'Space Mono', 'Courier New', monospace` |
 
+### 3.5.1 字級（Font Size）
+
+字級為主題無關（定義於 `:root`，各主題繼承）。所有 font-size 一律引用下列 token，禁止 hardcode px。
+
+| Token | rem | px |
+|-------|-----|----|
+| `--font-size-2xs`  | `0.6875rem` | 11 |
+| `--font-size-xs`   | `0.75rem`   | 12 |
+| `--font-size-sm`   | `0.875rem`  | 14 |
+| `--font-size-base` | `1rem`      | 16 |
+| `--font-size-lg`   | `1.125rem`  | 18 |
+| `--font-size-xl`   | `1.25rem`   | 20 |
+| `--font-size-2xl`  | `1.5rem`    | 24 |
+| `--font-size-3xl`  | `2rem`      | 32 |
+
+> 散落的半階（10.5/11.5/12.5/13.5…）與小於 11px 的值已 snap 至最近 token（B1 重設計，2026-06）。
+
 ### 3.6 主題專用 Token
 
 | Token | default | manuscript | minimal-ink | pulp |

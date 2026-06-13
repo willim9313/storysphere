@@ -154,7 +154,7 @@
     display: inline-flex;
     align-items: center;
     gap: 3px;
-    font-size: 10px;
+    font-size: var(--font-size-2xs);
     padding: 2px 7px;
     border-radius: 20px;
     white-space: nowrap;
@@ -225,7 +225,7 @@
   .kw-tag {
     display: inline-flex;
     align-items: center;
-    font-size: 10px;
+    font-size: var(--font-size-2xs);
     padding: 1px 6px;
     border-radius: 4px;
     white-space: nowrap;
@@ -270,7 +270,7 @@
     align-items: center;
     justify-content: center;
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: var(--font-size-2xs);
     font-weight: 500;
     color: var(--fg-muted);
     position: relative;
@@ -309,7 +309,7 @@
   }
   .ss-step-label {
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 500;
     color: var(--fg-muted);
     line-height: 20px;
@@ -321,7 +321,7 @@
   [data-theme="pulp"] .ss-step-active .ss-step-label { color: var(--fg-primary); }
   .ss-step-sub {
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: var(--font-size-2xs);
     color: var(--fg-muted);
   }
 
@@ -340,13 +340,13 @@
   .ss-log-entry { display: flex; flex-direction: column; gap: 2px; }
   .ss-log-key {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: var(--font-size-2xs);
     color: var(--fg-muted);
     letter-spacing: 0.03em;
   }
   .ss-log-val {
     font-family: var(--font-sans);
-    font-size: 12px;
+    font-size: var(--font-size-xs);
     color: var(--fg-secondary);
     line-height: 1.55;
   }
@@ -369,14 +369,14 @@
   .ss-stat-value {
     display: block;
     font-family: var(--font-serif);
-    font-size: 22px;
+    font-size: var(--font-size-xl);
     font-weight: 700;
     color: var(--fg-primary);
   }
   .ss-stat-label {
     display: block;
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: var(--font-size-2xs);
     color: var(--fg-muted);
     margin-top: 3px;
   }
@@ -403,7 +403,7 @@
   .ss-option-card-body { flex: 1; }
   .ss-option-title {
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: var(--font-size-sm);
     font-weight: 600;
     color: var(--fg-primary);
     display: flex;
@@ -412,14 +412,14 @@
   }
   .ss-option-desc {
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: var(--font-size-2xs);
     color: var(--fg-muted);
     margin-top: 3px;
     line-height: 1.55;
   }
   .ss-option-action {
     font-family: var(--font-sans);
-    font-size: 11px;
+    font-size: var(--font-size-2xs);
     color: var(--accent);
     cursor: pointer;
     display: inline-block;
