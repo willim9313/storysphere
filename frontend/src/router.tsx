@@ -18,6 +18,7 @@ const BuildOverviewPage = lazy(() => import('@/pages/BuildOverviewPage'));
 const MethodologyPage = lazy(() => import('@/pages/MethodologyPage'));
 const TokenUsagePage = lazy(() => import('@/pages/TokenUsagePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const SearchPage = lazy(() => import('@/pages/SearchPage'));
 const ChapterReviewPage = lazy(() => import('@/pages/upload/ChapterReviewPage'));
 
 function LazyWrapper({ children }: { children: React.ReactNode }) {
@@ -49,6 +50,14 @@ export const router = createBrowserRouter([
         element: (
           <LazyWrapper>
             <ChapterReviewPage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: '/search',
+        element: (
+          <LazyWrapper>
+            <SearchPage />
           </LazyWrapper>
         ),
       },

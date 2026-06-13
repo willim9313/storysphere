@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-from fastapi import APIRouter, Query
+from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
@@ -21,11 +19,21 @@ class SearchRequest(BaseModel):
     top_k: int = Field(default=10, ge=1, le=50)
 
 
+class SearchResultMetadata(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    document_id: str
+    chapter_number: int
+    position: int
+
+
 class SearchResult(BaseModel):
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
     id: str
     text: str
     score: float
-    metadata: dict[str, Any]
+    metadata: SearchResultMetadata
 
 
 @router.post("/", response_model=list[SearchResult])
@@ -43,7 +51,11 @@ async def semantic_search(
             id=r.id,
             text=r.text,
             score=r.score,
-            metadata={},
+            metadata=SearchResultMetadata(
+                document_id=r.document_id,
+                chapter_number=r.chapter_number,
+                position=r.position,
+            ),
         )
         for r in results
     ]

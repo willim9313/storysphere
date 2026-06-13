@@ -10,7 +10,7 @@ export function Sidebar() {
     { to: '/', icon: Home, label: t('library') },
     { to: '/upload', icon: Upload, label: t('upload') },
     { to: '/methodology', icon: BookOpen, label: t('frameworks') },
-    { to: '#', icon: Search, label: t('search'), disabled: true },
+    { to: '/search', icon: Search, label: t('search') },
     { to: '/token-usage', icon: BarChart3, label: t('tokenUsage') },
   ];
 

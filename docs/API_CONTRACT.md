@@ -1791,6 +1791,56 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 ---
 
+## 跨書搜尋
+
+### #22a `POST /api/v1/search/` — 語意搜尋
+
+**Request body**（camelCase）：
+
+```json
+{
+  "query": "描述主角內心動搖的段落",
+  "bookId": null,
+  "topK": 20
+}
+```
+
+| 欄位 | 型別 | 說明 |
+|------|------|------|
+| `query` | `string` | 自然語言查詢 |
+| `bookId` | `string \| null` | `null` = 跨書；傳入 UUID = 限定單書 |
+| `topK` | `integer` | 回傳筆數，1–50，預設 20 |
+
+**Response 200**：`SearchResult[]`
+
+```json
+[
+  {
+    "id": "uuid",
+    "text": "段落文本",
+    "score": 0.94,
+    "metadata": {
+      "documentId": "book-uuid",
+      "chapterNumber": 3,
+      "position": 28
+    }
+  }
+]
+```
+
+| 欄位 | 說明 |
+|------|------|
+| `score` | Qdrant 語意相關度，0–1 |
+| `metadata.documentId` | 所屬書籍 UUID，對應 `GET /api/v1/books/` 的 `id` |
+| `metadata.chapterNumber` | 所在章節（1-based） |
+| `metadata.position` | 段落在章節內的位置（1-based） |
+
+**前端封裝**：`frontend/src/api/search.ts`  
+**頁面**：`/search`（Sidebar Search 圖示）  
+**實作狀態（2026-06-13）**：已完整實作；`metadata` 欄位修復（原回傳空 `{}`）。
+
+---
+
 ## TanStack Query Key 對照
 
 ```ts
@@ -1844,4 +1894,5 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 - [x] **#21 系列 `/narrative` 路由**：Kernel/Satellite 分類 + LLM 精煉 + Hero's Journey + Genette 時間序（`src/api/routers/narrative.py`）
   - 2026-06-01：#21k / #21l 加 `response_model=NarrativeStructure`，#21j 加 `response_model=list[KernelSpineEvent]`（新增 schema），讓 `generated.ts` 取得 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。回傳 JSON shape 不變（皆為既有 snake_case domain dump）。前端封裝於 `frontend/src/api/narrative.ts`，頁面為 `/books/:bookId/narrative`（B-045）。
 - [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
+- [x] **#22a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

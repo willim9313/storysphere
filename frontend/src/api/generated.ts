@@ -139,7 +139,7 @@ export interface paths {
         put?: never;
         /**
          * Upload Book
-         * @description Upload a PDF/DOCX and start background ingestion.
+         * @description Upload a PDF/DOCX/TXT and start background ingestion.
          */
         post: operations["upload_book_api_v1_books_upload_post"];
         delete?: never;
@@ -2009,6 +2009,8 @@ export interface components {
             title?: string | null;
             /** Author */
             author?: string | null;
+            /** Language */
+            language?: string | null;
         };
         /** BookDetailResponse */
         BookDetailResponse: {
@@ -2851,9 +2853,9 @@ export interface components {
             /** Narrative Weight */
             narrative_weight: string;
             /** Narrative Weight Source */
-            narrative_weight_source: string;
+            narrative_weight_source?: string | null;
             /** Narrative Position */
-            narrative_position: number;
+            narrative_position?: number | null;
         };
         /** KgMigrateRequest */
         KgMigrateRequest: {
@@ -3323,10 +3325,16 @@ export interface components {
             text: string;
             /** Score */
             score: number;
-            /** Metadata */
-            metadata: {
-                [key: string]: unknown;
-            };
+            metadata: components["schemas"]["SearchResultMetadata"];
+        };
+        /** SearchResultMetadata */
+        SearchResultMetadata: {
+            /** Documentid */
+            documentId: string;
+            /** Chapternumber */
+            chapterNumber: number;
+            /** Position */
+            position: number;
         };
         /** Segment */
         Segment: {

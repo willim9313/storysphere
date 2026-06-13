@@ -1,0 +1,34 @@
+{
+  "title": "跨書搜尋",
+  "subtitle": "以一個概念、情感或問題為出發點，同時在書庫中所有書籍的文本與分析結果裡尋找相關段落。",
+  "placeholder": "描述某種情感或場景，例如：主角內心的動搖…",
+  "submit": "搜尋",
+  "scopeAll": "所有書籍",
+  "scopeLabel": "範圍：",
+  "sortByRelevance": "依相關度排序",
+  "comingSoon": "即將推出",
+  "tabs": {
+    "paragraph": "段落",
+    "character": "人物",
+    "archetype": "原型"
+  },
+  "summary": {
+    "found": "找到 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> 本書籍",
+    "more": "+{{count}} 本"
+  },
+  "result": {
+    "relevance": "相關度",
+    "mentions": "提及：",
+    "goToReader": "前往閱讀",
+    "goToBook": "前往該書",
+    "chapterPos": "第{{chapter}}章·§{{position}}"
+  },
+  "empty": {
+    "noResults": "找不到相關段落",
+    "noResultsHint": "嘗試調整搜尋詞，或以不同方式描述情感與場景。",
+    "noBooks": "書庫尚無書籍",
+    "noBooksHint": "上傳一本小說即可開始跨書搜尋。",
+    "uploadNow": "立即上傳"
+  },
+  "loading": "搜尋中…"
+}
