@@ -78,7 +78,7 @@ function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; o
       )}
       <span className="text-xs" style={{ color: isAwaitingReview ? 'var(--accent)' : 'var(--fg-muted)' }}>
         {isAwaitingReview
-          ? '等待章節審閱'
+          ? t('processing.awaitingReview')
           : `${status?.stage || t('filters.processing')}${status?.progress != null ? ` ${status.progress}%` : ''}`
         }
       </span>
@@ -88,7 +88,7 @@ function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; o
           className="text-xs font-medium mt-auto"
           style={{ color: 'var(--accent)' }}
         >
-          審閱章節 →
+          {t('processing.reviewChapters')} →
         </Link>
       ) : (
         <Link
@@ -97,7 +97,7 @@ function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; o
           style={{ color: 'var(--accent)' }}
           onClick={(e) => e.stopPropagation()}
         >
-          查看進度 →
+          {t('processing.viewProgress')} →
         </Link>
       )}
     </div>

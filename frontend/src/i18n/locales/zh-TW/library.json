@@ -25,5 +25,10 @@
     "triggerAnalysis": "觸發分析",
     "viewProgress": "查看處理進度",
     "viewError": "查看錯誤"
+  },
+  "processing": {
+    "awaitingReview": "等待章節審閱",
+    "reviewChapters": "審閱章節",
+    "viewProgress": "查看進度"
   }
 }
