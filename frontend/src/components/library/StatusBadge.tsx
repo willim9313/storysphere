@@ -2,10 +2,10 @@ import { useTranslation } from 'react-i18next';
 import type { BookStatus } from '@/api/types';
 
 const statusStyle: Record<BookStatus, { bg: string; fg: string }> = {
-  analyzed: { bg: '#dcfce7', fg: '#166534' },
-  ready: { bg: '#dbeafe', fg: '#1e40af' },
-  processing: { bg: '#fef9c3', fg: '#854d0e' },
-  error: { bg: '#fee2e2', fg: '#991b1b' },
+  analyzed: { bg: 'var(--color-success-bg)', fg: 'var(--color-success)' },
+  ready: { bg: 'var(--color-info-bg)', fg: 'var(--color-info)' },
+  processing: { bg: 'var(--color-warning-bg)', fg: 'var(--color-warning)' },
+  error: { bg: 'var(--color-error-bg)', fg: 'var(--color-error)' },
 };
 
 export function StatusBadge({ status }: { status: BookStatus }) {

@@ -229,8 +229,8 @@ export function EntityDetailPanel({
           ) : genTask?.status === 'error' ? (
             <div className="space-y-2">
               <div className="flex items-center gap-1">
-                <AlertTriangle size={12} style={{ color: 'var(--danger, #e53e3e)' }} />
-                <span style={{ fontSize: 11, color: 'var(--danger, #e53e3e)' }}>
+                <AlertTriangle size={12} style={{ color: 'var(--color-error)' }} />
+                <span style={{ fontSize: 11, color: 'var(--color-error)' }}>
                   {t('entity.analysisFailed')}
                   {genTask.error ? `：${genTask.error}` : ''}
                 </span>
@@ -267,7 +267,7 @@ export function EntityDetailPanel({
                 <p>{t('entity.noAnalysis')}</p>
               </SectionBody>
               {triggerError && (
-                <p style={{ fontSize: 11, color: 'var(--danger, #e53e3e)' }}>{triggerError}</p>
+                <p style={{ fontSize: 11, color: 'var(--color-error)' }}>{triggerError}</p>
               )}
               <button
                 className="text-xs px-2 py-1 rounded"
