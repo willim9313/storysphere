@@ -20,8 +20,16 @@ from sqlalchemy import text as sa_text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity, ParagraphRole, PipelineStatus
-from services.query_models import ChapterKeywordMatch, DocumentSummary
+from domain.documents import (
+    Chapter,
+    Document,
+    FileType,
+    Paragraph,
+    ParagraphEntity,
+    ParagraphRole,
+    PipelineStatus,
+)
+from services.query_models import ChapterKeywordMatch, DocumentSummary, VectorSearchResult
 
 logger = logging.getLogger(__name__)
 
@@ -622,6 +630,51 @@ class DocumentService:
                         score=kws[keyword_lower],
                     ))
             return matches
+
+    async def search_paragraphs_by_text(
+        self,
+        query: str,
+        document_id: str | None = None,
+        top_k: int = 20,
+    ) -> list[VectorSearchResult]:
+        """Full-text search on paragraph text using SQLite LIKE (AND for multiple tokens).
+
+        Each space-separated token must appear in the paragraph (AND semantics).
+        Score = total occurrence count of all tokens; results sorted descending.
+        """
+        tokens = [t for t in query.strip().split() if t]
+        if not tokens:
+            return []
+
+        async with self._session_factory() as session:
+            stmt = select(_ParagraphRow)
+            if document_id:
+                stmt = stmt.where(_ParagraphRow.document_id == document_id)
+            for token in tokens:
+                stmt = stmt.where(_ParagraphRow.text.ilike(f"%{token}%"))
+
+            result = await session.execute(stmt)
+            rows = result.scalars().all()
+
+        def _score(text: str) -> float:
+            text_lower = text.lower()
+            return float(sum(text_lower.count(t.lower()) for t in tokens))
+
+        return sorted(
+            [
+                VectorSearchResult(
+                    id=r.id,
+                    score=_score(r.text),
+                    text=r.text,
+                    document_id=r.document_id,
+                    chapter_number=r.chapter_number,
+                    position=r.position,
+                )
+                for r in rows
+            ],
+            key=lambda x: x.score,
+            reverse=True,
+        )[:top_k]
 
     # ── Delete ────────────────────────────────────────────────────────────────
 

@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { Search, ChevronDown, ArrowUpRight, X, Upload } from 'lucide-react';
 
 import { useBooks } from '@/hooks/useBooks';
-import { searchPassages, type SearchResult } from '@/api/search';
+import { searchPassages, type SearchMode, type SearchResult } from '@/api/search';
 
 import '@/styles/search.css';
 
@@ -33,10 +33,19 @@ function highlightText(text: string, query: string): React.ReactNode {
   );
 }
 
-// ── Per-book search helper (extracted to reduce runSearch complexity) ──────────
-async function fetchFilteredResults(q: string, bookIds: string[]): Promise<SearchResult[]> {
+function formatScore(score: number, mode: SearchMode): string {
+  if (mode === 'fulltext') return `${score}次`;
+  return `${Math.round(score * 100)}%`;
+}
+
+// ── Per-book search helper ─────────────────────────────────────────────────────
+async function fetchFilteredResults(
+  q: string,
+  bookIds: string[],
+  mode: SearchMode,
+): Promise<SearchResult[]> {
   const batches = await Promise.allSettled(
-    bookIds.map((id) => searchPassages({ query: q, bookId: id, topK: 10 })),
+    bookIds.map((id) => searchPassages({ query: q, bookId: id, topK: 10, mode })),
   );
   return batches
     .filter((b): b is PromiseFulfilledResult<SearchResult[]> => b.status === 'fulfilled')
@@ -71,11 +80,13 @@ function SkeletonLoader() {
 function BookGroupSection({
   group,
   query,
+  mode,
   onNavigateBook,
   onNavigatePassage,
 }: Readonly<{
   group: BookGroup;
   query: string;
+  mode: SearchMode;
   onNavigateBook: (bookId: string) => void;
   onNavigatePassage: (bookId: string, result: SearchResult) => void;
 }>) {
@@ -94,7 +105,6 @@ function BookGroupSection({
           <ChevronDown size={15} />
         </button>
 
-        {/* h2 is purely semantic; navigation is handled by the goto button */}
         <h2 className="srch-group-title">{group.title}</h2>
 
         <span className="srch-group-count">
@@ -129,7 +139,7 @@ function BookGroupSection({
                   第{ch}章·§{String(pos).padStart(2, '0')}
                 </span>
                 <p className="srch-row-text">{highlightText(result.text, query)}</p>
-                <span className="srch-row-score">{Math.round(result.score * 100)}%</span>
+                <span className="srch-row-score">{formatScore(result.score, mode)}</span>
               </button>
             );
           })}
@@ -147,14 +157,12 @@ export default function SearchPage() {
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [results, setResults] = useState<SearchResult[] | null>(null);
-  // null = pre-search; [] = all books (cross-book, no chip filter); [ids] = filtered
   const [activeBookIds, setActiveBookIds] = useState<string[] | null>(null);
+  const [mode, setMode] = useState<SearchMode>('fulltext');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Prevents chips from being re-seeded when re-querying after chip removal
   const chipsSeededRef = useRef(false);
-  // Generation counter to discard stale search responses
   const searchGenRef = useRef(0);
 
   const { data: books = [] } = useBooks();
@@ -168,7 +176,7 @@ export default function SearchPage() {
 
   // ── Search execution ─────────────────────────────────────────────────────────
   const runSearch = useCallback(
-    async (q: string, filterBookIds: string[] | null) => {
+    async (q: string, filterBookIds: string[] | null, searchMode: SearchMode) => {
       if (!q.trim()) return;
       const gen = ++searchGenRef.current;
       setLoading(true);
@@ -178,16 +186,15 @@ export default function SearchPage() {
         let merged: SearchResult[];
 
         if (filterBookIds === null || filterBookIds.length === 0) {
-          merged = await searchPassages({ query: q, topK: 20 });
+          merged = await searchPassages({ query: q, topK: 20, mode: searchMode });
           if (gen !== searchGenRef.current) return;
 
-          // Seed chips only on the first search after a new submit
           if (!chipsSeededRef.current) {
             chipsSeededRef.current = true;
             setActiveBookIds([...new Set(merged.map((r) => r.metadata.documentId))]);
           }
         } else {
-          merged = await fetchFilteredResults(q, filterBookIds);
+          merged = await fetchFilteredResults(q, filterBookIds, searchMode);
           if (gen !== searchGenRef.current) return;
         }
 
@@ -210,9 +217,9 @@ export default function SearchPage() {
       chipsSeededRef.current = false;
       setSubmittedQuery(query);
       setActiveBookIds(null);
-      void runSearch(query, null);
+      void runSearch(query, null, mode);
     },
-    [query, runSearch],
+    [query, mode, runSearch],
   );
 
   const handleClear = useCallback(() => {
@@ -227,17 +234,27 @@ export default function SearchPage() {
     (bookId: string) => {
       const next = (activeBookIds ?? []).filter((id) => id !== bookId);
       setActiveBookIds(next);
-      // chipsSeededRef stays true → cross-book re-query won't re-seed chips
-      void runSearch(submittedQuery, next.length > 0 ? next : null);
+      void runSearch(submittedQuery, next.length > 0 ? next : null, mode);
     },
-    [activeBookIds, submittedQuery, runSearch],
+    [activeBookIds, submittedQuery, mode, runSearch],
+  );
+
+  const handleModeChange = useCallback(
+    (newMode: SearchMode) => {
+      setMode(newMode);
+      if (submittedQuery) {
+        chipsSeededRef.current = false;
+        setActiveBookIds(null);
+        void runSearch(submittedQuery, null, newMode);
+      }
+    },
+    [submittedQuery, runSearch],
   );
 
   // ── Derived groups ───────────────────────────────────────────────────────────
   const groups = useMemo<BookGroup[]>(() => {
     if (!results) return [];
 
-    // null or [] → show all results; [ids] → filter to those books
     const filtered =
       activeBookIds !== null && activeBookIds.length > 0
         ? results.filter((r) => activeBookIds.includes(r.metadata.documentId))
@@ -259,7 +276,7 @@ export default function SearchPage() {
 
   const totalCount = groups.reduce((s, g) => s + g.results.length, 0);
 
-  // ── Content renderer (avoids deeply nested ternaries in JSX) ─────────────────
+  // ── Content renderer ─────────────────────────────────────────────────────────
   const hasSearched = submittedQuery !== '';
   const showChips = activeBookIds !== null && activeBookIds.length > 0;
 
@@ -315,7 +332,6 @@ export default function SearchPage() {
 
     return (
       <>
-        {/* Summary row */}
         <div className="srch-summary-row">
           <span>
             找到 <strong>{totalCount}</strong> 個段落，來自{' '}
@@ -327,7 +343,6 @@ export default function SearchPage() {
           </span>
         </div>
 
-        {/* Book filter chips — all chips shown in a scrollable row */}
         {showChips && (
           <div className="srch-chips">
             <span className="srch-chips-label">{t('scopeLabel')}</span>
@@ -347,13 +362,13 @@ export default function SearchPage() {
           </div>
         )}
 
-        {/* Result groups */}
         <div className="srch-groups">
           {groups.map((group) => (
             <BookGroupSection
               key={group.documentId}
               group={group}
               query={submittedQuery}
+              mode={mode}
               onNavigateBook={(id) => navigate(`/books/${id}`)}
               onNavigatePassage={(id, result) =>
                 navigate(`/books/${id}`, {
@@ -374,7 +389,6 @@ export default function SearchPage() {
   return (
     <div className="srch-scroll">
       <div className="srch-page">
-        {/* Hero search bar */}
         <form className="srch-hero" onSubmit={handleSubmit}>
           <span className="srch-hero-icon">
             <Search size={22} />
@@ -412,7 +426,6 @@ export default function SearchPage() {
           </button>
         </form>
 
-        {/* Scope tabs */}
         <div className="srch-tabs">
           <button type="button" className="srch-tab active">
             {t('tabs.paragraph')}
@@ -428,6 +441,23 @@ export default function SearchPage() {
             {t('tabs.archetype')}
             <span className="srch-tab-soon">{t('comingSoon')}</span>
           </button>
+
+          <div className="srch-mode-toggle">
+            <button
+              type="button"
+              className={`srch-mode-btn${mode === 'fulltext' ? ' active' : ''}`}
+              onClick={() => handleModeChange('fulltext')}
+            >
+              {t('mode.fulltext')}
+            </button>
+            <button
+              type="button"
+              className={`srch-mode-btn${mode === 'semantic' ? ' active' : ''}`}
+              onClick={() => handleModeChange('semantic')}
+            >
+              {t('mode.semantic')}
+            </button>
+          </div>
         </div>
 
         {renderContent()}

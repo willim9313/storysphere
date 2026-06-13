@@ -1016,8 +1016,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Semantic Search */
-        post: operations["semantic_search_api_v1_search__post"];
+        /** Search */
+        post: operations["search_api_v1_search__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -3316,6 +3316,12 @@ export interface components {
              * @default 10
              */
             topK: number;
+            /**
+             * Mode
+             * @default fulltext
+             * @enum {string}
+             */
+            mode: "semantic" | "fulltext";
         };
         /** SearchResult */
         SearchResult: {
@@ -5701,7 +5707,7 @@ export interface operations {
             };
         };
     };
-    semantic_search_api_v1_search__post: {
+    search_api_v1_search__post: {
         parameters: {
             query?: never;
             header?: never;

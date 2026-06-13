@@ -1,12 +1,14 @@
-"""Semantic search endpoint."""
+"""Semantic and full-text search endpoint."""
 
 from __future__ import annotations
+
+from typing import Literal
 
 from fastapi import APIRouter
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
-from api.deps import VectorServiceDep
+from api.deps import DocServiceDep, VectorServiceDep
 
 router = APIRouter(prefix="/search", tags=["search"])
 
@@ -17,6 +19,7 @@ class SearchRequest(BaseModel):
     book_id: str | None = None
     query: str
     top_k: int = Field(default=10, ge=1, le=50)
+    mode: Literal["semantic", "fulltext"] = "fulltext"
 
 
 class SearchResultMetadata(BaseModel):
@@ -36,16 +39,25 @@ class SearchResult(BaseModel):
     metadata: SearchResultMetadata
 
 
-@router.post("/", response_model=list[SearchResult])
-async def semantic_search(
+@router.post("/")
+async def search(
     vector: VectorServiceDep,
+    doc: DocServiceDep,
     body: SearchRequest,
 ) -> list[SearchResult]:
-    results = await vector.search(
-        query_text=body.query,
-        top_k=body.top_k,
-        document_id=body.book_id,
-    )
+    if body.mode == "fulltext":
+        results = await doc.search_paragraphs_by_text(
+            query=body.query,
+            document_id=body.book_id,
+            top_k=body.top_k,
+        )
+    else:
+        results = await vector.search(
+            query_text=body.query,
+            top_k=body.top_k,
+            document_id=body.book_id,
+        )
+
     return [
         SearchResult(
             id=r.id,
