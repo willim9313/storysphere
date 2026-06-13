@@ -2,7 +2,22 @@
 
 > 產出日期：2026-06-13
 > 範圍：`frontend/src/pages/` 全 16 頁 + 共用元件，比對 `tokens.css` / `DESIGN_TOKENS.md` / `UI_SPEC.md`
-> 狀態：review only，尚未實作。RWD 議題經決策**先擱置**。
+
+---
+
+## 實作進度（更新 2026-06-13）
+
+| 項目 | 狀態 | Commit / 備註 |
+|------|------|--------------|
+| A 區 #1–#4（StatusBadge/ErrorMessage/ClassifyVisibilityButton/EntityDetailPanel token 偏離） | ✅ 完成 | `8a4e370` |
+| A 區 #5（GraphPage cytoscape epistemic-dim 主題化） | ✅ 完成 | `a813f55` |
+| C-i18n（LibraryPage 3 條寫死中文） | ✅ 完成 | `303586c` |
+| B2（新增 `--accent-fg`，取代 on-accent `#fff`） | ✅ 完成 | `081dcac` |
+| B1（字級收斂到 scale，方向 = 7 階 + 底階 11px） | ✅ 完成 | `cd501b2` / `58aac81` / `b88e722`；map 見 [20260613-b1-font-size-scale-snap.md](20260613-b1-font-size-scale-snap.md) |
+| B4（共用 EmptyState/Skeleton） | ⛔ 跳過 | 深查後發現各頁 `*-empty` 實為 error/loading/CTA 多載狀態、**且全部正確使用 token（無 DS 偏離）**；抽元件只買 DRY 卻有回歸風險，決議不做 |
+| B3（RWD） | ⏸ 擱置 | 維持 desktop-only |
+
+> ⚠️ B1 為視覺重設計（半階壓平、字級統一），需在 **4 主題 × 主要頁面**目測確認密集面板無換行/溢出。
 
 ---
 
