@@ -49,7 +49,7 @@ export function StageDetail({ stage, theory, events, compact }: StageDetailProps
 
   const body: React.CSSProperties = {
     fontFamily: 'var(--font-serif)',
-    fontSize: compact ? 12.5 : 13.5,
+    fontSize: compact ? 'var(--font-size-xs)' : 'var(--font-size-sm)',
     lineHeight: 1.7,
     color: 'var(--fg-secondary)',
     margin: 0,
@@ -82,7 +82,7 @@ export function StageDetail({ stage, theory, events, compact }: StageDetailProps
             style={{
               margin: 0,
               fontFamily: 'var(--font-serif)',
-              fontSize: compact ? 18 : 21,
+              fontSize: compact ? 'var(--font-size-lg)' : 'var(--font-size-xl)',
               fontWeight: 700,
               color: 'var(--fg-primary)',
               lineHeight: 1.2,

@@ -14,7 +14,7 @@ export function StateBadge({ stage, size = 'md' }: { stage: HeroJourneyStage; si
     alignItems: 'center',
     gap: 4,
     fontFamily: 'var(--font-sans)',
-    fontSize: sm ? 10 : 11,
+    fontSize: 'var(--font-size-2xs)',
     fontWeight: 600,
     padding: sm ? '1px 7px' : '2px 9px',
     borderRadius: 20,

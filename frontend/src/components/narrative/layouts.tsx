@@ -241,7 +241,7 @@ export function LayoutRing({ stages, theory, events }: LayoutProps) {
                   top: ly,
                   transform: 'translate(-50%,-50%)',
                   fontFamily: 'var(--font-sans)',
-                  fontSize: 10.5,
+                  fontSize: 'var(--font-size-2xs)',
                   fontWeight: 700,
                   letterSpacing: '0.1em',
                   textTransform: 'uppercase',

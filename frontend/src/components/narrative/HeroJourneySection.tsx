@@ -75,7 +75,7 @@ export function HeroJourneySection({ stages, theory, events, chapterCount, revie
             <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--fg-primary)', letterSpacing: '-0.01em' }}>{t('narrative.heroJourney')}</h2>
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>{t('narrative.hjSub')}</span>
           </div>
-          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontSize: 11.5, color: 'var(--fg-secondary)', flexWrap: 'wrap' }}>
+          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)', flexWrap: 'wrap' }}>
             <span style={{ whiteSpace: 'nowrap' }}>
               <b style={{ color: 'var(--accent)', fontWeight: 700 }}>{t('narrative.coverage', { mapped })}</b> {t('narrative.ofTotal', { total: STAGE_ORDER.length })}
             </span>

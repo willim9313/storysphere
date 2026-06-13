@@ -55,7 +55,7 @@
   flex: 1;
   min-width: 0;
   font-family: var(--font-sans);
-  font-size: 16px;
+  font-size: var(--font-size-base);
   color: var(--fg-primary);
   background: transparent;
   border: none;
@@ -79,7 +79,7 @@
   background: var(--bg-secondary);
   color: var(--fg-secondary);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   white-space: nowrap;
   cursor: default;
@@ -95,7 +95,7 @@
   color: var(--bg-primary);
   border: var(--border-width) solid var(--accent);
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
@@ -133,7 +133,7 @@
   padding: 9px 1px;
   color: var(--fg-muted);
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   border: none;
   background: none;
@@ -148,7 +148,7 @@
 }
 
 .srch-tab-count {
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   color: var(--fg-muted);
   background: var(--bg-tertiary);
@@ -166,7 +166,7 @@
 
 .srch-mode-btn {
   font-family: var(--font-sans);
-  font-size: 11.5px;
+  font-size: var(--font-size-2xs);
   font-weight: 500;
   color: var(--fg-muted);
   background: none;
@@ -190,7 +190,7 @@
 }
 
 .srch-tab-soon {
-  font-size: 9.5px;
+  font-size: var(--font-size-2xs);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -209,7 +209,7 @@
   justify-content: space-between;
   gap: 12px;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--fg-secondary);
 }
 
@@ -221,7 +221,7 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--fg-muted);
   white-space: nowrap;
 }
@@ -235,7 +235,7 @@
 
 .srch-chips-label {
   font-family: var(--font-sans);
-  font-size: 11.5px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   font-weight: 600;
 }
@@ -251,7 +251,7 @@
   border-style: var(--border-style);
   border-color: var(--border);
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   color: var(--fg-secondary);
 }
@@ -308,7 +308,7 @@
 
 .srch-group-title {
   font-family: var(--font-serif);
-  font-size: 17px;
+  font-size: var(--font-size-base);
   font-weight: 700;
   color: var(--accent);
   margin: 0;
@@ -322,7 +322,7 @@
 
 .srch-group-count {
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--fg-muted);
 }
 
@@ -337,7 +337,7 @@
   align-items: center;
   gap: 4px;
   font-family: var(--font-sans);
-  font-size: 11.5px;
+  font-size: var(--font-size-2xs);
   font-weight: 600;
   color: var(--accent);
   background: none;
@@ -383,7 +383,7 @@
 
 .srch-row-pos {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   padding-top: 2px;
   white-space: nowrap;
@@ -391,7 +391,7 @@
 
 .srch-row-text {
   font-family: var(--font-serif);
-  font-size: 13.5px;
+  font-size: var(--font-size-sm);
   line-height: 1.7;
   color: var(--fg-secondary);
   margin: 0;
@@ -399,7 +399,7 @@
 
 .srch-row-score {
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: var(--accent);
   white-space: nowrap;
@@ -462,7 +462,7 @@
 
 .srch-initial-title {
   font-family: var(--font-serif);
-  font-size: 26px;
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   color: var(--fg-primary);
   margin: 0;
@@ -470,7 +470,7 @@
 
 .srch-initial-sub {
   font-family: var(--font-sans);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   line-height: 1.7;
   color: var(--fg-secondary);
   margin: -8px 0 0;
@@ -489,7 +489,7 @@
 
 .srch-empty-title {
   font-family: var(--font-serif);
-  font-size: 20px;
+  font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--fg-primary);
   margin: 0;
@@ -497,7 +497,7 @@
 
 .srch-empty-hint {
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--fg-muted);
   max-width: 48ch;
   line-height: 1.6;
@@ -515,7 +515,7 @@
   color: var(--bg-primary);
   border: none;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
   transition: opacity var(--transition-fast);

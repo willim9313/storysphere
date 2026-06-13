@@ -46,7 +46,7 @@
   gap: 7px;
   cursor: pointer;
   font-family: var(--font-sans);
-  font-size: 12.5px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   padding: 8px 15px;
   border-radius: var(--radius-md);
@@ -77,27 +77,27 @@
 }
 .nl-empty-title {
   font-family: var(--font-serif);
-  font-size: 20px;
+  font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--fg-primary);
 }
 .nl-empty-msg {
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   color: var(--fg-muted);
   max-width: 52ch;
   line-height: 1.6;
 }
 .nl-empty-error {
   font-family: var(--font-sans);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--color-error);
 }
 .nl-trigger-btn {
   margin-top: 14px;
   cursor: pointer;
   font-family: var(--font-sans);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   padding: 9px 20px;
   border-radius: var(--radius-md);

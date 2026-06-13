@@ -173,7 +173,7 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
                       {above && (
                         <>
                           {isMulti ? (
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, color: 'var(--fg-muted)', whiteSpace: 'nowrap', paddingBottom: 2 }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', whiteSpace: 'nowrap', paddingBottom: 2 }}>
                               {events.length} {t('narrative.spine.eventsUnit')}
                             </span>
                           ) : (
@@ -217,7 +217,7 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
                         <>
                           <div style={{ width: 1, height: CONN_H, background: CONN_COLOR, flexShrink: 0 }} />
                           {isMulti ? (
-                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 8.5, color: 'var(--fg-muted)', whiteSpace: 'nowrap', paddingTop: 2 }}>
+                            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', whiteSpace: 'nowrap', paddingTop: 2 }}>
                               {events.length} {t('narrative.spine.eventsUnit')}
                             </span>
                           ) : (
@@ -235,7 +235,7 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
           {/* Multi-event chapter expansion — lists every event as a pill, grouped by chapter */}
           {multiChapters.length > 0 && (
             <div style={{ borderTop: 'var(--border-width) var(--border-style) var(--border)', paddingTop: 10, display: 'flex', flexDirection: 'column', gap: 7 }}>
-              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 9.5, fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>
+              <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600, letterSpacing: '0.07em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>
                 {t('narrative.spine.multiEvChapter')}
               </span>
               {multiChapters.map(ch => (
@@ -268,7 +268,7 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
 
       {/* Jump link */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: 'var(--border-width) var(--border-style) var(--border)', paddingTop: 14 }}>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11.5, color: 'var(--fg-muted)' }}>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
           {t('narrative.spine.footnote')}
         </span>
         <button onClick={() => navigate(`/books/${bookId}/events`)} className="nl-jump-btn">

@@ -309,18 +309,18 @@
 [data-theme="pulp"] .md-concept { box-shadow: var(--node-shadow); }
 .md-concept-stage { display: flex; flex-direction: column; align-items: center; }
 .md-svg { width: 100%; height: auto; display: block; }
-.md-svg-center { font-family: var(--font-serif); font-size: 15px; font-weight: 700; fill: var(--fg-primary); }
-.md-svg-centersub { font-family: var(--font-sans); font-size: 10px; fill: var(--fg-muted); }
-.md-svg-label { font-family: var(--font-sans); font-size: 11px; }
-.md-svg-season { font-family: var(--font-serif); font-size: 17px; font-weight: 700; }
-.md-svg-mythos { font-family: var(--font-serif); font-size: 13px; font-weight: 700; }
-.md-svg-reg { font-family: var(--font-sans); font-size: 9.5px; opacity: 0.85; }
-.md-svg-world { font-family: var(--font-sans); font-size: 10px; font-weight: 600; fill: var(--fg-muted); letter-spacing: 0.06em; }
-.md-svg-num { font-family: var(--font-sans); font-size: 11px; font-weight: 700; }
-.md-svg-band { font-family: var(--font-sans); font-size: 11px; font-weight: 600; }
-.md-svg-box { font-family: var(--font-sans); font-size: 11.5px; font-weight: 600; fill: var(--fg-primary); }
-.md-svg-boxnum { font-family: var(--font-sans); font-size: 9px; fill: var(--fg-muted); }
-.md-svg-loop { font-family: var(--font-sans); font-size: 9.5px; font-weight: 600; }
+.md-svg-center { font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; fill: var(--fg-primary); }
+.md-svg-centersub { font-family: var(--font-sans); font-size: var(--font-size-2xs); fill: var(--fg-muted); }
+.md-svg-label { font-family: var(--font-sans); font-size: var(--font-size-2xs); }
+.md-svg-season { font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; }
+.md-svg-mythos { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; }
+.md-svg-reg { font-family: var(--font-sans); font-size: var(--font-size-2xs); opacity: 0.85; }
+.md-svg-world { font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600; fill: var(--fg-muted); letter-spacing: 0.06em; }
+.md-svg-num { font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 700; }
+.md-svg-band { font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600; }
+.md-svg-box { font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600; fill: var(--fg-primary); }
+.md-svg-boxnum { font-family: var(--font-sans); font-size: var(--font-size-2xs); fill: var(--fg-muted); }
+.md-svg-loop { font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600; }
 .md-concept-cap {
   font-size: 0.7188rem;
   line-height: 1.6;

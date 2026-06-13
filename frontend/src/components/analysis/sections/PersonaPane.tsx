@@ -94,7 +94,7 @@ export function PersonaPane({
                 style={{
                   margin: '12px 0 6px',
                   fontFamily: 'var(--font-sans)',
-                  fontSize: 10.5,
+                  fontSize: 'var(--font-size-2xs)',
                   letterSpacing: '0.08em',
                   textTransform: 'uppercase',
                   color: 'var(--fg-muted)',

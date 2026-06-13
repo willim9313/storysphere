@@ -99,7 +99,7 @@
 }
 .tn-step-body { flex: 1; min-width: 0; }
 .tn-step-aggr {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -168,7 +168,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.14em;
@@ -188,7 +188,7 @@
 
 .tn-hero-proposition {
   font-family: var(--font-serif);
-  font-size: 28px;
+  font-size: var(--font-size-2xl);
   line-height: 1.45;
   color: var(--fg-primary);
   margin: 0 0 24px;
@@ -198,12 +198,12 @@
 .tn-hero-proposition--empty {
   color: var(--fg-muted);
   font-style: italic;
-  font-size: 22px;
+  font-size: var(--font-size-xl);
 }
 .tn-hero-proposition-textarea {
   width: 100%;
   font-family: var(--font-serif);
-  font-size: 22px;
+  font-size: var(--font-size-xl);
   line-height: 1.5;
   padding: 14px;
   margin-bottom: 16px;
@@ -227,7 +227,7 @@
   gap: 4px;
 }
 .tn-hero-meta-label {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -310,13 +310,13 @@
   position: absolute;
   top: 12px; right: 14px;
   font-family: var(--font-serif);
-  font-size: 28px;
+  font-size: var(--font-size-2xl);
   color: var(--fg-muted);
   opacity: 0.3;
   line-height: 1;
 }
 .tn-hero-layer-scope {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--accent);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -386,7 +386,7 @@
   margin-bottom: 4px;
 }
 .tn-traj-density-label-cell span {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -434,10 +434,10 @@
   font-style: italic;
   font-family: var(--font-sans);
   padding: 0 4px;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
 }
 .tn-traj-row-meta {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   display: flex;
   gap: 8px;
@@ -469,7 +469,7 @@
   justify-content: center;
 }
 .tn-traj-row-bar-pct {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   font-weight: 500;
 }
 .tn-traj-row-dot {
@@ -488,7 +488,7 @@
 .tn-traj-axis-tick {
   position: absolute;
   top: 4px;
-  font-size: 9px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   transform: translateX(-50%);
 }
@@ -586,7 +586,7 @@
   gap: 5px;
   padding: 2px 9px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   font-weight: 500;
   border: 1px solid;
 }
@@ -706,7 +706,7 @@
 .tn-pole { padding: 0 14px; }
 .tn-pole:first-child { border-right: 1px solid var(--border); }
 .tn-pole-eyebrow {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   color: var(--fg-muted);
@@ -724,7 +724,7 @@
   gap: 4px;
 }
 .tn-pole-carriers-empty {
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   font-style: italic;
 }
@@ -735,7 +735,7 @@
   gap: 4px;
   padding: 2px 9px;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   border: 1px solid;
 }
 .tn-pill-dot {
@@ -789,7 +789,7 @@
 }
 .tn-evidence-hidden {
   padding-top: 8px;
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   font-style: italic;
 }
@@ -804,7 +804,7 @@
 .tn-teu:first-of-type { border-top: none; }
 .tn-teu-ch {
   font-family: var(--font-serif);
-  font-size: 11px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
 .tn-teu-ch strong {
@@ -817,7 +817,7 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
 .tn-teu-intensity-bar {
@@ -875,7 +875,7 @@
 }
 .tn-edit-row input:focus { border-color: var(--accent); outline: none; }
 .tn-edit-row-label {
-  font-size: 10px;
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
 .tn-edit-row-vs {
@@ -927,7 +927,7 @@
   border-color: transparent;
 }
 .tn-btn.ghost:hover:not(:disabled) { color: var(--accent); background: transparent; }
-.tn-btn.sm { padding: 3px 8px; font-size: 11px; }
+.tn-btn.sm { padding: 3px 8px; font-size: var(--font-size-2xs); }
 
 /* Empty state */
 .tn-empty {
