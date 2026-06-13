@@ -279,11 +279,11 @@ function LlmPanel() {
       <PanelHead title={t('llm.title')} sub={t('llm.sub')} />
       <StSection icon={<Cpu size={16} />} title={t('llm.sectionTitle')} note={t('llm.note')}>
         {isLoading ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 'var(--font-size-sm)' }}>
             <Loader2 size={14} className="animate-spin" /> {t('common.loading')}
           </div>
         ) : error || !data ? (
-          <div style={{ color: 'var(--color-error)', fontSize: 13 }}>{t('llm.loadError')}</div>
+          <div style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-sm)' }}>{t('llm.loadError')}</div>
         ) : (
           <div className="st-kv">
             <div className="st-kv-key">{t('llm.provider')}</div>
@@ -358,11 +358,11 @@ function EnvPanel() {
       {/* A. Deploy mode radio cards */}
       <StSection icon={<Server size={16} />} title={t('env.deployTitle')}>
         {kgLoading ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 13 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 'var(--font-size-sm)' }}>
             <Loader2 size={14} className="animate-spin" /> {t('common.loading')}
           </div>
         ) : kgError ? (
-          <div style={{ color: 'var(--color-error)', fontSize: 13 }}>{t('env.loadError')}</div>
+          <div style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-sm)' }}>{t('env.loadError')}</div>
         ) : (
           <div className="st-radio-grid">
             {/* Lightweight */}
@@ -420,7 +420,7 @@ function EnvPanel() {
             <div className="st-kv-key">{t('env.kgBackend')}</div>
             <div className="st-kv-val">
               <span className="st-modebadge nx">NetworkX</span>
-              <span style={{ color: 'var(--fg-muted)', fontSize: 11, marginLeft: 8 }}>{t('env.kgFixed')}</span>
+              <span style={{ color: 'var(--fg-muted)', fontSize: 'var(--font-size-2xs)', marginLeft: 8 }}>{t('env.kgFixed')}</span>
             </div>
             <div className="st-kv-key">{t('env.kgPath')}</div>
             <div className="st-kv-val mono">{kg.persistencePath ?? '—'}</div>
@@ -462,7 +462,7 @@ function EnvPanel() {
               <div className="st-input-row">
                 <label className="st-input-label">
                   {t('env.qdrantKey')}
-                  <span style={{ color: 'var(--fg-muted)', fontWeight: 400, fontSize: 11 }}>{t('env.qdrantKeyOpt')}</span>
+                  <span style={{ color: 'var(--fg-muted)', fontWeight: 400, fontSize: 'var(--font-size-2xs)' }}>{t('env.qdrantKeyOpt')}</span>
                   <span className="st-input-flag restart">{t('env.restartFlag')}</span>
                 </label>
                 <input className="st-input" type="password" placeholder="••••••••" />
@@ -497,7 +497,7 @@ function EnvPanel() {
                 )}
               </div>
               {switchError && (
-                <p style={{ fontSize: 12, marginTop: 6, color: 'var(--color-error)' }}>{switchError}</p>
+                <p style={{ fontSize: 'var(--font-size-xs)', marginTop: 6, color: 'var(--color-error)' }}>{switchError}</p>
               )}
               <p className="st-input-note" style={{ marginTop: 8 }}>{t('env.neoNote')}</p>
 
@@ -588,7 +588,7 @@ function EnvPanel() {
         <div style={{ marginTop: 8 }}>
           <button
             onClick={() => refetch()}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--fg-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
           >
             <RefreshCw size={12} />
             {t('env.refresh')}
@@ -628,11 +628,11 @@ function AboutPanel() {
       </section>
 
       {isLoading ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 13 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 'var(--font-size-sm)' }}>
           <Loader2 size={14} className="animate-spin" /> {t('common.loading')}
         </div>
       ) : error || !data ? (
-        <div style={{ color: 'var(--color-error)', fontSize: 13 }}>{t('about.loadError')}</div>
+        <div style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-sm)' }}>{t('about.loadError')}</div>
       ) : (
         <>
           <StSection icon={<Type size={16} />} title={t('about.frontend')}>
@@ -663,13 +663,13 @@ function AboutPanel() {
 
           <StSection icon={<Folder size={16} />} title={t('about.paths')}>
             <div className="st-kv">
-              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>qdrantLocalPath</div>
+              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-xs)' }}>qdrantLocalPath</div>
               <div className="st-kv-val mono">{data.qdrantLocalPath}</div>
-              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>kgPersistencePath</div>
+              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-xs)' }}>kgPersistencePath</div>
               <div className="st-kv-val mono">{data.kgPersistencePath}</div>
-              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>databaseUrl</div>
+              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-xs)' }}>databaseUrl</div>
               <div className="st-kv-val mono">{data.databaseUrl}</div>
-              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 12 }}>analysisCacheDbPath</div>
+              <div className="st-kv-key" style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-xs)' }}>analysisCacheDbPath</div>
               <div className="st-kv-val mono">{data.analysisCacheDbPath}</div>
             </div>
           </StSection>

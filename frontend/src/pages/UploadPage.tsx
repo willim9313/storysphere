@@ -160,7 +160,7 @@ export default function UploadPage() {
       <div className="py-9 px-9 max-w-2xl mx-auto">
       <h1
         className="font-bold mb-6"
-        style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--fg-primary)' }}
+        style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', color: 'var(--fg-primary)' }}
       >
         {t('title')}
       </h1>
@@ -186,7 +186,7 @@ export default function UploadPage() {
             <div
               style={{
                 fontFamily: 'var(--font-serif)',
-                fontSize: 14,
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 600,
                 color: 'var(--fg-primary)',
                 overflow: 'hidden',
@@ -196,7 +196,7 @@ export default function UploadPage() {
             >
               {pending.file.name}
             </div>
-            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-muted)', marginTop: 2 }}>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginTop: 2 }}>
               {fileSizeMB}&nbsp;MB · PDF
             </div>
           </div>
@@ -207,7 +207,7 @@ export default function UploadPage() {
               border: 'none',
               cursor: 'pointer',
               fontFamily: 'var(--font-sans)',
-              fontSize: 11,
+              fontSize: 'var(--font-size-2xs)',
               color: 'var(--fg-muted)',
               flexShrink: 0,
             }}
@@ -228,7 +228,7 @@ export default function UploadPage() {
               style={{
                 display: 'block',
                 fontFamily: 'var(--font-sans)',
-                fontSize: 12,
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 500,
                 color: 'var(--fg-secondary)',
                 marginBottom: 6,
@@ -240,7 +240,7 @@ export default function UploadPage() {
               className="w-full"
               style={{
                 fontFamily: 'var(--font-sans)',
-                fontSize: 14,
+                fontSize: 'var(--font-size-sm)',
                 color: 'var(--fg-primary)',
                 backgroundColor: 'var(--bg-primary)',
                 border: '1px solid var(--border)',
@@ -255,7 +255,7 @@ export default function UploadPage() {
               onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleConfirmUpload(); }}
               autoFocus
             />
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-muted)', margin: '4px 0 0' }}>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', margin: '4px 0 0' }}>
               {t('titleHint')}
             </p>
           </div>
@@ -265,7 +265,7 @@ export default function UploadPage() {
               style={{
                 display: 'block',
                 fontFamily: 'var(--font-sans)',
-                fontSize: 12,
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 500,
                 color: 'var(--fg-secondary)',
                 marginBottom: 6,
@@ -277,7 +277,7 @@ export default function UploadPage() {
               className="w-full"
               style={{
                 fontFamily: 'var(--font-sans)',
-                fontSize: 14,
+                fontSize: 'var(--font-size-sm)',
                 color: 'var(--fg-primary)',
                 backgroundColor: 'var(--bg-primary)',
                 border: '1px solid var(--border)',
@@ -299,7 +299,7 @@ export default function UploadPage() {
               style={{
                 display: 'block',
                 fontFamily: 'var(--font-sans)',
-                fontSize: 12,
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 500,
                 color: 'var(--fg-secondary)',
                 marginBottom: 6,
@@ -311,7 +311,7 @@ export default function UploadPage() {
               className="w-full"
               style={{
                 fontFamily: 'var(--font-sans)',
-                fontSize: 14,
+                fontSize: 'var(--font-size-sm)',
                 color: 'var(--fg-primary)',
                 backgroundColor: 'var(--bg-primary)',
                 border: '1px solid var(--border)',
@@ -334,7 +334,7 @@ export default function UploadPage() {
           </div>
 
           {upload.error && upload.error.name !== 'AbortError' && (
-            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--color-error)', margin: 0 }}>
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--color-error)', margin: 0 }}>
               {upload.error.message}
             </p>
           )}
@@ -370,7 +370,7 @@ export default function UploadPage() {
             className="mb-3"
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 11,
+              fontSize: 'var(--font-size-2xs)',
               fontWeight: 500,
               color: 'var(--fg-muted)',
               letterSpacing: '0.06em',

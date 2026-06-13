@@ -364,7 +364,7 @@ export default function EventAnalysisPage() {
             ) : generateTaskId && genTask && genTask.status !== 'done' ? (
               <div className="ea-empty">
                 <div className="ea-spinner" />
-                <p className="ea-empty-title" style={{ fontSize: 16 }}>
+                <p className="ea-empty-title" style={{ fontSize: 'var(--font-size-base)' }}>
                   {selectedUnanalyzed?.name ?? t('event.generating.title')}
                 </p>
                 <span className="ea-stage-chip">

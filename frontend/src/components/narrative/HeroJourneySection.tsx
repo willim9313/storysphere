@@ -36,7 +36,7 @@ export function HeroJourneySection({ stages, theory, events, chapterCount, revie
   const segBtn = (active: boolean): React.CSSProperties => ({
     cursor: 'pointer',
     fontFamily: 'var(--font-sans)',
-    fontSize: 12,
+    fontSize: 'var(--font-size-xs)',
     fontWeight: 600,
     padding: '5px 11px',
     borderRadius: 7,
@@ -54,7 +54,7 @@ export function HeroJourneySection({ stages, theory, events, chapterCount, revie
     cursor: reviewPending ? 'wait' : 'pointer',
     opacity: reviewPending ? 0.6 : 1,
     fontFamily: 'var(--font-sans)',
-    fontSize: 11,
+    fontSize: 'var(--font-size-2xs)',
     fontWeight: 600,
     padding: '5px 11px',
     borderRadius: 'var(--radius-md)',
@@ -72,8 +72,8 @@ export function HeroJourneySection({ stages, theory, events, chapterCount, revie
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-            <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 25, fontWeight: 700, color: 'var(--fg-primary)', letterSpacing: '-0.01em' }}>{t('narrative.heroJourney')}</h2>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--fg-muted)' }}>{t('narrative.hjSub')}</span>
+            <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--fg-primary)', letterSpacing: '-0.01em' }}>{t('narrative.heroJourney')}</h2>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>{t('narrative.hjSub')}</span>
           </div>
           <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontSize: 11.5, color: 'var(--fg-secondary)', flexWrap: 'wrap' }}>
             <span style={{ whiteSpace: 'nowrap' }}>

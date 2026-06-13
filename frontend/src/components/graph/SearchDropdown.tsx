@@ -206,7 +206,7 @@ export function SearchDropdown({
                         height: 22,
                         backgroundColor: 'var(--bg-tertiary)',
                         fontFamily: 'var(--font-mono, monospace)',
-                        fontSize: 10,
+                        fontSize: 'var(--font-size-2xs)',
                         color: 'var(--fg-secondary)',
                       }}
                     >
@@ -238,7 +238,7 @@ export function SearchDropdown({
           padding: '6px 14px',
           backgroundColor: 'var(--bg-secondary)',
           borderTop: '1px solid var(--border)',
-          fontSize: 10,
+          fontSize: 'var(--font-size-2xs)',
           color: 'var(--fg-muted)',
           flexShrink: 0,
         }}
@@ -275,7 +275,7 @@ function Group({ header, count, isLast, children }: GroupProps) {
         className="flex items-center justify-between"
         style={{
           padding: '4px 14px',
-          fontSize: 9,
+          fontSize: 'var(--font-size-2xs)',
           fontWeight: 600,
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
@@ -313,7 +313,7 @@ function Row({ active, onClick, left, name, meta }: RowProps) {
       style={{
         gap: 8,
         padding: '6px 14px',
-        fontSize: 12,
+        fontSize: 'var(--font-size-xs)',
         backgroundColor: active ? 'var(--bg-tertiary)' : 'transparent',
         color: 'var(--fg-primary)',
         border: 0,
@@ -335,7 +335,7 @@ function Row({ active, onClick, left, name, meta }: RowProps) {
         {name}
       </span>
       {meta && (
-        <span style={{ fontSize: 10, color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>
           {meta}
         </span>
       )}
@@ -346,7 +346,7 @@ function Row({ active, onClick, left, name, meta }: RowProps) {
 function Empty({ children }: { readonly children: React.ReactNode }) {
   return (
     <div
-      style={{ padding: '6px 14px', fontSize: 11, color: 'var(--fg-muted)' }}
+      style={{ padding: '6px 14px', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
     >
       {children}
     </div>
@@ -359,7 +359,7 @@ function Kbd({ children }: { readonly children: React.ReactNode }) {
       style={{
         fontFamily: 'var(--font-mono, monospace)',
         fontWeight: 600,
-        fontSize: 10,
+        fontSize: 'var(--font-size-2xs)',
         padding: '0 4px',
         borderRadius: 3,
         backgroundColor: 'var(--bg-tertiary)',

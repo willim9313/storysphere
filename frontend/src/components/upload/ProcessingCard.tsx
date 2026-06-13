@@ -123,21 +123,21 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
           gap: 12,
         }}
       >
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 700, color: 'var(--fg-primary)' }}>
+        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--fg-primary)' }}>
           {task.title}
         </span>
         {status && !isPartialSuccess && !isAwaitingReview && (
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--fg-muted)', flexShrink: 0 }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)', flexShrink: 0 }}>
             {stageLabel}{progress}%
           </span>
         )}
         {isPartialSuccess && (
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 500, color: 'var(--status-partial-fg)', flexShrink: 0 }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--status-partial-fg)', flexShrink: 0 }}>
             部分完成
           </span>
         )}
         {isAwaitingReview && (
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--fg-muted)', flexShrink: 0 }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)', flexShrink: 0 }}>
             等待審閱
           </span>
         )}

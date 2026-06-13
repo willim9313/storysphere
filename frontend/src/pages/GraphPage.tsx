@@ -530,7 +530,7 @@ export default function GraphPage() {
           right: bottomRightAnchor,
           gap: 8,
           padding: '4px 10px',
-          fontSize: 10,
+          fontSize: 'var(--font-size-2xs)',
           color: 'var(--fg-muted)',
           backgroundColor: 'var(--bg-primary)',
           border: '1px solid var(--border)',

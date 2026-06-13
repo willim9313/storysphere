@@ -1647,7 +1647,7 @@ function MiniTimeline({
       {!showSection && analysisLoading && <PanelLoading />}
       {!showSection && !analysisLoading && (
         <div style={{ padding: '0 20px 12px' }}>
-          <span className="tl-muted" style={{ fontSize: 12 }}>
+          <span className="tl-muted" style={{ fontSize: 'var(--font-size-xs)' }}>
             {t('timeline.noAnalysisData')}
           </span>
         </div>

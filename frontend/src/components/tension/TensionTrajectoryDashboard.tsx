@@ -9,7 +9,7 @@ const STATUS_ICONS: Record<ReviewStatus, ReactElement> = {
   approved: <CheckCircle size={11} />,
   modified: <Edit3 size={11} />,
   rejected: <XCircle size={11} />,
-  pending: <span style={{ fontSize: 10 }}>·</span>,
+  pending: <span style={{ fontSize: 'var(--font-size-2xs)' }}>·</span>,
 };
 
 function renderStatusIcon(status: ReviewStatus) {

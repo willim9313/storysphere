@@ -158,7 +158,7 @@ export function LensCard({
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         boxShadow: 'var(--shadow-sm)',
-        fontSize: 13,
+        fontSize: 'var(--font-size-sm)',
       }}
     >
       {/* Header — serif title + small subtitle (design: 視角  Lens · 章節 N / total) */}
@@ -171,7 +171,7 @@ export function LensCard({
             className="font-bold"
             style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: 13,
+              fontSize: 'var(--font-size-sm)',
               color: 'var(--fg-primary)',
             }}
           >
@@ -181,7 +181,7 @@ export function LensCard({
             className="truncate"
             style={{
               fontFamily: 'var(--font-sans)',
-              fontSize: 10,
+              fontSize: 'var(--font-size-2xs)',
               color: 'var(--fg-muted)',
             }}
           >
@@ -264,7 +264,7 @@ export function LensCard({
                 height: 24,
                 backgroundColor: selectedCharacter ? 'var(--accent)' : 'var(--bg-tertiary)',
                 color: selectedCharacter ? 'var(--bg-primary)' : 'var(--fg-muted)',
-                fontSize: 11,
+                fontSize: 'var(--font-size-2xs)',
                 fontWeight: 600,
               }}
             >

@@ -88,7 +88,7 @@ export function ChapterDistChart({
             padding: '4px 8px',
             borderRadius: 'var(--radius-sm)',
             fontFamily: 'var(--font-sans)',
-            fontSize: 11,
+            fontSize: 'var(--font-size-2xs)',
             fontWeight: 500,
             pointerEvents: 'none',
             whiteSpace: 'nowrap',

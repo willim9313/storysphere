@@ -150,7 +150,7 @@ export function EpistemicStateSection({
           </div>
         </div>
         <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 11, color: 'var(--fg-muted)' }}>
+        <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
           {isFetching ? t('character.epistemic.computing') : t('character.epistemic.summarySubtitle')}
         </span>
       </div>
@@ -174,7 +174,7 @@ export function EpistemicStateSection({
               <span className="ca-epi-block-count">{optimistic.known.length}</span>
             </div>
             {optimistic.known.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-muted)' }}>
+              <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
                 {t('character.epistemic.knownEmpty')}
               </p>
             ) : (
@@ -200,7 +200,7 @@ export function EpistemicStateSection({
               <span className="ca-epi-block-count">{optimistic.unknown.length}</span>
             </div>
             {optimistic.unknown.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-muted)' }}>
+              <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
                 {t('character.epistemic.unknownEmpty')}
               </p>
             ) : (
@@ -226,7 +226,7 @@ export function EpistemicStateSection({
               <span className="ca-epi-block-count">{state.misbeliefs.length}</span>
             </div>
             {state.misbeliefs.length === 0 ? (
-              <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-muted)' }}>
+              <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
                 {t('character.epistemic.misbeliefEmpty')}
               </p>
             ) : (

@@ -96,7 +96,7 @@ export function GraphToolbar({
           placeholder={t('v1.toolbar.searchPlaceholder')}
           className="bg-transparent outline-none border-0"
           style={{
-            fontSize: 11,
+            fontSize: 'var(--font-size-2xs)',
             color: 'var(--fg-primary)',
             width: '100%',
             fontFamily: 'inherit',
@@ -120,7 +120,7 @@ export function GraphToolbar({
               borderRadius: 12,
               backgroundColor: on ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
               border: '1px solid var(--border)',
-              fontSize: 10,
+              fontSize: 'var(--font-size-2xs)',
               color: on ? 'var(--fg-primary)' : 'var(--fg-secondary)',
             }}
           >
@@ -165,7 +165,7 @@ export function GraphToolbar({
               style={{
                 padding: '3px 9px',
                 borderRadius: 'var(--radius-sm)',
-                fontSize: 11,
+                fontSize: 'var(--font-size-2xs)',
                 backgroundColor: active ? 'var(--bg-primary)' : 'transparent',
                 color: active ? 'var(--accent)' : disabled ? 'var(--fg-muted)' : 'var(--fg-secondary)',
                 opacity: disabled ? 0.5 : 1,
@@ -207,7 +207,7 @@ export function GraphToolbar({
             style={{
               padding: '3px 6px',
               borderRadius: 'var(--radius-sm)',
-              fontSize: 10,
+              fontSize: 'var(--font-size-2xs)',
               backgroundColor: animationMode === m ? 'var(--bg-tertiary)' : 'transparent',
               color: animationMode === m ? 'var(--fg-primary)' : 'var(--fg-muted)',
             }}
@@ -282,7 +282,7 @@ function ToolButton({
         backgroundColor: palette.background,
         color: palette.color,
         border: `1px solid ${palette.border}`,
-        fontSize: 11,
+        fontSize: 'var(--font-size-2xs)',
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
       }}

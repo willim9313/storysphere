@@ -63,7 +63,7 @@ export function LayoutTrack({ stages, theory, events }: LayoutProps) {
       <div style={{ display: 'flex', gap: 18, paddingTop: 4 }}>
         {PHASES.map((phase) => (
           <div key={phase} style={{ flex: groups[phase].length || 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)' }}>
+            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--accent)' }}>
               {t(`narrative.phase.${phase}`)}
             </span>
             <div style={{ width: '78%', height: 3, borderRadius: 2, background: phaseWash(phase, true) }} />
@@ -85,10 +85,10 @@ export function LayoutTrack({ stages, theory, events }: LayoutProps) {
                   title={theory[stage.stage_id]?.name ?? stage.stage_name}
                 />
                 <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 2 }}>
-                  <span style={{ fontFamily: 'var(--font-serif)', fontSize: 12, fontWeight: 600, lineHeight: 1.25, color: sel === stage.stage_id ? 'var(--accent)' : 'var(--fg-primary)' }}>
+                  <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-xs)', fontWeight: 600, lineHeight: 1.25, color: sel === stage.stage_id ? 'var(--accent)' : 'var(--fg-primary)' }}>
                     {theory[stage.stage_id]?.name ?? stage.stage_name}
                   </span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
                     {stage.chapter_range.length ? formatChapters(stage.chapter_range, t) : t('narrative.state.absent')}
                   </span>
                 </div>
@@ -141,10 +141,10 @@ export function LayoutColumns({ stages, theory, events }: LayoutProps) {
       >
         <StageDisc stage={stage} selected={false} size={32} onClick={() => setSel(stage.stage_id)} />
         <span style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 13, fontWeight: 600, color: 'var(--fg-primary)', lineHeight: 1.25 }}>
+          <span style={{ display: 'block', fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--fg-primary)', lineHeight: 1.25 }}>
             {theory[stage.stage_id]?.name ?? stage.stage_name}
           </span>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)' }}>{formatChapters(stage.chapter_range, t)}</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>{formatChapters(stage.chapter_range, t)}</span>
         </span>
         <StateBadge stage={stage} size="sm" />
       </div>
@@ -168,10 +168,10 @@ export function LayoutColumns({ stages, theory, events }: LayoutProps) {
                   justifyContent: 'space-between',
                 }}
               >
-                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)' }}>
+                <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--accent)' }}>
                   {t(`narrative.phase.${phase}`)}
                 </span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-secondary)' }}>{groups[phase].length}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}>{groups[phase].length}</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {groups[phase].map((stage) => (
@@ -324,7 +324,7 @@ export function LayoutBand({ stages, theory, events, chapterCount }: LayoutProps
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         {/* chapter ruler */}
         <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: 6 }}>
-          <div style={{ width: labelW, flexShrink: 0, fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-muted)' }}>
+          <div style={{ width: labelW, flexShrink: 0, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-muted)' }}>
             {t('narrative.stageColumn')}
           </div>
           <div style={{ flex: 1, display: 'flex', position: 'relative', height: 16 }}>
@@ -335,7 +335,7 @@ export function LayoutBand({ stages, theory, events, chapterCount }: LayoutProps
                   flex: 1,
                   textAlign: 'center',
                   fontFamily: 'var(--font-mono)',
-                  fontSize: 9,
+                  fontSize: 'var(--font-size-2xs)',
                   color: 'var(--fg-muted)',
                   borderLeft: i % 4 === 0 ? '1px solid var(--border)' : 'none',
                 }}
@@ -372,11 +372,11 @@ export function LayoutBand({ stages, theory, events, chapterCount }: LayoutProps
                 }}
               >
                 <div style={{ width: labelW, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-muted)', width: 16, textAlign: 'right' }}>{stageOrdinal(stage.stage_id)}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', width: 16, textAlign: 'right' }}>{stageOrdinal(stage.stage_id)}</span>
                   <span
                     style={{
                       fontFamily: 'var(--font-serif)',
-                      fontSize: 12,
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 600,
                       lineHeight: 1.2,
                       color: active ? 'var(--accent)' : st === 'absent' ? 'var(--fg-muted)' : 'var(--fg-primary)',
@@ -395,7 +395,7 @@ export function LayoutBand({ stages, theory, events, chapterCount }: LayoutProps
                   {st === 'absent' ? (
                     <div style={{ position: 'absolute', inset: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                       <div style={{ flex: 1, borderTop: '1.5px dashed var(--fg-muted)', opacity: 0.6 }} />
-                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, color: 'var(--fg-muted)' }}>{t('narrative.state.absent')} —</span>
+                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>{t('narrative.state.absent')} —</span>
                       <div style={{ flex: 1, borderTop: '1.5px dashed var(--fg-muted)', opacity: 0.6 }} />
                     </div>
                   ) : (
@@ -419,7 +419,7 @@ export function LayoutBand({ stages, theory, events, chapterCount }: LayoutProps
                         boxShadow: active ? '0 0 0 2px var(--timeline-selected-ring)' : 'none',
                       }}
                     >
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: discText(stage), whiteSpace: 'nowrap' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: discText(stage), whiteSpace: 'nowrap' }}>
                         {start}
                         {end !== start ? `–${end}` : ''}
                       </span>

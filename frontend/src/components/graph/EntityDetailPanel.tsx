@@ -118,7 +118,7 @@ export function EntityDetailPanel({
         {/* Meta row: pill + appearances + bookmark toggle */}
         <div className="flex items-center flex-wrap" style={{ gap: 6 }}>
           <Pill type={node.type}>{t(`entityTypes.${node.type}`)}</Pill>
-          <span style={{ fontSize: 11, color: 'var(--panel-fg-muted)' }}>
+          <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)' }}>
             {t('panel.appearancesMeta', { count: node.chunkCount })}
           </span>
           {onBookmarkToggle && (
@@ -131,7 +131,7 @@ export function EntityDetailPanel({
                 background: 'none',
                 border: 0,
                 cursor: 'pointer',
-                fontSize: 11,
+                fontSize: 'var(--font-size-2xs)',
                 color: isBookmarked ? 'var(--accent)' : 'var(--panel-fg-muted)',
                 fontFamily: 'inherit',
               }}
@@ -172,7 +172,7 @@ export function EntityDetailPanel({
                 disabled={triggerMut.isPending}
                 style={{
                   marginLeft: 'auto',
-                  fontSize: 10,
+                  fontSize: 'var(--font-size-2xs)',
                   color: 'var(--accent)',
                   background: 'none',
                   border: 0,
@@ -194,14 +194,14 @@ export function EntityDetailPanel({
                 className="animate-spin"
                 style={{ color: 'var(--panel-fg-muted)' }}
               />
-              <span style={{ fontSize: 11, color: 'var(--panel-fg-muted)' }}>
+              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)' }}>
                 {t('entity.loading')}
               </span>
             </div>
           ) : analysis ? (
             <>
               <SectionBody>
-                <p style={{ fontSize: 11, color: 'var(--panel-fg-muted)', marginBottom: 6 }}>
+                <p style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)', marginBottom: 6 }}>
                   {t('entity.generated', {
                     date: new Date(analysis.generatedAt).toLocaleDateString(),
                   })}
@@ -211,7 +211,7 @@ export function EntityDetailPanel({
                 onClick={onShowAnalysis}
                 style={{
                   marginTop: 6,
-                  fontSize: 11,
+                  fontSize: 'var(--font-size-2xs)',
                   color: 'var(--accent)',
                   background: 'none',
                   border: 0,
@@ -230,7 +230,7 @@ export function EntityDetailPanel({
             <div className="space-y-2">
               <div className="flex items-center gap-1">
                 <AlertTriangle size={12} style={{ color: 'var(--color-error)' }} />
-                <span style={{ fontSize: 11, color: 'var(--color-error)' }}>
+                <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-error)' }}>
                   {t('entity.analysisFailed')}
                   {genTask.error ? `：${genTask.error}` : ''}
                 </span>
@@ -253,7 +253,7 @@ export function EntityDetailPanel({
                 className="animate-spin"
                 style={{ color: 'var(--panel-fg-muted)' }}
               />
-              <span style={{ fontSize: 11, color: 'var(--panel-fg)' }}>
+              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg)' }}>
                 {genTask.stage} ({genTask.progress}%)
               </span>
             </div>
@@ -267,7 +267,7 @@ export function EntityDetailPanel({
                 <p>{t('entity.noAnalysis')}</p>
               </SectionBody>
               {triggerError && (
-                <p style={{ fontSize: 11, color: 'var(--color-error)' }}>{triggerError}</p>
+                <p style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-error)' }}>{triggerError}</p>
               )}
               <button
                 className="text-xs px-2 py-1 rounded"
@@ -291,7 +291,7 @@ export function EntityDetailPanel({
               <span
                 style={{
                   marginLeft: 'auto',
-                  fontSize: 10,
+                  fontSize: 'var(--font-size-2xs)',
                   color: 'var(--panel-fg-muted)',
                   fontVariantNumeric: 'tabular-nums',
                 }}
@@ -308,7 +308,7 @@ export function EntityDetailPanel({
             onClick={onShowParagraphs}
             style={{
               marginTop: 6,
-              fontSize: 11,
+              fontSize: 'var(--font-size-2xs)',
               color: 'var(--accent)',
               background: 'none',
               border: 0,

@@ -23,7 +23,7 @@ export function BreadcrumbBar({ items }: BreadcrumbBarProps) {
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-md)',
         boxShadow: 'var(--shadow-sm)',
-        fontSize: 11,
+        fontSize: 'var(--font-size-2xs)',
       }}
     >
       {items.map((item, idx) => {

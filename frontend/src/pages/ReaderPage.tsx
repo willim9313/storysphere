@@ -287,7 +287,7 @@ export default function ReaderPage() {
             <span
               style={{
                 fontFamily: 'var(--font-sans)',
-                fontSize: 9,
+                fontSize: 'var(--font-size-2xs)',
                 color: 'var(--fg-muted)',
                 writingMode: 'vertical-rl',
                 letterSpacing: '0.05em',
@@ -324,7 +324,7 @@ export default function ReaderPage() {
                   className="font-semibold"
                   style={{
                     fontFamily: 'var(--font-serif)',
-                    fontSize: 14,
+                    fontSize: 'var(--font-size-sm)',
                     color: 'var(--fg-primary)',
                     margin: 0,
                     lineHeight: 1.3,
@@ -351,7 +351,7 @@ export default function ReaderPage() {
                     color: epistemicOpen ? 'white' : 'var(--fg-muted)',
                     cursor: 'pointer',
                     fontFamily: 'var(--font-sans)',
-                    fontSize: 11,
+                    fontSize: 'var(--font-size-2xs)',
                   }}
                 >
                   <Brain size={13} color={epistemicOpen ? 'white' : 'var(--fg-muted)'} />

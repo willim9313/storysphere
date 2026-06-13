@@ -51,7 +51,7 @@ export function LegendCard({
       <div
         className="font-semibold uppercase"
         style={{
-          fontSize: 9,
+          fontSize: 'var(--font-size-2xs)',
           color: 'var(--fg-muted)',
           letterSpacing: '0.06em',
           paddingBottom: 4,
@@ -70,7 +70,7 @@ export function LegendCard({
             className="flex items-center w-full text-left"
             style={{
               gap: 6,
-              fontSize: 11,
+              fontSize: 'var(--font-size-2xs)',
               color: visible ? 'var(--fg-secondary)' : 'var(--fg-muted)',
               opacity: visible ? 1 : 0.5,
               textDecoration: visible ? 'none' : 'line-through',
@@ -88,7 +88,7 @@ export function LegendCard({
             <span className="flex-1">{t(`entityTypes.${type}`)}</span>
             <span
               className="tabular-nums"
-              style={{ fontSize: 10, color: 'var(--fg-muted)' }}
+              style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
             >
               {typeCounts.get(type) ?? 0}
             </span>
@@ -101,7 +101,7 @@ export function LegendCard({
           className="flex items-center w-full text-left"
           style={{
             gap: 6,
-            fontSize: 11,
+            fontSize: 'var(--font-size-2xs)',
             color: 'var(--fg-secondary)',
             marginTop: 4,
             paddingTop: 4,
@@ -131,7 +131,7 @@ export function LegendCard({
           <span className="flex-1">{t('v1.legend.inferred')}</span>
           <span
             className="tabular-nums"
-            style={{ fontSize: 10, color: 'var(--fg-muted)' }}
+            style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
           >
             {inferredCount}
           </span>

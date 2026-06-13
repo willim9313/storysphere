@@ -294,7 +294,7 @@ function FactionSettingsSection({
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-1 w-full text-left mb-2"
         style={{
-          fontSize: 11,
+          fontSize: 'var(--font-size-2xs)',
           color: 'var(--fg-muted)',
           textTransform: 'uppercase',
           letterSpacing: '0.06em',
@@ -314,7 +314,7 @@ function FactionSettingsSection({
             <span
               style={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: 10,
+                fontSize: 'var(--font-size-2xs)',
                 color: 'var(--fg-secondary)',
               }}
             >
@@ -337,7 +337,7 @@ function FactionSettingsSection({
             <span
               style={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: 10,
+                fontSize: 'var(--font-size-2xs)',
                 color: 'var(--fg-secondary)',
                 minWidth: 26,
                 textAlign: 'right',
@@ -365,7 +365,7 @@ function FactionSettingsSection({
             <span
               style={{
                 fontFamily: 'var(--font-mono)',
-                fontSize: 11,
+                fontSize: 'var(--font-size-2xs)',
                 color: 'var(--fg-primary)',
                 minWidth: 20,
                 textAlign: 'center',
@@ -393,7 +393,7 @@ function FactionSettingsSection({
               disabled={isRecomputing}
               className="flex items-center gap-1 mt-1"
               style={{
-                fontSize: 11,
+                fontSize: 'var(--font-size-2xs)',
                 color: isRecomputing ? 'var(--fg-muted)' : 'var(--accent)',
                 background: 'none',
                 border: 0,
@@ -419,7 +419,7 @@ const miniBtnStyle: React.CSSProperties = {
   background: 'var(--bg-secondary)',
   border: '1px solid var(--border)',
   color: 'var(--fg-secondary)',
-  fontSize: 12,
+  fontSize: 'var(--font-size-xs)',
   lineHeight: 1,
   cursor: 'pointer',
   display: 'inline-flex',
@@ -430,7 +430,7 @@ const miniBtnStyle: React.CSSProperties = {
 
 function SettingRow({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2" style={{ fontSize: 11 }}>
+    <div className="flex items-center gap-2" style={{ fontSize: 'var(--font-size-2xs)' }}>
       <span style={{ flex: 1, color: 'var(--fg-muted)' }}>{label}</span>
       {children}
     </div>
@@ -726,7 +726,7 @@ function SectionHead({
     <div
       className="flex items-center gap-1"
       style={{
-        fontSize: 11,
+        fontSize: 'var(--font-size-2xs)',
         color: 'var(--fg-muted)',
         textTransform: 'uppercase',
         letterSpacing: '0.06em',

@@ -66,7 +66,7 @@ export function ReviewBadge({ status }: { status: NarrativeReviewStatus }) {
         alignItems: 'center',
         gap: 5,
         fontFamily: 'var(--font-sans)',
-        fontSize: 11,
+        fontSize: 'var(--font-size-2xs)',
         fontWeight: 600,
         padding: '3px 10px',
         borderRadius: 20,
@@ -87,7 +87,7 @@ export function ReviewBadge({ status }: { status: NarrativeReviewStatus }) {
 export function ConfidenceMeter({ stage, width = 120 }: { stage: HeroJourneyStage; width?: number }) {
   const st = stageState(stage);
   if (st === 'absent') {
-    return <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--fg-muted)' }}>—</span>;
+    return <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>—</span>;
   }
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -111,7 +111,7 @@ export function ConfidenceMeter({ stage, width = 120 }: { stage: HeroJourneyStag
           }}
         />
       </div>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--fg-secondary)', fontVariantNumeric: 'tabular-nums' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)', fontVariantNumeric: 'tabular-nums' }}>
         {stage.confidence.toFixed(2)}
       </span>
     </div>
@@ -127,7 +127,7 @@ export function EventPill({ title, chapter }: { title: string; chapter?: number 
         alignItems: 'center',
         gap: 5,
         fontFamily: 'var(--font-sans)',
-        fontSize: 12,
+        fontSize: 'var(--font-size-xs)',
         padding: '2px 9px 2px 7px',
         borderRadius: 20,
         border: '0.5px solid var(--entity-evt-border)',
@@ -138,7 +138,7 @@ export function EventPill({ title, chapter }: { title: string; chapter?: number 
     >
       <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--entity-evt-dot)' }} />
       {title}
-      {chapter != null && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, opacity: 0.7 }}>· {chapter}</span>}
+      {chapter != null && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', opacity: 0.7 }}>· {chapter}</span>}
     </span>
   );
 }
@@ -161,13 +161,13 @@ export function Legend() {
     />
   );
   const item = (swatch: React.ReactNode, label: string) => (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-secondary)' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}>
       {swatch} {label}
     </span>
   );
   return (
     <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
-      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-muted)' }}>
+      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-muted)' }}>
         {t('narrative.legend')}
       </span>
       {item(disc('color-mix(in oklab, var(--accent) 60%, var(--bg-primary))'), t('narrative.state.filled'))}

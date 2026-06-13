@@ -33,13 +33,13 @@ function SpineLabel({ ev }: { ev: KernelSpineEvent }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, width: '100%' }}>
       <span style={{
-        fontFamily: 'var(--font-serif)', fontSize: 11, fontWeight: 600,
+        fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xs)', fontWeight: 600,
         color: 'var(--fg-primary)', textAlign: 'center', lineHeight: 1.3,
         display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
       }}>
         {ev.title}
       </span>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>
         {t('narrative.spine.chapterUnit', { ch: ev.chapter })}
       </span>
     </div>
@@ -93,8 +93,8 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
     <div style={{ flex: count > 0 ? count : '0 0 auto', minWidth: count > 0 ? 0 : undefined, display: 'flex', flexDirection: 'column', gap: 6 }}>
       <div style={{ height: 12, background: count > 0 ? color : 'transparent', borderRadius: 3 }} />
       <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg-primary)', lineHeight: 1 }}>{count}</span>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-secondary)' }}>{label}</span>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xl)', fontWeight: 700, color: 'var(--fg-primary)', lineHeight: 1 }}>{count}</span>
+        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}>{label}</span>
       </div>
     </div>
   );
@@ -104,17 +104,17 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-          <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 25, fontWeight: 700, color: 'var(--fg-primary)', letterSpacing: '-0.01em' }}>
+          <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--fg-primary)', letterSpacing: '-0.01em' }}>
             {t('narrative.spine.title')}
           </h2>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 12, color: 'var(--fg-muted)' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
             {t('narrative.spine.subtitle')}
           </span>
         </div>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
           <span style={{
             display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontFamily: 'var(--font-sans)', fontSize: 11, fontWeight: 600,
+            fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600,
             padding: '3px 10px', borderRadius: 20,
             background: 'var(--bg-tertiary)', color: 'var(--fg-secondary)',
             borderWidth: 'var(--border-width)', borderStyle: 'var(--border-style)', borderColor: 'var(--border)',
@@ -131,15 +131,15 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
         {seg(counts.satellite,    'color-mix(in oklab, var(--accent) 34%, var(--bg-primary))', t('narrative.spine.satellite'))}
         {seg(counts.unclassified, 'var(--bg-tertiary)',                                        t('narrative.spine.unclassified'))}
         <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2, paddingLeft: 6 }}>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 22, fontWeight: 700, color: 'var(--fg-muted)', lineHeight: 1 }}>{total}</span>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-muted)' }}>{t('narrative.spine.events')}</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xl)', fontWeight: 700, color: 'var(--fg-muted)', lineHeight: 1 }}>{total}</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>{t('narrative.spine.events')}</span>
         </div>
       </div>
 
       {/* Kernel spine track */}
       {chapterKeys.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'var(--fg-muted)' }}>
             {t('narrative.spine.kernelSpine')}
           </span>
 
@@ -202,7 +202,7 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
                           background: 'var(--bg-primary)',
                           border: '1.5px solid var(--accent)',
                           color: 'var(--accent)',
-                          fontFamily: 'var(--font-mono)', fontSize: 8, fontWeight: 700,
+                          fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', fontWeight: 700,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
                           lineHeight: 1,
                         }}>
@@ -240,14 +240,14 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
               </span>
               {multiChapters.map(ch => (
                 <div key={ch} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--fg-secondary)', whiteSpace: 'nowrap', paddingTop: 3, minWidth: 38 }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)', whiteSpace: 'nowrap', paddingTop: 3, minWidth: 38 }}>
                     {t('narrative.spine.chapterUnit', { ch })}
                   </span>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                     {byChapter[ch].map(ev => (
                       <span key={ev.id} style={{
                         display: 'inline-flex', alignItems: 'center', gap: 5,
-                        fontFamily: 'var(--font-sans)', fontSize: 12,
+                        fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)',
                         padding: '2px 9px 2px 7px', borderRadius: 20,
                         border: '0.5px solid var(--entity-evt-border)',
                         background: 'var(--entity-evt-bg)', color: 'var(--entity-evt-fg)',
@@ -255,7 +255,7 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
                       }}>
                         <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--entity-evt-dot)' }} />
                         {ev.title}
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, opacity: 0.7 }}>· {ev.chapter}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', opacity: 0.7 }}>· {ev.chapter}</span>
                       </span>
                     ))}
                   </div>

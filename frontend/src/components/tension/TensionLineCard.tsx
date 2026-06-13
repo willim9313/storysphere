@@ -227,7 +227,7 @@ export function TensionLineCard({
                 <XCircle size={12} /> {t('tension.reject')}
               </button>
               {reviewMutation.isError && (
-                <span className="tn-card-actions-spacer" style={{ color: 'var(--color-error)', fontSize: 11 }}>
+                <span className="tn-card-actions-spacer" style={{ color: 'var(--color-error)', fontSize: 'var(--font-size-2xs)' }}>
                   {t('tension.operationFailed')}
                 </span>
               )}

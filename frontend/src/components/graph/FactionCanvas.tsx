@@ -206,7 +206,7 @@ export function FactionCanvas({
               y={my - 6}
               textAnchor="middle"
               style={{
-                fontSize: 10,
+                fontSize: 'var(--font-size-2xs)',
                 fill: 'var(--fg-secondary)',
                 fontFamily: 'var(--font-mono)',
                 pointerEvents: 'none',
@@ -237,7 +237,7 @@ export function FactionCanvas({
               y={my + 14}
               textAnchor="middle"
               style={{
-                fontSize: 10,
+                fontSize: 'var(--font-size-2xs)',
                 fill: 'var(--color-error)',
                 fontFamily: 'var(--font-mono)',
                 pointerEvents: 'none',
@@ -320,7 +320,7 @@ export function FactionCanvas({
             y={VIEW_H - 24}
             textAnchor="middle"
             style={{
-              fontSize: 11,
+              fontSize: 'var(--font-size-2xs)',
               fill: 'var(--fg-muted)',
               fontFamily: 'var(--font-sans)',
             }}
@@ -388,7 +388,7 @@ function FactionSuperNode({ faction, pos, radius, composition, onClick }: SuperN
         textAnchor="middle"
         y={radius * 0.55}
         style={{
-          fontSize: 13,
+          fontSize: 'var(--font-size-sm)',
           fontFamily: 'var(--font-serif)',
           fontWeight: 700,
           fill: 'var(--fg-primary)',
@@ -400,7 +400,7 @@ function FactionSuperNode({ faction, pos, radius, composition, onClick }: SuperN
         textAnchor="middle"
         y={radius + 16}
         style={{
-          fontSize: 10,
+          fontSize: 'var(--font-size-2xs)',
           fill: 'var(--fg-muted)',
           fontFamily: 'var(--font-sans)',
         }}
@@ -447,7 +447,7 @@ function DrilledInFactionShell({
         textAnchor="middle"
         y={-radius - 18}
         style={{
-          fontSize: 13,
+          fontSize: 'var(--font-size-sm)',
           fontFamily: 'var(--font-serif)',
           fontWeight: 700,
           fill: 'var(--fg-primary)',
@@ -459,7 +459,7 @@ function DrilledInFactionShell({
         textAnchor="middle"
         y={-radius - 4}
         style={{
-          fontSize: 10,
+          fontSize: 'var(--font-size-2xs)',
           fill: 'var(--fg-muted)',
           fontFamily: 'var(--font-sans)',
         }}
@@ -503,7 +503,7 @@ function DrilledInFactionShell({
                 textAnchor="middle"
                 y={MEMBER_NODE_R + 14}
                 style={{
-                  fontSize: 11,
+                  fontSize: 'var(--font-size-2xs)',
                   fontFamily: 'var(--font-sans)',
                   fill: 'var(--fg-primary)',
                 }}

@@ -23,7 +23,7 @@ function Section({ label, children }: { label: string; children: React.ReactNode
       <div
         style={{
           fontFamily: 'var(--font-sans)',
-          fontSize: 10,
+          fontSize: 'var(--font-size-2xs)',
           fontWeight: 600,
           letterSpacing: '0.06em',
           textTransform: 'uppercase',
@@ -64,7 +64,7 @@ export function StageDetail({ stage, theory, events, compact }: StageDetailProps
             <span
               style={{
                 fontFamily: 'var(--font-sans)',
-                fontSize: 10,
+                fontSize: 'var(--font-size-2xs)',
                 fontWeight: 700,
                 letterSpacing: '0.05em',
                 textTransform: 'uppercase',
@@ -74,7 +74,7 @@ export function StageDetail({ stage, theory, events, compact }: StageDetailProps
               {t(`narrative.phase.${phase}`)}
             </span>
             <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--fg-muted)' }} />
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--fg-muted)' }}>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
               {formatChapters(stage.chapter_range, t)}
             </span>
           </div>
@@ -96,7 +96,7 @@ export function StageDetail({ stage, theory, events, compact }: StageDetailProps
 
       {st !== 'absent' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--fg-muted)' }}>{t('narrative.confidence')}</span>
+          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>{t('narrative.confidence')}</span>
           <ConfidenceMeter stage={stage} width={compact ? 90 : 130} />
         </div>
       )}

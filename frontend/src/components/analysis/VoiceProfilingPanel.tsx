@@ -85,13 +85,13 @@ export function VoiceProfilingPanel({ bookId, entityId }: Props) {
     <div>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-muted)' }}>
+        <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
           {t('character.voice.paragraphsAnalyzed', { count: data.paragraphsAnalyzed })}
         </p>
         <button
           type="button"
           className="ca-btn ca-btn-ghost"
-          style={{ fontSize: 11 }}
+          style={{ fontSize: 'var(--font-size-2xs)' }}
           onClick={() => regenerateMutation.mutate()}
           disabled={regenerateMutation.isPending}
         >
@@ -121,7 +121,7 @@ export function VoiceProfilingPanel({ bookId, entityId }: Props) {
           title={t('character.voice.dominantTone')}
           sub={t('character.voice.dominantToneSub')}
         >
-          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16, lineHeight: 1.7, margin: 0, color: 'var(--fg-primary)' }}>
+          <p style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-base)', lineHeight: 1.7, margin: 0, color: 'var(--fg-primary)' }}>
             {data.tone}
           </p>
         </SectionCard>
@@ -214,7 +214,7 @@ function ToneDistribution({
   const { t } = useTranslation('analysis');
 
   if (!distribution || distribution.length === 0) {
-    return <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-muted)' }}>—</p>;
+    return <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>—</p>;
   }
 
   const labelFor = (raw: string) => {
@@ -264,7 +264,7 @@ function SentenceHistogram({
   data: VoiceProfile['sentenceLengthHistogram'];
 }) {
   if (!data || data.length === 0) {
-    return <p style={{ margin: 0, fontSize: 12, color: 'var(--fg-muted)' }}>—</p>;
+    return <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>—</p>;
   }
   const max = Math.max(...data.map((d) => d.value), 1);
   return (
