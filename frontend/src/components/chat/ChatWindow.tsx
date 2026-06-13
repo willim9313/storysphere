@@ -1,16 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { SquarePen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { MouseEvent } from 'react';
 import type { PageContext } from '@/contexts/ChatContext';
 import type { UseWebSocketChatReturn } from '@/hooks/useWebSocketChat';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
+
+const WINDOW_WIDTH = 380;
+const WINDOW_HEIGHT = 520;
+
+export { WINDOW_WIDTH, WINDOW_HEIGHT };
 
 interface ChatWindowProps {
   ws: UseWebSocketChatReturn;
   pageContext: PageContext;
   prefillMessage: string | null;
   clearPrefill: () => void;
+  pos: { x: number; y: number };
+  isDragging: boolean;
+  onDragMouseDown: (e: MouseEvent) => void;
 }
 
 function ContextBadge({ pageContext }: { pageContext: PageContext }) {
@@ -83,7 +92,15 @@ function NewChatConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCanc
   );
 }
 
-export function ChatWindow({ ws, pageContext, prefillMessage, clearPrefill }: ChatWindowProps) {
+export function ChatWindow({
+  ws,
+  pageContext,
+  prefillMessage,
+  clearPrefill,
+  pos,
+  isDragging,
+  onDragMouseDown,
+}: ChatWindowProps) {
   const { messages, sendMessage, isStreaming, isThinking, isConnecting, clearMessages } = ws;
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [showNewChatConfirm, setShowNewChatConfirm] = useState(false);
@@ -122,39 +139,64 @@ export function ChatWindow({ ws, pageContext, prefillMessage, clearPrefill }: Ch
   return (
     <div
       style={{
-        position: 'fixed', bottom: '5.5rem', right: '1.5rem', zIndex: 50,
-        width: 380, height: 520, maxWidth: 'calc(100vw - 2rem)', maxHeight: 'calc(100vh - 7rem)',
-        borderRadius: 'var(--radius-xl)', border: '1px solid var(--border)',
-        background: 'var(--bg-primary)', boxShadow: 'var(--shadow-lg)',
-        display: 'flex', flexDirection: 'column', overflow: 'hidden',
+        position: 'fixed',
+        left: pos.x,
+        top: pos.y,
+        zIndex: 51,
+        width: WINDOW_WIDTH,
+        height: WINDOW_HEIGHT,
+        maxWidth: 'calc(100vw - 16px)',
+        maxHeight: 'calc(100vh - 16px)',
+        borderRadius: 'var(--radius-xl)',
+        border: '1px solid var(--border)',
+        background: 'var(--bg-primary)',
+        boxShadow: isDragging ? 'var(--shadow-lg), 0 0 0 2px var(--accent)' : 'var(--shadow-lg)',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
         animation: 'chatWindowIn 150ms ease',
+        userSelect: isDragging ? 'none' : 'auto',
+        transition: isDragging ? 'box-shadow 80ms ease' : 'box-shadow 150ms ease',
       }}
     >
       {showNewChatConfirm && (
         <NewChatConfirm onConfirm={confirmNewChat} onCancel={() => setShowNewChatConfirm(false)} />
       )}
 
-      {/* Header */}
+      {/* Header — drag handle */}
       <div
+        onMouseDown={onDragMouseDown}
         style={{
-          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          padding: '12px 16px', borderBottom: '1px solid var(--border)', gap: 8, flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '12px 16px',
+          borderBottom: '1px solid var(--border)',
+          gap: 8,
+          flexShrink: 0,
+          cursor: isDragging ? 'grabbing' : 'grab',
         }}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, pointerEvents: 'none' }}>
           <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 'var(--font-size-sm)', color: 'var(--fg-primary)' }}>
             {t('title')}
           </span>
           <ContextBadge pageContext={pageContext} />
         </div>
+        {/* New chat button — stop drag propagation so click still works */}
         <button
+          onMouseDown={(e) => e.stopPropagation()}
           onClick={handleNewChat}
           title={t('newChat')}
           style={{
-            background: 'none', border: 'none',
+            background: 'none',
+            border: 'none',
             cursor: messages.length > 0 ? 'pointer' : 'default',
             color: messages.length > 0 ? 'var(--fg-muted)' : 'var(--bg-tertiary)',
-            padding: 4, borderRadius: 'var(--radius-sm)', transition: 'color var(--transition-fast)',
+            padding: 4,
+            borderRadius: 'var(--radius-sm)',
+            transition: 'color var(--transition-fast)',
+            pointerEvents: 'auto',
           }}
           disabled={messages.length === 0}
         >
