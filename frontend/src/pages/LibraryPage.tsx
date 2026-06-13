@@ -174,7 +174,7 @@ export default function LibraryPage() {
             className="px-3 py-1 text-xs rounded-full font-medium transition-colors"
             style={{
               backgroundColor: filter === key ? 'var(--accent)' : 'var(--bg-secondary)',
-              color: filter === key ? 'white' : 'var(--fg-secondary)',
+              color: filter === key ? 'var(--accent-fg)' : 'var(--fg-secondary)',
             }}
           >
             {label}

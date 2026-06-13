@@ -16,6 +16,7 @@
 
   /* Accent */
   --accent:       #8b5e3c;
+  --accent-fg:    #ffffff;
 
   /* Panels (tool surfaces) */
   --panel-bg:         #ede4d8;

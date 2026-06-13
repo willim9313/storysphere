@@ -208,7 +208,7 @@
   padding: 3px 7px;
   border-radius: var(--radius-sm);
   background: var(--accent);
-  color: #fff;
+  color: var(--accent-fg);
   letter-spacing: 0.03em;
   display: flex; align-items: center; gap: 3px;
 }
@@ -354,7 +354,7 @@
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 .st-seg-btn + .st-seg-btn { border-left: var(--border-width) var(--border-style) var(--border); }
-.st-seg-btn.active { background: var(--accent); color: #fff; }
+.st-seg-btn.active { background: var(--accent); color: var(--accent-fg); }
 .st-seg-btn:disabled { color: var(--fg-muted); cursor: not-allowed; opacity: 0.5; }
 
 /* ── migration rows ────────────────────────────────────────── */
@@ -396,7 +396,7 @@
 /* mode badge */
 .st-modebadge { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: var(--radius-sm); }
 .st-modebadge.nx { background: var(--bg-tertiary); color: var(--fg-secondary); }
-.st-modebadge.neo { background: var(--accent); color: #fff; }
+.st-modebadge.neo { background: var(--accent); color: var(--accent-fg); }
 
 /* empty / planned state */
 .st-empty {
