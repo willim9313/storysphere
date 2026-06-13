@@ -43,7 +43,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 </span>
 
 // CSS 結構（色碼值見 DESIGN_TOKENS）
-.pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; padding: 2px 7px; border-radius: 20px; }
+.pill { display: inline-flex; align-items: center; gap: 3px; font-size: var(--font-size-2xs); padding: 2px 7px; border-radius: 20px; }
 .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
 // .pill-char / .pill-loc / .pill-con / .pill-evt — background / border / color / dot 色碼見 DESIGN_TOKENS.md
 ```
@@ -675,7 +675,7 @@ CSS 入口：`frontend/src/styles/tension.css`（class prefix `.tn-*`）。
 合成完成（或 lines 存在但 theme 尚無）時取代舊「面板」配置，作為頁面 anchor：
 
 - **Eyebrow**：`全書張力主題 · TensionTheme` + 右上 StatusBadge
-- **命題**：`<p>` 用 `var(--font-serif)` 28px serif 大字（可 inline 編輯為 `<textarea>`）
+- **命題**：`<p>` 用 `var(--font-serif)` + `--font-size-2xl`（24px）serif 大字（可 inline 編輯為 `<textarea>`）
 - **Meta 欄**：Frye badge（`data-mode=` 對應 `--frye-*` token）／Booker badge（共用 `--booker-*` + § 字符）／合成來源（line 數）
 - **Actions**：Approve / Modify proposition / Reject（樣式同 LineCard），右下顯示 `assembled_by · assembled_at`
 
