@@ -523,10 +523,12 @@ class AnalysisService:
         if err or not isinstance(parsed, dict):
             raise ValueError(f"Archetype classification failed: {err}")
 
+        from config.archetypes import resolve_archetype_name  # noqa: PLC0415
+
         return ArchetypeResult(
             framework=framework,
-            primary=parsed.get("primary", "unknown"),
-            secondary=parsed.get("secondary"),
+            primary=resolve_archetype_name(framework, parsed.get("primary", "unknown"), language) or "unknown",
+            secondary=resolve_archetype_name(framework, parsed.get("secondary"), language),
             confidence=max(0.0, min(1.0, float(parsed.get("confidence", 0.5)))),
             evidence=parsed.get("evidence", []),
         )

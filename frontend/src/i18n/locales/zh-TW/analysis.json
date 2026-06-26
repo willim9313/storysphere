@@ -223,11 +223,11 @@
       "witness": "見證者"
     },
     "labels": {
-      "before": "Before",
-      "after": "After",
-      "stateChangeSub": "State before → after",
-      "causalitySub": "root cause · chain",
-      "impactSub": "people · relations",
+      "before": "之前",
+      "after": "之後",
+      "stateChangeSub": "狀態前後變化",
+      "causalitySub": "根因 · 因果鏈",
+      "impactSub": "人物 · 關係",
       "rootCauseLabel": "根本原因",
       "participantImpacts": "對參與者",
       "relationChanges": "關係變化",
@@ -237,7 +237,7 @@
       "summaryLabel": "事件摘要",
       "participantsCount": "{{count}} 人",
       "factorsConsequences": "因果因素與後果",
-      "factorsConsequencesSub": "factors · consequences",
+      "factorsConsequencesSub": "因素 · 後果",
       "keyQuotesCount": "{{count}} 段"
     },
     "list": {
@@ -367,8 +367,8 @@
     "reviewListSub": "{{shown}} / {{total}} 條",
     "reviewTitle": "TensionLine 審核（{{count}} 條）",
     "refresh": "重新整理",
-    "poleA": "POLE A",
-    "poleB": "POLE B",
+    "poleA": "極點 A",
+    "poleB": "極點 B",
     "noCarrier": "未指派 carrier",
     "evidence": "證據",
     "evidenceCount": "{{count}} 則",
@@ -599,11 +599,11 @@
       "4": "全書合成"
     },
     "laneName": {
-      "0": "Text",
+      "0": "文本",
       "1": "KG",
-      "2": "Analysis",
-      "3": "Results",
-      "4": "Synthesis"
+      "2": "分析",
+      "3": "結果",
+      "4": "綜合"
     },
     "node": {
       "book_meta": "書籍元資料",

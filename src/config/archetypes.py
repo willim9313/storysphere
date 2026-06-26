@@ -67,6 +67,35 @@ def load_archetypes(framework: str, language: str = "en") -> list[dict]:
     return data
 
 
+@lru_cache(maxsize=8)
+def _build_archetype_lookup(framework: str, language: str) -> dict[str, str]:
+    """Build a map of {id: name, name: name} for resolving LLM output."""
+    archetypes = load_archetypes(framework, language)
+    lookup: dict[str, str] = {}
+    for a in archetypes:
+        name = a.get("name", a["id"])
+        lookup[a["id"]] = name
+        lookup[name] = name
+    return lookup
+
+
+def resolve_archetype_name(framework: str, value: str | None, language: str = "en") -> str | None:
+    """Resolve a raw LLM archetype output (ID or name) to the localized name.
+
+    The LLM may return either the archetype ID ('tyrant') or name ('暴君').
+    This function normalises both to the localized name from the config.
+    Falls back to the raw value if no match is found.
+    """
+    if not value:
+        return value
+    language = _normalize_language(language)
+    try:
+        lookup = _build_archetype_lookup(framework, language)
+    except (ValueError, FileNotFoundError):
+        return value
+    return lookup.get(value, value)
+
+
 def get_archetype_summary(framework: str, language: str = "en") -> str:
     """Return a text summary of archetypes for inclusion in LLM prompts.
 
