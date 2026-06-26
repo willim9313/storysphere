@@ -506,6 +506,13 @@ async def get_task(task_id: str) -> TaskStatus | None:
     return task_store.get(task_id)
 
 
+async def list_tasks(*, recent_limit: int = 20) -> list[TaskStatus]:
+    """Async-native task listing — use this in router handlers."""
+    if isinstance(task_store, SQLiteTaskStore):
+        return await task_store._async_list(recent_limit=recent_limit)
+    return task_store.list(recent_limit=recent_limit)
+
+
 async def get_task_id_by_book_id(book_id: str) -> str | None:
     """Async-native book→task lookup — use this in router handlers."""
     if isinstance(task_store, SQLiteTaskStore):

@@ -6,9 +6,23 @@ from fastapi import APIRouter, HTTPException, Query
 
 from api import task_registry
 from api.schemas.common import TaskStatus
-from api.store import get_task, task_store
+from api.store import get_task, list_tasks, task_store
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
+
+
+@router.get("", response_model=list[TaskStatus])
+async def get_tasks(
+    recent_limit: int = Query(
+        default=20, ge=0, description="Max recent terminal tasks to include"
+    ),
+) -> list[TaskStatus]:
+    """List all non-terminal tasks plus the most recent terminal tasks.
+
+    Powers the Task Center panel. Ordered newest-first by ``created_at``.
+    Does not include ``murmur_events`` (use ``/tasks/:id/status`` for those).
+    """
+    return await list_tasks(recent_limit=recent_limit)
 
 
 @router.get("/{task_id}/status", response_model=TaskStatus)

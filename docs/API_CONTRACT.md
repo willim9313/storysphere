@@ -532,6 +532,9 @@ interface TaskStatus {
     [key: string]: unknown;
   };
   error?: string;
+  kind?: string;           // 任務種類（如 'tension' / 'symbol' / 'ingestion'），任務中心據此導向；未提供則不可跳轉
+  title?: string;          // 顯示標題；未提供時前端 fallback 用 stage
+  createdAt?: string;      // ISO 時間字串，任務中心排序用
   murmurEvents?: MurmurEvent[];  // delta slice（seq >= after 的事件）
 }
 ```
@@ -579,6 +582,25 @@ useQuery({
 **Response 404**：task 不存在
 
 **Response 409**：task 已完成或無法中止
+
+---
+
+### #8c GET /tasks
+
+列出全系統任務，供「任務中心」面板總覽。回傳**所有非終態任務**（`pending` / `running` / `awaiting_review`）加上**最近 N 筆終態任務**（`done` / `error`），依 `createdAt` 新到舊排序。
+
+> 與 #8 不同，本 endpoint 為**清單**用途，回傳的 `TaskStatus` **不含 `murmurEvents`**（逐句 murmur 請走 #8）。
+
+**Query Parameters**
+
+| 參數 | 型別 | 預設 | 說明 |
+|---|---|---|---|
+| `recent_limit` | `integer` | `20` | 納入的最近終態任務數上限（`ge=0`）。非終態任務不受此限，一律全列。 |
+
+**Response 200**
+```ts
+type TaskListResponse = TaskStatus[];  // TaskStatus 定義見 #8；murmurEvents 一律為 []
+```
 
 **說明**：
 - 書進庫**前**取消 → 書不存在，等同上傳失敗
