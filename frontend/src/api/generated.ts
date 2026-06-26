@@ -759,6 +759,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tasks
+         * @description List all non-terminal tasks plus the most recent terminal tasks.
+         *
+         *     Powers the Task Center panel. Ordered newest-first by ``created_at``.
+         *     Does not include ``murmur_events`` (use ``/tasks/:id/status`` for those).
+         */
+        get: operations["get_tasks_api_v1_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tasks/{task_id}/status": {
         parameters: {
             query?: never;
@@ -3595,6 +3618,12 @@ export interface components {
             } | null;
             /** Error */
             error?: string | null;
+            /** Kind */
+            kind?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Createdat */
+            createdAt?: string | null;
             /**
              * Murmurevents
              * @default []
@@ -5283,6 +5312,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChapterDistribution"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tasks_api_v1_tasks_get: {
+        parameters: {
+            query?: {
+                /** @description Max recent terminal tasks to include */
+                recent_limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStatus"][];
                 };
             };
             /** @description Validation Error */
