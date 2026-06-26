@@ -77,6 +77,7 @@ from api.schemas.books import (
     VoiceProfileResponse,
 )
 from api.store import task_store
+from core.error_handling import is_rate_limit_error as _is_rate_limit_error
 from domain.documents import ParagraphEntity, PipelineStatus, StepStatus
 from services.analysis_cache import AnalysisCache
 
@@ -1598,6 +1599,13 @@ async def _run_batch_entity_analysis(
             )
             done += 1
         except Exception as exc:
+            if _is_rate_limit_error(exc):
+                logger.warning("Batch character analysis aborted — rate limit: %s", exc)
+                task_store.set_failed(
+                    task_id,
+                    error=f"API 配額已達上限，已處理 {done}/{total} 個角色。請稍後再試。",
+                )
+                return
             logger.warning(
                 "Batch character analysis failed for %s: %s",
                 entity.name, exc,
@@ -1970,6 +1978,13 @@ async def _run_batch_event_analysis(
             )
             done += 1
         except Exception as exc:
+            if _is_rate_limit_error(exc):
+                logger.warning("Batch event analysis aborted — rate limit: %s", exc)
+                task_store.set_failed(
+                    task_id,
+                    error=f"API 配額已達上限，已處理 {done}/{total} 個事件。請稍後再試。",
+                )
+                return
             logger.warning(
                 "Batch event analysis failed for %s: %s",
                 ev.id, exc,

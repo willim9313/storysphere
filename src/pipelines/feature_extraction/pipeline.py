@@ -23,6 +23,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
+from core.error_handling import is_rate_limit_error
 from domain.documents import Document, Paragraph, ParagraphRole, extract_body_text
 from pipelines.base import BasePipeline
 
@@ -108,32 +109,39 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
             # ── Keyword extraction (per paragraph) ─────────────────────────
             paragraph_keywords: list[dict[str, float]] = []
             if self._keyword_extractor is not None:
-                from config.settings import get_settings  # noqa: PLC0415
-
-                settings = get_settings()
-                max_kw = settings.keyword_max_per_paragraph
-
-                for para, text in zip(body_paras, body_texts):
-                    try:
-                        kws = await self._keyword_extractor.extract(
-                            text, max_kw, language=doc.language
-                        )
-                        para.keywords = kws
-                        paragraph_keywords.append(kws)
-                        total_keywords += 1
-                    except Exception as exc:  # noqa: BLE001
-                        logger.warning(
-                            "Keyword extraction failed for para %s: %s", para.id, exc
-                        )
-                        paragraph_keywords.append({})
-
-                # Aggregate paragraph → chapter keywords
-                if paragraph_keywords and self._keyword_aggregator is not None:
-                    chapter.keywords = self._keyword_aggregator.aggregate(
-                        paragraph_keywords,
-                        top_k=settings.keyword_max_per_chapter,
-                    )
+                if chapter.keywords is not None:
+                    # Already extracted in a previous partial run — skip LLM calls
+                    # but keep the chapter's keywords in the book-level accumulator.
                     all_chapter_keywords.append(chapter.keywords)
+                else:
+                    from config.settings import get_settings  # noqa: PLC0415
+
+                    settings = get_settings()
+                    max_kw = settings.keyword_max_per_paragraph
+
+                    for para, text in zip(body_paras, body_texts):
+                        try:
+                            kws = await self._keyword_extractor.extract(
+                                text, max_kw, language=doc.language
+                            )
+                            para.keywords = kws
+                            paragraph_keywords.append(kws)
+                            total_keywords += 1
+                        except Exception as exc:  # noqa: BLE001
+                            if is_rate_limit_error(exc):
+                                raise
+                            logger.warning(
+                                "Keyword extraction failed for para %s: %s", para.id, exc
+                            )
+                            paragraph_keywords.append({})
+
+                    # Aggregate paragraph → chapter keywords
+                    if paragraph_keywords and self._keyword_aggregator is not None:
+                        chapter.keywords = self._keyword_aggregator.aggregate(
+                            paragraph_keywords,
+                            top_k=settings.keyword_max_per_chapter,
+                        )
+                        all_chapter_keywords.append(chapter.keywords)
 
             if self._vector_service is not None or self._qdrant is not None:
                 # Qdrant path: write immediately, do NOT keep embedding in memory.
