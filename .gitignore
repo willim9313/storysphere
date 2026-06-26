@@ -4,6 +4,8 @@
 
 # ========== Claude Code ==========
 .claude/settings.local.json
+.claude/skills/
+.playwright-cli/
 
 # ========== Environment & Secrets ==========
 .env
