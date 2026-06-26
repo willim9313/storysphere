@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader, X, ChevronRight, ChevronDown, CheckCheck } from 'lucide-react';
 import type { TaskStatus } from '@/api/tasks';
+import { useTheme } from '@/contexts/ThemeContext';
 import { TaskRow } from './TaskRow';
 
 const HIDDEN_KEY = 'taskCenter.hiddenIds';
@@ -25,6 +26,15 @@ function saveHidden(ids: Set<string>): void {
 
 const isTerminal = (t: TaskStatus) => t.status === 'done' || t.status === 'error';
 
+const SECTION_LABEL: React.CSSProperties = {
+  fontFamily: 'var(--font-sans)',
+  fontSize: 10,
+  fontWeight: 600,
+  letterSpacing: '.06em',
+  textTransform: 'uppercase',
+  color: 'var(--fg-muted)',
+};
+
 interface TaskCenterProps {
   readonly onClose: () => void;
   readonly tasks: TaskStatus[];
@@ -33,12 +43,14 @@ interface TaskCenterProps {
 
 export function TaskCenter({ onClose, tasks, isLoading }: TaskCenterProps) {
   const navigate = useNavigate();
+  const { theme } = useTheme();
+  const mono = theme !== 'default';
   const [hidden, setHidden] = useState<Set<string>>(loadHidden);
   const [doneOpen, setDoneOpen] = useState(true);
 
   const visible = tasks.filter((t) => !hidden.has(t.taskId));
-  const active = visible.filter((t) => !isTerminal(t));
-  const completed = visible.filter(isTerminal);
+  const running = visible.filter((t) => !isTerminal(t));
+  const done = visible.filter(isTerminal);
 
   const handleNavigate = (path: string) => {
     onClose();
@@ -47,163 +59,196 @@ export function TaskCenter({ onClose, tasks, isLoading }: TaskCenterProps) {
 
   const clearCompleted = () => {
     const next = new Set(hidden);
-    completed.forEach((t) => next.add(t.taskId));
+    done.forEach((t) => next.add(t.taskId));
     setHidden(next);
     saveHidden(next);
   };
 
+  const showEmpty = !isLoading && visible.length === 0;
+  const showLoading = isLoading && tasks.length === 0;
+
   return (
     <div
-      className="flex-shrink-0 h-full flex flex-col overflow-hidden"
       style={{
+        display: 'flex',
+        flexDirection: 'column',
         width: 320,
+        height: '100%',
+        minHeight: 0,
         background: 'var(--bg-primary)',
-        borderLeft: '1px solid var(--border)',
+        fontFamily: 'var(--font-sans)',
+        borderLeft: 'var(--border-width) var(--border-style) var(--border)',
         boxShadow: 'var(--shadow-md)',
+        overflow: 'hidden',
       }}
     >
       {/* Header */}
       <div
-        className="flex items-center justify-between flex-shrink-0"
-        style={{ padding: '12px 14px', borderBottom: '1px solid var(--border)' }}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '11px 14px',
+          borderBottom: 'var(--border-width) var(--border-style) var(--border)',
+          flexShrink: 0,
+        }}
       >
-        <div className="flex items-center" style={{ gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           <Loader size={16} style={{ color: 'var(--accent)' }} />
-          <h3
+          <span
             style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: 'var(--font-size-lg, 18px)',
-              fontWeight: 700,
+              fontSize: 14,
+              fontWeight: 600,
               color: 'var(--fg-primary)',
-              margin: 0,
             }}
           >
             任務中心
-          </h3>
-          {active.length > 0 && (
+          </span>
+          {running.length > 0 && (
             <span
               style={{
-                fontSize: 11,
-                minWidth: 18,
-                textAlign: 'center',
-                padding: '0 5px',
-                borderRadius: 999,
+                fontFamily: 'var(--font-mono)',
+                fontSize: 10,
+                fontWeight: 700,
+                color: '#fff',
                 background: 'var(--accent)',
-                color: 'var(--bg-primary)',
+                minWidth: 16,
+                height: 16,
+                padding: '0 4px',
+                borderRadius: 9,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
               }}
             >
-              {active.length}
+              {running.length}
             </span>
           )}
         </div>
         <button
           onClick={onClose}
-          style={{ color: 'var(--fg-muted)', background: 'none', border: 0, cursor: 'pointer' }}
+          style={{ color: 'var(--fg-muted)', background: 'none', border: 0, cursor: 'pointer', display: 'flex' }}
           aria-label="關閉任務中心"
         >
-          <X size={16} />
+          <X size={15} />
         </button>
       </div>
 
       {/* Body */}
-      <div className="flex-1 overflow-y-auto">
-        {isLoading && tasks.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center h-full"
-            style={{ gap: 8, color: 'var(--fg-muted)' }}
-          >
-            <Loader size={20} className="animate-spin" />
-            <span style={{ fontSize: 13 }}>載入任務中…</span>
-          </div>
-        ) : visible.length === 0 ? (
-          <div
-            className="flex flex-col items-center justify-center h-full text-center"
-            style={{ gap: 8, padding: '0 24px', color: 'var(--fg-muted)' }}
-          >
-            <CheckCheck size={24} />
-            <span style={{ fontSize: 14, color: 'var(--fg-secondary)' }}>
-              目前沒有進行中的任務
-            </span>
-            <span style={{ fontSize: 12 }}>
-              LLM 處理任務啟動後會顯示在這裡
-            </span>
-          </div>
-        ) : (
-          <div style={{ padding: '8px 6px' }}>
-            {/* Active */}
-            {active.length > 0 && (
-              <div style={{ marginBottom: 8 }}>
-                <SectionLabel text={`進行中 · ${active.length}`} />
-                {active.map((t) => (
-                  <TaskRow key={t.taskId} task={t} onNavigate={handleNavigate} />
+      {showLoading ? (
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            color: 'var(--fg-muted)',
+          }}
+        >
+          <Loader size={22} className="animate-spin" />
+          <span style={{ fontSize: 12 }}>載入任務中…</span>
+        </div>
+      ) : showEmpty ? (
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 10,
+            padding: 30,
+            textAlign: 'center',
+          }}
+        >
+          <CheckCheck size={26} style={{ color: 'var(--fg-muted)' }} />
+          <span style={{ fontSize: 13, color: 'var(--fg-secondary)' }}>
+            目前沒有進行中的任務
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--fg-muted)', lineHeight: 1.5 }}>
+            啟動分析後，這裡會即時顯示
+            <br />
+            所有 LLM 任務的進度。
+          </span>
+        </div>
+      ) : (
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 8px 12px' }}>
+          {running.length > 0 && (
+            <>
+              <div style={{ ...SECTION_LABEL, padding: '6px 6px 4px' }}>
+                進行中 · {running.length}
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                {running.map((t) => (
+                  <TaskRow key={t.taskId} task={t} mono={mono} onNavigate={handleNavigate} />
                 ))}
               </div>
-            )}
+            </>
+          )}
 
-            {/* Completed (collapsible) */}
-            {completed.length > 0 && (
-              <div>
-                <div
-                  className="flex items-center justify-between"
-                  style={{ padding: '4px 10px' }}
+          {done.length > 0 && (
+            <>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  padding: '8px 6px 4px',
+                  marginTop: running.length > 0 ? 6 : 0,
+                }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setDoneOpen((v) => !v)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    flex: 1,
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    padding: 0,
+                  }}
                 >
-                  <button
-                    type="button"
-                    onClick={() => setDoneOpen((v) => !v)}
-                    className="flex items-center"
-                    style={{
-                      gap: 4,
-                      background: 'none',
-                      border: 0,
-                      cursor: 'pointer',
-                      color: 'var(--fg-muted)',
-                      fontSize: 11,
-                      letterSpacing: '0.05em',
-                      textTransform: 'uppercase',
-                    }}
-                  >
-                    {doneOpen ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
-                    已完成 · {completed.length}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={clearCompleted}
-                    style={{
-                      background: 'none',
-                      border: 0,
-                      cursor: 'pointer',
-                      color: 'var(--fg-muted)',
-                      fontSize: 11,
-                    }}
-                  >
-                    清除
-                  </button>
-                </div>
-                {doneOpen &&
-                  completed.map((t) => (
-                    <TaskRow key={t.taskId} task={t} onNavigate={handleNavigate} />
-                  ))}
+                  {doneOpen ? (
+                    <ChevronDown size={13} style={{ color: 'var(--fg-muted)' }} />
+                  ) : (
+                    <ChevronRight size={13} style={{ color: 'var(--fg-muted)' }} />
+                  )}
+                  <span style={SECTION_LABEL}>已完成 · {done.length}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={clearCompleted}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 10,
+                    color: 'var(--accent)',
+                  }}
+                >
+                  清除
+                </button>
               </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
 
-function SectionLabel({ text }: { readonly text: string }) {
-  return (
-    <div
-      style={{
-        padding: '4px 10px',
-        color: 'var(--fg-muted)',
-        fontSize: 11,
-        letterSpacing: '0.05em',
-        textTransform: 'uppercase',
-      }}
-    >
-      {text}
+              {doneOpen && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, opacity: 0.92 }}>
+                  {done.map((t) => (
+                    <TaskRow key={t.taskId} task={t} mono={mono} onNavigate={handleNavigate} />
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

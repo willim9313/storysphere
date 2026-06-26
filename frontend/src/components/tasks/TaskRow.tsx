@@ -6,109 +6,128 @@ import { taskRoute } from './taskRoute';
 
 interface TaskRowProps {
   readonly task: TaskStatus;
+  readonly mono: boolean;
   readonly onNavigate: (path: string) => void;
 }
 
-function dotColor(status: TaskStatus['status'], kindDot: string): string {
-  switch (status) {
-    case 'done':
-      return 'var(--color-success)';
-    case 'error':
-      return 'var(--color-error)';
-    case 'awaiting_review':
-      return 'var(--color-warning)';
-    default:
-      return kindDot; // running / pending → kind colour
-  }
-}
-
-export function TaskRow({ task, onNavigate }: TaskRowProps) {
+export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
   const [hover, setHover] = useState(false);
   const meta = kindMeta(task.kind);
   const route = taskRoute(task);
   const navigable = route !== null;
 
-  const colorVar = meta.color ? `var(--entity-${meta.color}-dot)` : 'var(--fg-secondary)';
-  const boxBg = meta.color ? `var(--entity-${meta.color}-bg)` : 'transparent';
-  const boxBorder = meta.color ? 'transparent' : '1px solid var(--border)';
-  const isTerminal = task.status === 'done' || task.status === 'error';
+  const status = task.status;
+  const running = status === 'running' || status === 'awaiting_review' || status === 'pending';
+  const isDone = status === 'done';
+  const isError = status === 'error';
+
+  // Neutral treatment = B&W theme OR unknown kind (no entity colour).
+  const neutral = mono || !meta.color;
+  const iconBg = meta.color ? `var(--entity-${meta.color}-bg)` : 'transparent';
+  const iconFg = meta.color ? `var(--entity-${meta.color}-dot)` : 'var(--fg-secondary)';
+
+  const chipBg = neutral ? 'transparent' : iconBg;
+  const chipFg = neutral ? 'var(--fg-secondary)' : iconFg;
+  const chipBorder = neutral
+    ? 'var(--border-width) var(--border-style) var(--border)'
+    : '0px solid transparent';
+  const labelFg = neutral ? 'var(--fg-secondary)' : iconFg;
+  const labelBg = neutral ? 'transparent' : iconBg;
+  const barColor = neutral ? 'var(--fg-primary)' : iconFg;
+
+  const statusDot = isDone
+    ? 'var(--color-success)'
+    : isError
+      ? 'var(--color-error)'
+      : status === 'awaiting_review'
+        ? 'var(--color-warning)'
+        : meta.color
+          ? `var(--entity-${meta.color}-dot)`
+          : 'var(--fg-muted)';
+  const dotColor = neutral && running ? 'var(--fg-primary)' : statusDot;
+
+  const Icon = meta.Icon;
   const title = task.title || task.stage || '處理中';
+  const doneLabel = isError ? '失敗' : '已完成';
 
   return (
-    <button
-      type="button"
-      disabled={!navigable}
-      onClick={navigable ? () => onNavigate(route) : undefined}
+    <div
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
-      className="flex items-start w-full text-left rounded-md transition-colors"
+      onClick={navigable ? () => onNavigate(route) : undefined}
       style={{
+        display: 'flex',
         gap: 10,
-        padding: '8px 10px',
-        background: hover && navigable ? 'var(--bg-tertiary)' : 'transparent',
-        border: 0,
+        padding: '9px 12px',
+        alignItems: 'flex-start',
+        borderRadius: 'var(--radius-md)',
         cursor: navigable ? 'pointer' : 'default',
+        transition: 'background-color var(--transition-fast)',
+        background: hover && navigable ? 'var(--bg-tertiary)' : 'transparent',
       }}
     >
-      {/* kind icon block */}
+      {/* kind chip */}
       <div
-        className="flex items-center justify-center flex-shrink-0"
         style={{
           width: 28,
           height: 28,
           borderRadius: 'var(--radius-md)',
-          background: boxBg,
-          border: boxBorder,
-          color: colorVar,
+          background: chipBg,
+          color: chipFg,
+          border: chipBorder,
+          boxSizing: 'border-box',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
+          marginTop: 1,
         }}
       >
-        <meta.Icon size={15} />
+        <Icon size={15} />
       </div>
 
-      {/* two-line content */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center" style={{ gap: 6 }}>
+      {/* content */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
           <span
-            className="truncate"
-            style={{ fontSize: 13, color: 'var(--fg-primary)' }}
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 13,
+              fontWeight: 500,
+              color: 'var(--fg-primary)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
           >
             {title}
           </span>
           <span
-            className="flex-shrink-0"
             style={{
+              fontFamily: 'var(--font-sans)',
               fontSize: 10,
-              padding: '1px 5px',
-              borderRadius: 'var(--radius-md)',
-              background: boxBg,
-              color: colorVar,
+              fontWeight: 500,
+              letterSpacing: '.02em',
+              color: labelFg,
+              background: labelBg,
+              border: chipBorder,
+              padding: '1px 6px',
+              borderRadius: 'var(--radius-sm)',
+              flexShrink: 0,
             }}
           >
             {meta.label}
           </span>
         </div>
 
-        {/* second line by status */}
-        {task.status === 'error' ? (
-          <div
-            className="flex items-center"
-            style={{ gap: 4, marginTop: 3, color: 'var(--color-error)', fontSize: 12 }}
-          >
-            <AlertTriangle size={12} />
-            <span style={{ fontWeight: 600 }}>失敗</span>
-          </div>
-        ) : task.status === 'done' ? (
-          <div style={{ marginTop: 3, fontSize: 12, color: 'var(--fg-muted)' }}>
-            已完成
-          </div>
-        ) : (
-          <div style={{ marginTop: 4 }}>
-            <div className="flex items-center" style={{ gap: 6 }}>
+        {running && (
+          <>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
               <div
-                className="flex-1"
                 style={{
+                  flex: 1,
                   height: 4,
-                  borderRadius: 999,
+                  borderRadius: 2,
                   background: 'var(--bg-tertiary)',
                   overflow: 'hidden',
                 }}
@@ -117,46 +136,92 @@ export function TaskRow({ task, onNavigate }: TaskRowProps) {
                   style={{
                     width: `${Math.min(100, Math.max(0, task.progress))}%`,
                     height: '100%',
-                    background: colorVar,
+                    borderRadius: 2,
+                    background: barColor,
                   }}
                 />
               </div>
               <span
-                style={{ fontSize: 11, color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)' }}
+                style={{
+                  fontFamily: 'var(--font-mono)',
+                  fontSize: 11,
+                  color: 'var(--fg-secondary)',
+                  flexShrink: 0,
+                }}
               >
                 {task.progress}%
               </span>
             </div>
             {task.stage && (
               <div
-                className="truncate"
-                style={{ marginTop: 2, fontSize: 11, color: 'var(--fg-muted)' }}
+                style={{
+                  fontFamily: 'var(--font-sans)',
+                  fontSize: 11,
+                  color: 'var(--fg-muted)',
+                  marginTop: 4,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
               >
                 {task.stage}
               </div>
             )}
+          </>
+        )}
+
+        {isDone && (
+          <div
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 11,
+              color: 'var(--fg-muted)',
+              marginTop: 5,
+            }}
+          >
+            {doneLabel}
+          </div>
+        )}
+
+        {isError && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5 }}>
+            <AlertTriangle size={12} style={{ color: 'var(--color-error)' }} />
+            <span
+              style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--color-error)' }}
+            >
+              {doneLabel}
+            </span>
           </div>
         )}
       </div>
 
-      {/* status dot + hover chevron */}
-      <div
-        className="flex items-center flex-shrink-0"
-        style={{ gap: 4, marginTop: 2 }}
-      >
-        {navigable && hover && (
-          <ChevronRight size={14} style={{ color: 'var(--fg-muted)' }} />
-        )}
-        <span
-          className={!isTerminal ? 'animate-pulse' : undefined}
+      {/* status dot */}
+      <span
+        className={running ? 'animate-pulse' : undefined}
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: '50%',
+          background: dotColor,
+          marginTop: 6,
+          flexShrink: 0,
+        }}
+      />
+
+      {/* hover chevron (rendered when navigable, fades in) */}
+      {navigable && (
+        <ChevronRight
+          size={14}
           style={{
-            width: 7,
-            height: 7,
-            borderRadius: 999,
-            background: dotColor(task.status, colorVar),
+            color: 'var(--fg-muted)',
+            marginTop: 4,
+            marginLeft: -3,
+            flexShrink: 0,
+            opacity: hover ? 1 : 0,
+            transition: 'opacity var(--transition-fast)',
           }}
         />
-      </div>
-    </button>
+      )}
+    </div>
   );
 }

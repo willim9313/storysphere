@@ -87,16 +87,19 @@ export function Sidebar({ tasksOpen, activeCount, onToggleTasks }: SidebarProps)
                   <span
                     className="absolute flex items-center justify-center"
                     style={{
-                      top: 2,
-                      right: 2,
-                      minWidth: 14,
-                      height: 14,
+                      top: 1,
+                      right: 1,
+                      minWidth: 15,
+                      height: 15,
                       padding: '0 3px',
-                      borderRadius: 999,
+                      borderRadius: 8,
+                      fontFamily: 'var(--font-mono)',
                       fontSize: 9,
+                      fontWeight: 700,
                       lineHeight: 1,
                       background: 'var(--accent)',
-                      color: 'var(--bg-primary)',
+                      color: '#fff',
+                      border: '1.5px solid var(--bg-secondary)',
                     }}
                   >
                     {activeCount}
