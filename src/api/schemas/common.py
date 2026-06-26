@@ -36,6 +36,9 @@ class TaskStatus(BaseModel):
     sub_stage: str | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
+    kind: str | None = None
+    title: str | None = None
+    created_at: str | None = None
     murmur_events: list[MurmurEvent] = []
 
 

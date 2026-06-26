@@ -23,6 +23,7 @@ import asyncio
 import json
 import logging
 import threading
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -42,11 +43,38 @@ class MemoryTaskStore:
         self._murmur: dict[str, list[MurmurEvent]] = {}
         self._lock = threading.Lock()
 
-    def create(self, task_id: str) -> TaskStatus:
-        task = TaskStatus(task_id=task_id, status="pending")
+    def create(
+        self,
+        task_id: str,
+        *,
+        kind: str | None = None,
+        title: str | None = None,
+    ) -> TaskStatus:
+        task = TaskStatus(
+            task_id=task_id,
+            status="pending",
+            kind=kind,
+            title=title,
+            created_at=datetime.now().isoformat(),
+        )
         with self._lock:
             self._store[task_id] = task
         return task
+
+    def list(self, *, recent_limit: int = 20) -> list[TaskStatus]:
+        """Return all non-terminal tasks + the most recent terminal tasks.
+
+        Ordered newest-first by ``created_at``. Never carries murmur_events.
+        """
+        terminal = {"done", "error"}
+        with self._lock:
+            # Insertion order reversed → newest-first; stable sort keeps that
+            # order for equal created_at timestamps.
+            tasks = list(reversed(list(self._store.values())))
+        tasks.sort(key=lambda t: t.created_at or "", reverse=True)
+        active = [t for t in tasks if t.status not in terminal]
+        recent = [t for t in tasks if t.status in terminal][:recent_limit]
+        return active + recent
 
     def get(self, task_id: str) -> TaskStatus | None:
         with self._lock:
@@ -147,6 +175,8 @@ ALTER TABLE tasks ADD COLUMN
 _ADD_SUB_PROGRESS = "ALTER TABLE tasks ADD COLUMN sub_progress INTEGER"
 _ADD_SUB_TOTAL = "ALTER TABLE tasks ADD COLUMN sub_total INTEGER"
 _ADD_SUB_STAGE = "ALTER TABLE tasks ADD COLUMN sub_stage TEXT"
+_ADD_KIND = "ALTER TABLE tasks ADD COLUMN kind TEXT"
+_ADD_TITLE = "ALTER TABLE tasks ADD COLUMN title TEXT"
 
 _CREATE_MURMUR_TABLE = """
 CREATE TABLE IF NOT EXISTS task_murmur_events (
@@ -197,6 +227,14 @@ class SQLiteTaskStore:
                     pass  # column already exists
                 try:
                     await db.execute(_ADD_SUB_STAGE)
+                except Exception:
+                    pass  # column already exists
+                try:
+                    await db.execute(_ADD_KIND)
+                except Exception:
+                    pass  # column already exists
+                try:
+                    await db.execute(_ADD_TITLE)
                 except Exception:
                     pass  # column already exists
                 await db.commit()
@@ -266,12 +304,21 @@ class SQLiteTaskStore:
 
     # ── Public sync interface (mirrors MemoryTaskStore) ───────────────────────
 
-    def create(self, task_id: str) -> TaskStatus:
+    def create(
+        self,
+        task_id: str,
+        *,
+        kind: str | None = None,
+        title: str | None = None,
+    ) -> TaskStatus:
         self._run(self._execute(
-            "INSERT OR IGNORE INTO tasks (task_id, status) VALUES (?, 'pending')",
-            (task_id,),
+            "INSERT OR IGNORE INTO tasks (task_id, status, kind, title) "
+            "VALUES (?, 'pending', ?, ?)",
+            (task_id, kind, title),
         ))
-        return TaskStatus(task_id=task_id, status="pending")
+        return TaskStatus(
+            task_id=task_id, status="pending", kind=kind, title=title
+        )
 
     def get(self, task_id: str) -> TaskStatus | None:
         try:
@@ -284,13 +331,13 @@ class SQLiteTaskStore:
         except RuntimeError:
             return asyncio.run(self._async_get(task_id))
 
-    async def _async_get(self, task_id: str) -> TaskStatus | None:
-        row = await self._fetchone(
-            "SELECT task_id, status, progress, stage, sub_progress, sub_total, sub_stage, result, error FROM tasks WHERE task_id = ?",
-            (task_id,),
-        )
-        if row is None:
-            return None
+    _SELECT_COLS = (
+        "task_id, status, progress, stage, sub_progress, sub_total, "
+        "sub_stage, result, error, kind, title, created_at"
+    )
+
+    @staticmethod
+    def _row_to_task(row: tuple) -> TaskStatus:
         return TaskStatus(
             task_id=row[0],
             status=row[1],
@@ -301,7 +348,53 @@ class SQLiteTaskStore:
             sub_stage=row[6],
             result=json.loads(row[7]) if row[7] else None,
             error=row[8],
+            kind=row[9],
+            title=row[10],
+            created_at=row[11],
         )
+
+    async def _async_get(self, task_id: str) -> TaskStatus | None:
+        row = await self._fetchone(
+            f"SELECT {self._SELECT_COLS} FROM tasks WHERE task_id = ?",
+            (task_id,),
+        )
+        if row is None:
+            return None
+        return self._row_to_task(row)
+
+    async def _async_list(self, *, recent_limit: int = 20) -> list[TaskStatus]:
+        """All non-terminal tasks + recent terminal tasks, newest-first."""
+        import aiosqlite  # noqa: PLC0415
+        await self._ensure_init()
+        async with aiosqlite.connect(self._db_path) as db:
+            async with db.execute(
+                f"SELECT {self._SELECT_COLS} FROM tasks "
+                "WHERE status NOT IN ('done', 'error') "
+                "ORDER BY created_at DESC, rowid DESC"
+            ) as cursor:
+                active = await cursor.fetchall()
+            async with db.execute(
+                f"SELECT {self._SELECT_COLS} FROM tasks "
+                "WHERE status IN ('done', 'error') "
+                "ORDER BY created_at DESC, rowid DESC LIMIT ?",
+                (recent_limit,),
+            ) as cursor:
+                recent = await cursor.fetchall()
+        return [self._row_to_task(r) for r in active] + [
+            self._row_to_task(r) for r in recent
+        ]
+
+    def list(self, *, recent_limit: int = 20) -> list[TaskStatus]:
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                asyncio.ensure_future(self._async_list(recent_limit=recent_limit))
+                return []  # use async variant in router code
+            return loop.run_until_complete(
+                self._async_list(recent_limit=recent_limit)
+            )
+        except RuntimeError:
+            return asyncio.run(self._async_list(recent_limit=recent_limit))
 
     def set_awaiting_review(self, task_id: str, book_id: str) -> None:
         self._run(self._execute(
