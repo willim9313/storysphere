@@ -496,6 +496,9 @@ export interface paths {
         /**
          * Trigger Entity Analysis
          * @description Trigger deep analysis for a single entity.
+         *
+         *     ``mode='retryFailed'`` re-runs only the cached result's failed parts
+         *     (reusing the cached CEP); ``mode='full'`` forces a complete re-analysis.
          */
         post: operations["trigger_entity_analysis_api_v1_books__book_id__entities__entity_id__analyze_post"];
         delete?: never;
@@ -581,6 +584,9 @@ export interface paths {
         /**
          * Trigger Event Analysis
          * @description Trigger deep analysis for a single event.
+         *
+         *     ``mode='retryFailed'`` re-runs only the cached result's failed parts;
+         *     ``mode='full'`` forces a complete re-analysis.
          */
         post: operations["trigger_event_analysis_api_v1_books__book_id__events__event_id__analyze_post"];
         delete?: never;
@@ -1996,6 +2002,15 @@ export interface components {
              */
             concurrency: number;
         };
+        /** AnalyzeTriggerRequest */
+        AnalyzeTriggerRequest: {
+            /**
+             * Mode
+             * @default full
+             * @enum {string}
+             */
+            mode: "full" | "retryFailed";
+        };
         /** ArcSegmentResponse */
         ArcSegmentResponse: {
             /** Chapterrange */
@@ -2226,6 +2241,16 @@ export interface components {
              * @default []
              */
             arc: components["schemas"]["ArcSegmentResponse"][];
+            /**
+             * Status
+             * @default complete
+             */
+            status: string;
+            /**
+             * Failedparts
+             * @default []
+             */
+            failedParts: string[];
             /** Generatedat */
             generatedAt: string;
         };
@@ -2522,6 +2547,16 @@ export interface components {
             summary: {
                 [key: string]: string;
             };
+            /**
+             * Status
+             * @default complete
+             */
+            status: string;
+            /**
+             * Failedparts
+             * @default []
+             */
+            failedParts: string[];
             /** Analyzedat */
             analyzedAt?: string | null;
             /** Chapter */
@@ -4893,7 +4928,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AnalyzeTriggerRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -5021,7 +5060,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AnalyzeTriggerRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

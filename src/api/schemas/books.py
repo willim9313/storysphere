@@ -316,6 +316,8 @@ class EventAnalysisFullResponse(BaseModel):
     causality: CausalityResponse
     impact: ImpactResponse
     summary: dict[str, str]
+    status: str = "complete"            # "complete" | "partial"
+    failed_parts: list[str] = []
     analyzed_at: str | None = None
     chapter: int | None = None
     chunk: int | None = None
@@ -407,7 +409,15 @@ class CharacterAnalysisDetailResponse(BaseModel):
     archetypes: list[ArchetypeDetailResponse] = []
     cep: CepResponse | None = None
     arc: list[ArcSegmentResponse] = []
+    status: str = "complete"            # "complete" | "partial"
+    failed_parts: list[str] = []
     generated_at: str
+
+
+class AnalyzeTriggerRequest(BaseModel):
+    model_config = _CAMEL
+
+    mode: Literal["full", "retryFailed"] = "full"
 
 
 # ── Entity chunks ────────────────────────────────────────────────────────────

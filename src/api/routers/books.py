@@ -31,6 +31,7 @@ from api.deps import (
 from api.schemas.books import (
     AnalysisItem,
     AnalysisListResponse,
+    AnalyzeTriggerRequest,
     ArchetypeDetailResponse,
     ArcSegmentResponse,
     BookDetailResponse,
@@ -207,7 +208,8 @@ async def _resume_ingestion_graph(task_id: str, chapters_data: list[dict]) -> No
 
 
 async def _run_entity_analysis(
-    task_id: str, entity_name: str, document_id: str, agent, language: str = "en"
+    task_id: str, entity_name: str, document_id: str, agent, language: str = "en",
+    retry_parts: list[str] | None = None, force_refresh: bool = False,
 ) -> None:
     logger.info("Entity analysis task %s started: entity=%s, doc=%s", task_id, entity_name, document_id)
     task_store.set_running(task_id)
@@ -218,6 +220,8 @@ async def _run_entity_analysis(
             archetype_frameworks=["jung", "schmidt"],
             language=language,
             progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
+            retry_parts=retry_parts,
+            force_refresh=force_refresh,
         )
         task_store.set_completed(task_id, result=result.model_dump())
         logger.info("Entity analysis task %s completed: entity=%s", task_id, entity_name)
@@ -1494,6 +1498,8 @@ async def get_entity_analysis(
                     )
                     for seg in result.arc
                 ],
+                status="partial" if result.failed_parts else "complete",
+                failed_parts=result.failed_parts,
                 generated_at=(
                     result.analyzed_at.isoformat() if result.analyzed_at else _now_iso()
                 ),
@@ -1518,22 +1524,41 @@ async def trigger_entity_analysis(
     kg: KGServiceDep,
     doc: DocServiceDep,
     agent: AnalysisAgentDep,
+    cache: AnalysisCacheDep,
     background_tasks: BackgroundTasks,
+    body: AnalyzeTriggerRequest = AnalyzeTriggerRequest(),
 ) -> dict:
-    """Trigger deep analysis for a single entity."""
+    """Trigger deep analysis for a single entity.
+
+    ``mode='retryFailed'`` re-runs only the cached result's failed parts
+    (reusing the cached CEP); ``mode='full'`` forces a complete re-analysis.
+    """
     entity = await kg.get_entity(entity_id)
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
     language = await doc.get_document_language(book_id)
+
+    retry_parts: list[str] | None = None
+    force_refresh = False
+    if body.mode == "retryFailed":
+        from services.analysis_models import CharacterAnalysisResult  # noqa: PLC0415
+        cache_key = AnalysisCache.make_key("character", book_id, entity.name)
+        cached = await cache.get(cache_key)
+        if cached:
+            retry_parts = CharacterAnalysisResult.model_validate(cached).failed_parts
+    else:
+        force_refresh = True
+
     logger.info(
-        "Triggering entity analysis: entity=%s (%s), book=%s, lang=%s",
-        entity.name, entity_id, book_id, language,
+        "Triggering entity analysis: entity=%s (%s), book=%s, lang=%s, mode=%s",
+        entity.name, entity_id, book_id, language, body.mode,
     )
     task_id = str(uuid4())
     task_store.create(task_id, kind="character", title=f"角色深度分析 — {entity.name}")
     background_tasks.add_task(
-        _run_entity_analysis, task_id, entity.name, book_id, agent, language
+        _run_entity_analysis, task_id, entity.name, book_id, agent, language,
+        retry_parts, force_refresh,
     )
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -1799,7 +1824,8 @@ async def classify_book_visibility(
 
 
 async def _run_event_analysis(
-    task_id: str, event_id: str, document_id: str, agent, language: str = "en"
+    task_id: str, event_id: str, document_id: str, agent, language: str = "en",
+    retry_parts: list[str] | None = None, force_refresh: bool = False,
 ) -> None:
     logger.info("Event analysis task %s started: event=%s, doc=%s", task_id, event_id, document_id)
     task_store.set_running(task_id)
@@ -1809,6 +1835,8 @@ async def _run_event_analysis(
             document_id=document_id,
             language=language,
             progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
+            retry_parts=retry_parts,
+            force_refresh=force_refresh,
         )
         task_store.set_completed(task_id, result=result.model_dump())
         logger.info("Event analysis task %s completed: event=%s", task_id, event_id)
@@ -1827,22 +1855,40 @@ async def trigger_event_analysis(
     kg: KGServiceDep,
     doc: DocServiceDep,
     agent: AnalysisAgentDep,
+    cache: AnalysisCacheDep,
     background_tasks: BackgroundTasks,
+    body: AnalyzeTriggerRequest = AnalyzeTriggerRequest(),
 ) -> dict:
-    """Trigger deep analysis for a single event."""
+    """Trigger deep analysis for a single event.
+
+    ``mode='retryFailed'`` re-runs only the cached result's failed parts;
+    ``mode='full'`` forces a complete re-analysis.
+    """
     event = await kg.get_event(event_id)
     if event is None:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     language = await doc.get_document_language(book_id)
+
+    retry_parts: list[str] | None = None
+    force_refresh = False
+    if body.mode == "retryFailed":
+        from services.analysis_models import EventAnalysisResult  # noqa: PLC0415
+        cached = await cache.get(f"event:{book_id}:{event_id}")
+        if cached:
+            retry_parts = EventAnalysisResult.model_validate(cached).failed_parts
+    else:
+        force_refresh = True
+
     logger.info(
-        "Triggering event analysis: event=%s (%s), book=%s, lang=%s",
-        event.title, event_id, book_id, language,
+        "Triggering event analysis: event=%s (%s), book=%s, lang=%s, mode=%s",
+        event.title, event_id, book_id, language, body.mode,
     )
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="事件分析")
     background_tasks.add_task(
-        _run_event_analysis, task_id, event_id, book_id, agent, language
+        _run_event_analysis, task_id, event_id, book_id, agent, language,
+        retry_parts, force_refresh,
     )
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -1917,6 +1963,8 @@ async def get_event_analysis(
             impact_summary=result.impact.impact_summary,
         ),
         summary={"summary": result.summary.summary if result.summary else ""},
+        status="partial" if result.failed_parts else "complete",
+        failed_parts=result.failed_parts,
         analyzed_at=result.analyzed_at.isoformat() if result.analyzed_at else None,
         chapter=event.chapter,
         chunk=event.narrative_position,

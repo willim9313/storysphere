@@ -344,6 +344,8 @@ interface CharacterAnalysisDetail {
   archetypes: ArchetypeDetail[];
   cep: CepData | null;
   arc: ArcSegment[];
+  status: 'complete' | 'partial';   // partial = 部分子步驟生成失敗
+  failedParts: string[];            // 失敗 part，如 ['archetype:jung']；前端據此區分「生成失敗，可重試」與「未生成」
   generatedAt: string;
 }
 
@@ -371,6 +373,10 @@ interface ArcSegment {
 ### #7b POST /books/:bookId/entities/:entityId/analyze
 
 觸發角色實體深度分析。需確認視窗（說明 token 消耗 + 結果將同步至角色分析頁）後才呼叫。
+
+**Request body**（選填）：`{ mode?: 'full' | 'retryFailed' }`，預設 `full`。
+- `full`：完整重跑（force_refresh），重抽 CEP 與所有 part。
+- `retryFailed`：只重跑快取結果的 `failedParts`（沿用快取的 CEP 與已成功 part）。server 自行從快取推算 part，前端不需傳。
 
 **Response 200**：`{ taskId: string }`
 
@@ -420,6 +426,8 @@ interface EventAnalysisDetail {
   causality: CausalityAnalysis;
   impact: ImpactAnalysis;
   summary: { summary: string };
+  status: 'complete' | 'partial';   // partial = causality / impact 子步驟生成失敗
+  failedParts: string[];            // 失敗 part，如 ['impact']
   analyzedAt: string;
   chapter?: number | null;        // 事件所在章節
   chunk?: number | null;          // 事件在章節內的位置（目前對應 Event.narrative_position，未來改用 chunk_id 時不變動此欄位語意）
@@ -452,6 +460,8 @@ interface EventEvidenceProfile {
 ### #7e POST /books/:bookId/events/:eventId/analyze
 
 觸發單一事件深度分析（EEP）。
+
+**Request body**（選填）：`{ mode?: 'full' | 'retryFailed' }`，預設 `full`。語意同 #7b（`retryFailed` 只重跑快取的 `failedParts`）。
 
 **Response 200**：`{ taskId: string }`
 
