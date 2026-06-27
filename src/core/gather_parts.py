@@ -7,7 +7,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Awaitable
+from collections.abc import Awaitable
+from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,7 @@ async def gather_parts(
     outcomes = await asyncio.gather(*parts.values(), return_exceptions=True)
     results: dict[str, Any] = {}
     failed: list[str] = []
-    for name, outcome in zip(names, outcomes):
+    for name, outcome in zip(names, outcomes, strict=True):
         if isinstance(outcome, Exception):
             logger.warning("gather_parts: part %s failed: %s", name, outcome)
             failed.append(name)
