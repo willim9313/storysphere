@@ -229,7 +229,7 @@ async def analyze_symbol(
     req = req.model_copy(update={"language": language})
 
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="symbol", title="符號意象抽取")
     background_tasks.add_task(_run_symbol_analysis, task_id, imagery_id, req, agent)
     return TaskStatus(task_id=task_id, status="pending")
 

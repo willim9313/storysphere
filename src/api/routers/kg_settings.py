@@ -171,7 +171,7 @@ async def start_migration(
     Returns a task_id for polling via ``GET /api/v1/kg/migrate/{task_id}``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, title="知識圖譜遷移")
     background_tasks.add_task(_run_migration, task_id, body.direction)
     return TaskStatus(task_id=task_id, status="pending")
 

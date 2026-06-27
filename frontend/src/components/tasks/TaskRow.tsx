@@ -10,6 +10,19 @@ interface TaskRowProps {
   readonly onNavigate: (path: string) => void;
 }
 
+function relTime(iso: string | null | undefined): string {
+  if (!iso) return '已完成';
+  const t = Date.parse(iso);
+  if (Number.isNaN(t)) return '已完成';
+  const s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 60) return '剛剛完成';
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m} 分鐘前完成`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h} 小時前完成`;
+  return `${Math.floor(h / 24)} 天前完成`;
+}
+
 export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
   const [hover, setHover] = useState(false);
   const meta = kindMeta(task.kind);
@@ -21,19 +34,15 @@ export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
   const isDone = status === 'done';
   const isError = status === 'error';
 
-  // Neutral treatment = B&W theme OR unknown kind (no entity colour).
-  const neutral = mono || !meta.color;
-  const iconBg = meta.color ? `var(--entity-${meta.color}-bg)` : 'transparent';
-  const iconFg = meta.color ? `var(--entity-${meta.color}-dot)` : 'var(--fg-secondary)';
-
-  const chipBg = neutral ? 'transparent' : iconBg;
-  const chipFg = neutral ? 'var(--fg-secondary)' : iconFg;
-  const chipBorder = neutral
+  // Neutral = B&W theme only (chip outlined, accents → fg-primary).
+  const chipBg = mono ? 'transparent' : meta.bg;
+  const chipFg = mono ? 'var(--fg-secondary)' : meta.fg;
+  const chipBorder = mono
     ? 'var(--border-width) var(--border-style) var(--border)'
     : '0px solid transparent';
-  const labelFg = neutral ? 'var(--fg-secondary)' : iconFg;
-  const labelBg = neutral ? 'transparent' : iconBg;
-  const barColor = neutral ? 'var(--fg-primary)' : iconFg;
+  const labelFg = mono ? 'var(--fg-secondary)' : meta.fg;
+  const labelBg = mono ? 'transparent' : meta.bg;
+  const barColor = mono ? 'var(--fg-primary)' : meta.fg;
 
   const statusDot = isDone
     ? 'var(--color-success)'
@@ -41,14 +50,12 @@ export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
       ? 'var(--color-error)'
       : status === 'awaiting_review'
         ? 'var(--color-warning)'
-        : meta.color
-          ? `var(--entity-${meta.color}-dot)`
-          : 'var(--fg-muted)';
-  const dotColor = neutral && running ? 'var(--fg-primary)' : statusDot;
+        : meta.fg;
+  const dotColor = mono && running ? 'var(--fg-primary)' : statusDot;
 
   const Icon = meta.Icon;
   const title = task.title || task.stage || '處理中';
-  const doneLabel = isError ? '失敗' : '已完成';
+  const errorText = navigable ? '失敗 · 前往該頁處理' : '失敗';
 
   return (
     <div
@@ -179,7 +186,7 @@ export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
               marginTop: 5,
             }}
           >
-            {doneLabel}
+            {relTime(task.createdAt)}
           </div>
         )}
 
@@ -189,7 +196,7 @@ export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
             <span
               style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--color-error)' }}
             >
-              {doneLabel}
+              {errorText}
             </span>
           </div>
         )}

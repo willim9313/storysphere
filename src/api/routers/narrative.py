@@ -128,7 +128,7 @@ async def classify_narrative(
     Returns 202 with ``task_id``. Poll ``GET /narrative/classify/{task_id}``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="narrative", title="敘事模式標註")
     background_tasks.add_task(_run_classify, task_id, req, narrative_service)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -156,7 +156,7 @@ async def refine_narrative(
     specific events. Requires heuristic classification to have run first.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="narrative", title="敘事模式校正")
     background_tasks.add_task(_run_refine, task_id, req, narrative_service)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -183,7 +183,7 @@ async def map_hero_journey(
     Returns 202 with ``task_id``. Poll ``GET /narrative/hero-journey/{task_id}``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="narrative", title="英雄旅程對應")
     background_tasks.add_task(_run_hero_journey, task_id, req, narrative_service)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -247,7 +247,7 @@ async def analyze_temporal(
     Returns 202 with ``task_id``. Poll ``GET /narrative/temporal/{task_id}``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="narrative", title="時序分析")
     background_tasks.add_task(_run_temporal, task_id, req, narrative_service)
     return TaskStatus(task_id=task_id, status="pending")
 

@@ -60,7 +60,7 @@ async def analyze_character(
     until ``status`` is ``"completed"`` or ``"failed"``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="character", title="角色深度分析")
     background_tasks.add_task(_run_character_analysis, task_id, req, agent)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -104,7 +104,7 @@ async def analyze_event(
 ) -> TaskStatus:
     """Start a deep event analysis.  Returns 202 with ``task_id``."""
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="event", title="事件分析")
     background_tasks.add_task(_run_event_analysis, task_id, req, agent)
     return TaskStatus(task_id=task_id, status="pending")
 

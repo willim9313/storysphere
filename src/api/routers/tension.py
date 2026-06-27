@@ -84,7 +84,7 @@ async def group_tension_lines(
     until ``status`` is ``"done"`` or ``"error"``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="tension", title="張力線分組")
     background_tasks.add_task(_run_group_lines, task_id, req, tension_service, kg_service)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -228,7 +228,7 @@ async def analyze_book_tensions(
     for progress and final result.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="tension", title="張力曲線分析")
     background_tasks.add_task(
         _run_analyze_book, task_id, req, tension_service, kg_service, doc_service
     )
@@ -289,7 +289,7 @@ async def synthesize_tension_theme(
     until ``status`` is ``"done"`` or ``"error"``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="tension", title="張力主題綜合")
     background_tasks.add_task(_run_synthesize_theme, task_id, req, tension_service)
     return TaskStatus(task_id=task_id, status="pending")
 

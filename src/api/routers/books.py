@@ -434,7 +434,7 @@ async def rerun_pipeline_step(
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="ingestion", title="重跑處理步驟")
     task = asyncio.create_task(_run_rerun_step(task_id, book_id, step, doc, kg))
     task_registry.register(task_id, task)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -579,7 +579,7 @@ async def upload_book(
         ) from exc
 
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="ingestion", title=(f"{title} 解析" if title else "書籍解析"))
     task = asyncio.create_task(_run_ingestion_graph(task_id, Path(tmp.name), title, author, language))
     task_registry.register(task_id, task)
 
@@ -1217,7 +1217,7 @@ async def trigger_book_analysis(
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, title="整本書深度分析")
 
     # For MVP: just mark as done (full batch analysis to be implemented)
     task_store.set_completed(task_id, result={"bookId": book_id})
@@ -1383,7 +1383,7 @@ async def regenerate_analysis(
 ) -> dict:
     """Regenerate a single analysis item."""
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, title="條目重新生成")
     # TODO: dispatch to correct analysis agent based on section
     task_store.set_completed(task_id, result={})
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -1531,7 +1531,7 @@ async def trigger_entity_analysis(
         entity.name, entity_id, book_id, language,
     )
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="character", title=f"角色深度分析 — {entity.name}")
     background_tasks.add_task(
         _run_entity_analysis, task_id, entity.name, book_id, agent, language
     )
@@ -1673,7 +1673,7 @@ async def trigger_batch_entity_analysis(
 
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="character", title="批次角色分析")
     background_tasks.add_task(
         _run_batch_entity_analysis,
         task_id, book_id, agent, kg, cache, language,
@@ -1790,7 +1790,7 @@ async def classify_book_visibility(
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, title="可見性分類")
     background_tasks.add_task(_run_classify_visibility, task_id, book_id, epistemic_svc)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
@@ -1840,7 +1840,7 @@ async def trigger_event_analysis(
         event.title, event_id, book_id, language,
     )
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="event", title="事件分析")
     background_tasks.add_task(
         _run_event_analysis, task_id, event_id, book_id, agent, language
     )
@@ -2048,7 +2048,7 @@ async def trigger_batch_event_analysis(
 
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="event", title="批次事件分析")
     background_tasks.add_task(
         _run_batch_event_analysis,
         task_id, book_id, agent, kg, cache, language,
@@ -2266,7 +2266,7 @@ async def compute_book_timeline(
 
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="event", title="時間軸生成")
     background_tasks.add_task(
         _run_temporal_pipeline, task_id, book_id, pipeline, language
     )
