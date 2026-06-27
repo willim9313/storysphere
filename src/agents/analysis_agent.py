@@ -150,6 +150,7 @@ class AnalysisAgent:
         language: str = "en",
         force_refresh: bool = False,
         progress_callback: Callable[[int, str], None] | None = None,
+        retry_parts: list[str] | None = None,
     ) -> EventAnalysisResult:
         """Run event analysis with cache-first strategy.
 
@@ -169,6 +170,24 @@ class AnalysisAgent:
         _metrics = get_metrics()
         _t0 = time.perf_counter()
         cache_key = f"event:{document_id}:{event_id}"
+
+        # Partial re-run: reuse cached result, recompute only failed parts.
+        if retry_parts and self._cache is not None:
+            cached = await self._cache.get(cache_key)
+            base = (
+                EventAnalysisResult.model_validate(cached)
+                if cached is not None else None
+            )
+            result = await self._service.analyze_event(
+                event_id=event_id,
+                document_id=document_id,
+                language=language,
+                progress_callback=progress_callback,
+                retry_parts=retry_parts,
+                base_result=base,
+            )
+            await self._cache.set(cache_key, result.model_dump(mode="json"))
+            return result
 
         if self._cache is not None and not force_refresh:
             cached = await self._cache.get(cache_key)

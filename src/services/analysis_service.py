@@ -637,6 +637,8 @@ class AnalysisService:
         document_id: str,
         language: str = "en",
         progress_callback: Callable[[int, str], None] | None = None,
+        retry_parts: list[str] | None = None,
+        base_result: EventAnalysisResult | None = None,
     ) -> EventAnalysisResult:
         """Run full event analysis pipeline: EEP → causality → impact → summary.
 
@@ -657,29 +659,37 @@ class AnalysisService:
         if event is None:
             raise ValueError(f"Event not found: {event_id}")
 
-        if progress_callback:
-            progress_callback(5, "extracting event evidence profile (EEP)")
-        eep = await self._extract_eep(event, document_id, language)
+        # EEP gate. On partial re-run, reuse the cached EEP.
+        if retry_parts and base_result is not None:
+            eep = base_result.eep
+        else:
+            if progress_callback:
+                progress_callback(5, "extracting event evidence profile (EEP)")
+            eep = await self._extract_eep(event, document_id, language)
 
-        # causality and impact are independent — run in parallel
+        # causality and impact as named parts.
+        factories = {
+            "causality": lambda: self._analyze_causality(eep, event, language),
+            "impact": lambda: self._analyze_impact(eep, event, language),
+        }
+        wanted = {
+            name: make()
+            for name, make in factories.items()
+            if retry_parts is None or name in retry_parts
+        }
+
         if progress_callback:
             progress_callback(30, "analyzing causality and impact")
-        causality_r, impact_r = await asyncio.gather(
-            self._analyze_causality(eep, event, language),
-            self._analyze_impact(eep, event, language),
-            return_exceptions=True,
-        )
+        from core.gather_parts import gather_parts  # noqa: PLC0415
+        results, failed = await gather_parts(wanted)
 
-        if isinstance(causality_r, Exception):
-            logger.warning("Causality analysis failed: %s", causality_r)
+        if base_result is not None:
+            causality = base_result.causality
+            impact = base_result.impact
+        else:
             causality = CausalityAnalysis(
                 root_cause="", causal_chain=[], trigger_event_ids=[], chain_summary=""
             )
-        else:
-            causality = causality_r
-
-        if isinstance(impact_r, Exception):
-            logger.warning("Impact analysis failed: %s", impact_r)
             impact = ImpactAnalysis(
                 affected_participant_ids=[],
                 participant_impacts=[],
@@ -687,8 +697,14 @@ class AnalysisService:
                 subsequent_event_ids=[],
                 impact_summary="",
             )
+        causality = results.get("causality", causality)
+        impact = results.get("impact", impact)
+
+        if base_result is not None:
+            prior = [p for p in base_result.failed_parts if p not in (retry_parts or [])]
+            failed_parts = prior + failed
         else:
-            impact = impact_r
+            failed_parts = failed
 
         if progress_callback:
             progress_callback(75, "generating event summary")
@@ -706,6 +722,7 @@ class AnalysisService:
             impact=impact,
             summary=event_summary,
             coverage=coverage,
+            failed_parts=failed_parts,
             analyzed_at=datetime.now(timezone.utc),
         )
 

@@ -90,3 +90,52 @@ class TestAgentPartial:
 
         agent._cache.set.assert_awaited_once()
         assert result.failed_parts == []
+
+
+class TestEventPartialFailure:
+    def _svc(self):
+        from services.analysis_service import AnalysisService
+        from services.analysis_models import (
+            CausalityAnalysis, EventCoverageMetrics, EventEvidenceProfile, EventSummary)
+        svc = AnalysisService.__new__(AnalysisService)
+        ev = type("E", (), {"title": "T"})()
+        svc._kg_service = AsyncMock()
+        svc._kg_service.get_event = AsyncMock(return_value=ev)
+        svc._extract_eep = AsyncMock(return_value=EventEvidenceProfile(
+            state_before="", state_after=""))
+        svc._analyze_causality = AsyncMock(return_value=CausalityAnalysis(root_cause="rc"))
+        svc._analyze_impact = AsyncMock(return_value=type("I", (), {})())
+        svc._generate_event_summary = AsyncMock(return_value=EventSummary(summary="s"))
+        svc._compute_event_coverage = lambda eep: EventCoverageMetrics()
+        return svc
+
+    def test_impact_failure_marks_failed_parts(self):
+        svc = self._svc()
+        svc._analyze_impact = AsyncMock(side_effect=RuntimeError("429"))
+        result = asyncio.run(svc.analyze_event(
+            event_id="e1", document_id="doc1", language="en"))
+        assert result.failed_parts == ["impact"]
+        assert result.causality.root_cause == "rc"
+
+    def test_event_retry_reuses_eep(self):
+        from services.analysis_models import (
+            CausalityAnalysis, EventAnalysisResult, EventCoverageMetrics,
+            EventEvidenceProfile, EventSummary, ImpactAnalysis)
+        svc = self._svc()
+        base = EventAnalysisResult(
+            event_id="e1", title="T", document_id="doc1",
+            eep=EventEvidenceProfile(state_before="B", state_after="A"),
+            causality=CausalityAnalysis(root_cause="rc"), impact=ImpactAnalysis(),
+            summary=EventSummary(summary="s"), coverage=EventCoverageMetrics(),
+            failed_parts=["impact"], analyzed_at=__import__("datetime").datetime.now())
+        svc._analyze_impact = AsyncMock(return_value=ImpactAnalysis(impact_summary="done"))
+
+        result = asyncio.run(svc.analyze_event(
+            event_id="e1", document_id="doc1", language="en",
+            retry_parts=["impact"], base_result=base))
+
+        svc._extract_eep.assert_not_called()
+        svc._analyze_causality.assert_not_called()
+        assert result.failed_parts == []
+        assert result.impact.impact_summary == "done"
+        assert result.eep.state_before == "B"
