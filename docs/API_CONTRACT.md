@@ -242,6 +242,7 @@ interface AnalysisItem {
   archetypes: Record<string, string>;  // framework → primary archetype id（characters 才會填，events 為空 map）
   chapterCount: number;
   content: string;
+  status: 'complete' | 'partial';     // partial = 該角色分析有子步驟失敗；左側清單狀態點據此上色（complete=綠 / partial=琥珀）
   generatedAt: string;
   // ── event-only optional fields（characters 為 null） ──
   chapter?: number | null;            // 事件所在章節（單一章節編號）

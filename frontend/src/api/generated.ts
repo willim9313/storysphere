@@ -1958,6 +1958,11 @@ export interface components {
              */
             content: string;
             /**
+             * Status
+             * @default complete
+             */
+            status: string;
+            /**
              * Generatedat
              * @default
              */

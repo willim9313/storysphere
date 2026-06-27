@@ -44,7 +44,10 @@ export function AnalyzedItem({
           <span>{t('character.list.chapterCount', { count: item.chapterCount })}</span>
         </div>
       </div>
-      <div className="ca-item-dot" />
+      <div
+        className="ca-item-dot"
+        style={item.status === 'partial' ? { background: 'var(--color-warning)' } : undefined}
+      />
     </button>
   );
 }

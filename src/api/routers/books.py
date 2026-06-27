@@ -1264,6 +1264,7 @@ async def list_character_analyses(
                         title=e.name,
                         archetypes=archetypes,
                         content=result.profile.summary if result.profile else "",
+                        status="partial" if result.failed_parts else "complete",
                         generated_at=(
                             result.analyzed_at.isoformat()
                             if result.analyzed_at

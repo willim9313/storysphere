@@ -349,6 +349,7 @@ class AnalysisItem(BaseModel):
     archetypes: dict[str, str] = {}
     chapter_count: int = 0
     content: str = ""
+    status: str = "complete"            # "complete" | "partial"
     generated_at: str = ""
     chapter: int | None = None
     narrative_mode: str | None = None

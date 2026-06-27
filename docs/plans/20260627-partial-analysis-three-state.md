@@ -125,6 +125,7 @@ API 變更同步更新 `docs/API_CONTRACT.md`，commit 標 `[api-contract update
   - **生成失敗**（part 在 `failedParts`）→ 顯示「**生成失敗，可重試**」
 - status=partial 時露出一鍵「**重試失敗部分**」動作（送 `mode=retryFailed`）。
 - 任務中心：result 帶非空 `failed_parts` → 該列「部分完成」+ 琥珀點。
+- **角色分析左側「已分析」清單的狀態點**：清單端點 `#6a` 的 `AnalysisItem` 帶 `status`；`status==='partial'` → 該角色狀態點上色為琥珀 `var(--color-warning)`，`complete` 維持綠。這修正了「分析跑一半卻仍顯示綠燈」的誤導（三態在清單層級也要可見，不只詳情頁與任務中心）。
 - 型別從 `generated.ts` 取用（schema 改完跑 `npm run gen:types`）。
 - 前端無測試 runner，靠 `tsc + eslint` 把關。
 

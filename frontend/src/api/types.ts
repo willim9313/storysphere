@@ -157,6 +157,7 @@ export interface AnalysisItem {
   archetypes: Record<string, string>;
   chapterCount: number;
   content: string;
+  status?: 'complete' | 'partial';
   generatedAt: string;
   chapter?: number | null;
   narrativeMode?: string | null;
