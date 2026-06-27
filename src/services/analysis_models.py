@@ -80,6 +80,10 @@ class CharacterAnalysisResult(BaseModel):
     coverage: CoverageMetrics = Field(
         default_factory=CoverageMetrics, description="Evidence coverage metrics"
     )
+    failed_parts: list[str] = Field(
+        default_factory=list,
+        description="Sub-step parts that failed (empty = complete)",
+    )
     analyzed_at: datetime = Field(default_factory=datetime.utcnow, description="Analysis timestamp")
 
 
@@ -158,4 +162,8 @@ class EventAnalysisResult(BaseModel):
     impact: ImpactAnalysis
     summary: EventSummary
     coverage: EventCoverageMetrics
+    failed_parts: list[str] = Field(
+        default_factory=list,
+        description="Sub-step parts that failed (empty = complete)",
+    )
     analyzed_at: datetime
