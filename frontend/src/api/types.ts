@@ -215,6 +215,8 @@ export interface CharacterAnalysisDetail {
   archetypes: ArchetypeDetail[];
   cep: CepData | null;
   arc: ArcSegment[];
+  status?: 'complete' | 'partial';
+  failedParts?: string[];
   generatedAt: string;
 }
 

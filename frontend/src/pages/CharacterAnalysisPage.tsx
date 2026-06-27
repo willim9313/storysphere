@@ -96,6 +96,16 @@ export default function CharacterAnalysisPage() {
     },
   });
 
+  // Retry only the failed parts of a partial result (reuses cached CEP).
+  const retryFailedMutation = useMutation({
+    mutationFn: (id: string) => triggerEntityAnalysis(bookId!, id, 'retryFailed'),
+    onSuccess: (data) => {
+      setTriggerError(null);
+      setGenerateTaskId(data.taskId);
+    },
+    onError: () => setTriggerError(t('triggerFailed')),
+  });
+
   const handleSelectEntity = (id: string) => {
     setSelectedEntityId(id);
     // Reset sub-tab when switching characters so each one starts at persona
@@ -336,6 +346,17 @@ export default function CharacterAnalysisPage() {
                     >
                       <GitCompare size={12} /> {t('character.compare.open')}
                     </button>
+                    {entityAnalysis.status === 'partial' && (
+                      <button
+                        type="button"
+                        className="ca-btn"
+                        style={{ color: 'var(--color-warning)' }}
+                        disabled={retryFailedMutation.isPending}
+                        onClick={() => selectedEntityId && retryFailedMutation.mutate(selectedEntityId)}
+                      >
+                        <RefreshCw size={12} /> {t('character.persona.retryFailed')}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="ca-btn"

@@ -33,6 +33,9 @@ export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
   const running = status === 'running' || status === 'awaiting_review' || status === 'pending';
   const isDone = status === 'done';
   const isError = status === 'error';
+  // A done task whose result carries failed_parts is a partial completion.
+  const failedParts = (task.result as { failed_parts?: unknown } | null | undefined)?.failed_parts;
+  const isPartial = isDone && Array.isArray(failedParts) && failedParts.length > 0;
 
   // Neutral = B&W theme only (chip outlined, accents → fg-primary).
   const chipBg = mono ? 'transparent' : meta.bg;
@@ -44,13 +47,15 @@ export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
   const labelBg = mono ? 'transparent' : meta.bg;
   const barColor = mono ? 'var(--fg-primary)' : meta.fg;
 
-  const statusDot = isDone
-    ? 'var(--color-success)'
-    : isError
-      ? 'var(--color-error)'
-      : status === 'awaiting_review'
-        ? 'var(--color-warning)'
-        : meta.fg;
+  const statusDot = isPartial
+    ? 'var(--color-warning)'
+    : isDone
+      ? 'var(--color-success)'
+      : isError
+        ? 'var(--color-error)'
+        : status === 'awaiting_review'
+          ? 'var(--color-warning)'
+          : meta.fg;
   const dotColor = mono && running ? 'var(--fg-primary)' : statusDot;
 
   const Icon = meta.Icon;
@@ -182,11 +187,11 @@ export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
             style={{
               fontFamily: 'var(--font-sans)',
               fontSize: 11,
-              color: 'var(--fg-muted)',
+              color: isPartial ? 'var(--color-warning)' : 'var(--fg-muted)',
               marginTop: 5,
             }}
           >
-            {relTime(task.createdAt)}
+            {isPartial ? '部分完成' : relTime(task.createdAt)}
           </div>
         )}
 

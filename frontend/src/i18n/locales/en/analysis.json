@@ -69,6 +69,8 @@
       "archetypeLabelJung": "Jung Archetype — {{name}}",
       "archetypeLabelSchmidt": "Schmidt Type — {{name}}",
       "archetypeNotGenerated": "Not generated",
+      "archetypeFailed": "Generation failed",
+      "retryFailed": "Retry failed parts",
       "evidenceHeading": "Supporting Evidence",
       "traitsCount": "{{count}} traits"
     },

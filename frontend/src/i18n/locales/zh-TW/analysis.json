@@ -69,6 +69,8 @@
       "archetypeLabelJung": "Jung 原型 — {{name}}",
       "archetypeLabelSchmidt": "Schmidt 類型 — {{name}}",
       "archetypeNotGenerated": "未生成",
+      "archetypeFailed": "生成失敗",
+      "retryFailed": "重試失敗部分",
       "evidenceHeading": "支持證據",
       "traitsCount": "{{count}} 項"
     },

@@ -28,13 +28,18 @@ export function PersonaPane({
   const { t } = useTranslation('analysis');
   const archetype = data.archetypes.find((a) => a.framework === framework);
   const pct = archetype ? Math.round(archetype.confidence * 100) : 0;
+  // Distinguish "generation failed (retryable)" from "not yet generated".
+  const failed = (data.failedParts ?? []).includes(`archetype:${framework}`);
+  const placeholderName = t(
+    failed ? 'character.persona.archetypeFailed' : 'character.persona.archetypeNotGenerated',
+  );
   const archetypeTitle = archetype
     ? framework === 'jung'
       ? t('character.persona.archetypeLabelJung', { name: archetype.primary })
       : t('character.persona.archetypeLabelSchmidt', { name: archetype.primary })
     : framework === 'jung'
-      ? t('character.persona.archetypeLabelJung', { name: t('character.persona.archetypeNotGenerated') })
-      : t('character.persona.archetypeLabelSchmidt', { name: t('character.persona.archetypeNotGenerated') });
+      ? t('character.persona.archetypeLabelJung', { name: placeholderName })
+      : t('character.persona.archetypeLabelSchmidt', { name: placeholderName });
 
   const traits = data.cep?.traits ?? [];
 

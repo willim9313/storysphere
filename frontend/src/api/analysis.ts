@@ -47,11 +47,12 @@ export function fetchEntityAnalysis(
 export function triggerEntityAnalysis(
   bookId: string,
   entityId: string,
+  mode: 'full' | 'retryFailed' = 'full',
 ): Promise<{ taskId: string }> {
   if (MOCK_ENABLED) return mock.triggerEntityAnalysis(bookId, entityId);
   return apiFetch<{ taskId: string }>(
     `/books/${bookId}/entities/${entityId}/analyze`,
-    { method: 'POST' },
+    { method: 'POST', body: JSON.stringify({ mode }) },
   );
 }
 
