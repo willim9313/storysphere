@@ -271,6 +271,8 @@ class AnalysisService:
         archetype_frameworks: list[str] | None = None,
         language: str = "en",
         progress_callback: Callable[[int, str], None] | None = None,
+        retry_parts: list[str] | None = None,
+        base_result: CharacterAnalysisResult | None = None,
     ) -> CharacterAnalysisResult:
         """Run full character analysis pipeline: CEP → archetypes → arc → profile.
 
@@ -300,51 +302,49 @@ class AnalysisService:
             if entity is not None:
                 entity_id = entity.id
 
-        # Step 1: Extract CEP (must complete before steps 2-4)
-        if progress_callback:
-            progress_callback(5, "extracting character evidence profile (CEP)")
-        cep = await self._extract_cep(entity_name, document_id, language)
+        # Step 1: Extract CEP (must complete before steps 2-4).
+        # On partial re-run, reuse the cached CEP instead of re-extracting.
+        if retry_parts and base_result is not None:
+            cep = base_result.cep
+        else:
+            if progress_callback:
+                progress_callback(5, "extracting character evidence profile (CEP)")
+            cep = await self._extract_cep(entity_name, document_id, language)
 
-        # Steps 2, 3, 4 in parallel: archetypes + arc + profile
-        if progress_callback:
-            progress_callback(30, "analyzing archetype, arc, and profile")
-        archetype_coros = [
-            self._classify_archetype(cep, fw, language)
-            for fw in archetype_frameworks
-        ]
-        all_results = await asyncio.gather(
-            *archetype_coros,
-            self._generate_character_arc(cep, language),
-            self._generate_profile(entity_name, cep, language),
-            return_exceptions=True,
+        # Steps 2, 3, 4: archetypes + arc + profile, as named parts.
+        # Pass retry_parts so only the wanted coroutines are instantiated.
+        wanted = self._character_parts(
+            entity_name, cep, archetype_frameworks, language, only=retry_parts
         )
 
-        n = len(archetype_frameworks)
-        archetype_results = all_results[:n]
-        arc_result = all_results[n]
-        profile_result = all_results[n + 1]
+        if progress_callback:
+            progress_callback(30, "analyzing archetype, arc, and profile")
+        from core.gather_parts import gather_parts  # noqa: PLC0415
+        results, failed = await gather_parts(wanted)
 
-        archetypes = []
-        for i, ar in enumerate(archetype_results):
-            if isinstance(ar, Exception):
-                logger.warning(
-                    "Archetype classification failed for %s/%s: %s",
-                    archetype_frameworks[i], language, ar,
-                )
-            else:
-                archetypes.append(ar)
-
-        if isinstance(arc_result, Exception):
-            logger.warning("Arc generation failed: %s", arc_result)
-            arc: list[ArcSegment] = []
+        if base_result is not None:
+            archetypes = list(base_result.archetypes)
+            arc = list(base_result.arc)
+            profile = base_result.profile
         else:
-            arc = arc_result
+            archetypes, arc, profile = [], [], CharacterProfile(summary="")
 
-        if isinstance(profile_result, Exception):
-            logger.warning("Profile generation failed: %s", profile_result)
-            profile = CharacterProfile(summary="")
+        for name, value in results.items():
+            if name.startswith("archetype:"):
+                archetypes = [
+                    a for a in archetypes if f"archetype:{a.framework}" != name
+                ]
+                archetypes.append(value)
+            elif name == "arc":
+                arc = value
+            elif name == "profile":
+                profile = value
+
+        if base_result is not None:
+            prior = [p for p in base_result.failed_parts if p not in (retry_parts or [])]
+            failed_parts = prior + failed
         else:
-            profile = profile_result
+            failed_parts = failed
 
         # Step 5: Compute coverage metrics (pure computation)
         if progress_callback:
@@ -360,7 +360,28 @@ class AnalysisService:
             archetypes=archetypes,
             arc=arc,
             coverage=coverage,
+            failed_parts=failed_parts,
         )
+
+    def _character_parts(
+        self, entity_name, cep, archetype_frameworks, language, only=None
+    ):
+        """Map part-name → coroutine for the parallel sub-steps.
+
+        Coroutines are built lazily via factories so that ``only`` filtering
+        never instantiates (and thus never has to await) unwanted parts.
+        """
+        factories = {
+            f"archetype:{fw}": (lambda fw=fw: self._classify_archetype(cep, fw, language))
+            for fw in archetype_frameworks
+        }
+        factories["arc"] = lambda: self._generate_character_arc(cep, language)
+        factories["profile"] = lambda: self._generate_profile(entity_name, cep, language)
+        return {
+            name: make()
+            for name, make in factories.items()
+            if only is None or name in only
+        }
 
     # ── Private: CEP Extraction ────────────────────────────────────────────────
 
