@@ -4,10 +4,16 @@ from unittest.mock import AsyncMock
 
 sys.path.insert(0, "src")
 from services.analysis_models import (  # noqa: E402
+    CausalityAnalysis,
     CEPResult,
     CharacterAnalysisResult,
     CharacterProfile,
     CoverageMetrics,
+    EventAnalysisResult,
+    EventCoverageMetrics,
+    EventEvidenceProfile,
+    EventSummary,
+    ImpactAnalysis,
 )
 
 
@@ -17,6 +23,17 @@ def _partial_cached() -> dict:
         profile=CharacterProfile(summary="s"), cep=CEPResult(),
         archetypes=[], arc=[], coverage=CoverageMetrics(),
         failed_parts=["archetype:jung"]).model_dump(mode="json")
+
+
+def _event_cached(failed_parts: list[str]) -> dict:
+    from datetime import datetime, timezone
+    return EventAnalysisResult(
+        event_id="ev-1", title="Battle", document_id="book-1",
+        eep=EventEvidenceProfile(state_before="a", state_after="b"),
+        causality=CausalityAnalysis(), impact=ImpactAnalysis(),
+        summary=EventSummary(), coverage=EventCoverageMetrics(),
+        failed_parts=failed_parts,
+        analyzed_at=datetime.now(timezone.utc)).model_dump(mode="json")
 
 
 def _override_cache(client, cached):
@@ -90,4 +107,25 @@ class TestListStatus:
             failed_parts=[]).model_dump(mode="json")
         _override_cache(client, cached)
         resp = client.get("/api/v1/books/book-1/analysis/characters")
+        assert resp.json()["analyzed"][0]["status"] == "complete"
+
+
+class TestEventListStatus:
+    def test_partial_event_shows_partial_status_in_list(self, client, mock_kg, mock_doc):
+        mock_doc.get_document = AsyncMock(return_value=SimpleNamespace(id="book-1"))
+        mock_kg.get_events = AsyncMock(return_value=[
+            SimpleNamespace(id="ev-1", title="Battle", chapter=1, narrative_mode=None)])
+        _override_cache(client, _event_cached(["causality"]))
+        resp = client.get("/api/v1/books/book-1/analysis/events")
+        assert resp.status_code == 200
+        analyzed = resp.json()["analyzed"]
+        assert len(analyzed) == 1
+        assert analyzed[0]["status"] == "partial"
+
+    def test_complete_event_shows_complete_status(self, client, mock_kg, mock_doc):
+        mock_doc.get_document = AsyncMock(return_value=SimpleNamespace(id="book-1"))
+        mock_kg.get_events = AsyncMock(return_value=[
+            SimpleNamespace(id="ev-1", title="Battle", chapter=1, narrative_mode=None)])
+        _override_cache(client, _event_cached([]))
+        resp = client.get("/api/v1/books/book-1/analysis/events")
         assert resp.json()["analyzed"][0]["status"] == "complete"

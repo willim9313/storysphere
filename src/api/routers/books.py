@@ -1332,6 +1332,7 @@ async def list_event_analyses(
                         section="events",
                         title=ev.title,
                         content=result.summary.summary if result.summary else "",
+                        status="partial" if result.failed_parts else "complete",
                         generated_at=(
                             result.analyzed_at.isoformat()
                             if result.analyzed_at
