@@ -69,11 +69,12 @@ export function deleteEntityAnalysis(
 export function triggerEventAnalysis(
   bookId: string,
   eventId: string,
+  mode: 'full' | 'retryFailed' = 'full',
 ): Promise<{ taskId: string }> {
   if (MOCK_ENABLED) return mock.triggerEntityAnalysis(bookId, eventId);
   return apiFetch<{ taskId: string }>(
     `/books/${bookId}/events/${eventId}/analyze`,
-    { method: 'POST' },
+    { method: 'POST', body: JSON.stringify({ mode }) },
   );
 }
 

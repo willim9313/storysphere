@@ -100,7 +100,10 @@ export function EventAnalyzedItem({
         </span>
       </span>
       <span className="ea-item-right">
-        <span className="ea-item-dot" />
+        <span
+          className="ea-item-dot"
+          style={item.status === 'partial' ? { background: 'var(--color-warning)' } : undefined}
+        />
       </span>
     </div>
   );
