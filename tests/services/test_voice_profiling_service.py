@@ -207,7 +207,8 @@ class TestLlmQualitativeLocalization:
             "甲乙", [_para("你好嗎？")], language="zh-tw"
         )
         system_msg = captured["messages"][0].content
-        assert "Respond in Chinese." in system_msg
+        # zh-tw maps to the precise display name "Traditional Chinese".
+        assert "Respond in Traditional Chinese." in system_msg
 
     @pytest.mark.asyncio
     async def test_en_appends_respond_in_english(self):

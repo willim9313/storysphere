@@ -278,7 +278,7 @@ class TestDocumentProcessingPipeline:
     async def test_unsupported_extension_raises(self, tmp_path):
         from pipelines.document_processing.pipeline import DocumentProcessingPipeline
 
-        bad_file = tmp_path / "novel.txt"
+        bad_file = tmp_path / "novel.xyz"
         bad_file.write_text("hello")
 
         pipeline = DocumentProcessingPipeline()

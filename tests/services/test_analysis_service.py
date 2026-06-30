@@ -146,7 +146,8 @@ class TestClassifyArchetype:
         cep = CEPResult(actions=["fought"], traits=["brave"])
         result = await svc._classify_archetype(cep, "jung", "en")
         assert isinstance(result, ArchetypeResult)
-        assert result.primary == "hero"
+        # Service canonicalizes the LLM's raw key ("hero") to the display name.
+        assert result.primary == "The Hero"
         assert result.confidence == 0.85
 
 
@@ -272,6 +273,6 @@ class TestAnalyzeCharacterFull:
         assert result.entity_name == "Alice"
         assert result.document_id == "doc-1"
         assert len(result.archetypes) == 1
-        assert result.archetypes[0].primary == "hero"
+        assert result.archetypes[0].primary == "The Hero"
         assert len(result.arc) == 1
         assert "Alice" in result.profile.summary

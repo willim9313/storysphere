@@ -26,7 +26,7 @@ def test_ingest_rejects_unsupported_format(client):
     resp = client.post(
         "/api/v1/books/upload",
         data={"title": "Test Novel"},
-        files={"file": ("novel.txt", io.BytesIO(b"text"), "text/plain")},
+        files={"file": ("novel.xyz", io.BytesIO(b"text"), "application/octet-stream")},
     )
     assert resp.status_code == 422
     assert "pdf" in resp.json()["detail"].lower() or "docx" in resp.json()["detail"].lower()
