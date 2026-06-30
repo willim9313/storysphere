@@ -187,6 +187,7 @@ class TestUnravelingManifestStructure:
             "character_analysis_result", "symbol_analysis_result",
             "causality_analysis", "impact_analysis",
             "tension_lines", "narrative_structure", "hero_journey_stage", "temporal_analysis",
+            "voice_profile",
             "tension_theme", "chronological_rank",
         }
         assert expected == node_ids
@@ -361,3 +362,65 @@ class TestNodeStatus:
         nodes = {n["nodeId"]: n for n in resp.json()["nodes"]}
         assert nodes["tension_lines"]["status"] == "complete"
         assert nodes["tension_theme"]["status"] == "complete"
+
+
+class TestChapterDistribution:
+    """Verify GET /books/{book_id}/unraveling/chapter-distribution."""
+
+    def test_returns_distributions_for_supported_nodes(self, client_factory):
+        # 3 chapters: ch1 has summary+keywords, ch2 summary only, ch3 nothing
+        doc = _make_doc([
+            _make_chapter(1, summary="S1", keywords={"hero": 0.9}),
+            _make_chapter(2, summary="S2", keywords=None),
+            _make_chapter(3, summary=None, keywords=None),
+        ])
+        events = [_make_event("e1", chapter=1), _make_event("e2", chapter=1), _make_event("e3", chapter=3)]
+        imagery = [
+            ImageryEntity(
+                id="img-1", book_id="book-1", term="mirror",
+                imagery_type=ImageryType.OBJECT, frequency=5,
+                chapter_distribution={1: 2, 3: 3},
+            ),
+        ]
+        mocks = _make_mocks(doc=doc, events=events, imagery=imagery)
+        with client_factory(*mocks) as client:
+            resp = client.get("/api/v1/books/book-1/unraveling/chapter-distribution")
+        assert resp.status_code == 200
+
+        data = resp.json()
+        assert data["bookId"] == "book-1"
+        assert data["totalChapters"] == 3
+
+        dists = data["distributions"]
+        assert dists["summaries"] == [1, 1, 0]
+        assert dists["keywords"] == [1, 0, 0]
+        assert dists["paragraphs"] == [1, 1, 1]
+        assert dists["kg_event"] == [2, 0, 1]
+        assert dists["symbols"] == [2, 0, 3]
+
+    def test_unsupported_nodes_omitted(self, client_factory):
+        mocks = _make_mocks()
+        with client_factory(*mocks) as client:
+            resp = client.get("/api/v1/books/book-1/unraveling/chapter-distribution")
+
+        keys = set(resp.json()["distributions"].keys())
+        # Layer 2+/KG-non-event nodes must not appear
+        for nid in ("cep", "eep", "teu", "kg_entity", "kg_concept", "tension_lines", "chronological_rank"):
+            assert nid not in keys
+
+    def test_404_for_unknown_book(self, client_factory):
+        mocks = _make_mocks()
+        with client_factory(*mocks) as client:
+            resp = client.get("/api/v1/books/no-such-book/unraveling/chapter-distribution")
+        assert resp.status_code == 404
+
+    def test_empty_book_returns_empty_distributions(self, client_factory):
+        doc = _make_doc(chapters=[])
+        mocks = _make_mocks(doc=doc, events=[])
+        with client_factory(*mocks) as client:
+            resp = client.get("/api/v1/books/book-1/unraveling/chapter-distribution")
+        assert resp.status_code == 200
+
+        data = resp.json()
+        assert data["totalChapters"] == 0
+        assert data["distributions"] == {}

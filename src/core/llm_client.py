@@ -56,7 +56,7 @@ class LLMClient:
     def get_primary(
         self, temperature: float = 0.1, **kwargs: object
     ) -> BaseChatModel:
-        """Return the primary LLM (Gemini if configured, else first available)."""
+        """Return the primary LLM as configured by PRIMARY_LLM_PROVIDER."""
         return self.get_llm(
             provider=self._resolve_primary(), temperature=temperature, **kwargs
         )
@@ -64,19 +64,21 @@ class LLMClient:
     def get_fallback(
         self, temperature: float = 0.1, **kwargs: object
     ) -> BaseChatModel:
-        """Return the first available fallback LLM (OpenAI → Anthropic → Local)."""
+        """Return the first available fallback LLM, excluding the primary provider."""
+        primary = LLMProvider(self._settings.primary_llm_provider)
         for provider in (
+            LLMProvider.GEMINI,
             LLMProvider.OPENAI,
             LLMProvider.ANTHROPIC,
             LLMProvider.LOCAL,
         ):
-            if self._has_key(provider):
+            if provider != primary and self._has_key(provider):
                 return self.get_llm(
                     provider=provider, temperature=temperature, **kwargs
                 )
         raise RuntimeError(
-            "No fallback LLM configured. "
-            "Set OPENAI_API_KEY, ANTHROPIC_API_KEY, or LOCAL_LLM_MODEL in .env."
+            "No fallback LLM configured (excluding primary provider). "
+            "Set at least one additional provider key in .env."
         )
 
     def get_local(
@@ -105,9 +107,8 @@ class LLMClient:
         - cloud only               : primary (no fallback)
         - local only               : local (no fallback)
         """
-        has_cloud = any(
-            self._has_key(p)
-            for p in (LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC)
+        has_cloud = LLMProvider(self._settings.primary_llm_provider) in (
+            LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC
         )
         has_local = self._has_key(LLMProvider.LOCAL)
 
@@ -135,24 +136,19 @@ class LLMClient:
     # ── Internal helpers ───────────────────────────────────────────────────────
 
     def _resolve_primary(self) -> LLMProvider:
-        for provider in (
-            LLMProvider.GEMINI,
-            LLMProvider.OPENAI,
-            LLMProvider.ANTHROPIC,
-            LLMProvider.LOCAL,
-        ):
-            if self._has_key(provider):
-                if provider != LLMProvider.GEMINI:
-                    logger.warning(
-                        "GEMINI_API_KEY not set. Using %s as primary LLM.",
-                        provider.value,
-                    )
-                return provider
-        raise RuntimeError(
-            "No LLM provider configured. "
-            "Set GEMINI_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY, "
-            "or LOCAL_LLM_MODEL in .env."
-        )
+        target = LLMProvider(self._settings.primary_llm_provider)
+        if not self._has_key(target):
+            key_hint = {
+                LLMProvider.GEMINI: "GEMINI_API_KEY",
+                LLMProvider.OPENAI: "OPENAI_API_KEY",
+                LLMProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
+                LLMProvider.LOCAL: "LOCAL_LLM_MODEL",
+            }[target]
+            raise RuntimeError(
+                f"PRIMARY_LLM_PROVIDER={target.value} but {key_hint} is not set. "
+                f"Set {key_hint} in .env or change PRIMARY_LLM_PROVIDER."
+            )
+        return target
 
     def _has_key(self, provider: LLMProvider) -> bool:
         match provider:
@@ -181,11 +177,16 @@ class LLMClient:
     def _make_callbacks(self, provider: str, model: str) -> list:
         """Build callback list including token tracking if a store is set."""
         from core.token_callback import TokenTrackingHandler
+        from core.tracing import get_langfuse_handler
 
-        return [TokenTrackingHandler(provider=provider, model=model, token_store=self._token_store)]
+        handlers: list = [TokenTrackingHandler(provider=provider, model=model, token_store=self._token_store)]
+        if lf := get_langfuse_handler():
+            handlers.append(lf)
+        return handlers
 
     def _build_gemini(self, temperature: float, **kwargs: object) -> BaseChatModel:
-        from langchain_google_genai import ChatGoogleGenerativeAI
+        from google.genai.types import HarmBlockThreshold, HarmCategory  # noqa: PLC0415
+        from langchain_google_genai import ChatGoogleGenerativeAI  # noqa: PLC0415
 
         model = str(kwargs.pop("model", self._settings.gemini_model))
         # Thinking config: disable by default to save token costs
@@ -193,10 +194,18 @@ class LLMClient:
             kwargs.setdefault("thinking_budget", self._settings.llm_thinking_budget)
         else:
             kwargs.setdefault("thinking_budget", 0)
+        safety_settings = {
+            HarmCategory.HARM_CATEGORY_HARASSMENT: HarmBlockThreshold.OFF,
+            HarmCategory.HARM_CATEGORY_HATE_SPEECH: HarmBlockThreshold.OFF,
+            HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT: HarmBlockThreshold.OFF,
+            HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT: HarmBlockThreshold.OFF,
+        }
         return ChatGoogleGenerativeAI(
             model=model,
             temperature=temperature,
             google_api_key=self._settings.gemini_api_key,
+            safety_settings=safety_settings,
+            request_timeout=120,
             callbacks=self._make_callbacks("gemini", model),
             **kwargs,
         )
@@ -209,6 +218,7 @@ class LLMClient:
             model=model,
             temperature=temperature,
             api_key=self._settings.openai_api_key,  # type: ignore[arg-type]
+            timeout=120,
             callbacks=self._make_callbacks("openai", model),
             **kwargs,
         )
@@ -227,6 +237,7 @@ class LLMClient:
             model=model,
             temperature=temperature,
             api_key=self._settings.anthropic_api_key,  # type: ignore[arg-type]
+            timeout=120,
             callbacks=self._make_callbacks("anthropic", model),
             **kwargs,
         )

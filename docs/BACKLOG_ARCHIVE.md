@@ -5,6 +5,30 @@
 
 ---
 
+## B-043 閱讀頁：欄 2 章節搜尋 ✅ 完成（2026-05-14）
+**背景**: 欄 2 章節列表為純線性排列，用戶記得角色或關鍵詞但不記得章節時摩擦極高。
+**實作**:
+- `ReaderPage.tsx`：`searchQuery` state + `useMemo` filter（title / topEntities[].name / keywords）
+- 欄 2 結構改為 `flex flex-col`，搜尋欄 sticky、章節列表獨立 scroll
+- 選章節時自動清空搜尋（`handleSelectChapter` 內加 `setSearchQuery('')`）
+- 結果為空時顯示 empty state（i18n `searchEmpty` key）
+- `BezierConnectors`：`chapterCount` prop 改為 `chapterKey`（filtered id 串接字串），確保過濾後 DOM 重算
+- Opus review 後修正：`e.name?.` null guard、Rules of Hooks（useMemo 移到 early return 前）
+
+---
+
+## B-044 閱讀頁：EpistemicSidePanel 入口可發現性優化 ✅ 完成（2026-05-14）
+**背景**: Brain icon 按鈕無文字說明，功能完全不可發現；`title` tooltip 在行動裝置不顯示。
+**實作**:
+- Brain button 加常態文字標籤（`角色視角` / `收起`），`minWidth: 5rem` 防寬度跳動
+- 首次進入 onboarding popover：`localStorage` flag `storysphere:reader-epistemic-hint-shown`，5 秒 auto-dismiss 或點擊消失，z-index 20
+- `EPISTEMIC_HINT_KEY` 提取為 module 層級常數（防 magic string 重複）
+- localStorage 讀寫均加 try/catch（Safari 隱私模式防護）
+- useEffect timer 內 inline dismiss 邏輯（避免 stale closure lint 警告）
+- 新增 i18n key：`epistemicLabel`、`epistemicClose`、`epistemicHint`（zh-TW + en）
+
+---
+
 ## Wave 1 — 底層基礎建設 ✅ 全部完成（2026-04-28）
 
 ### F-02 進度感知 KG（章節時間切片）✅ 完成（2026-04-24，commit `4be9613`）
@@ -33,7 +57,7 @@
 - API: `POST /inferred-relations/run`、`GET /inferred-relations`、`POST .../confirm`、`POST .../reject`
 - `GET /graph?include_inferred=true`：推斷邊以 `inferred=true` 附加，快照過濾時使用 `visible_from_chapter`
 - 前端：Cytoscape 虛線邊（amber 色）、GraphToolbar Toggle、`InferredEdgePanel`（確認/否定 UI）
-- **注意**: Neo4j 支援缺口仍追蹤於 B-035
+- **注意**: Neo4j 支援缺口仍追蹤於 B-048（原 B-035，2026-06-30 重編以解除與本檔「坎伯英雄旅程」B-035 的撞號）
 
 ---
 
@@ -434,7 +458,7 @@
 **工作量**: ~1.5 小時
 **涉及元件**: `components/layout/Sidebar.tsx`、`components/layout/BookNav.tsx`、`pages/LibraryPage.tsx`、`components/library/BookCard.tsx`、`components/library/EmptyLibrary.tsx`、`components/library/RecentBookCard.tsx`
 **預估字串數**: ~45 個
-**代表字串**: 書庫、上傳、框架索引、Token 用量、系統設定、閱讀、角色分析、事件分析、知識圖譜、時間軸、張力分析、符號意象、展開卷軸、最近開啟、全部、已分析、上傳新書、繼續閱讀、開始閱讀、查看處理進度、確認、取消、刪除書籍
+**代表字串**: 書庫、上傳、框架索引、Token 用量、系統設定、閱讀、角色分析、事件分析、知識圖譜、時間軸、張力分析、符號意象、建構概覽、最近開啟、全部、已分析、上傳新書、繼續閱讀、開始閱讀、查看處理進度、確認、取消、刪除書籍
 
 ---
 
@@ -501,7 +525,7 @@
 
 ---
 
-## B-039 展開卷軸（Unraveling）— 資料透明度 DAG ✅ 完成
+## B-039 建構概覽（Unraveling）— 資料透明度 DAG ✅ 完成
 **背景**: 系統為每本書建立的資料量體對用戶不可見，功能不可用時也難以診斷是哪個資料層尚未建立。
 **實作**:
 - `GET /api/v1/books/{book_id}/unraveling` — 聚合端點，兩輪並行查詢（服務計數 + cache key 計數）組裝 manifest JSON
@@ -570,3 +594,78 @@
 - `src/api/routers/symbols.py`：`GET /symbols`、`GET /symbols/{id}/timeline`、`GET /symbols/{id}/co-occurrences`
 - `src/api/deps.py`：`SymbolServiceDep`、`SymbolGraphServiceDep`
 - `frontend/src/api/symbols.ts` + `frontend/src/pages/SymbolsPage.tsx`：符號意象分析頁面
+
+---
+
+## F-17 UI 主題風格切換系統（B&W Theme System）✅ 完成（2026-05-28）
+**分類**: UI 系統 — Wave 2
+**設計文件**: `docs/plans/20260429-theme-system-bw.md`、`docs/DESIGN_TOKENS.md`、`docs/UI_SPEC.md` Section 3.13
+
+**背景**: StorySphere 設計 token 已在 `tokens.css` 中抽離，主題切換架構基礎（`data-theme` on `<html>`、ThemeContext）已就位。F-17 完成填入第二、三主題 token 值並實作設定頁切換 UI。
+
+**已實作**:
+- `frontend/src/styles/tokens.css`：新增 `[data-theme="manuscript"]`、`[data-theme="minimal-ink"]`、`[data-theme="pulp"]` 三個覆蓋區塊（共 644 行）
+- 三個 B&W 主題嚴格使用黑白灰，`default` 暖色 token 不受影響
+- `frontend/src/contexts/ThemeContext.tsx`：localStorage key `storysphere:theme`，讀寫主題並套用 `data-theme` attribute
+- `frontend/src/pages/SettingsPage.tsx`：card picker UI（三色縮圖預覽、選中 accent 邊框、即時套用）
+- Cytoscape 節點、BarFill、Stat 卡、Keyword tag 等元件均已 tokenise
+- 多個修正 commit 補全 B&W 主題下各元件的可讀性（tensor page、build overview legend、native form controls、BatchEepPanel progress track）
+- `docs/DESIGN_TOKENS.md` 對照表同步更新
+
+---
+
+## F-18 系統啟動 Splash Screen ✅ 完成（2026-05-28）
+**分類**: UI 體驗 — Wave 2
+
+**背景**: 每個新 session 顯示全螢幕品牌印象畫面，以 `sessionStorage` 判斷是否已顯示，強化第一印象。
+
+**已實作**:
+- `frontend/src/components/SplashScreen.tsx`：全螢幕 overlay，`position: fixed; inset: 0; z-index: 9999`；淡入（0.4s）→ 停留（1.5s）→ 淡出（0.4s）後 unmount；點擊可立即略過；背景色 `var(--bg-primary)`
+- `frontend/src/hooks/useSplash.ts`：讀寫 `sessionStorage` key `storysphere:splash-shown`，返回 `{ needsSplash, markDone }`
+- `frontend/src/components/AppRoot.tsx`：頂層條件渲染 `{needsSplash && <SplashScreen onDone={markDone} />}`
+- 後續強化 commit：theme-aware splash（faded bg）、imagery pool、loader bar
+
+---
+
+## I-001 輕量化部署模式（Lightweight Deployment Mode）✅ 完成（2026-05-28）
+**性質**: Infrastructure Refactor
+**設計文件**: `docs/plans/20260505-i001-lightweight-deployment.md`
+
+**背景**: 系統原預設需要 Qdrant service，對新用戶不友善，且現有 fallback 靜默跳過造成資料狀態不明確。新增兩個明確的部署模式，不做跨模式自動降級。
+
+**已實作**:
+- `src/config/settings.py`：新增 `deploy_mode: Literal["lightweight", "standard"] = "lightweight"`、`qdrant_local_path`；lightweight 模式強制 `kg_mode=networkx` 並 log warning
+- `src/services/vector_service.py`：依 `deploy_mode` 決定 Qdrant client（local file path vs. remote URL）；standard 模式連線失敗拋明確錯誤
+- `src/api/main.py`：lifespan 啟動時針對 lightweight 模式發出多 worker 警告
+- `.env.example`：新增 `DEPLOY_MODE=lightweight` 說明，最低配置僅需填 `PRIMARY_LLM_PROVIDER` + 對應 key
+- 後續 fix commit 修正 lightweight 模式下多處 API 正確性問題
+
+---
+
+## I-003 主要 LLM Provider 可配置化 ✅ 完成（2026-05-28）
+**性質**: Infrastructure Refactor
+**設計文件**: `docs/plans/20260505-i003-primary-llm-provider.md`
+
+**背景**: `_resolve_primary()` 原固定 Gemini → OpenAI → Anthropic → Local 的 fallback 順序，非 Gemini 用戶只能被動降級並收到 warning，且 `.env.example` 隱含「必須填 Gemini key」的假設。
+
+**已實作**:
+- `src/config/settings.py`：新增 `primary_llm_provider: Literal["gemini", "openai", "anthropic", "local"] = "gemini"`
+- `src/core/llm_client.py`：`_resolve_primary()` 改為直接讀取 `settings.primary_llm_provider`；指定 provider 的 key 未設定時啟動報明確錯誤，不靜默降級
+- `.env.example`：新增 `PRIMARY_LLM_PROVIDER` 說明，更新「最低配置」範例（只填 provider + 對應 key）
+- 與 I-001 同批實作（commit `b6cdd53`、`5d1754a`）
+
+---
+
+## B-045 敘事結構頁：英雄旅程主視圖 + 情節骨幹摘要 ✅ 完成（2026-06-01）
+**設計文件**: `docs/plans/20260601-narrative-page-hero-journey.md`（Claude Design 交付，四佈局比較稿）
+
+**背景**: 後端 `/narrative/*`（#21e/#21f/#21k/#21l）已實作，但前端無 `narrative.ts`、無頁面、無 BookNav 入口，建構概覽頁的 `hero_journey_stage` 節點永遠顯示「未建立」。
+
+**已實作**:
+- 後端型別：`GET /narrative`、`PATCH /narrative/{id}/review` 加 `response_model=NarrativeStructure`；`GET /narrative/kernel-spine` 加 `response_model=list[KernelSpineEvent]`（新增 schema）。回傳 shape 不變，`generated.ts` 重新產生後有 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。
+- 前端 `api/narrative.ts`：`triggerHeroJourney` / `fetchHeroJourneyTask` / `fetchNarrativeStructure` / `fetchKernelSpine` / `reviewNarrativeStructure`。
+- 新頁 `/books/:bookId/narrative`（`NarrativePage.tsx`）+ BookNav「敘事結構」入口（張力／符號之外的第三條平行分析線）。
+- 英雄旅程主視圖：四種佈局可切換（A 水平軌跡 / B 三相位分欄 / C 圓環循環 / D 章節對位帶），共用三態視覺語言（filled 填色深淺 / low 警示三角+虛線 / absent「—」虛線空殼），點擊階段展開詮釋 + 章節 + 代表 Kernel 事件 pill + 理論描述/敘事功能。
+- 情節骨幹摘要次區塊：書級 Kernel/Satellite 比例條 + 統計 + 依章節的核心事件骨幹 + 跳轉事件分析頁。
+- HITL 調整為**書級**（API 只支援 `review_status`，不支援每階段）：區塊標題列 approve / 標記不適用 + 審核狀態徽章，走 #21l。
+- 理論文案來源 `frameworksData.ts` hero_journey（localized）；i18n key 前綴 `narrative.*`（`analysis` namespace，zh-TW + en）。所有色彩走既有 token（無新增 token，`DESIGN_TOKENS.md` 不變）。

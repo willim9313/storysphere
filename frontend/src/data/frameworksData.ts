@@ -14,24 +14,261 @@ export interface Reference {
   note?: string;
 }
 
+export interface PipelineStep {
+  key: 'extract' | 'match' | 'synth';
+  what: string;
+}
+
+export interface OutputField {
+  field: string;
+  type: string;
+  note: string;
+}
+
+export type FrameworkCategory = 'character' | 'arc' | 'tension' | 'symbol';
+
 export interface Framework {
   key: string;
   name: string;
   category: string;
+  categoryId: FrameworkCategory;
   description: string;
   itemLabel: string;
+  crossBook: boolean;
+  // Whether the backend produces a per-judgement confidence value for this
+  // method. When false, the confidence section renders an honest "no
+  // confidence" note instead of the tier legend.
+  hasConfidence: boolean;
+  pipeline: PipelineStep[];
+  output: OutputField[];
   references: Reference[];
   items: FrameworkItem[];
 }
 
+export interface CategoryDescriptor {
+  id: FrameworkCategory;
+  name: string;
+}
+
+const CATEGORIES_ZH: CategoryDescriptor[] = [
+  { id: 'character', name: '角色分析' },
+  { id: 'arc', name: '敘事弧分析' },
+  { id: 'tension', name: '張力分析' },
+  { id: 'symbol', name: '象徵分析' },
+];
+
+const CATEGORIES_EN: CategoryDescriptor[] = [
+  { id: 'character', name: 'Character Analysis' },
+  { id: 'arc', name: 'Narrative Arc' },
+  { id: 'tension', name: 'Tension Analysis' },
+  { id: 'symbol', name: 'Symbol Analysis' },
+];
+
+const PIPELINE_JUNG_ZH: PipelineStep[] = [
+  { key: 'extract', what: '抽取角色的行為與關係線索（行動、特質、關係、關鍵事件）。' },
+  { key: 'match', what: '將線索比對 12 原型的核心驅力、天賦與弱點。' },
+  { key: 'synth', what: '由 LLM 產生主／次原型判定，附 2–4 條判定理由與信心值。' },
+];
+const PIPELINE_JUNG_EN: PipelineStep[] = [
+  { key: 'extract', what: 'Extract behavioural and relational cues for the character (actions, traits, relations, key events).' },
+  { key: 'match', what: 'Match cues against the core drive, gift, and weakness of each of the 12 archetypes.' },
+  { key: 'synth', what: 'The LLM produces a primary/secondary archetype judgement with 2–4 rationale strings and a confidence value.' },
+];
+
+const OUTPUT_JUNG_ZH: OutputField[] = [
+  { field: 'primary', type: 'enum(12)', note: '主原型 ID' },
+  { field: 'secondary', type: 'enum(12) | null', note: '次原型 ID（可選）' },
+  { field: 'confidence', type: 'float 0–1', note: 'LLM 自我評估信心值' },
+  { field: 'evidence', type: 'string[]', note: '判定理由（2–4 句）' },
+];
+const OUTPUT_JUNG_EN: OutputField[] = [
+  { field: 'primary', type: 'enum(12)', note: 'Primary archetype ID' },
+  { field: 'secondary', type: 'enum(12) | null', note: 'Secondary archetype ID (optional)' },
+  { field: 'confidence', type: 'float 0–1', note: 'LLM self-reported confidence' },
+  { field: 'evidence', type: 'string[]', note: 'Rationale strings (2–4)' },
+];
+
+const PIPELINE_SCHMIDT_ZH: PipelineStep[] = [
+  { key: 'extract', what: '抽取角色的行為與關係線索（行動、特質、關係、關鍵事件）。' },
+  { key: 'match', what: '將線索比對 45 個主類型的核心驅力、天賦與弱點。' },
+  { key: 'synth', what: '由 LLM 產生主／次類型判定，附 2–4 條判定理由與信心值。' },
+];
+const PIPELINE_SCHMIDT_EN: PipelineStep[] = [
+  { key: 'extract', what: 'Extract behavioural and relational cues for the character (actions, traits, relations, key events).' },
+  { key: 'match', what: 'Match cues against the core drive, gift, and weakness of each of the 45 master types.' },
+  { key: 'synth', what: 'The LLM produces a primary/secondary type judgement with 2–4 rationale strings and a confidence value.' },
+];
+
+const OUTPUT_SCHMIDT_ZH: OutputField[] = [
+  { field: 'primary', type: 'enum(45)', note: '主類型 ID' },
+  { field: 'secondary', type: 'enum(45) | null', note: '次類型 ID（可選）' },
+  { field: 'confidence', type: 'float 0–1', note: 'LLM 自我評估信心值' },
+  { field: 'evidence', type: 'string[]', note: '判定理由（2–4 句）' },
+];
+const OUTPUT_SCHMIDT_EN: OutputField[] = [
+  { field: 'primary', type: 'enum(45)', note: 'Primary type ID' },
+  { field: 'secondary', type: 'enum(45) | null', note: 'Secondary type ID (optional)' },
+  { field: 'confidence', type: 'float 0–1', note: 'LLM self-reported confidence' },
+  { field: 'evidence', type: 'string[]', note: 'Rationale strings (2–4)' },
+];
+
+const PIPELINE_HJ_ZH: PipelineStep[] = [
+  { key: 'extract', what: '讀取書籍的章節摘要（由文件處理流程預先產生）。' },
+  { key: 'match', what: '將章節序列比對 12 階段的典型位置與功能。' },
+  { key: 'synth', what: '由 LLM 為每個有證據的階段輸出一條映射（章節範圍、信心值、可選備註）；缺乏證據的階段予以略過。' },
+];
+const PIPELINE_HJ_EN: PipelineStep[] = [
+  { key: 'extract', what: "Load the book's chapter summaries (produced upstream by the summarisation pipeline)." },
+  { key: 'match', what: 'Match the chapter sequence against the typical position and function of the 12 stages.' },
+  { key: 'synth', what: 'The LLM emits one mapping entry per stage with explicit evidence (chapter range, confidence, optional notes); stages without evidence are skipped.' },
+];
+
+// HeroJourneyStage is emitted once per stage; the table below describes that
+// per-stage record (not a book-level summary).
+const OUTPUT_HJ_ZH: OutputField[] = [
+  { field: 'stage_id', type: 'enum(12)', note: '階段 ID' },
+  { field: 'stage_name', type: 'string', note: '階段名稱' },
+  { field: 'chapter_range', type: 'int[]', note: '對應章節號（相鄰階段可重疊）' },
+  { field: 'confidence', type: 'float 0–1', note: '此階段的 LLM 自我評估信心值' },
+  { field: 'notes', type: 'string | null', note: '可選備註（如特定角色或證據）' },
+];
+const OUTPUT_HJ_EN: OutputField[] = [
+  { field: 'stage_id', type: 'enum(12)', note: 'Stage ID' },
+  { field: 'stage_name', type: 'string', note: 'Stage name' },
+  { field: 'chapter_range', type: 'int[]', note: 'Chapter numbers (adjacent stages may overlap)' },
+  { field: 'confidence', type: 'float 0–1', note: 'Per-stage LLM self-reported confidence' },
+  { field: 'notes', type: 'string | null', note: 'Optional caveat (e.g. specific character or evidence)' },
+];
+
+const PIPELINE_FRYE_ZH: PipelineStep[] = [
+  { key: 'extract', what: '彙整全書的 TensionLine（章節層級的張力極對線、強度與審核狀態）。' },
+  { key: 'match', what: '將張力模式比對四種神話的核心模式與情緒基調。' },
+  { key: 'synth', what: '由 LLM 為全書輸出主神話判定、主題命題與 reasoning 文字。' },
+];
+const PIPELINE_FRYE_EN: PipelineStep[] = [
+  { key: 'extract', what: "Aggregate the book's TensionLines (chapter-level polar opposites, intensity, and review status)." },
+  { key: 'match', what: 'Match the tension pattern against the core pattern and emotional register of the four mythoi.' },
+  { key: 'synth', what: 'The LLM emits a primary-mythos judgement, a thematic proposition, and a reasoning string for the whole book.' },
+];
+
+// TensionTheme is one object per book; Frye and Booker share most of these fields.
+const OUTPUT_FRYE_ZH: OutputField[] = [
+  { field: 'frye_mythos', type: 'enum(4) | null', note: '主神話 ID' },
+  { field: 'proposition', type: 'string', note: '書籍層主題命題（1–2 句，與 Booker 共用）' },
+  { field: 'reasoning', type: 'string', note: '兩個分類選擇的理由（與 Booker 共用）' },
+  { field: 'tension_line_ids', type: 'string[]', note: '使用的 TensionLine ID 清單' },
+];
+const OUTPUT_FRYE_EN: OutputField[] = [
+  { field: 'frye_mythos', type: 'enum(4) | null', note: 'Primary mythos ID' },
+  { field: 'proposition', type: 'string', note: 'Book-level thematic proposition (1–2 sentences, shared with Booker)' },
+  { field: 'reasoning', type: 'string', note: 'Justification for both classification choices (shared with Booker)' },
+  { field: 'tension_line_ids', type: 'string[]', note: 'IDs of TensionLines used' },
+];
+
+const PIPELINE_BOOKER_ZH: PipelineStep[] = [
+  { key: 'extract', what: '彙整全書的 TensionLine（章節層級的張力極對線、強度與審核狀態）。' },
+  { key: 'match', what: '將張力模式比對七種情節的典型弧線。' },
+  { key: 'synth', what: '由 LLM 為全書輸出主情節判定、主題命題與 reasoning 文字。' },
+];
+const PIPELINE_BOOKER_EN: PipelineStep[] = [
+  { key: 'extract', what: "Aggregate the book's TensionLines (chapter-level polar opposites, intensity, and review status)." },
+  { key: 'match', what: 'Match the tension pattern against the typical arc of the seven plots.' },
+  { key: 'synth', what: 'The LLM emits a primary-plot judgement, a thematic proposition, and a reasoning string for the whole book.' },
+];
+
+const OUTPUT_BOOKER_ZH: OutputField[] = [
+  { field: 'booker_plot', type: 'enum(7) | null', note: '主情節 ID' },
+  { field: 'proposition', type: 'string', note: '書籍層主題命題（1–2 句，與 Frye 共用）' },
+  { field: 'reasoning', type: 'string', note: '兩個分類選擇的理由（與 Frye 共用）' },
+  { field: 'tension_line_ids', type: 'string[]', note: '使用的 TensionLine ID 清單' },
+];
+const OUTPUT_BOOKER_EN: OutputField[] = [
+  { field: 'booker_plot', type: 'enum(7) | null', note: 'Primary plot ID' },
+  { field: 'proposition', type: 'string', note: 'Book-level thematic proposition (1–2 sentences, shared with Frye)' },
+  { field: 'reasoning', type: 'string', note: 'Justification for both classification choices (shared with Frye)' },
+  { field: 'tension_line_ids', type: 'string[]', note: 'IDs of TensionLines used' },
+];
+
+const PIPELINE_SEP_ZH: PipelineStep[] = [
+  { key: 'extract', what: '從段落抽取意象實體並建立知識圖譜節點。' },
+  { key: 'match', what: '收集出現脈絡、共現網絡與章節分布。' },
+  { key: 'synth', what: 'LLM 以完整證據生成詮釋，交 HITL 審核。' },
+];
+const PIPELINE_SEP_EN: PipelineStep[] = [
+  { key: 'extract', what: 'Extract imagery entities and create knowledge-graph nodes.' },
+  { key: 'match', what: 'Collect occurrence context, co-occurrence network, and chapter distribution.' },
+  { key: 'synth', what: 'The LLM interprets from full evidence; HITL review confirms.' },
+];
+
+const OUTPUT_SEP_ZH: OutputField[] = [
+  { field: 'theme', type: 'string', note: '主題命題（1–2 句）' },
+  { field: 'polarity', type: 'pos | neg | neu | mixed', note: '象徵極性' },
+  { field: 'evidence_summary', type: 'string', note: '證據綜合（2–3 句）' },
+  { field: 'confidence', type: 'float 0–1', note: 'LLM 自我評估信心值' },
+  { field: 'review_status', type: 'enum(4)', note: 'HITL 狀態；審核時可改寫 theme/polarity 後更新此物件' },
+];
+const OUTPUT_SEP_EN: OutputField[] = [
+  { field: 'theme', type: 'string', note: 'Thematic proposition (1–2 sentences)' },
+  { field: 'polarity', type: 'pos | neg | neu | mixed', note: 'Symbolic polarity' },
+  { field: 'evidence_summary', type: 'string', note: 'Evidence synthesis (2–3 sentences)' },
+  { field: 'confidence', type: 'float 0–1', note: 'LLM self-reported confidence' },
+  { field: 'review_status', type: 'enum(4)', note: 'HITL status; reviewers may rewrite theme/polarity and update this object' },
+];
+
+const FW_META = {
+  jung: { categoryId: 'character' as FrameworkCategory, crossBook: true, hasConfidence: true },
+  schmidt: { categoryId: 'character' as FrameworkCategory, crossBook: true, hasConfidence: true },
+  hero_journey: { categoryId: 'arc' as FrameworkCategory, crossBook: true, hasConfidence: true },
+  frye_mythos: { categoryId: 'tension' as FrameworkCategory, crossBook: true, hasConfidence: false },
+  booker_plots: { categoryId: 'tension' as FrameworkCategory, crossBook: true, hasConfidence: false },
+  sep_methodology: { categoryId: 'symbol' as FrameworkCategory, crossBook: false, hasConfidence: true },
+} as const;
+
+const PIPELINE_ZH = {
+  jung: PIPELINE_JUNG_ZH,
+  schmidt: PIPELINE_SCHMIDT_ZH,
+  hero_journey: PIPELINE_HJ_ZH,
+  frye_mythos: PIPELINE_FRYE_ZH,
+  booker_plots: PIPELINE_BOOKER_ZH,
+  sep_methodology: PIPELINE_SEP_ZH,
+} as const;
+const PIPELINE_EN = {
+  jung: PIPELINE_JUNG_EN,
+  schmidt: PIPELINE_SCHMIDT_EN,
+  hero_journey: PIPELINE_HJ_EN,
+  frye_mythos: PIPELINE_FRYE_EN,
+  booker_plots: PIPELINE_BOOKER_EN,
+  sep_methodology: PIPELINE_SEP_EN,
+} as const;
+const OUTPUT_ZH = {
+  jung: OUTPUT_JUNG_ZH,
+  schmidt: OUTPUT_SCHMIDT_ZH,
+  hero_journey: OUTPUT_HJ_ZH,
+  frye_mythos: OUTPUT_FRYE_ZH,
+  booker_plots: OUTPUT_BOOKER_ZH,
+  sep_methodology: OUTPUT_SEP_ZH,
+} as const;
+const OUTPUT_EN = {
+  jung: OUTPUT_JUNG_EN,
+  schmidt: OUTPUT_SCHMIDT_EN,
+  hero_journey: OUTPUT_HJ_EN,
+  frye_mythos: OUTPUT_FRYE_EN,
+  booker_plots: OUTPUT_BOOKER_EN,
+  sep_methodology: OUTPUT_SEP_EN,
+} as const;
+
 // ── zh-TW ─────────────────────────────────────────────────────────────────────
 
-const FRAMEWORKS_ZH: Framework[] = [
+// Raw arrays only carry the static literary content; runtime metadata
+// (categoryId / crossBook / pipeline / output) is attached by `enrich()` below.
+type RawFramework = Omit<Framework, 'categoryId' | 'crossBook' | 'hasConfidence' | 'pipeline' | 'output'>;
+
+const FRAMEWORKS_ZH: RawFramework[] = [
   {
     key: 'jung',
     name: 'Jung 原型',
     category: '角色分析',
-    description: 'Carl Jung 的 12 原型理論，從集體無意識中辨識角色的核心驅力與行為模式。',
+    description: 'Carl Jung 的 12 原型理論，從集體無意識中辨識角色的核心驅力與行為模式。原文引用與來源 chunk 保留在角色證據檔中，本頁僅呈現原型判定本身。',
     itemLabel: '類型',
     references: [
       { author: 'Jung, C. G.', year: 1934, title: 'Archetypes of the Collective Unconscious', publisher: 'in Collected Works Vol. 9i, Princeton University Press, 1968', note: '原型概念的首次系統性論述' },
@@ -57,7 +294,7 @@ const FRAMEWORKS_ZH: Framework[] = [
     key: 'schmidt',
     name: 'Schmidt 類型',
     category: '角色分析',
-    description: 'Victoria Lynn Schmidt 的 45 個角色類型，基於英雄與反英雄的性別對偶分類。',
+    description: 'Victoria Lynn Schmidt 的 45 個角色類型，基於英雄／反英雄的性別對偶分類。「性別對偶」是理論的結構，分類時 LLM 看的是 45 個扁平清單；每個原型在設定檔中自帶 gender 與 is_antagonist 屬性，可從主類型反查得知英雄／反英雄極性。',
     itemLabel: '類型',
     references: [
       { author: 'Schmidt, V. L.', year: 2001, title: '45 Master Characters: Mythic Models for Creating Original Characters', publisher: "Writer's Digest Books", note: '以性別對偶結構提出 45 種原型角色，兼顧英雄與反英雄、男性與女性弧線' },
@@ -74,7 +311,7 @@ const FRAMEWORKS_ZH: Framework[] = [
     key: 'hero_journey',
     name: '英雄旅程',
     category: '敘事弧分析',
-    description: 'Joseph Campbell 的《千面英雄》提出的 12 階段敘事原型，分析主角如何從平凡世界出發、歷經試煉、帶著蛻變歸返。系統將章節映射至對應階段，呈現故事的敘事節奏。',
+    description: 'Joseph Campbell 的《千面英雄》提出的 12 階段敘事原型，分析主角如何從平凡世界出發、歷經試煉、帶著蛻變歸返。系統將章節映射至對應階段，呈現故事的敘事節奏。並非每本書都會涵蓋全部 12 階段；缺乏明確證據的階段會被略過，可從映射階段數除以 12 推得粗略的覆蓋率。每個階段同時回填代表性事件 ID，供事件分析頁串接。',
     itemLabel: '階段',
     references: [
       { author: 'Campbell, J.', year: 1949, title: 'The Hero with a Thousand Faces', publisher: 'Pantheon Books', note: '英雄旅程（Monomyth）理論的奠基之作，比較神話學的核心文本' },
@@ -99,7 +336,7 @@ const FRAMEWORKS_ZH: Framework[] = [
     key: 'frye_mythos',
     name: 'Frye 四季神話',
     category: '張力分析',
-    description: 'Northrop Frye 的《批評的解剖》將所有敘事歸納為四種神話模式，各對應一個季節與情感基調。系統在合成書籍層張力主題時，使用此框架為全書定性。',
+    description: 'Northrop Frye 的《批評的解剖》將所有敘事歸納為四種神話模式，各對應一個季節與情感基調。系統使用此框架為全書定性其主神話。實作上，這個判定與 Booker 七情節在同一個分析步驟中產出——餵入相同的 TensionLine（章節層級的張力極對線、強度與審核狀態），由 LLM 一次回傳兩個分類選擇與綜合命題。',
     itemLabel: '神話',
     references: [
       { author: 'Frye, N.', year: 1957, title: 'Anatomy of Criticism: Four Essays', publisher: 'Princeton University Press', note: '以四季隱喻建立文學模式理論，提出浪漫傳奇、喜劇、悲劇、諷刺四種神話（mythos）' },
@@ -116,7 +353,7 @@ const FRAMEWORKS_ZH: Framework[] = [
     key: 'booker_plots',
     name: 'Booker 七種基本情節',
     category: '張力分析',
-    description: 'Christopher Booker 的《七種基本情節》主張所有故事都由七種原型情節構成。系統在合成書籍層張力主題時，同時以此框架辨識全書情節類型。',
+    description: 'Christopher Booker 的《七種基本情節》主張所有故事都由七種原型情節構成。系統使用此框架辨識全書的主情節類型。實作上，這個判定與 Frye 四神話在同一個分析步驟中產出——餵入相同的 TensionLine（章節層級的張力極對線、強度與審核狀態），由 LLM 一次回傳兩個分類選擇與綜合命題。',
     itemLabel: '情節',
     references: [
       { author: 'Booker, C.', year: 2004, title: 'The Seven Basic Plots: Why We Tell Stories', publisher: 'Continuum', note: '歷時 34 年寫作，從榮格心理學與神話學角度，論證所有故事皆可歸類為七種原型情節' },
@@ -136,7 +373,7 @@ const FRAMEWORKS_ZH: Framework[] = [
     key: 'sep_methodology',
     name: 'SEP 分析方法',
     category: '象徵分析',
-    description: 'Symbol Evidence Profile（象徵證據輪廓）是系統對文本象徵進行結構化分析的五步流程。先純粹從文本數據聚合證據，再由 LLM 解讀象徵的主題意涵，最後交由人工審核確認。',
+    description: 'Symbol Evidence Profile（象徵證據輪廓）是系統對文本象徵進行結構化分析的五步流程。先純粹從文本數據聚合證據，再由 LLM 解讀象徵的主題意涵，最後交由人工審核確認。LLM 詮釋同時回填與象徵最相關的角色 ID 與事件 ID，供下游串接知識圖譜與閱讀頁。',
     itemLabel: '步驟',
     references: [
       { author: 'Barthes, R.', year: 1957, title: 'Mythologies', publisher: 'Éditions du Seuil', note: '將日常文化現象視為符號系統加以解讀，奠定符號學批評的大眾基礎；本系統象徵分析的核心方法論起點' },
@@ -155,12 +392,12 @@ const FRAMEWORKS_ZH: Framework[] = [
 
 // ── en ────────────────────────────────────────────────────────────────────────
 
-const FRAMEWORKS_EN: Framework[] = [
+const FRAMEWORKS_EN: RawFramework[] = [
   {
     key: 'jung',
     name: 'Jung Archetypes',
     category: 'Character Analysis',
-    description: "Carl Jung's theory of 12 archetypes identifies a character's core drives and behavioural patterns from the collective unconscious.",
+    description: "Carl Jung's theory of 12 archetypes identifies a character's core drives and behavioural patterns from the collective unconscious. Source quotes and chunk IDs are kept in the character evidence profile; this page shows only the archetype judgement itself.",
     itemLabel: 'Type',
     references: [
       { author: 'Jung, C. G.', year: 1934, title: 'Archetypes of the Collective Unconscious', publisher: 'in Collected Works Vol. 9i, Princeton University Press, 1968', note: 'First systematic exposition of the archetype concept' },
@@ -186,7 +423,7 @@ const FRAMEWORKS_EN: Framework[] = [
     key: 'schmidt',
     name: 'Schmidt Types',
     category: 'Character Analysis',
-    description: "Victoria Lynn Schmidt's 45 character types, based on a gender-paired classification of heroes and anti-heroes.",
+    description: "Victoria Lynn Schmidt's 45 character types, based on a gender-paired classification of heroes and anti-heroes. Gender-pairing is the theoretical structure; classification feeds the LLM a flat list of all 45 types. Each archetype carries `gender` and `is_antagonist` flags in the config — the hero/anti-hero polarity is looked up from the chosen primary type, not produced by the analysis itself.",
     itemLabel: 'Type',
     references: [
       { author: 'Schmidt, V. L.', year: 2001, title: '45 Master Characters: Mythic Models for Creating Original Characters', publisher: "Writer's Digest Books", note: 'Proposes 45 archetypal characters using a gender-paired structure, covering hero and anti-hero arcs for both masculine and feminine' },
@@ -203,7 +440,7 @@ const FRAMEWORKS_EN: Framework[] = [
     key: 'hero_journey',
     name: "Hero's Journey",
     category: 'Narrative Arc',
-    description: "Joseph Campbell's 12-stage narrative archetype from The Hero with a Thousand Faces, analysing how a protagonist departs from the ordinary world, endures trials, and returns transformed. The system maps chapters to corresponding stages to reveal the story's narrative rhythm.",
+    description: "Joseph Campbell's 12-stage narrative archetype from The Hero with a Thousand Faces, analysing how a protagonist departs from the ordinary world, endures trials, and returns transformed. The system maps chapters to corresponding stages to reveal the story's narrative rhythm. Not every book covers all 12 stages — stages without explicit textual evidence are skipped; a rough coverage rate can be derived as mapped-stage-count / 12. Each stage also carries representative event IDs for cross-linking with the event analysis page.",
     itemLabel: 'Stage',
     references: [
       { author: 'Campbell, J.', year: 1949, title: 'The Hero with a Thousand Faces', publisher: 'Pantheon Books', note: 'The founding text of the Hero\'s Journey (Monomyth) theory and a cornerstone of comparative mythology' },
@@ -228,7 +465,7 @@ const FRAMEWORKS_EN: Framework[] = [
     key: 'frye_mythos',
     name: "Frye's Four Mythoi",
     category: 'Tension Analysis',
-    description: "Northrop Frye's Anatomy of Criticism reduces all narrative to four mythic modes, each corresponding to a season and emotional register. The system uses this framework to characterise the overall book when synthesising book-level tension themes.",
+    description: "Northrop Frye's Anatomy of Criticism reduces all narrative to four mythic modes, each tied to a season and emotional register. The system uses this framework to characterise a book's primary mythos. In practice, this judgement is produced in the same analysis step as Booker's Seven Basic Plots — both consume the same TensionLine input (chapter-level polar opposites, intensity, and review status), and a single LLM call returns both classification choices plus a synthesised proposition.",
     itemLabel: 'Mythos',
     references: [
       { author: 'Frye, N.', year: 1957, title: 'Anatomy of Criticism: Four Essays', publisher: 'Princeton University Press', note: 'Establishes a theory of literary modes using seasonal metaphor, proposing the four mythoi: romance, comedy, tragedy, and irony/satire' },
@@ -245,7 +482,7 @@ const FRAMEWORKS_EN: Framework[] = [
     key: 'booker_plots',
     name: "Booker's Seven Basic Plots",
     category: 'Tension Analysis',
-    description: "Christopher Booker's The Seven Basic Plots argues that all stories are built from seven archetypal plots. The system uses this framework simultaneously to identify the overall plot type when synthesising book-level tension themes.",
+    description: "Christopher Booker's The Seven Basic Plots argues all stories are built from seven archetypal plots. The system uses this framework to identify a book's overall plot type. In practice, this judgement is produced in the same analysis step as Frye's Four Mythoi — both consume the same TensionLine input (chapter-level polar opposites, intensity, and review status), and a single LLM call returns both classification choices plus a synthesised proposition.",
     itemLabel: 'Plot',
     references: [
       { author: 'Booker, C.', year: 2004, title: 'The Seven Basic Plots: Why We Tell Stories', publisher: 'Continuum', note: 'Written over 34 years; argues from Jungian psychology and mythology that all stories can be classified into seven archetypal plots' },
@@ -265,7 +502,7 @@ const FRAMEWORKS_EN: Framework[] = [
     key: 'sep_methodology',
     name: 'SEP Methodology',
     category: 'Symbol Analysis',
-    description: 'The Symbol Evidence Profile (SEP) is a five-step process for structured analysis of textual symbols. Evidence is first aggregated purely from text data, then interpreted for thematic meaning by an LLM, and finally submitted to human review for confirmation.',
+    description: 'The Symbol Evidence Profile (SEP) is a five-step process for structured analysis of textual symbols. Evidence is first aggregated purely from text data, then interpreted for thematic meaning by an LLM, and finally submitted to human review for confirmation. The LLM interpretation also backfills the character IDs and event IDs most closely linked to the symbol, for downstream cross-linking with the knowledge graph and reader page.',
     itemLabel: 'Step',
     references: [
       { author: 'Barthes, R.', year: 1957, title: 'Mythologies', publisher: 'Éditions du Seuil', note: 'Reads everyday cultural phenomena as sign systems, laying the popular foundations of semiotic criticism; the core methodological starting point for this system\'s symbol analysis' },
@@ -282,8 +519,32 @@ const FRAMEWORKS_EN: Framework[] = [
   },
 ];
 
+// ── Enrich raw zh/en framework lists with categoryId / crossBook / pipeline / output ──
+function enrich(raw: RawFramework[], lang: 'zh' | 'en'): Framework[] {
+  return raw.map((fw) => {
+    const meta = FW_META[fw.key as keyof typeof FW_META];
+    const pipeline = (lang === 'zh' ? PIPELINE_ZH : PIPELINE_EN)[fw.key as keyof typeof PIPELINE_ZH];
+    const output = (lang === 'zh' ? OUTPUT_ZH : OUTPUT_EN)[fw.key as keyof typeof OUTPUT_ZH];
+    return {
+      ...fw,
+      categoryId: meta?.categoryId ?? 'character',
+      crossBook: meta?.crossBook ?? false,
+      hasConfidence: meta?.hasConfidence ?? true,
+      pipeline: pipeline ?? [],
+      output: output ?? [],
+    };
+  });
+}
+
+const FRAMEWORKS_ZH_ENRICHED = enrich(FRAMEWORKS_ZH, 'zh');
+const FRAMEWORKS_EN_ENRICHED = enrich(FRAMEWORKS_EN, 'en');
+
 // ── Getter ────────────────────────────────────────────────────────────────────
 
 export function getFrameworks(lang: string): Framework[] {
-  return lang.startsWith('zh') ? FRAMEWORKS_ZH : FRAMEWORKS_EN;
+  return lang.startsWith('zh') ? FRAMEWORKS_ZH_ENRICHED : FRAMEWORKS_EN_ENRICHED;
+}
+
+export function getFrameworkCategories(lang: string): CategoryDescriptor[] {
+  return lang.startsWith('zh') ? CATEGORIES_ZH : CATEGORIES_EN;
 }

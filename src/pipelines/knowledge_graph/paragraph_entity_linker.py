@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 import re
 
-from domain.documents import Document, ParagraphEntity
+from domain.documents import Document, ParagraphEntity, ParagraphRole
 from domain.entities import Entity
 
 logger = logging.getLogger(__name__)
@@ -50,6 +50,8 @@ class ParagraphEntityLinker:
         total_linked = 0
         for chapter in document.chapters:
             for para in chapter.paragraphs:
+                if para.role != ParagraphRole.body:
+                    continue
                 para_entities: list[ParagraphEntity] = []
                 for m in pattern.finditer(para.text):
                     ent = name_map[m.group(0).lower()]

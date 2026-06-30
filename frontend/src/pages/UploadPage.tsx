@@ -1,27 +1,49 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { uploadBook } from '@/api/ingest';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
-import { DropZone } from '@/components/upload/DropZone';
-import { ProcessingTimeline } from '@/components/upload/ProcessingTimeline';
-import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
-import { ArrowRight } from 'lucide-react';
+import { FileText, Loader2, X } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
+import { uploadBook } from '@/api/ingest';
+import { DropZone } from '@/components/upload/DropZone';
+import { ProcessingCard } from '@/components/upload/ProcessingCard';
+import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
 
 interface UploadTask {
   taskId: string;
   fileName: string;
+  title: string;
 }
+
+interface ErroredTask {
+  taskId: string;
+  fileName: string;
+  message?: string;
+}
+
+const LANGUAGE_OPTIONS = [
+  { value: '', labelKey: 'languageAuto' },
+  { value: 'zh', labelKey: 'languageZh' },
+  { value: 'en', labelKey: 'languageEn' },
+  { value: 'ja', labelKey: 'languageJa' },
+  { value: 'ko', labelKey: 'languageKo' },
+  { value: 'fr', labelKey: 'languageFr' },
+  { value: 'es', labelKey: 'languageEs' },
+  { value: 'de', labelKey: 'languageDe' },
+  { value: 'pt', labelKey: 'languagePt' },
+  { value: 'ru', labelKey: 'languageRu' },
+] as const;
 
 interface PendingFile {
   file: File;
   title: string;
   author: string;
+  language: string;
 }
 
 export default function UploadPage() {
+  const location = useLocation();
+
   const [pending, setPending] = useState<PendingFile | null>(null);
   const [tasks, setTasks] = useState<UploadTask[]>(() => {
     try {
@@ -31,177 +53,370 @@ export default function UploadPage() {
       return [];
     }
   });
-  const [completedTasks, setCompletedTasks] = useState<{ taskId: string; fileName: string; bookId: string }[]>([]);
+  const [doneTaskIds, setDoneTaskIds] = useState<Set<string>>(new Set());
+  const [erroredTasks, setErroredTasks] = useState<ErroredTask[]>([]);
   const [timelineModal, setTimelineModal] = useState<{ bookId: string; detection: TimelineDetectionResponse } | null>(null);
+  const completedTaskIdsRef = useRef<Set<string>>(
+    (() => {
+      try {
+        const saved = sessionStorage.getItem('upload-completed-tasks');
+        return saved ? new Set(JSON.parse(saved) as string[]) : new Set<string>();
+      } catch {
+        return new Set<string>();
+      }
+    })(),
+  );
+
   useEffect(() => {
-    if (tasks.length === 0) {
-      sessionStorage.removeItem('upload-tasks');
-    } else {
-      sessionStorage.setItem('upload-tasks', JSON.stringify(tasks));
-    }
-  }, [tasks]);
+    const activeTasks = tasks.filter((t) => !doneTaskIds.has(t.taskId));
+    if (activeTasks.length === 0) sessionStorage.removeItem('upload-tasks');
+    else sessionStorage.setItem('upload-tasks', JSON.stringify(activeTasks));
+  }, [tasks, doneTaskIds]);
+
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.slice(1);
+    setTimeout(() => {
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
+  }, [location.hash]);
 
   const { t } = useTranslation('upload');
   const { t: tc } = useTranslation('common');
 
+  const abortRef = useRef<AbortController | null>(null);
+
   const upload = useMutation({
-    mutationFn: ({ file, title, author }: { file: File; title: string; author?: string }) => uploadBook(file, title, author),
-    onSuccess: (data, { file }) => {
-      setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name }]);
+    mutationFn: ({ file, title, author, language, signal }: { file: File; title: string; author?: string; language?: string; signal: AbortSignal }) =>
+      uploadBook(file, title, author, language, signal),
+    onSuccess: (data, { file, title }) => {
+      setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name, title }]);
       setPending(null);
+    },
+    onError: (err: Error) => {
+      if (err.name === 'AbortError') return;
     },
   });
 
-  const handleFileSelected = useCallback((file: File) => {
-    const stem = file.name.replace(/\.[^.]+$/, '');
-    setPending({ file, title: stem, author: '' });
-  }, []);
+  const handleFileSelected = useCallback(
+    (file: File) => {
+      upload.reset();
+      const stem = file.name.replace(/\.[^.]+$/, '');
+      setPending({ file, title: stem, author: '', language: '' });
+    },
+    [upload],
+  );
+
+  const handleConfirmUpload = useCallback(() => {
+    if (!pending || !pending.title.trim()) return;
+    const controller = new AbortController();
+    abortRef.current = controller;
+    upload.mutate({
+      file: pending.file,
+      title: pending.title.trim(),
+      author: pending.author.trim() || undefined,
+      language: pending.language || undefined,
+      signal: controller.signal,
+    });
+  }, [pending, upload]);
+
+  const handleCancel = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    upload.reset();
+    setPending(null);
+  }, [upload]);
 
   const handleTaskDone = useCallback(
-    (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => {
-      setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
-      setCompletedTasks((prev) => [...prev, { taskId, bookId, fileName }]);
-      if (detection?.chapterModeViable) {
+    (taskId: string, bookId: string, _fileName: string, detection?: TimelineDetectionResponse) => {
+      const alreadySeen = completedTaskIdsRef.current.has(taskId);
+      completedTaskIdsRef.current.add(taskId);
+      try {
+        sessionStorage.setItem('upload-completed-tasks', JSON.stringify([...completedTaskIdsRef.current]));
+      } catch {
+        // ignore storage errors
+      }
+      setDoneTaskIds((prev) => new Set([...prev, taskId]));
+      if (!alreadySeen && detection?.chapterModeViable) {
         setTimelineModal({ bookId, detection });
       }
     },
     [],
   );
 
-  const handleTaskError = useCallback((taskId: string) => {
+  const handleTaskError = useCallback((taskId: string, fileName: string, message?: string) => {
     setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+    setErroredTasks((prev) => [...prev, { taskId, fileName, message }]);
   }, []);
 
+  const dismissErroredTask = useCallback((taskId: string) => {
+    setErroredTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+  }, []);
+
+  const fileSizeMB = pending ? (pending.file.size / 1024 / 1024).toFixed(1) : '';
+
   return (
-    <div className="p-6 overflow-y-auto h-full max-w-2xl mx-auto">
+    <div className="overflow-y-auto flex-1">
+      <div className="py-9 px-9 max-w-2xl mx-auto">
       <h1
-        className="text-2xl font-bold mb-6"
-        style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+        className="font-bold mb-6"
+        style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', color: 'var(--fg-primary)' }}
       >
         {t('title')}
       </h1>
 
-      {/* Upload zone */}
+      {/* Upload zone — idle */}
       {!pending && <DropZone onFileSelected={handleFileSelected} />}
 
-      {/* Title confirmation step */}
+      {/* Upload zone — file selected (compact bar) */}
       {pending && (
         <div
-          className="mt-4 p-4 rounded-lg"
-          style={{ border: '1px solid var(--border)', backgroundColor: 'var(--bg-secondary)' }}
+          style={{
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-lg)',
+            backgroundColor: 'var(--bg-primary)',
+            padding: '14px 20px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 12,
+          }}
         >
-          <p className="text-sm font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>
-            {t('bookTitle')}
-          </p>
-          <input
-            className="w-full px-3 py-2 rounded-md text-sm mb-4"
-            style={{
-              border: '1px solid var(--border)',
-              backgroundColor: 'white',
-              color: 'var(--fg-primary)',
-              outline: 'none',
-            }}
-            value={pending.title}
-            onChange={(e) => setPending({ ...pending, title: e.target.value })}
-            autoFocus
-          />
-          <p className="text-sm font-medium mb-1" style={{ color: 'var(--fg-secondary)' }}>
-            {t('author')}
-          </p>
-          <input
-            className="w-full px-3 py-2 rounded-md text-sm"
-            style={{
-              border: '1px solid var(--border)',
-              backgroundColor: 'white',
-              color: 'var(--fg-primary)',
-              outline: 'none',
-            }}
-            placeholder={t('authorPlaceholder')}
-            value={pending.author}
-            onChange={(e) => setPending({ ...pending, author: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && pending.title.trim()) {
-                upload.mutate({ file: pending.file, title: pending.title.trim(), author: pending.author.trim() || undefined });
-              }
-            }}
-          />
-          <div className="flex gap-2 justify-end mt-3">
-            <button
-              className="text-sm px-3 py-1 rounded-md"
-              style={{ color: 'var(--fg-muted)', border: '1px solid var(--border)' }}
-              onClick={() => setPending(null)}
+          <FileText size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div
+              style={{
+                fontFamily: 'var(--font-serif)',
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 600,
+                color: 'var(--fg-primary)',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+              }}
             >
+              {pending.file.name}
+            </div>
+            <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginTop: 2 }}>
+              {fileSizeMB}&nbsp;MB · PDF
+            </div>
+          </div>
+          <button
+            onClick={handleCancel}
+            style={{
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-sans)',
+              fontSize: 'var(--font-size-2xs)',
+              color: 'var(--fg-muted)',
+              flexShrink: 0,
+            }}
+          >
+            更換檔案
+          </button>
+        </div>
+      )}
+
+      {/* Metadata card */}
+      {pending && (
+        <div
+          className="card mt-4"
+          style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}
+        >
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 500,
+                color: 'var(--fg-secondary)',
+                marginBottom: 6,
+              }}
+            >
+              {t('bookTitle')}
+            </label>
+            <input
+              className="w-full"
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--fg-primary)',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 12px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color var(--transition-fast)',
+              }}
+              value={pending.title}
+              onChange={(e) => setPending({ ...pending, title: e.target.value })}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleConfirmUpload(); }}
+              autoFocus
+            />
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', margin: '4px 0 0' }}>
+              {t('titleHint')}
+            </p>
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 500,
+                color: 'var(--fg-secondary)',
+                marginBottom: 6,
+              }}
+            >
+              {t('author')}
+            </label>
+            <input
+              className="w-full"
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--fg-primary)',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 12px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color var(--transition-fast)',
+              }}
+              placeholder={t('authorPlaceholder')}
+              value={pending.author}
+              onChange={(e) => setPending({ ...pending, author: e.target.value })}
+              onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleConfirmUpload(); }}
+            />
+          </div>
+
+          <div>
+            <label
+              style={{
+                display: 'block',
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--font-size-xs)',
+                fontWeight: 500,
+                color: 'var(--fg-secondary)',
+                marginBottom: 6,
+              }}
+            >
+              {t('language')}
+            </label>
+            <select
+              className="w-full"
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--font-size-sm)',
+                color: 'var(--fg-primary)',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--radius-md)',
+                padding: '8px 12px',
+                outline: 'none',
+                boxSizing: 'border-box',
+                transition: 'border-color var(--transition-fast)',
+                cursor: 'pointer',
+              }}
+              value={pending.language}
+              onChange={(e) => setPending({ ...pending, language: e.target.value })}
+            >
+              {LANGUAGE_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>
+                  {t(opt.labelKey)}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {upload.error && upload.error.name !== 'AbortError' && (
+            <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--color-error)', margin: 0 }}>
+              {upload.error.message}
+            </p>
+          )}
+
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'flex-end',
+              gap: 8,
+              paddingTop: 'var(--space-sm)',
+              borderTop: '1px solid var(--border)',
+            }}
+          >
+            <button className="btn btn-secondary" onClick={handleCancel}>
               {tc('cancel')}
             </button>
             <button
-              className="text-sm px-3 py-1 rounded-md font-medium"
-              style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}
+              className="btn btn-primary"
               disabled={!pending.title.trim() || upload.isPending}
-              onClick={() => upload.mutate({ file: pending.file, title: pending.title.trim(), author: pending.author.trim() || undefined })}
+              onClick={handleConfirmUpload}
             >
+              {upload.isPending && <Loader2 size={13} className="animate-spin" />}
               {t('confirmUpload')}
             </button>
           </div>
         </div>
       )}
 
-      {upload.error && (
-        <p className="text-sm mt-2" style={{ color: 'var(--color-error)' }}>
-          {upload.error.message}
-        </p>
-      )}
-
       {/* Processing tasks */}
       {tasks.length > 0 && (
         <div className="mt-8">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-secondary)' }}>
+          <p
+            className="mb-3"
+            style={{
+              fontFamily: 'var(--font-sans)',
+              fontSize: 'var(--font-size-2xs)',
+              fontWeight: 500,
+              color: 'var(--fg-muted)',
+              letterSpacing: '0.06em',
+              textTransform: 'uppercase',
+            }}
+          >
             {t('processingSection')}
-          </h2>
+          </p>
           <div className="space-y-4">
             {tasks.map((task) => (
-              <ProcessingCard
-                key={task.taskId}
-                task={task}
-                onDone={handleTaskDone}
-                onError={handleTaskError}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Completed list */}
-      {completedTasks.length > 0 && (
-        <div className="mt-8">
-          <h2 className="text-sm font-semibold mb-3" style={{ color: 'var(--fg-secondary)' }}>
-            {t('completedSection')}
-          </h2>
-          <div className="space-y-2">
-            {completedTasks.map((ct) => (
-              <div
-                key={ct.taskId}
-                className="flex items-center justify-between px-3 py-2 rounded-md"
-                style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
-              >
-                <div className="flex items-center gap-2">
-                  <span
-                    className="w-2 h-2 rounded-full"
-                    style={{ backgroundColor: 'var(--color-success)' }}
-                  />
-                  <span className="text-sm">{ct.fileName}</span>
-                </div>
-                <Link
-                  to={`/books/${ct.bookId}`}
-                  className="text-xs font-medium flex items-center gap-1"
-                  style={{ color: 'var(--accent)' }}
-                >
-                  {t('enterBook')} <ArrowRight size={12} />
-                </Link>
+              <div key={task.taskId} id={task.taskId}>
+                <ProcessingCard task={task} onDone={handleTaskDone} onError={handleTaskError} />
               </div>
             ))}
           </div>
         </div>
       )}
+
+      {/* Errored tasks */}
+      {erroredTasks.length > 0 && (
+        <div className="mt-6 space-y-2">
+          {erroredTasks.map((et) => (
+            <div
+              key={et.taskId}
+              className="flex items-center justify-between px-3 py-2 rounded-md"
+              style={{ backgroundColor: 'var(--color-error-bg)', border: '1px solid var(--color-error)' }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full" style={{ backgroundColor: 'var(--color-error)' }} />
+                <div>
+                  <span className="text-sm">{et.fileName}</span>
+                  {et.message && (
+                    <p className="text-xs mt-0.5" style={{ color: 'var(--color-error)' }}>
+                      {et.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+              <button onClick={() => dismissErroredTask(et.taskId)} style={{ color: 'var(--fg-muted)' }}>
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {timelineModal && (
         <TimelineConfigModal
           bookId={timelineModal.bookId}
@@ -210,46 +425,6 @@ export default function UploadPage() {
         />
       )}
     </div>
-  );
-}
-
-function ProcessingCard({
-  task,
-  onDone,
-  onError,
-}: {
-  task: UploadTask;
-  onDone: (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => void;
-  onError: (taskId: string) => void;
-}) {
-  const { data: status, isError } = useTaskPolling(task.taskId);
-  const notified = useRef(false);
-
-  if (status?.status === 'done' && status.result?.bookId && !notified.current) {
-    notified.current = true;
-    const detection = status.result.timelineDetection as TimelineDetectionResponse | undefined;
-    setTimeout(() => onDone(task.taskId, status.result!.bookId!, task.fileName, detection), 0);
-  }
-
-  if ((status?.status === 'error' || isError) && !notified.current) {
-    notified.current = true;
-    setTimeout(() => onError(task.taskId), 0);
-  }
-
-  return (
-    <div
-      className="card"
-      style={{ border: '1px solid var(--border)' }}
-    >
-      <div className="flex items-center justify-between mb-3">
-        <span className="text-sm font-medium">{task.fileName}</span>
-        {status && (
-          <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-            {status.progress}%
-          </span>
-        )}
-      </div>
-      {status && <ProcessingTimeline task={status} />}
     </div>
   );
 }

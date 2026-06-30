@@ -1,20 +1,29 @@
 import { MessageCircle, X } from 'lucide-react';
+import type { MouseEvent } from 'react';
 
 interface ChatBubbleProps {
-  isOpen: boolean;
-  onToggle: () => void;
+  readonly isOpen: boolean;
+  readonly onToggle: () => void;
+  readonly pos: { x: number; y: number };
+  readonly isDragging: boolean;
+  readonly onDragMouseDown: (e: MouseEvent) => void;
+  readonly draggedRef: { current: boolean };
 }
 
-export function ChatBubble({ isOpen, onToggle }: ChatBubbleProps) {
+export function ChatBubble({ isOpen, onToggle, pos, isDragging, onDragMouseDown, draggedRef }: ChatBubbleProps) {
   const Icon = isOpen ? X : MessageCircle;
 
   return (
     <button
-      onClick={onToggle}
+      onMouseDown={onDragMouseDown}
+      onClick={() => {
+        if (draggedRef.current) return;
+        onToggle();
+      }}
       style={{
         position: 'fixed',
-        bottom: '1.5rem',
-        right: '1.5rem',
+        left: pos.x,
+        top: pos.y,
         zIndex: 50,
         width: 48,
         height: 48,
@@ -22,14 +31,14 @@ export function ChatBubble({ isOpen, onToggle }: ChatBubbleProps) {
         background: 'var(--accent)',
         color: 'white',
         border: 'none',
-        cursor: 'pointer',
+        cursor: isDragging ? 'grabbing' : 'pointer',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         boxShadow: 'var(--shadow-lg)',
-        transition: 'transform var(--transition-fast)',
+        transition: isDragging ? 'none' : 'transform var(--transition-fast)',
       }}
-      onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.08)')}
+      onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.transform = 'scale(1.08)'; }}
       onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
       aria-label={isOpen ? 'Close chat' : 'Open chat'}
     >

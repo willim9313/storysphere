@@ -14,13 +14,22 @@ from __future__ import annotations
 import json
 import logging
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, func, select, text as sa_text
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, func, select
 from sqlalchemy import delete as sa_delete
+from sqlalchemy import text as sa_text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase
 
-from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
-from services.query_models import ChapterKeywordMatch, DocumentSummary
+from domain.documents import (
+    Chapter,
+    Document,
+    FileType,
+    Paragraph,
+    ParagraphEntity,
+    ParagraphRole,
+    PipelineStatus,
+)
+from services.query_models import ChapterKeywordMatch, DocumentSummary, VectorSearchResult
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +54,7 @@ class _DocumentRow(_Base):
     keywords_json = Column(Text, nullable=True)  # JSON-encoded dict[str, float]
     language = Column(String, nullable=False, server_default="en")
     timeline_config_json = Column(Text, nullable=True)  # JSON-encoded TimelineConfig
+    pipeline_status_json = Column(Text, nullable=True)  # JSON-encoded PipelineStatus
 
 
 class _ChapterRow(_Base):
@@ -69,6 +79,8 @@ class _ParagraphRow(_Base):
     text = Column(Text, nullable=False)
     embedding_json = Column(Text, nullable=True)  # JSON-encoded list[float]
     entities_json = Column(Text, nullable=True)  # JSON-encoded list[ParagraphEntity]
+    title_span_json = Column(Text, nullable=True)  # JSON-encoded [start, end] or null
+    role = Column(String, nullable=False, server_default="body")
 
 
 # ── Service ──────────────────────────────────────────────────────────────────
@@ -105,6 +117,9 @@ class DocumentService:
                 "ALTER TABLE paragraphs ADD COLUMN entities_json TEXT",
                 "ALTER TABLE documents ADD COLUMN language TEXT NOT NULL DEFAULT 'en'",
                 "ALTER TABLE documents ADD COLUMN timeline_config_json TEXT",
+                "ALTER TABLE documents ADD COLUMN pipeline_status_json TEXT",
+                "ALTER TABLE paragraphs ADD COLUMN title_span_json TEXT",
+                "ALTER TABLE paragraphs ADD COLUMN role TEXT NOT NULL DEFAULT 'body'",
             ]:
                 try:
                     await conn.execute(sa_text(stmt))
@@ -146,6 +161,7 @@ class DocumentService:
                             if document.timeline_config
                             else None
                         ),
+                        pipeline_status_json=document.pipeline_status.model_dump_json(),
                     )
                 )
 
@@ -173,6 +189,7 @@ class DocumentService:
                                 chapter_number=para.chapter_number,
                                 position=para.position,
                                 text=para.text,
+                                role=para.role.value,
                                 embedding_json=(
                                     json.dumps(para.embedding) if para.embedding else None
                                 ),
@@ -184,11 +201,84 @@ class DocumentService:
                                     if para.entities
                                     else None
                                 ),
+                                title_span_json=(
+                                    json.dumps(list(para.title_span))
+                                    if para.title_span is not None
+                                    else None
+                                ),
                             )
                         )
 
         logger.info(
             "DocumentService.save_document: id=%s chapters=%d paragraphs=%d",
+            document.id,
+            document.total_chapters,
+            document.total_paragraphs,
+        )
+
+    async def replace_chapters(self, document: Document) -> None:
+        """Delete all chapters/paragraphs for a document and re-insert.
+
+        Used after a chapter-review step changes the chapter structure.
+        The document row itself is not modified.
+        """
+        async with self._session_factory() as session:
+            async with session.begin():
+                await session.execute(
+                    sa_delete(_ParagraphRow).where(
+                        _ParagraphRow.document_id == document.id
+                    )
+                )
+                await session.execute(
+                    sa_delete(_ChapterRow).where(
+                        _ChapterRow.document_id == document.id
+                    )
+                )
+                for chapter in document.chapters:
+                    session.add(
+                        _ChapterRow(
+                            id=chapter.id,
+                            document_id=document.id,
+                            number=chapter.number,
+                            title=chapter.title,
+                            summary=chapter.summary,
+                            keywords_json=(
+                                json.dumps(chapter.keywords, ensure_ascii=False)
+                                if chapter.keywords
+                                else None
+                            ),
+                        )
+                    )
+                    for para in chapter.paragraphs:
+                        session.add(
+                            _ParagraphRow(
+                                id=para.id,
+                                chapter_id=chapter.id,
+                                document_id=document.id,
+                                chapter_number=para.chapter_number,
+                                position=para.position,
+                                text=para.text,
+                                role=para.role.value,
+                                embedding_json=(
+                                    json.dumps(para.embedding) if para.embedding else None
+                                ),
+                                entities_json=(
+                                    json.dumps(
+                                        [e.model_dump() for e in para.entities],
+                                        ensure_ascii=False,
+                                    )
+                                    if para.entities
+                                    else None
+                                ),
+                                title_span_json=(
+                                    json.dumps(list(para.title_span))
+                                    if para.title_span is not None
+                                    else None
+                                ),
+                            )
+                        )
+        logger.info(
+            "DocumentService.replace_chapters: id=%s chapters=%d paragraphs=%d",
             document.id,
             document.total_chapters,
             document.total_paragraphs,
@@ -226,12 +316,18 @@ class DocumentService:
                         text=pr.text,
                         chapter_number=pr.chapter_number,
                         position=pr.position,
+                        role=ParagraphRole(pr.role) if pr.role else ParagraphRole.body,
                         embedding=(
                             json.loads(pr.embedding_json) if pr.embedding_json else None
                         ),
                         entities=(
                             [ParagraphEntity(**e) for e in json.loads(pr.entities_json)]
                             if pr.entities_json
+                            else None
+                        ),
+                        title_span=(
+                            tuple(json.loads(pr.title_span_json))
+                            if pr.title_span_json
                             else None
                         ),
                     )
@@ -280,7 +376,23 @@ class DocumentService:
                     if doc_row.timeline_config_json
                     else None
                 ),
+                pipeline_status=(
+                    PipelineStatus.model_validate_json(doc_row.pipeline_status_json)
+                    if doc_row.pipeline_status_json
+                    else PipelineStatus()
+                ),
             )
+
+    async def update_pipeline_status(self, document_id: str, pipeline_status: PipelineStatus) -> None:
+        """Update only the pipeline_status column for a document."""
+        async with self._session_factory() as session:
+            async with session.begin():
+                await session.execute(
+                    sa_text(
+                        "UPDATE documents SET pipeline_status_json = :json WHERE id = :id"
+                    ),
+                    {"json": pipeline_status.model_dump_json(), "id": document_id},
+                )
 
     async def get_document_language(self, document_id: str) -> str:
         """Return the detected/configured language for a document, or ``'en'``."""
@@ -301,6 +413,7 @@ class DocumentService:
                     _DocumentRow.id,
                     _DocumentRow.title,
                     _DocumentRow.file_type,
+                    _DocumentRow.pipeline_status_json,
                     chapter_count,
                 )
                 .outerjoin(_ChapterRow, _ChapterRow.document_id == _DocumentRow.id)
@@ -312,6 +425,7 @@ class DocumentService:
                     title=row.title,
                     file_type=row.file_type,
                     chapter_count=row.chapter_count,
+                    pipeline_status_json=row.pipeline_status_json,
                 )
                 for row in result.all()
             ]
@@ -352,6 +466,7 @@ class DocumentService:
                     text=pr.text,
                     chapter_number=pr.chapter_number,
                     position=pr.position,
+                    role=ParagraphRole(pr.role) if pr.role else ParagraphRole.body,
                     embedding=(
                         json.loads(pr.embedding_json) if pr.embedding_json else None
                     ),
@@ -397,6 +512,7 @@ class DocumentService:
                 text=pr.text,
                 chapter_number=pr.chapter_number,
                 position=pr.position,
+                role=ParagraphRole(pr.role) if pr.role else ParagraphRole.body,
                 embedding=(
                     json.loads(pr.embedding_json) if pr.embedding_json else None
                 ),
@@ -514,6 +630,51 @@ class DocumentService:
                         score=kws[keyword_lower],
                     ))
             return matches
+
+    async def search_paragraphs_by_text(
+        self,
+        query: str,
+        document_id: str | None = None,
+        top_k: int = 20,
+    ) -> list[VectorSearchResult]:
+        """Full-text search on paragraph text using SQLite LIKE (AND for multiple tokens).
+
+        Each space-separated token must appear in the paragraph (AND semantics).
+        Score = total occurrence count of all tokens; results sorted descending.
+        """
+        tokens = [t for t in query.strip().split() if t]
+        if not tokens:
+            return []
+
+        async with self._session_factory() as session:
+            stmt = select(_ParagraphRow)
+            if document_id:
+                stmt = stmt.where(_ParagraphRow.document_id == document_id)
+            for token in tokens:
+                stmt = stmt.where(_ParagraphRow.text.ilike(f"%{token}%"))
+
+            result = await session.execute(stmt)
+            rows = result.scalars().all()
+
+        def _score(text: str) -> float:
+            text_lower = text.lower()
+            return float(sum(text_lower.count(t.lower()) for t in tokens))
+
+        return sorted(
+            [
+                VectorSearchResult(
+                    id=r.id,
+                    score=_score(r.text),
+                    text=r.text,
+                    document_id=r.document_id,
+                    chapter_number=r.chapter_number,
+                    position=r.position,
+                )
+                for r in rows
+            ],
+            key=lambda x: x.score,
+            reverse=True,
+        )[:top_k]
 
     # ── Delete ────────────────────────────────────────────────────────────────
 

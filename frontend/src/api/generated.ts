@@ -31,6 +31,9 @@ export interface paths {
         /**
          * List Books
          * @description List all books.
+         *
+         *     Books with an active ingestion task (pending / running / awaiting_review)
+         *     are excluded — they are shown as ProcessingBookCard in the frontend instead.
          */
         get: operations["list_books_api_v1_books__get"];
         put?: never;
@@ -65,6 +68,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/rerun/{step}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rerun Pipeline Step
+         * @description Trigger a rerun of a single failed pipeline step for a book.
+         */
+        post: operations["rerun_pipeline_step_api_v1_books__book_id__rerun__step__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/review-data": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Review Data
+         * @description Return chapter/paragraph data for review. Only available while awaiting_review.
+         */
+        get: operations["get_review_data_api_v1_books__book_id__review_data_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Submit Review
+         * @description Submit reviewed chapter structure and resume the ingestion pipeline.
+         */
+        post: operations["submit_review_api_v1_books__book_id__review_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/upload": {
         parameters: {
             query?: never;
@@ -76,7 +139,7 @@ export interface paths {
         put?: never;
         /**
          * Upload Book
-         * @description Upload a PDF/DOCX and start background ingestion.
+         * @description Upload a PDF/DOCX/TXT and start background ingestion.
          */
         post: operations["upload_book_api_v1_books_upload_post"];
         delete?: never;
@@ -201,6 +264,10 @@ export interface paths {
         /**
          * Confirm Inferred Relation
          * @description Confirm an inferred relation; writes it as a real Relation to the KG.
+         *
+         *     Body is optional. When `relationType` is omitted, the inferred relation's
+         *     suggested_relation_type is promoted to its canonical RelationType via
+         *     INFERRED_TO_CANONICAL (see domain.inferred_relations).
          */
         post: operations["confirm_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__confirm_post"];
         delete?: never;
@@ -429,8 +496,34 @@ export interface paths {
         /**
          * Trigger Entity Analysis
          * @description Trigger deep analysis for a single entity.
+         *
+         *     ``mode='retryFailed'`` re-runs only the cached result's failed parts
+         *     (reusing the cached CEP); ``mode='full'`` forces a complete re-analysis.
          */
         post: operations["trigger_entity_analysis_api_v1_books__book_id__entities__entity_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/entities/analyze-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Batch Entity Analysis
+         * @description Trigger deep analysis for ALL character entities in a book.
+         *
+         *     Skips characters that already have cached analysis.
+         *     Returns a task_id for progress tracking.
+         */
+        post: operations["trigger_batch_entity_analysis_api_v1_books__book_id__entities_analyze_all_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -491,6 +584,9 @@ export interface paths {
         /**
          * Trigger Event Analysis
          * @description Trigger deep analysis for a single event.
+         *
+         *     ``mode='retryFailed'`` re-runs only the cached result's failed parts;
+         *     ``mode='full'`` forces a complete re-analysis.
          */
         post: operations["trigger_event_analysis_api_v1_books__book_id__events__event_id__analyze_post"];
         delete?: never;
@@ -645,6 +741,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/unraveling/chapter-distribution": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Per-chapter distribution for chapter-aware DAG nodes
+         * @description Return per-chapter counts for the subset of unraveling nodes whose
+         *     underlying data is naturally chapter-indexed.
+         *
+         *     Supported nodeIds: ``paragraphs``, ``summaries``, ``keywords``,
+         *     ``kg_event``, ``symbols``. Other nodes are omitted from the response.
+         */
+        get: operations["get_chapter_distribution_api_v1_books__book_id__unraveling_chapter_distribution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tasks
+         * @description List all non-terminal tasks plus the most recent terminal tasks.
+         *
+         *     Powers the Task Center panel. Ordered newest-first by ``created_at``.
+         *     Does not include ``murmur_events`` (use ``/tasks/:id/status`` for those).
+         */
+        get: operations["get_tasks_api_v1_tasks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/tasks/{task_id}/status": {
         parameters: {
             query?: never;
@@ -655,10 +798,36 @@ export interface paths {
         /**
          * Get Task Status
          * @description Poll the status of a background task.
+         *
+         *     Pass ``?after=N`` to receive only murmur events added since the last poll
+         *     (delta semantics). The client is responsible for accumulating events.
          */
         get: operations["get_task_status_api_v1_tasks__task_id__status_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tasks/{task_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Task
+         * @description Cancel a running background task.
+         *
+         *     Returns 204 on success. Returns 404 if the task does not exist,
+         *     409 if the task is already completed or not cancellable.
+         */
+        post: operations["cancel_task_api_v1_tasks__task_id__cancel_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -876,50 +1045,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Semantic Search */
-        post: operations["semantic_search_api_v1_search__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingest/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Ingest Document
-         * @description Upload a novel file (PDF or DOCX) and start ingestion in the background.
-         *
-         *     Returns a ``task_id`` for polling via ``GET /api/v1/ingest/{task_id}``.
-         */
-        post: operations["ingest_document_api_v1_ingest__post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/ingest/{task_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Ingest Status
-         * @description Poll the status of a background ingestion task.
-         */
-        get: operations["get_ingest_status_api_v1_ingest__task_id__get"];
-        put?: never;
-        post?: never;
+        /** Search */
+        post: operations["search_api_v1_search__post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1300,10 +1427,12 @@ export interface paths {
         };
         /**
          * List Tension Lines
-         * @description Return cached TensionLines for a book.
+         * @description Return cached TensionLines for a book, with constituent TEUs embedded.
          *
-         *     Returns an empty list if grouping has not been run yet.
-         *     Trigger grouping first with ``POST /tension/lines/group``.
+         *     Each line includes a ``teus`` list (chapter, intensity, description, evidence,
+         *     carrier names per pole) so the UI can render evidence inline without a second
+         *     request. Returns an empty list if grouping has not been run yet — trigger
+         *     grouping first with ``POST /tension/lines/group``.
          */
         get: operations["list_tension_lines_api_v1_tension_lines_get"];
         put?: never;
@@ -1616,6 +1745,34 @@ export interface paths {
         patch: operations["review_symbol_interpretation_api_v1_symbols__imagery_id__interpretation_patch"];
         trace?: never;
     };
+    "/api/v1/books/{book_id}/analysis/factions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Faction Analysis
+         * @description Return faction structure for a book, optionally at a chapter snapshot.
+         *
+         *     Query params:
+         *         chapter: chapter snapshot (reading order); omit for full book.
+         *         resolution: modularity resolution (0.1–4.0, default 1.0). Higher → more,
+         *             smaller factions; lower → fewer, larger ones.
+         *         min_cluster_size: communities smaller than this go to unaffiliated (≥ 2).
+         *
+         *     Empty book / no characters → empty factions list (200, not 404).
+         */
+        get: operations["get_faction_analysis_api_v1_books__book_id__analysis_factions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/kg/status": {
         parameters: {
             query?: never;
@@ -1704,6 +1861,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/settings/info": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Settings Info
+         * @description Return read-only snapshot of the current runtime configuration.
+         */
+        get: operations["get_settings_info_api_v1_settings_info_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/metrics": {
         parameters: {
             query?: never;
@@ -1763,8 +1940,13 @@ export interface components {
             section: string;
             /** Title */
             title: string;
-            /** Archetypetype */
-            archetypeType?: string | null;
+            /**
+             * Archetypes
+             * @default {}
+             */
+            archetypes: {
+                [key: string]: string;
+            };
             /**
              * Chaptercount
              * @default 0
@@ -1776,15 +1958,21 @@ export interface components {
              */
             content: string;
             /**
-             * Framework
-             * @default jung
+             * Status
+             * @default complete
              */
-            framework: string;
+            status: string;
             /**
              * Generatedat
              * @default
              */
             generatedAt: string;
+            /** Chapter */
+            chapter?: number | null;
+            /** Narrativemode */
+            narrativeMode?: string | null;
+            /** Importance */
+            importance?: string | null;
         };
         /** AnalysisListResponse */
         AnalysisListResponse: {
@@ -1819,6 +2007,15 @@ export interface components {
              */
             concurrency: number;
         };
+        /** AnalyzeTriggerRequest */
+        AnalyzeTriggerRequest: {
+            /**
+             * Mode
+             * @default full
+             * @enum {string}
+             */
+            mode: "full" | "retryFailed";
+        };
         /** ArcSegmentResponse */
         ArcSegmentResponse: {
             /** Chapterrange */
@@ -1847,17 +2044,6 @@ export interface components {
              */
             evidence: string[];
         };
-        /** Body_ingest_document_api_v1_ingest__post */
-        Body_ingest_document_api_v1_ingest__post: {
-            /** File */
-            file: string;
-            /** Title */
-            title: string;
-            /** Author */
-            author?: string | null;
-            /** Language */
-            language?: string | null;
-        };
         /** Body_upload_book_api_v1_books_upload_post */
         Body_upload_book_api_v1_books_upload_post: {
             /** File */
@@ -1866,6 +2052,8 @@ export interface components {
             title?: string | null;
             /** Author */
             author?: string | null;
+            /** Language */
+            language?: string | null;
         };
         /** BookDetailResponse */
         BookDetailResponse: {
@@ -1897,6 +2085,15 @@ export interface components {
             uploadedAt: string;
             /** Lastopenedat */
             lastOpenedAt?: string | null;
+            /**
+             * @default {
+             *       "summarization": "pending",
+             *       "featureExtraction": "pending",
+             *       "knowledgeGraph": "pending",
+             *       "symbolDiscovery": "pending"
+             *     }
+             */
+            pipelineStatus: components["schemas"]["PipelineStatusResponse"];
             /** Summary */
             summary?: string | null;
             /**
@@ -1952,6 +2149,15 @@ export interface components {
             uploadedAt: string;
             /** Lastopenedat */
             lastOpenedAt?: string | null;
+            /**
+             * @default {
+             *       "summarization": "pending",
+             *       "featureExtraction": "pending",
+             *       "knowledgeGraph": "pending",
+             *       "symbolDiscovery": "pending"
+             *     }
+             */
+            pipelineStatus: components["schemas"]["PipelineStatusResponse"];
         };
         /** CausalityResponse */
         CausalityResponse: {
@@ -2003,6 +2209,24 @@ export interface components {
                 [key: string]: number;
             };
         };
+        /**
+         * ChapterDistribution
+         * @description Per-chapter counts for chapter-aware nodes.
+         *
+         *     Only nodes whose underlying data is naturally indexed by chapter
+         *     appear in ``distributions``. Other nodes (book-level synthesis,
+         *     cache-keyed analyses, KG entities without chapter linkage) are omitted.
+         */
+        ChapterDistribution: {
+            /** Bookid */
+            bookId: string;
+            /** Totalchapters */
+            totalChapters: number;
+            /** Distributions */
+            distributions: {
+                [key: string]: number[];
+            };
+        };
         /** CharacterAnalysisDetailResponse */
         CharacterAnalysisDetailResponse: {
             /** Entityid */
@@ -2022,6 +2246,16 @@ export interface components {
              * @default []
              */
             arc: components["schemas"]["ArcSegmentResponse"][];
+            /**
+             * Status
+             * @default complete
+             */
+            status: string;
+            /**
+             * Failedparts
+             * @default []
+             */
+            failedParts: string[];
             /** Generatedat */
             generatedAt: string;
         };
@@ -2103,7 +2337,7 @@ export interface components {
         /** ConfirmInferredRequest */
         ConfirmInferredRequest: {
             /** Relationtype */
-            relationType: string;
+            relationType?: string | null;
         };
         /** DocumentResponse */
         DocumentResponse: {
@@ -2318,8 +2552,24 @@ export interface components {
             summary: {
                 [key: string]: string;
             };
+            /**
+             * Status
+             * @default complete
+             */
+            status: string;
+            /**
+             * Failedparts
+             * @default []
+             */
+            failedParts: string[];
             /** Analyzedat */
             analyzedAt?: string | null;
+            /** Chapter */
+            chapter?: number | null;
+            /** Chunk */
+            chunk?: number | null;
+            /** Narrativemode */
+            narrativeMode?: string | null;
         };
         /** EventAnalysisRequest */
         EventAnalysisRequest: {
@@ -2387,6 +2637,45 @@ export interface components {
             name: string;
             /** Type */
             type: string;
+        };
+        /** FactionAnalysisResponse */
+        FactionAnalysisResponse: {
+            /** Bookid */
+            bookId: string;
+            /** Chapter */
+            chapter?: number | null;
+            /** Factions */
+            factions?: components["schemas"]["FactionResponse"][];
+            /** Relations */
+            relations?: components["schemas"]["FactionRelationResponse"][];
+            /** Unaffiliatedentityids */
+            unaffiliatedEntityIds?: string[];
+            /** Unaffiliatednames */
+            unaffiliatedNames?: string[];
+        };
+        /** FactionRelationResponse */
+        FactionRelationResponse: {
+            /** Sourcefactionid */
+            sourceFactionId: string;
+            /** Targetfactionid */
+            targetFactionId: string;
+            /** Cooperation */
+            cooperation: number;
+            /** Rivalry */
+            rivalry: number;
+        };
+        /** FactionResponse */
+        FactionResponse: {
+            /** Id */
+            id: string;
+            /** Label */
+            label: string;
+            /** Memberids */
+            memberIds?: string[];
+            /** Cohesionscore */
+            cohesionScore: number;
+            /** Topmembernames */
+            topMemberNames?: string[];
         };
         /** GraphDataResponse */
         GraphDataResponse: {
@@ -2478,6 +2767,43 @@ export interface components {
              */
             force: boolean;
         };
+        /**
+         * HeroJourneyStage
+         * @description One stage of Campbell's Hero's Journey, mapped to chapter ranges.
+         *
+         *     Populated by NarrativeService.map_hero_journey() (B-035).
+         *     Stages are defined in src/config/hero_journey.py.
+         */
+        HeroJourneyStage: {
+            /**
+             * Stage Id
+             * @description Stage identifier, e.g. 'ordinary_world'
+             */
+            stage_id: string;
+            /** Stage Name */
+            stage_name: string;
+            /**
+             * Chapter Range
+             * @description Chapters corresponding to this stage (may overlap adjacent stages)
+             */
+            chapter_range: number[];
+            /** Representative Event Ids */
+            representative_event_ids?: string[];
+            /**
+             * Confidence
+             * @default 0
+             */
+            confidence: number;
+            /** Notes */
+            notes?: string | null;
+        };
+        /** HistogramBucketResponse */
+        HistogramBucketResponse: {
+            /** Bucket */
+            bucket: string;
+            /** Value */
+            value: number;
+        };
         /** ImageryEntityResponse */
         ImageryEntityResponse: {
             /** Id */
@@ -2567,6 +2893,33 @@ export interface components {
              */
             total: number;
         };
+        /**
+         * KernelSpineEvent
+         * @description One kernel event in the plot spine (response shape for #21j).
+         *
+         *     Mirrors the dict assembled in ``get_kernel_spine``. Field names stay
+         *     snake_case (no camel alias) to match the existing JSON contract.
+         */
+        KernelSpineEvent: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Chapter */
+            chapter: number;
+            /** Event Type */
+            event_type: string;
+            /** Description */
+            description: string;
+            /** Significance */
+            significance?: string | null;
+            /** Narrative Weight */
+            narrative_weight: string;
+            /** Narrative Weight Source */
+            narrative_weight_source?: string | null;
+            /** Narrative Position */
+            narrative_position?: number | null;
+        };
         /** KgMigrateRequest */
         KgMigrateRequest: {
             /**
@@ -2579,6 +2932,8 @@ export interface components {
         KgStatusResponse: {
             /** Mode */
             mode: string;
+            /** Deploymode */
+            deployMode: string;
             /** Entitycount */
             entityCount: number;
             /** Relationcount */
@@ -2589,6 +2944,10 @@ export interface components {
             graphDbConnected: boolean;
             /** Persistencepath */
             persistencePath: string | null;
+            /** Qdrantlocalpath */
+            qdrantLocalPath: string | null;
+            /** Vectorcount */
+            vectorCount: number | null;
         };
         /** KgSwitchRequest */
         KgSwitchRequest: {
@@ -2623,6 +2982,32 @@ export interface components {
             /** Confidence */
             confidence: number;
         };
+        /**
+         * MurmurEvent
+         * @description A single murmur event emitted during ingestion.
+         */
+        MurmurEvent: {
+            /** Seq */
+            seq: number;
+            /**
+             * Stepkey
+             * @enum {string}
+             */
+            stepKey: "pdfParsing" | "summarization" | "featureExtraction" | "knowledgeGraph" | "symbolExploration";
+            /**
+             * Type
+             * @enum {string}
+             */
+            type: "character" | "location" | "org" | "event" | "topic" | "symbol" | "raw";
+            /** Content */
+            content: string;
+            /** Meta */
+            meta?: {
+                [key: string]: unknown;
+            } | null;
+            /** Rawcontent */
+            rawContent?: string | null;
+        };
         /** NarrativeReviewRequest */
         NarrativeReviewRequest: {
             /**
@@ -2630,6 +3015,41 @@ export interface components {
              * @enum {string}
              */
             review_status: "approved" | "rejected";
+        };
+        /**
+         * NarrativeStructure
+         * @description Book-level narrative structure analysis result.
+         *
+         *     Aggregates Kernel/Satellite classification and Hero's Journey mapping.
+         *     Persisted via AnalysisCache with key: narrative_structure:{document_id}
+         */
+        NarrativeStructure: {
+            /** Id */
+            id?: string;
+            /** Document Id */
+            document_id: string;
+            /** Kernel Event Ids */
+            kernel_event_ids?: string[];
+            /** Satellite Event Ids */
+            satellite_event_ids?: string[];
+            /** Unclassified Event Ids */
+            unclassified_event_ids?: string[];
+            /**
+             * Classification Source
+             * @default summary_heuristic
+             * @enum {string}
+             */
+            classification_source: "summary_heuristic" | "llm_classified" | "human_verified";
+            /** Hero Journey Stages */
+            hero_journey_stages?: components["schemas"]["HeroJourneyStage"][];
+            /** Propp Functions */
+            propp_functions?: components["schemas"]["ProppFunctionRef"][];
+            /**
+             * Review Status
+             * @default pending
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "rejected";
         };
         /** NodeData */
         NodeData: {
@@ -2684,6 +3104,51 @@ export interface components {
             name: string;
             /** Type */
             type: string;
+        };
+        /** PipelineStatusResponse */
+        PipelineStatusResponse: {
+            /**
+             * Summarization
+             * @default pending
+             */
+            summarization: string;
+            /**
+             * Featureextraction
+             * @default pending
+             */
+            featureExtraction: string;
+            /**
+             * Knowledgegraph
+             * @default pending
+             */
+            knowledgeGraph: string;
+            /**
+             * Symboldiscovery
+             * @default pending
+             */
+            symbolDiscovery: string;
+        };
+        /**
+         * ProppFunctionRef
+         * @description Reference to a Propp narrative function mapped to an event.
+         *
+         *     Only populated when B-034 LLM refinement runs Propp analysis.
+         */
+        ProppFunctionRef: {
+            /**
+             * Function Id
+             * @description Propp function code, e.g. 'A' (villainy), 'D' (task)
+             */
+            function_id: string;
+            /** Function Name */
+            function_name: string;
+            /** Event Id */
+            event_id: string;
+            /**
+             * Confidence
+             * @default 0
+             */
+            confidence: number;
         };
         /** RefineNarrativeRequest */
         RefineNarrativeRequest: {
@@ -2746,6 +3211,58 @@ export interface components {
          * @enum {string}
          */
         RelationType: "family" | "friendship" | "romance" | "enemy" | "ally" | "subordinate" | "located_in" | "member_of" | "owns" | "other";
+        /** ReviewChapterInput */
+        ReviewChapterInput: {
+            /**
+             * Title
+             * @default
+             */
+            title: string;
+            /** Startparagraphindex */
+            startParagraphIndex: number;
+        };
+        /** ReviewChapterResponse */
+        ReviewChapterResponse: {
+            /** Chapteridx */
+            chapterIdx: number;
+            /** Title */
+            title?: string | null;
+            /** Paragraphs */
+            paragraphs: components["schemas"]["ReviewParagraphResponse"][];
+        };
+        /** ReviewDataResponse */
+        ReviewDataResponse: {
+            /** Chapters */
+            chapters: components["schemas"]["ReviewChapterResponse"][];
+        };
+        /** ReviewParagraphResponse */
+        ReviewParagraphResponse: {
+            /** Paragraphindex */
+            paragraphIndex: number;
+            /** Text */
+            text: string;
+            /**
+             * Role
+             * @default body
+             */
+            role: string;
+            /** Titlespan */
+            titleSpan?: number[] | null;
+            /** Sentences */
+            sentences: string[];
+        };
+        /** ReviewSubmitRequest */
+        ReviewSubmitRequest: {
+            /** Chapters */
+            chapters: components["schemas"]["ReviewChapterInput"][];
+            /**
+             * Roleoverrides
+             * @default {}
+             */
+            roleOverrides: {
+                [key: string]: string;
+            };
+        };
         /** RunInferenceRequest */
         RunInferenceRequest: {
             /**
@@ -2790,6 +3307,13 @@ export interface components {
              * @description Entity IDs mentioned in paragraphs where this imagery occurs
              */
             co_occurring_entity_ids?: string[];
+            /**
+             * Co Occurring Entity Counts
+             * @description Per-entity count of imagery occurrences whose paragraph mentions the entity. Used by the UI to display 'N co-occurrences' hints.
+             */
+            co_occurring_entity_counts?: {
+                [key: string]: number;
+            };
             /**
              * Co Occurring Event Ids
              * @description Event IDs occurring in chapters where this imagery appears
@@ -2855,6 +3379,12 @@ export interface components {
              * @default 10
              */
             topK: number;
+            /**
+             * Mode
+             * @default fulltext
+             * @enum {string}
+             */
+            mode: "semantic" | "fulltext";
         };
         /** SearchResult */
         SearchResult: {
@@ -2864,10 +3394,16 @@ export interface components {
             text: string;
             /** Score */
             score: number;
-            /** Metadata */
-            metadata: {
-                [key: string]: unknown;
-            };
+            metadata: components["schemas"]["SearchResultMetadata"];
+        };
+        /** SearchResultMetadata */
+        SearchResultMetadata: {
+            /** Documentid */
+            documentId: string;
+            /** Chapternumber */
+            chapterNumber: number;
+            /** Position */
+            position: number;
         };
         /** Segment */
         Segment: {
@@ -2883,6 +3419,35 @@ export interface components {
             entityId: string;
             /** Name */
             name: string;
+        };
+        /** SettingsInfoResponse */
+        SettingsInfoResponse: {
+            /** Appversion */
+            appVersion: string;
+            /** Appenv */
+            appEnv: string;
+            /** Primaryllmprovider */
+            primaryLlmProvider: string;
+            /** Primarymodel */
+            primaryModel: string;
+            /** Analysistemperature */
+            analysisTemperature: number;
+            /** Chatagenttemperature */
+            chatAgentTemperature: number;
+            /** Localllmmodel */
+            localLlmModel: string;
+            /** Databaseurl */
+            databaseUrl: string;
+            /** Analysiscachedbpath */
+            analysisCacheDbPath: string;
+            /** Qdrantlocalpath */
+            qdrantLocalPath: string;
+            /** Kgpersistencepath */
+            kgPersistencePath: string;
+            /** Frontendpackages */
+            frontendPackages: string[][];
+            /** Backendpackages */
+            backendPackages: string[][];
         };
         /** SubgraphResponse */
         SubgraphResponse: {
@@ -3016,6 +3581,8 @@ export interface components {
             co_occurring_terms: string[];
             /** Occurrence Id */
             occurrence_id: string;
+            /** Paragraph Id */
+            paragraph_id: string;
         };
         /** SynthesizeThemeRequest */
         SynthesizeThemeRequest: {
@@ -3031,6 +3598,26 @@ export interface components {
              * @default false
              */
             force: boolean;
+        };
+        /**
+         * TEUSummary
+         * @description Per-line TEU rollup used by the tension page evidence section.
+         */
+        TEUSummary: {
+            /** Id */
+            id: string;
+            /** Chapter */
+            chapter: number;
+            /** Intensity */
+            intensity: number;
+            /** Tension Description */
+            tension_description: string;
+            /** Evidence */
+            evidence?: string[];
+            /** Pole A Carriers */
+            pole_a_carriers?: string[];
+            /** Pole B Carriers */
+            pole_b_carriers?: string[];
         };
         /** TaskIdResponse */
         TaskIdResponse: {
@@ -3048,7 +3635,7 @@ export interface components {
              * Status
              * @enum {string}
              */
-            status: "pending" | "running" | "done" | "error";
+            status: "pending" | "running" | "done" | "error" | "awaiting_review";
             /**
              * Progress
              * @default 0
@@ -3071,6 +3658,17 @@ export interface components {
             } | null;
             /** Error */
             error?: string | null;
+            /** Kind */
+            kind?: string | null;
+            /** Title */
+            title?: string | null;
+            /** Createdat */
+            createdAt?: string | null;
+            /**
+             * Murmurevents
+             * @default []
+             */
+            murmurEvents: components["schemas"]["MurmurEvent"][];
         };
         /** TemporalAnalysisRequest */
         TemporalAnalysisRequest: {
@@ -3124,6 +3722,35 @@ export interface components {
             /** Confidence */
             confidence: number;
         };
+        /**
+         * TensionLineDetail
+         * @description A TensionLine with its constituent TEUs embedded for in-page review.
+         */
+        TensionLineDetail: {
+            /** Id */
+            id: string;
+            /** Document Id */
+            document_id: string;
+            /** Teu Ids */
+            teu_ids?: string[];
+            /** Canonical Pole A */
+            canonical_pole_a: string;
+            /** Canonical Pole B */
+            canonical_pole_b: string;
+            /** Intensity Summary */
+            intensity_summary: number;
+            /** Chapter Range */
+            chapter_range?: number[];
+            /** Thematic Note */
+            thematic_note?: string | null;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
+            /** Teus */
+            teus?: components["schemas"]["TEUSummary"][];
+        };
         /** TensionLineReviewRequest */
         TensionLineReviewRequest: {
             /** Document Id */
@@ -3137,6 +3764,30 @@ export interface components {
             canonical_pole_a?: string | null;
             /** Canonical Pole B */
             canonical_pole_b?: string | null;
+        };
+        /** TensionThemeResponse */
+        TensionThemeResponse: {
+            /** Id */
+            id: string;
+            /** Document Id */
+            document_id: string;
+            /** Tension Line Ids */
+            tension_line_ids?: string[];
+            /** Proposition */
+            proposition: string;
+            /** Frye Mythos */
+            frye_mythos?: string | null;
+            /** Booker Plot */
+            booker_plot?: string | null;
+            /** Assembled By */
+            assembled_by: string;
+            /** Assembled At */
+            assembled_at: string;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
         };
         /** TensionThemeReviewRequest */
         TensionThemeReviewRequest: {
@@ -3311,6 +3962,13 @@ export interface components {
             temporalRelations: components["schemas"]["TemporalRelationEntry"][];
             quality: components["schemas"]["TimelineQuality"];
         };
+        /** ToneSegmentResponse */
+        ToneSegmentResponse: {
+            /** Label */
+            label: string;
+            /** Value */
+            value: number;
+        };
         /** TopEntity */
         TopEntity: {
             /** Id */
@@ -3333,6 +3991,12 @@ export interface components {
              * @default 0
              */
             chapterCount: number;
+            /** Chapter */
+            chapter?: number | null;
+            /** Narrativemode */
+            narrativeMode?: string | null;
+            /** Importance */
+            importance?: string | null;
         };
         /** UnravelingManifest */
         UnravelingManifest: {
@@ -3374,6 +4038,10 @@ export interface components {
             lexicalDiversity: number;
             /** Paragraphsanalyzed */
             paragraphsAnalyzed: number;
+            /** Tonedistribution */
+            toneDistribution?: components["schemas"]["ToneSegmentResponse"][];
+            /** Sentencelengthhistogram */
+            sentenceLengthHistogram?: components["schemas"]["HistogramBucketResponse"][];
             /** Speechstyle */
             speechStyle: string;
             /** Distinctivepatterns */
@@ -3524,6 +4192,102 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rerun_pipeline_step_api_v1_books__book_id__rerun__step__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                step: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_review_data_api_v1_books__book_id__review_data_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDataResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    submit_review_api_v1_books__book_id__review_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSubmitRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {
@@ -3752,9 +4516,9 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody: {
+        requestBody?: {
             content: {
-                "application/json": components["schemas"]["ConfirmInferredRequest"];
+                "application/json": components["schemas"]["ConfirmInferredRequest"] | null;
             };
         };
         responses: {
@@ -4169,10 +4933,45 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AnalyzeTriggerRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    trigger_batch_entity_analysis_api_v1_books__book_id__entities_analyze_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -4266,7 +5065,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["AnalyzeTriggerRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -4539,9 +5342,75 @@ export interface operations {
             };
         };
     };
-    get_task_status_api_v1_tasks__task_id__status_get: {
+    get_chapter_distribution_api_v1_books__book_id__unraveling_chapter_distribution_get: {
         parameters: {
             query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ChapterDistribution"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tasks_api_v1_tasks_get: {
+        parameters: {
+            query?: {
+                /** @description Max recent terminal tasks to include */
+                recent_limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStatus"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_task_status_api_v1_tasks__task_id__status_get: {
+        parameters: {
+            query?: {
+                /** @description Return only murmur events with seq >= after */
+                after?: number;
+            };
             header?: never;
             path: {
                 task_id: string;
@@ -4558,6 +5427,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_task_api_v1_tasks__task_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -4918,7 +5816,7 @@ export interface operations {
             };
         };
     };
-    semantic_search_api_v1_search__post: {
+    search_api_v1_search__post: {
         parameters: {
             query?: never;
             header?: never;
@@ -4938,70 +5836,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResult"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ingest_document_api_v1_ingest__post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_ingest_document_api_v1_ingest__post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskStatus"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_ingest_status_api_v1_ingest__task_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                task_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskStatus"];
                 };
             };
             /** @description Validation Error */
@@ -5447,7 +6281,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown[];
+                    "application/json": components["schemas"]["KernelSpineEvent"][];
                 };
             };
             /** @description Validation Error */
@@ -5478,9 +6312,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["NarrativeStructure"];
                 };
             };
             /** @description Validation Error */
@@ -5515,9 +6347,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["NarrativeStructure"];
                 };
             };
             /** @description Validation Error */
@@ -5612,7 +6442,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown[];
+                    "application/json": components["schemas"]["TensionLineDetail"][];
                 };
             };
             /** @description Validation Error */
@@ -5808,9 +6638,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TensionThemeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6132,6 +6960,41 @@ export interface operations {
             };
         };
     };
+    get_faction_analysis_api_v1_books__book_id__analysis_factions_get: {
+        parameters: {
+            query?: {
+                chapter?: number | null;
+                resolution?: number;
+                min_cluster_size?: number;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FactionAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_kg_status_api_v1_kg_status_get: {
         parameters: {
             query?: never;
@@ -6245,6 +7108,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_settings_info_api_v1_settings_info_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SettingsInfoResponse"];
                 };
             };
         };

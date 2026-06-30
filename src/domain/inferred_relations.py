@@ -7,6 +7,8 @@ from typing import Optional
 
 from pydantic import BaseModel, Field
 
+from domain.relations import RelationType
+
 
 class InferenceStatus(str, Enum):
     PENDING = "pending"
@@ -20,6 +22,23 @@ class InferredRelationType(str, Enum):
     POTENTIAL_FRIENDSHIP = "potential_friendship"
     POTENTIAL_ASSOCIATE = "potential_associate"
     UNKNOWN = "unknown"
+
+
+# When the user adopts an inferred relation, this table promotes the speculative
+# type to its canonical counterpart. POTENTIAL_ASSOCIATE / UNKNOWN have no
+# semantic match in RelationType and fall back to OTHER.
+INFERRED_TO_CANONICAL: dict[InferredRelationType, RelationType] = {
+    InferredRelationType.POTENTIAL_ALLY: RelationType.ALLY,
+    InferredRelationType.POTENTIAL_ENEMY: RelationType.ENEMY,
+    InferredRelationType.POTENTIAL_FRIENDSHIP: RelationType.FRIENDSHIP,
+    InferredRelationType.POTENTIAL_ASSOCIATE: RelationType.OTHER,
+    InferredRelationType.UNKNOWN: RelationType.OTHER,
+}
+
+
+def promote_inferred_type(inferred: InferredRelationType) -> RelationType:
+    """Map an InferredRelationType to its canonical RelationType for adoption."""
+    return INFERRED_TO_CANONICAL[inferred]
 
 
 class InferredRelation(BaseModel):

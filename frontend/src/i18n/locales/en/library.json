@@ -25,5 +25,10 @@
     "triggerAnalysis": "Trigger Analysis",
     "viewProgress": "View Progress",
     "viewError": "View Error"
+  },
+  "processing": {
+    "awaitingReview": "Awaiting chapter review",
+    "reviewChapters": "Review chapters",
+    "viewProgress": "View progress"
   }
 }

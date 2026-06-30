@@ -21,18 +21,20 @@ from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException
 
-from api.deps import DocServiceDep, KGServiceDep, NarrativeServiceDep
-from services.query_models import TemporalCoverageStats
+from api.deps import NarrativeServiceDep
 from api.schemas.common import TaskStatus
 from api.schemas.narrative import (
     ClassifyNarrativeRequest,
     HeroJourneyRequest,
+    KernelSpineEvent,
     NarrativeReviewRequest,
     RefineNarrativeRequest,
     TemporalAnalysisRequest,
 )
 from api.store import get_task, task_store
 from api.ws_manager import manager
+from domain.narrative import NarrativeStructure
+from services.query_models import TemporalCoverageStats
 
 logger = logging.getLogger(__name__)
 
@@ -46,10 +48,10 @@ async def _run_classify(task_id: str, req: ClassifyNarrativeRequest, narrative_s
     task_store.set_running(task_id)
     await manager.push(
         task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "heuristic_classify", "result": None, "error": None},
+        {"task_id": task_id, "status": "running", "progress": 0, "stage": "eep_classify", "result": None, "error": None},
     )
     try:
-        structure = await narrative_service.classify_by_heuristic(
+        structure = await narrative_service.classify_from_eep(
             req.document_id,
             progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
@@ -126,7 +128,7 @@ async def classify_narrative(
     Returns 202 with ``task_id``. Poll ``GET /narrative/classify/{task_id}``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="narrative", title="敘事模式標註")
     background_tasks.add_task(_run_classify, task_id, req, narrative_service)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -154,7 +156,7 @@ async def refine_narrative(
     specific events. Requires heuristic classification to have run first.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="narrative", title="敘事模式校正")
     background_tasks.add_task(_run_refine, task_id, req, narrative_service)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -181,7 +183,7 @@ async def map_hero_journey(
     Returns 202 with ``task_id``. Poll ``GET /narrative/hero-journey/{task_id}``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="narrative", title="英雄旅程對應")
     background_tasks.add_task(_run_hero_journey, task_id, req, narrative_service)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -245,7 +247,7 @@ async def analyze_temporal(
     Returns 202 with ``task_id``. Poll ``GET /narrative/temporal/{task_id}``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="narrative", title="時序分析")
     background_tasks.add_task(_run_temporal, task_id, req, narrative_service)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -261,7 +263,7 @@ async def get_temporal_task(task_id: str) -> TaskStatus:
 # ── Sync queries ──────────────────────────────────────────────────────────────
 
 
-@router.get("/kernel-spine")
+@router.get("/kernel-spine", response_model=list[KernelSpineEvent])
 async def get_kernel_spine(
     book_id: str,
     narrative_service: NarrativeServiceDep,
@@ -288,7 +290,7 @@ async def get_kernel_spine(
     ]
 
 
-@router.get("")
+@router.get("", response_model=NarrativeStructure)
 async def get_narrative_structure(
     book_id: str,
     narrative_service: NarrativeServiceDep,
@@ -309,7 +311,7 @@ async def get_narrative_structure(
 # ── HITL Review ───────────────────────────────────────────────────────────────
 
 
-@router.patch("/{document_id}/review")
+@router.patch("/{document_id}/review", response_model=NarrativeStructure)
 async def review_narrative_structure(
     document_id: str,
     req: NarrativeReviewRequest,

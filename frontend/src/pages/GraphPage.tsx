@@ -1,29 +1,43 @@
-import { useState, useMemo, useCallback, useEffect } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
-import { toCytoscapeElements } from '@/lib/graphTransform';
-import { GraphCanvas } from '@/components/graph/GraphCanvas';
-import { GraphToolbar, type AnimationMode } from '@/components/graph/GraphToolbar';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { toCytoscapeElements, toClusteredCytoscapeElements } from '@/lib/graphTransform';
+import { byCommunity, byType, isSuperNodeId } from '@/services/kgClustering';
+import { fetchFactionAnalysis } from '@/api/factions';
+import { GraphCanvas, type GraphCanvasHandle, type ViewportSnapshot } from '@/components/graph/GraphCanvas';
+import { GraphToolbar, type AnimationMode, type ClusterMode } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
 import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
-import { TimelineControls, type TimelineState } from '@/components/graph/TimelineControls';
-import { EpistemicOverlay } from '@/components/graph/EpistemicOverlay';
+import { LensCard, type TimelineState } from '@/components/graph/LensCard';
+import { LegendCard } from '@/components/graph/LegendCard';
+import { MiniMap } from '@/components/graph/MiniMap';
+import { SearchDropdown } from '@/components/graph/SearchDropdown';
+import { ClusterOverviewPanel, type FactionSettings } from '@/components/graph/ClusterOverviewPanel';
+import { FactionCanvas, layoutFactions } from '@/components/graph/FactionCanvas';
+import { BreadcrumbBar } from '@/components/graph/BreadcrumbBar';
+import { EntityComparePanel } from '@/components/graph/EntityComparePanel';
+import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
 import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
+import { fetchChapters } from '@/api/chapters';
 import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
-import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
 import { runInference } from '@/api/graph';
-import type { GraphNode, EntityChunkItem } from '@/api/types';
+import type { EntityType, GraphNode, EntityChunkItem } from '@/api/types';
 
-const ALL_TYPES = new Set(['character', 'location', 'concept', 'event']);
+const readCssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+const ALL_TYPES = new Set<string>(['character', 'location', 'concept', 'event', 'organization', 'object', 'other']);
+const MULTI_SELECT_CAP = 2;
 
 type RightPanel = 'analysis' | 'paragraphs' | null;
 
@@ -37,64 +51,135 @@ export default function GraphPage() {
   const [searchParams] = useSearchParams();
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
-  const { t: tStats } = useTranslation('graph');
+  const { t, t: tStats } = useTranslation('graph');
+  const queryClient = useQueryClient();
+  const { theme } = useTheme();
+
   const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
   const [animationMode, setAnimationMode] = useState<AnimationMode>('fade');
   const [showInferred, setShowInferred] = useState(false);
   const [selectedInferredId, setSelectedInferredId] = useState<string | null>(null);
-  const queryClient = useQueryClient();
+  const [inferredReviewOpen, setInferredReviewOpen] = useState(false);
+  const [clusterMode, setClusterMode] = useLocalStorage<ClusterMode>(
+    `graph:${bookId ?? '-'}:clusterMode`,
+    'node',
+  );
+  const [clusterDrillIn, setClusterDrillIn] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [visibleTypes, setVisibleTypes] = useState<Set<string>>(new Set(ALL_TYPES));
+  const [rightPanel, setRightPanel] = useState<RightPanel>(null);
+  const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
+  const [bookmarkedIds, setBookmarkedIds] = useLocalStorage<string[]>(
+    `graph:${bookId ?? '-'}:bookmarks`,
+    [],
+  );
+  const [viewportSnap, setViewportSnap] = useState<ViewportSnapshot | null>(null);
+
+  const canvasRef = useRef<GraphCanvasHandle>(null);
+
   const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined, showInferred);
 
+  const { data: chapters } = useQuery({
+    queryKey: ['books', bookId, 'chapters'],
+    queryFn: () => fetchChapters(bookId!),
+    enabled: !!bookId,
+  });
+
+  // Safe default: only score new entity pairs; preserves any existing
+  // adopted/rejected decisions. The InferredEdgePanel exposes a separate
+  // affordance for the destructive force_refresh=true path.
   const inferMutation = useMutation({
-    mutationFn: () => runInference(bookId!, true),
+    mutationFn: () => runInference(bookId!),
     onSuccess: () => {
       setShowInferred(true);
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
     },
   });
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [visibleTypes, setVisibleTypes] = useState(new Set(ALL_TYPES));
-  const [rightPanel, setRightPanel] = useState<RightPanel>(null);
-  const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
 
-  const handleEdgeTap = useCallback((_edgeId: string, inferredId: string | null) => {
-    if (inferredId) setSelectedInferredId(inferredId);
-  }, []);
+  const inferredCount = useMemo(
+    () => data?.edges.filter((e) => e.inferred).length ?? 0,
+    [data],
+  );
 
-  // Auto-select entity from query param (e.g. navigating from analysis page)
-  useEffect(() => {
-    if (!data) return;
-    const entityId = searchParams.get('entity');
-    if (entityId) setSelectedNodeId(entityId);
-  }, [data, searchParams]);
+  // Faction detection params. `draft` is bound to UI sliders; `applied` is
+  // what the query actually uses — pressing "Recompute" promotes draft→applied,
+  // avoiding a refetch on every slider tick.
+  const [factionDraft, setFactionDraft] = useState<FactionSettings>({
+    resolution: 1.0,
+    minClusterSize: 2,
+  });
+  const [factionApplied, setFactionApplied] = useState<FactionSettings>({
+    resolution: 1.0,
+    minClusterSize: 2,
+  });
 
-  const handleTypeToggle = (type: string) => {
-    setVisibleTypes((prev) => {
-      const next = new Set(prev);
-      if (next.has(type)) next.delete(type);
-      else next.add(type);
-      return next;
-    });
-  };
+  // Faction analysis — only fetched when community mode is active.
+  const { data: factionData, isFetching: isFactionFetching } = useQuery({
+    queryKey: [
+      'books',
+      bookId,
+      'analysis',
+      'factions',
+      factionApplied.resolution,
+      factionApplied.minClusterSize,
+    ],
+    queryFn: () =>
+      fetchFactionAnalysis(bookId!, {
+        resolution: factionApplied.resolution,
+        minClusterSize: factionApplied.minClusterSize,
+      }),
+    enabled: !!bookId && clusterMode === 'community',
+    staleTime: 5 * 60 * 1000,
+  });
 
-  const handleReset = () => {
-    setSearchQuery('');
-    setVisibleTypes(new Set(ALL_TYPES));
-    setSelectedNodeId(null);
-    setRightPanel(null);
-  };
+  // Cluster transform — picks up 'type' or 'community' grouping.
+  const clusteredGraph = useMemo(() => {
+    if (clusterMode === 'node' || !data) return null;
+    if (clusterMode === 'type') return byType(data);
+    if (clusterMode === 'community' && factionData) return byCommunity(data, factionData);
+    return null;
+  }, [clusterMode, data, factionData]);
 
-  const handleNodeTap = useCallback((nodeId: string) => {
-    setSelectedNodeId(nodeId);
-    setRightPanel(null);
-  }, []);
+  // Faction positions for the bottom-right mini-map (community mode).
+  // Mirrors FactionCanvas's layout so the mini-map and main canvas stay aligned.
+  const factionMiniMap = useMemo(() => {
+    if (!factionData?.factions?.length) {
+      return { nodes: [] as { id: string; x: number; y: number; type: string }[], edges: [] as { source: string; target: string }[] };
+    }
+    const positions = layoutFactions(factionData.factions, null);
+    const nodes = factionData.factions
+      .map((f) => {
+        const p = positions.get(f.id);
+        if (!p) return null;
+        return { id: f.id, x: p.x, y: p.y, type: 'character' };
+      })
+      .filter((n): n is { id: string; x: number; y: number; type: string } => n !== null);
+    const edges = (factionData.relations ?? []).map((r) => ({
+      source: r.sourceFactionId,
+      target: r.targetFactionId,
+    }));
+    return { nodes, edges };
+  }, [factionData]);
+  const factionMiniMapNodes = factionMiniMap.nodes;
+  const factionMiniMapEdges = factionMiniMap.edges;
 
   const elements = useMemo(() => {
     if (!data) return [];
+    if (clusteredGraph) {
+      // 2-line label: cluster name on top, "{count} 個節點" sublabel below
+      // (rendered via text-wrap: wrap in cytoscapeConfig).
+      return toClusteredCytoscapeElements(clusteredGraph, (type, count) => {
+        const sn = clusteredGraph.superNodes.find((s) => s.clusterType === type);
+        const title = sn?.label ?? t(`entityTypes.${type}`);
+        return `${title}\n${t('v1.cluster.members', { n: count })}`;
+      });
+    }
     return toCytoscapeElements(data);
-  }, [data]);
+  }, [data, clusteredGraph, t]);
 
   const filteredElements = useMemo(() => {
     const lowerQ = searchQuery.toLowerCase();
@@ -102,39 +187,128 @@ export default function GraphPage() {
       elements
         .filter((el) => {
           if (el.group !== 'nodes') return false;
-          if (!visibleTypes.has(String(el.data.entityType ?? ''))) return false;
+          if (el.data.cluster) return true; // cluster super-nodes always visible
+          const type = String(el.data.entityType ?? '');
+          if (!visibleTypes.has(type)) return false;
           if (lowerQ && !String(el.data.label ?? '').toLowerCase().includes(lowerQ)) return false;
           return true;
         })
-        .map((el) => el.data.id),
+        .map((el) => el.data.id as string),
     );
     return elements.filter((el) => {
       if (el.group === 'edges') {
-        return visibleNodeIds.has(el.data.source) && visibleNodeIds.has(el.data.target);
+        return visibleNodeIds.has(el.data.source as string) && visibleNodeIds.has(el.data.target as string);
       }
-      return visibleNodeIds.has(el.data.id);
+      return visibleNodeIds.has(el.data.id as string);
     });
   }, [elements, searchQuery, visibleTypes]);
 
-  // Epistemic dim: grey out nodes the selected character doesn't know about
+  // Epistemic dim: greying selected character's unknown nodes
   const epistemicStylesheet = useMemo(() => {
     if (unknownEntityIds.size === 0) return [];
+    const dimBg = readCssVar('--bg-tertiary');
+    const dimFg = readCssVar('--fg-muted');
     return Array.from(unknownEntityIds).map((id) => ({
       selector: `node[id = "${id}"]`,
       style: {
-        'background-color': '#e5e7eb',
-        'border-color': '#9ca3af',
+        'background-color': dimBg,
+        'border-color': dimFg,
         'border-style': 'dashed',
         'border-width': 2,
-        color: '#9ca3af',
+        color: dimFg,
       } as Record<string, unknown>,
     }));
-  }, [unknownEntityIds]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars (getComputedStyle reads the live data-theme) when the theme switches
+  }, [unknownEntityIds, theme]);
+
+  // Auto-select entity from query param
+  useEffect(() => {
+    if (!data) return;
+    const entityId = searchParams.get('entity');
+    if (entityId) setSelectedNodeId(entityId);
+  }, [data, searchParams]);
+
+  // Multi-select changes → clear single selection mode
+  const handleNodeTap = useCallback(
+    (nodeId: string, mods: { shift: boolean }) => {
+      // Cluster super-node click → drill-in instead of single select
+      if (isSuperNodeId(nodeId)) {
+        if (clusteredGraph) {
+          const sn = clusteredGraph.superNodes.find((s) => s.id === nodeId);
+          if (sn) setClusterDrillIn(sn.clusterType);
+        }
+        return;
+      }
+      if (mods.shift) {
+        setSelectedNodeIds((prev) => {
+          const next = prev.includes(nodeId) ? prev.filter((x) => x !== nodeId) : [...prev, nodeId];
+          if (next.length > MULTI_SELECT_CAP) next.shift();
+          return next;
+        });
+        setSelectedNodeId(null);
+        setRightPanel(null);
+      } else {
+        setSelectedNodeIds([]);
+        setSelectedNodeId(nodeId);
+        setRightPanel(null);
+      }
+    },
+    [clusteredGraph],
+  );
+
+  const handleEdgeTap = useCallback((_edgeId: string, inferredId: string | null) => {
+    if (inferredId) {
+      setSelectedInferredId(inferredId);
+      setInferredReviewOpen(true);
+    }
+  }, []);
+
+  const handleTypeToggle = useCallback((type: EntityType) => {
+    setVisibleTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }, []);
+
+  const handleReset = useCallback(() => {
+    setSearchQuery('');
+    setSearchOpen(false);
+    setVisibleTypes(new Set(ALL_TYPES));
+    setSelectedNodeId(null);
+    setSelectedNodeIds([]);
+    setRightPanel(null);
+    setClusterDrillIn(null);
+  }, []);
+
+  const handleViewportChange = useCallback((snap: ViewportSnapshot) => {
+    setViewportSnap(snap);
+  }, []);
+
+  const handleBookmarkRemove = useCallback(
+    (id: string) => setBookmarkedIds((prev) => prev.filter((x) => x !== id)),
+    [setBookmarkedIds],
+  );
+
+  const handleBookmarkAdd = useCallback(
+    (id: string) =>
+      setBookmarkedIds((prev) => (prev.includes(id) ? prev : [...prev, id])),
+    [setBookmarkedIds],
+  );
 
   const selectedNode: GraphNode | null = useMemo(() => {
     if (!selectedNodeId || !data) return null;
     return data.nodes.find((n) => n.id === selectedNodeId) ?? null;
   }, [selectedNodeId, data]);
+
+  const compareNodes = useMemo<[GraphNode, GraphNode] | null>(() => {
+    if (selectedNodeIds.length !== 2 || !data) return null;
+    const a = data.nodes.find((n) => n.id === selectedNodeIds[0]);
+    const b = data.nodes.find((n) => n.id === selectedNodeIds[1]);
+    if (!a || !b) return null;
+    return [a, b];
+  }, [selectedNodeIds, data]);
 
   useEffect(() => {
     setPageContext({ page: 'graph', bookId, bookTitle: book?.title });
@@ -142,119 +316,377 @@ export default function GraphPage() {
 
   useEffect(() => {
     if (selectedNode) {
-      setPageContext({ selectedEntity: { id: selectedNode.id, name: selectedNode.name, type: selectedNode.type } });
+      setPageContext({
+        selectedEntity: { id: selectedNode.id, name: selectedNode.name, type: selectedNode.type },
+      });
     } else {
       setPageContext({ selectedEntity: undefined });
     }
   }, [selectedNode, setPageContext]);
+
+  // Breadcrumb items for drill-in
+  const breadcrumbItems = useMemo(() => {
+    if (clusterMode === 'node') return [];
+    const modeLabelKey =
+      clusterMode === 'community' ? 'v1.cluster.mode.community' : 'v1.cluster.mode.type';
+    const items = [
+      { label: t('toolbar.graphRoot', '知識圖譜'), onClick: () => { setClusterMode('node'); setClusterDrillIn(null); } },
+      { label: t(modeLabelKey), onClick: clusterDrillIn ? () => setClusterDrillIn(null) : undefined },
+    ];
+    if (clusterDrillIn) {
+      const sn = clusteredGraph?.superNodes.find((s) => s.clusterType === clusterDrillIn);
+      const drillLabel = sn?.label ?? t(`entityTypes.${clusterDrillIn}`);
+      items.push({ label: drillLabel, onClick: undefined });
+    }
+    return items;
+  }, [clusterMode, clusterDrillIn, clusteredGraph, t, setClusterMode]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;
 
   const nodeCount = data?.nodes.length ?? 0;
   const edgeCount = data?.edges.length ?? 0;
-  const rightPanelWidth = rightPanel ? RIGHT_PANEL_WIDTH[rightPanel] : 0;
-  const entityPanelWidth = 260;
-  const statsRight = selectedNode
-    ? rightPanel
-      ? rightPanelWidth + entityPanelWidth + 16
-      : entityPanelWidth + 16
-    : 16;
+
+  // Decide right panel rendering
+  const showCompare = !!compareNodes;
+  const showInferredReview = !showCompare && (inferredReviewOpen || !!selectedInferredId);
+  const showClusterOverview =
+    !showCompare &&
+    !showInferredReview &&
+    (clusterMode === 'type' || clusterMode === 'community') &&
+    !selectedNode;
+  const showEntityDetail = !showCompare && !showInferredReview && !showClusterOverview && !!selectedNode;
+  const rightOpen = showCompare || showInferredReview || showClusterOverview || showEntityDetail || !!rightPanel;
+  const rightPanelExtraWidth = rightPanel ? RIGHT_PANEL_WIDTH[rightPanel] : 0;
+  // Shared right-anchor for the bottom-right widget column (mini-map / stats / zoom).
+  const bottomRightAnchor = rightOpen ? 16 + 280 + rightPanelExtraWidth : 16;
+
+  const isCommunityMode = clusterMode === 'community';
 
   return (
     <div className="relative h-full w-full">
-      {/* Graph canvas — fills entire area, never resizes */}
-      <GraphCanvas
-        elements={filteredElements}
-        onNodeTap={handleNodeTap}
-        onEdgeTap={handleEdgeTap}
-        selectedNodeId={selectedNodeId}
-        animationMode={animationMode}
-        extraStylesheet={epistemicStylesheet}
-      />
+      {isCommunityMode && factionData ? (
+        <FactionCanvas
+          analysis={factionData}
+          graphNodes={data?.nodes ?? []}
+          drillInFactionId={clusterDrillIn}
+          onSuperNodeClick={(factionId) => setClusterDrillIn(factionId)}
+          onMemberClick={(id) => {
+            setSelectedNodeId(id);
+            setClusterMode('node');
+            setClusterDrillIn(null);
+          }}
+          onExitDrillIn={() => setClusterDrillIn(null)}
+        />
+      ) : (
+        <GraphCanvas
+          ref={canvasRef}
+          elements={filteredElements}
+          onNodeTap={handleNodeTap}
+          onEdgeTap={handleEdgeTap}
+          selectedNodeId={selectedNodeId}
+          selectedNodeIds={selectedNodeIds}
+          animationMode={animationMode}
+          extraStylesheet={epistemicStylesheet}
+          onViewportChange={handleViewportChange}
+        />
+      )}
 
-      {/* Floating toolbar (top-left) */}
+      {/* Toolbar (top-left) */}
       <GraphToolbar
         searchQuery={searchQuery}
-        onSearchChange={setSearchQuery}
+        onSearchChange={(q) => {
+          setSearchQuery(q);
+          setSearchOpen(q.length > 0);
+        }}
+        onSearchFocus={() => searchQuery.length > 0 && setSearchOpen(true)}
+        onReset={handleReset}
         visibleTypes={visibleTypes}
         onTypeToggle={handleTypeToggle}
-        onReset={handleReset}
+        clusterMode={clusterMode}
+        onClusterModeChange={(m) => {
+          setClusterMode(m);
+          setClusterDrillIn(null);
+          setSelectedNodeId(null);
+          setSelectedNodeIds([]);
+        }}
         animationMode={animationMode}
         onAnimationModeChange={setAnimationMode}
         showInferred={showInferred}
+        inferredCount={inferredCount}
         onShowInferredChange={(v) => {
           setShowInferred(v);
+          setInferredReviewOpen(v);
           if (!v) setSelectedInferredId(null);
         }}
         onRunInference={() => inferMutation.mutate()}
         isRunningInference={inferMutation.isPending}
-        hasInferredData={inferMutation.data !== undefined}
+        hasInferredData={inferMutation.data !== undefined || inferredCount > 0}
       />
 
-      {/* Inferred edge detail panel */}
-      {selectedInferredId && bookId && (
-        <InferredEdgePanel
-          bookId={bookId}
-          inferredId={selectedInferredId}
-          onClose={() => setSelectedInferredId(null)}
-          onConfirmed={() => setSelectedInferredId(null)}
-          onRejected={() => setSelectedInferredId(null)}
+      {/* Search dropdown (Scenario D) */}
+      <SearchDropdown
+        query={searchQuery}
+        entities={data?.nodes ?? []}
+        chapters={chapters ?? []}
+        open={searchOpen}
+        onClose={() => setSearchOpen(false)}
+        onSelectEntity={(id) => {
+          setSelectedNodeId(id);
+          setSelectedNodeIds([]);
+          setSearchOpen(false);
+          setSearchQuery('');
+        }}
+        onSelectChapter={() => {
+          setSearchOpen(false);
+        }}
+      />
+
+      {/* Breadcrumb (Scenario C) */}
+      <BreadcrumbBar items={breadcrumbItems} />
+
+      {/* Legend (top-right) — shifts left when right panel is open */}
+      <div
+        className="absolute z-10"
+        style={{
+          top: 16,
+          right: bottomRightAnchor,
+          transition: 'right var(--transition-normal, 250ms) ease',
+        }}
+      >
+        <LegendCard
+          graph={data}
+          visibleTypes={visibleTypes}
+          onTypeToggle={handleTypeToggle}
+          inferredCount={inferredCount}
+          inferredVisible={showInferred}
+          onInferredToggle={() => {
+            const v = !showInferred;
+            setShowInferred(v);
+            setInferredReviewOpen(v);
+          }}
         />
-      )}
+      </div>
 
-      {/* Timeline snapshot controls (bottom-left, above zoom) */}
+      {/* Lens card (bottom-left) — consolidates timeline / epistemic / bookmarks */}
       {bookId && (
-        <TimelineControls bookId={bookId} onChange={setTimelineState} />
-      )}
-
-      {/* Epistemic overlay — character perspective (above TimelineControls) */}
-      {bookId && data && (
-        <EpistemicOverlay
+        <LensCard
           bookId={bookId}
-          nodes={data.nodes}
-          timelineChapter={timelineState?.mode === 'chapter' ? timelineState.position : null}
+          nodes={data?.nodes ?? []}
+          bookmarkedIds={bookmarkedIds}
+          onBookmarkRemove={handleBookmarkRemove}
+          onBookmarkClick={(id) => {
+            setSelectedNodeId(id);
+            setSelectedNodeIds([]);
+          }}
+          onTimelineChange={setTimelineState}
           onUnknownEntityIds={setUnknownEntityIds}
         />
       )}
 
-      {/* Zoom controls (bottom-right) */}
-      <div className="absolute bottom-4 right-4 flex flex-col gap-1 z-10">
-        <button
-          className="w-8 h-8 rounded-md flex items-center justify-center"
-          style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
+      {/* Mini-map (bottom-right) — same slot for all modes */}
+      {isCommunityMode && factionData ? (
+        <div
+          className="absolute z-10"
+          style={{
+            bottom: 16,
+            right: bottomRightAnchor,
+            transition: 'right var(--transition-normal, 250ms) ease',
+          }}
         >
-          <Plus size={14} />
-        </button>
-        <button
-          className="w-8 h-8 rounded-md flex items-center justify-center"
-          style={{ backgroundColor: 'white', border: '1px solid var(--border)' }}
-        >
-          <Minus size={14} />
-        </button>
-      </div>
+          <MiniMap
+            nodes={factionMiniMapNodes}
+            edges={factionMiniMapEdges}
+            viewport={null}
+            onRecenter={() => {}}
+          />
+        </div>
+      ) : (
+        viewportSnap && (
+          <div
+            className="absolute z-10"
+            style={{
+              bottom: 16,
+              right: bottomRightAnchor,
+              transition: 'right var(--transition-normal, 250ms) ease',
+            }}
+          >
+            <MiniMap
+              nodes={viewportSnap.nodes}
+              edges={viewportSnap.edges}
+              viewport={viewportSnap.viewport}
+              onRecenter={(gx, gy) => canvasRef.current?.centerOn(gx, gy)}
+              onPanByGraph={(dx, dy) => canvasRef.current?.panByGraph(dx, dy)}
+            />
+          </div>
+        )
+      )}
 
-      {/* Stats (bottom-right) */}
+      {/* Stats — card just above the mini-map (same slot for all modes) */}
       <div
-        className="absolute bottom-4 text-xs px-2 py-1 rounded z-10"
+        className="absolute z-10 flex items-center"
         style={{
-          right: statsRight,
-          backgroundColor: 'white',
-          border: '1px solid var(--border)',
+          bottom: 144,
+          right: bottomRightAnchor,
+          gap: 8,
+          padding: '4px 10px',
+          fontSize: 'var(--font-size-2xs)',
           color: 'var(--fg-muted)',
-          transition: 'right 200ms ease',
+          backgroundColor: 'var(--bg-primary)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
+          transition: 'right var(--transition-normal, 250ms) ease',
         }}
       >
-        {tStats('stats', { nodes: nodeCount, edges: edgeCount })}
+        {isCommunityMode && factionData ? (
+          <>
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>
+                {factionData.factions?.length ?? 0}
+              </strong>{' '}
+              {tStats('statsFactionLabel')}
+            </span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>
+                {factionData.relations?.length ?? 0}
+              </strong>{' '}
+              {tStats('statsAggregatedEdgeLabel')}
+            </span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>
+                {nodeCount}
+              </strong>{' '}
+              {tStats('statsUnderlyingNodeLabel')}
+            </span>
+          </>
+        ) : (
+          <>
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{nodeCount}</strong>{' '}
+              {tStats('statsNodeLabel')}
+            </span>
+            <span style={{ opacity: 0.4 }}>·</span>
+            <span>
+              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{edgeCount}</strong>{' '}
+              {tStats('statsEdgeLabel')}
+            </span>
+            {inferredCount > 0 && (
+              <>
+                <span style={{ opacity: 0.4 }}>·</span>
+                <span style={{ color: 'var(--accent)' }}>
+                  {tStats('statsInferred', { n: inferredCount })}
+                </span>
+              </>
+            )}
+          </>
+        )}
       </div>
 
-      {/* Entity detail panel — slides left when right panel is open */}
-      {selectedNode && bookId && (
+      {/* Zoom controls (above stats) */}
+      <div
+        className="absolute z-10 flex flex-col"
+        style={{
+          bottom: 176,
+          right: bottomRightAnchor,
+          transition: 'right var(--transition-normal, 250ms) ease',
+        }}
+      >
+        <button
+          className="flex items-center justify-center"
+          style={{
+            width: 26,
+            height: 26,
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
+            color: 'var(--fg-secondary)',
+          }}
+          aria-label="Zoom in"
+        >
+          <Plus size={12} />
+        </button>
+        <button
+          className="flex items-center justify-center"
+          style={{
+            width: 26,
+            height: 26,
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            borderTop: 'none',
+            borderRadius: '0 0 var(--radius-md) var(--radius-md)',
+            color: 'var(--fg-secondary)',
+          }}
+          aria-label="Zoom out"
+        >
+          <Minus size={12} />
+        </button>
+      </div>
+
+      {/* Right-side panels — priority: compare > inferred review > cluster overview > entity */}
+      {showCompare && compareNodes && bookId && (
+        <EntityComparePanel
+          bookId={bookId}
+          a={compareNodes[0]}
+          b={compareNodes[1]}
+          onClose={() => setSelectedNodeIds([])}
+        />
+      )}
+
+      {showInferredReview && bookId && (
+        <InferredEdgePanel
+          bookId={bookId}
+          focusInferredId={selectedInferredId}
+          onClose={() => {
+            setInferredReviewOpen(false);
+            setSelectedInferredId(null);
+          }}
+        />
+      )}
+
+      {showClusterOverview && clusteredGraph && bookId && (
+        <div
+          className="absolute top-0 right-0 h-full z-20"
+          style={{
+            width: 280,
+            backgroundColor: 'var(--bg-primary)',
+            borderLeft: '1px solid var(--border)',
+          }}
+        >
+          <ClusterOverviewPanel
+            clustered={clusteredGraph}
+            graphNodes={data?.nodes ?? []}
+            drillInType={clusterDrillIn}
+            factionAnalysis={isCommunityMode ? factionData ?? null : null}
+            factionSettings={isCommunityMode ? factionDraft : undefined}
+            onFactionSettingsChange={isCommunityMode ? setFactionDraft : undefined}
+            onFactionRecompute={
+              isCommunityMode ? () => setFactionApplied(factionDraft) : undefined
+            }
+            isRecomputing={isCommunityMode && isFactionFetching}
+            onClose={() => {
+              setClusterMode('node');
+              setClusterDrillIn(null);
+            }}
+            onDrillIn={(type) => setClusterDrillIn(type)}
+            onExitDrillIn={() => setClusterDrillIn(null)}
+            onMemberSelect={(id) => {
+              setSelectedNodeId(id);
+              setClusterMode('node');
+              setClusterDrillIn(null);
+            }}
+          />
+        </div>
+      )}
+
+      {showEntityDetail && selectedNode && bookId && (
         <div
           className="absolute top-0 h-full z-20"
           style={{
-            right: rightPanelWidth,
-            transition: 'right 200ms ease',
+            right: rightPanelExtraWidth,
+            transition: 'right var(--transition-normal, 250ms) ease',
           }}
         >
           {selectedNode.type === 'event' ? (
@@ -273,6 +705,12 @@ export default function GraphPage() {
               key={selectedNode.id}
               node={selectedNode}
               bookId={bookId}
+              isBookmarked={bookmarkedIds.includes(selectedNode.id)}
+              onBookmarkToggle={() =>
+                bookmarkedIds.includes(selectedNode.id)
+                  ? handleBookmarkRemove(selectedNode.id)
+                  : handleBookmarkAdd(selectedNode.id)
+              }
               onClose={() => {
                 setSelectedNodeId(null);
                 setRightPanel(null);
@@ -284,7 +722,7 @@ export default function GraphPage() {
         </div>
       )}
 
-      {/* Right detail panel — analysis or paragraphs */}
+      {/* Secondary detail layer (analysis / paragraphs) */}
       {rightPanel && selectedNode && bookId && (
         <div
           className="absolute top-0 right-0 h-full z-20"
@@ -336,7 +774,30 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
     : undefined;
 
   const isLoading = isEvent ? eventLoading : entityLoading;
-  const content = isEvent ? eventAnalysis?.content : entityAnalysis?.content;
+
+  // Build displayable markdown content from the appropriate analysis shape.
+  // Events return AnalysisItem (has .content); entities return CharacterAnalysisDetail
+  // (has .profileSummary + .archetypes + .arc — no .content field).
+  let content: string | undefined;
+  if (isEvent) {
+    content = eventAnalysis?.content;
+  } else if (entityAnalysis) {
+    const parts: string[] = [];
+    if (entityAnalysis.profileSummary) parts.push(entityAnalysis.profileSummary);
+    if (entityAnalysis.archetypes?.length) {
+      const arcLines = entityAnalysis.archetypes
+        .map((a) => `**${a.framework}**: ${a.primary}${a.secondary ? ` / ${a.secondary}` : ''}`)
+        .join('\n');
+      parts.push(`\n**原型**\n${arcLines}`);
+    }
+    if (entityAnalysis.arc?.length) {
+      const arcSegLines = entityAnalysis.arc
+        .map((s) => `- **${s.phase}**（${s.chapterRange}）${s.description}`)
+        .join('\n');
+      parts.push(`\n**發展弧線**\n${arcSegLines}`);
+    }
+    content = parts.join('\n\n') || undefined;
+  }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -376,7 +837,6 @@ function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: Grap
     queryFn: () => fetchEntityChunks(bookId, node.id),
   });
 
-  // Group chunks by chapter
   const grouped = useMemo(() => {
     if (!data?.chunks) return [];
     const map = new Map<number, { chapterId: string; title: string | undefined; chunks: EntityChunkItem[] }>();

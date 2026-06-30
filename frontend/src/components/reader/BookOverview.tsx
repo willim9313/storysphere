@@ -2,6 +2,7 @@ import { FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/library/StatusBadge';
 import { KeywordTags } from './KeywordTags';
+import { PipelineRerunPanel } from './PipelineRerunPanel';
 import type { BookDetail, EntityType } from '@/api/types';
 
 const entityTypeCls: Record<EntityType, string> = {
@@ -77,6 +78,11 @@ export function BookOverview({ book }: { book: BookDetail }) {
           </div>
         ))}
       </div>
+
+      {/* Pipeline rerun */}
+      {book.pipelineStatus && (
+        <PipelineRerunPanel bookId={book.id} pipelineStatus={book.pipelineStatus} />
+      )}
 
       {/* Book keywords */}
       {book.keywords && Object.keys(book.keywords).length > 0 && (

@@ -1,0 +1,38 @@
+{
+  "title": "Cross-book Search",
+  "subtitle": "Start with a concept, emotion, or question — find relevant passages across all books in your library.",
+  "placeholder": "Describe an emotion or scene, e.g. the protagonist's moment of doubt…",
+  "submit": "Search",
+  "scopeAll": "All books",
+  "scopeLabel": "Scope:",
+  "sortByRelevance": "By relevance",
+  "comingSoon": "Coming soon",
+  "tabs": {
+    "paragraph": "Passages",
+    "character": "Characters",
+    "archetype": "Archetypes"
+  },
+  "summary": {
+    "found": "Found <strong>{{count}}</strong> passages from <strong>{{books}}</strong> books",
+    "more": "+{{count}} more"
+  },
+  "result": {
+    "relevance": "Relevance",
+    "mentions": "Mentions: ",
+    "goToReader": "Go to reader",
+    "goToBook": "Go to book",
+    "chapterPos": "Ch.{{chapter}} · §{{position}}"
+  },
+  "empty": {
+    "noResults": "No passages found",
+    "noResultsHint": "Try rephrasing your query or describing the emotion or scene differently.",
+    "noBooks": "No books in library",
+    "noBooksHint": "Upload a novel to start cross-book search.",
+    "uploadNow": "Upload now"
+  },
+  "loading": "Searching…",
+  "mode": {
+    "fulltext": "Keyword",
+    "semantic": "Semantic"
+  }
+}

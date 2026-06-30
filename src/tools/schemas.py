@@ -159,10 +159,6 @@ class AnalyzeCharacterInput(BaseModel):
         default="",
         description="Document ID to scope analysis to. If empty, uses default.",
     )
-    archetype_frameworks: list[str] = Field(
-        default_factory=lambda: ["jung"],
-        description="Archetype frameworks to classify: 'jung', 'schmidt'.",
-    )
     language: str = Field(
         default="en",
         description="Language for archetype configs: 'en' or 'zh'.",

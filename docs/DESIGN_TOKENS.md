@@ -53,6 +53,9 @@
 |-------|---------|-----------|-------------|------|
 | `--border` | `#e0d4c4` | `#333333` | `#000000` | `#000000` |
 | `--accent` | `#8b5e3c` | `#000000` | `#000000` | `#000000` |
+| `--accent-fg` | `#ffffff` | `#ffffff` | `#ffffff` | `#ffffff` |
+
+> `--accent-fg` 為置於 `--accent` 底色上的文字色；四主題的 `--accent` 皆為深色，故統一 `#ffffff`（僅定義於 `:root`，各主題繼承）。
 
 ### 3.4 工具面板
 
@@ -70,15 +73,36 @@
 |-------|---------|-----------|-------------|------|
 | `--font-serif` | `'Libre Baskerville', Georgia, serif` | `'IM Fell English', Georgia, serif` | `system-ui, -apple-system, sans-serif` | `'Permanent Marker', cursive` |
 | `--font-sans` | `'DM Sans', system-ui, sans-serif` | `'IM Fell English', Georgia, serif` | `system-ui, -apple-system, sans-serif` | `'Space Mono', 'Courier New', monospace` |
+| `--font-mono` | `'Fira Code', 'Courier New', monospace` | `'Courier New', monospace` | `'Fira Code', 'Courier New', monospace` | `'Space Mono', 'Courier New', monospace` |
+
+### 3.5.1 字級（Font Size）
+
+字級為主題無關（定義於 `:root`，各主題繼承）。所有 font-size 一律引用下列 token，禁止 hardcode px。
+
+| Token | rem | px |
+|-------|-----|----|
+| `--font-size-2xs`  | `0.6875rem` | 11 |
+| `--font-size-xs`   | `0.75rem`   | 12 |
+| `--font-size-sm`   | `0.875rem`  | 14 |
+| `--font-size-base` | `1rem`      | 16 |
+| `--font-size-lg`   | `1.125rem`  | 18 |
+| `--font-size-xl`   | `1.25rem`   | 20 |
+| `--font-size-2xl`  | `1.5rem`    | 24 |
+| `--font-size-3xl`  | `2rem`      | 32 |
+
+> 散落的半階（10.5/11.5/12.5/13.5…）與小於 11px 的值已 snap 至最近 token（B1 重設計，2026-06）。
 
 ### 3.6 主題專用 Token
 
 | Token | default | manuscript | minimal-ink | pulp |
 |-------|---------|-----------|-------------|------|
 | `--line-weight` | `1px` | `1px` | `0.5px` | `2px` |
+| `--border-width` | `1px` | `1px` | `0.5px` | `2px` |
 | `--border-style` | `solid` | `dashed` | `solid` | `solid` |
 | `--node-shadow` | `none` | `none` | `none` | `2px 2px 0 #000000` |
 | `--divider-style` | `1px solid var(--border)` | `1px solid #333333` | `1.5px solid #000000` | `2px dashed #888888` |
+
+> `--border-width` 與 `--line-weight` 數值同步；`--line-weight` 給 Cytoscape canvas（需 JS `getComputedStyle` 讀取後轉成像素值），`--border-width` 給 CSS（直接用於 `border` shorthand 的寬度欄）。
 
 ### 3.7 實體 Pill 顏色
 
@@ -197,6 +221,40 @@ B&W 主題採 **6 階梯度**策略（manuscript = 淺→深灰階；minimal-ink
 | text（`--symbol-other-fg`） | `#475569` | `#f2f2f2` | `#888888` | `#555555` |
 | dot（`--symbol-other-dot`） | `#94a3b8` | `#888888` | `#cccccc` | `#aaaaaa` |
 
+#### 符號詮釋極性（Polarity）
+
+LLM 對單一意象詮釋的敘事極性（4 值）。default 採與 status 同邏輯的飽和指示色 + 淡色表面；B&W 主題改採填充極性（fill polarity）—— 用色階深淺取代色相。
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| `--polarity-positive-bg` | `#ecfdf5` | `#ebebeb` | `#ffffff` | `#ffffff` |
+| `--polarity-positive-fg` | `#166534` | `#0d0d0d` | `#000000` | `#000000` |
+| `--polarity-positive-edge` | `#6ee7b7` | `#555555` | `#000000` | `#000000` |
+| `--polarity-positive-dot` | `#22c55e` | `#0d0d0d` | `#000000` | `#000000` |
+| `--polarity-negative-bg` | `#fef2f2` | `#555555` | `#000000` | `#000000` |
+| `--polarity-negative-fg` | `#991b1b` | `#ffffff` | `#ffffff` | `#ffffff` |
+| `--polarity-negative-edge` | `#fecaca` | `#000000` | `#000000` | `#000000` |
+| `--polarity-negative-dot` | `#ef4444` | `#ffffff` | `#ffffff` | `#ffffff` |
+| `--polarity-neutral-bg` | `#f4ede0` | `#f5f5f5` | `#f5f5f5` | `#e5e5e5` |
+| `--polarity-neutral-fg` | `#5a4f42` | `#555555` | `#888888` | `#555555` |
+| `--polarity-neutral-edge` | `#d4c8b8` | `#aaaaaa` | `#cccccc` | `#000000` |
+| `--polarity-neutral-dot` | `#8a7a68` | `#888888` | `#aaaaaa` | `#888888` |
+| `--polarity-mixed-bg` | `#fef3c7` | `#d8d8d8` | `#aaaaaa` | `#999999` |
+| `--polarity-mixed-fg` | `#92400e` | `#0d0d0d` | `#ffffff` | `#ffffff` |
+| `--polarity-mixed-edge` | `#fcd34d` | `#888888` | `#000000` | `#000000` |
+| `--polarity-mixed-dot` | `#d97706` | `#444444` | `#000000` | `#000000` |
+
+#### 符號章節密度（Symbol density）
+
+用於 `ChapterDistChart` 章節分布長條與 `DensityStrip` 列表縮影；低 / 中 / 高三段 + 峰值 marker。
+
+| 屬性 | default | manuscript | minimal-ink | pulp |
+|------|---------|-----------|-------------|------|
+| `--symbol-density-low` | `#efe8d8` | `#ebebeb` | `#ebebeb` | `#e5e5e5` |
+| `--symbol-density-mid` | `#c9a37a` | `#888888` | `#aaaaaa` | `#999999` |
+| `--symbol-density-high` | `#8b5e3c` | `#0d0d0d` | `#000000` | `#000000` |
+| `--symbol-density-peak` | `#4a2e16` | `#000000` | `#000000` | `#000000` |
+
 ### 3.9 狀態色（Status）
 
 通用語意色，由 `--color-success / warning / error / info` 與其 `-bg` 變體組成。default 主題保持彩色語意（綠/橘/紅/藍）；B&W 主題改採嚴格灰階（狀態以 icon 形態與權重傳達，非色相）。
@@ -247,6 +305,46 @@ label 渲染於節點下方外部（`text-valign: 'bottom'`），背景為 `--bg
 | | `--graph-evt-stroke` | `#ef4444` | `#000000` | `#000000` | `#000000` |
 | | `--graph-evt-label` | `#991b1b` | `#0d0d0d` | `#000000` | `#000000` |
 
+### 3.12 張力強度（Tension Intensity）
+
+離散三階（low / mid / high），用於 `.tn-traj-row-bar` 填色與 `.tn-traj-legend` 圖例。`intensityBucket(v)` 在 [components/tension/intensity.ts](../frontend/src/components/tension/intensity.ts) 切桶（< 0.4 / < 0.75 / 其餘）。
+
+| 階段 | Token | default | manuscript | minimal-ink | pulp |
+|------|-------|---------|-----------|-------------|------|
+| low  | `--tension-intensity-low-bg`    | `#efe8d8` | `#ebebeb` | `#ffffff` | `#ffffff` |
+| | `--tension-intensity-low-fg`    | `#8a7a68` | `#555555` | `#888888` | `#666666` |
+| | `--tension-intensity-low-edge`  | `#d4c8b8` | `#888888` | `#cccccc` | `#000000` |
+| mid  | `--tension-intensity-mid-bg`    | `#d9b896` | `#888888` | `#aaaaaa` | `#999999` |
+| | `--tension-intensity-mid-fg`    | `#4a2e16` | `#ffffff` | `#ffffff` | `#ffffff` |
+| | `--tension-intensity-mid-edge`  | `#b8956a` | `#444444` | `#000000` | `#000000` |
+| high | `--tension-intensity-high-bg`   | `#8b5e3c` | `#0d0d0d` | `#000000` | `#000000` |
+| | `--tension-intensity-high-fg`   | `#fff5e6` | `#ffffff` | `#ffffff` | `#ffffff` |
+| | `--tension-intensity-high-edge` | `#6b4528` | `#000000` | `#000000` | `#000000` |
+
+### 3.13 Frye Mythos · 神話模式
+
+四種 mythos 各自一組 bg / fg / border，用於 `.tn-frye-badge[data-mode="..."]`。
+
+| Mythos | Token | default | manuscript | minimal-ink | pulp |
+|--------|-------|---------|-----------|-------------|------|
+| romance | `--frye-romance-bg` / `-fg` / `-border` | `#fdf1de` / `#7a4a18` / `#d9b378` | `#ebebeb` / `#0d0d0d` / `#aaaaaa` | `#ffffff` / `#000000` / `#000000` | `#ffffff` / `#000000` / `#000000` |
+| comedy | `--frye-comedy-bg` / `-fg` / `-border` | `#eef5e2` / `#4a6420` / `#a8c476` | `#d8d8d8` / `#0d0d0d` / `#666666` | `#eeeeee` / `#000000` / `#000000` | `#dddddd` / `#000000` / `#000000` |
+| tragedy | `--frye-tragedy-bg` / `-fg` / `-border` | `#f4e3e0` / `#6e2a20` / `#c47a6e` | `#555555` / `#ffffff` / `#000000` | `#000000` / `#ffffff` / `#000000` | `#000000` / `#ffffff` / `#000000` |
+| irony | `--frye-irony-bg` / `-fg` / `-border` | `#e5ecf2` / `#2c476a` / `#7c98b4` | `#f5f5f5` / `#333333` / `#888888` | `#aaaaaa` / `#ffffff` / `#000000` | `#888888` / `#ffffff` / `#000000` |
+
+`data-mode="irony_satire"` 共用 `irony` 配色。
+
+### 3.14 Booker Plot · 基本情節
+
+七種 plot 共用單一 muted-cream 框架色（`§` 字符標記在 `--booker-accent`）。
+
+| Token | default | manuscript | minimal-ink | pulp |
+|-------|---------|-----------|-------------|------|
+| `--booker-bg`     | `#f6efe2` | `#e8e4db` | `#ebebeb` | `#e5e5e5` |
+| `--booker-fg`     | `#4a3f30` | `#0d0d0d` | `#000000` | `#000000` |
+| `--booker-border` | `#c4b5a0` | `#555555` | `#000000` | `#000000` |
+| `--booker-accent` | `#8b5e3c` | `#000000` | `#000000` | `#000000` |
+
 ---
 
 ## 4. 元件層差異
@@ -259,6 +357,30 @@ label 渲染於節點下方外部（`text-valign: 'bottom'`），背景為 `--bg
 | `manuscript` | KG / Unraveling edge | `--border-style: dashed` 由 `cytoscapeConfig.ts` 與 `UnravelingPage` 的 `getUnravelingStylesheet()` 讀取後套用為 `line-style: dashed`（已實作） |
 | `pulp` | HTML 表面 shadow | `--node-shadow: 2px 2px 0 #000` 在 `[data-theme="pulp"] .card` 套用 `box-shadow`（已實作）。**Cytoscape 限制**：canvas 渲染不支援 box-shadow，KG / Unraveling 節點不套用 shadow |
 | `minimal-ink` / `pulp` | KG node border-width | `--line-weight` 由 cytoscapeConfig 讀取後套為 `border-width = max(1, lineWeight × 2)`（已實作；minimal-ink hairline、pulp bold） |
+
+### 4.1 事件分析頁（`.ea-*`）
+
+事件分析頁 V1 重設計（2026-05-18）**未新增任何 token**，全部沿用既有 token：
+
+| 用途 | 採用的既有 token |
+|------|----------------|
+| KERNEL 事件強調色 | `--accent` + `--bg-primary`（對比文字） |
+| SATELLITE 事件 muted | `--bg-secondary` / `--bg-tertiary` + `--fg-muted` / `--fg-secondary` |
+| BatchEepPanel 進度條 fill | `--accent`，運行中疊加 45° 條紋動畫（純 CSS overlay） |
+| Just-done 清單列高亮 | `--color-success-bg` → `--bg-primary` 1.5s fade |
+| Hero card 頂部色帶 | KERNEL → `--accent`（0.85 opacity）；SATELLITE → `--fg-muted`（0.4 opacity） |
+| Causality timeline 軌跡 | `--accent`（0.45 opacity），節點 marker 用 `--accent` |
+| Participant role badge | `driver` → `--accent`；`victim` → `--color-error` + `--color-error-bg`；`witness` → `--bg-secondary` + `--fg-muted` |
+| Toast | `--color-success` 左邊框 + `--shadow-lg` |
+| Narrative mode mini-chip | 沿用 `--narrative-{mode}-bg/-border`（已存在於 timeline tokens） |
+
+**Pulp 主題備註**：`.ea-section` / `.ea-hero` 使用 `--shadow-sm`，**不會**自動承接 Pulp 的 `--node-shadow`。若 PR 審查時發現一致性問題，可加：
+```css
+[data-theme="pulp"] .ea-section,
+[data-theme="pulp"] .ea-hero { box-shadow: var(--node-shadow); }
+```
+
+CSS prefix 規則：`.ea-*` 嚴格平行 `.ca-*`（角色分析頁），未交叉污染。
 
 ---
 

@@ -120,6 +120,23 @@ class UnravelingManifest(BaseModel):
     edges: list[EdgeData]
 
 
+class ChapterDistribution(BaseModel):
+    """Per-chapter counts for chapter-aware nodes.
+
+    Only nodes whose underlying data is naturally indexed by chapter
+    appear in ``distributions``. Other nodes (book-level synthesis,
+    cache-keyed analyses, KG entities without chapter linkage) are omitted.
+    """
+
+    model_config = ConfigDict(
+        populate_by_name=True, alias_generator=to_camel
+    )
+
+    book_id: str
+    total_chapters: int
+    distributions: dict[str, list[int]]
+
+
 # ── Private helpers ───────────────────────────────────────────────────────────
 
 
@@ -579,4 +596,93 @@ async def get_unraveling(
         book_id=book_id,
         nodes=nodes,
         edges=edges,
+    )
+
+
+# ── Chapter distribution endpoint ─────────────────────────────────────────────
+
+
+def _compute_chapter_distributions(
+    *,
+    doc: Any,
+    events: list[Event],
+    imagery: list[Any],
+) -> dict[str, list[int]]:
+    """Build per-chapter counts for chapter-aware nodes.
+
+    All output lists have length ``len(doc.chapters)``. Chapters are
+    treated as 1-indexed in the source domain (``ch.number``,
+    ``event.chapter``, ``imagery.chapter_distribution`` keys) and emitted
+    at array index ``number - 1``.
+    """
+    chapters = sorted(doc.chapters, key=lambda c: c.number)
+    n = len(chapters)
+    out: dict[str, list[int]] = {}
+
+    if n == 0:
+        return out
+
+    # paragraphs / summaries / keywords — derived directly from chapters
+    out["paragraphs"] = [len(ch.paragraphs) for ch in chapters]
+    out["summaries"] = [1 if ch.summary else 0 for ch in chapters]
+    out["keywords"] = [1 if ch.keywords else 0 for ch in chapters]
+
+    # kg_event — count of events per chapter
+    event_dist = [0] * n
+    chapter_index_by_number = {ch.number: i for i, ch in enumerate(chapters)}
+    for ev in events:
+        idx = chapter_index_by_number.get(ev.chapter)
+        if idx is not None:
+            event_dist[idx] += 1
+    out["kg_event"] = event_dist
+
+    # symbols — sum chapter_distribution across all imagery entities
+    sym_dist = [0] * n
+    for img in imagery:
+        for ch_num, count in (img.chapter_distribution or {}).items():
+            idx = chapter_index_by_number.get(ch_num)
+            if idx is not None:
+                sym_dist[idx] += count
+    out["symbols"] = sym_dist
+
+    return out
+
+
+@router.get(
+    "/{book_id}/unraveling/chapter-distribution",
+    response_model=ChapterDistribution,
+    summary="Per-chapter distribution for chapter-aware DAG nodes",
+)
+async def get_chapter_distribution(
+    book_id: str,
+    doc_service: DocServiceDep,
+    kg_service: KGServiceDep,
+    symbol_service: SymbolServiceDep,
+) -> ChapterDistribution:
+    """Return per-chapter counts for the subset of unraveling nodes whose
+    underlying data is naturally chapter-indexed.
+
+    Supported nodeIds: ``paragraphs``, ``summaries``, ``keywords``,
+    ``kg_event``, ``symbols``. Other nodes are omitted from the response.
+    """
+    doc, events, imagery = await asyncio.gather(
+        doc_service.get_document(book_id),
+        kg_service.get_events(document_id=book_id),
+        symbol_service.get_imagery_list(book_id),
+    )
+
+    if doc is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Book '{book_id}' not found.",
+        )
+
+    distributions = _compute_chapter_distributions(
+        doc=doc, events=events, imagery=imagery,
+    )
+
+    return ChapterDistribution(
+        book_id=book_id,
+        total_chapters=len(doc.chapters),
+        distributions=distributions,
     )

@@ -8,7 +8,8 @@ from services.query_models import VectorSearchResult
 
 
 def test_search_returns_results(client):
-    resp = client.post("/api/v1/search/", json={"query": "Alice garden"})
+    # mode defaults to "fulltext"; this test exercises the semantic/vector path.
+    resp = client.post("/api/v1/search/", json={"query": "Alice garden", "mode": "semantic"})
     assert resp.status_code == 200
     results = resp.json()
     assert len(results) == 1

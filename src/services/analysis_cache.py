@@ -93,6 +93,24 @@ class AnalysisCache:
             row = await cursor.fetchone()
         return row[0] if row else 0
 
+    async def list_by_prefix(self, prefix: str) -> list[dict]:
+        """Return all non-expired cache values whose key starts with ``prefix``.
+
+        Used when a consumer needs to bulk-load entries that share a key family
+        without round-tripping a separate index (e.g. all TEUs for a document).
+        """
+        cutoff = time.time() - self._ttl
+        like_pattern = prefix + "%"
+        async with aiosqlite.connect(self._db_path) as db:
+            await self._ensure_table(db)
+            cursor = await db.execute(
+                "SELECT value FROM analysis_cache"
+                " WHERE key LIKE ? AND created > ?",
+                (like_pattern, cutoff),
+            )
+            rows = await cursor.fetchall()
+        return [json.loads(r[0]) for r in rows]
+
     async def invalidate(self, pattern: str) -> int:
         """Delete cache entries matching a LIKE pattern. Returns count deleted."""
         async with aiosqlite.connect(self._db_path) as db:

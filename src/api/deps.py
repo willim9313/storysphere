@@ -14,6 +14,26 @@ from fastapi import Depends
 
 logger = logging.getLogger(__name__)
 
+# ── Ingestion graph singleton (initialised in lifespan) ─────────────────────
+
+_ingestion_graph = None
+
+
+def get_ingestion_graph():
+    """Return the compiled LangGraph ingestion graph.
+
+    Must be initialised via ``set_ingestion_graph()`` in lifespan before use.
+    """
+    if _ingestion_graph is None:
+        raise RuntimeError("ingestion_graph not initialised — check lifespan setup")
+    return _ingestion_graph
+
+
+def set_ingestion_graph(graph) -> None:
+    global _ingestion_graph
+    _ingestion_graph = graph
+
+
 # Runtime override for kg_mode — set via /api/v1/kg/switch endpoint.
 # Takes precedence over settings.kg_mode without requiring a restart.
 _runtime_kg_mode: str | None = None
@@ -31,6 +51,7 @@ def set_kg_mode_override(mode: str) -> None:
     get_chat_agent.cache_clear()
     get_analysis_agent.cache_clear()
     get_link_prediction_service.cache_clear()
+    get_faction_service.cache_clear()
     logger.info("KG mode switched to '%s'; all dependent singletons reset.", mode)
 
 
@@ -73,11 +94,10 @@ def get_doc_service():
 DocServiceDep = Annotated[Any, Depends(get_doc_service)]
 
 
-@lru_cache(maxsize=1)
 def get_vector_service():
-    from services.vector_service import VectorService  # noqa: PLC0415
+    from services.vector_service import get_vector_service as _get  # noqa: PLC0415
 
-    return VectorService()
+    return _get()
 
 
 VectorServiceDep = Annotated[Any, Depends(get_vector_service)]
@@ -336,3 +356,16 @@ def get_link_prediction_service():
 
 
 LinkPredictionServiceDep = Annotated[Any, Depends(get_link_prediction_service)]
+
+
+# ── Faction detection (F-16) ─────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1)
+def get_faction_service():
+    from services.faction_service import FactionService  # noqa: PLC0415
+
+    return FactionService(kg_service=get_kg_service())
+
+
+FactionServiceDep = Annotated[Any, Depends(get_faction_service)]

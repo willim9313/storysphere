@@ -44,3 +44,23 @@ class TestFormatVectorResults:
 
     def test_empty_results(self):
         assert DataSanitizer.format_vector_store_results([]) == []
+
+    def test_format_pydantic_results(self):
+        from services.query_models import VectorSearchResult
+
+        results = [
+            VectorSearchResult(
+                id="chunk-2",
+                score=0.81,
+                text="Bob met Alice at the door.",
+                document_id="doc-1",
+                chapter_number=4,
+                position=2,
+            )
+        ]
+        formatted = DataSanitizer.format_vector_store_results(results)
+        assert len(formatted) == 1
+        assert "Chunk ID: chunk-2" in formatted[0]
+        assert "Score: 0.8100" in formatted[0]
+        assert "Chapter: 4" in formatted[0]
+        assert "Bob met Alice at the door." in formatted[0]

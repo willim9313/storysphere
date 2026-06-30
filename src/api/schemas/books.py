@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
 
 
@@ -15,6 +15,15 @@ _CAMEL = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
 
 # ── Book list / detail ───────────────────────────────────────────────────────
+
+
+class PipelineStatusResponse(BaseModel):
+    model_config = _CAMEL
+
+    summarization: str = "pending"
+    feature_extraction: str = "pending"
+    knowledge_graph: str = "pending"
+    symbol_discovery: str = "pending"
 
 
 class BookResponse(BaseModel):
@@ -28,6 +37,7 @@ class BookResponse(BaseModel):
     entity_count: int | None = None
     uploaded_at: str = ""
     last_opened_at: str | None = None
+    pipeline_status: PipelineStatusResponse = PipelineStatusResponse()
 
 
 class EntityStats(BaseModel):
@@ -48,6 +58,47 @@ class BookDetailResponse(BookResponse):
     relation_count: int = 0
     entity_stats: EntityStats = EntityStats()
     keywords: dict[str, float] | None = None
+
+
+# ── Chapter review ───────────────────────────────────────────────────────────
+
+
+class ReviewParagraphResponse(BaseModel):
+    model_config = _CAMEL
+
+    paragraph_index: int
+    text: str
+    role: str = "body"
+    title_span: list[int] | None = None  # [start, end] char offsets, or null
+    sentences: list[str]
+
+
+class ReviewChapterResponse(BaseModel):
+    model_config = _CAMEL
+
+    chapter_idx: int
+    title: str | None = None
+    paragraphs: list[ReviewParagraphResponse]
+
+
+class ReviewDataResponse(BaseModel):
+    model_config = _CAMEL
+
+    chapters: list[ReviewChapterResponse]
+
+
+class ReviewChapterInput(BaseModel):
+    model_config = _CAMEL
+
+    title: str = ""
+    start_paragraph_index: int
+
+
+class ReviewSubmitRequest(BaseModel):
+    model_config = _CAMEL
+
+    chapters: list[ReviewChapterInput]
+    role_overrides: dict[str, str] = {}  # str(globalIdx) → role value
 
 
 # ── Chapter / chunk ──────────────────────────────────────────────────────────
@@ -265,7 +316,12 @@ class EventAnalysisFullResponse(BaseModel):
     causality: CausalityResponse
     impact: ImpactResponse
     summary: dict[str, str]
+    status: str = "complete"            # "complete" | "partial"
+    failed_parts: list[str] = []
     analyzed_at: str | None = None
+    chapter: int | None = None
+    chunk: int | None = None
+    narrative_mode: str | None = None
 
 
 # ── Analysis list ────────────────────────────────────────────────────────────
@@ -278,6 +334,9 @@ class UnanalyzedEntity(BaseModel):
     name: str
     type: str
     chapter_count: int = 0
+    chapter: int | None = None
+    narrative_mode: str | None = None
+    importance: str | None = None
 
 
 class AnalysisItem(BaseModel):
@@ -287,11 +346,14 @@ class AnalysisItem(BaseModel):
     entity_id: str
     section: str
     title: str
-    archetype_type: str | None = None
+    archetypes: dict[str, str] = {}
     chapter_count: int = 0
     content: str = ""
-    framework: str = "jung"
+    status: str = "complete"            # "complete" | "partial"
     generated_at: str = ""
+    chapter: int | None = None
+    narrative_mode: str | None = None
+    importance: str | None = None
 
 
 class AnalysisListResponse(BaseModel):
@@ -348,7 +410,15 @@ class CharacterAnalysisDetailResponse(BaseModel):
     archetypes: list[ArchetypeDetailResponse] = []
     cep: CepResponse | None = None
     arc: list[ArcSegmentResponse] = []
+    status: str = "complete"            # "complete" | "partial"
+    failed_parts: list[str] = []
     generated_at: str
+
+
+class AnalyzeTriggerRequest(BaseModel):
+    model_config = _CAMEL
+
+    mode: Literal["full", "retryFailed"] = "full"
 
 
 # ── Entity chunks ────────────────────────────────────────────────────────────
@@ -524,10 +594,27 @@ class RunInferenceRequest(BaseModel):
 class ConfirmInferredRequest(BaseModel):
     model_config = _CAMEL
 
-    relation_type: str
+    # Optional override; when absent, the confirm endpoint promotes the
+    # InferredRelationType to its canonical RelationType (see
+    # domain.inferred_relations.promote_inferred_type).
+    relation_type: str | None = None
 
 
 # ── Voice Profile (F-04) ─────────────────────────────────────────────────────
+
+
+class ToneSegmentResponse(BaseModel):
+    model_config = _CAMEL
+
+    label: str
+    value: float
+
+
+class HistogramBucketResponse(BaseModel):
+    model_config = _CAMEL
+
+    bucket: str
+    value: int
 
 
 class VoiceProfileResponse(BaseModel):
@@ -541,6 +628,8 @@ class VoiceProfileResponse(BaseModel):
     exclamation_ratio: float
     lexical_diversity: float
     paragraphs_analyzed: int
+    tone_distribution: list[ToneSegmentResponse] = Field(default_factory=list)
+    sentence_length_histogram: list[HistogramBucketResponse] = Field(default_factory=list)
     speech_style: str
     distinctive_patterns: list[str]
     tone: str

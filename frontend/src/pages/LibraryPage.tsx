@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -13,7 +13,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import type { BookStatus } from '@/api/types';
 
-interface PendingTask { taskId: string; fileName: string }
+interface PendingTask { taskId: string; fileName: string; title?: string }
 
 function readPendingTasks(): PendingTask[] {
   try {
@@ -30,7 +30,7 @@ function removePendingTask(taskId: string) {
   else sessionStorage.setItem('upload-tasks', JSON.stringify(tasks));
 }
 
-function ProcessingBookCard({ task, onSettled }: { task: PendingTask; onSettled: () => void }) {
+function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; onSettled: () => void }>) {
   const { t } = useTranslation('library');
   const queryClient = useQueryClient();
   const { data: status, isError } = useTaskPolling(task.taskId);
@@ -46,27 +46,60 @@ function ProcessingBookCard({ task, onSettled }: { task: PendingTask; onSettled:
     }
   }, [status, isError, task.taskId, queryClient, onSettled]);
 
+  const isAwaitingReview = status?.status === 'awaiting_review';
+  const bookId = isAwaitingReview
+    ? (status?.result as Record<string, string> | null)?.bookId
+    : undefined;
+
   return (
     <div
       className="card flex flex-col gap-2 p-3"
-      style={{ border: '1px solid var(--border)', opacity: 0.75 }}
+      style={{ border: `1px solid ${isAwaitingReview ? 'var(--accent)' : 'var(--border)'}`, opacity: 0.9 }}
     >
       <div
         className="flex items-center justify-center h-24 rounded-md"
         style={{ backgroundColor: 'var(--bg-secondary)' }}
       >
-        <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
+        {isAwaitingReview
+          ? <BookOpen size={28} style={{ color: 'var(--accent)' }} />
+          : <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
+        }
       </div>
       <h3
         className="font-semibold text-xs line-clamp-2"
         style={{ fontFamily: 'var(--font-serif)' }}
       >
-        {task.fileName}
+        {task.title ?? task.fileName}
       </h3>
-      <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-        {status?.stage || t('filters.processing')}
-        {status?.progress != null ? ` ${status.progress}%` : ''}
+      {task.title && (
+        <p className="text-xs truncate" style={{ color: 'var(--fg-muted)' }}>
+          {task.fileName}
+        </p>
+      )}
+      <span className="text-xs" style={{ color: isAwaitingReview ? 'var(--accent)' : 'var(--fg-muted)' }}>
+        {isAwaitingReview
+          ? t('processing.awaitingReview')
+          : `${status?.stage || t('filters.processing')}${status?.progress != null ? ` ${status.progress}%` : ''}`
+        }
       </span>
+      {isAwaitingReview && bookId ? (
+        <Link
+          to={`/upload/review/${bookId}?taskId=${task.taskId}`}
+          className="text-xs font-medium mt-auto"
+          style={{ color: 'var(--accent)' }}
+        >
+          {t('processing.reviewChapters')} →
+        </Link>
+      ) : (
+        <Link
+          to={`/upload#${task.taskId}`}
+          className="text-xs font-medium mt-auto"
+          style={{ color: 'var(--accent)' }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {t('processing.viewProgress')} →
+        </Link>
+      )}
     </div>
   );
 }
@@ -141,7 +174,7 @@ export default function LibraryPage() {
             className="px-3 py-1 text-xs rounded-full font-medium transition-colors"
             style={{
               backgroundColor: filter === key ? 'var(--accent)' : 'var(--bg-secondary)',
-              color: filter === key ? 'white' : 'var(--fg-secondary)',
+              color: filter === key ? 'var(--accent-fg)' : 'var(--fg-secondary)',
             }}
           >
             {label}
@@ -153,7 +186,7 @@ export default function LibraryPage() {
         className="grid gap-4"
         style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}
       >
-        {pendingTasks.map((task) => (
+        {(filter === 'all' || filter === 'processing') && pendingTasks.map((task) => (
           <ProcessingBookCard
             key={task.taskId}
             task={task}

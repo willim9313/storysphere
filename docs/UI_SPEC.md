@@ -43,7 +43,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 </span>
 
 // CSS 結構（色碼值見 DESIGN_TOKENS）
-.pill { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; padding: 2px 7px; border-radius: 20px; }
+.pill { display: inline-flex; align-items: center; gap: 3px; font-size: var(--font-size-2xs); padding: 2px 7px; border-radius: 20px; }
 .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
 // .pill-char / .pill-loc / .pill-con / .pill-evt — background / border / color / dot 色碼見 DESIGN_TOKENS.md
 ```
@@ -60,7 +60,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 |------|--------|------|------|
 | Home | 書庫首頁 | `/` | 已實作 |
 | Upload | 上傳 & 處理進度 | `/upload` | 已實作 |
-| BookOpen | 框架索引 | `/frameworks` | 已實作 |
+| BookOpen | 方法論 | `/methodology` | 已實作（前身 `/frameworks`） |
 | Search | 全站搜尋 | — | 佔位（disabled） |
 | BarChart3 | Token 用量 | `/token-usage` | 已實作 |
 | Settings | 設定 | `/settings` | 已實作 |
@@ -79,7 +79,8 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 | 時間軸 | `/books/:bookId/timeline` |
 | 張力分析 | `/books/:bookId/tension` |
 | 象徵意象 | `/books/:bookId/symbols` |
-| 展開卷軸 | `/books/:bookId/unraveling` |
+| 敘事結構 | `/books/:bookId/narrative` |
+| 建構概覽 | `/books/:bookId/unraveling` |
 
 ### 2.3 頁面層級關係
 
@@ -87,7 +88,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 全站 Sidebar
   ├─ 首頁              /
   ├─ 上傳 & 處理進度   /upload
-  ├─ 框架索引          /frameworks
+  ├─ 方法論            /methodology
   ├─ Token 用量        /token-usage
   ├─ 設定              /settings
   └─ [書籍空間]        /books/:bookId
@@ -98,7 +99,8 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
        ├─ 時間軸        /books/:bookId/timeline
        ├─ 張力分析      /books/:bookId/tension
        ├─ 象徵意象      /books/:bookId/symbols
-       └─ 展開卷軸      /books/:bookId/unraveling
+       ├─ 敘事結構      /books/:bookId/narrative
+       └─ 建構概覽      /books/:bookId/unraveling
 ```
 
 ---
@@ -211,68 +213,108 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 ### 3.4 角色分析頁 `/books/:bookId/characters`
 
+> 2026-05-16 重新設計：3-tab 平級結構（人物概覽 / 語音風格 / 認知狀態）、Overview 內 4 個 sub-tab、Framework 切換只在左清單、新增「框架對照」抽屜。設計交接見 `docs/plans/20260516-character-analysis-page-redesign.md` 與設計 project HANDOFF.md。
+
 #### 版面結構
 
 ```
-[Left Panel 260px] [Content Area flex]
+[Left Panel 268px] [Content Area flex (relative — drawer overlays here)]
 ```
 
 #### Left Panel — 角色清單
 
 由上至下：
 
-1. **框架選擇**：Jung 12 / Schmidt 45 + 「框架索引 ↗」連結
-2. **搜尋欄**：即時篩選，顯示當前總數
-3. **清單**（可捲動）：分「已分析」/ 「尚未分析」兩組
+1. **框架選擇**：Jung 12 / Schmidt 45 chip + 「對照 Jung vs Schmidt」按鈕（觸發 drawer）+「框架索引 ↗」連結
+2. **搜尋欄**：即時篩選，placeholder 顯示總人數
+3. **清單**（可捲動）：分「已分析」/「尚未分析」兩組
 
-清單 item：
-- 已分析：彩色頭像（取名字首字）+ 名稱 + 原型類型 + 綠色狀態點
-- 未分析：灰色頭像 + 名稱（淡色）+ 「建立」按鈕 + 灰色狀態點
+清單 item（卡片式）：
+- 已分析：依名字首字 hash 出 entity 配色頭像 + 名稱（serif）+ 當前框架的原型名 + Ch.X meta + 綠色狀態點
+- 未分析：muted 頭像 + 名稱（淡色）+ Ch.X meta + 「建立」按鈕
 
 #### Content Area — 角色分析內容
 
-**標題列**：角色名（serif）、框架 badge、「在圖譜中查看 ↗」、「覆蓋重新生成」按鈕
+頂部固定一條 **Tip Ribbon**（首次進入顯示，localStorage `storysphere:tip-dismissed:character-analysis` 永久 dismiss）。
 
-**Detail Tab**（標題列下方，二選一）：
+**標題列**：角色名（serif 28px）+ Framework badge（顯示當前 framework + primary archetype，不可點擊切換）+ Ch.X 提及 meta + 「在圖譜中查看 ↗」+「框架對照」+「覆蓋重新生成」按鈕
+
+**Primary Tab**（標題列下方，三選一，underline 樣式）：
 
 | Tab | 內容 |
 |-----|------|
-| 概覽 (overview) | 角色深度分析內容（Accordion 結構，見下） |
-| 語音風格 (voice) | VoiceProfilingPanel — 角色語言風格分析 |
+| 人物概覽 (overview) | 4 個 sub-tab pill segmented control → 對應 4 個 pane |
+| 語音風格 (voice) | VoiceProfilingPanel — 4 stat card + ToneDistribution 堆疊條 + SentenceHistogram 直方圖 + 質性 section |
+| 認知狀態 (epistemic) | EpistemicStateSection — Summary counts + ChapterTimeline（拖曳游標 + 事件 marker）+ 已知/未知 並排 + 誤信跨欄置底 |
 
-**概覽 tab — 分析維度（Jung）**：
-1. 原型定位（顯示對應原型 tag）
-2. 心理結構（自我、陰影、阿尼瑪斯）
-3. 角色弧線（轉化歷程與關鍵節點）
-4. 關係動力（與其他角色的原型互動）
+**Overview sub-tabs**（pill segmented control）：
 
-**概覽 tab 底部 — 認知狀態（EpistemicStateSection）**：
+| Sub-tab | 來源欄位 |
+|---------|---------|
+| 人格 (persona) | `profileSummary` + `archetypes[framework]`（含信心度條 + 證據）+ `cep.traits`（tag grid）|
+| 行為 (behavior) | `cep.actions` + `cep.keyEvents` |
+| 關係 (relations) | `cep.relations` + `cep.quotes` |
+| 弧線 (arc) | `arc[]` |
 
-位於概覽 tab 最下方，分隔線後，顯示「直到第 N 章，此角色已知哪些實體與事件」。
-- 使用 slider 或 chapter selector 選擇章節
-- 清楚分類：已知實體、未知實體（灰色虛線樣式）
+**Framework 切換**：唯一入口在左清單頂部 chip；切換只影響顯示（archetype 跟著切換），不重打 API。標題列 badge 僅顯示當前框架，不可點擊。
+
+**框架對照 Drawer**（右側 640px 抽屜）：
+- 觸發點：標題列「框架對照」按鈕、PersonaPane 內 archetype section 的「切到對照」連結、左清單下方「對照 Jung vs Schmidt」連結
+- 內容：2 欄並排，Jung 12 / Schmidt 45，各欄顯示 primary / secondary / 信心度條 + % / 證據
+- 關閉：點 backdrop / 點關閉按鈕 / Esc 鍵
+
+**Chapter Timeline（Epistemic tab）**：
+- 拖曳游標更新章節；**200ms debounce** 後才打 epistemic API
+- 拖曳期間以最近一次的回應做樂觀更新（filter `chapter <= cursor`）
+- 全寬 axis + ticks（章節 5 等分）+ 事件 marker（綠 / 橘 / 紅）+ 拖曳游標
+- 切換角色時自動 reset 到 totalChapters
 
 #### 狀態流程
 
 ```
 進入頁面
-  → 載入角色清單
-  → 預設選中第一個已分析角色，載入分析內容
+  → 載入角色清單；TipRibbon 顯示（除非已 dismiss）
+  → 不預設選中任何角色
 
-點擊「建立」（未分析角色）
-  → 觸發分析 → polling → 完成後填入內容
+點擊角色：
+  → 載入該角色分析（#7a），預設 overview tab + persona sub-tab
+  → sub-tab 選擇切角色時 reset 到 persona；切回原角色保留
 
-點擊「覆蓋重新生成」
-  → 確認視窗（token 消耗提示）→ 刪除舊資料 → 重新觸發 → polling
+點擊「建立」（未分析角色）：
+  → 觸發 #7b → polling #8 → 完成後 invalidate + 刷新
 
-切換 Detail Tab
-  → overview：顯示 CharacterAnalysisDetail + EpistemicStateSection
-  → voice：顯示 VoiceProfilingPanel
+點擊「覆蓋重新生成」：
+  → ConfirmDialog → DELETE 舊 → 重觸發 → polling
+
+切換 Framework chip：
+  → 不打 API；archetype badge 與 PersonaPane 重渲染
+
+點 Voice tab：
+  → 若 localStorage `voice_generated:${bookId}:${entityId}` 為 1 → 自動載入
+  → 否則顯示空狀態 + 「分析」按鈕
+
+點 Epistemic tab：
+  → 拖曳 Chapter Timeline → 200ms debounce → 打 #12e
+  → 拖曳期間用快取資料做樂觀過濾
 ```
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#6a（角色清單）、#6c（重新生成）、#7a（角色分析詳情）、#7b（觸發分析）、#7c（清除分析）、#8（任務 polling）、#12e（認知狀態）、#16a（語音風格）、#16b（清除語音風格）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#6a（角色清單）、#6c（重新生成）、#7a（角色分析詳情）、#7b（觸發分析）、#7c（清除分析）、#8（任務 polling）、#12e（認知狀態）、#16a（語音風格，含新增的 toneDistribution / sentenceLengthHistogram）、#16b（清除語音風格）
+
+#### 元件對照（檔案路徑）
+
+| 元件 | 檔案 |
+|------|------|
+| 頁面 shell | `frontend/src/pages/CharacterAnalysisPage.tsx` |
+| 列表 item | `frontend/src/components/analysis/AnalysisListItems.tsx` |
+| Overview shell + sub-tabs | `frontend/src/components/analysis/CharacterAnalysisDetail.tsx` |
+| Overview 4 panes | `frontend/src/components/analysis/sections/{Persona,Behavior,Relations,Arc}Pane.tsx` |
+| Voice 視覺化 | `frontend/src/components/analysis/VoiceProfilingPanel.tsx` |
+| Epistemic 主視覺 | `frontend/src/components/analysis/EpistemicStateSection.tsx` + `ChapterTimeline.tsx` |
+| 框架對照 drawer | `frontend/src/components/analysis/FrameworkCompareDrawer.tsx` |
+| Tip ribbon | `frontend/src/components/analysis/CharacterTipRibbon.tsx` |
+| 樣式 | `frontend/src/styles/character-analysis.css`（`.ca-*` prefix） |
 
 ---
 
@@ -342,163 +384,249 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 ### 3.6 知識圖譜頁 `/books/:bookId/graph`
 
+> V1 重新設計：2026-05-17 起以本節為準。實作計劃見 `docs/plans/20260517-kg-page-redesign-v1-impl.md`。
+
 #### 版面結構
 
-最多三層，第三層切換時替換：
-
 ```
-[圖譜 Canvas（全幅）] [實體詳情面板（right）] [第三層：分析或段落（rightmost）]
+                        [BreadcrumbBar（drill-in 時顯示）]
+[Toolbar]                                                          [Legend]
+                       [圖譜 Canvas（全幅）]                       [右側面板]
+[Lens]                                                             [MiniMap]
+                                                                    [Stats]
 ```
 
-所有面板均為**暖白底**（`var(--bg-primary)`），`border-left: 1px solid var(--border)`。
+所有面板均為**暖白底**（`var(--bg-primary)`），`border-left: 1px solid var(--border)`、`border-radius: var(--radius-lg)`、`box-shadow: var(--shadow-sm)`。
 
 #### 圖譜 Canvas
 
-- Cytoscape.js 渲染，force-directed layout
-- 節點大小依 `chunkCount` 縮放（20px–60px）
-- 節點顏色依實體類型（character 藍 / location 綠 / concept 紫 / event 紅）
-- 選中節點：accent 色邊框，連出 edge 加深，其餘淡化
+- Cytoscape.js 渲染（fcose layout）
+- 節點大小依 `chunkCount` 縮放
+- 節點顏色依實體類型（角色 / 地點 / 概念 / 事件）— 使用 `--graph-{type}-fill / -stroke / -label` token
+- 選中態：accent 邊框；連出 edge 加深，其餘淡化（`.dimmed` opacity 0.15）
+
+**Canonical edge**：`var(--fg-muted)` stroke / 1.2px / opacity 0.7。
+
+**Inferred edge**（V1 變更，不再使用 dashed）：
+- color = `var(--accent)`
+- width = `1 + confidence × 1.6` px
+- opacity = `0.42 + confidence × 0.25`
+
+**Super-node**（cluster mode 'type'/'community' 使用）：
+- 虛擬節點，原始節點不進 cytoscape
+- dashed border + 半透明 type 色填充
+- label 顯示 type 名稱 + 成員數
 
 #### 浮動工具欄（左上角，GraphToolbar）
 
 ```
-[搜尋欄]
-[type checkbox: character / location / concept / event]
-[重置視圖]
-[推斷關係按鈕（狀態驅動，見下）]
+[搜尋欄] ← typing 開啟 SearchDropdown
+[Cluster 模式: 個別 / 類型 / 社群(disabled, F-16)]
+[推斷 · N chip — 預設 OFF]
+[重置]
 [動畫模式: fade / stagger]
 ```
 
-**推斷關係按鈕**（InferredEdge / Link Prediction）：
+**推斷 chip**（V1 變更，warning-flavored）：
+- 預設 **OFF**；用戶主動點才顯示推斷邊
+- 三狀態：未執行（「執行推論」）/ 執行中（spinner）/ 有資料（「推斷 · N」chip）
+- chip 開啟時同時開啟右側 **InferredReviewPanel**
 
-| 狀態 | 顯示 | 樣式 |
-|------|------|------|
-| 未執行 | 「執行推論」 | 預設灰色 |
-| 執行中 | spinner + 「推論中…」 | disabled |
-| 有資料（隱藏中） | 「顯示推斷關係」 | 橘色邊框 |
-| 顯示中 | 「隱藏推斷關係」 | 橘色背景 |
+#### LensCard（左下角，合併卡）
 
-推斷邊（Common Neighbors + Adamic-Adar 演算法）以虛線樣式呈現，點擊後從右側展開 **InferredEdgePanel**（可確認或拒絕該推斷關係）。
+三段垂直堆疊：
 
-#### 附加控制工具
+1. **時間範圍 · Timeline** — slider [0..totalChapters]，0 = 全部章節（disabled）
+2. **認知視角 · Epistemic** — 24px avatar + 角色名 + 「依賴 ↑ 章節 N」hint
+3. **已標記 · Bookmarks** — pin icon + entity pill 列表
 
-**TimelineControls（左下角，章節快照）**：
-- 選擇章節 N → 圖譜僅顯示該章節前出現過的節點與關係（temporal snapshot 模式）
-- 讓用戶「從頭追蹤圖譜的演變」
+localStorage key（**必須保留**）：`graph:${bookId}:timeline:*`、`graph:${bookId}:epistemic:*`、`graph:${bookId}:bookmarks`、`graph:${bookId}:clusterMode`。
 
-**EpistemicOverlay（章節快照上方，認知視角疊加）**：
-- 選擇一個角色 → 灰底虛線標示「此角色在指定章節前尚不知曉的節點」
-- 需搭配 TimelineControls 指定章節
-- 狀態持久化至 localStorage（`graph:${bookId}:epistemic:*`）
+#### LegendCard（右上角，常駐圖例）
 
-**縮放控制（右下角）**：+ / − 按鈕
+4 個 entity types（角色/地點/概念/事件）+ 對應成員數，點擊 row → toggle 該類型可見性。底部分隔線 + 「推斷 · N」row（toggle inferred 圖層）。
 
-**統計（右下角）**：節點數、關係數（動態位移，避免與面板重疊）
+#### MiniMap（右下角 180×120）
 
-#### 實體詳情面板（EntityDetailPanel / EventDetailPanel）
+- SVG 重繪：所有節點為小點（依 type 上色）+ 細淡 edges
+- Viewport rect 顯示當前 camera bounds
+- 互動：click → 立即定位；drag viewport rect → 持續 pan
 
-節點類型 ≠ `event` → 使用 EntityDetailPanel；節點類型 = `event` → 使用 EventDetailPanel。
+#### BreadcrumbBar（上方置中，drill-in 時出現）
 
-面板寬 260px，固定在右側，選中節點後出現。
+例：`知識圖譜 › 類型群集 › 角色`（最後一段是當前；前面 segments 可點回上層）
 
-**EntityDetailPanel** 包含（accordion）：
-1. **實體資訊**（預設展開）：名稱、類型 pill、描述
-2. **深度分析**（預設展開）：已生成顯示文字 + 重生成按鈕；未生成顯示引導按鈕「生成深度分析 →」
-3. **相關段落**（預設收合）：chunk 總數，點擊 → 推出第三層段落面板
+#### 右側面板（優先序，同時只顯示一個）
 
-**EventDetailPanel** 包含事件相關資訊（參與者、時序位置等）。
+| 條件 | 面板 | 寬度 |
+|---|---|---|
+| Shift+Click 選了 2 個節點 | **EntityComparePanel**（Scenario E）| 560px |
+| 推斷 chip 開啟 OR 點到推斷邊 | **InferredEdgePanel**（Scenario F 審查列表）| 380px |
+| Cluster mode 'type' 且無選中節點 | **ClusterOverviewPanel** / drill-in 成員列表（Scenarios A/C）| 280px |
+| 單選節點 | EntityDetailPanel / EventDetailPanel（既有）| 260px |
 
-#### 第三層面板（右側次面板，width 依類型）
+**第三層面板**（AnalysisPanel / ParagraphsPanel）行為不變，從 EntityDetailPanel 觸發。
 
-三種面板**同時只能顯示一種**，切換時替換不疊加。
+**EntityDetailPanel 新增**：header 加 bookmark toggle 按鈕（pin icon，會寫入 `graph:${bookId}:bookmarks`）。
 
-| 類型 | 寬度 | 觸發方式 |
-|------|------|---------|
-| AnalysisPanel（分析全文） | 360px | 點擊「查看分析」|
-| ParagraphsPanel（相關段落） | 400px | 點擊「相關段落」|
-| InferredEdgePanel（推斷關係審核）| — | 點擊推斷邊 |
+#### 多選比較（Scenario E，cap 2）
 
-**ParagraphsPanel** 段落按章節分組（sticky 章節標題），每條 chunk 顯示 SegmentRenderer（保留實體高亮）。
+Shift+Click 第 2 個 → 並排比較；第 3 個 → 踢掉最早選的。共同鄰居加 `--accent` 虛線高亮，其餘節點 opacity 0.35。
 
-#### 狀態流程
+#### Cluster mode
 
-```
-進入頁面
-  → 載入圖譜資料
-  → 解析 query param ?entity= → 自動選中對應節點
+- **個別**（預設）：原本行為，所有節點獨立顯示
+- **類型**：純前端 group-by（`frontend/src/services/kgClustering.ts`），4–7 個 super-nodes（依書中 entity types）
+- **社群**：disabled，tooltip「派系分析開發中（F-16）」— 待 backend F-16 接 `GET /books/:bookId/analysis/factions`
 
-點擊節點
-  → 若 event 節點 → EventDetailPanel
-  → 若 entity 節點 → EntityDetailPanel
+Mode 切換以 localStorage `graph:${bookId}:clusterMode` per-book 記憶。
 
-點擊「查看分析」→ 推出 AnalysisPanel（第三層）
-點擊「相關段落」→ 推出 ParagraphsPanel（第三層）
-點擊其他節點（第三層開啟中）→ 第三層隨選中節點同步更新
+#### Search dropdown（Scenario D）
 
-點擊推斷邊 → 推出 InferredEdgePanel → 可確認或拒絕
-執行推論 → 刷新圖譜與推斷關係資料
+Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 
-TimelineControls 切換章節 → 重新請求圖譜（帶 timeline 參數）
-EpistemicOverlay 選擇角色 → 疊加灰化樣式（不重新請求圖譜）
-```
+- **實體**：matching graph nodes + type dot + 登場段數
+- **章節**：matching chapter titles
+- **段落內文**：placeholder「全文搜尋待後端實作」
+
+鍵盤：↑↓ 選擇、↵ 開啟、Esc 關閉。Debounce 200ms。
+
+#### Transition / hover
+
+- 所有 transition 用 `color / background-color / opacity / box-shadow`，duration `var(--transition-fast)` (150ms) 或 `--transition-normal` (250ms)，easing `ease`
+- Hover：背景下降一階（`--bg-primary → --bg-secondary` 等）；**不使用 transform / translate**
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#9（圖譜資料）、#9b（實體相關段落）、#10a–#10d（推斷關係 run / fetch / confirm / reject）、#11（事件詳情）、#12a–#12b（TimelineConfig）、#12c（detect-timeline）、#12d（classify-visibility）、#12e（認知狀態）、#7a（實體分析）、#7b（觸發實體分析）、#8（任務 polling）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#9（圖譜資料）、#9b（實體相關段落）、#10a–#10d（推斷關係 run / fetch / confirm/採用 / reject/否決）、#11（事件詳情）、#12a–#12b（TimelineConfig）、#12c（detect-timeline）、#12d（classify-visibility）、#12e（認知狀態）、#7a（實體分析）、#7b（觸發實體分析）、#8（任務 polling）、#4（章節清單供 SearchDropdown）。
+
+**V1 不新增任何 API 端點**。Cluster「社群」模式待 F-16 後接 `GET /books/:bookId/analysis/factions`。
 
 ---
 
 ### 3.7 時間軸頁 `/books/:bookId/timeline`
 
 > 後端設計見 [`docs/guides/PHASE_9_TEMPORAL_TIMELINE.md`](guides/PHASE_9_TEMPORAL_TIMELINE.md)
+> 規劃 brief 見 [`docs/plans/20260519-timeline-page-redesign.md`](plans/20260519-timeline-page-redesign.md)
 
 #### 版面結構
 
 ```
-[Toolbar 固定頂部] [時間軸主區 flex] [事件詳情面板 320px，點擊後展開]
+[Toolbar 上：3 視圖卡 + 工具]
+[QualityBanner（僅當 hasChronologicalRanks=false 時出現）]
+[ActiveFilters Bar（有套用篩選時出現）]
+[時間軸主區 flex] [事件詳情面板 360px，點擊事件後展開]
 ```
 
-#### 3.7.1 頂部工具列（固定）
+#### 3.7.1 頂部工具列（V2 / 進取版）
 
 ```
-左側:
-  [章節順序 ▾ / 故事時序 ▾ / 矩陣視圖 ▾]  ← 三選一 select
-  [⇄ 水平 / ↕ 垂直]                        ← layout 方向（矩陣模式下隱藏）
-
-中央:
-  [品質指示器] — EEP 覆蓋率 + 時序計算狀態
+左側 — 三卡視圖切換（每張：圖示 + 標題 + 為什麼用的副標）:
+  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
+  │ ☰ 章節順序        │ │ ↗ 故事時序        │ │ ▦ 矩陣視圖        │
+  │ 依書中出現順序... │ │ 依事件實際發生... │ │ 章節 × 時序...    │
+  └──────────────────┘ └──────────────────┘ └──────────────────┘
+  （未排序時序時，後 2 張卡右上有黃色 warning dot）
 
 右側:
-  [Filter ▾]
-  [重新計算時序]
+  [⇄ ↕] layout 切換（矩陣模式下隱藏）
+  [☰ 篩選 (n)]  ← n 為已套用群組數
+  [████░ 65% 已分析]  ← QualityChip（hasChronologicalRanks=true 時）
+  [↻ 重新計算時序 / 計算中…]
+  [⎇ Genette 分析 ✓]  [非線性 · 倒敘 3 · 預敘 1]  ← GenettStructureChip（分析完成且覆蓋率足夠時出現）
 ```
 
-#### 3.7.2 時間軸主區
+**GenettStructureChip（`tl-genett-structure-chip`）**：Genette 分析成功後顯示於按鈕右側的細框 badge，顏色依 `story_time_structure`：
+- `linear` → 綠色（`--color-success`）
+- `partially_linear` → 琥珀（`--color-warning`）
+- `non_linear` → 藍紫（`--accent`）
 
-事件節點大小依 `event_importance`（KERNEL 48px / SATELLITE 32px）；顏色依 `narrative_mode`（見 `docs/domain-glossary.md`）。
+覆蓋率不足時不顯示 chip（只有 banner 提示原因）。關閉 banner 後 chip **仍保留**（data 與 banner 解耦）。
 
-連線雙層：底層順序線（虛線低透明度）+ 上層 TemporalRelation 邊（依 confidence 實線或虛線）。
+#### 3.7.2 QualityBanner（hasChronologicalRanks=false 時頂部出現）
 
-Parallel 事件群組：`narrativeMode === 'parallel'` 的連續事件收為群組，外框紫色虛線。
+```
+[⚠]  尚未計算故事時序
+     「故事時序」與「矩陣視圖」需要事件的 chronological rank...
+     已分析 N/M 事件（P%）                       [↻ 重新計算時序]
+```
 
-#### 3.7.3 Filter Dropdown
+橘色 `--color-warning-bg` 底色，把行動 CTA 直接擺在橫幅上引導。
 
-多選 checkbox：事件類型 / 敘事模式 / 角色 / 地點 / 重要性（KERNEL / SATELLITE）。
+#### 3.7.3 ActiveFilters Bar（有套用篩選時出現）
 
-#### 3.7.4 事件詳情面板（右側 320px）
+```
+已套用：[葉文潔 ×] [回敘 ×] [KERNEL ×]   全部清除
+```
 
-accordion 結構：
-1. 事件概要（預設展開）
-2. 時序關係（預設展開）：前驅 / 後續事件（可點擊跳轉）
-3. EEP 證據剖析（預設收合）
-4. 因果分析（有資料時顯示）
-5. 影響分析（有資料時顯示）
+每個 chip 可單獨移除；「全部清除」一鍵 reset filter。
 
-#### 3.7.5 矩陣視圖（Fabula-Sjuzhet Matrix）
+#### 3.7.4 時間軸主區（EventCard 視覺）
 
-X 軸 = 敘事順序（章節），Y 軸 = 故事時序（`chronological_rank` 0.0→1.0）。
-散點顏色依 `narrative_mode`，框選多個散點可批次查看。
-`chronological_rank = null` 的事件放在 Y = -0.1，灰色半透明。
+V2 用卡片化節點取代圓點：
+- 左側 3px (KERNEL) / 5px (KERNEL) 色帶：`::before`，`--card-narrative` 顏色，依 `narrativeMode`
+- **右側 3px 色帶（Genette displacement）**：`::after`，`--card-displacement` 顏色，僅當事件命中 `analepsis_event_ids` 或 `prolepsis_event_ids` 時顯示（加 `.displaced` class）；倒敘 = `--narrative-flashback-border`（藍），預敘 = `--narrative-flashforward-border`（琥珀）；不與左側 narrativeMode 色衝突（左 narrative / 右 displacement）
+- 卡頭：NarrativeIcon（自繪 lucide-style）+ K/S 標籤 + Ch.N
+- 標題（serif，2 行 clamp）+ pills（至多 3 個，超出顯示 +N）
+
+NarrativeIcon 5 種圖示替代原本錄影機字符 `⏪ ⏩ ⏸`（語意錯位）。每個圖示是小型「時間軸 + 跳躍方向」線性圖：
+- **present** — 時間線 + 實心點 + 前進箭頭
+- **flashback** — 時間線 + 往回的弧線箭頭
+- **flashforward** — 時間線 + 向前的弧線箭頭
+- **parallel** — 兩條錯位平行線
+- **unknown** — 虛線圓 + 問號
+
+Parallel 事件群組：`narrativeMode === 'parallel'` 的連續事件收為群組，左側雙線紫色 + 其餘虛線紫框；標題 `⤳ 並行支線`。
+
+SVG overlay：底層 spine polyline（淡灰）+ CAUSES 邊（confidence ≥ 0.5 才畫；≥ 0.8 實線 / < 0.8 虛線）。
+
+#### 3.7.5 Filter Sheet（下拉面板）
+
+chip 風格 toggle（不是 checkbox），分區：事件類型 / 敘事模式 / 重要性 / 角色（含搜尋）/ 地點。
+
+#### 3.7.6 事件詳情面板（右側 360px，hero 風格）
+
+```
+[← 關閉]
+[KERNEL 核心 NarrativeIcon][· 回敘][Ch.5]   ← 上方 meta chip 列
+事件標題（serif, 17px）
+章節標題 · 故事時間提示                       ← subtitle
+┌─ 主題意義 ──────────────────────┐
+│ 葉文潔的紅岸決策……               │  ← thematic block（accent left bar）
+└────────────────────────────────┘
+
+事件概要：description + participants/location pills
+
+時序關係（mini-timeline）：
+  ○─ 前驅 · prior：xxx (Ch.3 · 當下敘事)
+  │
+  ●─ 當前事件：本事件標題 (Ch.5 · rank 0.42)
+  │
+  ○─ 後續 · subsequent：xxx (Ch.7 · 當下敘事)
+
+[EEP 證據剖析 ▾]（預設展開）
+[因果分析 ▸]（預設收合）
+[影響分析 ▸]（預設收合）
+```
+
+當未分析時，hero 下方提供「前往深度分析頁觸發 EEP」CTA。
+
+#### 3.7.7 矩陣視圖（Fabula-Sjuzhet Matrix，V2）
+
+- X 軸 = 章節（離散），Y 軸 = `chronological_rank` 0.0→1.0
+- **頂部邊際 histogram**：每章節事件密度直方圖（accent 色，alpha 隨密度遞增）
+- **45° 對照線**：虛線，表示「完全按故事順序敘事」
+- **degraded row（Y = -0.1）**：warning 色，放 `chronological_rank == null` 事件
+- **Quadrant labels**：「↖ 預敘區 / ↘ 倒敘區 / ⤵ 未排序事件」三象限標籤（Genette 著色開啟時，前兩個隱藏，只保留未排序）
+- **Genette 著色 toggle（`tl-genett-color-toggle`）**：有 genettData 時才顯示於右上角（與象限標籤同層 HTML overlay）；開啟時 dot 顏色改為 displacement_type 著色（analepsis 藍 / prolepsis 琥珀 / linear 灰），legend 同步切換三類；關閉時還原 narrativeMode 著色
+- **45° 對照線標籤**：Genette 著色關閉時顯示「完全按故事順序敘事」，開啟時改為「零位移基準線」
+- Dot 半徑：KERNEL 8 / SATELLITE 5 / 預設 6；顏色依 narrative mode（Genette 著色關閉時）
+- 框選（brush）：未選中 dot opacity 降至 0.15
+- Tooltip：hover 顯示 title / Ch / mode / rank / participants
+
+#### 樣式檔案
+
+`frontend/src/styles/timeline.css`（`.tl-*` prefix），與 character-analysis / event-analysis 並列；不修改 design tokens。
 
 #### API 參考
 
@@ -510,61 +638,88 @@ X 軸 = 敘事順序（章節），Y 軸 = 故事時序（`chronological_rank` 0
 
 > 術語定義（TEU、TensionLine、TensionTheme 等）見 `docs/domain-glossary.md`。
 
-#### 版面結構
+#### 版面結構（2026-05 重設計）
 
 ```
-[主內容區，單欄 maxWidth: 800px 置中]
-  ├─ Header（頁面標題 + 書名）
-  ├─ 三步驟工作流
-  ├─ TensionLine 軌跡圖
-  ├─ TensionLine 審核列表
-  └─ TensionTheme 面板
+[全寬內容區 max-width: 1280px，padding 24px 28px 80px]
+  ├─ Stepper Strip                  (三步驟橫排 strip，內嵌 scope label + 進度條)
+  ├─ Theme Hero / Onboarding Hero   (合成完成 → 命題 hero；尚未 → 三層管線教學)
+  ├─ Trajectory Dashboard           (全寬，章節 TEU 密度 marginal + 每條 line 散點)
+  ├─ Summary Chip Bar               (pending / approved / modified / rejected 統計 + 過濾)
+  └─ TensionLine 審核列表            (LineCard 摘要+展開：thematic_note → carriers → evidence)
 ```
 
-#### 三步驟工作流（StepButton）
+CSS 入口：`frontend/src/styles/tension.css`（class prefix `.tn-*`）。
+元件入口：`frontend/src/components/tension/`（StepperStrip / ThemeHero / OnboardingHero / TrajectoryDashboard / SummaryChips / LineCard / StatusBadge / hooks/useTensionTask）。
 
-每個步驟以卡片按鈕呈現，已完成的步驟顯示綠色邊框 + ✓；執行中顯示 spinner；步驟 3 在步驟 2 未完成時 disabled。
+#### 三步驟 Stepper Strip
 
-| 步驟 | 完成後顯示 |
-|------|----------|
-| Step 1：分析 TEU | 組裝 N 個 TEU，找出 M 個候選 |
-| Step 2：聚合 TensionLine | 找出 N 條張力線 |
-| Step 3：合成 TensionTheme | 主題命題已生成 |
+`.tn-stepper` 把三個 step 水平排在同一卡片中；每格內顯示「scope eyebrow（SCENE / CROSS-SCENE / BOOK）→ label → desc」，狀態語意：
 
-每個步驟 polling 進度，顯示 `stage` 和 `progress`。
+| 視覺狀態 | class | 表現 |
+|----------|-------|------|
+| idle / active | `.tn-step` / `.is-active` | 中性色 num badge，可點 |
+| running | `.is-running` | num badge 變 info 色，inline spinner，底部 2px progress bar 顯示 `progress%` |
+| done | `.is-done` | num badge 變 success 色 + ✓，CTA 改為 ↻（可重跑） |
+| disabled | `disabled` attribute | opacity 0.45，desc 顯示 lock 文案（e.g. `step3.lock` = "需先完成 Step 2"） |
+| error | `.tn-step-error` 橫條 | 對應 step 下方插入 error 橫條（i18n `tension.errors.*`） |
 
-#### TensionLine 軌跡圖
+| 步驟 | 完成後 desc |
+|------|------------|
+| Step 1 TEU 組裝 | `組裝完成 · {assembled} / {candidates} 場景` |
+| Step 2 TensionLine 聚合 | `聚合完成 · {count} 條張力線` |
+| Step 3 TensionTheme 合成 | `主題已合成` |
 
-SVG 橫條圖（`overflowX: auto`）：
-- X 軸 = 章節序號（垂直輔助線）
-- 每條 TensionLine 一列橫條，顯示 `chapter_range` 跨度
-- 橫條顏色依 `intensity_summary`（低→藍，高→橘紅）
-- 被 reject 的 TensionLine `opacity: 0.4`，橫條色退灰
+#### Theme Hero（`.tn-hero`）
 
-#### TensionLine 審核（TensionLineCard）
+合成完成（或 lines 存在但 theme 尚無）時取代舊「面板」配置，作為頁面 anchor：
 
-每條 TensionLine 一張 accordion 卡片，展開後可執行：
-- ✓ **Approve**（綠）：確認這條張力線
-- ✎ **Modify**（藍）：inline 編輯兩極名稱（Pole A / Pole B），送出後狀態變 `modified`
-- ✕ **Reject**（紅）：標記排除
+- **Eyebrow**：`全書張力主題 · TensionTheme` + 右上 StatusBadge
+- **命題**：`<p>` 用 `var(--font-serif)` + `--font-size-2xl`（24px）serif 大字（可 inline 編輯為 `<textarea>`）
+- **Meta 欄**：Frye badge（`data-mode=` 對應 `--frye-*` token）／Booker badge（共用 `--booker-*` + § 字符）／合成來源（line 數）
+- **Actions**：Approve / Modify proposition / Reject（樣式同 LineCard），右下顯示 `assembled_by · assembled_at`
 
-卡片標題列顯示：`PoleA vs PoleB`、TEU 數量、章節跨度、強度百分比、狀態 badge（`pending / approved / modified / rejected`）
+無資料時：渲染 `OnboardingHero` — eyebrow + 引言 + 三張 layer card（TEU SCENE / TensionLine CROSS-SCENE / TensionTheme BOOK）說明三層聚合語意。
 
-狀態對應邊框顏色：
-- pending → 灰
-- approved → 綠
-- modified → 藍
-- rejected → 紅
+#### Trajectory Dashboard（`.tn-traj`）
 
-#### TensionTheme 面板（TensionThemePanel）
+由 SVG 改為 CSS Grid（`grid-template-columns: 200px 1fr`），全寬填滿；不再硬編色：
 
-位於頁面最下方，Step 3 完成後出現。
+- 章節 TEU **密度直方圖**作為 marginal，bar 用 `--accent` + opacity 0.55
+- 每條 line 一列 `.tn-traj-row`：左側 label（poles + meta + 小型 status icon），右側 canvas 顯示橫條
+- 橫條色用 `intensityBucket(intensity_summary)` 對應 `--tension-intensity-{low|mid|high}-{bg,fg,edge}`（不再 hardcode `rgb()`）
+- 每個 TEU 在自己章節位置疊一顆 `.tn-traj-row-dot` 圓點，半徑 = 3 + intensity × 4
+- 點 row 觸發 `onFocus(line.id)` 平滑捲動到下方對應 LineCard
 
-內容：
-- 主題命題（`proposition`）文字，可 inline 編輯
-- Frye Mythos badge（`romance / tragedy / comedy / irony`）
-- Booker Plot badge（7 大基本情節）
-- 審核操作：Approve / Modify proposition / Reject
+#### Summary Chip Bar（`.tn-summary`）
+
+新增的審核 dashboard 條，列在 trajectory 之下、列表之上：
+
+- 「全部 N」+ pending / approved / modified / rejected 四顆 chip（顯示計數，點擊作為列表過濾）
+- 右側「隱藏已拒絕」checkbox + 重新整理按鈕
+
+#### LineCard（`.tn-card`）— **解決盲審**
+
+折疊狀態：chevron + `PoleA vs PoleB` + 80px mini intensity bar + meta（TEU 數 / ch 跨度 / 強度 %）+ StatusBadge。
+
+展開狀態（`.tn-card-body`）依序：
+
+1. `tn-card-note`：line-level `thematic_note`（serif italic 引言區塊；若 grouping LLM 沒回則略過）
+2. `tn-poles` 兩欄：每極顯示 eyebrow + 名稱 + carrier pills（從各 TEU 的 `pole_a_carriers` / `pole_b_carriers` 去重合併）
+3. `tn-evidence`：列出構成此線的 TEU（chapter + 進度條式 intensity bar + tension_description + evidence 引文）。預設 density=summary 顯示第 1 筆 + 「+ 還有 N 則」inline 提示；可點「展開全部 {n} 則」切換為 full
+4. `tn-card-actions`：Approve / Modify Label（inline 編輯 PoleA / PoleB）/ Reject
+
+#### 與舊版差異
+
+| 面向 | 舊版 | 新版 |
+|------|------|------|
+| 版面寬度 | 800px 單欄 | 1280px 全寬 |
+| 三步驟 | 垂直堆疊卡片 | 水平 stepper strip，含 scope eyebrow + 進度條 |
+| 軌跡圖 | 560px SVG，hardcoded rgb() 漸層 | CSS Grid 全寬 dashboard + 密度直方圖 + TEU 散點，色用 `--tension-intensity-*` |
+| LineCard 展開 | 只有三按鈕 | 加 thematic_note + carriers + TEU 證據（解決盲審） |
+| Frye / Booker badge | 借用 entity-org / entity-con 配色 | 獨立 `--frye-*` / `--booker-*` token |
+| 審核總覽 | 散落 | Summary chip bar 集中顯示 + 過濾 |
+| 結構 | 單檔 inline style | `components/tension/*` + `styles/tension.css` |
 
 #### 狀態流程
 
@@ -590,91 +745,215 @@ Step 1 → Step 2 → Step 3 各自獨立觸發
 
 ### 3.9 象徵意象頁 `/books/:bookId/symbols`
 
+頁面分為兩欄：左側清單（240–260px）+ 右側意象詳情。i18n namespace 為 `analysis.json` 的 `symbol.*`（與其他分析頁對齊；舊 `settings.json/symbols.*` 已搬移）。
+
 #### 版面結構
 
 ```
-[Left Panel 240px] [Content Area flex]
+[Left Panel 260px] [Content Area flex]
 ```
 
 #### Left Panel — 意象清單
 
-頂部類型 filter chip（all / object / nature / spatial / body / color / other，依實際資料動態顯示）。
+- 類型 chip row（all / object / nature / spatial / body / color / other；只顯示有資料的類型）
+- 搜尋輸入框（match `term` 與 `aliases`）
+- 排序維度切換：頻率 / 首見 / 審核
+- 清單項：
+  - 類型色點
+  - 詞條（serif）+ polarity dot（若已有 interpretation）
+  - 異體（最多 2 個，` · ` 串接）
+  - DensityStrip — 章節密度縮影（每章一格，依密度上色）
+  - 右側：出現次數 + ReviewBadge（若已有 interpretation）
 
-搜尋欄 + 清單（每項：色點 + 詞條 + 別名 + 出現次數）。
+#### Content Area — 意象詳情
 
-#### Content Area — 意象詳情（SymbolDetail）
+選中意象後依序顯示五個區塊：
 
-選中意象後顯示：
+1. **標題列**：詞條 h1（serif）+ TypePill + 出現次數；下方為異體 pill 列。
+2. **詮釋區（依狀態切換）**：
+   - **生成中**（`InterpretationGenerating`）：中央卡片含五階段 checklist（彙整 SEP 證據檔 / 採樣段落脈絡 N/N / 連結 KG 角色 / LLM 詮釋 / 寫入待審紀錄），上方為整體進度條 + taskId，下方為取消按鈕與輪詢註記。後端 `_run_symbol_analysis` 只 emit 3 個 progress event（10/40/90），前端把 10 之前的三個敘事步視為「assemble SEP」原子塊，達 10 後一起標 done；採樣 N/N 顯示的是 `entity.frequency`（與 `len(sep.occurrence_contexts)` 等價），非逐筆計數。詳見 [`InterpretationGenerating.tsx`](../frontend/src/components/symbols/InterpretationGenerating.tsx) 的 `deriveStages` 註解。
+   - **已生成**（`InterpretationHero`）：
+     - 上：`LLM 詮釋` tag + assembled_by + 日期 + ReviewBadge（右）
+     - 主題命題（serif italic）
+     - polarity 方塊（圖示 + 標籤）+ confidence meter
+     - 證據綜述（evidence_summary）
+     - 相關角色 / 相關事件 chips（從 `linked_characters` / `linked_events`）
+     - HITL 三按鈕（通過 / 修訂 / 駁回）+ 重新生成 ghost 按鈕；按修訂時切換 inline edit theme + polarity → 儲存 / 取消
+   - **尚未生成**（`InterpretationCta`）：sparkles 圖示 + 說明 + 主按鈕「生成 LLM 詮釋」
+3. **章節分布卡（`ChapterDistChart`）**：SVG 長條，密度漸層（low/mid/high）+ 峰值三角 marker（前 3 名章節，client-side 推導）+ hover tooltip + 密度圖例
+4. **共現網絡卡（`CoOccurrencePanel`）**：3 個 tab
+   - 共現意象：彩色 pill grid（依 imagery_type 著色 + 共現次數 chip），點擊切換選中
+   - 共現角色：來自 interpretation.linked_characters，藍 dot + 角色 id（後續可接 KG 跳轉）
+   - 共現事件：來自 interpretation.linked_events，紅 dot + 事件 id
+5. **出現紀錄卡（`OccurrencesTimeline`）**：按章節分組，每組 header「第 N 章 · M 次」+ 分隔線；每筆顯示 `#position` + 前後文（term / aliases highlight）+ 共現詞 tags（最多 3）
 
-1. **標題區**：詞條（serif）+ 類型 pill + 出現頻率 + 別名列表
-2. **章節分布圖（ChapterDistChart）**：SVG 長條圖，X 軸為章節序號，Y 軸為出現次數，右上角顯示首次出現章節
-3. **共現詞（Co-Occurrences）**：同一 chunk 中常與此詞共現的其他意象，以 pill 呈現，點擊 pill → 切換選中意象（支援導覽）
-4. **出現紀錄（Timeline）**：每次出現一列，顯示：Ch.N / #position、前後文 context window、共現詞 tags
+#### 狀態
+
+| 條件 | 顯示 |
+|------|------|
+| list loading | 右側 LoadingSpinner |
+| `entities.length === 0` | EmptyState — `emptyTitle` + `emptyHint` |
+| 未選中且有資料 | EmptyState — `selectPrompt` + `selectPromptDesc` |
+| 選中但 interpretation 不存在（404） | `InterpretationCta` |
+| 選中且 polling | `InterpretationGenerating` |
+| 選中且有 interpretation | `InterpretationHero`（HITL 可操作） |
+
+#### 設計 token
+
+- 意象類型：`--symbol-{object,nature,spatial,body,color,other}-{bg,fg,dot}`（既有）
+- 詮釋極性：`--polarity-{positive,negative,neutral,mixed}-{bg,fg,edge,dot}`（新增）
+- 章節密度：`--symbol-density-{low,mid,high,peak}`（新增）
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#15a（意象列表）、#15b（出現紀錄）、#15c（共現詞）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：
+- 已接：#15a 列表 / #15b 出現紀錄 / #15c 共現詞
+- 本次新接：#15d SEP（保留供後續顯示更詳細證據；目前僅作可選資源）/ #15e 觸發詮釋 / #15f 詮釋 polling / #15g 取得 interpretation / #15h HITL 審核
+
+#### 元件位置
+
+- 主頁：[`frontend/src/pages/SymbolsPage.tsx`](../frontend/src/pages/SymbolsPage.tsx)
+- 元件：[`frontend/src/components/symbols/`](../frontend/src/components/symbols/)
+- CSS：[`frontend/src/styles/symbols.css`](../frontend/src/styles/symbols.css)（`.sym-*` prefix）
+- API caller：[`frontend/src/api/symbols.ts`](../frontend/src/api/symbols.ts)
+- Hook：[`frontend/src/components/symbols/hooks/useSymbolInterpretationTask.ts`](../frontend/src/components/symbols/hooks/useSymbolInterpretationTask.ts)
 
 ---
 
-### 3.10 展開卷軸頁 `/books/:bookId/unraveling`
+### 3.10 建構概覽頁 `/books/:bookId/unraveling`
 
 #### 功能目的
 
-1. **可見性**：讓用戶清楚知道「這本書被分析到了什麼程度」
-2. **診斷性**：功能不可用時，可來此確認哪個資料層尚未建立
+1. **可見性**：讓用戶清楚知道「這本書被分析到了什麼程度」（含全局完成度 %）
+2. **診斷性**：功能不可用時，可來此確認哪個資料層、哪個上游節點尚未建立
 3. **依賴關係的呈現**：DAG 反映建構依賴——同層平行，依賴方向左→右
+4. **行動引導**：選取節點後可直接跳轉到對應頁面（symbols / characters / events / timeline / tension），未來可觸發對應建構 pipeline
 
-#### 版面結構
+#### 版面結構（重設計 Direction A · Diagnostic Dashboard）
 
 ```
-[DAG Canvas — 全幅，支援 pan/zoom] [Detail Panel 280px，點擊節點後展開]
+┌────────────────────────────────────────────────────────────────┐
+│ Summary Strip（頂部，flex-shrink: 0）                          │
+│  ├─ 大百分比 + complete/partial/empty 計數                      │
+│  └─ Stacked bar + 5 個 Layer chips（L0–L4 進度）                │
+├────────────────────────────────────────────────────────────────┤
+│ DAG Canvas（flex 1）              │ Inspector（360px）          │
+│  └─ Cytoscape preset layout      │  ├─ 預設：層次清單           │
+│     pan/zoom + 浮動 toolbar       │  └─ 選中後：節點細節         │
+└────────────────────────────────────────────────────────────────┘
 ```
+
+舊版的 220px 左側 `InfoPanel`、底部 `Legend` 浮層已移除；其功能由 Summary Strip 與 Inspector 取代。
+
+#### Summary Strip
+
+- 左側：`{pct}%` 完成度（大字體）+ 子標題（`complete / partial / empty` 計數 + 總節點數）
+- 右側：14px 高 stacked bar（complete + partial + empty 三段）+ 5 個 Layer chips（L0–L4 各自進度條 + `complete/total` 計數）；點 chip 等同選中該層第一個節點
+
+#### Inspector — 預設「層次清單」
+
+依 Layer 0–4 分組顯示所有節點，每列含狀態點、節點名稱、sub-label（依 nodeId 顯示計數，如 `9 / 12 章`）。點任一節點切換到「節點細節」。
+
+#### Inspector — 「節點細節」
+
+- Header：節點名稱 + `L{n} · {nodeId}` + 狀態 badge
+- **Progress card**（僅在節點有意義 `numerator/denominator` 時顯示）：大數字 + 進度條
+- **章節分佈 sparkline**（僅 5 個支援的節點：`paragraphs / summaries / keywords / kg_event / symbols`）：12-bar mini chart，資料來自 #19b
+- **行動區**（status ≠ complete 時）：
+  - 若有未完成上游依賴：顯示 blocker chips + disabled CTA「需先完成上游 N 個依賴」
+  - 否則：disabled CTA「觸發建構功能規劃中」（Backlog #7 視覺占位）
+  - 若節點對應某書內頁面：顯示 secondary CTA「前往對應頁面瀏覽」（連結至 graph / symbols / characters / events / timeline / tension）
+- **原始計數**：`counts` raw key/value 列表
+- **附加資訊**：`meta` raw key/value 列表
 
 #### DAG 節點層次
 
 | Layer | 節點名稱 | 形狀 |
 |-------|---------|------|
 | 0 — Text Layer | Book Meta / Chapters / Paragraphs | diamond |
-| 1 — KG Layer | Entities / Relations / Events | rectangle |
-| 2 — Analysis Layer | Temporal / Symbols / Character Analysis / Event Analysis / Narrative Structure / Tension Analysis | round-rectangle |
+| 1 — KG Layer | Summaries / Keywords / Symbols + KG compound（Entity / Concept / Relation / Event / Temporal Relation） | rectangle |
+| 2 — Analysis | CEP / EEP / TEU / SEP | round-rectangle |
+| 3 — Derived | Character / Causality / Impact / Tension Lines / Symbol / Narrative / Hero Journey / Temporal / Voice Profile | round-rectangle |
+| 4 — Synthesis | Tension Theme / Chronological Rank | round-rectangle |
 
 #### 節點狀態
 
-| 狀態 | 顏色 |
-|------|------|
+| 狀態 | 顏色（default 主題） |
+|------|----------------------|
 | `complete` | 綠底綠框 |
 | `partial` | 黃底黃框 |
 | `empty` | 灰底灰框 |
 
-**已實作**：點擊節點 → Detail Panel 顯示數量明細（counts）
+`--status-*` token 在 4 主題各自定義；詳見 [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。
 
-**規劃中（尚未實作）**：
-- 展開互動：Detail Panel 瀏覽該層原始資料
-- 觸發互動：`empty/partial` 節點可觸發對應 pipeline 建構
+**已實作**：
+- 全局進度 Summary Strip
+- 點擊節點 → Inspector 切到節點細節（含進度、章節分佈、blockers、跳轉 CTA）
+- DAG 內 highlight + fade 鄰居節點
+
+**規劃中（Backlog）**：
+- Backlog #7：CTA「觸發建構」實際呼叫對應 pipeline endpoint
+- 章節分佈擴展到 `kg_entity` / `kg_concept`（需 domain model 加上 chapter linkage）
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#19（展開卷軸 DAG）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：
+- #19（建構概覽 manifest）
+- #19b（章節分佈，用於 NodeDetail panel）
 
 ---
 
-### 3.11 框架索引頁 `/frameworks`
+### 3.11 方法論頁 `/methodology`
 
-全站層級，不屬於任何書籍。三層閱讀結構：
+> **2026-05-30 重新設計**：原 `/frameworks` 重新定位為 **Methodology（方法論）** 頁面，作為整套分析方法的說明與教育中心。「方法論」「Methodology」皆為暫定佔位名稱，等產品語言確定後一起調整。設計交接見 `methodology-page/` 設計包。
+
+全站層級，不屬於任何書籍。**三欄閱讀結構**：
 
 ```
-[Left Sidebar] [框架列表 200px] [TOC 180px] [文件內容 flex]
+[Left Sidebar 48px] [方法論導覽 262px] [主內容 flex] [本頁目錄 188px]
 ```
 
-框架分組：角色分析（Jung 12 / Schmidt 45）、事件分析（敘事理論）、未來框架（佔位）。
+- **左欄方法論導覽**：依分析類型分群（角色分析 / 敘事弧 / 張力 / 象徵），每群可收合（搜尋時自動展開）；首項為「總覽」入口。
+- **主內容**：總覽頁顯示分類卡 + 方法列；點任一方法進入單一方法頁。
+- **頂部分頁**：理論與方法（About）/ 跨書查閱（Cross-book）；流程型方法（如 SEP）自動停用跨書分頁。
+- **右側本頁目錄**：sticky 錨點 TOC，scroll-spy 高亮當前章節。
+
+#### 單一方法頁閱讀流程
+
+引言 → **概念架構**（每個方法獨立設計的概念圖）→ 類型一覽（卡片網格）→ 系統如何分析（pipeline + 輸出欄位）→ **分析品質與信心值**（amber 誠實說明框 + 三層級唯讀說明）→ 參考文獻。
+
+| 方法 | 概念圖 |
+|------|--------|
+| Jung 原型 | 12 原型輪盤 + 4 動機取向象限 |
+| Schmidt 類型 | 性別對偶雙欄（8 女性 + 8 男性 + 配角／反派 = 45） |
+| 英雄旅程 | 12 階段環形圖（平凡／非常世界雙半球） |
+| Frye 四季神話 | 四季 × 四神話圓環 |
+| Booker 七情節 | 七條「故事形狀」曲線 |
+| SEP 象徵分析 | 資料層 → 詮釋層狀態流程（含 HITL 退回回饋線） |
+
+#### 信心值說明（amber 誠實框）
+
+刻意保留的設計重點：信心值是 LLM 推論當下的自我評估，非可逐項稽核的確定性公式。三個層級為唯讀說明（已確立 / 推定 / 暫定），**頁面內不提供滑桿類互動**——避免暗示信心值是可計算的。
+
+#### 跨書查閱（Coming soon）
+
+當前為佔位空殼，標「即將推出」。需接後端真實聚合結果，計劃支援列表與矩陣兩種視圖、右側細節面板。
 
 #### 從角色分析頁跳入
 
 ```
-/frameworks?framework=jung     → 自動選中 Jung 原型
-/frameworks?framework=schmidt  → 自動選中 Schmidt 類型
+/methodology?framework=jung     → 自動選中 Jung 原型（About 分頁）
+/methodology?framework=schmidt  → 自動選中 Schmidt 類型
 ```
+
+#### 元件位置
+
+| 區塊 | 位置 |
+|------|------|
+| 頁面入口 | `frontend/src/pages/MethodologyPage.tsx` |
+| 概念圖（六種） | `frontend/src/components/methodology/ConceptDiagram.tsx` |
+| 範圍 CSS | `frontend/src/styles/methodology.css` |
+| 資料來源 | `frontend/src/data/frameworksData.ts`（含 `pipeline / output / categoryId / crossBook`） |
 
 ---
 
@@ -778,6 +1057,45 @@ Prompt Tokens / Completion Tokens / 總請求次數
 
 ---
 
+### 3.14 敘事結構頁 `/books/:bookId/narrative`
+
+張力（3.8）、符號（3.9）之外的第三條平行分析線。i18n namespace 為 `analysis.json` 的 `narrative.*`。頁面為單欄垂直捲動，分兩個 section：上方英雄旅程主視圖（佔大部分），下方情節骨幹摘要次區塊。
+
+#### 版面結構
+
+```
+[英雄旅程區塊 — 主視圖：標題列 + HITL + 佈局切換器 + 選定佈局]
+[情節骨幹摘要 — 次區塊：比例條 + 統計 + 核心事件骨幹 + 跳轉]
+```
+
+#### 英雄旅程主視圖（`HeroJourneySection`）
+
+- **標題列**：「英雄旅程」h2（serif）+ 副標（Campbell · Vogler 12 階段）；下方為「已映射 N／12 階段」+「缺席的階段是有意義的敘事選擇，而非未完成」原則註記。右側為**書級** HITL：核可 / 標記不適用 按鈕 + ReviewBadge（走 #21l）。
+- **佈局切換器**：segmented control，四種佈局並存可切換：
+  - **A 水平軌跡（`LayoutTrack`）**：departure→initiation→return 三相位橫向流，12 階段 disc + 底部詳情抽屜。
+  - **B 三相位分欄（`LayoutColumns`）**：三欄堆疊階段列 + 右側固定詳情面板（360px）。
+  - **C 圓環循環（`LayoutRing`）**：Campbell 環形 monomyth，中心顯示選定階段詳情，虛線分隔平凡／特殊世界。
+  - **D 章節對位帶（`LayoutBand`）**：甘特式條帶（x 軸＝章節），一眼可見階段重疊與缺席。
+- **三態視覺語言**（一眼可區分，不用進度條語意）：
+  - `filled`（conf ≥ 0.6）：accent 填色，深淺隨 confidence 加深。
+  - `low`（0 < conf < 0.6）：警示三角（`--color-warning`）+ 虛線邊框。
+  - `absent`（chapter_range 空）：虛線空殼顯示「—」，不留空白。
+- **點擊展開詳情（`StageDetail`）**：相位 + 章節 + 階段名 + 狀態徽章 + confidence meter + 系統詮釋 notes + 代表性 Kernel 事件 pill + 理論描述／敘事功能（理論文案取自 `frameworksData.ts` hero_journey，localized）。
+- **Legend**：filled / low / absent 三態圖例。
+
+#### 情節骨幹摘要（`PlotSpine`）
+
+- 標題列 + 分類來源 chip（啟發式／LLM／人工驗證）+ ReviewBadge。
+- Kernel / Satellite / Unclassified 比例條 + 計數 + 總事件數。
+- 核心事件骨幹：依章節排列的 kernel 事件時間線（上下交錯標籤）。
+- 底部「前往事件分析頁」跳轉（Kernel/Satellite 細節在事件分析頁）。
+
+#### API 參考
+
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#21e（觸發英雄旅程）、#21f（polling）、#21k（取 NarrativeStructure）、#21j（kernel-spine）、#21l（HITL 書級審核）。封裝於 `frontend/src/api/narrative.ts`。
+
+---
+
 ## 4. 全局元件
 
 ### 4.1 ChatWidget（浮動聊天泡泡）
@@ -858,7 +1176,7 @@ WebSocket 連線，含訊息列表 + 輸入框。
 4. **框架索引反查角色**：從原型反查書中對應角色，需配合書籍層級資料對接。
 5. **全站搜尋**：sidebar 搜尋 icon 為未來功能佔位。
 6. **知識圖譜 → 閱讀頁定位**：從圖譜段落面板點擊 chunk，跳轉至閱讀頁並定位對應位置。
-7. **展開卷軸 — 觸發互動**：在 UnravelingPage 的 Detail Panel 內直接觸發對應 pipeline 建構。
+7. **建構概覽 — 觸發互動**：在 UnravelingPage 的 Detail Panel 內直接觸發對應 pipeline 建構。
 8. **時間軸 — 因果鏈聚焦模式**：toggle 僅顯示 `relation_type = causes` 的邊與相關事件。
 9. **時間軸 — 角色弧線模式**：選定角色後，僅顯示該角色參與的事件。
 10. **設定頁大改版**：當前 KG backend 切換方式過於技術導向，未來改為更清晰的儲存後端設定模式，或由系統自動管理。

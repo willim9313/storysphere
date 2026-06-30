@@ -36,3 +36,21 @@ class TemporalAnalysisRequest(BaseModel):
     document_id: str
     language: str = "en"
     force: bool = False
+
+
+class KernelSpineEvent(BaseModel):
+    """One kernel event in the plot spine (response shape for #21j).
+
+    Mirrors the dict assembled in ``get_kernel_spine``. Field names stay
+    snake_case (no camel alias) to match the existing JSON contract.
+    """
+
+    id: str
+    title: str
+    chapter: int
+    event_type: str
+    description: str
+    significance: str | None = None
+    narrative_weight: str
+    narrative_weight_source: str | None = None
+    narrative_position: int | None = None

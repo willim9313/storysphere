@@ -46,7 +46,6 @@ class AnalyzeCharacterTool(BaseTool):
         self,
         entity_id: str,
         document_id: str = "",
-        archetype_frameworks: list[str] | None = None,
         language: str = "en",
     ) -> str:
         if self.analysis_agent is None:
@@ -56,7 +55,7 @@ class AnalyzeCharacterTool(BaseTool):
             result = await self.analysis_agent.analyze_character(
                 entity_name=entity_id,
                 document_id=document_id,
-                archetype_frameworks=archetype_frameworks,
+                archetype_frameworks=["jung", "schmidt"],
                 language=language,
             )
 
@@ -81,9 +80,8 @@ class AnalyzeCharacterTool(BaseTool):
         self,
         entity_id: str,
         document_id: str = "",
-        archetype_frameworks: list[str] | None = None,
         language: str = "en",
     ) -> str:
         return asyncio.get_event_loop().run_until_complete(
-            self._arun(entity_id, document_id, archetype_frameworks, language)
+            self._arun(entity_id, document_id, language)
         )

@@ -19,6 +19,7 @@ class DocumentSummary(BaseModel):
     title: str = Field(description="Book title")
     file_type: str = Field(description="Source file type (pdf | docx)")
     chapter_count: int = Field(description="Number of chapters")
+    pipeline_status_json: str | None = Field(default=None, description="JSON-encoded PipelineStatus")
 
 
 class ChapterKeywordMatch(BaseModel):

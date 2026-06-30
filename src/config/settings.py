@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import logging
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal, Optional
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Settings(BaseSettings):
@@ -22,13 +26,17 @@ class Settings(BaseSettings):
     )
 
     # ── LLM Providers ──────────────────────────────────────────────────────────
-    gemini_api_key: str = Field(default="", description="Google Gemini API key (primary)")
+    primary_llm_provider: Literal["gemini", "openai", "anthropic", "local"] = Field(
+        default="gemini",
+        description="Primary LLM provider. Only this provider's API key is required.",
+    )
+    gemini_api_key: str = Field(default="", description="Google Gemini API key")
     gemini_model: str = "gemini-2.0-flash"
 
-    openai_api_key: str = Field(default="", description="OpenAI API key (fallback)")
+    openai_api_key: str = Field(default="", description="OpenAI API key")
     openai_model: str = "gpt-4o-mini"
 
-    anthropic_api_key: str = Field(default="", description="Anthropic API key (second fallback)")
+    anthropic_api_key: str = Field(default="", description="Anthropic API key")
     anthropic_model: str = "claude-3-5-haiku-latest"
 
     # Local LLM — OpenAI-compatible endpoint (llama.cpp server / Ollama / LM Studio)
@@ -45,10 +53,14 @@ class Settings(BaseSettings):
     # ── Database ───────────────────────────────────────────────────────────────
     database_url: str = "sqlite+aiosqlite:///./storysphere.db"
 
+    # ── Deployment Mode ────────────────────────────────────────────────────────
+    deploy_mode: Literal["lightweight", "standard"] = "lightweight"
+
     # ── Vector DB (Qdrant) ─────────────────────────────────────────────────────
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str = ""
     qdrant_collection_prefix: str = "storysphere_book"
+    qdrant_local_path: str = "./data/qdrant_local"
 
     # ── Knowledge Graph ────────────────────────────────────────────────────────
     kg_mode: Literal["networkx", "neo4j"] = "networkx"
@@ -172,13 +184,17 @@ class Settings(BaseSettings):
 
     # ── Task Store ─────────────────────────────────────────────────────────────
     task_store_backend: Literal["memory", "sqlite"] = Field(
-        default="memory", description="Task status store: 'memory' (dev) or 'sqlite' (multi-worker)"
+        default="sqlite", description="Task status store: 'memory' (dev) or 'sqlite' (multi-worker)"
     )
     task_store_db_path: str = Field(
         default="./data/tasks.db", description="SQLite path for task store (only used when backend=sqlite)"
     )
     task_store_ttl_days: int = Field(
         default=30, description="Days to retain completed/failed tasks in SQLite store (0 = keep forever)"
+    )
+    ingestion_checkpoint_db_path: str = Field(
+        default="./data/ingestion_checkpoints.db",
+        description="SQLite path for LangGraph ingestion graph checkpoints",
     )
 
     # ── Application ────────────────────────────────────────────────────────────
@@ -188,7 +204,26 @@ class Settings(BaseSettings):
     app_host: str = "0.0.0.0"
     app_port: int = 8000
 
+    # ── Validators ────────────────────────────────────────────────────────────
+    @model_validator(mode="after")
+    def enforce_lightweight_constraints(self) -> Settings:
+        if self.deploy_mode == "lightweight" and self.kg_mode != "networkx":
+            logger.warning(
+                "deploy_mode=lightweight forces kg_mode=networkx (ignoring kg_mode=%s)",
+                self.kg_mode,
+            )
+            self.kg_mode = "networkx"
+        return self
+
     # ── Derived helpers ────────────────────────────────────────────────────────
+    @property
+    def qdrant_mode(self) -> Literal["local", "remote"]:
+        return "local" if self.deploy_mode == "lightweight" else "remote"
+
+    @property
+    def qdrant_local_path_absolute(self) -> Path:
+        return Path(self.qdrant_local_path).resolve()
+
     @property
     def is_development(self) -> bool:
         return self.app_env == "development"

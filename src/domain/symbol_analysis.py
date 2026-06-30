@@ -50,6 +50,13 @@ class SEP(BaseModel):
         default_factory=list,
         description="Entity IDs mentioned in paragraphs where this imagery occurs",
     )
+    co_occurring_entity_counts: dict[str, int] = Field(
+        default_factory=dict,
+        description=(
+            "Per-entity count of imagery occurrences whose paragraph mentions "
+            "the entity. Used by the UI to display 'N co-occurrences' hints."
+        ),
+    )
     co_occurring_event_ids: list[str] = Field(
         default_factory=list,
         description="Event IDs occurring in chapters where this imagery appears",

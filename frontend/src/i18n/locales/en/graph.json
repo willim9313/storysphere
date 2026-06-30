@@ -45,13 +45,24 @@
     }
   },
   "stats": "{{nodes}} nodes · {{edges}} relations",
+  "statsInferred": "+{{n}} inferred",
+  "statsNodeLabel": "nodes",
+  "statsEdgeLabel": "relations",
+  "statsFactionLabel": "factions",
+  "statsAggregatedEdgeLabel": "aggregated",
+  "statsUnderlyingNodeLabel": "underlying nodes",
   "panel": {
     "entityInfo": "Entity Info",
     "deepAnalysis": "Deep Analysis",
     "relatedParagraphs": "Related Paragraphs",
     "eventInfo": "Event Info",
     "participants": "Participants",
-    "eventAnalysis": "Event Analysis"
+    "eventAnalysis": "Event Analysis",
+    "appearancesMeta": "{{count}} appearances",
+    "bookmark": "Bookmark",
+    "bookmarked": "Bookmarked",
+    "regenerate": "Regenerate",
+    "paragraphsCount": "{{count}}"
   },
   "entity": {
     "appearances": "Appears in {{count}} paragraphs",
@@ -88,5 +99,108 @@
     "total": "{{count}} paragraphs total",
     "chapterTitle": "Chapter {{chapter}}",
     "noData": "No related paragraph data yet."
+  },
+  "v1": {
+    "toolbar": {
+      "searchPlaceholder": "Search entities…",
+      "reset": "Reset",
+      "inferredChip": "Inferred · {{n}}"
+    },
+    "cluster": {
+      "label": "Cluster mode",
+      "mode": {
+        "node": "Nodes",
+        "type": "By type",
+        "community": "Community"
+      },
+      "overview": "Cluster overview",
+      "drillInTitle": "{{typeName}} cluster · {{n}} members",
+      "drillInFactionTitle": "{{name}} · {{n}} members",
+      "members": "{{n}} members",
+      "memberCount": "{{n}}",
+      "noTopMembers": "(no members)",
+      "sortImportance": "By importance",
+      "sortName": "By name",
+      "back": "Back",
+      "toggleSort": "Toggle sort",
+      "cohesion": "Cohesion {{v}}",
+      "unaffiliated": "Unaffiliated ({{n}})",
+      "drillIn": {
+        "summary": "Faction summary",
+        "summaryBody": "{{n}} characters; core members {{top}}; cohesion {{cohesion}}.",
+        "outward": "Outward relations ({{n}})"
+      },
+      "settings": {
+        "heading": "Cluster settings",
+        "algorithm": "Algorithm",
+        "resolution": "Resolution",
+        "minSize": "Min cluster size",
+        "recompute": "Recompute"
+      }
+    },
+    "search": {
+      "section": {
+        "entity": "Entities",
+        "chapter": "Chapters",
+        "paragraph": "Paragraphs"
+      },
+      "noResults": "No matches",
+      "entityMeta": "{{count}} appearances",
+      "chapterMeta": "Chapter {{order}}",
+      "paragraphComingSoon": "Full-text search pending backend",
+      "kbd": {
+        "navigate": "Navigate",
+        "select": "Select",
+        "close": "Close",
+        "advanced": "Advanced search"
+      }
+    },
+    "inferred": {
+      "review": {
+        "title": "Inferred review · {{n}}",
+        "evidence": "Evidence",
+        "evidenceFallback": "{{common}} common neighbors · Adamic-Adar {{score}}",
+        "adopt": "Adopt",
+        "reject": "Reject",
+        "empty": "No inferred relations awaiting review",
+        "rerun": "Re-run",
+        "rerunTitle": "Recompute scores (keeps past decisions)",
+        "rerunForce": "Reset",
+        "rerunForceTitle": "Reset all decisions and recompute",
+        "rerunForceConfirm": "This resets every adopted / rejected decision back to pending. Relations already written to the graph remain, but they will reappear here for review. Continue?",
+        "rerunning": "Recomputing…"
+      }
+    },
+    "compare": {
+      "title": "Compare",
+      "suggested": "Suggested inferences",
+      "noSuggested": "No candidate inferences between them yet.",
+      "basicInfo": "Basic info",
+      "appearances": "Appearances",
+      "attributes": "Attributes",
+      "type": "Type",
+      "appearanceCount": "Appearance count"
+    },
+    "legend": {
+      "title": "Legend / Layers",
+      "inferred": "Inferred"
+    },
+    "lens": {
+      "title": "Lens",
+      "subtitle": "Lens · Chapter {{n}} / {{total}}",
+      "subtitleAll": "Lens · All chapters",
+      "timeline": "Time Range",
+      "epistemic": "Perspective",
+      "bookmarks": "Bookmarks",
+      "chapter": "Chapter {{n}} / {{total}}",
+      "allChapters": "All",
+      "selectPerspective": "Choose perspective",
+      "perspectiveOf": "{{name}}'s view",
+      "perspectiveHint": "depends on ↑ chapter {{chapter}}",
+      "clearPerspective": "Clear perspective",
+      "noCharacters": "No characters available",
+      "noBookmarks": "No bookmarked entities",
+      "removeBookmark": "Remove bookmark"
+    }
   }
 }

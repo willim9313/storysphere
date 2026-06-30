@@ -1,0 +1,112 @@
+/* Narrative Structure page — Hero's Journey + Plot Spine.
+ * All colors via CSS tokens (see DESIGN_TOKENS.md); no hard-coded hues. */
+
+.nl-scroll {
+  background: var(--bg-primary);
+  height: 100%;
+  overflow-y: auto;
+}
+
+.nl-page,
+.nl-page * {
+  box-sizing: border-box;
+}
+
+.nl-page {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px 28px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-height: 100%;
+}
+
+/* Section cards — shared shell for hero journey + plot spine. */
+.nl-card {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 26px;
+  background: var(--bg-primary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+[data-theme='pulp'] .nl-card {
+  box-shadow: var(--node-shadow);
+}
+
+/* Jump-to-events button (plot spine). */
+.nl-jump-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  padding: 8px 15px;
+  border-radius: var(--radius-md);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  transition: background-color var(--transition-fast);
+}
+.nl-jump-btn:hover {
+  background: var(--bg-tertiary);
+}
+
+/* Empty / onboarding state. */
+.nl-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+  padding: 72px 24px;
+}
+.nl-empty-icon {
+  color: var(--accent);
+  opacity: 0.55;
+  margin-bottom: 6px;
+}
+.nl-empty-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.nl-empty-msg {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  color: var(--fg-muted);
+  max-width: 52ch;
+  line-height: 1.6;
+}
+.nl-empty-error {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+}
+.nl-trigger-btn {
+  margin-top: 14px;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  padding: 9px 20px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: var(--accent);
+  color: var(--bg-primary);
+  transition: opacity var(--transition-fast);
+}
+.nl-trigger-btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}

@@ -1,31 +1,42 @@
 import { useState } from 'react';
-import { X, ChevronDown, ChevronRight, Loader, AlertTriangle } from 'lucide-react';
+import { X, ChevronDown, ChevronRight, Loader, AlertTriangle, Pin } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchEntityAnalysis, triggerEntityAnalysis } from '@/api/analysis';
+import { fetchEntityChunks } from '@/api/chunks';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 
 import type { GraphNode, EntityType } from '@/api/types';
 
-const pillClass: Record<EntityType, string> = {
-  character: 'pill-char',
-  location: 'pill-loc',
-  organization: 'pill-org',
-  object: 'pill-obj',
-  concept: 'pill-con',
-  other: 'pill-other',
-  event: 'pill-evt',
+const PILL_KEY: Record<EntityType, string> = {
+  character: 'char',
+  location: 'loc',
+  organization: 'org',
+  object: 'obj',
+  concept: 'con',
+  other: 'other',
+  event: 'evt',
 };
 
 interface EntityDetailPanelProps {
-  node: GraphNode;
-  bookId: string;
-  onClose: () => void;
-  onShowAnalysis: () => void;
-  onShowParagraphs: () => void;
+  readonly node: GraphNode;
+  readonly bookId: string;
+  readonly onClose: () => void;
+  readonly onShowAnalysis: () => void;
+  readonly onShowParagraphs: () => void;
+  readonly isBookmarked?: boolean;
+  readonly onBookmarkToggle?: () => void;
 }
 
-export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onShowParagraphs }: EntityDetailPanelProps) {
+export function EntityDetailPanel({
+  node,
+  bookId,
+  onClose,
+  onShowAnalysis,
+  onShowParagraphs,
+  isBookmarked,
+  onBookmarkToggle,
+}: EntityDetailPanelProps) {
   const { t } = useTranslation('graph');
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['info', 'analysis']));
   const [genTaskId, setGenTaskId] = useState<string | null>(null);
@@ -36,11 +47,20 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
     retry: false,
   });
 
+  const { data: chunksData } = useQuery({
+    queryKey: ['books', bookId, 'entities', node.id, 'chunks'],
+    queryFn: () => fetchEntityChunks(bookId, node.id),
+  });
+  const paragraphCount = chunksData?.total ?? null;
+
   const [triggerError, setTriggerError] = useState<string | null>(null);
 
   const triggerMut = useMutation({
     mutationFn: () => triggerEntityAnalysis(bookId, node.id),
-    onSuccess: (data) => { setTriggerError(null); setGenTaskId(data.taskId); },
+    onSuccess: (data) => {
+      setTriggerError(null);
+      setGenTaskId(data.taskId);
+    },
     onError: () => setTriggerError(t('entity.triggerFailed')),
   });
 
@@ -57,115 +77,201 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
 
   return (
     <div
-      className="flex-shrink-0 h-full overflow-y-auto"
+      className="flex-shrink-0 h-full flex flex-col overflow-hidden"
       style={{
         width: 260,
         backgroundColor: 'var(--panel-bg)',
         borderLeft: '1px solid var(--panel-border)',
       }}
     >
-      {/* Header */}
+      {/* Header — serif h3 entity name + X close */}
       <div
-        className="flex items-center justify-between p-3"
-        style={{ borderBottom: '1px solid var(--panel-border)' }}
+        className="flex items-center justify-between flex-shrink-0"
+        style={{ padding: '12px 14px', borderBottom: '1px solid var(--panel-border)' }}
       >
         <h3
-          className="text-sm font-semibold truncate"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--panel-fg)' }}
+          className="truncate"
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 'var(--font-size-lg, 18px)',
+            fontWeight: 700,
+            color: 'var(--panel-fg)',
+            margin: 0,
+          }}
         >
           {node.name}
         </h3>
-        <button onClick={onClose} style={{ color: 'var(--panel-fg-muted)' }}>
-          <X size={16} />
+        <button
+          onClick={onClose}
+          style={{ color: 'var(--panel-fg-muted)', background: 'none', border: 0, cursor: 'pointer' }}
+          aria-label="Close"
+        >
+          <X size={14} />
         </button>
       </div>
 
-      {/* Sections */}
-      <div className="p-2 space-y-1">
-        {/* Entity Info */}
-        <AccordionSection
-          title={t('panel.entityInfo')}
-          sectionKey="info"
-          isOpen={openSections.has('info')}
-          onToggle={toggleSection}
-        >
-          <span className={`pill ${pillClass[node.type]}`}>
-            <span className="pill-dot" />
-            {node.type}
+      {/* Body */}
+      <div
+        className="flex-1 overflow-y-auto flex flex-col"
+        style={{ padding: '12px 14px', gap: 14 }}
+      >
+        {/* Meta row: pill + appearances + bookmark toggle */}
+        <div className="flex items-center flex-wrap" style={{ gap: 6 }}>
+          <Pill type={node.type}>{t(`entityTypes.${node.type}`)}</Pill>
+          <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)' }}>
+            {t('panel.appearancesMeta', { count: node.chunkCount })}
           </span>
-          {node.description && (
-            <p className="text-xs mt-2 leading-relaxed" style={{ color: 'var(--panel-fg)' }}>
-              {node.description}
-            </p>
+          {onBookmarkToggle && (
+            <button
+              onClick={onBookmarkToggle}
+              className="inline-flex items-center"
+              style={{
+                marginLeft: 'auto',
+                gap: 3,
+                background: 'none',
+                border: 0,
+                cursor: 'pointer',
+                fontSize: 'var(--font-size-2xs)',
+                color: isBookmarked ? 'var(--accent)' : 'var(--panel-fg-muted)',
+                fontFamily: 'inherit',
+              }}
+              aria-pressed={isBookmarked}
+            >
+              <Pin size={11} fill={isBookmarked ? 'currentColor' : 'none'} />
+              {isBookmarked ? t('panel.bookmarked') : t('panel.bookmark')}
+            </button>
           )}
-          <p className="text-xs mt-1" style={{ color: 'var(--panel-fg-muted)' }}>
-            {t('entity.appearances', { count: node.chunkCount })}
-          </p>
-        </AccordionSection>
+        </div>
 
-        {/* Deep Analysis */}
-        <AccordionSection
+        {/* 實體資訊 */}
+        <Section
+          title={t('panel.entityInfo')}
+          isOpen={openSections.has('info')}
+          onToggle={() => toggleSection('info')}
+        >
+          {node.description ? (
+            <SectionBody>
+              <p>{node.description}</p>
+            </SectionBody>
+          ) : (
+            <SectionBody muted>
+              <p>{t('entity.noAnalysis')}</p>
+            </SectionBody>
+          )}
+        </Section>
+
+        {/* 深度分析 — 僅 character 有後端支援 */}
+        {node.type === 'character' && <Section
           title={t('panel.deepAnalysis')}
-          sectionKey="analysis"
           isOpen={openSections.has('analysis')}
-          onToggle={toggleSection}
+          onToggle={() => toggleSection('analysis')}
+          headerExtra={
+            analysis ? (
+              <button
+                onClick={() => triggerMut.mutate()}
+                disabled={triggerMut.isPending}
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: 'var(--font-size-2xs)',
+                  color: 'var(--accent)',
+                  background: 'none',
+                  border: 0,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: 2,
+                  fontFamily: 'inherit',
+                }}
+              >
+                {t('panel.regenerate')}
+              </button>
+            ) : null
+          }
         >
           {analysisLoading ? (
             <div className="flex items-center gap-2">
-              <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
-              <span className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>{t('entity.loading')}</span>
+              <Loader
+                size={12}
+                className="animate-spin"
+                style={{ color: 'var(--panel-fg-muted)' }}
+              />
+              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)' }}>
+                {t('entity.loading')}
+              </span>
             </div>
           ) : analysis ? (
-            <div className="space-y-2">
-              <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>
-                {t('entity.generated', { date: new Date(analysis.generatedAt).toLocaleDateString() })}
-              </p>
+            <>
+              <SectionBody>
+                <p style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)', marginBottom: 6 }}>
+                  {t('entity.generated', {
+                    date: new Date(analysis.generatedAt).toLocaleDateString(),
+                  })}
+                </p>
+              </SectionBody>
               <button
-                className="text-xs px-2 py-1 rounded"
-                style={{ backgroundColor: 'var(--panel-bg-card)', color: 'var(--panel-fg)', border: '1px solid var(--panel-border)' }}
                 onClick={onShowAnalysis}
+                style={{
+                  marginTop: 6,
+                  fontSize: 'var(--font-size-2xs)',
+                  color: 'var(--accent)',
+                  background: 'none',
+                  border: 0,
+                  cursor: 'pointer',
+                  textDecoration: 'underline',
+                  textUnderlineOffset: 2,
+                  fontFamily: 'inherit',
+                  textAlign: 'left',
+                  padding: 0,
+                }}
               >
                 {t('entity.viewAnalysis')}
               </button>
-            </div>
+            </>
           ) : genTask?.status === 'error' ? (
             <div className="space-y-2">
               <div className="flex items-center gap-1">
-                <AlertTriangle size={12} style={{ color: 'var(--danger, #e53e3e)' }} />
-                <span className="text-xs" style={{ color: 'var(--danger, #e53e3e)' }}>
-                  {t('entity.analysisFailed')}{genTask.error ? `：${genTask.error}` : ''}
+                <AlertTriangle size={12} style={{ color: 'var(--color-error)' }} />
+                <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-error)' }}>
+                  {t('entity.analysisFailed')}
+                  {genTask.error ? `：${genTask.error}` : ''}
                 </span>
               </div>
               <button
                 className="text-xs px-2 py-1 rounded"
-                style={{ backgroundColor: 'var(--accent)', color: 'white' }}
-                onClick={() => { setGenTaskId(null); triggerMut.reset(); }}
+                style={{ backgroundColor: 'var(--accent)', color: 'var(--bg-primary)' }}
+                onClick={() => {
+                  setGenTaskId(null);
+                  triggerMut.reset();
+                }}
               >
                 {t('entity.retry')}
               </button>
             </div>
           ) : genTaskId && genTask && genTask.status !== 'done' ? (
             <div className="flex items-center gap-2">
-              <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
-              <span className="text-xs" style={{ color: 'var(--panel-fg)' }}>
+              <Loader
+                size={12}
+                className="animate-spin"
+                style={{ color: 'var(--panel-fg-muted)' }}
+              />
+              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg)' }}>
                 {genTask.stage} ({genTask.progress}%)
               </span>
             </div>
           ) : genTaskId && genTask?.status === 'done' ? (
-            <p className="text-xs" style={{ color: 'var(--panel-fg)' }}>
-              {t('entity.analysisDone')}
-            </p>
+            <SectionBody>
+              <p>{t('entity.analysisDone')}</p>
+            </SectionBody>
           ) : (
-            <div className="space-y-2">
-              <p className="text-xs" style={{ color: 'var(--panel-fg-muted)' }}>
-                {t('entity.noAnalysis')}
-              </p>
+            <div className="flex flex-col" style={{ gap: 6 }}>
+              <SectionBody muted>
+                <p>{t('entity.noAnalysis')}</p>
+              </SectionBody>
               {triggerError && (
-                <p className="text-xs" style={{ color: 'var(--danger, #e53e3e)' }}>{triggerError}</p>
+                <p style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-error)' }}>{triggerError}</p>
               )}
               <button
                 className="text-xs px-2 py-1 rounded"
-                style={{ backgroundColor: 'var(--accent)', color: 'white' }}
+                style={{ backgroundColor: 'var(--accent)', color: 'var(--bg-primary)' }}
                 onClick={() => triggerMut.mutate()}
                 disabled={triggerMut.isPending}
               >
@@ -173,63 +279,158 @@ export function EntityDetailPanel({ node, bookId, onClose, onShowAnalysis, onSho
               </button>
             </div>
           )}
-        </AccordionSection>
+        </Section>}
 
-        {/* Related Paragraphs */}
-        <AccordionSection
+        {/* 相關段落 (collapsed by default, right-aligned count) */}
+        <Section
           title={t('panel.relatedParagraphs')}
-          sectionKey="paragraphs"
           isOpen={openSections.has('paragraphs')}
-          onToggle={toggleSection}
+          onToggle={() => toggleSection('paragraphs')}
+          headerExtra={
+            paragraphCount !== null ? (
+              <span
+                style={{
+                  marginLeft: 'auto',
+                  fontSize: 'var(--font-size-2xs)',
+                  color: 'var(--panel-fg-muted)',
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {t('panel.paragraphsCount', { count: paragraphCount })}
+              </span>
+            ) : null
+          }
         >
-          <p className="text-xs mb-2" style={{ color: 'var(--panel-fg-muted)' }}>
-            {t('entity.paragraphCount', { count: node.chunkCount })}
-          </p>
+          <SectionBody>
+            <p>{paragraphCount !== null ? t('entity.paragraphCount', { count: paragraphCount }) : ''}</p>
+          </SectionBody>
           <button
-            className="text-xs px-2 py-1 rounded"
-            style={{ backgroundColor: 'var(--panel-bg-card)', color: 'var(--panel-fg)', border: '1px solid var(--panel-border)' }}
             onClick={onShowParagraphs}
+            style={{
+              marginTop: 6,
+              fontSize: 'var(--font-size-2xs)',
+              color: 'var(--accent)',
+              background: 'none',
+              border: 0,
+              cursor: 'pointer',
+              textDecoration: 'underline',
+              textUnderlineOffset: 2,
+              fontFamily: 'inherit',
+              textAlign: 'left',
+              padding: 0,
+            }}
           >
             {t('entity.viewParagraphs')}
           </button>
-        </AccordionSection>
+        </Section>
       </div>
     </div>
   );
 }
 
-function AccordionSection({
-  title,
-  sectionKey,
-  isOpen,
-  onToggle,
+interface SectionProps {
+  readonly title: string;
+  readonly isOpen: boolean;
+  readonly onToggle: () => void;
+  readonly headerExtra?: React.ReactNode;
+  readonly children?: React.ReactNode;
+}
+
+function Section({ title, isOpen, onToggle, headerExtra, children }: SectionProps) {
+  return (
+    <div>
+      <button
+        onClick={onToggle}
+        className="flex items-center w-full text-left"
+        style={{
+          gap: 6,
+          fontFamily: 'var(--font-sans)',
+          fontSize: 'var(--font-size-xs, 12px)',
+          fontWeight: 600,
+          color: 'var(--fg-secondary, var(--panel-fg))',
+          textTransform: 'uppercase',
+          letterSpacing: '0.05em',
+          background: 'none',
+          border: 0,
+          padding: 0,
+          cursor: 'pointer',
+        }}
+      >
+        {isOpen ? (
+          <ChevronDown
+            size={11}
+            strokeWidth={1.8}
+            style={{ color: 'var(--panel-fg-muted)' }}
+          />
+        ) : (
+          <ChevronRight
+            size={11}
+            strokeWidth={1.8}
+            style={{ color: 'var(--panel-fg-muted)' }}
+          />
+        )}
+        <span>{title}</span>
+        {headerExtra}
+      </button>
+      {isOpen && <div style={{ marginTop: 6 }}>{children}</div>}
+    </div>
+  );
+}
+
+function SectionBody({
   children,
+  muted = false,
 }: {
-  title: string;
-  sectionKey: string;
-  isOpen: boolean;
-  onToggle: (key: string) => void;
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
+  readonly muted?: boolean;
 }) {
   return (
     <div
-      className="rounded-md overflow-hidden"
-      style={{ backgroundColor: 'var(--panel-bg-card)' }}
+      style={{
+        fontFamily: 'var(--font-serif)',
+        fontSize: 'var(--font-size-sm, 14px)',
+        lineHeight: 1.65,
+        color: muted ? 'var(--panel-fg-muted)' : 'var(--panel-fg)',
+        textWrap: 'pretty',
+      }}
     >
-      <button
-        className="flex items-center gap-2 w-full px-3 py-2 text-left"
-        onClick={() => onToggle(sectionKey)}
-      >
-        {isOpen ? (
-          <ChevronDown size={12} style={{ color: 'var(--panel-fg-muted)' }} />
-        ) : (
-          <ChevronRight size={12} style={{ color: 'var(--panel-fg-muted)' }} />
-        )}
-        <span className="text-xs font-medium" style={{ color: 'var(--panel-fg)' }}>
-          {title}
-        </span>
-      </button>
-      {isOpen && <div className="px-3 pb-3">{children}</div>}
+      {children}
     </div>
+  );
+}
+
+interface PillProps {
+  readonly type: EntityType;
+  readonly children: React.ReactNode;
+}
+
+function Pill({ type, children }: PillProps) {
+  const key = PILL_KEY[type] ?? 'other';
+  return (
+    <span
+      className="inline-flex items-center"
+      style={{
+        gap: 4,
+        padding: '1px 8px',
+        borderRadius: 20,
+        fontFamily: 'var(--font-sans)',
+        fontSize: 'var(--font-size-xs, 12px)',
+        backgroundColor: `var(--entity-${key}-bg)`,
+        borderColor: `var(--entity-${key}-border)`,
+        color: `var(--entity-${key}-fg)`,
+        border: `0.5px solid var(--entity-${key}-border)`,
+      }}
+    >
+      <span
+        style={{
+          width: 5,
+          height: 5,
+          borderRadius: '50%',
+          backgroundColor: 'currentColor',
+          opacity: 0.85,
+        }}
+      />
+      {children}
+    </span>
   );
 }

@@ -16,6 +16,7 @@ export function BookNav({ bookId, bookTitle }: BookNavProps) {
     { label: t('tabs.read'), path: '' },
     { label: t('tabs.characterAnalysis'), path: '/characters' },
     { label: t('tabs.eventAnalysis'), path: '/events' },
+    { label: t('tabs.narrativeStructure'), path: '/narrative' },
     { label: t('tabs.knowledgeGraph'), path: '/graph' },
     { label: t('tabs.timeline'), path: '/timeline' },
     { label: t('tabs.tensionAnalysis'), path: '/tension' },

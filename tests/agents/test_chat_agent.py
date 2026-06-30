@@ -120,7 +120,9 @@ class TestBuildContextPrompt:
         state = ChatState()
         prompt = build_context_prompt(state, "en")
         assert "Always respond in en" in prompt
-        assert "document_id" not in prompt
+        # Static rules mention the word "document_id"; the injected book-context
+        # marker "document_id=<id>" must be absent when no book_id is set.
+        assert "document_id=" not in prompt
 
     def test_auto_language(self):
         state = ChatState()

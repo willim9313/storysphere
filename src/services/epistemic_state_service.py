@@ -19,6 +19,7 @@ from typing import Any, Callable
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from core.error_handling import is_rate_limit_error
 from core.utils.output_extractor import extract_json_from_text
 from domain.entities import Entity
 from domain.epistemic_state import CharacterEpistemicState, MisbeliefItem
@@ -88,6 +89,7 @@ class EpistemicStateService:
         character_id: str,
         document_id: str,
         up_to_chapter: int,
+        language: str = "en",
     ) -> CharacterEpistemicState:
         """Return what character knows and doesn't know up to a given chapter."""
         cache = self._get_cache()
@@ -119,7 +121,7 @@ class EpistemicStateService:
             if character_id not in e.participants and e.visibility != "public"
         ]
 
-        misbeliefs = await self._infer_misbeliefs(character, known, unknown)
+        misbeliefs = await self._infer_misbeliefs(character, known, unknown, language)
 
         result = CharacterEpistemicState(
             character_id=character_id,
@@ -144,6 +146,7 @@ class EpistemicStateService:
         character: Entity,
         known_events: list[Event],
         unknown_events: list[Event],
+        language: str = "en",
     ) -> list[MisbeliefItem]:
         secret_events = [e for e in unknown_events if e.visibility == "secret"]
         if not secret_events:
@@ -162,10 +165,14 @@ class EpistemicStateService:
             f"Secret events this character does NOT know about:\n{secret_summary}"
         )
 
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+        lang_name = get_language_display_name(language)
+        system_prompt = _MISBELIEFS_SYSTEM_PROMPT + f"\nRespond in {lang_name}."
+
         llm = self._get_llm()
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
         messages = [
-            SystemMessage(content=_MISBELIEFS_SYSTEM_PROMPT),
+            SystemMessage(content=system_prompt),
             HumanMessage(content=user_prompt),
         ]
         response = await llm.ainvoke(messages)
@@ -225,6 +232,8 @@ class EpistemicStateService:
             try:
                 results = await self._classify_batch(batch)
             except Exception as exc:  # noqa: BLE001
+                if is_rate_limit_error(exc):
+                    raise
                 logger.warning("Visibility classification batch failed: %s", exc)
                 skipped += len(batch)
                 continue

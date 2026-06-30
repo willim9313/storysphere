@@ -39,7 +39,7 @@ export function fetchEntityAnalysis(
   bookId: string,
   entityId: string,
 ): Promise<CharacterAnalysisDetail> {
-  if (MOCK_ENABLED) return mock.fetchEntityAnalysis(bookId, entityId) as Promise<CharacterAnalysisDetail>;
+  if (MOCK_ENABLED) return mock.fetchEntityAnalysis(bookId, entityId) as unknown as Promise<CharacterAnalysisDetail>;
   return apiFetch<CharacterAnalysisDetail>(`/books/${bookId}/entities/${entityId}/analysis`);
 }
 
@@ -47,11 +47,12 @@ export function fetchEntityAnalysis(
 export function triggerEntityAnalysis(
   bookId: string,
   entityId: string,
+  mode: 'full' | 'retryFailed' = 'full',
 ): Promise<{ taskId: string }> {
   if (MOCK_ENABLED) return mock.triggerEntityAnalysis(bookId, entityId);
   return apiFetch<{ taskId: string }>(
     `/books/${bookId}/entities/${entityId}/analyze`,
-    { method: 'POST' },
+    { method: 'POST', body: JSON.stringify({ mode }) },
   );
 }
 
@@ -68,11 +69,12 @@ export function deleteEntityAnalysis(
 export function triggerEventAnalysis(
   bookId: string,
   eventId: string,
+  mode: 'full' | 'retryFailed' = 'full',
 ): Promise<{ taskId: string }> {
   if (MOCK_ENABLED) return mock.triggerEntityAnalysis(bookId, eventId);
   return apiFetch<{ taskId: string }>(
     `/books/${bookId}/events/${eventId}/analyze`,
-    { method: 'POST' },
+    { method: 'POST', body: JSON.stringify({ mode }) },
   );
 }
 
@@ -92,6 +94,17 @@ export function triggerBatchEventAnalysis(
   if (MOCK_ENABLED) return mock.triggerBatchEventAnalysis(bookId);
   return apiFetch<{ taskId: string }>(
     `/books/${bookId}/events/analyze-all`,
+    { method: 'POST' },
+  );
+}
+
+// #7h — Batch entity analysis (analyze all unanalyzed characters)
+export function triggerBatchEntityAnalysis(
+  bookId: string,
+): Promise<{ taskId: string }> {
+  if (MOCK_ENABLED) return mock.triggerBatchEntityAnalysis(bookId);
+  return apiFetch<{ taskId: string }>(
+    `/books/${bookId}/entities/analyze-all`,
     { method: 'POST' },
   );
 }

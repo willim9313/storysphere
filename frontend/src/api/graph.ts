@@ -13,7 +13,6 @@ export type TimelineConfigUpdate = components['schemas']['TimelineConfigUpdate']
 export type TimelineDetectionResponse = components['schemas']['TimelineDetectionResponse'];
 export type EpistemicStateResponse = components['schemas']['EpistemicStateResponse'];
 export type MisbeliefItemSchema = components['schemas']['MisbeliefItemSchema'];
-export type ClassifyVisibilityResponse = components['schemas']['ClassifyVisibilityResponse'];
 
 export interface GraphSnapshotParams {
   mode?: 'chapter' | 'story';
@@ -51,15 +50,25 @@ export function fetchInferredRelations(
   return apiFetch<InferredRelationsResponse>(`/books/${bookId}/inferred-relations${qs}`);
 }
 
+/**
+ * Confirm (adopt) an inferred relation. When `relationType` is omitted the
+ * backend promotes the inferred relation's `suggestedRelationType` to its
+ * canonical RelationType (see domain.inferred_relations.INFERRED_TO_CANONICAL).
+ * Pass an explicit `relationType` only to override the auto-promotion.
+ */
 export function confirmInferred(
   bookId: string,
   irId: string,
-  relationType: string,
+  relationType?: string,
 ): Promise<{ relationId: string }> {
-  return apiFetch<{ relationId: string }>(`/books/${bookId}/inferred-relations/${irId}/confirm`, {
-    method: 'POST',
-    body: JSON.stringify({ relationType }),
-  });
+  const init: RequestInit = { method: 'POST' };
+  if (relationType !== undefined) {
+    init.body = JSON.stringify({ relationType });
+  }
+  return apiFetch<{ relationId: string }>(
+    `/books/${bookId}/inferred-relations/${irId}/confirm`,
+    init,
+  );
 }
 
 export function rejectInferred(bookId: string, irId: string): Promise<void> {
@@ -91,6 +100,12 @@ export function detectTimeline(bookId: string): Promise<TimelineDetectionRespons
 
 export function fetchEventDetail(bookId: string, eventId: string): Promise<EventDetail> {
   return apiFetch<EventDetail>(`/books/${bookId}/events/${eventId}`);
+}
+
+export type EntitySummary = Pick<components['schemas']['EntityResponse'], 'id' | 'name'>;
+
+export function fetchEntityById(entityId: string): Promise<EntitySummary> {
+  return apiFetch<EntitySummary>(`/entities/${entityId}`);
 }
 
 export function triggerClassifyVisibility(bookId: string): Promise<{ taskId: string }> {

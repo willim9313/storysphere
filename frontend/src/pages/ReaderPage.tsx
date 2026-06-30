@@ -1,7 +1,7 @@
-import { useState, useRef, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useRef, useEffect, useMemo } from 'react';
+import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Brain } from 'lucide-react';
+import { Brain, Search, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useChapters } from '@/hooks/useChapters';
@@ -14,6 +14,26 @@ import { EpistemicSidePanel } from '@/components/reader/EpistemicSidePanel';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 
+const EPISTEMIC_HINT_KEY = 'storysphere:reader-epistemic-hint-shown';
+
+const collapseButtonStyle: React.CSSProperties = {
+  position: 'absolute',
+  top: 8,
+  right: 6,
+  zIndex: 2,
+  width: 20,
+  height: 20,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  background: 'none',
+  border: 'none',
+  cursor: 'pointer',
+  color: 'var(--fg-muted)',
+  borderRadius: 4,
+  padding: 0,
+};
+
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { t } = useTranslation('reader');
@@ -21,6 +41,13 @@ export default function ReaderPage() {
   const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
   const [viewingChapterId, setViewingChapterId] = useState<string | null>(null);
   const [epistemicOpen, setEpistemicOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [col1Collapsed, setCol1Collapsed] = useState(false);
+  const [col2Collapsed, setCol2Collapsed] = useState(false);
+  const [colRevision, setColRevision] = useState(0);
+  const [epistemicHintShown, setEpistemicHintShown] = useState(() => {
+    try { return localStorage.getItem(EPISTEMIC_HINT_KEY) === 'true'; } catch { return true; }
+  });
 
   const col1Ref = useRef<HTMLDivElement>(null);
   const col2Ref = useRef<HTMLDivElement>(null);
@@ -30,6 +57,43 @@ export default function ReaderPage() {
   const { data: book, isLoading: bookLoading, error: bookError } = useBook(bookId);
   const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId);
   const { data: chunks, isLoading: chunksLoading } = useChunks(bookId, viewingChapterId);
+
+  // Deep-link from other pages (currently SymbolsPage occurrence rows) into a
+  // specific paragraph. Caller passes { paragraphId, chapterNumber } via
+  // location.state — paragraphId matches Chunk.id on the wire.
+  const location = useLocation();
+  const jumpTarget = (location.state as { paragraphId?: string; chapterNumber?: number } | null) ?? null;
+  const jumpHandledRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!jumpTarget?.paragraphId || !chapters) return;
+    if (jumpHandledRef.current === jumpTarget.paragraphId) return;
+    const target = chapters.find((c) => c.order === jumpTarget.chapterNumber);
+    if (!target) return;
+    // setState-in-effect is the standard sync-from-URL pattern for deep-links;
+    // the alternative (compute in render) would force callers to also push a
+    // chapter id into the URL which couples symbol-page state to reader state.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setExpandedChapterId(target.id);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSelectedChapterId(target.id);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setViewingChapterId(target.id);
+  }, [jumpTarget, chapters]);
+
+  useEffect(() => {
+    const pid = jumpTarget?.paragraphId;
+    if (!pid || !chunks || chunksLoading) return;
+    if (jumpHandledRef.current === pid) return;
+    if (!chunks.some((c) => c.id === pid)) return;
+    const el = document.querySelector(`[data-chunk-id="${pid}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('chunk-jump-flash');
+      globalThis.setTimeout(() => el.classList.remove('chunk-jump-flash'), 2000);
+      jumpHandledRef.current = pid;
+    }
+  }, [jumpTarget, chunks, chunksLoading]);
 
   useEffect(() => {
     setPageContext({ page: 'reader', bookId, bookTitle: book?.title });
@@ -44,12 +108,38 @@ export default function ReaderPage() {
     });
   }, [viewingChapterId, chapters, setPageContext]);
 
+  const showEpistemicHint = !epistemicHintShown && !!viewingChapterId && !epistemicOpen;
+
+  const dismissEpistemicHint = () => {
+    try { localStorage.setItem(EPISTEMIC_HINT_KEY, 'true'); } catch { /* ignore */ }
+    setEpistemicHintShown(true);
+  };
+
+  // P0: useMemo must be before early returns (Rules of Hooks)
+  const chapterList = chapters ?? [];
+  const filteredChapterList = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim();
+    if (!q) return chapterList;
+    return chapterList.filter((chapter) =>
+      chapter.title.toLowerCase().includes(q) ||
+      chapter.topEntities?.some((e) => e.name?.toLowerCase().includes(q)) ||
+      Object.keys(chapter.keywords ?? {}).some((k) => k.toLowerCase().includes(q))
+    );
+  }, [chapterList, searchQuery]);
+
+  useEffect(() => {
+    if (!showEpistemicHint) return;
+    const timer = setTimeout(() => {
+      try { localStorage.setItem(EPISTEMIC_HINT_KEY, 'true'); } catch { /* ignore */ }
+      setEpistemicHintShown(true);
+    }, 5000);
+    return () => clearTimeout(timer);
+  }, [showEpistemicHint]);
+
   if (bookLoading || chaptersLoading) return <LoadingSpinner />;
   if (bookError) return <ErrorMessage message={bookError.message} />;
   if (!book) return <ErrorMessage message="Book not found" />;
-
-  const chapterList = chapters ?? [];
-  const selectedChapterIdx = chapterList.findIndex((c) => c.id === expandedChapterId);
+  const selectedChapterIdx = filteredChapterList.findIndex((c) => c.id === expandedChapterId);
   const viewingChapter = chapterList.find((c) => c.id === viewingChapterId);
   const viewingChapterOrder = viewingChapter?.order ?? null;
 
@@ -57,8 +147,18 @@ export default function ReaderPage() {
     setExpandedChapterId(chapterId);
     setSelectedChapterId(chapterId);
     setViewingChapterId(chapterId);
+    setSearchQuery('');
   };
 
+  const handleCol1Toggle = () => {
+    setCol1Collapsed((v) => !v);
+    setTimeout(() => setColRevision((r) => r + 1), 220);
+  };
+
+  const handleCol2Toggle = () => {
+    setCol2Collapsed((v) => !v);
+    setTimeout(() => setColRevision((r) => r + 1), 220);
+  };
 
   return (
     <div className="flex h-full relative">
@@ -67,68 +167,168 @@ export default function ReaderPage() {
         col2Ref={col2Ref}
         col3Ref={col3Ref}
         selectedChapterIdx={selectedChapterIdx}
-        chapterCount={chapterList.length}
+        chapterKey={filteredChapterList.map((c) => c.id).join(',')}
         chunkCount={chunks?.length ?? 0}
         showCol3={!!viewingChapterId}
+        colRevision={colRevision}
       />
 
       {/* Column 1: Book Overview */}
       <div
         ref={col1Ref}
-        className="flex-shrink-0 overflow-y-auto"
+        className="flex-shrink-0 relative"
         style={{
-          width: 200,
+          width: col1Collapsed ? 36 : 232,
+          transition: 'width 200ms ease',
+          overflow: 'hidden',
           borderRight: '1px solid var(--border)',
           backgroundColor: 'var(--bg-secondary)',
         }}
       >
-        <BookOverview book={book} />
+        <button
+          onClick={handleCol1Toggle}
+          style={collapseButtonStyle}
+          aria-label={col1Collapsed ? t('col1Expand') : t('col1Collapse')}
+        >
+          {col1Collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+        </button>
+
+        {!col1Collapsed ? (
+          <div style={{ height: '100%', overflowY: 'auto' }}>
+            <BookOverview book={book} />
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              paddingTop: 40,
+            }}
+          >
+            <BookOpen size={16} style={{ color: 'var(--fg-muted)' }} />
+          </div>
+        )}
       </div>
 
-      {/* Spacer between col1 and col2 — gives Bezier curves breathing room */}
-      <div className="flex-shrink-0" style={{ width: 28 }} />
+      {/* Spacer between col1 and col2 — only when col1 is expanded */}
+      {!col1Collapsed && <div className="flex-shrink-0" style={{ width: 24 }} />}
 
       {/* Column 2: Chapter List */}
       <div
         ref={col2Ref}
-        className="flex-shrink-0 overflow-y-auto p-2 space-y-1"
+        className="flex-shrink-0 flex flex-col relative"
         style={{
-          width: 220,
+          width: col2Collapsed ? 36 : 224,
+          transition: 'width 200ms ease',
+          overflow: 'hidden',
           borderRight: '1px solid var(--border)',
         }}
       >
-        {chapterList.map((chapter) => (
-          <div key={chapter.id} data-chapter-card>
-            <ChapterCard
-              chapter={chapter}
-              isSelected={selectedChapterId === chapter.id}
-              isExpanded={expandedChapterId === chapter.id}
-              onSelect={() => handleSelectChapter(chapter.id)}
-            />
+        <button
+          onClick={handleCol2Toggle}
+          style={collapseButtonStyle}
+          aria-label={col2Collapsed ? t('col2Expand') : t('col2Collapse')}
+        >
+          {col2Collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+        </button>
+
+        {!col2Collapsed ? (
+          <>
+            {/* Search — paddingRight leaves room for the absolute collapse button */}
+            <div className="flex-shrink-0 p-2 pb-1" style={{ paddingRight: 30 }}>
+              <div
+                className="flex items-center gap-2 px-2 py-1 rounded-md"
+                style={{ backgroundColor: 'var(--bg-tertiary)' }}
+              >
+                <Search size={12} style={{ color: 'var(--fg-muted)' }} />
+                <input
+                  type="search"
+                  placeholder={t('search')}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  aria-label={t('search')}
+                  className="bg-transparent text-xs flex-1 outline-none"
+                  style={{ color: 'var(--fg-primary)' }}
+                />
+              </div>
+            </div>
+
+            {/* Chapter list */}
+            <div className="flex-1 overflow-y-auto p-2 pt-1 space-y-1">
+              {filteredChapterList.map((chapter) => (
+                <div key={chapter.id} data-chapter-card>
+                  <ChapterCard
+                    chapter={chapter}
+                    isSelected={selectedChapterId === chapter.id}
+                    isExpanded={expandedChapterId === chapter.id}
+                    onSelect={() => handleSelectChapter(chapter.id)}
+                  />
+                </div>
+              ))}
+              {filteredChapterList.length === 0 && searchQuery && (
+                <p className="px-2 py-4 text-xs text-center" style={{ color: 'var(--fg-muted)' }}>
+                  {t('searchEmpty', { query: searchQuery })}
+                </p>
+              )}
+            </div>
+          </>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              paddingTop: 40,
+              gap: 6,
+            }}
+          >
+            <BookOpen size={14} style={{ color: 'var(--fg-muted)' }} />
+            <span
+              style={{
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--font-size-2xs)',
+                color: 'var(--fg-muted)',
+                writingMode: 'vertical-rl',
+                letterSpacing: '0.05em',
+              }}
+            >
+              章節
+            </span>
           </div>
-        ))}
+        )}
       </div>
 
-      {/* Spacer between col2 and col3 — gives Bezier curves breathing room */}
-      <div className="flex-shrink-0" style={{ width: 28 }} />
+      {/* Spacer between col2 and col3 — only when col2 is expanded */}
+      {!col2Collapsed && <div className="flex-shrink-0" style={{ width: 24 }} />}
 
       {/* Column 3: Chunk Content */}
       <div
         ref={col3Ref}
-        className="flex-1 overflow-y-auto"
+        className="flex-1 overflow-hidden"
         style={{ backgroundColor: 'var(--bg-primary)' }}
       >
         {viewingChapterId ? (
-          <div className="p-4">
-            {/* Header with epistemic toggle */}
+          <div style={{ height: '100%', overflowY: 'auto' }}>
+            {/* Sticky header */}
             <div
-              className="sticky top-0 z-10 pb-2 mb-3 flex items-start justify-between"
-              style={{ backgroundColor: 'var(--bg-primary)' }}
+              className="sticky top-0 z-10 flex items-start justify-between"
+              style={{
+                padding: '12px 16px 8px',
+                backgroundColor: 'var(--bg-primary)',
+                borderBottom: '1px solid var(--border)',
+              }}
             >
               <div>
                 <h3
-                  className="text-sm font-semibold"
-                  style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+                  className="font-semibold"
+                  style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: 'var(--font-size-sm)',
+                    color: 'var(--fg-primary)',
+                    margin: 0,
+                    lineHeight: 1.3,
+                  }}
                 >
                   {viewingChapter?.title}
                 </h3>
@@ -136,22 +336,60 @@ export default function ReaderPage() {
                   {chunks?.length ?? 0} chunks
                 </span>
               </div>
-              <button
-                onClick={() => setEpistemicOpen((v) => !v)}
-                title="認識論狀態"
-                className="p-1.5 rounded hover:opacity-70 flex-shrink-0"
-                style={{
-                  backgroundColor: epistemicOpen ? 'var(--accent)' : 'var(--bg-secondary)',
-                  color: epistemicOpen ? 'white' : 'var(--fg-muted)',
-                  border: '1px solid var(--border)',
-                }}
-              >
-                <Brain size={14} />
-              </button>
+              <div className="relative flex-shrink-0">
+                <button
+                  onClick={() => {
+                    setEpistemicOpen((v) => !v);
+                    if (!epistemicHintShown) dismissEpistemicHint();
+                  }}
+                  className="flex items-center gap-1"
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: 6,
+                    backgroundColor: epistemicOpen ? 'var(--accent)' : 'var(--bg-secondary)',
+                    border: '1px solid var(--border)',
+                    color: epistemicOpen ? 'white' : 'var(--fg-muted)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 'var(--font-size-2xs)',
+                  }}
+                >
+                  <Brain size={13} color={epistemicOpen ? 'white' : 'var(--fg-muted)'} />
+                  <span>{epistemicOpen ? t('epistemicClose') : t('epistemicLabel')}</span>
+                </button>
+                {showEpistemicHint && (
+                  <div
+                    onClick={dismissEpistemicHint}
+                    className="absolute right-0 cursor-pointer"
+                    style={{
+                      top: 'calc(100% + 6px)',
+                      zIndex: 20,
+                      width: 200,
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '1px solid var(--border)',
+                      borderRadius: 6,
+                      padding: '8px 10px',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                    }}
+                  >
+                    <p className="text-xs" style={{ color: 'var(--fg-secondary)', lineHeight: 1.5 }}>
+                      {t('epistemicHint')}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {chunksLoading && <LoadingSpinner />}
-            {!chunksLoading && chunks?.map((chunk) => <ChunkCard key={chunk.id} chunk={chunk} />)}
+            {/* Chunks */}
+            <div style={{ padding: '16px' }}>
+              {chunksLoading && <LoadingSpinner />}
+              {!chunksLoading &&
+                chunks?.map((chunk) => (
+                  <div key={chunk.id} data-chunk-id={chunk.id}>
+                    <ChunkCard chunk={chunk} />
+                  </div>
+                ))}
+            </div>
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">

@@ -53,26 +53,33 @@ class DataSanitizer:
         return text
 
     @staticmethod
-    def format_vector_store_results(results: list[dict]) -> list[str]:
+    def format_vector_store_results(results) -> list[str]:
         """Format VectorService search results for inclusion in LLM prompts.
 
-        Expects dicts with keys: id, score, text, document_id, chapter_number, position.
+        Accepts ``VectorSearchResult`` Pydantic models (the production type
+        returned by ``VectorService.search``) or dicts with the same keys:
+        id, score, text, document_id, chapter_number, position.
         """
+        def _get(r, key, default=None):
+            if isinstance(r, dict):
+                return r.get(key, default)
+            return getattr(r, key, default)
+
         formatted = []
         for r in results:
             parts = []
-            chunk_id = r.get("id", "N/A")
+            chunk_id = _get(r, "id", "N/A")
             parts.append(f"Chunk ID: {chunk_id}")
 
-            score = r.get("score")
+            score = _get(r, "score")
             if score is not None:
                 parts.append(f"Score: {score:.4f}")
 
-            chapter = r.get("chapter_number")
+            chapter = _get(r, "chapter_number")
             if chapter is not None:
                 parts.append(f"Chapter: {chapter}")
 
-            content = r.get("text", "")
+            content = _get(r, "text", "") or ""
             safe_content = DataSanitizer._escape_template_chars(content)
             parts.append(f"Content: {safe_content}")
 

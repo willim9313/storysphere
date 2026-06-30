@@ -340,11 +340,12 @@ class TimelineAgent:
         language: str,
     ) -> str:
         """Build the human message for a batch of pairs."""
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+
         sections: list[str] = []
         if language != "en":
-            sections.append(
-                f"Please respond in {language}.\n",
-            )
+            lang_name = get_language_display_name(language)
+            sections.append(f"Please respond in {lang_name}.\n")
 
         for i, (src_id, tgt_id) in enumerate(pairs, 1):
             src = events_by_id.get(src_id)

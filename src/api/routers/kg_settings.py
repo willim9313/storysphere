@@ -33,7 +33,7 @@ router = APIRouter(prefix="/kg", tags=["kg-settings"])
 @router.get("/status", response_model=KgStatusResponse)
 async def get_kg_status() -> KgStatusResponse:
     """Return current KG backend mode and data counts."""
-    from api.deps import get_kg_service, _runtime_kg_mode  # noqa: PLC0415
+    from api.deps import _runtime_kg_mode, get_kg_service  # noqa: PLC0415
     from config.settings import get_settings  # noqa: PLC0415
     from services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
 
@@ -72,13 +72,33 @@ async def get_kg_status() -> KgStatusResponse:
         except Exception:
             neo4j_connected = False
 
+    vector_count: int | None = None
+    try:
+        from api.deps import get_vector_service  # noqa: PLC0415
+        qc = get_vector_service()._client
+        collections = qc.get_collections().collections
+        vector_count = sum(
+            (qc.get_collection(c.name).vectors_count or 0) for c in collections
+        )
+    except Exception:
+        pass
+
     return KgStatusResponse(
         mode=mode,
+        deploy_mode=settings.deploy_mode,
         entity_count=entity_count,
         relation_count=relation_count,
         event_count=event_count,
         graph_db_connected=neo4j_connected,
-        persistence_path=settings.kg_persistence_path if mode == "networkx" else None,
+        persistence_path=(
+            settings.kg_persistence_path if mode == "networkx" else None
+        ),
+        qdrant_local_path=(
+            settings.qdrant_local_path
+            if settings.deploy_mode == "lightweight"
+            else None
+        ),
+        vector_count=vector_count,
     )
 
 
@@ -95,6 +115,12 @@ async def switch_kg_mode(body: KgSwitchRequest) -> KgSwitchResponse:
 
     settings = get_settings()
     new_mode = body.mode
+
+    if settings.deploy_mode == "lightweight" and new_mode == "neo4j":
+        raise HTTPException(
+            status_code=422,
+            detail="deploy_mode=lightweight does not support neo4j backend; set DEPLOY_MODE=standard to enable Neo4j",
+        )
 
     # Validate Neo4j connectivity before switching to it
     if new_mode == "neo4j":
@@ -145,7 +171,7 @@ async def start_migration(
     Returns a task_id for polling via ``GET /api/v1/kg/migrate/{task_id}``.
     """
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, title="知識圖譜遷移")
     background_tasks.add_task(_run_migration, task_id, body.direction)
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -166,8 +192,8 @@ async def _run_migration(task_id: str, direction: str) -> None:
     """Background coroutine: execute migration and update task store."""
     from config.settings import get_settings  # noqa: PLC0415
     from services.kg_migration import (  # noqa: PLC0415
-        migrate_networkx_to_neo4j,
         migrate_neo4j_to_networkx,
+        migrate_networkx_to_neo4j,
     )
 
     settings = get_settings()

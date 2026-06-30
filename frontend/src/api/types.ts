@@ -7,6 +7,14 @@ export type EntityType = 'character' | 'location' | 'organization' | 'object' | 
 // ── Books ───────────────────────────────────────────────────────
 
 export type BookStatus = 'processing' | 'ready' | 'analyzed' | 'error';
+export type StepStatus = 'pending' | 'done' | 'failed';
+
+export interface PipelineStatus {
+  summarization: StepStatus;
+  featureExtraction: StepStatus;
+  knowledgeGraph: StepStatus;
+  symbolDiscovery: StepStatus;
+}
 
 export interface Book {
   id: string;
@@ -17,6 +25,11 @@ export interface Book {
   entityCount?: number;
   uploadedAt: string;
   lastOpenedAt?: string;
+  pipelineStatus: PipelineStatus;
+}
+
+export interface RerunTaskResult {
+  taskId: string;
 }
 
 export interface BookDetail extends Book {
@@ -141,11 +154,14 @@ export interface AnalysisItem {
   entityId: string;
   section: 'characters' | 'events';
   title: string;
-  archetypeType?: string;
+  archetypes: Record<string, string>;
   chapterCount: number;
   content: string;
-  framework: 'jung' | 'schmidt';
+  status?: 'complete' | 'partial';
   generatedAt: string;
+  chapter?: number | null;
+  narrativeMode?: string | null;
+  importance?: string | null;
 }
 
 export interface UnanalyzedEntity {
@@ -153,6 +169,9 @@ export interface UnanalyzedEntity {
   name: string;
   type: EntityType;
   chapterCount: number;
+  chapter?: number | null;
+  narrativeMode?: string | null;
+  importance?: string | null;
 }
 
 export interface AnalysisListResponse {
@@ -197,14 +216,45 @@ export interface CharacterAnalysisDetail {
   archetypes: ArchetypeDetail[];
   cep: CepData | null;
   arc: ArcSegment[];
+  status?: 'complete' | 'partial';
+  failedParts?: string[];
   generatedAt: string;
 }
 
 // ── Tasks ───────────────────────────────────────────────────────
 
+import type { components } from './generated';
+
+export type MurmurEvent = components['schemas']['MurmurEvent'];
+export type MurmurStepKey = MurmurEvent['stepKey'];
+export type MurmurEventType = MurmurEvent['type'];
+
+export interface ReviewParagraph {
+  paragraphIndex: number;
+  text: string;
+  role: string;
+  titleSpan: [number, number] | null;
+  sentences: string[];
+}
+
+export interface ReviewChapter {
+  chapterIdx: number;
+  title: string | null;
+  paragraphs: ReviewParagraph[];
+}
+
+export interface ReviewData {
+  chapters: ReviewChapter[];
+}
+
+export interface ReviewSubmitChapter {
+  title: string;
+  startParagraphIndex: number;
+}
+
 export interface TaskStatus {
   taskId: string;
-  status: 'pending' | 'running' | 'done' | 'error';
+  status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_review';
   progress: number;
   stage: string;
   subProgress?: number;
@@ -215,6 +265,7 @@ export interface TaskStatus {
     [key: string]: unknown;
   };
   error?: string;
+  murmurEvents?: MurmurEvent[];
 }
 
 /** Result shape for batch event analysis tasks */
@@ -292,6 +343,16 @@ export interface TEU {
   review_status: 'pending' | 'approved' | 'rejected';
 }
 
+export interface TEUSummary {
+  id: string;
+  chapter: number;
+  intensity: number;
+  tension_description: string;
+  evidence: string[];
+  pole_a_carriers: string[];
+  pole_b_carriers: string[];
+}
+
 export interface TensionLine {
   id: string;
   document_id: string;
@@ -300,7 +361,9 @@ export interface TensionLine {
   canonical_pole_b: string;
   intensity_summary: number;
   chapter_range: number[];
+  thematic_note?: string | null;
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  teus?: TEUSummary[];
 }
 
 export interface TensionTheme {
@@ -363,4 +426,9 @@ export interface EventAnalysisDetail {
   impact: ImpactAnalysis;
   summary: { summary: string };
   analyzedAt: string;
+  status?: 'complete' | 'partial';
+  failedParts?: string[];
+  chapter?: number | null;
+  chunk?: number | null;
+  narrativeMode?: string | null;
 }

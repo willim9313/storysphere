@@ -7,7 +7,7 @@ update logic, and default LLM factory.
 from __future__ import annotations
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage
 
@@ -53,11 +53,13 @@ DO NOT use vector_search for entity lookups. DO NOT use get_entity_attributes wh
 
 
 def build_context_prompt(state: ChatState, language: str) -> str:
-    """Build a dynamic system message fragment from page context."""
+    """Build the full system prompt: static rules + dynamic page context."""
+    parts: list[str] = [SYSTEM_PROMPT]
+
     if language and language.lower() not in ("auto", ""):
-        parts: list[str] = [f"Always respond in {language}."]
+        parts.append(f"Always respond in {language}.")
     else:
-        parts: list[str] = ["Always reply in the same language the user uses."]
+        parts.append("Always reply in the same language the user uses.")
 
     if state.book_id:
         book_hint = "The user is currently viewing"

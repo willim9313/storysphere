@@ -31,9 +31,9 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   return res.json() as Promise<T>;
 }
 
-export async function apiUpload<T>(path: string, formData: FormData): Promise<T> {
+export async function apiUpload<T>(path: string, formData: FormData, signal?: AbortSignal): Promise<T> {
   const url = `${BASE_URL}${path}`;
-  const res = await fetch(url, { method: 'POST', body: formData });
+  const res = await fetch(url, { method: 'POST', body: formData, signal });
 
   if (!res.ok) {
     const body = await res.json().catch(() => ({ error: { message: res.statusText } }));

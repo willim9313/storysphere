@@ -105,11 +105,16 @@ class VoiceProfilingService:
         return self._cache
 
     async def get_voice_profile(
-        self, document_id: str, character_id: str
+        self, document_id: str, character_id: str, language: str = "en"
     ) -> VoiceProfile:
-        """Return the voice profile for a character, computing and caching on first call."""
+        """Return the voice profile for a character, computing and caching on first call.
+
+        ``language`` is appended to the cache key so a document re-detected to a
+        different language doesn't read back qualitative fields generated for the
+        previous language.
+        """
         cache = self._get_cache()
-        key = f"voice_profile:{document_id}:{character_id}"
+        key = f"voice_profile:{document_id}:{character_id}:{language}"
 
         cached = await cache.get(key)
         if cached:
@@ -137,7 +142,9 @@ class VoiceProfilingService:
 
         llm_paragraphs = paragraphs[:_MAX_PARAGRAPHS]
         metrics = _compute_metrics(paragraphs)
-        qualitative = await self._llm_qualitative(character.name, llm_paragraphs)
+        qualitative = await self._llm_qualitative(
+            character.name, llm_paragraphs, language=language
+        )
 
         profile = VoiceProfile(
             character_id=character_id,
@@ -152,11 +159,23 @@ class VoiceProfilingService:
         await cache.set(key, profile.model_dump(mode="json"))
         return profile
 
-    async def invalidate(self, document_id: str, character_id: str) -> None:
-        """Remove a cached voice profile so the next GET recomputes it."""
+    async def invalidate(
+        self, document_id: str, character_id: str, language: str | None = None
+    ) -> None:
+        """Remove cached voice profile(s) so the next GET recomputes them.
+
+        If ``language`` is omitted, invalidates the language-agnostic legacy key
+        plus the currently-known language variants (``en``, ``zh``, ``zh-cn``,
+        ``zh-tw``); cache misses are no-ops so over-invalidating is safe.
+        """
         cache = self._get_cache()
-        key = f"voice_profile:{document_id}:{character_id}"
-        await cache.invalidate(key)
+        base = f"voice_profile:{document_id}:{character_id}"
+        if language is not None:
+            await cache.invalidate(f"{base}:{language}")
+            return
+        await cache.invalidate(base)  # pre-language legacy key
+        for lang in ("en", "zh", "zh-cn", "zh-tw"):
+            await cache.invalidate(f"{base}:{lang}")
 
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
@@ -164,7 +183,12 @@ class VoiceProfilingService:
         wait=wait_exponential(multiplier=1, min=2, max=10),
         reraise=False,  # degrade gracefully — return empty qualitative on final failure
     )
-    async def _llm_qualitative(self, char_name: str, paragraphs: list[Paragraph]) -> dict:
+    async def _llm_qualitative(
+        self,
+        char_name: str,
+        paragraphs: list[Paragraph],
+        language: str = "en",
+    ) -> dict:
         # Delimited passage block resists prompt injection from story text
         passage_block = "\n".join(
             f"<<<PASSAGE {i + 1}>>>\n{p.text}\n<<<END>>>"
@@ -172,10 +196,17 @@ class VoiceProfilingService:
         )
         user_prompt = f"Character: {char_name}\n\n{passage_block}"
 
+        # Mirror AnalysisService._localize_prompt: append a Respond-in directive
+        # so qualitative fields come back in the document's language instead of
+        # defaulting to the prompt language (English).
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+        lang_name = get_language_display_name(language)
+        system_prompt = _SYSTEM_PROMPT + f"\nRespond in {lang_name}."
+
         llm = self._get_llm()
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
         messages = [
-            SystemMessage(content=_SYSTEM_PROMPT),
+            SystemMessage(content=system_prompt),
             HumanMessage(content=user_prompt),
         ]
         try:
@@ -217,6 +248,43 @@ def _empty_qualitative() -> dict:
     }
 
 
+_HISTOGRAM_BUCKETS: tuple[tuple[str, int, int | None], ...] = (
+    ("1-10", 1, 10),
+    ("11-20", 11, 20),
+    ("21-30", 21, 30),
+    ("31-40", 31, 40),
+    ("41-50", 41, 50),
+    ("51+", 51, None),
+)
+
+
+def _bucket_histogram(sentence_lengths: list[int]) -> list[dict]:
+    """Bucket sentence lengths into the 6 fixed ranges UI expects."""
+    counts = [0] * len(_HISTOGRAM_BUCKETS)
+    for length in sentence_lengths:
+        for i, (_, lo, hi) in enumerate(_HISTOGRAM_BUCKETS):
+            if length >= lo and (hi is None or length <= hi):
+                counts[i] += 1
+                break
+    return [{"bucket": label, "value": counts[i]} for i, (label, *_) in enumerate(_HISTOGRAM_BUCKETS)]
+
+
+def _tone_distribution(
+    question_ratio: float, exclamation_ratio: float
+) -> list[dict]:
+    """Derive a 3-segment tone distribution from punctuation ratios.
+
+    Faithful to actual sentence-terminator data; no LLM call needed.
+    Declarative is the remainder; clamped to [0, 1] so rounding doesn't make it negative.
+    """
+    declarative = max(0.0, 1.0 - question_ratio - exclamation_ratio)
+    return [
+        {"label": "declarative", "value": round(declarative, 4)},
+        {"label": "interrogative", "value": round(question_ratio, 4)},
+        {"label": "exclamatory", "value": round(exclamation_ratio, 4)},
+    ]
+
+
 def _compute_metrics(paragraphs: list[Paragraph]) -> dict:
     """Compute quantitative linguistic metrics from paragraph text."""
     all_sentences: list[str] = []
@@ -239,6 +307,8 @@ def _compute_metrics(paragraphs: list[Paragraph]) -> dict:
             "question_ratio": 0.0,
             "exclamation_ratio": 0.0,
             "lexical_diversity": 0.0,
+            "tone_distribution": _tone_distribution(0.0, 0.0),
+            "sentence_length_histogram": _bucket_histogram([]),
         }
 
     sentence_lengths = []
@@ -257,12 +327,16 @@ def _compute_metrics(paragraphs: list[Paragraph]) -> dict:
 
     n = len(all_sentences)
     total_words = len(all_words)
+    question_ratio = round(question_count / n, 4) if n else 0.0
+    exclamation_ratio = round(exclamation_count / n, 4) if n else 0.0
 
     return {
         "avg_sentence_length": round(sum(sentence_lengths) / n, 2) if n else 0.0,
-        "question_ratio": round(question_count / n, 4) if n else 0.0,
-        "exclamation_ratio": round(exclamation_count / n, 4) if n else 0.0,
+        "question_ratio": question_ratio,
+        "exclamation_ratio": exclamation_ratio,
         "lexical_diversity": (
             round(len(set(all_words)) / total_words, 4) if total_words >= 10 else 0.0
         ),
+        "tone_distribution": _tone_distribution(question_ratio, exclamation_ratio),
+        "sentence_length_histogram": _bucket_histogram(sentence_lengths),
     }

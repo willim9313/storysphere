@@ -109,3 +109,47 @@ class TestSummarizationPipeline:
 
         assert result.chapters_summarized == 2
         assert result.book_summary_generated is True
+
+    @pytest.mark.asyncio
+    async def test_chapters_total_reflects_content_chapters(self):
+        """chapters_total counts only chapters that have paragraphs."""
+        mock_summarizer = AsyncMock(spec=ChapterSummarizer)
+        mock_summarizer.summarize_chapter = AsyncMock(return_value="Summary.")
+        mock_summarizer.summarize_book = AsyncMock(return_value="Book.")
+
+        chapters = [
+            Chapter(number=1, title="Has content", paragraphs=[
+                Paragraph(text="Some text.", chapter_number=1, position=0),
+            ]),
+            Chapter(number=2, title="Empty", paragraphs=[]),
+            Chapter(number=3, title="Also content", paragraphs=[
+                Paragraph(text="More text.", chapter_number=3, position=0),
+            ]),
+        ]
+        doc = _make_doc(chapters)
+        result = await SummarizationPipeline(summarizer=mock_summarizer).run(doc)
+
+        assert result.chapters_total == 2  # only chapters with paragraphs
+        assert result.chapters_summarized == 2
+
+    @pytest.mark.asyncio
+    async def test_failed_chapter_skipped_and_counts_reflected(self):
+        """One failing chapter does not abort; chapters_summarized < chapters_total."""
+        def _side_effect(text, num, title, language="en"):
+            if num == 2:
+                raise ValueError("LLM blocked")
+            return f"Summary of chapter {num}."
+
+        mock_summarizer = AsyncMock(spec=ChapterSummarizer)
+        mock_summarizer.summarize_chapter = AsyncMock(side_effect=_side_effect)
+        mock_summarizer.summarize_book = AsyncMock(return_value="Book.")
+
+        doc = _make_doc()  # 2 chapters
+        result = await SummarizationPipeline(summarizer=mock_summarizer).run(doc)
+
+        assert result.chapters_total == 2
+        assert result.chapters_summarized == 1
+        assert doc.chapters[0].summary == "Summary of chapter 1."
+        assert doc.chapters[1].summary is None  # ch2 was skipped
+        # book summary still generated from the 1 successful chapter
+        assert result.book_summary_generated is True

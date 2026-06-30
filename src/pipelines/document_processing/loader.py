@@ -114,3 +114,33 @@ def load_docx(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
 
     logger.info("Loaded DOCX '%s': %d non-empty paragraphs", file_path.name, len(paragraphs))
     return paragraphs, meta
+
+
+def load_txt(
+    file_path: Path, encoding: str = "utf-8"
+) -> tuple[list[tuple[int, str]], DocumentMeta]:
+    """Extract raw text from a plain-text file.
+
+    Each non-empty line becomes one segment (index, text).  The file is read
+    with *encoding* (default utf-8); if that fails we fall back to latin-1.
+    """
+    if not file_path.exists():
+        raise FileNotFoundError(f"TXT not found: {file_path}")
+    if file_path.suffix.lower() != ".txt":
+        raise ValueError(f"Expected .txt extension, got: {file_path.suffix}")
+
+    try:
+        text = file_path.read_text(encoding=encoding)
+    except UnicodeDecodeError:
+        text = file_path.read_text(encoding="latin-1")
+
+    segments: list[tuple[int, str]] = []
+    for idx, line in enumerate(text.splitlines()):
+        line = line.replace("\x00", "").strip()
+        if line:
+            segments.append((idx, line))
+
+    logger.info(
+        "Loaded TXT '%s': %d non-empty lines", file_path.name, len(segments)
+    )
+    return segments, DocumentMeta()

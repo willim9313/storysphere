@@ -23,7 +23,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass, field
 
-from domain.documents import Document, Paragraph
+from core.error_handling import is_rate_limit_error
+from domain.documents import Document, Paragraph, ParagraphRole, extract_body_text
 from pipelines.base import BasePipeline
 
 from .embedding_generator import EmbeddingGenerator
@@ -51,16 +52,18 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
     def __init__(
         self,
         embedding_generator: EmbeddingGenerator | None = None,
-        qdrant_client=None,  # type: ignore[assignment]
+        vector_service=None,
+        qdrant_client=None,  # legacy: used by tests; vector_service takes priority
         keyword_extractor=None,
         keyword_aggregator=None,
     ) -> None:
         self._embedder = embedding_generator or EmbeddingGenerator()
-        self._qdrant = qdrant_client  # optional; pass None to skip Qdrant upsert
+        self._vector_service = vector_service  # VectorService | None
+        self._qdrant = qdrant_client  # raw QdrantClient | None (legacy / test path)
         self._keyword_extractor = keyword_extractor  # BaseKeywordExtractor | None
         self._keyword_aggregator = keyword_aggregator  # KeywordAggregator | None
 
-    async def run(self, input_data: Document, *, sub_cb=None) -> FeatureExtractionResult:
+    async def run(self, input_data: Document, *, sub_cb=None, murmur_cb=None) -> FeatureExtractionResult:
         """Embed paragraphs chapter by chapter and (optionally) store in Qdrant.
 
         Args:
@@ -86,57 +89,91 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
             if not paragraphs:
                 continue
 
-            texts = [p.text for p in paragraphs]
-            self._log_step("embed_chapter", chapter=chapter.number, paragraphs=len(texts))
+            # Only embed/index body paragraphs; skip structural separators etc.
+            body_paras: list[Paragraph] = []
+            body_texts: list[str] = []
+            for p in paragraphs:
+                text = extract_body_text(p)
+                if text:
+                    body_paras.append(p)
+                    body_texts.append(text)
 
-            # vectors: list[list[float]] — one 384-dim vector per paragraph
-            vectors = await self._embedder.aembed_texts(texts)
+            if not body_paras:
+                continue
+
+            self._log_step("embed_chapter", chapter=chapter.number, paragraphs=len(body_paras))
+
+            # vectors: list[list[float]] — one 384-dim vector per body paragraph
+            vectors = await self._embedder.aembed_texts(body_texts)
 
             # ── Keyword extraction (per paragraph) ─────────────────────────
             paragraph_keywords: list[dict[str, float]] = []
             if self._keyword_extractor is not None:
-                from config.settings import get_settings  # noqa: PLC0415
-
-                settings = get_settings()
-                max_kw = settings.keyword_max_per_paragraph
-
-                for para in paragraphs:
-                    try:
-                        kws = await self._keyword_extractor.extract(
-                            para.text, max_kw, language=doc.language
-                        )
-                        para.keywords = kws
-                        paragraph_keywords.append(kws)
-                        total_keywords += 1
-                    except Exception as exc:  # noqa: BLE001
-                        logger.warning(
-                            "Keyword extraction failed for para %s: %s", para.id, exc
-                        )
-                        paragraph_keywords.append({})
-
-                # Aggregate paragraph → chapter keywords
-                if paragraph_keywords and self._keyword_aggregator is not None:
-                    chapter.keywords = self._keyword_aggregator.aggregate(
-                        paragraph_keywords,
-                        top_k=settings.keyword_max_per_chapter,
-                    )
+                if chapter.keywords is not None:
+                    # Already extracted in a previous partial run — skip LLM calls
+                    # but keep the chapter's keywords in the book-level accumulator.
                     all_chapter_keywords.append(chapter.keywords)
+                else:
+                    from config.settings import get_settings  # noqa: PLC0415
 
-            if self._qdrant is not None:
+                    settings = get_settings()
+                    max_kw = settings.keyword_max_per_paragraph
+
+                    for para, text in zip(body_paras, body_texts):
+                        try:
+                            kws = await self._keyword_extractor.extract(
+                                text, max_kw, language=doc.language
+                            )
+                            para.keywords = kws
+                            paragraph_keywords.append(kws)
+                            total_keywords += 1
+                        except Exception as exc:  # noqa: BLE001
+                            if is_rate_limit_error(exc):
+                                raise
+                            logger.warning(
+                                "Keyword extraction failed for para %s: %s", para.id, exc
+                            )
+                            paragraph_keywords.append({})
+
+                    # Aggregate paragraph → chapter keywords
+                    if paragraph_keywords and self._keyword_aggregator is not None:
+                        chapter.keywords = self._keyword_aggregator.aggregate(
+                            paragraph_keywords,
+                            top_k=settings.keyword_max_per_chapter,
+                        )
+                        all_chapter_keywords.append(chapter.keywords)
+
+            if self._vector_service is not None or self._qdrant is not None:
                 # Qdrant path: write immediately, do NOT keep embedding in memory.
                 # vectors will be GC-able once this iteration ends.
-                ids = await self._upsert_to_qdrant(doc, paragraphs, vectors)
+                ids = await self._upsert_to_qdrant(doc, body_paras, vectors)
                 all_qdrant_ids.extend(ids)
             else:
                 # No-Qdrant path (dev / test): store on Paragraph so
                 # DocumentService can persist them to SQLite.
-                for para, vec in zip(paragraphs, vectors):
+                for para, vec in zip(body_paras, vectors):
                     para.embedding = vec
 
-            total_embedded += len(paragraphs)
+            total_embedded += len(body_paras)
             chapters_done += 1
             if sub_cb:
                 sub_cb(chapters_done, total_chapters, "章節特徵")
+            if murmur_cb:
+                try:
+                    if chapter.keywords:
+                        top_kws = "、".join(list(chapter.keywords.keys())[:3])
+                        await murmur_cb(
+                            "featureExtraction", "topic", top_kws,
+                            meta={"chapter": chapter.number},
+                        )
+                    else:
+                        await murmur_cb(
+                            "featureExtraction", "raw",
+                            f"ch.{chapter.number:02d} — {len(body_paras)} 段落已向量化",
+                            meta={"chapter": chapter.number},
+                        )
+                except Exception:  # noqa: BLE001
+                    pass
             # vectors goes out of scope here → eligible for GC
 
         # ── Aggregate chapter → book keywords ──────────────────────────────
@@ -178,18 +215,57 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         paragraphs: list[Paragraph],
         vectors: list[list[float]],
     ) -> list[str]:
-        """Upsert a single chapter's vectors into Qdrant and return point IDs."""
-        from config.settings import get_settings  # noqa: PLC0415
-        from qdrant_client.models import Distance, PointStruct, VectorParams  # noqa: PLC0415
+        """Upsert a single chapter's vectors into Qdrant and return point IDs.
 
+        Uses VectorService when available (production path); falls back to the
+        raw QdrantClient for the legacy test path (qdrant_client= param).
+        """
+        if self._vector_service is not None:
+            return await self._upsert_via_vector_service(doc, paragraphs, vectors)
+        return await self._upsert_via_raw_client(doc, paragraphs, vectors)
+
+    async def _upsert_via_vector_service(
+        self,
+        doc: Document,
+        paragraphs: list[Paragraph],
+        vectors: list[list[float]],
+    ) -> list[str]:
+        """Production path: delegate to VectorService (single client owner)."""
+        para_dicts = [
+            {
+                "id": para.id,
+                "embedding": vec,
+                "text": para.text,
+                "document_id": doc.id,
+                "chapter_number": para.chapter_number,
+                "position": para.position,
+                "keywords": list(para.keywords.keys()) if para.keywords else [],
+                "keyword_scores": para.keywords if para.keywords else {},
+            }
+            for para, vec in zip(paragraphs, vectors, strict=False)
+        ]
+        await self._vector_service.upsert_paragraphs(para_dicts, document_id=doc.id)
+        logger.debug(
+            "Upserted %d points (chapter %s) via VectorService",
+            len(para_dicts),
+            paragraphs[0].chapter_number if paragraphs else "?",
+        )
+        return [p["id"] for p in para_dicts]
+
+    async def _upsert_via_raw_client(
+        self,
+        doc: Document,
+        paragraphs: list[Paragraph],
+        vectors: list[list[float]],
+    ) -> list[str]:
+        """Legacy path: raw QdrantClient (used by tests with mock_qdrant)."""
+        from qdrant_client.models import Distance, PointStruct, VectorParams  # noqa: PLC0415
+        from config.settings import get_settings  # noqa: PLC0415
         from services.vector_service import title_slug  # noqa: PLC0415
 
         settings = get_settings()
-        collection = (
-            f"{settings.qdrant_collection_prefix}_{title_slug(doc.title)}"
-        )
+        collection = f"{settings.qdrant_collection_prefix}_{title_slug(doc.title)}"
 
-        # Ensure per-book collection exists (cached after first check)
         if not getattr(self, "_qdrant_collection_created", False):
             existing = [c.name for c in self._qdrant.get_collections().collections]
             if collection not in existing:
@@ -217,9 +293,8 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
                     "keyword_scores": para.keywords if para.keywords else {},
                 },
             )
-            for para, vec in zip(paragraphs, vectors)
+            for para, vec in zip(paragraphs, vectors, strict=False)
         ]
-
         self._qdrant.upsert(collection_name=collection, points=points)
         logger.debug(
             "Upserted %d points (chapter %s) into '%s'",

@@ -265,6 +265,44 @@ class TensionService:
             return []
         return [TensionLine.model_validate(l) for l in cached["lines"]]
 
+    async def get_lines_with_teus(self, document_id: str) -> list[dict]:
+        """Return TensionLines for a document with their constituent TEUs embedded.
+
+        Each TensionLine dict gains a ``teus`` key (list of TEU dicts) so that the
+        UI can render per-line evidence without a second round-trip. Lines whose
+        TEUs are not in the cache (stale references) simply receive an empty list.
+        """
+        lines = await self.get_lines(document_id)
+        if not lines:
+            return []
+
+        # Resolve TEUs across all lines in a single cache pass.
+        all_teu_ids = {tid for line in lines for tid in line.teu_ids}
+        teu_by_id: dict[str, TEU] = {}
+        # TEUs are cached by event_id (one TEU per event), and TEU.id != event_id.
+        # We need to scan all events for this document; mirror the loading used in group_teus.
+        if all_teu_ids:
+            # Cache layout: teu:{event_id}. We don't have a reverse index, so scan keys.
+            cached_teus = await self._cache.list_by_prefix("teu:")
+            for entry in cached_teus:
+                try:
+                    teu = TEU.model_validate(entry)
+                except Exception:
+                    continue
+                if teu.document_id == document_id and teu.id in all_teu_ids:
+                    teu_by_id[teu.id] = teu
+
+        result: list[dict] = []
+        for line in lines:
+            payload = line.model_dump(mode="json")
+            payload["teus"] = [
+                teu_by_id[tid].model_dump(mode="json")
+                for tid in line.teu_ids
+                if tid in teu_by_id
+            ]
+            result.append(payload)
+        return result
+
     async def update_line_review(
         self,
         line_id: str,
@@ -650,6 +688,7 @@ class TensionService:
                     canonical_pole_b=item.get("canonical_pole_b", ""),
                     intensity_summary=sum(intensities) / len(intensities),
                     chapter_range=[min(chapters), max(chapters)],
+                    thematic_note=item.get("thematic_note"),
                 )
             )
 
@@ -716,8 +755,7 @@ class TensionService:
 
     @staticmethod
     def _localize_prompt(prompt: str, language: str) -> str:
-        if language.lower().startswith("zh"):
-            return prompt + "\n\nRespond with all text fields in Traditional Chinese."
-        if language.lower().startswith("ja"):
-            return prompt + "\n\nRespond with all text fields in Japanese."
-        return prompt
+        from core.language_detection import get_language_display_name  # noqa: PLC0415
+
+        lang_name = get_language_display_name(language)
+        return prompt + f"\nRespond in {lang_name}."

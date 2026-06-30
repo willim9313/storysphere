@@ -32,9 +32,18 @@
 
 書庫列表。
 
+**說明**：進行中任務（`pending` / `running` / `awaiting_review`）的書籍不出現在此列表，由前端另行以 `ProcessingBookCard` 呈現。
+
 **Response 200**
 ```ts
 Book[]
+
+interface PipelineStatus {
+  summarization: 'pending' | 'done' | 'failed';
+  featureExtraction: 'pending' | 'done' | 'failed';
+  knowledgeGraph: 'pending' | 'done' | 'failed';
+  symbolDiscovery: 'pending' | 'done' | 'failed';
+}
 
 interface Book {
   id: string;
@@ -45,6 +54,7 @@ interface Book {
   entityCount?: number;
   uploadedAt: string;
   lastOpenedAt?: string;   // 後端尚未實作寫入，目前永遠為 undefined
+  pipelineStatus: PipelineStatus;
 }
 ```
 
@@ -56,7 +66,7 @@ interface Book {
 
 單本書 metadata（書庫列表欄位）。
 
-**Response 200**：同 `Book`（#1 的 Book interface）
+**Response 200**：同 `Book`（#1 的 Book interface，含 `pipelineStatus`）
 
 **Response 404**：書籍不存在
 
@@ -78,12 +88,12 @@ interface Book {
 
 ### #2 POST /books/upload
 
-上傳 PDF，觸發後端處理流程。
+上傳 PDF 或 DOCX，觸發後端處理流程。
 
 **Request**：`multipart/form-data`
 ```
-file    (PDF 檔案，必填)
-title   (書名字串，必填)
+file    (PDF 或 DOCX 檔案，必填；最大 200 MB)
+title   (書名字串，選填；省略時自動取檔名 stem)
 author  (作者字串，選填)
 ```
 
@@ -92,7 +102,11 @@ author  (作者字串，選填)
 { taskId: string }
 ```
 
-**說明**：取得 taskId 後，前端 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。
+**Response 413**：檔案超過 200 MB
+
+**Response 422**：非 .pdf / .docx 格式
+
+**說明**：取得 taskId 後，前端 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。流程中可能出現 `awaiting_review` 狀態（章節審閱暫停），見 #8「特殊狀態」說明。
 
 **UI 使用頁面**：上傳頁 `/upload`
 
@@ -225,11 +239,15 @@ interface AnalysisItem {
   entityId: string;
   section: 'characters' | 'events';
   title: string;
-  archetypeType?: string;
+  archetypes: Record<string, string>;  // framework → primary archetype id（characters 才會填，events 為空 map）
   chapterCount: number;
   content: string;
-  framework: 'jung' | 'schmidt';
+  status: 'complete' | 'partial';     // partial = 該角色分析有子步驟失敗；左側清單狀態點據此上色（complete=綠 / partial=琥珀）
   generatedAt: string;
+  // ── event-only optional fields（characters 為 null） ──
+  chapter?: number | null;            // 事件所在章節（單一章節編號）
+  narrativeMode?: string | null;      // 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown'
+  importance?: string | null;         // 'KERNEL' | 'SATELLITE'
 }
 
 interface UnanalyzedEntity {
@@ -237,6 +255,10 @@ interface UnanalyzedEntity {
   name: string;
   type: EntityType;
   chapterCount: number;
+  // ── event-only optional fields（characters 為 null） ──
+  chapter?: number | null;
+  narrativeMode?: string | null;
+  importance?: string | null;
 }
 ```
 
@@ -248,9 +270,47 @@ interface UnanalyzedEntity {
 
 取得事件分析清單（含已分析與未分析）。
 
-**Response 200**：同 #6a 格式，`section: 'events'`
+**Response 200**：同 #6a 格式，`section: 'events'`；事件清單會額外填入 `chapter` / `narrativeMode` / `importance` 三個欄位（已分析事件的 `importance` 來自 cached EEP；未分析事件 `importance` 為 `null`）。`status` 同 #6a：`partial` = 該事件分析有子步驟（causality / impact）失敗，左側清單狀態點據此上色（complete=綠 / partial=琥珀）。
 
-**UI 使用頁面**：事件分析頁左側清單
+**UI 使用頁面**：事件分析頁左側清單 — KERNEL/SATELLITE letter badge、章節標籤、narrative_mode mini-chip 皆依賴這三個欄位
+
+---
+
+### #6d GET /books/:bookId/analysis/factions
+
+派系結構偵測（F-16）。對角色子圖跑 NetworkX `greedy_modularity_communities`，正向關係（ALLY/FAMILY/FRIENDSHIP/MEMBER_OF/ROMANCE）作為加權邊；ENEMY 邊另行彙整為跨派系 rivalry。
+
+**Query**：
+- `chapter` (int, optional, ≥ 1) — 指定章節時回傳該章閱讀順序快照下的派系；省略則使用全書狀態
+- `resolution` (float, optional, 0.1–4.0, default 1.0) — modularity 解析度；越大 → 派系數量多但每個小，越小 → 派系少而大
+- `min_cluster_size` (int, optional, ≥ 2, default 2) — 小於此值的社群歸入 `unaffiliatedEntityIds`
+
+**Response 200**：`FactionAnalysisResponse`
+```ts
+interface FactionAnalysisResponse {
+  bookId: string;
+  chapter: number | null;
+  factions: Array<{
+    id: string;            // "faction:0", "faction:1"…
+    label: string;         // "Faction 1"…
+    memberIds: string[];
+    cohesionScore: number; // intra-faction edge weight / member count
+    topMemberNames: string[]; // up to 3, descending by mention_count
+  }>;
+  relations: Array<{
+    sourceFactionId: string;
+    targetFactionId: string;
+    cooperation: number;   // [0, 1], normalised by |fa| × |fb|
+    rivalry: number;       // [0, 1]
+  }>;
+  unaffiliatedEntityIds: string[];
+  unaffiliatedNames: string[];
+}
+```
+
+**說明**：同步端點，純圖計算，無 task polling；空書 / 無角色 → `factions: []`、200。
+
+**UI 使用頁面**：圖譜頁工具列「社群」模式 → `ClusterOverviewPanel` 派系卡與底部 N×N 關係矩陣
 
 ---
 
@@ -285,6 +345,8 @@ interface CharacterAnalysisDetail {
   archetypes: ArchetypeDetail[];
   cep: CepData | null;
   arc: ArcSegment[];
+  status: 'complete' | 'partial';   // partial = 部分子步驟生成失敗
+  failedParts: string[];            // 失敗 part，如 ['archetype:jung']；前端據此區分「生成失敗，可重試」與「未生成」
   generatedAt: string;
 }
 
@@ -313,7 +375,13 @@ interface ArcSegment {
 
 觸發角色實體深度分析。需確認視窗（說明 token 消耗 + 結果將同步至角色分析頁）後才呼叫。
 
+**Request body**（選填）：`{ mode?: 'full' | 'retryFailed' }`，預設 `full`。
+- `full`：完整重跑（force_refresh），重抽 CEP 與所有 part。
+- `retryFailed`：只重跑快取結果的 `failedParts`（沿用快取的 CEP 與已成功 part）。server 自行從快取推算 part，前端不需傳。
+
 **Response 200**：`{ taskId: string }`
+
+**說明**：每次觸發**一律同時產生 Jung 與 Schmidt 兩種 archetype**，無需傳 framework 參數。前端的 framework 切換僅影響顯示，不影響 trigger 行為。
 
 **UI 使用頁面**：知識圖譜頁「生成深度分析」按鈕、角色分析頁「建立」按鈕
 
@@ -326,6 +394,21 @@ interface ArcSegment {
 **Response 204**
 
 **UI 使用頁面**：角色分析頁「覆蓋重新生成」
+
+---
+
+### #7h POST /books/:bookId/entities/analyze-all
+
+批次觸發所有未分析角色（`entity_type=character`）的深度分析（已分析自動跳過）。Archetype frameworks 固定為 `["jung", "schmidt"]`。
+
+**Response 202**：`{ taskId: string }`
+
+**Response 404**：書本不存在
+**Response 400**：書本內無 character 類型實體
+
+**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）。polling #8。
+
+**UI 使用頁面**：角色分析頁「一鍵生成全部角色分析」
 
 ---
 
@@ -344,7 +427,12 @@ interface EventAnalysisDetail {
   causality: CausalityAnalysis;
   impact: ImpactAnalysis;
   summary: { summary: string };
+  status: 'complete' | 'partial';   // partial = causality / impact 子步驟生成失敗
+  failedParts: string[];            // 失敗 part，如 ['impact']
   analyzedAt: string;
+  chapter?: number | null;        // 事件所在章節
+  chunk?: number | null;          // 事件在章節內的位置（目前對應 Event.narrative_position，未來改用 chunk_id 時不變動此欄位語意）
+  narrativeMode?: string | null;  // present | flashback | flashforward | parallel | unknown
 }
 
 interface EventEvidenceProfile {
@@ -373,6 +461,8 @@ interface EventEvidenceProfile {
 ### #7e POST /books/:bookId/events/:eventId/analyze
 
 觸發單一事件深度分析（EEP）。
+
+**Request body**（選填）：`{ mode?: 'full' | 'retryFailed' }`，預設 `full`。語意同 #7b（`retryFailed` 只重跑快取的 `failedParts`）。
 
 **Response 200**：`{ taskId: string }`
 
@@ -419,21 +509,44 @@ interface BatchEepResult {
 
 > **注意**：張力分析（#14 系列）與 KG 遷移（#19c）有各自的 polling endpoint，不走此路徑。
 
+**Query Parameters**
+
+| 參數 | 型別 | 預設 | 說明 |
+|---|---|---|---|
+| `after` | `integer` | `0` | 只回傳 `seq >= after` 的 murmur events（delta 語意，client 負責累積） |
+
 **Response 200**
 ```ts
+type MurmurStepKey = 'pdfParsing' | 'summarization' | 'featureExtraction' | 'knowledgeGraph' | 'symbolExploration';
+type MurmurEventType = 'character' | 'location' | 'org' | 'event' | 'topic' | 'symbol' | 'raw';
+
+interface MurmurEvent {
+  seq: number;             // server 端原子配發，client 排序 / 去重用
+  stepKey: MurmurStepKey;
+  type: MurmurEventType;
+  content: string;         // 截斷上限 1 KB
+  meta?: Record<string, unknown>;  // e.g. { chapter: 1, role: "天體物理學家" }
+  rawContent?: string;     // type === 'raw' 時使用，截斷上限 4 KB
+}
+
 interface TaskStatus {
   taskId: string;
-  status: 'pending' | 'running' | 'done' | 'error';
+  status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_review';
   progress: number;        // 0–100
   stage: string;           // UI 顯示文字，如「建構知識圖譜中」
   subProgress?: number;    // 子任務進度（批次任務使用）
   subTotal?: number;
   subStage?: string;
   result?: {
-    bookId?: string;       // 上傳完成時提供，用於導向 /books/:bookId
+    bookId?: string;        // 上傳完成 or awaiting_review 時提供，用於導向 /books/:bookId
+    failedSteps?: string[]; // 上傳任務：部分步驟失敗時回傳失敗描述列表
     [key: string]: unknown;
   };
   error?: string;
+  kind?: string;           // 任務種類（如 'tension' / 'symbol' / 'ingestion'），任務中心據此導向；未提供則不可跳轉
+  title?: string;          // 顯示標題；未提供時前端 fallback 用 stage
+  createdAt?: string;      // ISO 時間字串，任務中心排序用
+  murmurEvents?: MurmurEvent[];  // delta slice（seq >= after 的事件）
 }
 ```
 
@@ -441,7 +554,7 @@ interface TaskStatus {
 ```ts
 useQuery({
   queryKey: ['tasks', taskId],
-  queryFn: () => fetchTaskStatus(taskId),
+  queryFn: () => fetchTaskStatus(taskId, cursor),  // cursor 由 client 累積
   enabled: !!taskId,
   refetchInterval: (data) => {
     if (!data) return 2000;
@@ -451,14 +564,82 @@ useQuery({
 })
 ```
 
+**特殊狀態：`awaiting_review`**
+
+上傳流程在 PDF/DOCX 解析、章節偵測完成後，會**暫停**並將任務置為 `awaiting_review`，等待使用者確認章節邊界。
+
+- 此時 `result.bookId` 已有值（書籍已入庫）
+- 前端應導向章節審閱畫面，呼叫 `#22a GET /books/:bookId/review-data` 取得章節與段落資料
+- 使用者確認後呼叫 `#22b POST /books/:bookId/review`，pipeline 繼續執行
+- 完整流程：`pending → running → awaiting_review → (review submitted) → running → done`
+
 **觸發點對照**
 
 | 觸發操作 | 對應 API |
 |----------|----------|
-| PDF 上傳 | #2 |
+| PDF / DOCX 上傳 | #2 |
 | 整本書深度分析 | #6 |
 | 條目重新生成 | #6c |
 | 角色實體深度分析 | #7b |
+
+---
+
+### #8b POST /tasks/:taskId/cancel
+
+中止正在執行的 background task（真正中斷 asyncio.Task）。
+
+**Response 204**：中止成功
+
+**Response 404**：task 不存在
+
+**Response 409**：task 已完成或無法中止
+
+---
+
+### #8c GET /tasks
+
+列出全系統任務，供「任務中心」面板總覽。回傳**所有非終態任務**（`pending` / `running` / `awaiting_review`）加上**最近 N 筆終態任務**（`done` / `error`），依 `createdAt` 新到舊排序。
+
+> 與 #8 不同，本 endpoint 為**清單**用途，回傳的 `TaskStatus` **不含 `murmurEvents`**（逐句 murmur 請走 #8）。
+
+**Query Parameters**
+
+| 參數 | 型別 | 預設 | 說明 |
+|---|---|---|---|
+| `recent_limit` | `integer` | `20` | 納入的最近終態任務數上限（`ge=0`）。非終態任務不受此限，一律全列。 |
+
+**Response 200**
+```ts
+type TaskListResponse = TaskStatus[];  // TaskStatus 定義見 #8；murmurEvents 一律為 []
+```
+
+**說明**：
+- 書進庫**前**取消 → 書不存在，等同上傳失敗
+- 書進庫**後**取消 → 書留在庫裡，剩餘 enrichment 步驟中斷，`pipelineStatus` 中未完成步驟標為 `failed`，可透過 #8c 補跑
+
+---
+
+### #8c POST /books/:bookId/rerun/:step
+
+對單一失敗步驟觸發補跑，回傳 taskId 供 polling（走 #8）。
+
+**Path Parameters**
+
+| 參數 | 說明 |
+|------|------|
+| `bookId` | 書籍 UUID |
+| `step` | `summarization` \| `feature-extraction` \| `knowledge-graph` \| `symbol-discovery` |
+
+**Response 202**
+```ts
+{ taskId: string }
+```
+
+**Response 404**：書籍不存在
+
+**Response 422**：step 名稱無效
+
+**說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `['book', bookId]` query 以重整書籍資料。
 | 事件深度分析（單一） | #7e |
 | 批次事件 EEP | #7g |
 | 時序計算 | #13b |
@@ -577,16 +758,30 @@ interface InferredRelationsResponse {
 
 ### #10c POST /books/:bookId/inferred-relations/:irId/confirm
 
-確認推斷關係，將其加入正式圖譜。
+確認（採用）推斷關係，將其加入正式圖譜。
 
-**Request Body**
+**Request Body（選填）**
 ```ts
-{ relationType: string }
+{ relationType?: string }   // 整個 body 可省略
 ```
+
+省略 `relationType` 時，後端依下表將 `InferredRelationType` 提升為 `RelationType`：
+
+| InferredRelationType | → RelationType |
+|---|---|
+| `potential_ally` | `ally` |
+| `potential_enemy` | `enemy` |
+| `potential_friendship` | `friendship` |
+| `potential_associate` | `other` |
+| `unknown` | `other` |
+
+完整對照表定義於 `domain.inferred_relations.INFERRED_TO_CANONICAL`。
+
+帶 `relationType` 則覆寫自動映射，必須是有效的 `RelationType` 值，否則 422。
 
 **Response 201**：`{ relationId: string }`
 
-**UI 使用頁面**：知識圖譜頁 InferredEdgePanel「Confirm」按鈕
+**UI 使用頁面**：知識圖譜頁 InferredEdgePanel「採用」按鈕（預設不傳 body，使用後端映射）
 
 ---
 
@@ -803,28 +998,42 @@ Step 2 專用 polling endpoint。
 
 ### #14e GET /tension/lines
 
-取得書籍的 TensionLine 清單。
+取得書籍的 TensionLine 清單，**並內嵌每條線的 TEU 證據**（供審核頁直接顯示，不需第二次請求）。
 
 **Query Params**：`book_id=<bookId>`（必填）
 
 **Response 200**
 ```ts
-TensionLine[]
+TensionLineDetail[]
 
-// TensionLine 欄位為 snake_case（domain/ model，無 alias_generator）
-interface TensionLine {
+// 欄位為 snake_case（domain/ model，無 alias_generator）
+interface TensionLineDetail {
   id: string;
   document_id: string;
   teu_ids: string[];
   canonical_pole_a: string;
   canonical_pole_b: string;
-  intensity_summary: number;   // 0–1
-  chapter_range: number[];     // [firstChapter, lastChapter]
+  intensity_summary: number;            // 0–1
+  chapter_range: number[];              // [firstChapter, ..., lastChapter]
+  thematic_note?: string | null;        // LLM 在分組時提出的全線主題註記
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  teus: TEUSummary[];                   // 構成此線的 TEU 證據，依 teu_ids 順序
+}
+
+interface TEUSummary {
+  id: string;
+  chapter: number;
+  intensity: number;                    // 0–1
+  tension_description: string;
+  evidence: string[];                   // 1–3 段文本引用
+  pole_a_carriers: string[];            // 對應 pole A 的角色名（denormalized）
+  pole_b_carriers: string[];
 }
 ```
 
-**UI 使用頁面**：張力分析頁（軌跡圖 + 審核列表）
+**UI 使用頁面**：張力分析頁（hero / 軌跡圖 dashboard / 審核 LineCard 證據區）
+
+**備註**：`teus[]` 由 `TensionService.get_lines_with_teus()` 透過 `AnalysisCache.list_by_prefix("teu:")` 一次取出，過濾掉與 `teu_ids` 不匹配的條目；若 TEU 已逾 TTL，該條 line 的 `teus` 為空陣列（line 仍照常回傳）。
 
 ---
 
@@ -974,6 +1183,7 @@ interface SymbolTimelineEntry {
   context_window: string;
   co_occurring_terms: string[];
   occurrence_id: string;
+  paragraph_id: string;
 }
 ```
 
@@ -1028,6 +1238,7 @@ interface SEP {
     context_window: string;
   }[];
   co_occurring_entity_ids: string[];
+  co_occurring_entity_counts: Record<string, number>;  // { entityId: N occurrences whose paragraph mentions this entity }
   co_occurring_event_ids: string[];
   chapter_distribution: Record<string, number>;   // { "1": 3, "2": 1, ... }
   peak_chapters: number[];
@@ -1135,11 +1346,28 @@ HITL 審核 / 修改 SymbolInterpretation。
 
 **Response 200**：`VoiceProfileResponse`（見 generated.ts）
 
+新增欄位（用於語音風格 tab 的圖表）：
+```ts
+interface ToneSegment {
+  label: string;   // 'declarative' | 'interrogative' | 'exclamatory'
+  value: number;   // 0.0–1.0；同陣列內各 segment 加總接近 1
+}
+interface HistogramBucket {
+  bucket: string;  // '1-10' | '11-20' | '21-30' | '31-40' | '41-50' | '51+'
+  value: number;   // 該區間的句子數（int）
+}
+// VoiceProfileResponse 新增：
+toneDistribution: ToneSegment[];          // 3 segments；依 question/exclamation ratio 推導
+sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
+```
+
+`toneDistribution` 由 backend 直接從 `question_ratio` / `exclamation_ratio` 推導（declarative = 1 − Q − E），不額外打 LLM。`sentenceLengthHistogram` 由 `_compute_metrics` 計算句長後分桶。兩欄位皆為**可選**（舊快取 entries 預設為空陣列），不會破壞既有資料。
+
 **Response 404**：book 或 entity 不存在
 
 **Response 422**：entity 無對話段落可分析
 
-**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel
+**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel（ToneDistribution 堆疊條 + SentenceHistogram 直方圖）
 
 ---
 
@@ -1246,7 +1474,7 @@ result: {
 
 ---
 
-## 展開卷軸
+## 建構概覽
 
 ### #19 GET /books/:bookId/unraveling
 
@@ -1276,7 +1504,38 @@ interface UnravelingEdge {
 }
 ```
 
-**UI 使用頁面**：展開卷軸頁 `/books/:bookId/unraveling`
+**UI 使用頁面**：建構概覽頁 `/books/:bookId/unraveling`
+
+---
+
+### #19b GET /books/:bookId/unraveling/chapter-distribution
+
+取得 chapter-aware 節點的章節分佈計數（用於建構概覽 detail panel 的章節分佈 sparkline）。
+
+**Response 200**
+```ts
+interface ChapterDistribution {
+  bookId: string;
+  totalChapters: number;
+  // nodeId → 12-cell（依書籍實際章節數）counts；
+  // 不在此 map 中的 nodeId 表示該節點無 chapter-aware 資料
+  distributions: Record<string, number[]>;
+}
+```
+
+**支援的 `nodeId`**（其他節點不會出現在 `distributions`）：
+
+| nodeId | 計算邏輯 |
+|--------|---------|
+| `paragraphs` | 每章 `paragraphs` 數量 |
+| `summaries` | 每章 `summary` 是否存在（0/1） |
+| `keywords` | 每章 `keywords` 是否存在（0/1） |
+| `kg_event` | 每章 events 數量（`event.chapter == n`） |
+| `symbols` | 每章意象出現次數（`imagery.chapter_distribution` 加總） |
+
+**404**：當 `bookId` 不存在。
+
+**UI 使用頁面**：建構概覽頁 `/books/:bookId/unraveling`（NodeDetail panel）
 
 ---
 
@@ -1502,6 +1761,54 @@ interface UnravelingEdge {
 
 ---
 
+### #22a GET /books/:bookId/review-data
+
+上傳流程章節審閱：取得系統偵測的章節與段落資料，供前端顯示。只在任務狀態為 `awaiting_review` 時有效。
+
+**Response 404**：書籍不存在
+
+**Response 409**：書籍目前不在 `awaiting_review` 狀態（包含已完成、尚未開始、重複呼叫）
+
+**Response 200**
+```ts
+{
+  chapters: Array<{
+    chapterIdx: number;
+    title: string | null;
+    paragraphs: Array<{
+      paragraphIndex: number;  // book-level global index
+      text: string;
+      role: string;            // "body" | "separator" | "section" | "epigraph" | "preamble"
+      titleSpan: [number, number] | null;  // char offsets of heading within text
+      sentences: string[];
+    }>;
+  }>;
+}
+```
+
+---
+
+### #22b POST /books/:bookId/review
+
+提交審閱後的章節邊界，解除流程暫停並繼續後續分析（LangGraph graph resume）。
+
+**Request Body**
+```ts
+{
+  chapters: Array<{
+    title: string;
+    startParagraphIndex: number;  // book-level global index
+  }>;
+  roleOverrides: Record<string, string>;  // str(globalParagraphIdx) → role value; omitted = {}
+}
+```
+
+**Response 204**：無 body
+
+**409**：任務不在 `awaiting_review` 狀態（包含重複提交）
+
+---
+
 ### #21l PATCH /narrative/:documentId/review
 
 HITL 審核 NarrativeStructure（approved / rejected）。
@@ -1517,6 +1824,56 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 ---
 
+## 跨書搜尋
+
+### #22a `POST /api/v1/search/` — 語意搜尋
+
+**Request body**（camelCase）：
+
+```json
+{
+  "query": "描述主角內心動搖的段落",
+  "bookId": null,
+  "topK": 20
+}
+```
+
+| 欄位 | 型別 | 說明 |
+|------|------|------|
+| `query` | `string` | 自然語言查詢 |
+| `bookId` | `string \| null` | `null` = 跨書；傳入 UUID = 限定單書 |
+| `topK` | `integer` | 回傳筆數，1–50，預設 20 |
+
+**Response 200**：`SearchResult[]`
+
+```json
+[
+  {
+    "id": "uuid",
+    "text": "段落文本",
+    "score": 0.94,
+    "metadata": {
+      "documentId": "book-uuid",
+      "chapterNumber": 3,
+      "position": 28
+    }
+  }
+]
+```
+
+| 欄位 | 說明 |
+|------|------|
+| `score` | Qdrant 語意相關度，0–1 |
+| `metadata.documentId` | 所屬書籍 UUID，對應 `GET /api/v1/books/` 的 `id` |
+| `metadata.chapterNumber` | 所在章節（1-based） |
+| `metadata.position` | 段落在章節內的位置（1-based） |
+
+**前端封裝**：`frontend/src/api/search.ts`  
+**頁面**：`/search`（Sidebar Search 圖示）  
+**實作狀態（2026-06-13）**：已完整實作；`metadata` 欄位修復（原回傳空 `{}`）。
+
+---
+
 ## TanStack Query Key 對照
 
 ```ts
@@ -1524,8 +1881,10 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 ['books', bookId]                                            // #2-a / #3
 ['books', bookId, 'chapters']                               // #4
 ['books', bookId, 'chapters', chapterId, 'chunks']          // #5
+['books', bookId, 'review-data']                            // #22a
 ['books', bookId, 'analysis', 'characters']                 // #6a
 ['books', bookId, 'analysis', 'events']                     // #6b
+['books', bookId, 'analysis', 'factions']                   // #6d
 ['books', bookId, 'entities', entityId, 'analysis']         // #7a
 ['books', bookId, 'events', eventId, 'analysis']            // #7d
 ['books', bookId, 'entities', entityId, 'chunks']           // #9b
@@ -1566,5 +1925,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 - [x] **#18c KG 遷移**：直接回傳 TaskStatus，polling 走 #18d（非走 #8）
 - [x] **#20 系列 `/analysis` 路由**：character + event 非同步深度分析，各有專用 polling（`src/api/routers/analysis.py`）
 - [x] **#21 系列 `/narrative` 路由**：Kernel/Satellite 分類 + LLM 精煉 + Hero's Journey + Genette 時間序（`src/api/routers/narrative.py`）
+  - 2026-06-01：#21k / #21l 加 `response_model=NarrativeStructure`，#21j 加 `response_model=list[KernelSpineEvent]`（新增 schema），讓 `generated.ts` 取得 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。回傳 JSON shape 不變（皆為既有 snake_case domain dump）。前端封裝於 `frontend/src/api/narrative.ts`，頁面為 `/books/:bookId/narrative`（B-045）。
 - [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
+- [x] **#22a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

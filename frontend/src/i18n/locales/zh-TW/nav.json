@@ -1,7 +1,7 @@
 {
   "library": "書庫",
   "upload": "上傳",
-  "frameworks": "框架索引",
+  "frameworks": "方法論",
   "search": "搜尋",
   "tokenUsage": "Token 用量",
   "settings": "系統設定",
@@ -13,6 +13,7 @@
     "timeline": "時間軸",
     "tensionAnalysis": "張力分析",
     "symbolImagery": "符號意象",
-    "unraveling": "展開卷軸"
+    "narrativeStructure": "敘事結構",
+    "unraveling": "建構概覽"
   }
 }

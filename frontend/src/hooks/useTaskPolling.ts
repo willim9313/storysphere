@@ -1,14 +1,34 @@
+import { useReducer } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchTaskStatus } from '@/api/ingest';
-import type { TaskStatus } from '@/api/types';
+import type { MurmurEvent, TaskStatus } from '@/api/types';
+import {
+  appendMurmurEvents,
+  advanceMurmurCursor,
+  getMurmurCursor,
+  getMurmurEvents,
+} from '@/store/murmurStore';
 
 export function useTaskPolling(
   taskId: string | null,
-  fetcher?: (id: string) => Promise<TaskStatus>,
+  fetcher?: (id: string, after: number) => Promise<TaskStatus>,
 ) {
-  return useQuery<TaskStatus>({
+  // Triggers re-render when murmur store is updated
+  const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+
+  const query = useQuery<TaskStatus>({
     queryKey: ['tasks', taskId],
-    queryFn: () => (fetcher ?? fetchTaskStatus)(taskId!),
+    queryFn: async () => {
+      const after = getMurmurCursor(taskId!);
+      const result = await (fetcher ?? fetchTaskStatus)(taskId!, after);
+      const delta: MurmurEvent[] = result.murmurEvents ?? [];
+      if (delta.length > 0) {
+        appendMurmurEvents(taskId!, delta);
+        advanceMurmurCursor(taskId!, delta.length);
+        forceUpdate();
+      }
+      return result;
+    },
     enabled: !!taskId,
     refetchInterval: (query) => {
       const status = query.state.data?.status;
@@ -16,4 +36,9 @@ export function useTaskPolling(
       return 2000;
     },
   });
+
+  return {
+    ...query,
+    murmurEvents: taskId ? getMurmurEvents(taskId) : [],
+  };
 }

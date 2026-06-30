@@ -14,8 +14,17 @@ from typing import Any, Callable
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from core.token_callback import set_llm_service_context
+from core.tracing import update_span as _lf_update_span
 from core.utils.data_sanitizer import DataSanitizer
 from core.utils.output_extractor import extract_json_from_text
+
+try:
+    from langfuse import observe as _lf_observe
+except ImportError:
+    def _lf_observe(**_kw):  # type: ignore[misc]
+        def _d(fn): return fn
+        return _d
+
 from services.analysis_models import (
     ArcSegment,
     ArchetypeResult,
@@ -230,9 +239,11 @@ class AnalysisService:
 
     # ── Public: generate_insight (Phase 3) ─────────────────────────────────────
 
+    @_lf_observe(name="analysis.insight", as_type="chain", capture_input=False, capture_output=False)
     async def generate_insight(
         self, topic: str, context: str = "", language: str = "en"
     ) -> str:
+        _lf_update_span(metadata={"topic": topic[:200], "language": language, "has_context": bool(context)})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
@@ -252,6 +263,7 @@ class AnalysisService:
 
     # ── Public: analyze_character (Phase 5) ────────────────────────────────────
 
+    @_lf_observe(name="analysis.character", as_type="chain", capture_input=False, capture_output=False)
     async def analyze_character(
         self,
         entity_name: str,
@@ -259,6 +271,8 @@ class AnalysisService:
         archetype_frameworks: list[str] | None = None,
         language: str = "en",
         progress_callback: Callable[[int, str], None] | None = None,
+        retry_parts: list[str] | None = None,
+        base_result: CharacterAnalysisResult | None = None,
     ) -> CharacterAnalysisResult:
         """Run full character analysis pipeline: CEP → archetypes → arc → profile.
 
@@ -274,6 +288,13 @@ class AnalysisService:
         if archetype_frameworks is None:
             archetype_frameworks = ["jung"]
 
+        _lf_update_span(metadata={
+            "entity_name": entity_name,
+            "document_id": document_id,
+            "frameworks": archetype_frameworks,
+            "language": language,
+        })
+
         # Resolve entity
         entity_id = entity_name
         if self._kg_service is not None:
@@ -281,51 +302,49 @@ class AnalysisService:
             if entity is not None:
                 entity_id = entity.id
 
-        # Step 1: Extract CEP (must complete before steps 2-4)
-        if progress_callback:
-            progress_callback(5, "extracting character evidence profile (CEP)")
-        cep = await self._extract_cep(entity_name, document_id, language)
+        # Step 1: Extract CEP (must complete before steps 2-4).
+        # On partial re-run, reuse the cached CEP instead of re-extracting.
+        if retry_parts and base_result is not None:
+            cep = base_result.cep
+        else:
+            if progress_callback:
+                progress_callback(5, "extracting character evidence profile (CEP)")
+            cep = await self._extract_cep(entity_name, document_id, language)
 
-        # Steps 2, 3, 4 in parallel: archetypes + arc + profile
-        if progress_callback:
-            progress_callback(30, "analyzing archetype, arc, and profile")
-        archetype_coros = [
-            self._classify_archetype(cep, fw, language)
-            for fw in archetype_frameworks
-        ]
-        all_results = await asyncio.gather(
-            *archetype_coros,
-            self._generate_character_arc(cep, language),
-            self._generate_profile(entity_name, cep, language),
-            return_exceptions=True,
+        # Steps 2, 3, 4: archetypes + arc + profile, as named parts.
+        # Pass retry_parts so only the wanted coroutines are instantiated.
+        wanted = self._character_parts(
+            entity_name, cep, archetype_frameworks, language, only=retry_parts
         )
 
-        n = len(archetype_frameworks)
-        archetype_results = all_results[:n]
-        arc_result = all_results[n]
-        profile_result = all_results[n + 1]
+        if progress_callback:
+            progress_callback(30, "analyzing archetype, arc, and profile")
+        from core.gather_parts import gather_parts  # noqa: PLC0415
+        results, failed = await gather_parts(wanted)
 
-        archetypes = []
-        for i, ar in enumerate(archetype_results):
-            if isinstance(ar, Exception):
-                logger.warning(
-                    "Archetype classification failed for %s/%s: %s",
-                    archetype_frameworks[i], language, ar,
-                )
-            else:
-                archetypes.append(ar)
-
-        if isinstance(arc_result, Exception):
-            logger.warning("Arc generation failed: %s", arc_result)
-            arc: list[ArcSegment] = []
+        if base_result is not None:
+            archetypes = list(base_result.archetypes)
+            arc = list(base_result.arc)
+            profile = base_result.profile
         else:
-            arc = arc_result
+            archetypes, arc, profile = [], [], CharacterProfile(summary="")
 
-        if isinstance(profile_result, Exception):
-            logger.warning("Profile generation failed: %s", profile_result)
-            profile = CharacterProfile(summary="")
+        for name, value in results.items():
+            if name.startswith("archetype:"):
+                archetypes = [
+                    a for a in archetypes if f"archetype:{a.framework}" != name
+                ]
+                archetypes.append(value)
+            elif name == "arc":
+                arc = value
+            elif name == "profile":
+                profile = value
+
+        if base_result is not None:
+            prior = [p for p in base_result.failed_parts if p not in (retry_parts or [])]
+            failed_parts = prior + failed
         else:
-            profile = profile_result
+            failed_parts = failed
 
         # Step 5: Compute coverage metrics (pure computation)
         if progress_callback:
@@ -341,10 +360,32 @@ class AnalysisService:
             archetypes=archetypes,
             arc=arc,
             coverage=coverage,
+            failed_parts=failed_parts,
         )
+
+    def _character_parts(
+        self, entity_name, cep, archetype_frameworks, language, only=None
+    ):
+        """Map part-name → coroutine for the parallel sub-steps.
+
+        Coroutines are built lazily via factories so that ``only`` filtering
+        never instantiates (and thus never has to await) unwanted parts.
+        """
+        factories = {
+            f"archetype:{fw}": (lambda fw=fw: self._classify_archetype(cep, fw, language))
+            for fw in archetype_frameworks
+        }
+        factories["arc"] = lambda: self._generate_character_arc(cep, language)
+        factories["profile"] = lambda: self._generate_profile(entity_name, cep, language)
+        return {
+            name: make()
+            for name, make in factories.items()
+            if only is None or name in only
+        }
 
     # ── Private: CEP Extraction ────────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.character.cep", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -355,6 +396,7 @@ class AnalysisService:
         self, entity_name: str, document_id: str, language: str = "en"
     ) -> CEPResult:
         """Extract Character Evidence Profile from KG + vector + keywords + LLM."""
+        _lf_update_span(metadata={"entity_name": entity_name, "document_id": document_id, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # --- Parallel data gathering: KG, vector search, keywords ---
@@ -465,6 +507,7 @@ class AnalysisService:
 
     # ── Private: Archetype Classification ──────────────────────────────────────
 
+    @_lf_observe(name="analysis.character.archetype", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -474,6 +517,7 @@ class AnalysisService:
     async def _classify_archetype(
         self, cep: CEPResult, framework: str, language: str
     ) -> ArchetypeResult:
+        _lf_update_span(metadata={"framework": framework, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
         from config.archetypes import get_archetype_summary  # noqa: PLC0415
 
@@ -500,16 +544,19 @@ class AnalysisService:
         if err or not isinstance(parsed, dict):
             raise ValueError(f"Archetype classification failed: {err}")
 
+        from config.archetypes import resolve_archetype_name  # noqa: PLC0415
+
         return ArchetypeResult(
             framework=framework,
-            primary=parsed.get("primary", "unknown"),
-            secondary=parsed.get("secondary"),
+            primary=resolve_archetype_name(framework, parsed.get("primary", "unknown"), language) or "unknown",
+            secondary=resolve_archetype_name(framework, parsed.get("secondary"), language),
             confidence=max(0.0, min(1.0, float(parsed.get("confidence", 0.5)))),
             evidence=parsed.get("evidence", []),
         )
 
     # ── Private: Character Arc Generation ──────────────────────────────────────
 
+    @_lf_observe(name="analysis.character.arc", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -519,6 +566,7 @@ class AnalysisService:
     async def _generate_character_arc(
         self, cep: CEPResult, language: str = "en"
     ) -> list[ArcSegment]:
+        _lf_update_span(metadata={"language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         cep_text = cep.model_dump_json(indent=2)
@@ -548,6 +596,7 @@ class AnalysisService:
 
     # ── Private: Profile Summary ───────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.character.profile", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -557,6 +606,7 @@ class AnalysisService:
     async def _generate_profile(
         self, entity_name: str, cep: CEPResult, language: str = "en"
     ) -> CharacterProfile:
+        _lf_update_span(metadata={"entity_name": entity_name, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         cep_text = cep.model_dump_json(indent=2)
@@ -580,12 +630,15 @@ class AnalysisService:
 
     # ── Public: analyze_event (Phase 5b) ───────────────────────────────────────
 
+    @_lf_observe(name="analysis.event", as_type="chain", capture_input=False, capture_output=False)
     async def analyze_event(
         self,
         event_id: str,
         document_id: str,
         language: str = "en",
         progress_callback: Callable[[int, str], None] | None = None,
+        retry_parts: list[str] | None = None,
+        base_result: EventAnalysisResult | None = None,
     ) -> EventAnalysisResult:
         """Run full event analysis pipeline: EEP → causality → impact → summary.
 
@@ -596,6 +649,7 @@ class AnalysisService:
         Returns:
             Complete EventAnalysisResult.
         """
+        _lf_update_span(metadata={"event_id": event_id, "document_id": document_id, "language": language})
         from datetime import timezone  # noqa: PLC0415
 
         if self._kg_service is None:
@@ -605,29 +659,37 @@ class AnalysisService:
         if event is None:
             raise ValueError(f"Event not found: {event_id}")
 
-        if progress_callback:
-            progress_callback(5, "extracting event evidence profile (EEP)")
-        eep = await self._extract_eep(event, document_id, language)
+        # EEP gate. On partial re-run, reuse the cached EEP.
+        if retry_parts and base_result is not None:
+            eep = base_result.eep
+        else:
+            if progress_callback:
+                progress_callback(5, "extracting event evidence profile (EEP)")
+            eep = await self._extract_eep(event, document_id, language)
 
-        # causality and impact are independent — run in parallel
+        # causality and impact as named parts.
+        factories = {
+            "causality": lambda: self._analyze_causality(eep, event, language),
+            "impact": lambda: self._analyze_impact(eep, event, language),
+        }
+        wanted = {
+            name: make()
+            for name, make in factories.items()
+            if retry_parts is None or name in retry_parts
+        }
+
         if progress_callback:
             progress_callback(30, "analyzing causality and impact")
-        causality_r, impact_r = await asyncio.gather(
-            self._analyze_causality(eep, event, language),
-            self._analyze_impact(eep, event, language),
-            return_exceptions=True,
-        )
+        from core.gather_parts import gather_parts  # noqa: PLC0415
+        results, failed = await gather_parts(wanted)
 
-        if isinstance(causality_r, Exception):
-            logger.warning("Causality analysis failed: %s", causality_r)
+        if base_result is not None:
+            causality = base_result.causality
+            impact = base_result.impact
+        else:
             causality = CausalityAnalysis(
                 root_cause="", causal_chain=[], trigger_event_ids=[], chain_summary=""
             )
-        else:
-            causality = causality_r
-
-        if isinstance(impact_r, Exception):
-            logger.warning("Impact analysis failed: %s", impact_r)
             impact = ImpactAnalysis(
                 affected_participant_ids=[],
                 participant_impacts=[],
@@ -635,8 +697,14 @@ class AnalysisService:
                 subsequent_event_ids=[],
                 impact_summary="",
             )
+        causality = results.get("causality", causality)
+        impact = results.get("impact", impact)
+
+        if base_result is not None:
+            prior = [p for p in base_result.failed_parts if p not in (retry_parts or [])]
+            failed_parts = prior + failed
         else:
-            impact = impact_r
+            failed_parts = failed
 
         if progress_callback:
             progress_callback(75, "generating event summary")
@@ -654,11 +722,13 @@ class AnalysisService:
             impact=impact,
             summary=event_summary,
             coverage=coverage,
+            failed_parts=failed_parts,
             analyzed_at=datetime.now(timezone.utc),
         )
 
     # ── Private: EEP Extraction ────────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.event.eep", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -669,6 +739,12 @@ class AnalysisService:
         self, event: Any, document_id: str, language: str = "en"
     ) -> EventEvidenceProfile:
         """Assemble EEP from KG + vector evidence, then call LLM to fill fields."""
+        _lf_update_span(metadata={
+            "event_id": event.id,
+            "event_title": event.title,
+            "document_id": document_id,
+            "language": language,
+        })
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Collect participant entities
@@ -808,6 +884,7 @@ class AnalysisService:
 
     # ── Private: Causality Analysis ────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.event.causality", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -818,6 +895,7 @@ class AnalysisService:
         self, eep: EventEvidenceProfile, event: Any, language: str = "en"
     ) -> CausalityAnalysis:
         """Construct narrative causal chain leading to this event."""
+        _lf_update_span(metadata={"event_id": event.id, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Fetch prior event details
@@ -865,6 +943,7 @@ class AnalysisService:
 
     # ── Private: Impact Analysis ───────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.event.impact", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -875,6 +954,7 @@ class AnalysisService:
         self, eep: EventEvidenceProfile, event: Any, language: str = "en"
     ) -> ImpactAnalysis:
         """Trace what happened because of this event."""
+        _lf_update_span(metadata={"event_id": event.id, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Fetch subsequent event details
@@ -929,6 +1009,7 @@ class AnalysisService:
 
     # ── Private: Event Summary ─────────────────────────────────────────────────
 
+    @_lf_observe(name="analysis.event.summary", as_type="chain", capture_input=False, capture_output=False)
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -944,6 +1025,7 @@ class AnalysisService:
         language: str = "en",
     ) -> EventSummary:
         """Synthesize all analysis into a ~150-word narrative paragraph."""
+        _lf_update_span(metadata={"event_id": event.id, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         participants_text = ", ".join(

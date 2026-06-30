@@ -16,22 +16,36 @@ from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Form, HTTPException, Query, UploadFile
 
-from api.deps import AnalysisCacheDep, AnalysisAgentDep, DocServiceDep, EpistemicStateServiceDep, KGServiceDep, LinkPredictionServiceDep, TemporalPipelineDep, VectorServiceDep, VoiceProfilingServiceDep
+from api import task_registry
+from api.deps import (
+    AnalysisAgentDep,
+    AnalysisCacheDep,
+    DocServiceDep,
+    EpistemicStateServiceDep,
+    KGServiceDep,
+    LinkPredictionServiceDep,
+    TemporalPipelineDep,
+    VectorServiceDep,
+    VoiceProfilingServiceDep,
+)
 from api.schemas.books import (
     AnalysisItem,
     AnalysisListResponse,
+    AnalyzeTriggerRequest,
+    ArchetypeDetailResponse,
+    ArcSegmentResponse,
     BookDetailResponse,
     BookResponse,
-    ChapterResponse,
-    ChunkResponse,
-    ArcSegmentResponse,
-    ArchetypeDetailResponse,
     CepResponse,
+    ChapterResponse,
     CharacterAnalysisDetailResponse,
-    EntityAnalysisResponse,
+    ChunkResponse,
+    ClassifyVisibilityResponse,
+    ConfirmInferredRequest,
     EntityChunkItem,
     EntityChunksResponse,
     EntityStats,
+    EpistemicStateResponse,
     EventAnalysisFullResponse,
     EventDetailResponse,
     EventLocation,
@@ -39,36 +53,40 @@ from api.schemas.books import (
     GraphDataResponse,
     GraphEdge,
     GraphNode,
+    InferredRelationResponse,
+    InferredRelationsResponse,
     LocationRef,
+    MisbeliefItemSchema,
     ParticipantRef,
+    ReviewChapterResponse,
+    ReviewDataResponse,
+    ReviewParagraphResponse,
+    ReviewSubmitRequest,
+    RunInferenceRequest,
     Segment,
     SegmentEntity,
     TaskIdResponse,
     TemporalRelationEntry,
-    TimelineEventEntry,
-    TimelineQuality,
-    TimelineResponse,
     TimelineConfigResponse,
     TimelineConfigUpdate,
     TimelineDetectionResponse,
+    TimelineEventEntry,
+    TimelineQuality,
+    TimelineResponse,
     TopEntity,
     UnanalyzedEntity,
-    ClassifyVisibilityResponse,
-    ConfirmInferredRequest,
-    EpistemicStateResponse,
-    InferredRelationResponse,
-    InferredRelationsResponse,
-    MisbeliefItemSchema,
-    RunInferenceRequest,
     VoiceProfileResponse,
 )
 from api.store import task_store
-from domain.documents import ParagraphEntity
+from core.error_handling import is_rate_limit_error as _is_rate_limit_error
+from domain.documents import ParagraphEntity, PipelineStatus, StepStatus
 from services.analysis_cache import AnalysisCache
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/books", tags=["books"])
+
+MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # 200 MB
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -94,53 +112,104 @@ def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
 
 
+def _pipeline_status_response(pipeline_status_json: str | None):
+    from api.schemas.books import PipelineStatusResponse  # noqa: PLC0415
+    if pipeline_status_json is None:
+        return PipelineStatusResponse()
+    ps = PipelineStatus.model_validate_json(pipeline_status_json)
+    return _pipeline_status_response_from_domain(ps)
+
+
+def _pipeline_status_response_from_domain(ps: PipelineStatus):
+    from api.schemas.books import PipelineStatusResponse  # noqa: PLC0415
+    return PipelineStatusResponse(
+        summarization=ps.summarization.value,
+        feature_extraction=ps.feature_extraction.value,
+        knowledge_graph=ps.knowledge_graph.value,
+        symbol_discovery=ps.symbol_discovery.value,
+    )
+
+
 # ── Background tasks ────────────────────────────────────────────────────────
 
 
-async def _run_ingestion(
+async def _run_ingestion_graph(
     task_id: str,
     file_path: Path,
     title: str,
     author: str | None = None,
+    language: str | None = None,
 ) -> None:
+    from langgraph.errors import GraphInterrupt  # noqa: PLC0415
+
+    from api.deps import get_ingestion_graph  # noqa: PLC0415
+
     task_store.set_running(task_id)
     task_store.set_progress(task_id, 5, "PDF 解析")
-    try:
-        from api.deps import get_kg_service  # noqa: PLC0415
-        from workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
 
-        kg_service = get_kg_service()
-        workflow = IngestionWorkflow(kg_service=kg_service)
-        result = await workflow.run(
-            file_path,
-            title=title,
-            author=author,
-            progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None: task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
-        )
-        task_result: dict = {"bookId": result.document_id}
-        if result.timeline_detection is not None:
-            task_result["timelineDetection"] = TimelineDetectionResponse.model_validate(
-                result.timeline_detection.model_dump()
-            ).model_dump(by_alias=True)
-        task_store.set_completed(task_id, result=task_result)
-        logger.info(
-            "Ingestion task %s completed: %s chapters, %s entities",
-            task_id,
-            result.chapters,
-            result.entities,
-        )
+    config = {"configurable": {"thread_id": task_id}}
+    initial_state = {
+        "file_path": str(file_path),
+        "title": title,
+        "author": author,
+        "language": language,
+        "task_id": task_id,
+        "doc_id": None,
+        "errors": [],
+        "chapters": 0,
+        "paragraphs": 0,
+        "paragraphs_embedded": 0,
+        "keywords_extracted": 0,
+        "chapters_summarized": 0,
+        "book_summary_generated": False,
+        "entities": 0,
+        "relations": 0,
+        "events": 0,
+        "imagery_count": 0,
+        "timeline_detection": None,
+    }
+    graph = get_ingestion_graph()
+    try:
+        await graph.ainvoke(initial_state, config=config)
+    except GraphInterrupt:
+        # Expected pause for chapter review — graph is checkpointed, not an error
+        logger.info("Ingestion task %s paused for chapter review", task_id)
+    except asyncio.CancelledError:
+        logger.info("Ingestion task %s cancelled", task_id)
+        task_store.set_failed(task_id, error="cancelled")
+        raise
     except Exception as exc:
         logger.exception("Ingestion task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
     finally:
+        task_registry.unregister(task_id)
         try:
             file_path.unlink(missing_ok=True)
         except Exception:
             pass
 
 
+async def _resume_ingestion_graph(task_id: str, chapters_data: list[dict]) -> None:
+    from langgraph.types import Command  # noqa: PLC0415
+
+    from api.deps import get_ingestion_graph  # noqa: PLC0415
+
+    config = {"configurable": {"thread_id": task_id}}
+    graph = get_ingestion_graph()
+    try:
+        await graph.ainvoke(Command(resume=chapters_data), config=config)
+    except asyncio.CancelledError:
+        logger.info("Resume of ingestion task %s cancelled", task_id)
+        task_store.set_failed(task_id, error="cancelled")
+        raise
+    except Exception as exc:
+        logger.exception("Resume of ingestion task %s failed", task_id)
+        task_store.set_failed(task_id, error=str(exc))
+
+
 async def _run_entity_analysis(
-    task_id: str, entity_name: str, document_id: str, agent, language: str = "en"
+    task_id: str, entity_name: str, document_id: str, agent, language: str = "en",
+    retry_parts: list[str] | None = None, force_refresh: bool = False,
 ) -> None:
     logger.info("Entity analysis task %s started: entity=%s, doc=%s", task_id, entity_name, document_id)
     task_store.set_running(task_id)
@@ -148,8 +217,11 @@ async def _run_entity_analysis(
         result = await agent.analyze_character(
             entity_name=entity_name,
             document_id=document_id,
+            archetype_frameworks=["jung", "schmidt"],
             language=language,
             progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
+            retry_parts=retry_parts,
+            force_refresh=force_refresh,
         )
         task_store.set_completed(task_id, result=result.model_dump())
         logger.info("Entity analysis task %s completed: entity=%s", task_id, entity_name)
@@ -163,11 +235,29 @@ async def _run_entity_analysis(
 
 @router.get("/", response_model=list[BookResponse])
 async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
-    """List all books."""
+    """List all books.
+
+    Books with an active ingestion task (pending / running / awaiting_review)
+    are excluded — they are shown as ProcessingBookCard in the frontend instead.
+    """
+    from api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
+
     items = await doc.list_documents()
+
+    # Filter out books whose ingestion task is still active
+    settled: list = []
+    for item in items:
+        task_id = await get_task_id_by_book_id(item.id)
+        if task_id is None:
+            settled.append(item)
+        else:
+            task = await get_task(task_id)
+            if task is None or task.status in ("done", "error"):
+                settled.append(item)
+
     # Parallel entity count fetch to avoid N+1
     entity_lists = await asyncio.gather(
-        *[kg.list_entities(document_id=item.id) for item in items]
+        *[kg.list_entities(document_id=item.id) for item in settled]
     )
     return [
         BookResponse(
@@ -177,8 +267,9 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
             chapter_count=item.chapter_count,
             entity_count=len(entities),
             uploaded_at="",
+            pipeline_status=_pipeline_status_response(item.pipeline_status_json),
         ).model_dump(by_alias=True)
-        for item, entities in zip(items, entity_lists)
+        for item, entities in zip(settled, entity_lists, strict=False)
     ]
 
 
@@ -220,6 +311,7 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         uploaded_at=(
             document.processed_at.isoformat() if document.processed_at else _now_iso()
         ),
+        pipeline_status=_pipeline_status_response_from_domain(document.pipeline_status),
     ).model_dump(by_alias=True)
 
 
@@ -247,32 +339,242 @@ async def delete_book(
     return None
 
 
+# ── Rerun endpoints ──────────────────────────────────────────────────────────
+
+_RERUN_STEPS = {
+    "summarization",
+    "feature-extraction",
+    "knowledge-graph",
+    "symbol-discovery",
+}
+
+
+async def _run_rerun_step(
+    task_id: str,
+    book_id: str,
+    step: str,
+    doc_service,
+    kg_service,
+) -> None:
+    task_store.set_running(task_id)
+    try:
+        document = await doc_service.get_document(book_id)
+        if document is None:
+            task_store.set_failed(task_id, error=f"Book '{book_id}' not found")
+            return
+
+        from workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
+        wf = IngestionWorkflow(kg_service=kg_service)
+
+        if step == "summarization":
+            try:
+                await wf._summarization_pipeline.run(document)
+                document.pipeline_status.summarization = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                document.pipeline_status.summarization = StepStatus.failed
+                task_store.set_failed(task_id, error=str(exc))
+                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                return
+
+        elif step == "feature-extraction":
+            try:
+                await wf._feature_pipeline.run(document)
+                document.pipeline_status.feature_extraction = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                document.pipeline_status.feature_extraction = StepStatus.failed
+                task_store.set_failed(task_id, error=str(exc))
+                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                return
+
+        elif step == "knowledge-graph":
+            try:
+                await wf._kg_pipeline.run(document)
+                await wf._kg_service.save()
+                document.pipeline_status.knowledge_graph = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                document.pipeline_status.knowledge_graph = StepStatus.failed
+                task_store.set_failed(task_id, error=str(exc))
+                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                return
+
+        elif step == "symbol-discovery":
+            try:
+                await wf._symbol_pipeline.run(document)
+                document.pipeline_status.symbol_discovery = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                document.pipeline_status.symbol_discovery = StepStatus.failed
+                task_store.set_failed(task_id, error=str(exc))
+                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                return
+
+        await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+        task_store.set_completed(task_id, result={"bookId": book_id, "step": step})
+
+    except asyncio.CancelledError:
+        task_store.set_failed(task_id, error="cancelled")
+        raise
+    except Exception as exc:
+        logger.exception("Rerun task %s (%s) failed", task_id, step)
+        task_store.set_failed(task_id, error=str(exc))
+    finally:
+        task_registry.unregister(task_id)
+
+
+@router.post("/{book_id}/rerun/{step}", response_model=TaskIdResponse, status_code=202)
+async def rerun_pipeline_step(
+    book_id: str,
+    step: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+) -> dict:
+    """Trigger a rerun of a single failed pipeline step for a book."""
+    if step not in _RERUN_STEPS:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Unknown step '{step}'. Valid steps: {sorted(_RERUN_STEPS)}",
+        )
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    task_id = str(uuid4())
+    task_store.create(task_id, kind="ingestion", title="重跑處理步驟")
+    task = asyncio.create_task(_run_rerun_step(task_id, book_id, step, doc, kg))
+    task_registry.register(task_id, task)
+    return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+# ── #8d GET /books/:bookId/review-data ───────────────────────────────────────
+
+_SENTENCE_END = re.compile(r"(?<=[.!?])\s+|(?<=[。！？])")
+
+
+@router.get("/{book_id}/review-data", response_model=ReviewDataResponse)
+async def get_review_data(
+    book_id: str,
+    doc: DocServiceDep,
+) -> ReviewDataResponse:
+    """Return chapter/paragraph data for review. Only available while awaiting_review."""
+    from api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
+
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+    status = await get_task(task_id)
+    if status is None or status.status != "awaiting_review":
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    global_idx = 0
+    review_chapters: list[ReviewChapterResponse] = []
+    for ch_idx, chapter in enumerate(document.chapters):
+        paras: list[ReviewParagraphResponse] = []
+        for para in chapter.paragraphs:
+            sentences = [s for s in _SENTENCE_END.split(para.text) if s.strip()]
+            if not sentences:
+                sentences = [para.text]
+            paras.append(
+                ReviewParagraphResponse(
+                    paragraph_index=global_idx,
+                    text=para.text,
+                    role=para.role.value,
+                    title_span=list(para.title_span) if para.title_span else None,
+                    sentences=sentences,
+                )
+            )
+            global_idx += 1
+        review_chapters.append(
+            ReviewChapterResponse(
+                chapter_idx=ch_idx,
+                title=chapter.title,
+                paragraphs=paras,
+            )
+        )
+
+    return ReviewDataResponse(chapters=review_chapters)
+
+
+# ── #8e POST /books/:bookId/review ───────────────────────────────────────────
+
+
+@router.post("/{book_id}/review", status_code=204)
+async def submit_review(
+    book_id: str,
+    body: ReviewSubmitRequest,
+) -> None:
+    """Submit reviewed chapter structure and resume the ingestion pipeline."""
+    from api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
+
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+    status = await get_task(task_id)
+    if status is None or status.status != "awaiting_review":
+        raise HTTPException(
+            status_code=409,
+            detail="Review window has already been closed",
+        )
+
+    resume_value = {
+        "chapters": [ch.model_dump(by_alias=False) for ch in body.chapters],
+        "role_overrides": body.role_overrides,
+    }
+    # Await the write so the frontend sees 'running' on its very next poll —
+    # the sync fire-and-forget path would race with the immediately-following navigate.
+    from api.store import set_task_running  # noqa: PLC0415
+    await set_task_running(task_id)
+    asyncio.create_task(_resume_ingestion_graph(task_id, resume_value))
+
+
 # ── #2 POST /books/upload ────────────────────────────────────────────────────
 
 
 @router.post("/upload", response_model=TaskIdResponse, status_code=202)
 async def upload_book(
-    background_tasks: BackgroundTasks,
     file: UploadFile,
     title: Annotated[str | None, Form()] = None,
     author: Annotated[str | None, Form()] = None,
+    language: Annotated[str | None, Form()] = None,
 ) -> dict:
-    """Upload a PDF/DOCX and start background ingestion."""
+    """Upload a PDF/DOCX/TXT and start background ingestion."""
     suffix = Path(file.filename or "upload").suffix.lower()
-    if suffix not in {".pdf", ".docx"}:
+    if suffix not in {".pdf", ".docx", ".txt"}:
         raise HTTPException(
-            status_code=422, detail="Only .pdf and .docx files are supported"
+            status_code=422,
+            detail="Only .pdf, .docx and .txt files are supported",
         )
 
     # Use user-provided title if given, otherwise fall back to filename stem
     title = (title.strip() if title and title.strip() else None) or Path(file.filename or "Untitled").stem
     author = author.strip() if author and author.strip() else None
+    language = language.strip() or None if language else None
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
         content = await file.read()
+        if len(content) > MAX_UPLOAD_BYTES:
+            tmp.close()
+            Path(tmp.name).unlink(missing_ok=True)
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large (max {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
+            )
         tmp.write(content)
         tmp.close()
+    except HTTPException:
+        raise
     except Exception as exc:
         tmp.close()
         Path(tmp.name).unlink(missing_ok=True)
@@ -281,8 +583,9 @@ async def upload_book(
         ) from exc
 
     task_id = str(uuid4())
-    task_store.create(task_id)
-    background_tasks.add_task(_run_ingestion, task_id, Path(tmp.name), title, author)
+    task_store.create(task_id, kind="ingestion", title=(f"{title} 解析" if title else "書籍解析"))
+    task = asyncio.create_task(_run_ingestion_graph(task_id, Path(tmp.name), title, author, language))
+    task_registry.register(task_id, task)
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
@@ -686,24 +989,38 @@ async def list_inferred_relations(
 async def confirm_inferred_relation(
     book_id: str,
     ir_id: str,
-    body: ConfirmInferredRequest,
     doc: DocServiceDep,
     lp: LinkPredictionServiceDep,
+    body: ConfirmInferredRequest | None = None,
 ) -> dict:
-    """Confirm an inferred relation; writes it as a real Relation to the KG."""
+    """Confirm an inferred relation; writes it as a real Relation to the KG.
+
+    Body is optional. When `relationType` is omitted, the inferred relation's
+    suggested_relation_type is promoted to its canonical RelationType via
+    INFERRED_TO_CANONICAL (see domain.inferred_relations).
+    """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
-    from domain.relations import RelationType  # noqa: PLC0415
-    try:
-        relation_type = RelationType(body.relation_type)
-    except ValueError:
-        raise HTTPException(status_code=422, detail=f"Invalid relation_type '{body.relation_type}'")
-
     ir = await lp.get_inferred(ir_id)
     if ir is None or ir.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"InferredRelation '{ir_id}' not found")
+
+    from domain.inferred_relations import promote_inferred_type  # noqa: PLC0415
+    from domain.relations import RelationType  # noqa: PLC0415
+
+    override = body.relation_type if body is not None else None
+    if override is not None:
+        try:
+            relation_type = RelationType(override)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Invalid relation_type '{override}'",
+            ) from exc
+    else:
+        relation_type = promote_inferred_type(ir.suggested_relation_type)
 
     relation = await lp.confirm(ir_id, relation_type)
     if relation is None:
@@ -778,6 +1095,7 @@ async def update_timeline_config(
 ) -> dict:
     """Update (confirm or change) the timeline snapshot configuration."""
     from datetime import datetime  # noqa: PLC0415
+
     from domain.timeline import TimelineConfig  # noqa: PLC0415
 
     document = await doc.get_document(book_id)
@@ -903,7 +1221,7 @@ async def trigger_book_analysis(
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, title="整本書深度分析")
 
     # For MVP: just mark as done (full batch analysis to be implemented)
     task_store.set_completed(task_id, result={"bookId": book_id})
@@ -937,18 +1255,16 @@ async def list_character_analyses(
         if cached is not None:
             try:
                 result = CharacterAnalysisResult.model_validate(cached)
-                archetype_type = (
-                    result.archetypes[0].primary if result.archetypes else None
-                )
+                archetypes = {a.framework: a.primary for a in result.archetypes}
                 analyzed.append(
                     AnalysisItem(
                         id=e.id,
                         entity_id=e.id,
                         section="characters",
                         title=e.name,
-                        archetype_type=archetype_type,
+                        archetypes=archetypes,
                         content=result.profile.summary if result.profile else "",
-                        framework="jung",
+                        status="partial" if result.failed_parts else "complete",
                         generated_at=(
                             result.analyzed_at.isoformat()
                             if result.analyzed_at
@@ -994,11 +1310,21 @@ async def list_event_analyses(
     analyzed: list[dict] = []
     unanalyzed: list[dict] = []
     for ev in events:
+        narrative_mode = (
+            ev.narrative_mode.value
+            if ev.narrative_mode is not None and hasattr(ev.narrative_mode, "value")
+            else (ev.narrative_mode if isinstance(ev.narrative_mode, str) else None)
+        )
         cache_key = f"event:{book_id}:{ev.id}"
         cached = await cache.get(cache_key)
         if cached is not None:
             try:
                 result = EventAnalysisResult.model_validate(cached)
+                importance = (
+                    result.eep.event_importance.name
+                    if result.eep and hasattr(result.eep.event_importance, "name")
+                    else None
+                )
                 analyzed.append(
                     AnalysisItem(
                         id=ev.id,
@@ -1006,25 +1332,38 @@ async def list_event_analyses(
                         section="events",
                         title=ev.title,
                         content=result.summary.summary if result.summary else "",
-                        framework="jung",
+                        status="partial" if result.failed_parts else "complete",
                         generated_at=(
                             result.analyzed_at.isoformat()
                             if result.analyzed_at
                             else _now_iso()
                         ),
+                        chapter=ev.chapter,
+                        narrative_mode=narrative_mode,
+                        importance=importance,
                     ).model_dump(by_alias=True)
                 )
             except Exception:
                 logger.warning("Failed to parse cached event analysis for %s", ev.id)
                 unanalyzed.append(
                     UnanalyzedEntity(
-                        id=ev.id, name=ev.title, type="event", chapter_count=0,
+                        id=ev.id,
+                        name=ev.title,
+                        type="event",
+                        chapter_count=0,
+                        chapter=ev.chapter,
+                        narrative_mode=narrative_mode,
                     ).model_dump(by_alias=True)
                 )
         else:
             unanalyzed.append(
                 UnanalyzedEntity(
-                    id=ev.id, name=ev.title, type="event", chapter_count=0,
+                    id=ev.id,
+                    name=ev.title,
+                    type="event",
+                    chapter_count=0,
+                    chapter=ev.chapter,
+                    narrative_mode=narrative_mode,
                 ).model_dump(by_alias=True)
             )
 
@@ -1050,7 +1389,7 @@ async def regenerate_analysis(
 ) -> dict:
     """Regenerate a single analysis item."""
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, title="條目重新生成")
     # TODO: dispatch to correct analysis agent based on section
     task_store.set_completed(task_id, result={})
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -1161,6 +1500,8 @@ async def get_entity_analysis(
                     )
                     for seg in result.arc
                 ],
+                status="partial" if result.failed_parts else "complete",
+                failed_parts=result.failed_parts,
                 generated_at=(
                     result.analyzed_at.isoformat() if result.analyzed_at else _now_iso()
                 ),
@@ -1185,22 +1526,41 @@ async def trigger_entity_analysis(
     kg: KGServiceDep,
     doc: DocServiceDep,
     agent: AnalysisAgentDep,
+    cache: AnalysisCacheDep,
     background_tasks: BackgroundTasks,
+    body: AnalyzeTriggerRequest = AnalyzeTriggerRequest(),
 ) -> dict:
-    """Trigger deep analysis for a single entity."""
+    """Trigger deep analysis for a single entity.
+
+    ``mode='retryFailed'`` re-runs only the cached result's failed parts
+    (reusing the cached CEP); ``mode='full'`` forces a complete re-analysis.
+    """
     entity = await kg.get_entity(entity_id)
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
     language = await doc.get_document_language(book_id)
+
+    retry_parts: list[str] | None = None
+    force_refresh = False
+    if body.mode == "retryFailed":
+        from services.analysis_models import CharacterAnalysisResult  # noqa: PLC0415
+        cache_key = AnalysisCache.make_key("character", book_id, entity.name)
+        cached = await cache.get(cache_key)
+        if cached:
+            retry_parts = CharacterAnalysisResult.model_validate(cached).failed_parts
+    else:
+        force_refresh = True
+
     logger.info(
-        "Triggering entity analysis: entity=%s (%s), book=%s, lang=%s",
-        entity.name, entity_id, book_id, language,
+        "Triggering entity analysis: entity=%s (%s), book=%s, lang=%s, mode=%s",
+        entity.name, entity_id, book_id, language, body.mode,
     )
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="character", title=f"角色深度分析 — {entity.name}")
     background_tasks.add_task(
-        _run_entity_analysis, task_id, entity.name, book_id, agent, language
+        _run_entity_analysis, task_id, entity.name, book_id, agent, language,
+        retry_parts, force_refresh,
     )
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -1221,6 +1581,139 @@ async def delete_entity_analysis(
     cache_key = AnalysisCache.make_key("character", book_id, entity.name)
     await cache.invalidate(cache_key)
     logger.info("Deleted entity analysis cache: key=%s", cache_key)
+
+
+# ── #7h POST /books/:bookId/entities/analyze-all ─────────────────────────────
+
+
+async def _run_batch_entity_analysis(
+    task_id: str,
+    document_id: str,
+    agent,
+    kg_service,
+    cache,
+    language: str = "en",
+) -> None:
+    """Background task: analyze all unanalyzed character entities."""
+    from domain.entities import EntityType  # noqa: PLC0415
+
+    task_store.set_running(task_id)
+    characters = await kg_service.list_entities(
+        entity_type=EntityType.CHARACTER, document_id=document_id
+    )
+    total = len(characters)
+    done = 0
+    failed = 0
+    skipped = 0
+
+    for entity in characters:
+        cache_key = AnalysisCache.make_key("character", document_id, entity.name)
+        if await cache.get(cache_key) is not None:
+            skipped += 1
+            done += 1
+            task_store.set_progress(
+                task_id,
+                progress=int(done / total * 100) if total else 0,
+                stage=f"分析角色 {done}/{total}",
+            )
+            continue
+        try:
+            await agent.analyze_character(
+                entity_name=entity.name,
+                document_id=document_id,
+                archetype_frameworks=["jung", "schmidt"],
+                language=language,
+            )
+            done += 1
+        except Exception as exc:
+            if _is_rate_limit_error(exc):
+                logger.warning("Batch character analysis aborted — rate limit: %s", exc)
+                task_store.set_failed(
+                    task_id,
+                    error=f"API 配額已達上限，已處理 {done}/{total} 個角色。請稍後再試。",
+                )
+                return
+            logger.warning(
+                "Batch character analysis failed for %s: %s",
+                entity.name, exc,
+            )
+            failed += 1
+            done += 1
+
+        task_store.set_progress(
+            task_id,
+            progress=int(done / total * 100) if total else 0,
+            stage=f"分析角色 {done}/{total}",
+        )
+
+    task_store.set_completed(
+        task_id,
+        result={
+            "progress": total,
+            "total": total,
+            "failed": failed,
+            "skipped": skipped,
+        },
+    )
+    logger.info(
+        "Batch character analysis complete: doc=%s, "
+        "total=%d, skipped=%d, failed=%d",
+        document_id, total, skipped, failed,
+    )
+
+
+@router.post(
+    "/{book_id}/entities/analyze-all",
+    response_model=TaskIdResponse,
+    status_code=202,
+)
+async def trigger_batch_entity_analysis(
+    book_id: str,
+    doc: DocServiceDep,
+    kg: KGServiceDep,
+    cache: AnalysisCacheDep,
+    agent: AnalysisAgentDep,
+    background_tasks: BackgroundTasks,
+) -> dict:
+    """Trigger deep analysis for ALL character entities in a book.
+
+    Skips characters that already have cached analysis.
+    Returns a task_id for progress tracking.
+    """
+    from domain.entities import EntityType  # noqa: PLC0415
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Book '{book_id}' not found",
+        )
+
+    characters = await kg.list_entities(
+        entity_type=EntityType.CHARACTER, document_id=book_id
+    )
+    if not characters:
+        raise HTTPException(
+            status_code=400,
+            detail="No characters found for this book",
+        )
+
+    language = await doc.get_document_language(book_id)
+    task_id = str(uuid4())
+    task_store.create(task_id, kind="character", title="批次角色分析")
+    background_tasks.add_task(
+        _run_batch_entity_analysis,
+        task_id, book_id, agent, kg, cache, language,
+    )
+
+    logger.info(
+        "Triggered batch character analysis: book=%s, "
+        "characters=%d, task=%s",
+        book_id, len(characters), task_id,
+    )
+    return TaskIdResponse(task_id=task_id).model_dump(
+        by_alias=True,
+    )
 
 
 # ── F-03 GET /books/:bookId/entities/:entityId/epistemic-state ───────────────
@@ -1324,7 +1817,7 @@ async def classify_book_visibility(
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, title="可見性分類")
     background_tasks.add_task(_run_classify_visibility, task_id, book_id, epistemic_svc)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
@@ -1333,7 +1826,8 @@ async def classify_book_visibility(
 
 
 async def _run_event_analysis(
-    task_id: str, event_id: str, document_id: str, agent, language: str = "en"
+    task_id: str, event_id: str, document_id: str, agent, language: str = "en",
+    retry_parts: list[str] | None = None, force_refresh: bool = False,
 ) -> None:
     logger.info("Event analysis task %s started: event=%s, doc=%s", task_id, event_id, document_id)
     task_store.set_running(task_id)
@@ -1343,6 +1837,8 @@ async def _run_event_analysis(
             document_id=document_id,
             language=language,
             progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
+            retry_parts=retry_parts,
+            force_refresh=force_refresh,
         )
         task_store.set_completed(task_id, result=result.model_dump())
         logger.info("Event analysis task %s completed: event=%s", task_id, event_id)
@@ -1361,22 +1857,40 @@ async def trigger_event_analysis(
     kg: KGServiceDep,
     doc: DocServiceDep,
     agent: AnalysisAgentDep,
+    cache: AnalysisCacheDep,
     background_tasks: BackgroundTasks,
+    body: AnalyzeTriggerRequest = AnalyzeTriggerRequest(),
 ) -> dict:
-    """Trigger deep analysis for a single event."""
+    """Trigger deep analysis for a single event.
+
+    ``mode='retryFailed'`` re-runs only the cached result's failed parts;
+    ``mode='full'`` forces a complete re-analysis.
+    """
     event = await kg.get_event(event_id)
     if event is None:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     language = await doc.get_document_language(book_id)
+
+    retry_parts: list[str] | None = None
+    force_refresh = False
+    if body.mode == "retryFailed":
+        from services.analysis_models import EventAnalysisResult  # noqa: PLC0415
+        cached = await cache.get(f"event:{book_id}:{event_id}")
+        if cached:
+            retry_parts = EventAnalysisResult.model_validate(cached).failed_parts
+    else:
+        force_refresh = True
+
     logger.info(
-        "Triggering event analysis: event=%s (%s), book=%s, lang=%s",
-        event.title, event_id, book_id, language,
+        "Triggering event analysis: event=%s (%s), book=%s, lang=%s, mode=%s",
+        event.title, event_id, book_id, language, body.mode,
     )
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="event", title="事件分析")
     background_tasks.add_task(
-        _run_event_analysis, task_id, event_id, book_id, agent, language
+        _run_event_analysis, task_id, event_id, book_id, agent, language,
+        retry_parts, force_refresh,
     )
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -1431,7 +1945,7 @@ async def get_event_analysis(
             ],
             consequences=result.eep.consequences,
             structural_role=result.eep.structural_role,
-            event_importance=result.eep.event_importance.value,
+            event_importance=result.eep.event_importance.name,
             thematic_significance=result.eep.thematic_significance,
             text_evidence=result.eep.text_evidence,
             key_quotes=result.eep.key_quotes,
@@ -1451,7 +1965,16 @@ async def get_event_analysis(
             impact_summary=result.impact.impact_summary,
         ),
         summary={"summary": result.summary.summary if result.summary else ""},
+        status="partial" if result.failed_parts else "complete",
+        failed_parts=result.failed_parts,
         analyzed_at=result.analyzed_at.isoformat() if result.analyzed_at else None,
+        chapter=event.chapter,
+        chunk=event.narrative_position,
+        narrative_mode=(
+            event.narrative_mode.value
+            if event.narrative_mode is not None and hasattr(event.narrative_mode, "value")
+            else (event.narrative_mode if isinstance(event.narrative_mode, str) else None)
+        ),
     )
 
 
@@ -1505,6 +2028,13 @@ async def _run_batch_event_analysis(
             )
             done += 1
         except Exception as exc:
+            if _is_rate_limit_error(exc):
+                logger.warning("Batch event analysis aborted — rate limit: %s", exc)
+                task_store.set_failed(
+                    task_id,
+                    error=f"API 配額已達上限，已處理 {done}/{total} 個事件。請稍後再試。",
+                )
+                return
             logger.warning(
                 "Batch event analysis failed for %s: %s",
                 ev.id, exc,
@@ -1568,7 +2098,7 @@ async def trigger_batch_event_analysis(
 
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="event", title="批次事件分析")
     background_tasks.add_task(
         _run_batch_event_analysis,
         task_id, book_id, agent, kg, cache, language,
@@ -1627,7 +2157,7 @@ async def get_book_timeline(
             analyzed_count += 1
             try:
                 result = EventAnalysisResult.model_validate(cached)
-                event_importance_map[ev.id] = result.eep.event_importance.value
+                event_importance_map[ev.id] = result.eep.event_importance.name
             except Exception:
                 pass
 
@@ -1786,7 +2316,7 @@ async def compute_book_timeline(
 
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
-    task_store.create(task_id)
+    task_store.create(task_id, kind="event", title="時間軸生成")
     background_tasks.add_task(
         _run_temporal_pipeline, task_id, book_id, pipeline, language
     )
@@ -1822,10 +2352,12 @@ async def get_entity_voice_profile(
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
+    language = await doc.get_document_language(book_id)
     try:
         profile = await voice_svc.get_voice_profile(
             document_id=book_id,
             character_id=entity_id,
+            language=language,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -1839,6 +2371,14 @@ async def get_entity_voice_profile(
         exclamation_ratio=profile.exclamation_ratio,
         lexical_diversity=profile.lexical_diversity,
         paragraphs_analyzed=profile.paragraphs_analyzed,
+        tone_distribution=[
+            {"label": seg.label, "value": seg.value}
+            for seg in profile.tone_distribution
+        ],
+        sentence_length_histogram=[
+            {"bucket": b.bucket, "value": b.value}
+            for b in profile.sentence_length_histogram
+        ],
         speech_style=profile.speech_style,
         distinctive_patterns=profile.distinctive_patterns,
         tone=profile.tone,

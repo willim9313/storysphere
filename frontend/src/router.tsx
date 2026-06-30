@@ -13,10 +13,13 @@ const GraphPage = lazy(() => import('@/pages/GraphPage'));
 const TimelinePage = lazy(() => import('@/pages/TimelinePage'));
 const TensionPage = lazy(() => import('@/pages/TensionPage'));
 const SymbolsPage = lazy(() => import('@/pages/SymbolsPage'));
-const UnravelingPage = lazy(() => import('@/pages/UnravelingPage'));
-const FrameworksPage = lazy(() => import('@/pages/FrameworksPage'));
+const NarrativePage = lazy(() => import('@/pages/NarrativePage'));
+const BuildOverviewPage = lazy(() => import('@/pages/BuildOverviewPage'));
+const MethodologyPage = lazy(() => import('@/pages/MethodologyPage'));
 const TokenUsagePage = lazy(() => import('@/pages/TokenUsagePage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const SearchPage = lazy(() => import('@/pages/SearchPage'));
+const ChapterReviewPage = lazy(() => import('@/pages/upload/ChapterReviewPage'));
 
 function LazyWrapper({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>;
@@ -43,10 +46,26 @@ export const router = createBrowserRouter([
         ),
       },
       {
-        path: '/frameworks',
+        path: '/upload/review/:bookId',
         element: (
           <LazyWrapper>
-            <FrameworksPage />
+            <ChapterReviewPage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: '/search',
+        element: (
+          <LazyWrapper>
+            <SearchPage />
+          </LazyWrapper>
+        ),
+      },
+      {
+        path: '/methodology',
+        element: (
+          <LazyWrapper>
+            <MethodologyPage />
           </LazyWrapper>
         ),
       },
@@ -127,10 +146,18 @@ export const router = createBrowserRouter([
             ),
           },
           {
+            path: 'narrative',
+            element: (
+              <LazyWrapper>
+                <NarrativePage />
+              </LazyWrapper>
+            ),
+          },
+          {
             path: 'unraveling',
             element: (
               <LazyWrapper>
-                <UnravelingPage />
+                <BuildOverviewPage />
               </LazyWrapper>
             ),
           },

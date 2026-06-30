@@ -1,23 +1,32 @@
+import { Fragment } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Upload, BookOpen, Search, BarChart3, Settings, Globe } from 'lucide-react';
+import { Home, Upload, BookOpen, Search, BarChart3, Settings, Loader, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-export function Sidebar() {
-  const location = useLocation();
-  const { t, i18n } = useTranslation('nav');
+interface NavItem {
+  to: string;
+  icon: LucideIcon;
+  label: string;
+  disabled?: boolean;
+}
 
-  const items = [
+interface SidebarProps {
+  readonly tasksOpen: boolean;
+  readonly activeCount: number;
+  readonly onToggleTasks: () => void;
+}
+
+export function Sidebar({ tasksOpen, activeCount, onToggleTasks }: SidebarProps) {
+  const location = useLocation();
+  const { t } = useTranslation('nav');
+
+  const items: NavItem[] = [
     { to: '/', icon: Home, label: t('library') },
     { to: '/upload', icon: Upload, label: t('upload') },
-    { to: '/frameworks', icon: BookOpen, label: t('frameworks') },
-    { to: '#', icon: Search, label: t('search'), disabled: true },
+    { to: '/methodology', icon: BookOpen, label: t('frameworks') },
+    { to: '/search', icon: Search, label: t('search') },
     { to: '/token-usage', icon: BarChart3, label: t('tokenUsage') },
-    { to: '/settings', icon: Settings, label: t('settings') },
   ];
-
-  const toggleLang = () => {
-    i18n.changeLanguage(i18n.language === 'zh-TW' ? 'en' : 'zh-TW');
-  };
 
   return (
     <nav
@@ -34,50 +43,90 @@ export function Sidebar() {
           : location.pathname.startsWith(to);
 
         return (
-          <Link
-            key={to}
-            to={disabled ? '#' : to}
-            title={label}
-            className="flex items-center justify-center rounded-md transition-colors"
-            style={{
-              width: 36,
-              height: 36,
-              backgroundColor: active ? 'var(--bg-tertiary)' : 'transparent',
-              color: disabled
-                ? 'var(--fg-muted)'
-                : active
-                  ? 'var(--accent)'
-                  : 'var(--fg-secondary)',
-              cursor: disabled ? 'default' : 'pointer',
-              opacity: disabled ? 0.5 : 1,
-            }}
-            onClick={disabled ? (e) => e.preventDefault() : undefined}
-          >
-            <Icon size={18} />
-          </Link>
+          <Fragment key={to}>
+            <Link
+              to={disabled ? '#' : to}
+              title={label}
+              className="flex items-center justify-center rounded-md transition-colors"
+              style={{
+                width: 36,
+                height: 36,
+                backgroundColor: active ? 'var(--bg-tertiary)' : 'transparent',
+                color: disabled
+                  ? 'var(--fg-muted)'
+                  : active
+                    ? 'var(--accent)'
+                    : 'var(--fg-secondary)',
+                cursor: disabled ? 'default' : 'pointer',
+                opacity: disabled ? 0.5 : 1,
+              }}
+              onClick={disabled ? (e) => e.preventDefault() : undefined}
+            >
+              <Icon size={18} />
+            </Link>
+
+            {/* Task Center toggle — placed between Search and Token usage */}
+            {to === '/search' && (
+              <button
+                type="button"
+                onClick={onToggleTasks}
+                title="任務中心"
+                aria-label="任務中心"
+                className="relative flex items-center justify-center rounded-md transition-colors"
+                style={{
+                  width: 36,
+                  height: 36,
+                  background: tasksOpen ? 'var(--bg-tertiary)' : 'transparent',
+                  color: tasksOpen ? 'var(--accent)' : 'var(--fg-secondary)',
+                  border: 0,
+                  cursor: 'pointer',
+                }}
+              >
+                <Loader size={18} />
+                {activeCount > 0 && (
+                  <span
+                    className="absolute flex items-center justify-center"
+                    style={{
+                      top: 1,
+                      right: 1,
+                      minWidth: 15,
+                      height: 15,
+                      padding: '0 3px',
+                      borderRadius: 8,
+                      fontFamily: 'var(--font-mono)',
+                      fontSize: 9,
+                      fontWeight: 700,
+                      lineHeight: 1,
+                      background: 'var(--accent)',
+                      color: '#fff',
+                      border: '1.5px solid var(--bg-secondary)',
+                    }}
+                  >
+                    {activeCount}
+                  </span>
+                )}
+              </button>
+            )}
+          </Fragment>
         );
       })}
 
       <div className="flex-1" />
 
-      <button
-        onClick={toggleLang}
-        title={i18n.language === 'zh-TW' ? 'Switch to English' : '切換至繁體中文'}
+      <Link
+        to="/settings"
+        title={t('settings')}
         className="flex items-center justify-center rounded-md transition-colors"
         style={{
           width: 36,
           height: 36,
-          backgroundColor: 'transparent',
-          color: 'var(--fg-secondary)',
-          cursor: 'pointer',
-          border: 'none',
-          fontSize: 10,
-          fontWeight: 600,
-          letterSpacing: 0,
+          backgroundColor: location.pathname.startsWith('/settings') ? 'var(--bg-tertiary)' : 'transparent',
+          color: location.pathname.startsWith('/settings') ? 'var(--accent)' : 'var(--fg-secondary)',
         }}
       >
-        <Globe size={16} />
-      </button>
+        <Settings size={18} />
+      </Link>
+
     </nav>
   );
 }

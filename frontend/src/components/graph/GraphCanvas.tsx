@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import cytoscape from 'cytoscape';
 import fcose from 'cytoscape-fcose';
 import { getCytoscapeStylesheet, layoutOptions } from '@/lib/cytoscapeConfig';
@@ -7,13 +7,26 @@ import type { AnimationMode } from './GraphToolbar';
 
 cytoscape.use(fcose);
 
+export interface ViewportSnapshot {
+  viewport: { x1: number; y1: number; x2: number; y2: number };
+  nodes: { id: string; x: number; y: number; type: string }[];
+  edges: { source: string; target: string }[];
+}
+
+export interface GraphCanvasHandle {
+  centerOn: (graphX: number, graphY: number) => void;
+  panByGraph: (dxGraph: number, dyGraph: number) => void;
+}
+
 interface GraphCanvasProps {
   readonly elements: cytoscape.ElementDefinition[];
-  readonly onNodeTap?: (nodeId: string) => void;
+  readonly onNodeTap?: (nodeId: string, modifiers: { shift: boolean }) => void;
   readonly onEdgeTap?: (edgeId: string, inferredId: string | null) => void;
   readonly selectedNodeId?: string | null;
+  readonly selectedNodeIds?: string[];
   readonly animationMode?: AnimationMode;
   readonly extraStylesheet?: cytoscape.StylesheetStyle[];
+  readonly onViewportChange?: (snap: ViewportSnapshot) => void;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -25,7 +38,6 @@ function animateIn(collection: cytoscape.Collection, mode: AnimationMode, delayM
     const nodes = collection.nodes().toArray();
     const STEP = 80;
 
-    // Build a map: nodeId → the ms at which it becomes visible
     const nodeRevealAt = new Map<string, number>();
     nodes.forEach((node, i) => {
       const t = delayMs + i * STEP;
@@ -37,7 +49,6 @@ function animateIn(collection: cytoscape.Collection, mode: AnimationMode, delayM
       );
     });
 
-    // Each edge appears 80ms after both its endpoints are visible
     collection.edges().forEach((edge) => {
       const srcT = nodeRevealAt.get(edge.source().id()) ?? delayMs;
       const tgtT = nodeRevealAt.get(edge.target().id()) ?? delayMs;
@@ -57,9 +68,16 @@ function animateIn(collection: cytoscape.Collection, mode: AnimationMode, delayM
   }
 }
 
-const applyHighlight = (cy: cytoscape.Core, nodeId: string) => {
-  const node = cy.getElementById(nodeId);
-  const neighborhood = node.closedNeighborhood();
+const applyHighlight = (cy: cytoscape.Core, nodeIds: string[]) => {
+  if (nodeIds.length === 0) {
+    cy.elements().removeClass('dimmed').removeClass('highlighted');
+    return;
+  }
+  let neighborhood = cy.collection();
+  for (const id of nodeIds) {
+    const n = cy.getElementById(id);
+    if (n.length) neighborhood = neighborhood.union(n.closedNeighborhood());
+  }
   cy.elements().addClass('dimmed').removeClass('highlighted');
   neighborhood.removeClass('dimmed').addClass('highlighted');
 };
@@ -68,24 +86,89 @@ const clearHighlight = (cy: cytoscape.Core) => {
   cy.elements().removeClass('dimmed').removeClass('highlighted');
 };
 
-export function GraphCanvas({
-  elements,
-  onNodeTap,
-  onEdgeTap,
-  selectedNodeId,
-  animationMode = 'fade',
-  extraStylesheet = [],
-}: GraphCanvasProps) {
+export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(function GraphCanvas(
+  {
+    elements,
+    onNodeTap,
+    onEdgeTap,
+    selectedNodeId,
+    selectedNodeIds,
+    animationMode = 'fade',
+    extraStylesheet = [],
+    onViewportChange,
+  },
+  ref,
+) {
   const { theme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const cyRef = useRef<cytoscape.Core | null>(null);
   const onNodeTapRef = useRef(onNodeTap);
-  onNodeTapRef.current = onNodeTap;
   const onEdgeTapRef = useRef(onEdgeTap);
-  onEdgeTapRef.current = onEdgeTap;
+  const onViewportChangeRef = useRef(onViewportChange);
   const prevIdsRef = useRef<Set<string>>(new Set());
   const animModeRef = useRef(animationMode);
-  animModeRef.current = animationMode;
+  const viewportRafRef = useRef<number | null>(null);
+  // Per-node position cache, keyed by node id. Snapshotted on removal and
+  // restored on re-add so switching cluster modes (or toggling filters) keeps
+  // layouts stable instead of re-randomizing each time.
+  const positionCacheRef = useRef<Map<string, { x: number; y: number }>>(new Map());
+
+  useEffect(() => {
+    onNodeTapRef.current = onNodeTap;
+    onEdgeTapRef.current = onEdgeTap;
+    onViewportChangeRef.current = onViewportChange;
+    animModeRef.current = animationMode;
+  });
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      centerOn(graphX, graphY) {
+        const cy = cyRef.current;
+        if (!cy) return;
+        const z = cy.zoom();
+        const w = cy.width();
+        const h = cy.height();
+        cy.animate(
+          { pan: { x: w / 2 - graphX * z, y: h / 2 - graphY * z } },
+          { duration: 250, easing: 'ease' },
+        );
+      },
+      panByGraph(dxGraph, dyGraph) {
+        const cy = cyRef.current;
+        if (!cy) return;
+        const z = cy.zoom();
+        cy.panBy({ x: -dxGraph * z, y: -dyGraph * z });
+      },
+    }),
+    [],
+  );
+
+  const emitViewport = () => {
+    const cb = onViewportChangeRef.current;
+    const cy = cyRef.current;
+    if (!cb || !cy) return;
+    if (viewportRafRef.current != null) cancelAnimationFrame(viewportRafRef.current);
+    viewportRafRef.current = requestAnimationFrame(() => {
+      viewportRafRef.current = null;
+      const ext = cy.extent();
+      const nodes = cy.nodes().map((n) => ({
+        id: n.id(),
+        x: n.position('x'),
+        y: n.position('y'),
+        type: (n.data('clusterType') as string) || (n.data('entityType') as string) || '',
+      }));
+      const edges = cy.edges().map((e) => ({
+        source: e.source().id(),
+        target: e.target().id(),
+      }));
+      cb({
+        viewport: { x1: ext.x1, y1: ext.y1, x2: ext.x2, y2: ext.y2 },
+        nodes,
+        edges,
+      });
+    });
+  };
 
   // Mount / unmount — create cy once
   useEffect(() => {
@@ -100,8 +183,8 @@ export function GraphCanvas({
     });
 
     cy.on('tap', 'node', (evt) => {
-      applyHighlight(cy, evt.target.id());
-      onNodeTapRef.current?.(evt.target.id());
+      const shift = !!(evt.originalEvent as MouseEvent | undefined)?.shiftKey;
+      onNodeTapRef.current?.(evt.target.id(), { shift });
     });
 
     cy.on('tap', 'edge', (evt) => {
@@ -115,20 +198,27 @@ export function GraphCanvas({
       if (evt.target === cy) clearHighlight(cy);
     });
 
+    cy.on('viewport render', emitViewport);
+
     cyRef.current = cy;
 
-    const ro = new ResizeObserver(() => cy.resize());
+    const ro = new ResizeObserver(() => {
+      cy.resize();
+      emitViewport();
+    });
     ro.observe(containerRef.current);
 
     return () => {
       ro.disconnect();
+      if (viewportRafRef.current != null) cancelAnimationFrame(viewportRafRef.current);
       cy.destroy();
       cyRef.current = null;
       prevIdsRef.current = new Set();
+      positionCacheRef.current = new Map();
     };
   }, []);
 
-  // Incremental element updates with entrance animation
+  // Incremental element updates
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
@@ -136,39 +226,67 @@ export function GraphCanvas({
     const prevIds = prevIdsRef.current;
     const nextIds = new Set(elements.map((e) => e.data.id as string));
     const isInitialLoad = prevIds.size === 0 && elements.length > 0;
+    const overlapCount = [...prevIds].reduce((n, id) => n + (nextIds.has(id) ? 1 : 0), 0);
+    // When prev and next sets don't overlap (e.g. switching cluster mode),
+    // there are no anchor nodes to seed new positions from — fall back to a
+    // fresh randomized layout instead of starting fcose from stacked (0,0).
+    const needsFreshLayout = prevIds.size > 0 && overlapCount === 0 && elements.length > 0;
 
-    // Remove elements no longer present
     const toRemoveIds = [...prevIds].filter((id) => !nextIds.has(id));
     if (toRemoveIds.length > 0) {
       toRemoveIds.forEach((id) => {
         const el = cy.getElementById(id);
-        if (el.length) el.remove();
+        if (el.length) {
+          if (el.isNode()) {
+            const p = el.position();
+            positionCacheRef.current.set(id, { x: p.x, y: p.y });
+          }
+          el.remove();
+        }
       });
     }
 
-    // Add new elements
     const toAdd = elements.filter((e) => !prevIds.has(e.data.id as string));
 
     if (toAdd.length > 0) {
       const added = cy.add(toAdd);
+      const newNodeAdds = toAdd.filter((e) => e.data.source == null);
+      const newNodeIds = new Set(newNodeAdds.map((e) => e.data.id as string));
+      const allNewCached =
+        newNodeAdds.length > 0 &&
+        newNodeAdds.every((e) => positionCacheRef.current.has(e.data.id as string));
 
-      if (isInitialLoad) {
+      if (allNewCached) {
+        added.nodes().forEach((node) => {
+          const p = positionCacheRef.current.get(node.id());
+          if (p) node.position(p);
+        });
+        animateIn(added, animModeRef.current, 100);
+      } else if (isInitialLoad || needsFreshLayout) {
         layout(cy, { randomize: true, animationDuration: 400 });
         animateIn(added, animModeRef.current, 450);
       } else {
-        // Position new nodes near the centroid of their existing neighbours
-        const newNodeIds = new Set(
-          toAdd.filter((e) => e.data.source == null).map((e) => e.data.id as string),
-        );
         added.nodes().forEach((node) => {
+          const cached = positionCacheRef.current.get(node.id());
+          if (cached) {
+            node.position(cached);
+            return;
+          }
           const existing = node
             .neighborhood()
             .nodes()
             .filter((n) => !newNodeIds.has(n.id()));
           if (existing.length > 0) {
-            const cx = existing.reduce((s, n) => s + (n as cytoscape.NodeSingular).position('x'), 0) / existing.length;
-            const cy_pos = existing.reduce((s, n) => s + (n as cytoscape.NodeSingular).position('y'), 0) / existing.length;
-            node.position({ x: cx + (Math.random() - 0.5) * 80, y: cy_pos + (Math.random() - 0.5) * 80 });
+            const cx =
+              existing.reduce((s, n) => s + (n as cytoscape.NodeSingular).position('x'), 0) /
+              existing.length;
+            const cy_pos =
+              existing.reduce((s, n) => s + (n as cytoscape.NodeSingular).position('y'), 0) /
+              existing.length;
+            node.position({
+              x: cx + (Math.random() - 0.5) * 80,
+              y: cy_pos + (Math.random() - 0.5) * 80,
+            });
           }
         });
         layout(cy, { randomize: false, animationDuration: 700 });
@@ -181,17 +299,28 @@ export function GraphCanvas({
     prevIdsRef.current = nextIds;
   }, [elements]);
 
-  // Highlight and centre on externally selected node
+  // Highlight on single-select + centre
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy || !selectedNodeId) return;
     const node = cy.getElementById(selectedNodeId);
     if (!node.length) return;
-    applyHighlight(cy, selectedNodeId);
+    applyHighlight(cy, [selectedNodeId]);
     cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 400 });
   }, [selectedNodeId]);
 
-  // Re-apply stylesheet on theme change or epistemic overlay change
+  // Multi-select highlight (Scenario E)
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    if (selectedNodeIds && selectedNodeIds.length > 0) {
+      applyHighlight(cy, selectedNodeIds);
+    } else if (!selectedNodeId) {
+      clearHighlight(cy);
+    }
+  }, [selectedNodeIds, selectedNodeId]);
+
+  // Re-apply stylesheet on theme / overlay change
   useEffect(() => {
     const cy = cyRef.current;
     if (!cy) return;
@@ -205,4 +334,4 @@ export function GraphCanvas({
       style={{ backgroundColor: 'var(--bg-primary)' }}
     />
   );
-}
+});

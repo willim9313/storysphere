@@ -1,7 +1,7 @@
 {
   "library": "Library",
   "upload": "Upload",
-  "frameworks": "Frameworks",
+  "frameworks": "Methodology",
   "search": "Search",
   "tokenUsage": "Token Usage",
   "settings": "Settings",
@@ -13,6 +13,7 @@
     "timeline": "Timeline",
     "tensionAnalysis": "Tension",
     "symbolImagery": "Symbols",
-    "unraveling": "Unraveling"
+    "narrativeStructure": "Narrative",
+    "unraveling": "Build Overview"
   }
 }

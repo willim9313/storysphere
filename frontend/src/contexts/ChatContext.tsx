@@ -91,8 +91,24 @@ export function ChatContextProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const NO_OP_CONTEXT: ChatContextValue = {
+  pageContext: { page: 'library' },
+  setPageContext: () => {},
+  isChatOpen: false,
+  openChat: () => {},
+  closeChat: () => {},
+  prefillMessage: null,
+  clearPrefill: () => {},
+  ws: {
+    messages: [],
+    sendMessage: () => {},
+    isConnecting: false,
+    isStreaming: false,
+    isThinking: false,
+    clearMessages: () => {},
+  },
+};
+
 export function useChatContext() {
-  const ctx = useContext(ChatContext);
-  if (!ctx) throw new Error('useChatContext must be used within ChatContextProvider');
-  return ctx;
+  return useContext(ChatContext) ?? NO_OP_CONTEXT;
 }

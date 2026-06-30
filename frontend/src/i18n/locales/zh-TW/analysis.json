@@ -37,9 +37,82 @@
     "evidence": "依據",
     "chapter": "第 {{range}} 章",
     "noData": "（無對應資訊）",
+    "archetypeMissing": "此原型框架尚未分析。點擊重生成將同時產出 Jung 與 Schmidt 兩種原型。",
     "tabs": {
-      "overview": "總覽",
-      "voice": "語音側寫"
+      "overview": "人物概覽",
+      "voice": "語音風格",
+      "epistemic": "認知狀態"
+    },
+    "subtabs": {
+      "persona": "人格",
+      "behavior": "行為",
+      "relations": "關係",
+      "arc": "弧線"
+    },
+    "tip": {
+      "prefix": "研究者導覽：",
+      "body": "本頁分三個層級——<strong>人物概覽</strong>看「她是誰」（人格 / 行為 / 關係 / 弧線），<strong>語音風格</strong>看「她如何說話」，<strong>認知狀態</strong>看「她在第 N 章知道什麼」。框架（Jung / Schmidt）只影響原型那一節。"
+    },
+    "compare": {
+      "open": "框架對照",
+      "close": "關閉",
+      "title": "框架對照 — {{name}}",
+      "fromSidebar": "對照 Jung vs Schmidt",
+      "switchTo": "切到對照",
+      "confidencePct": "{{pct}}% 信心",
+      "evidenceLabel": "證據",
+      "notGenerated": "此框架尚未生成",
+      "secondaryLabel": "次：{{name}}"
+    },
+    "persona": {
+      "profileSub": "一句話總結",
+      "archetypeLabelJung": "Jung 原型 — {{name}}",
+      "archetypeLabelSchmidt": "Schmidt 類型 — {{name}}",
+      "archetypeNotGenerated": "未生成",
+      "archetypeFailed": "生成失敗",
+      "retryFailed": "重試失敗部分",
+      "evidenceHeading": "支持證據",
+      "traitsCount": "{{count}} 項"
+    },
+    "behavior": {
+      "actionsCount": "{{count}} 項",
+      "keyEventsSub": "{{count}} 項，依章節序"
+    },
+    "relations": {
+      "relationsCount": "{{count}} 段關係",
+      "quotesCount": "{{count}} 句"
+    },
+    "arcPane": {
+      "stagesCount": "{{count}} 個階段",
+      "stageN": "階段 {{n}}"
+    },
+    "list": {
+      "searchPlaceholder": "搜尋 {{count}} 位角色",
+      "frameworkLabel": "分析框架",
+      "chapterCount": "Ch.{{count}}"
+    },
+    "batch": {
+      "header": "角色分析",
+      "running": "分析中",
+      "allDone": "全部角色已分析 ✓",
+      "triggerAll": "一鍵生成全部角色分析",
+      "autoSkip": "已分析的角色會自動跳過",
+      "remaining": "{{count}} 位待生成",
+      "summaryProgress": "本批次共處理 {{count}} 位",
+      "errorFallback": "批次執行失敗",
+      "runningWithCount": "分析中 {{current}}/{{total}}…",
+      "stat": {
+        "generated": "已生成",
+        "skipped": "已跳過",
+        "failed": "失敗"
+      },
+      "toastTitle": "批次角色分析完成",
+      "toastBody": "已生成 {{generated}} 位 · 跳過 {{skipped}} · 失敗 {{failed}}",
+      "toastClose": "關閉",
+      "confirmTitle": "批次生成角色分析",
+      "confirmMessage": "將對 {{count}} 個尚未分析的角色執行深度分析，已分析的角色會自動跳過。此操作將消耗大量 token。",
+      "confirmBtn": "確認執行",
+      "triggerFailed": "觸發批次分析失敗，請稍後再試。"
     },
     "voice": {
       "avgSentenceLength": "平均句長",
@@ -50,11 +123,25 @@
       "speechStyle": "說話風格",
       "distinctivePatterns": "語言特徵",
       "tone": "語氣基調",
+      "dominantTone": "主導語調",
       "representativeQuotes": "代表性引文",
-      "analyze": "分析語音側寫",
-      "analyzing": "語音側寫分析中…",
-      "noData": "尚無語音側寫",
-      "paragraphsAnalyzed": "已分析 {{count}} 個段落"
+      "analyze": "分析語音風格",
+      "analyzing": "語音風格分析中…",
+      "noData": "尚無語音風格",
+      "paragraphsAnalyzed": "已分析 {{count}} 個段落",
+      "toneDistribution": "語氣分布",
+      "toneDistributionSub": "句法分類比例",
+      "sentenceLength": "句長分布",
+      "sentenceLengthSub": "字數區間頻次",
+      "speechStyleSub": "質性描述",
+      "dominantToneSub": "一句話描述",
+      "distinctivePatternsCount": "{{count}} 項",
+      "representativeQuotesCount": "{{count}} 句",
+      "tones": {
+        "declarative": "陳述",
+        "interrogative": "疑問",
+        "exclamatory": "感嘆"
+      }
     },
     "epistemicState": "認識論狀態",
     "epistemic": {
@@ -70,13 +157,29 @@
       "noMisbeliefs": "無推斷誤信",
       "misbeliefLabel": "誤信：",
       "actualTruth": "實情：",
-      "confidence": "信心度 {{pct}}%"
+      "confidence": "信心度 {{pct}}%",
+      "summarySubtitle": "拖曳游標查看角色於不同章節的認知狀態",
+      "knownLabel": "已知",
+      "unknownLabel": "未知",
+      "misbeliefShortLabel": "誤信",
+      "knownTitle": "已知事件",
+      "unknownTitle": "未知事件",
+      "misbeliefTitle": "誤信",
+      "knownEmpty": "此章節前，角色尚未經歷任何已分類事件。",
+      "unknownEmpty": "角色已知所有事件。",
+      "misbeliefEmpty": "未發現顯著誤信。",
+      "characterBelieves": "角色相信：",
+      "actually": "實際：",
+      "misbeliefMeta": "信心 {{pct}}% · 起源 Ch.{{n}}"
     }
   },
   "event": {
     "batchTitle": "批次生成事件 EEP",
     "batchMessage": "將對 {{count}} 個尚未分析的事件執行深度分析，已分析的事件會自動跳過。此操作將消耗大量 token。",
     "batchConfirm": "確認執行",
+    "retryFailed": "重試失敗部分",
+    "causalityFailed": "因果分析生成失敗，可重試",
+    "impactFailed": "影響分析生成失敗，可重試",
     "sections": {
       "summary": "事件摘要",
       "stateChange": "事件前後狀態",
@@ -106,7 +209,58 @@
     },
     "importance": {
       "kernel": "核心事件",
-      "satellite": "衛星事件"
+      "satellite": "衛星事件",
+      "kernelShort": "核心",
+      "satelliteShort": "衛星",
+      "kernelTagline": "Kernel · 影響故事走向的關鍵節點",
+      "satelliteTagline": "Satellite · 補充細節"
+    },
+    "narrative": {
+      "flashback": "倒敘",
+      "flashforward": "預敘",
+      "parallel": "平行",
+      "present": "順敘",
+      "unknown": "未知"
+    },
+    "roles2": {
+      "driver": "驅動者",
+      "victim": "承受者",
+      "witness": "見證者"
+    },
+    "labels": {
+      "before": "之前",
+      "after": "之後",
+      "stateChangeSub": "狀態前後變化",
+      "causalitySub": "根因 · 因果鏈",
+      "impactSub": "人物 · 關係",
+      "rootCauseLabel": "根本原因",
+      "participantImpacts": "對參與者",
+      "relationChanges": "關係變化",
+      "factorsLabel": "因果因素 · Causal Factors",
+      "consequencesLabel": "後果 · Consequences",
+      "thematicSignificance": "主題意義 · Thematic Significance",
+      "summaryLabel": "事件摘要",
+      "participantsCount": "{{count}} 人",
+      "factorsConsequences": "因果因素與後果",
+      "factorsConsequencesSub": "因素 · 後果",
+      "keyQuotesCount": "{{count}} 段"
+    },
+    "list": {
+      "searchPlaceholder": "搜尋 {{count}} 件事件…",
+      "chapterShort": "Ch.{{n}}",
+      "kernelAbbr": "K",
+      "satelliteAbbr": "S"
+    },
+    "empty": {
+      "title": "選擇一個事件",
+      "subtitle": "從左側清單選擇任一已分析事件以查看其 EEP 詳情；或點擊「建立」為未分析事件觸發深度分析。",
+      "unanalyzedTitle": "{{name}}",
+      "unanalyzedSubtitle": "此事件尚未生成 EEP 分析。觸發後將抽取狀態變化、參與者角色、因果鏈與影響等維度。",
+      "createBtn": "建立分析"
+    },
+    "generating": {
+      "title": "事件分析中",
+      "stage": "{{stage}} · {{progress}}%"
     }
   },
   "batch": {
@@ -118,16 +272,29 @@
     "failed": "失敗 {{count}} 個",
     "allDone": "全部事件已分析 ✓",
     "triggerAll": "一鍵生成全部 EEP",
-    "autoSkip": "已分析的事件會自動跳過"
+    "autoSkip": "已分析的事件會自動跳過",
+    "remaining": "{{count}} 件待生成",
+    "stat": {
+      "generated": "已生成",
+      "skipped": "已跳過",
+      "failed": "失敗"
+    },
+    "summaryProgress": "本批次共處理 {{count}} 件",
+    "toastTitle": "批次 EEP 分析完成",
+    "toastBody": "已生成 {{generated}} 件 · 跳過 {{skipped}} · 失敗 {{failed}}",
+    "toastClose": "關閉",
+    "errorFallback": "批次執行失敗",
+    "runningWithCount": "分析中 {{current}}/{{total}}…"
   },
   "tension": {
     "title": "張力分析",
     "status": {
-      "pending": "待審核",
+      "pending": "待審",
       "approved": "已核准",
       "modified": "已修改",
       "rejected": "已拒絕"
     },
+    "all": "全部",
     "approve": "核准",
     "modifyLabel": "修改標籤",
     "modifyProposition": "修改命題",
@@ -137,23 +304,51 @@
     "operationFailed": "操作失敗",
     "themeTitle": "全書張力主題命題",
     "noProposition": "（尚無命題）",
+    "heroEyebrow": "全書張力主題 · TensionTheme",
+    "heroSourceLabel": "合成來源",
+    "heroSource": "合成自 {{count}} 條已審核張力線",
+    "fryeLabel": "Frye Mythos · 神話模式",
+    "bookerLabel": "Booker Plot · 基本情節",
+    "onboardingEyebrow": "張力分析 · 三層聚合管線",
+    "onboardingIntro": "系統將從場景級的 TEU 出發，向上聚合為跨章節 TensionLine，最終合成全書的命題。",
+    "onboarding": {
+      "teu": {
+        "scope": "SCENE · 場景",
+        "name": "TEU",
+        "desc": "每個事件提取出的對立極對，是張力分析的最小單元。"
+      },
+      "line": {
+        "scope": "CROSS-SCENE · 跨章節",
+        "name": "TensionLine",
+        "desc": "相似 TEU 聚合而成、持續存在的對立軸；可逐條審核。"
+      },
+      "theme": {
+        "scope": "BOOK · 全書",
+        "name": "TensionTheme",
+        "desc": "從已審核的張力線合成一句話命題與框架歸類。"
+      }
+    },
     "step1": {
-      "label": "Step 1：批次 TEU 組裝",
-      "desc": "掃描全書具張力訊號的場景並組裝 TEU",
-      "done": "完成：{{assembled}} / {{candidates}} 個場景已組裝",
-      "running": "進行中：{{stage}}（{{progress}}%）"
+      "label": "TEU 組裝",
+      "scope": "SCENE 場景級",
+      "desc": "掃描全書事件，提取對立極對",
+      "done": "組裝完成 · {{assembled}} / {{candidates}} 場景",
+      "running": "進行中 · {{stage}}（{{progress}}%）"
     },
     "step2": {
-      "label": "Step 2：TensionLine 自動分組",
-      "desc": "LLM 將 TEU 歸納為跨場景張力模式",
-      "done": "完成：{{count}} 條 TensionLine",
-      "running": "進行中：{{stage}}"
+      "label": "TensionLine 聚合",
+      "scope": "CROSS-SCENE 跨場景",
+      "desc": "LLM 將 TEU 歸納為跨章節張力模式",
+      "done": "聚合完成 · {{count}} 條張力線",
+      "running": "進行中 · {{stage}}"
     },
     "step3": {
-      "label": "Step 3：TensionTheme 合成",
-      "desc": "根據已審核的 TensionLine，LLM 合成全書主題命題",
-      "done": "完成：全書主題命題已產生",
-      "running": "進行中：{{stage}}"
+      "label": "TensionTheme 合成",
+      "scope": "BOOK 全書級",
+      "desc": "從已審核的 TensionLine 合成全書主題命題",
+      "done": "主題已合成",
+      "running": "進行中 · {{stage}}",
+      "lock": "需先完成 Step 2"
     },
     "errors": {
       "analysisFailed": "分析失敗",
@@ -163,23 +358,44 @@
       "triggerGroup": "觸發分組失敗",
       "triggerSynth": "觸發合成失敗"
     },
-    "trajectoryTitle": "TensionLine 軌跡圖",
-    "intensityHint": "強度：低 → 高（橙色）",
+    "trajectoryTitle": "TensionLine 軌跡",
+    "trajectorySub": "{{count}} 條 · 1 → {{max}} 章",
+    "intensityLabel": "強度",
+    "intensityLow": "低",
+    "intensityMid": "中",
+    "intensityHigh": "高",
+    "density": "TEU 密度",
+    "intensityHint": "強度：低 → 高",
+    "reviewSummary": "審核狀態",
+    "hideRejected": "隱藏已拒絕",
+    "reviewListTitle": "TensionLine 審核",
+    "reviewListSub": "{{shown}} / {{total}} 條",
     "reviewTitle": "TensionLine 審核（{{count}} 條）",
-    "refresh": "刷新",
+    "refresh": "重新整理",
+    "poleA": "極點 A",
+    "poleB": "極點 B",
+    "noCarrier": "未指派 carrier",
+    "evidence": "證據",
+    "evidenceCount": "{{count}} 則",
+    "evidenceHidden": "+ 還有 {{count}} 則 TEU 證據未顯示",
+    "showAll": "展開全部 {{count}} 則",
+    "showSummary": "收合",
+    "rerun": "重跑此條",
+    "noFilterResult": "篩選結果為空，調整上方狀態 chip 試試。",
     "empty": "尚無張力分析資料",
     "emptyHint": "請先執行 Step 1 和 Step 2",
     "frye": {
       "romance": "浪漫傳奇",
       "comedy": "喜劇",
       "tragedy": "悲劇",
+      "irony": "反諷",
       "irony_satire": "諷刺／反諷"
     },
     "booker": {
-      "overcoming_the_monster": "征服怪物",
-      "rags_to_riches": "從貧到富",
-      "the_quest": "追尋",
-      "voyage_and_return": "旅程與歸返",
+      "overcoming_the_monster": "克服怪物",
+      "rags_to_riches": "白手起家",
+      "the_quest": "追尋之旅",
+      "voyage_and_return": "出走與歸返",
       "comedy": "喜劇",
       "tragedy": "悲劇",
       "rebirth": "重生"
@@ -191,6 +407,48 @@
       "chronological": "故事時序",
       "matrix": "矩陣視圖"
     },
+    "modeSub": {
+      "narrative": "依書中出現順序，含章節分組",
+      "chronological": "依事件實際發生先後（Fabula）",
+      "matrix": "章節 × 時序，看敘事順序與真實時序的偏離"
+    },
+    "narrativeModes": {
+      "present": "當下敘事",
+      "flashback": "回敘",
+      "flashforward": "預敘",
+      "parallel": "並行",
+      "unknown": "未明"
+    },
+    "eventTypes": {
+      "plot": "情節推進",
+      "conflict": "衝突",
+      "revelation": "揭露",
+      "turning_point": "轉折點",
+      "meeting": "會面",
+      "battle": "戰鬥",
+      "death": "死亡",
+      "romance": "愛情",
+      "alliance": "結盟",
+      "other": "其他"
+    },
+    "importanceKernel": "KERNEL 核心",
+    "importanceSatellite": "SATELLITE 附屬",
+    "currentEvent": "當前事件",
+    "closePanel": "關閉",
+    "layoutToggle": "佈局切換",
+    "appliedPrefix": "已套用：",
+    "clearAll": "全部清除",
+    "removeFilter": "移除篩選",
+    "analyzedShort": "已分析",
+    "gotoAnalysis": "前往深度分析頁觸發 EEP",
+    "banner": {
+      "title": "尚未計算故事時序",
+      "sub": "「故事時序」與「矩陣視圖」需要事件的 chronological rank，先重新計算以解鎖完整視圖。目前已分析 {{analyzed}}/{{total}} 事件（{{pct}}%）。"
+    },
+    "empty": {
+      "title": "尚無事件資料",
+      "body": "本書尚未抽出任何事件。請先在「事件分析」頁觸發事件抽取。"
+    },
     "noRanksTooltip": "尚未計算時序，請先觸發時序計算",
     "switchToVertical": "切換為垂直佈局",
     "switchToHorizontal": "切換為水平佈局",
@@ -200,7 +458,7 @@
     "qualityTooltip": "分析更多事件可提升時序計算品質。前往深度分析頁 → 事件分析一鍵生成全部 EEP。",
     "computing": "計算中…",
     "recompute": "重新計算時序",
-    "filter": "Filter",
+    "filter": "篩選",
     "filterSections": {
       "eventTypes": "事件類型",
       "narrativeModes": "敘事模式",
@@ -208,20 +466,20 @@
       "locations": "地點",
       "importance": "重要性"
     },
-    "charSearch": "搜尋角色...",
+    "charSearch": "搜尋角色…",
     "reset": "重置",
     "apply": "套用",
     "noEvents": "尚無事件資料。",
     "panel": {
       "summary": "事件概要",
       "temporal": "時序關係",
-      "eep": "證據剖析 — EEP",
+      "eep": "EEP 證據剖析",
       "causality": "因果分析",
       "impact": "影響分析"
     },
     "storyTime": "故事時間：",
-    "priorEvents": "前驅事件",
-    "subsequentEvents": "後續事件",
+    "priorEvents": "前驅 · prior",
+    "subsequentEvents": "後續 · subsequent",
     "chronologicalPosition": "時序位置",
     "noAnalysisData": "尚未分析，無前驅/後續資料。",
     "eep": {
@@ -259,10 +517,47 @@
       "unranked": "時序未計算",
       "tooltipRank": "時序",
       "tooltipParticipants": "角色",
-      "tooltipUnranked": "未計算"
+      "tooltipUnranked": "未計算",
+      "eventsUnit": "事件",
+      "marginalLabel": "事件密度",
+      "prolepsisZone": "預敘區（早期章節 / 晚期時序）",
+      "analepsisZone": "倒敘區（晚期章節 / 早期時序）",
+      "unrankedZone": "未排序事件",
+      "diagonalLabel": "完全按故事順序敘事",
+      "diagonalBaselineLabel": "零位移基準線",
+      "genettColorToggle": "Genette 著色",
+      "genettColorToggleOn": "Genette 著色（開）",
+      "genettLinear": "線性（無錯位）",
+      "genettLegendAnalepsis": "倒敘",
+      "genettLegendProlepsis": "預敘",
+      "genettUnclassified": "其他（敘事模式色）"
+    },
+    "genett": {
+      "structure": {
+        "linear": "線性",
+        "partially_linear": "部分線性",
+        "non_linear": "非線性",
+        "unknown": "未知"
+      },
+      "chip": {
+        "analepsis": "倒敘 {{n}}",
+        "prolepsis": "預敘 {{n}}"
+      },
+      "banner": {
+        "error": "Genette 分析失敗：",
+        "lowCoverage": "story_time_hint 覆蓋率僅 {{pct}}%，未達 60% 閾值，Genette 時序分析無法執行。",
+        "success": "Genette 分析完成",
+        "analepsis": "倒敘 {{n}} 個",
+        "prolepsis": "預敘 {{n}} 個",
+        "noDisplacement": "無時序錯位"
+      },
+      "trigger": "Genette 分析",
+      "running": "分析中...",
+      "tooltip": "執行 Genette 時序分析（倒敘/預敘識別）",
+      "lowCoverageTooltip": "故事時間提示覆蓋率 {{pct}}%，低於 60% 閾值"
     }
   },
-  "unravelingLoadError": "無法載入展開卷軸資料",
+  "unravelingLoadError": "無法載入建構概覽資料",
   "unraveling": {
     "info": {
       "title": "資料底層架構",
@@ -276,6 +571,79 @@
     "notBuilt": "未建立",
     "kgFeatures": "KG 特徵",
     "ranked": "已排序",
+    "summary": {
+      "eyebrow": "Build Overview · 建構概覽",
+      "complete": "已建立",
+      "partial": "部分",
+      "empty": "未建立",
+      "totalNodes": "共 {{n}} 節點"
+    },
+    "inspector": {
+      "layerList": "層次清單",
+      "nodeDetail": "節點細節",
+      "backToList": "返回層次清單",
+      "nodeCount": "{{n}} 節點",
+      "layerLabel": "L{{n}}"
+    },
+    "detail": {
+      "progress": "進度",
+      "chapterDist": "章節分佈",
+      "blockedTitle": "尚未就緒",
+      "blockedHint": "需先完成上游 {{n}} 個依賴",
+      "openPage": "前往對應頁面瀏覽",
+      "runAgain": "重新建構（會耗 Token）",
+      "rawCounts": "原始計數",
+      "meta": "附加資訊",
+      "triggerSoon": "觸發建構功能規劃中"
+    },
+    "layer": {
+      "0": "文本層",
+      "1": "知識圖譜",
+      "2": "分析中間產物",
+      "3": "衍生分析",
+      "4": "全書合成"
+    },
+    "laneName": {
+      "0": "文本",
+      "1": "KG",
+      "2": "分析",
+      "3": "結果",
+      "4": "綜合"
+    },
+    "node": {
+      "book_meta": "書籍元資料",
+      "chapters": "章節",
+      "paragraphs": "段落",
+      "summaries": "章節摘要",
+      "keywords": "關鍵字",
+      "symbols": "象徵",
+      "kg_entity": "實體",
+      "kg_concept": "概念",
+      "kg_relation": "關係",
+      "kg_event": "事件",
+      "kg_temporal_relation": "時序關係",
+      "kg_features": "KG 特徵",
+      "cep": "角色證據檔 CEP",
+      "eep": "事件證據檔 EEP",
+      "teu": "時序事件單元 TEU",
+      "sep": "象徵證據檔 SEP",
+      "character_analysis_result": "角色分析",
+      "causality_analysis": "因果分析",
+      "impact_analysis": "影響力分析",
+      "tension_lines": "張力線",
+      "symbol_analysis_result": "象徵分析",
+      "narrative_structure": "敘事結構",
+      "hero_journey_stage": "英雄旅程",
+      "temporal_analysis": "時序分析",
+      "voice_profile": "敘事聲音",
+      "tension_theme": "張力主題",
+      "chronological_rank": "故事時序排名"
+    },
+    "toolbar": {
+      "clearSelection": "清除選取",
+      "showAll": "全部"
+    },
+    "openPageNotImplemented": "尚未實作",
     "counts": {
       "chapters": "章節",
       "paragraphs": "chunks",
@@ -300,6 +668,212 @@
       "total_characters": "角色總數",
       "has_ks_classification": "K/S 分類已建立",
       "built": "已建立"
+    }
+  },
+  "symbol": {
+    "searchPlaceholder": "搜尋意象…",
+    "typeLabel": "類型",
+    "all": "全部",
+    "noData": "尚無意象資料",
+    "noResults": "無符合結果",
+    "chapterDist": "章節分布",
+    "firstSeen": "首見第 {{chapter}} 章",
+    "peakChapters": "峰值第 {{chapter}} 章",
+    "densityLow": "低",
+    "densityMid": "中",
+    "densityHigh": "高",
+    "densityPeak": "峰值",
+    "coOccurrences": "共現網絡",
+    "noCoOccurrences": "尚無共現資料",
+    "occurrences": "出現紀錄",
+    "occurrenceCount": "{{count}} 筆",
+    "occurrenceSpan": "{{count}} 筆 · 跨 {{chapters}} 章",
+    "chapterN": "第 {{n}} 章",
+    "chapterOccurrences": "{{count}} 次",
+    "noOccurrences": "尚無出現紀錄",
+    "frequency": "{{count}} 次出現",
+    "aliases": "異體",
+    "selectPrompt": "從左側清單選擇一個意象",
+    "selectPromptDesc": "可看到該意象的章節分布、共現網絡、出現脈絡，並觸發 LLM 詮釋。",
+    "emptyTitle": "尚無符號意象資料",
+    "emptyHint": "重新上傳書籍後將自動執行意象萃取。",
+    "sort": "排序",
+    "sortBy": {
+      "freq": "頻率",
+      "firstCh": "首見",
+      "review": "審核"
+    },
+    "types": {
+      "object": "器物",
+      "nature": "自然",
+      "spatial": "空間",
+      "body": "身體",
+      "color": "色彩",
+      "other": "其他"
+    },
+    "polarity": {
+      "label": "敘事極性",
+      "positive": "正向",
+      "negative": "負向",
+      "neutral": "中性",
+      "mixed": "複合"
+    },
+    "review": {
+      "label": "HITL 審核",
+      "pending": "待審",
+      "approved": "已通過",
+      "modified": "已修訂",
+      "rejected": "已駁回",
+      "approve": "通過",
+      "modify": "修訂",
+      "reject": "駁回",
+      "save": "儲存",
+      "cancel": "取消"
+    },
+    "interpretation": {
+      "tag": "LLM 詮釋",
+      "evidence": "證據綜述",
+      "confidence": "模型信心",
+      "confidenceNote": "基於 {{count}} 次出現的證據",
+      "linkedCharacters": "相關角色",
+      "linkedEvents": "相關事件",
+      "linkedEmpty": "無相關記錄",
+      "ctaTitle": "尚未生成 LLM 詮釋",
+      "ctaDesc": "觸發詮釋會彙整此意象的證據檔（出現脈絡 + 共現角色 / 事件 + 章節分布），交由 LLM 生成主題命題、敘事極性、信心度與佐證綜述，並進入 HITL 審核流程。",
+      "ctaButton": "生成 LLM 詮釋",
+      "generating": "生成中",
+      "generatingDesc": "正在分析符號證據檔",
+      "regenerate": "重新生成",
+      "regenerateConfirm": "重新生成將覆蓋現有詮釋與審核狀態，確認執行？",
+      "themeEditPlaceholder": "輸入修訂後的主題命題…",
+      "linkedCharHint": "{{count}} 次共現",
+      "linkedEventHint": "第 {{chapter}} 章",
+      "coOccurrenceCount": "{{count}} 次共現",
+      "occurrenceJumpTitle": "跳至閱讀頁"
+    },
+    "generating": {
+      "eyebrow": "LLM 詮釋進行中",
+      "taskLabel": "TASK ID",
+      "overallProgress": "整體進度",
+      "cancel": "取消",
+      "footerNote": "預計 ~12 秒 · 每 2 秒輪詢狀態",
+      "stageDone": "完成",
+      "stagePending": "等待",
+      "stages": {
+        "sep": "彙整 SEP 證據檔",
+        "context": "採樣段落脈絡 ({{done}}/{{total}})",
+        "link": "連結 KG 角色 / 事件",
+        "llm": "LLM 詮釋 · 生成主題命題",
+        "review": "寫入待審紀錄"
+      }
+    },
+    "tabs": {
+      "symbol": "共現意象",
+      "character": "共現角色",
+      "event": "共現事件"
+    },
+    "error": {
+      "generic": "操作失敗，請稍後再試。",
+      "triggerFailed": "觸發詮釋失敗，請稍後再試。",
+      "reviewFailed": "更新審核狀態失敗。"
+    },
+    "dashboard": {
+      "totalSymbols": "意象總數",
+      "totalOccurrences": "總出現次數",
+      "analyzedCount": "已生成詮釋",
+      "approvedCount": "已通過審核",
+      "donutLabel": "意象",
+      "typeDistTitle": "類型分布",
+      "typeCount": "{{count}} 類",
+      "polarityDistTitle": "極性分布",
+      "polarityMeta": "已詮釋 {{analyzed}}/{{total}}",
+      "polarityUnanalyzed": "未詮釋",
+      "freqTitle": "頻率長尾",
+      "freqMeta": "前 {{count}} 名",
+      "heatTitle": "章節密度熱圖",
+      "heatMeta": "每意象 × {{chapters}} 章",
+      "heatLegendLow": "低密度",
+      "heatLegendHigh": "高密度"
+    },
+    "emptyStep1Title": "確認文本切分已完成",
+    "emptyStep1Desc": "意象萃取依賴段落層次的 token——若段落層尚未建立，意象不會自動執行。",
+    "emptyStep2Title": "至建構概覽頁確認狀態",
+    "emptyStep2Desc": "建構概覽 DAG 會明確標示「Symbols」節點為 empty / partial / complete。",
+    "emptyStep3Title": "必要時手動觸發",
+    "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。",
+    "emptyUnravelingBtn": "開啟建構概覽",
+    "emptyRecheckBtn": "重新檢查狀態"
+  },
+  "narrative": {
+    "heroJourney": "英雄旅程",
+    "hjSub": "Campbell《千面英雄》· Vogler 12 階段",
+    "phase": {
+      "departure": "啟程",
+      "initiation": "啟蒙",
+      "return": "歸返"
+    },
+    "state": {
+      "filled": "已識別",
+      "low": "低信心",
+      "absent": "未識別"
+    },
+    "confidence": "信心",
+    "chapterLabel": "第 {{range}} 章",
+    "noChapters": "無對應章節",
+    "repEvents": "代表性 Kernel 事件",
+    "description": "理論描述",
+    "narrativeFunction": "敘事功能",
+    "notes": "系統詮釋",
+    "review": {
+      "pending": "系統生成 · 未審閱",
+      "approved": "已核可",
+      "rejected": "標記為不適用"
+    },
+    "approve": "核可",
+    "markNA": "標記不適用",
+    "coverage": "已映射 {{mapped}}",
+    "ofTotal": "／ {{total}} 階段",
+    "notProgress": "缺席的階段是有意義的敘事選擇，而非「未完成」",
+    "legend": "圖例",
+    "layout": {
+      "track": "水平軌跡",
+      "columns": "三相位分欄",
+      "ring": "圓環循環",
+      "band": "章節對位帶"
+    },
+    "ring": {
+      "knownWorld": "平凡世界",
+      "specialWorld": "特殊世界"
+    },
+    "stageColumn": "階段",
+    "spine": {
+      "title": "情節骨幹摘要",
+      "subtitle": "書級 Kernel / Satellite 統計",
+      "kernel": "核心事件",
+      "satellite": "衛星事件",
+      "unclassified": "未分類",
+      "events": "事件",
+      "kernelSpine": "核心事件骨幹（依章節）",
+      "multiEvChapter": "同章多事件",
+      "chapterUnit": "第 {{ch}} 章",
+      "eventsUnit": "件事件",
+      "footnote": "Kernel / Satellite 細節在事件分析頁",
+      "jump": "前往事件分析頁"
+    },
+    "source": {
+      "heuristic": "啟發式分類",
+      "llm": "LLM 分類",
+      "human": "人工驗證"
+    },
+    "empty": {
+      "title": "尚未產生英雄旅程",
+      "message": "英雄旅程依賴章節摘要，將整本書映射為 Campbell 12 階段的敘事弧。點擊下方按鈕開始分析。",
+      "trigger": "開始英雄旅程分析",
+      "running": "分析中… {{progress}}%"
+    },
+    "errors": {
+      "triggerHero": "觸發英雄旅程分析失敗，請稍後再試。",
+      "heroFailed": "英雄旅程分析失敗。"
     }
   }
 }

@@ -43,7 +43,7 @@ export function ClassifyVisibilityButton({ bookId, onComplete }: ClassifyVisibil
   if (isDone) {
     const result = task.result as { classified?: number; total?: number } | undefined;
     return (
-      <span className="inline-flex items-center gap-1 text-xs" style={{ color: '#16a34a' }}>
+      <span className="inline-flex items-center gap-1 text-xs" style={{ color: 'var(--color-success)' }}>
         <CheckCircle size={11} />
         已分類 {result?.classified ?? '?'}/{result?.total ?? '?'} 個事件
       </span>
@@ -78,7 +78,7 @@ export function ClassifyVisibilityButton({ bookId, onComplete }: ClassifyVisibil
         （臨時）
       </span>
       {(isFailed || error) && (
-        <span className="inline-flex items-center gap-1 text-xs" style={{ color: '#dc2626' }}>
+        <span className="inline-flex items-center gap-1 text-xs" style={{ color: 'var(--color-error)' }}>
           <AlertTriangle size={10} />
           {error ?? task?.error ?? '失敗'}
         </span>

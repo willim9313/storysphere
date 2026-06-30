@@ -316,6 +316,7 @@ class SymbolService:
 
         occurrence_contexts: list[SEPOccurrenceContext] = []
         entity_ids: set[str] = set()
+        entity_counts: dict[str, int] = {}
         for occ in occurrences:
             paragraph = paragraph_by_id.get(occ.paragraph_id)
             paragraph_text = paragraph.text if paragraph is not None else ""
@@ -330,8 +331,15 @@ class SymbolService:
                 )
             )
             if paragraph is not None and paragraph.entities:
+                seen_in_paragraph: set[str] = set()
                 for pe in paragraph.entities:
                     entity_ids.add(pe.entity_id)
+                    # Count one co-occurrence per (occurrence, entity) pair —
+                    # if an entity appears multiple times in the same paragraph
+                    # it still counts as one co-occurrence with this imagery occurrence.
+                    if pe.entity_id not in seen_in_paragraph:
+                        entity_counts[pe.entity_id] = entity_counts.get(pe.entity_id, 0) + 1
+                        seen_in_paragraph.add(pe.entity_id)
 
         chapters_with_imagery = set(entity.chapter_distribution.keys())
         event_ids = [
@@ -354,6 +362,7 @@ class SymbolService:
             frequency=entity.frequency,
             occurrence_contexts=occurrence_contexts,
             co_occurring_entity_ids=sorted(entity_ids),
+            co_occurring_entity_counts=entity_counts,
             co_occurring_event_ids=event_ids,
             chapter_distribution=dict(entity.chapter_distribution),
             peak_chapters=peak_chapters,

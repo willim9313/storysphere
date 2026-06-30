@@ -34,8 +34,8 @@ _LANGDETECT_TO_YAKE: dict[str, str] = {
 
 _LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
     "en": "English",
-    "zh-cn": "Chinese",
-    "zh-tw": "Chinese",
+    "zh-cn": "Simplified Chinese",
+    "zh-tw": "Traditional Chinese",
     "ja": "Japanese",
     "ko": "Korean",
     "fr": "French",

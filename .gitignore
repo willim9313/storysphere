@@ -4,6 +4,8 @@
 
 # ========== Claude Code ==========
 .claude/settings.local.json
+.claude/skills/
+.playwright-cli/
 
 # ========== Environment & Secrets ==========
 .env
@@ -55,6 +57,8 @@ Thumbs.db
 
 # ========== Database ==========
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
@@ -63,10 +67,14 @@ Thumbs.db
 logs/
 \# Optional log file path
 
+# ========== Experiments (local only, never commit) ==========
+experiments/
+
 # ========== Data & Uploads ==========
 data/uploads/
 data/processed/
 data/knowledge_graph.json
+data/qdrant_local/
 
 # ========== uv ==========
 # uv.lock    # Do NOT ignore - commit lock file for reproducibility

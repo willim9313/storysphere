@@ -12,11 +12,14 @@ class KgStatusResponse(BaseModel):
     model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
     mode: str
+    deploy_mode: str
     entity_count: int
     relation_count: int
     event_count: int
     graph_db_connected: bool
     persistence_path: str | None
+    qdrant_local_path: str | None
+    vector_count: int | None
 
 
 class KgSwitchRequest(BaseModel):

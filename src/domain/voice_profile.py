@@ -4,7 +4,21 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+
+class ToneSegment(BaseModel):
+    """One segment of the tone distribution bar."""
+
+    label: str
+    value: float  # 0.0–1.0, segments should sum to ~1
+
+
+class HistogramBucket(BaseModel):
+    """One bucket of the sentence length histogram."""
+
+    bucket: str  # e.g. "1-10", "11-20", "51+"
+    value: int   # sentence count in this bucket
 
 
 class VoiceProfile(BaseModel):
@@ -18,6 +32,10 @@ class VoiceProfile(BaseModel):
     exclamation_ratio: float
     lexical_diversity: float
     paragraphs_analyzed: int
+
+    # Distribution data for charts (default empty for backward-compat with old cache entries)
+    tone_distribution: list[ToneSegment] = Field(default_factory=list)
+    sentence_length_histogram: list[HistogramBucket] = Field(default_factory=list)
 
     # LLM qualitative description
     speech_style: str

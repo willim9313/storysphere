@@ -13,6 +13,28 @@ from .timeline import TimelineConfig
 class FileType(str, Enum):
     PDF = "pdf"
     DOCX = "docx"
+    TXT = "txt"
+
+
+class StepStatus(str, Enum):
+    pending = "pending"
+    done = "done"
+    failed = "failed"
+
+
+class PipelineStatus(BaseModel):
+    summarization: StepStatus = StepStatus.pending
+    feature_extraction: StepStatus = StepStatus.pending
+    knowledge_graph: StepStatus = StepStatus.pending
+    symbol_discovery: StepStatus = StepStatus.pending
+
+
+class ParagraphRole(str, Enum):
+    body = "body"
+    separator = "separator"
+    section = "section"    # v2
+    epigraph = "epigraph"  # v2
+    preamble = "preamble"  # v2
 
 
 class ParagraphEntity(BaseModel):
@@ -32,9 +54,29 @@ class Paragraph(BaseModel):
     text: str
     chapter_number: int
     position: int = Field(description="0-indexed position within the chapter")
+    role: ParagraphRole = ParagraphRole.body
     embedding: Optional[list[float]] = None
     keywords: Optional[dict[str, float]] = None
     entities: Optional[list[ParagraphEntity]] = None
+    title_span: Optional[tuple[int, int]] = Field(
+        default=None,
+        description="(start, end) char offsets of chapter title within text; None if no title",
+    )
+
+
+def extract_body_text(para: "Paragraph") -> str | None:
+    """Return the narrative body text of a paragraph, or None for non-body paragraphs.
+
+    - Non-body roles (separator, section, epigraph, preamble) → None
+    - Body paragraphs with a title_span → strip the title prefix, return remaining text
+    - Plain body paragraphs → return text as-is
+    """
+    if para.role != ParagraphRole.body:
+        return None
+    if para.title_span is not None:
+        body = para.text[para.title_span[1]:].lstrip()
+        return body if body else None
+    return para.text
 
 
 class Chapter(BaseModel):
@@ -66,6 +108,7 @@ class Document(BaseModel):
     language: str = "en"  # ISO 639-1 code, auto-detected or user-specified
     processed_at: Optional[datetime] = None
     timeline_config: Optional[TimelineConfig] = None
+    pipeline_status: PipelineStatus = Field(default_factory=PipelineStatus)
 
     @property
     def total_chapters(self) -> int:

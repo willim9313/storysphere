@@ -3,6 +3,8 @@ import { useBook } from '@/hooks/useBook';
 import { BookNav } from './BookNav';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { ChatContextProvider } from '@/contexts/ChatContext';
+import { ChatWidget } from '@/components/chat/ChatWidget';
 
 export function BookLayout() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -12,11 +14,14 @@ export function BookLayout() {
   if (error) return <ErrorMessage message={error.message} />;
 
   return (
-    <div className="flex flex-col flex-1 min-h-0">
-      <BookNav bookId={bookId!} bookTitle={book?.title ?? ''} />
-      <div className="flex-1 min-h-0">
-        <Outlet />
+    <ChatContextProvider>
+      <div className="flex flex-col flex-1 min-h-0">
+        <BookNav bookId={bookId!} bookTitle={book?.title ?? ''} />
+        <div className="flex-1 min-h-0">
+          <Outlet />
+        </div>
       </div>
-    </div>
+      <ChatWidget />
+    </ChatContextProvider>
   );
 }
