@@ -426,6 +426,8 @@ export interface EventAnalysisDetail {
   impact: ImpactAnalysis;
   summary: { summary: string };
   analyzedAt: string;
+  status?: 'complete' | 'partial';
+  failedParts?: string[];
   chapter?: number | null;
   chunk?: number | null;
   narrativeMode?: string | null;

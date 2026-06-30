@@ -177,6 +177,9 @@
     "batchTitle": "Batch Generate Event EEP",
     "batchMessage": "Will run deep analysis on {{count}} unanalyzed events. Already-analyzed events will be skipped. This will consume significant tokens.",
     "batchConfirm": "Confirm",
+    "retryFailed": "Retry failed parts",
+    "causalityFailed": "Causality analysis failed, retry available",
+    "impactFailed": "Impact analysis failed, retry available",
     "sections": {
       "summary": "Event Summary",
       "stateChange": "State Before/After",

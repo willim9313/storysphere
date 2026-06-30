@@ -153,13 +153,31 @@ function ParticipantsSection({ data }: { data: EventAnalysisDetailType }) {
 function CausalitySection({
   data,
   variant = 'stepped',
+  failed = false,
 }: {
   data: { causality: CausalityAnalysis };
   variant?: 'timeline' | 'stepped' | 'flat';
+  failed?: boolean;
 }) {
   const { t } = useTranslation('analysis');
   const c = data.causality;
-  if (!c.rootCause && c.causalChain.length === 0 && !c.chainSummary) return null;
+  const isEmpty = !c.rootCause && c.causalChain.length === 0 && !c.chainSummary;
+  if (isEmpty && !failed) return null;
+  if (isEmpty && failed) {
+    return (
+      <div className="ea-section">
+        <div className="ea-section-head">
+          <div className="ea-section-titlewrap">
+            <h3 className="ea-section-title">{t('event.sections.causality')}</h3>
+            <span className="ea-section-sub">{t('event.labels.causalitySub')}</span>
+          </div>
+        </div>
+        <p className="ea-section-failed" style={{ color: 'var(--color-warning)' }}>
+          {t('event.causalityFailed')}
+        </p>
+      </div>
+    );
+  }
   return (
     <div className="ea-section">
       <div className="ea-section-head">
@@ -191,11 +209,26 @@ function CausalitySection({
   );
 }
 
-function ImpactSection({ data }: { data: { impact: ImpactAnalysis } }) {
+function ImpactSection({ data, failed = false }: { data: { impact: ImpactAnalysis }; failed?: boolean }) {
   const { t } = useTranslation('analysis');
   const i = data.impact;
-  if (!i.impactSummary && i.participantImpacts.length === 0 && i.relationChanges.length === 0) {
-    return null;
+  const isEmpty =
+    !i.impactSummary && i.participantImpacts.length === 0 && i.relationChanges.length === 0;
+  if (isEmpty && !failed) return null;
+  if (isEmpty && failed) {
+    return (
+      <div className="ea-section">
+        <div className="ea-section-head">
+          <div className="ea-section-titlewrap">
+            <h3 className="ea-section-title">{t('event.sections.impact')}</h3>
+            <span className="ea-section-sub">{t('event.labels.impactSub')}</span>
+          </div>
+        </div>
+        <p className="ea-section-failed" style={{ color: 'var(--color-warning)' }}>
+          {t('event.impactFailed')}
+        </p>
+      </div>
+    );
   }
   return (
     <div className="ea-section">
@@ -301,13 +334,18 @@ export function EventAnalysisDetail({
   causalVariant = 'stepped',
   showHero = true,
 }: Props) {
+  const failedParts = data.failedParts ?? [];
   return (
     <>
       {showHero && <EventHero data={data} />}
       <StateSection data={data} />
       <ParticipantsSection data={data} />
-      <CausalitySection data={data} variant={causalVariant} />
-      <ImpactSection data={data} />
+      <CausalitySection
+        data={data}
+        variant={causalVariant}
+        failed={failedParts.includes('causality')}
+      />
+      <ImpactSection data={data} failed={failedParts.includes('impact')} />
       <FactorsSection data={data} />
       <QuotesSection data={data} />
     </>

@@ -177,6 +177,9 @@
     "batchTitle": "批次生成事件 EEP",
     "batchMessage": "將對 {{count}} 個尚未分析的事件執行深度分析，已分析的事件會自動跳過。此操作將消耗大量 token。",
     "batchConfirm": "確認執行",
+    "retryFailed": "重試失敗部分",
+    "causalityFailed": "因果分析生成失敗，可重試",
+    "impactFailed": "影響分析生成失敗，可重試",
     "sections": {
       "summary": "事件摘要",
       "stateChange": "事件前後狀態",

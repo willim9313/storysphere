@@ -118,6 +118,16 @@ export default function EventAnalysisPage() {
     },
   });
 
+  // Retry only the failed parts of a partial result (reuses cached EEP).
+  const retryFailedMutation = useMutation({
+    mutationFn: (id: string) => triggerEventAnalysis(bookId!, id, 'retryFailed'),
+    onSuccess: (data) => {
+      setTriggerError(null);
+      setGenerateTaskId(data.taskId);
+    },
+    onError: () => setTriggerError(t('triggerFailed')),
+  });
+
   const handleGenerate = (id: string) => {
     setGeneratingId(id);
     setSelectedEntityId(id);
@@ -329,6 +339,19 @@ export default function EventAnalysisPage() {
                     )}
                   </div>
                   <div className="ea-titlebar-actions">
+                    {eventDetail.status === 'partial' && (
+                      <button
+                        type="button"
+                        className="ea-btn"
+                        style={{ color: 'var(--color-warning)' }}
+                        disabled={retryFailedMutation.isPending}
+                        onClick={() =>
+                          selectedEntityId && retryFailedMutation.mutate(selectedEntityId)
+                        }
+                      >
+                        <RefreshCw size={12} /> {t('event.retryFailed')}
+                      </button>
+                    )}
                     <button
                       type="button"
                       className="ea-btn"
