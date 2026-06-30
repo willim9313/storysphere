@@ -57,7 +57,7 @@
 - API: `POST /inferred-relations/run`、`GET /inferred-relations`、`POST .../confirm`、`POST .../reject`
 - `GET /graph?include_inferred=true`：推斷邊以 `inferred=true` 附加，快照過濾時使用 `visible_from_chapter`
 - 前端：Cytoscape 虛線邊（amber 色）、GraphToolbar Toggle、`InferredEdgePanel`（確認/否定 UI）
-- **注意**: Neo4j 支援缺口仍追蹤於 B-035
+- **注意**: Neo4j 支援缺口仍追蹤於 B-048（原 B-035，2026-06-30 重編以解除與本檔「坎伯英雄旅程」B-035 的撞號）
 
 ---
 
