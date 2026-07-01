@@ -2361,7 +2361,7 @@ export interface components {
             /** Total Paragraphs */
             total_paragraphs: number;
             /** Chapters */
-            chapters: components["schemas"]["api__schemas__documents__ChapterResponse"][];
+            chapters: components["schemas"]["storysphere__api__schemas__documents__ChapterResponse"][];
         };
         /**
          * DocumentSummary
@@ -4062,7 +4062,7 @@ export interface components {
             analyzedAt: string;
         };
         /** ChapterResponse */
-        api__schemas__books__ChapterResponse: {
+        storysphere__api__schemas__books__ChapterResponse: {
             /** Id */
             id: string;
             /** Bookid */
@@ -4091,7 +4091,7 @@ export interface components {
             } | null;
         };
         /** ChapterResponse */
-        api__schemas__documents__ChapterResponse: {
+        storysphere__api__schemas__documents__ChapterResponse: {
             /** Id */
             id: string;
             /** Number */
@@ -4362,7 +4362,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["api__schemas__books__ChapterResponse"][];
+                    "application/json": components["schemas"]["storysphere__api__schemas__books__ChapterResponse"][];
                 };
             };
             /** @description Validation Error */
