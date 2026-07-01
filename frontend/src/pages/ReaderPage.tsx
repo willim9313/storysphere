@@ -75,9 +75,7 @@ export default function ReaderPage() {
     // chapter id into the URL which couples symbol-page state to reader state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setExpandedChapterId(target.id);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setSelectedChapterId(target.id);
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setViewingChapterId(target.id);
   }, [jumpTarget, chapters]);
 

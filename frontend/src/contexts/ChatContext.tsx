@@ -109,6 +109,8 @@ const NO_OP_CONTEXT: ChatContextValue = {
   },
 };
 
+// Hook co-located with its provider (intentional); only affects HMR granularity.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useChatContext() {
   return useContext(ChatContext) ?? NO_OP_CONTEXT;
 }

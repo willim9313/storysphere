@@ -69,6 +69,7 @@ export const mockBookDetail: BookDetail = {
   chunkCount: 42,
   entityCount: 12,
   relationCount: 14,
+  eventCount: 8,
   entityStats: {
     character: 7,
     location: 3,

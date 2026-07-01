@@ -83,6 +83,7 @@ function composition(
 }
 
 /** Lay factions out evenly on a circle (skip drilled-in faction, which goes to centre). */
+// eslint-disable-next-line react-refresh/only-export-components
 export function layoutFactions(
   factions: FactionResponse[],
   drillInFactionId: string | null,

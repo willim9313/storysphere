@@ -28,6 +28,8 @@ export function ThemeProvider({ children }: Readonly<{ children: ReactNode }>) {
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }
 
+// Hook co-located with its provider (intentional); only affects HMR granularity.
+// eslint-disable-next-line react-refresh/only-export-components
 export function useTheme() {
   const ctx = useContext(ThemeContext);
   if (!ctx) throw new Error('useTheme must be used within ThemeProvider');
