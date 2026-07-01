@@ -92,41 +92,42 @@ Chat Agent           Analysis Agent        Ingestion Workflow
 ```
 storysphere/
 ├── backend/
-│   ├── api/               # FastAPI routers, schemas, WebSocket managers
-│   ├── agents/
-│   │   ├── chat_agent.py       # LangGraph streaming chat agent（暫停中）
-│   │   ├── chat_agent_base.py  # Chat agent base class
-│   │   ├── analysis_agent.py   # Cache-first deep analysis orchestrator
-│   │   ├── timeline_agent.py   # Timeline event agent
-│   │   ├── pattern_recognizer.py # Pattern recognition utilities
-│   │   └── states.py           # ChatState (Pydantic)
-│   ├── services/          # Business logic
-│   │   ├── kg_service.py / kg_service_neo4j.py
-│   │   ├── document_service.py / vector_service.py / summary_service.py
-│   │   ├── analysis_service.py / analysis_cache.py
-│   │   ├── symbol_service.py / symbol_analysis_service.py / symbol_graph_service.py
-│   │   ├── tension_service.py / narrative_service.py
-│   │   ├── faction_service.py / global_timeline_service.py
-│   │   ├── epistemic_state_service.py / voice_profiling_service.py
-│   │   └── extraction_service.py / keyword_service.py
-│   ├── tools/
-│   │   ├── graph_tools/        # 7 tools: entity/relation/subgraph/global-timeline queries
-│   │   ├── retrieval_tools/    # 6 tools: vector search, summary, chapter summary, keywords, paragraphs
-│   │   ├── analysis_tools/     # 3 tools: insight, character analysis, event analysis
-│   │   ├── composite_tools/    # 5 tools: entity profile, relationship, character arc, event profile, compare characters
-│   │   └── other_tools/        # 2 tools: compare entities, extract entities
-│   ├── pipelines/         # ETL pipelines
-│   │   ├── document_processing/
-│   │   ├── feature_extraction/
-│   │   ├── knowledge_graph/
-│   │   ├── summarization/
-│   │   ├── symbol_discovery/
-│   │   ├── temporal_pipeline.py
-│   │   └── concept_inference.py
-│   ├── workflows/         # High-level orchestration (ingestion, HITL chapter review)
-│   ├── domain/            # Entity, Relation, Event, Document Pydantic models
-│   ├── core/              # LLM client factory, metrics, tracing, utilities
-│   └── config/            # Settings (pydantic-settings), archetype JSON configs
+│   └── storysphere/       # 單一 Python 命名空間（import 皆為 from storysphere.*）
+│       ├── api/               # FastAPI routers, schemas, WebSocket managers
+│       ├── agents/
+│       │   ├── chat_agent.py       # LangGraph streaming chat agent（暫停中）
+│       │   ├── chat_agent_base.py  # Chat agent base class
+│       │   ├── analysis_agent.py   # Cache-first deep analysis orchestrator
+│       │   ├── timeline_agent.py   # Timeline event agent
+│       │   ├── pattern_recognizer.py # Pattern recognition utilities
+│       │   └── states.py           # ChatState (Pydantic)
+│       ├── services/          # Business logic
+│       │   ├── kg_service.py / kg_service_neo4j.py
+│       │   ├── document_service.py / vector_service.py / summary_service.py
+│       │   ├── analysis_service.py / analysis_cache.py
+│       │   ├── symbol_service.py / symbol_analysis_service.py / symbol_graph_service.py
+│       │   ├── tension_service.py / narrative_service.py
+│       │   ├── faction_service.py / global_timeline_service.py
+│       │   ├── epistemic_state_service.py / voice_profiling_service.py
+│       │   └── extraction_service.py / keyword_service.py
+│       ├── tools/
+│       │   ├── graph_tools/        # 7 tools: entity/relation/subgraph/global-timeline queries
+│       │   ├── retrieval_tools/    # 6 tools: vector search, summary, chapter summary, keywords, paragraphs
+│       │   ├── analysis_tools/     # 3 tools: insight, character analysis, event analysis
+│       │   ├── composite_tools/    # 5 tools: entity profile, relationship, character arc, event profile, compare characters
+│       │   └── other_tools/        # 2 tools: compare entities, extract entities
+│       ├── pipelines/         # ETL pipelines
+│       │   ├── document_processing/
+│       │   ├── feature_extraction/
+│       │   ├── knowledge_graph/
+│       │   ├── summarization/
+│       │   ├── symbol_discovery/
+│       │   ├── temporal_pipeline.py
+│       │   └── concept_inference.py
+│       ├── workflows/         # High-level orchestration (ingestion, HITL chapter review)
+│       ├── domain/            # Entity, Relation, Event, Document Pydantic models
+│       ├── core/              # LLM client factory, metrics, tracing, utilities
+│       └── config/            # Settings (pydantic-settings), archetype JSON configs
 ├── frontend/
 │   ├── src/
 │   │   ├── pages/         # LibraryPage · ReaderPage · GraphPage · TimelinePage
@@ -218,15 +219,15 @@ All settings are loaded from `.env` (see `.env.example`). Key variables:
 | `LOCAL_LLM_MODEL` | `""` | Local model name (e.g. `llama3.2`). Empty = disabled |
 | `LOCAL_LLM_BASE_URL` | `http://localhost:11434/v1` | Ollama / llama.cpp endpoint |
 | `DEPLOY_MODE` | `lightweight` | `lightweight` \| `standard` |
-| `QDRANT_LOCAL_PATH` | `./data/qdrant_local` | Qdrant 本地儲存路徑（lightweight 模式） |
+| `QDRANT_LOCAL_PATH` | `./var/qdrant_local` | Qdrant 本地儲存路徑（lightweight 模式） |
 | `QDRANT_URL` | `http://localhost:6333` | Qdrant 外部服務（standard 模式） |
 | `KG_MODE` | `networkx` | `networkx` \| `neo4j`（lightweight 模式固定 networkx） |
-| `KG_PERSISTENCE_PATH` | `./data/knowledge_graph.json` | NetworkX KG 快照路徑 |
-| `DATABASE_URL` | `sqlite+aiosqlite:///./storysphere.db` | 主要 SQLite DB |
+| `KG_PERSISTENCE_PATH` | `./var/knowledge_graph.json` | NetworkX KG 快照路徑 |
+| `DATABASE_URL` | `sqlite+aiosqlite:///./var/storysphere.db` | 主要 SQLite DB |
 | `KEYWORD_EXTRACTOR_TYPE` | `yake` | `yake` \| `llm` \| `tfidf` \| `composite` \| `none` |
 | `LLM_THINKING_ENABLED` | `false` | 啟用 extended reasoning（額外 token） |
 | `CHAT_AGENT_MAX_ITERATIONS` | `10` | ReAct loop 上限 |
-| `ANALYSIS_CACHE_DB_PATH` | `./data/analysis_cache.db` | 深度分析 SQLite 快取 |
+| `ANALYSIS_CACHE_DB_PATH` | `./var/analysis_cache.db` | 深度分析 SQLite 快取 |
 
 ---
 
