@@ -35,8 +35,8 @@ export function TensionLineCard({
   const [open, setOpen] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [poleA, setPoleA] = useState(line.canonical_pole_a);
-  const [poleB, setPoleB] = useState(line.canonical_pole_b);
+  const [editPoleA, setEditPoleA] = useState(line.canonical_pole_a);
+  const [editPoleB, setEditPoleB] = useState(line.canonical_pole_b);
 
   // Only auto-open when `focused` transitions from false to true (an external
   // focus event from the trajectory chart). Without this guard, calling
@@ -45,14 +45,10 @@ export function TensionLineCard({
   // making the card uncollapsable.
   const prevFocused = useRef(focused);
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (focused && !prevFocused.current) setOpen(true);
     prevFocused.current = focused;
   }, [focused]);
-
-  useEffect(() => {
-    setPoleA(line.canonical_pole_a);
-    setPoleB(line.canonical_pole_b);
-  }, [line.canonical_pole_a, line.canonical_pole_b]);
 
   const reviewMutation = useMutation({
     mutationFn: ({
@@ -70,7 +66,7 @@ export function TensionLineCard({
     },
   });
 
-  const teus = line.teus ?? [];
+  const teus = useMemo(() => line.teus ?? [], [line.teus]);
   const ch1 = line.chapter_range[0] ?? 1;
   const ch2 = line.chapter_range[line.chapter_range.length - 1] ?? ch1;
 
@@ -130,14 +126,14 @@ export function TensionLineCard({
           {editing && (
             <div className="tn-edit-row">
               <span className="tn-edit-row-label">POLE A</span>
-              <input value={poleA} onChange={(e) => setPoleA(e.target.value)} />
+              <input value={editPoleA} onChange={(e) => setEditPoleA(e.target.value)} />
               <span className="tn-edit-row-vs">vs</span>
               <span className="tn-edit-row-label">POLE B</span>
-              <input value={poleB} onChange={(e) => setPoleB(e.target.value)} />
+              <input value={editPoleB} onChange={(e) => setEditPoleB(e.target.value)} />
               <button
                 className="tn-btn primary sm"
                 onClick={() =>
-                  reviewMutation.mutate({ status: 'modified', a: poleA, b: poleB })
+                  reviewMutation.mutate({ status: 'modified', a: editPoleA, b: editPoleB })
                 }
                 disabled={reviewMutation.isPending}
               >
@@ -149,11 +145,7 @@ export function TensionLineCard({
               </button>
               <button
                 className="tn-btn ghost sm"
-                onClick={() => {
-                  setPoleA(line.canonical_pole_a);
-                  setPoleB(line.canonical_pole_b);
-                  setEditing(false);
-                }}
+                onClick={() => setEditing(false)}
               >
                 {tc('cancel')}
               </button>
@@ -214,7 +206,11 @@ export function TensionLineCard({
               </button>
               <button
                 className="tn-btn info"
-                onClick={() => setEditing(true)}
+                onClick={() => {
+                  setEditPoleA(line.canonical_pole_a);
+                  setEditPoleB(line.canonical_pole_b);
+                  setEditing(true);
+                }}
                 disabled={reviewMutation.isPending}
               >
                 <Edit3 size={12} /> {t('tension.modifyLabel')}

@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useLayoutEffect } from 'react';
 import type { PageContext } from '@/contexts/ChatContext';
 
 export interface ChatMessage {
@@ -42,6 +42,18 @@ export function useWebSocketChat(wsPath: string = '/ws/chat'): UseWebSocketChatR
   const reconnectCountRef = useRef(0);
   const streamBufferRef = useRef('');
   const pendingSendRef = useRef<{ text: string; context: PageContext } | null>(null);
+  // Ref lets ws.onclose always call the latest connect without stale closure.
+  const connectRef = useRef<() => void>(() => {});
+
+  const doSend = useCallback((ws: WebSocket, text: string, context: PageContext) => {
+    setIsStreaming(true);
+    streamBufferRef.current = '';
+    ws.send(JSON.stringify({
+      message: text,
+      language: 'auto',
+      context: toSnakeContext(context),
+    }));
+  }, []);
 
   const connect = useCallback(() => {
     if (wsRef.current && wsRef.current.readyState <= WebSocket.OPEN) return;
@@ -95,24 +107,16 @@ export function useWebSocketChat(wsPath: string = '/ws/chat'): UseWebSocketChatR
       if (reconnectCountRef.current < MAX_RECONNECT && pendingSendRef.current) {
         reconnectCountRef.current++;
         const delay = Math.min(1000 * 2 ** reconnectCountRef.current, 8000);
-        setTimeout(connect, delay);
+        setTimeout(() => connectRef.current(), delay);
       }
     };
 
     ws.onerror = () => {
       ws.close();
     };
-  }, []);
+  }, [wsPath, doSend]);
 
-  const doSend = useCallback((ws: WebSocket, text: string, context: PageContext) => {
-    setIsStreaming(true);
-    streamBufferRef.current = '';
-    ws.send(JSON.stringify({
-      message: text,
-      language: 'auto',
-      context: toSnakeContext(context),
-    }));
-  }, []);
+  useLayoutEffect(() => { connectRef.current = connect; });
 
   const sendMessage = useCallback(
     (text: string, context: PageContext) => {

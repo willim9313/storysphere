@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import type { TaskStatus } from '@/api/types';
 
@@ -18,8 +18,9 @@ export function useTensionTask(
   const [error, setError] = useState<string | null>(null);
   const { data: task } = useTaskPolling(taskId, fetcher);
   const onDoneRef = useRef(onDone);
-  onDoneRef.current = onDone;
+  useLayoutEffect(() => { onDoneRef.current = onDone; });
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (task?.status === 'done') {
       onDoneRef.current(task);
@@ -29,6 +30,7 @@ export function useTensionTask(
       setTaskId(null);
     }
   }, [task, defaultError]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const trigger = useCallback(
     async (triggerFn: () => Promise<{ taskId: string }>, triggerError: string) => {

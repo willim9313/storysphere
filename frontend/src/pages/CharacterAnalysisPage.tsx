@@ -130,6 +130,7 @@ export default function CharacterAnalysisPage() {
 
   const { data: genTask } = useTaskPolling(generateTaskId);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (genTask?.status === 'done') {
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'] });
@@ -138,6 +139,7 @@ export default function CharacterAnalysisPage() {
       setGeneratingId(null);
     }
   }, [genTask?.status, bookId, selectedEntityId, queryClient]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const batchMutation = useMutation({
     mutationFn: () => triggerBatchEntityAnalysis(bookId!),
@@ -157,6 +159,7 @@ export default function CharacterAnalysisPage() {
     batchTask.status !== 'done' &&
     batchTask.status !== 'error';
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!batchTask?.result) return;
     const result = batchTask.result as unknown as BatchEepResult;
@@ -178,6 +181,7 @@ export default function CharacterAnalysisPage() {
       setBatchTaskId(null);
     }
   }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient, t]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   useEffect(() => {
     if (!toastVisible) return;
