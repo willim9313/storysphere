@@ -19,17 +19,26 @@ from tools.analysis_tools import AnalyzeCharacterTool, AnalyzeEventTool, Generat
 
 
 class TestGenerateInsightTool:
+    def _mock_service(self):
+        # GenerateInsightTool resolves an AnalysisService and calls generate_insight;
+        # inject a mock so no real LLM/API call is made.
+        svc = AsyncMock()
+        svc.generate_insight = AsyncMock(
+            return_value="This is a generated insight about the topic."
+        )
+        return svc
+
     @pytest.mark.asyncio
-    async def test_generates_insight(self, mock_llm):
-        tool = GenerateInsightTool(llm=mock_llm)
+    async def test_generates_insight(self):
+        tool = GenerateInsightTool(analysis_service=self._mock_service())
         result = json.loads(await tool._arun("theme of betrayal", context="Alice betrayed Bob in chapter 3."))
         assert result["topic"] == "theme of betrayal"
         assert "insight" in result
         assert len(result["insight"]) > 0
 
     @pytest.mark.asyncio
-    async def test_without_context(self, mock_llm):
-        tool = GenerateInsightTool(llm=mock_llm)
+    async def test_without_context(self):
+        tool = GenerateInsightTool(analysis_service=self._mock_service())
         result = json.loads(await tool._arun("love and loss"))
         assert result["topic"] == "love and loss"
 

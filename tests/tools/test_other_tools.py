@@ -14,14 +14,16 @@ from tools.other_tools import CompareEntitiesTool, ExtractEntitiesFromTextTool
 class TestExtractEntitiesFromTextTool:
     @pytest.mark.asyncio
     async def test_extracts_entities(self):
-        mock_extractor = AsyncMock()
-        mock_extractor.extract = AsyncMock(
+        # The tool resolves an ExtractionService and calls extract_entities;
+        # inject a mock so no real LLM/API call is made.
+        mock_service = AsyncMock()
+        mock_service.extract_entities = AsyncMock(
             return_value=[
                 Entity(name="Alice", entity_type=EntityType.CHARACTER, description="The hero"),
                 Entity(name="London", entity_type=EntityType.LOCATION, description="A city"),
             ]
         )
-        tool = ExtractEntitiesFromTextTool(entity_extractor=mock_extractor)
+        tool = ExtractEntitiesFromTextTool(extraction_service=mock_service)
         result = json.loads(await tool._arun("Alice walked through London."))
         assert isinstance(result, list)
         assert len(result) == 2
