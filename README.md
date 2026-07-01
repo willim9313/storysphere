@@ -36,7 +36,7 @@ StorySphere ingests novels (PDF / DOCX), runs a multi-stage ETL pipeline to extr
 | Embeddings | sentence-transformers `all-MiniLM-L6-v2` |
 | Storage | SQLite (aiosqlite · SQLAlchemy) |
 | Keyword Extraction | YAKE · TF-IDF · LLM · Composite |
-| Frontend | React 18 · TypeScript · Vite · React Router |
+| Frontend | React 19 · TypeScript · Vite · React Router |
 | Package Manager (Python) | **uv** |
 
 ---
@@ -145,7 +145,7 @@ storysphere/
 │   ├── plans/             # 高複雜度功能規劃文件存檔
 │   ├── guides/            # TESTING.md 等開發指南
 │   └── appendix/          # ADR-001 to ADR-009, tools catalog
-├── tests/                 # 858+ tests (pytest)
+├── tests/                 # 890+ tests (pytest)
 ├── pyproject.toml
 └── .env.example
 ```
@@ -348,7 +348,7 @@ uv run pytest --cov=backend/storysphere --cov-report=term-missing
 uv run pytest -m "not integration"
 ```
 
-Current test count: **858+ passing** across agents, services, tools, pipelines, and core utilities.
+Current test count: **873 passing** across agents, services, tools, pipelines, and core utilities.
 
 ---
 
