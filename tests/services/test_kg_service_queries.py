@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from domain.entities import Entity, EntityType
-from domain.events import Event, EventType
-from domain.relations import Relation, RelationType
-from services.kg_service import KGService
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.domain.events import Event, EventType
+from storysphere.domain.relations import Relation, RelationType
+from storysphere.services.kg_service import KGService
 
 
 def _make_entity(name: str, etype: EntityType = EntityType.CHARACTER) -> Entity:

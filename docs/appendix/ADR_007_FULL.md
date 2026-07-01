@@ -245,7 +245,7 @@ async def call_llm_with_fallback(prompt: str):
 
 #### 舊版方案
 
-舊版 `extract_json_from_text()`（`old_version/src/core/utils/output_extractor.py`）實現了 4 步 fallback chain：
+舊版 `extract_json_from_text()`（`old_version/backend/storysphere/core/utils/output_extractor.py`）實現了 4 步 fallback chain：
 
 ```python
 # 1. ```json...``` code block（正則提取）
@@ -260,7 +260,7 @@ async def call_llm_with_fallback(prompt: str):
 
 #### 行動項
 
-- [ ] 將 `extract_json_from_text()` 移植到 `src/core/utils/output_extractor.py`
+- [ ] 將 `extract_json_from_text()` 移植到 `backend/storysphere/core/utils/output_extractor.py`
 - [ ] 替換 `extraction_service.py` 中的簡易 `_parse_json_response()`
 - [ ] 確保 `analysis_service.py`、`summary_service.py` 等所有 JSON 解析路徑統一使用
 
@@ -274,7 +274,7 @@ Phase 4 Chat Agent 中用戶輸入將直接進入 prompt，目前沒有清理機
 
 #### 舊版方案
 
-舊版 `DataSanitizer`（`old_version/src/core/utils/data_sanitizer.py`）提供了：
+舊版 `DataSanitizer`（`old_version/backend/storysphere/core/utils/data_sanitizer.py`）提供了：
 
 ```python
 # SafeFormatter.escape_braces() — 轉義 {} 防止 format string injection
@@ -286,7 +286,7 @@ Phase 4 Chat Agent 中用戶輸入將直接進入 prompt，目前沒有清理機
 
 #### 行動項
 
-- [ ] 將 `DataSanitizer` 移植到 `src/core/utils/data_sanitizer.py`
+- [ ] 將 `DataSanitizer` 移植到 `backend/storysphere/core/utils/data_sanitizer.py`
 - [ ] Phase 4 Chat Agent 的用戶輸入經過 `escape_braces()` 處理
 - [ ] 向量搜索結果經過 `format_vector_store_results()` 清理後再注入 prompt
 

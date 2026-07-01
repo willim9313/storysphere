@@ -39,7 +39,7 @@
 
 ### 3.1 `gather_parts` helper
 
-新增小工具（放 `src/core/`，例如 `gather_parts.py`）：
+新增小工具（放 `backend/storysphere/core/`，例如 `gather_parts.py`）：
 
 ```python
 async def gather_parts(parts: dict[str, Awaitable]) -> tuple[dict[str, Any], list[str]]:
@@ -148,12 +148,12 @@ API 變更同步更新 `docs/API_CONTRACT.md`，commit 標 `[api-contract update
 > 跨檔超過 3 個，依 CLAUDE.md 拆子任務逐步確認。
 
 **子任務 A — 共用機制**
-- 新增 `src/core/gather_parts.py` + 測試
-- 修改 `src/services/analysis_models.py`（`failed_parts` 欄位 / 共用 base）
+- 新增 `backend/storysphere/core/gather_parts.py` + 測試
+- 修改 `backend/storysphere/services/analysis_models.py`（`failed_parts` 欄位 / 共用 base）
 
 **子任務 B — character pipeline**
-- 修改 `src/services/analysis_service.py`（`analyze_character` 用 `gather_parts`、加 `retry_parts`）
-- 修改 `src/agents/analysis_agent.py`（透傳 `retry_parts` + 部分重算路徑）
+- 修改 `backend/storysphere/services/analysis_service.py`（`analyze_character` 用 `gather_parts`、加 `retry_parts`）
+- 修改 `backend/storysphere/agents/analysis_agent.py`（透傳 `retry_parts` + 部分重算路徑）
 - service 測試
 
 **子任務 C — event pipeline**
@@ -161,8 +161,8 @@ API 變更同步更新 `docs/API_CONTRACT.md`，commit 標 `[api-contract update
 - service 測試
 
 **子任務 D — API + 契約**
-- 修改 `src/api/routers/books.py`（character/event 觸發端點加模式、GET 回應加 `status`/`failedParts`；event 端點同步）
-- 修改對應 `src/api/schemas/`（response 加欄位、request 加 mode）
+- 修改 `backend/storysphere/api/routers/books.py`（character/event 觸發端點加模式、GET 回應加 `status`/`failedParts`；event 端點同步）
+- 修改對應 `backend/storysphere/api/schemas/`（response 加欄位、request 加 mode）
 - 更新 `docs/API_CONTRACT.md`（`[api-contract updated]`）
 - 端點測試
 

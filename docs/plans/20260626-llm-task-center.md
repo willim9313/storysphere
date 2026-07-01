@@ -48,7 +48,7 @@
 
 ### 3.1 `TaskStatus` schema 變更
 
-`src/api/schemas/common.py` 的 `TaskStatus` 新增 3 個**選填**欄位：
+`backend/storysphere/api/schemas/common.py` 的 `TaskStatus` 新增 3 個**選填**欄位：
 
 | 欄位 | 型別 | 用途 |
 |------|------|------|
@@ -85,7 +85,7 @@ def list(self, *, recent_limit: int = 20) -> list[TaskStatus]:
 
 ### 3.4 新增端點 `GET /tasks`
 
-`src/api/routers/tasks.py`：
+`backend/storysphere/api/routers/tasks.py`：
 
 ```python
 @router.get("", response_model=list[TaskStatus])
@@ -199,12 +199,12 @@ async def list_tasks() -> list[TaskStatus]:
 ## 8. 異動檔案清單（實作時據此拆子任務）
 
 **子任務 A — 後端 store + schema**
-- 修改 `src/api/schemas/common.py`（TaskStatus 三欄位 + create 簽章影響）
-- 修改 `src/api/store.py`（兩 backend 的 `create` 參數、`list()`、created_at、SQLite 欄位遷移）
+- 修改 `backend/storysphere/api/schemas/common.py`（TaskStatus 三欄位 + create 簽章影響）
+- 修改 `backend/storysphere/api/store.py`（兩 backend 的 `create` 參數、`list()`、created_at、SQLite 欄位遷移）
 - 新增 store 測試
 
 **子任務 B — 後端端點 + 契約**
-- 修改 `src/api/routers/tasks.py`（`GET /tasks`）
+- 修改 `backend/storysphere/api/routers/tasks.py`（`GET /tasks`）
 - 更新 `docs/API_CONTRACT.md`（`[api-contract updated]`）
 - 新增端點測試
 

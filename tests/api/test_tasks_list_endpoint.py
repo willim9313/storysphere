@@ -13,7 +13,7 @@ from uuid import uuid4
 
 def _seed_active(kind: str | None = None, title: str | None = None) -> str:
     """Create a running task in the global store. Returns task_id."""
-    from api.store import task_store
+    from storysphere.api.store import task_store
 
     task_id = f"tasklist-{uuid4()}"
     task_store.create(task_id, kind=kind, title=title)

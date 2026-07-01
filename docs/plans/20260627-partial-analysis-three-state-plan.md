@@ -23,9 +23,9 @@
 ## Task A: `gather_parts` helper + `failed_parts` on result models
 
 **Files:**
-- Create: `src/core/gather_parts.py`
+- Create: `backend/storysphere/core/gather_parts.py`
 - Create: `tests/core/test_gather_parts.py`
-- Modify: `src/services/analysis_models.py` (add `failed_parts` to `CharacterAnalysisResult` ~line 68, `EventAnalysisResult` ~line 152)
+- Modify: `backend/storysphere/services/analysis_models.py` (add `failed_parts` to `CharacterAnalysisResult` ~line 68, `EventAnalysisResult` ~line 152)
 
 **Interfaces:**
 - Produces: `async def gather_parts(parts: dict[str, Awaitable]) -> tuple[dict[str, Any], list[str]]` — runs each awaitable with `return_exceptions=True`; returns `(results_by_name, failed_part_names)` where `results_by_name` contains only succeeded parts and `failed_part_names` preserves `parts` insertion order.
@@ -87,7 +87,7 @@ Expected: FAIL — `ModuleNotFoundError: No module named 'core.gather_parts'`
 - [ ] **Step 3: Write minimal implementation**
 
 ```python
-# src/core/gather_parts.py
+# backend/storysphere/core/gather_parts.py
 """Run named sub-step coroutines, tolerating individual failures.
 
 Single source of truth for the "gather but remember which parts failed"
@@ -130,7 +130,7 @@ Expected: PASS (4 tests)
 
 - [ ] **Step 5: Add `failed_parts` to result models**
 
-In `src/services/analysis_models.py`, add to `CharacterAnalysisResult` (after `coverage`, before `analyzed_at`):
+In `backend/storysphere/services/analysis_models.py`, add to `CharacterAnalysisResult` (after `coverage`, before `analyzed_at`):
 
 ```python
     failed_parts: list[str] = Field(
@@ -149,7 +149,7 @@ Expected: `ok`
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/core/gather_parts.py tests/core/test_gather_parts.py src/services/analysis_models.py
+git add backend/storysphere/core/gather_parts.py tests/core/test_gather_parts.py backend/storysphere/services/analysis_models.py
 git commit -m "feat(analysis): add gather_parts helper + failed_parts on result models"
 ```
 
@@ -158,8 +158,8 @@ git commit -m "feat(analysis): add gather_parts helper + failed_parts on result 
 ## Task B: character pipeline — named parts, `failed_parts`, partial re-run
 
 **Files:**
-- Modify: `src/services/analysis_service.py` (`analyze_character` ~267-363; add `_character_parts` helper)
-- Modify: `src/agents/analysis_agent.py` (`analyze_character` ~56-117)
+- Modify: `backend/storysphere/services/analysis_service.py` (`analyze_character` ~267-363; add `_character_parts` helper)
+- Modify: `backend/storysphere/agents/analysis_agent.py` (`analyze_character` ~56-117)
 - Test: `tests/services/test_analysis_partial.py` (new)
 
 **Interfaces:**
@@ -246,7 +246,7 @@ Expected: FAIL — `analyze_character() got an unexpected keyword argument 'retr
 
 - [ ] **Step 3: Refactor `analyze_character` to named parts + retry**
 
-In `src/services/analysis_service.py`, add a helper and rewrite the body of `analyze_character`. Replace the block from `# Step 1: Extract CEP` (~303) through the `return CharacterAnalysisResult(...)` (~363) with:
+In `backend/storysphere/services/analysis_service.py`, add a helper and rewrite the body of `analyze_character`. Replace the block from `# Step 1: Extract CEP` (~303) through the `return CharacterAnalysisResult(...)` (~363) with:
 
 ```python
         # Resolve entity (unchanged, keep existing lines above)
@@ -337,7 +337,7 @@ Expected: PASS (2 tests)
 
 - [ ] **Step 5: Add `retry_parts` path to the agent**
 
-In `src/agents/analysis_agent.py` `analyze_character` (~56), add `retry_parts: list[str] | None = None` to the signature, and before the existing cache-first block insert a partial-mode branch:
+In `backend/storysphere/agents/analysis_agent.py` `analyze_character` (~56), add `retry_parts: list[str] | None = None` to the signature, and before the existing cache-first block insert a partial-mode branch:
 
 ```python
         # Partial re-run: reuse cached result, recompute only failed parts
@@ -401,7 +401,7 @@ Run: `python -m pytest tests/services/test_analysis_service.py tests/api/test_an
 Expected: no new failures.
 
 ```bash
-git add src/services/analysis_service.py src/agents/analysis_agent.py tests/services/test_analysis_partial.py
+git add backend/storysphere/services/analysis_service.py backend/storysphere/agents/analysis_agent.py tests/services/test_analysis_partial.py
 git commit -m "feat(analysis): character pipeline failed_parts + retry_parts partial re-run"
 ```
 
@@ -410,8 +410,8 @@ git commit -m "feat(analysis): character pipeline failed_parts + retry_parts par
 ## Task C: event pipeline — named parts, `failed_parts`, partial re-run
 
 **Files:**
-- Modify: `src/services/analysis_service.py` (`analyze_event` ~617-689; add `_event_parts`)
-- Modify: `src/agents/analysis_agent.py` (`analyze_event` ~125-190)
+- Modify: `backend/storysphere/services/analysis_service.py` (`analyze_event` ~617-689; add `_event_parts`)
+- Modify: `backend/storysphere/agents/analysis_agent.py` (`analyze_event` ~125-190)
 - Test: `tests/services/test_analysis_partial.py` (append event cases)
 
 **Interfaces:**
@@ -451,7 +451,7 @@ Expected: FAIL — `failed_parts` not populated / unexpected kwarg.
 
 - [ ] **Step 3: Refactor `analyze_event`**
 
-In `src/services/analysis_service.py`, replace the parallel block (~643-688) with named parts. Add params to the signature (mirroring Task B). Replace from `# causality and impact are independent` through the `return EventAnalysisResult(...)`:
+In `backend/storysphere/services/analysis_service.py`, replace the parallel block (~643-688) with named parts. Add params to the signature (mirroring Task B). Replace from `# causality and impact are independent` through the `return EventAnalysisResult(...)`:
 
 ```python
         if retry_parts and base_result is not None:
@@ -514,7 +514,7 @@ Expected: PASS
 
 - [ ] **Step 5: Add agent `retry_parts` path for event**
 
-In `src/agents/analysis_agent.py` `analyze_event` (~125), add `retry_parts: list[str] | None = None`, and after `cache_key = f"event:..."` insert:
+In `backend/storysphere/agents/analysis_agent.py` `analyze_event` (~125), add `retry_parts: list[str] | None = None`, and after `cache_key = f"event:..."` insert:
 
 ```python
         if retry_parts and self._cache is not None:
@@ -538,7 +538,7 @@ Run: `python -m pytest tests/services/test_analysis_partial.py tests/services/te
 Expected: no new failures.
 
 ```bash
-git add src/services/analysis_service.py src/agents/analysis_agent.py tests/services/test_analysis_partial.py
+git add backend/storysphere/services/analysis_service.py backend/storysphere/agents/analysis_agent.py tests/services/test_analysis_partial.py
 git commit -m "feat(analysis): event pipeline failed_parts + retry_parts partial re-run"
 ```
 
@@ -547,8 +547,8 @@ git commit -m "feat(analysis): event pipeline failed_parts + retry_parts partial
 ## Task D: API — three-state exposure + retryFailed mode + contract
 
 **Files:**
-- Modify: `src/api/schemas/books.py` (`CharacterAnalysisDetailResponse`: add `status`, `failed_parts`; trigger request: add `mode`)
-- Modify: `src/api/routers/books.py` (`get_entity_analysis` ~1449; `trigger_entity_analysis` ~1515 / `_run_entity_analysis` ~209; event equivalents `get_event_analysis` ~1858 / `trigger_event_analysis` ~1824)
+- Modify: `backend/storysphere/api/schemas/books.py` (`CharacterAnalysisDetailResponse`: add `status`, `failed_parts`; trigger request: add `mode`)
+- Modify: `backend/storysphere/api/routers/books.py` (`get_entity_analysis` ~1449; `trigger_entity_analysis` ~1515 / `_run_entity_analysis` ~209; event equivalents `get_event_analysis` ~1858 / `trigger_event_analysis` ~1824)
 - Modify: `docs/API_CONTRACT.md`
 - Test: `tests/api/test_analysis_partial_api.py` (new)
 
@@ -610,7 +610,7 @@ def mock_cache(analysis_client):
     return analysis_client.app.state._mock_cache
 ```
 
-(Confirm the dependency name `deps.get_analysis_cache` matches `AnalysisCacheDep` in `src/api/deps.py`; adjust if different.)
+(Confirm the dependency name `deps.get_analysis_cache` matches `AnalysisCacheDep` in `backend/storysphere/api/deps.py`; adjust if different.)
 
 - [ ] **Step 2: Run to verify it fails**
 
@@ -619,7 +619,7 @@ Expected: FAIL — response has no `status` / `failedParts`.
 
 - [ ] **Step 3: Add response fields to the schema**
 
-In `src/api/schemas/books.py`, add to `CharacterAnalysisDetailResponse`:
+In `backend/storysphere/api/schemas/books.py`, add to `CharacterAnalysisDetailResponse`:
 
 ```python
     status: str = "complete"          # "complete" | "partial"
@@ -630,7 +630,7 @@ In `src/api/schemas/books.py`, add to `CharacterAnalysisDetailResponse`:
 
 - [ ] **Step 4: Populate them in `get_entity_analysis`**
 
-In `src/api/routers/books.py` `get_entity_analysis` (~1467), add to the `CharacterAnalysisDetailResponse(...)` construction:
+In `backend/storysphere/api/routers/books.py` `get_entity_analysis` (~1467), add to the `CharacterAnalysisDetailResponse(...)` construction:
 
 ```python
                 status="partial" if result.failed_parts else "complete",
@@ -644,7 +644,7 @@ Expected: PASS
 
 - [ ] **Step 6: Add `mode` to the trigger endpoint**
 
-Define a request body schema in `src/api/schemas/books.py`:
+Define a request body schema in `backend/storysphere/api/schemas/books.py`:
 
 ```python
 class AnalyzeTriggerRequest(BaseModel):
@@ -699,8 +699,8 @@ In `docs/API_CONTRACT.md`, under the entity/event analysis sections: add `status
 
 ```bash
 cd frontend && npm run gen:types && cd ..
-ruff check src/api/routers/books.py src/api/schemas/books.py
-git add src/api/routers/books.py src/api/schemas/books.py docs/API_CONTRACT.md frontend/src/api/generated.ts tests/api/test_analysis_partial_api.py
+ruff check backend/storysphere/api/routers/books.py backend/storysphere/api/schemas/books.py
+git add backend/storysphere/api/routers/books.py backend/storysphere/api/schemas/books.py docs/API_CONTRACT.md frontend/src/api/generated.ts tests/api/test_analysis_partial_api.py
 git commit -m "feat(api): three-state status + retryFailed mode for character/event analysis [api-contract updated]"
 ```
 
@@ -778,7 +778,7 @@ For `isDone`, render "部分完成" with `var(--color-warning)` (amber) when `is
 ```bash
 cd frontend
 npx tsc --noEmit -p tsconfig.app.json
-npx eslint src/components/analysis/sections/PersonaPane.tsx src/pages/CharacterAnalysisPage.tsx src/api/analysis.ts src/components/tasks/TaskRow.tsx
+npx eslint src/components/analysis/sections/PersonaPane.tsx src/pages/CharacterAnalysisPage.tsx backend/storysphere/api/analysis.ts src/components/tasks/TaskRow.tsx
 cd ..
 git add frontend/src/components/analysis/sections/PersonaPane.tsx frontend/src/pages/CharacterAnalysisPage.tsx frontend/src/api/analysis.ts frontend/src/components/tasks/TaskRow.tsx frontend/src/i18n/locales
 git commit -m "feat(frontend): partial-analysis three-state UX + task center 部分完成"
@@ -788,6 +788,6 @@ git commit -m "feat(frontend): partial-analysis three-state UX + task center 部
 
 ## Notes for the implementer
 
-- `EventSummary` / `ImpactAnalysis` exact field names: confirm against `src/services/analysis_models.py` before writing the event empty-defaults (Task C Step 3) — copy the field set already used in the current `analyze_event` empty branches.
+- `EventSummary` / `ImpactAnalysis` exact field names: confirm against `backend/storysphere/services/analysis_models.py` before writing the event empty-defaults (Task C Step 3) — copy the field set already used in the current `analyze_event` empty branches.
 - The event page may be `EventAnalysisPage.tsx`; apply the Task E PersonaPane-equivalent distinction to its causality/impact sections (`causality` / `impact` part names) if it surfaces "not generated" placeholders.
 - Symbol / narrative: **no changes** — structurally never partial (spec §2).

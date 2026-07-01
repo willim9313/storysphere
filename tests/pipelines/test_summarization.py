@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph
-from pipelines.summarization.pipeline import SummarizationPipeline, SummarizationResult
-from pipelines.summarization.summarizer import ChapterSummarizer
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
+from storysphere.pipelines.summarization.pipeline import SummarizationPipeline, SummarizationResult
+from storysphere.pipelines.summarization.summarizer import ChapterSummarizer
 
 
 def _make_doc(chapters: list[Chapter] | None = None) -> Document:

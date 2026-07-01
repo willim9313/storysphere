@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from tools.composite_tools import (
+from storysphere.tools.composite_tools import (
     CompareCharactersTool,
     GetCharacterArcTool,
     GetEntityProfileTool,

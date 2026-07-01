@@ -9,10 +9,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from domain.documents import Chapter, Document, FileType, Paragraph
-from domain.entities import Entity, EntityType
-from domain.events import Event, EventType
-from domain.imagery import ImageryEntity, ImageryType
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.domain.events import Event, EventType
+from storysphere.domain.imagery import ImageryEntity, ImageryType
 
 sys.path.insert(0, "src")
 
@@ -142,8 +142,8 @@ def client_factory():
     """Return a factory that builds a TestClient with custom mocks."""
     @contextmanager
     def _make(mock_doc_svc, mock_kg, mock_cache, mock_symbol_svc):
-        from api import deps
-        from api.main import create_app
+        from storysphere.api import deps
+        from storysphere.api.main import create_app
 
         app = create_app()
 

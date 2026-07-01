@@ -56,7 +56,7 @@
 - 有無孤兒腳本或文件因改動而與實作漂移
 
 **程式碼品質：**
-- 執行 `ruff check src/` 無新增錯誤
+- 執行 `ruff check backend/` 無新增錯誤
 - 執行 `cd frontend && npm run lint` 無新增錯誤
 - 實作範疇未超出 checkpoint 所列的檔案與 endpoint
 

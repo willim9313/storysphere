@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-from agents.states import ChatState
+from storysphere.agents.states import ChatState
 
 
 class TestAddEntityMention:

@@ -19,10 +19,10 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
-from domain.entities import Entity, EntityType
-from domain.epistemic_state import CharacterEpistemicState
-from domain.events import Event, EventType
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.domain.epistemic_state import CharacterEpistemicState
+from storysphere.domain.events import Event, EventType
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 
@@ -52,8 +52,8 @@ def epistemic_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_c
     """TestClient that additionally mocks the epistemic-state service dependency."""
     from fastapi.testclient import TestClient
 
-    from api import deps
-    from api.main import create_app
+    from storysphere.api import deps
+    from storysphere.api.main import create_app
 
     app = create_app()
 
@@ -94,7 +94,7 @@ def epistemic_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_c
 
 class TestBuildEntitySegments:
     def _seg(self, text: str, entities: list):
-        from api.routers.books import _build_entity_segments
+        from storysphere.api.routers.books import _build_entity_segments
         return _build_entity_segments(text, entities)
 
     def _make_entity(self, name: str, eid: str = "e1", aliases: list | None = None) -> Entity:
@@ -173,7 +173,7 @@ class TestBuildEntitySegments:
 
 class TestBuildSegmentsFromStored:
     def _seg(self, text: str, entities: list[ParagraphEntity]):
-        from api.routers.books import _build_segments_from_stored
+        from storysphere.api.routers.books import _build_segments_from_stored
         return _build_segments_from_stored(text, entities)
 
     def _ent(self, eid: str, name: str, start: int, end: int, etype: str = "character") -> ParagraphEntity:
@@ -486,7 +486,7 @@ class TestEpistemicStateEndpoint:
 
     def test_data_complete_false_when_all_events_public(self, epistemic_client, mock_kg):
         """data_complete is False when no event has a non-public visibility."""
-        from domain.events import Event, EventType
+        from storysphere.domain.events import Event, EventType
         public_event = Event(
             title="Public Battle",
             event_type=EventType.CONFLICT,

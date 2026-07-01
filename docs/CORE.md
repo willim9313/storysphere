@@ -100,8 +100,8 @@
 2. 結構化輸出失敗 → Pydantic + Retry (3次)
 3. 工具執行失敗 → 超時管理 + 降級
 4. LLM 調用失敗 → 多提供商備份
-5. JSON 解析脆弱性 → 4 步 fallback chain（✅ 已移植至 `src/core/utils/output_extractor.py`）
-6. Prompt Injection → DataSanitizer（✅ 已移植至 `src/core/utils/data_sanitizer.py`）
+5. JSON 解析脆弱性 → 4 步 fallback chain（✅ 已移植至 `backend/storysphere/core/utils/output_extractor.py`）
+6. Prompt Injection → DataSanitizer（✅ 已移植至 `backend/storysphere/core/utils/data_sanitizer.py`）
 
 📄 [完整版](appendix/ADR_007_FULL.md)
 
@@ -297,22 +297,25 @@ storysphere/
 │       ├── PHASE_1_REFACTOR.md
 │       ├── PHASE_3_TOOLS.md
 │       └── ...
-├── src/
-│   ├── config/                      # 配置
-│   ├── domain/                      # 領域模型
-│   ├── core/                        # 核心（LLM 客戶端等）
-│   ├── services/                    # 業務邏輯
-│   ├── pipelines/                   # ETL 流程
-│   ├── tools/                       # Agent 工具
-│   │   ├── graph_tools/
-│   │   ├── retrieval_tools/
-│   │   ├── analysis_tools/
-│   │   └── composite_tools/
-│   ├── agents/                      # Agent 實現
-│   │   ├── chat_agent.py
-│   │   ├── analysis_agent.py
-│   │   └── states.py (ChatState)
-│   └── workflows/                   # 高級工作流
+├── backend/
+│   └── storysphere/                 # 單一 Python 命名空間（from storysphere.*）
+│       ├── config/                  # 配置
+│       ├── domain/                  # 領域模型
+│       ├── core/                    # 核心（LLM 客戶端等）
+│       ├── services/                # 業務邏輯
+│       ├── pipelines/               # ETL 流程
+│       ├── tools/                   # Agent 工具
+│       │   ├── graph_tools/
+│       │   ├── retrieval_tools/
+│       │   ├── analysis_tools/
+│       │   └── composite_tools/
+│       ├── agents/                  # Agent 實現
+│       │   ├── chat_agent.py
+│       │   ├── analysis_agent.py
+│       │   └── states.py (ChatState)
+│       └── workflows/               # 高級工作流
+├── frontend/                        # React SPA
+├── var/                             # runtime 資料（SQLite DB / qdrant / KG 快照）
 ├── tests/
 ├── pyproject.toml
 └── README.md

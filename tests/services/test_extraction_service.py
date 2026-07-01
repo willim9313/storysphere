@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from domain.entities import Entity, EntityType
-from services.extraction_service import (
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.services.extraction_service import (
     ExtractionService,
     _parse_extraction_response,
     _parse_json_response,

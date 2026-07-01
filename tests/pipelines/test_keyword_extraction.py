@@ -6,12 +6,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph
-from pipelines.feature_extraction.pipeline import (
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
+from storysphere.pipelines.feature_extraction.pipeline import (
     FeatureExtractionPipeline,
     FeatureExtractionResult,
 )
-from services.keyword_service import KeywordAggregator, YakeKeywordExtractor
+from storysphere.services.keyword_service import KeywordAggregator, YakeKeywordExtractor
 
 
 def _make_document(num_chapters: int = 2, paras_per_chapter: int = 2) -> Document:

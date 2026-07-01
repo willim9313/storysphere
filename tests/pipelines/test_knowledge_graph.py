@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from domain.entities import Entity, EntityType
-from domain.events import Event, EventType
-from domain.relations import Relation, RelationType
-from pipelines.knowledge_graph.entity_linker import EntityLinker
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.domain.events import Event, EventType
+from storysphere.domain.relations import Relation, RelationType
+from storysphere.pipelines.knowledge_graph.entity_linker import EntityLinker
 
 
 # ── EntityLinker tests ───────────────────────────────────────────────────────
@@ -100,7 +100,7 @@ class TestEntityExtractorParsing:
     """Test the JSON parsing logic without making real LLM calls."""
 
     def test_parse_valid_json(self):
-        from pipelines.knowledge_graph.entity_extractor import _parse_json_response
+        from storysphere.pipelines.knowledge_graph.entity_extractor import _parse_json_response
 
         json_str = '{"entities": [{"name": "Alice", "entity_type": "character"}]}'
         result = _parse_json_response(json_str)
@@ -108,14 +108,14 @@ class TestEntityExtractorParsing:
         assert result.entities[0].name == "Alice"
 
     def test_parse_markdown_fenced_json(self):
-        from pipelines.knowledge_graph.entity_extractor import _parse_json_response
+        from storysphere.pipelines.knowledge_graph.entity_extractor import _parse_json_response
 
         fenced = '```json\n{"entities": [{"name": "Bob", "entity_type": "character"}]}\n```'
         result = _parse_json_response(fenced)
         assert result.entities[0].name == "Bob"
 
     def test_empty_entities_list(self):
-        from pipelines.knowledge_graph.entity_extractor import _parse_json_response
+        from storysphere.pipelines.knowledge_graph.entity_extractor import _parse_json_response
 
         result = _parse_json_response('{"entities": []}')
         assert result.entities == []
@@ -123,7 +123,7 @@ class TestEntityExtractorParsing:
 
 class TestRelationExtractorParsing:
     def test_parse_valid_extraction_result(self):
-        from pipelines.knowledge_graph.relation_extractor import _parse_extraction_response
+        from storysphere.pipelines.knowledge_graph.relation_extractor import _parse_extraction_response
 
         json_str = """{
             "relations": [
@@ -140,7 +140,7 @@ class TestRelationExtractorParsing:
         assert result.events[0].title == "First Meeting"
 
     def test_empty_result(self):
-        from pipelines.knowledge_graph.relation_extractor import _parse_extraction_response
+        from storysphere.pipelines.knowledge_graph.relation_extractor import _parse_extraction_response
 
         result = _parse_extraction_response('{"relations": [], "events": []}')
         assert result.relations == []

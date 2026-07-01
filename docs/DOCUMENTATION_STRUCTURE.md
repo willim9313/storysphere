@@ -57,7 +57,7 @@ storysphere/
 │
 ├── pyproject.toml                   # ⭐ 後端依賴配置
 ├── README.md
-└── src/                             # 後端 Python 原始碼
+└── backend/                             # 後端 Python 原始碼
 ```
 
 ---

@@ -6,7 +6,7 @@
 
 ## 前提
 
-- 後端已可正常啟動（`uvicorn src.api.main:app --reload`）
+- 後端已可正常啟動（`uvicorn storysphere.api.main:app --reload`）
 - 環境已安裝 `httpx`（`uv sync` 後即有）
 - 手邊有一份 PDF 書籍檔案
 
@@ -16,7 +16,7 @@
 
 ```bash
 # 啟動後端（另開 terminal）
-uvicorn src.api.main:app --reload
+uvicorn storysphere.api.main:app --reload
 
 # 跑探索腳本
 python scripts/explore_api.py path/to/book.pdf

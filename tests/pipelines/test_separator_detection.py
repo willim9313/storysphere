@@ -13,11 +13,11 @@ import sys
 sys.path.insert(0, "src")
 
 import pytest
-from pipelines.document_processing.pipeline import (
+from storysphere.pipelines.document_processing.pipeline import (
     _is_separator_segment,
     _split_at_separators,
 )
-from domain.documents import ParagraphRole
+from storysphere.domain.documents import ParagraphRole
 
 
 # ── _is_separator_segment ─────────────────────────────────────────────────────
@@ -123,14 +123,14 @@ class TestPipelineSeparatorIntegration:
     """Verify that the DocumentProcessingPipeline creates separator paragraphs."""
 
     def _make_span(self, segs, chapter_number=1, title=None):
-        from pipelines.document_processing.chapter_detector import ChapterSpan
+        from storysphere.pipelines.document_processing.chapter_detector import ChapterSpan
         return ChapterSpan(chapter_number=chapter_number, title=title, segments=segs)
 
     def _chunk_with_separators(self, segs, chapter_number=1, title=None):
         """Run the separator-aware chunking logic from the pipeline."""
-        from pipelines.document_processing.pipeline import _split_at_separators
-        from pipelines.document_processing.chunker import chunk_segments
-        from domain.documents import Paragraph
+        from storysphere.pipelines.document_processing.pipeline import _split_at_separators
+        from storysphere.pipelines.document_processing.chunker import chunk_segments
+        from storysphere.domain.documents import Paragraph
 
         groups = _split_at_separators(segs)
         paragraphs: list[Paragraph] = []

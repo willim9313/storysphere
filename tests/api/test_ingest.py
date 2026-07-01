@@ -47,7 +47,7 @@ def test_ingest_poll_not_found(client):
 
 def test_ingest_poll_tracks_status(client):
     """Task store is updated; poll returns the stored status."""
-    from api.store import task_store
+    from storysphere.api.store import task_store
 
     task_id = "test-completed-task"
     task_store.create(task_id)

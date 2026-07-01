@@ -66,7 +66,7 @@
 
 **已實作內容**:
 - EventNode 新增 `visibility: Literal["public", "private", "secret"]` 欄位
-- `src/services/epistemic_state_service.py`：計算角色認識論狀態
+- `backend/storysphere/services/epistemic_state_service.py`：計算角色認識論狀態
 - Domain Model：`CharacterEpistemicState`（known_events, unknown_events, misbeliefs）
 - API 端點：`GET /books/:bookId/entities/:entityId/epistemic-state?up_to_chapter={N}`
 
@@ -78,8 +78,8 @@
 **分類**: 底層基礎 — Wave 1
 
 **已實作內容**:
-- `src/domain/voice.py`：`VoiceFingerprint` Pydantic model（定量指標 + LLM 質性描述 + 代表性引文）
-- `src/services/voice_profiling_service.py`：用 Qdrant 語意搜索 + 量化特徵提取 + LLM 質性描述
+- `backend/storysphere/domain/voice.py`：`VoiceFingerprint` Pydantic model（定量指標 + LLM 質性描述 + 代表性引文）
+- `backend/storysphere/services/voice_profiling_service.py`：用 Qdrant 語意搜索 + 量化特徵提取 + LLM 質性描述
 - API 端點：`GET /books/:bookId/entities/:entityId/voice`（同步，SQLite cached）
 - 前端：角色詳情面板新增「Voice Profile」tab（展示指紋 + 代表性引文）
 
@@ -107,7 +107,7 @@
 - tenacity retry 3 次（ValueError / KeyError），透過 `extract_json_from_text` 容錯 LLM 輸出
 - 跨書比較（optional）延後評估，複雜度高
 
-**實作**: `src/domain/symbol_analysis.py`（SymbolInterpretation）, `src/services/symbol_analysis_service.py`, `src/agents/analysis_agent.py`（analyze_symbol）, `src/api/routers/symbols.py`（analyze/interpretation endpoints）, `src/api/routers/unraveling.py`（symbol_analysis_result node）
+**實作**: `backend/storysphere/domain/symbol_analysis.py`（SymbolInterpretation）, `backend/storysphere/services/symbol_analysis_service.py`, `backend/storysphere/agents/analysis_agent.py`（analyze_symbol）, `backend/storysphere/api/routers/symbols.py`（analyze/interpretation endpoints）, `backend/storysphere/api/routers/unraveling.py`（symbol_analysis_result node）
 
 **測試**: `tests/services/test_symbol_analysis_service.py`（9 tests — cache hit/miss/force、LLM ID 過濾、confidence clamp、polarity 校驗、HITL review）、`tests/api/test_symbols.py`（新增 analyze/interpretation/review 測試）、`tests/api/test_unraveling.py`（加入 `symbol_analysis_result` 到 expected nodes）
 
@@ -129,7 +129,7 @@
 - Pydantic `to_camel` 對 `neo4j_*` 欄位會產生 `neo4J*`（數字後大寫），改用 `graph_db_*` 命名迴避
 - 前端型別必須用 `npm run gen:types` 生成，避免手寫欄位名錯誤
 
-**實作**: `src/services/kg_service_base.py`, `kg_service_neo4j.py`, `kg_migration.py`; `src/api/routers/kg_settings.py`; `frontend/src/pages/SettingsPage.tsx`
+**實作**: `backend/storysphere/services/kg_service_base.py`, `kg_service_neo4j.py`, `kg_migration.py`; `backend/storysphere/api/routers/kg_settings.py`; `frontend/src/pages/SettingsPage.tsx`
 
 ---
 
@@ -139,7 +139,7 @@
 - `GET /api/v1/relations/paths?source_id={id}&target_id={id}` — 兩實體間關係路徑
 - `GET /api/v1/relations/stats?entity_id={id}` — 全圖關係統計（entity_id 可選）
 
-**實作**: `src/api/routers/relations.py`，已掛載至 `main.py`
+**實作**: `backend/storysphere/api/routers/relations.py`，已掛載至 `main.py`
 
 ---
 
@@ -164,9 +164,9 @@
 ## B-004 Langfuse 監控整合 ✅ 完成
 **背景**: 改用 Langfuse（支援自託管）替代 LangSmith
 **實作**:
-- `src/core/tracing.py` — `configure_langfuse()` + `get_langfuse_handler()` singleton
-- `src/agents/chat_agent.py` — `ainvoke`/`astream` 注入 `CallbackHandler`
-- `src/agents/analysis_agent.py` — `@_langfuse_observe` 取代 `@traceable`
+- `backend/storysphere/core/tracing.py` — `configure_langfuse()` + `get_langfuse_handler()` singleton
+- `backend/storysphere/agents/chat_agent.py` — `ainvoke`/`astream` 注入 `CallbackHandler`
+- `backend/storysphere/agents/analysis_agent.py` — `@_langfuse_observe` 取代 `@traceable`
 - Settings: `langfuse_enabled`, `langfuse_public_key`, `langfuse_secret_key`, `langfuse_base_url`
 - **文件**: `docs/guides/LANGFUSE_SETUP.md`
 
@@ -187,7 +187,7 @@
 **內容**:
 - `GET /api/v1/metrics` — 回傳 `MetricsCollector.get_stats()` 的快照
 - 可選：`GET /api/v1/metrics/history` — 近 N 筆 JSON-line logs（略過，MetricsCollector 未維護 rolling buffer）
-**實作**: `src/api/routers/metrics.py`，直接呼叫 `get_metrics().get_stats()`
+**實作**: `backend/storysphere/api/routers/metrics.py`，直接呼叫 `get_metrics().get_stats()`
 
 ---
 
@@ -222,7 +222,7 @@
 
 **修法**: 在 `_parse_response` 加 regex 抽取第一個 `\{.*\}` block（`re.search(r'\{.*\}', content, re.DOTALL)`）再 parse
 
-**相關檔案**: `src/services/keyword_service.py` — `LLMKeywordExtractor._parse_response()`
+**相關檔案**: `backend/storysphere/services/keyword_service.py` — `LLMKeywordExtractor._parse_response()`
 
 ---
 
@@ -253,8 +253,8 @@
 **背景**: 張力分析的觸發機制依賴 Event 節點的 `tension_signal` 標記。原 ingestion pipeline 提取 Event 節點時未產出此欄位，TEU 組裝無法啟動。
 **設計文件**: `docs/notes/tension_analysis_design_notes.md` Section 五
 **實作**:
-- 更新 `src/domain/models.py` EventNode schema，新增三個欄位：`tension_signal`, `emotional_intensity`, `emotional_valence`
-- 更新 `src/pipelines/entity_extractor.py` 的 Event 提取 prompt
+- 更新 `backend/storysphere/domain/models.py` EventNode schema，新增三個欄位：`tension_signal`, `emotional_intensity`, `emotional_valence`
+- 更新 `backend/storysphere/pipelines/entity_extractor.py` 的 Event 提取 prompt
 - 與 B-031 合併為一次 migration（EventNode schema + ingestion prompt 只改一次）
 
 ---
@@ -271,7 +271,7 @@
 ## B-025 Pre-Analysis Step：Inferred Concept 節點產生流程 ✅ 完成
 **背景**: Inferred Concept 節點（LLM 從段落群推斷的抽象命題）不在 ingestion 時產出，而是 TEU 組裝的前置作業。
 **前置依賴**: B-024
-**實作**: `src/pipelines/concept_inference.py` — 輸入候選段落群，LLM 產出帶置信度的 Concept 標籤，存入 KG
+**實作**: `backend/storysphere/pipelines/concept_inference.py` — 輸入候選段落群，LLM 產出帶置信度的 Concept 標籤，存入 KG
 
 ---
 
@@ -279,8 +279,8 @@
 **背景**: TEU（Tension Evidence Unit）是張力分析的最小單元，描述一個場景內的對立關係。模式 B（按需、單 Event 觸發）優先實作。
 **前置依賴**: B-023, B-024, B-025
 **實作**:
-- `src/domain/tension.py`：`TensionPole`, `TEU`, `TensionLine`, `TensionTheme` Pydantic models
-- `src/services/tension_service.py`：`assemble_teu(event_id)` + 存取層
+- `backend/storysphere/domain/tension.py`：`TensionPole`, `TEU`, `TensionLine`, `TensionTheme` Pydantic models
+- `backend/storysphere/services/tension_service.py`：`assemble_teu(event_id)` + 存取層
 
 ---
 
@@ -309,7 +309,7 @@
 **實作**:
 - `TensionService.synthesize_theme(book_id)`
 - API 端點：`GET /api/v1/tension/theme` + `PATCH /api/v1/tension/theme/{id}/review`
-- `src/config/mythos.py`（Frye/Booker 標籤，類比 `archetypes.py`）
+- `backend/storysphere/config/mythos.py`（Frye/Booker 標籤，類比 `archetypes.py`）
 
 ---
 
@@ -326,22 +326,22 @@
 **背景**: Kernel/Satellite 分類和熱奈特時序分析都依賴 Event 節點的新欄位，應在 ingestion 時以預設值填入。
 **設計文件**: `docs/notes/narratology_analysis_design_notes.md` Section 五
 **實作**（與 B-023 合併為一次 migration）:
-- 更新 `src/domain/models.py` EventNode，新增：`narrative_weight`, `narrative_weight_source`, `story_time`
+- 更新 `backend/storysphere/domain/models.py` EventNode，新增：`narrative_weight`, `narrative_weight_source`, `story_time`
 - 新增 `StoryTimeRef` schema（`relative_order`, `time_anchor`, `absolute_time`, `confidence`）
 
 ---
 
 ## B-032 Ingestion prompt 時間線索提取預留 ✅ 完成
 **背景**: 熱奈特時序分析需要故事時間軸，ingestion 時提取文本中已存在的時間線索成本低。
-**實作**: `src/services/extraction_service.py` — `story_time_hint` 欄位已在 Event 提取 prompt 中（確認實作時發現已完成）
+**實作**: `backend/storysphere/services/extraction_service.py` — `story_time_hint` 欄位已在 Event 提取 prompt 中（確認實作時發現已完成）
 
 ---
 
 ## B-033 Kernel/Satellite 第一階段：摘要啟發式分類 ✅ 完成
 **背景**: 現有層級摘要隱含粗略重要性分層，直接作為 Kernel/Satellite 第一階段信號。
 **實作**:
-- `src/domain/narrative.py`：`NarrativeStructure`, `HeroJourneyStage`, `ProppFunctionRef`, `KernelSatelliteResult`
-- `src/services/narrative_service.py`：`classify_by_heuristic(document_id)`, `get_kernel_spine(document_id)`
+- `backend/storysphere/domain/narrative.py`：`NarrativeStructure`, `HeroJourneyStage`, `ProppFunctionRef`, `KernelSatelliteResult`
+- `backend/storysphere/services/narrative_service.py`：`classify_by_heuristic(document_id)`, `get_kernel_spine(document_id)`
 
 ---
 
@@ -354,8 +354,8 @@
 ## B-035 坎伯英雄旅程 LLM 結構對應 ✅ 完成
 **背景**: 輸入章節摘要序列，LLM 輸出英雄旅程階段映射。
 **實作**:
-- `src/config/hero_journey.py`：12 階段 loader + `get_hero_journey_summary()`
-- `src/config/hero_journey/hero_journey_{en,zh}.json`：階段定義
+- `backend/storysphere/config/hero_journey.py`：12 階段 loader + `get_hero_journey_summary()`
+- `backend/storysphere/config/hero_journey/hero_journey_{en,zh}.json`：階段定義
 - `NarrativeService.map_hero_journey(document_id)`：章節範圍允許重疊；無證據的階段省略
 
 ---
@@ -363,8 +363,8 @@
 ## B-036 NarrativeStructure 節點儲存 + 查詢介面 ✅ 完成
 **背景**: 整合 Kernel/Satellite 和英雄旅程結果，提供 API 查詢介面。
 **實作**:
-- `src/api/schemas/narrative.py`：request schemas
-- `src/api/routers/narrative.py`：9 個端點（async classify/refine/hero-journey + polling + sync kernel-spine + GET/PATCH structure）
+- `backend/storysphere/api/schemas/narrative.py`：request schemas
+- `backend/storysphere/api/routers/narrative.py`：9 個端點（async classify/refine/hero-journey + polling + sync kernel-spine + GET/PATCH structure）
 - `NarrativeService.get_cached_structure()` + `update_review()`
 
 ---
@@ -373,7 +373,7 @@
 **背景**: 文本位置排名 vs 故事時間排名的差值，量化倒敘/預敘。
 **前置條件**: story_time_hint 覆蓋率 ≥ 60%（透過 GET /narrative/temporal/coverage 確認）
 **實作**:
-- `src/domain/narrative.py`：`TemporalAnalysis`, `TemporalDisplacement`
+- `backend/storysphere/domain/narrative.py`：`TemporalAnalysis`, `TemporalDisplacement`
 - `NarrativeService.check_temporal_coverage()` + `analyze_temporal_order()`
 - API 端點：`POST /api/v1/narrative/temporal` + `GET /narrative/temporal/coverage`
 
@@ -505,7 +505,7 @@
 **前置依賴**: B-020, B-021（均已完成）
 
 **實作**:
-- `src/domain/symbol_analysis.py`：`SEP`（Symbol Evidence Profile）+ `SEPOccurrenceContext`，欄位包含 `imagery_id`, `book_id`, `term`, `imagery_type`, `frequency`, `occurrence_contexts`（段落文字 + 章節位置）、`co_occurring_entity_ids`、`co_occurring_event_ids`、`chapter_distribution`、`peak_chapters`
+- `backend/storysphere/domain/symbol_analysis.py`：`SEP`（Symbol Evidence Profile）+ `SEPOccurrenceContext`，欄位包含 `imagery_id`, `book_id`, `term`, `imagery_type`, `frequency`, `occurrence_contexts`（段落文字 + 章節位置）、`co_occurring_entity_ids`、`co_occurring_event_ids`、`chapter_distribution`、`peak_chapters`
 - `SymbolService.assemble_sep(imagery_id, book_id, doc_service, kg_service, cache)` — `asyncio.gather` 並行拉取 imagery + occurrences + document + events，組裝 SEP 後存入 `AnalysisCache`（key: `sep:{book_id}:{imagery_id}`）
 - `SymbolService.get_sep(imagery_id, book_id, cache)` — cache 查詢
 - `GET /api/v1/symbols/{imagery_id}/sep?force=false` — 查詢已組裝的 SEP；cache miss 時即時組裝並持久化
@@ -521,7 +521,7 @@
 
 **後續**: B-040 LLM 詮釋以 SEP 為輸入，完成後需在 unraveling DAG 補 `sep → symbol_analysis_result` 邊
 
-**實作**: `src/domain/symbol_analysis.py`, `src/services/symbol_service.py`, `src/api/routers/symbols.py`, `src/api/routers/unraveling.py`
+**實作**: `backend/storysphere/domain/symbol_analysis.py`, `backend/storysphere/services/symbol_service.py`, `backend/storysphere/api/routers/symbols.py`, `backend/storysphere/api/routers/unraveling.py`
 
 ---
 
@@ -539,7 +539,7 @@
 - Relation count v1 使用全域 `kg_service.relation_count`（KGService 無 document_id filter），meta 標注 `"scope": "global"`
 - Symbol occurrence count 用 `sum(e.frequency for e in imagery_entities)`，避免載入所有 SymbolOccurrence
 
-**實作**: `src/api/routers/unraveling.py`; `frontend/src/api/unraveling.ts`
+**實作**: `backend/storysphere/api/routers/unraveling.py`; `frontend/src/api/unraveling.ts`
 
 ---
 
@@ -565,24 +565,24 @@
 ## B-018 ImagerEntity Domain Model 設計 ✅ 完成
 **背景**: 符號學模組需要新的實體類型表示意象實體，與現有 `Entity`（人物/地點）平行但語意不同。
 **實作**:
-- `src/domain/imagery.py`：`ImageryType` enum、`ImageryEntity`、`SymbolOccurrence`、`SymbolCluster`（純 Pydantic）
-- 持久層：`src/services/symbol_service.py`（aiosqlite，兩張表：`imagery_entities` + `symbol_occurrences`）
+- `backend/storysphere/domain/imagery.py`：`ImageryType` enum、`ImageryEntity`、`SymbolOccurrence`、`SymbolCluster`（純 Pydantic）
+- 持久層：`backend/storysphere/services/symbol_service.py`（aiosqlite，兩張表：`imagery_entities` + `symbol_occurrences`）
 
 ---
 
 ## B-019 符號學第一層：候選符號發現 Pipeline ✅ 完成
 **背景**: 三層架構的第一層，回答「有什麼值得追蹤？」。
 **實作**:
-- `src/services/imagery_extractor.py`：LLM 提取 + 貪心余弦相似度聚類（EmbeddingGenerator）
-- `src/pipelines/symbol_discovery/pipeline.py`：`SymbolDiscoveryPipeline(BasePipeline)`，章節順序處理
-- `src/workflows/ingestion.py`：新增 Step 3b（progress=75），`skip_symbols=True` 可跳過；`IngestionResult.imagery_extracted`
+- `backend/storysphere/services/imagery_extractor.py`：LLM 提取 + 貪心余弦相似度聚類（EmbeddingGenerator）
+- `backend/storysphere/pipelines/symbol_discovery/pipeline.py`：`SymbolDiscoveryPipeline(BasePipeline)`，章節順序處理
+- `backend/storysphere/workflows/ingestion.py`：新增 Step 3b（progress=75），`skip_symbols=True` 可跳過；`IngestionResult.imagery_extracted`
 
 ---
 
 ## B-020 符號共現網絡建構（Layer 2）✅ 完成
 **背景**: 三層架構的第二層，回答「這些符號之間有什麼關係？」。
 **實作**:
-- `src/services/symbol_graph_service.py`：`SymbolGraphService`，on-demand `build_graph()`，NetworkX `DiGraph`
+- `backend/storysphere/services/symbol_graph_service.py`：`SymbolGraphService`，on-demand `build_graph()`，NetworkX `DiGraph`
 - 與 KGService 的 EntityNode 完全獨立，作為平行圖層
 
 ---
@@ -590,9 +590,9 @@
 ## B-021 詮釋輔助介面（Layer 3）— 符號時間軸 ✅ 完成
 **背景**: 三層架構的第三層，組織統計結果為可讀格式。系統只呈現觀察，不提供詮釋。
 **實作**:
-- `src/api/schemas/symbols.py`：`ImageryEntityResponse`、`ImageryListResponse`、`SymbolTimelineEntry`、`CoOccurrenceEntry`（snake_case）
-- `src/api/routers/symbols.py`：`GET /symbols`、`GET /symbols/{id}/timeline`、`GET /symbols/{id}/co-occurrences`
-- `src/api/deps.py`：`SymbolServiceDep`、`SymbolGraphServiceDep`
+- `backend/storysphere/api/schemas/symbols.py`：`ImageryEntityResponse`、`ImageryListResponse`、`SymbolTimelineEntry`、`CoOccurrenceEntry`（snake_case）
+- `backend/storysphere/api/routers/symbols.py`：`GET /symbols`、`GET /symbols/{id}/timeline`、`GET /symbols/{id}/co-occurrences`
+- `backend/storysphere/api/deps.py`：`SymbolServiceDep`、`SymbolGraphServiceDep`
 - `frontend/src/api/symbols.ts` + `frontend/src/pages/SymbolsPage.tsx`：符號意象分析頁面
 
 ---
@@ -634,9 +634,9 @@
 **背景**: 系統原預設需要 Qdrant service，對新用戶不友善，且現有 fallback 靜默跳過造成資料狀態不明確。新增兩個明確的部署模式，不做跨模式自動降級。
 
 **已實作**:
-- `src/config/settings.py`：新增 `deploy_mode: Literal["lightweight", "standard"] = "lightweight"`、`qdrant_local_path`；lightweight 模式強制 `kg_mode=networkx` 並 log warning
-- `src/services/vector_service.py`：依 `deploy_mode` 決定 Qdrant client（local file path vs. remote URL）；standard 模式連線失敗拋明確錯誤
-- `src/api/main.py`：lifespan 啟動時針對 lightweight 模式發出多 worker 警告
+- `backend/storysphere/config/settings.py`：新增 `deploy_mode: Literal["lightweight", "standard"] = "lightweight"`、`qdrant_local_path`；lightweight 模式強制 `kg_mode=networkx` 並 log warning
+- `backend/storysphere/services/vector_service.py`：依 `deploy_mode` 決定 Qdrant client（local file path vs. remote URL）；standard 模式連線失敗拋明確錯誤
+- `backend/storysphere/api/main.py`：lifespan 啟動時針對 lightweight 模式發出多 worker 警告
 - `.env.example`：新增 `DEPLOY_MODE=lightweight` 說明，最低配置僅需填 `PRIMARY_LLM_PROVIDER` + 對應 key
 - 後續 fix commit 修正 lightweight 模式下多處 API 正確性問題
 
@@ -649,8 +649,8 @@
 **背景**: `_resolve_primary()` 原固定 Gemini → OpenAI → Anthropic → Local 的 fallback 順序，非 Gemini 用戶只能被動降級並收到 warning，且 `.env.example` 隱含「必須填 Gemini key」的假設。
 
 **已實作**:
-- `src/config/settings.py`：新增 `primary_llm_provider: Literal["gemini", "openai", "anthropic", "local"] = "gemini"`
-- `src/core/llm_client.py`：`_resolve_primary()` 改為直接讀取 `settings.primary_llm_provider`；指定 provider 的 key 未設定時啟動報明確錯誤，不靜默降級
+- `backend/storysphere/config/settings.py`：新增 `primary_llm_provider: Literal["gemini", "openai", "anthropic", "local"] = "gemini"`
+- `backend/storysphere/core/llm_client.py`：`_resolve_primary()` 改為直接讀取 `settings.primary_llm_provider`；指定 provider 的 key 未設定時啟動報明確錯誤，不靜默降級
 - `.env.example`：新增 `PRIMARY_LLM_PROVIDER` 說明，更新「最低配置」範例（只填 provider + 對應 key）
 - 與 I-001 同批實作（commit `b6cdd53`、`5d1754a`）
 

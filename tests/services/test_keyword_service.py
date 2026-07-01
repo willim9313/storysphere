@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.keyword_service import (
+from storysphere.services.keyword_service import (
     BaseKeywordExtractor,
     CompositeKeywordExtractor,
     KeywordAggregator,
@@ -303,7 +303,7 @@ class TestBuildKeywordExtractor:
         ext = build_keyword_extractor("none")
         assert ext is None
 
-    @patch("config.settings.get_settings")
+    @patch("storysphere.config.settings.get_settings")
     def test_build_composite(self, mock_settings):
         mock_settings.return_value = MagicMock(keyword_composite_weights="yake:0.5,tfidf:0.5")
         ext = build_keyword_extractor("composite")

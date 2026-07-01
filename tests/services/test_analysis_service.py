@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.analysis_models import (
+from storysphere.services.analysis_models import (
     ArcSegment,
     ArchetypeResult,
     CEPResult,
@@ -15,7 +15,7 @@ from services.analysis_models import (
     CharacterProfile,
     CoverageMetrics,
 )
-from services.analysis_service import AnalysisService
+from storysphere.services.analysis_service import AnalysisService
 
 
 @pytest.fixture

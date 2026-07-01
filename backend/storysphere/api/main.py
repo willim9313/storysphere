@@ -1,0 +1,249 @@
+"""StorySphere FastAPI application.
+
+Run with:
+    uvicorn storysphere.api.main:app --host 0.0.0.0 --port 8000 --reload
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+import logging.handlers
+from contextlib import asynccontextmanager
+from pathlib import Path
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from storysphere.api.routers import (
+    analysis,
+    books,
+    chat_ws,
+    documents,
+    entities,
+    factions,
+    kg_settings,
+    metrics,
+    narrative,
+    relations,
+    search,
+    settings_info,
+    symbols,
+    tasks,
+    tasks_ws,
+    tension,
+    token_usage,
+    unraveling,
+)
+
+logger = logging.getLogger(__name__)
+
+
+def _configure_file_logging() -> None:
+    """Attach a rotating file handler to the root logger.
+
+    Must be called inside lifespan (after uvicorn has configured its own
+    logging via dictConfig), otherwise uvicorn clears our handlers.
+    """
+    from storysphere.config.settings import get_settings  # noqa: PLC0415
+
+    settings = get_settings()
+    if not settings.log_file:
+        return
+
+    # Skip if we already attached a file handler (e.g. on hot-reload).
+    root = logging.getLogger()
+    if any(
+        isinstance(h, logging.handlers.RotatingFileHandler)
+        for h in root.handlers
+    ):
+        return
+
+    level = getattr(logging, settings.log_level.upper(), logging.INFO)
+    root.setLevel(level)
+
+    log_path = Path(settings.log_file)
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    fmt = logging.Formatter(
+        "%(asctime)s  %(levelname)-8s  %(name)s  %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    fh = logging.handlers.RotatingFileHandler(
+        log_path,
+        maxBytes=10 * 1024 * 1024,  # 10 MB per file
+        backupCount=5,
+        encoding="utf-8",
+    )
+    fh.setFormatter(fmt)
+    root.addHandler(fh)
+    logger.info("File logging enabled → %s", log_path)
+
+
+async def _check_local_llm(settings) -> None:  # type: ignore[type-arg]
+    """Ping the local LLM endpoint at startup. Warn but not fail if unreachable."""
+    import httpx  # noqa: PLC0415
+
+    url = settings.local_llm_base_url.rstrip("/") + "/models"
+    try:
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            await client.get(url)
+        logger.info(
+            "Local LLM ready — model=%s endpoint=%s",
+            settings.local_llm_model,
+            settings.local_llm_base_url,
+        )
+    except Exception as exc:
+        logger.warning(
+            "Local LLM unreachable at %s (%s). "
+            "Local fallback will be unavailable until the server is started.",
+            settings.local_llm_base_url,
+            exc,
+        )
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Warm up singletons on startup so the first request is not slow."""
+    from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver  # noqa: PLC0415
+
+    from storysphere.api.deps import (  # noqa: PLC0415
+        get_analysis_agent,
+        get_chat_agent,
+        get_doc_service,
+        get_kg_service,
+        get_token_store,
+        get_vector_service,
+        set_ingestion_graph,
+    )
+    from storysphere.config.settings import get_settings  # noqa: PLC0415
+    from storysphere.core.llm_client import get_llm_client  # noqa: PLC0415
+    from storysphere.core.token_callback import set_main_event_loop  # noqa: PLC0415
+    from storysphere.core.tracing import configure_langfuse  # noqa: PLC0415
+    from storysphere.workflows.ingestion_graph import build_ingestion_graph  # noqa: PLC0415
+
+    settings = get_settings()
+    configure_langfuse(settings)
+    _configure_file_logging()
+
+    logger.info("StorySphere API starting up — initialising services...")
+
+    if settings.deploy_mode == "lightweight":
+        logger.warning(
+            "deploy_mode=lightweight: local Qdrant and NetworkX KG are active. "
+            "Do NOT run with multiple uvicorn workers (--workers > 1) — "
+            "local Qdrant does not support concurrent multi-process writes."
+        )
+
+    # Store main event loop reference for cross-thread token tracking
+    set_main_event_loop(asyncio.get_running_loop())
+
+    # Inject token store into LLM client before any LLM is built
+    token_store = get_token_store()
+    get_llm_client().set_token_store(token_store)
+
+    kg = get_kg_service()
+    await kg.load()
+    doc = get_doc_service()
+    await doc.init_db()
+    get_vector_service()
+    get_chat_agent()
+    get_analysis_agent()
+
+    if settings.has_local_llm:
+        await _check_local_llm(settings)
+
+    # Prune old completed/failed tasks from SQLite store
+    from storysphere.api.store import SQLiteTaskStore, task_store  # noqa: PLC0415
+
+    if isinstance(task_store, SQLiteTaskStore) and settings.task_store_ttl_days > 0:
+        await task_store.cleanup(older_than_days=settings.task_store_ttl_days)
+
+    # Initialise LangGraph ingestion graph with persistent SQLite checkpointer
+    Path(settings.ingestion_checkpoint_db_path).parent.mkdir(parents=True, exist_ok=True)
+    async with AsyncSqliteSaver.from_conn_string(settings.ingestion_checkpoint_db_path) as checkpointer:
+        await checkpointer.setup()
+        set_ingestion_graph(build_ingestion_graph(checkpointer))
+        logger.info(
+            "Ingestion graph ready (checkpoint db: %s)", settings.ingestion_checkpoint_db_path
+        )
+        logger.info("All services ready.")
+        yield
+
+    logger.info("StorySphere API shutting down.")
+    # Close Neo4j driver connection pool if applicable
+    from storysphere.services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
+
+    if isinstance(kg, Neo4jKGService):
+        await kg.close()
+        logger.info("Neo4j driver closed.")
+
+
+def create_app() -> FastAPI:
+    from storysphere.config.settings import get_settings  # noqa: PLC0415
+
+    settings = get_settings()
+
+    app = FastAPI(
+        title="StorySphere API",
+        description="Intelligent novel analysis system — HTTP & WebSocket API",
+        version="1.0.0",
+        docs_url="/docs",
+        redoc_url="/redoc",
+        lifespan=lifespan,
+    )
+
+    # ── CORS ──────────────────────────────────────────────────────────────
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"] if settings.is_development else [],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    # ── Global error handler ──────────────────────────────────────────────
+    @app.exception_handler(Exception)
+    async def _global_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
+        logger.exception(
+            "Unhandled error on %s %s", request.method, request.url
+        )
+        return JSONResponse(
+            status_code=500, content={"detail": "Internal server error"}
+        )
+
+    # ── Health check ──────────────────────────────────────────────────────
+    @app.get("/health", tags=["health"])
+    async def health() -> dict:
+        return {"status": "ok"}
+
+    # ── Routers ───────────────────────────────────────────────────────────
+    prefix = "/api/v1"
+    # Frontend-facing (aligned with API_CONTRACT.md)
+    app.include_router(books.router, prefix=prefix)
+    app.include_router(unraveling.router, prefix=prefix)
+    app.include_router(tasks.router, prefix=prefix)
+    # Internal / tool-facing (kept for chat agent and direct queries)
+    app.include_router(entities.router, prefix=prefix)
+    app.include_router(relations.router, prefix=prefix)
+    app.include_router(documents.router, prefix=prefix)
+    app.include_router(search.router, prefix=prefix)
+    app.include_router(analysis.router, prefix=prefix)
+    app.include_router(narrative.router, prefix=prefix)
+    app.include_router(tension.router, prefix=prefix)
+    app.include_router(symbols.router, prefix=prefix)
+    app.include_router(factions.router, prefix=prefix)
+    app.include_router(kg_settings.router, prefix=prefix)
+    app.include_router(settings_info.router, prefix=prefix)
+    app.include_router(metrics.router, prefix=prefix)
+    app.include_router(token_usage.router, prefix=prefix)
+    app.include_router(chat_ws.router)        # WS /ws/chat
+    app.include_router(tasks_ws.router)       # WS /ws/tasks/{task_id}
+
+    return app
+
+
+app = create_app()

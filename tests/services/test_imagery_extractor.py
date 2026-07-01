@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import numpy as np
 import pytest
 
-from domain.imagery import ImageryType, SymbolCluster
-from services.imagery_extractor import ImageryExtractor
+from storysphere.domain.imagery import ImageryType, SymbolCluster
+from storysphere.services.imagery_extractor import ImageryExtractor
 
 
 def _make_llm_response(items: list[dict]) -> MagicMock:
@@ -84,8 +84,8 @@ class TestCallLlm:
         mock_llm.ainvoke = AsyncMock(return_value=_make_llm_response([]))
         extractor = ImageryExtractor(llm=mock_llm)
 
-        with patch("services.imagery_extractor.ImageryExtractor._parse_response", return_value=[]):
-            with patch("core.token_callback.set_llm_service_context") as mock_ctx:
+        with patch("storysphere.services.imagery_extractor.ImageryExtractor._parse_response", return_value=[]):
+            with patch("storysphere.core.token_callback.set_llm_service_context") as mock_ctx:
                 await extractor._call_llm("text", 1)
                 mock_ctx.assert_called_once_with("imagery")
 
@@ -122,7 +122,7 @@ class TestClusterSynonyms:
     async def test_single_term_forms_single_cluster(self):
         mock_embeddings = [[1.0, 0.0, 0.0]]
         with patch(
-            "pipelines.feature_extraction.embedding_generator.EmbeddingGenerator.aembed_texts",
+            "storysphere.pipelines.feature_extraction.embedding_generator.EmbeddingGenerator.aembed_texts",
             new=AsyncMock(return_value=mock_embeddings),
         ):
             extractor = ImageryExtractor()
@@ -175,7 +175,7 @@ class TestClusterSynonyms:
         vecs = [norm(vec), norm(vec)]
 
         with patch(
-            "pipelines.feature_extraction.embedding_generator.EmbeddingGenerator.aembed_texts",
+            "storysphere.pipelines.feature_extraction.embedding_generator.EmbeddingGenerator.aembed_texts",
             new=AsyncMock(return_value=vecs),
         ):
             extractor = ImageryExtractor()

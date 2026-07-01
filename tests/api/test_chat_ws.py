@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from api.schemas.chat import ChatContext, ChatIncomingMessage
+from storysphere.api.schemas.chat import ChatContext, ChatIncomingMessage
 
 
 def test_chat_context_schema_defaults():
@@ -112,7 +112,7 @@ def test_chat_ws_with_context(client):
 
 def test_chat_ws_context_hydrates_state(client):
     """Context data is written to the ChatState (check via entity mention)."""
-    from api.routers.chat_ws import _sessions, _sessions_lock
+    from storysphere.api.routers.chat_ws import _sessions, _sessions_lock
 
     sid = "hydrate-test"
     with client.websocket_connect(f"/ws/chat?session_id={sid}") as ws:

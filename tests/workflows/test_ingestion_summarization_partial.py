@@ -11,12 +11,12 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph, StepStatus
-from pipelines.feature_extraction.pipeline import FeatureExtractionResult
-from pipelines.knowledge_graph.pipeline import KGExtractionResult
-from pipelines.summarization.pipeline import SummarizationResult
-from pipelines.symbol_discovery.pipeline import SymbolDiscoveryResult
-from workflows.ingestion import IngestionWorkflow
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, StepStatus
+from storysphere.pipelines.feature_extraction.pipeline import FeatureExtractionResult
+from storysphere.pipelines.knowledge_graph.pipeline import KGExtractionResult
+from storysphere.pipelines.summarization.pipeline import SummarizationResult
+from storysphere.pipelines.symbol_discovery.pipeline import SymbolDiscoveryResult
+from storysphere.workflows.ingestion import IngestionWorkflow
 
 
 def _make_doc(n_chapters: int = 5) -> Document:
@@ -72,8 +72,8 @@ class TestPartialSummarizationDetection:
         )
         wf = _make_workflow(doc, summ_result)
 
-        with patch("services.analysis_cache.AnalysisCache"):
-            with patch("config.settings.get_settings"):
+        with patch("storysphere.services.analysis_cache.AnalysisCache"):
+            with patch("storysphere.config.settings.get_settings"):
                 result = await wf.run_phase2(doc.id)
 
         assert any("summarization" in e for e in result.errors)
@@ -89,8 +89,8 @@ class TestPartialSummarizationDetection:
         )
         wf = _make_workflow(doc, summ_result)
 
-        with patch("services.analysis_cache.AnalysisCache"):
-            with patch("config.settings.get_settings"):
+        with patch("storysphere.services.analysis_cache.AnalysisCache"):
+            with patch("storysphere.config.settings.get_settings"):
                 result = await wf.run_phase2(doc.id)
 
         assert not any("summarization" in e for e in result.errors)
@@ -105,8 +105,8 @@ class TestPartialSummarizationDetection:
         )
         wf = _make_workflow(doc, summ_result)
 
-        with patch("services.analysis_cache.AnalysisCache"):
-            with patch("config.settings.get_settings"):
+        with patch("storysphere.services.analysis_cache.AnalysisCache"):
+            with patch("storysphere.config.settings.get_settings"):
                 result = await wf.run_phase2(doc.id)
 
         assert any("1/5" in e for e in result.errors)

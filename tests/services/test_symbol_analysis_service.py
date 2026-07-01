@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from domain.symbol_analysis import SEP, SEPOccurrenceContext, SymbolInterpretation
-from services.symbol_analysis_service import SymbolAnalysisService
+from storysphere.domain.symbol_analysis import SEP, SEPOccurrenceContext, SymbolInterpretation
+from storysphere.services.symbol_analysis_service import SymbolAnalysisService
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────

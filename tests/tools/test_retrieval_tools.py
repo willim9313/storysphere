@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from tools.retrieval_tools import GenSummaryTool, GetParagraphsTool, GetSummaryTool, VectorSearchTool
+from storysphere.tools.retrieval_tools import GenSummaryTool, GetParagraphsTool, GetSummaryTool, VectorSearchTool
 
 
 class TestVectorSearchTool:

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
-from services.query_models import VectorSearchResult
+from storysphere.services.query_models import VectorSearchResult
 
 
 def test_search_returns_results(client):

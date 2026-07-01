@@ -65,15 +65,15 @@ for chapter in document.chapters:
 
 | 檔案 | 類型 | 改動摘要 |
 |------|------|---------|
-| `src/domain/documents.py` | 修改 | `Paragraph` 新增 `title_span: tuple[int, int] \| None = None` |
-| `src/api/schemas/common.py` | 修改 | `TaskStatus.status` Literal 加入 `"awaiting_review"` |
-| `src/api/store.py` | 修改 | `MemoryTaskStore` / `SQLiteTaskStore` 新增 `set_awaiting_review()`；cleanup SQL 排除此狀態 |
-| `src/api/review_registry.py` | **新增** | `asyncio.Event` registry，管理 pause/resume + reviewed chapters 傳遞 |
-| `src/pipelines/document_processing/pipeline.py` | 修改 | Step 3 前拼接 title；chunker 後設 `title_span` |
-| `src/services/document_service.py` | 修改 | `_ParagraphRow` 新增 `title_span_json` 欄位（migration）；新增 `get_review_data()`；新增 `replace_chapters()` |
-| `src/workflows/ingestion.py` | 修改 | Step 1b 存檔後插入 `await review_registry.wait(book_id)`；收到 reviewed chapters 後重組 `doc.chapters`；繼續步驟 2+ |
-| `src/api/schemas/books.py` | 修改 | 新增 `ReviewDataResponse`、`ReviewParagraphResponse`、`ReviewChapterInput`、`ReviewSubmitRequest` |
-| `src/api/routers/books.py` | 修改 | 新增 `GET /{book_id}/review-data`（僅 `awaiting_review` 狀態可存取）；新增 `POST /{book_id}/review` |
+| `backend/storysphere/domain/documents.py` | 修改 | `Paragraph` 新增 `title_span: tuple[int, int] \| None = None` |
+| `backend/storysphere/api/schemas/common.py` | 修改 | `TaskStatus.status` Literal 加入 `"awaiting_review"` |
+| `backend/storysphere/api/store.py` | 修改 | `MemoryTaskStore` / `SQLiteTaskStore` 新增 `set_awaiting_review()`；cleanup SQL 排除此狀態 |
+| `backend/storysphere/api/review_registry.py` | **新增** | `asyncio.Event` registry，管理 pause/resume + reviewed chapters 傳遞 |
+| `backend/storysphere/pipelines/document_processing/pipeline.py` | 修改 | Step 3 前拼接 title；chunker 後設 `title_span` |
+| `backend/storysphere/services/document_service.py` | 修改 | `_ParagraphRow` 新增 `title_span_json` 欄位（migration）；新增 `get_review_data()`；新增 `replace_chapters()` |
+| `backend/storysphere/workflows/ingestion.py` | 修改 | Step 1b 存檔後插入 `await review_registry.wait(book_id)`；收到 reviewed chapters 後重組 `doc.chapters`；繼續步驟 2+ |
+| `backend/storysphere/api/schemas/books.py` | 修改 | 新增 `ReviewDataResponse`、`ReviewParagraphResponse`、`ReviewChapterInput`、`ReviewSubmitRequest` |
+| `backend/storysphere/api/routers/books.py` | 修改 | 新增 `GET /{book_id}/review-data`（僅 `awaiting_review` 狀態可存取）；新增 `POST /{book_id}/review` |
 
 ### 前端
 
@@ -140,7 +140,7 @@ for chapter in document.chapters:
 ## 6. review_registry.py 設計
 
 ```python
-# src/api/review_registry.py
+# backend/storysphere/api/review_registry.py
 import asyncio
 from typing import Any
 

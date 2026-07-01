@@ -2,7 +2,7 @@
 
 import pytest
 
-from config.archetypes import (
+from storysphere.config.archetypes import (
     get_archetype_summary,
     load_archetypes,
 )

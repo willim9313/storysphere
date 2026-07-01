@@ -6,7 +6,7 @@ import time
 
 import pytest
 
-from core.token_store import TokenUsageStore
+from storysphere.core.token_store import TokenUsageStore
 
 
 @pytest.fixture

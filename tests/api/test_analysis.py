@@ -109,7 +109,7 @@ def test_analyze_event_background_completes(client):
 
 def _make_cached_character_result():
     """Cached analysis result with BOTH frameworks classified."""
-    from services.analysis_models import (
+    from storysphere.services.analysis_models import (
         ArchetypeResult,
         CEPResult,
         CharacterAnalysisResult,
@@ -138,9 +138,9 @@ def jung_schmidt_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, moc
     """TestClient with analysis cache pre-populated for ent-alice with both frameworks."""
     from contextlib import asynccontextmanager
 
-    from api import deps
-    from api.main import create_app
-    from services.analysis_cache import AnalysisCache
+    from storysphere.api import deps
+    from storysphere.api.main import create_app
+    from storysphere.services.analysis_cache import AnalysisCache
 
     cached = _make_cached_character_result().model_dump()
     cache_key = AnalysisCache.make_key("character", "doc-1", "Alice")
@@ -254,8 +254,8 @@ def batch_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_
     """TestClient with a mock analysis cache so batch skip logic is controllable."""
     from contextlib import asynccontextmanager
 
-    from api import deps
-    from api.main import create_app
+    from storysphere.api import deps
+    from storysphere.api.main import create_app
 
     cache_store: dict = {}
     mock_cache = AsyncMock()
@@ -311,7 +311,7 @@ class TestBatchEntityAnalysis:
 
     def test_skips_cached_characters(self, batch_client, mock_analysis_agent, mock_doc):
         """Characters with cache hits should be skipped, not re-analyzed."""
-        from services.analysis_cache import AnalysisCache
+        from storysphere.services.analysis_cache import AnalysisCache
 
         mock_doc.get_document_language = AsyncMock(return_value="en")
         # Pre-populate cache for Alice → should be skipped

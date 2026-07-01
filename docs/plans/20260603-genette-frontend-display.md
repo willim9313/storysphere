@@ -257,8 +257,8 @@ const genettData = useMemo(() => {
   - 著色用 token：`--narrative-flashback-border`（L106）、`--narrative-flashforward-border`（L107）、`--color-success`（L119）、`--color-warning`（L121）、`--fg-muted`（L12）、`--accent`（L18）。**全部已存在，不得新增 token。**
 
 ### 資料來源（後端）
-- [src/domain/narrative.py](../../src/domain/narrative.py)：`TemporalDisplacement`（L64-74）、`TemporalAnalysis`（L77-112）欄位定義（snake_case）
-- [src/api/routers/narrative.py:215](../../src/api/routers/narrative.py#L215)：result = `TemporalAnalysis.model_dump()`
+- [backend/storysphere/domain/narrative.py](../../backend/storysphere/domain/narrative.py)：`TemporalDisplacement`（L64-74）、`TemporalAnalysis`（L77-112）欄位定義（snake_case）
+- [backend/storysphere/api/routers/narrative.py:215](../../backend/storysphere/api/routers/narrative.py#L215)：result = `TemporalAnalysis.model_dump()`
 - [frontend/src/api/narrative.ts](../../frontend/src/api/narrative.ts)：既有 trigger / coverage 取用方式
 
 ### i18n 既有 key

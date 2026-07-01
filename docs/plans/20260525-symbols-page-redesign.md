@@ -360,9 +360,9 @@ interface TaskStatus {                           // 共用,api/schemas/common.py
 | [`frontend/src/styles/tokens.css`](../../frontend/src/styles/tokens.css) | `--symbol-*` token（已四主題完整定義） | 新增 `--polarity-*` / `--symbol-density-*` 需同步更新 [`docs/DESIGN_TOKENS.md`](../DESIGN_TOKENS.md) |
 | `frontend/src/styles/symbols.css` | **目前不存在**，建議新建 | 將 inline style 提取為 `.sym-*` class |
 | [`frontend/src/contexts/ChatContext.tsx`](../../frontend/src/contexts/ChatContext.tsx) | `setPageContext({ page: 'analysis', bookId, bookTitle })` | 不需動；若決定補 `analysisTab: 'symbols'` 需確認 ChatContext type 是否已含此值 |
-| [`src/api/routers/symbols.py`](../../src/api/routers/symbols.py) | 後端 router（8 endpoints，全部已有 `response_model=`） | 不需動 |
-| [`src/api/schemas/symbols.py`](../../src/api/schemas/symbols.py) | `ImageryEntityResponse` / `ImageryListResponse` / `SymbolTimelineEntry` / `CoOccurrenceEntry` | 不需動 |
-| [`src/domain/imagery.py`](../../src/domain/imagery.py) / [`src/domain/symbol_analysis.py`](../../src/domain/symbol_analysis.py) | `ImageryEntity` / `SymbolOccurrence` / `SEP` / `SymbolInterpretation` 等 domain model | 不需動 |
+| [`backend/storysphere/api/routers/symbols.py`](../../backend/storysphere/api/routers/symbols.py) | 後端 router（8 endpoints，全部已有 `response_model=`） | 不需動 |
+| [`backend/storysphere/api/schemas/symbols.py`](../../backend/storysphere/api/schemas/symbols.py) | `ImageryEntityResponse` / `ImageryListResponse` / `SymbolTimelineEntry` / `CoOccurrenceEntry` | 不需動 |
+| [`backend/storysphere/domain/imagery.py`](../../backend/storysphere/domain/imagery.py) / [`backend/storysphere/domain/symbol_analysis.py`](../../backend/storysphere/domain/symbol_analysis.py) | `ImageryEntity` / `SymbolOccurrence` / `SEP` / `SymbolInterpretation` 等 domain model | 不需動 |
 
 ### Hooks / Context 依賴（不要動，但會用到）
 
@@ -405,7 +405,7 @@ frontend/src/components/symbols/
 1. **欄位命名是 snake_case**：domain/ + api/schemas/symbols.py 都沒有 `alias_generator=to_camel`，所有取值要用 `imagery_type` / `chapter_distribution` / `first_chapter` / `co_occurring_terms` / `linked_characters` / `linked_events` / `peak_chapters` / `evidence_summary` / `co_occurring_entity_ids` / `co_occurring_event_ids` 而非 camelCase。設計時若引入新元件 props，內部建議用 camelCase，在 mapper 層轉換。
 2. **`chapter_distribution` 的 key 是 string**：JSON 反序列化後 `{ "1": 3, "2": 1, ... }`，遍歷時要 `Number(ch)` 轉回；目前 [`SymbolsPage.tsx`](../../frontend/src/pages/SymbolsPage.tsx) L32 已做這個轉換。
 3. **`first_chapter` 可能為 null**：（書中只有一章或 distribution 為空時）。目前 i18n 是 `firstSeen: "首見第 {{chapter}} 章"`，null 時顯示 `?`，設計時保留這個 fallback。
-4. **`co_occurrences` 自動 build 行為**：[`src/api/routers/symbols.py`](../../src/api/routers/symbols.py) L108–L110 顯示第一次請求時會 auto-build graph，可能耗時數秒。設計時 loading 視覺要能撐住這段時間（目前用 `LoadingSpinner` 是夠的，但若改 dashboard 模式預載入需考慮）。
+4. **`co_occurrences` 自動 build 行為**：[`backend/storysphere/api/routers/symbols.py`](../../backend/storysphere/api/routers/symbols.py) L108–L110 顯示第一次請求時會 auto-build graph，可能耗時數秒。設計時 loading 視覺要能撐住這段時間（目前用 `LoadingSpinner` 是夠的，但若改 dashboard 模式預載入需考慮）。
 5. **SEP 與 Interpretation 的依賴**：#15e 觸發詮釋會自動 assemble SEP（若 cache miss）；前端不一定要先呼叫 #15d。但**若想在 hero 顯示「peak_chapters」/「co_occurring_entity_ids 數量」等 SEP 級的統計**，需要單獨呼叫 #15d 取資料。
 6. **`review_status` 與 Tension 共用語意**：四值的視覺呈現（中性灰 / 成功綠 / 資訊藍 / 錯誤紅）必須與 Tension 完全一致——`STATUS_COLORS` 應提取成共用 component 而非各頁重複定義。
 7. **進度 stage 字串可能中英混雜**：後端 `_run_symbol_analysis`（L172–L202）寫死 stage 字串，目前未統一中英文。i18n 層做不了翻譯；設計時若要顯示 stage 翻譯，需要先讓後端統一 stage code（這是後端工作，不在本 brief 範疇，但可標注為 follow-up）。

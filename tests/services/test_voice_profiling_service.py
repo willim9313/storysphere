@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.voice_profiling_service import (
+from storysphere.services.voice_profiling_service import (
     VoiceProfilingService,
     _bucket_histogram,
     _compute_metrics,

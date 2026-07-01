@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from tools.composite_tools.get_event_profile import GetEventProfileTool
+from storysphere.tools.composite_tools.get_event_profile import GetEventProfileTool
 
 
 @pytest.fixture

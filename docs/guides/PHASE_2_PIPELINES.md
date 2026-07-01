@@ -216,7 +216,7 @@ uv sync
 ## 設定項（Settings）
 
 ```python
-# src/config/settings.py (已更新)
+# backend/storysphere/config/settings.py (已更新)
 embedding_model_name: str = "all-MiniLM-L6-v2"
 embedding_device: str = "cpu"
 embedding_batch_size: int = 32

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
-from services.document_service import DocumentService
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
+from storysphere.services.document_service import DocumentService
 
 
 def _make_document(num_chapters: int = 2, paras_per_chapter: int = 3) -> Document:

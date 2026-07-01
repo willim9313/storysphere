@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 import pytest
 
-from services.analysis_cache import AnalysisCache
+from storysphere.services.analysis_cache import AnalysisCache
 
 
 @pytest.fixture
@@ -45,7 +45,7 @@ class TestAnalysisCacheGetSet:
         cache = AnalysisCache(db_path=db_path, ttl_seconds=1)
         await cache.set("k1", {"v": 1})
 
-        with patch("services.analysis_cache.time") as mock_time:
+        with patch("storysphere.services.analysis_cache.time") as mock_time:
             # Simulate time passing beyond TTL
             mock_time.time.return_value = time.time() + 10
             result = await cache.get("k1")

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
-from domain.documents import Chapter, Document, FileType, Paragraph
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 
 
 def test_list_documents(client):

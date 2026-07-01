@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from services.analysis_models import (
+from storysphere.services.analysis_models import (
     CausalityAnalysis,
     EventAnalysisResult,
     EventCoverageMetrics,
@@ -19,8 +19,8 @@ from services.analysis_models import (
     ParticipantRole,
     ParticipantRoleType,
 )
-from tools.analysis_tools import AnalyzeEventTool
-from tools.schemas import EventAnalysisOutput
+from storysphere.tools.analysis_tools import AnalyzeEventTool
+from storysphere.tools.schemas import EventAnalysisOutput
 
 
 def _make_event_result() -> EventAnalysisResult:

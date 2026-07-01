@@ -6,8 +6,8 @@ Run with:
 """
 import pytest
 
-from core.llm_client import LLMClient, LLMProvider, get_llm_client
-from config.settings import get_settings
+from storysphere.core.llm_client import LLMClient, LLMProvider, get_llm_client
+from storysphere.config.settings import get_settings
 
 
 # ── Unit tests (no API call) ───────────────────────────────────────────────────
@@ -30,7 +30,7 @@ def test_singleton():
 
 
 def test_has_key_false_for_empty():
-    from config.settings import Settings
+    from storysphere.config.settings import Settings
     s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="", local_llm_model="")
     client = LLMClient(settings=s)
     assert not client._has_key(LLMProvider.GEMINI)
@@ -40,7 +40,7 @@ def test_has_key_false_for_empty():
 
 
 def test_no_key_raises():
-    from config.settings import Settings
+    from storysphere.config.settings import Settings
     s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="", local_llm_model="")
     client = LLMClient(settings=s)
     with pytest.raises(RuntimeError, match="GEMINI_API_KEY is not set"):
@@ -48,7 +48,7 @@ def test_no_key_raises():
 
 
 def test_local_has_key_when_model_set():
-    from config.settings import Settings
+    from storysphere.config.settings import Settings
     s = Settings(
         gemini_api_key="", openai_api_key="", anthropic_api_key="",
         local_llm_model="qwen2.5:3b",
@@ -58,7 +58,7 @@ def test_local_has_key_when_model_set():
 
 
 def test_local_is_primary_when_only_local_configured():
-    from config.settings import Settings
+    from storysphere.config.settings import Settings
     s = Settings(
         gemini_api_key="", openai_api_key="", anthropic_api_key="",
         local_llm_model="qwen2.5:3b",
@@ -69,7 +69,7 @@ def test_local_is_primary_when_only_local_configured():
 
 
 def test_get_local_raises_when_not_configured():
-    from config.settings import Settings
+    from storysphere.config.settings import Settings
     s = Settings(gemini_api_key="", openai_api_key="", anthropic_api_key="", local_llm_model="")
     client = LLMClient(settings=s)
     with pytest.raises(RuntimeError, match="Local LLM not configured"):
@@ -77,7 +77,7 @@ def test_get_local_raises_when_not_configured():
 
 
 def test_get_with_local_fallback_returns_primary_when_no_local():
-    from config.settings import Settings
+    from storysphere.config.settings import Settings
     s = Settings(gemini_api_key="fake-key", local_llm_model="")
     client = LLMClient(settings=s)
     # Should not raise; returns the primary (no .with_fallbacks wrapping)

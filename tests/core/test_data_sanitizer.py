@@ -1,6 +1,6 @@
 """Tests for core.utils.data_sanitizer."""
 
-from core.utils.data_sanitizer import DataSanitizer
+from storysphere.core.utils.data_sanitizer import DataSanitizer
 
 
 class TestSanitizeForTemplate:
@@ -46,7 +46,7 @@ class TestFormatVectorResults:
         assert DataSanitizer.format_vector_store_results([]) == []
 
     def test_format_pydantic_results(self):
-        from services.query_models import VectorSearchResult
+        from storysphere.services.query_models import VectorSearchResult
 
         results = [
             VectorSearchResult(

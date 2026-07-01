@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from agents.pattern_recognizer import QueryPatternRecognizer
+from storysphere.agents.pattern_recognizer import QueryPatternRecognizer
 
 
 class TestQueryPatternRecognizer:

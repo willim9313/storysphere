@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
+from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -112,8 +112,8 @@ def client(
 
     sys.path.insert(0, "src")
 
-    from api.main import create_app
-    from api import deps
+    from storysphere.api.main import create_app
+    from storysphere.api import deps
 
     app = create_app()
 
@@ -221,7 +221,7 @@ class TestCoOccurrences:
 
 class TestSEPEndpoint:
     def test_returns_assembled_sep(self, client, mock_symbol_svc):
-        from domain.symbol_analysis import SEP
+        from storysphere.domain.symbol_analysis import SEP
 
         sep = SEP(
             imagery_id="img-1",
@@ -253,7 +253,7 @@ class TestSEPEndpoint:
 
 class TestSymbolAnalyze:
     def test_analyze_returns_202(self, client, mock_analysis_agent):
-        from domain.symbol_analysis import SymbolInterpretation
+        from storysphere.domain.symbol_analysis import SymbolInterpretation
         mock_analysis_agent.analyze_symbol = AsyncMock(
             return_value=SymbolInterpretation(
                 imagery_id="img-1", book_id="book-1", term="mirror",
@@ -284,7 +284,7 @@ class TestSymbolInterpretationGet:
     def test_returns_cached_interpretation(
         self, client, mock_symbol_analysis_svc
     ):
-        from domain.symbol_analysis import SymbolInterpretation
+        from storysphere.domain.symbol_analysis import SymbolInterpretation
         interp = SymbolInterpretation(
             imagery_id="img-1", book_id="book-1", term="mirror",
             theme="self-recognition", polarity="mixed", confidence=0.7,
@@ -316,7 +316,7 @@ class TestSymbolInterpretationGet:
 
 class TestSymbolInterpretationReview:
     def test_patch_approves(self, client, mock_symbol_analysis_svc):
-        from domain.symbol_analysis import SymbolInterpretation
+        from storysphere.domain.symbol_analysis import SymbolInterpretation
         updated = SymbolInterpretation(
             imagery_id="img-1", book_id="book-1", term="mirror",
             theme="self-doubt", polarity="negative", review_status="approved",
@@ -332,7 +332,7 @@ class TestSymbolInterpretationReview:
         assert resp.json()["review_status"] == "approved"
 
     def test_patch_modifies_theme(self, client, mock_symbol_analysis_svc):
-        from domain.symbol_analysis import SymbolInterpretation
+        from storysphere.domain.symbol_analysis import SymbolInterpretation
         updated = SymbolInterpretation(
             imagery_id="img-1", book_id="book-1", term="mirror",
             theme="new theme", polarity="positive", review_status="modified",
@@ -369,14 +369,14 @@ class TestIngestionRegression:
     """Ensure skip_symbols=True does not break existing IngestionWorkflow."""
 
     def test_ingestion_result_has_imagery_extracted_field(self):
-        from workflows.ingestion import IngestionResult
+        from storysphere.workflows.ingestion import IngestionResult
 
         r = IngestionResult(document_id="d1", document_title="T")
         assert hasattr(r, "imagery_extracted")
         assert r.imagery_extracted == 0
 
     def test_ingestion_workflow_accepts_skip_symbols(self):
-        from workflows.ingestion import IngestionWorkflow
+        from storysphere.workflows.ingestion import IngestionWorkflow
 
         wf = IngestionWorkflow(
             skip_qdrant=True,

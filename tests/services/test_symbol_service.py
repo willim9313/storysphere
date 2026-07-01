@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
-from services.analysis_cache import AnalysisCache
-from services.symbol_service import SymbolService
+from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
+from storysphere.services.analysis_cache import AnalysisCache
+from storysphere.services.symbol_service import SymbolService
 
 
 @pytest.fixture

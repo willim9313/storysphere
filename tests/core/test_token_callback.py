@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 
-from core.token_callback import (
+from storysphere.core.token_callback import (
     TokenTrackingHandler,
     get_llm_service_context,
     set_llm_service_context,
@@ -113,7 +113,7 @@ class TestTokenExtraction:
 
 
 class TestOnLlmEnd:
-    @patch("core.metrics.get_metrics")
+    @patch("storysphere.core.metrics.get_metrics")
     def test_records_metrics(self, mock_get_metrics):
         mock_metrics = MagicMock()
         mock_get_metrics.return_value = mock_metrics
@@ -133,7 +133,7 @@ class TestOnLlmEnd:
         assert call_kw.kwargs["prompt_tokens"] == 100
         assert call_kw.kwargs["success"] is True
 
-    @patch("core.metrics.get_metrics")
+    @patch("storysphere.core.metrics.get_metrics")
     def test_on_llm_error_records_failure(self, mock_get_metrics):
         mock_metrics = MagicMock()
         mock_get_metrics.return_value = mock_metrics
@@ -162,7 +162,7 @@ class TestStoreScheduling:
 
         set_llm_service_context("analysis")
 
-        with patch("core.metrics.get_metrics") as mock_gm:
+        with patch("storysphere.core.metrics.get_metrics") as mock_gm:
             mock_gm.return_value = MagicMock()
             handler.on_llm_start({}, ["test"], run_id=run_id)
             response = _make_response_with_usage_metadata(300, 100, 400)
@@ -182,7 +182,7 @@ class TestStoreScheduling:
         handler = TokenTrackingHandler(provider="gemini", model="gemini-2.0-flash")
         run_id = uuid4()
 
-        with patch("core.metrics.get_metrics") as mock_gm:
+        with patch("storysphere.core.metrics.get_metrics") as mock_gm:
             mock_gm.return_value = MagicMock()
             handler.on_llm_start({}, ["test"], run_id=run_id)
             response = _make_response_with_usage_metadata()

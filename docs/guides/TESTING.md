@@ -17,7 +17,7 @@ python -m pytest tests/api/test_reader.py -v
 python -m pytest tests/api/test_reader.py::TestListChapters -v
 
 # 顯示覆蓋率（HTML 報告在 htmlcov/）
-python -m pytest --cov=src
+python -m pytest --cov=backend
 ```
 
 ---

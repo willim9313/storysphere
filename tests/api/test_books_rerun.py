@@ -28,19 +28,19 @@ VALID_STEPS = ["summarization", "feature-extraction", "knowledge-graph", "symbol
 
 class TestRerunEndpoint:
     def test_returns_422_for_unknown_step(self, client):
-        with patch("api.routers.books._run_rerun_step", new_callable=AsyncMock):
+        with patch("storysphere.api.routers.books._run_rerun_step", new_callable=AsyncMock):
             resp = client.post("/api/v1/books/doc-1/rerun/no-such-step")
         assert resp.status_code == 422
         assert "Unknown step" in resp.json()["detail"]
 
     def test_returns_404_for_unknown_book(self, client):
-        with patch("api.routers.books._run_rerun_step", new_callable=AsyncMock):
+        with patch("storysphere.api.routers.books._run_rerun_step", new_callable=AsyncMock):
             resp = client.post("/api/v1/books/no-such-book/rerun/summarization")
         assert resp.status_code == 404
 
     @pytest.mark.parametrize("step", VALID_STEPS)
     def test_returns_202_with_task_id_for_valid_step(self, client, step):
-        with patch("api.routers.books._run_rerun_step", new_callable=AsyncMock):
+        with patch("storysphere.api.routers.books._run_rerun_step", new_callable=AsyncMock):
             resp = client.post(f"/api/v1/books/doc-1/rerun/{step}")
         assert resp.status_code == 202
         body = resp.json()
@@ -50,15 +50,15 @@ class TestRerunEndpoint:
         assert len(body["taskId"]) > 0
 
     def test_creates_task_store_entry(self, client):
-        from api.store import task_store
-        with patch("api.routers.books._run_rerun_step", new_callable=AsyncMock):
+        from storysphere.api.store import task_store
+        with patch("storysphere.api.routers.books._run_rerun_step", new_callable=AsyncMock):
             resp = client.post("/api/v1/books/doc-1/rerun/summarization")
         task_id = resp.json()["taskId"]
         assert task_store.get(task_id) is not None
 
     def test_background_coroutine_called_with_step_and_book(self, client):
         """The handler must forward (task_id, book_id, step, doc, kg) to _run_rerun_step."""
-        with patch("api.routers.books._run_rerun_step", new_callable=AsyncMock) as runner:
+        with patch("storysphere.api.routers.books._run_rerun_step", new_callable=AsyncMock) as runner:
             resp = client.post("/api/v1/books/doc-1/rerun/knowledge-graph")
         assert resp.status_code == 202
         runner.assert_called_once()
@@ -76,7 +76,7 @@ class TestRunRerunStep:
     """Direct tests for the background coroutine, bypassing FastAPI."""
 
     def _make_doc(self):
-        from domain.documents import Document, FileType, PipelineStatus, StepStatus
+        from storysphere.domain.documents import Document, FileType, PipelineStatus, StepStatus
         return Document(
             id="book-x",
             title="T",
@@ -111,9 +111,9 @@ class TestRunRerunStep:
         ],
     )
     def test_happy_path_marks_step_done(self, step, status_attr):
-        from api.routers.books import _run_rerun_step
-        from api.store import task_store
-        from domain.documents import StepStatus
+        from storysphere.api.routers.books import _run_rerun_step
+        from storysphere.api.store import task_store
+        from storysphere.domain.documents import StepStatus
 
         task_id = f"rerun-{uuid4()}"
         task_store.create(task_id)
@@ -124,7 +124,7 @@ class TestRunRerunStep:
         doc_svc.update_pipeline_status = AsyncMock()
         wf = self._make_workflow_mock()
 
-        with patch("workflows.ingestion.IngestionWorkflow", return_value=wf):
+        with patch("storysphere.workflows.ingestion.IngestionWorkflow", return_value=wf):
             asyncio.run(_run_rerun_step(task_id, "book-x", step, doc_svc, AsyncMock()))
 
         assert getattr(doc.pipeline_status, status_attr) == StepStatus.done
@@ -135,9 +135,9 @@ class TestRunRerunStep:
         assert status.result == {"bookId": "book-x", "step": step}
 
     def test_failure_path_marks_step_failed_and_task_error(self):
-        from api.routers.books import _run_rerun_step
-        from api.store import task_store
-        from domain.documents import StepStatus
+        from storysphere.api.routers.books import _run_rerun_step
+        from storysphere.api.store import task_store
+        from storysphere.domain.documents import StepStatus
 
         task_id = f"rerun-{uuid4()}"
         task_store.create(task_id)
@@ -150,7 +150,7 @@ class TestRunRerunStep:
         wf = self._make_workflow_mock()
         wf._feature_pipeline.run.side_effect = RuntimeError("boom")
 
-        with patch("workflows.ingestion.IngestionWorkflow", return_value=wf):
+        with patch("storysphere.workflows.ingestion.IngestionWorkflow", return_value=wf):
             asyncio.run(
                 _run_rerun_step(task_id, "book-x", "feature-extraction", doc_svc, AsyncMock())
             )
@@ -162,8 +162,8 @@ class TestRunRerunStep:
         assert "boom" in (status.error or "")
 
     def test_book_not_found_marks_task_failed(self):
-        from api.routers.books import _run_rerun_step
-        from api.store import task_store
+        from storysphere.api.routers.books import _run_rerun_step
+        from storysphere.api.store import task_store
 
         task_id = f"rerun-{uuid4()}"
         task_store.create(task_id)

@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from qdrant_client import QdrantClient
 
-from services.vector_service import VectorService
+from storysphere.services.vector_service import VectorService
 
 
 @pytest.fixture
