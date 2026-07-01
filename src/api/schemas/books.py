@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
-
 
 # ── Shared config ────────────────────────────────────────────────────────────
 
@@ -56,6 +55,7 @@ class BookDetailResponse(BookResponse):
     chunk_count: int = 0
     entity_count: int = 0
     relation_count: int = 0
+    event_count: int = 0
     entity_stats: EntityStats = EntityStats()
     keywords: dict[str, float] | None = None
 
@@ -202,17 +202,17 @@ class TimelineConfigResponse(BaseModel):
     total_ranked_events: int = 0
     chapter_mode_configured: bool = False
     story_mode_configured: bool = False
-    configured_at: Optional[datetime] = None
+    configured_at: datetime | None = None
 
 
 class TimelineConfigUpdate(BaseModel):
     model_config = _CAMEL
 
-    chapter_mode_enabled: Optional[bool] = None
-    story_mode_enabled: Optional[bool] = None
-    default_mode: Optional[Literal["chapter", "story"]] = None
-    chapter_mode_configured: Optional[bool] = None
-    story_mode_configured: Optional[bool] = None
+    chapter_mode_enabled: bool | None = None
+    story_mode_enabled: bool | None = None
+    default_mode: Literal["chapter", "story"] | None = None
+    chapter_mode_configured: bool | None = None
+    story_mode_configured: bool | None = None
 
 
 class TimelineDetectionResponse(BaseModel):
@@ -573,8 +573,8 @@ class InferredRelationResponse(BaseModel):
     suggested_relation_type: str
     reasoning: str
     status: str
-    visible_from_chapter: Optional[int] = None
-    confirmed_relation_id: Optional[str] = None
+    visible_from_chapter: int | None = None
+    confirmed_relation_id: str | None = None
     created_at: float
 
 

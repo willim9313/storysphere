@@ -11,18 +11,18 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import AsyncGenerator
-from typing import Any, Optional
+from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
-from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.graph import START, MessagesState, StateGraph
 from langgraph.prebuilt import ToolNode, tools_condition
 
 from agents.chat_agent_base import (
     SYSTEM_PROMPT,
     build_context_prompt,
     build_history_messages,
-    update_entity_state,
     get_default_llm,
+    update_entity_state,
 )
 from agents.pattern_recognizer import QueryPatternRecognizer
 from agents.states import ChatState

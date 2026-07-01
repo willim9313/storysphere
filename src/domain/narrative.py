@@ -9,7 +9,7 @@ Hierarchy (book-level):
 from __future__ import annotations
 
 import uuid
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -20,7 +20,7 @@ class KernelSatelliteResult(BaseModel):
     event_id: str
     narrative_weight: Literal["kernel", "satellite", "unclassified"]
     confidence: float = Field(ge=0.0, le=1.0)
-    reasoning: Optional[str] = None
+    reasoning: str | None = None
 
 
 class ProppFunctionRef(BaseModel):
@@ -49,7 +49,7 @@ class HeroJourneyStage(BaseModel):
     )
     representative_event_ids: list[str] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
-    notes: Optional[str] = None
+    notes: str | None = None
 
 
 class TemporalDisplacement(BaseModel):
@@ -69,7 +69,7 @@ class TemporalDisplacement(BaseModel):
     story_rank: float = Field(description="Position in story-world chronological order (1-based)")
     displacement: float = Field(description="story_rank - text_rank; negative = analepsis")
     displacement_type: Literal["analepsis", "prolepsis", "linear"]
-    story_time_hint: Optional[str] = Field(
+    story_time_hint: str | None = Field(
         default=None, description="Raw time hint from ingestion (e.g. '三年前')"
     )
 

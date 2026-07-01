@@ -325,7 +325,7 @@ class SQLiteTaskStore:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 # Can't block — schedule and return None (caller should await)
-                future = asyncio.ensure_future(self._async_get(task_id))
+                _future = asyncio.ensure_future(self._async_get(task_id))  # fire-and-forget
                 return None  # polling will pick it up shortly
             return loop.run_until_complete(self._async_get(task_id))
         except RuntimeError:

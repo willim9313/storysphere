@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from enum import Enum
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -47,38 +47,34 @@ class Event(BaseModel):
     """A significant plot event extracted from a novel chapter."""
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    document_id: Optional[str] = None
+    document_id: str | None = None
     title: str
     event_type: EventType
     description: str
     chapter: int
     participants: list[str] = Field(default_factory=list, description="Entity IDs involved")
-    location_id: Optional[str] = None
-    significance: Optional[str] = None
+    location_id: str | None = None
+    significance: str | None = None
     consequences: list[str] = Field(default_factory=list)
 
     # --- Narrative position (fine-grained within-book ordering) ---
-    narrative_position: Optional[int] = None
+    narrative_position: int | None = None
 
     # --- Story-world temporal fields ---
     narrative_mode: NarrativeMode = NarrativeMode.UNKNOWN
-    story_time_hint: Optional[str] = None
-    chronological_rank: Optional[float] = None
-    chron_index: Optional[int] = None   # 1-based story-world order; set by TemporalPipeline
+    story_time_hint: str | None = None
+    chronological_rank: float | None = None
+    chron_index: int | None = None   # 1-based story-world order; set by TemporalPipeline
 
     # --- Tension / emotional fields (B-023) ---
     tension_signal: Literal["none", "potential", "explicit"] = "none"
-    emotional_intensity: Optional[float] = Field(default=None, ge=0.0, le=1.0)
-    emotional_valence: Optional[
-        Literal["positive", "negative", "mixed", "neutral"]
-    ] = None
+    emotional_intensity: float | None = Field(default=None, ge=0.0, le=1.0)
+    emotional_valence: Literal["positive", "negative", "mixed", "neutral"] | None = None
 
     # --- Narratology fields (B-031) ---
     narrative_weight: Literal["kernel", "satellite", "unclassified"] = "unclassified"
-    narrative_weight_source: Optional[
-        Literal["summary_heuristic", "llm_classified", "human_verified"]
-    ] = None
-    story_time: Optional[StoryTimeRef] = None
+    narrative_weight_source: Literal["summary_heuristic", "llm_classified", "human_verified"] | None = None
+    story_time: StoryTimeRef | None = None
 
     # --- Epistemic visibility (F-03) ---
     # public  = information naturally known to all (public battles, announced deaths, spread gossip)

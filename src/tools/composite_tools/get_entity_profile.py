@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -33,7 +33,7 @@ class GetEntityProfileTool(BaseTool):
         "DO NOT USE for relationship questions (use get_entity_relationship). "
         "Input: entity ID or name."
     )
-    args_schema: Type[GetEntityProfileInput] = GetEntityProfileInput
+    args_schema: type[GetEntityProfileInput] = GetEntityProfileInput
 
     kg_service: Any = None
     doc_service: Any = None

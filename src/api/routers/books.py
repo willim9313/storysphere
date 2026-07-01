@@ -306,6 +306,7 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         chunk_count=document.total_paragraphs,
         entity_count=len(book_entities),
         relation_count=book_relation_count,
+        event_count=len(book_events),
         entity_stats=stats,
         keywords=document.keywords,
         uploaded_at=(
@@ -977,7 +978,7 @@ async def list_inferred_relations(
         try:
             status_filter = InferenceStatus(status)
         except ValueError:
-            raise HTTPException(status_code=422, detail=f"Invalid status '{status}'")
+            raise HTTPException(status_code=422, detail=f"Invalid status '{status}'") from None
 
     entity_map = {e.id: e for e in await kg.list_entities(document_id=book_id)}
     items = await lp.list_inferred(book_id, status=status_filter)
@@ -2211,7 +2212,7 @@ async def get_book_timeline(
         entity_results = []
     entity_map = {
         eid: ent
-        for eid, ent in zip(all_entity_ids, entity_results)
+        for eid, ent in zip(all_entity_ids, entity_results, strict=True)
         if ent is not None
     }
 

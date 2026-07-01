@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import logging
 import time
-from typing import Optional
 
 import aiosqlite
 
@@ -62,7 +61,7 @@ class LinkPredictionStore:
             )
             await db.commit()
 
-    async def get(self, ir_id: str) -> Optional[InferredRelation]:
+    async def get(self, ir_id: str) -> InferredRelation | None:
         async with aiosqlite.connect(self._db_path) as db:
             await self._ensure_schema(db)
             cursor = await db.execute(
@@ -76,7 +75,7 @@ class LinkPredictionStore:
     async def list_by_document(
         self,
         document_id: str,
-        status: Optional[InferenceStatus] = None,
+        status: InferenceStatus | None = None,
     ) -> list[InferredRelation]:
         async with aiosqlite.connect(self._db_path) as db:
             await self._ensure_schema(db)
@@ -97,7 +96,7 @@ class LinkPredictionStore:
         self,
         ir_id: str,
         status: InferenceStatus,
-        confirmed_relation_id: Optional[str] = None,
+        confirmed_relation_id: str | None = None,
     ) -> None:
         now = time.time()
         async with aiosqlite.connect(self._db_path) as db:

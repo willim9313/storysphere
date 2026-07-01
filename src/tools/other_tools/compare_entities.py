@@ -11,11 +11,16 @@ Example queries: "Compare Alice and Bob.", "How do London and Paris differ?",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
-from tools.base import format_entity, format_relation, format_tool_output, handle_not_found, resolve_entity
+from tools.base import (
+    format_entity,
+    format_tool_output,
+    handle_not_found,
+    resolve_entity,
+)
 from tools.schemas import CompareEntitiesInput
 
 
@@ -31,7 +36,7 @@ class CompareEntitiesTool(BaseTool):
         "DO NOT USE for: single entity queries or path finding. "
         "Input: two entity IDs or names."
     )
-    args_schema: Type[CompareEntitiesInput] = CompareEntitiesInput
+    args_schema: type[CompareEntitiesInput] = CompareEntitiesInput
 
     kg_service: Any = None
 

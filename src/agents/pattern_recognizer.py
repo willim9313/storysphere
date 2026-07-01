@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from typing import Optional
 
 
 @dataclass
@@ -92,12 +91,12 @@ _ENTITY_PATTERNS = [
 class QueryPatternRecognizer:
     """Classify user queries to enable fast-routing for common patterns."""
 
-    def recognize(self, query: str) -> Optional[PatternMatch]:
+    def recognize(self, query: str) -> PatternMatch | None:
         """Attempt to match the query against known patterns.
 
         Returns a ``PatternMatch`` if confidence >= 0.8, else ``None``.
         """
-        best: Optional[PatternMatch] = None
+        best: PatternMatch | None = None
 
         for name, regex, tools, base_conf in _PATTERNS:
             if regex.search(query):

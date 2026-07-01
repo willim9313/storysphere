@@ -125,6 +125,7 @@ interface BookDetail extends Book {
   chunkCount: number;
   entityCount: number;
   relationCount: number;
+  eventCount: number;
   entityStats: {
     character: number;
     location: number;

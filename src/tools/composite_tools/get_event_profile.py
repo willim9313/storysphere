@@ -11,7 +11,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -32,7 +32,7 @@ class GetEventProfileTool(BaseTool):
         "DO NOT USE for deep causal analysis (use analyze_event). "
         "Input: event ID (UUID)."
     )
-    args_schema: Type[GetEventProfileInput] = GetEventProfileInput
+    args_schema: type[GetEventProfileInput] = GetEventProfileInput
 
     kg_service: Any = None
     doc_service: Any = None

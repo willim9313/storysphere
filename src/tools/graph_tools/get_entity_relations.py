@@ -11,7 +11,7 @@ Example queries: "Who are Alice's friends?", "What are Bob's relationships?",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -30,7 +30,7 @@ class GetEntityRelationsTool(BaseTool):
         "DO NOT USE for: finding paths between two entities or entity attributes. "
         "Input: entity ID/name and optional direction ('both' (default), 'in', or 'out')."
     )
-    args_schema: Type[EntityRelationsInput] = EntityRelationsInput
+    args_schema: type[EntityRelationsInput] = EntityRelationsInput
 
     kg_service: Any = None
 

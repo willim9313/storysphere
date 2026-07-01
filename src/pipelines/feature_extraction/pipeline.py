@@ -24,7 +24,7 @@ import logging
 from dataclasses import dataclass, field
 
 from core.error_handling import is_rate_limit_error
-from domain.documents import Document, Paragraph, ParagraphRole, extract_body_text
+from domain.documents import Document, Paragraph, extract_body_text
 from pipelines.base import BasePipeline
 
 from .embedding_generator import EmbeddingGenerator
@@ -119,7 +119,7 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
                     settings = get_settings()
                     max_kw = settings.keyword_max_per_paragraph
 
-                    for para, text in zip(body_paras, body_texts):
+                    for para, text in zip(body_paras, body_texts, strict=True):
                         try:
                             kws = await self._keyword_extractor.extract(
                                 text, max_kw, language=doc.language
@@ -151,7 +151,9 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
             else:
                 # No-Qdrant path (dev / test): store on Paragraph so
                 # DocumentService can persist them to SQLite.
-                for para, vec in zip(body_paras, vectors):
+                # strict=False: tolerate an embedder returning a differing count
+                # (preserves prior truncate-to-shortest behavior).
+                for para, vec in zip(body_paras, vectors, strict=False):
                     para.embedding = vec
 
             total_embedded += len(body_paras)
@@ -260,6 +262,7 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
     ) -> list[str]:
         """Legacy path: raw QdrantClient (used by tests with mock_qdrant)."""
         from qdrant_client.models import Distance, PointStruct, VectorParams  # noqa: PLC0415
+
         from config.settings import get_settings  # noqa: PLC0415
         from services.vector_service import title_slug  # noqa: PLC0415
 

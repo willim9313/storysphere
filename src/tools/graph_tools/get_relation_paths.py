@@ -11,7 +11,7 @@ Example queries: "How are Alice and Carol connected?",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -31,7 +31,7 @@ class GetRelationPathsTool(BaseTool):
         "DO NOT USE for: single entity's direct relations or subgraph exploration. "
         "Input: source and target entity ID/name, optional max_length (1–5, default 3)."
     )
-    args_schema: Type[RelationPathsInput] = RelationPathsInput
+    args_schema: type[RelationPathsInput] = RelationPathsInput
 
     kg_service: Any = None
 

@@ -10,7 +10,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -31,7 +31,7 @@ class GetCharacterArcTool(BaseTool):
         "For raw event list only (no LLM), use get_entity_timeline instead. "
         "Input: character entity ID or name."
     )
-    args_schema: Type[GetCharacterArcInput] = GetCharacterArcInput
+    args_schema: type[GetCharacterArcInput] = GetCharacterArcInput
 
     kg_service: Any = None
     vector_service: Any = None

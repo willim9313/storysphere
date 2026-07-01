@@ -3,7 +3,6 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -55,16 +54,16 @@ class Paragraph(BaseModel):
     chapter_number: int
     position: int = Field(description="0-indexed position within the chapter")
     role: ParagraphRole = ParagraphRole.body
-    embedding: Optional[list[float]] = None
-    keywords: Optional[dict[str, float]] = None
-    entities: Optional[list[ParagraphEntity]] = None
-    title_span: Optional[tuple[int, int]] = Field(
+    embedding: list[float] | None = None
+    keywords: dict[str, float] | None = None
+    entities: list[ParagraphEntity] | None = None
+    title_span: tuple[int, int] | None = Field(
         default=None,
         description="(start, end) char offsets of chapter title within text; None if no title",
     )
 
 
-def extract_body_text(para: "Paragraph") -> str | None:
+def extract_body_text(para: Paragraph) -> str | None:
     """Return the narrative body text of a paragraph, or None for non-body paragraphs.
 
     - Non-body roles (separator, section, epigraph, preamble) → None
@@ -84,10 +83,10 @@ class Chapter(BaseModel):
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     number: int
-    title: Optional[str] = None
+    title: str | None = None
     paragraphs: list[Paragraph] = Field(default_factory=list)
-    summary: Optional[str] = None
-    keywords: Optional[dict[str, float]] = None
+    summary: str | None = None
+    keywords: dict[str, float] | None = None
 
     @property
     def word_count(self) -> int:
@@ -99,15 +98,15 @@ class Document(BaseModel):
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     title: str
-    author: Optional[str] = None
+    author: str | None = None
     file_path: str
     file_type: FileType
     chapters: list[Chapter] = Field(default_factory=list)
-    summary: Optional[str] = None  # book-level summary
-    keywords: Optional[dict[str, float]] = None
+    summary: str | None = None  # book-level summary
+    keywords: dict[str, float] | None = None
     language: str = "en"  # ISO 639-1 code, auto-detected or user-specified
-    processed_at: Optional[datetime] = None
-    timeline_config: Optional[TimelineConfig] = None
+    processed_at: datetime | None = None
+    timeline_config: TimelineConfig | None = None
     pipeline_status: PipelineStatus = Field(default_factory=PipelineStatus)
 
     @property

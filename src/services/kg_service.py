@@ -22,7 +22,14 @@ from domain.events import Event
 from domain.relations import Relation
 from domain.temporal import TemporalRelation
 from services.kg_service_base import KGServiceBase
-from services.query_models import PathNode, RelationPath, RelationStats, Subgraph, SubgraphEdge, SubgraphNode
+from services.query_models import (
+    PathNode,
+    RelationPath,
+    RelationStats,
+    Subgraph,
+    SubgraphEdge,
+    SubgraphNode,
+)
 
 logger = logging.getLogger(__name__)
 

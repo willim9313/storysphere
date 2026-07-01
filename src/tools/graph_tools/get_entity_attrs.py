@@ -10,7 +10,7 @@ Example queries: "Who is Alice?", "What are Bob's aliases?", "Describe London."
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -31,7 +31,7 @@ class GetEntityAttributesTool(BaseTool):
         "DO NOT USE for: relationship queries (use get_entity_relations) or event timelines. "
         "Input: entity ID (UUID) or exact name."
     )
-    args_schema: Type[EntityIdInput] = EntityIdInput
+    args_schema: type[EntityIdInput] = EntityIdInput
 
     kg_service: Any = None  # injected
 

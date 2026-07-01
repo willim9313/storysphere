@@ -12,7 +12,7 @@ Example queries: "Show the full timeline.", "What is the
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -31,7 +31,7 @@ class GetGlobalTimelineTool(BaseTool):
         "DO NOT USE for: single entity timeline. "
         "Input: document_id, optional order ('chronological' (default) or 'narrative')."
     )
-    args_schema: Type[GlobalTimelineInput] = GlobalTimelineInput
+    args_schema: type[GlobalTimelineInput] = GlobalTimelineInput
 
     kg_service: Any = None
 

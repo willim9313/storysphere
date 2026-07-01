@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -32,7 +32,7 @@ class AnalyzeEventTool(BaseTool):
         "or listing events. "
         "Input: event ID, optional document ID."
     )
-    args_schema: Type[AnalyzeEventInput] = AnalyzeEventInput
+    args_schema: type[AnalyzeEventInput] = AnalyzeEventInput
 
     analysis_agent: Any = None
 

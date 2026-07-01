@@ -142,8 +142,8 @@ def update_entity_state(
 
 def get_default_llm():
     """Return the default LLM with local fallback."""
-    from core.llm_client import get_llm_client  # noqa: PLC0415
     from config.settings import get_settings  # noqa: PLC0415
+    from core.llm_client import get_llm_client  # noqa: PLC0415
 
     settings = get_settings()
     return get_llm_client().get_with_local_fallback(temperature=settings.chat_agent_temperature)

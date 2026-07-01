@@ -12,7 +12,7 @@ Example queries: "Show me the network around Alice.",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -31,7 +31,7 @@ class GetSubgraphTool(BaseTool):
         "DO NOT USE for: finding paths between two specific entities. "
         "Input: entity ID/name, optional k_hops (1–3, default 2)."
     )
-    args_schema: Type[SubgraphInput] = SubgraphInput
+    args_schema: type[SubgraphInput] = SubgraphInput
 
     kg_service: Any = None
 

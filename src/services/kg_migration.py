@@ -48,11 +48,11 @@ async def migrate_networkx_to_neo4j(
     Returns:
         Dict with counts: ``{entities, relations, events, temporal_relations}``.
     """
-    from services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
     from domain.entities import Entity  # noqa: PLC0415
     from domain.events import Event  # noqa: PLC0415
     from domain.relations import Relation, RelationType  # noqa: PLC0415
     from domain.temporal import TemporalRelation  # noqa: PLC0415
+    from services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
 
     path = Path(json_path)
     if not path.exists():
@@ -171,8 +171,8 @@ async def migrate_neo4j_to_networkx(
     Returns:
         Dict with counts: ``{entities, relations, events, temporal_relations}``.
     """
-    from services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
     from services.kg_service import KGService  # noqa: PLC0415
+    from services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
 
     neo4j_svc = Neo4jKGService(url=neo4j_url, user=user, password=password)
     await neo4j_svc.verify_connectivity()

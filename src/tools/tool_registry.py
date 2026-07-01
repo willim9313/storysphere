@@ -16,8 +16,8 @@ from tools.composite_tools import (
     CompareCharactersTool,
     GetCharacterArcTool,
     GetEntityProfileTool,
-    GetEventProfileTool,
     GetEntityRelationshipTool,
+    GetEventProfileTool,
 )
 from tools.graph_tools import (
     GetEntityAttributesTool,

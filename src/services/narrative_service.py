@@ -18,7 +18,8 @@ Persistence via AnalysisCache:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -26,7 +27,13 @@ from config.hero_journey import get_hero_journey_summary, load_hero_journey
 from core.token_callback import set_llm_service_context
 from core.utils.output_extractor import extract_json_from_text
 from domain.events import Event
-from domain.narrative import HeroJourneyStage, KernelSatelliteResult, NarrativeStructure, TemporalAnalysis, TemporalDisplacement
+from domain.narrative import (
+    HeroJourneyStage,
+    KernelSatelliteResult,
+    NarrativeStructure,
+    TemporalAnalysis,
+    TemporalDisplacement,
+)
 from services.query_models import TemporalCoverageStats
 
 if TYPE_CHECKING:
@@ -122,9 +129,9 @@ class NarrativeService:
 
     def __init__(
         self,
-        kg_service: "KGService",
-        document_service: "DocumentService",
-        cache: "AnalysisCache",
+        kg_service: KGService,
+        document_service: DocumentService,
+        cache: AnalysisCache,
     ) -> None:
         self._kg = kg_service
         self._doc = document_service

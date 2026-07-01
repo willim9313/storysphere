@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from enum import Enum
-from typing import Any, Literal, Optional
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -33,23 +33,23 @@ class Entity(BaseModel):
     entity_type: EntityType
     aliases: list[str] = Field(default_factory=list)
     attributes: dict[str, Any] = Field(default_factory=dict)
-    description: Optional[str] = None
-    document_id: Optional[str] = None
-    first_appearance_chapter: Optional[int] = None
+    description: str | None = None
+    document_id: str | None = None
+    first_appearance_chapter: int | None = None
     mention_count: int = 0
 
     # --- Concept provenance fields (B-024) ---
     extraction_method: Literal["ner", "inferred"] = "ner"
-    source_spans: Optional[list[SpanRef]] = None
-    inferred_by: Optional[str] = None
-    confidence: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    source_spans: list[SpanRef] | None = None
+    inferred_by: str | None = None
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
 
     # --- Timeline snapshot fields (F-02) ---
     # Reading-order mode: entity disappears after this chapter (e.g. death)
-    valid_to_chapter: Optional[int] = None
+    valid_to_chapter: int | None = None
     # Story-chronology mode: filled in after TemporalPipeline runs
-    first_chron_index: Optional[int] = None   # story-world first appearance index
-    valid_to_chron_index: Optional[int] = None  # story-world disappearance index
+    first_chron_index: int | None = None   # story-world first appearance index
+    valid_to_chron_index: int | None = None  # story-world disappearance index
 
     def __hash__(self) -> int:
         return hash(self.id)

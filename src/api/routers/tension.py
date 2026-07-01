@@ -61,7 +61,7 @@ async def _run_group_lines(
             force=req.force,
             progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
-        task_store.set_completed(task_id, result={"lines": [l.model_dump() for l in lines]})
+        task_store.set_completed(task_id, result={"lines": [line.model_dump() for line in lines]})
     except Exception as exc:
         logger.exception("TensionLine grouping task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))

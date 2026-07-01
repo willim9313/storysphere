@@ -11,7 +11,7 @@ Example queries: "Show me the text of chapter 2.", "Read chapter 1 paragraphs.",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -31,7 +31,7 @@ class GetParagraphsTool(BaseTool):
         "DO NOT USE for: summaries (use get_summary) or semantic search. "
         "Input: document_id, optional chapter_number."
     )
-    args_schema: Type[GetParagraphsInput] = GetParagraphsInput
+    args_schema: type[GetParagraphsInput] = GetParagraphsInput
 
     doc_service: Any = None
 

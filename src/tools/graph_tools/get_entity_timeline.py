@@ -11,7 +11,7 @@ Example queries: "What happened to Alice?", "Show Bob's timeline.",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -32,7 +32,7 @@ class GetEntityTimelineTool(BaseTool):
         "DO NOT USE for: single event deep analysis. "
         "Input: entity ID or name, optional sort_by ('narrative' (default) or 'chronological')."
     )
-    args_schema: Type[EntityTimelineInput] = EntityTimelineInput
+    args_schema: type[EntityTimelineInput] = EntityTimelineInput
 
     kg_service: Any = None
 

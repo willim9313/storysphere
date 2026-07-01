@@ -11,7 +11,7 @@ Example queries: "Find passages about betrayal.", "Where is the garden described
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -30,7 +30,7 @@ class VectorSearchTool(BaseTool):
         "DO NOT USE for: chapter summaries or structured entity queries. "
         "Input: natural language query, optional top_k (1–20), optional document_id filter."
     )
-    args_schema: Type[VectorSearchInput] = VectorSearchInput
+    args_schema: type[VectorSearchInput] = VectorSearchInput
 
     vector_service: Any = None
 

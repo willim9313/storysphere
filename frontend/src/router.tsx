@@ -21,6 +21,8 @@ const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
 const SearchPage = lazy(() => import('@/pages/SearchPage'));
 const ChapterReviewPage = lazy(() => import('@/pages/upload/ChapterReviewPage'));
 
+// Local wrapper in a router module that also exports the (non-component) router config.
+// eslint-disable-next-line react-refresh/only-export-components
 function LazyWrapper({ children }: { children: React.ReactNode }) {
   return <Suspense fallback={<LoadingSpinner />}>{children}</Suspense>;
 }

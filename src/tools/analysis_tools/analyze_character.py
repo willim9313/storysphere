@@ -14,7 +14,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -35,7 +35,7 @@ class AnalyzeCharacterTool(BaseTool):
         "or simple timeline (use get_entity_timeline). "
         "Input: entity name, document_id, optional archetype frameworks."
     )
-    args_schema: Type[AnalyzeCharacterInput] = AnalyzeCharacterInput
+    args_schema: type[AnalyzeCharacterInput] = AnalyzeCharacterInput
 
     analysis_agent: Any = None
 

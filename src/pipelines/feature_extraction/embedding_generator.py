@@ -15,8 +15,9 @@ logger = logging.getLogger(__name__)
 @lru_cache(maxsize=1)
 def _get_embeddings():  # type: ignore[return]
     """Return a cached HuggingFaceEmbeddings instance."""
-    from config.settings import get_settings
     from langchain_huggingface import HuggingFaceEmbeddings  # noqa: PLC0415
+
+    from config.settings import get_settings
 
     settings = get_settings()
     logger.info(

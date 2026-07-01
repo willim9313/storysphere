@@ -2107,6 +2107,11 @@ export interface components {
              */
             relationCount: number;
             /**
+             * Eventcount
+             * @default 0
+             */
+            eventCount: number;
+            /**
              * @default {
              *       "character": 0,
              *       "location": 0,

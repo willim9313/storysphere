@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -19,32 +19,32 @@ class ChatState(BaseModel):
     detected_entities: list[str] = Field(default_factory=list)
 
     # 當前意圖
-    intent: Optional[str] = None
+    intent: str | None = None
 
     # 工具結果
     tool_results: dict[str, Any] = Field(default_factory=dict)
 
     # ===== 指代消解 =====
-    current_focus_entity: Optional[str] = None
+    current_focus_entity: str | None = None
     entity_mentions: dict[str, int] = Field(default_factory=dict)
 
     # ===== 工具結果緩存 (5min TTL 由外部管理) =====
     last_tool_results: dict[str, Any] = Field(default_factory=dict)
 
     # 上次查詢類型
-    last_query_type: Optional[str] = None
+    last_query_type: str | None = None
 
     # 輸出語言（跨 turn 持續保留）
     language: str = "en"
 
     # ===== Page context (injected from frontend) =====
-    book_id: Optional[str] = None
-    book_title: Optional[str] = None
-    chapter_id: Optional[str] = None
-    chapter_title: Optional[str] = None
-    chapter_number: Optional[int] = None
-    page_context: Optional[str] = None  # "library" | "reader" | "graph" | "analysis" | "timeline"
-    analysis_tab: Optional[str] = None  # "characters" | "events"
+    book_id: str | None = None
+    book_title: str | None = None
+    chapter_id: str | None = None
+    chapter_title: str | None = None
+    chapter_number: int | None = None
+    page_context: str | None = None  # "library" | "reader" | "graph" | "analysis" | "timeline"
+    analysis_tab: str | None = None  # "characters" | "events"
 
     # ── Methods ────────────────────────────────────────────────────────────────
 

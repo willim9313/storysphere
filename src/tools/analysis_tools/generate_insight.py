@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -34,7 +34,7 @@ class GenerateInsightTool(BaseTool):
         "DO NOT USE for: raw data retrieval or deep multi-step analysis. "
         "Input: topic (the question/theme) and context (supporting data)."
     )
-    args_schema: Type[GenerateInsightInput] = GenerateInsightInput
+    args_schema: type[GenerateInsightInput] = GenerateInsightInput
 
     analysis_service: Any = None  # AnalysisService instance, injected
 

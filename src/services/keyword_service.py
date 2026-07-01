@@ -290,7 +290,7 @@ class CompositeKeywordExtractor(BaseKeywordExtractor):
 
         # Weighted merge
         merged: dict[str, float] = {}
-        for (_, weight), result in zip(self._extractors, results):
+        for (_, weight), result in zip(self._extractors, results, strict=True):
             if isinstance(result, Exception):
                 logger.warning("Composite extractor sub-task failed: %s", result)
                 continue

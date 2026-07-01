@@ -8,7 +8,7 @@ Example queries: "What are the keywords for chapter 3?", "Key themes of the book
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -28,7 +28,7 @@ class GetKeywordsTool(BaseTool):
         "DO NOT USE for: full text retrieval or summaries. "
         "Input: document_id, optional chapter_number."
     )
-    args_schema: Type[GetKeywordsInput] = GetKeywordsInput
+    args_schema: type[GetKeywordsInput] = GetKeywordsInput
 
     keyword_service: Any = None
 
