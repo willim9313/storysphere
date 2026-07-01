@@ -1,8 +1,8 @@
 # 專案結構重構規劃
 
 **日期：** 2026-07-01
-**狀態：** Phase 1 已完成（commit `1056ddc`，branch `refactor/backend-namespace`）；Phase 2/3 待辦
-**分支：** `chore/repo-structure-cleanup`（清理），`refactor/backend-namespace`（Phase 1）
+**狀態：** ✅ 全部完成（Phase 1 `1056ddc`、Phase 3 `35bf6ff`、Phase 2 `3004d7a`），branch `refactor/backend-namespace`
+**分支：** `chore/repo-structure-cleanup`（清理 + plan），`refactor/backend-namespace`（Phase 1/2/3 實作）
 
 ---
 
@@ -49,17 +49,17 @@ api, core, domain, services, tools, agents, config, pipelines, workflows
 
 ```
 storysphere/
-├── src/
-│   └── storysphere/            # ← 單一命名空間（問題1）
+├── backend/                    # ← 問題2：與 frontend/ 對稱
+│   └── storysphere/            # ← 問題1：單一命名空間
 │       ├── api/ core/ domain/ services/ tools/
 │       ├── agents/ config/ pipelines/ workflows/
 │       └── __init__.py
 ├── frontend/
-├── var/                        # ← runtime 資料集中（問題3）
+├── var/                        # ← 問題3：runtime 資料集中
 │   ├── *.db  qdrant_local/  knowledge_graph.json
 ├── docs/  tests/  pyproject.toml
 ```
-（問題 2 若採用：`src/` → `backend/`，內含 `backend/storysphere/`。）
+（實際落地即此結構：`backend/storysphere/`。）
 
 ---
 
@@ -100,7 +100,9 @@ storysphere/
 
 > ⚠️ 依 CLAUDE.md「一次異動超過 3 檔先拆子任務」：本階段雖動 185+ 檔，但屬**機械式同構改寫**，應以「一次搬移 + 一次批次改寫 + 全量測試」為單一原子任務，並委派 subagent 執行、主 agent review diff（見 memory `feedback_subagent_delegation`）。
 
-### Phase 2：`src/` → `backend/` 對稱化（選配，純可讀性）
+### Phase 2：`src/` → `backend/` 對稱化（選配，純可讀性）✅ 已完成
+
+> 實作結果：174 檔 git mv、46 檔路徑字串更新（pyproject/README/CLAUDE.md/docs）。import 不受影響（皆 `from storysphere.*`）。**關鍵坑：** editable install 的 `.pth` 仍指向舊 `src/`，需重跑 `uv sync` 才能 uvicorn 啟動。驗證：873 passed、ruff 過、uvicorn 啟動並讀 `var/` 資料。
 
 **動機：** 與 `frontend/` 對稱。**前提：** Phase 1 完成後此項價值下降，可略過。
 
@@ -112,7 +114,11 @@ storysphere/
 
 **風險：** 純路徑字串異動，風險低於 Phase 1，但仍須全量測試 + 啟動驗證。
 
-### Phase 3：runtime 資料歸位 `var/`（獨立，低耦合）
+### Phase 3：runtime 資料歸位 `var/`（獨立，低耦合）✅ 已完成
+
+> 實作結果：6 code 檔預設路徑 + `.env.example` + `.gitignore` 改為 `var/`；實體資料 `data/`+`storysphere.db` 搬至 `var/`（已備份）；本機 `.env` 同步。驗證：後端讀 `var/` 既有 book/KG 資料 HTTP 200、873 passed。
+
+
 
 **動機：** root 不再散落 runtime DB。與 Phase 1/2 無耦合，可任意順序做。
 
