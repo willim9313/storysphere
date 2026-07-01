@@ -223,13 +223,13 @@ class TensionTheme:
 
 | 檔案 | 說明 |
 |------|------|
-| `src/storysphere/domain/tension.py` | TEU / TensionLine / TensionTheme 資料模型 |
-| `src/storysphere/services/tension_service.py` | 核心服務（組裝、分組、合成、CRUD） |
-| `src/storysphere/api/routers/tension.py` | FastAPI 路由（10 個端點） |
-| `src/storysphere/api/schemas/tension.py` | Request schemas |
-| `src/storysphere/config/mythos.py` | Frye/Booker 定義 loader |
-| `src/storysphere/config/mythos/` | JSON 定義檔（EN + ZH） |
-| `src/storysphere/domain/events.py` | Event 模型（含 tension_signal 等欄位） |
+| `backend/storysphere/domain/tension.py` | TEU / TensionLine / TensionTheme 資料模型 |
+| `backend/storysphere/services/tension_service.py` | 核心服務（組裝、分組、合成、CRUD） |
+| `backend/storysphere/api/routers/tension.py` | FastAPI 路由（10 個端點） |
+| `backend/storysphere/api/schemas/tension.py` | Request schemas |
+| `backend/storysphere/config/mythos.py` | Frye/Booker 定義 loader |
+| `backend/storysphere/config/mythos/` | JSON 定義檔（EN + ZH） |
+| `backend/storysphere/domain/events.py` | Event 模型（含 tension_signal 等欄位） |
 | `frontend/src/pages/TensionPage.tsx` | 張力分析儀表板 |
 | `frontend/src/api/tension.ts` | 前端 API 層 |
 

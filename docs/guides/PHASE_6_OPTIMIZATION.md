@@ -58,7 +58,7 @@ for r in results:
 resolve_entity → [get_summary || get_passages || get_relations]
 ```
 
-修改位置：`src/storysphere/tools/composite_tools/get_entity_profile.py`
+修改位置：`backend/storysphere/tools/composite_tools/get_entity_profile.py`
 
 **核心變更**：
 ```python

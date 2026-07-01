@@ -259,7 +259,7 @@ def _compute_event_coverage(eep, causality, impact) -> EventCoverageMetrics:
 
 ## 4. Pydantic Models
 
-新增至 `src/storysphere/services/analysis_models.py`：
+新增至 `backend/storysphere/services/analysis_models.py`：
 
 ```python
 from enum import Enum
@@ -599,46 +599,46 @@ EventAnalysisResult(
 ## 8. 需建立或修改的檔案
 
 ### KGService：新增 `get_event(event_id)` 方法
-**檔案**：`src/storysphere/services/kg_service.py`
+**檔案**：`backend/storysphere/services/kg_service.py`
 - 目前有 `get_events(entity_id=None)` 但無單一事件查詢
 - 新增：`async def get_event(self, event_id: str) -> Event | None`
 
 ### Analysis Models：新增事件相關 models
-**檔案**：`src/storysphere/services/analysis_models.py`
+**檔案**：`backend/storysphere/services/analysis_models.py`
 - 新增：`ParticipantRoleType`、`EventImportance` enums
 - 新增：`ParticipantRole`、`EventEvidenceProfile`、`CausalityAnalysis`、`ImpactAnalysis`、`EventSummary`、`EventCoverageMetrics`、`EventAnalysisResult`
 
 ### Analysis Service：新增 `analyze_event()` pipeline
-**檔案**：`src/storysphere/services/analysis_service.py`
+**檔案**：`backend/storysphere/services/analysis_service.py`
 - 新增 4 個系統提示常數：`_EEP_SYSTEM_PROMPT`、`_CAUSALITY_SYSTEM_PROMPT`、`_IMPACT_SYSTEM_PROMPT`、`_EVENT_SUMMARY_SYSTEM_PROMPT`
 - 新增公開方法：`async def analyze_event(event_id, document_id) → EventAnalysisResult`
 - 新增私有方法：`_extract_eep()`、`_analyze_causality()`、`_analyze_impact()`、`_generate_event_summary()`
 - 新增靜態方法：`_compute_event_coverage()`
 
 ### Analysis Agent：新增 `analyze_event()` 方法
-**檔案**：`src/storysphere/agents/analysis_agent.py`
+**檔案**：`backend/storysphere/agents/analysis_agent.py`
 - 新增：`async def analyze_event(event_id, document_id, force_refresh=False) → EventAnalysisResult`
 - Cache key 格式：`f"event:{document_id}:{event_id}"`
 
 ### AnalyzeEventTool：實作 stub
-**檔案**：`src/storysphere/tools/analysis_tools/analyze_event.py`
+**檔案**：`backend/storysphere/tools/analysis_tools/analyze_event.py`
 - 將 `raise NotImplementedError` 替換為委派呼叫 `analysis_agent.analyze_event()`
 - 輸入：`AnalyzeEventInput(event_id, include_consequences=True)`
 - 輸出 JSON：符合 `EventAnalysisOutput` schema 的 flat dict
 
 ### Schemas：擴充 AnalyzeEventInput
-**檔案**：`src/storysphere/tools/schemas.py`
+**檔案**：`backend/storysphere/tools/schemas.py`
 - 擴充 `AnalyzeEventInput`：新增 `document_id: str = ""`
 - 擴充 `EventAnalysisOutput`：對齊 `EventAnalysisResult` 欄位
 
 ### Tool Registry：將 AnalyzeEventTool 接入對話
-**檔案**：`src/storysphere/tools/tool_registry.py`
+**檔案**：`backend/storysphere/tools/tool_registry.py`
 - `get_chat_tools()` 已接受 `analysis_agent` 參數；將 `AnalyzeEventTool` 與 `AnalyzeCharacterTool` 一起加入
 
 ### 不需修改
-- `src/storysphere/services/analysis_cache.py` — 通用，直接複用
-- `src/storysphere/core/utils/output_extractor.py` — 直接複用
-- `src/storysphere/core/utils/data_sanitizer.py` — 直接複用
+- `backend/storysphere/services/analysis_cache.py` — 通用，直接複用
+- `backend/storysphere/core/utils/output_extractor.py` — 直接複用
+- `backend/storysphere/core/utils/data_sanitizer.py` — 直接複用
 
 ---
 
@@ -665,7 +665,7 @@ Stub 有 `include_consequences: bool = True`。完整實作中：
 - 最簡實作：永遠執行影響分析，保留此 flag 供未來優化使用
 
 ### JSON 解析
-所有 LLM 呼叫使用 `src/storysphere/core/utils/output_extractor.py` 中的 `extract_json_from_text()`（4 步驟 fallback）。模式與角色分析完全相同——以相同方式包裹每個 LLM 回應。
+所有 LLM 呼叫使用 `backend/storysphere/core/utils/output_extractor.py` 中的 `extract_json_from_text()`（4 步驟 fallback）。模式與角色分析完全相同——以相同方式包裹每個 LLM 回應。
 
 ### Temperature 設定
 使用現有的 `settings.analysis_temperature`（已在 Settings 中）。不需新增設定。

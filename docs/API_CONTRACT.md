@@ -1916,16 +1916,16 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 ## 實作狀態（2026-04-28 更新）
 
-- [x] **後端路由對齊**：`src/storysphere/api/routers/` 已對齊本合約所有已知端點
+- [x] **後端路由對齊**：`backend/storysphere/api/routers/` 已對齊本合約所有已知端點
 - [x] **camelCase / snake_case 分區**：`api/schemas/` 輸出 camelCase；`domain/` 輸出 snake_case（見 `docs/type-generation.md`）
 - [x] **TaskStatus 欄位**：`subProgress`、`subTotal`、`subStage` 已加入（批次任務使用）
 - [x] **#9 GraphEdge 推斷欄位**：`inferred`、`confidence`、`inferredId` 已加入
 - [x] **#14 張力分析系列**：專用 polling pattern 已實作（非走 #8）
-- [x] **#15d-#15h 象徵意象進階分析**：SEP + LLM 詮釋 + HITL 審核已實作（`src/storysphere/api/routers/symbols.py`）
+- [x] **#15d-#15h 象徵意象進階分析**：SEP + LLM 詮釋 + HITL 審核已實作（`backend/storysphere/api/routers/symbols.py`）
 - [x] **#16a VoiceProfile**：GET lazy 生成（無 404 表示未生成），DELETE 清快取；無另外的 POST trigger
 - [x] **#18c KG 遷移**：直接回傳 TaskStatus，polling 走 #18d（非走 #8）
-- [x] **#20 系列 `/analysis` 路由**：character + event 非同步深度分析，各有專用 polling（`src/storysphere/api/routers/analysis.py`）
-- [x] **#21 系列 `/narrative` 路由**：Kernel/Satellite 分類 + LLM 精煉 + Hero's Journey + Genette 時間序（`src/storysphere/api/routers/narrative.py`）
+- [x] **#20 系列 `/analysis` 路由**：character + event 非同步深度分析，各有專用 polling（`backend/storysphere/api/routers/analysis.py`）
+- [x] **#21 系列 `/narrative` 路由**：Kernel/Satellite 分類 + LLM 精煉 + Hero's Journey + Genette 時間序（`backend/storysphere/api/routers/narrative.py`）
   - 2026-06-01：#21k / #21l 加 `response_model=NarrativeStructure`，#21j 加 `response_model=list[KernelSpineEvent]`（新增 schema），讓 `generated.ts` 取得 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。回傳 JSON shape 不變（皆為既有 snake_case domain dump）。前端封裝於 `frontend/src/api/narrative.ts`，頁面為 `/books/:bookId/narrative`（B-045）。
 - [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
 - [x] **#22a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）

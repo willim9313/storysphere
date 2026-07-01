@@ -411,15 +411,15 @@ class HeroJourneyStage(BaseModel):
 
 - [x] **[B-031]** Event 節點敘事學欄位預留（`narrative_weight` + `story_time`）✅ 完成
   - 已與 B-023 張力欄位合併為同一次 migration
-  - 實作：`src/storysphere/domain/events.py` EventNode 新增 `narrative_weight`、`narrative_weight_source`、`story_time`、`story_time_hint`
+  - 實作：`backend/storysphere/domain/events.py` EventNode 新增 `narrative_weight`、`narrative_weight_source`、`story_time`、`story_time_hint`
 - [x] **[B-032]** Ingestion prompt 時間線索提取預留 ✅ 完成
-  - 實作：`src/storysphere/services/extraction_service.py` — `story_time_hint` 已在 Event 提取 prompt 中
+  - 實作：`backend/storysphere/services/extraction_service.py` — `story_time_hint` 已在 Event 提取 prompt 中
 
 ### 中期（本模組原型實作）
 
 - [x] **[B-033]** Kernel/Satellite 第一階段：摘要啟發式分類 ✅ 完成
-  - 實作：`src/storysphere/domain/narrative.py`（NarrativeStructure、HeroJourneyStage、ProppFunctionRef、KernelSatelliteResult）
-  - 實作：`src/storysphere/services/narrative_service.py` — `classify_by_heuristic(document_id)`、`get_kernel_spine(document_id)`
+  - 實作：`backend/storysphere/domain/narrative.py`（NarrativeStructure、HeroJourneyStage、ProppFunctionRef、KernelSatelliteResult）
+  - 實作：`backend/storysphere/services/narrative_service.py` — `classify_by_heuristic(document_id)`、`get_kernel_spine(document_id)`
 - [x] **[B-034]** Kernel/Satellite 第二階段：LLM 細化分類 ✅ 完成
   - 實作：`NarrativeService.refine_with_llm(document_id)` — 對 satellite 事件進行 LLM 二次判斷
   - 衝突解決：LLM 優先，分歧以 WARNING 記錄供人工審核

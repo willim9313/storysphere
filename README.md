@@ -51,7 +51,7 @@ StorySphere ingests novels (PDF / DOCX), runs a multi-stage ETL pipeline to extr
 └────────────────────────┬────────────────────────────────────────┘
                          │  HTTP / WebSocket
 ┌────────────────────────▼────────────────────────────────────────┐
-│                    FastAPI  (src/storysphere/api/)              │
+│                    FastAPI  (backend/storysphere/api/)              │
 │  /books  /entities  /relations  /search  /analysis             │
 │  /narrative  /tension  /symbols  /factions  /unraveling        │
 │  /kg_settings  /tasks  /metrics  /token-usage                  │
@@ -91,7 +91,7 @@ Chat Agent           Analysis Agent        Ingestion Workflow
 
 ```
 storysphere/
-├── src/
+├── backend/
 │   ├── api/               # FastAPI routers, schemas, WebSocket managers
 │   ├── agents/
 │   │   ├── chat_agent.py       # LangGraph streaming chat agent（暫停中）
@@ -325,7 +325,7 @@ SymbolDiscoveryPipeline
 
 ## Monitoring / 監控
 
-`src/storysphere/core/metrics.py` — `MetricsCollector` singleton（stdlib-only，thread-safe）
+`backend/storysphere/core/metrics.py` — `MetricsCollector` singleton（stdlib-only，thread-safe）
 
 - 記錄：工具選擇、工具執行、快取事件、Agent 查詢、LLM 呼叫
 - 統計：P50 / P95 / P99 latency、success rate、cache hit rate
@@ -341,7 +341,7 @@ SymbolDiscoveryPipeline
 uv run pytest
 
 # Run with coverage
-uv run pytest --cov=src/storysphere --cov-report=term-missing
+uv run pytest --cov=backend/storysphere --cov-report=term-missing
 
 # Skip integration tests (no API key required)
 uv run pytest -m "not integration"

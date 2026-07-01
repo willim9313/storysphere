@@ -458,7 +458,7 @@ TensionTheme 合成
 
 - [ ] **[B-023]** Event 節點張力欄位強化（ingestion prompt 設計 + schema migration）
   - 前置依賴：無（修改 ingestion pipeline，與其他張力模組工作無依賴）
-  - 預期產出：更新 `src/storysphere/domain/models.py` EventNode schema + `src/storysphere/pipelines/entity_extractor.py` 的提取 prompt，新 Event 節點含 `tension_signal` / `emotional_intensity` / `emotional_valence`
+  - 預期產出：更新 `backend/storysphere/domain/models.py` EventNode schema + `backend/storysphere/pipelines/entity_extractor.py` 的提取 prompt，新 Event 節點含 `tension_signal` / `emotional_intensity` / `emotional_valence`
 - [ ] **[B-024]** Concept 節點 surface/inferred 分類強化（ingestion + KG schema）
   - 前置依賴：無（可與 B-023 並行）
   - 預期產出：更新 ConceptNode schema，ingestion 時 NER 結果標記 `extraction_method="ner"`
@@ -468,10 +468,10 @@ TensionTheme 合成
 
 - [ ] **[B-025]** Pre-Analysis Step：Inferred Concept 節點產生流程
   - 前置依賴：B-024
-  - 預期產出：`src/storysphere/pipelines/concept_inference.py`，LLM 從候選段落群推斷 Concept 節點，帶 `inferred_by` / `confidence` 欄位
+  - 預期產出：`backend/storysphere/pipelines/concept_inference.py`，LLM 從候選段落群推斷 Concept 節點，帶 `inferred_by` / `confidence` 欄位
 - [ ] **[B-026]** TEU Domain Model + 組裝 Pipeline（模式 B 優先）
   - 前置依賴：B-023, B-024, B-025
-  - 預期產出：`src/storysphere/domain/tension.py`（TEU / TensionPole schema）+ `src/storysphere/services/tension_service.py`（模式 B：單 Event 觸發）
+  - 預期產出：`backend/storysphere/domain/tension.py`（TEU / TensionPole schema）+ `backend/storysphere/services/tension_service.py`（模式 B：單 Event 觸發）
 - [ ] **[B-027 前置]** 設計並測試 TensionLine grouping 的自動化演算法（向量距離 vs LLM 判斷評估）
 
 ### 長期（完整模組）

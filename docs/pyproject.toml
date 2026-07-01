@@ -104,12 +104,12 @@ minversion = "8.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=src/storysphere",
+    "--cov=backend/storysphere",
     "--cov-report=term-missing",
     "--cov-report=html",
 ]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["backend"]
 asyncio_mode = "auto"
 
 # ========== MyPy Configuration ==========
@@ -126,7 +126,7 @@ disallow_untyped_defs = false
 
 # ========== Coverage Configuration ==========
 [tool.coverage.run]
-source = ["src/storysphere"]
+source = ["backend/storysphere"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",

@@ -144,7 +144,7 @@ unraveling.layer.4                 "全書合成"
 
 ### 後端
 
-- `src/storysphere/api/routers/unraveling.py` — 新增 `#19b` endpoint + helper（不影響 `#19`）
+- `backend/storysphere/api/routers/unraveling.py` — 新增 `#19b` endpoint + helper（不影響 `#19`）
 - `tests/api/test_unraveling.py` — 補測試（happy path / 404 / 各 nodeId 計算正確）
 
 ### 前端

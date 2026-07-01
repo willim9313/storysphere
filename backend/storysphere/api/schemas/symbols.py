@@ -1,6 +1,6 @@
 """API response schemas for symbolic imagery endpoints.
 
-Uses snake_case (no alias_generator) following src/api/schemas/entity.py convention.
+Uses snake_case (no alias_generator) following backend/storysphere/api/schemas/entity.py convention.
 """
 
 from __future__ import annotations

@@ -39,7 +39,7 @@
 
 ### 3.1 後端
 
-**單筆觸發** `src/storysphere/api/routers/books.py:1510-1534`：
+**單筆觸發** `backend/storysphere/api/routers/books.py:1510-1534`：
 ```
 POST /books/:bookId/entities/:entityId/analyze
   → background_tasks.add_task(_run_entity_analysis, ...)
@@ -49,12 +49,12 @@ POST /books/:bookId/entities/:entityId/analyze
   → task_store.set_completed(task_id, result=result.model_dump())
 ```
 
-**Cache key**（`src/storysphere/api/routers/books.py:1455`）：
+**Cache key**（`backend/storysphere/api/routers/books.py:1455`）：
 ```python
 AnalysisCache.make_key("character", book_id, entity.name)  # 注意是 entity.name 不是 entity.id
 ```
 
-**事件批次範本** `src/storysphere/api/routers/books.py:1813-1919`：
+**事件批次範本** `backend/storysphere/api/routers/books.py:1813-1919`：
 - `_run_batch_event_analysis`：迭代 events、cache hit skip、否則呼叫 agent、逐筆 `task_store.set_progress`
 - `POST /books/:bookId/events/analyze-all`：202 回 `taskId`
 - 完成結果 `{progress, total, failed, skipped}`
@@ -142,7 +142,7 @@ AnalysisCache.make_key("character", book_id, entity.name)  # 注意是 entity.na
 ## 5. 預計修改檔案清單
 
 ### 後端
-- `src/storysphere/api/routers/books.py` — 新增 `_run_batch_entity_analysis` 與 `trigger_batch_entity_analysis`
+- `backend/storysphere/api/routers/books.py` — 新增 `_run_batch_entity_analysis` 與 `trigger_batch_entity_analysis`
 - `tests/api/test_character_analysis.py`（若不存在則新建）或 `tests/api/test_books.py` — 新端點測試
 
 ### 前端
@@ -161,8 +161,8 @@ AnalysisCache.make_key("character", book_id, entity.name)  # 注意是 entity.na
 - `docs/API_CONTRACT.md` — 新增 #7h 段落，commit 標 `[api-contract updated]`
 
 **不會動的檔案**：
-- `src/storysphere/services/analysis_service.py`（`analyze_character` 簽章不變）
-- `src/storysphere/services/analysis_models.py`
+- `backend/storysphere/services/analysis_service.py`（`analyze_character` 簽章不變）
+- `backend/storysphere/services/analysis_models.py`
 - React Query key 結構
 - 事件分析頁邏輯（panel signature 向後相容 → 不影響）
 

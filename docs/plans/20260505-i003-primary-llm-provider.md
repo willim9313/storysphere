@@ -55,7 +55,7 @@ LOCAL_LLM_MODEL=     LOCAL_LLM_BASE_URL=http://localhost:11434/v1
 
 ## 修改方案
 
-### 1. `src/storysphere/config/settings.py`
+### 1. `backend/storysphere/config/settings.py`
 
 新增欄位：
 
@@ -65,7 +65,7 @@ primary_llm_provider: Literal["gemini", "openai", "anthropic", "local"] = "gemin
 
 ---
 
-### 2. `src/storysphere/core/llm_client.py`
+### 2. `backend/storysphere/core/llm_client.py`
 
 #### `_resolve_primary()` — 核心修改
 

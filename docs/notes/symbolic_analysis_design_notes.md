@@ -190,10 +190,10 @@
 
 - [ ] **[B-018]** 設計 `ImagerEntity` 的 Domain Model 和 Pydantic Schema
   - 前置依賴：B-017 完成（策略確定後才能設計 schema）
-  - 預期產出：`src/storysphere/domain/imagery.py`，定義 `ImagerEntity`, `SymbolOccurrence`, `SymbolCluster`
+  - 預期產出：`backend/storysphere/domain/imagery.py`，定義 `ImagerEntity`, `SymbolOccurrence`, `SymbolCluster`
 - [ ] **[B-019]** 實作第一層：候選符號發現 Pipeline（統計為主）
   - 前置依賴：B-018
-  - 預期產出：`src/storysphere/pipelines/symbol_discovery.py`
+  - 預期產出：`backend/storysphere/pipelines/symbol_discovery.py`
 - [ ] **[B-020 前置]** 驗證共現網絡的視覺化是否對分析者有用
 
 ### 長期（完整模組）

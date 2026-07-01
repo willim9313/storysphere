@@ -62,7 +62,7 @@ standard 模式下應拋明確錯誤，不繼續。
 
 ## 修改方案
 
-### 1. `src/storysphere/config/settings.py`
+### 1. `backend/storysphere/config/settings.py`
 
 在檔案頂部補 logger：
 ```python
@@ -104,7 +104,7 @@ def enforce_lightweight_constraints(self) -> "Settings":
 
 ---
 
-### 2. `src/storysphere/services/vector_service.py`
+### 2. `backend/storysphere/services/vector_service.py`
 
 **修改 `__init__` 的最後 `else` 分支**（`client` 注入與 `in_memory` 兩條短路維持不變，不動）：
 
@@ -137,7 +137,7 @@ else:
 
 ---
 
-### 3. `src/storysphere/api/deps.py`
+### 3. `backend/storysphere/api/deps.py`
 
 `get_vector_service()` 改為 singleton，確保整個 process 只有一個 `VectorService` 實例：
 
@@ -155,7 +155,7 @@ def get_vector_service() -> "VectorService":
 
 ---
 
-### 4. `src/storysphere/workflows/ingestion.py`
+### 4. `backend/storysphere/workflows/ingestion.py`
 
 **移除 `_build_qdrant_client()`**，改為注入或取得 `VectorService` singleton：
 
@@ -182,7 +182,7 @@ def __init__(
 
 ---
 
-### 5. `src/storysphere/pipelines/feature_extraction/pipeline.py`
+### 5. `backend/storysphere/pipelines/feature_extraction/pipeline.py`
 
 `FeatureExtractionPipeline.__init__` 的 `qdrant_client` 參數改為接受 `VectorService`（或保持向下相容接受兩者，實際使用改用 `VectorService`）：
 
@@ -253,11 +253,11 @@ QDRANT_LOCAL_PATH=./data/qdrant_local
 
 | 檔案 | 動作 |
 |------|------|
-| `src/storysphere/config/settings.py` | 新增 `deploy_mode`、`qdrant_local_path`、derived properties、model_validator |
-| `src/storysphere/services/vector_service.py` | `__init__` 最後 else 分支改為依 `qdrant_mode` 分路 |
-| `src/storysphere/api/deps.py` | `get_vector_service()` 改為 `lru_cache` singleton |
-| `src/storysphere/workflows/ingestion.py` | 移除 `_build_qdrant_client()`；新增 `vector_service` 參數 |
-| `src/storysphere/pipelines/feature_extraction/pipeline.py` | `_upsert_to_qdrant()` 改用 `VectorService` |
+| `backend/storysphere/config/settings.py` | 新增 `deploy_mode`、`qdrant_local_path`、derived properties、model_validator |
+| `backend/storysphere/services/vector_service.py` | `__init__` 最後 else 分支改為依 `qdrant_mode` 分路 |
+| `backend/storysphere/api/deps.py` | `get_vector_service()` 改為 `lru_cache` singleton |
+| `backend/storysphere/workflows/ingestion.py` | 移除 `_build_qdrant_client()`；新增 `vector_service` 參數 |
+| `backend/storysphere/pipelines/feature_extraction/pipeline.py` | `_upsert_to_qdrant()` 改用 `VectorService` |
 | `.env.example` | 新增 `DEPLOY_MODE`、`QDRANT_LOCAL_PATH` |
 
 ---
