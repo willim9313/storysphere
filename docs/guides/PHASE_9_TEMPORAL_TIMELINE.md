@@ -123,7 +123,7 @@ DAG 建構後可用此驗證機制過濾矛盾邊。
 
 ### 4.1 Event 擴充欄位
 
-**檔案**：`src/domain/events.py`
+**檔案**：`src/storysphere/domain/events.py`
 
 ```python
 class NarrativeMode(str, Enum):
@@ -166,7 +166,7 @@ class Event(BaseModel):
 
 ### 4.2 TemporalRelation（全新物件）
 
-**檔案**：`src/domain/temporal.py`（新建）
+**檔案**：`src/storysphere/domain/temporal.py`（新建）
 
 ```python
 from enum import Enum
@@ -345,7 +345,7 @@ src/
 
 ### 7.2 Ingestion Workflow 擴充
 
-**檔案**：`src/workflows/ingestion.py`
+**檔案**：`src/storysphere/workflows/ingestion.py`
 
 ```
 現有步驟：
@@ -391,23 +391,23 @@ Event.chronological_rank（寫回）
 
 | 檔案 | 說明 |
 |------|------|
-| `src/domain/temporal.py` | `TemporalRelation`, `TemporalRelationType` |
-| `src/services/global_timeline_service.py` | DAG 建構、cycle 解決、rank 計算 |
-| `src/agents/timeline_agent.py` | Phase 2 LLM 編排，含分批處理 |
-| `src/pipelines/temporal_pipeline.py` | Ingestion 步驟 6 的 pipeline 包裝 |
-| `src/tools/graph_tools/get_global_timeline.py` | 全域時間線查詢 Tool |
+| `src/storysphere/domain/temporal.py` | `TemporalRelation`, `TemporalRelationType` |
+| `src/storysphere/services/global_timeline_service.py` | DAG 建構、cycle 解決、rank 計算 |
+| `src/storysphere/agents/timeline_agent.py` | Phase 2 LLM 編排，含分批處理 |
+| `src/storysphere/pipelines/temporal_pipeline.py` | Ingestion 步驟 6 的 pipeline 包裝 |
+| `src/storysphere/tools/graph_tools/get_global_timeline.py` | 全域時間線查詢 Tool |
 | `tests/services/test_global_timeline_service.py` | 純演算法測試（不含 LLM） |
 
 ### 修改
 
 | 檔案 | 修改內容 |
 |------|---------|
-| `src/domain/events.py` | 加入 `NarrativeMode`、4 個新欄位 |
-| `src/services/extraction_service.py` | Phase 1 prompt 擴充，解析新欄位 |
-| `src/services/kg_service.py` | 支援按 `chronological_rank` 排序；儲存 TemporalRelation |
-| `src/workflows/ingestion.py` | 加入步驟 6（TemporalPipeline） |
-| `src/tools/graph_tools/get_entity_timeline.py` | 新增 `sort_by` 參數（`narrative` / `chronological`） |
-| `src/api/routers/books.py` | 新增 `GET /books/{id}/timeline` |
+| `src/storysphere/domain/events.py` | 加入 `NarrativeMode`、4 個新欄位 |
+| `src/storysphere/services/extraction_service.py` | Phase 1 prompt 擴充，解析新欄位 |
+| `src/storysphere/services/kg_service.py` | 支援按 `chronological_rank` 排序；儲存 TemporalRelation |
+| `src/storysphere/workflows/ingestion.py` | 加入步驟 6（TemporalPipeline） |
+| `src/storysphere/tools/graph_tools/get_entity_timeline.py` | 新增 `sort_by` 參數（`narrative` / `chronological`） |
+| `src/storysphere/api/routers/books.py` | 新增 `GET /books/{id}/timeline` |
 
 ---
 
@@ -489,8 +489,8 @@ Response: 現有 TimelineEntry 格式，加入：
 ## 11. 實作路徑
 
 ### Step 1：純演算法層（無 LLM，可獨立測試）
-- 新建 `src/domain/temporal.py`
-- 擴充 `src/domain/events.py`
+- 新建 `src/storysphere/domain/temporal.py`
+- 擴充 `src/storysphere/domain/events.py`
 - 實作 `GlobalTimelineService`（build_dag、resolve_cycles、compute_ranks）
 - 撰寫單元測試（手動構造假事件與假 TemporalRelation 驗證）
 

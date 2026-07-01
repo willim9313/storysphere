@@ -100,8 +100,8 @@
 2. 結構化輸出失敗 → Pydantic + Retry (3次)
 3. 工具執行失敗 → 超時管理 + 降級
 4. LLM 調用失敗 → 多提供商備份
-5. JSON 解析脆弱性 → 4 步 fallback chain（✅ 已移植至 `src/core/utils/output_extractor.py`）
-6. Prompt Injection → DataSanitizer（✅ 已移植至 `src/core/utils/data_sanitizer.py`）
+5. JSON 解析脆弱性 → 4 步 fallback chain（✅ 已移植至 `src/storysphere/core/utils/output_extractor.py`）
+6. Prompt Injection → DataSanitizer（✅ 已移植至 `src/storysphere/core/utils/data_sanitizer.py`）
 
 📄 [完整版](appendix/ADR_007_FULL.md)
 

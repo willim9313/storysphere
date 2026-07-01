@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import networkx as nx
 
-from domain.entities import Entity, EntityType
-from domain.events import Event, EventType
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.domain.events import Event, EventType
 from tests.api.conftest import ALICE, BOB
 
 

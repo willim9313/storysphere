@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agents.chat_agent import ChatAgent
-from agents.chat_agent_base import build_context_prompt
-from agents.states import ChatState
+from storysphere.agents.chat_agent import ChatAgent
+from storysphere.agents.chat_agent_base import build_context_prompt
+from storysphere.agents.states import ChatState
 
 
 @pytest.fixture
@@ -107,7 +107,7 @@ class TestChatAgentChat:
         state = ChatState()
 
         # Pattern recognizer should extract "Alice" and update entity state
-        from agents.pattern_recognizer import QueryPatternRecognizer
+        from storysphere.agents.pattern_recognizer import QueryPatternRecognizer
         match = agent._recognizer.recognize('Who is "Alice"?')
         if match and match.extracted_entities:
             for entity in match.extracted_entities:

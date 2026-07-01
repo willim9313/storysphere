@@ -6,7 +6,7 @@ import sys
 sys.path.insert(0, "src")
 
 import pytest
-from domain.documents import Paragraph, ParagraphRole, extract_body_text
+from storysphere.domain.documents import Paragraph, ParagraphRole, extract_body_text
 
 
 # ── extract_body_text ─────────────────────────────────────────────────────────

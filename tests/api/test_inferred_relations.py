@@ -7,13 +7,13 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-from domain.inferred_relations import (
+from storysphere.domain.inferred_relations import (
     INFERRED_TO_CANONICAL,
     InferredRelation,
     InferredRelationType,
     promote_inferred_type,
 )
-from domain.relations import Relation, RelationType
+from storysphere.domain.relations import Relation, RelationType
 
 
 # ── promote_inferred_type — pure function tests ──────────────────────────────
@@ -85,8 +85,8 @@ def inferred_client(mock_doc):
 
     sys.path.insert(0, "src")
 
-    from api.main import create_app
-    from api import deps
+    from storysphere.api.main import create_app
+    from storysphere.api import deps
 
     app = create_app()
 

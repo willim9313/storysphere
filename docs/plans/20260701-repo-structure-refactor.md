@@ -116,8 +116,8 @@ storysphere/
 
 **影響檔案：**
 - code 預設值（8+ 處）：`./data/*.db`、`./storysphere.db`、`./data/qdrant_local`、`./data/knowledge_graph.json` → `./var/...`
-  - `src/config/settings.py`（database_url、qdrant_local_path、kg_persistence_path、analysis_cache、token_usage、inferred_relations、tasks、ingestion_checkpoints）
-  - `src/core/token_store.py`、`src/api/store.py`、`src/services/analysis_cache.py`、`src/services/symbol_service.py`、`src/services/link_prediction_store.py`
+  - `src/storysphere/config/settings.py`（database_url、qdrant_local_path、kg_persistence_path、analysis_cache、token_usage、inferred_relations、tasks、ingestion_checkpoints）
+  - `src/storysphere/core/token_store.py`、`src/storysphere/api/store.py`、`src/storysphere/services/analysis_cache.py`、`src/storysphere/services/symbol_service.py`、`src/storysphere/services/link_prediction_store.py`
 - `.env.example`（DATABASE_URL、QDRANT_LOCAL_PATH、KG_PERSISTENCE_PATH、TASK_STORE_DB_PATH…）
 - `.gitignore`（`data/uploads`、`data/processed`… → `var/...`；`*.db` 規則保留）
 - 實體搬移現有 runtime 檔（本機操作，非 git）：`data/` → `var/`、`storysphere.db` → `var/`

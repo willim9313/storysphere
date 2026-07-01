@@ -11,10 +11,10 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
-from domain.entities import Entity, EntityType
-from domain.events import Event, EventType
-from domain.relations import Relation, RelationType
-from services.query_models import (
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.domain.events import Event, EventType
+from storysphere.domain.relations import Relation, RelationType
+from storysphere.services.query_models import (
     DocumentSummary,
     PathNode,
     RelationPath,
@@ -24,7 +24,7 @@ from services.query_models import (
     SubgraphNode,
     VectorSearchResult,
 )
-from services.analysis_models import (
+from storysphere.services.analysis_models import (
     ArcSegment,
     ArchetypeResult,
     CEPResult,
@@ -110,7 +110,7 @@ def mock_vector():
 
 @pytest.fixture
 def mock_doc():
-    from domain.documents import Chapter, Document, FileType, Paragraph  # noqa: PLC0415
+    from storysphere.domain.documents import Chapter, Document, FileType, Paragraph  # noqa: PLC0415
 
     paras = [
         Paragraph(id="p1", text="Alice entered the garden.", chapter_number=1, position=0),
@@ -191,8 +191,8 @@ def client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_agent)
 
     sys.path.insert(0, "src")
 
-    from api.main import create_app
-    from api import deps
+    from storysphere.api.main import create_app
+    from storysphere.api import deps
 
     app = create_app()
 

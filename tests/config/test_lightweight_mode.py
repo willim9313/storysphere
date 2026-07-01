@@ -18,7 +18,7 @@ import pytest
 
 sys.path.insert(0, "src")
 
-from config.settings import Settings  # noqa: E402
+from storysphere.config.settings import Settings  # noqa: E402
 
 # ── Settings: deploy_mode + constraints ──────────────────────────────────────
 
@@ -73,7 +73,7 @@ class TestVectorServiceLightweightInit:
     """VectorService picks the local-file Qdrant client when qdrant_mode='local'."""
 
     def test_local_mode_creates_local_path_client(self, tmp_path):
-        from services import vector_service as vs_mod
+        from storysphere.services import vector_service as vs_mod
 
         local_dir = tmp_path / "qdrant_local"
         settings = Settings(
@@ -81,7 +81,7 @@ class TestVectorServiceLightweightInit:
             qdrant_local_path=str(local_dir),
         )
 
-        with patch("config.settings.get_settings", return_value=settings), patch.object(
+        with patch("storysphere.config.settings.get_settings", return_value=settings), patch.object(
             vs_mod, "QdrantClient"
         ) as fake_client:
             vs_mod.VectorService()
@@ -95,7 +95,7 @@ class TestVectorServiceLightweightInit:
         assert local_dir.exists()
 
     def test_standard_mode_uses_remote_url_client_and_validates(self):
-        from services import vector_service as vs_mod
+        from storysphere.services import vector_service as vs_mod
 
         settings = Settings(
             deploy_mode="standard",
@@ -107,7 +107,7 @@ class TestVectorServiceLightweightInit:
         # standard mode calls get_collections() to validate connectivity
         fake_instance.get_collections.return_value = []
 
-        with patch("config.settings.get_settings", return_value=settings), patch.object(
+        with patch("storysphere.config.settings.get_settings", return_value=settings), patch.object(
             vs_mod, "QdrantClient", return_value=fake_instance
         ) as fake_client:
             vs_mod.VectorService()
@@ -116,13 +116,13 @@ class TestVectorServiceLightweightInit:
             fake_instance.get_collections.assert_called_once()
 
     def test_standard_mode_raises_when_qdrant_unreachable(self):
-        from services import vector_service as vs_mod
+        from storysphere.services import vector_service as vs_mod
 
         settings = Settings(deploy_mode="standard", qdrant_url="http://nope:6333")
         fake_instance = MagicMock()
         fake_instance.get_collections.side_effect = ConnectionError("refused")
 
-        with patch("config.settings.get_settings", return_value=settings), patch.object(
+        with patch("storysphere.config.settings.get_settings", return_value=settings), patch.object(
             vs_mod, "QdrantClient", return_value=fake_instance
         ), pytest.raises(RuntimeError, match="cannot connect to Qdrant"):
             vs_mod.VectorService()

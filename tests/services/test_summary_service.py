@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from services.summary_service import SummaryService
+from storysphere.services.summary_service import SummaryService
 
 
 @pytest.fixture
@@ -24,7 +24,7 @@ def service(mock_llm):
 class TestSummarizeChapter:
     @pytest.mark.asyncio
     async def test_returns_summary_string(self, service):
-        with patch("config.settings.get_settings") as mock_settings:
+        with patch("storysphere.config.settings.get_settings") as mock_settings:
             mock_settings.return_value.summary_max_chapter_chars = 10000
             result = await service.summarize_chapter("Chapter text here.", 1, "Title")
 
@@ -32,7 +32,7 @@ class TestSummarizeChapter:
 
     @pytest.mark.asyncio
     async def test_truncates_text(self, service, mock_llm):
-        with patch("config.settings.get_settings") as mock_settings:
+        with patch("storysphere.config.settings.get_settings") as mock_settings:
             mock_settings.return_value.summary_max_chapter_chars = 5
             await service.summarize_chapter("Long text that gets truncated.", 1)
 
@@ -44,7 +44,7 @@ class TestSummarizeChapter:
 
     @pytest.mark.asyncio
     async def test_includes_title_in_header(self, service, mock_llm):
-        with patch("config.settings.get_settings") as mock_settings:
+        with patch("storysphere.config.settings.get_settings") as mock_settings:
             mock_settings.return_value.summary_max_chapter_chars = 10000
             await service.summarize_chapter("Text.", 3, "The Storm")
 

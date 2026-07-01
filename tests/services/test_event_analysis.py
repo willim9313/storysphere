@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from services.analysis_models import (
+from storysphere.services.analysis_models import (
     CausalityAnalysis,
     EventAnalysisResult,
     EventCoverageMetrics,
@@ -18,7 +18,7 @@ from services.analysis_models import (
     ParticipantRole,
     ParticipantRoleType,
 )
-from services.analysis_service import AnalysisService
+from storysphere.services.analysis_service import AnalysisService
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
@@ -31,7 +31,7 @@ def _make_event(
     participants: list[str] | None = None,
     consequences: list[str] | None = None,
 ):
-    from domain.events import Event, EventType
+    from storysphere.domain.events import Event, EventType
 
     return Event(
         id=event_id,
@@ -46,7 +46,7 @@ def _make_event(
 
 
 def _make_entity(entity_id: str = "ent-1", name: str = "Alice"):
-    from domain.entities import Entity, EntityType
+    from storysphere.domain.entities import Entity, EntityType
 
     return Entity(id=entity_id, name=name, entity_type=EntityType.CHARACTER)
 

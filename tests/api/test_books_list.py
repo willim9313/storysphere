@@ -18,7 +18,7 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, "src")
 
-from services.query_models import DocumentSummary  # noqa: E402
+from storysphere.services.query_models import DocumentSummary  # noqa: E402
 
 
 def _ds(book_id: str, title: str = "T") -> DocumentSummary:
@@ -28,8 +28,8 @@ def _ds(book_id: str, title: str = "T") -> DocumentSummary:
 @pytest.fixture
 def books_client(mock_kg, mock_vector, mock_analysis_agent, mock_chat_agent):
     """TestClient with a doc service that lists multiple books."""
-    from api import deps
-    from api.main import create_app
+    from storysphere.api import deps
+    from storysphere.api.main import create_app
 
     doc_svc = AsyncMock()
     # Five books — caller sets task_store entries as needed
@@ -65,7 +65,7 @@ def books_client(mock_kg, mock_vector, mock_analysis_agent, mock_chat_agent):
 
 def _attach_task(book_id: str, status: str) -> str:
     """Attach a task in `status` to `book_id` in the global task_store; return task_id."""
-    from api.store import task_store
+    from storysphere.api.store import task_store
 
     task_id = f"task-{uuid4()}"
     task_store.create(task_id)

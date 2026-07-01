@@ -1,6 +1,6 @@
 """Tests for services.analysis_models — Pydantic model validation."""
 
-from services.analysis_models import (
+from storysphere.services.analysis_models import (
     ArcSegment,
     ArchetypeResult,
     CEPResult,

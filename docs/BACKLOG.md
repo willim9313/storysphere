@@ -211,7 +211,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 - 輸出：per-chapter 的多維指標陣列，供前端視覺化
 
 **內容**:
-- `src/services/rhythm_service.py`：計算節奏指標
+- `src/storysphere/services/rhythm_service.py`：計算節奏指標
 - API 端點：`GET /books/:bookId/analysis/rhythm` — 返回章節節奏數據
 - 前端：深度分析頁新增「敘事節奏」tab，渲染多維折線圖（Recharts）
 - 可與情感溫度圖疊加顯示（同一 X 軸）
@@ -266,8 +266,8 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 - 本質上是「個人知識庫 + 觸發式推送」
 
 **內容**:
-- `src/domain/annotation.py`：`UserAnnotation` Pydantic model
-- `src/services/annotation_service.py`：標注的 CRUD + 提醒觸發邏輯
+- `src/storysphere/domain/annotation.py`：`UserAnnotation` Pydantic model
+- `src/storysphere/services/annotation_service.py`：標注的 CRUD + 提醒觸發邏輯
 - SQLite 存儲（沿用 `analysis_cache.py` 模式）
 - API 端點：
   - `POST /books/:bookId/annotations` — 建立標注
@@ -305,13 +305,13 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 - 章節快照模式（可選，需 F-02）：依 `valid_from_chapter` / `valid_to_chapter` 篩選關係邊，支援派系演化時序查詢
 
 **內容**:
-- `src/domain/faction.py`：`Faction`、`FactionRelation`、`FactionAnalysis` Pydantic models
+- `src/storysphere/domain/faction.py`：`Faction`、`FactionRelation`、`FactionAnalysis` Pydantic models
   ```
   Faction: id, label, member_ids, cohesion_score
   FactionRelation: source_faction_id, target_faction_id, cooperation, rivalry
   FactionAnalysis: factions, relations, unaffiliated_entity_ids, book_id, chapter (Optional)
   ```
-- `src/services/faction_service.py`：圖構建、社群偵測、凝聚力與派系間關係計算
+- `src/storysphere/services/faction_service.py`：圖構建、社群偵測、凝聚力與派系間關係計算
 - `KGService` 新增 `get_character_relations(book_id, chapter)` 查詢方法（若現有方法不足）
 - API 端點：
   - `GET /books/:bookId/analysis/factions` — 返回完整派系分析
@@ -350,8 +350,8 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 分支管理：版本控制概念，每條分支有 `id`、`parent_event_id`（分歧點）、`divergence_description`。
 
 **內容**:
-- `src/domain/whatif.py`：`WhatIfBranch`、`WhatIfEvent` Pydantic models
-- `src/services/whatif_service.py`：因果鏈傳播 + 一致性約束 + 分支生成
+- `src/storysphere/domain/whatif.py`：`WhatIfBranch`、`WhatIfEvent` Pydantic models
+- `src/storysphere/services/whatif_service.py`：因果鏈傳播 + 一致性約束 + 分支生成
 - API 端點：
   - `POST /books/:bookId/whatif` — 建立分歧點，觸發推演，返回 `task_id`
   - `GET /books/:bookId/whatif` — 列出所有分支
@@ -383,7 +383,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 - 輸出：帶 2D 座標的節點列表 + 帶權重的邊列表
 
 **內容**:
-- `src/services/thematic_map_service.py`：降維計算 + 共現矩陣
+- `src/storysphere/services/thematic_map_service.py`：降維計算 + 共現矩陣
 - API 端點：`GET /books/:bookId/analysis/thematic-map` — 返回節點座標與邊
 - 前端：深度分析頁新增「主題地圖」tab，以 Cytoscape.js（已引入）渲染語義散佈圖
 - 節點大小 = 全書出現頻率，邊粗細 = 共現強度，顏色 = 概念類型
@@ -410,8 +410,8 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 - 輸出：per-chapter 的視角標記 + 資訊不對稱節點列表
 
 **內容**:
-- `src/services/focalization_service.py`：視角分類 + 資訊不對稱計算
-- `src/domain/focalization.py`：`ChapterFocalization`、`InformationGap` models
+- `src/storysphere/services/focalization_service.py`：視角分類 + 資訊不對稱計算
+- `src/storysphere/domain/focalization.py`：`ChapterFocalization`、`InformationGap` models
 - API 端點：`GET /books/:bookId/analysis/focalization` — 返回全書視角分析
 - 前端：深度分析頁新增「敘事視角」tab，章節時間軸上標記視角類型 + 資訊不對稱熱點
 
@@ -463,7 +463,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 - 跨書比較：現有架構以 `book_id` 隔離，跨書查詢需新增 `cross_book` 查詢接口（`book_id=None` 則全庫查詢）
 
 **內容**:
-- `src/services/character_similarity_service.py`：特徵編碼 + 相似度計算
+- `src/storysphere/services/character_similarity_service.py`：特徵編碼 + 相似度計算
 - API 端點：
   - `GET /books/:bookId/entities/:entityId/similar-characters?scope=book|all` — 返回相似角色列表（附相似度分數）
 - 前端：角色分析頁新增「相似角色」區塊，可切換「本書內」/ 「跨書」範圍
@@ -498,9 +498,9 @@ CEP 的性格結構 + 原型標籤
 多角色聊天室：多個 Agent 實例並存，orchestrator 決定輪次（用戶指定角色 / 按對話自然流向），每個 Agent 的 persona 獨立。
 
 **內容**:
-- `src/agents/role_agent.py`：RoleAgent class，封裝 persona 建構 + 對話邏輯
-- `src/services/role_agent_service.py`：Session 管理、多角色 orchestration
-- `src/domain/role_session.py`：`RoleSession`、`RoleMessage`、`MultiRoleRoom` models
+- `src/storysphere/agents/role_agent.py`：RoleAgent class，封裝 persona 建構 + 對話邏輯
+- `src/storysphere/services/role_agent_service.py`：Session 管理、多角色 orchestration
+- `src/storysphere/domain/role_session.py`：`RoleSession`、`RoleMessage`、`MultiRoleRoom` models
 - SQLite 存儲：對話記錄（可掛回 KG 作為「平行事件」）
 - API 端點：
   - `POST /books/:bookId/role-sessions` — 建立角色對話 session（指定角色 + 章節時間點）
@@ -531,8 +531,8 @@ CEP 的性格結構 + 原型標籤
 - 生圖結果存入 `ImageAsset` 資料結構，與 entity_id 關聯
 
 **內容**:
-- `src/services/image_gen_service.py`：prompt 組裝 + API 調用 + 結果存儲
-- `src/domain/image_asset.py`：`ImageAsset`、`BookVisualStyle` models
+- `src/storysphere/services/image_gen_service.py`：prompt 組裝 + API 調用 + 結果存儲
+- `src/storysphere/domain/image_asset.py`：`ImageAsset`、`BookVisualStyle` models
 - 書籍設定：新增「視覺風格」設定欄位（書級）
 - API 端點：
   - `POST /books/:bookId/entities/:entityId/generate-image` — 觸發角色縮圖生成
@@ -585,9 +585,9 @@ CEP 的性格結構 + 原型標籤
 
 **內容**:
 - 前端：新增「創作工作坊」模式入口（與閱讀模式平行的使用路徑）
-- `src/pipelines/worldbuilding_ingestion.py`：接受結構化設定素材，走改版的 ingestion pipeline
-- `src/services/consistency_checker.py`：邏輯一致性圖查詢
-- `src/domain/worldbuilding.py`：`CharacterCard`、`LocationCard`、`EventSetting` models
+- `src/storysphere/pipelines/worldbuilding_ingestion.py`：接受結構化設定素材，走改版的 ingestion pipeline
+- `src/storysphere/services/consistency_checker.py`：邏輯一致性圖查詢
+- `src/storysphere/domain/worldbuilding.py`：`CharacterCard`、`LocationCard`、`EventSetting` models
 - API 端點：
   - `POST /worldbuilding` — 建立世界觀專案
   - `POST /worldbuilding/:projectId/entities` — 新增角色 / 地點設定
@@ -620,7 +620,7 @@ python -m cli.migrate standard-to-lightweight
 
 **修改範圍**:
 - 新增 `src/cli/` 目錄與 `migrate.py`
-- 接入 `src/services/kg_migration.py`（已有 NetworkX → Neo4j 路徑）
+- 接入 `src/storysphere/services/kg_migration.py`（已有 NetworkX → Neo4j 路徑）
 
 **前置依賴**: I-001（`deploy_mode` 設定必須先就位）
 

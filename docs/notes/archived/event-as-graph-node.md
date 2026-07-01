@@ -2,7 +2,7 @@
 
 ## 現況
 
-### 事件的資料結構 (`src/domain/events.py`)
+### 事件的資料結構 (`src/storysphere/domain/events.py`)
 
 ```
 Event:
@@ -66,11 +66,11 @@ EventType 有 10 種：plot, conflict, revelation, turning_point, meeting, battl
 
 | 檔案 | 用途 |
 |---|---|
-| `src/domain/events.py` | Event model 定義 |
-| `src/services/kg_service.py:147-162` | add_event / get_event |
-| `src/pipelines/knowledge_graph/pipeline.py:115-147` | 事件抽取流程 |
-| `src/api/routers/books.py:625-665` | graph endpoint |
-| `src/api/routers/books.py:761-814` | event analysis list endpoint |
+| `src/storysphere/domain/events.py` | Event model 定義 |
+| `src/storysphere/services/kg_service.py:147-162` | add_event / get_event |
+| `src/storysphere/pipelines/knowledge_graph/pipeline.py:115-147` | 事件抽取流程 |
+| `src/storysphere/api/routers/books.py:625-665` | graph endpoint |
+| `src/storysphere/api/routers/books.py:761-814` | event analysis list endpoint |
 | `frontend/src/api/types.ts` | GraphNode / EntityType types |
 | `frontend/src/components/graph/GraphCanvas.tsx` | 圖譜渲染 |
 | `frontend/src/components/graph/GraphToolbar.tsx` | 圖譜工具列 |

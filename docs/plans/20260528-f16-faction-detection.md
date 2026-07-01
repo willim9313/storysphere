@@ -47,17 +47,17 @@ FactionAnalysis: book_id, chapter?, factions[], relations[], unaffiliated_entity
 
 | 檔案 | 說明 |
 |------|------|
-| `src/domain/faction.py` | `Faction`、`FactionRelation`、`FactionAnalysis` Pydantic models（snake_case） |
-| `src/services/faction_service.py` | `FactionService.detect_factions(book_id, chapter?)` — 純圖計算，無 LLM |
-| `src/api/schemas/factions.py` | `FactionAnalysisResponse`（camelCase via `alias_generator=to_camel`） |
-| `src/api/routers/factions.py` | `GET /books/{book_id}/analysis/factions?chapter=<int>` |
+| `src/storysphere/domain/faction.py` | `Faction`、`FactionRelation`、`FactionAnalysis` Pydantic models（snake_case） |
+| `src/storysphere/services/faction_service.py` | `FactionService.detect_factions(book_id, chapter?)` — 純圖計算，無 LLM |
+| `src/storysphere/api/schemas/factions.py` | `FactionAnalysisResponse`（camelCase via `alias_generator=to_camel`） |
+| `src/storysphere/api/routers/factions.py` | `GET /books/{book_id}/analysis/factions?chapter=<int>` |
 
 ### 後端（修改檔案）
 
 | 檔案 | 修改項 |
 |------|--------|
-| `src/api/deps.py` | 新增 `get_faction_service()` (`@lru_cache(maxsize=1)`)、`FactionServiceDep` |
-| `src/api/main.py` | import `factions` router + `app.include_router(factions.router, prefix=prefix)` |
+| `src/storysphere/api/deps.py` | 新增 `get_faction_service()` (`@lru_cache(maxsize=1)`)、`FactionServiceDep` |
+| `src/storysphere/api/main.py` | import `factions` router + `app.include_router(factions.router, prefix=prefix)` |
 
 ### 前端（新增檔案）
 
@@ -81,7 +81,7 @@ FactionAnalysis: book_id, chapter?, factions[], relations[], unaffiliated_entity
 
 ## 詳細設計
 
-### `src/domain/faction.py`
+### `src/storysphere/domain/faction.py`
 ```python
 class Faction(BaseModel):
     id: str                       # "faction:0", "faction:1"...
@@ -105,7 +105,7 @@ class FactionAnalysis(BaseModel):
     unaffiliated_names: list[str]
 ```
 
-### `src/services/faction_service.py` 核心邏輯
+### `src/storysphere/services/faction_service.py` 核心邏輯
 
 ```python
 POSITIVE_TYPES = {RelationType.ALLY, RelationType.FAMILY,
@@ -203,7 +203,7 @@ class FactionService:
         )
 ```
 
-### `src/api/routers/factions.py`
+### `src/storysphere/api/routers/factions.py`
 ```
 GET /api/v1/books/{book_id}/analysis/factions?chapter=<int>
 ```
@@ -351,11 +351,11 @@ commit message 標註 `[api-contract updated]`。
 
 ```
 Phase 1（後端）：
-  src/domain/faction.py
-  src/services/faction_service.py
-  src/api/schemas/factions.py
-  src/api/routers/factions.py
-  src/api/deps.py + src/api/main.py
+  src/storysphere/domain/faction.py
+  src/storysphere/services/faction_service.py
+  src/storysphere/api/schemas/factions.py
+  src/storysphere/api/routers/factions.py
+  src/storysphere/api/deps.py + src/storysphere/api/main.py
   npm run gen:types
   tests/
 

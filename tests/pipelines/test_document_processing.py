@@ -12,13 +12,13 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from pipelines.document_processing.chapter_detector import (
+from storysphere.pipelines.document_processing.chapter_detector import (
     ChapterSpan,
     _is_inline_title,
     _match_heading,
     detect_chapters,
 )
-from pipelines.document_processing.chunker import chunk_segments
+from storysphere.pipelines.document_processing.chunker import chunk_segments
 
 
 # ── chapter_detector ────────────────────────────────────────────────────────
@@ -276,7 +276,7 @@ class TestChunkSegments:
 class TestDocumentProcessingPipeline:
     @pytest.mark.asyncio
     async def test_unsupported_extension_raises(self, tmp_path):
-        from pipelines.document_processing.pipeline import DocumentProcessingPipeline
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
 
         bad_file = tmp_path / "novel.xyz"
         bad_file.write_text("hello")
@@ -287,7 +287,7 @@ class TestDocumentProcessingPipeline:
 
     @pytest.mark.asyncio
     async def test_missing_file_raises(self, tmp_path):
-        from pipelines.document_processing.pipeline import DocumentProcessingPipeline
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
 
         pipeline = DocumentProcessingPipeline()
         with pytest.raises(FileNotFoundError):
@@ -311,7 +311,7 @@ class TestDocumentProcessingPipeline:
         wdoc.add_paragraph("The journey began at dawn. The path was steep and treacherous.")
         wdoc.save(str(doc_file))
 
-        from pipelines.document_processing.pipeline import DocumentProcessingPipeline
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
 
         pipeline = DocumentProcessingPipeline()
         result = await pipeline.run(doc_file)
@@ -327,7 +327,7 @@ class TestDocumentProcessingPipeline:
 class TestLoaderMeta:
     def test_load_pdf_extracts_author_and_title(self, tmp_path):
         """load_pdf reads /Author and /Title from PDF metadata."""
-        from pipelines.document_processing.loader import load_pdf
+        from storysphere.pipelines.document_processing.loader import load_pdf
 
         fake_pdf = tmp_path / "novel.pdf"
         fake_pdf.write_bytes(b"%PDF-1.4 stub")
@@ -348,7 +348,7 @@ class TestLoaderMeta:
 
     def test_load_pdf_handles_missing_metadata(self, tmp_path):
         """load_pdf returns None fields when PDF has no metadata."""
-        from pipelines.document_processing.loader import load_pdf
+        from storysphere.pipelines.document_processing.loader import load_pdf
 
         fake_pdf = tmp_path / "novel.pdf"
         fake_pdf.write_bytes(b"%PDF-1.4 stub")
@@ -383,7 +383,7 @@ class TestLoaderMeta:
         wdoc.add_paragraph("The story begins on a dark night.")
         wdoc.save(str(doc_file))
 
-        from pipelines.document_processing.loader import load_docx
+        from storysphere.pipelines.document_processing.loader import load_docx
 
         segments, meta = load_docx(doc_file)
 
@@ -405,7 +405,7 @@ class TestLoaderMeta:
         wdoc.add_paragraph("Some content here.")
         wdoc.save(str(doc_file))
 
-        from pipelines.document_processing.loader import load_docx
+        from storysphere.pipelines.document_processing.loader import load_docx
 
         _, meta = load_docx(doc_file)
 
@@ -420,8 +420,8 @@ class TestDocumentProcessingPipelineMeta:
     @pytest.mark.asyncio
     async def test_metadata_title_takes_priority_over_filename(self, tmp_path):
         """When PDF metadata has a title, it overrides the filename stem."""
-        from pipelines.document_processing.loader import DocumentMeta
-        from pipelines.document_processing.pipeline import DocumentProcessingPipeline
+        from storysphere.pipelines.document_processing.loader import DocumentMeta
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
 
         fake_pdf = tmp_path / "untitled_file.pdf"
         fake_pdf.write_bytes(b"%PDF-1.4 stub")
@@ -430,7 +430,7 @@ class TestDocumentProcessingPipelineMeta:
         segments = [(0, "Chapter 1"), (1, "It was the best of times.")]
 
         with patch(
-            "pipelines.document_processing.pipeline.DocumentProcessingPipeline._load_sync",
+            "storysphere.pipelines.document_processing.pipeline.DocumentProcessingPipeline._load_sync",
             return_value=(segments, meta),
         ):
             pipeline = DocumentProcessingPipeline()
@@ -442,8 +442,8 @@ class TestDocumentProcessingPipelineMeta:
     @pytest.mark.asyncio
     async def test_filename_stem_used_when_metadata_title_absent(self, tmp_path):
         """When metadata has no title, filename stem is used."""
-        from pipelines.document_processing.loader import DocumentMeta
-        from pipelines.document_processing.pipeline import DocumentProcessingPipeline
+        from storysphere.pipelines.document_processing.loader import DocumentMeta
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
 
         fake_pdf = tmp_path / "my_novel.pdf"
         fake_pdf.write_bytes(b"%PDF-1.4 stub")
@@ -452,7 +452,7 @@ class TestDocumentProcessingPipelineMeta:
         segments = [(0, "Chapter 1"), (1, "Once upon a time in a land far away.")]
 
         with patch(
-            "pipelines.document_processing.pipeline.DocumentProcessingPipeline._load_sync",
+            "storysphere.pipelines.document_processing.pipeline.DocumentProcessingPipeline._load_sync",
             return_value=(segments, meta),
         ):
             pipeline = DocumentProcessingPipeline()
@@ -464,8 +464,8 @@ class TestDocumentProcessingPipelineMeta:
     @pytest.mark.asyncio
     async def test_author_is_none_when_metadata_absent(self, tmp_path):
         """doc.author stays None when loader finds no author in metadata."""
-        from pipelines.document_processing.loader import DocumentMeta
-        from pipelines.document_processing.pipeline import DocumentProcessingPipeline
+        from storysphere.pipelines.document_processing.loader import DocumentMeta
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
 
         fake_pdf = tmp_path / "anonymous.pdf"
         fake_pdf.write_bytes(b"%PDF-1.4 stub")
@@ -474,7 +474,7 @@ class TestDocumentProcessingPipelineMeta:
         segments = [(0, "Chapter 1"), (1, "The protagonist walked slowly down the hall.")]
 
         with patch(
-            "pipelines.document_processing.pipeline.DocumentProcessingPipeline._load_sync",
+            "storysphere.pipelines.document_processing.pipeline.DocumentProcessingPipeline._load_sync",
             return_value=(segments, meta),
         ):
             pipeline = DocumentProcessingPipeline()

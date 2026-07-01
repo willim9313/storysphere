@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from core.metrics import MetricsCollector, get_metrics
+from storysphere.core.metrics import MetricsCollector, get_metrics
 
 
 # ---------------------------------------------------------------------------

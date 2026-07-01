@@ -38,8 +38,8 @@
 3. Google Fonts 引入（Libre Baskerville, Noto Sans TC, DM Sans）
 4. `src/styles/tokens.css` — 所有 CSS variables（Light + Dark mode）
 5. `ThemeContext` — dark mode 切換，掛 `data-theme` 到 `<html>`
-6. `src/api/client.ts` — axios/fetch base URL + 所有 API 函數
-7. `src/api/queryClient.ts` — TanStack Query QueryClient 設定
+6. `src/storysphere/api/client.ts` — axios/fetch base URL + 所有 API 函數
+7. `src/storysphere/api/queryClient.ts` — TanStack Query QueryClient 設定
 8. App shell：Layout 元件、Router 設定（5 條路由）
 
 **驗收**：`npm run dev` 可啟動，路由可切換，dark mode 可切換，設計 token 套用正確。

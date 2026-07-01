@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import pytest
 
-from domain.entities import Entity, EntityType
-from domain.relations import Relation, RelationType
-from services.faction_service import FactionService
-from services.kg_service import KGService
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.domain.relations import Relation, RelationType
+from storysphere.services.faction_service import FactionService
+from storysphere.services.kg_service import KGService
 
 BOOK_ID = "book-1"
 

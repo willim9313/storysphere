@@ -1,0 +1,626 @@
+"""Ingestion workflow — orchestrates the full ETL from file to populated KG.
+
+Pipeline order:
+    1. DocumentProcessingPipeline  → Document (chapters + paragraphs)
+    2. SummarizationPipeline       → chapter summaries + book summary
+    3. FeatureExtractionPipeline   → paragraph embeddings → Qdrant + keywords
+    4. KnowledgeGraphPipeline      → entities + relations + events → KGService
+    5. SymbolDiscoveryPipeline     → imagery / symbols
+    6. DocumentService.save_document() → persist document to SQLite
+    7. KGService.save()            → persist KG to disk
+
+The workflow is split into two phases for LangGraph HITL chapter review:
+  - run_phase1(): Parse → language detect → save document
+  - run_phase2(doc_id): Summarization → KG → finalize
+  - run(): Backward-compat wrapper that calls phase1 + phase2 directly.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import logging
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass, field
+from pathlib import Path
+
+from storysphere.api.schemas.common import MurmurEvent
+from storysphere.core.tracing import update_span as _lf_update_span
+from storysphere.domain.documents import Chapter, Document, StepStatus
+from storysphere.domain.timeline import TimelineConfig, TimelineDetectionResult
+from storysphere.pipelines.document_processing import DocumentProcessingPipeline
+from storysphere.pipelines.feature_extraction import FeatureExtractionPipeline
+from storysphere.pipelines.feature_extraction.pipeline import FeatureExtractionResult
+from storysphere.pipelines.knowledge_graph import KnowledgeGraphPipeline
+from storysphere.pipelines.knowledge_graph.pipeline import KGExtractionResult
+from storysphere.pipelines.summarization import SummarizationPipeline
+from storysphere.pipelines.summarization.pipeline import SummarizationResult
+from storysphere.pipelines.symbol_discovery import SymbolDiscoveryPipeline
+from storysphere.pipelines.symbol_discovery.pipeline import SymbolDiscoveryResult
+from storysphere.services.document_service import DocumentService
+from storysphere.services.kg_service import KGService
+from storysphere.workflows.base import BaseWorkflow
+
+logger = logging.getLogger(__name__)
+
+try:
+    from langfuse import observe as _lf_observe
+except ImportError:
+    def _lf_observe(**_kw):  # type: ignore[misc]
+        def _d(fn): return fn
+        return _d
+
+
+@dataclass
+class IngestionResult:
+    """Summary of a completed ingestion run."""
+
+    document_id: str
+    document_title: str
+    chapters: int = 0
+    paragraphs: int = 0
+    paragraphs_embedded: int = 0
+    keywords_extracted: int = 0
+    chapters_summarized: int = 0
+    book_summary_generated: bool = False
+    language: str = "en"
+    entities: int = 0
+    relations: int = 0
+    events: int = 0
+    imagery_extracted: int = 0
+    errors: list[str] = field(default_factory=list)
+    timeline_detection: TimelineDetectionResult | None = None
+
+    @property
+    def success(self) -> bool:
+        return len(self.errors) == 0
+
+
+def _apply_role_overrides(doc: Document, role_overrides: dict[str, str]) -> None:
+    """Mutate paragraph roles in *doc* according to user overrides.
+
+    *role_overrides* maps str(global_paragraph_index) → ParagraphRole value.
+    The global index follows the same flat order as _rebuild_chapters.
+    """
+    from storysphere.domain.documents import ParagraphRole  # noqa: PLC0415
+
+    if not role_overrides:
+        return
+    all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
+    for idx_str, role_str in role_overrides.items():
+        try:
+            idx = int(idx_str)
+            role = ParagraphRole(role_str)
+        except (ValueError, KeyError):
+            continue
+        if 0 <= idx < len(all_paras):
+            all_paras[idx].role = role
+
+
+def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
+    """Reconstruct Chapter objects from a reviewed chapter list.
+
+    *reviewed* is the list of ``{"title": str, "start_paragraph_index": int}``
+    dicts submitted via POST /review.  Paragraphs are re-assigned to new
+    chapters based on the ``start_paragraph_index`` boundaries.
+    """
+    all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
+    new_chapters: list[Chapter] = []
+
+    for i, rc in enumerate(reviewed):
+        ch_num = i + 1
+        title = rc.get("title") or None
+        start = rc["start_paragraph_index"]
+        end = reviewed[i + 1]["start_paragraph_index"] if i + 1 < len(reviewed) else len(all_paras)
+
+        ch_paras = [
+            p.model_copy(update={"chapter_number": ch_num, "position": pos})
+            for pos, p in enumerate(all_paras[start:end])
+        ]
+        new_chapters.append(Chapter(number=ch_num, title=title, paragraphs=ch_paras))
+
+    return new_chapters
+
+
+class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
+    """End-to-end novel ingestion workflow.
+
+    Usage::
+
+        workflow = IngestionWorkflow()
+        result = await workflow.run(Path("novel.pdf"))
+        print(result.entities)   # number of entities extracted
+    """
+
+    def __init__(
+        self,
+        document_pipeline: DocumentProcessingPipeline | None = None,
+        feature_pipeline: FeatureExtractionPipeline | None = None,
+        kg_pipeline: KnowledgeGraphPipeline | None = None,
+        summarization_pipeline: SummarizationPipeline | None = None,
+        document_service: DocumentService | None = None,
+        kg_service: KGService | None = None,
+        symbol_pipeline: SymbolDiscoveryPipeline | None = None,
+        *,
+        skip_qdrant: bool = False,
+        skip_kg: bool = False,
+        skip_summarization: bool = False,
+        skip_keywords: bool = False,
+        skip_symbols: bool = False,
+    ) -> None:
+        """
+        Args:
+            document_pipeline: Inject a custom ``DocumentProcessingPipeline``.
+            feature_pipeline: Inject a custom ``FeatureExtractionPipeline``.
+            kg_pipeline: Inject a custom ``KnowledgeGraphPipeline``.
+            document_service: Inject a ``DocumentService`` (SQLite storage).
+            kg_service: Inject a ``KGService`` (NetworkX KG).
+            skip_qdrant: Set True to skip Qdrant upsert (e.g. no Qdrant running).
+            skip_kg: Set True to skip KG extraction (text-only ingestion).
+        """
+        self._doc_pipeline = document_pipeline or DocumentProcessingPipeline()
+        self._kg_service = kg_service or self._build_kg_service()
+        self._document_service = document_service or DocumentService()
+
+        # Feature pipeline: use VectorService singleton (skip if skip_qdrant=True)
+        if feature_pipeline is not None:
+            self._feature_pipeline = feature_pipeline
+        else:
+            from storysphere.services.vector_service import get_vector_service  # noqa: PLC0415
+
+            vector_svc = None if skip_qdrant else get_vector_service()
+            kw_extractor, kw_aggregator = self._build_keyword_components(skip_keywords)
+            self._feature_pipeline = FeatureExtractionPipeline(
+                vector_service=vector_svc,
+                keyword_extractor=kw_extractor,
+                keyword_aggregator=kw_aggregator,
+            )
+
+        # KG pipeline: pass kg_service so it writes directly
+        if kg_pipeline is not None:
+            self._kg_pipeline = kg_pipeline
+        else:
+            self._kg_pipeline = KnowledgeGraphPipeline(
+                kg_service=None if skip_kg else self._kg_service
+            )
+
+        self._summarization_pipeline = summarization_pipeline or SummarizationPipeline()
+        self._symbol_pipeline = symbol_pipeline or SymbolDiscoveryPipeline()
+        self._skip_kg = skip_kg
+        self._skip_summarization = skip_summarization
+        self._skip_keywords = skip_keywords
+        self._skip_symbols = skip_symbols
+
+    async def run_phase1(
+        self,
+        file_path: Path,
+        *,
+        title: str | None = None,
+        author: str | None = None,
+        language: str | None = None,
+        progress_cb: Callable | None = None,
+        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
+    ) -> Document:
+        """Phase 1: Parse file → detect language → save document.
+
+        Returns the persisted Document. Raises on document persistence failure.
+        """
+        file_path = Path(file_path).resolve()
+
+        def _progress(
+            pct: int,
+            stage: str,
+            *,
+            sub_progress: int | None = None,
+            sub_total: int | None = None,
+            sub_stage: str | None = None,
+        ) -> None:
+            if progress_cb is not None:
+                progress_cb(pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage)
+
+        async def _murmur(
+            step_key: str,
+            event_type: str,
+            content: str,
+            *,
+            meta: dict | None = None,
+            raw_content: str | None = None,
+        ) -> None:
+            if murmur_cb is None:
+                return
+            try:
+                event = MurmurEvent(
+                    seq=0,
+                    step_key=step_key,
+                    type=event_type,
+                    content=content[:1024],
+                    meta=meta,
+                    raw_content=raw_content[:4096] if raw_content else None,
+                )
+                await murmur_cb(event)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("murmur emit failed (%s): %s", step_key, exc)
+
+        # ── Ensure DB tables exist ─────────────────────────────────────────
+        await self._document_service.init_db()
+
+        # ── Step 1: document processing ───────────────────────────────────
+        _progress(5, "Document processing")
+        self._log_step("doc_processing", file=str(file_path))
+        doc: Document = await self._doc_pipeline(file_path)
+
+        if title:
+            doc.title = title
+        if author:
+            doc.author = author
+
+        # ── Language detection ────────────────────────────────────────────
+        from storysphere.core.language_detection import (
+            detect_language_from_document,  # noqa: PLC0415
+        )
+        _progress(10, "Language detection")
+        doc.language = language or detect_language_from_document(doc)
+        await _murmur(
+            "pdfParsing", "topic",
+            f"偵測到 {doc.total_paragraphs} 個段落，{doc.total_chapters} 章，{doc.language}",
+            meta={"chapters": doc.total_chapters, "paragraphs": doc.total_paragraphs, "language": doc.language},
+        )
+        logger.info(
+            "IngestionWorkflow: doc '%s' — %d chapters, %d paragraphs, lang=%s",
+            doc.title,
+            doc.total_chapters,
+            doc.total_paragraphs,
+            doc.language,
+        )
+
+        # ── Step 1b: persist document early (book enters library now) ─────
+        _progress(15, "Persisting document")
+        self._log_step("persist_document")
+        try:
+            await self._document_service.save_document(doc)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Document persistence failed: %s", exc)
+            raise
+
+        return doc
+
+    @_lf_observe(name="ingest.phase2", as_type="agent", capture_input=False, capture_output=False)
+    async def run_phase2(
+        self,
+        doc_id: str,
+        *,
+        task_id: str | None = None,
+        progress_cb: Callable | None = None,
+        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
+    ) -> IngestionResult:
+        """Phase 2: Summarization → feature extraction → KG → symbols → finalize.
+
+        Loads the document from DB using *doc_id*. Expects Phase 1 (and optional
+        chapter review) to have already completed.
+        """
+        doc = await self._document_service.get_document(doc_id)
+        if doc is None:
+            raise ValueError(f"Document '{doc_id}' not found — Phase 1 may not have completed")
+
+        _lf_update_span(metadata={
+            "doc_id": doc_id,
+            "title": doc.title,
+            "language": doc.language,
+            "chapters": doc.total_chapters,
+            "paragraphs": doc.total_paragraphs,
+        })
+
+        errors: list[str] = []
+
+        def _progress(
+            pct: int,
+            stage: str,
+            *,
+            sub_progress: int | None = None,
+            sub_total: int | None = None,
+            sub_stage: str | None = None,
+        ) -> None:
+            if progress_cb is not None:
+                progress_cb(pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage)
+
+        async def _murmur(
+            step_key: str,
+            event_type: str,
+            content: str,
+            *,
+            meta: dict | None = None,
+            raw_content: str | None = None,
+        ) -> None:
+            if murmur_cb is None:
+                return
+            try:
+                event = MurmurEvent(
+                    seq=0,
+                    step_key=step_key,
+                    type=event_type,
+                    content=content[:1024],
+                    meta=meta,
+                    raw_content=raw_content[:4096] if raw_content else None,
+                )
+                await murmur_cb(event)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("murmur emit failed (%s): %s", step_key, exc)
+
+        _progress(20, "開始分析")
+
+        # ── Step 2: summarization ─────────────────────────────────────────
+        _progress(25, "Summary generation")
+        summ_result = SummarizationResult(document_id=doc.id)
+        if not self._skip_summarization:
+            self._log_step("summarization")
+            try:
+                async def _summ_murmur_cb(chapter_number: int) -> None:
+                    chapter = next((c for c in doc.chapters if c.number == chapter_number), None)
+                    if chapter and chapter.summary:
+                        sentences = [s.strip() for s in chapter.summary.split("。") if s.strip()]
+                        preview = "。".join(sentences[:2]) + ("。" if sentences else "")
+                        await _murmur(
+                            "summarization", "topic",
+                            preview or chapter.summary,
+                            meta={"chapter": chapter_number},
+                        )
+
+                summ_result = await self._summarization_pipeline.run(
+                    doc,
+                    sub_cb=lambda cur, tot, label="章節摘要": _progress(
+                        25, "Summary generation",
+                        sub_progress=cur, sub_total=tot, sub_stage=label,
+                    ),
+                    murmur_cb=_summ_murmur_cb,
+                )
+                doc.pipeline_status.summarization = StepStatus.done
+                if (
+                    summ_result.chapters_total > 0
+                    and summ_result.chapters_summarized < summ_result.chapters_total
+                ):
+                    skipped = summ_result.chapters_total - summ_result.chapters_summarized
+                    errors.append(
+                        f"summarization: {skipped}/{summ_result.chapters_total} chapters skipped"
+                    )
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Summarization failed: %s", exc)
+                errors.append(f"summarization: {exc}")
+                doc.pipeline_status.summarization = StepStatus.failed
+            await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
+            # Persist chapter summaries immediately so they survive a later KG failure
+            try:
+                await self._document_service.save_document(doc)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Summary persist failed (non-fatal): %s", exc)
+
+        # ── Step 3: feature extraction (embeddings) ───────────────────────
+        _progress(45, "Feature extraction")
+        self._log_step("feature_extraction")
+        feat_result: FeatureExtractionResult
+        try:
+            feat_result = await self._feature_pipeline.run(
+                doc,
+                sub_cb=lambda cur, tot, label="章節特徵": _progress(
+                    45, "Feature extraction",
+                    sub_progress=cur, sub_total=tot, sub_stage=label,
+                ),
+                murmur_cb=_murmur,
+            )
+            doc.pipeline_status.feature_extraction = StepStatus.done
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Feature extraction failed: %s", exc)
+            errors.append(f"feature_extraction: {exc}")
+            feat_result = FeatureExtractionResult(
+                document_id=doc.id, paragraphs_embedded=0
+            )
+            doc.pipeline_status.feature_extraction = StepStatus.failed
+        await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
+        # Persist chapter keywords immediately so they survive a later KG failure
+        try:
+            await self._document_service.save_document(doc)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Feature extraction persist failed (non-fatal): %s", exc)
+
+        # ── Step 4: knowledge graph extraction ───────────────────────────
+        _progress(65, "Knowledge graph extraction")
+        kg_result: KGExtractionResult = KGExtractionResult()
+        if not self._skip_kg:
+            self._log_step("kg_extraction")
+            try:
+                kg_result = await self._kg_pipeline.run(
+                    doc,
+                    sub_cb=lambda cur, tot, label="": _progress(
+                        65, "Knowledge graph extraction",
+                        sub_progress=cur, sub_total=tot, sub_stage=label,
+                    ),
+                    murmur_cb=_murmur,
+                )
+                doc.pipeline_status.knowledge_graph = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                logger.error("KG extraction failed: %s", exc)
+                errors.append(f"kg_extraction: {exc}")
+                doc.pipeline_status.knowledge_graph = StepStatus.failed
+            await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
+            if doc.pipeline_status.knowledge_graph == StepStatus.done:
+                try:
+                    await self._kg_service.save()
+                except Exception as exc:  # noqa: BLE001
+                    logger.warning("KG save failed (non-fatal): %s", exc)
+
+        # ── Step 4b: symbol discovery ─────────────────────────────────────
+        _progress(82, "Symbol discovery")
+        symbol_result = SymbolDiscoveryResult(book_id=doc.id)
+        if not self._skip_symbols:
+            self._log_step("symbol_discovery")
+            try:
+                symbol_result = await self._symbol_pipeline.run(
+                    doc,
+                    sub_cb=lambda cur, tot, label="章節符號": _progress(
+                        82, "Symbol discovery",
+                        sub_progress=cur, sub_total=tot, sub_stage=label,
+                    ),
+                    murmur_cb=_murmur,
+                )
+                doc.pipeline_status.symbol_discovery = StepStatus.done
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Symbol discovery failed (non-fatal): %s", exc)
+                errors.append(f"symbol_discovery: {exc}")
+                doc.pipeline_status.symbol_discovery = StepStatus.failed
+            await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
+
+        # ── Step 4c: timeline detection ───────────────────────────────────
+        timeline_detection: TimelineDetectionResult | None = None
+        if not self._skip_kg and kg_result.events:
+            distinct_chapters = {e.chapter for e in kg_result.events if e.chapter and e.chapter > 0}
+            ranked_count = sum(1 for e in kg_result.events if e.chronological_rank is not None)
+            chapter_count = len(distinct_chapters)
+            timeline_detection = TimelineDetectionResult(
+                book_id=doc.id,
+                chapter_count=chapter_count,
+                event_count=len(kg_result.events),
+                ranked_event_count=ranked_count,
+                chapter_mode_viable=chapter_count > 1,
+                story_mode_viable=ranked_count > 0,
+            )
+            doc.timeline_config = TimelineConfig(
+                total_chapters=chapter_count,
+                total_events=len(kg_result.events),
+                total_ranked_events=ranked_count,
+                chapter_mode_configured=False,
+                story_mode_configured=False,
+            )
+            logger.info(
+                "Timeline detection: chapters=%d events=%d ranked=%d",
+                chapter_count,
+                len(kg_result.events),
+                ranked_count,
+            )
+            try:
+                await self._document_service.save_document(doc)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Timeline config persist failed (non-fatal): %s", exc)
+
+        # Invalidate per-document analysis caches so stale results are not served
+        try:
+            from storysphere.config.settings import get_settings  # noqa: PLC0415
+            from storysphere.services.analysis_cache import AnalysisCache  # noqa: PLC0415
+            cache = AnalysisCache(db_path=get_settings().analysis_cache_db_path)
+            await asyncio.gather(
+                cache.invalidate(f"epistemic:{doc.id}:%"),
+                cache.invalidate(f"voice_profile:{doc.id}:%"),
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Analysis cache invalidation failed (non-fatal): %s", exc)
+
+        result = IngestionResult(
+            document_id=doc.id,
+            document_title=doc.title,
+            chapters=doc.total_chapters,
+            paragraphs=doc.total_paragraphs,
+            paragraphs_embedded=feat_result.paragraphs_embedded,
+            keywords_extracted=feat_result.keywords_extracted,
+            chapters_summarized=summ_result.chapters_summarized,
+            book_summary_generated=summ_result.book_summary_generated,
+            language=doc.language,
+            entities=len(kg_result.entities),
+            relations=len(kg_result.relations),
+            events=len(kg_result.events),
+            imagery_extracted=symbol_result.imagery_count,
+            errors=errors,
+            timeline_detection=timeline_detection,
+        )
+        logger.info(
+            "IngestionWorkflow done: %s  entities=%d  relations=%d  events=%d  errors=%d",
+            doc.title,
+            result.entities,
+            result.relations,
+            result.events,
+            len(errors),
+        )
+        return result
+
+    async def run(
+        self,
+        input_data: Path,
+        *,
+        task_id: str | None = None,
+        title: str | None = None,
+        author: str | None = None,
+        language: str | None = None,
+        progress_cb: Callable | None = None,
+        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
+    ) -> IngestionResult:
+        """Ingest a novel file end-to-end (Phase 1 + Phase 2, no review pause).
+
+        For the interactive chapter-review flow use the LangGraph ingestion
+        graph (``src/workflows/ingestion_graph.py``) — it pauses between
+        phases for HITL chapter review.
+        """
+        doc = await self.run_phase1(
+            file_path=input_data,
+            title=title,
+            author=author,
+            language=language,
+            progress_cb=progress_cb,
+            murmur_cb=murmur_cb,
+        )
+        return await self.run_phase2(
+            doc.id,
+            task_id=task_id,
+            progress_cb=progress_cb,
+            murmur_cb=murmur_cb,
+        )
+
+    # ── private helpers ──────────────────────────────────────────────────────
+
+    @staticmethod
+    def _build_kg_service() -> KGService:
+        """Build a KGService based on ``settings.kg_mode``.
+
+        Returns a ``Neo4jKGService`` when ``kg_mode='neo4j'``, falling back to
+        the default ``KGService`` (NetworkX) if Neo4j is unavailable or
+        misconfigured.
+        """
+        try:
+            from storysphere.config.settings import get_settings  # noqa: PLC0415
+
+            settings = get_settings()
+            if settings.kg_mode == "neo4j":
+                from storysphere.services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
+
+                logger.info("IngestionWorkflow: using Neo4j KG backend (%s)", settings.neo4j_url)
+                return Neo4jKGService(
+                    url=settings.neo4j_url,
+                    user=settings.neo4j_user,
+                    password=settings.neo4j_password,
+                )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "Failed to build Neo4j KG service (%s) — falling back to NetworkX", exc
+            )
+        return KGService()
+
+    @staticmethod
+    def _build_keyword_components(skip: bool = False):
+        """Build keyword extractor and aggregator from settings.
+
+        Returns:
+            Tuple of (extractor, aggregator), both None if skip=True.
+        """
+        if skip:
+            return None, None
+        try:
+            from storysphere.config.settings import get_settings  # noqa: PLC0415
+            from storysphere.services.keyword_service import (  # noqa: PLC0415
+                KeywordAggregator,
+                build_keyword_extractor,
+            )
+
+            settings = get_settings()
+            extractor = build_keyword_extractor(settings.keyword_extractor_type)
+            if extractor is None:
+                return None, None
+            aggregator = KeywordAggregator(strategy=settings.keyword_aggregation_strategy)
+            return extractor, aggregator
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Keyword extraction setup failed (%s) — keywords will be skipped", exc)
+            return None, None

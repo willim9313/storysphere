@@ -52,8 +52,8 @@ def token_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_
     """TestClient with token store mock added."""
     from contextlib import asynccontextmanager
 
-    from api.main import create_app
-    from api import deps
+    from storysphere.api.main import create_app
+    from storysphere.api import deps
 
     app = create_app()
 

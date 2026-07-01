@@ -8,7 +8,7 @@
 
 ## 背景 (Context)
 
-當前項目的 `src/pipelines/` 和 `src/workflows/` 職責不清晰，難以維護。
+當前項目的 `src/storysphere/pipelines/` 和 `src/storysphere/workflows/` 職責不清晰，難以維護。
 
 在 Agent 架構下：
 - 一些流程需要保持確定性（數據處理）
@@ -25,7 +25,7 @@
 #### Pipelines 層 (確定的、可復現的、無決策)
 
 ```
-src/pipelines/
+src/storysphere/pipelines/
 ├── document_processing/
 │   ├── loader.py           # PDF/DOCX 文本提取
 │   ├── chapter_detector.py # 章節自動識別
@@ -46,7 +46,7 @@ src/pipelines/
 #### Workflows 層 (高級業務流程，可能包含 Agent)
 
 ```
-src/workflows/
+src/storysphere/workflows/
 ├── ingestion.py            # 文檔攝取工作流（自動化）
 ├── chat_workflow.py        # Chat Agent 工作流（LangGraph）
 ├── analysis_workflow.py    # 深度分析工作流（LangGraph）
@@ -88,7 +88,7 @@ class BasePipeline(ABC, Generic[InputT, OutputT]):
     def _log_step(self, step: str, **kwargs): ...
 ```
 
-`BaseWorkflow` 介面相同，定義於 `src/workflows/base.py`。
+`BaseWorkflow` 介面相同，定義於 `src/storysphere/workflows/base.py`。
 
 ### Pipeline 輸入/輸出合約
 
@@ -134,7 +134,7 @@ Event Types (10): plot, conflict, revelation, turning_point, meeting,
 
 ### Entity Canonicalization（EntityLinker）
 
-已實現的 3 階段去重流程（`src/pipelines/knowledge_graph/entity_linker.py`）：
+已實現的 3 階段去重流程（`src/storysphere/pipelines/knowledge_graph/entity_linker.py`）：
 
 1. **載入**: 將 entity/relation 載入結構化格式，正規化名稱（大小寫、空白、別名）
 2. **相似度聚類**: Embed entity names（all-MiniLM-L6-v2）→ cosine similarity（0.95 threshold）→ connected components → canonical name（longest / most-frequent strategy）

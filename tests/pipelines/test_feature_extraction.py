@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph
-from pipelines.feature_extraction.embedding_generator import EmbeddingGenerator
-from pipelines.feature_extraction.pipeline import FeatureExtractionPipeline, FeatureExtractionResult
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
+from storysphere.pipelines.feature_extraction.embedding_generator import EmbeddingGenerator
+from storysphere.pipelines.feature_extraction.pipeline import FeatureExtractionPipeline, FeatureExtractionResult
 
 
 def _make_document(num_chapters: int = 2, paras_per_chapter: int = 3) -> Document:
@@ -36,7 +36,7 @@ class TestEmbeddingGenerator:
     def test_empty_input_returns_empty(self):
         gen = EmbeddingGenerator()
         with patch(
-            "pipelines.feature_extraction.embedding_generator._get_embeddings"
+            "storysphere.pipelines.feature_extraction.embedding_generator._get_embeddings"
         ) as mock_get:
             result = gen.embed_texts([])
             mock_get.assert_not_called()
@@ -49,7 +49,7 @@ class TestEmbeddingGenerator:
         mock_model.embed_documents.return_value = fake_embeddings
 
         with patch(
-            "pipelines.feature_extraction.embedding_generator._get_embeddings",
+            "storysphere.pipelines.feature_extraction.embedding_generator._get_embeddings",
             return_value=mock_model,
         ):
             result = gen.embed_texts(["hello", "world"])
@@ -65,7 +65,7 @@ class TestEmbeddingGenerator:
         mock_model.embed_documents.return_value = fake_vectors
 
         with patch(
-            "pipelines.feature_extraction.embedding_generator._get_embeddings",
+            "storysphere.pipelines.feature_extraction.embedding_generator._get_embeddings",
             return_value=mock_model,
         ):
             result = await gen.aembed_texts(["text a", "text b"])

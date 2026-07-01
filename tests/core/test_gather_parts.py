@@ -2,7 +2,7 @@ import asyncio
 import sys
 
 sys.path.insert(0, "src")
-from core.gather_parts import gather_parts  # noqa: E402
+from storysphere.core.gather_parts import gather_parts  # noqa: E402
 
 
 async def _ok(v):

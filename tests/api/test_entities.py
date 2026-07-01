@@ -50,7 +50,7 @@ def test_get_entity_relations_not_found(client):
 
 
 def test_get_entity_relations_filter(client, mock_kg):
-    from domain.relations import Relation, RelationType
+    from storysphere.domain.relations import Relation, RelationType
     from unittest.mock import AsyncMock
 
     mock_kg.get_relations = AsyncMock(return_value=[

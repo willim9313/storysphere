@@ -7,9 +7,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from agents.analysis_agent import AnalysisAgent
-from services.analysis_cache import AnalysisCache
-from services.analysis_models import (
+from storysphere.agents.analysis_agent import AnalysisAgent
+from storysphere.services.analysis_cache import AnalysisCache
+from storysphere.services.analysis_models import (
     CEPResult,
     CharacterAnalysisResult,
     CharacterProfile,

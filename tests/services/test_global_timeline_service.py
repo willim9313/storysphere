@@ -4,9 +4,9 @@ from __future__ import annotations
 
 import pytest
 
-from domain.events import Event, EventType, NarrativeMode
-from domain.temporal import TemporalRelation, TemporalRelationType
-from services.global_timeline_service import GlobalTimelineService
+from storysphere.domain.events import Event, EventType, NarrativeMode
+from storysphere.domain.temporal import TemporalRelation, TemporalRelationType
+from storysphere.services.global_timeline_service import GlobalTimelineService
 
 
 def _event(eid: str, chapter: int = 1, narrative_position: int | None = None) -> Event:

@@ -3,7 +3,7 @@ import sys
 from unittest.mock import AsyncMock
 
 sys.path.insert(0, "src")
-from services.analysis_models import (  # noqa: E402
+from storysphere.services.analysis_models import (  # noqa: E402
     ArchetypeResult,
     ArcSegment,
     CEPResult,
@@ -18,7 +18,7 @@ def _cep():
 
 
 def _service():
-    from services.analysis_service import AnalysisService
+    from storysphere.services.analysis_service import AnalysisService
     svc = AnalysisService.__new__(AnalysisService)
     svc._kg_service = None
     svc._extract_cep = AsyncMock(return_value=_cep())
@@ -68,7 +68,7 @@ class TestCharacterPartialFailure:
 
 class TestAgentPartial:
     def test_agent_retry_loads_cache_and_recaches(self):
-        from agents.analysis_agent import AnalysisAgent
+        from storysphere.agents.analysis_agent import AnalysisAgent
         agent = AnalysisAgent.__new__(AnalysisAgent)
         cached = {
             "entity_id": "Bob", "entity_name": "Bob", "document_id": "doc1",
@@ -94,8 +94,8 @@ class TestAgentPartial:
 
 class TestEventPartialFailure:
     def _svc(self):
-        from services.analysis_service import AnalysisService
-        from services.analysis_models import (
+        from storysphere.services.analysis_service import AnalysisService
+        from storysphere.services.analysis_models import (
             CausalityAnalysis, EventCoverageMetrics, EventEvidenceProfile, EventSummary)
         svc = AnalysisService.__new__(AnalysisService)
         ev = type("E", (), {"title": "T"})()
@@ -118,7 +118,7 @@ class TestEventPartialFailure:
         assert result.causality.root_cause == "rc"
 
     def test_event_retry_reuses_eep(self):
-        from services.analysis_models import (
+        from storysphere.services.analysis_models import (
             CausalityAnalysis, EventAnalysisResult, EventCoverageMetrics,
             EventEvidenceProfile, EventSummary, ImpactAnalysis)
         svc = self._svc()

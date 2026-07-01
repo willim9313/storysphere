@@ -6,9 +6,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph
-from domain.imagery import ImageryEntity, ImageryType, SymbolCluster, SymbolOccurrence
-from pipelines.symbol_discovery.pipeline import SymbolDiscoveryPipeline, SymbolDiscoveryResult
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
+from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolCluster, SymbolOccurrence
+from storysphere.pipelines.symbol_discovery.pipeline import SymbolDiscoveryPipeline, SymbolDiscoveryResult
 
 
 def _make_doc(book_id: str = "book-1") -> Document:
@@ -38,7 +38,7 @@ def _make_entity(book_id: str, term: str = "mirror") -> ImageryEntity:
 
 class TestSymbolDiscoveryPipelineRun:
     async def test_successful_run_returns_counts(self, tmp_path):
-        from services.symbol_service import SymbolService
+        from storysphere.services.symbol_service import SymbolService
 
         svc = SymbolService(db_path=str(tmp_path / "sym.db"))
         doc = _make_doc()
@@ -86,7 +86,7 @@ class TestSymbolDiscoveryPipelineRun:
         assert result.errors == []
 
     async def test_re_ingest_clears_old_data(self, tmp_path):
-        from services.symbol_service import SymbolService
+        from storysphere.services.symbol_service import SymbolService
 
         svc = SymbolService(db_path=str(tmp_path / "sym.db"))
         doc = _make_doc()
@@ -111,7 +111,7 @@ class TestSymbolDiscoveryPipelineRun:
         assert await svc.get_imagery_list(doc.id) == []
 
     async def test_extraction_failure_returns_error(self, tmp_path):
-        from services.symbol_service import SymbolService
+        from storysphere.services.symbol_service import SymbolService
 
         svc = SymbolService(db_path=str(tmp_path / "sym.db"))
         doc = _make_doc()
@@ -132,7 +132,7 @@ class TestSymbolDiscoveryPipelineRun:
         assert "LLM timeout" in result.errors[0]
 
     async def test_empty_extraction_returns_zero_counts(self, tmp_path):
-        from services.symbol_service import SymbolService
+        from storysphere.services.symbol_service import SymbolService
 
         svc = SymbolService(db_path=str(tmp_path / "sym.db"))
         doc = _make_doc()
@@ -154,7 +154,7 @@ class TestSymbolDiscoveryPipelineRun:
         assert result.errors == []
 
     async def test_persisted_entities_retrievable(self, tmp_path):
-        from services.symbol_service import SymbolService
+        from storysphere.services.symbol_service import SymbolService
 
         svc = SymbolService(db_path=str(tmp_path / "sym.db"))
         doc = _make_doc()

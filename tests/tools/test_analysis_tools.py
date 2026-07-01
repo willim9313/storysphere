@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from services.analysis_models import (
+from storysphere.services.analysis_models import (
     CEPResult,
     CharacterAnalysisResult,
     CharacterProfile,
@@ -15,7 +15,7 @@ from services.analysis_models import (
     ArchetypeResult,
     ArcSegment,
 )
-from tools.analysis_tools import AnalyzeCharacterTool, AnalyzeEventTool, GenerateInsightTool
+from storysphere.tools.analysis_tools import AnalyzeCharacterTool, AnalyzeEventTool, GenerateInsightTool
 
 
 class TestGenerateInsightTool:

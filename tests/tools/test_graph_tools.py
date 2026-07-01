@@ -6,7 +6,7 @@ import json
 
 import pytest
 
-from tools.graph_tools import (
+from storysphere.tools.graph_tools import (
     GetEntityAttributesTool,
     GetEntityRelationsTool,
     GetEntityTimelineTool,

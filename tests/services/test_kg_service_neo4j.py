@@ -15,10 +15,10 @@ import os
 import pytest
 import pytest_asyncio
 
-from domain.entities import Entity, EntityType
-from domain.events import Event, EventType
-from domain.relations import Relation, RelationType
-from domain.temporal import TemporalRelation, TemporalRelationType
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.domain.events import Event, EventType
+from storysphere.domain.relations import Relation, RelationType
+from storysphere.domain.temporal import TemporalRelation, TemporalRelationType
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ _DOC_ID = "test-doc-migration"  # isolated document ID for teardown
 
 @pytest_asyncio.fixture
 async def service():
-    from services.kg_service_neo4j import Neo4jKGService
+    from storysphere.services.kg_service_neo4j import Neo4jKGService
 
     svc = Neo4jKGService(url=NEO4J_URL, user=NEO4J_USER, password=NEO4J_PASSWORD)
     await svc.verify_connectivity()

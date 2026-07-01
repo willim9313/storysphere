@@ -49,7 +49,7 @@ IngestionWorkflow.run(file_path)
 
 ## 步驟 1: BaseKeywordExtractor 介面 + 多策略實作
 
-**路徑**: `src/pipelines/feature_extraction/keyword_extractor.py`
+**路徑**: `src/storysphere/pipelines/feature_extraction/keyword_extractor.py`
 
 ### 抽象介面
 
@@ -190,7 +190,7 @@ extractor = CompositeKeywordExtractor([
 
 ## 步驟 2: KeywordAggregator
 
-**路徑**: `src/pipelines/feature_extraction/keyword_aggregator.py`
+**路徑**: `src/storysphere/pipelines/feature_extraction/keyword_aggregator.py`
 
 （與先前設計相同，保持不變）
 
@@ -244,7 +244,7 @@ Phase 2b 暫不實作，標記為 Phase 6 優化項。
 
 ## 步驟 3: 整合到 FeatureExtractionPipeline
 
-更新 `src/pipelines/feature_extraction/pipeline.py`，在 embedding 生成後加入 keyword extraction：
+更新 `src/storysphere/pipelines/feature_extraction/pipeline.py`，在 embedding 生成後加入 keyword extraction：
 
 ```python
 class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult]):
@@ -342,7 +342,7 @@ payload = {
 
 ## 步驟 4: IngestionWorkflow 整合
 
-更新 `src/workflows/ingestion.py`，讓 keyword extraction 在 ingestion 時自動觸發：
+更新 `src/storysphere/workflows/ingestion.py`，讓 keyword extraction 在 ingestion 時自動觸發：
 
 ```python
 class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
@@ -403,7 +403,7 @@ async def get_book_keywords(self, doc_id: str) -> dict[str, float]: ...
 
 ## 步驟 6: KeywordService（Services 層）
 
-**路徑**: `src/services/keyword_service.py`
+**路徑**: `src/storysphere/services/keyword_service.py`
 
 為 Tools 層提供查詢介面（遵循 `tools/ → services/` 依賴規則）：
 
@@ -477,11 +477,11 @@ class KeywordService:
 
 | 舊版檔案 | 對應新版 | 說明 |
 |----------|---------|------|
-| `old_version/src/core/nlp/keyword_extractor.py` | `PKEKeywordExtractor` | KpeTool (MultipartiteRank) |
-| `old_version/src/core/nlp/llm_operator.py:169-200` | `LLMKeywordExtractor` | LLM extract_keyword() |
-| `old_version/src/pipelines/nlp/keyword_aggregator.py` | `KeywordAggregator` | 聚合策略 + 語義合併 |
-| `old_version/src/pipelines/nlp/hierarchical_process.py` | `KeywordAggregator` | chunk→chapter→book |
-| `old_version/src/pipelines/feature_extraction/run_llm_tasks.py` | Pipeline 整合 | ingestion 時觸發 |
+| `old_version/src/storysphere/core/nlp/keyword_extractor.py` | `PKEKeywordExtractor` | KpeTool (MultipartiteRank) |
+| `old_version/src/storysphere/core/nlp/llm_operator.py:169-200` | `LLMKeywordExtractor` | LLM extract_keyword() |
+| `old_version/src/storysphere/pipelines/nlp/keyword_aggregator.py` | `KeywordAggregator` | 聚合策略 + 語義合併 |
+| `old_version/src/storysphere/pipelines/nlp/hierarchical_process.py` | `KeywordAggregator` | chunk→chapter→book |
+| `old_version/src/storysphere/pipelines/feature_extraction/run_llm_tasks.py` | Pipeline 整合 | ingestion 時觸發 |
 
 ---
 

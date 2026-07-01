@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from domain.entities import Entity, EntityType
-from tools.other_tools import CompareEntitiesTool, ExtractEntitiesFromTextTool
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.tools.other_tools import CompareEntitiesTool, ExtractEntitiesFromTextTool
 
 
 class TestExtractEntitiesFromTextTool:

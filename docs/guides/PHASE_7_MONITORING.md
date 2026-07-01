@@ -17,7 +17,7 @@
 
 ## 架構
 
-### 核心模組：`src/core/metrics.py`
+### 核心模組：`src/storysphere/core/metrics.py`
 
 - **stdlib-only**：`threading`, `collections`, `contextlib`, `time`, `json`, `logging`
 - **Thread-safe**：單一 `threading.Lock` 保護所有寫入
@@ -127,7 +127,7 @@ curl http://localhost:8000/api/v1/metrics | python -m json.tool
 
 **回應結構**與 `get_stats()` 相同（見上方）。
 
-實作：`src/api/routers/metrics.py`
+實作：`src/storysphere/api/routers/metrics.py`
 
 ---
 

@@ -104,7 +104,7 @@ minversion = "8.0"
 addopts = [
     "--strict-markers",
     "--strict-config",
-    "--cov=src",
+    "--cov=src/storysphere",
     "--cov-report=term-missing",
     "--cov-report=html",
 ]
@@ -126,7 +126,7 @@ disallow_untyped_defs = false
 
 # ========== Coverage Configuration ==========
 [tool.coverage.run]
-source = ["src"]
+source = ["src/storysphere"]
 omit = [
     "*/tests/*",
     "*/__pycache__/*",

@@ -359,7 +359,7 @@ interface TaskStatus {             // 共用,定義在 api/schemas/common.py(cam
 | `frontend/src/styles/tokens.css` | `--accent` / `--panel-*` / `--entity-*` / `--color-success|info|error*` token | 新增 `--tension-*` / `--frye-*` / `--booker-*` 需同步更新 `docs/DESIGN_TOKENS.md` |
 | `frontend/src/styles/tension.css` | **目前不存在**,建議新建 | 將 inline style 提取為 `.tn-*` class |
 | `frontend/src/contexts/ChatContext.tsx` | `setPageContext({ page: 'analysis', bookId, bookTitle })` | 不需動,但重設計時要確保仍有對應呼叫 |
-| `src/api/routers/tension.py` | 後端 router(10 endpoints) | 不需動;**若要修型別技術債則需加 `response_model=`** |
+| `src/storysphere/api/routers/tension.py` | 後端 router(10 endpoints) | 不需動;**若要修型別技術債則需加 `response_model=`** |
 
 ### Hooks / Context 依賴(不要動,但會用到)
 

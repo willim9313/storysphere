@@ -10,10 +10,10 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph
-from domain.entities import Entity, EntityType
-from domain.events import Event, EventType
-from domain.relations import Relation, RelationType
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
+from storysphere.domain.entities import Entity, EntityType
+from storysphere.domain.events import Event, EventType
+from storysphere.domain.relations import Relation, RelationType
 
 
 # ── Test data factories ───────────────────────────────────────────────────────

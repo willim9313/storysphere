@@ -21,7 +21,7 @@ Phase 5 實現 ADR-004 定義的 Deep Analysis 流程：
 
 ## 步驟 1: AnalysisService 完善
 
-補全 `src/services/analysis_service.py` 中的 stub 方法：
+補全 `src/storysphere/services/analysis_service.py` 中的 stub 方法：
 
 - `analyze_character(entity_name, doc_id)` → `CharacterAnalysisResult`
 - `analyze_event(event_name, doc_id)` → `EventAnalysisResult`
@@ -186,7 +186,7 @@ Cache key format: `{analysis_type}:{doc_id}:{entity_name}`
 ## 步驟 6: Analysis Agent（LangGraph）
 
 ```python
-# src/agents/analysis_agent.py
+# src/storysphere/agents/analysis_agent.py
 class AnalysisAgent:
     """Async deep analysis agent using LangGraph."""
 

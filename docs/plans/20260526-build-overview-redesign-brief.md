@@ -144,7 +144,7 @@ KG 節點（`kg_entity / kg_concept / kg_relation / kg_event / kg_temporal_relat
 
 | 角色 | 路徑 |
 |------|------|
-| API Router | `src/api/routers/unraveling.py`（583 行） |
+| API Router | `src/storysphere/api/routers/unraveling.py`（583 行） |
 
 ### 設計文件
 

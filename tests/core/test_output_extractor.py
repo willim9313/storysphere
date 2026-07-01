@@ -2,7 +2,7 @@
 
 import pytest
 
-from core.utils.output_extractor import extract_json_from_text
+from storysphere.core.utils.output_extractor import extract_json_from_text
 
 
 class TestCodeFenceExtraction:

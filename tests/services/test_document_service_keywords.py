@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from domain.documents import Chapter, Document, FileType, Paragraph
-from services.document_service import DocumentService
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
+from storysphere.services.document_service import DocumentService
 
 
 def _make_document() -> Document:

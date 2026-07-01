@@ -19,7 +19,7 @@ import pytest
 
 sys.path.insert(0, "src")
 
-from api.schemas.common import MurmurEvent  # noqa: E402
+from storysphere.api.schemas.common import MurmurEvent  # noqa: E402
 
 
 def _ev(step_key: str = "summarization", type_: str = "topic", content: str = "x") -> MurmurEvent:
@@ -31,7 +31,7 @@ def _ev(step_key: str = "summarization", type_: str = "topic", content: str = "x
 
 class TestMemoryStoreMurmur:
     def test_append_assigns_monotonic_seq(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("t1")
@@ -45,7 +45,7 @@ class TestMemoryStoreMurmur:
         assert [e.content for e in events] == ["a", "b", "c"]
 
     def test_after_filter_returns_slice(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("t1")
@@ -57,7 +57,7 @@ class TestMemoryStoreMurmur:
         assert [e.seq for e in delta] == [2, 3, 4]
 
     def test_after_beyond_last_returns_empty(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("t1")
@@ -66,13 +66,13 @@ class TestMemoryStoreMurmur:
         assert asyncio.run(store.get_murmur_events("t1", after=10)) == []
 
     def test_unknown_task_returns_empty(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         assert asyncio.run(store.get_murmur_events("no-such-task")) == []
 
     def test_per_task_isolation(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("t1")
@@ -95,7 +95,7 @@ class TestMemoryStoreMurmur:
 
 class TestSQLiteStoreMurmur:
     def test_append_assigns_monotonic_seq(self, tmp_path):
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
 
         db = str(tmp_path / "tasks.db")
         store = SQLiteTaskStore(db)
@@ -109,7 +109,7 @@ class TestSQLiteStoreMurmur:
         assert [e.content for e in events] == ["a", "b"]
 
     def test_after_filter(self, tmp_path):
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
 
         db = str(tmp_path / "tasks.db")
         store = SQLiteTaskStore(db)
@@ -122,7 +122,7 @@ class TestSQLiteStoreMurmur:
 
     def test_persists_across_new_connection(self, tmp_path):
         """Murmur rows survive opening a new SQLiteTaskStore on the same file."""
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
 
         db = str(tmp_path / "tasks.db")
         s1 = SQLiteTaskStore(db)
@@ -135,7 +135,7 @@ class TestSQLiteStoreMurmur:
         assert events[0].content == "persisted"
 
     def test_meta_round_trips_as_json(self, tmp_path):
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
 
         db = str(tmp_path / "tasks.db")
         store = SQLiteTaskStore(db)
@@ -158,7 +158,7 @@ class TestSQLiteStoreMurmur:
 
 def _seed_task_with_events(events: list[tuple[str, str]]) -> str:
     """Create a task in the global store and append events. Returns task_id."""
-    from api.store import task_store
+    from storysphere.api.store import task_store
 
     task_id = f"murmur-{uuid4()}"
     task_store.create(task_id)

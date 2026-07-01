@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from tools.retrieval_tools.get_keywords import GetKeywordsTool
+from storysphere.tools.retrieval_tools.get_keywords import GetKeywordsTool
 
 
 @pytest.fixture

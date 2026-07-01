@@ -3,7 +3,7 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 sys.path.insert(0, "src")
-from services.analysis_models import (  # noqa: E402
+from storysphere.services.analysis_models import (  # noqa: E402
     CausalityAnalysis,
     CEPResult,
     CharacterAnalysisResult,
@@ -37,7 +37,7 @@ def _event_cached(failed_parts: list[str]) -> dict:
 
 
 def _override_cache(client, cached):
-    from api import deps
+    from storysphere.api import deps
     mock_cache = AsyncMock()
     mock_cache.get = AsyncMock(return_value=cached)
     mock_cache.set = AsyncMock()

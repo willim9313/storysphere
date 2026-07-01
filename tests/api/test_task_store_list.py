@@ -22,7 +22,7 @@ sys.path.insert(0, "src")
 
 class TestMemoryStoreCreateMetadata:
     def test_create_with_kind_and_title_round_trips(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("t1", kind="tension", title="第3章 張力分析")
@@ -32,7 +32,7 @@ class TestMemoryStoreCreateMetadata:
         assert task.title == "第3章 張力分析"
 
     def test_legacy_create_defaults_metadata_to_none(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("t1")
@@ -42,7 +42,7 @@ class TestMemoryStoreCreateMetadata:
         assert task.title is None
 
     def test_create_records_created_at(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("t1")
@@ -52,7 +52,7 @@ class TestMemoryStoreCreateMetadata:
 
 class TestMemoryStoreList:
     def test_includes_active_tasks(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("active-1")
@@ -62,7 +62,7 @@ class TestMemoryStoreList:
         assert "active-1" in ids
 
     def test_includes_recent_terminal_tasks(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("done-1")
@@ -72,7 +72,7 @@ class TestMemoryStoreList:
         assert "done-1" in ids
 
     def test_orders_newest_first(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("older")
@@ -82,7 +82,7 @@ class TestMemoryStoreList:
         assert ids.index("newer") < ids.index("older")
 
     def test_recent_limit_caps_terminal_tasks_only(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         # 5 active tasks (must all appear regardless of limit)
@@ -103,7 +103,7 @@ class TestMemoryStoreList:
         assert len(terminal) == 2
 
     def test_never_carries_murmur_events(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
 
         store = MemoryTaskStore()
         store.create("t1")
@@ -117,7 +117,7 @@ class TestMemoryStoreList:
 
 class TestSQLiteStoreCreateMetadata:
     def test_create_with_kind_and_title_round_trips(self, tmp_path):
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
 
         store = SQLiteTaskStore(str(tmp_path / "tasks.db"))
         store.create("t1", kind="symbol", title="符號意象生成")
@@ -127,7 +127,7 @@ class TestSQLiteStoreCreateMetadata:
         assert task.title == "符號意象生成"
 
     def test_legacy_create_defaults_metadata_to_none(self, tmp_path):
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
 
         store = SQLiteTaskStore(str(tmp_path / "tasks.db"))
         store.create("t1")
@@ -139,7 +139,7 @@ class TestSQLiteStoreCreateMetadata:
 
 class TestSQLiteStoreList:
     def test_includes_active_and_recent_terminal(self, tmp_path):
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
 
         store = SQLiteTaskStore(str(tmp_path / "tasks.db"))
         store.create("active-1")
@@ -152,7 +152,7 @@ class TestSQLiteStoreList:
         assert "done-1" in ids
 
     def test_recent_limit_caps_terminal_tasks_only(self, tmp_path):
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
 
         store = SQLiteTaskStore(str(tmp_path / "tasks.db"))
         for i in range(4):
@@ -171,7 +171,7 @@ class TestSQLiteStoreList:
         assert len(terminal) == 1
 
     def test_never_carries_murmur_events(self, tmp_path):
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
 
         store = SQLiteTaskStore(str(tmp_path / "tasks.db"))
         store.create("t1")

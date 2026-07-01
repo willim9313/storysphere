@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from agents.analysis_agent import AnalysisAgent
-from services.analysis_models import (
+from storysphere.agents.analysis_agent import AnalysisAgent
+from storysphere.services.analysis_models import (
     CausalityAnalysis,
     EventAnalysisResult,
     EventCoverageMetrics,

@@ -162,13 +162,13 @@ interface Book {
 
 | 檔案 | 變動 |
 |------|------|
-| `src/domain/documents.py` | 新增 `StepStatus`、`PipelineStatus`、`Document.pipeline_status` |
-| `src/services/document_service.py` | DB migration、`save_document` / `get_document` 讀寫 `pipeline_status_json`、新增 `update_pipeline_status()` |
-| `src/workflows/ingestion.py` | 提前 `save_document()`，各步驟後更新 status，KG save 條件調整 |
-| `src/api/task_registry.py` | 新增（in-process asyncio.Task registry） |
-| `src/api/routers/books.py` | 改用 `asyncio.create_task()`，新增 rerun endpoints |
-| `src/api/routers/tasks.py` | 新增 `POST /tasks/:taskId/cancel` |
-| `src/api/schemas/books.py` | `BookResponse` 新增 `pipelineStatus` |
+| `src/storysphere/domain/documents.py` | 新增 `StepStatus`、`PipelineStatus`、`Document.pipeline_status` |
+| `src/storysphere/services/document_service.py` | DB migration、`save_document` / `get_document` 讀寫 `pipeline_status_json`、新增 `update_pipeline_status()` |
+| `src/storysphere/workflows/ingestion.py` | 提前 `save_document()`，各步驟後更新 status，KG save 條件調整 |
+| `src/storysphere/api/task_registry.py` | 新增（in-process asyncio.Task registry） |
+| `src/storysphere/api/routers/books.py` | 改用 `asyncio.create_task()`，新增 rerun endpoints |
+| `src/storysphere/api/routers/tasks.py` | 新增 `POST /tasks/:taskId/cancel` |
+| `src/storysphere/api/schemas/books.py` | `BookResponse` 新增 `pipelineStatus` |
 | `frontend/src/api/generated.ts` | 執行 `npm run gen:types` 更新 |
 | `frontend/src/components/ProcessingCard` | 部分完成狀態 |
 | `frontend/src/components/BookCard` | 功能不可用標記 |

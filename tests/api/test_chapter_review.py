@@ -23,7 +23,7 @@ sys.path.insert(0, "src")
 
 class TestTaskStoreAwaitingReview:
     def test_in_memory_store_sets_book_id_in_result(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
         store = MemoryTaskStore()
         store.create("task-abc")
         store.set_awaiting_review("task-abc", "book-xyz")
@@ -33,13 +33,13 @@ class TestTaskStoreAwaitingReview:
         assert status.result == {"bookId": "book-xyz"}
 
     def test_in_memory_store_unknown_task_is_noop(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
         store = MemoryTaskStore()
         store.set_awaiting_review("nonexistent", "book-xyz")
 
     def test_sqlite_store_sets_book_id_in_result(self, tmp_path):
         import json
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
         db = str(tmp_path / "tasks.db")
         store = SQLiteTaskStore(db)
         store.create("task-def")
@@ -50,7 +50,7 @@ class TestTaskStoreAwaitingReview:
         assert status.result == {"bookId": "book-qrs"}
 
     def test_in_memory_get_task_id_by_book_id(self):
-        from api.store import MemoryTaskStore
+        from storysphere.api.store import MemoryTaskStore
         store = MemoryTaskStore()
         store.create("task-lookup")
         store.set_awaiting_review("task-lookup", "book-find-me")
@@ -59,7 +59,7 @@ class TestTaskStoreAwaitingReview:
 
     def test_sqlite_get_task_id_by_book_id(self, tmp_path):
         import asyncio as _asyncio
-        from api.store import SQLiteTaskStore
+        from storysphere.api.store import SQLiteTaskStore
         db = str(tmp_path / "tasks.db")
         store = SQLiteTaskStore(db)
         store.create("task-sqlite-lookup")
@@ -77,7 +77,7 @@ class TestReviewDataEndpoint:
     def _setup_awaiting(self, book_id: str) -> str:
         """Create a task in awaiting_review state for book_id; return task_id."""
         import uuid
-        from api.store import task_store
+        from storysphere.api.store import task_store
         task_id = f"test-{uuid.uuid4()}"
         task_store.create(task_id)
         task_store.set_awaiting_review(task_id, book_id)
@@ -123,7 +123,7 @@ class TestReviewDataEndpoint:
 class TestSubmitReviewEndpoint:
     def _setup_awaiting(self, book_id: str) -> str:
         import uuid
-        from api.store import task_store
+        from storysphere.api.store import task_store
         task_id = f"test-{uuid.uuid4()}"
         task_store.create(task_id)
         task_store.set_awaiting_review(task_id, book_id)
@@ -137,14 +137,14 @@ class TestSubmitReviewEndpoint:
     def test_notifies_and_returns_204(self, client):
         self._setup_awaiting("doc-1")
         payload = {"chapters": [{"title": "Ch1", "startParagraphIndex": 0}]}
-        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
             resp = client.post("/api/v1/books/doc-1/review", json=payload)
         assert resp.status_code == 204
 
     def test_second_submit_returns_409(self, client):
         self._setup_awaiting("doc-1")
         payload = {"chapters": [{"title": "Ch1", "startParagraphIndex": 0}]}
-        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
             client.post("/api/v1/books/doc-1/review", json=payload)
             # Second call — status optimistically set to running, no longer awaiting_review
             resp = client.post("/api/v1/books/doc-1/review", json=payload)
@@ -164,7 +164,7 @@ class TestRebuildChapters:
 
     @staticmethod
     def _make_doc():
-        from domain.documents import Chapter, Document, FileType, Paragraph
+        from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 
         paras = [
             Paragraph(id=f"p{i}", text=f"Para {i}", chapter_number=1, position=i)
@@ -182,7 +182,7 @@ class TestRebuildChapters:
         )
 
     def test_accepts_same_boundaries(self):
-        from workflows.ingestion import _rebuild_chapters
+        from storysphere.workflows.ingestion import _rebuild_chapters
         doc = self._make_doc()
         reviewed = [
             {"title": "Ch1", "start_paragraph_index": 0},
@@ -194,7 +194,7 @@ class TestRebuildChapters:
         assert len(result[1].paragraphs) == 3
 
     def test_merge_into_single_chapter(self):
-        from workflows.ingestion import _rebuild_chapters
+        from storysphere.workflows.ingestion import _rebuild_chapters
         doc = self._make_doc()
         reviewed = [{"title": "Everything", "start_paragraph_index": 0}]
         result = _rebuild_chapters(doc, reviewed)
@@ -202,7 +202,7 @@ class TestRebuildChapters:
         assert len(result[0].paragraphs) == 6
 
     def test_split_into_three_chapters(self):
-        from workflows.ingestion import _rebuild_chapters
+        from storysphere.workflows.ingestion import _rebuild_chapters
         doc = self._make_doc()
         reviewed = [
             {"title": "A", "start_paragraph_index": 0},
@@ -214,7 +214,7 @@ class TestRebuildChapters:
         assert [len(ch.paragraphs) for ch in result] == [2, 2, 2]
 
     def test_chapter_numbers_are_sequential(self):
-        from workflows.ingestion import _rebuild_chapters
+        from storysphere.workflows.ingestion import _rebuild_chapters
         doc = self._make_doc()
         reviewed = [
             {"title": "A", "start_paragraph_index": 0},
@@ -224,7 +224,7 @@ class TestRebuildChapters:
         assert [ch.number for ch in result] == [1, 2]
 
     def test_paragraph_chapter_numbers_updated(self):
-        from workflows.ingestion import _rebuild_chapters
+        from storysphere.workflows.ingestion import _rebuild_chapters
         doc = self._make_doc()
         reviewed = [
             {"title": "A", "start_paragraph_index": 0},
@@ -235,7 +235,7 @@ class TestRebuildChapters:
             assert para.chapter_number == 2
 
     def test_title_none_when_empty_string(self):
-        from workflows.ingestion import _rebuild_chapters
+        from storysphere.workflows.ingestion import _rebuild_chapters
         doc = self._make_doc()
         reviewed = [{"title": "", "start_paragraph_index": 0}]
         result = _rebuild_chapters(doc, reviewed)
@@ -251,7 +251,7 @@ class TestReviewDataRoleField:
     def _setup_awaiting(self) -> tuple[str, str]:
         """Return fresh (book_id, task_id) to avoid cross-test task_store pollution."""
         import uuid
-        from api.store import task_store
+        from storysphere.api.store import task_store
         book_id = f"book-role-rd-{uuid.uuid4()}"
         task_id = f"task-role-rd-{uuid.uuid4()}"
         task_store.create(task_id)
@@ -259,7 +259,7 @@ class TestReviewDataRoleField:
         return book_id, task_id
 
     def test_paragraphs_include_role_field(self, client, mock_doc):
-        from domain.documents import Chapter, Document, FileType, Paragraph
+        from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 
         doc = Document(
             id="doc-role-rd",
@@ -276,7 +276,7 @@ class TestReviewDataRoleField:
 
         book_id, _ = self._setup_awaiting()
         # Map the unique book_id to our doc
-        from api.store import task_store
+        from storysphere.api.store import task_store
         import uuid
         task_id2 = f"task-rrd-{uuid.uuid4()}"
         task_store.create(task_id2)
@@ -291,9 +291,9 @@ class TestReviewDataRoleField:
 
     def test_default_role_is_body(self, client, mock_doc):
         """Paragraphs created without a role default to 'body'."""
-        from domain.documents import Chapter, Document, FileType, Paragraph
+        from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
         import uuid as _uuid
-        from api.store import task_store
+        from storysphere.api.store import task_store
 
         doc_id = f"doc-body-{_uuid.uuid4()}"
         doc = Document(
@@ -321,7 +321,7 @@ class TestReviewDataRoleField:
 
     def test_separator_paragraph_role_returned(self, client, mock_doc):
         """A paragraph with role=separator is surfaced through the endpoint."""
-        from domain.documents import Chapter, Document, FileType, Paragraph, ParagraphRole
+        from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphRole
 
         sep_para = Paragraph(
             id="sep-p",
@@ -348,7 +348,7 @@ class TestReviewDataRoleField:
         )
 
         import uuid
-        from api.store import task_store
+        from storysphere.api.store import task_store
         from unittest.mock import AsyncMock
 
         task_id = f"test-{uuid.uuid4()}"
@@ -382,7 +382,7 @@ class TestSubmitReviewRoleOverrides:
     def _setup_awaiting(self) -> tuple[str, str]:
         """Return a fresh (book_id, task_id) pair so each test is isolated."""
         import uuid
-        from api.store import task_store
+        from storysphere.api.store import task_store
         book_id = f"book-role-{uuid.uuid4()}"
         task_id = f"task-role-{uuid.uuid4()}"
         task_store.create(task_id)
@@ -395,7 +395,7 @@ class TestSubmitReviewRoleOverrides:
             "chapters": [{"title": "Ch1", "startParagraphIndex": 0}],
             "roleOverrides": {"1": "separator"},
         }
-        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
             resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
         assert resp.status_code == 204
 
@@ -405,7 +405,7 @@ class TestSubmitReviewRoleOverrides:
             "chapters": [{"title": "Ch1", "startParagraphIndex": 0}],
             "roleOverrides": {},
         }
-        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
             resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
         assert resp.status_code == 204
 
@@ -413,7 +413,7 @@ class TestSubmitReviewRoleOverrides:
         """roleOverrides is optional; omitting it defaults to {}."""
         book_id, _ = self._setup_awaiting()
         payload = {"chapters": [{"title": "Ch1", "startParagraphIndex": 0}]}
-        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
             resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
         assert resp.status_code == 204
 
@@ -429,7 +429,7 @@ class TestSubmitReviewRoleOverrides:
             "roleOverrides": {"0": "preamble", "1": "separator"},
         }
 
-        with patch("api.routers.books._resume_ingestion_graph", new_callable=AsyncMock) as mock_resume:
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock) as mock_resume:
             resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
 
         assert resp.status_code == 204

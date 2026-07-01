@@ -8,7 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
-from domain.faction import Faction, FactionAnalysis, FactionRelation
+from storysphere.domain.faction import Faction, FactionAnalysis, FactionRelation
 
 BOOK_ID = "doc-1"
 
@@ -37,8 +37,8 @@ def faction_client():
 
     sys.path.insert(0, "src")
 
-    from api import deps
-    from api.main import create_app
+    from storysphere.api import deps
+    from storysphere.api.main import create_app
 
     app = create_app()
 
