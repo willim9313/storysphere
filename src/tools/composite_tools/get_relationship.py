@@ -10,11 +10,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
-from tools.base import _json_default, format_entity, handle_not_found, resolve_entity
+from tools.base import _json_default, format_entity, resolve_entity
 from tools.schemas import GetRelationshipInput
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ class GetEntityRelationshipTool(BaseTool):
         "USE for 'relationship between X and Y' or 'how are X and Y connected' queries. "
         "Input: two entity IDs or names."
     )
-    args_schema: Type[GetRelationshipInput] = GetRelationshipInput
+    args_schema: type[GetRelationshipInput] = GetRelationshipInput
 
     kg_service: Any = None
     doc_service: Any = None

@@ -191,6 +191,6 @@ class GlobalTimelineService:
         # Normalise to [0.0, 1.0].
         max_rank = max(raw_rank.values()) if raw_rank else 0
         if max_rank == 0:
-            return {eid: 0.0 for eid in raw_rank}
+            return dict.fromkeys(raw_rank, 0.0)
 
         return {eid: r / max_rank for eid, r in raw_rank.items()}

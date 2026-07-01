@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -20,7 +20,7 @@ class TensionPole(BaseModel):
     """One side of a binary tension — the 'what is at stake' for that side."""
 
     concept_name: str = Field(description="The abstract concept or value at stake")
-    concept_id: Optional[str] = Field(
+    concept_id: str | None = Field(
         default=None,
         description="Entity ID of the Concept node in KG (if linked)",
     )
@@ -32,7 +32,7 @@ class TensionPole(BaseModel):
         default_factory=list,
         description="Names of carriers (denormalized for display)",
     )
-    stance: Optional[str] = Field(
+    stance: str | None = Field(
         default=None,
         description="Short description of how carriers embody this pole",
     )
@@ -65,7 +65,7 @@ class TEU(BaseModel):
         default_factory=list,
         description="Text quotations or paraphrases supporting this reading",
     )
-    thematic_note: Optional[str] = Field(
+    thematic_note: str | None = Field(
         default=None,
         description="Optional: what broader theme this tension serves",
     )
@@ -108,8 +108,8 @@ class TensionTheme(BaseModel):
     document_id: str
     tension_line_ids: list[str] = Field(default_factory=list)
     proposition: str = Field(default="", description="The book-level thematic claim")
-    frye_mythos: Optional[str] = Field(default=None, description="Frye mythos id")
-    booker_plot: Optional[str] = Field(default=None, description="Booker plot id")
+    frye_mythos: str | None = Field(default=None, description="Frye mythos id")
+    booker_plot: str | None = Field(default=None, description="Booker plot id")
     assembled_by: str = Field(default="tension_synthesizer_v1")
     assembled_at: datetime = Field(default_factory=datetime.utcnow)
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"

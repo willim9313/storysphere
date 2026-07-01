@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -17,7 +17,7 @@ class TimelineConfig(BaseModel):
     total_ranked_events: int = 0             # events with chronological_rank set
     chapter_mode_configured: bool = False    # user has confirmed chapter mode setting
     story_mode_configured: bool = False      # user has confirmed story mode setting
-    configured_at: Optional[datetime] = None
+    configured_at: datetime | None = None
 
 
 class TimelineDetectionResult(BaseModel):

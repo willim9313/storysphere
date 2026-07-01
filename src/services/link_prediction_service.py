@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Optional
 
 import networkx as nx
 
@@ -157,18 +156,18 @@ class LinkPredictionService:
     async def list_inferred(
         self,
         document_id: str,
-        status: Optional[InferenceStatus] = None,
+        status: InferenceStatus | None = None,
     ) -> list[InferredRelation]:
         return await self._store.list_by_document(document_id, status)
 
-    async def get_inferred(self, ir_id: str) -> Optional[InferredRelation]:
+    async def get_inferred(self, ir_id: str) -> InferredRelation | None:
         return await self._store.get(ir_id)
 
     async def confirm(
         self,
         ir_id: str,
         relation_type: RelationType,
-    ) -> Optional[Relation]:
+    ) -> Relation | None:
         """Confirm an inferred relation and write it as a real Relation to the KG."""
         ir = await self._store.get(ir_id)
         if ir is None:
@@ -252,7 +251,7 @@ class LinkPredictionService:
         source_id: str,
         target_id: str,
         entity_map: dict,
-    ) -> Optional[int]:
+    ) -> int | None:
         """Return the earliest chapter where both endpoints are present."""
         src = entity_map.get(source_id)
         tgt = entity_map.get(target_id)

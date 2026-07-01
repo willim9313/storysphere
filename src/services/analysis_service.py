@@ -8,8 +8,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from collections.abc import Callable
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
@@ -26,10 +27,10 @@ except ImportError:
         return _d
 
 from services.analysis_models import (
-    ArcSegment,
     ArchetypeResult,
-    CEPResult,
+    ArcSegment,
     CausalityAnalysis,
+    CEPResult,
     CharacterAnalysisResult,
     CharacterProfile,
     CoverageMetrics,
@@ -442,7 +443,7 @@ class AnalysisService:
             )
             if results:
                 formatted = DataSanitizer.format_vector_store_results(results)
-                return [f"== Relevant Text Passages ==\n" + "\n".join(formatted[:10])]
+                return ["== Relevant Text Passages ==\n" + "\n".join(formatted[:10])]
             return []
 
         async def gather_keywords() -> dict[str, float]:
@@ -519,6 +520,7 @@ class AnalysisService:
     ) -> ArchetypeResult:
         _lf_update_span(metadata={"framework": framework, "language": language})
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
+
         from config.archetypes import get_archetype_summary  # noqa: PLC0415
 
         archetype_list = get_archetype_summary(framework, language)

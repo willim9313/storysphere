@@ -31,14 +31,21 @@ import json
 import logging
 from typing import Any
 
-from neo4j import AsyncGraphDatabase, AsyncDriver
+from neo4j import AsyncDriver, AsyncGraphDatabase
 
 from domain.entities import Entity, EntityType
 from domain.events import Event, EventType, NarrativeMode
 from domain.relations import Relation, RelationType
 from domain.temporal import TemporalRelation, TemporalRelationType
 from services.kg_service_base import KGServiceBase
-from services.query_models import PathNode, RelationPath, RelationStats, Subgraph, SubgraphEdge, SubgraphNode
+from services.query_models import (
+    PathNode,
+    RelationPath,
+    RelationStats,
+    Subgraph,
+    SubgraphEdge,
+    SubgraphNode,
+)
 
 logger = logging.getLogger(__name__)
 

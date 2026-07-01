@@ -12,7 +12,7 @@ Example queries: "Extract entities from this passage: ...",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -32,7 +32,7 @@ class ExtractEntitiesFromTextTool(BaseTool):
         "DO NOT USE for: querying existing KG entities or searching passages. "
         "Input: free-form text string."
     )
-    args_schema: Type[ExtractEntitiesInput] = ExtractEntitiesInput
+    args_schema: type[ExtractEntitiesInput] = ExtractEntitiesInput
 
     extraction_service: Any = None  # ExtractionService instance, injected or lazy
 

@@ -13,13 +13,14 @@ Persistence uses AnalysisCache (SQLite) with key patterns:
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from config.mythos import get_mythos_summary
 from core.token_callback import set_llm_service_context
 from core.utils.output_extractor import extract_json_from_text
-from config.mythos import get_mythos_summary
 from domain.entities import EntityType
 from domain.tension import TEU, TensionLine, TensionPole, TensionTheme
 

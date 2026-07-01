@@ -24,7 +24,7 @@ import logging
 from dataclasses import dataclass, field
 
 from core.error_handling import is_rate_limit_error
-from domain.documents import Document, Paragraph, ParagraphRole, extract_body_text
+from domain.documents import Document, Paragraph, extract_body_text
 from pipelines.base import BasePipeline
 
 from .embedding_generator import EmbeddingGenerator
@@ -260,6 +260,7 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
     ) -> list[str]:
         """Legacy path: raw QdrantClient (used by tests with mock_qdrant)."""
         from qdrant_client.models import Distance, PointStruct, VectorParams  # noqa: PLC0415
+
         from config.settings import get_settings  # noqa: PLC0415
         from services.vector_service import title_slug  # noqa: PLC0415
 

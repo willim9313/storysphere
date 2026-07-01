@@ -19,7 +19,7 @@ class EntityResponse(BaseModel):
     mention_count: int
 
     @classmethod
-    def from_domain(cls, e: Entity) -> "EntityResponse":
+    def from_domain(cls, e: Entity) -> EntityResponse:
         return cls(
             id=e.id,
             name=e.name,
@@ -48,7 +48,7 @@ class RelationResponse(BaseModel):
     is_bidirectional: bool
 
     @classmethod
-    def from_domain(cls, r: Relation) -> "RelationResponse":
+    def from_domain(cls, r: Relation) -> RelationResponse:
         return cls(
             id=r.id,
             source_id=r.source_id,

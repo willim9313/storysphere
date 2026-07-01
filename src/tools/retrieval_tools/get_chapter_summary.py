@@ -12,7 +12,7 @@ Example queries: "What is the summary of chapter 3?",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -32,7 +32,7 @@ class GetChapterSummaryTool(BaseTool):
         "(use get_paragraphs), or semantic search (use vector_search). "
         "Input: document_id, chapter_number."
     )
-    args_schema: Type[GetChapterSummaryInput] = GetChapterSummaryInput
+    args_schema: type[GetChapterSummaryInput] = GetChapterSummaryInput
 
     doc_service: Any = None
 

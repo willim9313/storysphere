@@ -10,11 +10,11 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
-from tools.base import _json_default, format_entity, handle_not_found, resolve_entity
+from tools.base import _json_default, format_entity, resolve_entity
 from tools.schemas import CompareCharactersInput
 
 logger = logging.getLogger(__name__)
@@ -31,7 +31,7 @@ class CompareCharactersTool(BaseTool):
         "For quick pure-data comparison without LLM, use compare_entities instead. "
         "Input: two character entity IDs or names."
     )
-    args_schema: Type[CompareCharactersInput] = CompareCharactersInput
+    args_schema: type[CompareCharactersInput] = CompareCharactersInput
 
     kg_service: Any = None
     vector_service: Any = None

@@ -12,7 +12,8 @@ this service focuses on the LLM reading and HITL review.
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, Callable
+from collections.abc import Callable
+from typing import TYPE_CHECKING, Any
 
 from tenacity import (
     retry,
@@ -80,7 +81,7 @@ class SymbolAnalysisService:
         llm: Optional pre-built LLM client (injected for testing).
     """
 
-    def __init__(self, cache: "AnalysisCache", llm: Any = None) -> None:
+    def __init__(self, cache: AnalysisCache, llm: Any = None) -> None:
         self._cache = cache
         self._llm = llm
 
@@ -90,9 +91,9 @@ class SymbolAnalysisService:
         self,
         imagery_id: str,
         book_id: str,
-        symbol_service: "SymbolService",
-        doc_service: "DocumentService",
-        kg_service: "KGService",
+        symbol_service: SymbolService,
+        doc_service: DocumentService,
+        kg_service: KGService,
         language: str = "en",
         force: bool = False,
         progress_callback: Callable[[int, str], None] | None = None,

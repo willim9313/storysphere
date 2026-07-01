@@ -6,12 +6,12 @@ from domain.documents import (
     ParagraphEntity,
 )
 from domain.entities import Entity, EntityType, SpanRef
+from domain.epistemic_state import CharacterEpistemicState, MisbeliefItem
 from domain.events import Event, EventType, NarrativeMode, StoryTimeRef
 from domain.relations import Relation, RelationType
-from domain.tension import TEU, TensionLine, TensionPole, TensionTheme
 from domain.temporal import TemporalRelation, TemporalRelationType
+from domain.tension import TEU, TensionLine, TensionPole, TensionTheme
 from domain.timeline import TimelineConfig, TimelineDetectionResult
-from domain.epistemic_state import CharacterEpistemicState, MisbeliefItem
 
 __all__ = [
     "Entity",

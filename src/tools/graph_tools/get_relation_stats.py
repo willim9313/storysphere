@@ -11,7 +11,7 @@ Example queries: "What types of relationships are most common?",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -31,7 +31,7 @@ class GetRelationStatsTool(BaseTool):
         "DO NOT USE for: listing specific relations for an entity. "
         "Input: optional entity_id to scope; omit for global stats."
     )
-    args_schema: Type[RelationStatsInput] = RelationStatsInput
+    args_schema: type[RelationStatsInput] = RelationStatsInput
 
     kg_service: Any = None
 

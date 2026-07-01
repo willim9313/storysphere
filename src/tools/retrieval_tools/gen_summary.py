@@ -11,7 +11,7 @@ Example queries: "Regenerate the summary for chapter 3.",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -31,7 +31,7 @@ class GenSummaryTool(BaseTool):
         "DO NOT USE for: simply reading an existing summary (use get_summary). "
         "Input: document_id, optional chapter_number."
     )
-    args_schema: Type[GenSummaryInput] = GenSummaryInput
+    args_schema: type[GenSummaryInput] = GenSummaryInput
 
     doc_service: Any = None
     summarizer: Any = None  # ChapterSummarizer instance

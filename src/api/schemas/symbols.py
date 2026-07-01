@@ -7,7 +7,7 @@ from __future__ import annotations
 
 from pydantic import BaseModel
 
-from domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
+from domain.imagery import ImageryEntity, SymbolOccurrence
 
 
 class ImageryEntityResponse(BaseModel):
@@ -21,7 +21,7 @@ class ImageryEntityResponse(BaseModel):
     first_chapter: int | None
 
     @classmethod
-    def from_domain(cls, e: ImageryEntity) -> "ImageryEntityResponse":
+    def from_domain(cls, e: ImageryEntity) -> ImageryEntityResponse:
         first = min(e.chapter_distribution.keys()) if e.chapter_distribution else None
         return cls(
             id=e.id,
@@ -50,7 +50,7 @@ class SymbolTimelineEntry(BaseModel):
     paragraph_id: str
 
     @classmethod
-    def from_domain(cls, occ: SymbolOccurrence) -> "SymbolTimelineEntry":
+    def from_domain(cls, occ: SymbolOccurrence) -> SymbolTimelineEntry:
         return cls(
             chapter_number=occ.chapter_number,
             position=occ.position,

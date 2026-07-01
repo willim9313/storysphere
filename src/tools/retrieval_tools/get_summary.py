@@ -10,7 +10,7 @@ Example queries: "Summarize chapter 3.", "What happens in chapter 1?",
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Type
+from typing import Any
 
 from langchain_core.tools import BaseTool
 
@@ -30,7 +30,7 @@ class GetSummaryTool(BaseTool):
         "DO NOT USE for: full paragraph text retrieval or semantic search. "
         "Input: document_id, optional chapter_number."
     )
-    args_schema: Type[GetSummaryInput] = GetSummaryInput
+    args_schema: type[GetSummaryInput] = GetSummaryInput
 
     doc_service: Any = None
 

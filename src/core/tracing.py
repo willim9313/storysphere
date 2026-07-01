@@ -14,11 +14,10 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-_handler: Optional[object] = None
+_handler: object | None = None
 
 
 def configure_langfuse(settings=None) -> bool:

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from enum import Enum
-from typing import Optional
 
 from langchain_core.language_models import BaseChatModel
 
@@ -36,7 +35,7 @@ class LLMClient:
         response = await llm.ainvoke("Hello!")
     """
 
-    def __init__(self, settings: Optional[Settings] = None) -> None:
+    def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or get_settings()
         self._cache: dict[str, BaseChatModel] = {}
         self._token_store: object | None = None
@@ -122,7 +121,7 @@ class LLMClient:
 
     def get_llm(
         self,
-        provider: Optional[LLMProvider] = None,
+        provider: LLMProvider | None = None,
         temperature: float = 0.1,
         **kwargs: object,
     ) -> BaseChatModel:
@@ -265,7 +264,7 @@ class LLMClient:
 
 # ── Singleton ──────────────────────────────────────────────────────────────────
 
-_client: Optional[LLMClient] = None
+_client: LLMClient | None = None
 
 
 def get_llm_client() -> LLMClient:

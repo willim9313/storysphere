@@ -1,3 +1,8 @@
+from api.schemas.analysis import (
+    CharacterAnalysisRequest,
+    EventAnalysisRequest,
+)
+from api.schemas.chat import ChatIncomingMessage, ChatOutgoingMessage
 from api.schemas.common import ErrorResponse, TaskStatus
 from api.schemas.entity import (
     EntityListResponse,
@@ -7,11 +12,6 @@ from api.schemas.entity import (
     SubgraphResponse,
     TimelineEntry,
 )
-from api.schemas.analysis import (
-    CharacterAnalysisRequest,
-    EventAnalysisRequest,
-)
-from api.schemas.chat import ChatIncomingMessage, ChatOutgoingMessage
 
 __all__ = [
     "ErrorResponse",

@@ -260,9 +260,9 @@ class SymbolService:
         self,
         imagery_id: str,
         book_id: str,
-        doc_service: "DocumentService",
-        kg_service: "KGService",
-        cache: "AnalysisCache",
+        doc_service: DocumentService,
+        kg_service: KGService,
+        cache: AnalysisCache,
         force: bool = False,
     ) -> SEP:
         """Assemble a SEP for a single imagery entity.
@@ -384,7 +384,7 @@ class SymbolService:
         self,
         imagery_id: str,
         book_id: str,
-        cache: "AnalysisCache",
+        cache: AnalysisCache,
     ) -> SEP | None:
         """Return a cached SEP or None if missing/expired."""
         cached = await cache.get(_sep_cache_key(book_id, imagery_id))

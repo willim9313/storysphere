@@ -3,7 +3,6 @@ from __future__ import annotations
 import time
 import uuid
 from enum import Enum
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -60,12 +59,12 @@ class InferredRelation(BaseModel):
 
     status: InferenceStatus = InferenceStatus.PENDING
     # Populated after user confirms and a Relation is written to the KG
-    confirmed_relation_id: Optional[str] = None
+    confirmed_relation_id: str | None = None
 
     # Earliest chapter where both endpoints are present in the graph snapshot
     # = max(source.first_appearance_chapter, target.first_appearance_chapter)
     # None means no chapter constraint (show regardless of snapshot position)
-    visible_from_chapter: Optional[int] = None
+    visible_from_chapter: int | None = None
 
     created_at: float = Field(default_factory=time.time)
     updated_at: float = Field(default_factory=time.time)
