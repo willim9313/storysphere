@@ -291,8 +291,8 @@ def _compute_metrics(paragraphs: list[Paragraph]) -> dict:
     all_words: list[str] = []
 
     for p in paragraphs:
-        # Strip CJK punctuation before tokenizing to avoid polluting word tokens
-        clean_text = _CJK_PUNCT.sub(" ", p.text)
+        # CJK punctuation is stripped per-sentence below (see clean_s) before
+        # tokenizing, to avoid polluting word tokens.
         sentences = [s.strip() for s in _SENTENCE_SPLIT.split(p.text) if s.strip()]
         all_sentences.extend(sentences)
         for s in sentences:

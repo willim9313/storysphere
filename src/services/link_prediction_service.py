@@ -60,7 +60,7 @@ class LinkPredictionService:
         for node in g_directed.nodes():
             if node in entity_map:
                 g_undirected.add_node(node)
-        for u, v, data in g_directed.edges(data=True):
+        for u, v, _data in g_directed.edges(data=True):
             if u in entity_map and v in entity_map:
                 g_undirected.add_edge(u, v)
 

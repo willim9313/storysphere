@@ -24,6 +24,7 @@ export function BookOverview({ book }: { book: BookDetail }) {
     { key: 'chunks', value: book.chunkCount },
     { key: 'entities', value: book.entityCount },
     { key: 'relations', value: book.relationCount },
+    { key: 'events', value: book.eventCount },
   ];
 
   return (

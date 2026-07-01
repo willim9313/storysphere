@@ -4,7 +4,8 @@
   "stats": {
     "chapters": "章節",
     "entities": "實體",
-    "relations": "關係"
+    "relations": "關係",
+    "events": "事件"
   },
   "chapter": {
     "entities": "{{count}} 實體",

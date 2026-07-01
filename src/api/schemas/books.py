@@ -55,6 +55,7 @@ class BookDetailResponse(BookResponse):
     chunk_count: int = 0
     entity_count: int = 0
     relation_count: int = 0
+    event_count: int = 0
     entity_stats: EntityStats = EntityStats()
     keywords: dict[str, float] | None = None
 

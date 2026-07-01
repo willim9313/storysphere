@@ -229,7 +229,7 @@ class TensionService:
             cached = await self._cache.get(cache_key)
             if cached is not None:
                 logger.debug("TensionService: cache hit for %s", cache_key)
-                return [TensionLine.model_validate(l) for l in cached["lines"]]
+                return [TensionLine.model_validate(line) for line in cached["lines"]]
 
         events = await kg_service.get_events(document_id=document_id)
         teus: list[TEU] = []
@@ -256,7 +256,7 @@ class TensionService:
     async def save_lines(self, lines: list[TensionLine], document_id: str) -> None:
         """Persist TensionLines for a document to cache."""
         key = f"tension_lines:{document_id}"
-        await self._cache.set(key, {"lines": [l.model_dump(mode="json") for l in lines]})
+        await self._cache.set(key, {"lines": [line.model_dump(mode="json") for line in lines]})
         logger.debug("TensionService: saved %d TensionLines for document=%s", len(lines), document_id)
 
     async def get_lines(self, document_id: str) -> list[TensionLine]:
@@ -264,7 +264,7 @@ class TensionService:
         cached = await self._cache.get(f"tension_lines:{document_id}")
         if not cached:
             return []
-        return [TensionLine.model_validate(l) for l in cached["lines"]]
+        return [TensionLine.model_validate(line) for line in cached["lines"]]
 
     async def get_lines_with_teus(self, document_id: str) -> list[dict]:
         """Return TensionLines for a document with their constituent TEUs embedded.
@@ -367,7 +367,7 @@ class TensionService:
             )
 
         # Prefer reviewed lines; fall back to all lines
-        reviewed = [l for l in lines if l.review_status in {"approved", "modified"}]
+        reviewed = [line for line in lines if line.review_status in {"approved", "modified"}]
         input_lines = reviewed if reviewed else lines
         logger.info(
             "TensionService synthesize_theme: document=%s using %d/%d lines (reviewed=%d)",
@@ -747,7 +747,7 @@ class TensionService:
 
         return TensionTheme(
             document_id=document_id,
-            tension_line_ids=[l.id for l in lines],
+            tension_line_ids=[line.id for line in lines],
             proposition=parsed.get("proposition", ""),
             frye_mythos=parsed.get("frye_mythos"),
             booker_plot=parsed.get("booker_plot"),

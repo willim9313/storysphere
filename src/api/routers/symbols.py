@@ -66,7 +66,7 @@ async def list_symbols(
                 status_code=400,
                 detail=f"Invalid imagery_type '{imagery_type}'. "
                 f"Valid values: {[t.value for t in ImageryType]}",
-            )
+            ) from None
         entities = [e for e in entities if e.imagery_type == itype]
 
     entities = [e for e in entities if e.frequency >= min_frequency]

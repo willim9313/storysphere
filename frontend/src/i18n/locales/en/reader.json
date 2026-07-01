@@ -4,7 +4,8 @@
   "stats": {
     "chapters": "Chapters",
     "entities": "Entities",
-    "relations": "Relations"
+    "relations": "Relations",
+    "events": "Events"
   },
   "chapter": {
     "entities": "{{count}} entities",

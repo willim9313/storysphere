@@ -377,7 +377,7 @@ class Neo4jKGService(KGServiceBase):
             node_names: list[str] = rec["node_names"]
             rels: list[dict] = rec["rels"]
             nodes: list[PathNode] = []
-            for i, (nid, nname) in enumerate(zip(node_ids, node_names)):
+            for i, (nid, nname) in enumerate(zip(node_ids, node_names, strict=True)):
                 nodes.append(PathNode(
                     entity_id=nid,
                     name=nname,
