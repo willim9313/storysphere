@@ -1,8 +1,8 @@
 # 專案結構重構規劃
 
 **日期：** 2026-07-01
-**狀態：** 規劃中（尚未實作）
-**分支：** `chore/repo-structure-cleanup`（清理），大翻修另開分支
+**狀態：** Phase 1 已完成（commit `1056ddc`，branch `refactor/backend-namespace`）；Phase 2/3 待辦
+**分支：** `chore/repo-structure-cleanup`（清理），`refactor/backend-namespace`（Phase 1）
 
 ---
 
@@ -65,7 +65,9 @@ storysphere/
 
 ## 階段規劃（每階段可獨立交付、獨立 commit / PR）
 
-### Phase 1：命名空間化（核心，高價值）
+### Phase 1：命名空間化（核心，高價值）✅ 已完成
+
+> 實作結果：306 檔異動、775 行 import 改寫、41 處 `patch()` 字串路徑修正、~41 docs 更新。驗證：873 passed / 19 skipped、ruff 全過、uvicorn 啟動正常、sanity grep 0 命中。Follow-up：`npm run gen:types`（需啟動後端）。
 
 **動機：** 消除撞名風險、統一 import、清掉雙重可 import 的混亂。
 
