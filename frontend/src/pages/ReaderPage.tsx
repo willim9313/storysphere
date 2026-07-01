@@ -114,7 +114,7 @@ export default function ReaderPage() {
   };
 
   // P0: useMemo must be before early returns (Rules of Hooks)
-  const chapterList = chapters ?? [];
+  const chapterList = useMemo(() => chapters ?? [], [chapters]);
   const filteredChapterList = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return chapterList;

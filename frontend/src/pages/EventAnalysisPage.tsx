@@ -136,6 +136,7 @@ export default function EventAnalysisPage() {
 
   const { data: genTask } = useTaskPolling(generateTaskId);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (genTask?.status === 'done') {
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
@@ -147,6 +148,7 @@ export default function EventAnalysisPage() {
       setGeneratingId(null);
     }
   }, [genTask?.status, bookId, selectedEntityId, queryClient, generatingId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const batchMutation = useMutation({
     mutationFn: () => triggerBatchEventAnalysis(bookId!),
@@ -166,6 +168,7 @@ export default function EventAnalysisPage() {
     batchTask.status !== 'done' &&
     batchTask.status !== 'error';
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (!batchTask?.result) return;
     const result = batchTask.result as unknown as BatchEepResult;
@@ -187,6 +190,7 @@ export default function EventAnalysisPage() {
       setBatchTaskId(null);
     }
   }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient, t]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Auto-dismiss toast after 5s
   useEffect(() => {

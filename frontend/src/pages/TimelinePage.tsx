@@ -227,12 +227,14 @@ export default function TimelinePage() {
   const nodeRefs = useRef<Map<string, HTMLDivElement>>(new Map());
   const canvasRef = useRef<HTMLDivElement>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     if (computeTask?.status === 'done') {
       setComputeTaskId(null);
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'timeline'] });
     }
   }, [computeTask?.status, bookId, queryClient]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const isComputing =
     computeTaskId !== null &&
@@ -282,18 +284,19 @@ export default function TimelinePage() {
     setGenettTaskId(task.taskId);
   }, [bookId, isRunningGenett]);
 
+  const rawEvents = data?.events;
   const sortedEvents = useMemo(() => {
-    if (!data?.events) return [];
-    const events = [...data.events];
+    if (!rawEvents) return [];
+    const events = [...rawEvents];
     if (order === 'chronological') {
       events.sort(
         (a, b) => (a.chronologicalRank ?? 0) - (b.chronologicalRank ?? 0),
       );
     }
     return events;
-  }, [data?.events, order]);
+  }, [rawEvents, order]);
 
-  const temporalRelations = data?.temporalRelations ?? [];
+  const temporalRelations = useMemo(() => data?.temporalRelations ?? [], [data?.temporalRelations]);
 
   const filterOptions: FilterOptions = useMemo(() => {
     const eventTypes = new Set<string>();
@@ -1092,6 +1095,7 @@ function TimelineCanvas({
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
   const innerRef = useRef<HTMLDivElement>(null);
 
+  /* eslint-disable react-hooks/set-state-in-effect */
   useLayoutEffect(() => {
     if (!innerRef.current) {
       setLines([]);
@@ -1134,6 +1138,7 @@ function TimelineCanvas({
     }
     setLines(computed);
   }, [temporalRelations, events, layout, nodeRefs]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   if (events.length === 0) {
     return (
@@ -1364,13 +1369,10 @@ function EventCard({
 }) {
   const { t } = useTranslation('analysis');
   const importance = event.eventImportance;
-  const cardRef = useCallback(
-    (el: HTMLDivElement | null) => {
-      if (el) nodeRefs.current.set(event.id, el);
-      else nodeRefs.current.delete(event.id);
-    },
-    [event.id, nodeRefs],
-  );
+  const cardRef = (el: HTMLDivElement | null) => {
+    if (el) nodeRefs.current.set(event.id, el);
+    else nodeRefs.current.delete(event.id);
+  };
 
   const displacement = analepsisIds.has(event.id)
     ? 'var(--narrative-flashback-border)'

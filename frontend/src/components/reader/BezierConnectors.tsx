@@ -90,6 +90,7 @@ export function BezierConnectors({
       }
     }
 
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLines(newLines);
   }, [col1Ref, col2Ref, col3Ref, selectedChapterIdx, chapterKey, chunkCount, showCol3, colRevision]);
 
