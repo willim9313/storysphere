@@ -195,7 +195,7 @@ CREATE TABLE IF NOT EXISTS task_murmur_events (
 class SQLiteTaskStore:
     """Async SQLite-backed store. Works across multiple uvicorn workers."""
 
-    def __init__(self, db_path: str = "./data/tasks.db") -> None:
+    def __init__(self, db_path: str = "./var/tasks.db") -> None:
         self._db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._initialised = False
@@ -545,7 +545,7 @@ def _build_store() -> MemoryTaskStore | SQLiteTaskStore:
 
     if backend == "sqlite":
         logger.info("TaskStore: using SQLite backend")
-        db_path = getattr(settings, "task_store_db_path", "./data/tasks.db") if settings else "./data/tasks.db"
+        db_path = getattr(settings, "task_store_db_path", "./var/tasks.db") if settings else "./var/tasks.db"
         return SQLiteTaskStore(db_path=db_path)
 
     logger.info("TaskStore: using in-memory backend")

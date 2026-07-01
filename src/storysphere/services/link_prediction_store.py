@@ -34,7 +34,7 @@ _CREATE_INDEXES = [
 class LinkPredictionStore:
     """Async SQLite store for inferred relation candidates."""
 
-    def __init__(self, db_path: str = "./data/inferred_relations.db") -> None:
+    def __init__(self, db_path: str = "./var/inferred_relations.db") -> None:
         self._db_path = db_path
 
     async def _ensure_schema(self, db: aiosqlite.Connection) -> None:

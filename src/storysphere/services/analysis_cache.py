@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS analysis_cache (
 class AnalysisCache:
     """Async SQLite cache for analysis results with TTL eviction."""
 
-    def __init__(self, db_path: str = "./data/analysis_cache.db", ttl_seconds: int = _DEFAULT_TTL) -> None:
+    def __init__(self, db_path: str = "./var/analysis_cache.db", ttl_seconds: int = _DEFAULT_TTL) -> None:
         self._db_path = db_path
         self._ttl = ttl_seconds
         self._initialised = False

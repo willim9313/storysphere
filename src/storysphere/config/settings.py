@@ -51,7 +51,7 @@ class Settings(BaseSettings):
     )
 
     # ── Database ───────────────────────────────────────────────────────────────
-    database_url: str = "sqlite+aiosqlite:///./storysphere.db"
+    database_url: str = "sqlite+aiosqlite:///./var/storysphere.db"
 
     # ── Deployment Mode ────────────────────────────────────────────────────────
     deploy_mode: Literal["lightweight", "standard"] = "lightweight"
@@ -60,11 +60,11 @@ class Settings(BaseSettings):
     qdrant_url: str = "http://localhost:6333"
     qdrant_api_key: str = ""
     qdrant_collection_prefix: str = "storysphere_book"
-    qdrant_local_path: str = "./data/qdrant_local"
+    qdrant_local_path: str = "./var/qdrant_local"
 
     # ── Knowledge Graph ────────────────────────────────────────────────────────
     kg_mode: Literal["networkx", "neo4j"] = "networkx"
-    kg_persistence_path: str = "./data/knowledge_graph.json"
+    kg_persistence_path: str = "./var/knowledge_graph.json"
     kg_auto_switch_threshold: int = Field(
         default=10_000, description="Entity count above which Neo4j is recommended"
     )
@@ -144,10 +144,10 @@ class Settings(BaseSettings):
 
     # ── Deep Analysis ──────────────────────────────────────────────────────────
     analysis_cache_db_path: str = Field(
-        default="./data/analysis_cache.db", description="SQLite path for analysis cache"
+        default="./var/analysis_cache.db", description="SQLite path for analysis cache"
     )
     token_usage_db_path: str = Field(
-        default="./data/token_usage.db", description="SQLite path for token usage tracking"
+        default="./var/token_usage.db", description="SQLite path for token usage tracking"
     )
     analysis_temperature: float = Field(
         default=0.3, description="LLM temperature for deep analysis"
@@ -158,7 +158,7 @@ class Settings(BaseSettings):
 
     # ── Link Prediction (F-01) ─────────────────────────────────────────────────
     link_prediction_db_path: str = Field(
-        default="./data/inferred_relations.db",
+        default="./var/inferred_relations.db",
         description="SQLite path for link prediction (inferred relations) store",
     )
     link_prediction_max_candidates: int = Field(
@@ -187,13 +187,13 @@ class Settings(BaseSettings):
         default="sqlite", description="Task status store: 'memory' (dev) or 'sqlite' (multi-worker)"
     )
     task_store_db_path: str = Field(
-        default="./data/tasks.db", description="SQLite path for task store (only used when backend=sqlite)"
+        default="./var/tasks.db", description="SQLite path for task store (only used when backend=sqlite)"
     )
     task_store_ttl_days: int = Field(
         default=30, description="Days to retain completed/failed tasks in SQLite store (0 = keep forever)"
     )
     ingestion_checkpoint_db_path: str = Field(
-        default="./data/ingestion_checkpoints.db",
+        default="./var/ingestion_checkpoints.db",
         description="SQLite path for LangGraph ingestion graph checkpoints",
     )
 

@@ -71,10 +71,10 @@ logs/
 experiments/
 
 # ========== Data & Uploads ==========
-data/uploads/
-data/processed/
-data/knowledge_graph.json
-data/qdrant_local/
+var/uploads/
+var/processed/
+var/knowledge_graph.json
+var/qdrant_local/
 
 # ========== uv ==========
 # uv.lock    # Do NOT ignore - commit lock file for reproducibility

@@ -72,7 +72,7 @@ CREATE INDEX IF NOT EXISTS idx_occ_book ON symbol_occurrences(book_id);
 class SymbolService:
     """Async SQLite store for ImageryEntity and SymbolOccurrence records."""
 
-    def __init__(self, db_path: str = "./data/symbol_store.db") -> None:
+    def __init__(self, db_path: str = "./var/symbol_store.db") -> None:
         self._db_path = db_path
 
     async def _ensure_tables(self, db: aiosqlite.Connection) -> None:

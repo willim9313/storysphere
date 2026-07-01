@@ -40,7 +40,7 @@ _CREATE_INDEXES = [
 class TokenUsageStore:
     """Async SQLite store for token usage records."""
 
-    def __init__(self, db_path: str = "./data/token_usage.db") -> None:
+    def __init__(self, db_path: str = "./var/token_usage.db") -> None:
         self._db_path = db_path
         self._initialised = False
 
