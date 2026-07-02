@@ -1199,3 +1199,92 @@
   border-color: color-mix(in srgb, var(--accent) 50%, var(--border));
   color: var(--accent);
 }
+
+/* ── Onboarding empty-state hero (no events yet) ─────────────────── */
+.tl-hero {
+  max-width: 720px;
+  margin: 40px auto;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-style: var(--border-style);
+  border-radius: var(--radius-lg);
+  padding: 28px 32px;
+  box-shadow: var(--shadow-sm);
+}
+.tl-hero-eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: 16px;
+}
+.tl-hero-eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+.tl-hero-intro {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  line-height: 1.45;
+  color: var(--fg-muted);
+  font-style: italic;
+  margin: 0 0 24px;
+  text-wrap: pretty;
+  max-width: 80ch;
+}
+.tl-hero-steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.tl-hero-step {
+  padding: 16px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-style: var(--border-style);
+  border-radius: var(--radius-md);
+  position: relative;
+}
+.tl-hero-step-num {
+  position: absolute;
+  top: 12px;
+  right: 14px;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-2xl);
+  color: var(--fg-muted);
+  opacity: 0.3;
+  line-height: 1;
+}
+.tl-hero-step-scope {
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 8px;
+}
+.tl-hero-step-name {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  color: var(--fg-primary);
+  margin-bottom: 4px;
+}
+.tl-hero-step-desc {
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  line-height: 1.5;
+}
+.tl-hero-cta {
+  margin-top: 4px;
+}
+
+@media (max-width: 640px) {
+  .tl-hero-steps {
+    grid-template-columns: 1fr;
+  }
+}
