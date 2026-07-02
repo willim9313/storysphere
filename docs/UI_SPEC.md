@@ -528,6 +528,8 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 
 **空狀態**：當書籍尚無任何事件時，主區改顯示引導卡 `TimelineOnboardingHero`——以三步說明卡（事件抽取 → 故事時序 → Genette 分析）+「前往事件分析」CTA 引導使用者，此時 QualityBanner 不出現。呼應張力分析頁的 onboarding hero 模式。
 
+**版面對齊**：時間軸沿主軸（橫向 layout=橫、垂直 layout=豎）排列並捲動，內容在**次軸方向置中**（橫向→垂直置中、垂直→水平置中），使內容少時的留白平衡對稱、而非黏在角落。實作於 `.tl-canvas-inner`（橫向 `align-items: center`；垂直 `justify-content: center` + `width: 100%`）。
+
 #### 3.7.1 頂部工具列（V2 / 進取版）
 
 ```

@@ -295,6 +295,20 @@
   min-height: 100%;
   width: max-content;
   max-width: 100%;
+  display: flex;
+  align-items: flex-start;
+}
+/* Horizontal: only one row of chapter bands, so centre it on the cross axis —
+   the leftover vertical space becomes balanced breathing room rather than a
+   void below the content. (Vertical mode keeps top-align; handled separately.) */
+.tl-canvas-inner:not(.vertical) {
+  align-items: center;
+}
+/* Vertical: bands stack down the main axis (scrollable); centre them on the
+   horizontal cross axis so leftover width is balanced left/right. */
+.tl-canvas-inner.vertical {
+  width: 100%;
+  justify-content: center;
 }
 
 /* SVG overlay (spine + CAUSES edges) */

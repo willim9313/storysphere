@@ -1169,7 +1169,7 @@ function TimelineCanvas({
   });
 
   return (
-    <div className="tl-canvas-inner" ref={innerRef}>
+    <div className={`tl-canvas-inner${isHorizontal ? '' : ' vertical'}`} ref={innerRef}>
       {(spinePoints.length > 1 || lines.length > 0) && (
         <svg
           className="tl-svg-overlay"
