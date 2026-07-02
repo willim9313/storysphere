@@ -48,13 +48,15 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 // .pill-char / .pill-loc / .pill-con / .pill-evt — background / border / color / dot 色碼見 DESIGN_TOKENS.md
 ```
 
+**Pill 用於清單 / chips**（頂部實體列表、章節卡實體、全書實體分佈）。**閱讀正文的行內實體標註**（`SegmentRenderer`）另用 `.entity-mark`：閱讀時預設只有一條該類型色的細底線（不搶字流），hover 才浮出淡色塊；文字沿用正文色以維持可讀性。色值同樣取自 DESIGN_TOKENS 的 `--entity-{type}-bg/border/dot`。
+
 ---
 
 ## 2. 導航架構
 
 ### 2.1 全站層級（左側 Sidebar）
 
-固定在所有頁面左側，寬度 48px，icon-only。底部有語言切換按鈕（Globe icon）。
+固定在所有頁面左側，預設寬度 48px、icon-only（label 以原生 tooltip 提示）；頂部有釘選按鈕可展開為 180px（icon + 中文標籤，主內容區自動變窄），展開狀態記於 localStorage（`sidebar-expanded`）。底部有語言切換按鈕（Globe icon）。
 
 | Icon | 目的地 | 路由 | 狀態 |
 |------|--------|------|------|
@@ -68,7 +70,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 ### 2.2 書籍層級（Top Nav Tab）
 
-進入特定書籍後，top nav 顯示書名、「← 書庫」返回入口，以及 8 個 tab：
+進入特定書籍後，top nav 顯示書名、「← 書庫」返回入口，以及 8 個 tab（窄螢幕時分頁列可橫向滑動、書名以 `min(200px, 30vw)` 自動縮短，避免擠壓分頁）：
 
 | Tab | 路由 |
 |-----|------|
@@ -189,6 +191,8 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 欄之間用 **Bezier 曲線**連接（未選中淡色 `opacity: 0.3`，選中 accent 色 `opacity: 0.65`）。
 
+窄螢幕（≤768px）降級：進頁自動折疊欄 1、欄 2（各縮成 36px icon 條），正文最大化；使用者可點展開鈕手動推擠展開，Bezier 連線隱藏。
+
 #### 欄 1 — 書籍總覽
 
 書籍封面佔位圖、書名（serif）、作者、status badge、書籍摘要、關鍵數字（章節/Chunk/實體/關係數）、實體分佈 pill。
@@ -199,7 +203,7 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 #### 欄 3 — Chunk 內容
 
-每個 chunk 一個白色 card，含 chunk 編號、實體高亮正文（serif）、實體 pill。欄 3 標題列固定顯示章節名 + chunk 總數。
+每個 chunk 一個白色 card，含 chunk 編號、實體標註正文（serif，行內標註預設細底線、hover 才浮色塊，見 §1.4）、實體 pill。欄 3 標題列固定顯示章節名 + chunk 總數，右側有標註密度開關（全部／角色／關）與角色視角按鈕；密度開關以容器 `data-annotation-mode` 控制正文行內標註的顯示範圍。
 
 #### 側邊面板 — EpistemicSidePanel
 
@@ -236,6 +240,8 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 #### Content Area — 角色分析內容
 
 頂部固定一條 **Tip Ribbon**（首次進入顯示，localStorage `storysphere:tip-dismissed:character-analysis` 永久 dismiss）。
+
+未選取角色時，內容區顯示提示文字加上「快速前往已分析角色」入口（列出前 5 位已分析角色，點擊直接載入其分析），避免空面板浪費版位。
 
 **標題列**：角色名（serif 28px）+ Framework badge（顯示當前 framework + primary archetype，不可點擊切換）+ Ch.X 提及 meta + 「在圖譜中查看 ↗」+「框架對照」+「覆蓋重新生成」按鈕
 
