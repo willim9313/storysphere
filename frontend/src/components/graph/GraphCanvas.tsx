@@ -198,6 +198,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       if (evt.target === cy) clearHighlight(cy);
     });
 
+    // Relationship labels are hidden by default (see cytoscapeConfig edge
+    // style); reveal them on hover for the hovered node's connections or a
+    // directly-hovered edge, then hide again on mouseout.
+    cy.on('mouseover', 'node', (evt) => evt.target.connectedEdges().addClass('label-visible'));
+    cy.on('mouseout', 'node', (evt) => evt.target.connectedEdges().removeClass('label-visible'));
+    cy.on('mouseover', 'edge', (evt) => evt.target.addClass('label-visible'));
+    cy.on('mouseout', 'edge', (evt) => evt.target.removeClass('label-visible'));
+
     cy.on('viewport render', emitViewport);
 
     cyRef.current = cy;

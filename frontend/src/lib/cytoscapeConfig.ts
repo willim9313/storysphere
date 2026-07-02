@@ -27,8 +27,14 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
   const fgPrimary = v('--fg-primary')   || '#1c1814';
   const fgMuted   = v('--fg-muted')     || '#8a7a68';
   const fgSecondary = v('--fg-secondary') || '#5a4f42';
-  const fontSans  = v('--font-sans')    || 'DM Sans, system-ui, sans-serif';
-  const fontSerif = v('--font-serif')   || 'Source Serif Pro, Georgia, serif';
+  // cytoscape's font-family regex (^([\w- "]+(?:\s*,\s*[\w- "]+)*)$) rejects
+  // single quotes, so a token like `'Libre Baskerville', 'Noto Sans TC', …`
+  // is flagged invalid and the label silently falls back to the default font.
+  // Strip quotes here (spaces in family names are allowed) without touching
+  // the shared --font-* tokens.
+  const cyFont = (s: string) => s.replace(/['"]/g, '');
+  const fontSans  = cyFont(v('--font-sans')  || 'DM Sans, system-ui, sans-serif');
+  const fontSerif = cyFont(v('--font-serif') || 'Source Serif Pro, Georgia, serif');
   const borderStyle: 'dashed' | 'solid' = v('--border-style') === 'dashed' ? 'dashed' : 'solid';
   const lineWeight  = Number.parseFloat(v('--line-weight')) || 1.2;
   const nodeBorderWidth = Math.max(1, lineWeight);
@@ -73,6 +79,10 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'text-valign': 'bottom',
         'text-halign': 'center',
         'font-size': '11px',
+        // Obsidian-style: hide node labels when zoomed out (effective font
+        // < 8px) so the full graph reads as a clean star map, and fade them
+        // in as the user zooms toward a region.
+        'min-zoomed-font-size': 8,
         'font-family': fontSerif,
         color: (ele: cytoscape.NodeSingular) =>
           labels[ele.data('entityType') as string] ?? fgPrimary,
@@ -95,7 +105,7 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'border-width': 2.5,
         'border-color': accent,
         'underlay-color': accent,
-        'underlay-padding': 8,
+        'underlay-padding': 4,
         'underlay-opacity': 0.35,
       },
     },
@@ -109,7 +119,7 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'border-width': 2.5,
         'border-color': accent,
         'underlay-color': accent,
-        'underlay-padding': 8,
+        'underlay-padding': 4,
         'underlay-opacity': 0.35,
       },
     },
@@ -119,7 +129,14 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         width: 2.5,
         'line-color': accent,
         opacity: 1,
+        // Reveal the relationship label for a selected node's connections.
+        'text-opacity': 1,
       },
+    },
+    {
+      // Reveal relationship label on hover (see GraphCanvas mouseover/out).
+      selector: 'edge.label-visible',
+      style: { 'text-opacity': 1 },
     },
     {
       // V1 design: edges are plain lines, no arrowheads. Labels render
@@ -138,6 +155,10 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'text-rotation': 'autorotate',
         'text-margin-y': -4,
         color: fgMuted,
+        // Relationship labels are the densest source of the "hairball" look;
+        // keep them hidden by default and reveal only on hover / selection
+        // (see edge.label-visible and edge.highlighted).
+        'text-opacity': 0,
       },
     },
     // V1: inferred edges distinguish via color + opacity, NOT dashed.
@@ -211,6 +232,10 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         label: 'data(label)',
         'font-size': '9px',
         color: fgMuted,
+        // Cluster mode has only a handful of super-nodes, so keep the
+        // aggregated relationship counts visible (overrides the base
+        // edge's text-opacity: 0).
+        'text-opacity': 1,
       },
     },
     // Faction rivalry edges (community mode) — red dashed line
