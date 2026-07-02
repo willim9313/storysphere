@@ -11,6 +11,7 @@
   "triggerFailed": "觸發分析失敗，請稍後再試。",
   "batchTriggerFailed": "觸發批次分析失敗，請稍後再試。",
   "selectCharacter": "選擇角色以查看或生成分析",
+  "quickAccess": "快速前往已分析角色",
   "selectEvent": "選擇事件以查看或生成分析",
   "viewInGraph": "在圖譜中查看",
   "frameworkIndex": "框架索引",
@@ -328,6 +329,7 @@
         "desc": "從已審核的張力線合成一句話命題與框架歸類。"
       }
     },
+    "llmHint": "此步驟會呼叫 LLM，約需數分鐘",
     "step1": {
       "label": "TEU 組裝",
       "scope": "SCENE 場景級",
@@ -458,6 +460,7 @@
     "qualityTooltip": "分析更多事件可提升時序計算品質。前往深度分析頁 → 事件分析一鍵生成全部 EEP。",
     "computing": "計算中…",
     "recompute": "重新計算時序",
+    "recomputeHint": "重新計算會呼叫 LLM 分析事件時序，約需數分鐘",
     "filter": "篩選",
     "filterSections": {
       "eventTypes": "事件類型",

@@ -745,6 +745,9 @@ function Toolbar({
             className="tl-btn"
             onClick={onCompute}
             disabled={isComputing}
+            title={t('timeline.recomputeHint', {
+              defaultValue: '重新計算會呼叫 LLM 分析事件時序，約需數分鐘',
+            })}
           >
             {isComputing ? (
               <>
@@ -819,6 +822,9 @@ function Toolbar({
             className="tl-btn tl-btn-warning"
             onClick={onCompute}
             disabled={isComputing}
+            title={t('timeline.recomputeHint', {
+              defaultValue: '重新計算會呼叫 LLM 分析事件時序，約需數分鐘',
+            })}
           >
             {isComputing ? (
               <>
