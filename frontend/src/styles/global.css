@@ -216,9 +216,57 @@
   }
   .pill-other .pill-dot { background: var(--entity-other-dot); }
 
+  /* ── 內文行內實體標註 ──────────────────────────────────────────
+     有別於 chips 用的 .pill：閱讀時預設只有一條細底線（不搶字流），
+     hover 才浮出該類型的淡色塊。文字沿用正文色以維持可讀性。 */
+  .entity-mark {
+    background: transparent;
+    color: inherit;
+    border-bottom: 1.5px solid transparent;
+    border-radius: 3px;
+    padding: 0 1px;
+    cursor: default;
+    transition: background-color 0.12s ease;
+  }
+  .entity-mark-char { border-bottom-color: var(--entity-char-dot); }
+  .entity-mark-char:hover { background: var(--entity-char-bg); }
+  .entity-mark-loc { border-bottom-color: var(--entity-loc-dot); }
+  .entity-mark-loc:hover { background: var(--entity-loc-bg); }
+  .entity-mark-con { border-bottom-color: var(--entity-con-dot); }
+  .entity-mark-con:hover { background: var(--entity-con-bg); }
+  .entity-mark-evt { border-bottom-color: var(--entity-evt-dot); }
+  .entity-mark-evt:hover { background: var(--entity-evt-bg); }
+  .entity-mark-org { border-bottom-color: var(--entity-org-dot); }
+  .entity-mark-org:hover { background: var(--entity-org-bg); }
+  .entity-mark-obj { border-bottom-color: var(--entity-obj-dot); }
+  .entity-mark-obj:hover { background: var(--entity-obj-bg); }
+  .entity-mark-other { border-bottom-color: var(--entity-other-dot); }
+  .entity-mark-other:hover { background: var(--entity-other-bg); }
+
+  /* 標註密度：由容器 data-annotation-mode 控制（見 ReaderPage 開關）。
+     "characters" 只留角色標註，"off" 全部純文字；被關閉者取消底線與 hover 色塊。 */
+  [data-annotation-mode='characters'] .entity-mark:not(.entity-mark-char),
+  [data-annotation-mode='off'] .entity-mark {
+    border-bottom-color: transparent;
+    cursor: text;
+  }
+  [data-annotation-mode='characters'] .entity-mark:not(.entity-mark-char):hover,
+  [data-annotation-mode='off'] .entity-mark:hover {
+    background: transparent;
+  }
+
   /* ── Theme-aware progress bar fill ──────────────────────────────── */
   .theme-progress-fill {
     background-color: var(--accent);
+  }
+
+  /* 隱藏捲軸但保留可捲動（用於窄螢幕橫向滑動的 tab 列等） */
+  .no-scrollbar {
+    scrollbar-width: none;          /* Firefox */
+    -ms-overflow-style: none;       /* IE / old Edge */
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;                  /* WebKit */
   }
 
   /* ── Keyword tag styles ────────────────────────────────────────── */

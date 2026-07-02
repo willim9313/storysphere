@@ -1,13 +1,13 @@
 import type { Segment, EntityType } from '@/api/types';
 
-const pillClass: Record<EntityType, string> = {
-  character: 'pill-char',
-  location: 'pill-loc',
-  organization: 'pill-org',
-  object: 'pill-obj',
-  concept: 'pill-con',
-  other: 'pill-other',
-  event: 'pill-evt',
+const markClass: Record<EntityType, string> = {
+  character: 'entity-mark-char',
+  location: 'entity-mark-loc',
+  organization: 'entity-mark-org',
+  object: 'entity-mark-obj',
+  concept: 'entity-mark-con',
+  other: 'entity-mark-other',
+  event: 'entity-mark-evt',
 };
 
 export function SegmentRenderer({ segments }: { segments: Segment[] }) {
@@ -20,11 +20,10 @@ export function SegmentRenderer({ segments }: { segments: Segment[] }) {
         return (
           <mark
             key={i}
-            className={`pill ${pillClass[seg.entity.type]}`}
+            className={`entity-mark ${markClass[seg.entity.type]}`}
             style={{ fontStyle: 'normal' }}
             title={seg.entity.name}
           >
-            <span className="pill-dot" />
             {seg.text}
           </mark>
         );

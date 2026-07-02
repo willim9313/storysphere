@@ -18,6 +18,12 @@
   "epistemicLabel": "角色視角",
   "epistemicClose": "收起",
   "epistemicHint": "選擇角色，查看他在這個章節前知道的事",
+  "annotation": {
+    "title": "標註",
+    "full": "全部",
+    "characters": "角色",
+    "off": "關"
+  },
   "col1Expand": "展開書籍概覽",
   "col1Collapse": "收合書籍概覽",
   "col2Expand": "展開章節列表",

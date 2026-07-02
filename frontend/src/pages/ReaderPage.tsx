@@ -16,6 +16,12 @@ import { ErrorMessage } from '@/components/ui/ErrorMessage';
 
 const EPISTEMIC_HINT_KEY = 'storysphere:reader-epistemic-hint-shown';
 
+// Below this width the three columns can't coexist, so col1/col2 default to
+// collapsed and the bezier connectors are hidden (see RWD handling below).
+const NARROW_QUERY = '(max-width: 768px)';
+const getIsNarrow = () =>
+  typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches;
+
 const collapseButtonStyle: React.CSSProperties = {
   position: 'absolute',
   top: 8,
@@ -41,9 +47,11 @@ export default function ReaderPage() {
   const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
   const [viewingChapterId, setViewingChapterId] = useState<string | null>(null);
   const [epistemicOpen, setEpistemicOpen] = useState(false);
+  const [annotationMode, setAnnotationMode] = useState<'full' | 'characters' | 'off'>('full');
   const [searchQuery, setSearchQuery] = useState('');
-  const [col1Collapsed, setCol1Collapsed] = useState(false);
-  const [col2Collapsed, setCol2Collapsed] = useState(false);
+  const [isNarrow, setIsNarrow] = useState(getIsNarrow);
+  const [col1Collapsed, setCol1Collapsed] = useState(getIsNarrow);
+  const [col2Collapsed, setCol2Collapsed] = useState(getIsNarrow);
   const [colRevision, setColRevision] = useState(0);
   const [epistemicHintShown, setEpistemicHintShown] = useState(() => {
     try { return localStorage.getItem(EPISTEMIC_HINT_KEY) === 'true'; } catch { return true; }
@@ -134,6 +142,21 @@ export default function ReaderPage() {
     return () => clearTimeout(timer);
   }, [showEpistemicHint]);
 
+  // Collapse the two left columns when entering a narrow viewport; afterward
+  // the user can still push-expand them manually.
+  useEffect(() => {
+    const mq = window.matchMedia(NARROW_QUERY);
+    const onChange = (e: MediaQueryListEvent) => {
+      setIsNarrow(e.matches);
+      if (e.matches) {
+        setCol1Collapsed(true);
+        setCol2Collapsed(true);
+      }
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
   if (bookLoading || chaptersLoading) return <LoadingSpinner />;
   if (bookError) return <ErrorMessage message={bookError.message} />;
   if (!book) return <ErrorMessage message="Book not found" />;
@@ -160,16 +183,18 @@ export default function ReaderPage() {
 
   return (
     <div className="flex h-full relative">
-      <BezierConnectors
-        col1Ref={col1Ref}
-        col2Ref={col2Ref}
-        col3Ref={col3Ref}
-        selectedChapterIdx={selectedChapterIdx}
-        chapterKey={filteredChapterList.map((c) => c.id).join(',')}
-        chunkCount={chunks?.length ?? 0}
-        showCol3={!!viewingChapterId}
-        colRevision={colRevision}
-      />
+      {!isNarrow && (
+        <BezierConnectors
+          col1Ref={col1Ref}
+          col2Ref={col2Ref}
+          col3Ref={col3Ref}
+          selectedChapterIdx={selectedChapterIdx}
+          chapterKey={filteredChapterList.map((c) => c.id).join(',')}
+          chunkCount={chunks?.length ?? 0}
+          showCol3={!!viewingChapterId}
+          colRevision={colRevision}
+        />
+      )}
 
       {/* Column 1: Book Overview */}
       <div
@@ -334,7 +359,32 @@ export default function ReaderPage() {
                   {chunks?.length ?? 0} chunks
                 </span>
               </div>
-              <div className="relative flex-shrink-0">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <div
+                  className="flex items-center"
+                  role="group"
+                  aria-label={t('annotation.title')}
+                  style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}
+                >
+                  {(['full', 'characters', 'off'] as const).map((m) => (
+                    <button
+                      key={m}
+                      onClick={() => setAnnotationMode(m)}
+                      style={{
+                        padding: '5px 9px',
+                        border: 'none',
+                        cursor: 'pointer',
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: 'var(--font-size-2xs)',
+                        backgroundColor: annotationMode === m ? 'var(--accent)' : 'var(--bg-secondary)',
+                        color: annotationMode === m ? 'white' : 'var(--fg-muted)',
+                      }}
+                    >
+                      {t(`annotation.${m}`)}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative">
                 <button
                   onClick={() => {
                     setEpistemicOpen((v) => !v);
@@ -375,11 +425,12 @@ export default function ReaderPage() {
                     </p>
                   </div>
                 )}
+                </div>
               </div>
             </div>
 
             {/* Chunks */}
-            <div style={{ padding: '16px' }}>
+            <div style={{ padding: '16px' }} data-annotation-mode={annotationMode}>
               {chunksLoading && <LoadingSpinner />}
               {!chunksLoading &&
                 chunks?.map((chunk) => (
