@@ -11,6 +11,7 @@
   "triggerFailed": "Failed to trigger analysis. Please try again later.",
   "batchTriggerFailed": "Failed to trigger batch analysis. Please try again later.",
   "selectCharacter": "Select a character to view or generate analysis",
+  "quickAccess": "Jump to an analyzed character",
   "selectEvent": "Select an event to view or generate analysis",
   "viewInGraph": "View in Graph",
   "frameworkIndex": "Frameworks",
@@ -328,6 +329,7 @@
         "desc": "One-sentence proposition + framework classification synthesized from reviewed lines."
       }
     },
+    "llmHint": "This step calls the LLM and can take a few minutes",
     "step1": {
       "label": "TEU Assembly",
       "scope": "SCENE level",
@@ -458,6 +460,7 @@
     "qualityTooltip": "Analyze more events to improve timeline quality. Go to Deep Analysis → Events to generate all EEPs at once.",
     "computing": "Computing…",
     "recompute": "Recompute Timeline",
+    "recomputeHint": "Recomputing calls the LLM to analyze event chronology; this can take a few minutes",
     "filter": "Filter",
     "filterSections": {
       "eventTypes": "Event Types",

@@ -5,6 +5,9 @@
   "search": "搜尋",
   "tokenUsage": "Token 用量",
   "settings": "系統設定",
+  "tasks": "任務中心",
+  "expandSidebar": "展開側欄",
+  "collapseSidebar": "收合側欄",
   "tabs": {
     "read": "閱讀",
     "characterAnalysis": "角色分析",

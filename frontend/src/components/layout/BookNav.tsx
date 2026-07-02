@@ -34,7 +34,7 @@ export function BookNav({ bookId, bookTitle }: BookNavProps) {
     >
       <Link
         to="/"
-        className="flex items-center gap-1 text-xs"
+        className="flex items-center gap-1 text-xs flex-shrink-0"
         style={{ color: 'var(--fg-muted)' }}
       >
         <ArrowLeft size={14} />
@@ -43,12 +43,12 @@ export function BookNav({ bookId, bookTitle }: BookNavProps) {
 
       <span
         className="text-sm font-medium truncate"
-        style={{ color: 'var(--fg-primary)', maxWidth: 200 }}
+        style={{ color: 'var(--fg-primary)', maxWidth: 'min(200px, 30vw)', minWidth: 0 }}
       >
         {bookTitle}
       </span>
 
-      <div className="flex gap-0.5 ml-4">
+      <div className="flex gap-0.5 ml-4 flex-1 min-w-0 overflow-x-auto no-scrollbar">
         {tabs.map(({ label, path }) => {
           const fullPath = `${base}${path}`;
           const active = path === ''
@@ -59,7 +59,7 @@ export function BookNav({ bookId, bookTitle }: BookNavProps) {
             <Link
               key={path}
               to={fullPath}
-              className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors"
+              className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0"
               style={{
                 backgroundColor: active ? 'var(--bg-tertiary)' : 'transparent',
                 color: active ? 'var(--accent)' : 'var(--fg-secondary)',

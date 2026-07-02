@@ -5,6 +5,9 @@
   "search": "Search",
   "tokenUsage": "Token Usage",
   "settings": "Settings",
+  "tasks": "Task Center",
+  "expandSidebar": "Expand sidebar",
+  "collapseSidebar": "Collapse sidebar",
   "tabs": {
     "read": "Read",
     "characterAnalysis": "Characters",

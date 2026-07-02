@@ -472,6 +472,39 @@ export default function CharacterAnalysisPage() {
             ) : (
               <div className="ca-empty">
                 <p className="ca-empty-sub">{t('selectCharacter')}</p>
+                {(charData?.analyzed.length ?? 0) > 0 && (
+                  <div
+                    style={{
+                      marginTop: 18,
+                      width: '100%',
+                      maxWidth: 320,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 6,
+                    }}
+                  >
+                    <div
+                      style={{
+                        textAlign: 'left',
+                        fontSize: 'var(--font-size-2xs)',
+                        color: 'var(--fg-muted)',
+                        fontFamily: 'var(--font-sans)',
+                        marginBottom: 2,
+                      }}
+                    >
+                      {t('quickAccess')}
+                    </div>
+                    {(charData?.analyzed ?? []).slice(0, 5).map((item) => (
+                      <AnalyzedItem
+                        key={item.id}
+                        item={item}
+                        framework={framework}
+                        isSelected={false}
+                        onSelect={() => handleSelectEntity(item.entityId)}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

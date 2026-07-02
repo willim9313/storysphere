@@ -1,5 +1,6 @@
 import { Fragment } from 'react';
 import { CheckCircle2, ChevronRight, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export interface TensionStepSpec {
   key: 1 | 2 | 3;
@@ -38,6 +39,7 @@ export function TensionStepperStrip({ steps, onTrigger }: Props) {
 }
 
 function TensionStep({ step, onClick }: { step: TensionStepSpec; onClick: () => void }) {
+  const { t } = useTranslation('analysis');
   const cls = [
     'tn-step',
     step.done && 'is-done',
@@ -48,7 +50,12 @@ function TensionStep({ step, onClick }: { step: TensionStepSpec; onClick: () => 
     .join(' ');
 
   return (
-    <button className={cls} onClick={onClick} disabled={step.disabled || step.running}>
+    <button
+      className={cls}
+      onClick={onClick}
+      disabled={step.disabled || step.running}
+      title={t('tension.llmHint')}
+    >
       <span className="tn-step-num">
         {step.running ? (
           <Loader2 size={14} className="tn-spin" />
