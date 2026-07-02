@@ -12,6 +12,7 @@ import { toCytoscapeElements, toClusteredCytoscapeElements } from '@/lib/graphTr
 import { byCommunity, byType, isSuperNodeId } from '@/services/kgClustering';
 import { fetchFactionAnalysis } from '@/api/factions';
 import { GraphCanvas, type GraphCanvasHandle, type ViewportSnapshot } from '@/components/graph/GraphCanvas';
+import { GraphOnboardingHero } from '@/components/graph/GraphOnboardingHero';
 import { GraphToolbar, type AnimationMode, type ClusterMode } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
 import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
@@ -346,6 +347,9 @@ export default function GraphPage() {
 
   const nodeCount = data?.nodes.length ?? 0;
   const edgeCount = data?.edges.length ?? 0;
+
+  // No nodes yet → show an onboarding guide instead of a blank canvas.
+  if (nodeCount === 0) return <GraphOnboardingHero />;
 
   // Decide right panel rendering
   const showCompare = !!compareNodes;

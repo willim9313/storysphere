@@ -37,6 +37,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MatrixCanvas, type GenettDataShape } from '@/components/timeline/MatrixCanvas';
 import { NarrativeIcon } from '@/components/timeline/NarrativeIcon';
+import { TimelineOnboardingHero } from '@/components/timeline/TimelineOnboardingHero';
 import type {
   TimelineOrder,
   TimelineEvent,
@@ -429,7 +430,9 @@ export default function TimelinePage() {
 
       <div className="tl-main">
         <div className="tl-canvas" ref={canvasRef}>
-          {order === 'matrix' ? (
+          {(rawEvents?.length ?? 0) === 0 && bookId ? (
+            <TimelineOnboardingHero bookId={bookId} />
+          ) : order === 'matrix' ? (
             <MatrixCanvas
               events={sortedEvents}
               passesFilter={passesFilter}
@@ -802,7 +805,7 @@ function Toolbar({
         </div>
       </div>
 
-      {noRanks && quality && (
+      {noRanks && quality && quality.totalCount > 0 && (
         <div className="tl-quality-banner">
           <div className="tl-quality-banner-icon">
             <AlertTriangle size={16} />
@@ -1166,7 +1169,7 @@ function TimelineCanvas({
   });
 
   return (
-    <div className="tl-canvas-inner" ref={innerRef}>
+    <div className={`tl-canvas-inner${isHorizontal ? '' : ' vertical'}`} ref={innerRef}>
       {(spinePoints.length > 1 || lines.length > 0) && (
         <svg
           className="tl-svg-overlay"

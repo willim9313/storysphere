@@ -8,6 +8,12 @@
     "event": "事件",
     "other": "其他"
   },
+  "onboarding": {
+    "eyebrow": "知識圖譜",
+    "title": "尚無可顯示的節點",
+    "intro": "知識圖譜由各章節的實體與關係萃取而成。這本書還沒有節點——請確認書籍已完成處理，或重新上傳。",
+    "cta": "前往上傳"
+  },
   "toolbar": {
     "searchPlaceholder": "搜尋實體...",
     "resetView": "重置視圖",
