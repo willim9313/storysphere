@@ -7,6 +7,7 @@ update logic, and default LLM factory.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 from langchain_core.messages import (
     AIMessage,
@@ -224,14 +225,21 @@ def build_history_messages(state: ChatState) -> list:
     return msgs
 
 
-def update_entity_state(match, state: ChatState) -> None:
+def update_entity_state(
+    match,
+    state: ChatState,
+    id_resolver: Callable[[str], str | None] | None = None,
+) -> None:
     """Update entity tracking state from a pattern match; always returns None.
 
     The agent loop always handles response generation — this function only
-    performs the side-effect of recording entity mentions for pronoun resolution.
+    performs the side-effect of recording entity mentions for pronoun
+    resolution. ``id_resolver`` maps an entity name to its canonical KG id
+    (unambiguous only) so text-mentioned entities can carry an id into focus.
     """
     for entity in match.extracted_entities:
-        state.add_entity_mention(entity)
+        entity_id = id_resolver(entity) if id_resolver else None
+        state.add_entity_mention(entity, entity_id)
 
 
 def get_default_llm():

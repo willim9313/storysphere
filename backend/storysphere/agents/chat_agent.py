@@ -34,6 +34,39 @@ from storysphere.tools.tool_registry import get_chat_tools
 logger = logging.getLogger(__name__)
 
 
+def _index_known_entities(entities: list) -> tuple[list[str], dict[str, str]]:
+    """Index KG entities into a name list and an unambiguous name→id map.
+
+    Returns ``(names, id_map)`` where ``names`` (original casing, deduped by
+    lowercase, incl. aliases) feeds dictionary extraction, and ``id_map`` maps
+    ``name_lower → canonical id`` only for names that resolve to a single
+    entity. A name shared by two entities is dropped from ``id_map`` so focus
+    stays name-only rather than binding to a wrong id.
+    """
+    names: list[str] = []
+    seen: set[str] = set()
+    id_map: dict[str, str] = {}
+    ambiguous: set[str] = set()
+    for entity in entities:
+        entity_id = getattr(entity, "id", None)
+        for candidate in (entity.name, *getattr(entity, "aliases", [])):
+            if not candidate:
+                continue
+            key = candidate.lower()
+            if key not in seen:
+                seen.add(key)
+                names.append(candidate)
+            if not entity_id or key in ambiguous:
+                continue
+            existing = id_map.get(key)
+            if existing is None:
+                id_map[key] = entity_id
+            elif existing != entity_id:
+                del id_map[key]
+                ambiguous.add(key)
+    return names, id_map
+
+
 class ChatAgent:
     """LangGraph-based chat agent for novel analysis.
 
@@ -86,6 +119,8 @@ class ChatAgent:
         self._recognizer = QueryPatternRecognizer()
         # Known KG entity names per book, cached for dictionary-based extraction
         self._entity_name_cache: dict[str, list[str]] = {}
+        # Unambiguous {name_lower: canonical_id} per book, for id-aligned focus
+        self._entity_id_cache: dict[str, dict[str, str]] = {}
 
     def _build_graph(self):
         """Build a ReAct StateGraph: agent node ↔ ToolNode loop."""
@@ -143,15 +178,22 @@ class ChatAgent:
             except Exception:
                 logger.exception("Failed to list entities for book %s", book_id)
                 return []
-            names: list[str] = []
-            seen: set[str] = set()
-            for entity in entities:
-                for candidate in (entity.name, *getattr(entity, "aliases", [])):
-                    if candidate and candidate.lower() not in seen:
-                        seen.add(candidate.lower())
-                        names.append(candidate)
+            names, id_map = _index_known_entities(entities)
             self._entity_name_cache[book_id] = names
+            self._entity_id_cache[book_id] = id_map
         return self._entity_name_cache[book_id]
+
+    def _focus_entity_id(self, state: ChatState, name: str) -> str | None:
+        """Return the canonical KG id for *name* if it maps unambiguously.
+
+        Lets text-mentioned KG entities carry an id into focus (like A1 did for
+        UI-selected ones), so a later turn can do a precise entity_id lookup.
+        The map is populated by ``_known_entity_names``; ambiguous names yield
+        ``None`` so focus stays name-only.
+        """
+        if not state.book_id or not name:
+            return None
+        return self._entity_id_cache.get(state.book_id, {}).get(name.lower())
 
     def _preprocess(
         self,
@@ -176,7 +218,9 @@ class ChatAgent:
 
         match = self._recognizer.recognize(query, known_entities)
         if match and match.confidence > 0.8:
-            update_entity_state(match, state)
+            update_entity_state(
+                match, state, id_resolver=lambda n: self._focus_entity_id(state, n)
+            )
         return query, match
 
     def _postprocess(
@@ -209,7 +253,7 @@ class ChatAgent:
         if match:
             state.last_query_type = match.pattern_name
             for entity in match.extracted_entities:
-                state.add_entity_mention(entity)
+                state.add_entity_mention(entity, self._focus_entity_id(state, entity))
         state.trim_history(max_turns=20)
 
     async def chat(

@@ -376,3 +376,81 @@ class TestToolContextPersistence:
         roles = [m.role for m in state.conversation_history]
         assert "tool" in roles
         assert roles[-1] == "assistant"
+
+
+class TestEntityIdAlignment:
+    """A5: text-mentioned KG entities carry an unambiguous canonical id."""
+
+    def _agent(self, mock_services, mock_llm):
+        kg, doc, vec = mock_services
+        return kg, ChatAgent(
+            kg_service=kg, doc_service=doc, vector_service=vec, llm=mock_llm
+        )
+
+    def test_index_maps_unique_name_and_aliases(self):
+        from storysphere.agents.chat_agent import _index_known_entities
+        names, id_map = _index_known_entities(
+            [SimpleNamespace(id="e1", name="Alice", aliases=["Ali"])]
+        )
+        assert "Alice" in names and "Ali" in names
+        assert id_map["alice"] == "e1"
+        assert id_map["ali"] == "e1"
+
+    def test_index_drops_ambiguous_name(self):
+        from storysphere.agents.chat_agent import _index_known_entities
+        names, id_map = _index_known_entities(
+            [
+                SimpleNamespace(id="e1", name="Alice", aliases=[]),
+                SimpleNamespace(id="e2", name="Alice", aliases=[]),
+            ]
+        )
+        assert "alice" not in id_map  # ambiguous → name-only
+        assert names.count("Alice") == 1  # still deduped for matching
+
+    def test_index_entity_without_id(self):
+        from storysphere.agents.chat_agent import _index_known_entities
+        names, id_map = _index_known_entities(
+            [SimpleNamespace(id=None, name="Ghost", aliases=[])]
+        )
+        assert "Ghost" in names
+        assert id_map == {}
+
+    @pytest.mark.asyncio
+    async def test_focus_entity_id_resolution(self, mock_services, mock_llm):
+        kg, agent = self._agent(mock_services, mock_llm)
+        kg.list_entities.return_value = [
+            SimpleNamespace(id="e1", name="李明", aliases=[])
+        ]
+        await agent._known_entity_names("book-1")  # populate caches
+        state = ChatState(book_id="book-1")
+        assert agent._focus_entity_id(state, "李明") == "e1"
+        assert agent._focus_entity_id(state, "王芳") is None  # unknown
+        assert agent._focus_entity_id(ChatState(), "李明") is None  # no book_id
+
+    @pytest.mark.asyncio
+    async def test_preprocess_sets_focus_id_for_text_mention(
+        self, mock_services, mock_llm
+    ):
+        kg, agent = self._agent(mock_services, mock_llm)
+        kg.list_entities.return_value = [
+            SimpleNamespace(id="e1", name="李明", aliases=[])
+        ]
+        state = ChatState(book_id="book-1")
+        known = await agent._known_entity_names("book-1")
+        agent._preprocess("李明是誰？", state, known)
+        assert state.current_focus_entity == "李明"
+        assert state.current_focus_entity_id == "e1"
+
+    @pytest.mark.asyncio
+    async def test_postprocess_sets_focus_id_for_text_mention(
+        self, mock_services, mock_llm
+    ):
+        kg, agent = self._agent(mock_services, mock_llm)
+        kg.list_entities.return_value = [
+            SimpleNamespace(id="e1", name="李明", aliases=[])
+        ]
+        known = await agent._known_entity_names("book-1")
+        state = ChatState(book_id="book-1")
+        match = agent._recognizer.recognize("李明是誰？", known)
+        agent._postprocess("回答內容。", match, state)
+        assert state.current_focus_entity_id == "e1"
