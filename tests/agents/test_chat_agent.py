@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -187,6 +188,14 @@ class TestBuildContextPrompt:
         state.add_entity_mention("Elizabeth Bennet")
         prompt = build_context_prompt(state, "en")
         assert "Elizabeth Bennet" in prompt
+        assert "entity_id=" not in prompt  # no id → no precise-lookup hint
+
+    def test_focus_entity_with_id_adds_lookup_hint(self):
+        state = ChatState()
+        state.add_entity_mention("Elizabeth Bennet", entity_id="ent-7")
+        prompt = build_context_prompt(state, "en")
+        assert "entity_id=ent-7" in prompt
+        assert "tools that require entity_id" in prompt
 
     def test_with_page_context_graph(self):
         state = ChatState(page_context="graph")
@@ -228,3 +237,35 @@ class TestPatternRecognizerIntegration:
         match = agent._recognizer.recognize("Who is Alice?")
         assert match is not None
         assert match.pattern_name == "entity_info"
+
+
+class TestKnownEntityNames:
+    def _agent(self, mock_services, mock_llm):
+        kg, doc, vec = mock_services
+        return kg, ChatAgent(
+            kg_service=kg, doc_service=doc, vector_service=vec, llm=mock_llm
+        )
+
+    @pytest.mark.asyncio
+    async def test_returns_names_and_aliases(self, mock_services, mock_llm):
+        kg, agent = self._agent(mock_services, mock_llm)
+        kg.list_entities.return_value = [
+            SimpleNamespace(name="李明", aliases=["小明"]),
+            SimpleNamespace(name="王芳", aliases=[]),
+        ]
+        names = await agent._known_entity_names("book-1")
+        assert names == ["李明", "小明", "王芳"]
+
+    @pytest.mark.asyncio
+    async def test_empty_book_id_skips_lookup(self, mock_services, mock_llm):
+        kg, agent = self._agent(mock_services, mock_llm)
+        assert await agent._known_entity_names(None) == []
+        kg.list_entities.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_caches_per_book(self, mock_services, mock_llm):
+        kg, agent = self._agent(mock_services, mock_llm)
+        kg.list_entities.return_value = [SimpleNamespace(name="李明", aliases=[])]
+        await agent._known_entity_names("book-1")
+        await agent._known_entity_names("book-1")
+        assert kg.list_entities.await_count == 1

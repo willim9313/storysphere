@@ -65,3 +65,36 @@ class TestQueryPatternRecognizer:
         match = self.recognizer.recognize("Tell me about Alice")
         assert match is not None
         assert "Alice" in match.extracted_entities
+
+    def test_known_entity_extracts_bare_chinese_name(self):
+        # Bare Chinese name the regex can't segment; dictionary catches it.
+        match = self.recognizer.recognize(
+            "李明是誰？", known_entities=["李明", "王芳"]
+        )
+        assert match is not None
+        assert "李明" in match.extracted_entities
+        assert "王芳" not in match.extracted_entities
+
+    def test_known_entity_matches_both_in_comparison(self):
+        match = self.recognizer.recognize(
+            "比較李明和王芳", known_entities=["李明", "王芳"]
+        )
+        assert match is not None
+        assert "李明" in match.extracted_entities
+        assert "王芳" in match.extracted_entities
+
+    def test_known_entity_no_false_positive(self):
+        # A known name not present in the query must not be extracted.
+        match = self.recognizer.recognize(
+            "李明是誰？", known_entities=["李明", "張三"]
+        )
+        assert match is not None
+        assert "張三" not in match.extracted_entities
+
+    def test_known_entity_ignores_single_char_names(self):
+        # Single-char names are too ambiguous to substring-match safely.
+        match = self.recognizer.recognize(
+            "李明是誰？", known_entities=["明"]
+        )
+        assert match is not None
+        assert "明" not in match.extracted_entities

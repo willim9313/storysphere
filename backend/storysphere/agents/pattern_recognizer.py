@@ -91,8 +91,15 @@ _ENTITY_PATTERNS = [
 class QueryPatternRecognizer:
     """Classify user queries to enable fast-routing for common patterns."""
 
-    def recognize(self, query: str) -> PatternMatch | None:
+    def recognize(
+        self, query: str, known_entities: list[str] | None = None
+    ) -> PatternMatch | None:
         """Attempt to match the query against known patterns.
+
+        ``known_entities`` is an optional dictionary of KG entity names for the
+        current book; when supplied they are matched as substrings, which
+        reliably catches names the regex heuristics miss (notably bare Chinese
+        names, which have no casing or word boundaries).
 
         Returns a ``PatternMatch`` if confidence >= 0.8, else ``None``.
         """
@@ -100,7 +107,7 @@ class QueryPatternRecognizer:
 
         for name, regex, tools, base_conf in _PATTERNS:
             if regex.search(query):
-                entities = self._extract_entities(query)
+                entities = self._extract_entities(query, known_entities)
                 # Boost confidence if entities found
                 confidence = min(base_conf + 0.05 * len(entities), 0.95)
                 match = PatternMatch(
@@ -117,8 +124,16 @@ class QueryPatternRecognizer:
         return None
 
     @staticmethod
-    def _extract_entities(query: str) -> list[str]:
-        """Extract entity names from the query using heuristic patterns."""
+    def _extract_entities(
+        query: str, known_entities: list[str] | None = None
+    ) -> list[str]:
+        """Extract entity names from the query.
+
+        Combines heuristic regex patterns (quoted names, CamelCase) with an
+        optional dictionary of known KG entity names matched as substrings.
+        The dictionary path reliably catches names the regex misses — notably
+        bare Chinese names, which have no casing or word boundaries.
+        """
         entities: list[str] = []
         seen: set[str] = set()
         for pattern in _ENTITY_PATTERNS:
@@ -128,4 +143,14 @@ class QueryPatternRecognizer:
                     if name and name.lower() not in seen:
                         seen.add(name.lower())
                         entities.append(name)
+        if known_entities:
+            lowered = query.lower()
+            # Longer names first so a full name wins over a nested part.
+            for name in sorted(known_entities, key=len, reverse=True):
+                key = name.lower()
+                if len(name) < 2 or key in seen:
+                    continue
+                if key in lowered:
+                    seen.add(key)
+                    entities.append(name)
         return entities

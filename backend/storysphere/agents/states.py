@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
-
 from pydantic import BaseModel, Field
 
 
@@ -18,18 +15,11 @@ class ChatState(BaseModel):
     # 實體追蹤
     detected_entities: list[str] = Field(default_factory=list)
 
-    # 當前意圖
-    intent: str | None = None
-
-    # 工具結果
-    tool_results: dict[str, Any] = Field(default_factory=dict)
-
     # ===== 指代消解 =====
     current_focus_entity: str | None = None
+    # canonical KG id，僅當 focus 來自前端明確選取的實體時才有值
+    current_focus_entity_id: str | None = None
     entity_mentions: dict[str, int] = Field(default_factory=dict)
-
-    # ===== 工具結果緩存 (5min TTL 由外部管理) =====
-    last_tool_results: dict[str, Any] = Field(default_factory=dict)
 
     # 上次查詢類型
     last_query_type: str | None = None
@@ -48,10 +38,17 @@ class ChatState(BaseModel):
 
     # ── Methods ────────────────────────────────────────────────────────────────
 
-    def add_entity_mention(self, entity: str) -> None:
-        """Track an entity mention and update focus entity."""
+    def add_entity_mention(self, entity: str, entity_id: str | None = None) -> None:
+        """Track an entity mention and update focus entity.
+
+        ``entity_id`` carries the canonical KG id when the mention came from an
+        explicit UI selection; it lets downstream tools do a precise id lookup
+        instead of an ambiguous name match. Always overwritten (may be ``None``)
+        so focus never keeps a stale id from a previously-selected entity.
+        """
         self.entity_mentions[entity] = self.entity_mentions.get(entity, 0) + 1
         self.current_focus_entity = entity
+        self.current_focus_entity_id = entity_id
         if entity not in self.detected_entities:
             self.detected_entities.append(entity)
 
@@ -68,23 +65,6 @@ class ChatState(BaseModel):
         if pronoun.lower().strip() in pronoun_set:
             return self.current_focus_entity
         return None
-
-    def cache_tool_result(self, tool_name: str, result: Any) -> None:
-        """Cache a tool result with timestamp."""
-        self.last_tool_results[tool_name] = {
-            "result": result,
-            "timestamp": datetime.now().isoformat(),
-        }
-
-    def get_cached_result(self, tool_name: str, ttl_seconds: int = 300) -> Any | None:
-        """Return cached result if it exists and is younger than *ttl_seconds*."""
-        entry = self.last_tool_results.get(tool_name)
-        if entry is None:
-            return None
-        cached_time = datetime.fromisoformat(entry["timestamp"])
-        if (datetime.now() - cached_time).total_seconds() > ttl_seconds:
-            return None
-        return entry["result"]
 
     def add_message(self, role: str, content: str) -> None:
         """Append a message to conversation history."""

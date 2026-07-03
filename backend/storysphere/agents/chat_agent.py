@@ -82,6 +82,8 @@ class ChatAgent:
 
         # Pattern recognizer for entity tracking
         self._recognizer = QueryPatternRecognizer()
+        # Known KG entity names per book, cached for dictionary-based extraction
+        self._entity_name_cache: dict[str, list[str]] = {}
 
     def _build_graph(self):
         """Build a ReAct StateGraph: agent node ↔ ToolNode loop."""
@@ -124,7 +126,37 @@ class ChatAgent:
             history = []
         return [SystemMessage(content=context_prompt), *history, HumanMessage(content=query)]
 
-    def _preprocess(self, query: str, state: ChatState) -> tuple[str, Any]:
+    async def _known_entity_names(self, book_id: str | None) -> list[str]:
+        """Return known KG entity names (+aliases) for the current book, cached.
+
+        Feeds dictionary-based entity extraction so names the regex heuristics
+        miss — notably bare Chinese names — still resolve. Cached per book_id
+        for the life of the agent; entities are stable within a chat session.
+        """
+        if not book_id:
+            return []
+        if book_id not in self._entity_name_cache:
+            try:
+                entities = await self._kg_service.list_entities(document_id=book_id)
+            except Exception:
+                logger.exception("Failed to list entities for book %s", book_id)
+                return []
+            names: list[str] = []
+            seen: set[str] = set()
+            for entity in entities:
+                for candidate in (entity.name, *getattr(entity, "aliases", [])):
+                    if candidate and candidate.lower() not in seen:
+                        seen.add(candidate.lower())
+                        names.append(candidate)
+            self._entity_name_cache[book_id] = names
+        return self._entity_name_cache[book_id]
+
+    def _preprocess(
+        self,
+        query: str,
+        state: ChatState,
+        known_entities: list[str] | None = None,
+    ) -> tuple[str, Any]:
         """Resolve pronouns, record the user turn, and run pattern recognition.
 
         Returns ``(possibly pronoun-resolved query, PatternMatch | None)``.
@@ -140,9 +172,9 @@ class ChatAgent:
 
         state.add_message("user", query)
 
-        match = self._recognizer.recognize(query)
+        match = self._recognizer.recognize(query, known_entities)
         if match and match.confidence > 0.8:
-            update_entity_state(self._recognizer, self._tool_map, match, query, state)
+            update_entity_state(match, state)
         return query, match
 
     def _postprocess(self, response: str, match: Any, state: ChatState) -> None:
@@ -170,9 +202,10 @@ class ChatAgent:
         """
         from storysphere.core.metrics import get_metrics  # noqa: PLC0415
 
+        known = await self._known_entity_names(state.book_id)
         # timer() records record_agent_query (success/latency/error) on exit.
         with get_metrics().timer("agent_query", "agent_loop"):
-            query, match = self._preprocess(query, state)
+            query, match = self._preprocess(query, state, known)
             response = await self._agent_invoke(query, language=language, state=state)
             self._postprocess(response, match, state)
             return response
@@ -192,7 +225,8 @@ class ChatAgent:
         _t0 = time.perf_counter()
         _success, _error = True, None
         try:
-            query, match = self._preprocess(query, state)
+            known = await self._known_entity_names(state.book_id)
+            query, match = self._preprocess(query, state, known)
 
             from langchain_core.messages import AIMessageChunk  # noqa: PLC0415
 

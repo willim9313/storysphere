@@ -7,11 +7,9 @@ update logic, and default LLM factory.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from storysphere.agents.pattern_recognizer import QueryPatternRecognizer
 from storysphere.agents.states import ChatState
 
 logger = logging.getLogger(__name__)
@@ -81,10 +79,15 @@ def build_context_prompt(state: ChatState, language: str) -> str:
         )
         parts.append(chapter_hint)
     if state.current_focus_entity:
-        parts.append(
-            f"The user is focused on entity \"{state.current_focus_entity}\". "
-            "Pronouns (he/she/they/他/她) likely refer to this entity."
-        )
+        focus_hint = f"The user is focused on entity \"{state.current_focus_entity}\""
+        if state.current_focus_entity_id:
+            focus_hint += f" (entity_id={state.current_focus_entity_id})"
+        focus_hint += ". Pronouns (he/she/they/他/她) likely refer to this entity."
+        if state.current_focus_entity_id:
+            focus_hint += (
+                " When calling tools that require entity_id, use this value."
+            )
+        parts.append(focus_hint)
     if state.page_context:
         page_hints = {
             "graph": "The user is on the knowledge graph page and likely interested in entities, relationships, or network structure.",
@@ -123,13 +126,7 @@ def build_history_messages(state: ChatState) -> list:
     return msgs
 
 
-def update_entity_state(
-    recognizer: QueryPatternRecognizer,
-    tool_map: dict[str, Any],
-    match,
-    query: str,
-    state: ChatState,
-) -> None:
+def update_entity_state(match, state: ChatState) -> None:
     """Update entity tracking state from a pattern match; always returns None.
 
     The agent loop always handles response generation — this function only

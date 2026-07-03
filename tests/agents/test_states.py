@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from storysphere.agents.states import ChatState
@@ -30,6 +29,19 @@ class TestAddEntityMention:
         state.add_entity_mention("Alice")
         assert state.detected_entities.count("Alice") == 1  # no dupe
 
+    def test_stores_canonical_id_when_provided(self):
+        state = ChatState()
+        state.add_entity_mention("Alice", entity_id="ent-42")
+        assert state.current_focus_entity == "Alice"
+        assert state.current_focus_entity_id == "ent-42"
+
+    def test_clears_stale_id_when_switching_to_idless_entity(self):
+        state = ChatState()
+        state.add_entity_mention("Alice", entity_id="ent-42")
+        state.add_entity_mention("Bob")  # name-only, e.g. from pattern match
+        assert state.current_focus_entity == "Bob"
+        assert state.current_focus_entity_id is None
+
 
 class TestResolvePronoun:
     def test_resolves_english(self):
@@ -53,25 +65,6 @@ class TestResolvePronoun:
     def test_returns_none_without_focus(self):
         state = ChatState()
         assert state.resolve_pronoun("he") is None
-
-
-class TestToolCache:
-    def test_cache_and_retrieve(self):
-        state = ChatState()
-        state.cache_tool_result("get_entity", {"name": "Alice"})
-        assert state.get_cached_result("get_entity") == {"name": "Alice"}
-
-    def test_cache_miss(self):
-        state = ChatState()
-        assert state.get_cached_result("nonexistent") is None
-
-    def test_cache_expiry(self):
-        state = ChatState()
-        state.cache_tool_result("old_tool", "data")
-        # Manually set old timestamp
-        old_time = (datetime.now() - timedelta(seconds=600)).isoformat()
-        state.last_tool_results["old_tool"]["timestamp"] = old_time
-        assert state.get_cached_result("old_tool", ttl_seconds=300) is None
 
 
 class TestPageContextFields:
