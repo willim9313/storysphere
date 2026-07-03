@@ -114,6 +114,34 @@ class TestChatAgentChat:
                 state.add_entity_mention(entity)
         assert state.current_focus_entity == "Alice"
 
+    @pytest.mark.asyncio
+    async def test_astream_records_agent_query_metric(self, mock_services, mock_llm):
+        """The production (stream) path must record an agent_query metric."""
+        kg, doc, vec = mock_services
+        agent = ChatAgent(
+            kg_service=kg, doc_service=doc, vector_service=vec, llm=mock_llm
+        )
+        state = ChatState()
+
+        # Force the stream to fail so we exercise the fallback without a real
+        # LangGraph run; the agent_query metric must still be recorded.
+        async def _boom(*_a, **_k):
+            raise RuntimeError("no stream")
+            yield  # unreachable — marks this as an async generator
+
+        agent._graph.astream = _boom
+        agent._agent_invoke = AsyncMock(return_value="fallback answer")
+
+        from storysphere.core.metrics import get_metrics
+
+        with patch.object(get_metrics(), "record_agent_query") as rec:
+            chunks = [c async for c in agent.astream("hello", state)]
+
+        assert "".join(chunks) == "fallback answer"
+        rec.assert_called_once()
+        assert rec.call_args.kwargs["route"] == "agent_stream"
+        assert rec.call_args.kwargs["success"] is True
+
 
 class TestBuildContextPrompt:
     def test_minimal_state(self):

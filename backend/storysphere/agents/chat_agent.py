@@ -170,28 +170,12 @@ class ChatAgent:
         """
         from storysphere.core.metrics import get_metrics  # noqa: PLC0415
 
-        _metrics = get_metrics()
-        _t0 = time.perf_counter()
-        _route = "agent_loop"
-
-        try:
+        # timer() records record_agent_query (success/latency/error) on exit.
+        with get_metrics().timer("agent_query", "agent_loop"):
             query, match = self._preprocess(query, state)
             response = await self._agent_invoke(query, language=language, state=state)
             self._postprocess(response, match, state)
-            _metrics.record_agent_query(
-                success=True,
-                latency_ms=(time.perf_counter() - _t0) * 1000,
-                route=_route,
-            )
             return response
-        except Exception as exc:
-            _metrics.record_agent_query(
-                success=False,
-                latency_ms=(time.perf_counter() - _t0) * 1000,
-                route=_route,
-                error=type(exc).__name__,
-            )
-            raise
 
     async def astream(
         self, query: str, state: ChatState, language: str = "en"
@@ -202,51 +186,70 @@ class ChatAgent:
         2. Run full LangGraph ReAct loop with token streaming
         3. Falls back to non-streaming _agent_invoke if streaming fails
         """
-        query, match = self._preprocess(query, state)
+        from storysphere.core.metrics import get_metrics  # noqa: PLC0415
 
-        from langchain_core.messages import AIMessageChunk  # noqa: PLC0415
-
-        messages = self._build_messages(query, language, state)
-        set_llm_service_context("chat")
-        full_response = ""
+        _metrics = get_metrics()
+        _t0 = time.perf_counter()
+        _success, _error = True, None
         try:
-            async for chunk in self._graph.astream(
-                {"messages": messages}, stream_mode="messages", version="v2",
-            ):
-                if chunk.get("type") == "messages":
-                    message_chunk, _ = chunk["data"]
-                    # Only yield AI message chunks from the agent node,
-                    # skip tool calls, tool results, and replayed history
-                    if (
-                        isinstance(message_chunk, AIMessageChunk)
-                        and message_chunk.content
-                        and not message_chunk.tool_calls
-                        and not message_chunk.tool_call_chunks
-                    ):
-                        text = message_chunk.content if isinstance(message_chunk.content, str) else ""
-                        if text:
-                            full_response += text
-                            yield text
-        except Exception:
-            logger.exception("Streaming failed, falling back to non-streaming")
+            query, match = self._preprocess(query, state)
+
+            from langchain_core.messages import AIMessageChunk  # noqa: PLC0415
+
+            messages = self._build_messages(query, language, state)
+            set_llm_service_context("chat")
+            full_response = ""
             try:
-                result = await self._agent_invoke(query, language=language, state=state)
-                full_response = result
-                yield result
+                async for chunk in self._graph.astream(
+                    {"messages": messages}, stream_mode="messages", version="v2",
+                ):
+                    if chunk.get("type") == "messages":
+                        message_chunk, _ = chunk["data"]
+                        # Only yield AI message chunks from the agent node,
+                        # skip tool calls, tool results, and replayed history
+                        if (
+                            isinstance(message_chunk, AIMessageChunk)
+                            and message_chunk.content
+                            and not message_chunk.tool_calls
+                            and not message_chunk.tool_call_chunks
+                        ):
+                            text = message_chunk.content if isinstance(message_chunk.content, str) else ""
+                            if text:
+                                full_response += text
+                                yield text
             except Exception:
-                logger.exception("Non-streaming fallback also failed")
-                fallback = "抱歉，處理您的問題時發生錯誤，請稍後再試。"
+                logger.exception("Streaming failed, falling back to non-streaming")
+                try:
+                    result = await self._agent_invoke(query, language=language, state=state)
+                    full_response = result
+                    yield result
+                except Exception:
+                    logger.exception("Non-streaming fallback also failed")
+                    fallback = "抱歉，處理您的問題時發生錯誤，請稍後再試。"
+                    full_response = fallback
+                    yield fallback
+
+            if not full_response:
+                fallback = "抱歉，無法生成回應，請嘗試換個方式提問。"
                 full_response = fallback
                 yield fallback
 
-        if not full_response:
-            fallback = "抱歉，無法生成回應，請嘗試換個方式提問。"
-            full_response = fallback
-            yield fallback
-
-        # Save the full response to state for history continuity
-        if full_response:
-            self._postprocess(full_response, match, state)
+            # Save the full response to state for history continuity
+            if full_response:
+                self._postprocess(full_response, match, state)
+        except Exception as exc:
+            _success, _error = False, type(exc).__name__
+            raise
+        finally:
+            # Mirror chat()'s agent_query metric on the production (stream) path.
+            # Manual try/finally (not timer's sync CM) to stay safe across an
+            # async generator's aclose()/GeneratorExit.
+            _metrics.record_agent_query(
+                success=_success,
+                latency_ms=(time.perf_counter() - _t0) * 1000,
+                route="agent_stream",
+                error=_error,
+            )
 
     async def _agent_invoke(
         self, query: str, language: str = "en", state: ChatState | None = None
