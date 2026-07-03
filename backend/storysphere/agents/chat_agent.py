@@ -102,6 +102,28 @@ class ChatAgent:
         graph.add_edge("tools", "agent")
         return graph.compile()
 
+    def _build_messages(
+        self, query: str, language: str, state: ChatState | None
+    ) -> list:
+        """Assemble LLM input: system context + replayed history + current query.
+
+        Shared by ``astream`` and ``_agent_invoke``. When ``state`` is None
+        (no page context), fall back to a minimal language directive.
+        """
+        from langchain_core.messages import SystemMessage  # noqa: PLC0415
+
+        if state is not None:
+            context_prompt = build_context_prompt(state, language)
+            history = build_history_messages(state)
+        else:
+            context_prompt = (
+                f"Always respond in {language}."
+                if language and language.lower() not in ("auto", "")
+                else "Always reply in the same language the user uses."
+            )
+            history = []
+        return [SystemMessage(content=context_prompt), *history, HumanMessage(content=query)]
+
     async def chat(
         self, query: str, state: ChatState, language: str = "en"
     ) -> str:
@@ -177,15 +199,9 @@ class ChatAgent:
         if match and match.confidence > 0.8:
             update_entity_state(self._recognizer, self._tool_map, match, query, state)
 
-        from langchain_core.messages import AIMessageChunk, SystemMessage  # noqa: PLC0415
+        from langchain_core.messages import AIMessageChunk  # noqa: PLC0415
 
-        context_prompt = build_context_prompt(state, language)
-        history = build_history_messages(state)
-        messages = [
-            SystemMessage(content=context_prompt),
-            *history,
-            HumanMessage(content=query),
-        ]
+        messages = self._build_messages(query, language, state)
         set_llm_service_context("chat")
         full_response = ""
         try:
@@ -236,26 +252,10 @@ class ChatAgent:
         self, query: str, language: str = "en", state: ChatState | None = None
     ) -> str:
         """Invoke the LangGraph agent and extract the final response text."""
-        from langchain_core.messages import SystemMessage  # noqa: PLC0415
-
         from storysphere.core.metrics import get_metrics  # noqa: PLC0415
 
         _metrics = get_metrics()
-        context_prompt = (
-            build_context_prompt(state, language)
-            if state
-            else (
-                f"Always respond in {language}."
-                if language and language.lower() not in ("auto", "")
-                else "Always reply in the same language the user uses."
-            )
-        )
-        history = build_history_messages(state) if state else []
-        messages = [
-            SystemMessage(content=context_prompt),
-            *history,
-            HumanMessage(content=query),
-        ]
+        messages = self._build_messages(query, language, state)
         set_llm_service_context("chat")
         result = await self._graph.ainvoke({"messages": messages})
 
