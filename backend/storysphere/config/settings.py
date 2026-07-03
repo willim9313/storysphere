@@ -181,6 +181,13 @@ class Settings(BaseSettings):
     langfuse_base_url: str = Field(
         default="", description="Langfuse base URL (leave empty for cloud)"
     )
+    langfuse_sample_rate: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Langfuse trace sampling rate 0.0-1.0 (LANGFUSE_SAMPLE_RATE); "
+        "lower it to stay under free-tier unit limits under heavy chat load",
+    )
 
     # ── Task Store ─────────────────────────────────────────────────────────────
     task_store_backend: Literal["memory", "sqlite"] = Field(

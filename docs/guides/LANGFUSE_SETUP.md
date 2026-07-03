@@ -35,7 +35,10 @@ LANGFUSE_ENABLED=true
 LANGFUSE_PUBLIC_KEY=pk-lf-your_public_key_here
 LANGFUSE_SECRET_KEY=sk-lf-your_secret_key_here
 LANGFUSE_BASE_URL=                               # 留空使用 cloud；自託管填入 URL
+LANGFUSE_SAMPLE_RATE=1.0                         # trace 採樣率 0.0-1.0
 ```
+
+> **成本控制**：免費（Hobby）方案每月 50k units（trace / observation / score 各算 1 unit），一次帶工具的對話約 5～10 units。大量對話時把 `LANGFUSE_SAMPLE_RATE` 調低（例如 `0.1` 只 trace 10%）可避免打爆額度。預設 `1.0` = 全量 trace。
 
 ### 3. 啟動 API
 
