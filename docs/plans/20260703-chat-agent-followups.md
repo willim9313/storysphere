@@ -2,7 +2,8 @@
 
 日期：2026-07-03
 來源：chat agent prompt & flow 全面 review（memory: `project_chat_agent_backlog.md`）
-分支：`refactor/chat-agent-cleanup`（第一批，PR #8）、`feat/chat-focus-entity-id`（第二批 A1–A3，PR #10）
+分支（皆已 merged、分支已清）：`refactor/chat-agent-cleanup`（第一批，PR #8）、`feat/chat-focus-entity-id`（第二批 A1–A3，PR #10）、`feat/chat-tool-context`（第三批 A4/A5/A7，PR #11→#12）
+狀態：**A1–A7 全數落地 main**（截至 2026-07-04）。
 
 本次 review 讀了 chat agent + entity flow + metrics + langfuse 一整圈。已落地的 cleanup 見下方「已完成」，尚未做的候選見「待辦」。
 
@@ -32,7 +33,7 @@
 
 > A 項全數處理完畢。A1–A3 見上方第二批（PR #10）；A4/A5/A7 見下方第三批（`feat/chat-tool-context`）；A6 評估後決定保留。
 
-## 已完成（第三批 `feat/chat-tool-context`，PR 待開）
+## 已完成（第三批 `feat/chat-tool-context`，PR #11→#12 merged）
 
 > 每項動手前都重新對照 code 複查一次；A4/A5 另有獨立規劃文件。
 
@@ -64,8 +65,9 @@
 ## 收尾雜務
 - ~~第一批 6 commits push + PR~~ ✅ PR #8 merged
 - ~~PR #7（前端空態+置中）review / merge~~ ✅ merged
-- 第二批 A1–A3 → ✅ PR #10（待 review）
-- 第三批 A4/A5/A7 → PR 待開（`feat/chat-tool-context`，疊在 PR #10 上）
-- ~~實刪已合併分支~~ ✅ 清掉 8 個 `ahead=0` 分支（本地＋遠端）
+- ~~第二批 A1–A3~~ ✅ PR #10 merged
+- ~~第三批 A4/A5/A7~~ ✅ PR #11（誤疊在 #10 base）→ 補開 **PR #12**（base=main）才真正落地 main
+- ~~實刪已合併分支~~ ✅ 遠端/本地皆只剩 `main`
 - 重開 dev server — 依需要手動處理
 - （獨立）B-049 lint 債：`tests/agents/test_chat_agent.py` 的既存 ruff error（I001、unused import）屬此類
+- （獨立、非本次引入）`tests/test_llm_client.py::…returns_primary_when_no_local` 全套件跑會 1 failed、單獨跑通過 → test-isolation 污染（settings 全域），A1 之前就存在
