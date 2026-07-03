@@ -124,6 +124,41 @@ class ChatAgent:
             history = []
         return [SystemMessage(content=context_prompt), *history, HumanMessage(content=query)]
 
+    def _preprocess(self, query: str, state: ChatState) -> tuple[str, Any]:
+        """Resolve pronouns, record the user turn, and run pattern recognition.
+
+        Returns ``(possibly pronoun-resolved query, PatternMatch | None)``.
+
+        ``update_entity_state`` here sets ``current_focus_entity`` *before* the
+        agent loop so the system prompt reflects the focused entity this turn.
+        This is the chat<->KG entity-alignment tracker — NOT duplicate
+        bookkeeping against ``_postprocess``; do not "de-dup" the two.
+        """
+        resolved = state.resolve_pronoun(query.strip())
+        if resolved and len(query.split()) <= 3:
+            query = query.replace(query.strip(), resolved)
+
+        state.add_message("user", query)
+
+        match = self._recognizer.recognize(query)
+        if match and match.confidence > 0.8:
+            update_entity_state(self._recognizer, self._tool_map, match, query, state)
+        return query, match
+
+    def _postprocess(self, response: str, match: Any, state: ChatState) -> None:
+        """Record the assistant turn, entity mentions, and trim history.
+
+        The entity mentions recorded here feed pronoun resolution on the *next*
+        turn; kept intentionally separate from ``_preprocess``'s focus-setting
+        (see the note there).
+        """
+        state.add_message("assistant", response)
+        if match:
+            state.last_query_type = match.pattern_name
+            for entity in match.extracted_entities:
+                state.add_entity_mention(entity)
+        state.trim_history(max_turns=20)
+
     async def chat(
         self, query: str, state: ChatState, language: str = "en"
     ) -> str:
@@ -140,29 +175,9 @@ class ChatAgent:
         _route = "agent_loop"
 
         try:
-            # Pronoun resolution
-            resolved = state.resolve_pronoun(query.strip())
-            if resolved and len(query.split()) <= 3:
-                query = query.replace(query.strip(), resolved)
-
-            state.add_message("user", query)
-
-            # Pattern recognition (entity tracking side-effects only)
-            match = self._recognizer.recognize(query)
-            if match and match.confidence > 0.8:
-                update_entity_state(self._recognizer, self._tool_map, match, query, state)
-
-            # Full agent loop
+            query, match = self._preprocess(query, state)
             response = await self._agent_invoke(query, language=language, state=state)
-
-            # Update state
-            state.add_message("assistant", response)
-            if match:
-                state.last_query_type = match.pattern_name
-                for entity in match.extracted_entities:
-                    state.add_entity_mention(entity)
-
-            state.trim_history(max_turns=20)
+            self._postprocess(response, match, state)
             _metrics.record_agent_query(
                 success=True,
                 latency_ms=(time.perf_counter() - _t0) * 1000,
@@ -187,17 +202,7 @@ class ChatAgent:
         2. Run full LangGraph ReAct loop with token streaming
         3. Falls back to non-streaming _agent_invoke if streaming fails
         """
-        # Pronoun resolution
-        resolved = state.resolve_pronoun(query.strip())
-        if resolved and len(query.split()) <= 3:
-            query = query.replace(query.strip(), resolved)
-
-        state.add_message("user", query)
-
-        # Pattern recognition (entity tracking side-effects only)
-        match = self._recognizer.recognize(query)
-        if match and match.confidence > 0.8:
-            update_entity_state(self._recognizer, self._tool_map, match, query, state)
+        query, match = self._preprocess(query, state)
 
         from langchain_core.messages import AIMessageChunk  # noqa: PLC0415
 
@@ -241,12 +246,7 @@ class ChatAgent:
 
         # Save the full response to state for history continuity
         if full_response:
-            state.add_message("assistant", full_response)
-            if match:
-                state.last_query_type = match.pattern_name
-                for entity in match.extracted_entities:
-                    state.add_entity_mention(entity)
-            state.trim_history(max_turns=20)
+            self._postprocess(full_response, match, state)
 
     async def _agent_invoke(
         self, query: str, language: str = "en", state: ChatState | None = None
