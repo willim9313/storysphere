@@ -461,6 +461,26 @@
     "computing": "Computing…",
     "recompute": "Recompute Timeline",
     "recomputeHint": "Recomputing calls the LLM to analyze event chronology; this can take a few minutes",
+    "onboarding": {
+      "eyebrow": "Timeline · Narrative Chronology",
+      "intro": "The timeline starts from events, computes their real story-time order, then detects flashbacks and flash-forwards. This book has no events yet.",
+      "events": {
+        "scope": "STEP 01 · Event Extraction",
+        "name": "Event Analysis (EEP)",
+        "desc": "Generate events and plot units on the event analysis page — the timeline's data source."
+      },
+      "chrono": {
+        "scope": "STEP 02 · Story Time",
+        "name": "Compute Chronology",
+        "desc": "Order events by their story-time hints to unlock story-order and matrix views."
+      },
+      "genette": {
+        "scope": "STEP 03 · Narrative Order",
+        "name": "Genette Analysis",
+        "desc": "Compare narrative order against story order to detect analepsis and prolepsis."
+      },
+      "cta": "Go to Event Analysis"
+    },
     "filter": "Filter",
     "filterSections": {
       "eventTypes": "Event Types",

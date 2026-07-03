@@ -404,6 +404,8 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 所有面板均為**暖白底**（`var(--bg-primary)`），`border-left: 1px solid var(--border)`、`border-radius: var(--radius-lg)`、`box-shadow: var(--shadow-sm)`。
 
+**空狀態**：當書籍尚無節點（`nodeCount === 0`）時，改顯示引導卡 `GraphOnboardingHero`——說明圖譜由章節實體與關係萃取而成，並提供「前往上傳」CTA；此時不渲染 Canvas 與各面板。
+
 #### 圖譜 Canvas
 
 - Cytoscape.js 渲染（fcose layout）
@@ -519,10 +521,14 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 
 ```
 [Toolbar 上：3 視圖卡 + 工具]
-[QualityBanner（僅當 hasChronologicalRanks=false 時出現）]
+[QualityBanner（hasChronologicalRanks=false 且已有事件時出現）]
 [ActiveFilters Bar（有套用篩選時出現）]
 [時間軸主區 flex] [事件詳情面板 360px，點擊事件後展開]
 ```
+
+**空狀態**：當書籍尚無任何事件時，主區改顯示引導卡 `TimelineOnboardingHero`——以三步說明卡（事件抽取 → 故事時序 → Genette 分析）+「前往事件分析」CTA 引導使用者，此時 QualityBanner 不出現。呼應張力分析頁的 onboarding hero 模式。
+
+**版面對齊**：時間軸沿主軸（橫向 layout=橫、垂直 layout=豎）排列並捲動，內容在**次軸方向置中**（橫向→垂直置中、垂直→水平置中），使內容少時的留白平衡對稱、而非黏在角落。實作於 `.tl-canvas-inner`（橫向 `align-items: center`；垂直 `justify-content: center` + `width: 100%`）。
 
 #### 3.7.1 頂部工具列（V2 / 進取版）
 

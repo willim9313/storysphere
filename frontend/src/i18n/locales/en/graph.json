@@ -8,6 +8,12 @@
     "event": "Event",
     "other": "Other"
   },
+  "onboarding": {
+    "eyebrow": "Knowledge Graph",
+    "title": "No nodes to show yet",
+    "intro": "The knowledge graph is built from entities and relations extracted from each chapter. This book has no nodes yet — make sure processing has finished, or re-upload it.",
+    "cta": "Go to Upload"
+  },
   "toolbar": {
     "searchPlaceholder": "Search entities...",
     "resetView": "Reset View",

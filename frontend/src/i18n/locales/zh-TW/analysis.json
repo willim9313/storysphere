@@ -461,6 +461,26 @@
     "computing": "計算中…",
     "recompute": "重新計算時序",
     "recomputeHint": "重新計算會呼叫 LLM 分析事件時序，約需數分鐘",
+    "onboarding": {
+      "eyebrow": "時間軸 · 敘事時序",
+      "intro": "時間軸從事件出發，計算故事真實時序，再識別倒敘與預敘。這本書目前尚無可用事件。",
+      "events": {
+        "scope": "STEP 01 · 事件抽取",
+        "name": "事件分析（EEP）",
+        "desc": "在事件分析頁生成事件與情節單元，作為時間軸的資料來源。"
+      },
+      "chrono": {
+        "scope": "STEP 02 · 故事時序",
+        "name": "計算故事時序",
+        "desc": "依事件的故事時間提示排序，解鎖故事時序與矩陣視圖。"
+      },
+      "genette": {
+        "scope": "STEP 03 · 敘事時序",
+        "name": "Genette 分析",
+        "desc": "比對敘事順序與故事順序，識別倒敘與預敘。"
+      },
+      "cta": "前往事件分析"
+    },
     "filter": "篩選",
     "filterSections": {
       "eventTypes": "事件類型",
