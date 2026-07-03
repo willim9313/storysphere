@@ -187,6 +187,14 @@ class TestBuildContextPrompt:
         state.add_entity_mention("Elizabeth Bennet")
         prompt = build_context_prompt(state, "en")
         assert "Elizabeth Bennet" in prompt
+        assert "entity_id=" not in prompt  # no id → no precise-lookup hint
+
+    def test_focus_entity_with_id_adds_lookup_hint(self):
+        state = ChatState()
+        state.add_entity_mention("Elizabeth Bennet", entity_id="ent-7")
+        prompt = build_context_prompt(state, "en")
+        assert "entity_id=ent-7" in prompt
+        assert "tools that require entity_id" in prompt
 
     def test_with_page_context_graph(self):
         state = ChatState(page_context="graph")

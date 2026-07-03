@@ -81,10 +81,15 @@ def build_context_prompt(state: ChatState, language: str) -> str:
         )
         parts.append(chapter_hint)
     if state.current_focus_entity:
-        parts.append(
-            f"The user is focused on entity \"{state.current_focus_entity}\". "
-            "Pronouns (he/she/they/他/她) likely refer to this entity."
-        )
+        focus_hint = f"The user is focused on entity \"{state.current_focus_entity}\""
+        if state.current_focus_entity_id:
+            focus_hint += f" (entity_id={state.current_focus_entity_id})"
+        focus_hint += ". Pronouns (he/she/they/他/她) likely refer to this entity."
+        if state.current_focus_entity_id:
+            focus_hint += (
+                " When calling tools that require entity_id, use this value."
+            )
+        parts.append(focus_hint)
     if state.page_context:
         page_hints = {
             "graph": "The user is on the knowledge graph page and likely interested in entities, relationships, or network structure.",

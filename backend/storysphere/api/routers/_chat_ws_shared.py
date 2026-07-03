@@ -69,7 +69,10 @@ async def handle_chat_websocket(
                 state.page_context = ctx.page
                 state.analysis_tab = ctx.analysis_tab
                 if ctx.selected_entity and ctx.selected_entity.get("name"):
-                    state.add_entity_mention(ctx.selected_entity["name"])
+                    state.add_entity_mention(
+                        ctx.selected_entity["name"],
+                        entity_id=ctx.selected_entity.get("id"),
+                    )
 
             try:
                 await websocket.send_json({"type": "thinking"})

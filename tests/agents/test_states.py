@@ -30,6 +30,19 @@ class TestAddEntityMention:
         state.add_entity_mention("Alice")
         assert state.detected_entities.count("Alice") == 1  # no dupe
 
+    def test_stores_canonical_id_when_provided(self):
+        state = ChatState()
+        state.add_entity_mention("Alice", entity_id="ent-42")
+        assert state.current_focus_entity == "Alice"
+        assert state.current_focus_entity_id == "ent-42"
+
+    def test_clears_stale_id_when_switching_to_idless_entity(self):
+        state = ChatState()
+        state.add_entity_mention("Alice", entity_id="ent-42")
+        state.add_entity_mention("Bob")  # name-only, e.g. from pattern match
+        assert state.current_focus_entity == "Bob"
+        assert state.current_focus_entity_id is None
+
 
 class TestResolvePronoun:
     def test_resolves_english(self):

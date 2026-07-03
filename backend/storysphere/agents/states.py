@@ -26,6 +26,8 @@ class ChatState(BaseModel):
 
     # ===== 指代消解 =====
     current_focus_entity: str | None = None
+    # canonical KG id，僅當 focus 來自前端明確選取的實體時才有值
+    current_focus_entity_id: str | None = None
     entity_mentions: dict[str, int] = Field(default_factory=dict)
 
     # ===== 工具結果緩存 (5min TTL 由外部管理) =====
@@ -48,10 +50,17 @@ class ChatState(BaseModel):
 
     # ── Methods ────────────────────────────────────────────────────────────────
 
-    def add_entity_mention(self, entity: str) -> None:
-        """Track an entity mention and update focus entity."""
+    def add_entity_mention(self, entity: str, entity_id: str | None = None) -> None:
+        """Track an entity mention and update focus entity.
+
+        ``entity_id`` carries the canonical KG id when the mention came from an
+        explicit UI selection; it lets downstream tools do a precise id lookup
+        instead of an ambiguous name match. Always overwritten (may be ``None``)
+        so focus never keeps a stale id from a previously-selected entity.
+        """
         self.entity_mentions[entity] = self.entity_mentions.get(entity, 0) + 1
         self.current_focus_entity = entity
+        self.current_focus_entity_id = entity_id
         if entity not in self.detected_entities:
             self.detected_entities.append(entity)
 
