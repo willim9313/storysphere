@@ -20,8 +20,10 @@ from langgraph.prebuilt import ToolNode, tools_condition
 from storysphere.agents.chat_agent_base import (
     SYSTEM_PROMPT,
     build_context_prompt,
+    build_history_entries,
     build_history_messages,
     get_default_llm,
+    select_new_turn_messages,
     update_entity_state,
 )
 from storysphere.agents.pattern_recognizer import QueryPatternRecognizer
@@ -30,6 +32,39 @@ from storysphere.core.token_callback import set_llm_service_context
 from storysphere.tools.tool_registry import get_chat_tools
 
 logger = logging.getLogger(__name__)
+
+
+def _index_known_entities(entities: list) -> tuple[list[str], dict[str, str]]:
+    """Index KG entities into a name list and an unambiguous name→id map.
+
+    Returns ``(names, id_map)`` where ``names`` (original casing, deduped by
+    lowercase, incl. aliases) feeds dictionary extraction, and ``id_map`` maps
+    ``name_lower → canonical id`` only for names that resolve to a single
+    entity. A name shared by two entities is dropped from ``id_map`` so focus
+    stays name-only rather than binding to a wrong id.
+    """
+    names: list[str] = []
+    seen: set[str] = set()
+    id_map: dict[str, str] = {}
+    ambiguous: set[str] = set()
+    for entity in entities:
+        entity_id = getattr(entity, "id", None)
+        for candidate in (entity.name, *getattr(entity, "aliases", [])):
+            if not candidate:
+                continue
+            key = candidate.lower()
+            if key not in seen:
+                seen.add(key)
+                names.append(candidate)
+            if not entity_id or key in ambiguous:
+                continue
+            existing = id_map.get(key)
+            if existing is None:
+                id_map[key] = entity_id
+            elif existing != entity_id:
+                del id_map[key]
+                ambiguous.add(key)
+    return names, id_map
 
 
 class ChatAgent:
@@ -84,6 +119,8 @@ class ChatAgent:
         self._recognizer = QueryPatternRecognizer()
         # Known KG entity names per book, cached for dictionary-based extraction
         self._entity_name_cache: dict[str, list[str]] = {}
+        # Unambiguous {name_lower: canonical_id} per book, for id-aligned focus
+        self._entity_id_cache: dict[str, dict[str, str]] = {}
 
     def _build_graph(self):
         """Build a ReAct StateGraph: agent node ↔ ToolNode loop."""
@@ -141,15 +178,22 @@ class ChatAgent:
             except Exception:
                 logger.exception("Failed to list entities for book %s", book_id)
                 return []
-            names: list[str] = []
-            seen: set[str] = set()
-            for entity in entities:
-                for candidate in (entity.name, *getattr(entity, "aliases", [])):
-                    if candidate and candidate.lower() not in seen:
-                        seen.add(candidate.lower())
-                        names.append(candidate)
+            names, id_map = _index_known_entities(entities)
             self._entity_name_cache[book_id] = names
+            self._entity_id_cache[book_id] = id_map
         return self._entity_name_cache[book_id]
+
+    def _focus_entity_id(self, state: ChatState, name: str) -> str | None:
+        """Return the canonical KG id for *name* if it maps unambiguously.
+
+        Lets text-mentioned KG entities carry an id into focus (like A1 did for
+        UI-selected ones), so a later turn can do a precise entity_id lookup.
+        The map is populated by ``_known_entity_names``; ambiguous names yield
+        ``None`` so focus stays name-only.
+        """
+        if not state.book_id or not name:
+            return None
+        return self._entity_id_cache.get(state.book_id, {}).get(name.lower())
 
     def _preprocess(
         self,
@@ -174,21 +218,42 @@ class ChatAgent:
 
         match = self._recognizer.recognize(query, known_entities)
         if match and match.confidence > 0.8:
-            update_entity_state(match, state)
+            update_entity_state(
+                match, state, id_resolver=lambda n: self._focus_entity_id(state, n)
+            )
         return query, match
 
-    def _postprocess(self, response: str, match: Any, state: ChatState) -> None:
+    def _postprocess(
+        self,
+        response: str,
+        match: Any,
+        state: ChatState,
+        output_messages: list | None = None,
+    ) -> None:
         """Record the assistant turn, entity mentions, and trim history.
+
+        When ``output_messages`` (the graph's full message list) is given, this
+        turn's tool exchange is persisted so a follow-up can see tool results,
+        not just the summary text. Without it, only the assistant text is stored
+        (e.g. the streaming error fallback).
 
         The entity mentions recorded here feed pronoun resolution on the *next*
         turn; kept intentionally separate from ``_preprocess``'s focus-setting
         (see the note there).
         """
-        state.add_message("assistant", response)
+        entries = (
+            build_history_entries(select_new_turn_messages(output_messages))
+            if output_messages
+            else None
+        )
+        if entries:
+            state.record_agent_turn(entries)
+        else:
+            state.add_message("assistant", response)
         if match:
             state.last_query_type = match.pattern_name
             for entity in match.extracted_entities:
-                state.add_entity_mention(entity)
+                state.add_entity_mention(entity, self._focus_entity_id(state, entity))
         state.trim_history(max_turns=20)
 
     async def chat(
@@ -206,8 +271,10 @@ class ChatAgent:
         # timer() records record_agent_query (success/latency/error) on exit.
         with get_metrics().timer("agent_query", "agent_loop"):
             query, match = self._preprocess(query, state, known)
-            response = await self._agent_invoke(query, language=language, state=state)
-            self._postprocess(response, match, state)
+            response, output_messages = await self._agent_invoke(
+                query, language=language, state=state
+            )
+            self._postprocess(response, match, state, output_messages)
             return response
 
     async def astream(
@@ -233,44 +300,54 @@ class ChatAgent:
             messages = self._build_messages(query, language, state)
             set_llm_service_context("chat")
             full_response = ""
+            # Captured from the "values" stream so the tool exchange persists.
+            output_messages: list | None = None
             try:
-                async for chunk in self._graph.astream(
-                    {"messages": messages}, stream_mode="messages", version="v2",
+                # Combined mode: "messages" streams tokens; "values" yields the
+                # accumulated state, whose final messages carry the tool exchange.
+                async for mode, data in self._graph.astream(
+                    {"messages": messages}, stream_mode=["messages", "values"],
                 ):
-                    if chunk.get("type") == "messages":
-                        message_chunk, _ = chunk["data"]
-                        # Only yield AI message chunks from the agent node,
-                        # skip tool calls, tool results, and replayed history
-                        if (
-                            isinstance(message_chunk, AIMessageChunk)
-                            and message_chunk.content
-                            and not message_chunk.tool_calls
-                            and not message_chunk.tool_call_chunks
-                        ):
-                            text = message_chunk.content if isinstance(message_chunk.content, str) else ""
-                            if text:
-                                full_response += text
-                                yield text
+                    if mode == "values":
+                        output_messages = data.get("messages", output_messages)
+                        continue
+                    message_chunk, _ = data
+                    # Only yield AI message chunks from the agent node,
+                    # skip tool calls, tool results, and replayed history
+                    if (
+                        isinstance(message_chunk, AIMessageChunk)
+                        and message_chunk.content
+                        and not message_chunk.tool_calls
+                        and not message_chunk.tool_call_chunks
+                    ):
+                        text = message_chunk.content if isinstance(message_chunk.content, str) else ""
+                        if text:
+                            full_response += text
+                            yield text
             except Exception:
                 logger.exception("Streaming failed, falling back to non-streaming")
                 try:
-                    result = await self._agent_invoke(query, language=language, state=state)
+                    result, output_messages = await self._agent_invoke(
+                        query, language=language, state=state
+                    )
                     full_response = result
                     yield result
                 except Exception:
                     logger.exception("Non-streaming fallback also failed")
                     fallback = "抱歉，處理您的問題時發生錯誤，請稍後再試。"
                     full_response = fallback
+                    output_messages = None
                     yield fallback
 
             if not full_response:
                 fallback = "抱歉，無法生成回應，請嘗試換個方式提問。"
                 full_response = fallback
+                output_messages = None
                 yield fallback
 
             # Save the full response to state for history continuity
             if full_response:
-                self._postprocess(full_response, match, state)
+                self._postprocess(full_response, match, state, output_messages)
         except Exception as exc:
             _success, _error = False, type(exc).__name__
             raise
@@ -287,8 +364,12 @@ class ChatAgent:
 
     async def _agent_invoke(
         self, query: str, language: str = "en", state: ChatState | None = None
-    ) -> str:
-        """Invoke the LangGraph agent and extract the final response text."""
+    ) -> tuple[str, list]:
+        """Invoke the LangGraph agent.
+
+        Returns ``(final response text, full output message list)``; the message
+        list lets the caller persist this turn's tool exchange.
+        """
         from storysphere.core.metrics import get_metrics  # noqa: PLC0415
 
         _metrics = get_metrics()
@@ -304,5 +385,6 @@ class ChatAgent:
 
         for msg in reversed(output_messages):
             if isinstance(msg, AIMessage) and msg.content:
-                return msg.content
-        return "I could not generate a response. Please try rephrasing your question."
+                return msg.content, output_messages
+        fallback = "I could not generate a response. Please try rephrasing your question."
+        return fallback, output_messages

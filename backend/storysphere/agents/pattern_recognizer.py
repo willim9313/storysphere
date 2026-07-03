@@ -26,7 +26,11 @@ _PATTERNS: list[tuple[str, re.Pattern, list[str], float]] = [
     (
         "entity_info",
         re.compile(
-            r"(?:是誰|who\s+is|tell\s+me\s+about|背景|profile\s+of|介紹|describe)\b",
+            # \b binds only to the ASCII keywords (so "describe" doesn't match
+            # inside "described"). CJK keywords omit it — a trailing \b fails
+            # when the keyword is immediately followed by another CJK char
+            # (e.g. "介紹李明"), since Python treats CJK as word chars.
+            r"(?:是誰|背景|介紹)|(?:who\s+is|tell\s+me\s+about|profile\s+of|describe)\b",
             re.IGNORECASE,
         ),
         ["get_entity_profile"],

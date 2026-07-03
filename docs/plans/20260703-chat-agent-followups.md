@@ -30,14 +30,16 @@
 
 ## 待辦候選（依價值/大小）
 
-> A1 / A2 / A3 已完成（見上方第二批 / PR #10）。
+> A 項全數處理完畢。A1–A3 見上方第二批（PR #10）；A4/A5/A7 見下方第三批（`feat/chat-tool-context`）；A6 評估後決定保留。
 
-| # | 項目 | 大小 | 看法 |
-|---|------|------|------|
-| A4 | **多輪 history 丟 tool context** — `conversation_history` 只存 user/assistant text，跨輪丟失工具呼叫結果，可能影響連續追問 | 中-大 | 真實限制；需設計（存多少、怎麼存） |
-| A5 | **entity tracking → KG id 對齊** — 讓 `current_focus_entity` 真的攜帶 canonical id（原設計方向）。**注意：name-only 對 prompt 注入 / pronoun resolution 是刻意且合理的**，這是增強不是 bug。A1 已讓 focus 攜帶 id，此項為更全面的對齊 | 中-大 | 獨立規劃 |
-| A6 | **`chat()` 去留** — 無生產調用（只測試用）、現在很薄 | 小 | 低價值，傾向不動 |
-| A7 | **`entity_info` pattern 中文 `\b` bug**（A3 複查副產物）— 尾部 `\b` 在中文緊鄰（如「介紹李明」）不成立，該類 query 不觸發 pattern。改法：去尾部 `\b` 或改 lookahead | 小 | 可做；屬 pattern 匹配層 |
+## 已完成（第三批 `feat/chat-tool-context`，PR 待開）
+
+> 每項動手前都重新對照 code 複查一次；A4/A5 另有獨立規劃文件。
+
+- **A4** `feat`：跨輪 tool context 保存（`docs/plans/20260703-chat-tool-context-persistence.md`）— `Message` 加 tool_calls/tool_call_id/name；`build_history_entries` 存整輪 tool 交換（截斷 `MAX_TOOL_CHARS`）；`build_history_messages` 只回放最近 `TOOL_CONTEXT_TURNS=1` 輪、防禦式配對；`astream` 改 `stream_mode=["messages","values"]` 擷取完整訊息。
+- **A5** `feat`：KG canonical id 全面對齊（`docs/plans/20260703-entity-tracking-kg-id-alignment.md`）— `_index_known_entities` 建唯一 `{name→id}`（歧義名剔除、維持 name-only 安全）；`update_entity_state` 加 `id_resolver`；`_preprocess`/`_postprocess` 兩路徑帶 id。文字提及的 KG 實體現在也能精確查（A1 只做 UI 選取）。
+- **A6** 決定 **保留 `chat()`**：複查確認無生產調用（唯二為 docstring 範例 + 1 測試），但它是合法非串流單發 API、與 astream 共用內部方法，刪它換不到簡化。符合 plan「傾向不動」判定。
+- **A7** `fix`：`entity_info` pattern 中文 `\b` bug — `\b` 只綁 ASCII 關鍵字，CJK 關鍵字（是誰/背景/介紹）不需邊界，修好「介紹李明」不觸發的問題，同時保留英文 `describe`/`described` 的 guard。
 
 ### 確認過「不動」的
 - **entity tracking 結構 / `entity_mentions` 計數 / F2「重複」**：查證為刻意的 KG 對齊設計（`current_focus_entity` 存 name 是對的），非 cosmetic 垃圾，勿去重清理。詳見 memory `project_chat_agent_backlog.md`。
@@ -63,6 +65,7 @@
 - ~~第一批 6 commits push + PR~~ ✅ PR #8 merged
 - ~~PR #7（前端空態+置中）review / merge~~ ✅ merged
 - 第二批 A1–A3 → ✅ PR #10（待 review）
-- 實刪已合併分支（多個本地/遠端 `ahead of main = 0`）— 未做
-- 重開 dev server — 未做
+- 第三批 A4/A5/A7 → PR 待開（`feat/chat-tool-context`，疊在 PR #10 上）
+- ~~實刪已合併分支~~ ✅ 清掉 8 個 `ahead=0` 分支（本地＋遠端）
+- 重開 dev server — 依需要手動處理
 - （獨立）B-049 lint 債：`tests/agents/test_chat_agent.py` 的既存 ruff error（I001、unused import）屬此類

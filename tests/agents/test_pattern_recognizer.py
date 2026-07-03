@@ -21,6 +21,19 @@ class TestQueryPatternRecognizer:
         assert match is not None
         assert match.pattern_name == "entity_info"
 
+    def test_entity_info_chinese_keyword_adjacent_to_name(self):
+        # "介紹李明": 介紹 immediately followed by a CJK name. A trailing \b
+        # would fail here (CJK are word chars); the keyword must still match.
+        match = self.recognizer.recognize("介紹李明", known_entities=["李明"])
+        assert match is not None
+        assert match.pattern_name == "entity_info"
+        assert "李明" in match.extracted_entities
+
+    def test_entity_info_ascii_word_boundary_preserved(self):
+        # "described" must NOT match the "describe" keyword (\b guard kept).
+        match = self.recognizer.recognize("I described the scene")
+        assert match is None
+
     def test_relationship_pattern(self):
         match = self.recognizer.recognize(
             "What is the relationship between Alice and Bob?"

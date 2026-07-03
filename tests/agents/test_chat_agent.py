@@ -81,8 +81,11 @@ class TestChatAgentChat:
         )
         state = ChatState()
 
-        # Patch _agent_invoke to avoid real LangGraph execution
-        agent._agent_invoke = AsyncMock(return_value="Alice is the protagonist.")
+        # Patch _agent_invoke to avoid real LangGraph execution.
+        # Returns (text, output_messages); empty messages → text-only persist.
+        agent._agent_invoke = AsyncMock(
+            return_value=("Alice is the protagonist.", [])
+        )
 
         result = await agent.chat("Tell me about the story", state)
         assert result == "Alice is the protagonist."
@@ -131,7 +134,7 @@ class TestChatAgentChat:
             yield  # unreachable — marks this as an async generator
 
         agent._graph.astream = _boom
-        agent._agent_invoke = AsyncMock(return_value="fallback answer")
+        agent._agent_invoke = AsyncMock(return_value=("fallback answer", []))
 
         from storysphere.core.metrics import get_metrics
 
@@ -269,3 +272,185 @@ class TestKnownEntityNames:
         await agent._known_entity_names("book-1")
         await agent._known_entity_names("book-1")
         assert kg.list_entities.await_count == 1
+
+
+class TestToolContextPersistence:
+    """A4: cross-turn tool exchange is stored and replayed (bounded)."""
+
+    def _turn_messages(self):
+        """A one-round tool exchange as LangGraph would return it."""
+        from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+        return [
+            HumanMessage(content="Who are Alice's relationships?"),
+            AIMessage(
+                content="",
+                tool_calls=[
+                    {"name": "get_entity_relationship", "args": {"entity_id": "e1"}, "id": "call_1"}
+                ],
+            ),
+            ToolMessage(
+                content="Alice -> Bob (friend); Alice -> Carol (rival)",
+                tool_call_id="call_1",
+                name="get_entity_relationship",
+            ),
+            AIMessage(content="Alice knows Bob and Carol."),
+        ]
+
+    def test_select_new_turn_messages_after_last_human(self):
+        from storysphere.agents.chat_agent_base import select_new_turn_messages
+        msgs = self._turn_messages()
+        new = select_new_turn_messages(msgs)
+        assert len(new) == 3  # everything after the human query
+        assert new[0].tool_calls  # the tool-calling AIMessage
+
+    def test_build_history_entries_captures_tool_exchange(self):
+        from storysphere.agents.chat_agent_base import (
+            build_history_entries,
+            select_new_turn_messages,
+        )
+        entries = build_history_entries(
+            select_new_turn_messages(self._turn_messages())
+        )
+        roles = [e.role for e in entries]
+        assert roles == ["assistant", "tool", "assistant"]
+        assert entries[0].tool_calls[0]["id"] == "call_1"
+        assert entries[1].tool_call_id == "call_1"
+        assert entries[1].name == "get_entity_relationship"
+        assert entries[2].content == "Alice knows Bob and Carol."
+
+    def test_build_history_entries_truncates_tool_output(self):
+        from langchain_core.messages import ToolMessage
+        from storysphere.agents.chat_agent_base import build_history_entries
+        big = "x" * 5000
+        entries = build_history_entries(
+            [ToolMessage(content=big, tool_call_id="c", name="t")],
+            max_tool_chars=100,
+        )
+        assert len(entries[0].content) == 100 + len("…[truncated]")
+
+    def test_replay_keeps_tool_pair_for_last_turn(self):
+        from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
+        from storysphere.agents.chat_agent_base import build_history_entries, build_history_messages
+        state = ChatState()
+        state.add_message("user", "Who are Alice's relationships?")
+        state.record_agent_turn(
+            build_history_entries(self._turn_messages()[1:])
+        )
+        state.add_message("user", "tell me about the second one")  # current query
+        replayed = build_history_messages(state)
+        # user, assistant(tool_calls), tool, assistant(text) — current query excluded
+        assert isinstance(replayed[0], HumanMessage)
+        assert any(isinstance(m, AIMessage) and m.tool_calls for m in replayed)
+        assert any(isinstance(m, ToolMessage) for m in replayed)
+
+    def test_replay_drops_tool_context_for_older_turns(self):
+        from langchain_core.messages import AIMessage, ToolMessage
+        from storysphere.agents.chat_agent_base import build_history_entries, build_history_messages
+        state = ChatState()
+        # Older turn with a tool exchange
+        state.add_message("user", "q1")
+        state.record_agent_turn(build_history_entries(self._turn_messages()[1:]))
+        # Newer turn, text only
+        state.add_message("user", "q2")
+        state.add_message("assistant", "just text")
+        state.add_message("user", "current query")
+        replayed = build_history_messages(state)
+        # TOOL_CONTEXT_TURNS=1 → only the newest completed turn (q2) keeps context;
+        # the older tool exchange must not be replayed (no orphan tool_calls/msgs).
+        assert not any(isinstance(m, ToolMessage) for m in replayed)
+        assert not any(
+            isinstance(m, AIMessage) and m.tool_calls for m in replayed
+        )
+
+    @pytest.mark.asyncio
+    async def test_postprocess_persists_tool_exchange(self, mock_services, mock_llm):
+        kg, doc, vec = mock_services
+        agent = ChatAgent(
+            kg_service=kg, doc_service=doc, vector_service=vec, llm=mock_llm
+        )
+        state = ChatState()
+        state.add_message("user", "Who are Alice's relationships?")
+        agent._postprocess(
+            "Alice knows Bob and Carol.", None, state, self._turn_messages()
+        )
+        roles = [m.role for m in state.conversation_history]
+        assert "tool" in roles
+        assert roles[-1] == "assistant"
+
+
+class TestEntityIdAlignment:
+    """A5: text-mentioned KG entities carry an unambiguous canonical id."""
+
+    def _agent(self, mock_services, mock_llm):
+        kg, doc, vec = mock_services
+        return kg, ChatAgent(
+            kg_service=kg, doc_service=doc, vector_service=vec, llm=mock_llm
+        )
+
+    def test_index_maps_unique_name_and_aliases(self):
+        from storysphere.agents.chat_agent import _index_known_entities
+        names, id_map = _index_known_entities(
+            [SimpleNamespace(id="e1", name="Alice", aliases=["Ali"])]
+        )
+        assert "Alice" in names and "Ali" in names
+        assert id_map["alice"] == "e1"
+        assert id_map["ali"] == "e1"
+
+    def test_index_drops_ambiguous_name(self):
+        from storysphere.agents.chat_agent import _index_known_entities
+        names, id_map = _index_known_entities(
+            [
+                SimpleNamespace(id="e1", name="Alice", aliases=[]),
+                SimpleNamespace(id="e2", name="Alice", aliases=[]),
+            ]
+        )
+        assert "alice" not in id_map  # ambiguous → name-only
+        assert names.count("Alice") == 1  # still deduped for matching
+
+    def test_index_entity_without_id(self):
+        from storysphere.agents.chat_agent import _index_known_entities
+        names, id_map = _index_known_entities(
+            [SimpleNamespace(id=None, name="Ghost", aliases=[])]
+        )
+        assert "Ghost" in names
+        assert id_map == {}
+
+    @pytest.mark.asyncio
+    async def test_focus_entity_id_resolution(self, mock_services, mock_llm):
+        kg, agent = self._agent(mock_services, mock_llm)
+        kg.list_entities.return_value = [
+            SimpleNamespace(id="e1", name="李明", aliases=[])
+        ]
+        await agent._known_entity_names("book-1")  # populate caches
+        state = ChatState(book_id="book-1")
+        assert agent._focus_entity_id(state, "李明") == "e1"
+        assert agent._focus_entity_id(state, "王芳") is None  # unknown
+        assert agent._focus_entity_id(ChatState(), "李明") is None  # no book_id
+
+    @pytest.mark.asyncio
+    async def test_preprocess_sets_focus_id_for_text_mention(
+        self, mock_services, mock_llm
+    ):
+        kg, agent = self._agent(mock_services, mock_llm)
+        kg.list_entities.return_value = [
+            SimpleNamespace(id="e1", name="李明", aliases=[])
+        ]
+        state = ChatState(book_id="book-1")
+        known = await agent._known_entity_names("book-1")
+        agent._preprocess("李明是誰？", state, known)
+        assert state.current_focus_entity == "李明"
+        assert state.current_focus_entity_id == "e1"
+
+    @pytest.mark.asyncio
+    async def test_postprocess_sets_focus_id_for_text_mention(
+        self, mock_services, mock_llm
+    ):
+        kg, agent = self._agent(mock_services, mock_llm)
+        kg.list_entities.return_value = [
+            SimpleNamespace(id="e1", name="李明", aliases=[])
+        ]
+        known = await agent._known_entity_names("book-1")
+        state = ChatState(book_id="book-1")
+        match = agent._recognizer.recognize("李明是誰？", known)
+        agent._postprocess("回答內容。", match, state)
+        assert state.current_focus_entity_id == "e1"

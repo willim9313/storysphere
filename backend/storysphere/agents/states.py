@@ -6,6 +6,11 @@ from pydantic import BaseModel, Field
 class Message(BaseModel):
     role: str  # "user" | "assistant" | "tool"
     content: str
+    # assistant turns that called tools: [{"id", "name", "args"}]
+    tool_calls: list[dict] | None = None
+    # tool-result turns: which call they answer + the tool name
+    tool_call_id: str | None = None
+    name: str | None = None
 
 
 class ChatState(BaseModel):
@@ -69,6 +74,15 @@ class ChatState(BaseModel):
     def add_message(self, role: str, content: str) -> None:
         """Append a message to conversation history."""
         self.conversation_history.append(Message(role=role, content=content))
+
+    def record_agent_turn(self, entries: list[Message]) -> None:
+        """Append this turn's assistant/tool messages (already normalized).
+
+        Entries carry the tool exchange (``AIMessage`` tool_calls + their
+        ``ToolMessage`` results) so a follow-up turn can see what tools
+        returned, not just the assistant's summary text.
+        """
+        self.conversation_history.extend(entries)
 
     def trim_history(self, max_turns: int = 10) -> None:
         """Keep only the last *max_turns* messages."""
