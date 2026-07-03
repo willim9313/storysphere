@@ -7,11 +7,9 @@ update logic, and default LLM factory.
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from langchain_core.messages import AIMessage, HumanMessage
 
-from storysphere.agents.pattern_recognizer import QueryPatternRecognizer
 from storysphere.agents.states import ChatState
 
 logger = logging.getLogger(__name__)
@@ -128,13 +126,7 @@ def build_history_messages(state: ChatState) -> list:
     return msgs
 
 
-def update_entity_state(
-    recognizer: QueryPatternRecognizer,
-    tool_map: dict[str, Any],
-    match,
-    query: str,
-    state: ChatState,
-) -> None:
+def update_entity_state(match, state: ChatState) -> None:
     """Update entity tracking state from a pattern match; always returns None.
 
     The agent loop always handles response generation — this function only

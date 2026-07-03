@@ -142,7 +142,7 @@ class ChatAgent:
 
         match = self._recognizer.recognize(query)
         if match and match.confidence > 0.8:
-            update_entity_state(self._recognizer, self._tool_map, match, query, state)
+            update_entity_state(match, state)
         return query, match
 
     def _postprocess(self, response: str, match: Any, state: ChatState) -> None:
