@@ -8,11 +8,21 @@ from __future__ import annotations
 
 import logging
 
-from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.messages import (
+    AIMessage,
+    HumanMessage,
+    ToolMessage,
+)
 
-from storysphere.agents.states import ChatState
+from storysphere.agents.states import ChatState, Message
 
 logger = logging.getLogger(__name__)
+
+# How many trailing turns keep their full tool exchange when replayed. Older
+# turns replay as assistant text only, bounding token growth.
+TOOL_CONTEXT_TURNS = 1
+# Per tool-result truncation when storing, bounding memory and replay tokens.
+MAX_TOOL_CHARS = 2000
 
 SYSTEM_PROMPT = """\
 You are a novel analysis assistant. Help users explore story content using the available tools.
@@ -111,18 +121,106 @@ def build_context_prompt(state: ChatState, language: str) -> str:
     return "\n".join(parts)
 
 
+def select_new_turn_messages(all_messages: list) -> list:
+    """Return the messages a turn *appended* — everything after the last human.
+
+    The graph is invoked with ``[System, *history, Human(query)]`` and appends
+    the agent/tool exchange; the current query is the last ``HumanMessage``, so
+    everything after it is this turn's new assistant/tool messages.
+    """
+    last_human = -1
+    for i, m in enumerate(all_messages):
+        if isinstance(m, HumanMessage):
+            last_human = i
+    return list(all_messages[last_human + 1:]) if last_human >= 0 else list(all_messages)
+
+
+def build_history_entries(
+    new_messages: list, max_tool_chars: int = MAX_TOOL_CHARS
+) -> list[Message]:
+    """Normalize a turn's LangGraph output messages into stored ``Message`` rows.
+
+    Keeps assistant tool_calls and tool results so a later turn can replay the
+    tool exchange. Tool-result content is truncated to bound stored size.
+    """
+    entries: list[Message] = []
+    for m in new_messages:
+        if isinstance(m, AIMessage):
+            tool_calls = None
+            if m.tool_calls:
+                tool_calls = [
+                    {"id": tc.get("id"), "name": tc.get("name"), "args": tc.get("args", {})}
+                    for tc in m.tool_calls
+                ]
+            content = m.content if isinstance(m.content, str) else str(m.content)
+            entries.append(
+                Message(role="assistant", content=content, tool_calls=tool_calls)
+            )
+        elif isinstance(m, ToolMessage):
+            content = m.content if isinstance(m.content, str) else str(m.content)
+            if len(content) > max_tool_chars:
+                content = content[:max_tool_chars] + "…[truncated]"
+            entries.append(
+                Message(
+                    role="tool",
+                    content=content,
+                    tool_call_id=m.tool_call_id,
+                    name=m.name,
+                )
+            )
+    return entries
+
+
 def build_history_messages(state: ChatState) -> list:
     """Convert ChatState conversation history to LangChain messages.
 
     Excludes the last message (the current query) since it's added separately.
+    Only the most recent ``TOOL_CONTEXT_TURNS`` turn(s) replay their tool
+    exchange (assistant tool_calls + tool results); older turns replay as
+    assistant text only. This keeps the tool_call↔ToolMessage pairing intact
+    (an orphaned tool_call is a provider API error) while bounding tokens.
     """
-    msgs = []
     history = state.conversation_history[:-1] if state.conversation_history else []
-    for m in history:
+
+    # Window for tool replay: from the Nth-from-last user message onward.
+    user_idxs = [i for i, m in enumerate(history) if m.role == "user"]
+    window_start = (
+        user_idxs[-TOOL_CONTEXT_TURNS] if len(user_idxs) >= TOOL_CONTEXT_TURNS else 0
+    )
+
+    msgs: list = []
+    for i, m in enumerate(history):
+        in_window = i >= window_start
         if m.role == "user":
             msgs.append(HumanMessage(content=m.content))
         elif m.role == "assistant":
-            msgs.append(AIMessage(content=m.content))
+            if in_window and m.tool_calls:
+                msgs.append(
+                    AIMessage(
+                        content=m.content,
+                        tool_calls=[
+                            {
+                                "name": tc.get("name"),
+                                "args": tc.get("args", {}),
+                                "id": tc.get("id"),
+                                "type": "tool_call",
+                            }
+                            for tc in m.tool_calls
+                        ],
+                    )
+                )
+            elif m.content:
+                # Plain text turn, or an out-of-window tool-call message whose
+                # calls we drop — skip empty intermediates to avoid a bare msg.
+                msgs.append(AIMessage(content=m.content))
+        elif m.role == "tool" and in_window:
+            msgs.append(
+                ToolMessage(
+                    content=m.content,
+                    tool_call_id=m.tool_call_id,
+                    name=m.name,
+                )
+            )
     return msgs
 
 
