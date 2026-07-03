@@ -53,6 +53,9 @@ def configure_langfuse(settings=None) -> bool:
     os.environ["LANGFUSE_PUBLIC_KEY"] = settings.langfuse_public_key
     os.environ["LANGFUSE_SECRET_KEY"] = settings.langfuse_secret_key
     os.environ["LANGFUSE_TRACING_ENABLED"] = "true"
+    # Sampling keeps trace volume (and Langfuse billable units) in check under
+    # heavy chat load; 1.0 = trace everything (default, unchanged behaviour).
+    os.environ["LANGFUSE_SAMPLE_RATE"] = str(settings.langfuse_sample_rate)
     if settings.langfuse_base_url:
         os.environ["LANGFUSE_BASE_URL"] = settings.langfuse_base_url
 
