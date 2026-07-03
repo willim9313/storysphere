@@ -35,6 +35,21 @@
 
 ---
 
+## Observability 困境（langfuse 採樣的根本限制）
+
+**現狀兩難**：全域 `LANGFUSE_SAMPLE_RATE` 一刀切 → 正式環境為省 50k units 只能把 langfuse 關掉（測試才開），但關掉後出問題就沒 trace 可查。
+
+**根因**：
+- handler 注入在 **LLM 構造層**（`_make_callbacks`），不在 graph/chain invoke → **每次 LLM 呼叫各自起一條獨立 trace**（不是一次對話/一次 ingest 一條）。
+- langfuse 雲端是 **head sampling（`TraceIdRatioBased`）**：trace 一開始就決定採不採，單條完整、但**整條整條隨機丟**。所以大書 ingest 採樣後 = 一堆 trace 整條缺席，觀測零散不連貫；且**做不到「出錯才 trace」**。
+
+**方向（未實作）**：
+- **A（推薦、低成本）**：正式環境靠**本地 metrics + 錯誤路徑結構化 log** 排錯，不依賴 langfuse。
+  - `record_agent_query` 已記 success/latency/error（本地、不吃 units）。
+  - 補 `astream` 的 except / WS handler：記下 query + page context + traceback（目前只記 session_id / `logger.exception`），就能從 log 定位出錯的那次對話。
+- **B**：要「只留出錯的 trace」→ head sampling 做不到，需 **tail sampling（自建 OTel Collector）** 或錯誤路徑用 `@observe` 顯式記一條。
+- **C**：想「chat 壓低、ingest 全留」→ 全域比率做不到，需**自訂 sampler 依 service context 給不同率**（額外工程）。
+
 ## 收尾雜務
 - 這批 6 commits push + PR（進行中）
 - PR #7（前端空態+置中）review / merge
