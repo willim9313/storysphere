@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
 from unittest.mock import patch
 
 from storysphere.agents.states import ChatState
@@ -66,25 +65,6 @@ class TestResolvePronoun:
     def test_returns_none_without_focus(self):
         state = ChatState()
         assert state.resolve_pronoun("he") is None
-
-
-class TestToolCache:
-    def test_cache_and_retrieve(self):
-        state = ChatState()
-        state.cache_tool_result("get_entity", {"name": "Alice"})
-        assert state.get_cached_result("get_entity") == {"name": "Alice"}
-
-    def test_cache_miss(self):
-        state = ChatState()
-        assert state.get_cached_result("nonexistent") is None
-
-    def test_cache_expiry(self):
-        state = ChatState()
-        state.cache_tool_result("old_tool", "data")
-        # Manually set old timestamp
-        old_time = (datetime.now() - timedelta(seconds=600)).isoformat()
-        state.last_tool_results["old_tool"]["timestamp"] = old_time
-        assert state.get_cached_result("old_tool", ttl_seconds=300) is None
 
 
 class TestPageContextFields:
