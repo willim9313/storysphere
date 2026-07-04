@@ -34,6 +34,14 @@
     "addChapterBefore": "在此前插入新章節",
     "deleteChapter": "刪除此章節",
     "toggleRole": "切換段落類型",
+    "toggleChapterType": "切換章節類型",
+    "chapterType": {
+      "body": "正文",
+      "toc": "目錄",
+      "preface": "序",
+      "afterword": "跋",
+      "other": "其他"
+    },
     "submit": "確認並繼續",
     "submitting": "提交中…",
     "pipelineRunning": "分析進行中…",

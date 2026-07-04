@@ -25,6 +25,30 @@
     "errorTooLarge": "File exceeds the {{max}} MB size limit",
     "errorOneFileOnly": "Only one file can be uploaded at a time"
   },
+  "review": {
+    "title": "Review Chapter Structure",
+    "hint": "Confirm or adjust the detected chapter boundaries, then submit to continue analysis.",
+    "chapterLabel": "Chapter {{n}}",
+    "noTitle": "(No title)",
+    "addChapterBefore": "Insert new chapter before this",
+    "deleteChapter": "Delete this chapter",
+    "toggleRole": "Toggle paragraph type",
+    "toggleChapterType": "Toggle chapter type",
+    "chapterType": {
+      "body": "Body",
+      "toc": "Table of Contents",
+      "preface": "Preface",
+      "afterword": "Afterword",
+      "other": "Other"
+    },
+    "submit": "Confirm & Continue",
+    "submitting": "Submitting…",
+    "pipelineRunning": "Analysis in progress…",
+    "done": "Analysis complete",
+    "goToBook": "Go to \"{{title}}\"",
+    "errorLoad": "Failed to load chapter data. Please try again later.",
+    "errorSubmit": "Submission failed. Please try again later."
+  },
   "steps": {
     "pdfParsing": "PDF Parsing",
     "languageDetect": "Language Detection",

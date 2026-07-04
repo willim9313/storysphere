@@ -57,6 +57,7 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
       const reviewData = await fetchReviewData(bookId);
       const chapters: ReviewSubmitChapter[] = reviewData.chapters.map((ch) => ({
         title: ch.title ?? '',
+        role: ch.role ?? 'body',
         startParagraphIndex: ch.paragraphs[0]?.paragraphIndex ?? 0,
       }));
       await submitReview(bookId, chapters);

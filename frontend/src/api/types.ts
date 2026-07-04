@@ -241,6 +241,7 @@ export interface ReviewParagraph {
 export interface ReviewChapter {
   chapterIdx: number;
   title: string | null;
+  role: string;
   paragraphs: ReviewParagraph[];
 }
 
@@ -250,6 +251,7 @@ export interface ReviewData {
 
 export interface ReviewSubmitChapter {
   title: string;
+  role: string;
   startParagraphIndex: number;
 }
 

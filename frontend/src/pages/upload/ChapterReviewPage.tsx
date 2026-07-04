@@ -16,6 +16,9 @@ const ROLE_LABELS: Record<string, string> = {
 
 const NON_BODY_ROLES: string[] = ['separator', 'section', 'epigraph', 'preamble'];
 
+// Chapter-level classification (distinct from the paragraph-level roles above).
+const CHAPTER_ROLE_CYCLE: string[] = ['body', 'toc', 'preface', 'afterword', 'other'];
+
 type Phase = 'reviewing' | 'submitting' | 'cancelling' | 'error';
 
 export default function ChapterReviewPage() {
@@ -48,6 +51,7 @@ export default function ChapterReviewPage() {
     try {
       const payload: ReviewSubmitChapter[] = chapters.map((ch) => ({
         title: ch.title ?? '',
+        role: ch.role ?? 'body',
         startParagraphIndex: ch.paragraphs[0]?.paragraphIndex ?? 0,
       }));
       await submitReview(bookId, payload, roleOverrides);
@@ -93,6 +97,17 @@ export default function ChapterReviewPage() {
     );
   }, []);
 
+  const handleChapterRoleToggle = useCallback((idx: number) => {
+    setChapters((prev) =>
+      prev.map((ch, i) => {
+        if (i !== idx) return ch;
+        const currentIdx = CHAPTER_ROLE_CYCLE.indexOf(ch.role ?? 'body');
+        const nextIdx = (currentIdx + 1) % CHAPTER_ROLE_CYCLE.length;
+        return { ...ch, role: CHAPTER_ROLE_CYCLE[nextIdx] };
+      }),
+    );
+  }, []);
+
   const handleSplitBefore = useCallback((chapterIdx: number, paragraphIndex: number) => {
     setChapters((prev) => {
       const ch = prev[chapterIdx];
@@ -102,6 +117,7 @@ export default function ChapterReviewPage() {
       const after: ReviewChapter = {
         chapterIdx: chapterIdx + 1,
         title: null,
+        role: 'body',
         paragraphs: ch.paragraphs.slice(splitAt),
       };
       const next = [...prev.slice(0, chapterIdx), before, after, ...prev.slice(chapterIdx + 1)];
@@ -247,6 +263,18 @@ export default function ChapterReviewPage() {
                 value={selectedChapter.title ?? ''}
                 onChange={(e) => handleChapterTitleChange(selectedIdx, e.target.value)}
               />
+              <button
+                className="shrink-0 text-xs px-2 py-1 rounded-md"
+                style={{
+                  border: `1px solid ${(selectedChapter.role ?? 'body') === 'body' ? 'var(--border)' : 'var(--accent)'}`,
+                  color: (selectedChapter.role ?? 'body') === 'body' ? 'var(--fg-muted)' : 'var(--accent)',
+                  backgroundColor: (selectedChapter.role ?? 'body') === 'body' ? 'transparent' : 'var(--accent-bg)',
+                }}
+                title={t('review.toggleChapterType')}
+                onClick={() => handleChapterRoleToggle(selectedIdx)}
+              >
+                {t(`review.chapterType.${selectedChapter.role ?? 'body'}`)}
+              </button>
               {chapters.length > 1 && (
                 <button
                   className="text-xs px-2 py-1 rounded-md"
