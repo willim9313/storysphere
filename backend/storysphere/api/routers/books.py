@@ -555,12 +555,12 @@ async def upload_book(
     author: Annotated[str | None, Form()] = None,
     language: Annotated[str | None, Form()] = None,
 ) -> dict:
-    """Upload a PDF/DOCX/TXT and start background ingestion."""
+    """Upload a PDF/DOCX/TXT/EPUB and start background ingestion."""
     suffix = Path(file.filename or "upload").suffix.lower()
-    if suffix not in {".pdf", ".docx", ".txt"}:
+    if suffix not in {".pdf", ".docx", ".txt", ".epub"}:
         raise HTTPException(
             status_code=422,
-            detail="Only .pdf, .docx and .txt files are supported",
+            detail="Only .pdf, .docx, .txt and .epub files are supported",
         )
 
     # Use user-provided title if given, otherwise fall back to filename stem
@@ -610,16 +610,16 @@ _DETECT_LANGUAGE_SAMPLE_BYTES = 2 * 1024 * 1024  # 2 MB is plenty for a language
 async def detect_language_from_upload(file: UploadFile) -> dict:
     """Quickly guess a file's language before the user confirms upload.
 
-    Reuses the same PDF/DOCX/TXT loaders as full ingestion, but skips
+    Reuses the same PDF/DOCX/TXT/EPUB loaders as full ingestion, but skips
     chapter detection and does not create a background task — this is a
     lightweight, synchronous preview call so the upload form's language
     dropdown can be pre-selected instead of defaulting to blank.
     """
     suffix = Path(file.filename or "upload").suffix.lower()
-    if suffix not in {".pdf", ".docx", ".txt"}:
+    if suffix not in {".pdf", ".docx", ".txt", ".epub"}:
         raise HTTPException(
             status_code=422,
-            detail="Only .pdf, .docx and .txt files are supported",
+            detail="Only .pdf, .docx, .txt and .epub files are supported",
         )
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)

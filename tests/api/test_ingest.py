@@ -9,6 +9,8 @@ from __future__ import annotations
 import io
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
 
 def test_ingest_returns_202(client):
     fake_pdf = io.BytesIO(b"%PDF-1.4 fake content")
@@ -30,6 +32,16 @@ def test_ingest_rejects_unsupported_format(client):
     )
     assert resp.status_code == 422
     assert "pdf" in resp.json()["detail"].lower() or "docx" in resp.json()["detail"].lower()
+
+
+def test_ingest_accepts_epub_format(client):
+    resp = client.post(
+        "/api/v1/books/upload",
+        data={"title": "Test Novel"},
+        files={"file": ("novel.epub", io.BytesIO(b"fake epub bytes"), "application/epub+zip")},
+    )
+    assert resp.status_code == 202
+    assert "taskId" in resp.json()
 
 
 def test_ingest_requires_file(client):
@@ -162,6 +174,35 @@ def test_detect_language_rejects_unsupported_format(client):
         files={"file": ("novel.xyz", io.BytesIO(b"text"), "application/octet-stream")},
     )
     assert resp.status_code == 422
+
+
+def test_detect_language_returns_zh_for_chinese_epub(client, tmp_path):
+    try:
+        from ebooklib import epub
+    except ImportError:
+        pytest.skip("ebooklib not installed")
+
+    book = epub.EpubBook()
+    book.set_identifier("test-detect-lang")
+    book.set_title("測試小說")
+    book.set_language("zh")
+    c1 = epub.EpubHtml(title="第一章", file_name="chap1.xhtml", lang="zh")
+    c1.content = "<h1>第一章</h1><p>這是一段很長的繁體中文文字用來測試上傳前的語言偵測功能。</p>" * 3
+    book.add_item(c1)
+    book.toc = (c1,)
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+    book.spine = ["nav", c1]
+
+    epub_file = tmp_path / "novel.epub"
+    epub.write_epub(str(epub_file), book)
+
+    resp = client.post(
+        "/api/v1/books/detect-language",
+        files={"file": ("novel.epub", epub_file.open("rb"), "application/epub+zip")},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["language"].startswith("zh")
 
 
 def test_detect_language_falls_back_gracefully_on_corrupt_pdf(client):
