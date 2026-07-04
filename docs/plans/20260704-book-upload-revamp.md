@@ -8,6 +8,8 @@
 
 Branch 已建立：`feat/book-upload-revamp`（from `main`, working tree clean）。
 
+**進度**：項目 1–6（TXT 編碼、語系偵測改善、語系預判 endpoint、DOCX/PDF 結構化偵測、章節分類 domain model+HITL review+前端 UI、重複上傳警告）皆已完成並各自 commit，另外補了一個 API_CONTRACT.md 既有落差的獨立修正 commit。**只剩項目 7（EPUB 支援）待做**，本次規劃更新聚焦在這一項的細節設計（已用 `ebooklib` 實際驗證行為，見下方）。
+
 ---
 
 ## 全部項目與設計
@@ -84,16 +86,50 @@ class ChapterRole(str, Enum):
 - `POST /books/upload` 上傳前查詢，若有同名書籍，回傳一個警告訊號（例如 202 回應中夾帶 `duplicateWarning: true`，或前端在送出前先呼叫一個輕量檢查）——採「警告但允許繼續」，前端顯示提示訊息，使用者確認後仍可繼續上傳
 - 不阻擋上傳，只是提醒
 
-### 7. EPUB 支援
+### 7. EPUB 支援（已用真實套件驗證下列行為，非臆測）
 
-- 新增依賴 `ebooklib`
-- `domain/documents.py`：`FileType` 新增 `EPUB = "epub"`
-- 新 `loader.py::load_epub`：**直接利用 EPUB 的 nav/TOC/landmark/spine metadata** 取得章節邊界與型別（cover/toc/preface landmark 對應到本次新增的 `ChapterRole`）——這是唯一一種格式能不靠 regex 猜測就拿到可靠的章節分類，直接受益於項目 5 的 `ChapterRole` 設計，準確度會明顯優於 PDF/DOCX/TXT
-- `pipeline.py`：`_load_sync` 與 file_type 判斷都要加上 `.epub` 分支
-- `api/routers/books.py`：上傳白名單 `{".pdf", ".docx", ".txt"}` 加入 `.epub`
-- 前端：`DropZone.tsx` 的 `ALLOWED_EXTENSIONS`、`accept` 屬性、`dropzone.supportText`/`errorInvalidFormat` 文案（兩個語系檔）都要同步加入 epub
-- 測試：仿照 `TestLoaderMeta`/`TestDocumentProcessingPipeline` 新增 EPUB 對應測試
+**技術驗證結果**（用 `uv run --with ebooklib` 建了一個含 guide/landmarks 的測試 EPUB 並讀回驗證）：
+- `ebooklib.epub.read_epub()` 讀取後，`book.guide` 統一回傳 `[{"type": "toc"|"preface"|..., "href": str, "title": str}, ...]`——無論原始檔案是 EPUB2 舊式 `<guide>` 還是 EPUB3 `<nav epub:type="landmarks">`，ebooklib 都正規化成同一個介面，**不需要自己解析 XHTML nav**
+- `book.spine`：依閱讀順序排列的 `(item_id, "yes"/"no")` 列表，是章節順序的權威來源
+- `item.is_chapter()`（`EpubHtml`/`EpubNav` 都有這個方法）：`EpubNav`（導覽頁本身）回傳 `False`，其餘正文 XHTML 回傳 `True`——用這個排除導覽頁，不需要猜測
+- `ebooklib` 本身依賴 `lxml`（已是 transitive dependency），可以直接用 `lxml.html.fromstring(item.get_content())` 解析每個 XHTML，取 `h1-h6`/`p` 等區塊層級元素的 `.text_content()` 當作段落
+
+**架構決策：EPUB 不靠 regex 猜章節邊界，而是延伸現有的 `styled_heading_indices` 機制**
+
+現有 `detect_chapters(segments, styled_heading_indices)` 已經有「信任外部提供的 heading 位置、regex 只當 fallback」的機制（子任務4為 DOCX 樣式建立）。EPUB 沿用同一條路徑，但額外提供「這個 heading 的權威角色是什麼」，不需要再靠 `_classify_chapter_role` 猜文字：
+
+- `DocumentMeta` 新增 `heading_roles: dict[int, ChapterRole]`（索引 → 權威角色，只有 EPUB 會填，PDF/DOCX/TXT 維持空字典不受影響）
+- `detect_chapters()` 新增可選參數 `styled_heading_roles: dict[int, ChapterRole] | None = None`；當某個 heading 的 index 同時出現在 `styled_heading_indices` 且 `styled_heading_roles` 有值時，直接採用該 role，不呼叫 `_classify_chapter_role`
+- `load_epub()` 邏輯：依 `book.spine` 順序遍歷，跳過非 chapter 的 item（`is_chapter() is False`），每個 item 的第一個區塊文字設為 heading（進 `heading_indices`），並用 `book.guide` 的 href 對照該 item，若有對應 guide type 就轉換成 `ChapterRole` 存進 `heading_roles`；guide 沒有標記的 item 維持 `ChapterRole.body`（不特別處理 cover/title-page 等次要 landmark，讓內容量門檻或 body 分類自然處理，範圍不過度擴張）
+
+guide type 對照表（只做官方 OPF guide type 中語意明確對應的部分）：
+```python
+_EPUB_GUIDE_TYPE_TO_ROLE = {
+    "toc": ChapterRole.toc,
+    "preface": ChapterRole.preface,
+    "foreword": ChapterRole.preface,
+    "introduction": ChapterRole.preface,
+}
+```
+沒有官方 "afterword" guide type；未對應到的 item 維持 `body`，跋/後記仍能靠既有的 `_classify_chapter_role` 文字 fallback（`_AFTERWORD_HEADING_RE`）在 heading 文字比對階段抓到。
+
+**檔案異動：**
+- `pyproject.toml`/`uv.lock` — 新增 `ebooklib`
+- `domain/documents.py` — `FileType.EPUB = "epub"`
+- `loader.py` — 新增 `load_epub()`；`DocumentMeta` 新增 `heading_roles` 欄位
+- `chapter_detector.py` — `detect_chapters()` 新增 `styled_heading_roles` 參數
+- `pipeline.py` — `_load_sync`/file_type 判斷加 `.epub`；呼叫 `detect_chapters` 時傳入 `styled_heading_roles=file_meta.heading_roles`
+- `api/routers/books.py` — 上傳白名單、`/detect-language` 白名單都要加 `.epub`
+- 前端 `DropZone.tsx` — `ALLOWED_EXTENSIONS`、`accept` 屬性加 `.epub`
+- 前端 `UploadPage.tsx` — **順便修正子任務3就發現、當時記錄延後處理的既有 bug**：metadata card 檔案資訊列固定寫死顯示「PDF」字樣，不論實際格式；這次既然要新增 EPUB 顯示，順便改成依副檔名動態顯示
+- `en/upload.json`、`zh-TW/upload.json` — `dropzone.supportText`/`errorInvalidFormat` 文案加入 epub
+- 測試：仿照 `TestLoaderMeta`/`TestDocumentProcessingPipeline`/`TestDetectChapters` 新增 EPUB 對應測試（用真實 `ebooklib` 建構測試檔案，比照 DOCX 測試用真實 `python-docx` 建構的既有慣例）
 - 文件同步：`docs/API_CONTRACT.md` 上傳格式白名單說明
+
+**執行順序（子任務內再分批）：**
+- 7a：後端核心 — `domain/documents.py` + `loader.py` + `chapter_detector.py` + `pipeline.py` + 依賴 + 測試
+- 7b：後端上傳白名單 — `routers/books.py` + `API_CONTRACT.md`
+- 7c：前端 — `DropZone.tsx` + `UploadPage.tsx`（含 PDF 文字 bug 修正）+ i18n
 
 ---
 
@@ -101,16 +137,17 @@ class ChapterRole(str, Enum):
 
 依 CLAUDE.md「異動超過 3 個檔案先拆子任務」規範，每個子任務開工前都會重新跑一次 4 問 checkpoint，逐一確認後才進下一個：
 
-1. TXT 編碼偵測修正（`loader.py` + 測試，~2 檔）
-2. 語系偵測 script pre-filter + 取樣改善（`language_detection.py` + 測試，~2 檔）
-3. 語系預判 endpoint + 前端預選（backend 新 endpoint + schema + `UploadPage.tsx` + api client + `API_CONTRACT.md`，~5 檔）
-4. DOCX 樣式 + PDF 頁首頁尾過濾（`loader.py` + `chapter_detector.py` + 測試，~3 檔）
-5. 章節結構分類 —— 範圍最大，再拆成三個小段：
-   - 5a. Domain model + 偵測規則 + 持久化（`documents.py`、`chapter_detector.py`、`pipeline.py`、`document_service.py` + 測試）
-   - 5b. HITL review API + schema（`schemas/books.py`、`routers/books.py`、`ingestion.py`、`API_CONTRACT.md`）
-   - 5c. 前端 review UI + 閱讀端章節列表過濾（`ChapterReviewPage.tsx`、`types.ts`、i18n 兩檔、reader 相關 chapters 呼叫端）
-6. 重複上傳偵測（`document_service.py` + `routers/books.py` + `UploadPage.tsx`，~3 檔）
-7. EPUB 支援（新依賴 + `documents.py` + `loader.py` + `pipeline.py` + `routers/books.py` + `DropZone.tsx` + i18n 兩檔 + 測試 + `API_CONTRACT.md`，範圍大，實作時視情況再拆前後端兩段）
+1. ✅ TXT 編碼偵測修正
+2. ✅ 語系偵測 script pre-filter + 取樣改善
+3. ✅ 語系預判 endpoint + 前端預選
+4. ✅ DOCX 樣式 + PDF 頁首頁尾過濾
+5. ✅ 章節結構分類（5a domain model+持久化 / 5b HITL review API / 5c 前端 review UI）
+6. ✅ 重複上傳偵測
+- ✅ （額外）修正 API_CONTRACT.md 既有的 upload endpoint 文件落差
+7. **EPUB 支援 —— 待做**，再拆三小段：
+   - 7a. 後端核心（`documents.py`、`loader.py`、`chapter_detector.py`、`pipeline.py`、新依賴、測試）
+   - 7b. 後端上傳白名單（`routers/books.py`、`API_CONTRACT.md`）
+   - 7c. 前端（`DropZone.tsx`、`UploadPage.tsx` 含 PDF 文字 bug 修正、i18n 兩檔）
 
 每個子任務完成後依 CLAUDE.md「完成後必報」列出異動清單、引用完整性確認、文件同步確認，並跑 `ruff check backend/`、`npm run lint`。
 
@@ -121,5 +158,5 @@ class ChapterRole(str, Enum):
 - 每個子任務跑 `python -m pytest` 對應範圍測試 + 全套回歸（無新增失敗）
 - 語系偵測：用實際中文（含少量目錄/扉頁雜訊）、韓文、日文樣本手動驗證 `detect_language`/`detect_language_from_document`
 - 章節分類：實際上傳一本有序文/目錄的中文小說 PDF/TXT，跑完整 ingestion pipeline，確認 HITL review 畫面能看到分類結果、提交後 Qdrant 沒有序文/目錄的 embedding、閱讀端章節列表沒有序文/目錄
-- EPUB：找一本真實 EPUB 檔案跑完整上傳流程，確認 landmark 對應到正確的 `ChapterRole`
+- EPUB：用 `ebooklib` 建構一個含 guide/landmarks（toc/preface）+ 正文 + 無標記後記的測試 EPUB，跑 `load_epub` → `detect_chapters` → `DocumentProcessingPipeline.run()` 全鏈路，確認 toc/preface 由 guide 權威判定、後記靠文字 fallback 判定、正文維持 body；並實際透過 `npm run dev` 上傳一個 .epub 檔案跑完整前端流程
 - 前端變動用 `npm run dev` 實際跑一次上傳流程（drag file → 檢查語系預選 → review 畫面 → 完成閱讀）驗證，不只跑 type check
