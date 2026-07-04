@@ -22,6 +22,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 from storysphere.domain.documents import (
     Chapter,
+    ChapterRole,
     Document,
     FileType,
     Paragraph,
@@ -70,6 +71,7 @@ class _ChapterRow(_Base):
     title = Column(String, nullable=True)
     summary = Column(Text, nullable=True)
     keywords_json = Column(Text, nullable=True)  # JSON-encoded dict[str, float]
+    role = Column(String, nullable=False, server_default="body")
 
 
 class _ParagraphRow(_Base):
@@ -124,6 +126,7 @@ class DocumentService:
                 "ALTER TABLE documents ADD COLUMN pipeline_status_json TEXT",
                 "ALTER TABLE paragraphs ADD COLUMN title_span_json TEXT",
                 "ALTER TABLE paragraphs ADD COLUMN role TEXT NOT NULL DEFAULT 'body'",
+                "ALTER TABLE chapters ADD COLUMN role TEXT NOT NULL DEFAULT 'body'",
             ]:
                 try:
                     await conn.execute(sa_text(stmt))
@@ -176,6 +179,7 @@ class DocumentService:
                             document_id=document.id,
                             number=chapter.number,
                             title=chapter.title,
+                            role=chapter.role.value,
                             summary=chapter.summary,
                             keywords_json=(
                                 json.dumps(chapter.keywords, ensure_ascii=False)
@@ -245,6 +249,7 @@ class DocumentService:
                             document_id=document.id,
                             number=chapter.number,
                             title=chapter.title,
+                            role=chapter.role.value,
                             summary=chapter.summary,
                             keywords_json=(
                                 json.dumps(chapter.keywords, ensure_ascii=False)
@@ -342,6 +347,7 @@ class DocumentService:
                         id=ch_row.id,
                         number=ch_row.number,
                         title=ch_row.title,
+                        role=ChapterRole(ch_row.role) if ch_row.role else ChapterRole.body,
                         summary=ch_row.summary,
                         keywords=(
                             json.loads(ch_row.keywords_json)

@@ -9,6 +9,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
+from storysphere.domain.documents import ChapterRole
+
 # ── Heading patterns ──────────────────────────────────────────────────────────
 
 # Headings that include an explicit title after a separator character.
@@ -53,12 +55,46 @@ _HEADING_NO_TITLE: list[re.Pattern[str]] = [
     re.compile(
         r"^(?=[MDCLXVI])M{0,4}(?:CM|CD|D?C{0,3})(?:XC|XL|L?X{0,3})(?:IX|IV|V?I{0,3})$"
     ),
-    # "Prologue", "Epilogue", "Preface", "Introduction", …
+    # "Prologue", "Epilogue" — narrative content, kept as ChapterRole.body.
+    # (Preface/Introduction/Foreword/Afterword are front/back matter, not
+    # story content — they're matched and classified separately below.)
     re.compile(
-        r"^(?:prologue|epilogue|preface|introduction|foreword|afterword)$",
+        r"^(?:prologue|epilogue)$",
         re.IGNORECASE,
     ),
 ]
+
+# ── Chapter-level role classification ─────────────────────────────────────────
+#
+# Best-effort hints from the heading text alone — the human-in-the-loop
+# chapter review step is the final authority. "Prologue"/"Epilogue" are NOT
+# included here: they're narrative content (ChapterRole.body), unlike a
+# preface/afterword which is meta-content about the book itself. An optional
+# separator + trailing text is allowed so headings like "推薦序：一位讀者的告白"
+# still classify correctly.
+_TOC_HEADING_RE = re.compile(
+    r"^(?:目錄|目次|table of contents|contents)(?:[:\-—–：].*)?$", re.IGNORECASE
+)
+_PREFACE_HEADING_RE = re.compile(
+    r"^(?:自序|作者序|譯者序|推薦序|序言|前言|序|preface|foreword|introduction)"
+    r"(?:[:\-—–：].*)?$",
+    re.IGNORECASE,
+)
+_AFTERWORD_HEADING_RE = re.compile(
+    r"^(?:後記|跋|afterword)(?:[:\-—–：].*)?$", re.IGNORECASE
+)
+
+
+def _classify_chapter_role(heading_text: str) -> ChapterRole:
+    """Best-effort ``ChapterRole`` guess from a matched heading's raw text."""
+    if _TOC_HEADING_RE.match(heading_text):
+        return ChapterRole.toc
+    if _PREFACE_HEADING_RE.match(heading_text):
+        return ChapterRole.preface
+    if _AFTERWORD_HEADING_RE.match(heading_text):
+        return ChapterRole.afterword
+    return ChapterRole.body
+
 
 # ── Inline title heuristic ────────────────────────────────────────────────────
 
@@ -92,6 +128,7 @@ class ChapterSpan:
     chapter_number: int  # 1-indexed
     title: str | None
     segments: list[tuple[int, str]] = field(default_factory=list)
+    role: ChapterRole = ChapterRole.body
 
 
 def detect_chapters(
@@ -133,19 +170,24 @@ def detect_chapters(
         stripped = text.strip()
         if idx in styled_heading_indices:
             is_heading = True
-            _, title = _match_heading(stripped)
+            _, title, role = _match_heading(stripped)
             if title is None and not any(pat.match(stripped) for pat in _HEADING_NO_TITLE):
                 # A styled heading whose text isn't a bare chapter-number
                 # label (e.g. "楔子") — trust the whole line as the title.
                 title = stripped or None
         else:
-            is_heading, title = _match_heading(stripped)
+            is_heading, title, role = _match_heading(stripped)
 
         if is_heading:
             if current is not None:
                 chapters.append(current)
             chapter_counter += 1
-            current = ChapterSpan(chapter_number=chapter_counter, title=title, segments=[])
+            current = ChapterSpan(
+                chapter_number=chapter_counter,
+                title=title,
+                segments=[],
+                role=role,
+            )
             peek_for_inline_title = (title is None)
         else:
             # Peek: first segment after a title-less heading may be the chapter title.
@@ -177,24 +219,31 @@ def detect_chapters(
 # ── private helpers ─────────────────────────────────────────────────────────
 
 
-def _match_heading(text: str) -> tuple[bool, str | None]:
-    """Return ``(is_heading, title_part)`` for the given text.
+def _match_heading(text: str) -> tuple[bool, str | None, ChapterRole]:
+    """Return ``(is_heading, title_part, role)`` for the given text.
 
     ``title_part`` is the chapter title extracted from the heading line, or
     ``None`` if the heading contains only a chapter number / label.
-    Headings longer than 80 characters are never matched.
+    Headings longer than 80 characters are never matched. A toc/preface/
+    afterword marker (e.g. "目錄", "推薦序：一位讀者的告白") is also matched as
+    a heading here, in addition to being classified via ``role`` — otherwise
+    it would never be recognized as a chapter boundary at all.
     """
     if len(text) > 80:
-        return False, None
+        return False, None, ChapterRole.body
 
     for pat in _HEADING_WITH_TITLE:
         m = pat.match(text)
         if m:
             title = m.group(1).strip()
-            return True, title or None
+            return True, title or None, ChapterRole.body
 
     for pat in _HEADING_NO_TITLE:
         if pat.match(text):
-            return True, None
+            return True, None, ChapterRole.body
 
-    return False, None
+    role = _classify_chapter_role(text)
+    if role != ChapterRole.body:
+        return True, text or None, role
+
+    return False, None, ChapterRole.body

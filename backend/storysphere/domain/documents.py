@@ -36,6 +36,22 @@ class ParagraphRole(str, Enum):
     preamble = "preamble"  # v2
 
 
+class ChapterRole(str, Enum):
+    """Chapter-level classification distinguishing narrative content from
+    front/back matter (table of contents, prefaces, afterwords, ...).
+
+    Unlike ``ParagraphRole``, this applies to a whole chapter. Non-body
+    chapters are excluded from the chunk/embedding index but remain stored,
+    so they can support a future cross-book front-matter lookup feature.
+    """
+
+    body = "body"
+    toc = "toc"
+    preface = "preface"
+    afterword = "afterword"
+    other = "other"
+
+
 class ParagraphEntity(BaseModel):
     """An entity mention within a paragraph, with character offsets."""
 
@@ -84,6 +100,7 @@ class Chapter(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     number: int
     title: str | None = None
+    role: ChapterRole = ChapterRole.body
     paragraphs: list[Paragraph] = Field(default_factory=list)
     summary: str | None = None
     keywords: dict[str, float] | None = None

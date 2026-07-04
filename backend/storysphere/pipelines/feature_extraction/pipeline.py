@@ -24,7 +24,7 @@ import logging
 from dataclasses import dataclass, field
 
 from storysphere.core.error_handling import is_rate_limit_error
-from storysphere.domain.documents import Document, Paragraph, extract_body_text
+from storysphere.domain.documents import ChapterRole, Document, Paragraph, extract_body_text
 from storysphere.pipelines.base import BasePipeline
 
 from .embedding_generator import EmbeddingGenerator
@@ -77,7 +77,9 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         total_keywords = 0
         all_qdrant_ids: list[str] = []
         all_chapter_keywords: list[dict[str, float]] = []
-        chapters_with_content = [ch for ch in doc.chapters if ch.paragraphs]
+        chapters_with_content = [
+            ch for ch in doc.chapters if ch.paragraphs and ch.role == ChapterRole.body
+        ]
         total_chapters = len(chapters_with_content)
         chapters_done = 0
 
@@ -87,6 +89,18 @@ class FeatureExtractionPipeline(BasePipeline[Document, FeatureExtractionResult])
         for chapter in doc.chapters:
             paragraphs = chapter.paragraphs
             if not paragraphs:
+                continue
+
+            # Non-body chapters (toc/preface/afterword/other) are front/back
+            # matter, not narrative content — keep them out of the chunk/
+            # embedding index entirely rather than searchable alongside the
+            # story text. They remain stored on the Document/DB as-is.
+            if chapter.role != ChapterRole.body:
+                logger.debug(
+                    "Skipping chapter %d (role=%s) — excluded from embedding",
+                    chapter.number,
+                    chapter.role.value,
+                )
                 continue
 
             # Only embed/index body paragraphs; skip structural separators etc.

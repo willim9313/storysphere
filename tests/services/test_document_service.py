@@ -4,7 +4,14 @@ from __future__ import annotations
 
 import pytest
 
-from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
+from storysphere.domain.documents import (
+    Chapter,
+    ChapterRole,
+    Document,
+    FileType,
+    Paragraph,
+    ParagraphEntity,
+)
 from storysphere.services.document_service import DocumentService
 
 
@@ -75,6 +82,39 @@ class TestDocumentServiceSave:
     async def test_get_nonexistent_document_returns_none(self, service):
         result = await service.get_document("nonexistent-id")
         assert result is None
+
+    @pytest.mark.asyncio
+    async def test_chapter_role_roundtrip(self, service):
+        """Chapter.role must survive save_document → get_document."""
+        doc = _make_document(num_chapters=2, paras_per_chapter=1)
+        doc.chapters[0].role = ChapterRole.toc
+        doc.chapters[1].role = ChapterRole.afterword
+        await service.save_document(doc)
+
+        retrieved = await service.get_document(doc.id)
+        assert retrieved.chapters[0].role == ChapterRole.toc
+        assert retrieved.chapters[1].role == ChapterRole.afterword
+
+    @pytest.mark.asyncio
+    async def test_chapter_role_defaults_to_body(self, service):
+        doc = _make_document(num_chapters=1, paras_per_chapter=1)
+        await service.save_document(doc)
+
+        retrieved = await service.get_document(doc.id)
+        assert retrieved.chapters[0].role == ChapterRole.body
+
+    @pytest.mark.asyncio
+    async def test_chapter_role_roundtrip_via_replace_chapters(self, service):
+        """Chapter.role must also survive the replace_chapters path used
+        after a HITL chapter-review step."""
+        doc = _make_document(num_chapters=1, paras_per_chapter=1)
+        await service.save_document(doc)
+
+        doc.chapters[0].role = ChapterRole.preface
+        await service.replace_chapters(doc)
+
+        retrieved = await service.get_document(doc.id)
+        assert retrieved.chapters[0].role == ChapterRole.preface
 
     @pytest.mark.asyncio
     async def test_list_documents(self, service):

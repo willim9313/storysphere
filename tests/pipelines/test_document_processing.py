@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from storysphere.domain.documents import ChapterRole
 from storysphere.pipelines.document_processing.chapter_detector import (
     ChapterSpan,
     _is_inline_title,
@@ -163,39 +164,94 @@ class TestDetectChapters:
         assert detect_chapters(segments) == detect_chapters(segments, styled_heading_indices=None)
         assert detect_chapters(segments) == detect_chapters(segments, styled_heading_indices=set())
 
+    # ── chapter-level role classification (toc/preface/afterword) ──
+
+    def test_toc_preface_body_afterword_classified_as_separate_chapters(self):
+        segments = [
+            (0, "目錄"),
+            (1, "這裡條列本書所有章節標題，這裡條列本書所有章節標題。"),
+            (2, "推薦序：一位讀者的告白"),
+            (3, "這本書非常精彩值得一讀值得一讀值得一讀值得一讀值得一讀。"),
+            (4, "第一章 開始"),
+            (5, "故事開始了故事開始了故事開始了故事開始了故事開始了。"),
+            (6, "後記"),
+            (7, "感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持。"),
+        ]
+        chapters = detect_chapters(segments)
+        assert [c.role for c in chapters] == [
+            ChapterRole.toc,
+            ChapterRole.preface,
+            ChapterRole.body,
+            ChapterRole.afterword,
+        ]
+
+    def test_prologue_and_epilogue_stay_body_role(self):
+        segments = [
+            (0, "Prologue"),
+            (1, "It all began on a stormy night many years ago."),
+            (2, "Chapter 1"),
+            (3, "The story begins in earnest here today."),
+        ]
+        chapters = detect_chapters(segments)
+        assert [c.role for c in chapters] == [ChapterRole.body, ChapterRole.body]
+
+    def test_default_chapter_has_body_role(self):
+        segments = [(0, "Once upon a time."), (1, "The hero walked.")]
+        chapters = detect_chapters(segments)
+        assert chapters[0].role == ChapterRole.body
+
 
 # ── _match_heading title extraction ─────────────────────────────────────────
 
 
 class TestMatchHeadingTitleExtraction:
     def test_en_chapter_with_separator_extracts_title(self):
-        assert _match_heading("Chapter 3 - The Return") == (True, "The Return")
-        assert _match_heading("Ch. 2: Awakening") == (True, "Awakening")
-        assert _match_heading("Chapter IV: The Quest") == (True, "The Quest")
+        assert _match_heading("Chapter 3 - The Return") == (True, "The Return", ChapterRole.body)
+        assert _match_heading("Ch. 2: Awakening") == (True, "Awakening", ChapterRole.body)
+        assert _match_heading("Chapter IV: The Quest") == (True, "The Quest", ChapterRole.body)
 
     def test_cjk_chapter_with_separator_extracts_title(self):
-        assert _match_heading("第五章：歸來") == (True, "歸來")
-        assert _match_heading("第1章: 開始") == (True, "開始")
-        assert _match_heading("第三節-啟程") == (True, "啟程")
+        assert _match_heading("第五章：歸來") == (True, "歸來", ChapterRole.body)
+        assert _match_heading("第1章: 開始") == (True, "開始", ChapterRole.body)
+        assert _match_heading("第三節-啟程") == (True, "啟程", ChapterRole.body)
 
     def test_cjk_chapter_with_space_extracts_title(self):
-        assert _match_heading("第二章 茅草、木頭與一封奇信") == (True, "茅草、木頭與一封奇信")
-        assert _match_heading("第三章 英雄登場") == (True, "英雄登場")
+        assert _match_heading("第二章 茅草、木頭與一封奇信") == (
+            True, "茅草、木頭與一封奇信", ChapterRole.body,
+        )
+        assert _match_heading("第三章 英雄登場") == (True, "英雄登場", ChapterRole.body)
 
     def test_number_only_headings_have_no_title(self):
-        assert _match_heading("Chapter 1") == (True, None)
-        assert _match_heading("第一章") == (True, None)
-        assert _match_heading("Prologue") == (True, None)
-        assert _match_heading("Volume 1") == (True, None)
+        assert _match_heading("Chapter 1") == (True, None, ChapterRole.body)
+        assert _match_heading("第一章") == (True, None, ChapterRole.body)
+        assert _match_heading("Prologue") == (True, None, ChapterRole.body)
+        assert _match_heading("Volume 1") == (True, None, ChapterRole.body)
 
     def test_non_heading_returns_false(self):
-        is_h, title = _match_heading("Some random body text that is long enough.")
+        is_h, title, role = _match_heading("Some random body text that is long enough.")
         assert is_h is False
         assert title is None
+        assert role == ChapterRole.body
 
     def test_over_80_chars_not_heading(self):
         long = "第" + "一" * 81 + "章 title"
-        assert _match_heading(long) == (False, None)
+        assert _match_heading(long) == (False, None, ChapterRole.body)
+
+    def test_toc_and_front_back_matter_markers_classified(self):
+        assert _match_heading("目錄") == (True, "目錄", ChapterRole.toc)
+        assert _match_heading("Table of Contents") == (True, "Table of Contents", ChapterRole.toc)
+        assert _match_heading("序") == (True, "序", ChapterRole.preface)
+        assert _match_heading("推薦序：一位讀者的告白") == (
+            True, "推薦序：一位讀者的告白", ChapterRole.preface,
+        )
+        assert _match_heading("Foreword") == (True, "Foreword", ChapterRole.preface)
+        assert _match_heading("後記") == (True, "後記", ChapterRole.afterword)
+        assert _match_heading("Afterword") == (True, "Afterword", ChapterRole.afterword)
+
+    def test_prologue_epilogue_kept_as_body_not_preface(self):
+        """Prologue/epilogue are narrative content, unlike preface/afterword."""
+        assert _match_heading("Prologue") == (True, None, ChapterRole.body)
+        assert _match_heading("Epilogue") == (True, None, ChapterRole.body)
 
 
 # ── _is_inline_title heuristic ───────────────────────────────────────────────
@@ -337,6 +393,35 @@ class TestDocumentProcessingPipeline:
         pipeline = DocumentProcessingPipeline()
         with pytest.raises(FileNotFoundError):
             await pipeline.run(tmp_path / "missing.pdf")
+
+    @pytest.mark.asyncio
+    async def test_chapter_role_propagates_end_to_end(self, tmp_path):
+        """A real .txt file with toc/preface/body/afterword sections ends up
+        with the matching ``Chapter.role`` on the final Document."""
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
+
+        txt_file = tmp_path / "novel.txt"
+        txt_file.write_text(
+            "目錄\n"
+            "這裡條列本書所有章節標題，這裡條列本書所有章節標題，這裡條列本書所有章節標題，這裡條列本書所有章節標題。\n"
+            "推薦序：一位讀者的告白\n"
+            "這本書非常精彩值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀。\n"
+            "第一章 開始\n"
+            "故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了。\n"
+            "後記\n"
+            "感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持。\n",
+            encoding="utf-8",
+        )
+
+        pipeline = DocumentProcessingPipeline()
+        doc = await pipeline.run(txt_file)
+
+        assert [c.role for c in doc.chapters] == [
+            ChapterRole.toc,
+            ChapterRole.preface,
+            ChapterRole.body,
+            ChapterRole.afterword,
+        ]
 
     @pytest.mark.asyncio
     async def test_docx_processing(self, tmp_path):

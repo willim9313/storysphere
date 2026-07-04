@@ -138,6 +138,7 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
             chapter = Chapter(
                 number=span.chapter_number,
                 title=span.title,
+                role=span.role,
                 paragraphs=paragraphs,
             )
             chapters.append(chapter)
