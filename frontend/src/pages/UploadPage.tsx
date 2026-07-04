@@ -4,7 +4,7 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { FileText, Loader2, X } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
-import { uploadBook } from '@/api/ingest';
+import { detectLanguage, uploadBook } from '@/api/ingest';
 import { DropZone } from '@/components/upload/DropZone';
 import { ProcessingCard } from '@/components/upload/ProcessingCard';
 import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
@@ -33,6 +33,10 @@ const LANGUAGE_OPTIONS = [
   { value: 'pt', labelKey: 'languagePt' },
   { value: 'ru', labelKey: 'languageRu' },
 ] as const;
+
+const KNOWN_LANGUAGE_VALUES = new Set<string>(
+  LANGUAGE_OPTIONS.map((opt) => opt.value).filter(Boolean),
+);
 
 interface PendingFile {
   file: File;
@@ -103,6 +107,18 @@ export default function UploadPage() {
       upload.reset();
       const stem = file.name.replace(/\.[^.]+$/, '');
       setPending({ file, title: stem, author: '', language: '' });
+
+      // Pre-select the language dropdown with a quick server-side guess so it
+      // isn't left on blank "Auto-detect" — the user can still override it.
+      detectLanguage(file)
+        .then(({ language }) => {
+          const normalized = language.split('-')[0];
+          if (!KNOWN_LANGUAGE_VALUES.has(normalized)) return;
+          setPending((prev) => (prev?.file === file ? { ...prev, language: normalized } : prev));
+        })
+        .catch(() => {
+          // Silent fallback — dropdown stays on "Auto-detect".
+        });
     },
     [upload],
   );

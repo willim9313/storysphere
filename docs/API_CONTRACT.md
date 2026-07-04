@@ -112,6 +112,28 @@ author  (作者字串，選填)
 
 ---
 
+### #2b POST /books/detect-language
+
+在使用者確認上傳前，快速偵測檔案語系，讓上傳頁的語系下拉選單可以預先帶入偵測結果（而非空白的「自動偵測」）。內部重用與 `#2 POST /books/upload` 相同的 PDF/DOCX/TXT 讀取邏輯，但不跑章節偵測、不建立背景任務，純同步回應。
+
+**Request**：`multipart/form-data`
+```
+file    (PDF、DOCX 或 TXT 檔案，必填)
+```
+
+**Response 200**
+```ts
+{ language: string }  // 例如 "zh-cn", "zh-tw", "en"
+```
+
+**Response 422**：非 .pdf / .docx / .txt 格式
+
+**說明**：檔案無法解析時（例如檔案損毀）不會回傳錯誤，會 fallback 回傳 `"en"`；純預覽用途，不影響後續 `#2 POST /books/upload` 的實際語系偵測。
+
+**UI 使用頁面**：上傳頁 `/upload`（選擇檔案後立即呼叫）
+
+---
+
 ## 書籍詳情
 
 ### #3 GET /books/:bookId

@@ -94,6 +94,11 @@ export async function uploadBook(_file: File): Promise<{ taskId: string }> {
   return createMockTask();
 }
 
+export async function detectLanguage(_file: File): Promise<{ language: string }> {
+  await delay(100);
+  return { language: 'zh-cn' };
+}
+
 // ── Task polling (#8) ──────────────────────────────────────────
 
 export async function fetchTaskStatus(taskId: string): Promise<TaskStatus> {

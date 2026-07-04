@@ -148,6 +148,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/detect-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Detect Language From Upload
+         * @description Quickly guess a file's language before the user confirms upload.
+         *
+         *     Reuses the same PDF/DOCX/TXT loaders as full ingestion, but skips
+         *     chapter detection and does not create a background task — this is a
+         *     lightweight, synchronous preview call so the upload form's language
+         *     dropdown can be pre-selected instead of defaulting to blank.
+         */
+        post: operations["detect_language_from_upload_api_v1_books_detect_language_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/chapters": {
         parameters: {
             query?: never;
@@ -2044,6 +2069,11 @@ export interface components {
              */
             evidence: string[];
         };
+        /** Body_detect_language_from_upload_api_v1_books_detect_language_post */
+        Body_detect_language_from_upload_api_v1_books_detect_language_post: {
+            /** File */
+            file: string;
+        };
         /** Body_upload_book_api_v1_books_upload_post */
         Body_upload_book_api_v1_books_upload_post: {
             /** File */
@@ -2343,6 +2373,11 @@ export interface components {
         ConfirmInferredRequest: {
             /** Relationtype */
             relationType?: string | null;
+        };
+        /** DetectLanguageResponse */
+        DetectLanguageResponse: {
+            /** Language */
+            language: string;
         };
         /** DocumentResponse */
         DocumentResponse: {
@@ -4332,6 +4367,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detect_language_from_upload_api_v1_books_detect_language_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_detect_language_from_upload_api_v1_books_detect_language_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetectLanguageResponse"];
                 };
             };
             /** @description Validation Error */

@@ -42,6 +42,7 @@ from storysphere.api.schemas.books import (
     ChunkResponse,
     ClassifyVisibilityResponse,
     ConfirmInferredRequest,
+    DetectLanguageResponse,
     EntityChunkItem,
     EntityChunksResponse,
     EntityStats,
@@ -79,7 +80,9 @@ from storysphere.api.schemas.books import (
 )
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
+from storysphere.core.language_detection import detect_language
 from storysphere.domain.documents import ParagraphEntity, PipelineStatus, StepStatus
+from storysphere.pipelines.document_processing import DocumentProcessingPipeline
 from storysphere.services.analysis_cache import AnalysisCache
 
 logger = logging.getLogger(__name__)
@@ -589,6 +592,50 @@ async def upload_book(
     task_registry.register(task_id, task)
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+# ── POST /books/detect-language ──────────────────────────────────────────────
+
+_DETECT_LANGUAGE_SAMPLE_BYTES = 2 * 1024 * 1024  # 2 MB is plenty for a language sample
+
+
+@router.post("/detect-language", response_model=DetectLanguageResponse)
+async def detect_language_from_upload(file: UploadFile) -> dict:
+    """Quickly guess a file's language before the user confirms upload.
+
+    Reuses the same PDF/DOCX/TXT loaders as full ingestion, but skips
+    chapter detection and does not create a background task — this is a
+    lightweight, synchronous preview call so the upload form's language
+    dropdown can be pre-selected instead of defaulting to blank.
+    """
+    suffix = Path(file.filename or "upload").suffix.lower()
+    if suffix not in {".pdf", ".docx", ".txt"}:
+        raise HTTPException(
+            status_code=422,
+            detail="Only .pdf, .docx and .txt files are supported",
+        )
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    try:
+        content = await file.read(_DETECT_LANGUAGE_SAMPLE_BYTES)
+        tmp.write(content)
+        tmp.close()
+
+        segments, _meta = await asyncio.get_event_loop().run_in_executor(
+            None, DocumentProcessingPipeline._load_sync, Path(tmp.name)
+        )
+        sample = " ".join(text for _, text in segments)
+        language = detect_language(sample)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("Language pre-detection failed for %r", file.filename, exc_info=True)
+        language = "en"
+    finally:
+        tmp.close()
+        Path(tmp.name).unlink(missing_ok=True)
+
+    return DetectLanguageResponse(language=language).model_dump(by_alias=True)
 
 
 # ── #4 GET /books/:bookId/chapters ───────────────────────────────────────────

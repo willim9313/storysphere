@@ -20,6 +20,14 @@ export function uploadBook(
   return apiUpload<{ taskId: string }>('/books/upload', form, signal);
 }
 
+// #2b — Detect a file's language before upload is confirmed
+export function detectLanguage(file: File): Promise<{ language: string }> {
+  if (MOCK_ENABLED) return mock.detectLanguage(file);
+  const form = new FormData();
+  form.append('file', file);
+  return apiUpload<{ language: string }>('/books/detect-language', form);
+}
+
 // #8 — Poll task status
 export function fetchTaskStatus(taskId: string, after = 0): Promise<TaskStatus> {
   if (MOCK_ENABLED) return mock.fetchTaskStatus(taskId);

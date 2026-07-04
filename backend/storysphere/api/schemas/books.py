@@ -454,6 +454,12 @@ class TaskIdResponse(BaseModel):
     task_id: str
 
 
+class DetectLanguageResponse(BaseModel):
+    model_config = _CAMEL
+
+    language: str
+
+
 # ── Timeline ─────────────────────────────────────────────────────────────────
 
 
