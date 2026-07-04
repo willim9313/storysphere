@@ -88,13 +88,14 @@ interface Book {
 
 ### #2 POST /books/upload
 
-上傳 PDF 或 DOCX，觸發後端處理流程。
+上傳 PDF、DOCX 或 TXT，觸發後端處理流程。
 
 **Request**：`multipart/form-data`
 ```
-file    (PDF 或 DOCX 檔案，必填；最大 200 MB)
-title   (書名字串，選填；省略時自動取檔名 stem)
-author  (作者字串，選填)
+file      (PDF、DOCX 或 TXT 檔案，必填；最大 200 MB)
+title     (書名字串，選填；省略時自動取檔名 stem)
+author    (作者字串，選填)
+language  (ISO 639-1 語言代碼，選填；省略時由後端自動偵測，見 #2b)
 ```
 
 **Response 202**
@@ -107,7 +108,7 @@ author  (作者字串，選填)
 
 **Response 413**：檔案超過 200 MB
 
-**Response 422**：非 .pdf / .docx 格式
+**Response 422**：非 .pdf / .docx / .txt 格式
 
 **說明**：取得 taskId 後，前端 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。流程中可能出現 `awaiting_review` 狀態（章節審閱暫停），見 #8「特殊狀態」說明。
 
