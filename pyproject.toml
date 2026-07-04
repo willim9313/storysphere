@@ -62,6 +62,7 @@ dependencies = [
     "langfuse>=2.0.0",
     "langgraph-checkpoint-sqlite>=3.0.3",
     "charset-normalizer>=3.4.7",
+    "ebooklib>=0.20",
 ]
 
 [dependency-groups]

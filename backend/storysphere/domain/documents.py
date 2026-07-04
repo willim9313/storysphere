@@ -13,6 +13,7 @@ class FileType(str, Enum):
     PDF = "pdf"
     DOCX = "docx"
     TXT = "txt"
+    EPUB = "epub"
 
 
 class StepStatus(str, Enum):

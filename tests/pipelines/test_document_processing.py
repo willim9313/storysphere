@@ -200,6 +200,41 @@ class TestDetectChapters:
         chapters = detect_chapters(segments)
         assert chapters[0].role == ChapterRole.body
 
+    # ── styled_heading_roles (e.g. EPUB guide/landmarks) ──
+
+    def test_styled_heading_role_overrides_text_classification(self):
+        """An authoritative role (e.g. from an EPUB guide) wins even when the
+        heading text itself would classify differently (or not at all)."""
+        segments = [(0, "Some Custom Title"), (1, "Body text.")]
+        chapters = detect_chapters(
+            segments,
+            styled_heading_indices={0},
+            styled_heading_roles={0: ChapterRole.preface},
+        )
+        assert chapters[0].role == ChapterRole.preface
+
+    def test_styled_heading_role_only_applies_to_its_own_index(self):
+        """A role override for one heading must not leak to other chapters."""
+        segments = [(0, "目錄"), (1, "內容。"), (2, "第一章 開始"), (3, "故事。")]
+        chapters = detect_chapters(
+            segments,
+            styled_heading_indices={0, 2},
+            styled_heading_roles={0: ChapterRole.toc},
+        )
+        assert chapters[0].role == ChapterRole.toc
+        assert chapters[1].role == ChapterRole.body
+
+    def test_no_styled_heading_roles_falls_back_to_text_classification(self):
+        """Without an override, an unmapped heading (e.g. EPUB has no
+        official 'afterword' guide type) still classifies from its text."""
+        segments = [(0, "後記"), (1, "感謝各位讀者的支持。")]
+        chapters = detect_chapters(
+            segments,
+            styled_heading_indices={0},
+            styled_heading_roles={},
+        )
+        assert chapters[0].role == ChapterRole.afterword
+
 
 # ── _match_heading title extraction ─────────────────────────────────────────
 
@@ -416,6 +451,57 @@ class TestDocumentProcessingPipeline:
         pipeline = DocumentProcessingPipeline()
         doc = await pipeline.run(txt_file)
 
+        assert [c.role for c in doc.chapters] == [
+            ChapterRole.toc,
+            ChapterRole.preface,
+            ChapterRole.body,
+            ChapterRole.afterword,
+        ]
+
+    @pytest.mark.asyncio
+    async def test_epub_chapter_role_uses_guide_with_text_fallback(self, tmp_path):
+        """An EPUB's guide/landmarks authoritatively classify toc/preface;
+        a chapter the guide doesn't mention (後記) still gets classified
+        correctly via chapter_detector's text-based fallback."""
+        try:
+            from ebooklib import epub
+        except ImportError:
+            pytest.skip("ebooklib not installed")
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
+
+        book = epub.EpubBook()
+        book.set_identifier("test-e2e")
+        book.set_title("端對端測試小說")
+        book.set_language("zh")
+        book.add_author("測試作者")
+
+        c_toc = epub.EpubHtml(title="目錄", file_name="toc_page.xhtml", lang="zh")
+        c_toc.content = "<h1>目錄</h1><p>" + "這裡條列本書所有章節標題，" * 5 + "</p>"
+        c_preface = epub.EpubHtml(title="推薦序", file_name="preface.xhtml", lang="zh")
+        c_preface.content = "<h1>推薦序</h1><p>" + "這本書非常精彩值得一讀，" * 5 + "</p>"
+        c1 = epub.EpubHtml(title="第一章 開始", file_name="chap1.xhtml", lang="zh")
+        c1.content = "<h1>第一章 開始</h1><p>" + "故事開始了，風雨欲來，" * 5 + "</p>"
+        c_afterword = epub.EpubHtml(title="後記", file_name="afterword.xhtml", lang="zh")
+        c_afterword.content = "<h1>後記</h1><p>" + "感謝各位讀者的支持，感謝再感謝，" * 5 + "</p>"
+
+        for c in [c_toc, c_preface, c1, c_afterword]:
+            book.add_item(c)
+        book.toc = (c_toc, c_preface, c1, c_afterword)
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+        book.spine = ["nav", c_toc, c_preface, c1, c_afterword]
+        book.guide = [
+            {"type": "toc", "href": "toc_page.xhtml", "title": "目錄"},
+            {"type": "preface", "href": "preface.xhtml", "title": "推薦序"},
+        ]
+        epub_file = tmp_path / "novel.epub"
+        epub.write_epub(str(epub_file), book)
+
+        pipeline = DocumentProcessingPipeline()
+        doc = await pipeline.run(epub_file)
+
+        assert doc.title == "端對端測試小說"
+        assert doc.author == "測試作者"
         assert [c.role for c in doc.chapters] == [
             ChapterRole.toc,
             ChapterRole.preface,
@@ -713,6 +799,103 @@ class TestLoaderMeta:
 
         all_text = [text for _, text in segments]
         assert all_text.count("重複行") == 2
+
+    # ── load_epub ──
+
+    @staticmethod
+    def _make_epub(tmp_path, guide=None):
+        try:
+            from ebooklib import epub
+        except ImportError:
+            pytest.skip("ebooklib not installed")
+
+        book = epub.EpubBook()
+        book.set_identifier("test-epub")
+        book.set_title("測試小說")
+        book.set_language("zh")
+        book.add_author("測試作者")
+
+        c_toc = epub.EpubHtml(title="目錄", file_name="toc_page.xhtml", lang="zh")
+        c_toc.content = "<h1>目錄</h1><p>這裡條列本書所有章節標題。</p>"
+        c_preface = epub.EpubHtml(title="推薦序", file_name="preface.xhtml", lang="zh")
+        c_preface.content = "<h1>推薦序</h1><p>這本書非常精彩值得一讀。</p>"
+        c1 = epub.EpubHtml(title="第一章 開始", file_name="chap1.xhtml", lang="zh")
+        c1.content = "<h1>第一章 開始</h1><p>故事開始了。</p>"
+
+        for c in [c_toc, c_preface, c1]:
+            book.add_item(c)
+        book.toc = (c_toc, c_preface, c1)
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+        book.spine = ["nav", c_toc, c_preface, c1]
+        book.guide = guide if guide is not None else [
+            {"type": "toc", "href": "toc_page.xhtml", "title": "目錄"},
+            {"type": "preface", "href": "preface.xhtml", "title": "推薦序"},
+        ]
+
+        epub_file = tmp_path / "novel.epub"
+        epub.write_epub(str(epub_file), book)
+        return epub_file
+
+    def test_load_epub_extracts_metadata(self, tmp_path):
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path)
+        _, meta = load_epub(epub_file)
+
+        assert meta.title == "測試小說"
+        assert meta.author == "測試作者"
+
+    def test_load_epub_uses_guide_for_toc_and_preface_roles(self, tmp_path):
+        from storysphere.domain.documents import ChapterRole
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path)
+        segments, meta = load_epub(epub_file)
+
+        heading_texts_by_role = {
+            meta.heading_roles.get(idx): text
+            for idx, text in segments
+            if idx in meta.heading_indices
+        }
+        assert heading_texts_by_role[ChapterRole.toc] == "目錄"
+        assert heading_texts_by_role[ChapterRole.preface] == "推薦序"
+
+    def test_load_epub_body_chapter_has_no_guide_role(self, tmp_path):
+        """A chapter the guide doesn't mention gets no heading_roles entry —
+        chapter_detector's text-based fallback decides its role instead."""
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path)
+        segments, meta = load_epub(epub_file)
+
+        body_heading_idx = next(
+            idx for idx, text in segments if idx in meta.heading_indices and text == "第一章 開始"
+        )
+        assert body_heading_idx not in meta.heading_roles
+
+    def test_load_epub_skips_nav_document(self, tmp_path):
+        """The EPUB nav document itself must not become a chapter — its own
+        <h2> book-title heading should never appear in the segments."""
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path)
+        segments, _ = load_epub(epub_file)
+
+        all_text = [text for _, text in segments]
+        assert "測試小說" not in all_text  # nav.xhtml's own <h2> title
+        assert "目錄" in all_text  # real toc page content still present
+
+    def test_load_epub_no_guide_role_when_guide_empty(self, tmp_path):
+        """A well-formed EPUB with no guide/landmarks at all doesn't crash —
+        every chapter simply gets no authoritative role."""
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path, guide=[])
+        _, meta = load_epub(epub_file)
+
+        assert meta.heading_roles == {}
+        assert len(meta.heading_indices) == 3
 
 
 # ── DocumentProcessingPipeline: metadata propagation ────────────────────────

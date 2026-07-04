@@ -134,6 +134,7 @@ class ChapterSpan:
 def detect_chapters(
     segments: list[tuple[int, str]],
     styled_heading_indices: set[int] | None = None,
+    styled_heading_roles: dict[int, ChapterRole] | None = None,
 ) -> list[ChapterSpan]:
     """Split raw segments into chapters using heuristic patterns.
 
@@ -150,9 +151,15 @@ def detect_chapters(
     Args:
         segments: (index, text) pairs as returned by the loaders.
         styled_heading_indices: Indices the source format already marked as
-            a heading via its own structure (e.g. DOCX "Heading N" styles).
-            These are trusted over the regex patterns, which only run as a
-            fallback for segments without such a signal.
+            a heading via its own structure (e.g. DOCX "Heading N" styles,
+            EPUB spine boundaries). These are trusted over the regex
+            patterns, which only run as a fallback for segments without
+            such a signal.
+        styled_heading_roles: Authoritative ``ChapterRole`` for specific
+            heading indices (e.g. from an EPUB's guide/landmarks metadata).
+            When an index has an entry here, it overrides whatever role
+            ``_classify_chapter_role`` would have guessed from the heading
+            text — no guessing needed when the source format already knows.
 
     Returns:
         Ordered list of ``ChapterSpan`` objects with 1-indexed numbers.
@@ -161,6 +168,7 @@ def detect_chapters(
         return []
 
     styled_heading_indices = styled_heading_indices or set()
+    styled_heading_roles = styled_heading_roles or {}
     chapters: list[ChapterSpan] = []
     current: ChapterSpan | None = None
     chapter_counter = 0
@@ -171,6 +179,8 @@ def detect_chapters(
         if idx in styled_heading_indices:
             is_heading = True
             _, title, role = _match_heading(stripped)
+            if idx in styled_heading_roles:
+                role = styled_heading_roles[idx]
             if title is None and not any(pat.match(stripped) for pat in _HEADING_NO_TITLE):
                 # A styled heading whose text isn't a bare chapter-number
                 # label (e.g. "楔子") — trust the whole line as the title.

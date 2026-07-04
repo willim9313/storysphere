@@ -10,26 +10,34 @@ import logging
 import re
 from pathlib import Path
 
+from storysphere.domain.documents import ChapterRole
+
 logger = logging.getLogger(__name__)
 
 
 class DocumentMeta:
     """Metadata extracted from a document file (best-effort)."""
 
-    __slots__ = ("title", "author", "heading_indices")
+    __slots__ = ("title", "author", "heading_indices", "heading_roles")
 
     def __init__(
         self,
         title: str | None = None,
         author: str | None = None,
         heading_indices: set[int] | None = None,
+        heading_roles: dict[int, ChapterRole] | None = None,
     ) -> None:
         self.title = title
         self.author = author
         # Segment indices that the source format marked as a heading via its
-        # own structure (e.g. DOCX "Heading N" paragraph styles) rather than
-        # by text pattern — lets chapter_detector trust these over regex.
+        # own structure (e.g. DOCX "Heading N" paragraph styles, EPUB spine
+        # boundaries) rather than by text pattern — lets chapter_detector
+        # trust these over regex.
         self.heading_indices: set[int] = heading_indices if heading_indices is not None else set()
+        # Authoritative ChapterRole for specific heading indices, when the
+        # source format itself knows (e.g. an EPUB guide/landmark marking a
+        # page as "toc" or "preface") — no text-based guessing needed.
+        self.heading_roles: dict[int, ChapterRole] = heading_roles if heading_roles is not None else {}
 
 
 _MAX_HEADER_FOOTER_LEN = 80
@@ -227,3 +235,98 @@ def load_txt(
         "Loaded TXT '%s': %d non-empty lines", file_path.name, len(segments)
     )
     return segments, DocumentMeta()
+
+
+# EPUB guide/landmark types with a clear match to an existing ChapterRole.
+# There is no official "afterword" guide type — chapters without a guide
+# mapping stay ChapterRole.body and fall back to chapter_detector's own
+# text-based classification (e.g. matching a "後記"/"跋" heading).
+_EPUB_GUIDE_TYPE_TO_ROLE: dict[str, ChapterRole] = {
+    "toc": ChapterRole.toc,
+    "preface": ChapterRole.preface,
+    "foreword": ChapterRole.preface,
+    "introduction": ChapterRole.preface,
+}
+
+_BLOCK_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6", "p", "blockquote", "li"}
+
+
+def load_epub(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
+    """Extract raw text and metadata from an EPUB.
+
+    Unlike PDF/DOCX/TXT, EPUB carries real structural metadata: the spine
+    gives the authoritative reading order (one XHTML item is normally one
+    chapter), and the guide/landmarks (EPUB2 ``<guide>`` or EPUB3 nav
+    landmarks — ``ebooklib`` normalizes both into ``book.guide``) can mark
+    a page as table-of-contents/preface/etc. This is used to set
+    ``heading_indices``/``heading_roles`` instead of guessing from text.
+
+    Returns:
+        Tuple of (segments, meta) where segments is a list of
+        (index, text) pairs in spine order and meta contains any
+        author/title from Dublin Core metadata, plus heading indices/roles
+        derived from the spine and guide.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file is not an EPUB or cannot be parsed.
+    """
+    try:
+        from ebooklib import epub  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError("ebooklib is required for EPUB loading: pip install ebooklib") from exc
+    from lxml import html as lhtml  # noqa: PLC0415
+
+    if not file_path.exists():
+        raise FileNotFoundError(f"EPUB not found: {file_path}")
+    if file_path.suffix.lower() != ".epub":
+        raise ValueError(f"Expected .epub extension, got: {file_path.suffix}")
+
+    try:
+        book = epub.read_epub(str(file_path))
+    except Exception as exc:
+        raise ValueError(f"Could not parse EPUB: {exc}") from exc
+
+    def _dc(field: str) -> str | None:
+        values = book.get_metadata("DC", field)
+        return (values[0][0].strip() if values and values[0][0] else None) or None
+
+    meta = DocumentMeta(title=_dc("title"), author=_dc("creator"))
+    guide_role_by_href = {
+        g["href"].split("#")[0]: role
+        for g in book.guide
+        if (role := _EPUB_GUIDE_TYPE_TO_ROLE.get(g["type"])) is not None
+    }
+
+    segments: list[tuple[int, str]] = []
+    seg_idx = 0
+    for item_id, _linear in book.spine:
+        item = book.get_item_with_id(item_id)
+        if item is None or not hasattr(item, "is_chapter") or not item.is_chapter():
+            continue  # skips the nav document and any non-XHTML spine entry
+
+        tree = lhtml.fromstring(item.get_content())
+        lines = [
+            text
+            for el in tree.iter()
+            if el.tag in _BLOCK_TAGS and (text := el.text_content().strip())
+        ]
+        if not lines:
+            continue
+
+        meta.heading_indices.add(seg_idx)
+        role = guide_role_by_href.get(item.get_name())
+        if role is not None:
+            meta.heading_roles[seg_idx] = role
+
+        for line in lines:
+            segments.append((seg_idx, line))
+            seg_idx += 1
+
+    logger.info(
+        "Loaded EPUB '%s': %d spine items, %d non-empty lines",
+        file_path.name,
+        len(book.spine),
+        len(segments),
+    )
+    return segments, meta

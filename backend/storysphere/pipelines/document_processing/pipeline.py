@@ -13,7 +13,7 @@ from storysphere.pipelines.base import BasePipeline
 
 from .chapter_detector import detect_chapters
 from .chunker import chunk_segments
-from .loader import DocumentMeta, load_docx, load_pdf, load_txt
+from .loader import DocumentMeta, load_docx, load_epub, load_pdf, load_txt
 
 logger = logging.getLogger(__name__)
 
@@ -81,12 +81,18 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
             file_type = FileType.PDF
         elif _suffix == ".docx":
             file_type = FileType.DOCX
+        elif _suffix == ".epub":
+            file_type = FileType.EPUB
         else:
             file_type = FileType.TXT
         self._log_step("load_done", segments=len(segments), file_type=file_type)
 
         # Step 2: detect chapters
-        spans = detect_chapters(segments, styled_heading_indices=file_meta.heading_indices)
+        spans = detect_chapters(
+            segments,
+            styled_heading_indices=file_meta.heading_indices,
+            styled_heading_roles=file_meta.heading_roles,
+        )
         if not spans:
             logger.warning("No chapters detected in '%s'", file_path.name)
 
@@ -180,6 +186,8 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
             return load_docx(file_path)
         if suffix == ".txt":
             return load_txt(file_path)
+        if suffix == ".epub":
+            return load_epub(file_path)
         raise ValueError(
-            f"Unsupported file type: '{suffix}'. Supported: .pdf, .docx, .txt"
+            f"Unsupported file type: '{suffix}'. Supported: .pdf, .docx, .txt, .epub"
         )
