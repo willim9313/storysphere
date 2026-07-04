@@ -99,10 +99,13 @@ def _apply_role_overrides(doc: Document, role_overrides: dict[str, str]) -> None
 def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
     """Reconstruct Chapter objects from a reviewed chapter list.
 
-    *reviewed* is the list of ``{"title": str, "start_paragraph_index": int}``
-    dicts submitted via POST /review.  Paragraphs are re-assigned to new
-    chapters based on the ``start_paragraph_index`` boundaries.
+    *reviewed* is the list of ``{"title": str, "role": str,
+    "start_paragraph_index": int}`` dicts submitted via POST /review.
+    Paragraphs are re-assigned to new chapters based on the
+    ``start_paragraph_index`` boundaries.
     """
+    from storysphere.domain.documents import ChapterRole  # noqa: PLC0415
+
     all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
     new_chapters: list[Chapter] = []
 
@@ -111,12 +114,16 @@ def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
         title = rc.get("title") or None
         start = rc["start_paragraph_index"]
         end = reviewed[i + 1]["start_paragraph_index"] if i + 1 < len(reviewed) else len(all_paras)
+        try:
+            role = ChapterRole(rc.get("role", "body"))
+        except ValueError:
+            role = ChapterRole.body
 
         ch_paras = [
             p.model_copy(update={"chapter_number": ch_num, "position": pos})
             for pos, p in enumerate(all_paras[start:end])
         ]
-        new_chapters.append(Chapter(number=ch_num, title=title, paragraphs=ch_paras))
+        new_chapters.append(Chapter(number=ch_num, title=title, role=role, paragraphs=ch_paras))
 
     return new_chapters
 

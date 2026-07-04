@@ -241,6 +241,34 @@ class TestRebuildChapters:
         result = _rebuild_chapters(doc, reviewed)
         assert result[0].title is None
 
+    def test_role_applied_from_reviewed_data(self):
+        from storysphere.domain.documents import ChapterRole
+        from storysphere.workflows.ingestion import _rebuild_chapters
+        doc = self._make_doc()
+        reviewed = [
+            {"title": "目錄", "role": "toc", "start_paragraph_index": 0},
+            {"title": "Ch2", "role": "body", "start_paragraph_index": 3},
+        ]
+        result = _rebuild_chapters(doc, reviewed)
+        assert result[0].role == ChapterRole.toc
+        assert result[1].role == ChapterRole.body
+
+    def test_role_defaults_to_body_when_omitted(self):
+        from storysphere.domain.documents import ChapterRole
+        from storysphere.workflows.ingestion import _rebuild_chapters
+        doc = self._make_doc()
+        reviewed = [{"title": "Ch1", "start_paragraph_index": 0}]
+        result = _rebuild_chapters(doc, reviewed)
+        assert result[0].role == ChapterRole.body
+
+    def test_invalid_role_falls_back_to_body(self):
+        from storysphere.domain.documents import ChapterRole
+        from storysphere.workflows.ingestion import _rebuild_chapters
+        doc = self._make_doc()
+        reviewed = [{"title": "Ch1", "role": "not-a-real-role", "start_paragraph_index": 0}]
+        result = _rebuild_chapters(doc, reviewed)
+        assert result[0].role == ChapterRole.body
+
 
 # ── GET /review-data: role field ──────────────────────────────────────────────
 
@@ -372,6 +400,41 @@ class TestReviewDataRoleField:
         assert roles[0] == "body"
         assert roles[1] == "separator"
 
+    def test_chapter_level_role_returned(self, client, mock_doc):
+        """ReviewChapterResponse.role reflects the chapter's classification,
+        not just each paragraph's role."""
+        from storysphere.domain.documents import Chapter, ChapterRole, Document, FileType, Paragraph
+        import uuid as _uuid
+        from storysphere.api.store import task_store
+
+        doc_id = f"doc-chrole-{_uuid.uuid4()}"
+        doc = Document(
+            id=doc_id,
+            title="T",
+            file_path="/tmp/t.pdf",
+            file_type=FileType.PDF,
+            chapters=[
+                Chapter(
+                    number=1,
+                    title="目錄",
+                    role=ChapterRole.toc,
+                    paragraphs=[Paragraph(id="p0", text="內容。", chapter_number=1, position=0)],
+                ),
+            ],
+        )
+
+        async def _get_doc(did):
+            return doc if did == doc_id else None
+        mock_doc.get_document.side_effect = _get_doc
+
+        task_id = f"task-chrole-{_uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, doc_id)
+
+        resp = client.get(f"/api/v1/books/{doc_id}/review-data")
+        assert resp.status_code == 200
+        assert resp.json()["chapters"][0]["role"] == "toc"
+
 
 # ── POST /review: roleOverrides ───────────────────────────────────────────────
 
@@ -438,3 +501,18 @@ class TestSubmitReviewRoleOverrides:
         _, resume_value = mock_resume.call_args[0]
         assert isinstance(resume_value, dict)
         assert resume_value["role_overrides"] == {"0": "preamble", "1": "separator"}
+
+    def test_chapter_role_forwarded_in_resume_value(self, client):
+        """A chapter-level role submitted via POST /review reaches the graph
+        resume payload, so _rebuild_chapters can apply it."""
+        book_id, _ = self._setup_awaiting()
+        payload = {
+            "chapters": [{"title": "目錄", "role": "toc", "startParagraphIndex": 0}],
+        }
+
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+
+        assert resp.status_code == 204
+        _, resume_value = mock_resume.call_args[0]
+        assert resume_value["chapters"][0]["role"] == "toc"

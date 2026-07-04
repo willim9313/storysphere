@@ -183,6 +183,10 @@ export interface paths {
         /**
          * List Chapters
          * @description List chapters for a book.
+         *
+         *     Non-body chapters (table of contents, prefaces, afterwords) are front/
+         *     back matter, not part of the reading flow — they're excluded here even
+         *     though they remain stored (e.g. for a future cross-book lookup).
          */
         get: operations["list_chapters_api_v1_books__book_id__chapters_get"];
         put?: never;
@@ -3258,6 +3262,11 @@ export interface components {
              * @default
              */
             title: string;
+            /**
+             * Role
+             * @default body
+             */
+            role: string;
             /** Startparagraphindex */
             startParagraphIndex: number;
         };
@@ -3267,6 +3276,11 @@ export interface components {
             chapterIdx: number;
             /** Title */
             title?: string | null;
+            /**
+             * Role
+             * @default body
+             */
+            role: string;
             /** Paragraphs */
             paragraphs: components["schemas"]["ReviewParagraphResponse"][];
         };

@@ -78,6 +78,7 @@ class ReviewChapterResponse(BaseModel):
 
     chapter_idx: int
     title: str | None = None
+    role: str = "body"
     paragraphs: list[ReviewParagraphResponse]
 
 
@@ -91,6 +92,7 @@ class ReviewChapterInput(BaseModel):
     model_config = _CAMEL
 
     title: str = ""
+    role: str = "body"
     start_paragraph_index: int
 
 

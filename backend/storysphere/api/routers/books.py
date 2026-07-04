@@ -81,7 +81,7 @@ from storysphere.api.schemas.books import (
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
 from storysphere.core.language_detection import detect_language
-from storysphere.domain.documents import ParagraphEntity, PipelineStatus, StepStatus
+from storysphere.domain.documents import ChapterRole, ParagraphEntity, PipelineStatus, StepStatus
 from storysphere.pipelines.document_processing import DocumentProcessingPipeline
 from storysphere.services.analysis_cache import AnalysisCache
 
@@ -500,6 +500,7 @@ async def get_review_data(
             ReviewChapterResponse(
                 chapter_idx=ch_idx,
                 title=chapter.title,
+                role=chapter.role.value,
                 paragraphs=paras,
             )
         )
@@ -645,15 +646,22 @@ async def detect_language_from_upload(file: UploadFile) -> dict:
 async def list_chapters(
     book_id: str, doc: DocServiceDep, kg: KGServiceDep
 ) -> list[dict]:
-    """List chapters for a book."""
+    """List chapters for a book.
+
+    Non-body chapters (table of contents, prefaces, afterwords) are front/
+    back matter, not part of the reading flow — they're excluded here even
+    though they remain stored (e.g. for a future cross-book lookup).
+    """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    body_chapters = [ch for ch in document.chapters if ch.role == ChapterRole.body]
+
     # Check if stored entities are available (new data)
     has_stored = any(
         p.entities is not None
-        for ch in document.chapters
+        for ch in body_chapters
         for p in ch.paragraphs
     )
 
@@ -663,7 +671,7 @@ async def list_chapters(
         all_entities = await kg.list_entities(document_id=book_id)
 
     results: list[dict] = []
-    for ch in document.chapters:
+    for ch in body_chapters:
         if has_stored:
             # Aggregate unique entities from stored paragraph data
             seen_ids: dict[str, ParagraphEntity] = {}

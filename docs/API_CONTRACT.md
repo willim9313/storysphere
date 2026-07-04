@@ -168,7 +168,7 @@ interface BookDetail extends Book {
 
 ### #4 GET /books/:bookId/chapters
 
-章節列表。
+章節列表。只回傳 `role` 為 `body` 的章節——目錄、序、跋等非正文章節屬於前後附加內容，不算閱讀流程的一部分，會被排除（但仍保留在資料庫中，供未來跨書籍查閱功能使用）。
 
 **Response 200**
 ```ts
@@ -1798,10 +1798,11 @@ interface ChapterDistribution {
   chapters: Array<{
     chapterIdx: number;
     title: string | null;
+    role: string;             // chapter-level: "body" | "toc" | "preface" | "afterword" | "other"
     paragraphs: Array<{
       paragraphIndex: number;  // book-level global index
       text: string;
-      role: string;            // "body" | "separator" | "section" | "epigraph" | "preamble"
+      role: string;            // paragraph-level: "body" | "separator" | "section" | "epigraph" | "preamble"
       titleSpan: [number, number] | null;  // char offsets of heading within text
       sentences: string[];
     }>;
@@ -1820,9 +1821,10 @@ interface ChapterDistribution {
 {
   chapters: Array<{
     title: string;
+    role: string;  // chapter-level classification; 省略時預設 "body"
     startParagraphIndex: number;  // book-level global index
   }>;
-  roleOverrides: Record<string, string>;  // str(globalParagraphIdx) → role value; omitted = {}
+  roleOverrides: Record<string, string>;  // str(globalParagraphIdx) → 段落層級 role value; omitted = {}
 }
 ```
 
