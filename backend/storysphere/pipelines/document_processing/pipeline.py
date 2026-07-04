@@ -86,7 +86,7 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
         self._log_step("load_done", segments=len(segments), file_type=file_type)
 
         # Step 2: detect chapters
-        spans = detect_chapters(segments)
+        spans = detect_chapters(segments, styled_heading_indices=file_meta.heading_indices)
         if not spans:
             logger.warning("No chapters detected in '%s'", file_path.name)
 

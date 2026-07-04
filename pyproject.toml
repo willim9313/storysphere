@@ -61,6 +61,7 @@ dependencies = [
     "json-repair>=0.58.6",
     "langfuse>=2.0.0",
     "langgraph-checkpoint-sqlite>=3.0.3",
+    "charset-normalizer>=3.4.7",
 ]
 
 [dependency-groups]

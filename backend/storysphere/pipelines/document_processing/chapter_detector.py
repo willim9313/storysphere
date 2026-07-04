@@ -94,7 +94,10 @@ class ChapterSpan:
     segments: list[tuple[int, str]] = field(default_factory=list)
 
 
-def detect_chapters(segments: list[tuple[int, str]]) -> list[ChapterSpan]:
+def detect_chapters(
+    segments: list[tuple[int, str]],
+    styled_heading_indices: set[int] | None = None,
+) -> list[ChapterSpan]:
     """Split raw segments into chapters using heuristic patterns.
 
     Title extraction:
@@ -109,6 +112,10 @@ def detect_chapters(segments: list[tuple[int, str]]) -> list[ChapterSpan]:
 
     Args:
         segments: (index, text) pairs as returned by the loaders.
+        styled_heading_indices: Indices the source format already marked as
+            a heading via its own structure (e.g. DOCX "Heading N" styles).
+            These are trusted over the regex patterns, which only run as a
+            fallback for segments without such a signal.
 
     Returns:
         Ordered list of ``ChapterSpan`` objects with 1-indexed numbers.
@@ -116,6 +123,7 @@ def detect_chapters(segments: list[tuple[int, str]]) -> list[ChapterSpan]:
     if not segments:
         return []
 
+    styled_heading_indices = styled_heading_indices or set()
     chapters: list[ChapterSpan] = []
     current: ChapterSpan | None = None
     chapter_counter = 0
@@ -123,7 +131,15 @@ def detect_chapters(segments: list[tuple[int, str]]) -> list[ChapterSpan]:
 
     for idx, text in segments:
         stripped = text.strip()
-        is_heading, title = _match_heading(stripped)
+        if idx in styled_heading_indices:
+            is_heading = True
+            _, title = _match_heading(stripped)
+            if title is None and not any(pat.match(stripped) for pat in _HEADING_NO_TITLE):
+                # A styled heading whose text isn't a bare chapter-number
+                # label (e.g. "楔子") — trust the whole line as the title.
+                title = stripped or None
+        else:
+            is_heading, title = _match_heading(stripped)
 
         if is_heading:
             if current is not None:

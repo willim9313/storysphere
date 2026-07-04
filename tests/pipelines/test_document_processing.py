@@ -118,6 +118,51 @@ class TestDetectChapters:
             chapters = detect_chapters(segments)
             assert len(chapters) == 1, f"Failed for: {heading}"
 
+    # ── styled_heading_indices (DOCX "Heading N" style priority) ──
+
+    def test_styled_heading_with_no_regex_match_becomes_titled_chapter(self):
+        """A styled heading whose text matches no regex (e.g. '楔子') still
+        starts a new chapter, using the whole line as the title."""
+        segments = [(0, "楔子"), (1, "很久很久以前。"), (2, "正文"), (3, "故事開始了。")]
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert len(chapters) == 1
+        assert chapters[0].title == "楔子"
+        assert chapters[0].segments == [(1, "很久很久以前。"), (2, "正文"), (3, "故事開始了。")]
+
+    def test_styled_heading_overrides_regex_for_untitled_body_line(self):
+        """A plain body line with no chapter-heading shape still becomes a
+        chapter boundary when the source format flags it as a heading style."""
+        segments = [(0, "Some Custom Title"), (1, "Body text.")]
+        # Without the style hint this line matches no heading pattern at all.
+        assert len(detect_chapters(segments)) == 1
+        assert detect_chapters(segments)[0].title is None
+
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert len(chapters) == 1
+        assert chapters[0].title == "Some Custom Title"
+
+    def test_styled_heading_with_inline_separator_title_still_extracted(self):
+        """Regex-extractable titles still win over the raw-line fallback."""
+        segments = [(0, "Chapter 3 - The Return"), (1, "Content.")]
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert len(chapters) == 1
+        assert chapters[0].title == "The Return"
+
+    def test_styled_heading_bare_number_still_peeks_next_line_for_title(self):
+        """A styled heading that IS a bare chapter-number label keeps the
+        existing inline-title-peek behavior instead of using itself as title."""
+        segments = [(0, "Chapter 1"), (1, "The Awakening"), (2, "Body text.")]
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert len(chapters) == 1
+        assert chapters[0].title == "The Awakening"
+        assert chapters[0].segments == [(2, "Body text.")]
+
+    def test_no_styled_heading_indices_matches_default_behavior(self):
+        """Passing None/empty behaves identically to omitting the argument."""
+        segments = [(0, "Chapter 1"), (1, "Text.")]
+        assert detect_chapters(segments) == detect_chapters(segments, styled_heading_indices=None)
+        assert detect_chapters(segments) == detect_chapters(segments, styled_heading_indices=set())
+
 
 # ── _match_heading title extraction ─────────────────────────────────────────
 
@@ -412,6 +457,178 @@ class TestLoaderMeta:
         # python-docx defaults: author may be system username, title is empty
         assert meta.title is None
 
+    def test_load_txt_detects_big5_encoding(self, tmp_path):
+        """load_txt auto-detects Big5-encoded Traditional Chinese text."""
+        from storysphere.pipelines.document_processing.loader import load_txt
+
+        txt_file = tmp_path / "novel_big5.txt"
+        txt_file.write_bytes("第一章 你好，世界！這是繁體中文測試。".encode("big5"))
+
+        segments, _ = load_txt(txt_file)
+
+        assert len(segments) > 0
+        assert "你好" in segments[0][1]
+
+    def test_load_txt_detects_gbk_encoding(self, tmp_path):
+        """load_txt auto-detects GBK-encoded Simplified Chinese text."""
+        from storysphere.pipelines.document_processing.loader import load_txt
+
+        txt_file = tmp_path / "novel_gbk.txt"
+        txt_file.write_bytes("第一章 你好，世界！这是简体中文测试。".encode("gbk"))
+
+        segments, _ = load_txt(txt_file)
+
+        assert len(segments) > 0
+        assert "你好" in segments[0][1]
+
+    def test_load_txt_reads_utf8_as_before(self, tmp_path):
+        """load_txt still reads plain UTF-8 text correctly without an explicit encoding."""
+        from storysphere.pipelines.document_processing.loader import load_txt
+
+        txt_file = tmp_path / "novel_utf8.txt"
+        txt_file.write_text("Chapter 1\nIt was a dark and stormy night.", encoding="utf-8")
+
+        segments, _ = load_txt(txt_file)
+
+        assert segments[0][1] == "Chapter 1"
+        assert segments[1][1] == "It was a dark and stormy night."
+
+    def test_load_txt_explicit_encoding_still_supported(self, tmp_path):
+        """Passing an explicit encoding bypasses auto-detection, matching prior behavior."""
+        from storysphere.pipelines.document_processing.loader import load_txt
+
+        txt_file = tmp_path / "novel_explicit.txt"
+        txt_file.write_text("Hello", encoding="utf-16")
+
+        segments, _ = load_txt(txt_file, encoding="utf-16")
+
+        assert segments[0][1] == "Hello"
+
+    def test_load_docx_records_heading_style_indices(self, tmp_path):
+        """load_docx flags paragraph indices using a built-in Heading style."""
+        try:
+            import docx as docx_lib
+        except ImportError:
+            pytest.skip("python-docx not installed")
+
+        doc_file = tmp_path / "styled.docx"
+        wdoc = docx_lib.Document()
+        wdoc.add_heading("楔子", level=1)
+        wdoc.add_paragraph("很久很久以前。")
+        wdoc.add_heading("第一章 開始", level=1)
+        wdoc.add_paragraph("故事開始了。")
+        wdoc.save(str(doc_file))
+
+        from storysphere.pipelines.document_processing.loader import load_docx
+
+        segments, meta = load_docx(doc_file)
+
+        heading_texts = {text for idx, text in segments if idx in meta.heading_indices}
+        assert heading_texts == {"楔子", "第一章 開始"}
+
+    def test_load_docx_no_headings_gives_empty_indices(self, tmp_path):
+        """A DOCX with only "Normal"-style paragraphs flags no heading indices."""
+        try:
+            import docx as docx_lib
+        except ImportError:
+            pytest.skip("python-docx not installed")
+
+        doc_file = tmp_path / "plain.docx"
+        wdoc = docx_lib.Document()
+        wdoc.add_paragraph("Just a plain paragraph.")
+        wdoc.save(str(doc_file))
+
+        from storysphere.pipelines.document_processing.loader import load_docx
+
+        _, meta = load_docx(doc_file)
+
+        assert meta.heading_indices == set()
+
+    def test_load_pdf_strips_repeated_running_header(self, tmp_path):
+        """A line repeated at the top of most pages is filtered as a running header."""
+        from storysphere.pipelines.document_processing.loader import load_pdf
+
+        fake_pdf = tmp_path / "novel.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        page_texts = [
+            "書名：測試小說\n正文第一段內容。\n1",
+            "書名：測試小說\n正文第二段內容。\n2",
+            "書名：測試小說\n正文第三段內容。\n3",
+            "書名：測試小說\n正文第四段內容。\n4",
+        ]
+        mock_pages = []
+        for text in page_texts:
+            page = MagicMock()
+            page.extract_text.return_value = text
+            mock_pages.append(page)
+
+        mock_reader = MagicMock()
+        mock_reader.metadata = {}
+        mock_reader.pages = mock_pages
+
+        with patch("pypdf.PdfReader", return_value=mock_reader):
+            segments, _ = load_pdf(fake_pdf)
+
+        all_text = [text for _, text in segments]
+        assert "書名：測試小說" not in all_text
+        assert "正文第一段內容。" in all_text
+        assert "正文第四段內容。" in all_text
+
+    def test_load_pdf_keeps_boundary_line_seen_on_few_pages(self, tmp_path):
+        """A boundary line that only repeats on a couple of pages is kept —
+        the recurrence threshold avoids false positives."""
+        from storysphere.pipelines.document_processing.loader import load_pdf
+
+        fake_pdf = tmp_path / "novel.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        page_texts = [
+            "特殊標語\n正文第一段內容。",
+            "正文第二段內容。\n特殊標語",
+            "正文第三段內容。\n正文第四段內容。",
+        ]
+        mock_pages = []
+        for text in page_texts:
+            page = MagicMock()
+            page.extract_text.return_value = text
+            mock_pages.append(page)
+
+        mock_reader = MagicMock()
+        mock_reader.metadata = {}
+        mock_reader.pages = mock_pages
+
+        with patch("pypdf.PdfReader", return_value=mock_reader):
+            segments, _ = load_pdf(fake_pdf)
+
+        all_text = [text for _, text in segments]
+        assert "特殊標語" in all_text
+
+    def test_load_pdf_few_pages_skips_header_footer_filtering(self, tmp_path):
+        """Documents with under 3 pages never trigger the noise filter,
+        matching the existing single-page metadata tests' expectations."""
+        from storysphere.pipelines.document_processing.loader import load_pdf
+
+        fake_pdf = tmp_path / "novel.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        page_texts = ["重複行\n正文一。", "重複行\n正文二。"]
+        mock_pages = []
+        for text in page_texts:
+            page = MagicMock()
+            page.extract_text.return_value = text
+            mock_pages.append(page)
+
+        mock_reader = MagicMock()
+        mock_reader.metadata = {}
+        mock_reader.pages = mock_pages
+
+        with patch("pypdf.PdfReader", return_value=mock_reader):
+            segments, _ = load_pdf(fake_pdf)
+
+        all_text = [text for _, text in segments]
+        assert all_text.count("重複行") == 2
+
 
 # ── DocumentProcessingPipeline: metadata propagation ────────────────────────
 
@@ -481,3 +698,4 @@ class TestDocumentProcessingPipelineMeta:
             result = await pipeline.run(fake_pdf)
 
         assert result.author is None
+

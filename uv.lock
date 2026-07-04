@@ -3459,6 +3459,7 @@ source = { editable = "." }
 dependencies = [
     { name = "aiosqlite" },
     { name = "anthropic" },
+    { name = "charset-normalizer" },
     { name = "fastapi" },
     { name = "google-generativeai" },
     { name = "greenlet" },
@@ -3509,6 +3510,7 @@ dev = [
 requires-dist = [
     { name = "aiosqlite", specifier = ">=0.19" },
     { name = "anthropic", specifier = ">=0.40" },
+    { name = "charset-normalizer", specifier = ">=3.4.7" },
     { name = "fastapi", specifier = ">=0.110" },
     { name = "google-generativeai", specifier = ">=0.8.0" },
     { name = "greenlet", specifier = ">=3.0" },
