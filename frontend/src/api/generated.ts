@@ -4061,6 +4061,16 @@ export interface components {
             /** Edges */
             edges: components["schemas"]["EdgeData"][];
         };
+        /** UploadResponse */
+        UploadResponse: {
+            /** Taskid */
+            taskId: string;
+            /**
+             * Duplicatetitle
+             * @default false
+             */
+            duplicateTitle: boolean;
+        };
         /** ValidationError */
         ValidationError: {
             /** Location */
@@ -4380,7 +4390,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskIdResponse"];
+                    "application/json": components["schemas"]["UploadResponse"];
                 };
             };
             /** @description Validation Error */

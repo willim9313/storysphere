@@ -76,6 +76,7 @@ from storysphere.api.schemas.books import (
     TimelineResponse,
     TopEntity,
     UnanalyzedEntity,
+    UploadResponse,
     VoiceProfileResponse,
 )
 from storysphere.api.store import task_store
@@ -546,9 +547,10 @@ async def submit_review(
 # ── #2 POST /books/upload ────────────────────────────────────────────────────
 
 
-@router.post("/upload", response_model=TaskIdResponse, status_code=202)
+@router.post("/upload", response_model=UploadResponse, status_code=202)
 async def upload_book(
     file: UploadFile,
+    doc: DocServiceDep,
     title: Annotated[str | None, Form()] = None,
     author: Annotated[str | None, Form()] = None,
     language: Annotated[str | None, Form()] = None,
@@ -565,6 +567,10 @@ async def upload_book(
     title = (title.strip() if title and title.strip() else None) or Path(file.filename or "Untitled").stem
     author = author.strip() if author and author.strip() else None
     language = language.strip() or None if language else None
+
+    # Duplicate titles are only a warning — the user may be uploading a
+    # different edition/translation, or intentionally re-uploading a fix.
+    duplicate_title = await doc.title_exists(title)
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
@@ -592,7 +598,7 @@ async def upload_book(
     task = asyncio.create_task(_run_ingestion_graph(task_id, Path(tmp.name), title, author, language))
     task_registry.register(task_id, task)
 
-    return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+    return UploadResponse(task_id=task_id, duplicate_title=duplicate_title).model_dump(by_alias=True)
 
 
 # ── POST /books/detect-language ──────────────────────────────────────────────

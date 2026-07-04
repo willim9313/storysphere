@@ -10,14 +10,14 @@ export function uploadBook(
   author?: string,
   language?: string,
   signal?: AbortSignal,
-): Promise<{ taskId: string }> {
+): Promise<{ taskId: string; duplicateTitle: boolean }> {
   if (MOCK_ENABLED) return mock.uploadBook(file);
   const form = new FormData();
   form.append('file', file);
   form.append('title', title);
   if (author) form.append('author', author);
   if (language) form.append('language', language);
-  return apiUpload<{ taskId: string }>('/books/upload', form, signal);
+  return apiUpload<{ taskId: string; duplicateTitle: boolean }>('/books/upload', form, signal);
 }
 
 // #2b — Detect a file's language before upload is confirmed

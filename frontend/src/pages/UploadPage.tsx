@@ -13,6 +13,7 @@ interface UploadTask {
   taskId: string;
   fileName: string;
   title: string;
+  duplicateTitle?: boolean;
 }
 
 interface ErroredTask {
@@ -94,7 +95,10 @@ export default function UploadPage() {
     mutationFn: ({ file, title, author, language, signal }: { file: File; title: string; author?: string; language?: string; signal: AbortSignal }) =>
       uploadBook(file, title, author, language, signal),
     onSuccess: (data, { file, title }) => {
-      setTasks((prev) => [...prev, { taskId: data.taskId, fileName: file.name, title }]);
+      setTasks((prev) => [
+        ...prev,
+        { taskId: data.taskId, fileName: file.name, title, duplicateTitle: data.duplicateTitle },
+      ]);
       setPending(null);
     },
     onError: (err: Error) => {
@@ -398,6 +402,14 @@ export default function UploadPage() {
           <div className="space-y-4">
             {tasks.map((task) => (
               <div key={task.taskId} id={task.taskId}>
+                {task.duplicateTitle && (
+                  <p
+                    className="text-xs mb-1.5 px-2 py-1 rounded-md"
+                    style={{ color: 'var(--color-warning)', backgroundColor: 'var(--color-warning-bg)' }}
+                  >
+                    {t('duplicateTitleWarning', { title: task.title })}
+                  </p>
+                )}
                 <ProcessingCard task={task} onDone={handleTaskDone} onError={handleTaskError} />
               </div>
             ))}

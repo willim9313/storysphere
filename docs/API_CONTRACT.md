@@ -99,7 +99,10 @@ author  (作者字串，選填)
 
 **Response 202**
 ```ts
-{ taskId: string }
+{
+  taskId: string;
+  duplicateTitle: boolean;  // true 表示已有同名書籍（不分大小寫）；僅警告，不阻擋上傳
+}
 ```
 
 **Response 413**：檔案超過 200 MB

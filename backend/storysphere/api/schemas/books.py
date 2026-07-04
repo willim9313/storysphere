@@ -456,6 +456,13 @@ class TaskIdResponse(BaseModel):
     task_id: str
 
 
+class UploadResponse(BaseModel):
+    model_config = _CAMEL
+
+    task_id: str
+    duplicate_title: bool = False
+
+
 class DetectLanguageResponse(BaseModel):
     model_config = _CAMEL
 

@@ -84,6 +84,52 @@ def test_ingest_without_author_still_accepted(client):
     assert resp.status_code == 202
 
 
+# ── Duplicate title detection (warn, don't block) ───────────────────────────
+
+
+def test_ingest_warns_on_duplicate_title(client, mock_doc):
+    """A title matching an existing book still uploads (202), just flagged."""
+    mock_doc.title_exists = AsyncMock(return_value=True)
+    fake_pdf = io.BytesIO(b"%PDF-1.4 fake content")
+    resp = client.post(
+        "/api/v1/books/upload",
+        data={"title": "Existing Novel"},
+        files={"file": ("novel.pdf", fake_pdf, "application/pdf")},
+    )
+    assert resp.status_code == 202
+    data = resp.json()
+    assert "taskId" in data
+    assert data["duplicateTitle"] is True
+
+
+def test_ingest_no_warning_for_new_title(client, mock_doc):
+    """A title with no existing match uploads normally with no warning flag."""
+    mock_doc.title_exists = AsyncMock(return_value=False)
+    fake_pdf = io.BytesIO(b"%PDF-1.4 fake content")
+    resp = client.post(
+        "/api/v1/books/upload",
+        data={"title": "Brand New Novel"},
+        files={"file": ("novel.pdf", fake_pdf, "application/pdf")},
+    )
+    assert resp.status_code == 202
+    assert resp.json()["duplicateTitle"] is False
+
+
+def test_ingest_duplicate_check_is_case_insensitive(client, mock_doc):
+    """title_exists is called with the submitted title regardless of case;
+    the service layer owns the case-insensitive comparison."""
+    mock_doc.title_exists = AsyncMock(return_value=True)
+    fake_pdf = io.BytesIO(b"%PDF-1.4 fake content")
+    resp = client.post(
+        "/api/v1/books/upload",
+        data={"title": "ExIsTiNg NoVeL"},
+        files={"file": ("novel.pdf", fake_pdf, "application/pdf")},
+    )
+    assert resp.status_code == 202
+    assert resp.json()["duplicateTitle"] is True
+    mock_doc.title_exists.assert_called_once_with("ExIsTiNg NoVeL")
+
+
 # ── POST /books/detect-language ──────────────────────────────────────────────
 
 

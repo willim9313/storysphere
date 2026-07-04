@@ -18,6 +18,7 @@
   "confirmUpload": "確認上傳",
   "enterBook": "進入書籍",
   "processingSection": "處理中",
+  "duplicateTitleWarning": "已有同名書籍《{{title}}》，本次上傳仍會繼續進行。",
   "completedSection": "已完成",
   "dropzone": {
     "dragText": "拖曳檔案至此，或點擊選擇檔案",

@@ -117,6 +117,25 @@ class TestDocumentServiceSave:
         assert retrieved.chapters[0].role == ChapterRole.preface
 
     @pytest.mark.asyncio
+    async def test_title_exists_true_for_saved_title(self, service):
+        doc = _make_document()
+        doc.title = "Unique Title Here"
+        await service.save_document(doc)
+        assert await service.title_exists("Unique Title Here") is True
+
+    @pytest.mark.asyncio
+    async def test_title_exists_false_for_unknown_title(self, service):
+        assert await service.title_exists("Nothing Saved Yet") is False
+
+    @pytest.mark.asyncio
+    async def test_title_exists_is_case_insensitive(self, service):
+        doc = _make_document()
+        doc.title = "MiXeD CaSe TiTlE"
+        await service.save_document(doc)
+        assert await service.title_exists("mixed case title") is True
+        assert await service.title_exists("MIXED CASE TITLE") is True
+
+    @pytest.mark.asyncio
     async def test_list_documents(self, service):
         doc1 = _make_document()
         doc2 = _make_document()

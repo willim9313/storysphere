@@ -17,6 +17,7 @@
   "confirmUpload": "Confirm Upload",
   "enterBook": "Enter Book",
   "processingSection": "Processing",
+  "duplicateTitleWarning": "A book titled \"{{title}}\" already exists — this upload will still proceed.",
   "completedSection": "Completed",
   "dropzone": {
     "dragText": "Drag file here, or click to select",

@@ -412,6 +412,14 @@ class DocumentService:
             )
             return result.scalar_one_or_none() or "en"
 
+    async def title_exists(self, title: str) -> bool:
+        """Return True if a document with this title (case-insensitive) already exists."""
+        async with self._session_factory() as session:
+            result = await session.execute(
+                select(_DocumentRow.id).where(func.lower(_DocumentRow.title) == title.lower())
+            )
+            return result.first() is not None
+
     async def list_documents(self) -> list[DocumentSummary]:
         """Return a lightweight list of all documents."""
         async with self._session_factory() as session:
