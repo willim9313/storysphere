@@ -174,6 +174,9 @@ export default function UploadPage() {
   }, []);
 
   const fileSizeMB = pending ? (pending.file.size / 1024 / 1024).toFixed(1) : '';
+  const fileFormatLabel = pending
+    ? (pending.file.name.split('.').pop()?.toUpperCase() ?? '')
+    : '';
 
   return (
     <div className="overflow-y-auto flex-1">
@@ -217,7 +220,7 @@ export default function UploadPage() {
               {pending.file.name}
             </div>
             <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginTop: 2 }}>
-              {fileSizeMB}&nbsp;MB · PDF
+              {fileSizeMB}&nbsp;MB · {fileFormatLabel}
             </div>
           </div>
           <button

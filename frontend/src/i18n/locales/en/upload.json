@@ -21,8 +21,8 @@
   "completedSection": "Completed",
   "dropzone": {
     "dragText": "Drag file here, or click to select",
-    "supportText": "Supports .pdf, .docx, .txt formats, max 50 MB",
-    "errorInvalidFormat": "Please upload a PDF, DOCX or TXT file",
+    "supportText": "Supports .pdf, .docx, .txt, .epub formats, max 50 MB",
+    "errorInvalidFormat": "Please upload a PDF, DOCX, TXT or EPUB file",
     "errorTooLarge": "File exceeds the {{max}} MB size limit",
     "errorOneFileOnly": "Only one file can be uploaded at a time"
   },

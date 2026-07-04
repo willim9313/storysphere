@@ -3,7 +3,7 @@ import { Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_MB = 50;
-const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.txt'];
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.epub'];
 
 interface DropZoneProps {
   readonly onFileSelected: (file: File) => void;
@@ -81,7 +81,7 @@ export function DropZone({ onFileSelected }: DropZoneProps) {
         <input
           id="file-input"
           type="file"
-          accept=".pdf,.docx,.txt"
+          accept=".pdf,.docx,.txt,.epub"
           className="hidden"
           onChange={onChange}
         />

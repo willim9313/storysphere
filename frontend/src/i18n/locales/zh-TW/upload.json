@@ -22,8 +22,8 @@
   "completedSection": "已完成",
   "dropzone": {
     "dragText": "拖曳檔案至此，或點擊選擇檔案",
-    "supportText": "支援 .pdf、.docx、.txt 格式，檔案大小上限 50 MB",
-    "errorInvalidFormat": "請上傳 PDF、DOCX 或 TXT 格式的檔案",
+    "supportText": "支援 .pdf、.docx、.txt、.epub 格式，檔案大小上限 50 MB",
+    "errorInvalidFormat": "請上傳 PDF、DOCX、TXT 或 EPUB 格式的檔案",
     "errorTooLarge": "檔案大小超過 {{max}} MB 上限",
     "errorOneFileOnly": "一次只能上傳一個檔案"
   },
