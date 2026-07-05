@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Loader2, Trash2 } from 'lucide-react';
@@ -162,6 +162,22 @@ export default function ChapterReviewPage() {
     setSelectedIdx((prev) => Math.max(0, prev - (chapterIdx <= prev ? 1 : 0)));
   }, []);
 
+  // Role-aware display labels: only body chapters count toward "第 N 章" (and
+  // are numbered 1..N contiguously); front/back matter shows its role label
+  // (目錄/序/跋/其他) instead. Derived from chapter state so toggling a role
+  // relabels the list immediately.
+  const chapterLabels = useMemo(() => {
+    let bodyCount = 0;
+    return chapters.map((ch) => {
+      const role = ch.role ?? 'body';
+      if (role === 'body') {
+        bodyCount += 1;
+        return { text: t('review.chapterLabel', { n: bodyCount }), isBody: true };
+      }
+      return { text: t(`review.chapterType.${role}`), isBody: false };
+    });
+  }, [chapters, t]);
+
   if (phase === 'error') {
     return (
       <div className="flex flex-col items-center justify-center h-full gap-3">
@@ -194,26 +210,41 @@ export default function ChapterReviewPage() {
         </div>
 
         <ul className="flex-1 py-2">
-          {chapters.map((ch, i) => (
+          {chapters.map((ch, i) => {
+            const label = chapterLabels[i];
+            const selected = i === selectedIdx;
+            let bg = 'transparent';
+            let fg = 'var(--fg-secondary)';
+            if (selected) {
+              bg = 'var(--entity-con-bg)';
+              fg = 'var(--entity-con-fg)';
+            } else if (!label.isBody) {
+              bg = 'var(--bg-tertiary)';
+              fg = 'var(--fg-muted)';
+            }
+            return (
             <li key={ch.chapterIdx}>
               <button
                 className="w-full text-left px-4 py-2 text-xs"
                 style={{
-                  backgroundColor: i === selectedIdx ? 'var(--entity-con-bg)' : 'transparent',
-                  color: i === selectedIdx ? 'var(--entity-con-fg)' : 'var(--fg-secondary)',
-                  fontWeight: i === selectedIdx ? 600 : 400,
+                  backgroundColor: bg,
+                  color: fg,
+                  fontWeight: selected ? 600 : 400,
+                  fontStyle: label.isBody ? 'normal' : 'italic',
+                  borderLeft: label.isBody ? '2px solid transparent' : '2px solid var(--fg-muted)',
                 }}
                 onClick={() => setSelectedIdx(i)}
               >
-                {t('review.chapterLabel', { n: i + 1 })}
+                {label.text}
                 {ch.title ? (
-                  <span className="block truncate" style={{ color: 'var(--fg-muted)', fontWeight: 400 }}>
+                  <span className="block truncate" style={{ color: 'var(--fg-muted)', fontWeight: 400, fontStyle: 'normal' }}>
                     {ch.title}
                   </span>
                 ) : null}
               </button>
             </li>
-          ))}
+            );
+          })}
         </ul>
 
         <div className="p-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border)' }}>
@@ -244,13 +275,21 @@ export default function ChapterReviewPage() {
         </div>
       </aside>
 
-      {/* Right: paragraph cards */}
-      <main className="flex-1 overflow-y-auto p-6">
+      {/* Right: paragraph cards. Non-body chapters (目錄/序/跋…) get a muted
+          tint so front/back matter reads distinctly from body prose. */}
+      <main
+        className="flex-1 overflow-y-auto p-6"
+        style={
+          selectedChapter && (selectedChapter.role ?? 'body') !== 'body'
+            ? { backgroundColor: 'var(--bg-tertiary)' }
+            : undefined
+        }
+      >
         {selectedChapter && (
           <>
             <div className="mb-4 flex items-center gap-3">
               <span className="text-xs font-semibold" style={{ color: 'var(--fg-muted)' }}>
-                {t('review.chapterLabel', { n: selectedIdx + 1 })}
+                {chapterLabels[selectedIdx]?.text}
               </span>
               <input
                 className="flex-1 max-w-xs px-2 py-1 text-sm rounded-md"

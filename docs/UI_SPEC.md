@@ -173,6 +173,19 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 步驟狀態：`done` 綠圈 ✓ / `running` 黃圈 + 進度條 / `pending` 灰圈（數字）/ `error` 紅圈 ✕ + 重試按鈕
 
+#### HITL 章節審閱（`ChapterReviewPage`）
+
+左欄章節列表 + 右側段落卡，讓使用者確認 / 調整偵測到的章節邊界與角色。
+
+- **角色感知編號**：左欄僅 `body` 章節計入「第 N 章」且從 1 連號；非正文章節
+  （`toc`/`preface`/`afterword`/`other`）改顯示角色標籤（目錄／序／跋／其他），
+  右側標頭共用同一標籤。編號由章節 state 推導，切換章節角色時即時重算——
+  避免正文因前置內容而顯示成「第 3 章」起跳。
+- **非正文分色**：非正文章節在左欄以 `--bg-tertiary` 淡底 + `--fg-muted` 斜體字 +
+  左側 `--fg-muted` 色條標示；選中該章時右側段落區底色亦轉為 `--bg-tertiary`，
+  與一般正文（`--bg-primary`/`--bg-secondary`）視覺區隔。段落層級的非 body 角色
+  另以 opacity 0.6 淡化（沿用既有處理）。
+
 #### API 參考
 
 見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#2（上傳 PDF）、#8（任務 polling）
