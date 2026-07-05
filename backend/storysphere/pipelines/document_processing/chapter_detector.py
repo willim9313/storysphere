@@ -96,6 +96,36 @@ def _classify_chapter_role(heading_text: str) -> ChapterRole:
     return ChapterRole.body
 
 
+# ── Content-level table-of-contents detection ─────────────────────────────────
+#
+# Heading-based classification only inspects a chapter's first line, which
+# misses front matter that EPUBs cram into a single spine item (e.g. blurb +
+# preface + TOC in one XHTML file, with the "目錄" marker buried mid-chapter).
+# A table of contents has a distinctive body signature — a contents keyword
+# plus several standalone page-number tokens — that ordinary prose does not,
+# so it is a strong, low-false-positive signal to scan the whole chapter for.
+
+_TOC_KEYWORD_RE = re.compile(
+    r"目\s*[錄録次]|table\s+of\s+contents|(?<![a-z])contents(?![a-z])",
+    re.IGNORECASE,
+)
+# Standalone runs of 1–4 digits (page numbers), not embedded in a longer number.
+_PAGE_NUMBER_RE = re.compile(r"(?<!\d)\d{1,4}(?!\d)")
+_MIN_TOC_PAGE_NUMBERS = 2
+
+
+def _looks_like_toc(chapter_text: str) -> bool:
+    """True if a chapter's combined body text has a table-of-contents signature.
+
+    Requires BOTH a contents keyword (目錄/目次/table of contents/…) AND at
+    least ``_MIN_TOC_PAGE_NUMBERS`` standalone page-number tokens — prose that
+    merely mentions a keyword, or lists a couple of numbers, won't match.
+    """
+    if not _TOC_KEYWORD_RE.search(chapter_text):
+        return False
+    return len(_PAGE_NUMBER_RE.findall(chapter_text)) >= _MIN_TOC_PAGE_NUMBERS
+
+
 # ── Inline title heuristic ────────────────────────────────────────────────────
 
 _MAX_INLINE_TITLE_CHARS = 30
@@ -218,6 +248,16 @@ def detect_chapters(
     # Drop chapters with no body content (e.g. headings immediately followed by
     # another heading with no text between them).
     chapters = [c for c in chapters if c.segments]
+
+    # Content-level front-matter detection: a chapter still classified as body
+    # whose full text has a table-of-contents signature (contents keyword +
+    # page numbers) is front matter the heading-based pass missed — common in
+    # EPUBs that pack a whole TOC into one spine item.
+    for chapter in chapters:
+        if chapter.role == ChapterRole.body:
+            body_text = "\n".join(text for _, text in chapter.segments)
+            if _looks_like_toc(body_text):
+                chapter.role = ChapterRole.toc
 
     # Re-number remaining chapters sequentially starting from 1.
     for i, chapter in enumerate(chapters, start=1):

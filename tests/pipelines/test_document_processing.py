@@ -235,6 +235,37 @@ class TestDetectChapters:
         )
         assert chapters[0].role == ChapterRole.afterword
 
+    # ── content-level TOC detection (front matter buried mid-chapter) ──
+
+    def test_toc_buried_in_styled_chapter_detected_by_content(self):
+        """An EPUB spine item whose heading isn't a TOC marker but whose body
+        carries a contents-page signature is reclassified as toc."""
+        segments = [
+            (0, "書封簡介：這是一個關於海與記憶的故事，非常動人。"),
+            (1, "目錄 卷首導讀 在鹽與遺忘之間 005 譯者前言 關於幾個字 013 正文"),
+        ]
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert chapters[0].role == ChapterRole.toc
+
+    def test_prose_with_a_stray_number_is_not_toc(self):
+        """A contents keyword needs page-number tokens; ordinary prose that
+        merely mentions a number stays body."""
+        segments = [
+            (0, "第一章 目錄之謎"),
+            (1, "他翻開那本書的目錄，卻只看到第 1 個空白頁面。"),
+        ]
+        chapters = detect_chapters(segments)
+        assert chapters[0].role == ChapterRole.body
+
+    def test_body_chapter_with_page_numbers_but_no_keyword_stays_body(self):
+        """Page numbers alone (no contents keyword) must not trigger toc."""
+        segments = [
+            (0, "第一章 戰役"),
+            (1, "軍隊在 1200 年抵達，3 天後又有 500 名士兵加入了戰線。"),
+        ]
+        chapters = detect_chapters(segments)
+        assert chapters[0].role == ChapterRole.body
+
 
 # ── _match_heading title extraction ─────────────────────────────────────────
 
