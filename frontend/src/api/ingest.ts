@@ -1,7 +1,10 @@
 import { MOCK_ENABLED } from './mock';
 import { apiFetch, apiUpload } from './client';
 import * as mock from './mock/mockClient';
+import type { components } from './generated';
 import type { TaskStatus } from './types';
+
+export type SuggestRolesResponse = components['schemas']['SuggestRolesResponse'];
 
 // #2 — Upload book (PDF)
 export function uploadBook(
@@ -50,6 +53,13 @@ export function submitReview(
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ chapters, roleOverrides }),
+  });
+}
+
+// #22c — "邊界輔助辨識": LLM-suggested non-body role changes for edge chapters
+export function suggestRoles(bookId: string): Promise<SuggestRolesResponse> {
+  return apiFetch<SuggestRolesResponse>(`/books/${bookId}/suggest-roles`, {
+    method: 'POST',
   });
 }
 

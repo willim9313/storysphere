@@ -185,10 +185,24 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
   左側 `--fg-muted` 色條標示；選中該章時右側段落區底色亦轉為 `--bg-tertiary`，
   與一般正文（`--bg-primary`/`--bg-secondary`）視覺區隔。段落層級的非 body 角色
   另以 opacity 0.6 淡化（沿用既有處理）。
+- **邊界輔助辨識**（左欄底部按鈕，submit 之上）：使用者觸發，呼叫 `#22c
+  POST /books/:bookId/suggest-roles`，由 AI 從書籍**頭尾逐段回推**、找出黏在
+  邊緣的非正文（版權頁／作者・譯者簡介／推薦語／跋…），回傳前後附的**段落邊界**。
+  前端據此把受影響的 body 章節**切開**：前/後附段落被切成獨立的非正文章節
+  （角色由 LLM 依內容判定，目錄/序/跋/其他，非一律 other），**左側章節列表即時更新**
+  （新章節以非正文樣式呈現），供使用者覆核後走既有 submit（章節 `startParagraphIndex`
+  + `role` 持久化）。非正文章節不進閱讀頁、也不進 KG/摘要。專門處理**融進正文章節頭尾**、
+  章節偵測切不出來的邊界（例如整坨後附黏在最後一章尾巴）；已是非正文的章節（目錄）
+  不會被再次進入。按鈕 `hover` 顯示 tooltip（`suggestRolesHint`）明確告知「仰賴 AI
+  逐段判讀、會消耗 token」；辨識中顯示 spinner + `suggesting`，完成後在按鈕下方顯示
+  `suggestApplied`（n = 切出的邊界數）／`suggestNone`／`suggestError` 提示。輪廓樣式
+  （`--accent` 邊框 + `--accent-bg` 底），與實心 submit 主按鈕區隔為輔助動作。
+  限制：切點只能落在段落（~1200 字 chunk）邊界，故事尾與後附頭同段時整段一起切。
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#2（上傳 PDF）、#8（任務 polling）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#2（上傳 PDF）、#8（任務 polling）、
+#22a（review-data）、#22b（review）、#22c（suggest-roles）
 
 ---
 

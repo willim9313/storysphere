@@ -248,3 +248,58 @@
 | `error` | 失敗時的錯誤訊息 |
 
 **UI 呈現**：各頁面的 loading 狀態、進度條、stage 文字。Hook：`useTaskPolling(taskId, fetcher?)`。
+
+---
+
+## 章節與段落角色（Chapter / Paragraph Roles）
+
+> 這是「章節/段落分類」的**單一權威定義**。程式碼有三處會用到（`domain/documents.py`
+> 的 enum、`chapter_detector.py` 的偵測 regex、`chapter_role_suggester.py` 的 LLM
+> prompt），它們都必須對齊本節。
+
+### 核心原則：role 依「功能」定義，不是依「標題字」
+
+判準只有一句：**「這段內容是故事本身，還是在談論這本書？」**
+- 是故事敘事 → `body`（正文）。
+- 是關於書/作者的周邊文字 → 非正文。
+
+所以 role 由**內容功能**決定，不由標題字面決定。推論：
+- 標題叫「序」「後記」但內容其實是故事（書信體開場、元小說式後記）→ role 是 **`body`**。
+- `body` 的定義**刻意**涵蓋「楔子/序章 prologue、尾聲 epilogue」——敘事不管叫什麼都是正文。
+- 反之「自序」「譯後記」「版權頁」這種談論書本身的 → 才是非正文。
+
+### ChapterRole — 章節層級角色
+
+**後端 model**：`domain/documents.py::ChapterRole`。
+
+| 值 | UI 標籤 | 定義（功能） | 典型內容 |
+|----|---------|-------------|---------|
+| `body` | 第 N 章 | **正文**：故事敘事本身（含 prologue/epilogue） | 章節、場景、對白 |
+| `toc` | 目錄 | 目錄／章節清單 | 目錄、目次 |
+| `preface` | 序 | 故事開始前、關於這本書的文字 | 自序、譯者序、推薦序、前言、導讀 |
+| `afterword` | 跋 | 故事結束後、關於書/作者的文字 | 後記、跋、譯後記、致謝 |
+| `other` | 其他 | 其他非故事內容（兜底類） | 版權頁、ISBN/定價、作者/譯者簡介、推薦語、書目 |
+
+**功能後果（重要）**：實際 pipeline **只分 `body` / 非 `body` 兩檔**。非 `body` 的章節
+（toc/preface/afterword/other）一律被排除於 **embedding 索引、KG 抽取、摘要**，也不進
+閱讀頁。toc/preface/afterword/other 之間的差別**純粹是顯示分類**，不影響任何排除行為。
+
+**UI 呈現**：審閱頁左欄——`body` 顯示「第 N 章」（僅 body 連號），非 body 顯示角色標籤
+（目錄/序/跋/其他）+ 斜體/淡字。可用章節 role toggle 手動改。
+
+### 三層如何判定，以及各自的侷限
+
+| 層 | 依據 | 侷限 |
+|----|------|------|
+| 偵測器（`chapter_detector.py`，決定性） | **標題關鍵詞** | 只看字面 → narrative 的「序/後記」會被誤判成非正文 |
+| 邊界輔助辨識（`chapter_role_suggester.py`，LLM） | **內容** | 只修「非正文偽裝成 body」方向；不會把被誤標成序/跋的 narrative 救回來（只走 body 章節） |
+| 人工審閱頁 | 使用者 | 最終權威，任何 role 都能手動 toggle |
+
+→ 「正文被誤標成序/跋而排除」目前**只能靠人工在審閱頁改回 `body`**（B 系列未列，發生率低）。
+
+### ParagraphRole — 段落層級角色（另一條軸，勿混淆）
+
+**後端 model**：`domain/documents.py::ParagraphRole`。與 ChapterRole **值不同**：
+`body / separator（分隔）/ section（小節）/ epigraph（題詞）/ preamble（前言）`。
+用於段落級標記（審閱頁段落旁的小標籤）。任何非 `body` 的段落 role 都會被
+`extract_body_text` 排除於下游文字。

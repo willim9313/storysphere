@@ -6,7 +6,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
-from storysphere.domain.documents import Document, extract_body_text
+from storysphere.domain.documents import ChapterRole, Document, extract_body_text
 from storysphere.domain.entities import Entity
 from storysphere.domain.events import Event, EventType
 from storysphere.domain.relations import Relation
@@ -84,9 +84,12 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         # Entries are pop()-ed after use so already-processed chapters are
         # released to the GC rather than accumulating for the whole run.
         chapter_texts: dict[int, str] = {}
+        # Only body chapters carry narrative content; front/back matter chapters
+        # (toc/preface/afterword/other) are excluded from the knowledge graph.
         chapters_with_content = [
             ch for ch in doc.chapters
-            if any(extract_body_text(p) for p in ch.paragraphs)
+            if ch.role == ChapterRole.body
+            and any(extract_body_text(p) for p in ch.paragraphs)
         ]
         total_chapters = len(chapters_with_content)
         chapters_done = 0
@@ -98,6 +101,8 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         # Paragraph-level extraction keeps each LLM call small, avoiding
         # truncation issues on long chapters with local models.
         for chapter in doc.chapters:
+            if chapter.role != ChapterRole.body:
+                continue  # front/back matter — not story content
             # Only process body paragraphs; separators carry no narrative content.
             body_texts_ch = [
                 (p, extract_body_text(p))

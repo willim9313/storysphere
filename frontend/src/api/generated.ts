@@ -128,6 +128,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/suggest-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suggest Roles
+         * @description LLM-assisted "邊界輔助辨識": flag edge paragraphs that are front/back matter.
+         *
+         *     Walks the book's paragraphs inward from each end and returns the ones that
+         *     read as non-body matter, for the reviewer to accept. Only available while
+         *     awaiting review; it does not mutate the document or resume the pipeline.
+         */
+        post: operations["suggest_roles_api_v1_books__book_id__suggest_roles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/upload": {
         parameters: {
             query?: never;
@@ -139,7 +163,7 @@ export interface paths {
         put?: never;
         /**
          * Upload Book
-         * @description Upload a PDF/DOCX/TXT and start background ingestion.
+         * @description Upload a PDF/DOCX/TXT/EPUB and start background ingestion.
          */
         post: operations["upload_book_api_v1_books_upload_post"];
         delete?: never;
@@ -161,7 +185,7 @@ export interface paths {
          * Detect Language From Upload
          * @description Quickly guess a file's language before the user confirms upload.
          *
-         *     Reuses the same PDF/DOCX/TXT loaders as full ingestion, but skips
+         *     Reuses the same PDF/DOCX/TXT/EPUB loaders as full ingestion, but skips
          *     chapter detection and does not create a background task — this is a
          *     lightweight, synchronous preview call so the upload form's language
          *     dropdown can be pre-selected instead of defaulting to blank.
@@ -3514,6 +3538,24 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /**
+         * SuggestRolesResponse
+         * @description LLM-proposed front/back matter boundaries for the review UI to split on.
+         *
+         *     ``frontMatterEnd`` is exclusive, ``backMatterStart`` inclusive, both in
+         *     book-global paragraph index space (matching review-data). ``null`` on a side
+         *     means no matter found there.
+         */
+        SuggestRolesResponse: {
+            /** Frontmatterend */
+            frontMatterEnd?: number | null;
+            /** Backmatterstart */
+            backMatterStart?: number | null;
+            /** Frontrole */
+            frontRole?: string | null;
+            /** Backrole */
+            backRole?: string | null;
+        };
         /** SymbolAnalysisRequest */
         SymbolAnalysisRequest: {
             /**
@@ -4359,6 +4401,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suggest_roles_api_v1_books__book_id__suggest_roles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestRolesResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

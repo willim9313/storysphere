@@ -103,6 +103,22 @@ class ReviewSubmitRequest(BaseModel):
     role_overrides: dict[str, str] = {}  # str(globalIdx) → role value
 
 
+class SuggestRolesResponse(BaseModel):
+    """LLM-proposed front/back matter boundaries for the review UI to split on.
+
+    ``frontMatterEnd`` is exclusive, ``backMatterStart`` inclusive, both in
+    book-global paragraph index space (matching review-data). ``null`` on a side
+    means no matter found there.
+    """
+
+    model_config = _CAMEL
+
+    front_matter_end: int | None = None
+    back_matter_start: int | None = None
+    front_role: str | None = None
+    back_role: str | None = None
+
+
 # ── Chapter / chunk ──────────────────────────────────────────────────────────
 
 

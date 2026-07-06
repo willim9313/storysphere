@@ -66,6 +66,7 @@ from storysphere.api.schemas.books import (
     RunInferenceRequest,
     Segment,
     SegmentEntity,
+    SuggestRolesResponse,
     TaskIdResponse,
     TemporalRelationEntry,
     TimelineConfigResponse,
@@ -542,6 +543,59 @@ async def submit_review(
     from storysphere.api.store import set_task_running  # noqa: PLC0415
     await set_task_running(task_id)
     asyncio.create_task(_resume_ingestion_graph(task_id, resume_value))
+
+
+# ── #8f POST /books/:bookId/suggest-roles ─────────────────────────────────────
+
+
+@router.post("/{book_id}/suggest-roles", response_model=SuggestRolesResponse)
+async def suggest_roles(
+    book_id: str,
+    doc: DocServiceDep,
+) -> SuggestRolesResponse:
+    """LLM-assisted "邊界輔助辨識": flag edge paragraphs that are front/back matter.
+
+    Walks the book's paragraphs inward from each end and returns the ones that
+    read as non-body matter, for the reviewer to accept. Only available while
+    awaiting review; it does not mutate the document or resume the pipeline.
+    """
+    from storysphere.api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
+
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+    status = await get_task(task_id)
+    if status is None or status.status != "awaiting_review":
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from storysphere.services.chapter_role_suggester import (  # noqa: PLC0415
+        suggest_boundary_roles,
+    )
+
+    try:
+        result = await suggest_boundary_roles(document.chapters)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI boundary detection is unavailable: {exc}",
+        ) from exc
+
+    return SuggestRolesResponse(
+        front_matter_end=result.front_matter_end,
+        back_matter_start=result.back_matter_start,
+        front_role=result.front_role,
+        back_role=result.back_role,
+    )
 
 
 # ── #2 POST /books/upload ────────────────────────────────────────────────────

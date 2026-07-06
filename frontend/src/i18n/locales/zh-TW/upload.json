@@ -49,7 +49,15 @@
     "done": "分析完成",
     "goToBook": "前往《{{title}}》",
     "errorLoad": "無法載入章節資料，請稍後再試。",
-    "errorSubmit": "提交失敗，請稍後再試。"
+    "errorSubmit": "提交失敗，請稍後再試。",
+    "suggestRoles": "邊界輔助辨識",
+    "suggestRolesHint": "由 AI 從書籍頭尾逐段判讀是否為非正文（版權／目錄／序／跋／作者簡介等），會消耗 token。",
+    "suggesting": "辨識中…",
+    "suggestingHint": "逐段判讀，可能需數十秒",
+    "suggestDone": "已辨識",
+    "suggestApplied": "已套用 {{n}} 項邊界建議",
+    "suggestNone": "未偵測到需調整的邊界",
+    "suggestError": "辨識失敗，請稍後再試。"
   },
   "steps": {
     "pdfParsing": "PDF 解析",

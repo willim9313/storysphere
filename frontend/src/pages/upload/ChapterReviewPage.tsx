@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Loader2, Trash2 } from 'lucide-react';
-import { fetchReviewData, submitReview } from '@/api/ingest';
+import { Loader2, ScanLine, Trash2 } from 'lucide-react';
+import { fetchReviewData, submitReview, suggestRoles } from '@/api/ingest';
+import type { SuggestRolesResponse } from '@/api/ingest';
 import { deleteBook } from '@/api/books';
 import type { ReviewChapter, ReviewSubmitChapter } from '@/api/types';
+import { applyBoundaries } from './applyBoundaries';
 
 const ROLE_LABELS: Record<string, string> = {
   body:      '',
@@ -34,6 +36,9 @@ export default function ChapterReviewPage() {
   const [chapters, setChapters] = useState<ReviewChapter[]>([]);
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [roleOverrides, setRoleOverrides] = useState<Record<string, string>>({});
+  const [isSuggesting, setIsSuggesting] = useState(false);
+  const [suggestNote, setSuggestNote] = useState<string | null>(null);
+  const [suggestDone, setSuggestDone] = useState(false);
 
   useEffect(() => {
     if (!bookId) return;
@@ -61,6 +66,30 @@ export default function ChapterReviewPage() {
       setErrorMsg(t('review.errorSubmit'));
     }
   }, [bookId, chapters, roleOverrides, t, navigate, taskId]);
+
+  // "邊界輔助辨識": ask the backend to LLM-find front/back matter boundaries at
+  // the book's edges, then split the affected body chapters so the matter becomes
+  // its own non-body chapter(s) in the list, for the user to confirm.
+  const handleSuggestRoles = useCallback(async () => {
+    if (!bookId || isSuggesting) return;
+    setIsSuggesting(true);
+    setSuggestNote(null);
+    try {
+      const b: SuggestRolesResponse = await suggestRoles(bookId);
+      const found = (b.frontMatterEnd != null ? 1 : 0) + (b.backMatterStart != null ? 1 : 0);
+      if (found === 0) {
+        setSuggestNote(t('review.suggestNone'));
+        return;
+      }
+      setChapters((prev) => applyBoundaries(prev, b));
+      setSuggestNote(t('review.suggestApplied', { n: found }));
+      setSuggestDone(true);
+    } catch {
+      setSuggestNote(t('review.suggestError'));
+    } finally {
+      setIsSuggesting(false);
+    }
+  }, [bookId, isSuggesting, t]);
 
   const handleCancel = useCallback(async () => {
     if (!bookId) return;
@@ -248,6 +277,31 @@ export default function ChapterReviewPage() {
         </ul>
 
         <div className="p-3 border-t flex flex-col gap-2" style={{ borderColor: 'var(--border)' }}>
+          <button
+            className="w-full text-xs px-3 py-1.5 rounded-md flex items-center justify-center gap-1.5"
+            style={{
+              color: 'var(--accent)',
+              border: '1px solid var(--accent)',
+              backgroundColor: 'var(--accent-bg)',
+            }}
+            title={t('review.suggestRolesHint')}
+            disabled={isSuggesting || suggestDone || phase === 'submitting' || phase === 'cancelling' || chapters.length === 0}
+            onClick={handleSuggestRoles}
+          >
+            {isSuggesting && <><Loader2 size={11} className="animate-spin" />{t('review.suggesting')}</>}
+            {!isSuggesting && suggestDone && <><ScanLine size={11} />{t('review.suggestDone')}</>}
+            {!isSuggesting && !suggestDone && <><ScanLine size={11} />{t('review.suggestRoles')}</>}
+          </button>
+          {isSuggesting && (
+            <p className="text-xs text-center" style={{ color: 'var(--fg-muted)' }}>
+              {t('review.suggestingHint')}
+            </p>
+          )}
+          {!isSuggesting && suggestNote && (
+            <p className="text-xs text-center" style={{ color: 'var(--fg-muted)' }}>
+              {suggestNote}
+            </p>
+          )}
           <button
             className="w-full text-xs px-3 py-2 rounded-md font-medium flex items-center justify-center gap-1.5"
             style={{ backgroundColor: 'var(--accent)', color: 'white', border: 'none' }}

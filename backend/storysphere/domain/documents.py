@@ -41,9 +41,16 @@ class ChapterRole(str, Enum):
     """Chapter-level classification distinguishing narrative content from
     front/back matter (table of contents, prefaces, afterwords, ...).
 
+    Roles are defined by FUNCTION, not by the heading text — a section titled
+    "序"/"後記" whose content is actually story is ``body``. Authoritative
+    definitions: ``docs/domain-glossary.md`` § 章節與段落角色 (keep the detector
+    regex and the suggester prompt aligned with it).
+
     Unlike ``ParagraphRole``, this applies to a whole chapter. Non-body
-    chapters are excluded from the chunk/embedding index but remain stored,
-    so they can support a future cross-book front-matter lookup feature.
+    chapters are excluded from narrative processing — the embedding index,
+    knowledge-graph extraction, and summarization all skip any chapter whose
+    role is not ``body`` — but remain stored, so they can support a future
+    cross-book front-matter lookup / info-page feature.
     """
 
     body = "body"

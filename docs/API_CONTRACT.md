@@ -1838,6 +1838,37 @@ interface ChapterDistribution {
 
 ---
 
+### #22c POST /books/:bookId/suggest-roles
+
+「邊界輔助辨識」：使用者於章節審閱頁觸發，用 LLM 找出黏在書籍頭尾的**非正文段落**
+（版權頁 / 目錄 / 序 / 作者・譯者簡介 / 推薦語 / 跋 / 書目…），回傳建議標為
+非正文的段落供覆核。**純建議**：不修改文件、不 resume pipeline。只在任務狀態為
+`awaiting_review` 時有效。
+
+只走 **body 章節**（已是非正文的章節如目錄不再進去），從書首/書尾**逐段往內回推**，
+每段送一次 LLM 判 body / 非正文，讀到第一段故事正文即停（中段正文不送）。回傳前後附的
+**段落邊界**；前端據此把受影響的 body 章節切開，將前/後附段落切成獨立的非正文章節
+（左側章節列表即時更新），最終走既有 `#22b POST /review`（章節 `startParagraphIndex`
++ `role`）送出。語言無關，不依賴關鍵詞表。
+
+**Response 404**：書籍不存在
+
+**Response 409**：書籍目前不在 `awaiting_review` 狀態
+
+**Response 503**：未設定可用的 LLM provider（AI 判讀不可用）
+
+**Response 200**（book-global 段落索引，對應 #22a review-data 的 `paragraphIndex`）
+```ts
+{
+  frontMatterEnd: number | null;   // 排除界：全域索引 < 此值的 body-章節段落為前附；null = 無前附
+  backMatterStart: number | null;  // 包含界：全域索引 >= 此值的 body-章節段落為後附；null = 無後附
+  frontRole: string | null;        // 切出的前附章節 role（由 LLM 內容判定並聚合：toc/preface/afterword/other）
+  backRole: string | null;         // 切出的後附章節 role（同上，通常 afterword 或 other）
+}
+```
+
+---
+
 ### #21l PATCH /narrative/:documentId/review
 
 HITL 審核 NarrativeStructure（approved / rejected）。

@@ -48,7 +48,15 @@
     "done": "Analysis complete",
     "goToBook": "Go to \"{{title}}\"",
     "errorLoad": "Failed to load chapter data. Please try again later.",
-    "errorSubmit": "Submission failed. Please try again later."
+    "errorSubmit": "Submission failed. Please try again later.",
+    "suggestRoles": "Detect boundaries",
+    "suggestRolesHint": "Uses AI to scan the book's opening and closing paragraphs for non-body matter (copyright/contents/preface/afterword/bio…). Consumes tokens.",
+    "suggesting": "Detecting…",
+    "suggestingHint": "Scanning paragraph by paragraph — may take tens of seconds",
+    "suggestDone": "Detected",
+    "suggestApplied": "Applied {{n}} boundary suggestion(s)",
+    "suggestNone": "No boundary adjustments detected",
+    "suggestError": "Detection failed. Please try again later."
   },
   "steps": {
     "pdfParsing": "PDF Parsing",
