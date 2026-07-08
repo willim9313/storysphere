@@ -93,6 +93,9 @@ router = APIRouter(prefix="/books", tags=["books"])
 
 MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # 200 MB
 _UPLOAD_CHUNK_BYTES = 1024 * 1024  # 1 MB, streamed to avoid buffering the whole file
+# Single source of truth for the formats the upload and language-detection
+# endpoints accept — kept in sync with DocumentProcessingPipeline._load_sync.
+_ALLOWED_UPLOAD_SUFFIXES = {".pdf", ".docx", ".txt", ".epub"}
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -612,7 +615,7 @@ async def upload_book(
 ) -> dict:
     """Upload a PDF/DOCX/TXT/EPUB and start background ingestion."""
     suffix = Path(file.filename or "upload").suffix.lower()
-    if suffix not in {".pdf", ".docx", ".txt", ".epub"}:
+    if suffix not in _ALLOWED_UPLOAD_SUFFIXES:
         raise HTTPException(
             status_code=422,
             detail="Only .pdf, .docx, .txt and .epub files are supported",
@@ -660,8 +663,6 @@ async def upload_book(
 
 # ── POST /books/detect-language ──────────────────────────────────────────────
 
-_DETECT_LANGUAGE_SAMPLE_BYTES = 2 * 1024 * 1024  # 2 MB is plenty for a language sample
-
 
 @router.post("/detect-language", response_model=DetectLanguageResponse)
 async def detect_language_from_upload(file: UploadFile) -> dict:
@@ -671,9 +672,14 @@ async def detect_language_from_upload(file: UploadFile) -> dict:
     chapter detection and does not create a background task — this is a
     lightweight, synchronous preview call so the upload form's language
     dropdown can be pre-selected instead of defaulting to blank.
+
+    The whole file is streamed to a temp file (bounded by MAX_UPLOAD_BYTES)
+    before parsing: DOCX/EPUB are ZIP containers and PDF keeps its xref table
+    at the end, so a truncated sample would corrupt the container and make the
+    loader silently fall back to English. Sampling happens on the loaded text.
     """
     suffix = Path(file.filename or "upload").suffix.lower()
-    if suffix not in {".pdf", ".docx", ".txt", ".epub"}:
+    if suffix not in _ALLOWED_UPLOAD_SUFFIXES:
         raise HTTPException(
             status_code=422,
             detail="Only .pdf, .docx, .txt and .epub files are supported",
@@ -681,8 +687,15 @@ async def detect_language_from_upload(file: UploadFile) -> dict:
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
-        content = await file.read(_DETECT_LANGUAGE_SAMPLE_BYTES)
-        tmp.write(content)
+        total_bytes = 0
+        while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+            total_bytes += len(chunk)
+            if total_bytes > MAX_UPLOAD_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large (max {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
+                )
+            tmp.write(chunk)
         tmp.close()
 
         segments, _meta = await asyncio.get_event_loop().run_in_executor(

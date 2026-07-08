@@ -7,7 +7,7 @@ Status: GET  /api/v1/tasks/{task_id}/status
 from __future__ import annotations
 
 import io
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
 
@@ -216,6 +216,51 @@ def test_detect_language_returns_zh_for_chinese_epub(client, tmp_path):
     resp = client.post(
         "/api/v1/books/detect-language",
         files={"file": ("novel.epub", epub_file.open("rb"), "application/epub+zip")},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["language"].startswith("zh")
+
+
+def test_detect_language_returns_zh_for_large_epub(client, tmp_path):
+    """A multi-MB EPUB must still be language-detected. EPUB is a ZIP whose
+    central directory lives at the end of the file, so any byte-truncation
+    before parsing would corrupt the container and silently degrade to
+    English — this guards against reintroducing that truncation."""
+    try:
+        from ebooklib import epub
+    except ImportError:
+        pytest.skip("ebooklib not installed")
+
+    import os
+
+    book = epub.EpubBook()
+    book.set_identifier("test-detect-lang-large")
+    book.set_title("大型測試小說")
+    book.set_language("zh")
+    c1 = epub.EpubHtml(title="第一章", file_name="chap1.xhtml", lang="zh")
+    c1.content = "<h1>第一章</h1><p>這是一段很長的繁體中文文字用來測試上傳前的語言偵測功能。</p>" * 3
+    book.add_item(c1)
+    # Random (incompressible) bytes so the .epub on disk exceeds 3 MB — a
+    # 2 MB truncation would then cut off the ZIP central directory.
+    filler = epub.EpubItem(
+        uid="filler",
+        file_name="filler.bin",
+        media_type="application/octet-stream",
+        content=os.urandom(3 * 1024 * 1024),
+    )
+    book.add_item(filler)
+    book.toc = (c1,)
+    book.add_item(epub.EpubNcx())
+    book.add_item(epub.EpubNav())
+    book.spine = ["nav", c1]
+
+    epub_file = tmp_path / "large.epub"
+    epub.write_epub(str(epub_file), book)
+    assert epub_file.stat().st_size > 2 * 1024 * 1024
+
+    resp = client.post(
+        "/api/v1/books/detect-language",
+        files={"file": ("large.epub", epub_file.open("rb"), "application/epub+zip")},
     )
     assert resp.status_code == 200
     assert resp.json()["language"].startswith("zh")

@@ -8,7 +8,9 @@
 
 Branch 已建立：`feat/book-upload-revamp`（from `main`, working tree clean）。
 
-**進度**：項目 1–6（TXT 編碼、語系偵測改善、語系預判 endpoint、DOCX/PDF 結構化偵測、章節分類 domain model+HITL review+前端 UI、重複上傳警告）皆已完成並各自 commit，另外補了一個 API_CONTRACT.md 既有落差的獨立修正 commit。**只剩項目 7（EPUB 支援）待做**，本次規劃更新聚焦在這一項的細節設計（已用 `ebooklib` 實際驗證行為，見下方）。
+**進度**：項目 1–7 全部完成並各自 commit（TXT 編碼、語系偵測改善、語系預判 endpoint、DOCX/PDF 結構化偵測、章節分類 domain model+HITL review+前端 UI、重複上傳警告、EPUB 支援），另外補了一個 API_CONTRACT.md 既有落差的獨立修正 commit。**本 revamp 已收斂**。
+
+後續回頭審視上傳路徑時，另修了一個 detect-language 端點的既有缺陷：原本只取檔案前 2 MB 就丟給 loader 解析，對 ZIP 容器（DOCX/EPUB）與 xref 在檔尾的 PDF 會截斷失敗、靜默 fallback 成 `en`——已改為串流整檔（受 `MAX_UPLOAD_BYTES` 保護）後再取樣，並補了 >2 MB EPUB 回歸測試；同時把上傳白名單抽成 `_ALLOWED_UPLOAD_SUFFIXES` 常數消除重複。
 
 ---
 
@@ -144,10 +146,10 @@ _EPUB_GUIDE_TYPE_TO_ROLE = {
 5. ✅ 章節結構分類（5a domain model+持久化 / 5b HITL review API / 5c 前端 review UI）
 6. ✅ 重複上傳偵測
 - ✅ （額外）修正 API_CONTRACT.md 既有的 upload endpoint 文件落差
-7. **EPUB 支援 —— 待做**，再拆三小段：
-   - 7a. 後端核心（`documents.py`、`loader.py`、`chapter_detector.py`、`pipeline.py`、新依賴、測試）
-   - 7b. 後端上傳白名單（`routers/books.py`、`API_CONTRACT.md`）
-   - 7c. 前端（`DropZone.tsx`、`UploadPage.tsx` 含 PDF 文字 bug 修正、i18n 兩檔）
+7. ✅ EPUB 支援（三小段皆完成）：
+   - 7a. ✅ 後端核心（`documents.py`、`loader.py`、`chapter_detector.py`、`pipeline.py`、新依賴、測試）
+   - 7b. ✅ 後端上傳白名單（`routers/books.py`、`API_CONTRACT.md`）
+   - 7c. ✅ 前端（`DropZone.tsx`、`UploadPage.tsx` 含 PDF 文字 bug 修正、i18n 兩檔）
 
 每個子任務完成後依 CLAUDE.md「完成後必報」列出異動清單、引用完整性確認、文件同步確認，並跑 `ruff check backend/`、`npm run lint`。
 
