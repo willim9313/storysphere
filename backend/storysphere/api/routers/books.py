@@ -92,6 +92,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/books", tags=["books"])
 
 MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # 200 MB
+_UPLOAD_CHUNK_BYTES = 1024 * 1024  # 1 MB, streamed to avoid buffering the whole file
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -628,15 +629,17 @@ async def upload_book(
 
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
-        content = await file.read()
-        if len(content) > MAX_UPLOAD_BYTES:
-            tmp.close()
-            Path(tmp.name).unlink(missing_ok=True)
-            raise HTTPException(
-                status_code=413,
-                detail=f"File too large (max {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
-            )
-        tmp.write(content)
+        total_bytes = 0
+        while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+            total_bytes += len(chunk)
+            if total_bytes > MAX_UPLOAD_BYTES:
+                tmp.close()
+                Path(tmp.name).unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large (max {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
+                )
+            tmp.write(chunk)
         tmp.close()
     except HTTPException:
         raise

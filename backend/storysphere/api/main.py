@@ -189,15 +189,19 @@ def create_app() -> FastAPI:
         title="StorySphere API",
         description="Intelligent novel analysis system — HTTP & WebSocket API",
         version="1.0.0",
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url="/docs" if settings.is_development else None,
+        redoc_url="/redoc" if settings.is_development else None,
         lifespan=lifespan,
     )
 
     # ── CORS ──────────────────────────────────────────────────────────────
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if settings.is_development else [],
+        allow_origins=(
+            ["http://localhost:5173", "http://127.0.0.1:5173"]
+            if settings.is_development
+            else []
+        ),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

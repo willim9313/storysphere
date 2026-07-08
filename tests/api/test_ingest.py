@@ -96,6 +96,22 @@ def test_ingest_without_author_still_accepted(client):
     assert resp.status_code == 202
 
 
+def test_ingest_rejects_file_over_size_limit(client, monkeypatch):
+    """Oversized uploads are rejected with 413. The limit is monkeypatched to a
+    small value so the test doesn't need to allocate a real multi-MB payload."""
+    from storysphere.api.routers import books as books_router
+
+    monkeypatch.setattr(books_router, "MAX_UPLOAD_BYTES", 10)
+    payload = b"x" * 100
+    resp = client.post(
+        "/api/v1/books/upload",
+        data={"title": "Too Big Novel"},
+        files={"file": ("novel.pdf", io.BytesIO(payload), "application/pdf")},
+    )
+    assert resp.status_code == 413
+    assert "too large" in resp.json()["detail"].lower()
+
+
 # ── Duplicate title detection (warn, don't block) ───────────────────────────
 
 

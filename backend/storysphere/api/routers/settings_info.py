@@ -6,6 +6,7 @@ GET /api/v1/settings/info
 from __future__ import annotations
 
 from importlib.metadata import version as _pkg_version
+from urllib.parse import urlsplit
 
 from fastapi import APIRouter
 
@@ -19,6 +20,22 @@ def _v(pkg: str) -> str:
         return _pkg_version(pkg)
     except Exception:
         return "?"
+
+
+def _mask_db_url(url: str) -> str:
+    """Mask a database URL, keeping only the scheme and host (no credentials or path).
+
+    Examples:
+        postgres://user:pass@db.host:5432/mydb -> postgres://db.host:5432
+        sqlite+aiosqlite:///var/app.db          -> sqlite+aiosqlite://
+    """
+    if not url:
+        return ""
+    parts = urlsplit(url)
+    if parts.hostname:
+        host = parts.hostname if not parts.port else f"{parts.hostname}:{parts.port}"
+        return f"{parts.scheme}://{host}"
+    return f"{parts.scheme}://"
 
 
 @router.get("/info")
@@ -72,7 +89,7 @@ async def get_settings_info() -> SettingsInfoResponse:
         analysis_temperature=s.analysis_temperature,
         chat_agent_temperature=s.chat_agent_temperature,
         local_llm_model=s.local_llm_model or "(none)",
-        database_url=s.database_url,
+        database_url=_mask_db_url(s.database_url),
         analysis_cache_db_path=s.analysis_cache_db_path,
         qdrant_local_path=s.qdrant_local_path,
         kg_persistence_path=s.kg_persistence_path,

@@ -11,6 +11,9 @@
 .env
 .env.local
 .env.*.local
+*.pem
+*.key
+credentials*
 
 # ========== Python ==========
 __pycache__/
