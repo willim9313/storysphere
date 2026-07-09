@@ -189,6 +189,11 @@ export interface paths {
          *     chapter detection and does not create a background task — this is a
          *     lightweight, synchronous preview call so the upload form's language
          *     dropdown can be pre-selected instead of defaulting to blank.
+         *
+         *     The whole file is streamed to a temp file (bounded by MAX_UPLOAD_BYTES)
+         *     before parsing: DOCX/EPUB are ZIP containers and PDF keeps its xref table
+         *     at the end, so a truncated sample would corrupt the container and make the
+         *     loader silently fall back to English. Sampling happens on the loaded text.
          */
         post: operations["detect_language_from_upload_api_v1_books_detect_language_post"];
         delete?: never;
@@ -3339,6 +3344,13 @@ export interface components {
              */
             roleOverrides: {
                 [key: string]: string;
+            };
+            /**
+             * Paragraphsplits
+             * @default {}
+             */
+            paragraphSplits: {
+                [key: string]: number[];
             };
         };
         /** RunInferenceRequest */

@@ -82,6 +82,7 @@ async def chapter_review_node(state: IngestionState) -> dict:
     from storysphere.api.store import task_store  # noqa: PLC0415
     from storysphere.services.document_service import DocumentService  # noqa: PLC0415
     from storysphere.workflows.ingestion import (  # noqa: PLC0415
+        _apply_paragraph_splits,
         _apply_role_overrides,
         _rebuild_chapters,
     )
@@ -93,14 +94,19 @@ async def chapter_review_node(state: IngestionState) -> dict:
         if isinstance(resume_value, list):
             chapters_data = resume_value
             role_overrides: dict[str, str] = {}
+            paragraph_splits: dict[str, list[int]] = {}
         else:
             chapters_data = resume_value.get("chapters", [])
             role_overrides = resume_value.get("role_overrides", {})
+            paragraph_splits = resume_value.get("paragraph_splits", {})
 
         doc_svc = DocumentService()
         await doc_svc.init_db()
         doc = await doc_svc.get_document(state["doc_id"])
         if doc is not None:
+            # Splits first: role_overrides and chapters_data indices refer to
+            # the post-split flat paragraph order.
+            _apply_paragraph_splits(doc, paragraph_splits)
             _apply_role_overrides(doc, role_overrides)
             doc.chapters = _rebuild_chapters(doc, chapters_data)
             await doc_svc.replace_chapters(doc)

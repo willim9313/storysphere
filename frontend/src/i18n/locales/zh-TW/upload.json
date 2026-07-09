@@ -35,6 +35,9 @@
     "chapterTitlePlaceholder": "（章標題）",
     "paraCount": "{{n}} 段",
     "splitHere": "在此分章",
+    "splitSelection": "✂ 切分為新段落",
+    "splitBanner": "已於選取處切出新段落，可用段落間的「＋」在此分章",
+    "splitUndo": "復原切分",
     "mergePrev": "↑ 併上",
     "mergeNext": "↓ 併下",
     "mergePrevTitle": "併入上一章",
@@ -81,7 +84,7 @@
     "suggestError": "辨識失敗，請稍後再試。",
     "glossaryToggle": "不確定「章」跟「段」的角色該選哪個？點這裡看說明",
     "glossaryTag": "章節角色 · 段落角色對照",
-    "glossaryIntro": "一本書由多個「章」組成，每章角色決定整章是否進入閱讀頁與分析。「段」角色則是在單一章節內部標記例外（例如某段其實是題詞、不算正文），兩者互不影響對方的顯示。",
+    "glossaryIntro": "一本書由多個「章」組成，每章角色決定整章是否進入閱讀頁與分析：非正文章節（目錄、序…）整章排除，裡面的段落一律不會被讀取。「段」角色只在正文章節內生效，用來標記章內例外（例如某段其實是題辭、不算敘事）——所以先標對章角色；非正文章節內的段角色不用逐段調整。",
     "glossaryChHead": "章節角色 · 整章適用",
     "glossaryPaHead": "段落角色 · 章內例外標記",
     "chDesc": {

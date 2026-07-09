@@ -1829,8 +1829,17 @@ interface ChapterDistribution {
     startParagraphIndex: number;  // book-level global index
   }>;
   roleOverrides: Record<string, string>;  // str(globalParagraphIdx) → 段落層級 role value; omitted = {}
+  paragraphSplits: Record<string, number[]>;  // str(原globalParagraphIdx) → 段內切分字元 offset（升冪）; omitted = {}
 }
 ```
+
+**`paragraphSplits`（段內切分）**：預處理可能把多個邏輯段落融成一段，導致章節
+邊界困在段落中間。前端「選取文字 → 切分為新段落」產生此欄位：key 為**切分前**
+的全域段落索引，value 為該段內的切分字元 offset。後端 resume 時**先**依此切開
+段落（新段落繼承原角色、`titleSpan` 依 offset 調整），**再**套用 `roleOverrides`
+與 `chapters`——因此 `startParagraphIndex` 與 `roleOverrides` 的索引一律指
+**切分後**的 flat 順序。無效項目（索引不存在、offset 越界／未排序、切出純空白
+片段）忽略不套用，不會使 resume 失敗。
 
 **Response 204**：無 body
 

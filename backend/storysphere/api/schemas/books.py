@@ -101,6 +101,10 @@ class ReviewSubmitRequest(BaseModel):
 
     chapters: list[ReviewChapterInput]
     role_overrides: dict[str, str] = {}  # str(globalIdx) → role value
+    # str(pre-split globalIdx) → ascending char offsets to split that paragraph
+    # at. Splits are applied first; chapters/role_overrides use post-split
+    # indices. Optional so old payloads keep working unchanged.
+    paragraph_splits: dict[str, list[int]] = {}
 
 
 class SuggestRolesResponse(BaseModel):

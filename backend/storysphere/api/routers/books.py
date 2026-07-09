@@ -541,6 +541,7 @@ async def submit_review(
     resume_value = {
         "chapters": [ch.model_dump(by_alias=False) for ch in body.chapters],
         "role_overrides": body.role_overrides,
+        "paragraph_splits": body.paragraph_splits,
     }
     # Await the write so the frontend sees 'running' on its very next poll —
     # the sync fire-and-forget path would race with the immediately-following navigate.

@@ -516,3 +516,53 @@ class TestSubmitReviewRoleOverrides:
         assert resp.status_code == 204
         _, resume_value = mock_resume.call_args[0]
         assert resume_value["chapters"][0]["role"] == "toc"
+
+
+# ── POST /review: paragraphSplits ─────────────────────────────────────────────
+
+
+class TestSubmitReviewParagraphSplits:
+    """paragraphSplits field is accepted (204) and forwarded to the graph resume."""
+
+    def _setup_awaiting(self) -> tuple[str, str]:
+        """Return a fresh (book_id, task_id) pair so each test is isolated."""
+        import uuid
+
+        from storysphere.api.store import task_store
+        book_id = f"book-split-{uuid.uuid4()}"
+        task_id = f"task-split-{uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, book_id)
+        return book_id, task_id
+
+    def test_paragraph_splits_accepted_with_204(self, client):
+        book_id, _ = self._setup_awaiting()
+        payload = {
+            "chapters": [{"title": "Ch1", "startParagraphIndex": 0}],
+            "paragraphSplits": {"3": [120, 456]},
+        }
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+
+    def test_omitting_paragraph_splits_accepted(self, client):
+        """paragraphSplits is optional; omitting it defaults to {}."""
+        book_id, _ = self._setup_awaiting()
+        payload = {"chapters": [{"title": "Ch1", "startParagraphIndex": 0}]}
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+        _, resume_value = mock_resume.call_args[0]
+        assert resume_value["paragraph_splits"] == {}
+
+    def test_paragraph_splits_forwarded_in_resume_value(self, client):
+        book_id, _ = self._setup_awaiting()
+        payload = {
+            "chapters": [{"title": "Ch1", "startParagraphIndex": 0}],
+            "paragraphSplits": {"0": [42], "5": [10, 20]},
+        }
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+        _, resume_value = mock_resume.call_args[0]
+        assert resume_value["paragraph_splits"] == {"0": [42], "5": [10, 20]}

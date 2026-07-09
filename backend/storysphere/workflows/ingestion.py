@@ -25,7 +25,7 @@ from pathlib import Path
 
 from storysphere.api.schemas.common import MurmurEvent
 from storysphere.core.tracing import update_span as _lf_update_span
-from storysphere.domain.documents import Chapter, Document, StepStatus
+from storysphere.domain.documents import Chapter, Document, Paragraph, StepStatus
 from storysphere.domain.timeline import TimelineConfig, TimelineDetectionResult
 from storysphere.pipelines.document_processing import DocumentProcessingPipeline
 from storysphere.pipelines.feature_extraction import FeatureExtractionPipeline
@@ -73,6 +73,64 @@ class IngestionResult:
     @property
     def success(self) -> bool:
         return len(self.errors) == 0
+
+
+def _apply_paragraph_splits(doc: Document, splits: dict[str, list[int]]) -> None:
+    """Split paragraphs of *doc* in place at reviewer-chosen char offsets.
+
+    *splits* maps str(global_paragraph_index) — in the same flat order as
+    _rebuild_chapters, *before* any split — to ascending char offsets within
+    that paragraph's text. Must run before _apply_role_overrides and
+    _rebuild_chapters, whose indices refer to the post-split flat order.
+
+    Invalid entries (bad index, out-of-range/unsorted offsets, or offsets that
+    would produce a whitespace-only piece) are ignored rather than failing the
+    resume: the reviewer's other edits still apply.
+    """
+    if not splits:
+        return
+
+    def _valid_offsets(text: str, offsets: list[int]) -> list[int] | None:
+        if offsets != sorted(set(offsets)):
+            return None
+        if any(not isinstance(o, int) or o <= 0 or o >= len(text) for o in offsets):
+            return None
+        bounds = [0, *offsets, len(text)]
+        pieces = [text[a:b] for a, b in zip(bounds, bounds[1:], strict=False)]
+        if any(not p.strip() for p in pieces):
+            return None
+        return offsets
+
+    global_idx = 0
+    for chapter in doc.chapters:
+        new_paras: list[Paragraph] = []
+        for para in chapter.paragraphs:
+            offsets = splits.get(str(global_idx))
+            global_idx += 1
+            if offsets is not None:
+                offsets = _valid_offsets(para.text, offsets)
+            if offsets is None:
+                new_paras.append(para)
+                continue
+            bounds = [0, *offsets, len(para.text)]
+            for start, end in zip(bounds, bounds[1:], strict=False):
+                span = para.title_span
+                if span is not None and (span[0] < start or span[1] > end):
+                    span = None  # title no longer fully inside this piece
+                elif span is not None:
+                    span = (span[0] - start, span[1] - start)
+                new_paras.append(
+                    Paragraph(
+                        text=para.text[start:end],
+                        chapter_number=para.chapter_number,
+                        position=0,  # repaired below
+                        role=para.role,
+                        title_span=span,
+                    )
+                )
+        for pos, para in enumerate(new_paras):
+            para.position = pos
+        chapter.paragraphs = new_paras
 
 
 def _apply_role_overrides(doc: Document, role_overrides: dict[str, str]) -> None:

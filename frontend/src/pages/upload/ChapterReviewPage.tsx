@@ -5,13 +5,16 @@ import { Check, ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-reac
 import { fetchReviewData, submitReview, suggestRoles } from '@/api/ingest';
 import type { SuggestRolesResponse } from '@/api/ingest';
 import { deleteBook } from '@/api/books';
-import type { ReviewChapter, ReviewSubmitChapter } from '@/api/types';
+import type { ReviewChapter } from '@/api/types';
 import { applyBoundaries } from './applyBoundaries';
+import { buildSubmitPayload, normalizeSplitOffsets, pieceKey, splitPiece } from './paragraphSplits';
 
 const CHAPTER_ROLES = ['body', 'toc', 'preface', 'afterword', 'other'] as const;
 const PARA_ROLES = ['body', 'separator', 'section', 'epigraph', 'preamble'] as const;
 
 type Phase = 'reviewing' | 'submitting' | 'cancelling' | 'error';
+/** A validated in-paragraph text selection, plus where to float the split button. */
+type SelSplit = { ci: number; pi: number; start: number; end: number; x: number; y: number };
 type AiStatus = 'idle' | 'loading' | 'done';
 type NoteKind = 'info' | 'success' | 'error';
 type Note = { text: string; kind: NoteKind } | null;
@@ -61,6 +64,11 @@ export default function ChapterReviewPage() {
   const [aiNote, setAiNote] = useState<Note>(null);
   const [submitted, setSubmitted] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [selSplit, setSelSplit] = useState<SelSplit | null>(null);
+  // Chapters snapshot taken just before an in-paragraph split, for one-step
+  // undo. Cleared by any other structure/role mutation so undo can't silently
+  // discard later edits.
+  const [undoChapters, setUndoChapters] = useState<ReviewChapter[] | null>(null);
 
   // Original paragraph roles, captured at load, so submit can derive the
   // sparse roleOverrides map (paragraphIndex → role) for changed paragraphs.
@@ -86,6 +94,7 @@ export default function ChapterReviewPage() {
 
   // ── Structure mutations ──────────────────────────────────────────────────
   const splitAt = useCallback((ci: number, pi: number) => {
+    setUndoChapters(null);
     setChapters((prev) => {
       const ch = prev[ci];
       if (!ch || pi <= 0 || pi >= ch.paragraphs.length) return prev;
@@ -94,13 +103,16 @@ export default function ChapterReviewPage() {
       const first = tail[0];
       const title =
         first.titleSpan ? first.text.slice(first.titleSpan[0], first.titleSpan[1]).trim() || null : null;
-      const added: ReviewChapter = { chapterIdx: ci + 1, title, role: 'body', paragraphs: tail };
+      // Inherit the source chapter's role: splitting a non-body block (e.g. a
+      // fused front-matter chapter) should yield non-body chapters, not body.
+      const added: ReviewChapter = { chapterIdx: ci + 1, title, role: ch.role ?? 'body', paragraphs: tail };
       return reindex([...prev.slice(0, ci), head, added, ...prev.slice(ci + 1)]);
     });
     setSelCi(ci + 1);
   }, []);
 
   const mergeIntoPrev = useCallback((ci: number) => {
+    setUndoChapters(null);
     setChapters((prev) => {
       if (ci <= 0 || ci >= prev.length) return prev;
       const merged = { ...prev[ci - 1], paragraphs: [...prev[ci - 1].paragraphs, ...prev[ci].paragraphs] };
@@ -110,6 +122,7 @@ export default function ChapterReviewPage() {
   }, []);
 
   const mergeIntoNext = useCallback((ci: number) => {
+    setUndoChapters(null);
     setChapters((prev) => {
       if (ci < 0 || ci >= prev.length - 1) return prev;
       const merged = { ...prev[ci + 1], paragraphs: [...prev[ci].paragraphs, ...prev[ci + 1].paragraphs] };
@@ -119,14 +132,17 @@ export default function ChapterReviewPage() {
   }, []);
 
   const setChapterRole = useCallback((ci: number, role: string) => {
+    setUndoChapters(null);
     setChapters((prev) => prev.map((c, i) => (i === ci ? { ...c, role } : c)));
   }, []);
 
   const setChapterTitle = useCallback((ci: number, title: string) => {
+    setUndoChapters(null);
     setChapters((prev) => prev.map((c, i) => (i === ci ? { ...c, title } : c)));
   }, []);
 
   const setParaRole = useCallback((ci: number, pi: number, role: string) => {
+    setUndoChapters(null);
     setChapters((prev) =>
       prev.map((c, i) =>
         i === ci ? { ...c, paragraphs: c.paragraphs.map((p, j) => (j === pi ? { ...p, role } : p)) } : c,
@@ -159,6 +175,7 @@ export default function ChapterReviewPage() {
         setAiNote({ text: t('review.suggestNone'), kind: 'info' });
         return;
       }
+      setUndoChapters(null);
       setChapters((prev) => reindex(applyBoundaries(prev, b)));
       setAiStatus('done');
     } catch {
@@ -167,25 +184,103 @@ export default function ChapterReviewPage() {
     }
   }, [bookId, aiStatus, t]);
 
+  // ── In-paragraph split (selection → new paragraph) ───────────────────────
+  const handleSelectionEnd = useCallback(() => {
+    // Defer one frame so the browser has finalized the selection.
+    requestAnimationFrame(() => {
+      const sel = window.getSelection();
+      if (!sel || sel.isCollapsed || sel.rangeCount === 0) {
+        setSelSplit(null);
+        return;
+      }
+      const range = sel.getRangeAt(0);
+      const owner = (n: Node): HTMLElement | null =>
+        (n instanceof HTMLElement ? n : n.parentElement)?.closest('[data-para-ci]') ?? null;
+      // Anchor on the paragraph where the selection starts; fall back to the
+      // end one so drags that begin on a divider still resolve.
+      const el = owner(range.startContainer) ?? owner(range.endContainer);
+      if (!el) {
+        setSelSplit(null);
+        return;
+      }
+      // Clamp the selection to that paragraph instead of rejecting: drags
+      // routinely overshoot past the last character into the next block, and
+      // browsers then report the end container outside the paragraph element.
+      const content = document.createRange();
+      content.selectNodeContents(el);
+      const clamped = range.cloneRange();
+      if (clamped.compareBoundaryPoints(Range.START_TO_START, content) < 0) {
+        clamped.setStart(content.startContainer, content.startOffset);
+      }
+      if (clamped.compareBoundaryPoints(Range.END_TO_END, content) > 0) {
+        clamped.setEnd(content.endContainer, content.endOffset);
+      }
+      if (clamped.collapsed) {
+        setSelSplit(null);
+        return;
+      }
+      const ci = Number(el.dataset.paraCi);
+      const pi = Number(el.dataset.paraPi);
+      // Char offset of the selection inside the piece's full text: measure the
+      // text length of a range spanning from the element start to the selection
+      // start (robust across the title/body span structure).
+      const pre = document.createRange();
+      pre.selectNodeContents(el);
+      pre.setEnd(clamped.startContainer, clamped.startOffset);
+      const start = pre.toString().length;
+      const end = start + clamped.toString().length;
+      const p = chapters[ci]?.paragraphs[pi];
+      if (!p || !normalizeSplitOffsets(p, start, end)) {
+        setSelSplit(null);
+        return;
+      }
+      const r = clamped.getBoundingClientRect();
+      setSelSplit({
+        ci,
+        pi,
+        start,
+        end,
+        x: Math.min(Math.max(r.left + r.width / 2, 90), window.innerWidth - 90),
+        y: Math.min(r.bottom + 8, window.innerHeight - 44),
+      });
+    });
+  }, [chapters]);
+
+  // Listen on document, not the reading column: a drag that ends outside the
+  // column (spine, toolbar, beyond the window edge) still finalizes there.
+  useEffect(() => {
+    document.addEventListener('mouseup', handleSelectionEnd);
+    return () => document.removeEventListener('mouseup', handleSelectionEnd);
+  }, [handleSelectionEnd]);
+
+  const handleSplitSelection = useCallback(() => {
+    if (!selSplit) return;
+    const next = splitPiece(chapters, selSplit.ci, selSplit.pi, selSplit.start, selSplit.end);
+    setSelSplit(null);
+    window.getSelection()?.removeAllRanges();
+    if (!next) return;
+    setUndoChapters(chapters);
+    setChapters(reindex(next));
+  }, [selSplit, chapters]);
+
+  const handleUndoSplit = useCallback(() => {
+    if (!undoChapters) return;
+    setChapters(undoChapters);
+    setUndoChapters(null);
+  }, [undoChapters]);
+
   // ── Submit / discard ─────────────────────────────────────────────────────
   const handleSubmit = useCallback(async () => {
     if (!bookId) return;
     setPhase('submitting');
+    setSelSplit(null);
+    setUndoChapters(null);
     try {
-      const payload: ReviewSubmitChapter[] = chapters.map((ch) => ({
-        title: ch.title ?? '',
-        role: ch.role ?? 'body',
-        startParagraphIndex: ch.paragraphs[0]?.paragraphIndex ?? 0,
-      }));
-      const roleOverrides: Record<string, string> = {};
-      for (const ch of chapters) {
-        for (const p of ch.paragraphs) {
-          const original = originalRolesRef.current[p.paragraphIndex] ?? 'body';
-          const current = p.role ?? 'body';
-          if (current !== original) roleOverrides[String(p.paragraphIndex)] = current;
-        }
-      }
-      await submitReview(bookId, payload, roleOverrides);
+      const { chapters: payload, roleOverrides, paragraphSplits } = buildSubmitPayload(
+        chapters,
+        originalRolesRef.current,
+      );
+      await submitReview(bookId, payload, roleOverrides, paragraphSplits);
       setSubmitted(true);
       setTimeout(() => navigate(taskId ? `/upload#${taskId}` : '/upload'), 600);
     } catch {
@@ -301,6 +396,16 @@ export default function ChapterReviewPage() {
         </div>
       )}
 
+      {/* Undo bar for the last in-paragraph split */}
+      {undoChapters && !busy && (
+        <div className="cr-banner" style={{ background: BANNER_COLORS.info.bg, color: BANNER_COLORS.info.fg }}>
+          <span>{t('review.splitBanner')}</span>
+          <button className="cr-undo-split" onClick={handleUndoSplit}>
+            {t('review.splitUndo')}
+          </button>
+        </div>
+      )}
+
       {/* Discard confirmation */}
       {confirmDiscard && (
         <div className="cr-confirm">
@@ -375,7 +480,11 @@ export default function ChapterReviewPage() {
         </aside>
 
         {/* Reading column */}
-        <div className="cr-read" ref={readRef}>
+        <div
+          className="cr-read"
+          ref={readRef}
+          onScroll={() => setSelSplit((s) => (s ? null : s))}
+        >
           <div className="cr-read-inner">
             {/* Info row + on-demand role guide (opens as an overlay, so it
                 never pushes the reading flow down) */}
@@ -434,7 +543,7 @@ export default function ChapterReviewPage() {
             )}
 
             {/* Chapters */}
-            {view.rows.map(({ ch, ci, isBody, headLabel }) => (
+            {view.rows.map(({ ch, ci, headLabel }) => (
               <div key={ci} data-chapter-anchor={ci} style={{ scrollMarginTop: 8 }}>
                 <div
                   className="cr-divider"
@@ -486,15 +595,15 @@ export default function ChapterReviewPage() {
                   const titlePart = p.titleSpan ? p.text.slice(p.titleSpan[0], p.titleSpan[1]) : null;
                   const bodyPart = p.titleSpan ? p.text.slice(p.titleSpan[1]) : p.text;
                   return (
-                    <div className="cr-para" key={p.paragraphIndex} style={{ opacity: pIsBody ? 1 : 0.55 }}>
+                    <div className="cr-para" key={pieceKey(p)} style={{ opacity: pIsBody ? 1 : 0.55 }}>
                       <div className="cr-split-gutter">
-                        {isBody && pi > 0 && (
+                        {pi > 0 && (
                           <button className="cr-split" title={t('review.splitHere')} onClick={() => splitAt(ci, pi)}>
                             ＋
                           </button>
                         )}
                       </div>
-                      <div className="cr-para-text">
+                      <div className="cr-para-text" data-para-ci={ci} data-para-pi={pi}>
                         {titlePart && <span style={{ fontWeight: 700 }}>{titlePart}</span>}
                         {bodyPart}
                       </div>
@@ -520,6 +629,20 @@ export default function ChapterReviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Floating action for a validated in-paragraph selection. Lives outside
+          .cr-read so clicking it doesn't retrigger the selection handler;
+          mousedown is swallowed so the selection survives until onClick. */}
+      {selSplit && phase === 'reviewing' && !submitted && (
+        <button
+          className="cr-splitsel"
+          style={{ left: selSplit.x, top: selSplit.y }}
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={handleSplitSelection}
+        >
+          {t('review.splitSelection')}
+        </button>
+      )}
     </div>
   );
 }
@@ -549,7 +672,11 @@ const CR_STYLES = `
 .cr-btn-submit { padding:6px 14px; border:1px solid var(--accent); background:var(--accent); color:#fff; font-weight:700; }
 .cr-btn-submit:not(:disabled):hover { opacity:.88; }
 
-.cr-banner { flex:0 0 auto; padding:7px 14px; font:600 11.5px var(--font-sans); border-bottom:1px solid var(--border); }
+.cr-banner { flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:7px 14px; font:600 11.5px var(--font-sans); border-bottom:1px solid var(--border); }
+.cr-undo-split { flex:0 0 auto; padding:3px 10px; border:1px solid currentColor; border-radius:var(--radius-sm); background:transparent; color:inherit; font:700 11px var(--font-sans); cursor:pointer; }
+.cr-undo-split:hover { background:var(--bg-primary); }
+.cr-splitsel { position:fixed; z-index:20; transform:translateX(-50%); padding:6px 12px; border:1px solid var(--accent); border-radius:999px; background:var(--accent); color:#fff; font:700 11.5px var(--font-sans); cursor:pointer; box-shadow:var(--shadow-lg); white-space:nowrap; }
+.cr-splitsel:hover { opacity:.88; }
 .cr-confirm { flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:8px 14px; background:var(--color-error-bg); border-bottom:1px solid var(--color-error); }
 .cr-confirm-yes { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border:none; border-radius:var(--radius-sm); background:var(--color-error); color:#fff; font:700 11px var(--font-sans); cursor:pointer; }
 .cr-confirm-no { padding:4px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--fg-secondary); font:600 11px var(--font-sans); cursor:pointer; }

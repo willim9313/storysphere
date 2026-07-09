@@ -48,11 +48,12 @@ export function submitReview(
   bookId: string,
   chapters: import('./types').ReviewSubmitChapter[],
   roleOverrides: Record<string, string> = {},
+  paragraphSplits: Record<string, number[]> = {},
 ): Promise<void> {
   return apiFetch<void>(`/books/${bookId}/review`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chapters, roleOverrides }),
+    body: JSON.stringify({ chapters, roleOverrides, paragraphSplits }),
   });
 }
 
