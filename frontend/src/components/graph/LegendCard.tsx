@@ -2,7 +2,19 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { EntityType, GraphData } from '@/api/types';
 
-const LEGEND_TYPES: EntityType[] = ['character', 'location', 'concept', 'event'];
+// 設計 contract（README「Graph legend covers all 7 types」）：圖例必須涵蓋
+// 完整 7 類，不得只列 4 類 demo 子集。
+const LEGEND_TYPES: EntityType[] = ['character', 'location', 'organization', 'object', 'concept', 'event', 'other'];
+
+const TYPE_KEY: Record<EntityType, string> = {
+  character: 'char',
+  location: 'loc',
+  organization: 'org',
+  object: 'obj',
+  concept: 'con',
+  event: 'evt',
+  other: 'other',
+};
 
 interface LegendCardProps {
   graph: GraphData | undefined;
@@ -61,7 +73,7 @@ export function LegendCard({
         {t('v1.legend.title')}
       </div>
       {LEGEND_TYPES.map((type) => {
-        const dotKey = type === 'concept' ? 'con' : type === 'event' ? 'evt' : type === 'location' ? 'loc' : 'char';
+        const dotKey = TYPE_KEY[type];
         const visible = visibleTypes.has(type);
         return (
           <button
@@ -80,9 +92,10 @@ export function LegendCard({
             <span
               className="inline-block rounded-full flex-shrink-0"
               style={{
-                width: 9,
-                height: 9,
-                backgroundColor: `var(--entity-${dotKey}-dot, var(--graph-${dotKey}-fill, var(--accent)))`,
+                width: 12,
+                height: 12,
+                backgroundColor: `var(--graph-${dotKey}-fill)`,
+                border: `var(--line-weight) solid var(--graph-${dotKey}-stroke)`,
               }}
             />
             <span className="flex-1">{t(`entityTypes.${type}`)}</span>

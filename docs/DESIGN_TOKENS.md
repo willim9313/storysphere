@@ -57,6 +57,16 @@
 | `--accent` | `#b05a34`（焦赭） | `#111111` |
 | `--accent-fg` | `#f8f3e7` | `#ffffff` |
 
+### 3.3.1 Focus Ring（鍵盤 a11y）
+
+全站單一規格，經 `global.css` 的 `:where(a, button, input, select, textarea, [tabindex]):focus-visible` 套用為 `outline`。與較柔和的 selected-state ring（`--timeline-selected-ring`）是兩件事：focus 是俐落的實線外框、selection 是半透明光暈。
+
+| Token | warm | ink |
+|-------|------|-----|
+| `--focus-ring-color` | `#b05a34` | `#151515` |
+| `--focus-ring-width` | `2px` | 繼承 |
+| `--focus-ring-offset` | `2px` | 繼承 |
+
 ### 3.4 工具面板
 
 | Token | warm | ink |
@@ -273,6 +283,8 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--timeline-causal-stroke` | `#b05a34` | `#151515` |
 | `--timeline-selected-ring` | `rgba(176,90,52,0.3)` | `rgba(0,0,0,0.2)` |
 | `--shadow-sm/md/lg` | 暖影 `rgba(42,38,32,0.07–0.11)` | 中性 `rgba(0,0,0,0.08–0.12)` |
+| `--splash-image-opacity` | `0.22` | `0.10` |
+| `--splash-image-filter` | `sepia(0.15) contrast(0.95)` | `grayscale(1) contrast(1.2)` |
 
 ---
 
@@ -283,6 +295,9 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `ink` | Badge | 單色 badge 外加 `--border-width` 墨線外框（`[data-theme="ink"] .ss-badge` 模式，見設計 kit.css） |
 | `ink` | Danger 按鈕 | `--color-error` 在 ink 為單色，`.ss-btn-danger` 轉為 `--fg-primary` 外框樣式 |
 | 共通 | KG 節點 | `border-width` 讀 `--line-weight`（兩主題皆 1px）；`--node-shadow` 恆 `none`；entity/graph 色兩主題共用 |
+| 共通 | KG 圖例 | **必須涵蓋完整 7 類**（4 類 demo 子集不是 spec）；swatch = 12px 圓、`--graph-*-fill` 底 + `--graph-*-stroke` 框（repo `LegendCard.tsx`） |
+| 共通 | 行內實體標註 | `.entity-mark`（= contract `.ss-emark`）：`text-decoration` 1.5px 底線、offset 2px、hover 浮出類型淡色塊；內文用 mark、其餘場景用 pill |
+| 共通 | Caveat 落點 | 僅限插畫時刻：Library empty-state 標語（`--font-hand` @ `--font-size-xl`）、doodle 標註、splash 花飾；不進 chrome 與正文 |
 
 ---
 

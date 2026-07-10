@@ -10,7 +10,7 @@
   },
   "empty": {
     "title": "No books in library",
-    "description": "Upload a novel to start intelligent analysis."
+    "description": "Drop in a PDF — the story starts here"
   },
   "card": {
     "chapters": "ch",

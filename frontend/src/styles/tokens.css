@@ -28,6 +28,13 @@
   --accent:       #b05a34;   /* burnt sienna */
   --accent-fg:    #f8f3e7;   /* 置於 accent 上的文字（= bg-primary，同 kit btn-primary） */
 
+  /* Focus ring — 鍵盤 a11y，全站單一規格，經 :focus-visible 套用
+     （見 global.css）。與較柔和的 selected-state ring
+     （--timeline-selected-ring）是兩件事。 */
+  --focus-ring-color:  #b05a34;
+  --focus-ring-width:  2px;
+  --focus-ring-offset: 2px;
+
   /* Panels（graph 側板、settings 卡） */
   --panel-bg:       #efe6d3;
   --panel-bg-card:  #e7dcc6;
@@ -154,6 +161,10 @@
   --status-empty-border:    #ddceb2;
   --status-empty-fg:        #938876;
 
+  /* Splash wash — 線稿插畫「輕輕地」墊在字標後面的程度 */
+  --splash-image-opacity: 0.22;
+  --splash-image-filter:  sepia(0.15) contrast(0.95);
+
   /* ── Illustration language ──
      線稿插畫（empty state、splash、section mark）的描邊 token：
      細墨線、不填色、略鬆。SVG stroke/weight 一律取用這組。 */
@@ -270,6 +281,7 @@
   --border: #1a1a1a;
   --accent: #111111;
   --accent-fg: #ffffff;
+  --focus-ring-color: #151515;
 
   --panel-bg:       #f6f6f4;
   --panel-bg-card:  #ededeb;
@@ -339,6 +351,10 @@
   --booker-fg:     #151515;
   --booker-border: #1a1a1a;
   --booker-accent: #111111;
+
+  /* Splash wash — 灰階、更淡（白紙上的純墨線） */
+  --splash-image-opacity: 0.10;
+  --splash-image-filter:  grayscale(1) contrast(1.2);
 
   /* Illustration — 白紙上的純墨線 */
   --illustration-stroke:      #151515;

@@ -49,10 +49,9 @@
 
 /* Warm: line art sits gently on paper. Ink: pure ink line on white. */
 .splash-bg-img {
-  opacity: 0.22;
-  filter: sepia(0.15) contrast(0.95);
+  opacity: var(--splash-image-opacity);
+  filter: var(--splash-image-filter);
 }
-[data-theme="ink"] .splash-bg-img { opacity: 0.10; filter: grayscale(1) contrast(1.2); }
 
 .splash-loader-track {
   width: 90px;
@@ -68,6 +67,13 @@
   height: 100%;
   background: var(--accent);
   animation: splash-bar 1.4s ease-in-out infinite;
+}
+
+/* ── Focus ring — 鍵盤 a11y（:focus-visible 才畫，滑鼠點擊不出現）。
+   :where() 零 specificity：元件自帶的 focus 樣式可蓋過它。 ── */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 @layer components {
@@ -181,36 +187,35 @@
 
   /* ── 內文行內實體標註 ──────────────────────────────────────────
      有別於 chips 用的 .pill：閱讀時預設只有一條細底線（不搶字流），
-     hover 才浮出該類型的淡色塊。文字沿用正文色以維持可讀性。 */
+     hover 才浮出該類型的淡色塊。文字沿用正文色以維持可讀性。
+     機制對齊設計 kit 的 .ss-emark：text-decoration 底線（1.5px、
+     offset 2px），per-type 色值走 --emark-dot / --emark-bg。 */
   .entity-mark {
     background: transparent;
     color: inherit;
-    border-bottom: 1.5px solid transparent;
-    border-radius: 3px;
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--emark-dot, transparent);
+    border-radius: 2px;
     padding: 0 1px;
     cursor: default;
-    transition: background-color 0.12s ease;
+    transition: background-color var(--transition-fast);
   }
-  .entity-mark-char { border-bottom-color: var(--entity-char-dot); }
-  .entity-mark-char:hover { background: var(--entity-char-bg); }
-  .entity-mark-loc { border-bottom-color: var(--entity-loc-dot); }
-  .entity-mark-loc:hover { background: var(--entity-loc-bg); }
-  .entity-mark-con { border-bottom-color: var(--entity-con-dot); }
-  .entity-mark-con:hover { background: var(--entity-con-bg); }
-  .entity-mark-evt { border-bottom-color: var(--entity-evt-dot); }
-  .entity-mark-evt:hover { background: var(--entity-evt-bg); }
-  .entity-mark-org { border-bottom-color: var(--entity-org-dot); }
-  .entity-mark-org:hover { background: var(--entity-org-bg); }
-  .entity-mark-obj { border-bottom-color: var(--entity-obj-dot); }
-  .entity-mark-obj:hover { background: var(--entity-obj-bg); }
-  .entity-mark-other { border-bottom-color: var(--entity-other-dot); }
-  .entity-mark-other:hover { background: var(--entity-other-bg); }
+  .entity-mark:hover { background: var(--emark-bg, transparent); }
+  .entity-mark-char  { --emark-dot: var(--entity-char-dot);  --emark-bg: var(--entity-char-bg); }
+  .entity-mark-loc   { --emark-dot: var(--entity-loc-dot);   --emark-bg: var(--entity-loc-bg); }
+  .entity-mark-con   { --emark-dot: var(--entity-con-dot);   --emark-bg: var(--entity-con-bg); }
+  .entity-mark-evt   { --emark-dot: var(--entity-evt-dot);   --emark-bg: var(--entity-evt-bg); }
+  .entity-mark-org   { --emark-dot: var(--entity-org-dot);   --emark-bg: var(--entity-org-bg); }
+  .entity-mark-obj   { --emark-dot: var(--entity-obj-dot);   --emark-bg: var(--entity-obj-bg); }
+  .entity-mark-other { --emark-dot: var(--entity-other-dot); --emark-bg: var(--entity-other-bg); }
 
   /* 標註密度：由容器 data-annotation-mode 控制（見 ReaderPage 開關）。
      "characters" 只留角色標註，"off" 全部純文字；被關閉者取消底線與 hover 色塊。 */
   [data-annotation-mode='characters'] .entity-mark:not(.entity-mark-char),
   [data-annotation-mode='off'] .entity-mark {
-    border-bottom-color: transparent;
+    text-decoration-color: transparent;
     cursor: text;
   }
   [data-annotation-mode='characters'] .entity-mark:not(.entity-mark-char):hover,
