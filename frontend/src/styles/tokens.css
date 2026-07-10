@@ -1,141 +1,159 @@
+/* ============================================================
+   StorySphere — Design Tokens  (v2 · "Ink on Paper")
+   兩主題系統：Warm（預設，:root）＋ Ink（[data-theme="ink"]）。
+   對照表見 docs/DESIGN_TOKENS.md；設計 contract 為 Claude Design
+   專案的 colors_and_type.css（entity token 在該 contract 用全名
+   --entity-character-*，本檔沿用 repo 既有縮寫 --entity-char-*）。
+
+   主題只置換兩層：palette（表面/墨色/accent/entity/status 色）與
+   component shape（圓角/線重/陰影）。字體、spacing、版面兩主題共用。
+   ============================================================ */
+
+/* ============================================================
+   WARM — 預設主題（暖象牙紙上的墨線）
+   ============================================================ */
 :root {
-  /* ── New Design Tokens (UI_SPEC) ─────────────────────────────── */
+  /* Surfaces — 暖象牙紙，三層 */
+  --bg-primary:   #f8f3e7;
+  --bg-secondary: #f1e8d5;
+  --bg-tertiary:  #e9ddc6;
 
-  /* Primary backgrounds */
-  --bg-primary:   #faf8f4;
-  --bg-secondary: #f4ede0;
-  --bg-tertiary:  #efe8d8;
+  /* Text — 暖墨 */
+  --fg-primary:   #2a2620;
+  --fg-secondary: #5f5648;
+  --fg-muted:     #938876;
 
-  /* Foreground / text */
-  --fg-primary:   #1c1814;
-  --fg-secondary: #5a4f42;
-  --fg-muted:     #8a7a68;
+  /* Line & accent */
+  --border:       #ddceb2;
+  --accent:       #b05a34;   /* burnt sienna */
+  --accent-fg:    #f8f3e7;   /* 置於 accent 上的文字（= bg-primary，同 kit btn-primary） */
 
-  /* Border */
-  --border:       #e0d4c4;
+  /* Panels（graph 側板、settings 卡） */
+  --panel-bg:       #efe6d3;
+  --panel-bg-card:  #e7dcc6;
+  --panel-border:   #d3c3a4;
+  --panel-fg:       #2a2620;
+  --panel-fg-muted: #938876;
 
-  /* Accent */
-  --accent:       #8b5e3c;
-  --accent-fg:    #ffffff;
+  /* Entity pills — 7 類低彩度 warm hue arc（clay→ochre→olive，rose & mauve）
+     值取自設計 contract 的 oklch 定義；Ink 主題刻意不覆寫（跨主題共用分類色） */
+  --entity-char-bg:    oklch(0.945 0.032 55);
+  --entity-char-border:oklch(0.83 0.055 52);
+  --entity-char-fg:    oklch(0.43 0.075 48);
+  --entity-char-dot:   oklch(0.62 0.105 50);
 
-  /* Panels (tool surfaces) */
-  --panel-bg:         #ede4d8;
-  --panel-bg-card:    #e4d9cc;
-  --panel-border:     #d4c8b8;
-  --panel-fg:         #1c1814;
-  --panel-fg-muted:   #8a7a68;
+  --entity-loc-bg:     oklch(0.945 0.030 118);
+  --entity-loc-border: oklch(0.83 0.050 118);
+  --entity-loc-fg:     oklch(0.43 0.060 120);
+  --entity-loc-dot:    oklch(0.58 0.075 120);
 
-  /* Entity pill node colors */
-  /* character — 寶藍 220° */
-  --entity-char-bg:    #eff6ff;
-  --entity-char-border:#bfdbfe;
-  --entity-char-fg:    #1e3a8a;
-  --entity-char-dot:   #2563eb;
+  --entity-org-bg:     oklch(0.950 0.038 85);
+  --entity-org-border: oklch(0.84 0.060 84);
+  --entity-org-fg:     oklch(0.45 0.070 80);
+  --entity-org-dot:    oklch(0.64 0.100 82);
 
-  /* location — 翠綠 155° */
-  --entity-loc-bg:     #ecfdf5;
-  --entity-loc-border: #6ee7b7;
-  --entity-loc-fg:     #064e3b;
-  --entity-loc-dot:    #059669;
+  --entity-obj-bg:     oklch(0.940 0.035 33);
+  --entity-obj-border: oklch(0.82 0.060 33);
+  --entity-obj-fg:     oklch(0.44 0.080 30);
+  --entity-obj-dot:    oklch(0.59 0.110 32);
 
-  /* organization — 琥珀 38° */
-  --entity-org-bg:     #fffbeb;
-  --entity-org-border: #fcd34d;
-  --entity-org-fg:     #78350f;
-  --entity-org-dot:    #d97706;
+  --entity-con-bg:     oklch(0.935 0.030 345);
+  --entity-con-border: oklch(0.81 0.050 345);
+  --entity-con-fg:     oklch(0.44 0.065 345);
+  --entity-con-dot:    oklch(0.57 0.090 348);
 
-  /* object — 洋紅 300° */
-  --entity-obj-bg:     #fdf4ff;
-  --entity-obj-border: #e879f9;
-  --entity-obj-fg:     #701a75;
-  --entity-obj-dot:    #c026d3;
+  --entity-evt-bg:     oklch(0.935 0.038 22);
+  --entity-evt-border: oklch(0.81 0.065 22);
+  --entity-evt-fg:     oklch(0.45 0.090 20);
+  --entity-evt-dot:    oklch(0.57 0.120 22);
 
-  /* concept — 靛紫 265° */
-  --entity-con-bg:     #f5f3ff;
-  --entity-con-border: #c4b5fd;
-  --entity-con-fg:     #4c1d95;
-  --entity-con-dot:    #7c3aed;
+  --entity-other-bg:     oklch(0.935 0.012 75);
+  --entity-other-border: oklch(0.81 0.020 72);
+  --entity-other-fg:     oklch(0.46 0.020 70);
+  --entity-other-dot:    oklch(0.58 0.030 70);
 
-  /* other — 石板灰 */
-  --entity-other-bg:     #f8fafc;
-  --entity-other-border: #cbd5e1;
-  --entity-other-fg:     #334155;
-  --entity-other-dot:    #64748b;
+  /* Graph node colors — 由 entity arc 派生（fill=bg、stroke=dot、label=fg）。
+     cytoscape 自帶 color parser 不支援 oklch，故此家族一律寫 sRGB hex
+     （由上方 oklch 值轉換而來），兩主題共用不覆寫。 */
+  --graph-char-fill:   #ffe8d9;
+  --graph-char-stroke: #b97249;
+  --graph-char-label:  #714229;
+  --graph-loc-fill:    #ebf0da;
+  --graph-loc-stroke:  #74814d;
+  --graph-loc-label:   #4b552e;
+  --graph-con-fill:    #f9e2ee;
+  --graph-con-stroke:  #9e6181;
+  --graph-con-label:   #6c445b;
+  --graph-evt-fill:    #ffe0de;
+  --graph-evt-stroke:  #b35757;
+  --graph-evt-label:   #803f40;
 
-  /* event — 緋紅（知識圖譜節點專用） */
-  --entity-evt-bg:     #fff1f2;
-  --entity-evt-border: #fecaca;
-  --entity-evt-fg:     #991b1b;
-  --entity-evt-dot:    #ef4444;
+  /* Symbol type pills（6 類）— 同一 warm arc 的重映射，跨主題共用 */
+  --symbol-object-bg:  oklch(0.940 0.035 33);  --symbol-object-fg:  oklch(0.44 0.080 30);  --symbol-object-dot:  oklch(0.59 0.110 32);
+  --symbol-nature-bg:  oklch(0.945 0.030 118); --symbol-nature-fg:  oklch(0.43 0.060 120); --symbol-nature-dot:  oklch(0.58 0.075 120);
+  --symbol-spatial-bg: oklch(0.950 0.038 85);  --symbol-spatial-fg: oklch(0.45 0.070 80);  --symbol-spatial-dot: oklch(0.64 0.100 82);
+  --symbol-body-bg:    oklch(0.935 0.038 22);  --symbol-body-fg:    oklch(0.45 0.090 20);  --symbol-body-dot:    oklch(0.57 0.120 22);
+  --symbol-color-bg:   oklch(0.935 0.030 345); --symbol-color-fg:   oklch(0.44 0.065 345); --symbol-color-dot:   oklch(0.57 0.090 348);
+  --symbol-other-bg:   oklch(0.935 0.012 75);  --symbol-other-fg:   oklch(0.46 0.020 70);  --symbol-other-dot:   oklch(0.58 0.030 70);
 
-  /* Graph node colors (fill / stroke / label) */
-  --graph-char-fill:   #dbeafe;
-  --graph-char-stroke: #3b82f6;
-  --graph-char-label:  #1e3a8a;
-  --graph-loc-fill:    #dcfce7;
-  --graph-loc-stroke:  #22c55e;
-  --graph-loc-label:   #064e3b;
-  --graph-con-fill:    #ede9fe;
-  --graph-con-stroke:  #8b5cf6;
-  --graph-con-label:   #4c1d95;
-  --graph-evt-fill:    #fee2e2;
-  --graph-evt-stroke:  #ef4444;
-  --graph-evt-label:   #991b1b;
+  /* Symbol polarity — 由 status 色系派生：positive=橄欖、negative=磚紅、
+     neutral=紙面、mixed=赭黃（設計規則：不發明新色相） */
+  --polarity-positive-bg: #eef1df; --polarity-positive-fg: #4a6330; --polarity-positive-edge: #b7c78e; --polarity-positive-dot: #5f7d3b;
+  --polarity-negative-bg: #f4e4da; --polarity-negative-fg: #8a3a22; --polarity-negative-edge: #d3a78f; --polarity-negative-dot: #a8482c;
+  --polarity-neutral-bg:  #f1e8d5; --polarity-neutral-fg:  #5f5648; --polarity-neutral-edge:  #ddceb2; --polarity-neutral-dot:  #938876;
+  --polarity-mixed-bg:    #f6edd6; --polarity-mixed-fg:    #8a5c13; --polarity-mixed-edge:    #dcc08a; --polarity-mixed-dot:    #ad7519;
 
-  /* Symbol type pill colors */
-  --symbol-object-bg:   #dbeafe; --symbol-object-fg:   #1e40af; --symbol-object-dot:   #3b82f6;
-  --symbol-nature-bg:   #dcfce7; --symbol-nature-fg:   #166534; --symbol-nature-dot:   #22c55e;
-  --symbol-spatial-bg:  #fef9c3; --symbol-spatial-fg:  #713f12; --symbol-spatial-dot:  #eab308;
-  --symbol-body-bg:     #fee2e2; --symbol-body-fg:     #991b1b; --symbol-body-dot:     #ef4444;
-  --symbol-color-bg:    #ede9fe; --symbol-color-fg:    #4c1d95; --symbol-color-dot:    #8b5cf6;
-  --symbol-other-bg:    #f1f5f9; --symbol-other-fg:    #475569; --symbol-other-dot:    #94a3b8;
+  /* Symbol 章節密度 — 焦赭單色 ramp（paper → sienna → 深 sienna） */
+  --symbol-density-low:   #e9ddc6;
+  --symbol-density-mid:   #cf9a72;
+  --symbol-density-high:  #b05a34;
+  --symbol-density-peak:  #7d3e22;
 
-  /* Symbol polarity — LLM interpretation polarity (4 values) */
-  --polarity-positive-bg:    #ecfdf5; --polarity-positive-fg:    #166534; --polarity-positive-edge:  #6ee7b7; --polarity-positive-dot:   #22c55e;
-  --polarity-negative-bg:    #fef2f2; --polarity-negative-fg:    #991b1b; --polarity-negative-edge:  #fecaca; --polarity-negative-dot:   #ef4444;
-  --polarity-neutral-bg:     #f4ede0; --polarity-neutral-fg:     #5a4f42; --polarity-neutral-edge:   #d4c8b8; --polarity-neutral-dot:    #8a7a68;
-  --polarity-mixed-bg:       #fef3c7; --polarity-mixed-fg:       #92400e; --polarity-mixed-edge:     #fcd34d; --polarity-mixed-dot:      #d97706;
+  /* Timeline narrative mode — warm arc 步：present=accent、flashback=灰藍、
+     flashforward=赭黃、parallel=藕紫（concept 色）、unknown=muted */
+  --narrative-present-border:     #b05a34; --narrative-present-bg:     #f3e3d8;
+  --narrative-flashback-border:   #5f6a88; --narrative-flashback-bg:   #e8e7ee;
+  --narrative-flashforward-border:#ad7519; --narrative-flashforward-bg:#f6edd6;
+  --narrative-parallel-border:    #9e6181; --narrative-parallel-bg:    #f9e2ee;
+  --narrative-unknown-border:     #938876; --narrative-unknown-bg:     #f1e8d5;
 
-  /* Symbol chapter-distribution density — 3-step gradient + peak marker */
-  --symbol-density-low:   #efe8d8;
-  --symbol-density-mid:   #c9a37a;
-  --symbol-density-high:  #8b5e3c;
-  --symbol-density-peak:  #4a2e16;
+  /* Timeline structural */
+  --timeline-chapter-bg:      rgba(233,221,198,0.15);
+  --timeline-parallel-bg:     rgba(158,97,129,0.06);
+  --timeline-parallel-border: rgba(158,97,129,0.3);
+  --timeline-causal-stroke:   #b05a34;
+  --timeline-selected-ring:   rgba(176,90,52,0.3);
 
-  /* Timeline narrative mode colors */
-  --narrative-present-border:     #8b5e3c; --narrative-present-bg:     #f5ede4;
-  --narrative-flashback-border:   #3b82f6; --narrative-flashback-bg:   #dbeafe;
-  --narrative-flashforward-border:#f59e0b; --narrative-flashforward-bg:#fef3c7;
-  --narrative-parallel-border:    #8b5cf6; --narrative-parallel-bg:    #ede9fe;
-  --narrative-unknown-border:     #8a7a68; --narrative-unknown-bg:     #f0ece6;
+  /* Status — 暖色系功能色：橄欖/赭黃/磚紅/灰藍，色調沉在紙面上 */
+  --color-success:    #5f7d3b;
+  --color-success-bg: #eef1df;
+  --color-warning:    #ad7519;
+  --color-warning-bg: #f6edd6;
+  --color-error:      #a8482c;
+  --color-error-bg:   #f4e4da;
+  --color-info:       #5f6a88;
+  --color-info-bg:    #e8e7ee;
 
-  /* Timeline structural colors */
-  --timeline-chapter-bg:    rgba(239,232,216,0.15);
-  --timeline-parallel-bg:   rgba(139,92,246,0.06);
-  --timeline-parallel-border: rgba(139,92,246,0.3);
-  --timeline-causal-stroke: #8b5e3c;
-  --timeline-selected-ring: rgba(139,94,60,0.3);
+  /* Unraveling DAG 節點狀態 */
+  --status-complete-bg:     #eef1df;
+  --status-complete-border: #5f7d3b;
+  --status-complete-fg:     #4a6330;
+  --status-partial-bg:      #f6edd6;
+  --status-partial-border:  #ad7519;
+  --status-partial-fg:      #8a5c13;
+  --status-empty-bg:        #f1e8d5;
+  --status-empty-border:    #ddceb2;
+  --status-empty-fg:        #938876;
 
-  /* Status colors — saturated indicator + light surface tint */
-  --color-success:    #16a34a;
-  --color-success-bg: #f0fdf4;
-  --color-warning:    #d97706;
-  --color-warning-bg: #fffbeb;
-  --color-error:      #dc2626;
-  --color-error-bg:   #fff5f5;
-  --color-info:       #2563eb;
-  --color-info-bg:    #eff6ff;
-
-  /* Unraveling DAG node status (complete / partial / empty) */
-  --status-complete-bg:     #f0fdf4;
-  --status-complete-border: #22c55e;
-  --status-complete-fg:     #15803d;
-  --status-partial-bg:      #fffbeb;
-  --status-partial-border:  #f59e0b;
-  --status-partial-fg:      #92400e;
-  --status-empty-bg:        #f3f4f6;
-  --status-empty-border:    #d1d5db;
-  --status-empty-fg:        #6b7280;
+  /* ── Illustration language ──
+     線稿插畫（empty state、splash、section mark）的描邊 token：
+     細墨線、不填色、略鬆。SVG stroke/weight 一律取用這組。 */
+  --illustration-stroke:      var(--fg-primary);
+  --illustration-stroke-soft: var(--fg-muted);
+  --illustration-accent:      var(--accent);
+  --illustration-fill:        none;
+  --illustration-weight:      1.5px;
+  --illustration-weight-fine: 1px;
 
   /* Spacing */
   --space-xs: 0.25rem;
@@ -145,11 +163,15 @@
   --space-xl: 2rem;
   --space-2xl: 3rem;
 
-  /* Typography */
-  --font-serif: 'Libre Baskerville', 'Noto Sans TC', Georgia, serif;
-  --font-sans: 'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
-  --font-mono: 'Fira Code', 'Courier New', monospace;
-  --font-cjk: 'Noto Sans TC', sans-serif;
+  /* Typography — serif 給「內容本身」（書名/章名/正文），sans 給
+     「關於內容的 chrome」（按鈕/meta/badge/nav）；hand（Caveat）僅限
+     插畫語彙（doodle 標註、empty-state 說明），禁用於 chrome 與正文。
+     兩主題共用同一套字體，不隨主題置換。 */
+  --font-serif: 'Spectral', 'Noto Serif TC', Georgia, serif;
+  --font-sans:  'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
+  --font-hand:  'Caveat', 'Noto Serif TC', cursive;
+  --font-mono:  'Fira Code', 'Courier New', monospace;
+  --font-cjk:   'Noto Sans TC', sans-serif;
   --font-size-2xs: 0.6875rem;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
@@ -159,488 +181,185 @@
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 2rem;
 
-  /* Borders */
+  /* Radii */
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 2px 8px rgba(0, 0, 0, 0.08);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.1);
+  /* Shadows — 單一 soft-shadow 階（warm 帶暖色調） */
+  --shadow-sm: 0 1px 2px rgba(42,38,32,0.07);
+  --shadow-md: 0 2px 8px rgba(42,38,32,0.09);
+  --shadow-lg: 0 4px 16px rgba(42,38,32,0.11);
 
   /* Transitions */
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
 
-  /* Theme-specific (defaults — overridden per theme) */
+  /* Line / border character（theme-tunable） */
   --line-weight:   1px;
-  --border-width:  1px;
+  --border-width:  var(--line-weight);
   --border-style:  solid;
   --node-shadow:   none;
   --divider-style: 1px solid var(--border);
 
-  /* Tension intensity — 3-step discrete scale (low → mid → high) */
-  --tension-intensity-low-bg:    #efe8d8;
-  --tension-intensity-low-fg:    #8a7a68;
-  --tension-intensity-low-edge:  #d4c8b8;
-  --tension-intensity-mid-bg:    #d9b896;
-  --tension-intensity-mid-fg:    #4a2e16;
-  --tension-intensity-mid-edge:  #b8956a;
-  --tension-intensity-high-bg:   #8b5e3c;
-  --tension-intensity-high-fg:   #fff5e6;
-  --tension-intensity-high-edge: #6b4528;
+  /* ── Component SHAPE tokens（theme-tunable）──────────────────
+     讓主題能改變元件「形」而非只有色。元件 CSS 消費這組，
+     不要直接寫 radius/border/shadow 原始值。
+     Warm = 軟紙面：圓角、hairline、微陰影、全圓 pill。 */
+  --card-radius:       var(--radius-lg);
+  --card-border-width: var(--border-width);
+  --card-shadow:       var(--shadow-sm);
+  --btn-radius:        var(--radius-md);
+  --btn-border-width:  var(--border-width);
+  --btn-shadow:        none;
+  --pill-radius:       20px;
+  --pill-border-width: 0.5px;
+  --badge-radius:      20px;
+  --control-radius:    var(--radius-md);
 
-  /* Frye Mythos — 4 seasonal modes */
-  --frye-romance-bg:     #fdf1de; --frye-romance-fg:     #7a4a18; --frye-romance-border: #d9b378;
-  --frye-comedy-bg:      #eef5e2; --frye-comedy-fg:      #4a6420; --frye-comedy-border:  #a8c476;
-  --frye-tragedy-bg:     #f4e3e0; --frye-tragedy-fg:     #6e2a20; --frye-tragedy-border: #c47a6e;
-  --frye-irony-bg:       #e5ecf2; --frye-irony-fg:       #2c476a; --frye-irony-border:   #7c98b4;
+  /* Tension intensity — 焦赭單色 ramp 三階 */
+  --tension-intensity-low-bg:    #f1e8d5;
+  --tension-intensity-low-fg:    #938876;
+  --tension-intensity-low-edge:  #ddceb2;
+  --tension-intensity-mid-bg:    #cf9a72;
+  --tension-intensity-mid-fg:    #52301c;
+  --tension-intensity-mid-edge:  #a96a44;
+  --tension-intensity-high-bg:   #b05a34;
+  --tension-intensity-high-fg:   #f8f3e7;
+  --tension-intensity-high-edge: #7d3e22;
 
-  /* Booker Plot — 7 plot families share one muted-cream frame; glyph differentiates */
-  --booker-bg:           #f6efe2;
-  --booker-fg:           #4a3f30;
-  --booker-border:       #c4b5a0;
-  --booker-accent:       #8b5e3c;
+  /* Frye Mythos — warm arc 四步：romance=赭黃、comedy=橄欖、
+     tragedy=磚紅、irony=灰藍 */
+  --frye-romance-bg: #f6edd6; --frye-romance-fg: #8a5c13; --frye-romance-border: #dcc08a;
+  --frye-comedy-bg:  #eef1df; --frye-comedy-fg:  #4a6330; --frye-comedy-border:  #b7c78e;
+  --frye-tragedy-bg: #f4e4da; --frye-tragedy-fg: #8a3a22; --frye-tragedy-border: #d3a78f;
+  --frye-irony-bg:   #e8e7ee; --frye-irony-fg:   #47506b; --frye-irony-border:   #a9aec4;
+
+  /* Booker Plot — 七情節共用單一紙面框，§ 標記用 accent */
+  --booker-bg:     #f1e8d5;
+  --booker-fg:     #5f5648;
+  --booker-border: #d3c3a4;
+  --booker-accent: #b05a34;
 }
 
-/* ── Manuscript ──────────────────────────────────────────────── */
-[data-theme="manuscript"] {
-  --bg-primary:   #f8f6f2;
-  --bg-secondary: #f0ede6;
-  --bg-tertiary:  #e8e4db;
+/* ============================================================
+   INK — 純黑白線稿
+   全面單色；類型/狀態語意由字形＋標籤承載，不靠色相。
+   entity / symbol / graph 分類色刻意「不覆寫」——沿用 Warm arc，
+   讓分類語意跨主題一致（設計 contract 明定）。
+   ============================================================ */
+[data-theme="ink"] {
+  --bg-primary:   #ffffff;
+  --bg-secondary: #f6f6f4;
+  --bg-tertiary:  #ececea;
 
-  --fg-primary:   #0d0d0d;
-  --fg-secondary: #333333;
-  --fg-muted:     #888888;
+  --fg-primary:   #151515;
+  --fg-secondary: #3f3f3f;
+  --fg-muted:     #8c8c8c;
 
-  --border: #333333;
-  --accent: #000000;
+  --border: #1a1a1a;
+  --accent: #111111;
+  --accent-fg: #ffffff;
 
-  --panel-bg:       #ede9e0;
-  --panel-bg-card:  #e4e0d5;
-  --panel-border:   #555555;
-  --panel-fg:       #0d0d0d;
-  --panel-fg-muted: #888888;
+  --panel-bg:       #f6f6f4;
+  --panel-bg-card:  #ededeb;
+  --panel-border:   #1a1a1a;
+  --panel-fg:       #151515;
+  --panel-fg-muted: #8c8c8c;
 
-  --font-serif: 'IM Fell English', Georgia, serif;
-  --font-sans:  'IM Fell English', Georgia, serif;
-  --font-mono:  'Courier New', monospace;
+  /* Status — 單一單色處理；狀態由 icon 字形承載 */
+  --color-success: #151515; --color-success-bg: #ececea;
+  --color-warning: #151515; --color-warning-bg: #ececea;
+  --color-error:   #151515; --color-error-bg:   #ececea;
+  --color-info:    #151515; --color-info-bg:    #ececea;
 
+  /* Polarity — 單色 fill polarity（深淺取代色相） */
+  --polarity-positive-bg: #ffffff; --polarity-positive-fg: #151515; --polarity-positive-edge: #151515; --polarity-positive-dot: #151515;
+  --polarity-negative-bg: #151515; --polarity-negative-fg: #ffffff; --polarity-negative-edge: #000000; --polarity-negative-dot: #ffffff;
+  --polarity-neutral-bg:  #f6f6f4; --polarity-neutral-fg:  #8c8c8c; --polarity-neutral-edge:  #cfcfcf; --polarity-neutral-dot:  #8c8c8c;
+  --polarity-mixed-bg:    #d8d8d8; --polarity-mixed-fg:    #151515; --polarity-mixed-edge:    #8c8c8c; --polarity-mixed-dot:    #3f3f3f;
+
+  /* 密度 / 張力 — 灰階 ramp */
+  --symbol-density-low:  #ececea;
+  --symbol-density-mid:  #8c8c8c;
+  --symbol-density-high: #151515;
+  --symbol-density-peak: #000000;
+
+  --tension-intensity-low-bg:    #ffffff;
+  --tension-intensity-low-fg:    #8c8c8c;
+  --tension-intensity-low-edge:  #cfcfcf;
+  --tension-intensity-mid-bg:    #8c8c8c;
+  --tension-intensity-mid-fg:    #ffffff;
+  --tension-intensity-mid-edge:  #3f3f3f;
+  --tension-intensity-high-bg:   #151515;
+  --tension-intensity-high-fg:   #ffffff;
+  --tension-intensity-high-edge: #000000;
+
+  /* Timeline narrative — 灰階深淺區分 */
+  --narrative-present-border:     #151515; --narrative-present-bg:     #ececea;
+  --narrative-flashback-border:   #6b6b6b; --narrative-flashback-bg:   #e4e4e2;
+  --narrative-flashforward-border:#3f3f3f; --narrative-flashforward-bg:#d8d8d6;
+  --narrative-parallel-border:    #8c8c8c; --narrative-parallel-bg:    #f6f6f4;
+  --narrative-unknown-border:     #cfcfcf; --narrative-unknown-bg:     #fafafa;
+
+  --timeline-chapter-bg:      rgba(0,0,0,0.02);
+  --timeline-parallel-bg:     rgba(0,0,0,0.02);
+  --timeline-parallel-border: rgba(0,0,0,0.12);
+  --timeline-causal-stroke:   #151515;
+  --timeline-selected-ring:   rgba(0,0,0,0.2);
+
+  /* Unraveling DAG — 單色階：fill 極性＋線重承載完成度 */
+  --status-complete-bg:     #151515;
+  --status-complete-border: #151515;
+  --status-complete-fg:     #ffffff;
+  --status-partial-bg:      #ffffff;
+  --status-partial-border:  #1a1a1a;
+  --status-partial-fg:      #151515;
+  --status-empty-bg:        #ffffff;
+  --status-empty-border:    #cfcfcf;
+  --status-empty-fg:        #8c8c8c;
+
+  /* Frye / Booker — 灰階 fill polarity */
+  --frye-romance-bg: #ffffff; --frye-romance-fg: #151515; --frye-romance-border: #151515;
+  --frye-comedy-bg:  #ececea; --frye-comedy-fg:  #151515; --frye-comedy-border:  #3f3f3f;
+  --frye-tragedy-bg: #151515; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
+  --frye-irony-bg:   #8c8c8c; --frye-irony-fg:   #ffffff; --frye-irony-border:   #151515;
+
+  --booker-bg:     #ececea;
+  --booker-fg:     #151515;
+  --booker-border: #1a1a1a;
+  --booker-accent: #111111;
+
+  /* Illustration — 白紙上的純墨線 */
+  --illustration-stroke:      #151515;
+  --illustration-stroke-soft: #8c8c8c;
+  --illustration-accent:      #151515;
+  --illustration-fill:        none;
+  --illustration-weight:      1.5px;
+  --illustration-weight-fine: 1px;
+
+  /* Line character — 挺直細墨線 */
   --line-weight:   1px;
-  --border-width:  1px;
-  --border-style:  dashed;
   --node-shadow:   none;
-  --divider-style: 1px solid #333333;
-
-  /* entity pills — systematic grayscale by prominence */
-  --entity-char-bg:    #f0f0f0;
-  --entity-char-border:#111111;
-  --entity-char-fg:    #0d0d0d;
-  --entity-char-dot:   #111111;
-
-  --entity-loc-bg:    #e8e8e8;
-  --entity-loc-border:#444444;
-  --entity-loc-fg:    #0d0d0d;
-  --entity-loc-dot:   #444444;
-
-  --entity-org-bg:    #f5f5f5;
-  --entity-org-border:#666666;
-  --entity-org-fg:    #222222;
-  --entity-org-dot:   #666666;
-
-  --entity-obj-bg:    #ebebeb;
-  --entity-obj-border:#888888;
-  --entity-obj-fg:    #222222;
-  --entity-obj-dot:   #888888;
-
-  --entity-con-bg:    #f0f0f0;
-  --entity-con-border:#aaaaaa;
-  --entity-con-fg:    #333333;
-  --entity-con-dot:   #aaaaaa;
-
-  --entity-evt-bg:    #111111;
-  --entity-evt-border:#000000;
-  --entity-evt-fg:    #f8f6f2;
-  --entity-evt-dot:   #f8f6f2;
-
-  --entity-other-bg:    #e0e0e0;
-  --entity-other-border:#cccccc;
-  --entity-other-fg:    #555555;
-  --entity-other-dot:   #cccccc;
-
-  /* graph nodes — systematic grayscale; labels rendered below node, dark for readability on bg */
-  --graph-char-fill:   #d8d8d8;
-  --graph-char-stroke: #000000;
-  --graph-char-label:  #0d0d0d;
-  --graph-loc-fill:    #b8b8b8;
-  --graph-loc-stroke:  #333333;
-  --graph-loc-label:   #0d0d0d;
-  --graph-con-fill:    #909090;
-  --graph-con-stroke:  #555555;
-  --graph-con-label:   #0d0d0d;
-  --graph-evt-fill:    #3a3a3a;
-  --graph-evt-stroke:  #000000;
-  --graph-evt-label:   #0d0d0d;
-
-  /* symbol type pills — 6-step grayscale gradient */
-  --symbol-object-bg:   #f2f2f2; --symbol-object-fg:   #0d0d0d; --symbol-object-dot:   #111111;
-  --symbol-nature-bg:   #e0e0e0; --symbol-nature-fg:   #0d0d0d; --symbol-nature-dot:   #333333;
-  --symbol-spatial-bg:  #cccccc; --symbol-spatial-fg:  #0d0d0d; --symbol-spatial-dot:  #555555;
-  --symbol-body-bg:     #888888; --symbol-body-fg:     #ffffff; --symbol-body-dot:     #eeeeee;
-  --symbol-color-bg:    #444444; --symbol-color-fg:    #ffffff; --symbol-color-dot:    #cccccc;
-  --symbol-other-bg:    #111111; --symbol-other-fg:    #f2f2f2; --symbol-other-dot:    #888888;
-
-  /* polarity — grayscale by prominence */
-  --polarity-positive-bg:    #ebebeb; --polarity-positive-fg:    #0d0d0d; --polarity-positive-edge:  #555555; --polarity-positive-dot:   #0d0d0d;
-  --polarity-negative-bg:    #555555; --polarity-negative-fg:    #ffffff; --polarity-negative-edge:  #000000; --polarity-negative-dot:   #ffffff;
-  --polarity-neutral-bg:     #f5f5f5; --polarity-neutral-fg:     #555555; --polarity-neutral-edge:   #aaaaaa; --polarity-neutral-dot:    #888888;
-  --polarity-mixed-bg:       #d8d8d8; --polarity-mixed-fg:       #0d0d0d; --polarity-mixed-edge:     #888888; --polarity-mixed-dot:      #444444;
-
-  --symbol-density-low:  #ebebeb;
-  --symbol-density-mid:  #888888;
-  --symbol-density-high: #0d0d0d;
-  --symbol-density-peak: #000000;
-
-  /* timeline narrative modes — grayscale by prominence */
-  --narrative-present-border:     #000000; --narrative-present-bg:     #f0f0f0;
-  --narrative-flashback-border:   #666666; --narrative-flashback-bg:   #e8e8e8;
-  --narrative-flashforward-border:#333333; --narrative-flashforward-bg:#d8d8d8;
-  --narrative-parallel-border:    #888888; --narrative-parallel-bg:    #f5f5f5;
-  --narrative-unknown-border:     #aaaaaa; --narrative-unknown-bg:     #f8f8f8;
-  --timeline-chapter-bg:    rgba(0,0,0,0.02);
-  --timeline-parallel-bg:   rgba(0,0,0,0.02);
-  --timeline-parallel-border: rgba(0,0,0,0.12);
-  --timeline-causal-stroke: #000000;
-  --timeline-selected-ring: rgba(0,0,0,0.2);
-
-  /* status — strict greyscale: state is conveyed by icon glyph, not hue */
-  --color-success:    #0d0d0d;
-  --color-success-bg: #e8e4db;
-  --color-warning:    #555555;
-  --color-warning-bg: #e8e4db;
-  --color-error:      #0d0d0d;
-  --color-error-bg:   #e8e4db;
-  --color-info:       #888888;
-  --color-info-bg:    #e8e4db;
-
-  /* Unraveling DAG status — greyscale gradient by completion */
-  --status-complete-bg:     #d8d8d8;
-  --status-complete-border: #000000;
-  --status-complete-fg:     #0d0d0d;
-  --status-partial-bg:      #ebebeb;
-  --status-partial-border:  #555555;
-  --status-partial-fg:      #333333;
-  --status-empty-bg:        #f5f5f5;
-  --status-empty-border:    #aaaaaa;
-  --status-empty-fg:        #888888;
-
-  /* tension intensity — strict greyscale by step */
-  --tension-intensity-low-bg:  #ebebeb; --tension-intensity-low-fg:  #555555; --tension-intensity-low-edge: #888888;
-  --tension-intensity-mid-bg:  #888888; --tension-intensity-mid-fg:  #ffffff; --tension-intensity-mid-edge: #444444;
-  --tension-intensity-high-bg: #0d0d0d; --tension-intensity-high-fg: #ffffff; --tension-intensity-high-edge:#000000;
-
-  --frye-romance-bg: #ebebeb; --frye-romance-fg: #0d0d0d; --frye-romance-border: #aaaaaa;
-  --frye-comedy-bg:  #d8d8d8; --frye-comedy-fg:  #0d0d0d; --frye-comedy-border:  #666666;
-  --frye-tragedy-bg: #555555; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
-  --frye-irony-bg:   #f5f5f5; --frye-irony-fg:   #333333; --frye-irony-border:   #888888;
-
-  --booker-bg:     #e8e4db;
-  --booker-fg:     #0d0d0d;
-  --booker-border: #555555;
-  --booker-accent: #000000;
-}
-
-/* ── Minimal Ink ─────────────────────────────────────────────── */
-[data-theme="minimal-ink"] {
-  --bg-primary:   #ffffff;
-  --bg-secondary: #f5f5f5;
-  --bg-tertiary:  #ebebeb;
-
-  --fg-primary:   #000000;
-  --fg-secondary: #333333;
-  --fg-muted:     #888888;
-
-  --border: #000000;
-  --accent: #000000;
-
-  --panel-bg:       #eeeeee;
-  --panel-bg-card:  #e5e5e5;
-  --panel-border:   #000000;
-  --panel-fg:       #000000;
-  --panel-fg-muted: #888888;
-
-  --font-serif: system-ui, -apple-system, sans-serif;
-  --font-sans:  system-ui, -apple-system, sans-serif;
-
-  --line-weight:   0.5px;
-  --border-width:  0.5px;
   --border-style:  solid;
-  --node-shadow:   none;
-  --divider-style: 1.5px solid #000000;
+  --divider-style: 1px solid var(--border);
 
-  /* entity pills — fill polarity: char=black, concept=hairline, others=gray */
-  --entity-char-bg:    #000000;
-  --entity-char-border:#000000;
-  --entity-char-fg:    #ffffff;
-  --entity-char-dot:   #ffffff;
+  /* Component SHAPE — 鋼筆線稿：直角、較重單線外框、完全無陰影、
+     pill 改矩形 tag */
+  --card-radius:       var(--radius-sm);
+  --card-border-width: 1.5px;
+  --card-shadow:       none;
+  --btn-radius:        var(--radius-sm);
+  --btn-border-width:  1.5px;
+  --btn-shadow:        none;
+  --pill-radius:       4px;
+  --pill-border-width: 1px;
+  --badge-radius:      4px;
+  --control-radius:    var(--radius-sm);
 
-  --entity-loc-bg:    #ffffff;
-  --entity-loc-border:#000000;
-  --entity-loc-fg:    #000000;
-  --entity-loc-dot:   #000000;
-
-  --entity-org-bg:    #e0e0e0;
-  --entity-org-border:#000000;
-  --entity-org-fg:    #000000;
-  --entity-org-dot:   #000000;
-
-  --entity-obj-bg:    #f0f0f0;
-  --entity-obj-border:#aaaaaa;
-  --entity-obj-fg:    #333333;
-  --entity-obj-dot:   #555555;
-
-  --entity-con-bg:    #ffffff;
-  --entity-con-border:#aaaaaa;
-  --entity-con-fg:    #888888;
-  --entity-con-dot:   #aaaaaa;
-
-  --entity-evt-bg:    #555555;
-  --entity-evt-border:#000000;
-  --entity-evt-fg:    #ffffff;
-  --entity-evt-dot:   #ffffff;
-
-  --entity-other-bg:    #f5f5f5;
-  --entity-other-border:#cccccc;
-  --entity-other-fg:    #888888;
-  --entity-other-dot:   #cccccc;
-
-  /* graph nodes — fill polarity; labels rendered below node, dark for readability on bg */
-  --graph-char-fill:   #000000;
-  --graph-char-stroke: #000000;
-  --graph-char-label:  #000000;
-  --graph-loc-fill:    #ffffff;
-  --graph-loc-stroke:  #000000;
-  --graph-loc-label:   #000000;
-  --graph-con-fill:    #aaaaaa;
-  --graph-con-stroke:  #000000;
-  --graph-con-label:   #000000;
-  --graph-evt-fill:    #555555;
-  --graph-evt-stroke:  #000000;
-  --graph-evt-label:   #000000;
-
-  /* symbol type pills — 6-step fill polarity */
-  --symbol-object-bg:   #000000; --symbol-object-fg:   #ffffff; --symbol-object-dot:   #ffffff;
-  --symbol-nature-bg:   #3a3a3a; --symbol-nature-fg:   #ffffff; --symbol-nature-dot:   #cccccc;
-  --symbol-spatial-bg:  #777777; --symbol-spatial-fg:  #ffffff; --symbol-spatial-dot:  #ffffff;
-  --symbol-body-bg:     #c0c0c0; --symbol-body-fg:     #000000; --symbol-body-dot:     #000000;
-  --symbol-color-bg:    #e8e8e8; --symbol-color-fg:    #000000; --symbol-color-dot:    #555555;
-  --symbol-other-bg:    #f5f5f5; --symbol-other-fg:    #888888; --symbol-other-dot:    #cccccc;
-
-  /* polarity — fill polarity */
-  --polarity-positive-bg:    #ffffff; --polarity-positive-fg:    #000000; --polarity-positive-edge:  #000000; --polarity-positive-dot:   #000000;
-  --polarity-negative-bg:    #000000; --polarity-negative-fg:    #ffffff; --polarity-negative-edge:  #000000; --polarity-negative-dot:   #ffffff;
-  --polarity-neutral-bg:     #f5f5f5; --polarity-neutral-fg:     #888888; --polarity-neutral-edge:   #cccccc; --polarity-neutral-dot:    #aaaaaa;
-  --polarity-mixed-bg:       #aaaaaa; --polarity-mixed-fg:       #ffffff; --polarity-mixed-edge:     #000000; --polarity-mixed-dot:      #000000;
-
-  --symbol-density-low:  #ebebeb;
-  --symbol-density-mid:  #aaaaaa;
-  --symbol-density-high: #000000;
-  --symbol-density-peak: #000000;
-
-  /* timeline narrative modes */
-  --narrative-present-border:     #000000; --narrative-present-bg:     #f5f5f5;
-  --narrative-flashback-border:   #555555; --narrative-flashback-bg:   #e5e5e5;
-  --narrative-flashforward-border:#222222; --narrative-flashforward-bg:#d5d5d5;
-  --narrative-parallel-border:    #888888; --narrative-parallel-bg:    #f8f8f8;
-  --narrative-unknown-border:     #aaaaaa; --narrative-unknown-bg:     #fafafa;
-  --timeline-chapter-bg:    rgba(0,0,0,0.02);
-  --timeline-parallel-bg:   rgba(0,0,0,0.02);
-  --timeline-parallel-border: rgba(0,0,0,0.12);
-  --timeline-causal-stroke: #000000;
-  --timeline-selected-ring: rgba(0,0,0,0.2);
-
-  /* status — strict greyscale: state is conveyed by icon glyph, not hue */
-  --color-success:    #000000;
-  --color-success-bg: #ebebeb;
-  --color-warning:    #555555;
-  --color-warning-bg: #ebebeb;
-  --color-error:      #000000;
-  --color-error-bg:   #ebebeb;
-  --color-info:       #888888;
-  --color-info-bg:    #ebebeb;
-
-  /* Unraveling DAG status — fill polarity gradient by completion */
-  --status-complete-bg:     #000000;
-  --status-complete-border: #000000;
-  --status-complete-fg:     #ffffff;
-  --status-partial-bg:      #aaaaaa;
-  --status-partial-border:  #000000;
-  --status-partial-fg:      #000000;
-  --status-empty-bg:        #ffffff;
-  --status-empty-border:    #aaaaaa;
-  --status-empty-fg:        #888888;
-
-  /* tension intensity — fill polarity */
-  --tension-intensity-low-bg:  #ffffff; --tension-intensity-low-fg:  #888888; --tension-intensity-low-edge: #cccccc;
-  --tension-intensity-mid-bg:  #aaaaaa; --tension-intensity-mid-fg:  #ffffff; --tension-intensity-mid-edge: #000000;
-  --tension-intensity-high-bg: #000000; --tension-intensity-high-fg: #ffffff; --tension-intensity-high-edge:#000000;
-
-  --frye-romance-bg: #ffffff; --frye-romance-fg: #000000; --frye-romance-border: #000000;
-  --frye-comedy-bg:  #eeeeee; --frye-comedy-fg:  #000000; --frye-comedy-border:  #000000;
-  --frye-tragedy-bg: #000000; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
-  --frye-irony-bg:   #aaaaaa; --frye-irony-fg:   #ffffff; --frye-irony-border:   #000000;
-
-  --booker-bg:     #ebebeb;
-  --booker-fg:     #000000;
-  --booker-border: #000000;
-  --booker-accent: #000000;
-}
-
-/* ── Pulp ────────────────────────────────────────────────────── */
-[data-theme="pulp"] {
-  --bg-primary:   #ffffff;
-  --bg-secondary: #f2f2f2;
-  --bg-tertiary:  #e5e5e5;
-
-  --fg-primary:   #000000;
-  --fg-secondary: #1a1a1a;
-  --fg-muted:     #666666;
-
-  --border: #000000;
-  --accent: #000000;
-
-  --panel-bg:       #eeeeee;
-  --panel-bg-card:  #e0e0e0;
-  --panel-border:   #000000;
-  --panel-fg:       #000000;
-  --panel-fg-muted: #666666;
-
-  --font-serif: 'Permanent Marker', cursive;
-  --font-sans:  'Space Mono', 'Courier New', monospace;
-  --font-mono:  'Space Mono', 'Courier New', monospace;
-
-  --line-weight:   2px;
-  --border-width:  2px;
-  --border-style:  solid;
-  --node-shadow:   2px 2px 0 #000000;
-  --divider-style: 2px dashed #888888;
-
-  /* entity pills — bold, high contrast */
-  --entity-char-bg:    #000000;
-  --entity-char-border:#000000;
-  --entity-char-fg:    #ffffff;
-  --entity-char-dot:   #ffffff;
-
-  --entity-loc-bg:    #ffffff;
-  --entity-loc-border:#000000;
-  --entity-loc-fg:    #000000;
-  --entity-loc-dot:   #000000;
-
-  --entity-org-bg:    #e0e0e0;
-  --entity-org-border:#000000;
-  --entity-org-fg:    #000000;
-  --entity-org-dot:   #000000;
-
-  --entity-obj-bg:    #f0f0f0;
-  --entity-obj-border:#000000;
-  --entity-obj-fg:    #000000;
-  --entity-obj-dot:   #000000;
-
-  --entity-con-bg:    #ffffff;
-  --entity-con-border:#888888;
-  --entity-con-fg:    #555555;
-  --entity-con-dot:   #555555;
-
-  --entity-evt-bg:    #000000;
-  --entity-evt-border:#000000;
-  --entity-evt-fg:    #ffffff;
-  --entity-evt-dot:   #ffffff;
-
-  --entity-other-bg:    #f5f5f5;
-  --entity-other-border:#aaaaaa;
-  --entity-other-fg:    #555555;
-  --entity-other-dot:   #aaaaaa;
-
-  /* graph nodes — bold fill polarity; labels rendered below node, dark for readability on bg */
-  --graph-char-fill:   #000000;
-  --graph-char-stroke: #000000;
-  --graph-char-label:  #000000;
-  --graph-loc-fill:    #ffffff;
-  --graph-loc-stroke:  #000000;
-  --graph-loc-label:   #000000;
-  --graph-con-fill:    #aaaaaa;
-  --graph-con-stroke:  #000000;
-  --graph-con-label:   #000000;
-  --graph-evt-fill:    #444444;
-  --graph-evt-stroke:  #000000;
-  --graph-evt-label:   #000000;
-
-  /* symbol type pills — 6-step fill polarity */
-  --symbol-object-bg:   #000000; --symbol-object-fg:   #ffffff; --symbol-object-dot:   #ffffff;
-  --symbol-nature-bg:   #333333; --symbol-nature-fg:   #ffffff; --symbol-nature-dot:   #ffffff;
-  --symbol-spatial-bg:  #777777; --symbol-spatial-fg:  #ffffff; --symbol-spatial-dot:  #ffffff;
-  --symbol-body-bg:     #bbbbbb; --symbol-body-fg:     #000000; --symbol-body-dot:     #000000;
-  --symbol-color-bg:    #e5e5e5; --symbol-color-fg:    #000000; --symbol-color-dot:    #555555;
-  --symbol-other-bg:    #f5f5f5; --symbol-other-fg:    #555555; --symbol-other-dot:    #aaaaaa;
-
-  /* polarity — bold high-contrast fill */
-  --polarity-positive-bg:    #ffffff; --polarity-positive-fg:    #000000; --polarity-positive-edge:  #000000; --polarity-positive-dot:   #000000;
-  --polarity-negative-bg:    #000000; --polarity-negative-fg:    #ffffff; --polarity-negative-edge:  #000000; --polarity-negative-dot:   #ffffff;
-  --polarity-neutral-bg:     #e5e5e5; --polarity-neutral-fg:     #555555; --polarity-neutral-edge:   #000000; --polarity-neutral-dot:    #888888;
-  --polarity-mixed-bg:       #999999; --polarity-mixed-fg:       #ffffff; --polarity-mixed-edge:     #000000; --polarity-mixed-dot:      #000000;
-
-  --symbol-density-low:  #e5e5e5;
-  --symbol-density-mid:  #999999;
-  --symbol-density-high: #000000;
-  --symbol-density-peak: #000000;
-
-  /* timeline narrative modes */
-  --narrative-present-border:     #000000; --narrative-present-bg:     #f0f0f0;
-  --narrative-flashback-border:   #666666; --narrative-flashback-bg:   #e0e0e0;
-  --narrative-flashforward-border:#000000; --narrative-flashforward-bg:#d0d0d0;
-  --narrative-parallel-border:    #888888; --narrative-parallel-bg:    #f5f5f5;
-  --narrative-unknown-border:     #aaaaaa; --narrative-unknown-bg:     #f8f8f8;
-  --timeline-chapter-bg:    rgba(0,0,0,0.02);
-  --timeline-parallel-bg:   rgba(0,0,0,0.03);
-  --timeline-parallel-border: rgba(0,0,0,0.15);
-  --timeline-causal-stroke: #000000;
-  --timeline-selected-ring: rgba(0,0,0,0.25);
-
-  /* status — strict greyscale: state is conveyed by icon glyph, not hue */
-  --color-success:    #000000;
-  --color-success-bg: #e5e5e5;
-  --color-warning:    #555555;
-  --color-warning-bg: #e5e5e5;
-  --color-error:      #000000;
-  --color-error-bg:   #e5e5e5;
-  --color-info:       #888888;
-  --color-info-bg:    #e5e5e5;
-
-  /* Unraveling DAG status — bold fill polarity gradient by completion */
-  --status-complete-bg:     #000000;
-  --status-complete-border: #000000;
-  --status-complete-fg:     #ffffff;
-  --status-partial-bg:      #aaaaaa;
-  --status-partial-border:  #000000;
-  --status-partial-fg:      #000000;
-  --status-empty-bg:        #ffffff;
-  --status-empty-border:    #000000;
-  --status-empty-fg:        #555555;
-
-  /* tension intensity — bold polarity offset */
-  --tension-intensity-low-bg:  #ffffff; --tension-intensity-low-fg:  #666666; --tension-intensity-low-edge: #000000;
-  --tension-intensity-mid-bg:  #999999; --tension-intensity-mid-fg:  #ffffff; --tension-intensity-mid-edge: #000000;
-  --tension-intensity-high-bg: #000000; --tension-intensity-high-fg: #ffffff; --tension-intensity-high-edge:#000000;
-
-  --frye-romance-bg: #ffffff; --frye-romance-fg: #000000; --frye-romance-border: #000000;
-  --frye-comedy-bg:  #dddddd; --frye-comedy-fg:  #000000; --frye-comedy-border:  #000000;
-  --frye-tragedy-bg: #000000; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
-  --frye-irony-bg:   #888888; --frye-irony-fg:   #ffffff; --frye-irony-border:   #000000;
-
-  --booker-bg:     #e5e5e5;
-  --booker-fg:     #000000;
-  --booker-border: #000000;
-  --booker-accent: #000000;
+  /* Shadows — 中性化為純黑（線稿不帶暖影） */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.10);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
 }
