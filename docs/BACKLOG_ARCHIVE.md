@@ -669,3 +669,8 @@
 - 情節骨幹摘要次區塊：書級 Kernel/Satellite 比例條 + 統計 + 依章節的核心事件骨幹 + 跳轉事件分析頁。
 - HITL 調整為**書級**（API 只支援 `review_status`，不支援每階段）：區塊標題列 approve / 標記不適用 + 審核狀態徽章，走 #21l。
 - 理論文案來源 `frameworksData.ts` hero_journey（localized）；i18n key 前綴 `narrative.*`（`analysis` namespace，zh-TW + en）。所有色彩走既有 token（無新增 token，`DESIGN_TOKENS.md` 不變）。
+
+## B-047 知識圖譜：非預設主題下節點類型識別困難 ✅ 已解（2026-07-10，design system v2）
+> 原 B-043，2026-06-30 重編。
+**背景**: KG V1 設計統一節點為圓形，類型靠 `--graph-*-fill/-stroke` 區分；舊 manuscript / minimal-ink / pulp 主題把 entity token 收斂到灰階，圓形 + 灰階 = 類型幾乎無法區分。曾評估的方案：節點內疊 icon、標籤前加 type dot、非預設主題保留 shape variation。
+**解法**: 未採用上述任何方案 —— design system v2（Ink on Paper，`docs/plans/20260710-design-system-v2-ink-on-paper.md`）移除全部灰階主題，改為 Warm / Ink 兩主題，且 **entity / graph 色環跨主題共用**（Ink 僅將 chrome 單色化，刻意不覆寫分類色）。節點類型在兩主題下均維持彩色可辨，問題由設計層面消解。

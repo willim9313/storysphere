@@ -16,7 +16,7 @@
 - 工具面板、詳情面板：同樣暖白底（`--bg-primary`），以邊框與背景層次感區隔
 - 實體標籤：帶色點 pill 形式（非純色塊）
 
-參考產品感：Notion + Linear 混合，有設計感但不失工具效率。
+視覺語言（v2 · Ink on Paper）：暖紙上的墨線插畫感；兩主題（Warm / Ink）僅置換 palette 與 component shape 兩層，版面與字體共用。
 
 ### 1.2 CSS Token
 
@@ -27,10 +27,12 @@
 ### 1.3 字體
 
 ```css
-font-family: 'Libre Baskerville', Georgia, serif;   /* 正文內容 */
-font-family: 'Noto Sans TC', sans-serif;             /* 中文 UI */
-font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
+font-family: 'Spectral', 'Noto Serif TC', Georgia, serif;      /* 內容本身（正文、標題） */
+font-family: 'DM Sans', 'Noto Sans TC', system-ui, sans-serif; /* chrome（按鈕、meta、nav） */
+font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫語彙 */
 ```
+
+判準：一個東西**是**內容 → serif；**關於**內容 → sans。完整規則見 [`DESIGN_TOKENS.md`](DESIGN_TOKENS.md) §3.5。
 
 ### 1.4 實體 Pill 樣式（帶色點）
 
@@ -932,13 +934,13 @@ Step 1 → Step 2 → Step 3 各自獨立觸發
 
 #### 節點狀態
 
-| 狀態 | 顏色（default 主題） |
+| 狀態 | 顏色（Warm 主題） |
 |------|----------------------|
-| `complete` | 綠底綠框 |
-| `partial` | 黃底黃框 |
-| `empty` | 灰底灰框 |
+| `complete` | 橄欖底橄欖框 |
+| `partial` | 赭黃底赭黃框 |
+| `empty` | 紙面底 hairline 框 |
 
-`--status-*` token 在 4 主題各自定義；詳見 [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。
+`--status-*` token 在兩主題各自定義（Ink 以 fill 極性＋線重承載完成度）；詳見 [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。
 
 **已實作**：
 - 全局進度 Summary Strip
@@ -1062,10 +1064,10 @@ Prompt Tokens / Completion Tokens / 總請求次數
 
 標題「介面主題」。
 
-以**卡片選擇器（card picker）**呈現各主題，每張卡片顯示：
+以**卡片選擇器（card picker）**呈現兩個主題（Warm / Ink），每張卡片顯示：
 - 主題名稱
 - 簡短描述
-- 縮圖色塊預覽：由該主題的 `--bg-primary`、`--accent`、`--fg-primary` 三色組成的小色條
+- 縮圖色塊預覽：四段等寬色帶 `--bg-primary` / `--bg-secondary` / `--bg-tertiary` / `--accent`（設計 kit `.ss-theme-swatch` 規格）
 
 選中狀態：accent 色邊框。
 
