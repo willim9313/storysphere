@@ -417,7 +417,7 @@ export default function ReaderPage() {
                       border: '1px solid var(--border)',
                       borderRadius: 6,
                       padding: '8px 10px',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+                      boxShadow: 'var(--shadow-md)',
                     }}
                   >
                     <p className="text-xs" style={{ color: 'var(--fg-secondary)', lineHeight: 1.5 }}>

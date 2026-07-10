@@ -98,7 +98,7 @@
 .ea-item.selected {
   background: var(--bg-primary);
   border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(139, 94, 60, 0.12);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
 /* Importance badge — letter (K / S) */
@@ -196,9 +196,9 @@
   animation: ea-pulse 1.6s ease-in-out infinite;
 }
 @keyframes ea-pulse {
-  0%   { box-shadow: 0 0 0 0    rgba(139, 94, 60, 0.45); }
-  70%  { box-shadow: 0 0 0 6px  rgba(139, 94, 60, 0); }
-  100% { box-shadow: 0 0 0 0    rgba(139, 94, 60, 0); }
+  0%   { box-shadow: 0 0 0 0    color-mix(in srgb, var(--accent) 45%, transparent); }
+  70%  { box-shadow: 0 0 0 6px  color-mix(in srgb, var(--accent) 0%, transparent); }
+  100% { box-shadow: 0 0 0 0    color-mix(in srgb, var(--accent) 0%, transparent); }
 }
 
 .ea-item.just-done {

@@ -154,7 +154,7 @@ export function Sidebar({ tasksOpen, activeCount, onToggleTasks }: SidebarProps)
                       fontWeight: 700,
                       lineHeight: 1,
                       background: 'var(--accent)',
-                      color: '#fff',
+                      color: 'var(--accent-fg)',
                       border: '1.5px solid var(--bg-secondary)',
                     }}
                   >

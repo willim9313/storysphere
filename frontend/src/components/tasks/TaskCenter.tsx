@@ -111,7 +111,7 @@ export function TaskCenter({ onClose, tasks, isLoading }: TaskCenterProps) {
                 fontFamily: 'var(--font-mono)',
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#fff',
+                color: 'var(--accent-fg)',
                 background: 'var(--accent)',
                 minWidth: 16,
                 height: 16,
