@@ -44,7 +44,7 @@ interface TaskCenterProps {
 export function TaskCenter({ onClose, tasks, isLoading }: TaskCenterProps) {
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const mono = theme !== 'default';
+  const mono = theme === 'ink';
   const [hidden, setHidden] = useState<Set<string>>(loadHidden);
   const [doneOpen, setDoneOpen] = useState(true);
 

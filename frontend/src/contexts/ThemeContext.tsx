@@ -1,9 +1,18 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
-export type Theme = 'default' | 'manuscript' | 'minimal-ink' | 'pulp';
+export type Theme = 'warm' | 'ink';
 
 const STORAGE_KEY = 'storysphere:theme';
-const VALID_THEMES = new Set<Theme>(['default', 'manuscript', 'minimal-ink', 'pulp']);
+const VALID_THEMES = new Set<Theme>(['warm', 'ink']);
+
+// v2 (2026-07): the four-theme system collapsed into Warm + Ink.
+// Mirrors the FOUC bootstrap map in index.html.
+const LEGACY_THEMES: Record<string, Theme> = {
+  default: 'warm',
+  manuscript: 'warm',
+  'minimal-ink': 'ink',
+  pulp: 'ink',
+};
 
 interface ThemeContextValue {
   theme: Theme;
@@ -15,7 +24,8 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export function ThemeProvider({ children }: Readonly<{ children: ReactNode }>) {
   const [theme, setTheme] = useState<Theme>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return VALID_THEMES.has(stored as Theme) ? (stored as Theme) : 'default';
+    if (stored && stored in LEGACY_THEMES) return LEGACY_THEMES[stored];
+    return VALID_THEMES.has(stored as Theme) ? (stored as Theme) : 'warm';
   });
 
   useEffect(() => {

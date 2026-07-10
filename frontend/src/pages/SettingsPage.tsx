@@ -83,44 +83,27 @@ function StSection({ icon, title, note, children }: {
 
 // ── Theme previews (literal swatches — documented hex exception for cross-theme preview) ──
 
+// Swatch strips follow the design kit's .ss-theme-swatch spec:
+// four equal bands — bg-primary / bg-secondary / bg-tertiary / accent.
+const THEME_SWATCHES: Record<Theme, { colors: string[]; firstBandBorder?: string }> = {
+  warm: { colors: ['#f8f3e7', '#f1e8d5', '#e9ddc6', '#b05a34'] },
+  ink: { colors: ['#ffffff', '#f6f6f4', '#ececea', '#151515'], firstBandBorder: '1px solid #1a1a1a' },
+};
+
 function ThemePreview({ id }: { id: Theme }) {
-  if (id === 'default') {
-    return (
-      <div className="st-theme-preview" style={{ background: '#faf8f4' }}>
-        <div style={{ position: 'absolute', left: 12, top: 12, width: '46%', height: 6, background: '#8b5e3c', borderRadius: 2 }} />
-        <div style={{ position: 'absolute', left: 12, top: 26, width: '74%', height: 4, background: '#d8ccb8', borderRadius: 2 }} />
-        <div style={{ position: 'absolute', left: 12, top: 36, width: '60%', height: 4, background: '#e2d8c6', borderRadius: 2 }} />
-        <div style={{ position: 'absolute', left: 12, top: 46, width: '68%', height: 4, background: '#e2d8c6', borderRadius: 2 }} />
-      </div>
-    );
-  }
-  if (id === 'manuscript') {
-    return (
-      <div className="st-theme-preview" style={{
-        background: '#f8f6f2',
-        backgroundImage: 'repeating-linear-gradient(#f8f6f2, #f8f6f2 6px, #e0dbd0 6px, #e0dbd0 7px)',
-      }}>
-        <div style={{ position: 'absolute', left: 12, top: 11, right: 12, bottom: 11, border: '1px dashed #333', borderRadius: 2 }} />
-        <div style={{ position: 'absolute', left: 18, top: 17, width: '40%', height: 5, background: '#0d0d0d', borderRadius: 1 }} />
-      </div>
-    );
-  }
-  if (id === 'minimal-ink') {
-    return (
-      <div className="st-theme-preview" style={{ background: '#ffffff' }}>
-        <div style={{ position: 'absolute', left: 12, top: 12, width: 22, height: 40, background: '#000' }} />
-        <div style={{ position: 'absolute', left: 42, top: 12, width: 22, height: 40, background: '#fff', border: '0.5px solid #000' }} />
-        <div style={{ position: 'absolute', left: 74, top: 16, width: '40%', height: 4, background: '#000' }} />
-        <div style={{ position: 'absolute', left: 74, top: 26, width: '30%', height: 3, background: '#888' }} />
-      </div>
-    );
-  }
+  const swatch = THEME_SWATCHES[id];
   return (
-    <div className="st-theme-preview" style={{ background: '#ffffff' }}>
-      <div style={{ position: 'absolute', left: 12, top: 13, width: 38, height: 22, background: '#fff', border: '2px solid #000', boxShadow: '2px 2px 0 #000' }} />
-      <div style={{ position: 'absolute', left: 62, top: 16, width: '36%', height: 6, background: '#000' }} />
-      <div style={{ position: 'absolute', left: 62, top: 28, width: '24%', height: 5, background: '#000' }} />
-      <div style={{ position: 'absolute', left: 12, top: 44, width: '70%', height: 4, background: '#000' }} />
+    <div className="st-theme-preview" style={{ display: 'flex' }}>
+      {swatch.colors.map((c, i) => (
+        <span
+          key={c}
+          style={{
+            flex: 1,
+            background: c,
+            borderRight: i === 0 ? swatch.firstBandBorder : undefined,
+          }}
+        />
+      ))}
     </div>
   );
 }
@@ -177,10 +160,8 @@ function MigrationProgress({ taskId, onDone }: { taskId: string; onDone: () => v
 // ── Appearance panel ─────────────────────────────────────────
 
 const THEME_OPTS: { id: Theme; nameKey: string; descKey: string }[] = [
-  { id: 'default',      nameKey: 'appearance.default',    descKey: 'appearance.defaultDesc' },
-  { id: 'manuscript',   nameKey: 'appearance.manuscript', descKey: 'appearance.manuscriptDesc' },
-  { id: 'minimal-ink',  nameKey: 'appearance.minimalInk', descKey: 'appearance.minimalInkDesc' },
-  { id: 'pulp',         nameKey: 'appearance.pulp',       descKey: 'appearance.pulpDesc' },
+  { id: 'warm', nameKey: 'appearance.warm', descKey: 'appearance.warmDesc' },
+  { id: 'ink',  nameKey: 'appearance.ink',  descKey: 'appearance.inkDesc' },
 ];
 
 function AppearancePanel() {
