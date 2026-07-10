@@ -87,6 +87,15 @@
   --graph-evt-fill:    #ffe0de;
   --graph-evt-stroke:  #b35757;
   --graph-evt-label:   #803f40;
+  --graph-org-fill:    #faedd2;
+  --graph-org-stroke:  #aa863e;
+  --graph-org-label:   #6a5124;
+  --graph-obj-fill:    #ffe3dc;
+  --graph-obj-stroke:  #b56353;
+  --graph-obj-label:   #794037;
+  --graph-other-fill:  #eee9e1;
+  --graph-other-stroke:#867867;
+  --graph-other-label: #5f564c;
 
   /* Symbol type pills（6 類）— 同一 warm arc 的重映射，跨主題共用 */
   --symbol-object-bg:  oklch(0.940 0.035 33);  --symbol-object-fg:  oklch(0.44 0.080 30);  --symbol-object-dot:  oklch(0.59 0.110 32);

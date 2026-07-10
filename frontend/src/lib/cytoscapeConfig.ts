@@ -4,26 +4,36 @@ const v = (name: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
+  // "other" doubles as the fallback for any type outside the map — falling
+  // back to --border painted org/object nodes near-black under Ink.
   const fills: Record<string, string> = {
-    character: v('--graph-char-fill') || '#ffe8d9',
-    location:  v('--graph-loc-fill')  || '#ebf0da',
-    concept:   v('--graph-con-fill')  || '#f9e2ee',
-    event:     v('--graph-evt-fill')  || '#ffe0de',
+    character:    v('--graph-char-fill')  || '#ffe8d9',
+    location:     v('--graph-loc-fill')   || '#ebf0da',
+    concept:      v('--graph-con-fill')   || '#f9e2ee',
+    event:        v('--graph-evt-fill')   || '#ffe0de',
+    organization: v('--graph-org-fill')   || '#faedd2',
+    object:       v('--graph-obj-fill')   || '#ffe3dc',
+    other:        v('--graph-other-fill') || '#eee9e1',
   };
   const strokes: Record<string, string> = {
-    character: v('--graph-char-stroke') || '#b97249',
-    location:  v('--graph-loc-stroke')  || '#74814d',
-    concept:   v('--graph-con-stroke')  || '#9e6181',
-    event:     v('--graph-evt-stroke')  || '#b35757',
+    character:    v('--graph-char-stroke')  || '#b97249',
+    location:     v('--graph-loc-stroke')   || '#74814d',
+    concept:      v('--graph-con-stroke')   || '#9e6181',
+    event:        v('--graph-evt-stroke')   || '#b35757',
+    organization: v('--graph-org-stroke')   || '#aa863e',
+    object:       v('--graph-obj-stroke')   || '#b56353',
+    other:        v('--graph-other-stroke') || '#867867',
   };
   const labels: Record<string, string> = {
-    character: v('--graph-char-label') || '#714229',
-    location:  v('--graph-loc-label')  || '#4b552e',
-    concept:   v('--graph-con-label')  || '#6c445b',
-    event:     v('--graph-evt-label')  || '#803f40',
+    character:    v('--graph-char-label')  || '#714229',
+    location:     v('--graph-loc-label')   || '#4b552e',
+    concept:      v('--graph-con-label')   || '#6c445b',
+    event:        v('--graph-evt-label')   || '#803f40',
+    organization: v('--graph-org-label')   || '#6a5124',
+    object:       v('--graph-obj-label')   || '#794037',
+    other:        v('--graph-other-label') || '#5f564c',
   };
   const accent    = v('--accent')       || '#b05a34';
-  const border    = v('--border')       || '#ddceb2';
   const fgPrimary = v('--fg-primary')   || '#2a2620';
   const fgMuted   = v('--fg-muted')     || '#938876';
   const fgSecondary = v('--fg-secondary') || '#5f5648';
@@ -87,12 +97,12 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
           labels[ele.data('entityType') as string] ?? fgPrimary,
         'text-margin-y': 4,
         'background-color': (ele: cytoscape.NodeSingular) =>
-          fills[ele.data('entityType') as string] ?? border,
+          fills[ele.data('entityType') as string] ?? fills.other,
         width: 'data(size)',
         height: 'data(size)',
         'border-width': nodeBorderWidth,
         'border-color': (ele: cytoscape.NodeSingular) =>
-          strokes[ele.data('entityType') as string] ?? border,
+          strokes[ele.data('entityType') as string] ?? strokes.other,
         shape: 'ellipse',
       },
     },
@@ -191,7 +201,7 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
       style: {
         shape: 'ellipse',
         'background-color': (ele: cytoscape.NodeSingular) =>
-          fills[ele.data('clusterType') as string] ?? border,
+          fills[ele.data('clusterType') as string] ?? fills.other,
         'background-opacity': 0.18,
         'background-image': ((ele: cytoscape.NodeSingular) =>
           clusterDotsBackground(

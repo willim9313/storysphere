@@ -189,6 +189,11 @@ ink 用單色階：fill 極性＋線重承載完成度。
 | loc | `#ebf0da` | `#74814d` | `#4b552e` |
 | con | `#f9e2ee` | `#9e6181` | `#6c445b` |
 | evt | `#ffe0de` | `#b35757` | `#803f40` |
+| org | `#faedd2` | `#aa863e` | `#6a5124` |
+| obj | `#ffe3dc` | `#b56353` | `#794037` |
+| other | `#eee9e1` | `#867867` | `#5f564c` |
+
+`other` 同時作為 map 外類型的 fallback（先前 fallback 到 `--border`，在 Ink 下會把 org / object 節點塗成近黑）。
 
 ### 3.12 張力強度（Tension Intensity）
 
