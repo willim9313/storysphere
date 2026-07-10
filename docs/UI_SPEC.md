@@ -496,7 +496,7 @@ localStorage key（**必須保留**）：`graph:${bookId}:timeline:*`、`graph:$
 
 #### LegendCard（右上角，常駐圖例）
 
-4 個 entity types（角色/地點/概念/事件）+ 對應成員數，點擊 row → toggle 該類型可見性。底部分隔線 + 「推斷 · N」row（toggle inferred 圖層）。
+**完整 7 個 entity types**（角色/地點/組織/物品/概念/事件/其他，設計 contract 規定不得只列 4 類子集）+ 對應成員數，點擊 row → toggle 該類型可見性。swatch 為 12px 圓（`--graph-*-fill` 底 + `--graph-*-stroke` 框）。底部分隔線 + 「推斷 · N」row（toggle inferred 圖層）。工具列的型別 filter chips 同樣涵蓋 7 類。
 
 #### MiniMap（右下角 180×120）
 

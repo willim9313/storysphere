@@ -34,11 +34,16 @@ const CLUSTER_MODES: { mode: ClusterMode; labelKey: string; disabled?: boolean; 
   { mode: 'community', labelKey: 'v1.cluster.mode.community' },
 ];
 
+// 設計 contract：KG 的類型控制一律涵蓋完整 7 類，不用 4 類 demo 子集
+// （與 LegendCard 的 toggle 對象一致）。
 const TYPE_CHIPS: { type: EntityType; dotKey: string }[] = [
   { type: 'character', dotKey: 'char' },
   { type: 'location', dotKey: 'loc' },
+  { type: 'organization', dotKey: 'org' },
+  { type: 'object', dotKey: 'obj' },
   { type: 'concept', dotKey: 'con' },
   { type: 'event', dotKey: 'evt' },
+  { type: 'other', dotKey: 'other' },
 ];
 
 export function GraphToolbar({
