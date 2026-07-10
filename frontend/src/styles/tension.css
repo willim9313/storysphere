@@ -162,7 +162,6 @@
   box-shadow: var(--shadow-sm);
   border-style: var(--border-style);
 }
-[data-theme="pulp"] .tn-hero { box-shadow: var(--node-shadow); }
 
 .tn-hero-eyebrow {
   display: flex;
@@ -345,7 +344,6 @@
   box-shadow: var(--shadow-sm);
   border-style: var(--border-style);
 }
-[data-theme="pulp"] .tn-traj { box-shadow: var(--node-shadow); }
 
 .tn-traj-legend {
   display: flex;
@@ -612,7 +610,6 @@
   border-color: var(--accent);
   box-shadow: 0 0 0 3px var(--timeline-selected-ring);
 }
-[data-theme="pulp"] .tn-card { box-shadow: var(--node-shadow); }
 
 .tn-card-head {
   display: flex;

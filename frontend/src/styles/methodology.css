@@ -225,7 +225,6 @@
 .md-modetab:hover { color: var(--accent); }
 .md-modetab.active { background: var(--bg-primary); color: var(--accent); }
 .md-modetab:disabled { opacity: 0.4; cursor: not-allowed; }
-[data-theme="pulp"] .md-modetab.active { box-shadow: var(--node-shadow); }
 
 /* content scroller */
 .md-content { flex: 1; overflow-y: auto; min-height: 0; }
@@ -306,7 +305,6 @@
   box-shadow: var(--shadow-sm);
   padding: var(--space-lg);
 }
-[data-theme="pulp"] .md-concept { box-shadow: var(--node-shadow); }
 .md-concept-stage { display: flex; flex-direction: column; align-items: center; }
 .md-svg { width: 100%; height: auto; display: block; }
 .md-svg-center { font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; fill: var(--fg-primary); }
@@ -551,7 +549,6 @@
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
 }
-[data-theme="pulp"] .md-card { box-shadow: var(--node-shadow); }
 
 /* meta row */
 .md-metarow {
@@ -844,7 +841,6 @@
   transition: background-color var(--transition-fast);
 }
 .md-ov-catcard:hover { background: var(--bg-secondary); }
-[data-theme="pulp"] .md-ov-catcard { box-shadow: var(--node-shadow); }
 .md-ov-cathead { display: flex; align-items: center; gap: 10px; }
 .md-ov-catname {
   font-family: var(--font-serif);
