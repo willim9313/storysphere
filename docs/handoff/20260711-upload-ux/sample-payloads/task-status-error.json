@@ -1,0 +1,16 @@
+{
+  "taskId": "demo-error",
+  "status": "error",
+  "progress": 8,
+  "stage": "失敗",
+  "stepKey": "pdfParsing",
+  "subProgress": null,
+  "subTotal": null,
+  "subStage": null,
+  "result": null,
+  "error": "無法解析檔案:PDF 已加密,請解除密碼保護後重新上傳",
+  "kind": "ingestion",
+  "title": "陸小鳳傳奇 解析",
+  "createdAt": "2026-07-11T15:41:29",
+  "murmurEvents": []
+}

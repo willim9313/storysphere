@@ -1,0 +1,22 @@
+{
+  "taskId": "demo-partial",
+  "status": "done",
+  "progress": 100,
+  "stage": "完成",
+  "stepKey": null,
+  "subProgress": null,
+  "subTotal": null,
+  "subStage": null,
+  "result": {
+    "bookId": "1a1a7266-59d9-4216-944f-dd7b65a05f8a",
+    "failedSteps": [
+      "kg_extraction: LLM timeout after 3 retries",
+      "symbol_discovery: rate limited"
+    ]
+  },
+  "error": null,
+  "kind": "ingestion",
+  "title": "邊城浪子 解析",
+  "createdAt": "2026-07-11T15:41:29",
+  "murmurEvents": []
+}
