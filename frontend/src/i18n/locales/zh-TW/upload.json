@@ -110,5 +110,18 @@
     "knowledgeGraph": "知識圖譜",
     "symbolExploration": "符號探索",
     "dataStorage": "資料儲存"
+  },
+  "notify": {
+    "doneTitle": "《{{title}}》分析完成",
+    "doneBody": "角色、事件、知識圖譜皆已建立。",
+    "partialTitle": "《{{title}}》部分完成",
+    "partialBody": "書籍已儲存，部分步驟未能完成。",
+    "reviewTitle": "《{{title}}》需要章節審閱",
+    "reviewBody": "偵測到章節結構，送出前需人工確認。",
+    "errorTitle": "《{{title}}》解析失敗",
+    "gotoBook": "前往書籍頁",
+    "gotoLibrary": "前往書庫查看",
+    "gotoReview": "前往審閱",
+    "gotoUpload": "前往上傳"
   }
 }

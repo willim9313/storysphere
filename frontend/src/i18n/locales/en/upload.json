@@ -109,5 +109,18 @@
     "knowledgeGraph": "Knowledge Graph",
     "symbolExploration": "Symbol Exploration",
     "dataStorage": "Data Storage"
+  },
+  "notify": {
+    "doneTitle": "《{{title}}》 analysis complete",
+    "doneBody": "Characters, events and knowledge graph are ready.",
+    "partialTitle": "《{{title}}》 partially complete",
+    "partialBody": "The book is saved; some steps could not finish.",
+    "reviewTitle": "《{{title}}》 needs chapter review",
+    "reviewBody": "Chapter structure detected — please confirm before submitting.",
+    "errorTitle": "《{{title}}》 failed to parse",
+    "gotoBook": "Go to book",
+    "gotoLibrary": "View in library",
+    "gotoReview": "Review chapters",
+    "gotoUpload": "Go to upload"
   }
 }
