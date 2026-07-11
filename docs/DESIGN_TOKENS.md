@@ -283,8 +283,10 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--timeline-causal-stroke` | `#b05a34` | `#151515` |
 | `--timeline-selected-ring` | `rgba(176,90,52,0.3)` | `rgba(0,0,0,0.2)` |
 | `--shadow-sm/md/lg` | 暖影 `rgba(42,38,32,0.07–0.11)` | 中性 `rgba(0,0,0,0.08–0.12)` |
-| `--splash-image-opacity` | `0.22` | `0.10` |
-| `--splash-image-filter` | `sepia(0.15) contrast(0.95)` | `grayscale(1) contrast(1.2)` |
+| `--splash-image-opacity` | `0.62` | `0.70` |
+| `--splash-image-filter` | `sepia(0.10) contrast(0.98)` | `grayscale(1) brightness(1.06) contrast(1.05)` |
+
+> Splash 兩 token 的值以設計 canvas（Claude Design 專案 `splash/splash.css` 的 per-theme fade tuning）為準；該專案 `colors_and_type.css` 內殘留的舊值（0.22 / 0.10）為未同步殘骸，不作依據。
 
 ---
 

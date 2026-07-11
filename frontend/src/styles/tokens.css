@@ -161,9 +161,10 @@
   --status-empty-border:    #ddceb2;
   --status-empty-fg:        #938876;
 
-  /* Splash wash — 線稿插畫「輕輕地」墊在字標後面的程度 */
-  --splash-image-opacity: 0.22;
-  --splash-image-filter:  sepia(0.15) contrast(0.95);
+  /* Splash wash — 線稿插畫墊在字標後面的程度。
+     值以設計 canvas（splash/splash.css）為準：濃圖 + vignette 護住中心 */
+  --splash-image-opacity: 0.62;
+  --splash-image-filter:  sepia(0.10) contrast(0.98);
 
   /* ── Illustration language ──
      線稿插畫（empty state、splash、section mark）的描邊 token：
@@ -352,9 +353,9 @@
   --booker-border: #1a1a1a;
   --booker-accent: #111111;
 
-  /* Splash wash — 灰階、更淡（白紙上的純墨線） */
-  --splash-image-opacity: 0.10;
-  --splash-image-filter:  grayscale(1) contrast(1.2);
+  /* Splash wash — 灰階（白紙上的純墨線），值以設計 canvas 為準 */
+  --splash-image-opacity: 0.70;
+  --splash-image-filter:  grayscale(1) brightness(1.06) contrast(1.05);
 
   /* Illustration — 白紙上的純墨線 */
   --illustration-stroke:      #151515;
