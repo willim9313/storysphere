@@ -32,7 +32,6 @@ from storysphere.api.schemas.tension import (
     TEUSummary,
 )
 from storysphere.api.store import get_task, task_store
-from storysphere.api.ws_manager import manager
 
 logger = logging.getLogger(__name__)
 
@@ -49,10 +48,6 @@ async def _run_group_lines(
     kg_service,
 ) -> None:
     task_store.set_running(task_id)
-    await manager.push(
-        task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "grouping", "result": None, "error": None},
-    )
     try:
         lines = await tension_service.group_teus(
             document_id=req.document_id,
@@ -65,10 +60,6 @@ async def _run_group_lines(
     except Exception as exc:
         logger.exception("TensionLine grouping task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
-    finally:
-        status = await get_task(task_id)
-        if status:
-            await manager.push(task_id, status.model_dump())
 
 
 @router.post("/lines/group", response_model=TaskStatus, status_code=202)
@@ -185,10 +176,6 @@ async def _run_analyze_book(
     doc_service,
 ) -> None:
     task_store.set_running(task_id)
-    await manager.push(
-        task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "準備中", "result": None, "error": None},
-    )
     try:
         def _on_progress(done: int, total: int) -> None:
             pct = int(done / total * 100) if total else 0
@@ -207,10 +194,6 @@ async def _run_analyze_book(
     except Exception as exc:
         logger.exception("Batch TEU assembly task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
-    finally:
-        status = await get_task(task_id)
-        if status:
-            await manager.push(task_id, status.model_dump())
 
 
 @router.post("/analyze", response_model=TaskStatus, status_code=202)
@@ -252,10 +235,6 @@ async def _run_synthesize_theme(
     tension_service,
 ) -> None:
     task_store.set_running(task_id)
-    await manager.push(
-        task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "synthesizing", "result": None, "error": None},
-    )
     try:
         task_store.set_progress(task_id, 15, "loading tension lines")
         task_store.set_progress(task_id, 25, "calling LLM for theme synthesis")
@@ -270,10 +249,6 @@ async def _run_synthesize_theme(
     except Exception as exc:
         logger.exception("TensionTheme synthesis task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
-    finally:
-        status = await get_task(task_id)
-        if status:
-            await manager.push(task_id, status.model_dump())
 
 
 @router.post("/theme/synthesize", response_model=TaskStatus, status_code=202)
