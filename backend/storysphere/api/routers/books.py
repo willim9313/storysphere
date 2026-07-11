@@ -154,7 +154,7 @@ async def _run_ingestion_graph(
     from storysphere.api.deps import get_ingestion_graph  # noqa: PLC0415
 
     task_store.set_running(task_id)
-    task_store.set_progress(task_id, 5, "PDF 解析")
+    task_store.set_progress(task_id, 5, "文件解析", step_key="pdfParsing")
 
     config = {"configurable": {"thread_id": task_id}}
     initial_state = {
@@ -186,10 +186,12 @@ async def _run_ingestion_graph(
     except asyncio.CancelledError:
         logger.info("Ingestion task %s cancelled", task_id)
         task_store.set_failed(task_id, error="cancelled")
+        await _cleanup_checkpoint(task_id)
         raise
     except Exception as exc:
         logger.exception("Ingestion task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
+        await _cleanup_checkpoint(task_id)
     finally:
         task_registry.unregister(task_id)
         try:
@@ -198,7 +200,13 @@ async def _run_ingestion_graph(
             pass
 
 
-async def _resume_ingestion_graph(task_id: str, chapters_data: list[dict]) -> None:
+async def _cleanup_checkpoint(task_id: str) -> None:
+    from storysphere.api.deps import delete_ingestion_checkpoint  # noqa: PLC0415
+
+    await delete_ingestion_checkpoint(task_id)
+
+
+async def _resume_ingestion_graph(task_id: str, chapters_data: dict | None) -> None:
     from langgraph.types import Command  # noqa: PLC0415
 
     from storysphere.api.deps import get_ingestion_graph  # noqa: PLC0415
@@ -214,6 +222,11 @@ async def _resume_ingestion_graph(task_id: str, chapters_data: list[dict]) -> No
     except Exception as exc:
         logger.exception("Resume of ingestion task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
+    finally:
+        # Phase 2 always ends terminal (done / error / cancelled): release the
+        # registry slot and drop the checkpoint thread so it never accumulates.
+        task_registry.unregister(task_id)
+        await _cleanup_checkpoint(task_id)
 
 
 async def _run_entity_analysis(
@@ -341,6 +354,27 @@ async def delete_book(
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    # Finalise any associated ingestion task first, so the pipeline can't keep
+    # writing to a book that is being deleted, and the task doesn't linger
+    # forever as a non-terminal zombie in the Task Center.
+    from storysphere.api.store import (  # noqa: PLC0415
+        get_task,
+        get_task_id_by_book_id,
+        set_task_failed,
+    )
+
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is not None:
+        status = await get_task(task_id)
+        if status is not None and status.status not in ("done", "error"):
+            # A live asyncio task (phase 2) gets cancelled — its handler marks
+            # the task failed. A paused one (awaiting_review) has no asyncio
+            # task, so mark it terminal directly.
+            if not task_registry.cancel(task_id):
+                await set_task_failed(task_id, error="cancelled")
+            await _cleanup_checkpoint(task_id)
+
     await vector.delete_collection(book_id)
     await kg.remove_by_document(book_id)
     await cache.invalidate(f"%:{book_id}:%")
@@ -538,16 +572,23 @@ async def submit_review(
             detail="Review window has already been closed",
         )
 
-    resume_value = {
-        "chapters": [ch.model_dump(by_alias=False) for ch in body.chapters],
-        "role_overrides": body.role_overrides,
-        "paragraph_splits": body.paragraph_splits,
-    }
+    # chapters omitted = accept the detected structure as-is; resume with None
+    # so chapter_review_node skips the rebuild entirely.
+    resume_value = None
+    if body.chapters is not None:
+        resume_value = {
+            "chapters": [ch.model_dump(by_alias=False) for ch in body.chapters],
+            "role_overrides": body.role_overrides,
+            "paragraph_splits": body.paragraph_splits,
+        }
     # Await the write so the frontend sees 'running' on its very next poll —
     # the sync fire-and-forget path would race with the immediately-following navigate.
     from storysphere.api.store import set_task_running  # noqa: PLC0415
     await set_task_running(task_id)
-    asyncio.create_task(_resume_ingestion_graph(task_id, resume_value))
+    # Register the resume task so POST /tasks/:id/cancel can actually stop
+    # phase 2 — without this the whole post-review pipeline is uncancellable.
+    resume_task = asyncio.create_task(_resume_ingestion_graph(task_id, resume_value))
+    task_registry.register(task_id, resume_task)
 
 
 # ── #8f POST /books/:bookId/suggest-roles ─────────────────────────────────────

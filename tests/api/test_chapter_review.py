@@ -157,6 +157,48 @@ class TestSubmitReviewEndpoint:
         assert resp.status_code in (204, 409, 422)
 
 
+class TestAcceptReviewShortcut:
+    """POST /review without chapters = accept the detected structure as-is."""
+
+    def _setup_awaiting(self, book_id: str) -> str:
+        import uuid
+
+        from storysphere.api.store import task_store
+        task_id = f"test-{uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, book_id)
+        return task_id
+
+    def test_accept_returns_204_and_resumes_with_none(self, client):
+        import uuid
+        book_id = f"book-{uuid.uuid4()}"
+        self._setup_awaiting(book_id)
+        with patch(
+            "storysphere.api.routers.books._resume_ingestion_graph",
+            new_callable=AsyncMock,
+        ) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json={})
+        assert resp.status_code == 204
+        # Resume value must be None so chapter_review_node skips the rebuild
+        assert mock_resume.call_args.args[1] is None
+
+    def test_accept_registers_cancellable_task(self, client):
+        import uuid
+
+        from storysphere.api import task_registry
+        book_id = f"book-{uuid.uuid4()}"
+        task_id = self._setup_awaiting(book_id)
+        with patch(
+            "storysphere.api.routers.books._resume_ingestion_graph",
+            new_callable=AsyncMock,
+        ):
+            resp = client.post(f"/api/v1/books/{book_id}/review", json={})
+        assert resp.status_code == 204
+        # The resume task must be in the registry so phase 2 is cancellable
+        assert task_registry._registry.get(task_id) is not None
+        task_registry.unregister(task_id)
+
+
 # ── _rebuild_chapters ─────────────────────────────────────────────────────────
 
 class TestRebuildChapters:

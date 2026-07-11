@@ -61,8 +61,8 @@ async def phase1_node(state: IngestionState) -> dict:
         title=state.get("title"),
         author=state.get("author"),
         language=state.get("language"),
-        progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None:
-            task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
+        progress_cb=lambda pct, stage, *, step_key=None, sub_progress=None, sub_total=None, sub_stage=None:
+            task_store.set_progress(task_id, pct, stage, step_key=step_key, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
         murmur_cb=lambda event: task_store.append_murmur(task_id, event),
     )
 
@@ -135,8 +135,8 @@ async def phase2_node(state: IngestionState) -> dict:
     result = await workflow.run_phase2(
         doc_id,
         task_id=task_id,
-        progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None:
-            task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
+        progress_cb=lambda pct, stage, *, step_key=None, sub_progress=None, sub_total=None, sub_stage=None:
+            task_store.set_progress(task_id, pct, stage, step_key=step_key, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
         murmur_cb=lambda event: task_store.append_murmur(task_id, event),
     )
 

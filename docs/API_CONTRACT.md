@@ -76,7 +76,9 @@ interface Book {
 
 ### #2-b DELETE /books/:bookId
 
-刪除書籍。
+刪除書籍。若該書仍有進行中的 ingestion 任務（`running` / `awaiting_review`），
+會先取消該任務（標為 `error: "cancelled"`）並刪除其 LangGraph checkpoint，
+再刪除書籍資料——因此審閱頁「放棄」與處理卡「終止」只需呼叫本 endpoint。
 
 **Response 204**：刪除成功，無 body
 
@@ -560,7 +562,11 @@ interface TaskStatus {
   taskId: string;
   status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_review';
   progress: number;        // 0–100
-  stage: string;           // UI 顯示文字，如「建構知識圖譜中」
+  stage: string;           // UI 顯示文字，如「知識圖譜擷取」（後端統一中文）
+  stepKey?: string;        // machine-readable pipeline 步驟 key（ingestion 任務提供）：
+                           // pdfParsing | languageDetect | summarization | featureExtraction
+                           // | knowledgeGraph | symbolExploration | dataStorage
+                           // 前端 ProcessingTimeline 優先以此判斷步驟狀態，缺省時 fallback 百分比區間
   subProgress?: number;    // 子任務進度（批次任務使用）
   subTotal?: number;
   subStage?: string;
@@ -614,6 +620,9 @@ useQuery({
 ### #8b POST /tasks/:taskId/cancel
 
 中止正在執行的 background task（真正中斷 asyncio.Task）。
+
+`awaiting_review` 的任務（暫停於章節審閱、無 asyncio task）也可取消：直接標為
+`error`（`error: "cancelled"`）並刪除對應 LangGraph checkpoint thread，任務不再可 resume。
 
 **Response 204**：中止成功
 
@@ -1823,9 +1832,9 @@ interface ChapterDistribution {
 **Request Body**
 ```ts
 {
-  chapters: Array<{
-    title: string;
-    role: string;  // chapter-level classification; 省略時預設 "body"
+  chapters?: Array<{     // 省略（或送 {}）= 「接受系統判斷」捷徑：
+    title: string;       // pipeline 直接以偵測結構 resume，不重建章節，
+    role: string;        // roleOverrides / paragraphSplits 一併忽略。
     startParagraphIndex: number;  // book-level global index
   }>;
   roleOverrides: Record<string, string>;  // str(globalParagraphIdx) → 段落層級 role value; omitted = {}

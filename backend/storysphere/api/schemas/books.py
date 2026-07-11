@@ -99,7 +99,11 @@ class ReviewChapterInput(BaseModel):
 class ReviewSubmitRequest(BaseModel):
     model_config = _CAMEL
 
-    chapters: list[ReviewChapterInput]
+    # None (field omitted) = accept the detected structure as-is: the pipeline
+    # resumes without rebuilding chapters, and role_overrides/paragraph_splits
+    # are ignored. Spares the "接受系統判斷" path the round-trip of the full
+    # book text.
+    chapters: list[ReviewChapterInput] | None = None
     role_overrides: dict[str, str] = {}  # str(globalIdx) → role value
     # str(pre-split globalIdx) → ascending char offsets to split that paragraph
     # at. Splits are applied first; chapters/role_overrides use post-split

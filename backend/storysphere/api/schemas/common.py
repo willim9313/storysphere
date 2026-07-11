@@ -31,6 +31,9 @@ class TaskStatus(BaseModel):
     status: Literal["pending", "running", "done", "error", "awaiting_review"]
     progress: int = 0
     stage: str = ""
+    # Machine-readable pipeline step (e.g. "summarization", "knowledgeGraph")
+    # so the frontend timeline doesn't have to reverse-map progress ranges.
+    step_key: str | None = None
     sub_progress: int | None = None
     sub_total: int | None = None
     sub_stage: str | None = None
