@@ -260,6 +260,8 @@ export interface TaskStatus {
   status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_review';
   progress: number;
   stage: string;
+  /** Machine-readable pipeline step; mirrors generated.ts TaskStatus.stepKey */
+  stepKey?: string | null;
   subProgress?: number;
   subTotal?: number;
   subStage?: string;

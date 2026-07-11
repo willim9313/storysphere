@@ -22,7 +22,7 @@ const BOOK_KIND_PATHS: Record<string, string> = {
  * default cursor) per the Task Center spec.
  */
 export function taskRoute(
-  task: Pick<TaskStatus, 'kind' | 'result'>,
+  task: Pick<TaskStatus, 'kind' | 'result' | 'status' | 'taskId'>,
 ): string | null {
   const kind = task.kind;
   if (!kind || !(kind in BOOK_KIND_PATHS)) return null;
@@ -30,6 +30,12 @@ export function taskRoute(
   const bookId = (task.result as { bookId?: unknown } | null | undefined)
     ?.bookId;
   if (typeof bookId !== 'string' || !bookId) return null;
+
+  // An ingestion task paused for chapter review should land on the review
+  // UI, not the reader of a half-ingested book.
+  if (kind === 'ingestion' && task.status === 'awaiting_review') {
+    return `/upload/review/${bookId}?taskId=${task.taskId}`;
+  }
 
   const sub = BOOK_KIND_PATHS[kind];
   return sub ? `/books/${bookId}/${sub}` : `/books/${bookId}`;

@@ -4,8 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle, Loader2 } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 import { deleteBook } from '@/api/books';
-import { cancelTask, fetchReviewData, submitReview } from '@/api/ingest';
-import type { ReviewSubmitChapter } from '@/api/types';
+import { acceptReview, cancelTask } from '@/api/ingest';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { ProcessingTimeline } from './ProcessingTimeline';
 import { MurmurWindow } from './MurmurWindow';
@@ -54,13 +53,7 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
     if (!bookId) return;
     setAcceptingChapters(true);
     try {
-      const reviewData = await fetchReviewData(bookId);
-      const chapters: ReviewSubmitChapter[] = reviewData.chapters.map((ch) => ({
-        title: ch.title ?? '',
-        role: ch.role ?? 'body',
-        startParagraphIndex: ch.paragraphs[0]?.paragraphIndex ?? 0,
-      }));
-      await submitReview(bookId, chapters);
+      await acceptReview(bookId);
       setReviewError(null);
       queryClient.invalidateQueries({ queryKey: ['tasks', task.taskId] });
     } catch {
@@ -72,11 +65,13 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
   }, [bookId, queryClient, task.taskId]);
 
   const handleTerminate = useCallback(async () => {
-    if (!bookId) return;
     setTerminating(true);
     try {
+      // Cancel first so the pipeline stops writing, then remove the book if
+      // one was already persisted (phase 1 done). During early phase 1 there
+      // is no bookId yet — cancelling the task is all that's needed.
       await cancelTask(task.taskId).catch(() => {});
-      await deleteBook(bookId);
+      if (bookId) await deleteBook(bookId);
     } finally {
       onError(task.taskId, task.fileName);
     }
@@ -237,19 +232,17 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
                 <MurmurWindow events={murmurEvents} />
               </div>
             </div>
-            {bookId && (
-              <div className="flex justify-end mt-3">
-                <button
-                  className="btn text-xs flex items-center gap-1"
-                  style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
-                  disabled={terminating}
-                  onClick={handleTerminate}
-                >
-                  {terminating && <Loader2 size={10} className="animate-spin" />}
-                  終止處理
-                </button>
-              </div>
-            )}
+            <div className="flex justify-end mt-3">
+              <button
+                className="btn text-xs flex items-center gap-1"
+                style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
+                disabled={terminating}
+                onClick={handleTerminate}
+              >
+                {terminating && <Loader2 size={10} className="animate-spin" />}
+                終止處理
+              </button>
+            </div>
           </>
         )}
       </div>

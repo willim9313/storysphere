@@ -57,6 +57,16 @@ export function submitReview(
   });
 }
 
+// #review — Accept the detected chapter structure as-is (no chapters payload:
+// the backend resumes the pipeline without rebuilding anything)
+export function acceptReview(bookId: string): Promise<void> {
+  return apiFetch<void>(`/books/${bookId}/review`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  });
+}
+
 // #22c — "邊界輔助辨識": LLM-suggested non-body role changes for edge chapters
 export function suggestRoles(bookId: string): Promise<SuggestRolesResponse> {
   return apiFetch<SuggestRolesResponse>(`/books/${bookId}/suggest-roles`, {

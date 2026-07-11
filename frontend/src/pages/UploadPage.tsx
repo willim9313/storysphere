@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { FileText, Loader2, X } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 import { detectLanguage, uploadBook } from '@/api/ingest';
+import { fetchTasks } from '@/api/tasks';
 import { DropZone } from '@/components/upload/DropZone';
 import { ProcessingCard } from '@/components/upload/ProcessingCard';
 import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
@@ -38,6 +39,11 @@ const LANGUAGE_OPTIONS = [
 const KNOWN_LANGUAGE_VALUES = new Set<string>(
   LANGUAGE_OPTIONS.map((opt) => opt.value).filter(Boolean),
 );
+
+// Above this size, skip the pre-upload language guess: it re-posts the whole
+// file (containers like PDF/DOCX/EPUB can't be sampled client-side without
+// corrupting them), so for big files just leave the dropdown on auto-detect.
+const PREDETECT_MAX_BYTES = 15 * 1024 * 1024;
 
 interface PendingFile {
   file: File;
@@ -78,6 +84,37 @@ export default function UploadPage() {
     else sessionStorage.setItem('upload-tasks', JSON.stringify(activeTasks));
   }, [tasks, doneTaskIds]);
 
+  // Recover in-flight ingestion tasks from the server: sessionStorage is
+  // per-tab, so a new tab / reopened browser would otherwise show an empty
+  // upload page while the Task Center still lists the running upload.
+  useEffect(() => {
+    let cancelled = false;
+    fetchTasks(0)
+      .then((server) => {
+        if (cancelled) return;
+        const active = server.filter(
+          (t) => t.kind === 'ingestion' && t.status !== 'done' && t.status !== 'error',
+        );
+        if (active.length === 0) return;
+        setTasks((prev) => {
+          const known = new Set(prev.map((p) => p.taskId));
+          const recovered = active
+            .filter((t) => !known.has(t.taskId))
+            .map((t) => {
+              const title = (t.title ?? '').replace(/ 解析$/, '') || '書籍處理中';
+              return { taskId: t.taskId, fileName: title, title };
+            });
+          return recovered.length > 0 ? [...prev, ...recovered] : prev;
+        });
+      })
+      .catch(() => {
+        // Server unreachable — the sessionStorage-backed list still renders.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   useEffect(() => {
     if (!location.hash) return;
     const id = location.hash.slice(1);
@@ -114,6 +151,7 @@ export default function UploadPage() {
 
       // Pre-select the language dropdown with a quick server-side guess so it
       // isn't left on blank "Auto-detect" — the user can still override it.
+      if (file.size > PREDETECT_MAX_BYTES) return;
       detectLanguage(file)
         .then(({ language }) => {
           const normalized = language.split('-')[0];

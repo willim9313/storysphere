@@ -3337,7 +3337,7 @@ export interface components {
         /** ReviewSubmitRequest */
         ReviewSubmitRequest: {
             /** Chapters */
-            chapters: components["schemas"]["ReviewChapterInput"][];
+            chapters?: components["schemas"]["ReviewChapterInput"][] | null;
             /**
              * Roleoverrides
              * @default {}
@@ -3754,6 +3754,8 @@ export interface components {
              * @default
              */
             stage: string;
+            /** Stepkey */
+            stepKey?: string | null;
             /** Subprogress */
             subProgress?: number | null;
             /** Subtotal */
