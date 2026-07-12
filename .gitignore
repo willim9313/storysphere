@@ -79,5 +79,8 @@ var/processed/
 var/knowledge_graph.json
 var/qdrant_local/
 
+# Backend runtime data (SQLite stores, local Qdrant) — never commit
+backend/var/
+
 # ========== uv ==========
 # uv.lock    # Do NOT ignore - commit lock file for reproducibility
