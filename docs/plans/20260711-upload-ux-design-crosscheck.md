@@ -1,8 +1,22 @@
 # 上傳流程重設計 — Claude Design 交付 vs 需求書 核對
 
-日期：2026-07-11
+日期：2026-07-11（實作完成 2026-07-12）
 來源設計：Claude Design 專案 `UI redesign planning` / `Upload Flow Redesign.dc.html`
 核對對象：`20260711-upload-ux-design-brief.md`（需求書）＋ `frontend/src/styles/tokens.css`（真實 token）
+
+## 實作狀態（2026-07-12 完成）
+
+分 6 階段實作，逐階段 commit：
+
+- **Phase A**（Toast 基礎設施）：`ToastContext` + `ToastHost` + `useTaskNotifications`（掛 AppLayout）
+- **Phase B+C**（running 卡升級 + 卡態）：`MurmurWindow` entity pills、`ProcessingCard`
+  已耗時時鐘、partial 內嵌重跑、awaiting/partial/done 卡態對齊（awaiting 由 entity-con
+  改 color-warning，修正 Ink 主題卡在粉紅的問題）
+- **Phase D**（表單/佇列）：`DropZone` 多檔、佇列列表、同名前置警告、語系 badge、error 重試帶 metadata
+- **Phase E**（任務中心）：**現行 `TaskCenter`/`TaskRow` 已完整符合 design，無需異動**
+- **Phase F**（審閱頁）：**現行 `ChapterReviewPage` 已具 canvas 全部結構（脊/合併/切分/角色/AI 邊界），
+  只做外觀對齊即可；glossary 維持既有 overlay popover（刻意不推動閱讀流），視為已對齊**
+- 吉祥物欄暫略 → BACKLOG B-058；ETA 縮減為已耗時 → 後端 P3 不做
 
 ## 總結
 
