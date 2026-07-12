@@ -21,7 +21,7 @@
   "completedSection": "Completed",
   "dropzone": {
     "dragText": "Drag file here, or click to select",
-    "supportText": "Supports .pdf, .docx, .txt, .epub formats, max 50 MB",
+    "supportText": ".pdf, .docx, .txt, .epub · multiple allowed · max 50 MB",
     "errorInvalidFormat": "Please upload a PDF, DOCX, TXT or EPUB file",
     "errorTooLarge": "File exceeds the {{max}} MB size limit",
     "errorOneFileOnly": "Only one file can be uploaded at a time"
@@ -122,5 +122,10 @@
     "gotoLibrary": "View in library",
     "gotoReview": "Review chapters",
     "gotoUpload": "Go to upload"
-  }
+  },
+  "removeFile": "Replace file",
+  "queueTitle": "Upload queue · fill in one by one",
+  "queueWaiting": "Waiting to upload",
+  "langDetected": "Auto-detected: {{lang}} · editable",
+  "retry": "Retry · keeps title/author, just re-pick the file"
 }

@@ -22,7 +22,7 @@
   "completedSection": "已完成",
   "dropzone": {
     "dragText": "拖曳檔案至此，或點擊選擇檔案",
-    "supportText": "支援 .pdf、.docx、.txt、.epub 格式，檔案大小上限 50 MB",
+    "supportText": "支援 .pdf、.docx、.txt、.epub 格式，可多選 · 檔案大小上限 50 MB",
     "errorInvalidFormat": "請上傳 PDF、DOCX、TXT 或 EPUB 格式的檔案",
     "errorTooLarge": "檔案大小超過 {{max}} MB 上限",
     "errorOneFileOnly": "一次只能上傳一個檔案"
@@ -123,5 +123,10 @@
     "gotoLibrary": "前往書庫查看",
     "gotoReview": "前往審閱",
     "gotoUpload": "前往上傳"
-  }
+  },
+  "removeFile": "更換檔案",
+  "queueTitle": "待上傳佇列 · 逐本填寫",
+  "queueWaiting": "等待上傳",
+  "langDetected": "已自動偵測：{{lang}} · 可修改",
+  "retry": "重試 · 沿用原書名/作者，只需重新選檔"
 }

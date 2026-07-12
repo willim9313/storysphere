@@ -13,5 +13,6 @@
     "ready": "已就緒",
     "completed": "已完成",
     "error": "錯誤"
-  }
+  },
+  "remove": "移除"
 }

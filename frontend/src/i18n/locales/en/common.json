@@ -13,5 +13,6 @@
     "ready": "Ready",
     "completed": "Completed",
     "error": "Error"
-  }
+  },
+  "remove": "Remove"
 }
