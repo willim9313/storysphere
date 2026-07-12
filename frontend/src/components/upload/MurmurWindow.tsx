@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import type { MurmurEvent, MurmurEventType } from '@/api/types';
 import { CharacterSlot } from './CharacterSlot';
 
@@ -100,6 +100,14 @@ export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProp
     isAtBottomRef.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 50;
   }, []);
 
+  // On mount (e.g. returning to the upload page with events already in the
+  // store) start pinned to the latest message, not the oldest. useLayoutEffect
+  // so we land at the bottom before paint — no visible jump from the top.
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
+
   useEffect(() => {
     if (events.length === prevLengthRef.current) return;
     prevLengthRef.current = events.length;
@@ -144,7 +152,9 @@ export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProp
               等待系統開始處理…
             </p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 13, padding: '14px 15px' }}>
+            // paddingRight reserves the CharacterSlot's lane (right:8 + width:56
+            // + gap) so murmur text never flows under the pinned mascot.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13, padding: '14px 72px 14px 15px' }}>
               {events.map((event, idx) => (
                 <MurmurEventRow
                   key={event.seq}
