@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Brain, Search, ChevronLeft, ChevronRight, BookOpen } from 'lucide-react';
+import { Brain, Search, ChevronLeft, ChevronRight, BookOpen, ArrowUp } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useChapters } from '@/hooks/useChapters';
@@ -56,10 +56,13 @@ export default function ReaderPage() {
   const [epistemicHintShown, setEpistemicHintShown] = useState(() => {
     try { return localStorage.getItem(EPISTEMIC_HINT_KEY) === 'true'; } catch { return true; }
   });
+  const [scrollProgress, setScrollProgress] = useState(0);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const col1Ref = useRef<HTMLDivElement>(null);
   const col2Ref = useRef<HTMLDivElement>(null);
   const col3Ref = useRef<HTMLDivElement>(null);
+  const col3ScrollRef = useRef<HTMLDivElement>(null);
 
   const { setPageContext } = useChatContext();
   const { data: book, isLoading: bookLoading, error: bookError } = useBook(bookId);
@@ -157,18 +160,47 @@ export default function ReaderPage() {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
+  // Column 3 scroll container is reused across chapters, so switching
+  // chapters (via col2, deep-link, or the prev/next nav buttons) needs an
+  // explicit reset — otherwise the old scroll offset carries over. The
+  // resulting scroll event (handleCol3Scroll) re-derives progress/showBackToTop.
+  // Skipped while a deep-link jump is pending: with cached chunks the jump's
+  // scrollIntoView fires in the same commit and this reset would clobber it.
+  useEffect(() => {
+    const pid = jumpTarget?.paragraphId;
+    if (pid && jumpHandledRef.current !== pid) return;
+    col3ScrollRef.current?.scrollTo({ top: 0 });
+  }, [viewingChapterId, jumpTarget]);
+
   if (bookLoading || chaptersLoading) return <LoadingSpinner />;
   if (bookError) return <ErrorMessage message={bookError.message} />;
   if (!book) return <ErrorMessage message="Book not found" />;
   const selectedChapterIdx = filteredChapterList.findIndex((c) => c.id === expandedChapterId);
   const viewingChapter = chapterList.find((c) => c.id === viewingChapterId);
   const viewingChapterOrder = viewingChapter?.order ?? null;
+  const viewingChapterIdx = chapterList.findIndex((c) => c.id === viewingChapterId);
+  const prevChapter = viewingChapterIdx > 0 ? chapterList[viewingChapterIdx - 1] : null;
+  const nextChapter =
+    viewingChapterIdx >= 0 && viewingChapterIdx < chapterList.length - 1
+      ? chapterList[viewingChapterIdx + 1]
+      : null;
 
   const handleSelectChapter = (chapterId: string) => {
     setExpandedChapterId(chapterId);
     setSelectedChapterId(chapterId);
     setViewingChapterId(chapterId);
     setSearchQuery('');
+  };
+
+  const handleCol3Scroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget;
+    const max = el.scrollHeight - el.clientHeight;
+    setScrollProgress(max > 0 ? el.scrollTop / max : 0);
+    setShowBackToTop(el.scrollTop > 500);
+  };
+
+  const handleBackToTop = () => {
+    col3ScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const handleCol1Toggle = () => {
@@ -332,29 +364,55 @@ export default function ReaderPage() {
         style={{ backgroundColor: 'var(--bg-primary)' }}
       >
         {viewingChapterId ? (
-          <div style={{ height: '100%', overflowY: 'auto' }}>
+          <div
+            ref={col3ScrollRef}
+            style={{ height: '100%', overflowY: 'auto' }}
+            onScroll={handleCol3Scroll}
+          >
             {/* Sticky header */}
             <div
-              className="sticky top-0 z-10 flex items-start justify-between"
+              className="sticky top-0 z-10"
               style={{
-                padding: '12px 16px 8px',
                 backgroundColor: 'var(--bg-primary)',
                 borderBottom: '1px solid var(--border)',
               }}
             >
+            <div
+              className="flex items-start justify-between"
+              style={{
+                padding: '12px 16px 8px',
+              }}
+            >
               <div>
-                <h3
-                  className="font-semibold"
-                  style={{
-                    fontFamily: 'var(--font-serif)',
-                    fontSize: 'var(--font-size-sm)',
-                    color: 'var(--fg-primary)',
-                    margin: 0,
-                    lineHeight: 1.3,
-                  }}
-                >
-                  {viewingChapter?.title}
-                </h3>
+                <div className="flex items-baseline flex-wrap" style={{ gap: 8 }}>
+                  <h3
+                    className="font-semibold"
+                    style={{
+                      fontFamily: 'var(--font-serif)',
+                      fontSize: 'var(--font-size-sm)',
+                      color: 'var(--fg-primary)',
+                      margin: 0,
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    {viewingChapter?.title}
+                  </h3>
+                  {viewingChapterOrder != null && (
+                    <span
+                      style={{
+                        padding: '2px 8px',
+                        borderRadius: 'var(--radius-sm)',
+                        backgroundColor: 'var(--bg-tertiary)',
+                        color: 'var(--fg-secondary)',
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: 'var(--font-size-2xs)',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {t('nav.chapterBadge', { current: viewingChapterOrder, total: chapterList.length })}
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
                   {chunks?.length ?? 0} chunks
                 </span>
@@ -428,6 +486,17 @@ export default function ReaderPage() {
                 </div>
               </div>
             </div>
+              <div style={{ height: 2, backgroundColor: 'var(--bg-tertiary)' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    backgroundColor: 'var(--accent)',
+                    width: `${Math.round(scrollProgress * 100)}%`,
+                    transition: 'width .1s linear',
+                  }}
+                />
+              </div>
+            </div>
 
             {/* Chunks */}
             <div style={{ padding: '16px' }} data-annotation-mode={annotationMode}>
@@ -438,6 +507,33 @@ export default function ReaderPage() {
                     <ChunkCard chunk={chunk} />
                   </div>
                 ))}
+              {!chunksLoading && (prevChapter ?? nextChapter) && (
+                <div
+                  className="flex items-center justify-between"
+                  style={{ gap: 12, marginTop: 'var(--space-xl)' }}
+                >
+                  {prevChapter ? (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleSelectChapter(prevChapter.id)}
+                    >
+                      {t('nav.prev', { title: prevChapter.title })}
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                  {nextChapter ? (
+                    <button
+                      className="btn btn-secondary"
+                      onClick={() => handleSelectChapter(nextChapter.id)}
+                    >
+                      {t('nav.next', { title: nextChapter.title })}
+                    </button>
+                  ) : (
+                    <span />
+                  )}
+                </div>
+              )}
             </div>
           </div>
         ) : (
@@ -467,6 +563,33 @@ export default function ReaderPage() {
             />
           )}
         </div>
+      )}
+
+      {showBackToTop && (
+        <button
+          onClick={handleBackToTop}
+          aria-label={t('nav.backToTop')}
+          title={t('nav.backToTop')}
+          style={{
+            position: 'fixed',
+            right: 24,
+            bottom: 88,
+            zIndex: 30,
+            width: 40,
+            height: 40,
+            borderRadius: '50%',
+            backgroundColor: 'var(--accent)',
+            color: 'var(--accent-fg)',
+            border: 'none',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 'var(--shadow-md)',
+          }}
+        >
+          <ArrowUp size={18} strokeWidth={2.2} />
+        </button>
       )}
     </div>
   );

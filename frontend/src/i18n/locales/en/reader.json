@@ -27,5 +27,11 @@
   "col1Expand": "Expand book overview",
   "col1Collapse": "Collapse book overview",
   "col2Expand": "Expand chapter list",
-  "col2Collapse": "Collapse chapter list"
+  "col2Collapse": "Collapse chapter list",
+  "nav": {
+    "chapterBadge": "Chapter {{current}} / {{total}}",
+    "prev": "← Previous: {{title}}",
+    "next": "Next: {{title}} →",
+    "backToTop": "Back to top"
+  }
 }

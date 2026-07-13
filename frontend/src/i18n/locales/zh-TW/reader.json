@@ -27,5 +27,11 @@
   "col1Expand": "展開書籍概覽",
   "col1Collapse": "收合書籍概覽",
   "col2Expand": "展開章節列表",
-  "col2Collapse": "收合章節列表"
+  "col2Collapse": "收合章節列表",
+  "nav": {
+    "chapterBadge": "第 {{current}} / {{total}} 章",
+    "prev": "← 上一章 {{title}}",
+    "next": "下一章 {{title}} →",
+    "backToTop": "回到頂部"
+  }
 }
