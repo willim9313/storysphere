@@ -50,7 +50,14 @@ export function useTaskNotifications() {
   const { data } = useQuery<TaskStatus[]>({
     queryKey: ['tasks', 'list'],
     queryFn: () => fetchTasks(),
-    refetchInterval: 4000,
+    // Only poll while some task is still in flight; when everything is terminal
+    // (done/error) the app is idle and polling stops so we don't hammer /tasks
+    // forever. A new ingestion re-wakes this via invalidateQueries on upload.
+    refetchInterval: (query) => {
+      const tasks = query.state.data;
+      const hasActive = tasks?.some((t) => t.status !== 'done' && t.status !== 'error');
+      return hasActive ? 4000 : false;
+    },
   });
 
   const lastPhaseRef = useRef<Map<string, Phase>>(new Map());
