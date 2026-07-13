@@ -76,10 +76,13 @@ export function suggestRoles(bookId: string): Promise<SuggestRolesResponse> {
   });
 }
 
-// #22d — "目錄對照提示": LLM-parsed chapter list from the detected TOC page
-export function parseToc(bookId: string): Promise<ParseTocResponse> {
+// #22d — "目錄對照提示": LLM-parses the chapter list from the TOC page.
+// Pass `tocText` (the reviewer's currently edited TOC text) so re-parsing
+// reflects live role/content edits; omit it to fall back to the detected TOC.
+export function parseToc(bookId: string, tocText?: string): Promise<ParseTocResponse> {
   return apiFetch<ParseTocResponse>(`/books/${bookId}/parse-toc`, {
     method: 'POST',
+    body: JSON.stringify({ tocText: tocText ?? null }),
   });
 }
 

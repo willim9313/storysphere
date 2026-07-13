@@ -83,6 +83,55 @@ class TestParseTocEndpoint:
         assert data["entries"][1]["isBody"] is False
         assert data["entries"][0]["page"] == 15
 
+    def test_body_toc_text_parses_edited_text_without_reading_doc(self, client, mock_doc):
+        """When tocText is sent, the endpoint parses it (the reviewer's live edit)
+        and never reads the persisted document."""
+        from storysphere.services.toc_parser import TocEntry
+
+        doc_id = f"doc-toc-edit-{uuid.uuid4()}"
+        mock_doc.get_document.side_effect = AssertionError("should not read the doc")
+        _setup_awaiting(doc_id)
+
+        entries = [TocEntry(title="第一章 新標題", page=3, level=0, is_body=True)]
+        with patch(
+            "storysphere.services.toc_parser.parse_toc_text",
+            new=AsyncMock(return_value=entries),
+        ) as parse_text:
+            resp = client.post(
+                f"/api/v1/books/{doc_id}/parse-toc",
+                json={"tocText": "第一章 新標題 …… 3"},
+            )
+
+        assert resp.status_code == 200
+        assert [e["title"] for e in resp.json()["entries"]] == ["第一章 新標題"]
+        parse_text.assert_awaited_once_with("第一章 新標題 …… 3")
+
+    def test_empty_body_toc_text_falls_back_to_doc(self, client, mock_doc):
+        """A blank tocText falls back to the persisted document's detected TOC."""
+        from storysphere.services.toc_parser import TocEntry
+
+        doc_id = f"doc-toc-blank-{uuid.uuid4()}"
+        doc = _toc_doc(doc_id)
+
+        async def _get_doc(did):
+            return doc if did == doc_id else None
+
+        mock_doc.get_document.side_effect = _get_doc
+        _setup_awaiting(doc_id)
+
+        with patch(
+            "storysphere.services.toc_parser.parse_toc_entries",
+            new=AsyncMock(return_value=[TocEntry(title="第一章", page=1)]),
+        ) as parse_entries:
+            resp = client.post(
+                f"/api/v1/books/{doc_id}/parse-toc",
+                json={"tocText": "   "},
+            )
+
+        assert resp.status_code == 200
+        assert [e["title"] for e in resp.json()["entries"]] == ["第一章"]
+        parse_entries.assert_awaited_once()
+
     def test_empty_entries_when_no_toc_chapter(self, client, mock_doc):
         """A book with no toc chapter parses to [] without invoking the LLM."""
         from storysphere.domain.documents import Chapter, ChapterRole, Document, FileType, Paragraph

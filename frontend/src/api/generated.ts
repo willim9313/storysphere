@@ -165,10 +165,12 @@ export interface paths {
          * Parse Toc
          * @description LLM-assisted "目錄對照提示": parse the book's declared chapter list.
          *
-         *     Reads the detected table-of-contents chapter(s) and extracts the ordered
-         *     entries the book itself declares, for the review UI to show side by side with
-         *     the detected spine. Display-only: it does not mutate the document, drive
-         *     splitting, or resume the pipeline. Only available while awaiting review.
+         *     Extracts the ordered entries the book itself declares, for the review UI to
+         *     show side by side with the detected spine. Prefers ``body.tocText`` — the
+         *     reviewer's *currently edited* TOC text — so re-parsing reflects live role/
+         *     content edits; falls back to the persisted document's detected TOC when no
+         *     text is sent. Display-only: it does not mutate the document, drive splitting,
+         *     or resume the pipeline. Only available while awaiting review.
          */
         post: operations["parse_toc_api_v1_books__book_id__parse_toc_post"];
         delete?: never;
@@ -3195,6 +3197,20 @@ export interface components {
             } | null;
         };
         /**
+         * ParseTocRequest
+         * @description Body for POST /books/:bookId/parse-toc (目錄對照提示).
+         *
+         *     ``tocText`` is the reviewer's *currently edited* table-of-contents text
+         *     (concatenated paragraphs of the chapters they have marked ``toc`` in the
+         *     review UI). When provided, the backend parses it instead of the stale
+         *     detected TOC in the persisted document, so re-parsing reflects live edits.
+         *     When omitted/empty, the backend falls back to the persisted document.
+         */
+        ParseTocRequest: {
+            /** Toctext */
+            tocText?: string | null;
+        };
+        /**
          * ParseTocResponse
          * @description LLM-parsed table-of-contents entries for the review cross-check drawer.
          *
@@ -4530,7 +4546,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ParseTocRequest"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {

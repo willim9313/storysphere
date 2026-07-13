@@ -103,6 +103,7 @@
     "toc": {
       "detectedHint": "This is the detected contents page. Use AI to parse the chapter list the book itself declares and cross-check it against the detected structure.",
       "readBtn": "Parse & cross-check contents",
+      "viewBtn": "Contents cross-check",
       "drawerTitle": "Book contents",
       "drawerBadge": "AI-parsed · read-only",
       "reparse": "Re-parse",

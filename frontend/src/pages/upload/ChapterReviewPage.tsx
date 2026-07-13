@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronLeft, ChevronRight, Loader2, RotateCw, Sparkles, X } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, List, Loader2, RotateCw, Sparkles, X } from 'lucide-react';
 import { fetchReviewData, parseToc, submitReview, suggestRoles } from '@/api/ingest';
 import type { SuggestRolesResponse, TocEntry } from '@/api/ingest';
 import { deleteBook } from '@/api/books';
@@ -191,19 +191,46 @@ export default function ChapterReviewPage() {
   }, [bookId, aiStatus, t]);
 
   // ── TOC cross-check (#22d) ───────────────────────────────────────────────
+  // The *currently edited* TOC text: paragraphs of every chapter the reviewer
+  // has marked `toc`, joined. Drives both the parse request and — by comparing
+  // against parsedTocText — whether the entry button needs to re-parse.
+  const tocText = useMemo(
+    () =>
+      chapters
+        .filter((c) => (c.role ?? 'body') === 'toc')
+        .flatMap((c) => c.paragraphs.map((p) => p.text))
+        .join('\n')
+        .trim(),
+    [chapters],
+  );
+  // The tocText that produced the current tocEntries. Null until first parsed;
+  // stale once the reviewer edits the TOC (tocText !== parsedTocText), which is
+  // what flips the entry button back to "re-parse".
+  const [parsedTocText, setParsedTocText] = useState<string | null>(null);
+  // True when the current TOC text has already been parsed: the entry button
+  // then just reopens the drawer (no LLM). Editing the TOC makes this false.
+  const tocViewMode = parsedTocText !== null && parsedTocText === tocText;
+
   const runTocParse = useCallback(async () => {
     if (!bookId) return;
     setTocOpen(true);
     setTocStatus('loading');
+    // Send the currently edited text so re-parsing reflects live edits rather
+    // than the stale detected TOC the backend has on disk.
     try {
-      const res = await parseToc(bookId);
+      const res = await parseToc(bookId, tocText);
       const entries = res.entries ?? [];
       setTocEntries(entries);
       setTocStatus(entries.length > 0 ? 'done' : 'empty');
+      setParsedTocText(tocText); // only on a completed parse, never on error
     } catch {
       setTocStatus('error');
     }
-  }, [bookId]);
+  }, [bookId, tocText]);
+
+  // Entry button in "view" mode: reopen the drawer showing the cached parse
+  // without hitting the LLM. The drawer's ↻ stays the force-reparse path.
+  const openTocDrawer = useCallback(() => setTocOpen(true), []);
 
   // ── In-paragraph split (selection → new paragraph) ───────────────────────
   const handleSelectionEnd = useCallback(() => {
@@ -633,9 +660,13 @@ export default function ChapterReviewPage() {
                 {(ch.role ?? 'body') === 'toc' && (
                   <div className="cr-toc-cue">
                     <span className="cr-toc-cue-text">{t('review.toc.detectedHint')}</span>
-                    <button className="cr-toc-cue-btn" disabled={tocStatus === 'loading'} onClick={runTocParse}>
-                      <Sparkles size={13} />
-                      {t('review.toc.readBtn')}
+                    <button
+                      className="cr-toc-cue-btn"
+                      disabled={tocStatus === 'loading'}
+                      onClick={tocViewMode ? openTocDrawer : runTocParse}
+                    >
+                      {tocViewMode ? <List size={13} /> : <Sparkles size={13} />}
+                      {t(tocViewMode ? 'review.toc.viewBtn' : 'review.toc.readBtn')}
                     </button>
                   </div>
                 )}

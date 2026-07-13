@@ -58,6 +58,7 @@ from storysphere.api.schemas.books import (
     InferredRelationsResponse,
     LocationRef,
     MisbeliefItemSchema,
+    ParseTocRequest,
     ParseTocResponse,
     ParticipantRef,
     ReviewChapterResponse,
@@ -653,13 +654,16 @@ async def suggest_roles(
 async def parse_toc(
     book_id: str,
     doc: DocServiceDep,
+    body: ParseTocRequest | None = None,
 ) -> ParseTocResponse:
     """LLM-assisted "目錄對照提示": parse the book's declared chapter list.
 
-    Reads the detected table-of-contents chapter(s) and extracts the ordered
-    entries the book itself declares, for the review UI to show side by side with
-    the detected spine. Display-only: it does not mutate the document, drive
-    splitting, or resume the pipeline. Only available while awaiting review.
+    Extracts the ordered entries the book itself declares, for the review UI to
+    show side by side with the detected spine. Prefers ``body.tocText`` — the
+    reviewer's *currently edited* TOC text — so re-parsing reflects live role/
+    content edits; falls back to the persisted document's detected TOC when no
+    text is sent. Display-only: it does not mutate the document, drive splitting,
+    or resume the pipeline. Only available while awaiting review.
     """
     from storysphere.api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
 
@@ -676,14 +680,22 @@ async def parse_toc(
             detail="Book is not currently awaiting chapter review",
         )
 
-    document = await doc.get_document(book_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+    from storysphere.services.toc_parser import (  # noqa: PLC0415
+        parse_toc_entries,
+        parse_toc_text,
+    )
 
-    from storysphere.services.toc_parser import parse_toc_entries  # noqa: PLC0415
-
+    toc_text = (body.toc_text or "").strip() if body else ""
     try:
-        entries = await parse_toc_entries(document.chapters)
+        if toc_text:
+            entries = await parse_toc_text(toc_text)
+        else:
+            document = await doc.get_document(book_id)
+            if document is None:
+                raise HTTPException(
+                    status_code=404, detail=f"Book '{book_id}' not found"
+                )
+            entries = await parse_toc_entries(document.chapters)
     except RuntimeError as exc:
         raise HTTPException(
             status_code=503,

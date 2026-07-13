@@ -112,6 +112,26 @@ async def parse_toc_entries(
         if chapter.role == ChapterRole.toc
         for para in chapter.paragraphs
     ).strip()
+    return await parse_toc_text(toc_text, max_chars=max_chars, llm=llm)
+
+
+async def parse_toc_text(
+    toc_text: str,
+    *,
+    max_chars: int = DEFAULT_MAX_CHARS,
+    llm=None,
+) -> list[TocEntry]:
+    """Parse a book's declared chapter list from raw table-of-contents text.
+
+    Same extraction as :func:`parse_toc_entries` but from a text string rather
+    than the stored document, so the review UI can send the *currently edited*
+    TOC (the reviewer may have re-assigned roles or edited the block since the
+    document was persisted) instead of the stale detected version.
+
+    Returns ``[]`` for empty/unparseable text. Raises ``RuntimeError`` (from the
+    LLM client) if no LLM is configured.
+    """
+    toc_text = toc_text.strip()
     if not toc_text:
         return []
 

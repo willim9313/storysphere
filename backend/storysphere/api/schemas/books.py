@@ -143,6 +143,21 @@ class TocEntry(BaseModel):
     is_body: bool = True
 
 
+class ParseTocRequest(BaseModel):
+    """Body for POST /books/:bookId/parse-toc (目錄對照提示).
+
+    ``tocText`` is the reviewer's *currently edited* table-of-contents text
+    (concatenated paragraphs of the chapters they have marked ``toc`` in the
+    review UI). When provided, the backend parses it instead of the stale
+    detected TOC in the persisted document, so re-parsing reflects live edits.
+    When omitted/empty, the backend falls back to the persisted document.
+    """
+
+    model_config = _CAMEL
+
+    toc_text: str | None = None
+
+
 class ParseTocResponse(BaseModel):
     """LLM-parsed table-of-contents entries for the review cross-check drawer.
 

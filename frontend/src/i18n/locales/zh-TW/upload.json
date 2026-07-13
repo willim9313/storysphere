@@ -104,6 +104,7 @@
     "toc": {
       "detectedHint": "這是偵測到的目錄頁。可用 AI 解析出書本聲明的章節清單，與偵測結構對照。",
       "readBtn": "解析目錄並對照",
+      "viewBtn": "目錄對照",
       "drawerTitle": "書本目錄",
       "drawerBadge": "AI 解析 · 唯讀",
       "reparse": "重新解析",

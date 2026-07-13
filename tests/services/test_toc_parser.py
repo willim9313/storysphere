@@ -111,3 +111,30 @@ class TestParseTocEntries:
         content = '{"entries": [{"title": "序", "level": -3, "isBody": false}]}'
         result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm(content))
         assert result[0].level == 0
+
+
+class TestParseTocText:
+    """parse_toc_text: same extraction, but from raw text (the edited TOC)."""
+
+    @pytest.mark.asyncio
+    async def test_empty_text_returns_empty_without_llm(self):
+        from storysphere.services.toc_parser import parse_toc_text
+
+        llm = _fake_llm('{"entries": []}')
+        result = await parse_toc_text("   \n  ", llm=llm)
+        assert result == []
+        llm.ainvoke.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_parses_ordered_entries_from_text(self):
+        from storysphere.services.toc_parser import parse_toc_text
+
+        content = (
+            '{"entries": ['
+            '{"title": "第一章 開端", "page": 15, "level": 0, "isBody": true},'
+            '{"title": "跋", "page": 86, "level": 0, "isBody": false}'
+            ']}'
+        )
+        result = await parse_toc_text("第一章 開端 …… 15", llm=_fake_llm(content))
+        assert [e.title for e in result] == ["第一章 開端", "跋"]
+        assert result[1].is_body is False
