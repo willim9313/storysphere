@@ -570,7 +570,7 @@ export default function ReaderPage() {
                 <EntityMarkClickProvider onEntityClick={handleEntityMarkClick}>
                   {chunks?.map((chunk) => (
                     <div key={chunk.id} data-chunk-id={chunk.id}>
-                      <ChunkCard chunk={chunk} />
+                      <ChunkCard chunk={chunk} onEntityClick={handleEntityMarkClick} />
                     </div>
                   ))}
                 </EntityMarkClickProvider>

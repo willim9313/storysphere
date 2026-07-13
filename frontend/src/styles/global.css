@@ -227,6 +227,15 @@
     background: transparent;
   }
 
+  /* R3: chunk 頂部的 entity chips 跟隨標註密度（canvas data-amode 規則）：
+     "characters" 只留角色 chip，"off" 整列隱藏。 */
+  [data-annotation-mode='characters'] .chunk-chips .pill:not(.pill-char) {
+    display: none;
+  }
+  [data-annotation-mode='off'] .chunk-chips {
+    display: none;
+  }
+
   /* ── Theme-aware progress bar fill ──────────────────────────────── */
   .theme-progress-fill {
     background-color: var(--accent);
