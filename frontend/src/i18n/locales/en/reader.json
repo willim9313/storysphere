@@ -1,8 +1,10 @@
 {
+  "bookInfo": "Book Info",
   "bookKeywords": "Book Keywords",
   "entityDistribution": "Entity Distribution",
   "stats": {
     "chapters": "Chapters",
+    "chunks": "Chunks",
     "entities": "Entities",
     "relations": "Relations",
     "events": "Events"
@@ -38,8 +40,8 @@
     "characters": "Characters",
     "off": "Off"
   },
-  "col1Expand": "Expand book overview",
-  "col1Collapse": "Collapse book overview",
+  "col1Expand": "Expand book info",
+  "col1Collapse": "Collapse book info",
   "col2Expand": "Expand chapter list",
   "col2Collapse": "Collapse chapter list",
   "nav": {

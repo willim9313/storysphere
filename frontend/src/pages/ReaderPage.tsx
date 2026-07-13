@@ -298,37 +298,16 @@ export default function ReaderPage() {
         ref={col1Ref}
         className="flex-shrink-0 relative"
         style={{
-          width: col1Collapsed ? 36 : 232,
+          width: col1Collapsed ? 46 : 250,
           transition: 'width 200ms ease',
           overflow: 'hidden',
           borderRight: '1px solid var(--border)',
           backgroundColor: 'var(--bg-secondary)',
         }}
       >
-        <button
-          onClick={handleCol1Toggle}
-          style={collapseButtonStyle}
-          aria-label={col1Collapsed ? t('col1Expand') : t('col1Collapse')}
-        >
-          {col1Collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-        </button>
-
-        {!col1Collapsed ? (
-          <div style={{ height: '100%', overflowY: 'auto' }}>
-            <BookOverview book={book} />
-          </div>
-        ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              paddingTop: 40,
-            }}
-          >
-            <BookOpen size={16} style={{ color: 'var(--fg-muted)' }} />
-          </div>
-        )}
+        <div style={{ height: '100%', overflowY: col1Collapsed ? 'hidden' : 'auto' }}>
+          <BookOverview book={book} collapsed={col1Collapsed} onToggleCollapse={handleCol1Toggle} />
+        </div>
       </div>
 
       {/* Spacer between col1 and col2 — only when col1 is expanded */}

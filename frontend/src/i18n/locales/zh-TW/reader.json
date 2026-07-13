@@ -1,8 +1,10 @@
 {
+  "bookInfo": "書籍資訊",
   "bookKeywords": "全書關鍵字",
   "entityDistribution": "實體分佈",
   "stats": {
     "chapters": "章節",
+    "chunks": "Chunks",
     "entities": "實體",
     "relations": "關係",
     "events": "事件"
@@ -38,8 +40,8 @@
     "characters": "角色",
     "off": "關"
   },
-  "col1Expand": "展開書籍概覽",
-  "col1Collapse": "收合書籍概覽",
+  "col1Expand": "展開書籍資訊",
+  "col1Collapse": "收合書籍資訊",
   "col2Expand": "展開章節列表",
   "col2Collapse": "收合章節列表",
   "nav": {

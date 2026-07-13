@@ -1,4 +1,4 @@
-import { FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { StatusBadge } from '@/components/library/StatusBadge';
 import { KeywordTags } from './KeywordTags';
@@ -15,9 +15,47 @@ const entityTypeCls: Record<EntityType, string> = {
   event: 'pill-evt',
 };
 
-export function BookOverview({ book }: { book: BookDetail }) {
+interface BookOverviewProps {
+  book: BookDetail;
+  /** Column-1 collapsed state — renders the 46px rail instead of full content. */
+  collapsed: boolean;
+  onToggleCollapse: () => void;
+}
+
+export function BookOverview({ book, collapsed, onToggleCollapse }: Readonly<BookOverviewProps>) {
   const { t } = useTranslation('reader');
   const { t: tg } = useTranslation('graph');
+
+  if (collapsed) {
+    return (
+      <button
+        onClick={onToggleCollapse}
+        aria-label={t('col1Expand')}
+        className="flex flex-col items-center w-full"
+        style={{
+          background: 'none',
+          border: 'none',
+          cursor: 'pointer',
+          paddingTop: 12,
+          gap: 16,
+        }}
+      >
+        <ChevronRight size={16} style={{ color: 'var(--fg-muted)' }} />
+        <FileText size={20} style={{ color: 'var(--accent)' }} />
+        <span
+          style={{
+            writingMode: 'vertical-rl',
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--font-size-2xs)',
+            color: 'var(--fg-muted)',
+            letterSpacing: '2px',
+          }}
+        >
+          {t('bookInfo')}
+        </span>
+      </button>
+    );
+  }
 
   const stats = [
     { key: 'chapters', value: book.chapterCount },
@@ -29,19 +67,45 @@ export function BookOverview({ book }: { book: BookDetail }) {
 
   return (
     <div className="p-3 space-y-4">
-      {/* Cover placeholder */}
-      <div
-        className="flex items-center justify-center h-28 rounded-md"
-        style={{ backgroundColor: 'var(--bg-secondary)' }}
-      >
-        <FileText size={32} style={{ color: 'var(--accent)' }} />
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <span className="text-xs font-medium" style={{ color: 'var(--fg-secondary)' }}>
+          {t('bookInfo')}
+        </span>
+        <button
+          onClick={onToggleCollapse}
+          aria-label={t('col1Collapse')}
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            color: 'var(--fg-muted)',
+            padding: 2,
+            display: 'flex',
+          }}
+        >
+          <ChevronLeft size={16} />
+        </button>
       </div>
 
-      {/* Title */}
+      {/* Cover placeholder */}
+      <div
+        className="flex items-center justify-center rounded-md"
+        style={{ height: 76, backgroundColor: 'var(--bg-tertiary)' }}
+      >
+        <FileText size={26} style={{ color: 'var(--accent)' }} />
+      </div>
+
+      {/* Title / author / status */}
       <div>
         <h2
-          className="text-sm font-bold"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 'var(--font-size-lg)',
+            fontWeight: 700,
+            lineHeight: 1.35,
+            color: 'var(--fg-primary)',
+          }}
         >
           {book.title}
         </h2>
@@ -57,7 +121,14 @@ export function BookOverview({ book }: { book: BookDetail }) {
 
       {/* Summary */}
       {book.summary && (
-        <p className="text-xs leading-relaxed" style={{ color: 'var(--fg-secondary)' }}>
+        <p
+          style={{
+            fontFamily: 'var(--font-serif)',
+            fontSize: 'var(--font-size-sm)',
+            lineHeight: 1.7,
+            color: 'var(--fg-secondary)',
+          }}
+        >
           {book.summary}
         </p>
       )}
@@ -68,13 +139,16 @@ export function BookOverview({ book }: { book: BookDetail }) {
           <div
             key={key}
             className="rounded-md py-1.5 px-2"
-            style={{ backgroundColor: 'var(--bg-secondary)' }}
+            style={{
+              backgroundColor: 'var(--bg-secondary)',
+              ...(key === 'events' ? { gridColumn: '1 / -1' } : {}),
+            }}
           >
             <div className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
               {value}
             </div>
             <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-              {key === 'chunks' ? 'Chunks' : t(`stats.${key}`)}
+              {t(`stats.${key}`)}
             </div>
           </div>
         ))}
