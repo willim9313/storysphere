@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Brain, Search, ChevronLeft, ChevronRight, BookOpen, ArrowUp } from 'lucide-react';
+import { Brain, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, ArrowUp } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useChapters } from '@/hooks/useChapters';
@@ -46,9 +46,11 @@ const collapseButtonStyle: React.CSSProperties = {
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { t } = useTranslation('reader');
-  const [selectedChapterId, setSelectedChapterId] = useState<string | null>(null);
-  const [expandedChapterId, setExpandedChapterId] = useState<string | null>(null);
+  // viewingChapterId doubles as "selected chapter" — there is only one chapter
+  // being read in column 3 at a time. expandedChapters is the independent,
+  // multi-open accordion state for column 2's chapter cards.
   const [viewingChapterId, setViewingChapterId] = useState<string | null>(null);
+  const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
   const [epistemicOpen, setEpistemicOpen] = useState(false);
   const [annotationMode, setAnnotationMode] = useState<'full' | 'characters' | 'off'>('full');
   const [searchQuery, setSearchQuery] = useState('');
@@ -116,8 +118,7 @@ export default function ReaderPage() {
     // the alternative (compute in render) would force callers to also push a
     // chapter id into the URL which couples symbol-page state to reader state.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setExpandedChapterId(target.id);
-    setSelectedChapterId(target.id);
+    setExpandedChapters((prev) => (prev[target.id] ? prev : { ...prev, [target.id]: true }));
     setViewingChapterId(target.id);
   }, [jumpTarget, chapters]);
 
@@ -177,14 +178,22 @@ export default function ReaderPage() {
 
   // P0: useMemo must be before early returns (Rules of Hooks)
   const chapterList = useMemo(() => chapters ?? [], [chapters]);
-  const filteredChapterList = useMemo(() => {
+  // Search no longer filters chapters out of the list (canvas behavior): all
+  // chapters stay rendered, non-matches are just dimmed via `dimmed` below.
+  // null = no active search (nothing dimmed); a Set = active search, dim ids
+  // not in it.
+  const matchedChapterIds = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return chapterList;
-    return chapterList.filter((chapter) =>
-      chapter.title.toLowerCase().includes(q) ||
-      chapter.topEntities?.some((e) => e.name?.toLowerCase().includes(q)) ||
-      Object.keys(chapter.keywords ?? {}).some((k) => k.toLowerCase().includes(q))
-    );
+    if (!q) return null;
+    const ids = new Set<string>();
+    for (const chapter of chapterList) {
+      const matches =
+        chapter.title.toLowerCase().includes(q) ||
+        chapter.topEntities?.some((e) => e.name?.toLowerCase().includes(q)) ||
+        Object.keys(chapter.keywords ?? {}).some((k) => k.toLowerCase().includes(q));
+      if (matches) ids.add(chapter.id);
+    }
+    return ids;
   }, [chapterList, searchQuery]);
 
   useEffect(() => {
@@ -214,7 +223,9 @@ export default function ReaderPage() {
   if (bookLoading || chaptersLoading) return <LoadingSpinner />;
   if (bookError) return <ErrorMessage message={bookError.message} />;
   if (!book) return <ErrorMessage message="Book not found" />;
-  const selectedChapterIdx = filteredChapterList.findIndex((c) => c.id === expandedChapterId);
+  // Index of the viewing (= selected) chapter within chapterList — the same
+  // list rendered in column 2, so this also serves as BezierConnectors'
+  // selectedChapterIdx (it queries data-chapter-card by index in that list).
   const viewingChapter = chapterList.find((c) => c.id === viewingChapterId);
   const viewingChapterOrder = viewingChapter?.order ?? null;
   const viewingChapterIdx = chapterList.findIndex((c) => c.id === viewingChapterId);
@@ -223,12 +234,28 @@ export default function ReaderPage() {
     viewingChapterIdx >= 0 && viewingChapterIdx < chapterList.length - 1
       ? chapterList[viewingChapterIdx + 1]
       : null;
+  const allChaptersExpanded =
+    chapterList.length > 0 && chapterList.every((c) => expandedChapters[c.id]);
 
+  // Navigate: read this chapter in column 3. Also opens its column-2 card
+  // (independent expand/collapse still works afterward via the chevron).
   const handleSelectChapter = (chapterId: string) => {
-    setExpandedChapterId(chapterId);
-    setSelectedChapterId(chapterId);
     setViewingChapterId(chapterId);
-    setSearchQuery('');
+    setExpandedChapters((prev) => (prev[chapterId] ? prev : { ...prev, [chapterId]: true }));
+  };
+
+  const handleToggleChapterExpand = (chapterId: string) => {
+    setExpandedChapters((prev) => ({ ...prev, [chapterId]: !prev[chapterId] }));
+  };
+
+  const handleToggleAllChapters = () => {
+    if (allChaptersExpanded) {
+      setExpandedChapters({});
+      return;
+    }
+    const next: Record<string, boolean> = {};
+    for (const c of chapterList) next[c.id] = true;
+    setExpandedChapters(next);
   };
 
   // doJump: entity card "appearances" list target. Same chapter — scroll
@@ -285,8 +312,8 @@ export default function ReaderPage() {
           col1Ref={col1Ref}
           col2Ref={col2Ref}
           col3Ref={col3Ref}
-          selectedChapterIdx={selectedChapterIdx}
-          chapterKey={filteredChapterList.map((c) => c.id).join(',')}
+          selectedChapterIdx={viewingChapterIdx}
+          chapterKey={chapterList.map((c) => c.id).join(',')}
           chunkCount={chunks?.length ?? 0}
           showCol3={!!viewingChapterId}
           colRevision={colRevision}
@@ -334,8 +361,30 @@ export default function ReaderPage() {
 
         {!col2Collapsed ? (
           <>
-            {/* Search — paddingRight leaves room for the absolute collapse button */}
+            {/* Header — paddingRight leaves room for the absolute collapse button */}
             <div className="flex-shrink-0 p-2 pb-1" style={{ paddingRight: 30 }}>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs" style={{ color: 'var(--fg-secondary)' }}>
+                  {t('chapterListHeader', { count: chapterList.length })}
+                </span>
+                <button
+                  onClick={handleToggleAllChapters}
+                  className="flex items-center gap-1"
+                  style={{
+                    background: 'transparent',
+                    color: 'var(--fg-muted)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 'var(--radius-sm)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 'var(--font-size-2xs)',
+                    padding: '3px 8px',
+                  }}
+                >
+                  {allChaptersExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
+                  {allChaptersExpanded ? t('collapseAll') : t('expandAll')}
+                </button>
+              </div>
               <div
                 className="flex items-center gap-2 px-2 py-1 rounded-md"
                 style={{ backgroundColor: 'var(--bg-tertiary)' }}
@@ -351,25 +400,30 @@ export default function ReaderPage() {
                   style={{ color: 'var(--fg-primary)' }}
                 />
               </div>
+              {matchedChapterIds !== null && (
+                <p className="mt-1.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
+                  {matchedChapterIds.size > 0
+                    ? t('searchMatchCount', { count: matchedChapterIds.size })
+                    : t('searchEmpty', { query: searchQuery })}
+                </p>
+              )}
             </div>
 
-            {/* Chapter list */}
+            {/* Chapter list — search dims non-matches instead of removing them */}
             <div className="flex-1 overflow-y-auto p-2 pt-1 space-y-1">
-              {filteredChapterList.map((chapter) => (
+              {chapterList.map((chapter) => (
                 <div key={chapter.id} data-chapter-card>
                   <ChapterCard
                     chapter={chapter}
-                    isSelected={selectedChapterId === chapter.id}
-                    isExpanded={expandedChapterId === chapter.id}
+                    isSelected={viewingChapterId === chapter.id}
+                    isExpanded={!!expandedChapters[chapter.id]}
+                    dimmed={matchedChapterIds !== null && !matchedChapterIds.has(chapter.id)}
                     onSelect={() => handleSelectChapter(chapter.id)}
+                    onToggleExpand={() => handleToggleChapterExpand(chapter.id)}
+                    onEntityClick={handleEntityMarkClick}
                   />
                 </div>
               ))}
-              {filteredChapterList.length === 0 && searchQuery && (
-                <p className="px-2 py-4 text-xs text-center" style={{ color: 'var(--fg-muted)' }}>
-                  {t('searchEmpty', { query: searchQuery })}
-                </p>
-              )}
             </div>
           </>
         ) : (

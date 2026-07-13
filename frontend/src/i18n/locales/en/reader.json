@@ -12,11 +12,17 @@
   "chapter": {
     "entities": "{{count}} entities",
     "keywords": "Keywords",
+    "entityCount": "Entities · {{count}}",
+    "toggleExpand": "Expand/collapse chapter",
     "viewContent": "View Content"
   },
+  "chapterListHeader": "Chapters · {{count}}",
+  "expandAll": "Expand all",
+  "collapseAll": "Collapse all",
   "selectChapter": "Select a chapter to view content",
   "search": "Search chapters, characters, keywords…",
   "searchEmpty": "No chapters matching \"{{query}}\"",
+  "searchMatchCount": "{{count}} matching chapters",
   "epistemicLabel": "Epistemic State",
   "epistemicClose": "Collapse",
   "epistemicHint": "Select a character to see what they know up to this chapter",

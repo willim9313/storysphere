@@ -12,11 +12,17 @@
   "chapter": {
     "entities": "{{count}} 實體",
     "keywords": "關鍵字",
+    "entityCount": "實體 · {{count}}",
+    "toggleExpand": "展開／收合本章",
     "viewContent": "查看內容"
   },
+  "chapterListHeader": "章節 · {{count}}",
+  "expandAll": "全部展開",
+  "collapseAll": "全部收合",
   "selectChapter": "選擇章節以查看內容",
   "search": "搜尋章節、角色、關鍵字…",
   "searchEmpty": "沒有章節含「{{query}}」",
+  "searchMatchCount": "{{count}} 章符合",
   "epistemicLabel": "認知狀態",
   "epistemicClose": "收起",
   "epistemicHint": "選擇角色，查看他在這個章節前知道的事",
