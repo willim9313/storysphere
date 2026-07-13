@@ -618,7 +618,7 @@ export default function ReaderPage() {
         <div
           className="flex-shrink-0 overflow-hidden"
           style={{
-            width: epistemicOpen ? 280 : 0,
+            width: epistemicOpen ? 288 : 0,
             transition: 'width 200ms ease',
           }}
         >
@@ -628,6 +628,10 @@ export default function ReaderPage() {
               chapters={chapterList}
               currentChapterOrder={viewingChapterOrder}
               onClose={() => setEpistemicOpen(false)}
+              onJumpToChapter={(chapterNumber) => {
+                const target = chapterList.find((c) => c.order === chapterNumber);
+                if (target) handleSelectChapter(target.id);
+              }}
             />
           )}
         </div>
