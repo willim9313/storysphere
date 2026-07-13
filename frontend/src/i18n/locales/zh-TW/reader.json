@@ -38,7 +38,8 @@
     "none": "（無）",
     "misbelief": "誤信：",
     "actualTruth": "實情：",
-    "confidence": "信心度 {{percent}}%"
+    "confidence": "信心度 {{percent}}%",
+    "locating": "定位段落中…"
   },
   "annotation": {
     "title": "標註",

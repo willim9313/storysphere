@@ -38,7 +38,8 @@
     "none": "(None)",
     "misbelief": "Misbelief:",
     "actualTruth": "Actual truth:",
-    "confidence": "Confidence {{percent}}%"
+    "confidence": "Confidence {{percent}}%",
+    "locating": "Locating passage…"
   },
   "annotation": {
     "title": "Marks",

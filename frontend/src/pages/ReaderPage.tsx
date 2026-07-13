@@ -759,7 +759,18 @@ export default function ReaderPage() {
               onClose={() => setEpistemicOpen(false)}
               onJumpToChapter={(chapterNumber) => {
                 const target = chapterList.find((c) => c.order === chapterNumber);
-                if (target) handleSelectChapter(target.id);
+                if (!target) return;
+                if (target.id === viewingChapterId) {
+                  // Same-chapter fallback: selecting the current chapter is a
+                  // state no-op, so give explicit feedback by scrolling to top.
+                  col3ScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                  handleSelectChapter(target.id);
+                }
+              }}
+              onJumpToChunk={(chapterNumber, chunkId) => {
+                const target = chapterList.find((c) => c.order === chapterNumber);
+                if (target) handleJumpToChunk(target.id, chunkId);
               }}
             />
           )}

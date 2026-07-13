@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react';
-import { X, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
+import { searchPassages } from '@/api/search';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Chapter } from '@/api/types';
 
@@ -11,7 +12,10 @@ interface EpistemicSidePanelProps {
   chapters: Chapter[];
   currentChapterOrder: number | null;
   onClose: () => void;
+  /** Fallback: chapter-level jump, used when the passage lookup finds nothing. */
   onJumpToChapter: (chapterNumber: number) => void;
+  /** Paragraph-level jump — chunkId comes from the #22a passage lookup below. */
+  onJumpToChunk: (chapterNumber: number, chunkId: string) => void;
 }
 
 const eventItemBaseStyle: React.CSSProperties = {
@@ -46,20 +50,25 @@ function EventItemButton({
   chapterNumber,
   color,
   bgColor,
+  locating,
+  locatingLabel,
   onJump,
 }: {
   title: string;
   chapterNumber: number | null;
   color: string;
   bgColor: string;
-  onJump: (chapterNumber: number) => void;
+  /** True while this item's passage lookup (#22a) is in flight. */
+  locating: boolean;
+  locatingLabel: string;
+  onJump: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const clickable = chapterNumber !== null && !Number.isNaN(chapterNumber);
   return (
     <button
       type="button"
-      onClick={() => clickable && onJump(chapterNumber)}
+      onClick={() => clickable && onJump()}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
       disabled={!clickable}
@@ -75,10 +84,19 @@ function EventItemButton({
       >
         {title}
       </span>
-      {clickable && (
-        <span className="text-xs flex-shrink-0" style={{ color: 'var(--fg-muted)' }}>
-          Ch.{chapterNumber}
-        </span>
+      {locating ? (
+        <Loader
+          size={12}
+          className="animate-spin flex-shrink-0"
+          style={{ color: 'var(--fg-muted)' }}
+          aria-label={locatingLabel}
+        />
+      ) : (
+        clickable && (
+          <span className="text-xs flex-shrink-0" style={{ color: 'var(--fg-muted)' }}>
+            Ch.{chapterNumber}
+          </span>
+        )
       )}
     </button>
   );
@@ -90,10 +108,12 @@ export function EpistemicSidePanel({
   currentChapterOrder,
   onClose,
   onJumpToChapter,
+  onJumpToChunk,
 }: EpistemicSidePanelProps) {
   const { t } = useTranslation('reader');
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
   const [misbeliefHovered, setMisbeliefHovered] = useState<string | null>(null);
+  const [locatingId, setLocatingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Collect all characters from top-entities across all chapters up to current
@@ -120,6 +140,32 @@ export function EpistemicSidePanel({
   const toChapterNumber = (ev: Record<string, unknown>): number | null => {
     const n = typeof ev.chapter === 'number' ? ev.chapter : Number(ev.chapter);
     return Number.isNaN(n) ? null : n;
+  };
+
+  // Paragraph-level jump: the epistemic API only carries a chapter number per
+  // event, so the exact passage is resolved on demand — #22a semantic search
+  // over the event's title+description, restricted to hits in that chapter.
+  // Falls back to a chapter-level jump when nothing in-chapter surfaces (or
+  // the search fails). One lookup in flight at a time.
+  const handleEventJump = async (ev: Record<string, unknown>) => {
+    const chapterNumber = toChapterNumber(ev);
+    if (chapterNumber === null || locatingId) return;
+    const evKey = String(ev.id ?? ev.title ?? '');
+    setLocatingId(evKey);
+    try {
+      const query = `${String(ev.title ?? '')}。${String(ev.description ?? '')}`.slice(0, 200);
+      const results = await searchPassages({ query, bookId, topK: 10, mode: 'semantic' });
+      const best = results.find((r) => r.metadata?.chapterNumber === chapterNumber);
+      if (best?.id) {
+        onJumpToChunk(chapterNumber, best.id);
+      } else {
+        onJumpToChapter(chapterNumber);
+      }
+    } catch {
+      onJumpToChapter(chapterNumber);
+    } finally {
+      setLocatingId(null);
+    }
   };
 
   return (
@@ -206,7 +252,9 @@ export function EpistemicSidePanel({
                       chapterNumber={toChapterNumber(ev)}
                       color="var(--color-success)"
                       bgColor="var(--color-success-bg)"
-                      onJump={onJumpToChapter}
+                      locating={locatingId === String(ev.id ?? ev.title ?? '')}
+                      locatingLabel={t('epistemicPanel.locating')}
+                      onJump={() => handleEventJump(ev)}
                     />
                   ))}
                 </div>
@@ -231,7 +279,9 @@ export function EpistemicSidePanel({
                       chapterNumber={toChapterNumber(ev)}
                       color="var(--color-warning)"
                       bgColor="var(--color-warning-bg)"
-                      onJump={onJumpToChapter}
+                      locating={locatingId === String(ev.id ?? ev.title ?? '')}
+                      locatingLabel={t('epistemicPanel.locating')}
+                      onJump={() => handleEventJump(ev)}
                     />
                   ))}
                 </div>
@@ -252,13 +302,13 @@ export function EpistemicSidePanel({
                       (ev) => String(ev.id ?? '') === m.sourceEventId,
                     );
                     const chapterNumber = sourceEvent ? toChapterNumber(sourceEvent) : null;
-                    const clickable = chapterNumber !== null;
+                    const clickable = chapterNumber !== null && sourceEvent !== undefined;
                     const hovered = misbeliefHovered === m.sourceEventId;
                     return (
                       <li key={m.sourceEventId}>
                         <button
                           type="button"
-                          onClick={() => clickable && onJumpToChapter(chapterNumber)}
+                          onClick={() => clickable && handleEventJump(sourceEvent)}
                           onMouseEnter={() => setMisbeliefHovered(m.sourceEventId)}
                           onMouseLeave={() => setMisbeliefHovered(null)}
                           disabled={!clickable}
