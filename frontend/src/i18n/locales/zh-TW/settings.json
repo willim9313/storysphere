@@ -20,14 +20,10 @@
     "sub": "選擇介面主題。點擊即時套用，無需確認。",
     "sectionTitle": "介面主題",
     "current": "目前",
-    "default": "Warm Analytical",
-    "defaultDesc": "暖白底、serif 正文，書房閱讀感",
-    "manuscript": "Manuscript",
-    "manuscriptDesc": "手稿斜線紋、dashed 邊框，學術研究感",
-    "minimalInk": "Minimal Ink",
-    "minimalInkDesc": "極端黑白對比、大留白，編輯設計感",
-    "pulp": "Pulp",
-    "pulpDesc": "厚重邊框、offset shadow，漫畫輕小說感"
+    "warm": "Warm",
+    "warmDesc": "暖象牙紙上的墨線，書房閱讀感",
+    "ink": "Ink",
+    "inkDesc": "純黑白鋼筆線稿，平面直角、單色墨線"
   },
   "language": {
     "title": "語言",

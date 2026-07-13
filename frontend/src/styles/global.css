@@ -47,14 +47,11 @@
   100% { transform: translateX(380%); }
 }
 
+/* Warm: line art sits gently on paper. Ink: pure ink line on white. */
 .splash-bg-img {
-  opacity: 0.18;
-  filter: grayscale(0.4) contrast(0.95);
+  opacity: var(--splash-image-opacity);
+  filter: var(--splash-image-filter);
 }
-[data-theme="default"] .splash-bg-img     { opacity: 0.22; filter: sepia(0.15) contrast(0.95); }
-[data-theme="manuscript"] .splash-bg-img  { opacity: 0.28; filter: grayscale(1) contrast(1.0); mix-blend-mode: multiply; }
-[data-theme="minimal-ink"] .splash-bg-img { opacity: 0.10; filter: grayscale(1) contrast(1.2); }
-[data-theme="pulp"] .splash-bg-img        { opacity: 0.16; filter: grayscale(1) contrast(1.6); }
 
 .splash-loader-track {
   width: 90px;
@@ -64,10 +61,6 @@
   overflow: hidden;
   margin-top: 4px;
 }
-[data-theme="pulp"] .splash-loader-track {
-  height: 4px;
-  border: 1px solid var(--fg-primary);
-}
 
 .splash-loader-bar {
   width: 30%;
@@ -75,32 +68,12 @@
   background: var(--accent);
   animation: splash-bar 1.4s ease-in-out infinite;
 }
-[data-theme="manuscript"] .splash-loader-bar {
-  background: repeating-linear-gradient(45deg, #000 0 1px, transparent 1px 4px), #000;
-}
-[data-theme="pulp"] .splash-loader-bar {
-  background: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 4px);
-}
 
-[data-theme="pulp"] .splash-wordmark {
-  text-shadow: 4px 4px 0 var(--bg-tertiary);
-}
-
-/* ── Theme-specific progress bar stripe overrides (outside @layer for specificity) ── */
-[data-theme="manuscript"] .theme-progress-fill {
-  background: repeating-linear-gradient(
-    0deg,
-    var(--fg-primary) 0px, var(--fg-primary) 1px,
-    transparent 1px, transparent 3px
-  );
-}
-
-[data-theme="pulp"] .theme-progress-fill {
-  background: repeating-linear-gradient(
-    90deg,
-    var(--fg-primary) 0px, var(--fg-primary) 2px,
-    transparent 2px, transparent 4px
-  );
+/* ── Focus ring — 鍵盤 a11y（:focus-visible 才畫，滑鼠點擊不出現）。
+   :where() 零 specificity：元件自帶的 focus 樣式可蓋過它。 ── */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 @layer components {
@@ -109,12 +82,13 @@
     align-items: center;
     gap: var(--space-sm);
     padding: var(--space-sm) var(--space-md);
-    border-radius: var(--radius-md);
+    border-radius: var(--btn-radius);
     font-size: var(--font-size-sm);
     font-weight: 500;
     cursor: pointer;
     transition: all var(--transition-fast);
-    border: 1px solid transparent;
+    border: var(--btn-border-width) solid transparent;
+    box-shadow: var(--btn-shadow);
   }
 
   .btn-primary {
@@ -138,15 +112,10 @@
 
   .card {
     background-color: var(--bg-primary);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
+    border: var(--card-border-width) var(--border-style) var(--border);
+    border-radius: var(--card-radius);
     padding: var(--space-lg);
-    box-shadow: var(--shadow-sm);
-  }
-
-  /* Pulp theme: offset shadow on card surfaces (overrides --shadow-sm) */
-  [data-theme="pulp"] .card {
-    box-shadow: var(--node-shadow);
+    box-shadow: var(--card-shadow);
   }
 
   /* ── Entity Pill styles ──────────────────────────────────────── */
@@ -156,7 +125,7 @@
     gap: 3px;
     font-size: var(--font-size-2xs);
     padding: 2px 7px;
-    border-radius: 20px;
+    border-radius: var(--pill-radius);
     white-space: nowrap;
   }
 
@@ -169,85 +138,84 @@
 
   .pill-char {
     background: var(--entity-char-bg);
-    border: 0.5px solid var(--entity-char-border);
+    border: var(--pill-border-width) solid var(--entity-char-border);
     color: var(--entity-char-fg);
   }
   .pill-char .pill-dot { background: var(--entity-char-dot); }
 
   .pill-loc {
     background: var(--entity-loc-bg);
-    border: 0.5px solid var(--entity-loc-border);
+    border: var(--pill-border-width) solid var(--entity-loc-border);
     color: var(--entity-loc-fg);
   }
   .pill-loc .pill-dot { background: var(--entity-loc-dot); }
 
   .pill-con {
     background: var(--entity-con-bg);
-    border: 0.5px solid var(--entity-con-border);
+    border: var(--pill-border-width) solid var(--entity-con-border);
     color: var(--entity-con-fg);
   }
   .pill-con .pill-dot { background: var(--entity-con-dot); }
 
   .pill-evt {
     background: var(--entity-evt-bg);
-    border: 0.5px solid var(--entity-evt-border);
+    border: var(--pill-border-width) solid var(--entity-evt-border);
     color: var(--entity-evt-fg);
   }
   .pill-evt .pill-dot { background: var(--entity-evt-dot); }
 
   .pill-org {
     background: var(--entity-org-bg);
-    border: 0.5px solid var(--entity-org-border);
+    border: var(--pill-border-width) solid var(--entity-org-border);
     color: var(--entity-org-fg);
   }
   .pill-org .pill-dot { background: var(--entity-org-dot); }
 
   .pill-obj {
     background: var(--entity-obj-bg);
-    border: 0.5px solid var(--entity-obj-border);
+    border: var(--pill-border-width) solid var(--entity-obj-border);
     color: var(--entity-obj-fg);
   }
   .pill-obj .pill-dot { background: var(--entity-obj-dot); }
 
   .pill-other {
     background: var(--entity-other-bg);
-    border: 0.5px solid var(--entity-other-border);
+    border: var(--pill-border-width) solid var(--entity-other-border);
     color: var(--entity-other-fg);
   }
   .pill-other .pill-dot { background: var(--entity-other-dot); }
 
   /* ── 內文行內實體標註 ──────────────────────────────────────────
      有別於 chips 用的 .pill：閱讀時預設只有一條細底線（不搶字流），
-     hover 才浮出該類型的淡色塊。文字沿用正文色以維持可讀性。 */
+     hover 才浮出該類型的淡色塊。文字沿用正文色以維持可讀性。
+     機制對齊設計 kit 的 .ss-emark：text-decoration 底線（1.5px、
+     offset 2px），per-type 色值走 --emark-dot / --emark-bg。 */
   .entity-mark {
     background: transparent;
     color: inherit;
-    border-bottom: 1.5px solid transparent;
-    border-radius: 3px;
+    text-decoration: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 2px;
+    text-decoration-color: var(--emark-dot, transparent);
+    border-radius: 2px;
     padding: 0 1px;
     cursor: default;
-    transition: background-color 0.12s ease;
+    transition: background-color var(--transition-fast);
   }
-  .entity-mark-char { border-bottom-color: var(--entity-char-dot); }
-  .entity-mark-char:hover { background: var(--entity-char-bg); }
-  .entity-mark-loc { border-bottom-color: var(--entity-loc-dot); }
-  .entity-mark-loc:hover { background: var(--entity-loc-bg); }
-  .entity-mark-con { border-bottom-color: var(--entity-con-dot); }
-  .entity-mark-con:hover { background: var(--entity-con-bg); }
-  .entity-mark-evt { border-bottom-color: var(--entity-evt-dot); }
-  .entity-mark-evt:hover { background: var(--entity-evt-bg); }
-  .entity-mark-org { border-bottom-color: var(--entity-org-dot); }
-  .entity-mark-org:hover { background: var(--entity-org-bg); }
-  .entity-mark-obj { border-bottom-color: var(--entity-obj-dot); }
-  .entity-mark-obj:hover { background: var(--entity-obj-bg); }
-  .entity-mark-other { border-bottom-color: var(--entity-other-dot); }
-  .entity-mark-other:hover { background: var(--entity-other-bg); }
+  .entity-mark:hover { background: var(--emark-bg, transparent); }
+  .entity-mark-char  { --emark-dot: var(--entity-char-dot);  --emark-bg: var(--entity-char-bg); }
+  .entity-mark-loc   { --emark-dot: var(--entity-loc-dot);   --emark-bg: var(--entity-loc-bg); }
+  .entity-mark-con   { --emark-dot: var(--entity-con-dot);   --emark-bg: var(--entity-con-bg); }
+  .entity-mark-evt   { --emark-dot: var(--entity-evt-dot);   --emark-bg: var(--entity-evt-bg); }
+  .entity-mark-org   { --emark-dot: var(--entity-org-dot);   --emark-bg: var(--entity-org-bg); }
+  .entity-mark-obj   { --emark-dot: var(--entity-obj-dot);   --emark-bg: var(--entity-obj-bg); }
+  .entity-mark-other { --emark-dot: var(--entity-other-dot); --emark-bg: var(--entity-other-bg); }
 
   /* 標註密度：由容器 data-annotation-mode 控制（見 ReaderPage 開關）。
      "characters" 只留角色標註，"off" 全部純文字；被關閉者取消底線與 hover 色塊。 */
   [data-annotation-mode='characters'] .entity-mark:not(.entity-mark-char),
   [data-annotation-mode='off'] .entity-mark {
-    border-bottom-color: transparent;
+    text-decoration-color: transparent;
     cursor: text;
   }
   [data-annotation-mode='characters'] .entity-mark:not(.entity-mark-char):hover,
@@ -300,12 +268,9 @@
     width: var(--line-weight);
     background: var(--border);
   }
-  [data-theme="pulp"] .ss-step::after { width: 2px; }
   .ss-step:last-child::after { display: none; }
   .ss-step-done::after { background: var(--color-success); }
-  [data-theme="manuscript"] .ss-step-done::after,
-  [data-theme="minimal-ink"] .ss-step-done::after,
-  [data-theme="pulp"] .ss-step-done::after { background: var(--fg-primary); }
+  [data-theme="ink"] .ss-step-done::after { background: var(--fg-primary); }
 
   .ss-step-marker {
     width: 28px;
@@ -330,9 +295,7 @@
     border-color: var(--color-success);
     color: var(--bg-primary);
   }
-  [data-theme="manuscript"] .ss-step-done .ss-step-marker,
-  [data-theme="minimal-ink"] .ss-step-done .ss-step-marker,
-  [data-theme="pulp"] .ss-step-done .ss-step-marker {
+  [data-theme="ink"] .ss-step-done .ss-step-marker {
     background: var(--fg-primary);
     border-color: var(--fg-primary);
     color: var(--bg-primary);
@@ -342,9 +305,7 @@
     border-color: var(--accent);
     color: var(--bg-primary);
   }
-  [data-theme="manuscript"] .ss-step-active .ss-step-marker,
-  [data-theme="minimal-ink"] .ss-step-active .ss-step-marker,
-  [data-theme="pulp"] .ss-step-active .ss-step-marker {
+  [data-theme="ink"] .ss-step-active .ss-step-marker {
     background: var(--fg-primary);
     border-color: var(--fg-primary);
   }
@@ -364,9 +325,7 @@
   }
   .ss-step-done .ss-step-label { color: var(--fg-secondary); font-weight: 400; }
   .ss-step-active .ss-step-label { color: var(--accent); font-weight: 600; }
-  [data-theme="manuscript"] .ss-step-active .ss-step-label,
-  [data-theme="minimal-ink"] .ss-step-active .ss-step-label,
-  [data-theme="pulp"] .ss-step-active .ss-step-label { color: var(--fg-primary); }
+  [data-theme="ink"] .ss-step-active .ss-step-label { color: var(--fg-primary); }
   .ss-step-sub {
     font-family: var(--font-sans);
     font-size: var(--font-size-2xs);
@@ -444,9 +403,7 @@
     border-color: var(--accent);
     background: var(--bg-secondary);
   }
-  [data-theme="manuscript"] .ss-option-card.is-on,
-  [data-theme="minimal-ink"] .ss-option-card.is-on,
-  [data-theme="pulp"] .ss-option-card.is-on { border-color: var(--fg-primary); }
+  [data-theme="ink"] .ss-option-card.is-on { border-color: var(--fg-primary); }
   .ss-option-card.is-disabled { opacity: 0.52; }
   .ss-option-card-body { flex: 1; }
   .ss-option-title {
@@ -473,9 +430,7 @@
     display: inline-block;
     margin-top: 4px;
   }
-  [data-theme="manuscript"] .ss-option-action,
-  [data-theme="minimal-ink"] .ss-option-action,
-  [data-theme="pulp"] .ss-option-action { color: var(--fg-primary); text-decoration: underline; }
+  [data-theme="ink"] .ss-option-action { color: var(--fg-primary); text-decoration: underline; }
 
   /* ── Toggle ────────────────────────────────────────────────────── */
   .ss-toggle {
@@ -493,9 +448,7 @@
     -webkit-appearance: none;
   }
   .ss-toggle.is-on { background: var(--accent); border-color: var(--accent); }
-  [data-theme="manuscript"] .ss-toggle.is-on,
-  [data-theme="minimal-ink"] .ss-toggle.is-on,
-  [data-theme="pulp"] .ss-toggle.is-on { background: var(--fg-primary); border-color: var(--fg-primary); }
+  [data-theme="ink"] .ss-toggle.is-on { background: var(--fg-primary); border-color: var(--fg-primary); }
   .ss-toggle::after {
     content: '';
     position: absolute;
@@ -517,15 +470,11 @@
     border-color: transparent;
   }
   .ss-btn-danger:hover { background: var(--color-error-bg); }
-  [data-theme="manuscript"] .ss-btn-danger,
-  [data-theme="minimal-ink"] .ss-btn-danger,
-  [data-theme="pulp"] .ss-btn-danger {
+  [data-theme="ink"] .ss-btn-danger {
     color: var(--fg-primary);
-    border: var(--line-weight) var(--border-style) var(--fg-primary);
+    border: var(--btn-border-width) var(--border-style) var(--fg-primary);
   }
-  [data-theme="manuscript"] .ss-btn-danger:hover,
-  [data-theme="minimal-ink"] .ss-btn-danger:hover,
-  [data-theme="pulp"] .ss-btn-danger:hover { background: var(--bg-tertiary); }
+  [data-theme="ink"] .ss-btn-danger:hover { background: var(--bg-tertiary); }
 }
 
 /* Deep-link jump highlight — used when navigating into a specific paragraph

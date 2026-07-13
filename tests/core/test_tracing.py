@@ -10,7 +10,18 @@ import pytest
 
 @pytest.fixture
 def clean_langfuse_env():
-    """Save/restore the Langfuse env vars that configure_langfuse writes."""
+    """Save/restore the Langfuse env vars *and* the module-global handler that
+    configure_langfuse writes.
+
+    Restoring ``tracing._handler`` matters for cross-test isolation: when this
+    test enables tracing with a patched ``CallbackHandler``, ``_handler`` is left
+    holding a MagicMock. ``LLMClient._make_callbacks`` reads it via
+    ``get_langfuse_handler()`` and passes it as a LangChain callback, so a later
+    test that builds a real chat model fails callback validation. Resetting it
+    here keeps the leak contained to this test.
+    """
+    from storysphere.core import tracing
+
     keys = [
         "LANGFUSE_SAMPLE_RATE",
         "LANGFUSE_PUBLIC_KEY",
@@ -19,12 +30,14 @@ def clean_langfuse_env():
         "LANGFUSE_BASE_URL",
     ]
     saved = {k: os.environ.get(k) for k in keys}
+    saved_handler = tracing._handler
     yield
     for k, v in saved.items():
         if v is None:
             os.environ.pop(k, None)
         else:
             os.environ[k] = v
+    tracing._handler = saved_handler
 
 
 def _settings(**overrides):

@@ -16,7 +16,7 @@
 - 工具面板、詳情面板：同樣暖白底（`--bg-primary`），以邊框與背景層次感區隔
 - 實體標籤：帶色點 pill 形式（非純色塊）
 
-參考產品感：Notion + Linear 混合，有設計感但不失工具效率。
+視覺語言（v2 · Ink on Paper）：暖紙上的墨線插畫感；兩主題（Warm / Ink）僅置換 palette 與 component shape 兩層，版面與字體共用。
 
 ### 1.2 CSS Token
 
@@ -27,10 +27,12 @@
 ### 1.3 字體
 
 ```css
-font-family: 'Libre Baskerville', Georgia, serif;   /* 正文內容 */
-font-family: 'Noto Sans TC', sans-serif;             /* 中文 UI */
-font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
+font-family: 'Spectral', 'Noto Serif TC', Georgia, serif;      /* 內容本身（正文、標題） */
+font-family: 'DM Sans', 'Noto Sans TC', system-ui, sans-serif; /* chrome（按鈕、meta、nav） */
+font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫語彙 */
 ```
+
+判準：一個東西**是**內容 → serif；**關於**內容 → sans。完整規則見 [`DESIGN_TOKENS.md`](DESIGN_TOKENS.md) §3.5。
 
 ### 1.4 實體 Pill 樣式（帶色點）
 
@@ -157,25 +159,124 @@ font-family: 'DM Sans', system-ui, sans-serif;       /* UI 元素 */
 
 ```
 [Left Sidebar] [主內容區]
-                ├─ 上傳區塊（拖曳 / 點擊）
-                ├─ 處理中（卡片列表）
-                └─ 已完成（輕量列表）
+                ├─ 上傳區塊（拖曳 / 點擊，可多選）
+                ├─ Metadata 表單（選檔後）＋ 待上傳佇列
+                └─ 處理中 / 完成 / 失敗（卡片列表）
 ```
 
-#### 上傳區塊
+> 2026-07-11 依 Claude Design canvas（`Upload Flow Redesign.dc.html`）重設計。
+> 設計核對見 `docs/plans/20260711-upload-ux-design-crosscheck.md`。
 
-- 拖曳或點擊觸發檔案選擇，支援 PDF
-- 狀態：`idle` / `dragging` / `uploading` / `error`
+#### 上傳區塊（`DropZone`）
 
-#### 處理中卡片
+- 拖曳或點擊觸發檔案選擇，**支援多選**；格式 `.pdf/.docx/.txt/.epub`，單檔上限 50 MB
+- 多選後：第一個檔案進 metadata 表單，其餘進「待上傳佇列 · 逐本填寫」列表
+  （序號圓圈 + 檔名 + 移除鈕），確認上傳後依序遞補
 
-步驟 timeline（垂直，5 個步驟）：PDF 解析 → 章節切分 → Chunk 處理與實體識別 → 知識圖譜建構 → 摘要生成
+#### Metadata 表單
 
-步驟狀態：`done` 綠圈 ✓ / `running` 黃圈 + 進度條 / `pending` 灰圈（數字）/ `error` 紅圈 ✕ + 重試按鈕
+- 書籍名稱 / 作者 / 語系。**書名同名前置警告**：即時比對書庫（`useBooks`），
+  命中顯示 `--color-warning` 提示（不擋上傳）。**語系自動偵測 badge**：
+  預偵測成功時語系標籤旁顯示「已自動偵測：X · 可修改」（`--color-info`），
+  手動改動下拉即消失。>15MB 檔案跳過預偵測。
+
+#### 處理中卡片（`ProcessingCard`，5 態）
+
+- **處理中（running）**：header 顯示 `stage · progress%` + 分隔線 + 「已處理 mm:ss」
+  即時時鐘（由 `createdAt` 每秒累加）＋ 卡底 2px 進度條。Body 左為垂直步驟
+  timeline，右為 murmur 即時日誌。
+- 步驟 timeline（垂直，**7 步**）：PDF 解析 → 語言偵測 → 摘要生成 → 特徵提取 →
+  知識圖譜 → 符號探索 → 資料儲存。步驟狀態由 `TaskStatus.stepKey` 驅動
+  （`done` 綠圈 ✓ / `running` accent 圈 + 旋轉 Loader + 子進度「章節特徵 3/7」/
+  `pending` 空心圈數字），缺 `stepKey` 時 fallback 進度百分比區間。
+- **murmur 日誌（`MurmurWindow`）**：mono eyebrow（`stepKey · ch.NN`）+ 內容：
+  topic 為 serif 摘要、character/location/org/event/symbol 為實體色 pill
+  （`--entity-<type>-*` + 色點 + 角色說明）、raw 為 mono。恆自動捲到底
+  （terminal print 概念，無暫停控制）。
+- **等待審閱（awaiting_review）**：`--color-warning-bg` 框 + 「等待審閱」badge，
+  三動作：接受系統判斷（accent，走 accept 捷徑）/ 開始審閱 →（導 `ChapterReviewPage`）/ 終止處理。
+- **部分完成（partial）**：`--color-warning-bg` 框逐列出失敗步驟（label + mono detail）
+  + 內嵌「重跑／再試」（idle/loading/failed/done 狀態機，呼叫 `/rerun/:step` 並輪詢，
+  推「排入任務中心」/ 成功 / 失敗 toast）；全補齊顯示綠色完成列。
+- **完成（done）**：`--color-success-bg` 卡，實心綠勾圈 + 書名 + 「前往《…》→」；
+  上方另有同名細條（若 `duplicateTitle`）。
+- **失敗（error）**：`--color-error-bg` 框 + 錯誤訊息 + 「重試」（沿用原
+  書名/作者/語系，僅需重新選檔）。
+
+#### 全域通知（`ToastHost` / `ToastContext`）
+
+右下角堆疊 toast（success/warning/error/info 四型，左 3px 色條 + 圓形圖示 +
+標題 + 內文 + 可選行動鈕，滑入動畫、5.2s／帶行動 9s 自動消失）。
+`useTaskNotifications`（掛在 `AppLayout`）輪詢 `GET /tasks`，於 ingestion 任務
+轉 done / partial / awaiting_review / error 時觸發對應 toast 與跳轉；首次輪詢
+靜默 seed，避免對載入前已終結的任務發通知。
+
+#### HITL 章節審閱（`ChapterReviewPage`）
+
+左欄章節列表 + 右側段落卡，讓使用者確認 / 調整偵測到的章節邊界與角色。
+
+- **角色感知編號**：左欄僅 `body` 章節計入「第 N 章」且從 1 連號；非正文章節
+  （`toc`/`preface`/`afterword`/`other`）改顯示角色標籤（目錄／序／跋／其他），
+  右側標頭共用同一標籤。編號由章節 state 推導，切換章節角色時即時重算——
+  避免正文因前置內容而顯示成「第 3 章」起跳。
+- **非正文分色**：非正文章節在左欄以 `--bg-tertiary` 淡底 + `--fg-muted` 斜體字 +
+  左側 `--fg-muted` 色條標示；選中該章時右側段落區底色亦轉為 `--bg-tertiary`，
+  與一般正文（`--bg-primary`/`--bg-secondary`）視覺區隔。段落層級的非 body 角色
+  另以 opacity 0.6 淡化（沿用既有處理）。
+- **邊界輔助辨識**（左欄底部按鈕，submit 之上）：使用者觸發，呼叫 `#22c
+  POST /books/:bookId/suggest-roles`，由 AI 從書籍**頭尾逐段回推**、找出黏在
+  邊緣的非正文（版權頁／作者・譯者簡介／推薦語／跋…），回傳前後附的**段落邊界**。
+  前端據此把受影響的 body 章節**切開**：前/後附段落被切成獨立的非正文章節
+  （角色由 LLM 依內容判定，目錄/序/跋/其他，非一律 other），**左側章節列表即時更新**
+  （新章節以非正文樣式呈現），供使用者覆核後走既有 submit（章節 `startParagraphIndex`
+  + `role` 持久化）。非正文章節不進閱讀頁、也不進 KG/摘要。專門處理**融進正文章節頭尾**、
+  章節偵測切不出來的邊界（例如整坨後附黏在最後一章尾巴）；已是非正文的章節（目錄）
+  不會被再次進入。按鈕 `hover` 顯示 tooltip（`suggestRolesHint`）明確告知「仰賴 AI
+  逐段判讀、會消耗 token」；辨識中顯示 spinner + `suggesting`，完成後在按鈕下方顯示
+  `suggestApplied`（n = 切出的邊界數）／`suggestNone`／`suggestError` 提示。輪廓樣式
+  （`--accent` 邊框 + `--accent-bg` 底），與實心 submit 主按鈕區隔為輔助動作。
+  限制：切點只能落在段落（~1200 字 chunk）邊界，故事尾與後附頭同段時整段一起切；
+  切點在段落中間時改用下述「段內切分」先把段落修細。
+- **段內切分（選取文字 → 新段落）**：處理「真正的章節邊界困在段落中間」的情況
+  （預處理把多個邏輯段落融成一段，如版權頁＋獻詞＋題詞整坨一段）。使用者在閱讀欄
+  **反白選取要分出去的文字**（限單一段落內），選取處下方浮出 pill 按鈕
+  `splitSelection`（`--accent` 實心、`position:fixed` 錨定選取範圍）；點擊後該段
+  就地拆成 2–3 段（選取前｜選取｜選取後，空白邊緣自動修剪、空片段不產生），
+  新段落**繼承原段落角色**，之後用段落間既有的「＋」分章——不引入第二套章節
+  切分概念。「＋」在**所有章節**（含非正文）的段落間都會出現；「＋」切出的新章節
+  **繼承原章節角色**（切非正文大雜燴時不會冒出正文章節）。切分後 banner 顯示
+  `splitBanner` + `splitUndo` 一步復原；任何其他結構／角色異動會清除復原快照。
+  選取容錯：以**選取起點所在段落**為準，超出該段的部分（反白過衝到段尾之後、
+  跨到下一段、或拖出閱讀欄才放開滑鼠）自動夾回段內再計算。選取邊界切進章節標題
+  （`titleSpan`）內、或會產生純空白片段的選取不顯示按鈕。送審時前端以 `paragraphSplits`
+  （原段落索引 → 字元 offset）連同**切分後**索引的 `startParagraphIndex`／
+  `roleOverrides` 提交（見 #22b）。
+- **目錄對照提示（TOC cross-check）**：純輔助、唯讀。閱讀欄中被判為 `toc` 的章節
+  divider 下方出現置中提示框（`--accent` 邊框 + `--bg-secondary` 底）＋一顆入口鈕
+  （`--accent` 描邊輔助樣式）；**僅在有 `toc` 章節時出現**。**入口鈕有兩態，避免無謂的
+  LLM 呼叫**：（a）尚未解析、或目錄文字自上次解析後**有變動** → 顯示「解析目錄並對照」
+  （✦ Sparkles），點擊**呼叫 LLM**；（b）當前這份目錄文字**已解析過** → 顯示「目錄對照」
+  （List icon），點擊**只重開 drawer 看快取結果、不呼叫 LLM**。判斷依據＝比對當前串接的
+  `tocText` 與「上次成功解析時的 `tocText`」，因此審閱者一改目錄角色/內容，入口鈕就自動
+  變回「解析目錄並對照」提示重按。**drawer 內的「重新解析」（↻）則永遠強制呼叫 LLM**
+  （也是空/失敗狀態下的重試入口）。呼叫時串接**當前審閱狀態下**所有 `role==toc` 章節的
+  段落文字，作為 `tocText` 送 `#22d POST /books/:bookId/parse-toc`——因此重新解析會反映
+  最新編輯（而非偵測時的舊目錄）。由 AI 解析出書本聲明的章節清單與順序，從
+  **右側 drawer**（`width:326px`、`--bg-secondary`、`--shadow-lg`、絕對定位覆蓋閱讀欄
+  右緣、不 reflow 兩欄）滑出。drawer header：標題「書本目錄」＋「AI 解析 · 唯讀」徽章＋
+  重新解析（`RotateCw`）＋關閉（`X`）。**五態**：idle（只有入口）/ loading（spinner +
+  `toc.loading`）/ done / empty（`toc.empty`）/ error（503 或網路，`toc.error`），
+  empty 與 error 附「重新解析」。done 顯示**數量對比摘要行**（整條依吻合換底色：吻合
+  `--color-success-bg`/`--color-success`，不吻合 `--color-warning-bg`/`--color-warning` +
+  差額徽章「漏切／多切 N 章」）＋**有序條目清單**（label 為 body 條目流水號、標題 serif、
+  `isBody=false` 標「非正文」徽章、有頁碼顯示 `p.N`、依 `level` 縮排）。比對＝目錄 body
+  條目數 vs 偵測 body 章節數，**由前端計算**。刻意設計：drawer（書本目錄）與左側結構脊
+  （偵測結構）兩份**各自獨立、中間不連線、不自動配對**，比對由人眼完成；不驅動任何切分。
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#2（上傳 PDF）、#8（任務 polling）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#2（上傳 PDF）、#8（任務 polling）、
+#22a（review-data）、#22b（review）、#22c（suggest-roles）、#22d（parse-toc）
 
 ---
 
@@ -452,7 +553,7 @@ localStorage key（**必須保留**）：`graph:${bookId}:timeline:*`、`graph:$
 
 #### LegendCard（右上角，常駐圖例）
 
-4 個 entity types（角色/地點/概念/事件）+ 對應成員數，點擊 row → toggle 該類型可見性。底部分隔線 + 「推斷 · N」row（toggle inferred 圖層）。
+**完整 7 個 entity types**（角色/地點/組織/物品/概念/事件/其他，設計 contract 規定不得只列 4 類子集）+ 對應成員數，點擊 row → toggle 該類型可見性。swatch 為 12px 圓（`--graph-*-fill` 底 + `--graph-*-stroke` 框）。底部分隔線 + 「推斷 · N」row（toggle inferred 圖層）。工具列的型別 filter chips 同樣涵蓋 7 類。
 
 #### MiniMap（右下角 180×120）
 
@@ -890,13 +991,13 @@ Step 1 → Step 2 → Step 3 各自獨立觸發
 
 #### 節點狀態
 
-| 狀態 | 顏色（default 主題） |
+| 狀態 | 顏色（Warm 主題） |
 |------|----------------------|
-| `complete` | 綠底綠框 |
-| `partial` | 黃底黃框 |
-| `empty` | 灰底灰框 |
+| `complete` | 橄欖底橄欖框 |
+| `partial` | 赭黃底赭黃框 |
+| `empty` | 紙面底 hairline 框 |
 
-`--status-*` token 在 4 主題各自定義；詳見 [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。
+`--status-*` token 在兩主題各自定義（Ink 以 fill 極性＋線重承載完成度）；詳見 [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。
 
 **已實作**：
 - 全局進度 Summary Strip
@@ -1020,10 +1121,10 @@ Prompt Tokens / Completion Tokens / 總請求次數
 
 標題「介面主題」。
 
-以**卡片選擇器（card picker）**呈現各主題，每張卡片顯示：
+以**卡片選擇器（card picker）**呈現兩個主題（Warm / Ink），每張卡片顯示：
 - 主題名稱
 - 簡短描述
-- 縮圖色塊預覽：由該主題的 `--bg-primary`、`--accent`、`--fg-primary` 三色組成的小色條
+- 縮圖色塊預覽：四段等寬色帶 `--bg-primary` / `--bg-secondary` / `--bg-tertiary` / `--accent`（設計 kit `.ss-theme-swatch` 規格）
 
 選中狀態：accent 色邊框。
 

@@ -779,7 +779,7 @@
   margin-left: 2px;
   padding: 0 4px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.08);
+  background: color-mix(in srgb, var(--fg-primary) 8%, transparent);
   font-size: var(--font-size-2xs);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -1510,39 +1510,4 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-}
-
-/* ── Theme tweaks ────────────────────────────────────────── */
-[data-theme="manuscript"] .sym-row.is-active {
-  background: repeating-linear-gradient(
-    45deg,
-    var(--bg-primary),
-    var(--bg-primary) 4px,
-    var(--bg-secondary) 4px,
-    var(--bg-secondary) 5px
-  );
-}
-[data-theme="manuscript"] .sym-detail-title {
-  text-decoration: underline;
-  text-decoration-style: wavy;
-  text-underline-offset: 8px;
-  text-decoration-thickness: 1px;
-  text-decoration-color: rgba(0, 0, 0, 0.3);
-}
-[data-theme="minimal-ink"] .sym-detail-title {
-  font-weight: 900;
-  letter-spacing: -0.02em;
-}
-[data-theme="minimal-ink"] .sym-hero {
-  border-width: 0.5px;
-}
-[data-theme="pulp"] .sym-hero,
-[data-theme="pulp"] .sym-card {
-  box-shadow: 4px 4px 0 var(--border);
-}
-[data-theme="pulp"] .sym-hero-theme,
-[data-theme="pulp"] .sym-detail-title {
-  font-family: 'Permanent Marker', cursive;
-  font-style: normal;
-  letter-spacing: 0.01em;
 }

@@ -11,7 +11,7 @@ import logging
 from dataclasses import dataclass
 
 from storysphere.core.error_handling import is_rate_limit_error
-from storysphere.domain.documents import Document
+from storysphere.domain.documents import ChapterRole, Document
 from storysphere.pipelines.base import BasePipeline
 
 from .summarizer import ChapterSummarizer
@@ -41,7 +41,12 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
 
     async def run(self, input_data: Document, *, sub_cb=None, murmur_cb=None) -> SummarizationResult:
         doc = input_data
-        total = sum(1 for ch in doc.chapters if ch.paragraphs)
+        # Only body chapters are summarized; front/back matter (toc/preface/
+        # afterword/other) is not story content.
+        total = sum(
+            1 for ch in doc.chapters
+            if ch.paragraphs and ch.role == ChapterRole.body
+        )
 
         if sub_cb:
             sub_cb(0, total, "章節摘要")
@@ -94,6 +99,8 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
             if not chapter.paragraphs:
                 logger.debug("Skipping chapter %d — no paragraphs", chapter.number)
                 continue
+            if chapter.role != ChapterRole.body:
+                continue  # front/back matter — not summarized
 
             if chapter.summary is not None:
                 chapters_summarized += 1

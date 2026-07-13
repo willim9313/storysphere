@@ -128,6 +128,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/suggest-roles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Suggest Roles
+         * @description LLM-assisted "邊界輔助辨識": flag edge paragraphs that are front/back matter.
+         *
+         *     Walks the book's paragraphs inward from each end and returns the ones that
+         *     read as non-body matter, for the reviewer to accept. Only available while
+         *     awaiting review; it does not mutate the document or resume the pipeline.
+         */
+        post: operations["suggest_roles_api_v1_books__book_id__suggest_roles_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/parse-toc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Parse Toc
+         * @description LLM-assisted "目錄對照提示": parse the book's declared chapter list.
+         *
+         *     Extracts the ordered entries the book itself declares, for the review UI to
+         *     show side by side with the detected spine. Prefers ``body.tocText`` — the
+         *     reviewer's *currently edited* TOC text — so re-parsing reflects live role/
+         *     content edits; falls back to the persisted document's detected TOC when no
+         *     text is sent. Display-only: it does not mutate the document, drive splitting,
+         *     or resume the pipeline. Only available while awaiting review.
+         */
+        post: operations["parse_toc_api_v1_books__book_id__parse_toc_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/upload": {
         parameters: {
             query?: never;
@@ -139,9 +190,39 @@ export interface paths {
         put?: never;
         /**
          * Upload Book
-         * @description Upload a PDF/DOCX/TXT and start background ingestion.
+         * @description Upload a PDF/DOCX/TXT/EPUB and start background ingestion.
          */
         post: operations["upload_book_api_v1_books_upload_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/detect-language": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Detect Language From Upload
+         * @description Quickly guess a file's language before the user confirms upload.
+         *
+         *     Reuses the same PDF/DOCX/TXT/EPUB loaders as full ingestion, but skips
+         *     chapter detection and does not create a background task — this is a
+         *     lightweight, synchronous preview call so the upload form's language
+         *     dropdown can be pre-selected instead of defaulting to blank.
+         *
+         *     The whole file is streamed to a temp file (bounded by MAX_UPLOAD_BYTES)
+         *     before parsing: DOCX/EPUB are ZIP containers and PDF keeps its xref table
+         *     at the end, so a truncated sample would corrupt the container and make the
+         *     loader silently fall back to English. Sampling happens on the loaded text.
+         */
+        post: operations["detect_language_from_upload_api_v1_books_detect_language_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -158,6 +239,10 @@ export interface paths {
         /**
          * List Chapters
          * @description List chapters for a book.
+         *
+         *     Non-body chapters (table of contents, prefaces, afterwords) are front/
+         *     back matter, not part of the reading flow — they're excluded here even
+         *     though they remain stored (e.g. for a future cross-book lookup).
          */
         get: operations["list_chapters_api_v1_books__book_id__chapters_get"];
         put?: never;
@@ -2044,6 +2129,11 @@ export interface components {
              */
             evidence: string[];
         };
+        /** Body_detect_language_from_upload_api_v1_books_detect_language_post */
+        Body_detect_language_from_upload_api_v1_books_detect_language_post: {
+            /** File */
+            file: string;
+        };
         /** Body_upload_book_api_v1_books_upload_post */
         Body_upload_book_api_v1_books_upload_post: {
             /** File */
@@ -2343,6 +2433,11 @@ export interface components {
         ConfirmInferredRequest: {
             /** Relationtype */
             relationType?: string | null;
+        };
+        /** DetectLanguageResponse */
+        DetectLanguageResponse: {
+            /** Language */
+            language: string;
         };
         /** DocumentResponse */
         DocumentResponse: {
@@ -3101,6 +3196,34 @@ export interface components {
                 [key: string]: number;
             } | null;
         };
+        /**
+         * ParseTocRequest
+         * @description Body for POST /books/:bookId/parse-toc (目錄對照提示).
+         *
+         *     ``tocText`` is the reviewer's *currently edited* table-of-contents text
+         *     (concatenated paragraphs of the chapters they have marked ``toc`` in the
+         *     review UI). When provided, the backend parses it instead of the stale
+         *     detected TOC in the persisted document, so re-parsing reflects live edits.
+         *     When omitted/empty, the backend falls back to the persisted document.
+         */
+        ParseTocRequest: {
+            /** Toctext */
+            tocText?: string | null;
+        };
+        /**
+         * ParseTocResponse
+         * @description LLM-parsed table-of-contents entries for the review cross-check drawer.
+         *
+         *     Ordered as declared in the book. Empty ``entries`` = no TOC chapter, or the
+         *     detected block could not be parsed (the UI shows a friendly fallback).
+         */
+        ParseTocResponse: {
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["TocEntry"][];
+        };
         /** ParticipantRef */
         ParticipantRef: {
             /** Id */
@@ -3223,6 +3346,11 @@ export interface components {
              * @default
              */
             title: string;
+            /**
+             * Role
+             * @default body
+             */
+            role: string;
             /** Startparagraphindex */
             startParagraphIndex: number;
         };
@@ -3232,6 +3360,11 @@ export interface components {
             chapterIdx: number;
             /** Title */
             title?: string | null;
+            /**
+             * Role
+             * @default body
+             */
+            role: string;
             /** Paragraphs */
             paragraphs: components["schemas"]["ReviewParagraphResponse"][];
         };
@@ -3259,13 +3392,20 @@ export interface components {
         /** ReviewSubmitRequest */
         ReviewSubmitRequest: {
             /** Chapters */
-            chapters: components["schemas"]["ReviewChapterInput"][];
+            chapters?: components["schemas"]["ReviewChapterInput"][] | null;
             /**
              * Roleoverrides
              * @default {}
              */
             roleOverrides: {
                 [key: string]: string;
+            };
+            /**
+             * Paragraphsplits
+             * @default {}
+             */
+            paragraphSplits: {
+                [key: string]: number[];
             };
         };
         /** RunInferenceRequest */
@@ -3465,6 +3605,24 @@ export interface components {
                 [key: string]: unknown;
             }[];
         };
+        /**
+         * SuggestRolesResponse
+         * @description LLM-proposed front/back matter boundaries for the review UI to split on.
+         *
+         *     ``frontMatterEnd`` is exclusive, ``backMatterStart`` inclusive, both in
+         *     book-global paragraph index space (matching review-data). ``null`` on a side
+         *     means no matter found there.
+         */
+        SuggestRolesResponse: {
+            /** Frontmatterend */
+            frontMatterEnd?: number | null;
+            /** Backmatterstart */
+            backMatterStart?: number | null;
+            /** Frontrole */
+            frontRole?: string | null;
+            /** Backrole */
+            backRole?: string | null;
+        };
         /** SymbolAnalysisRequest */
         SymbolAnalysisRequest: {
             /**
@@ -3651,6 +3809,8 @@ export interface components {
              * @default
              */
             stage: string;
+            /** Stepkey */
+            stepKey?: string | null;
             /** Subprogress */
             subProgress?: number | null;
             /** Subtotal */
@@ -3967,6 +4127,30 @@ export interface components {
             temporalRelations: components["schemas"]["TemporalRelationEntry"][];
             quality: components["schemas"]["TimelineQuality"];
         };
+        /**
+         * TocEntry
+         * @description One entry from the book's declared table of contents (display-only).
+         *
+         *     ``level`` is 0 for a top-level chapter, deeper for nested part/section.
+         *     ``isBody`` is false for front/back matter (序/跋/目錄/…) — the UI badges
+         *     those "非正文" and excludes them from the chapter-count comparison.
+         */
+        TocEntry: {
+            /** Title */
+            title: string;
+            /** Page */
+            page?: number | null;
+            /**
+             * Level
+             * @default 0
+             */
+            level: number;
+            /**
+             * Isbody
+             * @default true
+             */
+            isBody: boolean;
+        };
         /** ToneSegmentResponse */
         ToneSegmentResponse: {
             /** Label */
@@ -4011,6 +4195,16 @@ export interface components {
             nodes: components["schemas"]["NodeData"][];
             /** Edges */
             edges: components["schemas"]["EdgeData"][];
+        };
+        /** UploadResponse */
+        UploadResponse: {
+            /** Taskid */
+            taskId: string;
+            /**
+             * Duplicatetitle
+             * @default false
+             */
+            duplicateTitle: boolean;
         };
         /** ValidationError */
         ValidationError: {
@@ -4312,6 +4506,72 @@ export interface operations {
             };
         };
     };
+    suggest_roles_api_v1_books__book_id__suggest_roles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestRolesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parse_toc_api_v1_books__book_id__parse_toc_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ParseTocRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParseTocResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     upload_book_api_v1_books_upload_post: {
         parameters: {
             query?: never;
@@ -4331,7 +4591,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskIdResponse"];
+                    "application/json": components["schemas"]["UploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detect_language_from_upload_api_v1_books_detect_language_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_detect_language_from_upload_api_v1_books_detect_language_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetectLanguageResponse"];
                 };
             };
             /** @description Validation Error */

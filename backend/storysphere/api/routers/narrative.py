@@ -32,7 +32,6 @@ from storysphere.api.schemas.narrative import (
     TemporalAnalysisRequest,
 )
 from storysphere.api.store import get_task, task_store
-from storysphere.api.ws_manager import manager
 from storysphere.domain.narrative import NarrativeStructure
 from storysphere.services.query_models import TemporalCoverageStats
 
@@ -46,10 +45,6 @@ router = APIRouter(prefix="/narrative", tags=["narrative"])
 
 async def _run_classify(task_id: str, req: ClassifyNarrativeRequest, narrative_service) -> None:
     task_store.set_running(task_id)
-    await manager.push(
-        task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "eep_classify", "result": None, "error": None},
-    )
     try:
         structure = await narrative_service.classify_from_eep(
             req.document_id,
@@ -59,18 +54,10 @@ async def _run_classify(task_id: str, req: ClassifyNarrativeRequest, narrative_s
     except Exception as exc:
         logger.exception("Narrative classify task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
-    finally:
-        status = await get_task(task_id)
-        if status:
-            await manager.push(task_id, status.model_dump())
 
 
 async def _run_refine(task_id: str, req: RefineNarrativeRequest, narrative_service) -> None:
     task_store.set_running(task_id)
-    await manager.push(
-        task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "llm_refine", "result": None, "error": None},
-    )
     try:
         structure = await narrative_service.refine_with_llm(
             document_id=req.document_id,
@@ -83,18 +70,10 @@ async def _run_refine(task_id: str, req: RefineNarrativeRequest, narrative_servi
     except Exception as exc:
         logger.exception("Narrative refine task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
-    finally:
-        status = await get_task(task_id)
-        if status:
-            await manager.push(task_id, status.model_dump())
 
 
 async def _run_hero_journey(task_id: str, req: HeroJourneyRequest, narrative_service) -> None:
     task_store.set_running(task_id)
-    await manager.push(
-        task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "hero_journey", "result": None, "error": None},
-    )
     try:
         task_store.set_progress(task_id, 10, "loading chapter summaries")
         task_store.set_progress(task_id, 20, "calling LLM for hero journey mapping")
@@ -108,10 +87,6 @@ async def _run_hero_journey(task_id: str, req: HeroJourneyRequest, narrative_ser
     except Exception as exc:
         logger.exception("Hero journey task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
-    finally:
-        status = await get_task(task_id)
-        if status:
-            await manager.push(task_id, status.model_dump())
 
 
 # ── Classify (async) ──────────────────────────────────────────────────────────
@@ -201,10 +176,6 @@ async def get_hero_journey_task(task_id: str) -> TaskStatus:
 
 async def _run_temporal(task_id: str, req: TemporalAnalysisRequest, narrative_service) -> None:
     task_store.set_running(task_id)
-    await manager.push(
-        task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "temporal_analysis", "result": None, "error": None},
-    )
     try:
         result = await narrative_service.analyze_temporal_order(
             document_id=req.document_id,
@@ -216,10 +187,6 @@ async def _run_temporal(task_id: str, req: TemporalAnalysisRequest, narrative_se
     except Exception as exc:
         logger.exception("Temporal analysis task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
-    finally:
-        status = await get_task(task_id)
-        if status:
-            await manager.push(task_id, status.model_dump())
 
 
 @router.get("/temporal/coverage")

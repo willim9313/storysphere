@@ -1,66 +1,90 @@
-import { useRef, useEffect, useCallback } from 'react';
+import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import type { MurmurEvent, MurmurEventType } from '@/api/types';
 import { CharacterSlot } from './CharacterSlot';
 
-// Maps event type to entity color token
-const DOT_COLOR: Record<MurmurEventType, string> = {
-  character: 'var(--entity-char-dot)',
-  location:  'var(--entity-loc-dot)',
-  org:       'var(--entity-org-dot)',
-  event:     'var(--entity-con-dot)',
-  topic:     'var(--entity-obj-dot)',
-  symbol:    'var(--entity-con-dot)',
-  raw:       'var(--fg-muted)',
+// Murmur type → entity token stem (repo uses abbreviated names). Pill types
+// render as a colored entity chip; topic renders as serif prose; raw as mono.
+// Mirrors the design canvas mapMurmur (org→org, event→evt), with symbol folded
+// into the concept hue.
+const PILL_STEM: Partial<Record<MurmurEventType, string>> = {
+  character: 'char',
+  location: 'loc',
+  org: 'org',
+  event: 'evt',
+  symbol: 'con',
 };
 
-interface MurmurWindowProps {
-  events: MurmurEvent[];
-  characterSrc?: string;
+function eyebrowOf(event: MurmurEvent): string {
+  const chap = event.meta?.chapter;
+  const chapText = typeof chap === 'number' ? ` · ch.${String(chap).padStart(2, '0')}` : '';
+  return event.stepKey + chapText;
+}
+
+function roleOf(event: MurmurEvent): string {
+  const role = event.meta?.role;
+  return typeof role === 'string' ? role : '';
+}
+
+function PillContent({ event, stem }: Readonly<{ event: MurmurEvent; stem: string }>) {
+  const role = roleOf(event);
+  return (
+    <div style={{ paddingLeft: 11 }}>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          font: '500 11.5px/1 var(--font-sans)',
+          background: `var(--entity-${stem}-bg)`,
+          color: `var(--entity-${stem}-fg)`,
+          border: `var(--pill-border-width) solid var(--entity-${stem}-border)`,
+          borderRadius: 'var(--pill-radius)',
+          padding: '3px 9px',
+        }}
+      >
+        <span style={{ width: 5, height: 5, borderRadius: '50%', background: `var(--entity-${stem}-dot)` }} />
+        {event.content}
+      </span>
+      {role && (
+        <span style={{ font: '400 11.5px/1.5 var(--font-serif)', color: 'var(--fg-secondary)', marginLeft: 7 }}>
+          {role}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function MurmurContent({ event }: Readonly<{ event: MurmurEvent }>) {
+  const stem = PILL_STEM[event.type];
+  if (stem) return <PillContent event={event} stem={stem} />;
+  if (event.type === 'raw') {
+    return (
+      <div style={{ font: '400 11px/1.5 var(--font-mono)', color: 'var(--fg-muted)', paddingLeft: 11 }}>
+        {event.rawContent ?? event.content}
+      </div>
+    );
+  }
+  return (
+    <p
+      className="break-words"
+      style={{ font: '400 13px/1.6 var(--font-serif)', color: 'var(--fg-primary)', margin: 0, paddingLeft: 11 }}
+    >
+      {event.content}
+    </p>
+  );
 }
 
 function MurmurEventRow({ event, isNew }: Readonly<{ event: MurmurEvent; isNew: boolean }>) {
-  const isRaw = event.type === 'raw';
-  const dotColor = DOT_COLOR[event.type] ?? 'var(--fg-muted)';
-
   return (
-    <div
-      className="murmur-event-row px-3 py-1.5"
-      data-new={isNew}
-      style={{ opacity: isNew ? undefined : 0.75 }}
-    >
-      <div className="flex items-start gap-1.5">
-        <span
-          className="mt-1 flex-shrink-0 rounded-full"
-          style={{ width: 6, height: 6, backgroundColor: dotColor, marginTop: 5 }}
-        />
-        <div className="flex-1 min-w-0">
-          <span className="text-xs" style={{ color: 'var(--fg-muted)', fontFamily: 'var(--font-sans)' }}>
-            {event.stepKey}
-            {event.meta?.chapter != null && (
-              <> · ch.{String(event.meta.chapter).padStart(2, '0')}</>
-            )}
-          </span>
-          <p
-            className={`text-xs mt-0.5 break-words ${isRaw ? 'font-mono' : ''}`}
-            style={{
-              color: 'var(--fg-primary)',
-              ...(isRaw ? {
-                border: '1px dashed var(--border)',
-                borderRadius: 4,
-                padding: '2px 4px',
-                backgroundColor: 'var(--bg-tertiary)',
-              } : {}),
-            }}
-          >
-            {event.type !== 'raw' && Boolean(event.meta?.role) && (
-              <span style={{ color: 'var(--fg-secondary)', fontWeight: 500 }}>
-                {String(event.meta?.role)} ·{' '}
-              </span>
-            )}
-            {event.rawContent ?? event.content}
-          </p>
-        </div>
+    <div className="murmur-event-row" data-new={isNew} style={{ padding: '0 3px' }}>
+      {/* eyebrow: accent dot + mono step·chapter */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+        <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', flex: 'none' }} />
+        <span style={{ font: '400 10.5px/1 var(--font-mono)', color: 'var(--fg-muted)', letterSpacing: '.02em' }}>
+          {eyebrowOf(event)}
+        </span>
       </div>
+      <MurmurContent event={event} />
     </div>
   );
 }
@@ -74,6 +98,14 @@ export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProp
     const el = containerRef.current;
     if (!el) return;
     isAtBottomRef.current = el.scrollTop + el.clientHeight >= el.scrollHeight - 50;
+  }, []);
+
+  // On mount (e.g. returning to the upload page with events already in the
+  // store) start pinned to the latest message, not the oldest. useLayoutEffect
+  // so we land at the bottom before paint — no visible jump from the top.
+  useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
   useEffect(() => {
@@ -120,7 +152,9 @@ export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProp
               等待系統開始處理…
             </p>
           ) : (
-            <div className="flex flex-col py-1">
+            // paddingRight reserves the CharacterSlot's lane (right:8 + width:56
+            // + gap) so murmur text never flows under the pinned mascot.
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 13, padding: '14px 72px 14px 15px' }}>
               {events.map((event, idx) => (
                 <MurmurEventRow
                   key={event.seq}

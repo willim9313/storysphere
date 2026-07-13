@@ -37,14 +37,6 @@
   transition: box-shadow var(--transition-fast);
 }
 
-[data-theme='pulp'] .srch-hero {
-  box-shadow: 3px 3px 0 #000;
-}
-
-[data-theme='minimal-ink'] .srch-hero {
-  box-shadow: none;
-}
-
 .srch-hero-icon {
   color: var(--accent);
   flex-shrink: 0;
@@ -109,12 +101,6 @@
 .srch-submit-btn:disabled {
   opacity: 0.55;
   cursor: not-allowed;
-}
-
-[data-theme='pulp'] .srch-submit-btn {
-  box-shadow: var(--node-shadow);
-  border-width: 2px;
-  border-color: #000;
 }
 
 /* ── Scope tabs ──────────────────────────────────────────────── */
@@ -377,10 +363,6 @@
   background: var(--bg-tertiary);
 }
 
-[data-theme='pulp'] .srch-row {
-  border-left-width: 2px;
-}
-
 .srch-row-pos {
   font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
@@ -414,29 +396,6 @@
   font-weight: 700;
   padding: 0 2px;
   border-radius: 2px;
-}
-
-[data-theme='manuscript'] .srch-mark {
-  background: transparent;
-  text-decoration: underline;
-  text-decoration-style: wavy;
-  text-underline-offset: 4px;
-  text-decoration-thickness: 1px;
-  text-decoration-color: rgba(0, 0, 0, 0.4);
-  font-weight: 700;
-}
-
-[data-theme='minimal-ink'] .srch-mark {
-  background: #000;
-  color: #fff;
-  border-radius: 1px;
-}
-
-[data-theme='pulp'] .srch-mark {
-  background: #000;
-  color: #fff;
-  border-radius: 0;
-  padding: 0 3px;
 }
 
 /* ── Initial / empty / loading states ───────────────────────── */

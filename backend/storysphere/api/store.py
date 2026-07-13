@@ -105,7 +105,7 @@ class MemoryTaskStore:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"status": "error", "error": error, "stage": "失败"}
+                    update={"status": "error", "error": error, "stage": "失敗"}
                 )
 
     def set_progress(
@@ -114,6 +114,7 @@ class MemoryTaskStore:
         progress: int,
         stage: str,
         *,
+        step_key: str | None = None,
         sub_progress: int | None = None,
         sub_total: int | None = None,
         sub_stage: str | None = None,
@@ -124,6 +125,7 @@ class MemoryTaskStore:
                     update={
                         "progress": progress,
                         "stage": stage,
+                        "step_key": step_key,
                         "sub_progress": sub_progress,
                         "sub_total": sub_total,
                         "sub_stage": sub_stage,
@@ -177,6 +179,7 @@ _ADD_SUB_TOTAL = "ALTER TABLE tasks ADD COLUMN sub_total INTEGER"
 _ADD_SUB_STAGE = "ALTER TABLE tasks ADD COLUMN sub_stage TEXT"
 _ADD_KIND = "ALTER TABLE tasks ADD COLUMN kind TEXT"
 _ADD_TITLE = "ALTER TABLE tasks ADD COLUMN title TEXT"
+_ADD_STEP_KEY = "ALTER TABLE tasks ADD COLUMN step_key TEXT"
 
 _CREATE_MURMUR_TABLE = """
 CREATE TABLE IF NOT EXISTS task_murmur_events (
@@ -235,6 +238,10 @@ class SQLiteTaskStore:
                     pass  # column already exists
                 try:
                     await db.execute(_ADD_TITLE)
+                except Exception:
+                    pass  # column already exists
+                try:
+                    await db.execute(_ADD_STEP_KEY)
                 except Exception:
                     pass  # column already exists
                 await db.commit()
@@ -333,7 +340,7 @@ class SQLiteTaskStore:
 
     _SELECT_COLS = (
         "task_id, status, progress, stage, sub_progress, sub_total, "
-        "sub_stage, result, error, kind, title, created_at"
+        "sub_stage, result, error, kind, title, created_at, step_key"
     )
 
     @staticmethod
@@ -351,6 +358,7 @@ class SQLiteTaskStore:
             kind=row[9],
             title=row[10],
             created_at=row[11],
+            step_key=row[12],
         )
 
     async def _async_get(self, task_id: str) -> TaskStatus | None:
@@ -415,7 +423,7 @@ class SQLiteTaskStore:
 
     def set_failed(self, task_id: str, error: str) -> None:
         self._run(self._execute(
-            "UPDATE tasks SET status = 'error', stage = '失败', error = ? WHERE task_id = ?",
+            "UPDATE tasks SET status = 'error', stage = '失敗', error = ? WHERE task_id = ?",
             (error, task_id),
         ))
 
@@ -425,13 +433,14 @@ class SQLiteTaskStore:
         progress: int,
         stage: str,
         *,
+        step_key: str | None = None,
         sub_progress: int | None = None,
         sub_total: int | None = None,
         sub_stage: str | None = None,
     ) -> None:
         self._run(self._execute(
-            "UPDATE tasks SET progress = ?, stage = ?, sub_progress = ?, sub_total = ?, sub_stage = ? WHERE task_id = ?",
-            (progress, stage, sub_progress, sub_total, sub_stage, task_id),
+            "UPDATE tasks SET progress = ?, stage = ?, step_key = ?, sub_progress = ?, sub_total = ?, sub_stage = ? WHERE task_id = ?",
+            (progress, stage, step_key, sub_progress, sub_total, sub_stage, task_id),
         ))
 
     async def append_murmur(self, task_id: str, event: MurmurEvent) -> None:
@@ -529,6 +538,18 @@ async def set_task_running(task_id: str) -> None:
         )
     else:
         task_store.set_running(task_id)
+
+
+async def set_task_failed(task_id: str, error: str) -> None:
+    """Async-native set_failed — use this in router handlers so the write commits
+    before the HTTP response is sent."""
+    if isinstance(task_store, SQLiteTaskStore):
+        await task_store._execute(
+            "UPDATE tasks SET status = 'error', stage = '失敗', error = ? WHERE task_id = ?",
+            (error, task_id),
+        )
+    else:
+        task_store.set_failed(task_id, error)
 
 
 # ── Process-level singleton ───────────────────────────────────────────────────

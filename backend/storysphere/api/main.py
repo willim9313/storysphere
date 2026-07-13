@@ -31,7 +31,6 @@ from storysphere.api.routers import (
     settings_info,
     symbols,
     tasks,
-    tasks_ws,
     tension,
     token_usage,
     unraveling,
@@ -103,6 +102,37 @@ async def _check_local_llm(settings) -> None:  # type: ignore[type-arg]
         )
 
 
+async def _reconcile_stale_tasks() -> None:
+    """Mark tasks orphaned by a server restart as failed.
+
+    All background work runs in-process (asyncio), so after a restart any
+    task still 'pending'/'running' has no worker behind it and would poll
+    forever. 'awaiting_review' is the one resumable state (its LangGraph
+    checkpoint and task row both survive restarts) and is left untouched.
+    """
+    from storysphere.api.deps import delete_ingestion_checkpoint  # noqa: PLC0415
+    from storysphere.api.store import list_tasks, set_task_failed  # noqa: PLC0415
+
+    try:
+        tasks = await list_tasks(recent_limit=0)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Task reconcile skipped — listing failed: %s", exc)
+        return
+
+    for task in tasks:
+        if task.status not in ("pending", "running"):
+            continue
+        await set_task_failed(task.task_id, error="伺服器重啟，處理中斷")
+        if task.kind == "ingestion":
+            await delete_ingestion_checkpoint(task.task_id)
+        logger.warning(
+            "Reconciled stale task %s (kind=%s, was %s) after restart",
+            task.task_id,
+            task.kind,
+            task.status,
+        )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Warm up singletons on startup so the first request is not slow."""
@@ -168,6 +198,7 @@ async def lifespan(app: FastAPI):
         logger.info(
             "Ingestion graph ready (checkpoint db: %s)", settings.ingestion_checkpoint_db_path
         )
+        await _reconcile_stale_tasks()
         logger.info("All services ready.")
         yield
 
@@ -189,15 +220,19 @@ def create_app() -> FastAPI:
         title="StorySphere API",
         description="Intelligent novel analysis system — HTTP & WebSocket API",
         version="1.0.0",
-        docs_url="/docs",
-        redoc_url="/redoc",
+        docs_url="/docs" if settings.is_development else None,
+        redoc_url="/redoc" if settings.is_development else None,
         lifespan=lifespan,
     )
 
     # ── CORS ──────────────────────────────────────────────────────────────
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"] if settings.is_development else [],
+        allow_origins=(
+            ["http://localhost:5173", "http://127.0.0.1:5173"]
+            if settings.is_development
+            else []
+        ),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
@@ -241,7 +276,6 @@ def create_app() -> FastAPI:
     app.include_router(metrics.router, prefix=prefix)
     app.include_router(token_usage.router, prefix=prefix)
     app.include_router(chat_ws.router)        # WS /ws/chat
-    app.include_router(tasks_ws.router)       # WS /ws/tasks/{task_id}
 
     return app
 

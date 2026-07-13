@@ -38,7 +38,6 @@ from storysphere.api.schemas.symbols import (
     SymbolTimelineEntry,
 )
 from storysphere.api.store import get_task, task_store
-from storysphere.api.ws_manager import manager
 from storysphere.domain.imagery import ImageryType
 from storysphere.domain.symbol_analysis import SEP, SymbolInterpretation
 
@@ -176,11 +175,6 @@ async def _run_symbol_analysis(
     agent,
 ) -> None:
     task_store.set_running(task_id)
-    await manager.push(
-        task_id,
-        {"task_id": task_id, "status": "running", "progress": 0, "stage": "",
-         "result": None, "error": None},
-    )
     try:
         def _on_progress(pct: int, stage: str) -> None:
             task_store.set_progress(task_id, progress=pct, stage=stage)
@@ -196,10 +190,6 @@ async def _run_symbol_analysis(
     except Exception as exc:
         logger.exception("Symbol analysis task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
-    finally:
-        status = await get_task(task_id)
-        if status:
-            await manager.push(task_id, status.model_dump())
 
 
 @router.post(

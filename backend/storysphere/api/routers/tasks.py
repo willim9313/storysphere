@@ -5,8 +5,9 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from storysphere.api import task_registry
+from storysphere.api.deps import delete_ingestion_checkpoint
 from storysphere.api.schemas.common import TaskStatus
-from storysphere.api.store import get_task, list_tasks, task_store
+from storysphere.api.store import get_task, list_tasks, set_task_failed, task_store
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -54,6 +55,12 @@ async def cancel_task(task_id: str) -> None:
         raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
     if task.status in ("done", "error"):
         raise HTTPException(status_code=409, detail="Task is already finished")
+    if task.status == "awaiting_review":
+        # Paused at the review interrupt — there is no asyncio task to cancel.
+        # Mark terminal and drop the checkpoint thread so it can never resume.
+        await set_task_failed(task_id, error="cancelled")
+        await delete_ingestion_checkpoint(task_id)
+        return
     cancelled = task_registry.cancel(task_id)
     if not cancelled:
         raise HTTPException(status_code=409, detail="Task is not cancellable")

@@ -126,10 +126,6 @@
 .bo-stackedbar .seg-complete { background: var(--status-complete-border); }
 .bo-stackedbar .seg-partial  { background: var(--status-partial-border); }
 .bo-stackedbar .seg-empty    { background: var(--bg-tertiary); }
-[data-theme="manuscript"] .bo-stackedbar .seg-complete { background: repeating-linear-gradient(45deg, #000 0 1px, transparent 1px 4px), #888; }
-[data-theme="manuscript"] .bo-stackedbar .seg-partial  { background: repeating-linear-gradient(45deg, #555 0 1px, transparent 1px 6px), #ccc; }
-[data-theme="pulp"] .bo-stackedbar .seg-complete { background: #000; }
-[data-theme="pulp"] .bo-stackedbar .seg-partial  { background: repeating-linear-gradient(90deg, #000 0 2px, transparent 2px 4px), #aaa; }
 
 /* Layer chips — purely visual progress indicator (no click) */
 .bo-layerchips {
@@ -174,9 +170,6 @@
 .bo-layerchip-progress-fill {
   height: 100%;
   background: var(--accent);
-}
-[data-theme="manuscript"] .bo-layerchip-progress-fill {
-  background: repeating-linear-gradient(45deg, #000 0 1px, transparent 1px 3px);
 }
 .bo-layerchip-meta {
   display: flex;
@@ -499,7 +492,6 @@
   transition: opacity var(--transition-fast);
 }
 .bo-cta:hover { opacity: 0.88; }
-[data-theme="pulp"] .bo-cta { box-shadow: var(--node-shadow); }
 .bo-cta.secondary {
   background: var(--bg-primary);
   color: var(--fg-primary);

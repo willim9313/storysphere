@@ -61,8 +61,8 @@ async def phase1_node(state: IngestionState) -> dict:
         title=state.get("title"),
         author=state.get("author"),
         language=state.get("language"),
-        progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None:
-            task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
+        progress_cb=lambda pct, stage, *, step_key=None, sub_progress=None, sub_total=None, sub_stage=None:
+            task_store.set_progress(task_id, pct, stage, step_key=step_key, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
         murmur_cb=lambda event: task_store.append_murmur(task_id, event),
     )
 
@@ -82,6 +82,7 @@ async def chapter_review_node(state: IngestionState) -> dict:
     from storysphere.api.store import task_store  # noqa: PLC0415
     from storysphere.services.document_service import DocumentService  # noqa: PLC0415
     from storysphere.workflows.ingestion import (  # noqa: PLC0415
+        _apply_paragraph_splits,
         _apply_role_overrides,
         _rebuild_chapters,
     )
@@ -93,14 +94,19 @@ async def chapter_review_node(state: IngestionState) -> dict:
         if isinstance(resume_value, list):
             chapters_data = resume_value
             role_overrides: dict[str, str] = {}
+            paragraph_splits: dict[str, list[int]] = {}
         else:
             chapters_data = resume_value.get("chapters", [])
             role_overrides = resume_value.get("role_overrides", {})
+            paragraph_splits = resume_value.get("paragraph_splits", {})
 
         doc_svc = DocumentService()
         await doc_svc.init_db()
         doc = await doc_svc.get_document(state["doc_id"])
         if doc is not None:
+            # Splits first: role_overrides and chapters_data indices refer to
+            # the post-split flat paragraph order.
+            _apply_paragraph_splits(doc, paragraph_splits)
             _apply_role_overrides(doc, role_overrides)
             doc.chapters = _rebuild_chapters(doc, chapters_data)
             await doc_svc.replace_chapters(doc)
@@ -129,8 +135,8 @@ async def phase2_node(state: IngestionState) -> dict:
     result = await workflow.run_phase2(
         doc_id,
         task_id=task_id,
-        progress_cb=lambda pct, stage, *, sub_progress=None, sub_total=None, sub_stage=None:
-            task_store.set_progress(task_id, pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
+        progress_cb=lambda pct, stage, *, step_key=None, sub_progress=None, sub_total=None, sub_stage=None:
+            task_store.set_progress(task_id, pct, stage, step_key=step_key, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
         murmur_cb=lambda event: task_store.append_murmur(task_id, event),
     )
 

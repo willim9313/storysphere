@@ -149,10 +149,10 @@
 .tl-btn:disabled { cursor: not-allowed; opacity: 0.6; }
 .tl-btn-warning {
   background: var(--color-warning);
-  color: #fff;
+  color: var(--accent-fg);
   border-color: var(--color-warning);
 }
-.tl-btn-warning:hover:not(:disabled) { opacity: 0.92; color: #fff; background: var(--color-warning); }
+.tl-btn-warning:hover:not(:disabled) { opacity: 0.92; color: var(--accent-fg); background: var(--color-warning); }
 .tl-btn .tl-badge {
   background: var(--accent);
   color: var(--accent-fg);
@@ -212,7 +212,7 @@
   width: 32px; height: 32px;
   border-radius: 50%;
   background: var(--color-warning);
-  color: #fff;
+  color: var(--accent-fg);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -961,11 +961,11 @@
 .tl-filter-chip:hover { background: var(--bg-secondary); border-color: var(--chip-fg); }
 .tl-filter-chip.active {
   background: var(--chip-dot);
-  color: #fff;
+  color: var(--accent-fg);
   border-color: var(--chip-dot);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--chip-dot) 25%, transparent);
 }
-.tl-filter-chip.active::before { background: #fff; opacity: 0.85; }
+.tl-filter-chip.active::before { background: var(--accent-fg); opacity: 0.85; }
 
 /* Entity-type variants — match .tl-pill-* tokens */
 .tl-filter-chip.character {
@@ -1137,7 +1137,7 @@
 }
 .tl-badge-done {
   font-size: var(--font-size-2xs);
-  color: var(--color-success, #22c55e);
+  color: var(--color-success);
   margin-left: 2px;
 }
 

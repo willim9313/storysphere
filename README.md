@@ -55,7 +55,7 @@ StorySphere ingests novels (PDF / DOCX), runs a multi-stage ETL pipeline to extr
 │  /books  /entities  /relations  /search  /analysis             │
 │  /narrative  /tension  /symbols  /factions  /unraveling        │
 │  /kg_settings  /tasks  /metrics  /token-usage                  │
-│  WS /ws/chat (暫停中)  WS /ws/tasks/{id}                        │
+│  WS /ws/chat (暫停中)                                           │
 └──┬──────────────────────┬──────────────────────┬───────────────┘
    │                      │                      │
    ▼                      ▼                      ▼
@@ -255,7 +255,6 @@ Base path: `/api/v1`
 | `/metrics` | GET | 效能指標 |
 | `/token-usage` | GET | LLM token 用量統計 |
 | **WS** `/ws/chat` | WebSocket | 串流對話（LangGraph Agent，暫停中） |
-| **WS** `/ws/tasks/{task_id}` | WebSocket | 任務即時進度推送 |
 
 ---
 

@@ -44,7 +44,7 @@ interface TaskCenterProps {
 export function TaskCenter({ onClose, tasks, isLoading }: TaskCenterProps) {
   const navigate = useNavigate();
   const { theme } = useTheme();
-  const mono = theme !== 'default';
+  const mono = theme === 'ink';
   const [hidden, setHidden] = useState<Set<string>>(loadHidden);
   const [doneOpen, setDoneOpen] = useState(true);
 
@@ -111,7 +111,7 @@ export function TaskCenter({ onClose, tasks, isLoading }: TaskCenterProps) {
                 fontFamily: 'var(--font-mono)',
                 fontSize: 10,
                 fontWeight: 700,
-                color: '#fff',
+                color: 'var(--accent-fg)',
                 background: 'var(--accent)',
                 minWidth: 16,
                 height: 16,

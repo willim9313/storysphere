@@ -13,7 +13,16 @@ export function EmptyLibrary() {
       >
         {t('empty.title')}
       </h2>
-      <p className="mt-2 text-sm" style={{ color: 'var(--fg-secondary)' }}>
+      {/* Empty-state caption — 設計 contract 指定的 Caveat 手寫語彙落點
+          （--font-hand 僅限插畫時刻，不進 chrome 與正文） */}
+      <p
+        className="mt-2"
+        style={{
+          fontFamily: 'var(--font-hand)',
+          fontSize: 'var(--font-size-xl)',
+          color: 'var(--fg-secondary)',
+        }}
+      >
         {t('empty.description')}
       </p>
       <Link to="/upload" className="btn btn-primary mt-6">

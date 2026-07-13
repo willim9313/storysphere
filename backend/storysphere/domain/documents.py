@@ -13,6 +13,7 @@ class FileType(str, Enum):
     PDF = "pdf"
     DOCX = "docx"
     TXT = "txt"
+    EPUB = "epub"
 
 
 class StepStatus(str, Enum):
@@ -34,6 +35,29 @@ class ParagraphRole(str, Enum):
     section = "section"    # v2
     epigraph = "epigraph"  # v2
     preamble = "preamble"  # v2
+
+
+class ChapterRole(str, Enum):
+    """Chapter-level classification distinguishing narrative content from
+    front/back matter (table of contents, prefaces, afterwords, ...).
+
+    Roles are defined by FUNCTION, not by the heading text — a section titled
+    "序"/"後記" whose content is actually story is ``body``. Authoritative
+    definitions: ``docs/domain-glossary.md`` § 章節與段落角色 (keep the detector
+    regex and the suggester prompt aligned with it).
+
+    Unlike ``ParagraphRole``, this applies to a whole chapter. Non-body
+    chapters are excluded from narrative processing — the embedding index,
+    knowledge-graph extraction, and summarization all skip any chapter whose
+    role is not ``body`` — but remain stored, so they can support a future
+    cross-book front-matter lookup / info-page feature.
+    """
+
+    body = "body"
+    toc = "toc"
+    preface = "preface"
+    afterword = "afterword"
+    other = "other"
 
 
 class ParagraphEntity(BaseModel):
@@ -84,6 +108,7 @@ class Chapter(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     number: int
     title: str | None = None
+    role: ChapterRole = ChapterRole.body
     paragraphs: list[Paragraph] = Field(default_factory=list)
     summary: str | None = None
     keywords: dict[str, float] | None = None

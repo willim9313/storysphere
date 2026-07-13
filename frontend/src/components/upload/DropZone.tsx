@@ -3,51 +3,55 @@ import { Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 const MAX_FILE_MB = 50;
-const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.txt'];
+const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.txt', '.epub'];
 
 interface DropZoneProps {
-  readonly onFileSelected: (file: File) => void;
+  readonly onFilesSelected: (files: File[]) => void;
 }
 
-export function DropZone({ onFileSelected }: DropZoneProps) {
+export function DropZone({ onFilesSelected }: DropZoneProps) {
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { t } = useTranslation('upload');
 
-  const handleFile = useCallback(
-    (file: File) => {
-      const name = file.name.toLowerCase();
-      if (!ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
-        setError(t('dropzone.errorInvalidFormat'));
-        return;
+  const handleFiles = useCallback(
+    (fileList: FileList) => {
+      const files = Array.from(fileList);
+      const valid: File[] = [];
+      let rejected: string | null = null;
+      for (const file of files) {
+        const name = file.name.toLowerCase();
+        if (!ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext))) {
+          rejected = t('dropzone.errorInvalidFormat');
+          continue;
+        }
+        if (file.size > MAX_FILE_MB * 1024 * 1024) {
+          rejected = t('dropzone.errorTooLarge', { max: MAX_FILE_MB });
+          continue;
+        }
+        valid.push(file);
       }
-      if (file.size > MAX_FILE_MB * 1024 * 1024) {
-        setError(t('dropzone.errorTooLarge', { max: MAX_FILE_MB }));
-        return;
+      if (valid.length > 0) {
+        setError(null);
+        onFilesSelected(valid);
+      } else {
+        setError(rejected);
       }
-      setError(null);
-      onFileSelected(file);
     },
-    [onFileSelected, t],
+    [onFilesSelected, t],
   );
 
   const onDrop = useCallback(
     (e: DragEvent) => {
       e.preventDefault();
       setDragging(false);
-      if (e.dataTransfer.files.length > 1) {
-        setError(t('dropzone.errorOneFileOnly'));
-        return;
-      }
-      const file = e.dataTransfer.files[0];
-      if (file) handleFile(file);
+      if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
     },
-    [handleFile, t],
+    [handleFiles],
   );
 
   const onChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (e.target.files && e.target.files.length > 0) handleFiles(e.target.files);
     e.target.value = '';
   };
 
@@ -81,7 +85,8 @@ export function DropZone({ onFileSelected }: DropZoneProps) {
         <input
           id="file-input"
           type="file"
-          accept=".pdf,.docx,.txt"
+          accept=".pdf,.docx,.txt,.epub"
+          multiple
           className="hidden"
           onChange={onChange}
         />

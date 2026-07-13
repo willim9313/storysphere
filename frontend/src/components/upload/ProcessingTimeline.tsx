@@ -26,10 +26,19 @@ interface ProcessingTimelineProps {
 }
 
 function stepState(stepIdx: number, task: TaskStatus): 'done' | 'running' | 'pending' | 'error' {
+  if (task.status === 'done') return 'done';
+
+  // Prefer the machine-readable step key sent by the backend; the
+  // progress-range mapping below only covers tasks without one.
+  const keyIdx = task.stepKey ? STEPS.findIndex((s) => s.key === task.stepKey) : -1;
+  if (keyIdx >= 0) {
+    if (stepIdx < keyIdx) return 'done';
+    if (stepIdx > keyIdx) return 'pending';
+    return task.status === 'error' ? 'error' : 'running';
+  }
+
   const stepPct  = STEPS[stepIdx].pct;
   const nextPct  = STEPS[stepIdx + 1]?.pct ?? 100;
-
-  if (task.status === 'done') return 'done';
 
   if (task.status === 'error') {
     if (task.progress < stepPct)  return 'pending';

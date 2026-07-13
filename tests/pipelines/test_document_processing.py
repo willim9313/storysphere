@@ -12,6 +12,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from storysphere.domain.documents import ChapterRole
 from storysphere.pipelines.document_processing.chapter_detector import (
     ChapterSpan,
     _is_inline_title,
@@ -118,39 +119,205 @@ class TestDetectChapters:
             chapters = detect_chapters(segments)
             assert len(chapters) == 1, f"Failed for: {heading}"
 
+    # ── styled_heading_indices (DOCX "Heading N" style priority) ──
+
+    def test_styled_heading_with_no_regex_match_becomes_titled_chapter(self):
+        """A styled heading whose text matches no regex (e.g. '楔子') still
+        starts a new chapter, using the whole line as the title."""
+        segments = [(0, "楔子"), (1, "很久很久以前。"), (2, "正文"), (3, "故事開始了。")]
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert len(chapters) == 1
+        assert chapters[0].title == "楔子"
+        assert chapters[0].segments == [(1, "很久很久以前。"), (2, "正文"), (3, "故事開始了。")]
+
+    def test_styled_heading_overrides_regex_for_untitled_body_line(self):
+        """A plain body line with no chapter-heading shape still becomes a
+        chapter boundary when the source format flags it as a heading style."""
+        segments = [(0, "Some Custom Title"), (1, "Body text.")]
+        # Without the style hint this line matches no heading pattern at all.
+        assert len(detect_chapters(segments)) == 1
+        assert detect_chapters(segments)[0].title is None
+
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert len(chapters) == 1
+        assert chapters[0].title == "Some Custom Title"
+
+    def test_styled_heading_with_inline_separator_title_still_extracted(self):
+        """Regex-extractable titles still win over the raw-line fallback."""
+        segments = [(0, "Chapter 3 - The Return"), (1, "Content.")]
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert len(chapters) == 1
+        assert chapters[0].title == "The Return"
+
+    def test_styled_heading_bare_number_still_peeks_next_line_for_title(self):
+        """A styled heading that IS a bare chapter-number label keeps the
+        existing inline-title-peek behavior instead of using itself as title."""
+        segments = [(0, "Chapter 1"), (1, "The Awakening"), (2, "Body text.")]
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert len(chapters) == 1
+        assert chapters[0].title == "The Awakening"
+        assert chapters[0].segments == [(2, "Body text.")]
+
+    def test_no_styled_heading_indices_matches_default_behavior(self):
+        """Passing None/empty behaves identically to omitting the argument."""
+        segments = [(0, "Chapter 1"), (1, "Text.")]
+        assert detect_chapters(segments) == detect_chapters(segments, styled_heading_indices=None)
+        assert detect_chapters(segments) == detect_chapters(segments, styled_heading_indices=set())
+
+    # ── chapter-level role classification (toc/preface/afterword) ──
+
+    def test_toc_preface_body_afterword_classified_as_separate_chapters(self):
+        segments = [
+            (0, "目錄"),
+            (1, "這裡條列本書所有章節標題，這裡條列本書所有章節標題。"),
+            (2, "推薦序：一位讀者的告白"),
+            (3, "這本書非常精彩值得一讀值得一讀值得一讀值得一讀值得一讀。"),
+            (4, "第一章 開始"),
+            (5, "故事開始了故事開始了故事開始了故事開始了故事開始了。"),
+            (6, "後記"),
+            (7, "感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持。"),
+        ]
+        chapters = detect_chapters(segments)
+        assert [c.role for c in chapters] == [
+            ChapterRole.toc,
+            ChapterRole.preface,
+            ChapterRole.body,
+            ChapterRole.afterword,
+        ]
+
+    def test_prologue_and_epilogue_stay_body_role(self):
+        segments = [
+            (0, "Prologue"),
+            (1, "It all began on a stormy night many years ago."),
+            (2, "Chapter 1"),
+            (3, "The story begins in earnest here today."),
+        ]
+        chapters = detect_chapters(segments)
+        assert [c.role for c in chapters] == [ChapterRole.body, ChapterRole.body]
+
+    def test_default_chapter_has_body_role(self):
+        segments = [(0, "Once upon a time."), (1, "The hero walked.")]
+        chapters = detect_chapters(segments)
+        assert chapters[0].role == ChapterRole.body
+
+    # ── styled_heading_roles (e.g. EPUB guide/landmarks) ──
+
+    def test_styled_heading_role_overrides_text_classification(self):
+        """An authoritative role (e.g. from an EPUB guide) wins even when the
+        heading text itself would classify differently (or not at all)."""
+        segments = [(0, "Some Custom Title"), (1, "Body text.")]
+        chapters = detect_chapters(
+            segments,
+            styled_heading_indices={0},
+            styled_heading_roles={0: ChapterRole.preface},
+        )
+        assert chapters[0].role == ChapterRole.preface
+
+    def test_styled_heading_role_only_applies_to_its_own_index(self):
+        """A role override for one heading must not leak to other chapters."""
+        segments = [(0, "目錄"), (1, "內容。"), (2, "第一章 開始"), (3, "故事。")]
+        chapters = detect_chapters(
+            segments,
+            styled_heading_indices={0, 2},
+            styled_heading_roles={0: ChapterRole.toc},
+        )
+        assert chapters[0].role == ChapterRole.toc
+        assert chapters[1].role == ChapterRole.body
+
+    def test_no_styled_heading_roles_falls_back_to_text_classification(self):
+        """Without an override, an unmapped heading (e.g. EPUB has no
+        official 'afterword' guide type) still classifies from its text."""
+        segments = [(0, "後記"), (1, "感謝各位讀者的支持。")]
+        chapters = detect_chapters(
+            segments,
+            styled_heading_indices={0},
+            styled_heading_roles={},
+        )
+        assert chapters[0].role == ChapterRole.afterword
+
+    # ── content-level TOC detection (front matter buried mid-chapter) ──
+
+    def test_toc_buried_in_styled_chapter_detected_by_content(self):
+        """An EPUB spine item whose heading isn't a TOC marker but whose body
+        carries a contents-page signature is reclassified as toc."""
+        segments = [
+            (0, "書封簡介：這是一個關於海與記憶的故事，非常動人。"),
+            (1, "目錄 卷首導讀 在鹽與遺忘之間 005 譯者前言 關於幾個字 013 正文"),
+        ]
+        chapters = detect_chapters(segments, styled_heading_indices={0})
+        assert chapters[0].role == ChapterRole.toc
+
+    def test_prose_with_a_stray_number_is_not_toc(self):
+        """A contents keyword needs page-number tokens; ordinary prose that
+        merely mentions a number stays body."""
+        segments = [
+            (0, "第一章 目錄之謎"),
+            (1, "他翻開那本書的目錄，卻只看到第 1 個空白頁面。"),
+        ]
+        chapters = detect_chapters(segments)
+        assert chapters[0].role == ChapterRole.body
+
+    def test_body_chapter_with_page_numbers_but_no_keyword_stays_body(self):
+        """Page numbers alone (no contents keyword) must not trigger toc."""
+        segments = [
+            (0, "第一章 戰役"),
+            (1, "軍隊在 1200 年抵達，3 天後又有 500 名士兵加入了戰線。"),
+        ]
+        chapters = detect_chapters(segments)
+        assert chapters[0].role == ChapterRole.body
+
 
 # ── _match_heading title extraction ─────────────────────────────────────────
 
 
 class TestMatchHeadingTitleExtraction:
     def test_en_chapter_with_separator_extracts_title(self):
-        assert _match_heading("Chapter 3 - The Return") == (True, "The Return")
-        assert _match_heading("Ch. 2: Awakening") == (True, "Awakening")
-        assert _match_heading("Chapter IV: The Quest") == (True, "The Quest")
+        assert _match_heading("Chapter 3 - The Return") == (True, "The Return", ChapterRole.body)
+        assert _match_heading("Ch. 2: Awakening") == (True, "Awakening", ChapterRole.body)
+        assert _match_heading("Chapter IV: The Quest") == (True, "The Quest", ChapterRole.body)
 
     def test_cjk_chapter_with_separator_extracts_title(self):
-        assert _match_heading("第五章：歸來") == (True, "歸來")
-        assert _match_heading("第1章: 開始") == (True, "開始")
-        assert _match_heading("第三節-啟程") == (True, "啟程")
+        assert _match_heading("第五章：歸來") == (True, "歸來", ChapterRole.body)
+        assert _match_heading("第1章: 開始") == (True, "開始", ChapterRole.body)
+        assert _match_heading("第三節-啟程") == (True, "啟程", ChapterRole.body)
 
     def test_cjk_chapter_with_space_extracts_title(self):
-        assert _match_heading("第二章 茅草、木頭與一封奇信") == (True, "茅草、木頭與一封奇信")
-        assert _match_heading("第三章 英雄登場") == (True, "英雄登場")
+        assert _match_heading("第二章 茅草、木頭與一封奇信") == (
+            True, "茅草、木頭與一封奇信", ChapterRole.body,
+        )
+        assert _match_heading("第三章 英雄登場") == (True, "英雄登場", ChapterRole.body)
 
     def test_number_only_headings_have_no_title(self):
-        assert _match_heading("Chapter 1") == (True, None)
-        assert _match_heading("第一章") == (True, None)
-        assert _match_heading("Prologue") == (True, None)
-        assert _match_heading("Volume 1") == (True, None)
+        assert _match_heading("Chapter 1") == (True, None, ChapterRole.body)
+        assert _match_heading("第一章") == (True, None, ChapterRole.body)
+        assert _match_heading("Prologue") == (True, None, ChapterRole.body)
+        assert _match_heading("Volume 1") == (True, None, ChapterRole.body)
 
     def test_non_heading_returns_false(self):
-        is_h, title = _match_heading("Some random body text that is long enough.")
+        is_h, title, role = _match_heading("Some random body text that is long enough.")
         assert is_h is False
         assert title is None
+        assert role == ChapterRole.body
 
     def test_over_80_chars_not_heading(self):
         long = "第" + "一" * 81 + "章 title"
-        assert _match_heading(long) == (False, None)
+        assert _match_heading(long) == (False, None, ChapterRole.body)
+
+    def test_toc_and_front_back_matter_markers_classified(self):
+        assert _match_heading("目錄") == (True, "目錄", ChapterRole.toc)
+        assert _match_heading("Table of Contents") == (True, "Table of Contents", ChapterRole.toc)
+        assert _match_heading("序") == (True, "序", ChapterRole.preface)
+        assert _match_heading("推薦序：一位讀者的告白") == (
+            True, "推薦序：一位讀者的告白", ChapterRole.preface,
+        )
+        assert _match_heading("Foreword") == (True, "Foreword", ChapterRole.preface)
+        assert _match_heading("後記") == (True, "後記", ChapterRole.afterword)
+        assert _match_heading("Afterword") == (True, "Afterword", ChapterRole.afterword)
+
+    def test_prologue_epilogue_kept_as_body_not_preface(self):
+        """Prologue/epilogue are narrative content, unlike preface/afterword."""
+        assert _match_heading("Prologue") == (True, None, ChapterRole.body)
+        assert _match_heading("Epilogue") == (True, None, ChapterRole.body)
 
 
 # ── _is_inline_title heuristic ───────────────────────────────────────────────
@@ -294,6 +461,86 @@ class TestDocumentProcessingPipeline:
             await pipeline.run(tmp_path / "missing.pdf")
 
     @pytest.mark.asyncio
+    async def test_chapter_role_propagates_end_to_end(self, tmp_path):
+        """A real .txt file with toc/preface/body/afterword sections ends up
+        with the matching ``Chapter.role`` on the final Document."""
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
+
+        txt_file = tmp_path / "novel.txt"
+        txt_file.write_text(
+            "目錄\n"
+            "這裡條列本書所有章節標題，這裡條列本書所有章節標題，這裡條列本書所有章節標題，這裡條列本書所有章節標題。\n"
+            "推薦序：一位讀者的告白\n"
+            "這本書非常精彩值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀值得一讀。\n"
+            "第一章 開始\n"
+            "故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了故事開始了。\n"
+            "後記\n"
+            "感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持感謝各位讀者的支持。\n",
+            encoding="utf-8",
+        )
+
+        pipeline = DocumentProcessingPipeline()
+        doc = await pipeline.run(txt_file)
+
+        assert [c.role for c in doc.chapters] == [
+            ChapterRole.toc,
+            ChapterRole.preface,
+            ChapterRole.body,
+            ChapterRole.afterword,
+        ]
+
+    @pytest.mark.asyncio
+    async def test_epub_chapter_role_uses_guide_with_text_fallback(self, tmp_path):
+        """An EPUB's guide/landmarks authoritatively classify toc/preface;
+        a chapter the guide doesn't mention (後記) still gets classified
+        correctly via chapter_detector's text-based fallback."""
+        try:
+            from ebooklib import epub
+        except ImportError:
+            pytest.skip("ebooklib not installed")
+        from storysphere.pipelines.document_processing.pipeline import DocumentProcessingPipeline
+
+        book = epub.EpubBook()
+        book.set_identifier("test-e2e")
+        book.set_title("端對端測試小說")
+        book.set_language("zh")
+        book.add_author("測試作者")
+
+        c_toc = epub.EpubHtml(title="目錄", file_name="toc_page.xhtml", lang="zh")
+        c_toc.content = "<h1>目錄</h1><p>" + "這裡條列本書所有章節標題，" * 5 + "</p>"
+        c_preface = epub.EpubHtml(title="推薦序", file_name="preface.xhtml", lang="zh")
+        c_preface.content = "<h1>推薦序</h1><p>" + "這本書非常精彩值得一讀，" * 5 + "</p>"
+        c1 = epub.EpubHtml(title="第一章 開始", file_name="chap1.xhtml", lang="zh")
+        c1.content = "<h1>第一章 開始</h1><p>" + "故事開始了，風雨欲來，" * 5 + "</p>"
+        c_afterword = epub.EpubHtml(title="後記", file_name="afterword.xhtml", lang="zh")
+        c_afterword.content = "<h1>後記</h1><p>" + "感謝各位讀者的支持，感謝再感謝，" * 5 + "</p>"
+
+        for c in [c_toc, c_preface, c1, c_afterword]:
+            book.add_item(c)
+        book.toc = (c_toc, c_preface, c1, c_afterword)
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+        book.spine = ["nav", c_toc, c_preface, c1, c_afterword]
+        book.guide = [
+            {"type": "toc", "href": "toc_page.xhtml", "title": "目錄"},
+            {"type": "preface", "href": "preface.xhtml", "title": "推薦序"},
+        ]
+        epub_file = tmp_path / "novel.epub"
+        epub.write_epub(str(epub_file), book)
+
+        pipeline = DocumentProcessingPipeline()
+        doc = await pipeline.run(epub_file)
+
+        assert doc.title == "端對端測試小說"
+        assert doc.author == "測試作者"
+        assert [c.role for c in doc.chapters] == [
+            ChapterRole.toc,
+            ChapterRole.preface,
+            ChapterRole.body,
+            ChapterRole.afterword,
+        ]
+
+    @pytest.mark.asyncio
     async def test_docx_processing(self, tmp_path):
         """Create a minimal DOCX and verify it produces a Document."""
         try:
@@ -412,6 +659,275 @@ class TestLoaderMeta:
         # python-docx defaults: author may be system username, title is empty
         assert meta.title is None
 
+    def test_load_txt_detects_big5_encoding(self, tmp_path):
+        """load_txt auto-detects Big5-encoded Traditional Chinese text."""
+        from storysphere.pipelines.document_processing.loader import load_txt
+
+        txt_file = tmp_path / "novel_big5.txt"
+        txt_file.write_bytes("第一章 你好，世界！這是繁體中文測試。".encode("big5"))
+
+        segments, _ = load_txt(txt_file)
+
+        assert len(segments) > 0
+        assert "你好" in segments[0][1]
+
+    def test_load_txt_detects_gbk_encoding(self, tmp_path):
+        """load_txt auto-detects GBK-encoded Simplified Chinese text."""
+        from storysphere.pipelines.document_processing.loader import load_txt
+
+        txt_file = tmp_path / "novel_gbk.txt"
+        txt_file.write_bytes("第一章 你好，世界！这是简体中文测试。".encode("gbk"))
+
+        segments, _ = load_txt(txt_file)
+
+        assert len(segments) > 0
+        assert "你好" in segments[0][1]
+
+    def test_load_txt_reads_utf8_as_before(self, tmp_path):
+        """load_txt still reads plain UTF-8 text correctly without an explicit encoding."""
+        from storysphere.pipelines.document_processing.loader import load_txt
+
+        txt_file = tmp_path / "novel_utf8.txt"
+        txt_file.write_text("Chapter 1\nIt was a dark and stormy night.", encoding="utf-8")
+
+        segments, _ = load_txt(txt_file)
+
+        assert segments[0][1] == "Chapter 1"
+        assert segments[1][1] == "It was a dark and stormy night."
+
+    def test_load_txt_explicit_encoding_still_supported(self, tmp_path):
+        """Passing an explicit encoding bypasses auto-detection, matching prior behavior."""
+        from storysphere.pipelines.document_processing.loader import load_txt
+
+        txt_file = tmp_path / "novel_explicit.txt"
+        txt_file.write_text("Hello", encoding="utf-16")
+
+        segments, _ = load_txt(txt_file, encoding="utf-16")
+
+        assert segments[0][1] == "Hello"
+
+    def test_load_docx_records_heading_style_indices(self, tmp_path):
+        """load_docx flags paragraph indices using a built-in Heading style."""
+        try:
+            import docx as docx_lib
+        except ImportError:
+            pytest.skip("python-docx not installed")
+
+        doc_file = tmp_path / "styled.docx"
+        wdoc = docx_lib.Document()
+        wdoc.add_heading("楔子", level=1)
+        wdoc.add_paragraph("很久很久以前。")
+        wdoc.add_heading("第一章 開始", level=1)
+        wdoc.add_paragraph("故事開始了。")
+        wdoc.save(str(doc_file))
+
+        from storysphere.pipelines.document_processing.loader import load_docx
+
+        segments, meta = load_docx(doc_file)
+
+        heading_texts = {text for idx, text in segments if idx in meta.heading_indices}
+        assert heading_texts == {"楔子", "第一章 開始"}
+
+    def test_load_docx_no_headings_gives_empty_indices(self, tmp_path):
+        """A DOCX with only "Normal"-style paragraphs flags no heading indices."""
+        try:
+            import docx as docx_lib
+        except ImportError:
+            pytest.skip("python-docx not installed")
+
+        doc_file = tmp_path / "plain.docx"
+        wdoc = docx_lib.Document()
+        wdoc.add_paragraph("Just a plain paragraph.")
+        wdoc.save(str(doc_file))
+
+        from storysphere.pipelines.document_processing.loader import load_docx
+
+        _, meta = load_docx(doc_file)
+
+        assert meta.heading_indices == set()
+
+    def test_load_pdf_strips_repeated_running_header(self, tmp_path):
+        """A line repeated at the top of most pages is filtered as a running header."""
+        from storysphere.pipelines.document_processing.loader import load_pdf
+
+        fake_pdf = tmp_path / "novel.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        page_texts = [
+            "書名：測試小說\n正文第一段內容。\n1",
+            "書名：測試小說\n正文第二段內容。\n2",
+            "書名：測試小說\n正文第三段內容。\n3",
+            "書名：測試小說\n正文第四段內容。\n4",
+        ]
+        mock_pages = []
+        for text in page_texts:
+            page = MagicMock()
+            page.extract_text.return_value = text
+            mock_pages.append(page)
+
+        mock_reader = MagicMock()
+        mock_reader.metadata = {}
+        mock_reader.pages = mock_pages
+
+        with patch("pypdf.PdfReader", return_value=mock_reader):
+            segments, _ = load_pdf(fake_pdf)
+
+        all_text = [text for _, text in segments]
+        assert "書名：測試小說" not in all_text
+        assert "正文第一段內容。" in all_text
+        assert "正文第四段內容。" in all_text
+
+    def test_load_pdf_keeps_boundary_line_seen_on_few_pages(self, tmp_path):
+        """A boundary line that only repeats on a couple of pages is kept —
+        the recurrence threshold avoids false positives."""
+        from storysphere.pipelines.document_processing.loader import load_pdf
+
+        fake_pdf = tmp_path / "novel.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        page_texts = [
+            "特殊標語\n正文第一段內容。",
+            "正文第二段內容。\n特殊標語",
+            "正文第三段內容。\n正文第四段內容。",
+        ]
+        mock_pages = []
+        for text in page_texts:
+            page = MagicMock()
+            page.extract_text.return_value = text
+            mock_pages.append(page)
+
+        mock_reader = MagicMock()
+        mock_reader.metadata = {}
+        mock_reader.pages = mock_pages
+
+        with patch("pypdf.PdfReader", return_value=mock_reader):
+            segments, _ = load_pdf(fake_pdf)
+
+        all_text = [text for _, text in segments]
+        assert "特殊標語" in all_text
+
+    def test_load_pdf_few_pages_skips_header_footer_filtering(self, tmp_path):
+        """Documents with under 3 pages never trigger the noise filter,
+        matching the existing single-page metadata tests' expectations."""
+        from storysphere.pipelines.document_processing.loader import load_pdf
+
+        fake_pdf = tmp_path / "novel.pdf"
+        fake_pdf.write_bytes(b"%PDF-1.4 stub")
+
+        page_texts = ["重複行\n正文一。", "重複行\n正文二。"]
+        mock_pages = []
+        for text in page_texts:
+            page = MagicMock()
+            page.extract_text.return_value = text
+            mock_pages.append(page)
+
+        mock_reader = MagicMock()
+        mock_reader.metadata = {}
+        mock_reader.pages = mock_pages
+
+        with patch("pypdf.PdfReader", return_value=mock_reader):
+            segments, _ = load_pdf(fake_pdf)
+
+        all_text = [text for _, text in segments]
+        assert all_text.count("重複行") == 2
+
+    # ── load_epub ──
+
+    @staticmethod
+    def _make_epub(tmp_path, guide=None):
+        try:
+            from ebooklib import epub
+        except ImportError:
+            pytest.skip("ebooklib not installed")
+
+        book = epub.EpubBook()
+        book.set_identifier("test-epub")
+        book.set_title("測試小說")
+        book.set_language("zh")
+        book.add_author("測試作者")
+
+        c_toc = epub.EpubHtml(title="目錄", file_name="toc_page.xhtml", lang="zh")
+        c_toc.content = "<h1>目錄</h1><p>這裡條列本書所有章節標題。</p>"
+        c_preface = epub.EpubHtml(title="推薦序", file_name="preface.xhtml", lang="zh")
+        c_preface.content = "<h1>推薦序</h1><p>這本書非常精彩值得一讀。</p>"
+        c1 = epub.EpubHtml(title="第一章 開始", file_name="chap1.xhtml", lang="zh")
+        c1.content = "<h1>第一章 開始</h1><p>故事開始了。</p>"
+
+        for c in [c_toc, c_preface, c1]:
+            book.add_item(c)
+        book.toc = (c_toc, c_preface, c1)
+        book.add_item(epub.EpubNcx())
+        book.add_item(epub.EpubNav())
+        book.spine = ["nav", c_toc, c_preface, c1]
+        book.guide = guide if guide is not None else [
+            {"type": "toc", "href": "toc_page.xhtml", "title": "目錄"},
+            {"type": "preface", "href": "preface.xhtml", "title": "推薦序"},
+        ]
+
+        epub_file = tmp_path / "novel.epub"
+        epub.write_epub(str(epub_file), book)
+        return epub_file
+
+    def test_load_epub_extracts_metadata(self, tmp_path):
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path)
+        _, meta = load_epub(epub_file)
+
+        assert meta.title == "測試小說"
+        assert meta.author == "測試作者"
+
+    def test_load_epub_uses_guide_for_toc_and_preface_roles(self, tmp_path):
+        from storysphere.domain.documents import ChapterRole
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path)
+        segments, meta = load_epub(epub_file)
+
+        heading_texts_by_role = {
+            meta.heading_roles.get(idx): text
+            for idx, text in segments
+            if idx in meta.heading_indices
+        }
+        assert heading_texts_by_role[ChapterRole.toc] == "目錄"
+        assert heading_texts_by_role[ChapterRole.preface] == "推薦序"
+
+    def test_load_epub_body_chapter_has_no_guide_role(self, tmp_path):
+        """A chapter the guide doesn't mention gets no heading_roles entry —
+        chapter_detector's text-based fallback decides its role instead."""
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path)
+        segments, meta = load_epub(epub_file)
+
+        body_heading_idx = next(
+            idx for idx, text in segments if idx in meta.heading_indices and text == "第一章 開始"
+        )
+        assert body_heading_idx not in meta.heading_roles
+
+    def test_load_epub_skips_nav_document(self, tmp_path):
+        """The EPUB nav document itself must not become a chapter — its own
+        <h2> book-title heading should never appear in the segments."""
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path)
+        segments, _ = load_epub(epub_file)
+
+        all_text = [text for _, text in segments]
+        assert "測試小說" not in all_text  # nav.xhtml's own <h2> title
+        assert "目錄" in all_text  # real toc page content still present
+
+    def test_load_epub_no_guide_role_when_guide_empty(self, tmp_path):
+        """A well-formed EPUB with no guide/landmarks at all doesn't crash —
+        every chapter simply gets no authoritative role."""
+        from storysphere.pipelines.document_processing.loader import load_epub
+
+        epub_file = self._make_epub(tmp_path, guide=[])
+        _, meta = load_epub(epub_file)
+
+        assert meta.heading_roles == {}
+        assert len(meta.heading_indices) == 3
+
 
 # ── DocumentProcessingPipeline: metadata propagation ────────────────────────
 
@@ -481,3 +997,4 @@ class TestDocumentProcessingPipelineMeta:
             result = await pipeline.run(fake_pdf)
 
         assert result.author is None
+

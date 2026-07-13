@@ -20,14 +20,10 @@
     "sub": "Pick the interface theme. Applies instantly, no confirmation.",
     "sectionTitle": "Interface theme",
     "current": "Current",
-    "default": "Warm Analytical",
-    "defaultDesc": "Warm cream, serif body — a study-room reading feel",
-    "manuscript": "Manuscript",
-    "manuscriptDesc": "Hatched lines, dashed borders — scholarly research feel",
-    "minimalInk": "Minimal Ink",
-    "minimalInkDesc": "Extreme B&W contrast, generous whitespace — editorial",
-    "pulp": "Pulp",
-    "pulpDesc": "Heavy borders, offset shadow — comic / pulp print"
+    "warm": "Warm",
+    "warmDesc": "Ink on warm ivory paper — a study-desk reading feel",
+    "ink": "Ink",
+    "inkDesc": "Pure black-and-white line art — a clean pen-and-ink draft"
   },
   "language": {
     "title": "Language",

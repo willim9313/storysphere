@@ -25,7 +25,7 @@ from pathlib import Path
 
 from storysphere.api.schemas.common import MurmurEvent
 from storysphere.core.tracing import update_span as _lf_update_span
-from storysphere.domain.documents import Chapter, Document, StepStatus
+from storysphere.domain.documents import Chapter, Document, Paragraph, StepStatus
 from storysphere.domain.timeline import TimelineConfig, TimelineDetectionResult
 from storysphere.pipelines.document_processing import DocumentProcessingPipeline
 from storysphere.pipelines.feature_extraction import FeatureExtractionPipeline
@@ -75,6 +75,64 @@ class IngestionResult:
         return len(self.errors) == 0
 
 
+def _apply_paragraph_splits(doc: Document, splits: dict[str, list[int]]) -> None:
+    """Split paragraphs of *doc* in place at reviewer-chosen char offsets.
+
+    *splits* maps str(global_paragraph_index) — in the same flat order as
+    _rebuild_chapters, *before* any split — to ascending char offsets within
+    that paragraph's text. Must run before _apply_role_overrides and
+    _rebuild_chapters, whose indices refer to the post-split flat order.
+
+    Invalid entries (bad index, out-of-range/unsorted offsets, or offsets that
+    would produce a whitespace-only piece) are ignored rather than failing the
+    resume: the reviewer's other edits still apply.
+    """
+    if not splits:
+        return
+
+    def _valid_offsets(text: str, offsets: list[int]) -> list[int] | None:
+        if offsets != sorted(set(offsets)):
+            return None
+        if any(not isinstance(o, int) or o <= 0 or o >= len(text) for o in offsets):
+            return None
+        bounds = [0, *offsets, len(text)]
+        pieces = [text[a:b] for a, b in zip(bounds, bounds[1:], strict=False)]
+        if any(not p.strip() for p in pieces):
+            return None
+        return offsets
+
+    global_idx = 0
+    for chapter in doc.chapters:
+        new_paras: list[Paragraph] = []
+        for para in chapter.paragraphs:
+            offsets = splits.get(str(global_idx))
+            global_idx += 1
+            if offsets is not None:
+                offsets = _valid_offsets(para.text, offsets)
+            if offsets is None:
+                new_paras.append(para)
+                continue
+            bounds = [0, *offsets, len(para.text)]
+            for start, end in zip(bounds, bounds[1:], strict=False):
+                span = para.title_span
+                if span is not None and (span[0] < start or span[1] > end):
+                    span = None  # title no longer fully inside this piece
+                elif span is not None:
+                    span = (span[0] - start, span[1] - start)
+                new_paras.append(
+                    Paragraph(
+                        text=para.text[start:end],
+                        chapter_number=para.chapter_number,
+                        position=0,  # repaired below
+                        role=para.role,
+                        title_span=span,
+                    )
+                )
+        for pos, para in enumerate(new_paras):
+            para.position = pos
+        chapter.paragraphs = new_paras
+
+
 def _apply_role_overrides(doc: Document, role_overrides: dict[str, str]) -> None:
     """Mutate paragraph roles in *doc* according to user overrides.
 
@@ -99,10 +157,13 @@ def _apply_role_overrides(doc: Document, role_overrides: dict[str, str]) -> None
 def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
     """Reconstruct Chapter objects from a reviewed chapter list.
 
-    *reviewed* is the list of ``{"title": str, "start_paragraph_index": int}``
-    dicts submitted via POST /review.  Paragraphs are re-assigned to new
-    chapters based on the ``start_paragraph_index`` boundaries.
+    *reviewed* is the list of ``{"title": str, "role": str,
+    "start_paragraph_index": int}`` dicts submitted via POST /review.
+    Paragraphs are re-assigned to new chapters based on the
+    ``start_paragraph_index`` boundaries.
     """
+    from storysphere.domain.documents import ChapterRole  # noqa: PLC0415
+
     all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
     new_chapters: list[Chapter] = []
 
@@ -111,12 +172,16 @@ def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
         title = rc.get("title") or None
         start = rc["start_paragraph_index"]
         end = reviewed[i + 1]["start_paragraph_index"] if i + 1 < len(reviewed) else len(all_paras)
+        try:
+            role = ChapterRole(rc.get("role", "body"))
+        except ValueError:
+            role = ChapterRole.body
 
         ch_paras = [
             p.model_copy(update={"chapter_number": ch_num, "position": pos})
             for pos, p in enumerate(all_paras[start:end])
         ]
-        new_chapters.append(Chapter(number=ch_num, title=title, paragraphs=ch_paras))
+        new_chapters.append(Chapter(number=ch_num, title=title, role=role, paragraphs=ch_paras))
 
     return new_chapters
 
@@ -210,12 +275,13 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             pct: int,
             stage: str,
             *,
+            step_key: str | None = None,
             sub_progress: int | None = None,
             sub_total: int | None = None,
             sub_stage: str | None = None,
         ) -> None:
             if progress_cb is not None:
-                progress_cb(pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage)
+                progress_cb(pct, stage, step_key=step_key, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage)
 
         async def _murmur(
             step_key: str,
@@ -244,7 +310,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         await self._document_service.init_db()
 
         # ── Step 1: document processing ───────────────────────────────────
-        _progress(5, "Document processing")
+        _progress(5, "文件解析", step_key="pdfParsing")
         self._log_step("doc_processing", file=str(file_path))
         doc: Document = await self._doc_pipeline(file_path)
 
@@ -257,7 +323,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         from storysphere.core.language_detection import (
             detect_language_from_document,  # noqa: PLC0415
         )
-        _progress(10, "Language detection")
+        _progress(10, "語言偵測", step_key="languageDetect")
         doc.language = language or detect_language_from_document(doc)
         await _murmur(
             "pdfParsing", "topic",
@@ -273,7 +339,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         )
 
         # ── Step 1b: persist document early (book enters library now) ─────
-        _progress(15, "Persisting document")
+        _progress(15, "儲存文件", step_key="languageDetect")
         self._log_step("persist_document")
         try:
             await self._document_service.save_document(doc)
@@ -315,12 +381,13 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             pct: int,
             stage: str,
             *,
+            step_key: str | None = None,
             sub_progress: int | None = None,
             sub_total: int | None = None,
             sub_stage: str | None = None,
         ) -> None:
             if progress_cb is not None:
-                progress_cb(pct, stage, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage)
+                progress_cb(pct, stage, step_key=step_key, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage)
 
         async def _murmur(
             step_key: str,
@@ -345,10 +412,10 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             except Exception as exc:  # noqa: BLE001
                 logger.warning("murmur emit failed (%s): %s", step_key, exc)
 
-        _progress(20, "開始分析")
+        _progress(20, "開始分析", step_key="summarization")
 
         # ── Step 2: summarization ─────────────────────────────────────────
-        _progress(25, "Summary generation")
+        _progress(25, "章節摘要", step_key="summarization")
         summ_result = SummarizationResult(document_id=doc.id)
         if not self._skip_summarization:
             self._log_step("summarization")
@@ -367,7 +434,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 summ_result = await self._summarization_pipeline.run(
                     doc,
                     sub_cb=lambda cur, tot, label="章節摘要": _progress(
-                        25, "Summary generation",
+                        25, "章節摘要", step_key="summarization",
                         sub_progress=cur, sub_total=tot, sub_stage=label,
                     ),
                     murmur_cb=_summ_murmur_cb,
@@ -393,14 +460,14 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 logger.warning("Summary persist failed (non-fatal): %s", exc)
 
         # ── Step 3: feature extraction (embeddings) ───────────────────────
-        _progress(45, "Feature extraction")
+        _progress(45, "特徵擷取", step_key="featureExtraction")
         self._log_step("feature_extraction")
         feat_result: FeatureExtractionResult
         try:
             feat_result = await self._feature_pipeline.run(
                 doc,
                 sub_cb=lambda cur, tot, label="章節特徵": _progress(
-                    45, "Feature extraction",
+                    45, "特徵擷取", step_key="featureExtraction",
                     sub_progress=cur, sub_total=tot, sub_stage=label,
                 ),
                 murmur_cb=_murmur,
@@ -421,7 +488,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             logger.warning("Feature extraction persist failed (non-fatal): %s", exc)
 
         # ── Step 4: knowledge graph extraction ───────────────────────────
-        _progress(65, "Knowledge graph extraction")
+        _progress(65, "知識圖譜擷取", step_key="knowledgeGraph")
         kg_result: KGExtractionResult = KGExtractionResult()
         if not self._skip_kg:
             self._log_step("kg_extraction")
@@ -429,7 +496,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 kg_result = await self._kg_pipeline.run(
                     doc,
                     sub_cb=lambda cur, tot, label="": _progress(
-                        65, "Knowledge graph extraction",
+                        65, "知識圖譜擷取", step_key="knowledgeGraph",
                         sub_progress=cur, sub_total=tot, sub_stage=label,
                     ),
                     murmur_cb=_murmur,
@@ -447,7 +514,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                     logger.warning("KG save failed (non-fatal): %s", exc)
 
         # ── Step 4b: symbol discovery ─────────────────────────────────────
-        _progress(82, "Symbol discovery")
+        _progress(82, "符號探索", step_key="symbolExploration")
         symbol_result = SymbolDiscoveryResult(book_id=doc.id)
         if not self._skip_symbols:
             self._log_step("symbol_discovery")
@@ -455,7 +522,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 symbol_result = await self._symbol_pipeline.run(
                     doc,
                     sub_cb=lambda cur, tot, label="章節符號": _progress(
-                        82, "Symbol discovery",
+                        82, "符號探索", step_key="symbolExploration",
                         sub_progress=cur, sub_total=tot, sub_stage=label,
                     ),
                     murmur_cb=_murmur,
@@ -498,6 +565,9 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 await self._document_service.save_document(doc)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("Timeline config persist failed (non-fatal): %s", exc)
+
+        # ── Finalisation: cache invalidation + result assembly ────────────
+        _progress(92, "資料儲存", step_key="dataStorage")
 
         # Invalidate per-document analysis caches so stale results are not served
         try:

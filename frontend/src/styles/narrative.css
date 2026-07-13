@@ -35,10 +35,6 @@
   border-radius: var(--radius-lg);
 }
 
-[data-theme='pulp'] .nl-card {
-  box-shadow: var(--node-shadow);
-}
-
 /* Jump-to-events button (plot spine). */
 .nl-jump-btn {
   display: inline-flex;

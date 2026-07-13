@@ -7,7 +7,10 @@ the pipeline stays format-agnostic.
 from __future__ import annotations
 
 import logging
+import re
 from pathlib import Path
+
+from storysphere.domain.documents import ChapterRole
 
 logger = logging.getLogger(__name__)
 
@@ -15,11 +18,54 @@ logger = logging.getLogger(__name__)
 class DocumentMeta:
     """Metadata extracted from a document file (best-effort)."""
 
-    __slots__ = ("title", "author")
+    __slots__ = ("title", "author", "heading_indices", "heading_roles")
 
-    def __init__(self, title: str | None = None, author: str | None = None) -> None:
+    def __init__(
+        self,
+        title: str | None = None,
+        author: str | None = None,
+        heading_indices: set[int] | None = None,
+        heading_roles: dict[int, ChapterRole] | None = None,
+    ) -> None:
         self.title = title
         self.author = author
+        # Segment indices that the source format marked as a heading via its
+        # own structure (e.g. DOCX "Heading N" paragraph styles, EPUB spine
+        # boundaries) rather than by text pattern — lets chapter_detector
+        # trust these over regex.
+        self.heading_indices: set[int] = heading_indices if heading_indices is not None else set()
+        # Authoritative ChapterRole for specific heading indices, when the
+        # source format itself knows (e.g. an EPUB guide/landmark marking a
+        # page as "toc" or "preface") — no text-based guessing needed.
+        self.heading_roles: dict[int, ChapterRole] = heading_roles if heading_roles is not None else {}
+
+
+_MAX_HEADER_FOOTER_LEN = 80
+
+
+def _detect_running_header_footer_lines(pages: list[list[str]]) -> set[str]:
+    """Identify short lines repeated at the top/bottom of many pages.
+
+    Running headers/footers (book title, chapter name, page number) tend to
+    be the first or last line of a page and recur verbatim across most
+    pages. Requiring both a high recurrence count and a short length avoids
+    flagging legitimate short paragraphs that only coincidentally repeat.
+    """
+    num_pages = len(pages)
+    if num_pages < 3:
+        return set()
+
+    boundary_counts: dict[str, int] = {}
+    for lines in pages:
+        if not lines:
+            continue
+        candidates = {lines[0], lines[-1]}
+        for line in candidates:
+            if len(line) <= _MAX_HEADER_FOOTER_LEN:
+                boundary_counts[line] = boundary_counts.get(line, 0) + 1
+
+    threshold = max(3, num_pages // 2)
+    return {line for line, count in boundary_counts.items() if count >= threshold}
 
 
 def load_pdf(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
@@ -47,9 +93,8 @@ def load_pdf(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
     if file_path.suffix.lower() != ".pdf":
         raise ValueError(f"Expected .pdf extension, got: {file_path.suffix}")
 
-    segments: list[tuple[int, str]] = []
-    seg_idx = 0
     meta = DocumentMeta()
+    pages: list[list[str]] = []
     with open(file_path, "rb") as fh:
         reader = pypdf.PdfReader(fh)
         pdf_meta = reader.metadata or {}
@@ -59,18 +104,46 @@ def load_pdf(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
             text = page.extract_text() or ""
             if not text.strip():
                 logger.debug("PDF page %d is empty — skipped", page_idx)
+                pages.append([])
                 continue
             # Split each page into lines so chapter headings become standalone segments.
             # This allows the chapter detector to match "第一章" etc. (≤80 chars)
             # even when chapter titles appear in the middle of a page.
+            lines = []
             for line in text.splitlines():
                 line = line.replace("\x00", "").strip()
                 if line:
-                    segments.append((seg_idx, line))
-                    seg_idx += 1
+                    lines.append(line)
+            pages.append(lines)
+
+    noise_lines = _detect_running_header_footer_lines(pages)
+
+    segments: list[tuple[int, str]] = []
+    seg_idx = 0
+    for lines in pages:
+        for pos, line in enumerate(lines):
+            is_boundary = pos == 0 or pos == len(lines) - 1
+            if is_boundary and line in noise_lines:
+                continue
+            segments.append((seg_idx, line))
+            seg_idx += 1
 
     logger.info("Loaded PDF '%s': %d non-empty lines", file_path.name, len(segments))
     return segments, meta
+
+
+_HEADING_STYLE_ID_RE = re.compile(r"^Heading(\d+)$", re.IGNORECASE)
+
+
+def _is_heading_style(style: object) -> bool:
+    """True if a python-docx paragraph style is a built-in Heading style.
+
+    Matches on ``style_id`` (the invariant OOXML identifier, e.g.
+    ``"Heading1"``) rather than ``style.name`` (a display name that can be
+    localized in non-English Word templates).
+    """
+    style_id = getattr(style, "style_id", None) or ""
+    return bool(_HEADING_STYLE_ID_RE.match(style_id))
 
 
 def load_docx(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
@@ -82,7 +155,8 @@ def load_docx(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
     Returns:
         Tuple of (segments, meta) where segments is a list of
         (paragraph_index, text) tuples (0-indexed over all paragraphs)
-        and meta contains any author/title from core properties.
+        and meta contains any author/title from core properties, plus
+        the indices of paragraphs using a "Heading N" style.
 
     Raises:
         FileNotFoundError: If the file does not exist.
@@ -111,28 +185,45 @@ def load_docx(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
         text = para.text.strip()
         if text:
             paragraphs.append((idx, text))
+            if _is_heading_style(para.style):
+                meta.heading_indices.add(idx)
 
     logger.info("Loaded DOCX '%s': %d non-empty paragraphs", file_path.name, len(paragraphs))
     return paragraphs, meta
 
 
 def load_txt(
-    file_path: Path, encoding: str = "utf-8"
+    file_path: Path, encoding: str | None = None
 ) -> tuple[list[tuple[int, str]], DocumentMeta]:
     """Extract raw text from a plain-text file.
 
-    Each non-empty line becomes one segment (index, text).  The file is read
-    with *encoding* (default utf-8); if that fails we fall back to latin-1.
+    Each non-empty line becomes one segment (index, text).  If *encoding* is
+    given it is used as-is; otherwise the actual encoding is detected via
+    ``charset_normalizer`` (falls back to utf-8, then latin-1, if detection
+    is inconclusive). This matters for Chinese text saved as Big5/GBK,
+    which a naive utf-8/latin-1 fallback would silently turn into mojibake.
     """
     if not file_path.exists():
         raise FileNotFoundError(f"TXT not found: {file_path}")
     if file_path.suffix.lower() != ".txt":
         raise ValueError(f"Expected .txt extension, got: {file_path.suffix}")
 
-    try:
-        text = file_path.read_text(encoding=encoding)
-    except UnicodeDecodeError:
-        text = file_path.read_text(encoding="latin-1")
+    if encoding is not None:
+        try:
+            text = file_path.read_text(encoding=encoding)
+        except UnicodeDecodeError:
+            text = file_path.read_text(encoding="latin-1")
+    else:
+        from charset_normalizer import from_path  # noqa: PLC0415
+
+        match = from_path(file_path).best()
+        if match is not None:
+            text = str(match)
+        else:
+            try:
+                text = file_path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                text = file_path.read_text(encoding="latin-1")
 
     segments: list[tuple[int, str]] = []
     for idx, line in enumerate(text.splitlines()):
@@ -144,3 +235,98 @@ def load_txt(
         "Loaded TXT '%s': %d non-empty lines", file_path.name, len(segments)
     )
     return segments, DocumentMeta()
+
+
+# EPUB guide/landmark types with a clear match to an existing ChapterRole.
+# There is no official "afterword" guide type — chapters without a guide
+# mapping stay ChapterRole.body and fall back to chapter_detector's own
+# text-based classification (e.g. matching a "後記"/"跋" heading).
+_EPUB_GUIDE_TYPE_TO_ROLE: dict[str, ChapterRole] = {
+    "toc": ChapterRole.toc,
+    "preface": ChapterRole.preface,
+    "foreword": ChapterRole.preface,
+    "introduction": ChapterRole.preface,
+}
+
+_BLOCK_TAGS = {"h1", "h2", "h3", "h4", "h5", "h6", "p", "blockquote", "li"}
+
+
+def load_epub(file_path: Path) -> tuple[list[tuple[int, str]], DocumentMeta]:
+    """Extract raw text and metadata from an EPUB.
+
+    Unlike PDF/DOCX/TXT, EPUB carries real structural metadata: the spine
+    gives the authoritative reading order (one XHTML item is normally one
+    chapter), and the guide/landmarks (EPUB2 ``<guide>`` or EPUB3 nav
+    landmarks — ``ebooklib`` normalizes both into ``book.guide``) can mark
+    a page as table-of-contents/preface/etc. This is used to set
+    ``heading_indices``/``heading_roles`` instead of guessing from text.
+
+    Returns:
+        Tuple of (segments, meta) where segments is a list of
+        (index, text) pairs in spine order and meta contains any
+        author/title from Dublin Core metadata, plus heading indices/roles
+        derived from the spine and guide.
+
+    Raises:
+        FileNotFoundError: If the file does not exist.
+        ValueError: If the file is not an EPUB or cannot be parsed.
+    """
+    try:
+        from ebooklib import epub  # noqa: PLC0415
+    except ImportError as exc:
+        raise ImportError("ebooklib is required for EPUB loading: pip install ebooklib") from exc
+    from lxml import html as lhtml  # noqa: PLC0415
+
+    if not file_path.exists():
+        raise FileNotFoundError(f"EPUB not found: {file_path}")
+    if file_path.suffix.lower() != ".epub":
+        raise ValueError(f"Expected .epub extension, got: {file_path.suffix}")
+
+    try:
+        book = epub.read_epub(str(file_path))
+    except Exception as exc:
+        raise ValueError(f"Could not parse EPUB: {exc}") from exc
+
+    def _dc(field: str) -> str | None:
+        values = book.get_metadata("DC", field)
+        return (values[0][0].strip() if values and values[0][0] else None) or None
+
+    meta = DocumentMeta(title=_dc("title"), author=_dc("creator"))
+    guide_role_by_href = {
+        g["href"].split("#")[0]: role
+        for g in book.guide
+        if (role := _EPUB_GUIDE_TYPE_TO_ROLE.get(g["type"])) is not None
+    }
+
+    segments: list[tuple[int, str]] = []
+    seg_idx = 0
+    for item_id, _linear in book.spine:
+        item = book.get_item_with_id(item_id)
+        if item is None or not hasattr(item, "is_chapter") or not item.is_chapter():
+            continue  # skips the nav document and any non-XHTML spine entry
+
+        tree = lhtml.fromstring(item.get_content())
+        lines = [
+            text
+            for el in tree.iter()
+            if el.tag in _BLOCK_TAGS and (text := el.text_content().strip())
+        ]
+        if not lines:
+            continue
+
+        meta.heading_indices.add(seg_idx)
+        role = guide_role_by_href.get(item.get_name())
+        if role is not None:
+            meta.heading_roles[seg_idx] = role
+
+        for line in lines:
+            segments.append((seg_idx, line))
+            seg_idx += 1
+
+    logger.info(
+        "Loaded EPUB '%s': %d spine items, %d non-empty lines",
+        file_path.name,
+        len(book.spine),
+        len(segments),
+    )
+    return segments, meta

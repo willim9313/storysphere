@@ -208,7 +208,7 @@ class Settings(BaseSettings):
     app_env: Literal["development", "production"] = "development"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     log_file: str | None = None
-    app_host: str = "0.0.0.0"
+    app_host: str = "127.0.0.1"
     app_port: int = 8000
 
     # ── Validators ────────────────────────────────────────────────────────────

@@ -4,37 +4,47 @@ const v = (name: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
+  // "other" doubles as the fallback for any type outside the map — falling
+  // back to --border painted org/object nodes near-black under Ink.
   const fills: Record<string, string> = {
-    character: v('--graph-char-fill') || '#dbeafe',
-    location:  v('--graph-loc-fill')  || '#dcfce7',
-    concept:   v('--graph-con-fill')  || '#ede9fe',
-    event:     v('--graph-evt-fill')  || '#fee2e2',
+    character:    v('--graph-char-fill')  || '#ffe8d9',
+    location:     v('--graph-loc-fill')   || '#ebf0da',
+    concept:      v('--graph-con-fill')   || '#f9e2ee',
+    event:        v('--graph-evt-fill')   || '#ffe0de',
+    organization: v('--graph-org-fill')   || '#faedd2',
+    object:       v('--graph-obj-fill')   || '#ffe3dc',
+    other:        v('--graph-other-fill') || '#eee9e1',
   };
   const strokes: Record<string, string> = {
-    character: v('--graph-char-stroke') || '#3b82f6',
-    location:  v('--graph-loc-stroke')  || '#22c55e',
-    concept:   v('--graph-con-stroke')  || '#8b5cf6',
-    event:     v('--graph-evt-stroke')  || '#ef4444',
+    character:    v('--graph-char-stroke')  || '#b97249',
+    location:     v('--graph-loc-stroke')   || '#74814d',
+    concept:      v('--graph-con-stroke')   || '#9e6181',
+    event:        v('--graph-evt-stroke')   || '#b35757',
+    organization: v('--graph-org-stroke')   || '#aa863e',
+    object:       v('--graph-obj-stroke')   || '#b56353',
+    other:        v('--graph-other-stroke') || '#867867',
   };
   const labels: Record<string, string> = {
-    character: v('--graph-char-label') || '#1e3a8a',
-    location:  v('--graph-loc-label')  || '#064e3b',
-    concept:   v('--graph-con-label')  || '#4c1d95',
-    event:     v('--graph-evt-label')  || '#991b1b',
+    character:    v('--graph-char-label')  || '#714229',
+    location:     v('--graph-loc-label')   || '#4b552e',
+    concept:      v('--graph-con-label')   || '#6c445b',
+    event:        v('--graph-evt-label')   || '#803f40',
+    organization: v('--graph-org-label')   || '#6a5124',
+    object:       v('--graph-obj-label')   || '#794037',
+    other:        v('--graph-other-label') || '#5f564c',
   };
-  const accent    = v('--accent')       || '#8b5e3c';
-  const border    = v('--border')       || '#e0d4c4';
-  const fgPrimary = v('--fg-primary')   || '#1c1814';
-  const fgMuted   = v('--fg-muted')     || '#8a7a68';
-  const fgSecondary = v('--fg-secondary') || '#5a4f42';
+  const accent    = v('--accent')       || '#b05a34';
+  const fgPrimary = v('--fg-primary')   || '#2a2620';
+  const fgMuted   = v('--fg-muted')     || '#938876';
+  const fgSecondary = v('--fg-secondary') || '#5f5648';
   // cytoscape's font-family regex (^([\w- "]+(?:\s*,\s*[\w- "]+)*)$) rejects
-  // single quotes, so a token like `'Libre Baskerville', 'Noto Sans TC', …`
+  // single quotes, so a token like `'Spectral', 'Noto Serif TC', …`
   // is flagged invalid and the label silently falls back to the default font.
   // Strip quotes here (spaces in family names are allowed) without touching
   // the shared --font-* tokens.
   const cyFont = (s: string) => s.replace(/['"]/g, '');
   const fontSans  = cyFont(v('--font-sans')  || 'DM Sans, system-ui, sans-serif');
-  const fontSerif = cyFont(v('--font-serif') || 'Source Serif Pro, Georgia, serif');
+  const fontSerif = cyFont(v('--font-serif') || 'Spectral, Georgia, serif');
   const borderStyle: 'dashed' | 'solid' = v('--border-style') === 'dashed' ? 'dashed' : 'solid';
   const lineWeight  = Number.parseFloat(v('--line-weight')) || 1.2;
   const nodeBorderWidth = Math.max(1, lineWeight);
@@ -44,10 +54,10 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
   // ClusterNode). Resolved here so the SVG data URI can embed a concrete
   // hex — CSS var() does not work inside inline SVG strings.
   const clusterDots: Record<string, string> = {
-    character: v('--entity-char-dot') || '#2563eb',
-    location:  v('--entity-loc-dot')  || '#059669',
-    concept:   v('--entity-con-dot')  || '#7c3aed',
-    event:     v('--entity-evt-dot')  || '#ef4444',
+    character: v('--entity-char-dot') || '#b97249',
+    location:  v('--entity-loc-dot')  || '#74814d',
+    concept:   v('--entity-con-dot')  || '#9e6181',
+    event:     v('--entity-evt-dot')  || '#b35757',
   };
 
   const clusterDotsBackground = (dotColor: string): string => {
@@ -67,12 +77,11 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
       // by fill/stroke color + dot, never by shape (see design styles.css
       // .gnode-fill — single <circle> renderer across all types).
       //
-      // ⚠️ Known trade-off: an earlier iteration used per-type shapes
-      // (ellipse / round-rectangle / diamond / pentagon) because the
-      // manuscript / minimal-ink / pulp themes neutralize entity colors,
-      // making types hard to tell apart by fill alone. The V1 handoff
-      // committed to circle-only for visual consistency; the alternate-
-      // theme differentiation gap is tracked in docs/BACKLOG.md (B-043).
+      // Design-system v2 (ink-on-paper): both themes share the warm entity
+      // hue arc — the --graph-* tokens are not overridden per theme — so
+      // node types stay color-distinguishable in Warm and Ink alike
+      // (formerly B-047; the old B&W themes that neutralized entity colors
+      // are gone).
       selector: 'node',
       style: {
         label: 'data(label)',
@@ -88,12 +97,12 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
           labels[ele.data('entityType') as string] ?? fgPrimary,
         'text-margin-y': 4,
         'background-color': (ele: cytoscape.NodeSingular) =>
-          fills[ele.data('entityType') as string] ?? border,
+          fills[ele.data('entityType') as string] ?? fills.other,
         width: 'data(size)',
         height: 'data(size)',
         'border-width': nodeBorderWidth,
         'border-color': (ele: cytoscape.NodeSingular) =>
-          strokes[ele.data('entityType') as string] ?? border,
+          strokes[ele.data('entityType') as string] ?? strokes.other,
         shape: 'ellipse',
       },
     },
@@ -192,7 +201,7 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
       style: {
         shape: 'ellipse',
         'background-color': (ele: cytoscape.NodeSingular) =>
-          fills[ele.data('clusterType') as string] ?? border,
+          fills[ele.data('clusterType') as string] ?? fills.other,
         'background-opacity': 0.18,
         'background-image': ((ele: cytoscape.NodeSingular) =>
           clusterDotsBackground(

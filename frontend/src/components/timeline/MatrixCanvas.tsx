@@ -23,11 +23,11 @@ function modeColor(mode: NarrativeMode): string {
   const v = (name: string) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   switch (mode) {
-    case 'present':      return v('--narrative-present-border')      || '#8b5e3c';
-    case 'flashback':    return v('--narrative-flashback-border')    || '#3b82f6';
-    case 'flashforward': return v('--narrative-flashforward-border') || '#f59e0b';
-    case 'parallel':     return v('--narrative-parallel-border')     || '#8b5cf6';
-    default:             return v('--narrative-unknown-border')      || '#8a7a68';
+    case 'present':      return v('--narrative-present-border')      || '#b05a34';
+    case 'flashback':    return v('--narrative-flashback-border')    || '#5f6a88';
+    case 'flashforward': return v('--narrative-flashforward-border') || '#ad7519';
+    case 'parallel':     return v('--narrative-parallel-border')     || '#9e6181';
+    default:             return v('--narrative-unknown-border')      || '#938876';
   }
 }
 
@@ -35,9 +35,9 @@ function displacementColor(type: string): string {
   const v = (name: string) =>
     getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   switch (type) {
-    case 'analepsis': return v('--narrative-flashback-border') || '#3b82f6';
-    case 'prolepsis': return v('--narrative-flashforward-border') || '#f59e0b';
-    default:          return v('--fg-muted') || '#8a7a68';
+    case 'analepsis': return v('--narrative-flashback-border') || '#5f6a88';
+    case 'prolepsis': return v('--narrative-flashforward-border') || '#ad7519';
+    default:          return v('--fg-muted') || '#938876';
   }
 }
 

@@ -89,9 +89,14 @@ export async function fetchGraphData(_bookId: string): Promise<GraphData> {
 
 // ── Ingest (#2) ────────────────────────────────────────────────
 
-export async function uploadBook(_file: File): Promise<{ taskId: string }> {
+export async function uploadBook(_file: File): Promise<{ taskId: string; duplicateTitle: boolean }> {
   await delay(500);
-  return createMockTask();
+  return { ...createMockTask(), duplicateTitle: false };
+}
+
+export async function detectLanguage(_file: File): Promise<{ language: string }> {
+  await delay(100);
+  return { language: 'zh-cn' };
 }
 
 // ── Task polling (#8) ──────────────────────────────────────────

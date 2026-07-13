@@ -42,6 +42,7 @@ from storysphere.api.schemas.books import (
     ChunkResponse,
     ClassifyVisibilityResponse,
     ConfirmInferredRequest,
+    DetectLanguageResponse,
     EntityChunkItem,
     EntityChunksResponse,
     EntityStats,
@@ -57,6 +58,8 @@ from storysphere.api.schemas.books import (
     InferredRelationsResponse,
     LocationRef,
     MisbeliefItemSchema,
+    ParseTocRequest,
+    ParseTocResponse,
     ParticipantRef,
     ReviewChapterResponse,
     ReviewDataResponse,
@@ -65,6 +68,7 @@ from storysphere.api.schemas.books import (
     RunInferenceRequest,
     Segment,
     SegmentEntity,
+    SuggestRolesResponse,
     TaskIdResponse,
     TemporalRelationEntry,
     TimelineConfigResponse,
@@ -73,13 +77,17 @@ from storysphere.api.schemas.books import (
     TimelineEventEntry,
     TimelineQuality,
     TimelineResponse,
+    TocEntry,
     TopEntity,
     UnanalyzedEntity,
+    UploadResponse,
     VoiceProfileResponse,
 )
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
-from storysphere.domain.documents import ParagraphEntity, PipelineStatus, StepStatus
+from storysphere.core.language_detection import detect_language
+from storysphere.domain.documents import ChapterRole, ParagraphEntity, PipelineStatus, StepStatus
+from storysphere.pipelines.document_processing import DocumentProcessingPipeline
 from storysphere.services.analysis_cache import AnalysisCache
 
 logger = logging.getLogger(__name__)
@@ -87,6 +95,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/books", tags=["books"])
 
 MAX_UPLOAD_BYTES = 200 * 1024 * 1024  # 200 MB
+_UPLOAD_CHUNK_BYTES = 1024 * 1024  # 1 MB, streamed to avoid buffering the whole file
+# Single source of truth for the formats the upload and language-detection
+# endpoints accept — kept in sync with DocumentProcessingPipeline._load_sync.
+_ALLOWED_UPLOAD_SUFFIXES = {".pdf", ".docx", ".txt", ".epub"}
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -145,7 +157,7 @@ async def _run_ingestion_graph(
     from storysphere.api.deps import get_ingestion_graph  # noqa: PLC0415
 
     task_store.set_running(task_id)
-    task_store.set_progress(task_id, 5, "PDF 解析")
+    task_store.set_progress(task_id, 5, "文件解析", step_key="pdfParsing")
 
     config = {"configurable": {"thread_id": task_id}}
     initial_state = {
@@ -177,10 +189,12 @@ async def _run_ingestion_graph(
     except asyncio.CancelledError:
         logger.info("Ingestion task %s cancelled", task_id)
         task_store.set_failed(task_id, error="cancelled")
+        await _cleanup_checkpoint(task_id)
         raise
     except Exception as exc:
         logger.exception("Ingestion task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
+        await _cleanup_checkpoint(task_id)
     finally:
         task_registry.unregister(task_id)
         try:
@@ -189,7 +203,13 @@ async def _run_ingestion_graph(
             pass
 
 
-async def _resume_ingestion_graph(task_id: str, chapters_data: list[dict]) -> None:
+async def _cleanup_checkpoint(task_id: str) -> None:
+    from storysphere.api.deps import delete_ingestion_checkpoint  # noqa: PLC0415
+
+    await delete_ingestion_checkpoint(task_id)
+
+
+async def _resume_ingestion_graph(task_id: str, chapters_data: dict | None) -> None:
     from langgraph.types import Command  # noqa: PLC0415
 
     from storysphere.api.deps import get_ingestion_graph  # noqa: PLC0415
@@ -205,6 +225,11 @@ async def _resume_ingestion_graph(task_id: str, chapters_data: list[dict]) -> No
     except Exception as exc:
         logger.exception("Resume of ingestion task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
+    finally:
+        # Phase 2 always ends terminal (done / error / cancelled): release the
+        # registry slot and drop the checkpoint thread so it never accumulates.
+        task_registry.unregister(task_id)
+        await _cleanup_checkpoint(task_id)
 
 
 async def _run_entity_analysis(
@@ -332,6 +357,27 @@ async def delete_book(
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    # Finalise any associated ingestion task first, so the pipeline can't keep
+    # writing to a book that is being deleted, and the task doesn't linger
+    # forever as a non-terminal zombie in the Task Center.
+    from storysphere.api.store import (  # noqa: PLC0415
+        get_task,
+        get_task_id_by_book_id,
+        set_task_failed,
+    )
+
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is not None:
+        status = await get_task(task_id)
+        if status is not None and status.status not in ("done", "error"):
+            # A live asyncio task (phase 2) gets cancelled — its handler marks
+            # the task failed. A paused one (awaiting_review) has no asyncio
+            # task, so mark it terminal directly.
+            if not task_registry.cancel(task_id):
+                await set_task_failed(task_id, error="cancelled")
+            await _cleanup_checkpoint(task_id)
+
     await vector.delete_collection(book_id)
     await kg.remove_by_document(book_id)
     await cache.invalidate(f"%:{book_id}:%")
@@ -497,6 +543,7 @@ async def get_review_data(
             ReviewChapterResponse(
                 chapter_idx=ch_idx,
                 title=chapter.title,
+                role=chapter.role.value,
                 paragraphs=paras,
             )
         )
@@ -528,33 +575,158 @@ async def submit_review(
             detail="Review window has already been closed",
         )
 
-    resume_value = {
-        "chapters": [ch.model_dump(by_alias=False) for ch in body.chapters],
-        "role_overrides": body.role_overrides,
-    }
+    # chapters omitted = accept the detected structure as-is; resume with None
+    # so chapter_review_node skips the rebuild entirely.
+    resume_value = None
+    if body.chapters is not None:
+        resume_value = {
+            "chapters": [ch.model_dump(by_alias=False) for ch in body.chapters],
+            "role_overrides": body.role_overrides,
+            "paragraph_splits": body.paragraph_splits,
+        }
     # Await the write so the frontend sees 'running' on its very next poll —
     # the sync fire-and-forget path would race with the immediately-following navigate.
     from storysphere.api.store import set_task_running  # noqa: PLC0415
     await set_task_running(task_id)
-    asyncio.create_task(_resume_ingestion_graph(task_id, resume_value))
+    # Register the resume task so POST /tasks/:id/cancel can actually stop
+    # phase 2 — without this the whole post-review pipeline is uncancellable.
+    resume_task = asyncio.create_task(_resume_ingestion_graph(task_id, resume_value))
+    task_registry.register(task_id, resume_task)
+
+
+# ── #8f POST /books/:bookId/suggest-roles ─────────────────────────────────────
+
+
+@router.post("/{book_id}/suggest-roles", response_model=SuggestRolesResponse)
+async def suggest_roles(
+    book_id: str,
+    doc: DocServiceDep,
+) -> SuggestRolesResponse:
+    """LLM-assisted "邊界輔助辨識": flag edge paragraphs that are front/back matter.
+
+    Walks the book's paragraphs inward from each end and returns the ones that
+    read as non-body matter, for the reviewer to accept. Only available while
+    awaiting review; it does not mutate the document or resume the pipeline.
+    """
+    from storysphere.api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
+
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+    status = await get_task(task_id)
+    if status is None or status.status != "awaiting_review":
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from storysphere.services.chapter_role_suggester import (  # noqa: PLC0415
+        suggest_boundary_roles,
+    )
+
+    try:
+        result = await suggest_boundary_roles(document.chapters)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI boundary detection is unavailable: {exc}",
+        ) from exc
+
+    return SuggestRolesResponse(
+        front_matter_end=result.front_matter_end,
+        back_matter_start=result.back_matter_start,
+        front_role=result.front_role,
+        back_role=result.back_role,
+    )
+
+
+# ── #8g POST /books/:bookId/parse-toc ─────────────────────────────────────────
+
+
+@router.post("/{book_id}/parse-toc", response_model=ParseTocResponse)
+async def parse_toc(
+    book_id: str,
+    doc: DocServiceDep,
+    body: ParseTocRequest | None = None,
+) -> ParseTocResponse:
+    """LLM-assisted "目錄對照提示": parse the book's declared chapter list.
+
+    Extracts the ordered entries the book itself declares, for the review UI to
+    show side by side with the detected spine. Prefers ``body.tocText`` — the
+    reviewer's *currently edited* TOC text — so re-parsing reflects live role/
+    content edits; falls back to the persisted document's detected TOC when no
+    text is sent. Display-only: it does not mutate the document, drive splitting,
+    or resume the pipeline. Only available while awaiting review.
+    """
+    from storysphere.api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
+
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+    status = await get_task(task_id)
+    if status is None or status.status != "awaiting_review":
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+
+    from storysphere.services.toc_parser import (  # noqa: PLC0415
+        parse_toc_entries,
+        parse_toc_text,
+    )
+
+    toc_text = (body.toc_text or "").strip() if body else ""
+    try:
+        if toc_text:
+            entries = await parse_toc_text(toc_text)
+        else:
+            document = await doc.get_document(book_id)
+            if document is None:
+                raise HTTPException(
+                    status_code=404, detail=f"Book '{book_id}' not found"
+                )
+            entries = await parse_toc_entries(document.chapters)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI table-of-contents parsing is unavailable: {exc}",
+        ) from exc
+
+    return ParseTocResponse(
+        entries=[
+            TocEntry(title=e.title, page=e.page, level=e.level, is_body=e.is_body)
+            for e in entries
+        ]
+    )
 
 
 # ── #2 POST /books/upload ────────────────────────────────────────────────────
 
 
-@router.post("/upload", response_model=TaskIdResponse, status_code=202)
+@router.post("/upload", response_model=UploadResponse, status_code=202)
 async def upload_book(
     file: UploadFile,
+    doc: DocServiceDep,
     title: Annotated[str | None, Form()] = None,
     author: Annotated[str | None, Form()] = None,
     language: Annotated[str | None, Form()] = None,
 ) -> dict:
-    """Upload a PDF/DOCX/TXT and start background ingestion."""
+    """Upload a PDF/DOCX/TXT/EPUB and start background ingestion."""
     suffix = Path(file.filename or "upload").suffix.lower()
-    if suffix not in {".pdf", ".docx", ".txt"}:
+    if suffix not in _ALLOWED_UPLOAD_SUFFIXES:
         raise HTTPException(
             status_code=422,
-            detail="Only .pdf, .docx and .txt files are supported",
+            detail="Only .pdf, .docx, .txt and .epub files are supported",
         )
 
     # Use user-provided title if given, otherwise fall back to filename stem
@@ -562,17 +734,23 @@ async def upload_book(
     author = author.strip() if author and author.strip() else None
     language = language.strip() or None if language else None
 
+    # Duplicate titles are only a warning — the user may be uploading a
+    # different edition/translation, or intentionally re-uploading a fix.
+    duplicate_title = await doc.title_exists(title)
+
     tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
     try:
-        content = await file.read()
-        if len(content) > MAX_UPLOAD_BYTES:
-            tmp.close()
-            Path(tmp.name).unlink(missing_ok=True)
-            raise HTTPException(
-                status_code=413,
-                detail=f"File too large (max {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
-            )
-        tmp.write(content)
+        total_bytes = 0
+        while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+            total_bytes += len(chunk)
+            if total_bytes > MAX_UPLOAD_BYTES:
+                tmp.close()
+                Path(tmp.name).unlink(missing_ok=True)
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large (max {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
+                )
+            tmp.write(chunk)
         tmp.close()
     except HTTPException:
         raise
@@ -588,7 +766,61 @@ async def upload_book(
     task = asyncio.create_task(_run_ingestion_graph(task_id, Path(tmp.name), title, author, language))
     task_registry.register(task_id, task)
 
-    return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+    return UploadResponse(task_id=task_id, duplicate_title=duplicate_title).model_dump(by_alias=True)
+
+
+# ── POST /books/detect-language ──────────────────────────────────────────────
+
+
+@router.post("/detect-language", response_model=DetectLanguageResponse)
+async def detect_language_from_upload(file: UploadFile) -> dict:
+    """Quickly guess a file's language before the user confirms upload.
+
+    Reuses the same PDF/DOCX/TXT/EPUB loaders as full ingestion, but skips
+    chapter detection and does not create a background task — this is a
+    lightweight, synchronous preview call so the upload form's language
+    dropdown can be pre-selected instead of defaulting to blank.
+
+    The whole file is streamed to a temp file (bounded by MAX_UPLOAD_BYTES)
+    before parsing: DOCX/EPUB are ZIP containers and PDF keeps its xref table
+    at the end, so a truncated sample would corrupt the container and make the
+    loader silently fall back to English. Sampling happens on the loaded text.
+    """
+    suffix = Path(file.filename or "upload").suffix.lower()
+    if suffix not in _ALLOWED_UPLOAD_SUFFIXES:
+        raise HTTPException(
+            status_code=422,
+            detail="Only .pdf, .docx, .txt and .epub files are supported",
+        )
+
+    tmp = tempfile.NamedTemporaryFile(delete=False, suffix=suffix)
+    try:
+        total_bytes = 0
+        while chunk := await file.read(_UPLOAD_CHUNK_BYTES):
+            total_bytes += len(chunk)
+            if total_bytes > MAX_UPLOAD_BYTES:
+                raise HTTPException(
+                    status_code=413,
+                    detail=f"File too large (max {MAX_UPLOAD_BYTES // 1024 // 1024} MB)",
+                )
+            tmp.write(chunk)
+        tmp.close()
+
+        segments, _meta = await asyncio.get_event_loop().run_in_executor(
+            None, DocumentProcessingPipeline._load_sync, Path(tmp.name)
+        )
+        sample = " ".join(text for _, text in segments)
+        language = detect_language(sample)
+    except HTTPException:
+        raise
+    except Exception:
+        logger.warning("Language pre-detection failed for %r", file.filename, exc_info=True)
+        language = "en"
+    finally:
+        tmp.close()
+        Path(tmp.name).unlink(missing_ok=True)
+
+    return DetectLanguageResponse(language=language).model_dump(by_alias=True)
 
 
 # ── #4 GET /books/:bookId/chapters ───────────────────────────────────────────
@@ -598,15 +830,22 @@ async def upload_book(
 async def list_chapters(
     book_id: str, doc: DocServiceDep, kg: KGServiceDep
 ) -> list[dict]:
-    """List chapters for a book."""
+    """List chapters for a book.
+
+    Non-body chapters (table of contents, prefaces, afterwords) are front/
+    back matter, not part of the reading flow — they're excluded here even
+    though they remain stored (e.g. for a future cross-book lookup).
+    """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    body_chapters = [ch for ch in document.chapters if ch.role == ChapterRole.body]
+
     # Check if stored entities are available (new data)
     has_stored = any(
         p.entities is not None
-        for ch in document.chapters
+        for ch in body_chapters
         for p in ch.paragraphs
     )
 
@@ -616,7 +855,7 @@ async def list_chapters(
         all_entities = await kg.list_entities(document_id=book_id)
 
     results: list[dict] = []
-    for ch in document.chapters:
+    for ch in body_chapters:
         if has_stored:
             # Aggregate unique entities from stored paragraph data
             seen_ids: dict[str, ParagraphEntity] = {}

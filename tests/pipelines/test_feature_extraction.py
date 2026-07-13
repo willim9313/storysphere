@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
+from storysphere.domain.documents import Chapter, ChapterRole, Document, FileType, Paragraph
 from storysphere.pipelines.feature_extraction.embedding_generator import EmbeddingGenerator
 from storysphere.pipelines.feature_extraction.pipeline import FeatureExtractionPipeline, FeatureExtractionResult
 
@@ -151,3 +151,26 @@ class TestFeatureExtractionPipeline:
         await pipeline.run(doc)
 
         assert mock_gen.aembed_texts.call_count == 3  # once per chapter
+
+    @pytest.mark.asyncio
+    async def test_non_body_chapters_are_not_embedded(self):
+        """toc/preface/afterword chapters must be skipped entirely — no
+        embedding calls, no Paragraph.embedding set, excluded from the count."""
+        doc = _make_document(num_chapters=3, paras_per_chapter=2)
+        doc.chapters[0].role = ChapterRole.toc
+        doc.chapters[2].role = ChapterRole.afterword
+        # doc.chapters[1] stays ChapterRole.body (the default)
+
+        mock_gen = AsyncMock(spec=EmbeddingGenerator)
+        mock_gen.aembed_texts = AsyncMock(return_value=[[0.0] * 384] * 10)
+
+        pipeline = FeatureExtractionPipeline(embedding_generator=mock_gen, qdrant_client=None)
+        result = await pipeline.run(doc)
+
+        # Only chapter 2 (the body chapter) should have been embedded.
+        assert mock_gen.aembed_texts.call_count == 1
+        assert result.paragraphs_embedded == len(doc.chapters[1].paragraphs)
+        for para in doc.chapters[0].paragraphs + doc.chapters[2].paragraphs:
+            assert para.embedding is None
+        for para in doc.chapters[1].paragraphs:
+            assert para.embedding is not None

@@ -34,6 +34,21 @@ def set_ingestion_graph(graph) -> None:
     _ingestion_graph = graph
 
 
+async def delete_ingestion_checkpoint(task_id: str) -> None:
+    """Drop the LangGraph checkpoint thread of a terminal ingestion task.
+
+    Called when a task finishes, fails, or is cancelled/discarded, so
+    checkpoint rows don't accumulate forever. Best-effort: cleanup failure
+    must never break the caller.
+    """
+    try:
+        checkpointer = getattr(get_ingestion_graph(), "checkpointer", None)
+        if checkpointer is not None:
+            await checkpointer.adelete_thread(task_id)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Ingestion checkpoint cleanup failed for %s: %s", task_id, exc)
+
+
 # Runtime override for kg_mode — set via /api/v1/kg/switch endpoint.
 # Takes precedence over settings.kg_mode without requiring a restart.
 _runtime_kg_mode: str | None = None

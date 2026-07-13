@@ -157,6 +157,48 @@ class TestSubmitReviewEndpoint:
         assert resp.status_code in (204, 409, 422)
 
 
+class TestAcceptReviewShortcut:
+    """POST /review without chapters = accept the detected structure as-is."""
+
+    def _setup_awaiting(self, book_id: str) -> str:
+        import uuid
+
+        from storysphere.api.store import task_store
+        task_id = f"test-{uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, book_id)
+        return task_id
+
+    def test_accept_returns_204_and_resumes_with_none(self, client):
+        import uuid
+        book_id = f"book-{uuid.uuid4()}"
+        self._setup_awaiting(book_id)
+        with patch(
+            "storysphere.api.routers.books._resume_ingestion_graph",
+            new_callable=AsyncMock,
+        ) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json={})
+        assert resp.status_code == 204
+        # Resume value must be None so chapter_review_node skips the rebuild
+        assert mock_resume.call_args.args[1] is None
+
+    def test_accept_registers_cancellable_task(self, client):
+        import uuid
+
+        from storysphere.api import task_registry
+        book_id = f"book-{uuid.uuid4()}"
+        task_id = self._setup_awaiting(book_id)
+        with patch(
+            "storysphere.api.routers.books._resume_ingestion_graph",
+            new_callable=AsyncMock,
+        ):
+            resp = client.post(f"/api/v1/books/{book_id}/review", json={})
+        assert resp.status_code == 204
+        # The resume task must be in the registry so phase 2 is cancellable
+        assert task_registry._registry.get(task_id) is not None
+        task_registry.unregister(task_id)
+
+
 # ── _rebuild_chapters ─────────────────────────────────────────────────────────
 
 class TestRebuildChapters:
@@ -240,6 +282,34 @@ class TestRebuildChapters:
         reviewed = [{"title": "", "start_paragraph_index": 0}]
         result = _rebuild_chapters(doc, reviewed)
         assert result[0].title is None
+
+    def test_role_applied_from_reviewed_data(self):
+        from storysphere.domain.documents import ChapterRole
+        from storysphere.workflows.ingestion import _rebuild_chapters
+        doc = self._make_doc()
+        reviewed = [
+            {"title": "目錄", "role": "toc", "start_paragraph_index": 0},
+            {"title": "Ch2", "role": "body", "start_paragraph_index": 3},
+        ]
+        result = _rebuild_chapters(doc, reviewed)
+        assert result[0].role == ChapterRole.toc
+        assert result[1].role == ChapterRole.body
+
+    def test_role_defaults_to_body_when_omitted(self):
+        from storysphere.domain.documents import ChapterRole
+        from storysphere.workflows.ingestion import _rebuild_chapters
+        doc = self._make_doc()
+        reviewed = [{"title": "Ch1", "start_paragraph_index": 0}]
+        result = _rebuild_chapters(doc, reviewed)
+        assert result[0].role == ChapterRole.body
+
+    def test_invalid_role_falls_back_to_body(self):
+        from storysphere.domain.documents import ChapterRole
+        from storysphere.workflows.ingestion import _rebuild_chapters
+        doc = self._make_doc()
+        reviewed = [{"title": "Ch1", "role": "not-a-real-role", "start_paragraph_index": 0}]
+        result = _rebuild_chapters(doc, reviewed)
+        assert result[0].role == ChapterRole.body
 
 
 # ── GET /review-data: role field ──────────────────────────────────────────────
@@ -372,6 +442,41 @@ class TestReviewDataRoleField:
         assert roles[0] == "body"
         assert roles[1] == "separator"
 
+    def test_chapter_level_role_returned(self, client, mock_doc):
+        """ReviewChapterResponse.role reflects the chapter's classification,
+        not just each paragraph's role."""
+        from storysphere.domain.documents import Chapter, ChapterRole, Document, FileType, Paragraph
+        import uuid as _uuid
+        from storysphere.api.store import task_store
+
+        doc_id = f"doc-chrole-{_uuid.uuid4()}"
+        doc = Document(
+            id=doc_id,
+            title="T",
+            file_path="/tmp/t.pdf",
+            file_type=FileType.PDF,
+            chapters=[
+                Chapter(
+                    number=1,
+                    title="目錄",
+                    role=ChapterRole.toc,
+                    paragraphs=[Paragraph(id="p0", text="內容。", chapter_number=1, position=0)],
+                ),
+            ],
+        )
+
+        async def _get_doc(did):
+            return doc if did == doc_id else None
+        mock_doc.get_document.side_effect = _get_doc
+
+        task_id = f"task-chrole-{_uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, doc_id)
+
+        resp = client.get(f"/api/v1/books/{doc_id}/review-data")
+        assert resp.status_code == 200
+        assert resp.json()["chapters"][0]["role"] == "toc"
+
 
 # ── POST /review: roleOverrides ───────────────────────────────────────────────
 
@@ -438,3 +543,68 @@ class TestSubmitReviewRoleOverrides:
         _, resume_value = mock_resume.call_args[0]
         assert isinstance(resume_value, dict)
         assert resume_value["role_overrides"] == {"0": "preamble", "1": "separator"}
+
+    def test_chapter_role_forwarded_in_resume_value(self, client):
+        """A chapter-level role submitted via POST /review reaches the graph
+        resume payload, so _rebuild_chapters can apply it."""
+        book_id, _ = self._setup_awaiting()
+        payload = {
+            "chapters": [{"title": "目錄", "role": "toc", "startParagraphIndex": 0}],
+        }
+
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+
+        assert resp.status_code == 204
+        _, resume_value = mock_resume.call_args[0]
+        assert resume_value["chapters"][0]["role"] == "toc"
+
+
+# ── POST /review: paragraphSplits ─────────────────────────────────────────────
+
+
+class TestSubmitReviewParagraphSplits:
+    """paragraphSplits field is accepted (204) and forwarded to the graph resume."""
+
+    def _setup_awaiting(self) -> tuple[str, str]:
+        """Return a fresh (book_id, task_id) pair so each test is isolated."""
+        import uuid
+
+        from storysphere.api.store import task_store
+        book_id = f"book-split-{uuid.uuid4()}"
+        task_id = f"task-split-{uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, book_id)
+        return book_id, task_id
+
+    def test_paragraph_splits_accepted_with_204(self, client):
+        book_id, _ = self._setup_awaiting()
+        payload = {
+            "chapters": [{"title": "Ch1", "startParagraphIndex": 0}],
+            "paragraphSplits": {"3": [120, 456]},
+        }
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock):
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+
+    def test_omitting_paragraph_splits_accepted(self, client):
+        """paragraphSplits is optional; omitting it defaults to {}."""
+        book_id, _ = self._setup_awaiting()
+        payload = {"chapters": [{"title": "Ch1", "startParagraphIndex": 0}]}
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+        _, resume_value = mock_resume.call_args[0]
+        assert resume_value["paragraph_splits"] == {}
+
+    def test_paragraph_splits_forwarded_in_resume_value(self, client):
+        book_id, _ = self._setup_awaiting()
+        payload = {
+            "chapters": [{"title": "Ch1", "startParagraphIndex": 0}],
+            "paragraphSplits": {"0": [42], "5": [10, 20]},
+        }
+        with patch("storysphere.api.routers.books._resume_ingestion_graph", new_callable=AsyncMock) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+        _, resume_value = mock_resume.call_args[0]
+        assert resume_value["paragraph_splits"] == {"0": [42], "5": [10, 20]}

@@ -76,7 +76,9 @@ interface Book {
 
 ### #2-b DELETE /books/:bookId
 
-刪除書籍。
+刪除書籍。若該書仍有進行中的 ingestion 任務（`running` / `awaiting_review`），
+會先取消該任務（標為 `error: "cancelled"`）並刪除其 LangGraph checkpoint，
+再刪除書籍資料——因此審閱頁「放棄」與處理卡「終止」只需呼叫本 endpoint。
 
 **Response 204**：刪除成功，無 body
 
@@ -88,27 +90,53 @@ interface Book {
 
 ### #2 POST /books/upload
 
-上傳 PDF 或 DOCX，觸發後端處理流程。
+上傳 PDF、DOCX、TXT 或 EPUB，觸發後端處理流程。
 
 **Request**：`multipart/form-data`
 ```
-file    (PDF 或 DOCX 檔案，必填；最大 200 MB)
-title   (書名字串，選填；省略時自動取檔名 stem)
-author  (作者字串，選填)
+file      (PDF、DOCX、TXT 或 EPUB 檔案，必填；最大 200 MB)
+title     (書名字串，選填；省略時自動取檔名 stem)
+author    (作者字串，選填)
+language  (ISO 639-1 語言代碼，選填；省略時由後端自動偵測，見 #2b)
 ```
 
 **Response 202**
 ```ts
-{ taskId: string }
+{
+  taskId: string;
+  duplicateTitle: boolean;  // true 表示已有同名書籍（不分大小寫）；僅警告，不阻擋上傳
+}
 ```
 
 **Response 413**：檔案超過 200 MB
 
-**Response 422**：非 .pdf / .docx 格式
+**Response 422**：非 .pdf / .docx / .txt / .epub 格式
 
 **說明**：取得 taskId 後，前端 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。流程中可能出現 `awaiting_review` 狀態（章節審閱暫停），見 #8「特殊狀態」說明。
 
 **UI 使用頁面**：上傳頁 `/upload`
+
+---
+
+### #2b POST /books/detect-language
+
+在使用者確認上傳前，快速偵測檔案語系，讓上傳頁的語系下拉選單可以預先帶入偵測結果（而非空白的「自動偵測」）。內部重用與 `#2 POST /books/upload` 相同的 PDF/DOCX/TXT/EPUB 讀取邏輯，但不跑章節偵測、不建立背景任務，純同步回應。
+
+**Request**：`multipart/form-data`
+```
+file    (PDF、DOCX、TXT 或 EPUB 檔案，必填)
+```
+
+**Response 200**
+```ts
+{ language: string }  // 例如 "zh-cn", "zh-tw", "en"
+```
+
+**Response 422**：非 .pdf / .docx / .txt / .epub 格式
+
+**說明**：檔案無法解析時（例如檔案損毀）不會回傳錯誤，會 fallback 回傳 `"en"`；純預覽用途，不影響後續 `#2 POST /books/upload` 的實際語系偵測。
+
+**UI 使用頁面**：上傳頁 `/upload`（選擇檔案後立即呼叫）
 
 ---
 
@@ -146,7 +174,7 @@ interface BookDetail extends Book {
 
 ### #4 GET /books/:bookId/chapters
 
-章節列表。
+章節列表。只回傳 `role` 為 `body` 的章節——目錄、序、跋等非正文章節屬於前後附加內容，不算閱讀流程的一部分，會被排除（但仍保留在資料庫中，供未來跨書籍查閱功能使用）。
 
 **Response 200**
 ```ts
@@ -534,7 +562,11 @@ interface TaskStatus {
   taskId: string;
   status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_review';
   progress: number;        // 0–100
-  stage: string;           // UI 顯示文字，如「建構知識圖譜中」
+  stage: string;           // UI 顯示文字，如「知識圖譜擷取」（後端統一中文）
+  stepKey?: string;        // machine-readable pipeline 步驟 key（ingestion 任務提供）：
+                           // pdfParsing | languageDetect | summarization | featureExtraction
+                           // | knowledgeGraph | symbolExploration | dataStorage
+                           // 前端 ProcessingTimeline 優先以此判斷步驟狀態，缺省時 fallback 百分比區間
   subProgress?: number;    // 子任務進度（批次任務使用）
   subTotal?: number;
   subStage?: string;
@@ -588,6 +620,9 @@ useQuery({
 ### #8b POST /tasks/:taskId/cancel
 
 中止正在執行的 background task（真正中斷 asyncio.Task）。
+
+`awaiting_review` 的任務（暫停於章節審閱、無 asyncio task）也可取消：直接標為
+`error`（`error: "cancelled"`）並刪除對應 LangGraph checkpoint thread，任務不再可 resume。
 
 **Response 204**：中止成功
 
@@ -1776,10 +1811,11 @@ interface ChapterDistribution {
   chapters: Array<{
     chapterIdx: number;
     title: string | null;
+    role: string;             // chapter-level: "body" | "toc" | "preface" | "afterword" | "other"
     paragraphs: Array<{
       paragraphIndex: number;  // book-level global index
       text: string;
-      role: string;            // "body" | "separator" | "section" | "epigraph" | "preamble"
+      role: string;            // paragraph-level: "body" | "separator" | "section" | "epigraph" | "preamble"
       titleSpan: [number, number] | null;  // char offsets of heading within text
       sentences: string[];
     }>;
@@ -1796,17 +1832,99 @@ interface ChapterDistribution {
 **Request Body**
 ```ts
 {
-  chapters: Array<{
-    title: string;
+  chapters?: Array<{     // 省略（或送 {}）= 「接受系統判斷」捷徑：
+    title: string;       // pipeline 直接以偵測結構 resume，不重建章節，
+    role: string;        // roleOverrides / paragraphSplits 一併忽略。
     startParagraphIndex: number;  // book-level global index
   }>;
-  roleOverrides: Record<string, string>;  // str(globalParagraphIdx) → role value; omitted = {}
+  roleOverrides: Record<string, string>;  // str(globalParagraphIdx) → 段落層級 role value; omitted = {}
+  paragraphSplits: Record<string, number[]>;  // str(原globalParagraphIdx) → 段內切分字元 offset（升冪）; omitted = {}
 }
 ```
+
+**`paragraphSplits`（段內切分）**：預處理可能把多個邏輯段落融成一段，導致章節
+邊界困在段落中間。前端「選取文字 → 切分為新段落」產生此欄位：key 為**切分前**
+的全域段落索引，value 為該段內的切分字元 offset。後端 resume 時**先**依此切開
+段落（新段落繼承原角色、`titleSpan` 依 offset 調整），**再**套用 `roleOverrides`
+與 `chapters`——因此 `startParagraphIndex` 與 `roleOverrides` 的索引一律指
+**切分後**的 flat 順序。無效項目（索引不存在、offset 越界／未排序、切出純空白
+片段）忽略不套用，不會使 resume 失敗。
 
 **Response 204**：無 body
 
 **409**：任務不在 `awaiting_review` 狀態（包含重複提交）
+
+---
+
+### #22c POST /books/:bookId/suggest-roles
+
+「邊界輔助辨識」：使用者於章節審閱頁觸發，用 LLM 找出黏在書籍頭尾的**非正文段落**
+（版權頁 / 目錄 / 序 / 作者・譯者簡介 / 推薦語 / 跋 / 書目…），回傳建議標為
+非正文的段落供覆核。**純建議**：不修改文件、不 resume pipeline。只在任務狀態為
+`awaiting_review` 時有效。
+
+只走 **body 章節**（已是非正文的章節如目錄不再進去），從書首/書尾**逐段往內回推**，
+每段送一次 LLM 判 body / 非正文，讀到第一段故事正文即停（中段正文不送）。回傳前後附的
+**段落邊界**；前端據此把受影響的 body 章節切開，將前/後附段落切成獨立的非正文章節
+（左側章節列表即時更新），最終走既有 `#22b POST /review`（章節 `startParagraphIndex`
++ `role`）送出。語言無關，不依賴關鍵詞表。
+
+**Response 404**：書籍不存在
+
+**Response 409**：書籍目前不在 `awaiting_review` 狀態
+
+**Response 503**：未設定可用的 LLM provider（AI 判讀不可用）
+
+**Response 200**（book-global 段落索引，對應 #22a review-data 的 `paragraphIndex`）
+```ts
+{
+  frontMatterEnd: number | null;   // 排除界：全域索引 < 此值的 body-章節段落為前附；null = 無前附
+  backMatterStart: number | null;  // 包含界：全域索引 >= 此值的 body-章節段落為後附；null = 無後附
+  frontRole: string | null;        // 切出的前附章節 role（由 LLM 內容判定並聚合：toc/preface/afterword/other）
+  backRole: string | null;         // 切出的後附章節 role（同上，通常 afterword 或 other）
+}
+```
+
+---
+
+### #22d POST /books/:bookId/parse-toc
+
+「目錄對照提示」：使用者於章節審閱頁、在被判為**目錄**（`role==toc`）的章節區塊內觸發，用
+LLM 讀取偵測到的目錄段落文字，抽出**書本自己聲明的章節清單與順序**，供前端與偵測結構
+並排、由人眼核對切分是否有誤（漏切／多切）。**純顯示**：不修改文件、不驅動切分、不自動
+配對、不 resume pipeline。只在任務狀態為 `awaiting_review` 時有效，與 `#22c` 對稱。
+
+**Request Body**（optional，camelCase；可省略整個 body）
+```ts
+{
+  tocText?: string | null;  // 審閱者「當前編輯中」的目錄文字（前端串接所有 role==toc 章節段落）
+}
+```
+
+有帶非空 `tocText` 時，後端**直接解析該文字**——審閱者可能在審閱過程中改了哪一章是目錄、
+或編輯了目錄內容，這些即時變更尚未寫回文件，故以前端送來的文字為準（重新解析會反映最新
+編輯）。`tocText` 省略或為空白時，後端 fallback 為**載入已存文件、串接所有 `role==toc`
+章節段落文字**。兩種來源皆送一次 LLM 解析；無目錄文字或解析不出（非標準目錄格式）時回傳
+空 `entries`（前端顯示 fallback）。數量對比由前端計算（目錄 body 條目數 vs 偵測 body 章節數）。
+
+**Response 404**：書籍不存在（僅 fallback 讀檔路徑；有帶 `tocText` 時不讀檔）
+
+**Response 409**：書籍目前不在 `awaiting_review` 狀態
+
+**Response 503**：未設定可用的 LLM provider（AI 解析不可用）
+
+**Response 200**（有序，依書本目錄宣告順序；`isBody=false` 的條目為序/跋/目錄等非正文，
+前端標「非正文」且不計入數量對比）
+```ts
+{
+  entries: Array<{
+    title: string;         // 條目標題（已剝除點引導線與尾端頁碼）
+    page: number | null;   // 頁碼；null = 目錄未標
+    level: number;         // 0 = 頂層章；巢狀 part/section 遞增
+    isBody: boolean;       // true = 一般敘事章節；false = 非正文（序/跋/目錄/版權/作者簡介…）
+  }>;
+}
+```
 
 ---
 

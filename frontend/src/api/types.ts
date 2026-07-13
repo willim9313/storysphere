@@ -241,6 +241,7 @@ export interface ReviewParagraph {
 export interface ReviewChapter {
   chapterIdx: number;
   title: string | null;
+  role: string;
   paragraphs: ReviewParagraph[];
 }
 
@@ -250,6 +251,7 @@ export interface ReviewData {
 
 export interface ReviewSubmitChapter {
   title: string;
+  role: string;
   startParagraphIndex: number;
 }
 
@@ -258,6 +260,8 @@ export interface TaskStatus {
   status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_review';
   progress: number;
   stage: string;
+  /** Machine-readable pipeline step; mirrors generated.ts TaskStatus.stepKey */
+  stepKey?: string | null;
   subProgress?: number;
   subTotal?: number;
   subStage?: string;

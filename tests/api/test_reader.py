@@ -305,6 +305,30 @@ class TestListChapters:
         # 2 unique entities: Alice and Bob
         assert resp.json()[0]["entityCount"] == 2
 
+    def test_excludes_non_body_chapters(self, client, mock_doc):
+        """toc/preface/afterword chapters are front/back matter, not part of
+        the reading flow — they must not appear in the chapter list."""
+        from storysphere.domain.documents import ChapterRole
+
+        doc = _make_document(
+            chapters=[
+                Chapter(number=1, title="目錄", role=ChapterRole.toc, paragraphs=[]),
+                Chapter(number=2, title="Chapter One", role=ChapterRole.body, paragraphs=[]),
+                Chapter(number=3, title="後記", role=ChapterRole.afterword, paragraphs=[]),
+            ],
+            doc_id="book-mixed-roles",
+        )
+
+        def _get(did):
+            return doc if did == "book-mixed-roles" else None
+
+        mock_doc.get_document.side_effect = _get
+
+        resp = client.get("/api/v1/books/book-mixed-roles/chapters")
+        assert resp.status_code == 200
+        titles = [ch["title"] for ch in resp.json()]
+        assert titles == ["Chapter One"]
+
     def test_kg_fallback_when_no_stored_entities(self, client, mock_doc, mock_kg):
         """When paragraphs have no stored entities, falls back to KG text matching."""
         paras = [

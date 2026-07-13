@@ -78,6 +78,7 @@ class ReviewChapterResponse(BaseModel):
 
     chapter_idx: int
     title: str | None = None
+    role: str = "body"
     paragraphs: list[ReviewParagraphResponse]
 
 
@@ -91,14 +92,82 @@ class ReviewChapterInput(BaseModel):
     model_config = _CAMEL
 
     title: str = ""
+    role: str = "body"
     start_paragraph_index: int
 
 
 class ReviewSubmitRequest(BaseModel):
     model_config = _CAMEL
 
-    chapters: list[ReviewChapterInput]
+    # None (field omitted) = accept the detected structure as-is: the pipeline
+    # resumes without rebuilding chapters, and role_overrides/paragraph_splits
+    # are ignored. Spares the "接受系統判斷" path the round-trip of the full
+    # book text.
+    chapters: list[ReviewChapterInput] | None = None
     role_overrides: dict[str, str] = {}  # str(globalIdx) → role value
+    # str(pre-split globalIdx) → ascending char offsets to split that paragraph
+    # at. Splits are applied first; chapters/role_overrides use post-split
+    # indices. Optional so old payloads keep working unchanged.
+    paragraph_splits: dict[str, list[int]] = {}
+
+
+class SuggestRolesResponse(BaseModel):
+    """LLM-proposed front/back matter boundaries for the review UI to split on.
+
+    ``frontMatterEnd`` is exclusive, ``backMatterStart`` inclusive, both in
+    book-global paragraph index space (matching review-data). ``null`` on a side
+    means no matter found there.
+    """
+
+    model_config = _CAMEL
+
+    front_matter_end: int | None = None
+    back_matter_start: int | None = None
+    front_role: str | None = None
+    back_role: str | None = None
+
+
+class TocEntry(BaseModel):
+    """One entry from the book's declared table of contents (display-only).
+
+    ``level`` is 0 for a top-level chapter, deeper for nested part/section.
+    ``isBody`` is false for front/back matter (序/跋/目錄/…) — the UI badges
+    those "非正文" and excludes them from the chapter-count comparison.
+    """
+
+    model_config = _CAMEL
+
+    title: str
+    page: int | None = None
+    level: int = 0
+    is_body: bool = True
+
+
+class ParseTocRequest(BaseModel):
+    """Body for POST /books/:bookId/parse-toc (目錄對照提示).
+
+    ``tocText`` is the reviewer's *currently edited* table-of-contents text
+    (concatenated paragraphs of the chapters they have marked ``toc`` in the
+    review UI). When provided, the backend parses it instead of the stale
+    detected TOC in the persisted document, so re-parsing reflects live edits.
+    When omitted/empty, the backend falls back to the persisted document.
+    """
+
+    model_config = _CAMEL
+
+    toc_text: str | None = None
+
+
+class ParseTocResponse(BaseModel):
+    """LLM-parsed table-of-contents entries for the review cross-check drawer.
+
+    Ordered as declared in the book. Empty ``entries`` = no TOC chapter, or the
+    detected block could not be parsed (the UI shows a friendly fallback).
+    """
+
+    model_config = _CAMEL
+
+    entries: list[TocEntry] = []
 
 
 # ── Chapter / chunk ──────────────────────────────────────────────────────────
@@ -452,6 +521,19 @@ class TaskIdResponse(BaseModel):
     model_config = _CAMEL
 
     task_id: str
+
+
+class UploadResponse(BaseModel):
+    model_config = _CAMEL
+
+    task_id: str
+    duplicate_title: bool = False
+
+
+class DetectLanguageResponse(BaseModel):
+    model_config = _CAMEL
+
+    language: str
 
 
 # ── Timeline ─────────────────────────────────────────────────────────────────

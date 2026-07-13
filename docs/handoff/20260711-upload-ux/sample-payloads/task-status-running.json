@@ -1,0 +1,122 @@
+{
+  "taskId": "demo-running",
+  "status": "running",
+  "progress": 45,
+  "stage": "特徵擷取",
+  "stepKey": "featureExtraction",
+  "subProgress": 3,
+  "subTotal": 7,
+  "subStage": "章節特徵",
+  "result": null,
+  "error": null,
+  "kind": "ingestion",
+  "title": "大唐雙龍傳 卷二 解析",
+  "createdAt": "2026-07-11T15:41:29",
+  "murmurEvents": [
+    {
+      "seq": 0,
+      "stepKey": "pdfParsing",
+      "type": "topic",
+      "content": "偵測到 512 個段落，7 章，zh",
+      "meta": {
+        "chapters": 7,
+        "paragraphs": 512,
+        "language": "zh"
+      },
+      "rawContent": null
+    },
+    {
+      "seq": 1,
+      "stepKey": "summarization",
+      "type": "topic",
+      "content": "寇仲與徐子陵於揚州街頭遇上宇文化及的追兵，倉皇逃入運河貨船。兩人誤奪《長生訣》，自此捲入江湖與門閥的紛爭。",
+      "meta": {
+        "chapter": 1
+      },
+      "rawContent": null
+    },
+    {
+      "seq": 2,
+      "stepKey": "summarization",
+      "type": "topic",
+      "content": "雙龍隨貨船南下，途中遇上江湖傳聞中的邪王石之軒。石之軒似有意收二人為徒，卻在夜裡不告而別。",
+      "meta": {
+        "chapter": 2
+      },
+      "rawContent": null
+    },
+    {
+      "seq": 3,
+      "stepKey": "featureExtraction",
+      "type": "topic",
+      "content": "長生訣、揚州、運河",
+      "meta": {
+        "chapter": 1
+      },
+      "rawContent": null
+    },
+    {
+      "seq": 4,
+      "stepKey": "featureExtraction",
+      "type": "character",
+      "content": "寇仲",
+      "meta": {
+        "chapter": 1,
+        "role": "揚州小混混，雙龍之一，機敏善謀"
+      },
+      "rawContent": null
+    },
+    {
+      "seq": 5,
+      "stepKey": "featureExtraction",
+      "type": "character",
+      "content": "徐子陵",
+      "meta": {
+        "chapter": 1,
+        "role": "沉靜內斂的少年，雙龍之一"
+      },
+      "rawContent": null
+    },
+    {
+      "seq": 6,
+      "stepKey": "featureExtraction",
+      "type": "location",
+      "content": "揚州",
+      "meta": {
+        "chapter": 1
+      },
+      "rawContent": null
+    },
+    {
+      "seq": 7,
+      "stepKey": "featureExtraction",
+      "type": "event",
+      "content": "誤奪長生訣",
+      "meta": {
+        "chapter": 2
+      },
+      "rawContent": null
+    },
+    {
+      "seq": 8,
+      "stepKey": "featureExtraction",
+      "type": "raw",
+      "content": "ch.03 — 68 段落已向量化",
+      "meta": {
+        "chapter": 3
+      },
+      "rawContent": null
+    },
+    {
+      "seq": 9,
+      "stepKey": "featureExtraction",
+      "type": "org",
+      "content": "宇文閥",
+      "meta": {
+        "chapter": 3,
+        "role": "關隴門閥，掌北周兵權"
+      },
+      "rawContent": null
+    }
+  ]
+}

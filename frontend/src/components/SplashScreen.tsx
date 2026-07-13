@@ -1,18 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import splashMain from '@/assets/splash/splash-main.png';
 import libraryOfBooks from '@/assets/splash/library-of-books.png';
 
+// Design contract (v2 ink-on-paper): splash imagery is line-art ink
+// illustration only — no photography anywhere in chrome.
 const IMAGERY_POOL = [
   {
     src: libraryOfBooks,
-    themes: ['default', 'manuscript', 'minimal-ink', 'pulp'],
+    themes: ['warm', 'ink'],
     credit: 'Library of Books · ink illustration',
-  },
-  {
-    src: splashMain,
-    themes: ['default'],
-    credit: 'Sepia stack · photograph',
   },
 ];
 
