@@ -46,6 +46,17 @@
     "characters": "角色",
     "off": "關"
   },
+  "focusLabel": "專注",
+  "typography": {
+    "trigger": "Aa",
+    "fontSize": "字級",
+    "fs": { "small": "小", "standard": "標準", "large": "大" },
+    "lineHeight": "行距",
+    "lh": { "tight": "緊", "standard": "標準", "wide": "寬" },
+    "warmth": "紙張色溫",
+    "warmthSwatch": "紙張色 {{n}}",
+    "fadeIn": "逐段淡入"
+  },
   "col1Expand": "展開書籍資訊",
   "col1Collapse": "收合書籍資訊",
   "col2Expand": "展開章節列表",

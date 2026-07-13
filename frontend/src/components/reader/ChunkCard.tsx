@@ -96,7 +96,7 @@ export function ChunkCard({
       </div>
       <p
         className="text-sm leading-relaxed"
-        style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+        style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)', fontSize: 'var(--reader-fs, inherit)', lineHeight: 'var(--reader-lh, inherit)' }}
       >
         <SegmentRenderer segments={chunk.segments} />
       </p>

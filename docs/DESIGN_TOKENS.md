@@ -41,6 +41,17 @@
 | `--bg-secondary` | `#f1e8d5` | `#f6f6f4` |
 | `--bg-tertiary` | `#e9ddc6` | `#ececea` |
 
+### 3.1.1 紙張色溫（Reader 排版面板 · 僅 Warm）
+
+閱讀頁 Aa 排版面板的紙張色溫 4 檔圓形色票，作用於欄 3 背景與 sticky header 背景。索引 1 與 `--bg-primary` 同值，為預設。Ink 主題不定義這組 token——欄 3 背景固定 `--bg-primary`，色溫面板本身也不顯示。
+
+| Token | warm |
+|-------|------|
+| `--paper-warmth-0` | `#fdfaf1` |
+| `--paper-warmth-1` | `#f8f3e7`（= `--bg-primary`，預設） |
+| `--paper-warmth-2` | `#f4ecd8` |
+| `--paper-warmth-3` | `#efe4c9` |
+
 ### 3.2 文字
 
 | Token | warm | ink |

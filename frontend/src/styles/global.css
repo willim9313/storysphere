@@ -507,3 +507,14 @@
   from { opacity: 0; transform: translateY(4px) scale(.98); }
   to { opacity: 1; transform: none; }
 }
+
+/* Reader focus-mode typography panel: per-chunk fade-in-on-scroll (opt-in via
+ * `reader:prefs.fade`). `.rd-fade` starts hidden; ReaderPage's
+ * IntersectionObserver adds `.rd-in` once a chunk scrolls into view, which
+ * plays the animation once and then leaves the chunk visible. */
+@keyframes rd-fade {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+.rd-fade { opacity: 0; }
+.rd-fade.rd-in { animation: rd-fade .55s ease forwards; }

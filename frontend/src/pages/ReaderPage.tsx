@@ -1,23 +1,29 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Brain, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, ArrowUp } from 'lucide-react';
+import { Brain, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, ArrowUp, Maximize } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
+import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
 import { useChapters } from '@/hooks/useChapters';
 import { useChunks } from '@/hooks/useChunks';
+import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { BookOverview } from '@/components/reader/BookOverview';
 import { ChapterCard } from '@/components/reader/ChapterCard';
 import { ChunkCard } from '@/components/reader/ChunkCard';
 import { BezierConnectors } from '@/components/reader/BezierConnectors';
 import { EpistemicSidePanel } from '@/components/reader/EpistemicSidePanel';
 import { EntityCard } from '@/components/reader/EntityCard';
+import { TypographyPanel, DEFAULT_READER_PREFS, type ReaderPrefs } from '@/components/reader/TypographyPanel';
 import { EntityMarkClickProvider, type EntityMarkClickPayload } from '@/components/reader/SegmentRenderer';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import type { EntityType } from '@/api/types';
 
 const EPISTEMIC_HINT_KEY = 'storysphere:reader-epistemic-hint-shown';
+const READER_PREFS_KEY = 'reader:prefs';
+const READER_FS_PX = ['15px', '17px', '19px'];
+const READER_LH = ['1.6', '1.85', '2.15'];
 
 // Below this width the three columns can't coexist, so col1/col2 default to
 // collapsed and the bezier connectors are hidden (see RWD handling below).
@@ -58,6 +64,16 @@ export default function ReaderPage() {
   const [col1Collapsed, setCol1Collapsed] = useState(getIsNarrow);
   const [col2Collapsed, setCol2Collapsed] = useState(getIsNarrow);
   const [colRevision, setColRevision] = useState(0);
+  // Focus mode is session-only (not persisted, unlike readerPrefs below). It
+  // doesn't mutate col1Collapsed/col2Collapsed — the effective collapsed
+  // state used for rendering is `col1Collapsed || focus` (see below), so the
+  // underlying per-column preference is untouched and simply reappears once
+  // focus turns back off. handleCol1Toggle/handleCol2Toggle additionally
+  // no-op while focus is active, so a stray click during focus mode can't
+  // change what gets restored on exit.
+  const [focus, setFocus] = useState(false);
+  const [readerPrefs, setReaderPrefs] = useLocalStorage<ReaderPrefs>(READER_PREFS_KEY, DEFAULT_READER_PREFS);
+  const updateReaderPrefs = (patch: Partial<ReaderPrefs>) => setReaderPrefs((prev) => ({ ...prev, ...patch }));
   const [epistemicHintShown, setEpistemicHintShown] = useState(() => {
     try { return localStorage.getItem(EPISTEMIC_HINT_KEY) === 'true'; } catch { return true; }
   });
@@ -78,6 +94,10 @@ export default function ReaderPage() {
   const col2ListRef = useRef<HTMLDivElement>(null);
   const col3Ref = useRef<HTMLDivElement>(null);
   const col3ScrollRef = useRef<HTMLDivElement>(null);
+  // Chunk-list wrapper (the max-width/CSS-var container) — scoped root for
+  // the fade-in IntersectionObserver below, so it only ever observes this
+  // chapter's `.rd-fade` chunks.
+  const chunkListRef = useRef<HTMLDivElement>(null);
   // Chunk id awaiting scroll-into-view once a cross-chapter jump's target
   // chapter has finished switching and its chunks have rendered. A ref (not
   // state) — same one-shot-guard pattern as jumpHandledRef below — so
@@ -85,6 +105,7 @@ export default function ReaderPage() {
   const pendingJumpChunkRef = useRef<string | null>(null);
 
   const { setPageContext } = useChatContext();
+  const { theme } = useTheme();
   const { data: book, isLoading: bookLoading, error: bookError } = useBook(bookId);
   const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId);
   const { data: chunks, isLoading: chunksLoading } = useChunks(bookId, viewingChapterId);
@@ -224,6 +245,30 @@ export default function ReaderPage() {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
+  // Typography panel's "fade in" preference: each chunk starts hidden
+  // (`.rd-fade` in global.css) and plays the rd-fade animation once when it
+  // scrolls into view, then stays visible (unobserve). Re-runs whenever the
+  // preference toggles or a new chapter's chunks render, since those are new
+  // DOM nodes needing fresh observers.
+  useEffect(() => {
+    if (!readerPrefs.fade) return;
+    const root = chunkListRef.current;
+    if (!root) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('rd-in');
+            io.unobserve(entry.target);
+          }
+        }
+      },
+      { threshold: 0.1 },
+    );
+    root.querySelectorAll('.rd-fade').forEach((node) => io.observe(node));
+    return () => io.disconnect();
+  }, [readerPrefs.fade, viewingChapterId, chunks]);
+
   if (bookLoading || chaptersLoading) return <LoadingSpinner />;
   if (bookError) return <ErrorMessage message={bookError.message} />;
   if (!book) return <ErrorMessage message="Book not found" />;
@@ -240,6 +285,14 @@ export default function ReaderPage() {
       : null;
   const allChaptersExpanded =
     chapterList.length > 0 && chapterList.every((c) => expandedChapters[c.id]);
+  // Focus mode forces col1/col2 into their collapsed rail regardless of the
+  // user's own col1Collapsed/col2Collapsed preference (see the `focus` state
+  // comment above for how those get restored on exit).
+  const col1CollapsedEffective = col1Collapsed || focus;
+  const col2CollapsedEffective = col2Collapsed || focus;
+  // Paper warmth only applies in Warm theme; Ink's column-3 background stays
+  // pinned to --bg-primary regardless of the stored warmth preference.
+  const paperBg = theme === 'ink' ? 'var(--bg-primary)' : `var(--paper-warmth-${readerPrefs.warmth})`;
 
   // Navigate: read this chapter in column 3. Also opens its column-2 card
   // (independent expand/collapse still works afterward via the chevron).
@@ -300,12 +353,19 @@ export default function ReaderPage() {
   };
 
   const handleCol1Toggle = () => {
+    if (focus) return;
     setCol1Collapsed((v) => !v);
     setTimeout(() => setColRevision((r) => r + 1), 220);
   };
 
   const handleCol2Toggle = () => {
+    if (focus) return;
     setCol2Collapsed((v) => !v);
+    setTimeout(() => setColRevision((r) => r + 1), 220);
+  };
+
+  const handleFocusToggle = () => {
+    setFocus((v) => !v);
     setTimeout(() => setColRevision((r) => r + 1), 220);
   };
 
@@ -316,27 +376,27 @@ export default function ReaderPage() {
         ref={col1Ref}
         className="flex-shrink-0 relative"
         style={{
-          width: col1Collapsed ? 46 : 250,
+          width: col1CollapsedEffective ? 46 : 250,
           transition: 'width 200ms ease',
           overflow: 'hidden',
           borderRight: '1px solid var(--border)',
           backgroundColor: 'var(--bg-secondary)',
         }}
       >
-        <div style={{ height: '100%', overflowY: col1Collapsed ? 'hidden' : 'auto' }}>
-          <BookOverview book={book} collapsed={col1Collapsed} onToggleCollapse={handleCol1Toggle} />
+        <div style={{ height: '100%', overflowY: col1CollapsedEffective ? 'hidden' : 'auto' }}>
+          <BookOverview book={book} collapsed={col1CollapsedEffective} onToggleCollapse={handleCol1Toggle} />
         </div>
       </div>
 
       {/* Spacer between col1 and col2 — only when col1 is expanded */}
-      {!col1Collapsed && <div className="flex-shrink-0" style={{ width: 24 }} />}
+      {!col1CollapsedEffective && <div className="flex-shrink-0" style={{ width: 24 }} />}
 
       {/* Column 2: Chapter List */}
       <div
         ref={col2Ref}
         className="flex-shrink-0 flex flex-col relative"
         style={{
-          width: col2Collapsed ? 36 : 224,
+          width: col2CollapsedEffective ? 36 : 224,
           transition: 'width 200ms ease',
           overflow: 'hidden',
           borderRight: '1px solid var(--border)',
@@ -345,12 +405,12 @@ export default function ReaderPage() {
         <button
           onClick={handleCol2Toggle}
           style={collapseButtonStyle}
-          aria-label={col2Collapsed ? t('col2Expand') : t('col2Collapse')}
+          aria-label={col2CollapsedEffective ? t('col2Expand') : t('col2Collapse')}
         >
-          {col2Collapsed ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+          {col2CollapsedEffective ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
         </button>
 
-        {!col2Collapsed ? (
+        {!col2CollapsedEffective ? (
           <>
             {/* Header — paddingRight leaves room for the absolute collapse button */}
             <div className="flex-shrink-0 p-2 pb-1" style={{ paddingRight: 30 }}>
@@ -445,7 +505,7 @@ export default function ReaderPage() {
 
       {/* Bezier connectors — real 34px column between col2 and col3 (not an
           overlay). Hidden (renders nothing, 0 width) when col2 is collapsed,
-          no chapter is selected, or the viewport is narrow. */}
+          no chapter is selected, focus mode is on, or the viewport is narrow. */}
       {!isNarrow && (
         <BezierConnectors
           col2ScrollRef={col2ListRef}
@@ -453,7 +513,7 @@ export default function ReaderPage() {
           selectedChapterIdx={viewingChapterIdx}
           viewingChapterId={viewingChapterId}
           chunkCount={chunks?.length ?? 0}
-          visible={!col2Collapsed && !!viewingChapterId}
+          visible={!col2Collapsed && !!viewingChapterId && !focus}
           colRevision={colRevision}
         />
       )}
@@ -462,7 +522,7 @@ export default function ReaderPage() {
       <div
         ref={col3Ref}
         className="flex-1 overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-primary)' }}
+        style={{ backgroundColor: paperBg }}
       >
         {viewingChapterId ? (
           <div
@@ -474,7 +534,7 @@ export default function ReaderPage() {
             <div
               className="sticky top-0 z-10"
               style={{
-                backgroundColor: 'var(--bg-primary)',
+                backgroundColor: paperBg,
                 borderBottom: '1px solid var(--border)',
               }}
             >
@@ -585,6 +645,24 @@ export default function ReaderPage() {
                   </div>
                 )}
                 </div>
+                <TypographyPanel prefs={readerPrefs} onChange={updateReaderPrefs} />
+                <button
+                  onClick={handleFocusToggle}
+                  className="flex items-center gap-1"
+                  style={{
+                    padding: '5px 10px',
+                    borderRadius: 6,
+                    backgroundColor: focus ? 'var(--accent)' : 'var(--bg-secondary)',
+                    border: '1px solid var(--border)',
+                    color: focus ? 'white' : 'var(--fg-muted)',
+                    cursor: 'pointer',
+                    fontFamily: 'var(--font-sans)',
+                    fontSize: 'var(--font-size-2xs)',
+                  }}
+                >
+                  <Maximize size={13} color={focus ? 'white' : 'var(--fg-muted)'} />
+                  <span>{t('focusLabel')}</span>
+                </button>
               </div>
             </div>
               <div style={{ height: 2, backgroundColor: 'var(--bg-tertiary)' }}>
@@ -603,38 +681,53 @@ export default function ReaderPage() {
             <div style={{ padding: '16px' }} data-annotation-mode={annotationMode}>
               {chunksLoading && <LoadingSpinner />}
               {!chunksLoading && (
-                <EntityMarkClickProvider onEntityClick={handleEntityMarkClick}>
-                  {chunks?.map((chunk) => (
-                    <div key={chunk.id} data-chunk-id={chunk.id}>
-                      <ChunkCard chunk={chunk} onEntityClick={handleEntityMarkClick} />
-                    </div>
-                  ))}
-                </EntityMarkClickProvider>
-              )}
-              {!chunksLoading && (prevChapter ?? nextChapter) && (
                 <div
-                  className="flex items-center justify-between"
-                  style={{ gap: 12, marginTop: 'var(--space-xl)' }}
+                  ref={chunkListRef}
+                  style={{
+                    maxWidth: focus ? 760 : '100%',
+                    margin: '0 auto',
+                    transition: 'max-width 200ms ease',
+                    ['--reader-fs' as string]: READER_FS_PX[readerPrefs.fs],
+                    ['--reader-lh' as string]: READER_LH[readerPrefs.lh],
+                  } as React.CSSProperties}
                 >
-                  {prevChapter ? (
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => handleSelectChapter(prevChapter.id)}
+                  <EntityMarkClickProvider onEntityClick={handleEntityMarkClick}>
+                    {chunks?.map((chunk) => (
+                      <div
+                        key={chunk.id}
+                        data-chunk-id={chunk.id}
+                        className={readerPrefs.fade ? 'rd-fade' : undefined}
+                      >
+                        <ChunkCard chunk={chunk} onEntityClick={handleEntityMarkClick} />
+                      </div>
+                    ))}
+                  </EntityMarkClickProvider>
+                  {(prevChapter ?? nextChapter) && (
+                    <div
+                      className="flex items-center justify-between"
+                      style={{ gap: 12, marginTop: 'var(--space-xl)' }}
                     >
-                      {t('nav.prev', { title: prevChapter.title })}
-                    </button>
-                  ) : (
-                    <span />
-                  )}
-                  {nextChapter ? (
-                    <button
-                      className="btn btn-secondary"
-                      onClick={() => handleSelectChapter(nextChapter.id)}
-                    >
-                      {t('nav.next', { title: nextChapter.title })}
-                    </button>
-                  ) : (
-                    <span />
+                      {prevChapter ? (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => handleSelectChapter(prevChapter.id)}
+                        >
+                          {t('nav.prev', { title: prevChapter.title })}
+                        </button>
+                      ) : (
+                        <span />
+                      )}
+                      {nextChapter ? (
+                        <button
+                          className="btn btn-secondary"
+                          onClick={() => handleSelectChapter(nextChapter.id)}
+                        >
+                          {t('nav.next', { title: nextChapter.title })}
+                        </button>
+                      ) : (
+                        <span />
+                      )}
+                    </div>
                   )}
                 </div>
               )}

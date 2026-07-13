@@ -46,6 +46,17 @@
     "characters": "Characters",
     "off": "Off"
   },
+  "focusLabel": "Focus",
+  "typography": {
+    "trigger": "Aa",
+    "fontSize": "Font Size",
+    "fs": { "small": "Small", "standard": "Standard", "large": "Large" },
+    "lineHeight": "Line Height",
+    "lh": { "tight": "Tight", "standard": "Standard", "wide": "Wide" },
+    "warmth": "Paper Warmth",
+    "warmthSwatch": "Paper color {{n}}",
+    "fadeIn": "Fade in paragraphs"
+  },
   "col1Expand": "Expand book info",
   "col1Collapse": "Collapse book info",
   "col2Expand": "Expand chapter list",
