@@ -58,6 +58,7 @@ from storysphere.api.schemas.books import (
     InferredRelationsResponse,
     LocationRef,
     MisbeliefItemSchema,
+    ParseTocResponse,
     ParticipantRef,
     ReviewChapterResponse,
     ReviewDataResponse,
@@ -75,6 +76,7 @@ from storysphere.api.schemas.books import (
     TimelineEventEntry,
     TimelineQuality,
     TimelineResponse,
+    TocEntry,
     TopEntity,
     UnanalyzedEntity,
     UploadResponse,
@@ -641,6 +643,58 @@ async def suggest_roles(
         back_matter_start=result.back_matter_start,
         front_role=result.front_role,
         back_role=result.back_role,
+    )
+
+
+# ── #8g POST /books/:bookId/parse-toc ─────────────────────────────────────────
+
+
+@router.post("/{book_id}/parse-toc", response_model=ParseTocResponse)
+async def parse_toc(
+    book_id: str,
+    doc: DocServiceDep,
+) -> ParseTocResponse:
+    """LLM-assisted "目錄對照提示": parse the book's declared chapter list.
+
+    Reads the detected table-of-contents chapter(s) and extracts the ordered
+    entries the book itself declares, for the review UI to show side by side with
+    the detected spine. Display-only: it does not mutate the document, drive
+    splitting, or resume the pipeline. Only available while awaiting review.
+    """
+    from storysphere.api.store import get_task, get_task_id_by_book_id  # noqa: PLC0415
+
+    task_id = await get_task_id_by_book_id(book_id)
+    if task_id is None:
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+    status = await get_task(task_id)
+    if status is None or status.status != "awaiting_review":
+        raise HTTPException(
+            status_code=409,
+            detail="Book is not currently awaiting chapter review",
+        )
+
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from storysphere.services.toc_parser import parse_toc_entries  # noqa: PLC0415
+
+    try:
+        entries = await parse_toc_entries(document.chapters)
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=503,
+            detail=f"AI table-of-contents parsing is unavailable: {exc}",
+        ) from exc
+
+    return ParseTocResponse(
+        entries=[
+            TocEntry(title=e.title, page=e.page, level=e.level, is_body=e.is_body)
+            for e in entries
+        ]
     )
 
 

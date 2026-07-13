@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronLeft, ChevronRight, Loader2, Sparkles } from 'lucide-react';
-import { fetchReviewData, submitReview, suggestRoles } from '@/api/ingest';
-import type { SuggestRolesResponse } from '@/api/ingest';
+import { Check, ChevronLeft, ChevronRight, Loader2, RotateCw, Sparkles, X } from 'lucide-react';
+import { fetchReviewData, parseToc, submitReview, suggestRoles } from '@/api/ingest';
+import type { SuggestRolesResponse, TocEntry } from '@/api/ingest';
 import { deleteBook } from '@/api/books';
 import type { ReviewChapter } from '@/api/types';
 import { applyBoundaries } from './applyBoundaries';
@@ -16,6 +16,7 @@ type Phase = 'reviewing' | 'submitting' | 'cancelling' | 'error';
 /** A validated in-paragraph text selection, plus where to float the split button. */
 type SelSplit = { ci: number; pi: number; start: number; end: number; x: number; y: number };
 type AiStatus = 'idle' | 'loading' | 'done';
+type TocStatus = 'idle' | 'loading' | 'done' | 'empty' | 'error';
 type NoteKind = 'info' | 'success' | 'error';
 type Note = { text: string; kind: NoteKind } | null;
 
@@ -65,6 +66,11 @@ export default function ChapterReviewPage() {
   const [submitted, setSubmitted] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [selSplit, setSelSplit] = useState<SelSplit | null>(null);
+  // TOC cross-check (#22d): AI-parsed book-declared chapter list, shown read-only
+  // in a right drawer for the user to eyeball against the detected spine.
+  const [tocStatus, setTocStatus] = useState<TocStatus>('idle');
+  const [tocEntries, setTocEntries] = useState<TocEntry[]>([]);
+  const [tocOpen, setTocOpen] = useState(false);
   // Chapters snapshot taken just before an in-paragraph split, for one-step
   // undo. Cleared by any other structure/role mutation so undo can't silently
   // discard later edits.
@@ -183,6 +189,21 @@ export default function ChapterReviewPage() {
       setAiNote({ text: t('review.suggestError'), kind: 'error' });
     }
   }, [bookId, aiStatus, t]);
+
+  // ── TOC cross-check (#22d) ───────────────────────────────────────────────
+  const runTocParse = useCallback(async () => {
+    if (!bookId) return;
+    setTocOpen(true);
+    setTocStatus('loading');
+    try {
+      const res = await parseToc(bookId);
+      const entries = res.entries ?? [];
+      setTocEntries(entries);
+      setTocStatus(entries.length > 0 ? 'done' : 'empty');
+    } catch {
+      setTocStatus('error');
+    }
+  }, [bookId]);
 
   // ── In-paragraph split (selection → new paragraph) ───────────────────────
   const handleSelectionEnd = useCallback(() => {
@@ -338,6 +359,25 @@ export default function ChapterReviewPage() {
     const totalParas = chapters.reduce((a, c) => a + c.paragraphs.length, 0);
     return { rows, bodyCount, nonBodyCount: chapters.length - bodyCount, totalParas };
   }, [chapters, t]);
+
+  // Count comparison: book-declared body chapters (from the parsed TOC) vs the
+  // chapters actually detected. delta > 0 = suspected under-split (merged), < 0 =
+  // over-split. Only body entries count — non-body TOC lines (序/跋) are excluded.
+  const tocCompare = useMemo(() => {
+    const tocBody = tocEntries.filter((e) => e.isBody).length;
+    const detected = view.bodyCount;
+    return { tocBody, detected, delta: tocBody - detected, match: tocBody === detected };
+  }, [tocEntries, view.bodyCount]);
+
+  // Pre-number the parsed entries: body entries get a running index, non-body
+  // (序/跋/…) entries get no number (they carry a "非正文" tag instead).
+  const tocRows = useMemo(() => {
+    let n = 0;
+    return tocEntries.map((e) => {
+      if (e.isBody) n += 1;
+      return { ...e, label: e.isBody ? String(n) : '' };
+    });
+  }, [tocEntries]);
 
   const banner = useMemo((): Note => {
     if (submitted) return { text: t('review.submitBanner'), kind: 'success' };
@@ -590,6 +630,16 @@ export default function ChapterReviewPage() {
                   <div className="cr-hair" style={{ background: selCi === ci ? 'var(--accent)' : 'var(--border)' }} />
                 </div>
 
+                {(ch.role ?? 'body') === 'toc' && (
+                  <div className="cr-toc-cue">
+                    <span className="cr-toc-cue-text">{t('review.toc.detectedHint')}</span>
+                    <button className="cr-toc-cue-btn" disabled={tocStatus === 'loading'} onClick={runTocParse}>
+                      <Sparkles size={13} />
+                      {t('review.toc.readBtn')}
+                    </button>
+                  </div>
+                )}
+
                 {ch.paragraphs.map((p, pi) => {
                   const pIsBody = (p.role ?? 'body') === 'body';
                   const titlePart = p.titleSpan ? p.text.slice(p.titleSpan[0], p.titleSpan[1]) : null;
@@ -628,6 +678,102 @@ export default function ChapterReviewPage() {
             ))}
           </div>
         </div>
+
+        {/* TOC cross-check drawer (#22d): AI-parsed book contents, read-only.
+            Sibling of the reading column so it overlays the right edge without
+            reflowing it; the two lists (this + the spine) stay unlinked. */}
+        {tocOpen && (
+          <aside className="cr-toc-drawer">
+            <div className="cr-toc-head">
+              <span className="cr-toc-title">{t('review.toc.drawerTitle')}</span>
+              <span className="cr-toc-badge">{t('review.toc.drawerBadge')}</span>
+              <div style={{ flex: 1 }} />
+              <button
+                className="cr-toc-icon"
+                title={t('review.toc.reparse')}
+                disabled={tocStatus === 'loading'}
+                onClick={runTocParse}
+              >
+                <RotateCw size={13} />
+              </button>
+              <button className="cr-toc-icon" title={t('review.toc.close')} onClick={() => setTocOpen(false)}>
+                <X size={13} />
+              </button>
+            </div>
+
+            {tocStatus === 'loading' && (
+              <div className="cr-toc-loading">
+                <Loader2 size={14} className="cr-spin" />
+                {t('review.toc.loading')}
+              </div>
+            )}
+
+            {(tocStatus === 'empty' || tocStatus === 'error') && (
+              <div className="cr-toc-fallback">
+                <span>{t(tocStatus === 'empty' ? 'review.toc.empty' : 'review.toc.error')}</span>
+                <button className="cr-toc-relink" onClick={runTocParse}>
+                  {t('review.toc.reparse')}
+                </button>
+              </div>
+            )}
+
+            {tocStatus === 'done' && (
+              <>
+                <div
+                  className="cr-toc-summary"
+                  style={{
+                    background: tocCompare.match ? 'var(--color-success-bg)' : 'var(--color-warning-bg)',
+                    color: tocCompare.match ? 'var(--color-success)' : 'var(--color-warning)',
+                  }}
+                >
+                  <div className="cr-toc-summary-top">
+                    {tocCompare.match && <Check size={13} />}
+                    <span className="cr-toc-summary-label">{t('review.toc.compareLabel')}</span>
+                    <div style={{ flex: 1 }} />
+                    {!tocCompare.match && (
+                      <span
+                        className="cr-toc-delta"
+                        style={{ background: 'var(--color-warning)', color: '#fff' }}
+                      >
+                        {tocCompare.delta > 0
+                          ? t('review.toc.deltaUnder', { n: tocCompare.delta })
+                          : t('review.toc.deltaOver', { n: -tocCompare.delta })}
+                      </span>
+                    )}
+                  </div>
+                  <span className="cr-toc-summary-text">
+                    {t(tocCompare.match ? 'review.toc.summaryMatch' : 'review.toc.summaryMismatch', {
+                      toc: tocCompare.tocBody,
+                      detected: tocCompare.detected,
+                    })}
+                  </span>
+                </div>
+
+                <p className="cr-toc-note">{t('review.toc.note')}</p>
+
+                <div className="cr-toc-list">
+                  {tocRows.map((e) => (
+                    <div
+                      className="cr-toc-entry"
+                      key={`${e.level}:${e.title}:${e.page ?? ''}`}
+                      style={{ paddingLeft: 11 + e.level * 14 }}
+                    >
+                      <span className="cr-toc-entry-label">{e.label}</span>
+                      <span
+                        className="cr-toc-entry-title"
+                        style={{ color: e.isBody ? 'var(--fg-primary)' : 'var(--fg-muted)' }}
+                      >
+                        {e.title}
+                      </span>
+                      {!e.isBody && <span className="cr-toc-entry-tag">{t('review.toc.notBody')}</span>}
+                      {e.page != null && <span className="cr-toc-entry-page">p.{e.page}</span>}
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </aside>
+        )}
       </div>
 
       {/* Floating action for a validated in-paragraph selection. Lives outside
@@ -682,7 +828,7 @@ const CR_STYLES = `
 .cr-confirm-no { padding:4px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--fg-secondary); font:600 11px var(--font-sans); cursor:pointer; }
 .cr-confirm-yes:disabled, .cr-confirm-no:disabled { opacity:.55; cursor:default; }
 
-.cr-body { flex:1; display:flex; min-height:0; }
+.cr-body { flex:1; display:flex; min-height:0; position:relative; }
 .cr-spine { flex:0 0 auto; border-right:1px solid var(--border); background:var(--bg-secondary); overflow:auto; padding:8px 7px; transition:width 200ms ease; }
 .cr-spine-toggle { width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; padding:4px 2px 8px; border:none; background:transparent; cursor:pointer; color:var(--fg-muted); }
 .cr-spine-toggle:hover { color:var(--accent); }
@@ -742,6 +888,40 @@ const CR_STYLES = `
 .cr-para-text { flex:1; min-width:0; font:16px/1.9 var(--font-serif); color:var(--fg-primary); text-wrap:pretty; }
 .cr-para-role-wrap { width:80px; flex:0 0 auto; padding-top:2px; }
 .cr-para-role { width:100%; padding:3px 4px; border:1px solid var(--entity-char-border); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--entity-char-fg); font:500 10.5px var(--font-sans); cursor:pointer; }
+
+/* TOC cross-check (#22d): in-flow cue on a detected toc chapter + right drawer. */
+.cr-toc-cue { display:flex; flex-direction:column; align-items:center; gap:5px; margin:0 0 16px; padding:11px 14px; border:1px solid var(--accent); border-radius:var(--radius-md); background:var(--bg-secondary); }
+.cr-toc-cue-text { font:11px/1.5 var(--font-sans); color:var(--fg-secondary); text-align:center; }
+.cr-toc-cue-btn { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--accent); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--accent); font:600 11px var(--font-sans); cursor:pointer; }
+.cr-toc-cue-btn:not(:disabled):hover { background:var(--bg-tertiary); }
+.cr-toc-cue-btn:disabled { opacity:.55; cursor:default; }
+
+.cr-toc-drawer { position:absolute; top:0; right:0; bottom:0; width:326px; box-sizing:border-box; background:var(--bg-secondary); border-left:1px solid var(--border); box-shadow:var(--shadow-lg); z-index:5; overflow:auto; padding:14px 15px; }
+.cr-toc-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+.cr-toc-title { font:700 13px var(--font-serif); color:var(--fg-primary); }
+.cr-toc-badge { padding:1px 7px; border-radius:4px; font:600 9.5px var(--font-sans); background:var(--bg-tertiary); color:var(--fg-muted); border:1px solid var(--border); }
+.cr-toc-icon { width:24px; height:22px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:0; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--fg-muted); cursor:pointer; }
+.cr-toc-icon:not(:disabled):hover { background:var(--bg-tertiary); }
+.cr-toc-icon:disabled { opacity:.55; cursor:default; }
+
+.cr-toc-loading { display:flex; align-items:center; gap:8px; padding:12px 2px; color:var(--fg-muted); font:12px var(--font-sans); }
+.cr-toc-fallback { display:flex; flex-direction:column; gap:8px; padding:10px 11px; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--bg-primary); font:11px/1.6 var(--font-sans); color:var(--fg-secondary); }
+.cr-toc-relink { align-self:flex-start; padding:0; border:none; background:transparent; color:var(--accent); font:600 11px var(--font-sans); cursor:pointer; }
+.cr-toc-relink:hover { text-decoration:underline; }
+
+.cr-toc-summary { display:flex; flex-direction:column; gap:6px; margin-bottom:9px; padding:9px 11px; border:1px solid var(--border); border-radius:var(--radius-md); }
+.cr-toc-summary-top { display:flex; align-items:center; gap:6px; }
+.cr-toc-summary-label { font:700 12px var(--font-sans); }
+.cr-toc-delta { padding:2px 10px; border-radius:999px; font:700 11px var(--font-sans); white-space:nowrap; }
+.cr-toc-summary-text { font:600 11.5px/1.5 var(--font-sans); }
+.cr-toc-note { margin:0 0 9px; font:11px/1.5 var(--font-sans); color:var(--fg-muted); }
+.cr-toc-list { border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; background:var(--bg-primary); }
+.cr-toc-entry { display:flex; align-items:baseline; gap:8px; padding:7px 11px; border-bottom:1px solid var(--border); }
+.cr-toc-entry:last-child { border-bottom:none; }
+.cr-toc-entry-label { flex:0 0 auto; min-width:22px; font:600 11px var(--font-sans); color:var(--fg-muted); }
+.cr-toc-entry-title { flex:1; min-width:0; font:13px var(--font-serif); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cr-toc-entry-tag { flex:0 0 auto; padding:1px 6px; border-radius:4px; font:600 9.5px var(--font-sans); background:var(--bg-tertiary); color:var(--fg-muted); border:1px solid var(--border); }
+.cr-toc-entry-page { flex:0 0 auto; font:11px var(--font-mono); color:var(--fg-muted); }
 
 @media (prefers-reduced-motion: reduce) {
   .cr-spine, .cr-divider, .cr-spin { transition:none !important; animation:none !important; }

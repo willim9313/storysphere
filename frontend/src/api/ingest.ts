@@ -5,6 +5,8 @@ import type { components } from './generated';
 import type { TaskStatus } from './types';
 
 export type SuggestRolesResponse = components['schemas']['SuggestRolesResponse'];
+export type ParseTocResponse = components['schemas']['ParseTocResponse'];
+export type TocEntry = components['schemas']['TocEntry'];
 
 // #2 — Upload book (PDF)
 export function uploadBook(
@@ -70,6 +72,13 @@ export function acceptReview(bookId: string): Promise<void> {
 // #22c — "邊界輔助辨識": LLM-suggested non-body role changes for edge chapters
 export function suggestRoles(bookId: string): Promise<SuggestRolesResponse> {
   return apiFetch<SuggestRolesResponse>(`/books/${bookId}/suggest-roles`, {
+    method: 'POST',
+  });
+}
+
+// #22d — "目錄對照提示": LLM-parsed chapter list from the detected TOC page
+export function parseToc(bookId: string): Promise<ParseTocResponse> {
+  return apiFetch<ParseTocResponse>(`/books/${bookId}/parse-toc`, {
     method: 'POST',
   });
 }

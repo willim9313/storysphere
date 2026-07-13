@@ -100,6 +100,24 @@
       "section": "章節內部的次標題或分段，結構性文字，非敘事本身。",
       "epigraph": "章首引用的詩句、格言等題辭，非故事本體但通常保留。",
       "preamble": "章節前的簡短導言或說明文字，非正式故事內容。"
+    },
+    "toc": {
+      "detectedHint": "這是偵測到的目錄頁。可用 AI 解析出書本聲明的章節清單，與偵測結構對照。",
+      "readBtn": "解析目錄並對照",
+      "drawerTitle": "書本目錄",
+      "drawerBadge": "AI 解析 · 唯讀",
+      "reparse": "重新解析",
+      "close": "關閉",
+      "loading": "AI 正在讀整段目錄文字，抽出有序章節…",
+      "compareLabel": "數量對比",
+      "summaryMatch": "數量吻合 · 目錄 {{toc}} = 偵測 {{detected}}",
+      "summaryMismatch": "目錄 {{toc}} · 偵測 {{detected}}",
+      "deltaUnder": "漏切 {{n}} 章",
+      "deltaOver": "多切 {{n}} 章",
+      "note": "「書本目錄」在此、「偵測結構」在左側結構脊，兩份各自獨立、不自動配對，請自行核對。",
+      "notBody": "非正文",
+      "empty": "這段文字解析不出章節清單，可能不是標準目錄格式。這不影響你繼續審核。",
+      "error": "AI 解析暫時無法使用，請稍後再試。"
     }
   },
   "steps": {

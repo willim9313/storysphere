@@ -99,6 +99,24 @@
       "section": "An in-chapter subheading or divider — structural text, not narrative.",
       "epigraph": "A quotation or maxim at a chapter's head — not the story, usually kept.",
       "preamble": "A short lead-in or note before a chapter — not formal story content."
+    },
+    "toc": {
+      "detectedHint": "This is the detected contents page. Use AI to parse the chapter list the book itself declares and cross-check it against the detected structure.",
+      "readBtn": "Parse & cross-check contents",
+      "drawerTitle": "Book contents",
+      "drawerBadge": "AI-parsed · read-only",
+      "reparse": "Re-parse",
+      "close": "Close",
+      "loading": "AI is reading the contents text and extracting an ordered chapter list…",
+      "compareLabel": "Chapter count",
+      "summaryMatch": "Counts match · contents {{toc}} = detected {{detected}}",
+      "summaryMismatch": "Contents {{toc}} · detected {{detected}}",
+      "deltaUnder": "{{n}} under-split",
+      "deltaOver": "{{n}} over-split",
+      "note": "\"Book contents\" is here; \"detected structure\" is the spine on the left. The two lists are independent and not auto-matched — compare them yourself.",
+      "notBody": "non-body",
+      "empty": "No chapter list could be parsed from this text — it may not be a standard contents page. This doesn't affect your review.",
+      "error": "AI parsing is temporarily unavailable. Please try again later."
     }
   },
   "steps": {

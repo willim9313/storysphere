@@ -1887,6 +1887,38 @@ interface ChapterDistribution {
 
 ---
 
+### #22d POST /books/:bookId/parse-toc
+
+「目錄對照提示」：使用者於章節審閱頁、在被判為**目錄**（`role==toc`）的章節區塊內觸發，用
+LLM 讀取偵測到的目錄段落文字，抽出**書本自己聲明的章節清單與順序**，供前端與偵測結構
+並排、由人眼核對切分是否有誤（漏切／多切）。**純顯示**：不修改文件、不驅動切分、不自動
+配對、不 resume pipeline。只在任務狀態為 `awaiting_review` 時有效，與 `#22c` 對稱。
+
+後端載入已存文件、串接所有 `role==toc` 章節的段落文字送一次 LLM 解析。無目錄章節或
+解析不出（非標準目錄格式）時回傳空 `entries`（前端顯示 fallback）。數量對比由前端計算
+（目錄 body 條目數 vs 偵測 body 章節數）。
+
+**Response 404**：書籍不存在
+
+**Response 409**：書籍目前不在 `awaiting_review` 狀態
+
+**Response 503**：未設定可用的 LLM provider（AI 解析不可用）
+
+**Response 200**（有序，依書本目錄宣告順序；`isBody=false` 的條目為序/跋/目錄等非正文，
+前端標「非正文」且不計入數量對比）
+```ts
+{
+  entries: Array<{
+    title: string;         // 條目標題（已剝除點引導線與尾端頁碼）
+    page: number | null;   // 頁碼；null = 目錄未標
+    level: number;         // 0 = 頂層章；巢狀 part/section 遞增
+    isBody: boolean;       // true = 一般敘事章節；false = 非正文（序/跋/目錄/版權/作者簡介…）
+  }>;
+}
+```
+
+---
+
 ### #21l PATCH /narrative/:documentId/review
 
 HITL 審核 NarrativeStructure（approved / rejected）。

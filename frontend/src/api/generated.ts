@@ -152,6 +152,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/parse-toc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Parse Toc
+         * @description LLM-assisted "目錄對照提示": parse the book's declared chapter list.
+         *
+         *     Reads the detected table-of-contents chapter(s) and extracts the ordered
+         *     entries the book itself declares, for the review UI to show side by side with
+         *     the detected spine. Display-only: it does not mutate the document, drive
+         *     splitting, or resume the pipeline. Only available while awaiting review.
+         */
+        post: operations["parse_toc_api_v1_books__book_id__parse_toc_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/upload": {
         parameters: {
             query?: never;
@@ -3169,6 +3194,20 @@ export interface components {
                 [key: string]: number;
             } | null;
         };
+        /**
+         * ParseTocResponse
+         * @description LLM-parsed table-of-contents entries for the review cross-check drawer.
+         *
+         *     Ordered as declared in the book. Empty ``entries`` = no TOC chapter, or the
+         *     detected block could not be parsed (the UI shows a friendly fallback).
+         */
+        ParseTocResponse: {
+            /**
+             * Entries
+             * @default []
+             */
+            entries: components["schemas"]["TocEntry"][];
+        };
         /** ParticipantRef */
         ParticipantRef: {
             /** Id */
@@ -4072,6 +4111,30 @@ export interface components {
             temporalRelations: components["schemas"]["TemporalRelationEntry"][];
             quality: components["schemas"]["TimelineQuality"];
         };
+        /**
+         * TocEntry
+         * @description One entry from the book's declared table of contents (display-only).
+         *
+         *     ``level`` is 0 for a top-level chapter, deeper for nested part/section.
+         *     ``isBody`` is false for front/back matter (序/跋/目錄/…) — the UI badges
+         *     those "非正文" and excludes them from the chapter-count comparison.
+         */
+        TocEntry: {
+            /** Title */
+            title: string;
+            /** Page */
+            page?: number | null;
+            /**
+             * Level
+             * @default 0
+             */
+            level: number;
+            /**
+             * Isbody
+             * @default true
+             */
+            isBody: boolean;
+        };
         /** ToneSegmentResponse */
         ToneSegmentResponse: {
             /** Label */
@@ -4445,6 +4508,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SuggestRolesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parse_toc_api_v1_books__book_id__parse_toc_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParseTocResponse"];
                 };
             };
             /** @description Validation Error */

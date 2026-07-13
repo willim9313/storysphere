@@ -127,6 +127,34 @@ class SuggestRolesResponse(BaseModel):
     back_role: str | None = None
 
 
+class TocEntry(BaseModel):
+    """One entry from the book's declared table of contents (display-only).
+
+    ``level`` is 0 for a top-level chapter, deeper for nested part/section.
+    ``isBody`` is false for front/back matter (序/跋/目錄/…) — the UI badges
+    those "非正文" and excludes them from the chapter-count comparison.
+    """
+
+    model_config = _CAMEL
+
+    title: str
+    page: int | None = None
+    level: int = 0
+    is_body: bool = True
+
+
+class ParseTocResponse(BaseModel):
+    """LLM-parsed table-of-contents entries for the review cross-check drawer.
+
+    Ordered as declared in the book. Empty ``entries`` = no TOC chapter, or the
+    detected block could not be parsed (the UI shows a friendly fallback).
+    """
+
+    model_config = _CAMEL
+
+    entries: list[TocEntry] = []
+
+
 # ── Chapter / chunk ──────────────────────────────────────────────────────────
 
 
