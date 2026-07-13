@@ -11,8 +11,11 @@ import { ChapterCard } from '@/components/reader/ChapterCard';
 import { ChunkCard } from '@/components/reader/ChunkCard';
 import { BezierConnectors } from '@/components/reader/BezierConnectors';
 import { EpistemicSidePanel } from '@/components/reader/EpistemicSidePanel';
+import { EntityCard } from '@/components/reader/EntityCard';
+import { EntityMarkClickProvider, type EntityMarkClickPayload } from '@/components/reader/SegmentRenderer';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import type { EntityType } from '@/api/types';
 
 const EPISTEMIC_HINT_KEY = 'storysphere:reader-epistemic-hint-shown';
 
@@ -58,11 +61,22 @@ export default function ReaderPage() {
   });
   const [scrollProgress, setScrollProgress] = useState(0);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [entityCard, setEntityCard] = useState<{
+    entityId: string;
+    name: string;
+    type: EntityType;
+    anchorRect: DOMRect;
+  } | null>(null);
 
   const col1Ref = useRef<HTMLDivElement>(null);
   const col2Ref = useRef<HTMLDivElement>(null);
   const col3Ref = useRef<HTMLDivElement>(null);
   const col3ScrollRef = useRef<HTMLDivElement>(null);
+  // Chunk id awaiting scroll-into-view once a cross-chapter jump's target
+  // chapter has finished switching and its chunks have rendered. A ref (not
+  // state) — same one-shot-guard pattern as jumpHandledRef below — so
+  // clearing it doesn't trip react-hooks/set-state-in-effect.
+  const pendingJumpChunkRef = useRef<string | null>(null);
 
   const { setPageContext } = useChatContext();
   const { data: book, isLoading: bookLoading, error: bookError } = useBook(bookId);
@@ -75,6 +89,23 @@ export default function ReaderPage() {
   const location = useLocation();
   const jumpTarget = (location.state as { paragraphId?: string; chapterNumber?: number } | null) ?? null;
   const jumpHandledRef = useRef<string | null>(null);
+
+  // Column 3 scroll container is reused across chapters, so switching
+  // chapters (via col2, deep-link, or the prev/next nav buttons) needs an
+  // explicit reset — otherwise the old scroll offset carries over. The
+  // resulting scroll event (handleCol3Scroll) re-derives progress/showBackToTop.
+  // Skipped while a deep-link or entity-card jump is pending. Deliberately
+  // defined BEFORE the jump effects below: effects run in definition order,
+  // so when a chapter switch and cached chunks land in the same commit this
+  // reset sees the still-pending guards and skips — if it ran after them,
+  // they would have already scrolled and cleared their guards, and the
+  // scrollTo(0) here would clobber the jump.
+  useEffect(() => {
+    const pid = jumpTarget?.paragraphId;
+    if (pid && jumpHandledRef.current !== pid) return;
+    if (pendingJumpChunkRef.current) return;
+    col3ScrollRef.current?.scrollTo({ top: 0 });
+  }, [viewingChapterId, jumpTarget]);
 
   useEffect(() => {
     if (!jumpTarget?.paragraphId || !chapters) return;
@@ -103,6 +134,26 @@ export default function ReaderPage() {
       jumpHandledRef.current = pid;
     }
   }, [jumpTarget, chunks, chunksLoading]);
+
+  // Cross-chapter jump from the entity card popover (doJump): the target
+  // chapter has already been switched to by handleJumpToChunk, so once its
+  // chunks finish loading, scroll to and flash the target chunk. Same
+  // scrollIntoView + chunk-jump-flash mechanism as the deep-link effect above.
+  useEffect(() => {
+    const chunkId = pendingJumpChunkRef.current;
+    if (!chunkId || !chunks || chunksLoading) return;
+    if (!chunks.some((c) => c.id === chunkId)) {
+      pendingJumpChunkRef.current = null;
+      return;
+    }
+    const el = document.querySelector(`[data-chunk-id="${chunkId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('chunk-jump-flash');
+      globalThis.setTimeout(() => el.classList.remove('chunk-jump-flash'), 2000);
+    }
+    pendingJumpChunkRef.current = null;
+  }, [chunks, chunksLoading]);
 
   useEffect(() => {
     setPageContext({ page: 'reader', bookId, bookTitle: book?.title });
@@ -160,18 +211,6 @@ export default function ReaderPage() {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
-  // Column 3 scroll container is reused across chapters, so switching
-  // chapters (via col2, deep-link, or the prev/next nav buttons) needs an
-  // explicit reset — otherwise the old scroll offset carries over. The
-  // resulting scroll event (handleCol3Scroll) re-derives progress/showBackToTop.
-  // Skipped while a deep-link jump is pending: with cached chunks the jump's
-  // scrollIntoView fires in the same commit and this reset would clobber it.
-  useEffect(() => {
-    const pid = jumpTarget?.paragraphId;
-    if (pid && jumpHandledRef.current !== pid) return;
-    col3ScrollRef.current?.scrollTo({ top: 0 });
-  }, [viewingChapterId, jumpTarget]);
-
   if (bookLoading || chaptersLoading) return <LoadingSpinner />;
   if (bookError) return <ErrorMessage message={bookError.message} />;
   if (!book) return <ErrorMessage message="Book not found" />;
@@ -190,6 +229,32 @@ export default function ReaderPage() {
     setSelectedChapterId(chapterId);
     setViewingChapterId(chapterId);
     setSearchQuery('');
+  };
+
+  // doJump: entity card "appearances" list target. Same chapter — scroll
+  // immediately. Different chapter — switch chapters first and let the
+  // pendingJumpChunkRef effect above scroll once that chapter's chunks load.
+  const handleJumpToChunk = (chapterId: string, chunkId: string) => {
+    if (chapterId !== viewingChapterId) {
+      handleSelectChapter(chapterId);
+      pendingJumpChunkRef.current = chunkId;
+      return;
+    }
+    const el = document.querySelector(`[data-chunk-id="${chunkId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.classList.add('chunk-jump-flash');
+      globalThis.setTimeout(() => el.classList.remove('chunk-jump-flash'), 2000);
+    }
+  };
+
+  const handleEntityMarkClick = (payload: EntityMarkClickPayload) => {
+    setEntityCard({
+      entityId: payload.entityId,
+      name: payload.name,
+      type: payload.type,
+      anchorRect: payload.rect,
+    });
   };
 
   const handleCol3Scroll = (e: React.UIEvent<HTMLDivElement>) => {
@@ -501,12 +566,15 @@ export default function ReaderPage() {
             {/* Chunks */}
             <div style={{ padding: '16px' }} data-annotation-mode={annotationMode}>
               {chunksLoading && <LoadingSpinner />}
-              {!chunksLoading &&
-                chunks?.map((chunk) => (
-                  <div key={chunk.id} data-chunk-id={chunk.id}>
-                    <ChunkCard chunk={chunk} />
-                  </div>
-                ))}
+              {!chunksLoading && (
+                <EntityMarkClickProvider onEntityClick={handleEntityMarkClick}>
+                  {chunks?.map((chunk) => (
+                    <div key={chunk.id} data-chunk-id={chunk.id}>
+                      <ChunkCard chunk={chunk} />
+                    </div>
+                  ))}
+                </EntityMarkClickProvider>
+              )}
               {!chunksLoading && (prevChapter ?? nextChapter) && (
                 <div
                   className="flex items-center justify-between"
@@ -590,6 +658,18 @@ export default function ReaderPage() {
         >
           <ArrowUp size={18} strokeWidth={2.2} />
         </button>
+      )}
+
+      {entityCard && bookId && (
+        <EntityCard
+          bookId={bookId}
+          entityId={entityCard.entityId}
+          name={entityCard.name}
+          type={entityCard.type}
+          anchorRect={entityCard.anchorRect}
+          onClose={() => setEntityCard(null)}
+          onJump={handleJumpToChunk}
+        />
       )}
     </div>
   );

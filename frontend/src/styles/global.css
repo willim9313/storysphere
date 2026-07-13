@@ -217,6 +217,10 @@
   [data-annotation-mode='off'] .entity-mark {
     text-decoration-color: transparent;
     cursor: text;
+    /* R2: marks are now clickable (opens the entity card popover); dimmed
+       marks must stay inert so annotation density still hides them from
+       interaction, not just from the underline/hover treatment. */
+    pointer-events: none;
   }
   [data-annotation-mode='characters'] .entity-mark:not(.entity-mark-char):hover,
   [data-annotation-mode='off'] .entity-mark:hover {
@@ -487,4 +491,10 @@
 }
 .chunk-jump-flash > [data-chunk-card] {
   animation: chunk-jump-flash-anim 2s ease-out;
+}
+
+/* Entity card popover open animation (ReaderPage EntityCard). */
+@keyframes rd-pop {
+  from { opacity: 0; transform: translateY(4px) scale(.98); }
+  to { opacity: 1; transform: none; }
 }

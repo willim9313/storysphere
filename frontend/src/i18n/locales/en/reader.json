@@ -33,5 +33,19 @@
     "prev": "← Previous: {{title}}",
     "next": "Next: {{title}} →",
     "backToTop": "Back to top"
+  },
+  "entityCard": {
+    "close": "Close",
+    "totalOccurrences": "Appears in {{count}} passages",
+    "characterAnalysis": "Character Analysis",
+    "viewInGraph": "View in Graph",
+    "loadingAppearances": "Loading appearances…",
+    "loadingAnalysis": "Loading character analysis…",
+    "noAnalysis": "Character deep analysis not generated yet",
+    "appearances": "Appearances · {{count}}",
+    "loadFailed": "Failed to load passages",
+    "chapterEntry": "Ch. {{number}} · {{title}}",
+    "chapterNumber": "Chapter {{number}}",
+    "noAppearances": "No appearances found"
   }
 }

@@ -33,5 +33,19 @@
     "prev": "← 上一章 {{title}}",
     "next": "下一章 {{title}} →",
     "backToTop": "回到頂部"
+  },
+  "entityCard": {
+    "close": "關閉",
+    "totalOccurrences": "全書出現 {{count}} 段",
+    "characterAnalysis": "角色分析",
+    "viewInGraph": "在圖譜中查看",
+    "loadingAppearances": "載入出現段落…",
+    "loadingAnalysis": "載入角色分析…",
+    "noAnalysis": "角色深度分析未生成",
+    "appearances": "出現段落 · {{count}}",
+    "loadFailed": "段落載入失敗",
+    "chapterEntry": "第 {{number}} 章 · {{title}}",
+    "chapterNumber": "第 {{number}} 章",
+    "noAppearances": "尚無出現段落"
   }
 }
