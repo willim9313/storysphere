@@ -72,6 +72,10 @@ export default function ReaderPage() {
 
   const col1Ref = useRef<HTMLDivElement>(null);
   const col2Ref = useRef<HTMLDivElement>(null);
+  // Actual scrollable chapter-list element (col2Ref's child) — BezierConnectors
+  // needs this specific node to attach its own 'scroll' listener (scroll
+  // events don't bubble) and to query `[data-chapter-card]` positions.
+  const col2ListRef = useRef<HTMLDivElement>(null);
   const col3Ref = useRef<HTMLDivElement>(null);
   const col3ScrollRef = useRef<HTMLDivElement>(null);
   // Chunk id awaiting scroll-into-view once a cross-chapter jump's target
@@ -307,19 +311,6 @@ export default function ReaderPage() {
 
   return (
     <div className="flex h-full relative">
-      {!isNarrow && (
-        <BezierConnectors
-          col1Ref={col1Ref}
-          col2Ref={col2Ref}
-          col3Ref={col3Ref}
-          selectedChapterIdx={viewingChapterIdx}
-          chapterKey={chapterList.map((c) => c.id).join(',')}
-          chunkCount={chunks?.length ?? 0}
-          showCol3={!!viewingChapterId}
-          colRevision={colRevision}
-        />
-      )}
-
       {/* Column 1: Book Overview */}
       <div
         ref={col1Ref}
@@ -410,7 +401,7 @@ export default function ReaderPage() {
             </div>
 
             {/* Chapter list — search dims non-matches instead of removing them */}
-            <div className="flex-1 overflow-y-auto p-2 pt-1 space-y-1">
+            <div ref={col2ListRef} className="flex-1 overflow-y-auto p-2 pt-1 space-y-1">
               {chapterList.map((chapter) => (
                 <div key={chapter.id} data-chapter-card>
                   <ChapterCard
@@ -452,8 +443,20 @@ export default function ReaderPage() {
         )}
       </div>
 
-      {/* Spacer between col2 and col3 — only when col2 is expanded */}
-      {!col2Collapsed && <div className="flex-shrink-0" style={{ width: 24 }} />}
+      {/* Bezier connectors — real 34px column between col2 and col3 (not an
+          overlay). Hidden (renders nothing, 0 width) when col2 is collapsed,
+          no chapter is selected, or the viewport is narrow. */}
+      {!isNarrow && (
+        <BezierConnectors
+          col2ScrollRef={col2ListRef}
+          col3ScrollRef={col3ScrollRef}
+          selectedChapterIdx={viewingChapterIdx}
+          viewingChapterId={viewingChapterId}
+          chunkCount={chunks?.length ?? 0}
+          visible={!col2Collapsed && !!viewingChapterId}
+          colRevision={colRevision}
+        />
+      )}
 
       {/* Column 3: Chunk Content */}
       <div
