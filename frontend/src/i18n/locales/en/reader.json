@@ -1,8 +1,10 @@
 {
+  "bookInfo": "Book Info",
   "bookKeywords": "Book Keywords",
   "entityDistribution": "Entity Distribution",
   "stats": {
     "chapters": "Chapters",
+    "chunks": "Chunks",
     "entities": "Entities",
     "relations": "Relations",
     "events": "Events"
@@ -10,22 +12,74 @@
   "chapter": {
     "entities": "{{count}} entities",
     "keywords": "Keywords",
+    "entityCount": "Entities · {{count}}",
+    "toggleExpand": "Expand/collapse chapter",
     "viewContent": "View Content"
   },
+  "chapterListHeader": "Chapters · {{count}}",
+  "expandAll": "Expand all",
+  "collapseAll": "Collapse all",
   "selectChapter": "Select a chapter to view content",
   "search": "Search chapters, characters, keywords…",
   "searchEmpty": "No chapters matching \"{{query}}\"",
-  "epistemicLabel": "Character View",
+  "searchMatchCount": "{{count}} matching chapters",
+  "epistemicLabel": "Epistemic State",
   "epistemicClose": "Collapse",
   "epistemicHint": "Select a character to see what they know up to this chapter",
+  "epistemicPanel": {
+    "title": "Epistemic State",
+    "selectCharacter": "-- Select a character --",
+    "computing": "Computing…",
+    "noVisibilityData": "No visibility data yet",
+    "selectPrompt": "Select a character to view epistemic state",
+    "known": "Known Events",
+    "unknown": "Unknown Events",
+    "misbeliefs": "Misbeliefs",
+    "none": "(None)",
+    "misbelief": "Misbelief:",
+    "actualTruth": "Actual truth:",
+    "confidence": "Confidence {{percent}}%",
+    "locating": "Locating passage…"
+  },
   "annotation": {
     "title": "Marks",
     "full": "All",
     "characters": "Characters",
     "off": "Off"
   },
-  "col1Expand": "Expand book overview",
-  "col1Collapse": "Collapse book overview",
+  "focusLabel": "Focus",
+  "typography": {
+    "trigger": "Aa",
+    "fontSize": "Font Size",
+    "fs": { "small": "Small", "standard": "Standard", "large": "Large" },
+    "lineHeight": "Line Height",
+    "lh": { "tight": "Tight", "standard": "Standard", "wide": "Wide" },
+    "warmth": "Paper Warmth",
+    "warmthSwatch": "Paper color {{n}}",
+    "fadeIn": "Fade in paragraphs"
+  },
+  "col1Expand": "Expand book info",
+  "col1Collapse": "Collapse book info",
   "col2Expand": "Expand chapter list",
-  "col2Collapse": "Collapse chapter list"
+  "col2Collapse": "Collapse chapter list",
+  "nav": {
+    "chapterBadge": "Chapter {{current}} / {{total}}",
+    "prev": "← Previous: {{title}}",
+    "next": "Next: {{title}} →",
+    "backToTop": "Back to top"
+  },
+  "entityCard": {
+    "close": "Close",
+    "totalOccurrences": "Appears in {{count}} passages",
+    "characterAnalysis": "Character Analysis",
+    "viewInGraph": "View in Graph",
+    "loadingAppearances": "Loading appearances…",
+    "loadingAnalysis": "Loading character analysis…",
+    "noAnalysis": "Character deep analysis not generated yet",
+    "appearances": "Appearances · {{count}}",
+    "loadFailed": "Failed to load passages",
+    "chapterEntry": "Ch. {{number}} · {{title}}",
+    "chapterNumber": "Chapter {{number}}",
+    "noAppearances": "No appearances found"
+  }
 }

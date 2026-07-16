@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, FileText, Loader2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
@@ -86,6 +86,7 @@ function sizeLabel(file: File): string {
 export default function UploadPage() {
   const location = useLocation();
   const { t } = useTranslation('upload');
+  const queryClient = useQueryClient();
   const { t: tc } = useTranslation('common');
 
   // queue[0] is the file shown in the metadata form; the rest wait their turn.
@@ -213,6 +214,10 @@ export default function UploadPage() {
         ...prev,
         { taskId: data.taskId, fileName: file.name, title, duplicateTitle: data.duplicateTitle },
       ]);
+      // Wake the app-level task-notification watcher: it stops polling /tasks
+      // when idle, so a freshly started ingestion must invalidate the shared
+      // list query to resume polling and eventually fire its completion toast.
+      void queryClient.invalidateQueries({ queryKey: ['tasks', 'list'] });
       // Advance to the next queued file.
       setQueue((q) => q.slice(1));
     },

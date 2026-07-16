@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { SegmentRenderer } from './SegmentRenderer';
+import { SegmentRenderer, type EntityMarkClickPayload } from './SegmentRenderer';
 import { KeywordTags } from './KeywordTags';
 import type { Chunk, Segment, EntityType } from '@/api/types';
 
@@ -26,7 +26,13 @@ function extractEntities(segments: Segment[]) {
   return entities;
 }
 
-export function ChunkCard({ chunk }: { chunk: Chunk }) {
+export function ChunkCard({
+  chunk,
+  onEntityClick,
+}: {
+  readonly chunk: Chunk;
+  readonly onEntityClick?: (payload: EntityMarkClickPayload) => void;
+}) {
   const entities = useMemo(() => extractEntities(chunk.segments), [chunk.segments]);
 
   return (
@@ -46,11 +52,40 @@ export function ChunkCard({ chunk }: { chunk: Chunk }) {
           #{chunk.order}
         </span>
         {entities.length > 0 && (
-          <div className="flex gap-1 flex-wrap">
+          <div className="flex gap-1 flex-wrap chunk-chips">
             {entities.map((e) => (
               <span
                 key={e.entityId}
                 className={`pill ${pillClass[e.type]}`}
+                style={onEntityClick ? { cursor: 'pointer' } : undefined}
+                role={onEntityClick ? 'button' : undefined}
+                tabIndex={onEntityClick ? 0 : undefined}
+                onClick={
+                  onEntityClick
+                    ? (ev) =>
+                        onEntityClick({
+                          entityId: e.entityId,
+                          name: e.name,
+                          type: e.type,
+                          rect: ev.currentTarget.getBoundingClientRect(),
+                        })
+                    : undefined
+                }
+                onKeyDown={
+                  onEntityClick
+                    ? (ev) => {
+                        if (ev.key === 'Enter' || ev.key === ' ') {
+                          ev.preventDefault();
+                          onEntityClick({
+                            entityId: e.entityId,
+                            name: e.name,
+                            type: e.type,
+                            rect: ev.currentTarget.getBoundingClientRect(),
+                          });
+                        }
+                      }
+                    : undefined
+                }
               >
                 <span className="pill-dot" />
                 {e.name}
@@ -61,7 +96,7 @@ export function ChunkCard({ chunk }: { chunk: Chunk }) {
       </div>
       <p
         className="text-sm leading-relaxed"
-        style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+        style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)', fontSize: 'var(--reader-fs, inherit)', lineHeight: 'var(--reader-lh, inherit)' }}
       >
         <SegmentRenderer segments={chunk.segments} />
       </p>

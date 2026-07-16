@@ -1,119 +1,140 @@
-import { useEffect, useRef, useState } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 
 interface BezierConnectorsProps {
-  col1Ref: React.RefObject<HTMLDivElement | null>;
-  col2Ref: React.RefObject<HTMLDivElement | null>;
-  col3Ref: React.RefObject<HTMLDivElement | null>;
+  /** Scrollable element containing the column-2 chapter cards (`[data-chapter-card]`). */
+  col2ScrollRef: React.RefObject<HTMLDivElement | null>;
+  /** Scrollable element containing the column-3 chunk cards (`[data-chunk-id]`). */
+  col3ScrollRef: React.RefObject<HTMLDivElement | null>;
+  /** Index of the selected chapter card within col2ScrollRef's `[data-chapter-card]` list. */
   selectedChapterIdx: number | null;
-  chapterKey: string;
+  /** Current chapter id — a change here means the curve count must be re-rendered. */
+  viewingChapterId: string | null;
   chunkCount: number;
-  showCol3: boolean;
-  /** Increment after column collapse/expand transitions complete to force re-measure. */
+  /** Col2 collapsed or no chapter selected hides the whole connector column. */
+  visible: boolean;
+  /** Bump after column collapse/expand transitions finish, to force a re-measure once layout settles. */
   colRevision: number;
 }
 
-interface Line {
-  x1: number; y1: number;
-  x2: number; y2: number;
-  active: boolean;
-}
-
+/**
+ * One cubic-bezier curve per chunk, fanning out from the selected chapter
+ * card (col2) to that chunk's on-screen position (col3). Geometry is
+ * measured with getBoundingClientRect — which already reflects any ancestor
+ * scroll offset — against this component's own 34px-wide container, so the
+ * container's height doubles as the 0-100 coordinate space of the SVG
+ * viewBox.
+ *
+ * Perf: recalculation on scroll/resize writes path attributes directly to
+ * the SVG DOM via refs (no setState), rAF-throttled. The curve *count*
+ * (`pathCount`) is derived straight from props at render time — no state
+ * needed — so a re-render only happens when React would already re-render
+ * this component anyway (chapter switch / chunks loaded / visibility change).
+ */
 export function BezierConnectors({
-  col1Ref,
-  col2Ref,
-  col3Ref,
+  col2ScrollRef,
+  col3ScrollRef,
   selectedChapterIdx,
-  chapterKey,
+  viewingChapterId,
   chunkCount,
-  showCol3,
+  visible,
   colRevision,
 }: BezierConnectorsProps) {
-  const svgRef = useRef<SVGSVGElement>(null);
-  const [lines, setLines] = useState<Line[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const pathRefs = useRef<(SVGPathElement | null)[]>([]);
+  const rafRef = useRef<number | null>(null);
+  const pathCount = visible ? chunkCount : 0;
 
-  useEffect(() => {
-    const svg = svgRef.current;
-    if (!svg) return;
+  // Measure + attach listeners. useLayoutEffect so freshly-mounted <path>
+  // placeholders get their "d" written before paint (no empty-line flash).
+  useLayoutEffect(() => {
+    if (!visible) return;
+    const container = containerRef.current;
+    const col2El = col2ScrollRef.current;
+    const col3El = col3ScrollRef.current;
+    if (!container || !col2El || !col3El) return;
 
-    const rect = svg.getBoundingClientRect();
-    const newLines: Line[] = [];
+    const recalc = () => {
+      const containerRect = container.getBoundingClientRect();
+      const h = containerRect.height || 1;
 
-    // Col1 → Col2 connectors
-    const col1El = col1Ref.current;
-    const col2El = col2Ref.current;
-    if (col1El && col2El) {
-      const col1Rect = col1El.getBoundingClientRect();
-      const x1 = col1Rect.right - rect.left;
-      const y1 = col1Rect.top + col1Rect.height / 2 - rect.top;
-
-      const chapterCards = col2El.querySelectorAll('[data-chapter-card]');
-      chapterCards.forEach((card, idx) => {
-        const cardRect = card.getBoundingClientRect();
-        const x2 = cardRect.left - rect.left;
-        const y2 = cardRect.top + cardRect.height / 2 - rect.top;
-        newLines.push({ x1, y1, x2, y2, active: idx === selectedChapterIdx });
-      });
-    }
-
-    // Col2 → Col3 connectors (from selected chapter to each chunk card)
-    if (showCol3 && col2El && col3Ref.current && selectedChapterIdx !== null && selectedChapterIdx >= 0) {
-      const chapterCards = col2El.querySelectorAll('[data-chapter-card]');
-      const selectedCard = chapterCards[selectedChapterIdx];
-      if (selectedCard) {
-        const cardRect = selectedCard.getBoundingClientRect();
-        const x1 = cardRect.right - rect.left;
-        const y1 = cardRect.top + cardRect.height / 2 - rect.top;
-
-        const chunkCards = col3Ref.current.querySelectorAll('[data-chunk-card]');
-        if (chunkCards.length > 0) {
-          chunkCards.forEach((chunkCard) => {
-            const chunkRect = chunkCard.getBoundingClientRect();
-            newLines.push({
-              x1,
-              y1,
-              x2: chunkRect.left - rect.left,
-              y2: chunkRect.top + chunkRect.height / 2 - rect.top,
-              active: true,
-            });
-          });
-        } else {
-          // Fallback: single line to col3 header while chunks are loading
-          const col3Rect = col3Ref.current.getBoundingClientRect();
-          newLines.push({
-            x1,
-            y1,
-            x2: col3Rect.left - rect.left,
-            y2: col3Rect.top + 40 - rect.top,
-            active: true,
-          });
+      let originY = 40;
+      if (selectedChapterIdx != null && selectedChapterIdx >= 0) {
+        const cards = col2El.querySelectorAll('[data-chapter-card]');
+        const card = cards[selectedChapterIdx];
+        if (card) {
+          const r = card.getBoundingClientRect();
+          originY = ((r.top + r.height / 2 - containerRect.top) / h) * 100;
         }
       }
-    }
+      originY = Math.max(2, Math.min(98, originY));
+      const originStr = originY.toFixed(1);
 
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setLines(newLines);
-  }, [col1Ref, col2Ref, col3Ref, selectedChapterIdx, chapterKey, chunkCount, showCol3, colRevision]);
+      const chunkEls = col3El.querySelectorAll('[data-chunk-id]');
+      chunkEls.forEach((el, i) => {
+        const path = pathRefs.current[i];
+        if (!path) return;
+        const r = el.getBoundingClientRect();
+        const y = ((r.top + r.height / 2 - containerRect.top) / h) * 100;
+        const cy = Math.max(-4, Math.min(104, y));
+        const active = y >= 28 && y <= 72;
+        path.setAttribute(
+          'd',
+          `M0 ${originStr} C 18 ${originStr}, 16 ${cy.toFixed(1)}, 34 ${cy.toFixed(1)}`
+        );
+        path.setAttribute('stroke-width', active ? '1.5' : '0.8');
+        path.setAttribute('opacity', active ? '0.75' : '0.3');
+      });
+    };
+
+    recalc();
+
+    const scheduleRecalc = () => {
+      if (rafRef.current != null) return;
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null;
+        recalc();
+      });
+    };
+
+    col2El.addEventListener('scroll', scheduleRecalc, { passive: true });
+    col3El.addEventListener('scroll', scheduleRecalc, { passive: true });
+    window.addEventListener('resize', scheduleRecalc);
+
+    return () => {
+      col2El.removeEventListener('scroll', scheduleRecalc);
+      col3El.removeEventListener('scroll', scheduleRecalc);
+      window.removeEventListener('resize', scheduleRecalc);
+      if (rafRef.current != null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, [visible, selectedChapterIdx, viewingChapterId, pathCount, colRevision, col2ScrollRef, col3ScrollRef]);
+
+  if (!visible) return null;
 
   return (
-    <svg
-      ref={svgRef}
-      className="absolute inset-0 pointer-events-none"
-      style={{ width: '100%', height: '100%', overflow: 'visible' }}
-    >
-      {lines.map((line, i) => {
-        const cx = (line.x1 + line.x2) / 2;
-        const d = `M${line.x1},${line.y1} C${cx},${line.y1} ${cx},${line.y2} ${line.x2},${line.y2}`;
-        return (
+    <div ref={containerRef} className="flex-shrink-0" style={{ width: 34, height: '100%' }}>
+      <svg
+        width={34}
+        height="100%"
+        viewBox="0 0 34 100"
+        preserveAspectRatio="none"
+        style={{ display: 'block', overflow: 'visible' }}
+      >
+        {Array.from({ length: pathCount }).map((_, i) => (
           <path
             key={i}
-            d={d}
+            ref={(el) => {
+              pathRefs.current[i] = el;
+            }}
+            d=""
             fill="none"
-            stroke={line.active ? 'var(--accent)' : 'var(--border)'}
-            strokeWidth={line.active ? 1.5 : 0.5}
-            strokeOpacity={line.active ? 0.65 : 0.3}
+            stroke="var(--accent)"
+            strokeLinecap="round"
           />
-        );
-      })}
-    </svg>
+        ))}
+      </svg>
+    </div>
   );
 }

@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
-import { X, Eye, EyeOff, AlertTriangle } from 'lucide-react';
+import { X, AlertTriangle, Loader } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
+import { searchPassages } from '@/api/search';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Chapter } from '@/api/types';
 
@@ -10,6 +12,94 @@ interface EpistemicSidePanelProps {
   chapters: Chapter[];
   currentChapterOrder: number | null;
   onClose: () => void;
+  /** Fallback: chapter-level jump, used when the passage lookup finds nothing. */
+  onJumpToChapter: (chapterNumber: number) => void;
+  /** Paragraph-level jump — chunkId comes from the #22a passage lookup below. */
+  onJumpToChunk: (chapterNumber: number, chunkId: string) => void;
+}
+
+const eventItemBaseStyle: React.CSSProperties = {
+  textAlign: 'left',
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  gap: 8,
+  width: '100%',
+  border: 'none',
+  borderRadius: 'var(--radius-sm)',
+  padding: '8px 10px',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  transition: 'background-color var(--transition-fast) ease',
+};
+
+function EventGroupHeader({ dotColor, label, count }: { dotColor: string; label: string; count: number }) {
+  return (
+    <div className="flex items-center gap-1.5 mb-2">
+      <span
+        style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: dotColor, flexShrink: 0 }}
+      />
+      <span className="text-xs font-semibold" style={{ color: 'var(--fg-secondary)' }}>{label}</span>
+      <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>({count})</span>
+    </div>
+  );
+}
+
+function EventItemButton({
+  title,
+  chapterNumber,
+  color,
+  bgColor,
+  locating,
+  locatingLabel,
+  onJump,
+}: {
+  title: string;
+  chapterNumber: number | null;
+  color: string;
+  bgColor: string;
+  /** True while this item's passage lookup (#22a) is in flight. */
+  locating: boolean;
+  locatingLabel: string;
+  onJump: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const clickable = chapterNumber !== null && !Number.isNaN(chapterNumber);
+  return (
+    <button
+      type="button"
+      onClick={() => clickable && onJump()}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      disabled={!clickable}
+      style={{
+        ...eventItemBaseStyle,
+        backgroundColor: hovered ? 'var(--bg-tertiary)' : bgColor,
+        cursor: clickable ? 'pointer' : 'default',
+      }}
+    >
+      <span
+        className="text-xs"
+        style={{ fontFamily: 'var(--font-serif)', color, lineHeight: 1.4 }}
+      >
+        {title}
+      </span>
+      {locating ? (
+        <Loader
+          size={12}
+          className="animate-spin flex-shrink-0"
+          style={{ color: 'var(--fg-muted)' }}
+          aria-label={locatingLabel}
+        />
+      ) : (
+        clickable && (
+          <span className="text-xs flex-shrink-0" style={{ color: 'var(--fg-muted)' }}>
+            Ch.{chapterNumber}
+          </span>
+        )
+      )}
+    </button>
+  );
 }
 
 export function EpistemicSidePanel({
@@ -17,8 +107,13 @@ export function EpistemicSidePanel({
   chapters,
   currentChapterOrder,
   onClose,
+  onJumpToChapter,
+  onJumpToChunk,
 }: EpistemicSidePanelProps) {
+  const { t } = useTranslation('reader');
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [misbeliefHovered, setMisbeliefHovered] = useState<string | null>(null);
+  const [locatingId, setLocatingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
   // Collect all characters from top-entities across all chapters up to current
@@ -42,6 +137,37 @@ export function EpistemicSidePanel({
     currentChapterOrder,
   );
 
+  const toChapterNumber = (ev: Record<string, unknown>): number | null => {
+    const n = typeof ev.chapter === 'number' ? ev.chapter : Number(ev.chapter);
+    return Number.isNaN(n) ? null : n;
+  };
+
+  // Paragraph-level jump: the epistemic API only carries a chapter number per
+  // event, so the exact passage is resolved on demand — #22a semantic search
+  // over the event's title+description, restricted to hits in that chapter.
+  // Falls back to a chapter-level jump when nothing in-chapter surfaces (or
+  // the search fails). One lookup in flight at a time.
+  const handleEventJump = async (ev: Record<string, unknown>) => {
+    const chapterNumber = toChapterNumber(ev);
+    if (chapterNumber === null || locatingId) return;
+    const evKey = String(ev.id ?? ev.title ?? '');
+    setLocatingId(evKey);
+    try {
+      const query = `${String(ev.title ?? '')}。${String(ev.description ?? '')}`.slice(0, 200);
+      const results = await searchPassages({ query, bookId, topK: 10, mode: 'semantic' });
+      const best = results.find((r) => r.metadata?.chapterNumber === chapterNumber);
+      if (best?.id) {
+        onJumpToChunk(chapterNumber, best.id);
+      } else {
+        onJumpToChapter(chapterNumber);
+      }
+    } catch {
+      onJumpToChapter(chapterNumber);
+    } finally {
+      setLocatingId(null);
+    }
+  };
+
   return (
     <div
       className="h-full flex flex-col"
@@ -56,7 +182,7 @@ export function EpistemicSidePanel({
         style={{ borderBottom: '1px solid var(--border)' }}
       >
         <span className="text-sm font-medium" style={{ color: 'var(--fg-primary)' }}>
-          認識論狀態
+          {t('epistemicPanel.title')}
         </span>
         <button onClick={onClose} className="p-1 rounded hover:opacity-70">
           <X size={14} />
@@ -75,18 +201,18 @@ export function EpistemicSidePanel({
           value={selectedCharacterId ?? ''}
           onChange={(e) => setSelectedCharacterId(e.target.value || null)}
         >
-          <option value="">-- 選擇角色 --</option>
+          <option value="">{t('epistemicPanel.selectCharacter')}</option>
           {characterOptions.map(({ id, name }) => (
             <option key={id} value={id}>{name}</option>
           ))}
         </select>
         {isFetching && (
-          <p className="text-xs mt-1" style={{ color: 'var(--fg-muted)' }}>計算中…</p>
+          <p className="text-xs mt-1" style={{ color: 'var(--fg-muted)' }}>{t('epistemicPanel.computing')}</p>
         )}
         {state && !state.dataComplete && (
           <div className="mt-1 flex flex-col gap-1">
             <p className="text-xs flex items-center gap-1" style={{ color: 'var(--color-warning)' }}>
-              <AlertTriangle size={11} /> 尚無 visibility 資料
+              <AlertTriangle size={11} /> {t('epistemicPanel.noVisibilityData')}
             </p>
             <ClassifyVisibilityButton
               bookId={bookId}
@@ -103,82 +229,113 @@ export function EpistemicSidePanel({
       {/* Content */}
       <div className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-4">
         {!selectedCharacterId && (
-          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>請選擇角色以查看認識論狀態</p>
+          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('epistemicPanel.selectPrompt')}</p>
         )}
 
         {state && selectedCharacterId && (
           <>
             {/* Known events */}
             <section>
-              <h4 className="text-xs font-semibold mb-1" style={{ color: 'var(--color-success)' }}>
-                <Eye size={11} className="inline mr-1" />
-                已知事件（{state.knownEvents.length}）
-              </h4>
+              <EventGroupHeader
+                dotColor="var(--color-success)"
+                label={t('epistemicPanel.known')}
+                count={state.knownEvents.length}
+              />
               {state.knownEvents.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>（無）</p>
+                <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('epistemicPanel.none')}</p>
               ) : (
-                <ul className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   {(state.knownEvents as Record<string, unknown>[]).map((ev, i) => (
-                    <li
+                    <EventItemButton
                       key={String(ev.id ?? i)}
-                      className="text-xs px-2 py-1 rounded"
-                      style={{ backgroundColor: 'var(--color-success-bg)', color: 'var(--color-success)' }}
-                    >
-                      <span className="font-medium">{String(ev.title ?? '')}</span>
-                      <span className="ml-1 opacity-60">Ch.{String(ev.chapter ?? '')}</span>
-                    </li>
+                      title={String(ev.title ?? '')}
+                      chapterNumber={toChapterNumber(ev)}
+                      color="var(--color-success)"
+                      bgColor="var(--color-success-bg)"
+                      locating={locatingId === String(ev.id ?? ev.title ?? '')}
+                      locatingLabel={t('epistemicPanel.locating')}
+                      onJump={() => handleEventJump(ev)}
+                    />
                   ))}
-                </ul>
+                </div>
               )}
             </section>
 
             {/* Unknown events */}
             <section>
-              <h4 className="text-xs font-semibold mb-1" style={{ color: 'var(--color-warning)' }}>
-                <EyeOff size={11} className="inline mr-1" />
-                未知事件（{state.unknownEvents.length}）
-              </h4>
+              <EventGroupHeader
+                dotColor="var(--color-warning)"
+                label={t('epistemicPanel.unknown')}
+                count={state.unknownEvents.length}
+              />
               {state.unknownEvents.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>（無）</p>
+                <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('epistemicPanel.none')}</p>
               ) : (
-                <ul className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1">
                   {(state.unknownEvents as Record<string, unknown>[]).map((ev, i) => (
-                    <li
+                    <EventItemButton
                       key={String(ev.id ?? i)}
-                      className="text-xs px-2 py-1 rounded"
-                      style={{ backgroundColor: 'var(--color-warning-bg)', color: 'var(--color-warning)' }}
-                    >
-                      <span className="font-medium">{String(ev.title ?? '')}</span>
-                      <span className="ml-1 opacity-60">Ch.{String(ev.chapter ?? '')}</span>
-                    </li>
+                      title={String(ev.title ?? '')}
+                      chapterNumber={toChapterNumber(ev)}
+                      color="var(--color-warning)"
+                      bgColor="var(--color-warning-bg)"
+                      locating={locatingId === String(ev.id ?? ev.title ?? '')}
+                      locatingLabel={t('epistemicPanel.locating')}
+                      onJump={() => handleEventJump(ev)}
+                    />
                   ))}
-                </ul>
+                </div>
               )}
             </section>
 
             {/* Misbeliefs */}
             {state.misbeliefs.length > 0 && (
               <section>
-                <h4 className="text-xs font-semibold mb-1" style={{ color: 'var(--color-error)' }}>
-                  <AlertTriangle size={11} className="inline mr-1" />
-                  誤信（{state.misbeliefs.length}）
-                </h4>
+                <EventGroupHeader
+                  dotColor="var(--color-error)"
+                  label={t('epistemicPanel.misbeliefs')}
+                  count={state.misbeliefs.length}
+                />
                 <ul className="flex flex-col gap-2">
-                  {state.misbeliefs.map((m) => (
-                    <li
-                      key={m.sourceEventId}
-                      className="text-xs px-2 py-1.5 rounded"
-                      style={{ border: '1px solid var(--color-error)', backgroundColor: 'var(--color-error-bg)' }}
-                    >
-                      <p style={{ color: 'var(--color-error)' }}>
-                        <span className="font-medium">誤信：</span>{m.characterBelief}
-                      </p>
-                      <p className="mt-0.5" style={{ color: 'var(--fg-muted)' }}>
-                        <span className="font-medium">實情：</span>{m.actualTruth}
-                      </p>
-                      <p className="mt-0.5 opacity-50">信心度 {Math.round(m.confidence * 100)}%</p>
-                    </li>
-                  ))}
+                  {state.misbeliefs.map((m) => {
+                    const sourceEvent = (state.unknownEvents as Record<string, unknown>[]).find(
+                      (ev) => String(ev.id ?? '') === m.sourceEventId,
+                    );
+                    const chapterNumber = sourceEvent ? toChapterNumber(sourceEvent) : null;
+                    const clickable = chapterNumber !== null && sourceEvent !== undefined;
+                    const hovered = misbeliefHovered === m.sourceEventId;
+                    return (
+                      <li key={m.sourceEventId}>
+                        <button
+                          type="button"
+                          onClick={() => clickable && handleEventJump(sourceEvent)}
+                          onMouseEnter={() => setMisbeliefHovered(m.sourceEventId)}
+                          onMouseLeave={() => setMisbeliefHovered(null)}
+                          disabled={!clickable}
+                          className="text-left w-full"
+                          style={{
+                            border: '1px solid var(--color-error)',
+                            borderRadius: 'var(--radius-sm)',
+                            padding: '6px 8px',
+                            backgroundColor: hovered ? 'var(--bg-tertiary)' : 'var(--color-error-bg)',
+                            cursor: clickable ? 'pointer' : 'default',
+                            fontFamily: 'inherit',
+                            transition: 'background-color var(--transition-fast) ease',
+                          }}
+                        >
+                          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
+                            <span className="font-medium">{t('epistemicPanel.misbelief')}</span>{m.characterBelief}
+                          </p>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--fg-muted)' }}>
+                            <span className="font-medium">{t('epistemicPanel.actualTruth')}</span>{m.actualTruth}
+                          </p>
+                          <p className="text-xs mt-0.5 opacity-50">
+                            {t('epistemicPanel.confidence', { percent: Math.round(m.confidence * 100) })}
+                          </p>
+                        </button>
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             )}

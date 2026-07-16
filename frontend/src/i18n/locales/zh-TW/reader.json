@@ -1,8 +1,10 @@
 {
+  "bookInfo": "書籍資訊",
   "bookKeywords": "全書關鍵字",
   "entityDistribution": "實體分佈",
   "stats": {
     "chapters": "章節",
+    "chunks": "Chunks",
     "entities": "實體",
     "relations": "關係",
     "events": "事件"
@@ -10,22 +12,74 @@
   "chapter": {
     "entities": "{{count}} 實體",
     "keywords": "關鍵字",
+    "entityCount": "實體 · {{count}}",
+    "toggleExpand": "展開／收合本章",
     "viewContent": "查看內容"
   },
+  "chapterListHeader": "章節 · {{count}}",
+  "expandAll": "全部展開",
+  "collapseAll": "全部收合",
   "selectChapter": "選擇章節以查看內容",
   "search": "搜尋章節、角色、關鍵字…",
   "searchEmpty": "沒有章節含「{{query}}」",
-  "epistemicLabel": "角色視角",
+  "searchMatchCount": "{{count}} 章符合",
+  "epistemicLabel": "認知狀態",
   "epistemicClose": "收起",
   "epistemicHint": "選擇角色，查看他在這個章節前知道的事",
+  "epistemicPanel": {
+    "title": "認知狀態",
+    "selectCharacter": "-- 選擇角色 --",
+    "computing": "計算中…",
+    "noVisibilityData": "尚無 visibility 資料",
+    "selectPrompt": "請選擇角色以查看認知狀態",
+    "known": "已知事件",
+    "unknown": "未知事件",
+    "misbeliefs": "誤信",
+    "none": "（無）",
+    "misbelief": "誤信：",
+    "actualTruth": "實情：",
+    "confidence": "信心度 {{percent}}%",
+    "locating": "定位段落中…"
+  },
   "annotation": {
     "title": "標註",
     "full": "全部",
     "characters": "角色",
     "off": "關"
   },
-  "col1Expand": "展開書籍概覽",
-  "col1Collapse": "收合書籍概覽",
+  "focusLabel": "專注",
+  "typography": {
+    "trigger": "Aa",
+    "fontSize": "字級",
+    "fs": { "small": "小", "standard": "標準", "large": "大" },
+    "lineHeight": "行距",
+    "lh": { "tight": "緊", "standard": "標準", "wide": "寬" },
+    "warmth": "紙張色溫",
+    "warmthSwatch": "紙張色 {{n}}",
+    "fadeIn": "逐段淡入"
+  },
+  "col1Expand": "展開書籍資訊",
+  "col1Collapse": "收合書籍資訊",
   "col2Expand": "展開章節列表",
-  "col2Collapse": "收合章節列表"
+  "col2Collapse": "收合章節列表",
+  "nav": {
+    "chapterBadge": "第 {{current}} / {{total}} 章",
+    "prev": "← 上一章 {{title}}",
+    "next": "下一章 {{title}} →",
+    "backToTop": "回到頂部"
+  },
+  "entityCard": {
+    "close": "關閉",
+    "totalOccurrences": "全書出現 {{count}} 段",
+    "characterAnalysis": "角色分析",
+    "viewInGraph": "在圖譜中查看",
+    "loadingAppearances": "載入出現段落…",
+    "loadingAnalysis": "載入角色分析…",
+    "noAnalysis": "角色深度分析未生成",
+    "appearances": "出現段落 · {{count}}",
+    "loadFailed": "段落載入失敗",
+    "chapterEntry": "第 {{number}} 章 · {{title}}",
+    "chapterNumber": "第 {{number}} 章",
+    "noAppearances": "尚無出現段落"
+  }
 }

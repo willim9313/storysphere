@@ -18,6 +18,13 @@
   --bg-secondary: #f1e8d5;
   --bg-tertiary:  #e9ddc6;
 
+  /* Reader 排版面板 — 紙張色溫 4 檔（僅 Warm 主題；Ink 欄3背景固定
+     --bg-primary，不受色溫影響）。索引 1 = 目前 --bg-primary 同值，作為預設。 */
+  --paper-warmth-0: #fdfaf1;
+  --paper-warmth-1: #f8f3e7;
+  --paper-warmth-2: #f4ecd8;
+  --paper-warmth-3: #efe4c9;
+
   /* Text — 暖墨 */
   --fg-primary:   #2a2620;
   --fg-secondary: #5f5648;
