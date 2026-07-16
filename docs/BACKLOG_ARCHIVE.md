@@ -674,3 +674,17 @@
 > 原 B-043，2026-06-30 重編。
 **背景**: KG V1 設計統一節點為圓形，類型靠 `--graph-*-fill/-stroke` 區分；舊 manuscript / minimal-ink / pulp 主題把 entity token 收斂到灰階，圓形 + 灰階 = 類型幾乎無法區分。曾評估的方案：節點內疊 icon、標籤前加 type dot、非預設主題保留 shape variation。
 **解法**: 未採用上述任何方案 —— design system v2（Ink on Paper，`docs/plans/20260710-design-system-v2-ink-on-paper.md`）移除全部灰階主題，改為 Warm / Ink 兩主題，且 **entity / graph 色環跨主題共用**（Ink 僅將 chrome 單色化，刻意不覆寫分類色）。節點類型在兩主題下均維持彩色可辨，問題由設計層面消解。
+
+## B-054 Splash 圖庫更換 + wording 同步 ✅ 完成（2026-07-16）
+**背景**: `SplashScreen.tsx` 的 `IMAGERY_POOL` 原只有 `library-of-books.png` 一張；William 準備新封面圖，備妥後一併更換並同步 wording / 清理。
+
+**已實作**:
+- `IMAGERY_POOL` 換為 William 新封面圖 `frontend/src/assets/splash/cover_v2.png`（取代 `library-of-books.png`），credit 落款 `Reading · ink illustration`。
+- wordmark + 副標由置中改為**左側垂直置中**（容器 `justifyContent: flex-start` + `paddingLeft: clamp(2rem, 8vw, 8rem)`；前景 `alignItems: flex-start`），配合新圖左下人物、右側塗鴉雲構圖，文字落在左上留白不壓圖。
+- 副標中文由「智能小說分析」改為「小說文本分析」。
+- 清理換圖後已無引用的 `splash-main.png`、`library-of-books.png`。
+- 瀏覽器實測 full-opacity 渲染確認左側置中、文字不壓構圖（warm 主題）。
+
+**未做（刻意）**:
+- credit 大小寫校正：新 credit 為全新字串、格式已一致，原「Library of Books/books」大小寫問題隨舊圖移除而消失。
+- `tone`（light/dark）欄位：目前 `SplashScreen` 無任何 consumer 讀取 tone，加了即死資料，依「不為未來可能用到加東西」原則不補；日後真有 overlay 對比需求時再一併補欄位與 consumer。
