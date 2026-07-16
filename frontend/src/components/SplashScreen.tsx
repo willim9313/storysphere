@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTheme } from '@/contexts/ThemeContext';
-import libraryOfBooks from '@/assets/splash/library-of-books.png';
+import coverV2 from '@/assets/splash/cover_v2.png';
 
 // Design contract (v2 ink-on-paper): splash imagery is line-art ink
 // illustration only — no photography anywhere in chrome.
 const IMAGERY_POOL = [
   {
-    src: libraryOfBooks,
+    src: coverV2,
     themes: ['warm', 'ink'],
-    credit: 'Library of Books · ink illustration',
+    credit: 'Reading · ink illustration',
   },
 ];
 
@@ -57,7 +57,8 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
         zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-start',
+        paddingLeft: 'clamp(2rem, 8vw, 8rem)',
         background: 'var(--bg-primary)',
         opacity,
         transition: 'opacity 0.4s ease',
@@ -108,7 +109,8 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
           zIndex: 1,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
+          alignItems: 'flex-start',
+          textAlign: 'left',
           gap: '14px',
         }}
       >
@@ -138,7 +140,7 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
             userSelect: 'none',
           }}
         >
-          智能小說分析 · Literary analysis
+          小說文本分析 · Literary analysis
         </p>
         <div className="splash-loader-track">
           <div className="splash-loader-bar" />

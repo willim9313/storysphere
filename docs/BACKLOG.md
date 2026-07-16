@@ -189,13 +189,15 @@
 #### B-054 Splash 圖庫更換 + wording 同步
 **背景**: 設計 canvas（Claude Design 專案 `splash/imagery.js`）的 splash 圖庫有兩張線稿插畫（`reading-hero.png` + `library-of-books.png`，各帶 `tone` 欄位與 credit 字串）；repo 的 `SplashScreen.tsx` `IMAGERY_POOL` 目前只有 `library-of-books.png` 一張。新圖仍在準備中（William 備圖），備妥後一併更換。
 
-**待辦內容**:
-- 新圖備妥後放入 `frontend/src/assets/splash/`，加入 `SplashScreen.tsx` 的 `IMAGERY_POOL`（含 `themes` 適用範圍）
-- 同步對應 wording：每張圖的 credit 字串（右下角落款）依設計 pool 的格式校正（例：設計為「Library of books · ink illustration」，repo 現為「Library of Books · ink illustration」，大小寫不一致）
-- 視需要補 `tone`（light/dark）欄位供 overlay 對比參考（設計 pool 有、repo 尚無）
-- 清理未使用的 `frontend/src/assets/splash/splash-main.png`（確認無引用後）
+**目前狀態**: 2026-07-16 已換上 William 新封面圖 `cover_v2.png`（`IMAGERY_POOL` 改為此圖，取代 `library-of-books.png`），並將 wordmark + 副標從置中改為左側垂直置中以配合新圖構圖（左下人物、右側塗鴉雲）；副標中文改為「小說文本分析」。以下 wording / 清理項仍待處理。
 
-**觸發時機**: 新 splash 圖檔備妥後。
+**待辦內容**:
+- ✅ 新圖放入 `frontend/src/assets/splash/`，加入 `SplashScreen.tsx` 的 `IMAGERY_POOL`（含 `themes` 適用範圍）
+- 同步對應 wording：credit 字串（右下角落款）依設計 pool 的格式校正（大小寫一致性）
+- 視需要補 `tone`（light/dark）欄位供 overlay 對比參考（設計 pool 有、repo 尚無）
+- 清理未使用的 `frontend/src/assets/splash/splash-main.png`、`library-of-books.png`（確認無引用後）
+
+**觸發時機**: 新 splash 圖檔備妥後（圖已到位，餘為 wording / 清理收尾）。
 
 **前置依賴**: 無（圖檔由 William 提供）。
 
