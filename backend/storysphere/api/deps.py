@@ -67,6 +67,7 @@ def set_kg_mode_override(mode: str) -> None:
     get_analysis_agent.cache_clear()
     get_link_prediction_service.cache_clear()
     get_faction_service.cache_clear()
+    get_character_metrics_service.cache_clear()
     logger.info("KG mode switched to '%s'; all dependent singletons reset.", mode)
 
 
@@ -384,3 +385,18 @@ def get_faction_service():
 
 
 FactionServiceDep = Annotated[Any, Depends(get_faction_service)]
+
+
+# ── Character centrality metrics ─────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1)
+def get_character_metrics_service():
+    from storysphere.services.character_metrics_service import (  # noqa: PLC0415
+        CharacterMetricsService,
+    )
+
+    return CharacterMetricsService(kg_service=get_kg_service())
+
+
+CharacterMetricsServiceDep = Annotated[Any, Depends(get_character_metrics_service)]

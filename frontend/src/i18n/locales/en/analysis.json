@@ -90,7 +90,8 @@
     "list": {
       "searchPlaceholder": "Search {{count}} characters",
       "frameworkLabel": "Analysis framework",
-      "chapterCount": "Ch.{{count}}"
+      "chapterCount": "Ch.{{count}}",
+      "mentionCount": "{{count}} mentions"
     },
     "batch": {
       "header": "Character analysis",

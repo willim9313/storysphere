@@ -13,21 +13,32 @@ function avatarStyle(seed: string): React.CSSProperties {
   };
 }
 
+/** Design canvas formula: width% = 6 + 94 * sqrt(mentions / max) */
+function mentionBarWidth(mentions: number, max: number): number {
+  if (max <= 0) return 6;
+  return 6 + 94 * Math.sqrt(Math.max(0, mentions) / max);
+}
+
 export function AnalyzedItem({
   item,
   framework,
   isSelected,
   onSelect,
+  maxMentionCount,
+  itemId,
 }: {
   item: AnalysisItem;
   framework: string;
   isSelected: boolean;
   onSelect: () => void;
+  maxMentionCount?: number;
+  itemId?: string;
 }) {
   const { t } = useTranslation('analysis');
   const archetypeLabel = item.archetypes?.[framework];
   return (
     <button
+      id={itemId}
       type="button"
       className={'ca-item' + (isSelected ? ' selected' : '')}
       onClick={onSelect}
@@ -41,8 +52,16 @@ export function AnalyzedItem({
         </div>
         {archetypeLabel && <div className="ca-item-archetype">{archetypeLabel}</div>}
         <div className="ca-item-meta">
-          <span>{t('character.list.chapterCount', { count: item.chapterCount })}</span>
+          <span>{t('character.list.mentionCount', { count: item.mentionCount })}</span>
         </div>
+        {maxMentionCount !== undefined && (
+          <div className="ca-item-mentionbar">
+            <div
+              className="ca-item-mentionbar-fill"
+              style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
+            />
+          </div>
+        )}
       </div>
       <div
         className="ca-item-dot"
@@ -58,17 +77,22 @@ export function UnanalyzedItem({
   onSelect,
   onGenerate,
   isGenerating,
+  maxMentionCount,
+  itemId,
 }: {
   item: UnanalyzedEntity;
   isSelected: boolean;
   onSelect: () => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  maxMentionCount?: number;
+  itemId?: string;
 }) {
   const { t } = useTranslation('analysis');
 
   return (
     <div
+      id={itemId}
       className={'ca-item' + (isSelected ? ' selected' : '')}
       onClick={onSelect}
       role="button"
@@ -87,8 +111,16 @@ export function UnanalyzedItem({
         </div>
         <div className="ca-item-meta">
           <span>{t('notAnalyzed')}</span>
-          <span>· {t('character.list.chapterCount', { count: item.chapterCount })}</span>
+          <span>· {t('character.list.mentionCount', { count: item.mentionCount })}</span>
         </div>
+        {maxMentionCount !== undefined && (
+          <div className="ca-item-mentionbar">
+            <div
+              className="ca-item-mentionbar-fill muted"
+              style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
+            />
+          </div>
+        )}
       </div>
       <button
         type="button"

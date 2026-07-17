@@ -269,7 +269,8 @@ interface AnalysisItem {
   section: 'characters' | 'events';
   title: string;
   archetypes: Record<string, string>;  // framework → primary archetype id（characters 才會填，events 為空 map）
-  chapterCount: number;
+  chapterCount: number;                // @deprecated 恆為 0（歷史現況，未曾接上真實資料），保留供相容，不要用來排序/顯示
+  mentionCount: number;                // 角色分析頁 #0 修復新增：從 KG entity.mention_count 填入，可作重要度 proxy
   content: string;
   status: 'complete' | 'partial';     // partial = 該角色分析有子步驟失敗；左側清單狀態點據此上色（complete=綠 / partial=琥珀）
   generatedAt: string;
@@ -283,7 +284,8 @@ interface UnanalyzedEntity {
   id: string;
   name: string;
   type: EntityType;
-  chapterCount: number;
+  chapterCount: number;                // @deprecated 恆為 0，同上
+  mentionCount: number;                // 同上，未分析角色也會填入真實值
   // ── event-only optional fields（characters 為 null） ──
   chapter?: number | null;
   narrativeMode?: string | null;
@@ -299,7 +301,7 @@ interface UnanalyzedEntity {
 
 取得事件分析清單（含已分析與未分析）。
 
-**Response 200**：同 #6a 格式，`section: 'events'`；事件清單會額外填入 `chapter` / `narrativeMode` / `importance` 三個欄位（已分析事件的 `importance` 來自 cached EEP；未分析事件 `importance` 為 `null`）。`status` 同 #6a：`partial` = 該事件分析有子步驟（causality / impact）失敗，左側清單狀態點據此上色（complete=綠 / partial=琥珀）。
+**Response 200**：同 #6a 格式，`section: 'events'`；事件清單會額外填入 `chapter` / `narrativeMode` / `importance` 三個欄位（已分析事件的 `importance` 來自 cached EEP；未分析事件 `importance` 為 `null`）。`status` 同 #6a：`partial` = 該事件分析有子步驟（causality / impact）失敗，左側清單狀態點據此上色（complete=綠 / partial=琥珀）。`mentionCount` 為角色專用欄位，事件清單不填，恆為 `0`。
 
 **UI 使用頁面**：事件分析頁左側清單 — KERNEL/SATELLITE letter badge、章節標籤、narrative_mode mini-chip 皆依賴這三個欄位
 
@@ -340,6 +342,31 @@ interface FactionAnalysisResponse {
 **說明**：同步端點，純圖計算，無 task polling；空書 / 無角色 → `factions: []`、200。
 
 **UI 使用頁面**：圖譜頁工具列「社群」模式 → `ClusterOverviewPanel` 派系卡與底部 N×N 關係矩陣
+
+---
+
+### #6e GET /books/:bookId/analysis/character-metrics
+
+角色中心性指標（角色分析頁翻新 #1 定位象限視圖用）。對**全實體圖**（角色/地點/組織…全部節點與關係邊，非僅角色子圖）建無向、無權重 NetworkX 圖，跑 `nx.pagerank` 與 degree，僅回傳 character 型別實體的結果。同步端點，純圖計算，無 LLM、無 task polling，模式同 #6d。
+
+**Response 200**：`CharacterMetricsResponse`
+```ts
+interface CharacterMetricsResponse {
+  bookId: string;
+  metrics: Array<{
+    entityId: string;
+    name: string;
+    pagerank: number;  // nx.pagerank 結果，未加權；空圖/單節點也有明確值（不會噴錯）
+    degree: number;     // 該角色在全實體關係圖上的邊數 —— 包含對地點/組織等非角色實體的邊，不只角色對角色
+  }>;
+}
+```
+
+**Response 404**：書本不存在
+
+**說明**：空書 / 無角色 / 無關係邊 → `metrics: []`、200（pagerank 對空圖或單節點的邊界已處理）。`degree` 刻意取自全實體圖而非 #6d 的角色子圖，因此與「派系」端點的連結定義不同，兩者不可互換比較。
+
+**UI 使用頁面**：角色分析頁總覽 landing 定位象限視圖（Y 軸 = pagerank、泡泡大小 = degree）、hero card「關係連結 N 條」
 
 ---
 
@@ -428,16 +455,23 @@ interface ArcSegment {
 
 ### #7h POST /books/:bookId/entities/analyze-all
 
-批次觸發所有未分析角色（`entity_type=character`）的深度分析（已分析自動跳過）。Archetype frameworks 固定為 `["jung", "schmidt"]`。
+批次觸發未分析角色（`entity_type=character`）的深度分析（已分析自動跳過）。Archetype frameworks 固定為 `["jung", "schmidt"]`。
+
+**Request Body**（選填，全省略即整本書行為不變）
+```ts
+interface BatchAnalysisRequest {
+  entityIds?: string[];  // 提供時只對這個子集執行（角色分層批次 #11「先生成前 10 位要角」用）；省略 = 全部未分析角色
+}
+```
 
 **Response 202**：`{ taskId: string }`
 
 **Response 404**：書本不存在
-**Response 400**：書本內無 character 類型實體
+**Response 400**：書本內無 character 類型實體（含 `entityIds` 提供但子集內無任何有效角色的情況——視為同一種空結果）
 
-**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）。polling #8。
+**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）；`total` 為實際執行的角色數（有 `entityIds` 時為子集大小，非全書角色數）。`entityIds` 中不存在的 id 直接排除，不計入任何統計欄位（不算 skipped/failed）。仍會 skip 已分析角色（cache hit）。polling #8。
 
-**UI 使用頁面**：角色分析頁「一鍵生成全部角色分析」
+**UI 使用頁面**：角色分析頁「一鍵生成全部角色分析」、分層批次「先生成前 10 位要角」（#11）
 
 ---
 
@@ -1380,6 +1414,9 @@ HITL 審核 / 修改 SymbolInterpretation。
 
 **行為說明**：Lazy 生成 — 第一次呼叫時直接計算並快取，後續從快取回傳。無「尚未生成」的 404；404 僅在 book 或 entity 不存在時回傳。
 
+**Query Params**：
+- `cached_only` (boolean, optional, default `false`) — `true` 時只讀快取，絕不觸發生成：有快取 → 200（同一般行為）；無快取 → **404**（此時才代表「尚未生成」）。`false`（省略）維持既有 lazy 生成行為不變。
+
 **Response 200**：`VoiceProfileResponse`（見 generated.ts）
 
 新增欄位（用於語音風格 tab 的圖表）：
@@ -1399,11 +1436,11 @@ sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
 
 `toneDistribution` 由 backend 直接從 `question_ratio` / `exclamation_ratio` 推導（declarative = 1 − Q − E），不額外打 LLM。`sentenceLengthHistogram` 由 `_compute_metrics` 計算句長後分桶。兩欄位皆為**可選**（舊快取 entries 預設為空陣列），不會破壞既有資料。
 
-**Response 404**：book 或 entity 不存在
+**Response 404**：book 或 entity 不存在；或 `cached_only=true` 且尚無快取
 
 **Response 422**：entity 無對話段落可分析
 
-**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel（ToneDistribution 堆疊條 + SentenceHistogram 直方圖）
+**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel（ToneDistribution 堆疊條 + SentenceHistogram 直方圖）；`cached_only` 供 #8 伺服器判定生成狀態用（取代 localStorage gate）
 
 ---
 

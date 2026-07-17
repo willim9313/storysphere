@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
@@ -50,6 +50,7 @@ export default function CharacterAnalysisPage() {
   const { t: tc } = useTranslation('common');
 
   const location = useLocation();
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [framework, setFramework] = useState<Framework>('jung');
   const [searchQuery, setSearchQuery] = useState('');
@@ -106,12 +107,12 @@ export default function CharacterAnalysisPage() {
     onError: () => setTriggerError(t('triggerFailed')),
   });
 
-  const handleSelectEntity = (id: string) => {
+  const handleSelectEntity = useCallback((id: string) => {
     setSelectedEntityId(id);
     // Reset sub-tab when switching characters so each one starts at persona
     setOverviewSubTab('persona');
     setCompareOpen(false);
-  };
+  }, []);
 
   const handleGenerate = (id: string) => {
     setGeneratingId(id);
@@ -192,12 +193,78 @@ export default function CharacterAnalysisPage() {
   const selectedAnalyzed = charData?.analyzed.find((a) => a.entityId === selectedEntityId);
   const selectedUnanalyzed = charData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
-  const filterFn = (name: string) =>
-    !searchQuery || name.toLowerCase().includes(searchQuery.toLowerCase());
-  const filteredAnalyzed = charData?.analyzed.filter((a) => filterFn(a.title)) ?? [];
-  const filteredUnanalyzed = charData?.unanalyzed.filter((u) => filterFn(u.name)) ?? [];
+  // Search matches the name, and for analyzed characters, also the current
+  // framework's archetype label (e.g. searching "統治者" finds that archetype).
+  const filterFn = (name: string, archetype?: string) => {
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return name.toLowerCase().includes(q) || !!archetype?.toLowerCase().includes(q);
+  };
+  const filteredAnalyzed = (charData?.analyzed ?? [])
+    .filter((a) => filterFn(a.title, a.archetypes?.[framework]))
+    .sort((a, b) => b.mentionCount - a.mentionCount);
+  const filteredUnanalyzed = (charData?.unanalyzed ?? [])
+    .filter((u) => filterFn(u.name))
+    .sort((a, b) => b.mentionCount - a.mentionCount);
 
   const totalCharacters = (charData?.analyzed.length ?? 0) + (charData?.unanalyzed.length ?? 0);
+  const maxMentionCount = Math.max(
+    0,
+    ...(charData?.analyzed.map((a) => a.mentionCount) ?? []),
+    ...(charData?.unanalyzed.map((u) => u.mentionCount) ?? []),
+  );
+
+  // Flattened, filtered+sorted list (analyzed → unanalyzed) for ↑/↓ keyboard nav.
+  const flatNavList = useMemo(
+    () => [
+      ...filteredAnalyzed.map((a) => a.entityId),
+      ...filteredUnanalyzed.map((u) => u.id),
+    ],
+    [filteredAnalyzed, filteredUnanalyzed],
+  );
+
+  // #13 keyboard operation: ↑/↓ moves through the left list, / focuses search,
+  // 1/2/3 switches primary tabs (only once an analyzed character is selected).
+  // Ignored entirely while focus is in an input/textarea/contenteditable so it
+  // never steals keys from the search box or the epistemic chapter slider.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const tag = target?.tagName;
+      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || !!target?.isContentEditable;
+      if (isEditable) return;
+
+      if (e.key === '/') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        if (flatNavList.length === 0) return;
+        e.preventDefault();
+        const currentIndex = flatNavList.indexOf(selectedEntityId ?? '');
+        const delta = e.key === 'ArrowDown' ? 1 : -1;
+        const nextIndex =
+          currentIndex === -1 ? 0 : (currentIndex + delta + flatNavList.length) % flatNavList.length;
+        const nextId = flatNavList[nextIndex];
+        handleSelectEntity(nextId);
+        document.getElementById(`ca-list-item-${nextId}`)?.scrollIntoView({ block: 'nearest' });
+        return;
+      }
+
+      if (e.key === '1' || e.key === '2' || e.key === '3') {
+        if (!selectedAnalyzed) return;
+        const tab = PRIMARY_TABS[Number(e.key) - 1];
+        if (tab) {
+          e.preventDefault();
+          setPrimaryTab(tab);
+        }
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [flatNavList, selectedEntityId, selectedAnalyzed, handleSelectEntity]);
 
   // Title bar archetype badge label
   const titleArchetypeName = entityAnalysis
@@ -261,6 +328,7 @@ export default function CharacterAnalysisPage() {
             <div className="ca-search">
               <Search size={12} style={{ color: 'var(--fg-muted)' }} />
               <input
+                ref={searchInputRef}
                 type="text"
                 placeholder={t('character.list.searchPlaceholder', { count: totalCharacters })}
                 value={searchQuery}
@@ -279,10 +347,12 @@ export default function CharacterAnalysisPage() {
                 {filteredAnalyzed.map((item) => (
                   <AnalyzedItem
                     key={item.id}
+                    itemId={`ca-list-item-${item.entityId}`}
                     item={item}
                     framework={framework}
                     isSelected={selectedEntityId === item.entityId}
                     onSelect={() => handleSelectEntity(item.entityId)}
+                    maxMentionCount={maxMentionCount}
                   />
                 ))}
               </div>
@@ -296,11 +366,13 @@ export default function CharacterAnalysisPage() {
                 {filteredUnanalyzed.map((item) => (
                   <UnanalyzedItem
                     key={item.id}
+                    itemId={`ca-list-item-${item.id}`}
                     item={item}
                     isSelected={selectedEntityId === item.id}
                     onSelect={() => handleSelectEntity(item.id)}
                     onGenerate={() => handleGenerate(item.id)}
                     isGenerating={generatingId === item.id}
+                    maxMentionCount={maxMentionCount}
                   />
                 ))}
               </div>

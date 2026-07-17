@@ -72,14 +72,20 @@ export function EpistemicStateSection({
   // is in-flight — important when dragging the slider backwards.
   const optimistic = useMemo(() => {
     if (!state) return null;
+    // Misbeliefs (MisbeliefItemSchema) carry no chapter field, so this
+    // predicate keeps them visible — same "no chapter → don't filter out"
+    // rule applied to known/unknown events, kept consistent across all
+    // three columns.
+    const isVisibleByChapter = (ev: unknown): boolean => {
+      const ch = getChapter(ev as Record<string, unknown>);
+      return ch == null || ch <= displayedChapter;
+    };
     const filterByChapter = (events: Record<string, unknown>[]) =>
-      events.filter((ev) => {
-        const ch = getChapter(ev);
-        return ch == null || ch <= displayedChapter;
-      });
+      events.filter(isVisibleByChapter);
     return {
       known: filterByChapter(state.knownEvents as Record<string, unknown>[]),
       unknown: filterByChapter(state.unknownEvents as Record<string, unknown>[]),
+      misbeliefs: state.misbeliefs.filter(isVisibleByChapter),
     };
   }, [state, displayedChapter]);
 
@@ -145,7 +151,7 @@ export function EpistemicStateSection({
           </div>
           <div className="ca-epi-count">
             <span className="ca-epi-count-dot misbelief" />
-            <span className="ca-epi-count-n">{state?.misbeliefs.length ?? 0}</span>
+            <span className="ca-epi-count-n">{optimistic?.misbeliefs.length ?? 0}</span>
             <span className="ca-epi-count-l">{t('character.epistemic.misbeliefShortLabel')}</span>
           </div>
         </div>
@@ -223,14 +229,14 @@ export function EpistemicStateSection({
                 <AlertTriangle size={12} />
                 {t('character.epistemic.misbeliefTitle')}
               </span>
-              <span className="ca-epi-block-count">{state.misbeliefs.length}</span>
+              <span className="ca-epi-block-count">{optimistic.misbeliefs.length}</span>
             </div>
-            {state.misbeliefs.length === 0 ? (
+            {optimistic.misbeliefs.length === 0 ? (
               <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
                 {t('character.epistemic.misbeliefEmpty')}
               </p>
             ) : (
-              state.misbeliefs.map((m) => (
+              optimistic.misbeliefs.map((m) => (
                 <div key={m.sourceEventId} className="ca-misbelief">
                   <div>
                     <span className="label">{t('character.epistemic.characterBelieves')}</span>

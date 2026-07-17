@@ -1,13 +1,8 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic, RefreshCw } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { useVoiceProfile, deleteVoiceProfile, type VoiceProfile } from '@/api/voice';
+import { fetchVoiceProfile, deleteVoiceProfile, useCachedVoiceProfile, type VoiceProfile } from '@/api/voice';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-
-function voiceLsKey(bookId: string, entityId: string) {
-  return `voice_generated:${bookId}:${entityId}`;
-}
 
 const TONE_PALETTE: readonly string[] = [
   'var(--accent)',
@@ -23,44 +18,40 @@ interface Props {
   entityId: string;
 }
 
-export function VoiceProfilingPanel({ bookId, entityId }: Props) {
+export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const queryClient = useQueryClient();
   const voiceQueryKey = ['books', bookId, 'entities', entityId, 'voice'] as const;
-  const lsKey = voiceLsKey(bookId, entityId);
 
-  const [requested, setRequested] = useState(() => localStorage.getItem(lsKey) === '1');
+  // #8: server-judged status. cached_only=true probes for an existing result
+  // without triggering lazy generation; a 404 here is the normal "not
+  // generated yet" state (retry disabled in the hook), not an error to surface.
+  const { data, isLoading: isProbing } = useCachedVoiceProfile(bookId, entityId);
 
-  const { data, isLoading, isError } = useVoiceProfile(bookId, entityId, requested);
+  const analyzeMutation = useMutation({
+    mutationFn: () => fetchVoiceProfile(bookId, entityId),
+    onSuccess: (result) => {
+      queryClient.setQueryData(voiceQueryKey, result);
+    },
+  });
 
   const regenerateMutation = useMutation({
     mutationFn: () => deleteVoiceProfile(bookId, entityId),
     onSuccess: () => {
+      analyzeMutation.reset();
       queryClient.invalidateQueries({ queryKey: voiceQueryKey });
     },
   });
 
-  const handleRequest = () => {
-    localStorage.setItem(lsKey, '1');
-    setRequested(true);
-  };
-
-  if (data) localStorage.setItem(lsKey, '1');
-  if (isError && !isLoading) localStorage.removeItem(lsKey);
-
-  if (!requested) {
+  if (isProbing) {
     return (
       <div className="ca-empty">
-        <div className="ca-empty-icon"><Mic size={22} /></div>
-        <div className="ca-empty-title">{t('character.voice.noData')}</div>
-        <button className="ca-btn ca-btn-primary" onClick={handleRequest}>
-          {t('character.voice.analyze')}
-        </button>
+        <LoadingSpinner />
       </div>
     );
   }
 
-  if (isLoading || regenerateMutation.isPending) {
+  if (analyzeMutation.isPending || regenerateMutation.isPending) {
     return (
       <div className="ca-empty">
         <LoadingSpinner />
@@ -69,12 +60,12 @@ export function VoiceProfilingPanel({ bookId, entityId }: Props) {
     );
   }
 
-  if (isError || !data) {
+  if (!data) {
     return (
       <div className="ca-empty">
         <div className="ca-empty-icon"><Mic size={22} /></div>
         <div className="ca-empty-title">{t('character.voice.noData')}</div>
-        <button className="ca-btn ca-btn-primary" onClick={handleRequest}>
+        <button className="ca-btn ca-btn-primary" onClick={() => analyzeMutation.mutate()}>
           {t('character.voice.analyze')}
         </button>
       </div>

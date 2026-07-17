@@ -90,7 +90,8 @@
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 位角色",
       "frameworkLabel": "分析框架",
-      "chapterCount": "Ch.{{count}}"
+      "chapterCount": "Ch.{{count}}",
+      "mentionCount": "提及 {{count}} 次"
     },
     "batch": {
       "header": "角色分析",

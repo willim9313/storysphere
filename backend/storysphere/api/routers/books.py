@@ -34,6 +34,7 @@ from storysphere.api.schemas.books import (
     AnalyzeTriggerRequest,
     ArchetypeDetailResponse,
     ArcSegmentResponse,
+    BatchAnalysisRequest,
     BookDetailResponse,
     BookResponse,
     CepResponse,
@@ -1503,6 +1504,7 @@ async def list_character_analyses(
                         section="characters",
                         title=e.name,
                         archetypes=archetypes,
+                        mention_count=e.mention_count,
                         content=result.profile.summary if result.profile else "",
                         status="partial" if result.failed_parts else "complete",
                         generated_at=(
@@ -1517,12 +1519,14 @@ async def list_character_analyses(
                 unanalyzed.append(
                     UnanalyzedEntity(
                         id=e.id, name=e.name, type="character", chapter_count=0,
+                        mention_count=e.mention_count,
                     ).model_dump(by_alias=True)
                 )
         else:
             unanalyzed.append(
                 UnanalyzedEntity(
                     id=e.id, name=e.name, type="character", chapter_count=0,
+                    mention_count=e.mention_count,
                 ).model_dump(by_alias=True)
             )
 
@@ -1833,14 +1837,22 @@ async def _run_batch_entity_analysis(
     kg_service,
     cache,
     language: str = "en",
+    entity_ids: list[str] | None = None,
 ) -> None:
-    """Background task: analyze all unanalyzed character entities."""
+    """Background task: analyze all unanalyzed character entities.
+
+    ``entity_ids``, when provided, restricts the run to that subset (any ids
+    that don't match an existing character entity are silently excluded).
+    """
     from storysphere.domain.entities import EntityType  # noqa: PLC0415
 
     task_store.set_running(task_id)
     characters = await kg_service.list_entities(
         entity_type=EntityType.CHARACTER, document_id=document_id
     )
+    if entity_ids is not None:
+        wanted = set(entity_ids)
+        characters = [c for c in characters if c.id in wanted]
     total = len(characters)
     done = 0
     failed = 0
@@ -1914,10 +1926,13 @@ async def trigger_batch_entity_analysis(
     cache: AnalysisCacheDep,
     agent: AnalysisAgentDep,
     background_tasks: BackgroundTasks,
+    body: BatchAnalysisRequest = BatchAnalysisRequest(),
 ) -> dict:
-    """Trigger deep analysis for ALL character entities in a book.
+    """Trigger deep analysis for ALL (or a subset of) character entities in a book.
 
-    Skips characters that already have cached analysis.
+    ``entityIds``, when provided, restricts the run to that subset (still
+    skipping any that already have cached analysis); ids that don't match an
+    existing character entity are silently excluded. Omitted → all characters.
     Returns a task_id for progress tracking.
     """
     from storysphere.domain.entities import EntityType  # noqa: PLC0415
@@ -1932,6 +1947,9 @@ async def trigger_batch_entity_analysis(
     characters = await kg.list_entities(
         entity_type=EntityType.CHARACTER, document_id=book_id
     )
+    if body.entity_ids is not None:
+        wanted = set(body.entity_ids)
+        characters = [c for c in characters if c.id in wanted]
     if not characters:
         raise HTTPException(
             status_code=400,
@@ -1943,7 +1961,7 @@ async def trigger_batch_entity_analysis(
     task_store.create(task_id, kind="character", title="批次角色分析")
     background_tasks.add_task(
         _run_batch_entity_analysis,
-        task_id, book_id, agent, kg, cache, language,
+        task_id, book_id, agent, kg, cache, language, body.entity_ids,
     )
 
     logger.info(
@@ -2578,11 +2596,15 @@ async def get_entity_voice_profile(
     voice_svc: VoiceProfilingServiceDep,
     doc: DocServiceDep,
     kg: KGServiceDep,
+    cached_only: bool = False,
 ) -> dict:
     """Return the voice profile for a character.
 
     Computes quantitative linguistic metrics and LLM qualitative description
     on first call; subsequent calls are served from SQLite cache.
+
+    ``cached_only=true``: only reads the cache, never triggers generation —
+    404 if no cached profile exists yet.
     """
     document = await doc.get_document(book_id)
     if document is None:
@@ -2598,9 +2620,13 @@ async def get_entity_voice_profile(
             document_id=book_id,
             character_id=entity_id,
             language=language,
+            cached_only=cached_only,
         )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    if profile is None:
+        raise HTTPException(status_code=404, detail="Voice profile not cached yet")
 
     return VoiceProfileResponse(
         character_id=profile.character_id,

@@ -105,13 +105,20 @@ class VoiceProfilingService:
         return self._cache
 
     async def get_voice_profile(
-        self, document_id: str, character_id: str, language: str = "en"
-    ) -> VoiceProfile:
+        self,
+        document_id: str,
+        character_id: str,
+        language: str = "en",
+        cached_only: bool = False,
+    ) -> VoiceProfile | None:
         """Return the voice profile for a character, computing and caching on first call.
 
         ``language`` is appended to the cache key so a document re-detected to a
         different language doesn't read back qualitative fields generated for the
         previous language.
+
+        ``cached_only=True`` never triggers generation: returns the cached
+        profile if present, otherwise ``None`` (no LLM call, no cache write).
         """
         cache = self._get_cache()
         key = f"voice_profile:{document_id}:{character_id}:{language}"
@@ -119,6 +126,9 @@ class VoiceProfilingService:
         cached = await cache.get(key)
         if cached:
             return VoiceProfile.model_validate(cached)
+
+        if cached_only:
+            return None
 
         kg = self._get_kg_service()
         character = await kg.get_entity(character_id)
