@@ -168,6 +168,7 @@ export async function triggerBatchEventAnalysis(
 
 export async function triggerBatchEntityAnalysis(
   _bookId: string,
+  _entityIds?: string[],
 ): Promise<{ taskId: string }> {
   await delay(300);
   return createMockTask();

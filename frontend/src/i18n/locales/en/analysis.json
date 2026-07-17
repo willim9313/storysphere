@@ -11,7 +11,6 @@
   "triggerFailed": "Failed to trigger analysis. Please try again later.",
   "batchTriggerFailed": "Failed to trigger batch analysis. Please try again later.",
   "selectCharacter": "Select a character to view or generate analysis",
-  "quickAccess": "Jump to an analyzed character",
   "selectEvent": "Select an event to view or generate analysis",
   "viewInGraph": "View in Graph",
   "frameworkIndex": "Frameworks",
@@ -77,21 +76,68 @@
     },
     "behavior": {
       "actionsCount": "{{count}} items",
-      "keyEventsSub": "{{count}} events, in chapter order"
+      "keyEventsSub": "{{count}} events, in chapter order",
+      "viewInEvents": "View in event analysis"
     },
     "relations": {
       "relationsCount": "{{count}} relations",
-      "quotesCount": "{{count}} quotes"
+      "relationsSummary": "{{targets}} targets · {{count}} relations",
+      "quotesCount": "{{count}} quotes",
+      "segmentCount": "{{count}} segments",
+      "egoCaption": "Relationship graph · centered on {{name}}",
+      "egoLegendNote": "Click a node to load that character · badge = multiple relation segments"
     },
     "arcPane": {
       "stagesCount": "{{count}} stages",
-      "stageN": "Stage {{n}}"
+      "keyEventMarkerLegend": "Key event marker",
+      "overlapStackingNote": "Adjacent phases sharing a boundary chapter are shown stacked in offset rows"
     },
     "list": {
       "searchPlaceholder": "Search {{count}} characters",
       "frameworkLabel": "Analysis framework",
-      "chapterCount": "Ch.{{count}}",
       "mentionCount": "{{count}} mentions"
+    },
+    "archFilter": {
+      "label": "Filter analyzed characters by archetype",
+      "selectedCount": "{{count}} archetypes selected",
+      "searchPlaceholder": "{{framework}} archetypes…",
+      "noMatch": "No matching archetypes",
+      "clearAll": "Clear all filters"
+    },
+    "overview": {
+      "title": "Cast Overview",
+      "metaTotal": "characters",
+      "metaAnalyzed": "analyzed",
+      "metaUnanalyzed": "unanalyzed",
+      "batchTop10": "Generate top 10 leads first",
+      "batchAll": "Generate all",
+      "batchProgress": "Analyzing · {{progress}}%",
+      "backToOverview": "Cast Overview",
+      "viewQuadrant": "Position Quadrant",
+      "viewRanking": "Mention Ranking",
+      "quadrantCaption": "X = narrative presence (log) · Y = structural importance · bubble size = relation count · colour = faction",
+      "rankingCaption": "Linear scale · descending by mentions across the whole book",
+      "quadrant": {
+        "yAxis": "Structural importance ↑",
+        "xAxis": "Narrative presence (log mentions) →",
+        "cornerLead": "Leads",
+        "cornerTail": "Background long tail",
+        "ariaLabel": "Character positioning quadrant scatter plot",
+        "metricsError": "Character structural-importance data is temporarily unavailable, so the quadrant view can't render.",
+        "bubbleDetail": "· {{mentions}} mentions · {{degree}} relations",
+        "legendHead": "Faction · colour coding",
+        "legendRow": "{{names}} and {{count}} more",
+        "unaffiliated": "No faction · {{count}}",
+        "footnote": "Cross-hairs mark both axes' medians · only the top 8 are always labelled, others show on hover · the {{count}} unaffiliated characters render as low-saturation outlined rings · click a bubble to load that character"
+      },
+      "ranking": {
+        "heroTag": "Most-mentioned core character",
+        "heroSub": "{{mentions}} mentions · {{degree}} relation links",
+        "viewAnalysis": "View analysis",
+        "createHero": "Create core character analysis",
+        "collapse": "Collapse long tail",
+        "expand": "Show {{count}} more characters"
+      }
     },
     "batch": {
       "header": "Character analysis",
@@ -113,6 +159,8 @@
       "toastClose": "Close",
       "confirmTitle": "Generate all character analyses",
       "confirmMessage": "Run deep analysis on {{count}} unanalyzed characters. Already-analyzed characters are skipped. This consumes a significant amount of tokens.",
+      "confirmTop10Title": "Generate top-10 lead analyses",
+      "confirmTop10Message": "Run deep analysis on the {{count}} unanalyzed characters with the most mentions. Already-analyzed characters are skipped. This consumes a significant amount of tokens.",
       "confirmBtn": "Confirm",
       "triggerFailed": "Failed to trigger batch analysis. Please try again later."
     },
@@ -173,6 +221,31 @@
       "characterBelieves": "Believes:",
       "actually": "Actually:",
       "misbeliefMeta": "Confidence {{pct}}% · Origin Ch.{{n}}"
+    },
+    "epistemicCompare": {
+      "openButton": "Compare with another character",
+      "title": "Epistemic Compare — Information Gap",
+      "vs": "vs",
+      "selectPlaceholder": "Select a second character…",
+      "selectPrompt": "Select a second character to see the information gap",
+      "cursorNote": "Shared chapter cursor · up to Chapter {{n}}",
+      "loading": "Computing…",
+      "dataIncomplete": "{{name}} has no complete visibility data yet — comparison unavailable.",
+      "onlyLabel": "Only {{name}} knows",
+      "bothLabel": "Both know"
+    },
+    "generating": {
+      "label": "Analyzing",
+      "taskLabel": "TASK ID",
+      "footerNote": "Polling status every 2s",
+      "stages": {
+        "cep": "Assembling CEP evidence profile",
+        "archetype": "Classifying archetype (Jung / Schmidt)",
+        "traits": "Personality traits & behavior",
+        "relations": "Relations & key events",
+        "arc": "Developmental arc",
+        "write": "Writing analysis result"
+      }
     }
   },
   "event": {

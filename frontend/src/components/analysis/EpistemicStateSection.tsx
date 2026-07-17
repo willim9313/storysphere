@@ -1,41 +1,29 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, EyeOff, AlertTriangle, Clock } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle, Clock, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
 import { ChapterTimeline, type TimelineMarker } from './ChapterTimeline';
+import { getChapter, getTitle, getId } from './epistemicEventUtils';
 
 interface EpistemicStateSectionProps {
   bookId: string;
   characterId: string;
   totalChapters: number;
+  // #10: opens the page-level epistemic-compare drawer, seeded with this
+  // section's current (optimistic) cursor position so the drawer starts in
+  // sync with what the user was just looking at.
+  onOpenCompare: (currentChapter: number) => void;
 }
 
 const DEBOUNCE_MS = 200;
-
-function getChapter(ev: Record<string, unknown>): number | null {
-  const v = ev.chapter ?? ev.chapterNumber ?? ev.chapter_number;
-  if (typeof v === 'number' && Number.isFinite(v)) return v;
-  if (typeof v === 'string') {
-    const parsed = Number(v);
-    return Number.isFinite(parsed) ? parsed : null;
-  }
-  return null;
-}
-
-function getTitle(ev: Record<string, unknown>): string {
-  return String(ev.title ?? ev.name ?? ev.event ?? '');
-}
-
-function getId(ev: Record<string, unknown>, fallback: number): string {
-  return String(ev.id ?? ev.eventId ?? fallback);
-}
 
 export function EpistemicStateSection({
   bookId,
   characterId,
   totalChapters,
+  onOpenCompare,
 }: EpistemicStateSectionProps) {
   const { t } = useTranslation('analysis');
   const queryClient = useQueryClient();
@@ -89,12 +77,15 @@ export function EpistemicStateSection({
     };
   }, [state, displayedChapter]);
 
+  // Only markers with chapter <= displayedChapter render on the axis — same
+  // optimistic-filter rule as the known/unknown/misbelief panes above, so the
+  // timeline doesn't flash markers ahead of the cursor while dragging.
   const markers: TimelineMarker[] = useMemo(() => {
     if (!state) return [];
     const all: TimelineMarker[] = [];
     (state.knownEvents as Record<string, unknown>[]).forEach((ev, i) => {
       const ch = getChapter(ev);
-      if (ch == null) return;
+      if (ch == null || ch > displayedChapter) return;
       all.push({
         id: getId(ev, i),
         chapter: ch,
@@ -104,7 +95,7 @@ export function EpistemicStateSection({
     });
     (state.unknownEvents as Record<string, unknown>[]).forEach((ev, i) => {
       const ch = getChapter(ev);
-      if (ch == null) return;
+      if (ch == null || ch > displayedChapter) return;
       all.push({
         id: getId(ev, i + 10000),
         chapter: ch,
@@ -113,7 +104,7 @@ export function EpistemicStateSection({
       });
     });
     return all;
-  }, [state]);
+  }, [state, displayedChapter]);
 
   if (state && !state.dataComplete) {
     return (
@@ -138,6 +129,12 @@ export function EpistemicStateSection({
     <div>
       {/* Summary row */}
       <div className="ca-epi-summary">
+        <div className="ca-epi-summary-chapter">
+          <span className="ca-epi-summary-chapter-label">{t('character.epistemic.upToChapter')}</span>
+          <span className="ca-epi-summary-chapter-n">
+            {t('character.epistemic.chapterN', { n: displayedChapter })}
+          </span>
+        </div>
         <div className="ca-epi-counts">
           <div className="ca-epi-count">
             <span className="ca-epi-count-dot known" />
@@ -159,6 +156,13 @@ export function EpistemicStateSection({
         <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
           {isFetching ? t('character.epistemic.computing') : t('character.epistemic.summarySubtitle')}
         </span>
+        <button
+          type="button"
+          className="ca-btn ca-btn-outline-accent"
+          onClick={() => onOpenCompare(displayedChapter)}
+        >
+          <Users size={13} /> {t('character.epistemicCompare.openButton')}
+        </button>
       </div>
 
       <ChapterTimeline

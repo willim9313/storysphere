@@ -7,6 +7,7 @@ import {
   RefreshCw,
   AlertTriangle,
   GitCompare,
+  ArrowLeft,
   Check,
   X,
 } from 'lucide-react';
@@ -15,6 +16,7 @@ import '@/styles/character-analysis.css';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
+import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import {
   fetchEntityAnalysis,
   triggerEntityAnalysis,
@@ -22,7 +24,6 @@ import {
   triggerBatchEntityAnalysis,
 } from '@/api/analysis';
 import type { BatchEepResult } from '@/api/types';
-import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
 import {
   CharacterAnalysisDetail,
   type OverviewSubTab,
@@ -30,8 +31,12 @@ import {
 import { EpistemicStateSection } from '@/components/analysis/EpistemicStateSection';
 import { VoiceProfilingPanel } from '@/components/analysis/VoiceProfilingPanel';
 import { FrameworkCompareDrawer } from '@/components/analysis/FrameworkCompareDrawer';
+import { EpistemicCompareDrawer } from '@/components/analysis/EpistemicCompareDrawer';
+import { CharacterGenerating } from '@/components/analysis/CharacterGenerating';
 import { CharacterTipRibbon } from '@/components/analysis/CharacterTipRibbon';
 import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
+import { ArchetypeFilterDropdown } from '@/components/analysis/ArchetypeFilterDropdown';
+import { CharacterOverviewLanding } from '@/components/analysis/overview/CharacterOverviewLanding';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
@@ -53,6 +58,7 @@ export default function CharacterAnalysisPage() {
   const searchInputRef = useRef<HTMLInputElement>(null);
 
   const [framework, setFramework] = useState<Framework>('jung');
+  const [archFilter, setArchFilter] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
     (location.state as { selectId?: string } | null)?.selectId ?? null,
@@ -60,12 +66,19 @@ export default function CharacterAnalysisPage() {
   const [primaryTab, setPrimaryTab] = useState<PrimaryTab>('overview');
   const [overviewSubTab, setOverviewSubTab] = useState<OverviewSubTab>('persona');
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
-  const [compareOpen, setCompareOpen] = useState(false);
+  // Page-level drawer state: only one of the two right-side drawers (#10
+  // epistemic compare, framework compare) may be open at a time.
+  const [drawerOpen, setDrawerOpen] = useState<null | 'framework' | 'epistemic'>(null);
+  // Seeds the epistemic-compare drawer's shared cursor with whatever chapter
+  // the epistemic tab's own cursor was on when "對照另一角色" was clicked.
+  const [epistemicCompareChapter, setEpistemicCompareChapter] = useState(1);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [triggerError, setTriggerError] = useState<string | null>(null);
 
-  const [confirmBatch, setConfirmBatch] = useState(false);
+  // #11 tiered batch: 'top10' analyzes the top-10-by-mentionCount unanalyzed
+  // characters (entityIds subset), 'all' analyzes everything unanalyzed.
+  const [batchMode, setBatchMode] = useState<'top10' | 'all' | null>(null);
   const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
   const [batchError, setBatchError] = useState<string | null>(null);
   const [batchSummary, setBatchSummary] = useState<BatchEepResult | null>(null);
@@ -78,6 +91,8 @@ export default function CharacterAnalysisPage() {
   }, [book, bookId, setPageContext]);
 
   const { data: charData, isLoading } = useCharacterAnalysis(bookId);
+  // #5 behavior-pane keyEvents -> event analysis page name matching.
+  const { data: eventData } = useEventAnalysis(bookId);
 
   const { data: entityAnalysis, isLoading: analysisLoading } = useQuery({
     queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'],
@@ -111,7 +126,13 @@ export default function CharacterAnalysisPage() {
     setSelectedEntityId(id);
     // Reset sub-tab when switching characters so each one starts at persona
     setOverviewSubTab('persona');
-    setCompareOpen(false);
+    setDrawerOpen(null);
+  }, []);
+
+  // #1 回程路徑: leaves the detail/unanalyzed view and returns to the cast
+  // overview landing.
+  const handleBackToOverview = useCallback(() => {
+    setSelectedEntityId(null);
   }, []);
 
   const handleGenerate = (id: string) => {
@@ -143,7 +164,7 @@ export default function CharacterAnalysisPage() {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const batchMutation = useMutation({
-    mutationFn: () => triggerBatchEntityAnalysis(bookId!),
+    mutationFn: (entityIds?: string[]) => triggerBatchEntityAnalysis(bookId!, entityIds),
     onSuccess: (data) => {
       setBatchError(null);
       setBatchSummary(null);
@@ -200,8 +221,11 @@ export default function CharacterAnalysisPage() {
     const q = searchQuery.toLowerCase();
     return name.toLowerCase().includes(q) || !!archetype?.toLowerCase().includes(q);
   };
+  // #14 archetype filter only applies to the analyzed group (dropdown is
+  // scoped to "篩選已分析角色"), and resets whenever the framework switches.
   const filteredAnalyzed = (charData?.analyzed ?? [])
     .filter((a) => filterFn(a.title, a.archetypes?.[framework]))
+    .filter((a) => archFilter.length === 0 || archFilter.includes(a.archetypes?.[framework] ?? ''))
     .sort((a, b) => b.mentionCount - a.mentionCount);
   const filteredUnanalyzed = (charData?.unanalyzed ?? [])
     .filter((u) => filterFn(u.name))
@@ -212,6 +236,31 @@ export default function CharacterAnalysisPage() {
     0,
     ...(charData?.analyzed.map((a) => a.mentionCount) ?? []),
     ...(charData?.unanalyzed.map((u) => u.mentionCount) ?? []),
+  );
+
+  // #11 "先生成前 10 位要角": top-10-by-mentionCount unanalyzed entity ids.
+  const top10UnanalyzedIds = [...(charData?.unanalyzed ?? [])]
+    .sort((a, b) => b.mentionCount - a.mentionCount)
+    .slice(0, 10)
+    .map((u) => u.id);
+
+  // #3 relations-pane target click-through: full character roster (analyzed +
+  // unanalyzed) so a `cep.relations[].target` name can be matched to an
+  // entityId regardless of that character's own analysis status.
+  const characterRoster = useMemo(
+    () => [
+      ...(charData?.analyzed ?? []).map((a) => ({ name: a.title, id: a.entityId })),
+      ...(charData?.unanalyzed ?? []).map((u) => ({ name: u.name, id: u.id })),
+    ],
+    [charData],
+  );
+  // #5 behavior-pane keyEvents -> event analysis page name matching.
+  const eventRoster = useMemo(
+    () => [
+      ...(eventData?.analyzed ?? []).map((a) => ({ name: a.title, id: a.entityId })),
+      ...(eventData?.unanalyzed ?? []).map((u) => ({ name: u.name, id: u.id })),
+    ],
+    [eventData],
   );
 
   // Flattened, filtered+sorted list (analyzed → unanalyzed) for ↑/↓ keyboard nav.
@@ -278,21 +327,6 @@ export default function CharacterAnalysisPage() {
       <div className="ca-body">
         {/* ── Left panel ── */}
         <aside className="ca-left">
-          {charData && (
-            <BatchEepPanel
-              i18nPrefix="character.batch"
-              analyzedCount={charData.analyzed.length}
-              totalCount={totalCharacters}
-              batchTask={batchTask}
-              isBatchRunning={isBatchRunning}
-              batchError={batchError}
-              batchSummary={batchSummary}
-              onTrigger={() => setConfirmBatch(true)}
-              onDismissSummary={() => setBatchSummary(null)}
-              isPending={batchMutation.isPending}
-            />
-          )}
-
           <div className="ca-left-section">
             <p className="ca-left-section-label">{t('character.list.frameworkLabel')}</p>
             <div className="ca-fw-chips">
@@ -301,7 +335,10 @@ export default function CharacterAnalysisPage() {
                   key={f}
                   type="button"
                   className={'ca-fw-chip' + (framework === f ? ' active' : '')}
-                  onClick={() => setFramework(f)}
+                  onClick={() => {
+                    setFramework(f);
+                    setArchFilter([]);
+                  }}
                 >
                   {f === 'jung' ? 'Jung 12' : 'Schmidt 45'}
                 </button>
@@ -311,7 +348,7 @@ export default function CharacterAnalysisPage() {
               <button
                 type="button"
                 onClick={() => {
-                  if (entityAnalysis) setCompareOpen(true);
+                  if (entityAnalysis) setDrawerOpen('framework');
                 }}
                 disabled={!entityAnalysis}
               >
@@ -322,7 +359,19 @@ export default function CharacterAnalysisPage() {
                 {t('frameworkIndex')} <ExternalLink size={9} />
               </Link>
             </div>
+            <ArchetypeFilterDropdown
+              framework={framework}
+              analyzed={charData?.analyzed ?? []}
+              selected={archFilter}
+              onChange={setArchFilter}
+            />
           </div>
+
+          {selectedEntityId && (
+            <button type="button" className="ca-back-to-overview" onClick={handleBackToOverview}>
+              <ArrowLeft size={14} /> {t('character.overview.backToOverview')}
+            </button>
+          )}
 
           <div className="ca-left-section tight">
             <div className="ca-search">
@@ -391,34 +440,32 @@ export default function CharacterAnalysisPage() {
               <>
                 {/* Title bar */}
                 <div className="ca-titlebar">
-                  <div>
-                    <div className="ca-titlebar-main">
-                      <h1 className="ca-title">{entityAnalysis.entityName}</h1>
-                      {selectedAnalyzed && (
-                        <span className="ca-title-badge">
-                          <span className="ca-title-badge-dot" />
-                          {framework === 'jung' ? 'Jung · ' : 'Schmidt · '}
-                          {titleArchetypeName || t('character.persona.archetypeNotGenerated')}
-                        </span>
-                      )}
-                      {selectedAnalyzed && (
-                        <span className="ca-title-meta">
-                          {t('character.list.chapterCount', { count: selectedAnalyzed.chapterCount })}
-                        </span>
-                      )}
-                      <Link
-                        to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
-                        className="ca-title-link"
-                      >
-                        {t('viewInGraph')} <ExternalLink size={10} />
-                      </Link>
-                    </div>
+                  <div className="ca-titlebar-main">
+                    <h1 className="ca-title">{entityAnalysis.entityName}</h1>
+                    {selectedAnalyzed && (
+                      <span className="ca-title-badge">
+                        <span className="ca-title-badge-dot" />
+                        {framework === 'jung' ? 'Jung · ' : 'Schmidt · '}
+                        {titleArchetypeName || t('character.persona.archetypeNotGenerated')}
+                      </span>
+                    )}
+                    {selectedAnalyzed && (
+                      <span className="ca-title-meta">
+                        {t('character.list.mentionCount', { count: selectedAnalyzed.mentionCount })}
+                      </span>
+                    )}
                   </div>
                   <div className="ca-titlebar-actions">
+                    <Link
+                      to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
+                      className="ca-btn"
+                    >
+                      <ExternalLink size={12} /> {t('viewInGraph')}
+                    </Link>
                     <button
                       type="button"
                       className="ca-btn"
-                      onClick={() => setCompareOpen(true)}
+                      onClick={() => setDrawerOpen('framework')}
                     >
                       <GitCompare size={12} /> {t('character.compare.open')}
                     </button>
@@ -466,12 +513,17 @@ export default function CharacterAnalysisPage() {
                     framework={framework}
                     subTab={overviewSubTab}
                     onSubTabChange={setOverviewSubTab}
-                    onOpenCompare={() => setCompareOpen(true)}
+                    onOpenCompare={() => setDrawerOpen('framework')}
                     onRegenerate={handleRegenerate}
                     isRegenerating={
                       triggerMutation.isPending ||
                       (!!generateTaskId && genTask?.status !== 'done')
                     }
+                    bookId={bookId!}
+                    chapterCount={book?.chapterCount ?? 0}
+                    characterRoster={characterRoster}
+                    eventRoster={eventRoster}
+                    onSelectCharacter={handleSelectEntity}
                   />
                 )}
                 {primaryTab === 'voice' && bookId && selectedEntityId && (
@@ -482,6 +534,10 @@ export default function CharacterAnalysisPage() {
                     bookId={bookId}
                     characterId={selectedEntityId}
                     totalChapters={book.chapterCount}
+                    onOpenCompare={(currentChapter) => {
+                      setEpistemicCompareChapter(currentChapter);
+                      setDrawerOpen('epistemic');
+                    }}
                   />
                 )}
               </>
@@ -507,13 +563,10 @@ export default function CharacterAnalysisPage() {
                 </button>
               </div>
             ) : generateTaskId && genTask && genTask.status !== 'done' ? (
-              <div className="ca-empty">
-                <LoadingSpinner />
-                <p className="ca-empty-sub">
-                  {genTask.stage || t('analyzing')}
-                  {genTask.progress > 0 ? ` (${genTask.progress}%)` : ''}
-                </p>
-              </div>
+              <CharacterGenerating
+                task={genTask}
+                name={selectedUnanalyzed?.name ?? selectedAnalyzed?.title ?? ''}
+              />
             ) : selectedUnanalyzed ? (
               <div className="ca-empty">
                 <p className="ca-empty-title">{selectedUnanalyzed.name}</p>
@@ -541,42 +594,31 @@ export default function CharacterAnalysisPage() {
                   {tc('confirm')}
                 </button>
               </div>
+            ) : charData ? (
+              <CharacterOverviewLanding
+                bookId={bookId!}
+                charData={charData}
+                onSelectEntity={handleSelectEntity}
+                onGenerate={handleGenerate}
+                generatingId={generatingId}
+                onOpenBatchModal={setBatchMode}
+                isBatchRunning={isBatchRunning}
+                batchProgressLabel={
+                  isBatchRunning
+                    ? t('character.overview.batchProgress', { progress: batchTask?.progress ?? 0 })
+                    : undefined
+                }
+                batchError={batchError}
+                onDismissBatchError={() => setBatchError(null)}
+              />
             ) : (
+              // Only reached if the #6a list query itself failed (isLoading
+              // already gates the loading state above).
               <div className="ca-empty">
+                <div className="ca-empty-icon">
+                  <AlertTriangle size={22} />
+                </div>
                 <p className="ca-empty-sub">{t('selectCharacter')}</p>
-                {(charData?.analyzed.length ?? 0) > 0 && (
-                  <div
-                    style={{
-                      marginTop: 18,
-                      width: '100%',
-                      maxWidth: 320,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: 6,
-                    }}
-                  >
-                    <div
-                      style={{
-                        textAlign: 'left',
-                        fontSize: 'var(--font-size-2xs)',
-                        color: 'var(--fg-muted)',
-                        fontFamily: 'var(--font-sans)',
-                        marginBottom: 2,
-                      }}
-                    >
-                      {t('quickAccess')}
-                    </div>
-                    {(charData?.analyzed ?? []).slice(0, 5).map((item) => (
-                      <AnalyzedItem
-                        key={item.id}
-                        item={item}
-                        framework={framework}
-                        isSelected={false}
-                        onSelect={() => handleSelectEntity(item.entityId)}
-                      />
-                    ))}
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -609,11 +651,22 @@ export default function CharacterAnalysisPage() {
             </div>
           )}
 
-          {/* Compare drawer overlays content area only */}
+          {/* Compare drawers overlay content area only; page-level drawerOpen
+              guarantees only one of the two is ever open at once. */}
           <FrameworkCompareDrawer
-            open={compareOpen}
+            open={drawerOpen === 'framework'}
             data={entityAnalysis}
-            onClose={() => setCompareOpen(false)}
+            onClose={() => setDrawerOpen(null)}
+          />
+          <EpistemicCompareDrawer
+            open={drawerOpen === 'epistemic'}
+            onClose={() => setDrawerOpen(null)}
+            bookId={bookId}
+            totalChapters={book?.chapterCount ?? 0}
+            characterAId={selectedEntityId}
+            characterAName={entityAnalysis?.entityName ?? ''}
+            initialChapter={epistemicCompareChapter}
+            roster={characterRoster}
           />
         </div>
       </div>
@@ -630,17 +683,24 @@ export default function CharacterAnalysisPage() {
       />
 
       <ConfirmDialog
-        open={confirmBatch}
-        title={t('character.batch.confirmTitle')}
-        message={t('character.batch.confirmMessage', {
-          count: charData?.unanalyzed.length ?? 0,
-        })}
+        open={batchMode !== null}
+        title={
+          batchMode === 'top10'
+            ? t('character.batch.confirmTop10Title')
+            : t('character.batch.confirmTitle')
+        }
+        message={
+          batchMode === 'top10'
+            ? t('character.batch.confirmTop10Message', { count: top10UnanalyzedIds.length })
+            : t('character.batch.confirmMessage', { count: charData?.unanalyzed.length ?? 0 })
+        }
         confirmLabel={t('character.batch.confirmBtn')}
         onConfirm={() => {
-          setConfirmBatch(false);
-          batchMutation.mutate();
+          const ids = batchMode === 'top10' ? top10UnanalyzedIds : undefined;
+          setBatchMode(null);
+          batchMutation.mutate(ids);
         }}
-        onCancel={() => setConfirmBatch(false)}
+        onCancel={() => setBatchMode(null)}
       />
     </div>
   );

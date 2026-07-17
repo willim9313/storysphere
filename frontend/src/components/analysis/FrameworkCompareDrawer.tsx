@@ -70,25 +70,27 @@ function CompareColumn({
     <div className="ca-compare-col">
       <div className="ca-compare-col-head">
         <h4>{title}</h4>
-        <span className="pct">{t('character.compare.confidencePct', { pct })}</span>
       </div>
-      <div className="ca-conf-track">
-        <div className="ca-conf-fill" style={{ width: `${pct}%` }} />
-      </div>
-      <div className="ca-compare-primary" style={{ marginTop: 14 }}>
-        {archetype.primary}
-      </div>
+      <div className="ca-compare-primary">{archetype.primary}</div>
       {archetype.secondary && (
         <div className="ca-compare-secondary">
           {t('character.compare.secondaryLabel', { name: archetype.secondary })}
         </div>
       )}
+      <div className="ca-compare-conf-row">
+        <div className="ca-conf-track">
+          <div className="ca-conf-fill" style={{ width: `${pct}%` }} />
+        </div>
+        <span className="ca-compare-conf-pct">{t('character.compare.confidencePct', { pct })}</span>
+      </div>
       <p className="ca-compare-evidence-label">{t('character.compare.evidenceLabel')}</p>
-      <ul className="ca-compare-evidence" style={{ paddingLeft: 18, margin: 0 }}>
+      <div className="ca-compare-evidence-list">
         {archetype.evidence.map((e, i) => (
-          <li key={i}>{e}</li>
+          <div key={i} className="ca-compare-evidence-item">
+            {e}
+          </div>
         ))}
-      </ul>
+      </div>
     </div>
   );
 }

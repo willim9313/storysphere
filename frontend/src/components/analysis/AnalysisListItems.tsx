@@ -1,17 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { AnalysisItem, UnanalyzedEntity } from '@/api/types';
-
-const AVATAR_PALETTES = ['char', 'loc', 'org', 'obj', 'con', 'evt'] as const;
-
-function avatarStyle(seed: string): React.CSSProperties {
-  const code = seed.length > 0 ? seed.charCodeAt(0) : 0;
-  const p = AVATAR_PALETTES[code % AVATAR_PALETTES.length];
-  return {
-    background: `var(--entity-${p}-bg)`,
-    color: `var(--entity-${p}-fg)`,
-    border: `1px solid var(--entity-${p}-border)`,
-  };
-}
+import { avatarStyle } from './entityAvatarStyle';
 
 /** Design canvas formula: width% = 6 + 94 * sqrt(mentions / max) */
 function mentionBarWidth(mentions: number, max: number): number {
