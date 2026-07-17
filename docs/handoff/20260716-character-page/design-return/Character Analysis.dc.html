@@ -1,0 +1,819 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="_ds/neo-storysphere-design-system-a070c329-f8c9-40e9-909c-972820471834/colors_and_type.css">
+  <link rel="stylesheet" href="_ds/neo-storysphere-design-system-a070c329-f8c9-40e9-909c-972820471834/styles.css">
+  <script src="_ds/neo-storysphere-design-system-a070c329-f8c9-40e9-909c-972820471834/_ds_bundle.js"></script>
+  <style>
+    html,body{margin:0;height:100%}
+    body{background:var(--bg-primary);color:var(--fg-primary);font-family:var(--font-sans);-webkit-font-smoothing:antialiased}
+    *{box-sizing:border-box}
+    a{color:var(--accent);text-decoration:none}
+    a:hover{opacity:.82}
+    ::-webkit-scrollbar{width:9px;height:9px}
+    ::-webkit-scrollbar-thumb{background:var(--border);border-radius:6px}
+    ::-webkit-scrollbar-track{background:transparent}
+    input{font-family:var(--font-sans)}
+    input:focus-visible,button:focus-visible{outline:var(--focus-ring-width) solid var(--focus-ring-color);outline-offset:var(--focus-ring-offset)}
+    @keyframes ca-spin{to{transform:rotate(360deg)}}
+    @keyframes ca-slide{from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1}}
+    @keyframes ca-fade{from{opacity:0}to{opacity:1}}
+  </style>
+</helmet>
+<div style="display:flex;height:100vh;width:100%;overflow:hidden;font-family:var(--font-sans)">
+  {{ sidebarEl }}
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    {{ booknavEl }}
+    <div style="flex:1;display:flex;min-height:0;position:relative">
+      <aside style="width:268px;flex:none;display:flex;flex-direction:column;min-height:0;background:var(--panel-bg);border-right:1px solid var(--border)">
+        {{ leftPanelEl }}
+      </aside>
+      <section style="flex:1;position:relative;overflow:hidden;display:flex;flex-direction:column;min-width:0">
+        {{ tipEl }}
+        <div style="flex:1;overflow:auto;position:relative">{{ mainEl }}</div>
+      </section>
+      {{ drawerEl }}
+    </div>
+  </div>
+  {{ toastEl }}
+  {{ modalEl }}
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:&quot;100%&quot;,&quot;height&quot;:&quot;100%&quot;}}">
+class Component extends DCLogic {
+  state = {
+    theme: 'warm', selected: null, generating: null,
+    primaryTab: 'overview', subTab: 'persona', framework: 'jung',
+    landingView: 'quadrant', drawer: null, epiCursor: 7, cmpCursor: 7,
+    tip: true, search: '', otherOpen: false, batch: null,
+    compareName: null, toast: null, hoverBubble: null, activeArc: null,
+    expandRank: false, genStep: 0, archFilter: [], archOpen: false, archSearch: ''
+  };
+
+  componentDidMount() {
+    document.documentElement.dataset.theme = this.state.theme;
+    this._onKey = (e) => { if (e.key === 'Escape') this.setState({ drawer: null, batch: null }); };
+    window.addEventListener('keydown', this._onKey);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this._onKey); if (this._genT) clearInterval(this._genT); }
+
+  setTheme(t) { document.documentElement.dataset.theme = t; this.setState({ theme: t }); }
+  toast(msg) { this.setState({ toast: msg }); clearTimeout(this._toastT); this._toastT = setTimeout(() => this.setState({ toast: null }), 2600); }
+
+  select(name) {
+    const c = this.getChars().find(x => x.name === name);
+    this.setState({ selected: name, generating: null, primaryTab: 'overview', subTab: 'persona', epiCursor: 7, activeArc: null, compareName: null });
+  }
+  clearSel() { this.setState({ selected: null, generating: null }); }
+
+  startGen(name) {
+    this.setState({ generating: name, selected: name, genStep: 0 });
+    if (this._genT) clearInterval(this._genT);
+    this._genT = setInterval(() => {
+      this.setState(s => {
+        if (s.genStep >= 5) { clearInterval(this._genT); return null; }
+        return { genStep: s.genStep + 1 };
+      });
+    }, 850);
+  }
+
+  hash(s) { let x = 0; for (const ch of s) x = (x * 31 + ch.charCodeAt(0)) >>> 0; return x; }
+
+  getChars() {
+    if (this._chars) return this._chars;
+    const RAW = ['楊素','楊廣','張士和','推山手','王須拔','焦邪','史萬歲','楊堅','楊勇','徐','言老大','算死草','寇仲','彭孝才','李子通','白信','秦超文','左孝友','楊公卿','李弘芝','胡劉苗','王德仁','白老夫子','石龍','貞嫂','廣成子','黃帝','白衣女子','白衣女','宇文傷','老馮','徐子陵','惡大婦','臭言老大','田文','石師傅','守備大人','臭老言','尉遲勝','周宣帝','鄭譯','劉昉','宇文闡','尉遲迥','司馬消難','王謙','李淵','獨孤太后','言寬','常次','臭老大言寬','傅采林','紅阿姑','白女衣','周平','陳望','尉遲叔叔','沈縣官','宇文大人','小娟姐','沈縣丞','小娟','畢玄','宋師道','東海李子通','杜伏威','宋缺','宋智','宋玉華','宋玉致','解暉','解文龍','鬼谷子','宋屁道','寧道奇','宋魯','柳菁','秦昭襄王','趙惠文王','藺相如','秦王','秦始皇','李斯','漢高祖劉邦','秦王子嬰','王莽','王舜','孝元太后','卞和','楚厲王','武王','文王','漢少帝','孫堅','曹操','陳主','散真人','高麗王'];
+    const FAC = [
+      { i: 0, coh: 0.90, names: ['楊廣','楊堅','李淵','鄭譯','獨孤太后','劉昉'] },
+      { i: 1, coh: 0.733, names: ['宋缺','宋智','解暉','宋玉華','解文龍','宋玉致'] },
+      { i: 2, coh: 0.825, names: ['寇仲','徐子陵','白衣女','徐'] },
+      { i: 3, coh: 0.567, names: ['宇文化及','尉遲勝','尉遲迥'] },
+      { i: 4, coh: 0.567, names: ['宋師道','宋魯','柳菁'] },
+      { i: 5, coh: 0.467, names: ['李子通','左孝友','杜伏威'] },
+      { i: 6, coh: 0.40, names: ['周宣帝','宇文闡'] },
+      { i: 7, coh: 0.35, names: ['貞嫂','老馮'] },
+      { i: 8, coh: 0.30, names: ['常次','言寬'] },
+      { i: 9, coh: 0.40, names: ['石龍','田文'] }
+    ];
+    this._factions = FAC;
+    const FM = {};
+    FAC.forEach(f => f.names.forEach(n => { FM[n] = f.i; }));
+    const M = { '寇仲': 1002, '徐子陵': 701, '宇文化及': 225, '白衣女': 180, '楊廣': 138, '尉遲勝': 110, '石龍': 96, '宋師道': 88, '楊素': 82, '李淵': 76, '宋缺': 70, '杜伏威': 64, '李子通': 58, '傅采林': 54, '宋玉致': 50, '解暉': 46, '畢玄': 44, '尉遲迥': 42, '楊堅': 40, '寧道奇': 38, '獨孤太后': 36, '宋智': 32, '白衣女子': 30 };
+    const list = RAW.map(n => ({ name: n, analyzed: false }));
+    list.push({ name: '宇文化及', analyzed: true, jung: '統治者', schmidt: '暴君' });
+    list.forEach(c => {
+      const hx = this.hash(c.name);
+      c.mentions = M[c.name] || (1 + (hx % 24));
+      c.fac = (c.name in FM) ? FM[c.name] : null;
+      c.rel = c.name === '宇文化及' ? 11 : (1 + (hx % 13));
+      c.hy = (this.hash(c.name + 'y') % 1000) / 1000;
+    });
+    const logs = list.map(c => Math.log10(c.mentions + 1));
+    const maxL = Math.max(...logs), minL = Math.min(...logs);
+    list.forEach(c => {
+      c.x = (Math.log10(c.mentions + 1) - minL) / (maxL - minL || 1);
+      c.y = Math.min(0.97, Math.max(0.03, c.x * 0.48 + c.hy * 0.52));
+    });
+    const med = arr => { const s = [...arr].sort((a, b) => a - b); const m = Math.floor(s.length / 2); return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2; };
+    this._medX = med(list.map(c => c.x));
+    this._medY = med(list.map(c => c.y));
+    list.sort((a, b) => b.mentions - a.mentions);
+    this._chars = list;
+    return list;
+  }
+  factions() { this.getChars(); return this._factions; }
+  facColor(i) {
+    const FC = [['--entity-organization-bg', '--entity-organization-dot'], ['--entity-location-bg', '--entity-location-dot'], ['--entity-character-bg', '--entity-character-dot'], ['--entity-event-bg', '--entity-event-dot'], ['--entity-concept-bg', '--entity-concept-dot'], ['--entity-object-bg', '--entity-object-dot'], ['--color-info-bg', '--color-info'], ['--color-success-bg', '--color-success'], ['--color-warning-bg', '--color-warning'], ['--color-error-bg', '--color-error']];
+    return i == null ? ['var(--bg-tertiary)', 'var(--fg-muted)'] : [`var(${FC[i][0]})`, `var(${FC[i][1]})`];
+  }
+  facLabel(f) { return `${f.names[0]}、${f.names[1]} 等 ${f.names.length} 人`; }
+  avatar(name) {
+    const arcs = ['character', 'location', 'organization', 'object', 'concept', 'event'];
+    const t = arcs[this.hash(name) % arcs.length];
+    return [`var(--entity-${t}-bg)`, `var(--entity-${t}-dot)`, `var(--entity-${t}-fg)`];
+  }
+
+  ANALYSIS() {
+    return {
+      profileSummary: '宇文化及是宇文閥中出類拔萃的高手，身居高位，卻心懷叵測。他表面上忠於隋煬帝楊廣，實則暗中與尉遲勝密謀，企圖推翻楊廣的統治，復辟北周。他陰險狡詐，為達目的不擇手段，甚至計劃利用《長生訣》害死楊廣。宇文化及武功高強，尤擅冰玄勁，曾擊敗揚州高手石龍，並能與傅君嫱正面交鋒。他將寇仲和徐子陵視為奪取《長生訣》的關鍵，對其展開全面追捕。宇文化及的野心與權謀貫穿其行動，使其成為故事初期寇仲和徐子陵最為強大的敵人之一。',
+      archetypes: [
+        { framework: 'jung', primary: '統治者', secondary: '反叛者', confidence: 0.9, evidence: ['宇文化及野心勃勃，不滿足於現狀，渴望復辟北周，重奪天下，這與統治者追求控制和創造繁榮的目標一致。', '他利用官府勢力追捕目標，並與尉遲勝密謀推翻楊廣，展現了其領導和責任感（儘管是為了自己的權力），符合統治者掌控局勢的特徵。', '他陰險狡詐，為達目的不擇手段，甚至想利用《長生訣》害死皇帝，這顯示了統治者在追求權力時可能出現的專制與控制狂的負面特質。'] },
+        { framework: 'schmidt', primary: '暴君', secondary: '操縱者', confidence: 0.9, evidence: ['宇文化及身為宇文閥主之下最出類拔萃的高手，能動用天下官府力量追捕目標，展現其對權力的掌控和濫用。', '他與尉遲勝密謀推翻楊廣，復辟北周，並計劃利用《長生訣》害死楊廣，顯示其極度渴望鞏固自身權力，不惜一切代價。', '其陰險狡詐、心狠手辣的特質，以及為達目的不擇手段的行為，都符合暴君為維護和擴張權力而操控一切的形象。'] }
+      ],
+      cep: {
+        actions: ['追捕寇仲和徐子陵，以奪取《長生訣》。', '與尉遲勝密謀，意圖推翻楊廣的統治，復辟北周。', '對白衣女（傅君嫱）發動攻擊，展現其高超武功。', '利用官府勢力追捕寇仲和徐子陵。', '曾擊敗揚州高手石龍。'],
+        traits: ['陰險狡詐：與尉遲勝密謀推翻楊廣，並計劃利用《長生訣》害死楊廣。', '武功高強：能與傅君嫱正面交鋒，並曾擊敗石龍，且其冰玄勁威力驚人。', '權勢滔天：身為宇文閥主之下最出類拔萃的高手，能動用天下官府力量追捕目標。', '心狠手辣：為達目的不擇手段，甚至想利用《長生訣》害死皇帝。', '野心勃勃：不滿足於現狀，渴望復辟北周，重奪天下。'],
+        relations: [
+          { target: '楊廣', type: '下屬', description: '表面上忠心侍隋，實則懷恨在心，意圖推翻楊廣的統治。' },
+          { target: '楊廣', type: '敵人', description: '視楊廣為昏君，計劃利用《長生訣》害死他，以復辟北周。' },
+          { target: '尉遲勝', type: '盟友', description: '與尉遲勝關係密切，共同密謀推翻楊廣，復辟北周。' },
+          { target: '寇仲', type: '敵人', description: '因《長生訣》而追捕寇仲，視其為必須擒獲的目標。' },
+          { target: '徐子陵', type: '敵人', description: '因《長生訣》而追捕徐子陵，視其為必須擒獲的目標。' },
+          { target: '傅君嫱', type: '敵人', description: '與傅君嫱因保護寇仲和徐子陵而交手，並對其武功表示讚賞。' },
+          { target: '石龍', type: '敵人', description: '曾擊敗並殺死揚州高手石龍。' },
+          { target: '宇文閥', type: '成員', description: '身為宇文閥主宇文傷之下最出類拔萃的高手。' },
+          { target: '李淵', type: '敵人', description: '視李閥為復辟大周的阻力，並計劃借楊廣之手除掉李淵。' },
+          { target: '突厥', type: '其他', description: '認為突厥是最大禍患，擔心其勢力坐大。' },
+          { target: '張士和', type: '下屬', description: '張士和向宇文化及報告追查《長生訣》的進展。' }
+        ],
+        keyEvents: [
+          { event: '與尉遲勝密謀推翻楊廣，復辟北周。', chapter: 2, significance: '揭示其政治野心和對隋朝的仇恨，是其行動的主要驅動力。' },
+          { event: '全力追捕寇仲和徐子陵，以奪取《長生訣》。', chapter: 2, significance: '《長生訣》是其計劃中害死楊廣的關鍵，因此對此寶書極為重視。' },
+          { event: '與白衣女（傅君嫱）在江上交手。', chapter: 3, significance: '展現其高超武功和冰玄勁的威力，也間接確認了傅君嫱的身份和實力。' },
+          { event: '得知寇仲和徐子陵是盜走《長生訣》的小扒手。', chapter: 2, significance: '鎖定追捕目標，並對此感到欣喜，認為寶書唾手可得。' }
+        ],
+        quotes: [
+          '「這《長生訣》實在事關重大，我已預備了能手，只要得到寶書，立即假作破譯成功，拿給那昏君去修練，保證不出三月，就可把他練死。」',
+          '「楊廣的日子，已是屈指可數。唯可慮者，就是其他三姓門閥，其中又以李閥最不可輕視。」',
+          '「如此劍術，世所罕見，姑娘與高麗的『奕劍大師』傅采林究竟是何關係？」',
+          '「姑娘護著這兩個小子，實屬不智，宇文化及必會再請益高明。」'
+        ]
+      },
+      arc: [
+        { chapterRange: '1-2', phase: '登場與野心揭示', description: '宇文化及作為主要反派登場，其陰險狡詐、武功高強的形象初步確立。他與尉遲勝密謀推翻楊廣，並將《長生訣》視為達成目的的關鍵，展現其深沉的政治野心。' },
+        { chapterRange: '2-3', phase: '追捕與實力展現', description: '宇文化及全力追捕盜走《長生訣》的寇仲和徐子陵，並在江上與傅君嫱交手。此階段不僅展現了他高超的武功和冰玄勁的威力，也凸顯了他為達目的不擇手段的心狠手辣。' },
+        { chapterRange: '3-5', phase: '策略調整與威脅升級', description: '在與傅君嫱交手後，宇文化及意識到對手實力不俗，並表示會請更高明的人士協助。這預示著他將採取更強硬的手段，對寇仲和徐子陵的威脅進一步升級，也暗示了後續劇情的複雜性。' }
+      ]
+    };
+  }
+
+  epiData(name) {
+    if (name === '寇仲') return {
+      knownByCh: { 1: 3, 2: 4, 3: 6, 4: 5, 5: 6, 6: 4, 7: 5 },
+      unknownByCh: { 1: 6, 2: 5, 3: 4, 4: 3, 5: 2, 6: 2, 7: 1 },
+      known: [
+        { title: '寇仲徐子陵習得長生訣真氣', ch: 3, type: 'revelation' },
+        { title: '宋師道護送二人南下', ch: 4, type: 'plot' },
+        { title: '在揚州擺脫官府追捕', ch: 2, type: 'conflict' }
+      ],
+      unknown: [
+        { title: '宇文化及與尉遲勝的密謀', ch: 2, type: 'plot' },
+        { title: '李淵太原起兵謀劃', ch: 6, type: 'plot' }
+      ]
+    };
+    return {
+      knownByCh: { 1: 8, 2: 6, 3: 4, 4: 3, 5: 3, 6: 2, 7: 2 },
+      unknownByCh: { 1: 2, 2: 3, 3: 5, 4: 6, 5: 7, 6: 6, 7: 5 },
+      known: [
+        { title: '宇文化及艦隊駛向江都', ch: 1, type: 'plot' },
+        { title: '與張士和談論《長生訣》', ch: 1, type: 'revelation' },
+        { title: '與尉遲勝密謀推翻楊廣', ch: 2, type: 'plot' },
+        { title: '全力追捕寇仲和徐子陵', ch: 2, type: 'plot' },
+        { title: '得知二人是盜書小扒手', ch: 2, type: 'revelation' },
+        { title: '與白衣女在江上交手', ch: 3, type: 'conflict' }
+      ],
+      unknown: [
+        { title: '焦邪追查楊公寶藏線索', ch: 1, type: 'plot' },
+        { title: '寇仲徐子陵習得長生訣真氣', ch: 3, type: 'revelation' },
+        { title: '宋師道護送寇仲南下', ch: 4, type: 'plot' },
+        { title: '傅君嫱與畢玄的恩怨', ch: 5, type: 'revelation' },
+        { title: '李淵太原起兵謀劃', ch: 6, type: 'plot' },
+        { title: '杜伏威江淮擴張', ch: 7, type: 'plot' }
+      ]
+    };
+  }
+
+  // ---------- small helpers ----------
+  icon(paths, sz = 16, sw = 1.7) {
+    const h = React.createElement;
+    return h('svg', { width: sz, height: sz, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: sw, strokeLinecap: 'round', strokeLinejoin: 'round' },
+      ...(Array.isArray(paths) ? paths : [paths]).map((d, i) => h('path', { key: i, d })));
+  }
+  IC = {
+    back: 'M19 12H5M12 19l-7-7 7-7', search: 'M11 11m-8 0a8 8 0 1 0 16 0a8 8 0 1 0-16 0 M21 21l-4.3-4.3', x: 'M18 6 6 18M6 6l12 12',
+    down: 'M6 9l6 6 6-6', right: 'M9 6l6 6-6 6', ext: 'M15 3h6v6 M10 14 21 3 M21 14v7H3V3h7',
+    rotate: 'M23 4v6h-6 M20.5 15a9 9 0 1 1-2.1-9.4L23 10', users: 'M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2 M9 11m-4 0a4 4 0 1 0 8 0a4 4 0 1 0-8 0 M23 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.8',
+    target: 'M12 12m-10 0a10 10 0 1 0 20 0a10 10 0 1 0-20 0 M12 12m-6 0a6 6 0 1 0 12 0a6 6 0 1 0-12 0 M12 12m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0',
+    bars: 'M12 20V10 M18 20V4 M6 20v-4', sparkles: 'M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z', check: 'M20 6 9 17l-5-5',
+    home: 'M3 9l9-7 9 7v11a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2v-5a2 2 0 0 0-2-2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z',
+    book: 'M4 19.5A2.5 2.5 0 0 1 6.5 17H20 M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z',
+    graph: 'M18 20V10 M12 20V4 M6 20v-6 M3 20h18', settings: 'M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0-6 0 M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z',
+    read: 'M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z', pin: 'M12 17v5 M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z',
+    flag: 'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z M4 22v-7'
+  };
+  chipBtn(label, active, onClick, extra) {
+    const h = React.createElement;
+    return h('button', {
+      onClick, style: Object.assign({
+        font: '500 var(--font-size-xs)/1 var(--font-sans)', padding: '6px 11px',
+        borderRadius: 'var(--pill-radius)', cursor: 'pointer', whiteSpace: 'nowrap',
+        border: `1px solid ${active ? 'var(--accent)' : 'var(--border)'}`,
+        background: active ? 'var(--accent)' : 'transparent',
+        color: active ? 'var(--accent-fg)' : 'var(--fg-secondary)', transition: 'background-color .15s ease,color .15s ease'
+      }, extra || {})
+    }, label);
+  }
+  statusDot(color, sz = 7) { return React.createElement('span', { style: { width: sz, height: sz, borderRadius: '50%', background: color, flex: 'none', display: 'inline-block' } }); }
+
+  // ================= SHELL =================
+  renderSidebar() {
+    const h = React.createElement, t = this;
+    const item = (d, active, title) => h('div', { title, style: { width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 'var(--btn-radius)', color: active ? 'var(--accent)' : 'var(--fg-muted)', background: active ? 'var(--bg-tertiary)' : 'transparent', cursor: 'pointer' } }, t.icon(t.IC[d], 18));
+    return h('nav', { style: { width: 48, flex: 'none', background: 'var(--bg-secondary)', borderRight: '1px solid var(--border)', display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '10px 0', gap: 4 } },
+      item('home', false, '書庫'), item('read', false, '閱讀'), item('users', true, '角色分析'), item('graph', false, '知識圖譜'), item('bars', false, 'Token 用量'),
+      h('div', { style: { flex: 1 } }),
+      // theme toggle
+      h('div', { style: { display: 'flex', flexDirection: 'column', gap: 3, marginBottom: 6 } },
+        ['warm', 'ink'].map(tm => h('button', {
+          key: tm, title: tm === 'warm' ? 'Warm 主題' : 'Ink 主題', onClick: () => t.setTheme(tm),
+          style: { width: 28, height: 28, borderRadius: 6, cursor: 'pointer', border: `1.5px solid ${t.state.theme === tm ? 'var(--accent)' : 'var(--border)'}`, background: tm === 'warm' ? '#f1e8d5' : '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-mono)', fontSize: 10, color: tm === 'warm' ? '#b05a34' : '#151515', fontWeight: 700 }
+        }, tm === 'warm' ? 'W' : 'I'))),
+      item('settings', false, '設定'));
+  }
+  renderBooknav() {
+    const h = React.createElement, t = this;
+    const tabs = ['閱讀', '角色分析', '事件分析', '知識圖譜', '時間軸', '張力分析', '象徵意象', '敘事結構', '建構概覽'];
+    return h('header', { style: { height: 40, flex: 'none', display: 'flex', alignItems: 'center', gap: 14, padding: '0 14px', borderBottom: '1px solid var(--border)', background: 'var(--bg-primary)', overflowX: 'auto' } },
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, color: 'var(--fg-muted)', flex: 'none', cursor: 'pointer' } }, t.icon(t.IC.back, 14), h('span', { style: { fontSize: 'var(--font-size-xs)' } }, '書庫')),
+      h('div', { style: { width: 1, height: 18, background: 'var(--border)', flex: 'none' } }),
+      h('div', { style: { fontFamily: 'var(--font-serif)', fontWeight: 700, fontSize: 'var(--font-size-sm)', flex: 'none', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, '大唐雙龍傳'),
+      h('nav', { style: { display: 'flex', gap: 2, flex: 'none' } }, tabs.map(tb => h('span', { key: tb, style: { fontSize: 'var(--font-size-xs)', padding: '4px 9px', borderRadius: 6, whiteSpace: 'nowrap', cursor: 'pointer', color: tb === '角色分析' ? 'var(--fg-primary)' : 'var(--fg-muted)', fontWeight: tb === '角色分析' ? 600 : 400, borderBottom: tb === '角色分析' ? '2px solid var(--accent)' : '2px solid transparent' } }, tb))));
+  }
+
+  // ================= LEFT PANEL =================
+  renderLeftPanel() {
+    const h = React.createElement, t = this, s = this.state;
+    const chars = this.getChars();
+    const q = s.search.trim();
+    const match = c => !q || c.name.includes(q) || (c.analyzed && (c.jung.includes(q) || c.schmidt.includes(q)));
+    const analyzed = chars.filter(c => c.analyzed && match(c) && (!s.archFilter.length || s.archFilter.includes(c[s.framework])));
+    const unanalyzed = chars.filter(c => !c.analyzed && match(c));
+    const maxM = chars[0].mentions;
+
+    const row = (c) => {
+      const [abg, adot, afg] = t.avatar(c.name);
+      const sel = s.selected === c.name;
+      return h('div', {
+        key: c.name, onClick: () => t.select(c.name),
+        style: { display: 'flex', gap: 9, alignItems: 'center', padding: '8px 10px', margin: '0 6px 3px', borderRadius: 'var(--btn-radius)', cursor: 'pointer', background: sel ? 'var(--bg-tertiary)' : 'transparent', border: sel ? '1px solid var(--accent)' : '1px solid transparent', opacity: c.analyzed ? 1 : 0.92 }
+      },
+        h('div', { style: { width: 30, height: 30, flex: 'none', borderRadius: '50%', background: c.analyzed ? abg : 'var(--bg-tertiary)', border: `1px solid ${c.analyzed ? adot : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: c.analyzed ? afg : 'var(--fg-muted)' } }, c.name[0]),
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } },
+            h('span', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: c.analyzed ? 'var(--fg-primary)' : 'var(--fg-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, c.name),
+            c.analyzed && t.statusDot('var(--color-success)', 6)),
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 } },
+            h('div', { style: { flex: 1, height: 3, borderRadius: 2, background: 'var(--bg-tertiary)', overflow: 'hidden', minWidth: 0 } },
+              h('div', { style: { height: '100%', width: (6 + 94 * Math.sqrt(c.mentions / maxM)) + '%', background: c.analyzed ? 'var(--accent)' : 'var(--fg-muted)', opacity: c.analyzed ? 1 : 0.55, borderRadius: 2 } })),
+            h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', fontVariantNumeric: 'tabular-nums', flex: 'none' } }, c.mentions))),
+        !c.analyzed && h('button', { onClick: (e) => { e.stopPropagation(); t.startGen(c.name); }, style: { flex: 'none', fontSize: 'var(--font-size-2xs)', padding: '3px 8px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer' } }, '建立'));
+    };
+    const groupHead = (label, count) => h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 16px 6px', position: 'sticky', top: 0, background: 'var(--panel-bg)', zIndex: 1 } },
+      h('span', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 600, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-muted)' } }, label),
+      h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, count));
+
+    return h('div', { style: { display: 'flex', flexDirection: 'column', minHeight: 0, height: '100%' } },
+      // framework chips
+      h('div', { style: { padding: '12px 14px 10px', borderBottom: '1px solid var(--border)' } },
+        h('div', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginBottom: 7, fontWeight: 600, letterSpacing: '.04em' } }, '分析框架'),
+        h('div', { style: { display: 'flex', gap: 6, marginBottom: 8 } },
+          t.chipBtn('Jung 12', s.framework === 'jung', () => t.setState({ framework: 'jung', archFilter: [], archOpen: false, archSearch: '' })),
+          t.chipBtn('Schmidt 45', s.framework === 'schmidt', () => t.setState({ framework: 'schmidt', archFilter: [], archOpen: false, archSearch: '' }))),
+        h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' } },
+          h('button', { onClick: () => t.setState({ drawer: 'framework' }), style: { display: 'flex', alignItems: 'center', gap: 5, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 } }, '對照 Jung vs Schmidt'),
+          h('a', { href: '#', onClick: e => { e.preventDefault(); t.toast('前往方法論頁 · framework 索引（原型示意）'); }, style: { display: 'flex', alignItems: 'center', gap: 3, fontSize: 'var(--font-size-2xs)' } }, '框架索引', t.icon(t.IC.ext, 11))), t.renderArchFilter()),
+      // back to overview
+      s.selected && h('button', { onClick: () => t.clearSel(), style: { display: 'flex', alignItems: 'center', gap: 6, padding: '9px 16px', border: 'none', borderBottom: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--accent)', cursor: 'pointer', fontSize: 'var(--font-size-xs)', fontWeight: 600, textAlign: 'left' } }, t.icon(t.IC.back, 14), '角色總覽'),
+      // search
+      h('div', { style: { padding: '10px 12px' } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 7, padding: '7px 10px', border: '1px solid var(--border)', borderRadius: 'var(--control-radius)', background: 'var(--bg-primary)' } },
+          h('span', { style: { color: 'var(--fg-muted)', display: 'flex' } }, t.icon(t.IC.search, 14)),
+          h('input', { value: s.search, onChange: e => t.setState({ search: e.target.value }), placeholder: `搜尋 ${chars.length} 位角色`, style: { flex: 1, border: 'none', background: 'transparent', outline: 'none', fontSize: 'var(--font-size-sm)', color: 'var(--fg-primary)', minWidth: 0 } }))),
+      // list
+      h('div', { style: { flex: 1, overflow: 'auto', paddingBottom: 20 } },
+        groupHead('已分析', analyzed.length),
+        analyzed.length ? analyzed.map(row) : h('div', { style: { padding: '4px 16px 8px', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' } }, '—'),
+        groupHead('尚未分析', unanalyzed.length),
+        unanalyzed.map(row)));
+  }
+
+  renderArchFilter() {
+    const h = React.createElement, t = this, s = this.state;
+    const fw = s.framework;
+    const TAX = {
+      jung: ['統治者', '反叛者', '創造者', '照顧者', '探險家', '智者', '英雄', '魔法師', '凡人', '情人', '弄臣', '天真者'],
+      schmidt: ['暴君', '操縱者', '狂熱者', '背叛者', '惡霸', '施虐者', '懦夫', '偽君子', '守財奴', '復仇者', '英雄', '保護者', '戰士', '領袖', '導師', '使者', '叛逆者', '夢想家']
+    };
+    const analyzedAll = this.getChars().filter(c => c.analyzed);
+    const facet = {};
+    analyzedAll.forEach(c => { const a = c[fw]; if (a) facet[a] = (facet[a] || 0) + 1; });
+    const sel = s.archFilter;
+    const toggle = (v) => t.setState({ archFilter: sel.includes(v) ? sel.filter(x => x !== v) : sel.concat(v) });
+    const q = s.archSearch.trim();
+    const opts = TAX[fw].filter(o => !q || o.includes(q)).sort((a, b) => (facet[b] || 0) - (facet[a] || 0));
+    const trigger = h('button', { onClick: () => t.setState({ archOpen: !s.archOpen }), style: { display: 'flex', alignItems: 'center', gap: 6, width: '100%', padding: '7px 10px', borderRadius: 'var(--control-radius)', border: '1px solid ' + (sel.length ? 'var(--accent)' : 'var(--border)'), background: 'var(--bg-primary)', color: 'var(--fg-secondary)', cursor: 'pointer', font: '500 var(--font-size-xs)/1 var(--font-sans)' } },
+      h('span', { style: { color: sel.length ? 'var(--accent)' : 'var(--fg-muted)', display: 'flex' } }, t.icon(t.IC.flag, 13)),
+      h('span', { style: { flex: 1, textAlign: 'left' } }, sel.length ? sel.length + ' 個原型篩選中' : '依原型篩選已分析角色'),
+      sel.length ? h('span', { onClick: (e) => { e.stopPropagation(); t.setState({ archFilter: [] }); }, style: { color: 'var(--fg-muted)', display: 'flex' } }, t.icon(t.IC.x, 12)) : h('span', { style: { color: 'var(--fg-muted)', display: 'flex' } }, t.icon(s.archOpen ? t.IC.down : t.IC.right, 12)));
+    let pop = null;
+    if (s.archOpen) {
+      pop = h('div', null,
+        h('div', { onClick: () => t.setState({ archOpen: false }), style: { position: 'fixed', inset: 0, zIndex: 30 } }),
+        h('div', { style: { position: 'absolute', left: 0, right: 0, top: 'calc(100% + 4px)', zIndex: 31, background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--shadow-lg)', padding: 8, maxHeight: 300, display: 'flex', flexDirection: 'column' } },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, padding: '5px 8px', border: '1px solid var(--border)', borderRadius: 'var(--control-radius)', marginBottom: 6 } }, h('span', { style: { color: 'var(--fg-muted)', display: 'flex' } }, t.icon(t.IC.search, 12)), h('input', { autoFocus: true, value: s.archSearch, onChange: e => t.setState({ archSearch: e.target.value }), placeholder: (fw === 'jung' ? 'Jung 12' : 'Schmidt 45') + ' 原型…', style: { flex: 1, border: 'none', outline: 'none', background: 'transparent', fontSize: 'var(--font-size-xs)', color: 'var(--fg-primary)', minWidth: 0 } })),
+          h('div', { style: { overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 1 } }, opts.length ? opts.map(o => { const on = sel.includes(o); const cnt = facet[o] || 0; return h('button', { key: o, onClick: () => toggle(o), style: { display: 'flex', alignItems: 'center', gap: 8, padding: '6px 8px', borderRadius: 'var(--btn-radius)', border: 'none', background: on ? 'var(--bg-secondary)' : 'transparent', cursor: 'pointer', textAlign: 'left', width: '100%' } },
+            h('span', { style: { width: 15, height: 15, flex: 'none', borderRadius: 4, border: '1.5px solid ' + (on ? 'var(--accent)' : 'var(--border)'), background: on ? 'var(--accent)' : 'transparent', color: 'var(--accent-fg)', display: 'flex', alignItems: 'center', justifyContent: 'center' } }, on ? t.icon(t.IC.check, 10, 3) : null),
+            h('span', { style: { flex: 1, fontSize: 'var(--font-size-xs)', color: cnt ? 'var(--fg-primary)' : 'var(--fg-muted)' } }, o),
+            h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', fontVariantNumeric: 'tabular-nums' } }, cnt)); }) : h('div', { style: { padding: 10, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', textAlign: 'center' } }, '無相符原型')),
+          sel.length ? h('button', { onClick: () => t.setState({ archFilter: [] }), style: { marginTop: 6, padding: '6px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--fg-secondary)', cursor: 'pointer', fontSize: 'var(--font-size-2xs)' } }, '清除全部篩選') : null));
+    }
+    return h('div', { style: { marginTop: 10, position: 'relative' } }, trigger, pop,
+      sel.length ? h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 7 } }, sel.map(v => h('span', { key: v, onClick: () => toggle(v), style: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-2xs)', padding: '3px 8px', borderRadius: 'var(--pill-radius)', background: 'var(--accent)', color: 'var(--accent-fg)', cursor: 'pointer' } }, v, t.icon(t.IC.x, 10)))) : null);
+  }
+
+  // ================= TIP =================
+  renderTip() {
+    const h = React.createElement, t = this;
+    if (!this.state.tip) return null;
+    return h('div', { style: { flex: 'none', display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 16px', background: 'var(--bg-secondary)', borderBottom: '1px solid var(--border)', animation: 'ca-fade .3s ease' } },
+      h('span', { style: { color: 'var(--accent)', flex: 'none', marginTop: 1 } }, t.icon(t.IC.sparkles, 15)),
+      h('div', { style: { flex: 1, fontSize: 'var(--font-size-xs)', lineHeight: 1.55, color: 'var(--fg-secondary)' } },
+        h('strong', { style: { color: 'var(--fg-primary)' } }, '研究者導覽：'),
+        '本頁分三個層級——', h('strong', { style: { color: 'var(--fg-primary)' } }, '人物概覽'), '看「她是誰」，', h('strong', { style: { color: 'var(--fg-primary)' } }, '語音風格'), '看「她如何說話」，', h('strong', { style: { color: 'var(--fg-primary)' } }, '認知狀態'), '看「她在第 N 章知道什麼」。框架（Jung / Schmidt）只影響原型那一節。'),
+      h('button', { onClick: () => t.setState({ tip: false }), style: { flex: 'none', background: 'none', border: 'none', color: 'var(--fg-muted)', cursor: 'pointer', display: 'flex' } }, t.icon(t.IC.x, 15)));
+  }
+
+  // ================= MAIN ROUTER =================
+  renderMain() {
+    const s = this.state;
+    if (s.generating) return this.renderGenerating();
+    if (!s.selected) return this.renderLanding();
+    const c = this.getChars().find(x => x.name === s.selected);
+    if (!c.analyzed) return this.renderUnanalyzed(c);
+    return this.renderDetail(c);
+  }
+
+  renderUnanalyzed(c) {
+    const h = React.createElement, t = this;
+    return h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', textAlign: 'center', padding: 40, gap: 14 } },
+      h('div', { style: { color: 'var(--fg-muted)' } }, t.icon(t.IC.sparkles, 34, 1.3)),
+      h('div', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700 } }, c.name),
+      h('div', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--fg-secondary)', maxWidth: 420, lineHeight: 1.6 } }, '此角色尚未進行深度分析。觸發後將抽取原型、個性特質、關係、關鍵事件與發展弧線等維度。'),
+      h('button', { onClick: () => t.startGen(c.name), style: { marginTop: 6, padding: '9px 20px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'var(--accent)', color: 'var(--accent-fg)', cursor: 'pointer', fontSize: 'var(--font-size-sm)', fontWeight: 600 } }, '建立核心角色分析'));
+  }
+
+  renderGenerating() {
+    const h = React.createElement, t = this, s = this.state;
+    const stages = ['彙整 CEP 證據檔', '原型判定（Jung / Schmidt）', '個性特質與行為', '關係與關鍵事件', '發展弧線', '寫入分析結果'];
+    return h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', padding: 40 } },
+      h('div', { style: { width: 420, maxWidth: '100%', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow)', padding: 24 } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 } }, h('span', { style: { color: 'var(--accent)', display: 'inline-flex', animation: 'ca-spin 1s linear infinite' } }, t.icon(t.IC.rotate, 16)), h('span', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', fontWeight: 700 } }, s.generating), h('span', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--fg-muted)' } }, '分析中')),
+        h('div', { style: { fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginBottom: 14 } }, 'TASK ID · char-' + t.hash(s.generating).toString(16).slice(0, 8)),
+        h('div', { style: { height: 4, borderRadius: 3, background: 'var(--bg-tertiary)', overflow: 'hidden', marginBottom: 16 } }, h('div', { style: { height: '100%', width: (s.genStep / 6 * 100) + '%', background: 'var(--accent)', borderRadius: 3, transition: 'width .5s ease' } })),
+        h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } }, stages.map((st, i) => {
+          const done = i < s.genStep, run = i === s.genStep;
+          return h('div', { key: i, style: { display: 'flex', alignItems: 'center', gap: 10, opacity: done || run ? 1 : 0.5 } },
+            h('span', { style: { width: 18, height: 18, flex: 'none', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: done ? 'var(--color-success)' : 'transparent', border: `1.5px solid ${done ? 'var(--color-success)' : run ? 'var(--accent)' : 'var(--border)'}`, color: done ? 'var(--accent-fg)' : 'var(--accent)' } }, done ? t.icon(t.IC.check, 11, 2.5) : run ? h('span', { style: { display: 'inline-flex', animation: 'ca-spin 1s linear infinite' } }, t.icon(t.IC.rotate, 11)) : h('span', { style: { fontSize: 9, color: 'var(--fg-muted)' } }, i + 1)),
+            h('span', { style: { fontSize: 'var(--font-size-sm)', color: done || run ? 'var(--fg-primary)' : 'var(--fg-muted)' } }, st));
+        })),
+        h('div', { style: { marginTop: 16, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', textAlign: 'center' } }, '每 2 秒輪詢狀態 · 沿用符號頁 InterpretationGenerating 模式')));
+  }
+
+  // ================= LANDING (A) =================
+  renderLanding() {
+    const h = React.createElement, t = this, s = this.state;
+    const chars = this.getChars();
+    const analyzed = chars.filter(c => c.analyzed).length;
+    const unanalyzed = chars.length - analyzed;
+    return h('div', { style: { padding: '20px 26px 60px', maxWidth: 1180, margin: '0 auto', animation: 'ca-fade .3s ease' } },
+      // summary bar
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap', marginBottom: 18 } },
+        h('div', null,
+          h('h1', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700, margin: 0 } }, '角色群像'),
+          h('div', { style: { display: 'flex', gap: 14, marginTop: 6, fontSize: 'var(--font-size-sm)', color: 'var(--fg-secondary)' } },
+            h('span', null, h('strong', { style: { color: 'var(--fg-primary)' } }, chars.length), ' 位角色'),
+            h('span', { style: { display: 'flex', alignItems: 'center', gap: 5 } }, t.statusDot('var(--color-success)', 7), '已分析 ', analyzed),
+            h('span', { style: { display: 'flex', alignItems: 'center', gap: 5 } }, t.statusDot('var(--fg-muted)', 7), '未分析 ', unanalyzed))),
+        h('div', { style: { flex: 1 } }),
+        // two-tier batch
+        h('div', { style: { display: 'flex', gap: 8 } },
+          h('button', { onClick: () => t.setState({ batch: 'top10' }), style: { padding: '8px 14px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 'var(--font-size-xs)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 } }, t.icon(t.IC.sparkles, 14), '先生成前 10 位要角'),
+          h('button', { onClick: () => t.setState({ batch: 'all' }), style: { padding: '8px 14px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'var(--accent)', color: 'var(--accent-fg)', cursor: 'pointer', fontSize: 'var(--font-size-xs)', fontWeight: 600 } }, '生成全部'))),
+      // view toggle
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 } },
+        h('div', { style: { display: 'inline-flex', border: '1px solid var(--border)', borderRadius: 'var(--pill-radius)', overflow: 'hidden' } },
+          ['quadrant', 'ranking'].map((v, i) => h('button', { key: v, onClick: () => t.setState({ landingView: v }), style: { display: 'flex', alignItems: 'center', gap: 6, padding: '7px 15px', border: 'none', borderLeft: i ? '1px solid var(--border)' : 'none', background: s.landingView === v ? 'var(--accent)' : 'transparent', color: s.landingView === v ? 'var(--accent-fg)' : 'var(--fg-secondary)', cursor: 'pointer', fontSize: 'var(--font-size-xs)', fontWeight: 600 } }, t.icon(v === 'quadrant' ? t.IC.target : t.IC.bars, 14), v === 'quadrant' ? '定位象限' : '提及量排行'))),
+        h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, s.landingView === 'quadrant' ? 'X 敘事存在感（log）· Y 結構重要性 · 泡泡大小＝關係連結數 · 顏色＝派系' : '線性尺度 · 依全書提及量降冪')),
+      s.landingView === 'quadrant' ? this.renderQuadrant() : this.renderRanking());
+  }
+
+  renderQuadrant() {
+    const h = React.createElement, t = this, s = this.state;
+    const chars = this.getChars();
+    const facs = this.factions();
+    const H = 470;
+    const labeled = new Set(chars.slice(0, 8).map(c => c.name));
+    const bubbles = chars.map(c => {
+      const [fill, stroke] = t.facColor(c.fac);
+      const r = 5 + c.rel * 1.5;
+      const hov = s.hoverBubble === c.name;
+      const show = labeled.has(c.name) || hov;
+      return h('div', {
+        key: c.name, onMouseEnter: () => t.setState({ hoverBubble: c.name }), onMouseLeave: () => t.setState({ hoverBubble: null }), onClick: () => t.select(c.name),
+        style: { position: 'absolute', left: (6 + c.x * 88) + '%', top: (92 - c.y * 84) + '%', width: r * 2, height: r * 2, marginLeft: -r, marginTop: -r, borderRadius: '50%', background: c.fac == null ? 'transparent' : fill, border: `${c.fac == null ? 1 : 1.5}px solid ${stroke}`, opacity: c.fac == null ? 0.62 : 0.95, cursor: 'pointer', zIndex: hov ? 20 : (c.analyzed ? 6 : 3), boxShadow: c.analyzed ? '0 0 0 2px var(--accent)' : (hov ? '0 0 0 2px var(--fg-primary)' : 'none'), transition: 'box-shadow .12s ease' }
+      }, show && h('span', { style: { position: 'absolute', left: '50%', top: r * 2 + 2, transform: 'translateX(-50%)', whiteSpace: 'nowrap', fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xs)', fontWeight: 600, color: 'var(--fg-primary)', pointerEvents: 'none', background: hov ? 'var(--bg-primary)' : 'transparent', padding: hov ? '1px 4px' : 0, borderRadius: 3, zIndex: 21 } }, c.name, hov && h('span', { style: { color: 'var(--fg-muted)', fontWeight: 400, fontFamily: 'var(--font-sans)' } }, ` · 提及 ${c.mentions} · 關係 ${c.rel}`)));
+    });
+    const axis = (label, style) => h('span', { style: Object.assign({ position: 'absolute', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', fontWeight: 500 }, style) }, label);
+    return h('div', null,
+      h('div', { style: { display: 'flex', gap: 18, alignItems: 'stretch' } },
+        // plot
+        h('div', { style: { flex: 1, position: 'relative', height: H, background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow)' } },
+          // median lines
+          h('div', { style: { position: 'absolute', left: (6 + t._medX * 88) + '%', top: 8, bottom: 26, width: 0, borderLeft: '1px dashed var(--border)' } }),
+          h('div', { style: { position: 'absolute', top: (92 - t._medY * 84) + '%', left: 34, right: 10, height: 0, borderTop: '1px dashed var(--border)' } }),
+          axis('結構重要性 ↑', { top: 8, left: 10, writingMode: 'vertical-rl', transform: 'rotate(180deg)', height: 120 }),
+          axis('敘事存在感（log 提及量）→', { bottom: 6, right: 12 }),
+          axis('要角', { top: '12%', right: '10%', fontStyle: 'italic', opacity: .6 }),
+          axis('背景長尾', { bottom: '14%', left: '8%', fontStyle: 'italic', opacity: .6 }),
+          h('div', { style: { position: 'absolute', inset: 0 } }, ...bubbles)),
+        // faction legend
+        h('div', { style: { width: 190, flex: 'none', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow)', padding: 12, overflow: 'auto', height: H } },
+          h('div', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 600, letterSpacing: '.04em', color: 'var(--fg-muted)', marginBottom: 8, textTransform: 'uppercase' } }, '派系 · 顏色編碼'),
+          facs.map(f => { const [fill, stroke] = t.facColor(f.i); return h('div', { key: f.i, onClick: () => t.toast('在圖譜中查看此派系（原型示意）'), style: { display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', cursor: 'pointer' } }, h('span', { style: { width: 12, height: 12, flex: 'none', borderRadius: '50%', background: fill, border: `1.5px solid ${stroke}` } }), h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, t.facLabel(f))); }),
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0', borderTop: '1px solid var(--border)', marginTop: 6, paddingTop: 8 } }, h('span', { style: { width: 12, height: 12, flex: 'none', borderRadius: '50%', background: 'transparent', border: '1px solid var(--fg-muted)', opacity: .6 } }), h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, '無派系歸屬 · 66 位')))),
+      h('p', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginTop: 10, lineHeight: 1.5 } }, '切線取兩軸中位數 · 僅前 8 名常駐標籤，其餘 hover 顯示 · 66/99 位無派系者以低飽和描邊圈呈現 · 點泡泡載入該角色分析'));
+  }
+
+  renderRanking() {
+    const h = React.createElement, t = this, s = this.state;
+    const chars = this.getChars();
+    const maxM = chars[0].mentions;
+    const hero = chars[0];
+    const rest = chars.slice(1);
+    const shown = s.expandRank ? rest : rest.slice(0, 11);
+    const [hbg, hdot, hfg] = t.avatar(hero.name);
+    return h('div', null,
+      // hero (rank 1)
+      h('div', { style: { display: 'flex', gap: 16, alignItems: 'center', padding: 18, background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow)', marginBottom: 14 } },
+        h('div', { style: { position: 'relative', flex: 'none' } },
+          h('div', { style: { width: 60, height: 60, borderRadius: '50%', background: hero.analyzed ? hbg : 'var(--bg-tertiary)', border: `1.5px solid ${hero.analyzed ? hdot : 'var(--border)'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: hero.analyzed ? hfg : 'var(--fg-muted)' } }, hero.name[0]),
+          h('span', { style: { position: 'absolute', top: -4, left: -4, background: 'var(--accent)', color: 'var(--accent-fg)', fontSize: 'var(--font-size-2xs)', fontWeight: 700, padding: '1px 6px', borderRadius: 'var(--badge-radius)' } }, '#1')),
+        h('div', { style: { flex: 1, minWidth: 0 } },
+          h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 10 } }, h('span', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700 } }, hero.name), h('span', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--fg-muted)' } }, '提及量最高的核心角色')),
+          h('div', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--fg-secondary)', marginTop: 4 } }, '全書提及 ', h('strong', { style: { color: 'var(--fg-primary)' } }, hero.mentions), ' 次 · 關係連結 ', hero.rel, ' 條')),
+        hero.analyzed
+          ? h('button', { onClick: () => t.select(hero.name), style: { flex: 'none', padding: '9px 18px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'var(--accent)', color: 'var(--accent-fg)', cursor: 'pointer', fontSize: 'var(--font-size-sm)', fontWeight: 600 } }, '查看分析')
+          : h('button', { onClick: () => t.startGen(hero.name), style: { flex: 'none', padding: '9px 18px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'var(--accent)', color: 'var(--accent-fg)', cursor: 'pointer', fontSize: 'var(--font-size-sm)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 } }, t.icon(t.IC.sparkles, 14), '建立核心角色分析')),
+      // ranking rows
+      h('div', { style: { background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow)', overflow: 'hidden' } },
+        shown.map((c, i) => {
+          const [fill, stroke] = t.facColor(c.fac);
+          return h('div', { key: c.name, onClick: () => t.select(c.name), style: { display: 'flex', alignItems: 'center', gap: 12, padding: '9px 16px', borderTop: i ? '1px solid var(--border)' : 'none', cursor: 'pointer' } },
+            h('span', { style: { width: 22, flex: 'none', textAlign: 'right', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)', fontVariantNumeric: 'tabular-nums' } }, i + 2),
+            h('span', { style: { width: 9, height: 9, flex: 'none', borderRadius: '50%', background: c.fac == null ? 'transparent' : fill, border: `1px solid ${c.fac == null ? 'var(--fg-muted)' : stroke}` } }),
+            h('span', { style: { width: 74, flex: 'none', fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' } }, c.name),
+            c.analyzed && t.statusDot('var(--color-success)', 6),
+            h('div', { style: { flex: 1, height: 8, borderRadius: 4, background: 'var(--bg-tertiary)', overflow: 'hidden' } }, h('div', { style: { height: '100%', width: (c.mentions / maxM * 100) + '%', background: c.analyzed ? 'var(--accent)' : 'var(--fg-muted)', opacity: c.analyzed ? 1 : 0.5, borderRadius: 4 } })),
+            h('span', { style: { width: 44, flex: 'none', textAlign: 'right', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)', fontVariantNumeric: 'tabular-nums' } }, c.mentions),
+            !c.analyzed && h('button', { onClick: e => { e.stopPropagation(); t.startGen(c.name); }, style: { flex: 'none', fontSize: 'var(--font-size-2xs)', padding: '3px 9px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer' } }, '建立'));
+        })),
+      h('button', { onClick: () => t.setState({ expandRank: !s.expandRank }), style: { marginTop: 12, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--fg-secondary)', cursor: 'pointer', fontSize: 'var(--font-size-xs)' } }, t.icon(s.expandRank ? t.IC.down : t.IC.right, 13), s.expandRank ? '收合長尾' : `展開其餘 ${rest.length - 11} 位角色`));
+  }
+
+  // ================= DETAIL =================
+  renderDetail(c) {
+    const h = React.createElement, t = this, s = this.state;
+    const A = this.ANALYSIS();
+    const arc = A.archetypes.find(a => a.framework === s.framework);
+    const fwName = s.framework === 'jung' ? 'Jung' : 'Schmidt';
+    const primTabs = [['overview', '人物概覽'], ['voice', '語音風格'], ['epistemic', '認知狀態']];
+    return h('div', { style: { animation: 'ca-fade .25s ease' } },
+      // title row
+      h('div', { style: { padding: '18px 26px 0', maxWidth: 1120, margin: '0 auto' } },
+        h('div', { style: { display: 'flex', alignItems: 'flex-start', gap: 14, flexWrap: 'wrap' } },
+          h('h1', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-3xl)', fontWeight: 700, margin: 0, lineHeight: 1.1 } }, c.name),
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 'var(--badge-radius)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', marginTop: 6 } }, h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, fwName), h('span', { style: { fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--fg-primary)' } }, arc.primary)),
+          h('span', { style: { marginTop: 9, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' } }, '提及 ', c.mentions, ' 次'),
+          h('div', { style: { flex: 1 } }),
+          h('div', { style: { display: 'flex', gap: 8, marginTop: 4 } },
+            t.actionBtn(t.IC.ext, '在圖譜中查看', () => t.toast('前往知識圖譜並聚焦此角色（原型示意）')),
+            t.actionBtn(t.IC.users, '框架對照', () => t.setState({ drawer: 'framework' })),
+            t.actionBtn(t.IC.rotate, '覆蓋重新生成', () => t.toast('確認後將覆蓋現有結果並消耗 token（原型示意）')))),
+        // primary tabs
+        h('div', { style: { display: 'flex', gap: 4, marginTop: 16, borderBottom: '1px solid var(--border)' } },
+          primTabs.map(([id, label]) => h('button', { key: id, onClick: () => t.setState({ primaryTab: id }), style: { padding: '9px 4px', marginRight: 18, border: 'none', background: 'none', cursor: 'pointer', fontSize: 'var(--font-size-sm)', fontWeight: s.primaryTab === id ? 600 : 500, color: s.primaryTab === id ? 'var(--fg-primary)' : 'var(--fg-muted)', borderBottom: `2px solid ${s.primaryTab === id ? 'var(--accent)' : 'transparent'}`, marginBottom: -1 } }, label)))),
+      // body
+      h('div', { style: { padding: '18px 26px 60px', maxWidth: 1120, margin: '0 auto' } },
+        s.primaryTab === 'overview' ? t.renderOverview(c, A) : s.primaryTab === 'voice' ? t.renderVoice(c) : t.renderEpistemic(c)));
+  }
+  actionBtn(ic, label, onClick) {
+    const h = React.createElement, t = this;
+    return h('button', { onClick, style: { display: 'flex', alignItems: 'center', gap: 5, padding: '6px 11px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--fg-secondary)', cursor: 'pointer', fontSize: 'var(--font-size-xs)', whiteSpace: 'nowrap' } }, t.icon(ic, 13), label);
+  }
+
+  renderOverview(c, A) {
+    const h = React.createElement, t = this, s = this.state;
+    const subs = [['persona', '人格'], ['behavior', '行為'], ['relations', '關係'], ['arc', '弧線']];
+    return h('div', null,
+      h('div', { style: { display: 'inline-flex', gap: 3, padding: 3, borderRadius: 'var(--pill-radius)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', marginBottom: 18 } },
+        subs.map(([id, label]) => h('button', { key: id, onClick: () => t.setState({ subTab: id }), style: { padding: '5px 15px', borderRadius: 'var(--pill-radius)', border: 'none', cursor: 'pointer', fontSize: 'var(--font-size-xs)', fontWeight: 600, background: s.subTab === id ? 'var(--accent)' : 'transparent', color: s.subTab === id ? 'var(--accent-fg)' : 'var(--fg-secondary)' } }, label))),
+      s.subTab === 'persona' ? t.renderPersona(A) : s.subTab === 'behavior' ? t.renderBehavior(A) : s.subTab === 'relations' ? t.renderRelations(A) : t.renderArc(A));
+  }
+
+  sectionCard(title, sub, children, extra) {
+    const h = React.createElement;
+    return h('section', { style: Object.assign({ background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow)', padding: 'var(--space-lg)', marginBottom: 16 }, extra || {}) },
+      h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 14 } },
+        h('h3', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', fontWeight: 600, margin: 0 } }, title),
+        sub && h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, sub)),
+      children);
+  }
+  srcable(text, key) {
+    const h = React.createElement, t = this;
+    return h('span', { key, onClick: () => t.toast('跳至閱讀頁對應段落（原型示意）'), title: '點擊跳至閱讀頁對應段落', style: { cursor: 'pointer', borderBottom: '1.5px dotted var(--entity-character-border)', transition: 'background-color .15s ease', display: 'inline', padding: '0 1px', borderRadius: 2 }, onMouseEnter: e => e.currentTarget.style.background = 'var(--entity-character-bg)', onMouseLeave: e => e.currentTarget.style.background = 'transparent' }, text);
+  }
+
+  renderPersona(A) {
+    const h = React.createElement, t = this, s = this.state;
+    const arc = A.archetypes.find(a => a.framework === s.framework);
+    const fwLabel = s.framework === 'jung' ? 'Jung 原型' : 'Schmidt 類型';
+    const confW = Math.round(arc.confidence * 100);
+    return h('div', null,
+      t.sectionCard('角色簡介', '一句話總結', h('p', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-base)', lineHeight: 1.85, margin: 0, color: 'var(--fg-primary)', textWrap: 'pretty' } }, A.profileSummary)),
+      t.sectionCard(`${fwLabel} — ${arc.primary}`, null, h('div', null,
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16, flexWrap: 'wrap' } },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, '主要'), h('span', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'var(--accent)' } }, arc.primary)),
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 8 } }, h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, '次要'), h('span', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-base)', fontWeight: 600 } }, arc.secondary)),
+          h('div', { style: { flex: 1, minWidth: 140, display: 'flex', alignItems: 'center', gap: 8 } }, h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', flex: 'none' } }, '信心度'), h('div', { style: { flex: 1, height: 6, borderRadius: 3, background: 'var(--bg-tertiary)', overflow: 'hidden' } }, h('div', { style: { height: '100%', width: confW + '%', background: 'var(--accent)', borderRadius: 3 } })), h('span', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 600, flex: 'none' } }, confW + '%')),
+          h('button', { onClick: () => t.setState({ drawer: 'framework' }), style: { fontSize: 'var(--font-size-2xs)', color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 } }, '切到對照', t.icon(t.IC.right, 11))),
+        h('div', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 600, letterSpacing: '.04em', color: 'var(--fg-muted)', marginBottom: 8, textTransform: 'uppercase' } }, '支持證據'),
+        h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } }, arc.evidence.map((e, i) => h('div', { key: i, style: { display: 'flex', gap: 8, fontSize: 'var(--font-size-sm)', lineHeight: 1.65, color: 'var(--fg-secondary)' } }, h('span', { style: { flex: 'none', width: 18, height: 18, borderRadius: '50%', background: 'var(--bg-tertiary)', color: 'var(--fg-muted)', fontSize: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 2 } }, i + 1), t.srcable(e)))))),
+      t.sectionCard('個性特質', `${A.cep.traits.length} 項`, h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 10 } }, A.cep.traits.map((tr, i) => { const [k, v] = tr.split('：'); return h('div', { key: i, style: { padding: '10px 12px', borderRadius: 'var(--btn-radius)', background: 'var(--bg-secondary)', border: '1px solid var(--border)' } }, h('div', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', fontWeight: 700, color: 'var(--fg-primary)', marginBottom: 3 } }, k), h('div', { style: { fontSize: 'var(--font-size-xs)', lineHeight: 1.55, color: 'var(--fg-secondary)' } }, v)); }))));
+  }
+
+  renderBehavior(A) {
+    const h = React.createElement, t = this;
+    return h('div', null,
+      t.sectionCard('主要行動', `${A.cep.actions.length} 項`, h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } }, A.cep.actions.map((a, i) => h('div', { key: i, style: { display: 'flex', gap: 10, alignItems: 'flex-start', fontSize: 'var(--font-size-sm)', lineHeight: 1.6, color: 'var(--fg-primary)' } }, h('span', { style: { flex: 'none', width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', marginTop: 8 } }), h('span', null, a))))),
+      t.sectionCard('關鍵事件', `${A.cep.keyEvents.length} 項，依章節序`, h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } }, A.cep.keyEvents.slice().sort((a, b) => a.chapter - b.chapter).map((e, i) => h('div', { key: i, style: { padding: '12px 14px', borderRadius: 'var(--btn-radius)', background: 'var(--bg-secondary)', border: '1px solid var(--border)' } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 } }, h('span', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 700, color: 'var(--accent)', fontFamily: 'var(--font-mono)' } }, 'Ch.' + e.chapter), h('span', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--fg-primary)' } }, e.event)),
+        h('div', { style: { fontSize: 'var(--font-size-xs)', lineHeight: 1.55, color: 'var(--fg-secondary)', marginBottom: 6 } }, e.significance),
+        h('a', { href: '#', onClick: ev => { ev.preventDefault(); t.toast('在事件分析頁查看此事件 EEP（原型示意）'); }, style: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-2xs)' } }, '在事件分析頁查看', t.icon(t.IC.ext, 10)))))));
+  }
+
+  renderRelations(A) {
+    const h = React.createElement, t = this;
+    const names = new Set(this.getChars().map(c => c.name));
+    const groups = {};
+    A.cep.relations.forEach(r => { (groups[r.target] = groups[r.target] || []).push(r); });
+    const TC = { '敵人': 'event', '盟友': 'location', '下屬': 'organization', '成員': 'concept', '其他': 'other' };
+    const relCards = Object.entries(groups).map(g => {
+      const target = g[0], rels = g[1];
+      const clickable = names.has(target);
+      const head = h('div', { onClick: clickable ? () => t.select(target) : undefined, style: { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderBottom: '1px solid var(--border)', cursor: clickable ? 'pointer' : 'default', background: clickable ? 'var(--bg-primary)' : 'transparent' } },
+        h('span', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-base)', fontWeight: 700, color: clickable ? 'var(--accent)' : 'var(--fg-primary)' } }, target),
+        rels.length > 1 ? h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', background: 'var(--bg-tertiary)', padding: '1px 6px', borderRadius: 'var(--badge-radius)' } }, rels.length + ' 段') : null,
+        h('div', { style: { flex: 1 } }),
+        clickable ? h('span', { style: { color: 'var(--fg-muted)', display: 'flex' } }, t.icon(t.IC.right, 13)) : null);
+      const rows = rels.map((r, i) => { const ty = TC[r.type] || 'other'; return h('div', { key: i, style: { padding: '8px 12px' } },
+        h('span', { style: { display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-2xs)', fontWeight: 600, padding: '2px 8px', borderRadius: 'var(--pill-radius)', background: 'var(--entity-' + ty + '-bg)', color: 'var(--entity-' + ty + '-fg)', border: '0.5px solid var(--entity-' + ty + '-dot)', marginBottom: 5 } }, h('span', { style: { width: 5, height: 5, borderRadius: '50%', background: 'var(--entity-' + ty + '-dot)' } }), r.type),
+        h('div', { style: { fontSize: 'var(--font-size-xs)', lineHeight: 1.55, color: 'var(--fg-secondary)' } }, r.description)); });
+      return h('div', { key: target, style: { border: '1px solid var(--border)', borderRadius: 'var(--btn-radius)', background: 'var(--bg-secondary)', overflow: 'hidden' } }, head, h('div', { style: { padding: '4px 0' } }, rows));
+    });
+    const facOf = nm => { const c = this.getChars().find(x => x.name === nm); return c ? c.fac : null; };
+    const entries = Object.entries(groups).sort((a, b) => { const fa = facOf(a[0]), fb = facOf(b[0]); return (fa == null ? 99 : fa) - (fb == null ? 99 : fb); });
+    const cx = 320, cy = 146, rx = 274, ry = 116, N = entries.length;
+    const nodes = entries.map((g, i) => { const target = g[0], rels = g[1]; const ang = -Math.PI / 2 + i / N * 2 * Math.PI; return { target, rels, x: cx + rx * Math.cos(ang), y: cy + ry * Math.sin(ang), fstroke: t.facColor(facOf(target))[1], clickable: names.has(target) }; });
+    const typesPresent = [];
+    A.cep.relations.forEach(r => { if (!typesPresent.includes(r.type)) typesPresent.push(r.type); });
+    const midLabel = { '敵人': '敵', '盟友': '盟', '下屬': '屬', '成員': '員', '其他': '他' };
+    const svg = h('svg', { viewBox: '0 0 640 306', width: '100%', style: { display: 'block' } },
+      nodes.map((n, i) => { const m = n.rels.length; const dx = n.x - cx, dy = n.y - cy, L = Math.hypot(dx, dy) || 1; const px = -dy / L, py = dx / L; const mx = (cx + n.x) / 2, my = (cy + n.y) / 2; return h('g', { key: 'e' + i }, n.rels.map((r, j) => { const off = (j - (m - 1) / 2) * 17; const k = TC[r.type] || 'other'; const qx = mx + px * off, qy = my + py * off; const lx = 0.28 * cx + 0.5 * qx + 0.22 * n.x, ly = 0.28 * cy + 0.5 * qy + 0.22 * n.y; return h('g', { key: j }, h('path', { d: 'M' + cx + ' ' + cy + ' Q' + qx + ' ' + qy + ' ' + n.x + ' ' + n.y, fill: 'none', stroke: 'var(--entity-' + k + '-dot)', strokeWidth: 1.6, opacity: 0.7 }), h('text', { x: lx, y: ly + 3, textAnchor: 'middle', style: { fontFamily: 'var(--font-sans)', fontSize: 10, fontWeight: 700, fill: 'var(--entity-' + k + '-fg)', paintOrder: 'stroke', stroke: 'var(--bg-secondary)', strokeWidth: 3 } }, midLabel[r.type] || '')); })); }),
+      nodes.map((n, i) => { const long = n.target.length > 2; const r = long ? 22 : 18; return h('g', { key: 'n' + i, onClick: n.clickable ? () => t.select(n.target) : undefined, style: { cursor: n.clickable ? 'pointer' : 'default' } },
+        h('title', null, n.target + ' · ' + n.rels.map(x => x.type).join(' / ')),
+        h('circle', { cx: n.x, cy: n.y, r: r, fill: 'var(--bg-primary)', stroke: n.fstroke, strokeWidth: 1.8 }),
+        h('text', { x: n.x, y: n.y + 4, textAnchor: 'middle', style: { fontFamily: 'var(--font-serif)', fontSize: long ? 10 : 12, fontWeight: 600, fill: n.clickable ? 'var(--accent)' : 'var(--fg-primary)' } }, n.target)); }),
+      h('circle', { cx: cx, cy: cy, r: 28, fill: 'var(--accent)', stroke: 'var(--bg-primary)', strokeWidth: 2 }),
+      h('text', { x: cx, y: cy + 5, textAnchor: 'middle', style: { fontFamily: 'var(--font-serif)', fontSize: 12, fontWeight: 700, fill: 'var(--accent-fg)' } }, '宇文化及'));
+    const legend = h('div', { style: { display: 'flex', flexWrap: 'wrap', gap: 12, marginTop: 8 } }, typesPresent.map(ty => { const k = TC[ty] || 'other'; return h('span', { key: ty, style: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' } }, h('span', { style: { width: 9, height: 9, borderRadius: '50%', background: 'var(--entity-' + k + '-bg)', border: '1px solid var(--entity-' + k + '-dot)' } }), ty); }), h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, '· 點節點載入該角色 · 角標＝多段關係'));
+    const ego = h('div', { style: { marginBottom: 16, background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: '12px 14px' } }, h('div', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginBottom: 4 } }, '關係圖譜 · 以宇文化及為中心'), svg, legend);
+    const relSection = t.sectionCard('重要關係', Object.keys(groups).length + ' 個對象 · ' + A.cep.relations.length + ' 段關係', h('div', null, ego, h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(300px,1fr))', gap: 12 } }, relCards)));
+    const quoteSection = t.sectionCard('代表引言', A.cep.quotes.length + ' 句', h('div', { style: { display: 'flex', flexDirection: 'column', gap: 12 } }, A.cep.quotes.map((qq, i) => h('blockquote', { key: i, onClick: () => t.toast('跳至閱讀頁對應段落（原型示意）'), title: '點擊跳至閱讀頁對應段落', style: { margin: 0, padding: '10px 14px', borderLeft: '2px solid var(--accent)', background: 'var(--bg-secondary)', borderRadius: '0 var(--btn-radius) var(--btn-radius) 0', fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', fontStyle: 'italic', lineHeight: 1.7, color: 'var(--fg-primary)', cursor: 'pointer' } }, qq))));
+    return h('div', null, relSection, quoteSection);
+  }
+
+
+  renderArc(A) {
+    const h = React.createElement, t = this, s = this.state;
+    const parse = r => r.split('-').map(Number);
+    const CH = 7;
+    const pct = ch => ((ch - 1) / (CH - 1)) * 100;
+    const colors = ['--narrative-present-border', '--narrative-flashback-border', '--narrative-flashforward-border'];
+    const axis = h('div', { style: { position: 'relative', height: 116, marginBottom: 8 } },
+      h('div', { style: { position: 'absolute', left: 0, right: 0, top: 78, height: 2, background: 'var(--border)' } }),
+      Array.from({ length: CH }, (_, i) => h('div', { key: i, style: { position: 'absolute', left: pct(i + 1) + '%', top: 74, transform: 'translateX(-50%)', textAlign: 'center' } },
+        h('div', { style: { width: 1, height: 10, background: 'var(--border)', margin: '0 auto' } }),
+        h('div', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginTop: 3, fontFamily: 'var(--font-mono)' } }, 'Ch.' + (i + 1)))),
+      A.arc.map((p, i) => { const ab = parse(p.chapterRange); const active = s.activeArc === i; return h('div', { key: i, onClick: () => t.setState({ activeArc: i }), title: p.phase, style: { position: 'absolute', left: pct(ab[0]) + '%', width: (pct(ab[1]) - pct(ab[0])) + '%', top: 8 + i * 20, height: 15, borderRadius: 8, background: 'var(' + colors[i % 3] + ')', opacity: active ? 1 : 0.55, cursor: 'pointer', display: 'flex', alignItems: 'center', paddingLeft: 8, boxShadow: active ? '0 0 0 2px var(--fg-primary)' : 'none' } }, h('span', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 600, color: 'var(--accent-fg)', whiteSpace: 'nowrap', overflow: 'hidden' } }, p.phase)); }),
+      A.cep.keyEvents.map((e, i) => h('div', { key: 'k' + i, title: e.event, style: { position: 'absolute', left: pct(e.chapter) + '%', top: 72, transform: 'translate(-50%,-50%)', width: 9, height: 9, borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--bg-primary)', zIndex: 4 } })));
+    const legend = h('div', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginBottom: 14, display: 'flex', gap: 14, flexWrap: 'wrap' } },
+      h('span', { style: { display: 'flex', alignItems: 'center', gap: 5 } }, t.statusDot('var(--accent)', 8), '關鍵事件 marker'),
+      h('span', null, '相鄰階段共享邊界章（如 Ch.2、Ch.3 重疊）→ 錯行堆疊呈現'));
+    const cards = h('div', { style: { display: 'flex', flexDirection: 'column', gap: 10 } }, A.arc.map((p, i) => { const active = s.activeArc === i; return h('div', { key: i, onClick: () => t.setState({ activeArc: i }), style: { padding: '12px 14px', borderRadius: 'var(--btn-radius)', background: active ? 'var(--bg-secondary)' : 'var(--bg-primary)', border: '1px solid ' + (active ? 'var(--accent)' : 'var(--border)'), cursor: 'pointer', borderLeft: '3px solid var(' + colors[i % 3] + ')' } },
+      h('div', { style: { display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 5 } }, h('span', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 700, fontFamily: 'var(--font-mono)', color: 'var(--accent)' } }, 'Ch.' + p.chapterRange), h('span', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-base)', fontWeight: 600 } }, p.phase)),
+      h('div', { style: { fontSize: 'var(--font-size-sm)', lineHeight: 1.7, color: 'var(--fg-secondary)', textWrap: 'pretty' } }, p.description)); }));
+    return t.sectionCard('發展弧線', A.arc.length + ' 個階段 · 章節軸', h('div', null, axis, legend, cards));
+  }
+
+
+  renderVoice(c) {
+    const h = React.createElement, t = this;
+    return h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '60px 20px', textAlign: 'center', gap: 12 } },
+      h('div', { style: { color: 'var(--fg-muted)' } }, t.icon(t.IC.sparkles, 30, 1.3)),
+      h('div', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', fontWeight: 600 } }, '尚無語音風格'),
+      h('div', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--fg-secondary)', maxWidth: 380, lineHeight: 1.6 } }, '語音風格為 lazy 生成——點擊分析後將產出平均句長、語氣分布、句長直方圖與質性描述。'),
+      h('button', { onClick: () => t.toast('觸發語音風格分析（原型示意）'), style: { marginTop: 4, padding: '8px 18px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'var(--accent)', color: 'var(--accent-fg)', cursor: 'pointer', fontSize: 'var(--font-size-sm)', fontWeight: 600 } }, '分析語音風格'));
+  }
+
+  // ================= EPISTEMIC (C) =================
+  renderEpistemic(c) {
+    const h = React.createElement, t = this, s = this.state;
+    const CH = 7;
+    const data = this.epiData(c.name);
+    const cur = s.epiCursor;
+    const sum = (obj) => Object.entries(obj).reduce((a, [k, v]) => a + (Number(k) <= cur ? v : 0), 0);
+    const knownN = sum(data.knownByCh), unknownN = sum(data.unknownByCh);
+    const setCursorFromX = (clientX, el) => { const r = el.getBoundingClientRect(); const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width)); const ch = Math.round(1 + f * (CH - 1)); this.setState({ epiCursor: ch }); };
+    return h('div', null,
+      // summary
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap', marginBottom: 16 } },
+        h('div', null, h('div', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, '截止章節'), h('div', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700 } }, '第 ' + cur + ' 章')),
+        h('div', { style: { display: 'flex', gap: 16 } },
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, t.statusDot('var(--color-success)', 9), h('span', { style: { fontSize: 'var(--font-size-sm)' } }, '已知 ', h('strong', null, knownN))),
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, t.statusDot('var(--color-warning)', 9), h('span', { style: { fontSize: 'var(--font-size-sm)' } }, '未知 ', h('strong', null, unknownN))),
+          h('div', { style: { display: 'flex', alignItems: 'center', gap: 6 } }, t.statusDot('var(--color-error)', 9), h('span', { style: { fontSize: 'var(--font-size-sm)', color: 'var(--fg-muted)' } }, '誤信 0'))),
+        h('div', { style: { flex: 1 } }),
+        h('button', { onClick: () => t.setState({ drawer: 'epistemic', compareName: '寇仲', cmpCursor: cur }), style: { display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'transparent', color: 'var(--accent)', cursor: 'pointer', fontSize: 'var(--font-size-xs)', fontWeight: 600 } }, t.icon(t.IC.users, 14), '對照另一角色')),
+      // chapter timeline
+      t.sectionCard('章節游標', '拖曳游標查看角色於不同章節的認知狀態', t.renderEpiAxis(data, cur, CH, setCursorFromX, false)),
+      // known / unknown columns
+      h('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(300px,1fr))', gap: 16 } },
+        t.epiColumn('已知事件', knownN, 'var(--color-success)', data.known.filter(e => e.ch <= cur)),
+        t.epiColumn('未知事件', unknownN, 'var(--color-warning)', data.unknown.filter(e => e.ch <= cur))),
+      h('div', { style: { marginTop: 16, padding: '12px 14px', borderRadius: 'var(--btn-radius)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)', display: 'flex', alignItems: 'center', gap: 8 } }, t.statusDot('var(--color-error)', 8), '誤信（misbelief）在本書為 0 筆——保留既有卡片樣式，無推斷誤信時顯示空狀態。'));
+  }
+  renderEpiAxis(data, cur, CH, setCursor, compact) {
+    const h = React.createElement, t = this;
+    const pct = ch => ((ch - 1) / (CH - 1)) * 100;
+    const onDown = e => { const el = e.currentTarget; setCursor(e.clientX, el); const move = ev => setCursor(ev.clientX, el); const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }; window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); };
+    const marker = (byCh, color, top) => Object.entries(byCh).map(([ch, n]) => Number(ch) <= cur && h('div', { key: color + ch, title: `第 ${ch} 章 · ${n} 筆`, style: { position: 'absolute', left: pct(Number(ch)) + '%', top, transform: 'translate(-50%,-50%)', minWidth: 16, height: 16, padding: '0 3px', borderRadius: 8, background: color, color: 'var(--accent-fg)', fontSize: 9, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--bg-primary)' } }, n));
+    return h('div', { onPointerDown: onDown, style: { position: 'relative', height: 64, cursor: 'ew-resize', userSelect: 'none', touchAction: 'none' } },
+      h('div', { style: { position: 'absolute', left: 0, right: 0, top: 32, height: 2, background: 'var(--border)' } }),
+      Array.from({ length: CH }, (_, i) => h('div', { key: i, style: { position: 'absolute', left: pct(i + 1) + '%', top: 40, transform: 'translateX(-50%)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)' } }, i + 1)),
+      marker(data.knownByCh, 'var(--color-success)', 18),
+      marker(data.unknownByCh, 'var(--color-warning)', 46),
+      // cursor
+      h('div', { style: { position: 'absolute', left: pct(cur) + '%', top: 4, bottom: 12, width: 2, background: 'var(--accent)', transform: 'translateX(-50%)' } }, h('div', { style: { position: 'absolute', top: -6, left: '50%', transform: 'translateX(-50%)', width: 12, height: 12, borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--bg-primary)' } })));
+  }
+  epiColumn(title, count, color, events) {
+    const h = React.createElement, t = this;
+    return h('section', { style: { background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--card-shadow)', padding: 'var(--space-lg)' } },
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 } }, t.statusDot(color, 9), h('h3', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-base)', fontWeight: 600, margin: 0 } }, title), h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, count + ' 筆（示意列出 ' + events.length + '）')),
+      events.length ? h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } }, events.map((e, i) => h('div', { key: i, onClick: () => t.toast('跳至閱讀頁對應段落（原型示意）'), style: { display: 'flex', gap: 8, alignItems: 'flex-start', padding: '8px 10px', borderRadius: 'var(--btn-radius)', background: 'var(--bg-secondary)', border: '1px solid var(--border)', cursor: 'pointer' } }, h('span', { style: { fontSize: 'var(--font-size-2xs)', fontFamily: 'var(--font-mono)', color: 'var(--fg-muted)', flex: 'none', marginTop: 2 } }, 'Ch.' + e.ch), h('span', { style: { flex: 1, fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', lineHeight: 1.5, color: 'var(--fg-primary)' } }, e.title), h('span', { style: { color: 'var(--fg-muted)', flex: 'none', marginTop: 2 } }, t.icon(t.IC.read, 12))))) : h('div', { style: { fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)', padding: '8px 0' } }, '此章節前無已分類事件。'));
+  }
+
+  // ================= DRAWERS =================
+  renderDrawer() {
+    const h = React.createElement, t = this, s = this.state;
+    if (!s.drawer) return null;
+    const backdrop = h('div', { onClick: () => t.setState({ drawer: null }), style: { position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.18)', zIndex: 40, animation: 'ca-fade .2s ease' } });
+    const body = s.drawer === 'framework' ? t.renderFrameworkDrawer() : t.renderEpistemicDrawer();
+    return h('div', null, backdrop, h('div', { style: { position: 'absolute', top: 0, right: 0, bottom: 0, width: s.drawer === 'framework' ? 640 : 720, maxWidth: '92%', background: 'var(--bg-primary)', borderLeft: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)', zIndex: 41, display: 'flex', flexDirection: 'column', animation: 'ca-slide .25s ease' } }, body));
+  }
+  drawerHead(title, onClose) {
+    const h = React.createElement, t = this;
+    return h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid var(--border)', flex: 'none' } }, h('h2', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', fontWeight: 700, margin: 0, flex: 1 } }, title), h('button', { onClick: onClose, style: { background: 'none', border: 'none', color: 'var(--fg-muted)', cursor: 'pointer', display: 'flex' } }, t.icon(t.IC.x, 18)));
+  }
+  renderFrameworkDrawer() {
+    const h = React.createElement, t = this;
+    const A = this.ANALYSIS();
+    const col = (fw, label) => { const a = A.archetypes.find(x => x.framework === fw); const cw = Math.round(a.confidence * 100); return h('div', { style: { flex: 1, minWidth: 0 } },
+      h('div', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 700, letterSpacing: '.05em', textTransform: 'uppercase', color: 'var(--fg-muted)', marginBottom: 10 } }, label),
+      h('div', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-xl)', fontWeight: 700, color: 'var(--accent)' } }, a.primary),
+      h('div', { style: { fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)', marginTop: 2, marginBottom: 12 } }, '次：' + a.secondary),
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 } }, h('div', { style: { flex: 1, height: 6, borderRadius: 3, background: 'var(--bg-tertiary)', overflow: 'hidden' } }, h('div', { style: { height: '100%', width: cw + '%', background: 'var(--accent)', borderRadius: 3 } })), h('span', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 600 } }, cw + '% 信心')),
+      h('div', { style: { fontSize: 'var(--font-size-2xs)', fontWeight: 600, color: 'var(--fg-muted)', marginBottom: 6 } }, '證據'),
+      h('div', { style: { display: 'flex', flexDirection: 'column', gap: 8 } }, a.evidence.map((e, i) => h('div', { key: i, style: { fontSize: 'var(--font-size-xs)', lineHeight: 1.6, color: 'var(--fg-secondary)', paddingLeft: 10, borderLeft: '2px solid var(--border)' } }, e)))); };
+    return h('div', { style: { display: 'flex', flexDirection: 'column', height: '100%' } },
+      t.drawerHead('框架對照 — 宇文化及', () => t.setState({ drawer: null })),
+      h('div', { style: { flex: 1, overflow: 'auto', padding: 18, display: 'flex', gap: 24 } }, col('jung', 'Jung 12 原型'), h('div', { style: { width: 1, background: 'var(--border)', flex: 'none' } }), col('schmidt', 'Schmidt 45 類型')));
+  }
+  renderEpistemicDrawer() {
+    const h = React.createElement, t = this, s = this.state;
+    const CH = 7;
+    const A = '宇文化及', B = s.compareName;
+    const da = this.epiData(A), db = this.epiData(B);
+    const cur = s.cmpCursor;
+    const titles = obj => obj.filter(e => e.ch <= cur).map(e => e.title);
+    const aKnown = new Set(titles(da.known)), bKnown = new Set(titles(db.known));
+    const onlyA = [...aKnown].filter(x => !bKnown.has(x));
+    const both = [...aKnown].filter(x => bKnown.has(x));
+    const onlyB = [...bKnown].filter(x => !aKnown.has(x));
+    const setCursor = (clientX, el) => { const r = el.getBoundingClientRect(); const f = Math.min(1, Math.max(0, (clientX - r.left) / r.width)); this.setState({ cmpCursor: Math.round(1 + f * (CH - 1)) }); };
+    const colCard = (title, color, items) => h('div', { style: { flex: 1, minWidth: 0, background: 'var(--bg-secondary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', padding: 12 } },
+      h('div', { style: { display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 } }, t.statusDot(color, 8), h('span', { style: { fontSize: 'var(--font-size-xs)', fontWeight: 600 } }, title), h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, items.length)),
+      items.length ? items.map((x, i) => h('div', { key: i, style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-xs)', lineHeight: 1.45, color: 'var(--fg-primary)', padding: '5px 0', borderTop: i ? '1px solid var(--border)' : 'none' } }, x)) : h('div', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, '—'));
+    return h('div', { style: { display: 'flex', flexDirection: 'column', height: '100%' } },
+      t.drawerHead('認知對照 — 雙角色資訊差', () => t.setState({ drawer: null })),
+      h('div', { style: { flex: 1, overflow: 'auto', padding: 18 } },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6, fontSize: 'var(--font-size-sm)' } }, h('span', { style: { fontFamily: 'var(--font-serif)', fontWeight: 700 } }, A), h('span', { style: { color: 'var(--fg-muted)' } }, 'vs'), h('span', { style: { fontFamily: 'var(--font-serif)', fontWeight: 700 } }, B), h('span', { style: { fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, '（第二角色僅列有資料者 · 此處為示意）')),
+        h('div', { style: { marginBottom: 4, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' } }, '共用同一條章節游標 · 截止第 ' + cur + ' 章'),
+        t.renderCmpAxis(cur, CH, setCursor),
+        h('div', { style: { display: 'flex', gap: 12, marginTop: 16, alignItems: 'flex-start' } },
+          colCard('只有 ' + A + ' 知道', 'var(--accent)', onlyA),
+          colCard('都知道', 'var(--color-success)', both),
+          colCard('只有 ' + B + ' 知道', 'var(--color-info)', onlyB))));
+  }
+  renderCmpAxis(cur, CH, setCursor) {
+    const h = React.createElement;
+    const pct = ch => ((ch - 1) / (CH - 1)) * 100;
+    const onDown = e => { const el = e.currentTarget; setCursor(e.clientX, el); const move = ev => setCursor(ev.clientX, el); const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); }; window.addEventListener('pointermove', move); window.addEventListener('pointerup', up); };
+    return h('div', { onPointerDown: onDown, style: { position: 'relative', height: 40, cursor: 'ew-resize', userSelect: 'none', touchAction: 'none' } },
+      h('div', { style: { position: 'absolute', left: 0, right: 0, top: 20, height: 2, background: 'var(--border)' } }),
+      Array.from({ length: CH }, (_, i) => h('div', { key: i, style: { position: 'absolute', left: pct(i + 1) + '%', top: 26, transform: 'translateX(-50%)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', fontFamily: 'var(--font-mono)' } }, i + 1)),
+      h('div', { style: { position: 'absolute', left: pct(cur) + '%', top: 4, bottom: 14, width: 2, background: 'var(--accent)', transform: 'translateX(-50%)' } }, h('div', { style: { position: 'absolute', top: -5, left: '50%', transform: 'translateX(-50%)', width: 11, height: 11, borderRadius: '50%', background: 'var(--accent)', border: '2px solid var(--bg-primary)' } })));
+  }
+
+  // ================= MODAL + TOAST =================
+  renderModal() {
+    const h = React.createElement, t = this, s = this.state;
+    if (!s.batch) return null;
+    const count = s.batch === 'top10' ? 10 : 98;
+    return h('div', { style: { position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.28)', animation: 'ca-fade .2s ease' }, onClick: () => t.setState({ batch: null }) },
+      h('div', { onClick: e => e.stopPropagation(), style: { width: 420, maxWidth: '90%', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--shadow-lg)', padding: 22 } },
+        h('h3', { style: { fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', fontWeight: 700, margin: '0 0 10px' } }, s.batch === 'top10' ? '生成前 10 位要角分析' : '批次生成角色分析'),
+        h('p', { style: { fontSize: 'var(--font-size-sm)', lineHeight: 1.65, color: 'var(--fg-secondary)', margin: '0 0 18px' } }, `將對 ${count} 個尚未分析的角色執行深度分析，已分析的角色會自動跳過。此操作將消耗大量 token。`),
+        h('div', { style: { display: 'flex', justifyContent: 'flex-end', gap: 10 } },
+          h('button', { onClick: () => t.setState({ batch: null }), style: { padding: '8px 16px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--fg-secondary)', cursor: 'pointer', fontSize: 'var(--font-size-sm)' } }, '取消'),
+          h('button', { onClick: () => { t.setState({ batch: null }); t.toast(`已觸發批次分析 · ${count} 位排入任務中心（原型示意）`); }, style: { padding: '8px 16px', borderRadius: 'var(--btn-radius)', border: '1px solid var(--accent)', background: 'var(--accent)', color: 'var(--accent-fg)', cursor: 'pointer', fontSize: 'var(--font-size-sm)', fontWeight: 600 } }, '確認執行'))));
+  }
+  renderToast() {
+    const h = React.createElement, t = this;
+    if (!this.state.toast) return null;
+    return h('div', { style: { position: 'fixed', right: 20, bottom: 20, zIndex: 80, maxWidth: 320, display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 14px', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderLeft: '3px solid var(--accent)', borderRadius: 'var(--card-radius)', boxShadow: 'var(--shadow-lg)', animation: 'ca-slide .25s ease' } },
+      h('span', { style: { color: 'var(--accent)', flex: 'none', marginTop: 1 } }, t.icon(t.IC.sparkles, 15)),
+      h('span', { style: { fontSize: 'var(--font-size-xs)', lineHeight: 1.5, color: 'var(--fg-primary)' } }, this.state.toast));
+  }
+
+  renderVals() {
+    return {
+      sidebarEl: this.renderSidebar(),
+      booknavEl: this.renderBooknav(),
+      leftPanelEl: this.renderLeftPanel(),
+      tipEl: this.renderTip(),
+      mainEl: this.renderMain(),
+      drawerEl: this.renderDrawer(),
+      toastEl: this.renderToast(),
+      modalEl: this.renderModal()
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,905 @@
+{
+    "analyzed": [
+        {
+            "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+            "entityId": "5c23961b-21b3-4713-b11a-39a15241e833",
+            "section": "characters",
+            "title": "\u5b87\u6587\u5316\u53ca",
+            "archetypes": {
+                "jung": "\u7d71\u6cbb\u8005",
+                "schmidt": "\u66b4\u541b"
+            },
+            "chapterCount": 0,
+            "content": "\u5b87\u6587\u5316\u53ca\u662f\u5b87\u6587\u95a5\u4e2d\u51fa\u985e\u62d4\u8403\u7684\u9ad8\u624b\uff0c\u8eab\u5c45\u9ad8\u4f4d\uff0c\u537b\u5fc3\u61f7\u53f5\u6e2c\u3002\u4ed6\u8868\u9762\u4e0a\u5fe0\u65bc\u968b\u716c\u5e1d\u694a\u5ee3\uff0c\u5be6\u5247\u6697\u4e2d\u8207\u5c09\u9072\u52dd\u5bc6\u8b00\uff0c\u4f01\u5716\u63a8\u7ffb\u694a\u5ee3\u7684\u7d71\u6cbb\uff0c\u5fa9\u8f9f\u5317\u5468\u3002\u4ed6\u9670\u96aa\u72e1\u8a50\uff0c\u70ba\u9054\u76ee\u7684\u4e0d\u64c7\u624b\u6bb5\uff0c\u751a\u81f3\u8a08\u5283\u5229\u7528\u300a\u9577\u751f\u8a23\u300b\u5bb3\u6b7b\u694a\u5ee3\u3002\u5b87\u6587\u5316\u53ca\u6b66\u529f\u9ad8\u5f37\uff0c\u5c24\u64c5\u51b0\u7384\u52c1\uff0c\u66fe\u64ca\u6557\u63da\u5dde\u9ad8\u624b\u77f3\u9f8d\uff0c\u4e26\u80fd\u8207\u5085\u541b\u5a65\u6b63\u9762\u4ea4\u92d2\u3002\u4ed6\u5c07\u5bc7\u4ef2\u548c\u5f90\u5b50\u9675\u8996\u70ba\u596a\u53d6\u300a\u9577\u751f\u8a23\u300b\u7684\u95dc\u9375\uff0c\u5c0d\u5176\u5c55\u958b\u5168\u9762\u8ffd\u6355\u3002\u5b87\u6587\u5316\u53ca\u7684\u91ce\u5fc3\u8207\u6b0a\u8b00\u8cab\u7a7f\u5176\u884c\u52d5\uff0c\u4f7f\u5176\u6210\u70ba\u6545\u4e8b\u521d\u671f\u5bc7\u4ef2\u548c\u5f90\u5b50\u9675\u6700\u70ba\u5f37\u5927\u7684\u6575\u4eba\u4e4b\u4e00\u3002",
+            "status": "complete",
+            "generatedAt": "2026-07-16T06:30:13.056146",
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        }
+    ],
+    "unanalyzed": [
+        {
+            "id": "24a7d559-b0ca-4449-8949-758c3491336d",
+            "name": "\u694a\u7d20",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "90d6d42c-3752-428c-b54d-f9bd6533e72e",
+            "name": "\u694a\u5ee3",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "1806d929-1bfb-4029-b8a3-de0c97bbf861",
+            "name": "\u5f35\u58eb\u548c",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "8b62b57c-79c9-4cda-802c-5be56414173e",
+            "name": "\u63a8\u5c71\u624b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "26533991-3a18-47b7-b1f3-0adad513065c",
+            "name": "\u738b\u9808\u62d4",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "b1c71f1d-c334-40c1-b7fa-d3fca7253e0d",
+            "name": "\u7126\u90aa",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "dfb7abad-9564-4242-8536-6e4320ad9ec7",
+            "name": "\u53f2\u842c\u6b72",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "43580f77-c302-4013-b505-1113ba172dec",
+            "name": "\u694a\u5805",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "73811643-4304-468a-ba4f-44bc670fe354",
+            "name": "\u694a\u52c7",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "8e78471e-6878-437c-9d28-f5fa15519fe1",
+            "name": "\u5f90",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "bc19c304-b043-4380-9e58-544c04ed2aa4",
+            "name": "\u8a00\u8001\u5927",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "9ddd0a6a-b797-42a2-b8bb-7aa5fca0bea5",
+            "name": "\u7b97\u6b7b\u8349",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+            "name": "\u5bc7\u4ef2",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "9228fcf5-72d8-4ad5-a26a-b0af37c96931",
+            "name": "\u5f6d\u5b5d\u624d",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "4cda564f-f736-45c7-b2b9-52ab4b135318",
+            "name": "\u674e\u5b50\u901a",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "3fc1218c-227a-409d-9c6e-ee06dcacc0ce",
+            "name": "\u767d\u4fe1",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "83e343e4-f136-466a-b4f5-0d21847b33fa",
+            "name": "\u79e6\u8d85\u6587",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "42b55d4d-555c-4c16-b956-67f4c6bba08d",
+            "name": "\u5de6\u5b5d\u53cb",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "b15f6ccf-e5af-4654-8bec-5edfead4e30f",
+            "name": "\u694a\u516c\u537f",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "ac62f849-a7c7-4758-82e4-b24f647b755f",
+            "name": "\u674e\u5f18\u829d",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "5bce3903-e1b5-4020-b63f-af374e53a1df",
+            "name": "\u80e1\u5289\u82d7",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "da94e6eb-6cff-4634-b092-ec7255b2103b",
+            "name": "\u738b\u5fb7\u4ec1",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "fae026a5-92e4-4a93-bbd6-f706fee731d8",
+            "name": "\u767d\u8001\u592b\u5b50",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "7b62bddd-8005-4c0a-9089-c0ea6a83f27d",
+            "name": "\u77f3\u9f8d",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "ea87b55c-e8d9-4045-82cc-7db54502d163",
+            "name": "\u8c9e\u5ac2",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "706db604-ff10-41e7-95ff-af8b8a9e4996",
+            "name": "\u5ee3\u6210\u5b50",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "51944ddc-7a19-4ddb-8392-b31f8967fa62",
+            "name": "\u9ec3\u5e1d",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "f5784349-7a1b-494b-a75a-9cb4c51a1f4e",
+            "name": "\u767d\u8863\u5973\u5b50",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+            "name": "\u767d\u8863\u5973",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "9cee94c7-713e-45ed-8aef-e82c8103636b",
+            "name": "\u5b87\u6587\u50b7",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "10d93878-49ec-4c96-88ab-bdf1538e1059",
+            "name": "\u8001\u99ae",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+            "name": "\u5f90\u5b50\u9675",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "e053f469-b128-4b08-8b03-8404b9293219",
+            "name": "\u60e1\u5927\u5a66",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "c2555c88-2d3d-4d5a-a685-8c55ae049b20",
+            "name": "\u81ed\u8a00\u8001\u5927",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "a8dee86d-3a6c-4569-b3cc-16e224dd7bc7",
+            "name": "\u7530\u6587",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "e96ade4c-56bd-4c57-94bc-6c500a58b7d5",
+            "name": "\u77f3\u5e2b\u5085",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "03a76053-09f7-48ca-a7c2-64a6b1959b08",
+            "name": "\u5b88\u5099\u5927\u4eba",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "e2a85370-c8e0-467a-b8ab-0f344caf1038",
+            "name": "\u81ed\u8001\u8a00",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "400b5f5f-2f46-47f9-b545-dcdea9ac1334",
+            "name": "\u5c09\u9072\u52dd",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "08ace27f-dcf6-4284-b7d0-a01a386cea05",
+            "name": "\u5468\u5ba3\u5e1d",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "1cc82c24-5f22-4338-b65c-d0031606b82e",
+            "name": "\u912d\u8b6f",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "a80666c5-1f66-443a-b622-3ed76dd990bf",
+            "name": "\u5289\u6609",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "e9dee162-7aed-4187-a461-ab9a9c8e1930",
+            "name": "\u5b87\u6587\u95e1",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "7737e346-804b-465a-af82-9a86e5f91cdd",
+            "name": "\u5c09\u9072\u8fe5",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "3e0f282a-c313-4c4b-8fab-77640d21a414",
+            "name": "\u53f8\u99ac\u6d88\u96e3",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "8bcf87da-8037-4f26-bc3a-de560a520ee5",
+            "name": "\u738b\u8b19",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "2b96d31b-9032-4537-b777-d66814f58ba3",
+            "name": "\u674e\u6df5",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "443f357d-bba5-41b6-9d67-af8af2fce7a9",
+            "name": "\u7368\u5b64\u592a\u540e",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "1f3a95ae-a804-433e-bed0-9a8c3091cdd9",
+            "name": "\u8a00\u5bec",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "46d708c4-450c-42b7-a1e8-54623fe5d8e9",
+            "name": "\u5e38\u6b21",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "9dba45a3-fd80-4a0f-9edf-321023dc835b",
+            "name": "\u81ed\u8001\u5927\u8a00\u5bec",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "b7906e62-085d-4945-abf8-dd742addca5b",
+            "name": "\u5085\u91c7\u6797",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "d2ec8734-936c-4366-a340-36f8b15d30c3",
+            "name": "\u7d05\u963f\u59d1",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "a133e8f1-6cf5-46bc-8581-889e53d66380",
+            "name": "\u767d\u5973\u8863",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "89c7e5a1-6c33-4a11-b1ec-a1ad97207d64",
+            "name": "\u5468\u5e73",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "9152be79-1497-45bb-bb7b-90006e7ed6ff",
+            "name": "\u9673\u671b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "315d8225-b6e3-406c-b258-10df4f694087",
+            "name": "\u5c09\u9072\u53d4\u53d4",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "705ed456-81e1-4ce0-a87d-c4f726c94c5d",
+            "name": "\u6c88\u7e23\u5b98",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "95140c92-e9c4-4c56-8ccc-a5788769e31c",
+            "name": "\u5b87\u6587\u5927\u4eba",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "bd331f4e-6dc9-4b4a-bdf2-797b5945453b",
+            "name": "\u5c0f\u5a1f\u59d0",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "f869e95a-cd94-4441-86f9-0cece7171833",
+            "name": "\u6c88\u7e23\u4e1e",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "8acd6279-ada6-400a-a0d7-e8e5749179e2",
+            "name": "\u5c0f\u5a1f",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "8239fd57-8315-4450-9dd9-680004e09a20",
+            "name": "\u7562\u7384",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "a7065511-f1a8-4f04-922f-92898b946535",
+            "name": "\u5b8b\u5e2b\u9053",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "b1c4e270-2de5-46b3-9164-a188913a8547",
+            "name": "\u6771\u6d77\u674e\u5b50\u901a",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "61daee76-348a-48d6-bc7b-d71329786387",
+            "name": "\u675c\u4f0f\u5a01",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "cb0aff7e-f62c-48f5-824c-d9b217c2467e",
+            "name": "\u5b8b\u7f3a",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "a00a5487-f4a9-47c8-a410-9e23a0ae7cbd",
+            "name": "\u5b8b\u667a",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "ed15007f-affc-4a6b-8dd3-a2e42a5a22ff",
+            "name": "\u5b8b\u7389\u83ef",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "83149391-b450-4845-8d7a-811db4d07825",
+            "name": "\u5b8b\u7389\u81f4",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "033ab163-69e2-4ed2-9e60-adc023bc7cf6",
+            "name": "\u89e3\u6689",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "843f894b-d551-45b3-bc0f-7b74e619e2cf",
+            "name": "\u89e3\u6587\u9f8d",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "741c46cf-9b71-4ae5-93cc-d813efb0e7de",
+            "name": "\u9b3c\u8c37\u5b50",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "f8547b28-bd02-429d-b33f-5a378136f329",
+            "name": "\u5b8b\u5c41\u9053",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "0d2b6a25-9218-4bb8-ad32-e9da5395dfb0",
+            "name": "\u5be7\u9053\u5947",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "0050a028-4cc9-495a-ac17-65f77357e2f2",
+            "name": "\u5b8b\u9b6f",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "21b7f4e3-8ab2-42be-bd41-6938a2c53120",
+            "name": "\u67f3\u83c1",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "e12b98c7-7208-48b7-a6a3-3bd195b34be2",
+            "name": "\u79e6\u662d\u8944\u738b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "f5248de6-9745-4ddd-ad6d-65028b6eedd2",
+            "name": "\u8d99\u60e0\u6587\u738b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "de054713-8ecb-431e-9694-4e0bc96bcb55",
+            "name": "\u85fa\u76f8\u5982",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "e2122233-97e3-4f78-bbd3-87e2cb83229b",
+            "name": "\u79e6\u738b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "8cd227f9-6e75-4c96-bdbe-21f10675a31c",
+            "name": "\u79e6\u59cb\u7687",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "e811c3ae-c0fd-498b-bd02-7357ccc4fe08",
+            "name": "\u674e\u65af",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "2665bad3-e355-4794-986e-8a20f66de7d4",
+            "name": "\u6f22\u9ad8\u7956\u5289\u90a6",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "23766f33-1bdc-4cd4-8721-ebd1ffe18aa9",
+            "name": "\u79e6\u738b\u5b50\u5b30",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "72e7b47a-f9e1-4bae-8eb6-65bd939f3aaa",
+            "name": "\u738b\u83bd",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "c763d9de-46d0-48ca-bd29-54749bf01b4b",
+            "name": "\u738b\u821c",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "1af3ba51-35a1-4735-9c17-ad54e43dc912",
+            "name": "\u5b5d\u5143\u592a\u540e",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "1b630557-e455-45f1-832e-e738a4e92cbf",
+            "name": "\u535e\u548c",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "6faa910f-c9d5-430e-b69f-ad19c46107cd",
+            "name": "\u695a\u53b2\u738b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "8579a7e0-ac49-4625-80ad-596e8018fdc4",
+            "name": "\u6b66\u738b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "45fd4f6d-ab0f-4eed-b6f3-9ec253820c18",
+            "name": "\u6587\u738b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "fa27a02d-0d6e-40e4-adc7-ea716413bfae",
+            "name": "\u6f22\u5c11\u5e1d",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "c5d28e20-335d-4a2b-bbfe-2a185ac6c4c7",
+            "name": "\u5b6b\u5805",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "0d505aaf-1f58-4e87-adec-2a521ea9a48e",
+            "name": "\u66f9\u64cd",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "e88220b5-7d2c-41f1-818f-3b1718a75262",
+            "name": "\u9673\u4e3b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "94101884-291d-468f-816d-8e4c9e05f704",
+            "name": "\u6563\u771f\u4eba",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        },
+        {
+            "id": "05dbe1e0-a5f8-4249-9565-6a8288e467ea",
+            "name": "\u9ad8\u9e97\u738b",
+            "type": "character",
+            "chapterCount": 0,
+            "chapter": null,
+            "narrativeMode": null,
+            "importance": null
+        }
+    ]
+}

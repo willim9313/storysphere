@@ -1,0 +1,329 @@
+{
+    "bookId": "1a1a7266-59d9-4216-944f-dd7b65a05f8a",
+    "chapter": null,
+    "factions": [
+        {
+            "id": "faction:0",
+            "label": "Faction 1",
+            "memberIds": [
+                "1cc82c24-5f22-4338-b65c-d0031606b82e",
+                "90d6d42c-3752-428c-b54d-f9bd6533e72e",
+                "43580f77-c302-4013-b505-1113ba172dec",
+                "443f357d-bba5-41b6-9d67-af8af2fce7a9",
+                "2b96d31b-9032-4537-b777-d66814f58ba3",
+                "a80666c5-1f66-443a-b622-3ed76dd990bf"
+            ],
+            "cohesionScore": 0.9,
+            "topMemberNames": [
+                "\u694a\u5ee3",
+                "\u694a\u5805",
+                "\u674e\u6df5"
+            ]
+        },
+        {
+            "id": "faction:1",
+            "label": "Faction 2",
+            "memberIds": [
+                "a00a5487-f4a9-47c8-a410-9e23a0ae7cbd",
+                "cb0aff7e-f62c-48f5-824c-d9b217c2467e",
+                "033ab163-69e2-4ed2-9e60-adc023bc7cf6",
+                "ed15007f-affc-4a6b-8dd3-a2e42a5a22ff",
+                "843f894b-d551-45b3-bc0f-7b74e619e2cf",
+                "83149391-b450-4845-8d7a-811db4d07825"
+            ],
+            "cohesionScore": 0.733,
+            "topMemberNames": [
+                "\u5b8b\u7f3a",
+                "\u5b8b\u667a",
+                "\u89e3\u6689"
+            ]
+        },
+        {
+            "id": "faction:2",
+            "label": "Faction 3",
+            "memberIds": [
+                "8e78471e-6878-437c-9d28-f5fa15519fe1",
+                "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+                "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+                "e5da7e89-3cd0-40da-8646-ce1b8d39310c"
+            ],
+            "cohesionScore": 0.825,
+            "topMemberNames": [
+                "\u5bc7\u4ef2",
+                "\u767d\u8863\u5973",
+                "\u5f90\u5b50\u9675"
+            ]
+        },
+        {
+            "id": "faction:3",
+            "label": "Faction 4",
+            "memberIds": [
+                "7737e346-804b-465a-af82-9a86e5f91cdd",
+                "5c23961b-21b3-4713-b11a-39a15241e833",
+                "400b5f5f-2f46-47f9-b545-dcdea9ac1334"
+            ],
+            "cohesionScore": 0.567,
+            "topMemberNames": [
+                "\u5b87\u6587\u5316\u53ca",
+                "\u5c09\u9072\u52dd",
+                "\u5c09\u9072\u8fe5"
+            ]
+        },
+        {
+            "id": "faction:4",
+            "label": "Faction 5",
+            "memberIds": [
+                "21b7f4e3-8ab2-42be-bd41-6938a2c53120",
+                "0050a028-4cc9-495a-ac17-65f77357e2f2",
+                "a7065511-f1a8-4f04-922f-92898b946535"
+            ],
+            "cohesionScore": 0.567,
+            "topMemberNames": [
+                "\u5b8b\u5e2b\u9053",
+                "\u5b8b\u9b6f",
+                "\u67f3\u83c1"
+            ]
+        },
+        {
+            "id": "faction:5",
+            "label": "Faction 6",
+            "memberIds": [
+                "42b55d4d-555c-4c16-b956-67f4c6bba08d",
+                "4cda564f-f736-45c7-b2b9-52ab4b135318",
+                "61daee76-348a-48d6-bc7b-d71329786387"
+            ],
+            "cohesionScore": 0.467,
+            "topMemberNames": [
+                "\u674e\u5b50\u901a",
+                "\u5de6\u5b5d\u53cb",
+                "\u675c\u4f0f\u5a01"
+            ]
+        },
+        {
+            "id": "faction:6",
+            "label": "Faction 7",
+            "memberIds": [
+                "08ace27f-dcf6-4284-b7d0-a01a386cea05",
+                "e9dee162-7aed-4187-a461-ab9a9c8e1930"
+            ],
+            "cohesionScore": 0.4,
+            "topMemberNames": [
+                "\u5468\u5ba3\u5e1d",
+                "\u5b87\u6587\u95e1"
+            ]
+        },
+        {
+            "id": "faction:7",
+            "label": "Faction 8",
+            "memberIds": [
+                "10d93878-49ec-4c96-88ab-bdf1538e1059",
+                "ea87b55c-e8d9-4045-82cc-7db54502d163"
+            ],
+            "cohesionScore": 0.35,
+            "topMemberNames": [
+                "\u8c9e\u5ac2",
+                "\u8001\u99ae"
+            ]
+        },
+        {
+            "id": "faction:8",
+            "label": "Faction 9",
+            "memberIds": [
+                "46d708c4-450c-42b7-a1e8-54623fe5d8e9",
+                "1f3a95ae-a804-433e-bed0-9a8c3091cdd9"
+            ],
+            "cohesionScore": 0.3,
+            "topMemberNames": [
+                "\u5e38\u6b21",
+                "\u8a00\u5bec"
+            ]
+        },
+        {
+            "id": "faction:9",
+            "label": "Faction 10",
+            "memberIds": [
+                "7b62bddd-8005-4c0a-9089-c0ea6a83f27d",
+                "a8dee86d-3a6c-4569-b3cc-16e224dd7bc7"
+            ],
+            "cohesionScore": 0.4,
+            "topMemberNames": [
+                "\u77f3\u9f8d",
+                "\u7530\u6587"
+            ]
+        }
+    ],
+    "relations": [
+        {
+            "sourceFactionId": "faction:2",
+            "targetFactionId": "faction:4",
+            "cooperation": 0.05,
+            "rivalry": 0.108
+        },
+        {
+            "sourceFactionId": "faction:1",
+            "targetFactionId": "faction:4",
+            "cooperation": 0.05,
+            "rivalry": 0.0
+        },
+        {
+            "sourceFactionId": "faction:2",
+            "targetFactionId": "faction:3",
+            "cooperation": 0.0,
+            "rivalry": 0.35
+        },
+        {
+            "sourceFactionId": "faction:0",
+            "targetFactionId": "faction:6",
+            "cooperation": 0.0,
+            "rivalry": 0.058
+        },
+        {
+            "sourceFactionId": "faction:3",
+            "targetFactionId": "faction:9",
+            "cooperation": 0.0,
+            "rivalry": 0.267
+        },
+        {
+            "sourceFactionId": "faction:0",
+            "targetFactionId": "faction:3",
+            "cooperation": 0.0,
+            "rivalry": 0.178
+        }
+    ],
+    "unaffiliatedEntityIds": [
+        "a133e8f1-6cf5-46bc-8581-889e53d66380",
+        "e811c3ae-c0fd-498b-bd02-7357ccc4fe08",
+        "26533991-3a18-47b7-b1f3-0adad513065c",
+        "ac62f849-a7c7-4758-82e4-b24f647b755f",
+        "2665bad3-e355-4794-986e-8a20f66de7d4",
+        "706db604-ff10-41e7-95ff-af8b8a9e4996",
+        "fa27a02d-0d6e-40e4-adc7-ea716413bfae",
+        "f5248de6-9745-4ddd-ad6d-65028b6eedd2",
+        "1806d929-1bfb-4029-b8a3-de0c97bbf861",
+        "03a76053-09f7-48ca-a7c2-64a6b1959b08",
+        "8579a7e0-ac49-4625-80ad-596e8018fdc4",
+        "fae026a5-92e4-4a93-bbd6-f706fee731d8",
+        "bc19c304-b043-4380-9e58-544c04ed2aa4",
+        "b1c71f1d-c334-40c1-b7fa-d3fca7253e0d",
+        "3fc1218c-227a-409d-9c6e-ee06dcacc0ce",
+        "45fd4f6d-ab0f-4eed-b6f3-9ec253820c18",
+        "f5784349-7a1b-494b-a75a-9cb4c51a1f4e",
+        "1af3ba51-35a1-4735-9c17-ad54e43dc912",
+        "c5d28e20-335d-4a2b-bbfe-2a185ac6c4c7",
+        "23766f33-1bdc-4cd4-8721-ebd1ffe18aa9",
+        "95140c92-e9c4-4c56-8ccc-a5788769e31c",
+        "b1c4e270-2de5-46b3-9164-a188913a8547",
+        "73811643-4304-468a-ba4f-44bc670fe354",
+        "89c7e5a1-6c33-4a11-b1ec-a1ad97207d64",
+        "8b62b57c-79c9-4cda-802c-5be56414173e",
+        "e053f469-b128-4b08-8b03-8404b9293219",
+        "6faa910f-c9d5-430e-b69f-ad19c46107cd",
+        "315d8225-b6e3-406c-b258-10df4f694087",
+        "9ddd0a6a-b797-42a2-b8bb-7aa5fca0bea5",
+        "72e7b47a-f9e1-4bae-8eb6-65bd939f3aaa",
+        "8cd227f9-6e75-4c96-bdbe-21f10675a31c",
+        "b7906e62-085d-4945-abf8-dd742addca5b",
+        "de054713-8ecb-431e-9694-4e0bc96bcb55",
+        "dfb7abad-9564-4242-8536-6e4320ad9ec7",
+        "8acd6279-ada6-400a-a0d7-e8e5749179e2",
+        "e96ade4c-56bd-4c57-94bc-6c500a58b7d5",
+        "8bcf87da-8037-4f26-bc3a-de560a520ee5",
+        "f869e95a-cd94-4441-86f9-0cece7171833",
+        "da94e6eb-6cff-4634-b092-ec7255b2103b",
+        "24a7d559-b0ca-4449-8949-758c3491336d",
+        "5bce3903-e1b5-4020-b63f-af374e53a1df",
+        "9cee94c7-713e-45ed-8aef-e82c8103636b",
+        "705ed456-81e1-4ce0-a87d-c4f726c94c5d",
+        "05dbe1e0-a5f8-4249-9565-6a8288e467ea",
+        "1b630557-e455-45f1-832e-e738a4e92cbf",
+        "f8547b28-bd02-429d-b33f-5a378136f329",
+        "e2a85370-c8e0-467a-b8ab-0f344caf1038",
+        "3e0f282a-c313-4c4b-8fab-77640d21a414",
+        "e2122233-97e3-4f78-bbd3-87e2cb83229b",
+        "83e343e4-f136-466a-b4f5-0d21847b33fa",
+        "b15f6ccf-e5af-4654-8bec-5edfead4e30f",
+        "741c46cf-9b71-4ae5-93cc-d813efb0e7de",
+        "9228fcf5-72d8-4ad5-a26a-b0af37c96931",
+        "8239fd57-8315-4450-9dd9-680004e09a20",
+        "e12b98c7-7208-48b7-a6a3-3bd195b34be2",
+        "0d505aaf-1f58-4e87-adec-2a521ea9a48e",
+        "51944ddc-7a19-4ddb-8392-b31f8967fa62",
+        "94101884-291d-468f-816d-8e4c9e05f704",
+        "c2555c88-2d3d-4d5a-a685-8c55ae049b20",
+        "bd331f4e-6dc9-4b4a-bdf2-797b5945453b",
+        "c763d9de-46d0-48ca-bd29-54749bf01b4b",
+        "d2ec8734-936c-4366-a340-36f8b15d30c3",
+        "9152be79-1497-45bb-bb7b-90006e7ed6ff",
+        "e88220b5-7d2c-41f1-818f-3b1718a75262",
+        "0d2b6a25-9218-4bb8-ad32-e9da5395dfb0",
+        "9dba45a3-fd80-4a0f-9edf-321023dc835b"
+    ],
+    "unaffiliatedNames": [
+        "\u767d\u5973\u8863",
+        "\u674e\u65af",
+        "\u738b\u9808\u62d4",
+        "\u674e\u5f18\u829d",
+        "\u6f22\u9ad8\u7956\u5289\u90a6",
+        "\u5ee3\u6210\u5b50",
+        "\u6f22\u5c11\u5e1d",
+        "\u8d99\u60e0\u6587\u738b",
+        "\u5f35\u58eb\u548c",
+        "\u5b88\u5099\u5927\u4eba",
+        "\u6b66\u738b",
+        "\u767d\u8001\u592b\u5b50",
+        "\u8a00\u8001\u5927",
+        "\u7126\u90aa",
+        "\u767d\u4fe1",
+        "\u6587\u738b",
+        "\u767d\u8863\u5973\u5b50",
+        "\u5b5d\u5143\u592a\u540e",
+        "\u5b6b\u5805",
+        "\u79e6\u738b\u5b50\u5b30",
+        "\u5b87\u6587\u5927\u4eba",
+        "\u6771\u6d77\u674e\u5b50\u901a",
+        "\u694a\u52c7",
+        "\u5468\u5e73",
+        "\u63a8\u5c71\u624b",
+        "\u60e1\u5927\u5a66",
+        "\u695a\u53b2\u738b",
+        "\u5c09\u9072\u53d4\u53d4",
+        "\u7b97\u6b7b\u8349",
+        "\u738b\u83bd",
+        "\u79e6\u59cb\u7687",
+        "\u5085\u91c7\u6797",
+        "\u85fa\u76f8\u5982",
+        "\u53f2\u842c\u6b72",
+        "\u5c0f\u5a1f",
+        "\u77f3\u5e2b\u5085",
+        "\u738b\u8b19",
+        "\u6c88\u7e23\u4e1e",
+        "\u738b\u5fb7\u4ec1",
+        "\u694a\u7d20",
+        "\u80e1\u5289\u82d7",
+        "\u5b87\u6587\u50b7",
+        "\u6c88\u7e23\u5b98",
+        "\u9ad8\u9e97\u738b",
+        "\u535e\u548c",
+        "\u5b8b\u5c41\u9053",
+        "\u81ed\u8001\u8a00",
+        "\u53f8\u99ac\u6d88\u96e3",
+        "\u79e6\u738b",
+        "\u79e6\u8d85\u6587",
+        "\u694a\u516c\u537f",
+        "\u9b3c\u8c37\u5b50",
+        "\u5f6d\u5b5d\u624d",
+        "\u7562\u7384",
+        "\u79e6\u662d\u8944\u738b",
+        "\u66f9\u64cd",
+        "\u9ec3\u5e1d",
+        "\u6563\u771f\u4eba",
+        "\u81ed\u8a00\u8001\u5927",
+        "\u5c0f\u5a1f\u59d0",
+        "\u738b\u821c",
+        "\u7d05\u963f\u59d1",
+        "\u9673\u671b",
+        "\u9673\u4e3b",
+        "\u5be7\u9053\u5947",
+        "\u81ed\u8001\u5927\u8a00\u5bec"
+    ]
+}
