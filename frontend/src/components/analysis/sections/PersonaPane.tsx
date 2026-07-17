@@ -1,11 +1,14 @@
 import { useTranslation } from 'react-i18next';
 import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { CharacterAnalysisDetail } from '@/api/types';
+import { useSourceJump } from '@/hooks/useSourceJump';
+import { SourceJumpText } from '../SourceJumpText';
 
 type Framework = 'jung' | 'schmidt';
 
 interface Props {
   data: CharacterAnalysisDetail;
+  bookId: string;
   framework: Framework;
   onOpenCompare: () => void;
   onRegenerate?: () => void;
@@ -29,12 +32,14 @@ function splitTrait(raw: string): [string, string | null] {
 
 export function PersonaPane({
   data,
+  bookId,
   framework,
   onOpenCompare,
   onRegenerate,
   isRegenerating,
 }: Props) {
   const { t } = useTranslation('analysis');
+  const { jump, pendingKey } = useSourceJump(bookId);
   const archetype = data.archetypes.find((a) => a.framework === framework);
   const pct = archetype ? Math.round(archetype.confidence * 100) : 0;
   // Distinguish "generation failed (retryable)" from "not yet generated".
@@ -110,12 +115,19 @@ export function PersonaPane({
                 {archetype.evidence.length === 0 ? (
                   <p>{t('character.noData')}</p>
                 ) : (
-                  archetype.evidence.map((e, i) => (
-                    <div key={i} className="ca-evidence-item">
-                      <span className="ca-evidence-num">{i + 1}</span>
-                      <span>{e}</span>
-                    </div>
-                  ))
+                  archetype.evidence.map((e, i) => {
+                    const key = `evidence-${i}`;
+                    return (
+                      <div key={key} className="ca-evidence-item">
+                        <span className="ca-evidence-num">{i + 1}</span>
+                        <SourceJumpText
+                          text={e}
+                          pending={pendingKey === key}
+                          onJump={() => void jump(key, e)}
+                        />
+                      </div>
+                    );
+                  })
                 )}
               </div>
             </>

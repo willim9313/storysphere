@@ -234,6 +234,13 @@
       "onlyLabel": "只有 {{name}} 知道",
       "bothLabel": "都知道"
     },
+    "sourceJump": {
+      "cta": "點擊跳至閱讀頁對應段落",
+      "locating": "定位原文中…",
+      "notFound": "找不到對應段落",
+      "notFoundInChapter": "第 {{chapter}} 章找不到對應段落",
+      "failed": "定位失敗，請稍後再試"
+    },
     "generating": {
       "label": "分析中",
       "taskLabel": "TASK ID",

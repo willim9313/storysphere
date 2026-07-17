@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { X } from 'lucide-react';
+import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
+import { useSourceJump } from '@/hooks/useSourceJump';
 import type { EpistemicStateResponse } from '@/api/graph';
 import { ChapterTimeline } from './ChapterTimeline';
 import { getChapter, getId, getTitle } from './epistemicEventUtils';
@@ -54,6 +55,7 @@ export function EpistemicCompareDrawer({
 }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const safeTotal = Math.max(1, totalChapters);
+  const { jump, pendingKey } = useSourceJump(bookId);
 
   const [characterBId, setCharacterBId] = useState('');
   const [displayedChapter, setDisplayedChapter] = useState(initialChapter);
@@ -136,16 +138,22 @@ export function EpistemicCompareDrawer({
             title={t('character.epistemicCompare.onlyLabel', { name: characterAName })}
             colorVar="--accent"
             items={onlyA}
+            jump={jump}
+            pendingKey={pendingKey}
           />
           <CompareColumn
             title={t('character.epistemicCompare.bothLabel')}
             colorVar="--color-success"
             items={both}
+            jump={jump}
+            pendingKey={pendingKey}
           />
           <CompareColumn
             title={t('character.epistemicCompare.onlyLabel', { name: characterBName })}
             colorVar="--color-info"
             items={onlyB}
+            jump={jump}
+            pendingKey={pendingKey}
           />
         </div>
       </>
@@ -190,11 +198,16 @@ function CompareColumn({
   title,
   colorVar,
   items,
+  jump,
+  pendingKey,
 }: Readonly<{
   title: string;
   colorVar: string;
   items: [string, { title: string; chapter: number }][];
+  jump: (key: string, text: string, opts?: { chapter?: number }) => Promise<boolean>;
+  pendingKey: string | null;
 }>) {
+  const { t } = useTranslation('analysis');
   return (
     <div className="ca-epicompare-col">
       <div className="ca-epicompare-col-head">
@@ -204,12 +217,30 @@ function CompareColumn({
       </div>
       {items.length ? (
         <div className="ca-epicompare-list">
-          {items.map(([id, ev]) => (
-            <div key={id} className="ca-epicompare-item">
-              <span className="ca-epicompare-item-ch">Ch.{ev.chapter}</span>
-              <span className="ca-epicompare-item-title">{ev.title}</span>
-            </div>
-          ))}
+          {items.map(([id, ev]) => {
+            const key = `cmp-${id}`;
+            const pending = pendingKey === key;
+            return (
+              <button
+                key={id}
+                type="button"
+                className="ca-epicompare-item clickable"
+                disabled={pending}
+                title={t('character.sourceJump.cta')}
+                onClick={() => void jump(key, ev.title, { chapter: ev.chapter })}
+              >
+                <span className="ca-epicompare-item-ch">Ch.{ev.chapter}</span>
+                <span className="ca-epicompare-item-title">{ev.title}</span>
+                {pending && (
+                  <Loader
+                    size={10}
+                    className="ca-srcjump-spinner animate-spin"
+                    aria-label={t('character.sourceJump.locating')}
+                  />
+                )}
+              </button>
+            );
+          })}
         </div>
       ) : (
         <div className="ca-epicompare-empty">—</div>

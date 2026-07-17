@@ -3,9 +3,12 @@ import { useTranslation } from 'react-i18next';
 import { ChevronRight } from 'lucide-react';
 import type { CharacterAnalysisDetail } from '@/api/types';
 import type { NameIdEntry } from '../CharacterAnalysisDetail';
+import { useSourceJump } from '@/hooks/useSourceJump';
+import { SourceJumpText } from '../SourceJumpText';
 
 interface Props {
   data: CharacterAnalysisDetail;
+  bookId: string;
   /** #3: name -> id lookup over the full character roster (analyzed +
    * unanalyzed), used to decide whether a relation target / ego-network node
    * is a known character and can be clicked to switch to it. */
@@ -55,8 +58,9 @@ const EGO_CY = 146;
 const EGO_RX = 274;
 const EGO_RY = 116;
 
-export function RelationsPane({ data, characterRoster, onSelectCharacter }: Props) {
+export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter }: Props) {
   const { t } = useTranslation('analysis');
+  const { jump, pendingKey } = useSourceJump(bookId);
   const cepRelations = data.cep?.relations;
   const relations = useMemo(() => (cepRelations ?? []) as Relation[], [cepRelations]);
   const quotes = data.cep?.quotes ?? [];
@@ -125,11 +129,20 @@ export function RelationsPane({ data, characterRoster, onSelectCharacter }: Prop
           {quotes.length === 0 ? (
             <p>{t('character.noData')}</p>
           ) : (
-            quotes.map((q, i) => (
-              <blockquote key={i} className="ca-quote">
-                「{q}」
-              </blockquote>
-            ))
+            quotes.map((q, i) => {
+              const key = `quote-${i}`;
+              return (
+                <blockquote key={key} className="ca-quote">
+                  「
+                  <SourceJumpText
+                    text={q}
+                    pending={pendingKey === key}
+                    onJump={() => void jump(key, q)}
+                  />
+                  」
+                </blockquote>
+              );
+            })
           )}
         </div>
       </section>

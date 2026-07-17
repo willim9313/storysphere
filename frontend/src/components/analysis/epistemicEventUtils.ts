@@ -19,6 +19,12 @@ export function getTitle(ev: Record<string, unknown>): string {
   return String(ev.title ?? ev.name ?? ev.event ?? '');
 }
 
+/** #4 source-jump query text: same "title + description" construction the
+ * reader's cognitive panel uses for its #22a passage lookup. */
+export function getDescription(ev: Record<string, unknown>): string {
+  return String(ev.description ?? '');
+}
+
 export function getId(ev: Record<string, unknown>, fallback: number): string {
   return String(ev.id ?? ev.eventId ?? fallback);
 }

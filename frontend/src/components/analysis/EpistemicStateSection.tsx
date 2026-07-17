@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, EyeOff, AlertTriangle, Clock, Users } from 'lucide-react';
+import { Eye, EyeOff, AlertTriangle, Clock, Users, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
+import { useSourceJump } from '@/hooks/useSourceJump';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
 import { ChapterTimeline, type TimelineMarker } from './ChapterTimeline';
-import { getChapter, getTitle, getId } from './epistemicEventUtils';
+import { getChapter, getTitle, getDescription, getId } from './epistemicEventUtils';
 
 interface EpistemicStateSectionProps {
   bookId: string;
@@ -51,6 +52,7 @@ export function EpistemicStateSection({
   }, [displayedChapter, queriedChapter]);
 
   const { data: state, isFetching } = useEpistemicState(bookId, characterId, queriedChapter);
+  const { jump, pendingKey } = useSourceJump(bookId);
 
   // Backend already partitions events into known/unknown by the character's
   // epistemic access (participant OR public visibility → known; otherwise →
@@ -190,11 +192,19 @@ export function EpistemicStateSection({
             ) : (
               optimistic.known.map((ev, i) => {
                 const ch = getChapter(ev);
+                const key = getId(ev, i);
                 return (
-                  <div key={getId(ev, i)} className="ca-epi-event-row">
-                    <span className="ca-epi-event-name">{getTitle(ev)}</span>
-                    {ch != null && <span className="ca-epi-event-ch">Ch.{ch}</span>}
-                  </div>
+                  <EpistemicEventRow
+                    key={key}
+                    title={getTitle(ev)}
+                    chapter={ch}
+                    pending={pendingKey === key}
+                    onJump={
+                      ch == null
+                        ? undefined
+                        : () => void jump(key, `${getTitle(ev)}。${getDescription(ev)}`, { chapter: ch })
+                    }
+                  />
                 );
               })
             )}
@@ -216,11 +226,20 @@ export function EpistemicStateSection({
             ) : (
               optimistic.unknown.map((ev, i) => {
                 const ch = getChapter(ev);
+                const key = getId(ev, i + 10000);
                 return (
-                  <div key={getId(ev, i + 10000)} className="ca-epi-event-row unknown-row">
-                    <span className="ca-epi-event-name">{getTitle(ev)}</span>
-                    {ch != null && <span className="ca-epi-event-ch">Ch.{ch}</span>}
-                  </div>
+                  <EpistemicEventRow
+                    key={key}
+                    title={getTitle(ev)}
+                    chapter={ch}
+                    unknown
+                    pending={pendingKey === key}
+                    onJump={
+                      ch == null
+                        ? undefined
+                        : () => void jump(key, `${getTitle(ev)}。${getDescription(ev)}`, { chapter: ch })
+                    }
+                  />
                 );
               })
             )}
@@ -260,5 +279,53 @@ export function EpistemicStateSection({
         </div>
       )}
     </div>
+  );
+}
+
+/** #4: a known/unknown event row, clickable when its chapter is known — jumps
+ * to the reader passage via #22a semantic search (same-chapter filtered,
+ * mirroring the reader's own cognitive-panel lookup). Falls back to a plain
+ * (non-interactive) row when `onJump` is omitted, i.e. the event carries no
+ * chapter to anchor a lookup to. */
+function EpistemicEventRow({
+  title,
+  chapter,
+  unknown,
+  pending,
+  onJump,
+}: Readonly<{
+  title: string;
+  chapter: number | null;
+  unknown?: boolean;
+  pending: boolean;
+  onJump?: () => void;
+}>) {
+  const { t } = useTranslation('analysis');
+  const rowClass = `ca-epi-event-row${unknown ? ' unknown-row' : ''}${onJump ? ' clickable' : ''}`;
+
+  if (!onJump) {
+    return (
+      <div className={rowClass}>
+        <span className="ca-epi-event-name">{title}</span>
+        {chapter != null && <span className="ca-epi-event-ch">Ch.{chapter}</span>}
+      </div>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      className={rowClass}
+      onClick={onJump}
+      disabled={pending}
+      title={t('character.sourceJump.cta')}
+    >
+      <span className="ca-epi-event-name">{title}</span>
+      {pending ? (
+        <Loader size={11} className="ca-srcjump-spinner animate-spin" aria-label={t('character.sourceJump.locating')} />
+      ) : (
+        chapter != null && <span className="ca-epi-event-ch">Ch.{chapter}</span>
+      )}
+    </button>
   );
 }

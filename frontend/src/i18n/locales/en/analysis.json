@@ -234,6 +234,13 @@
       "onlyLabel": "Only {{name}} knows",
       "bothLabel": "Both know"
     },
+    "sourceJump": {
+      "cta": "Click to jump to this passage in the reader",
+      "locating": "Locating passage…",
+      "notFound": "Couldn't find a matching passage",
+      "notFoundInChapter": "No matching passage found in Ch. {{chapter}}",
+      "failed": "Lookup failed, please try again later"
+    },
     "generating": {
       "label": "Analyzing",
       "taskLabel": "TASK ID",

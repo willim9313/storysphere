@@ -68,6 +68,7 @@ export function CharacterAnalysisDetail({
       {subTab === 'persona' && (
         <PersonaPane
           data={data}
+          bookId={bookId}
           framework={framework}
           onOpenCompare={onOpenCompare}
           onRegenerate={onRegenerate}
@@ -80,6 +81,7 @@ export function CharacterAnalysisDetail({
       {subTab === 'relations' && (
         <RelationsPane
           data={data}
+          bookId={bookId}
           characterRoster={characterRoster}
           onSelectCharacter={onSelectCharacter}
         />

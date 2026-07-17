@@ -396,6 +396,27 @@
   font-family: var(--font-sans); font-size: 10px;
 }
 
+/* ─── Source-jump citation affordance (Batch 4, #2/#4): dotted underline +
+   hover fill, per the design canvas's `srcable()` helper. Rendered as an
+   inline <button> (not a bare span) for keyboard reachability. ─── */
+.ca-srcjump {
+  display: inline;
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0 1px;
+  margin: 0;
+  border-radius: 2px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  border-bottom: 1.5px dotted var(--entity-char-border);
+  transition: background-color var(--transition-fast) ease;
+}
+.ca-srcjump:hover:not(:disabled) { background: var(--entity-char-bg); }
+.ca-srcjump:disabled { cursor: default; opacity: 0.7; }
+.ca-srcjump-spinner { margin-left: 4px; vertical-align: -2px; color: var(--fg-muted); }
+
 .ca-trait-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
@@ -836,11 +857,20 @@
 .ca-epi-event-row {
   display: flex; align-items: baseline; justify-content: space-between;
   gap: 10px;
+  width: 100%;
   padding: 5px 0;
+  border: none;
+  background: none;
   font-size: var(--font-size-sm);
   font-family: var(--font-serif);
   color: var(--fg-secondary);
+  text-align: left;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast) ease;
 }
+.ca-epi-event-row.clickable { cursor: pointer; }
+.ca-epi-event-row.clickable:hover:not(:disabled) { background: var(--bg-tertiary); }
+.ca-epi-event-row.clickable:disabled { cursor: default; }
 .ca-epi-event-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .ca-epi-event-ch { font-size: var(--font-size-2xs); color: var(--fg-muted); font-family: var(--font-sans); font-feature-settings: 'tnum'; flex-shrink: 0; }
 .ca-epi-event-row.unknown-row .ca-epi-event-name { color: var(--fg-muted); text-decoration: line-through; text-decoration-color: var(--fg-muted); text-decoration-thickness: 1px; }
@@ -977,11 +1007,20 @@
 .ca-epicompare-list { display: flex; flex-direction: column; gap: 2px; }
 .ca-epicompare-item {
   display: flex; gap: 8px; align-items: baseline;
+  width: 100%;
+  border: none;
+  background: none;
+  text-align: left;
   font-family: var(--font-serif); font-size: var(--font-size-xs); line-height: 1.5;
   color: var(--fg-primary);
   padding: 5px 0;
+  border-radius: var(--radius-sm);
+  transition: background-color var(--transition-fast) ease;
 }
 .ca-epicompare-item + .ca-epicompare-item { border-top: 1px solid var(--border); }
+.ca-epicompare-item.clickable { cursor: pointer; }
+.ca-epicompare-item.clickable:hover:not(:disabled) { background: var(--bg-tertiary); }
+.ca-epicompare-item.clickable:disabled { cursor: default; opacity: 0.7; }
 .ca-epicompare-item-ch {
   font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted);
   flex-shrink: 0; font-feature-settings: 'tnum';

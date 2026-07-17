@@ -3,6 +3,8 @@ import { Mic, RefreshCw } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchVoiceProfile, deleteVoiceProfile, useCachedVoiceProfile, type VoiceProfile } from '@/api/voice';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useSourceJump } from '@/hooks/useSourceJump';
+import { SourceJumpText } from './SourceJumpText';
 
 const TONE_PALETTE: readonly string[] = [
   'var(--accent)',
@@ -27,6 +29,7 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
   // without triggering lazy generation; a 404 here is the normal "not
   // generated yet" state (retry disabled in the hook), not an error to surface.
   const { data, isLoading: isProbing } = useCachedVoiceProfile(bookId, entityId);
+  const { jump, pendingKey } = useSourceJump(bookId);
 
   const analyzeMutation = useMutation({
     mutationFn: () => fetchVoiceProfile(bookId, entityId),
@@ -143,9 +146,20 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
           title={t('character.voice.representativeQuotes')}
           sub={t('character.voice.representativeQuotesCount', { count: data.representativeQuotes.length })}
         >
-          {data.representativeQuotes.map((q, i) => (
-            <blockquote key={i} className="ca-quote">「{q}」</blockquote>
-          ))}
+          {data.representativeQuotes.map((q, i) => {
+            const key = `quote-${i}`;
+            return (
+              <blockquote key={key} className="ca-quote">
+                「
+                <SourceJumpText
+                  text={q}
+                  pending={pendingKey === key}
+                  onJump={() => void jump(key, q)}
+                />
+                」
+              </blockquote>
+            );
+          })}
         </SectionCard>
       )}
     </div>
