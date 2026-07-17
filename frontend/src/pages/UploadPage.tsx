@@ -33,7 +33,8 @@ interface ErroredTask {
 
 const LANGUAGE_OPTIONS = [
   { value: '', labelKey: 'languageAuto' },
-  { value: 'zh', labelKey: 'languageZh' },
+  { value: 'zh-tw', labelKey: 'languageZhTw' },
+  { value: 'zh-cn', labelKey: 'languageZhCn' },
   { value: 'en', labelKey: 'languageEn' },
   { value: 'ja', labelKey: 'languageJa' },
   { value: 'ko', labelKey: 'languageKo' },
@@ -185,7 +186,9 @@ export default function UploadPage() {
     const fileId = active.id;
     detectLanguage(active.file)
       .then(({ language }) => {
-        const normalized = language.split('-')[0];
+        // Chinese keeps its variant suffix (zh-tw / zh-cn) — the backend
+        // needs it to pin Traditional vs Simplified in LLM output.
+        const normalized = language.startsWith('zh') ? language : language.split('-')[0];
         if (!KNOWN_LANGUAGE_VALUES.has(normalized)) return;
         setQueue((q) =>
           q.length > 0 && q[0].id === fileId
@@ -409,7 +412,7 @@ export default function UploadPage() {
                 {active.langDetected && (
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 500, color: 'var(--color-info)', background: 'var(--color-info-bg)', padding: '3px 7px', borderRadius: 'var(--badge-radius)' }}>
                     <Sparkles size={11} />
-                    {t('langDetected', { lang: t(`language${(active.language.charAt(0).toUpperCase() + active.language.slice(1)) || 'Auto'}`) })}
+                    {t('langDetected', { lang: t(LANGUAGE_OPTIONS.find((opt) => opt.value === active.language)?.labelKey ?? 'languageAuto') })}
                   </span>
                 )}
               </div>

@@ -320,11 +320,16 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             doc.author = author
 
         # ── Language detection ────────────────────────────────────────────
-        from storysphere.core.language_detection import (
-            detect_language_from_document,  # noqa: PLC0415
+        from storysphere.core.language_detection import (  # noqa: PLC0415
+            detect_language_from_document,
+            refine_chinese_variant,
         )
         _progress(10, "語言偵測", step_key="languageDetect")
         doc.language = language or detect_language_from_document(doc)
+        if doc.language == "zh":
+            # Upload form submits the generic "zh"; LLM prompts need the
+            # concrete variant (zh-tw / zh-cn) to keep output script stable.
+            doc.language = refine_chinese_variant(doc)
         await _murmur(
             "pdfParsing", "topic",
             f"偵測到 {doc.total_paragraphs} 個段落，{doc.total_chapters} 章，{doc.language}",

@@ -34,6 +34,7 @@ _LANGDETECT_TO_YAKE: dict[str, str] = {
 
 _LANGUAGE_DISPLAY_NAMES: dict[str, str] = {
     "en": "English",
+    "zh": "Chinese",
     "zh-cn": "Simplified Chinese",
     "zh-tw": "Traditional Chinese",
     "ja": "Japanese",
@@ -134,13 +135,10 @@ def detect_language(text: str, sample_chars: int = 2000) -> str:
     return lang
 
 
-def detect_language_from_document(doc: Document) -> str:
-    """Detect the dominant language of a :class:`Document`.
-
-    Concatenates body-paragraph text (via :func:`extract_body_text`) from the
-    first chapter(s) until at least 2 000 characters are collected, then
-    delegates to :func:`detect_language`. Non-body paragraphs (separators,
-    epigraphs, etc.) are skipped so they don't dilute the sample.
+def _collect_body_sample(doc: Document, min_chars: int = 2000) -> str:
+    """Concatenate body-paragraph text from the first chapter(s) until at
+    least *min_chars* characters are collected. Non-body paragraphs
+    (separators, epigraphs, etc.) are skipped so they don't dilute the sample.
     """
     from storysphere.domain.documents import extract_body_text
 
@@ -153,16 +151,39 @@ def detect_language_from_document(doc: Document) -> str:
                 continue
             parts.append(text)
             total += len(text)
-            if total >= 2000:
+            if total >= min_chars:
                 break
-        if total >= 2000:
+        if total >= min_chars:
             break
 
-    if not parts:
+    return " ".join(parts)
+
+
+def detect_language_from_document(doc: Document) -> str:
+    """Detect the dominant language of a :class:`Document`.
+
+    Samples body text via :func:`_collect_body_sample`, then delegates to
+    :func:`detect_language`.
+    """
+    sample = _collect_body_sample(doc)
+    if not sample:
         logger.warning("Document has no body paragraph text — defaulting to 'en'")
         return "en"
 
-    return detect_language(" ".join(parts))
+    return detect_language(sample)
+
+
+def refine_chinese_variant(doc: Document) -> str:
+    """Resolve a bare ``"zh"`` language tag into ``"zh-tw"`` or ``"zh-cn"``.
+
+    Upload forms may submit the generic ``"zh"`` code, but LLM prompts need a
+    concrete variant ("Traditional Chinese" vs "Simplified Chinese") or the
+    model picks one arbitrarily. Samples the document's body text and counts
+    variant-specific marker characters to decide.
+    """
+    variant = _guess_chinese_variant(_collect_body_sample(doc))
+    logger.info("Refined bare 'zh' language tag to %r", variant)
+    return variant
 
 
 def to_yake_language(lang_code: str) -> str:
