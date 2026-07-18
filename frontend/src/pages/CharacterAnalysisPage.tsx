@@ -97,7 +97,9 @@ export default function CharacterAnalysisPage() {
   const { data: entityAnalysis, isLoading: analysisLoading } = useQuery({
     queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'],
     queryFn: () => fetchEntityAnalysis(bookId!, selectedEntityId!),
-    enabled: !!bookId && !!selectedEntityId,
+    // Pause while a generation task runs: the old analysis is deleted at that
+    // point, so a refetch would only 404 and pin stale data on screen.
+    enabled: !!bookId && !!selectedEntityId && !generateTaskId,
   });
 
   const triggerMutation = useMutation({
@@ -145,7 +147,10 @@ export default function CharacterAnalysisPage() {
     if (!selectedEntityId || !bookId) return;
     deleteEntityAnalysis(bookId, selectedEntityId).then(() => {
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'] });
+      // removeQueries (not invalidate): the analysis row is gone, and
+      // invalidate would keep serving the stale result on refetch error —
+      // the screen must drop to the generating view instead.
+      queryClient.removeQueries({ queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'] });
       triggerMutation.mutate(selectedEntityId);
     });
   };
@@ -562,7 +567,7 @@ export default function CharacterAnalysisPage() {
                   {tc('retry')}
                 </button>
               </div>
-            ) : generateTaskId && genTask && genTask.status !== 'done' ? (
+            ) : generateTaskId && genTask?.status !== 'done' ? (
               <CharacterGenerating
                 task={genTask}
                 name={selectedUnanalyzed?.name ?? selectedAnalyzed?.title ?? ''}
