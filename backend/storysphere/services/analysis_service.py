@@ -47,6 +47,56 @@ from storysphere.services.analysis_models import (
 logger = logging.getLogger(__name__)
 
 
+# ── CEP relation normalization ────────────────────────────────────────────────
+
+# Canonical machine codes the CEP prompt enumerates for relations[].type.
+# Mirrors the frontend RelationsPane TYPE_TOKEN map.
+_CEP_RELATION_TYPES = {"enemy", "ally", "subordinate", "member", "other"}
+
+# Known drift patterns from past LLM output: the zh-TW design labels.
+_CEP_RELATION_ALIASES = {
+    "敵人": "enemy",
+    "盟友": "ally",
+    "下屬": "subordinate",
+    "成員": "member",
+    "其他": "other",
+}
+
+
+def _normalize_cep_relations(raw: object) -> list[dict[str, str]]:
+    """Validate and normalize LLM-produced CEP relations.
+
+    Drops entries that are not dicts or lack a target; coerces any type
+    string outside the canonical code set to "other" (lossless downgrade —
+    the description keeps the nuance) instead of failing and re-burning the
+    whole CEP call on retry.
+    """
+    if not isinstance(raw, list):
+        return []
+    normalized: list[dict[str, str]] = []
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        target = str(item.get("target") or "").strip()
+        if not target:
+            continue
+        rtype = str(item.get("type") or "").strip()
+        canonical = _CEP_RELATION_ALIASES.get(rtype, rtype.lower())
+        if canonical not in _CEP_RELATION_TYPES:
+            logger.warning(
+                "CEP relation type %r (target=%r) not canonical — coerced to 'other'",
+                rtype,
+                target,
+            )
+            canonical = "other"
+        normalized.append({
+            "target": target,
+            "type": canonical,
+            "description": str(item.get("description") or "").strip(),
+        })
+    return normalized
+
+
 # ── Prompt Constants ──────────────────────────────────────────────────────────
 
 _INSIGHT_SYSTEM_PROMPT = """\
@@ -68,7 +118,11 @@ extract structured evidence about the character.
 Return a JSON object with these keys:
 - "actions": list of key actions the character takes (strings)
 - "traits": list of personality traits with brief evidence (strings)
-- "relations": list of objects with "target", "type", "description"
+- "relations": list of objects with "target", "type", "description".
+  "type" MUST be exactly one of these machine codes: "enemy", "ally",
+  "subordinate", "member", "other". Keep the code in English even when
+  responding in another language; put any nuance (friendship, mentorship,
+  family ties, rivalry...) into "description" instead.
 - "key_events": list of objects with "event", "chapter", "significance"
 - "quotes": list of notable quotes or dialogue (strings, max 5)
 
@@ -500,7 +554,7 @@ class AnalysisService:
         return CEPResult(
             actions=parsed.get("actions", []),
             traits=parsed.get("traits", []),
-            relations=parsed.get("relations", []),
+            relations=_normalize_cep_relations(parsed.get("relations", [])),
             key_events=parsed.get("key_events", []),
             quotes=parsed.get("quotes", []),
             top_terms=keyword_map,

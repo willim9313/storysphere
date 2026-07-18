@@ -18,15 +18,29 @@ interface Props {
 
 type Relation = { target: string; type: string; description: string };
 
-// DESIGN_README dict: canvas zh-TW relation types -> abbreviated entity token.
-// Any type string not in this map (LLM free text, or an en-book type) falls
-// back to "other" per the design's fallback rule.
+// DESIGN_README dict: canvas relation types -> abbreviated entity token.
+// Keys cover the CEP prompt's canonical machine codes (enemy/ally/…) plus the
+// legacy zh-TW free-text strings still present in older cached analyses.
+// Any type string not in this map falls back to "other" per the design's
+// fallback rule.
 const TYPE_TOKEN: Record<string, string> = {
+  enemy: 'evt',
+  ally: 'loc',
+  subordinate: 'org',
+  member: 'con',
+  other: 'other',
   敵人: 'evt',
   盟友: 'loc',
   下屬: 'org',
   成員: 'con',
   其他: 'other',
+};
+const TYPE_LABEL: Record<string, string> = {
+  enemy: '敵人',
+  ally: '盟友',
+  subordinate: '下屬',
+  member: '成員',
+  other: '其他',
 };
 const MID_LABEL: Record<string, string> = {
   敵人: '敵',
@@ -39,8 +53,12 @@ const MID_LABEL: Record<string, string> = {
 function tokenFor(type: string): string {
   return TYPE_TOKEN[type] ?? 'other';
 }
+function labelFor(type: string): string {
+  return TYPE_LABEL[type] ?? type;
+}
 function midLabelFor(type: string): string {
-  return MID_LABEL[type] ?? type.charAt(0) ?? '';
+  const label = labelFor(type);
+  return MID_LABEL[label] ?? label.charAt(0) ?? '';
 }
 
 function groupByTarget(relations: Relation[]): Map<string, Relation[]> {
@@ -234,7 +252,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
                     className={n.clickable ? 'ca-ego-node clickable' : 'ca-ego-node'}
                   >
                     <title>
-                      {n.target} · {n.rels.map((x) => x.type).join(' / ')}
+                      {n.target} · {n.rels.map((x) => labelFor(x.type)).join(' / ')}
                     </title>
                     <circle
                       cx={n.x}
@@ -275,7 +293,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
                         borderColor: `var(--entity-${token}-dot)`,
                       }}
                     />
-                    {ty}
+                    {labelFor(ty)}
                   </span>
                 );
               })}
@@ -332,7 +350,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
                               className="ca-rel-pill-dot"
                               style={{ background: `var(--entity-${token}-dot)` }}
                             />
-                            {r.type}
+                            {labelFor(r.type)}
                           </span>
                           <div className="ca-rel-card-desc">{r.description}</div>
                         </div>
