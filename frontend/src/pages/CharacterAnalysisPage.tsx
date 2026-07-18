@@ -403,7 +403,6 @@ export default function CharacterAnalysisPage() {
                     key={item.id}
                     itemId={`ca-list-item-${item.entityId}`}
                     item={item}
-                    framework={framework}
                     isSelected={selectedEntityId === item.entityId}
                     onSelect={() => handleSelectEntity(item.entityId)}
                     maxMentionCount={maxMentionCount}

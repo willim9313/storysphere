@@ -145,17 +145,6 @@
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .ca-item-name.muted { color: var(--fg-muted); font-weight: 400; }
-.ca-item-archetype {
-  font-size: var(--font-size-2xs); color: var(--fg-muted);
-  margin-top: 2px;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.ca-item-meta {
-  display: flex; gap: 8px; margin-top: 4px;
-  font-size: var(--font-size-2xs); color: var(--fg-muted);
-  font-feature-settings: 'tnum';
-}
-.ca-item-meta span { white-space: nowrap; }
 .ca-item-dot {
   width: 6px; height: 6px; border-radius: 50%;
   background: var(--color-success);
@@ -176,12 +165,21 @@
 .ca-item-mini-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Mention-count mini bar — relative to the book's max mentionCount */
-.ca-item-mentionbar {
+.ca-item-mentionrow {
+  display: flex; align-items: center; gap: 6px;
   margin-top: 5px;
+}
+.ca-item-mentionbar {
+  flex: 1; min-width: 0;
   height: 3px;
   border-radius: 2px;
   background: var(--bg-tertiary);
   overflow: hidden;
+}
+.ca-item-mentioncount {
+  flex: none;
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  font-feature-settings: 'tnum';
 }
 .ca-item-mentionbar-fill {
   height: 100%;

@@ -10,21 +10,18 @@ function mentionBarWidth(mentions: number, max: number): number {
 
 export function AnalyzedItem({
   item,
-  framework,
   isSelected,
   onSelect,
   maxMentionCount,
   itemId,
 }: {
   item: AnalysisItem;
-  framework: string;
   isSelected: boolean;
   onSelect: () => void;
   maxMentionCount?: number;
   itemId?: string;
 }) {
   const { t } = useTranslation('analysis');
-  const archetypeLabel = item.archetypes?.[framework];
   return (
     <button
       id={itemId}
@@ -38,24 +35,28 @@ export function AnalyzedItem({
       <div className="ca-item-body">
         <div className="ca-item-row">
           <span className="ca-item-name">{item.title}</span>
-        </div>
-        {archetypeLabel && <div className="ca-item-archetype">{archetypeLabel}</div>}
-        <div className="ca-item-meta">
-          <span>{t('character.list.mentionCount', { count: item.mentionCount })}</span>
+          <span
+            className="ca-item-dot"
+            style={item.status === 'partial' ? { background: 'var(--color-warning)' } : undefined}
+          />
         </div>
         {maxMentionCount !== undefined && (
-          <div className="ca-item-mentionbar">
-            <div
-              className="ca-item-mentionbar-fill"
-              style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
-            />
+          <div className="ca-item-mentionrow">
+            <div className="ca-item-mentionbar">
+              <div
+                className="ca-item-mentionbar-fill"
+                style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
+              />
+            </div>
+            <span
+              className="ca-item-mentioncount"
+              aria-label={t('character.list.mentionCount', { count: item.mentionCount })}
+            >
+              {item.mentionCount}
+            </span>
           </div>
         )}
       </div>
-      <div
-        className="ca-item-dot"
-        style={item.status === 'partial' ? { background: 'var(--color-warning)' } : undefined}
-      />
     </button>
   );
 }
@@ -98,16 +99,20 @@ export function UnanalyzedItem({
         <div className="ca-item-row">
           <span className="ca-item-name muted">{item.name}</span>
         </div>
-        <div className="ca-item-meta">
-          <span>{t('notAnalyzed')}</span>
-          <span>· {t('character.list.mentionCount', { count: item.mentionCount })}</span>
-        </div>
         {maxMentionCount !== undefined && (
-          <div className="ca-item-mentionbar">
-            <div
-              className="ca-item-mentionbar-fill muted"
-              style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
-            />
+          <div className="ca-item-mentionrow">
+            <div className="ca-item-mentionbar">
+              <div
+                className="ca-item-mentionbar-fill muted"
+                style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
+              />
+            </div>
+            <span
+              className="ca-item-mentioncount"
+              aria-label={t('character.list.mentionCount', { count: item.mentionCount })}
+            >
+              {item.mentionCount}
+            </span>
           </div>
         )}
       </div>
