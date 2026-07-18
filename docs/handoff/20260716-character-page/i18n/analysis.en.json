@@ -1,0 +1,902 @@
+{
+  "search": "Search…",
+  "analyzed": "Analyzed",
+  "notAnalyzed": "Not Analyzed",
+  "noAnalysis": "No analysis yet",
+  "generate": "Generate Analysis",
+  "regenerate": "Regenerate",
+  "analyzing": "Analyzing",
+  "analysisFailed": "Analysis Failed",
+  "retry": "Retry",
+  "triggerFailed": "Failed to trigger analysis. Please try again later.",
+  "batchTriggerFailed": "Failed to trigger batch analysis. Please try again later.",
+  "selectCharacter": "Select a character to view or generate analysis",
+  "quickAccess": "Jump to an analyzed character",
+  "selectEvent": "Select an event to view or generate analysis",
+  "viewInGraph": "View in Graph",
+  "frameworkIndex": "Frameworks",
+  "regenerateTitle": "Regenerate Analysis",
+  "regenerateMessage": "This will overwrite the existing result and consume tokens. Proceed?",
+  "character": {
+    "sections": {
+      "profile": "Character Profile",
+      "jungArchetype": "Jung 12 Archetypes",
+      "schmidtArchetype": "Schmidt 45 Types",
+      "traits": "Personality Traits",
+      "actions": "Key Actions",
+      "relations": "Key Relationships",
+      "keyEvents": "Key Events",
+      "quotes": "Representative Quotes",
+      "arc": "Development Arc"
+    },
+    "confidence": "Confidence",
+    "confidenceHigh": "High",
+    "confidenceMid": "Medium",
+    "confidenceLow": "Low",
+    "primaryArchetype": "Primary Archetype",
+    "secondaryArchetype": "Secondary",
+    "evidence": "Evidence",
+    "chapter": "Ch. {{range}}",
+    "noData": "(No data available)",
+    "archetypeMissing": "This archetype framework hasn't been analyzed yet. Regenerating will produce both Jung and Schmidt archetypes.",
+    "tabs": {
+      "overview": "Overview",
+      "voice": "Voice",
+      "epistemic": "Epistemic"
+    },
+    "subtabs": {
+      "persona": "Persona",
+      "behavior": "Behavior",
+      "relations": "Relations",
+      "arc": "Arc"
+    },
+    "tip": {
+      "prefix": "Quick guide:",
+      "body": "This page has three levels — <strong>Overview</strong> shows who they are (persona / behavior / relations / arc), <strong>Voice</strong> shows how they speak, <strong>Epistemic</strong> shows what they know at any chapter. The framework toggle (Jung / Schmidt) only affects the archetype section."
+    },
+    "compare": {
+      "open": "Compare Frameworks",
+      "close": "Close",
+      "title": "Framework Compare — {{name}}",
+      "fromSidebar": "Compare Jung vs Schmidt",
+      "switchTo": "Switch to compare",
+      "confidencePct": "{{pct}}% confidence",
+      "evidenceLabel": "Evidence",
+      "notGenerated": "This framework hasn't been generated yet",
+      "secondaryLabel": "Secondary: {{name}}"
+    },
+    "persona": {
+      "profileSub": "One-line summary",
+      "archetypeLabelJung": "Jung Archetype — {{name}}",
+      "archetypeLabelSchmidt": "Schmidt Type — {{name}}",
+      "archetypeNotGenerated": "Not generated",
+      "archetypeFailed": "Generation failed",
+      "retryFailed": "Retry failed parts",
+      "evidenceHeading": "Supporting Evidence",
+      "traitsCount": "{{count}} traits"
+    },
+    "behavior": {
+      "actionsCount": "{{count}} items",
+      "keyEventsSub": "{{count}} events, in chapter order"
+    },
+    "relations": {
+      "relationsCount": "{{count}} relations",
+      "quotesCount": "{{count}} quotes"
+    },
+    "arcPane": {
+      "stagesCount": "{{count}} stages",
+      "stageN": "Stage {{n}}"
+    },
+    "list": {
+      "searchPlaceholder": "Search {{count}} characters",
+      "frameworkLabel": "Analysis framework",
+      "chapterCount": "Ch.{{count}}"
+    },
+    "batch": {
+      "header": "Character analysis",
+      "running": "Analyzing",
+      "allDone": "All characters analyzed ✓",
+      "triggerAll": "Generate all character analyses",
+      "autoSkip": "Already-analyzed characters are skipped automatically",
+      "remaining": "{{count}} remaining",
+      "summaryProgress": "Processed {{count}} characters",
+      "errorFallback": "Batch run failed",
+      "runningWithCount": "Analyzing {{current}}/{{total}}…",
+      "stat": {
+        "generated": "Generated",
+        "skipped": "Skipped",
+        "failed": "Failed"
+      },
+      "toastTitle": "Batch character analysis complete",
+      "toastBody": "{{generated}} generated · {{skipped}} skipped · {{failed}} failed",
+      "toastClose": "Close",
+      "confirmTitle": "Generate all character analyses",
+      "confirmMessage": "Run deep analysis on {{count}} unanalyzed characters. Already-analyzed characters are skipped. This consumes a significant amount of tokens.",
+      "confirmBtn": "Confirm",
+      "triggerFailed": "Failed to trigger batch analysis. Please try again later."
+    },
+    "voice": {
+      "avgSentenceLength": "Avg. Sentence Length",
+      "questionRatio": "Question Ratio",
+      "exclamationRatio": "Exclamation Ratio",
+      "lexicalDiversity": "Lexical Diversity",
+      "wordsUnit": "words",
+      "speechStyle": "Speech Style",
+      "distinctivePatterns": "Distinctive Patterns",
+      "tone": "Tone",
+      "dominantTone": "Dominant Tone",
+      "representativeQuotes": "Representative Quotes",
+      "analyze": "Analyze Voice Profile",
+      "analyzing": "Analyzing voice profile…",
+      "noData": "No voice profile yet",
+      "paragraphsAnalyzed": "{{count}} passages analyzed",
+      "toneDistribution": "Tone Distribution",
+      "toneDistributionSub": "Sentence-type breakdown",
+      "sentenceLength": "Sentence Length",
+      "sentenceLengthSub": "Word-count buckets",
+      "speechStyleSub": "Qualitative description",
+      "dominantToneSub": "One-line summary",
+      "distinctivePatternsCount": "{{count}} items",
+      "representativeQuotesCount": "{{count}} quotes",
+      "tones": {
+        "declarative": "Declarative",
+        "interrogative": "Interrogative",
+        "exclamatory": "Exclamatory"
+      }
+    },
+    "epistemicState": "Epistemic State",
+    "epistemic": {
+      "upToChapter": "Up to Chapter",
+      "chapterN": "Chapter {{n}}",
+      "computing": "Computing…",
+      "noVisibilityData": "No visibility data for this book (all events default to public)",
+      "knownEvents": "Known Events ({{count}})",
+      "noKnownEvents": "No known events",
+      "unknownEvents": "Unknown Events ({{count}})",
+      "noUnknownEvents": "No unknown events",
+      "misbeliefs": "Misbeliefs ({{count}})",
+      "noMisbeliefs": "No inferred misbeliefs",
+      "misbeliefLabel": "Misbelief:",
+      "actualTruth": "Truth:",
+      "confidence": "Confidence {{pct}}%",
+      "summarySubtitle": "Drag the cursor to see what the character knows at each chapter",
+      "knownLabel": "Known",
+      "unknownLabel": "Unknown",
+      "misbeliefShortLabel": "Misbelief",
+      "knownTitle": "Known Events",
+      "unknownTitle": "Unknown Events",
+      "misbeliefTitle": "Misbeliefs",
+      "knownEmpty": "No classified events known to the character by this chapter.",
+      "unknownEmpty": "The character knows all events.",
+      "misbeliefEmpty": "No significant misbeliefs detected.",
+      "characterBelieves": "Believes:",
+      "actually": "Actually:",
+      "misbeliefMeta": "Confidence {{pct}}% · Origin Ch.{{n}}"
+    }
+  },
+  "event": {
+    "batchTitle": "Batch Generate Event EEP",
+    "batchMessage": "Will run deep analysis on {{count}} unanalyzed events. Already-analyzed events will be skipped. This will consume significant tokens.",
+    "batchConfirm": "Confirm",
+    "retryFailed": "Retry failed parts",
+    "causalityFailed": "Causality analysis failed, retry available",
+    "impactFailed": "Impact analysis failed, retry available",
+    "sections": {
+      "summary": "Event Summary",
+      "stateChange": "State Before/After",
+      "stateBefore": "Before",
+      "stateAfter": "After",
+      "structuralRole": "Structural Role",
+      "importance": "Importance",
+      "thematicSignificance": "Thematic Significance",
+      "participantRoles": "Participant Roles",
+      "causality": "Causal Analysis",
+      "rootCause": "Root Cause",
+      "causalChain": "Causal Chain",
+      "chainSummary": "Causal Summary",
+      "impact": "Impact Analysis",
+      "participantImpacts": "Character Impacts",
+      "relationChanges": "Relationship Changes",
+      "causalFactors": "Contributing Factors",
+      "consequences": "Consequences",
+      "keyQuotes": "Key Quotes"
+    },
+    "roles": {
+      "initiator": "Initiator",
+      "actor": "Actor",
+      "reactor": "Reactor",
+      "victim": "Victim",
+      "beneficiary": "Beneficiary"
+    },
+    "importance": {
+      "kernel": "Kernel Event",
+      "satellite": "Satellite Event",
+      "kernelShort": "Kernel",
+      "satelliteShort": "Satellite",
+      "kernelTagline": "Kernel · Pivotal turning point",
+      "satelliteTagline": "Satellite · Supporting detail"
+    },
+    "narrative": {
+      "flashback": "Flashback",
+      "flashforward": "Flashforward",
+      "parallel": "Parallel",
+      "present": "Present",
+      "unknown": "Unknown"
+    },
+    "roles2": {
+      "driver": "Driver",
+      "victim": "Victim",
+      "witness": "Witness"
+    },
+    "labels": {
+      "before": "Before",
+      "after": "After",
+      "stateChangeSub": "State before → after",
+      "causalitySub": "root cause · chain",
+      "impactSub": "people · relations",
+      "rootCauseLabel": "Root cause",
+      "participantImpacts": "On participants",
+      "relationChanges": "Relationship shifts",
+      "factorsLabel": "Causal Factors",
+      "consequencesLabel": "Consequences",
+      "thematicSignificance": "Thematic Significance",
+      "summaryLabel": "Event Summary",
+      "participantsCount": "{{count}} people",
+      "factorsConsequences": "Factors & Consequences",
+      "factorsConsequencesSub": "factors · consequences",
+      "keyQuotesCount": "{{count}} quotes"
+    },
+    "list": {
+      "searchPlaceholder": "Search {{count}} events…",
+      "chapterShort": "Ch.{{n}}",
+      "kernelAbbr": "K",
+      "satelliteAbbr": "S"
+    },
+    "empty": {
+      "title": "Pick an event",
+      "subtitle": "Select an analyzed event from the left to view its EEP details, or click \"Create\" on an unanalyzed event to trigger deep analysis.",
+      "unanalyzedTitle": "{{name}}",
+      "unanalyzedSubtitle": "This event has no EEP analysis yet. Triggering will extract state changes, participant roles, causal chain, and impact.",
+      "createBtn": "Create analysis"
+    },
+    "generating": {
+      "title": "Analyzing event",
+      "stage": "{{stage}} · {{progress}}%"
+    }
+  },
+  "batch": {
+    "header": "Event Analysis",
+    "completed": "Completed",
+    "running": "Analyzing",
+    "doneMessage": "Done! Analyzed {{analyzed}} events",
+    "skipped": "skipped {{count}}",
+    "failed": "failed {{count}}",
+    "allDone": "All events analyzed ✓",
+    "triggerAll": "Generate All EEP",
+    "autoSkip": "Already-analyzed events will be skipped",
+    "remaining": "{{count}} pending",
+    "stat": {
+      "generated": "Generated",
+      "skipped": "Skipped",
+      "failed": "Failed"
+    },
+    "summaryProgress": "Processed {{count}} this batch",
+    "toastTitle": "Batch EEP Complete",
+    "toastBody": "Generated {{generated}} · Skipped {{skipped}} · Failed {{failed}}",
+    "toastClose": "Close",
+    "errorFallback": "Batch run failed",
+    "runningWithCount": "Analyzing {{current}}/{{total}}…"
+  },
+  "tension": {
+    "title": "Tension Analysis",
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "modified": "Modified",
+      "rejected": "Rejected"
+    },
+    "all": "All",
+    "approve": "Approve",
+    "modifyLabel": "Edit Label",
+    "modifyProposition": "Edit Proposition",
+    "reject": "Reject",
+    "save": "Save",
+    "saveModify": "Save Changes",
+    "operationFailed": "Operation failed",
+    "themeTitle": "Book-wide Tension Theme",
+    "noProposition": "(No proposition yet)",
+    "heroEyebrow": "Book-wide Tension Theme · TensionTheme",
+    "heroSourceLabel": "Synthesized from",
+    "heroSource": "Synthesized from {{count}} reviewed tension lines",
+    "fryeLabel": "Frye Mythos",
+    "bookerLabel": "Booker Plot",
+    "onboardingEyebrow": "Tension Analysis · Three-Layer Pipeline",
+    "onboardingIntro": "Starting from scene-level TEUs, the system aggregates them into cross-scene TensionLines and finally synthesizes a book-wide proposition.",
+    "onboarding": {
+      "teu": {
+        "scope": "SCENE",
+        "name": "TEU",
+        "desc": "The smallest tension unit — one opposing pole pair extracted from a single event."
+      },
+      "line": {
+        "scope": "CROSS-SCENE",
+        "name": "TensionLine",
+        "desc": "A recurring axis of opposition aggregated from similar TEUs; reviewed individually."
+      },
+      "theme": {
+        "scope": "BOOK",
+        "name": "TensionTheme",
+        "desc": "One-sentence proposition + framework classification synthesized from reviewed lines."
+      }
+    },
+    "llmHint": "This step calls the LLM and can take a few minutes",
+    "step1": {
+      "label": "TEU Assembly",
+      "scope": "SCENE level",
+      "desc": "Scan the book for tension-signal scenes and assemble TEUs",
+      "done": "Assembled · {{assembled}} / {{candidates}} scenes",
+      "running": "Running · {{stage}} ({{progress}}%)"
+    },
+    "step2": {
+      "label": "TensionLine Grouping",
+      "scope": "CROSS-SCENE",
+      "desc": "LLM groups TEUs into cross-scene tension patterns",
+      "done": "Grouped · {{count}} tension lines",
+      "running": "Running · {{stage}}"
+    },
+    "step3": {
+      "label": "TensionTheme Synthesis",
+      "scope": "BOOK level",
+      "desc": "Synthesize a book-wide proposition from reviewed TensionLines",
+      "done": "Theme synthesized",
+      "running": "Running · {{stage}}",
+      "lock": "Finish Step 2 first"
+    },
+    "errors": {
+      "analysisFailed": "Analysis failed",
+      "groupFailed": "Grouping failed",
+      "synthFailed": "Synthesis failed",
+      "triggerAnalysis": "Failed to trigger analysis",
+      "triggerGroup": "Failed to trigger grouping",
+      "triggerSynth": "Failed to trigger synthesis"
+    },
+    "trajectoryTitle": "TensionLine Trajectory",
+    "trajectorySub": "{{count}} lines · 1 → {{max}} chapters",
+    "intensityLabel": "Intensity",
+    "intensityLow": "Low",
+    "intensityMid": "Mid",
+    "intensityHigh": "High",
+    "density": "TEU density",
+    "intensityHint": "Intensity: Low → High",
+    "reviewSummary": "Review status",
+    "hideRejected": "Hide rejected",
+    "reviewListTitle": "TensionLine Review",
+    "reviewListSub": "{{shown}} / {{total}}",
+    "reviewTitle": "TensionLine Review ({{count}})",
+    "refresh": "Refresh",
+    "poleA": "POLE A",
+    "poleB": "POLE B",
+    "noCarrier": "no assigned carrier",
+    "evidence": "Evidence",
+    "evidenceCount": "{{count}} entries",
+    "evidenceHidden": "+ {{count}} more TEU entries hidden",
+    "showAll": "Show all {{count}}",
+    "showSummary": "Collapse",
+    "rerun": "Re-run",
+    "noFilterResult": "No lines match the current filter. Adjust the status chips above.",
+    "empty": "No tension analysis data yet",
+    "emptyHint": "Run Step 1 and Step 2 first",
+    "frye": {
+      "romance": "Romance",
+      "comedy": "Comedy",
+      "tragedy": "Tragedy",
+      "irony": "Irony",
+      "irony_satire": "Irony / Satire"
+    },
+    "booker": {
+      "overcoming_the_monster": "Overcoming the Monster",
+      "rags_to_riches": "Rags to Riches",
+      "the_quest": "The Quest",
+      "voyage_and_return": "Voyage and Return",
+      "comedy": "Comedy",
+      "tragedy": "Tragedy",
+      "rebirth": "Rebirth"
+    }
+  },
+  "timeline": {
+    "tabs": {
+      "narrative": "Narrative Order",
+      "chronological": "Chronological",
+      "matrix": "Matrix View"
+    },
+    "modeSub": {
+      "narrative": "Order in which events appear, grouped by chapter",
+      "chronological": "Order in which events actually occurred (Fabula)",
+      "matrix": "Chapter × story-time — see how narration diverges from chronology"
+    },
+    "narrativeModes": {
+      "present": "Present",
+      "flashback": "Flashback",
+      "flashforward": "Flashforward",
+      "parallel": "Parallel",
+      "unknown": "Unknown"
+    },
+    "eventTypes": {
+      "plot": "Plot",
+      "conflict": "Conflict",
+      "revelation": "Revelation",
+      "turning_point": "Turning Point",
+      "meeting": "Meeting",
+      "battle": "Battle",
+      "death": "Death",
+      "romance": "Romance",
+      "alliance": "Alliance",
+      "other": "Other"
+    },
+    "importanceKernel": "KERNEL",
+    "importanceSatellite": "SATELLITE",
+    "currentEvent": "Current event",
+    "closePanel": "Close",
+    "layoutToggle": "Layout",
+    "appliedPrefix": "Active:",
+    "clearAll": "Clear all",
+    "removeFilter": "Remove filter",
+    "analyzedShort": "analyzed",
+    "gotoAnalysis": "Open Event Analysis to generate EEP",
+    "banner": {
+      "title": "Chronological order not yet computed",
+      "sub": "“Chronological” and “Matrix View” require per-event chronological ranks. Recompute the timeline to unlock the full views. {{analyzed}}/{{total}} events analyzed ({{pct}}%)."
+    },
+    "empty": {
+      "title": "No events yet",
+      "body": "No events have been extracted for this book. Trigger event extraction from the Event Analysis page first."
+    },
+    "noRanksTooltip": "Chronological order not yet computed. Run timeline computation first.",
+    "switchToVertical": "Switch to Vertical Layout",
+    "switchToHorizontal": "Switch to Horizontal Layout",
+    "qualityText": "{{analyzed}}/{{total}} events analyzed ({{pct}}%)",
+    "ranked": "Timeline computed",
+    "notRanked": "Timeline not computed",
+    "qualityTooltip": "Analyze more events to improve timeline quality. Go to Deep Analysis → Events to generate all EEPs at once.",
+    "computing": "Computing…",
+    "recompute": "Recompute Timeline",
+    "recomputeHint": "Recomputing calls the LLM to analyze event chronology; this can take a few minutes",
+    "onboarding": {
+      "eyebrow": "Timeline · Narrative Chronology",
+      "intro": "The timeline starts from events, computes their real story-time order, then detects flashbacks and flash-forwards. This book has no events yet.",
+      "events": {
+        "scope": "STEP 01 · Event Extraction",
+        "name": "Event Analysis (EEP)",
+        "desc": "Generate events and plot units on the event analysis page — the timeline's data source."
+      },
+      "chrono": {
+        "scope": "STEP 02 · Story Time",
+        "name": "Compute Chronology",
+        "desc": "Order events by their story-time hints to unlock story-order and matrix views."
+      },
+      "genette": {
+        "scope": "STEP 03 · Narrative Order",
+        "name": "Genette Analysis",
+        "desc": "Compare narrative order against story order to detect analepsis and prolepsis."
+      },
+      "cta": "Go to Event Analysis"
+    },
+    "filter": "Filter",
+    "filterSections": {
+      "eventTypes": "Event Types",
+      "narrativeModes": "Narrative Modes",
+      "characters": "Characters",
+      "locations": "Locations",
+      "importance": "Importance"
+    },
+    "charSearch": "Search characters…",
+    "reset": "Reset",
+    "apply": "Apply",
+    "noEvents": "No events yet.",
+    "panel": {
+      "summary": "Event Summary",
+      "temporal": "Temporal Relations",
+      "eep": "EEP Evidence Profile",
+      "causality": "Causal Analysis",
+      "impact": "Impact Analysis"
+    },
+    "storyTime": "Story time: ",
+    "priorEvents": "Prior",
+    "subsequentEvents": "Subsequent",
+    "chronologicalPosition": "Chronological position",
+    "noAnalysisData": "Not yet analyzed. No prior/subsequent data available.",
+    "eep": {
+      "stateBefore": "State Before",
+      "stateAfter": "State After",
+      "causalFactors": "Causal Factors:",
+      "participantRoles": "Participant Roles:",
+      "consequences": "Consequences:",
+      "structuralRole": "Structural Role",
+      "importance": "Importance",
+      "thematicSignificance": "Thematic Significance",
+      "keyQuotes": "Key Quotes:",
+      "topTerms": "Keywords:",
+      "noEep": "EEP analysis not yet performed."
+    },
+    "causality": {
+      "rootCause": "Root Cause",
+      "causalChain": "Causal Chain:",
+      "chainSummary": "Causal Summary",
+      "noCausality": "No causal analysis yet."
+    },
+    "impact": {
+      "affectedParticipants": "Affected Participants:",
+      "participantImpacts": "Character Impacts:",
+      "relationChanges": "Relationship Changes:",
+      "impactSummary": "Impact Summary",
+      "noImpact": "No impact analysis yet."
+    },
+    "loading": "Loading...",
+    "matrix": {
+      "xAxisLabel": "Narrative Order (Sjuzhet) →",
+      "yAxisLabel": "↑ Story Chronology (Fabula)",
+      "storyStart": "Story Start",
+      "storyEnd": "Story End",
+      "unranked": "Unranked",
+      "tooltipRank": "Rank",
+      "tooltipParticipants": "Participants",
+      "tooltipUnranked": "Unranked",
+      "eventsUnit": "events",
+      "marginalLabel": "Events / chapter",
+      "prolepsisZone": "Prolepsis (early chapter / late story-time)",
+      "analepsisZone": "Analepsis (late chapter / early story-time)",
+      "unrankedZone": "Unranked events",
+      "diagonalLabel": "Perfect narrative order",
+      "diagonalBaselineLabel": "Zero-displacement baseline",
+      "genettColorToggle": "Genette coloring",
+      "genettColorToggleOn": "Genette coloring (on)",
+      "genettLinear": "Linear (no displacement)",
+      "genettLegendAnalepsis": "Analepsis",
+      "genettLegendProlepsis": "Prolepsis",
+      "genettUnclassified": "Other (mode color)"
+    },
+    "genett": {
+      "structure": {
+        "linear": "Linear",
+        "partially_linear": "Partially linear",
+        "non_linear": "Non-linear",
+        "unknown": "Unknown"
+      },
+      "chip": {
+        "analepsis": "analepsis {{n}}",
+        "prolepsis": "prolepsis {{n}}"
+      },
+      "banner": {
+        "error": "Genette analysis failed: ",
+        "lowCoverage": "story_time_hint coverage is only {{pct}}%, below the 60% threshold — Genette temporal analysis cannot run.",
+        "success": "Genette analysis complete",
+        "analepsis": "{{n}} analepsis",
+        "prolepsis": "{{n}} prolepsis",
+        "noDisplacement": "No temporal displacement"
+      },
+      "trigger": "Genette analysis",
+      "running": "Analyzing...",
+      "tooltip": "Run Genette temporal analysis (analepsis/prolepsis detection)",
+      "lowCoverageTooltip": "story_time_hint coverage {{pct}}%, below the 60% threshold"
+    }
+  },
+  "unravelingLoadError": "Failed to load build overview data",
+  "unraveling": {
+    "info": {
+      "title": "Data Foundation",
+      "body": "This view maps the complete data pipeline underlying every analysis on this book. Each node represents a processed data structure — from raw text chunks and extracted keywords, through the Knowledge Graph, up to character profiles and event causality chains. Node color reflects build status: complete, partial, or not yet built. Click any node to inspect its details."
+    },
+    "status": {
+      "complete": "complete",
+      "partial": "partial",
+      "empty": "not built"
+    },
+    "notBuilt": "not built",
+    "kgFeatures": "KG Features",
+    "ranked": "ranked",
+    "summary": {
+      "eyebrow": "Build Overview",
+      "complete": "complete",
+      "partial": "partial",
+      "empty": "not built",
+      "totalNodes": "{{n}} nodes total"
+    },
+    "inspector": {
+      "layerList": "Layer list",
+      "nodeDetail": "Node detail",
+      "backToList": "Back to layer list",
+      "nodeCount": "{{n}} nodes",
+      "layerLabel": "L{{n}}"
+    },
+    "detail": {
+      "progress": "Progress",
+      "chapterDist": "Per-chapter distribution",
+      "blockedTitle": "Not ready",
+      "blockedHint": "Requires {{n}} upstream dependencies",
+      "openPage": "Open the matching page",
+      "runAgain": "Rebuild (costs tokens)",
+      "rawCounts": "Raw counts",
+      "meta": "Metadata",
+      "triggerSoon": "Build trigger coming soon"
+    },
+    "layer": {
+      "0": "Text",
+      "1": "Knowledge Graph",
+      "2": "Analysis intermediates",
+      "3": "Derived analyses",
+      "4": "Book synthesis"
+    },
+    "laneName": {
+      "0": "Text",
+      "1": "KG",
+      "2": "Analysis",
+      "3": "Results",
+      "4": "Synthesis"
+    },
+    "node": {
+      "book_meta": "Book Meta",
+      "chapters": "Chapters",
+      "paragraphs": "Paragraphs",
+      "summaries": "Summaries",
+      "keywords": "Keywords",
+      "symbols": "Symbols",
+      "kg_entity": "Entity",
+      "kg_concept": "Concept",
+      "kg_relation": "Relation",
+      "kg_event": "Event",
+      "kg_temporal_relation": "Temporal Rel.",
+      "kg_features": "KG Features",
+      "cep": "CEP",
+      "eep": "EEP",
+      "teu": "TEU",
+      "sep": "SEP",
+      "character_analysis_result": "Character Analysis",
+      "causality_analysis": "Causality",
+      "impact_analysis": "Impact",
+      "tension_lines": "Tension Lines",
+      "symbol_analysis_result": "Symbol Analysis",
+      "narrative_structure": "Narrative Structure",
+      "hero_journey_stage": "Hero Journey",
+      "temporal_analysis": "Temporal Analysis",
+      "voice_profile": "Voice Profile",
+      "tension_theme": "Tension Theme",
+      "chronological_rank": "Chronological Rank"
+    },
+    "toolbar": {
+      "clearSelection": "Clear selection",
+      "showAll": "Show all"
+    },
+    "openPageNotImplemented": "Not yet wired",
+    "counts": {
+      "chapters": "chapters",
+      "paragraphs": "chunks",
+      "generated": "generated",
+      "total": "total",
+      "character": "CHARACTER",
+      "location": "LOCATION",
+      "organization": "ORGANIZATION",
+      "object": "OBJECT",
+      "other": "OTHER",
+      "ner": "NER extracted",
+      "inferred": "inferred",
+      "relations": "relations",
+      "events": "events",
+      "events_classified": "events classified (kernel/satellite)",
+      "events_ranked": "events ranked",
+      "total_events": "total events",
+      "temporal_relations": "temporal relations",
+      "imagery_entities": "imagery entities",
+      "symbol_occurrences": "symbol occurrences",
+      "analyzed": "analyzed",
+      "total_characters": "total characters",
+      "has_ks_classification": "K/S classification built",
+      "built": "built"
+    }
+  },
+  "symbol": {
+    "searchPlaceholder": "Search imagery…",
+    "typeLabel": "Type",
+    "all": "All",
+    "noData": "No imagery data",
+    "noResults": "No matching results",
+    "chapterDist": "Chapter distribution",
+    "firstSeen": "First seen Ch. {{chapter}}",
+    "peakChapters": "Peak at Ch. {{chapter}}",
+    "densityLow": "Low",
+    "densityMid": "Mid",
+    "densityHigh": "High",
+    "densityPeak": "Peak",
+    "coOccurrences": "Co-occurrence network",
+    "noCoOccurrences": "No co-occurrence data",
+    "occurrences": "Occurrences",
+    "occurrenceCount": "{{count}} entries",
+    "occurrenceSpan": "{{count}} entries · across {{chapters}} chapters",
+    "chapterN": "Ch. {{n}}",
+    "chapterOccurrences": "{{count}}×",
+    "noOccurrences": "No occurrence records",
+    "frequency": "{{count}} occurrences",
+    "aliases": "Aliases",
+    "selectPrompt": "Select an imagery on the left",
+    "selectPromptDesc": "View its chapter distribution, co-occurrence network, occurrences, and trigger LLM interpretation.",
+    "emptyTitle": "No symbol imagery data",
+    "emptyHint": "Re-upload the book to run imagery extraction.",
+    "sort": "Sort",
+    "sortBy": {
+      "freq": "Frequency",
+      "firstCh": "First seen",
+      "review": "Review"
+    },
+    "types": {
+      "object": "Object",
+      "nature": "Nature",
+      "spatial": "Space",
+      "body": "Body",
+      "color": "Color",
+      "other": "Other"
+    },
+    "polarity": {
+      "label": "Narrative polarity",
+      "positive": "Positive",
+      "negative": "Negative",
+      "neutral": "Neutral",
+      "mixed": "Mixed"
+    },
+    "review": {
+      "label": "HITL review",
+      "pending": "Pending",
+      "approved": "Approved",
+      "modified": "Modified",
+      "rejected": "Rejected",
+      "approve": "Approve",
+      "modify": "Modify",
+      "reject": "Reject",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "interpretation": {
+      "tag": "LLM interpretation",
+      "evidence": "Evidence summary",
+      "confidence": "Model confidence",
+      "confidenceNote": "Based on {{count}} occurrences",
+      "linkedCharacters": "Linked characters",
+      "linkedEvents": "Linked events",
+      "linkedEmpty": "No linked records",
+      "ctaTitle": "Interpretation not yet generated",
+      "ctaDesc": "Triggering will assemble the Symbol Evidence Profile (occurrence contexts + linked characters/events + chapter distribution), pass it to the LLM to produce a thematic proposition, polarity, confidence and evidence summary, then enter HITL review.",
+      "ctaButton": "Generate interpretation",
+      "generating": "Generating",
+      "generatingDesc": "Assembling symbol evidence profile",
+      "regenerate": "Regenerate",
+      "regenerateConfirm": "Regenerating will overwrite the existing interpretation and review status. Continue?",
+      "themeEditPlaceholder": "Enter revised thematic proposition…",
+      "linkedCharHint": "{{count}} co-occurrences",
+      "linkedEventHint": "Ch. {{chapter}}",
+      "coOccurrenceCount": "{{count}} co-occurrences",
+      "occurrenceJumpTitle": "Jump to reader"
+    },
+    "generating": {
+      "eyebrow": "Interpreting symbol",
+      "taskLabel": "TASK ID",
+      "overallProgress": "Overall progress",
+      "cancel": "Cancel",
+      "footerNote": "~12s expected · polling every 2s",
+      "stageDone": "Done",
+      "stagePending": "Waiting",
+      "stages": {
+        "sep": "Assemble SEP evidence profile",
+        "context": "Sample paragraph contexts ({{done}}/{{total}})",
+        "link": "Link KG characters / events",
+        "llm": "LLM interpretation · thematic proposition",
+        "review": "Persist for review"
+      }
+    },
+    "tabs": {
+      "symbol": "Imagery",
+      "character": "Characters",
+      "event": "Events"
+    },
+    "error": {
+      "generic": "Operation failed. Please try again.",
+      "triggerFailed": "Failed to trigger interpretation. Please try again.",
+      "reviewFailed": "Failed to update review status."
+    },
+    "dashboard": {
+      "totalSymbols": "Total imagery",
+      "totalOccurrences": "Total occurrences",
+      "analyzedCount": "Interpreted",
+      "approvedCount": "Approved",
+      "donutLabel": "imagery",
+      "typeDistTitle": "Type distribution",
+      "typeCount": "{{count}} types",
+      "polarityDistTitle": "Polarity distribution",
+      "polarityMeta": "Interpreted {{analyzed}}/{{total}}",
+      "polarityUnanalyzed": "Uninterpreted",
+      "freqTitle": "Frequency long-tail",
+      "freqMeta": "Top {{count}}",
+      "heatTitle": "Chapter density heatmap",
+      "heatMeta": "Imagery × {{chapters}} chapters",
+      "heatLegendLow": "Low density",
+      "heatLegendHigh": "High density"
+    },
+    "emptyStep1Title": "Confirm paragraph tokenisation is complete",
+    "emptyStep1Desc": "Imagery extraction relies on paragraph-level tokens — if the paragraph layer has not been built, extraction will not run automatically.",
+    "emptyStep2Title": "Check status on the Build Overview page",
+    "emptyStep2Desc": "The Build Overview DAG will clearly mark the \"Symbols\" node as empty, partial, or complete.",
+    "emptyStep3Title": "Trigger manually if needed",
+    "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Build Overview page.",
+    "emptyUnravelingBtn": "Open Build Overview",
+    "emptyRecheckBtn": "Re-check status"
+  },
+  "narrative": {
+    "heroJourney": "Hero's Journey",
+    "hjSub": "Campbell's monomyth · Vogler's 12 stages",
+    "phase": {
+      "departure": "Departure",
+      "initiation": "Initiation",
+      "return": "Return"
+    },
+    "state": {
+      "filled": "Identified",
+      "low": "Low confidence",
+      "absent": "Not identified"
+    },
+    "confidence": "Confidence",
+    "chapterLabel": "Ch. {{range}}",
+    "noChapters": "No chapters mapped",
+    "repEvents": "Representative Kernel events",
+    "description": "Theory",
+    "narrativeFunction": "Narrative function",
+    "notes": "System interpretation",
+    "review": {
+      "pending": "System-generated · unreviewed",
+      "approved": "Approved",
+      "rejected": "Marked not applicable"
+    },
+    "approve": "Approve",
+    "markNA": "Mark N/A",
+    "coverage": "Mapped {{mapped}}",
+    "ofTotal": "/ {{total}} stages",
+    "notProgress": "Absent stages are deliberate narrative choices — not \"incomplete\"",
+    "legend": "Legend",
+    "layout": {
+      "track": "Horizontal track",
+      "columns": "Three-phase columns",
+      "ring": "Monomyth ring",
+      "band": "Chapter band"
+    },
+    "ring": {
+      "knownWorld": "KNOWN WORLD",
+      "specialWorld": "SPECIAL WORLD"
+    },
+    "stageColumn": "Stage",
+    "spine": {
+      "title": "Plot Spine Summary",
+      "subtitle": "Book-level Kernel / Satellite statistics",
+      "kernel": "Kernel",
+      "satellite": "Satellite",
+      "unclassified": "Unclassified",
+      "events": "events",
+      "kernelSpine": "Kernel spine (by chapter)",
+      "multiEvChapter": "Multi-event chapters",
+      "chapterUnit": "Ch. {{ch}}",
+      "eventsUnit": "events",
+      "footnote": "Kernel / Satellite detail lives on the event analysis page",
+      "jump": "Go to event analysis"
+    },
+    "source": {
+      "heuristic": "Heuristic",
+      "llm": "LLM-classified",
+      "human": "Human-verified"
+    },
+    "empty": {
+      "title": "No Hero's Journey yet",
+      "message": "The Hero's Journey relies on chapter summaries to map the whole book onto Campbell's 12-stage arc. Click below to start the analysis.",
+      "trigger": "Start Hero's Journey analysis",
+      "running": "Analyzing… {{progress}}%"
+    },
+    "errors": {
+      "triggerHero": "Failed to start the Hero's Journey analysis. Please try again.",
+      "heroFailed": "Hero's Journey analysis failed."
+    }
+  }
+}

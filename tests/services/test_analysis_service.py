@@ -15,7 +15,10 @@ from storysphere.services.analysis_models import (
     CharacterProfile,
     CoverageMetrics,
 )
-from storysphere.services.analysis_service import AnalysisService
+from storysphere.services.analysis_service import (
+    AnalysisService,
+    _normalize_cep_relations,
+)
 
 
 @pytest.fixture
@@ -120,6 +123,55 @@ class TestExtractCEP:
         cep = await svc._extract_cep("Alice", "doc-1")
         assert isinstance(cep, CEPResult)
         vector.search.assert_awaited_once()
+
+
+# ── CEP relation normalization ────────────────────────────────────────────
+
+
+class TestNormalizeCepRelations:
+    def test_canonical_codes_pass_through(self):
+        raw = [{"target": "Bob", "type": "ally", "description": "friend"}]
+        result = _normalize_cep_relations(raw)
+        assert result == [{"target": "Bob", "type": "ally", "description": "friend"}]
+
+    def test_uppercase_code_is_lowercased(self):
+        result = _normalize_cep_relations(
+            [{"target": "Bob", "type": "ENEMY", "description": ""}]
+        )
+        assert result[0]["type"] == "enemy"
+
+    def test_legacy_zh_label_maps_to_code(self):
+        result = _normalize_cep_relations(
+            [{"target": "寇仲", "type": "敵人", "description": "追捕對象"}]
+        )
+        assert result[0]["type"] == "enemy"
+
+    def test_freeform_type_coerced_to_other(self):
+        result = _normalize_cep_relations(
+            [{"target": "傅君婥", "type": "MENTORSHIP/MOTHER_FIGURE", "description": "稱其為娘"}]
+        )
+        assert result[0]["type"] == "other"
+        assert result[0]["description"] == "稱其為娘"
+
+    def test_missing_target_entry_dropped(self):
+        result = _normalize_cep_relations(
+            [{"type": "ally", "description": "x"}, {"target": "  ", "type": "ally", "description": "y"}]
+        )
+        assert result == []
+
+    def test_non_dict_entries_dropped(self):
+        result = _normalize_cep_relations(
+            ["ally", None, {"target": "Bob", "type": "ally", "description": ""}]
+        )
+        assert len(result) == 1
+
+    def test_non_list_input_returns_empty(self):
+        assert _normalize_cep_relations("not a list") == []
+        assert _normalize_cep_relations(None) == []
+
+    def test_missing_type_coerced_to_other(self):
+        result = _normalize_cep_relations([{"target": "Bob", "description": "?"}])
+        assert result[0]["type"] == "other"
 
 
 # ── Archetype Classification ──────────────────────────────────────────────

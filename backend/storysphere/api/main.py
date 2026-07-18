@@ -19,6 +19,7 @@ from fastapi.responses import JSONResponse
 from storysphere.api.routers import (
     analysis,
     books,
+    character_metrics,
     chat_ws,
     documents,
     entities,
@@ -271,6 +272,7 @@ def create_app() -> FastAPI:
     app.include_router(tension.router, prefix=prefix)
     app.include_router(symbols.router, prefix=prefix)
     app.include_router(factions.router, prefix=prefix)
+    app.include_router(character_metrics.router, prefix=prefix)
     app.include_router(kg_settings.router, prefix=prefix)
     app.include_router(settings_info.router, prefix=prefix)
     app.include_router(metrics.router, prefix=prefix)

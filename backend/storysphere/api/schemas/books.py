@@ -402,7 +402,8 @@ class UnanalyzedEntity(BaseModel):
     id: str
     name: str
     type: str
-    chapter_count: int = 0
+    chapter_count: int = 0  # deprecated: always 0, kept for backward compat
+    mention_count: int = 0
     chapter: int | None = None
     narrative_mode: str | None = None
     importance: str | None = None
@@ -416,7 +417,8 @@ class AnalysisItem(BaseModel):
     section: str
     title: str
     archetypes: dict[str, str] = {}
-    chapter_count: int = 0
+    chapter_count: int = 0  # deprecated: always 0, kept for backward compat
+    mention_count: int = 0
     content: str = ""
     status: str = "complete"            # "complete" | "partial"
     generated_at: str = ""
@@ -488,6 +490,12 @@ class AnalyzeTriggerRequest(BaseModel):
     model_config = _CAMEL
 
     mode: Literal["full", "retryFailed"] = "full"
+
+
+class BatchAnalysisRequest(BaseModel):
+    model_config = _CAMEL
+
+    entity_ids: list[str] | None = None
 
 
 # ── Entity chunks ────────────────────────────────────────────────────────────

@@ -150,30 +150,10 @@ export interface GraphData {
 
 // ── Analysis ────────────────────────────────────────────────────
 
-export interface AnalysisItem {
-  id: string;
-  entityId: string;
-  section: 'characters' | 'events';
-  title: string;
-  archetypes: Record<string, string>;
-  chapterCount: number;
-  content: string;
-  status?: 'complete' | 'partial';
-  generatedAt: string;
-  chapter?: number | null;
-  narrativeMode?: string | null;
-  importance?: string | null;
-}
-
-export interface UnanalyzedEntity {
-  id: string;
-  name: string;
-  type: EntityType;
-  chapterCount: number;
-  chapter?: number | null;
-  narrativeMode?: string | null;
-  importance?: string | null;
-}
+// Sourced from generated.ts (backend Pydantic schema) rather than hand-written —
+// both now carry mentionCount; see docs/type-generation.md.
+export type AnalysisItem = components['schemas']['AnalysisItem'];
+export type UnanalyzedEntity = components['schemas']['UnanalyzedEntity'];
 
 export interface AnalysisListResponse {
   analyzed: AnalysisItem[];

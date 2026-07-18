@@ -603,9 +603,11 @@ export interface paths {
         put?: never;
         /**
          * Trigger Batch Entity Analysis
-         * @description Trigger deep analysis for ALL character entities in a book.
+         * @description Trigger deep analysis for ALL (or a subset of) character entities in a book.
          *
-         *     Skips characters that already have cached analysis.
+         *     ``entityIds``, when provided, restricts the run to that subset (still
+         *     skipping any that already have cached analysis); ids that don't match an
+         *     existing character entity are silently excluded. Omitted → all characters.
          *     Returns a task_id for progress tracking.
          */
         post: operations["trigger_batch_entity_analysis_api_v1_books__book_id__entities_analyze_all_post"];
@@ -786,6 +788,9 @@ export interface paths {
          *
          *     Computes quantitative linguistic metrics and LLM qualitative description
          *     on first call; subsequent calls are served from SQLite cache.
+         *
+         *     ``cached_only=true``: only reads the cache, never triggers generation —
+         *     404 if no cached profile exists yet.
          */
         get: operations["get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get"];
         put?: never;
@@ -1858,6 +1863,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/analysis/character-metrics": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Character Metrics
+         * @description Return PageRank + degree for every character in a book.
+         *
+         *     Degree is computed on the full entity-relation graph (not just
+         *     character-to-character edges). Empty book / no relations → `metrics: []`
+         *     (200, not 500).
+         */
+        get: operations["get_character_metrics_api_v1_books__book_id__analysis_character_metrics_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/kg/status": {
         parameters: {
             query?: never;
@@ -2038,6 +2067,11 @@ export interface components {
              */
             chapterCount: number;
             /**
+             * Mentioncount
+             * @default 0
+             */
+            mentionCount: number;
+            /**
              * Content
              * @default
              */
@@ -2128,6 +2162,11 @@ export interface components {
              * @default []
              */
             evidence: string[];
+        };
+        /** BatchAnalysisRequest */
+        BatchAnalysisRequest: {
+            /** Entityids */
+            entityIds?: string[] | null;
         };
         /** Body_detect_language_from_upload_api_v1_books_detect_language_post */
         Body_detect_language_from_upload_api_v1_books_detect_language_post: {
@@ -2386,6 +2425,24 @@ export interface components {
              * @default false
              */
             force_refresh: boolean;
+        };
+        /** CharacterMetricResponse */
+        CharacterMetricResponse: {
+            /** Entityid */
+            entityId: string;
+            /** Name */
+            name: string;
+            /** Pagerank */
+            pagerank: number;
+            /** Degree */
+            degree: number;
+        };
+        /** CharacterMetricsResponse */
+        CharacterMetricsResponse: {
+            /** Bookid */
+            bookId: string;
+            /** Metrics */
+            metrics?: components["schemas"]["CharacterMetricResponse"][];
         };
         /** ChunkResponse */
         ChunkResponse: {
@@ -4180,6 +4237,11 @@ export interface components {
              * @default 0
              */
             chapterCount: number;
+            /**
+             * Mentioncount
+             * @default 0
+             */
+            mentionCount: number;
             /** Chapter */
             chapter?: number | null;
             /** Narrativemode */
@@ -5266,7 +5328,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BatchAnalysisRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             202: {
@@ -5549,7 +5615,9 @@ export interface operations {
     };
     get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get: {
         parameters: {
-            query?: never;
+            query?: {
+                cached_only?: boolean;
+            };
             header?: never;
             path: {
                 book_id: string;
@@ -7280,6 +7348,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FactionAnalysisResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_character_metrics_api_v1_books__book_id__analysis_character_metrics_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CharacterMetricsResponse"];
                 };
             };
             /** @description Validation Error */

@@ -11,7 +11,6 @@
   "triggerFailed": "觸發分析失敗，請稍後再試。",
   "batchTriggerFailed": "觸發批次分析失敗，請稍後再試。",
   "selectCharacter": "選擇角色以查看或生成分析",
-  "quickAccess": "快速前往已分析角色",
   "selectEvent": "選擇事件以查看或生成分析",
   "viewInGraph": "在圖譜中查看",
   "frameworkIndex": "框架索引",
@@ -77,20 +76,68 @@
     },
     "behavior": {
       "actionsCount": "{{count}} 項",
-      "keyEventsSub": "{{count}} 項，依章節序"
+      "keyEventsSub": "{{count}} 項，依章節序",
+      "viewInEvents": "在事件分析頁查看"
     },
     "relations": {
       "relationsCount": "{{count}} 段關係",
-      "quotesCount": "{{count}} 句"
+      "relationsSummary": "{{targets}} 個對象 · {{count}} 段關係",
+      "quotesCount": "{{count}} 句",
+      "segmentCount": "{{count}} 段",
+      "egoCaption": "關係圖譜 · 以 {{name}} 為中心",
+      "egoLegendNote": "點節點載入該角色 · 角標＝多段關係"
     },
     "arcPane": {
       "stagesCount": "{{count}} 個階段",
-      "stageN": "階段 {{n}}"
+      "keyEventMarkerLegend": "關鍵事件 marker",
+      "overlapStackingNote": "相鄰階段共享邊界章時，以錯行堆疊呈現"
     },
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 位角色",
       "frameworkLabel": "分析框架",
-      "chapterCount": "Ch.{{count}}"
+      "mentionCount": "提及 {{count}} 次"
+    },
+    "archFilter": {
+      "label": "依原型篩選已分析角色",
+      "selectedCount": "{{count}} 個原型篩選中",
+      "searchPlaceholder": "{{framework}} 原型…",
+      "noMatch": "無相符原型",
+      "clearAll": "清除全部篩選"
+    },
+    "overview": {
+      "title": "角色群像",
+      "metaTotal": "位角色",
+      "metaAnalyzed": "已分析",
+      "metaUnanalyzed": "未分析",
+      "batchTop10": "先生成前 10 位要角",
+      "batchAll": "生成全部",
+      "batchProgress": "分析中 · {{progress}}%",
+      "backToOverview": "角色總覽",
+      "viewQuadrant": "定位象限",
+      "viewRanking": "提及量排行",
+      "quadrantCaption": "X 敘事存在感（log）· Y 結構重要性 · 泡泡大小＝關係連結數 · 顏色＝派系",
+      "rankingCaption": "線性尺度 · 依全書提及量降冪",
+      "quadrant": {
+        "yAxis": "結構重要性 ↑",
+        "xAxis": "敘事存在感（log 提及量）→",
+        "cornerLead": "要角",
+        "cornerTail": "背景長尾",
+        "ariaLabel": "角色定位象限散點圖",
+        "metricsError": "角色結構重要性資料暫時無法取得，象限視圖無法呈現。",
+        "bubbleDetail": "· 提及 {{mentions}} · 關係 {{degree}}",
+        "legendHead": "派系 · 顏色編碼",
+        "legendRow": "{{names}} 等 {{count}} 人",
+        "unaffiliated": "無派系歸屬 · {{count}} 位",
+        "footnote": "切線取兩軸中位數 · 僅前 8 名常駐標籤，其餘 hover 顯示 · {{count}} 位無派系者以低飽和描邊圈呈現 · 點泡泡載入該角色分析"
+      },
+      "ranking": {
+        "heroTag": "提及量最高的核心角色",
+        "heroSub": "全書提及 {{mentions}} 次 · 關係連結 {{degree}} 條",
+        "viewAnalysis": "查看分析",
+        "createHero": "建立核心角色分析",
+        "collapse": "收合長尾",
+        "expand": "展開其餘 {{count}} 位角色"
+      }
     },
     "batch": {
       "header": "角色分析",
@@ -112,6 +159,8 @@
       "toastClose": "關閉",
       "confirmTitle": "批次生成角色分析",
       "confirmMessage": "將對 {{count}} 個尚未分析的角色執行深度分析，已分析的角色會自動跳過。此操作將消耗大量 token。",
+      "confirmTop10Title": "生成前 10 位要角分析",
+      "confirmTop10Message": "將對提及量最高的 {{count}} 位未分析角色執行深度分析，已分析的角色會自動跳過。此操作將消耗大量 token。",
       "confirmBtn": "確認執行",
       "triggerFailed": "觸發批次分析失敗，請稍後再試。"
     },
@@ -172,6 +221,38 @@
       "characterBelieves": "角色相信：",
       "actually": "實際：",
       "misbeliefMeta": "信心 {{pct}}% · 起源 Ch.{{n}}"
+    },
+    "epistemicCompare": {
+      "openButton": "對照另一角色",
+      "title": "認知對照 — 雙角色資訊差",
+      "vs": "vs",
+      "selectPlaceholder": "選擇第二位角色…",
+      "selectPrompt": "選擇第二位角色以查看資訊差",
+      "cursorNote": "共用同一條章節游標 · 截止第 {{n}} 章",
+      "loading": "計算中…",
+      "dataIncomplete": "{{name}} 尚無完整 visibility 資料，暫無法比較。",
+      "onlyLabel": "只有 {{name}} 知道",
+      "bothLabel": "都知道"
+    },
+    "sourceJump": {
+      "cta": "點擊跳至閱讀頁對應段落",
+      "locating": "定位原文中…",
+      "notFound": "找不到對應段落",
+      "notFoundInChapter": "第 {{chapter}} 章找不到對應段落",
+      "failed": "定位失敗，請稍後再試"
+    },
+    "generating": {
+      "label": "分析中",
+      "taskLabel": "TASK ID",
+      "footerNote": "每 2 秒輪詢狀態",
+      "stages": {
+        "cep": "彙整 CEP 證據檔",
+        "archetype": "原型判定（Jung / Schmidt）",
+        "traits": "個性特質與行為",
+        "relations": "關係與關鍵事件",
+        "arc": "發展弧線",
+        "write": "寫入分析結果"
+      }
     }
   },
   "event": {

@@ -3,7 +3,7 @@ import { X, AlertTriangle, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
-import { searchPassages } from '@/api/search';
+import { findBestPassage } from '@/lib/passageLookup';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Chapter } from '@/api/types';
 
@@ -153,9 +153,8 @@ export function EpistemicSidePanel({
     const evKey = String(ev.id ?? ev.title ?? '');
     setLocatingId(evKey);
     try {
-      const query = `${String(ev.title ?? '')}。${String(ev.description ?? '')}`.slice(0, 200);
-      const results = await searchPassages({ query, bookId, topK: 10, mode: 'semantic' });
-      const best = results.find((r) => r.metadata?.chapterNumber === chapterNumber);
+      const query = `${String(ev.title ?? '')}。${String(ev.description ?? '')}`;
+      const best = await findBestPassage(query, bookId, chapterNumber);
       if (best?.id) {
         onJumpToChunk(chapterNumber, best.id);
       } else {

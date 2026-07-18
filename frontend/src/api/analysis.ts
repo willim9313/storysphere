@@ -98,14 +98,16 @@ export function triggerBatchEventAnalysis(
   );
 }
 
-// #7h — Batch entity analysis (analyze all unanalyzed characters)
+// #7h — Batch entity analysis (analyze all unanalyzed characters, or a subset
+// via `entityIds` — used by the "先生成前 10 位要角" tiered batch entry, #11).
 export function triggerBatchEntityAnalysis(
   bookId: string,
+  entityIds?: string[],
 ): Promise<{ taskId: string }> {
-  if (MOCK_ENABLED) return mock.triggerBatchEntityAnalysis(bookId);
+  if (MOCK_ENABLED) return mock.triggerBatchEntityAnalysis(bookId, entityIds);
   return apiFetch<{ taskId: string }>(
     `/books/${bookId}/entities/analyze-all`,
-    { method: 'POST' },
+    { method: 'POST', body: JSON.stringify({ entityIds }) },
   );
 }
 

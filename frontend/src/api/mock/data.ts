@@ -510,6 +510,8 @@ export const mockCharacterAnalyses: AnalysisListResponse = {
       title: '伊莉莎白',
       archetypes: { jung: '革命者', schmidt: '反叛少女' },
       chapterCount: 5,
+      mentionCount: 210,
+      status: 'complete',
       content: `## 伊莉莎白·班奈特
 
 ### 原型定位
@@ -541,6 +543,8 @@ export const mockCharacterAnalyses: AnalysisListResponse = {
       title: '達西先生',
       archetypes: { jung: '統治者', schmidt: '貴族領主' },
       chapterCount: 4,
+      mentionCount: 180,
+      status: 'complete',
       content: `## 達西先生
 
 ### 原型定位
@@ -557,11 +561,11 @@ export const mockCharacterAnalyses: AnalysisListResponse = {
     },
   ],
   unanalyzed: [
-    { id: 'ent-003', name: '珍', type: 'character', chapterCount: 4 },
-    { id: 'ent-004', name: '彬格萊先生', type: 'character', chapterCount: 3 },
-    { id: 'ent-005', name: '班奈特太太', type: 'character', chapterCount: 5 },
-    { id: 'ent-006', name: '班奈特先生', type: 'character', chapterCount: 5 },
-    { id: 'ent-011', name: '夏綠蒂', type: 'character', chapterCount: 2 },
+    { id: 'ent-003', name: '珍', type: 'character', chapterCount: 4, mentionCount: 90 },
+    { id: 'ent-004', name: '彬格萊先生', type: 'character', chapterCount: 3, mentionCount: 75 },
+    { id: 'ent-005', name: '班奈特太太', type: 'character', chapterCount: 5, mentionCount: 60 },
+    { id: 'ent-006', name: '班奈特先生', type: 'character', chapterCount: 5, mentionCount: 55 },
+    { id: 'ent-011', name: '夏綠蒂', type: 'character', chapterCount: 2, mentionCount: 30 },
   ],
 };
 
@@ -574,6 +578,8 @@ export const mockEventAnalyses: AnalysisListResponse = {
       title: '舞會',
       archetypes: {},
       chapterCount: 2,
+      mentionCount: 12,
+      status: 'complete',
       content: `## 舞會
 
 ### 事件摘要

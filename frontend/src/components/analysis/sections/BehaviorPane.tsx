@@ -1,8 +1,15 @@
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
+import { ExternalLink } from 'lucide-react';
 import type { CharacterAnalysisDetail } from '@/api/types';
+import type { NameIdEntry } from '../CharacterAnalysisDetail';
 
 interface Props {
   data: CharacterAnalysisDetail;
+  bookId: string;
+  /** #5: name -> id lookup over the event analysis list, used to link a key
+   * event to its entry on the event analysis page when the names match. */
+  eventRoster: NameIdEntry[];
 }
 
 function pickField<T = string>(rec: Record<string, unknown>, keys: string[]): T | undefined {
@@ -13,10 +20,22 @@ function pickField<T = string>(rec: Record<string, unknown>, keys: string[]): T 
   return undefined;
 }
 
-export function BehaviorPane({ data }: Props) {
+function pickChapter(rec: Record<string, unknown>): number | undefined {
+  const v = rec['chapter'];
+  return typeof v === 'number' ? v : undefined;
+}
+
+export function BehaviorPane({ data, bookId, eventRoster }: Props) {
   const { t } = useTranslation('analysis');
   const actions = data.cep?.actions ?? [];
   const keyEvents = data.cep?.keyEvents ?? [];
+  // Sort by chapter; events without a numeric chapter sort last, stable
+  // otherwise (matches canvas's `.slice().sort((a,b) => a.chapter - b.chapter)`).
+  const sortedEvents = [...keyEvents].sort((a, b) => {
+    const ca = pickChapter(a as Record<string, unknown>) ?? Number.POSITIVE_INFINITY;
+    const cb = pickChapter(b as Record<string, unknown>) ?? Number.POSITIVE_INFINITY;
+    return ca - cb;
+  });
 
   return (
     <>
@@ -52,24 +71,44 @@ export function BehaviorPane({ data }: Props) {
           </div>
         </header>
         <div className="ca-section-body">
-          {keyEvents.length === 0 ? (
+          {sortedEvents.length === 0 ? (
             <p>{t('character.noData')}</p>
           ) : (
-            keyEvents.map((ev, i) => {
-              const rec = ev as Record<string, unknown>;
-              const name = pickField(rec, ['event', 'title', 'name']) ?? '—';
-              const chapter = pickField(rec, ['chapter']) ?? '';
-              const significance = pickField(rec, ['significance', 'description']) ?? '';
-              return (
-                <div key={i} className="ca-event">
-                  <div className="ca-event-chapter">{chapter ? `Ch.${chapter}` : ''}</div>
-                  <div>
-                    <div className="ca-event-name">{name}</div>
-                    {significance && <div className="ca-event-sig">{significance}</div>}
+            <div className="ca-keyevent-list">
+              {sortedEvents.map((ev, i) => {
+                const rec = ev as Record<string, unknown>;
+                const name = pickField(rec, ['event', 'title', 'name']) ?? '—';
+                const chapter = pickChapter(rec);
+                const significance = pickField(rec, ['significance', 'description']) ?? '';
+                // #5 v1 name match: exact match against the event analysis
+                // list (analyzed + unanalyzed), case/whitespace-insensitive.
+                const matched = eventRoster.find(
+                  (e) => e.name.trim().toLowerCase() === name.trim().toLowerCase(),
+                );
+                return (
+                  <div key={i} className="ca-keyevent-card">
+                    <div className="ca-keyevent-head">
+                      <span className="ca-keyevent-chapter">
+                        {chapter != null ? `Ch.${chapter}` : ''}
+                      </span>
+                      <span className="ca-keyevent-name">{name}</span>
+                    </div>
+                    {significance && (
+                      <div className="ca-keyevent-sig">{significance}</div>
+                    )}
+                    {matched && (
+                      <Link
+                        to={`/books/${bookId}/events`}
+                        state={{ selectId: matched.id }}
+                        className="ca-keyevent-link"
+                      >
+                        {t('character.behavior.viewInEvents')} <ExternalLink size={10} />
+                      </Link>
+                    )}
                   </div>
-                </div>
-              );
-            })
+                );
+              })}
+            </div>
           )}
         </div>
       </section>

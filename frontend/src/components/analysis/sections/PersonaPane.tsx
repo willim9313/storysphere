@@ -1,11 +1,14 @@
 import { useTranslation } from 'react-i18next';
-import { GitCompare, RefreshCw } from 'lucide-react';
+import { ChevronRight, RefreshCw } from 'lucide-react';
 import type { CharacterAnalysisDetail } from '@/api/types';
+import { useSourceJump } from '@/hooks/useSourceJump';
+import { SourceJumpText } from '../SourceJumpText';
 
 type Framework = 'jung' | 'schmidt';
 
 interface Props {
   data: CharacterAnalysisDetail;
+  bookId: string;
   framework: Framework;
   onOpenCompare: () => void;
   onRegenerate?: () => void;
@@ -18,14 +21,25 @@ function confidenceLabel(pct: number, t: (k: string) => string): string {
   return t('character.confidenceLow');
 }
 
+/** Splits a "term：description" trait string (canvas uses the fullwidth
+ * colon; also accepts the halfwidth ":") into [term, description]. Falls
+ * back to treating the whole string as the term when no colon is found. */
+function splitTrait(raw: string): [string, string | null] {
+  const idx = raw.includes('：') ? raw.indexOf('：') : raw.indexOf(':');
+  if (idx <= 0 || idx >= raw.length - 1) return [raw, null];
+  return [raw.slice(0, idx), raw.slice(idx + 1)];
+}
+
 export function PersonaPane({
   data,
+  bookId,
   framework,
   onOpenCompare,
   onRegenerate,
   isRegenerating,
 }: Props) {
   const { t } = useTranslation('analysis');
+  const { jump, pendingKey } = useSourceJump(bookId);
   const archetype = data.archetypes.find((a) => a.framework === framework);
   const pct = archetype ? Math.round(archetype.confidence * 100) : 0;
   // Distinguish "generation failed (retryable)" from "not yet generated".
@@ -56,65 +70,66 @@ export function PersonaPane({
           </div>
         </header>
         <div className="ca-section-body">
-          <p>{data.profileSummary || t('character.noData')}</p>
+          <p className="ca-persona-profile-text">{data.profileSummary || t('character.noData')}</p>
         </div>
       </section>
 
       {/* Archetype */}
       <section className="ca-section">
         <header className="ca-section-head">
-          <div>
-            <h3 className="ca-section-title">{archetypeTitle}</h3>
-            {archetype?.secondary && (
-              <div className="ca-section-sub" style={{ marginTop: 2 }}>
-                {t('character.persona.secondaryLabel' as never, { name: archetype.secondary, defaultValue: `次：${archetype.secondary}` })}
-              </div>
-            )}
-          </div>
-          {archetype && (
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span className="ca-title-badge">
-                {t('character.confidence')} {confidenceLabel(pct, t)} · {pct}%
-              </span>
-              <button
-                type="button"
-                className="ca-btn ca-btn-ghost"
-                onClick={onOpenCompare}
-              >
-                <GitCompare size={11} /> {t('character.compare.switchTo')}
-              </button>
-            </div>
-          )}
+          <h3 className="ca-section-title">{archetypeTitle}</h3>
         </header>
         <div className="ca-section-body">
           {archetype ? (
             <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 }}>
-                <div className="ca-conf-track" style={{ flex: 1, maxWidth: 320 }}>
-                  <div className="ca-conf-fill" style={{ width: `${pct}%` }} />
+              <div className="ca-persona-arc-row">
+                <div className="ca-persona-arc-field">
+                  <span className="ca-persona-arc-field-label">
+                    {t('character.primaryArchetype')}
+                  </span>
+                  <span className="ca-persona-arc-primary">{archetype.primary}</span>
                 </div>
-                <span className="ca-conf-pct" style={{ minWidth: 36 }}>{pct}%</span>
-              </div>
-              <h4
-                style={{
-                  margin: '12px 0 6px',
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: 'var(--font-size-2xs)',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  color: 'var(--fg-muted)',
-                  fontWeight: 600,
-                }}
-              >
-                {t('character.persona.evidenceHeading')}
-              </h4>
-              <ul>
-                {archetype.evidence.length === 0 ? (
-                  <li>{t('character.noData')}</li>
-                ) : (
-                  archetype.evidence.map((e, i) => <li key={i}>{e}</li>)
+                {archetype.secondary && (
+                  <div className="ca-persona-arc-field">
+                    <span className="ca-persona-arc-field-label">
+                      {t('character.secondaryArchetype')}
+                    </span>
+                    <span className="ca-persona-arc-secondary">{archetype.secondary}</span>
+                  </div>
                 )}
-              </ul>
+                <div className="ca-persona-arc-field ca-persona-arc-conf">
+                  <span className="ca-persona-arc-field-label">{t('character.confidence')}</span>
+                  <div className="ca-conf-track">
+                    <div className="ca-conf-fill" style={{ width: `${pct}%` }} />
+                  </div>
+                  <span className="ca-conf-pct">
+                    {confidenceLabel(pct, t)} · {pct}%
+                  </span>
+                </div>
+                <button type="button" className="ca-persona-switch-link" onClick={onOpenCompare}>
+                  {t('character.compare.switchTo')} <ChevronRight size={11} />
+                </button>
+              </div>
+              <div className="ca-evidence-heading">{t('character.persona.evidenceHeading')}</div>
+              <div className="ca-evidence-list">
+                {archetype.evidence.length === 0 ? (
+                  <p>{t('character.noData')}</p>
+                ) : (
+                  archetype.evidence.map((e, i) => {
+                    const key = `evidence-${i}`;
+                    return (
+                      <div key={key} className="ca-evidence-item">
+                        <span className="ca-evidence-num">{i + 1}</span>
+                        <SourceJumpText
+                          text={e}
+                          pending={pendingKey === key}
+                          onJump={() => void jump(key, e)}
+                        />
+                      </div>
+                    );
+                  })
+                )}
+              </div>
             </>
           ) : (
             <div className="ca-inline-banner">
@@ -148,10 +163,16 @@ export function PersonaPane({
           {traits.length === 0 ? (
             <p>{t('character.noData')}</p>
           ) : (
-            <div className="ca-tag-grid">
-              {traits.map((tr, i) => (
-                <span key={i} className="ca-tag">{tr}</span>
-              ))}
+            <div className="ca-trait-grid">
+              {traits.map((tr, i) => {
+                const [term, desc] = splitTrait(tr);
+                return (
+                  <div key={i} className="ca-trait-card">
+                    <div className="ca-trait-term">{term}</div>
+                    {desc && <div className="ca-trait-desc">{desc}</div>}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

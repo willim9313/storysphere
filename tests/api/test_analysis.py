@@ -199,6 +199,50 @@ class TestListCharacterAnalysesArchetypes:
         assert "ent-bob" in unanalyzed_ids
 
 
+class TestListCharacterAnalysesMentionCount:
+    """GET /books/:bookId/analysis/characters — #0 fix: mentionCount from KG entity."""
+
+    def test_analyzed_item_carries_entity_mention_count(self, jung_schmidt_client, mock_kg):
+        """Alice (cached, analyzed) should report her real mention_count."""
+        from storysphere.domain.entities import Entity, EntityType
+
+        alice = Entity(
+            id="ent-alice", name="Alice", entity_type=EntityType.CHARACTER,
+            mention_count=1002,
+        )
+        bob = Entity(
+            id="ent-bob", name="Bob", entity_type=EntityType.CHARACTER,
+            mention_count=0,
+        )
+        mock_kg.list_entities = AsyncMock(return_value=[alice, bob])
+
+        resp = jung_schmidt_client.get("/api/v1/books/doc-1/analysis/characters")
+        assert resp.status_code == 200
+        analyzed = resp.json()["analyzed"]
+        alice_item = next(x for x in analyzed if x["entityId"] == "ent-alice")
+        assert alice_item["mentionCount"] == 1002
+
+    def test_unanalyzed_entity_carries_entity_mention_count(self, jung_schmidt_client, mock_kg):
+        """Bob (no cache entry, unanalyzed) should still report his mention_count."""
+        from storysphere.domain.entities import Entity, EntityType
+
+        alice = Entity(
+            id="ent-alice", name="Alice", entity_type=EntityType.CHARACTER,
+            mention_count=1002,
+        )
+        bob = Entity(
+            id="ent-bob", name="Bob", entity_type=EntityType.CHARACTER,
+            mention_count=225,
+        )
+        mock_kg.list_entities = AsyncMock(return_value=[alice, bob])
+
+        resp = jung_schmidt_client.get("/api/v1/books/doc-1/analysis/characters")
+        assert resp.status_code == 200
+        unanalyzed = resp.json()["unanalyzed"]
+        bob_item = next(x for x in unanalyzed if x["id"] == "ent-bob")
+        assert bob_item["mentionCount"] == 225
+
+
 class TestEntityAnalysisDetailArchetypes:
     """GET /books/:bookId/entities/:entityId/analysis — archetypes list preserves both frameworks."""
 
@@ -341,3 +385,49 @@ class TestBatchEntityAnalysis:
             for call in mock_analysis_agent.analyze_character.await_args_list
         ]
         assert names_analyzed == ["Bob"]
+
+    def test_entity_ids_subset_only_analyzes_requested(
+        self, batch_client, mock_analysis_agent, mock_doc,
+    ):
+        """entityIds restricts the run to that subset (ALICE + BOB from conftest)."""
+        mock_doc.get_document_language = AsyncMock(return_value="en")
+
+        resp = batch_client.post(
+            "/api/v1/books/doc-1/entities/analyze-all",
+            json={"entityIds": ["ent-bob"]},
+        )
+        assert resp.status_code == 202
+        task_id = resp.json()["taskId"]
+
+        for _ in range(20):
+            poll = batch_client.get(f"/api/v1/tasks/{task_id}/status")
+            if poll.status_code == 200 and poll.json()["status"] in ("done", "error"):
+                break
+            time.sleep(0.05)
+
+        final = batch_client.get(f"/api/v1/tasks/{task_id}/status").json()
+        assert final["status"] == "done"
+        result = final["result"]
+        assert result["total"] == 1  # only ent-bob requested
+        assert result["skipped"] == 0
+        names_analyzed = [
+            call.kwargs.get("entity_name")
+            for call in mock_analysis_agent.analyze_character.await_args_list
+        ]
+        assert names_analyzed == ["Bob"]
+
+    def test_entity_ids_with_unknown_id_is_ignored(self, batch_client):
+        """An entityId that doesn't match any character is silently excluded."""
+        resp = batch_client.post(
+            "/api/v1/books/doc-1/entities/analyze-all",
+            json={"entityIds": ["ent-bob", "no-such-entity"]},
+        )
+        assert resp.status_code == 202
+
+    def test_entity_ids_all_unknown_returns_400(self, batch_client):
+        """If the subset matches nothing, behave like the empty-book case."""
+        resp = batch_client.post(
+            "/api/v1/books/doc-1/entities/analyze-all",
+            json={"entityIds": ["no-such-entity"]},
+        )
+        assert resp.status_code == 400

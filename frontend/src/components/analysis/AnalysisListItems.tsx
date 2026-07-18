@@ -1,33 +1,30 @@
 import { useTranslation } from 'react-i18next';
 import type { AnalysisItem, UnanalyzedEntity } from '@/api/types';
+import { avatarStyle } from './entityAvatarStyle';
 
-const AVATAR_PALETTES = ['char', 'loc', 'org', 'obj', 'con', 'evt'] as const;
-
-function avatarStyle(seed: string): React.CSSProperties {
-  const code = seed.length > 0 ? seed.charCodeAt(0) : 0;
-  const p = AVATAR_PALETTES[code % AVATAR_PALETTES.length];
-  return {
-    background: `var(--entity-${p}-bg)`,
-    color: `var(--entity-${p}-fg)`,
-    border: `1px solid var(--entity-${p}-border)`,
-  };
+/** Design canvas formula: width% = 6 + 94 * sqrt(mentions / max) */
+function mentionBarWidth(mentions: number, max: number): number {
+  if (max <= 0) return 6;
+  return 6 + 94 * Math.sqrt(Math.max(0, mentions) / max);
 }
 
 export function AnalyzedItem({
   item,
-  framework,
   isSelected,
   onSelect,
+  maxMentionCount,
+  itemId,
 }: {
   item: AnalysisItem;
-  framework: string;
   isSelected: boolean;
   onSelect: () => void;
+  maxMentionCount?: number;
+  itemId?: string;
 }) {
   const { t } = useTranslation('analysis');
-  const archetypeLabel = item.archetypes?.[framework];
   return (
     <button
+      id={itemId}
       type="button"
       className={'ca-item' + (isSelected ? ' selected' : '')}
       onClick={onSelect}
@@ -38,16 +35,28 @@ export function AnalyzedItem({
       <div className="ca-item-body">
         <div className="ca-item-row">
           <span className="ca-item-name">{item.title}</span>
+          <span
+            className="ca-item-dot"
+            style={item.status === 'partial' ? { background: 'var(--color-warning)' } : undefined}
+          />
         </div>
-        {archetypeLabel && <div className="ca-item-archetype">{archetypeLabel}</div>}
-        <div className="ca-item-meta">
-          <span>{t('character.list.chapterCount', { count: item.chapterCount })}</span>
-        </div>
+        {maxMentionCount !== undefined && (
+          <div className="ca-item-mentionrow">
+            <div className="ca-item-mentionbar">
+              <div
+                className="ca-item-mentionbar-fill"
+                style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
+              />
+            </div>
+            <span
+              className="ca-item-mentioncount"
+              aria-label={t('character.list.mentionCount', { count: item.mentionCount })}
+            >
+              {item.mentionCount}
+            </span>
+          </div>
+        )}
       </div>
-      <div
-        className="ca-item-dot"
-        style={item.status === 'partial' ? { background: 'var(--color-warning)' } : undefined}
-      />
     </button>
   );
 }
@@ -58,17 +67,22 @@ export function UnanalyzedItem({
   onSelect,
   onGenerate,
   isGenerating,
+  maxMentionCount,
+  itemId,
 }: {
   item: UnanalyzedEntity;
   isSelected: boolean;
   onSelect: () => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  maxMentionCount?: number;
+  itemId?: string;
 }) {
   const { t } = useTranslation('analysis');
 
   return (
     <div
+      id={itemId}
       className={'ca-item' + (isSelected ? ' selected' : '')}
       onClick={onSelect}
       role="button"
@@ -85,10 +99,22 @@ export function UnanalyzedItem({
         <div className="ca-item-row">
           <span className="ca-item-name muted">{item.name}</span>
         </div>
-        <div className="ca-item-meta">
-          <span>{t('notAnalyzed')}</span>
-          <span>· {t('character.list.chapterCount', { count: item.chapterCount })}</span>
-        </div>
+        {maxMentionCount !== undefined && (
+          <div className="ca-item-mentionrow">
+            <div className="ca-item-mentionbar">
+              <div
+                className="ca-item-mentionbar-fill muted"
+                style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
+              />
+            </div>
+            <span
+              className="ca-item-mentioncount"
+              aria-label={t('character.list.mentionCount', { count: item.mentionCount })}
+            >
+              {item.mentionCount}
+            </span>
+          </div>
+        )}
       </div>
       <button
         type="button"

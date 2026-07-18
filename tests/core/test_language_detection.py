@@ -5,6 +5,8 @@ from unittest.mock import patch
 from storysphere.core.language_detection import (
     detect_language,
     detect_language_from_document,
+    get_language_display_name,
+    refine_chinese_variant,
 )
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphRole
 
@@ -105,3 +107,25 @@ class TestDetectLanguageFromDocument:
         chapter = Chapter(number=1, paragraphs=[_paragraph("xxx", role="separator")])
         doc = _document([chapter])
         assert detect_language_from_document(doc) == "en"
+
+
+class TestRefineChineseVariant:
+    def test_traditional_body_refines_to_zh_tw(self):
+        body = "他們個個說這時來會為麼與從開關還讓過幾萬人聽見樂聲後對國學" * 3
+        doc = _document([Chapter(number=1, paragraphs=[_paragraph(body)])])
+        assert refine_chinese_variant(doc) == "zh-tw"
+
+    def test_simplified_body_refines_to_zh_cn(self):
+        body = "他们个个说这时来会为么与从开关还让过几万人听见乐声后对国学" * 3
+        doc = _document([Chapter(number=1, paragraphs=[_paragraph(body)])])
+        assert refine_chinese_variant(doc) == "zh-cn"
+
+
+class TestGetLanguageDisplayName:
+    def test_bare_zh_maps_to_chinese_not_capitalized_code(self):
+        # Regression: bare "zh" used to fall through to the capitalize()
+        # fallback, yielding the meaningless prompt directive "Respond in Zh."
+        assert get_language_display_name("zh") == "Chinese"
+
+    def test_zh_tw_maps_to_traditional_chinese(self):
+        assert get_language_display_name("zh-tw") == "Traditional Chinese"

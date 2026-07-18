@@ -88,7 +88,7 @@ class TestListStatus:
     def test_partial_character_shows_partial_status_in_list(self, client, mock_kg, mock_doc):
         mock_doc.get_document = AsyncMock(return_value=SimpleNamespace(id="book-1"))
         mock_kg.list_entities = AsyncMock(
-            return_value=[SimpleNamespace(id="ent-1", name="Bob")])
+            return_value=[SimpleNamespace(id="ent-1", name="Bob", mention_count=5)])
         _override_cache(client, _partial_cached())
         resp = client.get("/api/v1/books/book-1/analysis/characters")
         assert resp.status_code == 200
@@ -99,7 +99,7 @@ class TestListStatus:
     def test_complete_character_shows_complete_status(self, client, mock_kg, mock_doc):
         mock_doc.get_document = AsyncMock(return_value=SimpleNamespace(id="book-1"))
         mock_kg.list_entities = AsyncMock(
-            return_value=[SimpleNamespace(id="ent-1", name="Bob")])
+            return_value=[SimpleNamespace(id="ent-1", name="Bob", mention_count=5)])
         cached = CharacterAnalysisResult(
             entity_id="ent-1", entity_name="Bob", document_id="book-1",
             profile=CharacterProfile(summary="s"), cep=CEPResult(),
