@@ -82,5 +82,8 @@ var/qdrant_local/
 # Backend runtime data (SQLite stores, local Qdrant) — never commit
 backend/var/
 
+# Frontend runtime data (local Qdrant/dev artifacts) — never commit
+frontend/var/
+
 # ========== uv ==========
 # uv.lock    # Do NOT ignore - commit lock file for reproducibility
