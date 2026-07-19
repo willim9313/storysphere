@@ -207,6 +207,10 @@
       "noCharacters": "No characters available",
       "noBookmarks": "No bookmarked entities",
       "removeBookmark": "Remove bookmark"
+    },
+    "orphan": {
+      "button": "Unlinked entities",
+      "description": "Not connected to any relation in this book — collapsed here instead of floating next to the main graph."
     }
   }
 }

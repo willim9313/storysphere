@@ -207,6 +207,10 @@
       "noCharacters": "無可選角色",
       "noBookmarks": "尚未標記實體",
       "removeBookmark": "移除標記"
+    },
+    "orphan": {
+      "button": "未連結實體",
+      "description": "在本書中未被連結到任何關係，預設收合於此，不再漂浮於主圖旁。"
     }
   }
 }

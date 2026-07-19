@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Plus, Minus, X, Loader } from 'lucide-react';
+import { Plus, Minus, X, Loader, Shapes } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -8,7 +8,15 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { toCytoscapeElements, toClusteredCytoscapeElements } from '@/lib/graphTransform';
+import {
+  toCytoscapeElements,
+  toClusteredCytoscapeElements,
+  partitionOrphanNodes,
+  classifyRelationLabel,
+  POSITIVE_RELATION_LABELS,
+  NEGATIVE_RELATION_LABELS,
+  type OrphanNode,
+} from '@/lib/graphTransform';
 import { byCommunity, byType, isSuperNodeId } from '@/services/kgClustering';
 import { fetchFactionAnalysis } from '@/api/factions';
 import { GraphCanvas, type GraphCanvasHandle, type ViewportSnapshot } from '@/components/graph/GraphCanvas';
@@ -39,6 +47,18 @@ const readCssVar = (name: string) => getComputedStyle(document.documentElement).
 
 const ALL_TYPES = new Set<string>(['character', 'location', 'concept', 'event', 'organization', 'object', 'other']);
 const MULTI_SELECT_CAP = 2;
+
+// Matches the abbreviated --graph-{key}-* token keys (see tokens.css / same
+// map in LegendCard.tsx) used to color the orphan drawer's pill dots.
+const ORPHAN_TYPE_KEY: Record<string, string> = {
+  character: 'char',
+  location: 'loc',
+  organization: 'org',
+  object: 'obj',
+  concept: 'con',
+  event: 'evt',
+  other: 'other',
+};
 
 type RightPanel = 'analysis' | 'paragraphs' | null;
 
@@ -78,6 +98,7 @@ export default function GraphPage() {
     [],
   );
   const [viewportSnap, setViewportSnap] = useState<ViewportSnapshot | null>(null);
+  const [orphanOpen, setOrphanOpen] = useState(false);
 
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
@@ -182,10 +203,21 @@ export default function GraphPage() {
     return toCytoscapeElements(data);
   }, [data, clusteredGraph, t]);
 
+  // Degree-0 entities (never appear in any relation) are pulled out of the
+  // canvas element list — rendering them left a floating grid next to the
+  // main graph (brief §3-3). Computed from the full (unfiltered) element set
+  // so toggling type/search filters never turns a real orphan back into a
+  // false one, or vice versa. Only applies to individual view — cluster
+  // super-nodes aggregate everything, so there's no orphan concept there.
+  const { connected: connectedElements, orphans } = useMemo(() => {
+    if (clusteredGraph) return { connected: elements, orphans: [] as OrphanNode[] };
+    return partitionOrphanNodes(elements);
+  }, [elements, clusteredGraph]);
+
   const filteredElements = useMemo(() => {
     const lowerQ = searchQuery.toLowerCase();
     const visibleNodeIds = new Set(
-      elements
+      connectedElements
         .filter((el) => {
           if (el.group !== 'nodes') return false;
           if (el.data.cluster) return true; // cluster super-nodes always visible
@@ -196,13 +228,33 @@ export default function GraphPage() {
         })
         .map((el) => el.data.id as string),
     );
-    return elements.filter((el) => {
+    return connectedElements.filter((el) => {
       if (el.group === 'edges') {
         return visibleNodeIds.has(el.data.source as string) && visibleNodeIds.has(el.data.target as string);
       }
       return visibleNodeIds.has(el.data.id as string);
     });
-  }, [elements, searchQuery, visibleTypes]);
+  }, [connectedElements, searchQuery, visibleTypes]);
+
+  // Edge semantic coloring (brief §3-8: individual view edges were all one
+  // muted color). `edge.label` is the raw RelationType enum value; classify
+  // it into a color bucket and read the actual token hex via readCssVar
+  // (cytoscape only accepts hex/rgb). Inferred edges are excluded — they
+  // keep their existing accent treatment from cytoscapeConfig.ts untouched.
+  const relationEdgeStylesheet = useMemo(() => {
+    const bucketColor: Record<'positive' | 'negative', string> = {
+      positive: readCssVar('--color-success') || '#3f7d5c',
+      negative: readCssVar('--color-error') || '#b3454a',
+    };
+    return [...POSITIVE_RELATION_LABELS, ...NEGATIVE_RELATION_LABELS].map((label) => {
+      const bucket = classifyRelationLabel(label) as 'positive' | 'negative';
+      return {
+        selector: `edge[label = "${label}"][!inferred]`,
+        style: { 'line-color': bucketColor[bucket] } as Record<string, unknown>,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars when the theme switches
+  }, [theme]);
 
   // Epistemic dim: greying selected character's unknown nodes
   const epistemicStylesheet = useMemo(() => {
@@ -391,7 +443,7 @@ export default function GraphPage() {
           selectedNodeId={selectedNodeId}
           selectedNodeIds={selectedNodeIds}
           animationMode={animationMode}
-          extraStylesheet={epistemicStylesheet}
+          extraStylesheet={[...relationEdgeStylesheet, ...epistemicStylesheet]}
           onViewportChange={handleViewportChange}
         />
       )}
@@ -449,12 +501,13 @@ export default function GraphPage() {
       {/* Breadcrumb (Scenario C) */}
       <BreadcrumbBar items={breadcrumbItems} />
 
-      {/* Legend (top-right) — shifts left when right panel is open */}
+      {/* Legend + orphan drawer (top-right) — shifts left when right panel is open */}
       <div
-        className="absolute z-10"
+        className="absolute z-10 flex flex-col items-end"
         style={{
           top: 16,
           right: bottomRightAnchor,
+          gap: 8,
           transition: 'right var(--transition-normal, 250ms) ease',
         }}
       >
@@ -470,6 +523,9 @@ export default function GraphPage() {
             setInferredReviewOpen(v);
           }}
         />
+        {clusterMode === 'node' && orphans.length > 0 && (
+          <OrphanDrawer orphans={orphans} open={orphanOpen} onToggle={() => setOrphanOpen((v) => !v)} />
+        )}
       </div>
 
       {/* Lens card (bottom-left) — consolidates timeline / epistemic / bookmarks */}
@@ -749,6 +805,111 @@ export default function GraphPage() {
               onClose={() => setRightPanel(null)}
             />
           )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// "未連結實體" drawer — degree-0 entities are hidden from the canvas (see
+// `connectedElements` above); this surfaces them as a small popover instead
+// of a floating grid next to the graph (brief §3-3).
+function OrphanDrawer({
+  orphans,
+  open,
+  onToggle,
+}: {
+  orphans: OrphanNode[];
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const { t } = useTranslation('graph');
+  return (
+    <div className="relative">
+      <button
+        onClick={onToggle}
+        className="flex items-center"
+        style={{
+          gap: 6,
+          padding: '6px 11px',
+          backgroundColor: 'var(--bg-primary)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
+          fontSize: 'var(--font-size-2xs)',
+          color: 'var(--fg-primary)',
+        }}
+      >
+        <Shapes size={14} style={{ color: 'var(--fg-secondary)' }} />
+        <span>{t('v1.orphan.button')}</span>
+        <span
+          className="tabular-nums"
+          style={{
+            padding: '0 6px',
+            borderRadius: 'var(--pill-radius, 999px)',
+            backgroundColor: 'var(--bg-tertiary)',
+            color: 'var(--fg-secondary)',
+          }}
+        >
+          {orphans.length}
+        </span>
+      </button>
+      {open && (
+        <div
+          className="absolute"
+          style={{
+            top: '100%',
+            right: 0,
+            marginTop: 6,
+            width: 230,
+            padding: 12,
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-md, var(--shadow-sm))',
+            zIndex: 20,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 'var(--font-size-2xs)',
+              color: 'var(--fg-muted)',
+              lineHeight: 1.5,
+              marginBottom: 8,
+            }}
+          >
+            {t('v1.orphan.description')}
+          </div>
+          <div className="flex flex-col" style={{ gap: 5, maxHeight: 220, overflowY: 'auto' }}>
+            {orphans.map((o) => {
+              const dotKey = ORPHAN_TYPE_KEY[o.type] ?? 'other';
+              return (
+                <span
+                  key={o.id}
+                  className="inline-flex items-center self-start"
+                  style={{
+                    gap: 5,
+                    padding: '3px 9px',
+                    borderRadius: 'var(--pill-radius, 999px)',
+                    border: '1px solid var(--border)',
+                    fontSize: 'var(--font-size-2xs)',
+                    color: 'var(--fg-secondary)',
+                  }}
+                >
+                  <span
+                    className="inline-block rounded-full flex-shrink-0"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      backgroundColor: `var(--graph-${dotKey}-fill)`,
+                      border: `1px solid var(--graph-${dotKey}-stroke)`,
+                    }}
+                  />
+                  {o.name}
+                </span>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
