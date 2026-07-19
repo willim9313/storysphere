@@ -22,6 +22,7 @@ export interface ViewportSnapshot {
 export interface GraphCanvasHandle {
   centerOn: (graphX: number, graphY: number) => void;
   panByGraph: (dxGraph: number, dyGraph: number) => void;
+  fitView: () => void;
 }
 
 interface GraphCanvasProps {
@@ -53,11 +54,12 @@ const FOCUS_DIM_TRANSITION_MS = 220;
 
 // ── Label density (KG redesign Phase 1) ─────────────────────────────────
 // Non-focus label visibility: shown once EITHER the view is zoomed in past
-// this threshold OR the node itself is large (high mention frequency) —
-// mirrors the design canvas's `showLabel = r >= 20 || zoom >= 1.2` rule.
-// Tunable; intended to be re-calibrated against the real book during the
-// /verify pass (implementation plan §5).
-const ZOOM_LABEL_THRESHOLD = 1.2;
+// this threshold OR the node itself is large (high mention frequency).
+// The canvas reference used zoom >= 1.2, but that was demoed on a 36-node
+// mock — against the real 264-node book, 1.2 still fits ~100 labels in the
+// viewport (label soup). Calibrated to 1.8 on 2026-07-19: selecting a node
+// zooms to 1.4, which must NOT flip the all-labels gate on.
+const ZOOM_LABEL_THRESHOLD = 1.8;
 const NODE_SIZE_LABEL_THRESHOLD = 24;
 
 // Event nodes carry full sentence titles ("寇仲夜探塔頂密室與宋玉致相遇") that
@@ -264,6 +266,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         if (!cy) return;
         const z = cy.zoom();
         cy.panBy({ x: -dxGraph * z, y: -dyGraph * z });
+      },
+      fitView() {
+        const cy = cyRef.current;
+        if (!cy) return;
+        cy.animate({ fit: { eles: cy.elements(), padding: 48 } }, { duration: 300, easing: 'ease' });
       },
     }),
     [],

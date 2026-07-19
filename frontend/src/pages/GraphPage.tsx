@@ -333,6 +333,9 @@ export default function GraphPage() {
     setSelectedNodeIds([]);
     setRightPanel(null);
     setClusterDrillIn(null);
+    // 重置也還原視野 — 選取節點會把鏡頭 zoom 到 1.4，若不 fit 回全圖，
+    // 重置後畫面停在原地，看起來像按鈕沒作用（canvas 設計即為「重設視圖」）。
+    canvasRef.current?.fitView();
   }, []);
 
   const handleViewportChange = useCallback((snap: ViewportSnapshot) => {
