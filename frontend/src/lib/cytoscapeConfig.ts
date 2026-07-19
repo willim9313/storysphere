@@ -37,6 +37,8 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
   const fgPrimary = v('--fg-primary')   || '#2a2620';
   const fgMuted   = v('--fg-muted')     || '#938876';
   const fgSecondary = v('--fg-secondary') || '#5f5648';
+  const warning   = v('--color-warning') || '#ad7519';
+  const error     = v('--color-error')   || '#a8482c';
   // cytoscape's font-family regex (^([\w- "]+(?:\s*,\s*[\w- "]+)*)$) rejects
   // single quotes, so a token like `'Spectral', 'Noto Serif TC', …`
   // is flagged invalid and the label silently falls back to the default font.
@@ -170,13 +172,14 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'text-opacity': 0,
       },
     },
-    // V1: inferred edges distinguish via color + opacity, NOT dashed.
+    // Inferred edges: warning color + dashed line to read as "speculative,
+    // not a confirmed relation" (KG redesign brief §4 / canvas legend).
     // width = 1 + confidence × 1.6, opacity = 0.42 + confidence × 0.25
     {
       selector: 'edge[?inferred]',
       style: {
-        'line-style': 'solid',
-        'line-color': accent,
+        'line-style': 'dashed',
+        'line-color': warning,
         width: ((ele: cytoscape.EdgeSingular) =>
           1 + (Number(ele.data('confidence')) || 0) * 1.6) as cytoscape.Css.PropertyValueEdge<number>,
         opacity: ((ele: cytoscape.EdgeSingular) =>
@@ -187,7 +190,7 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
     {
       selector: 'edge[?inferred].highlighted',
       style: {
-        'line-color': accent,
+        'line-color': warning,
         opacity: 1,
         width: 2,
       },
@@ -247,15 +250,18 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'text-opacity': 1,
       },
     },
-    // Faction rivalry edges (community mode) — red dashed line
+    // Faction rivalry edges (community mode) — red dashed line.
+    // Cytoscape only accepts hex/rgb, not var() strings — read the token
+    // via getComputedStyle like every other color in this stylesheet
+    // (this raw var() string was the source of the console warning spam).
     {
       selector: 'edge[?isRivalry]',
       style: {
-        'line-color': 'var(--color-error, #ef4444)',
-        'target-arrow-color': 'var(--color-error, #ef4444)',
+        'line-color': error,
+        'target-arrow-color': error,
         'line-style': 'dashed',
         opacity: 0.7,
-        color: 'var(--color-error, #ef4444)',
+        color: error,
       },
     },
   ];

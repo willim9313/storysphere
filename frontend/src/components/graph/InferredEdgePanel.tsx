@@ -1,13 +1,8 @@
 import { useEffect, useRef } from 'react';
-import { X, Check, Loader, XOctagon, RefreshCw, RotateCcw } from 'lucide-react';
+import { X, Check, Loader, XOctagon, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import {
-  fetchInferredRelations,
-  confirmInferred,
-  rejectInferred,
-  runInference,
-} from '@/api/graph';
+import { fetchInferredRelations, confirmInferred, rejectInferred } from '@/api/graph';
 import type { InferredRelation } from '@/api/graph';
 
 interface InferredReviewPanelProps {
@@ -16,42 +11,22 @@ interface InferredReviewPanelProps {
   onClose: () => void;
 }
 
+// Note: rerun (safe/force) moved to GraphToolbar's inference menu — this
+// panel is review-only. Query key carries a 'pending' suffix so it doesn't
+// collide with GraphPage's unfiltered 'inferred-relations' query (used for
+// the idle/ready state + pending badge count); both share the
+// ['books', bookId, 'inferred-relations'] prefix so either mutation's
+// invalidateQueries call refreshes both.
 export function InferredEdgePanel({ bookId, focusInferredId, onClose }: InferredReviewPanelProps) {
   const { t } = useTranslation('graph');
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['books', bookId, 'inferred-relations'],
+    queryKey: ['books', bookId, 'inferred-relations', 'pending'],
     queryFn: () => fetchInferredRelations(bookId, 'pending'),
   });
 
   const items = data?.items ?? [];
-
-  const invalidateAll = () => {
-    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
-    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
-  };
-
-  // Safe rerun: score only new entity pairs; existing PENDING/CONFIRMED/REJECTED untouched.
-  const rerunSafe = useMutation({
-    mutationFn: () => runInference(bookId),
-    onSuccess: invalidateAll,
-  });
-
-  // Destructive rerun: bypasses skip list. Upsert resets every record's
-  // status to PENDING, wiping prior adopt/reject decisions. Requires user
-  // confirmation before invoking.
-  const rerunForce = useMutation({
-    mutationFn: () => runInference(bookId, true),
-    onSuccess: invalidateAll,
-  });
-
-  const handleForceRerun = () => {
-    const ok = globalThis.confirm(t('v1.inferred.review.rerunForceConfirm'));
-    if (ok) rerunForce.mutate();
-  };
-
-  const rerunning = rerunSafe.isPending || rerunForce.isPending;
 
   return (
     <div
@@ -73,55 +48,32 @@ export function InferredEdgePanel({ bookId, focusInferredId, onClose }: Inferred
         >
           {t('v1.inferred.review.title', { n: items.length })}
         </h3>
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => rerunSafe.mutate()}
-            disabled={rerunning}
-            title={t('v1.inferred.review.rerunTitle')}
-            aria-label={t('v1.inferred.review.rerunTitle')}
-            style={{
-              color: 'var(--fg-muted)',
-              padding: 4,
-              borderRadius: 'var(--radius-sm)',
-              opacity: rerunning ? 0.5 : 1,
-              cursor: rerunning ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {rerunSafe.isPending ? (
-              <Loader size={13} className="animate-spin" />
-            ) : (
-              <RefreshCw size={13} />
-            )}
-          </button>
-          <button
-            onClick={handleForceRerun}
-            disabled={rerunning}
-            title={t('v1.inferred.review.rerunForceTitle')}
-            aria-label={t('v1.inferred.review.rerunForceTitle')}
-            style={{
-              color: 'var(--color-warning)',
-              padding: 4,
-              borderRadius: 'var(--radius-sm)',
-              opacity: rerunning ? 0.5 : 1,
-              cursor: rerunning ? 'not-allowed' : 'pointer',
-            }}
-          >
-            {rerunForce.isPending ? (
-              <Loader size={13} className="animate-spin" />
-            ) : (
-              <RotateCcw size={13} />
-            )}
-          </button>
-          <button
-            onClick={onClose}
-            style={{ color: 'var(--fg-muted)', marginLeft: 4 }}
-          >
-            <X size={16} />
-          </button>
-        </div>
+        <button
+          onClick={onClose}
+          style={{ color: 'var(--fg-muted)' }}
+        >
+          <X size={16} />
+        </button>
       </header>
 
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {!isLoading && items.length > 0 && (
+          <div
+            className="flex items-start"
+            style={{
+              gap: 8,
+              fontSize: 'var(--font-size-2xs)',
+              color: 'var(--fg-secondary)',
+              lineHeight: 1.6,
+              backgroundColor: 'var(--color-warning-bg)',
+              borderRadius: 'var(--radius-sm)',
+              padding: '9px 10px',
+            }}
+          >
+            <AlertTriangle size={13} style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 1 }} />
+            <span>{t('v1.inferred.review.banner', { n: items.length })}</span>
+          </div>
+        )}
         {isLoading && (
           <div className="flex items-center gap-2 py-4 justify-center">
             <Loader size={14} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />

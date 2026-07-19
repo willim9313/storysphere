@@ -339,39 +339,41 @@ interface SectionProps {
 function Section({ title, isOpen, onToggle, headerExtra, children }: SectionProps) {
   return (
     <div>
-      <button
-        onClick={onToggle}
-        className="flex items-center w-full text-left"
-        style={{
-          gap: 6,
-          fontFamily: 'var(--font-sans)',
-          fontSize: 'var(--font-size-xs, 12px)',
-          fontWeight: 600,
-          color: 'var(--fg-secondary, var(--panel-fg))',
-          textTransform: 'uppercase',
-          letterSpacing: '0.05em',
-          background: 'none',
-          border: 0,
-          padding: 0,
-          cursor: 'pointer',
-        }}
-      >
-        {isOpen ? (
-          <ChevronDown
-            size={11}
-            strokeWidth={1.8}
-            style={{ color: 'var(--panel-fg-muted)' }}
-          />
-        ) : (
-          <ChevronRight
-            size={11}
-            strokeWidth={1.8}
-            style={{ color: 'var(--panel-fg-muted)' }}
-          />
-        )}
-        <span>{title}</span>
+      <div className="flex items-center w-full" style={{ gap: 6 }}>
+        <button
+          onClick={onToggle}
+          className="flex items-center flex-1 text-left"
+          style={{
+            gap: 6,
+            fontFamily: 'var(--font-sans)',
+            fontSize: 'var(--font-size-xs, 12px)',
+            fontWeight: 600,
+            color: 'var(--fg-secondary, var(--panel-fg))',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            background: 'none',
+            border: 0,
+            padding: 0,
+            cursor: 'pointer',
+          }}
+        >
+          {isOpen ? (
+            <ChevronDown
+              size={11}
+              strokeWidth={1.8}
+              style={{ color: 'var(--panel-fg-muted)' }}
+            />
+          ) : (
+            <ChevronRight
+              size={11}
+              strokeWidth={1.8}
+              style={{ color: 'var(--panel-fg-muted)' }}
+            />
+          )}
+          <span>{title}</span>
+        </button>
         {headerExtra}
-      </button>
+      </div>
       {isOpen && <div style={{ marginTop: 6 }}>{children}</div>}
     </div>
   );

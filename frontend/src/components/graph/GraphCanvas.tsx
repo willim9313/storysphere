@@ -81,7 +81,8 @@ const staticGraphStylesheet: cytoscape.StylesheetStyle[] = [
     style: {
       opacity: FOCUS_NODE_DIM_OPACITY,
       'transition-property': 'opacity',
-      'transition-duration': `${FOCUS_DIM_TRANSITION_MS}ms`,
+      // cytoscape 型別要 number（單位 ms）
+      'transition-duration': FOCUS_DIM_TRANSITION_MS,
     },
   },
   {

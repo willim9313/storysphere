@@ -21,7 +21,7 @@ import { byCommunity, byType, isSuperNodeId } from '@/services/kgClustering';
 import { fetchFactionAnalysis } from '@/api/factions';
 import { GraphCanvas, type GraphCanvasHandle, type ViewportSnapshot } from '@/components/graph/GraphCanvas';
 import { GraphOnboardingHero } from '@/components/graph/GraphOnboardingHero';
-import { GraphToolbar, type AnimationMode, type ClusterMode } from '@/components/graph/GraphToolbar';
+import { GraphToolbar, resolveInferenceState, type AnimationMode, type ClusterMode } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
 import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
 import { LensCard, type TimelineState } from '@/components/graph/LensCard';
@@ -40,7 +40,7 @@ import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
 import { fetchChapters } from '@/api/chapters';
 import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
-import { runInference } from '@/api/graph';
+import { runInference, fetchInferredRelations } from '@/api/graph';
 import type { EntityType, GraphNode, EntityChunkItem } from '@/api/types';
 
 const readCssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -77,7 +77,9 @@ export default function GraphPage() {
   const { theme } = useTheme();
 
   const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
-  const [animationMode, setAnimationMode] = useState<AnimationMode>('fade');
+  // C7 裁決：移除「淡入/逐個」動畫模式 UI，固定淡入。GraphCanvas 的
+  // AnimationMode prop/型別維持不變，只是不再從使用者輸入。
+  const animationMode: AnimationMode = 'fade';
   const [showInferred, setShowInferred] = useState(false);
   const [selectedInferredId, setSelectedInferredId] = useState<string | null>(null);
   const [inferredReviewOpen, setInferredReviewOpen] = useState(false);
@@ -110,9 +112,9 @@ export default function GraphPage() {
     enabled: !!bookId,
   });
 
-  // Safe default: only score new entity pairs; preserves any existing
-  // adopted/rejected decisions. The InferredEdgePanel exposes a separate
-  // affordance for the destructive force_refresh=true path.
+  // Same call serves both the idle-state "執行推論" and the ready-state
+  // "安全重跑" menu item — both only score new entity pairs and preserve
+  // existing adopted/rejected decisions.
   const inferMutation = useMutation({
     mutationFn: () => runInference(bookId!),
     onSuccess: () => {
@@ -121,6 +123,45 @@ export default function GraphPage() {
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
     },
   });
+
+  // Destructive rerun: bypasses skip list, resets every record (incl. past
+  // adopt/reject decisions) back to PENDING. Gated behind confirm().
+  const forceRerunMutation = useMutation({
+    mutationFn: () => runInference(bookId!, true),
+    onSuccess: () => {
+      setShowInferred(true);
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
+    },
+  });
+
+  const handleForceRerun = useCallback(() => {
+    const ok = globalThis.confirm(t('v1.inferred.review.rerunForceConfirm'));
+    if (ok) forceRerunMutation.mutate();
+  }, [forceRerunMutation, t]);
+
+  // Toolbar's three-state inference control (brief §4: idle / running /
+  // ready-with-records). `pendingCount`'s query key intentionally matches
+  // InferredEdgePanel's so the two share one cache entry instead of double-
+  // fetching when the panel is open. `allInferredData.total` (unfiltered)
+  // is the "有紀錄" signal for idle vs ready.
+  const { data: pendingInferredData } = useQuery({
+    queryKey: ['books', bookId, 'inferred-relations', 'pending'],
+    queryFn: () => fetchInferredRelations(bookId!, 'pending'),
+    enabled: !!bookId,
+  });
+  const { data: allInferredData } = useQuery({
+    queryKey: ['books', bookId, 'inferred-relations', 'all'],
+    queryFn: () => fetchInferredRelations(bookId!),
+    enabled: !!bookId,
+  });
+  const pendingCount = pendingInferredData?.total ?? 0;
+  const inferredRecordTotal = allInferredData?.total ?? 0;
+  const decidedCount = Math.max(0, inferredRecordTotal - pendingCount);
+  const inferenceState = resolveInferenceState(
+    inferMutation.isPending || forceRerunMutation.isPending,
+    inferredRecordTotal,
+  );
 
   const inferredCount = useMemo(
     () => data?.edges.filter((e) => e.inferred).length ?? 0,
@@ -469,18 +510,17 @@ export default function GraphPage() {
           setSelectedNodeId(null);
           setSelectedNodeIds([]);
         }}
-        animationMode={animationMode}
-        onAnimationModeChange={setAnimationMode}
+        inferenceState={inferenceState}
+        pendingCount={pendingCount}
+        decidedCount={decidedCount}
         showInferred={showInferred}
-        inferredCount={inferredCount}
-        onShowInferredChange={(v) => {
-          setShowInferred(v);
-          setInferredReviewOpen(v);
-          if (!v) setSelectedInferredId(null);
-        }}
+        onShowInferredChange={setShowInferred}
         onRunInference={() => inferMutation.mutate()}
-        isRunningInference={inferMutation.isPending}
-        hasInferredData={inferMutation.data !== undefined || inferredCount > 0}
+        onSafeRerun={() => inferMutation.mutate()}
+        onForceRerun={handleForceRerun}
+        onOpenReview={() => setInferredReviewOpen(true)}
+        chapterCount={chapters?.length ?? 0}
+        nodeCount={data?.nodes.length ?? 0}
       />
 
       {/* Search dropdown (Scenario D) */}
@@ -514,18 +554,7 @@ export default function GraphPage() {
           transition: 'right var(--transition-normal, 250ms) ease',
         }}
       >
-        <LegendCard
-          graph={data}
-          visibleTypes={visibleTypes}
-          onTypeToggle={handleTypeToggle}
-          inferredCount={inferredCount}
-          inferredVisible={showInferred}
-          onInferredToggle={() => {
-            const v = !showInferred;
-            setShowInferred(v);
-            setInferredReviewOpen(v);
-          }}
-        />
+        <LegendCard graph={data} />
         {clusterMode === 'node' && orphans.length > 0 && (
           <OrphanDrawer orphans={orphans} open={orphanOpen} onToggle={() => setOrphanOpen((v) => !v)} />
         )}

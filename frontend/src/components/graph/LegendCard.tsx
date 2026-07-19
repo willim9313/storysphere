@@ -17,22 +17,12 @@ const TYPE_KEY: Record<EntityType, string> = {
 };
 
 interface LegendCardProps {
-  graph: GraphData | undefined;
-  visibleTypes: Set<string>;
-  onTypeToggle: (type: EntityType) => void;
-  inferredCount: number;
-  inferredVisible: boolean;
-  onInferredToggle: () => void;
+  readonly graph: GraphData | undefined;
 }
 
-export function LegendCard({
-  graph,
-  visibleTypes,
-  onTypeToggle,
-  inferredCount,
-  inferredVisible,
-  onInferredToggle,
-}: LegendCardProps) {
+// C6 裁決：圖例不再是型別開關（唯一入口移至工具列 filter chips），改為
+// 純說明卡 — 7 型別 swatch + 計數、邊語意配色、節點大小示意。
+export function LegendCard({ graph }: LegendCardProps) {
   const { t } = useTranslation('graph');
 
   const typeCounts = useMemo(() => {
@@ -49,7 +39,7 @@ export function LegendCard({
   return (
     <div
       style={{
-        minWidth: 140,
+        minWidth: 150,
         backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
@@ -74,20 +64,11 @@ export function LegendCard({
       </div>
       {LEGEND_TYPES.map((type) => {
         const dotKey = TYPE_KEY[type];
-        const visible = visibleTypes.has(type);
         return (
-          <button
+          <div
             key={type}
-            onClick={() => onTypeToggle(type)}
-            className="flex items-center w-full text-left"
-            style={{
-              gap: 6,
-              fontSize: 'var(--font-size-2xs)',
-              color: visible ? 'var(--fg-secondary)' : 'var(--fg-muted)',
-              opacity: visible ? 1 : 0.5,
-              textDecoration: visible ? 'none' : 'line-through',
-              transition: 'opacity var(--transition-fast, 150ms) ease',
-            }}
+            className="flex items-center w-full"
+            style={{ gap: 6, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
           >
             <span
               className="inline-block rounded-full flex-shrink-0"
@@ -105,51 +86,71 @@ export function LegendCard({
             >
               {typeCounts.get(type) ?? 0}
             </span>
-          </button>
+          </div>
         );
       })}
-      {inferredCount > 0 && (
-        <button
-          onClick={onInferredToggle}
-          className="flex items-center w-full text-left"
-          style={{
-            gap: 6,
-            fontSize: 'var(--font-size-2xs)',
-            color: 'var(--fg-secondary)',
-            marginTop: 4,
-            paddingTop: 4,
-            borderTop: '1px solid var(--border)',
-            opacity: inferredVisible ? 1 : 0.5,
-            transition: 'opacity var(--transition-fast, 150ms) ease',
-          }}
+
+      {/* 邊語意 */}
+      <div
+        style={{
+          marginTop: 4,
+          paddingTop: 6,
+          borderTop: '1px solid var(--border)',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 5,
+        }}
+      >
+        <div
+          className="uppercase"
+          style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
         >
-          <span
-            className="flex-shrink-0"
-            style={{
-              width: 16,
-              height: 6,
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-          >
-            <span
-              style={{
-                width: 16,
-                height: 1.5,
-                backgroundColor: 'var(--accent)',
-                opacity: 0.6,
-              }}
-            />
-          </span>
-          <span className="flex-1">{t('v1.legend.inferred')}</span>
-          <span
-            className="tabular-nums"
-            style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
-          >
-            {inferredCount}
-          </span>
-        </button>
-      )}
+          {t('v1.legend.edgeSemantics')}
+        </div>
+        <EdgeSwatchRow color="var(--color-success)" label={t('v1.legend.edgeCooperative')} />
+        <EdgeSwatchRow color="var(--color-error)" label={t('v1.legend.edgeHostile')} />
+        <EdgeSwatchRow color="var(--fg-muted)" label={t('v1.legend.edgeNeutral')} />
+        <EdgeSwatchRow color="var(--color-warning)" label={t('v1.legend.edgeInferred')} dashed />
+      </div>
+
+      {/* 節點大小示意 */}
+      <div
+        className="flex items-center"
+        style={{
+          gap: 6,
+          marginTop: 4,
+          paddingTop: 6,
+          borderTop: '1px solid var(--border)',
+          fontSize: 'var(--font-size-2xs)',
+          color: 'var(--fg-secondary)',
+        }}
+      >
+        <span
+          className="inline-block rounded-full flex-shrink-0"
+          style={{ width: 8, height: 8, border: '1.5px solid var(--fg-muted)' }}
+        />
+        <span
+          className="inline-block rounded-full flex-shrink-0"
+          style={{ width: 15, height: 15, border: '1.5px solid var(--fg-muted)' }}
+        />
+        <span>{t('v1.legend.circleSizeHint')}</span>
+      </div>
+    </div>
+  );
+}
+
+function EdgeSwatchRow({ color, label, dashed }: { readonly color: string; readonly label: string; readonly dashed?: boolean }) {
+  return (
+    <div className="flex items-center" style={{ gap: 6, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}>
+      <span
+        className="flex-shrink-0"
+        style={
+          dashed
+            ? { width: 20, height: 0, borderTop: `2px dashed ${color}` }
+            : { width: 20, height: 2, backgroundColor: color, borderRadius: 2 }
+        }
+      />
+      <span>{label}</span>
     </div>
   );
 }

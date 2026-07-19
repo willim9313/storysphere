@@ -109,8 +109,11 @@
   "v1": {
     "toolbar": {
       "searchPlaceholder": "搜尋實體…",
-      "reset": "重置",
-      "inferredChip": "推斷 · {{n}}"
+      "reset": "重設視圖",
+      "inferredChip": "推斷 · {{n}}",
+      "shareLink": "分享連結",
+      "exportPng": "匯出 PNG",
+      "phase6Tooltip": "Phase 6 開通"
     },
     "cluster": {
       "label": "群集模式",
@@ -162,8 +165,35 @@
       }
     },
     "inferred": {
+      "toolbar": {
+        "run": "執行推論",
+        "running": "推論中…",
+        "rerun": "重新推論",
+        "pending": "待審核",
+        "showInferredEdges": "顯示推測邊",
+        "popover": {
+          "title": "執行關係推論",
+          "scopeLabel": "作用範圍",
+          "scopeValue": "整本書（{{chapters}} 章、{{nodes}} 節點）",
+          "algoLabel": "演算法",
+          "algoValue": "共同鄰居 + Adamic-Adar（純圖論，非 LLM）",
+          "outputLabel": "產出",
+          "outputValue": "待審核的推測關係候選，需逐條採納或拒絕",
+          "costLabel": "成本",
+          "costValue": "執行快、無 token 成本",
+          "cancel": "取消",
+          "start": "開始推論"
+        },
+        "menu": {
+          "safeRerun": "安全重跑",
+          "safeRerunDesc": "只評新實體對，保留既有決定",
+          "forceRerun": "強制重跑",
+          "forceRerunDesc": "會清除全部 {{n}} 筆已採納/拒絕決定，不可復原"
+        }
+      },
       "review": {
         "title": "推斷關係審查 · {{n}} 條",
+        "banner": "以下 {{n}} 筆為圖論推算的推測關係（非正式關係）。採納後升級為正式邊進入圖譜。",
         "evidence": "證據",
         "evidenceFallback": "共同鄰居 {{common}} 個 · Adamic-Adar {{score}}",
         "adopt": "採用",
@@ -189,7 +219,13 @@
     },
     "legend": {
       "title": "圖例 / 圖層",
-      "inferred": "推斷"
+      "inferred": "推斷",
+      "edgeSemantics": "邊語意",
+      "edgeCooperative": "合作",
+      "edgeHostile": "敵對",
+      "edgeNeutral": "一般",
+      "edgeInferred": "推測",
+      "circleSizeHint": "圓圈大小＝登場頻率"
     },
     "lens": {
       "title": "視角",
