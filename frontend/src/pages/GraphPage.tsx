@@ -95,6 +95,7 @@ export default function GraphPage() {
   const [visibleTypes, setVisibleTypes] = useState<Set<string>>(new Set(ALL_TYPES));
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
   const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
+  const [misbeliefEventIds, setMisbeliefEventIds] = useState<Set<string>>(new Set());
   const [bookmarkedIds, setBookmarkedIds] = useLocalStorage<string[]>(
     `graph:${bookId ?? '-'}:bookmarks`,
     [],
@@ -315,6 +316,23 @@ export default function GraphPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars (getComputedStyle reads the live data-theme) when the theme switches
   }, [unknownEntityIds, theme]);
 
+  // Misbelief markers (LensCard epistemic tab "標記角色誤信" toggle): warning-
+  // colored border on the event node(s) each misbelief traces back to.
+  // Rendered after epistemicStylesheet so its border-color wins on nodes
+  // that are both "unknown" (dashed) and a misbelief source.
+  const misbeliefStylesheet = useMemo(() => {
+    if (misbeliefEventIds.size === 0) return [];
+    const warn = readCssVar('--color-warning');
+    return Array.from(misbeliefEventIds).map((id) => ({
+      selector: `node[id = "${id}"]`,
+      style: {
+        'border-color': warn,
+        'border-width': 3,
+      } as Record<string, unknown>,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars when the theme switches
+  }, [misbeliefEventIds, theme]);
+
   // Auto-select entity from query param
   useEffect(() => {
     if (!data) return;
@@ -487,7 +505,7 @@ export default function GraphPage() {
           selectedNodeId={selectedNodeId}
           selectedNodeIds={selectedNodeIds}
           animationMode={animationMode}
-          extraStylesheet={[...relationEdgeStylesheet, ...epistemicStylesheet]}
+          extraStylesheet={[...relationEdgeStylesheet, ...epistemicStylesheet, ...misbeliefStylesheet]}
           onViewportChange={handleViewportChange}
         />
       )}
@@ -570,9 +588,21 @@ export default function GraphPage() {
           onBookmarkClick={(id) => {
             setSelectedNodeId(id);
             setSelectedNodeIds([]);
+            // Aggregate views (type/community) have no individual node to
+            // select — clicking a bookmark there switches back to the
+            // individual view first, same as drilling into a faction member.
+            setClusterMode('node');
+            setClusterDrillIn(null);
           }}
           onTimelineChange={setTimelineState}
           onUnknownEntityIds={setUnknownEntityIds}
+          onMisbeliefEventIds={setMisbeliefEventIds}
+          totalChapters={chapters?.length ?? 0}
+          clusterMode={clusterMode}
+          onBackToIndividual={() => {
+            setClusterMode('node');
+            setClusterDrillIn(null);
+          }}
         />
       )}
 
