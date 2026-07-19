@@ -273,6 +273,22 @@
     "orphan": {
       "button": "未連結實體",
       "description": "在本書中未被連結到任何關係，預設收合於此，不再漂浮於主圖旁。"
+    },
+    "pair": {
+      "enter": "進入實體對模式",
+      "title": "關係演變 · {{a}} × {{b}}",
+      "modeLabel": "子模式",
+      "modeEvo": "演變動畫",
+      "modePath": "路徑追溯",
+      "exit": "退出",
+      "chapterStep": "第 {{n}} 章 / 共 {{total}} 章",
+      "chapterProgress": "第 {{n}} 章 / 共 {{total}} 章",
+      "sideTitleEvo": "本章新增",
+      "sideTitlePath": "路徑節點",
+      "noNewThisChapter": "本章無新增共同關係實體。",
+      "overflowLabel": "+{{n}}",
+      "insufficientChange": "兩者的共同關係實體變化不足，暫無可呈現的演變動畫。",
+      "noPath": "找不到連接兩者的路徑。"
     }
   }
 }

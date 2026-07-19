@@ -273,6 +273,22 @@
     "orphan": {
       "button": "Unlinked entities",
       "description": "Not connected to any relation in this book — collapsed here instead of floating next to the main graph."
+    },
+    "pair": {
+      "enter": "Enter Pair Mode",
+      "title": "Relationship Evolution · {{a}} × {{b}}",
+      "modeLabel": "Sub-mode",
+      "modeEvo": "Evolution",
+      "modePath": "Path Tracing",
+      "exit": "Exit",
+      "chapterStep": "Chapter {{n}} / {{total}}",
+      "chapterProgress": "Chapter {{n}} / {{total}}",
+      "sideTitleEvo": "New This Chapter",
+      "sideTitlePath": "Path Nodes",
+      "noNewThisChapter": "No new shared neighbors this chapter.",
+      "overflowLabel": "+{{n}}",
+      "insufficientChange": "There isn't enough change in their shared neighbors to animate yet.",
+      "noPath": "No path connects these two entities."
     }
   }
 }

@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader, Shapes } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -33,6 +33,7 @@ import { FactionCanvas, layoutFactions } from '@/components/graph/FactionCanvas'
 import { BreadcrumbBar } from '@/components/graph/BreadcrumbBar';
 import { EntityComparePanel } from '@/components/graph/EntityComparePanel';
 import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
+import { PairModeOverlay, type PairSubMode } from '@/components/graph/PairModeOverlay';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
@@ -40,8 +41,9 @@ import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
 import { fetchChapters } from '@/api/chapters';
 import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
-import { runInference, fetchInferredRelations } from '@/api/graph';
-import type { EntityType, GraphNode, EntityChunkItem } from '@/api/types';
+import { runInference, fetchInferredRelations, fetchGraphData } from '@/api/graph';
+import { pairEvolution, shortestPath, isInsufficientChange } from '@/lib/graphPair';
+import type { EntityType, GraphNode, GraphData, EntityChunkItem } from '@/api/types';
 
 const readCssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
@@ -103,6 +105,15 @@ export default function GraphPage() {
   const [viewportSnap, setViewportSnap] = useState<ViewportSnapshot | null>(null);
   const [orphanOpen, setOrphanOpen] = useState(false);
 
+  // Phase 5: entity-pair mode (F1 evolution / F2 path tracing) — exclusive
+  // overlay driven from the existing multi-select compare panel.
+  const [pairState, setPairState] = useState<{
+    a: GraphNode;
+    b: GraphNode;
+    subMode: PairSubMode;
+    step: number;
+  } | null>(null);
+
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
   const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined, showInferred);
@@ -112,6 +123,53 @@ export default function GraphPage() {
     queryFn: () => fetchChapters(bookId!),
     enabled: !!bookId,
   });
+
+  const pairTotalChapters = chapters?.length ?? 0;
+
+  // Per-chapter cumulative graph snapshots (Phase 5 F1) — same query key
+  // shape as useGraphData so this shares its cache instead of refetching.
+  // Only enabled while pair mode is active.
+  const pairSnapshotQueries = useQueries({
+    queries: Array.from({ length: pairTotalChapters }, (_, i) => i + 1).map((ch) => ({
+      queryKey: ['books', bookId, 'graph', 'chapter', ch, false],
+      queryFn: () => fetchGraphData(bookId!, { mode: 'chapter', position: ch }, false),
+      enabled: !!pairState && !!bookId,
+    })),
+  });
+
+  const pairSnapshotsByChapter = useMemo(
+    () =>
+      pairSnapshotQueries.map((q, i) => ({
+        chapter: i + 1,
+        graph: q.data as GraphData | undefined,
+      })),
+    [pairSnapshotQueries],
+  );
+
+  const pairSteps = useMemo(() => {
+    if (!pairState) return [];
+    return pairEvolution(pairSnapshotsByChapter, pairState.a.id, pairState.b.id);
+  }, [pairState, pairSnapshotsByChapter]);
+
+  const pairInsufficientChange = useMemo(() => isInsufficientChange(pairSteps), [pairSteps]);
+
+  const pairPath = useMemo(() => {
+    if (!pairState || !data) return null;
+    return shortestPath(data, pairState.a.id, pairState.b.id);
+  }, [pairState, data]);
+
+  // Node lookup for the overlay — full graph first, then snapshot nodes as a
+  // fallback in case a common-neighbor id hasn't surfaced in `data` yet.
+  const pairNodeById = useMemo(() => {
+    const map = new Map<string, GraphNode>();
+    for (const n of data?.nodes ?? []) map.set(n.id, n);
+    for (const snap of pairSnapshotsByChapter) {
+      for (const n of snap.graph?.nodes ?? []) {
+        if (!map.has(n.id)) map.set(n.id, n);
+      }
+    }
+    return map;
+  }, [data, pairSnapshotsByChapter]);
 
   // Same call serves both the idle-state "執行推論" and the ready-state
   // "安全重跑" menu item — both only score new entity pairs and preserve
@@ -483,6 +541,7 @@ export default function GraphPage() {
   const bottomRightAnchor = rightOpen ? 16 + 280 + rightPanelExtraWidth : 16;
 
   const isCommunityMode = clusterMode === 'community';
+  const pairModeActive = !!pairState;
 
   return (
     <div className="relative h-full w-full">
@@ -513,6 +572,12 @@ export default function GraphPage() {
         />
       )}
 
+      {/* Phase 5 exclusive mode: while entity-pair mode is active, the toolbar,
+          lenses, mini-map/stats, and right-side panels below are all
+          suspended (not rendered) rather than mutated — their own state is
+          untouched, so exiting pair mode restores them for free. */}
+      {!pairModeActive && (
+        <>
       {/* Toolbar (top-left) */}
       <GraphToolbar
         searchQuery={searchQuery}
@@ -757,6 +822,14 @@ export default function GraphPage() {
           a={compareNodes[0]}
           b={compareNodes[1]}
           onClose={() => setSelectedNodeIds([])}
+          onEnterPairMode={() =>
+            setPairState({
+              a: compareNodes[0],
+              b: compareNodes[1],
+              subMode: 'evo',
+              step: Math.max(pairTotalChapters, 1),
+            })
+          }
         />
       )}
 
@@ -871,6 +944,26 @@ export default function GraphPage() {
             />
           )}
         </div>
+      )}
+        </>
+      )}
+
+      {/* Phase 5: entity-pair mode overlay (F1 evolution / F2 path tracing) */}
+      {pairState && (
+        <PairModeOverlay
+          a={pairState.a}
+          b={pairState.b}
+          subMode={pairState.subMode}
+          onSubModeChange={(subMode) => setPairState((prev) => (prev ? { ...prev, subMode } : prev))}
+          onExit={() => setPairState(null)}
+          totalChapters={pairTotalChapters}
+          step={pairState.step}
+          onStepChange={(step) => setPairState((prev) => (prev ? { ...prev, step } : prev))}
+          steps={pairSteps}
+          nodeById={pairNodeById}
+          path={pairPath}
+          insufficientChange={pairInsufficientChange}
+        />
       )}
     </div>
   );

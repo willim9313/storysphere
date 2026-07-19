@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { X, Check, XOctagon, Loader } from 'lucide-react';
+import { X, Check, XOctagon, Loader, GitCompareArrows } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,9 +15,10 @@ interface EntityComparePanelProps {
   a: GraphNode;
   b: GraphNode;
   onClose: () => void;
+  onEnterPairMode?: () => void;
 }
 
-export function EntityComparePanel({ bookId, a, b, onClose }: EntityComparePanelProps) {
+export function EntityComparePanel({ bookId, a, b, onClose, onEnterPairMode }: EntityComparePanelProps) {
   const { t } = useTranslation('graph');
   const queryClient = useQueryClient();
 
@@ -79,6 +80,21 @@ export function EntityComparePanel({ bookId, a, b, onClose }: EntityComparePanel
       </header>
 
       <div className="flex-1 overflow-y-auto">
+        {onEnterPairMode && (
+          <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
+            <button
+              onClick={onEnterPairMode}
+              className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-md"
+              style={{
+                backgroundColor: 'var(--accent)',
+                color: 'var(--bg-primary)',
+              }}
+            >
+              <GitCompareArrows size={13} />
+              {t('v1.pair.enter')}
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-2 divide-x" style={{ borderColor: 'var(--border)' }}>
           <EntityColumn node={a} otherType={b.type} otherCount={b.chunkCount} />
           <EntityColumn node={b} otherType={a.type} otherCount={a.chunkCount} />
