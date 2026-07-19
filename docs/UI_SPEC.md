@@ -596,11 +596,11 @@ localStorage key（**必須保留**，換版面不換 key）：`graph:${bookId}:
 | Shift+Click 選了 2 個節點 | **EntityComparePanel**（Scenario E）| 560px |
 | 推斷 chip 開啟 OR 點到推斷邊 | **InferredEdgePanel**（Scenario F 審查列表）| 380px |
 | Cluster mode 'type'/'community' 且無選中節點 | **ClusterOverviewPanel** / drill-in 成員列表（社群模式含說明卡＋進階分群抽屜）| 280px |
-| 單選節點 | EntityDetailPanel / EventDetailPanel（既有）| 260px |
+| 單選節點 | EntityDetailPanel / EventDetailPanel | 280px |
 
 **第三層面板**（AnalysisPanel / ParagraphsPanel）行為不變，從 EntityDetailPanel 觸發。
 
-**EntityDetailPanel 新增**：header 加 bookmark toggle 按鈕（pin icon，會寫入 `graph:${bookId}:bookmarks`）。
+**EntityDetailPanel 版面**（280px）：serif 標題 → meta 列（type pill＋**僅角色**顯示的 `陣營·錨點名` pill）→ **3 格 stat tiles**（登場次數／關係數＝degree／首次登場章＝chunks 最小章號）→ **`加入比較`＋`標記` 兩顆 ghost 外框按鈕**（加入比較＝把當前實體設為比較第一位，下一次點節點湊成對開比較）→ `深度分析`（僅角色；覆蓋重生成 link，空狀態為 ghost CTA 非實心）→ `相關段落`（章節·Chunk 預覽卡＋查看連結）。動作語彙統一為 ghost 按鈕＋文字連結，無實心強調色塊。
 
 #### 多選比較（Scenario E，cap 2）
 

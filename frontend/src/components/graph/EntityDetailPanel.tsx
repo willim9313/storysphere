@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { X, ChevronDown, ChevronRight, Loader, AlertTriangle, Pin } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { X, Loader, AlertTriangle, Bookmark, Users, RotateCcw } from 'lucide-react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchEntityAnalysis, triggerEntityAnalysis } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
+import { fetchFactionAnalysis } from '@/api/factions';
+import { deriveFactionLabel } from '@/services/kgClustering';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 
 import type { GraphNode, EntityType } from '@/api/types';
@@ -21,9 +23,14 @@ const PILL_KEY: Record<EntityType, string> = {
 interface EntityDetailPanelProps {
   readonly node: GraphNode;
   readonly bookId: string;
+  /** Number of relations (graph degree) touching this entity in the current graph. */
+  readonly relationCount: number;
   readonly onClose: () => void;
   readonly onShowAnalysis: () => void;
   readonly onShowParagraphs: () => void;
+  readonly onAddToCompare: () => void;
+  /** True while this entity is the first pick of a pending comparison. */
+  readonly isComparePending?: boolean;
   readonly isBookmarked?: boolean;
   readonly onBookmarkToggle?: () => void;
 }
@@ -31,21 +38,16 @@ interface EntityDetailPanelProps {
 export function EntityDetailPanel({
   node,
   bookId,
+  relationCount,
   onClose,
   onShowAnalysis,
   onShowParagraphs,
+  onAddToCompare,
+  isComparePending,
   isBookmarked,
   onBookmarkToggle,
 }: EntityDetailPanelProps) {
   const { t } = useTranslation('graph');
-  const [openSections, setOpenSections] = useState<Set<string>>(new Set(['info', 'analysis']));
-  const [genTaskId, setGenTaskId] = useState<string | null>(null);
-
-  const { data: analysis, isLoading: analysisLoading } = useQuery({
-    queryKey: ['books', bookId, 'entities', node.id, 'analysis'],
-    queryFn: () => fetchEntityAnalysis(bookId, node.id),
-    retry: false,
-  });
 
   const { data: chunksData } = useQuery({
     queryKey: ['books', bookId, 'entities', node.id, 'chunks'],
@@ -53,38 +55,37 @@ export function EntityDetailPanel({
   });
   const paragraphCount = chunksData?.total ?? null;
 
-  const [triggerError, setTriggerError] = useState<string | null>(null);
+  // First-appearance chapter — min chapterNumber across the entity's chunks.
+  const firstChapter = useMemo(() => {
+    const chunks = chunksData?.chunks ?? [];
+    if (chunks.length === 0) return null;
+    return chunks.reduce((min, c) => Math.min(min, c.chapterNumber), Infinity);
+  }, [chunksData]);
 
-  const triggerMut = useMutation({
-    mutationFn: () => triggerEntityAnalysis(bookId, node.id),
-    onSuccess: (data) => {
-      setTriggerError(null);
-      setGenTaskId(data.taskId);
-    },
-    onError: () => setTriggerError(t('entity.triggerFailed')),
+  // Faction affiliation pill — characters only (faction detection clusters
+  // characters; non-character entities are never affiliated). Cached once.
+  const { data: factionData } = useQuery({
+    queryKey: ['books', bookId, 'factions', 'panel'],
+    queryFn: () => fetchFactionAnalysis(bookId, {}),
+    enabled: node.type === 'character',
+    staleTime: 5 * 60 * 1000,
   });
-
-  const { data: genTask } = useTaskPolling(genTaskId);
-
-  const toggleSection = (key: string) => {
-    setOpenSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+  const factionLabel = useMemo(() => {
+    if (node.type !== 'character' || !factionData) return null;
+    const f = factionData.factions.find((f) => (f.memberIds ?? []).includes(node.id));
+    return f ? deriveFactionLabel(f.topMemberNames, f.label) : t('panel.unaffiliated');
+  }, [factionData, node.type, node.id, t]);
 
   return (
     <div
       className="flex-shrink-0 h-full flex flex-col overflow-hidden"
       style={{
-        width: 260,
+        width: 280,
         backgroundColor: 'var(--panel-bg)',
         borderLeft: '1px solid var(--panel-border)',
       }}
     >
-      {/* Header — serif h3 entity name + X close */}
+      {/* Header — serif entity name + X close */}
       <div
         className="flex items-center justify-between flex-shrink-0"
         style={{ padding: '12px 14px', borderBottom: '1px solid var(--panel-border)' }}
@@ -111,292 +112,402 @@ export function EntityDetailPanel({
       </div>
 
       {/* Body */}
-      <div
-        className="flex-1 overflow-y-auto flex flex-col"
-        style={{ padding: '12px 14px', gap: 14 }}
-      >
-        {/* Meta row: pill + appearances + bookmark toggle */}
+      <div className="flex-1 overflow-y-auto flex flex-col" style={{ padding: '14px', gap: 16 }}>
+        {/* Meta row: type pill + (character) faction pill */}
         <div className="flex items-center flex-wrap" style={{ gap: 6 }}>
           <Pill type={node.type}>{t(`entityTypes.${node.type}`)}</Pill>
-          <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)' }}>
-            {t('panel.appearancesMeta', { count: node.chunkCount })}
-          </span>
-          {onBookmarkToggle && (
-            <button
-              onClick={onBookmarkToggle}
+          {factionLabel && (
+            <span
               className="inline-flex items-center"
               style={{
-                marginLeft: 'auto',
-                gap: 3,
-                background: 'none',
-                border: 0,
-                cursor: 'pointer',
-                fontSize: 'var(--font-size-2xs)',
-                color: isBookmarked ? 'var(--accent)' : 'var(--panel-fg-muted)',
-                fontFamily: 'inherit',
+                gap: 4,
+                padding: '1px 8px',
+                borderRadius: 20,
+                fontFamily: 'var(--font-sans)',
+                fontSize: 'var(--font-size-xs, 12px)',
+                backgroundColor: 'var(--panel-bg-card)',
+                border: '0.5px solid var(--panel-border)',
+                color: 'var(--panel-fg-muted)',
               }}
-              aria-pressed={isBookmarked}
             >
-              <Pin size={11} fill={isBookmarked ? 'currentColor' : 'none'} />
-              {isBookmarked ? t('panel.bookmarked') : t('panel.bookmark')}
-            </button>
+              {t('panel.factionMeta', { label: factionLabel })}
+            </span>
           )}
         </div>
 
-        {/* 實體資訊 */}
-        <Section
-          title={t('panel.entityInfo')}
-          isOpen={openSections.has('info')}
-          onToggle={() => toggleSection('info')}
-        >
-          {node.description ? (
-            <SectionBody>
-              <p>{node.description}</p>
-            </SectionBody>
-          ) : (
-            <SectionBody muted>
-              <p>{t('entity.noAnalysis')}</p>
-            </SectionBody>
-          )}
-        </Section>
+        {/* Stat tiles */}
+        <div className="grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+          <StatTile value={node.chunkCount} label={t('panel.statAppearances')} />
+          <StatTile value={relationCount} label={t('panel.statRelations')} />
+          <StatTile
+            value={firstChapter != null && firstChapter !== Infinity ? firstChapter : '—'}
+            label={t('panel.statFirstChapter')}
+          />
+        </div>
 
-        {/* 深度分析 — 僅 character 有後端支援 */}
-        {node.type === 'character' && <Section
-          title={t('panel.deepAnalysis')}
-          isOpen={openSections.has('analysis')}
-          onToggle={() => toggleSection('analysis')}
-          headerExtra={
-            analysis ? (
-              <button
-                onClick={() => triggerMut.mutate()}
-                disabled={triggerMut.isPending}
-                style={{
-                  marginLeft: 'auto',
-                  fontSize: 'var(--font-size-2xs)',
-                  color: 'var(--accent)',
-                  background: 'none',
-                  border: 0,
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  textUnderlineOffset: 2,
-                  fontFamily: 'inherit',
-                }}
-              >
-                {t('panel.regenerate')}
-              </button>
-            ) : null
-          }
-        >
-          {analysisLoading ? (
-            <div className="flex items-center gap-2">
-              <Loader
-                size={12}
-                className="animate-spin"
-                style={{ color: 'var(--panel-fg-muted)' }}
-              />
-              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)' }}>
-                {t('entity.loading')}
-              </span>
-            </div>
-          ) : analysis ? (
-            <>
-              <SectionBody>
-                <p style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)', marginBottom: 6 }}>
-                  {t('entity.generated', {
-                    date: new Date(analysis.generatedAt).toLocaleDateString(),
-                  })}
-                </p>
-              </SectionBody>
-              <button
-                onClick={onShowAnalysis}
-                style={{
-                  marginTop: 6,
-                  fontSize: 'var(--font-size-2xs)',
-                  color: 'var(--accent)',
-                  background: 'none',
-                  border: 0,
-                  cursor: 'pointer',
-                  textDecoration: 'underline',
-                  textUnderlineOffset: 2,
-                  fontFamily: 'inherit',
-                  textAlign: 'left',
-                  padding: 0,
-                }}
-              >
-                {t('entity.viewAnalysis')}
-              </button>
-            </>
-          ) : genTask?.status === 'error' ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-1">
-                <AlertTriangle size={12} style={{ color: 'var(--color-error)' }} />
-                <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-error)' }}>
-                  {t('entity.analysisFailed')}
-                  {genTask.error ? `：${genTask.error}` : ''}
+        {/* Actions: 加入比較 + 標記 (ghost) */}
+        <div className="flex" style={{ gap: 8 }}>
+          <GhostButton
+            onClick={onAddToCompare}
+            icon={<Users size={13} />}
+            className="flex-1"
+            active={isComparePending}
+          >
+            {isComparePending ? t('panel.comparePending') : t('panel.addToCompare')}
+          </GhostButton>
+          {onBookmarkToggle && (
+            <GhostButton
+              onClick={onBookmarkToggle}
+              icon={<Bookmark size={13} fill={isBookmarked ? 'currentColor' : 'none'} />}
+              active={isBookmarked}
+              aria-pressed={isBookmarked}
+            >
+              {isBookmarked ? t('panel.bookmarked') : t('panel.bookmark')}
+            </GhostButton>
+          )}
+        </div>
+
+        {/* 深度分析 — character only */}
+        {node.type === 'character' && (
+          <AnalysisSection bookId={bookId} entityId={node.id} onShowAnalysis={onShowAnalysis} />
+        )}
+
+        {/* 相關段落 — chunk preview cards */}
+        <section>
+          <SectionHeading
+            title={t('panel.relatedParagraphs')}
+            extra={
+              paragraphCount !== null ? (
+                <span
+                  style={{
+                    fontSize: 'var(--font-size-2xs)',
+                    color: 'var(--panel-fg-muted)',
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {t('panel.paragraphsCount', { count: paragraphCount })}
                 </span>
-              </div>
-              <button
-                className="text-xs px-2 py-1 rounded"
-                style={{ backgroundColor: 'var(--accent)', color: 'var(--bg-primary)' }}
-                onClick={() => {
-                  setGenTaskId(null);
-                  triggerMut.reset();
-                }}
-              >
-                {t('entity.retry')}
-              </button>
-            </div>
-          ) : genTaskId && genTask && genTask.status !== 'done' ? (
-            <div className="flex items-center gap-2">
-              <Loader
-                size={12}
-                className="animate-spin"
-                style={{ color: 'var(--panel-fg-muted)' }}
-              />
-              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg)' }}>
-                {genTask.stage} ({genTask.progress}%)
-              </span>
-            </div>
-          ) : genTaskId && genTask?.status === 'done' ? (
-            <SectionBody>
-              <p>{t('entity.analysisDone')}</p>
-            </SectionBody>
-          ) : (
-            <div className="flex flex-col" style={{ gap: 6 }}>
-              <SectionBody muted>
-                <p>{t('entity.noAnalysis')}</p>
-              </SectionBody>
-              {triggerError && (
-                <p style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-error)' }}>{triggerError}</p>
-              )}
-              <button
-                className="text-xs px-2 py-1 rounded"
-                style={{ backgroundColor: 'var(--accent)', color: 'var(--bg-primary)' }}
-                onClick={() => triggerMut.mutate()}
-                disabled={triggerMut.isPending}
-              >
-                {t('entity.generate')}
-              </button>
-            </div>
-          )}
-        </Section>}
-
-        {/* 相關段落 (collapsed by default, right-aligned count) */}
-        <Section
-          title={t('panel.relatedParagraphs')}
-          isOpen={openSections.has('paragraphs')}
-          onToggle={() => toggleSection('paragraphs')}
-          headerExtra={
-            paragraphCount !== null ? (
-              <span
+              ) : null
+            }
+          />
+          <div className="flex flex-col" style={{ marginTop: 8, gap: 8 }}>
+            {(chunksData?.chunks ?? []).slice(0, 3).map((c) => (
+              <div
+                key={c.id}
                 style={{
-                  marginLeft: 'auto',
-                  fontSize: 'var(--font-size-2xs)',
-                  color: 'var(--panel-fg-muted)',
-                  fontVariantNumeric: 'tabular-nums',
+                  padding: '9px 10px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--panel-bg-card)',
+                  border: '1px solid var(--panel-border)',
                 }}
               >
-                {t('panel.paragraphsCount', { count: paragraphCount })}
-              </span>
-            ) : null
-          }
-        >
-          <SectionBody>
-            <p>{paragraphCount !== null ? t('entity.paragraphCount', { count: paragraphCount }) : ''}</p>
-          </SectionBody>
-          <button
-            onClick={onShowParagraphs}
-            style={{
-              marginTop: 6,
-              fontSize: 'var(--font-size-2xs)',
-              color: 'var(--accent)',
-              background: 'none',
-              border: 0,
-              cursor: 'pointer',
-              textDecoration: 'underline',
-              textUnderlineOffset: 2,
-              fontFamily: 'inherit',
-              textAlign: 'left',
-              padding: 0,
+                <div
+                  style={{
+                    fontSize: 'var(--font-size-2xs)',
+                    color: 'var(--panel-fg-muted)',
+                    marginBottom: 3,
+                    fontVariantNumeric: 'tabular-nums',
+                  }}
+                >
+                  {t('panel.chunkRef', { chapter: c.chapterNumber, order: c.order })}
+                </div>
+                <p
+                  style={{
+                    fontFamily: 'var(--font-serif)',
+                    fontSize: 'var(--font-size-sm, 14px)',
+                    lineHeight: 1.6,
+                    color: 'var(--panel-fg)',
+                    margin: 0,
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {c.content}
+                </p>
+              </div>
+            ))}
+            {paragraphCount !== null && (
+              <LinkButton onClick={onShowParagraphs}>{t('entity.viewParagraphs')}</LinkButton>
+            )}
+          </div>
+        </section>
+      </div>
+    </div>
+  );
+}
+
+// ── Deep-analysis section (self-contained: owns its analysis query/trigger) ──
+
+function AnalysisSection({
+  bookId,
+  entityId,
+  onShowAnalysis,
+}: {
+  readonly bookId: string;
+  readonly entityId: string;
+  readonly onShowAnalysis: () => void;
+}) {
+  const { t } = useTranslation('graph');
+  const [genTaskId, setGenTaskId] = useState<string | null>(null);
+  const [triggerError, setTriggerError] = useState<string | null>(null);
+
+  const { data: analysis, isLoading } = useQuery({
+    queryKey: ['books', bookId, 'entities', entityId, 'analysis'],
+    queryFn: () => fetchEntityAnalysis(bookId, entityId),
+    retry: false,
+  });
+
+  const triggerMut = useMutation({
+    mutationFn: () => triggerEntityAnalysis(bookId, entityId),
+    onSuccess: (data) => {
+      setTriggerError(null);
+      setGenTaskId(data.taskId);
+    },
+    onError: () => setTriggerError(t('entity.triggerFailed')),
+  });
+
+  const { data: genTask } = useTaskPolling(genTaskId);
+
+  function renderBody() {
+    if (isLoading) return <InlineLoading text={t('entity.loading')} />;
+    if (analysis) {
+      return (
+        <>
+          <BodyText muted>
+            {t('entity.generated', { date: new Date(analysis.generatedAt).toLocaleDateString() })}
+          </BodyText>
+          <LinkButton onClick={onShowAnalysis} style={{ marginTop: 6 }}>
+            {t('entity.viewAnalysis')}
+          </LinkButton>
+        </>
+      );
+    }
+    if (genTask?.status === 'error') {
+      return (
+        <div className="flex flex-col" style={{ gap: 8 }}>
+          <div className="flex items-center" style={{ gap: 4 }}>
+            <AlertTriangle size={12} style={{ color: 'var(--color-error)' }} />
+            <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-error)' }}>
+              {t('entity.analysisFailed')}
+              {genTask.error ? `：${genTask.error}` : ''}
+            </span>
+          </div>
+          <GhostButton
+            accent
+            onClick={() => {
+              setGenTaskId(null);
+              triggerMut.reset();
             }}
           >
-            {t('entity.viewParagraphs')}
-          </button>
-        </Section>
+            {t('entity.retry')}
+          </GhostButton>
+        </div>
+      );
+    }
+    if (genTaskId && genTask && genTask.status !== 'done') {
+      return <InlineLoading text={`${genTask.stage} (${genTask.progress}%)`} live />;
+    }
+    if (genTaskId && genTask?.status === 'done') {
+      return <BodyText>{t('entity.analysisDone')}</BodyText>;
+    }
+    return (
+      <div className="flex flex-col" style={{ gap: 8 }}>
+        <BodyText muted>{t('entity.noAnalysis')}</BodyText>
+        {triggerError && (
+          <p style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-error)' }}>{triggerError}</p>
+        )}
+        <GhostButton accent onClick={() => triggerMut.mutate()} disabled={triggerMut.isPending}>
+          {t('entity.generate')}
+        </GhostButton>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-interface SectionProps {
-  readonly title: string;
-  readonly isOpen: boolean;
-  readonly onToggle: () => void;
-  readonly headerExtra?: React.ReactNode;
-  readonly children?: React.ReactNode;
-}
-
-function Section({ title, isOpen, onToggle, headerExtra, children }: SectionProps) {
   return (
-    <div>
-      <div className="flex items-center w-full" style={{ gap: 6 }}>
-        <button
-          onClick={onToggle}
-          className="flex items-center flex-1 text-left"
-          style={{
-            gap: 6,
-            fontFamily: 'var(--font-sans)',
-            fontSize: 'var(--font-size-xs, 12px)',
-            fontWeight: 600,
-            color: 'var(--fg-secondary, var(--panel-fg))',
-            textTransform: 'uppercase',
-            letterSpacing: '0.05em',
-            background: 'none',
-            border: 0,
-            padding: 0,
-            cursor: 'pointer',
-          }}
-        >
-          {isOpen ? (
-            <ChevronDown
-              size={11}
-              strokeWidth={1.8}
-              style={{ color: 'var(--panel-fg-muted)' }}
-            />
-          ) : (
-            <ChevronRight
-              size={11}
-              strokeWidth={1.8}
-              style={{ color: 'var(--panel-fg-muted)' }}
-            />
-          )}
-          <span>{title}</span>
-        </button>
-        {headerExtra}
-      </div>
-      {isOpen && <div style={{ marginTop: 6 }}>{children}</div>}
-    </div>
+    <section>
+      <SectionHeading
+        title={t('panel.deepAnalysis')}
+        extra={
+          analysis ? (
+            <LinkButton
+              onClick={() => triggerMut.mutate()}
+              disabled={triggerMut.isPending}
+              icon={<RotateCcw size={11} />}
+            >
+              {t('panel.regenerate')}
+            </LinkButton>
+          ) : null
+        }
+      />
+      <div style={{ marginTop: 8 }}>{renderBody()}</div>
+    </section>
   );
 }
 
-function SectionBody({
-  children,
-  muted = false,
-}: {
-  readonly children: React.ReactNode;
-  readonly muted?: boolean;
-}) {
+// ── Sub-components ───────────────────────────────────────────────────────────
+
+function StatTile({ value, label }: { readonly value: number | string; readonly label: string }) {
   return (
     <div
+      className="flex flex-col items-center justify-center text-center"
+      style={{
+        padding: '10px 4px',
+        borderRadius: 'var(--radius-md)',
+        backgroundColor: 'var(--panel-bg-card)',
+        border: '1px solid var(--panel-border)',
+      }}
+    >
+      <span
+        style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: 'var(--font-size-xl, 22px)',
+          fontWeight: 700,
+          lineHeight: 1.1,
+          color: 'var(--panel-fg)',
+          fontVariantNumeric: 'tabular-nums',
+        }}
+      >
+        {value}
+      </span>
+      <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--panel-fg-muted)', marginTop: 4 }}>
+        {label}
+      </span>
+    </div>
+  );
+}
+
+interface GhostButtonProps {
+  readonly onClick: () => void;
+  readonly children: React.ReactNode;
+  readonly icon?: React.ReactNode;
+  readonly className?: string;
+  readonly disabled?: boolean;
+  /** Accent-tinted variant (border + text in accent) — for the generate/retry CTA. */
+  readonly accent?: boolean;
+  /** Filled/active state (bookmarked, compare pending). */
+  readonly active?: boolean;
+  readonly 'aria-pressed'?: boolean;
+}
+
+function GhostButton({
+  onClick,
+  children,
+  icon,
+  className,
+  disabled,
+  accent,
+  active,
+  ...rest
+}: GhostButtonProps) {
+  const fg = accent || active ? 'var(--accent)' : 'var(--panel-fg)';
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`inline-flex items-center justify-center ${className ?? ''}`}
+      style={{
+        gap: 5,
+        padding: '7px 10px',
+        borderRadius: 'var(--btn-radius)',
+        fontFamily: 'var(--font-sans)',
+        fontSize: 'var(--font-size-xs, 12px)',
+        fontWeight: 500,
+        color: fg,
+        backgroundColor: active ? 'var(--panel-bg-card)' : 'transparent',
+        border: `1px solid ${accent || active ? 'var(--accent)' : 'var(--panel-border)'}`,
+        cursor: disabled ? 'default' : 'pointer',
+        opacity: disabled ? 0.6 : 1,
+        transition: 'background-color var(--transition-fast, 150ms) ease, border-color var(--transition-fast, 150ms) ease',
+      }}
+      {...rest}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function SectionHeading({ title, extra }: { readonly title: string; readonly extra?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between" style={{ gap: 6 }}>
+      <span
+        style={{
+          fontFamily: 'var(--font-sans)',
+          fontSize: 'var(--font-size-sm, 14px)',
+          fontWeight: 600,
+          color: 'var(--panel-fg)',
+        }}
+      >
+        {title}
+      </span>
+      {extra}
+    </div>
+  );
+}
+
+function LinkButton({
+  onClick,
+  children,
+  icon,
+  disabled,
+  style,
+}: {
+  readonly onClick: () => void;
+  readonly children: React.ReactNode;
+  readonly icon?: React.ReactNode;
+  readonly disabled?: boolean;
+  readonly style?: React.CSSProperties;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className="inline-flex items-center"
+      style={{
+        gap: 4,
+        fontSize: 'var(--font-size-2xs)',
+        color: 'var(--accent)',
+        background: 'none',
+        border: 0,
+        cursor: disabled ? 'default' : 'pointer',
+        fontFamily: 'inherit',
+        padding: 0,
+        textAlign: 'left',
+        ...style,
+      }}
+    >
+      {icon}
+      {children}
+    </button>
+  );
+}
+
+function BodyText({ children, muted = false }: { readonly children: React.ReactNode; readonly muted?: boolean }) {
+  return (
+    <p
       style={{
         fontFamily: 'var(--font-serif)',
         fontSize: 'var(--font-size-sm, 14px)',
         lineHeight: 1.65,
         color: muted ? 'var(--panel-fg-muted)' : 'var(--panel-fg)',
+        margin: 0,
         textWrap: 'pretty',
       }}
     >
       {children}
+    </p>
+  );
+}
+
+function InlineLoading({ text, live = false }: { readonly text: string; readonly live?: boolean }) {
+  return (
+    <div className="flex items-center" style={{ gap: 8 }}>
+      <Loader size={12} className="animate-spin" style={{ color: 'var(--panel-fg-muted)' }} />
+      <span style={{ fontSize: 'var(--font-size-2xs)', color: live ? 'var(--panel-fg)' : 'var(--panel-fg-muted)' }}>
+        {text}
+      </span>
     </div>
   );
 }

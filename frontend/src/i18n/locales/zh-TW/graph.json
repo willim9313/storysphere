@@ -68,7 +68,15 @@
     "bookmark": "標記",
     "bookmarked": "已標記",
     "regenerate": "覆蓋重生成",
-    "paragraphsCount": "{{count}} 段"
+    "paragraphsCount": "{{count}} 段",
+    "factionMeta": "陣營 · {{label}}",
+    "unaffiliated": "未歸屬",
+    "statAppearances": "登場次數",
+    "statRelations": "關係數",
+    "statFirstChapter": "首次登場章",
+    "addToCompare": "加入比較",
+    "comparePending": "再選一個實體",
+    "chunkRef": "章節 {{chapter}} · Chunk {{order}}"
   },
   "entity": {
     "appearances": "出現於 {{count}} 個段落",

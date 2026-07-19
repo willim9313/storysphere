@@ -68,7 +68,15 @@
     "bookmark": "Bookmark",
     "bookmarked": "Bookmarked",
     "regenerate": "Regenerate",
-    "paragraphsCount": "{{count}}"
+    "paragraphsCount": "{{count}}",
+    "factionMeta": "Faction · {{label}}",
+    "unaffiliated": "Unaffiliated",
+    "statAppearances": "Appearances",
+    "statRelations": "Relations",
+    "statFirstChapter": "First Chapter",
+    "addToCompare": "Add to Compare",
+    "comparePending": "Pick one more",
+    "chunkRef": "Ch.{{chapter}} · Chunk {{order}}"
   },
   "entity": {
     "appearances": "Appears in {{count}} paragraphs",

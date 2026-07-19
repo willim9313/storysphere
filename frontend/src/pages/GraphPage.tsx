@@ -94,6 +94,9 @@ export default function GraphPage() {
   const [clusterDrillIn, setClusterDrillIn] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+  // Entity-detail「加入比較」flow: the first pick is held here; the next plain
+  // node tap completes the pair and opens the compare panel.
+  const [compareArmed, setCompareArmed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [visibleTypes, setVisibleTypes] = useState<Set<string>>(new Set(ALL_TYPES));
@@ -476,6 +479,15 @@ export default function GraphPage() {
         }
         return;
       }
+      // 「加入比較」pending: the panel armed a first pick — this plain tap
+      // completes the pair and opens the compare panel.
+      if (compareArmed && !mods.shift) {
+        setSelectedNodeIds((prev) => (prev.includes(nodeId) ? prev : [...prev, nodeId]));
+        setCompareArmed(false);
+        setSelectedNodeId(null);
+        setRightPanel(null);
+        return;
+      }
       if (mods.shift) {
         setSelectedNodeIds((prev) => {
           const next = prev.includes(nodeId) ? prev.filter((x) => x !== nodeId) : [...prev, nodeId];
@@ -490,8 +502,16 @@ export default function GraphPage() {
         setRightPanel(null);
       }
     },
-    [clusteredGraph],
+    [clusteredGraph, compareArmed],
   );
+
+  // 「加入比較」— hold the current entity as the first comparison pick; the
+  // next node tap completes the pair (see handleNodeTap).
+  const handleAddToCompare = useCallback(() => {
+    if (!selectedNodeId) return;
+    setSelectedNodeIds([selectedNodeId]);
+    setCompareArmed(true);
+  }, [selectedNodeId]);
 
   const handleEdgeTap = useCallback((_edgeId: string, inferredId: string | null) => {
     if (inferredId) {
@@ -515,6 +535,7 @@ export default function GraphPage() {
     setVisibleTypes(new Set(ALL_TYPES));
     setSelectedNodeId(null);
     setSelectedNodeIds([]);
+    setCompareArmed(false);
     setRightPanel(null);
     setClusterDrillIn(null);
     // 重置也還原視野 — 選取節點會把鏡頭 zoom 到 1.4，若不 fit 回全圖，
@@ -540,6 +561,15 @@ export default function GraphPage() {
   const selectedNode: GraphNode | null = useMemo(() => {
     if (!selectedNodeId || !data) return null;
     return data.nodes.find((n) => n.id === selectedNodeId) ?? null;
+  }, [selectedNodeId, data]);
+
+  // Relation count (graph degree) of the selected node in the current graph.
+  const selectedRelationCount = useMemo(() => {
+    if (!selectedNodeId || !data) return 0;
+    return data.edges.reduce(
+      (n, e) => n + (e.source === selectedNodeId || e.target === selectedNodeId ? 1 : 0),
+      0,
+    );
   }, [selectedNodeId, data]);
 
   const compareNodes = useMemo<[GraphNode, GraphNode] | null>(() => {
@@ -970,14 +1000,18 @@ export default function GraphPage() {
               key={selectedNode.id}
               node={selectedNode}
               bookId={bookId}
+              relationCount={selectedRelationCount}
               isBookmarked={bookmarkedIds.includes(selectedNode.id)}
               onBookmarkToggle={() =>
                 bookmarkedIds.includes(selectedNode.id)
                   ? handleBookmarkRemove(selectedNode.id)
                   : handleBookmarkAdd(selectedNode.id)
               }
+              onAddToCompare={handleAddToCompare}
+              isComparePending={compareArmed}
               onClose={() => {
                 setSelectedNodeId(null);
+                setCompareArmed(false);
                 setRightPanel(null);
               }}
               onShowAnalysis={() => setRightPanel('analysis')}
