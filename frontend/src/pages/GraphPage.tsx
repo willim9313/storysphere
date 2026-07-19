@@ -17,7 +17,7 @@ import {
   NEGATIVE_RELATION_LABELS,
   type OrphanNode,
 } from '@/lib/graphTransform';
-import { byCommunity, byType, isSuperNodeId } from '@/services/kgClustering';
+import { byCommunity, byType, factionChapterParam, isSuperNodeId } from '@/services/kgClustering';
 import { fetchFactionAnalysis } from '@/api/factions';
 import { GraphCanvas, type GraphCanvasHandle, type ViewportSnapshot } from '@/components/graph/GraphCanvas';
 import { GraphOnboardingHero } from '@/components/graph/GraphOnboardingHero';
@@ -182,6 +182,7 @@ export default function GraphPage() {
   });
 
   // Faction analysis — only fetched when community mode is active.
+  const factionChapter = factionChapterParam(timelineState);
   const { data: factionData, isFetching: isFactionFetching } = useQuery({
     queryKey: [
       'books',
@@ -190,9 +191,11 @@ export default function GraphPage() {
       'factions',
       factionApplied.resolution,
       factionApplied.minClusterSize,
+      factionChapter,
     ],
     queryFn: () =>
       fetchFactionAnalysis(bookId!, {
+        chapter: factionChapter,
         resolution: factionApplied.resolution,
         minClusterSize: factionApplied.minClusterSize,
       }),

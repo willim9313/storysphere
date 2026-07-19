@@ -403,12 +403,25 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       const allNewCached =
         newNodeAdds.length > 0 &&
         newNodeAdds.every((e) => positionCacheRef.current.has(e.data.id as string));
+      // Deterministic cluster preset layout (Phase 4 ⑤): type-mode super-nodes
+      // carry a baked `position` (see graphTransform's computeClusterPresetPositions)
+      // — when every newly-added node has one, skip the randomized fcose layout
+      // entirely and just fit the viewport to the preset ring.
+      const allPreset =
+        newNodeAdds.length > 0 && newNodeAdds.every((e) => e.position != null);
 
       if (allNewCached) {
         added.nodes().forEach((node) => {
           const p = positionCacheRef.current.get(node.id());
           if (p) node.position(p);
         });
+        animateIn(added, animModeRef.current, 100);
+      } else if (allPreset) {
+        added.nodes().forEach((node) => {
+          const el = newNodeAdds.find((e) => e.data.id === node.id());
+          if (el?.position) node.position(el.position);
+        });
+        cy.fit(cy.elements(), 48);
         animateIn(added, animModeRef.current, 100);
       } else if (isInitialLoad || needsFreshLayout) {
         // Auto-fit once the fresh layout settles (brief §3-4: initial view

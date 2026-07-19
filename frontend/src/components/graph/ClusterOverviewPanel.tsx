@@ -218,27 +218,76 @@ export function ClusterOverviewPanel({
         />
       )}
 
-      {/* Unaffiliated list */}
-      {isCommunityMode &&
-        factionAnalysis?.unaffiliatedNames &&
-        factionAnalysis.unaffiliatedNames.length > 0 && (
-          <div
-            className="mt-3 p-2 rounded text-[11px]"
-            style={{
-              border: '1px dashed var(--border)',
-              color: 'var(--fg-muted)',
-              backgroundColor: 'var(--bg-secondary)',
-            }}
-          >
-            {t('v1.cluster.unaffiliated', {
-              n: factionAnalysis.unaffiliatedNames.length,
-              defaultValue: '無派系 ({{n}})',
-            })}
-            ：{factionAnalysis.unaffiliatedNames.slice(0, 6).join(' · ')}
-            {factionAnalysis.unaffiliatedNames.length > 6 && '…'}
-          </div>
-        )}
+      {/* Community scope explanation card (Phase 4 ③) — tells the user where
+          the "missing" entities went: faction detection only clusters
+          characters via positive-relation modularity, so non-character
+          entities and unaffiliated characters vanish from this view. */}
+      {isCommunityMode && factionAnalysis && (
+        <CommunityScopeCard
+          factionAnalysis={factionAnalysis}
+          graphNodes={graphNodes}
+        />
+      )}
     </PanelShell>
+  );
+}
+
+// ── Community scope explanation card ────────────────────────────────────────
+
+function CommunityScopeCard({
+  factionAnalysis,
+  graphNodes,
+}: {
+  factionAnalysis: FactionAnalysisResponse;
+  graphNodes: GraphNode[];
+}) {
+  const { t } = useTranslation('graph');
+  const unaffiliatedNames = factionAnalysis.unaffiliatedNames ?? [];
+  const clusteredCount = (factionAnalysis.factions ?? []).reduce(
+    (sum, f) => sum + (f.memberIds?.length ?? 0),
+    0,
+  );
+  const otherEntityCount = Math.max(0, graphNodes.length - clusteredCount);
+
+  return (
+    <div
+      className="mt-3 p-2.5 rounded text-[11px] space-y-2"
+      style={{
+        border: '1px dashed var(--border)',
+        color: 'var(--fg-muted)',
+        backgroundColor: 'var(--bg-secondary)',
+      }}
+    >
+      <div
+        className="font-semibold"
+        style={{ color: 'var(--fg-secondary)', fontSize: 'var(--font-size-2xs)' }}
+      >
+        {t('v1.cluster.communityScope.heading', { defaultValue: '此檢視範圍' })}
+      </div>
+      <p className="leading-relaxed">
+        {t('v1.cluster.communityScope.explain', {
+          defaultValue: '分群僅計入角色之間的正向關係（如結盟、家族、友誼）。',
+        })}
+      </p>
+      {unaffiliatedNames.length > 0 && (
+        <p className="leading-relaxed">
+          {t('v1.cluster.unaffiliated', {
+            n: unaffiliatedNames.length,
+            defaultValue: '無派系 ({{n}})',
+          })}
+          ：{unaffiliatedNames.slice(0, 6).join(' · ')}
+          {unaffiliatedNames.length > 6 && '…'}
+        </p>
+      )}
+      {otherEntityCount > 0 && (
+        <p className="leading-relaxed">
+          {t('v1.cluster.communityScope.otherEntities', {
+            n: otherEntityCount,
+            defaultValue: '{{n}} 個非角色/未分群實體不在此檢視',
+          })}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -283,7 +332,7 @@ function FactionSettingsSection({
   isRecomputing,
 }: FactionSettingsSectionProps) {
   const { t } = useTranslation('graph');
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
     <div
@@ -305,7 +354,7 @@ function FactionSettingsSection({
         }}
       >
         {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-        {t('v1.cluster.settings.heading', { defaultValue: '群集設定' })}
+        {t('v1.cluster.settings.heading', { defaultValue: '進階：群集設定' })}
       </button>
 
       {open && (

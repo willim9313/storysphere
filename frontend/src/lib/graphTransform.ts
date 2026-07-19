@@ -4,6 +4,9 @@ import type { ClusteredGraph } from '@/services/kgClustering';
 export interface CytoscapeElement {
   group: 'nodes' | 'edges';
   data: Record<string, unknown>;
+  // Deterministic preset position (Phase 4 ⑤: type-mode super-nodes are
+  // arranged on a fixed ring instead of the randomized fcose layout).
+  position?: { x: number; y: number };
 }
 
 function clusterSize(count: number): number {
@@ -166,11 +169,41 @@ export function toCytoscapeElements(graphData: GraphData): CytoscapeElement[] {
   return elements;
 }
 
+// ── Deterministic cluster preset layout (Phase 4 ⑤) ─────────────────────────
+// Type-mode super-nodes previously landed on random fcose positions each time
+// the graph mounted — this arranges them on a fixed ring (centered at origin)
+// so the layout is stable and testable. Individual view and community view
+// (which uses FactionCanvas, not Cytoscape) are unaffected.
+const CLUSTER_PRESET_RADIUS = 260;
+
+export function computeClusterPresetPositions(
+  superNodeIds: string[],
+): Map<string, { x: number; y: number }> {
+  const positions = new Map<string, { x: number; y: number }>();
+  const n = superNodeIds.length;
+  if (n === 0) return positions;
+  if (n === 1) {
+    positions.set(superNodeIds[0], { x: 0, y: 0 });
+    return positions;
+  }
+  superNodeIds.forEach((id, i) => {
+    const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+    positions.set(id, {
+      x: Math.cos(angle) * CLUSTER_PRESET_RADIUS,
+      y: Math.sin(angle) * CLUSTER_PRESET_RADIUS,
+    });
+  });
+  return positions;
+}
+
 export function toClusteredCytoscapeElements(
   clustered: ClusteredGraph,
   labelFor: (clusterType: string, count: number) => string,
 ): CytoscapeElement[] {
   const elements: CytoscapeElement[] = [];
+  const presetPositions = computeClusterPresetPositions(
+    clustered.superNodes.map((s) => s.id),
+  );
 
   for (const sn of clustered.superNodes) {
     elements.push({
@@ -185,6 +218,7 @@ export function toClusteredCytoscapeElements(
         topMembers: sn.topMembers,
         size: clusterSize(sn.count),
       },
+      position: presetPositions.get(sn.id),
     });
   }
 

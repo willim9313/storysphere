@@ -134,13 +134,18 @@
       "toggleSort": "切換排序",
       "cohesion": "凝聚 {{v}}",
       "unaffiliated": "無派系 ({{n}})",
+      "communityScope": {
+        "heading": "此檢視範圍",
+        "explain": "分群僅計入角色之間的正向關係（如結盟、家族、友誼）。",
+        "otherEntities": "{{n}} 個非角色/未分群實體不在此檢視"
+      },
       "drillIn": {
         "summary": "群集摘要",
         "summaryBody": "本派系含 {{n}} 名角色，核心成員為 {{top}}；凝聚度 {{cohesion}}。",
         "outward": "對外關係（{{n}}）"
       },
       "settings": {
-        "heading": "群集設定",
+        "heading": "進階：群集設定",
         "algorithm": "偵測算法",
         "resolution": "解析度",
         "minSize": "最小群集大小",

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   classifyRelationLabel,
+  computeClusterPresetPositions,
   computeDegrees,
   partitionOrphanNodes,
   selectFocusLabelIds,
@@ -124,4 +125,30 @@ describe('classifyRelationLabel', () => {
       expect(classifyRelationLabel(label)).toBe('neutral');
     },
   );
+});
+
+// ── computeClusterPresetPositions ────────────────────────────────────────────
+
+describe('computeClusterPresetPositions', () => {
+  it('places N ids at N distinct positions, deterministically', () => {
+    const ids = ['cluster:type:character', 'cluster:type:location', 'cluster:type:event'];
+    const first = computeClusterPresetPositions(ids);
+    const second = computeClusterPresetPositions(ids);
+    expect(first.size).toBe(3);
+    const positions = ids.map((id) => first.get(id));
+    const unique = new Set(positions.map((p) => `${p?.x},${p?.y}`));
+    expect(unique.size).toBe(3);
+    for (const id of ids) {
+      expect(second.get(id)).toEqual(first.get(id));
+    }
+  });
+
+  it('places a single id at the origin', () => {
+    const result = computeClusterPresetPositions(['cluster:type:character']);
+    expect(result.get('cluster:type:character')).toEqual({ x: 0, y: 0 });
+  });
+
+  it('returns an empty map for no ids', () => {
+    expect(computeClusterPresetPositions([]).size).toBe(0);
+  });
 });

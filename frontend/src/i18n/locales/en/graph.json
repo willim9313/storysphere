@@ -134,13 +134,18 @@
       "toggleSort": "Toggle sort",
       "cohesion": "Cohesion {{v}}",
       "unaffiliated": "Unaffiliated ({{n}})",
+      "communityScope": {
+        "heading": "Scope of this view",
+        "explain": "Clustering only counts positive relations between characters (e.g. alliance, family, friendship).",
+        "otherEntities": "{{n}} non-character/unclustered entities not shown in this view"
+      },
       "drillIn": {
         "summary": "Faction summary",
         "summaryBody": "{{n}} characters; core members {{top}}; cohesion {{cohesion}}.",
         "outward": "Outward relations ({{n}})"
       },
       "settings": {
-        "heading": "Cluster settings",
+        "heading": "Advanced: Cluster settings",
         "algorithm": "Algorithm",
         "resolution": "Resolution",
         "minSize": "Min cluster size",
