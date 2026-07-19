@@ -113,7 +113,10 @@
       "inferredChip": "Inferred · {{n}}",
       "shareLink": "Share Link",
       "exportPng": "Export PNG",
-      "phase6Tooltip": "Available in Phase 6"
+      "phase6Tooltip": "Available in Phase 6",
+      "shareCopied": "Share link copied",
+      "shareFailed": "Copy failed — please copy the URL manually",
+      "exportUnavailable": "PNG export isn't available in community view"
     },
     "cluster": {
       "label": "Cluster mode",

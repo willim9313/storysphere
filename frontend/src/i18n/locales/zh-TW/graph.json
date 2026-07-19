@@ -113,7 +113,10 @@
       "inferredChip": "推斷 · {{n}}",
       "shareLink": "分享連結",
       "exportPng": "匯出 PNG",
-      "phase6Tooltip": "Phase 6 開通"
+      "phase6Tooltip": "Phase 6 開通",
+      "shareCopied": "已複製分享連結",
+      "shareFailed": "複製失敗，請手動複製網址",
+      "exportUnavailable": "社群檢視暫不支援匯出 PNG"
     },
     "cluster": {
       "label": "群集模式",

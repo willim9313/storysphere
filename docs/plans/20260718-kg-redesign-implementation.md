@@ -6,6 +6,14 @@
 
 ---
 
+## 狀態：✅ 全數完成（2026-07-19）
+
+六期全部實作、通過 lint/tsc/vitest 並 commit 於 `feat/kg-page-revamp`：
+Phase 1 `50d35cf`（＋校調 `2a07689`）／2 `a538549`／3 `9cdb8e9`；Phase 4 `1a30fd5`、Phase 5 `76003ad`、Phase 6（本次 commit）。
+交付項⑤（類型檢視）依使用者裁決保留 super-node/drill-in、僅改確定性 preset 分組排列（避開 canvas 個別節點佈局的抵觸）；社群「淡化其餘實體」toggle 暫緩（保留 super-node FactionCanvas 無個別實體圖層）。UI_SPEC §3.6 已同步改寫；BACKLOG 無對應 KG 翻新條目（後端依賴 F-01/F-02/F-16 早已歸檔）。
+
+---
+
 ## 1. 範圍
 
 重構 `/books/:id/graph` 前端至 canvas 設計，含 F1~F4 新功能。**後端零新 endpoint**：faction 章節參數與 `topMemberNames` 後端已支援，其餘皆前端工作。API_CONTRACT 無變動。

@@ -5,6 +5,7 @@ import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/rea
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
@@ -77,6 +78,7 @@ export default function GraphPage() {
   const { t, t: tStats } = useTranslation('graph');
   const queryClient = useQueryClient();
   const { theme } = useTheme();
+  const toast = useToast();
 
   const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
   // C7 裁決：移除「淡入/逐個」動畫模式 UI，固定淡入。GraphCanvas 的
@@ -394,12 +396,74 @@ export default function GraphPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars when the theme switches
   }, [misbeliefEventIds, theme]);
 
-  // Auto-select entity from query param
+  // F4 deep-link restore (?entity=&mode=&chapter=): seeds selection + cluster
+  // mode from the shareable URL on load. `entity` keeps applying whenever
+  // `data` becomes available (unchanged from before); `mode` is applied only
+  // once, guarded by a ref, so it doesn't fight the user's own toolbar
+  // clicks afterwards. `chapter` is read separately below and handed to
+  // LensCard, which seeds the timeline itself.
+  const deepLinkModeAppliedRef = useRef(false);
   useEffect(() => {
     if (!data) return;
     const entityId = searchParams.get('entity');
     if (entityId) setSelectedNodeId(entityId);
-  }, [data, searchParams]);
+    if (!deepLinkModeAppliedRef.current) {
+      deepLinkModeAppliedRef.current = true;
+      const modeParam = searchParams.get('mode');
+      if (modeParam === 'type' || modeParam === 'community') {
+        setClusterMode(modeParam);
+      }
+    }
+  }, [data, searchParams, setClusterMode]);
+
+  const deepLinkChapter = useMemo(() => {
+    const raw = searchParams.get('chapter');
+    if (!raw) return undefined;
+    const n = parseInt(raw, 10);
+    return Number.isNaN(n) ? undefined : n;
+  }, [searchParams]);
+
+  // F4 share link — builds a URL from the current view state (selected
+  // entity, cluster mode, timeline chapter) and copies it to the clipboard.
+  const handleShareLink = useCallback(() => {
+    const base = `${window.location.origin}${window.location.pathname}`;
+    const params = new URLSearchParams();
+    if (selectedNodeId) params.set('entity', selectedNodeId);
+    if (clusterMode !== 'node') params.set('mode', clusterMode);
+    if (timelineState?.mode === 'chapter' && timelineState.position > 0) {
+      params.set('chapter', String(timelineState.position));
+    }
+    const query = params.toString();
+    const url = query ? `${base}?${query}` : base;
+
+    const copy = async () => {
+      try {
+        if (!navigator.clipboard) throw new Error('clipboard unavailable');
+        await navigator.clipboard.writeText(url);
+        toast.push({ type: 'success', title: t('v1.toolbar.shareCopied') });
+      } catch {
+        toast.push({ type: 'error', title: t('v1.toolbar.shareFailed') });
+      }
+    };
+    void copy();
+  }, [selectedNodeId, clusterMode, timelineState, toast, t]);
+
+  // F4 export PNG — community mode renders FactionCanvas instead of the
+  // Cytoscape canvas, so canvasRef.current is absent there; surface that as
+  // an info toast rather than a silent no-op.
+  const handleExportPng = useCallback(() => {
+    const uri = canvasRef.current?.exportPng();
+    if (!uri) {
+      toast.push({ type: 'info', title: t('v1.toolbar.exportUnavailable') });
+      return;
+    }
+    const a = document.createElement('a');
+    a.href = uri;
+    a.download = `${book?.title ?? 'graph'}-圖譜.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }, [book?.title, t, toast]);
 
   // Multi-select changes → clear single selection mode
   const handleNodeTap = useCallback(
@@ -607,6 +671,8 @@ export default function GraphPage() {
         onOpenReview={() => setInferredReviewOpen(true)}
         chapterCount={chapters?.length ?? 0}
         nodeCount={data?.nodes.length ?? 0}
+        onShareLink={handleShareLink}
+        onExportPng={handleExportPng}
       />
 
       {/* Search dropdown (Scenario D) */}
@@ -671,6 +737,7 @@ export default function GraphPage() {
             setClusterMode('node');
             setClusterDrillIn(null);
           }}
+          deepLinkChapter={deepLinkChapter}
         />
       )}
 

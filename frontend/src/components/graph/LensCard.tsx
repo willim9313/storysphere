@@ -36,6 +36,9 @@ interface LensCardProps {
   totalChapters: number;
   clusterMode: ClusterMode;
   onBackToIndividual: () => void;
+  /** F4 deep-link (?chapter=N): seeds the timeline to this chapter on first
+   * mount only — afterwards normal localStorage-backed behavior resumes. */
+  deepLinkChapter?: number;
 }
 
 export function LensCard({
@@ -50,6 +53,7 @@ export function LensCard({
   totalChapters,
   clusterMode,
   onBackToIndividual,
+  deepLinkChapter,
 }: LensCardProps) {
   const { t } = useTranslation('graph');
   const queryClient = useQueryClient();
@@ -65,6 +69,19 @@ export function LensCard({
   const [tlEnabled, setTlEnabled] = useLocalStorage(`graph:${bookId}:timeline:enabled`, false);
   const [pendingDetection, setPendingDetection] = useState<TimelineDetectionResponse | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // F4 deep-link: seed the timeline from ?chapter=N on first mount only —
+  // afterwards normal localStorage-backed tlMode/tlPosition behavior resumes.
+  const deepLinkAppliedRef = useRef(false);
+  useEffect(() => {
+    if (deepLinkAppliedRef.current) return;
+    deepLinkAppliedRef.current = true;
+    if (deepLinkChapter != null && deepLinkChapter > 0) {
+      setTlMode('chapter');
+      setTlPosition(deepLinkChapter);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-time mount effect, guarded by deepLinkAppliedRef
+  }, []);
 
   const { data: config } = useQuery({
     queryKey: ['books', bookId, 'timeline-config'],

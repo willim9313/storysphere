@@ -55,6 +55,8 @@ interface GraphToolbarProps {
   readonly onOpenReview: () => void;
   readonly chapterCount: number;
   readonly nodeCount: number;
+  readonly onShareLink: () => void;
+  readonly onExportPng: () => void;
 }
 
 const CLUSTER_MODES: { mode: ClusterMode; labelKey: string; icon: React.ReactNode }[] = [
@@ -95,6 +97,8 @@ export function GraphToolbar({
   onOpenReview,
   chapterCount,
   nodeCount,
+  onShareLink,
+  onExportPng,
 }: GraphToolbarProps) {
   const { t } = useTranslation('graph');
 
@@ -240,18 +244,10 @@ export function GraphToolbar({
 
         <Divider />
 
-        <ToolButton
-          icon={<Share2 size={11} />}
-          disabled
-          title={t('v1.toolbar.phase6Tooltip')}
-        >
+        <ToolButton icon={<Share2 size={11} />} onClick={onShareLink}>
           {t('v1.toolbar.shareLink')}
         </ToolButton>
-        <ToolButton
-          icon={<Download size={11} />}
-          disabled
-          title={t('v1.toolbar.phase6Tooltip')}
-        >
+        <ToolButton icon={<Download size={11} />} onClick={onExportPng}>
           {t('v1.toolbar.exportPng')}
         </ToolButton>
       </div>
