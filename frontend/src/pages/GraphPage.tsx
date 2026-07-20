@@ -30,7 +30,6 @@ import { MiniMap } from '@/components/graph/MiniMap';
 import { SearchDropdown } from '@/components/graph/SearchDropdown';
 import { ClusterOverviewPanel, type FactionSettings } from '@/components/graph/ClusterOverviewPanel';
 import { FactionCanvas, layoutFactions } from '@/components/graph/FactionCanvas';
-import { BreadcrumbBar } from '@/components/graph/BreadcrumbBar';
 import { EntityComparePanel } from '@/components/graph/EntityComparePanel';
 import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
 import { PairModeOverlay, type PairSubMode } from '@/components/graph/PairModeOverlay';
@@ -550,23 +549,6 @@ export default function GraphPage() {
     }
   }, [selectedNode, setPageContext]);
 
-  // Breadcrumb items for drill-in
-  const breadcrumbItems = useMemo(() => {
-    if (clusterMode === 'node') return [];
-    const modeLabelKey =
-      clusterMode === 'community' ? 'v1.cluster.mode.community' : 'v1.cluster.mode.type';
-    const items = [
-      { label: t('toolbar.graphRoot', '知識圖譜'), onClick: () => { setClusterMode('node'); setClusterDrillIn(null); } },
-      { label: t(modeLabelKey), onClick: clusterDrillIn ? () => setClusterDrillIn(null) : undefined },
-    ];
-    if (clusterDrillIn) {
-      const sn = clusteredGraph?.superNodes.find((s) => s.clusterType === clusterDrillIn);
-      const drillLabel = sn?.label ?? t(`entityTypes.${clusterDrillIn}`);
-      items.push({ label: drillLabel, onClick: undefined });
-    }
-    return items;
-  }, [clusterMode, clusterDrillIn, clusteredGraph, t, setClusterMode]);
-
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;
 
@@ -677,8 +659,6 @@ export default function GraphPage() {
         }}
       />
 
-      {/* Breadcrumb (Scenario C) */}
-      <BreadcrumbBar items={breadcrumbItems} />
 
       {/* Legend + orphan drawer (top-right) — shifts left when right panel is open */}
       <div
