@@ -353,7 +353,7 @@ function StatTile({ value, label }: { readonly value: number | string; readonly 
     <div
       className="flex flex-col items-center justify-center text-center"
       style={{
-        padding: '10px 4px',
+        padding: '12px 4px',
         borderRadius: 'var(--radius-md)',
         backgroundColor: 'var(--panel-bg-card)',
         border: '1px solid var(--panel-border)',
@@ -362,7 +362,7 @@ function StatTile({ value, label }: { readonly value: number | string; readonly 
       <span
         style={{
           fontFamily: 'var(--font-sans)',
-          fontSize: 'var(--font-size-xl, 22px)',
+          fontSize: 'var(--font-size-2xl, 24px)',
           fontWeight: 700,
           lineHeight: 1.1,
           color: 'var(--panel-fg)',
@@ -434,9 +434,9 @@ function SectionHeading({ title, extra }: { readonly title: string; readonly ext
     <div className="flex items-center justify-between" style={{ gap: 6 }}>
       <span
         style={{
-          fontFamily: 'var(--font-sans)',
-          fontSize: 'var(--font-size-sm, 14px)',
-          fontWeight: 600,
+          fontFamily: 'var(--font-serif)',
+          fontSize: 'var(--font-size-base, 16px)',
+          fontWeight: 700,
           color: 'var(--panel-fg)',
         }}
       >

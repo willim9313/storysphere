@@ -76,7 +76,7 @@
     "statFirstChapter": "首次登場章",
     "addToCompare": "加入比較",
     "comparePending": "再選一個實體",
-    "chunkRef": "章節 {{chapter}} · Chunk {{order}}"
+    "chunkRef": "章節 {{chapter}} · 片段 {{order}}"
   },
   "entity": {
     "appearances": "出現於 {{count}} 個段落",
