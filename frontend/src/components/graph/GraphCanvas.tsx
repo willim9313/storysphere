@@ -48,8 +48,11 @@ const layout = (cy: cytoscape.Core, opts: Record<string, any>) =>
 // generic dim unreadable). Applied as inline style (not a stylesheet class)
 // so it composes with, rather than replaces, the existing highlight
 // mechanism.
-const FOCUS_NODE_DIM_OPACITY = 0.1;
-const FOCUS_EDGE_DIM_OPACITY = 0.07;
+// Recalibrated 2026-07-20: edge base width is only ~1.2px, so the old edge
+// dim (0.07) made focused-out relations vanish; raised so dimmed edges stay
+// faintly legible without competing with the highlighted neighbourhood.
+const FOCUS_NODE_DIM_OPACITY = 0.13;
+const FOCUS_EDGE_DIM_OPACITY = 0.14;
 const FOCUS_DIM_TRANSITION_MS = 220;
 
 // ── Label density (KG redesign Phase 1) ─────────────────────────────────
@@ -57,10 +60,11 @@ const FOCUS_DIM_TRANSITION_MS = 220;
 // this threshold OR the node itself is large (high mention frequency).
 // The canvas reference used zoom >= 1.2, but that was demoed on a 36-node
 // mock — against the real 264-node book, 1.2 still fits ~100 labels in the
-// viewport (label soup). Calibrated to 1.8 on 2026-07-19: selecting a node
-// zooms to 1.4, which must NOT flip the all-labels gate on.
-const ZOOM_LABEL_THRESHOLD = 1.8;
-const NODE_SIZE_LABEL_THRESHOLD = 24;
+// viewport (label soup). Recalibrated 2026-07-20 to show more by default:
+// size 20 ≈ chunkCount ≥ ~11 (was 24 ≈ ≥27); zoom lowered to 1.6 but kept
+// above the 1.4 select-zoom so selecting a node still won't flip all labels on.
+const ZOOM_LABEL_THRESHOLD = 1.6;
+const NODE_SIZE_LABEL_THRESHOLD = 20;
 
 // Event nodes carry full sentence titles ("寇仲夜探塔頂密室與宋玉致相遇") that
 // would otherwise wrap or overflow — truncate to a single line (brief §9-1).

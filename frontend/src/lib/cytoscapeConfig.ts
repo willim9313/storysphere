@@ -89,11 +89,17 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         label: 'data(label)',
         'text-valign': 'bottom',
         'text-halign': 'center',
-        'font-size': '11px',
+        // Bumped 11→13 on 2026-07-20 so default-fit labels read larger/clearer
+        // (also lowers the effective min-zoom floor: 13px clears the floor
+        // below at zoom ~0.31 vs ~0.36 for 11px).
+        'font-size': '13px',
         // Obsidian-style: hide node labels when zoomed out (effective font
-        // < 8px) so the full graph reads as a clean star map, and fade them
-        // in as the user zooms toward a region.
-        'min-zoomed-font-size': 8,
+        // below this floor) so the full graph reads as a clean star map, and
+        // fade them in as the user zooms toward a region. Lowered 8→4 on
+        // 2026-07-20: the old 8 hid every label below zoom ~0.6–0.73, so the
+        // typical wide default fit (~0.4) showed no names at all; 4 clears the
+        // floor at that fit so the big (size≥20) nodes label up.
+        'min-zoomed-font-size': 4,
         'font-family': fontSerif,
         color: (ele: cytoscape.NodeSingular) =>
           labels[ele.data('entityType') as string] ?? fgPrimary,
