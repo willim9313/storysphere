@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { FactionAnalysisResponse } from '@/api/factions';
 import type { EntityType, GraphNode } from '@/api/types';
 import type { ClusteredGraph } from '@/services/kgClustering';
+import { deriveFactionLabel } from '@/services/kgClustering';
 
 interface ClusterOverviewPanelProps {
   clustered: ClusteredGraph | null;
@@ -682,7 +683,7 @@ function DrillInPanel({
                     className="font-semibold"
                     style={{ color: 'var(--fg-primary)' }}
                   >
-                    {otherFaction.label}
+                    {deriveFactionLabel(otherFaction.topMemberNames, otherFaction.label)}
                   </span>
                   {rel.cooperation > 0 && (
                     <span style={{ color: 'var(--fg-muted)' }}>
