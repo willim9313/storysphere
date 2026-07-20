@@ -11,8 +11,6 @@ import {
   Loader,
   AlertTriangle,
   Eye,
-  Share2,
-  Download,
   ArrowRight,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -55,8 +53,6 @@ interface GraphToolbarProps {
   readonly onOpenReview: () => void;
   readonly chapterCount: number;
   readonly nodeCount: number;
-  readonly onShareLink: () => void;
-  readonly onExportPng: () => void;
 }
 
 const CLUSTER_MODES: { mode: ClusterMode; labelKey: string; icon: React.ReactNode }[] = [
@@ -97,8 +93,6 @@ export function GraphToolbar({
   onOpenReview,
   chapterCount,
   nodeCount,
-  onShareLink,
-  onExportPng,
 }: GraphToolbarProps) {
   const { t } = useTranslation('graph');
 
@@ -181,7 +175,7 @@ export function GraphToolbar({
         </ToolButton>
       </div>
 
-      {/* Row 2: type filter chips, inference cluster, share/export */}
+      {/* Row 2: type filter chips, inference cluster */}
       <div className="flex items-center flex-wrap" style={{ gap: 8 }}>
         <div
           className="inline-flex items-center"
@@ -241,15 +235,6 @@ export function GraphToolbar({
           chapterCount={chapterCount}
           nodeCount={nodeCount}
         />
-
-        <Divider />
-
-        <ToolButton icon={<Share2 size={11} />} onClick={onShareLink}>
-          {t('v1.toolbar.shareLink')}
-        </ToolButton>
-        <ToolButton icon={<Download size={11} />} onClick={onExportPng}>
-          {t('v1.toolbar.exportPng')}
-        </ToolButton>
       </div>
     </div>
   );

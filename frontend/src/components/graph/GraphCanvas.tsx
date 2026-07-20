@@ -23,7 +23,6 @@ export interface GraphCanvasHandle {
   centerOn: (graphX: number, graphY: number) => void;
   panByGraph: (dxGraph: number, dyGraph: number) => void;
   fitView: () => void;
-  exportPng: () => string | null;
 }
 
 interface GraphCanvasProps {
@@ -273,12 +272,6 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         const cy = cyRef.current;
         if (!cy) return;
         cy.animate({ fit: { eles: cy.elements(), padding: 48 } }, { duration: 300, easing: 'ease' });
-      },
-      exportPng() {
-        const cy = cyRef.current;
-        if (!cy) return null;
-        const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#ffffff';
-        return cy.png({ full: true, output: 'base64uri', bg });
       },
     }),
     [],
