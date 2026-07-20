@@ -660,20 +660,23 @@ export default function GraphPage() {
       />
 
 
-      {/* Legend + orphan drawer (top-right) — shifts left when right panel is open */}
-      <div
-        className="absolute z-10 flex flex-col items-end"
-        style={{
-          top: 16,
-          right: bottomRightAnchor,
-          gap: 8,
-          transition: 'right var(--transition-normal, 250ms) ease',
-        }}
-      >
-        <LegendCard graph={data} />
-        {clusterMode === 'node' && orphans.length > 0 && (
+      {/* Orphan drawer (top-right) — shifts left when right panel is open */}
+      {clusterMode === 'node' && orphans.length > 0 && (
+        <div
+          className="absolute z-10 flex flex-col items-end"
+          style={{
+            top: 16,
+            right: bottomRightAnchor,
+            transition: 'right var(--transition-normal, 250ms) ease',
+          }}
+        >
           <OrphanDrawer orphans={orphans} open={orphanOpen} onToggle={() => setOrphanOpen((v) => !v)} />
-        )}
+        </div>
+      )}
+
+      {/* Legend bar (bottom, just right of the LensCard) — design-canvas layout */}
+      <div className="absolute z-10" style={{ bottom: 16, left: 348 }}>
+        <LegendCard />
       </div>
 
       {/* Lens card (bottom-left) — consolidates timeline / epistemic / bookmarks */}
