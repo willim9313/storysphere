@@ -352,7 +352,7 @@ function SidePanelPill({ node }: { readonly node: GraphNode }) {
       <span className="text-xs flex-1 truncate" style={{ color: 'var(--fg-primary)' }}>
         {node.name}
       </span>
-      <span className="text-[10px] flex-shrink-0" style={{ color: 'var(--fg-muted)' }}>
+      <span className="flex-shrink-0" style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
         {t(`entityTypes.${node.type}`)}
       </span>
     </li>

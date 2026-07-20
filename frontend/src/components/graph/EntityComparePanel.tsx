@@ -69,8 +69,8 @@ export function EntityComparePanel({ bookId, a, b, onClose, onEnterPairMode }: E
         style={{ borderBottom: '1px solid var(--border)' }}
       >
         <h3
-          className="text-sm font-semibold"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+          className="font-semibold"
+          style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', color: 'var(--fg-primary)' }}
         >
           {t('v1.compare.title')}
         </h3>
@@ -118,14 +118,13 @@ export function EntityComparePanel({ bookId, a, b, onClose, onEnterPairMode }: E
                   >
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span
-                        className="text-[11px]"
-                        style={{ color: 'var(--fg-secondary)' }}
+                        style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
                       >
                         {ir.suggestedRelationType}
                       </span>
                       <span
-                        className="text-[10px] tabular-nums ml-auto"
-                        style={{ color: 'var(--fg-muted)' }}
+                        className="tabular-nums ml-auto"
+                        style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
                       >
                         {(ir.confidence ?? 0).toFixed(2)}
                       </span>
@@ -216,8 +215,8 @@ function EntityColumn({ node, otherType, otherCount }: EntityColumnProps) {
       {node.description && (
         <Section title={t('v1.compare.attributes')}>
           <p
-            className="text-[11px] leading-relaxed"
-            style={{ color: 'var(--fg-secondary)' }}
+            className="leading-relaxed"
+            style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
           >
             {node.description}
           </p>
@@ -239,8 +238,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="text-[10px] font-semibold uppercase"
-      style={{ color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
+      className="font-semibold uppercase"
+      style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
     >
       {children}
     </div>

@@ -181,8 +181,8 @@ export function ClusterOverviewPanel({
                   <ChevronRight size={12} style={{ color: 'var(--fg-muted)' }} />
                 </div>
                 <div
-                  className="text-[10px] tabular-nums"
-                  style={{ color: 'var(--fg-muted)' }}
+                  className="tabular-nums"
+                  style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
                 >
                   {composition
                     ? `${c.count} 個 · ${composition
@@ -197,8 +197,8 @@ export function ClusterOverviewPanel({
                 </div>
                 {c.topMembers.length > 0 && (
                   <div
-                    className="text-[11px] truncate mt-1"
-                    style={{ color: 'var(--fg-secondary)' }}
+                    className="truncate mt-1"
+                    style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
                   >
                     {c.topMembers.map((m) => m.name).join(' · ')}
                   </div>
@@ -252,8 +252,9 @@ function CommunityScopeCard({
 
   return (
     <div
-      className="mt-3 p-2.5 rounded text-[11px] space-y-2"
+      className="mt-3 p-2.5 rounded space-y-2"
       style={{
+        fontSize: 'var(--font-size-2xs)',
         border: '1px dashed var(--border)',
         color: 'var(--fg-muted)',
         backgroundColor: 'var(--bg-secondary)',
@@ -595,7 +596,7 @@ function DrillInPanel({
           <SectionHead
             label={t('v1.cluster.members', { n: cluster.count })}
             tail={
-              <span className="text-[10px]" style={{ color: 'var(--fg-muted)' }}>
+              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
                 {sortKey === 'importance'
                   ? t('v1.cluster.sortImportance')
                   : t('v1.cluster.sortName')}
@@ -604,8 +605,9 @@ function DrillInPanel({
           />
           <button
             onClick={() => setSortKey((k) => (k === 'importance' ? 'name' : 'importance'))}
-            className="flex items-center gap-1 text-[11px]"
+            className="flex items-center gap-1"
             style={{
+              fontSize: 'var(--font-size-2xs)',
               color: 'var(--fg-secondary)',
               background: 'none',
               border: 0,
@@ -642,8 +644,8 @@ function DrillInPanel({
                 />
                 <span className="truncate text-left flex-1">{n.name}</span>
                 <span
-                  className="tabular-nums text-[10px]"
-                  style={{ color: 'var(--fg-muted)' }}
+                  className="tabular-nums"
+                  style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
                 >
                   {n.chunkCount}
                 </span>
@@ -673,8 +675,9 @@ function DrillInPanel({
               return (
                 <li
                   key={`${rel.sourceFactionId}-${rel.targetFactionId}`}
-                  className="flex items-center gap-2 text-[11px] px-2 py-1.5 rounded"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded"
                   style={{
+                    fontSize: 'var(--font-size-2xs)',
                     backgroundColor: 'var(--bg-secondary)',
                     color: 'var(--fg-secondary)',
                   }}
@@ -727,8 +730,8 @@ function PanelShell({ title, titleAccent, onClose, onBack, children }: PanelShel
           {onBack && (
             <button
               onClick={onBack}
-              className="text-[11px]"
               style={{
+                fontSize: 'var(--font-size-2xs)',
                 color: 'var(--fg-muted)',
                 background: 'none',
                 border: 0,
@@ -741,8 +744,8 @@ function PanelShell({ title, titleAccent, onClose, onBack, children }: PanelShel
           )}
           {titleAccent}
           <h3
-            className="text-sm font-semibold truncate"
-            style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+            className="font-semibold truncate"
+            style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', color: 'var(--fg-primary)' }}
           >
             {title}
           </h3>

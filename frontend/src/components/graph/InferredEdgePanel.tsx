@@ -43,8 +43,8 @@ export function InferredEdgePanel({ bookId, focusInferredId, onClose }: Inferred
         style={{ borderBottom: '1px solid var(--border)' }}
       >
         <h3
-          className="text-sm font-semibold"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+          className="font-semibold"
+          style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', color: 'var(--fg-primary)' }}
         >
           {t('v1.inferred.review.title', { n: items.length })}
         </h3>
@@ -158,7 +158,7 @@ function InferredRow({ ir, bookId, focus, onSuccess, onGraphInvalidate }: Inferr
     >
       <div className="flex items-center gap-1.5 flex-wrap mb-2">
         <Pill>{ir.sourceName}</Pill>
-        <span className="text-[11px]" style={{ color: 'var(--fg-muted)' }}>
+        <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
           {ir.suggestedRelationType}
         </span>
         <Pill>{ir.targetName}</Pill>
@@ -178,8 +178,8 @@ function InferredRow({ ir, bookId, focus, onSuccess, onGraphInvalidate }: Inferr
           />
         </div>
         <span
-          className="text-[11px] tabular-nums font-semibold"
-          style={{ color: 'var(--fg-secondary)' }}
+          className="tabular-nums font-semibold"
+          style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
         >
           {(ir.confidence ?? 0).toFixed(2)}
         </span>
@@ -187,12 +187,12 @@ function InferredRow({ ir, bookId, focus, onSuccess, onGraphInvalidate }: Inferr
 
       <details className="mb-2">
         <summary
-          className="text-[10px] font-semibold uppercase cursor-pointer"
-          style={{ color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
+          className="font-semibold uppercase cursor-pointer"
+          style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
         >
           {t('v1.inferred.review.evidence')}
         </summary>
-        <p className="text-[11px] mt-1.5 leading-relaxed" style={{ color: 'var(--fg-secondary)' }}>
+        <p className="mt-1.5 leading-relaxed" style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}>
           {ir.reasoning ||
             t('v1.inferred.review.evidenceFallback', {
               common: ir.commonNeighborCount,
@@ -245,8 +245,9 @@ function InferredRow({ ir, bookId, focus, onSuccess, onGraphInvalidate }: Inferr
 function Pill({ children }: { children: React.ReactNode }) {
   return (
     <span
-      className="px-2 py-0.5 rounded-full text-[11px] font-medium"
+      className="px-2 py-0.5 rounded-full font-medium"
       style={{
+        fontSize: 'var(--font-size-2xs)',
         backgroundColor: 'var(--bg-secondary)',
         color: 'var(--fg-primary)',
         border: '1px solid var(--border)',

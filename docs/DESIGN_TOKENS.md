@@ -115,6 +115,19 @@
 | `--font-size-2xl`  | `1.5rem`    | 24 |
 | `--font-size-3xl`  | `2rem`      | 32 |
 
+#### 語意層級（面板 chrome）
+
+| 角色 | Token | px |
+|---|---|---|
+| 面板標題 | `--font-size-lg` | 18 |
+| 分區標題 | `--font-size-base` | 16 |
+| 強調數字（stat） | `--font-size-2xl` | 24 |
+| 內文 | `--font-size-sm` | 14 |
+| 次要・列表・pill | `--font-size-xs` | 12 |
+| 註記・計數・eyebrow | `--font-size-2xs` | 11 |
+
+面板一律套用此層級；`text-[Npx]` 等 arbitrary 值禁用，標準 `text-xs`/`text-sm`（=12/14，在 scale 上）可接受。
+
 ### 3.6 線條性格
 
 | Token | warm | ink |
