@@ -68,7 +68,15 @@
     "bookmark": "標記",
     "bookmarked": "已標記",
     "regenerate": "覆蓋重生成",
-    "paragraphsCount": "{{count}} 段"
+    "paragraphsCount": "{{count}} 段",
+    "factionMeta": "陣營 · {{label}}",
+    "unaffiliated": "未歸屬",
+    "statAppearances": "登場次數",
+    "statRelations": "關係數",
+    "statFirstChapter": "首次登場章",
+    "addToCompare": "加入比較",
+    "comparePending": "再選一個實體",
+    "chunkRef": "章節 {{chapter}} · 片段 {{order}}"
   },
   "entity": {
     "appearances": "出現於 {{count}} 個段落",
@@ -109,7 +117,7 @@
   "v1": {
     "toolbar": {
       "searchPlaceholder": "搜尋實體…",
-      "reset": "重置",
+      "reset": "重設視圖",
       "inferredChip": "推斷 · {{n}}"
     },
     "cluster": {
@@ -131,13 +139,18 @@
       "toggleSort": "切換排序",
       "cohesion": "凝聚 {{v}}",
       "unaffiliated": "無派系 ({{n}})",
+      "communityScope": {
+        "heading": "此檢視範圍",
+        "explain": "分群僅計入角色之間的正向關係（如結盟、家族、友誼）。",
+        "otherEntities": "{{n}} 個非角色/未分群實體不在此檢視"
+      },
       "drillIn": {
         "summary": "群集摘要",
         "summaryBody": "本派系含 {{n}} 名角色，核心成員為 {{top}}；凝聚度 {{cohesion}}。",
         "outward": "對外關係（{{n}}）"
       },
       "settings": {
-        "heading": "群集設定",
+        "heading": "進階：群集設定",
         "algorithm": "偵測算法",
         "resolution": "解析度",
         "minSize": "最小群集大小",
@@ -162,8 +175,35 @@
       }
     },
     "inferred": {
+      "toolbar": {
+        "run": "執行推論",
+        "running": "推論中…",
+        "rerun": "重新推論",
+        "pending": "待審核",
+        "showInferredEdges": "顯示推測邊",
+        "popover": {
+          "title": "執行關係推論",
+          "scopeLabel": "作用範圍",
+          "scopeValue": "整本書（{{chapters}} 章、{{nodes}} 節點）",
+          "algoLabel": "演算法",
+          "algoValue": "共同鄰居 + Adamic-Adar（純圖論，非 LLM）",
+          "outputLabel": "產出",
+          "outputValue": "待審核的推測關係候選，需逐條採納或拒絕",
+          "costLabel": "成本",
+          "costValue": "執行快、無 token 成本",
+          "cancel": "取消",
+          "start": "開始推論"
+        },
+        "menu": {
+          "safeRerun": "安全重跑",
+          "safeRerunDesc": "只評新實體對，保留既有決定",
+          "forceRerun": "強制重跑",
+          "forceRerunDesc": "會清除全部 {{n}} 筆已採納/拒絕決定，不可復原"
+        }
+      },
       "review": {
         "title": "推斷關係審查 · {{n}} 條",
+        "banner": "以下 {{n}} 筆為圖論推算的推測關係（非正式關係）。採納後升級為正式邊進入圖譜。",
         "evidence": "證據",
         "evidenceFallback": "共同鄰居 {{common}} 個 · Adamic-Adar {{score}}",
         "adopt": "採用",
@@ -189,7 +229,13 @@
     },
     "legend": {
       "title": "圖例 / 圖層",
-      "inferred": "推斷"
+      "inferred": "推斷",
+      "edgeSemantics": "邊語意",
+      "edgeCooperative": "合作",
+      "edgeHostile": "敵對",
+      "edgeNeutral": "一般",
+      "edgeInferred": "推測",
+      "circleSizeHint": "圓圈大小＝登場頻率"
     },
     "lens": {
       "title": "視角",
@@ -198,15 +244,56 @@
       "timeline": "時間範圍 · Timeline",
       "epistemic": "認知視角 · Epistemic",
       "bookmarks": "已標記 · Bookmarks",
+      "tabTimeline": "時間軸",
+      "tabEpistemic": "認知視角",
+      "tabBookmarks": "書籤",
       "chapter": "第 {{n}} 章 / {{total}}",
       "allChapters": "全部",
+      "noTimeline": "本書尚無可用的時間軸資料。",
+      "storyModeLocked": "敘事順序尚不可用，需先累積足量已排序事件",
+      "playbackStart": "逐章成長播放（F3）",
+      "playbackPause": "暫停播放",
+      "timelineGlobalNote": "全域資料層 lens：同時套用於個別／類型／社群三種檢視；社群模式下陣營分群僅計入已登場角色。",
+      "epistemicIntro": "從某角色的認知看世界",
       "selectPerspective": "選擇視角",
       "perspectiveOf": "{{name}} 視角",
       "perspectiveHint": "依賴 ↑ 章節 {{chapter}}",
       "clearPerspective": "清除視角",
       "noCharacters": "無可選角色",
+      "epistemicToggleLabel": "啟用認知視角",
+      "epistemicToggleDesc": "未知實體虛線淡化",
+      "epistemicKnownStat": "{{name}} 已知實體",
+      "epistemicFallbackAll": "時間軸為「全部」：以全書終局計算此焦點角色的認知，不受章節推進限制。",
+      "epistemicFallbackChapter": "以第 {{n}} 章為界：第 {{n}} 章之後尚未登場的實體，於此焦點角色視角暫記為未知。",
+      "epistemicDisabledTitle": "認知視角僅適用於個別檢視",
+      "epistemicDisabledDesc": "類型／社群為聚合檢視，無單一焦點角色可依附。設定已保留，切回個別檢視即自動恢復。",
+      "backToIndividual": "切回個別檢視",
+      "misbeliefToggle": "標記角色誤信",
+      "misbeliefToggleDesc": "在圖上以警示色標示誤信相關的事件節點",
       "noBookmarks": "尚未標記實體",
-      "removeBookmark": "移除標記"
+      "removeBookmark": "移除標記",
+      "bookmarkAggregateNote": "目前為聚合檢視：點擊書籤將切回個別檢視並選取該實體。",
+      "bookmarkStorageNote": "存於此瀏覽器（localStorage）"
+    },
+    "orphan": {
+      "button": "未連結實體",
+      "description": "在本書中未被連結到任何關係，預設收合於此，不再漂浮於主圖旁。"
+    },
+    "pair": {
+      "enter": "進入實體對模式",
+      "title": "關係演變 · {{a}} × {{b}}",
+      "modeLabel": "子模式",
+      "modeEvo": "演變動畫",
+      "modePath": "路徑追溯",
+      "exit": "退出",
+      "chapterStep": "第 {{n}} 章 / 共 {{total}} 章",
+      "chapterProgress": "第 {{n}} 章 / 共 {{total}} 章",
+      "sideTitleEvo": "本章新增",
+      "sideTitlePath": "路徑節點",
+      "noNewThisChapter": "本章無新增共同關係實體。",
+      "overflowLabel": "+{{n}}",
+      "insufficientChange": "兩者的共同關係實體變化不足，暫無可呈現的演變動畫。",
+      "noPath": "找不到連接兩者的路徑。"
     }
   }
 }

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { FactionAnalysisResponse } from '@/api/factions';
 import type { EntityType, GraphNode } from '@/api/types';
 import type { ClusteredGraph } from '@/services/kgClustering';
+import { deriveFactionLabel } from '@/services/kgClustering';
 
 interface ClusterOverviewPanelProps {
   clustered: ClusteredGraph | null;
@@ -180,8 +181,8 @@ export function ClusterOverviewPanel({
                   <ChevronRight size={12} style={{ color: 'var(--fg-muted)' }} />
                 </div>
                 <div
-                  className="text-[10px] tabular-nums"
-                  style={{ color: 'var(--fg-muted)' }}
+                  className="tabular-nums"
+                  style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
                 >
                   {composition
                     ? `${c.count} 個 · ${composition
@@ -196,8 +197,8 @@ export function ClusterOverviewPanel({
                 </div>
                 {c.topMembers.length > 0 && (
                   <div
-                    className="text-[11px] truncate mt-1"
-                    style={{ color: 'var(--fg-secondary)' }}
+                    className="truncate mt-1"
+                    style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
                   >
                     {c.topMembers.map((m) => m.name).join(' · ')}
                   </div>
@@ -218,27 +219,77 @@ export function ClusterOverviewPanel({
         />
       )}
 
-      {/* Unaffiliated list */}
-      {isCommunityMode &&
-        factionAnalysis?.unaffiliatedNames &&
-        factionAnalysis.unaffiliatedNames.length > 0 && (
-          <div
-            className="mt-3 p-2 rounded text-[11px]"
-            style={{
-              border: '1px dashed var(--border)',
-              color: 'var(--fg-muted)',
-              backgroundColor: 'var(--bg-secondary)',
-            }}
-          >
-            {t('v1.cluster.unaffiliated', {
-              n: factionAnalysis.unaffiliatedNames.length,
-              defaultValue: '無派系 ({{n}})',
-            })}
-            ：{factionAnalysis.unaffiliatedNames.slice(0, 6).join(' · ')}
-            {factionAnalysis.unaffiliatedNames.length > 6 && '…'}
-          </div>
-        )}
+      {/* Community scope explanation card (Phase 4 ③) — tells the user where
+          the "missing" entities went: faction detection only clusters
+          characters via positive-relation modularity, so non-character
+          entities and unaffiliated characters vanish from this view. */}
+      {isCommunityMode && factionAnalysis && (
+        <CommunityScopeCard
+          factionAnalysis={factionAnalysis}
+          graphNodes={graphNodes}
+        />
+      )}
     </PanelShell>
+  );
+}
+
+// ── Community scope explanation card ────────────────────────────────────────
+
+function CommunityScopeCard({
+  factionAnalysis,
+  graphNodes,
+}: {
+  factionAnalysis: FactionAnalysisResponse;
+  graphNodes: GraphNode[];
+}) {
+  const { t } = useTranslation('graph');
+  const unaffiliatedNames = factionAnalysis.unaffiliatedNames ?? [];
+  const clusteredCount = (factionAnalysis.factions ?? []).reduce(
+    (sum, f) => sum + (f.memberIds?.length ?? 0),
+    0,
+  );
+  const otherEntityCount = Math.max(0, graphNodes.length - clusteredCount);
+
+  return (
+    <div
+      className="mt-3 p-2.5 rounded space-y-2"
+      style={{
+        fontSize: 'var(--font-size-2xs)',
+        border: '1px dashed var(--border)',
+        color: 'var(--fg-muted)',
+        backgroundColor: 'var(--bg-secondary)',
+      }}
+    >
+      <div
+        className="font-semibold"
+        style={{ color: 'var(--fg-secondary)', fontSize: 'var(--font-size-2xs)' }}
+      >
+        {t('v1.cluster.communityScope.heading', { defaultValue: '此檢視範圍' })}
+      </div>
+      <p className="leading-relaxed">
+        {t('v1.cluster.communityScope.explain', {
+          defaultValue: '分群僅計入角色之間的正向關係（如結盟、家族、友誼）。',
+        })}
+      </p>
+      {unaffiliatedNames.length > 0 && (
+        <p className="leading-relaxed">
+          {t('v1.cluster.unaffiliated', {
+            n: unaffiliatedNames.length,
+            defaultValue: '無派系 ({{n}})',
+          })}
+          ：{unaffiliatedNames.slice(0, 6).join(' · ')}
+          {unaffiliatedNames.length > 6 && '…'}
+        </p>
+      )}
+      {otherEntityCount > 0 && (
+        <p className="leading-relaxed">
+          {t('v1.cluster.communityScope.otherEntities', {
+            n: otherEntityCount,
+            defaultValue: '{{n}} 個非角色/未分群實體不在此檢視',
+          })}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -283,7 +334,7 @@ function FactionSettingsSection({
   isRecomputing,
 }: FactionSettingsSectionProps) {
   const { t } = useTranslation('graph');
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
 
   return (
     <div
@@ -305,7 +356,7 @@ function FactionSettingsSection({
         }}
       >
         {open ? <ChevronDown size={11} /> : <ChevronRight size={11} />}
-        {t('v1.cluster.settings.heading', { defaultValue: '群集設定' })}
+        {t('v1.cluster.settings.heading', { defaultValue: '進階：群集設定' })}
       </button>
 
       {open && (
@@ -545,7 +596,7 @@ function DrillInPanel({
           <SectionHead
             label={t('v1.cluster.members', { n: cluster.count })}
             tail={
-              <span className="text-[10px]" style={{ color: 'var(--fg-muted)' }}>
+              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
                 {sortKey === 'importance'
                   ? t('v1.cluster.sortImportance')
                   : t('v1.cluster.sortName')}
@@ -554,8 +605,9 @@ function DrillInPanel({
           />
           <button
             onClick={() => setSortKey((k) => (k === 'importance' ? 'name' : 'importance'))}
-            className="flex items-center gap-1 text-[11px]"
+            className="flex items-center gap-1"
             style={{
+              fontSize: 'var(--font-size-2xs)',
               color: 'var(--fg-secondary)',
               background: 'none',
               border: 0,
@@ -592,8 +644,8 @@ function DrillInPanel({
                 />
                 <span className="truncate text-left flex-1">{n.name}</span>
                 <span
-                  className="tabular-nums text-[10px]"
-                  style={{ color: 'var(--fg-muted)' }}
+                  className="tabular-nums"
+                  style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
                 >
                   {n.chunkCount}
                 </span>
@@ -623,8 +675,9 @@ function DrillInPanel({
               return (
                 <li
                   key={`${rel.sourceFactionId}-${rel.targetFactionId}`}
-                  className="flex items-center gap-2 text-[11px] px-2 py-1.5 rounded"
+                  className="flex items-center gap-2 px-2 py-1.5 rounded"
                   style={{
+                    fontSize: 'var(--font-size-2xs)',
                     backgroundColor: 'var(--bg-secondary)',
                     color: 'var(--fg-secondary)',
                   }}
@@ -633,7 +686,7 @@ function DrillInPanel({
                     className="font-semibold"
                     style={{ color: 'var(--fg-primary)' }}
                   >
-                    {otherFaction.label}
+                    {deriveFactionLabel(otherFaction.topMemberNames, otherFaction.label)}
                   </span>
                   {rel.cooperation > 0 && (
                     <span style={{ color: 'var(--fg-muted)' }}>
@@ -677,8 +730,8 @@ function PanelShell({ title, titleAccent, onClose, onBack, children }: PanelShel
           {onBack && (
             <button
               onClick={onBack}
-              className="text-[11px]"
               style={{
+                fontSize: 'var(--font-size-2xs)',
                 color: 'var(--fg-muted)',
                 background: 'none',
                 border: 0,
@@ -691,8 +744,8 @@ function PanelShell({ title, titleAccent, onClose, onBack, children }: PanelShel
           )}
           {titleAccent}
           <h3
-            className="text-sm font-semibold truncate"
-            style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+            className="font-semibold truncate"
+            style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', color: 'var(--fg-primary)' }}
           >
             {title}
           </h3>

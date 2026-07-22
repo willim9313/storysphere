@@ -47,6 +47,31 @@ export function clusterIdForFaction(factionId: string): string {
   return `cluster:${factionId}`;
 }
 
+/**
+ * Faction analysis timeline param (Phase 4 ①) — only meaningful in
+ * 'chapter' timeline mode with a positive position; 'story' mode and
+ * position 0 (= "all chapters") both mean "no chapter filter".
+ */
+export function factionChapterParam(
+  timeline: { mode: 'chapter' | 'story'; position: number } | null | undefined,
+): number | undefined {
+  return timeline?.mode === 'chapter' && timeline.position > 0 ? timeline.position : undefined;
+}
+
+/**
+ * Frontend-derived faction anchor label (Phase 4 ②) — backend only returns
+ * a generic `label` (e.g. "Faction 1"); anchor it to the faction's top
+ * member name instead ("寇仲陣營") when available, falling back to the
+ * backend label otherwise.
+ */
+export function deriveFactionLabel(
+  topMemberNames: string[] | undefined,
+  fallback: string,
+): string {
+  const anchor = topMemberNames?.find((n) => n != null && n.trim().length > 0);
+  return anchor ? `${anchor}陣營` : fallback;
+}
+
 export function byType(graph: GraphData): ClusteredGraph {
   const groups = new Map<EntityType, GraphNode[]>();
   for (const node of graph.nodes) {
@@ -117,7 +142,7 @@ export function byCommunity(
       id: clusterId,
       kind: 'super',
       clusterType: f.id,
-      label: f.label,
+      label: deriveFactionLabel(f.topMemberNames, f.label),
       count: f.memberIds?.length ?? 0,
       memberIds: f.memberIds ?? [],
       topMembers: sorted.slice(0, TOP_MEMBER_COUNT).map((m) => ({

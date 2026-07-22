@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { X, Check, XOctagon, Loader } from 'lucide-react';
+import { X, Check, XOctagon, Loader, GitCompareArrows } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import {
@@ -15,9 +15,10 @@ interface EntityComparePanelProps {
   a: GraphNode;
   b: GraphNode;
   onClose: () => void;
+  onEnterPairMode?: () => void;
 }
 
-export function EntityComparePanel({ bookId, a, b, onClose }: EntityComparePanelProps) {
+export function EntityComparePanel({ bookId, a, b, onClose, onEnterPairMode }: EntityComparePanelProps) {
   const { t } = useTranslation('graph');
   const queryClient = useQueryClient();
 
@@ -68,8 +69,8 @@ export function EntityComparePanel({ bookId, a, b, onClose }: EntityComparePanel
         style={{ borderBottom: '1px solid var(--border)' }}
       >
         <h3
-          className="text-sm font-semibold"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
+          className="font-semibold"
+          style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', color: 'var(--fg-primary)' }}
         >
           {t('v1.compare.title')}
         </h3>
@@ -79,6 +80,21 @@ export function EntityComparePanel({ bookId, a, b, onClose }: EntityComparePanel
       </header>
 
       <div className="flex-1 overflow-y-auto">
+        {onEnterPairMode && (
+          <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
+            <button
+              onClick={onEnterPairMode}
+              className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5 rounded-md"
+              style={{
+                backgroundColor: 'var(--accent)',
+                color: 'var(--bg-primary)',
+              }}
+            >
+              <GitCompareArrows size={13} />
+              {t('v1.pair.enter')}
+            </button>
+          </div>
+        )}
         <div className="grid grid-cols-2 divide-x" style={{ borderColor: 'var(--border)' }}>
           <EntityColumn node={a} otherType={b.type} otherCount={b.chunkCount} />
           <EntityColumn node={b} otherType={a.type} otherCount={a.chunkCount} />
@@ -102,14 +118,13 @@ export function EntityComparePanel({ bookId, a, b, onClose }: EntityComparePanel
                   >
                     <div className="flex items-center gap-1.5 mb-1.5">
                       <span
-                        className="text-[11px]"
-                        style={{ color: 'var(--fg-secondary)' }}
+                        style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
                       >
                         {ir.suggestedRelationType}
                       </span>
                       <span
-                        className="text-[10px] tabular-nums ml-auto"
-                        style={{ color: 'var(--fg-muted)' }}
+                        className="tabular-nums ml-auto"
+                        style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
                       >
                         {(ir.confidence ?? 0).toFixed(2)}
                       </span>
@@ -200,8 +215,8 @@ function EntityColumn({ node, otherType, otherCount }: EntityColumnProps) {
       {node.description && (
         <Section title={t('v1.compare.attributes')}>
           <p
-            className="text-[11px] leading-relaxed"
-            style={{ color: 'var(--fg-secondary)' }}
+            className="leading-relaxed"
+            style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
           >
             {node.description}
           </p>
@@ -223,8 +238,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="text-[10px] font-semibold uppercase"
-      style={{ color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
+      className="font-semibold uppercase"
+      style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
     >
       {children}
     </div>

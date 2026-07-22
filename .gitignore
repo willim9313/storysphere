@@ -84,5 +84,8 @@ backend/var/
 # Stray runtime data created when the backend is launched from frontend/
 frontend/var/
 
+# Frontend runtime data (local Qdrant/dev artifacts) — never commit
+frontend/var/
+
 # ========== uv ==========
 # uv.lock    # Do NOT ignore - commit lock file for reproducibility

@@ -12,6 +12,7 @@
 import { useCallback, useMemo, useRef, useState, type ReactElement, type WheelEvent } from 'react';
 import type { FactionAnalysisResponse, FactionResponse } from '@/api/factions';
 import type { EntityType, GraphNode } from '@/api/types';
+import { deriveFactionLabel } from '@/services/kgClustering';
 
 interface FactionCanvasProps {
   readonly analysis: FactionAnalysisResponse;
@@ -310,6 +311,7 @@ export function FactionCanvas({
               radius={r}
               composition={comp}
               onClick={() => onSuperNodeClick(faction.id)}
+              dimmed={!!drillInFactionId}
             />
           );
         })}
@@ -342,9 +344,13 @@ interface SuperNodeProps {
   readonly radius: number;
   readonly composition: Array<[EntityType, number]>;
   readonly onClick: () => void;
+  // C8: dim non-drilled factions to reduced opacity while a drill-in is active,
+  // so focus lands on the drilled faction. Still clickable — clicking one
+  // switches the drill-in to it.
+  readonly dimmed?: boolean;
 }
 
-function FactionSuperNode({ faction, pos, radius, composition, onClick }: SuperNodeProps) {
+function FactionSuperNode({ faction, pos, radius, composition, onClick, dimmed }: SuperNodeProps) {
   // Distribute composition dots evenly on inner ring
   const totalUnits = composition.reduce((s, [, n]) => s + n, 0);
   const dotR = radius * 0.5;
@@ -374,7 +380,11 @@ function FactionSuperNode({ faction, pos, radius, composition, onClick }: SuperN
       data-clickable="true"
       transform={`translate(${pos.x} ${pos.y})`}
       onClick={onClick}
-      style={{ cursor: 'pointer' }}
+      style={{
+        cursor: 'pointer',
+        opacity: dimmed ? 0.25 : 1,
+        transition: 'opacity var(--transition-normal, 250ms) ease',
+      }}
     >
       <circle
         r={radius}
@@ -395,7 +405,7 @@ function FactionSuperNode({ faction, pos, radius, composition, onClick }: SuperN
           fill: 'var(--fg-primary)',
         }}
       >
-        {faction.label}
+        {deriveFactionLabel(faction.topMemberNames, faction.label)}
       </text>
       <text
         textAnchor="middle"
@@ -454,7 +464,7 @@ function DrilledInFactionShell({
           fill: 'var(--fg-primary)',
         }}
       >
-        {faction.label}
+        {deriveFactionLabel(faction.topMemberNames, faction.label)}
       </text>
       <text
         textAnchor="middle"

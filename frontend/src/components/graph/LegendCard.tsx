@@ -1,6 +1,5 @@
-import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { EntityType, GraphData } from '@/api/types';
+import type { EntityType } from '@/api/types';
 
 // 設計 contract（README「Graph legend covers all 7 types」）：圖例必須涵蓋
 // 完整 7 類，不得只列 4 類 demo 子集。
@@ -16,140 +15,92 @@ const TYPE_KEY: Record<EntityType, string> = {
   other: 'other',
 };
 
-interface LegendCardProps {
-  graph: GraphData | undefined;
-  visibleTypes: Set<string>;
-  onTypeToggle: (type: EntityType) => void;
-  inferredCount: number;
-  inferredVisible: boolean;
-  onInferredToggle: () => void;
-}
-
-export function LegendCard({
-  graph,
-  visibleTypes,
-  onTypeToggle,
-  inferredCount,
-  inferredVisible,
-  onInferredToggle,
-}: LegendCardProps) {
+// C6 裁決：圖例不再是型別開關（唯一入口移至工具列 filter chips），改為純說明。
+// 2026-07-20：依設計稿改為底部橫條（兩列），移除型別計數與標題。
+export function LegendCard() {
   const { t } = useTranslation('graph');
-
-  const typeCounts = useMemo(() => {
-    const counts = new Map<EntityType, number>(LEGEND_TYPES.map((t) => [t, 0]));
-    if (!graph) return counts;
-    for (const n of graph.nodes) {
-      if (counts.has(n.type as EntityType)) {
-        counts.set(n.type as EntityType, (counts.get(n.type as EntityType) ?? 0) + 1);
-      }
-    }
-    return counts;
-  }, [graph]);
 
   return (
     <div
       style={{
-        minWidth: 140,
         backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-lg)',
         boxShadow: 'var(--shadow-sm)',
-        padding: '8px 10px',
+        padding: '8px 14px',
         display: 'flex',
         flexDirection: 'column',
-        gap: 5,
+        gap: 6,
       }}
     >
-      <div
-        className="font-semibold uppercase"
-        style={{
-          fontSize: 'var(--font-size-2xs)',
-          color: 'var(--fg-muted)',
-          letterSpacing: '0.06em',
-          paddingBottom: 4,
-          borderBottom: '1px solid var(--border)',
-        }}
-      >
-        {t('v1.legend.title')}
-      </div>
-      {LEGEND_TYPES.map((type) => {
-        const dotKey = TYPE_KEY[type];
-        const visible = visibleTypes.has(type);
-        return (
-          <button
-            key={type}
-            onClick={() => onTypeToggle(type)}
-            className="flex items-center w-full text-left"
-            style={{
-              gap: 6,
-              fontSize: 'var(--font-size-2xs)',
-              color: visible ? 'var(--fg-secondary)' : 'var(--fg-muted)',
-              opacity: visible ? 1 : 0.5,
-              textDecoration: visible ? 'none' : 'line-through',
-              transition: 'opacity var(--transition-fast, 150ms) ease',
-            }}
-          >
+      {/* Row 1: entity types */}
+      <div className="flex items-center flex-wrap" style={{ gap: 14, rowGap: 4 }}>
+        {LEGEND_TYPES.map((type) => {
+          const dotKey = TYPE_KEY[type];
+          return (
             <span
-              className="inline-block rounded-full flex-shrink-0"
-              style={{
-                width: 12,
-                height: 12,
-                backgroundColor: `var(--graph-${dotKey}-fill)`,
-                border: `var(--line-weight) solid var(--graph-${dotKey}-stroke)`,
-              }}
-            />
-            <span className="flex-1">{t(`entityTypes.${type}`)}</span>
-            <span
-              className="tabular-nums"
-              style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
+              key={type}
+              className="inline-flex items-center"
+              style={{ gap: 5, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
             >
-              {typeCounts.get(type) ?? 0}
+              <span
+                className="inline-block rounded-full flex-shrink-0"
+                style={{
+                  width: 11,
+                  height: 11,
+                  backgroundColor: `var(--graph-${dotKey}-fill)`,
+                  border: `var(--line-weight) solid var(--graph-${dotKey}-stroke)`,
+                }}
+              />
+              {t(`entityTypes.${type}`)}
             </span>
-          </button>
-        );
-      })}
-      {inferredCount > 0 && (
-        <button
-          onClick={onInferredToggle}
-          className="flex items-center w-full text-left"
-          style={{
-            gap: 6,
-            fontSize: 'var(--font-size-2xs)',
-            color: 'var(--fg-secondary)',
-            marginTop: 4,
-            paddingTop: 4,
-            borderTop: '1px solid var(--border)',
-            opacity: inferredVisible ? 1 : 0.5,
-            transition: 'opacity var(--transition-fast, 150ms) ease',
-          }}
+          );
+        })}
+      </div>
+
+      {/* Row 2: edge semantics + node-size key */}
+      <div
+        className="flex items-center flex-wrap"
+        style={{ gap: 14, rowGap: 4, paddingTop: 6, borderTop: '1px solid var(--border)' }}
+      >
+        <EdgeSwatch color="var(--color-success)" label={t('v1.legend.edgeCooperative')} />
+        <EdgeSwatch color="var(--color-error)" label={t('v1.legend.edgeHostile')} />
+        <EdgeSwatch color="var(--fg-muted)" label={t('v1.legend.edgeNeutral')} />
+        <EdgeSwatch color="var(--color-warning)" label={t('v1.legend.edgeInferred')} dashed />
+        <span
+          className="inline-flex items-center"
+          style={{ gap: 6, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
         >
           <span
-            className="flex-shrink-0"
-            style={{
-              width: 16,
-              height: 6,
-              display: 'inline-flex',
-              alignItems: 'center',
-            }}
-          >
-            <span
-              style={{
-                width: 16,
-                height: 1.5,
-                backgroundColor: 'var(--accent)',
-                opacity: 0.6,
-              }}
-            />
-          </span>
-          <span className="flex-1">{t('v1.legend.inferred')}</span>
+            className="inline-block rounded-full flex-shrink-0"
+            style={{ width: 8, height: 8, border: '1.5px solid var(--fg-muted)' }}
+          />
           <span
-            className="tabular-nums"
-            style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
-          >
-            {inferredCount}
-          </span>
-        </button>
-      )}
+            className="inline-block rounded-full flex-shrink-0"
+            style={{ width: 15, height: 15, border: '1.5px solid var(--fg-muted)' }}
+          />
+          {t('v1.legend.circleSizeHint')}
+        </span>
+      </div>
     </div>
+  );
+}
+
+function EdgeSwatch({ color, label, dashed }: { readonly color: string; readonly label: string; readonly dashed?: boolean }) {
+  return (
+    <span
+      className="inline-flex items-center"
+      style={{ gap: 6, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
+    >
+      <span
+        className="flex-shrink-0"
+        style={
+          dashed
+            ? { width: 20, height: 0, borderTop: `2px dashed ${color}` }
+            : { width: 20, height: 2, backgroundColor: color, borderRadius: 2 }
+        }
+      />
+      {label}
+    </span>
   );
 }

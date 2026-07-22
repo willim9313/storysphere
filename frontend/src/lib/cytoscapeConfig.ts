@@ -37,6 +37,8 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
   const fgPrimary = v('--fg-primary')   || '#2a2620';
   const fgMuted   = v('--fg-muted')     || '#938876';
   const fgSecondary = v('--fg-secondary') || '#5f5648';
+  const warning   = v('--color-warning') || '#ad7519';
+  const error     = v('--color-error')   || '#a8482c';
   // cytoscape's font-family regex (^([\w- "]+(?:\s*,\s*[\w- "]+)*)$) rejects
   // single quotes, so a token like `'Spectral', 'Noto Serif TC', …`
   // is flagged invalid and the label silently falls back to the default font.
@@ -87,11 +89,17 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         label: 'data(label)',
         'text-valign': 'bottom',
         'text-halign': 'center',
-        'font-size': '11px',
+        // Bumped 11→13 on 2026-07-20 so default-fit labels read larger/clearer
+        // (also lowers the effective min-zoom floor: 13px clears the floor
+        // below at zoom ~0.31 vs ~0.36 for 11px).
+        'font-size': '13px',
         // Obsidian-style: hide node labels when zoomed out (effective font
-        // < 8px) so the full graph reads as a clean star map, and fade them
-        // in as the user zooms toward a region.
-        'min-zoomed-font-size': 8,
+        // below this floor) so the full graph reads as a clean star map, and
+        // fade them in as the user zooms toward a region. Lowered 8→4 on
+        // 2026-07-20: the old 8 hid every label below zoom ~0.6–0.73, so the
+        // typical wide default fit (~0.4) showed no names at all; 4 clears the
+        // floor at that fit so the big (size≥20) nodes label up.
+        'min-zoomed-font-size': 4,
         'font-family': fontSerif,
         color: (ele: cytoscape.NodeSingular) =>
           labels[ele.data('entityType') as string] ?? fgPrimary,
@@ -170,13 +178,14 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'text-opacity': 0,
       },
     },
-    // V1: inferred edges distinguish via color + opacity, NOT dashed.
+    // Inferred edges: warning color + dashed line to read as "speculative,
+    // not a confirmed relation" (KG redesign brief §4 / canvas legend).
     // width = 1 + confidence × 1.6, opacity = 0.42 + confidence × 0.25
     {
       selector: 'edge[?inferred]',
       style: {
-        'line-style': 'solid',
-        'line-color': accent,
+        'line-style': 'dashed',
+        'line-color': warning,
         width: ((ele: cytoscape.EdgeSingular) =>
           1 + (Number(ele.data('confidence')) || 0) * 1.6) as cytoscape.Css.PropertyValueEdge<number>,
         opacity: ((ele: cytoscape.EdgeSingular) =>
@@ -187,7 +196,7 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
     {
       selector: 'edge[?inferred].highlighted',
       style: {
-        'line-color': accent,
+        'line-color': warning,
         opacity: 1,
         width: 2,
       },
@@ -247,15 +256,18 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'text-opacity': 1,
       },
     },
-    // Faction rivalry edges (community mode) — red dashed line
+    // Faction rivalry edges (community mode) — red dashed line.
+    // Cytoscape only accepts hex/rgb, not var() strings — read the token
+    // via getComputedStyle like every other color in this stylesheet
+    // (this raw var() string was the source of the console warning spam).
     {
       selector: 'edge[?isRivalry]',
       style: {
-        'line-color': 'var(--color-error, #ef4444)',
-        'target-arrow-color': 'var(--color-error, #ef4444)',
+        'line-color': error,
+        'target-arrow-color': error,
         'line-style': 'dashed',
         opacity: 0.7,
-        color: 'var(--color-error, #ef4444)',
+        color: error,
       },
     },
   ];

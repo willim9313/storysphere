@@ -1,19 +1,27 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
-import { Plus, Minus, X, Loader } from 'lucide-react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Plus, Minus, X, Loader, Shapes } from 'lucide-react';
+import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
-import { toCytoscapeElements, toClusteredCytoscapeElements } from '@/lib/graphTransform';
-import { byCommunity, byType, isSuperNodeId } from '@/services/kgClustering';
+import {
+  toCytoscapeElements,
+  toClusteredCytoscapeElements,
+  partitionOrphanNodes,
+  classifyRelationLabel,
+  POSITIVE_RELATION_LABELS,
+  NEGATIVE_RELATION_LABELS,
+  type OrphanNode,
+} from '@/lib/graphTransform';
+import { byCommunity, byType, factionChapterParam, isSuperNodeId } from '@/services/kgClustering';
 import { fetchFactionAnalysis } from '@/api/factions';
 import { GraphCanvas, type GraphCanvasHandle, type ViewportSnapshot } from '@/components/graph/GraphCanvas';
 import { GraphOnboardingHero } from '@/components/graph/GraphOnboardingHero';
-import { GraphToolbar, type AnimationMode, type ClusterMode } from '@/components/graph/GraphToolbar';
+import { GraphToolbar, resolveInferenceState, type AnimationMode, type ClusterMode } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
 import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
 import { LensCard, type TimelineState } from '@/components/graph/LensCard';
@@ -22,9 +30,9 @@ import { MiniMap } from '@/components/graph/MiniMap';
 import { SearchDropdown } from '@/components/graph/SearchDropdown';
 import { ClusterOverviewPanel, type FactionSettings } from '@/components/graph/ClusterOverviewPanel';
 import { FactionCanvas, layoutFactions } from '@/components/graph/FactionCanvas';
-import { BreadcrumbBar } from '@/components/graph/BreadcrumbBar';
 import { EntityComparePanel } from '@/components/graph/EntityComparePanel';
 import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
+import { PairModeOverlay, type PairSubMode } from '@/components/graph/PairModeOverlay';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
@@ -32,13 +40,26 @@ import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
 import { fetchChapters } from '@/api/chapters';
 import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
-import { runInference } from '@/api/graph';
-import type { EntityType, GraphNode, EntityChunkItem } from '@/api/types';
+import { runInference, fetchInferredRelations, fetchGraphData } from '@/api/graph';
+import { pairEvolution, shortestPath, isInsufficientChange } from '@/lib/graphPair';
+import type { EntityType, GraphNode, GraphData, EntityChunkItem } from '@/api/types';
 
 const readCssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 const ALL_TYPES = new Set<string>(['character', 'location', 'concept', 'event', 'organization', 'object', 'other']);
 const MULTI_SELECT_CAP = 2;
+
+// Matches the abbreviated --graph-{key}-* token keys (see tokens.css / same
+// map in LegendCard.tsx) used to color the orphan drawer's pill dots.
+const ORPHAN_TYPE_KEY: Record<string, string> = {
+  character: 'char',
+  location: 'loc',
+  organization: 'org',
+  object: 'obj',
+  concept: 'con',
+  event: 'evt',
+  other: 'other',
+};
 
 type RightPanel = 'analysis' | 'paragraphs' | null;
 
@@ -57,7 +78,9 @@ export default function GraphPage() {
   const { theme } = useTheme();
 
   const [timelineState, setTimelineState] = useState<TimelineState | null>(null);
-  const [animationMode, setAnimationMode] = useState<AnimationMode>('fade');
+  // C7 裁決：移除「淡入/逐個」動畫模式 UI，固定淡入。GraphCanvas 的
+  // AnimationMode prop/型別維持不變，只是不再從使用者輸入。
+  const animationMode: AnimationMode = 'fade';
   const [showInferred, setShowInferred] = useState(false);
   const [selectedInferredId, setSelectedInferredId] = useState<string | null>(null);
   const [inferredReviewOpen, setInferredReviewOpen] = useState(false);
@@ -68,16 +91,30 @@ export default function GraphPage() {
   const [clusterDrillIn, setClusterDrillIn] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
+  // Entity-detail「加入比較」flow: the first pick is held here; the next plain
+  // node tap completes the pair and opens the compare panel.
+  const [compareArmed, setCompareArmed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [visibleTypes, setVisibleTypes] = useState<Set<string>>(new Set(ALL_TYPES));
   const [rightPanel, setRightPanel] = useState<RightPanel>(null);
   const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
+  const [misbeliefEventIds, setMisbeliefEventIds] = useState<Set<string>>(new Set());
   const [bookmarkedIds, setBookmarkedIds] = useLocalStorage<string[]>(
     `graph:${bookId ?? '-'}:bookmarks`,
     [],
   );
   const [viewportSnap, setViewportSnap] = useState<ViewportSnapshot | null>(null);
+  const [orphanOpen, setOrphanOpen] = useState(false);
+
+  // Phase 5: entity-pair mode (F1 evolution / F2 path tracing) — exclusive
+  // overlay driven from the existing multi-select compare panel.
+  const [pairState, setPairState] = useState<{
+    a: GraphNode;
+    b: GraphNode;
+    subMode: PairSubMode;
+    step: number;
+  } | null>(null);
 
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
@@ -89,9 +126,56 @@ export default function GraphPage() {
     enabled: !!bookId,
   });
 
-  // Safe default: only score new entity pairs; preserves any existing
-  // adopted/rejected decisions. The InferredEdgePanel exposes a separate
-  // affordance for the destructive force_refresh=true path.
+  const pairTotalChapters = chapters?.length ?? 0;
+
+  // Per-chapter cumulative graph snapshots (Phase 5 F1) — same query key
+  // shape as useGraphData so this shares its cache instead of refetching.
+  // Only enabled while pair mode is active.
+  const pairSnapshotQueries = useQueries({
+    queries: Array.from({ length: pairTotalChapters }, (_, i) => i + 1).map((ch) => ({
+      queryKey: ['books', bookId, 'graph', 'chapter', ch, false],
+      queryFn: () => fetchGraphData(bookId!, { mode: 'chapter', position: ch }, false),
+      enabled: !!pairState && !!bookId,
+    })),
+  });
+
+  const pairSnapshotsByChapter = useMemo(
+    () =>
+      pairSnapshotQueries.map((q, i) => ({
+        chapter: i + 1,
+        graph: q.data as GraphData | undefined,
+      })),
+    [pairSnapshotQueries],
+  );
+
+  const pairSteps = useMemo(() => {
+    if (!pairState) return [];
+    return pairEvolution(pairSnapshotsByChapter, pairState.a.id, pairState.b.id);
+  }, [pairState, pairSnapshotsByChapter]);
+
+  const pairInsufficientChange = useMemo(() => isInsufficientChange(pairSteps), [pairSteps]);
+
+  const pairPath = useMemo(() => {
+    if (!pairState || !data) return null;
+    return shortestPath(data, pairState.a.id, pairState.b.id);
+  }, [pairState, data]);
+
+  // Node lookup for the overlay — full graph first, then snapshot nodes as a
+  // fallback in case a common-neighbor id hasn't surfaced in `data` yet.
+  const pairNodeById = useMemo(() => {
+    const map = new Map<string, GraphNode>();
+    for (const n of data?.nodes ?? []) map.set(n.id, n);
+    for (const snap of pairSnapshotsByChapter) {
+      for (const n of snap.graph?.nodes ?? []) {
+        if (!map.has(n.id)) map.set(n.id, n);
+      }
+    }
+    return map;
+  }, [data, pairSnapshotsByChapter]);
+
+  // Same call serves both the idle-state "執行推論" and the ready-state
+  // "安全重跑" menu item — both only score new entity pairs and preserve
+  // existing adopted/rejected decisions.
   const inferMutation = useMutation({
     mutationFn: () => runInference(bookId!),
     onSuccess: () => {
@@ -100,6 +184,45 @@ export default function GraphPage() {
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
     },
   });
+
+  // Destructive rerun: bypasses skip list, resets every record (incl. past
+  // adopt/reject decisions) back to PENDING. Gated behind confirm().
+  const forceRerunMutation = useMutation({
+    mutationFn: () => runInference(bookId!, true),
+    onSuccess: () => {
+      setShowInferred(true);
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
+    },
+  });
+
+  const handleForceRerun = useCallback(() => {
+    const ok = globalThis.confirm(t('v1.inferred.review.rerunForceConfirm'));
+    if (ok) forceRerunMutation.mutate();
+  }, [forceRerunMutation, t]);
+
+  // Toolbar's three-state inference control (brief §4: idle / running /
+  // ready-with-records). `pendingCount`'s query key intentionally matches
+  // InferredEdgePanel's so the two share one cache entry instead of double-
+  // fetching when the panel is open. `allInferredData.total` (unfiltered)
+  // is the "有紀錄" signal for idle vs ready.
+  const { data: pendingInferredData } = useQuery({
+    queryKey: ['books', bookId, 'inferred-relations', 'pending'],
+    queryFn: () => fetchInferredRelations(bookId!, 'pending'),
+    enabled: !!bookId,
+  });
+  const { data: allInferredData } = useQuery({
+    queryKey: ['books', bookId, 'inferred-relations', 'all'],
+    queryFn: () => fetchInferredRelations(bookId!),
+    enabled: !!bookId,
+  });
+  const pendingCount = pendingInferredData?.total ?? 0;
+  const inferredRecordTotal = allInferredData?.total ?? 0;
+  const decidedCount = Math.max(0, inferredRecordTotal - pendingCount);
+  const inferenceState = resolveInferenceState(
+    inferMutation.isPending || forceRerunMutation.isPending,
+    inferredRecordTotal,
+  );
 
   const inferredCount = useMemo(
     () => data?.edges.filter((e) => e.inferred).length ?? 0,
@@ -119,6 +242,7 @@ export default function GraphPage() {
   });
 
   // Faction analysis — only fetched when community mode is active.
+  const factionChapter = factionChapterParam(timelineState);
   const { data: factionData, isFetching: isFactionFetching } = useQuery({
     queryKey: [
       'books',
@@ -127,9 +251,11 @@ export default function GraphPage() {
       'factions',
       factionApplied.resolution,
       factionApplied.minClusterSize,
+      factionChapter,
     ],
     queryFn: () =>
       fetchFactionAnalysis(bookId!, {
+        chapter: factionChapter,
         resolution: factionApplied.resolution,
         minClusterSize: factionApplied.minClusterSize,
       }),
@@ -182,10 +308,21 @@ export default function GraphPage() {
     return toCytoscapeElements(data);
   }, [data, clusteredGraph, t]);
 
+  // Degree-0 entities (never appear in any relation) are pulled out of the
+  // canvas element list — rendering them left a floating grid next to the
+  // main graph (brief §3-3). Computed from the full (unfiltered) element set
+  // so toggling type/search filters never turns a real orphan back into a
+  // false one, or vice versa. Only applies to individual view — cluster
+  // super-nodes aggregate everything, so there's no orphan concept there.
+  const { connected: connectedElements, orphans } = useMemo(() => {
+    if (clusteredGraph) return { connected: elements, orphans: [] as OrphanNode[] };
+    return partitionOrphanNodes(elements);
+  }, [elements, clusteredGraph]);
+
   const filteredElements = useMemo(() => {
     const lowerQ = searchQuery.toLowerCase();
     const visibleNodeIds = new Set(
-      elements
+      connectedElements
         .filter((el) => {
           if (el.group !== 'nodes') return false;
           if (el.data.cluster) return true; // cluster super-nodes always visible
@@ -196,13 +333,33 @@ export default function GraphPage() {
         })
         .map((el) => el.data.id as string),
     );
-    return elements.filter((el) => {
+    return connectedElements.filter((el) => {
       if (el.group === 'edges') {
         return visibleNodeIds.has(el.data.source as string) && visibleNodeIds.has(el.data.target as string);
       }
       return visibleNodeIds.has(el.data.id as string);
     });
-  }, [elements, searchQuery, visibleTypes]);
+  }, [connectedElements, searchQuery, visibleTypes]);
+
+  // Edge semantic coloring (brief §3-8: individual view edges were all one
+  // muted color). `edge.label` is the raw RelationType enum value; classify
+  // it into a color bucket and read the actual token hex via readCssVar
+  // (cytoscape only accepts hex/rgb). Inferred edges are excluded — they
+  // keep their existing accent treatment from cytoscapeConfig.ts untouched.
+  const relationEdgeStylesheet = useMemo(() => {
+    const bucketColor: Record<'positive' | 'negative', string> = {
+      positive: readCssVar('--color-success') || '#3f7d5c',
+      negative: readCssVar('--color-error') || '#b3454a',
+    };
+    return [...POSITIVE_RELATION_LABELS, ...NEGATIVE_RELATION_LABELS].map((label) => {
+      const bucket = classifyRelationLabel(label) as 'positive' | 'negative';
+      return {
+        selector: `edge[label = "${label}"][!inferred]`,
+        style: { 'line-color': bucketColor[bucket] } as Record<string, unknown>,
+      };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars when the theme switches
+  }, [theme]);
 
   // Epistemic dim: greying selected character's unknown nodes
   const epistemicStylesheet = useMemo(() => {
@@ -222,12 +379,49 @@ export default function GraphPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars (getComputedStyle reads the live data-theme) when the theme switches
   }, [unknownEntityIds, theme]);
 
-  // Auto-select entity from query param
+  // Misbelief markers (LensCard epistemic tab "標記角色誤信" toggle): warning-
+  // colored border on the event node(s) each misbelief traces back to.
+  // Rendered after epistemicStylesheet so its border-color wins on nodes
+  // that are both "unknown" (dashed) and a misbelief source.
+  const misbeliefStylesheet = useMemo(() => {
+    if (misbeliefEventIds.size === 0) return [];
+    const warn = readCssVar('--color-warning');
+    return Array.from(misbeliefEventIds).map((id) => ({
+      selector: `node[id = "${id}"]`,
+      style: {
+        'border-color': warn,
+        'border-width': 3,
+      } as Record<string, unknown>,
+    }));
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars when the theme switches
+  }, [misbeliefEventIds, theme]);
+
+  // F4 deep-link restore (?entity=&mode=&chapter=): seeds selection + cluster
+  // mode from the shareable URL on load. `entity` keeps applying whenever
+  // `data` becomes available (unchanged from before); `mode` is applied only
+  // once, guarded by a ref, so it doesn't fight the user's own toolbar
+  // clicks afterwards. `chapter` is read separately below and handed to
+  // LensCard, which seeds the timeline itself.
+  const deepLinkModeAppliedRef = useRef(false);
   useEffect(() => {
     if (!data) return;
     const entityId = searchParams.get('entity');
     if (entityId) setSelectedNodeId(entityId);
-  }, [data, searchParams]);
+    if (!deepLinkModeAppliedRef.current) {
+      deepLinkModeAppliedRef.current = true;
+      const modeParam = searchParams.get('mode');
+      if (modeParam === 'type' || modeParam === 'community') {
+        setClusterMode(modeParam);
+      }
+    }
+  }, [data, searchParams, setClusterMode]);
+
+  const deepLinkChapter = useMemo(() => {
+    const raw = searchParams.get('chapter');
+    if (!raw) return undefined;
+    const n = parseInt(raw, 10);
+    return Number.isNaN(n) ? undefined : n;
+  }, [searchParams]);
 
   // Multi-select changes → clear single selection mode
   const handleNodeTap = useCallback(
@@ -238,6 +432,15 @@ export default function GraphPage() {
           const sn = clusteredGraph.superNodes.find((s) => s.id === nodeId);
           if (sn) setClusterDrillIn(sn.clusterType);
         }
+        return;
+      }
+      // 「加入比較」pending: the panel armed a first pick — this plain tap
+      // completes the pair and opens the compare panel.
+      if (compareArmed && !mods.shift) {
+        setSelectedNodeIds((prev) => (prev.includes(nodeId) ? prev : [...prev, nodeId]));
+        setCompareArmed(false);
+        setSelectedNodeId(null);
+        setRightPanel(null);
         return;
       }
       if (mods.shift) {
@@ -254,8 +457,16 @@ export default function GraphPage() {
         setRightPanel(null);
       }
     },
-    [clusteredGraph],
+    [clusteredGraph, compareArmed],
   );
+
+  // 「加入比較」— hold the current entity as the first comparison pick; the
+  // next node tap completes the pair (see handleNodeTap).
+  const handleAddToCompare = useCallback(() => {
+    if (!selectedNodeId) return;
+    setSelectedNodeIds([selectedNodeId]);
+    setCompareArmed(true);
+  }, [selectedNodeId]);
 
   const handleEdgeTap = useCallback((_edgeId: string, inferredId: string | null) => {
     if (inferredId) {
@@ -279,8 +490,12 @@ export default function GraphPage() {
     setVisibleTypes(new Set(ALL_TYPES));
     setSelectedNodeId(null);
     setSelectedNodeIds([]);
+    setCompareArmed(false);
     setRightPanel(null);
     setClusterDrillIn(null);
+    // 重置也還原視野 — 選取節點會把鏡頭 zoom 到 1.4，若不 fit 回全圖，
+    // 重置後畫面停在原地，看起來像按鈕沒作用（canvas 設計即為「重設視圖」）。
+    canvasRef.current?.fitView();
   }, []);
 
   const handleViewportChange = useCallback((snap: ViewportSnapshot) => {
@@ -301,6 +516,15 @@ export default function GraphPage() {
   const selectedNode: GraphNode | null = useMemo(() => {
     if (!selectedNodeId || !data) return null;
     return data.nodes.find((n) => n.id === selectedNodeId) ?? null;
+  }, [selectedNodeId, data]);
+
+  // Relation count (graph degree) of the selected node in the current graph.
+  const selectedRelationCount = useMemo(() => {
+    if (!selectedNodeId || !data) return 0;
+    return data.edges.reduce(
+      (n, e) => n + (e.source === selectedNodeId || e.target === selectedNodeId ? 1 : 0),
+      0,
+    );
   }, [selectedNodeId, data]);
 
   const compareNodes = useMemo<[GraphNode, GraphNode] | null>(() => {
@@ -324,23 +548,6 @@ export default function GraphPage() {
       setPageContext({ selectedEntity: undefined });
     }
   }, [selectedNode, setPageContext]);
-
-  // Breadcrumb items for drill-in
-  const breadcrumbItems = useMemo(() => {
-    if (clusterMode === 'node') return [];
-    const modeLabelKey =
-      clusterMode === 'community' ? 'v1.cluster.mode.community' : 'v1.cluster.mode.type';
-    const items = [
-      { label: t('toolbar.graphRoot', '知識圖譜'), onClick: () => { setClusterMode('node'); setClusterDrillIn(null); } },
-      { label: t(modeLabelKey), onClick: clusterDrillIn ? () => setClusterDrillIn(null) : undefined },
-    ];
-    if (clusterDrillIn) {
-      const sn = clusteredGraph?.superNodes.find((s) => s.clusterType === clusterDrillIn);
-      const drillLabel = sn?.label ?? t(`entityTypes.${clusterDrillIn}`);
-      items.push({ label: drillLabel, onClick: undefined });
-    }
-    return items;
-  }, [clusterMode, clusterDrillIn, clusteredGraph, t, setClusterMode]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;
@@ -366,6 +573,7 @@ export default function GraphPage() {
   const bottomRightAnchor = rightOpen ? 16 + 280 + rightPanelExtraWidth : 16;
 
   const isCommunityMode = clusterMode === 'community';
+  const pairModeActive = !!pairState;
 
   return (
     <div className="relative h-full w-full">
@@ -391,11 +599,17 @@ export default function GraphPage() {
           selectedNodeId={selectedNodeId}
           selectedNodeIds={selectedNodeIds}
           animationMode={animationMode}
-          extraStylesheet={epistemicStylesheet}
+          extraStylesheet={[...relationEdgeStylesheet, ...epistemicStylesheet, ...misbeliefStylesheet]}
           onViewportChange={handleViewportChange}
         />
       )}
 
+      {/* Phase 5 exclusive mode: while entity-pair mode is active, the toolbar,
+          lenses, mini-map/stats, and right-side panels below are all
+          suspended (not rendered) rather than mutated — their own state is
+          untouched, so exiting pair mode restores them for free. */}
+      {!pairModeActive && (
+        <>
       {/* Toolbar (top-left) */}
       <GraphToolbar
         searchQuery={searchQuery}
@@ -414,18 +628,17 @@ export default function GraphPage() {
           setSelectedNodeId(null);
           setSelectedNodeIds([]);
         }}
-        animationMode={animationMode}
-        onAnimationModeChange={setAnimationMode}
+        inferenceState={inferenceState}
+        pendingCount={pendingCount}
+        decidedCount={decidedCount}
         showInferred={showInferred}
-        inferredCount={inferredCount}
-        onShowInferredChange={(v) => {
-          setShowInferred(v);
-          setInferredReviewOpen(v);
-          if (!v) setSelectedInferredId(null);
-        }}
+        onShowInferredChange={setShowInferred}
         onRunInference={() => inferMutation.mutate()}
-        isRunningInference={inferMutation.isPending}
-        hasInferredData={inferMutation.data !== undefined || inferredCount > 0}
+        onSafeRerun={() => inferMutation.mutate()}
+        onForceRerun={handleForceRerun}
+        onOpenReview={() => setInferredReviewOpen(true)}
+        chapterCount={chapters?.length ?? 0}
+        nodeCount={data?.nodes.length ?? 0}
       />
 
       {/* Search dropdown (Scenario D) */}
@@ -446,30 +659,24 @@ export default function GraphPage() {
         }}
       />
 
-      {/* Breadcrumb (Scenario C) */}
-      <BreadcrumbBar items={breadcrumbItems} />
 
-      {/* Legend (top-right) — shifts left when right panel is open */}
-      <div
-        className="absolute z-10"
-        style={{
-          top: 16,
-          right: bottomRightAnchor,
-          transition: 'right var(--transition-normal, 250ms) ease',
-        }}
-      >
-        <LegendCard
-          graph={data}
-          visibleTypes={visibleTypes}
-          onTypeToggle={handleTypeToggle}
-          inferredCount={inferredCount}
-          inferredVisible={showInferred}
-          onInferredToggle={() => {
-            const v = !showInferred;
-            setShowInferred(v);
-            setInferredReviewOpen(v);
+      {/* Orphan drawer (top-right) — shifts left when right panel is open */}
+      {clusterMode === 'node' && orphans.length > 0 && (
+        <div
+          className="absolute z-10 flex flex-col items-end"
+          style={{
+            top: 16,
+            right: bottomRightAnchor,
+            transition: 'right var(--transition-normal, 250ms) ease',
           }}
-        />
+        >
+          <OrphanDrawer orphans={orphans} open={orphanOpen} onToggle={() => setOrphanOpen((v) => !v)} />
+        </div>
+      )}
+
+      {/* Legend bar (bottom, just right of the LensCard) — design-canvas layout */}
+      <div className="absolute z-10" style={{ bottom: 16, left: 348 }}>
+        <LegendCard />
       </div>
 
       {/* Lens card (bottom-left) — consolidates timeline / epistemic / bookmarks */}
@@ -482,9 +689,22 @@ export default function GraphPage() {
           onBookmarkClick={(id) => {
             setSelectedNodeId(id);
             setSelectedNodeIds([]);
+            // Aggregate views (type/community) have no individual node to
+            // select — clicking a bookmark there switches back to the
+            // individual view first, same as drilling into a faction member.
+            setClusterMode('node');
+            setClusterDrillIn(null);
           }}
           onTimelineChange={setTimelineState}
           onUnknownEntityIds={setUnknownEntityIds}
+          onMisbeliefEventIds={setMisbeliefEventIds}
+          totalChapters={chapters?.length ?? 0}
+          clusterMode={clusterMode}
+          onBackToIndividual={() => {
+            setClusterMode('node');
+            setClusterDrillIn(null);
+          }}
+          deepLinkChapter={deepLinkChapter}
         />
       )}
 
@@ -636,6 +856,14 @@ export default function GraphPage() {
           a={compareNodes[0]}
           b={compareNodes[1]}
           onClose={() => setSelectedNodeIds([])}
+          onEnterPairMode={() =>
+            setPairState({
+              a: compareNodes[0],
+              b: compareNodes[1],
+              subMode: 'evo',
+              step: Math.max(pairTotalChapters, 1),
+            })
+          }
         />
       )}
 
@@ -709,14 +937,18 @@ export default function GraphPage() {
               key={selectedNode.id}
               node={selectedNode}
               bookId={bookId}
+              relationCount={selectedRelationCount}
               isBookmarked={bookmarkedIds.includes(selectedNode.id)}
               onBookmarkToggle={() =>
                 bookmarkedIds.includes(selectedNode.id)
                   ? handleBookmarkRemove(selectedNode.id)
                   : handleBookmarkAdd(selectedNode.id)
               }
+              onAddToCompare={handleAddToCompare}
+              isComparePending={compareArmed}
               onClose={() => {
                 setSelectedNodeId(null);
+                setCompareArmed(false);
                 setRightPanel(null);
               }}
               onShowAnalysis={() => setRightPanel('analysis')}
@@ -749,6 +981,131 @@ export default function GraphPage() {
               onClose={() => setRightPanel(null)}
             />
           )}
+        </div>
+      )}
+        </>
+      )}
+
+      {/* Phase 5: entity-pair mode overlay (F1 evolution / F2 path tracing) */}
+      {pairState && (
+        <PairModeOverlay
+          a={pairState.a}
+          b={pairState.b}
+          subMode={pairState.subMode}
+          onSubModeChange={(subMode) => setPairState((prev) => (prev ? { ...prev, subMode } : prev))}
+          onExit={() => setPairState(null)}
+          totalChapters={pairTotalChapters}
+          step={pairState.step}
+          onStepChange={(step) => setPairState((prev) => (prev ? { ...prev, step } : prev))}
+          steps={pairSteps}
+          nodeById={pairNodeById}
+          path={pairPath}
+          insufficientChange={pairInsufficientChange}
+        />
+      )}
+    </div>
+  );
+}
+
+// "未連結實體" drawer — degree-0 entities are hidden from the canvas (see
+// `connectedElements` above); this surfaces them as a small popover instead
+// of a floating grid next to the graph (brief §3-3).
+function OrphanDrawer({
+  orphans,
+  open,
+  onToggle,
+}: {
+  orphans: OrphanNode[];
+  open: boolean;
+  onToggle: () => void;
+}) {
+  const { t } = useTranslation('graph');
+  return (
+    <div className="relative">
+      <button
+        onClick={onToggle}
+        className="flex items-center"
+        style={{
+          gap: 6,
+          padding: '6px 11px',
+          backgroundColor: 'var(--bg-primary)',
+          border: '1px solid var(--border)',
+          borderRadius: 'var(--radius-md)',
+          boxShadow: 'var(--shadow-sm)',
+          fontSize: 'var(--font-size-2xs)',
+          color: 'var(--fg-primary)',
+        }}
+      >
+        <Shapes size={14} style={{ color: 'var(--fg-secondary)' }} />
+        <span>{t('v1.orphan.button')}</span>
+        <span
+          className="tabular-nums"
+          style={{
+            padding: '0 6px',
+            borderRadius: 'var(--pill-radius, 999px)',
+            backgroundColor: 'var(--bg-tertiary)',
+            color: 'var(--fg-secondary)',
+          }}
+        >
+          {orphans.length}
+        </span>
+      </button>
+      {open && (
+        <div
+          className="absolute"
+          style={{
+            top: '100%',
+            right: 0,
+            marginTop: 6,
+            width: 230,
+            padding: 12,
+            backgroundColor: 'var(--bg-primary)',
+            border: '1px solid var(--border)',
+            borderRadius: 'var(--radius-md)',
+            boxShadow: 'var(--shadow-md, var(--shadow-sm))',
+            zIndex: 20,
+          }}
+        >
+          <div
+            style={{
+              fontSize: 'var(--font-size-2xs)',
+              color: 'var(--fg-muted)',
+              lineHeight: 1.5,
+              marginBottom: 8,
+            }}
+          >
+            {t('v1.orphan.description')}
+          </div>
+          <div className="flex flex-col" style={{ gap: 5, maxHeight: 220, overflowY: 'auto' }}>
+            {orphans.map((o) => {
+              const dotKey = ORPHAN_TYPE_KEY[o.type] ?? 'other';
+              return (
+                <span
+                  key={o.id}
+                  className="inline-flex items-center self-start"
+                  style={{
+                    gap: 5,
+                    padding: '3px 9px',
+                    borderRadius: 'var(--pill-radius, 999px)',
+                    border: '1px solid var(--border)',
+                    fontSize: 'var(--font-size-2xs)',
+                    color: 'var(--fg-secondary)',
+                  }}
+                >
+                  <span
+                    className="inline-block rounded-full flex-shrink-0"
+                    style={{
+                      width: 8,
+                      height: 8,
+                      backgroundColor: `var(--graph-${dotKey}-fill)`,
+                      border: `1px solid var(--graph-${dotKey}-stroke)`,
+                    }}
+                  />
+                  {o.name}
+                </span>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>

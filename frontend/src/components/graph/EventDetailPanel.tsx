@@ -46,8 +46,8 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
         style={{ borderBottom: '1px solid var(--panel-border)' }}
       >
         <h3
-          className="text-sm font-semibold truncate"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--panel-fg)' }}
+          className="font-semibold truncate"
+          style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', color: 'var(--panel-fg)' }}
         >
           {node.name}
         </h3>
@@ -112,7 +112,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
             <ul className="space-y-1">
               {detail.participants.map((p) => (
                 <li key={p.id} className="flex items-center gap-1.5">
-                  <span className={`pill pill-${p.type === 'character' ? 'char' : p.type === 'location' ? 'loc' : p.type === 'concept' ? 'con' : 'evt'}`} style={{ fontSize: '10px' }}>
+                  <span className={`pill pill-${p.type === 'character' ? 'char' : p.type === 'location' ? 'loc' : p.type === 'concept' ? 'con' : 'evt'}`} style={{ fontSize: 'var(--font-size-2xs)' }}>
                     <span className="pill-dot" />
                     {p.type}
                   </span>
@@ -125,7 +125,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
           )}
           {detail?.location && (
             <div className="mt-2 flex items-center gap-1.5">
-              <span className="pill pill-loc" style={{ fontSize: '10px' }}>
+              <span className="pill pill-loc" style={{ fontSize: 'var(--font-size-2xs)' }}>
                 <span className="pill-dot" />
                 location
               </span>

@@ -68,7 +68,15 @@
     "bookmark": "Bookmark",
     "bookmarked": "Bookmarked",
     "regenerate": "Regenerate",
-    "paragraphsCount": "{{count}}"
+    "paragraphsCount": "{{count}}",
+    "factionMeta": "Faction · {{label}}",
+    "unaffiliated": "Unaffiliated",
+    "statAppearances": "Appearances",
+    "statRelations": "Relations",
+    "statFirstChapter": "First Chapter",
+    "addToCompare": "Add to Compare",
+    "comparePending": "Pick one more",
+    "chunkRef": "Ch.{{chapter}} · Chunk {{order}}"
   },
   "entity": {
     "appearances": "Appears in {{count}} paragraphs",
@@ -109,7 +117,7 @@
   "v1": {
     "toolbar": {
       "searchPlaceholder": "Search entities…",
-      "reset": "Reset",
+      "reset": "Reset View",
       "inferredChip": "Inferred · {{n}}"
     },
     "cluster": {
@@ -131,13 +139,18 @@
       "toggleSort": "Toggle sort",
       "cohesion": "Cohesion {{v}}",
       "unaffiliated": "Unaffiliated ({{n}})",
+      "communityScope": {
+        "heading": "Scope of this view",
+        "explain": "Clustering only counts positive relations between characters (e.g. alliance, family, friendship).",
+        "otherEntities": "{{n}} non-character/unclustered entities not shown in this view"
+      },
       "drillIn": {
         "summary": "Faction summary",
         "summaryBody": "{{n}} characters; core members {{top}}; cohesion {{cohesion}}.",
         "outward": "Outward relations ({{n}})"
       },
       "settings": {
-        "heading": "Cluster settings",
+        "heading": "Advanced: Cluster settings",
         "algorithm": "Algorithm",
         "resolution": "Resolution",
         "minSize": "Min cluster size",
@@ -162,8 +175,35 @@
       }
     },
     "inferred": {
+      "toolbar": {
+        "run": "Run Inference",
+        "running": "Running…",
+        "rerun": "Re-run Inference",
+        "pending": "Pending",
+        "showInferredEdges": "Show Inferred Edges",
+        "popover": {
+          "title": "Run Relation Inference",
+          "scopeLabel": "Scope",
+          "scopeValue": "Whole book ({{chapters}} chapters, {{nodes}} nodes)",
+          "algoLabel": "Algorithm",
+          "algoValue": "Common Neighbors + Adamic-Adar (pure graph theory, not LLM)",
+          "outputLabel": "Output",
+          "outputValue": "Candidate inferred relations awaiting review — adopt or reject each",
+          "costLabel": "Cost",
+          "costValue": "Fast · no token cost",
+          "cancel": "Cancel",
+          "start": "Start Inference"
+        },
+        "menu": {
+          "safeRerun": "Safe rerun",
+          "safeRerunDesc": "Only scores new entity pairs, keeps existing decisions",
+          "forceRerun": "Force rerun",
+          "forceRerunDesc": "Clears all {{n}} adopted/rejected decisions — cannot be undone"
+        }
+      },
       "review": {
         "title": "Inferred review · {{n}}",
+        "banner": "The following {{n}} are graph-theory inferred relations (not formal). Adopting promotes them to formal edges in the graph.",
         "evidence": "Evidence",
         "evidenceFallback": "{{common}} common neighbors · Adamic-Adar {{score}}",
         "adopt": "Adopt",
@@ -189,7 +229,13 @@
     },
     "legend": {
       "title": "Legend / Layers",
-      "inferred": "Inferred"
+      "inferred": "Inferred",
+      "edgeSemantics": "Edge semantics",
+      "edgeCooperative": "Cooperative",
+      "edgeHostile": "Hostile",
+      "edgeNeutral": "Neutral",
+      "edgeInferred": "Inferred",
+      "circleSizeHint": "Circle size = appearance frequency"
     },
     "lens": {
       "title": "Lens",
@@ -198,15 +244,56 @@
       "timeline": "Time Range",
       "epistemic": "Perspective",
       "bookmarks": "Bookmarks",
+      "tabTimeline": "Timeline",
+      "tabEpistemic": "Perspective",
+      "tabBookmarks": "Bookmarks",
       "chapter": "Chapter {{n}} / {{total}}",
       "allChapters": "All",
+      "noTimeline": "No timeline data available for this book yet.",
+      "storyModeLocked": "Story order isn't available yet — needs enough ranked events first",
+      "playbackStart": "Play chapter-by-chapter growth (F3)",
+      "playbackPause": "Pause playback",
+      "timelineGlobalNote": "Data-layer lens: applies to individual, type, and community views alike; faction grouping in community mode only counts characters who have appeared.",
+      "epistemicIntro": "See the world through one character's knowledge",
       "selectPerspective": "Choose perspective",
       "perspectiveOf": "{{name}}'s view",
       "perspectiveHint": "depends on ↑ chapter {{chapter}}",
       "clearPerspective": "Clear perspective",
       "noCharacters": "No characters available",
+      "epistemicToggleLabel": "Enable perspective",
+      "epistemicToggleDesc": "Dashes out unknown entities",
+      "epistemicKnownStat": "{{name}}'s known entities",
+      "epistemicFallbackAll": "Timeline is \"All\": perspective is computed against the book's final chapter, unaffected by chapter position.",
+      "epistemicFallbackChapter": "Bounded at chapter {{n}}: entities not yet introduced after chapter {{n}} are marked unknown from this character's perspective.",
+      "epistemicDisabledTitle": "Perspective only applies to the individual view",
+      "epistemicDisabledDesc": "Type / community views are aggregated — there's no single focal character to attach a perspective to. Your settings are kept; switching back to the individual view restores them automatically.",
+      "backToIndividual": "Back to individual view",
+      "misbeliefToggle": "Mark character misbeliefs",
+      "misbeliefToggleDesc": "Highlights misbelief-related event nodes with a warning color",
       "noBookmarks": "No bookmarked entities",
-      "removeBookmark": "Remove bookmark"
+      "removeBookmark": "Remove bookmark",
+      "bookmarkAggregateNote": "Aggregated view: clicking a bookmark switches back to the individual view and selects that entity.",
+      "bookmarkStorageNote": "Stored in this browser (localStorage)"
+    },
+    "orphan": {
+      "button": "Unlinked entities",
+      "description": "Not connected to any relation in this book — collapsed here instead of floating next to the main graph."
+    },
+    "pair": {
+      "enter": "Enter Pair Mode",
+      "title": "Relationship Evolution · {{a}} × {{b}}",
+      "modeLabel": "Sub-mode",
+      "modeEvo": "Evolution",
+      "modePath": "Path Tracing",
+      "exit": "Exit",
+      "chapterStep": "Chapter {{n}} / {{total}}",
+      "chapterProgress": "Chapter {{n}} / {{total}}",
+      "sideTitleEvo": "New This Chapter",
+      "sideTitlePath": "Path Nodes",
+      "noNewThisChapter": "No new shared neighbors this chapter.",
+      "overflowLabel": "+{{n}}",
+      "insufficientChange": "There isn't enough change in their shared neighbors to animate yet.",
+      "noPath": "No path connects these two entities."
     }
   }
 }
