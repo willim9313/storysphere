@@ -1027,11 +1027,11 @@
   background: var(--bg-secondary);
   overflow: hidden;
 }
-.ea-ov-map-band {
+.ea-ov-map-band { position: absolute; left: 0; right: 0; }
+.ea-ov-map-midline {
   position: absolute; left: 0; right: 0;
-  border-bottom: 1px dashed var(--border);
+  border-top: 1px dashed var(--border);
 }
-.ea-ov-map-band:last-of-type { border-bottom: none; }
 .ea-ov-map-band-label {
   position: absolute; left: 10px; top: 6px;
   font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);

@@ -523,8 +523,6 @@ export default function EventAnalysisPage() {
                 generatingId={generatingId}
                 onBatchAll={() => setConfirmBatchEep(true)}
                 isBatchRunning={isBatchRunning}
-                canCompare={canCompare}
-                onOpenCompare={() => setCompareOpen(true)}
               />
             ) : (
               // Only reached if the #6b list query itself failed (isLoading

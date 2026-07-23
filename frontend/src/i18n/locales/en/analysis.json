@@ -337,7 +337,6 @@
       "satelliteAbbr": "S",
       "filterKernel": "Kernel K",
       "filterSatellite": "Satellite S",
-      "filterUndetermined": "Undetermined ·",
       "groupLabel": "Group by",
       "groupByChapter": "Chapter",
       "groupByImportance": "Importance",
@@ -381,9 +380,8 @@
       "viewMap": "Story backbone",
       "viewRanking": "By importance",
       "map": {
-        "caption": "X = chapter order · bands = importance · colour = narrative mode · dashed = not yet analyzed. Each band grows to fit its densest chapter, so nodes never overlap.",
+        "caption": "X = chapter order · bands = importance (kernel above, satellite below; the centre line holds events whose importance is not yet judged) · colour = narrative mode · dashed = not yet analyzed. Each band grows to fit its densest chapter, so nodes never overlap.",
         "bandKernel": "Kernel K",
-        "bandUndetermined": "Undetermined ·",
         "bandSatellite": "Satellite S",
         "legendNarrative": "Narrative mode",
         "legendKernel": "Large circle = kernel event",
@@ -410,7 +408,6 @@
       "subtitle": "State change and impact, side by side",
       "close": "Close",
       "entry": "Compare",
-      "entryLong": "Compare two events",
       "needTwo": "Needs at least two analyzed events",
       "pick": "Pick event {{side}}",
       "noImpact": "No participant impact recorded for this event."

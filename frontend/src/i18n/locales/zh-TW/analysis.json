@@ -337,7 +337,6 @@
       "satelliteAbbr": "S",
       "filterKernel": "核心 K",
       "filterSatellite": "衛星 S",
-      "filterUndetermined": "未定 ·",
       "groupLabel": "分組",
       "groupByChapter": "章節序",
       "groupByImportance": "重要度",
@@ -381,9 +380,8 @@
       "viewMap": "故事骨幹圖",
       "viewRanking": "重要度排行",
       "map": {
-        "caption": "橫軸＝章節順序 · 縱向分帶＝重要度 · 顏色＝敘事模式 · 虛線圈＝尚未分析。每帶高度依該帶最密集的章節自動撐開，節點不重疊。",
+        "caption": "橫軸＝章節順序 · 縱向分帶＝重要度（核心在上、衛星在下，中央虛線上為尚未判定重要度者）· 顏色＝敘事模式 · 虛線圈＝尚未分析。每帶高度依該帶最密集的章節自動撐開，節點不重疊。",
         "bandKernel": "核心 K",
-        "bandUndetermined": "未定 ·",
         "bandSatellite": "衛星 S",
         "legendNarrative": "敘事模式",
         "legendKernel": "大圈 = 核心事件",
@@ -410,7 +408,6 @@
       "subtitle": "並排比較前後狀態與影響",
       "close": "關閉",
       "entry": "對比",
-      "entryLong": "對比兩事件",
       "needTwo": "需至少兩個已分析事件",
       "pick": "選擇事件 {{side}}",
       "noImpact": "此事件無參與者影響記錄。"

@@ -25,13 +25,15 @@ type Row =
   | { kind: 'analyzed'; id: string; item: AnalysisItem }
   | { kind: 'unanalyzed'; id: string; item: UnanalyzedEntity };
 
-const IMPORTANCE_CHIPS: ImportanceKey[] = ['KERNEL', 'SATELLITE', 'UNDETERMINED'];
+const IMPORTANCE_BUCKETS: ImportanceKey[] = ['KERNEL', 'SATELLITE', 'UNDETERMINED'];
+// The canvas offers only 核心 K / 衛星 S as filters. "Undetermined" is still a
+// grouping bucket — it just isn't a filter chip.
+const IMPORTANCE_CHIPS: ImportanceKey[] = ['KERNEL', 'SATELLITE'];
 const MODE_CHIPS: ModeKey[] = ['flashback', 'flashforward', 'parallel'];
 
-const IMPORTANCE_CHIP_KEY: Record<ImportanceKey, string> = {
+const IMPORTANCE_CHIP_KEY: Partial<Record<ImportanceKey, string>> = {
   KERNEL: 'event.list.filterKernel',
   SATELLITE: 'event.list.filterSatellite',
-  UNDETERMINED: 'event.list.filterUndetermined',
 };
 
 const IMPORTANCE_GROUP_KEY: Record<ImportanceKey, string> = {
@@ -96,7 +98,7 @@ export function EventGroupedList({
 
     const buckets = new Map<string, { label: string; rows: Row[] }>();
     if (groupBy === 'importance') {
-      for (const key of IMPORTANCE_CHIPS) {
+      for (const key of IMPORTANCE_BUCKETS) {
         const inBucket = rows.filter((r) => rowImportance(r) === key);
         if (inBucket.length) {
           buckets.set(`imp-${key}`, {
@@ -144,7 +146,7 @@ export function EventGroupedList({
               className={chipClass(impFilter.has(key))}
               onClick={() => setImpFilter((s) => toggle(s, key))}
             >
-              {t(IMPORTANCE_CHIP_KEY[key])}
+              {t(IMPORTANCE_CHIP_KEY[key] as string)}
             </button>
           ))}
           {MODE_CHIPS.map((key) => (

@@ -16,7 +16,8 @@ interface BandSpec {
   /** Vertical pitch per stacked node, including its label and gap. */
   rowH: number;
   labelled: boolean;
-  labelKey: string;
+  /** null → no band label; the canvas only labels 核心 K and 衛星 S. */
+  labelKey: string | null;
 }
 
 // Kernel on top, satellite at the bottom, and events whose importance is not
@@ -24,20 +25,12 @@ interface BandSpec {
 // unmeasured (see eventTypes.importanceRank).
 const BANDS: BandSpec[] = [
   { key: 'KERNEL', node: 34, rowH: 56, labelled: true, labelKey: 'event.overview.map.bandKernel' },
-  {
-    key: 'UNDETERMINED',
-    node: 18,
-    rowH: 24,
-    labelled: false,
-    labelKey: 'event.overview.map.bandUndetermined',
-  },
-  {
-    key: 'SATELLITE',
-    node: 22,
-    rowH: 28,
-    labelled: false,
-    labelKey: 'event.overview.map.bandSatellite',
-  },
+  // Events whose importance is not yet judged sit on the centre dashed line
+  // with no band label of their own — they are not "small satellites", they
+  // are unmeasured, and labelling them either way would be a claim the data
+  // does not support.
+  { key: 'UNDETERMINED', node: 18, rowH: 24, labelled: false, labelKey: null },
+  { key: 'SATELLITE', node: 22, rowH: 28, labelled: false, labelKey: 'event.overview.map.bandSatellite' },
 ];
 
 const BAND_PAD = 14;
@@ -60,7 +53,7 @@ interface PositionedNode {
 export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackboneMapProps>) {
   const { t } = useTranslation('analysis');
 
-  const { nodes, bandRows, chapters, height, undatedCount } = useMemo(() => {
+  const { nodes, bandRows, chapters, height, undatedCount, midline } = useMemo(() => {
     const placed = events.filter((e) => e.chapter !== null);
     const chapterList = [...new Set(placed.map((e) => e.chapter as number))].sort((a, b) => a - b);
     const chapterIndex = new Map(chapterList.map((c, i) => [c, i]));
@@ -99,9 +92,13 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
       }
     }
 
+    const undeterminedRow = rows.find((r) => r.spec.key === 'UNDETERMINED');
     return {
       nodes: out,
       bandRows: rows,
+      midline: undeterminedRow
+        ? undeterminedRow.top + undeterminedRow.height / 2
+        : cursor / 2,
       chapters: chapterList,
       height: cursor,
       undatedCount: events.length - placed.length,
@@ -126,9 +123,12 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
             className="ea-ov-map-band"
             style={{ top: `${row.top}px`, height: `${row.height}px` }}
           >
-            <span className="ea-ov-map-band-label">{t(row.spec.labelKey)}</span>
+            {row.spec.labelKey && (
+              <span className="ea-ov-map-band-label">{t(row.spec.labelKey)}</span>
+            )}
           </div>
         ))}
+        <div className="ea-ov-map-midline" style={{ top: `${midline}px` }} />
 
         {nodes.map((n) => (
           <button
