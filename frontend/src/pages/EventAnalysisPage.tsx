@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useLocation, Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
@@ -39,9 +39,31 @@ export default function EventAnalysisPage() {
   const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
-    (location.state as { selectId?: string } | null)?.selectId ?? null,
+  // Selection lives in the URL (`?event=`) so reload / share / back keep it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedEntityId = searchParams.get('event');
+  const setSelectedEntityId = useCallback(
+    (id: string | null, replace = false) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (id) next.set('event', id);
+          else next.delete('event');
+          return next;
+        },
+        { replace },
+      );
+    },
+    [setSearchParams],
   );
+
+  // Migrate legacy deep-links that pass the id via history state (graph /
+  // symbol pages still navigate that way) into the URL, once, on arrival.
+  const legacySelectId = (location.state as { selectId?: string } | null)?.selectId;
+  useEffect(() => {
+    if (legacySelectId && !selectedEntityId) setSelectedEntityId(legacySelectId, true);
+  }, [legacySelectId, selectedEntityId, setSelectedEntityId]);
+
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
