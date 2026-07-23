@@ -174,12 +174,38 @@
   避免實作端誤以為對比是第四個總覽視圖。
 - 對比下拉只列**已分析**事件；已分析 < 2 時入口 disabled 並提示。
 
-**U2. 驗證 `prior/subsequentEventIds` 實際填充率（實作 B5 前必做）**
-實測 n=1 為空。請批次生成 10–20 個事件後統計非空比例：
-- 若**填充率高** → B5 照設計實作。
-- 若**多數為空** → B5 降級（事件脈絡視圖退為次要、或先不做），
-  總覽維持「故事骨幹圖 + 重要度排行」兩視圖即可。
-- 一併確認 `event.participants` 是否正常帶入、`kg_service.get_entity_timeline` 是否有回值。
+**U2. ~~驗證填充率~~ → 已查明根因：`prior/subsequentEventIds` 恆為空，是持久化 bug（2026-07-23）**
+
+**不需要再花 LLM token 量測**——填充率必然是 0%，原因在 `KGService` 的存讀路徑：
+
+1. `add_event()` 把 event.id 追加到參與者的**圖節點屬性** `event_ids`
+   （[`kg_service.py:161-170`](../../backend/storysphere/services/kg_service.py#L161-L170)）
+2. 但 `save()` 只序列化 `entities` / `events` / `temporal_relations` / `edges`
+   （[`kg_service.py:548-566`](../../backend/storysphere/services/kg_service.py#L548-L566)），
+   **節點屬性 `event_ids` 從未被寫進 JSON**
+3. `load()` 用 `_entity_attrs(entity)` 重建節點屬性，而 `Entity` model 沒有 `event_ids` 欄位；
+   events 只塞回 `self._events` dict，**不重新掛回節點**
+   （[`kg_service.py:578-583`](../../backend/storysphere/services/kg_service.py#L578-L583)）
+
+⇒ 任何一次重啟／reload 之後，`get_events(entity_id)` 讀到的 `event_ids` 都是空 list
+⇒ `get_entity_timeline()` 恆回 `[]`
+⇒ `analysis_service.py:819-828` 的 prior/subsequent 迴圈一次都不會進
+⇒ **每個事件的 `priorEventIds` / `subsequentEventIds` 都是 `[]`**
+
+**佐證**：`var/knowledge_graph.json` 有 241 entities / 109 events，
+**109 個事件全部都有 participants**（資料本身完好），但整份 JSON 裡
+`event_ids` 這個字串一次都沒出現。快取中唯一一筆 EEP 的 prior/subsequent 也都是空。
+
+**修法（二選一，皆不動 API schema）**：
+- **(a) 最小修**：`load()` 還原 events 後補一段 re-link 迴圈，把 event.id 掛回參與者節點。
+  只補 `load()`，約 4 行。缺點：`add_event` 那份反正規化索引仍需與資料同步。
+- **(b) 拿掉索引**：`get_events(entity_id)` 改成直接掃
+  `[ev for ev in self._events.values() if entity_id in ev.participants]`。
+  一行取代三行，同時解掉「ingestion 時 event 先於 entity 加入就漏掛」的第二個破口；
+  `add_event` 的 `event_ids` 簿記會變成死碼（**需經使用者確認才可刪**）。n=109，掃描成本可忽略。
+
+**對 B5 的影響**：修好之前，事件脈絡視圖與「上下文位置」tab 必然是空狀態。
+**先修這個 bug，再實作 B5**；修完可用同一支腳本重新量填充率確認。
 
 **U3. 文件同步**（實作完成後）
 - 回寫 `docs/UI_SPEC.md §3.5`（新版面、路由）
