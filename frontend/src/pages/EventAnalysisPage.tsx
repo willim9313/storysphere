@@ -17,7 +17,6 @@ import { useBook } from '@/hooks/useBook';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import {
   triggerEventAnalysis,
-  deleteEventAnalysis,
   triggerBatchEventAnalysis,
   fetchEventAnalysisDetail,
 } from '@/api/analysis';
@@ -476,14 +475,10 @@ export default function EventAnalysisPage() {
         message={t('regenerateMessage')}
         onConfirm={() => {
           setConfirmRegenerate(false);
-          if (selectedEntityId && bookId) {
-            deleteEventAnalysis(bookId, selectedEntityId).then(() => {
-              queryClient.invalidateQueries({
-                queryKey: ['books', bookId, 'analysis', 'events'],
-              });
-              triggerMutation.mutate(selectedEntityId);
-            });
-          }
+          // `mode: 'full'` already forces a re-analysis server-side and only
+          // overwrites the cache once the new result lands, so deleting first
+          // would just throw away the old EEP if the run then fails.
+          if (selectedEntityId && bookId) triggerMutation.mutate(selectedEntityId);
         }}
         onCancel={() => setConfirmRegenerate(false)}
       />
