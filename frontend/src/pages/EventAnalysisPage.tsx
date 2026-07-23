@@ -10,6 +10,7 @@ import {
   Check,
   X,
   ArrowLeft,
+  Columns2,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -24,6 +25,7 @@ import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
 import { EventAnalysisDetail } from '@/components/analysis/EventAnalysisDetail';
 import { EventOverviewLanding } from '@/components/analysis/overview/EventOverviewLanding';
 import { EventGroupedList } from '@/components/analysis/EventGroupedList';
+import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import type { BatchEepResult } from '@/api/types';
@@ -77,6 +79,7 @@ export default function EventAnalysisPage() {
   const [batchSummary, setBatchSummary] = useState<BatchEepResult | null>(null);
   const [prevBatchProgress, setPrevBatchProgress] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
 
   useEffect(() => {
     if (book) {
@@ -228,6 +231,8 @@ export default function EventAnalysisPage() {
   // Search / importance / narrative filtering and grouping now live in
   // EventGroupedList; the page only owns the query string.
   const totalCount = (evtData?.analyzed.length ?? 0) + (evtData?.unanalyzed.length ?? 0);
+  // Comparison needs two events that actually have a #7d payload.
+  const canCompare = (evtData?.analyzed.length ?? 0) >= 2;
 
   if (isLoading) {
     return (
@@ -356,6 +361,15 @@ export default function EventAnalysisPage() {
                     <button
                       type="button"
                       className="ea-btn"
+                      disabled={!canCompare}
+                      title={canCompare ? undefined : t('event.compare.needTwo')}
+                      onClick={() => setCompareOpen(true)}
+                    >
+                      <Columns2 size={12} /> {t('event.compare.entry')}
+                    </button>
+                    <button
+                      type="button"
+                      className="ea-btn"
                       onClick={() => setConfirmRegenerate(true)}
                     >
                       <RefreshCw size={12} /> {t('regenerate')}
@@ -449,6 +463,8 @@ export default function EventAnalysisPage() {
                 generatingId={generatingId}
                 onBatchAll={() => setConfirmBatchEep(true)}
                 isBatchRunning={isBatchRunning}
+                canCompare={canCompare}
+                onOpenCompare={() => setCompareOpen(true)}
               />
             ) : (
               // Only reached if the #6b list query itself failed (isLoading
@@ -491,6 +507,16 @@ export default function EventAnalysisPage() {
           )}
         </div>
       </div>
+
+      {bookId && evtData && (
+        <EventCompareDrawer
+          open={compareOpen}
+          bookId={bookId}
+          analyzed={evtData.analyzed}
+          initialA={selectedEntityId}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmRegenerate}

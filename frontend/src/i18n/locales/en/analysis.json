@@ -398,6 +398,16 @@
       "generateGroup": "Generate {{count}} in group",
       "etaSeconds": "~{{n}}s estimated",
       "etaMinutes": "~{{n}} min estimated"
+    },
+    "compare": {
+      "title": "Compare events",
+      "subtitle": "State change and impact, side by side",
+      "close": "Close",
+      "entry": "Compare",
+      "entryLong": "Compare two events",
+      "needTwo": "Needs at least two analyzed events",
+      "pick": "Pick event {{side}}",
+      "noImpact": "No participant impact recorded for this event."
     }
   },
   "batch": {

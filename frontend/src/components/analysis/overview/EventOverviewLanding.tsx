@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BarChart3, Sparkles, Waypoints } from 'lucide-react';
+import { BarChart3, Columns2, Sparkles, Waypoints } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisListResponse } from '@/api/types';
 import { useTimeline } from '@/hooks/useTimeline';
@@ -17,6 +17,8 @@ interface EventOverviewLandingProps {
   generatingId: string | null;
   onBatchAll: () => void;
   isBatchRunning: boolean;
+  canCompare: boolean;
+  onOpenCompare: () => void;
 }
 
 export function EventOverviewLanding({
@@ -27,6 +29,8 @@ export function EventOverviewLanding({
   generatingId,
   onBatchAll,
   isBatchRunning,
+  canCompare,
+  onOpenCompare,
 }: Readonly<EventOverviewLandingProps>) {
   const { t } = useTranslation('analysis');
   const [view, setView] = useState<LandingView>('map');
@@ -76,20 +80,31 @@ export function EventOverviewLanding({
         </div>
       </div>
 
-      <div className="ea-ov-toggle">
-        <button
-          type="button"
-          className={'ea-ov-toggle-btn' + (view === 'map' ? ' active' : '')}
-          onClick={() => setView('map')}
-        >
-          <Waypoints size={13} /> {t('event.overview.viewMap')}
-        </button>
-        <button
-          type="button"
-          className={'ea-ov-toggle-btn' + (view === 'ranking' ? ' active' : '')}
-          onClick={() => setView('ranking')}
-        >
+      <div className="ea-ov-toolbar">
+        <div className="ea-ov-toggle">
+          <button
+            type="button"
+            className={'ea-ov-toggle-btn' + (view === 'map' ? ' active' : '')}
+            onClick={() => setView('map')}
+          >
+            <Waypoints size={13} /> {t('event.overview.viewMap')}
+          </button>
+          <button
+            type="button"
+            className={'ea-ov-toggle-btn' + (view === 'ranking' ? ' active' : '')}
+            onClick={() => setView('ranking')}
+          >
           <BarChart3 size={13} /> {t('event.overview.viewRanking')}
+          </button>
+        </div>
+        <button
+          type="button"
+          className="ea-btn"
+          disabled={!canCompare}
+          title={canCompare ? undefined : t('event.compare.needTwo')}
+          onClick={onOpenCompare}
+        >
+          <Columns2 size={13} /> {t('event.compare.entryLong')}
         </button>
       </div>
 
