@@ -76,7 +76,9 @@ export default function EventAnalysisPage() {
   const { data: eventDetail, isLoading: detailLoading } = useQuery({
     queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
     queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
-    enabled: !!bookId && !!selectedEntityId,
+    // Pause while a generation task runs: the analysis does not exist yet at
+    // that point, so a refetch would only 404.
+    enabled: !!bookId && !!selectedEntityId && !generateTaskId,
   });
 
   const markJustDone = (id: string) => {
