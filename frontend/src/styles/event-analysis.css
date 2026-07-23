@@ -1316,3 +1316,92 @@
 .ea-compare-list { margin: 0; padding-left: 16px; display: flex; flex-direction: column; gap: 6px; }
 .ea-compare-list li { font-size: var(--font-size-sm); line-height: 1.6; color: var(--fg-secondary); }
 .ea-compare-empty { margin: 0; font-size: var(--font-size-xs); color: var(--fg-muted); }
+
+/* ── Detail tabs + key terms (canvas parity) ──────────────────────────────── */
+
+.ea-detail-tabs {
+  display: flex; gap: 22px;
+  margin-bottom: 22px;
+  border-bottom: 1px solid var(--border);
+}
+.ea-detail-tab {
+  padding: 0 0 11px;
+  border: none; border-bottom: 2px solid transparent;
+  background: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-sm);
+  color: var(--fg-secondary);
+}
+.ea-detail-tab:hover:not(.active) { color: var(--fg-primary); }
+.ea-detail-tab.active { color: var(--accent); font-weight: 600; border-bottom-color: var(--accent); }
+
+.ea-terms { display: flex; flex-direction: column; gap: 8px; max-width: 520px; }
+.ea-term-row { display: flex; align-items: center; gap: 12px; }
+.ea-term-label {
+  width: 96px; flex: none; text-align: right;
+  font-size: var(--font-size-xs); color: var(--fg-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ea-term-track {
+  flex: 1; height: 9px; border-radius: 5px;
+  background: var(--bg-tertiary); overflow: hidden;
+}
+.ea-term-fill { height: 100%; border-radius: 5px; background: var(--accent); }
+.ea-term-pct {
+  width: 30px; flex: none; text-align: right;
+  font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+
+/* ── Detail toolbar + header (canvas parity) ──────────────────────────────── */
+
+.ea-detail-toolbar {
+  position: sticky; top: 0; z-index: 5;
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap;
+  margin: 0 -28px 18px; padding: 10px 28px;
+  background: var(--bg-primary); border-bottom: 1px solid var(--border);
+}
+.ea-detail-toolbar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.ea-btn-warning { color: var(--color-warning); }
+
+.ea-detail-header { margin-bottom: 18px; }
+.ea-detail-titlerow {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 11px;
+  margin-bottom: 5px;
+}
+.ea-detail-imp {
+  display: inline-flex; align-items: center;
+  padding: 3px 10px; border-radius: var(--badge-radius);
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 600;
+}
+.ea-detail-imp.kernel { background: var(--accent); color: var(--accent-fg); }
+.ea-detail-imp.satellite { background: var(--bg-tertiary); color: var(--fg-secondary); }
+.ea-detail-meta {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+  font-size: var(--font-size-xs); color: var(--fg-muted);
+}
+.ea-detail-meta > span + span::before {
+  content: '·'; margin-right: 12px; color: var(--border);
+}
+.ea-detail-partial {
+  padding: 2px 8px; border-radius: var(--badge-radius);
+  background: var(--color-warning-bg); color: var(--color-warning); font-weight: 600;
+}
+
+/* ── Researcher guide ribbon ──────────────────────────────────────────────── */
+
+.ea-guide {
+  display: flex; gap: 11px; align-items: flex-start;
+  padding: 12px 15px; margin-bottom: 20px;
+  border: 1px solid var(--border); border-left: 3px solid var(--accent);
+  border-radius: var(--card-radius); background: var(--bg-secondary);
+}
+.ea-guide-body {
+  flex: 1;
+  font-size: var(--font-size-xs); line-height: 1.65; color: var(--fg-secondary);
+}
+.ea-guide-body strong { color: var(--fg-primary); font-weight: 600; }
+.ea-guide-close {
+  flex: none; height: 16px; padding: 0;
+  border: none; background: none; cursor: pointer; color: var(--fg-muted);
+}
+.ea-guide-close:hover { color: var(--fg-primary); }

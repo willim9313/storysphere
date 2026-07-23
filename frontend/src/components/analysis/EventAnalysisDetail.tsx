@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type {
@@ -360,25 +361,107 @@ function QuotesSection({ data }: { data: EventAnalysisDetailType }) {
   );
 }
 
+/** Term frequency bars for `eep.topTerms`, the densest signal in the payload
+ *  that nothing rendered before. Sorted descending and capped — the backend
+ *  returns ~20 terms and the long tail is noise. */
+function TermsSection({ data }: Readonly<{ data: EventAnalysisDetailType }>) {
+  const { t } = useTranslation('analysis');
+  const terms = Object.entries(data.eep.topTerms ?? {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, TERM_LIMIT);
+  if (terms.length === 0) return null;
+  const max = terms[0][1] || 1;
+  return (
+    <div className="ea-section">
+      <div className="ea-section-head">
+        <div className="ea-section-titlewrap">
+          <h3 className="ea-section-title">{t('event.sections.topTerms')}</h3>
+          <span className="ea-section-sub">{t('event.labels.topTermsSub')}</span>
+        </div>
+      </div>
+      <div className="ea-terms">
+        {terms.map(([term, weight]) => (
+          <div key={term} className="ea-term-row">
+            <span className="ea-term-label">{term}</span>
+            <div className="ea-term-track">
+              <div className="ea-term-fill" style={{ width: `${(weight / max) * 100}%` }} />
+            </div>
+            <span className="ea-term-pct">{Math.round(weight * 100)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const TERM_LIMIT = 12;
+
+type DetailTab = 'overview' | 'cause' | 'evidence';
+
+const DETAIL_TABS: { key: DetailTab; labelKey: string }[] = [
+  { key: 'overview', labelKey: 'event.tabs.overview' },
+  { key: 'cause', labelKey: 'event.tabs.cause' },
+  { key: 'evidence', labelKey: 'event.tabs.evidence' },
+];
+
 export function EventAnalysisDetail({
   data,
   causalVariant = 'stepped',
   showHero = true,
 }: Props) {
+  const { t } = useTranslation('analysis');
   const failedParts = data.failedParts ?? [];
+  const [tab, setTab] = useState<DetailTab>('overview');
+
+  // Switching events should land on the overview, not wherever the previous
+  // event was left.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => setTab('overview'), [data.eventId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   return (
     <>
-      {showHero && <EventHero data={data} />}
-      <StateSection data={data} />
-      <ParticipantsSection data={data} />
-      <CausalitySection
-        data={data}
-        variant={causalVariant}
-        failed={failedParts.includes('causality')}
-      />
-      <ImpactSection data={data} failed={failedParts.includes('impact')} />
-      <FactorsSection data={data} />
-      <QuotesSection data={data} />
+      <div className="ea-detail-tabs" role="tablist">
+        {DETAIL_TABS.map((dt) => (
+          <button
+            key={dt.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === dt.key}
+            className={'ea-detail-tab' + (tab === dt.key ? ' active' : '')}
+            onClick={() => setTab(dt.key)}
+          >
+            {t(dt.labelKey)}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'overview' && (
+        <>
+          {showHero && <EventHero data={data} />}
+          <StateSection data={data} />
+          <ParticipantsSection data={data} />
+        </>
+      )}
+
+      {tab === 'cause' && (
+        <>
+          <CausalitySection
+            data={data}
+            variant={causalVariant}
+            failed={failedParts.includes('causality')}
+          />
+          <ImpactSection data={data} failed={failedParts.includes('impact')} />
+          <FactorsSection data={data} />
+        </>
+      )}
+
+      {tab === 'evidence' && (
+        <>
+          <QuotesSection data={data} />
+          <TermsSection data={data} />
+        </>
+      )}
     </>
   );
 }

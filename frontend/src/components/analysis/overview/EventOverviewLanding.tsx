@@ -3,6 +3,7 @@ import { BarChart3, Columns2, Sparkles, Waypoints } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisListResponse } from '@/api/types';
 import { useTimeline } from '@/hooks/useTimeline';
+import { EventGuideRibbon } from '@/components/analysis/EventGuideRibbon';
 import { EventBackboneMap } from './EventBackboneMap';
 import { EventRankingView } from './EventRankingView';
 import { buildOverviewEvents } from './eventTypes';
@@ -79,6 +80,8 @@ export function EventOverviewLanding({
           </span>
         </div>
       </div>
+
+      <EventGuideRibbon surface="overview" />
 
       <div className="ea-ov-toolbar">
         <div className="ea-ov-toggle">

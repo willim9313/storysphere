@@ -280,7 +280,8 @@
       "relationChanges": "關係變化",
       "causalFactors": "促成因素",
       "consequences": "後續影響",
-      "keyQuotes": "關鍵引言"
+      "keyQuotes": "關鍵引言",
+      "topTerms": "關鍵詞"
     },
     "roles": {
       "initiator": "發起者",
@@ -326,7 +327,8 @@
       "factorsConsequences": "因果因素與後果",
       "factorsConsequencesSub": "因素 · 後果",
       "keyQuotesCount": "{{count}} 段",
-      "roleLegend": "角色圖例"
+      "roleLegend": "角色圖例",
+      "topTermsSub": "TF · top terms"
     },
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 件事件…",
@@ -408,6 +410,18 @@
       "needTwo": "需至少兩個已分析事件",
       "pick": "選擇事件 {{side}}",
       "noImpact": "此事件無參與者影響記錄。"
+    },
+    "tabs": {
+      "overview": "概覽",
+      "cause": "因果與影響",
+      "evidence": "證據"
+    },
+    "partialBadge": "部分分析",
+    "guide": {
+      "prefix": "研究者導覽：",
+      "overview": "總覽用視圖回答「這本書的關鍵節點在哪」——<strong>故事骨幹圖</strong>沿章節鋪開全書事件、核心事件放大；<strong>重要度排行</strong>依重要度與參與者數排序。點任一事件進入詳情（左上可返回總覽），或用右上「對比」挑兩個事件並排。",
+      "detail": "本頁把單一事件拆成三層——<strong>概覽</strong>看「發生了什麼」，<strong>因果與影響</strong>看「為何發生、改變了什麼」，<strong>證據</strong>看支撐分析的原文引言與關鍵詞。",
+      "dismiss": "關閉導覽"
     }
   },
   "batch": {

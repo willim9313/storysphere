@@ -280,7 +280,8 @@
       "relationChanges": "Relationship Changes",
       "causalFactors": "Contributing Factors",
       "consequences": "Consequences",
-      "keyQuotes": "Key Quotes"
+      "keyQuotes": "Key Quotes",
+      "topTerms": "Key terms"
     },
     "roles": {
       "initiator": "Initiator",
@@ -326,7 +327,8 @@
       "factorsConsequences": "Factors & Consequences",
       "factorsConsequencesSub": "factors · consequences",
       "keyQuotesCount": "{{count}} quotes",
-      "roleLegend": "Role key"
+      "roleLegend": "Role key",
+      "topTermsSub": "TF · top terms"
     },
     "list": {
       "searchPlaceholder": "Search {{count}} events…",
@@ -408,6 +410,18 @@
       "needTwo": "Needs at least two analyzed events",
       "pick": "Pick event {{side}}",
       "noImpact": "No participant impact recorded for this event."
+    },
+    "tabs": {
+      "overview": "Overview",
+      "cause": "Cause & impact",
+      "evidence": "Evidence"
+    },
+    "partialBadge": "Partial",
+    "guide": {
+      "prefix": "Researcher guide: ",
+      "overview": "The overview answers \"where are this book's pivotal moments\" — <strong>story backbone</strong> lays every event out by chapter with kernel events enlarged; <strong>by importance</strong> ranks them by importance and participant count. Click any event for its detail (return via the top left), or use \"Compare\" to view two side by side.",
+      "detail": "This page splits one event into three layers — <strong>Overview</strong> for what happened, <strong>Cause & impact</strong> for why it happened and what it changed, and <strong>Evidence</strong> for the quotes and key terms behind the analysis.",
+      "dismiss": "Dismiss guide"
     }
   },
   "batch": {

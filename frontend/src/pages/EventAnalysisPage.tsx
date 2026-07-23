@@ -26,6 +26,7 @@ import { EventAnalysisDetail } from '@/components/analysis/EventAnalysisDetail';
 import { EventOverviewLanding } from '@/components/analysis/overview/EventOverviewLanding';
 import { EventGroupedList } from '@/components/analysis/EventGroupedList';
 import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
+import { EventGuideRibbon } from '@/components/analysis/EventGuideRibbon';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import type { BatchEepResult } from '@/api/types';
@@ -247,7 +248,6 @@ export default function EventAnalysisPage() {
   const importance = eventDetail?.eep.eventImportance;
   const isKernel = importance === 'KERNEL';
   const chapter = eventDetail?.chapter ?? null;
-  const chunk = eventDetail?.chunk ?? null;
 
   return (
     <div className="ea-page" data-density="comfy">
@@ -299,7 +299,7 @@ export default function EventAnalysisPage() {
         <div className="ea-content">
           <div className="ea-content-scroll">
             {selectedEntityId && (
-              <div className="ea-ov-backbar">
+              <div className="ea-detail-toolbar">
                 <button
                   type="button"
                   className="ea-btn"
@@ -307,6 +307,46 @@ export default function EventAnalysisPage() {
                 >
                   <ArrowLeft size={12} /> {t('event.overview.backToOverview')}
                 </button>
+                <div className="ea-detail-toolbar-actions">
+                  {eventDetail?.status === 'partial' && (
+                    <button
+                      type="button"
+                      className="ea-btn ea-btn-warning"
+                      disabled={retryFailedMutation.isPending}
+                      onClick={() => retryFailedMutation.mutate(selectedEntityId)}
+                    >
+                      <RefreshCw size={12} /> {t('event.retryFailed')}
+                    </button>
+                  )}
+                  {eventDetail && (
+                    <>
+                      <button
+                        type="button"
+                        className="ea-btn"
+                        disabled={!canCompare}
+                        title={canCompare ? undefined : t('event.compare.needTwo')}
+                        onClick={() => setCompareOpen(true)}
+                      >
+                        <Columns2 size={12} /> {t('event.compare.entry')}
+                      </button>
+                      {bookId && (
+                        <Link
+                          to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
+                          className="ea-btn"
+                        >
+                          <ExternalLink size={12} /> {t('viewInGraph')}
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        className="ea-btn"
+                        onClick={() => setConfirmRegenerate(true)}
+                      >
+                        <RefreshCw size={12} /> {t('regenerate')}
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
             )}
             {selectedEntityId && detailLoading ? (
@@ -315,67 +355,37 @@ export default function EventAnalysisPage() {
               </div>
             ) : selectedEntityId && eventDetail ? (
               <>
-                <div className="ea-titlebar">
-                  <div className="ea-titlebar-main">
+                <div className="ea-detail-header">
+                  <div className="ea-detail-titlerow">
                     <h1 className="ea-title">{eventDetail.title}</h1>
                     {importance && (
-                      <span className={'ea-title-imp ' + (isKernel ? 'kernel' : 'satellite')}>
-                        <span className="ea-title-imp-letter">{isKernel ? 'K' : 'S'}</span>
+                      <span className={'ea-detail-imp ' + (isKernel ? 'kernel' : 'satellite')}>
                         {isKernel
                           ? t('event.importance.kernel')
                           : t('event.importance.satellite')}
                       </span>
                     )}
-                    {(chapter !== null || chunk !== null) && (
-                      <span className="ea-title-meta">
-                        {chapter !== null && (
-                          <span>{t('event.list.chapterShort', { n: chapter })}</span>
-                        )}
-                        {chapter !== null && chunk !== null && <span className="sep" />}
-                        {chunk !== null && <span>Chunk {chunk}</span>}
+                  </div>
+                  <div className="ea-detail-meta">
+                    {chapter !== null && (
+                      <span>{t('event.list.chapterShort', { n: chapter })}</span>
+                    )}
+                    {eventDetail.narrativeMode && (
+                      <span>{t(`event.narrative.${eventDetail.narrativeMode}`)}</span>
+                    )}
+                    {importance && (
+                      <span>
+                        {isKernel
+                          ? t('event.importance.kernelTagline')
+                          : t('event.importance.satelliteTagline')}
                       </span>
                     )}
-                    {bookId && selectedEntityId && (
-                      <Link
-                        to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
-                        className="ea-title-link"
-                      >
-                        {t('viewInGraph')} <ExternalLink size={10} />
-                      </Link>
-                    )}
-                  </div>
-                  <div className="ea-titlebar-actions">
                     {eventDetail.status === 'partial' && (
-                      <button
-                        type="button"
-                        className="ea-btn"
-                        style={{ color: 'var(--color-warning)' }}
-                        disabled={retryFailedMutation.isPending}
-                        onClick={() =>
-                          selectedEntityId && retryFailedMutation.mutate(selectedEntityId)
-                        }
-                      >
-                        <RefreshCw size={12} /> {t('event.retryFailed')}
-                      </button>
+                      <span className="ea-detail-partial">{t('event.partialBadge')}</span>
                     )}
-                    <button
-                      type="button"
-                      className="ea-btn"
-                      disabled={!canCompare}
-                      title={canCompare ? undefined : t('event.compare.needTwo')}
-                      onClick={() => setCompareOpen(true)}
-                    >
-                      <Columns2 size={12} /> {t('event.compare.entry')}
-                    </button>
-                    <button
-                      type="button"
-                      className="ea-btn"
-                      onClick={() => setConfirmRegenerate(true)}
-                    >
-                      <RefreshCw size={12} /> {t('regenerate')}
-                    </button>
                   </div>
                 </div>
+                <EventGuideRibbon surface="detail" />
                 <EventAnalysisDetail data={eventDetail} causalVariant="stepped" />
               </>
             ) : genTask?.status === 'error' ? (
