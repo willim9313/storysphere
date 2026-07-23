@@ -1,0 +1,398 @@
+/* ============================================================
+   StorySphere — Design Tokens  (v2 · "Ink on Paper")
+   兩主題系統：Warm（預設，:root）＋ Ink（[data-theme="ink"]）。
+   對照表見 docs/DESIGN_TOKENS.md；設計 contract 為 Claude Design
+   專案的 colors_and_type.css（entity token 在該 contract 用全名
+   --entity-character-*，本檔沿用 repo 既有縮寫 --entity-char-*）。
+
+   主題只置換兩層：palette（表面/墨色/accent/entity/status 色）與
+   component shape（圓角/線重/陰影）。字體、spacing、版面兩主題共用。
+   ============================================================ */
+
+/* ============================================================
+   WARM — 預設主題（暖象牙紙上的墨線）
+   ============================================================ */
+:root {
+  /* Surfaces — 暖象牙紙，三層 */
+  --bg-primary:   #f8f3e7;
+  --bg-secondary: #f1e8d5;
+  --bg-tertiary:  #e9ddc6;
+
+  /* Reader 排版面板 — 紙張色溫 4 檔（僅 Warm 主題；Ink 欄3背景固定
+     --bg-primary，不受色溫影響）。索引 1 = 目前 --bg-primary 同值，作為預設。 */
+  --paper-warmth-0: #fdfaf1;
+  --paper-warmth-1: #f8f3e7;
+  --paper-warmth-2: #f4ecd8;
+  --paper-warmth-3: #efe4c9;
+
+  /* Text — 暖墨 */
+  --fg-primary:   #2a2620;
+  --fg-secondary: #5f5648;
+  --fg-muted:     #938876;
+
+  /* Line & accent */
+  --border:       #ddceb2;
+  --accent:       #b05a34;   /* burnt sienna */
+  --accent-fg:    #f8f3e7;   /* 置於 accent 上的文字（= bg-primary，同 kit btn-primary） */
+
+  /* Focus ring — 鍵盤 a11y，全站單一規格，經 :focus-visible 套用
+     （見 global.css）。與較柔和的 selected-state ring
+     （--timeline-selected-ring）是兩件事。 */
+  --focus-ring-color:  #b05a34;
+  --focus-ring-width:  2px;
+  --focus-ring-offset: 2px;
+
+  /* Panels（graph 側板、settings 卡） */
+  --panel-bg:       #efe6d3;
+  --panel-bg-card:  #e7dcc6;
+  --panel-border:   #d3c3a4;
+  --panel-fg:       #2a2620;
+  --panel-fg-muted: #938876;
+
+  /* Entity pills — 7 類低彩度 warm hue arc（clay→ochre→olive，rose & mauve）
+     值取自設計 contract 的 oklch 定義；Ink 主題刻意不覆寫（跨主題共用分類色） */
+  --entity-char-bg:    oklch(0.945 0.032 55);
+  --entity-char-border:oklch(0.83 0.055 52);
+  --entity-char-fg:    oklch(0.43 0.075 48);
+  --entity-char-dot:   oklch(0.62 0.105 50);
+
+  --entity-loc-bg:     oklch(0.945 0.030 118);
+  --entity-loc-border: oklch(0.83 0.050 118);
+  --entity-loc-fg:     oklch(0.43 0.060 120);
+  --entity-loc-dot:    oklch(0.58 0.075 120);
+
+  --entity-org-bg:     oklch(0.950 0.038 85);
+  --entity-org-border: oklch(0.84 0.060 84);
+  --entity-org-fg:     oklch(0.45 0.070 80);
+  --entity-org-dot:    oklch(0.64 0.100 82);
+
+  --entity-obj-bg:     oklch(0.940 0.035 33);
+  --entity-obj-border: oklch(0.82 0.060 33);
+  --entity-obj-fg:     oklch(0.44 0.080 30);
+  --entity-obj-dot:    oklch(0.59 0.110 32);
+
+  --entity-con-bg:     oklch(0.935 0.030 345);
+  --entity-con-border: oklch(0.81 0.050 345);
+  --entity-con-fg:     oklch(0.44 0.065 345);
+  --entity-con-dot:    oklch(0.57 0.090 348);
+
+  --entity-evt-bg:     oklch(0.935 0.038 22);
+  --entity-evt-border: oklch(0.81 0.065 22);
+  --entity-evt-fg:     oklch(0.45 0.090 20);
+  --entity-evt-dot:    oklch(0.57 0.120 22);
+
+  --entity-other-bg:     oklch(0.935 0.012 75);
+  --entity-other-border: oklch(0.81 0.020 72);
+  --entity-other-fg:     oklch(0.46 0.020 70);
+  --entity-other-dot:    oklch(0.58 0.030 70);
+
+  /* Graph node colors — 由 entity arc 派生（fill=bg、stroke=dot、label=fg）。
+     cytoscape 自帶 color parser 不支援 oklch，故此家族一律寫 sRGB hex
+     （由上方 oklch 值轉換而來），兩主題共用不覆寫。 */
+  --graph-char-fill:   #ffe8d9;
+  --graph-char-stroke: #b97249;
+  --graph-char-label:  #714229;
+  --graph-loc-fill:    #ebf0da;
+  --graph-loc-stroke:  #74814d;
+  --graph-loc-label:   #4b552e;
+  --graph-con-fill:    #f9e2ee;
+  --graph-con-stroke:  #9e6181;
+  --graph-con-label:   #6c445b;
+  --graph-evt-fill:    #ffe0de;
+  --graph-evt-stroke:  #b35757;
+  --graph-evt-label:   #803f40;
+  --graph-org-fill:    #faedd2;
+  --graph-org-stroke:  #aa863e;
+  --graph-org-label:   #6a5124;
+  --graph-obj-fill:    #ffe3dc;
+  --graph-obj-stroke:  #b56353;
+  --graph-obj-label:   #794037;
+  --graph-other-fill:  #eee9e1;
+  --graph-other-stroke:#867867;
+  --graph-other-label: #5f564c;
+
+  /* Symbol type pills（6 類）— 同一 warm arc 的重映射，跨主題共用 */
+  --symbol-object-bg:  oklch(0.940 0.035 33);  --symbol-object-fg:  oklch(0.44 0.080 30);  --symbol-object-dot:  oklch(0.59 0.110 32);
+  --symbol-nature-bg:  oklch(0.945 0.030 118); --symbol-nature-fg:  oklch(0.43 0.060 120); --symbol-nature-dot:  oklch(0.58 0.075 120);
+  --symbol-spatial-bg: oklch(0.950 0.038 85);  --symbol-spatial-fg: oklch(0.45 0.070 80);  --symbol-spatial-dot: oklch(0.64 0.100 82);
+  --symbol-body-bg:    oklch(0.935 0.038 22);  --symbol-body-fg:    oklch(0.45 0.090 20);  --symbol-body-dot:    oklch(0.57 0.120 22);
+  --symbol-color-bg:   oklch(0.935 0.030 345); --symbol-color-fg:   oklch(0.44 0.065 345); --symbol-color-dot:   oklch(0.57 0.090 348);
+  --symbol-other-bg:   oklch(0.935 0.012 75);  --symbol-other-fg:   oklch(0.46 0.020 70);  --symbol-other-dot:   oklch(0.58 0.030 70);
+
+  /* Symbol polarity — 由 status 色系派生：positive=橄欖、negative=磚紅、
+     neutral=紙面、mixed=赭黃（設計規則：不發明新色相） */
+  --polarity-positive-bg: #eef1df; --polarity-positive-fg: #4a6330; --polarity-positive-edge: #b7c78e; --polarity-positive-dot: #5f7d3b;
+  --polarity-negative-bg: #f4e4da; --polarity-negative-fg: #8a3a22; --polarity-negative-edge: #d3a78f; --polarity-negative-dot: #a8482c;
+  --polarity-neutral-bg:  #f1e8d5; --polarity-neutral-fg:  #5f5648; --polarity-neutral-edge:  #ddceb2; --polarity-neutral-dot:  #938876;
+  --polarity-mixed-bg:    #f6edd6; --polarity-mixed-fg:    #8a5c13; --polarity-mixed-edge:    #dcc08a; --polarity-mixed-dot:    #ad7519;
+
+  /* Symbol 章節密度 — 焦赭單色 ramp（paper → sienna → 深 sienna） */
+  --symbol-density-low:   #e9ddc6;
+  --symbol-density-mid:   #cf9a72;
+  --symbol-density-high:  #b05a34;
+  --symbol-density-peak:  #7d3e22;
+
+  /* Timeline narrative mode — warm arc 步：present=accent、flashback=灰藍、
+     flashforward=赭黃、parallel=藕紫（concept 色）、unknown=muted */
+  --narrative-present-border:     #b05a34; --narrative-present-bg:     #f3e3d8;
+  --narrative-flashback-border:   #5f6a88; --narrative-flashback-bg:   #e8e7ee;
+  --narrative-flashforward-border:#ad7519; --narrative-flashforward-bg:#f6edd6;
+  --narrative-parallel-border:    #9e6181; --narrative-parallel-bg:    #f9e2ee;
+  --narrative-unknown-border:     #938876; --narrative-unknown-bg:     #f1e8d5;
+
+  /* Timeline structural */
+  --timeline-chapter-bg:      rgba(233,221,198,0.15);
+  --timeline-parallel-bg:     rgba(158,97,129,0.06);
+  --timeline-parallel-border: rgba(158,97,129,0.3);
+  --timeline-causal-stroke:   #b05a34;
+  --timeline-selected-ring:   rgba(176,90,52,0.3);
+
+  /* Status — 暖色系功能色：橄欖/赭黃/磚紅/灰藍，色調沉在紙面上 */
+  --color-success:    #5f7d3b;
+  --color-success-bg: #eef1df;
+  --color-warning:    #ad7519;
+  --color-warning-bg: #f6edd6;
+  --color-error:      #a8482c;
+  --color-error-bg:   #f4e4da;
+  --color-info:       #5f6a88;
+  --color-info-bg:    #e8e7ee;
+
+  /* Unraveling DAG 節點狀態 */
+  --status-complete-bg:     #eef1df;
+  --status-complete-border: #5f7d3b;
+  --status-complete-fg:     #4a6330;
+  --status-partial-bg:      #f6edd6;
+  --status-partial-border:  #ad7519;
+  --status-partial-fg:      #8a5c13;
+  --status-empty-bg:        #f1e8d5;
+  --status-empty-border:    #ddceb2;
+  --status-empty-fg:        #938876;
+
+  /* Splash wash — 線稿插畫墊在字標後面的程度。
+     值以設計 canvas（splash/splash.css）為準：濃圖 + vignette 護住中心 */
+  --splash-image-opacity: 0.62;
+  --splash-image-filter:  sepia(0.10) contrast(0.98);
+
+  /* ── Illustration language ──
+     線稿插畫（empty state、splash、section mark）的描邊 token：
+     細墨線、不填色、略鬆。SVG stroke/weight 一律取用這組。 */
+  --illustration-stroke:      var(--fg-primary);
+  --illustration-stroke-soft: var(--fg-muted);
+  --illustration-accent:      var(--accent);
+  --illustration-fill:        none;
+  --illustration-weight:      1.5px;
+  --illustration-weight-fine: 1px;
+
+  /* Spacing */
+  --space-xs: 0.25rem;
+  --space-sm: 0.5rem;
+  --space-md: 1rem;
+  --space-lg: 1.5rem;
+  --space-xl: 2rem;
+  --space-2xl: 3rem;
+
+  /* Typography — serif 給「內容本身」（書名/章名/正文），sans 給
+     「關於內容的 chrome」（按鈕/meta/badge/nav）；hand（Caveat）僅限
+     插畫語彙（doodle 標註、empty-state 說明），禁用於 chrome 與正文。
+     兩主題共用同一套字體，不隨主題置換。 */
+  --font-serif: 'Spectral', 'Noto Serif TC', Georgia, serif;
+  --font-sans:  'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
+  --font-hand:  'Caveat', 'Noto Serif TC', cursive;
+  --font-mono:  'Fira Code', 'Courier New', monospace;
+  --font-cjk:   'Noto Sans TC', sans-serif;
+  --font-size-2xs: 0.6875rem;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.25rem;
+  --font-size-2xl: 1.5rem;
+  --font-size-3xl: 2rem;
+
+  /* Radii */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  /* Shadows — 單一 soft-shadow 階（warm 帶暖色調） */
+  --shadow-sm: 0 1px 2px rgba(42,38,32,0.07);
+  --shadow-md: 0 2px 8px rgba(42,38,32,0.09);
+  --shadow-lg: 0 4px 16px rgba(42,38,32,0.11);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 250ms ease;
+
+  /* Line / border character（theme-tunable） */
+  --line-weight:   1px;
+  --border-width:  var(--line-weight);
+  --border-style:  solid;
+  --node-shadow:   none;
+  --divider-style: 1px solid var(--border);
+
+  /* ── Component SHAPE tokens（theme-tunable）──────────────────
+     讓主題能改變元件「形」而非只有色。元件 CSS 消費這組，
+     不要直接寫 radius/border/shadow 原始值。
+     Warm = 軟紙面：圓角、hairline、微陰影、全圓 pill。 */
+  --card-radius:       var(--radius-lg);
+  --card-border-width: var(--border-width);
+  --card-shadow:       var(--shadow-sm);
+  --btn-radius:        var(--radius-md);
+  --btn-border-width:  var(--border-width);
+  --btn-shadow:        none;
+  --pill-radius:       20px;
+  --pill-border-width: 0.5px;
+  --badge-radius:      20px;
+  --control-radius:    var(--radius-md);
+
+  /* Tension intensity — 焦赭單色 ramp 三階 */
+  --tension-intensity-low-bg:    #f1e8d5;
+  --tension-intensity-low-fg:    #938876;
+  --tension-intensity-low-edge:  #ddceb2;
+  --tension-intensity-mid-bg:    #cf9a72;
+  --tension-intensity-mid-fg:    #52301c;
+  --tension-intensity-mid-edge:  #a96a44;
+  --tension-intensity-high-bg:   #b05a34;
+  --tension-intensity-high-fg:   #f8f3e7;
+  --tension-intensity-high-edge: #7d3e22;
+
+  /* Frye Mythos — warm arc 四步：romance=赭黃、comedy=橄欖、
+     tragedy=磚紅、irony=灰藍 */
+  --frye-romance-bg: #f6edd6; --frye-romance-fg: #8a5c13; --frye-romance-border: #dcc08a;
+  --frye-comedy-bg:  #eef1df; --frye-comedy-fg:  #4a6330; --frye-comedy-border:  #b7c78e;
+  --frye-tragedy-bg: #f4e4da; --frye-tragedy-fg: #8a3a22; --frye-tragedy-border: #d3a78f;
+  --frye-irony-bg:   #e8e7ee; --frye-irony-fg:   #47506b; --frye-irony-border:   #a9aec4;
+
+  /* Booker Plot — 七情節共用單一紙面框，§ 標記用 accent */
+  --booker-bg:     #f1e8d5;
+  --booker-fg:     #5f5648;
+  --booker-border: #d3c3a4;
+  --booker-accent: #b05a34;
+}
+
+/* ============================================================
+   INK — 純黑白線稿
+   全面單色；類型/狀態語意由字形＋標籤承載，不靠色相。
+   entity / symbol / graph 分類色刻意「不覆寫」——沿用 Warm arc，
+   讓分類語意跨主題一致（設計 contract 明定）。
+   ============================================================ */
+[data-theme="ink"] {
+  --bg-primary:   #ffffff;
+  --bg-secondary: #f6f6f4;
+  --bg-tertiary:  #ececea;
+
+  --fg-primary:   #151515;
+  --fg-secondary: #3f3f3f;
+  --fg-muted:     #8c8c8c;
+
+  --border: #1a1a1a;
+  --accent: #111111;
+  --accent-fg: #ffffff;
+  --focus-ring-color: #151515;
+
+  --panel-bg:       #f6f6f4;
+  --panel-bg-card:  #ededeb;
+  --panel-border:   #1a1a1a;
+  --panel-fg:       #151515;
+  --panel-fg-muted: #8c8c8c;
+
+  /* Status — 單一單色處理；狀態由 icon 字形承載 */
+  --color-success: #151515; --color-success-bg: #ececea;
+  --color-warning: #151515; --color-warning-bg: #ececea;
+  --color-error:   #151515; --color-error-bg:   #ececea;
+  --color-info:    #151515; --color-info-bg:    #ececea;
+
+  /* Polarity — 單色 fill polarity（深淺取代色相） */
+  --polarity-positive-bg: #ffffff; --polarity-positive-fg: #151515; --polarity-positive-edge: #151515; --polarity-positive-dot: #151515;
+  --polarity-negative-bg: #151515; --polarity-negative-fg: #ffffff; --polarity-negative-edge: #000000; --polarity-negative-dot: #ffffff;
+  --polarity-neutral-bg:  #f6f6f4; --polarity-neutral-fg:  #8c8c8c; --polarity-neutral-edge:  #cfcfcf; --polarity-neutral-dot:  #8c8c8c;
+  --polarity-mixed-bg:    #d8d8d8; --polarity-mixed-fg:    #151515; --polarity-mixed-edge:    #8c8c8c; --polarity-mixed-dot:    #3f3f3f;
+
+  /* 密度 / 張力 — 灰階 ramp */
+  --symbol-density-low:  #ececea;
+  --symbol-density-mid:  #8c8c8c;
+  --symbol-density-high: #151515;
+  --symbol-density-peak: #000000;
+
+  --tension-intensity-low-bg:    #ffffff;
+  --tension-intensity-low-fg:    #8c8c8c;
+  --tension-intensity-low-edge:  #cfcfcf;
+  --tension-intensity-mid-bg:    #8c8c8c;
+  --tension-intensity-mid-fg:    #ffffff;
+  --tension-intensity-mid-edge:  #3f3f3f;
+  --tension-intensity-high-bg:   #151515;
+  --tension-intensity-high-fg:   #ffffff;
+  --tension-intensity-high-edge: #000000;
+
+  /* Timeline narrative — 灰階深淺區分 */
+  --narrative-present-border:     #151515; --narrative-present-bg:     #ececea;
+  --narrative-flashback-border:   #6b6b6b; --narrative-flashback-bg:   #e4e4e2;
+  --narrative-flashforward-border:#3f3f3f; --narrative-flashforward-bg:#d8d8d6;
+  --narrative-parallel-border:    #8c8c8c; --narrative-parallel-bg:    #f6f6f4;
+  --narrative-unknown-border:     #cfcfcf; --narrative-unknown-bg:     #fafafa;
+
+  --timeline-chapter-bg:      rgba(0,0,0,0.02);
+  --timeline-parallel-bg:     rgba(0,0,0,0.02);
+  --timeline-parallel-border: rgba(0,0,0,0.12);
+  --timeline-causal-stroke:   #151515;
+  --timeline-selected-ring:   rgba(0,0,0,0.2);
+
+  /* Unraveling DAG — 單色階：fill 極性＋線重承載完成度 */
+  --status-complete-bg:     #151515;
+  --status-complete-border: #151515;
+  --status-complete-fg:     #ffffff;
+  --status-partial-bg:      #ffffff;
+  --status-partial-border:  #1a1a1a;
+  --status-partial-fg:      #151515;
+  --status-empty-bg:        #ffffff;
+  --status-empty-border:    #cfcfcf;
+  --status-empty-fg:        #8c8c8c;
+
+  /* Frye / Booker — 灰階 fill polarity */
+  --frye-romance-bg: #ffffff; --frye-romance-fg: #151515; --frye-romance-border: #151515;
+  --frye-comedy-bg:  #ececea; --frye-comedy-fg:  #151515; --frye-comedy-border:  #3f3f3f;
+  --frye-tragedy-bg: #151515; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
+  --frye-irony-bg:   #8c8c8c; --frye-irony-fg:   #ffffff; --frye-irony-border:   #151515;
+
+  --booker-bg:     #ececea;
+  --booker-fg:     #151515;
+  --booker-border: #1a1a1a;
+  --booker-accent: #111111;
+
+  /* Splash wash — 灰階（白紙上的純墨線），值以設計 canvas 為準 */
+  --splash-image-opacity: 0.70;
+  --splash-image-filter:  grayscale(1) brightness(1.06) contrast(1.05);
+
+  /* Illustration — 白紙上的純墨線 */
+  --illustration-stroke:      #151515;
+  --illustration-stroke-soft: #8c8c8c;
+  --illustration-accent:      #151515;
+  --illustration-fill:        none;
+  --illustration-weight:      1.5px;
+  --illustration-weight-fine: 1px;
+
+  /* Line character — 挺直細墨線 */
+  --line-weight:   1px;
+  --node-shadow:   none;
+  --border-style:  solid;
+  --divider-style: 1px solid var(--border);
+
+  /* Component SHAPE — 鋼筆線稿：直角、較重單線外框、完全無陰影、
+     pill 改矩形 tag */
+  --card-radius:       var(--radius-sm);
+  --card-border-width: 1.5px;
+  --card-shadow:       none;
+  --btn-radius:        var(--radius-sm);
+  --btn-border-width:  1.5px;
+  --btn-shadow:        none;
+  --pill-radius:       4px;
+  --pill-border-width: 1px;
+  --badge-radius:      4px;
+  --control-radius:    var(--radius-sm);
+
+  /* Shadows — 中性化為純黑（線稿不帶暖影） */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.10);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+}

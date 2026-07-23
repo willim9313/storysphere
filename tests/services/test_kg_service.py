@@ -179,6 +179,43 @@ class TestKGServiceEvents:
         all_events = await service.get_events()
         assert len(all_events) == 1
 
+    @pytest.mark.asyncio
+    async def test_participant_events_survive_save_load(self, tmp_path):
+        """Entity timelines must not depend on unpersisted graph node attrs."""
+        path = str(tmp_path / "kg.json")
+        alice = _make_entity("Alice")
+        event = Event(
+            title="The Battle",
+            event_type=EventType.BATTLE,
+            description="A fierce battle.",
+            chapter=5,
+            participants=[alice.id],
+        )
+        svc = KGService(persistence_path=path)
+        await svc.add_entity(alice)
+        await svc.add_event(event)
+        await svc.save()
+
+        reloaded = KGService(persistence_path=path)
+        await reloaded.load()
+        assert len(await reloaded.get_events(alice.id)) == 1
+        assert len(await reloaded.get_entity_timeline(alice.id)) == 1
+
+    @pytest.mark.asyncio
+    async def test_event_added_before_its_participants(self, service):
+        """Ingestion order must not drop the participant link."""
+        alice = _make_entity("Alice")
+        event = Event(
+            title="The Battle",
+            event_type=EventType.BATTLE,
+            description="A fierce battle.",
+            chapter=5,
+            participants=[alice.id],
+        )
+        await service.add_event(event)
+        await service.add_entity(alice)
+        assert len(await service.get_events(alice.id)) == 1
+
 
 # ── Persistence ──────────────────────────────────────────────────────────────
 

@@ -280,7 +280,8 @@
       "relationChanges": "Relationship Changes",
       "causalFactors": "Contributing Factors",
       "consequences": "Consequences",
-      "keyQuotes": "Key Quotes"
+      "keyQuotes": "Key Quotes",
+      "topTerms": "Key terms"
     },
     "roles": {
       "initiator": "Initiator",
@@ -325,13 +326,25 @@
       "participantsCount": "{{count}} people",
       "factorsConsequences": "Factors & Consequences",
       "factorsConsequencesSub": "factors · consequences",
-      "keyQuotesCount": "{{count}} quotes"
+      "keyQuotesCount": "{{count}} quotes",
+      "roleLegend": "Role key",
+      "topTermsSub": "TF · top terms"
     },
     "list": {
       "searchPlaceholder": "Search {{count}} events…",
       "chapterShort": "Ch.{{n}}",
       "kernelAbbr": "K",
-      "satelliteAbbr": "S"
+      "satelliteAbbr": "S",
+      "filterKernel": "Kernel K",
+      "filterSatellite": "Satellite S",
+      "groupLabel": "Group by",
+      "groupByChapter": "Chapter",
+      "groupByImportance": "Importance",
+      "chapterGroup": "Chapter {{n}}",
+      "noChapterGroup": "No chapter",
+      "groupMeta": "{{total}} · {{analyzed}} analyzed",
+      "noMatch": "No events match these filters",
+      "clearFilters": "Clear filters"
     },
     "empty": {
       "title": "Pick an event",
@@ -343,6 +356,100 @@
     "generating": {
       "title": "Analyzing event",
       "stage": "{{stage}} · {{progress}}%"
+    },
+    "overview": {
+      "title": "Event Landscape",
+      "metaTotal": "events",
+      "metaAnalyzed": "analyzed",
+      "metaUnanalyzed": "not analyzed",
+      "metaKernel": "kernel",
+      "undetermined": "Importance undetermined",
+      "emptyLead": "Nothing in this book has been analyzed yet.",
+      "emptyBody": "Run a batch EEP generation and this overview will fill in.",
+      "emptyBatch": "Generate all EEPs",
+      "backToOverview": "Back to overview",
+      "ranking": {
+        "caption": "Sorted by importance (kernel first), then participant count · bar = participant count. Importance is only determined once an EEP exists.",
+        "heroSub": "Ch.{{chapter}} · {{importance}} · {{participants}} participants",
+        "viewAnalysis": "View analysis",
+        "createHero": "Create event analysis",
+        "participants": "{{count}}",
+        "collapse": "Collapse",
+        "expand": "Show {{count}} more events"
+      },
+      "viewMap": "Story backbone",
+      "viewRanking": "By importance",
+      "map": {
+        "caption": "X = chapter order · bands = importance (kernel above, satellite below; the centre line holds events whose importance is not yet judged) · colour = narrative mode · dashed = not yet analyzed. Each band grows to fit its densest chapter, so nodes never overlap.",
+        "bandKernel": "Kernel K",
+        "bandSatellite": "Satellite S",
+        "legendNarrative": "Narrative mode",
+        "legendKernel": "Large circle = kernel event",
+        "legendUnanalyzed": "Dashed circle = not yet analyzed",
+        "legendAxis": "X axis = chapter order",
+        "undated": "{{count}} more events have no chapter and are not shown."
+      },
+      "viewFlow": "Context flow",
+      "flow": {
+        "caption": "Sequences of events linked by the same participants across chapters — adjacency only, not causal inference. Each step follows the top-ranked neighbour (nearest chapter first, then rarest shared participant), over analyzed events only.",
+        "emptyTitle": "Not enough cross-chapter links to form a sequence yet",
+        "emptyBody": "Sequences are built from events that share participants across chapters. As more events are analyzed, these will appear.",
+        "chainLabel": "Sequence {{idx}} · {{count}} events"
+      }
+    },
+    "batch": {
+      "checkModeOn": "Select multiple",
+      "checkModeOff": "Cancel selection",
+      "checkedCount": "{{count}} selected",
+      "generateChecked": "Generate selected",
+      "generateGroup": "Generate {{count}} in group",
+      "etaSeconds": "~{{n}}s estimated",
+      "etaMinutes": "~{{n}} min estimated",
+      "kernelOnly": "Kernel only ({{count}})",
+      "kernelOnlyDisabled": "Importance is only assigned during analysis, so no kernel events are known to be pending",
+      "chapterOnly": "This chapter only",
+      "chapterOnlyDisabled": "Select an event first so the chapter is known"
+    },
+    "compare": {
+      "title": "Compare events",
+      "subtitle": "State change and impact, side by side",
+      "close": "Close",
+      "entry": "Compare",
+      "needTwo": "Needs at least two analyzed events",
+      "pick": "Pick event {{side}}",
+      "noImpact": "No participant impact recorded for this event."
+    },
+    "tabs": {
+      "overview": "Overview",
+      "cause": "Cause & impact",
+      "evidence": "Evidence",
+      "context": "Context"
+    },
+    "partialBadge": "Partial",
+    "guide": {
+      "prefix": "Researcher guide: ",
+      "overview": "The overview answers \"where are this book's pivotal moments\" — <strong>story backbone</strong> lays every event out by chapter with kernel events enlarged; <strong>by importance</strong> ranks them by importance and participant count. Click any event for its detail (return via the top left), or use \"Compare\" to view two side by side.",
+      "detail": "This page splits one event into three layers — <strong>Overview</strong> for what happened, <strong>Cause & impact</strong> for why it happened and what it changed, and <strong>Evidence</strong> for the quotes and key terms behind the analysis.",
+      "dismiss": "Dismiss guide"
+    },
+    "source": {
+      "title": "Source passages · judge before generating",
+      "empty": "No sufficiently similar passage found in this chapter.",
+      "similarity": "similarity {{score}}",
+      "caveat": "Retrieved by vector search over this chapter using the event's title and description — not a canonical source reference. Treat low-similarity hits with suspicion."
+    },
+    "context": {
+      "title": "Position in context",
+      "sub": "prior → this event → subsequent",
+      "caveat": "Adjacent events linked by shared participants across chapters (not causal inference). Ordered by chapter proximity, then by how rare the shared participants are.",
+      "prior": "Earlier events",
+      "subsequent": "Later events",
+      "noPrior": "Nothing earlier — this event starts its context.",
+      "noSubsequent": "No related events in later chapters.",
+      "empty": "No cross-chapter related events for this event.",
+      "shared": "shares {{names}}",
+      "more": "{{count}} more",
+      "collapse": "Collapse"
     }
   },
   "batch": {
@@ -366,7 +473,14 @@
     "toastBody": "Generated {{generated}} · Skipped {{skipped}} · Failed {{failed}}",
     "toastClose": "Close",
     "errorFallback": "Batch run failed",
-    "runningWithCount": "Analyzing {{current}}/{{total}}…"
+    "runningWithCount": "Analyzing {{current}}/{{total}}…",
+    "kernelOnly": "Kernel only ({{count}})",
+    "kernelOnlyDisabled": "Importance is only assigned during analysis, so no kernel events are known to be pending",
+    "chapterOnly": "This chapter only",
+    "chapterOnlyDisabled": "Select an event first so the chapter is known",
+    "checkModeOn": "Select multiple",
+    "checkModeOff": "Cancel selection",
+    "generateChecked": "Generate selected"
   },
   "tension": {
     "title": "Tension Analysis",

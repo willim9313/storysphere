@@ -498,6 +498,12 @@ class BatchAnalysisRequest(BaseModel):
     entity_ids: list[str] | None = None
 
 
+class BatchEventAnalysisRequest(BaseModel):
+    model_config = _CAMEL
+
+    event_ids: list[str] | None = None
+
+
 # ── Entity chunks ────────────────────────────────────────────────────────────
 
 
@@ -726,3 +732,19 @@ class VoiceProfileResponse(BaseModel):
     representative_quotes: list[str]
     analyzed_at: datetime
 
+
+
+class EventSourcePassage(BaseModel):
+    model_config = _CAMEL
+
+    id: str
+    text: str
+    chapter_number: int | None = None
+    score: float
+
+
+class EventSourceResponse(BaseModel):
+    model_config = _CAMEL
+
+    event_id: str
+    passages: list[EventSourcePassage] = Field(default_factory=list)

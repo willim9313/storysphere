@@ -431,3 +431,196 @@ class TestBatchEntityAnalysis:
             json={"entityIds": ["no-such-entity"]},
         )
         assert resp.status_code == 400
+
+
+# ── Batch event analysis ──────────────────────────────────────────────────────
+
+
+def _make_events():
+    """Two events with stable ids, for subset assertions."""
+    from storysphere.domain.events import Event, EventType
+
+    def _ev(eid, title):
+        return Event(
+            id=eid,
+            title=title,
+            event_type=EventType.MEETING,
+            description=f"{title} happened.",
+            chapter=1,
+            document_id="doc-1",
+        )
+
+    return [_ev("evt-1", "The Meeting"), _ev("evt-2", "The Duel")]
+
+
+@pytest.fixture
+def event_batch_client(batch_client, mock_kg, mock_doc):
+    """batch_client with mock_kg.get_events wired — conftest does not cover it."""
+    mock_kg.get_events = AsyncMock(return_value=_make_events())
+    mock_doc.get_document_language = AsyncMock(return_value="en")
+    return batch_client
+
+
+def _await_task(client, task_id):
+    for _ in range(20):
+        poll = client.get(f"/api/v1/tasks/{task_id}/status")
+        if poll.status_code == 200 and poll.json()["status"] in ("done", "error"):
+            break
+        time.sleep(0.05)
+    return client.get(f"/api/v1/tasks/{task_id}/status").json()
+
+
+class TestBatchEventAnalysis:
+    """POST /books/:bookId/events/analyze-all — batch EEP analysis."""
+
+    def test_returns_202_with_task_id(self, event_batch_client):
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        assert resp.status_code == 202
+        assert "taskId" in resp.json()
+
+    def test_returns_404_for_unknown_book(self, event_batch_client):
+        resp = event_batch_client.post("/api/v1/books/no-such-book/events/analyze-all")
+        assert resp.status_code == 404
+
+    def test_returns_400_when_no_events(self, event_batch_client, mock_kg):
+        mock_kg.get_events = AsyncMock(return_value=[])
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        assert resp.status_code == 400
+
+    def test_no_body_analyzes_all_events(self, event_batch_client, mock_analysis_agent):
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        final = _await_task(event_batch_client, task_id)
+        assert final["status"] == "done"
+        assert final["result"]["total"] == 2
+        analyzed = [
+            call.kwargs.get("event_id")
+            for call in mock_analysis_agent.analyze_event.await_args_list
+        ]
+        assert sorted(analyzed) == ["evt-1", "evt-2"]
+
+    def test_event_ids_subset_only_analyzes_requested(
+        self, event_batch_client, mock_analysis_agent,
+    ):
+        """eventIds restricts the run to that subset."""
+        resp = event_batch_client.post(
+            "/api/v1/books/doc-1/events/analyze-all",
+            json={"eventIds": ["evt-2"]},
+        )
+        assert resp.status_code == 202
+        task_id = resp.json()["taskId"]
+
+        final = _await_task(event_batch_client, task_id)
+        assert final["status"] == "done"
+        assert final["result"]["total"] == 1
+        analyzed = [
+            call.kwargs.get("event_id")
+            for call in mock_analysis_agent.analyze_event.await_args_list
+        ]
+        assert analyzed == ["evt-2"]
+
+    def test_event_ids_with_unknown_id_is_ignored(self, event_batch_client):
+        """An eventId that doesn't match any event is silently excluded."""
+        resp = event_batch_client.post(
+            "/api/v1/books/doc-1/events/analyze-all",
+            json={"eventIds": ["evt-2", "no-such-event"]},
+        )
+        assert resp.status_code == 202
+
+    def test_event_ids_all_unknown_returns_400(self, event_batch_client):
+        """If the subset matches nothing, behave like the empty-book case."""
+        resp = event_batch_client.post(
+            "/api/v1/books/doc-1/events/analyze-all",
+            json={"eventIds": ["no-such-event"]},
+        )
+        assert resp.status_code == 400
+
+    def test_cached_events_are_skipped(self, event_batch_client):
+        """Events with a cache hit are skipped, not re-analyzed."""
+        event_batch_client._cache_store["event:doc-1:evt-1"] = {"any": "value"}  # noqa: SLF001
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        final = _await_task(event_batch_client, task_id)
+        assert final["status"] == "done"
+        assert final["result"]["total"] == 2
+        assert final["result"]["skipped"] == 1
+
+
+# ── Event source passages (#7i) ───────────────────────────────────────────────
+
+
+@pytest.fixture
+def source_client(client, mock_kg):
+    """client with mock_kg.get_event wired — conftest does not cover it."""
+    from tests.api.conftest import MEETING
+
+    async def _get_event(eid):
+        return MEETING if eid == "evt-1" else None
+
+    mock_kg.get_event = AsyncMock(side_effect=_get_event)
+    return client
+
+
+class TestEventSourcePassages:
+    """GET /books/:bookId/events/:eventId/source — retrieved source paragraphs."""
+
+    def test_returns_passages(self, source_client):
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["eventId"] == "evt-1"
+        assert len(body["passages"]) == 1
+        p = body["passages"][0]
+        assert p["text"] == "Alice entered the garden."
+        assert p["chapterNumber"] == 1
+        assert p["score"] == pytest.approx(0.95)
+
+    def test_returns_404_for_unknown_event(self, source_client):
+        resp = source_client.get("/api/v1/books/doc-1/events/no-such-event/source")
+        assert resp.status_code == 404
+
+    def test_queries_vector_with_title_and_description(self, source_client, mock_vector):
+        source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        kwargs = mock_vector.search.await_args.kwargs
+        assert "The Meeting" in kwargs["query_text"]
+        assert kwargs["document_id"] == "doc-1"
+
+    def test_limit_is_clamped(self, source_client, mock_vector):
+        """`limit` clamps the returned count; the vector query over-fetches so
+        the chapter filter still has candidates to work with."""
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source?limit=99")
+        assert len(resp.json()["passages"]) <= 10
+        assert mock_vector.search.await_args.kwargs["top_k"] >= 10
+
+        source_client.get("/api/v1/books/doc-1/events/evt-1/source?limit=0")
+        assert mock_vector.search.await_args.kwargs["top_k"] >= 1
+
+    def test_skips_results_without_text(self, source_client, mock_vector):
+        mock_vector.search = AsyncMock(return_value=[
+            {"id": "p1", "text": "", "score": 0.9, "chapter_number": 1},
+            {"id": "p2", "text": "Real prose.", "score": 0.8, "chapter_number": 1},
+        ])
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        passages = resp.json()["passages"]
+        assert [p["id"] for p in passages] == ["p2"]
+
+    def test_only_returns_passages_from_the_events_chapter(self, source_client, mock_vector):
+        """Unconstrained similarity strays to other chapters; the event's own
+        chapter is reliable metadata, so hits elsewhere are dropped."""
+        mock_vector.search = AsyncMock(return_value=[
+            {"id": "other", "text": "Wrong chapter.", "score": 0.99, "chapter_number": 7},
+            {"id": "same", "text": "Right chapter.", "score": 0.40, "chapter_number": 1},
+        ])
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        assert [p["id"] for p in resp.json()["passages"]] == ["same"]
+
+    def test_returns_empty_when_chapter_has_no_hits(self, source_client, mock_vector):
+        mock_vector.search = AsyncMock(return_value=[
+            {"id": "other", "text": "Wrong chapter.", "score": 0.99, "chapter_number": 7},
+        ])
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        assert resp.status_code == 200
+        assert resp.json()["passages"] == []

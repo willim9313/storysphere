@@ -706,6 +706,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/events/{event_id}/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Event Source Passages
+         * @description Return the source paragraphs most likely to describe this event.
+         *
+         *     Events carry no chunk reference, so the passage is *retrieved*, not looked
+         *     up: the same vector query the EEP builder uses for ``text_evidence``
+         *     (``"{title} {description}"``). Callers must present the result as "most
+         *     relevant passages", not as the event's canonical source text.
+         */
+        get: operations["get_event_source_passages_api_v1_books__book_id__events__event_id__source_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/events/analyze-all": {
         parameters: {
             query?: never;
@@ -717,9 +742,11 @@ export interface paths {
         put?: never;
         /**
          * Trigger Batch Event Analysis
-         * @description Trigger deep analysis for ALL events in a book.
+         * @description Trigger deep analysis for ALL (or a subset of) events in a book.
          *
-         *     Skips events that already have cached analysis.
+         *     ``eventIds``, when provided, restricts the run to that subset (still
+         *     skipping any that already have cached analysis); ids that don't match an
+         *     existing event are silently excluded. Omitted → all events.
          *     Returns a task_id for progress tracking.
          */
         post: operations["trigger_batch_event_analysis_api_v1_books__book_id__events_analyze_all_post"];
@@ -2168,6 +2195,11 @@ export interface components {
             /** Entityids */
             entityIds?: string[] | null;
         };
+        /** BatchEventAnalysisRequest */
+        BatchEventAnalysisRequest: {
+            /** Eventids */
+            eventIds?: string[] | null;
+        };
         /** Body_detect_language_from_upload_api_v1_books_detect_language_post */
         Body_detect_language_from_upload_api_v1_books_detect_language_post: {
             /** File */
@@ -2794,6 +2826,24 @@ export interface components {
             name: string;
             /** Type */
             type: string;
+        };
+        /** EventSourcePassage */
+        EventSourcePassage: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /** Chapternumber */
+            chapterNumber?: number | null;
+            /** Score */
+            score: number;
+        };
+        /** EventSourceResponse */
+        EventSourceResponse: {
+            /** Eventid */
+            eventId: string;
+            /** Passages */
+            passages?: components["schemas"]["EventSourcePassage"][];
         };
         /** FactionAnalysisResponse */
         FactionAnalysisResponse: {
@@ -5517,6 +5567,40 @@ export interface operations {
             };
         };
     };
+    get_event_source_passages_api_v1_books__book_id__events__event_id__source_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSourceResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     trigger_batch_event_analysis_api_v1_books__book_id__events_analyze_all_post: {
         parameters: {
             query?: never;
@@ -5526,7 +5610,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BatchEventAnalysisRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             202: {

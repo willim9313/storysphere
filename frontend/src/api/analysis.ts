@@ -1,7 +1,12 @@
 import { MOCK_ENABLED } from './mock';
 import { apiFetch, apiDelete } from './client';
 import * as mock from './mock/mockClient';
-import type { AnalysisListResponse, CharacterAnalysisDetail, EventAnalysisDetail } from './types';
+import type {
+  AnalysisListResponse,
+  CharacterAnalysisDetail,
+  EventAnalysisDetail,
+  EventSourceResponse,
+} from './types';
 
 // #6 — Trigger full-book analysis
 export function triggerBookAnalysis(bookId: string): Promise<{ taskId: string }> {
@@ -78,6 +83,19 @@ export function triggerEventAnalysis(
   );
 }
 
+// #7i — Retrieved source passages for an event (unanalyzed preview).
+// These are vector-search hits constrained to the event's chapter, NOT a
+// canonical source reference — events carry no chunk id.
+export function fetchEventSourcePassages(
+  bookId: string,
+  eventId: string,
+  limit = 3,
+): Promise<EventSourceResponse> {
+  return apiFetch<EventSourceResponse>(
+    `/books/${bookId}/events/${eventId}/source?limit=${limit}`,
+  );
+}
+
 // #7e — Delete event analysis
 export function deleteEventAnalysis(
   bookId: string,
@@ -90,11 +108,12 @@ export function deleteEventAnalysis(
 // #7f — Batch event analysis (analyze all unanalyzed events)
 export function triggerBatchEventAnalysis(
   bookId: string,
+  eventIds?: string[],
 ): Promise<{ taskId: string }> {
   if (MOCK_ENABLED) return mock.triggerBatchEventAnalysis(bookId);
   return apiFetch<{ taskId: string }>(
     `/books/${bookId}/events/analyze-all`,
-    { method: 'POST' },
+    { method: 'POST', body: JSON.stringify(eventIds ? { eventIds } : {}) },
   );
 }
 

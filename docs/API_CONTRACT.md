@@ -543,9 +543,48 @@ interface EventEvidenceProfile {
 
 ---
 
+### #7i GET /books/:bookId/events/:eventId/source
+
+取得「最可能描述該事件」的原文段落，供未分析事件在花費 LLM 前先判斷。
+
+**Query Parameters**
+
+| 參數 | 型別 | 預設 | 說明 |
+|---|---|---|---|
+| `limit` | `integer` | `3` | 回傳段落數，伺服器端 clamp 到 1–10 |
+
+**Response 200**
+```ts
+interface EventSourceResponse {
+  eventId: string;
+  passages: {
+    id: string;              // Qdrant point id
+    text: string;
+    chapterNumber: number | null;
+    score: number;           // cosine similarity
+  }[];
+}
+```
+
+> ⚠️ **這是檢索結果，不是事件的正規來源文字。** `Event` 沒有任何 chunk /
+> 文字位置欄位（`narrative_position` 從未被寫入），因此無法精確定位。本端點
+> 用的是 EEP builder 產生 `textEvidence` 時的同一組向量查詢
+> （`"{title} {description}"`）。UI 必須以「最相關段落」呈現，不得宣稱為原文出處。
+> 向量服務不可用時回傳空陣列而非錯誤。
+
+**UI 使用頁面**：事件分析頁未分析事件狀態
+
+---
+
 ### #7g POST /books/:bookId/events/analyze-all
 
-批次觸發所有未分析事件的 EEP 分析（已分析自動跳過）。
+批次觸發未分析事件的 EEP 分析（已分析自動跳過）。
+
+**Request Body**（選填）：`{ eventIds?: string[] }`
+
+`eventIds` 省略 → 全書所有事件；提供時只跑該子集（仍會跳過已有快取者），
+不存在的 id 靜默忽略。若子集比對後為空，回 `400`（同「本書沒有事件」）。
+語意與 #7c 的 `entityIds` 一致。
 
 **Response 202**：`{ taskId: string }`
 
@@ -560,7 +599,7 @@ interface BatchEepResult {
 }
 ```
 
-**UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」
+**UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」、批次子集（只生成本章 / 勾選多筆）
 
 ---
 
@@ -2043,6 +2082,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 ['books', bookId, 'analysis', 'factions']                   // #6d
 ['books', bookId, 'entities', entityId, 'analysis']         // #7a
 ['books', bookId, 'events', eventId, 'analysis']            // #7d
+['books', bookId, 'events', eventId, 'source']              // #7i
 ['books', bookId, 'entities', entityId, 'chunks']           // #9b
 ['books', bookId, 'graph']                                  // #9
 ['books', bookId, 'inferred-relations']                     // #10b
