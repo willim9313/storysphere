@@ -363,6 +363,19 @@
         "participants": "{{count}}",
         "collapse": "Collapse",
         "expand": "Show {{count}} more events"
+      },
+      "viewMap": "Story backbone",
+      "viewRanking": "By importance",
+      "map": {
+        "caption": "X = chapter order · bands = importance · colour = narrative mode · dashed = not yet analyzed. Each band grows to fit its densest chapter, so nodes never overlap.",
+        "bandKernel": "Kernel K",
+        "bandUndetermined": "Undetermined ·",
+        "bandSatellite": "Satellite S",
+        "legendNarrative": "Narrative mode",
+        "legendKernel": "Large circle = kernel event",
+        "legendUnanalyzed": "Dashed circle = not yet analyzed",
+        "legendAxis": "X axis = chapter order",
+        "undated": "{{count}} more events have no chapter and are not shown."
       }
     }
   },

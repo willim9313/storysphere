@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
-import { Sparkles } from 'lucide-react';
+import { useMemo, useState } from 'react';
+import { BarChart3, Sparkles, Waypoints } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisListResponse } from '@/api/types';
 import { useTimeline } from '@/hooks/useTimeline';
+import { EventBackboneMap } from './EventBackboneMap';
 import { EventRankingView } from './EventRankingView';
 import { buildOverviewEvents } from './eventTypes';
+
+type LandingView = 'map' | 'ranking';
 
 interface EventOverviewLandingProps {
   bookId: string;
@@ -26,6 +29,7 @@ export function EventOverviewLanding({
   isBatchRunning,
 }: Readonly<EventOverviewLandingProps>) {
   const { t } = useTranslation('analysis');
+  const [view, setView] = useState<LandingView>('map');
 
   const { data: timeline } = useTimeline(bookId, 'narrative');
   const events = useMemo(() => buildOverviewEvents(evtData, timeline), [evtData, timeline]);
@@ -72,12 +76,33 @@ export function EventOverviewLanding({
         </div>
       </div>
 
-      <EventRankingView
-        events={events}
-        onSelectEvent={onSelectEvent}
-        onGenerate={onGenerate}
-        generatingId={generatingId}
-      />
+      <div className="ea-ov-toggle">
+        <button
+          type="button"
+          className={'ea-ov-toggle-btn' + (view === 'map' ? ' active' : '')}
+          onClick={() => setView('map')}
+        >
+          <Waypoints size={13} /> {t('event.overview.viewMap')}
+        </button>
+        <button
+          type="button"
+          className={'ea-ov-toggle-btn' + (view === 'ranking' ? ' active' : '')}
+          onClick={() => setView('ranking')}
+        >
+          <BarChart3 size={13} /> {t('event.overview.viewRanking')}
+        </button>
+      </div>
+
+      {view === 'map' ? (
+        <EventBackboneMap events={events} onSelectEvent={onSelectEvent} />
+      ) : (
+        <EventRankingView
+          events={events}
+          onSelectEvent={onSelectEvent}
+          onGenerate={onGenerate}
+          generatingId={generatingId}
+        />
+      )}
     </div>
   );
 }

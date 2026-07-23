@@ -363,6 +363,19 @@
         "participants": "{{count}} 人",
         "collapse": "收合其餘事件",
         "expand": "展開其餘 {{count}} 件事件"
+      },
+      "viewMap": "故事骨幹圖",
+      "viewRanking": "重要度排行",
+      "map": {
+        "caption": "橫軸＝章節順序 · 縱向分帶＝重要度 · 顏色＝敘事模式 · 虛線圈＝尚未分析。每帶高度依該帶最密集的章節自動撐開，節點不重疊。",
+        "bandKernel": "核心 K",
+        "bandUndetermined": "未定 ·",
+        "bandSatellite": "衛星 S",
+        "legendNarrative": "敘事模式",
+        "legendKernel": "大圈 = 核心事件",
+        "legendUnanalyzed": "虛線圈 = 尚未分析",
+        "legendAxis": "橫軸 = 章節順序",
+        "undated": "另有 {{count}} 件事件無章節資訊，未顯示於圖中。"
       }
     }
   },
