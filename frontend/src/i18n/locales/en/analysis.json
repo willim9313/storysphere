@@ -423,6 +423,12 @@
       "overview": "The overview answers \"where are this book's pivotal moments\" — <strong>story backbone</strong> lays every event out by chapter with kernel events enlarged; <strong>by importance</strong> ranks them by importance and participant count. Click any event for its detail (return via the top left), or use \"Compare\" to view two side by side.",
       "detail": "This page splits one event into three layers — <strong>Overview</strong> for what happened, <strong>Cause & impact</strong> for why it happened and what it changed, and <strong>Evidence</strong> for the quotes and key terms behind the analysis.",
       "dismiss": "Dismiss guide"
+    },
+    "source": {
+      "title": "Source passages · judge before generating",
+      "empty": "No sufficiently similar passage found in this chapter.",
+      "similarity": "similarity {{score}}",
+      "caveat": "Retrieved by vector search over this chapter using the event's title and description — not a canonical source reference. Treat low-similarity hits with suspicion."
     }
   },
   "batch": {

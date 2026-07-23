@@ -547,3 +547,58 @@ class TestBatchEventAnalysis:
         assert final["status"] == "done"
         assert final["result"]["total"] == 2
         assert final["result"]["skipped"] == 1
+
+
+# ── Event source passages (#7i) ───────────────────────────────────────────────
+
+
+@pytest.fixture
+def source_client(client, mock_kg):
+    """client with mock_kg.get_event wired — conftest does not cover it."""
+    from tests.api.conftest import MEETING
+
+    async def _get_event(eid):
+        return MEETING if eid == "evt-1" else None
+
+    mock_kg.get_event = AsyncMock(side_effect=_get_event)
+    return client
+
+
+class TestEventSourcePassages:
+    """GET /books/:bookId/events/:eventId/source — retrieved source paragraphs."""
+
+    def test_returns_passages(self, source_client):
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["eventId"] == "evt-1"
+        assert len(body["passages"]) == 1
+        p = body["passages"][0]
+        assert p["text"] == "Alice entered the garden."
+        assert p["chapterNumber"] == 1
+        assert p["score"] == pytest.approx(0.95)
+
+    def test_returns_404_for_unknown_event(self, source_client):
+        resp = source_client.get("/api/v1/books/doc-1/events/no-such-event/source")
+        assert resp.status_code == 404
+
+    def test_queries_vector_with_title_and_description(self, source_client, mock_vector):
+        source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        kwargs = mock_vector.search.await_args.kwargs
+        assert "The Meeting" in kwargs["query_text"]
+        assert kwargs["document_id"] == "doc-1"
+
+    def test_limit_is_clamped(self, source_client, mock_vector):
+        source_client.get("/api/v1/books/doc-1/events/evt-1/source?limit=99")
+        assert mock_vector.search.await_args.kwargs["top_k"] == 10
+        source_client.get("/api/v1/books/doc-1/events/evt-1/source?limit=0")
+        assert mock_vector.search.await_args.kwargs["top_k"] == 1
+
+    def test_skips_results_without_text(self, source_client, mock_vector):
+        mock_vector.search = AsyncMock(return_value=[
+            {"id": "p1", "text": "", "score": 0.9, "chapter_number": 1},
+            {"id": "p2", "text": "Real prose.", "score": 0.8, "chapter_number": 2},
+        ])
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        passages = resp.json()["passages"]
+        assert [p["id"] for p in passages] == ["p2"]

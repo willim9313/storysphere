@@ -706,6 +706,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/events/{event_id}/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Event Source Passages
+         * @description Return the source paragraphs most likely to describe this event.
+         *
+         *     Events carry no chunk reference, so the passage is *retrieved*, not looked
+         *     up: the same vector query the EEP builder uses for ``text_evidence``
+         *     (``"{title} {description}"``). Callers must present the result as "most
+         *     relevant passages", not as the event's canonical source text.
+         */
+        get: operations["get_event_source_passages_api_v1_books__book_id__events__event_id__source_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/events/analyze-all": {
         parameters: {
             query?: never;
@@ -2801,6 +2826,24 @@ export interface components {
             name: string;
             /** Type */
             type: string;
+        };
+        /** EventSourcePassage */
+        EventSourcePassage: {
+            /** Id */
+            id: string;
+            /** Text */
+            text: string;
+            /** Chapternumber */
+            chapterNumber?: number | null;
+            /** Score */
+            score: number;
+        };
+        /** EventSourceResponse */
+        EventSourceResponse: {
+            /** Eventid */
+            eventId: string;
+            /** Passages */
+            passages?: components["schemas"]["EventSourcePassage"][];
         };
         /** FactionAnalysisResponse */
         FactionAnalysisResponse: {
@@ -5512,6 +5555,40 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_event_source_passages_api_v1_books__book_id__events__event_id__source_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventSourceResponse"];
+                };
             };
             /** @description Validation Error */
             422: {

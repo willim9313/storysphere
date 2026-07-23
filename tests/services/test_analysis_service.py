@@ -328,3 +328,44 @@ class TestAnalyzeCharacterFull:
         assert result.archetypes[0].primary == "The Hero"
         assert len(result.arc) == 1
         assert "Alice" in result.profile.summary
+
+
+class TestResultFieldAccessor:
+    """DataSanitizer.result_field — models and dicts must both work.
+
+    Regression: VectorService.search returns VectorSearchResult models, but
+    _build_eep read them with .get(). The AttributeError was swallowed by a
+    broad except, so text_evidence silently came back empty on every event.
+    """
+
+    def _hit(self):
+        from storysphere.services.query_models import VectorSearchResult
+        return VectorSearchResult(
+            id="p1", score=0.9, text="Alice entered.",
+            document_id="doc-1", chapter_number=2, position=0,
+        )
+
+    def test_reads_pydantic_model(self):
+        from storysphere.core.utils.data_sanitizer import DataSanitizer
+        assert DataSanitizer.result_field(self._hit(), "text") == "Alice entered."
+        assert DataSanitizer.result_field(self._hit(), "chapter_number") == 2
+
+    def test_reads_dict(self):
+        from storysphere.core.utils.data_sanitizer import DataSanitizer
+        assert DataSanitizer.result_field({"text": "x"}, "text") == "x"
+
+    def test_missing_field_returns_default(self):
+        from storysphere.core.utils.data_sanitizer import DataSanitizer
+        assert DataSanitizer.result_field(self._hit(), "nope", "fallback") == "fallback"
+        assert DataSanitizer.result_field({}, "nope", "fallback") == "fallback"
+
+    def test_model_hit_is_not_silently_empty(self):
+        """The exact shape that used to fail: model + .get()-style read."""
+        from storysphere.core.utils.data_sanitizer import DataSanitizer
+        hits = [self._hit()]
+        texts = [
+            DataSanitizer.result_field(h, "text", "")
+            for h in hits
+            if DataSanitizer.result_field(h, "text")
+        ]
+        assert texts == ["Alice entered."]

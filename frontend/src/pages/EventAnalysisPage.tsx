@@ -11,6 +11,7 @@ import {
   X,
   ArrowLeft,
   Columns2,
+  BookOpen,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -20,6 +21,7 @@ import {
   triggerEventAnalysis,
   triggerBatchEventAnalysis,
   fetchEventAnalysisDetail,
+  fetchEventSourcePassages,
 } from '@/api/analysis';
 import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
 import { EventAnalysisDetail } from '@/components/analysis/EventAnalysisDetail';
@@ -119,6 +121,14 @@ export default function EventAnalysisPage() {
     queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
     queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
     enabled: !!bookId && !!selectedEntityId && !generateTaskId && isSelectedAnalyzed,
+  });
+
+  // #7i — retrieved source passages, only useful while the event is still
+  // unanalyzed (that is the "is this worth spending LLM budget on" moment).
+  const { data: sourceData, isLoading: sourceLoading } = useQuery({
+    queryKey: ['books', bookId, 'events', selectedEntityId, 'source'],
+    queryFn: () => fetchEventSourcePassages(bookId!, selectedEntityId!, 2),
+    enabled: !!bookId && !!selectedEntityId && !isSelectedAnalyzed && !generateTaskId,
   });
 
   const markJustDone = (id: string) => {
@@ -493,6 +503,35 @@ export default function EventAnalysisPage() {
                 </div>
                 <h1 className="ea-unanalyzed-title">{selectedUnanalyzed.name}</h1>
                 <p className="ea-unanalyzed-sub">{t('event.empty.unanalyzedSubtitle')}</p>
+
+                <div className="ea-source">
+                  <div className="ea-source-head">
+                    <BookOpen size={13} />
+                    <span>{t('event.source.title')}</span>
+                  </div>
+                  {sourceLoading && (
+                    <p className="ea-source-empty">{t('analyzing')}</p>
+                  )}
+                  {!sourceLoading && (sourceData?.passages.length ?? 0) === 0 && (
+                    <p className="ea-source-empty">{t('event.source.empty')}</p>
+                  )}
+                  {!sourceLoading &&
+                    sourceData?.passages.map((p) => (
+                      <div key={p.id} className="ea-source-passage">
+                        <div className="ea-source-meta">
+                          {p.chapterNumber !== null &&
+                            p.chapterNumber !== undefined &&
+                            t('event.list.chapterShort', { n: p.chapterNumber })}
+                          <span className="ea-source-score">
+                            {t('event.source.similarity', { score: p.score.toFixed(2) })}
+                          </span>
+                        </div>
+                        <p className="ea-source-text">{p.text}</p>
+                      </div>
+                    ))}
+                  <p className="ea-source-caveat">{t('event.source.caveat')}</p>
+                </div>
+
                 <button
                   type="button"
                   className="ea-btn ea-btn-primary"

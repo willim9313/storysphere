@@ -53,6 +53,8 @@ from storysphere.api.schemas.books import (
     EventDetailResponse,
     EventLocation,
     EventParticipant,
+    EventSourcePassage,
+    EventSourceResponse,
     GraphDataResponse,
     GraphEdge,
     GraphNode,
@@ -88,6 +90,7 @@ from storysphere.api.schemas.books import (
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
 from storysphere.core.language_detection import detect_language
+from storysphere.core.utils.data_sanitizer import DataSanitizer
 from storysphere.domain.documents import ChapterRole, ParagraphEntity, PipelineStatus, StepStatus
 from storysphere.pipelines.document_processing import DocumentProcessingPipeline
 from storysphere.services.analysis_cache import AnalysisCache
@@ -2252,6 +2255,59 @@ async def delete_event_analysis(
     cache_key = f"event:{book_id}:{event_id}"
     await cache.invalidate(cache_key)
     logger.info("Deleted event analysis cache: key=%s", cache_key)
+
+
+# ── #7i GET /books/:bookId/events/:eventId/source ────────────────────────────
+
+
+@router.get(
+    "/{book_id}/events/{event_id}/source",
+    response_model=EventSourceResponse,
+)
+async def get_event_source_passages(
+    book_id: str,
+    event_id: str,
+    kg: KGServiceDep,
+    vector: VectorServiceDep,
+    limit: int = 3,
+) -> EventSourceResponse:
+    """Return the source paragraphs most likely to describe this event.
+
+    Events carry no chunk reference, so the passage is *retrieved*, not looked
+    up: the same vector query the EEP builder uses for ``text_evidence``
+    (``"{title} {description}"``). Callers must present the result as "most
+    relevant passages", not as the event's canonical source text.
+    """
+    event = await kg.get_event(event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
+
+    if vector is None:
+        return EventSourceResponse(event_id=event_id, passages=[])
+
+    want = max(1, min(limit, 10))
+    # Over-fetch, then keep only hits from the event's own chapter. Unfiltered
+    # similarity on "{title} {description}" strays badly — measured on the
+    # sample book, a third of events matched a passage from another chapter
+    # entirely. The chapter is reliable metadata, so use it to constrain.
+    results = await vector.search(
+        query_text=f"{event.title} {event.description}",
+        top_k=max(want * 4, 12),
+        document_id=book_id,
+    )
+    field = DataSanitizer.result_field
+    results = [r for r in results if field(r, "chapter_number") == event.chapter][:want]
+    passages = [
+        EventSourcePassage(
+            id=str(field(r, "id", "")),
+            text=DataSanitizer.sanitize_for_template(field(r, "text", "")),
+            chapter_number=field(r, "chapter_number"),
+            score=float(field(r, "score", 0.0)),
+        )
+        for r in results
+        if field(r, "text")
+    ]
+    return EventSourceResponse(event_id=event_id, passages=passages)
 
 
 # ── #7f POST /books/:bookId/events/analyze-all ───────────────────────────────

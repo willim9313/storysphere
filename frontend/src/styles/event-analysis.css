@@ -1342,3 +1342,36 @@
   background: var(--fg-primary); color: var(--bg-primary);
   border-color: var(--fg-primary); font-weight: 600;
 }
+
+/* ── Retrieved source passages (B2) ───────────────────────────────────────── */
+
+.ea-source {
+  margin-bottom: 18px;
+  border: 1px solid var(--border); border-radius: var(--card-radius);
+  background: var(--bg-secondary); overflow: hidden;
+}
+.ea-source-head {
+  display: flex; align-items: center; gap: 7px;
+  padding: 9px 14px; border-bottom: 1px solid var(--border);
+  font-size: var(--font-size-2xs); font-weight: 600;
+  letter-spacing: 0.05em; color: var(--fg-muted);
+}
+.ea-source-passage { padding: 14px 18px; border-bottom: 1px solid var(--border); }
+.ea-source-passage:last-of-type { border-bottom: none; }
+.ea-source-meta {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  font-feature-settings: 'tnum';
+}
+.ea-source-score { font-family: var(--font-mono); }
+.ea-source-text {
+  margin: 0;
+  font-family: var(--font-serif); font-size: var(--font-size-base);
+  line-height: 1.9; color: var(--fg-primary);
+}
+.ea-source-empty { margin: 0; padding: 16px 18px; font-size: var(--font-size-sm); color: var(--fg-muted); }
+.ea-source-caveat {
+  margin: 0; padding: 9px 14px;
+  border-top: 1px solid var(--border); background: var(--bg-primary);
+  font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted);
+}
