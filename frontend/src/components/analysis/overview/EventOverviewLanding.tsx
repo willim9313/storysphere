@@ -1,14 +1,15 @@
 import { useMemo, useState } from 'react';
-import { BarChart3, Sparkles, Waypoints } from 'lucide-react';
+import { BarChart3, GitBranch, Sparkles, Waypoints } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisListResponse } from '@/api/types';
 import { useTimeline } from '@/hooks/useTimeline';
 import { EventGuideRibbon } from '@/components/analysis/EventGuideRibbon';
 import { EventBackboneMap } from './EventBackboneMap';
+import { EventFlowView } from './EventFlowView';
 import { EventRankingView } from './EventRankingView';
 import { buildOverviewEvents } from './eventTypes';
 
-type LandingView = 'map' | 'ranking';
+type LandingView = 'map' | 'ranking' | 'flow';
 
 interface EventOverviewLandingProps {
   bookId: string;
@@ -93,20 +94,29 @@ export function EventOverviewLanding({
             className={'ea-ov-toggle-btn' + (view === 'ranking' ? ' active' : '')}
             onClick={() => setView('ranking')}
           >
-          <BarChart3 size={13} /> {t('event.overview.viewRanking')}
+            <BarChart3 size={13} /> {t('event.overview.viewRanking')}
+          </button>
+          <button
+            type="button"
+            className={'ea-ov-toggle-btn' + (view === 'flow' ? ' active' : '')}
+            onClick={() => setView('flow')}
+          >
+            <GitBranch size={13} /> {t('event.overview.viewFlow')}
           </button>
         </div>
       </div>
 
-      {view === 'map' ? (
-        <EventBackboneMap events={events} onSelectEvent={onSelectEvent} />
-      ) : (
+      {view === 'map' && <EventBackboneMap events={events} onSelectEvent={onSelectEvent} />}
+      {view === 'ranking' && (
         <EventRankingView
           events={events}
           onSelectEvent={onSelectEvent}
           onGenerate={onGenerate}
           generatingId={generatingId}
         />
+      )}
+      {view === 'flow' && (
+        <EventFlowView events={events} timeline={timeline} onSelectEvent={onSelectEvent} />
       )}
     </div>
   );

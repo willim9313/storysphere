@@ -446,7 +446,12 @@ export default function EventAnalysisPage() {
                   </div>
                 </div>
                 <EventGuideRibbon surface="detail" />
-                <EventAnalysisDetail data={eventDetail} causalVariant="stepped" />
+                <EventAnalysisDetail
+                  data={eventDetail}
+                  causalVariant="stepped"
+                  bookId={bookId}
+                  onSelectEvent={(id) => setSelectedEntityId(id)}
+                />
               </>
             ) : genTask?.status === 'error' ? (
               <div className="ea-empty">

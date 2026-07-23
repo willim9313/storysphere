@@ -388,6 +388,13 @@
         "legendUnanalyzed": "Dashed circle = not yet analyzed",
         "legendAxis": "X axis = chapter order",
         "undated": "{{count}} more events have no chapter and are not shown."
+      },
+      "viewFlow": "Context flow",
+      "flow": {
+        "caption": "Sequences of events linked by the same participants across chapters — adjacency only, not causal inference. Each step follows the top-ranked neighbour (nearest chapter first, then rarest shared participant), over analyzed events only.",
+        "emptyTitle": "Not enough cross-chapter links to form a sequence yet",
+        "emptyBody": "Sequences are built from events that share participants across chapters. As more events are analyzed, these will appear.",
+        "chainLabel": "Sequence {{idx}} · {{count}} events"
       }
     },
     "batch": {
@@ -415,7 +422,8 @@
     "tabs": {
       "overview": "Overview",
       "cause": "Cause & impact",
-      "evidence": "Evidence"
+      "evidence": "Evidence",
+      "context": "Context"
     },
     "partialBadge": "Partial",
     "guide": {
@@ -429,6 +437,19 @@
       "empty": "No sufficiently similar passage found in this chapter.",
       "similarity": "similarity {{score}}",
       "caveat": "Retrieved by vector search over this chapter using the event's title and description — not a canonical source reference. Treat low-similarity hits with suspicion."
+    },
+    "context": {
+      "title": "Position in context",
+      "sub": "prior → this event → subsequent",
+      "caveat": "Adjacent events linked by shared participants across chapters (not causal inference). Ordered by chapter proximity, then by how rare the shared participants are.",
+      "prior": "Earlier events",
+      "subsequent": "Later events",
+      "noPrior": "Nothing earlier — this event starts its context.",
+      "noSubsequent": "No related events in later chapters.",
+      "empty": "No cross-chapter related events for this event.",
+      "shared": "shares {{names}}",
+      "more": "{{count}} more",
+      "collapse": "Collapse"
     }
   },
   "batch": {

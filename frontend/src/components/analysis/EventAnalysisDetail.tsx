@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { EventContextTab } from './EventContextTab';
 import type {
   EventAnalysisDetail as EventAnalysisDetailType,
   ParticipantRole,
@@ -12,6 +13,9 @@ interface Props {
   data: EventAnalysisDetailType;
   causalVariant?: 'timeline' | 'stepped' | 'flat';
   showHero?: boolean;
+  /** Enables the 上下文位置 tab, which needs book-level adjacency data. */
+  bookId?: string;
+  onSelectEvent?: (id: string) => void;
 }
 
 function EventHero({ data }: { data: EventAnalysisDetailType }) {
@@ -396,11 +400,12 @@ function TermsSection({ data }: Readonly<{ data: EventAnalysisDetailType }>) {
 
 const TERM_LIMIT = 12;
 
-type DetailTab = 'overview' | 'cause' | 'evidence';
+type DetailTab = 'overview' | 'cause' | 'context' | 'evidence';
 
 const DETAIL_TABS: { key: DetailTab; labelKey: string }[] = [
   { key: 'overview', labelKey: 'event.tabs.overview' },
   { key: 'cause', labelKey: 'event.tabs.cause' },
+  { key: 'context', labelKey: 'event.tabs.context' },
   { key: 'evidence', labelKey: 'event.tabs.evidence' },
 ];
 
@@ -408,6 +413,8 @@ export function EventAnalysisDetail({
   data,
   causalVariant = 'stepped',
   showHero = true,
+  bookId,
+  onSelectEvent,
 }: Props) {
   const { t } = useTranslation('analysis');
   const failedParts = data.failedParts ?? [];
@@ -422,7 +429,7 @@ export function EventAnalysisDetail({
   return (
     <>
       <div className="ea-detail-tabs" role="tablist">
-        {DETAIL_TABS.map((dt) => (
+        {DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId).map((dt) => (
           <button
             key={dt.key}
             type="button"
@@ -454,6 +461,10 @@ export function EventAnalysisDetail({
           <ImpactSection data={data} failed={failedParts.includes('impact')} />
           <FactorsSection data={data} />
         </>
+      )}
+
+      {tab === 'context' && bookId && (
+        <EventContextTab bookId={bookId} eventId={data.eventId} onSelectEvent={onSelectEvent} />
       )}
 
       {tab === 'evidence' && (

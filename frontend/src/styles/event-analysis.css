@@ -1375,3 +1375,102 @@
   border-top: 1px solid var(--border); background: var(--bg-primary);
   font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted);
 }
+
+/* ── Context tab: adjacency (B5 / U4) ─────────────────────────────────────── */
+
+.ea-context-caveat {
+  margin: 0 0 14px;
+  font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted);
+}
+.ea-context-empty {
+  margin: 0; padding: 22px 18px;
+  border: 1px dashed var(--border); border-radius: var(--card-radius);
+  font-size: var(--font-size-sm); color: var(--fg-muted);
+}
+.ea-context-cols {
+  display: grid; grid-template-columns: 1fr 32px 1fr; gap: 10px; align-items: start;
+}
+.ea-context-arrow {
+  display: flex; justify-content: center; padding-top: 28px; color: var(--accent);
+}
+.ea-context-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.ea-context-col-label {
+  display: flex; align-items: center; gap: 7px;
+  font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);
+}
+.ea-context-count {
+  padding: 1px 6px; border-radius: var(--badge-radius);
+  background: var(--bg-tertiary); color: var(--fg-secondary);
+  font-feature-settings: 'tnum';
+}
+.ea-context-col-empty {
+  margin: 0; padding: 14px 12px;
+  border: 1px dashed var(--border); border-radius: var(--card-radius);
+  font-size: var(--font-size-xs); line-height: 1.5; color: var(--fg-muted);
+}
+.ea-context-card {
+  display: block; width: 100%; text-align: left;
+  padding: 11px 12px;
+  border: 1px solid var(--border); border-radius: var(--card-radius);
+  background: var(--bg-primary); cursor: pointer;
+  font-family: var(--font-sans);
+}
+.ea-context-card:hover { border-color: var(--accent); }
+.ea-context-card-head { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+.ea-context-card-ch {
+  font-size: var(--font-size-2xs); color: var(--fg-muted); font-feature-settings: 'tnum';
+}
+.ea-context-card-title {
+  font-family: var(--font-serif); font-size: var(--font-size-sm);
+  line-height: 1.4; color: var(--fg-primary);
+}
+.ea-context-card-shared {
+  margin-top: 4px; font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+.ea-context-more {
+  align-self: flex-start; padding: 4px 9px;
+  border: 1px solid var(--border); border-radius: var(--btn-radius);
+  background: none; color: var(--fg-secondary);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); cursor: pointer;
+}
+.ea-context-more:hover { background: var(--bg-secondary); }
+
+/* ── Overview: context flow (B5) ──────────────────────────────────────────── */
+
+.ea-flow-empty {
+  padding: 40px 28px; text-align: center;
+  border: 1px dashed var(--border); border-radius: var(--card-radius);
+}
+.ea-flow-empty-title {
+  margin-bottom: 6px;
+  font-family: var(--font-serif); font-size: var(--font-size-lg); color: var(--fg-secondary);
+}
+.ea-flow-empty-body {
+  max-width: 440px; margin: 0 auto;
+  font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-muted);
+}
+.ea-flow-chains { display: flex; flex-direction: column; gap: 18px; }
+.ea-flow-chain {
+  padding: 14px 16px;
+  border: 1px solid var(--border); border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow); background: var(--bg-primary);
+}
+.ea-flow-chain-label {
+  margin-bottom: 11px;
+  font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);
+}
+.ea-flow-nodes { display: flex; align-items: stretch; overflow-x: auto; padding-bottom: 4px; }
+.ea-flow-node-wrap { display: flex; align-items: center; flex: none; }
+.ea-flow-node {
+  width: 172px; text-align: left; padding: 11px 12px;
+  border: 1px solid var(--border); border-radius: var(--card-radius);
+  background: var(--bg-secondary); cursor: pointer; font-family: var(--font-sans);
+}
+.ea-flow-node:hover { border-color: var(--accent); }
+.ea-flow-node-head { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+.ea-flow-node-ch { font-size: var(--font-size-2xs); color: var(--fg-muted); font-feature-settings: 'tnum'; }
+.ea-flow-node-title {
+  font-family: var(--font-serif); font-size: var(--font-size-sm);
+  line-height: 1.4; color: var(--fg-primary);
+}
+.ea-flow-arrow { flex: none; padding: 0 6px; color: var(--accent); }
