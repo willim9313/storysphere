@@ -23,13 +23,10 @@ import {
 import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
 import { EventAnalysisDetail } from '@/components/analysis/EventAnalysisDetail';
 import { EventOverviewLanding } from '@/components/analysis/overview/EventOverviewLanding';
-import {
-  EventAnalyzedItem,
-  EventUnanalyzedItem,
-} from '@/components/analysis/EventListItems';
+import { EventGroupedList } from '@/components/analysis/EventGroupedList';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
-import type { BatchEepResult, AnalysisItem } from '@/api/types';
+import type { BatchEepResult } from '@/api/types';
 import '@/styles/event-analysis.css';
 
 export default function EventAnalysisPage() {
@@ -228,11 +225,8 @@ export default function EventAnalysisPage() {
 
   const selectedUnanalyzed = evtData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
-  const filterFn = (name: string) =>
-    !searchQuery || name.toLowerCase().includes(searchQuery.toLowerCase());
-  const filteredAnalyzed: AnalysisItem[] =
-    evtData?.analyzed.filter((a) => filterFn(a.title)) ?? [];
-  const filteredUnanalyzed = evtData?.unanalyzed.filter((u) => filterFn(u.name)) ?? [];
+  // Search / importance / narrative filtering and grouping now live in
+  // EventGroupedList; the page only owns the query string.
   const totalCount = (evtData?.analyzed.length ?? 0) + (evtData?.unanalyzed.length ?? 0);
 
   if (isLoading) {
@@ -281,54 +275,17 @@ export default function EventAnalysisPage() {
             </div>
           </div>
 
-          <div className="ea-list">
-            {filteredAnalyzed.length > 0 && (
-              <div className="ea-list-group">
-                <div className="ea-list-group-head">
-                  <span>{t('analyzed')}</span>
-                  <span className="count">{filteredAnalyzed.length}</span>
-                </div>
-                {filteredAnalyzed.map((item) => (
-                  <EventAnalyzedItem
-                    key={item.id}
-                    item={item}
-                    isSelected={selectedEntityId === item.entityId}
-                    onSelect={() => setSelectedEntityId(item.entityId)}
-                    justDone={justDoneIds.has(item.entityId)}
-                    showImportance
-                    showNarrative
-                  />
-                ))}
-              </div>
-            )}
-            {filteredUnanalyzed.length > 0 && (
-              <div className="ea-list-group">
-                <div className="ea-list-group-head">
-                  <span>{t('notAnalyzed')}</span>
-                  <span className="count">{filteredUnanalyzed.length}</span>
-                </div>
-                {filteredUnanalyzed.map((item) => (
-                  <EventUnanalyzedItem
-                    key={item.id}
-                    item={item}
-                    isSelected={selectedEntityId === item.id}
-                    onSelect={() => setSelectedEntityId(item.id)}
-                    onGenerate={() => handleGenerate(item.id)}
-                    isGenerating={generatingId === item.id}
-                    showImportance
-                    showNarrative
-                  />
-                ))}
-              </div>
-            )}
-            {filteredAnalyzed.length === 0 && filteredUnanalyzed.length === 0 && (
-              <p className="ea-list-empty">
-                {searchQuery
-                  ? t('event.list.searchPlaceholder', { count: totalCount })
-                  : t('notAnalyzed')}
-              </p>
-            )}
-          </div>
+          {evtData && (
+            <EventGroupedList
+              evtData={evtData}
+              searchQuery={searchQuery}
+              selectedEntityId={selectedEntityId}
+              onSelect={(id) => setSelectedEntityId(id)}
+              onGenerate={handleGenerate}
+              generatingId={generatingId}
+              justDoneIds={justDoneIds}
+            />
+          )}
         </aside>
 
         {/* Content Area */}

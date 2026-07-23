@@ -331,7 +331,18 @@
       "searchPlaceholder": "搜尋 {{count}} 件事件…",
       "chapterShort": "Ch.{{n}}",
       "kernelAbbr": "K",
-      "satelliteAbbr": "S"
+      "satelliteAbbr": "S",
+      "filterKernel": "核心 K",
+      "filterSatellite": "衛星 S",
+      "filterUndetermined": "未定 ·",
+      "groupLabel": "分組",
+      "groupByChapter": "章節序",
+      "groupByImportance": "重要度",
+      "chapterGroup": "第 {{n}} 章",
+      "noChapterGroup": "未標章節",
+      "groupMeta": "{{total}} · 已析 {{analyzed}}",
+      "noMatch": "沒有符合篩選條件的事件",
+      "clearFilters": "清除篩選"
     },
     "empty": {
       "title": "選擇一個事件",

@@ -331,7 +331,18 @@
       "searchPlaceholder": "Search {{count}} events…",
       "chapterShort": "Ch.{{n}}",
       "kernelAbbr": "K",
-      "satelliteAbbr": "S"
+      "satelliteAbbr": "S",
+      "filterKernel": "Kernel K",
+      "filterSatellite": "Satellite S",
+      "filterUndetermined": "Undetermined ·",
+      "groupLabel": "Group by",
+      "groupByChapter": "Chapter",
+      "groupByImportance": "Importance",
+      "chapterGroup": "Chapter {{n}}",
+      "noChapterGroup": "No chapter",
+      "groupMeta": "{{total}} · {{analyzed}} analyzed",
+      "noMatch": "No events match these filters",
+      "clearFilters": "Clear filters"
     },
     "empty": {
       "title": "Pick an event",
