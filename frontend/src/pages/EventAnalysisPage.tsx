@@ -9,7 +9,7 @@ import {
   ExternalLink,
   Check,
   X,
-  BookOpen,
+  ArrowLeft,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useChatContext } from '@/contexts/ChatContext';
@@ -22,6 +22,7 @@ import {
 } from '@/api/analysis';
 import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
 import { EventAnalysisDetail } from '@/components/analysis/EventAnalysisDetail';
+import { EventOverviewLanding } from '@/components/analysis/overview/EventOverviewLanding';
 import {
   EventAnalyzedItem,
   EventUnanalyzedItem,
@@ -330,6 +331,17 @@ export default function EventAnalysisPage() {
         {/* Content Area */}
         <div className="ea-content">
           <div className="ea-content-scroll">
+            {selectedEntityId && (
+              <div className="ea-ov-backbar">
+                <button
+                  type="button"
+                  className="ea-btn"
+                  onClick={() => setSelectedEntityId(null)}
+                >
+                  <ArrowLeft size={12} /> {t('event.overview.backToOverview')}
+                </button>
+              </div>
+            )}
             {selectedEntityId && detailLoading ? (
               <div className="ea-empty">
                 <div className="ea-spinner" />
@@ -450,12 +462,23 @@ export default function EventAnalysisPage() {
                   {tc('confirm')}
                 </button>
               </div>
+            ) : evtData && bookId ? (
+              <EventOverviewLanding
+                bookId={bookId}
+                evtData={evtData}
+                onSelectEvent={(id) => setSelectedEntityId(id)}
+                onGenerate={handleGenerate}
+                generatingId={generatingId}
+                onBatchAll={() => setConfirmBatchEep(true)}
+                isBatchRunning={isBatchRunning}
+              />
             ) : (
+              // Only reached if the #6b list query itself failed (isLoading
+              // already gates the loading state above).
               <div className="ea-empty">
-                <div className="ea-empty-icon">
-                  <BookOpen size={22} />
+                <div className="ea-empty-icon error">
+                  <AlertTriangle size={22} />
                 </div>
-                <h2 className="ea-empty-title">{t('event.empty.title')}</h2>
                 <p className="ea-empty-sub">{t('event.empty.subtitle')}</p>
               </div>
             )}

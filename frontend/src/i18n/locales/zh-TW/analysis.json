@@ -343,6 +343,27 @@
     "generating": {
       "title": "事件分析中",
       "stage": "{{stage}} · {{progress}}%"
+    },
+    "overview": {
+      "title": "事件圖景",
+      "metaTotal": "件事件",
+      "metaAnalyzed": "已分析",
+      "metaUnanalyzed": "未分析",
+      "metaKernel": "核心",
+      "undetermined": "重要度未定",
+      "emptyLead": "整本書尚未分析。",
+      "emptyBody": "先批次生成 EEP，總覽會隨之填滿。",
+      "emptyBatch": "一鍵生成全部 EEP",
+      "backToOverview": "返回總覽",
+      "ranking": {
+        "caption": "主排序＝重要度（核心優先）· 次排序＝參與者數 · 長條＝參與者數。未分析事件的重要度需生成 EEP 後才會判定。",
+        "heroSub": "Ch.{{chapter}} · {{importance}} · {{participants}} 名參與者",
+        "viewAnalysis": "查看分析",
+        "createHero": "建立事件分析",
+        "participants": "{{count}} 人",
+        "collapse": "收合其餘事件",
+        "expand": "展開其餘 {{count}} 件事件"
+      }
     }
   },
   "batch": {

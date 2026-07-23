@@ -936,3 +936,120 @@
   align-self: flex-start; font-size: var(--font-size-sm);
   font-family: var(--font-sans);
 }
+
+/* ── Overview landing (B0) ─────────────────────────────────────────────────
+   Replaces the passive "pick an event" empty state. Blueprint: the character
+   page's .ca-ov-* landing (see character-analysis.css). */
+
+.ea-ov-backbar { margin-bottom: 14px; }
+
+.ea-ov-landing {
+  max-width: 1180px; margin: 0 auto;
+  animation: ea-ov-fade var(--transition-normal) ease;
+}
+@keyframes ea-ov-fade { from { opacity: 0; } to { opacity: 1; } }
+
+.ea-ov-empty-banner {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 13px 16px; margin-bottom: 16px;
+  border: 1px solid var(--accent); border-radius: var(--card-radius);
+  background: var(--bg-secondary);
+}
+.ea-ov-empty-text { flex: 1; min-width: 240px; font-size: var(--font-size-sm); color: var(--fg-secondary); }
+.ea-ov-empty-text strong { color: var(--fg-primary); }
+
+.ea-ov-head { margin-bottom: 16px; }
+.ea-ov-title {
+  font-family: var(--font-serif); font-size: var(--font-size-2xl); font-weight: 700;
+  margin: 0 0 5px; color: var(--fg-primary);
+}
+.ea-ov-meta {
+  display: flex; gap: 14px; flex-wrap: wrap;
+  font-size: var(--font-size-sm); color: var(--fg-secondary);
+}
+.ea-ov-meta strong { color: var(--fg-primary); }
+.ea-ov-meta-item { display: inline-flex; align-items: center; gap: 5px; }
+.ea-ov-meta-item.analyzed { color: var(--color-success); }
+.ea-ov-meta-item.kernel { color: var(--accent); }
+.ea-ov-meta-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--color-success);
+}
+.ea-ov-meta-dot.empty { background: transparent; border: 1.5px solid var(--fg-muted); }
+
+.ea-ov-caption {
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  line-height: 1.6; margin-bottom: 14px;
+}
+
+.ea-ov-hero {
+  display: flex; gap: 16px; align-items: center;
+  padding: 18px 20px; margin-bottom: 14px;
+  background: var(--bg-primary); border: 1px solid var(--border);
+  border-radius: var(--card-radius); box-shadow: var(--card-shadow);
+}
+.ea-ov-hero-rank {
+  flex: none; display: flex; align-items: center; justify-content: center;
+  width: 42px; height: 42px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-fg);
+  font-family: var(--font-sans); font-weight: 700; font-size: var(--font-size-sm);
+}
+.ea-ov-hero-body { flex: 1; min-width: 0; }
+.ea-ov-hero-title { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.ea-ov-hero-name {
+  font-family: var(--font-serif); font-size: var(--font-size-xl); font-weight: 700;
+  color: var(--fg-primary);
+}
+.ea-ov-hero-sub { font-size: var(--font-size-xs); color: var(--fg-muted); margin-top: 4px; }
+
+.ea-ov-rank-list {
+  background: var(--bg-primary); border: 1px solid var(--border);
+  border-radius: var(--card-radius); box-shadow: var(--card-shadow);
+  overflow: hidden;
+}
+.ea-ov-rank-row {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 16px; border-top: 1px solid var(--border);
+  cursor: pointer;
+}
+.ea-ov-rank-row:first-child { border-top: none; }
+.ea-ov-rank-row:hover { background: var(--bg-secondary); }
+.ea-ov-rank-n {
+  width: 22px; flex: none; text-align: right;
+  font-size: var(--font-size-xs); color: var(--fg-muted);
+  font-feature-settings: 'tnum';
+}
+.ea-ov-rank-name {
+  width: 190px; flex: none;
+  font-family: var(--font-serif); font-size: var(--font-size-sm);
+  color: var(--fg-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ea-ov-rank-name.muted { color: var(--fg-muted); }
+.ea-ov-rank-ch {
+  width: 46px; flex: none;
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  font-feature-settings: 'tnum';
+}
+.ea-ov-rank-bar-track {
+  flex: 1; min-width: 60px; height: 8px; border-radius: 4px;
+  background: var(--bg-tertiary); overflow: hidden;
+}
+.ea-ov-rank-bar-fill { height: 100%; border-radius: 4px; background: var(--accent); }
+.ea-ov-rank-bar-fill.muted { background: var(--fg-muted); opacity: 0.5; }
+.ea-ov-rank-count {
+  width: 48px; flex: none; text-align: right;
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  font-feature-settings: 'tnum';
+}
+.ea-ov-rank-gen {
+  flex: none; padding: 4px 9px;
+  border: 1px solid var(--border); border-radius: var(--btn-radius);
+  background: var(--bg-secondary); color: var(--fg-secondary);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  cursor: pointer;
+}
+.ea-ov-rank-gen:hover:not(:disabled) { background: var(--bg-tertiary); }
+.ea-ov-rank-gen:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ea-ov-expand-btn { margin-top: 12px; }

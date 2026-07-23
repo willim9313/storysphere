@@ -343,6 +343,27 @@
     "generating": {
       "title": "Analyzing event",
       "stage": "{{stage}} · {{progress}}%"
+    },
+    "overview": {
+      "title": "Event Landscape",
+      "metaTotal": "events",
+      "metaAnalyzed": "analyzed",
+      "metaUnanalyzed": "not analyzed",
+      "metaKernel": "kernel",
+      "undetermined": "Importance undetermined",
+      "emptyLead": "Nothing in this book has been analyzed yet.",
+      "emptyBody": "Run a batch EEP generation and this overview will fill in.",
+      "emptyBatch": "Generate all EEPs",
+      "backToOverview": "Back to overview",
+      "ranking": {
+        "caption": "Sorted by importance (kernel first), then participant count · bar = participant count. Importance is only determined once an EEP exists.",
+        "heroSub": "Ch.{{chapter}} · {{importance}} · {{participants}} participants",
+        "viewAnalysis": "View analysis",
+        "createHero": "Create event analysis",
+        "participants": "{{count}}",
+        "collapse": "Collapse",
+        "expand": "Show {{count}} more events"
+      }
     }
   },
   "batch": {
