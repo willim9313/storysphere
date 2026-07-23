@@ -95,12 +95,15 @@ export default function EventAnalysisPage() {
 
   const { data: evtData, isLoading } = useEventAnalysis(bookId);
 
+  // Only analyzed events have a #7d payload. Selecting anything else — an
+  // unanalyzed event, or one whose generation is still running — would only
+  // 404, so the query stays parked until the list says the analysis exists.
+  const isSelectedAnalyzed = !!evtData?.analyzed.some((a) => a.entityId === selectedEntityId);
+
   const { data: eventDetail, isLoading: detailLoading } = useQuery({
     queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
     queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
-    // Pause while a generation task runs: the analysis does not exist yet at
-    // that point, so a refetch would only 404.
-    enabled: !!bookId && !!selectedEntityId && !generateTaskId,
+    enabled: !!bookId && !!selectedEntityId && !generateTaskId && isSelectedAnalyzed,
   });
 
   const markJustDone = (id: string) => {
