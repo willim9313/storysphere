@@ -1201,3 +1201,24 @@
 .ea-role-legend-dot.victim { background: var(--color-error); }
 .ea-role-legend-dot.beneficiary { background: var(--color-success); }
 .ea-role-legend-dot.witness { background: var(--fg-muted); }
+
+/* ── Unanalyzed event state (B2, partial) ─────────────────────────────────────
+   Shows what is known about the event before spending LLM budget on it. The
+   source prose the design calls for is not reachable yet — events carry no
+   chunk reference and are absent from the entity index (#9b 404s on them). */
+
+.ea-unanalyzed { max-width: 760px; margin: 0 auto; padding-top: 8px; }
+.ea-unanalyzed-meta {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 8px;
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+.ea-unanalyzed-meta .sep { width: 3px; height: 3px; border-radius: 50%; background: var(--fg-muted); }
+.ea-unanalyzed-title {
+  font-family: var(--font-serif); font-size: var(--font-size-2xl); font-weight: 700;
+  margin: 0 0 6px; color: var(--fg-primary);
+}
+.ea-unanalyzed-sub {
+  margin: 0 0 18px;
+  font-size: var(--font-size-sm); line-height: 1.7; color: var(--fg-secondary);
+}

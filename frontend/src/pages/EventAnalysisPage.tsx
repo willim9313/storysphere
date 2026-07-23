@@ -398,9 +398,25 @@ export default function EventAnalysisPage() {
                 </span>
               </div>
             ) : selectedUnanalyzed ? (
-              <div className="ea-empty">
-                <h2 className="ea-empty-title">{selectedUnanalyzed.name}</h2>
-                <p className="ea-empty-sub">{t('event.empty.unanalyzedSubtitle')}</p>
+              <div className="ea-unanalyzed">
+                <div className="ea-unanalyzed-meta">
+                  <span className="ea-imp unknown" title={t('event.overview.undetermined')}>
+                    ·
+                  </span>
+                  {selectedUnanalyzed.chapter != null && (
+                    <span>
+                      {t('event.list.chapterShort', { n: selectedUnanalyzed.chapter })}
+                    </span>
+                  )}
+                  {selectedUnanalyzed.narrativeMode && (
+                    <>
+                      <span className="sep" />
+                      <span>{t(`event.narrative.${selectedUnanalyzed.narrativeMode}`)}</span>
+                    </>
+                  )}
+                </div>
+                <h1 className="ea-unanalyzed-title">{selectedUnanalyzed.name}</h1>
+                <p className="ea-unanalyzed-sub">{t('event.empty.unanalyzedSubtitle')}</p>
                 <button
                   type="button"
                   className="ea-btn ea-btn-primary"
