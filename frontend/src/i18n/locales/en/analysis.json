@@ -399,7 +399,11 @@
       "generateChecked": "Generate selected",
       "generateGroup": "Generate {{count}} in group",
       "etaSeconds": "~{{n}}s estimated",
-      "etaMinutes": "~{{n}} min estimated"
+      "etaMinutes": "~{{n}} min estimated",
+      "kernelOnly": "Kernel only ({{count}})",
+      "kernelOnlyDisabled": "Importance is only assigned during analysis, so no kernel events are known to be pending",
+      "chapterOnly": "This chapter only",
+      "chapterOnlyDisabled": "Select an event first so the chapter is known"
     },
     "compare": {
       "title": "Compare events",
@@ -445,7 +449,14 @@
     "toastBody": "Generated {{generated}} · Skipped {{skipped}} · Failed {{failed}}",
     "toastClose": "Close",
     "errorFallback": "Batch run failed",
-    "runningWithCount": "Analyzing {{current}}/{{total}}…"
+    "runningWithCount": "Analyzing {{current}}/{{total}}…",
+    "kernelOnly": "Kernel only ({{count}})",
+    "kernelOnlyDisabled": "Importance is only assigned during analysis, so no kernel events are known to be pending",
+    "chapterOnly": "This chapter only",
+    "chapterOnlyDisabled": "Select an event first so the chapter is known",
+    "checkModeOn": "Select multiple",
+    "checkModeOff": "Cancel selection",
+    "generateChecked": "Generate selected"
   },
   "tension": {
     "title": "Tension Analysis",

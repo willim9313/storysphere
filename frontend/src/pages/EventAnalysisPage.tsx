@@ -32,6 +32,18 @@ import { useTaskPolling } from '@/hooks/useTaskPolling';
 import type { BatchEepResult } from '@/api/types';
 import '@/styles/event-analysis.css';
 
+/** Rough per-event wall-clock estimate for the batch ETA. Not measured — a
+ *  planning hint only, and the label says "estimated". Replace when per-event
+ *  timings are actually recorded. */
+const SECONDS_PER_EVENT = 8;
+
+function formatEta(count: number, t: (k: string, o?: object) => string): string {
+  const seconds = count * SECONDS_PER_EVENT;
+  return seconds >= 60
+    ? t('event.batch.etaMinutes', { n: Math.ceil(seconds / 60) })
+    : t('event.batch.etaSeconds', { n: seconds });
+}
+
 export default function EventAnalysisPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
@@ -81,6 +93,8 @@ export default function EventAnalysisPage() {
   const [prevBatchProgress, setPrevBatchProgress] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
+  const [checkMode, setCheckMode] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (book) {
@@ -235,6 +249,14 @@ export default function EventAnalysisPage() {
   // Comparison needs two events that actually have a #7d payload.
   const canCompare = (evtData?.analyzed.length ?? 0) >= 2;
 
+  const unanalyzed = evtData?.unanalyzed ?? [];
+  const kernelRemaining = unanalyzed.filter((u) => u.importance === 'KERNEL').length;
+  const selectedChapter =
+    evtData?.analyzed.find((a) => a.entityId === selectedEntityId)?.chapter ??
+    unanalyzed.find((u) => u.id === selectedEntityId)?.chapter ??
+    null;
+  const etaLabel = formatEta(unanalyzed.length, t);
+
   if (isLoading) {
     return (
       <div className="ea-page">
@@ -265,6 +287,26 @@ export default function EventAnalysisPage() {
               onTrigger={() => setConfirmBatchEep(true)}
               onDismissSummary={() => setBatchSummary(null)}
               isPending={batchMutation.isPending}
+              subset={{
+                kernelRemaining,
+                onBatchKernel: () =>
+                  batchMutation.mutate(
+                    unanalyzed.filter((u) => u.importance === 'KERNEL').map((u) => u.id),
+                  ),
+                currentChapter: selectedChapter,
+                onBatchChapter: () =>
+                  batchMutation.mutate(
+                    unanalyzed.filter((u) => u.chapter === selectedChapter).map((u) => u.id),
+                  ),
+                checkMode,
+                onToggleCheckMode: () => {
+                  setCheckMode((v) => !v);
+                  setCheckedIds(new Set());
+                },
+                checkedCount: checkedIds.size,
+                onBatchChecked: () => batchMutation.mutate([...checkedIds]),
+                etaLabel,
+              }}
             />
           )}
 
@@ -289,8 +331,16 @@ export default function EventAnalysisPage() {
               onGenerate={handleGenerate}
               generatingId={generatingId}
               justDoneIds={justDoneIds}
-              onBatchSubset={(eventIds) => batchMutation.mutate(eventIds)}
-              isBatchRunning={isBatchRunning}
+              checkMode={checkMode}
+              checked={checkedIds}
+              onToggleChecked={(id) =>
+                setCheckedIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
             />
           )}
         </aside>

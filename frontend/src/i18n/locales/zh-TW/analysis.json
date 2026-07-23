@@ -399,7 +399,11 @@
       "generateChecked": "生成已勾選",
       "generateGroup": "生成本組 {{count}} 件",
       "etaSeconds": "預估約 {{n}} 秒",
-      "etaMinutes": "預估約 {{n}} 分鐘"
+      "etaMinutes": "預估約 {{n}} 分鐘",
+      "kernelOnly": "只生成核心 ({{count}})",
+      "kernelOnlyDisabled": "重要度需生成 EEP 後才判定，目前沒有已知的核心待生成事件",
+      "chapterOnly": "只生成本章",
+      "chapterOnlyDisabled": "先選一個事件，才知道要生成哪一章"
     },
     "compare": {
       "title": "事件對比",
@@ -445,7 +449,14 @@
     "toastBody": "已生成 {{generated}} 件 · 跳過 {{skipped}} · 失敗 {{failed}}",
     "toastClose": "關閉",
     "errorFallback": "批次執行失敗",
-    "runningWithCount": "分析中 {{current}}/{{total}}…"
+    "runningWithCount": "分析中 {{current}}/{{total}}…",
+    "kernelOnly": "只生成核心 ({{count}})",
+    "kernelOnlyDisabled": "重要度需生成 EEP 後才判定，目前沒有已知的核心待生成事件",
+    "chapterOnly": "只生成本章",
+    "chapterOnlyDisabled": "先選一個事件，才知道要生成哪一章",
+    "checkModeOn": "勾選多筆",
+    "checkModeOff": "取消勾選",
+    "generateChecked": "生成已勾選"
   },
   "tension": {
     "title": "張力分析",

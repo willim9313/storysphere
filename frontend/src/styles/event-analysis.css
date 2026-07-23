@@ -242,17 +242,7 @@
 .ea-content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 .ea-content-scroll { flex: 1; overflow-y: auto; padding: 20px 28px 60px; min-height: 0; }
 
-/* Title bar */
-.ea-titlebar {
-  display: flex; align-items: flex-end; justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 18px;
-}
-.ea-titlebar-main {
-  display: flex; align-items: baseline; gap: 12px;
-  flex-wrap: wrap;
-  min-width: 0;
-}
+/* Detail title */
 .ea-title {
   font-family: var(--font-serif);
   font-size: var(--font-size-2xl);
@@ -261,59 +251,6 @@
   margin: 0;
   letter-spacing: -0.01em;
   line-height: 1.2;
-}
-.ea-title-meta {
-  display: inline-flex; align-items: center; gap: 8px;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  font-feature-settings: 'tnum';
-}
-.ea-title-meta .sep {
-  width: 2px; height: 2px;
-  border-radius: 50%;
-  background: var(--fg-muted);
-  opacity: 0.5;
-}
-.ea-title-link {
-  display: inline-flex; align-items: center; gap: 3px;
-  font-size: var(--font-size-2xs); color: var(--accent);
-  text-decoration: none;
-}
-.ea-title-link:hover { opacity: 0.8; }
-
-.ea-titlebar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-
-.ea-title-imp {
-  display: inline-flex; align-items: center; gap: 5px;
-  font-size: var(--font-size-2xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-family: var(--font-sans);
-}
-.ea-title-imp.kernel {
-  background: var(--accent);
-  color: var(--bg-primary);
-}
-.ea-title-imp.satellite {
-  background: var(--bg-secondary);
-  color: var(--fg-secondary);
-  border: 1px solid var(--border);
-}
-.ea-title-imp-letter {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: var(--font-size-2xs);
-  width: 14px; height: 14px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 3px;
-  background: rgba(255,255,255,0.18);
-}
-.ea-title-imp.satellite .ea-title-imp-letter {
-  background: var(--bg-tertiary);
-  color: var(--fg-secondary);
 }
 
 /* Hero */
@@ -1225,31 +1162,10 @@
 
 /* ── Batch subset: check mode + per-group generate (B3) ───────────────────── */
 
-.ea-group-batch {
-  display: flex; align-items: center; gap: 5px;
-  margin: 0 6px 4px 24px; padding: 4px 9px;
-  border: 1px dashed var(--border); border-radius: var(--btn-radius);
-  background: none; color: var(--fg-muted);
-  font-family: var(--font-sans); font-size: var(--font-size-2xs);
-  cursor: pointer;
-}
-.ea-group-batch:hover:not(:disabled) {
-  border-style: solid; border-color: var(--accent); color: var(--accent);
-}
-.ea-group-batch:disabled { opacity: 0.5; cursor: not-allowed; }
-
 .ea-row-wrap { display: flex; align-items: center; gap: 6px; }
 .ea-row-wrap > .ea-item { flex: 1; min-width: 0; }
 .ea-row-check { flex: none; margin-left: 6px; accent-color: var(--accent); cursor: pointer; }
 
-.ea-check-bar {
-  position: sticky; bottom: 0;
-  display: flex; align-items: center; justify-content: space-between; gap: 10px;
-  padding: 10px 12px; margin-top: 6px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-secondary);
-}
-.ea-check-count { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
 
 /* ── Compare drawer (B6) ──────────────────────────────────────────────────── */
 
@@ -1405,3 +1321,24 @@
   border: none; background: none; cursor: pointer; color: var(--fg-muted);
 }
 .ea-guide-close:hover { color: var(--fg-primary); }
+
+/* ── Batch panel subset controls (canvas parity) ──────────────────────────── */
+
+.ea-batch-subset { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }
+.ea-batch-subset-row { display: flex; gap: 5px; }
+.ea-batch-sub-btn {
+  flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 6px 8px;
+  border: 1px solid var(--border); border-radius: var(--btn-radius);
+  background: var(--bg-primary); color: var(--fg-secondary);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  cursor: pointer;
+}
+.ea-batch-sub-btn:hover:not(:disabled) { background: var(--bg-tertiary); }
+.ea-batch-sub-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.ea-batch-sub-btn.full { width: 100%; }
+.ea-batch-sub-btn.active { border-color: var(--accent); color: var(--accent); }
+.ea-batch-sub-btn.primary {
+  background: var(--fg-primary); color: var(--bg-primary);
+  border-color: var(--fg-primary); font-weight: 600;
+}
