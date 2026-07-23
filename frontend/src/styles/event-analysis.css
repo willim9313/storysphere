@@ -1222,3 +1222,31 @@
   margin: 0 0 18px;
   font-size: var(--font-size-sm); line-height: 1.7; color: var(--fg-secondary);
 }
+
+/* ── Batch subset: check mode + per-group generate (B3) ───────────────────── */
+
+.ea-group-batch {
+  display: flex; align-items: center; gap: 5px;
+  margin: 0 6px 4px 24px; padding: 4px 9px;
+  border: 1px dashed var(--border); border-radius: var(--btn-radius);
+  background: none; color: var(--fg-muted);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  cursor: pointer;
+}
+.ea-group-batch:hover:not(:disabled) {
+  border-style: solid; border-color: var(--accent); color: var(--accent);
+}
+.ea-group-batch:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.ea-row-wrap { display: flex; align-items: center; gap: 6px; }
+.ea-row-wrap > .ea-item { flex: 1; min-width: 0; }
+.ea-row-check { flex: none; margin-left: 6px; accent-color: var(--accent); cursor: pointer; }
+
+.ea-check-bar {
+  position: sticky; bottom: 0;
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 10px 12px; margin-top: 6px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+.ea-check-count { font-size: var(--font-size-2xs); color: var(--fg-secondary); }

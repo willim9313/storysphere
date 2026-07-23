@@ -389,6 +389,15 @@
         "legendAxis": "X axis = chapter order",
         "undated": "{{count}} more events have no chapter and are not shown."
       }
+    },
+    "batch": {
+      "checkModeOn": "Select multiple",
+      "checkModeOff": "Cancel selection",
+      "checkedCount": "{{count}} selected",
+      "generateChecked": "Generate selected",
+      "generateGroup": "Generate {{count}} in group",
+      "etaSeconds": "~{{n}}s estimated",
+      "etaMinutes": "~{{n}} min estimated"
     }
   },
   "batch": {

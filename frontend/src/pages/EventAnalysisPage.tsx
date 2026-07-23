@@ -175,7 +175,7 @@ export default function EventAnalysisPage() {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const batchMutation = useMutation({
-    mutationFn: () => triggerBatchEventAnalysis(bookId!),
+    mutationFn: (eventIds?: string[]) => triggerBatchEventAnalysis(bookId!, eventIds),
     onSuccess: (data) => {
       setBatchError(null);
       setBatchSummary(null);
@@ -284,6 +284,8 @@ export default function EventAnalysisPage() {
               onGenerate={handleGenerate}
               generatingId={generatingId}
               justDoneIds={justDoneIds}
+              onBatchSubset={(eventIds) => batchMutation.mutate(eventIds)}
+              isBatchRunning={isBatchRunning}
             />
           )}
         </aside>
@@ -511,7 +513,7 @@ export default function EventAnalysisPage() {
         confirmLabel={t('event.batchConfirm')}
         onConfirm={() => {
           setConfirmBatchEep(false);
-          batchMutation.mutate();
+          batchMutation.mutate(undefined);
         }}
         onCancel={() => setConfirmBatchEep(false)}
       />

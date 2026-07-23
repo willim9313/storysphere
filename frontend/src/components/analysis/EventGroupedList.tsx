@@ -1,8 +1,20 @@
 import { useMemo, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { CheckSquare, ChevronRight, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisItem, AnalysisListResponse, UnanalyzedEntity } from '@/api/types';
 import { EventAnalyzedItem, EventUnanalyzedItem } from './EventListItems';
+
+/** Rough per-event wall-clock estimate for the batch ETA. Not measured — it is
+ *  a planning hint only, and the label says "estimated". Replace with real
+ *  telemetry if per-event timings ever get recorded. */
+const SECONDS_PER_EVENT = 8;
+
+function formatEta(count: number, t: (k: string, o?: object) => string): string {
+  const seconds = count * SECONDS_PER_EVENT;
+  return seconds >= 60
+    ? t('event.batch.etaMinutes', { n: Math.ceil(seconds / 60) })
+    : t('event.batch.etaSeconds', { n: seconds });
+}
 
 type ImportanceKey = 'KERNEL' | 'SATELLITE' | 'UNDETERMINED';
 type ModeKey = 'flashback' | 'flashforward' | 'parallel';
@@ -16,6 +28,9 @@ interface EventGroupedListProps {
   onGenerate: (id: string) => void;
   generatingId: string | null;
   justDoneIds: Set<string>;
+  /** Trigger #7g for an explicit subset of event ids. */
+  onBatchSubset: (eventIds: string[]) => void;
+  isBatchRunning: boolean;
 }
 
 type Row =
@@ -67,12 +82,16 @@ export function EventGroupedList({
   onGenerate,
   generatingId,
   justDoneIds,
+  onBatchSubset,
+  isBatchRunning,
 }: Readonly<EventGroupedListProps>) {
   const { t } = useTranslation('analysis');
   const [impFilter, setImpFilter] = useState<Set<ImportanceKey>>(new Set());
   const [modeFilter, setModeFilter] = useState<Set<ModeKey>>(new Set());
   const [groupBy, setGroupBy] = useState<GroupBy>('chapter');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+  const [checkMode, setCheckMode] = useState(false);
+  const [checked, setChecked] = useState<Set<string>>(new Set());
 
   const groups = useMemo(() => {
     const all: Row[] = [
@@ -120,6 +139,7 @@ export function EventGroupedList({
       label: g.label,
       rows: g.rows,
       analyzedCount: g.rows.filter((r) => r.kind === 'analyzed').length,
+      pendingIds: g.rows.filter((r) => r.kind === 'unanalyzed').map((r) => r.id),
     }));
   }, [evtData, searchQuery, impFilter, modeFilter, groupBy, t]);
 
@@ -153,6 +173,17 @@ export function EventGroupedList({
           ))}
         </div>
         <div className="ea-group-row">
+          <button
+            type="button"
+            className={'ea-chip' + (checkMode ? ' active' : '')}
+            onClick={() => {
+              setCheckMode((v) => !v);
+              setChecked(new Set());
+            }}
+          >
+            <CheckSquare size={11} />{' '}
+            {checkMode ? t('event.batch.checkModeOff') : t('event.batch.checkModeOn')}
+          </button>
           <span className="ea-group-label">{t('event.list.groupLabel')}</span>
           <div className="ea-seg">
             <button
@@ -189,6 +220,18 @@ export function EventGroupedList({
                   {t('event.list.groupMeta', { total: g.rows.length, analyzed: g.analyzedCount })}
                 </span>
               </button>
+              {open && g.pendingIds.length > 0 && (
+                <button
+                  type="button"
+                  className="ea-group-batch"
+                  disabled={isBatchRunning}
+                  title={formatEta(g.pendingIds.length, t)}
+                  onClick={() => onBatchSubset(g.pendingIds)}
+                >
+                  <Sparkles size={11} />{' '}
+                  {t('event.batch.generateGroup', { count: g.pendingIds.length })}
+                </button>
+              )}
               {open &&
                 g.rows.map((row) =>
                   row.kind === 'analyzed' ? (
@@ -202,21 +245,48 @@ export function EventGroupedList({
                       showNarrative
                     />
                   ) : (
-                    <EventUnanalyzedItem
-                      key={row.id}
-                      item={row.item}
-                      isSelected={selectedEntityId === row.id}
-                      onSelect={() => onSelect(row.id)}
-                      onGenerate={() => onGenerate(row.id)}
-                      isGenerating={generatingId === row.id}
-                      showImportance
-                      showNarrative
-                    />
+                    <div key={row.id} className="ea-row-wrap">
+                      {checkMode && (
+                        <input
+                          type="checkbox"
+                          className="ea-row-check"
+                          checked={checked.has(row.id)}
+                          aria-label={rowTitle(row)}
+                          onChange={() => setChecked((s) => toggle(s, row.id))}
+                        />
+                      )}
+                      <EventUnanalyzedItem
+                        item={row.item}
+                        isSelected={selectedEntityId === row.id}
+                        onSelect={() => onSelect(row.id)}
+                        onGenerate={() => onGenerate(row.id)}
+                        isGenerating={generatingId === row.id}
+                        showImportance
+                        showNarrative
+                      />
+                    </div>
                   ),
                 )}
             </div>
           );
         })}
+
+        {checkMode && (
+          <div className="ea-check-bar">
+            <span className="ea-check-count">
+              {t('event.batch.checkedCount', { count: checked.size })}
+              {checked.size > 0 && ` · ${formatEta(checked.size, t)}`}
+            </span>
+            <button
+              type="button"
+              className="ea-btn ea-btn-primary"
+              disabled={checked.size === 0 || isBatchRunning}
+              onClick={() => onBatchSubset([...checked])}
+            >
+              {t('event.batch.generateChecked')}
+            </button>
+          </div>
+        )}
 
         {groups.length === 0 && (
           <div className="ea-list-empty">

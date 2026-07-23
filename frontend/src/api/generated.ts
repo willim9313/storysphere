@@ -717,9 +717,11 @@ export interface paths {
         put?: never;
         /**
          * Trigger Batch Event Analysis
-         * @description Trigger deep analysis for ALL events in a book.
+         * @description Trigger deep analysis for ALL (or a subset of) events in a book.
          *
-         *     Skips events that already have cached analysis.
+         *     ``eventIds``, when provided, restricts the run to that subset (still
+         *     skipping any that already have cached analysis); ids that don't match an
+         *     existing event are silently excluded. Omitted → all events.
          *     Returns a task_id for progress tracking.
          */
         post: operations["trigger_batch_event_analysis_api_v1_books__book_id__events_analyze_all_post"];
@@ -2167,6 +2169,11 @@ export interface components {
         BatchAnalysisRequest: {
             /** Entityids */
             entityIds?: string[] | null;
+        };
+        /** BatchEventAnalysisRequest */
+        BatchEventAnalysisRequest: {
+            /** Eventids */
+            eventIds?: string[] | null;
         };
         /** Body_detect_language_from_upload_api_v1_books_detect_language_post */
         Body_detect_language_from_upload_api_v1_books_detect_language_post: {
@@ -5526,7 +5533,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BatchEventAnalysisRequest"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             202: {

@@ -90,11 +90,12 @@ export function deleteEventAnalysis(
 // #7f — Batch event analysis (analyze all unanalyzed events)
 export function triggerBatchEventAnalysis(
   bookId: string,
+  eventIds?: string[],
 ): Promise<{ taskId: string }> {
   if (MOCK_ENABLED) return mock.triggerBatchEventAnalysis(bookId);
   return apiFetch<{ taskId: string }>(
     `/books/${bookId}/events/analyze-all`,
-    { method: 'POST' },
+    { method: 'POST', body: JSON.stringify(eventIds ? { eventIds } : {}) },
   );
 }
 

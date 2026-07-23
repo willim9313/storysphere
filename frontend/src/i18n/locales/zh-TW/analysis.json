@@ -389,6 +389,15 @@
         "legendAxis": "橫軸 = 章節順序",
         "undated": "另有 {{count}} 件事件無章節資訊，未顯示於圖中。"
       }
+    },
+    "batch": {
+      "checkModeOn": "勾選多筆",
+      "checkModeOff": "取消勾選",
+      "checkedCount": "已勾選 {{count}} 件",
+      "generateChecked": "生成已勾選",
+      "generateGroup": "生成本組 {{count}} 件",
+      "etaSeconds": "預估約 {{n}} 秒",
+      "etaMinutes": "預估約 {{n}} 分鐘"
     }
   },
   "batch": {
