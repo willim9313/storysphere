@@ -589,16 +589,38 @@ class TestEventSourcePassages:
         assert kwargs["document_id"] == "doc-1"
 
     def test_limit_is_clamped(self, source_client, mock_vector):
-        source_client.get("/api/v1/books/doc-1/events/evt-1/source?limit=99")
-        assert mock_vector.search.await_args.kwargs["top_k"] == 10
+        """`limit` clamps the returned count; the vector query over-fetches so
+        the chapter filter still has candidates to work with."""
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source?limit=99")
+        assert len(resp.json()["passages"]) <= 10
+        assert mock_vector.search.await_args.kwargs["top_k"] >= 10
+
         source_client.get("/api/v1/books/doc-1/events/evt-1/source?limit=0")
-        assert mock_vector.search.await_args.kwargs["top_k"] == 1
+        assert mock_vector.search.await_args.kwargs["top_k"] >= 1
 
     def test_skips_results_without_text(self, source_client, mock_vector):
         mock_vector.search = AsyncMock(return_value=[
             {"id": "p1", "text": "", "score": 0.9, "chapter_number": 1},
-            {"id": "p2", "text": "Real prose.", "score": 0.8, "chapter_number": 2},
+            {"id": "p2", "text": "Real prose.", "score": 0.8, "chapter_number": 1},
         ])
         resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
         passages = resp.json()["passages"]
         assert [p["id"] for p in passages] == ["p2"]
+
+    def test_only_returns_passages_from_the_events_chapter(self, source_client, mock_vector):
+        """Unconstrained similarity strays to other chapters; the event's own
+        chapter is reliable metadata, so hits elsewhere are dropped."""
+        mock_vector.search = AsyncMock(return_value=[
+            {"id": "other", "text": "Wrong chapter.", "score": 0.99, "chapter_number": 7},
+            {"id": "same", "text": "Right chapter.", "score": 0.40, "chapter_number": 1},
+        ])
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        assert [p["id"] for p in resp.json()["passages"]] == ["same"]
+
+    def test_returns_empty_when_chapter_has_no_hits(self, source_client, mock_vector):
+        mock_vector.search = AsyncMock(return_value=[
+            {"id": "other", "text": "Wrong chapter.", "score": 0.99, "chapter_number": 7},
+        ])
+        resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
+        assert resp.status_code == 200
+        assert resp.json()["passages"] == []
