@@ -325,7 +325,8 @@
       "participantsCount": "{{count}} 人",
       "factorsConsequences": "因果因素與後果",
       "factorsConsequencesSub": "因素 · 後果",
-      "keyQuotesCount": "{{count}} 段"
+      "keyQuotesCount": "{{count}} 段",
+      "roleLegend": "角色圖例"
     },
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 件事件…",

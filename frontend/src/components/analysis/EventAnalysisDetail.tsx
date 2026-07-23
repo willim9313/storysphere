@@ -91,15 +91,25 @@ function StateSection({ data }: { data: EventAnalysisDetailType }) {
   );
 }
 
+// One colour bucket per role the backend actually emits (observed values:
+// initiator / actor / beneficiary). Previously `beneficiary` shared the muted
+// `witness` bucket — reading "benefits from this event" as "merely watched it"
+// — and initiator/actor were collapsed into one, losing who set the event in
+// motion. `driver` / `witness` are the older coarse values, kept mapped so any
+// legacy cached EEP still renders.
 const ROLE_CLASS_MAP: Record<string, string> = {
-  driver: 'driver',
-  initiator: 'driver',
-  actor: 'driver',
+  initiator: 'initiator',
+  driver: 'initiator',
+  actor: 'actor',
+  reactor: 'reactor',
   victim: 'victim',
-  reactor: 'victim',
-  beneficiary: 'witness',
+  beneficiary: 'beneficiary',
   witness: 'witness',
 };
+
+function roleClass(role: string): string {
+  return ROLE_CLASS_MAP[role.toLowerCase()] ?? 'witness';
+}
 
 function roleLabel(role: string, t: ReturnType<typeof useTranslation>['t']): string {
   const lc = role.toLowerCase();
@@ -111,7 +121,7 @@ function roleLabel(role: string, t: ReturnType<typeof useTranslation>['t']): str
 
 function ParticipantCard({ p }: { p: ParticipantRole }) {
   const { t } = useTranslation('analysis');
-  const cls = ROLE_CLASS_MAP[p.role.toLowerCase()] ?? '';
+  const cls = roleClass(p.role);
   const initial = p.entityName.charAt(0);
   return (
     <div className="ea-participant">
@@ -123,6 +133,26 @@ function ParticipantCard({ p }: { p: ParticipantRole }) {
         </div>
         <p className="ea-participant-impact">{p.impactDescription}</p>
       </div>
+    </div>
+  );
+}
+
+/** Colour key for the role tags, listing only the roles this event actually
+ *  uses — the backend emits a subset, and a fixed five-item key would show
+ *  buckets that never appear. */
+function RoleLegend({ roles }: Readonly<{ roles: ParticipantRole[] }>) {
+  const { t } = useTranslation('analysis');
+  const present = [...new Set(roles.map((p) => p.role.toLowerCase()))];
+  if (present.length < 2) return null;
+  return (
+    <div className="ea-role-legend">
+      <span className="ea-role-legend-head">{t('event.labels.roleLegend')}</span>
+      {present.map((role) => (
+        <span key={role} className="ea-role-legend-item">
+          <span className={'ea-role-legend-dot ' + roleClass(role)} />
+          {roleLabel(role, t)}
+        </span>
+      ))}
     </div>
   );
 }
@@ -141,6 +171,7 @@ function ParticipantsSection({ data }: { data: EventAnalysisDetailType }) {
           </span>
         </div>
       </div>
+      <RoleLegend roles={roles} />
       <div className="ea-participants">
         {roles.map((p) => (
           <ParticipantCard key={p.entityId} p={p} />

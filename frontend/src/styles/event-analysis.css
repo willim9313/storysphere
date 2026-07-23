@@ -531,8 +531,13 @@
   border: 1px solid var(--border);
   font-family: var(--font-sans);
 }
-.ea-participant-role.driver { background: var(--accent); color: var(--bg-primary); border-color: var(--accent); }
+/* One bucket per role the backend emits. `beneficiary` used to share the muted
+   `witness` style, which misread "benefits from the event" as "bystander". */
+.ea-participant-role.initiator { background: var(--accent); color: var(--accent-fg); border-color: var(--accent); }
+.ea-participant-role.actor { background: var(--color-info-bg); color: var(--color-info); border-color: var(--color-info); }
+.ea-participant-role.reactor { background: var(--entity-con-bg); color: var(--entity-con-fg); border-color: var(--entity-con-border); }
 .ea-participant-role.victim { background: var(--color-error-bg); color: var(--color-error); border-color: var(--color-error); }
+.ea-participant-role.beneficiary { background: var(--color-success-bg); color: var(--color-success); border-color: var(--color-success); }
 .ea-participant-role.witness { background: var(--bg-secondary); color: var(--fg-muted); }
 .ea-participant-impact {
   font-family: var(--font-serif);
@@ -1177,3 +1182,22 @@
 }
 .ea-seg-btn:hover:not(.active) { background: var(--bg-secondary); }
 .ea-seg-btn.active { background: var(--accent); color: var(--accent-fg); font-weight: 600; }
+
+/* ── Participant role legend (B4) ─────────────────────────────────────────── */
+
+.ea-role-legend {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px;
+  margin-bottom: 12px;
+}
+.ea-role-legend-head { font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted); }
+.ea-role-legend-item {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--font-size-2xs); color: var(--fg-secondary);
+}
+.ea-role-legend-dot { width: 9px; height: 9px; flex: none; border-radius: 50%; }
+.ea-role-legend-dot.initiator { background: var(--accent); }
+.ea-role-legend-dot.actor { background: var(--color-info); }
+.ea-role-legend-dot.reactor { background: var(--entity-con-dot); }
+.ea-role-legend-dot.victim { background: var(--color-error); }
+.ea-role-legend-dot.beneficiary { background: var(--color-success); }
+.ea-role-legend-dot.witness { background: var(--fg-muted); }

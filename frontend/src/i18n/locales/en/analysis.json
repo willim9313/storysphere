@@ -325,7 +325,8 @@
       "participantsCount": "{{count}} people",
       "factorsConsequences": "Factors & Consequences",
       "factorsConsequencesSub": "factors · consequences",
-      "keyQuotesCount": "{{count}} quotes"
+      "keyQuotesCount": "{{count}} quotes",
+      "roleLegend": "Role key"
     },
     "list": {
       "searchPlaceholder": "Search {{count}} events…",
