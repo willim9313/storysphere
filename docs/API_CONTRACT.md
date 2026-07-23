@@ -545,7 +545,13 @@ interface EventEvidenceProfile {
 
 ### #7g POST /books/:bookId/events/analyze-all
 
-批次觸發所有未分析事件的 EEP 分析（已分析自動跳過）。
+批次觸發未分析事件的 EEP 分析（已分析自動跳過）。
+
+**Request Body**（選填）：`{ eventIds?: string[] }`
+
+`eventIds` 省略 → 全書所有事件；提供時只跑該子集（仍會跳過已有快取者），
+不存在的 id 靜默忽略。若子集比對後為空，回 `400`（同「本書沒有事件」）。
+語意與 #7c 的 `entityIds` 一致。
 
 **Response 202**：`{ taskId: string }`
 
@@ -560,7 +566,7 @@ interface BatchEepResult {
 }
 ```
 
-**UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」
+**UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」、批次子集（只生成本章 / 勾選多筆）
 
 ---
 

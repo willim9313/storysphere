@@ -431,3 +431,119 @@ class TestBatchEntityAnalysis:
             json={"entityIds": ["no-such-entity"]},
         )
         assert resp.status_code == 400
+
+
+# ── Batch event analysis ──────────────────────────────────────────────────────
+
+
+def _make_events():
+    """Two events with stable ids, for subset assertions."""
+    from storysphere.domain.events import Event, EventType
+
+    def _ev(eid, title):
+        return Event(
+            id=eid,
+            title=title,
+            event_type=EventType.MEETING,
+            description=f"{title} happened.",
+            chapter=1,
+            document_id="doc-1",
+        )
+
+    return [_ev("evt-1", "The Meeting"), _ev("evt-2", "The Duel")]
+
+
+@pytest.fixture
+def event_batch_client(batch_client, mock_kg, mock_doc):
+    """batch_client with mock_kg.get_events wired — conftest does not cover it."""
+    mock_kg.get_events = AsyncMock(return_value=_make_events())
+    mock_doc.get_document_language = AsyncMock(return_value="en")
+    return batch_client
+
+
+def _await_task(client, task_id):
+    for _ in range(20):
+        poll = client.get(f"/api/v1/tasks/{task_id}/status")
+        if poll.status_code == 200 and poll.json()["status"] in ("done", "error"):
+            break
+        time.sleep(0.05)
+    return client.get(f"/api/v1/tasks/{task_id}/status").json()
+
+
+class TestBatchEventAnalysis:
+    """POST /books/:bookId/events/analyze-all — batch EEP analysis."""
+
+    def test_returns_202_with_task_id(self, event_batch_client):
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        assert resp.status_code == 202
+        assert "taskId" in resp.json()
+
+    def test_returns_404_for_unknown_book(self, event_batch_client):
+        resp = event_batch_client.post("/api/v1/books/no-such-book/events/analyze-all")
+        assert resp.status_code == 404
+
+    def test_returns_400_when_no_events(self, event_batch_client, mock_kg):
+        mock_kg.get_events = AsyncMock(return_value=[])
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        assert resp.status_code == 400
+
+    def test_no_body_analyzes_all_events(self, event_batch_client, mock_analysis_agent):
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        final = _await_task(event_batch_client, task_id)
+        assert final["status"] == "done"
+        assert final["result"]["total"] == 2
+        analyzed = [
+            call.kwargs.get("event_id")
+            for call in mock_analysis_agent.analyze_event.await_args_list
+        ]
+        assert sorted(analyzed) == ["evt-1", "evt-2"]
+
+    def test_event_ids_subset_only_analyzes_requested(
+        self, event_batch_client, mock_analysis_agent,
+    ):
+        """eventIds restricts the run to that subset."""
+        resp = event_batch_client.post(
+            "/api/v1/books/doc-1/events/analyze-all",
+            json={"eventIds": ["evt-2"]},
+        )
+        assert resp.status_code == 202
+        task_id = resp.json()["taskId"]
+
+        final = _await_task(event_batch_client, task_id)
+        assert final["status"] == "done"
+        assert final["result"]["total"] == 1
+        analyzed = [
+            call.kwargs.get("event_id")
+            for call in mock_analysis_agent.analyze_event.await_args_list
+        ]
+        assert analyzed == ["evt-2"]
+
+    def test_event_ids_with_unknown_id_is_ignored(self, event_batch_client):
+        """An eventId that doesn't match any event is silently excluded."""
+        resp = event_batch_client.post(
+            "/api/v1/books/doc-1/events/analyze-all",
+            json={"eventIds": ["evt-2", "no-such-event"]},
+        )
+        assert resp.status_code == 202
+
+    def test_event_ids_all_unknown_returns_400(self, event_batch_client):
+        """If the subset matches nothing, behave like the empty-book case."""
+        resp = event_batch_client.post(
+            "/api/v1/books/doc-1/events/analyze-all",
+            json={"eventIds": ["no-such-event"]},
+        )
+        assert resp.status_code == 400
+
+    def test_cached_events_are_skipped(self, event_batch_client):
+        """Events with a cache hit are skipped, not re-analyzed."""
+        event_batch_client._cache_store["event:doc-1:evt-1"] = {"any": "value"}  # noqa: SLF001
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        final = _await_task(event_batch_client, task_id)
+        assert final["status"] == "done"
+        assert final["result"]["total"] == 2
+        assert final["result"]["skipped"] == 1

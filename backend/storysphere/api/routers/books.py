@@ -35,6 +35,7 @@ from storysphere.api.schemas.books import (
     ArchetypeDetailResponse,
     ArcSegmentResponse,
     BatchAnalysisRequest,
+    BatchEventAnalysisRequest,
     BookDetailResponse,
     BookResponse,
     CepResponse,
@@ -2263,10 +2264,18 @@ async def _run_batch_event_analysis(
     kg_service,
     cache,
     language: str = "en",
+    event_ids: list[str] | None = None,
 ) -> None:
-    """Background task: analyze all unanalyzed events."""
+    """Background task: analyze all unanalyzed events.
+
+    ``event_ids``, when provided, restricts the run to that subset (any ids
+    that don't match an existing event are silently excluded).
+    """
     task_store.set_running(task_id)
     events = await kg_service.get_events(document_id=document_id)
+    if event_ids is not None:
+        wanted = set(event_ids)
+        events = [ev for ev in events if ev.id in wanted]
     total = len(events)
     done = 0
     failed = 0
@@ -2334,10 +2343,13 @@ async def trigger_batch_event_analysis(
     cache: AnalysisCacheDep,
     agent: AnalysisAgentDep,
     background_tasks: BackgroundTasks,
+    body: BatchEventAnalysisRequest = BatchEventAnalysisRequest(),
 ) -> dict:
-    """Trigger deep analysis for ALL events in a book.
+    """Trigger deep analysis for ALL (or a subset of) events in a book.
 
-    Skips events that already have cached analysis.
+    ``eventIds``, when provided, restricts the run to that subset (still
+    skipping any that already have cached analysis); ids that don't match an
+    existing event are silently excluded. Omitted → all events.
     Returns a task_id for progress tracking.
     """
     document = await doc.get_document(book_id)
@@ -2348,6 +2360,9 @@ async def trigger_batch_event_analysis(
         )
 
     events = await kg.get_events(document_id=book_id)
+    if body.event_ids is not None:
+        wanted = set(body.event_ids)
+        events = [ev for ev in events if ev.id in wanted]
     if not events:
         raise HTTPException(
             status_code=400,
@@ -2359,7 +2374,7 @@ async def trigger_batch_event_analysis(
     task_store.create(task_id, kind="event", title="批次事件分析")
     background_tasks.add_task(
         _run_batch_event_analysis,
-        task_id, book_id, agent, kg, cache, language,
+        task_id, book_id, agent, kg, cache, language, body.event_ids,
     )
 
     logger.info(

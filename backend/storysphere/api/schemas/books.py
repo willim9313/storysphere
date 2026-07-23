@@ -498,6 +498,12 @@ class BatchAnalysisRequest(BaseModel):
     entity_ids: list[str] | None = None
 
 
+class BatchEventAnalysisRequest(BaseModel):
+    model_config = _CAMEL
+
+    event_ids: list[str] | None = None
+
+
 # ── Entity chunks ────────────────────────────────────────────────────────────
 
 
