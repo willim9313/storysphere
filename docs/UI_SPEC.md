@@ -783,6 +783,18 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 [時間軸主區 flex] [事件詳情面板 360px，點擊事件後展開]
 ```
 
+**視圖鎖定（`hasChronologicalRanks === false`）**：「故事時序」與「矩陣視圖」皆以
+`chronological_rank` 定位事件，無 rank 時前者退化成章節順序卻自稱故事順序、後者全部落入
+degraded row——兩者都會呈現一個「看起來有意義但其實沒有」的畫面。因此此時**該兩張視圖卡
+disabled**（保留 warning dot 與 tooltip 說明原因）；若使用者仍停在該視圖，主區改顯示
+`LockedView`——沿用 `tl-state-center` 版面，文案與 QualityBanner 同源（`timeline.banner.*`），
+底部帶「重新計算時序」CTA。
+
+**視圖切換的載入態**：`useTimeline` 的 query key 含 `order`，切換「章節順序 ↔ 故事時序」會
+起新 query。以 `placeholderData: keepPreviousData` 保留前一份資料在畫面上，最外層
+`LoadingSpinner` 僅用於**首次載入**；切換期間改在畫布上方浮出 `tl-canvas-refetch` 膠囊指示器
+（`aria-busy` 同步），toolbar 與使用者剛按下的那張視圖卡不會消失。
+
 **空狀態**：當書籍尚無任何事件時，主區改顯示引導卡 `TimelineOnboardingHero`——以三步說明卡（事件抽取 → 故事時序 → Genette 分析）+「前往事件分析」CTA 引導使用者，此時 QualityBanner 不出現。呼應張力分析頁的 onboarding hero 模式。
 
 **版面對齊**：時間軸沿主軸（橫向 layout=橫、垂直 layout=豎）排列並捲動，內容在**次軸方向置中**（橫向→垂直置中、垂直→水平置中），使內容少時的留白平衡對稱、而非黏在角落。實作於 `.tl-canvas-inner`（橫向 `align-items: center`；垂直 `justify-content: center` + `width: 100%`）。
@@ -795,7 +807,7 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
   │ ☰ 章節順序        │ │ ↗ 故事時序        │ │ ▦ 矩陣視圖        │
   │ 依書中出現順序... │ │ 依事件實際發生... │ │ 章節 × 時序...    │
   └──────────────────┘ └──────────────────┘ └──────────────────┘
-  （未排序時序時，後 2 張卡右上有黃色 warning dot）
+  （未排序時序時，後 2 張卡右上有黃色 warning dot，**且該兩張卡 disabled**）
 
 右側:
   [⇄ ↕] layout 切換（矩陣模式下隱藏）

@@ -135,12 +135,17 @@ d3 brush 框選，但 `TimelinePage.tsx:436-442` 的呼叫端從未傳入。
 | `frontend/src/lib/timelineSort.test.ts` | 新增 | F1 測試 |
 | `frontend/src/pages/TimelinePage.tsx` | 修改 | F1 接線 / F2 / F3 / F4 / F5 |
 | `frontend/src/hooks/useTimeline.ts` | 修改 | F4 `placeholderData` |
-| `frontend/src/i18n/locales/zh-TW/analysis.json` | 修改 | F5 文案 |
-| `frontend/src/i18n/locales/en/analysis.json` | 修改 | F5 文案 |
+| `frontend/src/styles/timeline.css` | 修改 | F4 refetch 指示器 / F5 disabled 視圖卡 |
+| `docs/UI_SPEC.md` | 修改 | F4 / F5 行為回寫 §3.7 |
 
 > 超過 CLAUDE.md 的「一次 3 檔」上限，因此**拆成兩個 commit**：
-> commit A = F1（3 檔：lib × 2 + TimelinePage 的排序接線）
-> commit B = F2–F5（4 檔：TimelinePage + useTimeline + i18n × 2）
+> commit A = F1（lib × 2 + TimelinePage 的排序接線）
+> commit B = F2–F5（TimelinePage + useTimeline + timeline.css + UI_SPEC）
+>
+> **實作後修正**：原估的 i18n 兩檔**沒有動到**——F5 的 LockedView 文案與 QualityBanner
+> 完全同源（`timeline.banner.title` / `timeline.banner.sub`，連 analyzed/total/pct
+> 三個插值都一樣），停用卡的 tooltip 也直接用既有的 `timeline.noRanksTooltip`，
+> 零新增字串。改為多動 `timeline.css`（兩段新樣式，只用既有 token）與 `UI_SPEC.md`。
 
 ### 2.2 有沒有現成工具或函式可用
 
@@ -168,7 +173,9 @@ d3 brush 框選，但 `TimelinePage.tsx:436-442` 的呼叫端從未傳入。
 - **API endpoint**：無新增／修改 → `docs/API_CONTRACT.md` **不需更新**
 - **UI 元件**：F5 改變了視圖切換卡的行為 → `docs/UI_SPEC.md` §3.7.1 需回寫
   （原文寫「未排序時序時，後 2 張卡右上有黃色 warning dot」，需補上「並停用」）
-- **CSS token**：無變動 → `docs/DESIGN_TOKENS.md` 不需更新
+- **CSS token**：新增兩段 `.tl-*` 樣式，**只使用既有 token**（`--radius-md`、`--border`、
+  `--bg-primary`、`--shadow-sm`、`--font-size-2xs`），未新增或修改任何 token
+  → `docs/DESIGN_TOKENS.md` 不需更新
 - **BACKLOG**：本批為缺陷修正，非 BACKLOG 條目
 
 ---

@@ -200,7 +200,7 @@ export default function TimelinePage() {
 
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
-  const { data, isLoading, error } = useTimeline(bookId, order);
+  const { data, isLoading, isPlaceholderData, error } = useTimeline(bookId, order);
   const { data: computeTask } = useTaskPolling(computeTaskId);
   const { data: genettTask } = useTaskPolling(genettTaskId);
 
@@ -355,11 +355,19 @@ export default function TimelinePage() {
 
   const selectedEvent = selectedEventId ? eventMap.get(selectedEventId) : undefined;
 
-  if (isLoading) return <LoadingSpinner />;
+  // First load only. A view switch keeps the previous data on screen (see
+  // useTimeline's placeholderData) and shows a local indicator on the canvas
+  // instead, so the toolbar never vanishes mid-interaction.
+  if (isLoading && !data) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;
 
   const quality = data?.quality;
   const hasRanks = quality?.hasChronologicalRanks ?? false;
+  // Without ranks, 故事時序 and 矩陣視圖 have nothing to position events by: the
+  // former degrades to plain chapter order while claiming to be story order, and
+  // the latter drops every event into the degraded row. Both would be a view that
+  // looks meaningful and isn't, so lock them rather than render a lie.
+  const viewLocked = !hasRanks && order !== 'narrative';
 
   const activeTags = buildActiveFilterTags(filter, setFilter, filterOptions, modeLabel, eventTypeLabel);
 
@@ -424,9 +432,21 @@ export default function TimelinePage() {
       </div>
 
       <div className="tl-main">
-        <div className="tl-canvas" ref={canvasRef}>
+        <div className="tl-canvas" ref={canvasRef} aria-busy={isPlaceholderData}>
+          {isPlaceholderData && (
+            <div className="tl-canvas-refetch">
+              <Loader2 size={12} className="tl-spin" />
+              {t('timeline.loading')}
+            </div>
+          )}
           {(rawEvents?.length ?? 0) === 0 && bookId ? (
             <TimelineOnboardingHero bookId={bookId} />
+          ) : viewLocked ? (
+            <LockedView
+              quality={quality}
+              isComputing={isComputing}
+              onCompute={handleCompute}
+            />
           ) : order === 'matrix' ? (
             <MatrixCanvas
               events={sortedEvents}
@@ -460,11 +480,62 @@ export default function TimelinePage() {
             eventMap={eventMap}
             onClose={() => setSelectedEventId(null)}
             onJumpToEvent={jumpToEvent}
-            onGoToAnalysis={() => navigate(`/books/${bookId}/analysis`)}
+            // `/analysis` is not a route — the event analysis page is `/events`,
+            // and `?event=` is its existing deep-link contract, so this lands on
+            // the very event the user was looking at.
+            onGoToAnalysis={() =>
+              navigate(`/books/${bookId}/events?event=${encodeURIComponent(selectedEvent.id)}`)
+            }
             modeLabel={modeLabel}
           />
         )}
       </div>
+    </div>
+  );
+}
+
+/* ── Locked view (chronological / matrix without ranks) ──────── */
+
+function LockedView({
+  quality,
+  isComputing,
+  onCompute,
+}: {
+  quality: { eepCoverage: number; analyzedCount: number; totalCount: number } | undefined;
+  isComputing: boolean;
+  onCompute: () => void;
+}) {
+  const { t } = useTranslation('analysis');
+  return (
+    <div className="tl-state-center">
+      <div className="tl-state-icon">
+        <AlertTriangle size={26} />
+      </div>
+      <div className="tl-state-title">{t('timeline.banner.title')}</div>
+      <div className="tl-state-body">
+        {t('timeline.banner.sub', {
+          analyzed: quality?.analyzedCount ?? 0,
+          total: quality?.totalCount ?? 0,
+          pct: Math.round((quality?.eepCoverage ?? 0) * 100),
+        })}
+      </div>
+      <button
+        type="button"
+        className="tl-btn tl-btn-warning"
+        onClick={onCompute}
+        disabled={isComputing}
+        style={{ marginTop: 14 }}
+      >
+        {isComputing ? (
+          <>
+            <Loader2 size={13} className="tl-spin" /> {t('timeline.computing')}
+          </>
+        ) : (
+          <>
+            <RefreshCw size={13} /> {t('timeline.recompute')}
+          </>
+        )}
+      </button>
     </div>
   );
 }
@@ -681,6 +752,11 @@ function Toolbar({
               type="button"
               className="tl-mode-card"
               aria-selected={order === m.value}
+              // Without ranks these views can only mislead — keep the card and
+              // its warning dot visible (it explains *why* the view is missing)
+              // but don't let the user walk into it.
+              disabled={m.warn}
+              title={m.warn ? t('timeline.noRanksTooltip') : undefined}
               onClick={() => onOrderChange(m.value)}
             >
               {m.warn && <span className="tl-warn-dot" title={t('timeline.noRanksTooltip')} />}
@@ -1086,6 +1162,7 @@ function TimelineCanvas({
   selectedEventId,
   passesFilter,
   nodeRefs,
+  canvasRef,
   onSelectEvent,
   analepsisIds,
   prolepsisIds,
@@ -1099,8 +1176,7 @@ function TimelineCanvas({
   const [canvasSize, setCanvasSize] = useState({ w: 0, h: 0 });
   const innerRef = useRef<HTMLDivElement>(null);
 
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useLayoutEffect(() => {
+  const measure = useCallback(() => {
     if (!innerRef.current) {
       setLines([]);
       setSpinePoints([]);
@@ -1141,8 +1217,28 @@ function TimelineCanvas({
       });
     }
     setLines(computed);
-  }, [temporalRelations, events, layout, nodeRefs]);
+  }, [temporalRelations, events, nodeRefs]);
+
+  /* Measuring laid-out DOM is exactly the "read from an external system" case:
+     it can only run after layout and can only report back via state. */
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useLayoutEffect(() => {
+    measure();
+  }, [measure, layout]);
   /* eslint-enable react-hooks/set-state-in-effect */
+
+  // The spine and CAUSES edges are absolute pixel coordinates read off the
+  // cards, so any width change re-flows the cards and leaves the lines behind.
+  // Observing the scroll container (not the content box, which is sized to its
+  // contents in horizontal mode and so may not change at all) is what catches
+  // window resizes and the detail panel opening/closing. Mirrors MatrixCanvas.
+  useEffect(() => {
+    const el = canvasRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => measure());
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [canvasRef, measure]);
 
   if (events.length === 0) {
     return (
