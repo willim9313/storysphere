@@ -1,0 +1,47 @@
+{
+  "analyzed": [
+    {
+      "id": "c9467bc1-9a3b-4887-bbfb-86672c495fa4",
+      "entityId": "c9467bc1-9a3b-4887-bbfb-86672c495fa4",
+      "section": "events",
+      "title": "宇文化及艦隊駛向江都",
+      "archetypes": {},
+      "chapterCount": 0,
+      "content": "天色未明，宇文化及的五牙大艦艦隊如奔馬般沿運河駛向江都，艦群以其驚人的速度與規模，明確宣告了宇文閥的強大武力與其對《長生訣》的勢在必得。宇文化及卓立戰艦指揮臺之上，極目兩岸，其姿態不僅展現了身為奪寶行動發起者的野心，更因隋煬帝楊廣的旨意而將這場爭奪推向台前。這場航行直接將宇文化及與石龍從潛在對立轉變為即將爆發的衝突，預示著《長生訣》的歸屬將面臨嚴峻挑戰，同時也將江都推向了權力鬥爭的風暴中心，為寇仲與徐子陵的命運埋下了不可預知的變數，揭示了個人命運與宏大政治鬥爭的交織。",
+      "status": "complete",
+      "generatedAt": "2026-07-22T10:46:18.467620+00:00",
+      "chapter": 1,
+      "narrativeMode": "present",
+      "importance": "KERNEL"
+    }
+  ],
+  "unanalyzed": [
+    {
+      "id": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "name": "宇文化及與張士和談論《長生訣》",
+      "type": "event",
+      "chapterCount": 0,
+      "chapter": 1,
+      "narrativeMode": "present",
+      "importance": null
+    },
+    {
+      "id": "fd0d7af9-cf2c-47af-a1ed-88fd6d7c0214",
+      "name": "焦邪追查楊公寶藏線索",
+      "type": "event",
+      "chapterCount": 0,
+      "chapter": 1,
+      "narrativeMode": "present",
+      "importance": null
+    },
+    {
+      "id": "1ee746ec-f306-43d3-b45b-eaa436913706",
+      "name": "焦邪發現五牙大艦",
+      "type": "event",
+      "chapterCount": 0,
+      "chapter": 1,
+      "narrativeMode": "present",
+      "importance": null
+    }
+  ]
+}

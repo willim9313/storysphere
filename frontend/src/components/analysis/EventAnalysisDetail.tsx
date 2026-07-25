@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { EventContextTab } from './EventContextTab';
 import type {
   EventAnalysisDetail as EventAnalysisDetailType,
   ParticipantRole,
@@ -11,6 +13,9 @@ interface Props {
   data: EventAnalysisDetailType;
   causalVariant?: 'timeline' | 'stepped' | 'flat';
   showHero?: boolean;
+  /** Enables the 上下文位置 tab, which needs book-level adjacency data. */
+  bookId?: string;
+  onSelectEvent?: (id: string) => void;
 }
 
 function EventHero({ data }: { data: EventAnalysisDetailType }) {
@@ -91,15 +96,25 @@ function StateSection({ data }: { data: EventAnalysisDetailType }) {
   );
 }
 
+// One colour bucket per role the backend actually emits (observed values:
+// initiator / actor / beneficiary). Previously `beneficiary` shared the muted
+// `witness` bucket — reading "benefits from this event" as "merely watched it"
+// — and initiator/actor were collapsed into one, losing who set the event in
+// motion. `driver` / `witness` are the older coarse values, kept mapped so any
+// legacy cached EEP still renders.
 const ROLE_CLASS_MAP: Record<string, string> = {
-  driver: 'driver',
-  initiator: 'driver',
-  actor: 'driver',
+  initiator: 'initiator',
+  driver: 'initiator',
+  actor: 'actor',
+  reactor: 'reactor',
   victim: 'victim',
-  reactor: 'victim',
-  beneficiary: 'witness',
+  beneficiary: 'beneficiary',
   witness: 'witness',
 };
+
+function roleClass(role: string): string {
+  return ROLE_CLASS_MAP[role.toLowerCase()] ?? 'witness';
+}
 
 function roleLabel(role: string, t: ReturnType<typeof useTranslation>['t']): string {
   const lc = role.toLowerCase();
@@ -111,7 +126,7 @@ function roleLabel(role: string, t: ReturnType<typeof useTranslation>['t']): str
 
 function ParticipantCard({ p }: { p: ParticipantRole }) {
   const { t } = useTranslation('analysis');
-  const cls = ROLE_CLASS_MAP[p.role.toLowerCase()] ?? '';
+  const cls = roleClass(p.role);
   const initial = p.entityName.charAt(0);
   return (
     <div className="ea-participant">
@@ -123,6 +138,26 @@ function ParticipantCard({ p }: { p: ParticipantRole }) {
         </div>
         <p className="ea-participant-impact">{p.impactDescription}</p>
       </div>
+    </div>
+  );
+}
+
+/** Colour key for the role tags, listing only the roles this event actually
+ *  uses — the backend emits a subset, and a fixed five-item key would show
+ *  buckets that never appear. */
+function RoleLegend({ roles }: Readonly<{ roles: ParticipantRole[] }>) {
+  const { t } = useTranslation('analysis');
+  const present = [...new Set(roles.map((p) => p.role.toLowerCase()))];
+  if (present.length < 2) return null;
+  return (
+    <div className="ea-role-legend">
+      <span className="ea-role-legend-head">{t('event.labels.roleLegend')}</span>
+      {present.map((role) => (
+        <span key={role} className="ea-role-legend-item">
+          <span className={'ea-role-legend-dot ' + roleClass(role)} />
+          {roleLabel(role, t)}
+        </span>
+      ))}
     </div>
   );
 }
@@ -141,6 +176,7 @@ function ParticipantsSection({ data }: { data: EventAnalysisDetailType }) {
           </span>
         </div>
       </div>
+      <RoleLegend roles={roles} />
       <div className="ea-participants">
         {roles.map((p) => (
           <ParticipantCard key={p.entityId} p={p} />
@@ -329,25 +365,114 @@ function QuotesSection({ data }: { data: EventAnalysisDetailType }) {
   );
 }
 
+/** Term frequency bars for `eep.topTerms`, the densest signal in the payload
+ *  that nothing rendered before. Sorted descending and capped — the backend
+ *  returns ~20 terms and the long tail is noise. */
+function TermsSection({ data }: Readonly<{ data: EventAnalysisDetailType }>) {
+  const { t } = useTranslation('analysis');
+  const terms = Object.entries(data.eep.topTerms ?? {})
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, TERM_LIMIT);
+  if (terms.length === 0) return null;
+  const max = terms[0][1] || 1;
+  return (
+    <div className="ea-section">
+      <div className="ea-section-head">
+        <div className="ea-section-titlewrap">
+          <h3 className="ea-section-title">{t('event.sections.topTerms')}</h3>
+          <span className="ea-section-sub">{t('event.labels.topTermsSub')}</span>
+        </div>
+      </div>
+      <div className="ea-terms">
+        {terms.map(([term, weight]) => (
+          <div key={term} className="ea-term-row">
+            <span className="ea-term-label">{term}</span>
+            <div className="ea-term-track">
+              <div className="ea-term-fill" style={{ width: `${(weight / max) * 100}%` }} />
+            </div>
+            <span className="ea-term-pct">{Math.round(weight * 100)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+const TERM_LIMIT = 12;
+
+type DetailTab = 'overview' | 'cause' | 'context' | 'evidence';
+
+const DETAIL_TABS: { key: DetailTab; labelKey: string }[] = [
+  { key: 'overview', labelKey: 'event.tabs.overview' },
+  { key: 'cause', labelKey: 'event.tabs.cause' },
+  { key: 'context', labelKey: 'event.tabs.context' },
+  { key: 'evidence', labelKey: 'event.tabs.evidence' },
+];
+
 export function EventAnalysisDetail({
   data,
   causalVariant = 'stepped',
   showHero = true,
+  bookId,
+  onSelectEvent,
 }: Props) {
+  const { t } = useTranslation('analysis');
   const failedParts = data.failedParts ?? [];
+  const [tab, setTab] = useState<DetailTab>('overview');
+
+  // Switching events should land on the overview, not wherever the previous
+  // event was left.
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => setTab('overview'), [data.eventId]);
+  /* eslint-enable react-hooks/set-state-in-effect */
+
   return (
     <>
-      {showHero && <EventHero data={data} />}
-      <StateSection data={data} />
-      <ParticipantsSection data={data} />
-      <CausalitySection
-        data={data}
-        variant={causalVariant}
-        failed={failedParts.includes('causality')}
-      />
-      <ImpactSection data={data} failed={failedParts.includes('impact')} />
-      <FactorsSection data={data} />
-      <QuotesSection data={data} />
+      <div className="ea-detail-tabs" role="tablist">
+        {DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId).map((dt) => (
+          <button
+            key={dt.key}
+            type="button"
+            role="tab"
+            aria-selected={tab === dt.key}
+            className={'ea-detail-tab' + (tab === dt.key ? ' active' : '')}
+            onClick={() => setTab(dt.key)}
+          >
+            {t(dt.labelKey)}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'overview' && (
+        <>
+          {showHero && <EventHero data={data} />}
+          <StateSection data={data} />
+          <ParticipantsSection data={data} />
+        </>
+      )}
+
+      {tab === 'cause' && (
+        <>
+          <CausalitySection
+            data={data}
+            variant={causalVariant}
+            failed={failedParts.includes('causality')}
+          />
+          <ImpactSection data={data} failed={failedParts.includes('impact')} />
+          <FactorsSection data={data} />
+        </>
+      )}
+
+      {tab === 'context' && bookId && (
+        <EventContextTab bookId={bookId} eventId={data.eventId} onSelectEvent={onSelectEvent} />
+      )}
+
+      {tab === 'evidence' && (
+        <>
+          <QuotesSection data={data} />
+          <TermsSection data={data} />
+        </>
+      )}
     </>
   );
 }

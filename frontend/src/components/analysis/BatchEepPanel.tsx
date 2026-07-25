@@ -1,4 +1,4 @@
-import { Sparkles, Check, Play } from 'lucide-react';
+import { Sparkles, Check, Play, CheckSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TaskStatus, BatchEepResult } from '@/api/types';
 
@@ -16,6 +16,22 @@ interface BatchEepPanelProps {
    * Character page passes `'character.batch'` so keys live under
    * the `character.*` namespace alongside other character-specific strings. */
   i18nPrefix?: string;
+  /** Optional subset controls (event analysis page). Omit for a plain
+   *  "run everything" panel. */
+  subset?: {
+    /** Unanalyzed KERNEL events. Stays 0 until EEPs exist — the backend only
+     *  assigns importance during analysis — so the button self-disables. */
+    kernelRemaining: number;
+    onBatchKernel: () => void;
+    /** Chapter of the currently selected event, or null when nothing is selected. */
+    currentChapter: number | null;
+    onBatchChapter: () => void;
+    checkMode: boolean;
+    onToggleCheckMode: () => void;
+    checkedCount: number;
+    onBatchChecked: () => void;
+    etaLabel: string;
+  };
 }
 
 export function BatchEepPanel({
@@ -29,6 +45,7 @@ export function BatchEepPanel({
   onDismissSummary,
   isPending,
   i18nPrefix = 'batch',
+  subset,
 }: BatchEepPanelProps) {
   const { t } = useTranslation('analysis');
   const k = (suffix: string) => `${i18nPrefix}.${suffix}`;
@@ -128,8 +145,55 @@ export function BatchEepPanel({
         </button>
       )}
 
+      {subset && !isBatchRunning && !allDone && (
+        <div className="ea-batch-subset">
+          <div className="ea-batch-subset-row">
+            <button
+              type="button"
+              className="ea-batch-sub-btn"
+              disabled={subset.kernelRemaining === 0 || isPending}
+              title={
+                subset.kernelRemaining === 0 ? t(k('kernelOnlyDisabled')) : undefined
+              }
+              onClick={subset.onBatchKernel}
+            >
+              {t(k('kernelOnly'), { count: subset.kernelRemaining })}
+            </button>
+            <button
+              type="button"
+              className="ea-batch-sub-btn"
+              disabled={subset.currentChapter === null || isPending}
+              title={subset.currentChapter === null ? t(k('chapterOnlyDisabled')) : undefined}
+              onClick={subset.onBatchChapter}
+            >
+              {t(k('chapterOnly'))}
+            </button>
+          </div>
+          <button
+            type="button"
+            className={'ea-batch-sub-btn full' + (subset.checkMode ? ' active' : '')}
+            onClick={subset.onToggleCheckMode}
+          >
+            <CheckSquare size={11} />{' '}
+            {subset.checkMode ? t(k('checkModeOff')) : t(k('checkModeOn'))}
+          </button>
+          {subset.checkMode && (
+            <button
+              type="button"
+              className="ea-batch-sub-btn primary"
+              disabled={subset.checkedCount === 0 || isPending}
+              onClick={subset.onBatchChecked}
+            >
+              {t(k('generateChecked'))} ({subset.checkedCount})
+            </button>
+          )}
+        </div>
+      )}
+
       {!showSummary && !isBatchRunning && !allDone && (
-        <p className="ea-batch-hint">{t(k('autoSkip'))}</p>
+        <p className="ea-batch-hint">
+          {subset ? `${subset.etaLabel} · ${t(k('autoSkip'))}` : t(k('autoSkip'))}
+        </p>
       )}
       {showSummary && onDismissSummary && (
         <p className="ea-batch-hint row">

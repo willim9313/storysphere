@@ -840,10 +840,15 @@ class AnalysisService:
                 # Full format (with Chunk ID / Score) for LLM prompt context
                 raw_evidence_for_prompt = DataSanitizer.format_vector_store_results(results)[:8]
                 # Clean content only for storage / display
+                # `results` are VectorSearchResult models, not dicts — using
+                # .get() here raised AttributeError that the except below
+                # swallowed, so text_evidence was always empty.
                 text_evidence = [
-                    DataSanitizer.sanitize_for_template(r.get("text", ""))
+                    DataSanitizer.sanitize_for_template(
+                        DataSanitizer.result_field(r, "text", "")
+                    )
                     for r in results[:8]
-                    if r.get("text")
+                    if DataSanitizer.result_field(r, "text")
                 ]
             except Exception:
                 logger.debug("Vector search failed for event %s", event.id, exc_info=True)

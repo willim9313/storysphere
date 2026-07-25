@@ -159,15 +159,8 @@ class KGService(KGServiceBase):
     # ── Event operations ─────────────────────────────────────────────────────
 
     async def add_event(self, event: Event) -> None:
-        """Store an event and attach it to all participating entities."""
+        """Store an event. Participant links are derived on read — see get_events."""
         self._events[event.id] = event
-        for participant_id in event.participants:
-            if participant_id in self._graph:
-                node_data = self._graph.nodes[participant_id]
-                node_events: list[str] = node_data.get("event_ids", [])
-                if event.id not in node_events:
-                    node_events.append(event.id)
-                self._graph.nodes[participant_id]["event_ids"] = node_events
         logger.debug("KGService.add_event: %s", event.id)
 
     async def get_event(self, event_id: str) -> Event | None:
@@ -183,9 +176,11 @@ class KGService(KGServiceBase):
         if entity_id is None:
             events = list(self._events.values())
         else:
-            node_data = self._graph.nodes.get(entity_id, {})
-            event_ids: list[str] = node_data.get("event_ids", [])
-            events = [self._events[eid] for eid in event_ids if eid in self._events]
+            # Derived from Event.participants, not from a denormalised node
+            # attribute: graph node attrs are not covered by save()/load(), so
+            # the old `event_ids` index was silently empty after every reload
+            # and entity timelines always came back empty.
+            events = [ev for ev in self._events.values() if entity_id in ev.participants]
         if document_id is not None:
             events = [ev for ev in events if ev.document_id == document_id]
         return events

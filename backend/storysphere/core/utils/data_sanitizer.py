@@ -53,6 +53,19 @@ class DataSanitizer:
         return text
 
     @staticmethod
+    def result_field(result, key: str, default=None):
+        """Read a field from a search hit, model or dict alike.
+
+        ``VectorService.search`` returns ``VectorSearchResult`` models in
+        production but tests and older callers pass dicts. Reaching for
+        ``.get()`` on a model raises ``AttributeError``, which callers wrapped
+        in a broad ``except`` then swallow — silently losing the data.
+        """
+        if isinstance(result, dict):
+            return result.get(key, default)
+        return getattr(result, key, default)
+
+    @staticmethod
     def format_vector_store_results(results) -> list[str]:
         """Format VectorService search results for inclusion in LLM prompts.
 
@@ -60,10 +73,7 @@ class DataSanitizer:
         returned by ``VectorService.search``) or dicts with the same keys:
         id, score, text, document_id, chapter_number, position.
         """
-        def _get(r, key, default=None):
-            if isinstance(r, dict):
-                return r.get(key, default)
-            return getattr(r, key, default)
+        _get = DataSanitizer.result_field
 
         formatted = []
         for r in results:

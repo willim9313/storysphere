@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams, useLocation, Link } from 'react-router-dom';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Search,
@@ -9,6 +9,8 @@ import {
   ExternalLink,
   Check,
   X,
+  ArrowLeft,
+  Columns2,
   BookOpen,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -17,20 +19,32 @@ import { useBook } from '@/hooks/useBook';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import {
   triggerEventAnalysis,
-  deleteEventAnalysis,
   triggerBatchEventAnalysis,
   fetchEventAnalysisDetail,
+  fetchEventSourcePassages,
 } from '@/api/analysis';
 import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
 import { EventAnalysisDetail } from '@/components/analysis/EventAnalysisDetail';
-import {
-  EventAnalyzedItem,
-  EventUnanalyzedItem,
-} from '@/components/analysis/EventListItems';
+import { EventOverviewLanding } from '@/components/analysis/overview/EventOverviewLanding';
+import { EventGroupedList } from '@/components/analysis/EventGroupedList';
+import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
+import { EventGuideRibbon } from '@/components/analysis/EventGuideRibbon';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
-import type { BatchEepResult, AnalysisItem } from '@/api/types';
+import type { BatchEepResult } from '@/api/types';
 import '@/styles/event-analysis.css';
+
+/** Rough per-event wall-clock estimate for the batch ETA. Not measured — a
+ *  planning hint only, and the label says "estimated". Replace when per-event
+ *  timings are actually recorded. */
+const SECONDS_PER_EVENT = 8;
+
+function formatEta(count: number, t: (k: string, o?: object) => string): string {
+  const seconds = count * SECONDS_PER_EVENT;
+  return seconds >= 60
+    ? t('event.batch.etaMinutes', { n: Math.ceil(seconds / 60) })
+    : t('event.batch.etaSeconds', { n: seconds });
+}
 
 export default function EventAnalysisPage() {
   const queryClient = useQueryClient();
@@ -40,9 +54,31 @@ export default function EventAnalysisPage() {
   const location = useLocation();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedEntityId, setSelectedEntityId] = useState<string | null>(
-    (location.state as { selectId?: string } | null)?.selectId ?? null,
+  // Selection lives in the URL (`?event=`) so reload / share / back keep it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedEntityId = searchParams.get('event');
+  const setSelectedEntityId = useCallback(
+    (id: string | null, replace = false) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (id) next.set('event', id);
+          else next.delete('event');
+          return next;
+        },
+        { replace },
+      );
+    },
+    [setSearchParams],
   );
+
+  // Migrate legacy deep-links that pass the id via history state (graph /
+  // symbol pages still navigate that way) into the URL, once, on arrival.
+  const legacySelectId = (location.state as { selectId?: string } | null)?.selectId;
+  useEffect(() => {
+    if (legacySelectId && !selectedEntityId) setSelectedEntityId(legacySelectId, true);
+  }, [legacySelectId, selectedEntityId, setSelectedEntityId]);
+
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
@@ -58,6 +94,9 @@ export default function EventAnalysisPage() {
   const [batchSummary, setBatchSummary] = useState<BatchEepResult | null>(null);
   const [prevBatchProgress, setPrevBatchProgress] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
+  const [checkMode, setCheckMode] = useState(false);
+  const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (book) {
@@ -73,10 +112,23 @@ export default function EventAnalysisPage() {
 
   const { data: evtData, isLoading } = useEventAnalysis(bookId);
 
+  // Only analyzed events have a #7d payload. Selecting anything else — an
+  // unanalyzed event, or one whose generation is still running — would only
+  // 404, so the query stays parked until the list says the analysis exists.
+  const isSelectedAnalyzed = !!evtData?.analyzed.some((a) => a.entityId === selectedEntityId);
+
   const { data: eventDetail, isLoading: detailLoading } = useQuery({
     queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
     queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
-    enabled: !!bookId && !!selectedEntityId,
+    enabled: !!bookId && !!selectedEntityId && !generateTaskId && isSelectedAnalyzed,
+  });
+
+  // #7i — retrieved source passages, only useful while the event is still
+  // unanalyzed (that is the "is this worth spending LLM budget on" moment).
+  const { data: sourceData, isLoading: sourceLoading } = useQuery({
+    queryKey: ['books', bookId, 'events', selectedEntityId, 'source'],
+    queryFn: () => fetchEventSourcePassages(bookId!, selectedEntityId!, 2),
+    enabled: !!bookId && !!selectedEntityId && !isSelectedAnalyzed && !generateTaskId,
   });
 
   const markJustDone = (id: string) => {
@@ -151,7 +203,7 @@ export default function EventAnalysisPage() {
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const batchMutation = useMutation({
-    mutationFn: () => triggerBatchEventAnalysis(bookId!),
+    mutationFn: (eventIds?: string[]) => triggerBatchEventAnalysis(bookId!, eventIds),
     onSuccess: (data) => {
       setBatchError(null);
       setBatchSummary(null);
@@ -201,12 +253,19 @@ export default function EventAnalysisPage() {
 
   const selectedUnanalyzed = evtData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
-  const filterFn = (name: string) =>
-    !searchQuery || name.toLowerCase().includes(searchQuery.toLowerCase());
-  const filteredAnalyzed: AnalysisItem[] =
-    evtData?.analyzed.filter((a) => filterFn(a.title)) ?? [];
-  const filteredUnanalyzed = evtData?.unanalyzed.filter((u) => filterFn(u.name)) ?? [];
+  // Search / importance / narrative filtering and grouping now live in
+  // EventGroupedList; the page only owns the query string.
   const totalCount = (evtData?.analyzed.length ?? 0) + (evtData?.unanalyzed.length ?? 0);
+  // Comparison needs two events that actually have a #7d payload.
+  const canCompare = (evtData?.analyzed.length ?? 0) >= 2;
+
+  const unanalyzed = evtData?.unanalyzed ?? [];
+  const kernelRemaining = unanalyzed.filter((u) => u.importance === 'KERNEL').length;
+  const selectedChapter =
+    evtData?.analyzed.find((a) => a.entityId === selectedEntityId)?.chapter ??
+    unanalyzed.find((u) => u.id === selectedEntityId)?.chapter ??
+    null;
+  const etaLabel = formatEta(unanalyzed.length, t);
 
   if (isLoading) {
     return (
@@ -221,7 +280,6 @@ export default function EventAnalysisPage() {
   const importance = eventDetail?.eep.eventImportance;
   const isKernel = importance === 'KERNEL';
   const chapter = eventDetail?.chapter ?? null;
-  const chunk = eventDetail?.chunk ?? null;
 
   return (
     <div className="ea-page" data-density="comfy">
@@ -239,6 +297,26 @@ export default function EventAnalysisPage() {
               onTrigger={() => setConfirmBatchEep(true)}
               onDismissSummary={() => setBatchSummary(null)}
               isPending={batchMutation.isPending}
+              subset={{
+                kernelRemaining,
+                onBatchKernel: () =>
+                  batchMutation.mutate(
+                    unanalyzed.filter((u) => u.importance === 'KERNEL').map((u) => u.id),
+                  ),
+                currentChapter: selectedChapter,
+                onBatchChapter: () =>
+                  batchMutation.mutate(
+                    unanalyzed.filter((u) => u.chapter === selectedChapter).map((u) => u.id),
+                  ),
+                checkMode,
+                onToggleCheckMode: () => {
+                  setCheckMode((v) => !v);
+                  setCheckedIds(new Set());
+                },
+                checkedCount: checkedIds.size,
+                onBatchChecked: () => batchMutation.mutate([...checkedIds]),
+                etaLabel,
+              }}
             />
           )}
 
@@ -254,118 +332,126 @@ export default function EventAnalysisPage() {
             </div>
           </div>
 
-          <div className="ea-list">
-            {filteredAnalyzed.length > 0 && (
-              <div className="ea-list-group">
-                <div className="ea-list-group-head">
-                  <span>{t('analyzed')}</span>
-                  <span className="count">{filteredAnalyzed.length}</span>
-                </div>
-                {filteredAnalyzed.map((item) => (
-                  <EventAnalyzedItem
-                    key={item.id}
-                    item={item}
-                    isSelected={selectedEntityId === item.entityId}
-                    onSelect={() => setSelectedEntityId(item.entityId)}
-                    justDone={justDoneIds.has(item.entityId)}
-                    showImportance
-                    showNarrative
-                  />
-                ))}
-              </div>
-            )}
-            {filteredUnanalyzed.length > 0 && (
-              <div className="ea-list-group">
-                <div className="ea-list-group-head">
-                  <span>{t('notAnalyzed')}</span>
-                  <span className="count">{filteredUnanalyzed.length}</span>
-                </div>
-                {filteredUnanalyzed.map((item) => (
-                  <EventUnanalyzedItem
-                    key={item.id}
-                    item={item}
-                    isSelected={selectedEntityId === item.id}
-                    onSelect={() => setSelectedEntityId(item.id)}
-                    onGenerate={() => handleGenerate(item.id)}
-                    isGenerating={generatingId === item.id}
-                    showImportance
-                    showNarrative
-                  />
-                ))}
-              </div>
-            )}
-            {filteredAnalyzed.length === 0 && filteredUnanalyzed.length === 0 && (
-              <p className="ea-list-empty">
-                {searchQuery
-                  ? t('event.list.searchPlaceholder', { count: totalCount })
-                  : t('notAnalyzed')}
-              </p>
-            )}
-          </div>
+          {evtData && (
+            <EventGroupedList
+              evtData={evtData}
+              searchQuery={searchQuery}
+              selectedEntityId={selectedEntityId}
+              onSelect={(id) => setSelectedEntityId(id)}
+              onGenerate={handleGenerate}
+              generatingId={generatingId}
+              justDoneIds={justDoneIds}
+              checkMode={checkMode}
+              checked={checkedIds}
+              onToggleChecked={(id) =>
+                setCheckedIds((prev) => {
+                  const next = new Set(prev);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
+            />
+          )}
         </aside>
 
         {/* Content Area */}
         <div className="ea-content">
           <div className="ea-content-scroll">
+            {selectedEntityId && (
+              <div className="ea-detail-toolbar">
+                <button
+                  type="button"
+                  className="ea-btn"
+                  onClick={() => setSelectedEntityId(null)}
+                >
+                  <ArrowLeft size={12} /> {t('event.overview.backToOverview')}
+                </button>
+                <div className="ea-detail-toolbar-actions">
+                  {eventDetail?.status === 'partial' && (
+                    <button
+                      type="button"
+                      className="ea-btn ea-btn-warning"
+                      disabled={retryFailedMutation.isPending}
+                      onClick={() => retryFailedMutation.mutate(selectedEntityId)}
+                    >
+                      <RefreshCw size={12} /> {t('event.retryFailed')}
+                    </button>
+                  )}
+                  {eventDetail && (
+                    <>
+                      <button
+                        type="button"
+                        className="ea-btn"
+                        disabled={!canCompare}
+                        title={canCompare ? undefined : t('event.compare.needTwo')}
+                        onClick={() => setCompareOpen(true)}
+                      >
+                        <Columns2 size={12} /> {t('event.compare.entry')}
+                      </button>
+                      {bookId && (
+                        <Link
+                          to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
+                          className="ea-btn"
+                        >
+                          <ExternalLink size={12} /> {t('viewInGraph')}
+                        </Link>
+                      )}
+                      <button
+                        type="button"
+                        className="ea-btn"
+                        onClick={() => setConfirmRegenerate(true)}
+                      >
+                        <RefreshCw size={12} /> {t('regenerate')}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
             {selectedEntityId && detailLoading ? (
               <div className="ea-empty">
                 <div className="ea-spinner" />
               </div>
             ) : selectedEntityId && eventDetail ? (
               <>
-                <div className="ea-titlebar">
-                  <div className="ea-titlebar-main">
+                <div className="ea-detail-header">
+                  <div className="ea-detail-titlerow">
                     <h1 className="ea-title">{eventDetail.title}</h1>
                     {importance && (
-                      <span className={'ea-title-imp ' + (isKernel ? 'kernel' : 'satellite')}>
-                        <span className="ea-title-imp-letter">{isKernel ? 'K' : 'S'}</span>
+                      <span className={'ea-detail-imp ' + (isKernel ? 'kernel' : 'satellite')}>
                         {isKernel
                           ? t('event.importance.kernel')
                           : t('event.importance.satellite')}
                       </span>
                     )}
-                    {(chapter !== null || chunk !== null) && (
-                      <span className="ea-title-meta">
-                        {chapter !== null && (
-                          <span>{t('event.list.chapterShort', { n: chapter })}</span>
-                        )}
-                        {chapter !== null && chunk !== null && <span className="sep" />}
-                        {chunk !== null && <span>Chunk {chunk}</span>}
+                  </div>
+                  <div className="ea-detail-meta">
+                    {chapter !== null && (
+                      <span>{t('event.list.chapterShort', { n: chapter })}</span>
+                    )}
+                    {eventDetail.narrativeMode && (
+                      <span>{t(`event.narrative.${eventDetail.narrativeMode}`)}</span>
+                    )}
+                    {importance && (
+                      <span>
+                        {isKernel
+                          ? t('event.importance.kernelTagline')
+                          : t('event.importance.satelliteTagline')}
                       </span>
                     )}
-                    {bookId && selectedEntityId && (
-                      <Link
-                        to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
-                        className="ea-title-link"
-                      >
-                        {t('viewInGraph')} <ExternalLink size={10} />
-                      </Link>
-                    )}
-                  </div>
-                  <div className="ea-titlebar-actions">
                     {eventDetail.status === 'partial' && (
-                      <button
-                        type="button"
-                        className="ea-btn"
-                        style={{ color: 'var(--color-warning)' }}
-                        disabled={retryFailedMutation.isPending}
-                        onClick={() =>
-                          selectedEntityId && retryFailedMutation.mutate(selectedEntityId)
-                        }
-                      >
-                        <RefreshCw size={12} /> {t('event.retryFailed')}
-                      </button>
+                      <span className="ea-detail-partial">{t('event.partialBadge')}</span>
                     )}
-                    <button
-                      type="button"
-                      className="ea-btn"
-                      onClick={() => setConfirmRegenerate(true)}
-                    >
-                      <RefreshCw size={12} /> {t('regenerate')}
-                    </button>
                   </div>
                 </div>
-                <EventAnalysisDetail data={eventDetail} causalVariant="stepped" />
+                <EventGuideRibbon surface="detail" />
+                <EventAnalysisDetail
+                  data={eventDetail}
+                  causalVariant="stepped"
+                  bookId={bookId}
+                  onSelectEvent={(id) => setSelectedEntityId(id)}
+                />
               </>
             ) : genTask?.status === 'error' ? (
               <div className="ea-empty">
@@ -403,9 +489,54 @@ export default function EventAnalysisPage() {
                 </span>
               </div>
             ) : selectedUnanalyzed ? (
-              <div className="ea-empty">
-                <h2 className="ea-empty-title">{selectedUnanalyzed.name}</h2>
-                <p className="ea-empty-sub">{t('event.empty.unanalyzedSubtitle')}</p>
+              <div className="ea-unanalyzed">
+                <div className="ea-unanalyzed-meta">
+                  <span className="ea-imp unknown" title={t('event.overview.undetermined')}>
+                    ·
+                  </span>
+                  {selectedUnanalyzed.chapter != null && (
+                    <span>
+                      {t('event.list.chapterShort', { n: selectedUnanalyzed.chapter })}
+                    </span>
+                  )}
+                  {selectedUnanalyzed.narrativeMode && (
+                    <>
+                      <span className="sep" />
+                      <span>{t(`event.narrative.${selectedUnanalyzed.narrativeMode}`)}</span>
+                    </>
+                  )}
+                </div>
+                <h1 className="ea-unanalyzed-title">{selectedUnanalyzed.name}</h1>
+                <p className="ea-unanalyzed-sub">{t('event.empty.unanalyzedSubtitle')}</p>
+
+                <div className="ea-source">
+                  <div className="ea-source-head">
+                    <BookOpen size={13} />
+                    <span>{t('event.source.title')}</span>
+                  </div>
+                  {sourceLoading && (
+                    <p className="ea-source-empty">{t('analyzing')}</p>
+                  )}
+                  {!sourceLoading && (sourceData?.passages.length ?? 0) === 0 && (
+                    <p className="ea-source-empty">{t('event.source.empty')}</p>
+                  )}
+                  {!sourceLoading &&
+                    sourceData?.passages.map((p) => (
+                      <div key={p.id} className="ea-source-passage">
+                        <div className="ea-source-meta">
+                          {p.chapterNumber !== null &&
+                            p.chapterNumber !== undefined &&
+                            t('event.list.chapterShort', { n: p.chapterNumber })}
+                          <span className="ea-source-score">
+                            {t('event.source.similarity', { score: p.score.toFixed(2) })}
+                          </span>
+                        </div>
+                        <p className="ea-source-text">{p.text}</p>
+                      </div>
+                    ))}
+                  <p className="ea-source-caveat">{t('event.source.caveat')}</p>
+                </div>
+
                 <button
                   type="button"
                   className="ea-btn ea-btn-primary"
@@ -427,12 +558,23 @@ export default function EventAnalysisPage() {
                   {tc('confirm')}
                 </button>
               </div>
+            ) : evtData && bookId ? (
+              <EventOverviewLanding
+                bookId={bookId}
+                evtData={evtData}
+                onSelectEvent={(id) => setSelectedEntityId(id)}
+                onGenerate={handleGenerate}
+                generatingId={generatingId}
+                onBatchAll={() => setConfirmBatchEep(true)}
+                isBatchRunning={isBatchRunning}
+              />
             ) : (
+              // Only reached if the #6b list query itself failed (isLoading
+              // already gates the loading state above).
               <div className="ea-empty">
-                <div className="ea-empty-icon">
-                  <BookOpen size={22} />
+                <div className="ea-empty-icon error">
+                  <AlertTriangle size={22} />
                 </div>
-                <h2 className="ea-empty-title">{t('event.empty.title')}</h2>
                 <p className="ea-empty-sub">{t('event.empty.subtitle')}</p>
               </div>
             )}
@@ -468,20 +610,26 @@ export default function EventAnalysisPage() {
         </div>
       </div>
 
+      {bookId && evtData && (
+        <EventCompareDrawer
+          open={compareOpen}
+          bookId={bookId}
+          analyzed={evtData.analyzed}
+          initialA={selectedEntityId}
+          onClose={() => setCompareOpen(false)}
+        />
+      )}
+
       <ConfirmDialog
         open={confirmRegenerate}
         title={t('regenerateTitle')}
         message={t('regenerateMessage')}
         onConfirm={() => {
           setConfirmRegenerate(false);
-          if (selectedEntityId && bookId) {
-            deleteEventAnalysis(bookId, selectedEntityId).then(() => {
-              queryClient.invalidateQueries({
-                queryKey: ['books', bookId, 'analysis', 'events'],
-              });
-              triggerMutation.mutate(selectedEntityId);
-            });
-          }
+          // `mode: 'full'` already forces a re-analysis server-side and only
+          // overwrites the cache once the new result lands, so deleting first
+          // would just throw away the old EEP if the run then fails.
+          if (selectedEntityId && bookId) triggerMutation.mutate(selectedEntityId);
         }}
         onCancel={() => setConfirmRegenerate(false)}
       />
@@ -493,7 +641,7 @@ export default function EventAnalysisPage() {
         confirmLabel={t('event.batchConfirm')}
         onConfirm={() => {
           setConfirmBatchEep(false);
-          batchMutation.mutate();
+          batchMutation.mutate(undefined);
         }}
         onCancel={() => setConfirmBatchEep(false)}
       />

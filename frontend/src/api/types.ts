@@ -403,6 +403,9 @@ export interface ImpactAnalysis {
   impactSummary: string;
 }
 
+export type EventSourceResponse = components['schemas']['EventSourceResponse'];
+export type EventSourcePassage = components['schemas']['EventSourcePassage'];
+
 export interface EventAnalysisDetail {
   eventId: string;
   title: string;

@@ -35,6 +35,7 @@ from storysphere.api.schemas.books import (
     ArchetypeDetailResponse,
     ArcSegmentResponse,
     BatchAnalysisRequest,
+    BatchEventAnalysisRequest,
     BookDetailResponse,
     BookResponse,
     CepResponse,
@@ -52,6 +53,8 @@ from storysphere.api.schemas.books import (
     EventDetailResponse,
     EventLocation,
     EventParticipant,
+    EventSourcePassage,
+    EventSourceResponse,
     GraphDataResponse,
     GraphEdge,
     GraphNode,
@@ -87,6 +90,7 @@ from storysphere.api.schemas.books import (
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
 from storysphere.core.language_detection import detect_language
+from storysphere.core.utils.data_sanitizer import DataSanitizer
 from storysphere.domain.documents import ChapterRole, ParagraphEntity, PipelineStatus, StepStatus
 from storysphere.pipelines.document_processing import DocumentProcessingPipeline
 from storysphere.services.analysis_cache import AnalysisCache
@@ -2253,6 +2257,59 @@ async def delete_event_analysis(
     logger.info("Deleted event analysis cache: key=%s", cache_key)
 
 
+# ── #7i GET /books/:bookId/events/:eventId/source ────────────────────────────
+
+
+@router.get(
+    "/{book_id}/events/{event_id}/source",
+    response_model=EventSourceResponse,
+)
+async def get_event_source_passages(
+    book_id: str,
+    event_id: str,
+    kg: KGServiceDep,
+    vector: VectorServiceDep,
+    limit: int = 3,
+) -> EventSourceResponse:
+    """Return the source paragraphs most likely to describe this event.
+
+    Events carry no chunk reference, so the passage is *retrieved*, not looked
+    up: the same vector query the EEP builder uses for ``text_evidence``
+    (``"{title} {description}"``). Callers must present the result as "most
+    relevant passages", not as the event's canonical source text.
+    """
+    event = await kg.get_event(event_id)
+    if event is None:
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
+
+    if vector is None:
+        return EventSourceResponse(event_id=event_id, passages=[])
+
+    want = max(1, min(limit, 10))
+    # Over-fetch, then keep only hits from the event's own chapter. Unfiltered
+    # similarity on "{title} {description}" strays badly — measured on the
+    # sample book, a third of events matched a passage from another chapter
+    # entirely. The chapter is reliable metadata, so use it to constrain.
+    results = await vector.search(
+        query_text=f"{event.title} {event.description}",
+        top_k=max(want * 4, 12),
+        document_id=book_id,
+    )
+    field = DataSanitizer.result_field
+    results = [r for r in results if field(r, "chapter_number") == event.chapter][:want]
+    passages = [
+        EventSourcePassage(
+            id=str(field(r, "id", "")),
+            text=DataSanitizer.sanitize_for_template(field(r, "text", "")),
+            chapter_number=field(r, "chapter_number"),
+            score=float(field(r, "score", 0.0)),
+        )
+        for r in results
+        if field(r, "text")
+    ]
+    return EventSourceResponse(event_id=event_id, passages=passages)
+
+
 # ── #7f POST /books/:bookId/events/analyze-all ───────────────────────────────
 
 
@@ -2263,10 +2320,18 @@ async def _run_batch_event_analysis(
     kg_service,
     cache,
     language: str = "en",
+    event_ids: list[str] | None = None,
 ) -> None:
-    """Background task: analyze all unanalyzed events."""
+    """Background task: analyze all unanalyzed events.
+
+    ``event_ids``, when provided, restricts the run to that subset (any ids
+    that don't match an existing event are silently excluded).
+    """
     task_store.set_running(task_id)
     events = await kg_service.get_events(document_id=document_id)
+    if event_ids is not None:
+        wanted = set(event_ids)
+        events = [ev for ev in events if ev.id in wanted]
     total = len(events)
     done = 0
     failed = 0
@@ -2334,10 +2399,13 @@ async def trigger_batch_event_analysis(
     cache: AnalysisCacheDep,
     agent: AnalysisAgentDep,
     background_tasks: BackgroundTasks,
+    body: BatchEventAnalysisRequest = BatchEventAnalysisRequest(),
 ) -> dict:
-    """Trigger deep analysis for ALL events in a book.
+    """Trigger deep analysis for ALL (or a subset of) events in a book.
 
-    Skips events that already have cached analysis.
+    ``eventIds``, when provided, restricts the run to that subset (still
+    skipping any that already have cached analysis); ids that don't match an
+    existing event are silently excluded. Omitted → all events.
     Returns a task_id for progress tracking.
     """
     document = await doc.get_document(book_id)
@@ -2348,6 +2416,9 @@ async def trigger_batch_event_analysis(
         )
 
     events = await kg.get_events(document_id=book_id)
+    if body.event_ids is not None:
+        wanted = set(body.event_ids)
+        events = [ev for ev in events if ev.id in wanted]
     if not events:
         raise HTTPException(
             status_code=400,
@@ -2359,7 +2430,7 @@ async def trigger_batch_event_analysis(
     task_store.create(task_id, kind="event", title="批次事件分析")
     background_tasks.add_task(
         _run_batch_event_analysis,
-        task_id, book_id, agent, kg, cache, language,
+        task_id, book_id, agent, kg, cache, language, body.event_ids,
     )
 
     logger.info(

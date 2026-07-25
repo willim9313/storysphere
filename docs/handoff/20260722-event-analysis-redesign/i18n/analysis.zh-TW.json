@@ -11,6 +11,7 @@
   "triggerFailed": "觸發分析失敗，請稍後再試。",
   "batchTriggerFailed": "觸發批次分析失敗，請稍後再試。",
   "selectCharacter": "選擇角色以查看或生成分析",
+  "quickAccess": "快速前往已分析角色",
   "selectEvent": "選擇事件以查看或生成分析",
   "viewInGraph": "在圖譜中查看",
   "frameworkIndex": "框架索引",
@@ -76,68 +77,20 @@
     },
     "behavior": {
       "actionsCount": "{{count}} 項",
-      "keyEventsSub": "{{count}} 項，依章節序",
-      "viewInEvents": "在事件分析頁查看"
+      "keyEventsSub": "{{count}} 項，依章節序"
     },
     "relations": {
       "relationsCount": "{{count}} 段關係",
-      "relationsSummary": "{{targets}} 個對象 · {{count}} 段關係",
-      "quotesCount": "{{count}} 句",
-      "segmentCount": "{{count}} 段",
-      "egoCaption": "關係圖譜 · 以 {{name}} 為中心",
-      "egoLegendNote": "點節點載入該角色 · 角標＝多段關係"
+      "quotesCount": "{{count}} 句"
     },
     "arcPane": {
       "stagesCount": "{{count}} 個階段",
-      "keyEventMarkerLegend": "關鍵事件 marker",
-      "overlapStackingNote": "相鄰階段共享邊界章時，以錯行堆疊呈現"
+      "stageN": "階段 {{n}}"
     },
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 位角色",
       "frameworkLabel": "分析框架",
-      "mentionCount": "提及 {{count}} 次"
-    },
-    "archFilter": {
-      "label": "依原型篩選已分析角色",
-      "selectedCount": "{{count}} 個原型篩選中",
-      "searchPlaceholder": "{{framework}} 原型…",
-      "noMatch": "無相符原型",
-      "clearAll": "清除全部篩選"
-    },
-    "overview": {
-      "title": "角色群像",
-      "metaTotal": "位角色",
-      "metaAnalyzed": "已分析",
-      "metaUnanalyzed": "未分析",
-      "batchTop10": "先生成前 10 位要角",
-      "batchAll": "生成全部",
-      "batchProgress": "分析中 · {{progress}}%",
-      "backToOverview": "角色總覽",
-      "viewQuadrant": "定位象限",
-      "viewRanking": "提及量排行",
-      "quadrantCaption": "X 敘事存在感（log）· Y 結構重要性 · 泡泡大小＝關係連結數 · 顏色＝派系",
-      "rankingCaption": "線性尺度 · 依全書提及量降冪",
-      "quadrant": {
-        "yAxis": "結構重要性 ↑",
-        "xAxis": "敘事存在感（log 提及量）→",
-        "cornerLead": "要角",
-        "cornerTail": "背景長尾",
-        "ariaLabel": "角色定位象限散點圖",
-        "metricsError": "角色結構重要性資料暫時無法取得，象限視圖無法呈現。",
-        "bubbleDetail": "· 提及 {{mentions}} · 關係 {{degree}}",
-        "legendHead": "派系 · 顏色編碼",
-        "legendRow": "{{names}} 等 {{count}} 人",
-        "unaffiliated": "無派系歸屬 · {{count}} 位",
-        "footnote": "切線取兩軸中位數 · 僅前 8 名常駐標籤，其餘 hover 顯示 · {{count}} 位無派系者以低飽和描邊圈呈現 · 點泡泡載入該角色分析"
-      },
-      "ranking": {
-        "heroTag": "提及量最高的核心角色",
-        "heroSub": "全書提及 {{mentions}} 次 · 關係連結 {{degree}} 條",
-        "viewAnalysis": "查看分析",
-        "createHero": "建立核心角色分析",
-        "collapse": "收合長尾",
-        "expand": "展開其餘 {{count}} 位角色"
-      }
+      "chapterCount": "Ch.{{count}}"
     },
     "batch": {
       "header": "角色分析",
@@ -159,8 +112,6 @@
       "toastClose": "關閉",
       "confirmTitle": "批次生成角色分析",
       "confirmMessage": "將對 {{count}} 個尚未分析的角色執行深度分析，已分析的角色會自動跳過。此操作將消耗大量 token。",
-      "confirmTop10Title": "生成前 10 位要角分析",
-      "confirmTop10Message": "將對提及量最高的 {{count}} 位未分析角色執行深度分析，已分析的角色會自動跳過。此操作將消耗大量 token。",
       "confirmBtn": "確認執行",
       "triggerFailed": "觸發批次分析失敗，請稍後再試。"
     },
@@ -221,38 +172,6 @@
       "characterBelieves": "角色相信：",
       "actually": "實際：",
       "misbeliefMeta": "信心 {{pct}}% · 起源 Ch.{{n}}"
-    },
-    "epistemicCompare": {
-      "openButton": "對照另一角色",
-      "title": "認知對照 — 雙角色資訊差",
-      "vs": "vs",
-      "selectPlaceholder": "選擇第二位角色…",
-      "selectPrompt": "選擇第二位角色以查看資訊差",
-      "cursorNote": "共用同一條章節游標 · 截止第 {{n}} 章",
-      "loading": "計算中…",
-      "dataIncomplete": "{{name}} 尚無完整 visibility 資料，暫無法比較。",
-      "onlyLabel": "只有 {{name}} 知道",
-      "bothLabel": "都知道"
-    },
-    "sourceJump": {
-      "cta": "點擊跳至閱讀頁對應段落",
-      "locating": "定位原文中…",
-      "notFound": "找不到對應段落",
-      "notFoundInChapter": "第 {{chapter}} 章找不到對應段落",
-      "failed": "定位失敗，請稍後再試"
-    },
-    "generating": {
-      "label": "分析中",
-      "taskLabel": "TASK ID",
-      "footerNote": "每 2 秒輪詢狀態",
-      "stages": {
-        "cep": "彙整 CEP 證據檔",
-        "archetype": "原型判定（Jung / Schmidt）",
-        "traits": "個性特質與行為",
-        "relations": "關係與關鍵事件",
-        "arc": "發展弧線",
-        "write": "寫入分析結果"
-      }
     }
   },
   "event": {
@@ -280,8 +199,7 @@
       "relationChanges": "關係變化",
       "causalFactors": "促成因素",
       "consequences": "後續影響",
-      "keyQuotes": "關鍵引言",
-      "topTerms": "關鍵詞"
+      "keyQuotes": "關鍵引言"
     },
     "roles": {
       "initiator": "發起者",
@@ -326,25 +244,13 @@
       "participantsCount": "{{count}} 人",
       "factorsConsequences": "因果因素與後果",
       "factorsConsequencesSub": "因素 · 後果",
-      "keyQuotesCount": "{{count}} 段",
-      "roleLegend": "角色圖例",
-      "topTermsSub": "TF · top terms"
+      "keyQuotesCount": "{{count}} 段"
     },
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 件事件…",
       "chapterShort": "Ch.{{n}}",
       "kernelAbbr": "K",
-      "satelliteAbbr": "S",
-      "filterKernel": "核心 K",
-      "filterSatellite": "衛星 S",
-      "groupLabel": "分組",
-      "groupByChapter": "章節序",
-      "groupByImportance": "重要度",
-      "chapterGroup": "第 {{n}} 章",
-      "noChapterGroup": "未標章節",
-      "groupMeta": "{{total}} · 已析 {{analyzed}}",
-      "noMatch": "沒有符合篩選條件的事件",
-      "clearFilters": "清除篩選"
+      "satelliteAbbr": "S"
     },
     "empty": {
       "title": "選擇一個事件",
@@ -356,100 +262,6 @@
     "generating": {
       "title": "事件分析中",
       "stage": "{{stage}} · {{progress}}%"
-    },
-    "overview": {
-      "title": "事件圖景",
-      "metaTotal": "件事件",
-      "metaAnalyzed": "已分析",
-      "metaUnanalyzed": "未分析",
-      "metaKernel": "核心",
-      "undetermined": "重要度未定",
-      "emptyLead": "整本書尚未分析。",
-      "emptyBody": "先批次生成 EEP，總覽會隨之填滿。",
-      "emptyBatch": "一鍵生成全部 EEP",
-      "backToOverview": "返回總覽",
-      "ranking": {
-        "caption": "主排序＝重要度（核心優先）· 次排序＝參與者數 · 長條＝參與者數。未分析事件的重要度需生成 EEP 後才會判定。",
-        "heroSub": "Ch.{{chapter}} · {{importance}} · {{participants}} 名參與者",
-        "viewAnalysis": "查看分析",
-        "createHero": "建立事件分析",
-        "participants": "{{count}} 人",
-        "collapse": "收合其餘事件",
-        "expand": "展開其餘 {{count}} 件事件"
-      },
-      "viewMap": "故事骨幹圖",
-      "viewRanking": "重要度排行",
-      "map": {
-        "caption": "橫軸＝章節順序 · 縱向分帶＝重要度（核心在上、衛星在下，中央虛線上為尚未判定重要度者）· 顏色＝敘事模式 · 虛線圈＝尚未分析。每帶高度依該帶最密集的章節自動撐開，節點不重疊。",
-        "bandKernel": "核心 K",
-        "bandSatellite": "衛星 S",
-        "legendNarrative": "敘事模式",
-        "legendKernel": "大圈 = 核心事件",
-        "legendUnanalyzed": "虛線圈 = 尚未分析",
-        "legendAxis": "橫軸 = 章節順序",
-        "undated": "另有 {{count}} 件事件無章節資訊，未顯示於圖中。"
-      },
-      "viewFlow": "事件脈絡",
-      "flow": {
-        "caption": "呈現同一批參與者串起的跨章節事件序列——依「共享參與者且位於較晚章節」的相鄰關係連成脈絡，非因果推斷。每步取排序最前者（章節鄰近優先，同距時共享稀有人物者在前），僅串接已分析事件。",
-        "emptyTitle": "尚無足夠的跨章節關聯可構成脈絡",
-        "emptyBody": "脈絡依「共享參與者且跨章節」的相鄰事件串接。待更多事件完成分析後，這裡會浮現人物串起的事件序列。",
-        "chainLabel": "脈絡 {{idx}} · 共 {{count}} 個事件"
-      }
-    },
-    "batch": {
-      "checkModeOn": "勾選多筆",
-      "checkModeOff": "取消勾選",
-      "checkedCount": "已勾選 {{count}} 件",
-      "generateChecked": "生成已勾選",
-      "generateGroup": "生成本組 {{count}} 件",
-      "etaSeconds": "預估約 {{n}} 秒",
-      "etaMinutes": "預估約 {{n}} 分鐘",
-      "kernelOnly": "只生成核心 ({{count}})",
-      "kernelOnlyDisabled": "重要度需生成 EEP 後才判定，目前沒有已知的核心待生成事件",
-      "chapterOnly": "只生成本章",
-      "chapterOnlyDisabled": "先選一個事件，才知道要生成哪一章"
-    },
-    "compare": {
-      "title": "事件對比",
-      "subtitle": "並排比較前後狀態與影響",
-      "close": "關閉",
-      "entry": "對比",
-      "needTwo": "需至少兩個已分析事件",
-      "pick": "選擇事件 {{side}}",
-      "noImpact": "此事件無參與者影響記錄。"
-    },
-    "tabs": {
-      "overview": "概覽",
-      "cause": "因果與影響",
-      "evidence": "證據",
-      "context": "上下文位置"
-    },
-    "partialBadge": "部分分析",
-    "guide": {
-      "prefix": "研究者導覽：",
-      "overview": "總覽用視圖回答「這本書的關鍵節點在哪」——<strong>故事骨幹圖</strong>沿章節鋪開全書事件、核心事件放大；<strong>重要度排行</strong>依重要度與參與者數排序。點任一事件進入詳情（左上可返回總覽），或用右上「對比」挑兩個事件並排。",
-      "detail": "本頁把單一事件拆成三層——<strong>概覽</strong>看「發生了什麼」，<strong>因果與影響</strong>看「為何發生、改變了什麼」，<strong>證據</strong>看支撐分析的原文引言與關鍵詞。",
-      "dismiss": "關閉導覽"
-    },
-    "source": {
-      "title": "原文段落 · 生成前先判斷",
-      "empty": "本章找不到足夠相似的段落。",
-      "similarity": "相似度 {{score}}",
-      "caveat": "以事件標題與描述向量檢索本章段落取得，非事件的正規出處；相似度低時請以章節原文為準。"
-    },
-    "context": {
-      "title": "脈絡中的位置",
-      "sub": "prior → 本事件 → subsequent",
-      "caveat": "依共享參與者、跨章節的相鄰事件串接（非因果推斷）。排序為章節鄰近優先，同距時共享稀有人物者在前。",
-      "prior": "前置事件",
-      "subsequent": "後續事件",
-      "noPrior": "此事件為脈絡起點，無較早章節的關聯事件。",
-      "noSubsequent": "無較晚章節的關聯事件。",
-      "empty": "此事件目前無跨章節的關聯事件。",
-      "shared": "共享 {{names}}",
-      "more": "還有 {{count}} 個",
-      "collapse": "收合"
     }
   },
   "batch": {
@@ -473,14 +285,7 @@
     "toastBody": "已生成 {{generated}} 件 · 跳過 {{skipped}} · 失敗 {{failed}}",
     "toastClose": "關閉",
     "errorFallback": "批次執行失敗",
-    "runningWithCount": "分析中 {{current}}/{{total}}…",
-    "kernelOnly": "只生成核心 ({{count}})",
-    "kernelOnlyDisabled": "重要度需生成 EEP 後才判定，目前沒有已知的核心待生成事件",
-    "chapterOnly": "只生成本章",
-    "chapterOnlyDisabled": "先選一個事件，才知道要生成哪一章",
-    "checkModeOn": "勾選多筆",
-    "checkModeOff": "取消勾選",
-    "generateChecked": "生成已勾選"
+    "runningWithCount": "分析中 {{current}}/{{total}}…"
   },
   "tension": {
     "title": "張力分析",
