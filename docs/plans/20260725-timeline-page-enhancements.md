@@ -53,31 +53,43 @@ analysis.eep.priorEventIds / analysis.eep.subsequentEventIds
 Phase 3／4 的所有視圖都建立在 rank 之上。若多數事件 rank 為 null，
 泳道與疊圖都會退化成「一堆 degraded 事件」，應優先處理覆蓋率而非做新視圖。
 
-**已實測（2026-07-25，種子書 `大唐雙龍傳_冊1_卷一第1-7章_實驗用`，#13a 實際回應）**：
+**已實測（種子書 `大唐雙龍傳_冊1_卷一第1-7章_實驗用`，#13a 實際回應）**：
 
-| 指標 | 實測值 | 影響 |
-|------|--------|------|
-| 事件總數 | 62（Ch.1–7） | — |
-| **有 `chronologicalRank`** | **0 / 62（0%）** | 故事時序與矩陣視圖目前完全無資料 |
-| `temporalRelations` | **0 筆**（CAUSES 與 before 皆無） | P5-2 因果鏈追蹤**無資料可畫** |
-| `narrativeMode` 分布 | `present` 62（100%） | 倒敘／預敘／並行三種樣式從未被觸發 |
-| EEP 覆蓋率 | 13 / 62（21%） | Phase 1 的 `hasAnalysis` 標記會有明顯區分度 |
+| 指標 | 計算**前**（07-25 上午） | 計算**後**（07-25 實跑 #13b） | 影響 |
+|------|------|------|------|
+| 事件總數 | 62（Ch.1–7） | 62 | — |
+| 有 `chronologicalRank` | **0（0%）** | **52（84%）** | 三視圖已全部解鎖 |
+| **rank = null** | 62 | **10（16%）** | ⚠️ **算完仍有 16% 排不進去——未排序是穩定的一類，不是過渡態** |
+| `temporalRelations` | 0 筆 | **200 筆** | 見下 |
+| ├ `before` | 0 | **199** | ⚠️ **全部被丟棄**（`TimelinePage.tsx:1133` 只收 CAUSES） |
+| └ `CAUSES` | 0 | **0** | ⚠️ **畫布唯一會畫的類型，實際一筆都沒有** |
+| `narrativeMode` | `present` 100% | `present` **100%**（未改變） | 倒敘／預敘／並行樣式從未被觸發 |
+| `storyTimeHint` 覆蓋率 | 9/62（14.5%） | 14.5%（未改變） | **Genette 門檻 60%，跑不起來** |
+| EEP 覆蓋率 | 13/62（21%） | 21% | Phase 1 的 `hasAnalysis` 標記有明顯區分度 |
 
 **這改變了幾件事**：
 
-1. **rank 是「全空」而非「部分稀疏」**。Phase 4 泳道若以 rank 定位就完全做不出來；
-   若以**章節**定位（`participants` + `chapter`）則不受影響 —— 設計時應明確選後者。
-2. **P5-2（因果鏈）與 P5-3（張力疊圖）在補上時序計算之前不該開工**。
-3. **送 Claude Design 的 `sample-payloads/` 會是退化樣本**：全 `present`、全 null rank、
-   零關係。若直接交出去，設計側看不到倒敘色帶、並行群組、CAUSES 連線與矩陣散佈。
-   → 交付包**必須先跑一次「重新計算時序」+ 補足 EEP 覆蓋率**，或另附一份手工構造的
-   完整樣本並標明其為構造資料。這是做交付包前的**前置條件**，不是選配。
+1. **rank 不是「算了就會有」**。算完仍有 10 筆為 null，所以 degraded 區是常設而非暫時。
+   Phase 4 泳道仍應以**章節**（`participants` + `chapter`）定位，不依賴 rank。
+2. **P5-2（因果鏈）的前提整個變了**：不是「沒資料」，而是**有 199 條 `before` 沒被用，
+   而唯一會畫的 `CAUSES` 是 0**。所以 P5-2 的真正內容應是「把 before 納入呈現」，
+   而不是「等 CAUSES 長出來」。連帶的設計難題是 62 節點 / 199 條線的密度管理。
+3. **Genette 相關的一切（S11 / displacement 色帶 / 矩陣 Genette 著色）在這本書上到不了**
+   ——`storyTimeHint` 只有 14.5%，且跑時序計算不會改善（資料來源不同）。
+   「Genette 不可用」應視為**常態**來設計，而非邊緣狀態。
+4. **交付包已用「真實 + 構造」雙樣本解決**（2026-07-25 完成）：
+   `timeline-computed.json` 為真實回應；`timeline-constructed.json` 手工注入
+   flashback／flashforward／parallel／location／CAUSES 供設計樣式用，檔內有 `_README` 標示。
 
-### 1.3 `before` 關係目前被整批丟棄
+### 1.3 `before` 關係目前被整批丟棄——實測是 199 / 200
 
 `GET /timeline` 回傳的 `temporalRelations` 含 `before` 與 `causes` 兩種，
-但 `TimelinePage.tsx:1133` 只收 `CAUSES`，`before` 抓回來後直接丟掉，
-使用者不知道有這層資料。設計時可考慮是否要呈現（§4.5 P5-2）。
+但 `TimelinePage.tsx:1133` 只收 `CAUSES`，`before` 抓回來後直接丟掉。
+
+**實測（跑完時序計算後）：200 筆關係中 199 筆是 `before`、`CAUSES` 是 0。**
+
+也就是說現況的畫布**永遠畫不出任何一條連線**，而手上有 199 條沒被使用的時序資料。
+這把 P5-2 從「錦上添花」提升為「唯一能讓連線功能真正有內容的路徑」（見 §4.5）。
 
 ---
 
@@ -279,29 +291,44 @@ Phase 3／4 的所有視圖都建立在 rank 之上。若多數事件 rank 為 n
 
 ### 6.1 送什麼
 
-**送**：Phase 3（**工具列右側重整 G10／§2.1**、篩選／導覽／RWD／面板）與
-Phase 4（角色泳道），以及 Phase 5 中標記「需設計」的 P5-2、P5-3。
+**送**（brief §4，已依此建包）：
+
+| brief 編號 | 內容 | 對應 |
+|---|---|---|
+| §4.0【最高】 | 工具列右半邊 | G10 / §2.1 |
+| §4.1【高】 | 篩選：只能淡化不能收斂 | P3-1 |
+| §4.1b【高】 | 橫向畫布八成留白 + 無捲動提示 | **拍截圖時才發現，原計劃沒有** |
+| §4.2【高】 | 長書導覽 | P3-2 |
+| §4.3【中】 | RWD 與面板（1440/1280/1024） | P3-3 |
+| §4.4【高】 | 角色軌跡泳道 | Phase 4 |
 
 > G10 是使用者主動指出的痛點（「這邊當初設計上好像沒有寫得很清楚在幹麻」），
-> 且 §2.1(a) 已證實現況長相是 CSS 意外而非設計決策 —— **請在 brief 中優先擺放**。
+> 且 §2.1(a) 已證實現況長相是 CSS 意外而非設計決策 —— brief 中已列為最高優先。
 
-**不送**：Phase 1、Phase 2、P5-1、P5-4、P5-5 —— 這些是接線與小標記，
-沿用既有視覺語言即可，送設計反而拖慢。
+**不送**：Phase 1、Phase 2、P5-1、P5-4、P5-5 —— 接線與小標記，沿用既有視覺語言即可。
 
-### 6.2 交付包（待建立）
+**～～P5-2、P5-3～～ 本輪不送**（**修正先前版本的自相矛盾**）：§1.2 已指出這兩項
+在補上時序資料前不該開工，先前的 §6.1 卻把它們列入送審範圍。以 §1.2 為準：
+P5-2 待「把 199 條 `before` 納入呈現」的方向定案後另送；P5-3 待張力資料整合後另送。
 
-比照 `docs/handoff/20260722-event-analysis-redesign/` 的結構，
-路徑 `docs/handoff/20260725-timeline-page/`：
+### 6.2 交付包 ✅ **已建立**（2026-07-25）
 
-| 檔案 | 說明 |
+路徑 `docs/handoff/20260725-timeline-page/`，比照
+`docs/handoff/20260722-event-analysis-redesign/` 的結構：
+
+| 檔案 | 狀態 |
 |------|------|
-| `01-design-brief.md` | 需求書：範圍、缺口 G4–G8、約束、驗收清單 |
-| `02-tokens.css` | 全站 design token（Warm `:root` + Ink `[data-theme="ink"]`）——硬約束 |
-| `03-DESIGN_TOKENS.md` | token 對照表 |
-| `04-UI_SPEC.md` | 現況版面規格（§3.7 節錄） |
-| `i18n/analysis.zh-TW.json` | 真實文案，排版請用真字串，勿用 lorem ipsum |
-| `sample-payloads/timeline.json` | **真實 #13a 回應**，含 rank 為 null 的事件 |
-| `screenshots/` | 三視圖現況（Warm + Ink） |
+| `README.md` | ✅ 內容清單 + 兩份 payload 的差別 + 三個重點 |
+| `01-design-brief.md` | ✅ 範圍／涉及元件／不在範圍／資料事實／**狀態矩陣 S1–S31**／5 項需求（含優先序）／約束／驗收清單 |
+| `02-tokens.css` | ✅ 自 `frontend/src/styles/tokens.css` 複製 |
+| `03-DESIGN_TOKENS.md` | ✅ 自 `docs/DESIGN_TOKENS.md` 複製 |
+| `i18n/analysis.zh-TW.timeline.json` | ✅ `timeline.*` 子樹（45 個 key） |
+| `sample-payloads/timeline-computed.json` | ✅ 真實 #13a（62 事件 / 52 有 rank / 10 無 / 200 關係） |
+| `sample-payloads/timeline-constructed.json` | ✅ 手工構造（補 flashback / flashforward / parallel / location / CAUSES），檔內 `_README` 標示 |
+| `screenshots/` | ✅ 7 張（Warm 5 + Ink 2），皆為實跑時序計算後的真實畫面 |
+
+> `04-UI_SPEC.md` **未複製**：brief §1.1 已把涉及元件逐一列名並標註是否重設計，
+> 直接引用 `docs/UI_SPEC.md §3.7` 即可，複製一份反而會漂移。
 
 ### 6.3 給設計側的硬約束（必須寫進 brief）
 

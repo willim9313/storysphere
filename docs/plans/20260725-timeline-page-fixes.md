@@ -200,14 +200,14 @@ d3 brush 框選，但 `TimelinePage.tsx:436-442` 的呼叫端從未傳入。
 | 1–3 | ✅ | `timelineSort.test.ts` 9 測試全過 |
 | 4 | ✅ | 點未分析事件「前往深度分析頁觸發 EEP」→ URL `/events?event=1ee746ec…`、無 404、事件頁標題為該事件。**並反向確認舊連結是真的壞**：`/books/:id/analysis` 會出現 React Router 的 `Unexpected Application Error! 404 Not Found` 崩潰畫面（比原本以為的「導到不存在的頁」更嚴重） |
 | 5 | ✅ | 視窗 900→520 高，卡片中心 y 318.7→128.7，spine 於 first/mid/last 三點（103,128.7 / 6097,117.3 / 12287,117.3）全部與卡片中心對齊。舊 deps `[temporalRelations, events, layout]` 在 resize 時都不變，故必然不會重新量測 |
-| 6 | ❌ **未驗（資料阻擋）** | 見下 |
+| 6 | ✅ **已補驗（2026-07-25 稍晚）** | 為建交付包而實跑 #13b 時序計算後，`hasChronologicalRanks` 轉 true、三張視圖卡全部解鎖，F4 隨即可驗：切換「章節順序 → 故事時序」期間以 20ms 間隔取樣 232 次，`.tl-toolbar` **消失 0 次**、全頁 spinner **出現 0 次**、新的 `.tl-canvas-refetch` 膠囊有渲染到；切換後 62 張卡正常 |
 | 7 | ✅ | 後兩張卡 `disabled=true`、warn dot 在、tooltip 為 `timeline.noRanksTooltip`、opacity 0.55；程式化 `.click()` 後 `aria-selected` 不變（確實 inert） |
 | 8 | ✅ | lint 0 error 0 warning；vitest 8 檔 94 測試全過；`tsc` 於本批檔案 0 錯 |
 
-**第 6 項為何驗不了**：種子書 `hasChronologicalRanks: false`（62 事件、**rank 0 筆**），
-而 F5 剛好把「故事時序」卡停用了 —— 唯一能觸發 order 切換的入口被關上。
-F4 的意義本來也只在 rank 存在時才出現（有 rank 才有人切視圖）。
-要驗需先跑一次「重新計算時序」（LLM、數分鐘、有 token 成本）。
+**第 6 項一度驗不了的原因**（保留紀錄）：當時種子書 `hasChronologicalRanks: false`
+（62 事件、rank 0 筆），而 F5 剛好把「故事時序」卡停用了 —— 唯一能觸發 order 切換的
+入口被關上。F4 的意義本來也只在 rank 存在時才出現。後來為了建設計交付包而實跑
+時序計算（52/62 取得 rank），視圖解鎖，F4 也就順勢驗完，未額外花成本。
 
 **`LockedView` 亦不可達**：卡片停用後，UI 上走不到「停在非 narrative 視圖且無 rank」的狀態。
 它是留給計劃二 P0-2（URL 狀態）落地後、使用者可用 `?view=matrix` 直接進頁的情境，
