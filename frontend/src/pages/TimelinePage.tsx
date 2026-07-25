@@ -33,6 +33,7 @@ import { computeTimeline } from '@/api/timeline';
 import { triggerTemporalAnalysis, fetchTemporalCoverage } from '@/api/narrative';
 import type { TemporalCoverageStats } from '@/api/narrative';
 import { fetchEventAnalysisDetail } from '@/api/analysis';
+import { sortEventsForOrder } from '@/lib/timelineSort';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { MatrixCanvas, type GenettDataShape } from '@/components/timeline/MatrixCanvas';
@@ -286,16 +287,10 @@ export default function TimelinePage() {
   }, [bookId, isRunningGenett]);
 
   const rawEvents = data?.events;
-  const sortedEvents = useMemo(() => {
-    if (!rawEvents) return [];
-    const events = [...rawEvents];
-    if (order === 'chronological') {
-      events.sort(
-        (a, b) => (a.chronologicalRank ?? 0) - (b.chronologicalRank ?? 0),
-      );
-    }
-    return events;
-  }, [rawEvents, order]);
+  const sortedEvents = useMemo(
+    () => (rawEvents ? sortEventsForOrder(rawEvents, order) : []),
+    [rawEvents, order],
+  );
 
   const temporalRelations = useMemo(() => data?.temporalRelations ?? [], [data?.temporalRelations]);
 
