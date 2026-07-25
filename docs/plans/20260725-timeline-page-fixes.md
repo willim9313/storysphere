@@ -193,7 +193,25 @@ d3 brush 框選，但 `TimelinePage.tsx:436-442` 的呼叫端從未傳入。
 | 7 | `hasChronologicalRanks=false` 時後兩張視圖卡不可點，且說明原因 | 手動 |
 | 8 | `npm run lint` / `npx vitest run` 無新增錯誤 | 指令 |
 
-> 第 4–7 項需在真實資料下驗，建議走 `/verify` skill。
+### 3.1 實測結果（2026-07-25，`/verify`，種子書 62 事件）
+
+| # | 結果 | 證據 |
+|---|------|------|
+| 1–3 | ✅ | `timelineSort.test.ts` 9 測試全過 |
+| 4 | ✅ | 點未分析事件「前往深度分析頁觸發 EEP」→ URL `/events?event=1ee746ec…`、無 404、事件頁標題為該事件。**並反向確認舊連結是真的壞**：`/books/:id/analysis` 會出現 React Router 的 `Unexpected Application Error! 404 Not Found` 崩潰畫面（比原本以為的「導到不存在的頁」更嚴重） |
+| 5 | ✅ | 視窗 900→520 高，卡片中心 y 318.7→128.7，spine 於 first/mid/last 三點（103,128.7 / 6097,117.3 / 12287,117.3）全部與卡片中心對齊。舊 deps `[temporalRelations, events, layout]` 在 resize 時都不變，故必然不會重新量測 |
+| 6 | ❌ **未驗（資料阻擋）** | 見下 |
+| 7 | ✅ | 後兩張卡 `disabled=true`、warn dot 在、tooltip 為 `timeline.noRanksTooltip`、opacity 0.55；程式化 `.click()` 後 `aria-selected` 不變（確實 inert） |
+| 8 | ✅ | lint 0 error 0 warning；vitest 8 檔 94 測試全過；`tsc` 於本批檔案 0 錯 |
+
+**第 6 項為何驗不了**：種子書 `hasChronologicalRanks: false`（62 事件、**rank 0 筆**），
+而 F5 剛好把「故事時序」卡停用了 —— 唯一能觸發 order 切換的入口被關上。
+F4 的意義本來也只在 rank 存在時才出現（有 rank 才有人切視圖）。
+要驗需先跑一次「重新計算時序」（LLM、數分鐘、有 token 成本）。
+
+**`LockedView` 亦不可達**：卡片停用後，UI 上走不到「停在非 narrative 視圖且無 rank」的狀態。
+它是留給計劃二 P0-2（URL 狀態）落地後、使用者可用 `?view=matrix` 直接進頁的情境，
+屬防禦性安全網，非目前的主要守門機制（主要守門是停用卡片）。
 
 ---
 

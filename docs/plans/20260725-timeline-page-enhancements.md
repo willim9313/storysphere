@@ -50,9 +50,28 @@ analysis.eep.priorEventIds / analysis.eep.subsequentEventIds
 
 ### 1.2 `chronologicalRank` 的 null 佔比決定一切
 
-Phase 3／4 的所有視圖都建立在 rank 之上。**開工前先量實際填充率**：
-若多數事件 rank 為 null，泳道與疊圖都會退化成「一堆 degraded 事件」，
-應優先處理覆蓋率而非做新視圖。
+Phase 3／4 的所有視圖都建立在 rank 之上。若多數事件 rank 為 null，
+泳道與疊圖都會退化成「一堆 degraded 事件」，應優先處理覆蓋率而非做新視圖。
+
+**已實測（2026-07-25，種子書 `大唐雙龍傳_冊1_卷一第1-7章_實驗用`，#13a 實際回應）**：
+
+| 指標 | 實測值 | 影響 |
+|------|--------|------|
+| 事件總數 | 62（Ch.1–7） | — |
+| **有 `chronologicalRank`** | **0 / 62（0%）** | 故事時序與矩陣視圖目前完全無資料 |
+| `temporalRelations` | **0 筆**（CAUSES 與 before 皆無） | P5-2 因果鏈追蹤**無資料可畫** |
+| `narrativeMode` 分布 | `present` 62（100%） | 倒敘／預敘／並行三種樣式從未被觸發 |
+| EEP 覆蓋率 | 13 / 62（21%） | Phase 1 的 `hasAnalysis` 標記會有明顯區分度 |
+
+**這改變了幾件事**：
+
+1. **rank 是「全空」而非「部分稀疏」**。Phase 4 泳道若以 rank 定位就完全做不出來；
+   若以**章節**定位（`participants` + `chapter`）則不受影響 —— 設計時應明確選後者。
+2. **P5-2（因果鏈）與 P5-3（張力疊圖）在補上時序計算之前不該開工**。
+3. **送 Claude Design 的 `sample-payloads/` 會是退化樣本**：全 `present`、全 null rank、
+   零關係。若直接交出去，設計側看不到倒敘色帶、並行群組、CAUSES 連線與矩陣散佈。
+   → 交付包**必須先跑一次「重新計算時序」+ 補足 EEP 覆蓋率**，或另附一份手工構造的
+   完整樣本並標明其為構造資料。這是做交付包前的**前置條件**，不是選配。
 
 ### 1.3 `before` 關係目前被整批丟棄
 
