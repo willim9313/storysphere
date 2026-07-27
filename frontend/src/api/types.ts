@@ -277,6 +277,8 @@ export interface TimelineEvent {
   chronologicalRank: number | null;
   narrativeMode: NarrativeMode;
   eventImportance: EventImportance | null;
+  /** True when an EEP analysis result is cached for this event (#13a). */
+  hasAnalysis: boolean;
   storyTimeHint?: string;
   participants: { id: string; name: string; type: EntityType }[];
   location?: { id: string; name: string };
