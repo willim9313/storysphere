@@ -150,6 +150,9 @@ export default function TimelinePage() {
   );
   const { data: computeTask } = useTaskPolling(computeTaskId);
   const { data: displacementTask } = useTaskPolling(displacementTaskId);
+  /** Read off the task result, not the coverage query: the run reports what it
+   *  actually saw, and the query may be stale by the time it finishes. */
+  const displacementCoverageOk = displacementTask?.result?.coverage_sufficient === true;
   const { jump, pendingKey } = useSourceJump(bookId);
 
   const { data: coverage } = useQuery({
@@ -325,12 +328,24 @@ export default function TimelinePage() {
     if (displacementTask?.status === 'done') {
       setDisplacementTaskId(null);
       queryClient.invalidateQueries({ queryKey: ['books', bookId, 'timeline'] });
-      push({ type: 'success', title: t('timeline.toast.displacementDone') });
+      /* The service returns `done` even when it bailed on insufficient
+         coverage without calling the LLM. Reporting that as success is how a
+         run that analyzed nothing came to look like one that worked. */
+      const analyzed = displacementCoverageOk;
+      push(
+        analyzed
+          ? { type: 'success', title: t('timeline.toast.displacementDone') }
+          : {
+              type: 'warning',
+              title: t('timeline.toast.displacementSkipped'),
+              body: t('timeline.toast.displacementSkippedDesc'),
+            },
+      );
     } else if (displacementTask?.status === 'error') {
       setDisplacementTaskId(null);
       push({ type: 'error', title: t('timeline.toast.displacementFailed') });
     }
-  }, [displacementTask?.status, bookId, queryClient, push, t]);
+  }, [displacementTask?.status, displacementCoverageOk, bookId, queryClient, push, t]);
 
   /* eslint-enable react-hooks/set-state-in-effect */
 
@@ -406,6 +421,19 @@ export default function TimelinePage() {
     setDisplacementTaskId(task.taskId);
   }, [bookId, isRunningDisplacement]);
 
+  /** What #21h actually produced for this book — the signal that was missing
+   *  when 倒敘與預敘 could not tell a first run from a re-run. */
+  const temporalAnalyzed = data?.temporalAnalyzed === true;
+  const verdictCounts = useMemo(() => {
+    let analepsis = 0;
+    let prolepsis = 0;
+    for (const d of timelineData) {
+      if (d.displacement?.type === 'analepsis') analepsis++;
+      else if (d.displacement?.type === 'prolepsis') prolepsis++;
+    }
+    return { analepsis, prolepsis };
+  }, [timelineData]);
+
   const coveragePct = Math.round((coverage?.coverage ?? 0) * 100);
   /** The real gate — story-time hints, which the story-order run does not
    *  produce. Running story order will NOT unblock this. */
@@ -445,15 +473,28 @@ export default function TimelinePage() {
     progress: isRunningDisplacement ? (displacementTask?.progress ?? 0) / 100 : null,
     status: isRunningDisplacement
       ? t('timeline.action.displacementRunning')
-      : displacementReady
-        ? t('timeline.action.displacementReady', { pct: coveragePct })
-        : t('timeline.action.displacementBlocked', { pct: coveragePct }),
+      : temporalAnalyzed
+        ? t('timeline.action.displacementDone', {
+            analepsis: verdictCounts.analepsis,
+            prolepsis: verdictCounts.prolepsis,
+          })
+        : displacementReady
+          ? t('timeline.action.displacementReady', { pct: coveragePct })
+          : t('timeline.action.displacementBlocked', { pct: coveragePct }),
     sub: isRunningDisplacement
       ? t('timeline.action.leavePageOk')
       : displacementReady
-        ? t('timeline.action.displacementCost')
+        ? t(
+            temporalAnalyzed
+              ? 'timeline.action.displacementCostRerun'
+              : 'timeline.action.displacementCost',
+          )
         : t('timeline.action.displacementUnblock'),
-    runLabel: t('timeline.action.displacementRun'),
+    runLabel: t(
+      temporalAnalyzed
+        ? 'timeline.action.displacementRerun'
+        : 'timeline.action.displacementRun',
+    ),
     blocked: !displacementReady && !isRunningDisplacement,
     onSubClick:
       !displacementReady && !isRunningDisplacement

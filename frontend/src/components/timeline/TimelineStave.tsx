@@ -16,9 +16,21 @@ import {
   STAVE_MID,
   STAVE_ROW_HEIGHT,
   STAVE_UNRANKED_BAND,
+  type StaveAnnotation,
   type StaveRow,
   type TimelineDatum,
 } from '@/lib/timelineGeometry';
+
+function noteKey(a: StaveAnnotation): string {
+  if (a.confirmed) {
+    return a.kind === 'flashback'
+      ? 'timeline.stave.flashbackJudged'
+      : 'timeline.stave.flashforwardJudged';
+  }
+  return a.kind === 'flashback'
+    ? 'timeline.stave.flashbackNote'
+    : 'timeline.stave.flashforwardNote';
+}
 
 interface TimelineStaveProps {
   rows: StaveRow[];
@@ -126,18 +138,15 @@ export function TimelineStave({
             </button>
           ))}
 
+          {/* Two sources, two voices: a judged event states what it is, a
+              merely-displaced one only reports where it sits. */}
           {row.annotations.map((a) => (
             <span
               key={a.id}
-              className={`tl-stave-note ${a.align}`}
+              className={`tl-stave-note ${a.align}${a.confirmed ? ' confirmed' : ''}`}
               style={{ left: `${a.xPct}%`, top: a.yPx }}
             >
-              {t(
-                a.kind === 'flashback'
-                  ? 'timeline.stave.flashbackNote'
-                  : 'timeline.stave.flashforwardNote',
-                { ch: a.chapter, count: a.count },
-              )}
+              {t(noteKey(a), { ch: a.chapter, count: a.count })}
             </span>
           ))}
 

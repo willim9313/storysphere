@@ -713,7 +713,8 @@
       "devFlashback": "Clear flashback {{v}}",
       "devFlashforward": "Clear flashforward {{v}}",
       "gotoReader": "Read this passage",
-      "gotoGraph": "View in knowledge graph"
+      "gotoGraph": "View in knowledge graph",
+      "verdict": "Temporal verdict: {{type}} · narrative #{{text}} → story #{{story}}"
     },
     "storyTime": "Story time: ",
     "priorEvents": "Prior",
@@ -837,6 +838,9 @@
       "storyOrderCostFirst": "Several minutes · reads {{n}} events · overwrites nothing",
       "displacement": "Flashback & flashforward",
       "displacementRun": "Identify displacement…",
+      "displacementRerun": "Re-identify (overwrites)…",
+      "displacementDone": "{{analepsis}} flashbacks · {{prolepsis}} flashforwards identified",
+      "displacementCostRerun": "Several minutes · overwrites the existing verdicts",
       "displacementReady": "Ready · story-time hint coverage {{pct}}%",
       "displacementBlocked": "Not available · needs hints on 60% of events, currently {{pct}}%",
       "displacementRunning": "Analyzing…",
@@ -858,7 +862,9 @@
       "storyOrderDone": "Story order computed",
       "storyOrderFailed": "Story order computation failed",
       "displacementDone": "Displacement analysis complete",
-      "displacementFailed": "Displacement analysis failed"
+      "displacementFailed": "Displacement analysis failed",
+      "displacementSkipped": "Displacement analysis did not run",
+      "displacementSkippedDesc": "Story-time hint coverage is below 60%, so no LLM call was made and no verdicts were produced."
     },
     "stave": {
       "headline": "The narrative runs {{rows}} rows; story order breaks away {{outliers}} times",
@@ -866,7 +872,9 @@
       "legend": "Midline = both orders agree　below = flashback　above = flashforward　large = KERNEL　hollow = not analyzed",
       "unranked": "Unranked",
       "flashbackNote": "Flashback ↩ Ch.{{ch}} covers earlier story time ({{count}})",
-      "flashforwardNote": "Ch.{{ch}} tells {{count}} events ahead of time"
+      "flashforwardNote": "Ch.{{ch}} tells {{count}} events ahead of time",
+      "flashbackJudged": "Judged flashback ↩ Ch.{{ch}} ({{count}})",
+      "flashforwardJudged": "Judged flashforward ↗ Ch.{{ch}} ({{count}})"
     },
     "storyOrderPrompt": {
       "title": "Story order has not been computed, so the stave has no dots",
@@ -929,6 +937,11 @@
       "story": "These events have no story order",
       "matrix": "These events cannot be plotted",
       "desc": "All {{n}} matching events have no story time (chronological_rank is empty), so they cannot be ordered. They can still be inspected one by one."
+    },
+    "displacementTypes": {
+      "analepsis": "flashback",
+      "prolepsis": "flashforward",
+      "linear": "linear"
     }
   },
   "unravelingLoadError": "Failed to load build overview data",

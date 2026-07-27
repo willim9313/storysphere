@@ -15,10 +15,12 @@
  *     `deviation`, which is the single quantity this page exists to show.
  */
 
-import type { TimelineEvent } from '@/api/types';
+import type { TemporalDisplacement, TimelineEvent } from '@/api/types';
 
 /** |deviation| above which an event reads as genuinely displaced. */
 export const OUTLIER_THRESHOLD = 0.15;
+/** Minimum X gap (% of row width) between two stave annotations. */
+export const ANNOTATION_MIN_GAP_PCT = 17;
 
 /* ── Stave (章節順序 view) ─────────────────────────────────────── */
 
@@ -70,8 +72,22 @@ export interface TimelineDatum {
   deviation: number | null;
   outlier: boolean;
   mode: DerivedNarrativeMode;
+  /** #21h verdict, or null when that analysis has not run for this event.
+   *  Independent of `deviation`: that is geometry over `chronologicalRank`,
+   *  this is the LLM reading story time. They can disagree, and where they do
+   *  the verdict wins for labelling. */
+  displacement: TemporalDisplacement | null;
   participantIds: string[];
   event: TimelineEvent;
+}
+
+/** Verdict types that are worth annotating; `linear` says nothing new. */
+function verdictKind(
+  d: TemporalDisplacement | null,
+): 'flashback' | 'flashforward' | null {
+  if (d?.type === 'analepsis') return 'flashback';
+  if (d?.type === 'prolepsis') return 'flashforward';
+  return null;
 }
 
 /**
@@ -97,6 +113,7 @@ export function buildTimelineData(events: TimelineEvent[]): TimelineDatum[] {
       deviation,
       outlier,
       mode: deriveMode(deviation),
+      displacement: event.temporalDisplacement ?? null,
       participantIds: event.participants.map((p) => p.id),
       event,
     };
@@ -150,8 +167,10 @@ export interface StaveAnnotation {
   /** Which side of the point the text sits on. */
   align: 'left' | 'right';
   kind: 'flashback' | 'flashforward';
+  /** True when #21h judged this event, false when only geometry flagged it. */
+  confirmed: boolean;
   chapter: number;
-  /** How many outliers in this row share the chapter. */
+  /** How many annotated candidates in this row share the chapter. */
   count: number;
 }
 
@@ -266,13 +285,19 @@ function buildStaveRow(
 }
 
 /**
- * Annotate at most one outlier per chapter per row, and only the most
- * displaced one — 199 raw outliers would bury the chart in text.
+ * Annotate at most one candidate per chapter per row — 199 raw outliers would
+ * bury the chart in text.
+ *
+ * A candidate is either a geometric outlier or an event #21h judged as
+ * analepsis/prolepsis. Those two sets overlap but neither contains the other:
+ * the analysis can call a modest displacement a flashback, and geometry can
+ * flag an event the analysis never reached. Within a chapter a judged event
+ * outranks a merely-displaced one, because it is the stronger claim.
  */
 function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
   const byChapter = new Map<number, StavePoint[]>();
   for (const p of points) {
-    if (!p.outlier) continue;
+    if (!p.outlier && !verdictKind(p.datum.displacement)) continue;
     const list = byChapter.get(p.datum.chapter);
     if (list) list.push(p);
     else byChapter.set(p.datum.chapter, [p]);
@@ -280,22 +305,46 @@ function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
 
   const out: StaveAnnotation[] = [];
   for (const [chapter, group] of byChapter) {
-    const worst = group.reduce((a, b) =>
-      Math.abs(b.datum.deviation!) > Math.abs(a.datum.deviation!) ? b : a,
-    );
-    const dev = worst.datum.deviation!;
+    const worst = group.reduce((a, b) => {
+      const aConfirmed = verdictKind(a.datum.displacement) !== null;
+      const bConfirmed = verdictKind(b.datum.displacement) !== null;
+      if (aConfirmed !== bConfirmed) return bConfirmed ? b : a;
+      return Math.abs(b.datum.deviation ?? 0) > Math.abs(a.datum.deviation ?? 0) ? b : a;
+    });
+    const verdict = verdictKind(worst.datum.displacement);
     out.push({
       id: worst.id,
       xPct: worst.xPct,
       yPx: worst.yPx,
       // Keep late-row annotations from running off the right edge.
       align: worst.xPct > 70 ? 'left' : 'right',
-      kind: dev < 0 ? 'flashback' : 'flashforward',
+      kind: verdict ?? ((worst.datum.deviation ?? 0) < 0 ? 'flashback' : 'flashforward'),
+      confirmed: verdict !== null,
       chapter,
       count: group.length,
     });
   }
-  return out;
+
+  /* One annotation per chapter is not enough on its own: a label occupies a
+     span of the row, and late-row ones are drawn leftwards from their point,
+     so two annotations can collide however far apart their points are. Compare
+     the spans, not the points. On a collision keep the earlier one — unless
+     the other is a judged verdict, which is the stronger claim. */
+  const span = (a: StaveAnnotation) => {
+    const start = a.align === 'left' ? a.xPct - ANNOTATION_MIN_GAP_PCT : a.xPct;
+    return { start, end: start + ANNOTATION_MIN_GAP_PCT };
+  };
+
+  const kept: StaveAnnotation[] = [];
+  for (const a of out.sort((x, y) => span(x).start - span(y).start)) {
+    const prev = kept.at(-1);
+    if (prev && span(a).start < span(prev).end) {
+      if (a.confirmed && !prev.confirmed) kept[kept.length - 1] = a;
+      continue;
+    }
+    kept.push(a);
+  }
+  return kept;
 }
 
 /* ── Matrix ───────────────────────────────────────────────────── */

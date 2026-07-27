@@ -616,6 +616,12 @@
   z-index: 4;
   pointer-events: none;
 }
+/* A judged event states a fact; a merely-displaced one is an observation.
+   The underline is what separates the two without adding a second colour. */
+.tl-stave-note.confirmed {
+  font-weight: 600;
+  border-bottom: 1px solid var(--accent);
+}
 .tl-stave-note.right {
   transform: translate(9px, -7px);
 }
@@ -1481,6 +1487,19 @@
   color: var(--fg-secondary);
 }
 .tl-panel-dev.outlier {
+  color: var(--accent);
+}
+.tl-panel-verdict {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--pill-radius);
+  align-self: flex-start;
+}
+.tl-panel-verdict.analepsis,
+.tl-panel-verdict.prolepsis {
+  border-color: var(--accent);
   color: var(--accent);
 }
 .tl-panel-actions {

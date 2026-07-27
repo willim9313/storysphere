@@ -713,7 +713,8 @@
       "devFlashback": "明顯倒敘 {{v}}",
       "devFlashforward": "明顯預敘 {{v}}",
       "gotoReader": "前往閱讀該段落",
-      "gotoGraph": "在知識圖譜中查看"
+      "gotoGraph": "在知識圖譜中查看",
+      "verdict": "時序分析判定：{{type}} · 敘述第 {{text}} 筆 → 故事第 {{story}} 筆"
     },
     "storyTime": "故事時間：",
     "priorEvents": "前驅 · prior",
@@ -837,6 +838,9 @@
       "storyOrderCostFirst": "數分鐘 · 判讀 {{n}} 筆事件 · 不覆蓋任何既有結果",
       "displacement": "倒敘與預敘",
       "displacementRun": "識別倒敘與預敘…",
+      "displacementRerun": "覆蓋重新識別…",
+      "displacementDone": "已識別 {{analepsis}} 筆倒敘 · {{prolepsis}} 筆預敘",
+      "displacementCostRerun": "重跑數分鐘 · 會覆蓋既有判定",
       "displacementReady": "可執行 · 故事時間提示覆蓋率 {{pct}}%",
       "displacementBlocked": "尚不可執行 · 需 60% 事件帶有故事時間提示，目前 {{pct}}%",
       "displacementRunning": "分析中…",
@@ -858,7 +862,9 @@
       "storyOrderDone": "故事時序計算完成",
       "storyOrderFailed": "故事時序計算失敗",
       "displacementDone": "倒敘與預敘分析完成",
-      "displacementFailed": "倒敘與預敘分析失敗"
+      "displacementFailed": "倒敘與預敘分析失敗",
+      "displacementSkipped": "倒敘與預敘未進行",
+      "displacementSkippedDesc": "故事時間提示覆蓋率不足 60%，這次沒有呼叫 LLM，也沒有產生任何判定。"
     },
     "stave": {
       "headline": "敘述順序走了 {{rows}} 行，故事順序掉出去 {{outliers}} 次",
@@ -866,7 +872,9 @@
       "legend": "中線＝兩種順序一致　下＝倒敘　上＝預敘　大點＝KERNEL　空心＝未分析",
       "unranked": "未排序",
       "flashbackNote": "倒敘 ↩ Ch.{{ch}} 講的是故事早期（{{count}} 筆）",
-      "flashforwardNote": "Ch.{{ch}} 有 {{count}} 筆被提前講出來"
+      "flashforwardNote": "Ch.{{ch}} 有 {{count}} 筆被提前講出來",
+      "flashbackJudged": "已判定倒敘 ↩ Ch.{{ch}}（{{count}}）",
+      "flashforwardJudged": "已判定預敘 ↗ Ch.{{ch}}（{{count}}）"
     },
     "storyOrderPrompt": {
       "title": "還沒算過故事時序，所以譜上沒有點",
@@ -929,6 +937,11 @@
       "story": "這些事件排不進故事時序",
       "matrix": "這些事件畫不進矩陣",
       "desc": "符合條件的 {{n}} 筆全部沒有故事時間（chronological_rank 為空），因此無法排出先後。它們仍可逐筆檢視。"
+    },
+    "displacementTypes": {
+      "analepsis": "倒敘",
+      "prolepsis": "預敘",
+      "linear": "順敘"
     }
   },
   "unravelingLoadError": "無法載入建構概覽資料",

@@ -164,6 +164,89 @@ describe('buildStaveRows', () => {
     expect(row.hasUnranked).toBe(true);
   });
 
+  it('annotates a judged event geometry would not have flagged', () => {
+    // Dead on the diagonal — no deviation at all — but #21h called it a
+    // flashback. Without the verdict this row would carry no annotation.
+    const data = buildTimelineData([
+      makeEvent({ id: 'a', chronologicalRank: 0 }),
+      makeEvent({
+        id: 'b',
+        chronologicalRank: 0.5,
+        temporalDisplacement: {
+          type: 'analepsis',
+          displacement: -4,
+          textRank: 2,
+          storyRank: 1,
+        },
+      }),
+      makeEvent({ id: 'c', chronologicalRank: 1 }),
+    ]);
+    const [row] = buildStaveRows(data);
+    expect(row.annotations).toHaveLength(1);
+    expect(row.annotations[0]).toMatchObject({ id: 'b', kind: 'flashback', confirmed: true });
+  });
+
+  it('prefers the judged event over the more displaced one in a chapter', () => {
+    const data = buildTimelineData([
+      makeEvent({ id: 'a', chronologicalRank: 0 }),
+      makeEvent({ id: 'big', chronologicalRank: 1 }), // largest deviation, unjudged
+      makeEvent({
+        id: 'judged',
+        chronologicalRank: 0.5 + OUTLIER_THRESHOLD + 0.01,
+        temporalDisplacement: {
+          type: 'prolepsis',
+          displacement: 2,
+          textRank: 3,
+          storyRank: 5,
+        },
+      }),
+      makeEvent({ id: 'd', chronologicalRank: 1 }),
+    ]);
+    const [row] = buildStaveRows(data);
+    expect(row.annotations).toHaveLength(1);
+    expect(row.annotations[0]).toMatchObject({ id: 'judged', confirmed: true });
+  });
+
+  it('drops an overlapping annotation, keeping the judged one', () => {
+    // Two adjacent chapters both qualify; their labels would print on top of
+    // each other, and the judged verdict is the one worth keeping.
+    // 10 events over 2 chapters: the two annotated ones sit at adjacent
+    // indices, ~11% apart, which is inside ANNOTATION_MIN_GAP_PCT.
+    const events = Array.from({ length: 10 }, (_, i) =>
+      makeEvent({
+        id: 'e' + i,
+        chapter: i < 5 ? 1 : 2,
+        chronologicalRank: i / 9,
+      }),
+    );
+    events[4] = makeEvent({ id: 'geo', chapter: 1, chronologicalRank: 1 });
+    events[5] = makeEvent({
+      id: 'judged',
+      chapter: 2,
+      chronologicalRank: 5 / 9,
+      temporalDisplacement: {
+        type: 'analepsis',
+        displacement: -3,
+        textRank: 6,
+        storyRank: 1,
+      },
+    });
+    const data = buildTimelineData(events);
+    const [row] = buildStaveRows(data);
+    expect(row.annotations).toHaveLength(1);
+    expect(row.annotations[0].id).toBe('judged');
+  });
+
+  it('falls back to the geometric reading when nothing is judged', () => {
+    const data = buildTimelineData([
+      makeEvent({ id: 'a', chronologicalRank: 0 }),
+      makeEvent({ id: 'b', chronologicalRank: 1 }),
+      makeEvent({ id: 'c', chronologicalRank: 0.5 }),
+    ]);
+    const [row] = buildStaveRows(data);
+    expect(row.annotations[0]).toMatchObject({ confirmed: false });
+  });
+
   it('omits the unranked band when a row has none', () => {
     const [row] = buildStaveRows(buildTimelineData(diagonal(5)));
     expect(row.hasUnranked).toBe(false);

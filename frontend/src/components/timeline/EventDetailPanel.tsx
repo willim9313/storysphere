@@ -126,6 +126,17 @@ export function EventDetailPanel({
           <span className={`tl-narrative-chip tl-narrative-${datum.mode}`}>
             {t('timeline.panel.mode')} · {t(`timeline.narrativeModes.${datum.mode}`)}
           </span>
+          {/* The #21h verdict is a separate claim from the deviation above it,
+              and carries its own ranks — showing both is the point. */}
+          {datum.displacement && (
+            <span className={`tl-panel-verdict ${datum.displacement.type}`}>
+              {t('timeline.panel.verdict', {
+                type: t(`timeline.displacementTypes.${datum.displacement.type}`),
+                text: datum.displacement.textRank,
+                story: Math.round(datum.displacement.storyRank),
+              })}
+            </span>
+          )}
         </div>
 
         <div className="tl-panel-actions">
