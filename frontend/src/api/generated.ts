@@ -4191,6 +4191,11 @@ export interface components {
             /** Eventimportance */
             eventImportance?: string | null;
             /**
+             * Hasanalysis
+             * @default false
+             */
+            hasAnalysis: boolean;
+            /**
              * Participants
              * @default []
              */

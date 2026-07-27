@@ -1013,6 +1013,7 @@ interface TimelineEvent {
   chronologicalRank: number | null;   // null = 尚未計算
   narrativeMode: 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown';
   eventImportance: 'KERNEL' | 'SATELLITE' | null;
+  hasAnalysis: boolean;               // 是否已跑過事件分析（EEP 快取存在）
   storyTimeHint?: string;
   participants: { id: string; name: string; type: EntityType }[];
   location?: { id: string; name: string };

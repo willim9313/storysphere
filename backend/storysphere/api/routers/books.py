@@ -2479,11 +2479,13 @@ async def get_book_timeline(
     from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
     analyzed_count = 0
     event_importance_map: dict[str, str] = {}
+    analyzed_ids: set[str] = set()
     for ev in all_events:
         cache_key = f"event:{book_id}:{ev.id}"
         cached = await cache.get(cache_key)
         if cached is not None:
             analyzed_count += 1
+            analyzed_ids.add(ev.id)
             try:
                 result = EventAnalysisResult.model_validate(cached)
                 event_importance_map[ev.id] = result.eep.event_importance.name
@@ -2563,6 +2565,7 @@ async def get_book_timeline(
                 chronological_rank=e.chronological_rank,
                 story_time_hint=e.story_time_hint,
                 event_importance=event_importance_map.get(e.id),
+                has_analysis=e.id in analyzed_ids,
                 participants=[
                     ParticipantRef(
                         id=pid,

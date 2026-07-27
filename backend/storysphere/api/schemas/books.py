@@ -581,6 +581,7 @@ class TimelineEventEntry(BaseModel):
     chronological_rank: float | None = None
     story_time_hint: str | None = None
     event_importance: str | None = None
+    has_analysis: bool = False
     participants: list[ParticipantRef] = []
     location: LocationRef | None = None
 
