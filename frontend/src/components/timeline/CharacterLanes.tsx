@@ -29,6 +29,7 @@ interface CharacterLanesProps {
   onSelectEvent: (d: TimelineDatum) => void;
   onRemove: (id: string) => void;
   onAdd: (id: string) => void;
+  onClear: () => void;
 }
 
 export function CharacterLanes({
@@ -40,6 +41,7 @@ export function CharacterLanes({
   onSelectEvent,
   onRemove,
   onAdd,
+  onClear,
 }: CharacterLanesProps) {
   const { t } = useTranslation('analysis');
 
@@ -76,6 +78,11 @@ export function CharacterLanes({
             </button>
           </span>
         ))}
+        {selected.length > 0 && (
+          <button type="button" className="tl-lanes-clear" onClick={onClear}>
+            {t('timeline.lanes.clear')}
+          </button>
+        )}
         {selected.length < MAX_LANES && unselected.length > 0 && (
           <label className="tl-lanes-add">
             <span className="sr-only">{t('timeline.lanes.add', { max: MAX_LANES })}</span>
@@ -94,16 +101,26 @@ export function CharacterLanes({
             </select>
           </label>
         )}
-        <span className="tl-lanes-note">{t('timeline.lanes.axisNote', { n })}</span>
+        {selected.length > 0 && (
+          <span className="tl-lanes-note">{t('timeline.lanes.axisNote', { n })}</span>
+        )}
       </header>
 
-      <div className="tl-lanes-ticks">
-        {ticks.map((tick) => (
-          <span className="tl-lanes-tick" key={tick.ch} style={{ left: `${tick.xPct}%` }}>
-            Ch.{tick.ch}
-          </span>
-        ))}
-      </div>
+      {/* Nothing selected is a working state, not an error: the reader has
+          cleared the seeded cast and is about to pick their own. Show the
+          picker and the reason to use it, and drop the axis furniture that
+          would otherwise frame an empty strip. */}
+      {selected.length === 0 && <p className="tl-lanes-empty">{t('timeline.lanes.empty')}</p>}
+
+      {selected.length > 0 && (
+        <div className="tl-lanes-ticks">
+          {ticks.map((tick) => (
+            <span className="tl-lanes-tick" key={tick.ch} style={{ left: `${tick.xPct}%` }}>
+              Ch.{tick.ch}
+            </span>
+          ))}
+        </div>
+      )}
 
       {lanes.map((lane) => (
         <div className="tl-lane" key={lane.entityId}>
@@ -199,22 +216,24 @@ export function CharacterLanes({
         </div>
       )}
 
-      <ul className="tl-lanes-legend">
-        <li>
-          <span className="tl-legend-dot analyzed" /> {t('timeline.lanes.legendAnalyzed')}
-        </li>
-        <li>
-          <span className="tl-legend-dot unanalyzed" /> {t('timeline.lanes.legendUnanalyzed')}
-        </li>
-        <li>
-          <span className="tl-legend-dash" /> {t('timeline.lanes.legendAbsent')}
-        </li>
-        {selected.length >= 2 && (
+      {selected.length > 0 && (
+        <ul className="tl-lanes-legend">
           <li>
-            <span className="tl-legend-mark" /> {t('timeline.lanes.together')}
+            <span className="tl-legend-dot analyzed" /> {t('timeline.lanes.legendAnalyzed')}
           </li>
-        )}
-      </ul>
+          <li>
+            <span className="tl-legend-dot unanalyzed" /> {t('timeline.lanes.legendUnanalyzed')}
+          </li>
+          <li>
+            <span className="tl-legend-dash" /> {t('timeline.lanes.legendAbsent')}
+          </li>
+          {selected.length >= 2 && (
+            <li>
+              <span className="tl-legend-mark" /> {t('timeline.lanes.together')}
+            </li>
+          )}
+        </ul>
+      )}
     </section>
   );
 }

@@ -12,7 +12,7 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Sparkles } from 'lucide-react';
 import type { FilterMode } from './filterState';
 
 export interface ActionRowState {
@@ -27,6 +27,9 @@ export interface ActionRowState {
   sub: string;
   /** True when `sub` explains a blocker and should read as actionable. */
   blocked: boolean;
+  /** Run-button label. Lives here because it differs between a first run and
+   *  a re-run, which only the page can tell apart. */
+  runLabel: string;
   onSubClick?: () => void;
 }
 
@@ -144,7 +147,6 @@ export function TimelineToolbar({
         <ActionRow
           name={t('timeline.action.storyOrder')}
           state={storyOrder}
-          runLabel={t('timeline.action.storyOrderRun')}
           onRun={onRunStoryOrder}
           onCancel={onCancelStoryOrder}
           emphasis
@@ -152,7 +154,6 @@ export function TimelineToolbar({
         <ActionRow
           name={t('timeline.action.displacement')}
           state={displacement}
-          runLabel={t('timeline.action.displacementRun')}
           onRun={onRunDisplacement}
           onCancel={onCancelDisplacement}
         />
@@ -164,14 +165,12 @@ export function TimelineToolbar({
 function ActionRow({
   name,
   state,
-  runLabel,
   onRun,
   onCancel,
   emphasis,
 }: {
   name: string;
   state: ActionRowState;
-  runLabel: string;
   onRun: () => void;
   onCancel: () => void;
   emphasis?: boolean;
@@ -208,9 +207,12 @@ function ActionRow({
           className={`tl-btn${state.ready ? ' tl-btn-accent' : ''}`}
           onClick={onRun}
           disabled={!state.ready}
-          /* "…" marks an action that opens a confirmation first. */
+          /* "…" marks an action that opens a confirmation first; the sparkle
+             marks the ones that spend LLM tokens, so they are separable at a
+             glance from the free view / filter / overlay buttons. */
         >
-          {runLabel}
+          <Sparkles size={12} className="tl-btn-ai" aria-hidden="true" />
+          {state.runLabel}
         </button>
       )}
       {/* A solid 3px rail, not a translucent wash over the row: under the Ink

@@ -829,9 +829,12 @@
     "action": {
       "storyOrder": "故事時序",
       "storyOrderRun": "覆蓋重新計算…",
+      "storyOrderRunFirst": "首次計算…",
       "storyOrderStatus": "已完成 {{done}}/{{total}}",
+      "storyOrderStatusNone": "尚未計算 · 共 {{total}} 筆事件",
       "storyOrderRunning": "計算中 · {{done}}/{{total}} 事件已判讀",
       "storyOrderCost": "重跑數分鐘 · 會覆蓋既有的 {{n}} 筆排序",
+      "storyOrderCostFirst": "數分鐘 · 判讀 {{n}} 筆事件 · 不覆蓋任何既有結果",
       "displacement": "倒敘與預敘",
       "displacementRun": "識別倒敘與預敘…",
       "displacementReady": "可執行 · 故事時間提示覆蓋率 {{pct}}%",
@@ -844,6 +847,8 @@
     },
     "confirm": {
       "storyTitle": "覆蓋重新計算故事時序",
+      "storyFirstTitle": "首次計算故事時序",
+      "storyFirstBody": "這會呼叫 LLM 逐一判讀 {{total}} 筆事件的故事時間，排出先後。目前沒有既有排序，不會覆蓋任何東西。需要數分鐘並消耗 token；執行期間可離開本頁。事件內容、參與者與知識圖譜不會變動。",
       "storyBody": "這會呼叫 LLM 逐一判讀 {{total}} 筆事件的故事時間，並覆蓋既有的 {{ranked}} 筆排序。需要數分鐘並消耗 token；執行期間可離開本頁。事件內容、參與者與知識圖譜不會變動。",
       "displacementTitle": "識別倒敘與預敘",
       "displacementBody": "這會呼叫 LLM 比對 {{total}} 筆事件的敘述順序與故事順序，標記倒敘與預敘。需要數分鐘並消耗 token；執行期間可離開本頁。",
@@ -862,6 +867,12 @@
       "unranked": "未排序",
       "flashbackNote": "倒敘 ↩ Ch.{{ch}} 講的是故事早期（{{count}} 筆）",
       "flashforwardNote": "Ch.{{ch}} 有 {{count}} 筆被提前講出來"
+    },
+    "storyOrderPrompt": {
+      "title": "還沒算過故事時序，所以譜上沒有點",
+      "desc": "這 {{n}} 筆事件目前都沒有故事時間，無法和敘述順序對照，全部落在每行下方的「未排序」。算完之後，每筆事件才會沿中線畫出來，倒敘在下、預敘在上。",
+      "action": "計算故事時序",
+      "running": "計算中…"
     },
     "band": {
       "region": "第 {{n}} 章事件",
@@ -895,9 +906,11 @@
     },
     "lanes": {
       "region": "角色軌跡",
-      "title": "角色軌跡 · 疊加在敘述順序上",
+      "title": "角色軌跡",
       "remove": "移除 {{name}}",
+      "clear": "清空",
       "add": "＋ 加入角色（上限 {{max}}）",
+      "empty": "尚未選擇角色。加入角色後，可看見他出場、缺席的位置。",
       "axisNote": "X 軸沿用敘述順序（{{n}} 筆）· 不受篩選影響",
       "meta": "出場 {{present}} · 缺席 {{absent}} · 最長連缺 {{longest}}",
       "absent": "缺席 {{range}}（{{n}}）",

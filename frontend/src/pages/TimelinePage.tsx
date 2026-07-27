@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { AlertTriangle, Loader2, Sparkles } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useBook } from '@/hooks/useBook';
@@ -73,6 +73,22 @@ const VIEW_TO_ORDER: Record<ViewKey, TimelineOrder> = {
 
 const VIEWS: ViewKey[] = ['chapter', 'story', 'matrix'];
 
+/** Lane picks are per book and survive reloads — including the empty set,
+ *  which is why absence of the key (not an empty array) is what triggers
+ *  seeding. */
+const laneStorageKey = (bookId: string) => `timeline:lanes:${bookId}`;
+
+function readStoredLanes(bookId: string): string[] | null {
+  try {
+    const raw = localStorage.getItem(laneStorageKey(bookId));
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function TimelinePage() {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
@@ -100,6 +116,8 @@ export default function TimelinePage() {
   const [displacementTaskId, setDisplacementTaskId] = useState<string | null>(null);
 
   const filterRef = useRef<HTMLDivElement>(null);
+  /** Which book's lanes have already been seeded — see the seeding effect. */
+  const laneSeedRef = useRef<string | undefined>(undefined);
 
   const setParam = useCallback(
     (key: string, value: string | null) => {
@@ -251,10 +269,23 @@ export default function TimelinePage() {
 
   /* eslint-disable react-hooks/set-state-in-effect */
 
-  /** Seed the lanes with the most-present characters — an empty overlay
-   *  teaches nothing, and "appears most often" is the useful default. */
+  /** Restore this book's lane picks, or seed with the most-present characters
+   *  on first visit — an empty overlay teaches nothing, and "appears most
+   *  often" is the useful default.
+   *
+   *  Runs once per book, tracked by a ref rather than by `laneIds.length`:
+   *  keying off the length re-seeds the defaults the moment the reader removes
+   *  the last pill, which reads as the overlay refusing to be emptied. An
+   *  empty lane set is a legitimate state — it is how you start picking, and
+   *  it is remembered as such. */
   useEffect(() => {
-    if (laneIds.length > 0 || timelineData.length === 0) return;
+    if (!bookId || timelineData.length === 0 || laneSeedRef.current === bookId) return;
+    laneSeedRef.current = bookId;
+    const stored = readStoredLanes(bookId);
+    if (stored) {
+      setLaneIds(stored.slice(0, MAX_LANES));
+      return;
+    }
     const tally = new Map<string, number>();
     for (const d of timelineData) {
       for (const p of d.event.participants) {
@@ -266,7 +297,18 @@ export default function TimelinePage() {
       .slice(0, MAX_LANES)
       .map(([id]) => id);
     if (top.length > 0) setLaneIds(top);
-  }, [timelineData, laneIds.length]);
+  }, [timelineData, bookId]);
+
+  /** Persist after hydration only, so the initial empty state never overwrites
+   *  what the reader saved last time. */
+  useEffect(() => {
+    if (!bookId || laneSeedRef.current !== bookId) return;
+    try {
+      localStorage.setItem(laneStorageKey(bookId), JSON.stringify(laneIds));
+    } catch {
+      // quota exceeded or private browsing — the picks just do not persist
+    }
+  }, [bookId, laneIds]);
 
   useEffect(() => {
     if (computeTask?.status === 'done') {
@@ -369,6 +411,11 @@ export default function TimelinePage() {
    *  produce. Running story order will NOT unblock this. */
   const displacementReady = coverage?.coverage_sufficient === true;
 
+  /** A first run and a re-run cost the same but mean different things: the
+   *  first produces the ordering, the second discards one that already exists.
+   *  Only the second is worth framing as 覆蓋. */
+  const hasStoryOrder = stats.ranked > 0;
+
   const storyOrderState: ActionRowState = {
     ready: !isComputing,
     running: isComputing,
@@ -378,10 +425,17 @@ export default function TimelinePage() {
           done: Math.round(((computeTask?.progress ?? 0) / 100) * stats.total),
           total: stats.total,
         })
-      : t('timeline.action.storyOrderStatus', { done: stats.ranked, total: stats.total }),
+      : hasStoryOrder
+        ? t('timeline.action.storyOrderStatus', { done: stats.ranked, total: stats.total })
+        : t('timeline.action.storyOrderStatusNone', { total: stats.total }),
     sub: isComputing
       ? t('timeline.action.leavePageOk')
-      : t('timeline.action.storyOrderCost', { n: stats.ranked }),
+      : hasStoryOrder
+        ? t('timeline.action.storyOrderCost', { n: stats.ranked })
+        : t('timeline.action.storyOrderCostFirst', { n: stats.total }),
+    runLabel: hasStoryOrder
+      ? t('timeline.action.storyOrderRun')
+      : t('timeline.action.storyOrderRunFirst'),
     blocked: false,
   };
 
@@ -399,6 +453,7 @@ export default function TimelinePage() {
       : displacementReady
         ? t('timeline.action.displacementCost')
         : t('timeline.action.displacementUnblock'),
+    runLabel: t('timeline.action.displacementRun'),
     blocked: !displacementReady && !isRunningDisplacement,
     onSubClick:
       !displacementReady && !isRunningDisplacement
@@ -451,6 +506,10 @@ export default function TimelinePage() {
 
   const noMatch = visible.length === 0;
   const noRanked = view !== 'chapter' && rankedVisible.length === 0 && visible.length > 0;
+  /** Nothing in the *book* is ranked — deliberately not filter-aware, so a
+   *  filter that happens to exclude every ranked event does not read as
+   *  "story order was never computed". */
+  const storyOrderMissing = stats.total > 0 && stats.ranked === 0;
 
   const chapterAll = timelineData.filter((d) => d.chapter === activeChapter);
   const chapterShown = visible.filter((d) => d.chapter === activeChapter);
@@ -564,28 +623,61 @@ export default function TimelinePage() {
                   className="tl-btn tl-btn-accent"
                   onClick={() => setConfirm('story')}
                 >
-                  {t('timeline.action.storyOrderRun')}
+                  <Sparkles size={12} className="tl-btn-ai" aria-hidden="true" />
+                  {t(
+                    hasStoryOrder
+                      ? 'timeline.action.storyOrderRun'
+                      : 'timeline.action.storyOrderRunFirst',
+                  )}
                 </button>
               </div>
             </div>
           ) : view === 'chapter' ? (
             <>
-              <header className="tl-view-head">
-                <h2 className="tl-view-headline">
-                  {t('timeline.stave.headline', {
-                    rows: stats.rows,
-                    outliers: stats.outliers,
-                  })}
-                </h2>
-                <p className="tl-view-meta">
-                  {t('timeline.stave.meta', {
-                    onLine: stats.onLine,
-                    outliers: stats.outliers,
-                    unranked: stats.unranked,
-                  })}
-                </p>
-                <p className="tl-view-legend">{t('timeline.stave.legend')}</p>
-              </header>
+              {/* Before the story-order run there is no rank to deviate from,
+                  so the stave draws no dots at all. The default headline reads
+                  "0 次掉出去" there, which is indistinguishable from a book
+                  that simply tells events in order — say instead that nothing
+                  has been computed, and put the run where the dots are
+                  missing. */}
+              {storyOrderMissing ? (
+                <div className="tl-prompt">
+                  <h2 className="tl-prompt-title">{t('timeline.storyOrderPrompt.title')}</h2>
+                  <p className="tl-prompt-desc">
+                    {t('timeline.storyOrderPrompt.desc', { n: stats.total })}
+                  </p>
+                  <button
+                    type="button"
+                    className="tl-btn tl-btn-accent"
+                    onClick={() => setConfirm('story')}
+                    disabled={isComputing}
+                  >
+                    <Sparkles size={12} className="tl-btn-ai" aria-hidden="true" />
+                    {t(
+                      isComputing
+                        ? 'timeline.storyOrderPrompt.running'
+                        : 'timeline.storyOrderPrompt.action',
+                    )}
+                  </button>
+                </div>
+              ) : (
+                <header className="tl-view-head">
+                  <h2 className="tl-view-headline">
+                    {t('timeline.stave.headline', {
+                      rows: stats.rows,
+                      outliers: stats.outliers,
+                    })}
+                  </h2>
+                  <p className="tl-view-meta">
+                    {t('timeline.stave.meta', {
+                      onLine: stats.onLine,
+                      outliers: stats.outliers,
+                      unranked: stats.unranked,
+                    })}
+                  </p>
+                  <p className="tl-view-legend">{t('timeline.stave.legend')}</p>
+                </header>
+              )}
               <TimelineStave
                 rows={staveRows}
                 selectedChapter={activeChapter}
@@ -631,7 +723,7 @@ export default function TimelinePage() {
             />
           )}
 
-          {lanesOn && !noMatch && laneCharacters.length > 0 && (
+          {lanesOn && !noMatch && (
             <CharacterLanes
               data={timelineData}
               chapters={chapters}
@@ -641,6 +733,7 @@ export default function TimelinePage() {
               onSelectEvent={selectEvent}
               onRemove={(id) => setLaneIds((ids) => ids.filter((x) => x !== id))}
               onAdd={(id) => setLaneIds((ids) => ids.slice(0, MAX_LANES - 1).concat(id))}
+              onClear={() => setLaneIds([])}
             />
           )}
         </div>
@@ -668,11 +761,12 @@ export default function TimelinePage() {
 
       <ConfirmDialog
         open={confirm === 'story'}
-        title={t('timeline.confirm.storyTitle')}
-        message={t('timeline.confirm.storyBody', {
-          total: stats.total,
-          ranked: stats.ranked,
-        })}
+        title={t(hasStoryOrder ? 'timeline.confirm.storyTitle' : 'timeline.confirm.storyFirstTitle')}
+        message={
+          hasStoryOrder
+            ? t('timeline.confirm.storyBody', { total: stats.total, ranked: stats.ranked })
+            : t('timeline.confirm.storyFirstBody', { total: stats.total })
+        }
         confirmLabel={t('timeline.confirm.start')}
         onConfirm={() => {
           void runStoryOrder();

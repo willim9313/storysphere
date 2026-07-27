@@ -829,9 +829,12 @@
     "action": {
       "storyOrder": "Story order",
       "storyOrderRun": "Recompute (overwrites)…",
+      "storyOrderRunFirst": "Compute for the first time…",
       "storyOrderStatus": "{{done}}/{{total}} done",
+      "storyOrderStatusNone": "Not computed · {{total}} events",
       "storyOrderRunning": "Running · {{done}}/{{total}} events read",
       "storyOrderCost": "Several minutes · overwrites the existing {{n}} rankings",
+      "storyOrderCostFirst": "Several minutes · reads {{n}} events · overwrites nothing",
       "displacement": "Flashback & flashforward",
       "displacementRun": "Identify displacement…",
       "displacementReady": "Ready · story-time hint coverage {{pct}}%",
@@ -844,6 +847,8 @@
     },
     "confirm": {
       "storyTitle": "Recompute story order (overwrites)",
+      "storyFirstTitle": "Compute story order",
+      "storyFirstBody": "This calls the LLM to read the story time of all {{total}} events and order them. There is no existing ranking, so nothing is overwritten. It takes several minutes and consumes tokens; you can leave the page while it runs. Event content, participants and the knowledge graph are unaffected.",
       "storyBody": "This calls the LLM to read the story time of all {{total}} events and overwrites the existing {{ranked}} rankings. It takes several minutes and consumes tokens; you can leave the page while it runs. Event content, participants and the knowledge graph are unaffected.",
       "displacementTitle": "Identify flashback & flashforward",
       "displacementBody": "This calls the LLM to compare narrative order against story order across {{total}} events. It takes several minutes and consumes tokens; you can leave the page while it runs.",
@@ -862,6 +867,12 @@
       "unranked": "Unranked",
       "flashbackNote": "Flashback ↩ Ch.{{ch}} covers earlier story time ({{count}})",
       "flashforwardNote": "Ch.{{ch}} tells {{count}} events ahead of time"
+    },
+    "storyOrderPrompt": {
+      "title": "Story order has not been computed, so the stave has no dots",
+      "desc": "None of these {{n}} events has a story time yet, so there is nothing to compare narrative order against — they all sit in the \"unordered\" strip under each row. Once computed, each event is plotted along the midline: flashbacks below, flashforwards above.",
+      "action": "Compute story order",
+      "running": "Computing…"
     },
     "band": {
       "region": "Chapter {{n}} events",
@@ -895,9 +906,11 @@
     },
     "lanes": {
       "region": "Character lanes",
-      "title": "Character lanes · overlaid on narrative order",
+      "title": "Character lanes",
       "remove": "Remove {{name}}",
+      "clear": "Clear",
       "add": "+ Add character (max {{max}})",
+      "empty": "No character selected. Add one to see where they appear and where they are absent.",
       "axisNote": "X follows narrative order ({{n}} events) · unaffected by the filter",
       "meta": "Present {{present}} · absent {{absent}} · longest gap {{longest}}",
       "absent": "Absent {{range}} ({{n}})",

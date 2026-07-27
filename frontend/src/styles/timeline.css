@@ -88,6 +88,12 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+/* Marks a button that spends LLM tokens. Sits one step back from the label so
+   it reads as a property of the action, not as part of its name. */
+.tl-btn-ai {
+  flex: none;
+  opacity: 0.75;
+}
 .tl-btn-primary {
   background: var(--accent);
   border-color: var(--accent);
@@ -485,6 +491,31 @@
 .tl-view-legend {
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
+  margin: 0;
+}
+/* Stands in for .tl-view-head when the stave has nothing to plot. */
+.tl-prompt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  margin: 10px 18px 4px;
+  padding: 10px 14px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.tl-prompt-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: 600;
+  color: var(--fg-primary);
+  margin: 0;
+}
+.tl-prompt-desc {
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+  max-width: 68ch;
   margin: 0;
 }
 
@@ -1156,8 +1187,21 @@
   flex-wrap: wrap;
 }
 .tl-lanes-title {
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
+.tl-lanes-clear {
+  font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
+  padding: 2px 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--pill-radius);
+  background: transparent;
   color: var(--fg-muted);
+  cursor: pointer;
+}
+.tl-lanes-clear:hover {
+  color: var(--fg-secondary);
 }
 .tl-lanes-pill {
   display: inline-flex;
@@ -1191,6 +1235,11 @@
 }
 .tl-lanes-note {
   margin-left: auto;
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.tl-lanes-empty {
+  margin: var(--space-sm) 0 0;
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
