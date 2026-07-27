@@ -1883,6 +1883,9 @@ export const mockTimelineData: TimelineData = {
     totalCount: 28,
     hasChronologicalRanks: true,
   },
+  // The mock book has never had the #21h run; narrativeMode values above are
+  // extraction-time labels, not temporal-analysis verdicts.
+  temporalAnalyzed: false,
 };
 
 // ── Task simulation ─────────────────────────────────────────────

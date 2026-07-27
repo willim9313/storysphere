@@ -1001,6 +1001,8 @@ interface TimelineData {
   events: TimelineEvent[];
   temporalRelations: TemporalRelation[];
   quality: TimelineQuality;
+  temporalAnalyzed: boolean;          // #21h 是否跑過且覆蓋率足夠
+  temporalStructure?: string | null;  // linear | partially_linear | non_linear | unknown
 }
 
 interface TimelineEvent {
@@ -1014,9 +1016,17 @@ interface TimelineEvent {
   narrativeMode: 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown';
   eventImportance: 'KERNEL' | 'SATELLITE' | null;
   hasAnalysis: boolean;               // 是否已跑過事件分析（EEP 快取存在）
+  temporalDisplacement?: TemporalDisplacement | null;  // #21h 判定，null = 該筆無判定
   storyTimeHint?: string;
   participants: { id: string; name: string; type: EntityType }[];
   location?: { id: string; name: string };
+}
+
+interface TemporalDisplacement {
+  type: 'analepsis' | 'prolepsis' | 'linear';
+  displacement: number;   // storyRank - textRank；負值＝倒敘
+  textRank: number;
+  storyRank: number;
 }
 
 interface TemporalRelation {
@@ -1033,6 +1043,13 @@ interface TimelineQuality {
   hasChronologicalRanks: boolean;
 }
 ```
+
+**說明**：`temporalDisplacement` 與 `temporalStructure` 來自 #21h 的分析快取
+（`temporal_analysis:{bookId}`）。快取若是覆蓋率不足提早返回的產物，一律視同沒跑過：
+`temporalAnalyzed` 為 `false`、不帶任何 displacement。
+
+> `temporalDisplacement`（LLM 判定）與 `chronologicalRank`（#13b 計算）是**兩條獨立的路**。
+> 前端譜面上的倒敘／預敘標註若只有 `chronologicalRank`，是幾何推導的結果，不代表 #21h 跑過。
 
 **UI 使用頁面**：時間軸頁
 
