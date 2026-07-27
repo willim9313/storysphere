@@ -272,7 +272,8 @@ describe('matrix', () => {
 });
 
 describe('buildLane', () => {
-  const cast = (ids: string[]) => ids.map((id) => ({ id, name: id, type: 'character' }));
+  const cast = (ids: string[]) =>
+    ids.map((id) => ({ id, name: id, type: 'character' as const }));
 
   it('counts appearances and absences', () => {
     const events = [
@@ -342,7 +343,8 @@ describe('buildLane', () => {
 });
 
 describe('coPresence', () => {
-  const cast = (ids: string[]) => ids.map((id) => ({ id, name: id, type: 'character' }));
+  const cast = (ids: string[]) =>
+    ids.map((id) => ({ id, name: id, type: 'character' as const }));
 
   it('returns positions where all selected characters appear', () => {
     const events = [
