@@ -74,6 +74,7 @@ from storysphere.api.schemas.books import (
     SegmentEntity,
     SuggestRolesResponse,
     TaskIdResponse,
+    TemporalDisplacementEntry,
     TemporalRelationEntry,
     TimelineConfigResponse,
     TimelineConfigUpdate,
@@ -2446,6 +2447,35 @@ async def trigger_batch_event_analysis(
 # ── Timeline endpoints ───────────────────────────────────────────────────────
 
 
+def _read_temporal_analysis(
+    cached: object,
+) -> tuple[bool, str | None, dict[str, TemporalDisplacementEntry]]:
+    """Unpack a cached ``TemporalAnalysis`` (#21h) for the timeline response.
+
+    A cached run with ``coverage_sufficient`` false returned before calling the
+    LLM and carries no verdicts, so it reads as *never analyzed* rather than as
+    an analysis that found nothing — the two look identical downstream and only
+    the first is honest.
+    """
+    if not isinstance(cached, dict) or not cached.get("coverage_sufficient"):
+        return False, None, {}
+
+    displacements: dict[str, TemporalDisplacementEntry] = {}
+    for raw in cached.get("displacements") or []:
+        try:
+            displacements[raw["event_id"]] = TemporalDisplacementEntry(
+                type=raw["displacement_type"],
+                displacement=raw["displacement"],
+                text_rank=raw["text_rank"],
+                story_rank=raw["story_rank"],
+            )
+        except (KeyError, TypeError, ValueError):
+            # A malformed entry loses its own verdict, not the whole analysis.
+            continue
+
+    return True, cached.get("story_time_structure"), displacements
+
+
 @router.get("/{book_id}/timeline", response_model=TimelineResponse)
 async def get_book_timeline(
     book_id: str,
@@ -2550,6 +2580,10 @@ async def get_book_timeline(
         document_id=book_id,
     )
 
+    temporal_analyzed, temporal_structure, displacement_map = _read_temporal_analysis(
+        await cache.get(f"temporal_analysis:{book_id}")
+    )
+
     return TimelineResponse(
         book_id=book_id,
         order=order,
@@ -2566,6 +2600,7 @@ async def get_book_timeline(
                 story_time_hint=e.story_time_hint,
                 event_importance=event_importance_map.get(e.id),
                 has_analysis=e.id in analyzed_ids,
+                temporal_displacement=displacement_map.get(e.id),
                 participants=[
                     ParticipantRef(
                         id=pid,
@@ -2595,6 +2630,8 @@ async def get_book_timeline(
             for tr in temporal_relations
         ],
         quality=quality,
+        temporal_analyzed=temporal_analyzed,
+        temporal_structure=temporal_structure,
     ).model_dump(by_alias=True)
 
 
