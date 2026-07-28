@@ -284,6 +284,12 @@
 （toc/preface/afterword/other）一律被排除於 **embedding 索引、KG 抽取、摘要**，也不進
 閱讀頁。toc/preface/afterword/other 之間的差別**純粹是顯示分類**，不影響任何排除行為。
 
+**章號語意**：`Chapter.number` 是**故事章號**——body 章連號 1..N，前置事務為 `0, -1, -2…`、
+後置事務為 `N+1, N+2…`（`domain/documents.py::assign_chapter_numbers`）。非 body 章不佔章號，
+所以「第 1 章」在閱讀頁、事件分析、時間軸三處一致。數值升冪仍等於文件順序，
+`DocumentService` 依 `number` 排序不受影響。書籍長度用 `Document.body_chapter_count`，
+不要用含前後事務的 `total_chapters`。
+
 **UI 呈現**：審閱頁左欄——`body` 顯示「第 N 章」（僅 body 連號），非 body 顯示角色標籤
 （目錄/序/跋/其他）+ 斜體/淡字。可用章節 role toggle 手動改。
 

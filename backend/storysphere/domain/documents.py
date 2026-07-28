@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import uuid
+from collections.abc import Sequence
 from datetime import datetime
 from enum import Enum
 
@@ -58,6 +59,56 @@ class ChapterRole(str, Enum):
     preface = "preface"
     afterword = "afterword"
     other = "other"
+
+
+def assign_chapter_numbers(roles: Sequence[ChapterRole]) -> list[int]:
+    """Map chapters (given in document order) to their chapter numbers.
+
+    ``Chapter.number`` is the *story* chapter number: readers, event analysis
+    and the timeline all render it as 「第 N 章」, so front/back matter must not
+    consume numbers — otherwise a book opening with a preface + TOC reports its
+    first real chapter as Ch.3.
+
+    Numbering therefore is:
+
+    - ``body`` chapters      → 1..N in document order
+    - matter before the      → 0, -1, -2, … (assigned backwards so ascending
+      first body chapter        numeric order still equals document order)
+    - any other non-body     → N+1, N+2, … in document order
+
+    Numbers stay unique within a document and ascending numeric order still
+    matches document order — both relied on by ``DocumentService``, which
+    orders chapters and paragraphs by number. The one exception is non-body
+    matter sandwiched *between* body chapters, which sorts to the end; role
+    detection only ever classifies leading/trailing matter, so that shape does
+    not arise from the normal ingestion flow.
+
+    Args:
+        roles: Chapter roles in document order.
+
+    Returns:
+        Chapter numbers, aligned index-for-index with *roles*.
+    """
+    numbers: list[int | None] = [None] * len(roles)
+
+    body_indices = [i for i, r in enumerate(roles) if r == ChapterRole.body]
+    for n, i in enumerate(body_indices, start=1):
+        numbers[i] = n
+
+    first_body = body_indices[0] if body_indices else len(roles)
+
+    # Leading matter, numbered backwards from the first body chapter: the
+    # chapter closest to it gets 0, the one before that -1, and so on.
+    for offset, i in enumerate(reversed(range(first_body))):
+        numbers[i] = -offset
+
+    next_number = len(body_indices) + 1
+    for i in range(first_body, len(roles)):
+        if numbers[i] is None:
+            numbers[i] = next_number
+            next_number += 1
+
+    return [n for n in numbers if n is not None]
 
 
 class ParagraphEntity(BaseModel):
@@ -137,6 +188,16 @@ class Document(BaseModel):
     @property
     def total_chapters(self) -> int:
         return len(self.chapters)
+
+    @property
+    def body_chapter_count(self) -> int:
+        """Number of story chapters — the count readers see.
+
+        ``total_chapters`` includes front/back matter, so it overstates the
+        length of the story; anything user-facing (「共 N 章」, chapter axes,
+        chapter sliders) wants this instead.
+        """
+        return sum(1 for c in self.chapters if c.role == ChapterRole.body)
 
     @property
     def total_paragraphs(self) -> int:

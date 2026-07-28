@@ -162,20 +162,29 @@ def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
     Paragraphs are re-assigned to new chapters based on the
     ``start_paragraph_index`` boundaries.
     """
-    from storysphere.domain.documents import ChapterRole  # noqa: PLC0415
+    from storysphere.domain.documents import (  # noqa: PLC0415
+        ChapterRole,
+        assign_chapter_numbers,
+    )
 
     all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
     new_chapters: list[Chapter] = []
 
+    roles: list[ChapterRole] = []
+    for rc in reviewed:
+        try:
+            roles.append(ChapterRole(rc.get("role", "body")))
+        except ValueError:
+            roles.append(ChapterRole.body)
+    # Front/back matter must not consume story chapter numbers.
+    numbers = assign_chapter_numbers(roles)
+
     for i, rc in enumerate(reviewed):
-        ch_num = i + 1
+        ch_num = numbers[i]
+        role = roles[i]
         title = rc.get("title") or None
         start = rc["start_paragraph_index"]
         end = reviewed[i + 1]["start_paragraph_index"] if i + 1 < len(reviewed) else len(all_paras)
-        try:
-            role = ChapterRole(rc.get("role", "body"))
-        except ValueError:
-            role = ChapterRole.body
 
         ch_paras = [
             p.model_copy(update={"chapter_number": ch_num, "position": pos})

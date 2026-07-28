@@ -265,6 +265,20 @@ class TestRebuildChapters:
         result = _rebuild_chapters(doc, reviewed)
         assert [ch.number for ch in result] == [1, 2]
 
+    def test_front_matter_does_not_shift_first_body_chapter(self):
+        from storysphere.workflows.ingestion import _rebuild_chapters
+        doc = self._make_doc()
+        reviewed = [
+            {"title": None, "role": "preface", "start_paragraph_index": 0},
+            {"title": None, "role": "toc", "start_paragraph_index": 1},
+            {"title": "A", "role": "body", "start_paragraph_index": 2},
+            {"title": "B", "role": "body", "start_paragraph_index": 4},
+        ]
+        result = _rebuild_chapters(doc, reviewed)
+        # Front matter takes no story number, so the first body chapter is Ch.1
+        assert [ch.number for ch in result] == [-1, 0, 1, 2]
+        assert [p.chapter_number for p in result[2].paragraphs] == [1, 1]
+
     def test_paragraph_chapter_numbers_updated(self):
         from storysphere.workflows.ingestion import _rebuild_chapters
         doc = self._make_doc()
