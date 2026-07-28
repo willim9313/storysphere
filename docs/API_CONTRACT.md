@@ -50,7 +50,7 @@ interface Book {
   title: string;
   author?: string;
   status: 'processing' | 'ready' | 'analyzed' | 'error';
-  chapterCount: number;
+  chapterCount: number;    // 只計 body 章；序/目次/後記不計入（與閱讀頁章節列表一致）
   entityCount?: number;
   uploadedAt: string;
   lastOpenedAt?: string;   // 後端尚未實作寫入，目前永遠為 undefined
@@ -1646,8 +1646,8 @@ interface UnravelingEdge {
 ```ts
 interface ChapterDistribution {
   bookId: string;
-  totalChapters: number;
-  // nodeId → 12-cell（依書籍實際章節數）counts；
+  totalChapters: number;   // 只計 body 章
+  // nodeId → 12-cell（依書籍實際 body 章節數）counts；
   // 不在此 map 中的 nodeId 表示該節點無 chapter-aware 資料
   distributions: Record<string, number[]>;
 }

@@ -333,7 +333,7 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         author=document.author,
         status="ready",
         summary=document.summary,
-        chapter_count=document.total_chapters,
+        chapter_count=document.body_chapter_count,
         chunk_count=document.total_paragraphs,
         entity_count=len(book_entities),
         relation_count=book_relation_count,
@@ -1391,7 +1391,10 @@ async def detect_timeline(
         chapter_mode_enabled=existing.chapter_mode_enabled if existing else False,
         story_mode_enabled=existing.story_mode_enabled if existing else False,
         default_mode=existing.default_mode if existing else "chapter",
-        total_chapters=chapter_count,
+        # Chapter-mode sliders run over the book's chapters, so the config
+        # stores the story length — not how many chapters happen to carry an
+        # event (a book whose last chapters have none would clamp too early).
+        total_chapters=document.body_chapter_count,
         total_events=len(events),
         total_ranked_events=ranked_count,
         chapter_mode_configured=existing.chapter_mode_configured if existing else False,

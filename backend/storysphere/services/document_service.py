@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import logging
 
-from sqlalchemy import Column, ForeignKey, Integer, String, Text, func, select
+from sqlalchemy import Column, ForeignKey, Integer, String, Text, and_, func, select
 from sqlalchemy import delete as sa_delete
 from sqlalchemy import text as sa_text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
@@ -434,7 +434,15 @@ class DocumentService:
                     _DocumentRow.pipeline_status_json,
                     chapter_count,
                 )
-                .outerjoin(_ChapterRow, _ChapterRow.document_id == _DocumentRow.id)
+                # Body chapters only: the count is shown as the book's length,
+                # and front/back matter is not part of the story.
+                .outerjoin(
+                    _ChapterRow,
+                    and_(
+                        _ChapterRow.document_id == _DocumentRow.id,
+                        _ChapterRow.role == ChapterRole.body.value,
+                    ),
+                )
                 .group_by(_DocumentRow.id)
             )
             return [
