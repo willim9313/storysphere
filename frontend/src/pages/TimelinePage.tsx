@@ -32,6 +32,7 @@ import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { computeTimeline } from '@/api/timeline';
 import { fetchTemporalCoverage, triggerTemporalAnalysis } from '@/api/narrative';
+import { triggerBatchEventAnalysis } from '@/api/analysis';
 import { sortEventsForOrder } from '@/lib/timelineSort';
 import {
   MAX_LANES,
@@ -111,9 +112,10 @@ export default function TimelinePage() {
   const [laneIds, setLaneIds] = useState<string[]>([]);
   const [panelOpen, setPanelOpen] = useState(false);
   const [expandedChapter, setExpandedChapter] = useState<number | null>(null);
-  const [confirm, setConfirm] = useState<'story' | 'displacement' | null>(null);
+  const [confirm, setConfirm] = useState<'story' | 'displacement' | 'events' | null>(null);
   const [computeTaskId, setComputeTaskId] = useState<string | null>(null);
   const [displacementTaskId, setDisplacementTaskId] = useState<string | null>(null);
+  const [eventsTaskId, setEventsTaskId] = useState<string | null>(null);
 
   const filterRef = useRef<HTMLDivElement>(null);
   /** Which book's lanes have already been seeded — see the seeding effect. */
@@ -150,6 +152,7 @@ export default function TimelinePage() {
   );
   const { data: computeTask } = useTaskPolling(computeTaskId);
   const { data: displacementTask } = useTaskPolling(displacementTaskId);
+  const { data: eventsTask } = useTaskPolling(eventsTaskId);
   /** Read off the task result, not the coverage query: the run reports what it
    *  actually saw, and the query may be stale by the time it finishes. */
   const displacementCoverageOk = displacementTask?.result?.coverage_sufficient === true;
@@ -347,6 +350,17 @@ export default function TimelinePage() {
     }
   }, [displacementTask?.status, displacementCoverageOk, bookId, queryClient, push, t]);
 
+  useEffect(() => {
+    if (eventsTask?.status === 'done') {
+      setEventsTaskId(null);
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'timeline'] });
+      push({ type: 'success', title: t('timeline.toast.eventsDone') });
+    } else if (eventsTask?.status === 'error') {
+      setEventsTaskId(null);
+      push({ type: 'error', title: t('timeline.toast.eventsFailed') });
+    }
+  }, [eventsTask?.status, bookId, queryClient, push, t]);
+
   /* eslint-enable react-hooks/set-state-in-effect */
 
   /* ── Selection ─────────────────────────────────────────────── */
@@ -414,6 +428,13 @@ export default function TimelinePage() {
     setComputeTaskId(taskId);
   }, [bookId, isComputing]);
 
+  const runEventAnalysis = useCallback(async () => {
+    if (!bookId || eventsTaskId) return;
+    setConfirm(null);
+    const { taskId } = await triggerBatchEventAnalysis(bookId);
+    setEventsTaskId(taskId);
+  }, [bookId, eventsTaskId]);
+
   const runDisplacement = useCallback(async () => {
     if (!bookId || isRunningDisplacement) return;
     setConfirm(null);
@@ -438,6 +459,11 @@ export default function TimelinePage() {
   /** The real gate — story-time hints, which the story-order run does not
    *  produce. Running story order will NOT unblock this. */
   const displacementReady = coverage?.coverage_sufficient === true;
+
+  const isAnalyzingEvents = eventsTaskId !== null;
+  const analyzedPct =
+    stats.total > 0 ? Math.round((stats.analyzed / stats.total) * 100) : 0;
+  const eventsProgressPct = Math.round(eventsTask?.progress ?? 0);
 
   /** A first run and a re-run cost the same but mean different things: the
    *  first produces the ordering, the second discards one that already exists.
@@ -559,6 +585,52 @@ export default function TimelinePage() {
     setFilter(createDefaultFilter());
     setOnlyAnalyzed(false);
   };
+
+  /* The dot marks say which *events* were analyzed; this says how much of the
+     book was — the number the marks add up to and the legend cannot carry.
+     Rendered outside the header/prompt branch on purpose: EEP coverage is what
+     the story-order run reads from, so the state that offers "compute story
+     order" is exactly the one that must also show how little there is to read
+     (`POST /timeline/compute` is documented as needing EEP first). Shown at
+     full coverage too — "it has run" is the other half of the distinction. */
+  const coverageRow = (
+    <div className="tl-coverage">
+      <div className="tl-coverage-text">
+        <span className="tl-coverage-label">{t('timeline.coverage.label')}</span>
+        <span className="tl-coverage-count">
+          {isAnalyzingEvents
+            ? t('timeline.coverage.running')
+            : t('timeline.coverage.count', {
+                done: stats.analyzed,
+                total: stats.total,
+                pct: analyzedPct,
+              })}
+        </span>
+      </div>
+      <div className="tl-coverage-rail">
+        <div
+          className="tl-coverage-fill"
+          style={{ width: `${isAnalyzingEvents ? eventsProgressPct : analyzedPct}%` }}
+        />
+      </div>
+      {stats.analyzed < stats.total && (
+        <button
+          type="button"
+          className="tl-btn tl-btn-accent"
+          onClick={() => setConfirm('events')}
+          disabled={isAnalyzingEvents}
+        >
+          <Sparkles size={12} className="tl-btn-ai" aria-hidden="true" />
+          {t(
+            isAnalyzingEvents
+              ? 'timeline.coverage.actionRunning'
+              : 'timeline.coverage.action',
+            { n: stats.total - stats.analyzed },
+          )}
+        </button>
+      )}
+    </div>
+  );
 
   return (
     <div className="tl">
@@ -717,8 +789,24 @@ export default function TimelinePage() {
                     })}
                   </p>
                   <p className="tl-view-legend">{t('timeline.stave.legend')}</p>
+                  {/* Position and analysis state are independent axes, and the
+                      unranked strip used to share the hollow mark with 未分析.
+                      Each axis gets its own line so neither reads as the other. */}
+                  <p className="tl-view-legend">
+                    <span className="tl-legend-dot" />
+                    {t('timeline.legend.analyzed')}
+                    <span className="tl-legend-dot unanalyzed" />
+                    {t('timeline.legend.unanalyzed')}
+                  </p>
+                  {stats.unranked > 0 && (
+                    <p className="tl-view-legend">
+                      <span className="tl-legend-dot unranked" />
+                      {t('timeline.stave.legendUnranked')}
+                    </p>
+                  )}
                 </header>
               )}
+              {coverageRow}
               <TimelineStave
                 rows={staveRows}
                 selectedChapter={activeChapter}
@@ -811,6 +899,16 @@ export default function TimelinePage() {
         confirmLabel={t('timeline.confirm.start')}
         onConfirm={() => {
           void runStoryOrder();
+        }}
+        onCancel={() => setConfirm(null)}
+      />
+      <ConfirmDialog
+        open={confirm === 'events'}
+        title={t('timeline.confirm.eventsTitle')}
+        message={t('timeline.confirm.eventsBody', { n: stats.total - stats.analyzed })}
+        confirmLabel={t('timeline.confirm.start')}
+        onConfirm={() => {
+          void runEventAnalysis();
         }}
         onCancel={() => setConfirm(null)}
       />

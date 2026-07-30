@@ -493,6 +493,59 @@
   color: var(--fg-muted);
   margin: 0;
 }
+/* Legend lines carry a `.tl-legend-dot` sample, and that shared mark is sized
+   with width/height — it needs a flex row to lay out against, the way the
+   matrix legend's `li` does. Text-only legend lines are unaffected. */
+.tl-view-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+/* Analysis coverage — the count behind the dot marks. Sits in the view head
+   rather than the toolbar's action segment because it explains what the stave
+   is showing, and the run it offers is the fix for what the marks reveal. */
+/* Owns its horizontal inset: it is a sibling of .tl-view-head, not a child,
+   so it cannot inherit that padding. Keep the 18px in step with it. */
+.tl-coverage {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 18px 6px;
+  flex-wrap: wrap;
+}
+.tl-coverage-text {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: var(--font-size-2xs);
+}
+.tl-coverage-label {
+  color: var(--fg-secondary);
+}
+.tl-coverage-count {
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+}
+/* Fixed width, not `flex: 1`: a rail that restretches as the run progresses
+   reads as the bar moving backwards. */
+.tl-coverage-rail {
+  position: relative;
+  width: 168px;
+  height: 3px;
+  background: var(--border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.tl-coverage-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--transition-normal);
+}
+
 /* Stands in for .tl-view-head when the stave has nothing to plot. */
 .tl-prompt {
   display: flex;
@@ -575,10 +628,17 @@
 .tl-stave-dot.analyzed {
   fill: var(--fg-primary);
 }
+/* Dashed, not merely hollow: a plain thin ring is what the unranked strip
+   uses, and two different "not run yet" states must not share one mark.
+   Matches the 虛線圈 vocabulary already established on the event analysis
+   page (`event-analysis.css` `.ea-ov-map-dot.unanalyzed`). The opaque fill
+   stays: it occludes the connecting line, which would otherwise read as a
+   stroke through the ring. */
 .tl-stave-dot.unanalyzed {
   fill: var(--bg-primary);
   stroke: var(--fg-muted);
   stroke-width: 1;
+  stroke-dasharray: 2 1.6;
 }
 .tl-stave-dot.outlier {
   fill: var(--accent);
@@ -723,6 +783,13 @@
 }
 .tl-card.kernel {
   flex-grow: 1.3;
+}
+/* The `unanalyzed` class was applied with nothing behind it, so a card with
+   only a title looked identical to a fully analyzed one. Dashed edge, same
+   vocabulary as the dots. */
+.tl-card.unanalyzed {
+  border-style: dashed;
+  box-shadow: none;
 }
 .tl-card.selected {
   box-shadow: 0 0 0 3px var(--timeline-selected-ring);
@@ -1035,6 +1102,7 @@
   fill: var(--bg-primary);
   stroke: var(--fg-muted);
   stroke-width: 1;
+  stroke-dasharray: 2 1.6;
 }
 .tl-matrix-dot.outlier {
   fill: var(--accent);
@@ -1154,6 +1222,13 @@
   background: var(--fg-primary);
 }
 .tl-legend-dot.unanalyzed {
+  background: var(--bg-primary);
+  border: 1px dashed var(--fg-muted);
+}
+/* The unranked strip's mark, so the legend can name it apart from 未分析. */
+.tl-legend-dot.unranked {
+  width: 5px;
+  height: 5px;
   background: var(--bg-primary);
   border: 1px solid var(--fg-muted);
 }
@@ -1321,7 +1396,7 @@
 }
 .tl-lane-dot.unanalyzed {
   background: var(--bg-primary);
-  border: 1px solid var(--fg-muted);
+  border: 1px dashed var(--fg-muted);
 }
 .tl-lane-dot.selected {
   box-shadow: 0 0 0 3px var(--timeline-selected-ring);

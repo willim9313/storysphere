@@ -856,7 +856,9 @@
       "storyBody": "This calls the LLM to read the story time of all {{total}} events and overwrites the existing {{ranked}} rankings. It takes several minutes and consumes tokens; you can leave the page while it runs. Event content, participants and the knowledge graph are unaffected.",
       "displacementTitle": "Identify flashback & flashforward",
       "displacementBody": "This calls the LLM to compare narrative order against story order across {{total}} events. It takes several minutes and consumes tokens; you can leave the page while it runs.",
-      "start": "Start"
+      "start": "Start",
+      "eventsTitle": "Analyze the unanalyzed events",
+      "eventsBody": "This calls the LLM to analyze the {{n}} events that have no analysis yet, producing importance, state changes, participant roles and causal chains. It takes several minutes and consumes tokens; you can leave the page while it runs. Already-analyzed events are not re-run, and event content and the knowledge graph are unaffected."
     },
     "toast": {
       "storyOrderDone": "Story order computed",
@@ -864,17 +866,27 @@
       "displacementDone": "Displacement analysis complete",
       "displacementFailed": "Displacement analysis failed",
       "displacementSkipped": "Displacement analysis did not run",
-      "displacementSkippedDesc": "Story-time hint coverage is below 60%, so no LLM call was made and no verdicts were produced."
+      "displacementSkippedDesc": "Story-time hint coverage is below 60%, so no LLM call was made and no verdicts were produced.",
+      "eventsDone": "Event analysis complete",
+      "eventsFailed": "Event analysis failed"
     },
     "stave": {
       "headline": "The narrative runs {{rows}} rows; story order breaks away {{outliers}} times",
       "meta": "{{onLine}} on the line · {{outliers}} clearly displaced · {{unranked}} with no story order",
-      "legend": "Midline = both orders agree　below = flashback　above = flashforward　large = KERNEL　hollow = not analyzed",
+      "legend": "Midline = both orders agree　below = flashback　above = flashforward　large = KERNEL",
+      "legendUnranked": "The \"unranked\" strip below = no place in story order (not the same as unanalyzed)",
       "unranked": "Unranked",
       "flashbackNote": "Flashback ↩ Ch.{{ch}} covers earlier story time ({{count}})",
       "flashforwardNote": "Ch.{{ch}} tells {{count}} events ahead of time",
       "flashbackJudged": "Judged flashback ↩ Ch.{{ch}} ({{count}})",
       "flashforwardJudged": "Judged flashforward ↗ Ch.{{ch}} ({{count}})"
+    },
+    "coverage": {
+      "label": "Event analysis",
+      "count": "{{done}} / {{total}} ({{pct}}%)",
+      "running": "Analyzing…",
+      "action": "Analyze the remaining {{n}}…",
+      "actionRunning": "Analyzing…"
     },
     "storyOrderPrompt": {
       "title": "Story order has not been computed, so the stave has no dots",
@@ -909,7 +921,9 @@
     },
     "legend": {
       "kernel": "Large = KERNEL event",
-      "unanalyzed": "Hollow = not analyzed",
+      "analyzed": "Solid = analyzed",
+      "unanalyzed": "Dashed = not yet analyzed",
+      "unranked": "Thin ring = no place in story order",
       "outlier": "Sienna = past the displacement threshold ({{n}})"
     },
     "lanes": {

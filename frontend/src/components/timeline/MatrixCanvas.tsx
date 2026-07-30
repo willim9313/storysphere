@@ -158,6 +158,11 @@ export function MatrixCanvas({
           <li>
             <span className="tl-legend-dot unanalyzed" /> {t('timeline.legend.unanalyzed')}
           </li>
+          {/* The degraded band's mark reads as "unanalyzed" unless the legend
+              names it — the two states look alike but mean different things. */}
+          <li>
+            <span className="tl-legend-dot unranked" /> {t('timeline.legend.unranked')}
+          </li>
           <li>
             <span className="tl-legend-dot outlier" />{' '}
             {t('timeline.legend.outlier', { n: outlierCount })}

@@ -856,7 +856,9 @@
       "storyBody": "這會呼叫 LLM 逐一判讀 {{total}} 筆事件的故事時間，並覆蓋既有的 {{ranked}} 筆排序。需要數分鐘並消耗 token；執行期間可離開本頁。事件內容、參與者與知識圖譜不會變動。",
       "displacementTitle": "識別倒敘與預敘",
       "displacementBody": "這會呼叫 LLM 比對 {{total}} 筆事件的敘述順序與故事順序，標記倒敘與預敘。需要數分鐘並消耗 token；執行期間可離開本頁。",
-      "start": "開始計算"
+      "start": "開始計算",
+      "eventsTitle": "分析尚未分析的事件",
+      "eventsBody": "這會呼叫 LLM 逐一分析 {{n}} 筆尚未分析的事件，產生重要度、狀態變化、參與者角色與因果鏈。需要數分鐘並消耗 token；執行期間可離開本頁。已分析過的事件不會重跑，事件內容與知識圖譜不會變動。"
     },
     "toast": {
       "storyOrderDone": "故事時序計算完成",
@@ -864,17 +866,27 @@
       "displacementDone": "倒敘與預敘分析完成",
       "displacementFailed": "倒敘與預敘分析失敗",
       "displacementSkipped": "倒敘與預敘未進行",
-      "displacementSkippedDesc": "故事時間提示覆蓋率不足 60%，這次沒有呼叫 LLM，也沒有產生任何判定。"
+      "displacementSkippedDesc": "故事時間提示覆蓋率不足 60%，這次沒有呼叫 LLM，也沒有產生任何判定。",
+      "eventsDone": "事件分析完成",
+      "eventsFailed": "事件分析失敗"
     },
     "stave": {
       "headline": "敘述順序走了 {{rows}} 行，故事順序掉出去 {{outliers}} 次",
       "meta": "{{onLine}} 筆貼線 · {{outliers}} 筆明顯偏離 · {{unranked}} 筆排不進故事時序",
-      "legend": "中線＝兩種順序一致　下＝倒敘　上＝預敘　大點＝KERNEL　空心＝未分析",
+      "legend": "中線＝兩種順序一致　下＝倒敘　上＝預敘　大點＝KERNEL",
+      "legendUnranked": "底部「未排序」帶＝排不進故事時序（與尚未分析是兩回事）",
       "unranked": "未排序",
       "flashbackNote": "倒敘 ↩ Ch.{{ch}} 講的是故事早期（{{count}} 筆）",
       "flashforwardNote": "Ch.{{ch}} 有 {{count}} 筆被提前講出來",
       "flashbackJudged": "已判定倒敘 ↩ Ch.{{ch}}（{{count}}）",
       "flashforwardJudged": "已判定預敘 ↗ Ch.{{ch}}（{{count}}）"
+    },
+    "coverage": {
+      "label": "事件分析",
+      "count": "{{done}} / {{total}} 筆（{{pct}}%）",
+      "running": "正在分析…",
+      "action": "分析其餘 {{n}} 筆…",
+      "actionRunning": "分析中…"
     },
     "storyOrderPrompt": {
       "title": "還沒算過故事時序，所以譜上沒有點",
@@ -909,7 +921,9 @@
     },
     "legend": {
       "kernel": "大點＝核心事件 KERNEL",
-      "unanalyzed": "空心＝尚未分析",
+      "analyzed": "實心＝已分析",
+      "unanalyzed": "虛線＝尚未分析",
+      "unranked": "細實線＝排不進故事時序",
       "outlier": "焦赭＝偏離 45° 對照線超過門檻（{{n}} 筆）"
     },
     "lanes": {
