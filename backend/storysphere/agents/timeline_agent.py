@@ -8,6 +8,7 @@ batch-processing orchestrator following the AnalysisAgent pattern.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from itertools import groupby
 from typing import Any
 
@@ -74,6 +75,7 @@ class TimelineAgent:
         eep_map: dict[str, Any],
         document_id: str,
         language: str = "en",
+        progress_callback: Callable[[int, int], None] | None = None,
     ) -> list[TemporalRelation]:
         """Infer temporal relations between events.
 
@@ -81,6 +83,10 @@ class TimelineAgent:
         1. EEP-driven pairs (highest quality)
         2. Narrative-mode heuristics (flashback/flashforward)
         3. Sliding window over adjacent chapters (baseline)
+
+        ``progress_callback`` is called after each LLM batch with
+        ``(pairs_done, pairs_total)`` — this loop is the long part of the run,
+        so it is the only place worth reporting from.
         """
         events_by_id = {e.id: e for e in events}
         pairs = self._collect_candidate_pairs(events, eep_map)
@@ -107,6 +113,8 @@ class TimelineAgent:
                 document_id, language,
             )
             all_relations.extend(batch_rels)
+            if progress_callback:
+                progress_callback(min(i + self._batch_size, len(pairs)), len(pairs))
 
         logger.info(
             "TimelineAgent: inferred %d relations for %s",

@@ -8,6 +8,7 @@ chronological ranks via DAG topological sort.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -47,12 +48,17 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
         input_data: str,
         *,
         language: str = "en",
+        progress_callback: Callable[[int, str], None] | None = None,
     ) -> TemporalPipelineResult:
         """Run the full temporal pipeline for a book.
 
         Args:
             input_data: The document ID to process.
             language: Language hint for the timeline agent.
+            progress_callback: Called with ``(percent, stage)`` at each step.
+                Relation inference (step 4) is the only long step, so it owns
+                the bulk of the range (10–80%) and reports per LLM batch;
+                everything else is a milestone.
 
         Steps:
             1. Clear existing temporal relations for this document.
@@ -67,13 +73,19 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
         document_id = input_data
         result = TemporalPipelineResult(document_id=document_id)
 
+        def _report(pct: int, stage: str) -> None:
+            if progress_callback:
+                progress_callback(pct, stage)
+
         # 1. Clear old temporal relations
+        _report(5, "清除舊的時序關係")
         removed = await self._kg_service.remove_temporal_relations(document_id)
         if removed:
             logger.info("Cleared %d old temporal relations for %s", removed, document_id)
 
         # 2. Load all events
         self._log_step("load_events", document_id=document_id)
+        _report(8, "載入事件")
         events = await self._kg_service.get_events(document_id=document_id)
         if not events:
             result.errors.append("No events found for document")
@@ -82,6 +94,7 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
         logger.info("TemporalPipeline: %d events for %s", len(events), document_id)
 
         # 3. Load available EEPs from cache
+        _report(10, "載入事件分析結果")
         eep_map = await self._load_eep_map(document_id, events)
         logger.info(
             "TemporalPipeline: %d/%d EEPs available",
@@ -97,6 +110,10 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
                 eep_map=eep_map,
                 document_id=document_id,
                 language=language,
+                progress_callback=lambda done, total: _report(
+                    10 + int(done / total * 70) if total else 10,
+                    f"推論事件時序 {done}/{total}",
+                ),
             )
         except Exception as exc:  # noqa: BLE001
             logger.error("TimelineAgent failed: %s", exc)
@@ -106,16 +123,19 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
         result.temporal_relations = len(relations)
 
         # 5. Store temporal relations
+        _report(82, "寫入時序關係")
         for tr in relations:
             await self._kg_service.add_temporal_relation(tr)
 
         # 6. Build DAG and compute ranks
         self._log_step("compute_ranks", relations=len(relations))
+        _report(86, "計算故事順序")
         events_dict = {e.id: e for e in events}
         ranks = self._timeline_service.build_and_rank(relations, events_dict)
         result.events_ranked = len(ranks)
 
         # 7. Write ranks back to events
+        _report(90, "寫回事件排序")
         for event_id, rank in ranks.items():
             await self._kg_service.update_event_rank(event_id, rank)
 
@@ -123,6 +143,7 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
         await self._assign_chron_indices(document_id, ranks, events_dict)
 
         # 9. Persist
+        _report(96, "儲存圖譜")
         try:
             await self._kg_service.save()
         except Exception as exc:  # noqa: BLE001

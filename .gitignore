@@ -74,10 +74,10 @@ logs/
 experiments/
 
 # ========== Data & Uploads ==========
-var/uploads/
-var/processed/
-var/knowledge_graph.json
-var/qdrant_local/
+# Whole directory: SQLite stores, local Qdrant, uploads, processed text and
+# migration backups are all runtime data — never commit. Matches the
+# backend/var/ and frontend/var/ rules below.
+var/
 
 # Backend runtime data (SQLite stores, local Qdrant) — never commit
 backend/var/

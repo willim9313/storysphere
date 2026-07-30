@@ -568,6 +568,25 @@ class LocationRef(BaseModel):
     name: str
 
 
+class TemporalDisplacementEntry(BaseModel):
+    """Per-event verdict from the Genette temporal analysis (#21h).
+
+    Not the same thing as the deviation the timeline page derives from
+    ``chronological_rank``: that is geometry available for every ranked event,
+    this is the LLM's judgement and is absent until the analysis has run with
+    sufficient ``story_time_hint`` coverage.
+    """
+
+    model_config = _CAMEL
+
+    type: str
+    """analepsis (flashback) | prolepsis (flash-forward) | linear."""
+    displacement: float
+    """story_rank - text_rank; negative = told later than it happened."""
+    text_rank: int
+    story_rank: float
+
+
 class TimelineEventEntry(BaseModel):
     model_config = _CAMEL
 
@@ -581,6 +600,8 @@ class TimelineEventEntry(BaseModel):
     chronological_rank: float | None = None
     story_time_hint: str | None = None
     event_importance: str | None = None
+    has_analysis: bool = False
+    temporal_displacement: TemporalDisplacementEntry | None = None
     participants: list[ParticipantRef] = []
     location: LocationRef | None = None
 
@@ -612,6 +633,10 @@ class TimelineResponse(BaseModel):
     events: list[TimelineEventEntry]
     temporal_relations: list[TemporalRelationEntry]
     quality: TimelineQuality
+    temporal_analyzed: bool = False
+    """True when a temporal analysis with sufficient coverage is cached."""
+    temporal_structure: str | None = None
+    """linear | partially_linear | non_linear | unknown; None when never run."""
 
 
 # ── Epistemic State (F-03) ───────────────────────────────────────────────────

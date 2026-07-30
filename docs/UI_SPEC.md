@@ -772,134 +772,171 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 ### 3.7 時間軸頁 `/books/:bookId/timeline`
 
 > 後端設計見 [`docs/guides/PHASE_9_TEMPORAL_TIMELINE.md`](guides/PHASE_9_TEMPORAL_TIMELINE.md)
-> 規劃 brief 見 [`docs/plans/20260519-timeline-page-redesign.md`](plans/20260519-timeline-page-redesign.md)
+> 設計交付包見 `docs/handoff/20260725-timeline-page/`（Claude Design 決策稿）
+> 工程分期見 [`docs/plans/20260725-timeline-page-enhancements.md`](plans/20260725-timeline-page-enhancements.md)
+> **本節於 2026-07-27 全頁重做後改寫**；V2（2026-05-19）的版面已不再存在。
+
+#### 這一頁要回答什麼
+
+**作者敘述的順序（sjuzhet）與故事實際發生的順序（fabula）差在哪裡。**
+全頁的視覺重心都放在這個落差上，其量化形式是每筆事件的 `deviation`：
+
+```
+expectedRank = index / (N - 1)          // 若兩種順序完全一致，rank 應該是多少
+deviation    = chronologicalRank - expectedRank
+outlier      = |deviation| > 0.15       // OUTLIER_THRESHOLD
+```
+
+實作於 `frontend/src/lib/timelineGeometry.ts`（純函數，有單元測試）。
+`narrativeMode` 一律**由 deviation 推導**，不使用後端回傳的 `narrativeMode` 欄位——
+後端在種子書上 100% 回傳 `present`，不帶訊號。
 
 #### 版面結構
 
 ```
-[Toolbar 上：3 視圖卡 + 工具]
-[QualityBanner（hasChronologicalRanks=false 且已有事件時出現）]
-[ActiveFilters Bar（有套用篩選時出現）]
-[時間軸主區 flex] [事件詳情面板 360px，點擊事件後展開]
+[ViewTabs 三視圖（等寬，附副標）              ← → 切換事件 · Esc 關閉]
+[Toolbar 四段：顯示範圍 | 篩選資料 | 疊加層 | 分析動作]
+[畫布 flex]                                   [事件詳情面板 320px]
+[角色軌跡泳道（疊加層，可關）]
 ```
 
-**空狀態**：當書籍尚無任何事件時，主區改顯示引導卡 `TimelineOnboardingHero`——以三步說明卡（事件抽取 → 故事時序 → Genette 分析）+「前往事件分析」CTA 引導使用者，此時 QualityBanner 不出現。呼應張力分析頁的 onboarding hero 模式。
+**資料取得**：三個視圖共用**同一份 `order=narrative` 的 payload**，故事時序與矩陣皆由
+前端依 `chronologicalRank` 推導。`index`（事件在書中的位置）是譜與泳道的 X 軸，
+必須跨視圖恆定；若改抓 `order=chronological` 會讓同一批事件換一組 index，泳道會整體位移。
 
-**版面對齊**：時間軸沿主軸（橫向 layout=橫、垂直 layout=豎）排列並捲動，內容在**次軸方向置中**（橫向→垂直置中、垂直→水平置中），使內容少時的留白平衡對稱、而非黏在角落。實作於 `.tl-canvas-inner`（橫向 `align-items: center`；垂直 `justify-content: center` + `width: 100%`）。
+**無 rank 時不上鎖**：`chronological_rank` 為 null 是**常設的一類事件**（種子書算完仍有 16%），
+不是過渡態。三個視圖各自有明確位置放它們（見下），因此不再 disable 視圖卡、不再有 `LockedView`。
 
-#### 3.7.1 頂部工具列（V2 / 進取版）
-
-```
-左側 — 三卡視圖切換（每張：圖示 + 標題 + 為什麼用的副標）:
-  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────┐
-  │ ☰ 章節順序        │ │ ↗ 故事時序        │ │ ▦ 矩陣視圖        │
-  │ 依書中出現順序... │ │ 依事件實際發生... │ │ 章節 × 時序...    │
-  └──────────────────┘ └──────────────────┘ └──────────────────┘
-  （未排序時序時，後 2 張卡右上有黃色 warning dot）
-
-右側:
-  [⇄ ↕] layout 切換（矩陣模式下隱藏）
-  [☰ 篩選 (n)]  ← n 為已套用群組數
-  [████░ 65% 已分析]  ← QualityChip（hasChronologicalRanks=true 時）
-  [↻ 重新計算時序 / 計算中…]
-  [⎇ Genette 分析 ✓]  [非線性 · 倒敘 3 · 預敘 1]  ← GenettStructureChip（分析完成且覆蓋率足夠時出現）
-```
-
-**GenettStructureChip（`tl-genett-structure-chip`）**：Genette 分析成功後顯示於按鈕右側的細框 badge，顏色依 `story_time_structure`：
-- `linear` → 綠色（`--color-success`）
-- `partially_linear` → 琥珀（`--color-warning`）
-- `non_linear` → 藍紫（`--accent`）
-
-覆蓋率不足時不顯示 chip（只有 banner 提示原因）。關閉 banner 後 chip **仍保留**（data 與 banner 解耦）。
-
-#### 3.7.2 QualityBanner（hasChronologicalRanks=false 時頂部出現）
+#### 3.7.1 工具列（四段，依「代價」分組）
 
 ```
-[⚠]  尚未計算故事時序
-     「故事時序」與「矩陣視圖」需要事件的 chronological rank...
-     已分析 N/M 事件（P%）                       [↻ 重新計算時序]
+顯示範圍          篩選資料              疊加層        分析動作  會呼叫 LLM 逐段判讀…
+[全部 62|僅已分析 13] [☰ 篩選 (n)] 符合 N/共 M  [角色軌跡·開]  ● 故事時序   已完成 52/62        [覆蓋重新計算…]
+                                                                重跑數分鐘 · 會覆蓋既有 52 筆排序
+                                                              ○ 倒敘與預敘 尚不可執行 · 需 60%…目前 15%  [識別倒敘與預敘…]
+                                                                故事時間提示要在事件分析頁逐筆補…→
 ```
 
-橘色 `--color-warning-bg` 底色，把行動 CTA 直接擺在橫幅上引導。
+前三段是免費、即時、可逆的；第四段是**數分鐘 + token + 不可逆**。這是分段的唯一理由。
 
-#### 3.7.3 ActiveFilters Bar（有套用篩選時出現）
+**ActionRow（`.tl-action-row`）固定五欄結構**：`狀態點 · 名稱 · 兩行狀態文字 · 動作鈕 · 進度軌`。
+- **狀態文字必須兩行**：第一行狀態＋進度，第二行成本或阻擋原因。可用寬度僅約 314px，
+  單行 flex 會把任何真實文案截斷。
+- **`…` 後綴 = 會先出確認框**（`ConfirmDialog`，與事件頁／角色頁同一元件），
+  對話框內揭露影響範圍、時間、token 與「不會變動的東西」。
+- **執行中**：列底緣 3px **實心** `--accent` 進度軌（寬度＝百分比），按鈕換成「中止」。
+  **不可用半透明色塊覆蓋整列**——Ink 主題下 `--accent` 近黑，35% 疊上淺底會讓
+  `--fg-muted` 文字對比掉到約 1.4:1。
+- **阻擋原因寫在畫面上**，不是 tooltip；可點時導向解阻擋的頁面。
 
-```
-已套用：[葉文潔 ×] [回敘 ×] [KERNEL ×]   全部清除
-```
+⚠️ **「倒敘與預敘」的解鎖條件是 `coverage_sufficient`（storyTimeHint ≥ 60%），
+不是「故事時序跑完」**。兩者資料來源不同，跑故事時序**不會**提高 storyTimeHint 覆蓋率。
+文案必須說清楚這件事（`timeline.action.displacementUnblock`）。
 
-每個 chip 可單獨移除；「全部清除」一鍵 reset filter。
+> 按鈕外觀：`.tl button` 的頁面級 reset 已收斂為 `.tl button:not([class])`，
+> 否則其特異性 (0,1,1) 會蓋掉 `.tl-btn` (0,1,0) 的 border 與 background，
+> 造成「靜止時是裸文字、hover 才像按鈕」。這是 V2 的已知缺陷，已修正。
 
-#### 3.7.4 時間軸主區（EventCard 視覺）
+#### 3.7.2 篩選（兩種顯示模式，皆保留）
 
-V2 用卡片化節點取代圓點：
-- 左側 3px (KERNEL) / 5px (KERNEL) 色帶：`::before`，`--card-narrative` 顏色，依 `narrativeMode`
-- **右側 3px 色帶（Genette displacement）**：`::after`，`--card-displacement` 顏色，僅當事件命中 `analepsis_event_ids` 或 `prolepsis_event_ids` 時顯示（加 `.displaced` class）；倒敘 = `--narrative-flashback-border`（藍），預敘 = `--narrative-flashforward-border`（琥珀）；不與左側 narrativeMode 色衝突（左 narrative / 右 displacement）
-- 卡頭：NarrativeIcon（自繪 lucide-style）+ K/S 標籤 + Ch.N
-- 標題（serif，2 行 clamp）+ pills（至多 3 個，超出顯示 +N）
+popover 內含五個 AND 疊加的分區（事件類型 / 敘事模式 / 重要性 / 角色（含搜尋）/ 地點），
+每個選項標示命中筆數；地點在真實資料中為空，該區自動隱藏。
 
-NarrativeIcon 5 種圖示替代原本錄影機字符 `⏪ ⏩ ⏸`（語意錯位）。每個圖示是小型「時間軸 + 跳躍方向」線性圖：
-- **present** — 時間線 + 實心點 + 前進箭頭
-- **flashback** — 時間線 + 往回的弧線箭頭
-- **flashforward** — 時間線 + 向前的弧線箭頭
-- **parallel** — 兩條錯位平行線
-- **unknown** — 虛線圓 + 問號
+**顯示模式二選一，但兩者都要有**：
+- **淡化其餘（dim，預設）**——保留全部事件的位置，不符合的降透明度。
+  在譜上尤其有用：看得出被排除的事件原本落在哪裡。
+- **只顯示符合項（only）**——不符合的整批移除，長書才讀得動。
+  譜上被移除的點會**中斷連線**（不跨洞連線，那會暗示不存在的相鄰關係）。
 
-Parallel 事件群組：`narrativeMode === 'parallel'` 的連續事件收為群組，左側雙線紫色 + 其餘虛線紫框；標題 `⤳ 並行支線`。
+**S18 篩選結果為空**：整個畫布換成 `沒有事件同時滿足這些條件` + 條件數 + 清除按鈕。
 
-SVG overlay：底層 spine polyline（淡灰）+ CAUSES 邊（confidence ≥ 0.5 才畫；≥ 0.8 實線 / < 0.8 虛線）。
+#### 3.7.3 視圖 A — 章節順序（雙軌譜 + 章節卡片帶）
 
-#### 3.7.5 Filter Sheet（下拉面板）
+**雙軌譜（`TimelineStave`）** 是這頁的識別度所在：
 
-chip 風格 toggle（不是 checkbox），分區：事件類型 / 敘事模式 / 重要性 / 角色（含搜尋）/ 地點。
+- X = 段內敘述順序線性映射；Y = `MID - deviation × SCALE`（MID 26px、SCALE 38）
+- 中線（`1px dashed`）代表 deviation = 0，即「兩種順序一致」；下方＝倒敘、上方＝預敘
+- **行數由事件數推導**（`ceil(n / 22)`，62 筆＝3 行），不寫死
+- 點：KERNEL 較大、已分析實心 / 未分析空心、outlier 用 `--accent`
+- 連線與中線以 **SVG** 繪製（`x1="2%"` 這類百分比座標），不用旋轉 div——免除旋轉數學且 resize 免重算
+- **章節帶**可點＝換章，且**涵蓋被篩選濾空的章節**（章節是導覽目標，不能因篩選消失）
+- **註記**：每章最多一條、取偏離最大者，避免 62 節點上鋪滿文字
+- **未排序帶**：`rank === null` 的事件放在該行底部 13px 的點線帶內；該行沒有就不渲染
 
-#### 3.7.6 事件詳情面板（右側 360px，hero 風格）
+**章節卡片帶**一次只顯示一章。已分析事件出卡片；未分析的收進右側 196px 清單
+（顯示裝得下的 4 筆 + 明確的「展開其餘 N 筆」，**不可靜默截斷**）。
+卡片摘要 `-webkit-line-clamp: 2` 且必須 `flex: none`，否則 clamp 盒會被 flex 壓縮、第二行被切一半。
 
-```
-[← 關閉]
-[KERNEL 核心 NarrativeIcon][· 回敘][Ch.5]   ← 上方 meta chip 列
-事件標題（serif, 17px）
-章節標題 · 故事時間提示                       ← subtitle
-┌─ 主題意義 ──────────────────────┐
-│ 葉文潔的紅岸決策……               │  ← thematic block（accent left bar）
-└────────────────────────────────┘
+#### 3.7.4 視圖 B — 故事時序
 
-事件概要：description + participants/location pills
+依 rank 升序切成 4 欄；每列 `序號 · 標題 · Ch.N`，outlier 的章號用 `--accent`。
+底部**未排序托盤**放 `rank === null` 的事件（4 顆 chip + 「＋其餘 N 筆」，點了套用篩選帶出全部）。
 
-時序關係（mini-timeline）：
-  ○─ 前驅 · prior：xxx (Ch.3 · 當下敘事)
-  │
-  ●─ 當前事件：本事件標題 (Ch.5 · rank 0.42)
-  │
-  ○─ 後續 · subsequent：xxx (Ch.7 · 當下敘事)
+#### 3.7.5 視圖 C — 矩陣視圖
 
-[EEP 證據剖析 ▾]（預設展開）
-[因果分析 ▸]（預設收合）
-[影響分析 ▸]（預設收合）
-```
+**軸編碼是這張圖的資訊本體，不可改**：X = 章節（離散）、Y = `chronological_rank`、
+45° 對照線 = 「敘述順序 = 故事順序」、未排序事件在繪圖區下方的 degraded 帶。
 
-當未分析時，hero 下方提供「前往深度分析頁觸發 EEP」CTA。
+**beeswarm 偏移解 overplotting**：同章事件共用 X，會疊成一柱（種子書 Ch.2 疊 11 顆、無法點擊）。
+偏移量 `(k % 2 ? -1 : 1) × ceil(k / 2) × spacing`，**`k` 必須按章計數**——
+用全域索引會讓同章的點拿到相同偏移，等於沒散開。
 
-#### 3.7.7 矩陣視圖（Fabula-Sjuzhet Matrix，V2）
+> V2 的 d3 實作、頂部密度直方圖、Genette 著色 toggle、框選皆已移除。
 
-- X 軸 = 章節（離散），Y 軸 = `chronological_rank` 0.0→1.0
-- **頂部邊際 histogram**：每章節事件密度直方圖（accent 色，alpha 隨密度遞增）
-- **45° 對照線**：虛線，表示「完全按故事順序敘事」
-- **degraded row（Y = -0.1）**：warning 色，放 `chronological_rank == null` 事件
-- **Quadrant labels**：「↖ 預敘區 / ↘ 倒敘區 / ⤵ 未排序事件」三象限標籤（Genette 著色開啟時，前兩個隱藏，只保留未排序）
-- **Genette 著色 toggle（`tl-genett-color-toggle`）**：有 genettData 時才顯示於右上角（與象限標籤同層 HTML overlay）；開啟時 dot 顏色改為 displacement_type 著色（analepsis 藍 / prolepsis 琥珀 / linear 灰），legend 同步切換三類；關閉時還原 narrativeMode 著色
-- **45° 對照線標籤**：Genette 著色關閉時顯示「完全按故事順序敘事」，開啟時改為「零位移基準線」
-- Dot 半徑：KERNEL 8 / SATELLITE 5 / 預設 6；顏色依 narrative mode（Genette 著色關閉時）
-- 框選（brush）：未選中 dot opacity 降至 0.15
-- Tooltip：hover 顯示 title / Ch / mode / rank / participants
+#### 3.7.6 角色軌跡泳道（疊加層）
+
+**是疊加層，不是第四張視圖卡**——它加的是同一條 X 軸的第二種讀法（誰在場、誰缺席），
+不是時間軸的替代品。上限 3 位角色，預設帶入出場數最高的 3 位。
+
+- **X 軸用 `index`（敘述順序），不用 rank**：rank 可能為 null，軌道會出現分不清是缺席還是缺資料的洞
+- 章節刻度**對齊該章第一筆事件的索引**，不可用等寬欄——會與軌道上的點錯開
+- 缺席區間：連續 ≥ 3 筆才算；**說明文字放在軌道下方專屬的 16px 註記帶**，絕不壓在點上；
+  區間寬度 < 9% 時不標
+- 底部「同框」列：所有選定角色同時在場的事件
+
+#### 3.7.7 事件詳情面板（320px）
+
+`Ch.N 章名 · 類型 → 標題 → KERNEL/SATELLITE/尚未分析 → 概要 → 參與角色 pills
+→ 時序（rank / 敘述位置 / 偏離描述 / 敘事模式 chip）→ 前往閱讀該段落 · 在知識圖譜中查看`。
+
+- 「前往閱讀該段落」走 `useSourceJump`（章節 scope），與角色頁／事件頁同一條動線
+- **不再有「時序關係」區塊**：它讀的 `priorEventIds` / `subsequentEventIds` 語意是
+  「共享參與者且位於較早／較晚章節的事件」，既非因果也非時序。在一個主打時序的頁面上
+  這樣標示比事件頁更誤導，因此**移除**而非改名（事件頁已於 PR #18 正名為「上下文位置」）。
+  **全頁文案不得出現「因果」「前驅／後續」指涉這組資料。**
+- 約八成事件未分析，**未分析才是這個面板的主要狀態**
+
+#### 3.7.8 狀態涵蓋
+
+| 狀態 | 呈現 |
+|------|------|
+| 首次載入 | spinner + 依視圖不同的文案 + 三塊 skeleton |
+| 背景重取 | 畫布上方浮出膠囊指示器，工具列與視圖不消失 |
+| 載入失敗 | 錯誤標題 + 說明 + 重試 |
+| 無事件 | `TimelineOnboardingHero`（三步引導卡） |
+| 篩選為空 | `沒有事件同時滿足這些條件` + 清除 |
+| 命中項全無 rank | 專屬狀態：列出那些事件為可點 chip + 兩條出路（清除篩選／重算時序） |
+| 該章被濾空 / 整章未分析 | 章節卡片帶內的兩種空狀態，各帶對應 CTA |
 
 #### 樣式檔案
 
-`frontend/src/styles/timeline.css`（`.tl-*` prefix），與 character-analysis / event-analysis 並列；不修改 design tokens。
+`frontend/src/styles/timeline.css`（`.tl-*` prefix）。**不新增、不修改 design token**——
+本頁用到的 token 全部既有，`--narrative-*` 為跨頁共用（角色頁 `ArcPane`、事件頁），改值會同時破壞那兩頁。
+
+#### 動效
+
+只用 `--transition-fast` / `--transition-normal`，只過渡 `color` / `background-color` /
+`opacity` / `box-shadow`。持續動畫僅 spinner 與 skeleton pulse，且 `prefers-reduced-motion` 下關閉。
+
+#### 已知缺口
+
+- **RWD 未做**：本輪固定 1440 基準，1280 / 1024 待另開任務（設計交付包未涵蓋這三個寬度）。
+- 水平／垂直 layout 切換已移除：新骨架是固定寬的多行譜，「排列方向」不再指涉任何東西。
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#13a（時間軸資料）、#13b（觸發時序計算）、#11（事件詳情）、#8（任務 polling）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#13a（時間軸資料，含 `hasAnalysis`）、
+#13b（觸發時序計算）、#8（任務 polling）、`/narrative/temporal/coverage`（倒敘預敘的解鎖門檻）
 
 ---
 

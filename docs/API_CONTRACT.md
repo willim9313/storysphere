@@ -50,7 +50,7 @@ interface Book {
   title: string;
   author?: string;
   status: 'processing' | 'ready' | 'analyzed' | 'error';
-  chapterCount: number;
+  chapterCount: number;    // 只計 body 章；序/目次/後記不計入（與閱讀頁章節列表一致）
   entityCount?: number;
   uploadedAt: string;
   lastOpenedAt?: string;   // 後端尚未實作寫入，目前永遠為 undefined
@@ -1001,6 +1001,8 @@ interface TimelineData {
   events: TimelineEvent[];
   temporalRelations: TemporalRelation[];
   quality: TimelineQuality;
+  temporalAnalyzed: boolean;          // #21h 是否跑過且覆蓋率足夠
+  temporalStructure?: string | null;  // linear | partially_linear | non_linear | unknown
 }
 
 interface TimelineEvent {
@@ -1013,9 +1015,18 @@ interface TimelineEvent {
   chronologicalRank: number | null;   // null = 尚未計算
   narrativeMode: 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown';
   eventImportance: 'KERNEL' | 'SATELLITE' | null;
+  hasAnalysis: boolean;               // 是否已跑過事件分析（EEP 快取存在）
+  temporalDisplacement?: TemporalDisplacement | null;  // #21h 判定，null = 該筆無判定
   storyTimeHint?: string;
   participants: { id: string; name: string; type: EntityType }[];
   location?: { id: string; name: string };
+}
+
+interface TemporalDisplacement {
+  type: 'analepsis' | 'prolepsis' | 'linear';
+  displacement: number;   // storyRank - textRank；負值＝倒敘
+  textRank: number;
+  storyRank: number;
 }
 
 interface TemporalRelation {
@@ -1032,6 +1043,13 @@ interface TimelineQuality {
   hasChronologicalRanks: boolean;
 }
 ```
+
+**說明**：`temporalDisplacement` 與 `temporalStructure` 來自 #21h 的分析快取
+（`temporal_analysis:{bookId}`）。快取若是覆蓋率不足提早返回的產物，一律視同沒跑過：
+`temporalAnalyzed` 為 `false`、不帶任何 displacement。
+
+> `temporalDisplacement`（LLM 判定）與 `chronologicalRank`（#13b 計算）是**兩條獨立的路**。
+> 前端譜面上的倒敘／預敘標註若只有 `chronologicalRank`，是幾何推導的結果，不代表 #21h 跑過。
 
 **UI 使用頁面**：時間軸頁
 
@@ -1628,8 +1646,8 @@ interface UnravelingEdge {
 ```ts
 interface ChapterDistribution {
   bookId: string;
-  totalChapters: number;
-  // nodeId → 12-cell（依書籍實際章節數）counts；
+  totalChapters: number;   // 只計 body 章
+  // nodeId → 12-cell（依書籍實際 body 章節數）counts；
   // 不在此 map 中的 nodeId 表示該節點無 chapter-aware 資料
   distributions: Record<string, number[]>;
 }

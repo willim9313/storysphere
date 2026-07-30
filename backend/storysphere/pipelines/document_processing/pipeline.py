@@ -8,7 +8,14 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
-from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphRole
+from storysphere.domain.documents import (
+    Chapter,
+    Document,
+    FileType,
+    Paragraph,
+    ParagraphRole,
+    assign_chapter_numbers,
+)
 from storysphere.pipelines.base import BasePipeline
 
 from .chapter_detector import detect_chapters
@@ -154,11 +161,13 @@ class DocumentProcessingPipeline(BasePipeline[Path, Document]):
                 paragraphs=len(paragraphs),
             )
 
-        # Re-number chapters sequentially after any skips.
-        for i, chapter in enumerate(chapters, start=1):
-            chapter.number = i
+        # Re-number after any skips; front/back matter takes no story number.
+        for chapter, number in zip(
+            chapters, assign_chapter_numbers([c.role for c in chapters]), strict=True
+        ):
+            chapter.number = number
             for para in chapter.paragraphs:
-                para.chapter_number = i
+                para.chapter_number = number
 
         doc = Document(
             title=file_meta.title or file_path.stem,

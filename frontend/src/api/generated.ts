@@ -3983,6 +3983,25 @@ export interface components {
              */
             coverage_sufficient: boolean;
         };
+        /**
+         * TemporalDisplacementEntry
+         * @description Per-event verdict from the Genette temporal analysis (#21h).
+         *
+         *     Not the same thing as the deviation the timeline page derives from
+         *     ``chronological_rank``: that is geometry available for every ranked event,
+         *     this is the LLM's judgement and is absent until the analysis has run with
+         *     sufficient ``story_time_hint`` coverage.
+         */
+        TemporalDisplacementEntry: {
+            /** Type */
+            type: string;
+            /** Displacement */
+            displacement: number;
+            /** Textrank */
+            textRank: number;
+            /** Storyrank */
+            storyRank: number;
+        };
         /** TemporalRelationEntry */
         TemporalRelationEntry: {
             /** Source */
@@ -4191,6 +4210,12 @@ export interface components {
             /** Eventimportance */
             eventImportance?: string | null;
             /**
+             * Hasanalysis
+             * @default false
+             */
+            hasAnalysis: boolean;
+            temporalDisplacement?: components["schemas"]["TemporalDisplacementEntry"] | null;
+            /**
              * Participants
              * @default []
              */
@@ -4233,6 +4258,13 @@ export interface components {
             /** Temporalrelations */
             temporalRelations: components["schemas"]["TemporalRelationEntry"][];
             quality: components["schemas"]["TimelineQuality"];
+            /**
+             * Temporalanalyzed
+             * @default false
+             */
+            temporalAnalyzed: boolean;
+            /** Temporalstructure */
+            temporalStructure?: string | null;
         };
         /**
          * TocEntry

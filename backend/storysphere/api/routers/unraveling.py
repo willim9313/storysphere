@@ -22,6 +22,7 @@ from storysphere.api.deps import (
     KGServiceDep,
     SymbolServiceDep,
 )
+from storysphere.domain.documents import ChapterRole
 from storysphere.domain.entities import EntityType
 from storysphere.domain.events import Event
 
@@ -203,7 +204,12 @@ def _build_nodes(
         },
     ))
 
-    chapter_count = len(doc.chapters)
+    # Everything on this page counts body chapters only. The pipeline never
+    # summarises, indexes or extracts from front/back matter, so including it
+    # would leave downstream nodes permanently short of their own total and
+    # reading as "still running" long after ingestion finished.
+    body_chapters = [ch for ch in doc.chapters if ch.role == ChapterRole.body]
+    chapter_count = len(body_chapters)
     nodes.append(NodeData(
         node_id="chapters",
         layer=0,
@@ -212,7 +218,7 @@ def _build_nodes(
         counts={"chapters": chapter_count},
     ))
 
-    all_paras = [p for ch in doc.chapters for p in ch.paragraphs]
+    all_paras = [p for ch in body_chapters for p in ch.paragraphs]
     para_count = len(all_paras)
     nodes.append(NodeData(
         node_id="paragraphs",
@@ -224,7 +230,7 @@ def _build_nodes(
 
     # ── Layer 1: 知識抽取層 ────────────────────────────────────────────────────
 
-    chapters_with_summary = sum(1 for ch in doc.chapters if ch.summary)
+    chapters_with_summary = sum(1 for ch in body_chapters if ch.summary)
     nodes.append(NodeData(
         node_id="summaries",
         layer=1,
@@ -236,7 +242,7 @@ def _build_nodes(
         counts={"generated": chapters_with_summary, "total": chapter_count},
     ))
 
-    chapters_with_keywords = sum(1 for ch in doc.chapters if ch.keywords)
+    chapters_with_keywords = sum(1 for ch in body_chapters if ch.keywords)
     nodes.append(NodeData(
         node_id="keywords",
         layer=1,
@@ -610,12 +616,15 @@ def _compute_chapter_distributions(
 ) -> dict[str, list[int]]:
     """Build per-chapter counts for chapter-aware nodes.
 
-    All output lists have length ``len(doc.chapters)``. Chapters are
-    treated as 1-indexed in the source domain (``ch.number``,
-    ``event.chapter``, ``imagery.chapter_distribution`` keys) and emitted
-    at array index ``number - 1``.
+    Only body chapters are emitted — front/back matter carries no story
+    chapter number, so it has no slot on a chapter axis. Output lists are
+    ordered by chapter number and their length is the book's body chapter
+    count; positions are looked up by number rather than assumed.
     """
-    chapters = sorted(doc.chapters, key=lambda c: c.number)
+    chapters = sorted(
+        (c for c in doc.chapters if c.role == ChapterRole.body),
+        key=lambda c: c.number,
+    )
     n = len(chapters)
     out: dict[str, list[int]] = {}
 
@@ -683,6 +692,6 @@ async def get_chapter_distribution(
 
     return ChapterDistribution(
         book_id=book_id,
-        total_chapters=len(doc.chapters),
+        total_chapters=doc.body_chapter_count,
         distributions=distributions,
     )

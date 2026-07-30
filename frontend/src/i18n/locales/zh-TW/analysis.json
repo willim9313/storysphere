@@ -693,7 +693,28 @@
       "temporal": "時序關係",
       "eep": "EEP 證據剖析",
       "causality": "因果分析",
-      "impact": "影響分析"
+      "impact": "影響分析",
+      "region": "事件詳情",
+      "eyebrow": "事件詳情",
+      "kernel": "核心事件 KERNEL",
+      "satellite": "衛星事件 SATELLITE",
+      "unrated": "重要度未評",
+      "noSummary": "此事件尚未產生摘要——它屬於未分析的 {{n}} 筆之一。",
+      "participants": "參與角色",
+      "participantCount": "共 {{n}} 位參與者",
+      "morePills": "＋{{n}} 位",
+      "timing": "時序",
+      "noRank": "尚未排入故事時序",
+      "position": "敘述位置 {{i}} / {{n}}",
+      "mode": "敘事模式",
+      "needsStoryTime": "需要故事時間提示",
+      "devAligned": "幾乎與敘述順序一致",
+      "devSlight": "輕微偏離 {{v}}",
+      "devFlashback": "明顯倒敘 {{v}}",
+      "devFlashforward": "明顯預敘 {{v}}",
+      "gotoReader": "前往閱讀該段落",
+      "gotoGraph": "在知識圖譜中查看",
+      "verdict": "時序分析判定：{{type}} · 敘述第 {{text}} 筆 → 故事第 {{story}} 筆"
     },
     "storyTime": "故事時間：",
     "priorEvents": "前驅 · prior",
@@ -748,7 +769,11 @@
       "genettLinear": "線性（無錯位）",
       "genettLegendAnalepsis": "倒敘",
       "genettLegendProlepsis": "預敘",
-      "genettUnclassified": "其他（敘事模式色）"
+      "genettUnclassified": "其他（敘事模式色）",
+      "legendTitle": "章節 × 故事時序",
+      "legendDesc": "每個點是一筆事件：橫軸是它在書中的章節，縱軸是它在故事裡實際發生的位置。貼著 45° 線＝作者照故事順序講；偏離越遠＝敘述順序與故事順序差越多。",
+      "legendFoot": "同章事件在欄內橫向散開以避免重疊，散開位置不帶意義。",
+      "unrankedBand": "↵ 未排序事件 {{n}}"
     },
     "genett": {
       "structure": {
@@ -773,6 +798,165 @@
       "running": "分析中...",
       "tooltip": "執行 Genette 時序分析（倒敘/預敘識別）",
       "lowCoverageTooltip": "故事時間提示覆蓋率 {{pct}}%，低於 60% 閾值"
+    },
+    "viewTabs": "視圖切換",
+    "keyHint": "← → 切換事件 · Esc 關閉",
+    "gotoChapter": "跳到第 {{n}} 章",
+    "loadingBy": {
+      "chapter": "正在讀取時間軸…",
+      "story": "正在讀取故事時序…",
+      "matrix": "正在計算矩陣座標…"
+    },
+    "error": {
+      "title": "時間軸資料載入失敗"
+    },
+    "filterModeLabel": "不符合的事件",
+    "filterModeDim": "淡化其餘",
+    "filterModeOnly": "只顯示符合項",
+    "filterModeDimHint": "保留全部事件的位置，不符合的變淡——看得出被排除的落在哪裡。",
+    "filterModeOnlyHint": "把不符合的收起來，畫面只留符合項——長書比較好讀。",
+    "toolbar": {
+      "scope": "顯示範圍",
+      "scopeAll": "全部 {{n}}",
+      "scopeAnalyzed": "僅已分析 {{n}}",
+      "filter": "篩選資料",
+      "match": "符合 {{n}} / 共 {{total}}",
+      "overlay": "疊加層",
+      "lanesOn": "角色軌跡 · 開",
+      "lanesOff": "角色軌跡 · 關",
+      "analysis": "分析動作",
+      "analysisNote": "會呼叫 LLM 逐段判讀 · 執行期間本頁資料不會變動"
+    },
+    "action": {
+      "storyOrder": "故事時序",
+      "storyOrderRun": "覆蓋重新計算…",
+      "storyOrderRunFirst": "首次計算…",
+      "storyOrderStatus": "已完成 {{done}}/{{total}}",
+      "storyOrderStatusNone": "尚未計算 · 共 {{total}} 筆事件",
+      "storyOrderRunning": "計算中 · {{done}}/{{total}} 事件已判讀",
+      "storyOrderCost": "重跑數分鐘 · 會覆蓋既有的 {{n}} 筆排序",
+      "storyOrderCostFirst": "數分鐘 · 判讀 {{n}} 筆事件 · 不覆蓋任何既有結果",
+      "displacement": "倒敘與預敘",
+      "displacementRun": "識別倒敘與預敘…",
+      "displacementRerun": "覆蓋重新識別…",
+      "displacementDone": "已識別 {{analepsis}} 筆倒敘 · {{prolepsis}} 筆預敘",
+      "displacementCostRerun": "重跑數分鐘 · 會覆蓋既有判定",
+      "displacementReady": "可執行 · 故事時間提示覆蓋率 {{pct}}%",
+      "displacementBlocked": "尚不可執行 · 需 60% 事件帶有故事時間提示，目前 {{pct}}%",
+      "displacementRunning": "分析中…",
+      "displacementCost": "約數分鐘 · 比對敘述順序與故事順序",
+      "displacementUnblock": "故事時間提示要在事件分析頁逐筆補，跑「故事時序」不會增加 →",
+      "leavePageOk": "可離開本頁，完成後在通知中心告知",
+      "cancel": "中止"
+    },
+    "confirm": {
+      "storyTitle": "覆蓋重新計算故事時序",
+      "storyFirstTitle": "首次計算故事時序",
+      "storyFirstBody": "這會呼叫 LLM 逐一判讀 {{total}} 筆事件的故事時間，排出先後。目前沒有既有排序，不會覆蓋任何東西。需要數分鐘並消耗 token；執行期間可離開本頁。事件內容、參與者與知識圖譜不會變動。",
+      "storyBody": "這會呼叫 LLM 逐一判讀 {{total}} 筆事件的故事時間，並覆蓋既有的 {{ranked}} 筆排序。需要數分鐘並消耗 token；執行期間可離開本頁。事件內容、參與者與知識圖譜不會變動。",
+      "displacementTitle": "識別倒敘與預敘",
+      "displacementBody": "這會呼叫 LLM 比對 {{total}} 筆事件的敘述順序與故事順序，標記倒敘與預敘。需要數分鐘並消耗 token；執行期間可離開本頁。",
+      "start": "開始計算",
+      "eventsTitle": "分析尚未分析的事件",
+      "eventsBody": "這會呼叫 LLM 逐一分析 {{n}} 筆尚未分析的事件，產生重要度、狀態變化、參與者角色與因果鏈。需要數分鐘並消耗 token；執行期間可離開本頁。已分析過的事件不會重跑，事件內容與知識圖譜不會變動。"
+    },
+    "toast": {
+      "storyOrderDone": "故事時序計算完成",
+      "storyOrderFailed": "故事時序計算失敗",
+      "displacementDone": "倒敘與預敘分析完成",
+      "displacementFailed": "倒敘與預敘分析失敗",
+      "displacementSkipped": "倒敘與預敘未進行",
+      "displacementSkippedDesc": "故事時間提示覆蓋率不足 60%，這次沒有呼叫 LLM，也沒有產生任何判定。",
+      "eventsDone": "事件分析完成",
+      "eventsFailed": "事件分析失敗"
+    },
+    "stave": {
+      "headline": "敘述順序走了 {{rows}} 行，故事順序掉出去 {{outliers}} 次",
+      "meta": "{{onLine}} 筆貼線 · {{outliers}} 筆明顯偏離 · {{unranked}} 筆排不進故事時序",
+      "legend": "中線＝兩種順序一致　下＝倒敘　上＝預敘　大點＝KERNEL",
+      "legendUnranked": "底部「未排序」帶＝排不進故事時序（與尚未分析是兩回事）",
+      "unranked": "未排序",
+      "flashbackNote": "倒敘 ↩ Ch.{{ch}} 講的是故事早期（{{count}} 筆）",
+      "flashforwardNote": "Ch.{{ch}} 有 {{count}} 筆被提前講出來",
+      "flashbackJudged": "已判定倒敘 ↩ Ch.{{ch}}（{{count}}）",
+      "flashforwardJudged": "已判定預敘 ↗ Ch.{{ch}}（{{count}}）"
+    },
+    "coverage": {
+      "label": "事件分析",
+      "count": "{{done}} / {{total}} 筆（{{pct}}%）",
+      "running": "正在分析…",
+      "action": "分析其餘 {{n}} 筆…",
+      "actionRunning": "分析中…"
+    },
+    "storyOrderPrompt": {
+      "title": "還沒算過故事時序，所以譜上沒有點",
+      "desc": "這 {{n}} 筆事件目前都沒有故事時間，無法和敘述順序對照，全部落在每行下方的「未排序」。算完之後，每筆事件才會沿中線畫出來，倒敘在下、預敘在上。",
+      "action": "計算故事時序",
+      "running": "計算中…"
+    },
+    "band": {
+      "region": "第 {{n}} 章事件",
+      "counts": "{{total}} 事件 · 已分析 {{analyzed}} · 未分析 {{unanalyzed}}",
+      "filteredOut": "篩選隱藏 {{n}}",
+      "clickHint": "點譜上的章節帶可換章",
+      "restTitle": "同章 · 未分析 {{n}} 筆",
+      "expandRest": "展開其餘 {{n}} 筆為卡片",
+      "expandAll": "全部展開為卡片",
+      "emptyFilteredTitle": "這一章沒有事件通過目前的篩選",
+      "emptyFilteredDesc": "Ch.{{ch}} 共 {{n}} 筆事件，全部被篩選條件排除。",
+      "emptyUnanalyzedTitle": "這一章還沒有被分析過",
+      "emptyUnanalyzedDesc": "Ch.{{ch}} 的 {{n}} 筆事件都只有標題，沒有摘要、參與者與故事時間。",
+      "analyzeChapter": "分析本章 {{n}} 筆事件…"
+    },
+    "card": {
+      "kernel": "核",
+      "satellite": "衛",
+      "unrated": "未評",
+      "noSummary": "（本筆尚無摘要）"
+    },
+    "story": {
+      "headline": "依故事實際發生先後排列的 {{n}} 筆",
+      "meta": "章節標記為焦赭者＝在書中比它的故事位置晚出現",
+      "trayLabel": "↵ 排不進故事時序的 {{n}} 筆",
+      "trayMore": "＋其餘 {{n}} 筆"
+    },
+    "legend": {
+      "kernel": "大點＝核心事件 KERNEL",
+      "analyzed": "實心＝已分析",
+      "unanalyzed": "虛線＝尚未分析",
+      "unranked": "細實線＝排不進故事時序",
+      "outlier": "焦赭＝偏離 45° 對照線超過門檻（{{n}} 筆）"
+    },
+    "lanes": {
+      "region": "角色軌跡",
+      "title": "角色軌跡",
+      "remove": "移除 {{name}}",
+      "clear": "清空",
+      "add": "＋ 加入角色（上限 {{max}}）",
+      "empty": "尚未選擇角色。加入角色後，可看見他出場、缺席的位置。",
+      "axisNote": "X 軸沿用敘述順序（{{n}} 筆）· 不受篩選影響",
+      "meta": "出場 {{present}} · 缺席 {{absent}} · 最長連缺 {{longest}}",
+      "absent": "缺席 {{range}}（{{n}}）",
+      "absentOpening": "開場缺席 {{range}}（{{n}}）",
+      "together": "同框",
+      "togetherMeta": "{{n}} 筆同時出場",
+      "legendAnalyzed": "已分析的出場",
+      "legendUnanalyzed": "未分析的出場",
+      "legendAbsent": "連續缺席區間"
+    },
+    "noMatch": {
+      "title": "沒有事件同時滿足這些條件",
+      "desc": "目前套用 {{n}} 個條件。放寬其中一項，或清除全部篩選。"
+    },
+    "noRanked": {
+      "story": "這些事件排不進故事時序",
+      "matrix": "這些事件畫不進矩陣",
+      "desc": "符合條件的 {{n}} 筆全部沒有故事時間（chronological_rank 為空），因此無法排出先後。它們仍可逐筆檢視。"
+    },
+    "displacementTypes": {
+      "analepsis": "倒敘",
+      "prolepsis": "預敘",
+      "linear": "順敘"
     }
   },
   "unravelingLoadError": "無法載入建構概覽資料",

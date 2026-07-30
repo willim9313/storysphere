@@ -277,6 +277,9 @@ export interface TimelineEvent {
   chronologicalRank: number | null;
   narrativeMode: NarrativeMode;
   eventImportance: EventImportance | null;
+  /** True when an EEP analysis result is cached for this event (#13a). */
+  hasAnalysis: boolean;
+  temporalDisplacement?: TemporalDisplacement | null;
   storyTimeHint?: string;
   participants: { id: string; name: string; type: EntityType }[];
   location?: { id: string; name: string };
@@ -296,10 +299,19 @@ export interface TimelineQuality {
   hasChronologicalRanks: boolean;
 }
 
+/** Per-event verdict from the #21h temporal analysis — null until that run has
+ *  happened with sufficient coverage. Sourced from generated.ts, not
+ *  hand-written; see docs/type-generation.md. */
+export type TemporalDisplacement = components['schemas']['TemporalDisplacementEntry'];
+
 export interface TimelineData {
   events: TimelineEvent[];
   temporalRelations: TemporalRelation[];
   quality: TimelineQuality;
+  /** True when a temporal analysis with sufficient coverage is cached. */
+  temporalAnalyzed: boolean;
+  /** linear | partially_linear | non_linear | unknown; null when never run. */
+  temporalStructure?: string | null;
 }
 
 // ── Tension Analysis ────────────────────────────────────────────

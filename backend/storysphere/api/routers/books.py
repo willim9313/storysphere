@@ -74,6 +74,7 @@ from storysphere.api.schemas.books import (
     SegmentEntity,
     SuggestRolesResponse,
     TaskIdResponse,
+    TemporalDisplacementEntry,
     TemporalRelationEntry,
     TimelineConfigResponse,
     TimelineConfigUpdate,
@@ -332,7 +333,7 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         author=document.author,
         status="ready",
         summary=document.summary,
-        chapter_count=document.total_chapters,
+        chapter_count=document.body_chapter_count,
         chunk_count=document.total_paragraphs,
         entity_count=len(book_entities),
         relation_count=book_relation_count,
@@ -1390,7 +1391,10 @@ async def detect_timeline(
         chapter_mode_enabled=existing.chapter_mode_enabled if existing else False,
         story_mode_enabled=existing.story_mode_enabled if existing else False,
         default_mode=existing.default_mode if existing else "chapter",
-        total_chapters=chapter_count,
+        # Chapter-mode sliders run over the book's chapters, so the config
+        # stores the story length — not how many chapters happen to carry an
+        # event (a book whose last chapters have none would clamp too early).
+        total_chapters=document.body_chapter_count,
         total_events=len(events),
         total_ranked_events=ranked_count,
         chapter_mode_configured=existing.chapter_mode_configured if existing else False,
@@ -1862,16 +1866,23 @@ async def _run_batch_entity_analysis(
     failed = 0
     skipped = 0
 
+    def _report() -> None:
+        task_store.set_progress(
+            task_id,
+            progress=int(done / total * 100) if total else 0,
+            stage=f"分析角色 {done}/{total}",
+            # Shared with the event batch: BatchEepPanel renders the item
+            # count, not the percentage.
+            sub_progress=done,
+            sub_total=total,
+        )
+
     for entity in characters:
         cache_key = AnalysisCache.make_key("character", document_id, entity.name)
         if await cache.get(cache_key) is not None:
             skipped += 1
             done += 1
-            task_store.set_progress(
-                task_id,
-                progress=int(done / total * 100) if total else 0,
-                stage=f"分析角色 {done}/{total}",
-            )
+            _report()
             continue
         try:
             await agent.analyze_character(
@@ -1896,11 +1907,7 @@ async def _run_batch_entity_analysis(
             failed += 1
             done += 1
 
-        task_store.set_progress(
-            task_id,
-            progress=int(done / total * 100) if total else 0,
-            stage=f"分析角色 {done}/{total}",
-        )
+        _report()
 
     task_store.set_completed(
         task_id,
@@ -2337,11 +2344,25 @@ async def _run_batch_event_analysis(
     failed = 0
     skipped = 0
 
+    def _report() -> None:
+        task_store.set_progress(
+            task_id,
+            progress=int(done / total * 100) if total else 0,
+            stage=f"分析事件 {done}/{total}",
+            # The panel needs the item count, not just the percentage — it
+            # renders "已分析 N/M" alongside the bar.
+            sub_progress=done,
+            sub_total=total,
+        )
+
     for ev in events:
         cache_key = f"event:{document_id}:{ev.id}"
         if await cache.get(cache_key) is not None:
             skipped += 1
             done += 1
+            # Report on the skip path too, or a re-run over mostly-cached
+            # events looks frozen until it reaches the first uncached one.
+            _report()
             continue
         try:
             await agent.analyze_event(
@@ -2365,11 +2386,7 @@ async def _run_batch_event_analysis(
             failed += 1
             done += 1
 
-        task_store.set_progress(
-            task_id,
-            progress=int(done / total * 100) if total else 0,
-            stage=f"分析事件 {done}/{total}",
-        )
+        _report()
 
     task_store.set_completed(
         task_id,
@@ -2446,6 +2463,35 @@ async def trigger_batch_event_analysis(
 # ── Timeline endpoints ───────────────────────────────────────────────────────
 
 
+def _read_temporal_analysis(
+    cached: object,
+) -> tuple[bool, str | None, dict[str, TemporalDisplacementEntry]]:
+    """Unpack a cached ``TemporalAnalysis`` (#21h) for the timeline response.
+
+    A cached run with ``coverage_sufficient`` false returned before calling the
+    LLM and carries no verdicts, so it reads as *never analyzed* rather than as
+    an analysis that found nothing — the two look identical downstream and only
+    the first is honest.
+    """
+    if not isinstance(cached, dict) or not cached.get("coverage_sufficient"):
+        return False, None, {}
+
+    displacements: dict[str, TemporalDisplacementEntry] = {}
+    for raw in cached.get("displacements") or []:
+        try:
+            displacements[raw["event_id"]] = TemporalDisplacementEntry(
+                type=raw["displacement_type"],
+                displacement=raw["displacement"],
+                text_rank=raw["text_rank"],
+                story_rank=raw["story_rank"],
+            )
+        except (KeyError, TypeError, ValueError):
+            # A malformed entry loses its own verdict, not the whole analysis.
+            continue
+
+    return True, cached.get("story_time_structure"), displacements
+
+
 @router.get("/{book_id}/timeline", response_model=TimelineResponse)
 async def get_book_timeline(
     book_id: str,
@@ -2479,11 +2525,13 @@ async def get_book_timeline(
     from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
     analyzed_count = 0
     event_importance_map: dict[str, str] = {}
+    analyzed_ids: set[str] = set()
     for ev in all_events:
         cache_key = f"event:{book_id}:{ev.id}"
         cached = await cache.get(cache_key)
         if cached is not None:
             analyzed_count += 1
+            analyzed_ids.add(ev.id)
             try:
                 result = EventAnalysisResult.model_validate(cached)
                 event_importance_map[ev.id] = result.eep.event_importance.name
@@ -2548,6 +2596,10 @@ async def get_book_timeline(
         document_id=book_id,
     )
 
+    temporal_analyzed, temporal_structure, displacement_map = _read_temporal_analysis(
+        await cache.get(f"temporal_analysis:{book_id}")
+    )
+
     return TimelineResponse(
         book_id=book_id,
         order=order,
@@ -2563,6 +2615,8 @@ async def get_book_timeline(
                 chronological_rank=e.chronological_rank,
                 story_time_hint=e.story_time_hint,
                 event_importance=event_importance_map.get(e.id),
+                has_analysis=e.id in analyzed_ids,
+                temporal_displacement=displacement_map.get(e.id),
                 participants=[
                     ParticipantRef(
                         id=pid,
@@ -2592,6 +2646,8 @@ async def get_book_timeline(
             for tr in temporal_relations
         ],
         quality=quality,
+        temporal_analyzed=temporal_analyzed,
+        temporal_structure=temporal_structure,
     ).model_dump(by_alias=True)
 
 
@@ -2604,7 +2660,11 @@ async def _run_temporal_pipeline(
     """Background task for temporal pipeline computation."""
     try:
         task_store.set_running(task_id)
-        result = await pipeline.run(book_id, language=language)
+        result = await pipeline.run(
+            book_id,
+            language=language,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
+        )
         task_store.set_completed(
             task_id,
             result={

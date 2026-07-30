@@ -693,7 +693,28 @@
       "temporal": "Temporal Relations",
       "eep": "EEP Evidence Profile",
       "causality": "Causal Analysis",
-      "impact": "Impact Analysis"
+      "impact": "Impact Analysis",
+      "region": "Event detail",
+      "eyebrow": "Event detail",
+      "kernel": "KERNEL event",
+      "satellite": "SATELLITE event",
+      "unrated": "Importance not rated",
+      "noSummary": "This event has no summary yet — it is one of the {{n}} unanalyzed events.",
+      "participants": "Participants",
+      "participantCount": "{{n}} participants",
+      "morePills": "+{{n}}",
+      "timing": "Timing",
+      "noRank": "Not placed in story order",
+      "position": "Narrative position {{i}} / {{n}}",
+      "mode": "Narrative mode",
+      "needsStoryTime": "Needs a story-time hint",
+      "devAligned": "Essentially matches narrative order",
+      "devSlight": "Slight displacement {{v}}",
+      "devFlashback": "Clear flashback {{v}}",
+      "devFlashforward": "Clear flashforward {{v}}",
+      "gotoReader": "Read this passage",
+      "gotoGraph": "View in knowledge graph",
+      "verdict": "Temporal verdict: {{type}} · narrative #{{text}} → story #{{story}}"
     },
     "storyTime": "Story time: ",
     "priorEvents": "Prior",
@@ -748,7 +769,11 @@
       "genettLinear": "Linear (no displacement)",
       "genettLegendAnalepsis": "Analepsis",
       "genettLegendProlepsis": "Prolepsis",
-      "genettUnclassified": "Other (mode color)"
+      "genettUnclassified": "Other (mode color)",
+      "legendTitle": "Chapter × story order",
+      "legendDesc": "Each dot is an event: X is the chapter it appears in, Y is where it actually happens in the story. On the 45° line = told in story order; the further off, the greater the divergence.",
+      "legendFoot": "Same-chapter events are spread sideways to avoid overlap; the spread carries no meaning.",
+      "unrankedBand": "↵ Unranked events {{n}}"
     },
     "genett": {
       "structure": {
@@ -773,6 +798,165 @@
       "running": "Analyzing...",
       "tooltip": "Run Genette temporal analysis (analepsis/prolepsis detection)",
       "lowCoverageTooltip": "story_time_hint coverage {{pct}}%, below the 60% threshold"
+    },
+    "viewTabs": "View",
+    "keyHint": "← → switch event · Esc close",
+    "gotoChapter": "Go to chapter {{n}}",
+    "loadingBy": {
+      "chapter": "Loading timeline…",
+      "story": "Loading story order…",
+      "matrix": "Computing matrix coordinates…"
+    },
+    "error": {
+      "title": "Failed to load timeline data"
+    },
+    "filterModeLabel": "Non-matching events",
+    "filterModeDim": "Dim the rest",
+    "filterModeOnly": "Show matches only",
+    "filterModeDimHint": "Keeps every event in place and fades non-matches, so you can see where the excluded ones sat.",
+    "filterModeOnlyHint": "Removes non-matches so a long book stays readable.",
+    "toolbar": {
+      "scope": "Scope",
+      "scopeAll": "All {{n}}",
+      "scopeAnalyzed": "Analyzed only {{n}}",
+      "filter": "Filter",
+      "match": "{{n}} of {{total}} match",
+      "overlay": "Overlay",
+      "lanesOn": "Character lanes · on",
+      "lanesOff": "Character lanes · off",
+      "analysis": "Analysis",
+      "analysisNote": "Calls the LLM per passage · this page's data does not change while it runs"
+    },
+    "action": {
+      "storyOrder": "Story order",
+      "storyOrderRun": "Recompute (overwrites)…",
+      "storyOrderRunFirst": "Compute for the first time…",
+      "storyOrderStatus": "{{done}}/{{total}} done",
+      "storyOrderStatusNone": "Not computed · {{total}} events",
+      "storyOrderRunning": "Running · {{done}}/{{total}} events read",
+      "storyOrderCost": "Several minutes · overwrites the existing {{n}} rankings",
+      "storyOrderCostFirst": "Several minutes · reads {{n}} events · overwrites nothing",
+      "displacement": "Flashback & flashforward",
+      "displacementRun": "Identify displacement…",
+      "displacementRerun": "Re-identify (overwrites)…",
+      "displacementDone": "{{analepsis}} flashbacks · {{prolepsis}} flashforwards identified",
+      "displacementCostRerun": "Several minutes · overwrites the existing verdicts",
+      "displacementReady": "Ready · story-time hint coverage {{pct}}%",
+      "displacementBlocked": "Not available · needs hints on 60% of events, currently {{pct}}%",
+      "displacementRunning": "Analyzing…",
+      "displacementCost": "A few minutes · compares narrative order against story order",
+      "displacementUnblock": "Story-time hints are added per event on the event analysis page; running story order does not add them →",
+      "leavePageOk": "You can leave this page; you'll be notified when it finishes",
+      "cancel": "Stop"
+    },
+    "confirm": {
+      "storyTitle": "Recompute story order (overwrites)",
+      "storyFirstTitle": "Compute story order",
+      "storyFirstBody": "This calls the LLM to read the story time of all {{total}} events and order them. There is no existing ranking, so nothing is overwritten. It takes several minutes and consumes tokens; you can leave the page while it runs. Event content, participants and the knowledge graph are unaffected.",
+      "storyBody": "This calls the LLM to read the story time of all {{total}} events and overwrites the existing {{ranked}} rankings. It takes several minutes and consumes tokens; you can leave the page while it runs. Event content, participants and the knowledge graph are unaffected.",
+      "displacementTitle": "Identify flashback & flashforward",
+      "displacementBody": "This calls the LLM to compare narrative order against story order across {{total}} events. It takes several minutes and consumes tokens; you can leave the page while it runs.",
+      "start": "Start",
+      "eventsTitle": "Analyze the unanalyzed events",
+      "eventsBody": "This calls the LLM to analyze the {{n}} events that have no analysis yet, producing importance, state changes, participant roles and causal chains. It takes several minutes and consumes tokens; you can leave the page while it runs. Already-analyzed events are not re-run, and event content and the knowledge graph are unaffected."
+    },
+    "toast": {
+      "storyOrderDone": "Story order computed",
+      "storyOrderFailed": "Story order computation failed",
+      "displacementDone": "Displacement analysis complete",
+      "displacementFailed": "Displacement analysis failed",
+      "displacementSkipped": "Displacement analysis did not run",
+      "displacementSkippedDesc": "Story-time hint coverage is below 60%, so no LLM call was made and no verdicts were produced.",
+      "eventsDone": "Event analysis complete",
+      "eventsFailed": "Event analysis failed"
+    },
+    "stave": {
+      "headline": "The narrative runs {{rows}} rows; story order breaks away {{outliers}} times",
+      "meta": "{{onLine}} on the line · {{outliers}} clearly displaced · {{unranked}} with no story order",
+      "legend": "Midline = both orders agree　below = flashback　above = flashforward　large = KERNEL",
+      "legendUnranked": "The \"unranked\" strip below = no place in story order (not the same as unanalyzed)",
+      "unranked": "Unranked",
+      "flashbackNote": "Flashback ↩ Ch.{{ch}} covers earlier story time ({{count}})",
+      "flashforwardNote": "Ch.{{ch}} tells {{count}} events ahead of time",
+      "flashbackJudged": "Judged flashback ↩ Ch.{{ch}} ({{count}})",
+      "flashforwardJudged": "Judged flashforward ↗ Ch.{{ch}} ({{count}})"
+    },
+    "coverage": {
+      "label": "Event analysis",
+      "count": "{{done}} / {{total}} ({{pct}}%)",
+      "running": "Analyzing…",
+      "action": "Analyze the remaining {{n}}…",
+      "actionRunning": "Analyzing…"
+    },
+    "storyOrderPrompt": {
+      "title": "Story order has not been computed, so the stave has no dots",
+      "desc": "None of these {{n}} events has a story time yet, so there is nothing to compare narrative order against — they all sit in the \"unordered\" strip under each row. Once computed, each event is plotted along the midline: flashbacks below, flashforwards above.",
+      "action": "Compute story order",
+      "running": "Computing…"
+    },
+    "band": {
+      "region": "Chapter {{n}} events",
+      "counts": "{{total}} events · {{analyzed}} analyzed · {{unanalyzed}} not analyzed",
+      "filteredOut": "{{n}} hidden by filter",
+      "clickHint": "Click a chapter band on the stave to switch chapter",
+      "restTitle": "Same chapter · {{n}} not analyzed",
+      "expandRest": "Expand the other {{n}} as cards",
+      "expandAll": "Expand all as cards",
+      "emptyFilteredTitle": "No event in this chapter passes the current filter",
+      "emptyFilteredDesc": "All {{n}} events in Ch.{{ch}} are excluded by the filter.",
+      "emptyUnanalyzedTitle": "This chapter has not been analyzed yet",
+      "emptyUnanalyzedDesc": "All {{n}} events in Ch.{{ch}} have titles only — no summary, participants or story time.",
+      "analyzeChapter": "Analyze this chapter's {{n}} events…"
+    },
+    "card": {
+      "kernel": "K",
+      "satellite": "S",
+      "unrated": "n/a",
+      "noSummary": "(no summary yet)"
+    },
+    "story": {
+      "headline": "{{n}} events in the order they actually happened",
+      "meta": "A chapter marked in sienna appears later in the book than its story position",
+      "trayLabel": "↵ {{n}} events that don't fit the story order",
+      "trayMore": "+{{n}} more"
+    },
+    "legend": {
+      "kernel": "Large = KERNEL event",
+      "analyzed": "Solid = analyzed",
+      "unanalyzed": "Dashed = not yet analyzed",
+      "unranked": "Thin ring = no place in story order",
+      "outlier": "Sienna = past the displacement threshold ({{n}})"
+    },
+    "lanes": {
+      "region": "Character lanes",
+      "title": "Character lanes",
+      "remove": "Remove {{name}}",
+      "clear": "Clear",
+      "add": "+ Add character (max {{max}})",
+      "empty": "No character selected. Add one to see where they appear and where they are absent.",
+      "axisNote": "X follows narrative order ({{n}} events) · unaffected by the filter",
+      "meta": "Present {{present}} · absent {{absent}} · longest gap {{longest}}",
+      "absent": "Absent {{range}} ({{n}})",
+      "absentOpening": "Absent from the opening {{range}} ({{n}})",
+      "together": "Together",
+      "togetherMeta": "{{n}} events with all of them present",
+      "legendAnalyzed": "Analyzed appearance",
+      "legendUnanalyzed": "Unanalyzed appearance",
+      "legendAbsent": "Continuous absence"
+    },
+    "noMatch": {
+      "title": "No event satisfies all of these conditions",
+      "desc": "{{n}} conditions applied. Relax one, or clear the filter."
+    },
+    "noRanked": {
+      "story": "These events have no story order",
+      "matrix": "These events cannot be plotted",
+      "desc": "All {{n}} matching events have no story time (chronological_rank is empty), so they cannot be ordered. They can still be inspected one by one."
+    },
+    "displacementTypes": {
+      "analepsis": "flashback",
+      "prolepsis": "flashforward",
+      "linear": "linear"
     }
   },
   "unravelingLoadError": "Failed to load build overview data",

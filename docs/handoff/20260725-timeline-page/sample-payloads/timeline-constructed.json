@@ -1,0 +1,3796 @@
+{
+  "bookId": "1a1a7266-59d9-4216-944f-dd7b65a05f8a",
+  "order": "narrative",
+  "events": [
+    {
+      "id": "c9467bc1-9a3b-4887-bbfb-86672c495fa4",
+      "title": "宇文化及艦隊駛向江都",
+      "eventType": "plot",
+      "description": "宇文化及率領五牙大艦艦隊，在天未亮時沿運河駛向江都，準備執行任務。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": null,
+      "storyTimeHint": "此時天尚未亮",
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "ee6d1e62-0749-401d-95a1-e96d5c5027bd",
+          "name": "五牙大艦",
+          "type": "object"
+        },
+        {
+          "id": "5a37ffc9-446d-4512-b14e-58b62218b10a",
+          "name": "江都",
+          "type": "location"
+        },
+        {
+          "id": "c2859f64-d156-4112-b0e9-e9648e831b5c",
+          "name": "運河",
+          "type": "location"
+        }
+      ],
+      "location": {
+        "id": "loc-yangzhou",
+        "name": "揚州"
+      }
+    },
+    {
+      "id": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "title": "宇文化及與張士和談論《長生訣》",
+      "eventType": "revelation",
+      "description": "宇文化及與心腹張士和談論《長生訣》，透露楊廣對此書的痴迷，以及此書目前在石龍手中的情報，並表達了對石龍的輕蔑和奪書的決心。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.0,
+      "storyTimeHint": null,
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "1806d929-1bfb-4029-b8a3-de0c97bbf861",
+          "name": "張士和",
+          "type": "character"
+        },
+        {
+          "id": "90d6d42c-3752-428c-b54d-f9bd6533e72e",
+          "name": "楊廣",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        },
+        {
+          "id": "7b62bddd-8005-4c0a-9089-c0ea6a83f27d",
+          "name": "石龍",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "fd0d7af9-cf2c-47af-a1ed-88fd6d7c0214",
+      "title": "焦邪追查楊公寶藏線索",
+      "eventType": "plot",
+      "description": "「漫天王」王須拔麾下大將焦邪，沿長江疾馳，追查刻有「萬歲」二字的古玉，此玉是隋朝開國大將史萬歲的隨身寶玉，也是尋找「楊公寶藏」的重要線索。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.0196078431372549,
+      "storyTimeHint": null,
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "b1c71f1d-c334-40c1-b7fa-d3fca7253e0d",
+          "name": "焦邪",
+          "type": "character"
+        },
+        {
+          "id": "26533991-3a18-47b7-b1f3-0adad513065c",
+          "name": "王須拔",
+          "type": "character"
+        },
+        {
+          "id": "7663e498-c060-4aa6-9148-c3465f7712c0",
+          "name": "長江",
+          "type": "location"
+        },
+        {
+          "id": "1afaa908-2804-4c63-b95d-046f098114eb",
+          "name": "萬歲",
+          "type": "object"
+        },
+        {
+          "id": "dfb7abad-9564-4242-8536-6e4320ad9ec7",
+          "name": "史萬歲",
+          "type": "character"
+        },
+        {
+          "id": "9617e7cf-f498-4a02-a278-4ab6f6fea7a0",
+          "name": "楊公寶藏",
+          "type": "concept"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "1ee746ec-f306-43d3-b45b-eaa436913706",
+      "title": "焦邪發現五牙大艦",
+      "eventType": "meeting",
+      "description": "焦邪在追查寶玉的過程中，警覺地發現了宇文化及的五牙大艦，意識到有其他勢力介入，隨即帶手下隱入密林。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": null,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "b1c71f1d-c334-40c1-b7fa-d3fca7253e0d",
+          "name": "焦邪",
+          "type": "character"
+        },
+        {
+          "id": "ee6d1e62-0749-401d-95a1-e96d5c5027bd",
+          "name": "五牙大艦",
+          "type": "object"
+        },
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "c2859f64-d156-4112-b0e9-e9648e831b5c",
+          "name": "運河",
+          "type": "location"
+        }
+      ],
+      "location": {
+        "id": "loc-jiangdu",
+        "name": "江都"
+      }
+    },
+    {
+      "id": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "title": "寇仲與徐子陵的困境與抱負",
+      "eventType": "plot",
+      "description": "寇仲和徐子陵這對孤兒兄弟，在揚州廢棄莊園中艱難度日，因欠錢被言老大毆打。他們渴望加入義軍，改變命運，並通過偷學武功和聽課來提升自己。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.0392156862745098,
+      "storyTimeHint": null,
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "8e78471e-6878-437c-9d28-f5fa15519fe1",
+          "name": "徐",
+          "type": "character"
+        },
+        {
+          "id": "bc19c304-b043-4380-9e58-544c04ed2aa4",
+          "name": "言老大",
+          "type": "character"
+        },
+        {
+          "id": "9ddd0a6a-b797-42a2-b8bb-7aa5fca0bea5",
+          "name": "算死草",
+          "type": "character"
+        },
+        {
+          "id": "fae026a5-92e4-4a93-bbd6-f706fee731d8",
+          "name": "白老夫子",
+          "type": "character"
+        },
+        {
+          "id": "7b62bddd-8005-4c0a-9089-c0ea6a83f27d",
+          "name": "石龍",
+          "type": "character"
+        },
+        {
+          "id": "ea87b55c-e8d9-4045-82cc-7db54502d163",
+          "name": "貞嫂",
+          "type": "character"
+        },
+        {
+          "id": "4cda564f-f736-45c7-b2b9-52ab4b135318",
+          "name": "李子通",
+          "type": "character"
+        },
+        {
+          "id": "9228fcf5-72d8-4ad5-a26a-b0af37c96931",
+          "name": "彭孝才",
+          "type": "character"
+        },
+        {
+          "id": "b15f6ccf-e5af-4654-8bec-5edfead4e30f",
+          "name": "楊公卿",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "90b41d8f-e453-4d78-ae41-910fdf66c093",
+      "title": "石龍研習《長生訣》",
+      "eventType": "plot",
+      "description": "揚州第一高手石龍獨居城郊，潛心研習道家寶典《長生訣》三年，但仍未能破譯其奧秘，只感到寶藏近在眼前卻苦無鑰匙。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": null,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "7b62bddd-8005-4c0a-9089-c0ea6a83f27d",
+          "name": "石龍",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        },
+        {
+          "id": "706db604-ff10-41e7-95ff-af8b8a9e4996",
+          "name": "廣成子",
+          "type": "character"
+        },
+        {
+          "id": "51944ddc-7a19-4ddb-8392-b31f8967fa62",
+          "name": "黃帝",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "08149f80-7b04-44cc-8013-28de42f05482",
+      "title": "焦邪與白衣女子在破廟相遇",
+      "eventType": "meeting",
+      "description": "焦邪帶領手下包圍一座破廟，向廟內的白衣女子表明身份並詢問寶玉之事。白衣女子則表示在等他們來試劍。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": null,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "b1c71f1d-c334-40c1-b7fa-d3fca7253e0d",
+          "name": "焦邪",
+          "type": "character"
+        },
+        {
+          "id": "f5784349-7a1b-494b-a75a-9cb4c51a1f4e",
+          "name": "白衣女子",
+          "type": "character"
+        },
+        {
+          "id": "5a98aa5d-d5ac-40f1-b07a-998f1c00b2ed",
+          "name": "奪命刀",
+          "type": "object"
+        },
+        {
+          "id": "1afaa908-2804-4c63-b95d-046f098114eb",
+          "name": "萬歲",
+          "type": "object"
+        }
+      ],
+      "location": {
+        "id": "loc-luoyang",
+        "name": "洛陽"
+      }
+    },
+    {
+      "id": "e8429c16-de1c-44d7-a9c3-34dd324ea4e2",
+      "title": "白衣女子擊殺焦邪及其手下",
+      "eventType": "battle",
+      "description": "白衣女子以驚人的劍法，在短時間內擊殺了焦邪及其所有手下，展現了其超凡的武藝和冷酷無情。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": null,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "f5784349-7a1b-494b-a75a-9cb4c51a1f4e",
+          "name": "白衣女子",
+          "type": "character"
+        },
+        {
+          "id": "b1c71f1d-c334-40c1-b7fa-d3fca7253e0d",
+          "name": "焦邪",
+          "type": "character"
+        },
+        {
+          "id": "5a98aa5d-d5ac-40f1-b07a-998f1c00b2ed",
+          "name": "奪命刀",
+          "type": "object"
+        },
+        {
+          "id": "b7afc859-5425-4617-a4c1-74c3eff4735b",
+          "name": "長劍",
+          "type": "object"
+        },
+        {
+          "id": "aff9752b-d2d8-4efe-97bc-247b45af5669",
+          "name": "斷刀柄",
+          "type": "object"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "a91f3661-265c-47f1-b004-31e3ff54e854",
+      "title": "宇文化及拜訪石龍奪取《長生訣》",
+      "eventType": "conflict",
+      "description": "宇文化及來到石龍的莊院，以言語諷刺和威脅石龍交出《長生訣》，並暗示若不從將禍及石龍的弟子和武館。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": null,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "7b62bddd-8005-4c0a-9089-c0ea6a83f27d",
+          "name": "石龍",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        },
+        {
+          "id": "74d1c4bb-9598-45e5-9610-b592f63d75c3",
+          "name": "宇文閥",
+          "type": "organization"
+        },
+        {
+          "id": "90d6d42c-3752-428c-b54d-f9bd6533e72e",
+          "name": "楊廣",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "c1468ebf-a084-4a03-acf1-d527a9eb1a03",
+      "title": "宇文化及與石龍的首次交手",
+      "eventType": "conflict",
+      "description": "宇文化及在言語威脅無果後，突然出手，以「冰玄勁」隔空一拳擊向石龍。石龍憑藉深厚內功擋下，但宇文化及的武功之奇異令石龍感到棘手。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": null,
+      "storyTimeHint": "前天剛過大暑",
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "7b62bddd-8005-4c0a-9089-c0ea6a83f27d",
+          "name": "石龍",
+          "type": "character"
+        },
+        {
+          "id": "3789b485-8b40-4788-8ba8-88a7ea18a564",
+          "name": "冰玄勁",
+          "type": "concept"
+        }
+      ],
+      "location": {
+        "id": "loc-yangzhou",
+        "name": "揚州"
+      }
+    },
+    {
+      "id": "6ffe42ae-1e75-4379-9874-a72b18d90d00",
+      "title": "石龍拒絕交出《長生訣》並逃脫",
+      "eventType": "conflict",
+      "description": "石龍在與宇文化及的激戰中，明知不敵，但為阻止《長生訣》落入楊廣之手，決定拚死一搏。他以自毀式的奇招重創宇文化及，並趁機通過活門逃入地道。",
+      "chapter": 1,
+      "chapterTitle": "相依為命",
+      "narrativeMode": "present",
+      "chronologicalRank": null,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "7b62bddd-8005-4c0a-9089-c0ea6a83f27d",
+          "name": "石龍",
+          "type": "character"
+        },
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        },
+        {
+          "id": "3789b485-8b40-4788-8ba8-88a7ea18a564",
+          "name": "冰玄勁",
+          "type": "concept"
+        },
+        {
+          "id": "367cad84-0a42-47dc-ba5d-4f86a844e48a",
+          "name": "推山掌",
+          "type": "concept"
+        },
+        {
+          "id": "90d6d42c-3752-428c-b54d-f9bd6533e72e",
+          "name": "楊廣",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "3b0d17f6-6ef3-4d23-9076-d87833d78e47",
+      "title": "揚州城門啟關與市集繁忙",
+      "eventType": "plot",
+      "description": "揚州城門於卯時中啟關，商旅農民爭相出入，舟船貨物運進城，車馬喧逐。揚州作為對外轉運站，比其他城市更繁忙。城內外官兵增多，檢查嚴格，氣氛異樣。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "present",
+      "chronologicalRank": null,
+      "storyTimeHint": "卯時中",
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "9601cb6a-8aa4-4752-a9bf-d41d5f830b39",
+          "name": "揚州",
+          "type": "location"
+        },
+        {
+          "id": "8e5c6e15-fde5-4a35-8fb9-d72731dc42cf",
+          "name": "官兵",
+          "type": "organization"
+        },
+        {
+          "id": "6b560a96-7ceb-46f8-bb1f-956a2ac9384d",
+          "name": "禁衛官",
+          "type": "organization"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "title": "徐子陵向貞嫂賒包子",
+      "eventType": "plot",
+      "description": "徐子陵在南門市集老馮的包子鋪向貞嫂賒了六個菜肉包子。貞嫂擔心被老馮和惡大婦發現，但仍心軟給了徐子陵包子，並叮囑這是最後一趟。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.23529411764705882,
+      "storyTimeHint": null,
+      "eventImportance": "SATELLITE",
+      "participants": [
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "ea87b55c-e8d9-4045-82cc-7db54502d163",
+          "name": "貞嫂",
+          "type": "character"
+        },
+        {
+          "id": "10d93878-49ec-4c96-88ab-bdf1538e1059",
+          "name": "老馮",
+          "type": "character"
+        },
+        {
+          "id": "e053f469-b128-4b08-8b03-8404b9293219",
+          "name": "惡大婦",
+          "type": "character"
+        }
+      ],
+      "location": {
+        "id": "loc-jiangdu",
+        "name": "江都"
+      }
+    },
+    {
+      "id": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "title": "寇仲與徐子陵會合並討論扒竊",
+      "eventType": "plot",
+      "description": "寇仲與徐子陵會合，分享包子。兩人討論在市集尋找「肥羊」扒竊，寇仲提議找年紀大、衣著華麗、單身且心事重重的人下手。徐子陵回憶上次因寇仲的「盜亦有道」而挨揍。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "parallel",
+      "chronologicalRank": 0.11764705882352941,
+      "storyTimeHint": null,
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "bc19c304-b043-4380-9e58-544c04ed2aa4",
+          "name": "言老大",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "title": "寇仲與徐子陵盯上田文",
+      "eventType": "plot",
+      "description": "寇仲和徐子陵在大街上發現一位衣著華麗、神色匆匆的老儒生田文，其特徵完全符合寇仲的「肥羊」條件，並注意到他後腰藏有錢袋。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "parallel",
+      "chronologicalRank": 0.13725490196078433,
+      "storyTimeHint": null,
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "a8dee86d-3a6c-4569-b3cc-16e224dd7bc7",
+          "name": "田文",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "title": "寇仲與徐子陵躲避官兵並討論未來",
+      "eventType": "plot",
+      "description": "寇仲和徐子陵在追蹤田文時，突然遇到一隊官兵，兩人倉皇躲進橫巷。寇仲異想天開地提議報考科舉，徐子陵則抱怨他朝令夕改，之前還說要投效義軍。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "parallel",
+      "chronologicalRank": 0.1568627450980392,
+      "storyTimeHint": null,
+      "eventImportance": "SATELLITE",
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "8e5c6e15-fde5-4a35-8fb9-d72731dc42cf",
+          "name": "官兵",
+          "type": "organization"
+        }
+      ],
+      "location": {
+        "id": "loc-luoyang",
+        "name": "洛陽"
+      }
+    },
+    {
+      "id": "3215570d-8e85-4284-8719-477773178673",
+      "title": "田文被宇文化及逮捕",
+      "eventType": "conflict",
+      "description": "老儒生田文因城門森嚴而不敢出城，心中彷徨時，被宇文化及及其手下攔住並挾持。宇文化及質問田文石龍的死因，並搜查他身上的《長生訣》。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.058823529411764705,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "a8dee86d-3a6c-4569-b3cc-16e224dd7bc7",
+          "name": "田文",
+          "type": "character"
+        },
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "1806d929-1bfb-4029-b8a3-de0c97bbf861",
+          "name": "張士和",
+          "type": "character"
+        },
+        {
+          "id": "03a76053-09f7-48ca-a7c2-64a6b1959b08",
+          "name": "守備大人",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "21d38337-7dac-44d8-b8b6-889cdb4b09ca",
+      "title": "《長生訣》失竊與宇文化及的反應",
+      "eventType": "revelation",
+      "description": "張士和發現田文背後的衣服被割破，《長生訣》已失竊。宇文化及大怒，命令守備大人封閉城門，並搜捕所有小偷地痞，威脅若交不出寶書就性命不保。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.0784313725490196,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "1806d929-1bfb-4029-b8a3-de0c97bbf861",
+          "name": "張士和",
+          "type": "character"
+        },
+        {
+          "id": "a8dee86d-3a6c-4569-b3cc-16e224dd7bc7",
+          "name": "田文",
+          "type": "character"
+        },
+        {
+          "id": "03a76053-09f7-48ca-a7c2-64a6b1959b08",
+          "name": "守備大人",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "46487d3a-e85c-4840-a81a-c49b238a7d3f",
+      "title": "寇仲與徐子陵得到《長生訣》",
+      "eventType": "plot",
+      "description": "寇仲和徐子陵在城東橫巷內翻看扒來的《長生訣》。徐子陵對其鬼畫符般的內容感到失望，寇仲則興奮地認為這是三皇五帝時的武學秘笈，練成可天下無敵。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.17647058823529413,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        },
+        {
+          "id": "e96ade4c-56bd-4c57-94bc-6c500a58b7d5",
+          "name": "石師傅",
+          "type": "character"
+        }
+      ],
+      "location": {
+        "id": "loc-yangzhou",
+        "name": "揚州"
+      }
+    },
+    {
+      "id": "5426ed46-5600-4fe3-b89c-1a831d81298f",
+      "title": "宇文化及與尉遲勝密謀",
+      "eventType": "alliance",
+      "description": "宇文化及在總管府與揚州總管尉遲勝密談。兩人關係非比尋常，密謀利用《長生訣》害死楊廣，並推翻隋朝，復辟北周。他們還討論了李閥和突厥的威脅。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.09803921568627451,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "400b5f5f-2f46-47f9-b545-dcdea9ac1334",
+          "name": "尉遲勝",
+          "type": "character"
+        },
+        {
+          "id": "90d6d42c-3752-428c-b54d-f9bd6533e72e",
+          "name": "楊廣",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        },
+        {
+          "id": "2b96d31b-9032-4537-b777-d66814f58ba3",
+          "name": "李淵",
+          "type": "character"
+        },
+        {
+          "id": "443f357d-bba5-41b6-9d67-af8af2fce7a9",
+          "name": "獨孤太后",
+          "type": "character"
+        },
+        {
+          "id": "ff132753-8760-4928-af6e-a3bc384b1837",
+          "name": "突厥",
+          "type": "organization"
+        },
+        {
+          "id": "4de2513d-b93d-4e4c-8b49-c3ae6eae7056",
+          "name": "宇文門閥",
+          "type": "organization"
+        },
+        {
+          "id": "d21f7aac-5ece-4cbb-b6cf-8a6260b19b8d",
+          "name": "北周",
+          "type": "organization"
+        },
+        {
+          "id": "f07e3285-da7a-4c57-abcc-6da548a4b1d8",
+          "name": "大隋朝",
+          "type": "organization"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "ace11661-6f76-45a6-9506-1558fff9360a",
+      "title": "宇文化及得知《長生訣》盜竊者身份",
+      "eventType": "revelation",
+      "description": "張士和向宇文化及和尉遲勝報告，根據田文的口供，盜走《長生訣》的是揚州兩個小扒手寇仲和徐子陵，他們的老大是言寬。宇文化及和尉遲勝大喜，認為易於追捕。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.19607843137254902,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "400b5f5f-2f46-47f9-b545-dcdea9ac1334",
+          "name": "尉遲勝",
+          "type": "character"
+        },
+        {
+          "id": "1806d929-1bfb-4029-b8a3-de0c97bbf861",
+          "name": "張士和",
+          "type": "character"
+        },
+        {
+          "id": "a8dee86d-3a6c-4569-b3cc-16e224dd7bc7",
+          "name": "田文",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "1f3a95ae-a804-433e-bed0-9a8c3091cdd9",
+          "name": "言寬",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "353cfd77-c15e-4823-b0cc-5a184062eab2",
+      "title": "寇仲與徐子陵躲避追捕",
+      "eventType": "conflict",
+      "description": "徐子陵發現言老大被十多名大漢押著朝廢園走來，立即與寇仲躲進地穴。他們聽到言老大被毒打，並得知追捕者正在尋找他們和《長生訣》。追捕者還提到石龍武場已被封。",
+      "chapter": 2,
+      "chapterTitle": "大禍臨頭",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.21568627450980393,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "bc19c304-b043-4380-9e58-544c04ed2aa4",
+          "name": "言老大",
+          "type": "character"
+        },
+        {
+          "id": "8e5c6e15-fde5-4a35-8fb9-d72731dc42cf",
+          "name": "官兵",
+          "type": "organization"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        },
+        {
+          "id": "b43ab57a-ef5a-4fea-b23c-14c7ddbed3ad",
+          "name": "石龍武場",
+          "type": "organization"
+        }
+      ],
+      "location": {
+        "id": "loc-jiangdu",
+        "name": "江都"
+      }
+    },
+    {
+      "id": "8ca61d93-2733-46bd-a769-e47d24b76f3b",
+      "title": "寇仲與徐子陵溪邊洗浴遇白衣女子",
+      "eventType": "meeting",
+      "description": "寇仲和徐子陵在溪邊洗澡時，遇到一位神秘的白衣女子。白衣女子以高強武功教訓了他們，並詢問石龍的情況。",
+      "chapter": 3,
+      "chapterTitle": "遠離揚州",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.29411764705882354,
+      "storyTimeHint": "午後",
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "f5784349-7a1b-494b-a75a-9cb4c51a1f4e",
+          "name": "白衣女子",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "c691c142-5596-4502-a938-124df0692744",
+      "title": "寇仲與徐子陵發現揚州城異變",
+      "eventType": "revelation",
+      "description": "寇仲和徐子陵在山丘上觀察到長江下游有大量軍艦和快艇檢查船隻，並得知揚州城門關閉、石龍家院被封的消息。",
+      "chapter": 3,
+      "chapterTitle": "遠離揚州",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.3137254901960784,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "9601cb6a-8aa4-4752-a9bf-d41d5f830b39",
+          "name": "揚州",
+          "type": "location"
+        },
+        {
+          "id": "7b62bddd-8005-4c0a-9089-c0ea6a83f27d",
+          "name": "石龍",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "b8999eb8-9791-471b-b1bb-f8bcd45444e5",
+      "title": "寇仲與徐子陵被追捕跳江",
+      "eventType": "conflict",
+      "description": "寇仲和徐子陵在山林中被狗兵和騎兵追捕，情急之下，兩人決定跳入長江逃生。",
+      "chapter": 3,
+      "chapterTitle": "遠離揚州",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.3333333333333333,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "7663e498-c060-4aa6-9148-c3465f7712c0",
+          "name": "長江",
+          "type": "location"
+        },
+        {
+          "id": "4bc0c355-bfb9-45b1-a658-f2054d8a4219",
+          "name": "隋人",
+          "type": "organization"
+        }
+      ],
+      "location": {
+        "id": "loc-luoyang",
+        "name": "洛陽"
+      }
+    },
+    {
+      "id": "3917a706-d6a2-4bd3-b10f-975fbfaeb347",
+      "title": "白衣女子漁舟救助寇仲與徐子陵",
+      "eventType": "alliance",
+      "description": "寇仲和徐子陵在江中掙扎時，白衣女子駕駛漁舟出現，用長索將兩人救上船。",
+      "chapter": 3,
+      "chapterTitle": "遠離揚州",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.35294117647058826,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "f5784349-7a1b-494b-a75a-9cb4c51a1f4e",
+          "name": "白衣女子",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "50da4bec-bd1a-491b-a056-9543713563a4",
+          "name": "漁舟",
+          "type": "object"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "fa0a1cc5-93fe-4465-9745-7f1e8590f193",
+      "title": "宇文化及追擊白衣女子並交鋒",
+      "eventType": "battle",
+      "description": "宇文化及率領追兵沿江追來，並親自飛身撲向漁舟，與白衣女子展開激烈交鋒。白衣女子以精妙劍術與宇文化及的冰玄勁對抗，最終迫退宇文化及。",
+      "chapter": 3,
+      "chapterTitle": "遠離揚州",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.37254901960784315,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "f5784349-7a1b-494b-a75a-9cb4c51a1f4e",
+          "name": "白衣女子",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "b7afc859-5425-4617-a4c1-74c3eff4735b",
+          "name": "長劍",
+          "type": "object"
+        },
+        {
+          "id": "3789b485-8b40-4788-8ba8-88a7ea18a564",
+          "name": "冰玄勁",
+          "type": "concept"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "d0daa51d-1f5a-4b79-84fb-86ecd8031c9d",
+      "title": "白衣女子重傷吐血",
+      "eventType": "revelation",
+      "description": "白衣女子在擊退宇文化及後，竹笠碎裂，露出蒼白面容，隨後吐血重傷，盤膝閉目療傷。",
+      "chapter": 3,
+      "chapterTitle": "遠離揚州",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.39215686274509803,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "f5784349-7a1b-494b-a75a-9cb4c51a1f4e",
+          "name": "白衣女子",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        }
+      ],
+      "location": {
+        "id": "loc-yangzhou",
+        "name": "揚州"
+      }
+    },
+    {
+      "id": "45969b9f-e431-400d-b8ec-9945987f0d4c",
+      "title": "白衣女甦醒並與寇徐對話",
+      "eventType": "meeting",
+      "description": "白衣女從昏迷中甦醒，對寇仲和徐子陵怒目而視，並詢問他們身處何地以及宇文化及追捕他們的原因。",
+      "chapter": 4,
+      "chapterTitle": "糾纏不清",
+      "narrativeMode": "flashback",
+      "chronologicalRank": 0.4117647058823529,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "b62f6768-fa17-4342-8aa2-754c643c949a",
+      "title": "漁舟遭遇風暴沉沒",
+      "eventType": "conflict",
+      "description": "在江上航行時，漁舟遭遇狂風暴雨，最終撞上不明物體傾覆沉沒，三人落水。",
+      "chapter": 4,
+      "chapterTitle": "糾纏不清",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.43137254901960786,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "86def8d8-c3cf-469c-b24e-b651aa65fe02",
+          "name": "江水",
+          "type": "location"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "af6e25f0-c18b-4d4e-babb-003909ae6613",
+      "title": "三人被沖上岸邊",
+      "eventType": "plot",
+      "description": "經過長時間的掙扎，寇仲、徐子陵和白衣女被江水沖到岸邊的泥阜，筋疲力盡地倒下。",
+      "chapter": 4,
+      "chapterTitle": "糾纏不清",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.45098039215686275,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "86def8d8-c3cf-469c-b24e-b651aa65fe02",
+          "name": "江水",
+          "type": "location"
+        }
+      ],
+      "location": {
+        "id": "loc-jiangdu",
+        "name": "江都"
+      }
+    },
+    {
+      "id": "8f2c6825-ff76-45ad-b734-24abc0613e47",
+      "title": "巨艦追蹤與躲避",
+      "eventType": "conflict",
+      "description": "三人被沖上岸後，發現六艘燈火通明的五桅巨艦沿江駛來，寇仲和徐子陵驚恐躲藏，最終倖免於難。",
+      "chapter": 4,
+      "chapterTitle": "糾纏不清",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.47058823529411764,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "ee6d1e62-0749-401d-95a1-e96d5c5027bd",
+          "name": "五牙大艦",
+          "type": "object"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "a4e0ec6b-3920-4191-8819-ee5ae97c03a3",
+      "title": "白衣女失蹤與祕笈失而復得",
+      "eventType": "revelation",
+      "description": "寇仲醒來後發現白衣女失蹤，並誤以為《長生訣》被她偷走。白衣女隨後現身，將祕笈擲回給寇仲，並嘲諷其為「騙人玩意」。",
+      "chapter": 4,
+      "chapterTitle": "糾纏不清",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.49019607843137253,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "2cec8824-a2af-43b3-9132-f12d5422102b",
+      "title": "白衣女懲罰寇徐並帶他們離開",
+      "eventType": "conflict",
+      "description": "白衣女要求寇仲和徐子陵自掌嘴巴，並威脅要殺死其中一人。兩人拒絕後試圖逃跑，但被白衣女輕易抓住並帶入野林。",
+      "chapter": 4,
+      "chapterTitle": "糾纏不清",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.5098039215686274,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        }
+      ],
+      "location": {
+        "id": "loc-luoyang",
+        "name": "洛陽"
+      }
+    },
+    {
+      "id": "e4557022-a3e9-4bda-961a-659960f5bb76",
+      "title": "寇徐抵達北坡縣並冒充宇文閥子弟",
+      "eventType": "plot",
+      "description": "寇仲和徐子陵被白衣女帶到北坡縣入口處，白衣女隨後消失。兩人為求食物，冒充宇文化及的侄子「宇文仲」和「宇文陵」，向公差周平、陳望求助。",
+      "chapter": 4,
+      "chapterTitle": "糾纏不清",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.5294117647058824,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "89c7e5a1-6c33-4a11-b1ec-a1ad97207d64",
+          "name": "周平",
+          "type": "character"
+        },
+        {
+          "id": "9152be79-1497-45bb-bb7b-90006e7ed6ff",
+          "name": "陳望",
+          "type": "character"
+        },
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "315d8225-b6e3-406c-b258-10df4f694087",
+          "name": "尉遲叔叔",
+          "type": "character"
+        },
+        {
+          "id": "705ed456-81e1-4ce0-a87d-c4f726c94c5d",
+          "name": "沈縣官",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "6cb3f90d-87a0-4dd6-9d95-6af37febd831",
+      "title": "寇仲徐子陵在北坡縣的冒充生活",
+      "eventType": "plot",
+      "description": "寇仲和徐子陵在北坡縣冒充宇文閥的少爺，受到沈縣丞的巴結和款待，享受著前所未有的舒適生活，但內心仍為脫身之計焦慮。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.5490196078431373,
+      "storyTimeHint": "次日清晨",
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "f869e95a-cd94-4441-86f9-0cece7171833",
+          "name": "沈縣丞",
+          "type": "character"
+        },
+        {
+          "id": "8acd6279-ada6-400a-a0d7-e8e5749179e2",
+          "name": "小娟",
+          "type": "character"
+        },
+        {
+          "id": "89c7e5a1-6c33-4a11-b1ec-a1ad97207d64",
+          "name": "周平",
+          "type": "character"
+        },
+        {
+          "id": "9152be79-1497-45bb-bb7b-90006e7ed6ff",
+          "name": "陳望",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "c37b6f91-8683-497a-8678-5f26d82498c6",
+      "title": "宇文化及追捕消息傳來",
+      "eventType": "revelation",
+      "description": "沈縣丞告知寇仲和徐子陵，宇文化及已派人四處搜尋他們的下落，並隨時會來北坡縣。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "flashback",
+      "chronologicalRank": 0.5686274509803921,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "f869e95a-cd94-4441-86f9-0cece7171833",
+          "name": "沈縣丞",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        }
+      ],
+      "location": {
+        "id": "loc-yangzhou",
+        "name": "揚州"
+      }
+    },
+    {
+      "id": "e022d8c2-25eb-4638-8e26-bd21f02bbc19",
+      "title": "寇仲徐子陵青樓逃脫失敗",
+      "eventType": "plot",
+      "description": "寇仲試圖以去青樓尋樂為藉口，尋找逃脫機會，但沈縣丞派了十多名縣差嚴密護送，使他們無法脫身。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.5882352941176471,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "f869e95a-cd94-4441-86f9-0cece7171833",
+          "name": "沈縣丞",
+          "type": "character"
+        },
+        {
+          "id": "89c7e5a1-6c33-4a11-b1ec-a1ad97207d64",
+          "name": "周平",
+          "type": "character"
+        },
+        {
+          "id": "8e5c6e15-fde5-4a35-8fb9-d72731dc42cf",
+          "name": "官兵",
+          "type": "organization"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "e1f4b665-36b7-492e-b8f8-85f9c4f60343",
+      "title": "白衣女出手相救",
+      "eventType": "turning_point",
+      "description": "在寇仲和徐子陵即將被宇文化及的人追上之際，白衣女突然從天而降，以強勁的武功擊退沈縣丞和衙役，並帶著兩人迅速逃離北坡縣。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.6078431372549019,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "f869e95a-cd94-4441-86f9-0cece7171833",
+          "name": "沈縣丞",
+          "type": "character"
+        },
+        {
+          "id": "8e5c6e15-fde5-4a35-8fb9-d72731dc42cf",
+          "name": "官兵",
+          "type": "organization"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "f31a2ba4-3fae-4700-9c93-ebad0ff01ea5",
+      "title": "白衣女揭示《長生訣》的真相",
+      "eventType": "revelation",
+      "description": "白衣女告訴寇仲和徐子陵，《長生訣》是道家寶典，但與武功無關，並建議他們丟掉它，否則可能招致大禍。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.6274509803921569,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        }
+      ],
+      "location": {
+        "id": "loc-jiangdu",
+        "name": "江都"
+      }
+    },
+    {
+      "id": "0ea22812-2c76-4fbd-ab4c-43bea0c44b31",
+      "title": "白衣女對練武資質的看法",
+      "eventType": "revelation",
+      "description": "白衣女指出寇仲和徐子陵資質極佳，但錯過了練武的最佳年齡（五歲至十五歲），認為他們現在起步事倍功半，難以成為頂尖高手。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.6470588235294118,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "51177cd7-f0de-4b1d-b45b-0199fe327d00",
+      "title": "丹陽城內尋食與白衣女的錢財問題",
+      "eventType": "plot",
+      "description": "三人來到丹陽城，寇仲和徐子陵因飢餓要求吃飯，卻發現白衣女的錢財在逃跑時掉入江中。白衣女對此抱怨，並前往當鋪變賣銀兩。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.6666666666666666,
+      "storyTimeHint": "次日清晨",
+      "eventImportance": "SATELLITE",
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "50256854-a7f3-4211-b301-7e7f4a4fb8c0",
+      "title": "酒樓用餐與宋師道結賬",
+      "eventType": "meeting",
+      "description": "白衣女變賣銀兩後，帶寇仲和徐子陵到酒樓大吃一頓。用餐時，一位衣飾華貴的年輕公子宋師道頻頻看向白衣女，並在他們不知情的情況下為他們結了賬。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.6862745098039216,
+      "storyTimeHint": null,
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        }
+      ],
+      "location": {
+        "id": "loc-luoyang",
+        "name": "洛陽"
+      }
+    },
+    {
+      "id": "95d75101-9110-4b6f-a2f1-4874b27d31ce",
+      "title": "宋師道告知江船折返原因",
+      "eventType": "revelation",
+      "description": "宋師道主動向白衣女解釋，江船紛紛折返是因為東海李子通的義軍與杜伏威結盟，大破隋師，並派兵直逼歷陽，導致長江水路交通可能被截斷。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.7058823529411765,
+      "storyTimeHint": null,
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "4cda564f-f736-45c7-b2b9-52ab4b135318",
+          "name": "李子通",
+          "type": "character"
+        },
+        {
+          "id": "61daee76-348a-48d6-bc7b-d71329786387",
+          "name": "杜伏威",
+          "type": "character"
+        },
+        {
+          "id": "ea82f7c2-b0d0-4fb3-a457-17c4b3a2a1cf",
+          "name": "隋師",
+          "type": "organization"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "3e61e985-0eae-4c22-8aef-50049a0d4633",
+      "title": "寇仲徐子陵與白衣女的再次分離與重聚",
+      "eventType": "plot",
+      "description": "寇仲和徐子陵決定與白衣女各走各路，選擇陸路離開。白衣女卻追上他們，解釋是為了防止宇文化及奪取《長生訣》才送他們一程，並強行將兩人帶上宋師道的船。",
+      "chapter": 5,
+      "chapterTitle": "晴天霹靂",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.7254901960784313,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "07b0da89-550d-48a6-8d18-320bc9ee9dc7",
+      "title": "宋閥販運私鹽",
+      "eventType": "plot",
+      "description": "宋閥利用其在南方的勢力，公然販運私鹽，並以威嚇、刺殺等手段應付官吏查緝，甚至支持義軍以削弱大隋力量。宋師道負責此項營運。",
+      "chapter": 6,
+      "chapterTitle": "九玄大法",
+      "narrativeMode": "flashforward",
+      "chronologicalRank": null,
+      "storyTimeHint": "這幾年",
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "307e5307-ba92-4df8-94a1-80d842b2a16a",
+          "name": "宋閥",
+          "type": "organization"
+        },
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        },
+        {
+          "id": "cb0aff7e-f62c-48f5-824c-d9b217c2467e",
+          "name": "宋缺",
+          "type": "character"
+        },
+        {
+          "id": "a00a5487-f4a9-47c8-a410-9e23a0ae7cbd",
+          "name": "宋智",
+          "type": "character"
+        },
+        {
+          "id": "90d6d42c-3752-428c-b54d-f9bd6533e72e",
+          "name": "楊廣",
+          "type": "character"
+        },
+        {
+          "id": "9b135edb-dc4b-48b4-b01f-b8611bf15d14",
+          "name": "大隋",
+          "type": "organization"
+        }
+      ],
+      "location": {
+        "id": "loc-yangzhou",
+        "name": "揚州"
+      }
+    },
+    {
+      "id": "6f1ae2ca-f018-4a50-8636-1d268301b9cc",
+      "title": "宋解兩家聯姻",
+      "eventType": "alliance",
+      "description": "宋缺的女兒宋玉華三年前下嫁給四川大豪解暉之子解文龍，此婚姻是宋解兩大勢力的政治結盟，使楊廣更不敢輕舉妄動。",
+      "chapter": 6,
+      "chapterTitle": "九玄大法",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.2549019607843137,
+      "storyTimeHint": "三年前",
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "ed15007f-affc-4a6b-8dd3-a2e42a5a22ff",
+          "name": "宋玉華",
+          "type": "character"
+        },
+        {
+          "id": "843f894b-d551-45b3-bc0f-7b74e619e2cf",
+          "name": "解文龍",
+          "type": "character"
+        },
+        {
+          "id": "cb0aff7e-f62c-48f5-824c-d9b217c2467e",
+          "name": "宋缺",
+          "type": "character"
+        },
+        {
+          "id": "033ab163-69e2-4ed2-9e60-adc023bc7cf6",
+          "name": "解暉",
+          "type": "character"
+        },
+        {
+          "id": "307e5307-ba92-4df8-94a1-80d842b2a16a",
+          "name": "宋閥",
+          "type": "organization"
+        },
+        {
+          "id": "58178350-30a4-4f39-9fe2-794b26f7ca4f",
+          "name": "獨尊堡",
+          "type": "organization"
+        },
+        {
+          "id": "90d6d42c-3752-428c-b54d-f9bd6533e72e",
+          "name": "楊廣",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "5f30617f-6bd3-4d3d-a099-556b8b91dd80",
+      "title": "寇仲與徐子陵研究《長生訣》",
+      "eventType": "plot",
+      "description": "寇仲在船艙內研究《長生訣》中的人像圖形，而徐子陵則在一旁心事重重。",
+      "chapter": 6,
+      "chapterTitle": "九玄大法",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.7450980392156863,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "162e5669-7bf7-4f09-9a69-ab724e487cc6",
+      "title": "徐子陵對白衣女的感情困惑",
+      "eventType": "revelation",
+      "description": "徐子陵對自己見到白衣女與宋師道說話時產生的妒忌之心感到困惑，不確定是否愛上了她，並與寇仲討論。",
+      "chapter": 6,
+      "chapterTitle": "九玄大法",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.7647058823529411,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        }
+      ],
+      "location": {
+        "id": "loc-jiangdu",
+        "name": "江都"
+      }
+    },
+    {
+      "id": "53bff753-bcb1-41a7-b716-35fae419458f",
+      "title": "白衣女現身並訓斥寇仲徐子陵",
+      "eventType": "conflict",
+      "description": "白衣女聽到寇仲和徐子陵在背後談論她和宋師道，並稱宋師道為「臭屁道」，一臉寒霜地走進艙房訓斥兩人，但最終嘴角逸出笑意，顯示並非真怒。",
+      "chapter": 6,
+      "chapterTitle": "九玄大法",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.7843137254901961,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "f76c12e5-467e-47ba-801d-e869a6d306d8",
+      "title": "寇仲徐子陵認傅君婥為「娘」",
+      "eventType": "meeting",
+      "description": "寇仲和徐子陵在與白衣女的互動中，戲稱她為「娘」，白衣女雖口頭不承認，但內心湧起溫暖，並最終透露自己名叫傅君婥。",
+      "chapter": 6,
+      "chapterTitle": "九玄大法",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.803921568627451,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "3e0840ee-9ae1-4786-96b5-fcf41f4e0804",
+          "name": "白衣女",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "077ad32b-6bc1-4c93-b42d-42118ad0085e",
+      "title": "傅君婥傳授「九玄大法」",
+      "eventType": "plot",
+      "description": "傅君婥向寇仲和徐子陵傳授其師傅采林的上乘法訣「九玄大法」的基本功，並強調其修煉要旨。",
+      "chapter": 6,
+      "chapterTitle": "九玄大法",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.8235294117647058,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "c8f09e51-93aa-4e50-8662-d946936c8e7e",
+          "name": "九玄大法",
+          "type": "concept"
+        },
+        {
+          "id": "b7906e62-085d-4945-abf8-dd742addca5b",
+          "name": "傅采林",
+          "type": "character"
+        }
+      ],
+      "location": {
+        "id": "loc-luoyang",
+        "name": "洛陽"
+      }
+    },
+    {
+      "id": "46630326-d84c-4181-b1a1-bde18a5cb1bc",
+      "title": "寇仲徐子陵展現武學天賦",
+      "eventType": "revelation",
+      "description": "寇仲和徐子陵在聽傅君婥講解「九玄大法」時，展現出驚人的理解力和悟性，甚至能比傅君婥的師父更清楚地解釋法訣，令傅君婥目瞪口呆。",
+      "chapter": 6,
+      "chapterTitle": "九玄大法",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.8431372549019608,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "c8f09e51-93aa-4e50-8662-d946936c8e7e",
+          "name": "九玄大法",
+          "type": "concept"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "002b0817-be63-4ca1-81f8-ff52d164c30d",
+      "title": "宋師道設宴款待傅君婥一行",
+      "eventType": "meeting",
+      "description": "宋師道在艙廳設宴款待傅君婥、寇仲和徐子陵。宋魯和柳菁也出席了宴席。席間，宋魯試探傅君婥的來歷，宋師道則對傅君婥產生愛慕。",
+      "chapter": 7,
+      "chapterTitle": "和氏之璧",
+      "narrativeMode": "flashback",
+      "chronologicalRank": 0.8627450980392157,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "0050a028-4cc9-495a-ac17-65f77357e2f2",
+          "name": "宋魯",
+          "type": "character"
+        },
+        {
+          "id": "21b7f4e3-8ab2-42be-bd41-6938a2c53120",
+          "name": "柳菁",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "9659fd60-6f82-4907-93b8-bcc7bfa01ee7",
+      "title": "寇仲與徐子陵認傅君婥為娘",
+      "eventType": "other",
+      "description": "在宴席上，寇仲和徐子陵為了掩飾身份，故意稱傅君婥為「娘」，引發眾人莞爾和傅君婥的尷尬。",
+      "chapter": 7,
+      "chapterTitle": "和氏之璧",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.8823529411764706,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        },
+        {
+          "id": "0050a028-4cc9-495a-ac17-65f77357e2f2",
+          "name": "宋魯",
+          "type": "character"
+        },
+        {
+          "id": "21b7f4e3-8ab2-42be-bd41-6938a2c53120",
+          "name": "柳菁",
+          "type": "character"
+        }
+      ],
+      "location": {
+        "id": "loc-yangzhou",
+        "name": "揚州"
+      }
+    },
+    {
+      "id": "d87c4a3c-d79c-4006-a1ff-8a41b3181682",
+      "title": "宋魯介紹和氏璧歷史",
+      "eventType": "revelation",
+      "description": "宋魯和宋師道向眾人講述了和氏璧從卞和獻寶、秦始皇製璽、漢高祖得璽、王莽摔璧到孫堅、曹操、楊堅等歷代傳承的故事。",
+      "chapter": 7,
+      "chapterTitle": "和氏之璧",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.9019607843137255,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "0050a028-4cc9-495a-ac17-65f77357e2f2",
+          "name": "宋魯",
+          "type": "character"
+        },
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "21b7f4e3-8ab2-42be-bd41-6938a2c53120",
+          "name": "柳菁",
+          "type": "character"
+        },
+        {
+          "id": "1b630557-e455-45f1-832e-e738a4e92cbf",
+          "name": "卞和",
+          "type": "character"
+        },
+        {
+          "id": "6faa910f-c9d5-430e-b69f-ad19c46107cd",
+          "name": "楚厲王",
+          "type": "character"
+        },
+        {
+          "id": "8579a7e0-ac49-4625-80ad-596e8018fdc4",
+          "name": "武王",
+          "type": "character"
+        },
+        {
+          "id": "45fd4f6d-ab0f-4eed-b6f3-9ec253820c18",
+          "name": "文王",
+          "type": "character"
+        },
+        {
+          "id": "e12b98c7-7208-48b7-a6a3-3bd195b34be2",
+          "name": "秦昭襄王",
+          "type": "character"
+        },
+        {
+          "id": "f5248de6-9745-4ddd-ad6d-65028b6eedd2",
+          "name": "趙惠文王",
+          "type": "character"
+        },
+        {
+          "id": "de054713-8ecb-431e-9694-4e0bc96bcb55",
+          "name": "藺相如",
+          "type": "character"
+        },
+        {
+          "id": "e2122233-97e3-4f78-bbd3-87e2cb83229b",
+          "name": "秦王",
+          "type": "character"
+        },
+        {
+          "id": "8cd227f9-6e75-4c96-bdbe-21f10675a31c",
+          "name": "秦始皇",
+          "type": "character"
+        },
+        {
+          "id": "e811c3ae-c0fd-498b-bd02-7357ccc4fe08",
+          "name": "李斯",
+          "type": "character"
+        },
+        {
+          "id": "23766f33-1bdc-4cd4-8721-ebd1ffe18aa9",
+          "name": "秦王子嬰",
+          "type": "character"
+        },
+        {
+          "id": "72e7b47a-f9e1-4bae-8eb6-65bd939f3aaa",
+          "name": "王莽",
+          "type": "character"
+        },
+        {
+          "id": "c763d9de-46d0-48ca-bd29-54749bf01b4b",
+          "name": "王舜",
+          "type": "character"
+        },
+        {
+          "id": "1af3ba51-35a1-4735-9c17-ad54e43dc912",
+          "name": "孝元太后",
+          "type": "character"
+        },
+        {
+          "id": "fa27a02d-0d6e-40e4-adc7-ea716413bfae",
+          "name": "漢少帝",
+          "type": "character"
+        },
+        {
+          "id": "c5d28e20-335d-4a2b-bbfe-2a185ac6c4c7",
+          "name": "孫堅",
+          "type": "character"
+        },
+        {
+          "id": "0d505aaf-1f58-4e87-adec-2a521ea9a48e",
+          "name": "曹操",
+          "type": "character"
+        },
+        {
+          "id": "43580f77-c302-4013-b505-1113ba172dec",
+          "name": "楊堅",
+          "type": "character"
+        },
+        {
+          "id": "e88220b5-7d2c-41f1-818f-3b1718a75262",
+          "name": "陳主",
+          "type": "character"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "f24863e2-b929-48b3-af1a-acb6c7d42ed8",
+      "title": "和氏璧與楊公寶藏成為天下爭奪目標",
+      "eventType": "revelation",
+      "description": "宋魯指出「和氏玉璧，楊公寶藏，二者得一，可安天下」，並告知江湖傳言和氏璧在洛陽出現，引發天下人競相爭逐。",
+      "chapter": 7,
+      "chapterTitle": "和氏之璧",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.27450980392156865,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "0050a028-4cc9-495a-ac17-65f77357e2f2",
+          "name": "宋魯",
+          "type": "character"
+        },
+        {
+          "id": "2c3040ac-e211-4ebf-8b71-8fad21ffc512",
+          "name": "和氏璧",
+          "type": "object"
+        },
+        {
+          "id": "9617e7cf-f498-4a02-a278-4ab6f6fea7a0",
+          "name": "楊公寶藏",
+          "type": "concept"
+        },
+        {
+          "id": "5cdcfd8d-d0f9-42dc-9bfe-94a27aca3816",
+          "name": "洛陽",
+          "type": "location"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "a169c3c1-3430-491c-85d4-609ec7e9a982",
+      "title": "傅君婥阻止寇仲徐子陵前往洛陽",
+      "eventType": "conflict",
+      "description": "寇仲對和氏璧產生興趣，傅君婥嚴厲阻止他們前往洛陽，並以「不理你」威脅，顯示出對兩人的深切關懷。",
+      "chapter": 7,
+      "chapterTitle": "和氏之璧",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.9215686274509803,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "5cdcfd8d-d0f9-42dc-9bfe-94a27aca3816",
+          "name": "洛陽",
+          "type": "location"
+        },
+        {
+          "id": "2c3040ac-e211-4ebf-8b71-8fad21ffc512",
+          "name": "和氏璧",
+          "type": "object"
+        }
+      ],
+      "location": {
+        "id": "loc-jiangdu",
+        "name": "江都"
+      }
+    },
+    {
+      "id": "47dda19b-d0fc-4661-9b65-b3c072e173f9",
+      "title": "慈航靜齋的介紹",
+      "eventType": "revelation",
+      "description": "宋師道和宋魯介紹了武林中最神秘的門派慈航靜齋，其至高無上的地位，以及寧道奇挑戰靜齋主持卻受傷的傳聞。",
+      "chapter": 7,
+      "chapterTitle": "和氏之璧",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.9411764705882353,
+      "storyTimeHint": null,
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "f21d365d-7f9a-428b-b0b6-ccaa3d8f4e70",
+          "name": "慈航靜齋",
+          "type": "organization"
+        },
+        {
+          "id": "a7065511-f1a8-4f04-922f-92898b946535",
+          "name": "宋師道",
+          "type": "character"
+        },
+        {
+          "id": "0050a028-4cc9-495a-ac17-65f77357e2f2",
+          "name": "宋魯",
+          "type": "character"
+        },
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "0d2b6a25-9218-4bb8-ad32-e9da5395dfb0",
+          "name": "寧道奇",
+          "type": "character"
+        },
+        {
+          "id": "e08704ee-cd9a-4010-9c59-faa48ce1cbc7",
+          "name": "慈行劍典",
+          "type": "object"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "dcd824b7-038b-4f5b-ab45-0f2998d346c0",
+      "title": "傅君婥解釋救助寇仲徐子陵的原因",
+      "eventType": "revelation",
+      "description": "傅君婥向寇仲和徐子陵解釋了她去而復返，多次救助他們的原因，包括宇文化及的傷勢、對《長生訣》的覬覦，以及她不願做無義之事的心情。",
+      "chapter": 7,
+      "chapterTitle": "和氏之璧",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.9607843137254902,
+      "storyTimeHint": null,
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "5c23961b-21b3-4713-b11a-39a15241e833",
+          "name": "宇文化及",
+          "type": "character"
+        },
+        {
+          "id": "92fe01d7-0251-4e57-a8b5-e10163b20a61",
+          "name": "長生訣",
+          "type": "object"
+        },
+        {
+          "id": "05dbe1e0-a5f8-4249-9565-6a8288e467ea",
+          "name": "高麗王",
+          "type": "character"
+        },
+        {
+          "id": "619c43ca-a7fa-4dd8-900d-3e3ee83f3bb7",
+          "name": "北坡縣",
+          "type": "location"
+        }
+      ],
+      "location": null
+    },
+    {
+      "id": "8dbb05e0-52d7-4d59-8b44-55886b8705eb",
+      "title": "傅君婥傳授九玄子午連環訣",
+      "eventType": "plot",
+      "description": "傅君婥在房間裡向寇仲和徐子陵傳授九玄子午連環訣的打坐練功方法，並要求他們立誓未達第一重境界不得入江湖。",
+      "chapter": 7,
+      "chapterTitle": "和氏之璧",
+      "narrativeMode": "present",
+      "chronologicalRank": 0.9803921568627451,
+      "storyTimeHint": null,
+      "eventImportance": "KERNEL",
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        },
+        {
+          "id": "cc453aae-d407-48e0-bb7c-96987f9ec4df",
+          "name": "九玄子午連環訣",
+          "type": "concept"
+        },
+        {
+          "id": "a5c5ffe5-bce2-4b89-a70f-ded9ff93ee31",
+          "name": "奇經八脈",
+          "type": "concept"
+        }
+      ],
+      "location": {
+        "id": "loc-luoyang",
+        "name": "洛陽"
+      }
+    },
+    {
+      "id": "db4f16c9-50d7-4867-9497-458e71c84df4",
+      "title": "船隻異動與急遽蹄聲",
+      "eventType": "conflict",
+      "description": "在傅君婥傳授武功時，大船突然緩慢下來，岸邊傳來急遽的蹄聲，預示著新的危險即將來臨。",
+      "chapter": 7,
+      "chapterTitle": "和氏之璧",
+      "narrativeMode": "present",
+      "chronologicalRank": 1.0,
+      "storyTimeHint": "三更時分",
+      "eventImportance": null,
+      "participants": [
+        {
+          "id": "11819bad-2e1f-4774-bc28-9c924f1da4e0",
+          "name": "寇仲",
+          "type": "character"
+        },
+        {
+          "id": "e5da7e89-3cd0-40da-8646-ce1b8d39310c",
+          "name": "徐子陵",
+          "type": "character"
+        }
+      ],
+      "location": null
+    }
+  ],
+  "temporalRelations": [
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "fd0d7af9-cf2c-47af-a1ed-88fd6d7c0214",
+      "type": "CAUSES",
+      "confidence": 0.92
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "3215570d-8e85-4284-8719-477773178673",
+      "type": "CAUSES",
+      "confidence": 0.85
+    },
+    {
+      "source": "21d38337-7dac-44d8-b8b6-889cdb4b09ca",
+      "target": "5426ed46-5600-4fe3-b89c-1a831d81298f",
+      "type": "CAUSES",
+      "confidence": 0.71
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "type": "CAUSES",
+      "confidence": 0.63
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "46487d3a-e85c-4840-a81a-c49b238a7d3f",
+      "type": "CAUSES",
+      "confidence": 0.48
+    },
+    {
+      "source": "ace11661-6f76-45a6-9506-1558fff9360a",
+      "target": "353cfd77-c15e-4823-b0cc-5a184062eab2",
+      "type": "CAUSES",
+      "confidence": 0.92
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "6f1ae2ca-f018-4a50-8636-1d268301b9cc",
+      "type": "CAUSES",
+      "confidence": 0.85
+    },
+    {
+      "source": "f24863e2-b929-48b3-af1a-acb6c7d42ed8",
+      "target": "8ca61d93-2733-46bd-a769-e47d24b76f3b",
+      "type": "CAUSES",
+      "confidence": 0.71
+    },
+    {
+      "source": "c691c142-5596-4502-a938-124df0692744",
+      "target": "b8999eb8-9791-471b-b1bb-f8bcd45444e5",
+      "type": "CAUSES",
+      "confidence": 0.63
+    },
+    {
+      "source": "3917a706-d6a2-4bd3-b10f-975fbfaeb347",
+      "target": "fa0a1cc5-93fe-4465-9745-7f1e8590f193",
+      "type": "CAUSES",
+      "confidence": 0.48
+    },
+    {
+      "source": "d0daa51d-1f5a-4b79-84fb-86ecd8031c9d",
+      "target": "45969b9f-e431-400d-b8ec-9945987f0d4c",
+      "type": "CAUSES",
+      "confidence": 0.92
+    },
+    {
+      "source": "b62f6768-fa17-4342-8aa2-754c643c949a",
+      "target": "af6e25f0-c18b-4d4e-babb-003909ae6613",
+      "type": "CAUSES",
+      "confidence": 0.85
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "3215570d-8e85-4284-8719-477773178673",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "21d38337-7dac-44d8-b8b6-889cdb4b09ca",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "5426ed46-5600-4fe3-b89c-1a831d81298f",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "ace11661-6f76-45a6-9506-1558fff9360a",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "fa0a1cc5-93fe-4465-9745-7f1e8590f193",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "45969b9f-e431-400d-b8ec-9945987f0d4c",
+      "type": "before",
+      "confidence": 0.8
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "e4557022-a3e9-4bda-961a-659960f5bb76",
+      "type": "before",
+      "confidence": 0.8
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "c37b6f91-8683-497a-8678-5f26d82498c6",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "dcd824b7-038b-4f5b-ab45-0f2998d346c0",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "07b0da89-550d-48a6-8d18-320bc9ee9dc7",
+      "type": "unknown",
+      "confidence": 0.5
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "6f1ae2ca-f018-4a50-8636-1d268301b9cc",
+      "type": "before",
+      "confidence": 0.7
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "46487d3a-e85c-4840-a81a-c49b238a7d3f",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "353cfd77-c15e-4823-b0cc-5a184062eab2",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "8ca61d93-2733-46bd-a769-e47d24b76f3b",
+      "type": "before",
+      "confidence": 0.8
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "a4e0ec6b-3920-4191-8819-ee5ae97c03a3",
+      "type": "before",
+      "confidence": 0.8
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "f31a2ba4-3fae-4700-9c93-ebad0ff01ea5",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "5f30617f-6bd3-4d3d-a099-556b8b91dd80",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "22270b4c-6796-461e-8af0-cfaea1b6462e",
+      "target": "c691c142-5596-4502-a938-124df0692744",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "fd0d7af9-cf2c-47af-a1ed-88fd6d7c0214",
+      "target": "b8999eb8-9791-471b-b1bb-f8bcd45444e5",
+      "type": "before",
+      "confidence": 0.8
+    },
+    {
+      "source": "fd0d7af9-cf2c-47af-a1ed-88fd6d7c0214",
+      "target": "f24863e2-b929-48b3-af1a-acb6c7d42ed8",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "46487d3a-e85c-4840-a81a-c49b238a7d3f",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "ace11661-6f76-45a6-9506-1558fff9360a",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "353cfd77-c15e-4823-b0cc-5a184062eab2",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "8ca61d93-2733-46bd-a769-e47d24b76f3b",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "c691c142-5596-4502-a938-124df0692744",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "b8999eb8-9791-471b-b1bb-f8bcd45444e5",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "3917a706-d6a2-4bd3-b10f-975fbfaeb347",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "fa0a1cc5-93fe-4465-9745-7f1e8590f193",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "d0daa51d-1f5a-4b79-84fb-86ecd8031c9d",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "45969b9f-e431-400d-b8ec-9945987f0d4c",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "b62f6768-fa17-4342-8aa2-754c643c949a",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "af6e25f0-c18b-4d4e-babb-003909ae6613",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "8f2c6825-ff76-45ad-b734-24abc0613e47",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "a4e0ec6b-3920-4191-8819-ee5ae97c03a3",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "2cec8824-a2af-43b3-9132-f12d5422102b",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "e4557022-a3e9-4bda-961a-659960f5bb76",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "6cb3f90d-87a0-4dd6-9d95-6af37febd831",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "c37b6f91-8683-497a-8678-5f26d82498c6",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "e022d8c2-25eb-4638-8e26-bd21f02bbc19",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "e1f4b665-36b7-492e-b8f8-85f9c4f60343",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "f31a2ba4-3fae-4700-9c93-ebad0ff01ea5",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "0ea22812-2c76-4fbd-ab4c-43bea0c44b31",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "51177cd7-f0de-4b1d-b45b-0199fe327d00",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "50256854-a7f3-4211-b301-7e7f4a4fb8c0",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "95d75101-9110-4b6f-a2f1-4874b27d31ce",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "3e61e985-0eae-4c22-8aef-50049a0d4633",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "5f30617f-6bd3-4d3d-a099-556b8b91dd80",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "162e5669-7bf7-4f09-9a69-ab724e487cc6",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "53bff753-bcb1-41a7-b716-35fae419458f",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "f76c12e5-467e-47ba-801d-e869a6d306d8",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "077ad32b-6bc1-4c93-b42d-42118ad0085e",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "46630326-d84c-4181-b1a1-bde18a5cb1bc",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "002b0817-be63-4ca1-81f8-ff52d164c30d",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "9659fd60-6f82-4907-93b8-bcc7bfa01ee7",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "d87c4a3c-d79c-4006-a1ff-8a41b3181682",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "a169c3c1-3430-491c-85d4-609ec7e9a982",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "47dda19b-d0fc-4661-9b65-b3c072e173f9",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "dcd824b7-038b-4f5b-ab45-0f2998d346c0",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "8dbb05e0-52d7-4d59-8b44-55886b8705eb",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "db4f16c9-50d7-4867-9497-458e71c84df4",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d12b56ca-7d56-4282-9cff-0cb5ac4ec0cb",
+      "target": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "8ca61d93-2733-46bd-a769-e47d24b76f3b",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "c691c142-5596-4502-a938-124df0692744",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "b8999eb8-9791-471b-b1bb-f8bcd45444e5",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "3917a706-d6a2-4bd3-b10f-975fbfaeb347",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "fa0a1cc5-93fe-4465-9745-7f1e8590f193",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "d0daa51d-1f5a-4b79-84fb-86ecd8031c9d",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "45969b9f-e431-400d-b8ec-9945987f0d4c",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "b62f6768-fa17-4342-8aa2-754c643c949a",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "af6e25f0-c18b-4d4e-babb-003909ae6613",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "8f2c6825-ff76-45ad-b734-24abc0613e47",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "a4e0ec6b-3920-4191-8819-ee5ae97c03a3",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "2cec8824-a2af-43b3-9132-f12d5422102b",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "e4557022-a3e9-4bda-961a-659960f5bb76",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "6cb3f90d-87a0-4dd6-9d95-6af37febd831",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "c37b6f91-8683-497a-8678-5f26d82498c6",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "e022d8c2-25eb-4638-8e26-bd21f02bbc19",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "e1f4b665-36b7-492e-b8f8-85f9c4f60343",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "f31a2ba4-3fae-4700-9c93-ebad0ff01ea5",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "0ea22812-2c76-4fbd-ab4c-43bea0c44b31",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "51177cd7-f0de-4b1d-b45b-0199fe327d00",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "50256854-a7f3-4211-b301-7e7f4a4fb8c0",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "95d75101-9110-4b6f-a2f1-4874b27d31ce",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "3e61e985-0eae-4c22-8aef-50049a0d4633",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "5f30617f-6bd3-4d3d-a099-556b8b91dd80",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "162e5669-7bf7-4f09-9a69-ab724e487cc6",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "53bff753-bcb1-41a7-b716-35fae419458f",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "f76c12e5-467e-47ba-801d-e869a6d306d8",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "077ad32b-6bc1-4c93-b42d-42118ad0085e",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "46630326-d84c-4181-b1a1-bde18a5cb1bc",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "002b0817-be63-4ca1-81f8-ff52d164c30d",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "9659fd60-6f82-4907-93b8-bcc7bfa01ee7",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "d87c4a3c-d79c-4006-a1ff-8a41b3181682",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "a169c3c1-3430-491c-85d4-609ec7e9a982",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "47dda19b-d0fc-4661-9b65-b3c072e173f9",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "dcd824b7-038b-4f5b-ab45-0f2998d346c0",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "8dbb05e0-52d7-4d59-8b44-55886b8705eb",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "effb3b16-c026-462b-9e34-64db57a199b9",
+      "target": "db4f16c9-50d7-4867-9497-458e71c84df4",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "8ca61d93-2733-46bd-a769-e47d24b76f3b",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "c691c142-5596-4502-a938-124df0692744",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "b8999eb8-9791-471b-b1bb-f8bcd45444e5",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "3917a706-d6a2-4bd3-b10f-975fbfaeb347",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "fa0a1cc5-93fe-4465-9745-7f1e8590f193",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "d0daa51d-1f5a-4b79-84fb-86ecd8031c9d",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "45969b9f-e431-400d-b8ec-9945987f0d4c",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "b62f6768-fa17-4342-8aa2-754c643c949a",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "af6e25f0-c18b-4d4e-babb-003909ae6613",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "8f2c6825-ff76-45ad-b734-24abc0613e47",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "a4e0ec6b-3920-4191-8819-ee5ae97c03a3",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "2cec8824-a2af-43b3-9132-f12d5422102b",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "e4557022-a3e9-4bda-961a-659960f5bb76",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "6cb3f90d-87a0-4dd6-9d95-6af37febd831",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "c37b6f91-8683-497a-8678-5f26d82498c6",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "e022d8c2-25eb-4638-8e26-bd21f02bbc19",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "e1f4b665-36b7-492e-b8f8-85f9c4f60343",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "f31a2ba4-3fae-4700-9c93-ebad0ff01ea5",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "0ea22812-2c76-4fbd-ab4c-43bea0c44b31",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "51177cd7-f0de-4b1d-b45b-0199fe327d00",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "50256854-a7f3-4211-b301-7e7f4a4fb8c0",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "95d75101-9110-4b6f-a2f1-4874b27d31ce",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "3e61e985-0eae-4c22-8aef-50049a0d4633",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "5f30617f-6bd3-4d3d-a099-556b8b91dd80",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "162e5669-7bf7-4f09-9a69-ab724e487cc6",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "53bff753-bcb1-41a7-b716-35fae419458f",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "f76c12e5-467e-47ba-801d-e869a6d306d8",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "077ad32b-6bc1-4c93-b42d-42118ad0085e",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "46630326-d84c-4181-b1a1-bde18a5cb1bc",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "002b0817-be63-4ca1-81f8-ff52d164c30d",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "9659fd60-6f82-4907-93b8-bcc7bfa01ee7",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "d87c4a3c-d79c-4006-a1ff-8a41b3181682",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "a169c3c1-3430-491c-85d4-609ec7e9a982",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "47dda19b-d0fc-4661-9b65-b3c072e173f9",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "dcd824b7-038b-4f5b-ab45-0f2998d346c0",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "8dbb05e0-52d7-4d59-8b44-55886b8705eb",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "aa231049-2529-4d99-b180-0898c0ddd315",
+      "target": "db4f16c9-50d7-4867-9497-458e71c84df4",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "8ca61d93-2733-46bd-a769-e47d24b76f3b",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "c691c142-5596-4502-a938-124df0692744",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "b8999eb8-9791-471b-b1bb-f8bcd45444e5",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "3917a706-d6a2-4bd3-b10f-975fbfaeb347",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "fa0a1cc5-93fe-4465-9745-7f1e8590f193",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "d0daa51d-1f5a-4b79-84fb-86ecd8031c9d",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "45969b9f-e431-400d-b8ec-9945987f0d4c",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "b62f6768-fa17-4342-8aa2-754c643c949a",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "af6e25f0-c18b-4d4e-babb-003909ae6613",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "8f2c6825-ff76-45ad-b734-24abc0613e47",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "a4e0ec6b-3920-4191-8819-ee5ae97c03a3",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "2cec8824-a2af-43b3-9132-f12d5422102b",
+      "type": "before",
+      "confidence": 1.0
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "e4557022-a3e9-4bda-961a-659960f5bb76",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "6cb3f90d-87a0-4dd6-9d95-6af37febd831",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "c37b6f91-8683-497a-8678-5f26d82498c6",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "e022d8c2-25eb-4638-8e26-bd21f02bbc19",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "e1f4b665-36b7-492e-b8f8-85f9c4f60343",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "f31a2ba4-3fae-4700-9c93-ebad0ff01ea5",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "0ea22812-2c76-4fbd-ab4c-43bea0c44b31",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "51177cd7-f0de-4b1d-b45b-0199fe327d00",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "50256854-a7f3-4211-b301-7e7f4a4fb8c0",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "95d75101-9110-4b6f-a2f1-4874b27d31ce",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "3e61e985-0eae-4c22-8aef-50049a0d4633",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "5f30617f-6bd3-4d3d-a099-556b8b91dd80",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "162e5669-7bf7-4f09-9a69-ab724e487cc6",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "53bff753-bcb1-41a7-b716-35fae419458f",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "f76c12e5-467e-47ba-801d-e869a6d306d8",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "077ad32b-6bc1-4c93-b42d-42118ad0085e",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "46630326-d84c-4181-b1a1-bde18a5cb1bc",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "002b0817-be63-4ca1-81f8-ff52d164c30d",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "9659fd60-6f82-4907-93b8-bcc7bfa01ee7",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "d87c4a3c-d79c-4006-a1ff-8a41b3181682",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "a169c3c1-3430-491c-85d4-609ec7e9a982",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "47dda19b-d0fc-4661-9b65-b3c072e173f9",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "dcd824b7-038b-4f5b-ab45-0f2998d346c0",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "8dbb05e0-52d7-4d59-8b44-55886b8705eb",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "d55a5810-d6fe-4d05-99a5-8c38d1d337ac",
+      "target": "db4f16c9-50d7-4867-9497-458e71c84df4",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "8ca61d93-2733-46bd-a769-e47d24b76f3b",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "c691c142-5596-4502-a938-124df0692744",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "b8999eb8-9791-471b-b1bb-f8bcd45444e5",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "3917a706-d6a2-4bd3-b10f-975fbfaeb347",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "fa0a1cc5-93fe-4465-9745-7f1e8590f193",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "d0daa51d-1f5a-4b79-84fb-86ecd8031c9d",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "45969b9f-e431-400d-b8ec-9945987f0d4c",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "b62f6768-fa17-4342-8aa2-754c643c949a",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "af6e25f0-c18b-4d4e-babb-003909ae6613",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "8f2c6825-ff76-45ad-b734-24abc0613e47",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "a4e0ec6b-3920-4191-8819-ee5ae97c03a3",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "2cec8824-a2af-43b3-9132-f12d5422102b",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "e4557022-a3e9-4bda-961a-659960f5bb76",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "6cb3f90d-87a0-4dd6-9d95-6af37febd831",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "c37b6f91-8683-497a-8678-5f26d82498c6",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "e022d8c2-25eb-4638-8e26-bd21f02bbc19",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "e1f4b665-36b7-492e-b8f8-85f9c4f60343",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "f31a2ba4-3fae-4700-9c93-ebad0ff01ea5",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "0ea22812-2c76-4fbd-ab4c-43bea0c44b31",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "51177cd7-f0de-4b1d-b45b-0199fe327d00",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "50256854-a7f3-4211-b301-7e7f4a4fb8c0",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "95d75101-9110-4b6f-a2f1-4874b27d31ce",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "3e61e985-0eae-4c22-8aef-50049a0d4633",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "5f30617f-6bd3-4d3d-a099-556b8b91dd80",
+      "type": "before",
+      "confidence": 0.9
+    },
+    {
+      "source": "e0ba6662-2e8d-40f6-b7fd-813454ee5c18",
+      "target": "162e5669-7bf7-4f09-9a69-ab724e487cc6",
+      "type": "before",
+      "confidence": 0.9
+    }
+  ],
+  "quality": {
+    "totalCount": 62,
+    "analyzedCount": 13,
+    "eepCoverage": 0.20967741935483872,
+    "hasChronologicalRanks": true,
+    "lastComputed": null
+  },
+  "_README": "⚠️ 手工構造樣本，非真實資料。以 timeline-computed.json 為基底，注入真實書籍不會產生的維度供設計樣式用：flashback×3 / flashforward×1 / parallel×3、location（真實為 0）、CAUSES×12（涵蓋 >=0.8 實線 / 0.5-0.8 虛線 / <0.5 不畫三種 confidence 帶）。其餘欄位維持真實值。真實資料的樣貌請看 timeline-computed.json 與 brief §2.2-§2.4。"
+}

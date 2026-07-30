@@ -187,14 +187,14 @@ export default function CharacterAnalysisPage() {
     batchTask.status !== 'error';
 
   /* eslint-disable react-hooks/set-state-in-effect */
+  /* Keyed off `subProgress` (live per-item counter), not `result.progress`,
+     which the backend only writes on completion — see EventAnalysisPage. */
   useEffect(() => {
-    if (!batchTask?.result) return;
-    const result = batchTask.result as unknown as BatchEepResult;
-    if (result.progress > prevBatchProgress) {
-      setPrevBatchProgress(result.progress);
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
-    }
-  }, [batchTask?.result, prevBatchProgress, bookId, queryClient]);
+    const processed = batchTask?.subProgress;
+    if (processed === undefined || processed <= prevBatchProgress) return;
+    setPrevBatchProgress(processed);
+    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
+  }, [batchTask?.subProgress, prevBatchProgress, bookId, queryClient]);
 
   useEffect(() => {
     if (batchTask?.status === 'done') {
