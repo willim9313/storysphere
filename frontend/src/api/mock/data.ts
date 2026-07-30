@@ -1469,6 +1469,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.02,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t01', name: '葉文潔', type: 'character' }],
       location: { id: 'loc-t2', name: '北京物理研究所' },
     },
@@ -1482,6 +1483,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.05,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t01', name: '葉文潔', type: 'character' }],
       location: { id: 'loc-t1', name: '紅岸基地' },
     },
@@ -1496,6 +1498,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.12,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t02', name: '汪淼', type: 'character' },
         { id: 'ent-t03', name: '史強', type: 'character' },
@@ -1512,6 +1515,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.14,
       narrativeMode: 'present',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t02', name: '汪淼', type: 'character' },
         { id: 'ent-t03', name: '史強', type: 'character' },
@@ -1527,6 +1531,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.09,
       narrativeMode: 'flashback',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       storyTimeHint: '近三年',
       participants: [{ id: 'ent-t03', name: '史強', type: 'character' }],
     },
@@ -1541,6 +1546,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.20,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t02', name: '汪淼', type: 'character' },
         { id: 'ent-t03', name: '史強', type: 'character' },
@@ -1556,6 +1562,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.22,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t01', name: '葉文潔', type: 'character' },
         { id: 'ent-t02', name: '汪淼', type: 'character' },
@@ -1573,6 +1580,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.25,
       narrativeMode: 'present',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t01', name: '葉文潔', type: 'character' }],
     },
     // ── Chapter 4：紅岸秘史 ──────────────────────────────────────
@@ -1586,6 +1594,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.06,
       narrativeMode: 'flashback',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       storyTimeHint: '三十年前',
       participants: [{ id: 'ent-t01', name: '葉文潔', type: 'character' }],
       location: { id: 'loc-t1', name: '紅岸基地' },
@@ -1600,6 +1609,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.28,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t01', name: '葉文潔', type: 'character' }],
       location: { id: 'loc-t1', name: '紅岸基地' },
     },
@@ -1613,6 +1623,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.30,
       narrativeMode: 'present',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t01', name: '葉文潔', type: 'character' }],
     },
     // ── Chapter 5：面壁計劃 ──────────────────────────────────────
@@ -1626,6 +1637,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.35,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t04', name: '羅輯', type: 'character' },
       ],
@@ -1641,6 +1653,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.38,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t04', name: '羅輯', type: 'character' },
         { id: 'ent-t01', name: '葉文潔', type: 'character' },
@@ -1656,6 +1669,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.10,
       narrativeMode: 'flashback',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       storyTimeHint: '五年前',
       participants: [{ id: 'ent-t05', name: '章北海', type: 'character' }],
     },
@@ -1670,6 +1684,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.50,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t04', name: '羅輯', type: 'character' }],
     },
     {
@@ -1682,6 +1697,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.55,
       narrativeMode: 'parallel',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t05', name: '章北海', type: 'character' }],
       location: { id: 'loc-t4', name: '太空戰艦「自然選擇」' },
     },
@@ -1695,6 +1711,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.55,
       narrativeMode: 'parallel',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t06', name: '程心', type: 'character' }],
       location: { id: 'loc-t3', name: '聯合國安理會' },
     },
@@ -1708,6 +1725,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: null,
       narrativeMode: 'flashforward',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       storyTimeHint: '四百年後',
       participants: [{ id: 'ent-t04', name: '羅輯', type: 'character' }],
     },
@@ -1722,6 +1740,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.62,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t05', name: '章北海', type: 'character' },
         { id: 'ent-t07', name: '韋德', type: 'character' },
@@ -1738,6 +1757,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.65,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t05', name: '章北海', type: 'character' },
         { id: 'ent-t07', name: '韋德', type: 'character' },
@@ -1754,6 +1774,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.72,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t04', name: '羅輯', type: 'character' },
       ],
@@ -1769,6 +1790,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.75,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t06', name: '程心', type: 'character' },
         { id: 'ent-t04', name: '羅輯', type: 'character' },
@@ -1784,6 +1806,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.01,
       narrativeMode: 'flashback',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       storyTimeHint: '五十年前',
       participants: [{ id: 'ent-t01', name: '葉文潔', type: 'character' }],
     },
@@ -1798,6 +1821,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.82,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t06', name: '程心', type: 'character' },
         { id: 'ent-t07', name: '韋德', type: 'character' },
@@ -1814,6 +1838,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: null,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t06', name: '程心', type: 'character' },
         { id: 'ent-t07', name: '韋德', type: 'character' },
@@ -1829,6 +1854,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: null,
       narrativeMode: 'flashforward',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       storyTimeHint: '未來某時',
       participants: [
         { id: 'ent-t07', name: '韋德', type: 'character' },
@@ -1846,6 +1872,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: null,
       narrativeMode: 'present',
       eventImportance: 'KERNEL',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t06', name: '程心', type: 'character' }],
     },
     {
@@ -1858,6 +1885,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: 0.92,
       narrativeMode: 'present',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       participants: [{ id: 'ent-t06', name: '程心', type: 'character' }],
     },
     {
@@ -1870,6 +1898,7 @@ export const mockTimelineData: TimelineData = {
       chronologicalRank: null,
       narrativeMode: 'present',
       eventImportance: 'SATELLITE',
+      hasAnalysis: false,
       participants: [
         { id: 'ent-t06', name: '程心', type: 'character' },
         { id: 'ent-t07', name: '韋德', type: 'character' },

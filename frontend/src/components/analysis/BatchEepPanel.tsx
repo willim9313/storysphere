@@ -125,7 +125,7 @@ export function BatchEepPanel({
       {isBatchRunning ? (
         <button className="ea-batch-btn running" disabled type="button">
           <span className="ea-mini-spinner" />
-          {t(k('runningWithCount'), { current: runningAnalyzed, total: totalCount })}
+          {t(k('runningWithCount'), { current: analyzedCount, total: totalCount })}
         </button>
       ) : allDone ? (
         <button className="ea-batch-btn" disabled type="button">

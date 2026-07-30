@@ -16,6 +16,7 @@ function makeEvent(
     chronologicalRank,
     narrativeMode: 'present',
     eventImportance: null,
+    hasAnalysis: false,
     participants: [],
   };
 }
