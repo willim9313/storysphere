@@ -221,14 +221,17 @@ export default function EventAnalysisPage() {
     batchTask.status !== 'error';
 
   /* eslint-disable react-hooks/set-state-in-effect */
+  /* Refetch the list as the batch advances, so events flip to 已分析 while the
+     run is still going. Keyed off `subProgress` (the live per-item counter) —
+     this used to read `result.progress`, which the backend only writes when
+     the task completes, so it never fired and the list stayed stale until the
+     user reloaded the page. */
   useEffect(() => {
-    if (!batchTask?.result) return;
-    const result = batchTask.result as unknown as BatchEepResult;
-    if (result.progress > prevBatchProgress) {
-      setPrevBatchProgress(result.progress);
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
-    }
-  }, [batchTask?.result, prevBatchProgress, bookId, queryClient]);
+    const processed = batchTask?.subProgress;
+    if (processed === undefined || processed <= prevBatchProgress) return;
+    setPrevBatchProgress(processed);
+    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+  }, [batchTask?.subProgress, prevBatchProgress, bookId, queryClient]);
 
   useEffect(() => {
     if (batchTask?.status === 'done') {

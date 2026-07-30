@@ -50,16 +50,13 @@ export function BatchEepPanel({
   const { t } = useTranslation('analysis');
   const k = (suffix: string) => `${i18nPrefix}.${suffix}`;
   const allDone = analyzedCount >= totalCount && totalCount > 0;
-  const batchResult = batchTask?.result as BatchEepResult | undefined;
 
-  const progressCurrent = batchResult?.progress ?? 0;
-  const runningAnalyzed = isBatchRunning ? analyzedCount + progressCurrent : analyzedCount;
-  const pct =
-    totalCount > 0
-      ? Math.round(
-          (isBatchRunning ? runningAnalyzed : analyzedCount) / totalCount * 100,
-        )
-      : 0;
+  /* `analyzedCount` is the server's own count and the page refetches it as the
+     batch advances, so it is live during a run. It used to have the task's own
+     tally added on top — which read `result.progress`, a field that only
+     exists once the task is done, so the count sat frozen for the whole run.
+     The per-item counter lives in `stage` ("分析事件 12/57"), rendered below. */
+  const pct = totalCount > 0 ? Math.round((analyzedCount / totalCount) * 100) : 0;
   const showSummary = !isBatchRunning && batchSummary !== null;
   const stage = batchTask?.stage ?? '';
 
@@ -68,7 +65,7 @@ export function BatchEepPanel({
       <div className="ea-batch-head">
         <span className="ea-batch-label">{t(k('header'))}</span>
         <span className="ea-batch-count">
-          {runningAnalyzed}/{totalCount}
+          {analyzedCount}/{totalCount}
           <span className="total"> · {pct}%</span>
         </span>
       </div>
