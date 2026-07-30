@@ -49,11 +49,16 @@ export function EventDetailPanel({
   const visible = participants.slice(0, PILL_LIMIT);
   const overflow = participants.length - visible.length;
 
-  const kind = datum.isKernel
-    ? t('timeline.panel.kernel')
-    : datum.hasAnalysis
-      ? t('timeline.panel.satellite')
-      : t('timeline.panel.unanalyzed');
+  /* Read `importance`, not `hasAnalysis`: the two can disagree. The backend
+     counts an event as analyzed before parsing its EEP and swallows the error
+     if that parse fails, so an analyzed event can still have no importance —
+     and it used to be labelled 衛 on that basis. */
+  const kind =
+    datum.importance === 'KERNEL'
+      ? t('timeline.panel.kernel')
+      : datum.importance === 'SATELLITE'
+        ? t('timeline.panel.satellite')
+        : t('timeline.panel.unrated');
 
   return (
     <aside className="tl-panel" aria-label={t('timeline.panel.region')}>
@@ -77,7 +82,11 @@ export function EventDetailPanel({
             <span>{eventTypeLabel(datum.event.eventType)}</span>
           </div>
           <h2 className="tl-panel-title">{datum.title}</h2>
-          <span className={`tl-panel-kind${datum.hasAnalysis ? '' : ' muted'}`}>{kind}</span>
+          {/* Muting tracks the label it styles: the unrated state is the one
+              that should read as absent, whether or not analysis ran. */}
+          <span className={`tl-panel-kind${datum.importance === null ? ' muted' : ''}`}>
+            {kind}
+          </span>
         </div>
 
         <p className="tl-panel-desc">

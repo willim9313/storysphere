@@ -16,6 +16,21 @@ import type { TimelineDatum } from '@/lib/timelineGeometry';
 /** Unanalyzed titles shown before the list defers to an expand button. */
 const REST_VISIBLE = 4;
 
+/**
+ * Importance stamp for one event — three states, not two.
+ *
+ * `null` means nothing measured this event's importance, and stamping 衛 there
+ * asserts a verdict that was never reached. The unrated stamp is deliberately
+ * the weakest of the three: it is a note about missing data, not a peer of
+ * 核 / 衛. Derived from `importance`, never from `isKernel`, which folds
+ * SATELLITE and "never measured" into one value.
+ */
+function stamp(d: TimelineDatum): { modifier: string; key: string } {
+  if (d.importance === 'KERNEL') return { modifier: ' kernel', key: 'timeline.card.kernel' };
+  if (d.importance === 'SATELLITE') return { modifier: '', key: 'timeline.card.satellite' };
+  return { modifier: ' unrated', key: 'timeline.card.unrated' };
+}
+
 interface ChapterCardBandProps {
   chapter: number;
   chapterTitle?: string;
@@ -122,8 +137,8 @@ export function ChapterCardBand({
                   onClick={() => onSelectEvent(d)}
                 >
                   <div className="tl-card-top">
-                    <span className={`tl-card-stamp${d.isKernel ? ' kernel' : ''}`}>
-                      {d.isKernel ? t('timeline.card.kernel') : t('timeline.card.satellite')}
+                    <span className={`tl-card-stamp${stamp(d).modifier}`}>
+                      {t(stamp(d).key)}
                     </span>
                     <span className="tl-card-ch">Ch.{d.chapter}</span>
                     <span className="tl-card-type">{eventTypeLabel(d.event.eventType)}</span>

@@ -698,7 +698,7 @@
       "eyebrow": "Event detail",
       "kernel": "KERNEL event",
       "satellite": "SATELLITE event",
-      "unanalyzed": "Not analyzed",
+      "unrated": "Importance not rated",
       "noSummary": "This event has no summary yet — it is one of the {{n}} unanalyzed events.",
       "participants": "Participants",
       "participantCount": "{{n}} participants",
@@ -911,6 +911,7 @@
     "card": {
       "kernel": "K",
       "satellite": "S",
+      "unrated": "n/a",
       "noSummary": "(no summary yet)"
     },
     "story": {

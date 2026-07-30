@@ -101,6 +101,17 @@ describe('buildTimelineData', () => {
     ]);
     expect(data.map((d) => d.isKernel)).toEqual([true, false, false]);
   });
+
+  /* `isKernel` folds SATELLITE and "never measured" into the same false, which
+     is why labels must not be derived from it. */
+  it('keeps unmeasured importance distinct from SATELLITE', () => {
+    const data = buildTimelineData([
+      makeEvent({ id: 'a', eventImportance: 'KERNEL' }),
+      makeEvent({ id: 'b', eventImportance: 'SATELLITE' }),
+      makeEvent({ id: 'c', eventImportance: null }),
+    ]);
+    expect(data.map((d) => d.importance)).toEqual(['KERNEL', 'SATELLITE', null]);
+  });
 });
 
 describe('deriveMode', () => {

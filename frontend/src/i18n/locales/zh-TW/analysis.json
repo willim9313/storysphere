@@ -698,7 +698,7 @@
       "eyebrow": "事件詳情",
       "kernel": "核心事件 KERNEL",
       "satellite": "衛星事件 SATELLITE",
-      "unanalyzed": "尚未分析",
+      "unrated": "重要度未評",
       "noSummary": "此事件尚未產生摘要——它屬於未分析的 {{n}} 筆之一。",
       "participants": "參與角色",
       "participantCount": "共 {{n}} 位參與者",
@@ -911,6 +911,7 @@
     "card": {
       "kernel": "核",
       "satellite": "衛",
+      "unrated": "未評",
       "noSummary": "（本筆尚無摘要）"
     },
     "story": {

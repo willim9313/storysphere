@@ -15,7 +15,7 @@
  *     `deviation`, which is the single quantity this page exists to show.
  */
 
-import type { TemporalDisplacement, TimelineEvent } from '@/api/types';
+import type { EventImportance, TemporalDisplacement, TimelineEvent } from '@/api/types';
 
 /** |deviation| above which an event reads as genuinely displaced. */
 export const OUTLIER_THRESHOLD = 0.15;
@@ -64,6 +64,16 @@ export interface TimelineDatum {
   chapter: number;
   title: string;
   hasAnalysis: boolean;
+  /** The EEP verdict, or null when nothing measured it. Read this for anything
+   *  that *labels* the event: `isKernel` cannot distinguish SATELLITE from
+   *  "never measured", and stating 衛 for an unmeasured event is a claim the
+   *  data does not support. Note null is reachable even when `hasAnalysis` is
+   *  true — the backend counts an event as analyzed before parsing its EEP,
+   *  and swallows the error if that parse fails. */
+  importance: EventImportance | null;
+  /** Whether to give the event kernel *emphasis* (dot radius, weight). A
+   *  boolean is right here: an unmeasured event gets no emphasis, which
+   *  asserts nothing. */
   isKernel: boolean;
   chronologicalRank: number | null;
   /** Rank this event would have if narrative order === story order. */
@@ -107,6 +117,7 @@ export function buildTimelineData(events: TimelineEvent[]): TimelineDatum[] {
       chapter: event.chapter,
       title: event.title,
       hasAnalysis: event.hasAnalysis,
+      importance: event.eventImportance,
       isKernel: event.eventImportance === 'KERNEL',
       chronologicalRank: rank,
       expectedRank,

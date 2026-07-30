@@ -830,6 +830,16 @@
   border-color: var(--fg-primary);
   color: var(--accent-fg);
 }
+/* Third rung of the stamp hierarchy: 核 solid, 衛 outlined, 未評 bare. Without
+   this it inherits 衛's border and 600 weight, which would give the state
+   carrying the least information the heaviest mark on four cards in five. */
+.tl-card-stamp.unrated {
+  border-color: transparent;
+  padding-left: 0;
+  padding-right: 0;
+  font-weight: 400;
+  color: var(--fg-muted);
+}
 .tl-card-ch {
   font-family: var(--font-mono);
 }
