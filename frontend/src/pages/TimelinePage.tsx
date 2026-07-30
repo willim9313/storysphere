@@ -524,7 +524,7 @@ export default function TimelinePage() {
     blocked: !displacementReady && !isRunningDisplacement,
     onSubClick:
       !displacementReady && !isRunningDisplacement
-        ? () => navigate(`/books/${bookId}/analysis?tab=events`)
+        ? () => navigate(`/books/${bookId}/events`)
         : undefined,
   };
 
@@ -827,7 +827,7 @@ export default function TimelinePage() {
                 onSelectEvent={selectEvent}
                 onExpandRest={() => setExpandedChapter(activeChapter)}
                 onClearFilters={clearFilters}
-                onAnalyzeChapter={() => navigate(`/books/${bookId}/analysis?tab=events`)}
+                onAnalyzeChapter={() => navigate(`/books/${bookId}/events`)}
               />
             </>
           ) : view === 'story' ? (
