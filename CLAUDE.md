@@ -58,7 +58,16 @@
 **程式碼品質：**
 - 執行 `ruff check backend/` 無新增錯誤
 - 執行 `cd frontend && npm run lint` 無新增錯誤
+- 執行 `cd frontend && npm run build` 無新增型別錯誤
 - 實作範疇未超出 checkpoint 所列的檔案與 endpoint
+
+上述三項在 main 上都還有既有錯誤，**判準是「無新增」而非「全綠」**。比對時先用
+`git worktree add <tmp> main` 取基線（前端需 `ln -s` 既有 `node_modules`），兩邊輸出
+抹掉行號後再 diff（`sed -E 's/:[0-9]+:[0-9]+:/::/'` → `sort` → `comm -13`），否則
+上游多幾行就會讓下游行號整批位移、誤報成新增。
+
+`npm run build` 是必跑項：`lint` 攔不到型別問題（typescript-eslint 關掉了
+`no-undef`），刪掉變數卻漏改使用端這類 runtime ReferenceError 只有 `tsc` 會抓到。
 
 ---
 
