@@ -723,8 +723,14 @@
 }
 
 /* ── Chapter card band ────────────────────────────────────── */
+/* Grows to fill leftover space, but must never shrink. `flex: 1` (= 1 1 0%)
+   made this the only elastic item in `.tl-canvas`, so it absorbed all vertical
+   pressure alone — and `.tl-cards` is a scroll container, which switches off
+   flexbox's automatic minimum size, so the pair could collapse to nothing.
+   Cards were 17px tall at a 900px viewport and 0px at 820px, with the canvas
+   only starting to scroll once there was nothing left to reveal. */
 .tl-band {
-  flex: 1;
+  flex: 1 0 auto;
   min-height: 0;
   display: flex;
   flex-direction: column;
