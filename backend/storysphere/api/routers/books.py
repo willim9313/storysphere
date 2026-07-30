@@ -1866,16 +1866,23 @@ async def _run_batch_entity_analysis(
     failed = 0
     skipped = 0
 
+    def _report() -> None:
+        task_store.set_progress(
+            task_id,
+            progress=int(done / total * 100) if total else 0,
+            stage=f"分析角色 {done}/{total}",
+            # Shared with the event batch: BatchEepPanel renders the item
+            # count, not the percentage.
+            sub_progress=done,
+            sub_total=total,
+        )
+
     for entity in characters:
         cache_key = AnalysisCache.make_key("character", document_id, entity.name)
         if await cache.get(cache_key) is not None:
             skipped += 1
             done += 1
-            task_store.set_progress(
-                task_id,
-                progress=int(done / total * 100) if total else 0,
-                stage=f"分析角色 {done}/{total}",
-            )
+            _report()
             continue
         try:
             await agent.analyze_character(
@@ -1900,11 +1907,7 @@ async def _run_batch_entity_analysis(
             failed += 1
             done += 1
 
-        task_store.set_progress(
-            task_id,
-            progress=int(done / total * 100) if total else 0,
-            stage=f"分析角色 {done}/{total}",
-        )
+        _report()
 
     task_store.set_completed(
         task_id,
@@ -2341,11 +2344,25 @@ async def _run_batch_event_analysis(
     failed = 0
     skipped = 0
 
+    def _report() -> None:
+        task_store.set_progress(
+            task_id,
+            progress=int(done / total * 100) if total else 0,
+            stage=f"分析事件 {done}/{total}",
+            # The panel needs the item count, not just the percentage — it
+            # renders "已分析 N/M" alongside the bar.
+            sub_progress=done,
+            sub_total=total,
+        )
+
     for ev in events:
         cache_key = f"event:{document_id}:{ev.id}"
         if await cache.get(cache_key) is not None:
             skipped += 1
             done += 1
+            # Report on the skip path too, or a re-run over mostly-cached
+            # events looks frozen until it reaches the first uncached one.
+            _report()
             continue
         try:
             await agent.analyze_event(
@@ -2369,11 +2386,7 @@ async def _run_batch_event_analysis(
             failed += 1
             done += 1
 
-        task_store.set_progress(
-            task_id,
-            progress=int(done / total * 100) if total else 0,
-            stage=f"分析事件 {done}/{total}",
-        )
+        _report()
 
     task_store.set_completed(
         task_id,
@@ -2647,7 +2660,11 @@ async def _run_temporal_pipeline(
     """Background task for temporal pipeline computation."""
     try:
         task_store.set_running(task_id)
-        result = await pipeline.run(book_id, language=language)
+        result = await pipeline.run(
+            book_id,
+            language=language,
+            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
+        )
         task_store.set_completed(
             task_id,
             result={
