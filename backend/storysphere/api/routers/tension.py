@@ -366,6 +366,11 @@ async def get_tension_theme(
 ) -> TensionThemeResponse:
     """Return the cached TensionTheme for a book.
 
+    ``is_stale`` reports whether the theme still reflects the current
+    TensionLines — re-grouping or subsequent review decisions leave it built on
+    inputs that no longer apply, and re-running synthesis needs ``force=true``
+    to get past the cache.
+
     Returns 404 if synthesis has not been run yet.
     Trigger synthesis first with ``POST /tension/theme/synthesize``.
     """
@@ -375,6 +380,7 @@ async def get_tension_theme(
             status_code=404,
             detail=f"No TensionTheme found for book '{book_id}'. Run synthesis first.",
         )
+    is_stale, stale_reason = await tension_service.theme_staleness(book_id, theme)
     return TensionThemeResponse(
         id=theme.id,
         document_id=theme.document_id,
@@ -385,6 +391,8 @@ async def get_tension_theme(
         assembled_by=theme.assembled_by,
         assembled_at=theme.assembled_at.isoformat() if hasattr(theme.assembled_at, "isoformat") else str(theme.assembled_at),
         review_status=theme.review_status,
+        is_stale=is_stale,
+        stale_reason=stale_reason,
     )
 
 

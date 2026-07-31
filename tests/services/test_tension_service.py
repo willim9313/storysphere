@@ -1,8 +1,9 @@
-"""Unit tests for TensionService grouping-coverage reporting."""
+"""Unit tests for TensionService coverage, mythos normalization and staleness."""
 
 from __future__ import annotations
 
-from storysphere.domain.tension import TEU, TensionLine, TensionPole
+import pytest
+from storysphere.domain.tension import TEU, TensionLine, TensionPole, TensionTheme
 from storysphere.services.tension_service import TensionService
 
 DOC = "book-1"
@@ -20,8 +21,8 @@ def _make_teu(teu_id: str, chapter: int) -> TEU:
     )
 
 
-def _make_line(teu_ids: list[str]) -> TensionLine:
-    return TensionLine(document_id=DOC, teu_ids=teu_ids)
+def _make_line(teu_ids: list[str], status: str = "pending", **kw) -> TensionLine:
+    return TensionLine(document_id=DOC, teu_ids=teu_ids, review_status=status, **kw)
 
 
 class TestGroupingCoverage:
@@ -105,3 +106,75 @@ class TestNormalizedMythos:
 
     def test_none_stays_none(self):
         assert self._norm("booker", None) is None
+
+
+class TestThemeInputLines:
+    def test_uses_reviewed_lines_when_any_are_reviewed(self):
+        lines = [
+            _make_line(["t1"], status="approved"),
+            _make_line(["t2"], status="pending"),
+            _make_line(["t3"], status="rejected"),
+            _make_line(["t4"], status="modified"),
+        ]
+        picked = TensionService.theme_input_lines(lines)
+        assert {line.review_status for line in picked} == {"approved", "modified"}
+
+    def test_falls_back_to_all_lines_when_none_reviewed(self):
+        """Pressing Step 3 before reviewing still has to produce something."""
+        lines = [_make_line(["t1"]), _make_line(["t2"])]
+        assert TensionService.theme_input_lines(lines) == lines
+
+    def test_rejected_only_still_falls_back_to_all(self):
+        lines = [_make_line(["t1"], status="rejected")]
+        assert TensionService.theme_input_lines(lines) == lines
+
+
+class TestThemeStaleness:
+    """Integration-style: real SQLite cache in tmp_path, no LLM involved."""
+
+    @pytest.fixture
+    def service(self, tmp_path):
+        from storysphere.services.analysis_cache import AnalysisCache
+
+        return TensionService(cache=AnalysisCache(db_path=str(tmp_path / "cache.db")))
+
+    def _theme(self, line_ids: list[str]) -> TensionTheme:
+        return TensionTheme(document_id=DOC, tension_line_ids=line_ids)
+
+    @pytest.mark.asyncio
+    async def test_fresh_when_theme_matches_the_current_input_set(self, service):
+        lines = [_make_line(["t1"], status="approved"), _make_line(["t2"], status="approved")]
+        await service.save_lines(lines, DOC)
+        theme = self._theme([line.id for line in lines])
+        assert await service.theme_staleness(DOC, theme) == (False, None)
+
+    @pytest.mark.asyncio
+    async def test_stale_when_lines_were_regrouped(self, service):
+        """Re-running Step 2 mints new line ids, orphaning every reference."""
+        await service.save_lines([_make_line(["t1"])], DOC)
+        theme = self._theme(["line-from-a-previous-run"])
+        assert await service.theme_staleness(DOC, theme) == (True, "lines_regrouped")
+
+    @pytest.mark.asyncio
+    async def test_stale_when_a_review_narrowed_the_input_set(self, service):
+        """Theme built from all lines; approving a subset changes what synthesis
+        would now use."""
+        a = _make_line(["t1"], status="approved")
+        b = _make_line(["t2"], status="pending")
+        await service.save_lines([a, b], DOC)
+        theme = self._theme([a.id, b.id])
+        assert await service.theme_staleness(DOC, theme) == (True, "review_changed")
+
+    @pytest.mark.asyncio
+    async def test_stale_when_no_lines_exist(self, service):
+        theme = self._theme(["line-1"])
+        assert await service.theme_staleness(DOC, theme) == (True, "no_lines")
+
+    @pytest.mark.asyncio
+    async def test_matches_synthesis_fallback_when_nothing_reviewed(self, service):
+        """With no reviewed lines synthesis uses all of them, so a theme built
+        from all of them is fresh."""
+        lines = [_make_line(["t1"]), _make_line(["t2"])]
+        await service.save_lines(lines, DOC)
+        theme = self._theme([line.id for line in lines])
+        assert await service.theme_staleness(DOC, theme) == (False, None)

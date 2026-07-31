@@ -1300,8 +1300,23 @@ interface TensionTheme {
   assembled_by: string;
   assembled_at: string;
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  is_stale: boolean;             // 主題是否已不反映目前的 TensionLine
+  stale_reason: 'no_lines' | 'lines_regrouped' | 'review_changed' | null;
 }
 ```
+
+> **`is_stale` 的判定方式**：比對 `tension_line_ids` 與「現在重新合成會用到的那組
+> 線」（規則同合成：有已審核的就用已審核的，否則全用）。兩者不同即為過期。
+>
+> - `lines_regrouped` — 完全沒有交集，代表 Step 2 重跑過、舊 id 全成孤兒
+> - `review_changed` — 有交集但集合不同，代表審核決定改變了輸入範圍
+> - `no_lines` — 已無任何 TensionLine
+>
+> **已知限制**：抓不到「線沒變、只有極點標籤被 `modified` 改寫」的情形——集合相同。
+> 要涵蓋需在 TensionLine 加時間戳或於 theme 存內容雜湊，目前兩者皆無。
+>
+> 過期後要重新合成必須送 `force=true`，否則 `POST /tension/theme/synthesize`
+> 會直接命中快取、回報成功卻毫無變化。
 
 > **`frye_mythos` / `booker_plot` 保證是 id，不是顯示名。** 合成 prompt 給模型的
 > 是 `**悲劇** (tragedy)` 這種格式，模型常回粗體中文名，因此後端在寫入與讀取兩端

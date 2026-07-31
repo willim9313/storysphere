@@ -128,3 +128,11 @@ class TensionThemeResponse(BaseModel):
     assembled_by: str
     assembled_at: str
     review_status: Literal["pending", "approved", "modified", "rejected"]
+    is_stale: bool = Field(
+        default=False,
+        description=(
+            "True when the TensionLines this theme was built from no longer "
+            "match the set a fresh synthesis would use"
+        ),
+    )
+    stale_reason: Literal["no_lines", "lines_regrouped", "review_changed"] | None = None

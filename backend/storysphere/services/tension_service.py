@@ -421,19 +421,57 @@ class TensionService:
                 "Run group_teus() first."
             )
 
-        # Prefer reviewed lines; fall back to all lines
-        reviewed = [line for line in lines if line.review_status in {"approved", "modified"}]
-        input_lines = reviewed if reviewed else lines
+        input_lines = self.theme_input_lines(lines)
         logger.info(
-            "TensionService synthesize_theme: document=%s using %d/%d lines (reviewed=%d)",
+            "TensionService synthesize_theme: document=%s using %d/%d lines",
             document_id,
             len(input_lines),
             len(lines),
-            len(reviewed),
         )
 
         theme = await self._call_theme_llm(input_lines, document_id, language)
         return theme
+
+    @staticmethod
+    def theme_input_lines(lines: list[TensionLine]) -> list[TensionLine]:
+        """Select the lines a theme synthesis would be built from.
+
+        Reviewed lines win; with none reviewed we fall back to everything, so
+        that pressing Step 3 before reviewing still produces something. Shared
+        with :meth:`theme_staleness` on purpose — if staleness reimplemented
+        this rule the two would drift and the UI would lie about freshness.
+        """
+        reviewed = [line for line in lines if line.review_status in {"approved", "modified"}]
+        return reviewed if reviewed else lines
+
+    async def theme_staleness(
+        self, document_id: str, theme: TensionTheme
+    ) -> tuple[bool, str | None]:
+        """Report whether ``theme`` still reflects the current TensionLines.
+
+        Compares the lines the theme was built from against the ones a fresh
+        synthesis would use right now. This catches re-grouping (every line id
+        changes) and review decisions (the reviewed subset changes).
+
+        It does not catch edits that leave membership intact — renaming a line's
+        poles via a ``modified`` review keeps the same id, so the theme reads as
+        fresh even though its inputs changed wording. Detecting that needs a
+        content hash or per-line timestamps; neither exists yet.
+
+        Returns:
+            ``(is_stale, reason)``; reason is None when fresh.
+        """
+        lines = await self.get_lines(document_id)
+        if not lines:
+            return True, "no_lines"
+
+        current = {line.id for line in self.theme_input_lines(lines)}
+        used = set(theme.tension_line_ids)
+        if current == used:
+            return False, None
+        if not used & current:
+            return True, "lines_regrouped"
+        return True, "review_changed"
 
     async def save_theme(self, theme: TensionTheme) -> None:
         """Persist a TensionTheme to cache."""
