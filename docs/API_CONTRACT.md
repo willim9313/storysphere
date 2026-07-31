@@ -1121,6 +1121,26 @@ Step 2 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`
 
+完成時 `result` 內容：
+
+```ts
+{
+  lines: TensionLine[];
+  // 聚合覆蓋率。cache hit（force=false 且已有結果）時為 null，
+  // 因為沒有重新聚合、也就沒有新的缺口可回報。
+  coverage: {
+    total_teus: number;
+    covered_teus: number;
+    uncovered_teus: number;      // > 0 表示 LLM 漏掉了 TEU
+    uncovered_teu_ids: string[];
+    uncovered_chapters: number[]; // 整章消失時特別重要
+  } | null;
+}
+```
+
+> 聚合由單一 LLM 呼叫完成，模型可自由略過任何 TEU；被略過者不會出現在任何
+> TensionLine 中，也不會有其他跡象。`coverage` 就是用來揭露這個缺口的。
+
 ---
 
 ### #14e GET /tension/lines

@@ -212,6 +212,24 @@ class TensionService:
 
     # ── Public: Mode B+ (TensionLine grouping) ────────────────────────────────
 
+    @staticmethod
+    def _grouping_coverage(teus: list[TEU], lines: list[TensionLine]) -> dict:
+        """Report which of ``teus`` no TensionLine claims.
+
+        The grouping LLM receives every TEU in one call and is free to omit any
+        of them; nothing downstream notices, so omitted TEUs disappear from the
+        analysis silently. This computes the shortfall so callers can report it.
+        """
+        covered = {tid for line in lines for tid in line.teu_ids}
+        uncovered = [t for t in teus if t.id not in covered]
+        return {
+            "total_teus": len(teus),
+            "covered_teus": len(teus) - len(uncovered),
+            "uncovered_teus": len(uncovered),
+            "uncovered_teu_ids": [t.id for t in uncovered],
+            "uncovered_chapters": sorted({t.chapter for t in uncovered}),
+        }
+
     async def group_teus(
         self,
         document_id: str,
@@ -219,17 +237,25 @@ class TensionService:
         language: str = "en",
         force: bool = False,
         progress_callback: Callable[[int, str], None] | None = None,
-    ) -> list[TensionLine]:
+    ) -> dict:
         """Group all cached TEUs for a document into TensionLines (LLM-based).
 
         Returns cached result unless force=True.
+
+        Returns:
+            ``{"lines": list[TensionLine], "coverage": dict | None}``. ``coverage``
+            is None on a cache hit (nothing was re-grouped, so there is no new
+            shortfall to report); otherwise see :meth:`_grouping_coverage`.
         """
         cache_key = f"tension_lines:{document_id}"
         if not force:
             cached = await self._cache.get(cache_key)
             if cached is not None:
                 logger.debug("TensionService: cache hit for %s", cache_key)
-                return [TensionLine.model_validate(line) for line in cached["lines"]]
+                return {
+                    "lines": [TensionLine.model_validate(line) for line in cached["lines"]],
+                    "coverage": None,
+                }
 
         events = await kg_service.get_events(document_id=document_id)
         teus: list[TEU] = []
@@ -243,15 +269,27 @@ class TensionService:
 
         if not teus:
             logger.info("TensionService: no TEUs found for document=%s", document_id)
-            return []
+            return {"lines": [], "coverage": self._grouping_coverage([], [])}
 
         if progress_callback:
             progress_callback(60, "calling LLM for line grouping")
         lines = await self._call_grouping_llm(teus, document_id, language)
+
+        coverage = self._grouping_coverage(teus, lines)
+        if coverage["uncovered_teus"]:
+            logger.warning(
+                "TensionService grouping: document=%s left %d/%d TEUs ungrouped "
+                "(chapters affected: %s)",
+                document_id,
+                coverage["uncovered_teus"],
+                coverage["total_teus"],
+                coverage["uncovered_chapters"],
+            )
+
         if progress_callback:
             progress_callback(95, "saving tension lines")
         await self.save_lines(lines, document_id)
-        return lines
+        return {"lines": lines, "coverage": coverage}
 
     async def save_lines(self, lines: list[TensionLine], document_id: str) -> None:
         """Persist TensionLines for a document to cache."""

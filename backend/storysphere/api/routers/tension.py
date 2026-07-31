@@ -49,14 +49,20 @@ async def _run_group_lines(
 ) -> None:
     task_store.set_running(task_id)
     try:
-        lines = await tension_service.group_teus(
+        grouped = await tension_service.group_teus(
             document_id=req.document_id,
             kg_service=kg_service,
             language=req.language,
             force=req.force,
             progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
         )
-        task_store.set_completed(task_id, result={"lines": [line.model_dump() for line in lines]})
+        task_store.set_completed(
+            task_id,
+            result={
+                "lines": [line.model_dump() for line in grouped["lines"]],
+                "coverage": grouped["coverage"],
+            },
+        )
     except Exception as exc:
         logger.exception("TensionLine grouping task %s failed", task_id)
         task_store.set_failed(task_id, error=str(exc))
