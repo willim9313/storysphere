@@ -340,14 +340,23 @@ export interface TEU {
   review_status: 'pending' | 'approved' | 'rejected';
 }
 
+export interface Carrier {
+  id: string | null;
+  name: string;
+  /** KG entity type; null when the carrier name resolves to no entity. */
+  entity_type: string | null;
+}
+
 export interface TEUSummary {
   id: string;
   chapter: number;
   intensity: number;
   tension_description: string;
   evidence: string[];
-  pole_a_carriers: string[];
-  pole_b_carriers: string[];
+  pole_a_carriers: Carrier[];
+  pole_b_carriers: Carrier[];
+  pole_a_stance?: string | null;
+  pole_b_stance?: string | null;
 }
 
 export interface TensionLine {

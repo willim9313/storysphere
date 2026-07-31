@@ -1167,8 +1167,10 @@ interface TEUDetail {
   evidence: string[];
   pole_a_concept: string;
   pole_b_concept: string;
-  pole_a_carriers: string[];
-  pole_b_carriers: string[];
+  pole_a_carriers: Carrier[];   // 定義見 #14e
+  pole_b_carriers: Carrier[];
+  pole_a_stance: string | null;
+  pole_b_stance: string | null;
   line_id: string | null;       // null = 未被任何張力線收錄
 }
 ```
@@ -1210,10 +1212,21 @@ interface TEUSummary {
   intensity: number;                    // 0–1
   tension_description: string;
   evidence: string[];                   // 1–3 段文本引用
-  pole_a_carriers: string[];            // 對應 pole A 的角色名（denormalized）
-  pole_b_carriers: string[];
+  pole_a_carriers: Carrier[];           // 體現 pole A 的實體
+  pole_b_carriers: Carrier[];
+  pole_a_stance?: string | null;        // 這些載體如何體現該極
+  pole_b_stance?: string | null;
+}
+
+interface Carrier {
+  id: string | null;
+  name: string;
+  entity_type: string | null;           // KG 實體型別；查不到時為 null
 }
 ```
+
+> `entity_type` 為 null 的情形約佔五分之一——LLM 指認的載體名未必對得上 KG 實體。
+> UI 不得假設型別必然存在（現行前端 fallback 至 `other` 樣式）。
 
 **UI 使用頁面**：張力分析頁（hero / 軌跡圖 dashboard / 審核 LineCard 證據區）
 

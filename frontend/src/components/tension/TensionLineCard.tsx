@@ -9,7 +9,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
-import type { TensionLine, TEUSummary } from '@/api/types';
+import type { Carrier, TensionLine, TEUSummary } from '@/api/types';
 import { reviewTensionLine } from '@/api/tension';
 import { TensionStatusBadge } from './TensionStatusBadge';
 
@@ -70,8 +70,8 @@ export function TensionLineCard({
   const ch1 = line.chapter_range[0] ?? 1;
   const ch2 = line.chapter_range[line.chapter_range.length - 1] ?? ch1;
 
-  const carriersA = useMemo(() => unique(teus.flatMap((t_) => t_.pole_a_carriers)), [teus]);
-  const carriersB = useMemo(() => unique(teus.flatMap((t_) => t_.pole_b_carriers)), [teus]);
+  const carriersA = useMemo(() => uniqueByName(teus.flatMap((t_) => t_.pole_a_carriers)), [teus]);
+  const carriersB = useMemo(() => uniqueByName(teus.flatMap((t_) => t_.pole_b_carriers)), [teus]);
 
   const visibleTEUs = density === 'summary' && !showAll ? teus.slice(0, 1) : teus;
   const hiddenCount = teus.length - visibleTEUs.length;
@@ -156,12 +156,12 @@ export function TensionLineCard({
             <div className="tn-pole">
               <div className="tn-pole-eyebrow">{t('tension.poleA')}</div>
               <div className="tn-pole-name">{line.canonical_pole_a}</div>
-              <CarrierPills names={carriersA} />
+              <CarrierPills carriers={carriersA} />
             </div>
             <div className="tn-pole">
               <div className="tn-pole-eyebrow">{t('tension.poleB')}</div>
               <div className="tn-pole-name">{line.canonical_pole_b}</div>
-              <CarrierPills names={carriersB} />
+              <CarrierPills carriers={carriersB} />
             </div>
           </div>
 
@@ -235,22 +235,30 @@ export function TensionLineCard({
   );
 }
 
-function unique(arr: string[]): string[] {
-  return Array.from(new Set(arr));
+function uniqueByName(carriers: Carrier[]): Carrier[] {
+  const seen = new Map<string, Carrier>();
+  for (const c of carriers) {
+    // Keep the first typed occurrence: the same name may appear with and
+    // without a resolved entity across TEUs.
+    if (!seen.has(c.name) || (!seen.get(c.name)!.entity_type && c.entity_type)) {
+      seen.set(c.name, c);
+    }
+  }
+  return Array.from(seen.values());
 }
 
-function CarrierPills({ names }: { names: string[] }) {
+function CarrierPills({ carriers }: { carriers: Carrier[] }) {
   const { t } = useTranslation('analysis');
-  if (!names.length) {
+  if (!carriers.length) {
     return <span className="tn-pole-carriers-empty">{t('tension.noCarrier')}</span>;
   }
-  // Without per-carrier entity-type info in the response, default to 'character' coloring.
   return (
     <div className="tn-pole-carriers">
-      {names.map((n) => (
-        <span key={n} className="tn-pill" data-t="character">
+      {/* Unresolved carriers fall back to 'other', the neutral pill styling. */}
+      {carriers.map((c) => (
+        <span key={c.name} className="tn-pill" data-t={c.entity_type ?? 'other'}>
           <span className="tn-pill-dot" />
-          {n}
+          {c.name}
         </span>
       ))}
     </div>

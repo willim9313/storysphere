@@ -42,6 +42,19 @@ class TensionThemeReviewRequest(BaseModel):
 # ── Response models ──────────────────────────────────────────────────────────
 
 
+class Carrier(BaseModel):
+    """An entity embodying one pole of a tension.
+
+    ``id`` and ``entity_type`` are null when the LLM named a carrier that does
+    not resolve to a KG entity — roughly a fifth of them in practice — so the UI
+    must not assume a type is always available.
+    """
+
+    id: str | None = None
+    name: str
+    entity_type: str | None = None
+
+
 class TEUSummary(BaseModel):
     """Per-line TEU rollup used by the tension page evidence section."""
 
@@ -50,8 +63,16 @@ class TEUSummary(BaseModel):
     intensity: float = Field(ge=0.0, le=1.0)
     tension_description: str
     evidence: list[str] = Field(default_factory=list)
-    pole_a_carriers: list[str] = Field(default_factory=list)
-    pole_b_carriers: list[str] = Field(default_factory=list)
+    pole_a_carriers: list[Carrier] = Field(default_factory=list)
+    pole_b_carriers: list[Carrier] = Field(default_factory=list)
+    pole_a_stance: str | None = Field(
+        default=None,
+        description="How pole A's carriers embody that side of the tension",
+    )
+    pole_b_stance: str | None = Field(
+        default=None,
+        description="How pole B's carriers embody that side of the tension",
+    )
 
 
 class TEUDetail(BaseModel):
@@ -69,8 +90,10 @@ class TEUDetail(BaseModel):
     evidence: list[str] = Field(default_factory=list)
     pole_a_concept: str
     pole_b_concept: str
-    pole_a_carriers: list[str] = Field(default_factory=list)
-    pole_b_carriers: list[str] = Field(default_factory=list)
+    pole_a_carriers: list[Carrier] = Field(default_factory=list)
+    pole_b_carriers: list[Carrier] = Field(default_factory=list)
+    pole_a_stance: str | None = None
+    pole_b_stance: str | None = None
     line_id: str | None = Field(
         default=None,
         description=(

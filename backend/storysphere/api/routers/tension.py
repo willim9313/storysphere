@@ -23,6 +23,7 @@ from storysphere.api.deps import DocServiceDep, KGServiceDep, TensionServiceDep
 from storysphere.api.schemas.common import TaskStatus
 from storysphere.api.schemas.tension import (
     AnalyzeBookTensionsRequest,
+    Carrier,
     GroupTensionLinesRequest,
     SynthesizeThemeRequest,
     TensionLineDetail,
@@ -95,6 +96,35 @@ async def get_group_tension_lines(task_id: str) -> TaskStatus:
     return task
 
 
+# ── Carrier resolution ─────────────────────────────────────────────────────────
+
+
+async def _entity_types(kg_service, book_id: str) -> dict[str, str]:
+    """Map entity id → entity type for one book, in a single KG pass."""
+    entities = await kg_service.list_entities(document_id=book_id)
+    return {
+        e.id: (e.entity_type.value if hasattr(e.entity_type, "value") else str(e.entity_type))
+        for e in entities
+    }
+
+
+def _carriers(pole: dict, types_by_id: dict[str, str]) -> list[Carrier]:
+    """Zip a pole's carrier names with their ids and KG types.
+
+    ``carrier_ids`` and ``carrier_names`` are parallel only as far as the
+    assembler could resolve names to entities, so names beyond the id list — and
+    ids the KG no longer knows — degrade to a null type rather than dropping the
+    carrier.
+    """
+    names = list(pole.get("carrier_names") or [])
+    ids = list(pole.get("carrier_ids") or [])
+    out: list[Carrier] = []
+    for idx, name in enumerate(names):
+        cid = ids[idx] if idx < len(ids) else None
+        out.append(Carrier(id=cid, name=name, entity_type=types_by_id.get(cid) if cid else None))
+    return out
+
+
 # ── Cached TensionLines ────────────────────────────────────────────────────────
 
 
@@ -102,19 +132,23 @@ async def get_group_tension_lines(task_id: str) -> TaskStatus:
 async def list_tension_lines(
     book_id: str,
     tension_service: TensionServiceDep,
+    kg_service: KGServiceDep,
 ) -> list[TensionLineDetail]:
     """Return cached TensionLines for a book, with constituent TEUs embedded.
 
     Each line includes a ``teus`` list (chapter, intensity, description, evidence,
-    carrier names per pole) so the UI can render evidence inline without a second
-    request. Returns an empty list if grouping has not been run yet — trigger
-    grouping first with ``POST /tension/lines/group``.
+    typed carriers and stance per pole) so the UI can render evidence inline
+    without a second request. Returns an empty list if grouping has not been run
+    yet — trigger grouping first with ``POST /tension/lines/group``.
     """
     rows = await tension_service.get_lines_with_teus(book_id)
+    types_by_id = await _entity_types(kg_service, book_id)
     result: list[TensionLineDetail] = []
     for r in rows:
         teus_payload: list[TEUSummary] = []
         for teu in r.get("teus", []):
+            pole_a = teu.get("pole_a") or {}
+            pole_b = teu.get("pole_b") or {}
             teus_payload.append(
                 TEUSummary(
                     id=teu.get("id", ""),
@@ -122,8 +156,10 @@ async def list_tension_lines(
                     intensity=float(teu.get("intensity", 0.0)),
                     tension_description=teu.get("tension_description", ""),
                     evidence=list(teu.get("evidence") or []),
-                    pole_a_carriers=list((teu.get("pole_a") or {}).get("carrier_names") or []),
-                    pole_b_carriers=list((teu.get("pole_b") or {}).get("carrier_names") or []),
+                    pole_a_carriers=_carriers(pole_a, types_by_id),
+                    pole_b_carriers=_carriers(pole_b, types_by_id),
+                    pole_a_stance=pole_a.get("stance"),
+                    pole_b_stance=pole_b.get("stance"),
                 )
             )
         result.append(
@@ -150,6 +186,7 @@ async def list_tension_lines(
 async def list_teus(
     book_id: str,
     tension_service: TensionServiceDep,
+    kg_service: KGServiceDep,
 ) -> list[TEUDetail]:
     """Return every assembled TEU for a book, ordered by chapter.
 
@@ -160,6 +197,7 @@ async def list_teus(
     """
     teus = await tension_service.get_teus(book_id)
     lines = await tension_service.get_lines(book_id)
+    types_by_id = await _entity_types(kg_service, book_id)
     line_by_teu = {tid: line.id for line in lines for tid in line.teu_ids}
     return [
         TEUDetail(
@@ -170,8 +208,10 @@ async def list_teus(
             evidence=list(teu.evidence or []),
             pole_a_concept=teu.pole_a.concept_name,
             pole_b_concept=teu.pole_b.concept_name,
-            pole_a_carriers=list(teu.pole_a.carrier_names or []),
-            pole_b_carriers=list(teu.pole_b.carrier_names or []),
+            pole_a_carriers=_carriers(teu.pole_a.model_dump(), types_by_id),
+            pole_b_carriers=_carriers(teu.pole_b.model_dump(), types_by_id),
+            pole_a_stance=teu.pole_a.stance,
+            pole_b_stance=teu.pole_b.stance,
             line_id=line_by_teu.get(teu.id),
         )
         for teu in teus
