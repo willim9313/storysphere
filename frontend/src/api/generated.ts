@@ -1547,11 +1547,36 @@ export interface paths {
          * @description Return cached TensionLines for a book, with constituent TEUs embedded.
          *
          *     Each line includes a ``teus`` list (chapter, intensity, description, evidence,
-         *     carrier names per pole) so the UI can render evidence inline without a second
-         *     request. Returns an empty list if grouping has not been run yet — trigger
-         *     grouping first with ``POST /tension/lines/group``.
+         *     typed carriers and stance per pole) so the UI can render evidence inline
+         *     without a second request. Returns an empty list if grouping has not been run
+         *     yet — trigger grouping first with ``POST /tension/lines/group``.
          */
         get: operations["list_tension_lines_api_v1_tension_lines_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/tension/teus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Teus
+         * @description Return every assembled TEU for a book, ordered by chapter.
+         *
+         *     ``line_id`` is null when no TensionLine claims the TEU. Grouping runs as a
+         *     single LLM call that may silently omit TEUs, so this is the only way to see
+         *     what Step 1 produced but Step 2 dropped. Returns an empty list if TEU
+         *     assembly has not been run yet.
+         */
+        get: operations["list_teus_api_v1_tension_teus_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1675,6 +1700,11 @@ export interface paths {
         /**
          * Get Tension Theme
          * @description Return the cached TensionTheme for a book.
+         *
+         *     ``is_stale`` reports whether the theme still reflects the current
+         *     TensionLines — re-grouping or subsequent review decisions leave it built on
+         *     inputs that no longer apply, and re-running synthesis needs ``force=true``
+         *     to get past the cache.
          *
          *     Returns 404 if synthesis has not been run yet.
          *     Trigger synthesis first with ``POST /tension/theme/synthesize``.
@@ -2324,6 +2354,22 @@ export interface components {
              *     }
              */
             pipelineStatus: components["schemas"]["PipelineStatusResponse"];
+        };
+        /**
+         * Carrier
+         * @description An entity embodying one pole of a tension.
+         *
+         *     ``id`` and ``entity_type`` are null when the LLM named a carrier that does
+         *     not resolve to a KG entity — roughly a fifth of them in practice — so the UI
+         *     must not assume a type is always available.
+         */
+        Carrier: {
+            /** Id */
+            id?: string | null;
+            /** Name */
+            name: string;
+            /** Entity Type */
+            entity_type?: string | null;
         };
         /** CausalityResponse */
         CausalityResponse: {
@@ -3870,6 +3916,43 @@ export interface components {
             force: boolean;
         };
         /**
+         * TEUDetail
+         * @description A TEU with its pole concepts and grouping status (TEU audit view).
+         *
+         *     Unlike :class:`TEUSummary` — which is always read in the context of the line
+         *     that owns it — this stands alone, so it carries the pole concept names and
+         *     says whether any line claimed it.
+         */
+        TEUDetail: {
+            /** Id */
+            id: string;
+            /** Chapter */
+            chapter: number;
+            /** Intensity */
+            intensity: number;
+            /** Tension Description */
+            tension_description: string;
+            /** Evidence */
+            evidence?: string[];
+            /** Pole A Concept */
+            pole_a_concept: string;
+            /** Pole B Concept */
+            pole_b_concept: string;
+            /** Pole A Carriers */
+            pole_a_carriers?: components["schemas"]["Carrier"][];
+            /** Pole B Carriers */
+            pole_b_carriers?: components["schemas"]["Carrier"][];
+            /** Pole A Stance */
+            pole_a_stance?: string | null;
+            /** Pole B Stance */
+            pole_b_stance?: string | null;
+            /**
+             * Line Id
+             * @description TensionLine claiming this TEU; null means grouping left it out and the TEU appears nowhere else in the analysis
+             */
+            line_id?: string | null;
+        };
+        /**
          * TEUSummary
          * @description Per-line TEU rollup used by the tension page evidence section.
          */
@@ -3885,9 +3968,19 @@ export interface components {
             /** Evidence */
             evidence?: string[];
             /** Pole A Carriers */
-            pole_a_carriers?: string[];
+            pole_a_carriers?: components["schemas"]["Carrier"][];
             /** Pole B Carriers */
-            pole_b_carriers?: string[];
+            pole_b_carriers?: components["schemas"]["Carrier"][];
+            /**
+             * Pole A Stance
+             * @description How pole A's carriers embody that side of the tension
+             */
+            pole_a_stance?: string | null;
+            /**
+             * Pole B Stance
+             * @description How pole B's carriers embody that side of the tension
+             */
+            pole_b_stance?: string | null;
         };
         /** TaskIdResponse */
         TaskIdResponse: {
@@ -4079,6 +4172,14 @@ export interface components {
              * @enum {string}
              */
             review_status: "pending" | "approved" | "modified" | "rejected";
+            /**
+             * Is Stale
+             * @description True when the TensionLines this theme was built from no longer match the set a fresh synthesis would use
+             * @default false
+             */
+            is_stale: boolean;
+            /** Stale Reason */
+            stale_reason?: ("no_lines" | "lines_regrouped" | "review_changed") | null;
         };
         /** TensionThemeReviewRequest */
         TensionThemeReviewRequest: {
@@ -6929,6 +7030,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TensionLineDetail"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_teus_api_v1_tension_teus_get: {
+        parameters: {
+            query: {
+                book_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TEUDetail"][];
                 };
             };
             /** @description Validation Error */

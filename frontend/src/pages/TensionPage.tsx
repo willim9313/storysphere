@@ -16,6 +16,7 @@ import {
   fetchTensionTheme,
   reviewTensionTheme,
 } from '@/api/tension';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   TensionStepperStrip,
@@ -48,6 +49,7 @@ export default function TensionPage() {
   const [statusFilter, setStatusFilter] = useState<Filter>('all');
   const [hideRejected, setHideRejected] = useState(false);
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [confirmStep, setConfirmStep] = useState<1 | 2 | 3 | null>(null);
 
   const {
     data: lines = [],
@@ -86,26 +88,28 @@ export default function TensionPage() {
     t('tension.errors.synthFailed'),
   );
 
-  const handleAnalyze = useCallback(
-    () => analyzeOp.trigger(() => triggerTensionAnalysis(bookId!), t('tension.errors.triggerAnalysis')),
-    [bookId, analyzeOp, t],
-  );
-  const handleGroup = useCallback(
-    () => groupOp.trigger(() => triggerGroupTensionLines(bookId!), t('tension.errors.triggerGroup')),
-    [bookId, groupOp, t],
-  );
-  const handleSynthesize = useCallback(
-    () => synthesizeOp.trigger(() => triggerSynthesizeTensionTheme(bookId!), t('tension.errors.triggerSynth')),
-    [bookId, synthesizeOp, t],
-  );
-
-  const handleTrigger = useCallback(
-    (key: 1 | 2 | 3) => {
-      if (key === 1) handleAnalyze();
-      else if (key === 2) handleGroup();
-      else handleSynthesize();
+  // `force` has to be true to re-run a completed step: without it the backend
+  // returns the cached result, reports success, and nothing changes.
+  const runStep = useCallback(
+    (key: 1 | 2 | 3, force: boolean) => {
+      if (key === 1) {
+        analyzeOp.trigger(
+          () => triggerTensionAnalysis(bookId!, 'zh', force),
+          t('tension.errors.triggerAnalysis'),
+        );
+      } else if (key === 2) {
+        groupOp.trigger(
+          () => triggerGroupTensionLines(bookId!, 'zh', force),
+          t('tension.errors.triggerGroup'),
+        );
+      } else {
+        synthesizeOp.trigger(
+          () => triggerSynthesizeTensionTheme(bookId!, 'zh', force),
+          t('tension.errors.triggerSynth'),
+        );
+      }
     },
-    [handleAnalyze, handleGroup, handleSynthesize],
+    [bookId, analyzeOp, groupOp, synthesizeOp, t],
   );
 
   const onLineReviewed = () => {
@@ -202,6 +206,13 @@ export default function TensionPage() {
       error: synthesizeOp.error,
     },
   ];
+
+  // A completed step's CTA is a re-run: it costs an LLM call and overwrites the
+  // existing result, so it goes through a confirmation rather than firing on click.
+  const handleTrigger = (key: 1 | 2 | 3) => {
+    if (steps.find((s) => s.key === key)?.done) setConfirmStep(key);
+    else runStep(key, false);
+  };
 
   const handleFocus = (id: string) => {
     setFocusedId(id);
@@ -312,6 +323,18 @@ export default function TensionPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={confirmStep !== null}
+        title={t('tension.rerunTitle')}
+        message={t('tension.rerunMessage')}
+        confirmLabel={t('tension.rerunConfirm')}
+        onConfirm={() => {
+          if (confirmStep !== null) runStep(confirmStep, true);
+          setConfirmStep(null);
+        }}
+        onCancel={() => setConfirmStep(null)}
+      />
     </div>
   );
 }

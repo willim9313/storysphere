@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from storysphere.config.mythos import get_mythos_summary
+from storysphere.config.mythos import get_mythos_summary, resolve_mythos_id
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import EntityType
@@ -108,10 +108,14 @@ Your task:
 2. Choose the most fitting FRYE MYTHOS (one id from the list provided).
 3. Choose the most fitting BOOKER PLOT (one id from the list provided).
 
+The lists above are formatted as `**Display Name** (id)`. Answer with the
+PARENTHESISED ID ONLY — lowercase ASCII, never the display name. For example,
+given `- **悲劇** (tragedy): ...` the correct answer is "tragedy", not "悲劇".
+
 Return ONLY a JSON object with:
   "proposition": str        # The book-level thematic claim (1-2 sentences)
-  "frye_mythos": str        # The Frye mythos id (e.g. "tragedy")
-  "booker_plot": str        # The Booker plot id (e.g. "overcoming_the_monster")
+  "frye_mythos": str        # The Frye mythos id, e.g. "tragedy" — id, not name
+  "booker_plot": str        # The Booker plot id, e.g. "overcoming_the_monster"
   "reasoning": str          # Brief justification for your choices (2-3 sentences)
 """
 
@@ -212,6 +216,24 @@ class TensionService:
 
     # ── Public: Mode B+ (TensionLine grouping) ────────────────────────────────
 
+    @staticmethod
+    def _grouping_coverage(teus: list[TEU], lines: list[TensionLine]) -> dict:
+        """Report which of ``teus`` no TensionLine claims.
+
+        The grouping LLM receives every TEU in one call and is free to omit any
+        of them; nothing downstream notices, so omitted TEUs disappear from the
+        analysis silently. This computes the shortfall so callers can report it.
+        """
+        covered = {tid for line in lines for tid in line.teu_ids}
+        uncovered = [t for t in teus if t.id not in covered]
+        return {
+            "total_teus": len(teus),
+            "covered_teus": len(teus) - len(uncovered),
+            "uncovered_teus": len(uncovered),
+            "uncovered_teu_ids": [t.id for t in uncovered],
+            "uncovered_chapters": sorted({t.chapter for t in uncovered}),
+        }
+
     async def group_teus(
         self,
         document_id: str,
@@ -219,17 +241,25 @@ class TensionService:
         language: str = "en",
         force: bool = False,
         progress_callback: Callable[[int, str], None] | None = None,
-    ) -> list[TensionLine]:
+    ) -> dict:
         """Group all cached TEUs for a document into TensionLines (LLM-based).
 
         Returns cached result unless force=True.
+
+        Returns:
+            ``{"lines": list[TensionLine], "coverage": dict | None}``. ``coverage``
+            is None on a cache hit (nothing was re-grouped, so there is no new
+            shortfall to report); otherwise see :meth:`_grouping_coverage`.
         """
         cache_key = f"tension_lines:{document_id}"
         if not force:
             cached = await self._cache.get(cache_key)
             if cached is not None:
                 logger.debug("TensionService: cache hit for %s", cache_key)
-                return [TensionLine.model_validate(line) for line in cached["lines"]]
+                return {
+                    "lines": [TensionLine.model_validate(line) for line in cached["lines"]],
+                    "coverage": None,
+                }
 
         events = await kg_service.get_events(document_id=document_id)
         teus: list[TEU] = []
@@ -243,15 +273,27 @@ class TensionService:
 
         if not teus:
             logger.info("TensionService: no TEUs found for document=%s", document_id)
-            return []
+            return {"lines": [], "coverage": self._grouping_coverage([], [])}
 
         if progress_callback:
             progress_callback(60, "calling LLM for line grouping")
         lines = await self._call_grouping_llm(teus, document_id, language)
+
+        coverage = self._grouping_coverage(teus, lines)
+        if coverage["uncovered_teus"]:
+            logger.warning(
+                "TensionService grouping: document=%s left %d/%d TEUs ungrouped "
+                "(chapters affected: %s)",
+                document_id,
+                coverage["uncovered_teus"],
+                coverage["total_teus"],
+                coverage["uncovered_chapters"],
+            )
+
         if progress_callback:
             progress_callback(95, "saving tension lines")
         await self.save_lines(lines, document_id)
-        return lines
+        return {"lines": lines, "coverage": coverage}
 
     async def save_lines(self, lines: list[TensionLine], document_id: str) -> None:
         """Persist TensionLines for a document to cache."""
@@ -265,6 +307,25 @@ class TensionService:
         if not cached:
             return []
         return [TensionLine.model_validate(line) for line in cached["lines"]]
+
+    async def get_teus(self, document_id: str) -> list[TEU]:
+        """Return every cached TEU for a document, ordered by chapter.
+
+        TEUs are cached per event (``teu:{event_id}``) with no document-level
+        index, so this scans the prefix and filters. Entries that no longer
+        validate against the current TEU model are skipped rather than raising.
+        """
+        entries = await self._cache.list_by_prefix("teu:")
+        result: list[TEU] = []
+        for entry in entries:
+            try:
+                teu = TEU.model_validate(entry)
+            except Exception:
+                continue
+            if teu.document_id == document_id:
+                result.append(teu)
+        result.sort(key=lambda t: (t.chapter, t.id))
+        return result
 
     async def get_lines_with_teus(self, document_id: str) -> list[dict]:
         """Return TensionLines for a document with their constituent TEUs embedded.
@@ -280,18 +341,12 @@ class TensionService:
         # Resolve TEUs across all lines in a single cache pass.
         all_teu_ids = {tid for line in lines for tid in line.teu_ids}
         teu_by_id: dict[str, TEU] = {}
-        # TEUs are cached by event_id (one TEU per event), and TEU.id != event_id.
-        # We need to scan all events for this document; mirror the loading used in group_teus.
         if all_teu_ids:
-            # Cache layout: teu:{event_id}. We don't have a reverse index, so scan keys.
-            cached_teus = await self._cache.list_by_prefix("teu:")
-            for entry in cached_teus:
-                try:
-                    teu = TEU.model_validate(entry)
-                except Exception:
-                    continue
-                if teu.document_id == document_id and teu.id in all_teu_ids:
-                    teu_by_id[teu.id] = teu
+            teu_by_id = {
+                teu.id: teu
+                for teu in await self.get_teus(document_id)
+                if teu.id in all_teu_ids
+            }
 
         result: list[dict] = []
         for line in lines:
@@ -366,19 +421,57 @@ class TensionService:
                 "Run group_teus() first."
             )
 
-        # Prefer reviewed lines; fall back to all lines
-        reviewed = [line for line in lines if line.review_status in {"approved", "modified"}]
-        input_lines = reviewed if reviewed else lines
+        input_lines = self.theme_input_lines(lines)
         logger.info(
-            "TensionService synthesize_theme: document=%s using %d/%d lines (reviewed=%d)",
+            "TensionService synthesize_theme: document=%s using %d/%d lines",
             document_id,
             len(input_lines),
             len(lines),
-            len(reviewed),
         )
 
         theme = await self._call_theme_llm(input_lines, document_id, language)
         return theme
+
+    @staticmethod
+    def theme_input_lines(lines: list[TensionLine]) -> list[TensionLine]:
+        """Select the lines a theme synthesis would be built from.
+
+        Reviewed lines win; with none reviewed we fall back to everything, so
+        that pressing Step 3 before reviewing still produces something. Shared
+        with :meth:`theme_staleness` on purpose — if staleness reimplemented
+        this rule the two would drift and the UI would lie about freshness.
+        """
+        reviewed = [line for line in lines if line.review_status in {"approved", "modified"}]
+        return reviewed if reviewed else lines
+
+    async def theme_staleness(
+        self, document_id: str, theme: TensionTheme
+    ) -> tuple[bool, str | None]:
+        """Report whether ``theme`` still reflects the current TensionLines.
+
+        Compares the lines the theme was built from against the ones a fresh
+        synthesis would use right now. This catches re-grouping (every line id
+        changes) and review decisions (the reviewed subset changes).
+
+        It does not catch edits that leave membership intact — renaming a line's
+        poles via a ``modified`` review keeps the same id, so the theme reads as
+        fresh even though its inputs changed wording. Detecting that needs a
+        content hash or per-line timestamps; neither exists yet.
+
+        Returns:
+            ``(is_stale, reason)``; reason is None when fresh.
+        """
+        lines = await self.get_lines(document_id)
+        if not lines:
+            return True, "no_lines"
+
+        current = {line.id for line in self.theme_input_lines(lines)}
+        used = set(theme.tension_line_ids)
+        if current == used:
+            return False, None
+        if not used & current:
+            return True, "lines_regrouped"
+        return True, "review_changed"
 
     async def save_theme(self, theme: TensionTheme) -> None:
         """Persist a TensionTheme to cache."""
@@ -387,11 +480,24 @@ class TensionService:
         logger.debug("TensionService: saved TensionTheme for document=%s", theme.document_id)
 
     async def get_theme(self, document_id: str) -> TensionTheme | None:
-        """Retrieve a cached TensionTheme, or None if not found/expired."""
+        """Retrieve a cached TensionTheme, or None if not found/expired.
+
+        ``frye_mythos`` / ``booker_plot`` are normalized to canonical ids on the
+        way out, so themes synthesised before that guarantee existed (which may
+        hold a localized display name) read correctly without re-running the
+        LLM. The cached row itself is left untouched — the value read here can
+        therefore differ from the value stored.
+        """
         cached = await self._cache.get(f"tension_theme:{document_id}")
         if cached is None:
             return None
-        return TensionTheme.model_validate(cached)
+        theme = TensionTheme.model_validate(cached)
+        return theme.model_copy(
+            update={
+                "frye_mythos": self._normalized_mythos("frye", theme.frye_mythos),
+                "booker_plot": self._normalized_mythos("booker", theme.booker_plot),
+            }
+        )
 
     async def update_theme_review(
         self,
@@ -749,10 +855,26 @@ class TensionService:
             document_id=document_id,
             tension_line_ids=[line.id for line in lines],
             proposition=parsed.get("proposition", ""),
-            frye_mythos=parsed.get("frye_mythos"),
-            booker_plot=parsed.get("booker_plot"),
+            frye_mythos=self._normalized_mythos("frye", parsed.get("frye_mythos")),
+            booker_plot=self._normalized_mythos("booker", parsed.get("booker_plot")),
             assembled_by=_SYNTHESIZER_TAG,
         )
+
+    @staticmethod
+    def _normalized_mythos(framework: str, value: str | None) -> str | None:
+        """Coerce an LLM mythos answer to a canonical id, logging what was dropped."""
+        resolved = resolve_mythos_id(framework, value)
+        if value and resolved is None:
+            logger.warning(
+                "TensionService: unrecognised %s value %r — storing null",
+                framework,
+                value,
+            )
+        elif value and resolved != value:
+            logger.info(
+                "TensionService: normalised %s %r → %r", framework, value, resolved
+            )
+        return resolved
 
     @staticmethod
     def _localize_prompt(prompt: str, language: str) -> str:

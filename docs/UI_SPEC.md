@@ -976,11 +976,19 @@ CSS 入口：`frontend/src/styles/tension.css`（class prefix `.tn-*`）。
 | Step 2 TensionLine 聚合 | `聚合完成 · {count} 條張力線` |
 | Step 3 TensionTheme 合成 | `主題已合成` |
 
+已完成的 step 其 CTA 為 `↻`（重新執行）。點擊**不直接執行**，先開 `ConfirmDialog`
+（`components/ui/`）說明「會呼叫 LLM 且覆寫既有結果，Step 2 重跑會使審核狀態遺失」，
+確認後才以 `force=true` 送出。未完成的 step 維持點擊即執行、不確認。
+
+> `force` 是必要的：後端在 `force=false` 時直接回快取並回報成功，畫面看起來
+> 執行過但毫無變化。
+
 #### Theme Hero（`.tn-hero`）
 
 合成完成（或 lines 存在但 theme 尚無）時取代舊「面板」配置，作為頁面 anchor：
 
 - **Eyebrow**：`全書張力主題 · TensionTheme` + 右上 StatusBadge
+- **過期橫條**（`.tn-hero-stale`，`<output>`）：僅在 API 回傳 `is_stale=true` 時出現，位於 eyebrow 與命題之間。用 `--color-warning-bg` / `--color-warning`（既有 token，未新增），內含 AlertTriangle + 標題 + 依 `stale_reason` 分岔的說明。**只做提示，不放操作按鈕**——引導使用者去按 Step 3 的 `↻`，避免同一動作有兩個入口
 - **命題**：`<p>` 用 `var(--font-serif)` + `--font-size-2xl`（24px）serif 大字（可 inline 編輯為 `<textarea>`）
 - **Meta 欄**：Frye badge（`data-mode=` 對應 `--frye-*` token）／Booker badge（共用 `--booker-*` + § 字符）／合成來源（line 數）
 - **Actions**：Approve / Modify proposition / Reject（樣式同 LineCard），右下顯示 `assembled_by · assembled_at`

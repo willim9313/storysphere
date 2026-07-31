@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle, Edit3, XCircle, Loader2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Edit3, XCircle, Loader2 } from 'lucide-react';
 import type { TensionTheme } from '@/api/types';
 import { TensionStatusBadge } from './TensionStatusBadge';
 
@@ -43,6 +43,21 @@ export function TensionThemeHero({
           <TensionStatusBadge status={theme.review_status} />
         </span>
       </div>
+
+      {theme.is_stale && (
+        <output className="tn-hero-stale">
+          <AlertTriangle size={13} />
+          <div>
+            <strong>{t('tension.staleTitle')}</strong>
+            <span>
+              {theme.stale_reason
+                ? t(`tension.staleReason.${theme.stale_reason}`)
+                : null}{' '}
+              {t('tension.staleHint')}
+            </span>
+          </div>
+        </output>
+      )}
 
       {editing ? (
         <textarea

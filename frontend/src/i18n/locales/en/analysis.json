@@ -596,7 +596,17 @@
       "comedy": "Comedy",
       "tragedy": "Tragedy",
       "rebirth": "Rebirth"
-    }
+    },
+    "rerunTitle": "Re-run this step?",
+    "rerunMessage": "This calls the LLM (a few minutes) and overwrites the existing result. Re-running Step 2 mints brand-new tension lines, discarding any review decisions.",
+    "rerunConfirm": "Re-run",
+    "staleTitle": "This theme is out of date",
+    "staleReason": {
+      "lines_regrouped": "Tension lines were re-grouped; the lines this theme cites no longer exist.",
+      "review_changed": "Review decisions changed; this theme was not built from the currently approved lines.",
+      "no_lines": "There are no tension lines."
+    },
+    "staleHint": "Use the re-run icon on Step 3 above to synthesise again."
   },
   "timeline": {
     "tabs": {

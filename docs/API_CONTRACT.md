@@ -1121,6 +1121,65 @@ Step 2 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`
 
+完成時 `result` 內容：
+
+```ts
+{
+  lines: TensionLine[];
+  // 聚合覆蓋率。cache hit（force=false 且已有結果）時為 null，
+  // 因為沒有重新聚合、也就沒有新的缺口可回報。
+  coverage: {
+    total_teus: number;
+    covered_teus: number;
+    uncovered_teus: number;      // > 0 表示 LLM 漏掉了 TEU
+    uncovered_teu_ids: string[];
+    uncovered_chapters: number[]; // 整章消失時特別重要
+  } | null;
+}
+```
+
+> 聚合由單一 LLM 呼叫完成，模型可自由略過任何 TEU；被略過者不會出現在任何
+> TensionLine 中，也不會有其他跡象。`coverage` 就是用來揭露這個缺口的。
+
+---
+
+### #14d-2 GET /tension/teus
+
+取得書籍的**全部 TEU**（Step 1 產出），依章節排序，並標示每筆是否已被某條
+TensionLine 收錄。
+
+聚合（Step 2）由單一 LLM 呼叫完成，模型可自由略過任何 TEU；被略過者不會出現在
+`GET /tension/lines` 的任何地方。**此 endpoint 是唯一能看見「Step 1 做出來、
+Step 2 丟掉」的管道。**
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**
+
+```ts
+TEUDetail[]
+
+interface TEUDetail {
+  id: string;
+  chapter: number;
+  intensity: number;            // 0..1
+  tension_description: string;
+  evidence: string[];
+  pole_a_concept: string;
+  pole_b_concept: string;
+  pole_a_carriers: Carrier[];   // 定義見 #14e
+  pole_b_carriers: Carrier[];
+  pole_a_stance: string | null;
+  pole_b_stance: string | null;
+  line_id: string | null;       // null = 未被任何張力線收錄
+}
+```
+
+尚未執行 Step 1 時回傳空陣列（非 404）。
+
+> 欄位為 snake_case：此 schema 未套用 `alias_generator=to_camel`，與同區的
+> `TensionLineDetail` 一致。
+
 ---
 
 ### #14e GET /tension/lines
@@ -1153,10 +1212,21 @@ interface TEUSummary {
   intensity: number;                    // 0–1
   tension_description: string;
   evidence: string[];                   // 1–3 段文本引用
-  pole_a_carriers: string[];            // 對應 pole A 的角色名（denormalized）
-  pole_b_carriers: string[];
+  pole_a_carriers: Carrier[];           // 體現 pole A 的實體
+  pole_b_carriers: Carrier[];
+  pole_a_stance?: string | null;        // 這些載體如何體現該極
+  pole_b_stance?: string | null;
+}
+
+interface Carrier {
+  id: string | null;
+  name: string;
+  entity_type: string | null;           // KG 實體型別；查不到時為 null
 }
 ```
+
+> `entity_type` 為 null 的情形約佔五分之一——LLM 指認的載體名未必對得上 KG 實體。
+> UI 不得假設型別必然存在（現行前端 fallback 至 `other` 樣式）。
 
 **UI 使用頁面**：張力分析頁（hero / 軌跡圖 dashboard / 審核 LineCard 證據區）
 
@@ -1223,13 +1293,37 @@ interface TensionTheme {
   document_id: string;
   tension_line_ids: string[];
   proposition: string;
-  frye_mythos?: string;   // 'romance' | 'tragedy' | 'comedy' | 'irony'
-  booker_plot?: string;
+  frye_mythos?: string | null;   // 'romance' | 'comedy' | 'tragedy' | 'irony_satire'
+  booker_plot?: string | null;   // 'overcoming_the_monster' | 'rags_to_riches' |
+                                 // 'the_quest' | 'voyage_and_return' | 'comedy' |
+                                 // 'tragedy' | 'rebirth'
   assembled_by: string;
   assembled_at: string;
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  is_stale: boolean;             // 主題是否已不反映目前的 TensionLine
+  stale_reason: 'no_lines' | 'lines_regrouped' | 'review_changed' | null;
 }
 ```
+
+> **`is_stale` 的判定方式**：比對 `tension_line_ids` 與「現在重新合成會用到的那組
+> 線」（規則同合成：有已審核的就用已審核的，否則全用）。兩者不同即為過期。
+>
+> - `lines_regrouped` — 完全沒有交集，代表 Step 2 重跑過、舊 id 全成孤兒
+> - `review_changed` — 有交集但集合不同，代表審核決定改變了輸入範圍
+> - `no_lines` — 已無任何 TensionLine
+>
+> **已知限制**：抓不到「線沒變、只有極點標籤被 `modified` 改寫」的情形——集合相同。
+> 要涵蓋需在 TensionLine 加時間戳或於 theme 存內容雜湊，目前兩者皆無。
+>
+> 過期後要重新合成必須送 `force=true`，否則 `POST /tension/theme/synthesize`
+> 會直接命中快取、回報成功卻毫無變化。
+
+> **`frye_mythos` / `booker_plot` 保證是 id，不是顯示名。** 合成 prompt 給模型的
+> 是 `**悲劇** (tragedy)` 這種格式，模型常回粗體中文名，因此後端在寫入與讀取兩端
+> 都會正規化回 id；認不得的值一律存成 `null`（前端無從 key 的值比 null 更糟）。
+> 讀取端也會正規化，所以早期存進去的顯示名不需重跑 LLM 即可正確讀出。
+>
+> 前端據此以 id 查 i18n（`tension.frye.<id>`）與 CSS（`[data-mode="<id>"]`）。
 
 **UI 使用頁面**：張力分析頁 TensionThemePanel
 
