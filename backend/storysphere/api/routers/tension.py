@@ -29,6 +29,7 @@ from storysphere.api.schemas.tension import (
     TensionLineReviewRequest,
     TensionThemeResponse,
     TensionThemeReviewRequest,
+    TEUDetail,
     TEUSummary,
 )
 from storysphere.api.store import get_task, task_store
@@ -140,6 +141,41 @@ async def list_tension_lines(
             )
         )
     return result
+
+
+# ── Cached TEUs ────────────────────────────────────────────────────────────────
+
+
+@router.get("/teus", response_model=list[TEUDetail])
+async def list_teus(
+    book_id: str,
+    tension_service: TensionServiceDep,
+) -> list[TEUDetail]:
+    """Return every assembled TEU for a book, ordered by chapter.
+
+    ``line_id`` is null when no TensionLine claims the TEU. Grouping runs as a
+    single LLM call that may silently omit TEUs, so this is the only way to see
+    what Step 1 produced but Step 2 dropped. Returns an empty list if TEU
+    assembly has not been run yet.
+    """
+    teus = await tension_service.get_teus(book_id)
+    lines = await tension_service.get_lines(book_id)
+    line_by_teu = {tid: line.id for line in lines for tid in line.teu_ids}
+    return [
+        TEUDetail(
+            id=teu.id,
+            chapter=teu.chapter,
+            intensity=teu.intensity,
+            tension_description=teu.tension_description,
+            evidence=list(teu.evidence or []),
+            pole_a_concept=teu.pole_a.concept_name,
+            pole_b_concept=teu.pole_b.concept_name,
+            pole_a_carriers=list(teu.pole_a.carrier_names or []),
+            pole_b_carriers=list(teu.pole_b.carrier_names or []),
+            line_id=line_by_teu.get(teu.id),
+        )
+        for teu in teus
+    ]
 
 
 # ── HITL Review ────────────────────────────────────────────────────────────────

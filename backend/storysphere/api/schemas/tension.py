@@ -54,6 +54,32 @@ class TEUSummary(BaseModel):
     pole_b_carriers: list[str] = Field(default_factory=list)
 
 
+class TEUDetail(BaseModel):
+    """A TEU with its pole concepts and grouping status (TEU audit view).
+
+    Unlike :class:`TEUSummary` — which is always read in the context of the line
+    that owns it — this stands alone, so it carries the pole concept names and
+    says whether any line claimed it.
+    """
+
+    id: str
+    chapter: int
+    intensity: float = Field(ge=0.0, le=1.0)
+    tension_description: str
+    evidence: list[str] = Field(default_factory=list)
+    pole_a_concept: str
+    pole_b_concept: str
+    pole_a_carriers: list[str] = Field(default_factory=list)
+    pole_b_carriers: list[str] = Field(default_factory=list)
+    line_id: str | None = Field(
+        default=None,
+        description=(
+            "TensionLine claiming this TEU; null means grouping left it out and "
+            "the TEU appears nowhere else in the analysis"
+        ),
+    )
+
+
 class TensionLineDetail(BaseModel):
     """A TensionLine with its constituent TEUs embedded for in-page review."""
 

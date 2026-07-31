@@ -304,6 +304,25 @@ class TensionService:
             return []
         return [TensionLine.model_validate(line) for line in cached["lines"]]
 
+    async def get_teus(self, document_id: str) -> list[TEU]:
+        """Return every cached TEU for a document, ordered by chapter.
+
+        TEUs are cached per event (``teu:{event_id}``) with no document-level
+        index, so this scans the prefix and filters. Entries that no longer
+        validate against the current TEU model are skipped rather than raising.
+        """
+        entries = await self._cache.list_by_prefix("teu:")
+        result: list[TEU] = []
+        for entry in entries:
+            try:
+                teu = TEU.model_validate(entry)
+            except Exception:
+                continue
+            if teu.document_id == document_id:
+                result.append(teu)
+        result.sort(key=lambda t: (t.chapter, t.id))
+        return result
+
     async def get_lines_with_teus(self, document_id: str) -> list[dict]:
         """Return TensionLines for a document with their constituent TEUs embedded.
 
@@ -318,18 +337,12 @@ class TensionService:
         # Resolve TEUs across all lines in a single cache pass.
         all_teu_ids = {tid for line in lines for tid in line.teu_ids}
         teu_by_id: dict[str, TEU] = {}
-        # TEUs are cached by event_id (one TEU per event), and TEU.id != event_id.
-        # We need to scan all events for this document; mirror the loading used in group_teus.
         if all_teu_ids:
-            # Cache layout: teu:{event_id}. We don't have a reverse index, so scan keys.
-            cached_teus = await self._cache.list_by_prefix("teu:")
-            for entry in cached_teus:
-                try:
-                    teu = TEU.model_validate(entry)
-                except Exception:
-                    continue
-                if teu.document_id == document_id and teu.id in all_teu_ids:
-                    teu_by_id[teu.id] = teu
+            teu_by_id = {
+                teu.id: teu
+                for teu in await self.get_teus(document_id)
+                if teu.id in all_teu_ids
+            }
 
         result: list[dict] = []
         for line in lines:

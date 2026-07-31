@@ -1143,6 +1143,43 @@ Step 2 專用 polling endpoint。
 
 ---
 
+### #14d-2 GET /tension/teus
+
+取得書籍的**全部 TEU**（Step 1 產出），依章節排序，並標示每筆是否已被某條
+TensionLine 收錄。
+
+聚合（Step 2）由單一 LLM 呼叫完成，模型可自由略過任何 TEU；被略過者不會出現在
+`GET /tension/lines` 的任何地方。**此 endpoint 是唯一能看見「Step 1 做出來、
+Step 2 丟掉」的管道。**
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**
+
+```ts
+TEUDetail[]
+
+interface TEUDetail {
+  id: string;
+  chapter: number;
+  intensity: number;            // 0..1
+  tension_description: string;
+  evidence: string[];
+  pole_a_concept: string;
+  pole_b_concept: string;
+  pole_a_carriers: string[];
+  pole_b_carriers: string[];
+  line_id: string | null;       // null = 未被任何張力線收錄
+}
+```
+
+尚未執行 Step 1 時回傳空陣列（非 404）。
+
+> 欄位為 snake_case：此 schema 未套用 `alias_generator=to_camel`，與同區的
+> `TensionLineDetail` 一致。
+
+---
+
 ### #14e GET /tension/lines
 
 取得書籍的 TensionLine 清單，**並內嵌每條線的 TEU 證據**（供審核頁直接顯示，不需第二次請求）。
