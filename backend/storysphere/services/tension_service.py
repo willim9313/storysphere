@@ -18,7 +18,7 @@ from typing import TYPE_CHECKING
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from storysphere.config.mythos import get_mythos_summary
+from storysphere.config.mythos import get_mythos_summary, resolve_mythos_id
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import EntityType
@@ -108,10 +108,14 @@ Your task:
 2. Choose the most fitting FRYE MYTHOS (one id from the list provided).
 3. Choose the most fitting BOOKER PLOT (one id from the list provided).
 
+The lists above are formatted as `**Display Name** (id)`. Answer with the
+PARENTHESISED ID ONLY — lowercase ASCII, never the display name. For example,
+given `- **悲劇** (tragedy): ...` the correct answer is "tragedy", not "悲劇".
+
 Return ONLY a JSON object with:
   "proposition": str        # The book-level thematic claim (1-2 sentences)
-  "frye_mythos": str        # The Frye mythos id (e.g. "tragedy")
-  "booker_plot": str        # The Booker plot id (e.g. "overcoming_the_monster")
+  "frye_mythos": str        # The Frye mythos id, e.g. "tragedy" — id, not name
+  "booker_plot": str        # The Booker plot id, e.g. "overcoming_the_monster"
   "reasoning": str          # Brief justification for your choices (2-3 sentences)
 """
 
@@ -438,11 +442,24 @@ class TensionService:
         logger.debug("TensionService: saved TensionTheme for document=%s", theme.document_id)
 
     async def get_theme(self, document_id: str) -> TensionTheme | None:
-        """Retrieve a cached TensionTheme, or None if not found/expired."""
+        """Retrieve a cached TensionTheme, or None if not found/expired.
+
+        ``frye_mythos`` / ``booker_plot`` are normalized to canonical ids on the
+        way out, so themes synthesised before that guarantee existed (which may
+        hold a localized display name) read correctly without re-running the
+        LLM. The cached row itself is left untouched — the value read here can
+        therefore differ from the value stored.
+        """
         cached = await self._cache.get(f"tension_theme:{document_id}")
         if cached is None:
             return None
-        return TensionTheme.model_validate(cached)
+        theme = TensionTheme.model_validate(cached)
+        return theme.model_copy(
+            update={
+                "frye_mythos": self._normalized_mythos("frye", theme.frye_mythos),
+                "booker_plot": self._normalized_mythos("booker", theme.booker_plot),
+            }
+        )
 
     async def update_theme_review(
         self,
@@ -800,10 +817,26 @@ class TensionService:
             document_id=document_id,
             tension_line_ids=[line.id for line in lines],
             proposition=parsed.get("proposition", ""),
-            frye_mythos=parsed.get("frye_mythos"),
-            booker_plot=parsed.get("booker_plot"),
+            frye_mythos=self._normalized_mythos("frye", parsed.get("frye_mythos")),
+            booker_plot=self._normalized_mythos("booker", parsed.get("booker_plot")),
             assembled_by=_SYNTHESIZER_TAG,
         )
+
+    @staticmethod
+    def _normalized_mythos(framework: str, value: str | None) -> str | None:
+        """Coerce an LLM mythos answer to a canonical id, logging what was dropped."""
+        resolved = resolve_mythos_id(framework, value)
+        if value and resolved is None:
+            logger.warning(
+                "TensionService: unrecognised %s value %r — storing null",
+                framework,
+                value,
+            )
+        elif value and resolved != value:
+            logger.info(
+                "TensionService: normalised %s %r → %r", framework, value, resolved
+            )
+        return resolved
 
     @staticmethod
     def _localize_prompt(prompt: str, language: str) -> str:

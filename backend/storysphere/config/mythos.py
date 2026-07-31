@@ -59,6 +59,34 @@ def load_mythos(framework: str, language: str = "en") -> list[dict]:
     return data
 
 
+@lru_cache(maxsize=4)
+def _id_lookup(framework: str) -> dict[str, str]:
+    """Build a lowercased {id or localized name} → id map across all languages."""
+    lookup: dict[str, str] = {}
+    for language in SUPPORTED_LANGUAGES:
+        for entry in load_mythos(framework, language):
+            mythos_id = entry["id"]
+            lookup[mythos_id.lower()] = mythos_id
+            name = entry.get("name")
+            if name:
+                lookup[name.strip().lower()] = mythos_id
+    return lookup
+
+
+def resolve_mythos_id(framework: str, value: str | None) -> str | None:
+    """Normalize a mythos/plot reference to its canonical id.
+
+    The prompt asks the LLM for an id but hands it entries formatted as
+    ``**悲劇** (tragedy)``, and models routinely answer with the bold display
+    name instead. A localized name is therefore accepted and mapped back; a
+    value matching nothing known returns None rather than propagating a value
+    that no consumer can key on.
+    """
+    if not value:
+        return None
+    return _id_lookup(framework).get(value.strip().lower())
+
+
 def get_mythos_summary(framework: str, language: str = "en") -> str:
     """Return a text summary of mythos/plots for inclusion in LLM prompts.
 

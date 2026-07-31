@@ -1293,13 +1293,22 @@ interface TensionTheme {
   document_id: string;
   tension_line_ids: string[];
   proposition: string;
-  frye_mythos?: string;   // 'romance' | 'tragedy' | 'comedy' | 'irony'
-  booker_plot?: string;
+  frye_mythos?: string | null;   // 'romance' | 'comedy' | 'tragedy' | 'irony_satire'
+  booker_plot?: string | null;   // 'overcoming_the_monster' | 'rags_to_riches' |
+                                 // 'the_quest' | 'voyage_and_return' | 'comedy' |
+                                 // 'tragedy' | 'rebirth'
   assembled_by: string;
   assembled_at: string;
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
 }
 ```
+
+> **`frye_mythos` / `booker_plot` 保證是 id，不是顯示名。** 合成 prompt 給模型的
+> 是 `**悲劇** (tragedy)` 這種格式，模型常回粗體中文名，因此後端在寫入與讀取兩端
+> 都會正規化回 id；認不得的值一律存成 `null`（前端無從 key 的值比 null 更糟）。
+> 讀取端也會正規化，所以早期存進去的顯示名不需重跑 LLM 即可正確讀出。
+>
+> 前端據此以 id 查 i18n（`tension.frye.<id>`）與 CSS（`[data-mode="<id>"]`）。
 
 **UI 使用頁面**：張力分析頁 TensionThemePanel
 

@@ -88,3 +88,20 @@ class TestGroupingCoverage:
         assert result["total_teus"] == 1
         assert result["covered_teus"] == 1
         assert result["uncovered_teus"] == 0
+
+
+class TestNormalizedMythos:
+    def _norm(self, framework: str, value):
+        return TensionService._normalized_mythos(framework, value)
+
+    def test_canonical_id_passes_through(self):
+        assert self._norm("frye", "tragedy") == "tragedy"
+
+    def test_display_name_is_coerced_to_id(self):
+        assert self._norm("frye", "悲劇") == "tragedy"
+
+    def test_unrecognised_value_becomes_none(self):
+        assert self._norm("frye", "autumn_tragedy") is None
+
+    def test_none_stays_none(self):
+        assert self._norm("booker", None) is None
