@@ -1,0 +1,19 @@
+{
+    "id": "eda25620-344a-47af-8b6d-c1ffa8b9feff",
+    "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+    "tension_line_ids": [
+        "a0240062-6b86-4dc5-85fe-fc09014aaae2",
+        "84ad0e0d-9afd-4fee-a2a7-5ad2aeee013c",
+        "904b2a31-49d8-4092-85b2-cc094b303745",
+        "512b8a23-d00a-4c42-8ba7-4e790b54800e",
+        "b0728384-eaf5-4bfb-8a09-92d0c6d6131a"
+    ],
+    "proposition": "\u500b\u9ad4\u5728\u9762\u5c0d\u904e\u53bb\u7684\u57f7\u5ff5\u3001\u65e2\u5b9a\u7684\u547d\u904b\u8207\u8a18\u61b6\u7684\u8a98\u60d1\u6642\uff0c\u5fc5\u9808\u505a\u51fa\u8271\u96e3\u7684\u9078\u64c7\uff0c\u4ee5\u72a7\u7272\u6216\u653e\u4e0b\u904e\u53bb\u4f86\u5be6\u73fe\u771f\u6b63\u7684\u751f\u5b58\u8207\u81ea\u6211\u6551\u8d16\uff0c\u800c\u975e\u88ab\u52d5\u5730\u88ab\u547d\u904b\u6216\u8a18\u61b6\u6240\u5b9a\u7fa9\u3002",
+    "frye_mythos": "tragedy",
+    "booker_plot": "tragedy",
+    "assembled_by": "tension_synthesizer_v1",
+    "assembled_at": "2026-07-30T15:48:58.452981",
+    "review_status": "approved",
+    "is_stale": true,
+    "stale_reason": "lines_regrouped"
+}
