@@ -382,7 +382,12 @@ export interface TensionTheme {
   assembled_by: string;
   assembled_at: string;
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  /** True when the theme no longer reflects the current TensionLines. */
+  is_stale?: boolean;
+  stale_reason?: StaleReason | null;
 }
+
+export type StaleReason = 'no_lines' | 'lines_regrouped' | 'review_changed';
 
 // ── Event Analysis Detail (EEP) ────────────────────────────────
 

@@ -173,6 +173,30 @@
   letter-spacing: 0.14em;
   margin-bottom: 16px;
 }
+.tn-hero-stale {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+}
+.tn-hero-stale svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.tn-hero-stale strong {
+  display: block;
+  font-weight: 600;
+}
+.tn-hero-stale span {
+  opacity: 0.85;
+}
+
 .tn-hero-eyebrow-dot {
   width: 6px; height: 6px;
   border-radius: 50%;

@@ -596,7 +596,17 @@
       "comedy": "喜劇",
       "tragedy": "悲劇",
       "rebirth": "重生"
-    }
+    },
+    "rerunTitle": "重新執行此步驟？",
+    "rerunMessage": "這會呼叫 LLM（約需數分鐘）並覆寫既有結果。Step 2 重跑會產生全新的張力線，已完成的審核狀態將會遺失。",
+    "rerunConfirm": "重新執行",
+    "staleTitle": "此主題已過期",
+    "staleReason": {
+      "lines_regrouped": "張力線已重新分組，此主題引用的線已不存在。",
+      "review_changed": "審核決定已改變，此主題並非依目前已審核的張力線合成。",
+      "no_lines": "目前沒有任何張力線。"
+    },
+    "staleHint": "請按上方 Step 3 的重新執行圖示重新合成。"
   },
   "timeline": {
     "tabs": {

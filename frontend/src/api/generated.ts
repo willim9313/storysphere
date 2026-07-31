@@ -1701,6 +1701,11 @@ export interface paths {
          * Get Tension Theme
          * @description Return the cached TensionTheme for a book.
          *
+         *     ``is_stale`` reports whether the theme still reflects the current
+         *     TensionLines — re-grouping or subsequent review decisions leave it built on
+         *     inputs that no longer apply, and re-running synthesis needs ``force=true``
+         *     to get past the cache.
+         *
          *     Returns 404 if synthesis has not been run yet.
          *     Trigger synthesis first with ``POST /tension/theme/synthesize``.
          */
@@ -4167,6 +4172,14 @@ export interface components {
              * @enum {string}
              */
             review_status: "pending" | "approved" | "modified" | "rejected";
+            /**
+             * Is Stale
+             * @description True when the TensionLines this theme was built from no longer match the set a fresh synthesis would use
+             * @default false
+             */
+            is_stale: boolean;
+            /** Stale Reason */
+            stale_reason?: ("no_lines" | "lines_regrouped" | "review_changed") | null;
         };
         /** TensionThemeReviewRequest */
         TensionThemeReviewRequest: {
