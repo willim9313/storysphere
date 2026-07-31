@@ -2,23 +2,17 @@
 
 **日期：** 2026-07-31
 **收件：** Claude Design
-**上游文件：** [`../20260731-tension-page-revamp.md`](../20260731-tension-page-revamp.md)（25 項發現的完整調查）
+**上游文件：** [`docs/plans/20260731-tension-page-revamp.md`](../../plans/20260731-tension-page-revamp.md)（25 項發現的完整調查）
 
 ---
 
-## 0. 這份 handoff 裡有什麼
+## 0. 這份 brief 的位置
 
-| 檔案 | 內容 |
-|------|------|
-| `BRIEF.md` | 本文件 — 設計約束、必須解決的問題、功能盤點 |
-| `teus.json` | **真實** API 輸出：38 個 TEU（`GET /tension/teus`） |
-| `lines.json` | **真實** API 輸出：6 條張力線含內嵌證據（`GET /tension/lines`） |
-| `theme.json` | **真實** API 輸出：全書主題（`GET /tension/theme`） |
-| `current-01-top.png` | 現況：stepper + 主題 hero + 軌跡圖 |
-| `current-02-review-list.png` | 現況：篩選列 + 審核清單 |
-| `current-03-line-card.png` | 現況：展開的張力線卡片 |
+檔案清單與 payload 的用法請見同目錄的 `README.md`。本文件是需求書本體。
 
-**這三份 JSON 是真實 LLM 產出，不是示範資料。** 包含所有難看的部分（重複、對調、孤兒、超長標籤）。請直接對著它們設計——理想化的假資料會導出行不通的版面，這件事在調查過程中已經發生過一次。
+`sample-payloads/` 下的 `teus.json` / `lines.json` / `theme.json` 是**真實 LLM 產出，
+不是示範資料**，包含所有難看的部分（重複、對調、孤兒、超長標籤）。請直接對著它們設計
+——理想化的假資料會導出行不通的版面，這件事在調查過程中已經發生過一次。
 
 ---
 
@@ -238,7 +232,8 @@ Step 2 與 Step 3 之間有一段人工工作，現在完全沒有表達。使�
 
 ## 8. 給設計的提醒
 
-1. **對著 `teus.json` / `lines.json` 設計，不要用假資料。** 難看的部分正是設計要解決的東西
+1. **對著 `sample-payloads/` 的真實 payload 設計，不要用假資料。** 難看的部分正是設計要解決的東西
 2. **示範資料只作結構參考**——實作時所有數值一律從真實 API 計算，不寫死
 3. **可稽核性優先於美觀。** 這個頁面的使用者在判斷「這份分析可不可信」
-4. 資料量參考：一本 10 章的書產出 38 TEU / 6 條線。壓力測試曾用到 18 條線，屆時同質卡片會變成一面牆
+4. 資料量參考：一本 10 章的書產出 38 TEU / 6 條線。檢驗清單規模請用
+   `sample-payloads/lines-scale-18.json`（構造樣本，18 條），屆時同質卡片會變成一面牆

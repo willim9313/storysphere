@@ -1,0 +1,2060 @@
+{
+  "_README": "手工構造的規模樣本，非真實 LLM 產出。前 6 條是 lines.json 的真實資料，其後 12 條為構造。用途：檢驗審核清單在 18 條時的版面（brief D5）與各種審核狀態並存的樣子。刻意保留真實資料的特徵：8 成單章線、極點標籤 10-16 字、強度集中 0.62-0.92、約兩成 carrier 的 entity_type 為 null。判斷真實畫面長相請用 lines.json。",
+  "lines": [
+    {
+      "id": "277394a9-65ef-4a86-89ca-2cb517a444f5",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "9ea9adf0-9b29-4d20-a1c6-01df9c11f660",
+        "f83ffe61-cfd7-4ba0-842f-e3d9c2f333dc",
+        "1066a9b7-8a70-44ba-a745-0caa8a5a9679",
+        "fd93754d-4d15-488b-89d7-46128b62f773",
+        "6579faa4-e4de-4aae-a7cf-f1ada13345c6",
+        "7e9e0a27-410d-4ce6-b937-6fb032f15c76"
+      ],
+      "canonical_pole_a": "個人選擇與未知",
+      "canonical_pole_b": "既定命運與傳統",
+      "intensity_summary": 0.7166666666666667,
+      "chapter_range": [
+        1,
+        7
+      ],
+      "thematic_note": "主角伊內絲在個人命運、未知召喚與家族傳統、既定責任之間的掙扎。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "9ea9adf0-9b29-4d20-a1c6-01df9c11f660",
+          "chapter": 1,
+          "intensity": 0.7,
+          "tension_description": "這場景的核心衝突是即將到來的神秘自然現象（退名之潮）所帶來的未知召喚，與伊內絲作為讀鹽人所必須承擔的個人命運和沉重責任之間的張力。她必須面對一個她無法控制的力量，同時又要履行她作為讀鹽人的職責。",
+          "evidence": [
+            "伊內絲在四月第九個清晨發現自家門檻上的鹽開始爬動，這預示著七年一度的退名之潮即將到來。",
+            "瑪蒂爾德夫人則表示，這次讀取記憶的重任將落在伊內絲身上。",
+            "她心中隱藏著希望這次能等到他回來的願望。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "c2409df1-839f-46c8-9897-fb7bc0240550",
+              "name": "鹽",
+              "entity_type": "concept"
+            },
+            {
+              "id": "7b3b942a-2c4a-4f50-a4bd-230d325b58b6",
+              "name": "退名之潮",
+              "entity_type": "concept"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "鹽的爬動預示著一個神秘而不可抗拒的自然事件的到來，它將改變薩爾瑪雷納的生活。",
+          "pole_b_stance": "伊內絲被選中承擔讀取記憶的重任，這不僅關乎她的個人命運，也關乎整個社區的記憶傳承。"
+        },
+        {
+          "id": "f83ffe61-cfd7-4ba0-842f-e3d9c2f333dc",
+          "chapter": 1,
+          "intensity": 0.6,
+          "tension_description": "這場景中，伊內絲的行動代表了對傳統程序的遵守，但她所傳達的「鹽已醒」的消息卻預示著即將到來的未知事件，挑戰著現有的平靜與秩序。",
+          "evidence": [
+            "伊內絲小跑穿過鎮子，向瑪蒂爾德夫人報告鹽已「醒」的消息。",
+            "這是鎮上處理退名之潮的標準程序，也為後續的預言鋪墊。",
+            "「鹽已醒」預示著七年一度的「退名之潮」即將來臨。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": null,
+              "name": "瑪蒂爾德夫人",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "6fbb927e-91cd-4ca0-a461-cdec09b46b8b",
+              "name": "瑪蒂爾德夫人的屋子",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "伊內絲遵循鎮上的標準程序，向瑪蒂爾德夫人報告「鹽已醒」的消息，維護了處理退名之潮的既定秩序。",
+          "pole_b_stance": "「鹽已醒」本身就是一個預兆，暗示著即將到來的「退名之潮」將帶來不確定性和潛在的變革，而伊內絲作為信使，將這個未知帶入了傳統的框架中。"
+        },
+        {
+          "id": "1066a9b7-8a70-44ba-a745-0caa8a5a9679",
+          "chapter": 1,
+          "intensity": 0.9,
+          "tension_description": "瑪蒂爾德夫人的預言將伊內絲推向一個既定的、無法迴避的命運，而伊內絲則必須在個人意願與這份沉重責任之間做出選擇，她的未來充滿了未知與挑戰。",
+          "evidence": [
+            "瑪蒂爾德夫人告訴伊內絲，她早已知道鹽已醒",
+            "並預言伊內絲將成為下一任「讀鹽人」",
+            "這將伊內絲推向故事的核心，並賦予她重大的責任"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": null,
+              "name": "瑪蒂爾德夫人",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "瑪蒂爾德夫人以其預知能力和對「鹽已醒」的確認，代表著伊內絲無法逃避的命運安排。",
+          "pole_b_stance": "伊內絲面對突如其來的預言和重任，她的未來充滿了不確定性，她的反應將決定她如何承擔這份命運。"
+        },
+        {
+          "id": "fd93754d-4d15-488b-89d7-46128b62f773",
+          "chapter": 5,
+          "intensity": 0.7,
+          "tension_description": "這場景的中心張力在於，瑪蒂爾德夫人的經驗性指引與伊內絲即將踏入的未知讀鹽世界之間的衝突。瑪蒂爾德夫人試圖透過她的智慧來保護和引導，但伊內絲必須親身面對讀鹽的誘惑與危險，她的未來充滿不確定性。",
+          "evidence": [
+            "她將一個裝有海水的陶罐交給伊內絲，並指導她如何進行讀鹽，強調要從近處開始，不要走得太遠。",
+            "這標誌著伊內絲作為讀鹽人的正式開始，也揭示了讀鹽的危險性和瑪蒂爾德夫人的經驗。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": null,
+              "name": "瑪蒂爾德夫人",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "瑪蒂爾德夫人以其豐富的讀鹽經驗，為伊內絲提供關鍵的、帶有警告意味的指導，試圖引導她安全地進入這個危險的領域。",
+          "pole_b_stance": "伊內絲作為一個新生的讀鹽人，面對著充滿誘惑與危險的未知世界，她的潛力尚未被完全發掘，但她必須獨自面對這一切。"
+        },
+        {
+          "id": "6579faa4-e4de-4aae-a7cf-f1ada13345c6",
+          "chapter": 5,
+          "intensity": 0.8,
+          "tension_description": "伊內絲面對個人命運的未知召喚，同時承受著全鎮居民沉重而集體的期待。她每一步都踏在個人職責與社群壓力之間。",
+          "evidence": [
+            "伊內絲深吸一口氣，提起裙擺，赤著腳踏上了那片七年才裸露一次的黑色柔軟海床，朝著最近的光點走去。",
+            "全鎮的人屏息在後方觀望。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "e718ef83-d813-43eb-8e42-044bb05325c1",
+              "name": "記憶的光",
+              "entity_type": "concept"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": null,
+              "name": "全鎮的人",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "伊內絲被海床上發光的記憶物件所吸引，踏上未知且神聖的海床，回應讀鹽人的職責召喚。",
+          "pole_b_stance": "全鎮居民屏息觀望，他們的沉默與注視形成一股無形的壓力與期待，將伊內絲推向她的命運。"
+        },
+        {
+          "id": "7e9e0a27-410d-4ce6-b937-6fb032f15c76",
+          "chapter": 7,
+          "intensity": 0.6,
+          "tension_description": "伊內絲被懷錶散發的「記憶的光」所吸引，這光芒指向一段不屬於薩爾瑪雷納死者的記憶，挑戰了她作為「讀鹽人」只能讀取死者記憶的既定認知，引發了對未知真相的困惑與探尋。",
+          "evidence": [
+            "它散發著記憶的光，這讓她感到困惑，因為這不是薩爾瑪雷納死者的記憶。",
+            "伊內絲在泥灘中發現了鐘錶匠泰奧多爾的懷錶"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "9b8385ba-55a8-4854-8478-bf472c54f434",
+              "name": "懷錶",
+              "entity_type": "object"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "伊內絲透過懷錶觸及了一段不屬於死者的、充滿謎團的記憶，這段記憶的來源和意義對她來說是未知的。",
+          "pole_b_stance": "伊內絲作為「讀鹽人」，其能力通常是讀取死者的記憶，因此這段活人記憶的出現挑戰了她對自己能力和世界運作方式的既定認知。"
+        }
+      ]
+    },
+    {
+      "id": "b332b93b-acac-4c2a-a874-257ee74ab8cd",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "ad8da029-1ce5-41c5-9298-b5af29b05319",
+        "761c41f6-4a49-4257-80c2-8f0fea819346",
+        "d258f6e4-1c3b-4f41-82a2-6314007ddd31"
+      ],
+      "canonical_pole_a": "記憶的自主與神聖",
+      "canonical_pole_b": "記憶的追尋與佔有",
+      "intensity_summary": 0.7333333333333334,
+      "chapter_range": [
+        3,
+        3
+      ],
+      "thematic_note": "關於記憶的本質、道德界限以及其被商品化或佔有的衝突。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "ad8da029-1ce5-41c5-9298-b5af29b05319",
+          "chapter": 3,
+          "intensity": 0.7,
+          "tension_description": "這場景的核心衝突在於記憶的本質：它是否可以被視為一種商品，可以被交易和擁有，還是它本質上是個人且不可侵犯的？泰奧多爾的功利主義與伊內絲的道德原則形成鮮明對比。",
+          "evidence": [
+            "「如果你在退潮中讀到一個名叫莉莉安娜的女人，請務必先來找我。」",
+            "「我會付你高額報酬。」",
+            "「記憶不能買賣，你這是想竊取不屬於你的記憶。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "42d3c052-1a07-4f13-ba3d-055b72b85eec",
+              "name": "泰奧多爾・萬克",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "泰奧多爾試圖用金錢換取伊內絲幫助他尋找莉莉安娜的記憶，將記憶視為可以買賣的物品。",
+          "pole_b_stance": "伊內絲堅信記憶是神聖且不可買賣的，拒絕泰奧多爾的提議，認為他試圖竊取不屬於他的記憶。"
+        },
+        {
+          "id": "761c41f6-4a49-4257-80c2-8f0fea819346",
+          "chapter": 3,
+          "intensity": 0.8,
+          "tension_description": "這場衝突的核心在於記憶的本質：它究竟是不可侵犯的個人領域，還是可以被追尋、交換甚至佔有的客體？伊內絲捍衛記憶的純粹性，而泰奧多爾則試圖通過交易來彌補個人的失落。",
+          "evidence": [
+            "「記憶不能買賣，」伊內絲說，「你不能竊取不屬於你的記憶。」",
+            "「我會付你高額報酬，」泰奧多爾・萬克說，「只要你找到莉莉安娜的記憶，就先來找我。」",
+            "泰奧多爾・萬克透露他來薩爾瑪雷納是為了尋找「不屬於這座鎮的東西」，特別是與一個名叫莉莉安娜的女人相關的記憶。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "42d3c052-1a07-4f13-ba3d-055b72b85eec",
+              "name": "泰奧多爾・萬克",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "伊內絲堅信記憶是個人的、神聖的，不能被買賣或竊取，尤其不屬於自己的記憶。",
+          "pole_b_stance": "泰奧多爾・萬克不惜一切代價，包括提供高額報酬，渴望尋回或佔有與莉莉安娜相關的失落記憶。"
+        },
+        {
+          "id": "d258f6e4-1c3b-4f41-82a2-6314007ddd31",
+          "chapter": 3,
+          "intensity": 0.7,
+          "tension_description": "這場衝突的核心在於記憶的本質：它究竟是神聖不可侵犯的個人遺產，還是可以被買賣、佔有的商品？伊內絲捍衛記憶的道德界限，而泰奧多爾則試圖將其商品化以滿足私慾。",
+          "evidence": [
+            "「記憶不能買賣。」伊內絲說，她引用了瑪蒂爾德夫人的話。",
+            "「記憶不該從他人手中竊取。」",
+            "「我會付你高額報酬。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "42d3c052-1a07-4f13-ba3d-055b72b85eec",
+              "name": "泰奧多爾・萬克",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "伊內絲堅定地拒絕了購買記憶的提議，認為記憶是神聖且不可買賣的，不應從他人手中竊取，這體現了她作為讀鹽人的道德原則。",
+          "pole_b_stance": "泰奧多爾・萬克試圖以金錢購買記憶，將其視為可交易的商品，並希望佔有不屬於自己的記憶，以達到個人目的。"
+        }
+      ]
+    },
+    {
+      "id": "6e33bef7-e422-4f59-86f8-0349266cfd99",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "f7c4b670-aec1-4798-aa8c-57fc993400de",
+        "d9638207-1830-4770-9f24-0d311c0018a8",
+        "2284ce07-11e5-40e6-b0f3-2272fd3773c8"
+      ],
+      "canonical_pole_a": "追尋與承擔",
+      "canonical_pole_b": "保護與避免失去",
+      "intensity_summary": 0.7999999999999999,
+      "chapter_range": [
+        4,
+        4
+      ],
+      "thematic_note": "主角與母親之間在面對過去和未來時，關於主動追尋真相與保護所愛之人的衝突。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "f7c4b670-aec1-4798-aa8c-57fc993400de",
+          "chapter": 4,
+          "intensity": 0.7,
+          "tension_description": "伊內絲渴望透過讀鹽追尋失蹤哥哥的記憶與歸屬，與母親因過去的創傷而極力避免女兒重蹈覆轍、保護其安全的願望產生了劇烈衝突。這是一場關於愛、責任、記憶與恐懼的拉鋸戰。",
+          "evidence": [
+            "伊內絲回到家，告訴母親她想為這次的潮汐讀鹽，因為瑪蒂爾德夫人眼睛不行了。",
+            "母親堅決反對，她透露海歸還被搶走的人會收取「利息」，曾有人因此失去另一個活人。",
+            "母親不願伊內絲冒險，因為她已經失去了一個孩子，不能再失去另一個。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "dda7e3ca-5dfd-4997-8e26-8ad274452560",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "伊內絲主動提出要為家族和哥哥讀鹽，展現了她對失落親人的深切思念和承擔家族責任的意願。",
+          "pole_b_stance": "母親因過去失去長子的痛苦經歷，堅決反對伊內絲冒險讀鹽，試圖保護她免受海的威脅。"
+        },
+        {
+          "id": "d9638207-1830-4770-9f24-0d311c0018a8",
+          "chapter": 4,
+          "intensity": 0.8,
+          "tension_description": "伊內絲渴望通過讀鹽尋回失蹤哥哥的希望，與母親因過去的創傷和對再次失去的恐懼而產生的保護慾之間，形成了劇烈的衝突。這不僅是母女間的意見不合，更是兩種面對悲痛和未知的截然不同方式的碰撞。",
+          "evidence": [
+            "「如果這次海能把哥哥還回來，或者有屬於哥哥的東西，我可以讀鹽嗎？」",
+            "母親的臉色瞬間變得蒼白，彷彿被伊內絲的話語擊中了最脆弱的地方。",
+            "「我不能再失去一個孩子了。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "dda7e3ca-5dfd-4997-8e26-8ad274452560",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "伊內絲鼓起勇氣，表達了她七年來深藏的願望，即通過讀鹽尋回失蹤的哥哥埃米利安，或至少找到他的遺物。",
+          "pole_b_stance": "母親因過去失去埃米利安的痛苦，以及對海會收取「利息」的恐懼，堅決反對伊內絲讀鹽，只為保護她免受再次失去的打擊。"
+        },
+        {
+          "id": "2284ce07-11e5-40e6-b0f3-2272fd3773c8",
+          "chapter": 4,
+          "intensity": 0.9,
+          "tension_description": "這場衝突的核心是母親為了保護女兒而願意犧牲找回逝去親人的機會，與伊內絲（以及海的本質）所代表的，為了追尋失落記憶而可能付出的巨大生命代價之間的矛盾。",
+          "evidence": [
+            "母親堅決禁止伊內絲讀鹽，即使海真的歸還了埃米利安的東西也不允許。",
+            "海歸還被搶走的人是要收「利息」的，她不能再失去伊內絲。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "dda7e3ca-5dfd-4997-8e26-8ad274452560",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "a2b77c23-5cde-4611-b94d-a7dd7778e1f5",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "母親堅決禁止伊內絲讀鹽，即使這意味著放棄找回埃米利安的機會，因為她曾失去一個孩子，不能再失去伊內絲。",
+          "pole_b_stance": "伊內絲渴望透過讀鹽找回哥哥的遺物，而海則以「利息」的形式要求高昂的代價，威脅著伊內絲的生命。"
+        }
+      ]
+    },
+    {
+      "id": "8a13f5a2-0062-4e57-b5a8-d9b1047b8140",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "59672685-093e-4243-91a9-f6ea60bc3b39",
+        "60f9d341-f405-4fec-9d2f-27ec41695e4b",
+        "de6a7d2a-a760-43e3-a23e-de16c6f8cb0e",
+        "bd32d12c-362e-4a54-af99-41f82764c265"
+      ],
+      "canonical_pole_a": "犧牲與奉獻",
+      "canonical_pole_b": "生存與放下",
+      "intensity_summary": 0.825,
+      "chapter_range": [
+        8,
+        8
+      ],
+      "thematic_note": "關於為愛、為傳統或為他人犧牲自我，與選擇生存、放下過去之間的深刻矛盾。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "59672685-093e-4243-91a9-f6ea60bc3b39",
+          "chapter": 8,
+          "intensity": 0.7,
+          "tension_description": "這場景的核心衝突在於，為了追尋或挽回逝去的記憶，是否值得付出生命的代價，以及在愛與記憶的羈絆中，如何選擇生存與自由。",
+          "evidence": [
+            "海要的代價是讀鹽人的生命，就像伊內絲的外婆當年為了讀回被海奪走的外甥而犧牲一樣。",
+            "她教導伊內絲，讀鹽的真正一課是如何決定哪些記憶該留給海，有些名字留在海裡是因為愛，愛到願意讓它自由，讓自己活下去替它記得。",
+            "瑪蒂爾德夫人最後一句話是讓伊內絲用活著的一生去記住埃米利安，而不是用死亡去換他上岸。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": null,
+              "name": "瑪蒂爾德夫人",
+              "entity_type": null
+            },
+            {
+              "id": null,
+              "name": "伊內絲的外婆",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": null,
+              "name": "瑪蒂爾德夫人",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "瑪蒂爾德夫人和伊內絲的外婆都曾為了讀取被海奪走的記憶而考慮或付出了生命的代價。",
+          "pole_b_stance": "瑪蒂爾德夫人臨終前教導伊內絲，真正的愛是讓記憶自由，並選擇活下去替逝者記憶，而非以生命換取。"
+        },
+        {
+          "id": "60f9d341-f405-4fec-9d2f-27ec41695e4b",
+          "chapter": 8,
+          "intensity": 0.9,
+          "tension_description": "伊內絲在追尋哥哥埃米利安被海吞噬的真相與記憶，以及瑪蒂爾德夫人所教導的為了生存而學會放下之間，面臨著極其痛苦的抉擇。這場衝突的核心是為了過去的執念而犧牲生命，還是選擇活下去並以另一種方式銘記。",
+          "evidence": [
+            "「海將他封存在最深處，讀鹽人必須走到泥灘最深處才能讀取他的記憶。」",
+            "「但那裡漲潮時會被淹沒。」",
+            "「海要的代價是讀鹽人的生命。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "277b7f19-6173-4a2a-8a31-27ed1c7672ca",
+              "name": "埃米利安",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "a2b77c23-5cde-4611-b94d-a7dd7778e1f5",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "location"
+            },
+            {
+              "id": null,
+              "name": "海",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "伊內絲面臨著為了追尋哥哥的真相和記憶，可能需要付出生命的代價。",
+          "pole_b_stance": "瑪蒂爾德夫人代表著接受失去、選擇生存並以活著的方式去銘記，而海則象徵著不可抗拒的自然力量，要求讀鹽人放下執念。"
+        },
+        {
+          "id": "de6a7d2a-a760-43e3-a23e-de16c6f8cb0e",
+          "chapter": 8,
+          "intensity": 0.8,
+          "tension_description": "這場景揭示了家族中為尋回逝者記憶而犧牲生命的悲劇傳統，與瑪蒂爾德夫人所倡導的、以活著的生命去承載記憶並讓逝者安息的理念之間，存在著深刻的衝突。",
+          "evidence": [
+            "伊內絲的外婆也曾為了讀回被海搶走的親人（她妹妹的兒子），走進海裡，最終未能回來。",
+            "她用自己的生命換回了外甥的一個下午。",
+            "瑪蒂爾德夫人最後一句話是讓伊內絲用活著的一生去記住埃米利安，而不是用死亡去換他上岸。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "91289591-cfc5-446a-96a6-1b081f7ce5d6",
+              "name": "外婆",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": null,
+              "name": "瑪蒂爾德夫人",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "外婆為了讀回被海奪走的外甥，選擇走進海裡，犧牲了自己的生命，以換取短暫的記憶。",
+          "pole_b_stance": "瑪蒂爾德夫人教導伊內絲，真正的愛是讓記憶自由，並以活著的生命去承載和延續對逝者的記憶，而非以死亡去換取。"
+        },
+        {
+          "id": "bd32d12c-362e-4a54-af99-41f82764c265",
+          "chapter": 8,
+          "intensity": 0.9,
+          "tension_description": "這場景的核心衝突在於，為了所愛之人，是選擇犧牲自己的生命去追尋逝去的記憶，還是選擇活下去，以生命本身作為記憶的載體，讓愛以另一種形式延續。這是愛與生存之間，關於記憶與遺忘的艱難抉擇。",
+          "evidence": [
+            "讀鹽真正的課程不是如何讀出記憶，而是如何決定哪些記憶該留給海。",
+            "有些名字留在海裡不是因為不夠愛，而是因為太愛，愛到願意讓它自由，讓自己活下去替它記得。",
+            "她囑咐伊內絲用活著的一生去記住埃米利安，而不是用死來換他上岸。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "277b7f19-6173-4a2a-8a31-27ed1c7672ca",
+              "name": "伊內絲的外婆",
+              "entity_type": "character"
+            },
+            {
+              "id": null,
+              "name": "埃米利安",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "character"
+            },
+            {
+              "id": null,
+              "name": "伊內絲",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "伊內絲的外婆為了讀回被海奪走的外甥而犧牲，埃米利安的記憶被海封存，若要讀取需付出生命代價。",
+          "pole_b_stance": "瑪蒂爾德夫人教導伊內絲，真正的愛是願意讓所愛之人自由，選擇活下去替他們記憶，而不是用死來換取。"
+        }
+      ]
+    },
+    {
+      "id": "8107e5c0-9cec-43a5-a6f0-cfe9861a04db",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "09ce8ee8-2327-437f-b507-4fe13be0f9b1",
+        "4006412f-0661-4d74-b622-d129febe2e61",
+        "f3630f49-6210-4a2d-a73f-4e717480577c",
+        "55b87640-b0c1-46d7-840f-58eef1c69370"
+      ],
+      "canonical_pole_a": "過去的執念與誘惑",
+      "canonical_pole_b": "活在當下與未來",
+      "intensity_summary": 0.75,
+      "chapter_range": [
+        9,
+        9
+      ],
+      "thematic_note": "主角在過去的記憶、人物和誘惑中掙扎，與選擇面對現實、活在當下並走向未來之間的衝突。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "09ce8ee8-2327-437f-b507-4fe13be0f9b1",
+          "chapter": 9,
+          "intensity": 0.7,
+          "tension_description": "伊內絲在泥灘深處面臨著巨大的抉擇：是屈服於重溫哥哥生前記憶的強烈誘惑，即使這可能讓她永遠迷失；還是選擇放下過去，活在當下，並以生命去承載對哥哥的記憶。",
+          "evidence": [
+            "她發現那光芒來自埃米利安的貝殼手環，意識到只要用自己的血觸碰，就能重溫哥哥生前的最後一個下午，但代價是她將無法回去。",
+            "在漲潮即將來臨之際，伊內絲回想起瑪蒂爾德夫人和母親的話，意識到不該用自己的生命去換回哥哥。",
+            "最終，她選擇放下手環，決定好好活著去記住哥哥，然後轉身跑向岸邊呼喊她的人群。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "277b7f19-6173-4a2a-8a31-27ed1c7672ca",
+              "name": "埃米利安",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": null,
+              "name": "瑪蒂爾德夫人",
+              "entity_type": null
+            },
+            {
+              "id": null,
+              "name": "母親",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "伊內絲被埃米利安的貝殼手環所發出的光芒吸引，渴望透過它重溫哥哥生前的記憶，即使這意味著可能無法回頭。",
+          "pole_b_stance": "伊內絲在關鍵時刻回想起瑪蒂爾德夫人和母親的警告，意識到她應該選擇活下去，並以自己的生命去記住哥哥，而不是犧牲自己去重現過去。"
+        },
+        {
+          "id": "4006412f-0661-4d74-b622-d129febe2e61",
+          "chapter": 9,
+          "intensity": 0.8,
+          "tension_description": "伊內絲在泥灘深處發現哥哥的貝殼手環，面臨著是沉溺於重溫過去的誘惑，還是選擇放下執念、活在當下的痛苦抉擇。",
+          "evidence": [
+            "伊內絲在泥灘深處發現了埃米利安的貝殼手環，這是她八歲時親手為他串的生日禮物。",
+            "只要用自己的血觸碰，就能重溫哥哥生前的最後一個下午，但代價是她將無法回去。",
+            "伊內絲回想起瑪蒂爾德夫人和母親的話，意識到不該用自己的生命去換回哥哥。最終，她選擇放下手環，決定好好活著去記住哥哥，然後轉身跑向岸邊呼喊她的人群。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "277b7f19-6173-4a2a-8a31-27ed1c7672ca",
+              "name": "埃米利安",
+              "entity_type": "character"
+            },
+            {
+              "id": "9038b5a2-ff7a-4ac1-af2f-9942b47d3169",
+              "name": "貝殼手環",
+              "entity_type": "object"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": null,
+              "name": "瑪蒂爾德夫人",
+              "entity_type": null
+            },
+            {
+              "id": null,
+              "name": "母親",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "伊內絲被手環所代表的哥哥的記憶和存在的證明深深吸引，幾乎要為此犧牲現在。",
+          "pole_b_stance": "伊內絲最終回想起親人的忠告，選擇放下過去的誘惑，決定為自己和所愛之人活下去。"
+        },
+        {
+          "id": "f3630f49-6210-4a2d-a73f-4e717480577c",
+          "chapter": 9,
+          "intensity": 0.6,
+          "tension_description": "在伊內絲考慮是否「讀鹽」以重溫哥哥記憶的關鍵時刻，漲潮的開始將過去的誘惑與現實的生存壓力推向了劇烈的衝突。她必須在沉溺於過去的誘惑與面對現實的生存威脅之間做出選擇。",
+          "evidence": [
+            "在伊內絲考慮讀鹽的關鍵時刻",
+            "遠處傳來悶雷般的響動，漲潮開始，海正逼近。",
+            "漲潮的到來增加了時間的緊迫性，迫使伊內絲必須在讀鹽與否之間做出選擇。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "a2b77c23-5cde-4611-b94d-a7dd7778e1f5",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "a2b77c23-5cde-4611-b94d-a7dd7778e1f5",
+              "name": "海",
+              "entity_type": "location"
+            },
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "伊內絲被哥哥的記憶和海的神秘力量所吸引，面臨重溫過去的誘惑，這可能導致她被過去束縛。",
+          "pole_b_stance": "漲潮的到來代表著現實的威脅和時間的緊迫性，迫使伊內絲必須做出選擇以確保生存。"
+        },
+        {
+          "id": "55b87640-b0c1-46d7-840f-58eef1c69370",
+          "chapter": 9,
+          "intensity": 0.9,
+          "tension_description": "伊內絲面臨著一個深刻的抉擇：是選擇以自己的生命為代價，通過「讀鹽」來永恆重溫哥哥逝去的記憶，還是選擇活著，以自己的方式去承載和延續這份記憶。",
+          "evidence": [
+            "她回想起瑪蒂爾德夫人和母親的話，意識到讀鹽的代價，最終選擇不讀鹽。",
+            "她將貝殼手環放回泥灘，並向哥哥告別。",
+            "她決定好好活著去記住哥哥，然後轉身跑向岸邊呼喊她的人群。"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "dda7e3ca-5dfd-4997-8e26-8ad274452560",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "277b7f19-6173-4a2a-8a31-27ed1c7672ca",
+              "name": "埃米利安",
+              "entity_type": "character"
+            },
+            {
+              "id": "a2b77c23-5cde-4611-b94d-a7dd7778e1f5",
+              "name": "海",
+              "entity_type": "location"
+            },
+            {
+              "id": "9038b5a2-ff7a-4ac1-af2f-9942b47d3169",
+              "name": "貝殼手環",
+              "entity_type": "object"
+            }
+          ],
+          "pole_a_stance": "伊內絲選擇放下過去的誘惑，決定以自己的生命去承載並延續對哥哥的記憶，而非以死相換；母親的教誨也支持了這一選擇。",
+          "pole_b_stance": "埃米利安的貝殼手環和海的誘惑，代表著通過「讀鹽」的方式，以生命為代價，永恆地重溫逝去時刻的誘惑。"
+        }
+      ]
+    },
+    {
+      "id": "fbec643a-1c16-449a-8c5d-f56f27124ae4",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "8dac58c3-fbbd-4958-af7c-295baaf319f9",
+        "274bf2a3-087c-4762-b831-7bcccccdc7f1"
+      ],
+      "canonical_pole_a": "逃避與遺忘",
+      "canonical_pole_b": "面對與釋放",
+      "intensity_summary": 0.85,
+      "chapter_range": [
+        7,
+        7
+      ],
+      "thematic_note": "角色面對過去錯誤和痛苦記憶時，選擇逃避遺忘與直面釋放之間的對抗。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "8dac58c3-fbbd-4958-af7c-295baaf319f9",
+          "chapter": 7,
+          "intensity": 0.7,
+          "tension_description": "這場衝突在於泰奧多爾長期以來對過去錯誤的逃避與遺忘，與伊內絲所揭示的、必須面對並償還這段被海保管的記憶之間的對抗。它迫使泰奧多爾從被動的逃避轉向主動的承擔。",
+          "evidence": [
+            "伊內絲讀完懷錶的記憶後，猛然醒悟，理解到泰奧多爾並非來偷記憶，而是來歸還這段屬於莉莉安娜、被海保管的記憶，並面對自己的懦弱。",
+            "泰奧多爾・萬克...聲稱來薩爾瑪雷納是為了「找一樣舊東西」。",
+            "海是一個灰藍色的淺水灣，它吞噬了沉船、鐵錨和記憶"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "42d3c052-1a07-4f13-ba3d-055b72b85eec",
+              "name": "泰奧多爾・萬克",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "42d3c052-1a07-4f13-ba3d-055b72b85eec",
+              "name": "泰奧多爾・萬克",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "泰奧多爾多年來選擇逃避對莉莉安娜的背叛和愧疚，將這段痛苦的記憶深埋，直到懷錶被海保管。",
+          "pole_b_stance": "伊內絲通過讀取懷錶記憶，迫使泰奧多爾面對過去的懦弱與錯誤，並促使他踏上歸還記憶、尋求救贖的道路。"
+        },
+        {
+          "id": "274bf2a3-087c-4762-b831-7bcccccdc7f1",
+          "chapter": 7,
+          "intensity": 1.0,
+          "tension_description": "這場景的核心衝突在於泰奧多爾長期以來對過去錯誤的逃避與遺忘，以及伊內絲（作為記憶的媒介）所代表的直面真相、釋放痛苦的強大力量。當莉莉安娜的聲音說出「哪天它停了，就是我不等了」時，泰奧多爾的逃避被徹底擊碎，情感決堤。",
+          "evidence": [
+            "伊內絲用莉莉安娜的聲音讀出懷錶中的記憶",
+            "當讀到「哪天它停了，就是我不等了」時，泰奧多爾伏地痛哭",
+            "懷錶在伊內絲掌心碎成白鹽"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "42d3c052-1a07-4f13-ba3d-055b72b85eec",
+              "name": "泰奧多爾・萬克",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+              "name": "伊內絲",
+              "entity_type": "character"
+            },
+            {
+              "id": "4a46bedf-1a12-407f-aab7-14be49d1a473",
+              "name": "莉莉安娜",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "泰奧多爾幾十年來一直逃避莉莉安娜的記憶和自己造成的痛苦，將悔恨深埋心底。",
+          "pole_b_stance": "伊內絲透過莉莉安娜的聲音，將被壓抑的記憶和情感強行帶回，迫使泰奧多爾直面過去的錯誤。"
+        }
+      ]
+    },
+    {
+      "id": "02d19667-4574-4224-8429-2fc5bec12bdd",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "ab163d01-2672-4e4f-a9d7-c2a993e54e15",
+        "85c4c054-ea46-4b43-a10b-a957a9d9ef3c",
+        "960c269b-cce0-4fef-8d8b-635896433212"
+      ],
+      "canonical_pole_a": "鹽的記憶與傳承",
+      "canonical_pole_b": "肉身的損耗與代價",
+      "intensity_summary": 0.78,
+      "chapter_range": [
+        9,
+        9
+      ],
+      "thematic_note": "關於鹽的記憶與傳承與肉身的損耗與代價的反覆權衡。",
+      "review_status": "modified",
+      "teus": [
+        {
+          "id": "ab163d01-2672-4e4f-a9d7-c2a993e54e15",
+          "chapter": 9,
+          "intensity": 0.88,
+          "tension_description": "這場衝突的核心在於鹽的記憶與傳承與肉身的損耗與代價之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-salt",
+              "name": "鹽",
+              "entity_type": "concept"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-watch",
+              "name": "懷錶",
+              "entity_type": "object"
+            }
+          ],
+          "pole_a_stance": "鹽以其處境體現了鹽的記憶與傳承這一側的壓力。",
+          "pole_b_stance": "懷錶則站在肉身的損耗與代價的一側。"
+        },
+        {
+          "id": "85c4c054-ea46-4b43-a10b-a957a9d9ef3c",
+          "chapter": 9,
+          "intensity": 0.76,
+          "tension_description": "這場衝突的核心在於鹽的記憶與傳承與肉身的損耗與代價之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mother",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-watch",
+              "name": "懷錶",
+              "entity_type": "object"
+            }
+          ],
+          "pole_a_stance": "母親以其處境體現了鹽的記憶與傳承這一側的壓力。",
+          "pole_b_stance": "懷錶則站在肉身的損耗與代價的一側。"
+        },
+        {
+          "id": "960c269b-cce0-4fef-8d8b-635896433212",
+          "chapter": 9,
+          "intensity": 0.71,
+          "tension_description": "這場衝突的核心在於鹽的記憶與傳承與肉身的損耗與代價之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mat",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-salt",
+              "name": "鹽",
+              "entity_type": "concept"
+            }
+          ],
+          "pole_a_stance": "瑪蒂爾德夫人以其處境體現了鹽的記憶與傳承這一側的壓力。",
+          "pole_b_stance": "鹽則站在肉身的損耗與代價的一側。"
+        }
+      ]
+    },
+    {
+      "id": "4a9a798a-2dce-4d83-a088-1f6cd2854c7a",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "95e8fd9b-768a-45ad-9ab3-a3f52324894b",
+        "81e70e63-f09a-4ab3-86b8-9fefb7268ed8",
+        "de4195c9-b122-4ad5-8752-c14d4104a1d6"
+      ],
+      "canonical_pole_a": "神職的權威",
+      "canonical_pole_b": "民間的鹽術",
+      "intensity_summary": 0.78,
+      "chapter_range": [
+        7,
+        10
+      ],
+      "thematic_note": "關於神職的權威與民間的鹽術的反覆權衡。",
+      "review_status": "approved",
+      "teus": [
+        {
+          "id": "95e8fd9b-768a-45ad-9ab3-a3f52324894b",
+          "chapter": 7,
+          "intensity": 0.81,
+          "tension_description": "這場衝突的核心在於神職的權威與民間的鹽術之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-mother",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "讀鹽人以其處境體現了神職的權威這一側的壓力。",
+          "pole_b_stance": "母親則站在民間的鹽術的一側。"
+        },
+        {
+          "id": "81e70e63-f09a-4ab3-86b8-9fefb7268ed8",
+          "chapter": 8,
+          "intensity": 0.68,
+          "tension_description": "這場衝突的核心在於神職的權威與民間的鹽術之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "伊內絲以其處境體現了神職的權威這一側的壓力。",
+          "pole_b_stance": "讀鹽人則站在民間的鹽術的一側。"
+        },
+        {
+          "id": "de4195c9-b122-4ad5-8752-c14d4104a1d6",
+          "chapter": 10,
+          "intensity": 0.85,
+          "tension_description": "這場衝突的核心在於神職的權威與民間的鹽術之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "讀鹽人以其處境體現了神職的權威這一側的壓力。",
+          "pole_b_stance": "伊內絲則站在民間的鹽術的一側。"
+        }
+      ]
+    },
+    {
+      "id": "5bbc8726-48ce-4bd2-abee-d17622502eeb",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "3ce428d2-66e2-4dec-b143-0f6a705dba36",
+        "8c482213-43fb-4eed-84eb-a6fcc4b2e5e8",
+        "6d28c35a-359f-49a1-a3f6-544ad4c587c0",
+        "ae3f92c2-328f-4312-a8fe-8a257b84725e"
+      ],
+      "canonical_pole_a": "家族的債",
+      "canonical_pole_b": "個人的自由",
+      "intensity_summary": 0.79,
+      "chapter_range": [
+        4,
+        4
+      ],
+      "thematic_note": "關於家族的債與個人的自由的反覆權衡。",
+      "review_status": "approved",
+      "teus": [
+        {
+          "id": "3ce428d2-66e2-4dec-b143-0f6a705dba36",
+          "chapter": 4,
+          "intensity": 0.77,
+          "tension_description": "這場衝突的核心在於家族的債與個人的自由之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-church",
+              "name": "教會",
+              "entity_type": "organization"
+            }
+          ],
+          "pole_a_stance": "巴爾塔薩神父以其處境體現了家族的債這一側的壓力。",
+          "pole_b_stance": "教會則站在個人的自由的一側。"
+        },
+        {
+          "id": "8c482213-43fb-4eed-84eb-a6fcc4b2e5e8",
+          "chapter": 4,
+          "intensity": 0.74,
+          "tension_description": "這場衝突的核心在於家族的債與個人的自由之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-salt",
+              "name": "鹽",
+              "entity_type": "concept"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-church",
+              "name": "教會",
+              "entity_type": "organization"
+            }
+          ],
+          "pole_a_stance": "鹽以其處境體現了家族的債這一側的壓力。",
+          "pole_b_stance": "教會則站在個人的自由的一側。"
+        },
+        {
+          "id": "6d28c35a-359f-49a1-a3f6-544ad4c587c0",
+          "chapter": 4,
+          "intensity": 0.85,
+          "tension_description": "這場衝突的核心在於家族的債與個人的自由之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-church",
+              "name": "教會",
+              "entity_type": "organization"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-sea",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "教會以其處境體現了家族的債這一側的壓力。",
+          "pole_b_stance": "海則站在個人的自由的一側。"
+        },
+        {
+          "id": "ae3f92c2-328f-4312-a8fe-8a257b84725e",
+          "chapter": 4,
+          "intensity": 0.79,
+          "tension_description": "這場衝突的核心在於家族的債與個人的自由之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-mat",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "伊內絲以其處境體現了家族的債這一側的壓力。",
+          "pole_b_stance": "瑪蒂爾德夫人則站在個人的自由的一側。"
+        }
+      ]
+    },
+    {
+      "id": "52ac0b1f-0dab-432e-80e0-47147e21bbee",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "693cb8df-6d59-4d64-ba72-46e8ef29e3fd",
+        "919e8c0a-ecbb-4e8a-bc05-b71895f10758",
+        "615d3552-697a-4e02-a95d-bc2fe82f019b"
+      ],
+      "canonical_pole_a": "留在鎮上",
+      "canonical_pole_b": "渡海離開",
+      "intensity_summary": 0.89,
+      "chapter_range": [
+        5,
+        5
+      ],
+      "thematic_note": "關於留在鎮上與渡海離開的反覆權衡。",
+      "review_status": "approved",
+      "teus": [
+        {
+          "id": "693cb8df-6d59-4d64-ba72-46e8ef29e3fd",
+          "chapter": 5,
+          "intensity": 0.87,
+          "tension_description": "這場衝突的核心在於留在鎮上與渡海離開之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mat",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "瑪蒂爾德夫人以其處境體現了留在鎮上這一側的壓力。",
+          "pole_b_stance": "伊內絲則站在渡海離開的一側。"
+        },
+        {
+          "id": "919e8c0a-ecbb-4e8a-bc05-b71895f10758",
+          "chapter": 5,
+          "intensity": 0.9,
+          "tension_description": "這場衝突的核心在於留在鎮上與渡海離開之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "巴爾塔薩神父以其處境體現了留在鎮上這一側的壓力。",
+          "pole_b_stance": "讀鹽人則站在渡海離開的一側。"
+        },
+        {
+          "id": "615d3552-697a-4e02-a95d-bc2fe82f019b",
+          "chapter": 5,
+          "intensity": 0.91,
+          "tension_description": "這場衝突的核心在於留在鎮上與渡海離開之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-salt",
+              "name": "鹽",
+              "entity_type": "concept"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-well",
+              "name": "鹹水井",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "鹽以其處境體現了留在鎮上這一側的壓力。",
+          "pole_b_stance": "鹹水井則站在渡海離開的一側。"
+        }
+      ]
+    },
+    {
+      "id": "bb54642b-393e-4372-ab6e-423f0aa77de2",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "59c10a7d-2e64-40aa-9ad0-b9a20f5788e7",
+        "3279358f-2a44-4402-9217-0684f1462c7e",
+        "20c8bfef-5a2e-4188-8b38-0e310bd2edb4",
+        "0bc1e8f5-8e63-4daa-b58e-417f5dfe07f7"
+      ],
+      "canonical_pole_a": "說出真相",
+      "canonical_pole_b": "以沉默保護",
+      "intensity_summary": 0.8,
+      "chapter_range": [
+        4,
+        4
+      ],
+      "thematic_note": "關於說出真相與以沉默保護的反覆權衡。",
+      "review_status": "rejected",
+      "teus": [
+        {
+          "id": "59c10a7d-2e64-40aa-9ad0-b9a20f5788e7",
+          "chapter": 4,
+          "intensity": 0.65,
+          "tension_description": "這場衝突的核心在於說出真相與以沉默保護之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-church",
+              "name": "教會",
+              "entity_type": "organization"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-sea",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "教會以其處境體現了說出真相這一側的壓力。",
+          "pole_b_stance": "海則站在以沉默保護的一側。"
+        },
+        {
+          "id": "3279358f-2a44-4402-9217-0684f1462c7e",
+          "chapter": 4,
+          "intensity": 0.85,
+          "tension_description": "這場衝突的核心在於說出真相與以沉默保護之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-well",
+              "name": "鹹水井",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "伊內絲以其處境體現了說出真相這一側的壓力。",
+          "pole_b_stance": "鹹水井則站在以沉默保護的一側。"
+        },
+        {
+          "id": "20c8bfef-5a2e-4188-8b38-0e310bd2edb4",
+          "chapter": 4,
+          "intensity": 0.83,
+          "tension_description": "這場衝突的核心在於說出真相與以沉默保護之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mother",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "母親以其處境體現了說出真相這一側的壓力。",
+          "pole_b_stance": "巴爾塔薩神父則站在以沉默保護的一側。"
+        },
+        {
+          "id": "0bc1e8f5-8e63-4daa-b58e-417f5dfe07f7",
+          "chapter": 4,
+          "intensity": 0.86,
+          "tension_description": "這場衝突的核心在於說出真相與以沉默保護之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-salt",
+              "name": "鹽",
+              "entity_type": "concept"
+            }
+          ],
+          "pole_a_stance": "伊內絲以其處境體現了說出真相這一側的壓力。",
+          "pole_b_stance": "鹽則站在以沉默保護的一側。"
+        }
+      ]
+    },
+    {
+      "id": "5e94348a-9f9e-458d-8242-53242df09109",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "b680208a-0bb2-45b7-a724-76e7d79ece40",
+        "d08f0be6-a6ec-4c35-8c4a-425463e8730e",
+        "3a3856af-9223-4ff9-b7e2-e2f455d28e0b",
+        "b36c67ed-97cb-4b28-acd2-712932de0fbb"
+      ],
+      "canonical_pole_a": "孩童的天真",
+      "canonical_pole_b": "成人的隱瞞",
+      "intensity_summary": 0.77,
+      "chapter_range": [
+        8,
+        8
+      ],
+      "thematic_note": "關於孩童的天真與成人的隱瞞的反覆權衡。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "b680208a-0bb2-45b7-a724-76e7d79ece40",
+          "chapter": 8,
+          "intensity": 0.75,
+          "tension_description": "這場衝突的核心在於孩童的天真與成人的隱瞞之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-mother",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "巴爾塔薩神父以其處境體現了孩童的天真這一側的壓力。",
+          "pole_b_stance": "母親則站在成人的隱瞞的一側。"
+        },
+        {
+          "id": "d08f0be6-a6ec-4c35-8c4a-425463e8730e",
+          "chapter": 8,
+          "intensity": 0.75,
+          "tension_description": "這場衝突的核心在於孩童的天真與成人的隱瞞之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mat",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-well",
+              "name": "鹹水井",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "瑪蒂爾德夫人以其處境體現了孩童的天真這一側的壓力。",
+          "pole_b_stance": "鹹水井則站在成人的隱瞞的一側。"
+        },
+        {
+          "id": "3a3856af-9223-4ff9-b7e2-e2f455d28e0b",
+          "chapter": 8,
+          "intensity": 0.88,
+          "tension_description": "這場衝突的核心在於孩童的天真與成人的隱瞞之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-church",
+              "name": "教會",
+              "entity_type": "organization"
+            }
+          ],
+          "pole_a_stance": "伊內絲以其處境體現了孩童的天真這一側的壓力。",
+          "pole_b_stance": "教會則站在成人的隱瞞的一側。"
+        },
+        {
+          "id": "b36c67ed-97cb-4b28-acd2-712932de0fbb",
+          "chapter": 8,
+          "intensity": 0.68,
+          "tension_description": "這場衝突的核心在於孩童的天真與成人的隱瞞之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "伊內絲以其處境體現了孩童的天真這一側的壓力。",
+          "pole_b_stance": "巴爾塔薩神父則站在成人的隱瞞的一側。"
+        }
+      ]
+    },
+    {
+      "id": "7ae0177e-a63f-4ab2-9cc2-059b67d906f8",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "1c761b12-87de-4a1a-8b3c-8f97357bb01f",
+        "63350c7e-12f7-4858-8a7b-35aa36cd6624",
+        "e60729d3-2e0d-4f5f-89da-01ba43199b98"
+      ],
+      "canonical_pole_a": "土地的貧瘠",
+      "canonical_pole_b": "海的豐饒與索取",
+      "intensity_summary": 0.75,
+      "chapter_range": [
+        1,
+        8
+      ],
+      "thematic_note": "關於土地的貧瘠與海的豐饒與索取的反覆權衡。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "1c761b12-87de-4a1a-8b3c-8f97357bb01f",
+          "chapter": 1,
+          "intensity": 0.87,
+          "tension_description": "這場衝突的核心在於土地的貧瘠與海的豐饒與索取之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-sea",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "讀鹽人以其處境體現了土地的貧瘠這一側的壓力。",
+          "pole_b_stance": "海則站在海的豐饒與索取的一側。"
+        },
+        {
+          "id": "63350c7e-12f7-4858-8a7b-35aa36cd6624",
+          "chapter": 5,
+          "intensity": 0.65,
+          "tension_description": "這場衝突的核心在於土地的貧瘠與海的豐饒與索取之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mat",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "瑪蒂爾德夫人以其處境體現了土地的貧瘠這一側的壓力。",
+          "pole_b_stance": "讀鹽人則站在海的豐饒與索取的一側。"
+        },
+        {
+          "id": "e60729d3-2e0d-4f5f-89da-01ba43199b98",
+          "chapter": 8,
+          "intensity": 0.73,
+          "tension_description": "這場衝突的核心在於土地的貧瘠與海的豐饒與索取之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-sea",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "伊內絲以其處境體現了土地的貧瘠這一側的壓力。",
+          "pole_b_stance": "海則站在海的豐饒與索取的一側。"
+        }
+      ]
+    },
+    {
+      "id": "88bf4bb6-43fd-476f-b4cc-8993c7e8fe95",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "65ab7662-f6a4-434f-a33d-5e584fe11ba8",
+        "9789d08b-3dbc-43a1-ad4e-b5b355fa58a8",
+        "5448d852-9566-4d7b-bd57-83a724ba5ce4"
+      ],
+      "canonical_pole_a": "承認失去",
+      "canonical_pole_b": "維持希望的假象",
+      "intensity_summary": 0.79,
+      "chapter_range": [
+        3,
+        10
+      ],
+      "thematic_note": "關於承認失去與維持希望的假象的反覆權衡。",
+      "review_status": "approved",
+      "teus": [
+        {
+          "id": "65ab7662-f6a4-434f-a33d-5e584fe11ba8",
+          "chapter": 3,
+          "intensity": 0.71,
+          "tension_description": "這場衝突的核心在於承認失去與維持希望的假象之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mother",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "母親以其處境體現了承認失去這一側的壓力。",
+          "pole_b_stance": "讀鹽人則站在維持希望的假象的一側。"
+        },
+        {
+          "id": "9789d08b-3dbc-43a1-ad4e-b5b355fa58a8",
+          "chapter": 7,
+          "intensity": 0.84,
+          "tension_description": "這場衝突的核心在於承認失去與維持希望的假象之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "讀鹽人以其處境體現了承認失去這一側的壓力。",
+          "pole_b_stance": "巴爾塔薩神父則站在維持希望的假象的一側。"
+        },
+        {
+          "id": "5448d852-9566-4d7b-bd57-83a724ba5ce4",
+          "chapter": 10,
+          "intensity": 0.83,
+          "tension_description": "這場衝突的核心在於承認失去與維持希望的假象之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-watch",
+              "name": "懷錶",
+              "entity_type": "object"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "懷錶以其處境體現了承認失去這一側的壓力。",
+          "pole_b_stance": "巴爾塔薩神父則站在維持希望的假象的一側。"
+        }
+      ]
+    },
+    {
+      "id": "d99f46b8-8176-45bc-bf1b-e7d2162a0cc1",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "dd765d2f-30d2-44e4-a7fb-c416323e891f",
+        "41448121-5ba2-4a7d-90f0-2b2f73262b5b"
+      ],
+      "canonical_pole_a": "儀式的正確",
+      "canonical_pole_b": "情感的真實",
+      "intensity_summary": 0.67,
+      "chapter_range": [
+        7,
+        7
+      ],
+      "thematic_note": "關於儀式的正確與情感的真實的反覆權衡。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "dd765d2f-30d2-44e4-a7fb-c416323e891f",
+          "chapter": 7,
+          "intensity": 0.63,
+          "tension_description": "這場衝突的核心在於儀式的正確與情感的真實之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mat",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_a_stance": "瑪蒂爾德夫人以其處境體現了儀式的正確這一側的壓力。",
+          "pole_b_stance": "讀鹽人則站在情感的真實的一側。"
+        },
+        {
+          "id": "41448121-5ba2-4a7d-90f0-2b2f73262b5b",
+          "chapter": 7,
+          "intensity": 0.7,
+          "tension_description": "這場衝突的核心在於儀式的正確與情感的真實之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-well",
+              "name": "鹹水井",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "巴爾塔薩神父以其處境體現了儀式的正確這一側的壓力。",
+          "pole_b_stance": "鹹水井則站在情感的真實的一側。"
+        }
+      ]
+    },
+    {
+      "id": "47598c67-cd2f-4df6-85ea-6da29f6e2fcd",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "a87262d0-e351-4157-9c79-4f005e981233",
+        "aa9c41de-fc62-4267-a505-b57c1dd81815"
+      ],
+      "canonical_pole_a": "外來者的目光",
+      "canonical_pole_b": "本地人的自我理解",
+      "intensity_summary": 0.84,
+      "chapter_range": [
+        2,
+        2
+      ],
+      "thematic_note": "關於外來者的目光與本地人的自我理解的反覆權衡。",
+      "review_status": "rejected",
+      "teus": [
+        {
+          "id": "a87262d0-e351-4157-9c79-4f005e981233",
+          "chapter": 2,
+          "intensity": 0.79,
+          "tension_description": "這場衝突的核心在於外來者的目光與本地人的自我理解之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-salt",
+              "name": "鹽",
+              "entity_type": "concept"
+            }
+          ],
+          "pole_a_stance": "巴爾塔薩神父以其處境體現了外來者的目光這一側的壓力。",
+          "pole_b_stance": "鹽則站在本地人的自我理解的一側。"
+        },
+        {
+          "id": "aa9c41de-fc62-4267-a505-b57c1dd81815",
+          "chapter": 2,
+          "intensity": 0.9,
+          "tension_description": "這場衝突的核心在於外來者的目光與本地人的自我理解之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-church",
+              "name": "教會",
+              "entity_type": "organization"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "教會以其處境體現了外來者的目光這一側的壓力。",
+          "pole_b_stance": "巴爾塔薩神父則站在本地人的自我理解的一側。"
+        }
+      ]
+    },
+    {
+      "id": "1cacac04-84be-4cfd-9b41-fd5b61e58a16",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "54dd149d-3286-441c-b689-4abcaf9fe86d",
+        "74e6c46a-2ecc-49cc-90f0-d364f66663c8",
+        "db4c170d-64fd-44b2-b09d-24e2bcb38534"
+      ],
+      "canonical_pole_a": "身體的疼痛",
+      "canonical_pole_b": "記憶的完整",
+      "intensity_summary": 0.69,
+      "chapter_range": [
+        5,
+        5
+      ],
+      "thematic_note": "關於身體的疼痛與記憶的完整的反覆權衡。",
+      "review_status": "pending",
+      "teus": [
+        {
+          "id": "54dd149d-3286-441c-b689-4abcaf9fe86d",
+          "chapter": 5,
+          "intensity": 0.64,
+          "tension_description": "這場衝突的核心在於身體的疼痛與記憶的完整之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-salt",
+              "name": "鹽",
+              "entity_type": "concept"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-priest",
+              "name": "巴爾塔薩神父",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "鹽以其處境體現了身體的疼痛這一側的壓力。",
+          "pole_b_stance": "巴爾塔薩神父則站在記憶的完整的一側。"
+        },
+        {
+          "id": "74e6c46a-2ecc-49cc-90f0-d364f66663c8",
+          "chapter": 5,
+          "intensity": 0.78,
+          "tension_description": "這場衝突的核心在於身體的疼痛與記憶的完整之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-church",
+              "name": "教會",
+              "entity_type": "organization"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-sea",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "教會以其處境體現了身體的疼痛這一側的壓力。",
+          "pole_b_stance": "海則站在記憶的完整的一側。"
+        },
+        {
+          "id": "db4c170d-64fd-44b2-b09d-24e2bcb38534",
+          "chapter": 5,
+          "intensity": 0.66,
+          "tension_description": "這場衝突的核心在於身體的疼痛與記憶的完整之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mat",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-sea",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_a_stance": "瑪蒂爾德夫人以其處境體現了身體的疼痛這一側的壓力。",
+          "pole_b_stance": "海則站在記憶的完整的一側。"
+        }
+      ]
+    },
+    {
+      "id": "035d2b98-b4f0-433f-9730-391e7ee48247",
+      "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+      "teu_ids": [
+        "059a3a4b-f814-40cf-9205-4ff95d149dcf",
+        "a45dfb25-ad1c-425a-8f4a-92d1dd68664f",
+        "e03edc7d-f05f-4f19-8c8a-c7d84a21a84b",
+        "36ec5b55-f343-461f-a45c-436ebe3c6a26"
+      ],
+      "canonical_pole_a": "被記得的資格",
+      "canonical_pole_b": "被遺忘的慈悲",
+      "intensity_summary": 0.87,
+      "chapter_range": [
+        9,
+        9
+      ],
+      "thematic_note": "關於被記得的資格與被遺忘的慈悲的反覆權衡。",
+      "review_status": "approved",
+      "teus": [
+        {
+          "id": "059a3a4b-f814-40cf-9205-4ff95d149dcf",
+          "chapter": 9,
+          "intensity": 0.9,
+          "tension_description": "這場衝突的核心在於被記得的資格與被遺忘的慈悲之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-mother",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-ines",
+              "name": "伊內絲",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "母親以其處境體現了被記得的資格這一側的壓力。",
+          "pole_b_stance": "伊內絲則站在被遺忘的慈悲的一側。"
+        },
+        {
+          "id": "a45dfb25-ad1c-425a-8f4a-92d1dd68664f",
+          "chapter": 9,
+          "intensity": 0.91,
+          "tension_description": "這場衝突的核心在於被記得的資格與被遺忘的慈悲之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-sea",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-church",
+              "name": "教會",
+              "entity_type": "organization"
+            }
+          ],
+          "pole_a_stance": "海以其處境體現了被記得的資格這一側的壓力。",
+          "pole_b_stance": "教會則站在被遺忘的慈悲的一側。"
+        },
+        {
+          "id": "e03edc7d-f05f-4f19-8c8a-c7d84a21a84b",
+          "chapter": 9,
+          "intensity": 0.76,
+          "tension_description": "這場衝突的核心在於被記得的資格與被遺忘的慈悲之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」",
+            "「總得有人記得。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": null,
+              "name": "讀鹽人",
+              "entity_type": null
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-mat",
+              "name": "瑪蒂爾德夫人",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "讀鹽人以其處境體現了被記得的資格這一側的壓力。",
+          "pole_b_stance": "瑪蒂爾德夫人則站在被遺忘的慈悲的一側。"
+        },
+        {
+          "id": "36ec5b55-f343-461f-a45c-436ebe3c6a26",
+          "chapter": 9,
+          "intensity": 0.92,
+          "tension_description": "這場衝突的核心在於被記得的資格與被遺忘的慈悲之間的取捨，兩者都有其代價。",
+          "evidence": [
+            "「這不是我能選的。」"
+          ],
+          "pole_a_carriers": [
+            {
+              "id": "ent-sea",
+              "name": "海",
+              "entity_type": "location"
+            }
+          ],
+          "pole_b_carriers": [
+            {
+              "id": "ent-mother",
+              "name": "母親",
+              "entity_type": "character"
+            }
+          ],
+          "pole_a_stance": "海以其處境體現了被記得的資格這一側的壓力。",
+          "pole_b_stance": "母親則站在被遺忘的慈悲的一側。"
+        }
+      ]
+    }
+  ]
+}

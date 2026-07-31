@@ -1,0 +1,128 @@
+{
+  "tension": {
+    "title": "張力分析",
+    "status": {
+      "pending": "待審",
+      "approved": "已核准",
+      "modified": "已修改",
+      "rejected": "已拒絕"
+    },
+    "all": "全部",
+    "approve": "核准",
+    "modifyLabel": "修改標籤",
+    "modifyProposition": "修改命題",
+    "reject": "拒絕",
+    "save": "儲存",
+    "saveModify": "儲存修改",
+    "operationFailed": "操作失敗",
+    "themeTitle": "全書張力主題命題",
+    "noProposition": "（尚無命題）",
+    "heroEyebrow": "全書張力主題 · TensionTheme",
+    "heroSourceLabel": "合成來源",
+    "heroSource": "合成自 {{count}} 條已審核張力線",
+    "fryeLabel": "Frye Mythos · 神話模式",
+    "bookerLabel": "Booker Plot · 基本情節",
+    "onboardingEyebrow": "張力分析 · 三層聚合管線",
+    "onboardingIntro": "系統將從場景級的 TEU 出發，向上聚合為跨章節 TensionLine，最終合成全書的命題。",
+    "onboarding": {
+      "teu": {
+        "scope": "SCENE · 場景",
+        "name": "TEU",
+        "desc": "每個事件提取出的對立極對，是張力分析的最小單元。"
+      },
+      "line": {
+        "scope": "CROSS-SCENE · 跨章節",
+        "name": "TensionLine",
+        "desc": "相似 TEU 聚合而成、持續存在的對立軸；可逐條審核。"
+      },
+      "theme": {
+        "scope": "BOOK · 全書",
+        "name": "TensionTheme",
+        "desc": "從已審核的張力線合成一句話命題與框架歸類。"
+      }
+    },
+    "llmHint": "此步驟會呼叫 LLM，約需數分鐘",
+    "step1": {
+      "label": "TEU 組裝",
+      "scope": "SCENE 場景級",
+      "desc": "掃描全書事件，提取對立極對",
+      "done": "組裝完成 · {{assembled}} / {{candidates}} 場景",
+      "running": "進行中 · {{stage}}（{{progress}}%）"
+    },
+    "step2": {
+      "label": "TensionLine 聚合",
+      "scope": "CROSS-SCENE 跨場景",
+      "desc": "LLM 將 TEU 歸納為跨章節張力模式",
+      "done": "聚合完成 · {{count}} 條張力線",
+      "running": "進行中 · {{stage}}"
+    },
+    "step3": {
+      "label": "TensionTheme 合成",
+      "scope": "BOOK 全書級",
+      "desc": "從已審核的 TensionLine 合成全書主題命題",
+      "done": "主題已合成",
+      "running": "進行中 · {{stage}}",
+      "lock": "需先完成 Step 2"
+    },
+    "errors": {
+      "analysisFailed": "分析失敗",
+      "groupFailed": "分組失敗",
+      "synthFailed": "合成失敗",
+      "triggerAnalysis": "觸發分析失敗",
+      "triggerGroup": "觸發分組失敗",
+      "triggerSynth": "觸發合成失敗"
+    },
+    "trajectoryTitle": "TensionLine 軌跡",
+    "trajectorySub": "{{count}} 條 · 1 → {{max}} 章",
+    "intensityLabel": "強度",
+    "intensityLow": "低",
+    "intensityMid": "中",
+    "intensityHigh": "高",
+    "density": "TEU 密度",
+    "intensityHint": "強度：低 → 高",
+    "reviewSummary": "審核狀態",
+    "hideRejected": "隱藏已拒絕",
+    "reviewListTitle": "TensionLine 審核",
+    "reviewListSub": "{{shown}} / {{total}} 條",
+    "reviewTitle": "TensionLine 審核（{{count}} 條）",
+    "refresh": "重新整理",
+    "poleA": "極點 A",
+    "poleB": "極點 B",
+    "noCarrier": "未指派 carrier",
+    "evidence": "證據",
+    "evidenceCount": "{{count}} 則",
+    "evidenceHidden": "+ 還有 {{count}} 則 TEU 證據未顯示",
+    "showAll": "展開全部 {{count}} 則",
+    "showSummary": "收合",
+    "rerun": "重跑此條",
+    "noFilterResult": "篩選結果為空，調整上方狀態 chip 試試。",
+    "empty": "尚無張力分析資料",
+    "emptyHint": "請先執行 Step 1 和 Step 2",
+    "frye": {
+      "romance": "浪漫傳奇",
+      "comedy": "喜劇",
+      "tragedy": "悲劇",
+      "irony": "反諷",
+      "irony_satire": "諷刺／反諷"
+    },
+    "booker": {
+      "overcoming_the_monster": "克服怪物",
+      "rags_to_riches": "白手起家",
+      "the_quest": "追尋之旅",
+      "voyage_and_return": "出走與歸返",
+      "comedy": "喜劇",
+      "tragedy": "悲劇",
+      "rebirth": "重生"
+    },
+    "rerunTitle": "重新執行此步驟？",
+    "rerunMessage": "這會呼叫 LLM（約需數分鐘）並覆寫既有結果。Step 2 重跑會產生全新的張力線，已完成的審核狀態將會遺失。",
+    "rerunConfirm": "重新執行",
+    "staleTitle": "此主題已過期",
+    "staleReason": {
+      "lines_regrouped": "張力線已重新分組，此主題引用的線已不存在。",
+      "review_changed": "審核決定已改變，此主題並非依目前已審核的張力線合成。",
+      "no_lines": "目前沒有任何張力線。"
+    },
+    "staleHint": "請按上方 Step 3 的重新執行圖示重新合成。"
+  }
+}
