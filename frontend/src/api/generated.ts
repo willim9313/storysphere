@@ -4256,6 +4256,16 @@ export interface components {
             is_stale: boolean;
             /** Stale Reason */
             stale_reason?: ("no_lines" | "lines_regrouped" | "review_changed") | null;
+            /**
+             * Reviewed Line Count
+             * @description TensionLines already reviewed at synthesis; null for pre-existing themes
+             */
+            reviewed_line_count?: number | null;
+            /**
+             * Total Line Count
+             * @description TensionLines that existed at synthesis; null for pre-existing themes
+             */
+            total_line_count?: number | null;
         };
         /** TensionThemeReviewRequest */
         TensionThemeReviewRequest: {

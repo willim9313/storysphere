@@ -439,6 +439,8 @@ async def get_tension_theme(
         review_status=theme.review_status,
         is_stale=is_stale,
         stale_reason=stale_reason,
+        reviewed_line_count=theme.reviewed_line_count,
+        total_line_count=theme.total_line_count,
     )
 
 

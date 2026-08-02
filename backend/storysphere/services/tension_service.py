@@ -38,6 +38,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# What counts as "the reviewer has ruled on this line". Shared so that theme
+# input selection and the at-synthesis counts can never disagree about it.
+_REVIEWED_STATUSES = frozenset({"approved", "modified"})
+
 _ASSEMBLER_TAG = "tension_service_v1"
 _GROUPER_TAG = "tension_grouper_v1"
 _SYNTHESIZER_TAG = "tension_synthesizer_v1"
@@ -594,7 +598,17 @@ class TensionService:
         )
 
         theme = await self._call_theme_llm(input_lines, document_id, language)
-        return theme
+        # Freeze the review state as it stands now: once reviewing resumes, the
+        # hero's "n lines were still unreviewed when this was synthesised" can no
+        # longer be derived from the current lines.
+        return theme.model_copy(
+            update={
+                "reviewed_line_count": sum(
+                    1 for line in lines if line.review_status in _REVIEWED_STATUSES
+                ),
+                "total_line_count": len(lines),
+            }
+        )
 
     @staticmethod
     def theme_input_lines(lines: list[TensionLine]) -> list[TensionLine]:
@@ -605,7 +619,7 @@ class TensionService:
         with :meth:`theme_staleness` on purpose — if staleness reimplemented
         this rule the two would drift and the UI would lie about freshness.
         """
-        reviewed = [line for line in lines if line.review_status in {"approved", "modified"}]
+        reviewed = [line for line in lines if line.review_status in _REVIEWED_STATUSES]
         return reviewed if reviewed else lines
 
     async def theme_staleness(

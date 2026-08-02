@@ -1381,6 +1381,8 @@ interface TensionTheme {
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
   is_stale: boolean;             // 主題是否已不反映目前的 TensionLine
   stale_reason: 'no_lines' | 'lines_regrouped' | 'review_changed' | null;
+  reviewed_line_count: number | null;  // 合成當下已審核的線數
+  total_line_count: number | null;     // 合成當下的線總數
 }
 ```
 
@@ -1399,6 +1401,17 @@ interface TensionTheme {
 >
 > 過期後要重新合成必須送 `force=true`，否則 `POST /tension/theme/synthesize`
 > 會直接命中快取、回報成功卻毫無變化。
+
+> **`reviewed_line_count` / `total_line_count` 是「合成當下」的凍結值。** 主題 hero
+> 要顯示「合成時有 n 條尚未審核」與「依 n / m 條已審核張力線」，這兩句一旦繼續
+> 審核就無法從現在的線推回去——用當下的計數會讓警告自己消失，但那則命題仍然是
+> 用未審核的線合成的。
+>
+> - 未審核數 = `total_line_count - reviewed_line_count`
+> - 「已審核」= `review_status` 為 `approved` 或 `modified`（與合成的選線規則同一份定義）
+> - **計的是全部的線，不是實際餵給 LLM 的那些**。合成會 fallback 成「有已審核的就
+>   只用已審核的」，但警告問的是「當時有幾條還沒審」，分母得是全集
+> - 這兩個欄位上線前就存在的舊主題為 `null`，UI 需容忍（不顯示該警告即可）
 
 > **`frye_mythos` / `booker_plot` 保證是 id，不是顯示名。** 合成 prompt 給模型的
 > 是 `**悲劇** (tragedy)` 這種格式，模型常回粗體中文名，因此後端在寫入與讀取兩端

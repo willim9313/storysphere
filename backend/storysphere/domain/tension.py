@@ -148,3 +148,16 @@ class TensionTheme(BaseModel):
     assembled_by: str = Field(default="tension_synthesizer_v1")
     assembled_at: datetime = Field(default_factory=datetime.utcnow)
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"
+
+    # Review state frozen at synthesis time. "n lines were still unreviewed when
+    # this was synthesised" stops being answerable once reviewing continues, and
+    # the counts as they stand now would answer a different question. Both are
+    # None for themes cached before these fields existed.
+    reviewed_line_count: int | None = Field(
+        default=None,
+        description="TensionLines already reviewed when this theme was synthesised",
+    )
+    total_line_count: int | None = Field(
+        default=None,
+        description="TensionLines that existed when this theme was synthesised",
+    )

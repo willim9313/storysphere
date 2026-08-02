@@ -471,6 +471,69 @@ class TestUpdateLineReview:
         assert await service.update_line_review("no-such-line", DOC, "approved") is None
 
 
+class TestSynthesisReviewCounts:
+    """Integration-style: the LLM call itself is stubbed, the counts are not."""
+
+    @pytest.fixture
+    def service(self, tmp_path, monkeypatch):
+        from storysphere.services.analysis_cache import AnalysisCache
+
+        svc = TensionService(cache=AnalysisCache(db_path=str(tmp_path / "cache.db")))
+
+        # async because synthesize_theme awaits it — this is a real method being
+        # replaced, not an AsyncMock.side_effect.
+        async def _fake_llm(lines, document_id, language):
+            return TensionTheme(document_id=document_id, proposition="…")
+
+        monkeypatch.setattr(svc, "_call_theme_llm", _fake_llm)
+        return svc
+
+    @pytest.mark.asyncio
+    async def test_counts_all_lines_not_just_the_ones_used(self, service):
+        """Synthesis falls back to reviewed lines only; the warning is about how
+        many of the whole set were still outstanding."""
+        await service.save_lines(
+            [
+                _make_line(["t1"], status="approved"),
+                _make_line(["t2"], status="modified"),
+                _make_line(["t3"], status="pending"),
+                _make_line(["t4"], status="rejected"),
+            ],
+            DOC,
+        )
+        theme = await service.synthesize_theme(DOC, force=True)
+        assert theme.reviewed_line_count == 2
+        assert theme.total_line_count == 4
+
+    @pytest.mark.asyncio
+    async def test_fully_reviewed_book(self, service):
+        await service.save_lines(
+            [_make_line(["t1"], status="approved"), _make_line(["t2"], status="approved")], DOC
+        )
+        theme = await service.synthesize_theme(DOC, force=True)
+        assert theme.reviewed_line_count == theme.total_line_count == 2
+
+    @pytest.mark.asyncio
+    async def test_nothing_reviewed(self, service):
+        await service.save_lines([_make_line(["t1"]), _make_line(["t2"])], DOC)
+        theme = await service.synthesize_theme(DOC, force=True)
+        assert theme.reviewed_line_count == 0
+        assert theme.total_line_count == 2
+
+    @pytest.mark.asyncio
+    async def test_counts_are_frozen_against_later_reviewing(self, service):
+        """The whole point: reviewing after synthesis must not retroactively
+        make the theme look like it was built from reviewed lines."""
+        line = _make_line(["t1"])
+        await service.save_lines([line], DOC)
+        theme = await service.synthesize_theme(DOC, force=True)
+        await service.save_theme(theme)
+
+        await service.update_line_review(line.id, DOC, "approved")
+        reloaded = await service.get_theme(DOC)
+        assert reloaded.reviewed_line_count == 0
+
+
 class TestThemeStaleness:
     """Integration-style: real SQLite cache in tmp_path, no LLM involved."""
 
