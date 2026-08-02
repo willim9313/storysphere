@@ -255,8 +255,8 @@ empty state 只留 `開始 Step 1 · TEU 組裝` 一顆 accent 按鈕（原本�
 | Phase 0 | P0-6 覆蓋率 + 重跑 Step 2 | ✅ 完成 |
 | Phase 1 | 第一批後端契約（P0-1 / P2-4 / P4-1 / P0-4） | ✅ 完成 |
 | Phase 2 | Claude Design | ✅ 完成（本文件即核對產出） |
-| **Phase 1b** | **第二批後端契約**（§5.3 四項全做）：`flipped`、`TensionLine` provenance、指派 endpoint、`edit` 紀錄、`reviewed_count_at_synth`。`scene_group_id` 驗證失敗已移除（§2.2） | **擋住 Phase 3** |
-| Phase 3 | 依 `.dc.html` canvas 實作前端 | 依設計自訂順序（見下） |
+| **Phase 1b** | **第二批後端契約**（§5.3 四項全做）：`flipped`、`TensionLine` provenance、指派 endpoint、`edit` 紀錄、`reviewed_count_at_synth`。`scene_group_id` 驗證失敗已移除（§2.2） | ✅ 完成（2026-08-02） |
+| Phase 3 | 依 `.dc.html` canvas 實作前端 | **可開始**，依設計自訂順序（見下） |
 | Phase 4 | P4-2 RWD、P1-9 a11y、P0-5 失敗清單 | 設計未涵蓋，仍要做 |
 
 Phase 3 內部沿用設計稿建議的順序（審核主動線價值最高，安全網不要放最後）：
