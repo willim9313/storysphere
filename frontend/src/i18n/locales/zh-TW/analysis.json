@@ -606,7 +606,34 @@
       "review_changed": "審核決定已改變，此主題並非依目前已審核的張力線合成。",
       "no_lines": "目前沒有任何張力線。"
     },
-    "staleHint": "請按上方 Step 3 的重新執行圖示重新合成。"
+    "staleHint": "請按上方 Step 3 的重新執行圖示重新合成。",
+    "table": {
+      "colPoles": "極點對",
+      "colChapters": "章節",
+      "colEvidence": "證據",
+      "colIntensity": "強度（相對）",
+      "colStatus": "狀態",
+      "colReview": "審核",
+      "evidenceCount": "{{count}} 則",
+      "bandLow": "低",
+      "bandMid": "中",
+      "bandHigh": "高",
+      "empty": "此狀態沒有張力線。",
+      "showAll": "顯示全部 {{count}} 條",
+      "shortcuts": "J / K 移動　A 核准　X 拒絕　E 改標籤　Space 多選　V 全選　Esc 關閉",
+      "selectAll": "全選",
+      "clearAll": "取消全選"
+    },
+    "toolbar": {
+      "sortLabel": "排序",
+      "sortIntensity": "強度 ↓",
+      "sortChapter": "章節 ↑",
+      "sortCount": "證據數 ↓",
+      "selected": "已選 {{count}} 條",
+      "batchApprove": "批次核准",
+      "batchReject": "批次拒絕",
+      "clearSelection": "Esc 取消選取"
+    }
   },
   "timeline": {
     "tabs": {

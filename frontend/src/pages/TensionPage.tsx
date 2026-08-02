@@ -14,6 +14,7 @@ import {
   triggerSynthesizeTensionTheme,
   fetchSynthesizeThemeTask,
   fetchTensionTheme,
+  reviewTensionLine,
   reviewTensionTheme,
 } from '@/api/tension';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -25,13 +26,16 @@ import {
 import { TensionThemeHero } from '@/components/tension/TensionThemeHero';
 import { TensionOnboardingHero } from '@/components/tension/TensionOnboardingHero';
 import { TensionTrajectoryDashboard } from '@/components/tension/TensionTrajectoryDashboard';
-import { TensionSummaryChips } from '@/components/tension/TensionSummaryChips';
-import { TensionLineCard } from '@/components/tension/TensionLineCard';
+import { TensionReviewToolbar } from '@/components/tension/TensionReviewToolbar';
+import { TensionLineTable } from '@/components/tension/TensionLineTable';
+import {
+  countByFilter,
+  sortLines,
+  type ReviewFilter,
+  type ReviewSort,
+} from '@/components/tension/reviewTypes';
 import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
 import '@/styles/tension.css';
-
-type ReviewStatus = 'pending' | 'approved' | 'modified' | 'rejected';
-type Filter = 'all' | ReviewStatus;
 
 export default function TensionPage() {
   const queryClient = useQueryClient();
@@ -46,8 +50,9 @@ export default function TensionPage() {
   }, [book, bookId, setPageContext]);
 
   const [analyzeResult, setAnalyzeResult] = useState<Record<string, number> | null>(null);
-  const [statusFilter, setStatusFilter] = useState<Filter>('all');
-  const [hideRejected, setHideRejected] = useState(false);
+  const [statusFilter, setStatusFilter] = useState<ReviewFilter>('all');
+  const [sort, setSort] = useState<ReviewSort>('intensity');
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [confirmStep, setConfirmStep] = useState<1 | 2 | 3 | null>(null);
 
@@ -132,7 +137,8 @@ export default function TensionPage() {
   const maxChapter = useMemo(
     () =>
       lines.reduce((m, l) => {
-        const ch = l.chapter_range[l.chapter_range.length - 1] ?? 0;
+        const range = l.chapter_range ?? [];
+        const ch = range[range.length - 1] ?? 0;
         return Math.max(m, ch);
       }, 1),
     [lines],
@@ -142,12 +148,55 @@ export default function TensionPage() {
   const hasTeus = analyzeResult !== null || hasLines;
   const hasTheme = !!theme;
 
-  const filteredLines = useMemo(() => {
-    let arr = lines;
-    if (statusFilter !== 'all') arr = arr.filter((l) => l.review_status === statusFilter);
-    if (hideRejected) arr = arr.filter((l) => l.review_status !== 'rejected');
-    return arr;
-  }, [lines, statusFilter, hideRejected]);
+  // One filter dimension only. The old page had status chips *and* a "hide
+  // rejected" checkbox, which could contradict each other — selecting
+  // "rejected 1" with the checkbox on listed nothing while the chip said one.
+  const filteredLines = useMemo(
+    () =>
+      sortLines(
+        statusFilter === 'all' ? lines : lines.filter((l) => l.review_status === statusFilter),
+        sort,
+      ),
+    [lines, statusFilter, sort],
+  );
+
+  const filterCounts = useMemo(() => countByFilter(lines), [lines]);
+  const allIntensities = useMemo(() => lines.map((l) => l.intensity_summary), [lines]);
+
+  const reviewMutation = useMutation({
+    mutationFn: ({ id, status }: { id: string; status: 'approved' | 'modified' | 'rejected' }) =>
+      reviewTensionLine(id, bookId!, status),
+    onSuccess: onLineReviewed,
+  });
+
+  const toggleSelect = useCallback((id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleAll = useCallback(() => {
+    setSelected((prev) =>
+      filteredLines.every((l) => prev.has(l.id))
+        ? new Set<string>()
+        : new Set(filteredLines.map((l) => l.id)),
+    );
+  }, [filteredLines]);
+
+  const batchReview = useCallback(
+    async (status: 'approved' | 'rejected') => {
+      // Sequential, not Promise.all: every call rewrites the same cached
+      // `tension_lines:{doc}` blob, so concurrent writes would drop each other.
+      for (const id of selected) {
+        await reviewMutation.mutateAsync({ id, status });
+      }
+      setSelected(new Set());
+    },
+    [selected, reviewMutation],
+  );
 
   const steps: TensionStepSpec[] = [
     {
@@ -259,54 +308,54 @@ export default function TensionPage() {
 
         {hasLines && (
           <>
+            {/* Still the old trajectory chart; the chapter grid replaces it in
+                a later step. It predates the generated response type, hence the
+                defaults for fields that are optional on the wire. `hideRejected`
+                is gone as a control — rejected rows now dim in the table
+                instead, so the chart never hides anything. */}
             <TensionTrajectoryDashboard
               lines={lines}
               maxChapter={maxChapter}
-              hideRejected={hideRejected}
+              hideRejected={false}
               focusedId={focusedId}
               onFocus={handleFocus}
             />
 
-            <TensionSummaryChips
-              lines={lines}
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              hideRejected={hideRejected}
-              setHideRejected={setHideRejected}
-              onRefresh={() => refetchLines()}
-            />
-
             <section>
-              <div className="tn-section-h">
-                <span style={{ color: 'var(--accent)', display: 'flex' }}>
-                  <Zap size={14} />
-                </span>
-                <span className="tn-section-h-title">{t('tension.reviewListTitle')}</span>
-                <span className="tn-section-h-sub">
-                  {t('tension.reviewListSub', { shown: filteredLines.length, total: lines.length })}
-                </span>
+              <TensionReviewToolbar
+                counts={filterCounts}
+                filter={statusFilter}
+                onFilterChange={setStatusFilter}
+                sort={sort}
+                onSortChange={setSort}
+                selectedCount={selected.size}
+                allSelected={
+                  filteredLines.length > 0 && filteredLines.every((l) => selected.has(l.id))
+                }
+                onToggleAll={toggleAll}
+                onBatchApprove={() => batchReview('approved')}
+                onBatchReject={() => batchReview('rejected')}
+                onClearSelection={() => setSelected(new Set())}
+              />
+
+              <TensionLineTable
+                rows={filteredLines}
+                allIntensities={allIntensities}
+                totalCount={lines.length}
+                selected={selected}
+                openId={focusedId}
+                cursorId={focusedId}
+                onOpen={(id) => setFocusedId((prev) => (prev === id ? null : id))}
+                onToggleSelect={toggleSelect}
+                onToggleAll={toggleAll}
+                onReview={(id, status) => reviewMutation.mutate({ id, status })}
+                onEditLabels={(id) => setFocusedId(id)}
+                onShowAll={() => setStatusFilter('all')}
+              />
+
+              <div className="tn-shortcuts">
+                <span>{t('tension.table.shortcuts')}</span>
               </div>
-
-              {filteredLines.map((line) => (
-                <TensionLineCard
-                  key={line.id}
-                  line={line}
-                  bookId={bookId!}
-                  focused={focusedId === line.id}
-                  onFocus={() => setFocusedId(line.id)}
-                  onReviewed={onLineReviewed}
-                  density="summary"
-                />
-              ))}
-
-              {filteredLines.length === 0 && (
-                <div className="tn-empty">
-                  <div className="tn-empty-icon">
-                    <Zap size={36} />
-                  </div>
-                  <div className="tn-empty-msg">{t('tension.noFilterResult')}</div>
-                </div>
-              )}
             </section>
           </>
         )}

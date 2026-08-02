@@ -1,5 +1,10 @@
 import { apiFetch } from './client';
+import type { components } from './generated';
 import type { TaskStatus, TensionLine, TensionTheme } from './types';
+
+/** Response shape of #14e — generated, so it carries `flipped`, `edit` and the
+ *  grouping provenance that the hand-written TensionLine in types.ts predates. */
+type TensionLineDetail = components['schemas']['TensionLineDetail'];
 
 // ── Mode A: Full-book TEU assembly ──────────────────────────────
 
@@ -36,8 +41,8 @@ export function fetchGroupTensionLinesTask(taskId: string): Promise<TaskStatus> 
   return apiFetch<TaskStatus>(`/tension/lines/group/${taskId}`);
 }
 
-export function fetchTensionLines(bookId: string): Promise<TensionLine[]> {
-  return apiFetch<TensionLine[]>(`/tension/lines?book_id=${bookId}`);
+export function fetchTensionLines(bookId: string): Promise<TensionLineDetail[]> {
+  return apiFetch<TensionLineDetail[]>(`/tension/lines?book_id=${bookId}`);
 }
 
 export function reviewTensionLine(

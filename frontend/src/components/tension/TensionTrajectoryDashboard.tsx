@@ -1,7 +1,10 @@
 import { useMemo, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle, Edit3, GitBranch, XCircle } from 'lucide-react';
-import type { TensionLine } from '@/api/types';
+// Generated response shape, not the hand-written TensionLine in api/types.ts:
+// that one predates `flipped` / `edit` / grouping provenance and no longer
+// matches what #14e actually returns.
+import type { TensionLineDetail as TensionLine } from './reviewTypes';
 
 type ReviewStatus = TensionLine['review_status'];
 
@@ -138,8 +141,9 @@ function TrajectoryRow({
   onFocus: () => void;
 }) {
   const chToPct = (ch: number) => ((ch - 1) / Math.max(maxChapter - 1, 1)) * 100;
-  const ch1 = line.chapter_range[0] ?? 1;
-  const ch2 = line.chapter_range[line.chapter_range.length - 1] ?? ch1;
+  const range = line.chapter_range ?? [];
+  const ch1 = range[0] ?? 1;
+  const ch2 = range[range.length - 1] ?? ch1;
   const x1 = chToPct(ch1);
   const x2 = Math.max(chToPct(ch2), x1 + 2);
   const bucket = intensityBucket(line.intensity_summary);
@@ -167,7 +171,7 @@ function TrajectoryRow({
         </div>
         <div className="tn-traj-row-meta">
           <div className="tn-traj-row-meta-inner">
-            <span>{line.teu_ids.length} TEU</span>
+            <span>{(line.teu_ids ?? []).length} TEU</span>
             <span>·</span>
             <span>ch {ch1}–{ch2}</span>
           </div>
