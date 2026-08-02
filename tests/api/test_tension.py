@@ -71,6 +71,41 @@ def tension_client(mock_tension, mock_kg, mock_doc, mock_vector):
     app.dependency_overrides.clear()
 
 
+class TestReviewTensionLine:
+    def test_note_reaches_the_service(self, tension_client, mock_tension):
+        mock_tension.update_line_review.return_value = TensionLine(
+            id="line-1", document_id=BOOK, canonical_pole_a="個人選擇"
+        )
+        resp = tension_client.patch(
+            "/api/v1/tension/lines/line-1/review",
+            json={
+                "document_id": BOOK,
+                "review_status": "modified",
+                "canonical_pole_a": "個人選擇",
+                "note": "原標籤把載體當成概念",
+            },
+        )
+        assert resp.status_code == 200
+        assert mock_tension.update_line_review.await_args.kwargs["note"] == "原標籤把載體當成概念"
+
+    def test_note_is_optional(self, tension_client, mock_tension):
+        mock_tension.update_line_review.return_value = TensionLine(id="line-1", document_id=BOOK)
+        resp = tension_client.patch(
+            "/api/v1/tension/lines/line-1/review",
+            json={"document_id": BOOK, "review_status": "approved"},
+        )
+        assert resp.status_code == 200
+        assert mock_tension.update_line_review.await_args.kwargs["note"] is None
+
+    def test_unknown_line_is_404(self, tension_client, mock_tension):
+        mock_tension.update_line_review.return_value = None
+        resp = tension_client.patch(
+            "/api/v1/tension/lines/nope/review",
+            json={"document_id": BOOK, "review_status": "approved"},
+        )
+        assert resp.status_code == 404
+
+
 class TestAssignTEU:
     """The service decides the outcome; these pin the HTTP mapping."""
 

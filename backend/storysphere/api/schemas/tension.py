@@ -25,6 +25,7 @@ class TensionLineReviewRequest(BaseModel):
     review_status: Literal["approved", "modified", "rejected"]
     canonical_pole_a: str | None = None
     canonical_pole_b: str | None = None
+    note: str | None = None  # Why the labels were rewritten; "modified" only
 
 
 class AssignTEURequest(BaseModel):
@@ -117,6 +118,21 @@ class TEUDetail(BaseModel):
     )
 
 
+class TensionLineEditResponse(BaseModel):
+    """What a reviewer changed, for the drawer's "human edit" note.
+
+    ``original_*`` is grouping's wording, not the previous edit's — the line's
+    own ``canonical_pole_*`` always hold the labels currently in force. There is
+    no ``edited_by``: the app has no notion of user identity, and a hardcoded
+    one would be fiction.
+    """
+
+    original_pole_a: str
+    original_pole_b: str
+    note: str | None = None
+    edited_at: str
+
+
 class TensionLineDetail(BaseModel):
     """A TensionLine with its constituent TEUs embedded for in-page review."""
 
@@ -136,6 +152,10 @@ class TensionLineDetail(BaseModel):
     assembled_at: str | None = Field(
         default=None,
         description="When grouping produced this line; null for lines cached before provenance existed",
+    )
+    edit: TensionLineEditResponse | None = Field(
+        default=None,
+        description="Present once a reviewer has rewritten the pole labels",
     )
     teus: list[TEUSummary] = Field(default_factory=list)
 

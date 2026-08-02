@@ -1245,7 +1245,15 @@ interface TensionLineDetail {
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
   assembled_by: string;                 // 產生此線的聚合步驟版本（'tension_grouper_v1'）
   assembled_at: string | null;          // 聚合時間；provenance 上線前的舊快取為 null
+  edit: TensionLineEdit | null;         // 人工改寫極點標籤後才有
   teus: TEUSummary[];                   // 構成此線的 TEU 證據，依 teu_ids 順序
+}
+
+interface TensionLineEdit {
+  original_pole_a: string;              // 聚合階段原本產出的標籤
+  original_pole_b: string;
+  note: string | null;                  // 改寫理由
+  edited_at: string;
 }
 
 interface TEUSummary {
@@ -1302,12 +1310,26 @@ interface Carrier {
   review_status: 'approved' | 'modified' | 'rejected';
   canonical_pole_a?: string;   // modify 時填入
   canonical_pole_b?: string;
+  note?: string;               // 改寫理由；僅 modified 時會被記錄
 }
 ```
 
-**Response 200**：`TensionLine`（更新後）
+**Response 200**：`TensionLine`（更新後，含 `edit`）
 
-**UI 使用頁面**：張力分析頁 TensionLineCard 審核按鈕
+> **`modified` 會留下 `edit` 紀錄。** `canonical_pole_a/b` 是原地覆寫，模型原本的
+> 用字若不另存就永久消失，而審核抽屜要同時顯示「現在的標籤」與「原始：舊 A vs 舊 B」。
+>
+> - **`original_*` 永遠是聚合階段的用字，不是上一次改寫的。** 二次改寫只更新 `note`
+>   與 `edited_at`；審核者要看的是標籤離模型多遠，不是離自己上次的版本多遠。
+> - **`note` 不會沿用**。沒帶 `note` 的改寫其 `note` 為 `null` —— 舊理由解釋的是舊
+>   標籤，掛在新標籤上是錯的歸因。
+> - **標籤沒變也沒給理由的 `modified` 不產生 `edit`**，否則抽屜會出現無意義的
+>   「原始：自由 vs 自由」。只給 `note` 不改標籤則會產生。
+> - `approved` / `rejected` 帶 `note` **不會**被記錄——`edit` 專指標籤改寫。
+>
+> **沒有 `edited_by`。** 本專案沒有任何使用者身分概念，硬填一個值是假資料。
+
+**UI 使用頁面**：張力分析頁 審核抽屜的「人工修改註記」與標籤編輯器
 
 ---
 
@@ -1370,7 +1392,10 @@ interface TensionTheme {
 > - `no_lines` — 已無任何 TensionLine
 >
 > **已知限制**：抓不到「線沒變、只有極點標籤被 `modified` 改寫」的情形——集合相同。
-> 要涵蓋需在 TensionLine 加時間戳或於 theme 存內容雜湊，目前兩者皆無。
+>
+> `#14f` 的 `edit.edited_at` 已提供可比對的時間戳，但 theme 這端仍缺一個對應的
+> 基準（`assembled_at` 是合成時間，不是輸入線的最後修改時間），因此**行為未變**。
+> 要涵蓋此情形需另行決定比對基準，屬獨立工項。
 >
 > 過期後要重新合成必須送 `force=true`，否則 `POST /tension/theme/synthesize`
 > 會直接命中快取、回報成功卻毫無變化。

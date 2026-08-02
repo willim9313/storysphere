@@ -1630,7 +1630,9 @@ export interface paths {
          * @description Update the review status of a TensionLine.
          *
          *     Optionally override ``canonical_pole_a`` / ``canonical_pole_b`` when
-         *     ``review_status`` is ``"modified"``.
+         *     ``review_status`` is ``"modified"``, with ``note`` recording why. Overriding
+         *     replaces the labels in place but preserves grouping's originals under
+         *     ``edit`` — see ``#14f`` in the API contract.
          */
         patch: operations["review_tension_line_api_v1_tension_lines__line_id__review_patch"];
         trace?: never;
@@ -4183,8 +4185,29 @@ export interface components {
              * @description When grouping produced this line; null for lines cached before provenance existed
              */
             assembled_at?: string | null;
+            /** @description Present once a reviewer has rewritten the pole labels */
+            edit?: components["schemas"]["TensionLineEditResponse"] | null;
             /** Teus */
             teus?: components["schemas"]["TEUSummary"][];
+        };
+        /**
+         * TensionLineEditResponse
+         * @description What a reviewer changed, for the drawer's "human edit" note.
+         *
+         *     ``original_*`` is grouping's wording, not the previous edit's — the line's
+         *     own ``canonical_pole_*`` always hold the labels currently in force. There is
+         *     no ``edited_by``: the app has no notion of user identity, and a hardcoded
+         *     one would be fiction.
+         */
+        TensionLineEditResponse: {
+            /** Original Pole A */
+            original_pole_a: string;
+            /** Original Pole B */
+            original_pole_b: string;
+            /** Note */
+            note?: string | null;
+            /** Edited At */
+            edited_at: string;
         };
         /** TensionLineReviewRequest */
         TensionLineReviewRequest: {
@@ -4199,6 +4222,8 @@ export interface components {
             canonical_pole_a?: string | null;
             /** Canonical Pole B */
             canonical_pole_b?: string | null;
+            /** Note */
+            note?: string | null;
         };
         /** TensionThemeResponse */
         TensionThemeResponse: {

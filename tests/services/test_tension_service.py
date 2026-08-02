@@ -381,6 +381,96 @@ class TestAssignTeuToLine:
         assert updated.intensity_summary == pytest.approx(0.9)
 
 
+class TestUpdateLineReview:
+    """Integration-style: real SQLite cache in tmp_path, no LLM involved."""
+
+    @pytest.fixture
+    def service(self, tmp_path):
+        from storysphere.services.analysis_cache import AnalysisCache
+
+        return TensionService(cache=AnalysisCache(db_path=str(tmp_path / "cache.db")))
+
+    async def _seed(self, service) -> TensionLine:
+        line = _make_line(["t1"], canonical_pole_a="自由", canonical_pole_b="命運")
+        await service.save_lines([line], DOC)
+        return line
+
+    @pytest.mark.asyncio
+    async def test_approve_records_no_edit(self, service):
+        line = await self._seed(service)
+        updated = await service.update_line_review(line.id, DOC, "approved")
+        assert updated.review_status == "approved"
+        assert updated.edit is None
+
+    @pytest.mark.asyncio
+    async def test_rewriting_labels_preserves_the_originals(self, service):
+        line = await self._seed(service)
+        updated = await service.update_line_review(
+            line.id, DOC, "modified", canonical_pole_a="個人選擇", note="原標籤把載體當成概念"
+        )
+        assert updated.canonical_pole_a == "個人選擇"
+        assert updated.edit.original_pole_a == "自由"
+        assert updated.edit.original_pole_b == "命運"
+        assert updated.edit.note == "原標籤把載體當成概念"
+
+    @pytest.mark.asyncio
+    async def test_second_edit_keeps_the_models_wording_as_original(self, service):
+        """'Original' means what grouping proposed, not the previous edit."""
+        line = await self._seed(service)
+        await service.update_line_review(line.id, DOC, "modified", canonical_pole_a="個人選擇")
+        updated = await service.update_line_review(
+            line.id, DOC, "modified", canonical_pole_a="自主性"
+        )
+        assert updated.canonical_pole_a == "自主性"
+        assert updated.edit.original_pole_a == "自由"
+
+    @pytest.mark.asyncio
+    async def test_a_new_edit_does_not_inherit_the_previous_note(self, service):
+        """A stale reason would be attached to labels it never explained."""
+        line = await self._seed(service)
+        await service.update_line_review(line.id, DOC, "modified", canonical_pole_a="個人選擇", note="第一次")
+        updated = await service.update_line_review(
+            line.id, DOC, "modified", canonical_pole_a="自主性"
+        )
+        assert updated.edit.note is None
+
+    @pytest.mark.asyncio
+    async def test_modified_without_any_change_records_no_edit(self, service):
+        """Otherwise the drawer would show a meaningless 原始：自由 vs 自由."""
+        line = await self._seed(service)
+        updated = await service.update_line_review(
+            line.id, DOC, "modified", canonical_pole_a="自由", canonical_pole_b="命運"
+        )
+        assert updated.edit is None
+
+    @pytest.mark.asyncio
+    async def test_note_alone_counts_as_an_edit(self, service):
+        line = await self._seed(service)
+        updated = await service.update_line_review(line.id, DOC, "modified", note="標籤沒問題，補個說明")
+        assert updated.edit is not None
+        assert updated.edit.note == "標籤沒問題，補個說明"
+
+    @pytest.mark.asyncio
+    async def test_note_on_an_approval_is_not_recorded(self, service):
+        """The edit record is about rewritten labels; approvals have none."""
+        line = await self._seed(service)
+        updated = await service.update_line_review(line.id, DOC, "approved", note="看起來沒問題")
+        assert updated.edit is None
+
+    @pytest.mark.asyncio
+    async def test_edit_survives_a_reload(self, service):
+        line = await self._seed(service)
+        await service.update_line_review(line.id, DOC, "modified", canonical_pole_a="個人選擇", note="理由")
+        reloaded = (await service.get_lines(DOC))[0]
+        assert reloaded.edit.original_pole_a == "自由"
+        assert reloaded.edit.note == "理由"
+
+    @pytest.mark.asyncio
+    async def test_unknown_line(self, service):
+        await self._seed(service)
+        assert await service.update_line_review("no-such-line", DOC, "approved") is None
+
+
 class TestThemeStaleness:
     """Integration-style: real SQLite cache in tmp_path, no LLM involved."""
 

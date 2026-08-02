@@ -81,6 +81,25 @@ class TEU(BaseModel):
     review_status: Literal["pending", "approved", "rejected"] = "pending"
 
 
+class TensionLineEdit(BaseModel):
+    """What a human changed when they rewrote a TensionLine's pole labels.
+
+    ``canonical_pole_a`` / ``_b`` on the line always hold the labels currently in
+    force; this preserves what grouping originally proposed, which the review
+    drawer shows alongside them. Editing a second time refreshes the note and
+    timestamp but leaves the originals alone — "original" means the model's
+    wording, not the previous edit's.
+    """
+
+    original_pole_a: str = Field(description="Pole A label as grouping produced it")
+    original_pole_b: str = Field(description="Pole B label as grouping produced it")
+    note: str | None = Field(
+        default=None,
+        description="Why the reviewer rewrote the labels",
+    )
+    edited_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class TensionLine(BaseModel):
     """Cross-scene tension pattern — grouping of related TEUs.
 
@@ -99,6 +118,10 @@ class TensionLine(BaseModel):
         description="Optional: the broader theme this line serves (LLM-suggested at grouping time)",
     )
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"
+    edit: TensionLineEdit | None = Field(
+        default=None,
+        description="Set once a reviewer has rewritten the pole labels",
+    )
 
     # Provenance — stamped by the grouping step. Lines cached before these
     # fields existed read back with assembled_at=None; a default_factory would

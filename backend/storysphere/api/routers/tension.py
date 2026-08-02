@@ -177,6 +177,7 @@ async def list_tension_lines(
                 review_status=r.get("review_status", "pending"),
                 assembled_by=r.get("assembled_by", "tension_grouper_v1"),
                 assembled_at=r.get("assembled_at"),
+                edit=r.get("edit"),
                 teus=teus_payload,
             )
         )
@@ -272,7 +273,9 @@ async def review_tension_line(
     """Update the review status of a TensionLine.
 
     Optionally override ``canonical_pole_a`` / ``canonical_pole_b`` when
-    ``review_status`` is ``"modified"``.
+    ``review_status`` is ``"modified"``, with ``note`` recording why. Overriding
+    replaces the labels in place but preserves grouping's originals under
+    ``edit`` — see ``#14f`` in the API contract.
     """
     updated = await tension_service.update_line_review(
         line_id=line_id,
@@ -280,6 +283,7 @@ async def review_tension_line(
         review_status=req.review_status,
         canonical_pole_a=req.canonical_pole_a,
         canonical_pole_b=req.canonical_pole_b,
+        note=req.note,
     )
     if updated is None:
         raise HTTPException(

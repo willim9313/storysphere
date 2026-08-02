@@ -23,7 +23,13 @@ from storysphere.config.mythos import get_mythos_summary, resolve_mythos_id
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import EntityType
-from storysphere.domain.tension import TEU, TensionLine, TensionPole, TensionTheme
+from storysphere.domain.tension import (
+    TEU,
+    TensionLine,
+    TensionLineEdit,
+    TensionPole,
+    TensionTheme,
+)
 
 if TYPE_CHECKING:
     from storysphere.services.analysis_cache import AnalysisCache
@@ -417,24 +423,67 @@ class TensionService:
         review_status: str,
         canonical_pole_a: str | None = None,
         canonical_pole_b: str | None = None,
+        note: str | None = None,
     ) -> TensionLine | None:
         """Update the review_status (and optionally pole labels) of a TensionLine.
+
+        A ``"modified"`` review that actually changes something also records a
+        :class:`TensionLineEdit`, because the labels are overwritten in place and
+        the model's original wording would otherwise be gone for good — the
+        review drawer shows both. Re-editing keeps the first originals: what a
+        reviewer wants to see is how far the label has drifted from the model's,
+        not from their own previous attempt.
+
+        The note is whatever this call supplied; a stale note from an earlier
+        edit is not carried forward, since it no longer explains the labels now
+        in force.
 
         Returns the updated TensionLine, or None if line_id is not found.
         """
         lines = await self.get_lines(document_id)
-        for i, line in enumerate(lines):
-            if line.id == line_id:
-                updates: dict = {"review_status": review_status}
-                if canonical_pole_a is not None:
-                    updates["canonical_pole_a"] = canonical_pole_a
-                if canonical_pole_b is not None:
-                    updates["canonical_pole_b"] = canonical_pole_b
-                lines[i] = line.model_copy(update=updates)
-                await self.save_lines(lines, document_id)
-                logger.debug("TensionService: updated review for line=%s status=%s", line_id, review_status)
-                return lines[i]
-        return None
+        idx = next((i for i, ln in enumerate(lines) if ln.id == line_id), None)
+        if idx is None:
+            return None
+
+        line = lines[idx]
+        updates: dict = {"review_status": review_status}
+        if canonical_pole_a is not None:
+            updates["canonical_pole_a"] = canonical_pole_a
+        if canonical_pole_b is not None:
+            updates["canonical_pole_b"] = canonical_pole_b
+        if review_status == "modified":
+            edit = self._build_edit(line, canonical_pole_a, canonical_pole_b, note)
+            if edit is not None:
+                updates["edit"] = edit
+
+        lines[idx] = line.model_copy(update=updates)
+        await self.save_lines(lines, document_id)
+        logger.debug("TensionService: updated review for line=%s status=%s", line_id, review_status)
+        return lines[idx]
+
+    @staticmethod
+    def _build_edit(
+        line: TensionLine,
+        canonical_pole_a: str | None,
+        canonical_pole_b: str | None,
+        note: str | None,
+    ) -> TensionLineEdit | None:
+        """The edit record for a "modified" review, or None if nothing changed.
+
+        Marking a line modified without touching a label or giving a reason is
+        not an edit, and fabricating a record whose "original" equals the current
+        label would put a meaningless "原始：X vs X" in the drawer.
+        """
+        changed_a = canonical_pole_a is not None and canonical_pole_a != line.canonical_pole_a
+        changed_b = canonical_pole_b is not None and canonical_pole_b != line.canonical_pole_b
+        if not (changed_a or changed_b or note):
+            return None
+        prior = line.edit
+        return TensionLineEdit(
+            original_pole_a=prior.original_pole_a if prior else line.canonical_pole_a,
+            original_pole_b=prior.original_pole_b if prior else line.canonical_pole_b,
+            note=note,
+        )
 
     async def assign_teu_to_line(
         self,
