@@ -27,6 +27,11 @@ class TensionLineReviewRequest(BaseModel):
     canonical_pole_b: str | None = None
 
 
+class AssignTEURequest(BaseModel):
+    document_id: str
+    line_id: str
+
+
 class SynthesizeThemeRequest(BaseModel):
     document_id: str
     language: str = "en"

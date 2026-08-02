@@ -1585,6 +1585,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tension/teus/{teu_id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Assign Teu
+         * @description Attach a TEU that grouping left out to a TensionLine.
+         *
+         *     Repairs the shortfall reported by ``coverage`` / a null ``line_id``. The
+         *     line's ``chapter_range`` and ``intensity_summary`` are recomputed, so the
+         *     result is shaped exactly like a line grouping produced on its own.
+         *
+         *     Re-assigning a TEU to the line it already sits on is a no-op; moving one
+         *     between lines is rejected with 409 rather than silently rewriting both.
+         */
+        patch: operations["assign_teu_api_v1_tension_teus__teu_id__assign_patch"];
+        trace?: never;
+    };
     "/api/v1/tension/lines/{line_id}/review": {
         parameters: {
             query?: never;
@@ -2219,6 +2246,13 @@ export interface components {
              * @default []
              */
             evidence: string[];
+        };
+        /** AssignTEURequest */
+        AssignTEURequest: {
+            /** Document Id */
+            document_id: string;
+            /** Line Id */
+            line_id: string;
         };
         /** BatchAnalysisRequest */
         BatchAnalysisRequest: {
@@ -7078,6 +7112,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TEUDetail"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_teu_api_v1_tension_teus__teu_id__assign_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teu_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignTEURequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

@@ -1182,6 +1182,46 @@ interface TEUDetail {
 
 ---
 
+### #14d-3 PATCH /tension/teus/:teuId/assign
+
+把聚合階段漏掉的 TEU 人工指派給一條 TensionLine —— `#14d` 的 `coverage` 與
+`#14d-2` 的 `line_id: null` 揭露了缺口，這支是對應的修補動作。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  line_id: string;
+}
+```
+
+**Response 200**：`TensionLine`（更新後，欄位同 `#14e` 但不含 `teus`）
+
+| 狀態碼 | 情形 |
+|--------|------|
+| 200 | 已指派；或該 TEU 本來就在這條線上（**冪等**，不重複加入） |
+| 404 | TEU 或 TensionLine 在該 document 下不存在 |
+| 409 | 該 TEU 已被**另一條**線收錄 |
+
+> **不提供「搬移」語意。** TEU 已屬於別條線時回 409，而不是默默地從舊線移除再
+> 加到新線 —— 那會一次改動兩條線的 `teu_ids` 與衍生值，呼叫端卻只看得到一條。
+> 要搬移請先在來源線上處理。
+
+> **`chapter_range` 與 `intensity_summary` 由後端重算**，公式與聚合階段相同
+> （`[min(chapters), max(chapters)]`、強度算術平均）。人工修好的線因此與模型
+> 一次做對的線形狀完全一致，前端不需要為「這條線被修過」寫第二套計算。
+>
+> **例外：線上有 TEU 已逾 TTL 時不重算平均。** 對倖存的子集取平均會產出一個
+> 「看起來一樣權威但其實是錯的」數字，因此該情形只把 `chapter_range` 撐大到
+> 涵蓋新加入的 TEU，`intensity_summary` 維持原值。
+>
+> `assembled_by` / `assembled_at` **不會變動** —— 它們記錄的是哪一版聚合步驟
+> 產出這條線，人工指派不改變這件事。
+
+**UI 使用頁面**：張力分析頁 章節格點的未歸入清單、TEU 逐章模式的未歸入卡片
+
+---
+
 ### #14e GET /tension/lines
 
 取得書籍的 TensionLine 清單，**並內嵌每條線的 TEU 證據**（供審核頁直接顯示，不需第二次請求）。

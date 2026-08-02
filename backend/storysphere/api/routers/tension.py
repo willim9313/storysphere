@@ -23,6 +23,7 @@ from storysphere.api.deps import DocServiceDep, KGServiceDep, TensionServiceDep
 from storysphere.api.schemas.common import TaskStatus
 from storysphere.api.schemas.tension import (
     AnalyzeBookTensionsRequest,
+    AssignTEURequest,
     Carrier,
     GroupTensionLinesRequest,
     SynthesizeThemeRequest,
@@ -219,6 +220,44 @@ async def list_teus(
         )
         for teu in teus
     ]
+
+
+@router.patch("/teus/{teu_id}/assign")
+async def assign_teu(
+    teu_id: str,
+    req: AssignTEURequest,
+    tension_service: TensionServiceDep,
+) -> dict:
+    """Attach a TEU that grouping left out to a TensionLine.
+
+    Repairs the shortfall reported by ``coverage`` / a null ``line_id``. The
+    line's ``chapter_range`` and ``intensity_summary`` are recomputed, so the
+    result is shaped exactly like a line grouping produced on its own.
+
+    Re-assigning a TEU to the line it already sits on is a no-op; moving one
+    between lines is rejected with 409 rather than silently rewriting both.
+    """
+    outcome, line = await tension_service.assign_teu_to_line(
+        teu_id=teu_id,
+        document_id=req.document_id,
+        line_id=req.line_id,
+    )
+    if outcome == "teu_not_found":
+        raise HTTPException(
+            status_code=404,
+            detail=f"TEU '{teu_id}' not found for document '{req.document_id}'",
+        )
+    if outcome == "line_not_found":
+        raise HTTPException(
+            status_code=404,
+            detail=f"TensionLine '{req.line_id}' not found for document '{req.document_id}'",
+        )
+    if outcome == "claimed":
+        raise HTTPException(
+            status_code=409,
+            detail=f"TEU '{teu_id}' is already grouped into TensionLine '{line.id}'",
+        )
+    return line.model_dump()
 
 
 # ── HITL Review ────────────────────────────────────────────────────────────────

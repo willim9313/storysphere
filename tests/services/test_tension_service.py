@@ -272,6 +272,115 @@ class TestLinesWithTeus:
         assert rows[0]["assembled_at"] is None
 
 
+class TestAssignTeuToLine:
+    """Integration-style: real SQLite cache in tmp_path, no LLM involved."""
+
+    @pytest.fixture
+    def service(self, tmp_path):
+        from storysphere.services.analysis_cache import AnalysisCache
+
+        return TensionService(cache=AnalysisCache(db_path=str(tmp_path / "cache.db")))
+
+    async def _seed(self, service, teus: list[TEU], lines: list[TensionLine]):
+        for teu in teus:
+            await service.save_teu(teu)
+        await service.save_lines(lines, DOC)
+
+    def _teu(self, teu_id: str, chapter: int, intensity: float) -> TEU:
+        teu = _make_teu(teu_id, chapter)
+        return teu.model_copy(update={"intensity": intensity})
+
+    @pytest.mark.asyncio
+    async def test_orphan_joins_the_line(self, service):
+        line = _make_line(["t1"])
+        await self._seed(service, [self._teu("t1", 1, 0.8), self._teu("t2", 4, 0.6)], [line])
+
+        outcome, updated = await service.assign_teu_to_line("t2", DOC, line.id)
+        assert outcome == "ok"
+        assert updated.teu_ids == ["t1", "t2"]
+
+    @pytest.mark.asyncio
+    async def test_rollups_are_recomputed(self, service):
+        """A repaired line must look like one grouping got right first time."""
+        line = _make_line(["t1"], chapter_range=[1, 1], intensity_summary=0.8)
+        await self._seed(service, [self._teu("t1", 1, 0.8), self._teu("t2", 4, 0.6)], [line])
+
+        _, updated = await service.assign_teu_to_line("t2", DOC, line.id)
+        assert updated.chapter_range == [1, 4]
+        assert updated.intensity_summary == pytest.approx(0.7)
+
+    @pytest.mark.asyncio
+    async def test_assignment_survives_a_reload(self, service):
+        line = _make_line(["t1"])
+        await self._seed(service, [self._teu("t1", 1, 0.8), self._teu("t2", 4, 0.6)], [line])
+
+        await service.assign_teu_to_line("t2", DOC, line.id)
+        reloaded = await service.get_lines(DOC)
+        assert reloaded[0].teu_ids == ["t1", "t2"]
+        assert reloaded[0].chapter_range == [1, 4]
+
+    @pytest.mark.asyncio
+    async def test_reassigning_to_the_same_line_is_a_noop(self, service):
+        line = _make_line(["t1"])
+        await self._seed(service, [self._teu("t1", 1, 0.8)], [line])
+
+        outcome, updated = await service.assign_teu_to_line("t1", DOC, line.id)
+        assert outcome == "ok"
+        assert updated.teu_ids == ["t1"]
+
+    @pytest.mark.asyncio
+    async def test_teu_held_by_another_line_is_refused(self, service):
+        holder = _make_line(["t1"])
+        target = _make_line(["t2"])
+        await self._seed(service, [self._teu("t1", 1, 0.8), self._teu("t2", 2, 0.6)], [holder, target])
+
+        outcome, conflicting = await service.assign_teu_to_line("t1", DOC, target.id)
+        assert outcome == "claimed"
+        assert conflicting.id == holder.id
+
+    @pytest.mark.asyncio
+    async def test_refused_assignment_changes_nothing(self, service):
+        holder = _make_line(["t1"])
+        target = _make_line(["t2"])
+        await self._seed(service, [self._teu("t1", 1, 0.8), self._teu("t2", 2, 0.6)], [holder, target])
+
+        await service.assign_teu_to_line("t1", DOC, target.id)
+        reloaded = {ln.id: ln.teu_ids for ln in await service.get_lines(DOC)}
+        assert reloaded == {holder.id: ["t1"], target.id: ["t2"]}
+
+    @pytest.mark.asyncio
+    async def test_unknown_teu(self, service):
+        line = _make_line(["t1"])
+        await self._seed(service, [self._teu("t1", 1, 0.8)], [line])
+        assert await service.assign_teu_to_line("nope", DOC, line.id) == ("teu_not_found", None)
+
+    @pytest.mark.asyncio
+    async def test_unknown_line(self, service):
+        await self._seed(service, [self._teu("t1", 1, 0.8)], [_make_line(["t1"])])
+        assert await service.assign_teu_to_line("t1", DOC, "no-such-line") == ("line_not_found", None)
+
+    @pytest.mark.asyncio
+    async def test_expired_siblings_do_not_shrink_the_range(self, service):
+        """Siblings have aged out of the cache, so the range must widen to cover
+        the new TEU rather than collapse onto the only one still resolvable."""
+        line = _make_line(["gone-1", "gone-2"], chapter_range=[1, 3], intensity_summary=0.9)
+        await self._seed(service, [self._teu("t2", 9, 0.6)], [line])
+
+        _, updated = await service.assign_teu_to_line("t2", DOC, line.id)
+        assert updated.teu_ids == ["gone-1", "gone-2", "t2"]
+        assert updated.chapter_range == [1, 9]
+
+    @pytest.mark.asyncio
+    async def test_expired_siblings_leave_intensity_untouched(self, service):
+        """A mean over the survivors would be a different number presented with
+        the same authority, so the stored one stands."""
+        line = _make_line(["gone-1"], chapter_range=[1, 3], intensity_summary=0.9)
+        await self._seed(service, [self._teu("t2", 2, 0.1)], [line])
+
+        _, updated = await service.assign_teu_to_line("t2", DOC, line.id)
+        assert updated.intensity_summary == pytest.approx(0.9)
+
+
 class TestThemeStaleness:
     """Integration-style: real SQLite cache in tmp_path, no LLM involved."""
 

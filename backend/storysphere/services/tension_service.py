@@ -436,6 +436,70 @@ class TensionService:
                 return lines[i]
         return None
 
+    async def assign_teu_to_line(
+        self,
+        teu_id: str,
+        document_id: str,
+        line_id: str,
+    ) -> tuple[str, TensionLine | None]:
+        """Attach a TEU that grouping left out to a TensionLine.
+
+        Grouping drops TEUs silently (see :meth:`_grouping_coverage`), so this is
+        the manual repair the audit view offers for each orphan.
+
+        Returns an outcome tag alongside the line it concerns:
+          - ``("ok", line)`` — assigned, or already on that line (idempotent)
+          - ``("teu_not_found", None)``
+          - ``("line_not_found", None)``
+          - ``("claimed", holder)`` — a different line already holds this TEU
+
+        ``chapter_range`` and ``intensity_summary`` are recomputed with the same
+        formulas grouping uses, so a repaired line is indistinguishable from one
+        the model got right and callers need no second code path for it — but
+        only when every TEU on the line is still cached. TEUs expire on their own
+        TTL (``get_lines_with_teus`` already tolerates that), and averaging over
+        the survivors would quietly rewrite a line to a narrower chapter span and
+        a wrong intensity, so the partial case widens the stored range to cover
+        the new TEU and leaves the intensity untouched.
+        """
+        teu_by_id = {t.id: t for t in await self.get_teus(document_id)}
+        if teu_id not in teu_by_id:
+            return ("teu_not_found", None)
+
+        lines = await self.get_lines(document_id)
+        target_idx = next((i for i, ln in enumerate(lines) if ln.id == line_id), None)
+        if target_idx is None:
+            return ("line_not_found", None)
+
+        holder = next((ln for ln in lines if teu_id in ln.teu_ids), None)
+        if holder is not None:
+            return ("ok", holder) if holder.id == line_id else ("claimed", holder)
+
+        target = lines[target_idx]
+        teu_ids = [*target.teu_ids, teu_id]
+        updates: dict = {"teu_ids": teu_ids}
+        resolved = [teu_by_id[tid] for tid in teu_ids if tid in teu_by_id]
+        added = teu_by_id[teu_id]
+        if len(resolved) == len(teu_ids):
+            chapters = [t.chapter for t in resolved]
+            updates["chapter_range"] = [min(chapters), max(chapters)]
+            updates["intensity_summary"] = sum(t.intensity for t in resolved) / len(resolved)
+        else:
+            stored = target.chapter_range or [added.chapter, added.chapter]
+            updates["chapter_range"] = [
+                min(stored[0], added.chapter),
+                max(stored[-1], added.chapter),
+            ]
+        lines[target_idx] = target.model_copy(update=updates)
+        await self.save_lines(lines, document_id)
+        logger.debug(
+            "TensionService: assigned TEU=%s to line=%s (now %d TEUs)",
+            teu_id,
+            line_id,
+            len(teu_ids),
+        )
+        return ("ok", lines[target_idx])
+
     # ── Public: TensionTheme synthesis (B-029) ───────────────────────────────
 
     async def synthesize_theme(
