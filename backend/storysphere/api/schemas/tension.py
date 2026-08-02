@@ -73,6 +73,15 @@ class TEUSummary(BaseModel):
         default=None,
         description="How pole B's carriers embody that side of the tension",
     )
+    flipped: bool = Field(
+        default=False,
+        description=(
+            "This TEU assigns the line's two poles the opposite way round from "
+            "the majority of its siblings. False also covers 'undecidable' — "
+            "no shared carriers with the rest of the line, or the same carriers "
+            "on both poles — so it understates rather than invents a conflict"
+        ),
+    )
 
 
 class TEUDetail(BaseModel):
@@ -115,6 +124,14 @@ class TensionLineDetail(BaseModel):
     chapter_range: list[int] = Field(default_factory=list)
     thematic_note: str | None = None
     review_status: Literal["pending", "approved", "modified", "rejected"]
+    assembled_by: str = Field(
+        default="tension_grouper_v1",
+        description="Version tag of the grouping step that produced this line",
+    )
+    assembled_at: str | None = Field(
+        default=None,
+        description="When grouping produced this line; null for lines cached before provenance existed",
+    )
     teus: list[TEUSummary] = Field(default_factory=list)
 
 

@@ -1203,6 +1203,8 @@ interface TensionLineDetail {
   chapter_range: number[];              // [firstChapter, ..., lastChapter]
   thematic_note?: string | null;        // LLM 在分組時提出的全線主題註記
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  assembled_by: string;                 // 產生此線的聚合步驟版本（'tension_grouper_v1'）
+  assembled_at: string | null;          // 聚合時間；provenance 上線前的舊快取為 null
   teus: TEUSummary[];                   // 構成此線的 TEU 證據，依 teu_ids 順序
 }
 
@@ -1216,6 +1218,7 @@ interface TEUSummary {
   pole_b_carriers: Carrier[];
   pole_a_stance?: string | null;        // 這些載體如何體現該極
   pole_b_stance?: string | null;
+  flipped: boolean;                     // 此 TEU 的 A/B 指派與同線多數相反
 }
 
 interface Carrier {
@@ -1227,6 +1230,20 @@ interface Carrier {
 
 > `entity_type` 為 null 的情形約佔五分之一——LLM 指認的載體名未必對得上 KG 實體。
 > UI 不得假設型別必然存在（現行前端 fallback 至 `other` 樣式）。
+
+> **`flipped` 的判定方式**：聚合階段不會統一極點順序，同一組對立可能在某場景是
+> `A=X, B=Y`、下一場景卻是 `A=Y, B=X`。不理會這件事直接跨 TEU 聚合載體，兩極會
+> 得到完全相同的 pill 清單（這正是審核抽屜「A/B 指派不穩定」警告要揭露的問題）。
+>
+> 後端以**載體名稱重疊**對照該線中載體最多的那一筆 TEU 定出方向，再依多數決反轉
+> 基準，因此結果不受挑到哪一筆當基準影響。**平手時以基準 TEU 的方向為多數。**
+>
+> 兩種情況無從判定，一律回 `false`（寧可少報也不要無中生有）：
+> - 該 TEU 與全線沒有任何共同載體名
+> - 該 TEU 自己兩極的載體名相同
+>
+> `flipped` 是**衍生值、不落地**，門檻或演算法調整不需 migration。同一批 TEU 在
+> `#14d-2` 不帶此欄位——翻轉只在「所屬張力線」的脈絡下才有意義。
 
 **UI 使用頁面**：張力分析頁（hero / 軌跡圖 dashboard / 審核 LineCard 證據區）
 

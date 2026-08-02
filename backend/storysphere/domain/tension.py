@@ -100,6 +100,18 @@ class TensionLine(BaseModel):
     )
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"
 
+    # Provenance — stamped by the grouping step. Lines cached before these
+    # fields existed read back with assembled_at=None; a default_factory would
+    # instead relabel every historical result as "just now" on each read.
+    assembled_by: str = Field(
+        default="tension_grouper_v1",
+        description="Version tag of the grouping step that produced this line",
+    )
+    assembled_at: datetime | None = Field(
+        default=None,
+        description="When grouping produced this line; None for pre-provenance cache entries",
+    )
+
 
 class TensionTheme(BaseModel):
     """Book-level tension proposition — synthesised from TensionLines (B-029)."""

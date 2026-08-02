@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -327,6 +328,53 @@ class TensionService:
         result.sort(key=lambda t: (t.chapter, t.id))
         return result
 
+    @staticmethod
+    def _orientation_flips(teus: list[TEU]) -> dict[str, bool]:
+        """Flag TEUs whose pole A/B assignment opposes the rest of their line.
+
+        Grouping never normalises pole order, so one opposition can arrive as
+        ``A=X, B=Y`` in one scene and ``A=Y, B=X`` in the next. Aggregating
+        carriers across a line without accounting for that yields the same pill
+        list on both poles — the review drawer's "A/B assignment is unstable"
+        warning exists to surface exactly this.
+
+        Orientation is read from carrier overlap against the TEU with the most
+        carriers (an empty or one-sided reference could decide nothing), then
+        the reference is inverted if most TEUs disagreed with it, so the answer
+        does not depend on which TEU happened to be chosen.
+
+        Two cases are undecidable and reported as *not* flipped — the warning
+        should understate rather than invent a conflict:
+          - a TEU sharing no carrier names with the reference
+          - a TEU naming the same carriers on both of its poles
+        """
+        if len(teus) < 2:
+            return {t.id: False for t in teus}
+
+        def _names(pole: TensionPole) -> set[str]:
+            return {n.strip() for n in pole.carrier_names if n and n.strip()}
+
+        ref = max(teus, key=lambda t: len(_names(t.pole_a) | _names(t.pole_b)))
+        ref_a, ref_b = _names(ref.pole_a), _names(ref.pole_b)
+
+        # +1 agrees with the reference, -1 opposes it, 0 undecidable.
+        orientation: dict[str, int] = {}
+        for teu in teus:
+            a, b = _names(teu.pole_a), _names(teu.pole_b)
+            agree = len(a & ref_a) + len(b & ref_b)
+            oppose = len(a & ref_b) + len(b & ref_a)
+            if agree > oppose:
+                orientation[teu.id] = 1
+            elif oppose > agree:
+                orientation[teu.id] = -1
+            else:
+                orientation[teu.id] = 0
+
+        agreeing = sum(1 for v in orientation.values() if v == 1)
+        opposing = sum(1 for v in orientation.values() if v == -1)
+        minority = -1 if agreeing >= opposing else 1
+        return {tid: v == minority for tid, v in orientation.items()}
+
     async def get_lines_with_teus(self, document_id: str) -> list[dict]:
         """Return TensionLines for a document with their constituent TEUs embedded.
 
@@ -351,11 +399,14 @@ class TensionService:
         result: list[dict] = []
         for line in lines:
             payload = line.model_dump(mode="json")
-            payload["teus"] = [
-                teu_by_id[tid].model_dump(mode="json")
-                for tid in line.teu_ids
-                if tid in teu_by_id
-            ]
+            constituent = [teu_by_id[tid] for tid in line.teu_ids if tid in teu_by_id]
+            flips = self._orientation_flips(constituent)
+            teus_payload = []
+            for teu in constituent:
+                teu_payload = teu.model_dump(mode="json")
+                teu_payload["flipped"] = flips[teu.id]
+                teus_payload.append(teu_payload)
+            payload["teus"] = teus_payload
             result.append(payload)
         return result
 
@@ -796,6 +847,8 @@ class TensionService:
                     intensity_summary=sum(intensities) / len(intensities),
                     chapter_range=[min(chapters), max(chapters)],
                     thematic_note=item.get("thematic_note"),
+                    assembled_by=_GROUPER_TAG,
+                    assembled_at=datetime.utcnow(),
                 )
             )
 

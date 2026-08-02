@@ -160,6 +160,7 @@ async def list_tension_lines(
                     pole_b_carriers=_carriers(pole_b, types_by_id),
                     pole_a_stance=pole_a.get("stance"),
                     pole_b_stance=pole_b.get("stance"),
+                    flipped=bool(teu.get("flipped", False)),
                 )
             )
         result.append(
@@ -173,6 +174,8 @@ async def list_tension_lines(
                 chapter_range=r.get("chapter_range", []),
                 thematic_note=r.get("thematic_note"),
                 review_status=r.get("review_status", "pending"),
+                assembled_by=r.get("assembled_by", "tension_grouper_v1"),
+                assembled_at=r.get("assembled_at"),
                 teus=teus_payload,
             )
         )

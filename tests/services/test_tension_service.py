@@ -25,6 +25,19 @@ def _make_line(teu_ids: list[str], status: str = "pending", **kw) -> TensionLine
     return TensionLine(document_id=DOC, teu_ids=teu_ids, review_status=status, **kw)
 
 
+def _carrier_teu(teu_id: str, a_names: list[str], b_names: list[str]) -> TEU:
+    """A TEU whose poles differ only by which carriers sit on which side."""
+    return TEU(
+        id=teu_id,
+        event_id=f"event-{teu_id}",
+        document_id=DOC,
+        chapter=1,
+        pole_a=TensionPole(concept_name="A", carrier_names=a_names),
+        pole_b=TensionPole(concept_name="B", carrier_names=b_names),
+        tension_description="…",
+    )
+
+
 class TestGroupingCoverage:
     def _coverage(self, teus: list[TEU], lines: list[TensionLine]) -> dict:
         return TensionService._grouping_coverage(teus, lines)
@@ -91,6 +104,80 @@ class TestGroupingCoverage:
         assert result["uncovered_teus"] == 0
 
 
+class TestOrientationFlips:
+    def _flips(self, teus: list[TEU]) -> dict[str, bool]:
+        return TensionService._orientation_flips(teus)
+
+    def test_no_teus(self):
+        assert self._flips([]) == {}
+
+    def test_single_teu_has_nothing_to_disagree_with(self):
+        assert self._flips([_carrier_teu("t1", ["X"], ["Y"])]) == {"t1": False}
+
+    def test_consistent_line_flags_nothing(self):
+        teus = [
+            _carrier_teu("t1", ["X"], ["Y"]),
+            _carrier_teu("t2", ["X"], ["Y"]),
+        ]
+        assert self._flips(teus) == {"t1": False, "t2": False}
+
+    def test_lone_dissenter_is_flagged(self):
+        teus = [
+            _carrier_teu("t1", ["X"], ["Y"]),
+            _carrier_teu("t2", ["X"], ["Y"]),
+            _carrier_teu("t3", ["X"], ["Y"]),
+            _carrier_teu("t4", ["Y"], ["X"]),
+        ]
+        assert self._flips(teus) == {"t1": False, "t2": False, "t3": False, "t4": True}
+
+    def test_majority_wins_over_the_first_teu(self):
+        """The first TEU is not privileged: outnumbered, it is the flipped one."""
+        teus = [
+            _carrier_teu("t1", ["X"], ["Y"]),
+            _carrier_teu("t2", ["Y"], ["X"]),
+            _carrier_teu("t3", ["Y"], ["X"]),
+            _carrier_teu("t4", ["Y"], ["X"]),
+        ]
+        assert self._flips(teus) == {"t1": True, "t2": False, "t3": False, "t4": False}
+
+    def test_teus_sharing_no_carriers_are_undecidable(self):
+        teus = [
+            _carrier_teu("t1", ["X"], ["Y"]),
+            _carrier_teu("t2", ["P"], ["Q"]),
+        ]
+        assert self._flips(teus) == {"t1": False, "t2": False}
+
+    def test_same_carriers_on_both_poles_is_undecidable(self):
+        """The real P2-1 shape: one TEU names the same entities on both sides."""
+        teus = [
+            _carrier_teu("t1", ["X"], ["Y"]),
+            _carrier_teu("t2", ["X"], ["Y"]),
+            _carrier_teu("t3", ["X", "Y"], ["X", "Y"]),
+        ]
+        assert self._flips(teus) == {"t1": False, "t2": False, "t3": False}
+
+    def test_carrierless_teu_is_not_used_as_the_reference(self):
+        """A TEU with no carriers would decide nothing for anyone else."""
+        teus = [
+            _carrier_teu("t1", [], []),
+            _carrier_teu("t2", ["X"], ["Y"]),
+            _carrier_teu("t3", ["Y"], ["X"]),
+            _carrier_teu("t4", ["Y"], ["X"]),
+        ]
+        assert self._flips(teus) == {"t1": False, "t2": True, "t3": False, "t4": False}
+
+    def test_even_split_resolves_towards_the_reference(self):
+        """Deterministic tie-break rather than an arbitrary one: with 2 v 2 the
+        reference TEU's own orientation is treated as the majority."""
+        teus = [
+            _carrier_teu("t1", ["X"], ["Y"]),
+            _carrier_teu("t2", ["X"], ["Y"]),
+            _carrier_teu("t3", ["Y"], ["X"]),
+            _carrier_teu("t4", ["Y"], ["X"]),
+        ]
+        assert self._flips(teus) == {"t1": False, "t2": False, "t3": True, "t4": True}
+
+
 class TestNormalizedMythos:
     def _norm(self, framework: str, value):
         return TensionService._normalized_mythos(framework, value)
@@ -127,6 +214,62 @@ class TestThemeInputLines:
     def test_rejected_only_still_falls_back_to_all(self):
         lines = [_make_line(["t1"], status="rejected")]
         assert TensionService.theme_input_lines(lines) == lines
+
+
+class TestLinesWithTeus:
+    """Integration-style: real SQLite cache in tmp_path, no LLM involved."""
+
+    @pytest.fixture
+    def service(self, tmp_path):
+        from storysphere.services.analysis_cache import AnalysisCache
+
+        return TensionService(cache=AnalysisCache(db_path=str(tmp_path / "cache.db")))
+
+    @pytest.mark.asyncio
+    async def test_embedded_teus_carry_their_flip_flag(self, service):
+        teus = [
+            _carrier_teu("t1", ["X"], ["Y"]),
+            _carrier_teu("t2", ["X"], ["Y"]),
+            _carrier_teu("t3", ["Y"], ["X"]),
+        ]
+        for teu in teus:
+            await service.save_teu(teu)
+        await service.save_lines([_make_line(["t1", "t2", "t3"])], DOC)
+
+        rows = await service.get_lines_with_teus(DOC)
+        flags = {t["id"]: t["flipped"] for t in rows[0]["teus"]}
+        assert flags == {"t1": False, "t2": False, "t3": True}
+
+    @pytest.mark.asyncio
+    async def test_flips_are_scoped_per_line(self, service):
+        """Each line votes on its own TEUs; one line's dissenter must not turn
+        a consistent neighbouring line inside out."""
+        for teu in [
+            _carrier_teu("a1", ["X"], ["Y"]),
+            _carrier_teu("a2", ["X"], ["Y"]),
+            _carrier_teu("b1", ["Y"], ["X"]),
+            _carrier_teu("b2", ["Y"], ["X"]),
+        ]:
+            await service.save_teu(teu)
+        await service.save_lines([_make_line(["a1", "a2"]), _make_line(["b1", "b2"])], DOC)
+
+        rows = await service.get_lines_with_teus(DOC)
+        assert all(not t["flipped"] for row in rows for t in row["teus"])
+
+    @pytest.mark.asyncio
+    async def test_line_provenance_round_trips(self, service):
+        line = _make_line(["t1"], assembled_by="tension_grouper_v1")
+        await service.save_lines([line], DOC)
+        rows = await service.get_lines_with_teus(DOC)
+        assert rows[0]["assembled_by"] == "tension_grouper_v1"
+
+    @pytest.mark.asyncio
+    async def test_pre_provenance_lines_report_no_timestamp(self, service):
+        """Lines cached before provenance existed must read back as null rather
+        than being relabelled with the time they happened to be fetched."""
+        await service.save_lines([_make_line(["t1"])], DOC)
+        rows = await service.get_lines_with_teus(DOC)
+        assert rows[0]["assembled_at"] is None
 
 
 class TestThemeStaleness:

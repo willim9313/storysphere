@@ -3981,6 +3981,12 @@ export interface components {
              * @description How pole B's carriers embody that side of the tension
              */
             pole_b_stance?: string | null;
+            /**
+             * Flipped
+             * @description This TEU assigns the line's two poles the opposite way round from the majority of its siblings. False also covers 'undecidable' — no shared carriers with the rest of the line, or the same carriers on both poles — so it understates rather than invents a conflict
+             * @default false
+             */
+            flipped: boolean;
         };
         /** TaskIdResponse */
         TaskIdResponse: {
@@ -4132,6 +4138,17 @@ export interface components {
              * @enum {string}
              */
             review_status: "pending" | "approved" | "modified" | "rejected";
+            /**
+             * Assembled By
+             * @description Version tag of the grouping step that produced this line
+             * @default tension_grouper_v1
+             */
+            assembled_by: string;
+            /**
+             * Assembled At
+             * @description When grouping produced this line; null for lines cached before provenance existed
+             */
+            assembled_at?: string | null;
             /** Teus */
             teus?: components["schemas"]["TEUSummary"][];
         };
