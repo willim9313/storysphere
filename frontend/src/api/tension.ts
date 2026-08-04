@@ -51,6 +51,8 @@ export function reviewTensionLine(
   reviewStatus: 'approved' | 'modified' | 'rejected',
   canonicalPoleA?: string,
   canonicalPoleB?: string,
+  /** Why the labels were rewritten. Only recorded for 'modified' — see #14f. */
+  note?: string,
 ): Promise<TensionLine> {
   return apiFetch<TensionLine>(`/tension/lines/${lineId}/review`, {
     method: 'PATCH',
@@ -59,6 +61,7 @@ export function reviewTensionLine(
       review_status: reviewStatus,
       canonical_pole_a: canonicalPoleA,
       canonical_pole_b: canonicalPoleB,
+      note,
     }),
   });
 }

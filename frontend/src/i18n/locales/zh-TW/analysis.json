@@ -633,6 +633,29 @@
       "batchApprove": "批次核准",
       "batchReject": "批次拒絕",
       "clearSelection": "Esc 取消選取"
+    },
+    "drawer": {
+      "title": "張力線審核",
+      "close": "關閉",
+      "position": "審核中 · {{index}} / {{total}}",
+      "meta": "ch {{chapters}} · {{count}} TEU · 強度 {{intensity}}",
+      "flipHead": "A/B 指派不穩定　",
+      "flipBody": "{{total}} 則 TEU 中有 {{flipped}} 則的 A/B 與多數決相反；上方載體為多數決結果。",
+      "editedHead": "標籤已由人工修改　",
+      "editedOriginal": "原始：{{a}} vs {{b}}",
+      "editedNote": "理由：{{note}}",
+      "editorTitle": "編輯極點標籤",
+      "noteLabel": "修改理由（選填，寫入審核紀錄）",
+      "notePlaceholder": "例如：原標籤把載體當成概念",
+      "editorHint": "只改標籤文字，不重跑 LLM、不消耗 token，證據歸屬與強度不變。儲存後這條線標記為「已修改」。",
+      "cancel": "取消",
+      "saveLabels": "儲存標籤",
+      "evidence": "證據",
+      "chapter": "第 {{n}} 章",
+      "backToText": "回到原文 · 第 {{n}} 章",
+      "approveKey": "核准　A",
+      "editKey": "改標籤　E",
+      "rejectKey": "拒絕　X"
     }
   },
   "timeline": {

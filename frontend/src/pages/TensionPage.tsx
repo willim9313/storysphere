@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Zap } from 'lucide-react';
@@ -28,6 +28,7 @@ import { TensionOnboardingHero } from '@/components/tension/TensionOnboardingHer
 import { TensionTrajectoryDashboard } from '@/components/tension/TensionTrajectoryDashboard';
 import { TensionReviewToolbar } from '@/components/tension/TensionReviewToolbar';
 import { TensionLineTable } from '@/components/tension/TensionLineTable';
+import { TensionReviewDrawer } from '@/components/tension/TensionReviewDrawer';
 import {
   countByFilter,
   sortLines,
@@ -40,6 +41,7 @@ import '@/styles/tension.css';
 export default function TensionPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
+  const navigate = useNavigate();
   const { setPageContext } = useChatContext();
   const { data: book } = useBook(bookId);
   const { t } = useTranslation('analysis');
@@ -54,6 +56,7 @@ export default function TensionPage() {
   const [sort, setSort] = useState<ReviewSort>('intensity');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
   const [confirmStep, setConfirmStep] = useState<1 | 2 | 3 | null>(null);
 
   const {
@@ -162,6 +165,12 @@ export default function TensionPage() {
 
   const filterCounts = useMemo(() => countByFilter(lines), [lines]);
   const allIntensities = useMemo(() => lines.map((l) => l.intensity_summary), [lines]);
+  // TEU intensities are a different distribution from the line averages; the
+  // drawer's per-TEU evidence bars have to rank against their own kind.
+  const teuIntensities = useMemo(
+    () => lines.flatMap((l) => (l.teus ?? []).map((teu) => teu.intensity)),
+    [lines],
+  );
 
   const reviewMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: 'approved' | 'modified' | 'rejected' }) =>
@@ -197,6 +206,82 @@ export default function TensionPage() {
     },
     [selected, reviewMutation],
   );
+
+  const openLine = useMemo(
+    () => filteredLines.find((l) => l.id === focusedId) ?? null,
+    [filteredLines, focusedId],
+  );
+  const openIndex = openLine ? filteredLines.indexOf(openLine) : -1;
+
+  const saveLabelsMutation = useMutation({
+    mutationFn: ({ id, a, b, note }: { id: string; a: string; b: string; note: string }) =>
+      reviewTensionLine(id, bookId!, 'modified', a, b, note || undefined),
+    onSuccess: () => {
+      setEditing(false);
+      onLineReviewed();
+    },
+  });
+
+  const openChapter = useCallback(
+    (chapter: number) => {
+      // Chapter-level only: a TEU carries no chunk anchor, so the reader can be
+      // pointed at the chapter but not at the paragraph the quote came from.
+      navigate(`/book/${bookId}/reader`, { state: { chapterNumber: chapter } });
+    },
+    [navigate, bookId],
+  );
+
+  // Review shortcuts. Deliberately scoped: no modifier combos (those belong to
+  // the browser) and nothing fires while a text field has focus, or typing a
+  // pole label would review the line instead.
+  useEffect(() => {
+    if (!hasLines) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      const typing = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+      if (typing) {
+        if (e.key === 'Escape') setEditing(false);
+        return;
+      }
+      const rows = filteredLines;
+      if (rows.length === 0) return;
+      const cur = openIndex >= 0 ? openIndex : 0;
+      const key = e.key.toLowerCase();
+
+      if (key === 'escape') {
+        setEditing(false);
+        setFocusedId(null);
+        setSelected(new Set());
+      } else if (key === 'j') {
+        e.preventDefault();
+        setEditing(false);
+        setFocusedId(rows[Math.min(cur + 1, rows.length - 1)].id);
+      } else if (key === 'k') {
+        e.preventDefault();
+        setEditing(false);
+        setFocusedId(rows[Math.max(cur - 1, 0)].id);
+      } else if (key === 'a') {
+        e.preventDefault();
+        reviewMutation.mutate({ id: rows[cur].id, status: 'approved' });
+      } else if (key === 'x') {
+        e.preventDefault();
+        reviewMutation.mutate({ id: rows[cur].id, status: 'rejected' });
+      } else if (key === 'e') {
+        e.preventDefault();
+        setFocusedId(rows[cur].id);
+        setEditing(true);
+      } else if (key === ' ') {
+        e.preventDefault();
+        toggleSelect(rows[cur].id);
+      } else if (key === 'v') {
+        e.preventDefault();
+        toggleAll();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [hasLines, filteredLines, openIndex, reviewMutation, toggleSelect, toggleAll]);
 
   const steps: TensionStepSpec[] = [
     {
@@ -281,11 +366,9 @@ export default function TensionPage() {
   };
 
   return (
-    <div
-      className="tn-scroll"
-      style={{ background: 'var(--bg-primary)', height: '100%', overflowY: 'auto' }}
-    >
-      <div className="tn-page">
+    <div className="tn-shell" style={{ background: 'var(--bg-primary)', height: '100%' }}>
+      <div className="tn-shell-main tn-scroll">
+        <div className="tn-page">
         <TensionStepperStrip steps={steps} onTrigger={handleTrigger} />
 
         {hasLines || hasTheme ? (
@@ -349,7 +432,10 @@ export default function TensionPage() {
                 onToggleSelect={toggleSelect}
                 onToggleAll={toggleAll}
                 onReview={(id, status) => reviewMutation.mutate({ id, status })}
-                onEditLabels={(id) => setFocusedId(id)}
+                onEditLabels={(id) => {
+                  setFocusedId(id);
+                  setEditing(true);
+                }}
                 onShowAll={() => setStatusFilter('all')}
               />
 
@@ -371,7 +457,28 @@ export default function TensionPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
+
+      {openLine && (
+        <TensionReviewDrawer
+          line={openLine}
+          position={{ index: openIndex + 1, total: filteredLines.length }}
+          teuIntensities={teuIntensities}
+          editing={editing}
+          onStartEdit={() => setEditing(true)}
+          onCancelEdit={() => setEditing(false)}
+          onSaveLabels={(a, b, note) =>
+            saveLabelsMutation.mutate({ id: openLine.id, a, b, note })
+          }
+          onReview={(status) => reviewMutation.mutate({ id: openLine.id, status })}
+          onClose={() => {
+            setEditing(false);
+            setFocusedId(null);
+          }}
+          onOpenChapter={openChapter}
+        />
+      )}
 
       <ConfirmDialog
         open={confirmStep !== null}
