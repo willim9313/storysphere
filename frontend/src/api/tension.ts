@@ -6,6 +6,8 @@ import type { TaskStatus, TensionLine, TensionTheme } from './types';
  *  grouping provenance that the hand-written TensionLine in types.ts predates. */
 type TensionLineDetail = components['schemas']['TensionLineDetail'];
 type TEUDetail = components['schemas']['TEUDetail'];
+/** #14i — generated, so it carries reviewed_line_count / total_line_count. */
+type TensionThemeResponse = components['schemas']['TensionThemeResponse'];
 
 // ── Mode A: Full-book TEU assembly ──────────────────────────────
 
@@ -92,8 +94,8 @@ export function fetchSynthesizeThemeTask(taskId: string): Promise<TaskStatus> {
   return apiFetch<TaskStatus>(`/tension/theme/synthesize/${taskId}`);
 }
 
-export function fetchTensionTheme(bookId: string): Promise<TensionTheme> {
-  return apiFetch<TensionTheme>(`/tension/theme?book_id=${bookId}`);
+export function fetchTensionTheme(bookId: string): Promise<TensionThemeResponse> {
+  return apiFetch<TensionThemeResponse>(`/tension/theme?book_id=${bookId}`);
 }
 
 export function reviewTensionTheme(

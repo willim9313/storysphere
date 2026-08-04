@@ -510,6 +510,9 @@ export default function TensionPage() {
         {theme && (
           <TensionThemeHero
             theme={theme}
+            lines={lines}
+            onResynthesize={() => runStep(3, true)}
+            onOpenLine={(id) => setFocusedId(id)}
             onApprove={() => themeReviewMutation.mutate({ status: 'approved' })}
             onReject={() => themeReviewMutation.mutate({ status: 'rejected' })}
             onModify={(prop) => themeReviewMutation.mutate({ status: 'modified', proposition: prop })}

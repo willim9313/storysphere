@@ -1587,3 +1587,129 @@
   cursor: pointer;
 }
 .tn-modal-danger:hover { opacity: 0.9; }
+
+/* ── Theme hero (redesigned) + stale card ──────────────────────── */
+
+.tn-hero {
+  padding: var(--space-lg);
+  background: var(--bg-secondary);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-bottom: 20px;
+}
+.tn-hero-top { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.tn-hero-eyebrow {
+  font: 500 10px var(--font-sans);
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+}
+.tn-hero-badge {
+  font: 500 10px var(--font-sans);
+  padding: 1px 8px;
+  border-radius: var(--badge-radius);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+/* The proposition is the largest text on the page on purpose. */
+.tn-hero-proposition {
+  margin: 0;
+  font: 400 21px/1.8 var(--font-serif);
+  color: var(--fg-primary);
+  max-width: 1000px;
+  text-wrap: pretty;
+}
+.tn-hero-warn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  background: var(--color-warning-bg);
+  border-radius: var(--control-radius);
+  font: 400 11.5px var(--font-sans);
+  color: var(--fg-secondary);
+}
+.tn-hero-warn b { color: var(--color-warning); font-weight: 600; }
+
+.tn-hero-lines { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.tn-hero-lines-label {
+  font: 400 11px var(--font-sans);
+  color: var(--fg-muted);
+  padding-right: 2px;
+}
+.tn-hero-line-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 11px;
+  background: var(--bg-primary);
+  border: var(--pill-border-width) solid var(--border);
+  border-radius: var(--pill-radius);
+  font: 400 12px var(--font-serif);
+  color: var(--fg-primary);
+  cursor: pointer;
+}
+.tn-hero-line-pill:hover { background: var(--bg-tertiary); }
+.tn-hero-line-pill > i {
+  display: block;
+  width: 4px;
+  height: 12px;
+  flex: none;
+  border-radius: 1px;
+}
+.tn-hero-line-pill > i[data-band="low"] { background: var(--tension-intensity-low-bg); }
+.tn-hero-line-pill > i[data-band="mid"] { background: var(--tension-intensity-mid-bg); }
+.tn-hero-line-pill > i[data-band="high"] { background: var(--tension-intensity-high-bg); }
+
+.tn-hero-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 3px;
+  flex-wrap: wrap;
+}
+.tn-hero-foot .tn-act-ghost { display: inline-flex; align-items: center; gap: 5px; }
+.tn-hero-editor { display: flex; flex-direction: column; gap: 10px; }
+.tn-hero-editor textarea { resize: vertical; line-height: 1.8; }
+
+.tn-stale-card {
+  padding: 16px 18px;
+  border: var(--card-border-width) solid var(--color-warning);
+  border-radius: var(--card-radius);
+  background: var(--color-warning-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.tn-stale-head { display: flex; align-items: center; gap: 8px; font: 600 15px var(--font-serif); }
+.tn-stale-mark {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-warning);
+  color: var(--bg-primary);
+  font: 600 11px/18px var(--font-sans);
+  text-align: center;
+}
+.tn-stale-body {
+  margin: 0;
+  font: 400 13.5px/1.8 var(--font-serif);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+/* The superseded proposition is shown greyed and inset: readable, but clearly
+   no longer the page's claim. */
+.tn-stale-old {
+  padding: 13px 15px;
+  background: var(--bg-primary);
+  border-radius: var(--card-radius);
+  font: 400 14.5px/1.85 var(--font-serif);
+  color: var(--fg-muted);
+  text-wrap: pretty;
+}

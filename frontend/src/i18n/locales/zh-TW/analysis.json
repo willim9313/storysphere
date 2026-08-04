@@ -720,6 +720,23 @@
       "groupErrorBody": "{{error}} 上次成功的結果（{{count}} 條張力線）仍保留在下方，未被覆寫。",
       "groupErrorBodyNoPrev": "{{error}}",
       "retryGroup": "重試聚合"
+    },
+    "theme": {
+      "eyebrow": "BOOK 全書級 · TENSIONTHEME",
+      "fresh": "最新",
+      "staleTitle": "全書主題已過期",
+      "staleReason": {
+        "lines_regrouped": "張力線已重新分組，此主題引用的線已不存在。以下命題是用舊的張力線合成的。",
+        "review_changed": "審核決定改變了合成會用到的張力線。以下命題是用舊的那組線合成的。",
+        "no_lines": "目前已無任何張力線。以下命題是用舊的張力線合成的。"
+      },
+      "resynthesize": "重新合成主題",
+      "resynthesizeShort": "重新合成",
+      "incompleteHead": "合成時有 {{count}} 條尚未審核　",
+      "incompleteBody": "這些線仍以模型原始輸出參與合成；審核完後建議重新合成一次。",
+      "supporting": "支撐的張力線",
+      "builtFrom": "依 {{reviewed}} / {{total}} 條已審核張力線",
+      "cancel": "取消"
     }
   },
   "timeline": {
