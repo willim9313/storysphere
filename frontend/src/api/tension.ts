@@ -5,6 +5,7 @@ import type { TaskStatus, TensionLine, TensionTheme } from './types';
 /** Response shape of #14e — generated, so it carries `flipped`, `edit` and the
  *  grouping provenance that the hand-written TensionLine in types.ts predates. */
 type TensionLineDetail = components['schemas']['TensionLineDetail'];
+type TEUDetail = components['schemas']['TEUDetail'];
 
 // ── Mode A: Full-book TEU assembly ──────────────────────────────
 
@@ -43,6 +44,14 @@ export function fetchGroupTensionLinesTask(taskId: string): Promise<TaskStatus> 
 
 export function fetchTensionLines(bookId: string): Promise<TensionLineDetail[]> {
   return apiFetch<TensionLineDetail[]>(`/tension/lines?book_id=${bookId}`);
+}
+
+/**
+ * Every TEU Step 1 produced, with `line_id` null for the ones grouping dropped.
+ * The only view of what Step 2 silently discarded — see #14d-2.
+ */
+export function fetchTEUs(bookId: string): Promise<TEUDetail[]> {
+  return apiFetch<TEUDetail[]>(`/tension/teus?book_id=${bookId}`);
 }
 
 export function reviewTensionLine(

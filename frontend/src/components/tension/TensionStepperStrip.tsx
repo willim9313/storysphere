@@ -1,87 +1,97 @@
-import { Fragment } from 'react';
-import { CheckCircle2, ChevronRight, Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { AlertTriangle, Check, Sparkles } from 'lucide-react';
 
-export interface TensionStepSpec {
-  key: 1 | 2 | 3;
-  label: string;
-  scope: string;
-  desc: string;
-  done: boolean;
-  running: boolean;
-  active: boolean;
-  disabled?: boolean;
+/**
+ * The pipeline has five stages, not three.
+ *
+ * The old strip showed only the three machine steps, which taught the page's
+ * central lie: that you press 1, 2, 3 and are done. The two human gates between
+ * them are where the actual work happens, and leaving them out is how themes
+ * ended up synthesised from lines nobody had reviewed. They are drawn here as
+ * first-class cells — narrower and chromeless, so they read as checkpoints
+ * rather than buttons, but present.
+ */
+export type StageKind = 'machine' | 'gate';
+
+export interface TensionStageSpec {
+  id: 'teu' | 'review-teu' | 'group' | 'review-lines' | 'theme';
+  kind: StageKind;
+  kicker: string;
+  title: string;
+  note: string;
+  /** Warning-toned note, e.g. "16 個未歸入，待確認". */
+  noteWarning?: boolean;
+  done?: boolean;
+  running?: boolean;
+  failed?: boolean;
+  /** Reachable but not yet satisfiable — drawn dashed and dimmed. */
+  notReady?: boolean;
+  /** Everything upstream is finished; the stage offers its action. */
+  ready?: boolean;
   progress?: number;
   error?: string | null;
+  actionLabel?: string;
+  onAction?: () => void;
 }
+
+const FLEX: Record<StageKind, number> = { machine: 1.15, gate: 0.95 };
 
 interface Props {
-  steps: TensionStepSpec[];
-  onTrigger: (key: 1 | 2 | 3) => void;
+  stages: TensionStageSpec[];
 }
 
-export function TensionStepperStrip({ steps, onTrigger }: Props) {
+export function TensionStepperStrip({ stages }: Props) {
   return (
-    <div className="tn-stepper">
-      {steps.map((s) => (
-        <Fragment key={s.key}>
-          <TensionStep step={s} onClick={() => !s.disabled && !s.running && onTrigger(s.key)} />
-          {s.error && (
-            <div className="tn-step-error">
-              <AlertTriangle size={12} />
-              <span>{s.error}</span>
+    <div className="tn-stepper-wrap">
+      <div className="tn-stepper">
+        {stages.map((s) => (
+          <div
+            key={s.id}
+            className="tn-stage"
+            style={{ flex: FLEX[s.kind] }}
+            data-kind={s.kind}
+            data-done={!!s.done}
+            data-running={!!s.running}
+            data-failed={!!s.failed}
+            data-notready={!!s.notReady}
+            data-ready={!!s.ready}
+          >
+            <div className="tn-stage-top">
+              {/* Machine steps get a circle, gates a square: the shape says
+                  "the system does this" vs "you do this" without relying on
+                  colour, which collapses to one black in the Ink theme. */}
+              <span className="tn-stage-dot" data-kind={s.kind}>
+                {s.done && <Check size={9} />}
+                {s.failed && <AlertTriangle size={9} />}
+              </span>
+              <span className="tn-stage-kicker">{s.kicker}</span>
             </div>
-          )}
-        </Fragment>
-      ))}
-    </div>
-  );
-}
+            <div className="tn-stage-title">{s.title}</div>
+            <div className="tn-stage-note" data-warn={!!s.noteWarning}>
+              {s.note}
+            </div>
 
-function TensionStep({ step, onClick }: { step: TensionStepSpec; onClick: () => void }) {
-  const { t } = useTranslation('analysis');
-  const cls = [
-    'tn-step',
-    step.done && 'is-done',
-    step.running && 'is-running',
-    step.active && 'is-active',
-  ]
-    .filter(Boolean)
-    .join(' ');
+            {s.running && (
+              <div className="tn-stage-bar">
+                <i style={{ width: `${s.progress ?? 0}%` }} />
+              </div>
+            )}
 
-  return (
-    <button
-      className={cls}
-      onClick={onClick}
-      disabled={step.disabled || step.running}
-      title={t('tension.llmHint')}
-    >
-      <span className="tn-step-num">
-        {step.running ? (
-          <Loader2 size={14} className="tn-spin" />
-        ) : step.done ? (
-          <CheckCircle2 size={14} />
-        ) : (
-          step.key
-        )}
-      </span>
-      <div className="tn-step-body">
-        <div className="tn-step-aggr">{step.scope}</div>
-        <div className="tn-step-label">{step.label}</div>
-        <div className="tn-step-desc">{step.desc}</div>
+            {s.actionLabel && s.onAction && (
+              <button type="button" className="tn-stage-action" onClick={s.onAction}>
+                <Sparkles size={12} />
+                {s.actionLabel}
+              </button>
+            )}
+
+            {s.error && (
+              <div className="tn-stage-error">
+                <AlertTriangle size={11} />
+                <span>{s.error}</span>
+              </div>
+            )}
+          </div>
+        ))}
       </div>
-      <span className={`tn-step-cta ${step.done ? 'tn-step-cta-done' : ''}`}>
-        {step.running ? null : step.done ? (
-          <RefreshCw size={12} />
-        ) : step.disabled ? null : (
-          <ChevronRight size={14} />
-        )}
-      </span>
-      {step.running && (
-        <div className="tn-step-progress">
-          <div className="tn-step-progress-fill" style={{ width: `${step.progress ?? 0}%` }} />
-        </div>
-      )}
-    </button>
+    </div>
   );
 }
