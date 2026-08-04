@@ -226,7 +226,7 @@ export default function TensionPage() {
     (chapter: number) => {
       // Chapter-level only: a TEU carries no chunk anchor, so the reader can be
       // pointed at the chapter but not at the paragraph the quote came from.
-      navigate(`/book/${bookId}/reader`, { state: { chapterNumber: chapter } });
+      navigate(`/books/${bookId}`, { state: { chapterNumber: chapter } });
     },
     [navigate, bookId],
   );

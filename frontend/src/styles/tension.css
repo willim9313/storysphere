@@ -1387,7 +1387,11 @@
 
 .tn-drawer-foot {
   flex: none;
-  padding: 13px 18px;
+  /* The chat launcher is a global position:fixed button at z-index 50 in the
+     bottom-right corner; the prototype had no such element, so the design's
+     18px right padding would put 拒絕 underneath it and swallow the clicks.
+     Reserve the launcher's footprint instead. */
+  padding: 13px 76px 13px 18px;
   border-top: 1px solid var(--border);
   background: var(--bg-primary);
   display: flex;
