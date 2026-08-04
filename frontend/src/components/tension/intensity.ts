@@ -1,17 +1,5 @@
 export type IntensityBucket = 'low' | 'mid' | 'high';
 
-/**
- * Absolute thresholds. Real LLM output clusters in 0.6–0.9, so every line in a
- * book tends to land in one band and the three-colour legend reads as one
- * colour — see `relativeIntensity` for what the redesigned views use instead.
- * Still in use by TensionTrajectoryDashboard until the chapter grid replaces it.
- */
-export function intensityBucket(v: number): IntensityBucket {
-  if (v < 0.4) return 'low';
-  if (v < 0.75) return 'mid';
-  return 'high';
-}
-
 export interface RelativeIntensity {
   /** Normalised position within this book, 0–1. */
   t: number;
@@ -62,6 +50,3 @@ export function intensityBarEdge(bucket: IntensityBucket): string {
   return `var(--tension-intensity-${bucket}-edge)`;
 }
 
-export function intensityBarFg(bucket: IntensityBucket): string {
-  return `var(--tension-intensity-${bucket}-fg)`;
-}

@@ -56,6 +56,24 @@ export function fetchTEUs(bookId: string): Promise<TEUDetail[]> {
   return apiFetch<TEUDetail[]>(`/tension/teus?book_id=${bookId}`);
 }
 
+/**
+ * Attach a TEU grouping left out to a TensionLine (#14d-3).
+ *
+ * The line's chapter_range and intensity_summary are recomputed server-side, so
+ * a repaired line comes back shaped exactly like one the model got right.
+ * Rejects with 409 if another line already claims the TEU.
+ */
+export function assignTEUToLine(
+  teuId: string,
+  bookId: string,
+  lineId: string,
+): Promise<TensionLine> {
+  return apiFetch<TensionLine>(`/tension/teus/${teuId}/assign`, {
+    method: 'PATCH',
+    body: JSON.stringify({ document_id: bookId, line_id: lineId }),
+  });
+}
+
 export function reviewTensionLine(
   lineId: string,
   bookId: string,

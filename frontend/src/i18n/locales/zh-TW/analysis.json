@@ -737,6 +737,26 @@
       "supporting": "支撐的張力線",
       "builtFrom": "依 {{reviewed}} / {{total}} 條已審核張力線",
       "cancel": "取消"
+    },
+    "grid": {
+      "title": "章節格點",
+      "meta": "{{lines}} 條 · 涵蓋 {{covered}} / {{total}} TEU",
+      "legendLabel": "強度（本書相對）",
+      "emptyCell": "空格＝該章無 TEU",
+      "axis": "章節 →",
+      "rowMeta": "{{count}} TEU · {{intensity}}",
+      "cellLabel": "第 {{chapter}} 章 {{count}} 個 TEU",
+      "orphanTitle": "未歸入任何張力線",
+      "orphanCellLabel": "第 {{chapter}} 章 {{count}} 個未歸入 TEU",
+      "orphanMeta": "{{count}} TEU（{{pct}}%）",
+      "lostChapters": "{{list}} 整章落單",
+      "expand": "展開",
+      "collapse": "收合",
+      "orphanListTitle": "{{count}} 個未歸入的 TEU",
+      "orphanListSub": "依強度排序",
+      "assign": "指派到張力線",
+      "pickLine": "選擇張力線…",
+      "assignFailed": "指派失敗"
     }
   },
   "timeline": {

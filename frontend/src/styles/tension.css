@@ -1713,3 +1713,177 @@
   color: var(--fg-muted);
   text-wrap: pretty;
 }
+
+/* ── Chapter grid ──────────────────────────────────────────────── */
+
+.tn-grid-card {
+  padding: var(--space-lg);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--bg-primary);
+  box-shadow: var(--card-shadow);
+  margin-bottom: 18px;
+}
+.tn-grid-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.tn-grid-title-wrap { display: flex; align-items: baseline; gap: 10px; }
+.tn-grid-title { font: 600 16px var(--font-serif); }
+.tn-grid-meta { font: 400 11.5px var(--font-sans); color: var(--fg-muted); }
+.tn-grid-legend { display: flex; align-items: center; gap: 13px; }
+.tn-grid-legend-label { font: 400 11px var(--font-sans); color: var(--fg-muted); }
+.tn-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: 400 11px var(--font-sans);
+  color: var(--fg-secondary);
+}
+.tn-legend-item > i { display: block; width: 9px; }
+.tn-legend-item > i[data-band="low"] {
+  background: var(--tension-intensity-low-bg);
+  border: 1px solid var(--tension-intensity-low-edge);
+}
+.tn-legend-item > i[data-band="mid"] { background: var(--tension-intensity-mid-bg); }
+.tn-legend-item > i[data-band="high"] { background: var(--tension-intensity-high-bg); }
+.tn-grid-legend-note {
+  font: 400 11px var(--font-sans);
+  color: var(--fg-muted);
+  padding-left: 7px;
+  border-left: 1px solid var(--border);
+}
+
+/* Wide books scroll the grid rather than the page. */
+.tn-grid { display: grid; align-items: stretch; overflow-x: auto; }
+.tn-grid-rowgroup { display: contents; }
+.tn-grid-corner {
+  font: 500 10px var(--font-sans);
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+  padding-bottom: 8px;
+}
+.tn-grid-colhead {
+  text-align: center;
+  font: 500 11px var(--font-sans);
+  color: var(--fg-secondary);
+  padding-bottom: 8px;
+  border-left: 1px solid var(--border);
+}
+
+.tn-grid-rowlabel {
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  padding: 10px 12px 10px 9px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel,
+.tn-grid-rowgroup[data-open="true"] .tn-grid-cell { background: var(--bg-secondary); }
+.tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel { border-left-color: var(--accent); }
+.tn-grid-poles { font: 400 14px/1.45 var(--font-serif); color: var(--fg-primary); text-wrap: pretty; }
+.tn-grid-rowmeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 400 11px var(--font-sans);
+  color: var(--fg-muted);
+}
+.tn-status-badge.sm { font-size: 10px; padding: 1px 7px; }
+
+.tn-grid-cell {
+  border: none;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 3px 8px;
+  min-height: 46px;
+  cursor: pointer;
+}
+.tn-grid-cell > i {
+  display: block;
+  width: 9px;
+  box-sizing: border-box;
+  border-radius: 1px;
+}
+.tn-grid-cell > i[data-band="low"] {
+  background: var(--tension-intensity-low-bg);
+  border: 1px solid var(--tension-intensity-low-edge);
+}
+.tn-grid-cell > i[data-band="mid"] {
+  background: var(--tension-intensity-mid-bg);
+  border: 1px solid var(--tension-intensity-mid-edge);
+}
+.tn-grid-cell > i[data-band="high"] {
+  background: var(--tension-intensity-high-bg);
+  border: 1px solid var(--tension-intensity-high-edge);
+}
+/* Dropped TEUs are hollow and dashed: present in the book, absent from the
+   analysis. The outline reads as "missing" in the Ink theme too. */
+.tn-grid-cell > i[data-orphan="true"] {
+  background: transparent;
+  border: 1px dashed var(--color-warning);
+}
+
+.tn-grid-rowgroup.orphan .tn-grid-rowlabel,
+.tn-grid-rowgroup.orphan .tn-grid-cell {
+  border-top: 2px solid var(--border);
+  border-bottom: none;
+}
+.tn-grid-orphan-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 600 13px var(--font-serif);
+  color: var(--fg-primary);
+}
+.tn-grid-orphan-toggle { font: 400 11px var(--font-sans); color: var(--accent); }
+.tn-grid-orphan-meta { font: 400 11px var(--font-sans); color: var(--color-warning); }
+
+.tn-orphan-list {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tn-orphan-list-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.tn-orphan-list-title { font: 600 13px var(--font-serif); }
+.tn-orphan-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 100px 132px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+}
+/* A dropped TEU at 0.9 is the strongest evidence in the book going unused. */
+.tn-orphan-row[data-strong="true"] { background: var(--color-warning-bg); }
+.tn-orphan-ch { font: 600 12px var(--font-serif); }
+.tn-orphan-poles { font: 400 13.5px var(--font-serif); text-wrap: pretty; }
+.tn-orphan-intensity { display: flex; align-items: center; gap: 6px; }
+.tn-bar.sm { width: 46px; height: 5px; }
+.tn-orphan-select {
+  padding: 4px 8px;
+  font: 400 11px var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  border: 1px solid var(--accent);
+  border-radius: var(--btn-radius);
+  max-width: 100%;
+}

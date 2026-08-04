@@ -9,6 +9,7 @@ import {
   fetchTensionAnalysisTask,
   fetchTensionLines,
   fetchTEUs,
+  assignTEUToLine,
   triggerGroupTensionLines,
   fetchGroupTensionLinesTask,
   triggerSynthesizeTensionTheme,
@@ -30,7 +31,7 @@ import {
   TensionRunningCard,
   TensionStep1Card,
 } from '@/components/tension/TensionStateCards';
-import { TensionTrajectoryDashboard } from '@/components/tension/TensionTrajectoryDashboard';
+import { TensionChapterGrid } from '@/components/tension/TensionChapterGrid';
 import { TensionReviewToolbar } from '@/components/tension/TensionReviewToolbar';
 import { TensionLineTable } from '@/components/tension/TensionLineTable';
 import { TensionReviewDrawer } from '@/components/tension/TensionReviewDrawer';
@@ -148,15 +149,6 @@ export default function TensionPage() {
     },
   });
 
-  const maxChapter = useMemo(
-    () =>
-      lines.reduce((m, l) => {
-        const range = l.chapter_range ?? [];
-        const ch = range[range.length - 1] ?? 0;
-        return Math.max(m, ch);
-      }, 1),
-    [lines],
-  );
 
   const hasLines = lines.length > 0;
   const hasTeus = analyzeResult !== null || hasLines;
@@ -187,6 +179,17 @@ export default function TensionPage() {
     mutationFn: ({ id, status }: { id: string; status: 'approved' | 'modified' | 'rejected' }) =>
       reviewTensionLine(id, bookId!, status),
     onSuccess: onLineReviewed,
+  });
+
+  const assignMutation = useMutation({
+    mutationFn: ({ teuId, lineId }: { teuId: string; lineId: string }) =>
+      assignTEUToLine(teuId, bookId!, lineId),
+    onSuccess: () => {
+      // Both queries move: the line gains a TEU and recomputed rollups, and the
+      // TEU's line_id flips out of the orphan set.
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'tension', 'lines'] });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'tension', 'teus'] });
+    },
   });
 
   const toggleSelect = useCallback((id: string) => {
@@ -429,22 +432,6 @@ export default function TensionPage() {
 
   // A completed step's CTA is a re-run: it costs an LLM call and overwrites the
   // existing result, so it goes through a confirmation rather than firing on click.
-  const handleFocus = (id: string) => {
-    setFocusedId(id);
-    const el = document.getElementById(`tn-line-${id}`);
-    if (el) {
-      const rect = el.getBoundingClientRect();
-      const scrollEl = el.closest('.tn-scroll') as HTMLElement | null;
-      if (scrollEl) {
-        scrollEl.scrollTo({
-          top: scrollEl.scrollTop + rect.top - 80,
-          behavior: 'smooth',
-        });
-      } else {
-        window.scrollTo({ top: window.scrollY + rect.top - 80, behavior: 'smooth' });
-      }
-    }
-  };
 
   return (
     <div className="tn-shell" style={{ background: 'var(--bg-primary)', height: '100%' }}>
@@ -522,17 +509,12 @@ export default function TensionPage() {
 
         {hasLines && (
           <>
-            {/* Still the old trajectory chart; the chapter grid replaces it in
-                a later step. It predates the generated response type, hence the
-                defaults for fields that are optional on the wire. `hideRejected`
-                is gone as a control — rejected rows now dim in the table
-                instead, so the chart never hides anything. */}
-            <TensionTrajectoryDashboard
+            <TensionChapterGrid
               lines={lines}
-              maxChapter={maxChapter}
-              hideRejected={false}
-              focusedId={focusedId}
-              onFocus={handleFocus}
+              teus={teus}
+              openId={focusedId}
+              onOpen={(id) => setFocusedId((prev) => (prev === id ? null : id))}
+              onAssign={(teuId, lineId) => assignMutation.mutate({ teuId, lineId })}
             />
 
             <section>
