@@ -688,6 +688,25 @@
       "themeStale": "主題已過期",
       "themeFailed": "合成失敗",
       "synthesize": "合成全書主題"
+    },
+    "state": {
+      "emptyTitle": "尚未進行張力分析",
+      "emptyBody": "系統會從場景級的 TEU 出發，向上聚合為跨章節 TensionLine，最終合成全書命題。三層之間各有一次人工審核。",
+      "startStep1": "開始 Step 1 · TEU 組裝",
+      "tokenHintLong": "此步驟會呼叫 LLM，消耗 token，約需數分鐘",
+      "tokenHintShort": "會呼叫 LLM，消耗 token",
+      "step1Title": "{{count}} 個 TEU 已就緒",
+      "step1Body": "下一步是把它們聚合成跨章節的張力線。聚合是單次 LLM 呼叫，模型可能略過部分 TEU——聚合後這裡會標出未歸入的項目。",
+      "chapterShort": "ch{{n}}",
+      "runStep2": "執行 Step 2 · 聚合",
+      "runningHint": "正在呼叫 LLM，消耗 token。可離開頁面，完成後會保留結果。",
+      "groupRunningTitle": "TensionLine 聚合 · 進行中",
+      "analyzeRunningTitle": "TEU 組裝 · 進行中",
+      "themeRunningTitle": "TensionTheme 合成 · 進行中",
+      "groupErrorTitle": "TensionLine 聚合失敗",
+      "groupErrorBody": "{{error}} 上次成功的結果（{{count}} 條張力線）仍保留在下方，未被覆寫。",
+      "groupErrorBodyNoPrev": "{{error}}",
+      "retryGroup": "重試聚合"
     }
   },
   "timeline": {

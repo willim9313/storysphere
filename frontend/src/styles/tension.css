@@ -1414,3 +1414,117 @@
 }
 .tn-drawer-foot button { padding: 9px 13px; font: 500 13px var(--font-sans); }
 .tn-act-primary.grow { flex: 1; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Pipeline state cards (empty / step1 / running / error)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.tn-state-empty {
+  padding: 70px 0 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.tn-state-hero {
+  width: 260px;
+  height: auto;
+  /* Without this the column flex container shrinks the image to a sliver. */
+  flex: none;
+  opacity: var(--splash-image-opacity);
+  filter: var(--splash-image-filter);
+}
+.tn-state-empty-title { font: 600 20px var(--font-serif); }
+.tn-state-empty-body {
+  font: 400 14px/1.85 var(--font-serif);
+  color: var(--fg-secondary);
+  max-width: 440px;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.tn-state-card {
+  padding: var(--space-lg);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--bg-primary);
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+/* Failure keeps the previous result visible below it: the error card is
+   inserted above, it does not replace anything. */
+.tn-state-card.error {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+  box-shadow: none;
+}
+
+.tn-state-title { font: 600 17px var(--font-serif); }
+.tn-state-title.sm { font-size: 15px; }
+.tn-state-title.error { color: var(--color-error); }
+.tn-state-body {
+  font: 400 13.5px/1.8 var(--font-serif);
+  color: var(--fg-secondary);
+  margin: 0;
+  text-wrap: pretty;
+}
+.tn-state-row { display: flex; align-items: baseline; justify-content: space-between; }
+.tn-state-pct { font: 400 12px var(--font-mono); color: var(--fg-secondary); }
+.tn-state-stage { font: 400 12px var(--font-sans); color: var(--fg-secondary); }
+.tn-state-meta { font: 400 11.5px var(--font-mono); color: var(--fg-muted); }
+
+.tn-state-bar {
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.tn-state-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--transition-normal) ease;
+}
+
+.tn-state-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tn-state-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 22px;
+  font: 500 13px var(--font-sans);
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: none;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.tn-state-cta.sm { padding: 9px 18px; }
+.tn-state-cta:hover { opacity: 0.9; }
+
+.tn-token-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--badge-radius);
+  font: 400 11.5px var(--font-sans);
+  color: var(--fg-secondary);
+}
+.tn-token-hint svg { color: var(--accent); flex: none; }
+
+.tn-density { display: grid; gap: 6px; align-items: end; }
+.tn-density-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.tn-density-col > i {
+  display: block;
+  width: 100%;
+  background: var(--tension-intensity-mid-bg);
+  border-radius: 2px;
+}
+.tn-density-col > span { font: 400 10px var(--font-mono); color: var(--fg-muted); }

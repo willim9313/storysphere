@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Zap } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import {
@@ -25,7 +24,12 @@ import {
   type TensionStageSpec,
 } from '@/components/tension/TensionStepperStrip';
 import { TensionThemeHero } from '@/components/tension/TensionThemeHero';
-import { TensionOnboardingHero } from '@/components/tension/TensionOnboardingHero';
+import {
+  TensionEmptyCard,
+  TensionErrorCard,
+  TensionRunningCard,
+  TensionStep1Card,
+} from '@/components/tension/TensionStateCards';
 import { TensionTrajectoryDashboard } from '@/components/tension/TensionTrajectoryDashboard';
 import { TensionReviewToolbar } from '@/components/tension/TensionReviewToolbar';
 import { TensionLineTable } from '@/components/tension/TensionLineTable';
@@ -297,6 +301,21 @@ export default function TensionPage() {
   const orphanCount = teus.filter((teu) => teu.line_id === null).length;
   const themeReady = hasLines && unreviewedCount === 0;
 
+  const teuChapterCounts = useMemo(() => {
+    const byChapter = new Map<number, number>();
+    for (const teu of teus) byChapter.set(teu.chapter, (byChapter.get(teu.chapter) ?? 0) + 1);
+    return [...byChapter.entries()].sort((a, b) => a[0] - b[0]) as [number, number][];
+  }, [teus]);
+
+  // Lines cached before provenance existed have no timestamp; show the version
+  // alone rather than inventing a time.
+  const lineProvenance = useMemo(() => {
+    const first = lines[0];
+    if (!first) return null;
+    const at = first.assembled_at ? new Date(first.assembled_at).toLocaleString() : null;
+    return at ? `${first.assembled_by} · ${at}` : first.assembled_by;
+  }, [lines]);
+
   const stages: TensionStageSpec[] = [
     {
       id: 'teu',
@@ -427,22 +446,69 @@ export default function TensionPage() {
         <div className="tn-page">
         <TensionStepperStrip stages={stages} />
 
-        {hasLines || hasTheme ? (
-          theme ? (
-            <TensionThemeHero
-              theme={theme}
-              onApprove={() => themeReviewMutation.mutate({ status: 'approved' })}
-              onReject={() => themeReviewMutation.mutate({ status: 'rejected' })}
-              onModify={(prop) => themeReviewMutation.mutate({ status: 'modified', proposition: prop })}
-              pending={themeReviewMutation.isPending}
-            />
-          ) : (
-            <TensionOnboardingHero />
-          )
-        ) : linesLoading || themeLoading ? (
-          <LoadingSpinner />
-        ) : (
-          <TensionOnboardingHero />
+        {linesLoading || themeLoading ? <LoadingSpinner /> : null}
+
+        {!linesLoading && !themeLoading && !hasTeus && !analyzeOp.running && (
+          <TensionEmptyCard onStart={() => runStep(1, false)} />
+        )}
+
+        {analyzeOp.running && (
+          <TensionRunningCard
+            title={t('tension.state.analyzeRunningTitle')}
+            progress={analyzeOp.task?.progress ?? 0}
+            stage={analyzeOp.task?.stage ?? null}
+          />
+        )}
+
+        {/* The error card is inserted above the previous result rather than
+            replacing it: a failed re-run leaves the last good grouping intact,
+            and hiding it would suggest the work was lost. */}
+        {groupOp.error && (
+          <TensionErrorCard
+            title={t('tension.state.groupErrorTitle')}
+            message={
+              hasLines
+                ? t('tension.state.groupErrorBody', { error: groupOp.error, count: lines.length })
+                : t('tension.state.groupErrorBodyNoPrev', { error: groupOp.error })
+            }
+            retryLabel={t('tension.state.retryGroup')}
+            onRetry={() => runStep(2, true)}
+            meta={lineProvenance}
+          />
+        )}
+
+        {groupOp.running && (
+          <TensionRunningCard
+            title={t('tension.state.groupRunningTitle')}
+            progress={groupOp.task?.progress ?? 0}
+            stage={groupOp.task?.stage ?? null}
+          />
+        )}
+
+        {hasTeus && !hasLines && !groupOp.running && !groupOp.error && (
+          <TensionStep1Card
+            teuCount={teus.length}
+            chapterCounts={teuChapterCounts}
+            onGroup={() => runStep(2, false)}
+          />
+        )}
+
+        {synthesizeOp.running && (
+          <TensionRunningCard
+            title={t('tension.state.themeRunningTitle')}
+            progress={synthesizeOp.task?.progress ?? 0}
+            stage={synthesizeOp.task?.stage ?? null}
+          />
+        )}
+
+        {theme && (
+          <TensionThemeHero
+            theme={theme}
+            onApprove={() => themeReviewMutation.mutate({ status: 'approved' })}
+            onReject={() => themeReviewMutation.mutate({ status: 'rejected' })}
+            onModify={(prop) => themeReviewMutation.mutate({ status: 'modified', proposition: prop })}
+            pending={themeReviewMutation.isPending}
+          />
         )}
 
         {hasLines && (
@@ -500,18 +566,6 @@ export default function TensionPage() {
               </div>
             </section>
           </>
-        )}
-
-        {!hasLines && !linesLoading && !themeLoading && (
-          <div className="tn-empty">
-            <div className="tn-empty-icon">
-              <Zap size={36} />
-            </div>
-            <div className="tn-empty-msg">{t('tension.empty')}</div>
-            <div className="tn-empty-msg" style={{ marginTop: 4, opacity: 0.8 }}>
-              {t('tension.emptyHint')}
-            </div>
-          </div>
         )}
         </div>
       </div>
