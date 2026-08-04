@@ -32,6 +32,7 @@ import {
   TensionStep1Card,
 } from '@/components/tension/TensionStateCards';
 import { TensionChapterGrid } from '@/components/tension/TensionChapterGrid';
+import { TensionTEUInspector } from '@/components/tension/TensionTEUInspector';
 import { TensionReviewToolbar } from '@/components/tension/TensionReviewToolbar';
 import { TensionLineTable } from '@/components/tension/TensionLineTable';
 import { TensionReviewDrawer } from '@/components/tension/TensionReviewDrawer';
@@ -63,6 +64,7 @@ export default function TensionPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
+  const [mode, setMode] = useState<'lines' | 'teu'>('lines');
   const [rerunOpen, setRerunOpen] = useState(false);
 
   const {
@@ -249,7 +251,7 @@ export default function TensionPage() {
   // the browser) and nothing fires while a text field has focus, or typing a
   // pole label would review the line instead.
   useEffect(() => {
-    if (!hasLines) return;
+    if (!hasLines || mode !== 'lines') return;
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const el = e.target as HTMLElement | null;
@@ -301,7 +303,7 @@ export default function TensionPage() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [hasLines, filteredLines, openIndex, reviewMutation, toggleSelect, toggleAll, rerunOpen]);
+  }, [hasLines, filteredLines, openIndex, reviewMutation, toggleSelect, toggleAll, rerunOpen, mode]);
 
   const reviewedCount = lines.filter(
     (l) => l.review_status === 'approved' || l.review_status === 'modified',
@@ -509,6 +511,41 @@ export default function TensionPage() {
 
         {hasLines && (
           <>
+            <div className="tn-mode-row">
+              <div className="tn-mode-seg" role="group">
+                <button
+                  type="button"
+                  className="tn-mode-btn"
+                  aria-pressed={mode === 'lines'}
+                  onClick={() => setMode('lines')}
+                >
+                  {t('tension.mode.lines', { count: lines.length })}
+                </button>
+                <button
+                  type="button"
+                  className="tn-mode-btn"
+                  aria-pressed={mode === 'teu'}
+                  onClick={() => setMode('teu')}
+                >
+                  {t('tension.mode.teu', { count: teus.length })}
+                </button>
+              </div>
+              <span className="tn-mode-hint">
+                {mode === 'lines'
+                  ? t('tension.mode.hintLines')
+                  : t('tension.mode.hintTeu', { count: orphanCount })}
+              </span>
+            </div>
+
+            {mode === 'teu' ? (
+              <TensionTEUInspector
+                teus={teus}
+                lines={lines}
+                onAssign={(teuId, lineId) => assignMutation.mutate({ teuId, lineId })}
+                onOpenChapter={openChapter}
+              />
+            ) : (
+              <>
             <TensionChapterGrid
               lines={lines}
               teus={teus}
@@ -560,12 +597,14 @@ export default function TensionPage() {
                 </button>
               </div>
             </section>
+              </>
+            )}
           </>
         )}
         </div>
       </div>
 
-      {openLine && (
+      {openLine && mode === 'lines' && (
         <TensionReviewDrawer
           line={openLine}
           position={{ index: openIndex + 1, total: filteredLines.length }}

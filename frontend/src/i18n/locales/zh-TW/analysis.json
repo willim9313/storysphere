@@ -757,6 +757,24 @@
       "assign": "指派到張力線",
       "pickLine": "選擇張力線…",
       "assignFailed": "指派失敗"
+    },
+    "teu": {
+      "meta": "{{total}} 個 TEU · {{covered}} 已歸入 {{lines}} 條張力線 · {{orphans}} 未歸入",
+      "onlyOrphans": "只看未歸入",
+      "expandAll": "全部展開",
+      "collapseAll": "全部收合",
+      "count": "{{count}} TEU",
+      "allOrphan": "整章未歸入",
+      "someOrphan": "{{count}} 個未歸入",
+      "noneOrphan": "全部已歸入",
+      "orphanBadge": "未歸入",
+      "noneMatch": "沒有符合的 TEU。"
+    },
+    "mode": {
+      "lines": "張力線 {{count}}",
+      "teu": "TEU 逐章 {{count}}",
+      "hintLines": "一行一線、一格一章；點任一列開右側審核抽屜",
+      "hintTeu": "場景級的原始輸出，含 {{count}} 個未被聚合歸入的 TEU"
     }
   },
   "timeline": {
