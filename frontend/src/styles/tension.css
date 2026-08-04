@@ -1528,3 +1528,62 @@
   border-radius: 2px;
 }
 .tn-density-col > span { font: 400 10px var(--font-mono); color: var(--fg-muted); }
+
+/* ── Re-run confirmation modal ─────────────────────────────────── */
+
+.tn-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  /* Flat scrim: the design system forbids backdrop-filter. */
+  background: rgba(42, 38, 32, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tn-modal {
+  width: 470px;
+  max-width: calc(100vw - 32px);
+  padding: var(--space-lg);
+  background: var(--bg-primary);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tn-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 16px var(--font-serif);
+}
+.tn-modal-head svg { color: var(--accent); flex: none; }
+.tn-modal-body {
+  margin: 0;
+  font: 400 13.5px/1.8 var(--font-serif);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.tn-modal-loss {
+  padding: 12px 14px;
+  background: var(--color-error-bg);
+  border-radius: var(--card-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 400 12.5px/1.7 var(--font-sans);
+  color: var(--fg-primary);
+}
+.tn-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.tn-modal-danger {
+  padding: 8px 16px;
+  font: 500 12.5px var(--font-sans);
+  background: var(--color-error);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.tn-modal-danger:hover { opacity: 0.9; }

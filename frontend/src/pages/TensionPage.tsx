@@ -17,7 +17,7 @@ import {
   reviewTensionLine,
   reviewTensionTheme,
 } from '@/api/tension';
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { TensionRerunDialog } from '@/components/tension/TensionRerunDialog';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
   TensionStepperStrip,
@@ -62,7 +62,7 @@ export default function TensionPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [focusedId, setFocusedId] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
-  const [confirmStep, setConfirmStep] = useState<1 | 2 | 3 | null>(null);
+  const [rerunOpen, setRerunOpen] = useState(false);
 
   const {
     data: lines = [],
@@ -255,6 +255,12 @@ export default function TensionPage() {
         if (e.key === 'Escape') setEditing(false);
         return;
       }
+      // A modal owns the keyboard while it is up: Esc dismisses it and nothing
+      // else gets through, or 'a' would approve a row hidden behind it.
+      if (rerunOpen) {
+        if (e.key === 'Escape') setRerunOpen(false);
+        return;
+      }
       const rows = filteredLines;
       if (rows.length === 0) return;
       const cur = openIndex >= 0 ? openIndex : 0;
@@ -292,7 +298,7 @@ export default function TensionPage() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [hasLines, filteredLines, openIndex, reviewMutation, toggleSelect, toggleAll]);
+  }, [hasLines, filteredLines, openIndex, reviewMutation, toggleSelect, toggleAll, rerunOpen]);
 
   const reviewedCount = lines.filter(
     (l) => l.review_status === 'approved' || l.review_status === 'modified',
@@ -563,6 +569,10 @@ export default function TensionPage() {
 
               <div className="tn-shortcuts">
                 <span>{t('tension.table.shortcuts')}</span>
+                <span className="tn-toolbar-spacer" />
+                <button type="button" className="tn-act-ghost" onClick={() => setRerunOpen(true)}>
+                  {t('tension.rerun.trigger')}
+                </button>
               </div>
             </section>
           </>
@@ -590,16 +600,19 @@ export default function TensionPage() {
         />
       )}
 
-      <ConfirmDialog
-        open={confirmStep !== null}
-        title={t('tension.rerunTitle')}
-        message={t('tension.rerunMessage')}
-        confirmLabel={t('tension.rerunConfirm')}
+      <TensionRerunDialog
+        open={rerunOpen}
+        totalLines={lines.length}
+        approvedCount={lines.filter((l) => l.review_status === 'approved').length}
+        editedCount={lines.filter((l) => l.review_status === 'modified').length}
+        themeAffected={hasTheme}
         onConfirm={() => {
-          if (confirmStep !== null) runStep(confirmStep, true);
-          setConfirmStep(null);
+          setRerunOpen(false);
+          setFocusedId(null);
+          setSelected(new Set());
+          runStep(2, true);
         }}
-        onCancel={() => setConfirmStep(null)}
+        onCancel={() => setRerunOpen(false)}
       />
     </div>
   );
