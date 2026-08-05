@@ -168,9 +168,6 @@ class Settings(BaseSettings):
         default=1, description="Min common neighbors to generate a candidate"
     )
 
-    # ── Cache TTLs ─────────────────────────────────────────────────────────────
-    chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
-
     # ── Langfuse Tracing ───────────────────────────────────────────────────────
     langfuse_enabled: bool = Field(
         default=False, description="Enable Langfuse tracing (LANGFUSE_TRACING_ENABLED)"
