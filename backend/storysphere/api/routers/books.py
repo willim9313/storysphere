@@ -384,9 +384,16 @@ async def delete_book(
                 await set_task_failed(task_id, error="cancelled")
             await _cleanup_checkpoint(task_id)
 
+    # TEU keys carry only an event id, so collect them before the KG rows go.
+    teu_keys = [f"teu:{e.id}" for e in await kg.get_events(document_id=book_id)]
+
     await vector.delete_collection(book_id)
     await kg.remove_by_document(book_id)
-    await cache.invalidate(f"%:{book_id}:%")
+    # book_id sits in the middle of some keys (character:{book}:{entity}) and at
+    # the end of others (narrative_structure:{book}); match both shapes.
+    await cache.invalidate(f"%{book_id}%")
+    if teu_keys:
+        await asyncio.gather(*[cache.invalidate(k) for k in teu_keys])
     await lp.delete_by_document(book_id)
     await doc.delete_document(book_id)
     return None
