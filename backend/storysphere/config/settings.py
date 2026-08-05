@@ -170,7 +170,6 @@ class Settings(BaseSettings):
 
     # ── Cache TTLs ─────────────────────────────────────────────────────────────
     chat_cache_ttl_seconds: int = Field(default=300, description="ChatState tool cache (5 min)")
-    analysis_cache_ttl_days: int = Field(default=7, description="Deep analysis cache (7 days)")
 
     # ── Langfuse Tracing ───────────────────────────────────────────────────────
     langfuse_enabled: bool = Field(
@@ -250,10 +249,6 @@ class Settings(BaseSettings):
     @property
     def has_local_llm(self) -> bool:
         return bool(self.local_llm_model)
-
-    @property
-    def analysis_cache_ttl_seconds(self) -> int:
-        return self.analysis_cache_ttl_days * 86_400
 
     @field_validator("app_port")
     @classmethod
