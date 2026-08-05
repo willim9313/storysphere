@@ -108,10 +108,10 @@ class SymbolAnalysisService:
         cache_key = _interpretation_cache_key(book_id, imagery_id)
 
         if not force:
-            cached = await self._cache.get(cache_key)
+            cached = await self._cache.get_as(cache_key, SymbolInterpretation)
             if cached is not None:
                 logger.debug("SymbolAnalysisService: cache hit for %s", cache_key)
-                return SymbolInterpretation.model_validate(cached)
+                return cached
 
         if progress_callback:
             progress_callback(10, "loading SEP")
@@ -149,12 +149,9 @@ class SymbolAnalysisService:
         self, imagery_id: str, book_id: str
     ) -> SymbolInterpretation | None:
         """Retrieve a cached SymbolInterpretation, or None if missing."""
-        cached = await self._cache.get(
-            _interpretation_cache_key(book_id, imagery_id)
+        return await self._cache.get_as(
+            _interpretation_cache_key(book_id, imagery_id), SymbolInterpretation
         )
-        if cached is None:
-            return None
-        return SymbolInterpretation.model_validate(cached)
 
     async def update_interpretation_review(
         self,

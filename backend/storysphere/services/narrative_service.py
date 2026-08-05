@@ -169,10 +169,11 @@ class NarrativeService:
         total = len(events)
 
         for idx, event in enumerate(events):
-            eep_cached = await self._cache.get(f"event:{document_id}:{event.id}")
-            if eep_cached is not None:
+            result = await self._cache.get_as(
+                f"event:{document_id}:{event.id}", EventAnalysisResult
+            )
+            if result is not None:
                 try:
-                    result = EventAnalysisResult.model_validate(eep_cached)
                     if result.eep.event_importance.name == "KERNEL":
                         kernel_ids.append(event.id)
                         event.narrative_weight = "kernel"
@@ -488,9 +489,11 @@ class NarrativeService:
                 "human_verified" if sources == {"human_verified"} else "llm_classified"
             ),
         )
-        hj_cached = await self._cache.get(f"{_HERO_JOURNEY_CACHE_PREFIX}:{document_id}")
+        hj_cached = await self._cache.get_as(
+            f"{_HERO_JOURNEY_CACHE_PREFIX}:{document_id}", list[HeroJourneyStage]
+        )
         if hj_cached:
-            structure.hero_journey_stages = [HeroJourneyStage(**s) for s in hj_cached]
+            structure.hero_journey_stages = hj_cached
 
         await self._cache.set(f"{_CACHE_KEY_PREFIX}:{document_id}", structure.model_dump())
         logger.info(
@@ -511,10 +514,11 @@ class NarrativeService:
         first read: classify_from_eep is called, the result replaces the stale
         cache, and future reads see the EEP-based counts immediately.
         """
-        cached = await self._cache.get(f"{_CACHE_KEY_PREFIX}:{document_id}")
-        if cached is None:
+        structure = await self._cache.get_as(
+            f"{_CACHE_KEY_PREFIX}:{document_id}", NarrativeStructure
+        )
+        if structure is None:
             return await self._rebuild_structure_from_kg(document_id)
-        structure = NarrativeStructure(**cached)
         # Migrate any structure left over from the removed heuristic classifier
         if structure.classification_source == "summary_heuristic":
             return await self.classify_from_eep(document_id)
@@ -533,10 +537,9 @@ class NarrativeService:
     ) -> NarrativeStructure | None:
         """Update the review_status of a cached NarrativeStructure."""
         cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
-        cached = await self._cache.get(cache_key)
-        if cached is None:
+        structure = await self._cache.get_as(cache_key, NarrativeStructure)
+        if structure is None:
             return None
-        structure = NarrativeStructure(**cached)
         structure.review_status = review_status  # type: ignore[assignment]
         await self._cache.set(cache_key, structure.model_dump())
         return structure
@@ -568,15 +571,13 @@ class NarrativeService:
         """
         cache_key = f"{_HERO_JOURNEY_CACHE_PREFIX}:{document_id}"
         if not force:
-            cached = await self._cache.get(cache_key)
-            if cached:
-                stages = [HeroJourneyStage(**s) for s in cached]
+            stages = await self._cache.get_as(cache_key, list[HeroJourneyStage])
+            if stages:
                 # Always ensure NarrativeStructure reflects these stages,
                 # even on cache hit — classify_from_eep may have cleared them.
                 ns_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
-                cached_ns = await self._cache.get(ns_key)
-                if cached_ns:
-                    ns = NarrativeStructure(**cached_ns)
+                ns = await self._cache.get_as(ns_key, NarrativeStructure)
+                if ns is not None:
                     if not ns.hero_journey_stages:
                         ns.hero_journey_stages = stages
                         await self._cache.set(ns_key, ns.model_dump())
@@ -599,9 +600,8 @@ class NarrativeService:
 
         # Merge into NarrativeStructure if it exists
         ns_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
-        cached_ns = await self._cache.get(ns_key)
-        if cached_ns:
-            ns = NarrativeStructure(**cached_ns)
+        ns = await self._cache.get_as(ns_key, NarrativeStructure)
+        if ns is not None:
             ns.hero_journey_stages = stages
             await self._cache.set(ns_key, ns.model_dump())
 
@@ -696,9 +696,9 @@ class NarrativeService:
         """
         cache_key = f"{_TEMPORAL_CACHE_PREFIX}:{document_id}"
         if not force:
-            cached = await self._cache.get(cache_key)
+            cached = await self._cache.get_as(cache_key, TemporalAnalysis)
             if cached:
-                return TemporalAnalysis(**cached)
+                return cached
 
         events = await self._kg.get_events(document_id=document_id)
         total = len(events)
