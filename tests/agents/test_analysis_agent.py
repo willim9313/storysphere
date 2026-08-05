@@ -41,7 +41,7 @@ def mock_service():
 
 @pytest.fixture
 def cache(tmp_path):
-    return AnalysisCache(db_path=str(tmp_path / "agent_cache.db"), ttl_seconds=3600)
+    return AnalysisCache(db_path=str(tmp_path / "agent_cache.db"))
 
 
 class TestAnalysisAgent:

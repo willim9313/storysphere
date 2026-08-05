@@ -1,17 +1,26 @@
-"""Tests for services.analysis_cache — SQLite cache with TTL."""
+"""Tests for services.analysis_cache — SQLite-backed analysis result store."""
 
 import time
-from unittest.mock import patch
 
+import aiosqlite
 import pytest
-
 from storysphere.services.analysis_cache import AnalysisCache
+
+
+async def _backdate(cache: AnalysisCache, key: str, days: int) -> None:
+    """Rewrite an entry's ``created`` timestamp to ``days`` ago."""
+    async with aiosqlite.connect(cache._db_path) as db:
+        await db.execute(
+            "UPDATE analysis_cache SET created = ? WHERE key = ?",
+            (time.time() - days * 86_400, key),
+        )
+        await db.commit()
 
 
 @pytest.fixture
 def cache(tmp_path):
     db_path = str(tmp_path / "test_cache.db")
-    return AnalysisCache(db_path=db_path, ttl_seconds=60)
+    return AnalysisCache(db_path=db_path)
 
 
 class TestAnalysisCacheMakeKey:
@@ -40,16 +49,15 @@ class TestAnalysisCacheGetSet:
         result = await cache.get("k1")
         assert result == {"v": 2}
 
-    async def test_expired_returns_none(self, tmp_path):
-        db_path = str(tmp_path / "ttl_cache.db")
-        cache = AnalysisCache(db_path=db_path, ttl_seconds=1)
+    async def test_old_entry_still_returned(self, cache):
+        """Entries never expire — only invalidate() removes them."""
         await cache.set("k1", {"v": 1})
+        # Backdate the entry well beyond the TTL that used to apply (7 days)
+        await _backdate(cache, "k1", days=400)
 
-        with patch("storysphere.services.analysis_cache.time") as mock_time:
-            # Simulate time passing beyond TTL
-            mock_time.time.return_value = time.time() + 10
-            result = await cache.get("k1")
-        assert result is None
+        assert await cache.get("k1") == {"v": 1}
+        assert await cache.count_keys("k%") == 1
+        assert await cache.list_by_prefix("k") == [{"v": 1}]
 
 
 class TestAnalysisCacheInvalidate:
