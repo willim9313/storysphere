@@ -386,7 +386,7 @@ class SymbolService:
         book_id: str,
         cache: AnalysisCache,
     ) -> SEP | None:
-        """Return a cached SEP or None if missing/expired."""
+        """Return a cached SEP or None if missing."""
         cached = await cache.get(_sep_cache_key(book_id, imagery_id))
         if cached is None:
             return None

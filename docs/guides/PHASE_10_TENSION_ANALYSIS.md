@@ -40,7 +40,7 @@ TensionTheme                     — 全書主題命題，1 個／書
 
 - 自動篩選 `tension_signal != "none"` 的 Event 節點
 - 每個 Event 送往 LLM，識別二元對立的兩個 Pole（概念名稱 + 承載角色 + 立場描述）
-- 結果快取於 SQLite（`teu:{event_id}`），7 天 TTL
+- 結果快取於 SQLite（`teu:{event_id}`），保留至明確 invalidate
 - 使用 `asyncio.Semaphore` 控制並行（預設 5）
 
 **輪詢進度**：`GET /api/v1/tension/analyze/{task_id}`
@@ -211,11 +211,14 @@ class TensionTheme:
 
 ## 快取鍵模式
 
-| 資料 | 快取鍵 | TTL |
-|------|--------|-----|
-| TEU | `teu:{event_id}` | 7 天 |
-| TensionLines | `tension_lines:{document_id}` | 7 天 |
-| TensionTheme | `tension_theme:{document_id}` | 7 天 |
+| 資料 | 快取鍵 | 保留策略 |
+|------|--------|----------|
+| TEU | `teu:{event_id}` | 保留至 invalidate |
+| TensionLines | `tension_lines:{document_id}` | 保留至 invalidate |
+| TensionTheme | `tension_theme:{document_id}` | 保留至 invalidate |
+
+> 三者都帶 `review_status`（TensionLine / TensionTheme 另有 `modified` 狀態會寫入
+> 使用者改過的 `canonical_pole_*` / `proposition`），屬人工輸入，重跑 LLM 無法還原。
 
 ---
 

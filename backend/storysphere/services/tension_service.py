@@ -208,7 +208,7 @@ class TensionService:
         logger.debug("TensionService: saved TEU for event=%s", teu.event_id)
 
     async def get_teu(self, event_id: str) -> TEU | None:
-        """Retrieve a cached TEU by event_id, or None if not found/expired."""
+        """Retrieve a cached TEU by event_id, or None if not found."""
         cached = await self._cache.get(f"teu:{event_id}")
         if cached is None:
             return None
@@ -480,7 +480,7 @@ class TensionService:
         logger.debug("TensionService: saved TensionTheme for document=%s", theme.document_id)
 
     async def get_theme(self, document_id: str) -> TensionTheme | None:
-        """Retrieve a cached TensionTheme, or None if not found/expired.
+        """Retrieve a cached TensionTheme, or None if not found.
 
         ``frye_mythos`` / ``booker_plot`` are normalized to canonical ids on the
         way out, so themes synthesised before that guarantee existed (which may

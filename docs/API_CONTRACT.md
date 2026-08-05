@@ -1230,7 +1230,7 @@ interface Carrier {
 
 **UI 使用頁面**：張力分析頁（hero / 軌跡圖 dashboard / 審核 LineCard 證據區）
 
-**備註**：`teus[]` 由 `TensionService.get_lines_with_teus()` 透過 `AnalysisCache.list_by_prefix("teu:")` 一次取出，過濾掉與 `teu_ids` 不匹配的條目；若 TEU 已逾 TTL，該條 line 的 `teus` 為空陣列（line 仍照常回傳）。
+**備註**：`teus[]` 由 `TensionService.get_lines_with_teus()` 透過 `AnalysisCache.list_by_prefix("teu:")` 一次取出，過濾掉與 `teu_ids` 不匹配的條目；若該 TEU 已被 `invalidate()` 清除，該條 line 的 `teus` 為空陣列（line 仍照常回傳）。
 
 ---
 

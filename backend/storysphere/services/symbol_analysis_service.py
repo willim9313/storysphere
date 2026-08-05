@@ -148,7 +148,7 @@ class SymbolAnalysisService:
     async def get_interpretation(
         self, imagery_id: str, book_id: str
     ) -> SymbolInterpretation | None:
-        """Retrieve a cached SymbolInterpretation, or None if missing/expired."""
+        """Retrieve a cached SymbolInterpretation, or None if missing."""
         cached = await self._cache.get(
             _interpretation_cache_key(book_id, imagery_id)
         )
