@@ -288,10 +288,10 @@ class SymbolService:
         cache_key = _sep_cache_key(book_id, imagery_id)
 
         if not force:
-            cached = await cache.get(cache_key)
+            cached = await cache.get_as(cache_key, SEP)
             if cached is not None:
                 logger.debug("SymbolService: cache hit for %s", cache_key)
-                return SEP.model_validate(cached)
+                return cached
 
         entity, occurrences, document, events = await asyncio.gather(
             self.get_imagery_by_id(imagery_id),
@@ -387,10 +387,7 @@ class SymbolService:
         cache: AnalysisCache,
     ) -> SEP | None:
         """Return a cached SEP or None if missing."""
-        cached = await cache.get(_sep_cache_key(book_id, imagery_id))
-        if cached is None:
-            return None
-        return SEP.model_validate(cached)
+        return await cache.get_as(_sep_cache_key(book_id, imagery_id), SEP)
 
 
 def _sep_cache_key(book_id: str, imagery_id: str) -> str:
