@@ -4,7 +4,13 @@ import time
 
 import aiosqlite
 import pytest
+from pydantic import BaseModel
 from storysphere.services.analysis_cache import AnalysisCache
+
+
+class _Sample(BaseModel):
+    name: str
+    score: float
 
 
 async def _backdate(cache: AnalysisCache, key: str, days: int) -> None:
@@ -58,6 +64,33 @@ class TestAnalysisCacheGetSet:
         assert await cache.get("k1") == {"v": 1}
         assert await cache.count_keys("k%") == 1
         assert await cache.list_by_prefix("k") == [{"v": 1}]
+
+
+class TestAnalysisCacheGetAs:
+    async def test_parses_into_model(self, cache):
+        await cache.set("k1", {"name": "Alice", "score": 0.9})
+        result = await cache.get_as("k1", _Sample)
+        assert result == _Sample(name="Alice", score=0.9)
+
+    async def test_missing_key_returns_none(self, cache):
+        assert await cache.get_as("nonexistent", _Sample) is None
+
+    async def test_shape_mismatch_is_a_miss_not_an_error(self, cache):
+        """A model change must degrade to a recompute, not a 500."""
+        await cache.set("k1", {"renamed_field": "Alice"})
+        assert await cache.get_as("k1", _Sample) is None
+
+    async def test_mismatched_row_is_left_in_place(self, cache):
+        """get_as reports a miss; only invalidate() may delete."""
+        await cache.set("k1", {"renamed_field": "Alice"})
+        await cache.get_as("k1", _Sample)
+        assert await cache.get("k1") == {"renamed_field": "Alice"}
+
+    async def test_parses_container_types(self, cache):
+        """hero_journey and tension_lines store lists, not a single object."""
+        await cache.set("k1", [{"name": "Alice", "score": 0.9}, {"name": "Bob", "score": 0.1}])
+        result = await cache.get_as("k1", list[_Sample])
+        assert [s.name for s in result] == ["Alice", "Bob"]
 
 
 class TestAnalysisCacheInvalidate:

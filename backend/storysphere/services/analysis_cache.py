@@ -11,10 +11,14 @@ from __future__ import annotations
 import json
 import logging
 import time
+from typing import Any, TypeVar
 
 import aiosqlite
+from pydantic import TypeAdapter, ValidationError
 
 logger = logging.getLogger(__name__)
+
+T = TypeVar("T")
 
 _CREATE_TABLE = """\
 CREATE TABLE IF NOT EXISTS analysis_cache (
@@ -48,6 +52,32 @@ class AnalysisCache:
             if row is None:
                 return None
             return json.loads(row[0])
+
+    async def get_as(self, key: str, model: Any) -> T | None:
+        """Return the cached value parsed as ``model``, or None.
+
+        ``model`` is anything pydantic can validate against, including a
+        container such as ``list[HeroJourneyStage]``.
+
+        A stored value that no longer matches — typically after a field was
+        renamed or removed — is reported as a miss instead of raising, so a
+        model change degrades to a recompute rather than a 500. Entries no
+        longer expire on their own, so without this a stale-shaped row would
+        keep failing every read until someone invalidated it by hand. The row
+        is left in place; use ``invalidate()`` to drop it deliberately.
+        """
+        raw = await self.get(key)
+        if raw is None:
+            return None
+        try:
+            return TypeAdapter(model).validate_python(raw)
+        except ValidationError:
+            logger.warning(
+                "Cache entry key=%s no longer matches %s; treating as a miss",
+                key,
+                getattr(model, "__name__", model),
+            )
+            return None
 
     async def set(self, key: str, result: dict) -> None:
         """Store a result in cache (upsert)."""
