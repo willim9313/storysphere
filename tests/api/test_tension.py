@@ -71,6 +71,82 @@ def tension_client(mock_tension, mock_kg, mock_doc, mock_vector):
     app.dependency_overrides.clear()
 
 
+class TestReviewTensionLine:
+    def test_note_reaches_the_service(self, tension_client, mock_tension):
+        mock_tension.update_line_review.return_value = TensionLine(
+            id="line-1", document_id=BOOK, canonical_pole_a="個人選擇"
+        )
+        resp = tension_client.patch(
+            "/api/v1/tension/lines/line-1/review",
+            json={
+                "document_id": BOOK,
+                "review_status": "modified",
+                "canonical_pole_a": "個人選擇",
+                "note": "原標籤把載體當成概念",
+            },
+        )
+        assert resp.status_code == 200
+        assert mock_tension.update_line_review.await_args.kwargs["note"] == "原標籤把載體當成概念"
+
+    def test_note_is_optional(self, tension_client, mock_tension):
+        mock_tension.update_line_review.return_value = TensionLine(id="line-1", document_id=BOOK)
+        resp = tension_client.patch(
+            "/api/v1/tension/lines/line-1/review",
+            json={"document_id": BOOK, "review_status": "approved"},
+        )
+        assert resp.status_code == 200
+        assert mock_tension.update_line_review.await_args.kwargs["note"] is None
+
+    def test_unknown_line_is_404(self, tension_client, mock_tension):
+        mock_tension.update_line_review.return_value = None
+        resp = tension_client.patch(
+            "/api/v1/tension/lines/nope/review",
+            json={"document_id": BOOK, "review_status": "approved"},
+        )
+        assert resp.status_code == 404
+
+
+class TestAssignTEU:
+    """The service decides the outcome; these pin the HTTP mapping."""
+
+    def _assign(self, client, teu_id="t2", line_id="line-1"):
+        return client.patch(
+            f"/api/v1/tension/teus/{teu_id}/assign",
+            json={"document_id": BOOK, "line_id": line_id},
+        )
+
+    def test_returns_the_updated_line(self, tension_client, mock_tension):
+        line = TensionLine(id="line-1", document_id=BOOK, teu_ids=["t1", "t2"], chapter_range=[1, 4])
+        mock_tension.assign_teu_to_line.return_value = ("ok", line)
+
+        resp = self._assign(tension_client)
+        assert resp.status_code == 200
+        assert resp.json()["teu_ids"] == ["t1", "t2"]
+        assert resp.json()["chapter_range"] == [1, 4]
+
+    def test_unknown_teu_is_404(self, tension_client, mock_tension):
+        mock_tension.assign_teu_to_line.return_value = ("teu_not_found", None)
+        assert self._assign(tension_client).status_code == 404
+
+    def test_unknown_line_is_404(self, tension_client, mock_tension):
+        mock_tension.assign_teu_to_line.return_value = ("line_not_found", None)
+        assert self._assign(tension_client).status_code == 404
+
+    def test_teu_already_grouped_is_409(self, tension_client, mock_tension):
+        holder = TensionLine(id="line-9", document_id=BOOK, teu_ids=["t2"])
+        mock_tension.assign_teu_to_line.return_value = ("claimed", holder)
+
+        resp = self._assign(tension_client)
+        assert resp.status_code == 409
+        assert "line-9" in resp.json()["detail"]
+
+    def test_requires_line_id(self, tension_client):
+        resp = tension_client.patch(
+            "/api/v1/tension/teus/t2/assign", json={"document_id": BOOK}
+        )
+        assert resp.status_code == 422
+
+
 class TestListTEUs:
     def test_returns_empty_list_before_assembly(self, tension_client):
         resp = tension_client.get(f"/api/v1/tension/teus?book_id={BOOK}")

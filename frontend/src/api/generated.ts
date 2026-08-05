@@ -1585,6 +1585,33 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/tension/teus/{teu_id}/assign": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Assign Teu
+         * @description Attach a TEU that grouping left out to a TensionLine.
+         *
+         *     Repairs the shortfall reported by ``coverage`` / a null ``line_id``. The
+         *     line's ``chapter_range`` and ``intensity_summary`` are recomputed, so the
+         *     result is shaped exactly like a line grouping produced on its own.
+         *
+         *     Re-assigning a TEU to the line it already sits on is a no-op; moving one
+         *     between lines is rejected with 409 rather than silently rewriting both.
+         */
+        patch: operations["assign_teu_api_v1_tension_teus__teu_id__assign_patch"];
+        trace?: never;
+    };
     "/api/v1/tension/lines/{line_id}/review": {
         parameters: {
             query?: never;
@@ -1603,7 +1630,9 @@ export interface paths {
          * @description Update the review status of a TensionLine.
          *
          *     Optionally override ``canonical_pole_a`` / ``canonical_pole_b`` when
-         *     ``review_status`` is ``"modified"``.
+         *     ``review_status`` is ``"modified"``, with ``note`` recording why. Overriding
+         *     replaces the labels in place but preserves grouping's originals under
+         *     ``edit`` — see ``#14f`` in the API contract.
          */
         patch: operations["review_tension_line_api_v1_tension_lines__line_id__review_patch"];
         trace?: never;
@@ -2219,6 +2248,13 @@ export interface components {
              * @default []
              */
             evidence: string[];
+        };
+        /** AssignTEURequest */
+        AssignTEURequest: {
+            /** Document Id */
+            document_id: string;
+            /** Line Id */
+            line_id: string;
         };
         /** BatchAnalysisRequest */
         BatchAnalysisRequest: {
@@ -3981,6 +4017,12 @@ export interface components {
              * @description How pole B's carriers embody that side of the tension
              */
             pole_b_stance?: string | null;
+            /**
+             * Flipped
+             * @description This TEU assigns the line's two poles the opposite way round from the majority of its siblings. False also covers 'undecidable' — no shared carriers with the rest of the line, or the same carriers on both poles — so it understates rather than invents a conflict
+             * @default false
+             */
+            flipped: boolean;
         };
         /** TaskIdResponse */
         TaskIdResponse: {
@@ -4132,8 +4174,40 @@ export interface components {
              * @enum {string}
              */
             review_status: "pending" | "approved" | "modified" | "rejected";
+            /**
+             * Assembled By
+             * @description Version tag of the grouping step that produced this line
+             * @default tension_grouper_v1
+             */
+            assembled_by: string;
+            /**
+             * Assembled At
+             * @description When grouping produced this line; null for lines cached before provenance existed
+             */
+            assembled_at?: string | null;
+            /** @description Present once a reviewer has rewritten the pole labels */
+            edit?: components["schemas"]["TensionLineEditResponse"] | null;
             /** Teus */
             teus?: components["schemas"]["TEUSummary"][];
+        };
+        /**
+         * TensionLineEditResponse
+         * @description What a reviewer changed, for the drawer's "human edit" note.
+         *
+         *     ``original_*`` is grouping's wording, not the previous edit's — the line's
+         *     own ``canonical_pole_*`` always hold the labels currently in force. There is
+         *     no ``edited_by``: the app has no notion of user identity, and a hardcoded
+         *     one would be fiction.
+         */
+        TensionLineEditResponse: {
+            /** Original Pole A */
+            original_pole_a: string;
+            /** Original Pole B */
+            original_pole_b: string;
+            /** Note */
+            note?: string | null;
+            /** Edited At */
+            edited_at: string;
         };
         /** TensionLineReviewRequest */
         TensionLineReviewRequest: {
@@ -4148,6 +4222,8 @@ export interface components {
             canonical_pole_a?: string | null;
             /** Canonical Pole B */
             canonical_pole_b?: string | null;
+            /** Note */
+            note?: string | null;
         };
         /** TensionThemeResponse */
         TensionThemeResponse: {
@@ -4180,6 +4256,16 @@ export interface components {
             is_stale: boolean;
             /** Stale Reason */
             stale_reason?: ("no_lines" | "lines_regrouped" | "review_changed") | null;
+            /**
+             * Reviewed Line Count
+             * @description TensionLines already reviewed at synthesis; null for pre-existing themes
+             */
+            reviewed_line_count?: number | null;
+            /**
+             * Total Line Count
+             * @description TensionLines that existed at synthesis; null for pre-existing themes
+             */
+            total_line_count?: number | null;
         };
         /** TensionThemeReviewRequest */
         TensionThemeReviewRequest: {
@@ -7061,6 +7147,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TEUDetail"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    assign_teu_api_v1_tension_teus__teu_id__assign_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                teu_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssignTEURequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */

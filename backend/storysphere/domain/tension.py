@@ -81,6 +81,25 @@ class TEU(BaseModel):
     review_status: Literal["pending", "approved", "rejected"] = "pending"
 
 
+class TensionLineEdit(BaseModel):
+    """What a human changed when they rewrote a TensionLine's pole labels.
+
+    ``canonical_pole_a`` / ``_b`` on the line always hold the labels currently in
+    force; this preserves what grouping originally proposed, which the review
+    drawer shows alongside them. Editing a second time refreshes the note and
+    timestamp but leaves the originals alone — "original" means the model's
+    wording, not the previous edit's.
+    """
+
+    original_pole_a: str = Field(description="Pole A label as grouping produced it")
+    original_pole_b: str = Field(description="Pole B label as grouping produced it")
+    note: str | None = Field(
+        default=None,
+        description="Why the reviewer rewrote the labels",
+    )
+    edited_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 class TensionLine(BaseModel):
     """Cross-scene tension pattern — grouping of related TEUs.
 
@@ -99,6 +118,22 @@ class TensionLine(BaseModel):
         description="Optional: the broader theme this line serves (LLM-suggested at grouping time)",
     )
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"
+    edit: TensionLineEdit | None = Field(
+        default=None,
+        description="Set once a reviewer has rewritten the pole labels",
+    )
+
+    # Provenance — stamped by the grouping step. Lines cached before these
+    # fields existed read back with assembled_at=None; a default_factory would
+    # instead relabel every historical result as "just now" on each read.
+    assembled_by: str = Field(
+        default="tension_grouper_v1",
+        description="Version tag of the grouping step that produced this line",
+    )
+    assembled_at: datetime | None = Field(
+        default=None,
+        description="When grouping produced this line; None for pre-provenance cache entries",
+    )
 
 
 class TensionTheme(BaseModel):
@@ -113,3 +148,16 @@ class TensionTheme(BaseModel):
     assembled_by: str = Field(default="tension_synthesizer_v1")
     assembled_at: datetime = Field(default_factory=datetime.utcnow)
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"
+
+    # Review state frozen at synthesis time. "n lines were still unreviewed when
+    # this was synthesised" stops being answerable once reviewing continues, and
+    # the counts as they stand now would answer a different question. Both are
+    # None for themes cached before these fields existed.
+    reviewed_line_count: int | None = Field(
+        default=None,
+        description="TensionLines already reviewed when this theme was synthesised",
+    )
+    total_line_count: int | None = Field(
+        default=None,
+        description="TensionLines that existed when this theme was synthesised",
+    )

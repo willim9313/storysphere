@@ -23,6 +23,7 @@ from storysphere.api.deps import DocServiceDep, KGServiceDep, TensionServiceDep
 from storysphere.api.schemas.common import TaskStatus
 from storysphere.api.schemas.tension import (
     AnalyzeBookTensionsRequest,
+    AssignTEURequest,
     Carrier,
     GroupTensionLinesRequest,
     SynthesizeThemeRequest,
@@ -160,6 +161,7 @@ async def list_tension_lines(
                     pole_b_carriers=_carriers(pole_b, types_by_id),
                     pole_a_stance=pole_a.get("stance"),
                     pole_b_stance=pole_b.get("stance"),
+                    flipped=bool(teu.get("flipped", False)),
                 )
             )
         result.append(
@@ -173,6 +175,9 @@ async def list_tension_lines(
                 chapter_range=r.get("chapter_range", []),
                 thematic_note=r.get("thematic_note"),
                 review_status=r.get("review_status", "pending"),
+                assembled_by=r.get("assembled_by", "tension_grouper_v1"),
+                assembled_at=r.get("assembled_at"),
+                edit=r.get("edit"),
                 teus=teus_payload,
             )
         )
@@ -218,6 +223,44 @@ async def list_teus(
     ]
 
 
+@router.patch("/teus/{teu_id}/assign")
+async def assign_teu(
+    teu_id: str,
+    req: AssignTEURequest,
+    tension_service: TensionServiceDep,
+) -> dict:
+    """Attach a TEU that grouping left out to a TensionLine.
+
+    Repairs the shortfall reported by ``coverage`` / a null ``line_id``. The
+    line's ``chapter_range`` and ``intensity_summary`` are recomputed, so the
+    result is shaped exactly like a line grouping produced on its own.
+
+    Re-assigning a TEU to the line it already sits on is a no-op; moving one
+    between lines is rejected with 409 rather than silently rewriting both.
+    """
+    outcome, line = await tension_service.assign_teu_to_line(
+        teu_id=teu_id,
+        document_id=req.document_id,
+        line_id=req.line_id,
+    )
+    if outcome == "teu_not_found":
+        raise HTTPException(
+            status_code=404,
+            detail=f"TEU '{teu_id}' not found for document '{req.document_id}'",
+        )
+    if outcome == "line_not_found":
+        raise HTTPException(
+            status_code=404,
+            detail=f"TensionLine '{req.line_id}' not found for document '{req.document_id}'",
+        )
+    if outcome == "claimed":
+        raise HTTPException(
+            status_code=409,
+            detail=f"TEU '{teu_id}' is already grouped into TensionLine '{line.id}'",
+        )
+    return line.model_dump()
+
+
 # ── HITL Review ────────────────────────────────────────────────────────────────
 
 
@@ -230,7 +273,9 @@ async def review_tension_line(
     """Update the review status of a TensionLine.
 
     Optionally override ``canonical_pole_a`` / ``canonical_pole_b`` when
-    ``review_status`` is ``"modified"``.
+    ``review_status`` is ``"modified"``, with ``note`` recording why. Overriding
+    replaces the labels in place but preserves grouping's originals under
+    ``edit`` — see ``#14f`` in the API contract.
     """
     updated = await tension_service.update_line_review(
         line_id=line_id,
@@ -238,6 +283,7 @@ async def review_tension_line(
         review_status=req.review_status,
         canonical_pole_a=req.canonical_pole_a,
         canonical_pole_b=req.canonical_pole_b,
+        note=req.note,
     )
     if updated is None:
         raise HTTPException(
@@ -393,6 +439,8 @@ async def get_tension_theme(
         review_status=theme.review_status,
         is_stale=is_stale,
         stale_reason=stale_reason,
+        reviewed_line_count=theme.reviewed_line_count,
+        total_line_count=theme.total_line_count,
     )
 
 

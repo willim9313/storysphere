@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
@@ -22,7 +23,13 @@ from storysphere.config.mythos import get_mythos_summary, resolve_mythos_id
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import EntityType
-from storysphere.domain.tension import TEU, TensionLine, TensionPole, TensionTheme
+from storysphere.domain.tension import (
+    TEU,
+    TensionLine,
+    TensionLineEdit,
+    TensionPole,
+    TensionTheme,
+)
 
 if TYPE_CHECKING:
     from storysphere.services.analysis_cache import AnalysisCache
@@ -30,6 +37,10 @@ if TYPE_CHECKING:
     from storysphere.services.kg_service import KGService
 
 logger = logging.getLogger(__name__)
+
+# What counts as "the reviewer has ruled on this line". Shared so that theme
+# input selection and the at-synthesis counts can never disagree about it.
+_REVIEWED_STATUSES = frozenset({"approved", "modified"})
 
 _ASSEMBLER_TAG = "tension_service_v1"
 _GROUPER_TAG = "tension_grouper_v1"
@@ -327,6 +338,53 @@ class TensionService:
         result.sort(key=lambda t: (t.chapter, t.id))
         return result
 
+    @staticmethod
+    def _orientation_flips(teus: list[TEU]) -> dict[str, bool]:
+        """Flag TEUs whose pole A/B assignment opposes the rest of their line.
+
+        Grouping never normalises pole order, so one opposition can arrive as
+        ``A=X, B=Y`` in one scene and ``A=Y, B=X`` in the next. Aggregating
+        carriers across a line without accounting for that yields the same pill
+        list on both poles — the review drawer's "A/B assignment is unstable"
+        warning exists to surface exactly this.
+
+        Orientation is read from carrier overlap against the TEU with the most
+        carriers (an empty or one-sided reference could decide nothing), then
+        the reference is inverted if most TEUs disagreed with it, so the answer
+        does not depend on which TEU happened to be chosen.
+
+        Two cases are undecidable and reported as *not* flipped — the warning
+        should understate rather than invent a conflict:
+          - a TEU sharing no carrier names with the reference
+          - a TEU naming the same carriers on both of its poles
+        """
+        if len(teus) < 2:
+            return {t.id: False for t in teus}
+
+        def _names(pole: TensionPole) -> set[str]:
+            return {n.strip() for n in pole.carrier_names if n and n.strip()}
+
+        ref = max(teus, key=lambda t: len(_names(t.pole_a) | _names(t.pole_b)))
+        ref_a, ref_b = _names(ref.pole_a), _names(ref.pole_b)
+
+        # +1 agrees with the reference, -1 opposes it, 0 undecidable.
+        orientation: dict[str, int] = {}
+        for teu in teus:
+            a, b = _names(teu.pole_a), _names(teu.pole_b)
+            agree = len(a & ref_a) + len(b & ref_b)
+            oppose = len(a & ref_b) + len(b & ref_a)
+            if agree > oppose:
+                orientation[teu.id] = 1
+            elif oppose > agree:
+                orientation[teu.id] = -1
+            else:
+                orientation[teu.id] = 0
+
+        agreeing = sum(1 for v in orientation.values() if v == 1)
+        opposing = sum(1 for v in orientation.values() if v == -1)
+        minority = -1 if agreeing >= opposing else 1
+        return {tid: v == minority for tid, v in orientation.items()}
+
     async def get_lines_with_teus(self, document_id: str) -> list[dict]:
         """Return TensionLines for a document with their constituent TEUs embedded.
 
@@ -351,11 +409,14 @@ class TensionService:
         result: list[dict] = []
         for line in lines:
             payload = line.model_dump(mode="json")
-            payload["teus"] = [
-                teu_by_id[tid].model_dump(mode="json")
-                for tid in line.teu_ids
-                if tid in teu_by_id
-            ]
+            constituent = [teu_by_id[tid] for tid in line.teu_ids if tid in teu_by_id]
+            flips = self._orientation_flips(constituent)
+            teus_payload = []
+            for teu in constituent:
+                teu_payload = teu.model_dump(mode="json")
+                teu_payload["flipped"] = flips[teu.id]
+                teus_payload.append(teu_payload)
+            payload["teus"] = teus_payload
             result.append(payload)
         return result
 
@@ -366,24 +427,131 @@ class TensionService:
         review_status: str,
         canonical_pole_a: str | None = None,
         canonical_pole_b: str | None = None,
+        note: str | None = None,
     ) -> TensionLine | None:
         """Update the review_status (and optionally pole labels) of a TensionLine.
+
+        A ``"modified"`` review that actually changes something also records a
+        :class:`TensionLineEdit`, because the labels are overwritten in place and
+        the model's original wording would otherwise be gone for good — the
+        review drawer shows both. Re-editing keeps the first originals: what a
+        reviewer wants to see is how far the label has drifted from the model's,
+        not from their own previous attempt.
+
+        The note is whatever this call supplied; a stale note from an earlier
+        edit is not carried forward, since it no longer explains the labels now
+        in force.
 
         Returns the updated TensionLine, or None if line_id is not found.
         """
         lines = await self.get_lines(document_id)
-        for i, line in enumerate(lines):
-            if line.id == line_id:
-                updates: dict = {"review_status": review_status}
-                if canonical_pole_a is not None:
-                    updates["canonical_pole_a"] = canonical_pole_a
-                if canonical_pole_b is not None:
-                    updates["canonical_pole_b"] = canonical_pole_b
-                lines[i] = line.model_copy(update=updates)
-                await self.save_lines(lines, document_id)
-                logger.debug("TensionService: updated review for line=%s status=%s", line_id, review_status)
-                return lines[i]
-        return None
+        idx = next((i for i, ln in enumerate(lines) if ln.id == line_id), None)
+        if idx is None:
+            return None
+
+        line = lines[idx]
+        updates: dict = {"review_status": review_status}
+        if canonical_pole_a is not None:
+            updates["canonical_pole_a"] = canonical_pole_a
+        if canonical_pole_b is not None:
+            updates["canonical_pole_b"] = canonical_pole_b
+        if review_status == "modified":
+            edit = self._build_edit(line, canonical_pole_a, canonical_pole_b, note)
+            if edit is not None:
+                updates["edit"] = edit
+
+        lines[idx] = line.model_copy(update=updates)
+        await self.save_lines(lines, document_id)
+        logger.debug("TensionService: updated review for line=%s status=%s", line_id, review_status)
+        return lines[idx]
+
+    @staticmethod
+    def _build_edit(
+        line: TensionLine,
+        canonical_pole_a: str | None,
+        canonical_pole_b: str | None,
+        note: str | None,
+    ) -> TensionLineEdit | None:
+        """The edit record for a "modified" review, or None if nothing changed.
+
+        Marking a line modified without touching a label or giving a reason is
+        not an edit, and fabricating a record whose "original" equals the current
+        label would put a meaningless "原始：X vs X" in the drawer.
+        """
+        changed_a = canonical_pole_a is not None and canonical_pole_a != line.canonical_pole_a
+        changed_b = canonical_pole_b is not None and canonical_pole_b != line.canonical_pole_b
+        if not (changed_a or changed_b or note):
+            return None
+        prior = line.edit
+        return TensionLineEdit(
+            original_pole_a=prior.original_pole_a if prior else line.canonical_pole_a,
+            original_pole_b=prior.original_pole_b if prior else line.canonical_pole_b,
+            note=note,
+        )
+
+    async def assign_teu_to_line(
+        self,
+        teu_id: str,
+        document_id: str,
+        line_id: str,
+    ) -> tuple[str, TensionLine | None]:
+        """Attach a TEU that grouping left out to a TensionLine.
+
+        Grouping drops TEUs silently (see :meth:`_grouping_coverage`), so this is
+        the manual repair the audit view offers for each orphan.
+
+        Returns an outcome tag alongside the line it concerns:
+          - ``("ok", line)`` — assigned, or already on that line (idempotent)
+          - ``("teu_not_found", None)``
+          - ``("line_not_found", None)``
+          - ``("claimed", holder)`` — a different line already holds this TEU
+
+        ``chapter_range`` and ``intensity_summary`` are recomputed with the same
+        formulas grouping uses, so a repaired line is indistinguishable from one
+        the model got right and callers need no second code path for it — but
+        only when every TEU on the line is still cached. TEUs expire on their own
+        TTL (``get_lines_with_teus`` already tolerates that), and averaging over
+        the survivors would quietly rewrite a line to a narrower chapter span and
+        a wrong intensity, so the partial case widens the stored range to cover
+        the new TEU and leaves the intensity untouched.
+        """
+        teu_by_id = {t.id: t for t in await self.get_teus(document_id)}
+        if teu_id not in teu_by_id:
+            return ("teu_not_found", None)
+
+        lines = await self.get_lines(document_id)
+        target_idx = next((i for i, ln in enumerate(lines) if ln.id == line_id), None)
+        if target_idx is None:
+            return ("line_not_found", None)
+
+        holder = next((ln for ln in lines if teu_id in ln.teu_ids), None)
+        if holder is not None:
+            return ("ok", holder) if holder.id == line_id else ("claimed", holder)
+
+        target = lines[target_idx]
+        teu_ids = [*target.teu_ids, teu_id]
+        updates: dict = {"teu_ids": teu_ids}
+        resolved = [teu_by_id[tid] for tid in teu_ids if tid in teu_by_id]
+        added = teu_by_id[teu_id]
+        if len(resolved) == len(teu_ids):
+            chapters = [t.chapter for t in resolved]
+            updates["chapter_range"] = [min(chapters), max(chapters)]
+            updates["intensity_summary"] = sum(t.intensity for t in resolved) / len(resolved)
+        else:
+            stored = target.chapter_range or [added.chapter, added.chapter]
+            updates["chapter_range"] = [
+                min(stored[0], added.chapter),
+                max(stored[-1], added.chapter),
+            ]
+        lines[target_idx] = target.model_copy(update=updates)
+        await self.save_lines(lines, document_id)
+        logger.debug(
+            "TensionService: assigned TEU=%s to line=%s (now %d TEUs)",
+            teu_id,
+            line_id,
+            len(teu_ids),
+        )
+        return ("ok", lines[target_idx])
 
     # ── Public: TensionTheme synthesis (B-029) ───────────────────────────────
 
@@ -430,7 +598,17 @@ class TensionService:
         )
 
         theme = await self._call_theme_llm(input_lines, document_id, language)
-        return theme
+        # Freeze the review state as it stands now: once reviewing resumes, the
+        # hero's "n lines were still unreviewed when this was synthesised" can no
+        # longer be derived from the current lines.
+        return theme.model_copy(
+            update={
+                "reviewed_line_count": sum(
+                    1 for line in lines if line.review_status in _REVIEWED_STATUSES
+                ),
+                "total_line_count": len(lines),
+            }
+        )
 
     @staticmethod
     def theme_input_lines(lines: list[TensionLine]) -> list[TensionLine]:
@@ -441,7 +619,7 @@ class TensionService:
         with :meth:`theme_staleness` on purpose — if staleness reimplemented
         this rule the two would drift and the UI would lie about freshness.
         """
-        reviewed = [line for line in lines if line.review_status in {"approved", "modified"}]
+        reviewed = [line for line in lines if line.review_status in _REVIEWED_STATUSES]
         return reviewed if reviewed else lines
 
     async def theme_staleness(
@@ -796,6 +974,8 @@ class TensionService:
                     intensity_summary=sum(intensities) / len(intensities),
                     chapter_range=[min(chapters), max(chapters)],
                     thematic_note=item.get("thematic_note"),
+                    assembled_by=_GROUPER_TAG,
+                    assembled_at=datetime.utcnow(),
                 )
             )
 

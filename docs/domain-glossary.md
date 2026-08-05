@@ -42,7 +42,7 @@
 | `modified` | 已修改 | 藍 |
 | `rejected` | 已拒絕 | 紅，整列 opacity: 0.4 |
 
-**UI 呈現**：`TensionPage` 的 TensionLineCard，accordion 展開後可進行審核操作。
+**UI 呈現**：`TensionPage` 的 `TensionLineTable`，點列開啟右側 `TensionReviewDrawer` 進行審核操作。
 
 ---
 

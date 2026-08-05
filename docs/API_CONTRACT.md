@@ -1182,6 +1182,46 @@ interface TEUDetail {
 
 ---
 
+### #14d-3 PATCH /tension/teus/:teuId/assign
+
+把聚合階段漏掉的 TEU 人工指派給一條 TensionLine —— `#14d` 的 `coverage` 與
+`#14d-2` 的 `line_id: null` 揭露了缺口，這支是對應的修補動作。
+
+**Request Body**
+```ts
+{
+  document_id: string;
+  line_id: string;
+}
+```
+
+**Response 200**：`TensionLine`（更新後，欄位同 `#14e` 但不含 `teus`）
+
+| 狀態碼 | 情形 |
+|--------|------|
+| 200 | 已指派；或該 TEU 本來就在這條線上（**冪等**，不重複加入） |
+| 404 | TEU 或 TensionLine 在該 document 下不存在 |
+| 409 | 該 TEU 已被**另一條**線收錄 |
+
+> **不提供「搬移」語意。** TEU 已屬於別條線時回 409，而不是默默地從舊線移除再
+> 加到新線 —— 那會一次改動兩條線的 `teu_ids` 與衍生值，呼叫端卻只看得到一條。
+> 要搬移請先在來源線上處理。
+
+> **`chapter_range` 與 `intensity_summary` 由後端重算**，公式與聚合階段相同
+> （`[min(chapters), max(chapters)]`、強度算術平均）。人工修好的線因此與模型
+> 一次做對的線形狀完全一致，前端不需要為「這條線被修過」寫第二套計算。
+>
+> **例外：線上有 TEU 已逾 TTL 時不重算平均。** 對倖存的子集取平均會產出一個
+> 「看起來一樣權威但其實是錯的」數字，因此該情形只把 `chapter_range` 撐大到
+> 涵蓋新加入的 TEU，`intensity_summary` 維持原值。
+>
+> `assembled_by` / `assembled_at` **不會變動** —— 它們記錄的是哪一版聚合步驟
+> 產出這條線，人工指派不改變這件事。
+
+**UI 使用頁面**：張力分析頁 章節格點的未歸入清單、TEU 逐章模式的未歸入卡片
+
+---
+
 ### #14e GET /tension/lines
 
 取得書籍的 TensionLine 清單，**並內嵌每條線的 TEU 證據**（供審核頁直接顯示，不需第二次請求）。
@@ -1203,7 +1243,17 @@ interface TensionLineDetail {
   chapter_range: number[];              // [firstChapter, ..., lastChapter]
   thematic_note?: string | null;        // LLM 在分組時提出的全線主題註記
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  assembled_by: string;                 // 產生此線的聚合步驟版本（'tension_grouper_v1'）
+  assembled_at: string | null;          // 聚合時間；provenance 上線前的舊快取為 null
+  edit: TensionLineEdit | null;         // 人工改寫極點標籤後才有
   teus: TEUSummary[];                   // 構成此線的 TEU 證據，依 teu_ids 順序
+}
+
+interface TensionLineEdit {
+  original_pole_a: string;              // 聚合階段原本產出的標籤
+  original_pole_b: string;
+  note: string | null;                  // 改寫理由
+  edited_at: string;
 }
 
 interface TEUSummary {
@@ -1216,6 +1266,7 @@ interface TEUSummary {
   pole_b_carriers: Carrier[];
   pole_a_stance?: string | null;        // 這些載體如何體現該極
   pole_b_stance?: string | null;
+  flipped: boolean;                     // 此 TEU 的 A/B 指派與同線多數相反
 }
 
 interface Carrier {
@@ -1228,7 +1279,21 @@ interface Carrier {
 > `entity_type` 為 null 的情形約佔五分之一——LLM 指認的載體名未必對得上 KG 實體。
 > UI 不得假設型別必然存在（現行前端 fallback 至 `other` 樣式）。
 
-**UI 使用頁面**：張力分析頁（hero / 軌跡圖 dashboard / 審核 LineCard 證據區）
+> **`flipped` 的判定方式**：聚合階段不會統一極點順序，同一組對立可能在某場景是
+> `A=X, B=Y`、下一場景卻是 `A=Y, B=X`。不理會這件事直接跨 TEU 聚合載體，兩極會
+> 得到完全相同的 pill 清單（這正是審核抽屜「A/B 指派不穩定」警告要揭露的問題）。
+>
+> 後端以**載體名稱重疊**對照該線中載體最多的那一筆 TEU 定出方向，再依多數決反轉
+> 基準，因此結果不受挑到哪一筆當基準影響。**平手時以基準 TEU 的方向為多數。**
+>
+> 兩種情況無從判定，一律回 `false`（寧可少報也不要無中生有）：
+> - 該 TEU 與全線沒有任何共同載體名
+> - 該 TEU 自己兩極的載體名相同
+>
+> `flipped` 是**衍生值、不落地**，門檻或演算法調整不需 migration。同一批 TEU 在
+> `#14d-2` 不帶此欄位——翻轉只在「所屬張力線」的脈絡下才有意義。
+
+**UI 使用頁面**：張力分析頁（hero / 章節格點 / 審核抽屜證據區）
 
 **備註**：`teus[]` 由 `TensionService.get_lines_with_teus()` 透過 `AnalysisCache.list_by_prefix("teu:")` 一次取出，過濾掉與 `teu_ids` 不匹配的條目；若 TEU 已逾 TTL，該條 line 的 `teus` 為空陣列（line 仍照常回傳）。
 
@@ -1245,12 +1310,26 @@ interface Carrier {
   review_status: 'approved' | 'modified' | 'rejected';
   canonical_pole_a?: string;   // modify 時填入
   canonical_pole_b?: string;
+  note?: string;               // 改寫理由；僅 modified 時會被記錄
 }
 ```
 
-**Response 200**：`TensionLine`（更新後）
+**Response 200**：`TensionLine`（更新後，含 `edit`）
 
-**UI 使用頁面**：張力分析頁 TensionLineCard 審核按鈕
+> **`modified` 會留下 `edit` 紀錄。** `canonical_pole_a/b` 是原地覆寫，模型原本的
+> 用字若不另存就永久消失，而審核抽屜要同時顯示「現在的標籤」與「原始：舊 A vs 舊 B」。
+>
+> - **`original_*` 永遠是聚合階段的用字，不是上一次改寫的。** 二次改寫只更新 `note`
+>   與 `edited_at`；審核者要看的是標籤離模型多遠，不是離自己上次的版本多遠。
+> - **`note` 不會沿用**。沒帶 `note` 的改寫其 `note` 為 `null` —— 舊理由解釋的是舊
+>   標籤，掛在新標籤上是錯的歸因。
+> - **標籤沒變也沒給理由的 `modified` 不產生 `edit`**，否則抽屜會出現無意義的
+>   「原始：自由 vs 自由」。只給 `note` 不改標籤則會產生。
+> - `approved` / `rejected` 帶 `note` **不會**被記錄——`edit` 專指標籤改寫。
+>
+> **沒有 `edited_by`。** 本專案沒有任何使用者身分概念，硬填一個值是假資料。
+
+**UI 使用頁面**：張力分析頁 審核抽屜的「人工修改註記」與標籤編輯器
 
 ---
 
@@ -1302,6 +1381,8 @@ interface TensionTheme {
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
   is_stale: boolean;             // 主題是否已不反映目前的 TensionLine
   stale_reason: 'no_lines' | 'lines_regrouped' | 'review_changed' | null;
+  reviewed_line_count: number | null;  // 合成當下已審核的線數
+  total_line_count: number | null;     // 合成當下的線總數
 }
 ```
 
@@ -1313,10 +1394,24 @@ interface TensionTheme {
 > - `no_lines` — 已無任何 TensionLine
 >
 > **已知限制**：抓不到「線沒變、只有極點標籤被 `modified` 改寫」的情形——集合相同。
-> 要涵蓋需在 TensionLine 加時間戳或於 theme 存內容雜湊，目前兩者皆無。
+>
+> `#14f` 的 `edit.edited_at` 已提供可比對的時間戳，但 theme 這端仍缺一個對應的
+> 基準（`assembled_at` 是合成時間，不是輸入線的最後修改時間），因此**行為未變**。
+> 要涵蓋此情形需另行決定比對基準，屬獨立工項。
 >
 > 過期後要重新合成必須送 `force=true`，否則 `POST /tension/theme/synthesize`
 > 會直接命中快取、回報成功卻毫無變化。
+
+> **`reviewed_line_count` / `total_line_count` 是「合成當下」的凍結值。** 主題 hero
+> 要顯示「合成時有 n 條尚未審核」與「依 n / m 條已審核張力線」，這兩句一旦繼續
+> 審核就無法從現在的線推回去——用當下的計數會讓警告自己消失，但那則命題仍然是
+> 用未審核的線合成的。
+>
+> - 未審核數 = `total_line_count - reviewed_line_count`
+> - 「已審核」= `review_status` 為 `approved` 或 `modified`（與合成的選線規則同一份定義）
+> - **計的是全部的線，不是實際餵給 LLM 的那些**。合成會 fallback 成「有已審核的就
+>   只用已審核的」，但警告問的是「當時有幾條還沒審」，分母得是全集
+> - 這兩個欄位上線前就存在的舊主題為 `null`，UI 需容忍（不顯示該警告即可）
 
 > **`frye_mythos` / `booker_plot` 保證是 id，不是顯示名。** 合成 prompt 給模型的
 > 是 `**悲劇** (tragedy)` 這種格式，模型常回粗體中文名，因此後端在寫入與讀取兩端

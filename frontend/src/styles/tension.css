@@ -39,115 +39,130 @@
   gap: 8px;
 }
 
-/* ── Workflow stepper strip ────────────────────────────────────── */
+/* ── Pipeline stepper (5 段：3 個機器步驟 + 2 個人工關卡) ────────── */
 
+.tn-stepper-wrap { padding: 0 0 20px; }
 .tn-stepper {
   display: flex;
   align-items: stretch;
+  padding: 12px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 0;
-  overflow: hidden;
-  margin-bottom: 24px;
-  border-style: var(--border-style);
+  border-radius: var(--card-radius);
 }
 
-.tn-step {
-  flex: 1;
+.tn-stage {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 18px;
-  position: relative;
-  background: transparent;
-  border: none;
-  border-right: 1px solid var(--border);
-  text-align: left;
-  font: inherit;
-  color: inherit;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
+  flex-direction: column;
+  justify-content: center;
+  gap: 5px;
+  padding: 11px 13px;
+  margin: 0 4px;
+  background: var(--bg-primary);
+  border: 1px solid transparent;
+  border-radius: var(--card-radius);
+  min-width: 0;
 }
-.tn-step:last-child { border-right: none; }
-.tn-step:hover:not(:disabled) { background: var(--bg-tertiary); }
-.tn-step:disabled { opacity: 0.45; cursor: not-allowed; }
-.tn-step.is-active { background: var(--bg-primary); }
-.tn-step.is-done { background: var(--bg-primary); }
-
-.tn-step-num {
-  width: 28px; height: 28px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0;
-  border-radius: 50%;
+/* Gates are chromeless and sit on the recessed tone: they are checkpoints in
+   the flow, not something the system runs. */
+.tn-stage[data-kind="gate"] {
   background: var(--bg-tertiary);
-  color: var(--fg-secondary);
-  font-family: var(--font-serif);
-  font-size: var(--font-size-sm);
-  font-weight: 500;
-  border: 1px solid var(--border);
+  border-width: 0;
 }
-.tn-step.is-done .tn-step-num {
+.tn-stage[data-failed="true"] { border-color: var(--color-error); }
+.tn-stage[data-running="true"] { border-color: var(--accent); }
+.tn-stage[data-ready="true"] {
   background: var(--color-success-bg);
-  color: var(--color-success);
   border-color: var(--color-success);
 }
-.tn-step.is-running .tn-step-num {
-  background: var(--color-info-bg);
-  color: var(--color-info);
-  border-color: var(--color-info);
+.tn-stage[data-notready="true"] {
+  border-style: dashed;
+  border-color: var(--border);
+  opacity: 0.7;
 }
-.tn-step-body { flex: 1; min-width: 0; }
-.tn-step-aggr {
-  font-size: var(--font-size-2xs);
+
+.tn-stage-top { display: flex; align-items: center; gap: 7px; }
+.tn-stage-dot {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  border: 1.5px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--bg-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Circle for machine steps, square for gates: the shape carries "the system
+   does this" vs "you do this" without colour, which flattens to one black in
+   the Ink theme. */
+.tn-stage-dot[data-kind="machine"] { border-radius: 50%; }
+.tn-stage-dot[data-kind="gate"] { border-radius: 3px; }
+.tn-stage[data-done="true"] .tn-stage-dot {
+  background: var(--color-success);
+  border-color: var(--color-success);
+}
+.tn-stage[data-failed="true"] .tn-stage-dot {
+  background: var(--color-error);
+  border-color: var(--color-error);
+}
+.tn-stage[data-running="true"] .tn-stage-dot {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.tn-stage-kicker {
+  font: 500 9.5px var(--font-sans);
+  letter-spacing: 0.07em;
   color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  margin-bottom: 2px;
-}
-.tn-step-label {
-  font-size: var(--font-size-sm);
-  color: var(--fg-primary);
-  font-weight: 500;
-  line-height: 1.2;
-  margin-bottom: 2px;
-}
-.tn-step-desc {
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
-  line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.tn-step-cta {
-  display: flex; align-items: center; gap: 4px;
-  color: var(--accent);
-  font-size: var(--font-size-xs);
-  flex-shrink: 0;
-}
-.tn-step-cta-done { color: var(--color-success); }
-.tn-step-error {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 18px;
-  background: var(--color-error-bg);
-  color: var(--color-error);
-  font-size: var(--font-size-xs);
-  border-top: 1px solid var(--border);
-  flex: 1 1 100%;
-}
-.tn-step-progress {
-  position: absolute;
-  left: 0; right: 0; bottom: 0;
-  height: 2px;
+.tn-stage-title { font: 600 15px var(--font-serif); color: var(--fg-primary); }
+.tn-stage[data-kind="gate"] .tn-stage-title { font-size: 13px; }
+.tn-stage[data-running="true"] .tn-stage-title { color: var(--accent); }
+.tn-stage[data-notready="true"] .tn-stage-title { color: var(--fg-secondary); }
+
+.tn-stage-note { font: 400 11px var(--font-sans); color: var(--fg-secondary); }
+.tn-stage-note[data-warn="true"] { color: var(--color-warning); }
+.tn-stage[data-failed="true"] .tn-stage-note { color: var(--color-error); }
+
+.tn-stage-bar {
+  height: 3px;
   background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
 }
-.tn-step-progress-fill {
+.tn-stage-bar > i {
+  display: block;
   height: 100%;
   background: var(--accent);
-  transition: width var(--transition-normal);
+  transition: width var(--transition-normal) ease;
+}
+
+.tn-stage-action {
+  margin-top: 2px;
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 11px;
+  font: 500 11.5px var(--font-sans);
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: var(--btn-border-width) solid var(--accent);
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.tn-stage-action:hover { opacity: 0.9; }
+
+.tn-stage-error {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: 400 10.5px var(--font-sans);
+  color: var(--color-error);
 }
 
 /* ── Theme hero ────────────────────────────────────────────────── */
@@ -962,3 +977,1056 @@
 /* Spin animation (used by inline Loader icons) */
 @keyframes tn-spin { to { transform: rotate(360deg); } }
 .tn-spin { animation: tn-spin 1s linear infinite; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Review toolbar + line table (張力線審核主視圖)
+   Column widths are fixed px + one 1fr, not equal fractions: the pole labels
+   are 8–10 characters of Chinese and everything else is a short number.
+   ───────────────────────────────────────────────────────────────────────── */
+
+.tn-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 13px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+}
+.tn-toolbar-label { font: 500 11px var(--font-sans); color: var(--fg-muted); }
+.tn-toolbar-spacer { flex: 1; }
+
+.tn-filter-group {
+  display: flex;
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  overflow: hidden;
+  background: var(--bg-primary);
+}
+.tn-filter-btn {
+  padding: 5px 12px;
+  font: 400 12px var(--font-sans);
+  background: transparent;
+  color: var(--fg-secondary);
+  border: none;
+  border-left: 1px solid var(--border);
+  cursor: pointer;
+}
+.tn-filter-btn:first-child { border-left: none; }
+.tn-filter-btn:hover { background: var(--bg-tertiary); }
+.tn-filter-btn[aria-pressed="true"] {
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-weight: 500;
+}
+
+.tn-sort-btn {
+  padding: 5px 11px;
+  font: 400 12px var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--fg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  cursor: pointer;
+}
+.tn-sort-btn:hover { background: var(--bg-tertiary); }
+.tn-sort-btn[aria-pressed="true"] {
+  background: var(--bg-tertiary);
+  border-color: var(--fg-muted);
+  font-weight: 500;
+}
+
+.tn-batch-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 13px;
+  margin-top: 9px;
+  background: var(--accent);
+  border-radius: var(--control-radius);
+}
+.tn-batch-count { font: 500 12px var(--font-sans); color: var(--accent-fg); }
+.tn-batch-primary {
+  padding: 4px 13px;
+  font: 500 12px var(--font-sans);
+  background: var(--accent-fg);
+  color: var(--accent);
+  border: none;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.tn-batch-ghost {
+  padding: 4px 11px;
+  font: 400 11.5px var(--font-sans);
+  background: transparent;
+  color: var(--accent-fg);
+  border: 1px solid var(--accent-fg);
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.tn-batch-dismiss {
+  padding: 4px 10px;
+  font: 400 11.5px var(--font-sans);
+  background: transparent;
+  color: var(--accent-fg);
+  border: none;
+  cursor: pointer;
+  opacity: 0.85;
+}
+.tn-batch-primary:hover, .tn-batch-ghost:hover, .tn-batch-dismiss:hover { opacity: 0.9; }
+
+.tn-table {
+  margin-top: 9px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  overflow: hidden;
+}
+.tn-table-head,
+.tn-row {
+  display: grid;
+  grid-template-columns: 36px 1fr 78px 84px 124px 76px 152px;
+  align-items: center;
+}
+.tn-table-head {
+  padding: 8px 13px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  font: 500 10.5px var(--font-sans);
+  letter-spacing: 0.05em;
+  color: var(--fg-muted);
+}
+.tn-col-right { text-align: right; }
+
+.tn-row {
+  padding: 11px 13px;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  background: var(--bg-primary);
+  cursor: pointer;
+}
+.tn-row:last-child { border-bottom: none; }
+.tn-row:hover { background: var(--bg-secondary); }
+.tn-row[data-cursor="true"] { border-left-color: var(--border); }
+.tn-row[data-open="true"] {
+  border-left-color: var(--accent);
+  background: var(--bg-secondary);
+}
+/* Rejected lines stay legible but recede — they are done with, not gone. */
+.tn-row[data-rejected="true"] { opacity: 0.5; }
+
+.tn-row-poles {
+  font: 400 15px var(--font-serif);
+  color: var(--fg-primary);
+  text-wrap: pretty;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+.tn-vs {
+  font-family: var(--font-sans);
+  font-size: 10.5px;
+  color: var(--fg-muted);
+  padding: 0 6px;
+}
+.tn-row-chapters { font: 400 11px var(--font-mono); color: var(--fg-secondary); }
+.tn-row-evidence { font: 400 11px var(--font-sans); color: var(--fg-secondary); }
+
+.tn-row-intensity { display: flex; align-items: center; gap: 7px; }
+.tn-bar {
+  display: block;
+  width: 62px;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  overflow: hidden;
+  flex: none;
+}
+.tn-bar-fill { display: block; height: 100%; }
+.tn-bar-fill[data-band="low"]  { background: var(--tension-intensity-low-bg); }
+.tn-bar-fill[data-band="mid"]  { background: var(--tension-intensity-mid-bg); }
+.tn-bar-fill[data-band="high"] { background: var(--tension-intensity-high-bg); }
+.tn-bar-value { font: 400 11px var(--font-mono); color: var(--fg-secondary); }
+
+.tn-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.tn-act-primary {
+  padding: 4px 11px;
+  font: 500 11.5px var(--font-sans);
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: none;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.tn-act-primary:hover { opacity: 0.9; }
+.tn-act-ghost {
+  padding: 4px 9px;
+  font: 400 11.5px var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--fg-secondary);
+  border: var(--btn-border-width) solid var(--border);
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.tn-act-ghost:hover { background: var(--bg-tertiary); }
+
+.tn-check {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border-radius: 3px;
+  border: 1.5px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--accent-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.tn-check[data-state="on"],
+.tn-check[data-state="partial"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+
+.tn-table-empty {
+  padding: 30px;
+  text-align: center;
+  font: 400 13px var(--font-sans);
+  color: var(--fg-muted);
+}
+.tn-link-btn {
+  background: none;
+  border: none;
+  padding: 0 0 0 4px;
+  font: 500 13px var(--font-sans);
+  color: var(--accent);
+  cursor: pointer;
+}
+.tn-shortcuts {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font: 400 11px var(--font-sans);
+  color: var(--fg-muted);
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Review drawer (右側 432px 審核抽屜)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.tn-shell { display: flex; min-height: 0; flex: 1; }
+.tn-shell-main { flex: 1; min-width: 0; min-height: 0; overflow: auto; }
+
+.tn-drawer {
+  width: 432px;
+  flex: none;
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg-secondary);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.tn-drawer-head {
+  flex: none;
+  padding: 16px 18px 13px;
+  background: var(--bg-primary);
+  border-bottom: 1px solid var(--border);
+}
+.tn-drawer-head-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 7px;
+}
+.tn-drawer-pos {
+  font: 500 10px var(--font-sans);
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+}
+.tn-drawer-close {
+  background: none;
+  border: none;
+  color: var(--fg-muted);
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+}
+.tn-drawer-close:hover { color: var(--fg-primary); }
+.tn-drawer-poles { font: 400 17px/1.5 var(--font-serif); text-wrap: pretty; }
+.tn-drawer-meta {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font: 400 11px var(--font-sans);
+  color: var(--fg-muted);
+}
+
+.tn-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Warning notes carry an icon-free bold lead-in rather than colour alone, so
+   they survive the Ink theme where warning/success/error collapse to one black. */
+.tn-note-warn {
+  padding: 9px 12px;
+  background: var(--color-warning-bg);
+  border-radius: var(--control-radius);
+  font: 400 11.5px/1.65 var(--font-sans);
+  color: var(--fg-secondary);
+}
+.tn-note-warn.column { display: flex; flex-direction: column; gap: 4px; }
+.tn-note-warn b { color: var(--color-warning); }
+
+.tn-pole-card {
+  padding: 13px 15px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+}
+.tn-pole-label {
+  font: 500 10px var(--font-sans);
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+  margin-bottom: 6px;
+}
+.tn-pole-name { font: 600 14.5px var(--font-serif); margin-bottom: 9px; }
+.tn-pole-desc {
+  font: 400 13px/1.75 var(--font-serif);
+  color: var(--fg-secondary);
+  margin: 0 0 11px;
+  text-wrap: pretty;
+}
+.tn-pill-share {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  opacity: 0.7;
+}
+
+.tn-editor {
+  padding: 14px 15px;
+  background: var(--bg-primary);
+  border: var(--card-border-width) solid var(--accent);
+  border-radius: var(--card-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tn-editor-title {
+  font: 500 10px var(--font-sans);
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+}
+.tn-field { display: flex; flex-direction: column; gap: 5px; }
+.tn-field > span { font: 400 11px var(--font-sans); color: var(--fg-secondary); }
+.tn-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  font: 400 12.5px var(--font-sans);
+  color: var(--fg-primary);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+}
+.tn-input.serif { font: 400 14px var(--font-serif); }
+.tn-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.tn-editor-hint {
+  font: 400 11px/1.65 var(--font-sans);
+  color: var(--fg-muted);
+  margin: 0;
+}
+.tn-editor-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+.tn-evidence-head { display: flex; align-items: baseline; gap: 9px; }
+.tn-evidence-title {
+  font: 500 11px var(--font-sans);
+  letter-spacing: 0.05em;
+  color: var(--fg-secondary);
+}
+.tn-evidence-count { font: 400 11px var(--font-sans); color: var(--fg-muted); }
+
+.tn-ev-card {
+  display: flex;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--bg-primary);
+}
+.tn-ev-side { flex: 0 0 62px; display: flex; flex-direction: column; gap: 5px; }
+.tn-ev-ch { font: 600 13px var(--font-serif); }
+.tn-ev-bar {
+  display: block;
+  width: 40px;
+  height: 5px;
+  border-radius: 3px;
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+.tn-ev-pct { font: 400 10px var(--font-mono); color: var(--fg-muted); }
+.tn-ev-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.tn-ev-summary {
+  font: 400 13px/1.75 var(--font-serif);
+  color: var(--fg-primary);
+  margin: 0;
+  text-wrap: pretty;
+}
+.tn-ev-quote {
+  margin: 0;
+  padding-left: 11px;
+  border-left: 2px solid var(--accent);
+  font: 400 12.5px/1.7 var(--font-serif);
+  color: var(--fg-secondary);
+  font-style: italic;
+}
+.tn-link-btn.inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  align-self: flex-start;
+  font: 500 11px var(--font-sans);
+  padding: 0;
+}
+
+.tn-drawer-foot {
+  flex: none;
+  /* The chat launcher is a global position:fixed button at z-index 50 in the
+     bottom-right corner; the prototype had no such element, so the design's
+     18px right padding would put 拒絕 underneath it and swallow the clicks.
+     Reserve the launcher's footprint instead. */
+  padding: 13px 76px 13px 18px;
+  border-top: 1px solid var(--border);
+  background: var(--bg-primary);
+  display: flex;
+  gap: 8px;
+}
+.tn-drawer-foot button { padding: 9px 13px; font: 500 13px var(--font-sans); }
+.tn-act-primary.grow { flex: 1; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Pipeline state cards (empty / step1 / running / error)
+   ───────────────────────────────────────────────────────────────────────── */
+
+.tn-state-empty {
+  padding: 70px 0 90px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  text-align: center;
+}
+.tn-state-hero {
+  width: 260px;
+  height: auto;
+  /* Without this the column flex container shrinks the image to a sliver. */
+  flex: none;
+  opacity: var(--splash-image-opacity);
+  filter: var(--splash-image-filter);
+}
+.tn-state-empty-title { font: 600 20px var(--font-serif); }
+.tn-state-empty-body {
+  font: 400 14px/1.85 var(--font-serif);
+  color: var(--fg-secondary);
+  max-width: 440px;
+  margin: 0;
+  text-wrap: pretty;
+}
+
+.tn-state-card {
+  padding: var(--space-lg);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--bg-primary);
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+/* Failure keeps the previous result visible below it: the error card is
+   inserted above, it does not replace anything. */
+.tn-state-card.error {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+  box-shadow: none;
+}
+
+.tn-state-title { font: 600 17px var(--font-serif); }
+.tn-state-title.sm { font-size: 15px; }
+.tn-state-title.error { color: var(--color-error); }
+.tn-state-body {
+  font: 400 13.5px/1.8 var(--font-serif);
+  color: var(--fg-secondary);
+  margin: 0;
+  text-wrap: pretty;
+}
+.tn-state-row { display: flex; align-items: baseline; justify-content: space-between; }
+.tn-state-pct { font: 400 12px var(--font-mono); color: var(--fg-secondary); }
+.tn-state-stage { font: 400 12px var(--font-sans); color: var(--fg-secondary); }
+.tn-state-meta { font: 400 11.5px var(--font-mono); color: var(--fg-muted); }
+
+.tn-state-bar {
+  height: 8px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.tn-state-bar > i {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width var(--transition-normal) ease;
+}
+
+.tn-state-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.tn-state-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 22px;
+  font: 500 13px var(--font-sans);
+  background: var(--accent);
+  color: var(--accent-fg);
+  border: none;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.tn-state-cta.sm { padding: 9px 18px; }
+.tn-state-cta:hover { opacity: 0.9; }
+
+.tn-token-hint {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--badge-radius);
+  font: 400 11.5px var(--font-sans);
+  color: var(--fg-secondary);
+}
+.tn-token-hint svg { color: var(--accent); flex: none; }
+
+.tn-density { display: grid; gap: 6px; align-items: end; }
+.tn-density-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+.tn-density-col > i {
+  display: block;
+  width: 100%;
+  background: var(--tension-intensity-mid-bg);
+  border-radius: 2px;
+}
+.tn-density-col > span { font: 400 10px var(--font-mono); color: var(--fg-muted); }
+
+/* ── Re-run confirmation modal ─────────────────────────────────── */
+
+.tn-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  /* Flat scrim: the design system forbids backdrop-filter. */
+  background: rgba(42, 38, 32, 0.42);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tn-modal {
+  width: 470px;
+  max-width: calc(100vw - 32px);
+  padding: var(--space-lg);
+  background: var(--bg-primary);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.tn-modal-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 600 16px var(--font-serif);
+}
+.tn-modal-head svg { color: var(--accent); flex: none; }
+.tn-modal-body {
+  margin: 0;
+  font: 400 13.5px/1.8 var(--font-serif);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.tn-modal-loss {
+  padding: 12px 14px;
+  background: var(--color-error-bg);
+  border-radius: var(--card-radius);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font: 400 12.5px/1.7 var(--font-sans);
+  color: var(--fg-primary);
+}
+.tn-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
+.tn-modal-danger {
+  padding: 8px 16px;
+  font: 500 12.5px var(--font-sans);
+  background: var(--color-error);
+  color: var(--bg-primary);
+  border: none;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.tn-modal-danger:hover { opacity: 0.9; }
+
+/* ── Theme hero (redesigned) + stale card ──────────────────────── */
+
+.tn-hero {
+  padding: var(--space-lg);
+  background: var(--bg-secondary);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+  margin-bottom: 20px;
+}
+.tn-hero-top { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.tn-hero-eyebrow {
+  font: 500 10px var(--font-sans);
+  letter-spacing: 0.08em;
+  color: var(--fg-muted);
+}
+.tn-hero-badge {
+  font: 500 10px var(--font-sans);
+  padding: 1px 8px;
+  border-radius: var(--badge-radius);
+  background: var(--color-success-bg);
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+/* The proposition is the largest text on the page on purpose. */
+.tn-hero-proposition {
+  margin: 0;
+  font: 400 21px/1.8 var(--font-serif);
+  color: var(--fg-primary);
+  max-width: 1000px;
+  text-wrap: pretty;
+}
+.tn-hero-warn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 11px;
+  background: var(--color-warning-bg);
+  border-radius: var(--control-radius);
+  font: 400 11.5px var(--font-sans);
+  color: var(--fg-secondary);
+}
+.tn-hero-warn b { color: var(--color-warning); font-weight: 600; }
+
+.tn-hero-lines { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
+.tn-hero-lines-label {
+  font: 400 11px var(--font-sans);
+  color: var(--fg-muted);
+  padding-right: 2px;
+}
+.tn-hero-line-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 11px;
+  background: var(--bg-primary);
+  border: var(--pill-border-width) solid var(--border);
+  border-radius: var(--pill-radius);
+  font: 400 12px var(--font-serif);
+  color: var(--fg-primary);
+  cursor: pointer;
+}
+.tn-hero-line-pill:hover { background: var(--bg-tertiary); }
+.tn-hero-line-pill > i {
+  display: block;
+  width: 4px;
+  height: 12px;
+  flex: none;
+  border-radius: 1px;
+}
+.tn-hero-line-pill > i[data-band="low"] { background: var(--tension-intensity-low-bg); }
+.tn-hero-line-pill > i[data-band="mid"] { background: var(--tension-intensity-mid-bg); }
+.tn-hero-line-pill > i[data-band="high"] { background: var(--tension-intensity-high-bg); }
+
+.tn-hero-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-top: 3px;
+  flex-wrap: wrap;
+}
+.tn-hero-foot .tn-act-ghost { display: inline-flex; align-items: center; gap: 5px; }
+.tn-hero-editor { display: flex; flex-direction: column; gap: 10px; }
+.tn-hero-editor textarea { resize: vertical; line-height: 1.8; }
+
+.tn-stale-card {
+  padding: 16px 18px;
+  border: var(--card-border-width) solid var(--color-warning);
+  border-radius: var(--card-radius);
+  background: var(--color-warning-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+.tn-stale-head { display: flex; align-items: center; gap: 8px; font: 600 15px var(--font-serif); }
+.tn-stale-mark {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--color-warning);
+  color: var(--bg-primary);
+  font: 600 11px/18px var(--font-sans);
+  text-align: center;
+}
+.tn-stale-body {
+  margin: 0;
+  font: 400 13.5px/1.8 var(--font-serif);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+/* The superseded proposition is shown greyed and inset: readable, but clearly
+   no longer the page's claim. */
+.tn-stale-old {
+  padding: 13px 15px;
+  background: var(--bg-primary);
+  border-radius: var(--card-radius);
+  font: 400 14.5px/1.85 var(--font-serif);
+  color: var(--fg-muted);
+  text-wrap: pretty;
+}
+
+/* ── Chapter grid ──────────────────────────────────────────────── */
+
+.tn-grid-card {
+  padding: var(--space-lg);
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--bg-primary);
+  box-shadow: var(--card-shadow);
+  margin-bottom: 18px;
+}
+.tn-grid-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.tn-grid-title-wrap { display: flex; align-items: baseline; gap: 10px; }
+.tn-grid-title { font: 600 16px var(--font-serif); }
+.tn-grid-meta { font: 400 11.5px var(--font-sans); color: var(--fg-muted); }
+.tn-grid-legend { display: flex; align-items: center; gap: 13px; }
+.tn-grid-legend-label { font: 400 11px var(--font-sans); color: var(--fg-muted); }
+.tn-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font: 400 11px var(--font-sans);
+  color: var(--fg-secondary);
+}
+.tn-legend-item > i { display: block; width: 9px; }
+.tn-legend-item > i[data-band="low"] {
+  background: var(--tension-intensity-low-bg);
+  border: 1px solid var(--tension-intensity-low-edge);
+}
+.tn-legend-item > i[data-band="mid"] { background: var(--tension-intensity-mid-bg); }
+.tn-legend-item > i[data-band="high"] { background: var(--tension-intensity-high-bg); }
+.tn-grid-legend-note {
+  font: 400 11px var(--font-sans);
+  color: var(--fg-muted);
+  padding-left: 7px;
+  border-left: 1px solid var(--border);
+}
+
+/* Wide books scroll the grid rather than the page. */
+.tn-grid { display: grid; align-items: stretch; overflow-x: auto; }
+.tn-grid-rowgroup { display: contents; }
+.tn-grid-corner {
+  font: 500 10px var(--font-sans);
+  letter-spacing: 0.07em;
+  color: var(--fg-muted);
+  padding-bottom: 8px;
+}
+.tn-grid-colhead {
+  text-align: center;
+  font: 500 11px var(--font-sans);
+  color: var(--fg-secondary);
+  padding-bottom: 8px;
+  border-left: 1px solid var(--border);
+}
+
+.tn-grid-rowlabel {
+  text-align: left;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-left: 3px solid transparent;
+  padding: 10px 12px 10px 9px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel,
+.tn-grid-rowgroup[data-open="true"] .tn-grid-cell { background: var(--bg-secondary); }
+.tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel { border-left-color: var(--accent); }
+.tn-grid-poles { font: 400 14px/1.45 var(--font-serif); color: var(--fg-primary); text-wrap: pretty; }
+.tn-grid-rowmeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 400 11px var(--font-sans);
+  color: var(--fg-muted);
+}
+.tn-status-badge.sm { font-size: 10px; padding: 1px 7px; }
+
+.tn-grid-cell {
+  border: none;
+  border-left: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  background: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 3px;
+  padding: 0 3px 8px;
+  min-height: 46px;
+  cursor: pointer;
+}
+.tn-grid-cell > i {
+  display: block;
+  width: 9px;
+  box-sizing: border-box;
+  border-radius: 1px;
+}
+.tn-grid-cell > i[data-band="low"] {
+  background: var(--tension-intensity-low-bg);
+  border: 1px solid var(--tension-intensity-low-edge);
+}
+.tn-grid-cell > i[data-band="mid"] {
+  background: var(--tension-intensity-mid-bg);
+  border: 1px solid var(--tension-intensity-mid-edge);
+}
+.tn-grid-cell > i[data-band="high"] {
+  background: var(--tension-intensity-high-bg);
+  border: 1px solid var(--tension-intensity-high-edge);
+}
+/* Dropped TEUs are hollow and dashed: present in the book, absent from the
+   analysis. The outline reads as "missing" in the Ink theme too. */
+.tn-grid-cell > i[data-orphan="true"] {
+  background: transparent;
+  border: 1px dashed var(--color-warning);
+}
+
+.tn-grid-rowgroup.orphan .tn-grid-rowlabel,
+.tn-grid-rowgroup.orphan .tn-grid-cell {
+  border-top: 2px solid var(--border);
+  border-bottom: none;
+}
+.tn-grid-orphan-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font: 600 13px var(--font-serif);
+  color: var(--fg-primary);
+}
+.tn-grid-orphan-toggle { font: 400 11px var(--font-sans); color: var(--accent); }
+.tn-grid-orphan-meta { font: 400 11px var(--font-sans); color: var(--color-warning); }
+
+.tn-orphan-list {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tn-orphan-list-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
+.tn-orphan-list-title { font: 600 13px var(--font-serif); }
+.tn-orphan-row {
+  display: grid;
+  grid-template-columns: 50px 1fr 100px 132px;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+}
+/* A dropped TEU at 0.9 is the strongest evidence in the book going unused. */
+.tn-orphan-row[data-strong="true"] { background: var(--color-warning-bg); }
+.tn-orphan-ch { font: 600 12px var(--font-serif); }
+.tn-orphan-poles { font: 400 13.5px var(--font-serif); text-wrap: pretty; }
+.tn-orphan-intensity { display: flex; align-items: center; gap: 6px; }
+.tn-bar.sm { width: 46px; height: 5px; }
+.tn-orphan-select {
+  padding: 4px 8px;
+  font: 400 11px var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  border: 1px solid var(--accent);
+  border-radius: var(--btn-radius);
+  max-width: 100%;
+}
+
+/* ── Mode toggle + TEU inspector ───────────────────────────────── */
+
+.tn-mode-row { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; }
+.tn-mode-seg {
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-tertiary);
+  border-radius: var(--control-radius);
+}
+.tn-mode-btn {
+  padding: 6px 15px;
+  font: 400 12.5px var(--font-sans);
+  background: transparent;
+  color: var(--fg-secondary);
+  border: none;
+  border-radius: calc(var(--control-radius) - 2px);
+  cursor: pointer;
+}
+.tn-mode-btn[aria-pressed="true"] {
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-weight: 500;
+  box-shadow: var(--shadow-sm);
+}
+.tn-mode-hint { font: 400 11.5px var(--font-sans); color: var(--fg-muted); }
+
+.tn-teu-mode { display: flex; flex-direction: column; gap: 10px; padding-bottom: 26px; }
+.tn-teu-meta { font: 400 11.5px var(--font-sans); color: var(--fg-secondary); }
+.tn-teu-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  font: 400 12px var(--font-sans);
+  background: var(--bg-primary);
+  color: var(--fg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--control-radius);
+  cursor: pointer;
+}
+.tn-teu-filter > i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  flex: none;
+  border: 1px dashed currentColor;
+  border-radius: 1px;
+}
+.tn-teu-filter[aria-pressed="true"] {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+  font-weight: 500;
+}
+
+.tn-teu-chapter {
+  border: var(--card-border-width) solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+.tn-teu-chapter-head {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 11px 15px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+}
+.tn-teu-chapter-head[data-open="true"] {
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+}
+.tn-teu-ch-label { font: 600 14px var(--font-serif); flex: 0 0 60px; }
+.tn-teu-ch-count { font: 400 11px var(--font-mono); color: var(--fg-muted); flex: 0 0 62px; }
+.tn-teu-mini { display: flex; align-items: flex-end; gap: 3px; height: 20px; flex: 0 0 auto; }
+.tn-teu-mini > i { display: block; width: 8px; box-sizing: border-box; border-radius: 1px; }
+.tn-teu-mini > i[data-band="low"] { background: var(--tension-intensity-low-bg); border: 1px solid var(--tension-intensity-low-edge); }
+.tn-teu-mini > i[data-band="mid"] { background: var(--tension-intensity-mid-bg); }
+.tn-teu-mini > i[data-band="high"] { background: var(--tension-intensity-high-bg); }
+.tn-teu-mini > i[data-orphan="true"] { background: transparent; border: 1px dashed var(--color-warning); }
+.tn-teu-ch-note { font: 400 11px var(--font-sans); color: var(--fg-muted); padding-left: 6px; }
+.tn-teu-ch-note[data-warn="true"] { color: var(--color-warning); }
+.tn-teu-ch-toggle { font: 400 11px var(--font-sans); color: var(--accent); }
+
+.tn-teu-grid {
+  padding: 13px 15px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+.tn-teu-card {
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--bg-primary);
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+/* Dashed + recessed: this TEU exists but nothing downstream uses it. */
+.tn-teu-card[data-orphan="true"] {
+  border-style: dashed;
+  border-color: var(--color-warning);
+  background: var(--bg-secondary);
+}
+.tn-teu-card-top { display: flex; align-items: center; gap: 8px; }
+.tn-bar.md { width: 38px; height: 5px; }
+.tn-teu-source {
+  font: 400 10.5px var(--font-sans);
+  color: var(--fg-muted);
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--badge-radius);
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tn-teu-source[data-orphan="true"] {
+  color: var(--color-warning);
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+.tn-teu-poles { font: 400 14px/1.5 var(--font-serif); text-wrap: pretty; }
+.tn-teu-summary {
+  margin: 0;
+  font: 400 12.5px/1.75 var(--font-serif);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.tn-teu-carriers { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.tn-teu-carrier-label {
+  font: 500 9.5px var(--font-sans);
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+}
+.tn-teu-card-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }

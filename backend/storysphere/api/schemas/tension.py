@@ -25,6 +25,12 @@ class TensionLineReviewRequest(BaseModel):
     review_status: Literal["approved", "modified", "rejected"]
     canonical_pole_a: str | None = None
     canonical_pole_b: str | None = None
+    note: str | None = None  # Why the labels were rewritten; "modified" only
+
+
+class AssignTEURequest(BaseModel):
+    document_id: str
+    line_id: str
 
 
 class SynthesizeThemeRequest(BaseModel):
@@ -73,6 +79,15 @@ class TEUSummary(BaseModel):
         default=None,
         description="How pole B's carriers embody that side of the tension",
     )
+    flipped: bool = Field(
+        default=False,
+        description=(
+            "This TEU assigns the line's two poles the opposite way round from "
+            "the majority of its siblings. False also covers 'undecidable' — "
+            "no shared carriers with the rest of the line, or the same carriers "
+            "on both poles — so it understates rather than invents a conflict"
+        ),
+    )
 
 
 class TEUDetail(BaseModel):
@@ -103,6 +118,21 @@ class TEUDetail(BaseModel):
     )
 
 
+class TensionLineEditResponse(BaseModel):
+    """What a reviewer changed, for the drawer's "human edit" note.
+
+    ``original_*`` is grouping's wording, not the previous edit's — the line's
+    own ``canonical_pole_*`` always hold the labels currently in force. There is
+    no ``edited_by``: the app has no notion of user identity, and a hardcoded
+    one would be fiction.
+    """
+
+    original_pole_a: str
+    original_pole_b: str
+    note: str | None = None
+    edited_at: str
+
+
 class TensionLineDetail(BaseModel):
     """A TensionLine with its constituent TEUs embedded for in-page review."""
 
@@ -115,6 +145,18 @@ class TensionLineDetail(BaseModel):
     chapter_range: list[int] = Field(default_factory=list)
     thematic_note: str | None = None
     review_status: Literal["pending", "approved", "modified", "rejected"]
+    assembled_by: str = Field(
+        default="tension_grouper_v1",
+        description="Version tag of the grouping step that produced this line",
+    )
+    assembled_at: str | None = Field(
+        default=None,
+        description="When grouping produced this line; null for lines cached before provenance existed",
+    )
+    edit: TensionLineEditResponse | None = Field(
+        default=None,
+        description="Present once a reviewer has rewritten the pole labels",
+    )
     teus: list[TEUSummary] = Field(default_factory=list)
 
 
@@ -136,3 +178,11 @@ class TensionThemeResponse(BaseModel):
         ),
     )
     stale_reason: Literal["no_lines", "lines_regrouped", "review_changed"] | None = None
+    reviewed_line_count: int | None = Field(
+        default=None,
+        description="TensionLines already reviewed at synthesis; null for pre-existing themes",
+    )
+    total_line_count: int | None = Field(
+        default=None,
+        description="TensionLines that existed at synthesis; null for pre-existing themes",
+    )

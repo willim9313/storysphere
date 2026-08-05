@@ -1,5 +1,13 @@
 import { apiFetch } from './client';
+import type { components } from './generated';
 import type { TaskStatus, TensionLine, TensionTheme } from './types';
+
+/** Response shape of #14e — generated, so it carries `flipped`, `edit` and the
+ *  grouping provenance that the hand-written TensionLine in types.ts predates. */
+type TensionLineDetail = components['schemas']['TensionLineDetail'];
+type TEUDetail = components['schemas']['TEUDetail'];
+/** #14i — generated, so it carries reviewed_line_count / total_line_count. */
+type TensionThemeResponse = components['schemas']['TensionThemeResponse'];
 
 // ── Mode A: Full-book TEU assembly ──────────────────────────────
 
@@ -36,8 +44,34 @@ export function fetchGroupTensionLinesTask(taskId: string): Promise<TaskStatus> 
   return apiFetch<TaskStatus>(`/tension/lines/group/${taskId}`);
 }
 
-export function fetchTensionLines(bookId: string): Promise<TensionLine[]> {
-  return apiFetch<TensionLine[]>(`/tension/lines?book_id=${bookId}`);
+export function fetchTensionLines(bookId: string): Promise<TensionLineDetail[]> {
+  return apiFetch<TensionLineDetail[]>(`/tension/lines?book_id=${bookId}`);
+}
+
+/**
+ * Every TEU Step 1 produced, with `line_id` null for the ones grouping dropped.
+ * The only view of what Step 2 silently discarded — see #14d-2.
+ */
+export function fetchTEUs(bookId: string): Promise<TEUDetail[]> {
+  return apiFetch<TEUDetail[]>(`/tension/teus?book_id=${bookId}`);
+}
+
+/**
+ * Attach a TEU grouping left out to a TensionLine (#14d-3).
+ *
+ * The line's chapter_range and intensity_summary are recomputed server-side, so
+ * a repaired line comes back shaped exactly like one the model got right.
+ * Rejects with 409 if another line already claims the TEU.
+ */
+export function assignTEUToLine(
+  teuId: string,
+  bookId: string,
+  lineId: string,
+): Promise<TensionLine> {
+  return apiFetch<TensionLine>(`/tension/teus/${teuId}/assign`, {
+    method: 'PATCH',
+    body: JSON.stringify({ document_id: bookId, line_id: lineId }),
+  });
 }
 
 export function reviewTensionLine(
@@ -46,6 +80,8 @@ export function reviewTensionLine(
   reviewStatus: 'approved' | 'modified' | 'rejected',
   canonicalPoleA?: string,
   canonicalPoleB?: string,
+  /** Why the labels were rewritten. Only recorded for 'modified' — see #14f. */
+  note?: string,
 ): Promise<TensionLine> {
   return apiFetch<TensionLine>(`/tension/lines/${lineId}/review`, {
     method: 'PATCH',
@@ -54,6 +90,7 @@ export function reviewTensionLine(
       review_status: reviewStatus,
       canonical_pole_a: canonicalPoleA,
       canonical_pole_b: canonicalPoleB,
+      note,
     }),
   });
 }
@@ -75,8 +112,8 @@ export function fetchSynthesizeThemeTask(taskId: string): Promise<TaskStatus> {
   return apiFetch<TaskStatus>(`/tension/theme/synthesize/${taskId}`);
 }
 
-export function fetchTensionTheme(bookId: string): Promise<TensionTheme> {
-  return apiFetch<TensionTheme>(`/tension/theme?book_id=${bookId}`);
+export function fetchTensionTheme(bookId: string): Promise<TensionThemeResponse> {
+  return apiFetch<TensionThemeResponse>(`/tension/theme?book_id=${bookId}`);
 }
 
 export function reviewTensionTheme(
