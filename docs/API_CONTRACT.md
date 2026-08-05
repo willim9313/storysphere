@@ -1293,7 +1293,7 @@ interface Carrier {
 > `flipped` 是**衍生值、不落地**，門檻或演算法調整不需 migration。同一批 TEU 在
 > `#14d-2` 不帶此欄位——翻轉只在「所屬張力線」的脈絡下才有意義。
 
-**UI 使用頁面**：張力分析頁（hero / 軌跡圖 dashboard / 審核 LineCard 證據區）
+**UI 使用頁面**：張力分析頁（hero / 章節格點 / 審核抽屜證據區）
 
 **備註**：`teus[]` 由 `TensionService.get_lines_with_teus()` 透過 `AnalysisCache.list_by_prefix("teu:")` 一次取出，過濾掉與 `teu_ids` 不匹配的條目；若 TEU 已逾 TTL，該條 line 的 `teus` 為空陣列（line 仍照常回傳）。
 
