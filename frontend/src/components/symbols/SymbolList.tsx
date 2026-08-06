@@ -5,6 +5,7 @@ import type { ImageryEntity, SymbolInterpretation } from '@/api/symbols';
 import { SYMBOL_TYPES, POLARITY_STYLE, typeStyle } from './tokens';
 import { ReviewBadge } from './Badges';
 import { DensityStrip } from './DensityStrip';
+import { globalChapterMax } from './chapterAxis';
 
 export type SymbolSort = 'freq' | 'firstCh' | 'review';
 
@@ -46,6 +47,14 @@ export function SymbolList({
     });
     return c;
   }, [entities]);
+
+  // Rows are read down the list, so their strips need one shared scale — see
+  // globalChapterMax. Derived from all entities, not the filtered subset, so
+  // switching the type filter doesn't restate every strip.
+  const stripMax = useMemo(
+    () => globalChapterMax(entities.map((e) => e.chapter_distribution)),
+    [entities],
+  );
 
   const filtered = useMemo(() => {
     let xs = entities;
@@ -168,7 +177,12 @@ export function SymbolList({
                   {e.aliases.length > 0 && (
                     <div className="sym-row-aliases">{e.aliases.slice(0, 2).join(' · ')}</div>
                   )}
-                  <DensityStrip distribution={e.chapter_distribution} totalChapters={totalChapters} height={3} />
+                  <DensityStrip
+                    distribution={e.chapter_distribution}
+                    totalChapters={totalChapters}
+                    height={3}
+                    max={stripMax}
+                  />
                 </div>
                 <div className="sym-row-end">
                   <span className="sym-row-freq">{e.frequency}</span>

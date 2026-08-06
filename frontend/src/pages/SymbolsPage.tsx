@@ -31,6 +31,12 @@ import { CoOccurrencePanel } from '@/components/symbols/CoOccurrencePanel';
 import { OccurrencesTimeline } from '@/components/symbols/OccurrencesTimeline';
 import { useSymbolInterpretationTask } from '@/components/symbols/hooks/useSymbolInterpretationTask';
 import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
+import {
+  bodyChapterMax,
+  firstBodyChapter,
+  outsideBodyCount,
+  peakBodyChapters,
+} from '@/components/symbols/chapterAxis';
 
 import '@/styles/symbols.css';
 
@@ -215,19 +221,13 @@ export default function SymbolsPage() {
 
   // ── Computed ─────────────────────────────────────────────────
   const selected = entities.find((e) => e.id === selectedId) ?? null;
-  const totalChapters = useMemo(() => {
-    const fromBook = book?.chapterCount;
-    if (fromBook && fromBook > 0) return fromBook;
-    return Math.max(
-      20,
-      entities.reduce((acc, e) => {
-        const last = Object.keys(e.chapter_distribution)
-          .map(Number)
-          .reduce((m, n) => Math.max(m, n), 0);
-        return Math.max(acc, last);
-      }, 0),
-    );
-  }, [book, entities]);
+  // Shared axis edge for every chart on the page. Taking book.chapterCount alone
+  // hid occurrences recorded past it (名字的潮汐 has symbols in chapter 11 with a
+  // chapterCount of 10); bodyChapterMax widens the axis to fit the data.
+  const totalChapters = useMemo(
+    () => bodyChapterMax(entities.map((e) => e.chapter_distribution), book?.chapterCount),
+    [book, entities],
+  );
 
   const isGenerating = interpretationTask.running && selectedId !== null;
 
@@ -356,13 +356,15 @@ export default function SymbolsPage() {
 
 function ChapterCard({ entity, totalChapters }: Readonly<{ entity: ImageryEntity; totalChapters: number }>) {
   const { t } = useTranslation('analysis');
-  const peakChapters = useMemo(() => {
-    return Object.entries(entity.chapter_distribution)
-      .map(([ch, cnt]) => ({ ch: Number(ch), cnt }))
-      .sort((a, b) => b.cnt - a.cnt)
-      .slice(0, 3)
-      .map((e) => e.ch);
-  }, [entity.chapter_distribution]);
+  // Peaks and "first seen" are derived from the same body-chapter view the chart
+  // draws, so the caption can no longer contradict the marker: entity.first_chapter
+  // is the raw minimum and reads "首見第 -1 章" for anything mentioned in front matter.
+  const peakChapters = useMemo(
+    () => peakBodyChapters(entity.chapter_distribution),
+    [entity.chapter_distribution],
+  );
+  const firstChapter = firstBodyChapter(entity.chapter_distribution);
+  const outside = outsideBodyCount(entity.chapter_distribution);
   const peakLabel = peakChapters.length > 0 ? t('symbol.peakChapters', { chapter: peakChapters[0] }) : null;
   return (
     <section className="sym-card">
@@ -370,8 +372,15 @@ function ChapterCard({ entity, totalChapters }: Readonly<{ entity: ImageryEntity
         <BookOpen size={13} style={{ color: 'var(--accent)' }} />
         <span className="sym-card-title">{t('symbol.chapterDist')}</span>
         <span className="sym-card-meta">
-          {t('symbol.firstSeen', { chapter: entity.first_chapter ?? '?' })}
-          {peakLabel && <> · {peakLabel}</>}
+          {firstChapter != null && t('symbol.firstSeen', { chapter: firstChapter })}
+          {firstChapter != null && peakLabel && <> · </>}
+          {peakLabel}
+          {outside > 0 && (
+            <>
+              {(firstChapter != null || peakLabel) && <> · </>}
+              {t('symbol.outsideBody', { count: outside })}
+            </>
+          )}
         </span>
       </div>
       <div className="sym-card-body" style={{ overflowX: 'auto' }}>

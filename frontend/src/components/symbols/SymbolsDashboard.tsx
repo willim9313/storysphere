@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ImageryEntity, Polarity, SymbolInterpretation } from '@/api/symbols';
+import { BODY_CHAPTER_MIN, globalChapterMax, outsideBodyCount } from './chapterAxis';
 
 const TYPE_DOT: Record<string, string> = {
   object:  'var(--symbol-object-dot)',
@@ -84,6 +85,20 @@ export function SymbolsDashboard({ entities, interpretations, totalChapters }: P
     [entities],
   );
   const freqMax = sortedByFreq[0]?.frequency ?? 1;
+
+  // One shading scale for the whole heatmap. Each row used to be normalised
+  // against its own peak, which made colour mean "does this chapter contain the
+  // symbol": 海 (13 occurrences) rendered palest while every one-occurrence
+  // symbol rendered darkest — the inverse of what the heatmap is read for.
+  const heatMax = useMemo(
+    () => globalChapterMax(entities.map((e) => e.chapter_distribution)),
+    [entities],
+  );
+  const chapterCount = Math.max(totalChapters - BODY_CHAPTER_MIN + 1, 0);
+  const heatOutside = useMemo(
+    () => entities.reduce((sum, e) => sum + outsideBodyCount(e.chapter_distribution), 0),
+    [entities],
+  );
 
   const POLARITY_ORDER = ['positive', 'mixed', 'neutral', 'negative'] as const;
 
@@ -264,14 +279,15 @@ export function SymbolsDashboard({ entities, interpretations, totalChapters }: P
           <div className="sym-dash-card-head">
             <span className="sym-dash-card-title">{t('symbol.dashboard.heatTitle')}</span>
             <span className="sym-dash-card-meta">
-              {t('symbol.dashboard.heatMeta', { chapters: totalChapters })}
+              {t('symbol.dashboard.heatMeta', { chapters: chapterCount })}
+              {heatOutside > 0 && <> · {t('symbol.outsideBody', { count: heatOutside })}</>}
             </span>
           </div>
           <div className="sym-dash-heat">
             <div className="sym-dash-heat-axis">
-              {Array.from({ length: totalChapters }, (_, i) => {
-                const ch = i + 1;
-                const isMajor = ch === 1 || ch % 5 === 0;
+              {Array.from({ length: chapterCount }, (_, i) => {
+                const ch = i + BODY_CHAPTER_MIN;
+                const isMajor = ch === BODY_CHAPTER_MIN || ch % 5 === 0;
                 return (
                   <span
                     key={i}
@@ -282,31 +298,29 @@ export function SymbolsDashboard({ entities, interpretations, totalChapters }: P
                 );
               })}
             </div>
-            {entities.map((e) => {
-              const max = Math.max(...Object.values(e.chapter_distribution), 1);
-              return (
-                <div key={e.id} className="sym-dash-heat-row">
-                  <div className="sym-dash-heat-name">{e.term}</div>
-                  <div className="sym-dash-heat-cells">
-                    {Array.from({ length: totalChapters }, (_, i) => {
-                      const cnt = e.chapter_distribution[String(i + 1)] ?? 0;
-                      return (
-                        <div
-                          key={i}
-                          className="sym-dash-heat-cell"
-                          style={{
-                            background: densityToken(cnt, max),
-                            opacity: cnt === 0 ? 0.45 : 1,
-                          }}
-                          title={`${t('symbol.chapterN', { n: i + 1 })}: ${cnt}`}
-                        />
-                      );
-                    })}
-                  </div>
-                  <div className="sym-dash-heat-freq">{e.frequency}</div>
+            {entities.map((e) => (
+              <div key={e.id} className="sym-dash-heat-row">
+                <div className="sym-dash-heat-name">{e.term}</div>
+                <div className="sym-dash-heat-cells">
+                  {Array.from({ length: chapterCount }, (_, i) => {
+                    const ch = i + BODY_CHAPTER_MIN;
+                    const cnt = e.chapter_distribution[String(ch)] ?? 0;
+                    return (
+                      <div
+                        key={i}
+                        className="sym-dash-heat-cell"
+                        style={{
+                          background: densityToken(cnt, heatMax),
+                          opacity: cnt === 0 ? 0.45 : 1,
+                        }}
+                        title={`${t('symbol.chapterN', { n: ch })}: ${cnt}`}
+                      />
+                    );
+                  })}
                 </div>
-              );
-            })}
+                <div className="sym-dash-heat-freq">{e.frequency}</div>
+              </div>
+            ))}
             <div className="sym-dash-heat-legend">
               <span>{t('symbol.dashboard.heatLegendLow')}</span>
               <div className="sym-dash-heat-cell" style={{ background: 'var(--symbol-density-low)', width: 14, flex: 'none' }} />

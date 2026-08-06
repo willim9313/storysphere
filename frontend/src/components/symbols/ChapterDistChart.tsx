@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { densityToken } from './tokens';
+import { BODY_CHAPTER_MIN } from './chapterAxis';
 
 interface ChapterDistChartProps {
   distribution: Record<string, number>;
@@ -20,8 +21,12 @@ export function ChapterDistChart({
   maxH = 64,
 }: Readonly<ChapterDistChartProps>) {
   const { t } = useTranslation('analysis');
-  const entries = Array.from({ length: totalChapters }, (_, i) => {
-    const ch = i + 1;
+  // `totalChapters` is the shared axis edge from `bodyChapterMax`, so it already
+  // covers chapters past the book's own chapterCount. Front matter (< 1) has no
+  // slot here; callers disclose it with `symbol.outsideBody`.
+  const chapterCount = Math.max(totalChapters - BODY_CHAPTER_MIN + 1, 0);
+  const entries = Array.from({ length: chapterCount }, (_, i) => {
+    const ch = i + BODY_CHAPTER_MIN;
     return { ch, cnt: distribution[String(ch)] ?? 0 };
   });
   const maxCnt = Math.max(...entries.map((e) => e.cnt), 1);
@@ -29,7 +34,7 @@ export function ChapterDistChart({
 
   const labelH = 14;
   const peakH = 10;
-  const svgW = totalChapters * (barW + gap);
+  const svgW = chapterCount * (barW + gap);
   const svgH = maxH + labelH + peakH;
   const peakSet = new Set(peakChapters);
 
@@ -82,7 +87,10 @@ export function ChapterDistChart({
           style={{
             position: 'absolute',
             top: 0,
-            left: Math.min(Math.max((hovered - 1) * (barW + gap) - 20, 0), svgW - 120),
+            left: Math.min(
+              Math.max((hovered - BODY_CHAPTER_MIN) * (barW + gap) - 20, 0),
+              Math.max(svgW - 120, 0),
+            ),
             background: 'var(--fg-primary)',
             color: 'var(--bg-primary)',
             padding: '4px 8px',

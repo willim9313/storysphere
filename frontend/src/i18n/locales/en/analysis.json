@@ -1262,6 +1262,7 @@
     "chapterDist": "Chapter distribution",
     "firstSeen": "First seen Ch. {{chapter}}",
     "peakChapters": "Peak at Ch. {{chapter}}",
+    "outsideBody": "{{count}} more outside the main text",
     "densityLow": "Low",
     "densityMid": "Mid",
     "densityHigh": "High",
