@@ -1262,6 +1262,7 @@
     "chapterDist": "章節分布",
     "firstSeen": "首見第 {{chapter}} 章",
     "peakChapters": "峰值第 {{chapter}} 章",
+    "outsideBody": "另有 {{count}} 次位於非正文",
     "densityLow": "低",
     "densityMid": "中",
     "densityHigh": "高",
