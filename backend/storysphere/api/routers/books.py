@@ -1507,10 +1507,9 @@ async def list_character_analyses(
     unanalyzed: list[dict] = []
     for e in characters:
         cache_key = AnalysisCache.make_key("character", book_id, e.name)
-        cached = await cache.get(cache_key)
-        if cached is not None:
+        result = await cache.get_as(cache_key, CharacterAnalysisResult)
+        if result is not None:
             try:
-                result = CharacterAnalysisResult.model_validate(cached)
                 archetypes = {a.framework: a.primary for a in result.archetypes}
                 analyzed.append(
                     AnalysisItem(
@@ -1575,10 +1574,9 @@ async def list_event_analyses(
             else (ev.narrative_mode if isinstance(ev.narrative_mode, str) else None)
         )
         cache_key = f"event:{book_id}:{ev.id}"
-        cached = await cache.get(cache_key)
-        if cached is not None:
+        result = await cache.get_as(cache_key, EventAnalysisResult)
+        if result is not None:
             try:
-                result = EventAnalysisResult.model_validate(cached)
                 importance = (
                     result.eep.event_importance.name
                     if result.eep and hasattr(result.eep.event_importance, "name")
@@ -1724,11 +1722,10 @@ async def get_entity_analysis(
 
     cache_key = AnalysisCache.make_key("character", book_id, entity.name)
     try:
-        cached = await cache.get(cache_key)
-        if cached is not None:
+        from storysphere.services.analysis_models import CharacterAnalysisResult
+        result = await cache.get_as(cache_key, CharacterAnalysisResult)
+        if result is not None:
             logger.info("Entity analysis cache HIT: key=%s", cache_key)
-            from storysphere.services.analysis_models import CharacterAnalysisResult
-            result = CharacterAnalysisResult.model_validate(cached)
             return CharacterAnalysisDetailResponse(
                 entity_id=entity_id,
                 entity_name=entity.name,
@@ -1805,9 +1802,9 @@ async def trigger_entity_analysis(
     if body.mode == "retryFailed":
         from storysphere.services.analysis_models import CharacterAnalysisResult  # noqa: PLC0415
         cache_key = AnalysisCache.make_key("character", book_id, entity.name)
-        cached = await cache.get(cache_key)
+        cached = await cache.get_as(cache_key, CharacterAnalysisResult)
         if cached:
-            retry_parts = CharacterAnalysisResult.model_validate(cached).failed_parts
+            retry_parts = cached.failed_parts
     else:
         force_refresh = True
 
@@ -2152,9 +2149,9 @@ async def trigger_event_analysis(
     force_refresh = False
     if body.mode == "retryFailed":
         from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
-        cached = await cache.get(f"event:{book_id}:{event_id}")
+        cached = await cache.get_as(f"event:{book_id}:{event_id}", EventAnalysisResult)
         if cached:
-            retry_parts = EventAnalysisResult.model_validate(cached).failed_parts
+            retry_parts = cached.failed_parts
     else:
         force_refresh = True
 
@@ -2187,11 +2184,6 @@ async def get_event_analysis(
     if event is None:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
-    cache_key = f"event:{book_id}:{event_id}"
-    cached = await cache.get(cache_key)
-    if cached is None:
-        raise HTTPException(status_code=404, detail="Event analysis not found. Run analysis first.")
-
     from storysphere.api.schemas.books import (  # noqa: PLC0415
         CausalityResponse,
         EepParticipantRole,
@@ -2200,7 +2192,10 @@ async def get_event_analysis(
     )
     from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
 
-    result = EventAnalysisResult.model_validate(cached)
+    cache_key = f"event:{book_id}:{event_id}"
+    result = await cache.get_as(cache_key, EventAnalysisResult)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Event analysis not found. Run analysis first.")
     return EventAnalysisFullResponse(
         event_id=result.event_id,
         title=result.title,
@@ -2535,6 +2530,9 @@ async def get_book_timeline(
     analyzed_ids: set[str] = set()
     for ev in all_events:
         cache_key = f"event:{book_id}:{ev.id}"
+        # Presence alone counts as analysed here — an entry whose shape has
+        # drifted still means the event was analysed, it just cannot supply an
+        # importance. Reading via get_as would drop it from the coverage stats.
         cached = await cache.get(cache_key)
         if cached is not None:
             analyzed_count += 1

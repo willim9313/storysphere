@@ -16,6 +16,8 @@ from storysphere.services.analysis_models import (  # noqa: E402
     ImpactAnalysis,
 )
 
+from tests.conftest import attach_get_as
+
 
 def _partial_cached() -> dict:
     return CharacterAnalysisResult(
@@ -38,7 +40,7 @@ def _event_cached(failed_parts: list[str]) -> dict:
 
 def _override_cache(client, cached):
     from storysphere.api import deps
-    mock_cache = AsyncMock()
+    mock_cache = attach_get_as(AsyncMock())
     mock_cache.get = AsyncMock(return_value=cached)
     mock_cache.set = AsyncMock()
     client.app.dependency_overrides[deps.get_analysis_cache] = lambda: mock_cache

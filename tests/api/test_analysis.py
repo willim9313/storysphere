@@ -10,6 +10,8 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.conftest import attach_get_as
+
 sys.path.insert(0, "src")
 
 
@@ -145,7 +147,7 @@ def jung_schmidt_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, moc
     cached = _make_cached_character_result().model_dump()
     cache_key = AnalysisCache.make_key("character", "doc-1", "Alice")
 
-    mock_cache = AsyncMock()
+    mock_cache = attach_get_as(AsyncMock())
 
     def _get(key):
         return cached if key == cache_key else None
@@ -302,7 +304,7 @@ def batch_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_
     from storysphere.api.main import create_app
 
     cache_store: dict = {}
-    mock_cache = AsyncMock()
+    mock_cache = attach_get_as(AsyncMock())
 
     def _get(key):
         return cache_store.get(key)

@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock
 
 import pytest
-
 from storysphere.agents.analysis_agent import AnalysisAgent
 from storysphere.services.analysis_models import (
     CausalityAnalysis,
@@ -17,6 +16,8 @@ from storysphere.services.analysis_models import (
     EventSummary,
     ImpactAnalysis,
 )
+
+from tests.conftest import attach_get_as
 
 
 def _make_event_result(event_id: str = "evt-1") -> EventAnalysisResult:
@@ -46,7 +47,7 @@ class TestAnalyzeEventCacheHit:
         cached_result = _make_event_result()
         serialized = cached_result.model_dump(mode="json")
 
-        cache = AsyncMock()
+        cache = attach_get_as(AsyncMock())
         cache.get = AsyncMock(return_value=serialized)
         cache.set = AsyncMock()
 
@@ -70,7 +71,7 @@ class TestAnalyzeEventCacheMiss:
     async def test_cache_miss_calls_service_and_stores(self):
         expected = _make_event_result()
 
-        cache = AsyncMock()
+        cache = attach_get_as(AsyncMock())
         cache.get = AsyncMock(return_value=None)
         cache.set = AsyncMock()
 
@@ -97,7 +98,7 @@ class TestAnalyzeEventForceRefresh:
     async def test_force_refresh_bypasses_cache(self):
         expected = _make_event_result()
 
-        cache = AsyncMock()
+        cache = attach_get_as(AsyncMock())
         cache.get = AsyncMock()
         cache.set = AsyncMock()
 

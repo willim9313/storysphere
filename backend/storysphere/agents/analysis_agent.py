@@ -86,11 +86,7 @@ class AnalysisAgent:
 
         # Partial re-run: reuse cached result, recompute only failed parts.
         if retry_parts and self._cache is not None:
-            cached = await self._cache.get(cache_key)
-            base = (
-                CharacterAnalysisResult.model_validate(cached)
-                if cached is not None else None
-            )
+            base = await self._cache.get_as(cache_key, CharacterAnalysisResult)
             result = await self._service.analyze_character(
                 entity_name=entity_name,
                 document_id=document_id,
@@ -105,11 +101,11 @@ class AnalysisAgent:
 
         # 1. Check cache (unless force_refresh)
         if self._cache is not None and not force_refresh:
-            cached = await self._cache.get(cache_key)
+            cached = await self._cache.get_as(cache_key, CharacterAnalysisResult)
             if cached is not None:
                 logger.info("Cache HIT for %s", cache_key)
                 _metrics.record_cache_event("character", hit=True, cache_key=cache_key)
-                return CharacterAnalysisResult.model_validate(cached)
+                return cached
             logger.info("Cache MISS for %s", cache_key)
             _metrics.record_cache_event("character", hit=False, cache_key=cache_key)
 
@@ -174,11 +170,7 @@ class AnalysisAgent:
 
         # Partial re-run: reuse cached result, recompute only failed parts.
         if retry_parts and self._cache is not None:
-            cached = await self._cache.get(cache_key)
-            base = (
-                EventAnalysisResult.model_validate(cached)
-                if cached is not None else None
-            )
+            base = await self._cache.get_as(cache_key, EventAnalysisResult)
             result = await self._service.analyze_event(
                 event_id=event_id,
                 document_id=document_id,
@@ -191,11 +183,11 @@ class AnalysisAgent:
             return result
 
         if self._cache is not None and not force_refresh:
-            cached = await self._cache.get(cache_key)
+            cached = await self._cache.get_as(cache_key, EventAnalysisResult)
             if cached is not None:
                 logger.info("Cache HIT for %s", cache_key)
                 _metrics.record_cache_event("event", hit=True, cache_key=cache_key)
-                return EventAnalysisResult.model_validate(cached)
+                return cached
             logger.info("Cache MISS for %s", cache_key)
             _metrics.record_cache_event("event", hit=False, cache_key=cache_key)
 
@@ -258,11 +250,11 @@ class AnalysisAgent:
         cache_key = f"symbol_analysis:{book_id}:{imagery_id}"
 
         if self._cache is not None and not force_refresh:
-            cached = await self._cache.get(cache_key)
+            cached = await self._cache.get_as(cache_key, SymbolInterpretation)
             if cached is not None:
                 logger.info("Cache HIT for %s", cache_key)
                 _metrics.record_cache_event("symbol", hit=True, cache_key=cache_key)
-                return SymbolInterpretation.model_validate(cached)
+                return cached
             logger.info("Cache MISS for %s", cache_key)
             _metrics.record_cache_event("symbol", hit=False, cache_key=cache_key)
 
