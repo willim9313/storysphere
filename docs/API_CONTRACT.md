@@ -2074,7 +2074,22 @@ interface ChapterDistribution {
 
 **Query Params**：`book_id=<bookId>`（必填）
 
-**Response 200**：`NarrativeStructure`（model_dump 格式）
+**Response 200**：`NarrativeStructure`（model_dump 格式）+ 下列兩個衍生欄位
+
+```ts
+{
+  // …NarrativeStructure 既有欄位（snake_case，domain model）
+  is_stale: boolean;          // 快取分析早於它所依賴的 pipeline 步驟最後一次執行
+  stale_reason: string | null; // 造成過期的步驟名，如 "feature-extraction"
+}
+```
+
+`is_stale` 每次請求即時推導（比對快取條目的寫入時間與 `PipelineStatus` 的步驟完成
+時間），**不寫入快取**。重跑 pipeline 步驟時，後端不再刪除本書層級的分析——包含
+`review_status`——而是留著並在此回報過期，由使用者決定要不要重跑。
+
+無法判定時一律回報 `false`：步驟沒有完成時間戳（代表它上次執行早於此機制引入）
+不會被當成過期，否則全書庫會一次被標記。
 
 快取條目遺失但 KG 中的事件仍帶有 `narrative_weight` 時，後端會從 KG 事件權重與
 `hero_journey` 快取重建 NarrativeStructure 後回傳 200，不需重跑 #21a／#21e。
