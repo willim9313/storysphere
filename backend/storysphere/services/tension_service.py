@@ -629,7 +629,10 @@ class TensionService:
         return reviewed if reviewed else lines
 
     async def theme_staleness(
-        self, document_id: str, theme: TensionTheme
+        self,
+        document_id: str,
+        theme: TensionTheme,
+        pipeline_status=None,
     ) -> tuple[bool, str | None]:
         """Report whether ``theme`` still reflects the current TensionLines.
 
@@ -642,9 +645,23 @@ class TensionService:
         fresh even though its inputs changed wording. Detecting that needs a
         content hash or per-line timestamps; neither exists yet.
 
+        Passing ``pipeline_status`` also checks whether a pipeline rerun has
+        overtaken the cached theme, which outranks the line-membership
+        reasons: if the events were re-extracted, the lines the theme was
+        built from describe a book that no longer exists.
+
         Returns:
             ``(is_stale, reason)``; reason is None when fresh.
         """
+        if pipeline_status is not None:
+            from storysphere.services.cache_invalidation import staleness  # noqa: PLC0415
+
+            stale, _ = await staleness(
+                self._cache, f"tension_theme:{document_id}", pipeline_status
+            )
+            if stale:
+                return True, "pipeline_rerun"
+
         lines = await self.get_lines(document_id)
         if not lines:
             return True, "no_lines"
