@@ -6,6 +6,13 @@
 
 ---
 
+> **⚠️ 部分內容已被取代（2026-08-06, PR #24）**
+> 本 ADR 保留當時的決策原文，但下列敘述已不再符合實作：
+> `AnalysisCache` 的 7 天 TTL 已移除：條目保留至明確 `invalidate()`，改由重跑
+> pipeline 步驟或刪書時失效（見 `backend/storysphere/services/cache_invalidation.py`）。
+> 文中的 ChatState 5 分鐘工具結果快取從未實作，`CHAT_CACHE_TTL_SECONDS` 設定已移除。
+> 目前行為以 `docs/CORE.md` 為準。
+
 ## 背景 (Context)
 
 Agent 推理涉及 LLM 調用，需要定義延遲預期以指導設計。
