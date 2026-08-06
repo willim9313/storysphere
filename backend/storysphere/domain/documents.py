@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 from collections.abc import Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import Enum
 
 from pydantic import BaseModel, Field
@@ -28,6 +28,21 @@ class PipelineStatus(BaseModel):
     feature_extraction: StepStatus = StepStatus.pending
     knowledge_graph: StepStatus = StepStatus.pending
     symbol_discovery: StepStatus = StepStatus.pending
+
+    # When each step last completed. Compared against an AnalysisCache entry's
+    # ``created`` to tell whether a cached analysis predates the data it was
+    # built from — see services/cache_invalidation.py. None means the step has
+    # not finished since these fields were introduced, which reads as "cannot
+    # tell", and staleness then reports fresh rather than guessing.
+    summarization_at: datetime | None = None
+    feature_extraction_at: datetime | None = None
+    knowledge_graph_at: datetime | None = None
+    symbol_discovery_at: datetime | None = None
+
+    def mark_done(self, step_field: str, at: datetime | None = None) -> None:
+        """Set a step to done and stamp when it finished."""
+        setattr(self, step_field, StepStatus.done)
+        setattr(self, f"{step_field}_at", at or datetime.now(UTC))
 
 
 class ParagraphRole(str, Enum):

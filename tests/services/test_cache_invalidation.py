@@ -6,13 +6,20 @@ from storysphere.services.cache_invalidation import (
     ALL_STEPS,
     invalidate_for_steps,
     patterns_for,
+    stale_sources,
     teu_keys_for,
 )
 
 
 class TestPatternsFor:
     def test_book_id_is_substituted(self):
-        assert patterns_for("summarization", "book-1") == ["hero_journey:book-1"]
+        assert patterns_for("symbol-discovery", "book-1") == [
+            "sep:book-1:%", "symbol_analysis:book-1:%"
+        ]
+
+    def test_summarization_deletes_nothing(self):
+        """Its only derived cache is book-keyed, so it is staled, not deleted."""
+        assert patterns_for("summarization", "book-1") == []
 
     def test_unknown_step_yields_nothing(self):
         assert patterns_for("no-such-step", "book-1") == []
@@ -21,12 +28,13 @@ class TestPatternsFor:
         patterns = patterns_for("symbol-discovery", "book-1")
         assert set(patterns) == {"sep:book-1:%", "symbol_analysis:book-1:%"}
 
-    def test_feature_extraction_covers_event_derived_analyses(self):
-        """Re-extracting events invalidates everything keyed by an event."""
+    def test_feature_extraction_deletes_only_id_keyed_families(self):
+        """Book-keyed analyses survive the delete so they can be reported stale."""
         patterns = patterns_for("feature-extraction", "book-1")
+
         assert "event:book-1:%" in patterns
-        assert "narrative_structure:book-1" in patterns
-        assert "tension_lines:book-1" in patterns
+        assert "narrative_structure:book-1" not in patterns
+        assert "tension_lines:book-1" not in patterns
 
 
 class TestTeuKeysFor:
@@ -84,15 +92,31 @@ class TestInvalidateForSteps:
         called = {c.args[0] for c in cache.invalidate.call_args_list}
         families = {p.split(":")[0] for p in called}
         assert families == {
-            "hero_journey",
             "event",
             "character",
             "epistemic",
-            "narrative_structure",
-            "temporal_analysis",
-            "tension_lines",
-            "tension_theme",
             "voice_profile",
             "sep",
             "symbol_analysis",
         }
+
+
+class TestStaleSources:
+    """Book-keyed families report the steps that can age them."""
+
+    def test_narrative_structure_ages_with_event_extraction(self):
+        assert stale_sources("narrative_structure:book-1") == ("feature-extraction",)
+
+    def test_hero_journey_ages_with_both_its_inputs(self):
+        """It reads chapter summaries and resolves events."""
+        assert set(stale_sources("hero_journey:book-1")) == {
+            "summarization", "feature-extraction",
+        }
+
+    def test_deleted_families_are_never_stale(self):
+        """They are gone after a rerun, so there is nothing to date."""
+        assert stale_sources("event:book-1:ev-1") == ()
+        assert stale_sources("character:book-1:ent-1") == ()
+
+    def test_unknown_family_is_never_stale(self):
+        assert stale_sources("no_such_family:book-1") == ()
