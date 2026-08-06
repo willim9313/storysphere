@@ -1462,6 +1462,11 @@ export interface paths {
          * Get Narrative Structure
          * @description Return the cached NarrativeStructure for a book.
          *
+         *     ``is_stale`` reports that a pipeline step the analysis derives from has
+         *     been re-run since it was cached, so the result describes older data;
+         *     ``stale_reason`` names that step. Both are derived per request and never
+         *     persisted.
+         *
          *     Returns 404 if neither classify nor hero-journey has been run yet.
          */
         get: operations["get_narrative_structure_api_v1_narrative_get"];
@@ -1734,6 +1739,10 @@ export interface paths {
          *     TensionLines — re-grouping or subsequent review decisions leave it built on
          *     inputs that no longer apply, and re-running synthesis needs ``force=true``
          *     to get past the cache.
+         *
+         *     ``stale_reason="pipeline_rerun"`` outranks the others: if the events were
+         *     re-extracted, the lines the theme was built from describe a book that no
+         *     longer exists.
          *
          *     Returns 404 if synthesis has not been run yet.
          *     Trigger synthesis first with ``POST /tension/theme/synthesize``.
@@ -3340,6 +3349,53 @@ export interface components {
              */
             review_status: "pending" | "approved" | "rejected";
         };
+        /**
+         * NarrativeStructureResponse
+         * @description NarrativeStructure plus derived staleness.
+         *
+         *     Subclasses the domain model so every existing field keeps its name and
+         *     the two additions are purely additive for consumers. Staleness is never
+         *     persisted — the service writes the plain NarrativeStructure to cache.
+         */
+        NarrativeStructureResponse: {
+            /** Id */
+            id?: string;
+            /** Document Id */
+            document_id: string;
+            /** Kernel Event Ids */
+            kernel_event_ids?: string[];
+            /** Satellite Event Ids */
+            satellite_event_ids?: string[];
+            /** Unclassified Event Ids */
+            unclassified_event_ids?: string[];
+            /**
+             * Classification Source
+             * @default summary_heuristic
+             * @enum {string}
+             */
+            classification_source: "summary_heuristic" | "llm_classified" | "human_verified";
+            /** Hero Journey Stages */
+            hero_journey_stages?: components["schemas"]["HeroJourneyStage"][];
+            /** Propp Functions */
+            propp_functions?: components["schemas"]["ProppFunctionRef"][];
+            /**
+             * Review Status
+             * @default pending
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "rejected";
+            /**
+             * Is Stale
+             * @description Cached analysis predates a pipeline step it derives from
+             * @default false
+             */
+            is_stale: boolean;
+            /**
+             * Stale Reason
+             * @description Pipeline step whose rerun overtook the cached analysis
+             */
+            stale_reason?: string | null;
+        };
         /** NodeData */
         NodeData: {
             /** Nodeid */
@@ -4255,7 +4311,7 @@ export interface components {
              */
             is_stale: boolean;
             /** Stale Reason */
-            stale_reason?: ("no_lines" | "lines_regrouped" | "review_changed") | null;
+            stale_reason?: ("pipeline_rerun" | "no_lines" | "lines_regrouped" | "review_changed") | null;
             /**
              * Reviewed Line Count
              * @description TensionLines already reviewed at synthesis; null for pre-existing themes
@@ -4452,6 +4508,13 @@ export interface components {
             temporalAnalyzed: boolean;
             /** Temporalstructure */
             temporalStructure?: string | null;
+            /**
+             * Temporalisstale
+             * @default false
+             */
+            temporalIsStale: boolean;
+            /** Temporalstalereason */
+            temporalStaleReason?: string | null;
         };
         /**
          * TocEntry
@@ -6985,7 +7048,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["NarrativeStructure"];
+                    "application/json": components["schemas"]["NarrativeStructureResponse"];
                 };
             };
             /** @description Validation Error */

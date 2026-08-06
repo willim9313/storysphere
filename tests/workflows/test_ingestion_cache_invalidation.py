@@ -1,7 +1,9 @@
-"""A full ingestion run drops every analysis cache derived from the book.
+"""A full ingestion run drops the id-keyed analysis caches for the book.
 
-Re-ingesting regenerates the entity and event ids the analyses were keyed by,
-and nothing else clears them — entries no longer expire on their own.
+Re-ingesting regenerates the entity and event ids those entries were keyed by,
+leaving them unreachable, and nothing else clears them — entries no longer
+expire on their own. Book-keyed analyses are deliberately left in place and
+reported stale instead, so they are absent from these assertions.
 """
 
 from __future__ import annotations
@@ -73,18 +75,13 @@ async def _run_and_capture() -> set[str]:
 
 class TestIngestionCacheInvalidation:
     @pytest.mark.asyncio
-    async def test_covers_every_derived_family(self):
+    async def test_covers_every_id_keyed_family(self):
         families = {p.split(":")[0] for p in await _run_and_capture()}
 
         assert families == {
-            "hero_journey",
             "event",
             "character",
             "epistemic",
-            "narrative_structure",
-            "temporal_analysis",
-            "tension_lines",
-            "tension_theme",
             "voice_profile",
             "sep",
             "symbol_analysis",

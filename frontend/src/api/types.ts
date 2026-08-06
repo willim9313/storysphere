@@ -312,6 +312,10 @@ export interface TimelineData {
   temporalAnalyzed: boolean;
   /** linear | partially_linear | non_linear | unknown; null when never run. */
   temporalStructure?: string | null;
+  /** True when a pipeline step re-ran after the temporal analysis was cached. */
+  temporalIsStale?: boolean;
+  /** Pipeline step whose rerun overtook the cached temporal analysis. */
+  temporalStaleReason?: string | null;
 }
 
 // ── Tension Analysis ────────────────────────────────────────────

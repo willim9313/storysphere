@@ -207,3 +207,14 @@ class TestTimelineTemporalDisplacement:
         body = resp.json()
         assert body["temporalAnalyzed"] is True
         assert all(e["temporalDisplacement"] is None for e in body["events"])
+
+
+class TestTimelineTemporalStaleness:
+    """A rerun after the temporal analysis was cached is reported, not hidden."""
+
+    @pytest.mark.parametrize("temporal_client", [None], indirect=True)
+    def test_fresh_when_no_step_timestamp(self, temporal_client):
+        """Absent timestamps predate the field; flagging would stale everything."""
+        body = temporal_client.get("/api/v1/books/doc-1/timeline").json()
+        assert body["temporalIsStale"] is False
+        assert body["temporalStaleReason"] is None

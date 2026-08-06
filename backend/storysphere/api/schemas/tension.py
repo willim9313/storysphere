@@ -177,7 +177,9 @@ class TensionThemeResponse(BaseModel):
             "match the set a fresh synthesis would use"
         ),
     )
-    stale_reason: Literal["no_lines", "lines_regrouped", "review_changed"] | None = None
+    stale_reason: (
+        Literal["pipeline_rerun", "no_lines", "lines_regrouped", "review_changed"] | None
+    ) = None
     reviewed_line_count: int | None = Field(
         default=None,
         description="TensionLines already reviewed at synthesis; null for pre-existing themes",

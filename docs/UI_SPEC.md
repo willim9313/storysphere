@@ -833,6 +833,11 @@ outlier      = |deviation| > 0.15       // OUTLIER_THRESHOLD
 不是「故事時序跑完」**。兩者資料來源不同，跑故事時序**不會**提高 storyTimeHint 覆蓋率。
 文案必須說清楚這件事（`timeline.action.displacementUnblock`）。
 
+**過期提示**：`temporalIsStale=true` 時，該列 status 改顯示
+`timeline.action.displacementStale`（帶入 `temporalStaleReason` 的步驟名），取代
+原本的「已完成 N 個倒敘／預敘」。**不另加橫條**——重跑按鈕就在同一列，另開一個
+提示區塊等於同一動作有兩個入口。
+
 > 按鈕外觀：`.tl button` 的頁面級 reset 已收斂為 `.tl button:not([class])`，
 > 否則其特異性 (0,1,1) 會蓋掉 `.tl-btn` (0,1,0) 的 border 與 background，
 > 造成「靜止時是裸文字、hover 才像按鈕」。這是 V2 的已知缺陷，已修正。
@@ -1437,9 +1442,19 @@ Prompt Tokens / Completion Tokens / 總請求次數
 #### 版面結構
 
 ```
+[過期橫條 — 僅 is_stale=true 時出現]
 [英雄旅程區塊 — 主視圖：標題列 + HITL + 佈局切換器 + 選定佈局]
 [情節骨幹摘要 — 次區塊：比例條 + 統計 + 核心事件骨幹 + 跳轉]
 ```
+
+#### 過期橫條（`.nl-stale`，`role="status"`）
+
+僅在 #21k 回傳 `is_stale=true` 時出現，置於頁面最上方（空狀態也顯示，因為重跑
+後結構可能已被判定過期但尚未重新分析）。用 `--color-warning-bg` / `--color-warning`
+（既有 token，未新增），內含 AlertTriangle + 標題 + 以 `stale_reason` 帶入步驟名的說明。
+
+**只做提示，不放操作按鈕**——引導使用者去按既有的分析觸發鈕，避免同一動作有兩個
+入口（與 3.8 張力主題過期卡的原則一致）。
 
 #### 英雄旅程主視圖（`HeroJourneySection`）
 

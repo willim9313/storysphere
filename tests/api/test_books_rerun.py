@@ -230,22 +230,23 @@ class TestRerunCacheInvalidation:
     def _patterns(self, cache):
         return {c.args[0] for c in cache.invalidate.call_args_list}
 
-    def test_summarization_drops_hero_journey(self):
+    def test_summarization_deletes_nothing(self):
+        """hero_journey is book-keyed, so it survives and is reported stale."""
         cache = self._run("summarization")
-        assert self._patterns(cache) == {"hero_journey:book-x"}
+        assert self._patterns(cache) == set()
 
     def test_symbol_discovery_drops_symbol_caches_only(self):
         cache = self._run("symbol-discovery")
         assert self._patterns(cache) == {"sep:book-x:%", "symbol_analysis:book-x:%"}
 
-    def test_feature_extraction_drops_event_derived_caches(self):
+    def test_feature_extraction_drops_id_keyed_caches_only(self):
         kg = AsyncMock()
         kg.get_events = AsyncMock(return_value=[])
         patterns = self._patterns(self._run("feature-extraction", kg=kg))
 
         assert "event:book-x:%" in patterns
-        assert "narrative_structure:book-x" in patterns
-        assert "tension_lines:book-x" in patterns
+        assert "narrative_structure:book-x" not in patterns
+        assert "tension_lines:book-x" not in patterns
 
     def test_teu_keys_collected_before_events_are_regenerated(self):
         from types import SimpleNamespace
@@ -260,3 +261,46 @@ class TestRerunCacheInvalidation:
         """The old data is still in place, so its analyses still describe the book."""
         cache = self._run("summarization", failing="_summarization_pipeline")
         cache.invalidate.assert_not_called()
+
+
+class TestPipelineStepTimestamps:
+    """A completed step records when it finished, for staleness comparison."""
+
+    def test_mark_done_sets_status_and_timestamp(self):
+        from datetime import UTC, datetime
+
+        from storysphere.domain.documents import PipelineStatus, StepStatus
+
+        status = PipelineStatus()
+        assert status.summarization_at is None
+
+        before = datetime.now(UTC)
+        status.mark_done("summarization")
+
+        assert status.summarization == StepStatus.done
+        assert status.summarization_at is not None
+        assert status.summarization_at >= before
+
+    def test_rerun_stamps_the_step_it_ran(self):
+        cache_run = TestRerunCacheInvalidation()
+        from storysphere.api.routers.books import _run_rerun_step
+        from storysphere.api.store import task_store
+
+        task_id = f"rerun-{uuid4()}"
+        task_store.create(task_id)
+        doc = cache_run._make_doc()
+        doc_svc = AsyncMock()
+        doc_svc.get_document = AsyncMock(return_value=doc)
+        doc_svc.update_pipeline_status = AsyncMock()
+
+        with (
+            patch("storysphere.workflows.ingestion.IngestionWorkflow",
+                  return_value=cache_run._make_workflow_mock()),
+            patch("storysphere.services.analysis_cache.AnalysisCache", return_value=AsyncMock()),
+            patch("storysphere.config.settings.get_settings"),
+        ):
+            asyncio.run(_run_rerun_step(task_id, "book-x", "symbol-discovery",
+                                        doc_svc, AsyncMock()))
+
+        assert doc.pipeline_status.symbol_discovery_at is not None
+        assert doc.pipeline_status.summarization_at is None

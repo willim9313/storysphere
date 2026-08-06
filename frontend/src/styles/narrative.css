@@ -106,3 +106,30 @@
   opacity: 0.6;
   cursor: wait;
 }
+
+/* Stale banner — a pipeline step re-ran after this analysis was cached.
+   Advisory only: the action lives on the analysis trigger, not here, so the
+   same job never gets two entry points (mirrors .tn-hero-stale). */
+.nl-stale {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  line-height: 1.55;
+}
+
+.nl-stale svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.nl-stale strong {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 2px;
+}

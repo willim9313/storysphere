@@ -530,6 +530,21 @@ class NarrativeService:
                 await self._cache.set(f"{_CACHE_KEY_PREFIX}:{document_id}", structure.model_dump())
         return structure
 
+    async def structure_staleness(self, document_id: str) -> tuple[bool, str | None]:
+        """Report whether the cached NarrativeStructure predates its inputs.
+
+        Returns ``(is_stale, step)``; ``step`` names the pipeline rerun that
+        overtook the cached analysis. See services/cache_invalidation.py.
+        """
+        from storysphere.services.cache_invalidation import staleness  # noqa: PLC0415
+
+        doc = await self._doc.get_document(document_id)
+        if doc is None:
+            return False, None
+        return await staleness(
+            self._cache, f"{_CACHE_KEY_PREFIX}:{document_id}", doc.pipeline_status
+        )
+
     async def update_review(
         self,
         document_id: str,

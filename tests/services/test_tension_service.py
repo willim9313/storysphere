@@ -583,3 +583,52 @@ class TestThemeStaleness:
         await service.save_lines(lines, DOC)
         theme = self._theme([line.id for line in lines])
         assert await service.theme_staleness(DOC, theme) == (False, None)
+
+
+class TestThemeStalenessPipelineRerun:
+    """A pipeline rerun outranks the line-membership reasons."""
+
+    def _theme(self, line_ids):
+        from datetime import datetime
+
+        from storysphere.domain.tension import TensionTheme
+        return TensionTheme(
+            document_id="doc-1",
+            tension_line_ids=line_ids,
+            proposition="p",
+            frye_mythos="tragedy",
+            booker_plot="tragedy",
+            assembled_by="test",
+            assembled_at=datetime(2026, 8, 1),
+        )
+
+    async def _service_with_created(self, tmp_path, created_ts):
+        from unittest.mock import AsyncMock
+
+        from storysphere.services.tension_service import TensionService
+
+        svc = TensionService(cache=AsyncMock())
+        svc._cache.created_at = AsyncMock(return_value=created_ts)
+        svc._cache.get_as = AsyncMock(return_value=None)
+        return svc
+
+    async def test_rerun_after_synthesis_reports_pipeline_rerun(self, tmp_path):
+        from datetime import UTC, datetime, timedelta
+
+        from storysphere.domain.documents import PipelineStatus
+
+        created = datetime(2026, 8, 1, tzinfo=UTC)
+        svc = await self._service_with_created(tmp_path, created.timestamp())
+        status = PipelineStatus(feature_extraction_at=created + timedelta(days=1))
+
+        stale, reason = await svc.theme_staleness(
+            "doc-1", self._theme(["l1"]), pipeline_status=status
+        )
+        assert (stale, reason) == (True, "pipeline_rerun")
+
+    async def test_without_pipeline_status_falls_back_to_line_membership(self, tmp_path):
+        """Omitting the argument keeps the original behaviour."""
+        svc = await self._service_with_created(tmp_path, None)
+
+        stale, reason = await svc.theme_staleness("doc-1", self._theme(["l1"]))
+        assert (stale, reason) == (True, "no_lines")

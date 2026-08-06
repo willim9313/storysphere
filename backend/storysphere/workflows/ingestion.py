@@ -452,7 +452,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                     ),
                     murmur_cb=_summ_murmur_cb,
                 )
-                doc.pipeline_status.summarization = StepStatus.done
+                doc.pipeline_status.mark_done("summarization")
                 if (
                     summ_result.chapters_total > 0
                     and summ_result.chapters_summarized < summ_result.chapters_total
@@ -485,7 +485,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                 ),
                 murmur_cb=_murmur,
             )
-            doc.pipeline_status.feature_extraction = StepStatus.done
+            doc.pipeline_status.mark_done("feature_extraction")
         except Exception as exc:  # noqa: BLE001
             logger.error("Feature extraction failed: %s", exc)
             errors.append(f"feature_extraction: {exc}")
@@ -514,7 +514,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                     ),
                     murmur_cb=_murmur,
                 )
-                doc.pipeline_status.knowledge_graph = StepStatus.done
+                doc.pipeline_status.mark_done("knowledge_graph")
             except Exception as exc:  # noqa: BLE001
                 logger.error("KG extraction failed: %s", exc)
                 errors.append(f"kg_extraction: {exc}")
@@ -540,7 +540,7 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                     ),
                     murmur_cb=_murmur,
                 )
-                doc.pipeline_status.symbol_discovery = StepStatus.done
+                doc.pipeline_status.mark_done("symbol_discovery")
             except Exception as exc:  # noqa: BLE001
                 logger.error("Symbol discovery failed (non-fatal): %s", exc)
                 errors.append(f"symbol_discovery: {exc}")

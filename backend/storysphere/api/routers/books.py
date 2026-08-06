@@ -440,7 +440,7 @@ async def _run_rerun_step(
         if step == "summarization":
             try:
                 await wf._summarization_pipeline.run(document)
-                document.pipeline_status.summarization = StepStatus.done
+                document.pipeline_status.mark_done("summarization")
             except Exception as exc:  # noqa: BLE001
                 document.pipeline_status.summarization = StepStatus.failed
                 task_store.set_failed(task_id, error=str(exc))
@@ -450,7 +450,7 @@ async def _run_rerun_step(
         elif step == "feature-extraction":
             try:
                 await wf._feature_pipeline.run(document)
-                document.pipeline_status.feature_extraction = StepStatus.done
+                document.pipeline_status.mark_done("feature_extraction")
             except Exception as exc:  # noqa: BLE001
                 document.pipeline_status.feature_extraction = StepStatus.failed
                 task_store.set_failed(task_id, error=str(exc))
@@ -461,7 +461,7 @@ async def _run_rerun_step(
             try:
                 await wf._kg_pipeline.run(document)
                 await wf._kg_service.save()
-                document.pipeline_status.knowledge_graph = StepStatus.done
+                document.pipeline_status.mark_done("knowledge_graph")
             except Exception as exc:  # noqa: BLE001
                 document.pipeline_status.knowledge_graph = StepStatus.failed
                 task_store.set_failed(task_id, error=str(exc))
@@ -471,7 +471,7 @@ async def _run_rerun_step(
         elif step == "symbol-discovery":
             try:
                 await wf._symbol_pipeline.run(document)
-                document.pipeline_status.symbol_discovery = StepStatus.done
+                document.pipeline_status.mark_done("symbol_discovery")
             except Exception as exc:  # noqa: BLE001
                 document.pipeline_status.symbol_discovery = StepStatus.failed
                 task_store.set_failed(task_id, error=str(exc))
@@ -2629,10 +2629,16 @@ async def get_book_timeline(
     temporal_analyzed, temporal_structure, displacement_map = _read_temporal_analysis(
         await cache.get(f"temporal_analysis:{book_id}")
     )
+    from storysphere.services.cache_invalidation import staleness  # noqa: PLC0415
+    temporal_is_stale, temporal_stale_reason = await staleness(
+        cache, f"temporal_analysis:{book_id}", document.pipeline_status
+    )
 
     return TimelineResponse(
         book_id=book_id,
         order=order,
+        temporal_is_stale=temporal_is_stale,
+        temporal_stale_reason=temporal_stale_reason,
         events=[
             TimelineEventEntry(
                 id=e.id,

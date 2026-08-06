@@ -6,6 +6,8 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from storysphere.domain.narrative import NarrativeStructure
+
 
 class ClassifyNarrativeRequest(BaseModel):
     document_id: str
@@ -54,3 +56,21 @@ class KernelSpineEvent(BaseModel):
     narrative_weight: str
     narrative_weight_source: str | None = None
     narrative_position: int | None = None
+
+
+class NarrativeStructureResponse(NarrativeStructure):
+    """NarrativeStructure plus derived staleness.
+
+    Subclasses the domain model so every existing field keeps its name and
+    the two additions are purely additive for consumers. Staleness is never
+    persisted — the service writes the plain NarrativeStructure to cache.
+    """
+
+    is_stale: bool = Field(
+        default=False,
+        description="Cached analysis predates a pipeline step it derives from",
+    )
+    stale_reason: str | None = Field(
+        default=None,
+        description="Pipeline step whose rerun overtook the cached analysis",
+    )

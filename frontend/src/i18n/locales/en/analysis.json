@@ -726,6 +726,7 @@
       "fresh": "Current",
       "staleTitle": "Book-wide theme is out of date",
       "staleReason": {
+        "pipeline_rerun": "A pipeline step was re-run and the events were regenerated. The proposition below was built from the previous set of events and lines.",
         "lines_regrouped": "Tension lines were re-grouped; the lines this theme cites no longer exist. The proposition below was built from the old lines.",
         "review_changed": "Review decisions changed which lines feed the synthesis. The proposition below was built from the old set.",
         "no_lines": "There are no tension lines left. The proposition below was built from the old lines."
@@ -1026,7 +1027,8 @@
       "displacementCost": "A few minutes · compares narrative order against story order",
       "displacementUnblock": "Story-time hints are added per event on the event analysis page; running story order does not add them →",
       "leavePageOk": "You can leave this page; you'll be notified when it finishes",
-      "cancel": "Stop"
+      "cancel": "Stop",
+      "displacementStale": "Temporal analysis is out of date: the \"{{step}}\" step has run since, so these verdicts describe older events."
     },
     "confirm": {
       "storyTitle": "Recompute story order (overwrites)",
@@ -1455,6 +1457,10 @@
     "errors": {
       "triggerHero": "Failed to start the Hero's Journey analysis. Please try again.",
       "heroFailed": "Hero's Journey analysis failed."
+    },
+    "stale": {
+      "title": "This analysis may be out of date",
+      "body": "The \"{{step}}\" step has run since this analysis was produced, so what follows describes older data. Re-run the analysis to refresh it."
     }
   }
 }
