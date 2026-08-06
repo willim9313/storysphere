@@ -179,3 +179,84 @@ class TestRunRerunStep:
         assert status is not None
         assert status.status == "error"
         assert "ghost-book" in (status.error or "")
+
+
+class TestRerunCacheInvalidation:
+    """A successful rerun drops the analyses derived from that step."""
+
+    def _make_doc(self):
+        from storysphere.domain.documents import Document, FileType, PipelineStatus, StepStatus
+        return Document(
+            id="book-x", title="T", author="A", file_path="/tmp/x.pdf",
+            file_type=FileType.PDF, chapters=[],
+            pipeline_status=PipelineStatus(
+                summarization=StepStatus.failed,
+                feature_extraction=StepStatus.failed,
+                knowledge_graph=StepStatus.failed,
+                symbol_discovery=StepStatus.failed,
+            ),
+        )
+
+    def _make_workflow_mock(self, failing: str | None = None):
+        wf = MagicMock()
+        for attr in ("_summarization_pipeline", "_feature_pipeline",
+                     "_kg_pipeline", "_symbol_pipeline"):
+            run = AsyncMock(side_effect=RuntimeError("boom")) if attr == failing else AsyncMock()
+            setattr(wf, attr, MagicMock(run=run))
+        wf._kg_service = MagicMock(save=AsyncMock())
+        return wf
+
+    def _run(self, step, kg=None, failing=None):
+        """Run the step with a mocked cache; return the cache mock."""
+        from storysphere.api.routers.books import _run_rerun_step
+        from storysphere.api.store import task_store
+
+        task_id = f"rerun-{uuid4()}"
+        task_store.create(task_id)
+        doc_svc = AsyncMock()
+        doc_svc.get_document = AsyncMock(return_value=self._make_doc())
+        doc_svc.update_pipeline_status = AsyncMock()
+
+        cache = AsyncMock()
+        with (
+            patch("storysphere.workflows.ingestion.IngestionWorkflow",
+                  return_value=self._make_workflow_mock(failing)),
+            patch("storysphere.services.analysis_cache.AnalysisCache", return_value=cache),
+            patch("storysphere.config.settings.get_settings"),
+        ):
+            asyncio.run(_run_rerun_step(task_id, "book-x", step, doc_svc, kg or AsyncMock()))
+        return cache
+
+    def _patterns(self, cache):
+        return {c.args[0] for c in cache.invalidate.call_args_list}
+
+    def test_summarization_drops_hero_journey(self):
+        cache = self._run("summarization")
+        assert self._patterns(cache) == {"hero_journey:book-x"}
+
+    def test_symbol_discovery_drops_symbol_caches_only(self):
+        cache = self._run("symbol-discovery")
+        assert self._patterns(cache) == {"sep:book-x:%", "symbol_analysis:book-x:%"}
+
+    def test_feature_extraction_drops_event_derived_caches(self):
+        kg = AsyncMock()
+        kg.get_events = AsyncMock(return_value=[])
+        patterns = self._patterns(self._run("feature-extraction", kg=kg))
+
+        assert "event:book-x:%" in patterns
+        assert "narrative_structure:book-x" in patterns
+        assert "tension_lines:book-x" in patterns
+
+    def test_teu_keys_collected_before_events_are_regenerated(self):
+        from types import SimpleNamespace
+
+        kg = AsyncMock()
+        kg.get_events = AsyncMock(return_value=[SimpleNamespace(id="ev-1")])
+        patterns = self._patterns(self._run("feature-extraction", kg=kg))
+
+        assert "teu:ev-1" in patterns
+
+    def test_failed_step_leaves_caches_alone(self):
+        """The old data is still in place, so its analyses still describe the book."""
+        cache = self._run("summarization", failing="_summarization_pipeline")
+        cache.invalidate.assert_not_called()
