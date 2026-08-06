@@ -3,7 +3,9 @@ import type { components } from './generated';
 import type { TaskStatus } from './types';
 
 // Domain models (snake_case) — sourced from generated.ts per type-generation rule.
-export type NarrativeStructure = components['schemas']['NarrativeStructure'];
+// The response schema, not the bare domain model: it adds the derived
+// is_stale / stale_reason that GET /narrative computes per request.
+export type NarrativeStructure = components['schemas']['NarrativeStructureResponse'];
 export type HeroJourneyStage = components['schemas']['HeroJourneyStage'];
 export type KernelSpineEvent = components['schemas']['KernelSpineEvent'];
 export type TemporalCoverageStats = components['schemas']['TemporalCoverageStats'];

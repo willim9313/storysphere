@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Compass } from 'lucide-react';
+import { AlertTriangle, Compass } from 'lucide-react';
 import { useBook } from '@/hooks/useBook';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
@@ -95,6 +95,16 @@ export default function NarrativePage() {
   const hasHeroJourney = stages.length > 0;
   const loading = structureQuery.isLoading || kernelSpineQuery.isLoading;
 
+  const staleBanner = structure?.is_stale ? (
+    <div className="nl-stale" role="status">
+      <AlertTriangle size={16} />
+      <div>
+        <strong>{t('narrative.stale.title')}</strong>
+        {t('narrative.stale.body', { step: structure.stale_reason ?? '' })}
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className="nl-scroll">
       <div className="nl-page">
@@ -102,6 +112,7 @@ export default function NarrativePage() {
           <LoadingSpinner />
         ) : hasHeroJourney && structure ? (
           <>
+            {staleBanner}
             <HeroJourneySection
               stages={stages}
               theory={theory}
@@ -115,6 +126,7 @@ export default function NarrativePage() {
           </>
         ) : (
           <div className="nl-empty">
+            {staleBanner}
             <div className="nl-empty-icon">
               <Compass size={36} />
             </div>
