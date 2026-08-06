@@ -28,6 +28,7 @@ from storysphere.api.schemas.narrative import (
     HeroJourneyRequest,
     KernelSpineEvent,
     NarrativeReviewRequest,
+    NarrativeStructureResponse,
     RefineNarrativeRequest,
     TemporalAnalysisRequest,
 )
@@ -257,12 +258,17 @@ async def get_kernel_spine(
     ]
 
 
-@router.get("", response_model=NarrativeStructure)
+@router.get("", response_model=NarrativeStructureResponse)
 async def get_narrative_structure(
     book_id: str,
     narrative_service: NarrativeServiceDep,
 ) -> dict:
     """Return the cached NarrativeStructure for a book.
+
+    ``is_stale`` reports that a pipeline step the analysis derives from has
+    been re-run since it was cached, so the result describes older data;
+    ``stale_reason`` names that step. Both are derived per request and never
+    persisted.
 
     Returns 404 if neither classify nor hero-journey has been run yet.
     """
@@ -272,7 +278,8 @@ async def get_narrative_structure(
             status_code=404,
             detail="No narrative structure found. Run POST /narrative/classify first.",
         )
-    return structure.model_dump()
+    is_stale, reason = await narrative_service.structure_staleness(book_id)
+    return {**structure.model_dump(), "is_stale": is_stale, "stale_reason": reason}
 
 
 # ── HITL Review ───────────────────────────────────────────────────────────────

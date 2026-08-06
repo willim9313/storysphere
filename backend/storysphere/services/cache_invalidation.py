@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from datetime import UTC, datetime
 
 logger = logging.getLogger(__name__)
 
@@ -99,6 +100,48 @@ def stale_sources(cache_key: str) -> tuple[str, ...]:
     "never stale" — the entry would not be there to ask about.
     """
     return _STALE_SOURCES.get(cache_key.split(":")[0], ())
+
+
+# Step name as used in the maps above → the PipelineStatus field prefix.
+_STEP_FIELD = {
+    "summarization": "summarization",
+    "feature-extraction": "feature_extraction",
+    "knowledge-graph": "knowledge_graph",
+    "symbol-discovery": "symbol_discovery",
+}
+
+
+async def staleness(cache, cache_key: str, pipeline_status) -> tuple[bool, str | None]:
+    """Report whether a cached analysis predates the data it was built from.
+
+    Compares the entry's ``created`` against the completion time of each step
+    it derives from. Returns ``(is_stale, step)``, where ``step`` names the
+    rerun that overtook it.
+
+    Reports fresh whenever the question cannot be answered rather than
+    guessing: a family that is deleted on rerun instead of staled, an entry
+    that is not there, or a step with no recorded completion — the last means
+    it last ran before these timestamps existed, and calling every such book
+    stale would flag the entire library at once.
+    """
+    sources = stale_sources(cache_key)
+    if not sources:
+        return False, None
+
+    created = await cache.created_at(cache_key)
+    if created is None:
+        return False, None
+    created_at = datetime.fromtimestamp(created, UTC)
+
+    for step in sources:
+        ran_at = getattr(pipeline_status, f"{_STEP_FIELD[step]}_at", None)
+        if ran_at is None:
+            continue
+        if ran_at.tzinfo is None:
+            ran_at = ran_at.replace(tzinfo=UTC)
+        if ran_at > created_at:
+            return True, step
+    return False, None
 
 
 def teu_keys_for(event_ids: list[str]) -> list[str]:

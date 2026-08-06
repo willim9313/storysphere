@@ -79,6 +79,20 @@ class AnalysisCache:
             )
             return None
 
+    async def created_at(self, key: str) -> float | None:
+        """Return when the entry was written, as a UNIX timestamp, or None.
+
+        Exposed so callers can date an entry against the pipeline run it
+        derives from — the basis for reporting a cached analysis as stale.
+        """
+        async with aiosqlite.connect(self._db_path) as db:
+            await self._ensure_table(db)
+            cursor = await db.execute(
+                "SELECT created FROM analysis_cache WHERE key = ?", (key,)
+            )
+            row = await cursor.fetchone()
+            return row[0] if row else None
+
     async def set(self, key: str, result: dict) -> None:
         """Store a result in cache (upsert)."""
         value_str = json.dumps(result, ensure_ascii=False, default=str)

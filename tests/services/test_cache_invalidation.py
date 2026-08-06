@@ -120,3 +120,85 @@ class TestStaleSources:
 
     def test_unknown_family_is_never_stale(self):
         assert stale_sources("no_such_family:book-1") == ()
+
+
+class TestStaleness:
+    """A cached entry is stale when a step it derives from ran after it."""
+
+    def _status(self, **stamps):
+        from storysphere.domain.documents import PipelineStatus
+        return PipelineStatus(**stamps)
+
+    def _cache(self, created: float | None):
+        cache = AsyncMock()
+        cache.created_at = AsyncMock(return_value=created)
+        return cache
+
+    async def test_rerun_after_caching_is_stale(self):
+        from datetime import UTC, datetime, timedelta
+
+        from storysphere.services.cache_invalidation import staleness
+
+        created = datetime(2026, 8, 1, tzinfo=UTC)
+        status = self._status(feature_extraction_at=created + timedelta(days=1))
+
+        stale, reason = await staleness(
+            self._cache(created.timestamp()), "narrative_structure:b1", status
+        )
+        assert (stale, reason) == (True, "feature-extraction")
+
+    async def test_rerun_before_caching_is_fresh(self):
+        from datetime import UTC, datetime, timedelta
+
+        from storysphere.services.cache_invalidation import staleness
+
+        created = datetime(2026, 8, 2, tzinfo=UTC)
+        status = self._status(feature_extraction_at=created - timedelta(days=1))
+
+        assert await staleness(
+            self._cache(created.timestamp()), "narrative_structure:b1", status
+        ) == (False, None)
+
+    async def test_unstamped_step_reads_fresh(self):
+        """Absent timestamps predate the field; flagging would stale the library."""
+        from datetime import UTC, datetime
+
+        from storysphere.services.cache_invalidation import staleness
+
+        created = datetime(2026, 8, 1, tzinfo=UTC)
+        assert await staleness(
+            self._cache(created.timestamp()), "narrative_structure:b1", self._status()
+        ) == (False, None)
+
+    async def test_missing_entry_reads_fresh(self):
+        from storysphere.services.cache_invalidation import staleness
+        assert await staleness(
+            self._cache(None), "narrative_structure:b1", self._status()
+        ) == (False, None)
+
+    async def test_deleted_family_is_never_stale(self):
+        """event: is removed on rerun, so it never has staleness to report."""
+        from datetime import UTC, datetime, timedelta
+
+        from storysphere.services.cache_invalidation import staleness
+
+        created = datetime(2026, 8, 1, tzinfo=UTC)
+        status = self._status(feature_extraction_at=created + timedelta(days=1))
+
+        assert await staleness(
+            self._cache(created.timestamp()), "event:b1:ev-1", status
+        ) == (False, None)
+
+    async def test_any_source_step_can_stale_an_entry(self):
+        """hero_journey derives from two steps; either one ageing it counts."""
+        from datetime import UTC, datetime, timedelta
+
+        from storysphere.services.cache_invalidation import staleness
+
+        created = datetime(2026, 8, 1, tzinfo=UTC)
+        status = self._status(summarization_at=created + timedelta(hours=1))
+
+        stale, reason = await staleness(
+            self._cache(created.timestamp()), "hero_journey:b1", status
+        )
+        assert (stale, reason) == (True, "summarization")
