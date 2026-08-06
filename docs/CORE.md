@@ -27,7 +27,7 @@
 **決策**: LangChain + LangGraph  
 **路徑**: 三個並行處理路徑
 - **Map/Card Query**: 同步 <100ms（純數據查詢）
-- **Deep Analysis**: 非同步 2-5s（優先緩存 7 天）
+- **Deep Analysis**: 非同步 2-5s（優先讀緩存，緩存保留至明確 invalidate）
 - **Chat Interface**: 流式 2-5s（Reasoning Agent）
 
 📄 [完整版](appendix/ADR_001_FULL.md)
@@ -59,11 +59,11 @@
 **決策**: 優先緩存 + 實時觸發 + 異步處理  
 **流程**:
 ```
-檢查緩存（<7天）→ 命中返回 <100ms
+檢查緩存 → 命中返回 <100ms
     ↓ 未命中
 創建任務 → task_id → 後台執行 → WebSocket 推送
     ↓
-存入資料庫（緩存 7 天）
+存入資料庫（緩存保留至明確 invalidate）
 ```
 
 📄 [完整版](appendix/ADR_004_FULL.md)
@@ -135,7 +135,7 @@
 - 知識圖譜: NetworkX (默認) ↔ Neo4j (Docker, 大規模備案)
 
 **緩存 & 任務**:
-- 緩存: 內存 dict (ChatState 5min) + SQLite (Analysis 7天)
+- 緩存: SQLite (AnalysisCache，無 TTL，重跑 pipeline 步驟時失效)
 - 任務: FastAPI BackgroundTasks
 
 📄 [完整版](appendix/ADR_009_FULL.md) | [pyproject.toml](../pyproject.toml)
@@ -155,7 +155,7 @@
 │    API Handler / Agent Orchestration         │
 ├─────────────┬──────────────┬────────────────┤
 │ 同步查詢API │ Deep Analysis│ Chat Handler   │
-│  <100ms     │ 優先緩存 7天 │ 流式 WebSocket │
+│  <100ms     │ 優先讀緩存   │ 流式 WebSocket │
 └─────────────┴──────────────┴────────────────┘
        ↑             ↑                ↑
 ┌─────────────────────────────────────────────┐
@@ -271,7 +271,7 @@ class ChatState(BaseModel):
 |------|---------|---------|------|
 | Map/Card | <100ms | - | 不需 |
 | Chat | 3-5s | 2-3s | ChatState 5min |
-| Deep Analysis | 3-5s (首次) | - | SQLite 7天 |
+| Deep Analysis | 3-5s (首次) | - | SQLite，無 TTL |
 
 **優化策略**:
 - 工具並行（asyncio.gather）

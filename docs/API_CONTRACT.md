@@ -1211,7 +1211,7 @@ interface TEUDetail {
 > （`[min(chapters), max(chapters)]`、強度算術平均）。人工修好的線因此與模型
 > 一次做對的線形狀完全一致，前端不需要為「這條線被修過」寫第二套計算。
 >
-> **例外：線上有 TEU 已逾 TTL 時不重算平均。** 對倖存的子集取平均會產出一個
+> **例外：線上有 TEU 已被 invalidate 清除時不重算平均。** 對倖存的子集取平均會產出一個
 > 「看起來一樣權威但其實是錯的」數字，因此該情形只把 `chapter_range` 撐大到
 > 涵蓋新加入的 TEU，`intensity_summary` 維持原值。
 >

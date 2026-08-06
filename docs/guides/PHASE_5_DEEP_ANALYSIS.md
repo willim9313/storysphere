@@ -11,10 +11,10 @@
 Phase 5 實現 ADR-004 定義的 Deep Analysis 流程：
 
 ```
-用戶觸發分析 → 檢查緩存（<7天）→ 命中返回 <100ms
+用戶觸發分析 → 檢查緩存 → 命中返回 <100ms
                               → 未命中 → 創建任務 → task_id
                                          → 後台執行 → WebSocket 推送
-                                         → 存入 SQLite（緩存 7 天）
+                                         → 存入 SQLite（保留至 invalidate）
 ```
 
 ---
@@ -179,7 +179,8 @@ class AnalysisCache:
         """Invalidate all cache entries for a document."""
 ```
 
-Cache key format: `{analysis_type}:{doc_id}:{entity_name}`
+Cache key format: `{analysis_type}:{doc_id}:{entity_id}`
+（角色分析用 entity id，不用顯示名稱：名稱在重新匯入後不穩定，且可能重名）
 
 ---
 

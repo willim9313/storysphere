@@ -346,8 +346,8 @@ class EventAnalysisResult(BaseModel):
 
 ```python
 # 角色分析 key
-AnalysisCache.make_key("character", document_id, entity_name)
-# → "character:{document_id}:{entity_name.lower()}"
+AnalysisCache.make_key("character", document_id, entity_id)
+# → "character:{document_id}:{entity_id}"
 
 # 事件分析 key
 cache_key = f"event:{document_id}:{event_id}"

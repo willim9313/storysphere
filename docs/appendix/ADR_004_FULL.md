@@ -6,6 +6,12 @@
 
 ---
 
+> **⚠️ 部分內容已被取代（2026-08-06, PR #24）**
+> 本 ADR 保留當時的決策原文，但下列敘述已不再符合實作：
+> `AnalysisCache` 的 7 天 TTL 已移除：條目保留至明確 `invalidate()`，改由重跑
+> pipeline 步驟或刪書時失效（見 `backend/storysphere/services/cache_invalidation.py`）。
+> 目前行為以 `docs/CORE.md` 為準。
+
 ## 背景 (Context)
 
 用戶點擊"深度分析"按鈕時，系統需要生成結構化的分析結果（如角色檔案）。

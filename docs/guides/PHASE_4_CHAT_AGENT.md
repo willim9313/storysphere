@@ -86,7 +86,7 @@ backend/storysphere/tools/composite_tools/
 | `add_entity_mention(entity)` | 追蹤實體提及次數，更新 `current_focus_entity` |
 | `resolve_pronoun(pronoun)` | 將 he/she/they/他/她/它 對應至 `current_focus_entity` |
 | `cache_tool_result(tool_name, result)` | 儲存結果與時間戳 |
-| `get_cached_result(tool_name, ttl_seconds=300)` | 若未過期則回傳快取結果 |
+| `get_cached_result(tool_name, ttl_seconds=300)` | 若未過期則回傳快取結果（規劃中，未實作）|
 | `add_message(role, content)` | 附加至 `conversation_history` |
 | `trim_history(max_turns=10)` | 保留最後 N 條訊息 |
 
@@ -214,5 +214,5 @@ uv run pytest tests/ -m "not integration" -v
 Phase 5（深度分析工作流程）將：
 1. 實作 `AnalyzeCharacterTool` 與 `AnalyzeEventTool` stubs
 2. 使用 Phase 2b 關鍵字建立角色演化分析（CEP）
-3. 建立以快取優先策略的非同步分析工作流程（7 天 SQLite 快取）
+3. 建立以快取優先策略的非同步分析工作流程（SQLite 快取，無 TTL）
 4. 透過 WebSocket 推播長時間分析結果

@@ -131,4 +131,4 @@ Phase 4 將：
 1. 將 `get_chat_tools()` 匯入 LangGraph chat agent
 2. 將工具綁定至 agent 的 tool node
 3. 實作串流 WebSocket 回應
-4. 新增 ChatState 工具結果快取（5 分鐘 TTL）
+4. ~~新增 ChatState 工具結果快取（5 分鐘 TTL）~~ — 未實作，設定已於 PR #24 移除
