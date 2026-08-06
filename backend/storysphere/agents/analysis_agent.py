@@ -53,6 +53,30 @@ class AnalysisAgent:
         self._doc_service = doc_service
         self._kg_service = kg_service
 
+    async def _character_cache_id(
+        self, document_id: str, entity_name: str, entity_id: str | None
+    ) -> str:
+        """Resolve the entity component of a character cache key.
+
+        Keyed by entity id, since a display name is not stable across a
+        re-ingest and two characters can share one. Callers holding the id
+        pass it directly; the chat tool and POST /analysis/character only know
+        a name, so those resolve through the KG. Falls back to the name when
+        no KG is wired or the name is unknown — a name-keyed entry is still
+        better than no caching at all.
+        """
+        if entity_id:
+            return entity_id
+        if self._kg_service is not None:
+            entity = await self._kg_service.get_entity_by_name(entity_name)
+            if entity is not None:
+                return entity.id
+        logger.debug(
+            "Character cache falling back to a name key for %r in %s",
+            entity_name, document_id,
+        )
+        return entity_name
+
     @_langfuse_observe(name="AnalysisAgent.analyze_character")
     async def analyze_character(
         self,
@@ -63,6 +87,7 @@ class AnalysisAgent:
         force_refresh: bool = False,
         progress_callback: Callable[[int, str], None] | None = None,
         retry_parts: list[str] | None = None,
+        entity_id: str | None = None,
     ) -> CharacterAnalysisResult:
         """Run character analysis with cache-first strategy.
 
@@ -72,6 +97,8 @@ class AnalysisAgent:
             archetype_frameworks: Archetype frameworks (default: ['jung']).
             language: Language for archetype configs.
             force_refresh: If True, skip cache and re-analyze.
+            entity_id: Entity id used for the cache key. Resolved from
+                entity_name via the KG when omitted.
 
         Returns:
             CharacterAnalysisResult.
@@ -82,7 +109,11 @@ class AnalysisAgent:
 
         _metrics = get_metrics()
         _t0 = time.perf_counter()
-        cache_key = AnalysisCache.make_key("character", document_id, entity_name)
+        cache_key = AnalysisCache.make_key(
+            "character",
+            document_id,
+            await self._character_cache_id(document_id, entity_name, entity_id),
+        )
 
         # Partial re-run: reuse cached result, recompute only failed parts.
         if retry_parts and self._cache is not None:

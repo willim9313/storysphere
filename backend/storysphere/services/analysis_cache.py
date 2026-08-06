@@ -3,7 +3,7 @@
 Entries never expire on their own; ``created`` records when each one was
 written, and stale entries are dropped explicitly via ``invalidate()`` when
 the upstream data is re-analysed.  Cache keys follow the pattern:
-    character:{document_id}:{entity_name}
+    character:{document_id}:{entity_id}
 """
 
 from __future__ import annotations
@@ -142,9 +142,15 @@ class AnalysisCache:
         return count
 
     @staticmethod
-    def make_key(analysis_type: str, document_id: str, entity_name: str) -> str:
+    def make_key(analysis_type: str, document_id: str, entity_key: str) -> str:
         """Build a cache key.
 
-        Example: ``make_key("character", "doc-1", "Alice")`` → ``"character:doc-1:alice"``
+        ``entity_key`` is an entity id, not a display name: names are not
+        stable across a re-ingest and two characters can share one, so a
+        name-keyed entry can end up serving an analysis built from different
+        text.
+
+        Example: ``make_key("character", "doc-1", "ent-alice")``
+        → ``"character:doc-1:ent-alice"``
         """
-        return f"{analysis_type}:{document_id}:{entity_name.lower()}"
+        return f"{analysis_type}:{document_id}:{entity_key.lower()}"

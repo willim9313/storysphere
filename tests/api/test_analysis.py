@@ -145,7 +145,8 @@ def jung_schmidt_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, moc
     from storysphere.services.analysis_cache import AnalysisCache
 
     cached = _make_cached_character_result().model_dump()
-    cache_key = AnalysisCache.make_key("character", "doc-1", "Alice")
+    # Keyed by entity id, not display name — see AnalysisCache.make_key.
+    cache_key = AnalysisCache.make_key("character", "doc-1", "ent-alice")
 
     mock_cache = attach_get_as(AsyncMock())
 
@@ -362,7 +363,7 @@ class TestBatchEntityAnalysis:
         mock_doc.get_document_language = AsyncMock(return_value="en")
         # Pre-populate cache for Alice → should be skipped
         batch_client._cache_store[  # noqa: SLF001
-            AnalysisCache.make_key("character", "doc-1", "Alice")
+            AnalysisCache.make_key("character", "doc-1", "ent-alice")
         ] = {"any": "value"}
 
         resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")

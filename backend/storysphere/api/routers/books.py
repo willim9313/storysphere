@@ -241,12 +241,14 @@ async def _resume_ingestion_graph(task_id: str, chapters_data: dict | None) -> N
 async def _run_entity_analysis(
     task_id: str, entity_name: str, document_id: str, agent, language: str = "en",
     retry_parts: list[str] | None = None, force_refresh: bool = False,
+    entity_id: str | None = None,
 ) -> None:
     logger.info("Entity analysis task %s started: entity=%s, doc=%s", task_id, entity_name, document_id)
     task_store.set_running(task_id)
     try:
         result = await agent.analyze_character(
             entity_name=entity_name,
+            entity_id=entity_id,
             document_id=document_id,
             archetype_frameworks=["jung", "schmidt"],
             language=language,
@@ -1506,7 +1508,7 @@ async def list_character_analyses(
     analyzed: list[dict] = []
     unanalyzed: list[dict] = []
     for e in characters:
-        cache_key = AnalysisCache.make_key("character", book_id, e.name)
+        cache_key = AnalysisCache.make_key("character", book_id, e.id)
         result = await cache.get_as(cache_key, CharacterAnalysisResult)
         if result is not None:
             try:
@@ -1720,7 +1722,7 @@ async def get_entity_analysis(
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
-    cache_key = AnalysisCache.make_key("character", book_id, entity.name)
+    cache_key = AnalysisCache.make_key("character", book_id, entity.id)
     try:
         from storysphere.services.analysis_models import CharacterAnalysisResult
         result = await cache.get_as(cache_key, CharacterAnalysisResult)
@@ -1801,7 +1803,7 @@ async def trigger_entity_analysis(
     force_refresh = False
     if body.mode == "retryFailed":
         from storysphere.services.analysis_models import CharacterAnalysisResult  # noqa: PLC0415
-        cache_key = AnalysisCache.make_key("character", book_id, entity.name)
+        cache_key = AnalysisCache.make_key("character", book_id, entity.id)
         cached = await cache.get_as(cache_key, CharacterAnalysisResult)
         if cached:
             retry_parts = cached.failed_parts
@@ -1816,7 +1818,7 @@ async def trigger_entity_analysis(
     task_store.create(task_id, kind="character", title=f"角色深度分析 — {entity.name}")
     background_tasks.add_task(
         _run_entity_analysis, task_id, entity.name, book_id, agent, language,
-        retry_parts, force_refresh,
+        retry_parts, force_refresh, entity.id,
     )
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -1834,7 +1836,7 @@ async def delete_entity_analysis(
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
-    cache_key = AnalysisCache.make_key("character", book_id, entity.name)
+    cache_key = AnalysisCache.make_key("character", book_id, entity.id)
     await cache.invalidate(cache_key)
     logger.info("Deleted entity analysis cache: key=%s", cache_key)
 
@@ -1882,7 +1884,7 @@ async def _run_batch_entity_analysis(
         )
 
     for entity in characters:
-        cache_key = AnalysisCache.make_key("character", document_id, entity.name)
+        cache_key = AnalysisCache.make_key("character", document_id, entity.id)
         if await cache.get(cache_key) is not None:
             skipped += 1
             done += 1
@@ -1891,6 +1893,7 @@ async def _run_batch_entity_analysis(
         try:
             await agent.analyze_character(
                 entity_name=entity.name,
+                entity_id=entity.id,
                 document_id=document_id,
                 archetype_frameworks=["jung", "schmidt"],
                 language=language,
