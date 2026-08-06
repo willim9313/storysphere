@@ -833,6 +833,11 @@ outlier      = |deviation| > 0.15       // OUTLIER_THRESHOLD
 不是「故事時序跑完」**。兩者資料來源不同，跑故事時序**不會**提高 storyTimeHint 覆蓋率。
 文案必須說清楚這件事（`timeline.action.displacementUnblock`）。
 
+**過期提示**：`temporalIsStale=true` 時，該列 status 改顯示
+`timeline.action.displacementStale`（帶入 `temporalStaleReason` 的步驟名），取代
+原本的「已完成 N 個倒敘／預敘」。**不另加橫條**——重跑按鈕就在同一列，另開一個
+提示區塊等於同一動作有兩個入口。
+
 > 按鈕外觀：`.tl button` 的頁面級 reset 已收斂為 `.tl button:not([class])`，
 > 否則其特異性 (0,1,1) 會蓋掉 `.tl-btn` (0,1,0) 的 border 與 background，
 > 造成「靜止時是裸文字、hover 才像按鈕」。這是 V2 的已知缺陷，已修正。

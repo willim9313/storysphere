@@ -637,6 +637,10 @@ class TimelineResponse(BaseModel):
     """True when a temporal analysis with sufficient coverage is cached."""
     temporal_structure: str | None = None
     """linear | partially_linear | non_linear | unknown; None when never run."""
+    temporal_is_stale: bool = False
+    """True when a pipeline step re-ran after the temporal analysis was cached."""
+    temporal_stale_reason: str | None = None
+    """Pipeline step whose rerun overtook the cached temporal analysis."""
 
 
 # ── Epistemic State (F-03) ───────────────────────────────────────────────────

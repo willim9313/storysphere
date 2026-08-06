@@ -1003,6 +1003,8 @@ interface TimelineData {
   quality: TimelineQuality;
   temporalAnalyzed: boolean;          // #21h 是否跑過且覆蓋率足夠
   temporalStructure?: string | null;  // linear | partially_linear | non_linear | unknown
+  temporalIsStale: boolean;           // 分析產出後又重跑過 pipeline 步驟
+  temporalStaleReason?: string | null; // 造成過期的步驟名，如 "feature-extraction"
 }
 
 interface TimelineEvent {

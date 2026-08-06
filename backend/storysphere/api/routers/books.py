@@ -2629,10 +2629,16 @@ async def get_book_timeline(
     temporal_analyzed, temporal_structure, displacement_map = _read_temporal_analysis(
         await cache.get(f"temporal_analysis:{book_id}")
     )
+    from storysphere.services.cache_invalidation import staleness  # noqa: PLC0415
+    temporal_is_stale, temporal_stale_reason = await staleness(
+        cache, f"temporal_analysis:{book_id}", document.pipeline_status
+    )
 
     return TimelineResponse(
         book_id=book_id,
         order=order,
+        temporal_is_stale=temporal_is_stale,
+        temporal_stale_reason=temporal_stale_reason,
         events=[
             TimelineEventEntry(
                 id=e.id,

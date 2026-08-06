@@ -4508,6 +4508,13 @@ export interface components {
             temporalAnalyzed: boolean;
             /** Temporalstructure */
             temporalStructure?: string | null;
+            /**
+             * Temporalisstale
+             * @default false
+             */
+            temporalIsStale: boolean;
+            /** Temporalstalereason */
+            temporalStaleReason?: string | null;
         };
         /**
          * TocEntry

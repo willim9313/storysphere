@@ -445,6 +445,10 @@ export default function TimelinePage() {
   /** What #21h actually produced for this book — the signal that was missing
    *  when 倒敘與預敘 could not tell a first run from a re-run. */
   const temporalAnalyzed = data?.temporalAnalyzed === true;
+  /** A pipeline step re-ran after this analysis was cached, so its verdicts
+   *  describe events that no longer exist. Reported on the action row rather
+   *  than a separate banner — the re-run button is already right there. */
+  const temporalIsStale = data?.temporalIsStale === true;
   const verdictCounts = useMemo(() => {
     let analepsis = 0;
     let prolepsis = 0;
@@ -500,10 +504,14 @@ export default function TimelinePage() {
     status: isRunningDisplacement
       ? t('timeline.action.displacementRunning')
       : temporalAnalyzed
-        ? t('timeline.action.displacementDone', {
-            analepsis: verdictCounts.analepsis,
-            prolepsis: verdictCounts.prolepsis,
-          })
+        ? temporalIsStale
+          ? t('timeline.action.displacementStale', {
+              step: data?.temporalStaleReason ?? '',
+            })
+          : t('timeline.action.displacementDone', {
+              analepsis: verdictCounts.analepsis,
+              prolepsis: verdictCounts.prolepsis,
+            })
         : displacementReady
           ? t('timeline.action.displacementReady', { pct: coveragePct })
           : t('timeline.action.displacementBlocked', { pct: coveragePct }),
