@@ -6,10 +6,9 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-
+from pydantic import TypeAdapter
 from storysphere.domain.symbol_analysis import SEP, SEPOccurrenceContext, SymbolInterpretation
 from storysphere.services.symbol_analysis_service import SymbolAnalysisService
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -56,6 +55,14 @@ def mock_cache():
     cache = AsyncMock()
     cache.get = AsyncMock(return_value=None)
     cache.set = AsyncMock()
+
+    # Mirror the real AnalysisCache: get_as() reads through get(), so tests can
+    # keep stubbing get() with raw dicts. Async because it awaits get().
+    async def _get_as(key, model):
+        raw = await cache.get(key)
+        return None if raw is None else TypeAdapter(model).validate_python(raw)
+
+    cache.get_as = AsyncMock(side_effect=_get_as)
     return cache
 
 

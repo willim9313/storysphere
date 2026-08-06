@@ -223,11 +223,7 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
 
         for event in events:
             cache_key = f"event:{document_id}:{event.id}"
-            cached = await self._analysis_cache.get(cache_key)
-            if cached is not None:
-                try:
-                    analysis = EventAnalysisResult.model_validate(cached)
-                    eep_map[event.id] = analysis.eep
-                except Exception:  # noqa: BLE001
-                    logger.debug("Failed to parse EEP for %s", event.id)
+            analysis = await self._analysis_cache.get_as(cache_key, EventAnalysisResult)
+            if analysis is not None:
+                eep_map[event.id] = analysis.eep
         return eep_map

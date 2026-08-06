@@ -157,7 +157,7 @@ VectorService.scroll(filter by entity)
     → CEP prompt → CEP JSON（_parse_json_response / output_extractor）
     → Archetype prompt → classification JSON
     → CharacterAnalysisResult
-    → SQLite cache（7-day TTL）
+    → SQLite cache（保留至 invalidate）
     → WebSocket push to client
 ```
 
@@ -167,7 +167,7 @@ VectorService.scroll(filter by entity)
 
 ```python
 class AnalysisCache:
-    """SQLite-based analysis cache with 7-day TTL."""
+    """SQLite-based analysis store; entries kept until invalidated."""
 
     async def get(self, key: str) -> Optional[dict]:
         """Return cached result if < 7 days old."""
@@ -232,7 +232,7 @@ class AnalysisAgent:
 
 | 測試類型 | 覆蓋 |
 |----------|------|
-| Unit | CEP extraction logic, cache TTL, archetype config loading |
+| Unit | CEP extraction logic, cache invalidation, archetype config loading |
 | Integration | Full analysis pipeline with mock LLM |
 | E2E | WebSocket push + cache hit/miss scenarios |
 

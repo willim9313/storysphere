@@ -15,7 +15,7 @@ from storysphere.config.settings import get_settings
 def test_settings_loaded():
     settings = get_settings()
     assert isinstance(settings.gemini_model, str)
-    assert isinstance(settings.chat_cache_ttl_seconds, int)
+    assert isinstance(settings.analysis_cache_db_path, str)
 
 
 def test_client_instantiation():

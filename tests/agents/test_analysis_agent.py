@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import json
-from unittest.mock import AsyncMock, MagicMock
+from types import SimpleNamespace
+from unittest.mock import AsyncMock
 
 import pytest
-
 from storysphere.agents.analysis_agent import AnalysisAgent
 from storysphere.services.analysis_cache import AnalysisCache
 from storysphere.services.analysis_models import (
@@ -41,7 +40,7 @@ def mock_service():
 
 @pytest.fixture
 def cache(tmp_path):
-    return AnalysisCache(db_path=str(tmp_path / "agent_cache.db"), ttl_seconds=3600)
+    return AnalysisCache(db_path=str(tmp_path / "agent_cache.db"))
 
 
 class TestAnalysisAgent:
@@ -101,3 +100,34 @@ class TestAnalysisAgent:
         assert r1.entity_name == "Alice"
         assert r2.entity_name == "Bob"
         assert mock_service.analyze_character.await_count == 2
+
+
+class TestCharacterCacheId:
+    """The character cache key is built from the entity id, not the name."""
+
+    def _agent(self, kg=None) -> AnalysisAgent:
+        return AnalysisAgent(analysis_service=AsyncMock(), kg_service=kg)
+
+    async def test_supplied_id_wins(self):
+        agent = self._agent(kg=AsyncMock())
+        result = await agent._character_cache_id("doc-1", "Alice", "ent-alice")
+        assert result == "ent-alice"
+        agent._kg_service.get_entity_by_name.assert_not_called()
+
+    async def test_resolves_name_through_kg(self):
+        kg = AsyncMock()
+        kg.get_entity_by_name = AsyncMock(return_value=SimpleNamespace(id="ent-alice"))
+        agent = self._agent(kg=kg)
+
+        assert await agent._character_cache_id("doc-1", "Alice", None) == "ent-alice"
+
+    async def test_falls_back_to_name_without_kg(self):
+        agent = self._agent(kg=None)
+        assert await agent._character_cache_id("doc-1", "Alice", None) == "Alice"
+
+    async def test_falls_back_to_name_when_unknown(self):
+        kg = AsyncMock()
+        kg.get_entity_by_name = AsyncMock(return_value=None)
+        agent = self._agent(kg=kg)
+
+        assert await agent._character_cache_id("doc-1", "Nobody", None) == "Nobody"

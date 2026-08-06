@@ -169,10 +169,11 @@ class NarrativeService:
         total = len(events)
 
         for idx, event in enumerate(events):
-            eep_cached = await self._cache.get(f"event:{document_id}:{event.id}")
-            if eep_cached is not None:
+            result = await self._cache.get_as(
+                f"event:{document_id}:{event.id}", EventAnalysisResult
+            )
+            if result is not None:
                 try:
-                    result = EventAnalysisResult.model_validate(eep_cached)
                     if result.eep.event_importance.name == "KERNEL":
                         kernel_ids.append(event.id)
                         event.narrative_weight = "kernel"
@@ -458,17 +459,66 @@ class NarrativeService:
 
     # ── Cache accessors (B-036) ───────────────────────────────────────────────
 
+    async def _rebuild_structure_from_kg(self, document_id: str) -> NarrativeStructure | None:
+        """Reconstruct a NarrativeStructure from data that outlives the cache.
+
+        Event.narrative_weight is stored in the KG and the Hero's Journey
+        stages have their own cache entry, so a NarrativeStructure that the
+        cache lost can be rebuilt from both without re-running any LLM call.
+        ``review_status`` cannot be recovered and resets to "pending".
+
+        Returns None when no event carries a weight yet — there is nothing to
+        recover then, and the caller should report the book as unanalysed.
+        """
+        events = await self._kg.get_events(document_id=document_id)
+        kernel_ids = [e.id for e in events if e.narrative_weight == "kernel"]
+        satellite_ids = [e.id for e in events if e.narrative_weight == "satellite"]
+        if not kernel_ids and not satellite_ids:
+            return None
+
+        # Never report "summary_heuristic" here: that value marks a structure
+        # for migration on the next read, and the classifier that produced it
+        # no longer exists.
+        sources = {e.narrative_weight_source for e in events if e.narrative_weight != "unclassified"}
+        structure = NarrativeStructure(
+            document_id=document_id,
+            kernel_event_ids=kernel_ids,
+            satellite_event_ids=satellite_ids,
+            unclassified_event_ids=[e.id for e in events if e.narrative_weight == "unclassified"],
+            classification_source=(
+                "human_verified" if sources == {"human_verified"} else "llm_classified"
+            ),
+        )
+        hj_cached = await self._cache.get_as(
+            f"{_HERO_JOURNEY_CACHE_PREFIX}:{document_id}", list[HeroJourneyStage]
+        )
+        if hj_cached:
+            structure.hero_journey_stages = hj_cached
+
+        await self._cache.set(f"{_CACHE_KEY_PREFIX}:{document_id}", structure.model_dump())
+        logger.info(
+            "get_cached_structure: rebuilt lost structure for document=%s "
+            "(kernel=%d satellite=%d stages=%d)",
+            document_id, len(kernel_ids), len(satellite_ids), len(structure.hero_journey_stages),
+        )
+        return structure
+
     async def get_cached_structure(self, document_id: str) -> NarrativeStructure | None:
         """Return the cached NarrativeStructure for a book, or None if not found.
+
+        If the cache entry is gone but the events are still classified in the
+        KG, the structure is rebuilt from the KG rather than reported missing —
+        see ``_rebuild_structure_from_kg``.
 
         Structures created by the old text-matching heuristic are migrated on
         first read: classify_from_eep is called, the result replaces the stale
         cache, and future reads see the EEP-based counts immediately.
         """
-        cached = await self._cache.get(f"{_CACHE_KEY_PREFIX}:{document_id}")
-        if cached is None:
-            return None
-        structure = NarrativeStructure(**cached)
+        structure = await self._cache.get_as(
+            f"{_CACHE_KEY_PREFIX}:{document_id}", NarrativeStructure
+        )
+        if structure is None:
+            return await self._rebuild_structure_from_kg(document_id)
         # Migrate any structure left over from the removed heuristic classifier
         if structure.classification_source == "summary_heuristic":
             return await self.classify_from_eep(document_id)
@@ -487,10 +537,9 @@ class NarrativeService:
     ) -> NarrativeStructure | None:
         """Update the review_status of a cached NarrativeStructure."""
         cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
-        cached = await self._cache.get(cache_key)
-        if cached is None:
+        structure = await self._cache.get_as(cache_key, NarrativeStructure)
+        if structure is None:
             return None
-        structure = NarrativeStructure(**cached)
         structure.review_status = review_status  # type: ignore[assignment]
         await self._cache.set(cache_key, structure.model_dump())
         return structure
@@ -522,15 +571,13 @@ class NarrativeService:
         """
         cache_key = f"{_HERO_JOURNEY_CACHE_PREFIX}:{document_id}"
         if not force:
-            cached = await self._cache.get(cache_key)
-            if cached:
-                stages = [HeroJourneyStage(**s) for s in cached]
+            stages = await self._cache.get_as(cache_key, list[HeroJourneyStage])
+            if stages:
                 # Always ensure NarrativeStructure reflects these stages,
                 # even on cache hit — classify_from_eep may have cleared them.
                 ns_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
-                cached_ns = await self._cache.get(ns_key)
-                if cached_ns:
-                    ns = NarrativeStructure(**cached_ns)
+                ns = await self._cache.get_as(ns_key, NarrativeStructure)
+                if ns is not None:
                     if not ns.hero_journey_stages:
                         ns.hero_journey_stages = stages
                         await self._cache.set(ns_key, ns.model_dump())
@@ -553,9 +600,8 @@ class NarrativeService:
 
         # Merge into NarrativeStructure if it exists
         ns_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
-        cached_ns = await self._cache.get(ns_key)
-        if cached_ns:
-            ns = NarrativeStructure(**cached_ns)
+        ns = await self._cache.get_as(ns_key, NarrativeStructure)
+        if ns is not None:
             ns.hero_journey_stages = stages
             await self._cache.set(ns_key, ns.model_dump())
 
@@ -650,9 +696,9 @@ class NarrativeService:
         """
         cache_key = f"{_TEMPORAL_CACHE_PREFIX}:{document_id}"
         if not force:
-            cached = await self._cache.get(cache_key)
+            cached = await self._cache.get_as(cache_key, TemporalAnalysis)
             if cached:
-                return TemporalAnalysis(**cached)
+                return cached
 
         events = await self._kg.get_events(document_id=document_id)
         total = len(events)

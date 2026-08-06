@@ -1,7 +1,9 @@
-"""AnalysisCache — SQLite-backed cache with TTL for deep analysis results.
+"""AnalysisCache — SQLite-backed store for deep analysis results.
 
-Default TTL is 7 days.  Cache keys follow the pattern:
-    character:{document_id}:{entity_name}
+Entries never expire on their own; ``created`` records when each one was
+written, and stale entries are dropped explicitly via ``invalidate()`` when
+the upstream data is re-analysed.  Cache keys follow the pattern:
+    character:{document_id}:{entity_id}
 """
 
 from __future__ import annotations
@@ -9,12 +11,14 @@ from __future__ import annotations
 import json
 import logging
 import time
+from typing import Any, TypeVar
 
 import aiosqlite
+from pydantic import TypeAdapter, ValidationError
 
 logger = logging.getLogger(__name__)
 
-_DEFAULT_TTL = 7 * 86_400  # 7 days in seconds
+T = TypeVar("T")
 
 _CREATE_TABLE = """\
 CREATE TABLE IF NOT EXISTS analysis_cache (
@@ -26,11 +30,10 @@ CREATE TABLE IF NOT EXISTS analysis_cache (
 
 
 class AnalysisCache:
-    """Async SQLite cache for analysis results with TTL eviction."""
+    """Async SQLite store for analysis results; entries are kept until invalidated."""
 
-    def __init__(self, db_path: str = "./var/analysis_cache.db", ttl_seconds: int = _DEFAULT_TTL) -> None:
+    def __init__(self, db_path: str = "./var/analysis_cache.db") -> None:
         self._db_path = db_path
-        self._ttl = ttl_seconds
         self._initialised = False
 
     async def _ensure_table(self, db: aiosqlite.Connection) -> None:
@@ -39,23 +42,42 @@ class AnalysisCache:
         self._initialised = True
 
     async def get(self, key: str) -> dict | None:
-        """Return cached result or None if missing/expired."""
+        """Return cached result, or None if the key was never written."""
         async with aiosqlite.connect(self._db_path) as db:
             await self._ensure_table(db)
             cursor = await db.execute(
-                "SELECT value, created FROM analysis_cache WHERE key = ?", (key,)
+                "SELECT value FROM analysis_cache WHERE key = ?", (key,)
             )
             row = await cursor.fetchone()
             if row is None:
                 return None
-            value_str, created = row
-            if time.time() - created > self._ttl:
-                # Expired — delete and return None
-                await db.execute("DELETE FROM analysis_cache WHERE key = ?", (key,))
-                await db.commit()
-                logger.debug("Cache expired for key=%s", key)
-                return None
-            return json.loads(value_str)
+            return json.loads(row[0])
+
+    async def get_as(self, key: str, model: Any) -> T | None:
+        """Return the cached value parsed as ``model``, or None.
+
+        ``model`` is anything pydantic can validate against, including a
+        container such as ``list[HeroJourneyStage]``.
+
+        A stored value that no longer matches — typically after a field was
+        renamed or removed — is reported as a miss instead of raising, so a
+        model change degrades to a recompute rather than a 500. Entries no
+        longer expire on their own, so without this a stale-shaped row would
+        keep failing every read until someone invalidated it by hand. The row
+        is left in place; use ``invalidate()`` to drop it deliberately.
+        """
+        raw = await self.get(key)
+        if raw is None:
+            return None
+        try:
+            return TypeAdapter(model).validate_python(raw)
+        except ValidationError:
+            logger.warning(
+                "Cache entry key=%s no longer matches %s; treating as a miss",
+                key,
+                getattr(model, "__name__", model),
+            )
+            return None
 
     async def set(self, key: str, result: dict) -> None:
         """Store a result in cache (upsert)."""
@@ -70,7 +92,7 @@ class AnalysisCache:
         logger.debug("Cache set for key=%s", key)
 
     async def count_keys(self, pattern: str) -> int:
-        """Count non-expired cache entries matching a LIKE pattern.
+        """Count cache entries matching a LIKE pattern.
 
         Uses SQLite LIKE syntax (``%`` wildcard).  Mirrors ``invalidate()``
         but uses ``SELECT COUNT`` instead of ``DELETE``, so it is safe to call
@@ -80,33 +102,29 @@ class AnalysisCache:
             pattern: SQLite LIKE pattern, e.g. ``"character:doc-1:%"``
 
         Returns:
-            Number of non-expired entries matching the pattern.
+            Number of entries matching the pattern.
         """
-        cutoff = time.time() - self._ttl
         async with aiosqlite.connect(self._db_path) as db:
             await self._ensure_table(db)
             cursor = await db.execute(
-                "SELECT COUNT(*) FROM analysis_cache"
-                " WHERE key LIKE ? AND created > ?",
-                (pattern, cutoff),
+                "SELECT COUNT(*) FROM analysis_cache WHERE key LIKE ?",
+                (pattern,),
             )
             row = await cursor.fetchone()
         return row[0] if row else 0
 
     async def list_by_prefix(self, prefix: str) -> list[dict]:
-        """Return all non-expired cache values whose key starts with ``prefix``.
+        """Return all cache values whose key starts with ``prefix``.
 
         Used when a consumer needs to bulk-load entries that share a key family
         without round-tripping a separate index (e.g. all TEUs for a document).
         """
-        cutoff = time.time() - self._ttl
         like_pattern = prefix + "%"
         async with aiosqlite.connect(self._db_path) as db:
             await self._ensure_table(db)
             cursor = await db.execute(
-                "SELECT value FROM analysis_cache"
-                " WHERE key LIKE ? AND created > ?",
-                (like_pattern, cutoff),
+                "SELECT value FROM analysis_cache WHERE key LIKE ?",
+                (like_pattern,),
             )
             rows = await cursor.fetchall()
         return [json.loads(r[0]) for r in rows]
@@ -124,9 +142,15 @@ class AnalysisCache:
         return count
 
     @staticmethod
-    def make_key(analysis_type: str, document_id: str, entity_name: str) -> str:
+    def make_key(analysis_type: str, document_id: str, entity_key: str) -> str:
         """Build a cache key.
 
-        Example: ``make_key("character", "doc-1", "Alice")`` → ``"character:doc-1:alice"``
+        ``entity_key`` is an entity id, not a display name: names are not
+        stable across a re-ingest and two characters can share one, so a
+        name-keyed entry can end up serving an analysis built from different
+        text.
+
+        Example: ``make_key("character", "doc-1", "ent-alice")``
+        → ``"character:doc-1:ent-alice"``
         """
-        return f"{analysis_type}:{document_id}:{entity_name.lower()}"
+        return f"{analysis_type}:{document_id}:{entity_key.lower()}"

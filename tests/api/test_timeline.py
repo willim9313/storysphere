@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.conftest import attach_get_as
+
 from .conftest import make_event
 
 ANALYZED = make_event(title="Analyzed event", chapter=1)
@@ -37,7 +39,7 @@ def timeline_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_ch
     mock_kg.get_events = AsyncMock(return_value=[ANALYZED, PLAIN])
     mock_kg.get_temporal_relations = AsyncMock(return_value=[])
 
-    cache = AsyncMock()
+    cache = attach_get_as(AsyncMock())
 
     async def _get(key):
         return _eep_payload() if key.endswith(ANALYZED.id) else None
@@ -130,7 +132,7 @@ def temporal_client(request, mock_kg, mock_doc, mock_vector, mock_analysis_agent
 
     cached_temporal = request.param
 
-    cache = AsyncMock()
+    cache = attach_get_as(AsyncMock())
 
     async def _get(key):
         if key.startswith("temporal_analysis:"):

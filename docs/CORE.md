@@ -353,7 +353,7 @@ storysphere/
 
 ### Phase 5a: Deep Analysis — 角色分析 ✅ DONE
 → 📄 [guides/PHASE_5_DEEP_ANALYSIS.md](guides/PHASE_5_DEEP_ANALYSIS.md)
-- 優先緩存邏輯（SQLite 7天 TTL）
+- 優先緩存邏輯（SQLite，保留至明確 invalidate，無 TTL）
 - Pydantic + Retry (3次 + exponential backoff)
 - Character Evidence Profile (CEP) extraction
 - Archetype classification（Jung 12 + Schmidt 45）

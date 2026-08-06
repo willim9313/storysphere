@@ -1295,7 +1295,7 @@ interface Carrier {
 
 **UI 使用頁面**：張力分析頁（hero / 章節格點 / 審核抽屜證據區）
 
-**備註**：`teus[]` 由 `TensionService.get_lines_with_teus()` 透過 `AnalysisCache.list_by_prefix("teu:")` 一次取出，過濾掉與 `teu_ids` 不匹配的條目；若 TEU 已逾 TTL，該條 line 的 `teus` 為空陣列（line 仍照常回傳）。
+**備註**：`teus[]` 由 `TensionService.get_lines_with_teus()` 透過 `AnalysisCache.list_by_prefix("teu:")` 一次取出，過濾掉與 `teu_ids` 不匹配的條目；若該 TEU 已被 `invalidate()` 清除，該條 line 的 `teus` 為空陣列（line 仍照常回傳）。
 
 ---
 
@@ -2076,7 +2076,11 @@ interface ChapterDistribution {
 
 **Response 200**：`NarrativeStructure`（model_dump 格式）
 
-**Response 404**：尚未執行 #21a
+快取條目遺失但 KG 中的事件仍帶有 `narrative_weight` 時，後端會從 KG 事件權重與
+`hero_journey` 快取重建 NarrativeStructure 後回傳 200，不需重跑 #21a／#21e。
+重建無法還原 `review_status`，該欄位會回到 `pending`。
+
+**Response 404**：尚未執行 #21a，且 KG 中沒有任何已分類事件
 
 ---
 

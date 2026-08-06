@@ -96,9 +96,9 @@ class EpistemicStateService:
         cache = self._get_cache()
         key = f"epistemic:{document_id}:{character_id}:{up_to_chapter}"
 
-        cached = await cache.get(key)
+        cached = await cache.get_as(key, CharacterEpistemicState)
         if cached:
-            return _deserialize_state(cached)
+            return cached
 
         kg = self._get_kg_service()
         events, _, _ = await kg.get_snapshot(document_id, "chapter", up_to_chapter)
@@ -296,7 +296,3 @@ class EpistemicStateService:
 
 def _serialize_state(state: CharacterEpistemicState) -> dict:
     return state.model_dump()
-
-
-def _deserialize_state(data: dict) -> CharacterEpistemicState:
-    return CharacterEpistemicState.model_validate(data)

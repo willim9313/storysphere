@@ -241,12 +241,14 @@ async def _resume_ingestion_graph(task_id: str, chapters_data: dict | None) -> N
 async def _run_entity_analysis(
     task_id: str, entity_name: str, document_id: str, agent, language: str = "en",
     retry_parts: list[str] | None = None, force_refresh: bool = False,
+    entity_id: str | None = None,
 ) -> None:
     logger.info("Entity analysis task %s started: entity=%s, doc=%s", task_id, entity_name, document_id)
     task_store.set_running(task_id)
     try:
         result = await agent.analyze_character(
             entity_name=entity_name,
+            entity_id=entity_id,
             document_id=document_id,
             archetype_frameworks=["jung", "schmidt"],
             language=language,
@@ -384,9 +386,16 @@ async def delete_book(
                 await set_task_failed(task_id, error="cancelled")
             await _cleanup_checkpoint(task_id)
 
+    # TEU keys carry only an event id, so collect them before the KG rows go.
+    teu_keys = [f"teu:{e.id}" for e in await kg.get_events(document_id=book_id)]
+
     await vector.delete_collection(book_id)
     await kg.remove_by_document(book_id)
-    await cache.invalidate(f"%:{book_id}:%")
+    # book_id sits in the middle of some keys (character:{book}:{entity}) and at
+    # the end of others (narrative_structure:{book}); match both shapes.
+    await cache.invalidate(f"%{book_id}%")
+    if teu_keys:
+        await asyncio.gather(*[cache.invalidate(k) for k in teu_keys])
     await lp.delete_by_document(book_id)
     await doc.delete_document(book_id)
     return None
@@ -418,6 +427,15 @@ async def _run_rerun_step(
 
         from storysphere.workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
         wf = IngestionWorkflow(kg_service=kg_service)
+
+        # TEU keys name event ids that this step is about to regenerate, so
+        # collect them while the current events still exist.
+        teu_keys: list[str] = []
+        if step == "feature-extraction":
+            from storysphere.services.cache_invalidation import teu_keys_for  # noqa: PLC0415
+            teu_keys = teu_keys_for(
+                [e.id for e in await kg_service.get_events(document_id=book_id)]
+            )
 
         if step == "summarization":
             try:
@@ -461,6 +479,19 @@ async def _run_rerun_step(
                 return
 
         await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+
+        # Only after the step succeeded — a failed rerun leaves the old data in
+        # place, so its analyses are still the ones that describe the book.
+        from storysphere.config.settings import get_settings  # noqa: PLC0415
+        from storysphere.services.analysis_cache import AnalysisCache  # noqa: PLC0415
+        from storysphere.services.cache_invalidation import invalidate_for_steps  # noqa: PLC0415
+        await invalidate_for_steps(
+            AnalysisCache(db_path=get_settings().analysis_cache_db_path),
+            book_id,
+            [step],
+            teu_keys,
+        )
+
         task_store.set_completed(task_id, result={"bookId": book_id, "step": step})
 
     except asyncio.CancelledError:
@@ -1499,11 +1530,10 @@ async def list_character_analyses(
     analyzed: list[dict] = []
     unanalyzed: list[dict] = []
     for e in characters:
-        cache_key = AnalysisCache.make_key("character", book_id, e.name)
-        cached = await cache.get(cache_key)
-        if cached is not None:
+        cache_key = AnalysisCache.make_key("character", book_id, e.id)
+        result = await cache.get_as(cache_key, CharacterAnalysisResult)
+        if result is not None:
             try:
-                result = CharacterAnalysisResult.model_validate(cached)
                 archetypes = {a.framework: a.primary for a in result.archetypes}
                 analyzed.append(
                     AnalysisItem(
@@ -1568,10 +1598,9 @@ async def list_event_analyses(
             else (ev.narrative_mode if isinstance(ev.narrative_mode, str) else None)
         )
         cache_key = f"event:{book_id}:{ev.id}"
-        cached = await cache.get(cache_key)
-        if cached is not None:
+        result = await cache.get_as(cache_key, EventAnalysisResult)
+        if result is not None:
             try:
-                result = EventAnalysisResult.model_validate(cached)
                 importance = (
                     result.eep.event_importance.name
                     if result.eep and hasattr(result.eep.event_importance, "name")
@@ -1715,13 +1744,12 @@ async def get_entity_analysis(
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
-    cache_key = AnalysisCache.make_key("character", book_id, entity.name)
+    cache_key = AnalysisCache.make_key("character", book_id, entity.id)
     try:
-        cached = await cache.get(cache_key)
-        if cached is not None:
+        from storysphere.services.analysis_models import CharacterAnalysisResult
+        result = await cache.get_as(cache_key, CharacterAnalysisResult)
+        if result is not None:
             logger.info("Entity analysis cache HIT: key=%s", cache_key)
-            from storysphere.services.analysis_models import CharacterAnalysisResult
-            result = CharacterAnalysisResult.model_validate(cached)
             return CharacterAnalysisDetailResponse(
                 entity_id=entity_id,
                 entity_name=entity.name,
@@ -1797,10 +1825,10 @@ async def trigger_entity_analysis(
     force_refresh = False
     if body.mode == "retryFailed":
         from storysphere.services.analysis_models import CharacterAnalysisResult  # noqa: PLC0415
-        cache_key = AnalysisCache.make_key("character", book_id, entity.name)
-        cached = await cache.get(cache_key)
+        cache_key = AnalysisCache.make_key("character", book_id, entity.id)
+        cached = await cache.get_as(cache_key, CharacterAnalysisResult)
         if cached:
-            retry_parts = CharacterAnalysisResult.model_validate(cached).failed_parts
+            retry_parts = cached.failed_parts
     else:
         force_refresh = True
 
@@ -1812,7 +1840,7 @@ async def trigger_entity_analysis(
     task_store.create(task_id, kind="character", title=f"角色深度分析 — {entity.name}")
     background_tasks.add_task(
         _run_entity_analysis, task_id, entity.name, book_id, agent, language,
-        retry_parts, force_refresh,
+        retry_parts, force_refresh, entity.id,
     )
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -1830,7 +1858,7 @@ async def delete_entity_analysis(
     if entity is None:
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
-    cache_key = AnalysisCache.make_key("character", book_id, entity.name)
+    cache_key = AnalysisCache.make_key("character", book_id, entity.id)
     await cache.invalidate(cache_key)
     logger.info("Deleted entity analysis cache: key=%s", cache_key)
 
@@ -1878,7 +1906,7 @@ async def _run_batch_entity_analysis(
         )
 
     for entity in characters:
-        cache_key = AnalysisCache.make_key("character", document_id, entity.name)
+        cache_key = AnalysisCache.make_key("character", document_id, entity.id)
         if await cache.get(cache_key) is not None:
             skipped += 1
             done += 1
@@ -1887,6 +1915,7 @@ async def _run_batch_entity_analysis(
         try:
             await agent.analyze_character(
                 entity_name=entity.name,
+                entity_id=entity.id,
                 document_id=document_id,
                 archetype_frameworks=["jung", "schmidt"],
                 language=language,
@@ -2145,9 +2174,9 @@ async def trigger_event_analysis(
     force_refresh = False
     if body.mode == "retryFailed":
         from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
-        cached = await cache.get(f"event:{book_id}:{event_id}")
+        cached = await cache.get_as(f"event:{book_id}:{event_id}", EventAnalysisResult)
         if cached:
-            retry_parts = EventAnalysisResult.model_validate(cached).failed_parts
+            retry_parts = cached.failed_parts
     else:
         force_refresh = True
 
@@ -2180,11 +2209,6 @@ async def get_event_analysis(
     if event is None:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
-    cache_key = f"event:{book_id}:{event_id}"
-    cached = await cache.get(cache_key)
-    if cached is None:
-        raise HTTPException(status_code=404, detail="Event analysis not found. Run analysis first.")
-
     from storysphere.api.schemas.books import (  # noqa: PLC0415
         CausalityResponse,
         EepParticipantRole,
@@ -2193,7 +2217,10 @@ async def get_event_analysis(
     )
     from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
 
-    result = EventAnalysisResult.model_validate(cached)
+    cache_key = f"event:{book_id}:{event_id}"
+    result = await cache.get_as(cache_key, EventAnalysisResult)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Event analysis not found. Run analysis first.")
     return EventAnalysisFullResponse(
         event_id=result.event_id,
         title=result.title,
@@ -2528,6 +2555,9 @@ async def get_book_timeline(
     analyzed_ids: set[str] = set()
     for ev in all_events:
         cache_key = f"event:{book_id}:{ev.id}"
+        # Presence alone counts as analysed here — an entry whose shape has
+        # drifted still means the event was analysed, it just cannot supply an
+        # importance. Reading via get_as would drop it from the coverage stats.
         cached = await cache.get(cache_key)
         if cached is not None:
             analyzed_count += 1

@@ -70,6 +70,7 @@ class TestAgentPartial:
     def test_agent_retry_loads_cache_and_recaches(self):
         from storysphere.agents.analysis_agent import AnalysisAgent
         agent = AnalysisAgent.__new__(AnalysisAgent)
+        agent._kg_service = None
         cached = {
             "entity_id": "Bob", "entity_name": "Bob", "document_id": "doc1",
             "profile": {"summary": "kept"},

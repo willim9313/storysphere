@@ -17,6 +17,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import TYPE_CHECKING
 
+from pydantic import BaseModel, Field
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from storysphere.config.mythos import get_mythos_summary, resolve_mythos_id
@@ -45,6 +46,17 @@ _REVIEWED_STATUSES = frozenset({"approved", "modified"})
 _ASSEMBLER_TAG = "tension_service_v1"
 _GROUPER_TAG = "tension_grouper_v1"
 _SYNTHESIZER_TAG = "tension_synthesizer_v1"
+
+
+class _TensionLinesEnvelope(BaseModel):
+    """Shape stored under ``tension_lines:{document_id}``.
+
+    Named so the cache read can go through ``get_as`` and tolerate a model
+    change, rather than raising on a missing key or a renamed field.
+    """
+
+    lines: list[TensionLine] = Field(default_factory=list)
+
 
 _GROUPING_SYSTEM_PROMPT = """\
 You are a literary tension analyst. Given a list of Tension Evidence Units (TEUs)
@@ -172,10 +184,10 @@ class TensionService:
         cache_key = f"teu:{event_id}"
 
         if not force:
-            cached = await self._cache.get(cache_key)
+            cached = await self._cache.get_as(cache_key, TEU)
             if cached is not None:
                 logger.debug("TensionService: cache hit for %s", cache_key)
-                return TEU.model_validate(cached)
+                return cached
 
         # 1. Load event
         event = await kg_service.get_event(event_id)
@@ -219,11 +231,8 @@ class TensionService:
         logger.debug("TensionService: saved TEU for event=%s", teu.event_id)
 
     async def get_teu(self, event_id: str) -> TEU | None:
-        """Retrieve a cached TEU by event_id, or None if not found/expired."""
-        cached = await self._cache.get(f"teu:{event_id}")
-        if cached is None:
-            return None
-        return TEU.model_validate(cached)
+        """Retrieve a cached TEU by event_id, or None if not found."""
+        return await self._cache.get_as(f"teu:{event_id}", TEU)
 
     # ── Public: Mode B+ (TensionLine grouping) ────────────────────────────────
 
@@ -264,13 +273,10 @@ class TensionService:
         """
         cache_key = f"tension_lines:{document_id}"
         if not force:
-            cached = await self._cache.get(cache_key)
+            cached = await self._cache.get_as(cache_key, _TensionLinesEnvelope)
             if cached is not None:
                 logger.debug("TensionService: cache hit for %s", cache_key)
-                return {
-                    "lines": [TensionLine.model_validate(line) for line in cached["lines"]],
-                    "coverage": None,
-                }
+                return {"lines": cached.lines, "coverage": None}
 
         events = await kg_service.get_events(document_id=document_id)
         teus: list[TEU] = []
@@ -314,10 +320,10 @@ class TensionService:
 
     async def get_lines(self, document_id: str) -> list[TensionLine]:
         """Retrieve cached TensionLines for a document, or empty list if none."""
-        cached = await self._cache.get(f"tension_lines:{document_id}")
-        if not cached:
-            return []
-        return [TensionLine.model_validate(line) for line in cached["lines"]]
+        cached = await self._cache.get_as(
+            f"tension_lines:{document_id}", _TensionLinesEnvelope
+        )
+        return cached.lines if cached else []
 
     async def get_teus(self, document_id: str) -> list[TEU]:
         """Return every cached TEU for a document, ordered by chapter.
@@ -577,10 +583,10 @@ class TensionService:
         cache_key = f"tension_theme:{document_id}"
 
         if not force:
-            cached = await self._cache.get(cache_key)
+            cached = await self._cache.get_as(cache_key, TensionTheme)
             if cached is not None:
                 logger.debug("TensionService: cache hit for %s", cache_key)
-                return TensionTheme.model_validate(cached)
+                return cached
 
         lines = await self.get_lines(document_id)
         if not lines:
@@ -658,7 +664,7 @@ class TensionService:
         logger.debug("TensionService: saved TensionTheme for document=%s", theme.document_id)
 
     async def get_theme(self, document_id: str) -> TensionTheme | None:
-        """Retrieve a cached TensionTheme, or None if not found/expired.
+        """Retrieve a cached TensionTheme, or None if not found.
 
         ``frye_mythos`` / ``booker_plot`` are normalized to canonical ids on the
         way out, so themes synthesised before that guarantee existed (which may
@@ -666,10 +672,9 @@ class TensionService:
         LLM. The cached row itself is left untouched — the value read here can
         therefore differ from the value stored.
         """
-        cached = await self._cache.get(f"tension_theme:{document_id}")
-        if cached is None:
+        theme = await self._cache.get_as(f"tension_theme:{document_id}", TensionTheme)
+        if theme is None:
             return None
-        theme = TensionTheme.model_validate(cached)
         return theme.model_copy(
             update={
                 "frye_mythos": self._normalized_mythos("frye", theme.frye_mythos),

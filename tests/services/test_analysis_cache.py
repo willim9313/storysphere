@@ -1,17 +1,32 @@
-"""Tests for services.analysis_cache — SQLite cache with TTL."""
+"""Tests for services.analysis_cache — SQLite-backed analysis result store."""
 
 import time
-from unittest.mock import patch
 
+import aiosqlite
 import pytest
-
+from pydantic import BaseModel
 from storysphere.services.analysis_cache import AnalysisCache
+
+
+class _Sample(BaseModel):
+    name: str
+    score: float
+
+
+async def _backdate(cache: AnalysisCache, key: str, days: int) -> None:
+    """Rewrite an entry's ``created`` timestamp to ``days`` ago."""
+    async with aiosqlite.connect(cache._db_path) as db:
+        await db.execute(
+            "UPDATE analysis_cache SET created = ? WHERE key = ?",
+            (time.time() - days * 86_400, key),
+        )
+        await db.commit()
 
 
 @pytest.fixture
 def cache(tmp_path):
     db_path = str(tmp_path / "test_cache.db")
-    return AnalysisCache(db_path=db_path, ttl_seconds=60)
+    return AnalysisCache(db_path=db_path)
 
 
 class TestAnalysisCacheMakeKey:
@@ -40,16 +55,42 @@ class TestAnalysisCacheGetSet:
         result = await cache.get("k1")
         assert result == {"v": 2}
 
-    async def test_expired_returns_none(self, tmp_path):
-        db_path = str(tmp_path / "ttl_cache.db")
-        cache = AnalysisCache(db_path=db_path, ttl_seconds=1)
+    async def test_old_entry_still_returned(self, cache):
+        """Entries never expire — only invalidate() removes them."""
         await cache.set("k1", {"v": 1})
+        # Backdate the entry well beyond the TTL that used to apply (7 days)
+        await _backdate(cache, "k1", days=400)
 
-        with patch("storysphere.services.analysis_cache.time") as mock_time:
-            # Simulate time passing beyond TTL
-            mock_time.time.return_value = time.time() + 10
-            result = await cache.get("k1")
-        assert result is None
+        assert await cache.get("k1") == {"v": 1}
+        assert await cache.count_keys("k%") == 1
+        assert await cache.list_by_prefix("k") == [{"v": 1}]
+
+
+class TestAnalysisCacheGetAs:
+    async def test_parses_into_model(self, cache):
+        await cache.set("k1", {"name": "Alice", "score": 0.9})
+        result = await cache.get_as("k1", _Sample)
+        assert result == _Sample(name="Alice", score=0.9)
+
+    async def test_missing_key_returns_none(self, cache):
+        assert await cache.get_as("nonexistent", _Sample) is None
+
+    async def test_shape_mismatch_is_a_miss_not_an_error(self, cache):
+        """A model change must degrade to a recompute, not a 500."""
+        await cache.set("k1", {"renamed_field": "Alice"})
+        assert await cache.get_as("k1", _Sample) is None
+
+    async def test_mismatched_row_is_left_in_place(self, cache):
+        """get_as reports a miss; only invalidate() may delete."""
+        await cache.set("k1", {"renamed_field": "Alice"})
+        await cache.get_as("k1", _Sample)
+        assert await cache.get("k1") == {"renamed_field": "Alice"}
+
+    async def test_parses_container_types(self, cache):
+        """hero_journey and tension_lines store lists, not a single object."""
+        await cache.set("k1", [{"name": "Alice", "score": 0.9}, {"name": "Bob", "score": 0.1}])
+        result = await cache.get_as("k1", list[_Sample])
+        assert [s.name for s in result] == ["Alice", "Bob"]
 
 
 class TestAnalysisCacheInvalidate:

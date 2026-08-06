@@ -123,9 +123,9 @@ class VoiceProfilingService:
         cache = self._get_cache()
         key = f"voice_profile:{document_id}:{character_id}:{language}"
 
-        cached = await cache.get(key)
+        cached = await cache.get_as(key, VoiceProfile)
         if cached:
-            return VoiceProfile.model_validate(cached)
+            return cached
 
         if cached_only:
             return None
