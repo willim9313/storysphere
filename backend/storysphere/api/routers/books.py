@@ -428,6 +428,15 @@ async def _run_rerun_step(
         from storysphere.workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
         wf = IngestionWorkflow(kg_service=kg_service)
 
+        # TEU keys name event ids that this step is about to regenerate, so
+        # collect them while the current events still exist.
+        teu_keys: list[str] = []
+        if step == "feature-extraction":
+            from storysphere.services.cache_invalidation import teu_keys_for  # noqa: PLC0415
+            teu_keys = teu_keys_for(
+                [e.id for e in await kg_service.get_events(document_id=book_id)]
+            )
+
         if step == "summarization":
             try:
                 await wf._summarization_pipeline.run(document)
@@ -470,6 +479,19 @@ async def _run_rerun_step(
                 return
 
         await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+
+        # Only after the step succeeded — a failed rerun leaves the old data in
+        # place, so its analyses are still the ones that describe the book.
+        from storysphere.config.settings import get_settings  # noqa: PLC0415
+        from storysphere.services.analysis_cache import AnalysisCache  # noqa: PLC0415
+        from storysphere.services.cache_invalidation import invalidate_for_steps  # noqa: PLC0415
+        await invalidate_for_steps(
+            AnalysisCache(db_path=get_settings().analysis_cache_db_path),
+            book_id,
+            [step],
+            teu_keys,
+        )
+
         task_store.set_completed(task_id, result={"bookId": book_id, "step": step})
 
     except asyncio.CancelledError:
