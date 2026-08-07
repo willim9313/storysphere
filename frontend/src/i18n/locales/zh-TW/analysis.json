@@ -1457,6 +1457,26 @@
         "legendMore": "{{count}} 次以上",
         "legendOutside": "非正文",
         "note": "虛框格＝非正文出現：不計入分布形狀與首見章，但計入證據可信度扣分。"
+      },
+      "shapes": {
+        "title": "行為分群",
+        "subtitle": "點一列即篩選左欄清單",
+        "through": "貫穿型 · 從頭到尾都在",
+        "backHalf": "後段集中 · 事件之後才密集",
+        "frontHalf": "前半段集中",
+        "earlyExit": "開場即退場 · 中途消失",
+        "lateEntry": "結尾才登場",
+        "scatter": "間斷出現",
+        "single": "單章出現",
+        "none": "僅出現在非正文"
+      },
+      "tail": {
+        "title": "單次出現詞 · {{count}}",
+        "meta": "{{pct}}% 的意象只出現一次",
+        "description": "只出現一次的詞沒有分布、沒有結盟、沒有依附 —— 在行為訊號的框架下它還不構成象徵。因此不進排序、不進批次生成，但可點、可搜。字級隨首見章序遞增。",
+        "chapter": "ch{{chapter}}",
+        "chapterFront": "前",
+        "chapterBack": "後"
       }
     }
   },

@@ -35,7 +35,7 @@ import {
   useSymbolAnalysis,
 } from '@/components/symbols/hooks/useSymbolAnalysis';
 import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
-import type { SortAxis } from '@/components/symbols/symbolSignals';
+import type { DistributionShape, SortAxis } from '@/components/symbols/symbolSignals';
 import {
   bodyChapterMax,
   firstBodyChapter,
@@ -85,6 +85,15 @@ export default function SymbolsPage() {
   // list identically, so it is offered as a cross-check rather than the default.
   const [sortAxis, setSortAxis] = useState<SortAxis>('load');
   const [search, setSearch] = useState('');
+  // Screen-local: a behaviour group is a way of looking, not a place to link to
+  // (redesign decision 05). Cleared whenever the map is returned to.
+  const [shapeFilter, setShapeFilter] = useState<DistributionShape | null>(null);
+
+  /** Returning to the map drops the behaviour filter, which was set on the map. */
+  const handleSelect = (id: string | null) => {
+    setSelectedId(id);
+    if (id === null) setShapeFilter(null);
+  };
 
   const { analysis, isLoading: listLoading } = useSymbolAnalysis(bookId);
 
@@ -300,10 +309,10 @@ export default function SymbolsPage() {
     if (entities.length > 0) {
       detailBody = (
         <SymbolsDashboard
-          entities={entities}
-          interpretations={interpretationStatuses}
           analysis={analysis}
           sortAxis={sortAxis}
+          shapeFilter={shapeFilter}
+          setShapeFilter={setShapeFilter}
           onSelect={setSelectedId}
         />
       );
@@ -362,11 +371,12 @@ export default function SymbolsPage() {
       <SymbolList
         analysis={analysis}
         selectedId={selectedId}
-        onSelect={setSelectedId}
+        onSelect={handleSelect}
         sortAxis={sortAxis}
         setSortAxis={setSortAxis}
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
+        shapeFilter={shapeFilter}
         search={search}
         setSearch={setSearch}
       />

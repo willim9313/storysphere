@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
 import type { TFunction } from 'i18next';
-import type { ImageryEntity, InterpretationStatus, Polarity } from '@/api/symbols';
 import type { ChapterAxis, ChapterSegment } from './chapterAxis';
 import { TypePill } from './Badges';
 import { densityLegendSteps, densityStep, typeStyle } from './tokens';
@@ -10,6 +9,7 @@ import { behaviourLine } from './symbolPhrases';
 import {
   interpretationAdvice,
   rankSymbols,
+  type DistributionShape,
   type SortAxis,
   type SymbolAnalysis,
   type SymbolSignals,
@@ -21,30 +21,23 @@ const OUTSIDE_CELL_FLEX = 0.7;
 /** Below this, a symbol's evidence is partly front matter and is flagged as such. */
 const TRUST_FLOOR = 0.8;
 
-const TYPE_DOT: Record<string, string> = {
-  object:  'var(--symbol-object-dot)',
-  nature:  'var(--symbol-nature-dot)',
-  spatial: 'var(--symbol-spatial-dot)',
-  body:    'var(--symbol-body-dot)',
-  color:   'var(--symbol-color-dot)',
-  other:   'var(--symbol-other-dot)',
-};
-
-const POLARITY_DOT: Record<Polarity, string> = {
-  positive: 'var(--polarity-positive-dot)',
-  negative: 'var(--polarity-negative-dot)',
-  neutral:  'var(--polarity-neutral-dot)',
-  mixed:    'var(--polarity-mixed-dot)',
-};
-
 type Props = {
-  entities: ImageryEntity[];
-  interpretations: Record<string, InterpretationStatus | undefined>;
   analysis: SymbolAnalysis | null;
   /** Heatmap rows follow the sidebar's axis, so the two never disagree on order. */
   sortAxis: SortAxis;
+  shapeFilter: DistributionShape | null;
+  setShapeFilter: (v: DistributionShape | null) => void;
   onSelect: (id: string) => void;
 };
+
+/** Order groups by how much of a claim they make, not alphabetically. */
+const SHAPE_ORDER: DistributionShape[] = [
+  'through', 'backHalf', 'frontHalf', 'earlyExit', 'lateEntry', 'scatter', 'single', 'none',
+];
+
+/** Type size ramp for the tail cloud, in rem, matching the --font-size-* scale. */
+const TAIL_MIN_REM = 0.75;
+const TAIL_MAX_REM = 1.125;
 
 /** How many recommendations fit before the reader is choosing from a list again. */
 const PICK_COUNT = 3;
@@ -215,7 +208,7 @@ function axisRuns(axis: ChapterAxis) {
   for (const slot of axis.slots) {
     const last = runs.at(-1);
     const flex = slot.segment === 'body' ? 1 : OUTSIDE_CELL_FLEX;
-    if (last && last.segment === slot.segment) {
+    if (last?.segment === slot.segment) {
       last.slots.push(slot.chapter);
       last.flex += flex;
     } else {
@@ -354,25 +347,150 @@ function DensityHeatmap({
   );
 }
 
+/**
+ * The book's symbols grouped by the shape they trace through it.
+ *
+ * A shape is the one thing about a symbol that a reader can hold in mind while
+ * comparing it to another, so it doubles as the coarse filter for the list: seeing
+ * that four symbols all leave by chapter 3 is a question, and clicking the group
+ * is how it gets asked.
+ */
+function ShapeGroups({
+  analysis,
+  shapeFilter,
+  setShapeFilter,
+}: Readonly<{
+  analysis: SymbolAnalysis | null;
+  shapeFilter: DistributionShape | null;
+  setShapeFilter: (v: DistributionShape | null) => void;
+}>) {
+  const { t } = useTranslation('analysis');
+  const groups = useMemo(() => {
+    const main = analysis?.main ?? [];
+    return SHAPE_ORDER.map((shape) => ({
+      shape,
+      members: main.filter((s) => s.shape === shape),
+    })).filter((g) => g.members.length > 0);
+  }, [analysis]);
+
+  if (groups.length === 0) return null;
+
+  return (
+    <section className="sym-dash-card">
+      <div className="sym-dash-card-head">
+        <span className="sym-dash-card-title">{t('symbol.overview.shapes.title')}</span>
+        <span className="sym-dash-card-meta">{t('symbol.overview.shapes.subtitle')}</span>
+      </div>
+      <div className="sym-shape-list">
+        {groups.map(({ shape, members }) => {
+          const active = shapeFilter === shape;
+          return (
+            <button
+              key={shape}
+              type="button"
+              className={'sym-shape-row' + (active ? ' is-active' : '')}
+              aria-pressed={active}
+              onClick={() => setShapeFilter(active ? null : shape)}
+            >
+              <span className="sym-shape-n">{members.length}</span>
+              <span className="sym-shape-label">{t(`symbol.overview.shapes.${shape}`)}</span>
+              <span className="sym-shape-members">{members.map((s) => s.term).join('、')}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+/**
+ * Where a tail word sits when it never reaches the body.
+ *
+ * A missing first body chapter means front matter *or* back matter, and calling
+ * both 「前」 rebuilds exactly the conflation the three-way axis exists to undo —
+ * 「戒指」 appears once, in the afterword, and labelling it front matter says the
+ * opposite of what it does.
+ */
+function tailChapterLabel(t: TFunction<'analysis'>, s: SymbolSignals): string {
+  const first = s.distribution.firstBodyChapter;
+  if (first !== null) return t('symbol.overview.tail.chapter', { chapter: first });
+  return s.distribution.back > 0
+    ? t('symbol.overview.tail.chapterBack')
+    : t('symbol.overview.tail.chapterFront');
+}
+
+/**
+ * The words that occur exactly once.
+ *
+ * They are the majority of what symbol discovery returns, and they have nothing
+ * to rank: no distribution, no allies, no attachment. Shown as a cloud rather
+ * than a list of identical one-count bars — the old chart drew 18 rows of the
+ * same length — and sized by where they first appear, so the shape of the cloud
+ * says something the bars did not.
+ */
+function TailCloud({
+  analysis,
+  onSelect,
+}: Readonly<{ analysis: SymbolAnalysis | null; onSelect: (id: string) => void }>) {
+  const { t } = useTranslation('analysis');
+  const tail = analysis?.tail ?? [];
+  const total = analysis?.all.length ?? 0;
+  if (tail.length === 0) return null;
+
+  const bodyChapters = analysis?.axis.bodyChapterCount ?? 0;
+
+  return (
+    <section className="sym-dash-card sym-dash-card-wide">
+      <div className="sym-dash-card-head">
+        <span className="sym-dash-card-title">
+          {t('symbol.overview.tail.title', { count: tail.length })}
+        </span>
+        <span className="sym-dash-card-meta">
+          {t('symbol.overview.tail.meta', {
+            pct: total > 0 ? Math.round((tail.length / total) * 100) : 0,
+          })}
+        </span>
+      </div>
+      <p className="sym-tail-desc">{t('symbol.overview.tail.description')}</p>
+      <div className="sym-tail-cloud">
+        {tail.map((s) => {
+          const first = s.distribution.firstBodyChapter;
+          const ratio = first !== null && bodyChapters > 1 ? (first - 1) / (bodyChapters - 1) : 0;
+          return (
+            <button
+              key={s.id}
+              type="button"
+              className="sym-tail-word"
+              onClick={() => onSelect(s.id)}
+              style={{
+                fontSize: `${(TAIL_MIN_REM + ratio * (TAIL_MAX_REM - TAIL_MIN_REM)).toFixed(3)}rem`,
+                // A word that only ever appears in front matter is greyed: it is
+                // in the book without being in the story.
+                color: first === null ? 'var(--fg-muted)' : 'var(--fg-secondary)',
+                borderBottomColor: typeStyle(s.imageryType).dot,
+              }}
+            >
+              {s.term}
+              <span className="sym-tail-ch">{tailChapterLabel(t, s)}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function SymbolsDashboard({
-  entities,
-  interpretations,
   analysis,
   sortAxis,
+  shapeFilter,
+  setShapeFilter,
   onSelect,
 }: Readonly<Props>) {
-  const { t } = useTranslation('analysis');
-
   const totalOccurrences = useMemo(
-    () => entities.reduce((s, e) => s + e.frequency, 0),
-    [entities],
+    () => (analysis?.all ?? []).reduce((sum, s) => sum + s.frequency, 0),
+    [analysis],
   );
-
-  const sortedByFreq = useMemo(
-    () => [...entities].sort((a, b) => b.frequency - a.frequency),
-    [entities],
-  );
-  const freqMax = sortedByFreq[0]?.frequency ?? 1;
 
   return (
     <div className="sym-dash">
@@ -380,47 +498,13 @@ export function SymbolsDashboard({
       <StartHere analysis={analysis} onSelect={onSelect} />
 
       <div className="sym-dash-grid">
-        {/* ── Frequency long-tail ──────────────────────────────── */}
-        <section className="sym-dash-card sym-dash-card-wide">
-          <div className="sym-dash-card-head">
-            <span className="sym-dash-card-title">{t('symbol.dashboard.freqTitle')}</span>
-            <span className="sym-dash-card-meta">
-              {t('symbol.dashboard.freqMeta', { count: entities.length })}
-            </span>
-          </div>
-          <div className="sym-dash-freqlist">
-            {sortedByFreq.map((e) => {
-              const w = (e.frequency / freqMax) * 100;
-              const interp = interpretations[e.id];
-              return (
-                <div key={e.id} className="sym-dash-freq-row">
-                  <div className="sym-dash-freq-label">
-                    <span
-                      className="sym-dash-freq-dot"
-                      style={{ background: TYPE_DOT[e.imagery_type] }}
-                    />
-                    <span className="sym-dash-freq-term">{e.term}</span>
-                    {interp && (
-                      <span
-                        className="sym-dash-freq-pol"
-                        style={{ background: POLARITY_DOT[interp.polarity] }}
-                      />
-                    )}
-                  </div>
-                  <div className="sym-dash-freq-barwrap">
-                    <div
-                      className="sym-dash-freq-bar"
-                      style={{ width: `${w}%`, background: TYPE_DOT[e.imagery_type] }}
-                    />
-                  </div>
-                  <div className="sym-dash-freq-n">{e.frequency}</div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-
         <DensityHeatmap analysis={analysis} sortAxis={sortAxis} />
+        <ShapeGroups
+          analysis={analysis}
+          shapeFilter={shapeFilter}
+          setShapeFilter={setShapeFilter}
+        />
+        <TailCloud analysis={analysis} onSelect={onSelect} />
       </div>
     </div>
   );

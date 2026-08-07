@@ -1457,6 +1457,26 @@
         "legendMore": "{{count}}× or more",
         "legendOutside": "Outside the body",
         "note": "Dashed cells fall outside the body text: excluded from shape and first appearance, counted against evidence trust."
+      },
+      "shapes": {
+        "title": "Behaviour groups",
+        "subtitle": "Click a row to filter the list",
+        "through": "Runs throughout",
+        "backHalf": "Concentrated late",
+        "frontHalf": "Concentrated early",
+        "earlyExit": "Leaves early",
+        "lateEntry": "Arrives late",
+        "scatter": "Intermittent",
+        "single": "Single chapter",
+        "none": "Outside the body only"
+      },
+      "tail": {
+        "title": "Occurs once · {{count}}",
+        "meta": "{{pct}}% of symbols occur exactly once",
+        "description": "A word occurring once has no distribution, no allies and no attachment — under these signals it is not yet a symbol. Left out of ranking and out of batch generation, but still clickable and searchable. Type size follows first appearance.",
+        "chapter": "ch{{chapter}}",
+        "chapterFront": "front",
+        "chapterBack": "back"
       }
     }
   },

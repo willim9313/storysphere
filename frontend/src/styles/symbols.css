@@ -1222,37 +1222,97 @@
   color: var(--fg-muted);
   margin-left: auto;
 }
-.sym-dash-freqlist { display: flex; flex-direction: column; gap: 6px; }
-.sym-dash-freq-row {
-  display: grid;
-  grid-template-columns: 140px 1fr 40px;
-  gap: 12px;
-  align-items: center;
+/* ── Behaviour groups (B5) ───────────────────────────────── */
+.sym-shape-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
-.sym-dash-freq-label { display: flex; align-items: center; gap: 6px; }
-.sym-dash-freq-dot { width: 8px; height: 8px; border-radius: 50%; }
-.sym-dash-freq-term {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: var(--font-size-sm);
-  color: var(--fg-primary);
+.sym-shape-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  background: transparent;
+  border: var(--line-weight) var(--border-style) transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
 }
-.sym-dash-freq-pol { width: 6px; height: 6px; border-radius: 50%; opacity: 0.7; }
-.sym-dash-freq-barwrap {
-  height: 12px;
+.sym-shape-row:hover {
+  background: var(--bg-secondary);
+}
+.sym-shape-row.is-active {
   background: var(--bg-tertiary);
-  border-radius: 2px;
-  overflow: hidden;
+  border-color: var(--accent);
 }
-.sym-dash-freq-bar { height: 100%; }
-.sym-dash-freq-n {
-  font-family: var(--font-sans);
-  font-weight: 700;
+.sym-shape-n {
+  width: 22px;
+  flex: none;
+  font-family: var(--font-mono);
   font-size: var(--font-size-xs);
-  color: var(--fg-primary);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
+.sym-shape-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-primary);
+  white-space: nowrap;
+}
+/* Members are context, not a list to read: one line, clipped. */
+.sym-shape-members {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+
+/* ── Single-occurrence cloud (B6) ────────────────────────── */
+.sym-tail-desc {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+  color: var(--fg-muted);
+  margin: -2px 0 12px;
+  max-width: 76ch;
+}
+.sym-tail-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+}
+/* Underlined in the symbol's own type colour: the words differ in kind as well
+   as in where they land, and there is no room for a legend at this size. */
+.sym-tail-word {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 1px 2px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-serif);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.sym-tail-word:hover {
+  background: var(--bg-secondary);
+}
+.sym-tail-ch {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+
 /* ── Chapter density heatmap (B4) ────────────────────────── */
 .sym-heat-sub {
   font-family: var(--font-sans);

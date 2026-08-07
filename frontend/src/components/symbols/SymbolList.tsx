@@ -9,6 +9,7 @@ import type { ChapterAxis } from './chapterAxis';
 import { behaviourLine } from './symbolPhrases';
 import {
   rankSymbols,
+  type DistributionShape,
   type SortAxis,
   type SymbolAnalysis,
   type SymbolSignals,
@@ -28,6 +29,8 @@ interface Props {
   setSortAxis: (v: SortAxis) => void;
   typeFilter: string | null;
   setTypeFilter: (v: string | null) => void;
+  /** Behaviour group picked on the map. Screen-local, deliberately not in the URL. */
+  shapeFilter: DistributionShape | null;
   search: string;
   setSearch: (v: string) => void;
 }
@@ -118,6 +121,7 @@ export function SymbolList({
   setSortAxis,
   typeFilter,
   setTypeFilter,
+  shapeFilter,
   search,
   setSearch,
 }: Readonly<Props>) {
@@ -137,6 +141,7 @@ export function SymbolList({
     // types its name should be told it does not exist.
     let xs = query ? [...analysis.main, ...analysis.tail] : [...analysis.main];
     if (typeFilter) xs = xs.filter((s) => s.imageryType === typeFilter);
+    if (shapeFilter) xs = xs.filter((s) => s.shape === shapeFilter);
     if (query) {
       xs = xs.filter(
         (s) =>
@@ -145,13 +150,18 @@ export function SymbolList({
       );
     }
     return rankSymbols(xs, sortAxis);
-  }, [analysis, search, typeFilter, sortAxis]);
+  }, [analysis, search, typeFilter, shapeFilter, sortAxis]);
 
   const total = analysis?.all.length ?? 0;
   const tailCount = analysis?.tail.length ?? 0;
-  const heading = search.trim()
-    ? t('symbol.list.headingSearch')
-    : t('symbol.list.headingSorted', { axis: t(`symbol.list.axis.${sortAxis}`) });
+  let heading: string;
+  if (search.trim()) {
+    heading = t('symbol.list.headingSearch');
+  } else if (shapeFilter) {
+    heading = t('symbol.list.headingShape');
+  } else {
+    heading = t('symbol.list.headingSorted', { axis: t(`symbol.list.axis.${sortAxis}`) });
+  }
 
   return (
     <aside className="sym-list">
@@ -186,7 +196,8 @@ export function SymbolList({
             onClick={() => {
               setTypeFilter(null);
               // Still the only route back to the overview until the detail view
-              // grows a breadcrumb.
+              // grows a breadcrumb. The behaviour filter is cleared there, since
+              // that is where it was set.
               onSelect(null);
             }}
           >
