@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { ImageryEntity, Polarity, SymbolInterpretation } from '@/api/symbols';
+import type { ImageryEntity, InterpretationStatus, Polarity } from '@/api/symbols';
 import { BODY_CHAPTER_MIN, globalChapterMax, outsideBodyCount } from './chapterAxis';
 
 const TYPE_DOT: Record<string, string> = {
@@ -29,7 +29,7 @@ function densityToken(cnt: number, max: number): string {
 
 type Props = {
   entities: ImageryEntity[];
-  interpretations: Record<string, SymbolInterpretation | undefined>;
+  interpretations: Record<string, InterpretationStatus | undefined>;
   totalChapters: number;
 };
 

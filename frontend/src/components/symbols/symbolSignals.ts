@@ -19,8 +19,10 @@
 
 import type {
   CoOccurringEntityRef,
+  Polarity,
   SymbolOverview,
   SymbolOverviewItem,
+  SymbolReviewStatus,
 } from '@/api/symbols';
 
 import type { ChapterAxis, SegmentedDistribution } from './chapterAxis';
@@ -128,8 +130,9 @@ export interface SymbolSignals {
   /** Composite ranking score, 0–1. */
   readonly load: number;
   readonly hasInterpretation: boolean;
-  readonly reviewStatus: string | null;
-  readonly polarity: string | null;
+  /** Null until an interpretation exists — the normal state for most symbols. */
+  readonly reviewStatus: SymbolReviewStatus | null;
+  readonly polarity: Polarity | null;
 }
 
 export interface SymbolAnalysis {

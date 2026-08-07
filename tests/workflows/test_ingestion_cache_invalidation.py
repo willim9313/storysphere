@@ -85,6 +85,7 @@ class TestIngestionCacheInvalidation:
             "voice_profile",
             "sep",
             "symbol_analysis",
+            "symbol_overview",
         }
 
     @pytest.mark.asyncio

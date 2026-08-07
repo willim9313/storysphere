@@ -183,8 +183,11 @@ class InterpretationStatus(BaseModel):
     at 1-of-29 interpretation coverage.
     """
 
-    review_status: str
-    polarity: str
+    # Same literals as SymbolInterpretation, not bare strings: the UI keys colour
+    # and badge styles off these, and a widened type pushes a cast into every
+    # consumer for no gain.
+    review_status: Literal["pending", "approved", "modified", "rejected"]
+    polarity: Literal["positive", "negative", "neutral", "mixed"]
     confidence: float
 
 

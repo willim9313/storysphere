@@ -1386,7 +1386,54 @@
     "emptyStep3Title": "Trigger manually if needed",
     "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Build Overview page.",
     "emptyUnravelingBtn": "Open Build Overview",
-    "emptyRecheckBtn": "Re-check status"
+    "emptyRecheckBtn": "Re-check status",
+    "list": {
+      "sortAxis": "Rank by",
+      "axis": {
+        "load": "narrative load",
+        "attach": "character attachment",
+        "span": "reach",
+        "events": "event attachment",
+        "freq": "body frequency",
+        "first": "first appearance",
+        "review": "review state"
+      },
+      "axisDefault": "Narrative load (default)",
+      "axisFreqAside": "Body frequency (cross-check)",
+      "searchPlaceholder": "Search symbols… (incl. variants)",
+      "headingSorted": "By {{axis}}",
+      "headingSearch": "Search results",
+      "headingShape": "Filtered by behaviour",
+      "count": "{{shown}} / {{total}}",
+      "tailNote": "{{count}} more words occur once and are not ranked",
+      "metric": {
+        "load": "{{value}}",
+        "attach": "×{{value}}",
+        "attachNone": "—",
+        "span": "{{hit}}/{{total}} ch",
+        "events": "{{count}} ev",
+        "freq": "{{count}}×",
+        "first": "ch{{chapter}}",
+        "firstNone": "ch—",
+        "reviewNone": "none"
+      }
+    },
+    "shape": {
+      "through": "Runs through {{count}} chapters",
+      "backHalf": "Concentrated late (ch {{first}}–{{last}})",
+      "frontHalf": "Concentrated early (ch {{first}}–{{last}})",
+      "earlyExit": "Ch {{first}}–{{last}}, then gone",
+      "lateEntry": "Arrives only in ch {{first}}",
+      "scatter": "Intermittent, ch {{first}}–{{last}}",
+      "single": "Only in ch {{chapter}}",
+      "none": "Outside the body text only"
+    },
+    "behaviour": {
+      "attach": "{{lift}}× with {{name}}",
+      "front": "{{count}} in front matter",
+      "events": "{{count}} events",
+      "separator": " · "
+    }
   },
   "narrative": {
     "heroJourney": "Hero's Journey",

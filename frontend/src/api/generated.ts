@@ -3322,10 +3322,16 @@ export interface components {
          *     at 1-of-29 interpretation coverage.
          */
         InterpretationStatus: {
-            /** Review Status */
-            review_status: string;
-            /** Polarity */
-            polarity: string;
+            /**
+             * Review Status
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
+            /**
+             * Polarity
+             * @enum {string}
+             */
+            polarity: "positive" | "negative" | "neutral" | "mixed";
             /** Confidence */
             confidence: number;
         };

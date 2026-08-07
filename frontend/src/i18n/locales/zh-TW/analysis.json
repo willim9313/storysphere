@@ -1386,7 +1386,54 @@
     "emptyStep3Title": "必要時手動觸發",
     "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。",
     "emptyUnravelingBtn": "開啟建構概覽",
-    "emptyRecheckBtn": "重新檢查狀態"
+    "emptyRecheckBtn": "重新檢查狀態",
+    "list": {
+      "sortAxis": "排序主軸",
+      "axis": {
+        "load": "敘事負載",
+        "attach": "角色依附",
+        "span": "貫穿度",
+        "events": "事件依附",
+        "freq": "正文頻率",
+        "first": "首見章序",
+        "review": "審核狀態"
+      },
+      "axisDefault": "敘事負載（預設）",
+      "axisFreqAside": "正文頻率（對照）",
+      "searchPlaceholder": "搜尋意象…（含異體）",
+      "headingSorted": "依{{axis}}排序",
+      "headingSearch": "搜尋結果",
+      "headingShape": "行為分群篩選",
+      "count": "{{shown}} / {{total}}",
+      "tailNote": "另有 {{count}} 個只出現 1 次的詞，未列入排序",
+      "metric": {
+        "load": "{{value}}",
+        "attach": "×{{value}}",
+        "attachNone": "—",
+        "span": "{{hit}}/{{total}} 章",
+        "events": "{{count}} 事",
+        "freq": "{{count}} 次",
+        "first": "ch{{chapter}}",
+        "firstNone": "ch—",
+        "reviewNone": "未詮釋"
+      }
+    },
+    "shape": {
+      "through": "跨 {{count}} 章貫穿",
+      "backHalf": "集中在後半段（{{first}}–{{last}} 章）",
+      "frontHalf": "集中在前半段（{{first}}–{{last}} 章）",
+      "earlyExit": "第 {{first}}–{{last}} 章，開場即退場",
+      "lateEntry": "第 {{first}} 章才登場",
+      "scatter": "第 {{first}}–{{last}} 章間斷出現",
+      "single": "只出現在第 {{chapter}} 章",
+      "none": "僅出現在非正文"
+    },
+    "behaviour": {
+      "attach": "依附{{name}} {{lift}} 倍",
+      "front": "{{count}} 次在前置頁",
+      "events": "連結 {{count}} 事件",
+      "separator": " · "
+    }
   },
   "narrative": {
     "heroJourney": "英雄旅程",

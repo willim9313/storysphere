@@ -14,7 +14,7 @@ from storysphere.services.cache_invalidation import (
 class TestPatternsFor:
     def test_book_id_is_substituted(self):
         assert patterns_for("symbol-discovery", "book-1") == [
-            "sep:book-1:%", "symbol_analysis:book-1:%"
+            "sep:book-1:%", "symbol_analysis:book-1:%", "symbol_overview:book-1"
         ]
 
     def test_summarization_deletes_nothing(self):
@@ -26,7 +26,9 @@ class TestPatternsFor:
 
     def test_per_entity_families_keep_their_wildcard(self):
         patterns = patterns_for("symbol-discovery", "book-1")
-        assert set(patterns) == {"sep:book-1:%", "symbol_analysis:book-1:%"}
+        assert {p for p in patterns if p.endswith("%")} == {
+            "sep:book-1:%", "symbol_analysis:book-1:%"
+        }
 
     def test_feature_extraction_deletes_only_id_keyed_families(self):
         """Book-keyed analyses survive the delete so they can be reported stale."""
@@ -51,7 +53,9 @@ class TestInvalidateForSteps:
         await invalidate_for_steps(cache, "book-1", ["symbol-discovery"])
 
         called = {c.args[0] for c in cache.invalidate.call_args_list}
-        assert called == {"sep:book-1:%", "symbol_analysis:book-1:%"}
+        assert called == {
+            "sep:book-1:%", "symbol_analysis:book-1:%", "symbol_overview:book-1"
+        }
 
     async def test_overlapping_steps_are_deduplicated(self):
         """character: and epistemic: appear under more than one step."""
@@ -98,7 +102,20 @@ class TestInvalidateForSteps:
             "voice_profile",
             "sep",
             "symbol_analysis",
+            "symbol_overview",
         }
+
+    async def test_symbol_overview_is_dropped_by_each_step_it_derives_from(self):
+        """It projects symbols, entities and events — any of the three ages it."""
+        for step in ("symbol-discovery", "feature-extraction", "knowledge-graph"):
+            cache = AsyncMock()
+            await invalidate_for_steps(cache, "book-1", [step])
+            called = {c.args[0] for c in cache.invalidate.call_args_list}
+            assert "symbol_overview:book-1" in called, step
+
+    def test_symbol_overview_is_deleted_rather_than_reported_stale(self):
+        # Book-keyed, but it holds no review state, so there is nothing to preserve.
+        assert stale_sources("symbol_overview:book-1") == ()
 
 
 class TestStaleSources:

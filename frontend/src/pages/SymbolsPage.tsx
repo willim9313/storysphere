@@ -9,19 +9,19 @@ import { useBook } from '@/hooks/useBook';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ApiError } from '@/api/client';
 import {
-  fetchSymbols,
   fetchSymbolTimeline,
   fetchCoOccurrences,
   fetchSymbolInterpretation,
   fetchSep,
   reviewSymbolInterpretation,
   type ImageryEntity,
+  type InterpretationStatus,
   type Polarity,
-  type SymbolInterpretation,
+  type SymbolOverviewItem,
 } from '@/api/symbols';
 
 import { fetchEntityById, fetchEventDetail } from '@/api/graph';
-import { SymbolList, type SymbolSort } from '@/components/symbols/SymbolList';
+import { SymbolList } from '@/components/symbols/SymbolList';
 import { TypePill } from '@/components/symbols/Badges';
 import { InterpretationCta } from '@/components/symbols/InterpretationCta';
 import { InterpretationGenerating } from '@/components/symbols/InterpretationGenerating';
@@ -30,7 +30,12 @@ import { ChapterDistChart } from '@/components/symbols/ChapterDistChart';
 import { CoOccurrencePanel } from '@/components/symbols/CoOccurrencePanel';
 import { OccurrencesTimeline } from '@/components/symbols/OccurrencesTimeline';
 import { useSymbolInterpretationTask } from '@/components/symbols/hooks/useSymbolInterpretationTask';
+import {
+  SYMBOL_OVERVIEW_KEY,
+  useSymbolAnalysis,
+} from '@/components/symbols/hooks/useSymbolAnalysis';
 import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
+import type { SortAxis } from '@/components/symbols/symbolSignals';
 import {
   bodyChapterMax,
   firstBodyChapter,
@@ -42,6 +47,25 @@ import '@/styles/symbols.css';
 
 const INTERPRETATION_KEY = (bookId: string | undefined, imageryId: string | null) =>
   ['books', bookId, 'symbols', imageryId, 'interpretation'] as const;
+
+/**
+ * Narrow an overview row to the list shape the charts still expect.
+ *
+ * The overview is a superset of the old list response, but its collection fields
+ * are omitted when empty, so they need defaults rather than a cast.
+ */
+function toImageryEntity(item: SymbolOverviewItem): ImageryEntity {
+  return {
+    id: item.id,
+    book_id: item.book_id,
+    term: item.term,
+    imagery_type: item.imagery_type,
+    aliases: item.aliases ?? [],
+    frequency: item.frequency,
+    chapter_distribution: item.chapter_distribution ?? {},
+    first_chapter: item.first_chapter ?? null,
+  };
+}
 
 export default function SymbolsPage() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -57,54 +81,44 @@ export default function SymbolsPage() {
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [typeFilter, setTypeFilter] = useState<string | null>(null);
-  const [sort, setSort] = useState<SymbolSort>('freq');
+  // Narrative load, not frequency: on real books frequency ranks most of the
+  // list identically, so it is offered as a cross-check rather than the default.
+  const [sortAxis, setSortAxis] = useState<SortAxis>('load');
   const [search, setSearch] = useState('');
 
-  const { data: listData, isLoading: listLoading } = useQuery({
-    queryKey: ['books', bookId, 'symbols', typeFilter],
-    queryFn: () => fetchSymbols(bookId!, { imageryType: typeFilter ?? undefined, limit: 200 }),
-    enabled: !!bookId,
-  });
-  const entities: ImageryEntity[] = useMemo(() => listData?.items ?? [], [listData]);
+  const { analysis, isLoading: listLoading } = useSymbolAnalysis(bookId);
 
-  // Eagerly fetch all interpretations so sidebar badges appear without requiring
-  // the user to click each symbol. React Query deduplicates network calls when
-  // the selected entity's key is also in this batch.
-  const allInterpretationQueries = useQueries({
-    queries: entities.map((e) => ({
-      queryKey: INTERPRETATION_KEY(bookId, e.id),
-      queryFn: async () => {
-        try {
-          return await fetchSymbolInterpretation(e.id, bookId!);
-        } catch (err) {
-          if (err instanceof ApiError && err.status === 404) return null;
-          throw err;
-        }
-      },
-      enabled: !!bookId,
-      retry: false,
-      staleTime: 30_000,
-    })),
-  });
-
-  // Sidebar badge map — reactive because it depends on live query results.
-  const interpretations = useMemo(() => {
-    const map: Record<string, SymbolInterpretation | undefined> = {};
-    entities.forEach((e, i) => {
-      const data = allInterpretationQueries[i]?.data;
-      if (data) map[e.id] = data;
-    });
-    return map;
-  }, [entities, allInterpretationQueries]);
-
-  // Derive the selected entity's interpretation from the batch results.
-  const selectedIndex = useMemo(
-    () => (selectedId ? entities.findIndex((e) => e.id === selectedId) : -1),
-    [entities, selectedId],
+  const entities: ImageryEntity[] = useMemo(
+    () => (analysis?.all ?? []).map((s) => toImageryEntity(s.item)),
+    [analysis],
   );
-  const interpretation = selectedIndex >= 0
-    ? (allInterpretationQueries[selectedIndex]?.data ?? null)
-    : null;
+
+  // Review state now arrives with the list. It used to cost one request per
+  // symbol — 29 of them on 名字的潮汐, 28 returning 404 — purely to decide whether
+  // a sidebar badge should render.
+  const interpretationStatuses = useMemo(() => {
+    const map: Record<string, InterpretationStatus | undefined> = {};
+    for (const s of analysis?.all ?? []) {
+      if (s.item.interpretation) map[s.id] = s.item.interpretation;
+    }
+    return map;
+  }, [analysis]);
+
+  // The selected symbol still needs the full interpretation: the overview carries
+  // review state, not the theme or the evidence synthesis.
+  const { data: interpretation = null } = useQuery({
+    queryKey: INTERPRETATION_KEY(bookId, selectedId),
+    queryFn: async () => {
+      try {
+        return await fetchSymbolInterpretation(selectedId!, bookId!);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
+    enabled: !!selectedId && !!bookId && !!interpretationStatuses[selectedId],
+    retry: false,
+  });
 
   const { data: timeline = [], isLoading: timelineLoading } = useQuery({
     queryKey: ['books', bookId, 'symbols', selectedId, 'timeline'],
@@ -171,8 +185,18 @@ export default function SymbolsPage() {
   });
 
   // ── Generation task ──────────────────────────────────────────
+  /**
+   * Interpretation state lives in two caches now, and both must be dropped.
+   *
+   * The overview decides whether the interpretation query runs at all, so
+   * refreshing only the interpretation leaves a symbol that was just interpreted
+   * looking uninterpreted forever: the overview still reports null, the query
+   * stays disabled, and nothing ever asks the server.
+   */
   const refetchInterpretation = () => {
-    if (selectedId && bookId) {
+    if (!bookId) return;
+    void queryClient.invalidateQueries({ queryKey: SYMBOL_OVERVIEW_KEY(bookId) });
+    if (selectedId) {
       void queryClient.invalidateQueries({ queryKey: INTERPRETATION_KEY(bookId, selectedId) });
     }
   };
@@ -207,9 +231,7 @@ export default function SymbolsPage() {
         theme: vars.theme,
         polarity: vars.polarity,
       }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: INTERPRETATION_KEY(bookId, selectedId) });
-    },
+    onSuccess: refetchInterpretation,
   });
 
   const reviewError = reviewMutation.isError ? t('symbol.error.reviewFailed') : null;
@@ -279,7 +301,7 @@ export default function SymbolsPage() {
       detailBody = (
         <SymbolsDashboard
           entities={entities}
-          interpretations={interpretations}
+          interpretations={interpretationStatuses}
           totalChapters={totalChapters}
         />
       );
@@ -336,17 +358,15 @@ export default function SymbolsPage() {
   return (
     <div className="sym-page">
       <SymbolList
-        entities={entities}
-        interpretations={interpretations}
+        analysis={analysis}
         selectedId={selectedId}
         onSelect={setSelectedId}
+        sortAxis={sortAxis}
+        setSortAxis={setSortAxis}
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
-        sort={sort}
-        setSort={setSort}
         search={search}
         setSearch={setSearch}
-        totalChapters={totalChapters}
       />
 
       <main className="sym-detail">{detailBody}</main>
