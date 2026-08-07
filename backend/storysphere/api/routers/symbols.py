@@ -1,9 +1,11 @@
 """Symbolic imagery query endpoints.
 
 GET   /api/v1/symbols                           — list imagery for a book
+GET   /api/v1/symbols/overview                  — book-wide behavioural signals (#15i)
 GET   /api/v1/symbols/{imagery_id}/timeline     — occurrences sorted by chapter/position
 GET   /api/v1/symbols/{imagery_id}/co-occurrences — top-k co-occurring terms
 GET   /api/v1/symbols/{imagery_id}/sep          — Symbol Evidence Profile (B-022)
+POST  /api/v1/symbols/analyze-all               — batch LLM symbol interpretation (#15j)
 POST  /api/v1/symbols/{imagery_id}/analyze      — start LLM symbol interpretation (B-040)
 GET   /api/v1/symbols/{imagery_id}/analyze/{task_id} — poll interpretation task
 GET   /api/v1/symbols/{imagery_id}/interpretation — cached SymbolInterpretation (B-040)
@@ -28,6 +30,7 @@ from storysphere.api.deps import (
 )
 from storysphere.api.schemas.analysis import (
     SymbolAnalysisRequest,
+    SymbolBatchAnalysisRequest,
     SymbolInterpretationReviewRequest,
 )
 from storysphere.api.schemas.common import TaskStatus
@@ -38,8 +41,14 @@ from storysphere.api.schemas.symbols import (
     SymbolTimelineEntry,
 )
 from storysphere.api.store import get_task, task_store
+from storysphere.core.error_handling import is_rate_limit_error
 from storysphere.domain.imagery import ImageryType
-from storysphere.domain.symbol_analysis import SEP, SymbolInterpretation
+from storysphere.domain.symbol_analysis import (
+    SEP,
+    InterpretationStatus,
+    SymbolInterpretation,
+    SymbolOverview,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -76,6 +85,56 @@ async def list_symbols(
         total=len(entities),
         book_id=book_id,
     )
+
+
+@router.get("/overview", response_model=SymbolOverview)
+async def get_symbol_overview(
+    symbol_svc: SymbolServiceDep,
+    symbol_analysis_svc: SymbolAnalysisServiceDep,
+    symbol_graph: SymbolGraphServiceDep,
+    doc_service: DocServiceDep,
+    kg_service: KGServiceDep,
+    cache: AnalysisCacheDep,
+    book_id: str = Query(..., description="Book identifier"),
+    force: bool = Query(default=False, description="Bypass cache and re-assemble"),
+) -> SymbolOverview:
+    """Return every imagery entity with its zero-LLM behavioural signals.
+
+    The symbols page ranks symbols by how they behave, so it needs co-occurring
+    entities, event counts, allies and review status for *all* of them before it
+    can draw the first screen. Composing that from the per-symbol endpoints took
+    one #15a + one #15d per symbol + a graph fetch + one #15g per symbol, and
+    each #15d re-loads the whole document and event list.
+
+    Interpretation status is overlaid here rather than cached with the structural
+    aggregate, because HITL review changes it without invalidating anything else.
+    """
+    overview = await symbol_svc.assemble_overview(
+        book_id=book_id,
+        doc_service=doc_service,
+        kg_service=kg_service,
+        symbol_graph=symbol_graph,
+        cache=cache,
+        force=force,
+    )
+
+    interpretations = await symbol_analysis_svc.list_interpretations(book_id)
+    if not interpretations:
+        return overview
+
+    items = []
+    for item in overview.items:
+        interp = interpretations.get(item.id)
+        if interp is None:
+            items.append(item)
+            continue
+        status = InterpretationStatus(
+            review_status=interp.review_status,
+            polarity=interp.polarity,
+            confidence=interp.confidence,
+        )
+        items.append(item.model_copy(update={"interpretation": status}))
+    return overview.model_copy(update={"items": items})
 
 
 @router.get("/{imagery_id}/timeline", response_model=list[SymbolTimelineEntry])
@@ -221,6 +280,142 @@ async def analyze_symbol(
     task_id = str(uuid4())
     task_store.create(task_id, kind="symbol", title="符號意象抽取")
     background_tasks.add_task(_run_symbol_analysis, task_id, imagery_id, req, agent)
+    return TaskStatus(task_id=task_id, status="pending")
+
+
+async def _run_batch_symbol_analysis(
+    task_id: str,
+    book_id: str,
+    imagery_ids: list[str],
+    language: str,
+    force_refresh: bool,
+    already_interpreted: set[str],
+    agent,
+) -> None:
+    """Background task: interpret each imagery entity in turn.
+
+    Sequential rather than concurrent: every item is a paid LLM call, and running
+    them in parallel makes a rate-limit abort lose work that has already been
+    charged for.
+
+    Progress mirrors the character and event batches (``sub_progress`` /
+    ``sub_total``) so BatchEepPanel can render item counts rather than a
+    percentage.
+    """
+    task_store.set_running(task_id)
+    total = len(imagery_ids)
+    done = 0
+    failed = 0
+    skipped = 0
+
+    def _report() -> None:
+        task_store.set_progress(
+            task_id,
+            progress=int(done / total * 100) if total else 0,
+            stage=f"詮釋意象 {done}/{total}",
+            sub_progress=done,
+            sub_total=total,
+        )
+
+    for imagery_id in imagery_ids:
+        if not force_refresh and imagery_id in already_interpreted:
+            skipped += 1
+            done += 1
+            _report()
+            continue
+        try:
+            await agent.analyze_symbol(
+                imagery_id=imagery_id,
+                book_id=book_id,
+                language=language,
+                force_refresh=force_refresh,
+            )
+            done += 1
+        except Exception as exc:
+            if is_rate_limit_error(exc):
+                logger.warning("Batch symbol analysis aborted — rate limit: %s", exc)
+                task_store.set_failed(
+                    task_id,
+                    error=f"API 配額已達上限，已處理 {done}/{total} 個意象。請稍後再試。",
+                )
+                return
+            logger.warning("Batch symbol analysis failed for %s: %s", imagery_id, exc)
+            failed += 1
+            done += 1
+        _report()
+
+    task_store.set_completed(
+        task_id,
+        result={
+            "progress": total,
+            "total": total,
+            "failed": failed,
+            "skipped": skipped,
+        },
+    )
+    logger.info(
+        "Batch symbol analysis complete: book=%s total=%d skipped=%d failed=%d",
+        book_id,
+        total,
+        skipped,
+        failed,
+    )
+
+
+@router.post("/analyze-all", response_model=TaskStatus, status_code=202)
+async def analyze_all_symbols(
+    req: SymbolBatchAnalysisRequest,
+    background_tasks: BackgroundTasks,
+    agent: AnalysisAgentDep,
+    symbol_svc: SymbolServiceDep,
+    symbol_analysis_svc: SymbolAnalysisServiceDep,
+    doc: DocServiceDep,
+) -> TaskStatus:
+    """Trigger LLM interpretation for many imagery entities in one task (#15j).
+
+    Default scope is every imagery entity occurring more than once — the same set
+    the page lists. Single-occurrence terms are the majority of a book's imagery
+    and have no behaviour to interpret, so spending the budget on them is the one
+    thing "interpret everything" must not mean.
+
+    Returns 202; poll ``GET /api/v1/tasks/{task_id}/status`` (#8).
+    """
+    entities = await symbol_svc.get_imagery_list(req.book_id)
+    if req.imagery_ids is not None:
+        wanted = set(req.imagery_ids)
+        entities = [e for e in entities if e.id in wanted]
+    else:
+        entities = [e for e in entities if e.frequency > 1]
+
+    if not entities:
+        raise HTTPException(
+            status_code=400,
+            detail=f"No imagery to analyze for book '{req.book_id}'",
+        )
+
+    already_interpreted = set(
+        await symbol_analysis_svc.list_interpretations(req.book_id)
+    )
+    language = await doc.get_document_language(req.book_id)
+
+    task_id = str(uuid4())
+    task_store.create(task_id, kind="symbol", title="批次象徵詮釋")
+    background_tasks.add_task(
+        _run_batch_symbol_analysis,
+        task_id,
+        req.book_id,
+        [e.id for e in entities],
+        language,
+        req.force_refresh,
+        already_interpreted,
+        agent,
+    )
+    logger.info(
+        "Triggered batch symbol analysis: book=%s imagery=%d task=%s",
+        req.book_id,
+        len(entities),
+        task_id,
+    )
     return TaskStatus(task_id=task_id, status="pending")
 
 

@@ -15,6 +15,7 @@ import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+from pydantic import ValidationError
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -152,6 +153,33 @@ class SymbolAnalysisService:
         return await self._cache.get_as(
             _interpretation_cache_key(book_id, imagery_id), SymbolInterpretation
         )
+
+    async def list_interpretations(
+        self, book_id: str
+    ) -> dict[str, SymbolInterpretation]:
+        """Return every cached interpretation for a book, keyed by imagery_id.
+
+        One query for the whole book. The alternative — asking per imagery entity
+        — costs one request per symbol and 404s on nearly all of them, since real
+        books run at 1-of-29 interpretation coverage.
+
+        Malformed cache rows are skipped rather than failing the batch: a single
+        bad entry should not cost the caller every other symbol's review status.
+        """
+        rows = await self._cache.list_by_prefix(f"symbol_analysis:{book_id}:")
+        by_imagery: dict[str, SymbolInterpretation] = {}
+        for row in rows:
+            try:
+                interp = SymbolInterpretation.model_validate(row)
+            except ValidationError:
+                logger.warning(
+                    "SymbolAnalysisService: skipping malformed interpretation "
+                    "in book %s",
+                    book_id,
+                )
+                continue
+            by_imagery[interp.imagery_id] = interp
+        return by_imagery
 
     async def update_interpretation_review(
         self,

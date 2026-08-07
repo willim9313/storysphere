@@ -9,6 +9,13 @@ import pytest
 from fastapi.testclient import TestClient
 
 from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
+from storysphere.domain.symbol_analysis import (
+    CoOccurringEntityRef,
+    CoOccurringImageryRef,
+    SymbolInterpretation,
+    SymbolOverview,
+    SymbolOverviewItem,
+)
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -89,6 +96,9 @@ def mock_symbol_analysis_svc():
     svc = AsyncMock()
     svc.get_interpretation = AsyncMock(return_value=None)
     svc.update_interpretation_review = AsyncMock(return_value=None)
+    # No interpretations is the normal state, not the edge case: real books run
+    # at 1-of-29 coverage.
+    svc.list_interpretations = AsyncMock(return_value={})
     return svc
 
 
@@ -173,6 +183,142 @@ class TestListSymbols:
         resp = client.get("/api/v1/symbols?book_id=book-1&limit=1")
         assert resp.status_code == 200
         assert len(resp.json()["items"]) <= 1
+
+
+class TestSymbolOverview:
+    """#15i — the single request the page opens with."""
+
+    @staticmethod
+    def _overview(interpretation=None) -> SymbolOverview:
+        return SymbolOverview(
+            book_id="book-1",
+            body_chapter_count=2,
+            body_paragraph_count=40,
+            chapter_roles={-1: "preface", 1: "body", 2: "body"},
+            global_chapter_max=3,
+            items=[
+                SymbolOverviewItem(
+                    id="img-1",
+                    book_id="book-1",
+                    term="mirror",
+                    imagery_type="object",
+                    aliases=["looking glass"],
+                    frequency=5,
+                    chapter_distribution={1: 3, 2: 2},
+                    first_chapter=1,
+                    co_occurring_entities=[
+                        CoOccurringEntityRef(
+                            id="ent-alice",
+                            name="Alice",
+                            entity_type="character",
+                            count=3,
+                            body_count=3,
+                            paragraph_count=8,
+                        )
+                    ],
+                    self_match_count=4,
+                    co_occurring_event_count=7,
+                    co_occurring_imagery=[
+                        CoOccurringImageryRef(
+                            term="door",
+                            imagery_id="img-2",
+                            co_occurrence_count=3,
+                            imagery_type="object",
+                        )
+                    ],
+                    interpretation=interpretation,
+                )
+            ],
+        )
+
+    def test_returns_200_with_resolved_signals(self, client, mock_symbol_svc):
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        resp = client.get("/api/v1/symbols/overview?book_id=book-1")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["body_chapter_count"] == 2
+        assert body["global_chapter_max"] == 3
+        item = body["items"][0]
+        assert item["co_occurring_entities"][0]["name"] == "Alice"
+        assert item["co_occurring_entities"][0]["entity_type"] == "character"
+        assert item["self_match_count"] == 4
+        assert item["co_occurring_event_count"] == 7
+        assert item["co_occurring_imagery"][0]["term"] == "door"
+
+    def test_exposes_the_pieces_of_an_attachment_lift(self, client, mock_symbol_svc):
+        """Attachment is only meaningful against a base rate, so both sides ship."""
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        body = client.get("/api/v1/symbols/overview?book_id=book-1").json()
+        assert body["body_paragraph_count"] == 40
+        alice = body["items"][0]["co_occurring_entities"][0]
+        assert alice["body_count"] == 3
+        assert alice["paragraph_count"] == 8
+
+    def test_chapter_roles_survive_json_round_trip(self, client, mock_symbol_svc):
+        """Front matter uses negative chapter numbers, which JSON keys stringify."""
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        resp = client.get("/api/v1/symbols/overview?book_id=book-1")
+        assert resp.json()["chapter_roles"]["-1"] == "preface"
+
+    def test_interpretation_is_null_when_none_generated(
+        self, client, mock_symbol_svc
+    ):
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        resp = client.get("/api/v1/symbols/overview?book_id=book-1")
+        assert resp.json()["items"][0]["interpretation"] is None
+
+    def test_overlays_interpretation_status_onto_items(
+        self, client, mock_symbol_svc, mock_symbol_analysis_svc
+    ):
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        mock_symbol_analysis_svc.list_interpretations = AsyncMock(
+            return_value={
+                "img-1": SymbolInterpretation(
+                    imagery_id="img-1",
+                    book_id="book-1",
+                    term="mirror",
+                    polarity="mixed",
+                    confidence=0.9,
+                    review_status="pending",
+                )
+            }
+        )
+        resp = client.get("/api/v1/symbols/overview?book_id=book-1")
+        interp = resp.json()["items"][0]["interpretation"]
+        assert interp == {
+            "review_status": "pending",
+            "polarity": "mixed",
+            "confidence": 0.9,
+        }
+
+    def test_ignores_interpretations_for_other_imagery(
+        self, client, mock_symbol_svc, mock_symbol_analysis_svc
+    ):
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        mock_symbol_analysis_svc.list_interpretations = AsyncMock(
+            return_value={
+                "img-other": SymbolInterpretation(
+                    imagery_id="img-other", book_id="book-1", term="door"
+                )
+            }
+        )
+        resp = client.get("/api/v1/symbols/overview?book_id=book-1")
+        assert resp.json()["items"][0]["interpretation"] is None
+
+    def test_force_is_passed_through(self, client, mock_symbol_svc):
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        client.get("/api/v1/symbols/overview?book_id=book-1&force=true")
+        assert mock_symbol_svc.assemble_overview.await_args.kwargs["force"] is True
+
+    def test_missing_book_id_returns_422(self, client):
+        assert client.get("/api/v1/symbols/overview").status_code == 422
+
+    def test_not_shadowed_by_the_imagery_id_routes(self, client, mock_symbol_svc):
+        """``/overview`` must not be read as an imagery id."""
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        resp = client.get("/api/v1/symbols/overview?book_id=book-1")
+        assert resp.status_code == 200
+        mock_symbol_svc.assemble_overview.assert_awaited_once()
 
 
 class TestSymbolTimeline:
@@ -278,6 +424,178 @@ class TestSymbolAnalyze:
             json={"book_id": "book-1"},
         )
         assert resp.status_code == 404
+
+
+class TestAnalyzeAllSymbols:
+    """#15j — the batch the overview's three buttons drive."""
+
+    @staticmethod
+    def _entities(*specs) -> list[ImageryEntity]:
+        return [
+            _make_entity(term=term, frequency=freq, entity_id=eid)
+            for eid, term, freq in specs
+        ]
+
+    def test_returns_202_with_a_task_id(self, client, mock_symbol_svc):
+        mock_symbol_svc.get_imagery_list = AsyncMock(
+            return_value=self._entities(("img-1", "mirror", 5))
+        )
+        resp = client.post(
+            "/api/v1/symbols/analyze-all", json={"book_id": "book-1"}
+        )
+        assert resp.status_code == 202
+        assert resp.json()["taskId"]
+
+    def test_default_scope_skips_single_occurrence_terms(
+        self, client, mock_symbol_svc, mock_analysis_agent
+    ):
+        """A word occurring once has no behaviour to interpret and is the majority."""
+        mock_symbol_svc.get_imagery_list = AsyncMock(
+            return_value=self._entities(
+                ("img-1", "mirror", 5), ("img-tail", "dust", 1)
+            )
+        )
+        client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
+        analyzed = {
+            call.kwargs["imagery_id"]
+            for call in mock_analysis_agent.analyze_symbol.await_args_list
+        }
+        assert analyzed == {"img-1"}
+
+    def test_imagery_ids_overrides_the_frequency_floor(
+        self, client, mock_symbol_svc, mock_analysis_agent
+    ):
+        """An explicit pick is a deliberate choice, so honour it even for the tail."""
+        mock_symbol_svc.get_imagery_list = AsyncMock(
+            return_value=self._entities(
+                ("img-1", "mirror", 5), ("img-tail", "dust", 1)
+            )
+        )
+        client.post(
+            "/api/v1/symbols/analyze-all",
+            json={"book_id": "book-1", "imagery_ids": ["img-tail"]},
+        )
+        analyzed = {
+            call.kwargs["imagery_id"]
+            for call in mock_analysis_agent.analyze_symbol.await_args_list
+        }
+        assert analyzed == {"img-tail"}
+
+    def test_unknown_imagery_ids_are_silently_excluded(
+        self, client, mock_symbol_svc, mock_analysis_agent
+    ):
+        mock_symbol_svc.get_imagery_list = AsyncMock(
+            return_value=self._entities(("img-1", "mirror", 5))
+        )
+        resp = client.post(
+            "/api/v1/symbols/analyze-all",
+            json={"book_id": "book-1", "imagery_ids": ["img-1", "img-ghost"]},
+        )
+        assert resp.status_code == 202
+        analyzed = {
+            call.kwargs["imagery_id"]
+            for call in mock_analysis_agent.analyze_symbol.await_args_list
+        }
+        assert analyzed == {"img-1"}
+
+    def test_returns_400_when_nothing_is_in_scope(self, client, mock_symbol_svc):
+        mock_symbol_svc.get_imagery_list = AsyncMock(
+            return_value=self._entities(("img-tail", "dust", 1))
+        )
+        resp = client.post(
+            "/api/v1/symbols/analyze-all", json={"book_id": "book-1"}
+        )
+        assert resp.status_code == 400
+
+    def test_returns_400_when_the_subset_matches_nothing(
+        self, client, mock_symbol_svc
+    ):
+        mock_symbol_svc.get_imagery_list = AsyncMock(
+            return_value=self._entities(("img-1", "mirror", 5))
+        )
+        resp = client.post(
+            "/api/v1/symbols/analyze-all",
+            json={"book_id": "book-1", "imagery_ids": ["img-ghost"]},
+        )
+        assert resp.status_code == 400
+
+    def test_missing_book_id_returns_422(self, client):
+        resp = client.post("/api/v1/symbols/analyze-all", json={})
+        assert resp.status_code == 422
+
+    def test_not_shadowed_by_the_per_symbol_analyze_route(
+        self, client, mock_symbol_svc
+    ):
+        """``analyze-all`` must not be parsed as an imagery id."""
+        mock_symbol_svc.get_imagery_list = AsyncMock(
+            return_value=self._entities(("img-1", "mirror", 5))
+        )
+        resp = client.post(
+            "/api/v1/symbols/analyze-all", json={"book_id": "book-1"}
+        )
+        assert resp.status_code == 202
+        mock_symbol_svc.get_imagery_list.assert_awaited()
+
+
+class TestBatchSymbolAnalysisRunner:
+    """The background loop's accounting, which the 202 response cannot show."""
+
+    @staticmethod
+    async def _run(agent, imagery_ids, already=None, force=False):
+        from uuid import uuid4
+
+        from storysphere.api.routers.symbols import _run_batch_symbol_analysis
+        from storysphere.api.store import task_store
+
+        # task_store is a global singleton; a unique id keeps tests isolated.
+        task_id = str(uuid4())
+        task_store.create(task_id, kind="symbol", title="test")
+        await _run_batch_symbol_analysis(
+            task_id=task_id,
+            book_id="book-1",
+            imagery_ids=imagery_ids,
+            language="zh-TW",
+            force_refresh=force,
+            already_interpreted=already or set(),
+            agent=agent,
+        )
+        return task_store.get(task_id)
+
+    async def test_counts_already_interpreted_as_skipped(self):
+        agent = AsyncMock()
+        task = await self._run(agent, ["img-1", "img-2"], already={"img-1"})
+        assert task.result == {
+            "progress": 2, "total": 2, "failed": 0, "skipped": 1,
+        }
+        agent.analyze_symbol.assert_awaited_once()
+
+    async def test_force_refresh_reinterprets_existing(self):
+        agent = AsyncMock()
+        task = await self._run(agent, ["img-1"], already={"img-1"}, force=True)
+        assert task.result["skipped"] == 0
+        agent.analyze_symbol.assert_awaited_once()
+
+    async def test_one_failure_does_not_stop_the_rest(self):
+        agent = AsyncMock()
+
+        def _analyze(imagery_id, **kw):
+            if imagery_id == "img-1":
+                raise RuntimeError("LLM returned garbage")
+            return None
+
+        agent.analyze_symbol.side_effect = _analyze
+        task = await self._run(agent, ["img-1", "img-2"])
+        assert task.result["failed"] == 1
+        assert task.result["total"] == 2
+        assert agent.analyze_symbol.await_count == 2
+
+    async def test_rate_limit_aborts_the_whole_batch(self):
+        """Continuing past a quota wall just burns the remaining items."""
+        agent = AsyncMock()
+        agent.analyze_symbol.side_effect = RuntimeError("429 rate limit exceeded")
+        task = await self._run(agent, ["img-1", "img-2", "img-3"])
+        assert task.status == "error"
+        assert agent.analyze_symbol.await_count == 1
 
 
 class TestSymbolInterpretationGet:

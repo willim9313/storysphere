@@ -3,10 +3,17 @@
 Hierarchy:
   ImageryEntity + SymbolOccurrence  →  SEP (Symbol Evidence Profile, B-022)
                                    →  SymbolInterpretation (LLM, B-040)
+                                   →  SymbolOverview (page projection)
 
 SEP is the structural analog of CEP / EEP / TEU — pure data aggregation
 with no LLM calls. Downstream (B-040) consumes SEP as the input for
 LLM-based symbol interpretation.
+
+SymbolOverview is a *book-wide* sibling of SEP: the same aggregation sources,
+but every imagery entity at once and without the per-occurrence full text.
+It exists because the symbols page needs behavioural signals for every symbol
+before it can rank them, and assembling one SEP per symbol re-loads the whole
+document and the whole event list each time.
 """
 
 from __future__ import annotations
@@ -110,3 +117,164 @@ class SymbolInterpretation(BaseModel):
     assembled_by: str = Field(default="symbol_analysis_service_v1")
     assembled_at: datetime = Field(default_factory=datetime.utcnow)
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"
+
+
+# ── Book-wide overview projection ─────────────────────────────────────────────
+
+
+class CoOccurringEntityRef(BaseModel):
+    """A KG entity resolved to name and type, with its co-occurrence counts.
+
+    SEP only carries ``{entity_id: count}``. Resolving those IDs is what lets the
+    UI separate character attachment from the scenery a symbol sits in, and it
+    cannot be done client-side without a second pass over the whole graph.
+
+    The three counts exist so attachment can be stated as a *lift* rather than a
+    bare share. "71% of this symbol's occurrences sit with the protagonist" says
+    nothing on its own — if the protagonist is in 70% of all paragraphs, 71% is
+    exactly what chance predicts. The comparison the UI needs is::
+
+        observed = body_count / <symbol's body occurrences>
+        expected = paragraph_count / <SymbolOverview.body_paragraph_count>
+        lift     = observed / expected
+
+    ``body_count`` rather than ``count`` is the numerator because the denominator
+    counts body paragraphs only; mixing the two universes reintroduces the
+    front-matter distortion.
+    """
+
+    id: str
+    name: str
+    entity_type: str = Field(description="EntityType value")
+    count: int = Field(
+        description="Imagery occurrences whose paragraph mentions this entity"
+    )
+    body_count: int = Field(
+        default=0,
+        description="Same, restricted to body chapters — the numerator for lift",
+    )
+    paragraph_count: int = Field(
+        default=0,
+        description=(
+            "Body paragraphs anywhere in the book that mention this entity — the "
+            "base rate this symbol's attachment has to beat to mean anything"
+        ),
+    )
+
+
+class CoOccurringImageryRef(BaseModel):
+    """Another imagery entity sharing paragraphs with this one.
+
+    Field names match ``api.schemas.symbols.CoOccurrenceEntry`` so the UI reads
+    one shape whether it came from here or from the per-symbol endpoint.
+    """
+
+    term: str
+    imagery_id: str
+    co_occurrence_count: int
+    imagery_type: str
+
+
+class InterpretationStatus(BaseModel):
+    """The part of a SymbolInterpretation a list row needs.
+
+    Carrying this inline is what stops the page issuing one interpretation
+    request per symbol, the overwhelming majority of which 404 — real books run
+    at 1-of-29 interpretation coverage.
+    """
+
+    review_status: str
+    polarity: str
+    confidence: float
+
+
+class SymbolOverviewItem(BaseModel):
+    """One imagery entity with every zero-LLM signal the page ranks on."""
+
+    id: str
+    book_id: str
+    term: str
+    imagery_type: str = Field(description="ImageryType value")
+    aliases: list[str] = Field(default_factory=list)
+    frequency: int = 0
+    chapter_distribution: dict[int, int] = Field(
+        default_factory=dict, description="{chapter_num: count}"
+    )
+    first_chapter: int | None = Field(
+        default=None, description="Lowest chapter number present, front matter included"
+    )
+
+    co_occurring_entities: list[CoOccurringEntityRef] = Field(
+        default_factory=list,
+        description=(
+            "Resolved co-occurring entities, descending by count, with the "
+            "same-named entity removed (see self_match_count)"
+        ),
+    )
+    self_match_count: int | None = Field(
+        default=None,
+        description=(
+            "Co-occurrences with the KG entity sharing this imagery's name, which "
+            "is filtered out of co_occurring_entities. Almost always the top hit, "
+            "and meaningless as a signal — a symbol always occurs with itself. "
+            "Reported so the UI can say so rather than silently dropping it."
+        ),
+    )
+    co_occurring_event_count: int = Field(
+        default=0,
+        description=(
+            "Events located in *body* chapters where this imagery occurs. Front "
+            "and back matter are excluded: colophon-chapter events are not "
+            "narrative attachment."
+        ),
+    )
+    co_occurring_imagery: list[CoOccurringImageryRef] = Field(default_factory=list)
+
+    interpretation: InterpretationStatus | None = Field(
+        default=None,
+        description=(
+            "None when no interpretation has been generated. Never set by the "
+            "assembler — interpretations change independently of this structural "
+            "aggregate, so the router overlays them onto the cached result."
+        ),
+    )
+
+
+class SymbolOverview(BaseModel):
+    """Everything the symbols page needs before a symbol is selected.
+
+    Persisted in AnalysisCache under ``symbol_overview:{book_id}``. The cached
+    copy carries ``interpretation=None`` on every item by design; see
+    ``SymbolOverviewItem.interpretation``.
+    """
+
+    book_id: str
+    body_chapter_count: int = Field(
+        description="Story chapters only — the axis length the reader sees"
+    )
+    body_paragraph_count: int = Field(
+        default=0,
+        description=(
+            "Paragraphs in body chapters — the denominator for the base rate in "
+            "CoOccurringEntityRef.paragraph_count"
+        ),
+    )
+    chapter_roles: dict[int, str] = Field(
+        default_factory=dict,
+        description=(
+            "{chapter_num: ChapterRole value}. The authoritative front/body/back "
+            "split; a chapter number alone cannot be classified reliably."
+        ),
+    )
+    global_chapter_max: int = Field(
+        default=1,
+        description=(
+            "Highest single-body-chapter count across all imagery. Shading "
+            "normalised per row makes colour mean 'present at all' and inverts "
+            "the heatmap, so every row shares this scale."
+        ),
+    )
+    items: list[SymbolOverviewItem] = Field(default_factory=list)
+
+    assembled_by: str = Field(default="symbol_service_v1")
+    assembled_at: datetime = Field(default_factory=datetime.utcnow)

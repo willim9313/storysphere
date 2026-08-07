@@ -1798,6 +1798,35 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/symbols/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Symbol Overview
+         * @description Return every imagery entity with its zero-LLM behavioural signals.
+         *
+         *     The symbols page ranks symbols by how they behave, so it needs co-occurring
+         *     entities, event counts, allies and review status for *all* of them before it
+         *     can draw the first screen. Composing that from the per-symbol endpoints took
+         *     one #15a + one #15d per symbol + a graph fetch + one #15g per symbol, and
+         *     each #15d re-loads the whole document and event list.
+         *
+         *     Interpretation status is overlaid here rather than cached with the structural
+         *     aggregate, because HITL review changes it without invalidating anything else.
+         */
+        get: operations["get_symbol_overview_api_v1_symbols_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/symbols/{imagery_id}/timeline": {
         parameters: {
             query?: never;
@@ -1880,6 +1909,33 @@ export interface paths {
          *     ``status`` is ``"completed"`` or ``"failed"``.
          */
         post: operations["analyze_symbol_api_v1_symbols__imagery_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/symbols/analyze-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Analyze All Symbols
+         * @description Trigger LLM interpretation for many imagery entities in one task (#15j).
+         *
+         *     Default scope is every imagery entity occurring more than once — the same set
+         *     the page lists. Single-occurrence terms are the majority of a book's imagery
+         *     and have no behaviour to interpret, so spending the budget on them is the one
+         *     thing "interpret everything" must not mean.
+         *
+         *     Returns 202; poll ``GET /api/v1/tasks/{task_id}/status`` (#8).
+         */
+        post: operations["analyze_all_symbols_api_v1_symbols_analyze_all_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2609,6 +2665,72 @@ export interface components {
             /** Imagery Type */
             imagery_type: string;
         };
+        /**
+         * CoOccurringEntityRef
+         * @description A KG entity resolved to name and type, with its co-occurrence counts.
+         *
+         *     SEP only carries ``{entity_id: count}``. Resolving those IDs is what lets the
+         *     UI separate character attachment from the scenery a symbol sits in, and it
+         *     cannot be done client-side without a second pass over the whole graph.
+         *
+         *     The three counts exist so attachment can be stated as a *lift* rather than a
+         *     bare share. "71% of this symbol's occurrences sit with the protagonist" says
+         *     nothing on its own — if the protagonist is in 70% of all paragraphs, 71% is
+         *     exactly what chance predicts. The comparison the UI needs is::
+         *
+         *         observed = body_count / <symbol's body occurrences>
+         *         expected = paragraph_count / <SymbolOverview.body_paragraph_count>
+         *         lift     = observed / expected
+         *
+         *     ``body_count`` rather than ``count`` is the numerator because the denominator
+         *     counts body paragraphs only; mixing the two universes reintroduces the
+         *     front-matter distortion.
+         */
+        CoOccurringEntityRef: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
+            /**
+             * Entity Type
+             * @description EntityType value
+             */
+            entity_type: string;
+            /**
+             * Count
+             * @description Imagery occurrences whose paragraph mentions this entity
+             */
+            count: number;
+            /**
+             * Body Count
+             * @description Same, restricted to body chapters — the numerator for lift
+             * @default 0
+             */
+            body_count: number;
+            /**
+             * Paragraph Count
+             * @description Body paragraphs anywhere in the book that mention this entity — the base rate this symbol's attachment has to beat to mean anything
+             * @default 0
+             */
+            paragraph_count: number;
+        };
+        /**
+         * CoOccurringImageryRef
+         * @description Another imagery entity sharing paragraphs with this one.
+         *
+         *     Field names match ``api.schemas.symbols.CoOccurrenceEntry`` so the UI reads
+         *     one shape whether it came from here or from the per-symbol endpoint.
+         */
+        CoOccurringImageryRef: {
+            /** Term */
+            term: string;
+            /** Imagery Id */
+            imagery_id: string;
+            /** Co Occurrence Count */
+            co_occurrence_count: number;
+            /** Imagery Type */
+            imagery_type: string;
+        };
         /** ConfirmInferredRequest */
         ConfirmInferredRequest: {
             /** Relationtype */
@@ -3190,6 +3312,22 @@ export interface components {
              * @default 0
              */
             total: number;
+        };
+        /**
+         * InterpretationStatus
+         * @description The part of a SymbolInterpretation a list row needs.
+         *
+         *     Carrying this inline is what stops the page issuing one interpretation
+         *     request per symbol, the overwhelming majority of which 404 — real books run
+         *     at 1-of-29 interpretation coverage.
+         */
+        InterpretationStatus: {
+            /** Review Status */
+            review_status: string;
+            /** Polarity */
+            polarity: string;
+            /** Confidence */
+            confidence: number;
         };
         /**
          * KernelSpineEvent
@@ -3889,6 +4027,40 @@ export interface components {
             force_refresh: boolean;
         };
         /**
+         * SymbolBatchAnalysisRequest
+         * @description Batch symbol interpretation — the symbols page's three batch buttons.
+         *
+         *     Omitting ``imagery_ids`` runs every imagery entity that occurs more than once
+         *     and has no interpretation yet. Single-occurrence terms are excluded by
+         *     default: a word appearing once has no distribution, no allies and no
+         *     attachment to interpret, and they are the majority of any book's imagery, so
+         *     "everything" would spend most of the budget on them.
+         */
+        SymbolBatchAnalysisRequest: {
+            /**
+             * Book Id
+             * @description Book document ID
+             */
+            book_id: string;
+            /**
+             * Imagery Ids
+             * @description Restrict the run to this subset (top-N picks, checkbox selection). Unknown ids are silently excluded.
+             */
+            imagery_ids?: string[] | null;
+            /**
+             * Language
+             * @description Output language
+             * @default en
+             */
+            language: string;
+            /**
+             * Force Refresh
+             * @description Re-interpret symbols that already have one
+             * @default false
+             */
+            force_refresh: boolean;
+        };
+        /**
          * SymbolInterpretation
          * @description LLM-derived interpretation of an imagery symbol — B-040.
          *
@@ -3976,6 +4148,110 @@ export interface components {
             theme?: string | null;
             /** Polarity */
             polarity?: ("positive" | "negative" | "neutral" | "mixed") | null;
+        };
+        /**
+         * SymbolOverview
+         * @description Everything the symbols page needs before a symbol is selected.
+         *
+         *     Persisted in AnalysisCache under ``symbol_overview:{book_id}``. The cached
+         *     copy carries ``interpretation=None`` on every item by design; see
+         *     ``SymbolOverviewItem.interpretation``.
+         */
+        SymbolOverview: {
+            /** Book Id */
+            book_id: string;
+            /**
+             * Body Chapter Count
+             * @description Story chapters only — the axis length the reader sees
+             */
+            body_chapter_count: number;
+            /**
+             * Body Paragraph Count
+             * @description Paragraphs in body chapters — the denominator for the base rate in CoOccurringEntityRef.paragraph_count
+             * @default 0
+             */
+            body_paragraph_count: number;
+            /**
+             * Chapter Roles
+             * @description {chapter_num: ChapterRole value}. The authoritative front/body/back split; a chapter number alone cannot be classified reliably.
+             */
+            chapter_roles?: {
+                [key: string]: string;
+            };
+            /**
+             * Global Chapter Max
+             * @description Highest single-body-chapter count across all imagery. Shading normalised per row makes colour mean 'present at all' and inverts the heatmap, so every row shares this scale.
+             * @default 1
+             */
+            global_chapter_max: number;
+            /** Items */
+            items?: components["schemas"]["SymbolOverviewItem"][];
+            /**
+             * Assembled By
+             * @default symbol_service_v1
+             */
+            assembled_by: string;
+            /**
+             * Assembled At
+             * Format: date-time
+             */
+            assembled_at?: string;
+        };
+        /**
+         * SymbolOverviewItem
+         * @description One imagery entity with every zero-LLM signal the page ranks on.
+         */
+        SymbolOverviewItem: {
+            /** Id */
+            id: string;
+            /** Book Id */
+            book_id: string;
+            /** Term */
+            term: string;
+            /**
+             * Imagery Type
+             * @description ImageryType value
+             */
+            imagery_type: string;
+            /** Aliases */
+            aliases?: string[];
+            /**
+             * Frequency
+             * @default 0
+             */
+            frequency: number;
+            /**
+             * Chapter Distribution
+             * @description {chapter_num: count}
+             */
+            chapter_distribution?: {
+                [key: string]: number;
+            };
+            /**
+             * First Chapter
+             * @description Lowest chapter number present, front matter included
+             */
+            first_chapter?: number | null;
+            /**
+             * Co Occurring Entities
+             * @description Resolved co-occurring entities, descending by count, with the same-named entity removed (see self_match_count)
+             */
+            co_occurring_entities?: components["schemas"]["CoOccurringEntityRef"][];
+            /**
+             * Self Match Count
+             * @description Co-occurrences with the KG entity sharing this imagery's name, which is filtered out of co_occurring_entities. Almost always the top hit, and meaningless as a signal — a symbol always occurs with itself. Reported so the UI can say so rather than silently dropping it.
+             */
+            self_match_count?: number | null;
+            /**
+             * Co Occurring Event Count
+             * @description Events located in *body* chapters where this imagery occurs. Front and back matter are excluded: colophon-chapter events are not narrative attachment.
+             * @default 0
+             */
+            co_occurring_event_count: number;
+            /** Co Occurring Imagery */
+            co_occurring_imagery?: components["schemas"]["CoOccurringImageryRef"][];
+            /** @description None when no interpretation has been generated. Never set by the assembler — interpretations change independently of this structural aggregate, so the router overlays them onto the cached result. */
+            interpretation?: components["schemas"]["InterpretationStatus"] | null;
         };
         /** SymbolTimelineEntry */
         SymbolTimelineEntry: {
@@ -7530,6 +7806,40 @@ export interface operations {
             };
         };
     };
+    get_symbol_overview_api_v1_symbols_overview_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+                /** @description Bypass cache and re-assemble */
+                force?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SymbolOverview"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_symbol_timeline_api_v1_symbols__imagery_id__timeline_get: {
         parameters: {
             query?: never;
@@ -7640,6 +7950,39 @@ export interface operations {
         requestBody: {
             content: {
                 "application/json": components["schemas"]["SymbolAnalysisRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    analyze_all_symbols_api_v1_symbols_analyze_all_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SymbolBatchAnalysisRequest"];
             };
         };
         responses: {

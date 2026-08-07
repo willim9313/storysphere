@@ -10,6 +10,11 @@ export type CoOccurrenceEntry = components['schemas']['CoOccurrenceEntry'];
 export type SEP = components['schemas']['SEP'];
 export type SEPOccurrenceContext = components['schemas']['SEPOccurrenceContext'];
 export type SymbolInterpretation = components['schemas']['SymbolInterpretation'];
+export type SymbolOverview = components['schemas']['SymbolOverview'];
+export type SymbolOverviewItem = components['schemas']['SymbolOverviewItem'];
+export type CoOccurringEntityRef = components['schemas']['CoOccurringEntityRef'];
+export type CoOccurringImageryRef = components['schemas']['CoOccurringImageryRef'];
+export type InterpretationStatus = components['schemas']['InterpretationStatus'];
 
 // ── Derived literal types ─────────────────────────────────────────────────────
 // ImageryType: backend exposes imagery_type as plain str (not an OpenAPI enum),
@@ -48,6 +53,45 @@ export function fetchSep(
 ): Promise<SEP> {
   const qs = force ? '?force=true' : '';
   return apiFetch<SEP>(`/symbols/${imageryId}/sep${qs}`);
+}
+
+/**
+ * Every imagery entity with its zero-LLM behavioural signals — one request (#15i).
+ *
+ * This is what the page opens with. Do not rebuild it from `fetchSymbols` +
+ * per-symbol `fetchSymbolSep` / `fetchSymbolInterpretation`: ranking needs signals
+ * for every symbol, and each SEP call re-loads the whole book server-side.
+ */
+export function fetchSymbolOverview(
+  bookId: string,
+  opts: { force?: boolean } = {},
+): Promise<SymbolOverview> {
+  const params = new URLSearchParams({ book_id: bookId });
+  if (opts.force) params.set('force', 'true');
+  return apiFetch<SymbolOverview>(`/symbols/overview?${params}`);
+}
+
+export interface AnalyzeAllSymbolsOpts {
+  bookId: string;
+  /** Restrict to a subset (top-N picks, checkbox selection). Omit for every
+   *  symbol occurring more than once — single-occurrence terms are excluded by
+   *  default, but honoured when listed explicitly. */
+  imageryIds?: string[];
+  language?: string;
+  forceRefresh?: boolean;
+}
+
+/** Batch LLM interpretation (#15j). Poll via #8, not the per-symbol #15f. */
+export function analyzeAllSymbols(opts: AnalyzeAllSymbolsOpts): Promise<TaskStatus> {
+  return apiFetch<TaskStatus>('/symbols/analyze-all', {
+    method: 'POST',
+    body: JSON.stringify({
+      book_id: opts.bookId,
+      imagery_ids: opts.imageryIds,
+      language: opts.language,
+      force_refresh: opts.forceRefresh,
+    }),
+  });
 }
 
 export interface TriggerSymbolAnalysisOpts {

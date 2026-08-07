@@ -258,3 +258,51 @@ class TestReview:
             review_status="approved",
         )
         assert result is None
+
+
+class TestListInterpretations:
+    """One query for a whole book, replacing one 404-prone request per symbol."""
+
+    @staticmethod
+    def _interp(imagery_id: str, **kw) -> SymbolInterpretation:
+        defaults = {
+            "imagery_id": imagery_id,
+            "book_id": "book-1",
+            "term": imagery_id,
+        }
+        defaults.update(kw)
+        return SymbolInterpretation(**defaults)
+
+    async def test_keys_results_by_imagery_id(self, mock_cache):
+        mock_cache.list_by_prefix = AsyncMock(
+            return_value=[
+                self._interp("img-1", review_status="approved").model_dump(mode="json"),
+                self._interp("img-2").model_dump(mode="json"),
+            ]
+        )
+        svc = SymbolAnalysisService(cache=mock_cache)
+        result = await svc.list_interpretations("book-1")
+        assert set(result) == {"img-1", "img-2"}
+        assert result["img-1"].review_status == "approved"
+
+    async def test_queries_only_this_book(self, mock_cache):
+        mock_cache.list_by_prefix = AsyncMock(return_value=[])
+        svc = SymbolAnalysisService(cache=mock_cache)
+        await svc.list_interpretations("book-1")
+        mock_cache.list_by_prefix.assert_awaited_once_with("symbol_analysis:book-1:")
+
+    async def test_returns_empty_when_nothing_generated(self, mock_cache):
+        mock_cache.list_by_prefix = AsyncMock(return_value=[])
+        svc = SymbolAnalysisService(cache=mock_cache)
+        assert await svc.list_interpretations("book-1") == {}
+
+    async def test_skips_malformed_rows_without_losing_the_rest(self, mock_cache):
+        mock_cache.list_by_prefix = AsyncMock(
+            return_value=[
+                {"imagery_id": "img-bad"},  # no book_id / term
+                self._interp("img-good").model_dump(mode="json"),
+            ]
+        )
+        svc = SymbolAnalysisService(cache=mock_cache)
+        result = await svc.list_interpretations("book-1")
+        assert set(result) == {"img-good"}
