@@ -6,6 +6,7 @@ import { Search } from 'lucide-react';
 import { SYMBOL_TYPES, POLARITY_STYLE, typeStyle } from './tokens';
 import { ReviewBadge } from './Badges';
 import type { ChapterAxis } from './chapterAxis';
+import { behaviourLine } from './symbolPhrases';
 import {
   rankSymbols,
   type SortAxis,
@@ -29,37 +30,6 @@ interface Props {
   setTypeFilter: (v: string | null) => void;
   search: string;
   setSearch: (v: string) => void;
-}
-
-function shapeLabel(t: TFunction<'analysis'>, s: SymbolSignals): string {
-  const { firstBodyChapter: first, lastBodyChapter: last, bodyChapters } = s.distribution;
-  return t(`symbol.shape.${s.shape}`, {
-    count: bodyChapters.length,
-    first,
-    last,
-    chapter: first,
-  });
-}
-
-/** One sentence describing what a symbol does, from the strongest signals it has. */
-function behaviourOf(t: TFunction<'analysis'>, s: SymbolSignals): string {
-  const parts = [shapeLabel(t, s)];
-  if (s.attachment) {
-    parts.push(
-      t('symbol.behaviour.attach', {
-        name: s.attachment.entity.name,
-        lift: s.attachment.lift.toFixed(1),
-      }),
-    );
-  }
-  // Pollution outranks event linkage: a reader deciding what to trust needs to know
-  // the evidence is partly front matter before anything else about it.
-  if (s.distribution.front > 0) {
-    parts.push(t('symbol.behaviour.front', { count: s.distribution.front }));
-  } else if (s.eventCount > 0) {
-    parts.push(t('symbol.behaviour.events', { count: s.eventCount }));
-  }
-  return parts.slice(0, 3).join(t('symbol.behaviour.separator'));
 }
 
 /** The figure in the right-hand column, which follows whatever axis is selected. */
@@ -297,7 +267,7 @@ export function SymbolList({
                   {s.reviewStatus && <ReviewBadge status={s.reviewStatus} />}
                 </div>
 
-                <div className="sym-row-behaviour">{behaviourOf(t, s)}</div>
+                <div className="sym-row-behaviour">{behaviourLine(t, s)}</div>
 
                 {analysis && <DensityStrip signals={s} axis={analysis.axis} />}
 

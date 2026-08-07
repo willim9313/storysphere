@@ -1,7 +1,19 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Sparkles } from 'lucide-react';
 import type { ImageryEntity, InterpretationStatus, Polarity } from '@/api/symbols';
 import { BODY_CHAPTER_MIN, globalChapterMax, outsideBodyCount } from './chapterAxis';
+import { TypePill } from './Badges';
+import { typeStyle } from './tokens';
+import { behaviourLine } from './symbolPhrases';
+import {
+  interpretationAdvice,
+  type SymbolAnalysis,
+  type SymbolSignals,
+} from './symbolSignals';
+
+/** Below this, a symbol's evidence is partly front matter and is flagged as such. */
+const TRUST_FLOOR = 0.8;
 
 const TYPE_DOT: Record<string, string> = {
   object:  'var(--symbol-object-dot)',
@@ -31,9 +43,180 @@ type Props = {
   entities: ImageryEntity[];
   interpretations: Record<string, InterpretationStatus | undefined>;
   totalChapters: number;
+  analysis: SymbolAnalysis | null;
+  onSelect: (id: string) => void;
 };
 
-export function SymbolsDashboard({ entities, interpretations, totalChapters }: Props) {
+/** How many recommendations fit before the reader is choosing from a list again. */
+const PICK_COUNT = 3;
+
+/**
+ * What the book contains, and what it costs to learn more.
+ *
+ * Replaces four stat tiles, two of which read 0 on any book nobody has spent
+ * tokens on — which is every book at first. The counts that matter are here as a
+ * sentence, including the one the tiles never showed: how many symbols have
+ * evidence partly drawn from front matter.
+ */
+function OverviewHeader({
+  analysis,
+  totalOccurrences,
+}: Readonly<{ analysis: SymbolAnalysis | null; totalOccurrences: number }>) {
+  const { t } = useTranslation('analysis');
+  const all = analysis?.all ?? [];
+  const total = all.length;
+  const interpreted = all.filter((s) => s.hasInterpretation).length;
+  const noisy = (analysis?.main ?? []).filter((s) => s.trust < TRUST_FLOOR).length;
+
+  const meta = [
+    t('symbol.overview.meta.symbols', { count: total }),
+    t('symbol.overview.meta.occurrences', { count: totalOccurrences }),
+    // Stated because it is the page's premise: ranking works before any token is
+    // spent, so an empty interpretation count is not an empty page.
+    t('symbol.overview.meta.signals', { count: total, total }),
+    t('symbol.overview.meta.interpreted', { count: interpreted, total }),
+  ];
+  if (noisy > 0) meta.push(t('symbol.overview.meta.noisy', { count: noisy }));
+
+  return (
+    <header className="sym-ov-head">
+      <h2 className="sym-ov-title">{t('symbol.overview.title')}</h2>
+      <p className="sym-ov-meta">{meta.join(t('symbol.overview.meta.separator'))}</p>
+      <p className="sym-ov-cost">
+        <Sparkles size={12} aria-hidden="true" />
+        {t('symbol.overview.aiCostLegend')}
+      </p>
+    </header>
+  );
+}
+
+/**
+ * The three symbols worth opening first.
+ *
+ * A ranked list still asks the reader to choose. These name the choice and say
+ * why, so the page has an answer to "which one?" before anything is clicked.
+ */
+function StartHere({
+  analysis,
+  onSelect,
+}: Readonly<{ analysis: SymbolAnalysis | null; onSelect: (id: string) => void }>) {
+  const { t } = useTranslation('analysis');
+  const picks = (analysis?.main ?? []).slice(0, PICK_COUNT);
+
+  return (
+    <section className="sym-dash-card">
+      <div className="sym-dash-card-head">
+        <span className="sym-dash-card-title">{t('symbol.overview.picks.title')}</span>
+        <span className="sym-dash-card-meta">
+          {t('symbol.overview.picks.subtitle', { count: picks.length })}
+        </span>
+      </div>
+      {picks.length === 0 ? (
+        <p className="sym-list-empty">{t('symbol.overview.picks.empty')}</p>
+      ) : (
+        <div className="sym-pick-grid">
+          {picks.map((s, i) => (
+            <PickCard
+              key={s.id}
+              signals={s}
+              rank={i + 1}
+              bodyChapters={analysis?.axis.bodyChapterCount ?? 0}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function PickCard({
+  signals,
+  rank,
+  bodyChapters,
+  onSelect,
+}: Readonly<{
+  signals: SymbolSignals;
+  rank: number;
+  bodyChapters: number;
+  onSelect: (id: string) => void;
+}>) {
+  const { t } = useTranslation('analysis');
+  const advice = interpretationAdvice(signals);
+  const style = typeStyle(signals.imageryType);
+
+  const CTA_KEY = {
+    recommended: 'symbol.overview.picks.ctaRecommended',
+    available: 'symbol.overview.picks.ctaAvailable',
+    discouraged: 'symbol.overview.picks.ctaDiscouraged',
+  } as const;
+  const cta = signals.reviewStatus
+    ? t('symbol.overview.picks.ctaReviewed', {
+        status: t(`symbol.review.${signals.reviewStatus}`),
+      })
+    : t(CTA_KEY[advice]);
+  // Sparkles marks spending, and only spending. It is on the CTA that would start
+  // a generation, and on nothing that merely reports one already exists.
+  const costsTokens = !signals.reviewStatus && advice === 'recommended';
+
+  return (
+    <button
+      type="button"
+      className={'sym-pick' + (rank === 1 ? ' is-lead' : '')}
+      onClick={() => onSelect(signals.id)}
+    >
+      <div className="sym-pick-head">
+        <span className="sym-pick-rank">{t('symbol.overview.picks.rank', { rank })}</span>
+        <span className="sym-pick-term">{signals.term}</span>
+        <TypePill type={signals.imageryType} />
+        <span className="sym-pick-spacer" />
+        <span className="sym-pick-load">
+          {t('symbol.overview.picks.load', { value: signals.load.toFixed(2) })}
+        </span>
+      </div>
+
+      <p className="sym-pick-claim">{behaviourLine(t, signals)}</p>
+
+      <div className="sym-pick-tags">
+        <span className="sym-pick-tag">
+          {t('symbol.overview.picks.tagSpan', {
+            hit: signals.distribution.bodyChapters.length,
+            total: bodyChapters,
+          })}
+        </span>
+        <span className="sym-pick-tag">
+          {t('symbol.overview.picks.tagEvents', { count: signals.eventCount })}
+        </span>
+        <span
+          className="sym-pick-tag"
+          style={
+            signals.trust < TRUST_FLOOR
+              ? { color: 'var(--status-partial-fg)', background: 'var(--status-partial-bg)' }
+              : undefined
+          }
+        >
+          {t('symbol.overview.picks.tagTrust', { value: Math.round(signals.trust * 100) })}
+        </span>
+      </div>
+
+      <div
+        className="sym-pick-cta"
+        style={advice === 'discouraged' ? { color: 'var(--fg-muted)' } : undefined}
+      >
+        {costsTokens && <Sparkles size={12} aria-hidden="true" />}
+        <span style={{ borderBottom: `1px solid ${style.dot}` }}>{cta}</span>
+      </div>
+    </button>
+  );
+}
+
+export function SymbolsDashboard({
+  entities,
+  interpretations,
+  totalChapters,
+  analysis,
+  onSelect,
+}: Readonly<Props>) {
   const { t } = useTranslation('analysis');
 
   const total = entities.length;
@@ -62,9 +245,6 @@ export function SymbolsDashboard({ entities, interpretations, totalChapters }: P
   }, [entities, interpretations]);
 
   const analyzedCount = total - polCounts.unanalyzed;
-  const approvedCount = Object.values(interpretations).filter(
-    (i) => i?.review_status === 'approved',
-  ).length;
 
   const radius = 64;
   const circ = 2 * Math.PI * radius;
@@ -104,27 +284,8 @@ export function SymbolsDashboard({ entities, interpretations, totalChapters }: P
 
   return (
     <div className="sym-dash">
-      {/* ── Stat strip ─────────────────────────────────────────── */}
-      <div className="sym-dash-strip">
-        {[
-          { n: total, label: t('symbol.dashboard.totalSymbols') },
-          { n: totalOccurrences, label: t('symbol.dashboard.totalOccurrences') },
-          {
-            n: analyzedCount,
-            suffix: `/${total}`,
-            label: t('symbol.dashboard.analyzedCount'),
-          },
-          { n: approvedCount, label: t('symbol.dashboard.approvedCount') },
-        ].map(({ n, suffix, label }) => (
-          <div key={label} className="sym-dash-stat">
-            <div className="sym-dash-stat-n">
-              {n}
-              {suffix && <span className="sym-dash-stat-n-of">{suffix}</span>}
-            </div>
-            <div className="sym-dash-stat-l">{label}</div>
-          </div>
-        ))}
-      </div>
+      <OverviewHeader analysis={analysis} totalOccurrences={totalOccurrences} />
+      <StartHere analysis={analysis} onSelect={onSelect} />
 
       <div className="sym-dash-grid">
         {/* ── Type donut ───────────────────────────────────────── */}

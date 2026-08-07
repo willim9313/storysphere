@@ -1429,10 +1429,36 @@
       "none": "僅出現在非正文"
     },
     "behaviour": {
-      "attach": "依附{{name}} {{lift}} 倍",
+      "attach": "依附{{name}} {{share}}%（{{lift}} 倍）",
       "front": "{{count}} 次在前置頁",
       "events": "連結 {{count}} 事件",
       "separator": " · "
+    },
+    "overview": {
+      "title": "全書意象地圖",
+      "meta": {
+        "symbols": "{{count}} 個意象",
+        "occurrences": "{{count}} 次出現",
+        "signals": "行為訊號 {{count}}/{{total}} 可算",
+        "interpreted": "LLM 詮釋 {{count}}/{{total}}",
+        "noisy": "證據有雜訊 {{count}} 個",
+        "separator": " · "
+      },
+      "aiCostLegend": "標此記號者為 LLM 生成內容或會觸發生成的動作，需消耗 token 並進入 HITL 審核；其餘訊號皆為零成本實算。",
+      "picks": {
+        "title": "該先讀哪幾個",
+        "subtitle": "依敘事負載排序的前 {{count}} 名，全部由結構化訊號即時算出",
+        "rank": "#{{rank}}",
+        "load": "負載 {{value}}",
+        "tagSpan": "{{hit}}/{{total}} 章",
+        "tagEvents": "{{count}} 事件",
+        "tagTrust": "可信度 {{value}}%",
+        "ctaRecommended": "訊號夠強，建議生成詮釋 →",
+        "ctaAvailable": "先讀行為摘要 →",
+        "ctaDiscouraged": "證據不足，先不建議生成",
+        "ctaReviewed": "已有詮釋 · {{status}} →",
+        "empty": "這本書還沒有出現超過一次的意象。"
+      }
     }
   },
   "narrative": {

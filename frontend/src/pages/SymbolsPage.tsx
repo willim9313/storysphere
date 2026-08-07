@@ -303,6 +303,8 @@ export default function SymbolsPage() {
           entities={entities}
           interpretations={interpretationStatuses}
           totalChapters={totalChapters}
+          analysis={analysis}
+          onSelect={setSelectedId}
         />
       );
     } else {

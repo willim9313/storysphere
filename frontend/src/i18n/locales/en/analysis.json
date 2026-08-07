@@ -1429,10 +1429,36 @@
       "none": "Outside the body text only"
     },
     "behaviour": {
-      "attach": "{{lift}}× with {{name}}",
+      "attach": "{{share}}% with {{name}} ({{lift}}×)",
       "front": "{{count}} in front matter",
       "events": "{{count}} events",
       "separator": " · "
+    },
+    "overview": {
+      "title": "Symbol map",
+      "meta": {
+        "symbols": "{{count}} symbols",
+        "occurrences": "{{count}} occurrences",
+        "signals": "{{count}}/{{total}} with computable signals",
+        "interpreted": "{{count}}/{{total}} interpreted",
+        "noisy": "{{count}} with noisy evidence",
+        "separator": " · "
+      },
+      "aiCostLegend": "Marked items are LLM-generated or will trigger generation: they spend tokens and enter HITL review. Every other signal is computed at no cost.",
+      "picks": {
+        "title": "Where to start",
+        "subtitle": "Top {{count}} by narrative load, computed from structured signals",
+        "rank": "#{{rank}}",
+        "load": "load {{value}}",
+        "tagSpan": "{{hit}}/{{total}} ch",
+        "tagEvents": "{{count}} events",
+        "tagTrust": "{{value}}% trustworthy",
+        "ctaRecommended": "Strong enough to interpret →",
+        "ctaAvailable": "Read the behaviour first →",
+        "ctaDiscouraged": "Too little evidence to interpret",
+        "ctaReviewed": "Interpreted · {{status}} →",
+        "empty": "No symbol in this book occurs more than once."
+      }
     }
   },
   "narrative": {

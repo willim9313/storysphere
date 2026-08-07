@@ -1063,40 +1063,136 @@
   flex-direction: column;
   gap: 20px;
 }
-.sym-dash-strip {
+/* ── Overview header (B1) ────────────────────────────────── */
+/* Replaces four stat tiles. Two of them read 0 until someone spends tokens,
+   which is the state every book starts in and most stay in. */
+.sym-ov-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sym-ov-title {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: var(--font-size-2xl);
+  color: var(--fg-primary);
+  line-height: 1.2;
+  margin: 0;
+}
+.sym-ov-meta {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  margin: 0;
+}
+/* Sparkles means "this spends money", here and nowhere else on the page. */
+.sym-ov-cost {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin: 2px 0 0;
+  max-width: 72ch;
+}
+.sym-ov-cost svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ── Start here (B3) ─────────────────────────────────────── */
+.sym-pick-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
 }
-.sym-dash-stat {
-  padding: 16px 18px;
+.sym-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  text-align: left;
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  cursor: pointer;
+}
+.sym-pick:hover {
   background: var(--bg-secondary);
-  border: var(--line-weight) var(--border-style) var(--border);
-  border-radius: var(--radius-lg);
 }
-.sym-dash-stat-n {
+/* The top pick is the page's actual recommendation, so it is the one thing here
+   with an accent edge. */
+.sym-pick.is-lead {
+  border-color: var(--accent);
+}
+.sym-pick-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.sym-pick-rank {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.sym-pick-term {
   font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: var(--font-size-3xl);
-  color: var(--fg-primary);
-  line-height: 1;
-}
-.sym-dash-stat-n-of {
-  font-family: var(--font-sans);
-  font-weight: 500;
+  font-weight: 600;
   font-size: var(--font-size-lg);
-  color: var(--fg-muted);
-  margin-left: 2px;
+  color: var(--fg-primary);
+  line-height: 1.2;
 }
-.sym-dash-stat-l {
+.sym-pick-spacer {
+  flex: 1;
+  min-width: 0;
+}
+.sym-pick-load {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sym-pick-claim {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-primary);
+  margin: 0;
+  text-wrap: pretty;
+}
+.sym-pick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.sym-pick-tag {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  margin-top: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 600;
+  background: var(--bg-tertiary);
+  border-radius: var(--badge-radius);
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
 }
+.sym-pick-cta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+.sym-pick-cta svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
 .sym-dash-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
