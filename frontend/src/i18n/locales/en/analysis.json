@@ -1362,22 +1362,10 @@
       "reviewFailed": "Failed to update review status."
     },
     "dashboard": {
-      "totalSymbols": "Total imagery",
-      "totalOccurrences": "Total occurrences",
-      "analyzedCount": "Interpreted",
-      "approvedCount": "Approved",
-      "donutLabel": "imagery",
-      "typeDistTitle": "Type distribution",
-      "typeCount": "{{count}} types",
-      "polarityDistTitle": "Polarity distribution",
-      "polarityMeta": "Interpreted {{analyzed}}/{{total}}",
-      "polarityUnanalyzed": "Uninterpreted",
       "freqTitle": "Frequency long-tail",
       "freqMeta": "Top {{count}}",
       "heatTitle": "Chapter density heatmap",
-      "heatMeta": "Imagery × {{chapters}} chapters",
-      "heatLegendLow": "Low density",
-      "heatLegendHigh": "High density"
+      "heatMeta": "Imagery × {{chapters}} chapters"
     },
     "emptyStep1Title": "Confirm paragraph tokenisation is complete",
     "emptyStep1Desc": "Imagery extraction relies on paragraph-level tokens — if the paragraph layer has not been built, extraction will not run automatically.",
@@ -1458,6 +1446,17 @@
         "ctaDiscouraged": "Too little evidence to interpret",
         "ctaReviewed": "Interpreted · {{status}} →",
         "empty": "No symbol in this book occurs more than once."
+      },
+      "heat": {
+        "meta": "{{rows}} ranked symbols × {{slots}} axis slots · body chapter maximum {{max}}",
+        "subtitle": "Shaded against the highest single-chapter count across all symbols, so rows compare directly",
+        "axisFront": "Front matter",
+        "axisBody": "Body, ch {{first}}–{{last}}",
+        "axisBack": "Back matter",
+        "legendStep": "{{count}}×",
+        "legendMore": "{{count}}× or more",
+        "legendOutside": "Outside the body",
+        "note": "Dashed cells fall outside the body text: excluded from shape and first appearance, counted against evidence trust."
       }
     }
   },

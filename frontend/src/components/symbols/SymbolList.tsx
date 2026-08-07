@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Search } from 'lucide-react';
 
-import { SYMBOL_TYPES, POLARITY_STYLE, typeStyle } from './tokens';
+import { SYMBOL_TYPES, POLARITY_STYLE, densityStep, typeStyle } from './tokens';
 import { ReviewBadge } from './Badges';
 import type { ChapterAxis } from './chapterAxis';
 import { behaviourLine } from './symbolPhrases';
@@ -64,19 +64,6 @@ function metricOf(
     default:
       return t('symbol.list.metric.load', { value: s.load.toFixed(2) });
   }
-}
-
-/**
- * Colour by occurrence count, not by proportion.
- *
- * Counts in this data run 1–3, so the steps can mean literally "once", "twice",
- * "three or more" — a legend a reader can check against the bars. A percentage over
- * a range that small says less and invites more doubt.
- */
-function densityStep(count: number): string {
-  if (count <= 1) return 'var(--symbol-density-mid)';
-  if (count === 2) return 'var(--symbol-density-high)';
-  return 'var(--symbol-density-peak)';
 }
 
 /**

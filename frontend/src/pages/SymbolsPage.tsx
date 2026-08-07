@@ -302,8 +302,8 @@ export default function SymbolsPage() {
         <SymbolsDashboard
           entities={entities}
           interpretations={interpretationStatuses}
-          totalChapters={totalChapters}
           analysis={analysis}
+          sortAxis={sortAxis}
           onSelect={setSelectedId}
         />
       );

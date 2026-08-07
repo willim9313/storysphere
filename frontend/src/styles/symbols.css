@@ -1222,63 +1222,6 @@
   color: var(--fg-muted);
   margin-left: auto;
 }
-.sym-dash-donut-wrap {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  padding: 8px 0;
-}
-.sym-dash-donut-legend {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.sym-dash-legend-row {
-  display: grid;
-  grid-template-columns: 10px 1fr auto;
-  gap: 8px;
-  align-items: center;
-}
-.sym-dash-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
-.sym-dash-legend-l {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-}
-.sym-dash-legend-n {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: var(--font-size-sm);
-  color: var(--fg-primary);
-  font-variant-numeric: tabular-nums;
-}
-.sym-dash-polbar {
-  display: flex;
-  height: 36px;
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  border: var(--line-weight) var(--border-style) var(--border);
-}
-.sym-dash-polseg {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  font-weight: 700;
-  overflow: hidden;
-  white-space: nowrap;
-}
-.sym-dash-pollegend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
-}
-.sym-dash-pollegend-item { display: inline-flex; align-items: center; gap: 5px; }
 .sym-dash-freqlist { display: flex; flex-direction: column; gap: 6px; }
 .sym-dash-freq-row {
   display: grid;
@@ -1310,51 +1253,109 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-.sym-dash-heat { display: flex; flex-direction: column; gap: 4px; }
-.sym-dash-heat-axis {
-  display: flex;
-  padding-left: 148px;
-  gap: 2px;
+/* ── Chapter density heatmap (B4) ────────────────────────── */
+.sym-heat-sub {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
+  margin: -2px 0 10px;
 }
-.sym-dash-heat-tick { flex: 1; text-align: center; opacity: 0.55; }
-.sym-dash-heat-tick.is-major { opacity: 1; font-weight: 600; color: var(--fg-secondary); }
-.sym-dash-heat-row {
-  display: grid;
-  grid-template-columns: 140px 1fr 40px;
-  gap: 8px;
+.sym-heat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sym-heat-axis,
+.sym-heat-row {
+  display: flex;
   align-items: center;
+  gap: 1px;
 }
-.sym-dash-heat-name {
+.sym-heat-name {
+  width: 96px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
   font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--fg-primary);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.sym-dash-heat-cells { display: flex; gap: 2px; }
-.sym-dash-heat-cell { flex: 1; height: 14px; border-radius: 2px; }
-.sym-dash-heat-freq {
-  font-family: var(--font-sans);
-  font-weight: 600;
+.sym-heat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.sym-heat-metric {
+  width: 52px;
+  flex: none;
+  padding-left: 8px;
+  font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-.sym-dash-heat-legend {
+.sym-heat-axis {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  padding-bottom: 4px;
+}
+/* Front and back matter are ruled with a dashed underline, the body with a solid
+   one: the axis says which part of the book you are reading before the cells do. */
+.sym-heat-axis-run {
+  text-align: center;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sym-heat-axis-run.is-body {
+  border-bottom-style: solid;
+  color: var(--fg-secondary);
+}
+.sym-heat-cell {
+  height: 15px;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+.sym-heat-legend {
   display: flex;
   align-items: center;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   justify-content: flex-end;
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  margin-top: 4px;
+  margin-top: 10px;
+}
+.sym-heat-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sym-heat-legend-swatch {
+  width: 14px;
+  height: 12px;
+  border-radius: 2px;
+}
+.sym-heat-legend-swatch.is-outside {
+  border: 1px dashed var(--fg-muted);
+}
+.sym-heat-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin: 6px 0 0;
 }
 
 /* ── Empty / onboarding (no data at all) ─────────────────── */

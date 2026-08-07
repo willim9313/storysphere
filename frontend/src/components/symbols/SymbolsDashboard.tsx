@@ -1,16 +1,22 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Sparkles } from 'lucide-react';
+import type { TFunction } from 'i18next';
 import type { ImageryEntity, InterpretationStatus, Polarity } from '@/api/symbols';
-import { BODY_CHAPTER_MIN, globalChapterMax, outsideBodyCount } from './chapterAxis';
+import type { ChapterAxis, ChapterSegment } from './chapterAxis';
 import { TypePill } from './Badges';
-import { typeStyle } from './tokens';
+import { densityLegendSteps, densityStep, typeStyle } from './tokens';
 import { behaviourLine } from './symbolPhrases';
 import {
   interpretationAdvice,
+  rankSymbols,
+  type SortAxis,
   type SymbolAnalysis,
   type SymbolSignals,
 } from './symbolSignals';
+
+/** Front and back matter read as narrower columns than the story itself. */
+const OUTSIDE_CELL_FLEX = 0.7;
 
 /** Below this, a symbol's evidence is partly front matter and is flagged as such. */
 const TRUST_FLOOR = 0.8;
@@ -31,19 +37,12 @@ const POLARITY_DOT: Record<Polarity, string> = {
   mixed:    'var(--polarity-mixed-dot)',
 };
 
-function densityToken(cnt: number, max: number): string {
-  if (cnt === 0) return 'var(--bg-tertiary)';
-  const ratio = cnt / max;
-  if (ratio >= 0.75) return 'var(--symbol-density-high)';
-  if (ratio >= 0.35) return 'var(--symbol-density-mid)';
-  return 'var(--symbol-density-low)';
-}
-
 type Props = {
   entities: ImageryEntity[];
   interpretations: Record<string, InterpretationStatus | undefined>;
-  totalChapters: number;
   analysis: SymbolAnalysis | null;
+  /** Heatmap rows follow the sidebar's axis, so the two never disagree on order. */
+  sortAxis: SortAxis;
   onSelect: (id: string) => void;
 };
 
@@ -210,55 +209,164 @@ function PickCard({
   );
 }
 
+/** Consecutive slots of the same segment, so the axis can be labelled in three parts. */
+function axisRuns(axis: ChapterAxis) {
+  const runs: Array<{ segment: ChapterSegment; slots: number[]; flex: number }> = [];
+  for (const slot of axis.slots) {
+    const last = runs.at(-1);
+    const flex = slot.segment === 'body' ? 1 : OUTSIDE_CELL_FLEX;
+    if (last && last.segment === slot.segment) {
+      last.slots.push(slot.chapter);
+      last.flex += flex;
+    } else {
+      runs.push({ segment: slot.segment, slots: [slot.chapter], flex });
+    }
+  }
+  return runs;
+}
+
+function axisRunLabel(
+  t: TFunction<'analysis'>,
+  run: { segment: ChapterSegment; slots: number[] },
+): string {
+  if (run.segment === 'body') {
+    return t('symbol.overview.heat.axisBody', {
+      first: run.slots[0],
+      last: run.slots.at(-1),
+    });
+  }
+  return run.segment === 'front'
+    ? t('symbol.overview.heat.axisFront')
+    : t('symbol.overview.heat.axisBack');
+}
+
+/**
+ * Every ranked symbol against the same chapter axis.
+ *
+ * Only the ranked list appears. Adding the single-occurrence tail would be 18 rows
+ * of one cell each — no shape to compare, and enough of them to bury the 11 rows
+ * that have one.
+ */
+function DensityHeatmap({
+  analysis,
+  sortAxis,
+}: Readonly<{ analysis: SymbolAnalysis | null; sortAxis: SortAxis }>) {
+  const { t } = useTranslation('analysis');
+  const rows = useMemo(
+    () => (analysis ? rankSymbols(analysis.main, sortAxis) : []),
+    [analysis, sortAxis],
+  );
+  if (!analysis || rows.length === 0) return null;
+
+  const { axis } = analysis;
+  const runs = axisRuns(axis);
+  const bodyRun = runs.find((r) => r.segment === 'body');
+  const renderedMax = rows.reduce(
+    (max, s) => Math.max(max, ...Object.values(s.item.chapter_distribution ?? {}), 0),
+    1,
+  );
+
+  return (
+    <section className="sym-dash-card sym-dash-card-wide">
+      <div className="sym-dash-card-head">
+        <span className="sym-dash-card-title">{t('symbol.dashboard.heatTitle')}</span>
+        <span className="sym-dash-card-meta">
+          {t('symbol.overview.heat.meta', {
+            rows: rows.length,
+            slots: axis.slots.length,
+            max: axis.globalBodyMax,
+          })}
+        </span>
+      </div>
+      {/* Stated on the card, because it is the whole reason the colours can be
+          compared between rows rather than only within one. */}
+      <p className="sym-heat-sub">{t('symbol.overview.heat.subtitle')}</p>
+
+      <div className="sym-heat">
+        <div className="sym-heat-axis">
+          <span className="sym-heat-name" />
+          {runs.map((run) => (
+            <span
+              key={run.segment + run.slots[0]}
+              className={'sym-heat-axis-run' + (run.segment === 'body' ? ' is-body' : '')}
+              style={{ flex: run.flex }}
+            >
+              {axisRunLabel(t, run)}
+            </span>
+          ))}
+          <span className="sym-heat-metric" />
+        </div>
+
+        {rows.map((s) => {
+          const distribution = s.item.chapter_distribution ?? {};
+          return (
+            <div key={s.id} className="sym-heat-row">
+              <span className="sym-heat-name">
+                <span
+                  className="sym-heat-dot"
+                  style={{ background: typeStyle(s.imageryType).dot }}
+                />
+                {s.term}
+              </span>
+              {axis.slots.map((slot) => {
+                const count = distribution[String(slot.chapter)] ?? 0;
+                const isBody = slot.segment === 'body';
+                return (
+                  <span
+                    key={slot.chapter}
+                    className="sym-heat-cell"
+                    style={{
+                      flex: isBody ? 1 : OUTSIDE_CELL_FLEX,
+                      background: count > 0 ? densityStep(count) : undefined,
+                      // A dashed edge marks evidence that sits outside the story:
+                      // kept visible, but excluded from shape and first appearance.
+                      border:
+                        count > 0 && !isBody
+                          ? '1px dashed var(--fg-muted)'
+                          : `var(--line-weight) var(--border-style) var(--bg-tertiary)`,
+                    }}
+                    title={`${t('symbol.chapterN', { n: slot.chapter })}: ${count}`}
+                  />
+                );
+              })}
+              <span className="sym-heat-metric">{s.load.toFixed(2)}</span>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="sym-heat-legend">
+        {densityLegendSteps(renderedMax).map((step) => (
+          <span key={step} className="sym-heat-legend-item">
+            <span className="sym-heat-legend-swatch" style={{ background: densityStep(step) }} />
+            {step === 3
+              ? t('symbol.overview.heat.legendMore', { count: step })
+              : t('symbol.overview.heat.legendStep', { count: step })}
+          </span>
+        ))}
+        <span className="sym-heat-legend-item">
+          <span className="sym-heat-legend-swatch is-outside" />
+          {t('symbol.overview.heat.legendOutside')}
+        </span>
+      </div>
+      {bodyRun && <p className="sym-heat-note">{t('symbol.overview.heat.note')}</p>}
+    </section>
+  );
+}
+
 export function SymbolsDashboard({
   entities,
   interpretations,
-  totalChapters,
   analysis,
+  sortAxis,
   onSelect,
 }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
-
-  const total = entities.length;
 
   const totalOccurrences = useMemo(
     () => entities.reduce((s, e) => s + e.frequency, 0),
     [entities],
   );
-
-  const typeCounts = useMemo(() => {
-    const c: Record<string, number> = {};
-    entities.forEach((e) => {
-      c[e.imagery_type] = (c[e.imagery_type] ?? 0) + 1;
-    });
-    return c;
-  }, [entities]);
-
-  const polCounts = useMemo(() => {
-    const c = { positive: 0, negative: 0, neutral: 0, mixed: 0, unanalyzed: 0 };
-    entities.forEach((e) => {
-      const interp = interpretations[e.id];
-      if (!interp) c.unanalyzed++;
-      else c[interp.polarity]++;
-    });
-    return c;
-  }, [entities, interpretations]);
-
-  const analyzedCount = total - polCounts.unanalyzed;
-
-  const radius = 64;
-  const circ = 2 * Math.PI * radius;
-  const donutSegs = useMemo(() => {
-    let offset = 0;
-    return Object.entries(typeCounts)
-      .filter(([, n]) => n > 0)
-      .map(([type, n]) => {
-        const dash = (n / total) * circ;
-        const seg = { type, dash, offset, n };
-        offset += dash;
-        return seg;
-      });
-  }, [typeCounts, total, circ]);
 
   const sortedByFreq = useMemo(
     () => [...entities].sort((a, b) => b.frequency - a.frequency),
@@ -266,135 +374,12 @@ export function SymbolsDashboard({
   );
   const freqMax = sortedByFreq[0]?.frequency ?? 1;
 
-  // One shading scale for the whole heatmap. Each row used to be normalised
-  // against its own peak, which made colour mean "does this chapter contain the
-  // symbol": 海 (13 occurrences) rendered palest while every one-occurrence
-  // symbol rendered darkest — the inverse of what the heatmap is read for.
-  const heatMax = useMemo(
-    () => globalChapterMax(entities.map((e) => e.chapter_distribution)),
-    [entities],
-  );
-  const chapterCount = Math.max(totalChapters - BODY_CHAPTER_MIN + 1, 0);
-  const heatOutside = useMemo(
-    () => entities.reduce((sum, e) => sum + outsideBodyCount(e.chapter_distribution), 0),
-    [entities],
-  );
-
-  const POLARITY_ORDER = ['positive', 'mixed', 'neutral', 'negative'] as const;
-
   return (
     <div className="sym-dash">
       <OverviewHeader analysis={analysis} totalOccurrences={totalOccurrences} />
       <StartHere analysis={analysis} onSelect={onSelect} />
 
       <div className="sym-dash-grid">
-        {/* ── Type donut ───────────────────────────────────────── */}
-        <section className="sym-dash-card">
-          <div className="sym-dash-card-head">
-            <span className="sym-dash-card-title">{t('symbol.dashboard.typeDistTitle')}</span>
-            <span className="sym-dash-card-meta">
-              {t('symbol.dashboard.typeCount', { count: Object.keys(typeCounts).length })}
-            </span>
-          </div>
-          <div className="sym-dash-donut-wrap">
-            <svg width="160" height="160" viewBox="0 0 160 160" aria-hidden="true">
-              <circle
-                cx="80" cy="80" r={radius}
-                fill="none" stroke="var(--bg-tertiary)" strokeWidth="14"
-              />
-              {donutSegs.map((seg) => (
-                <circle
-                  key={seg.type}
-                  cx="80" cy="80" r={radius}
-                  fill="none"
-                  stroke={TYPE_DOT[seg.type] ?? 'var(--symbol-other-dot)'}
-                  strokeWidth="14"
-                  strokeDasharray={`${seg.dash} ${circ - seg.dash}`}
-                  strokeDashoffset={-seg.offset}
-                  transform="rotate(-90 80 80)"
-                />
-              ))}
-              <text
-                x="80" y="78" textAnchor="middle"
-                fontSize="24" fontWeight="700"
-                fontFamily="var(--font-serif)" fill="var(--fg-primary)"
-              >
-                {total}
-              </text>
-              <text
-                x="80" y="96" textAnchor="middle"
-                fontSize="10" fill="var(--fg-muted)"
-                fontFamily="var(--font-sans)"
-              >
-                {t('symbol.dashboard.donutLabel')}
-              </text>
-            </svg>
-            <div className="sym-dash-donut-legend">
-              {[...donutSegs].sort((a, b) => b.n - a.n).map((seg) => (
-                <div key={seg.type} className="sym-dash-legend-row">
-                  <span
-                    className="sym-dash-legend-dot"
-                    style={{ background: TYPE_DOT[seg.type] }}
-                  />
-                  <span className="sym-dash-legend-l">{t(`symbol.types.${seg.type}`)}</span>
-                  <span className="sym-dash-legend-n">{seg.n}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        {/* ── Polarity stacked bar ─────────────────────────────── */}
-        <section className="sym-dash-card">
-          <div className="sym-dash-card-head">
-            <span className="sym-dash-card-title">{t('symbol.dashboard.polarityDistTitle')}</span>
-            <span className="sym-dash-card-meta">
-              {t('symbol.dashboard.polarityMeta', { analyzed: analyzedCount, total })}
-            </span>
-          </div>
-          <div className="sym-dash-polbar">
-            {POLARITY_ORDER.map((k) => {
-              if (!polCounts[k]) return null;
-              const pct = (polCounts[k] / total) * 100;
-              return (
-                <div
-                  key={k}
-                  className="sym-dash-polseg"
-                  style={{ width: `${pct}%`, background: POLARITY_DOT[k], color: 'var(--bg-primary)' }}
-                  title={`${t(`symbol.polarity.${k}`)}: ${polCounts[k]}`}
-                >
-                  {pct >= 12 && <span>{t(`symbol.polarity.${k}`)} · {polCounts[k]}</span>}
-                </div>
-              );
-            })}
-            {polCounts.unanalyzed > 0 && (
-              <div
-                className="sym-dash-polseg"
-                style={{
-                  width: `${(polCounts.unanalyzed / total) * 100}%`,
-                  background: 'var(--bg-tertiary)',
-                  color: 'var(--fg-muted)',
-                }}
-                title={`${t('symbol.dashboard.polarityUnanalyzed')}: ${polCounts.unanalyzed}`}
-              >
-                {(polCounts.unanalyzed / total) * 100 >= 12 && (
-                  <span>{t('symbol.dashboard.polarityUnanalyzed')} · {polCounts.unanalyzed}</span>
-                )}
-              </div>
-            )}
-          </div>
-          <div className="sym-dash-pollegend">
-            {POLARITY_ORDER.map((k) =>
-              polCounts[k] > 0 ? (
-                <span key={k} className="sym-dash-pollegend-item">
-                  <span className="sym-dash-legend-dot" style={{ background: POLARITY_DOT[k] }} />
-                  {t(`symbol.polarity.${k}`)} <b>{polCounts[k]}</b>
-                </span>
-              ) : null,
-            )}
-          </div>
-        </section>
-
         {/* ── Frequency long-tail ──────────────────────────────── */}
         <section className="sym-dash-card sym-dash-card-wide">
           <div className="sym-dash-card-head">
@@ -435,62 +420,7 @@ export function SymbolsDashboard({
           </div>
         </section>
 
-        {/* ── Chapter density heatmap ──────────────────────────── */}
-        <section className="sym-dash-card sym-dash-card-wide">
-          <div className="sym-dash-card-head">
-            <span className="sym-dash-card-title">{t('symbol.dashboard.heatTitle')}</span>
-            <span className="sym-dash-card-meta">
-              {t('symbol.dashboard.heatMeta', { chapters: chapterCount })}
-              {heatOutside > 0 && <> · {t('symbol.outsideBody', { count: heatOutside })}</>}
-            </span>
-          </div>
-          <div className="sym-dash-heat">
-            <div className="sym-dash-heat-axis">
-              {Array.from({ length: chapterCount }, (_, i) => {
-                const ch = i + BODY_CHAPTER_MIN;
-                const isMajor = ch === BODY_CHAPTER_MIN || ch % 5 === 0;
-                return (
-                  <span
-                    key={i}
-                    className={`sym-dash-heat-tick${isMajor ? ' is-major' : ''}`}
-                  >
-                    {isMajor ? ch : ''}
-                  </span>
-                );
-              })}
-            </div>
-            {entities.map((e) => (
-              <div key={e.id} className="sym-dash-heat-row">
-                <div className="sym-dash-heat-name">{e.term}</div>
-                <div className="sym-dash-heat-cells">
-                  {Array.from({ length: chapterCount }, (_, i) => {
-                    const ch = i + BODY_CHAPTER_MIN;
-                    const cnt = e.chapter_distribution[String(ch)] ?? 0;
-                    return (
-                      <div
-                        key={i}
-                        className="sym-dash-heat-cell"
-                        style={{
-                          background: densityToken(cnt, heatMax),
-                          opacity: cnt === 0 ? 0.45 : 1,
-                        }}
-                        title={`${t('symbol.chapterN', { n: ch })}: ${cnt}`}
-                      />
-                    );
-                  })}
-                </div>
-                <div className="sym-dash-heat-freq">{e.frequency}</div>
-              </div>
-            ))}
-            <div className="sym-dash-heat-legend">
-              <span>{t('symbol.dashboard.heatLegendLow')}</span>
-              <div className="sym-dash-heat-cell" style={{ background: 'var(--symbol-density-low)', width: 14, flex: 'none' }} />
-              <div className="sym-dash-heat-cell" style={{ background: 'var(--symbol-density-mid)', width: 14, flex: 'none' }} />
-              <div className="sym-dash-heat-cell" style={{ background: 'var(--symbol-density-high)', width: 14, flex: 'none' }} />
-              <span>{t('symbol.dashboard.heatLegendHigh')}</span>
-            </div>
-          </div>
-        </section>
+        <DensityHeatmap analysis={analysis} sortAxis={sortAxis} />
       </div>
     </div>
   );
