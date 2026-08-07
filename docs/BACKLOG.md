@@ -1,13 +1,40 @@
 # StorySphere — 開發 Backlog
 
 **用途**: 記錄已識別但尚未排入 Phase 的開發項目
-**更新日期**: 2026-07-18
+**更新日期**: 2026-08-07
 
 > 已完成項目歸檔於 [BACKLOG_ARCHIVE.md](BACKLOG_ARCHIVE.md)
 
 ---
 
 ## B 系列（既有）
+
+### 🔴 高優先（功能中斷）
+
+#### B-073 象徵詮釋 LLM 輸出解析失敗（no_json_found）
+
+**背景**: 2026-08-07 驗證象徵意象頁批次生成時實測，`POST /symbols/:id/analyze` 對「手」失敗，task error 為：
+
+```
+Symbol interpretation parse failed: no_json_found
+```
+
+來自 `backend/storysphere/core/utils/output_extractor.py:97` —— LLM 回應中抽不出 JSON。單一意象端點與批次端點都會踩到（批次會計為 `failed` 並繼續，不中止）。
+
+**影響範圍**: 整頁的 LLM 詮釋在目前環境下**完全無法產出**。象徵意象頁翻新後主要內容改由零成本行為訊號撐起，所以頁面仍可用，但 HITL 審核、極性、主題命題這條線是斷的。
+
+**已排除**: 不是 2026-08-07 象徵頁翻新造成。`_call_llm` / `analyze_symbol` / prompt / `extract_json_from_text` 在 `feat/symbols-api-consolidation` 分支上完全未異動。
+
+**觀察到的環境**: `.env` 僅 `GEMINI_API_KEY` 為真實值（OPENAI / ANTHROPIC 皆為 placeholder），推測是 Gemini 當前輸出格式與 `extract_json_from_text` 的抽取規則不合（例如包在 markdown fence 外、或前綴說明文字型態改變）。與 B-014 記錄的「local model JSON schema 遵從度」是同一類問題，但這次是雲端 provider。
+
+**待辦內容**:
+- 重現並記錄 Gemini 的實際原始回應（先在 `_call_llm` 加一次性 debug log，或用同 prompt 直接打 provider）
+- 判斷是 prompt 需要更嚴格的 JSON 指示、還是 `extract_json_from_text` 的抽取規則要放寬
+- 檢查其他走同一個 extractor 的分析路徑是否也在靜默失敗（角色 / 事件 / 張力）—— 若是，這個優先級要再往上調
+
+**觸發時機**: 立即（詮釋功能目前不可用）。
+
+---
 
 ### 🟡 中優先（功能完善）
 
@@ -958,6 +985,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-063 | 關係圖角色名冊比對支援 KG 別名 | 🟢 低 | 待開始（觸發：灰圈誤判回報累積） |
 | B-064 | 未分析卡「生成分析」按鈕文字對齊 canvas「建立」 | 🟢 低 | 待開始（觸發：下次動到角色清單卡片） |
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |
+| B-073 | 象徵詮釋 LLM 輸出解析失敗（no_json_found） | 🔴 高 | 待開始（2026-08-07 象徵頁驗證時實測；非該輪造成） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | 待開始（觸發：動到 upload / event analysis 時順修） |
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | 待開始（觸發：需用 mock 展示時間軸頁時） |
 | B-068 | 事件抽取把同一場戲切成多個 event | 🟡 中 | 待開始（觸發：下次動到 ingestion / event extraction） |

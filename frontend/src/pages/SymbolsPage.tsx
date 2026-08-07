@@ -34,6 +34,7 @@ import {
   SYMBOL_OVERVIEW_KEY,
   useSymbolAnalysis,
 } from '@/components/symbols/hooks/useSymbolAnalysis';
+import { useSymbolBatch } from '@/components/symbols/hooks/useSymbolBatch';
 import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
 import type { DistributionShape, SortAxis } from '@/components/symbols/symbolSignals';
 import {
@@ -96,6 +97,7 @@ export default function SymbolsPage() {
   };
 
   const { analysis, isLoading: listLoading } = useSymbolAnalysis(bookId);
+  const batch = useSymbolBatch(bookId, t('symbol.overview.batch.failed'));
 
   const entities: ImageryEntity[] = useMemo(
     () => (analysis?.all ?? []).map((s) => toImageryEntity(s.item)),
@@ -310,6 +312,7 @@ export default function SymbolsPage() {
       detailBody = (
         <SymbolsDashboard
           analysis={analysis}
+          batch={batch}
           sortAxis={sortAxis}
           shapeFilter={shapeFilter}
           setShapeFilter={setShapeFilter}

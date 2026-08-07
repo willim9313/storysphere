@@ -6,6 +6,7 @@ import type { ChapterAxis, ChapterSegment } from './chapterAxis';
 import { TypePill } from './Badges';
 import { densityLegendSteps, densityStep, typeStyle } from './tokens';
 import { behaviourLine } from './symbolPhrases';
+import type { SymbolBatch } from './hooks/useSymbolBatch';
 import {
   interpretationAdvice,
   rankSymbols,
@@ -23,6 +24,7 @@ const TRUST_FLOOR = 0.8;
 
 type Props = {
   analysis: SymbolAnalysis | null;
+  batch: SymbolBatch;
   /** Heatmap rows follow the sidebar's axis, so the two never disagree on order. */
   sortAxis: SortAxis;
   shapeFilter: DistributionShape | null;
@@ -34,6 +36,9 @@ type Props = {
 const SHAPE_ORDER: DistributionShape[] = [
   'through', 'backHalf', 'frontHalf', 'earlyExit', 'lateEntry', 'scatter', 'single', 'none',
 ];
+
+/** How many symbols the "strongest few" batch covers. */
+const BATCH_TOP_N = 5;
 
 /** Type size ramp for the tail cloud, in rem, matching the --font-size-* scale. */
 const TAIL_MIN_REM = 0.75;
@@ -53,7 +58,12 @@ const PICK_COUNT = 3;
 function OverviewHeader({
   analysis,
   totalOccurrences,
-}: Readonly<{ analysis: SymbolAnalysis | null; totalOccurrences: number }>) {
+  batch,
+}: Readonly<{
+  analysis: SymbolAnalysis | null;
+  totalOccurrences: number;
+  batch: SymbolBatch;
+}>) {
   const { t } = useTranslation('analysis');
   const all = analysis?.all ?? [];
   const total = all.length;
@@ -72,13 +82,120 @@ function OverviewHeader({
 
   return (
     <header className="sym-ov-head">
-      <h2 className="sym-ov-title">{t('symbol.overview.title')}</h2>
+      <div className="sym-ov-head-row">
+        <h2 className="sym-ov-title">{t('symbol.overview.title')}</h2>
+        <BatchButtons analysis={analysis} batch={batch} />
+      </div>
       <p className="sym-ov-meta">{meta.join(t('symbol.overview.meta.separator'))}</p>
       <p className="sym-ov-cost">
         <Sparkles size={12} aria-hidden="true" />
         {t('symbol.overview.aiCostLegend')}
       </p>
     </header>
+  );
+}
+
+/**
+ * Two ways to spend tokens in bulk, both behind a confirmation.
+ *
+ * Neither runs on the single-occurrence tail. It is the majority of the symbols
+ * and has nothing to interpret, so "everything" spending most of the budget there
+ * is the one thing the word must not mean.
+ */
+function BatchButtons({
+  analysis,
+  batch,
+}: Readonly<{ analysis: SymbolAnalysis | null; batch: SymbolBatch }>) {
+  const { t } = useTranslation('analysis');
+  const main = analysis?.main ?? [];
+  const pending = main.filter((s) => !s.hasInterpretation);
+  if (batch.running || pending.length === 0) return null;
+
+  const topN = pending.slice(0, BATCH_TOP_N);
+  const confirmAndStart = (message: string, ids: string[]) => {
+    if (globalThis.window !== undefined && !globalThis.window.confirm(message)) return;
+    batch.start(ids);
+  };
+
+  return (
+    <div className="sym-ov-batch-btns">
+      {topN.length > 1 && (
+        <button
+          type="button"
+          className="sym-ov-batch-btn is-primary"
+          disabled={batch.pending}
+          onClick={() =>
+            confirmAndStart(
+              t('symbol.overview.batch.confirmTopN', { count: topN.length }),
+              topN.map((s) => s.id),
+            )
+          }
+        >
+          <Sparkles size={12} aria-hidden="true" />
+          {t('symbol.overview.batch.topN', { count: topN.length })}
+        </button>
+      )}
+      <button
+        type="button"
+        className="sym-ov-batch-btn"
+        disabled={batch.pending}
+        onClick={() =>
+          confirmAndStart(
+            t('symbol.overview.batch.confirmAll', { count: main.length }),
+            main.map((s) => s.id),
+          )
+        }
+      >
+        <Sparkles size={12} aria-hidden="true" />
+        {t('symbol.overview.batch.all', { count: main.length })}
+      </button>
+    </div>
+  );
+}
+
+/** Progress while a run is going, and its tally once it is not. */
+function BatchProgress({ batch }: Readonly<{ batch: SymbolBatch }>) {
+  const { t } = useTranslation('analysis');
+  if (!batch.running && batch.summary === null && batch.error === null) return null;
+
+  if (batch.error !== null) {
+    return (
+      <div className="sym-ov-batch-panel is-error">
+        <span>{batch.error}</span>
+        <button type="button" className="sym-ov-batch-dismiss" onClick={batch.dismiss}>
+          {t('symbol.overview.batch.dismiss')}
+        </button>
+      </div>
+    );
+  }
+
+  if (batch.running) {
+    const pct = batch.total > 0 ? Math.round((batch.processed / batch.total) * 100) : 0;
+    return (
+      <div className="sym-ov-batch-panel">
+        <span className="sym-ov-batch-spinner" aria-hidden="true" />
+        <span className="sym-ov-batch-stage">
+          {batch.stage || t('symbol.overview.batch.running')}
+        </span>
+        <progress className="sym-ov-batch-track" value={pct} max={100} />
+        <span className="sym-ov-batch-hint">{t('symbol.overview.batch.hint')}</span>
+      </div>
+    );
+  }
+
+  const s = batch.summary!;
+  return (
+    <div className="sym-ov-batch-panel">
+      <span className="sym-ov-batch-stage">{t('symbol.overview.batch.done')}</span>
+      <span className="sym-ov-batch-tally">
+        {s.progress - s.skipped - s.failed} {t('symbol.overview.batch.statGenerated')} ·{' '}
+        {s.skipped} {t('symbol.overview.batch.statSkipped')} · {s.failed}{' '}
+        {t('symbol.overview.batch.statFailed')}
+      </span>
+      <button type="button" className="sym-ov-batch-dismiss" onClick={batch.dismiss}>
+        {t('symbol.overview.batch.dismiss')}
+      </button>
+    </div>
   );
 }
 
@@ -482,6 +599,7 @@ function TailCloud({
 
 export function SymbolsDashboard({
   analysis,
+  batch,
   sortAxis,
   shapeFilter,
   setShapeFilter,
@@ -494,7 +612,8 @@ export function SymbolsDashboard({
 
   return (
     <div className="sym-dash">
-      <OverviewHeader analysis={analysis} totalOccurrences={totalOccurrences} />
+      <OverviewHeader analysis={analysis} totalOccurrences={totalOccurrences} batch={batch} />
+      <BatchProgress batch={batch} />
       <StartHere analysis={analysis} onSelect={onSelect} />
 
       <div className="sym-dash-grid">

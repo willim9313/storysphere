@@ -1477,6 +1477,21 @@
         "chapter": "ch{{chapter}}",
         "chapterFront": "front",
         "chapterBack": "back"
+      },
+      "batch": {
+        "topN": "Interpret the strongest {{count}}…",
+        "all": "All {{count}}…",
+        "confirmTopN": "This will interpret the {{count}} symbols with the highest narrative load. Each one spends tokens and enters HITL review. Continue?",
+        "confirmAll": "This will interpret all {{count}} ranked symbols, skipping any already done. Each one spends tokens and enters HITL review. Continue?",
+        "tailExcluded": "The {{count}} words occurring once are not included.",
+        "running": "Batch interpretation running",
+        "hint": "You can leave the page; the run continues.",
+        "statGenerated": "generated",
+        "statSkipped": "skipped",
+        "statFailed": "failed",
+        "done": "Batch complete",
+        "dismiss": "Dismiss",
+        "failed": "Batch generation failed. Please try again."
       }
     }
   },

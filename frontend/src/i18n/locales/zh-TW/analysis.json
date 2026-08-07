@@ -1477,6 +1477,21 @@
         "chapter": "ch{{chapter}}",
         "chapterFront": "前",
         "chapterBack": "後"
+      },
+      "batch": {
+        "topN": "生成訊號最強的前 {{count}} 名…",
+        "all": "全部 {{count}} 個…",
+        "confirmTopN": "將對敘事負載最高的 {{count}} 個意象生成 LLM 詮釋。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？",
+        "confirmAll": "將對全部 {{count}} 個主清單意象生成 LLM 詮釋（已有詮釋者自動跳過）。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？",
+        "tailExcluded": "只出現 1 次的 {{count}} 個詞不列入批次。",
+        "running": "LLM 批次生成中",
+        "hint": "可離開頁面，結果會保留。",
+        "statGenerated": "已生成",
+        "statSkipped": "跳過",
+        "statFailed": "失敗",
+        "done": "批次完成",
+        "dismiss": "關閉",
+        "failed": "批次生成失敗，請稍後再試。"
       }
     }
   },

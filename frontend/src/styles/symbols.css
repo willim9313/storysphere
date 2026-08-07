@@ -1102,6 +1102,117 @@
   margin-top: 2px;
 }
 
+/* ── Batch controls (B1 buttons + B2 panel) ──────────────── */
+.sym-ov-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.sym-ov-batch-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sym-ov-batch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 500;
+  color: var(--fg-primary);
+  background: transparent;
+  border: var(--btn-border-width) var(--border-style) var(--border);
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.sym-ov-batch-btn.is-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.sym-ov-batch-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.sym-ov-batch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sym-ov-batch-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--accent);
+  border-radius: var(--card-radius);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.sym-ov-batch-panel.is-error {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+.sym-ov-batch-stage {
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.sym-ov-batch-tally,
+.sym-ov-batch-hint {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.sym-ov-batch-track {
+  flex: 1;
+  min-width: 120px;
+  height: 3px;
+  border: 0;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+  appearance: none;
+}
+.sym-ov-batch-track::-webkit-progress-bar {
+  background: var(--bg-tertiary);
+}
+.sym-ov-batch-track::-webkit-progress-value {
+  background: var(--accent);
+}
+.sym-ov-batch-track::-moz-progress-bar {
+  background: var(--accent);
+}
+.sym-ov-batch-dismiss {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  text-decoration: underline;
+  cursor: pointer;
+}
+/* The only animation on the page — a run is the one thing here that is genuinely
+   in progress. */
+.sym-ov-batch-spinner {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 2px solid var(--accent);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: sym-spin 900ms linear infinite;
+}
+@keyframes sym-spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Start here (B3) ─────────────────────────────────────── */
 .sym-pick-grid {
   display: grid;
