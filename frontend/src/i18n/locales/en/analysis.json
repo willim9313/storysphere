@@ -1404,7 +1404,10 @@
         "first": "ch{{chapter}}",
         "firstNone": "ch—",
         "reviewNone": "none"
-      }
+      },
+      "checkHint": "Tick the symbols to interpret. Already-interpreted symbols and words occurring once are not included.",
+      "checkNone": "Nothing here can be picked.",
+      "checkAria": "Pick {{term}}"
     },
     "shape": {
       "through": "Runs through {{count}} chapters",
@@ -1491,7 +1494,11 @@
         "statFailed": "failed",
         "done": "Batch complete",
         "dismiss": "Dismiss",
-        "failed": "Batch generation failed. Please try again."
+        "failed": "Batch generation failed. Please try again.",
+        "check": "Pick several…",
+        "checkOff": "Cancel picking",
+        "checked": "Interpret picked ({{count}})",
+        "confirmChecked": "This will interpret the {{count}} symbols you picked. Each one spends tokens and enters HITL review. Continue?"
       }
     }
   },

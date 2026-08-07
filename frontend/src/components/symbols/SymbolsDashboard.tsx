@@ -1,12 +1,13 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Sparkles } from 'lucide-react';
+import { CheckSquare, Sparkles } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import type { ChapterAxis, ChapterSegment } from './chapterAxis';
 import { TypePill } from './Badges';
 import { densityLegendSteps, densityStep, typeStyle } from './tokens';
 import { behaviourLine } from './symbolPhrases';
 import type { SymbolBatch } from './hooks/useSymbolBatch';
+import type { SymbolCheck } from './hooks/useSymbolCheck';
 import {
   interpretationAdvice,
   rankSymbols,
@@ -25,6 +26,7 @@ const TRUST_FLOOR = 0.8;
 type Props = {
   analysis: SymbolAnalysis | null;
   batch: SymbolBatch;
+  check: SymbolCheck;
   /** Heatmap rows follow the sidebar's axis, so the two never disagree on order. */
   sortAxis: SortAxis;
   shapeFilter: DistributionShape | null;
@@ -59,10 +61,12 @@ function OverviewHeader({
   analysis,
   totalOccurrences,
   batch,
+  check,
 }: Readonly<{
   analysis: SymbolAnalysis | null;
   totalOccurrences: number;
   batch: SymbolBatch;
+  check: SymbolCheck;
 }>) {
   const { t } = useTranslation('analysis');
   const all = analysis?.all ?? [];
@@ -84,7 +88,7 @@ function OverviewHeader({
     <header className="sym-ov-head">
       <div className="sym-ov-head-row">
         <h2 className="sym-ov-title">{t('symbol.overview.title')}</h2>
-        <BatchButtons analysis={analysis} batch={batch} />
+        <BatchButtons analysis={analysis} batch={batch} check={check} />
       </div>
       <p className="sym-ov-meta">{meta.join(t('symbol.overview.meta.separator'))}</p>
       <p className="sym-ov-cost">
@@ -96,26 +100,61 @@ function OverviewHeader({
 }
 
 /**
- * Two ways to spend tokens in bulk, both behind a confirmation.
+ * Three ways to spend tokens in bulk, all behind a confirmation.
  *
- * Neither runs on the single-occurrence tail. It is the majority of the symbols
- * and has nothing to interpret, so "everything" spending most of the budget there
- * is the one thing the word must not mean.
+ * None of them runs on the single-occurrence tail. It is the majority of the
+ * symbols and has nothing to interpret, so "everything" spending most of the
+ * budget there is the one thing the word must not mean.
  */
 function BatchButtons({
   analysis,
   batch,
-}: Readonly<{ analysis: SymbolAnalysis | null; batch: SymbolBatch }>) {
+  check,
+}: Readonly<{ analysis: SymbolAnalysis | null; batch: SymbolBatch; check: SymbolCheck }>) {
   const { t } = useTranslation('analysis');
   const main = analysis?.main ?? [];
   const pending = main.filter((s) => !s.hasInterpretation);
   if (batch.running || pending.length === 0) return null;
 
   const topN = pending.slice(0, BATCH_TOP_N);
+  /** True once a run has actually been started, so the caller can tidy up after it. */
   const confirmAndStart = (message: string, ids: string[]) => {
-    if (globalThis.window !== undefined && !globalThis.window.confirm(message)) return;
+    if (globalThis.window !== undefined && !globalThis.window.confirm(message)) return false;
     batch.start(ids);
+    return true;
   };
+
+  // While picking, the two fixed-scope buttons are withdrawn rather than left
+  // beside the pick controls: both spend immediately, on a set the reader is in
+  // the middle of not choosing, and 「全部 11 個」 sitting one target away from
+  // 「生成已勾選」 turns a mis-click into a bill.
+  if (check.active) {
+    return (
+      <div className="sym-ov-batch-btns">
+        <button
+          type="button"
+          className="sym-ov-batch-btn is-primary"
+          disabled={batch.pending || check.ids.length === 0}
+          onClick={() => {
+            if (
+              confirmAndStart(
+                t('symbol.overview.batch.confirmChecked', { count: check.ids.length }),
+                check.ids,
+              )
+            ) {
+              check.exit();
+            }
+          }}
+        >
+          <Sparkles size={12} aria-hidden="true" />
+          {t('symbol.overview.batch.checked', { count: check.ids.length })}
+        </button>
+        <button type="button" className="sym-ov-batch-btn" onClick={check.toggleMode}>
+          {t('symbol.overview.batch.checkOff')}
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="sym-ov-batch-btns">
@@ -148,6 +187,10 @@ function BatchButtons({
       >
         <Sparkles size={12} aria-hidden="true" />
         {t('symbol.overview.batch.all', { count: main.length })}
+      </button>
+      <button type="button" className="sym-ov-batch-btn is-quiet" onClick={check.toggleMode}>
+        <CheckSquare size={12} aria-hidden="true" />
+        {t('symbol.overview.batch.check')}
       </button>
     </div>
   );
@@ -600,6 +643,7 @@ function TailCloud({
 export function SymbolsDashboard({
   analysis,
   batch,
+  check,
   sortAxis,
   shapeFilter,
   setShapeFilter,
@@ -612,7 +656,12 @@ export function SymbolsDashboard({
 
   return (
     <div className="sym-dash">
-      <OverviewHeader analysis={analysis} totalOccurrences={totalOccurrences} batch={batch} />
+      <OverviewHeader
+        analysis={analysis}
+        totalOccurrences={totalOccurrences}
+        batch={batch}
+        check={check}
+      />
       <BatchProgress batch={batch} />
       <StartHere analysis={analysis} onSelect={onSelect} />
 

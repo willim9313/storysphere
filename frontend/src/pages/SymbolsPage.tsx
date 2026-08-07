@@ -35,6 +35,7 @@ import {
   useSymbolAnalysis,
 } from '@/components/symbols/hooks/useSymbolAnalysis';
 import { useSymbolBatch } from '@/components/symbols/hooks/useSymbolBatch';
+import { useSymbolCheck } from '@/components/symbols/hooks/useSymbolCheck';
 import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
 import type { DistributionShape, SortAxis } from '@/components/symbols/symbolSignals';
 import {
@@ -90,14 +91,19 @@ export default function SymbolsPage() {
   // (redesign decision 05). Cleared whenever the map is returned to.
   const [shapeFilter, setShapeFilter] = useState<DistributionShape | null>(null);
 
-  /** Returning to the map drops the behaviour filter, which was set on the map. */
-  const handleSelect = (id: string | null) => {
-    setSelectedId(id);
-    if (id === null) setShapeFilter(null);
-  };
-
   const { analysis, isLoading: listLoading } = useSymbolAnalysis(bookId);
   const batch = useSymbolBatch(bookId, t('symbol.overview.batch.failed'));
+  const check = useSymbolCheck(analysis);
+
+  const handleSelect = (id: string | null) => {
+    setSelectedId(id);
+    // Returning to the map drops the behaviour filter, which was set on the map.
+    if (id === null) setShapeFilter(null);
+    // Opening a symbol takes the batch controls off screen with the map, so picks
+    // still held would be unspendable — and would come back on the reader's
+    // return, minutes later, as a count they no longer recognise.
+    else check.exit();
+  };
 
   const entities: ImageryEntity[] = useMemo(
     () => (analysis?.all ?? []).map((s) => toImageryEntity(s.item)),
@@ -313,10 +319,11 @@ export default function SymbolsPage() {
         <SymbolsDashboard
           analysis={analysis}
           batch={batch}
+          check={check}
           sortAxis={sortAxis}
           shapeFilter={shapeFilter}
           setShapeFilter={setShapeFilter}
-          onSelect={setSelectedId}
+          onSelect={handleSelect}
         />
       );
     } else {
@@ -375,6 +382,7 @@ export default function SymbolsPage() {
         analysis={analysis}
         selectedId={selectedId}
         onSelect={handleSelect}
+        check={check}
         sortAxis={sortAxis}
         setSortAxis={setSortAxis}
         typeFilter={typeFilter}

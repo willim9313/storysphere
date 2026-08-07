@@ -150,6 +150,43 @@
   color: var(--fg-muted);
 }
 
+.sym-list-check-hint {
+  padding: 7px 12px 8px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-secondary);
+  background: var(--bg-secondary);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+
+/* Checkbox beside the row rather than inside it — see SymbolList for why. The
+   row keeps its own left padding, so the checkbox sits in the gutter the
+   selection border already occupies. */
+.sym-row-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  padding-left: 8px;
+}
+.sym-row-wrap > .sym-row {
+  flex: 1;
+  min-width: 0;
+}
+.sym-row-check,
+.sym-row-check-gap {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  /* Level with the term on the row's first line. Centring it against a row four
+     layers tall leaves it floating beside the density strip, pointing at nothing. */
+  margin-top: 11px;
+}
+.sym-row-check {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
 .sym-row {
   display: block;
   width: 100%;
@@ -169,6 +206,15 @@
 .sym-row.is-active {
   background: var(--bg-secondary);
   border-left-color: var(--accent);
+}
+.sym-row.is-picked {
+  background: var(--bg-secondary);
+  border-left-color: var(--accent);
+}
+/* Rows a run would skip: still readable, still openable, visibly not part of
+   what the picking is choosing between. */
+.sym-row.is-unpickable {
+  opacity: 0.55;
 }
 .sym-row-line1 {
   display: flex;
@@ -1134,6 +1180,11 @@
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-fg);
+}
+/* Costs nothing on its own — it opens a choice rather than starting a run — so it
+   carries neither the accent fill nor the Sparkles that mark spending. */
+.sym-ov-batch-btn.is-quiet {
+  color: var(--fg-secondary);
 }
 .sym-ov-batch-btn:hover:not(:disabled) {
   opacity: 0.9;

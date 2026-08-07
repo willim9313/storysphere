@@ -1404,7 +1404,10 @@
         "first": "ch{{chapter}}",
         "firstNone": "ch—",
         "reviewNone": "未詮釋"
-      }
+      },
+      "checkHint": "在左欄勾選要生成詮釋的意象。已有詮釋者與只出現 1 次的詞不列入批次。",
+      "checkNone": "目前沒有可勾選的意象。",
+      "checkAria": "勾選「{{term}}」"
     },
     "shape": {
       "through": "跨 {{count}} 章貫穿",
@@ -1491,7 +1494,11 @@
         "statFailed": "失敗",
         "done": "批次完成",
         "dismiss": "關閉",
-        "failed": "批次生成失敗，請稍後再試。"
+        "failed": "批次生成失敗，請稍後再試。",
+        "check": "勾選多筆",
+        "checkOff": "取消勾選",
+        "checked": "生成已勾選（{{count}}）",
+        "confirmChecked": "將對勾選的 {{count}} 個意象生成 LLM 詮釋。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？"
       }
     }
   },

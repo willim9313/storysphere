@@ -6,6 +6,7 @@ import { Search } from 'lucide-react';
 import { SYMBOL_TYPES, POLARITY_STYLE, densityStep, typeStyle } from './tokens';
 import { ReviewBadge } from './Badges';
 import type { ChapterAxis } from './chapterAxis';
+import type { SymbolCheck } from './hooks/useSymbolCheck';
 import { behaviourLine } from './symbolPhrases';
 import {
   rankSymbols,
@@ -25,6 +26,7 @@ interface Props {
   analysis: SymbolAnalysis | null;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
+  check: SymbolCheck;
   sortAxis: SortAxis;
   setSortAxis: (v: SortAxis) => void;
   typeFilter: string | null;
@@ -117,6 +119,7 @@ export function SymbolList({
   analysis,
   selectedId,
   onSelect,
+  check,
   sortAxis,
   setSortAxis,
   typeFilter,
@@ -232,6 +235,16 @@ export function SymbolList({
         </span>
       </div>
 
+      {/* Which rows carry a checkbox is a rule, not a glitch, so it is stated
+          rather than left to be inferred from the rows that lack one. */}
+      {check.active && (
+        <p className="sym-list-check-hint">
+          {check.candidates.size === 0
+            ? t('symbol.list.checkNone')
+            : t('symbol.list.checkHint')}
+        </p>
+      )}
+
       <div className="sym-list-body">
         {rows.length === 0 ? (
           <p className="sym-list-empty">
@@ -241,12 +254,23 @@ export function SymbolList({
           rows.map((s) => {
             const style = typeStyle(s.imageryType);
             const polarity = s.polarity ? POLARITY_STYLE[s.polarity] : null;
-            return (
+            const pickable = check.active && check.candidates.has(s.id);
+            const picked = pickable && check.isChecked(s.id);
+            const row = (
               <button
                 key={s.id}
                 type="button"
-                className={'sym-row' + (selectedId === s.id ? ' is-active' : '')}
-                onClick={() => onSelect(s.id)}
+                className={
+                  'sym-row' +
+                  (selectedId === s.id ? ' is-active' : '') +
+                  (picked ? ' is-picked' : '') +
+                  (check.active && !pickable ? ' is-unpickable' : '')
+                }
+                aria-pressed={pickable ? picked : undefined}
+                // While picking, a candidate row picks instead of opening. The
+                // controls that spend the picks live on the map, so a row that
+                // navigated away would discard the selection it just added to.
+                onClick={() => (pickable ? check.toggle(s.id) : onSelect(s.id))}
               >
                 <div className="sym-row-line1">
                   <span className="sym-row-dot" style={{ background: style.dot }} />
@@ -280,6 +304,28 @@ export function SymbolList({
                   {metricOf(t, s, sortAxis, analysis?.axis.bodyChapterCount ?? 0)}
                 </div>
               </button>
+            );
+
+            if (!check.active) return row;
+            // The checkbox is the row's sibling, not its child: the row is a
+            // button, and a checkbox nested inside one is both invalid and
+            // double-firing. Rows that cannot be picked keep the wrapper and get
+            // a gap of the same width, so nothing shifts sideways down the list.
+            return (
+              <div key={s.id} className="sym-row-wrap">
+                {pickable ? (
+                  <input
+                    type="checkbox"
+                    className="sym-row-check"
+                    checked={picked}
+                    aria-label={t('symbol.list.checkAria', { term: s.term })}
+                    onChange={() => check.toggle(s.id)}
+                  />
+                ) : (
+                  <span className="sym-row-check-gap" aria-hidden="true" />
+                )}
+                {row}
+              </div>
             );
           })
         )}
