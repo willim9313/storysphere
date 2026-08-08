@@ -1327,7 +1327,21 @@
       "linkedCharHint": "{{count}} 次共現",
       "linkedEventHint": "第 {{chapter}} 章",
       "coOccurrenceCount": "{{count}} 次共現",
-      "occurrenceJumpTitle": "跳至閱讀頁"
+      "occurrenceJumpTitle": "跳至閱讀頁",
+      "frontMatterWarning": "這段詮釋的輸入含 {{count}} 筆前置頁文字（版權頁／書名頁）。目前重新生成不會排除它們（見 BACKLOG B-074）。",
+      "cta": {
+        "recommendedTitle": "訊號夠強 —— 值得把它寫成一段論證",
+        "recommendedDesc": "敘事負載 {{value}}（全書第 {{rank}} 名）。詮釋會把上面六個訊號寫成主題命題與佐證綜述，並進入 HITL 審核。",
+        "recommendedButton": "生成詮釋",
+        "availableTitle": "可生成詮釋，但先讀上面的行為摘要",
+        "availableDesc": "敘事負載 {{value}}。行為摘要已回答「它在幹嘛」；詮釋補的是「它承載什麼意義」，需消耗 token。",
+        "availableButton": "生成詮釋",
+        "discouragedTitle": "證據不足，先不建議生成",
+        "discouragedDesc": "敘事負載 {{value}}。這個意象的分布、依附與結盟都太薄，LLM 只能複述引文。建議先看行為分群裡同型的意象。",
+        "discouragedButton": "仍要生成",
+        "weakTitle": "訊號偏弱，生成結果可能只是複述引文",
+        "frontWarn": "注意：{{count}} 筆前置頁文字也會作為證據送入。"
+      }
     },
     "generating": {
       "eyebrow": "LLM 詮釋進行中",

@@ -16,6 +16,8 @@ interface ResolvedItem {
 interface Props {
   entity: ImageryEntity;
   interpretation: SymbolInterpretation;
+  /** Front-matter occurrences that went into this interpretation's evidence. */
+  frontCount: number;
   resolvedCharacters: ResolvedItem[];
   resolvedEvents: ResolvedItem[];
   pending: boolean;
@@ -29,6 +31,7 @@ interface Props {
 export function InterpretationHero({
   entity,
   interpretation,
+  frontCount,
   resolvedCharacters,
   resolvedEvents,
   pending,
@@ -202,6 +205,22 @@ export function InterpretationHero({
           </>
         )}
       </div>
+
+      {frontCount > 0 && (
+        /*
+         * States what went in, not what a regeneration would leave out.
+         *
+         * The design promised 「重新生成時將排除前置頁」. It does not: `assemble_sep`
+         * collects every occurrence with no segment filter, and the prompt takes
+         * the first 20 ordered by chapter — so front matter is the *first*
+         * evidence the model sees. Printing the promise would make this card lie
+         * about the thing it exists to disclose. Recorded as B-074.
+         */
+        <p className="sym-hero-warn">
+          <AlertCircle size={12} aria-hidden="true" />
+          {t('symbol.interpretation.frontMatterWarning', { count: frontCount })}
+        </p>
+      )}
     </section>
   );
 }

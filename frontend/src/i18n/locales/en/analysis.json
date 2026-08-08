@@ -1327,7 +1327,21 @@
       "linkedCharHint": "{{count}} co-occurrences",
       "linkedEventHint": "Ch. {{chapter}}",
       "coOccurrenceCount": "{{count}} co-occurrences",
-      "occurrenceJumpTitle": "Jump to reader"
+      "occurrenceJumpTitle": "Jump to reader",
+      "frontMatterWarning": "This interpretation was built from evidence including {{count}} front-matter passages (colophon / title page). Regenerating does not currently exclude them (see BACKLOG B-074).",
+      "cta": {
+        "recommendedTitle": "Strong enough signals — worth writing up as an argument",
+        "recommendedDesc": "Narrative load {{value}} (#{{rank}} in the book). Interpretation turns the six signals above into a thematic proposition and an evidence synthesis, then enters HITL review.",
+        "recommendedButton": "Interpret",
+        "availableTitle": "You can interpret this, but read the summary above first",
+        "availableDesc": "Narrative load {{value}}. The summary already answers what it does; interpretation adds what it means, and costs tokens.",
+        "availableButton": "Interpret",
+        "discouragedTitle": "Thin evidence — not recommended yet",
+        "discouragedDesc": "Narrative load {{value}}. Its distribution, attachment and allies are all thin, so the model can only paraphrase the quotes. Try a symbol from the same behaviour group instead.",
+        "discouragedButton": "Interpret anyway",
+        "weakTitle": "Weak signals — the result may only paraphrase the quotes",
+        "frontWarn": "Note: {{count}} front-matter passages will also be sent as evidence."
+      }
     },
     "generating": {
       "eyebrow": "Interpreting symbol",

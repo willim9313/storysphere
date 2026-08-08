@@ -1,7 +1,7 @@
 # StorySphere — 開發 Backlog
 
 **用途**: 記錄已識別但尚未排入 Phase 的開發項目
-**更新日期**: 2026-08-07
+**更新日期**: 2026-08-08
 
 > 已完成項目歸檔於 [BACKLOG_ARCHIVE.md](BACKLOG_ARCHIVE.md)
 
@@ -33,6 +33,30 @@ Symbol interpretation parse failed: no_json_found
 - 檢查其他走同一個 extractor 的分析路徑是否也在靜默失敗（角色 / 事件 / 張力）—— 若是，這個優先級要再往上調
 
 **觸發時機**: 立即（詮釋功能目前不可用）。
+
+---
+
+#### B-074 SEP 把前置頁文字當證據送進 LLM
+
+**背景**: 2026-08-08 實作象徵意象頁 D4/D6 時查證。設計稿聲稱「重新生成時將排除前置頁」，但後端沒有這件事：
+
+- `symbol_service.assemble_sep()` 的 `occurrence_contexts` 收**全部**出現，沒有任何 segment 過濾（`symbol_service.py:334-346`）
+- `symbol_analysis_service._build_prompt()` 取 `sep.occurrence_contexts[:20]`，而 occurrences 是 `ORDER BY chapter_number ASC`（`symbol_service.py:205`）
+
+兩者相乘的結果：**前置頁是 LLM 最先看到的證據**。以《名字的潮汐》的「海」為例，13 筆出現有 5 筆在版權頁與書名頁（含 ISBN、印刷廠、譯者列表），這 5 筆排在 `[1]`–`[5]`，正文只從 `[6]` 開始。
+
+**影響範圍**: 所有已生成的象徵詮釋，其證據綜述可能混入版權頁文字。「海」現有的詮釋就是在這個條件下生成的。前端的可信度扣分（`trust` 乘數）只影響**排序**，不影響送進 LLM 的內容 —— 這是兩件不同的事，之前被混為一談。
+
+**前端已做的處置**: `InterpretationCta` 與 `InterpretationHero` 在 `front > 0` 時顯示警告，說明前置頁文字**會**作為證據送入、且重新生成不會排除。刻意不印設計稿那句承諾。
+
+**待辦內容**:
+- `assemble_sep()` 依 `ChapterRole` 過濾 `occurrence_contexts`（前置頁排除、後記保留 —— 與 `trust` 的判準一致）
+- 決定 SEP 回應要不要保留被排除的筆數（前端要顯示「已排除 N 筆」就需要）
+- 改動會使既有 `sep:{book}:{imagery}` 快取失效，需在 `cache_invalidation.py` 處理
+- 既有詮釋要不要標記為「以受污染證據生成」或直接失效重生，需決策
+- 修好後把前端警告文案改成陳述已排除
+
+**觸發時機**: B-073 修好、詮釋能正常產出之後 —— 否則無法驗證改動效果。
 
 ---
 
@@ -986,6 +1010,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-064 | 未分析卡「生成分析」按鈕文字對齊 canvas「建立」 | 🟢 低 | 待開始（觸發：下次動到角色清單卡片） |
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |
 | B-073 | 象徵詮釋 LLM 輸出解析失敗（no_json_found） | 🔴 高 | 待開始（2026-08-07 象徵頁驗證時實測；非該輪造成） |
+| B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 待開始（2026-08-08 實作 D4/D6 時查證；前端已加警告，後端未修） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | 待開始（觸發：動到 upload / event analysis 時順修） |
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | 待開始（觸發：需用 mock 展示時間軸頁時） |
 | B-068 | 事件抽取把同一場戲切成多個 event | 🟡 中 | 待開始（觸發：下次動到 ingestion / event extraction） |

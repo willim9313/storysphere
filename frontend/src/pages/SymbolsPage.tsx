@@ -293,6 +293,7 @@ export default function SymbolsPage() {
         key={interpretation.id ?? interpretation.imagery_id}
         entity={selected!}
         interpretation={interpretation}
+        frontCount={selectedSignals?.distribution.front ?? 0}
         resolvedCharacters={resolvedCharacters}
         resolvedEvents={resolvedEvents}
         pending={reviewMutation.isPending}
@@ -304,13 +305,15 @@ export default function SymbolsPage() {
       />
     );
   } else {
-    interpretationBlock = (
+    interpretationBlock = selectedSignals ? (
       <InterpretationCta
+        signals={selectedSignals}
+        rank={selectedRank}
         onGenerate={() => handleGenerate(false)}
         pending={interpretationTask.running}
         error={interpretationTask.error}
       />
-    );
+    ) : null;
   }
 
   let detailBody: React.ReactNode;
