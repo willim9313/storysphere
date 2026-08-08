@@ -106,11 +106,3 @@ export function densityStep(count: number): string {
 export function densityLegendSteps(renderedMax: number): number[] {
   return [1, 2, 3].filter((step) => step <= Math.max(1, renderedMax));
 }
-
-export function densityToken(cnt: number, max: number): string {
-  if (cnt === 0) return 'var(--bg-tertiary)';
-  const ratio = cnt / max;
-  if (ratio >= 0.75) return 'var(--symbol-density-high)';
-  if (ratio >= 0.35) return 'var(--symbol-density-mid)';
-  return 'var(--symbol-density-low)';
-}
