@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next';
 
 import { densityStep } from './tokens';
-import { hasDistinctPeak, type ChapterAxis } from './chapterAxis';
+import { hasDistinctPeak, type ChapterAxis, type ChapterAxisSlot } from './chapterAxis';
+import { segmentLabel } from './symbolPhrases';
 import type { SymbolSignals } from './symbolSignals';
 
 /** Front and back matter read as narrower columns than the story itself. */
@@ -89,7 +90,7 @@ export function ChapterDistChart({ signals, axis, scale }: Readonly<Props>) {
               className={'sym-dist-label' + (isBody ? '' : ' is-outside')}
               style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
             >
-              {isBody ? slot.chapter : slotLabel(t, slot)}
+              {isBody ? slot.chapter : segmentLabel(t, slot)}
             </span>
           );
         })}
@@ -100,21 +101,9 @@ export function ChapterDistChart({ signals, axis, scale }: Readonly<Props>) {
 
 type T = ReturnType<typeof useTranslation<'analysis'>>['t'];
 
-/**
- * A short label for a non-body slot, from the role the book declared.
- *
- * Falling back to the segment gives two adjacent columns both labelled 「前」 when a
- * book has both a colophon and a contents page, which is the ambiguity the label
- * exists to remove.
- */
-function slotLabel(t: T, slot: ChapterAxis['slots'][number]): string {
-  const key = slot.role && slot.role !== 'other' ? slot.role : slot.segment;
-  return t(`symbol.dist.label.${key}`, { defaultValue: t(`symbol.dist.label.${slot.segment}`) });
-}
-
 /** Hover text naming the slot in the reader's terms, not the raw chapter number. */
-function slotTitle(t: T, slot: ChapterAxis['slots'][number], count: number): string {
+function slotTitle(t: T, slot: ChapterAxisSlot, count: number): string {
   const where =
-    slot.segment === 'body' ? t('symbol.chapterN', { n: slot.chapter }) : slotLabel(t, slot);
+    slot.segment === 'body' ? t('symbol.chapterN', { n: slot.chapter }) : segmentLabel(t, slot);
   return `${where} · ${t('symbol.chapterOccurrences', { count })}`;
 }

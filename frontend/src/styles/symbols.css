@@ -1196,6 +1196,61 @@
   height: 1px;
   background: var(--border);
 }
+/* A group outside the body: still listed, visibly not part of the story. */
+.sym-occ-ch.is-outside .sym-occ-chnum {
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+.sym-occ-badge {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--status-partial-fg);
+  background: var(--status-partial-bg);
+  border: var(--line-weight) var(--border-style) var(--status-partial-border);
+  border-radius: var(--pill-radius);
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.sym-occ-row.is-outside .sym-occ-text {
+  color: var(--fg-secondary);
+}
+/* Text, not a disabled button: there is nothing to enable, and a greyed control
+   invites clicking to find out why. */
+.sym-occ-nojump {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.sym-occ-front {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.sym-occ-front-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--fg-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.sym-occ-front-toggle:hover {
+  color: var(--accent);
+}
+.sym-occ-front-desc {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin: 3px 0 0;
+}
 .sym-occ-row {
   display: grid;
   grid-template-columns: 28px 1fr auto;

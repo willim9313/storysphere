@@ -1590,6 +1590,17 @@
         "empty": "沒有與其他意象同段出現"
       },
       "leadHint": "這是進入敘事負載的那一筆 —— 依「比隨機高多少倍 × 證據筆數」取，不是依共現次數"
+    },
+    "occ": {
+      "meta": "{{count}} 筆 · 正文 {{chapters}} 章 · 前置頁 {{front}} 筆另計",
+      "outsideHeading": "{{label}}（第 {{chapter}} 章）",
+      "outsideBadge": "非正文 · 保留為證據 · 不可跳閱讀頁",
+      "noJump": "不可跳",
+      "noJumpTitle": "閱讀頁只收錄正文章節，這一段沒有可開啟的頁面",
+      "frontShow": "顯示前置頁 {{count}} 筆",
+      "frontHide": "隱藏前置頁 {{count}} 筆",
+      "frontDesc": "版權頁與書名頁 · 純雜訊，不進詮釋輸入、不可跳閱讀頁",
+      "metaClean": "{{count}} 筆 · 正文 {{chapters}} 章"
     }
   },
   "narrative": {

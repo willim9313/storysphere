@@ -372,13 +372,16 @@ export default function SymbolsPage() {
           />
         )}
 
-        <OccurrencesTimeline
-          timeline={timeline}
-          loading={timelineLoading}
-          term={selected.term}
-          aliases={selected.aliases}
-          bookId={bookId!}
-        />
+        {analysis && (
+          <OccurrencesTimeline
+            timeline={timeline}
+            loading={timelineLoading}
+            term={selected.term}
+            aliases={selected.aliases}
+            bookId={bookId!}
+            axis={analysis.axis}
+          />
+        )}
       </>
     );
   }

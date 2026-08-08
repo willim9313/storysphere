@@ -10,7 +10,24 @@
 
 import type { TFunction } from 'i18next';
 
+import type { ChapterAxisSlot } from './chapterAxis';
 import type { SymbolSignals } from './symbolSignals';
+
+/**
+ * A short name for a non-body slot, from the role the book declared.
+ *
+ * Reads `chapter_roles` rather than the chapter number: 名字的潮汐 numbers its
+ * colophon -1 and its contents 0, but that is its convention, not a rule, and
+ * falling back to the segment labels two adjacent columns 「前」 in a book that has
+ * both. Shared so the chapter chart's tick and the occurrence list's heading name
+ * the same slot the same way.
+ */
+export function segmentLabel(t: TFunction<'analysis'>, slot: ChapterAxisSlot): string {
+  const key = slot.role && slot.role !== 'other' ? slot.role : slot.segment;
+  return t(`symbol.dist.label.${key}`, {
+    defaultValue: t(`symbol.dist.label.${slot.segment}`),
+  });
+}
 
 /** Where the symbol sits in the body, e.g. 「集中在後半段（6–10 章）」. */
 export function shapeLabel(t: TFunction<'analysis'>, s: SymbolSignals): string {

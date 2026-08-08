@@ -1590,6 +1590,17 @@
         "empty": "Never shares a paragraph with another symbol"
       },
       "leadHint": "This is the one that feeds narrative load — picked by lift × evidence, not by raw count"
+    },
+    "occ": {
+      "meta": "{{count}} records · {{chapters}} body chapters · {{front}} in front matter",
+      "outsideHeading": "{{label}} (Ch. {{chapter}})",
+      "outsideBadge": "Outside the body · kept as evidence · no reader page",
+      "noJump": "no page",
+      "noJumpTitle": "The reader lists body chapters only, so this passage has no page to open",
+      "frontShow": "Show {{count}} front-matter records",
+      "frontHide": "Hide {{count}} front-matter records",
+      "frontDesc": "Colophon and title page — noise. Never sent to interpretation, and not in the reader.",
+      "metaClean": "{{count}} records · {{chapters}} body chapters"
     }
   },
   "narrative": {
