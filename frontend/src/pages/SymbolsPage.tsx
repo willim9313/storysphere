@@ -35,12 +35,12 @@ import {
 } from '@/components/symbols/hooks/useSymbolAnalysis';
 import { useSymbolBatch } from '@/components/symbols/hooks/useSymbolBatch';
 import { useSymbolCheck } from '@/components/symbols/hooks/useSymbolCheck';
+import { useSymbolUrlState } from '@/components/symbols/hooks/useSymbolUrlState';
 import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
 import { ClusterView } from '@/components/symbols/ClusterView';
 import { findClusters } from '@/components/symbols/symbolClusters';
 import type {
   DistributionShape,
-  SortAxis,
   SymbolSignals,
 } from '@/components/symbols/symbolSignals';
 import {
@@ -86,27 +86,35 @@ export default function SymbolsPage() {
     return () => setPageContext({ page: 'other' });
   }, [book, bookId, setPageContext]);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState<string | null>(null);
-  // Narrative load, not frequency: on real books frequency ranks most of the
-  // list identically, so it is offered as a cross-check rather than the default.
-  const [sortAxis, setSortAxis] = useState<SortAxis>('load');
+  /*
+   * Which view is open, how the list is sorted, and which type is filtered all
+   * live in the query string — see `useSymbolUrlState`. Selecting a symbol and
+   * opening a cluster are mutually exclusive there, so the breadcrumb can always
+   * say where the reader is.
+   */
+  const {
+    symbolId: selectedId,
+    clusterSeedId,
+    sortAxis,
+    typeFilter,
+    openSymbol,
+    openCluster: openClusterUrl,
+    setSortAxis,
+    setTypeFilter,
+  } = useSymbolUrlState();
+
   const [search, setSearch] = useState('');
-  // Screen-local: a behaviour group is a way of looking, not a place to link to
-  // (redesign decision 05). Cleared whenever the map is returned to.
+  // Screen-local, unlike the four above: a behaviour group is a way of looking,
+  // not a place to link to (redesign decision 05). Cleared whenever the map is
+  // returned to.
   const [shapeFilter, setShapeFilter] = useState<DistributionShape | null>(null);
-  // The third view. Mutually exclusive with a selected symbol: both occupy the
-  // main column, and holding one while showing the other means the breadcrumb
-  // cannot say where the reader is.
-  const [clusterSeedId, setClusterSeedId] = useState<string | null>(null);
 
   const { analysis, isLoading: listLoading } = useSymbolAnalysis(bookId);
   const batch = useSymbolBatch(bookId, t('symbol.overview.batch.failed'));
   const check = useSymbolCheck(analysis);
 
   const handleSelect = (id: string | null) => {
-    setSelectedId(id);
-    setClusterSeedId(null);
+    openSymbol(id);
     // Returning to the map drops the behaviour filter, which was set on the map.
     if (id === null) setShapeFilter(null);
     // Opening a symbol takes the batch controls off screen with the map, so picks
@@ -116,10 +124,9 @@ export default function SymbolsPage() {
   };
 
   const openCluster = (seedId: string) => {
-    setSelectedId(null);
     setShapeFilter(null);
     check.exit();
-    setClusterSeedId(seedId);
+    openClusterUrl(seedId);
   };
 
   const cluster = useMemo(() => {
@@ -347,7 +354,7 @@ export default function SymbolsPage() {
       <ClusterView
         cluster={cluster}
         axis={analysis.axis}
-        onBack={() => setClusterSeedId(null)}
+        onBack={() => handleSelect(null)}
         onSelect={handleSelect}
       />
     );
@@ -400,7 +407,7 @@ export default function SymbolsPage() {
           <CoOccurrencePanel
             bookId={bookId!}
             signals={selectedSignals}
-            onSelectCo={setSelectedId}
+            onSelectCo={handleSelect}
           />
         )}
 
