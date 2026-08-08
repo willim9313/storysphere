@@ -22,7 +22,7 @@ import {
 
 import { fetchEntityById, fetchEventDetail } from '@/api/graph';
 import { SymbolList } from '@/components/symbols/SymbolList';
-import { TypePill } from '@/components/symbols/Badges';
+import { SymbolDetailHead } from '@/components/symbols/SymbolDetailHead';
 import { InterpretationCta } from '@/components/symbols/InterpretationCta';
 import { InterpretationGenerating } from '@/components/symbols/InterpretationGenerating';
 import { InterpretationHero } from '@/components/symbols/InterpretationHero';
@@ -260,6 +260,19 @@ export default function SymbolsPage() {
 
   // ── Computed ─────────────────────────────────────────────────
   const selected = entities.find((e) => e.id === selectedId) ?? null;
+  /**
+   * The selected symbol's signals, and where it places among the ranked ones.
+   *
+   * `analysis.main` is already in load order, so the rank is its index. A tail
+   * word has no rank: it is not in `main` because it has nothing to rank on, and
+   * `indexOf` returning -1 has to become null rather than a 0th place.
+   */
+  const selectedSignals = analysis?.all.find((s) => s.id === selectedId) ?? null;
+  const selectedRank = useMemo(() => {
+    if (!analysis || !selectedId) return null;
+    const i = analysis.main.findIndex((s) => s.id === selectedId);
+    return i === -1 ? null : i + 1;
+  }, [analysis, selectedId]);
   // Shared axis edge for every chart on the page. Taking book.chapterCount alone
   // hid occurrences recorded past it (名字的潮汐 has symbols in chapter 11 with a
   // chapterCount of 10); bodyChapterMax widens the axis to fit the data.
@@ -332,25 +345,13 @@ export default function SymbolsPage() {
   } else {
     detailBody = (
       <>
-        <header className="sym-detail-head">
-          <div className="sym-detail-title-row">
-            <h1 className="sym-detail-title">{selected.term}</h1>
-            <TypePill type={selected.imagery_type} />
-            <span className="sym-detail-freq">
-              {t('symbol.frequency', { count: selected.frequency })}
-            </span>
-          </div>
-          {selected.aliases.length > 0 && (
-            <div className="sym-detail-aliases">
-              <span className="sym-aliases-label">{t('symbol.aliases')}</span>
-              {selected.aliases.map((a) => (
-                <span key={a} className="sym-alias-pill">
-                  {a}
-                </span>
-              ))}
-            </div>
-          )}
-        </header>
+        {selectedSignals && (
+          <SymbolDetailHead
+            signals={selectedSignals}
+            rank={selectedRank}
+            onBack={() => handleSelect(null)}
+          />
+        )}
 
         {interpretationBlock}
 

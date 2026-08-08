@@ -1500,6 +1500,14 @@
         "checked": "Interpret picked ({{count}})",
         "confirmChecked": "This will interpret the {{count}} symbols you picked. Each one spends tokens and enters HITL review. Continue?"
       }
+    },
+    "detail": {
+      "backToMap": "Symbol map",
+      "rank": "Load {{value}} · #{{rank}} in the book",
+      "occBody": "{{count}} in the body",
+      "occFront": "{{count}} in front matter",
+      "occBack": "{{count}} in back matter",
+      "occSeparator": " · "
     }
   },
   "narrative": {

@@ -325,11 +325,45 @@
   padding-bottom: 14px;
   border-bottom: var(--line-weight) var(--border-style) var(--border);
 }
+.sym-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.sym-crumb-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font: inherit;
+  color: var(--fg-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.sym-crumb-back:hover {
+  color: var(--accent);
+}
+.sym-crumb-sep {
+  color: var(--fg-muted);
+}
+.sym-crumb-here {
+  color: var(--fg-muted);
+}
+
 .sym-detail-title-row {
   display: flex;
   align-items: baseline;
   gap: 12px;
   flex-wrap: wrap;
+}
+.sym-detail-rank {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
 }
 .sym-detail-title {
   font-family: var(--font-serif);

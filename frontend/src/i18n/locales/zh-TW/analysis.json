@@ -1500,6 +1500,14 @@
         "checked": "生成已勾選（{{count}}）",
         "confirmChecked": "將對勾選的 {{count}} 個意象生成 LLM 詮釋。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？"
       }
+    },
+    "detail": {
+      "backToMap": "全書意象地圖",
+      "rank": "敘事負載 {{value}} · 全書第 {{rank}} 名",
+      "occBody": "正文 {{count}}",
+      "occFront": "前置 {{count}}",
+      "occBack": "後記 {{count}}",
+      "occSeparator": " · "
     }
   },
   "narrative": {
