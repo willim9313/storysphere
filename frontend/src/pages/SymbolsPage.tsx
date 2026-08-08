@@ -97,6 +97,8 @@ export default function SymbolsPage() {
     clusterSeedId,
     sortAxis,
     typeFilter,
+    pinnedId,
+    setPinned,
     openSymbol,
     openCluster: openClusterUrl,
     setSortAxis,
@@ -133,6 +135,9 @@ export default function SymbolsPage() {
     if (!analysis || !clusterSeedId) return null;
     return findClusters(analysis).find((c) => c.seed.id === clusterSeedId) ?? null;
   }, [analysis, clusterSeedId]);
+
+  /** The pinned symbol, dropped silently if the id no longer resolves. */
+  const pinnedSignals = analysis?.all.find((sig) => sig.id === pinnedId) ?? null;
 
   const entities: ImageryEntity[] = useMemo(
     () => (analysis?.all ?? []).map((s) => toImageryEntity(s.item)),
@@ -383,6 +388,10 @@ export default function SymbolsPage() {
             signals={selectedSignals}
             rank={selectedRank}
             onBack={() => handleSelect(null)}
+            pinned={
+              pinnedSignals ? { id: pinnedSignals.id, term: pinnedSignals.term } : null
+            }
+            setPinned={setPinned}
           />
         )}
 
@@ -400,7 +409,13 @@ export default function SymbolsPage() {
         {interpretationBlock}
 
         {selectedSignals && analysis && (
-          <ChapterCard signals={selectedSignals} axis={analysis.axis} />
+          <ChapterCard
+            signals={selectedSignals}
+            axis={analysis.axis}
+            // Nothing to compare a symbol against itself, so the row is dropped
+            // rather than drawn twice.
+            pinned={pinnedSignals?.id === selectedSignals.id ? null : pinnedSignals}
+          />
         )}
 
         {selectedSignals && (
@@ -457,7 +472,8 @@ export default function SymbolsPage() {
 function ChapterCard({
   signals,
   axis,
-}: Readonly<{ signals: SymbolSignals; axis: ChapterAxis }>) {
+  pinned,
+}: Readonly<{ signals: SymbolSignals; axis: ChapterAxis; pinned: SymbolSignals | null }>) {
   const { t } = useTranslation('analysis');
   const { firstBodyChapter: first, peakBodyChapters: peaks, front } = signals.distribution;
   // One source for the bar scale: the caption states it and the legend derives its
@@ -483,7 +499,12 @@ function ChapterCard({
         <span className="sym-card-meta">{meta.join(' · ')}</span>
       </div>
       <div className="sym-card-body" style={{ overflowX: 'auto' }}>
-        <ChapterDistChart signals={signals} axis={axis} scale={scale} />
+        <ChapterDistChart signals={signals} axis={axis} scale={scale} pinned={pinned} />
+        {pinned !== null && (
+          <p className="sym-dist-pin-note">
+            {t('symbol.pin.note', { term: pinned.term })}
+          </p>
+        )}
         <div className="sym-dist-legend">
           {[1, 2, 3]
             .filter((step) => step <= scale)

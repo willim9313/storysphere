@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
-import { densityStep } from './tokens';
+import { densityStep, typeStyle } from './tokens';
 import {
   OUTSIDE_CELL_FLEX,
   hasDistinctPeak,
@@ -12,6 +12,8 @@ import type { SymbolSignals } from './symbolSignals';
 
 /** Tallest a bar can draw, in px. */
 const MAX_BAR_H = 72;
+/** The pinned symbol's row, drawn shorter so the open symbol stays the subject. */
+const PIN_BAR_H = 36;
 /** An occupied chapter is never invisible, however small its share. */
 const MIN_BAR_H = 3;
 
@@ -20,6 +22,11 @@ interface Props {
   axis: ChapterAxis;
   /** Count a full-height bar represents. Must come from `barScale`. */
   scale: number;
+  /**
+   * A second symbol drawn beneath, for comparison. Null when nothing is pinned or
+   * when the pinned symbol is the one already shown.
+   */
+  pinned: SymbolSignals | null;
 }
 
 /**
@@ -37,7 +44,7 @@ interface Props {
  * normalisation PR #27 removed from the heatmap for making the book's dominant
  * image the palest thing on screen.
  */
-export function ChapterDistChart({ signals, axis, scale }: Readonly<Props>) {
+export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const distribution = signals.item.chapter_distribution ?? {};
   // No markers when nothing stands out — see `hasDistinctPeak`.
@@ -82,6 +89,41 @@ export function ChapterDistChart({ signals, axis, scale }: Readonly<Props>) {
           );
         })}
       </div>
+
+      {pinned !== null && (
+        <div className="sym-dist-pin">
+          <div className="sym-dist-plot is-pin">
+            {axis.slots.map((slot) => {
+              const count = (pinned.item.chapter_distribution ?? {})[String(slot.chapter)] ?? 0;
+              const isBody = slot.segment === 'body';
+              return (
+                <div
+                  key={slot.chapter}
+                  className="sym-dist-col"
+                  style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
+                  title={slotTitle(t, slot, count)}
+                >
+                  <span
+                    className="sym-dist-bar"
+                    style={{
+                      height:
+                        count > 0
+                          ? `${Math.max(MIN_BAR_H, (count / scale) * PIN_BAR_H)}px`
+                          : '2px',
+                      // The pinned row is drawn in its own type colour rather than
+                      // the shared density scale: two rows of the same browns would
+                      // read as one chart with a gap in it.
+                      background:
+                        count > 0 ? typeStyle(pinned.imageryType).dot : 'var(--bg-tertiary)',
+                      opacity: isBody ? undefined : 0.45,
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="sym-dist-labels">
         {axis.slots.map((slot) => {

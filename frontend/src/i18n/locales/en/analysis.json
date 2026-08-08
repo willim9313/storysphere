@@ -1629,6 +1629,13 @@
       "hot": "Shared landing point: Ch. {{chapters}} — {{count}} of {{total}} members appear there at once",
       "hotNone": "The members share no body chapter, so this group carries separately rather than together",
       "boundary": "Scope: this is not a small knowledge graph. Rows are symbols, columns are chapters, shade is occurrence count — it answers what these symbols carry between them. Who is related to whom stays on the knowledge graph page."
+    },
+    "pin": {
+      "set": "Pin for comparison",
+      "clearSelf": "Unpin",
+      "clearOther": "Comparing: {{term}}",
+      "clearTitle": "Drop the comparison and remove the lower row",
+      "note": "Lower row = pinned “{{term}}”, on the same axis and the same scale. Drawn in its type colour so it is not read as part of the density scale above."
     }
   },
   "narrative": {

@@ -2326,3 +2326,47 @@
   border-radius: var(--radius-md);
   margin: 0;
 }
+
+/* ── Pin for comparison (D1 + D7) ────────────────────────── */
+.sym-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 9px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 500;
+  color: var(--fg-secondary);
+  background: transparent;
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--pill-radius);
+  cursor: pointer;
+}
+.sym-pin-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sym-pin-btn.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+}
+
+/* The pinned row hangs below the main plot, separated by a rule so the two are
+   read as two symbols rather than one chart with a gap. */
+.sym-dist-pin {
+  border-top: var(--line-weight) var(--border-style) var(--border);
+  margin-top: 3px;
+  padding-top: 3px;
+}
+.sym-dist-plot.is-pin {
+  height: 40px;
+}
+.sym-dist-pin-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.55;
+  color: var(--fg-muted);
+  margin: 8px 0 0;
+}

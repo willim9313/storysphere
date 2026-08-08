@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Pin, PinOff } from 'lucide-react';
 
 import { TypePill } from './Badges';
 import type { SymbolSignals } from './symbolSignals';
@@ -18,6 +18,9 @@ interface Props {
    */
   rank: number | null;
   onBack: () => void;
+  /** The symbol currently held for comparison, if any. */
+  pinned: { id: string; term: string } | null;
+  setPinned: (id: string | null) => void;
 }
 
 /**
@@ -41,7 +44,54 @@ function occurrenceLine(
   return parts.join(t('symbol.detail.occSeparator'));
 }
 
-export function SymbolDetailHead({ signals, rank, onBack }: Readonly<Props>) {
+/**
+ * Hold one symbol's distribution on screen while reading another's.
+ *
+ * Three states rather than a toggle, because "pinned" and "pinned to something
+ * else" are different situations for the reader: with 手 pinned and 海 open, the
+ * useful action is to drop the comparison, not to replace it — replacing means
+ * navigating to the other symbol anyway, where its own button says 「取消並看」.
+ */
+function PinControl({
+  signals,
+  pinned,
+  setPinned,
+}: Readonly<{
+  signals: SymbolSignals;
+  pinned: { id: string; term: string } | null;
+  setPinned: (id: string | null) => void;
+}>) {
+  const { t } = useTranslation('analysis');
+
+  if (pinned === null) {
+    return (
+      <button type="button" className="sym-pin-btn" onClick={() => setPinned(signals.id)}>
+        <Pin size={11} aria-hidden="true" />
+        {t('symbol.pin.set')}
+      </button>
+    );
+  }
+  const isSelf = pinned.id === signals.id;
+  return (
+    <button
+      type="button"
+      className="sym-pin-btn is-active"
+      onClick={() => setPinned(null)}
+      title={t('symbol.pin.clearTitle')}
+    >
+      <PinOff size={11} aria-hidden="true" />
+      {isSelf ? t('symbol.pin.clearSelf') : t('symbol.pin.clearOther', { term: pinned.term })}
+    </button>
+  );
+}
+
+export function SymbolDetailHead({
+  signals,
+  rank,
+  onBack,
+  pinned,
+  setPinned,
+}: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const noisy = signals.trust < TRUST_FLOOR;
 
@@ -59,6 +109,7 @@ export function SymbolDetailHead({ signals, rank, onBack }: Readonly<Props>) {
           /
         </span>
         <span className="sym-crumb-here">{signals.term}</span>
+        <PinControl signals={signals} pinned={pinned} setPinned={setPinned} />
       </nav>
 
       <div className="sym-detail-title-row">

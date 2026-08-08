@@ -21,6 +21,15 @@ export interface SymbolUrlState {
   clusterSeedId: string | null;
   sortAxis: SortAxis;
   typeFilter: string | null;
+  /**
+   * Imagery id held for side-by-side comparison, or null.
+   *
+   * Survives navigating between symbols on purpose — that is the whole feature.
+   * It is in the URL because a comparison is exactly the kind of thing worth
+   * sending someone: 「開這個連結，看手和海疊在同一條軸上」.
+   */
+  pinnedId: string | null;
+  setPinned: (id: string | null) => void;
   openSymbol: (id: string | null) => void;
   openCluster: (seedId: string) => void;
   setSortAxis: (axis: SortAxis) => void;
@@ -107,6 +116,17 @@ export function useSymbolUrlState(): SymbolUrlState {
     [update],
   );
 
+  const setPinned = useCallback(
+    (id: string | null) => {
+      // Not a navigation: the reader stays where they are and a second row appears.
+      update((next) => {
+        if (id === null) next.delete('pin');
+        else next.set('pin', id);
+      }, false);
+    },
+    [update],
+  );
+
   const setTypeFilter = useCallback(
     (type: string | null) => {
       update((next) => {
@@ -122,6 +142,8 @@ export function useSymbolUrlState(): SymbolUrlState {
     clusterSeedId,
     sortAxis,
     typeFilter: params.get('type'),
+    pinnedId: params.get('pin'),
+    setPinned,
     openSymbol,
     openCluster,
     setSortAxis,
