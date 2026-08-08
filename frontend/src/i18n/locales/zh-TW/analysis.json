@@ -1615,6 +1615,20 @@
       "frontHide": "隱藏前置頁 {{count}} 筆",
       "frontDesc": "版權頁與書名頁 · 純雜訊，不進詮釋輸入、不可跳閱讀頁",
       "metaClean": "{{count}} 筆 · 正文 {{chapters}} 章"
+    },
+    "cluster": {
+      "crumb": "意象叢",
+      "cardTitle": "意象叢",
+      "cardMeta": "共現 {{min}} 次以上才算結盟",
+      "title": "{{term}}叢",
+      "method": "以「{{term}}」為核心，收共現 {{min}} 次以上的意象，共 {{count}} 個成員",
+      "gridTitle": "同軸並看",
+      "gridMeta": "{{count}} 個成員",
+      "seed": "核心",
+      "withSeed": "共現 {{count}} 次",
+      "hot": "共同落點：第 {{chapters}} 章 —— {{count}}／{{total}} 個成員同時出現",
+      "hotNone": "成員沒有共同的正文落點，這叢意象是各自分開承載的",
+      "boundary": "邊界說明：這裡不做小型知識圖譜。列是意象、欄是章節、色階是出現次數 —— 回答「這些意象一起承載了什麼」。「誰跟誰有關係」仍然是知識圖譜頁的事。"
     }
   },
   "narrative": {

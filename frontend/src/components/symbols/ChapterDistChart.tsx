@@ -1,12 +1,14 @@
 import { useTranslation } from 'react-i18next';
 
 import { densityStep } from './tokens';
-import { hasDistinctPeak, type ChapterAxis, type ChapterAxisSlot } from './chapterAxis';
+import {
+  OUTSIDE_CELL_FLEX,
+  hasDistinctPeak,
+  type ChapterAxis,
+  type ChapterAxisSlot,
+} from './chapterAxis';
 import { segmentLabel } from './symbolPhrases';
 import type { SymbolSignals } from './symbolSignals';
-
-/** Front and back matter read as narrower columns than the story itself. */
-const OUTSIDE_CELL_FLEX = 0.7;
 
 /** Tallest a bar can draw, in px. */
 const MAX_BAR_H = 72;

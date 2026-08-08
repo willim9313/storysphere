@@ -1615,6 +1615,20 @@
       "frontHide": "Hide {{count}} front-matter records",
       "frontDesc": "Colophon and title page — noise. Never sent to interpretation, and not in the reader.",
       "metaClean": "{{count}} records · {{chapters}} body chapters"
+    },
+    "cluster": {
+      "crumb": "Cluster",
+      "cardTitle": "Symbol clusters",
+      "cardMeta": "An alliance needs {{min}} shared paragraphs",
+      "title": "The {{term}} cluster",
+      "method": "Centred on “{{term}}”, taking symbols that share at least {{min}} paragraphs with it — {{count}} members",
+      "gridTitle": "On one axis",
+      "gridMeta": "{{count}} members",
+      "seed": "centre",
+      "withSeed": "{{count}} shared",
+      "hot": "Shared landing point: Ch. {{chapters}} — {{count}} of {{total}} members appear there at once",
+      "hotNone": "The members share no body chapter, so this group carries separately rather than together",
+      "boundary": "Scope: this is not a small knowledge graph. Rows are symbols, columns are chapters, shade is occurrence count — it answers what these symbols carry between them. Who is related to whom stays on the knowledge graph page."
     }
   },
   "narrative": {

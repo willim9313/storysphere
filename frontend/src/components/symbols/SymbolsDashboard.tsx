@@ -2,12 +2,13 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckSquare, Sparkles } from 'lucide-react';
 import type { TFunction } from 'i18next';
-import type { ChapterAxis, ChapterSegment } from './chapterAxis';
+import { AxisHeader, ChapterCells } from './ChapterGrid';
 import { TypePill } from './Badges';
 import { densityLegendSteps, densityStep, typeStyle } from './tokens';
 import { behaviourLine } from './symbolPhrases';
 import type { SymbolBatch } from './hooks/useSymbolBatch';
 import type { SymbolCheck } from './hooks/useSymbolCheck';
+import { ALLY_MIN_COUNT, findClusters } from './symbolClusters';
 import {
   interpretationAdvice,
   rankSymbols,
@@ -16,9 +17,6 @@ import {
   type SymbolAnalysis,
   type SymbolSignals,
 } from './symbolSignals';
-
-/** Front and back matter read as narrower columns than the story itself. */
-const OUTSIDE_CELL_FLEX = 0.7;
 
 /** Below this, a symbol's evidence is partly front matter and is flagged as such. */
 const TRUST_FLOOR = 0.8;
@@ -32,6 +30,8 @@ type Props = {
   shapeFilter: DistributionShape | null;
   setShapeFilter: (v: DistributionShape | null) => void;
   onSelect: (id: string) => void;
+  /** Opens the cluster view for a seed symbol. */
+  onOpenCluster: (seedId: string) => void;
 };
 
 /** Order groups by how much of a claim they make, not alphabetically. */
@@ -362,37 +362,6 @@ function PickCard({
   );
 }
 
-/** Consecutive slots of the same segment, so the axis can be labelled in three parts. */
-function axisRuns(axis: ChapterAxis) {
-  const runs: Array<{ segment: ChapterSegment; slots: number[]; flex: number }> = [];
-  for (const slot of axis.slots) {
-    const last = runs.at(-1);
-    const flex = slot.segment === 'body' ? 1 : OUTSIDE_CELL_FLEX;
-    if (last?.segment === slot.segment) {
-      last.slots.push(slot.chapter);
-      last.flex += flex;
-    } else {
-      runs.push({ segment: slot.segment, slots: [slot.chapter], flex });
-    }
-  }
-  return runs;
-}
-
-function axisRunLabel(
-  t: TFunction<'analysis'>,
-  run: { segment: ChapterSegment; slots: number[] },
-): string {
-  if (run.segment === 'body') {
-    return t('symbol.overview.heat.axisBody', {
-      first: run.slots[0],
-      last: run.slots.at(-1),
-    });
-  }
-  return run.segment === 'front'
-    ? t('symbol.overview.heat.axisFront')
-    : t('symbol.overview.heat.axisBack');
-}
-
 /**
  * Every ranked symbol against the same chapter axis.
  *
@@ -412,8 +381,6 @@ function DensityHeatmap({
   if (!analysis || rows.length === 0) return null;
 
   const { axis } = analysis;
-  const runs = axisRuns(axis);
-  const bodyRun = runs.find((r) => r.segment === 'body');
   const renderedMax = rows.reduce(
     (max, s) => Math.max(max, ...Object.values(s.item.chapter_distribution ?? {}), 0),
     1,
@@ -438,15 +405,7 @@ function DensityHeatmap({
       <div className="sym-heat">
         <div className="sym-heat-axis">
           <span className="sym-heat-name" />
-          {runs.map((run) => (
-            <span
-              key={run.segment + run.slots[0]}
-              className={'sym-heat-axis-run' + (run.segment === 'body' ? ' is-body' : '')}
-              style={{ flex: run.flex }}
-            >
-              {axisRunLabel(t, run)}
-            </span>
-          ))}
+          <AxisHeader axis={axis} />
           <span className="sym-heat-metric" />
         </div>
 
@@ -461,27 +420,7 @@ function DensityHeatmap({
                 />
                 {s.term}
               </span>
-              {axis.slots.map((slot) => {
-                const count = distribution[String(slot.chapter)] ?? 0;
-                const isBody = slot.segment === 'body';
-                return (
-                  <span
-                    key={slot.chapter}
-                    className="sym-heat-cell"
-                    style={{
-                      flex: isBody ? 1 : OUTSIDE_CELL_FLEX,
-                      background: count > 0 ? densityStep(count) : undefined,
-                      // A dashed edge marks evidence that sits outside the story:
-                      // kept visible, but excluded from shape and first appearance.
-                      border:
-                        count > 0 && !isBody
-                          ? '1px dashed var(--fg-muted)'
-                          : `var(--line-weight) var(--border-style) var(--bg-tertiary)`,
-                    }}
-                    title={`${t('symbol.chapterN', { n: slot.chapter })}: ${count}`}
-                  />
-                );
-              })}
+              <ChapterCells distribution={distribution} axis={axis} />
               <span className="sym-heat-metric">{s.load.toFixed(2)}</span>
             </div>
           );
@@ -502,7 +441,9 @@ function DensityHeatmap({
           {t('symbol.overview.heat.legendOutside')}
         </span>
       </div>
-      {bodyRun && <p className="sym-heat-note">{t('symbol.overview.heat.note')}</p>}
+      {axis.bodyChapterCount > 0 && (
+        <p className="sym-heat-note">{t('symbol.overview.heat.note')}</p>
+      )}
     </section>
   );
 }
@@ -580,6 +521,79 @@ function tailChapterLabel(t: TFunction<'analysis'>, s: SymbolSignals): string {
 }
 
 /**
+ * Groups of symbols that carry something together.
+ *
+ * Renders nothing when the book has no cluster, which is the common case and not
+ * an error: an alliance needs two shared paragraphs and a seed needs two such
+ * allies, so a book whose symbols merely brush past each other has none. An empty
+ * card here would imply the analysis failed.
+ */
+function ClusterCard({
+  analysis,
+  onOpenCluster,
+}: Readonly<{ analysis: SymbolAnalysis | null; onOpenCluster: (seedId: string) => void }>) {
+  const { t } = useTranslation('analysis');
+  const clusters = useMemo(() => (analysis ? findClusters(analysis) : []), [analysis]);
+  if (clusters.length === 0) return null;
+
+  return (
+    <section className="sym-dash-card">
+      <div className="sym-dash-card-head">
+        <span className="sym-dash-card-title">{t('symbol.cluster.cardTitle')}</span>
+        <span className="sym-dash-card-meta">
+          {t('symbol.cluster.cardMeta', { min: ALLY_MIN_COUNT })}
+        </span>
+      </div>
+      <div className="sym-cluster-list">
+        {clusters.map((cluster) => (
+          <button
+            key={cluster.seed.id}
+            type="button"
+            className="sym-cluster-entry"
+            onClick={() => onOpenCluster(cluster.seed.id)}
+          >
+            <span className="sym-cluster-entry-head">
+              <span className="sym-cluster-entry-name">
+                {t('symbol.cluster.title', { term: cluster.seed.term })}
+              </span>
+              <span className="sym-cluster-entry-n">
+                {t('symbol.cluster.gridMeta', { count: cluster.members.length })}
+              </span>
+            </span>
+            <span className="sym-cluster-pills">
+              {cluster.members.slice(1).map(({ signals, withSeed }) => {
+                const style = typeStyle(signals.imageryType);
+                return (
+                  <span
+                    key={signals.id}
+                    className="sym-cluster-pill"
+                    style={{ background: style.bg, color: style.fg, borderColor: style.dot }}
+                  >
+                    {signals.term}
+                    <span className="sym-cluster-pill-n">{withSeed}</span>
+                  </span>
+                );
+              })}
+            </span>
+            {/* The finding, not the membership: a shared landing point is the
+                reason to open the group at all. */}
+            {cluster.hotCount > 0 && (
+              <span className="sym-cluster-entry-hot">
+                {t('symbol.cluster.hot', {
+                  chapters: cluster.hotChapters.join('、'),
+                  count: cluster.hotCount,
+                  total: cluster.members.length,
+                })}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/**
  * The words that occur exactly once.
  *
  * They are the majority of what symbol discovery returns, and they have nothing
@@ -648,6 +662,7 @@ export function SymbolsDashboard({
   shapeFilter,
   setShapeFilter,
   onSelect,
+  onOpenCluster,
 }: Readonly<Props>) {
   const totalOccurrences = useMemo(
     () => (analysis?.all ?? []).reduce((sum, s) => sum + s.frequency, 0),
@@ -672,6 +687,7 @@ export function SymbolsDashboard({
           shapeFilter={shapeFilter}
           setShapeFilter={setShapeFilter}
         />
+        <ClusterCard analysis={analysis} onOpenCluster={onOpenCluster} />
         <TailCloud analysis={analysis} onSelect={onSelect} />
       </div>
     </div>

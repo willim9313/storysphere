@@ -2210,3 +2210,119 @@
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
+
+/* ── Symbol clusters (state C) ───────────────────────────── */
+.sym-cluster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sym-cluster-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.sym-cluster-entry:hover {
+  border-color: var(--accent);
+}
+.sym-cluster-entry-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.sym-cluster-entry-name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  color: var(--fg-primary);
+}
+.sym-cluster-entry-n {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  margin-left: auto;
+}
+.sym-cluster-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.sym-cluster-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: var(--line-weight) solid transparent;
+  border-radius: var(--pill-radius);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+}
+.sym-cluster-pill-n {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+.sym-cluster-entry-hot {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-secondary);
+}
+
+/* Cluster grid rows are buttons, so they get the row layout explicitly rather
+   than inheriting a div's. */
+.sym-cluster-row {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.sym-cluster-row:hover {
+  background: var(--bg-secondary);
+}
+.sym-cluster-row.is-seed .sym-heat-name {
+  font-weight: 700;
+}
+.sym-cluster-weight {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 400;
+  color: var(--fg-muted);
+  margin-left: 5px;
+  white-space: nowrap;
+}
+.sym-cluster-shape {
+  width: 132px;
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sym-cluster-hot {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-primary);
+  margin: 12px 0 0;
+}
+.sym-cluster-boundary {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+  color: var(--fg-muted);
+  padding: 10px 12px;
+  border: var(--line-weight) dashed var(--border);
+  border-radius: var(--radius-md);
+  margin: 0;
+}

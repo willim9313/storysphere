@@ -36,6 +36,8 @@ import {
 import { useSymbolBatch } from '@/components/symbols/hooks/useSymbolBatch';
 import { useSymbolCheck } from '@/components/symbols/hooks/useSymbolCheck';
 import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
+import { ClusterView } from '@/components/symbols/ClusterView';
+import { findClusters } from '@/components/symbols/symbolClusters';
 import type {
   DistributionShape,
   SortAxis,
@@ -93,6 +95,10 @@ export default function SymbolsPage() {
   // Screen-local: a behaviour group is a way of looking, not a place to link to
   // (redesign decision 05). Cleared whenever the map is returned to.
   const [shapeFilter, setShapeFilter] = useState<DistributionShape | null>(null);
+  // The third view. Mutually exclusive with a selected symbol: both occupy the
+  // main column, and holding one while showing the other means the breadcrumb
+  // cannot say where the reader is.
+  const [clusterSeedId, setClusterSeedId] = useState<string | null>(null);
 
   const { analysis, isLoading: listLoading } = useSymbolAnalysis(bookId);
   const batch = useSymbolBatch(bookId, t('symbol.overview.batch.failed'));
@@ -100,6 +106,7 @@ export default function SymbolsPage() {
 
   const handleSelect = (id: string | null) => {
     setSelectedId(id);
+    setClusterSeedId(null);
     // Returning to the map drops the behaviour filter, which was set on the map.
     if (id === null) setShapeFilter(null);
     // Opening a symbol takes the batch controls off screen with the map, so picks
@@ -107,6 +114,18 @@ export default function SymbolsPage() {
     // return, minutes later, as a count they no longer recognise.
     else check.exit();
   };
+
+  const openCluster = (seedId: string) => {
+    setSelectedId(null);
+    setShapeFilter(null);
+    check.exit();
+    setClusterSeedId(seedId);
+  };
+
+  const cluster = useMemo(() => {
+    if (!analysis || !clusterSeedId) return null;
+    return findClusters(analysis).find((c) => c.seed.id === clusterSeedId) ?? null;
+  }, [analysis, clusterSeedId]);
 
   const entities: ImageryEntity[] = useMemo(
     () => (analysis?.all ?? []).map((s) => toImageryEntity(s.item)),
@@ -323,6 +342,15 @@ export default function SymbolsPage() {
         <LoadingSpinner />
       </div>
     );
+  } else if (cluster !== null && analysis) {
+    detailBody = (
+      <ClusterView
+        cluster={cluster}
+        axis={analysis.axis}
+        onBack={() => setClusterSeedId(null)}
+        onSelect={handleSelect}
+      />
+    );
   } else if (selected === null) {
     if (entities.length > 0) {
       detailBody = (
@@ -334,6 +362,7 @@ export default function SymbolsPage() {
           shapeFilter={shapeFilter}
           setShapeFilter={setShapeFilter}
           onSelect={handleSelect}
+          onOpenCluster={openCluster}
         />
       );
     } else {

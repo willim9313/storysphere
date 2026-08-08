@@ -29,6 +29,15 @@
 /** Chapter numbers below this are front/back matter, not body chapters. */
 export const BODY_CHAPTER_MIN = 1;
 
+/**
+ * How wide a non-body column draws, relative to a body chapter.
+ *
+ * Lives here rather than in each chart so the sidebar strip, the overview heatmap,
+ * the detail chart and the cluster grid cannot end up drawing the same axis at
+ * four different proportions.
+ */
+export const OUTSIDE_CELL_FLEX = 0.7;
+
 type Distribution = Record<string, number>;
 
 /** `[chapter, count]` pairs for body chapters only, ascending by chapter. */
