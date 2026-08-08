@@ -23,6 +23,7 @@ import {
 import { fetchEntityById, fetchEventDetail } from '@/api/graph';
 import { SymbolList } from '@/components/symbols/SymbolList';
 import { SymbolDetailHead } from '@/components/symbols/SymbolDetailHead';
+import { BehaviourSummary } from '@/components/symbols/BehaviourSummary';
 import { InterpretationCta } from '@/components/symbols/InterpretationCta';
 import { InterpretationGenerating } from '@/components/symbols/InterpretationGenerating';
 import { InterpretationHero } from '@/components/symbols/InterpretationHero';
@@ -350,6 +351,17 @@ export default function SymbolsPage() {
             signals={selectedSignals}
             rank={selectedRank}
             onBack={() => handleSelect(null)}
+          />
+        )}
+
+        {/* Before the interpretation, not after it: this is what the page knows
+            for free, and on a book nobody has spent tokens on it is the only
+            thing here with anything to say. */}
+        {selectedSignals && analysis && (
+          <BehaviourSummary
+            signals={selectedSignals}
+            analysis={analysis}
+            rank={selectedRank}
           />
         )}
 

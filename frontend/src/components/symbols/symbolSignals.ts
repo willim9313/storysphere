@@ -135,9 +135,26 @@ export interface SymbolSignals {
   readonly polarity: Polarity | null;
 }
 
+/**
+ * The per-book ceilings three of the five signals are normalised against.
+ *
+ * Exposed rather than kept inside the load formula because the behaviour summary
+ * draws a bar per signal, and a bar scaled by a different rule than the number
+ * printed above it is a chart that contradicts its own caption. Fixed divisors
+ * would be worse still: they rescale every book to whichever one they were read
+ * off, so a book with half the events of that one looks half as eventful.
+ */
+export interface SignalMaxima {
+  attachment: number;
+  events: number;
+  allies: number;
+  body: number;
+}
+
 export interface SymbolAnalysis {
   readonly axis: ChapterAxis;
   readonly bodyParagraphCount: number;
+  readonly maxima: SignalMaxima;
   /** Every symbol, ranked by load. */
   readonly all: readonly SymbolSignals[];
   /** Symbols occurring more than once — what the list and batches operate on. */
@@ -153,8 +170,13 @@ export interface SymbolAnalysis {
   readonly tail: readonly SymbolSignals[];
 }
 
-/** Scale to 0–1 against a maximum, tolerating an all-zero field. */
-function normalise(value: number, max: number): number {
+/**
+ * Scale to 0–1 against a maximum, tolerating an all-zero field.
+ *
+ * Exported so the behaviour summary's bars are filled by the same function that
+ * weighs the load, not by a second one that agrees with it today.
+ */
+export function normalise(value: number, max: number): number {
   return max > 0 ? Math.min(1, value / max) : 0;
 }
 
@@ -319,6 +341,12 @@ export function analyseSymbols(overview: SymbolOverview): SymbolAnalysis {
   return {
     axis,
     bodyParagraphCount,
+    maxima: {
+      attachment: maxAttachment,
+      events: maxEvents,
+      allies: maxAllies,
+      body: maxBody,
+    },
     all: ranked,
     main: ranked.filter((s) => s.frequency > 1),
     tail: all.filter((s) => s.frequency === 1),

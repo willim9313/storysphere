@@ -808,6 +808,78 @@
   padding: 14px;
 }
 
+/* ── Behaviour summary (D3) ──────────────────────────────── */
+.sym-sig-free {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  margin: 0 0 8px;
+}
+.sym-sig-claim {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--fg-primary);
+  margin: 0 0 14px;
+}
+.sym-sig-grid {
+  display: grid;
+  /* Three across on a wide pane, one on a narrow one. The cells hold a sentence
+     each, so they cannot be squeezed to a fixed column count. */
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
+}
+.sym-sig-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 11px;
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+}
+.sym-sig-cell.is-warn {
+  background: var(--status-partial-bg);
+  border-color: var(--status-partial-border);
+}
+.sym-sig-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--fg-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sym-sig-value {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.sym-sig-cell.is-warn .sym-sig-value {
+  color: var(--status-partial-fg);
+}
+.sym-sig-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+.sym-sig-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.sym-sig-cell.is-warn .sym-sig-fill {
+  background: var(--status-partial-fg);
+}
+.sym-sig-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.55;
+  color: var(--fg-muted);
+}
+
 /* ── Density legend (under chapter chart) ────────────────── */
 .sym-density-legend {
   display: flex;

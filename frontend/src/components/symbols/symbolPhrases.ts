@@ -52,3 +52,47 @@ export function behaviourLine(t: TFunction<'analysis'>, s: SymbolSignals): strin
   }
   return parts.slice(0, 3).join(t('symbol.behaviour.separator'));
 }
+
+/**
+ * The same finding as `behaviourLine`, at the length the detail view can afford.
+ *
+ * Not a longer list of clauses: the row's version drops whatever does not fit,
+ * and what it drops is the part a reader on the detail view came for — the base
+ * rate behind the attachment, and whether the evidence can be trusted at all.
+ * Both ends must still describe the same symbol, so both are built here.
+ */
+export function claimSentence(t: TFunction<'analysis'>, s: SymbolSignals): string {
+  const parts = [t('symbol.claim.opening', { term: s.term, shape: shapeLabel(t, s) })];
+
+  if (s.attachment) {
+    parts.push(
+      t('symbol.claim.attach', {
+        name: s.attachment.entity.name,
+        share: Math.round(s.attachment.share * 100),
+        hit: s.attachment.entity.body_count,
+        of: s.distribution.body,
+        lift: s.attachment.lift.toFixed(1),
+      }),
+    );
+  }
+  if (s.eventCount > 0) parts.push(t('symbol.claim.events', { count: s.eventCount }));
+
+  // The last clause is always about the evidence, because it governs how much of
+  // the preceding sentence the reader should believe. Three cases, not two: a
+  // symbol with no body occurrences at all is not "clean", and calling it that
+  // produced 「僅出現在非正文；全部出現都在正文與後記」 — a sentence contradicting
+  // itself across a semicolon.
+  if (s.distribution.front > 0) {
+    parts.push(
+      t('symbol.claim.polluted', {
+        count: s.distribution.front,
+        total: s.frequency,
+      }),
+    );
+  } else if (s.distribution.body > 0) {
+    parts.push(t('symbol.claim.clean'));
+  } else {
+    parts.push(t('symbol.claim.noBody'));
+  }
+  return parts.join('') + t('symbol.claim.fullStop');
+}
