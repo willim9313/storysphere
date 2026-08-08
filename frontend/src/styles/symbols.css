@@ -880,39 +880,88 @@
   color: var(--fg-muted);
 }
 
-/* ── Density legend (under chapter chart) ────────────────── */
-.sym-density-legend {
+/* ── Chapter distribution (D7) ───────────────────────────── */
+.sym-dist {
+  min-width: 420px;
+}
+.sym-dist-plot {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  /* Room for the tallest bar plus the peak marker above it. */
+  height: 88px;
+}
+.sym-dist-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+  height: 100%;
+}
+.sym-dist-peak {
+  font-size: 8px;
+  line-height: 1;
+  text-align: center;
+  color: var(--symbol-density-peak);
+  /* Always occupies its line so bars in a row share one baseline whether or not
+     they carry a marker. */
+  min-height: 9px;
+}
+.sym-dist-bar {
+  display: block;
+  border-radius: 2px 2px 0 0;
+}
+.sym-dist-labels {
+  display: flex;
+  gap: 3px;
+  margin-top: 5px;
+}
+.sym-dist-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  text-align: center;
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.sym-dist-label.is-outside {
+  color: var(--fg-muted);
+}
+
+.sym-dist-legend {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 12px;
+  flex-wrap: wrap;
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  margin-top: 10px;
+  margin-top: 12px;
 }
-.sym-density-step {
-  width: 12px;
-  height: 6px;
-  display: inline-block;
-  margin: 0 2px 0 8px;
+.sym-dist-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
-.sym-density-step:first-of-type {
-  margin-left: 0;
+.sym-dist-legend-swatch {
+  width: 14px;
+  height: 8px;
+  border-radius: 2px;
 }
-.sym-density-peak {
-  position: relative;
-  background: transparent;
+.sym-dist-legend-swatch.is-outside {
+  background: var(--symbol-density-mid);
+  border: 1px dashed var(--fg-muted);
+  /* Matches the held-back bars it stands for. */
+  opacity: 0.45;
 }
-.sym-density-peak span {
-  position: absolute;
-  left: 50%;
-  top: -2px;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid var(--symbol-density-peak);
+.sym-dist-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.55;
+  color: var(--fg-muted);
+  margin: 8px 0 0;
 }
 
 /* ── Tabs (inside card head) ─────────────────────────────── */

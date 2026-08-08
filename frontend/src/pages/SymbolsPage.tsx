@@ -38,13 +38,17 @@ import {
 import { useSymbolBatch } from '@/components/symbols/hooks/useSymbolBatch';
 import { useSymbolCheck } from '@/components/symbols/hooks/useSymbolCheck';
 import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
-import type { DistributionShape, SortAxis } from '@/components/symbols/symbolSignals';
+import type {
+  DistributionShape,
+  SortAxis,
+  SymbolSignals,
+} from '@/components/symbols/symbolSignals';
 import {
-  bodyChapterMax,
-  firstBodyChapter,
-  outsideBodyCount,
-  peakBodyChapters,
+  barScale,
+  hasDistinctPeak,
+  type ChapterAxis,
 } from '@/components/symbols/chapterAxis';
+import { densityStep } from '@/components/symbols/tokens';
 
 import '@/styles/symbols.css';
 
@@ -274,14 +278,6 @@ export default function SymbolsPage() {
     const i = analysis.main.findIndex((s) => s.id === selectedId);
     return i === -1 ? null : i + 1;
   }, [analysis, selectedId]);
-  // Shared axis edge for every chart on the page. Taking book.chapterCount alone
-  // hid occurrences recorded past it (名字的潮汐 has symbols in chapter 11 with a
-  // chapterCount of 10); bodyChapterMax widens the axis to fit the data.
-  const totalChapters = useMemo(
-    () => bodyChapterMax(entities.map((e) => e.chapter_distribution), book?.chapterCount),
-    [book, entities],
-  );
-
   const isGenerating = interpretationTask.running && selectedId !== null;
 
   let interpretationBlock: React.ReactNode;
@@ -367,7 +363,9 @@ export default function SymbolsPage() {
 
         {interpretationBlock}
 
-        <ChapterCard entity={selected} totalChapters={totalChapters} />
+        {selectedSignals && analysis && (
+          <ChapterCard signals={selectedSignals} axis={analysis.axis} />
+        )}
 
         <CoOccurrencePanel
           bookId={bookId!}
@@ -410,50 +408,70 @@ export default function SymbolsPage() {
   );
 }
 
-function ChapterCard({ entity, totalChapters }: Readonly<{ entity: ImageryEntity; totalChapters: number }>) {
+/**
+ * Where in the book a symbol appears, across all three segments.
+ *
+ * Peaks and "first seen" come from the segmented distribution the chart itself
+ * draws, so the caption cannot contradict the markers — `entity.first_chapter` is
+ * the raw minimum and reads 「首見第 -1 章」 for anything mentioned on the title
+ * page.
+ */
+function ChapterCard({
+  signals,
+  axis,
+}: Readonly<{ signals: SymbolSignals; axis: ChapterAxis }>) {
   const { t } = useTranslation('analysis');
-  // Peaks and "first seen" are derived from the same body-chapter view the chart
-  // draws, so the caption can no longer contradict the marker: entity.first_chapter
-  // is the raw minimum and reads "首見第 -1 章" for anything mentioned in front matter.
-  const peakChapters = useMemo(
-    () => peakBodyChapters(entity.chapter_distribution),
-    [entity.chapter_distribution],
-  );
-  const firstChapter = firstBodyChapter(entity.chapter_distribution);
-  const outside = outsideBodyCount(entity.chapter_distribution);
-  const peakLabel = peakChapters.length > 0 ? t('symbol.peakChapters', { chapter: peakChapters[0] }) : null;
+  const { firstBodyChapter: first, peakBodyChapters: peaks, front } = signals.distribution;
+  // One source for the bar scale: the caption states it and the legend derives its
+  // steps from it, so neither can drift from what the chart drew.
+  const scale = barScale(signals.item.chapter_distribution ?? {}, axis);
+
+  const meta = [];
+  if (first !== null) meta.push(t('symbol.firstSeenBody', { chapter: first }));
+  if (peaks.length > 0) {
+    meta.push(
+      hasDistinctPeak(signals.distribution)
+        ? t('symbol.peakChapters', { chapter: peaks.join('、') })
+        : t('symbol.dist.peakFlat'),
+    );
+  }
+  meta.push(t('symbol.dist.scale', { max: scale }));
+
   return (
     <section className="sym-card">
       <div className="sym-card-head">
         <BookOpen size={13} style={{ color: 'var(--accent)' }} />
         <span className="sym-card-title">{t('symbol.chapterDist')}</span>
-        <span className="sym-card-meta">
-          {firstChapter != null && t('symbol.firstSeen', { chapter: firstChapter })}
-          {firstChapter != null && peakLabel && <> · </>}
-          {peakLabel}
-          {outside > 0 && (
-            <>
-              {(firstChapter != null || peakLabel) && <> · </>}
-              {t('symbol.outsideBody', { count: outside })}
-            </>
-          )}
-        </span>
+        <span className="sym-card-meta">{meta.join(' · ')}</span>
       </div>
       <div className="sym-card-body" style={{ overflowX: 'auto' }}>
-        <ChapterDistChart
-          distribution={entity.chapter_distribution}
-          peakChapters={peakChapters}
-          totalChapters={totalChapters}
-        />
-        <div className="sym-density-legend">
-          <span className="sym-density-step" style={{ background: 'var(--symbol-density-low)' }} /> {t('symbol.densityLow')}
-          <span className="sym-density-step" style={{ background: 'var(--symbol-density-mid)' }} /> {t('symbol.densityMid')}
-          <span className="sym-density-step" style={{ background: 'var(--symbol-density-high)' }} /> {t('symbol.densityHigh')}
-          <span className="sym-density-step sym-density-peak">
-            <span />
-          </span>{' '}
-          {t('symbol.densityPeak')}
+        <ChapterDistChart signals={signals} axis={axis} scale={scale} />
+        <div className="sym-dist-legend">
+          {[1, 2, 3]
+            .filter((step) => step <= scale)
+            .map((step) => (
+              <span key={step} className="sym-dist-legend-item">
+                <span
+                  className="sym-dist-legend-swatch"
+                  style={{ background: densityStep(step) }}
+                />
+                {step === 3
+                  ? t('symbol.overview.heat.legendMore', { count: step })
+                  : t('symbol.overview.heat.legendStep', { count: step })}
+              </span>
+            ))}
+          <span className="sym-dist-legend-item">
+            <span className="sym-dist-legend-swatch is-outside" />
+            {t('symbol.overview.heat.legendOutside')}
+          </span>
         </div>
+        {/* Says what the front-matter bars are excluded from, because they are
+            drawn rather than hidden and a visible bar reads as evidence. */}
+        <p className="sym-dist-note">
+          {front > 0
+            ? t('symbol.dist.noteFront', { count: front })
+            : t('symbol.dist.noteClean')}
+        </p>
       </div>
     </section>
   );

@@ -1260,13 +1260,7 @@
     "noData": "No imagery data",
     "noResults": "No matching results",
     "chapterDist": "Chapter distribution",
-    "firstSeen": "First seen Ch. {{chapter}}",
     "peakChapters": "Peak at Ch. {{chapter}}",
-    "outsideBody": "{{count}} more outside the main text",
-    "densityLow": "Low",
-    "densityMid": "Mid",
-    "densityHigh": "High",
-    "densityPeak": "Peak",
     "coOccurrences": "Co-occurrence network",
     "noCoOccurrences": "No co-occurrence data",
     "occurrences": "Occurrences",
@@ -1550,7 +1544,21 @@
       "trustNotePollutedBack": "{{count}} occurrences are front matter (colophon / title page / contents) and dock the ranking multiplier; {{back}} in the afterword count as evidence",
       "trustNoteClean": "Every occurrence is in the body — nothing outside it",
       "trustNoteCleanBack": "No front matter; {{back}} in the afterword count as evidence and are not docked"
-    }
+    },
+    "dist": {
+      "label": {
+        "front": "Front",
+        "back": "After",
+        "preface": "Preface",
+        "toc": "Contents",
+        "afterword": "Afterword"
+      },
+      "scale": "Bars scaled to {{max}}",
+      "noteFront": "{{count}} front-matter occurrences (colophon / title page / contents) are excluded from shape and first appearance; they only dock the evidence score",
+      "noteClean": "No front matter — shape and first appearance are body facts",
+      "peakFlat": "Evenly spread — no chapter stands out"
+    },
+    "firstSeenBody": "First seen Ch. {{chapter}} (body)"
   },
   "narrative": {
     "heroJourney": "Hero's Journey",

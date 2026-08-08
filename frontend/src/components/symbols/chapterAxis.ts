@@ -136,6 +136,15 @@ const ROLE_SEGMENTS: Readonly<Record<string, ChapterSegment>> = {
 export interface ChapterAxisSlot {
   chapter: number;
   segment: ChapterSegment;
+  /**
+   * The book's own `ChapterRole` for this chapter, when it declared one.
+   *
+   * Carried so a label can say 「目次」 rather than 「前」 twice in a row. The
+   * alternative is reading it off the chapter number — 名字的潮汐 happens to number
+   * its colophon -1 and its contents 0 — which invents a convention the payload
+   * already states.
+   */
+  role?: string;
 }
 
 export interface ChapterAxis {
@@ -233,11 +242,13 @@ export function buildChapterAxis(
   for (let ch = BODY_CHAPTER_MIN; ch <= bodyChapterCount; ch += 1) chapters.add(ch);
   for (const chapter of occupiedChapters(distributions)) chapters.add(chapter);
 
+  const roles = opts.chapterRoles ?? {};
   const slots: ChapterAxisSlot[] = [...chapters]
     .sort((a, b) => a - b)
     .map((chapter) => ({
       chapter,
       segment: segments.get(chapter) ?? segmentByPosition(chapter, bodyChapterCount),
+      role: roles[String(chapter)],
     }));
 
   const bodyChapters = new Set(
@@ -250,6 +261,42 @@ export function buildChapterAxis(
     globalBodyMax: highestBodyCount(distributions, bodyChapters),
     segments,
   };
+}
+
+/**
+ * The count a full-height bar stands for, for one symbol on one axis.
+ *
+ * Floored by the cross-symbol body maximum so a lone occurrence does not draw a
+ * full-height bar, and raised to this symbol's own largest slot so no bar
+ * overflows its box — 海 holds 3 occurrences in the colophon while no chapter holds
+ * more than 2.
+ *
+ * Lives here, beside the axis it reads, because the caption states this number and
+ * the legend derives its steps from it. Computing it separately in each of the
+ * three places is how a card came to claim 「高度基準 2」 above a chart drawn
+ * against 3.
+ */
+export function barScale(distribution: Distribution, axis: ChapterAxis): number {
+  const ownMax = axis.slots.reduce(
+    (max, slot) => Math.max(max, distribution[String(slot.chapter)] ?? 0),
+    0,
+  );
+  return Math.max(1, axis.globalBodyMax, ownMax);
+}
+
+/**
+ * Whether any chapter stands out, or the symbol is simply spread evenly.
+ *
+ * `peakBodyChapters` returns every chapter attaining the maximum, which is right
+ * — PR #27 fixed it silently reporting only the first of a tie — but when a symbol
+ * occurs once in each of seven chapters all seven tie, and 「峰值第 1、2、4、5、7、8、
+ * 10 章」 is a caption that means "flat" while looking like a finding. Charts use
+ * this to drop the peak markers too: seven identical markers over seven identical
+ * bars point at nothing.
+ */
+export function hasDistinctPeak(distribution: SegmentedDistribution): boolean {
+  const occupied = distribution.bodyChapters.length;
+  return occupied > 1 && distribution.peakBodyChapters.length < occupied;
 }
 
 export interface SegmentedDistribution {

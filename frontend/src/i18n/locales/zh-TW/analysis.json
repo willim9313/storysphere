@@ -1260,13 +1260,7 @@
     "noData": "尚無意象資料",
     "noResults": "無符合結果",
     "chapterDist": "章節分布",
-    "firstSeen": "首見第 {{chapter}} 章",
     "peakChapters": "峰值第 {{chapter}} 章",
-    "outsideBody": "另有 {{count}} 次位於非正文",
-    "densityLow": "低",
-    "densityMid": "中",
-    "densityHigh": "高",
-    "densityPeak": "峰值",
     "coOccurrences": "共現網絡",
     "noCoOccurrences": "尚無共現資料",
     "occurrences": "出現紀錄",
@@ -1550,7 +1544,21 @@
       "trustNotePollutedBack": "{{count}} 次來自前置頁（版權頁／書名頁／目次），已作為排序乘數扣分；後記 {{back}} 次計為有效證據",
       "trustNoteClean": "全部出現都在正文，無非正文污染",
       "trustNoteCleanBack": "無前置頁出現；後記 {{back}} 次計為有效證據，不扣分"
-    }
+    },
+    "dist": {
+      "label": {
+        "front": "前",
+        "back": "後",
+        "preface": "前言",
+        "toc": "目次",
+        "afterword": "後記"
+      },
+      "scale": "高度基準 {{max}}",
+      "noteFront": "前置頁 {{count}} 次（版權頁／書名頁／目次）已從分布形狀與首見排除，僅計入證據可信度扣分",
+      "noteClean": "無前置頁出現，分布形狀與首見即為正文事實",
+      "peakFlat": "分布平坦，無突出章節"
+    },
+    "firstSeenBody": "首見第 {{chapter}} 章（正文）"
   },
   "narrative": {
     "heroJourney": "英雄旅程",
