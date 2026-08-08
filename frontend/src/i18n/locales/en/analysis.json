@@ -1558,7 +1558,39 @@
       "noteClean": "No front matter — shape and first appearance are body facts",
       "peakFlat": "Evenly spread — no chapter stands out"
     },
-    "firstSeenBody": "First seen Ch. {{chapter}} (body)"
+    "firstSeenBody": "First seen Ch. {{chapter}} (body)",
+    "co": {
+      "title": "Co-occurrence, split by entity type",
+      "meta": "{{entities}} entities / {{events}} events",
+      "selfFiltered": "Self-match removed: the KG entity also named “{{term}}” co-occurs {{count}} times and was the top hit. Taking it as a signal would only say this symbol always occurs with itself.",
+      "selfNone": "Most co-occurring entities are locations, concepts and objects, which is why they are no longer all called “characters” — only character-type entities feed the attachment signal.",
+      "shareOfBody": "{{pct}}% of body occurrences",
+      "noBodyShare": "No body occurrences",
+      "entityType": {
+        "location": "Location",
+        "concept": "Concept",
+        "object": "Object",
+        "organization": "Organization",
+        "character": "Character",
+        "event": "Event"
+      },
+      "characters": {
+        "title": "Character attachment",
+        "sub": "The only co-occurrence signal that feeds ranking",
+        "empty": "No character-type co-occurrence"
+      },
+      "scenes": {
+        "title": "Scenes and objects",
+        "sub": "Not characters. They describe where the symbol appears, and do not feed ranking",
+        "empty": "No scene or object co-occurrence"
+      },
+      "allies": {
+        "title": "Allied symbols",
+        "sub": "Overlaps the entity list; this column counts only symbol identity",
+        "empty": "Never shares a paragraph with another symbol"
+      },
+      "leadHint": "This is the one that feeds narrative load — picked by lift × evidence, not by raw count"
+    }
   },
   "narrative": {
     "heroJourney": "Hero's Journey",

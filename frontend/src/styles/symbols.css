@@ -1037,6 +1037,84 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ── Co-occurrence, three columns (D8) ───────────────────── */
+.sym-co-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+  color: var(--fg-muted);
+  margin: 0 0 12px;
+}
+.sym-co-cols {
+  display: grid;
+  /* Three columns of rows, collapsing to one when the pane is narrow. Each row
+     holds a name plus two figures, so they cannot be squeezed further. */
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.sym-co-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.sym-co-col-title {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.sym-co-col-sub {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin-bottom: 4px;
+}
+.sym-co-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sym-co-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border: var(--line-weight) var(--border-style) transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  text-align: left;
+  cursor: pointer;
+}
+.sym-co-row:hover {
+  border-color: currentColor;
+}
+.sym-co-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sym-co-meta {
+  margin-left: auto;
+  font-size: var(--font-size-2xs);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.sym-co-go {
+  flex: none;
+  opacity: 0.5;
+}
+.sym-co-empty {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  margin: 2px 0 0;
+}
+
 .sym-link-list {
   display: flex;
   flex-direction: column;
@@ -2035,4 +2113,18 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
+}
+
+/* The row the behaviour summary named. Ranked by attachment score rather than raw
+   count, so the two cards lead with the same name — see CoOccurrencePanel. */
+.sym-co-row.is-lead {
+  border-color: currentColor;
+  font-weight: 700;
+}
+/* A long column scrolls inside itself rather than stretching the card: 海 has 16
+   allied symbols, and dropping the tail would put this card's count at odds with
+   the ally figure in the behaviour summary. */
+.sym-co-rows {
+  max-height: 264px;
+  overflow-y: auto;
 }

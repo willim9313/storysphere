@@ -1558,7 +1558,39 @@
       "noteClean": "無前置頁出現，分布形狀與首見即為正文事實",
       "peakFlat": "分布平坦，無突出章節"
     },
-    "firstSeenBody": "首見第 {{chapter}} 章（正文）"
+    "firstSeenBody": "首見第 {{chapter}} 章（正文）",
+    "co": {
+      "title": "共現網絡 · 依 entity_type 分流",
+      "meta": "{{entities}} 個實體 / {{events}} 個事件",
+      "selfFiltered": "已濾掉自我匹配：與意象同名的 KG 實體「{{term}}」共現 {{count}} 次，原本是第一名。取它當訊號等於說「這個意象總是跟自己一起出現」。",
+      "selfNone": "共現實體以 location / concept / object 為多，因此不再統稱「共現角色」—— 只有 character 型才進角色依附訊號。",
+      "shareOfBody": "占正文出現 {{pct}}%",
+      "noBodyShare": "無正文出現",
+      "entityType": {
+        "location": "地點",
+        "concept": "概念",
+        "object": "物件",
+        "organization": "組織",
+        "character": "角色",
+        "event": "事件"
+      },
+      "characters": {
+        "title": "角色依附 · character",
+        "sub": "唯一進入排序的共現訊號",
+        "empty": "SEP 無 character 型共現"
+      },
+      "scenes": {
+        "title": "場景與物件 · location / concept / object",
+        "sub": "這些不是角色。它們描述意象出沒的場景，不進排序",
+        "empty": "無場景或物件型共現"
+      },
+      "allies": {
+        "title": "結盟意象",
+        "sub": "與 KG 實體清單會重複；此欄只認意象身分",
+        "empty": "沒有與其他意象同段出現"
+      },
+      "leadHint": "這是進入敘事負載的那一筆 —— 依「比隨機高多少倍 × 證據筆數」取，不是依共現次數"
+    }
   },
   "narrative": {
     "heroJourney": "英雄旅程",

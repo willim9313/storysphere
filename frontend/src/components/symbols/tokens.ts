@@ -28,6 +28,32 @@ export function typeStyle(t: string): SymbolTypeStyle {
   return TYPE_STYLE[(t as ImageryType) in TYPE_STYLE ? (t as ImageryType) : 'other'];
 }
 
+/**
+ * `entity_type` → the token prefix this repo actually uses.
+ *
+ * The design contract names tokens in full (`--entity-character-*`); tokens.css
+ * has carried abbreviations since before it, and says so on line 6. Without this
+ * table every co-occurrence chip resolves `var(--entity-character-bg)` to nothing
+ * and renders unstyled.
+ */
+const ENTITY_TOKEN_PREFIX: Readonly<Record<string, string>> = {
+  character: 'char',
+  location: 'loc',
+  concept: 'con',
+  object: 'obj',
+  organization: 'org',
+  event: 'evt',
+};
+
+export function entityStyle(entityType: string): SymbolTypeStyle {
+  const p = ENTITY_TOKEN_PREFIX[entityType] ?? 'other';
+  return {
+    bg: `var(--entity-${p}-bg)`,
+    fg: `var(--entity-${p}-fg)`,
+    dot: `var(--entity-${p}-dot)`,
+  };
+}
+
 export interface PolarityStyle {
   icon: LucideIcon;
   bg: string;

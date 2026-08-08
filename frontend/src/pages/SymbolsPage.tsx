@@ -10,9 +10,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ApiError } from '@/api/client';
 import {
   fetchSymbolTimeline,
-  fetchCoOccurrences,
   fetchSymbolInterpretation,
-  fetchSep,
   reviewSymbolInterpretation,
   type ImageryEntity,
   type InterpretationStatus,
@@ -115,6 +113,20 @@ export default function SymbolsPage() {
     [analysis],
   );
 
+  /**
+   * The selected symbol's signals, and where it places among the ranked ones.
+   *
+   * `analysis.main` is already in load order, so the rank is its index. A tail
+   * word has no rank: it is not in `main` because it has nothing to rank on, and
+   * `indexOf` returning -1 has to become null rather than a 0th place.
+   */
+  const selectedSignals = analysis?.all.find((s) => s.id === selectedId) ?? null;
+  const selectedRank = useMemo(() => {
+    if (!analysis || !selectedId) return null;
+    const i = analysis.main.findIndex((s) => s.id === selectedId);
+    return i === -1 ? null : i + 1;
+  }, [analysis, selectedId]);
+
   // Review state now arrives with the list. It used to cost one request per
   // symbol — 29 of them on 名字的潮汐, 28 returning 404 — purely to decide whether
   // a sidebar badge should render.
@@ -148,23 +160,21 @@ export default function SymbolsPage() {
     enabled: !!selectedId,
   });
 
-  const { data: coOccurrences = [], isLoading: coLoading } = useQuery({
-    queryKey: ['books', bookId, 'symbols', selectedId, 'co-occurrences'],
-    queryFn: () => fetchCoOccurrences(selectedId!, 12),
-    enabled: !!selectedId,
-  });
-
-  // SEP carries per-entity co-occurrence counts (added 2026-05-26 via
-  // co_occurring_entity_counts). We fetch lazily because SEP assembly is
-  // medium-cost, and only need it once interpretation exists (linked_characters
-  // are otherwise empty).
-  const { data: sep } = useQuery({
-    queryKey: ['books', bookId, 'symbols', selectedId, 'sep'],
-    queryFn: () => fetchSep(selectedId!),
-    enabled: !!selectedId && !!bookId,
-    staleTime: 5 * 60_000,
-  });
-  const entityCounts = sep?.co_occurring_entity_counts ?? {};
+  /**
+   * Co-occurrence counts per entity, for the interpretation's character hints.
+   *
+   * Read off the overview the page already has. This used to be a lazy `#15d` SEP
+   * fetch per selected symbol purely to turn `{uuid: count}` into a hint — the
+   * overview carries the same counts already resolved to names and types, so both
+   * that request and the `#15c` allies request are gone.
+   */
+  const entityCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const e of selectedSignals?.item.co_occurring_entities ?? []) {
+      map[e.id] = e.count;
+    }
+    return map;
+  }, [selectedSignals]);
 
   // ── Resolve linked character / event IDs → human-readable names ─────────────
   const charIds = interpretation?.linked_characters ?? [];
@@ -265,19 +275,6 @@ export default function SymbolsPage() {
 
   // ── Computed ─────────────────────────────────────────────────
   const selected = entities.find((e) => e.id === selectedId) ?? null;
-  /**
-   * The selected symbol's signals, and where it places among the ranked ones.
-   *
-   * `analysis.main` is already in load order, so the rank is its index. A tail
-   * word has no rank: it is not in `main` because it has nothing to rank on, and
-   * `indexOf` returning -1 has to become null rather than a 0th place.
-   */
-  const selectedSignals = analysis?.all.find((s) => s.id === selectedId) ?? null;
-  const selectedRank = useMemo(() => {
-    if (!analysis || !selectedId) return null;
-    const i = analysis.main.findIndex((s) => s.id === selectedId);
-    return i === -1 ? null : i + 1;
-  }, [analysis, selectedId]);
   const isGenerating = interpretationTask.running && selectedId !== null;
 
   let interpretationBlock: React.ReactNode;
@@ -367,14 +364,13 @@ export default function SymbolsPage() {
           <ChapterCard signals={selectedSignals} axis={analysis.axis} />
         )}
 
-        <CoOccurrencePanel
-          bookId={bookId!}
-          coOccurrences={coOccurrences}
-          linkedCharacters={resolvedCharacters}
-          linkedEvents={resolvedEvents}
-          loading={coLoading}
-          onSelectCo={setSelectedId}
-        />
+        {selectedSignals && (
+          <CoOccurrencePanel
+            bookId={bookId!}
+            signals={selectedSignals}
+            onSelectCo={setSelectedId}
+          />
+        )}
 
         <OccurrencesTimeline
           timeline={timeline}
