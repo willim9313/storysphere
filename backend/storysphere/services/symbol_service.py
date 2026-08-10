@@ -41,7 +41,12 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-_SEP_ASSEMBLER_TAG = "symbol_service_v1"
+# v2 excludes front matter from occurrence_contexts (B-074). Bumped rather than
+# invalidated by pattern: a cached v1 SEP is still readable, so nothing forces it
+# to be re-read, and re-running symbol discovery is the only thing that would
+# have cleared it. The read path compares this tag and treats a mismatch as a
+# miss, so the fix reaches existing books without a cleanup script.
+_SEP_ASSEMBLER_TAG = "symbol_service_v2"
 _SEP_PEAK_CHAPTER_COUNT = 3
 
 # Ally lists are read as a complete set (the UI shows a count next to the top few),
@@ -307,7 +312,10 @@ class SymbolService:
 
         if not force:
             cached = await cache.get_as(cache_key, SEP)
-            if cached is not None:
+            # A SEP assembled by an older version is not a hit. v1 carried front
+            # matter as evidence, so serving it would keep feeding colophon text
+            # to the LLM for every book already in the cache.
+            if cached is not None and cached.assembled_by == _SEP_ASSEMBLER_TAG:
                 logger.debug("SymbolService: cache hit for %s", cache_key)
                 return cached
 
@@ -332,8 +340,24 @@ class SymbolService:
             p.id: p for ch in document.chapters for p in ch.paragraphs
         }
 
+        first_body_chapter = _first_body_chapter(document)
+
         occurrence_contexts: list[SEPOccurrenceContext] = []
+        excluded_front_matter = 0
         for occ in occurrences:
+            # Front matter out, afterword in — the same line the UI's `trust`
+            # multiplier draws. A colophon's 「臨海市」 is noise, but an afterword
+            # sentence can be the book's clearest statement about a symbol, and
+            # dropping both to be safe throws away the good half.
+            #
+            # This matters more than it looks: occurrences arrive ordered by
+            # chapter and the prompt only carries the first 20, so unfiltered
+            # front matter was not merely included — it was the first evidence
+            # the model read. Five of 海's thirteen occurrences in 名字的潮汐 are
+            # the colophon and title page, and they occupied slots [1]–[5].
+            if first_body_chapter is not None and occ.chapter_number < first_body_chapter:
+                excluded_front_matter += 1
+                continue
             paragraph = paragraph_by_id.get(occ.paragraph_id)
             occurrence_contexts.append(
                 SEPOccurrenceContext(
@@ -369,6 +393,7 @@ class SymbolService:
             imagery_type=entity.imagery_type.value,
             frequency=entity.frequency,
             occurrence_contexts=occurrence_contexts,
+            excluded_front_matter_count=excluded_front_matter,
             co_occurring_entity_ids=sorted(entity_ids),
             co_occurring_entity_counts=entity_counts,
             co_occurring_event_ids=event_ids,
@@ -533,6 +558,26 @@ def _sep_cache_key(book_id: str, imagery_id: str) -> str:
 
 def _overview_cache_key(book_id: str) -> str:
     return f"symbol_overview:{book_id}"
+
+
+def _first_body_chapter(document: Document) -> int | None:
+    """Lowest body chapter number — the line front matter sits before.
+
+    Positional rather than role-by-role, because that is how the UI splits the
+    axis: anything before the first body chapter is front matter, anything after
+    the last is back matter, and the same ``other`` role can land on either side
+    depending on where it sits. Deriving both from the same rule is what makes
+    ``excluded_front_matter_count`` equal the ``front`` count already on screen;
+    two rules would let the page say 5 while the backend dropped 4.
+
+    Returns None when a document has no body chapters at all, in which case
+    nothing is excluded — with no body to be "before", every occurrence is as
+    good as the evidence gets.
+    """
+    body = [
+        ch.number for ch in document.chapters if ch.role == ChapterRole.body
+    ]
+    return min(body) if body else None
 
 
 def _count_entity_paragraphs(

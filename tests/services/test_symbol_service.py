@@ -165,10 +165,21 @@ class TestAssembleSEP:
         return AnalysisCache(db_path=str(tmp_path / "analysis_cache.db"))
 
     @staticmethod
-    def _doc_service(paragraphs_by_id: dict):
+    def _doc_service(paragraphs_by_id: dict, chapters=None):
+        """A document service returning one all-body chapter unless told otherwise.
+
+        Chapters carry ``number`` and ``role`` because assemble_sep reads them to
+        find where the body starts (B-074). Ch.1 body means nothing is excluded,
+        which is what the pre-B-074 tests assume.
+        """
         paragraphs = list(paragraphs_by_id.values())
-        chapter = SimpleNamespace(paragraphs=paragraphs)
-        doc = SimpleNamespace(chapters=[chapter])
+        if chapters is None:
+            chapters = [
+                SimpleNamespace(
+                    number=1, role=ChapterRole.body, paragraphs=paragraphs
+                )
+            ]
+        doc = SimpleNamespace(chapters=chapters)
         svc = SimpleNamespace()
         svc.get_document = AsyncMock(return_value=doc)
         return svc
@@ -286,6 +297,124 @@ class TestAssembleSEP:
     async def test_get_sep_returns_none_when_missing(self, svc, cache):
         result = await svc.get_sep("any", "book-1", cache)
         assert result is None
+
+
+class TestSEPFrontMatterExclusion:
+    """B-074 — front matter must not reach the LLM as evidence."""
+
+    @pytest.fixture
+    def cache(self, tmp_path):
+        return AnalysisCache(db_path=str(tmp_path / "analysis_cache.db"))
+
+    @staticmethod
+    def _tide_doc_service(paragraphs_by_id: dict):
+        """名字的潮汐's shape: preface -1, toc 0, body 1–2, afterword 3."""
+        paragraphs = list(paragraphs_by_id.values())
+        chapters = [
+            SimpleNamespace(number=-1, role=ChapterRole.preface, paragraphs=paragraphs),
+            SimpleNamespace(number=0, role=ChapterRole.toc, paragraphs=[]),
+            SimpleNamespace(number=1, role=ChapterRole.body, paragraphs=[]),
+            SimpleNamespace(number=2, role=ChapterRole.body, paragraphs=[]),
+            SimpleNamespace(number=3, role=ChapterRole.afterword, paragraphs=[]),
+        ]
+        doc = SimpleNamespace(chapters=chapters)
+        svc = SimpleNamespace()
+        svc.get_document = AsyncMock(return_value=doc)
+        return svc
+
+    @staticmethod
+    def _kg_service():
+        svc = SimpleNamespace()
+        svc.get_events = AsyncMock(return_value=[])
+        return svc
+
+    async def _assemble(self, svc, cache, chapters: list[int]):
+        entity = _make_entity(
+            chapter_distribution=dict.fromkeys(chapters, 1),
+            frequency=len(chapters),
+        )
+        await svc.save_imagery(entity)
+        paragraphs = {}
+        for i, ch in enumerate(chapters):
+            pid = f"p{i}"
+            await svc.save_occurrence(
+                _make_occurrence(
+                    entity.id, paragraph_id=pid, chapter_number=ch, position=i
+                )
+            )
+            paragraphs[pid] = SimpleNamespace(
+                id=pid, text=f"text in chapter {ch}", entities=None
+            )
+        return await svc.assemble_sep(
+            imagery_id=entity.id,
+            book_id="book-1",
+            doc_service=self._tide_doc_service(paragraphs),
+            kg_service=self._kg_service(),
+            cache=cache,
+        )
+
+    async def test_front_matter_is_dropped_and_counted(self, svc, cache):
+        sep = await self._assemble(svc, cache, [-1, 0, 1, 2])
+        assert [c.chapter_number for c in sep.occurrence_contexts] == [1, 2]
+        assert sep.excluded_front_matter_count == 2
+
+    async def test_the_afterword_is_kept(self, svc, cache):
+        # The line the UI's `trust` multiplier draws: a colophon's 「臨海市」 is
+        # noise, an afterword sentence can be the book's clearest statement.
+        sep = await self._assemble(svc, cache, [1, 3])
+        assert [c.chapter_number for c in sep.occurrence_contexts] == [1, 3]
+        assert sep.excluded_front_matter_count == 0
+
+    async def test_frequency_still_counts_every_occurrence(self, svc, cache):
+        # Only the evidence is filtered. frequency is what the book contains, and
+        # the UI divides by it to show what share was usable.
+        sep = await self._assemble(svc, cache, [-1, 0, 1, 2])
+        assert sep.frequency == 4
+        assert len(sep.occurrence_contexts) == 2
+
+    async def test_a_v1_cached_sep_is_not_served(self, svc, cache):
+        """The stale-cache path — otherwise the fix misses every existing book."""
+        sep = await self._assemble(svc, cache, [-1, 1])
+        key = f"sep:book-1:{sep.imagery_id}"
+        poisoned = sep.model_copy(
+            update={"assembled_by": "symbol_service_v1", "term": "STALE"}
+        )
+        await cache.set(key, poisoned.model_dump(mode="json"))
+
+        again = await svc.assemble_sep(
+            imagery_id=sep.imagery_id,
+            book_id="book-1",
+            doc_service=self._tide_doc_service({}),
+            kg_service=self._kg_service(),
+            cache=cache,
+        )
+        assert again.term != "STALE"
+        assert again.assembled_by == "symbol_service_v2"
+
+    async def test_a_document_with_no_body_chapters_excludes_nothing(
+        self, svc, cache
+    ):
+        entity = _make_entity(chapter_distribution={-1: 1})
+        await svc.save_imagery(entity)
+        await svc.save_occurrence(
+            _make_occurrence(entity.id, paragraph_id="p0", chapter_number=-1, position=0)
+        )
+        doc = SimpleNamespace(
+            chapters=[SimpleNamespace(number=-1, role=ChapterRole.preface, paragraphs=[])]
+        )
+        doc_svc = SimpleNamespace(get_document=AsyncMock(return_value=doc))
+
+        sep = await svc.assemble_sep(
+            imagery_id=entity.id,
+            book_id="book-1",
+            doc_service=doc_svc,
+            kg_service=self._kg_service(),
+            cache=cache,
+        )
+        # With no body to be "before", every occurrence is as good as it gets —
+        # dropping them all would leave the LLM nothing at all.
+        assert len(sep.occurrence_contexts) == 1
+        assert sep.excluded_front_matter_count == 0
 
 
 class TestAssembleOverview:

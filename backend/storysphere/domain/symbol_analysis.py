@@ -52,7 +52,22 @@ class SEP(BaseModel):
     imagery_type: str = Field(description="ImageryType value")
     frequency: int = 0
 
-    occurrence_contexts: list[SEPOccurrenceContext] = Field(default_factory=list)
+    occurrence_contexts: list[SEPOccurrenceContext] = Field(
+        default_factory=list,
+        description=(
+            "Evidence sent to the LLM. Front matter is excluded — see "
+            "excluded_front_matter_count."
+        ),
+    )
+    excluded_front_matter_count: int = Field(
+        default=0,
+        description=(
+            "Occurrences dropped from occurrence_contexts because they sit "
+            "before the first body chapter. Reported rather than silently "
+            "removed so the UI can state what the interpretation was built on: "
+            "5 of 海's 13 occurrences in 名字的潮汐 are colophon and title page."
+        ),
+    )
     co_occurring_entity_ids: list[str] = Field(
         default_factory=list,
         description="Entity IDs mentioned in paragraphs where this imagery occurs",

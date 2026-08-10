@@ -3856,8 +3856,17 @@ export interface components {
              * @default 0
              */
             frequency: number;
-            /** Occurrence Contexts */
+            /**
+             * Occurrence Contexts
+             * @description Evidence sent to the LLM. Front matter is excluded — see excluded_front_matter_count.
+             */
             occurrence_contexts?: components["schemas"]["SEPOccurrenceContext"][];
+            /**
+             * Excluded Front Matter Count
+             * @description Occurrences dropped from occurrence_contexts because they sit before the first body chapter. Reported rather than silently removed so the UI can state what the interpretation was built on: 5 of 海's 13 occurrences in 名字的潮汐 are colophon and title page.
+             * @default 0
+             */
+            excluded_front_matter_count: number;
             /**
              * Co Occurring Entity Ids
              * @description Entity IDs mentioned in paragraphs where this imagery occurs

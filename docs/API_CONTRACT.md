@@ -1665,17 +1665,32 @@ interface SEP {
     paragraph_text: string;
     context_window: string;
   }[];
+  excluded_front_matter_count: number;   // 被排除的前置頁出現筆數，見下
   co_occurring_entity_ids: string[];
   co_occurring_entity_counts: Record<string, number>;  // { entityId: N occurrences whose paragraph mentions this entity }
   co_occurring_event_ids: string[];
   chapter_distribution: Record<string, number>;   // { "1": 3, "2": 1, ... }
   peak_chapters: number[];
-  assembled_by: string;
+  assembled_by: string;   // "symbol_service_v2"；v1 快取不再被採用，見下
   assembled_at: string;
 }
 ```
 
 **Response 404**：imagery 不存在
+
+**說明**
+
+- **`occurrence_contexts` 排除前置頁**（B-074，2026-08-10）。判準與前端 `trust` 乘數
+  同一條線：**正文之前的章節排除、後記保留**。版權頁的「臨海市」是雜訊，但後記某一句
+  可能是全書最清楚的象徵陳述，兩者一起丟掉等於丟掉好的那一半。
+- 這件事比看起來嚴重：occurrences 依章節排序，而 prompt 只帶前 20 筆 —— 未過濾時前置頁
+  不只是「被包含」，它是**模型最先讀到的證據**。《名字的潮汐》的「海」13 筆出現有 5 筆
+  是版權頁與書名頁，正好佔據 `[1]`–`[5]`。
+- `frequency` 與 `chapter_distribution` **不受影響**，仍是全書計數 —— 被過濾的只有送進
+  LLM 的證據。前端用 `excluded_front_matter_count / frequency` 說明可用比例。
+- 若整份文件沒有任何 `body` 章節，則不排除任何筆數（沒有「正文之前」可言）。
+- **`assembled_by` 是版本閘門**：讀快取時比對，不符即視為 miss 重新組裝。v1 的快取
+  帶著前置頁證據，直接沿用等於對所有既有書繼續餵版權頁文字。**不需清除腳本。**
 
 **UI 使用頁面**：象徵意象頁（內部前置步驟，觸發 #15e 前呼叫）
 

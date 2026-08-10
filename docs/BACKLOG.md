@@ -83,16 +83,36 @@ blocked 分支引用 provider 自己的標籤；批次勾選排除已被拒絕�
 
 **影響範圍**: 所有已生成的象徵詮釋，其證據綜述可能混入版權頁文字。「海」現有的詮釋就是在這個條件下生成的。前端的可信度扣分（`trust` 乘數）只影響**排序**，不影響送進 LLM 的內容 —— 這是兩件不同的事，之前被混為一談。
 
-**前端已做的處置**: `InterpretationCta` 與 `InterpretationHero` 在 `front > 0` 時顯示警告，說明前置頁文字**會**作為證據送入、且重新生成不會排除。刻意不印設計稿那句承諾。
+**當時前端的處置（已隨修復更新）**: `InterpretationCta` 與 `InterpretationHero` 在
+`front > 0` 時顯示警告，當時說明前置頁文字**會**作為證據送入、且重新生成不會排除。
+修復後兩句都改為陳述已排除。
 
-**待辦內容**:
-- `assemble_sep()` 依 `ChapterRole` 過濾 `occurrence_contexts`（前置頁排除、後記保留 —— 與 `trust` 的判準一致）
-- 決定 SEP 回應要不要保留被排除的筆數（前端要顯示「已排除 N 筆」就需要）
-- 改動會使既有 `sep:{book}:{imagery}` 快取失效，需在 `cache_invalidation.py` 處理
-- 既有詮釋要不要標記為「以受污染證據生成」或直接失效重生，需決策
-- 修好後把前端警告文案改成陳述已排除
+**已完成（2026-08-10）**:
+- `assemble_sep()` 排除正文之前的章節，保留後記 —— 與前端 `trust` 乘數同一條判準，
+  所以後端回報的排除筆數會等於畫面上的 `front` 數（兩套判準會讓畫面說 5、後端排除 4）
+- SEP 新增 `excluded_front_matter_count`，讓「已排除 N 筆」講得出真話
+- `_SEP_ASSEMBLER_TAG` 升為 `symbol_service_v2`，**讀快取時比對版本**，不符即重新組裝。
+  比在 `cache_invalidation.py` 加 pattern 好：那只在 re-run pipeline 時觸發，舊快取會一直
+  留著繼續餵版權頁文字。自癒，不需清除腳本
+- 前端警告文案改為陳述已排除（`cta.frontWarn` 與 `interpretation.frontMatterWarning`）
+- `docs/API_CONTRACT.md` #15d 已更新
 
-**觸發時機**: B-073 修好、詮釋能正常產出之後 —— 否則無法驗證改動效果。
+**實測驗證**:「海」的 v1 快取 context 章節為 `[-1,-1,-1,0,0,1,5,7,7,8,9,11,11]` —— 前 5 筆
+確實全是前置頁，而 prompt 取 `[:20]` 按序，它們正好佔據 `[1]`–`[5]`。v2 排除這 5 筆。
+
+**待決策（未動使用者資料）**: 全 DB 有一筆以受污染證據生成的詮釋（「海」，
+`review_status = pending`，從未經 HITL 審核）。**沒有自動刪除**。要讓它失效重生：
+
+```sql
+DELETE FROM analysis_cache
+WHERE key = 'symbol_analysis:8f18dd59-bd45-4071-a548-58779fcf7ece:f6bef0f0-e8df-4b03-8d7d-6efa8f380a5f';
+```
+
+未做「以受污染證據生成」的標記：那需要在 `SymbolInterpretation` 記錄它消費的 SEP 版本，
+為一筆 legacy 資料加一個 schema 欄位不成比例。
+
+**觸發時機**: ~~B-073 修好之後~~ —— 該前提建立在「完全無法產出」的錯誤診斷上；
+實際 8 個意象裡 7 個正常，gate 早已解除。2026-08-10 完成。
 
 ---
 
@@ -1214,7 +1234,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-064 | 未分析卡「生成分析」按鈕文字對齊 canvas「建立」 | 🟢 低 | 待開始（觸發：下次動到角色清單卡片） |
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |
 | B-073 | Gemini 對「手」的提示回報 PROHIBITED_CONTENT | 🔴 高 | 工程面已完成（2026-08-10，Phase 1–3）；「手」仍待可用的 fallback provider，見 B-075 |
-| B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 待開始（2026-08-08 實作 D4/D6 時查證；前端已加警告，後端未修） |
+| B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 已完成（2026-08-10）；僅剩「海」那筆舊詮釋要不要重生，見條目內 SQL |
 | B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 主體已完成（2026-08-10 `c218cb8`）；剩 `Settings.has_*` 收斂 |
 | B-076 | provider 封鎖在 30+ 呼叫點偽裝成解析失敗 | 🟡 中 | 待開始（觸發：B-075 修好後；象徵路徑已有參考實作） |
 | B-077 | 傳入 `zh-TW` 但 LLM 回傳簡體中文 | 🟢 低 | 待開始（觸發：下次動到任一 LLM prompt） |
