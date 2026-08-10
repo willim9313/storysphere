@@ -21,6 +21,7 @@ from pydantic import BaseModel, Field
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from storysphere.config.mythos import get_mythos_summary, resolve_mythos_id
+from storysphere.core.error_handling import llm_text
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import EntityType
@@ -852,7 +853,7 @@ class TensionService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -971,7 +972,7 @@ class TensionService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, list):
@@ -1047,7 +1048,7 @@ class TensionService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):

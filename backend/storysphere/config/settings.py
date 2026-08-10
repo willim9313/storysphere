@@ -11,6 +11,22 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 logger = logging.getLogger(__name__)
 
 
+def is_configured(value: str) -> bool:
+    """Whether a credential setting holds something usable.
+
+    Bare truthiness is not enough. ``.env.example`` ships placeholders in the
+    form ``your_openai_api_key_here``, and a developer who fills in one provider
+    leaves the others sitting there — non-empty, so every check reads them as
+    configured. The consequence is not a clear failure but a wrong choice made
+    confidently: a fallback resolved to a provider that answers 401.
+
+    Lives here rather than in ``llm_client`` so that ``Settings.has_*`` and
+    ``LLMClient._has_key`` cannot answer "is this provider available?"
+    differently. They did, until B-075.
+    """
+    return bool(value) and not value.strip().lower().startswith("your_")
+
+
 class Settings(BaseSettings):
     """StorySphere application settings.
 
@@ -208,6 +224,35 @@ class Settings(BaseSettings):
     app_port: int = 8000
 
     # ── Validators ────────────────────────────────────────────────────────────
+    @field_validator("*", mode="before")
+    @classmethod
+    def blank_out_orphaned_comments(cls, v: object) -> object:
+        """Treat a value that is nothing but a ``#`` comment as unset.
+
+        python-dotenv strips an inline comment only when a value precedes it::
+
+            FOO=bar    # note   ->  'bar'
+            FOO=       # note   ->  '# note'      <- the comment becomes the value
+
+        So every blank setting in ``.env`` written with a trailing comment loads
+        as that comment. Four in ``.env.example`` are written that way, and every
+        one of their consumers guards with plain truthiness — ``settings.x or
+        None``, ``if settings.x:`` — which is exactly the check a non-empty
+        comment string sails through. The damage was silent: a fallback LLM named
+        "# e.g. qwen2.5:3b, llama3.2, phi3.5", an api-key header sent to a local
+        Qdrant, a log file named after its own documentation.
+
+        Fixing the two files is not enough on its own — the next blank setting
+        written the same way brings it back, and ``.env.example`` hands the shape
+        to everyone who copies it.
+
+        No setting here can legitimately begin with ``#``: these are keys, URLs,
+        paths, model names and enums.
+        """
+        if isinstance(v, str) and v.lstrip().startswith("#"):
+            return ""
+        return v
+
     @model_validator(mode="after")
     def enforce_lightweight_constraints(self) -> Settings:
         if self.deploy_mode == "lightweight" and self.kg_mode != "networkx":
@@ -233,19 +278,19 @@ class Settings(BaseSettings):
 
     @property
     def has_gemini(self) -> bool:
-        return bool(self.gemini_api_key)
+        return is_configured(self.gemini_api_key)
 
     @property
     def has_openai(self) -> bool:
-        return bool(self.openai_api_key)
+        return is_configured(self.openai_api_key)
 
     @property
     def has_anthropic(self) -> bool:
-        return bool(self.anthropic_api_key)
+        return is_configured(self.anthropic_api_key)
 
     @property
     def has_local_llm(self) -> bool:
-        return bool(self.local_llm_model)
+        return is_configured(self.local_llm_model)
 
     @field_validator("app_port")
     @classmethod

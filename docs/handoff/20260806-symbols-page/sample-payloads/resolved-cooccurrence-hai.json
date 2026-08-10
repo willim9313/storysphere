@@ -1,0 +1,248 @@
+{
+  "_README": "「海」的 SEP 共現 ID 解析結果。SEP 只回傳 ID，此檔補上名稱與型別供設計參考。注意 co_occurring_entities[0] 是與意象同名的 KG 實體（自我匹配），設計時必須過濾。",
+  "imagery_term": "海",
+  "frequency": 13,
+  "co_occurring_entities": [
+    {
+      "id": "a2b77c23-5cde-4611-b94d-a7dd7778e1f5",
+      "name": "海",
+      "entity_type": "location",
+      "co_occurrence_count": 12
+    },
+    {
+      "id": "08f532d4-2b6b-411a-a750-8dd64f6293ed",
+      "name": "薩爾瑪雷納",
+      "entity_type": "location",
+      "co_occurrence_count": 6
+    },
+    {
+      "id": "886bb8c2-7f8f-4adb-8b3b-56fbcd54f4ee",
+      "name": "伊內絲",
+      "entity_type": "character",
+      "co_occurrence_count": 6
+    },
+    {
+      "id": "c2409df1-839f-46c8-9897-fb7bc0240550",
+      "name": "鹽",
+      "entity_type": "concept",
+      "co_occurrence_count": 5
+    },
+    {
+      "id": "c0476eba-bda9-4425-bdd5-205dd8af0acf",
+      "name": "泥灘",
+      "entity_type": "location",
+      "co_occurrence_count": 4
+    },
+    {
+      "id": "277b7f19-6173-4a2a-8a31-27ed1c7672ca",
+      "name": "埃米利安",
+      "entity_type": "character",
+      "co_occurrence_count": 3
+    },
+    {
+      "id": "35ce8399-ad93-4439-927a-bbc328f12219",
+      "name": "鹽田",
+      "entity_type": "location",
+      "co_occurrence_count": 3
+    },
+    {
+      "id": "9b8385ba-55a8-4854-8478-bf472c54f434",
+      "name": "懷錶",
+      "entity_type": "object",
+      "co_occurrence_count": 3
+    },
+    {
+      "id": "4a41e271-9466-4d32-87ef-c1324b3e8d4d",
+      "name": "讀鹽人",
+      "entity_type": "concept",
+      "co_occurrence_count": 2
+    },
+    {
+      "id": "781bf12e-6b4b-49be-80db-76b7b0df23c0",
+      "name": "泰奧多爾",
+      "entity_type": "character",
+      "co_occurrence_count": 2
+    },
+    {
+      "id": "7b3b942a-2c4a-4f50-a4bd-230d325b58b6",
+      "name": "退名之潮",
+      "entity_type": "concept",
+      "co_occurrence_count": 2
+    },
+    {
+      "id": "94b04e84-f739-4a86-be78-a0b2da6c6c32",
+      "name": "巴爾塔薩神父",
+      "entity_type": "character",
+      "co_occurrence_count": 2
+    },
+    {
+      "id": "fca8e3ff-1bf4-4448-92f8-6995adf9f128",
+      "name": "礁石",
+      "entity_type": "location",
+      "co_occurrence_count": 2
+    },
+    {
+      "id": "4a46bedf-1a12-407f-aab7-14be49d1a473",
+      "name": "莉莉安娜",
+      "entity_type": "character",
+      "co_occurrence_count": 1
+    },
+    {
+      "id": "6921b488-e56f-4196-9326-d04cf060105a",
+      "name": "妹妹",
+      "entity_type": "character",
+      "co_occurrence_count": 1
+    },
+    {
+      "id": "7c2116a1-8ad8-462f-b085-ba84d20e28f1",
+      "name": "教會",
+      "entity_type": "organization",
+      "co_occurrence_count": 1
+    },
+    {
+      "id": "9464552b-662d-4310-8473-a4f87a2dea47",
+      "name": "油燈",
+      "entity_type": "object",
+      "co_occurrence_count": 1
+    },
+    {
+      "id": "9777b8b7-b189-44b7-ad61-ccde792b8802",
+      "name": "海床",
+      "entity_type": "location",
+      "co_occurrence_count": 1
+    },
+    {
+      "id": "e718ef83-d813-43eb-8e42-044bb05325c1",
+      "name": "記憶的光",
+      "entity_type": "concept",
+      "co_occurrence_count": 1
+    }
+  ],
+  "co_occurring_events": [
+    {
+      "id": "4e23dac4-e991-47ac-833c-ad695f0b6833",
+      "title": "鹽的覺醒",
+      "chapter": 1
+    },
+    {
+      "id": "ce48a708-2c5c-4882-bfcd-28d89aafef24",
+      "title": "薩爾瑪雷納的喪葬習俗",
+      "chapter": 1
+    },
+    {
+      "id": "31db1a3c-768b-43f9-9956-570a4390ec4e",
+      "title": "伊內絲向瑪蒂爾德夫人報信",
+      "chapter": 1
+    },
+    {
+      "id": "c61384ab-4f54-40c8-b429-466faa19ef16",
+      "title": "瑪蒂爾德夫人的預言",
+      "chapter": 1
+    },
+    {
+      "id": "0783a04a-ce3f-4a8a-8063-65dfb69e35e3",
+      "title": "埃米利安的失蹤",
+      "chapter": 1
+    },
+    {
+      "id": "68c3c164-2aa3-42f1-921e-9b5423e8b5c4",
+      "title": "退名之潮開始",
+      "chapter": 5
+    },
+    {
+      "id": "3d35fcdc-6556-4915-b2c8-0bc05e496971",
+      "title": "海床顯露與記憶之光出現",
+      "chapter": 5
+    },
+    {
+      "id": "97ad1364-7652-41eb-a99c-32ba1cc2aa48",
+      "title": "瑪蒂爾德夫人指示伊內絲讀鹽",
+      "chapter": 5
+    },
+    {
+      "id": "c1a871cb-e287-47d1-b88e-d6d654f1c807",
+      "title": "伊內絲踏上海床",
+      "chapter": 5
+    },
+    {
+      "id": "df2e68fe-726a-4838-88b5-1bc49cdfcb54",
+      "title": "伊內絲發現懷錶",
+      "chapter": 7
+    },
+    {
+      "id": "aaa01f75-eeec-44e2-8a88-5a97af94ece6",
+      "title": "泰奧多爾與莉莉安娜的愛情與背叛",
+      "chapter": 7
+    },
+    {
+      "id": "65b58caa-4f81-4bff-bdde-479773474b02",
+      "title": "莉莉安娜投海自盡",
+      "chapter": 7
+    },
+    {
+      "id": "ba3c594c-20be-4420-b4d0-02f9fe19a0b8",
+      "title": "伊內絲理解泰奧多爾的來意",
+      "chapter": 7
+    },
+    {
+      "id": "63146b97-a9c8-441f-9130-542d14e80427",
+      "title": "泰奧多爾跪地請求讀鹽",
+      "chapter": 7
+    },
+    {
+      "id": "a303d2d5-3a4e-4e6d-ac12-775cc7520bf8",
+      "title": "伊內絲以莉莉安娜的聲音讀記憶",
+      "chapter": 7
+    },
+    {
+      "id": "4ba094f3-aecc-4696-82b6-02d31cd1c337",
+      "title": "泰奧多爾的最終領悟",
+      "chapter": 7
+    },
+    {
+      "id": "a0ad52e1-dbdf-48d7-a303-6347258481ca",
+      "title": "瑪蒂爾德夫人去世",
+      "chapter": 8
+    },
+    {
+      "id": "a99377ce-ee60-452c-8ee6-e935e389e93f",
+      "title": "瑪蒂爾德夫人揭示埃米利安的真相",
+      "chapter": 8
+    },
+    {
+      "id": "208a72d5-e727-42e4-8dc7-71b5fe0aa080",
+      "title": "揭示外婆的命運",
+      "chapter": 8
+    },
+    {
+      "id": "13942a00-11dd-4aa4-a807-53ea5a9bc398",
+      "title": "瑪蒂爾德夫人傳授讀鹽的最終教誨",
+      "chapter": 8
+    },
+    {
+      "id": "bacfc7e3-4a6a-4d12-a8c2-e4a9aaa9ea40",
+      "title": "伊內絲走向泥灘",
+      "chapter": 9
+    },
+    {
+      "id": "ffe6dfe6-cb60-4c5c-a5c1-9eec540f6ab0",
+      "title": "發現貝殼手環",
+      "chapter": 9
+    },
+    {
+      "id": "24c3a9e9-c441-482b-b161-3b08a76376d8",
+      "title": "漲潮開始",
+      "chapter": 9
+    },
+    {
+      "id": "8f4935bf-93fb-4ba4-a25a-bfc32a6646a6",
+      "title": "伊內絲放棄讀鹽",
+      "chapter": 9
+    },
+    {
+      "id": "82145f4d-0850-4a28-a624-3d6d7b804564",
+      "title": "伊內絲跑回岸邊",
+      "chapter": 9
+    }
+  ]
+}

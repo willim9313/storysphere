@@ -1260,13 +1260,7 @@
     "noData": "尚無意象資料",
     "noResults": "無符合結果",
     "chapterDist": "章節分布",
-    "firstSeen": "首見第 {{chapter}} 章",
     "peakChapters": "峰值第 {{chapter}} 章",
-    "outsideBody": "另有 {{count}} 次位於非正文",
-    "densityLow": "低",
-    "densityMid": "中",
-    "densityHigh": "高",
-    "densityPeak": "峰值",
     "coOccurrences": "共現網絡",
     "noCoOccurrences": "尚無共現資料",
     "occurrences": "出現紀錄",
@@ -1333,7 +1327,26 @@
       "linkedCharHint": "{{count}} 次共現",
       "linkedEventHint": "第 {{chapter}} 章",
       "coOccurrenceCount": "{{count}} 次共現",
-      "occurrenceJumpTitle": "跳至閱讀頁"
+      "occurrenceJumpTitle": "跳至閱讀頁",
+      "frontMatterWarning": "這個意象有 {{count}} 筆出現在前置頁（版權頁／書名頁），未列入詮釋證據；送進 LLM 的只有正文與後記。分布圖仍會畫出它們。",
+      "cta": {
+        "recommendedTitle": "訊號夠強 —— 值得把它寫成一段論證",
+        "recommendedDesc": "敘事負載 {{value}}（全書第 {{rank}} 名）。詮釋會把上面六個訊號寫成主題命題與佐證綜述，並進入 HITL 審核。",
+        "recommendedButton": "生成詮釋",
+        "availableTitle": "可生成詮釋，但先讀上面的行為摘要",
+        "availableDesc": "敘事負載 {{value}}。行為摘要已回答「它在幹嘛」；詮釋補的是「它承載什麼意義」，需消耗 token。",
+        "availableButton": "生成詮釋",
+        "discouragedTitle": "證據不足，先不建議生成",
+        "discouragedDesc": "敘事負載 {{value}}。這個意象的分布、依附與結盟都太薄，LLM 只能複述引文。建議先看行為分群裡同型的意象。",
+        "discouragedButton": "仍要生成",
+        "weakTitle": "訊號偏弱，生成結果可能只是複述引文",
+        "frontWarn": "{{count}} 筆前置頁出現不列入證據，只有正文與後記會送進 LLM。",
+        "blockedTitle": "供應商拒絕了這個提示,不是訊號不足",
+        "blockedDesc": "LLM 供應商以 {{detail}} 阻擋了這個意象的提示,未回傳任何內容。這是模型端對文本的判定,重送同一份證據會得到同樣的結果。換一家供應商後可再試。",
+        "blockedEmptyDesc": "LLM 供應商回傳空內容,且未說明原因。重送同一份證據多半會得到同樣的結果。換一家供應商後可再試。",
+        "blockedButton": "再試一次",
+        "blockedHint": "重試會重新送出同一份證據;除非已換供應商,否則預期仍會被拒"
+      }
     },
     "generating": {
       "eyebrow": "LLM 詮釋進行中",
@@ -1362,22 +1375,10 @@
       "reviewFailed": "更新審核狀態失敗。"
     },
     "dashboard": {
-      "totalSymbols": "意象總數",
-      "totalOccurrences": "總出現次數",
-      "analyzedCount": "已生成詮釋",
-      "approvedCount": "已通過審核",
-      "donutLabel": "意象",
-      "typeDistTitle": "類型分布",
-      "typeCount": "{{count}} 類",
-      "polarityDistTitle": "極性分布",
-      "polarityMeta": "已詮釋 {{analyzed}}/{{total}}",
-      "polarityUnanalyzed": "未詮釋",
       "freqTitle": "頻率長尾",
       "freqMeta": "前 {{count}} 名",
       "heatTitle": "章節密度熱圖",
-      "heatMeta": "每意象 × {{chapters}} 章",
-      "heatLegendLow": "低密度",
-      "heatLegendHigh": "高密度"
+      "heatMeta": "每意象 × {{chapters}} 章"
     },
     "emptyStep1Title": "確認文本切分已完成",
     "emptyStep1Desc": "意象萃取依賴段落層次的 token——若段落層尚未建立，意象不會自動執行。",
@@ -1386,7 +1387,266 @@
     "emptyStep3Title": "必要時手動觸發",
     "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。",
     "emptyUnravelingBtn": "開啟建構概覽",
-    "emptyRecheckBtn": "重新檢查狀態"
+    "emptyRecheckBtn": "重新檢查狀態",
+    "list": {
+      "sortAxis": "排序主軸",
+      "axis": {
+        "load": "敘事負載",
+        "attach": "角色依附",
+        "span": "貫穿度",
+        "events": "事件依附",
+        "freq": "正文頻率",
+        "first": "首見章序",
+        "review": "審核狀態"
+      },
+      "axisDefault": "敘事負載（預設）",
+      "axisFreqAside": "正文頻率（對照）",
+      "searchPlaceholder": "搜尋意象…（含異體）",
+      "headingSorted": "依{{axis}}排序",
+      "headingSearch": "搜尋結果",
+      "headingShape": "行為分群篩選",
+      "count": "{{shown}} / {{total}}",
+      "tailNote": "另有 {{count}} 個只出現 1 次的詞，未列入排序",
+      "metric": {
+        "load": "{{value}}",
+        "attach": "×{{value}}",
+        "attachNone": "—",
+        "span": "{{hit}}/{{total}} 章",
+        "events": "{{count}} 事",
+        "freq": "{{count}} 次",
+        "first": "ch{{chapter}}",
+        "firstNone": "ch—",
+        "reviewNone": "未詮釋"
+      },
+      "checkHint": "在左欄勾選要生成詮釋的意象。已有詮釋者與只出現 1 次的詞不列入批次。",
+      "checkNone": "目前沒有可勾選的意象。",
+      "checkAria": "勾選「{{term}}」"
+    },
+    "shape": {
+      "through": "跨 {{count}} 章貫穿",
+      "backHalf": "集中在後半段（{{first}}–{{last}} 章）",
+      "frontHalf": "集中在前半段（{{first}}–{{last}} 章）",
+      "earlyExit": "第 {{first}}–{{last}} 章，開場即退場",
+      "lateEntry": "第 {{first}} 章才登場",
+      "scatter": "第 {{first}}–{{last}} 章間斷出現",
+      "single": "只出現在第 {{chapter}} 章",
+      "none": "僅出現在非正文"
+    },
+    "behaviour": {
+      "attach": "依附{{name}} {{share}}%（{{lift}} 倍）",
+      "front": "{{count}} 次在前置頁",
+      "events": "連結 {{count}} 事件",
+      "separator": " · "
+    },
+    "overview": {
+      "title": "全書意象地圖",
+      "meta": {
+        "symbols": "{{count}} 個意象",
+        "occurrences": "{{count}} 次出現",
+        "signals": "行為訊號 {{count}}/{{total}} 可算",
+        "interpreted": "LLM 詮釋 {{count}}/{{total}}",
+        "noisy": "證據有雜訊 {{count}} 個",
+        "separator": " · "
+      },
+      "aiCostLegend": "標此記號者為 LLM 生成內容或會觸發生成的動作，需消耗 token 並進入 HITL 審核；其餘訊號皆為零成本實算。",
+      "picks": {
+        "title": "該先讀哪幾個",
+        "subtitle": "依敘事負載排序的前 {{count}} 名，全部由結構化訊號即時算出",
+        "rank": "#{{rank}}",
+        "load": "負載 {{value}}",
+        "tagSpan": "{{hit}}/{{total}} 章",
+        "tagEvents": "{{count}} 事件",
+        "tagTrust": "可信度 {{value}}%",
+        "ctaRecommended": "訊號夠強，建議生成詮釋 →",
+        "ctaAvailable": "先讀行為摘要 →",
+        "ctaDiscouraged": "證據不足，先不建議生成",
+        "ctaReviewed": "已有詮釋 · {{status}} →",
+        "empty": "這本書還沒有出現超過一次的意象。",
+        "ctaBlocked": "供應商拒絕 · 無法詮釋"
+      },
+      "heat": {
+        "meta": "{{rows}} 個主清單意象 × {{slots}} 段章節軸 · 正文單章最大值 {{max}}",
+        "subtitle": "色階以跨意象的單章最大值正規化，因此各列可直接互比",
+        "axisFront": "前置頁",
+        "axisBody": "正文 第 {{first}}–{{last}} 章",
+        "axisBack": "後記",
+        "legendStep": "{{count}} 次",
+        "legendMore": "{{count}} 次以上",
+        "legendOutside": "非正文",
+        "note": "虛框格＝非正文出現：不計入分布形狀與首見章，但計入證據可信度扣分。"
+      },
+      "shapes": {
+        "title": "行為分群",
+        "subtitle": "點一列即篩選左欄清單",
+        "through": "貫穿型 · 從頭到尾都在",
+        "backHalf": "後段集中 · 事件之後才密集",
+        "frontHalf": "前半段集中",
+        "earlyExit": "開場即退場 · 中途消失",
+        "lateEntry": "結尾才登場",
+        "scatter": "間斷出現",
+        "single": "單章出現",
+        "none": "僅出現在非正文"
+      },
+      "tail": {
+        "title": "單次出現詞 · {{count}}",
+        "meta": "{{pct}}% 的意象只出現一次",
+        "description": "只出現一次的詞沒有分布、沒有結盟、沒有依附 —— 在行為訊號的框架下它還不構成象徵。因此不進排序、不進批次生成，但可點、可搜。字級隨首見章序遞增。",
+        "chapter": "ch{{chapter}}",
+        "chapterFront": "前",
+        "chapterBack": "後"
+      },
+      "batch": {
+        "topN": "生成訊號最強的前 {{count}} 名…",
+        "all": "全部 {{count}} 個…",
+        "confirmTopN": "將對敘事負載最高的 {{count}} 個意象生成 LLM 詮釋。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？",
+        "confirmAll": "將對全部 {{count}} 個主清單意象生成 LLM 詮釋（已有詮釋者自動跳過）。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？",
+        "tailExcluded": "只出現 1 次的 {{count}} 個詞不列入批次。",
+        "running": "LLM 批次生成中",
+        "hint": "可離開頁面，結果會保留。",
+        "statGenerated": "已生成",
+        "statSkipped": "跳過",
+        "statFailed": "失敗",
+        "done": "批次完成",
+        "dismiss": "關閉",
+        "failed": "批次生成失敗，請稍後再試。",
+        "check": "勾選多筆",
+        "checkOff": "取消勾選",
+        "checked": "生成已勾選（{{count}}）",
+        "confirmChecked": "將對勾選的 {{count}} 個意象生成 LLM 詮釋。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？"
+      }
+    },
+    "detail": {
+      "backToMap": "全書意象地圖",
+      "rank": "敘事負載 {{value}} · 全書第 {{rank}} 名",
+      "occBody": "正文 {{count}}",
+      "occFront": "前置 {{count}}",
+      "occBack": "後記 {{count}}",
+      "occSeparator": " · "
+    },
+    "claim": {
+      "opening": "「{{term}}」{{shape}}",
+      "attach": "，{{share}}% 的正文出現與{{name}}同段（{{hit}}/{{of}}），比隨機高 {{lift}} 倍",
+      "events": "，牽連 {{count}} 個事件",
+      "polluted": "；但 {{count}}/{{total}} 次來自前置頁，頻率排名不可信",
+      "clean": "；沒有前置頁出現，證據乾淨",
+      "fullStop": "。",
+      "noBody": "；沒有正文證據可供詮釋"
+    },
+    "signal": {
+      "title": "行為摘要",
+      "free": "由結構化訊號即時算出，不經 LLM、不耗 token",
+      "loadUnranked": "敘事負載 {{value}} · 未列入排序",
+      "none": "無資料",
+      "attach": "角色依附",
+      "attachValue": "{{name}} {{hit}}/{{of}}",
+      "attachNote": "{{name}}出現在正文 {{paragraphs}}/{{total}} 段（{{base}}%），此意象與其同段的比例是隨機預期的 {{lift}} 倍。長度為全書最強依附的比例",
+      "attachNoteNone": "SEP 無 character 型共現，或該角色沒有可比對的段落基準",
+      "shape": "分布形狀",
+      "shapeNote": "正文第 {{first}}–{{last}} 章 · 命中 {{hit}}/{{chapters}} 章。長度為命中章數占正文比例",
+      "shapeNoteNone": "正文沒有出現，無分布形狀可言",
+      "events": "事件依附",
+      "eventsValue": "{{count}} 個事件",
+      "eventsNote": "與意象共現的 KG 事件數。長度以全書最高 {{max}} 個為滿",
+      "eventsNoteNone": "沒有與任何 KG 事件共現",
+      "allies": "意象結盟",
+      "alliesValue": "{{count}} 個意象",
+      "alliesNote": "最強者「{{term}}」共現 {{count}} 次。長度以全書最高 {{max}} 個為滿",
+      "alliesNoteNone": "沒有與其他意象同段出現",
+      "arc": "登場／退場",
+      "arcValue": "第 {{first}} 章 → 第 {{last}} 章",
+      "arcNoteToEnd": "到最後一章仍在場。長度為跨幅占正文比例，此項進入排序",
+      "arcNoteVanishes": "第 {{chapter}} 章之後消失，屬於開場後即退場。長度為跨幅占正文比例，此項進入排序",
+      "arcNoteEnds": "收在第 {{chapter}} 章。長度為跨幅占正文比例，此項進入排序",
+      "arcNoteNone": "正文沒有出現",
+      "trust": "證據可信度",
+      "trustValue": "{{value}}%",
+      "trustNotePolluted": "{{count}} 次來自前置頁（版權頁／書名頁／目次），已作為排序乘數扣分",
+      "trustNotePollutedBack": "{{count}} 次來自前置頁（版權頁／書名頁／目次），已作為排序乘數扣分；後記 {{back}} 次計為有效證據",
+      "trustNoteClean": "全部出現都在正文，無非正文污染",
+      "trustNoteCleanBack": "無前置頁出現；後記 {{back}} 次計為有效證據，不扣分"
+    },
+    "dist": {
+      "label": {
+        "front": "前",
+        "back": "後",
+        "preface": "前言",
+        "toc": "目次",
+        "afterword": "後記"
+      },
+      "scale": "高度基準 {{max}}",
+      "noteFront": "前置頁 {{count}} 次（版權頁／書名頁／目次）已從分布形狀與首見排除，僅計入證據可信度扣分",
+      "noteClean": "無前置頁出現，分布形狀與首見即為正文事實",
+      "peakFlat": "分布平坦，無突出章節"
+    },
+    "firstSeenBody": "首見第 {{chapter}} 章（正文）",
+    "co": {
+      "title": "共現網絡 · 依 entity_type 分流",
+      "meta": "{{entities}} 個實體 / {{events}} 個事件",
+      "selfFiltered": "已濾掉自我匹配：與意象同名的 KG 實體「{{term}}」共現 {{count}} 次，原本是第一名。取它當訊號等於說「這個意象總是跟自己一起出現」。",
+      "selfNone": "共現實體以 location / concept / object 為多，因此不再統稱「共現角色」—— 只有 character 型才進角色依附訊號。",
+      "shareOfBody": "占正文出現 {{pct}}%",
+      "noBodyShare": "無正文出現",
+      "entityType": {
+        "location": "地點",
+        "concept": "概念",
+        "object": "物件",
+        "organization": "組織",
+        "character": "角色",
+        "event": "事件"
+      },
+      "characters": {
+        "title": "角色依附 · character",
+        "sub": "唯一進入排序的共現訊號",
+        "empty": "SEP 無 character 型共現"
+      },
+      "scenes": {
+        "title": "場景與物件 · location / concept / object",
+        "sub": "這些不是角色。它們描述意象出沒的場景，不進排序",
+        "empty": "無場景或物件型共現"
+      },
+      "allies": {
+        "title": "結盟意象",
+        "sub": "與 KG 實體清單會重複；此欄只認意象身分",
+        "empty": "沒有與其他意象同段出現"
+      },
+      "leadHint": "這是進入敘事負載的那一筆 —— 依「比隨機高多少倍 × 證據筆數」取，不是依共現次數"
+    },
+    "occ": {
+      "meta": "{{count}} 筆 · 正文 {{chapters}} 章 · 前置頁 {{front}} 筆另計",
+      "outsideHeading": "{{label}}（第 {{chapter}} 章）",
+      "outsideBadge": "非正文 · 保留為證據 · 不可跳閱讀頁",
+      "noJump": "不可跳",
+      "noJumpTitle": "閱讀頁只收錄正文章節，這一段沒有可開啟的頁面",
+      "frontShow": "顯示前置頁 {{count}} 筆",
+      "frontHide": "隱藏前置頁 {{count}} 筆",
+      "frontDesc": "版權頁與書名頁 · 純雜訊，不進詮釋輸入、不可跳閱讀頁",
+      "metaClean": "{{count}} 筆 · 正文 {{chapters}} 章"
+    },
+    "cluster": {
+      "crumb": "意象叢",
+      "cardTitle": "意象叢",
+      "cardMeta": "共現 {{min}} 次以上才算結盟",
+      "title": "{{term}}叢",
+      "method": "以「{{term}}」為核心，收共現 {{min}} 次以上的意象，共 {{count}} 個成員",
+      "gridTitle": "同軸並看",
+      "gridMeta": "{{count}} 個成員",
+      "seed": "核心",
+      "withSeed": "共現 {{count}} 次",
+      "hot": "共同落點：第 {{chapters}} 章 —— {{count}}／{{total}} 個成員同時出現",
+      "hotNone": "成員沒有共同的正文落點，這叢意象是各自分開承載的",
+      "boundary": "邊界說明：這裡不做小型知識圖譜。列是意象、欄是章節、色階是出現次數 —— 回答「這些意象一起承載了什麼」。「誰跟誰有關係」仍然是知識圖譜頁的事。"
+    },
+    "pin": {
+      "set": "釘選以便並看",
+      "clearSelf": "取消並看",
+      "clearOther": "並看中：{{term}}",
+      "clearTitle": "取消並看，移除下排的對照分布",
+      "note": "下排＝並看中的「{{term}}」，同一條軸、同一個高度基準；顏色為其類型色，避免與上排的次數色階混淆"
+    },
+    "blocked": {
+      "badge": "被阻擋",
+      "badgeTitle": "LLM 供應商拒絕了這個意象的提示,尚未產出詮釋"
+    }
   },
   "narrative": {
     "heroJourney": "英雄旅程",

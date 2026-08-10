@@ -1,114 +1,153 @@
-import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { densityToken } from './tokens';
-import { BODY_CHAPTER_MIN } from './chapterAxis';
 
-interface ChapterDistChartProps {
-  distribution: Record<string, number>;
-  peakChapters?: number[];
-  totalChapters?: number;
-  barW?: number;
-  gap?: number;
-  maxH?: number;
+import { densityStep, typeStyle } from './tokens';
+import {
+  OUTSIDE_CELL_FLEX,
+  hasDistinctPeak,
+  type ChapterAxis,
+  type ChapterAxisSlot,
+} from './chapterAxis';
+import { segmentLabel } from './symbolPhrases';
+import type { SymbolSignals } from './symbolSignals';
+
+/** Tallest a bar can draw, in px. */
+const MAX_BAR_H = 72;
+/** The pinned symbol's row, drawn shorter so the open symbol stays the subject. */
+const PIN_BAR_H = 36;
+/** An occupied chapter is never invisible, however small its share. */
+const MIN_BAR_H = 3;
+
+interface Props {
+  signals: SymbolSignals;
+  axis: ChapterAxis;
+  /** Count a full-height bar represents. Must come from `barScale`. */
+  scale: number;
+  /**
+   * A second symbol drawn beneath, for comparison. Null when nothing is pinned or
+   * when the pinned symbol is the one already shown.
+   */
+  pinned: SymbolSignals | null;
 }
 
-export function ChapterDistChart({
-  distribution,
-  peakChapters = [],
-  totalChapters = 20,
-  barW = 22,
-  gap = 6,
-  maxH = 64,
-}: Readonly<ChapterDistChartProps>) {
+/**
+ * One bar per axis slot, across front matter, the body, and back matter.
+ *
+ * The chart used to draw chapters 1..N only. Front matter had no slot at all, so
+ * 5 of 海's 13 occurrences were disclosed as a footnote count and the shape of
+ * the bars silently disagreed with the total printed above them.
+ *
+ * Height is scaled against the same cross-symbol maximum the overview heatmap
+ * uses, widened if this symbol's own front or back matter exceeds it — 海 has 3
+ * occurrences in the colophon and at most 2 in any chapter, and a bar taller than
+ * the box is worse than a short one. Scaling to the symbol's own maximum instead
+ * would draw a full-height bar for a lone occurrence, which is the per-row
+ * normalisation PR #27 removed from the heatmap for making the book's dominant
+ * image the palest thing on screen.
+ */
+export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
-  // `totalChapters` is the shared axis edge from `bodyChapterMax`, so it already
-  // covers chapters past the book's own chapterCount. Front matter (< 1) has no
-  // slot here; callers disclose it with `symbol.outsideBody`.
-  const chapterCount = Math.max(totalChapters - BODY_CHAPTER_MIN + 1, 0);
-  const entries = Array.from({ length: chapterCount }, (_, i) => {
-    const ch = i + BODY_CHAPTER_MIN;
-    return { ch, cnt: distribution[String(ch)] ?? 0 };
-  });
-  const maxCnt = Math.max(...entries.map((e) => e.cnt), 1);
-  const [hovered, setHovered] = useState<number | null>(null);
-
-  const labelH = 14;
-  const peakH = 10;
-  const svgW = chapterCount * (barW + gap);
-  const svgH = maxH + labelH + peakH;
-  const peakSet = new Set(peakChapters);
+  const distribution = signals.item.chapter_distribution ?? {};
+  // No markers when nothing stands out — see `hasDistinctPeak`.
+  const peaks = hasDistinctPeak(signals.distribution)
+    ? new Set(signals.distribution.peakBodyChapters)
+    : new Set<number>();
 
   return (
-    <div style={{ position: 'relative' }}>
-      <svg width={svgW} height={svgH} style={{ display: 'block', overflow: 'visible' }}>
-        {entries.map(({ ch, cnt }, i) => {
-          const x = i * (barW + gap);
-          const barH = cnt === 0 ? 0 : Math.max(3, (cnt / maxCnt) * maxH);
-          const y = peakH + maxH - barH;
-          const fill = cnt === 0 ? 'transparent' : densityToken(cnt, maxCnt);
-          const isHover = hovered === ch;
-          const isPeak = peakSet.has(ch);
+    <div className="sym-dist">
+      <div className="sym-dist-plot">
+        {axis.slots.map((slot) => {
+          const count = distribution[String(slot.chapter)] ?? 0;
+          const isBody = slot.segment === 'body';
+          const isPeak = isBody && count > 0 && peaks.has(slot.chapter);
           return (
-            <g key={ch} onMouseEnter={() => setHovered(ch)} onMouseLeave={() => setHovered(null)}>
-              <line
-                x1={x}
-                x2={x + barW}
-                y1={peakH + maxH + 0.5}
-                y2={peakH + maxH + 0.5}
-                stroke="var(--border)"
-                strokeWidth="var(--line-weight)"
+            <div
+              key={slot.chapter}
+              className="sym-dist-col"
+              style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
+              title={slotTitle(t, slot, count)}
+            >
+              <span className="sym-dist-peak">{isPeak ? '▲' : ''}</span>
+              <span
+                className="sym-dist-bar"
+                style={{
+                  height:
+                    count > 0
+                      ? `${Math.max(MIN_BAR_H, (count / scale) * MAX_BAR_H)}px`
+                      : '2px',
+                  background: count > 0 ? densityStep(count) : 'var(--bg-tertiary)',
+                  // A dashed edge marks a bar that sits outside the story: kept
+                  // visible, but excluded from shape and first appearance.
+                  border: count > 0 && !isBody ? '1px dashed var(--fg-muted)' : undefined,
+                  // Held back rather than shortened. 海's colophon holds more
+                  // occurrences than any chapter does, so at full contrast the
+                  // tallest, darkest bar on the chart is the noise — the eye
+                  // reaches it before the note explaining it should be ignored.
+                  opacity: isBody ? undefined : 0.45,
+                }}
               />
-              {cnt > 0 && (
-                <rect x={x} y={y} width={barW} height={barH} rx={2} fill={fill} opacity={isHover ? 1 : 0.92} />
-              )}
-              {isPeak && cnt > 0 && (
-                <polygon
-                  points={`${x + barW / 2 - 3},${y - 6} ${x + barW / 2 + 3},${y - 6} ${x + barW / 2},${y - 2}`}
-                  fill="var(--symbol-density-peak)"
-                />
-              )}
-              <text
-                x={x + barW / 2}
-                y={svgH - 2}
-                textAnchor="middle"
-                fontSize="9"
-                fill={isHover || isPeak ? 'var(--fg-secondary)' : 'var(--fg-muted)'}
-                style={{ fontFamily: 'var(--font-sans)', fontWeight: isPeak ? 600 : 400 }}
-              >
-                {ch}
-              </text>
-              <rect x={x} y={0} width={barW + gap} height={svgH} fill="transparent" />
-            </g>
+            </div>
           );
         })}
-      </svg>
-      {hovered != null && (distribution[String(hovered)] ?? 0) > 0 && (
-        <div
-          style={{
-            position: 'absolute',
-            top: 0,
-            left: Math.min(
-              Math.max((hovered - BODY_CHAPTER_MIN) * (barW + gap) - 20, 0),
-              Math.max(svgW - 120, 0),
-            ),
-            background: 'var(--fg-primary)',
-            color: 'var(--bg-primary)',
-            padding: '4px 8px',
-            borderRadius: 'var(--radius-sm)',
-            fontFamily: 'var(--font-sans)',
-            fontSize: 'var(--font-size-2xs)',
-            fontWeight: 500,
-            pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-            transform: 'translateY(-100%)',
-          }}
-        >
-          {t('symbol.chapterN', { n: hovered })}
-          {' · '}
-          {t('symbol.chapterOccurrences', { count: distribution[String(hovered)] })}
-          {peakSet.has(hovered) && <> · {t('symbol.densityPeak')}</>}
+      </div>
+
+      {pinned !== null && (
+        <div className="sym-dist-pin">
+          <div className="sym-dist-plot is-pin">
+            {axis.slots.map((slot) => {
+              const count = (pinned.item.chapter_distribution ?? {})[String(slot.chapter)] ?? 0;
+              const isBody = slot.segment === 'body';
+              return (
+                <div
+                  key={slot.chapter}
+                  className="sym-dist-col"
+                  style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
+                  title={slotTitle(t, slot, count)}
+                >
+                  <span
+                    className="sym-dist-bar"
+                    style={{
+                      height:
+                        count > 0
+                          ? `${Math.max(MIN_BAR_H, (count / scale) * PIN_BAR_H)}px`
+                          : '2px',
+                      // The pinned row is drawn in its own type colour rather than
+                      // the shared density scale: two rows of the same browns would
+                      // read as one chart with a gap in it.
+                      background:
+                        count > 0 ? typeStyle(pinned.imageryType).dot : 'var(--bg-tertiary)',
+                      opacity: isBody ? undefined : 0.45,
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
+
+      <div className="sym-dist-labels">
+        {axis.slots.map((slot) => {
+          const isBody = slot.segment === 'body';
+          return (
+            <span
+              key={slot.chapter}
+              className={'sym-dist-label' + (isBody ? '' : ' is-outside')}
+              style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
+            >
+              {isBody ? slot.chapter : segmentLabel(t, slot)}
+            </span>
+          );
+        })}
+      </div>
     </div>
   );
+}
+
+type T = ReturnType<typeof useTranslation<'analysis'>>['t'];
+
+/** Hover text naming the slot in the reader's terms, not the raw chapter number. */
+function slotTitle(t: T, slot: ChapterAxisSlot, count: number): string {
+  const where =
+    slot.segment === 'body' ? t('symbol.chapterN', { n: slot.chapter }) : segmentLabel(t, slot);
+  return `${where} · ${t('symbol.chapterOccurrences', { count })}`;
 }

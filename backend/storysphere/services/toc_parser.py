@@ -24,6 +24,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+from storysphere.core.error_handling import LLMResponseBlocked, llm_text
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.documents import Chapter, ChapterRole
@@ -148,7 +149,14 @@ async def parse_toc_text(
         HumanMessage(content=f"Table of contents:\n\n{toc_text[:max_chars]}"),
     ]
     response = await llm.ainvoke(messages)
-    raw = response.content if hasattr(response, "content") else str(response)
+    # Kept degrading rather than raising — a missing TOC is recoverable and the
+    # caller falls back to the deterministic detector. The log now names the real
+    # cause instead of blaming the JSON extractor.
+    try:
+        raw = llm_text(response)
+    except LLMResponseBlocked as exc:
+        logger.warning("toc parser: %s", exc)
+        return []
 
     parsed, err = extract_json_from_text(raw)
     if err or not isinstance(parsed, dict):

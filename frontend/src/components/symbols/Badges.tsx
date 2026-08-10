@@ -35,6 +35,29 @@ export function PolarityPill({ value }: { value: Polarity }) {
   );
 }
 
+/**
+ * Marks a symbol the provider refused to interpret.
+ *
+ * Amber rather than red: nothing is broken and the reader did nothing wrong —
+ * the state is "tried, cannot complete", which is what --status-partial-* means
+ * everywhere else in the app. Red would read as a fault to fix.
+ */
+export function BlockBadge() {
+  const { t } = useTranslation('analysis');
+  return (
+    <span
+      className="sym-review-badge"
+      style={{
+        background: 'var(--status-partial-bg)',
+        color: 'var(--status-partial-fg)',
+      }}
+      title={t('symbol.blocked.badgeTitle')}
+    >
+      {t('symbol.blocked.badge')}
+    </span>
+  );
+}
+
 export function ReviewBadge({ status }: { status: SymbolReviewStatus }) {
   const { t } = useTranslation('analysis');
   const s = REVIEW_STYLE[status];

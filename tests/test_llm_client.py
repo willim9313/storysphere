@@ -85,6 +85,78 @@ def test_get_with_local_fallback_returns_primary_when_no_local():
     assert llm is client.get_primary()
 
 
+# ── Placeholder credentials must not read as configured (B-075) ───────────────
+
+def test_placeholder_keys_are_not_configured():
+    from storysphere.config.settings import Settings
+    # The exact strings .env.example ships. Non-empty, so bare truthiness — what
+    # _has_key used to do — reports all three as ready to use.
+    s = Settings(
+        gemini_api_key="your_gemini_api_key_here",
+        openai_api_key="your_openai_api_key_here",
+        anthropic_api_key="your_anthropic_api_key_here",
+        local_llm_model="",
+    )
+    client = LLMClient(settings=s)
+    assert not client._has_key(LLMProvider.GEMINI)
+    assert not client._has_key(LLMProvider.OPENAI)
+    assert not client._has_key(LLMProvider.ANTHROPIC)
+
+
+def test_placeholder_primary_raises_instead_of_being_used():
+    from storysphere.config.settings import Settings
+    s = Settings(gemini_api_key="your_gemini_api_key_here", local_llm_model="")
+    client = LLMClient(settings=s)
+    with pytest.raises(RuntimeError, match="GEMINI_API_KEY is not set"):
+        client.get_primary()
+
+
+def test_settings_properties_agree_with_has_key():
+    """One judgement, not two.
+
+    _has_key used to test the credentials itself, in parallel with Settings.has_*
+    — so a placeholder read as unconfigured in one and configured in the other.
+    """
+    from storysphere.config.settings import Settings
+    s = Settings(
+        gemini_api_key="real-key",
+        openai_api_key="your_openai_api_key_here",
+        anthropic_api_key="",
+        local_llm_model="# e.g. qwen2.5:3b",
+    )
+    client = LLMClient(settings=s)
+    assert client._has_key(LLMProvider.GEMINI) is s.has_gemini is True
+    assert client._has_key(LLMProvider.OPENAI) is s.has_openai is False
+    assert client._has_key(LLMProvider.ANTHROPIC) is s.has_anthropic is False
+    assert client._has_key(LLMProvider.LOCAL) is s.has_local_llm is False
+
+
+def test_real_key_beginning_with_y_is_not_mistaken_for_a_placeholder():
+    from storysphere.config.settings import Settings
+    s = Settings(gemini_api_key="yA-real-looking-key", local_llm_model="")
+    client = LLMClient(settings=s)
+    assert client._has_key(LLMProvider.GEMINI)
+
+
+def test_leftover_env_comment_does_not_become_a_fallback_llm():
+    """The B-075 failure in one assertion.
+
+    A blank LOCAL_LLM_MODEL written with a trailing comment loaded as that
+    comment, so every one of the fifteen services calling
+    get_with_local_fallback() got a ChatOpenAI named
+    "# e.g. qwen2.5:3b, llama3.2, phi3.5" pointed at localhost:11434 — a
+    fallback guaranteed to fail, attached to every LLM path in the system.
+    """
+    from storysphere.config.settings import Settings
+    s = Settings(
+        gemini_api_key="fake-key",
+        local_llm_model="# e.g. qwen2.5:3b, llama3.2, phi3.5",
+    )
+    client = LLMClient(settings=s)
+    assert not client._has_key(LLMProvider.LOCAL)
+    assert client.get_with_local_fallback() is client.get_primary()
+
+
 # ── Integration tests (require GEMINI_API_KEY) ─────────────────────────────────
 
 @pytest.mark.integration

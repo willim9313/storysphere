@@ -1,7 +1,7 @@
 # StorySphere — 開發 Backlog
 
 **用途**: 記錄已識別但尚未排入 Phase 的開發項目
-**更新日期**: 2026-07-18
+**更新日期**: 2026-08-10
 
 > 已完成項目歸檔於 [BACKLOG_ARCHIVE.md](BACKLOG_ARCHIVE.md)
 
@@ -9,7 +9,330 @@
 
 ## B 系列（既有）
 
+### 🔴 高優先（功能中斷）
+
+#### B-073 Gemini 對「手」的提示回報 PROHIBITED_CONTENT
+
+> **2026-08-10 已重新診斷。** 本條目原記為「LLM 輸出解析失敗（no_json_found）」，
+> 指向 `output_extractor.py`。**該診斷是錯的**，extractor 沒有問題。原始錯誤訊息
+> 本身就是被誤導的來源，詳見下方「為什麼會誤判」。
+
+**實測結果**: Gemini 在 **prompt 層**就擋下請求，沒有回傳任何內容：
+
+```
+block_reason   = BlockedReason.PROHIBITED_CONTENT
+content        = ''
+usage_metadata = None
+```
+
+`langchain_google_genai` 遇到封鎖**不拋錯** —— 只印一行 warning（`Gemini produced an
+empty response. Continuing with empty message`）後回傳空的 `AIMessage`。空字串流進
+`extract_json_from_text()`，於是 `output_extractor.py:97` 誠實回報「找不到 JSON」。
+
+**為什麼會誤判**: 錯誤訊息說的是 extractor 看得到的最後一層現象，不是原因。任何
+provider 層的封鎖或空回應，在這套程式碼裡都會長成 `no_json_found`。
+
+**實際影響範圍（原記載誇大）**: 《名字的潮汐》8 個已快取 SEP 逐一實測 ——
+**7 個正常產出，只有「手」被擋**（海 / 血 / 沙 / 腳印 / 光 / 懷錶 / 戒指 皆成功）。
+原本寫的「整頁完全無法產出」不成立。
+
+**是誤判，不是內容問題**: 對「手」的 7 段 occurrence context 做 leave-one-out —— 拿掉
+`[1]` 或 `[2]` **任一段**即通過，拿掉 `[3]`–`[7]` 任一段仍被擋。沒有單一「有問題的
+段落」。文本是讀鹽、兄長溺斃、退潮的純文學敘事。這是分類器對中文文學文本的脆弱誤判。
+
+**`safety_settings` 無效**: `PROHIBITED_CONTENT` 屬**不可設定**的核心政策封鎖，
+`llm_client.py:194-199` 那四個 `HarmBlockThreshold.OFF` 蓋不到，調 threshold 沒用。
+
+**與 B-074 無關**: 「手」的 7 段全在正文章節，不涉及前置頁污染。
+
+**已完成（2026-08-10，commit `1e2ef06`）**:
+- `_detect_block()` 在解析前辨識封鎖／空回應，拋 `SymbolInterpretationBlocked`
+- 該例外刻意不是 `ValueError`／`KeyError`，tenacity 因此不再重試 —— 原本每個被擋的
+  意象固定浪費 3 次呼叫
+- 封鎖記錄寫入 `symbol_analysis_block:{book}:{imagery}`，成功時自動清除
+- 詳見 `docs/plans/20260810-symbol-interpretation-block-record.md`
+
+**Phase 2 已完成（`f98d4e6`）**: overview 疊加 `interpretation_block`；`analyze-all`
+預設排除已被拒絕者並計入 `skipped`；`docs/API_CONTRACT.md` 已更新 #15i / #15j。
+
+**Phase 3 已完成（3a `eb1366f` / 3b 見下方 commit）**: `SymbolSignals` 帶 `block`；
+`interpretationAdvice()` 新增 **優先於 load 門檻** 的 `blocked` 判定 —— 這是「頁面把
+最顯眼的推薦位給唯一產不出來的意象」真正被修掉的地方；側欄 BlockBadge；CTA 的
+blocked 分支引用 provider 自己的標籤；批次勾選排除已被拒絕者。
+
+**剩餘待辦**:
+- **真正的解法是可用的 fallback provider —— 見 B-075**。本條目的工程面已完成：
+  拒絕會被正確辨識、記錄、呈現、且不再重複消耗配額。但「手」在只有 Gemini 的環境下
+  仍然產不出詮釋，那不是這裡能修的。
+
+**明確不做**: prompt 擾動重試（砍掉前一兩段證據再送）。雖然實測可通過，但會讓詮釋
+根據哪些證據產出變得不確定。列為最後手段。
+
+**觸發時機**: Phase 2/3 接續進行；封鎖本身待 B-075。
+
+---
+
+#### B-074 SEP 把前置頁文字當證據送進 LLM
+
+**背景**: 2026-08-08 實作象徵意象頁 D4/D6 時查證。設計稿聲稱「重新生成時將排除前置頁」，但後端沒有這件事：
+
+- `symbol_service.assemble_sep()` 的 `occurrence_contexts` 收**全部**出現，沒有任何 segment 過濾（`symbol_service.py:334-346`）
+- `symbol_analysis_service._build_prompt()` 取 `sep.occurrence_contexts[:20]`，而 occurrences 是 `ORDER BY chapter_number ASC`（`symbol_service.py:205`）
+
+兩者相乘的結果：**前置頁是 LLM 最先看到的證據**。以《名字的潮汐》的「海」為例，13 筆出現有 5 筆在版權頁與書名頁（含 ISBN、印刷廠、譯者列表），這 5 筆排在 `[1]`–`[5]`，正文只從 `[6]` 開始。
+
+**影響範圍**: 所有已生成的象徵詮釋，其證據綜述可能混入版權頁文字。「海」現有的詮釋就是在這個條件下生成的。前端的可信度扣分（`trust` 乘數）只影響**排序**，不影響送進 LLM 的內容 —— 這是兩件不同的事，之前被混為一談。
+
+**當時前端的處置（已隨修復更新）**: `InterpretationCta` 與 `InterpretationHero` 在
+`front > 0` 時顯示警告，當時說明前置頁文字**會**作為證據送入、且重新生成不會排除。
+修復後兩句都改為陳述已排除。
+
+**已完成（2026-08-10）**:
+- `assemble_sep()` 排除正文之前的章節，保留後記 —— 與前端 `trust` 乘數同一條判準，
+  所以後端回報的排除筆數會等於畫面上的 `front` 數（兩套判準會讓畫面說 5、後端排除 4）
+- SEP 新增 `excluded_front_matter_count`，讓「已排除 N 筆」講得出真話
+- `_SEP_ASSEMBLER_TAG` 升為 `symbol_service_v2`，**讀快取時比對版本**，不符即重新組裝。
+  比在 `cache_invalidation.py` 加 pattern 好：那只在 re-run pipeline 時觸發，舊快取會一直
+  留著繼續餵版權頁文字。自癒，不需清除腳本
+- 前端警告文案改為陳述已排除（`cta.frontWarn` 與 `interpretation.frontMatterWarning`）
+- `docs/API_CONTRACT.md` #15d 已更新
+
+**實測驗證**:「海」的 v1 快取 context 章節為 `[-1,-1,-1,0,0,1,5,7,7,8,9,11,11]` —— 前 5 筆
+確實全是前置頁，而 prompt 取 `[:20]` 按序，它們正好佔據 `[1]`–`[5]`。v2 排除這 5 筆。
+
+**待決策（未動使用者資料）**: 全 DB 有一筆以受污染證據生成的詮釋（「海」，
+`review_status = pending`，從未經 HITL 審核）。**沒有自動刪除**。要讓它失效重生：
+
+```sql
+DELETE FROM analysis_cache
+WHERE key = 'symbol_analysis:8f18dd59-bd45-4071-a548-58779fcf7ece:f6bef0f0-e8df-4b03-8d7d-6efa8f380a5f';
+```
+
+未做「以受污染證據生成」的標記：那需要在 `SymbolInterpretation` 記錄它消費的 SEP 版本，
+為一筆 legacy 資料加一個 schema 欄位不成比例。
+
+**觸發時機**: ~~B-073 修好之後~~ —— 該前提建立在「完全無法產出」的錯誤診斷上；
+實際 8 個意象裡 7 個正常，gate 早已解除。2026-08-10 完成。
+
+---
+
+#### B-075 全系統的 LLM fallback 鏈是壞的（假的 local model + placeholder 被當成已設定）
+
+**背景**: 2026-08-10 追 B-073 時查出。實際載入的設定：
+
+```
+primary   = gemini
+openai    = True     ← OPENAI_API_KEY=your_openai_...（placeholder，但非空）
+anthropic = True     ← ANTHROPIC_API_KEY=your_anthrop...（同上）
+local     = '# e.g. qwen2.5:3b, llama3.2, phi3.5'   ← 行內註解被當成值
+type      = RunnableWithFallbacks
+fallbacks = ['ChatOpenAI:# e.g. qwen2.5:3b, llama3.2, phi3.5']
+```
+
+**兩個獨立缺陷**:
+
+1. **`.env` 的 `LOCAL_LLM_MODEL=` 是空的，但行內註解被讀成值。**
+   `_has_key(LOCAL)` 因此回傳 True，`get_with_local_fallback()` 掛上一個 model 名叫
+   `# e.g. qwen2.5:3b...`、指向 `localhost:11434` 的 `ChatOpenAI`。
+
+2. **`_has_key()` 只判斷非空，placeholder 字串照樣算「已設定」。**
+   系統認為 OpenAI / Anthropic 兩家都可用，`get_fallback()` 會挑中一個必定 401 的 provider。
+
+**影響範圍**: **15 個服務**全部走 `get_with_local_fallback()` —— chat_agent、
+concept_inference、epistemic_state、extraction、narrative、imagery_extractor、
+voice_profiling、keyword、tension、chapter_role_suggester、toc_parser、summary、
+analysis、symbol_analysis、`deps.py`。也就是**全系統每一條 LLM 路徑**都掛著一個必定
+失敗的 fallback。雲端一旦拋錯（rate limit / timeout / 斷線），就會多打一次註定失敗的
+本地請求，最終浮上來的錯誤會被這一層污染。
+
+（哪個 exception 最後勝出**尚未實測**，需要驗證後才能寫進修復方案。）
+
+**與 B-073 的關係**: 這是 B-073 的**前置**。象徵路徑走 `get_with_local_fallback()`，
+只串 cloud→local，而 local 是那個垃圾 —— 所以**光是把真的 OpenAI key 填進 `.env`，
+「手」也不會被修好**，還會撞上第二道牆。
+
+**另一個已修的前置**: 封鎖原本對 fallback 機制是隱形的 —— `with_fallbacks` 只在
+**拋例外**時切換，而 langchain 遇到封鎖是回傳空 `AIMessage`。這點已由 B-073 Phase 1
+在象徵路徑修掉（其餘 14 條路徑仍然如此，見 B-076）。
+
+**根因（2026-08-10 查明）**: python-dotenv **只在 `#` 前面有值時才剝除行內註解**：
+
+```
+FOO=bar    # note   ->  'bar'
+FOO=       # note   ->  '# note'      ← 註解變成值
+```
+
+不是 pydantic-settings 的問題，是上游 dotenv 的行為。因此**每一個**「空值 + 行內註解」
+的設定都會載入成那段註解。
+
+**波及範圍比 LLM 更廣**: `.env.example` 有 4 個設定是這個形狀，而消費端**全部用真值
+判斷** —— 正是這個 bug 專門打穿的寫法：
+
+| 設定 | 消費端 | 後果 |
+|---|---|---|
+| `LOCAL_LLM_MODEL` | `llm_client._has_key` | 假 fallback 掛上 15 個服務 |
+| `QDRANT_API_KEY` | `vector_service.py:89` `or None` | 送垃圾 api-key 給 Qdrant |
+| `LANGFUSE_BASE_URL` | `tracing.py:59` `if ...:` | 垃圾 URL 蓋掉正確預設 |
+| `LOG_FILE` | `main.py:66` `Path(...)` | 嘗試建立檔名為 `# Optional log file path` 的日誌 |
+
+**已完成（2026-08-10，commit `c218cb8`）**:
+- `Settings.blank_out_orphaned_comments` —— `field_validator("*", mode="before")`，
+  值若以 `#` 開頭一律視為空。只改 `.env` 不夠：`.env.example` 會把陷阱發給每個新
+  開發者，而且下次再寫一個空值設定又會中
+- `_is_configured()` 取代 `_has_key()` 的裸 `bool()`，排除 `your_*` placeholder
+- `.env.example` 4 行、`.env` 2 行改為註解獨立成行
+- `get_with_local_fallback()` **未改** —— `has_local` 一旦正確回報 False，它本來就
+  回傳裸的 primary
+
+**實環境驗證**: `local=''`、`qdrant_api_key=''`、openai/anthropic 判為未設定，
+`get_with_local_fallback()` 回傳 `ChatGoogleGenerativeAI` 且 `fallbacks=[]`。
+原本「全數失敗時哪個 exception 勝出」的疑問隨之消失 —— 已無 fallback 層可污染錯誤。
+
+**剩餘待辦**:
+- `Settings` 上另有一組 `has_gemini` / `has_openai` / `has_anthropic` 屬性仍用裸
+  `bool()`，未套用 placeholder 判斷。目前僅測試的 skip 條件與 `main.py:185` 使用
+  （後者已由 validator 修好），沒有實際危害。但「provider 是否可用」有兩套判斷是
+  漂移的溫床，值得收斂成一處 —— 本輪刻意未動，避免超出範圍
+
+**觸發時機**: ~~立即~~ 主體已完成。剩餘的收斂項觸發於下次動到 `llm_client` 或
+`settings` 時。
+
+---
+
+#### B-076 provider 封鎖／空回應在 30+ 個呼叫點都會偽裝成解析失敗
+
+**背景**: 2026-08-10 追 B-073 時發現。B-073 的根因不是象徵路徑特有的 ——
+`response.content` 直接餵給 `extract_json_from_text()` 的寫法遍及全專案：
+
+`analysis_service`（8 處）、`tension_service`（3）、`narrative_service`（3）、
+`epistemic_state_service`（2）、`timeline_agent`、`concept_inference`、
+`voice_profiling_service`、`imagery_extractor`、`keyword_service`、`toc_parser`、
+`chapter_role_suggester`。
+
+任何一條路徑遇到 provider 封鎖或空回應，都會回報 `no_json_found` 或
+`both_parse_failed`，而不是真正的原因。角色 / 事件 / 張力分析若曾出現這類錯誤，過去的
+判斷可能都指錯了方向。
+
+**已完成**: 象徵路徑已於 commit `1e2ef06` 修正（`_detect_block()` +
+`SymbolInterpretationBlocked`），可作為其餘路徑的參考實作。
+
+**已完成（2026-08-10）**:
+- `core/error_handling.py` 新增 `LLMResponseBlocked` / `raise_if_blocked()` / `llm_text()`
+  —— 與既有的 `is_rate_limit_error()` 同一個模組，都是 provider 錯誤分類，不另立新模組
+- **24 處**呼叫點改用共用版（原估 20 處；`extraction_service` 與 `summary_service` 另有
+  4 處不走 extractor，同樣會吞掉封鎖）
+- 象徵路徑刪除本地的 `SymbolInterpretationBlocked` / `_detect_block`，改用共用版
+
+**兩個實作時才浮現的差異**:
+
+1. **封鎖與空回應必須分開。** 封鎖是確定性的（同一個 prompt 每次都被拒），空回應不是。
+   `SummaryService` 對空摘要**刻意重試**，一律換成不可重試的例外對它是退步。因此拆成
+   `raise_if_blocked()`（只管確定性的那半）與 `llm_text()`（兩者都管），summary 用前者。
+2. **metadata 必須先確認是 mapping。** `MagicMock.get()` 回傳另一個 MagicMock 而非 None，
+   天真讀取與「有 block_reason」無法區分 —— 這會讓套件裡每個用 MagicMock 模擬 LLM 的測試
+   全部誤判成封鎖（實際踩到 33 個）。真實 provider 附帶的 metadata 形狀也本來就不一。
+
+**維持降級語意**: `toc_parser` / `chapter_role_suggester` 仍是 `logger.warning` 後降級，
+只是 log 現在講真正的原因，不再指控 JSON extractor。
+
+**觸發時機**: ~~B-075 修好之後~~ 2026-08-10 完成。
+
+---
+
+#### B-077 傳入 `zh-TW` 但 LLM 回傳簡體中文
+
+> **2026-08-10 更正：生產路徑沒有這個問題。** 原記載說「傳入 `zh-TW` 回傳簡體」——
+> 那個 `zh-TW`（大寫）是**驗證腳本自己寫死的**，不是系統會傳的值。DB 存的是小寫
+> `zh-tw`，`get_document_language()` 原樣回傳，查表得到 "Traditional Chinese"。
+> 以生產路徑實測，輸出確為繁體。
+
+**但查表本身是個真陷阱，已一併修掉**:
+
+`get_language_display_name()` 原本大小寫敏感，且 fallback 是
+`lang_code.split("-")[0].capitalize()`。因此任何**大寫或帶未知地區碼**的值都會落空：
+
+```
+zh-TW -> 'Zh'      zh-CN -> 'Zh'      zh-hk -> 'Zh'
+```
+
+結果不是報錯，而是 prompt 變成一句沒有意義的「**Respond in Zh.**」，模型只能猜。
+影響 12 個模組、28 個呼叫點。
+
+**這類 bug 咬過一次**: `tests/core/test_language_detection.py` 早有
+`test_bare_zh_maps_to_chinese_not_capitalized_code`，註解就寫著「the meaningless prompt
+directive "Respond in Zh."」。當時的修法是往表裡補 `zh` 條目，沒動查表邏輯；而
+`test_zh_tw_maps_to_traditional_chinese` 只用小寫問，**測試自己選的大小寫讓大寫變體活了下來**。
+
+**已完成（2026-08-10）**: 查表改為大小寫不敏感；未知地區碼回退到基礎語言而非代碼本身
+（`zh-hk` → Chinese、`en-GB` → English）。新增大小寫與地區回退的測試。
+
+**觸發時機**: 2026-08-10 完成。
+
+---
+
+#### B-078 象徵的事件依附與貫穿度共線（`W.ev` 權重定義待決）
+
+**背景**: 2026-08-07 API 整併時提出，見
+`docs/plans/20260807-symbols-api-consolidation.md` 第 4 節。當時標為「需裁示」，
+2026-08-10 收攏為本條目 —— **決定暫不實作**。
+
+`assemble_sep()` 的事件關聯是**章節層級**的：
+
+```python
+chapters_with_imagery = set(entity.chapter_distribution.keys())
+event_ids = [ev.id for ev in events if ev.chapter in chapters_with_imagery]
+```
+
+即「這個意象出現過的章，其中所有事件」，不是「與這個意象同段的事件」。`Event` 沒有
+paragraph／chunk 參照，段落層級目前做不到。
+
+**後果**: 事件依附與貫穿度高度共線 —— 出現在越多章 → 涵蓋越多事件。前端把它當成權重
+0.18 的獨立訊號（`symbolSignals.ts` 的 `W.ev`），實際上有一部分只是 `span` 的重複計票。
+
+**已做的**: `co_occurring_event_count` 只計正文章節（修掉前置頁事件混入）。
+
+**暫不做的理由**: 用 `event.participants ∩ 該意象的共現實體` 收斂成真正的「同場事件」
+資料是現成的，但這是**新的度量定義**，超出設計要求。決議 06 校準時把 `W.ev` 調低，
+是可接受的收法。
+
+**觸發時機**: 決議 06 的權重校準（屆時一併決定是調權重還是換定義）。
+
+---
+
 ### 🟡 中優先（功能完善）
+
+#### B-079 imagery occurrence 指向不含該詞的段落
+
+**背景**: 2026-08-10 驗證 B-074 時發現。「戒指」的詮釋回傳「『戒指』在此後記中並未出現，
+因此無法從文本中推斷其象徵意義」—— 模型是誠實的：存下來的段落文字確實不含該詞。
+
+掃過《名字的潮汐》與另一本書全部已快取的 SEP：
+
+```
+古玉  3/4 筆的段落不含該詞（ch. 3, 4, 4）
+手    1/7 筆                （ch. 7）
+沙    3/4 筆                （ch. 5, 6, 11）
+合計 7/39 筆 ≈ 18%
+```
+
+「戒指」的 `paragraph_text` 是後記首段（直排標題「作 　 者 　 後 　 記」），但
+`context_window` 是對的 —— 兩者來源不同，其中一個對應錯了。
+
+**影響範圍**: `occurrence_contexts` 是送進 LLM 的證據本體。約五分之一的引文與該意象無關，
+詮釋因此可能建立在錯誤段落上。與 B-074（前置頁污染）是不同的問題：那是「不該送的送了」，
+這是「送的內容根本對應錯」。
+
+**待辦內容**:
+- 釐清是 `SymbolOccurrence.paragraph_id` 對應錯，還是 `assemble_sep` 的
+  `paragraph_by_id` 查表落空後靜默填了別的段落
+- 確認是否與直排標題／頁碼雜訊造成的段落切分有關（同一批書上 `#22c` 也踩過）
+- 加一個組裝期的健全性檢查：`term not in paragraph_text and term not in context_window`
+  時至少要 log，而不是靜默送出
+
+**觸發時機**: 下次動到 imagery 抽取或 ingestion 段落切分時。
+
+---
+
 
 #### B-014 Local LLM 選型評估（進行中）
 **背景**: qwen2.5-3b JSON schema 遵從度不穩定（null 代替 []、malformed JSON），已換至 Phi-3.5-mini-instruct Q4_K_M（社群量化），功能正常但速度偏慢。
@@ -958,6 +1281,13 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-063 | 關係圖角色名冊比對支援 KG 別名 | 🟢 低 | 待開始（觸發：灰圈誤判回報累積） |
 | B-064 | 未分析卡「生成分析」按鈕文字對齊 canvas「建立」 | 🟢 低 | 待開始（觸發：下次動到角色清單卡片） |
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |
+| B-073 | Gemini 對「手」的提示回報 PROHIBITED_CONTENT | 🔴 高 | 工程面已完成（2026-08-10，Phase 1–3）；「手」仍待可用的 fallback provider，見 B-075 |
+| B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 已完成（2026-08-10）；僅剩「海」那筆舊詮釋要不要重生，見條目內 SQL |
+| B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 主體已完成（2026-08-10 `c218cb8`）；剩 `Settings.has_*` 收斂 |
+| B-076 | provider 封鎖在 30+ 呼叫點偽裝成解析失敗 | 🟡 中 | 已完成（2026-08-10）；24 處呼叫點改用共用 `llm_text()` |
+| B-077 | 語言顯示名查表大小寫敏感（`zh-TW` → 「Respond in Zh.」） | 🟢 低 | 已完成（2026-08-10）；原記的「回傳簡體」是驗證腳本的產物，生產路徑無此問題 |
+| B-079 | 18% 的 imagery occurrence 指向不含該詞的段落 | 🟡 中 | 待開始（2026-08-10 查證；送進 LLM 的證據有一部分是錯的） |
+| B-078 | 象徵事件依附與貫穿度共線（`W.ev` 定義待決） | 🟢 低 | 暫不實作（2026-08-10 收攏；觸發：決議 06 權重校準） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | 待開始（觸發：動到 upload / event analysis 時順修） |
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | 待開始（觸發：需用 mock 展示時間軸頁時） |
 | B-068 | 事件抽取把同一場戲切成多個 event | 🟡 中 | 待開始（觸發：下次動到 ingestion / event extraction） |

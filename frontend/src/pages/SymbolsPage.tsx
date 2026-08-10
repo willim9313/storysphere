@@ -9,20 +9,19 @@ import { useBook } from '@/hooks/useBook';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ApiError } from '@/api/client';
 import {
-  fetchSymbols,
   fetchSymbolTimeline,
-  fetchCoOccurrences,
   fetchSymbolInterpretation,
-  fetchSep,
   reviewSymbolInterpretation,
   type ImageryEntity,
+  type InterpretationStatus,
   type Polarity,
-  type SymbolInterpretation,
+  type SymbolOverviewItem,
 } from '@/api/symbols';
 
 import { fetchEntityById, fetchEventDetail } from '@/api/graph';
-import { SymbolList, type SymbolSort } from '@/components/symbols/SymbolList';
-import { TypePill } from '@/components/symbols/Badges';
+import { SymbolList } from '@/components/symbols/SymbolList';
+import { SymbolDetailHead } from '@/components/symbols/SymbolDetailHead';
+import { BehaviourSummary } from '@/components/symbols/BehaviourSummary';
 import { InterpretationCta } from '@/components/symbols/InterpretationCta';
 import { InterpretationGenerating } from '@/components/symbols/InterpretationGenerating';
 import { InterpretationHero } from '@/components/symbols/InterpretationHero';
@@ -30,18 +29,50 @@ import { ChapterDistChart } from '@/components/symbols/ChapterDistChart';
 import { CoOccurrencePanel } from '@/components/symbols/CoOccurrencePanel';
 import { OccurrencesTimeline } from '@/components/symbols/OccurrencesTimeline';
 import { useSymbolInterpretationTask } from '@/components/symbols/hooks/useSymbolInterpretationTask';
-import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
 import {
-  bodyChapterMax,
-  firstBodyChapter,
-  outsideBodyCount,
-  peakBodyChapters,
+  SYMBOL_OVERVIEW_KEY,
+  useSymbolAnalysis,
+} from '@/components/symbols/hooks/useSymbolAnalysis';
+import { useSymbolBatch } from '@/components/symbols/hooks/useSymbolBatch';
+import { useSymbolCheck } from '@/components/symbols/hooks/useSymbolCheck';
+import { useSymbolUrlState } from '@/components/symbols/hooks/useSymbolUrlState';
+import { SymbolsDashboard } from '@/components/symbols/SymbolsDashboard';
+import { ClusterView } from '@/components/symbols/ClusterView';
+import { findClusters } from '@/components/symbols/symbolClusters';
+import type {
+  DistributionShape,
+  SymbolSignals,
+} from '@/components/symbols/symbolSignals';
+import {
+  barScale,
+  hasDistinctPeak,
+  type ChapterAxis,
 } from '@/components/symbols/chapterAxis';
+import { densityStep } from '@/components/symbols/tokens';
 
 import '@/styles/symbols.css';
 
 const INTERPRETATION_KEY = (bookId: string | undefined, imageryId: string | null) =>
   ['books', bookId, 'symbols', imageryId, 'interpretation'] as const;
+
+/**
+ * Narrow an overview row to the list shape the charts still expect.
+ *
+ * The overview is a superset of the old list response, but its collection fields
+ * are omitted when empty, so they need defaults rather than a cast.
+ */
+function toImageryEntity(item: SymbolOverviewItem): ImageryEntity {
+  return {
+    id: item.id,
+    book_id: item.book_id,
+    term: item.term,
+    imagery_type: item.imagery_type,
+    aliases: item.aliases ?? [],
+    frequency: item.frequency,
+    chapter_distribution: item.chapter_distribution ?? {},
+    first_chapter: item.first_chapter ?? null,
+  };
+}
 
 export default function SymbolsPage() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -55,56 +86,104 @@ export default function SymbolsPage() {
     return () => setPageContext({ page: 'other' });
   }, [book, bookId, setPageContext]);
 
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [typeFilter, setTypeFilter] = useState<string | null>(null);
-  const [sort, setSort] = useState<SymbolSort>('freq');
+  /*
+   * Which view is open, how the list is sorted, and which type is filtered all
+   * live in the query string — see `useSymbolUrlState`. Selecting a symbol and
+   * opening a cluster are mutually exclusive there, so the breadcrumb can always
+   * say where the reader is.
+   */
+  const {
+    symbolId: selectedId,
+    clusterSeedId,
+    sortAxis,
+    typeFilter,
+    pinnedId,
+    setPinned,
+    openSymbol,
+    openCluster: openClusterUrl,
+    setSortAxis,
+    setTypeFilter,
+  } = useSymbolUrlState();
+
   const [search, setSearch] = useState('');
+  // Screen-local, unlike the four above: a behaviour group is a way of looking,
+  // not a place to link to (redesign decision 05). Cleared whenever the map is
+  // returned to.
+  const [shapeFilter, setShapeFilter] = useState<DistributionShape | null>(null);
 
-  const { data: listData, isLoading: listLoading } = useQuery({
-    queryKey: ['books', bookId, 'symbols', typeFilter],
-    queryFn: () => fetchSymbols(bookId!, { imageryType: typeFilter ?? undefined, limit: 200 }),
-    enabled: !!bookId,
-  });
-  const entities: ImageryEntity[] = useMemo(() => listData?.items ?? [], [listData]);
+  const { analysis, isLoading: listLoading } = useSymbolAnalysis(bookId);
+  const batch = useSymbolBatch(bookId, t('symbol.overview.batch.failed'));
+  const check = useSymbolCheck(analysis);
 
-  // Eagerly fetch all interpretations so sidebar badges appear without requiring
-  // the user to click each symbol. React Query deduplicates network calls when
-  // the selected entity's key is also in this batch.
-  const allInterpretationQueries = useQueries({
-    queries: entities.map((e) => ({
-      queryKey: INTERPRETATION_KEY(bookId, e.id),
-      queryFn: async () => {
-        try {
-          return await fetchSymbolInterpretation(e.id, bookId!);
-        } catch (err) {
-          if (err instanceof ApiError && err.status === 404) return null;
-          throw err;
-        }
-      },
-      enabled: !!bookId,
-      retry: false,
-      staleTime: 30_000,
-    })),
-  });
+  const handleSelect = (id: string | null) => {
+    openSymbol(id);
+    // Returning to the map drops the behaviour filter, which was set on the map.
+    if (id === null) setShapeFilter(null);
+    // Opening a symbol takes the batch controls off screen with the map, so picks
+    // still held would be unspendable — and would come back on the reader's
+    // return, minutes later, as a count they no longer recognise.
+    else check.exit();
+  };
 
-  // Sidebar badge map — reactive because it depends on live query results.
-  const interpretations = useMemo(() => {
-    const map: Record<string, SymbolInterpretation | undefined> = {};
-    entities.forEach((e, i) => {
-      const data = allInterpretationQueries[i]?.data;
-      if (data) map[e.id] = data;
-    });
-    return map;
-  }, [entities, allInterpretationQueries]);
+  const openCluster = (seedId: string) => {
+    setShapeFilter(null);
+    check.exit();
+    openClusterUrl(seedId);
+  };
 
-  // Derive the selected entity's interpretation from the batch results.
-  const selectedIndex = useMemo(
-    () => (selectedId ? entities.findIndex((e) => e.id === selectedId) : -1),
-    [entities, selectedId],
+  const cluster = useMemo(() => {
+    if (!analysis || !clusterSeedId) return null;
+    return findClusters(analysis).find((c) => c.seed.id === clusterSeedId) ?? null;
+  }, [analysis, clusterSeedId]);
+
+  /** The pinned symbol, dropped silently if the id no longer resolves. */
+  const pinnedSignals = analysis?.all.find((sig) => sig.id === pinnedId) ?? null;
+
+  const entities: ImageryEntity[] = useMemo(
+    () => (analysis?.all ?? []).map((s) => toImageryEntity(s.item)),
+    [analysis],
   );
-  const interpretation = selectedIndex >= 0
-    ? (allInterpretationQueries[selectedIndex]?.data ?? null)
-    : null;
+
+  /**
+   * The selected symbol's signals, and where it places among the ranked ones.
+   *
+   * `analysis.main` is already in load order, so the rank is its index. A tail
+   * word has no rank: it is not in `main` because it has nothing to rank on, and
+   * `indexOf` returning -1 has to become null rather than a 0th place.
+   */
+  const selectedSignals = analysis?.all.find((s) => s.id === selectedId) ?? null;
+  const selectedRank = useMemo(() => {
+    if (!analysis || !selectedId) return null;
+    const i = analysis.main.findIndex((s) => s.id === selectedId);
+    return i === -1 ? null : i + 1;
+  }, [analysis, selectedId]);
+
+  // Review state now arrives with the list. It used to cost one request per
+  // symbol — 29 of them on 名字的潮汐, 28 returning 404 — purely to decide whether
+  // a sidebar badge should render.
+  const interpretationStatuses = useMemo(() => {
+    const map: Record<string, InterpretationStatus | undefined> = {};
+    for (const s of analysis?.all ?? []) {
+      if (s.item.interpretation) map[s.id] = s.item.interpretation;
+    }
+    return map;
+  }, [analysis]);
+
+  // The selected symbol still needs the full interpretation: the overview carries
+  // review state, not the theme or the evidence synthesis.
+  const { data: interpretation = null } = useQuery({
+    queryKey: INTERPRETATION_KEY(bookId, selectedId),
+    queryFn: async () => {
+      try {
+        return await fetchSymbolInterpretation(selectedId!, bookId!);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) return null;
+        throw err;
+      }
+    },
+    enabled: !!selectedId && !!bookId && !!interpretationStatuses[selectedId],
+    retry: false,
+  });
 
   const { data: timeline = [], isLoading: timelineLoading } = useQuery({
     queryKey: ['books', bookId, 'symbols', selectedId, 'timeline'],
@@ -112,23 +191,21 @@ export default function SymbolsPage() {
     enabled: !!selectedId,
   });
 
-  const { data: coOccurrences = [], isLoading: coLoading } = useQuery({
-    queryKey: ['books', bookId, 'symbols', selectedId, 'co-occurrences'],
-    queryFn: () => fetchCoOccurrences(selectedId!, 12),
-    enabled: !!selectedId,
-  });
-
-  // SEP carries per-entity co-occurrence counts (added 2026-05-26 via
-  // co_occurring_entity_counts). We fetch lazily because SEP assembly is
-  // medium-cost, and only need it once interpretation exists (linked_characters
-  // are otherwise empty).
-  const { data: sep } = useQuery({
-    queryKey: ['books', bookId, 'symbols', selectedId, 'sep'],
-    queryFn: () => fetchSep(selectedId!),
-    enabled: !!selectedId && !!bookId,
-    staleTime: 5 * 60_000,
-  });
-  const entityCounts = sep?.co_occurring_entity_counts ?? {};
+  /**
+   * Co-occurrence counts per entity, for the interpretation's character hints.
+   *
+   * Read off the overview the page already has. This used to be a lazy `#15d` SEP
+   * fetch per selected symbol purely to turn `{uuid: count}` into a hint — the
+   * overview carries the same counts already resolved to names and types, so both
+   * that request and the `#15c` allies request are gone.
+   */
+  const entityCounts = useMemo(() => {
+    const map: Record<string, number> = {};
+    for (const e of selectedSignals?.item.co_occurring_entities ?? []) {
+      map[e.id] = e.count;
+    }
+    return map;
+  }, [selectedSignals]);
 
   // ── Resolve linked character / event IDs → human-readable names ─────────────
   const charIds = interpretation?.linked_characters ?? [];
@@ -171,8 +248,18 @@ export default function SymbolsPage() {
   });
 
   // ── Generation task ──────────────────────────────────────────
+  /**
+   * Interpretation state lives in two caches now, and both must be dropped.
+   *
+   * The overview decides whether the interpretation query runs at all, so
+   * refreshing only the interpretation leaves a symbol that was just interpreted
+   * looking uninterpreted forever: the overview still reports null, the query
+   * stays disabled, and nothing ever asks the server.
+   */
   const refetchInterpretation = () => {
-    if (selectedId && bookId) {
+    if (!bookId) return;
+    void queryClient.invalidateQueries({ queryKey: SYMBOL_OVERVIEW_KEY(bookId) });
+    if (selectedId) {
       void queryClient.invalidateQueries({ queryKey: INTERPRETATION_KEY(bookId, selectedId) });
     }
   };
@@ -207,9 +294,7 @@ export default function SymbolsPage() {
         theme: vars.theme,
         polarity: vars.polarity,
       }),
-    onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: INTERPRETATION_KEY(bookId, selectedId) });
-    },
+    onSuccess: refetchInterpretation,
   });
 
   const reviewError = reviewMutation.isError ? t('symbol.error.reviewFailed') : null;
@@ -221,14 +306,6 @@ export default function SymbolsPage() {
 
   // ── Computed ─────────────────────────────────────────────────
   const selected = entities.find((e) => e.id === selectedId) ?? null;
-  // Shared axis edge for every chart on the page. Taking book.chapterCount alone
-  // hid occurrences recorded past it (名字的潮汐 has symbols in chapter 11 with a
-  // chapterCount of 10); bodyChapterMax widens the axis to fit the data.
-  const totalChapters = useMemo(
-    () => bodyChapterMax(entities.map((e) => e.chapter_distribution), book?.chapterCount),
-    [book, entities],
-  );
-
   const isGenerating = interpretationTask.running && selectedId !== null;
 
   let interpretationBlock: React.ReactNode;
@@ -247,6 +324,7 @@ export default function SymbolsPage() {
         key={interpretation.id ?? interpretation.imagery_id}
         entity={selected!}
         interpretation={interpretation}
+        frontCount={selectedSignals?.distribution.front ?? 0}
         resolvedCharacters={resolvedCharacters}
         resolvedEvents={resolvedEvents}
         pending={reviewMutation.isPending}
@@ -258,13 +336,15 @@ export default function SymbolsPage() {
       />
     );
   } else {
-    interpretationBlock = (
+    interpretationBlock = selectedSignals ? (
       <InterpretationCta
+        signals={selectedSignals}
+        rank={selectedRank}
         onGenerate={() => handleGenerate(false)}
         pending={interpretationTask.running}
         error={interpretationTask.error}
       />
-    );
+    ) : null;
   }
 
   let detailBody: React.ReactNode;
@@ -274,13 +354,27 @@ export default function SymbolsPage() {
         <LoadingSpinner />
       </div>
     );
+  } else if (cluster !== null && analysis) {
+    detailBody = (
+      <ClusterView
+        cluster={cluster}
+        axis={analysis.axis}
+        onBack={() => handleSelect(null)}
+        onSelect={handleSelect}
+      />
+    );
   } else if (selected === null) {
     if (entities.length > 0) {
       detailBody = (
         <SymbolsDashboard
-          entities={entities}
-          interpretations={interpretations}
-          totalChapters={totalChapters}
+          analysis={analysis}
+          batch={batch}
+          check={check}
+          sortAxis={sortAxis}
+          shapeFilter={shapeFilter}
+          setShapeFilter={setShapeFilter}
+          onSelect={handleSelect}
+          onOpenCluster={openCluster}
         />
       );
     } else {
@@ -289,46 +383,59 @@ export default function SymbolsPage() {
   } else {
     detailBody = (
       <>
-        <header className="sym-detail-head">
-          <div className="sym-detail-title-row">
-            <h1 className="sym-detail-title">{selected.term}</h1>
-            <TypePill type={selected.imagery_type} />
-            <span className="sym-detail-freq">
-              {t('symbol.frequency', { count: selected.frequency })}
-            </span>
-          </div>
-          {selected.aliases.length > 0 && (
-            <div className="sym-detail-aliases">
-              <span className="sym-aliases-label">{t('symbol.aliases')}</span>
-              {selected.aliases.map((a) => (
-                <span key={a} className="sym-alias-pill">
-                  {a}
-                </span>
-              ))}
-            </div>
-          )}
-        </header>
+        {selectedSignals && (
+          <SymbolDetailHead
+            signals={selectedSignals}
+            rank={selectedRank}
+            onBack={() => handleSelect(null)}
+            pinned={
+              pinnedSignals ? { id: pinnedSignals.id, term: pinnedSignals.term } : null
+            }
+            setPinned={setPinned}
+          />
+        )}
+
+        {/* Before the interpretation, not after it: this is what the page knows
+            for free, and on a book nobody has spent tokens on it is the only
+            thing here with anything to say. */}
+        {selectedSignals && analysis && (
+          <BehaviourSummary
+            signals={selectedSignals}
+            analysis={analysis}
+            rank={selectedRank}
+          />
+        )}
 
         {interpretationBlock}
 
-        <ChapterCard entity={selected} totalChapters={totalChapters} />
+        {selectedSignals && analysis && (
+          <ChapterCard
+            signals={selectedSignals}
+            axis={analysis.axis}
+            // Nothing to compare a symbol against itself, so the row is dropped
+            // rather than drawn twice.
+            pinned={pinnedSignals?.id === selectedSignals.id ? null : pinnedSignals}
+          />
+        )}
 
-        <CoOccurrencePanel
-          bookId={bookId!}
-          coOccurrences={coOccurrences}
-          linkedCharacters={resolvedCharacters}
-          linkedEvents={resolvedEvents}
-          loading={coLoading}
-          onSelectCo={setSelectedId}
-        />
+        {selectedSignals && (
+          <CoOccurrencePanel
+            bookId={bookId!}
+            signals={selectedSignals}
+            onSelectCo={handleSelect}
+          />
+        )}
 
-        <OccurrencesTimeline
-          timeline={timeline}
-          loading={timelineLoading}
-          term={selected.term}
-          aliases={selected.aliases}
-          bookId={bookId!}
-        />
+        {analysis && (
+          <OccurrencesTimeline
+            timeline={timeline}
+            loading={timelineLoading}
+            term={selected.term}
+            aliases={selected.aliases}
+            bookId={bookId!}
+            axis={analysis.axis}
+          />
+        )}
       </>
     );
   }
@@ -336,17 +443,17 @@ export default function SymbolsPage() {
   return (
     <div className="sym-page">
       <SymbolList
-        entities={entities}
-        interpretations={interpretations}
+        analysis={analysis}
         selectedId={selectedId}
-        onSelect={setSelectedId}
+        onSelect={handleSelect}
+        check={check}
+        sortAxis={sortAxis}
+        setSortAxis={setSortAxis}
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
-        sort={sort}
-        setSort={setSort}
+        shapeFilter={shapeFilter}
         search={search}
         setSearch={setSearch}
-        totalChapters={totalChapters}
       />
 
       <main className="sym-detail">{detailBody}</main>
@@ -354,50 +461,76 @@ export default function SymbolsPage() {
   );
 }
 
-function ChapterCard({ entity, totalChapters }: Readonly<{ entity: ImageryEntity; totalChapters: number }>) {
+/**
+ * Where in the book a symbol appears, across all three segments.
+ *
+ * Peaks and "first seen" come from the segmented distribution the chart itself
+ * draws, so the caption cannot contradict the markers — `entity.first_chapter` is
+ * the raw minimum and reads 「首見第 -1 章」 for anything mentioned on the title
+ * page.
+ */
+function ChapterCard({
+  signals,
+  axis,
+  pinned,
+}: Readonly<{ signals: SymbolSignals; axis: ChapterAxis; pinned: SymbolSignals | null }>) {
   const { t } = useTranslation('analysis');
-  // Peaks and "first seen" are derived from the same body-chapter view the chart
-  // draws, so the caption can no longer contradict the marker: entity.first_chapter
-  // is the raw minimum and reads "首見第 -1 章" for anything mentioned in front matter.
-  const peakChapters = useMemo(
-    () => peakBodyChapters(entity.chapter_distribution),
-    [entity.chapter_distribution],
-  );
-  const firstChapter = firstBodyChapter(entity.chapter_distribution);
-  const outside = outsideBodyCount(entity.chapter_distribution);
-  const peakLabel = peakChapters.length > 0 ? t('symbol.peakChapters', { chapter: peakChapters[0] }) : null;
+  const { firstBodyChapter: first, peakBodyChapters: peaks, front } = signals.distribution;
+  // One source for the bar scale: the caption states it and the legend derives its
+  // steps from it, so neither can drift from what the chart drew.
+  const scale = barScale(signals.item.chapter_distribution ?? {}, axis);
+
+  const meta = [];
+  if (first !== null) meta.push(t('symbol.firstSeenBody', { chapter: first }));
+  if (peaks.length > 0) {
+    meta.push(
+      hasDistinctPeak(signals.distribution)
+        ? t('symbol.peakChapters', { chapter: peaks.join('、') })
+        : t('symbol.dist.peakFlat'),
+    );
+  }
+  meta.push(t('symbol.dist.scale', { max: scale }));
+
   return (
     <section className="sym-card">
       <div className="sym-card-head">
         <BookOpen size={13} style={{ color: 'var(--accent)' }} />
         <span className="sym-card-title">{t('symbol.chapterDist')}</span>
-        <span className="sym-card-meta">
-          {firstChapter != null && t('symbol.firstSeen', { chapter: firstChapter })}
-          {firstChapter != null && peakLabel && <> · </>}
-          {peakLabel}
-          {outside > 0 && (
-            <>
-              {(firstChapter != null || peakLabel) && <> · </>}
-              {t('symbol.outsideBody', { count: outside })}
-            </>
-          )}
-        </span>
+        <span className="sym-card-meta">{meta.join(' · ')}</span>
       </div>
       <div className="sym-card-body" style={{ overflowX: 'auto' }}>
-        <ChapterDistChart
-          distribution={entity.chapter_distribution}
-          peakChapters={peakChapters}
-          totalChapters={totalChapters}
-        />
-        <div className="sym-density-legend">
-          <span className="sym-density-step" style={{ background: 'var(--symbol-density-low)' }} /> {t('symbol.densityLow')}
-          <span className="sym-density-step" style={{ background: 'var(--symbol-density-mid)' }} /> {t('symbol.densityMid')}
-          <span className="sym-density-step" style={{ background: 'var(--symbol-density-high)' }} /> {t('symbol.densityHigh')}
-          <span className="sym-density-step sym-density-peak">
-            <span />
-          </span>{' '}
-          {t('symbol.densityPeak')}
+        <ChapterDistChart signals={signals} axis={axis} scale={scale} pinned={pinned} />
+        {pinned !== null && (
+          <p className="sym-dist-pin-note">
+            {t('symbol.pin.note', { term: pinned.term })}
+          </p>
+        )}
+        <div className="sym-dist-legend">
+          {[1, 2, 3]
+            .filter((step) => step <= scale)
+            .map((step) => (
+              <span key={step} className="sym-dist-legend-item">
+                <span
+                  className="sym-dist-legend-swatch"
+                  style={{ background: densityStep(step) }}
+                />
+                {step === 3
+                  ? t('symbol.overview.heat.legendMore', { count: step })
+                  : t('symbol.overview.heat.legendStep', { count: step })}
+              </span>
+            ))}
+          <span className="sym-dist-legend-item">
+            <span className="sym-dist-legend-swatch is-outside" />
+            {t('symbol.overview.heat.legendOutside')}
+          </span>
         </div>
+        {/* Says what the front-matter bars are excluded from, because they are
+            drawn rather than hidden and a visible bar reads as evidence. */}
+        <p className="sym-dist-note">
+          {front > 0
+            ? t('symbol.dist.noteFront', { count: front })
+            : t('symbol.dist.noteClean')}
+        </p>
       </div>
     </section>
   );

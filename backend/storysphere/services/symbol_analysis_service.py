@@ -15,6 +15,7 @@ import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
+from pydantic import ValidationError
 from tenacity import (
     retry,
     retry_if_exception_type,
@@ -22,9 +23,14 @@ from tenacity import (
     wait_exponential,
 )
 
+from storysphere.core.error_handling import LLMResponseBlocked, llm_text
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
-from storysphere.domain.symbol_analysis import SEP, SymbolInterpretation
+from storysphere.domain.symbol_analysis import (
+    SEP,
+    InterpretationBlock,
+    SymbolInterpretation,
+)
 
 if TYPE_CHECKING:
     from storysphere.services.analysis_cache import AnalysisCache
@@ -125,7 +131,27 @@ class SymbolAnalysisService:
 
         if progress_callback:
             progress_callback(40, "calling LLM for interpretation")
-        interpretation = await self._call_llm(sep, language)
+        try:
+            interpretation = await self._call_llm(sep, language)
+        except LLMResponseBlocked as exc:
+            # Recorded here rather than in the routers so the single-symbol and
+            # batch paths cannot drift: both reach the LLM through this method.
+            await self.save_block(
+                InterpretationBlock(
+                    imagery_id=imagery_id,
+                    book_id=book_id,
+                    term=sep.term,
+                    reason=exc.reason,
+                    detail=exc.detail,
+                )
+            )
+            logger.warning(
+                "SymbolAnalysisService: provider refused imagery=%s (%s) %s",
+                imagery_id,
+                exc.reason,
+                exc.detail,
+            )
+            raise
 
         if progress_callback:
             progress_callback(90, "saving interpretation")
@@ -135,15 +161,61 @@ class SymbolAnalysisService:
     async def save_interpretation(
         self, interpretation: SymbolInterpretation
     ) -> None:
-        """Persist a SymbolInterpretation to cache."""
+        """Persist a SymbolInterpretation to cache, clearing any refusal record.
+
+        The clear is not optional bookkeeping: a symbol that was refused once and
+        succeeds later — a second provider configured, a prompt change — would
+        otherwise keep its "blocked" badge and stay out of every batch run's
+        default scope forever.
+        """
         key = _interpretation_cache_key(
             interpretation.book_id, interpretation.imagery_id
         )
         await self._cache.set(key, interpretation.model_dump(mode="json"))
+        await self.clear_block(
+            interpretation.imagery_id, interpretation.book_id
+        )
         logger.debug(
             "SymbolAnalysisService: saved interpretation imagery=%s",
             interpretation.imagery_id,
         )
+
+    # ── Provider refusals ─────────────────────────────────────────────────────
+
+    async def save_block(self, block: InterpretationBlock) -> None:
+        """Persist a record that the provider refused this symbol."""
+        await self._cache.set(
+            _block_cache_key(block.book_id, block.imagery_id),
+            block.model_dump(mode="json"),
+        )
+
+    async def list_blocks(self, book_id: str) -> dict[str, InterpretationBlock]:
+        """Return every refusal record for a book, keyed by imagery_id.
+
+        Mirrors :meth:`list_interpretations`, including its tolerance for
+        malformed rows: one bad entry must not cost the caller every other
+        symbol's state.
+        """
+        rows = await self._cache.list_by_prefix(
+            f"symbol_analysis_block:{book_id}:"
+        )
+        by_imagery: dict[str, InterpretationBlock] = {}
+        for row in rows:
+            try:
+                block = InterpretationBlock.model_validate(row)
+            except ValidationError:
+                logger.warning(
+                    "SymbolAnalysisService: skipping malformed block record "
+                    "in book %s",
+                    book_id,
+                )
+                continue
+            by_imagery[block.imagery_id] = block
+        return by_imagery
+
+    async def clear_block(self, imagery_id: str, book_id: str) -> None:
+        """Drop the refusal record for one symbol, if it has one."""
+        await self._cache.invalidate(_block_cache_key(book_id, imagery_id))
 
     async def get_interpretation(
         self, imagery_id: str, book_id: str
@@ -152,6 +224,33 @@ class SymbolAnalysisService:
         return await self._cache.get_as(
             _interpretation_cache_key(book_id, imagery_id), SymbolInterpretation
         )
+
+    async def list_interpretations(
+        self, book_id: str
+    ) -> dict[str, SymbolInterpretation]:
+        """Return every cached interpretation for a book, keyed by imagery_id.
+
+        One query for the whole book. The alternative — asking per imagery entity
+        — costs one request per symbol and 404s on nearly all of them, since real
+        books run at 1-of-29 interpretation coverage.
+
+        Malformed cache rows are skipped rather than failing the batch: a single
+        bad entry should not cost the caller every other symbol's review status.
+        """
+        rows = await self._cache.list_by_prefix(f"symbol_analysis:{book_id}:")
+        by_imagery: dict[str, SymbolInterpretation] = {}
+        for row in rows:
+            try:
+                interp = SymbolInterpretation.model_validate(row)
+            except ValidationError:
+                logger.warning(
+                    "SymbolAnalysisService: skipping malformed interpretation "
+                    "in book %s",
+                    book_id,
+                )
+                continue
+            by_imagery[interp.imagery_id] = interp
+        return by_imagery
 
     async def update_interpretation_review(
         self,
@@ -216,7 +315,11 @@ class SymbolAnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+
+        # Before parsing, not after: a refused prompt yields empty content, and
+        # letting that reach the extractor turns "the provider said no" into
+        # "no_json_found".
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -257,6 +360,16 @@ class SymbolAnalysisService:
 
 def _interpretation_cache_key(book_id: str, imagery_id: str) -> str:
     return f"symbol_analysis:{book_id}:{imagery_id}"
+
+
+def _block_cache_key(book_id: str, imagery_id: str) -> str:
+    """Key for a refusal record.
+
+    The underscore separating ``symbol_analysis`` from ``block`` is what keeps
+    these rows out of ``list_interpretations()``, which scans the prefix
+    ``symbol_analysis:{book}:`` — a colon, so this family sorts outside it.
+    """
+    return f"symbol_analysis_block:{book_id}:{imagery_id}"
 
 
 def _format_sep_for_prompt(sep: SEP) -> str:

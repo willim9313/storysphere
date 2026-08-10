@@ -194,6 +194,18 @@ def to_yake_language(lang_code: str) -> str:
 def get_language_display_name(lang_code: str) -> str:
     """Return a human-readable language name for use in LLM prompts.
 
-    Example: ``"zh-cn"`` → ``"Chinese"``, ``"en"`` → ``"English"``.
+    Example: ``"zh-TW"`` → ``"Traditional Chinese"``, ``"en"`` → ``"English"``.
+
+    Matched case-insensitively, and an unknown region falls back to the base
+    language rather than to the code itself. Both matter because the result goes
+    straight into a prompt as "Respond in {name}.": a miss does not raise, it
+    quietly instructs the model to answer in "Zh", and the model then guesses.
+    There is already a regression test here for bare ``"zh"`` hitting exactly
+    that — the entry for ``zh-tw`` was added but the lookup stayed
+    case-sensitive, so a stored ``"zh-TW"`` would still have missed it.
     """
-    return _LANGUAGE_DISPLAY_NAMES.get(lang_code, lang_code.split("-")[0].capitalize())
+    key = lang_code.strip().lower()
+    if key in _LANGUAGE_DISPLAY_NAMES:
+        return _LANGUAGE_DISPLAY_NAMES[key]
+    base = key.split("-")[0]
+    return _LANGUAGE_DISPLAY_NAMES.get(base, base.capitalize())

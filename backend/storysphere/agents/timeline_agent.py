@@ -20,6 +20,7 @@ from tenacity import (
     wait_exponential,
 )
 
+from storysphere.core.error_handling import llm_text
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.events import Event, NarrativeMode
 from storysphere.domain.temporal import TemporalRelation, TemporalRelationType
@@ -292,11 +293,7 @@ class TimelineAgent:
         ]
 
         response = await self._llm.ainvoke(messages)
-        raw = (
-            response.content
-            if hasattr(response, "content")
-            else str(response)
-        )
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, list):

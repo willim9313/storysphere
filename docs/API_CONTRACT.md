@@ -1487,6 +1487,116 @@ interface ImageryEntity {
 
 ---
 
+### #15i GET /symbols/overview
+
+一次取得全書所有意象的行為訊號 —— 象徵意象頁進頁唯一請求。純資料彙整，無 LLM。
+
+**存在理由**：本頁依「行為」而非頻率排序，因此畫第一屏前就需要每個意象的共現實體、事件數、
+結盟意象與審核狀態。用 #15a + 逐個 #15d + #9 + 逐個 #15g 拼出來要 40+ 個請求，
+而且 **#15d 每次呼叫都會重新載入整本書與全部事件**（29 個意象的書＝11 次整本載入）。
+本端點把三份資料各載入一次。
+
+刻意**不含**逐段全文（`occurrence_contexts` / `paragraph_text`）—— 引文只在選定意象後由 #15b 取。
+
+**Query Params**
+
+| 參數 | 說明 |
+|------|------|
+| `book_id` | 必填 |
+| `force` | 選填，繞過快取重新彙整 |
+
+**Response 200**
+```ts
+// 欄位為 snake_case（domain/ model）
+interface SymbolOverview {
+  book_id: string;
+  body_chapter_count: number;          // 正文章數（不含前置頁與後記）
+  body_paragraph_count: number;        // 正文段落總數 —— 角色依附基準率的分母
+  chapter_roles: Record<string, string>;  // { chapterNum: ChapterRole }，前置／正文／後記的權威依據
+  global_chapter_max: number;          // 跨意象的正文單章最大值；熱圖與密度條共用此色階
+  items: SymbolOverviewItem[];
+  assembled_by: string;
+  assembled_at: string;
+}
+
+interface SymbolOverviewItem {
+  // 與 #15a 的 ImageryEntity 相同
+  id: string;
+  book_id: string;
+  term: string;
+  imagery_type: string;
+  aliases: string[];
+  frequency: number;
+  chapter_distribution: Record<string, number>;
+  first_chapter: number | null;
+
+  // 已解析的共現實體（#15d 只給 entity UUID）；已濾掉與意象同名的 KG 實體
+  co_occurring_entities: CoOccurringEntityRef[];
+  self_match_count: number | null;     // 被濾掉的同名實體共現次數
+
+  co_occurring_event_count: number;    // 只計正文章節的事件
+  co_occurring_imagery: CoOccurrenceEntry[];   // 欄位同 #15c
+
+  interpretation: InterpretationStatus | null;       // null = 尚未生成
+  interpretation_block: InterpretationBlockStatus | null; // null = 未被 provider 拒絕
+}
+
+interface CoOccurringEntityRef {
+  id: string;
+  name: string;
+  entity_type: string;   // character / location / organization / object / concept / other
+  count: number;           // 與該意象同段的出現次數（含非正文）
+  body_count: number;      // 同上，只計正文章節
+  paragraph_count: number; // 全書有提到此實體的正文段落數 —— 基準率
+}
+
+interface InterpretationStatus {
+  review_status: 'pending' | 'approved' | 'modified' | 'rejected';
+  polarity: 'positive' | 'negative' | 'neutral' | 'mixed';
+  confidence: number;
+}
+
+interface InterpretationBlockStatus {
+  reason: 'provider_blocked' | 'provider_empty';
+  detail: string;        // provider 自己的標籤，如 'PROHIBITED_CONTENT'；provider_empty 時為空字串
+  blocked_at: string;    // ISO 8601
+}
+```
+
+**Response 404**：書本不存在
+
+**說明**
+
+- **敘事負載等排序分數不由本端點計算。** 權重待上線後以真實資料校準，留在前端純函數層。
+- `co_occurring_entities` 已依 `count` 遞減排序，並移除與意象同名的 KG 實體
+  （「海」的 top-1 是地點「海」共現 12 次，取它當訊號等於說「這個意象總是跟自己一起出現」）。
+  被移除的次數由 `self_match_count` 回報，供 UI 交代而非靜默丟棄。
+- `co_occurring_event_count` **只計 `chapter_roles` 為 `body` 的章節** —— 版權頁所在章的事件
+  不構成敘事關聯。
+- **`interpretation_block` 用來分辨「還沒花 token」與「試過且無法成功」。** 少了它，被
+  provider 拒絕的意象在清單裡與從未生成過的長得一模一樣；而被拒絕的往往是訊號強的意象
+  （《名字的潮汐》的「海」旁邊就是「手」），於是頁面會一再把讀者推向唯一產不出來的那個。
+  `interpretation` 與 `interpretation_block` **彼此獨立**，可同時非 null（曾成功、後續重生成
+  被拒）。與 `interpretation` 同樣是請求時即時疊上，不進 `symbol_overview:` 快取。
+- **角色依附必須算成倍率（lift），不能只看比例。** 「71% 的出現與某角色同段」單獨看沒有意義 ——
+  若該角色本來就出現在 70% 的段落裡，71% 正是機率該給的數字。因此每個共現實體同時回傳
+  分子與基準率：
+
+  ```
+  observed = body_count / <該意象的正文出現次數>
+  expected = paragraph_count / body_paragraph_count
+  lift     = observed / expected          // > 1 才是真的依附
+  ```
+
+  分子用 `body_count` 而非 `count`，因為分母只數正文段落；混用兩個宇宙會把前置頁的
+  失真重新帶回來。
+- 結構性彙整快取於 `symbol_overview:{book_id}`；`interpretation` 每次請求即時疊上
+  （HITL 審核會獨立變動，混進同一份快取會回傳過期的審核狀態）。
+
+**UI 使用頁面**：象徵意象頁左欄清單、排序、全書意象地圖
+
+---
+
 ### #15b GET /symbols/:imageryId/timeline
 
 取得意象的所有出現紀錄（含前後文 context window）。
@@ -1555,17 +1665,32 @@ interface SEP {
     paragraph_text: string;
     context_window: string;
   }[];
+  excluded_front_matter_count: number;   // 被排除的前置頁出現筆數，見下
   co_occurring_entity_ids: string[];
   co_occurring_entity_counts: Record<string, number>;  // { entityId: N occurrences whose paragraph mentions this entity }
   co_occurring_event_ids: string[];
   chapter_distribution: Record<string, number>;   // { "1": 3, "2": 1, ... }
   peak_chapters: number[];
-  assembled_by: string;
+  assembled_by: string;   // "symbol_service_v2"；v1 快取不再被採用，見下
   assembled_at: string;
 }
 ```
 
 **Response 404**：imagery 不存在
+
+**說明**
+
+- **`occurrence_contexts` 排除前置頁**（B-074，2026-08-10）。判準與前端 `trust` 乘數
+  同一條線：**正文之前的章節排除、後記保留**。版權頁的「臨海市」是雜訊，但後記某一句
+  可能是全書最清楚的象徵陳述，兩者一起丟掉等於丟掉好的那一半。
+- 這件事比看起來嚴重：occurrences 依章節排序，而 prompt 只帶前 20 筆 —— 未過濾時前置頁
+  不只是「被包含」，它是**模型最先讀到的證據**。《名字的潮汐》的「海」13 筆出現有 5 筆
+  是版權頁與書名頁，正好佔據 `[1]`–`[5]`。
+- `frequency` 與 `chapter_distribution` **不受影響**，仍是全書計數 —— 被過濾的只有送進
+  LLM 的證據。前端用 `excluded_front_matter_count / frequency` 說明可用比例。
+- 若整份文件沒有任何 `body` 章節，則不排除任何筆數（沒有「正文之前」可言）。
+- **`assembled_by` 是版本閘門**：讀快取時比對，不符即視為 miss 重新組裝。v1 的快取
+  帶著前置頁證據，直接沿用等於對所有既有書繼續餵版權頁文字。**不需清除腳本。**
 
 **UI 使用頁面**：象徵意象頁（內部前置步驟，觸發 #15e 前呼叫）
 
@@ -1589,6 +1714,42 @@ interface SEP {
 **說明**：polling 走 #15f（不走 #8）。完成後結果存入快取，可由 #15g 取得。
 
 **UI 使用頁面**：象徵意象頁詳情區「生成詮釋」按鈕
+
+---
+
+### #15j POST /symbols/analyze-all
+
+批次觸發 LLM 象徵詮釋 —— 象徵意象頁總覽的三顆批次鈕（訊號最強前 N 名／全部／勾選多筆）。
+
+**Request Body**
+```ts
+{
+  book_id: string;          // 必填
+  imagery_ids?: string[];   // 提供時只跑這個子集；不存在的 id 直接排除（不計入任何統計）
+  language?: string;        // 省略時由後端取該書語言
+  force_refresh?: boolean;  // true = 連已有詮釋的也重跑
+}
+```
+
+**Response 202**：`TaskStatus`（含 `taskId`）
+**Response 400**：範圍內無任何意象（含 `imagery_ids` 提供但子集內無有效 id 的情況）
+
+**說明**
+
+- **省略 `imagery_ids` 時的預設範圍是 `frequency > 1` 的意象**，與頁面清單範圍一致。
+  只出現 1 次的詞沒有分布、沒有結盟、沒有依附，佔全書意象多數，
+  「全部生成」不該把成本花在它們身上。**明確列進 `imagery_ids` 則照跑** —— 那是使用者的決定。
+- 已有詮釋者計入 `skipped`（除非 `force_refresh`）。
+- **已被 provider 拒絕者同樣計入 `skipped`**（除非 `force_refresh`）。拒絕是確定性的 ——
+  重送同一個 prompt 必然再被拒，掃一輪只是每筆花一次呼叫去換一個已經記錄過的答案。
+  `force_refresh` 是逃生口：日後補上第二家 provider 時用它重跑。
+- **序列執行，非併發**：每一筆都是付費 LLM 呼叫，併發會讓 rate limit 中止時損失已計費的工作。
+- 遇到 rate limit **整批中止**並回報已完成數，不繼續消耗額度。
+- `TaskStatus.result` 用與角色／事件批次共通的 `BatchEepResult`（見 #7g）；
+  進度另填 `sub_progress` / `sub_total`，讓 BatchEepPanel 顯示件數而非百分比。
+- polling 走 **#8**（不是 #15f —— #15f 是單一意象的專用 polling）。
+
+**UI 使用頁面**：象徵意象頁全書意象地圖的批次按鈕與進度面板
 
 ---
 
@@ -2323,6 +2484,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 ['tension', 'lines', bookId]                                // #14e
 ['tension', 'theme', bookId]                                // #14i
 ['symbols', bookId]                                         // #15a
+['symbols', bookId, 'overview']                             // #15i
 ['symbols', imageryId, 'timeline']                          // #15b
 ['symbols', imageryId, 'co-occurrences']                    // #15c
 ['symbols', imageryId, 'sep']                               // #15d

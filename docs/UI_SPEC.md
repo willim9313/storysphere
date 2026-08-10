@@ -1141,7 +1141,10 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
   - 詞條（serif）+ polarity dot（若已有 interpretation）
   - 異體（最多 2 個，` · ` 串接）
   - DensityStrip — 章節密度縮影（每章一格，依密度上色）
-  - 右側：出現次數 + ReviewBadge（若已有 interpretation）
+  - 右側：出現次數 + ReviewBadge（若已有 interpretation）+ BlockBadge（若 `interpretation_block` 非 null）
+    - **兩者可同時出現** —— 曾成功詮釋、後續重生成被拒。只顯示其中一個會藏掉一半狀態。
+    - BlockBadge 用 `--status-partial-*`（琥珀）而非 `--color-error-*`：沒有東西壞掉、
+      使用者也沒做錯事，狀態是「試過、無法完成」。紅色會讀成一個待修的故障。
 
 #### Content Area — 意象詳情
 
@@ -1157,7 +1160,17 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
      - 證據綜述（evidence_summary）
      - 相關角色 / 相關事件 chips（從 `linked_characters` / `linked_events`）
      - HITL 三按鈕（通過 / 修訂 / 駁回）+ 重新生成 ghost 按鈕；按修訂時切換 inline edit theme + polarity → 儲存 / 取消
-   - **尚未生成**（`InterpretationCta`）：sparkles 圖示 + 說明 + 主按鈕「生成 LLM 詮釋」
+   - **尚未生成**（`InterpretationCta`）：sparkles 圖示 + 說明 + 主按鈕「生成 LLM 詮釋」。
+     文案依 `interpretationAdvice()` 的四種判定切換：`recommended` / `available` /
+     `discouraged` / `blocked`。
+   - **被供應商拒絕**（`InterpretationCta` 的 `blocked` 分支）：Info 圖示 + ghost 按鈕
+     「再試一次」，標題明講「供應商拒絕了這個提示，不是訊號不足」，內文引用 provider
+     自己的標籤（如 `PROHIBITED_CONTENT`）。
+     - **`blocked` 判定優先於 load 門檻。** 拒絕落在強訊號意象上的機率與弱訊號一樣，
+       若只依 load 判定，頁面會把最顯眼的推薦位給唯一產不出來的那個
+       （《名字的潮汐》的「手」正是如此）。
+     - **按鈕保持可點。** 拒絕是針對「當時那家 provider」記錄的，重試是這個意象在有
+       可用 fallback 之後恢復的唯一途徑；禁用等於讓那筆紀錄變成永久判決。
 3. **章節分布卡（`ChapterDistChart`）**：SVG 長條，密度漸層（low/mid/high）+ 峰值三角 marker（前 3 名章節，client-side 推導）+ hover tooltip + 密度圖例
 4. **共現網絡卡（`CoOccurrencePanel`）**：3 個 tab
    - 共現意象：彩色 pill grid（依 imagery_type 著色 + 共現次數 chip），點擊切換選中
@@ -1173,8 +1186,14 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 | `entities.length === 0` | EmptyState — `emptyTitle` + `emptyHint` |
 | 未選中且有資料 | EmptyState — `selectPrompt` + `selectPromptDesc` |
 | 選中但 interpretation 不存在（404） | `InterpretationCta` |
+| 選中且 `interpretation_block` 非 null | `InterpretationCta` 的 `blocked` 分支 |
 | 選中且 polling | `InterpretationGenerating` |
 | 選中且有 interpretation | `InterpretationHero`（HITL 可操作） |
+
+> `interpretation` 與 `interpretation_block` **彼此獨立**，可同時非 null。詳情區以
+> `interpretation` 優先（有詮釋就顯示 `InterpretationHero`）；側欄則兩個徽章都顯示。
+> 批次勾選（`useSymbolCheck.candidates`）排除已被拒絕者，與 #15j 後端預設跳過一致 ——
+> 提供一個註定被跳過的勾選框，是一個做不到的承諾。
 
 #### 設計 token
 

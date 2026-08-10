@@ -1260,13 +1260,7 @@
     "noData": "No imagery data",
     "noResults": "No matching results",
     "chapterDist": "Chapter distribution",
-    "firstSeen": "First seen Ch. {{chapter}}",
     "peakChapters": "Peak at Ch. {{chapter}}",
-    "outsideBody": "{{count}} more outside the main text",
-    "densityLow": "Low",
-    "densityMid": "Mid",
-    "densityHigh": "High",
-    "densityPeak": "Peak",
     "coOccurrences": "Co-occurrence network",
     "noCoOccurrences": "No co-occurrence data",
     "occurrences": "Occurrences",
@@ -1333,7 +1327,26 @@
       "linkedCharHint": "{{count}} co-occurrences",
       "linkedEventHint": "Ch. {{chapter}}",
       "coOccurrenceCount": "{{count}} co-occurrences",
-      "occurrenceJumpTitle": "Jump to reader"
+      "occurrenceJumpTitle": "Jump to reader",
+      "frontMatterWarning": "{{count}} of this symbol's occurrences sit in front matter (colophon / title page) and were left out of the evidence; only body and afterword text goes to the model. The distribution chart still shows them.",
+      "cta": {
+        "recommendedTitle": "Strong enough signals — worth writing up as an argument",
+        "recommendedDesc": "Narrative load {{value}} (#{{rank}} in the book). Interpretation turns the six signals above into a thematic proposition and an evidence synthesis, then enters HITL review.",
+        "recommendedButton": "Interpret",
+        "availableTitle": "You can interpret this, but read the summary above first",
+        "availableDesc": "Narrative load {{value}}. The summary already answers what it does; interpretation adds what it means, and costs tokens.",
+        "availableButton": "Interpret",
+        "discouragedTitle": "Thin evidence — not recommended yet",
+        "discouragedDesc": "Narrative load {{value}}. Its distribution, attachment and allies are all thin, so the model can only paraphrase the quotes. Try a symbol from the same behaviour group instead.",
+        "discouragedButton": "Interpret anyway",
+        "weakTitle": "Weak signals — the result may only paraphrase the quotes",
+        "frontWarn": "{{count}} front-matter occurrences are excluded from the evidence; only body and afterword text is sent.",
+        "blockedTitle": "The provider refused this prompt — the signals are not the problem",
+        "blockedDesc": "The LLM provider blocked this symbol's prompt ({{detail}}) and returned nothing. That is a judgement made at the model, so re-sending the same evidence gets the same answer. Worth retrying once a different provider is configured.",
+        "blockedEmptyDesc": "The LLM provider returned empty content and gave no reason. Re-sending the same evidence will most likely get the same result. Worth retrying once a different provider is configured.",
+        "blockedButton": "Try again",
+        "blockedHint": "Retrying re-sends the same evidence; expect the same refusal unless the provider has changed"
+      }
     },
     "generating": {
       "eyebrow": "Interpreting symbol",
@@ -1362,22 +1375,10 @@
       "reviewFailed": "Failed to update review status."
     },
     "dashboard": {
-      "totalSymbols": "Total imagery",
-      "totalOccurrences": "Total occurrences",
-      "analyzedCount": "Interpreted",
-      "approvedCount": "Approved",
-      "donutLabel": "imagery",
-      "typeDistTitle": "Type distribution",
-      "typeCount": "{{count}} types",
-      "polarityDistTitle": "Polarity distribution",
-      "polarityMeta": "Interpreted {{analyzed}}/{{total}}",
-      "polarityUnanalyzed": "Uninterpreted",
       "freqTitle": "Frequency long-tail",
       "freqMeta": "Top {{count}}",
       "heatTitle": "Chapter density heatmap",
-      "heatMeta": "Imagery × {{chapters}} chapters",
-      "heatLegendLow": "Low density",
-      "heatLegendHigh": "High density"
+      "heatMeta": "Imagery × {{chapters}} chapters"
     },
     "emptyStep1Title": "Confirm paragraph tokenisation is complete",
     "emptyStep1Desc": "Imagery extraction relies on paragraph-level tokens — if the paragraph layer has not been built, extraction will not run automatically.",
@@ -1386,7 +1387,266 @@
     "emptyStep3Title": "Trigger manually if needed",
     "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Build Overview page.",
     "emptyUnravelingBtn": "Open Build Overview",
-    "emptyRecheckBtn": "Re-check status"
+    "emptyRecheckBtn": "Re-check status",
+    "list": {
+      "sortAxis": "Rank by",
+      "axis": {
+        "load": "narrative load",
+        "attach": "character attachment",
+        "span": "reach",
+        "events": "event attachment",
+        "freq": "body frequency",
+        "first": "first appearance",
+        "review": "review state"
+      },
+      "axisDefault": "Narrative load (default)",
+      "axisFreqAside": "Body frequency (cross-check)",
+      "searchPlaceholder": "Search symbols… (incl. variants)",
+      "headingSorted": "By {{axis}}",
+      "headingSearch": "Search results",
+      "headingShape": "Filtered by behaviour",
+      "count": "{{shown}} / {{total}}",
+      "tailNote": "{{count}} more words occur once and are not ranked",
+      "metric": {
+        "load": "{{value}}",
+        "attach": "×{{value}}",
+        "attachNone": "—",
+        "span": "{{hit}}/{{total}} ch",
+        "events": "{{count}} ev",
+        "freq": "{{count}}×",
+        "first": "ch{{chapter}}",
+        "firstNone": "ch—",
+        "reviewNone": "none"
+      },
+      "checkHint": "Tick the symbols to interpret. Already-interpreted symbols and words occurring once are not included.",
+      "checkNone": "Nothing here can be picked.",
+      "checkAria": "Pick {{term}}"
+    },
+    "shape": {
+      "through": "Runs through {{count}} chapters",
+      "backHalf": "Concentrated late (ch {{first}}–{{last}})",
+      "frontHalf": "Concentrated early (ch {{first}}–{{last}})",
+      "earlyExit": "Ch {{first}}–{{last}}, then gone",
+      "lateEntry": "Arrives only in ch {{first}}",
+      "scatter": "Intermittent, ch {{first}}–{{last}}",
+      "single": "Only in ch {{chapter}}",
+      "none": "Outside the body text only"
+    },
+    "behaviour": {
+      "attach": "{{share}}% with {{name}} ({{lift}}×)",
+      "front": "{{count}} in front matter",
+      "events": "{{count}} events",
+      "separator": " · "
+    },
+    "overview": {
+      "title": "Symbol map",
+      "meta": {
+        "symbols": "{{count}} symbols",
+        "occurrences": "{{count}} occurrences",
+        "signals": "{{count}}/{{total}} with computable signals",
+        "interpreted": "{{count}}/{{total}} interpreted",
+        "noisy": "{{count}} with noisy evidence",
+        "separator": " · "
+      },
+      "aiCostLegend": "Marked items are LLM-generated or will trigger generation: they spend tokens and enter HITL review. Every other signal is computed at no cost.",
+      "picks": {
+        "title": "Where to start",
+        "subtitle": "Top {{count}} by narrative load, computed from structured signals",
+        "rank": "#{{rank}}",
+        "load": "load {{value}}",
+        "tagSpan": "{{hit}}/{{total}} ch",
+        "tagEvents": "{{count}} events",
+        "tagTrust": "{{value}}% trustworthy",
+        "ctaRecommended": "Strong enough to interpret →",
+        "ctaAvailable": "Read the behaviour first →",
+        "ctaDiscouraged": "Too little evidence to interpret",
+        "ctaReviewed": "Interpreted · {{status}} →",
+        "empty": "No symbol in this book occurs more than once.",
+        "ctaBlocked": "Refused by provider — cannot interpret"
+      },
+      "heat": {
+        "meta": "{{rows}} ranked symbols × {{slots}} axis slots · body chapter maximum {{max}}",
+        "subtitle": "Shaded against the highest single-chapter count across all symbols, so rows compare directly",
+        "axisFront": "Front matter",
+        "axisBody": "Body, ch {{first}}–{{last}}",
+        "axisBack": "Back matter",
+        "legendStep": "{{count}}×",
+        "legendMore": "{{count}}× or more",
+        "legendOutside": "Outside the body",
+        "note": "Dashed cells fall outside the body text: excluded from shape and first appearance, counted against evidence trust."
+      },
+      "shapes": {
+        "title": "Behaviour groups",
+        "subtitle": "Click a row to filter the list",
+        "through": "Runs throughout",
+        "backHalf": "Concentrated late",
+        "frontHalf": "Concentrated early",
+        "earlyExit": "Leaves early",
+        "lateEntry": "Arrives late",
+        "scatter": "Intermittent",
+        "single": "Single chapter",
+        "none": "Outside the body only"
+      },
+      "tail": {
+        "title": "Occurs once · {{count}}",
+        "meta": "{{pct}}% of symbols occur exactly once",
+        "description": "A word occurring once has no distribution, no allies and no attachment — under these signals it is not yet a symbol. Left out of ranking and out of batch generation, but still clickable and searchable. Type size follows first appearance.",
+        "chapter": "ch{{chapter}}",
+        "chapterFront": "front",
+        "chapterBack": "back"
+      },
+      "batch": {
+        "topN": "Interpret the strongest {{count}}…",
+        "all": "All {{count}}…",
+        "confirmTopN": "This will interpret the {{count}} symbols with the highest narrative load. Each one spends tokens and enters HITL review. Continue?",
+        "confirmAll": "This will interpret all {{count}} ranked symbols, skipping any already done. Each one spends tokens and enters HITL review. Continue?",
+        "tailExcluded": "The {{count}} words occurring once are not included.",
+        "running": "Batch interpretation running",
+        "hint": "You can leave the page; the run continues.",
+        "statGenerated": "generated",
+        "statSkipped": "skipped",
+        "statFailed": "failed",
+        "done": "Batch complete",
+        "dismiss": "Dismiss",
+        "failed": "Batch generation failed. Please try again.",
+        "check": "Pick several…",
+        "checkOff": "Cancel picking",
+        "checked": "Interpret picked ({{count}})",
+        "confirmChecked": "This will interpret the {{count}} symbols you picked. Each one spends tokens and enters HITL review. Continue?"
+      }
+    },
+    "detail": {
+      "backToMap": "Symbol map",
+      "rank": "Load {{value}} · #{{rank}} in the book",
+      "occBody": "{{count}} in the body",
+      "occFront": "{{count}} in front matter",
+      "occBack": "{{count}} in back matter",
+      "occSeparator": " · "
+    },
+    "claim": {
+      "opening": "“{{term}}” {{shape}}",
+      "attach": "; {{share}}% of its body occurrences share a paragraph with {{name}} ({{hit}}/{{of}}), {{lift}}× what chance predicts",
+      "events": "; it touches {{count}} events",
+      "polluted": ". But {{count}} of {{total}} occurrences are front matter, so its frequency ranking cannot be trusted",
+      "clean": ". No front matter, so the evidence is clean",
+      "fullStop": ".",
+      "noBody": ". There is no body evidence to interpret"
+    },
+    "signal": {
+      "title": "What it does",
+      "free": "Computed from structured signals — no LLM, no tokens",
+      "loadUnranked": "Load {{value}} · not ranked",
+      "none": "No data",
+      "attach": "Character attachment",
+      "attachValue": "{{name}} {{hit}}/{{of}}",
+      "attachNote": "{{name}} appears in {{paragraphs}}/{{total}} body paragraphs ({{base}}%); this symbol shares paragraphs with them {{lift}}× more often than chance. Bar is relative to the book's strongest attachment",
+      "attachNoteNone": "No character-type co-occurrence in SEP, or no paragraph base rate to compare against",
+      "shape": "Distribution",
+      "shapeNote": "Body chapters {{first}}–{{last}} · present in {{hit}}/{{chapters}}. Bar is the share of body chapters it reaches",
+      "shapeNoteNone": "Never occurs in the body, so it has no shape",
+      "events": "Event attachment",
+      "eventsValue": "{{count}} events",
+      "eventsNote": "KG events co-occurring with this symbol. Bar is full at the book's highest, {{max}}",
+      "eventsNoteNone": "No co-occurrence with any KG event",
+      "allies": "Symbol allies",
+      "alliesValue": "{{count}} symbols",
+      "alliesNote": "Strongest is “{{term}}”, {{count}} shared paragraphs. Bar is full at the book's highest, {{max}}",
+      "alliesNoteNone": "Never shares a paragraph with another symbol",
+      "arc": "Entry / exit",
+      "arcValue": "Ch. {{first}} → Ch. {{last}}",
+      "arcNoteToEnd": "Still present in the final chapter. Bar is its reach across the body, which is what ranking uses",
+      "arcNoteVanishes": "Gone after Ch. {{chapter}} — it enters and leaves early. Bar is its reach across the body, which is what ranking uses",
+      "arcNoteEnds": "Closes at Ch. {{chapter}}. Bar is its reach across the body, which is what ranking uses",
+      "arcNoteNone": "Never occurs in the body",
+      "trust": "Evidence",
+      "trustValue": "{{value}}%",
+      "trustNotePolluted": "{{count}} occurrences are front matter (colophon / title page / contents) and dock the ranking multiplier",
+      "trustNotePollutedBack": "{{count}} occurrences are front matter (colophon / title page / contents) and dock the ranking multiplier; {{back}} in the afterword count as evidence",
+      "trustNoteClean": "Every occurrence is in the body — nothing outside it",
+      "trustNoteCleanBack": "No front matter; {{back}} in the afterword count as evidence and are not docked"
+    },
+    "dist": {
+      "label": {
+        "front": "Front",
+        "back": "After",
+        "preface": "Preface",
+        "toc": "Contents",
+        "afterword": "Afterword"
+      },
+      "scale": "Bars scaled to {{max}}",
+      "noteFront": "{{count}} front-matter occurrences (colophon / title page / contents) are excluded from shape and first appearance; they only dock the evidence score",
+      "noteClean": "No front matter — shape and first appearance are body facts",
+      "peakFlat": "Evenly spread — no chapter stands out"
+    },
+    "firstSeenBody": "First seen Ch. {{chapter}} (body)",
+    "co": {
+      "title": "Co-occurrence, split by entity type",
+      "meta": "{{entities}} entities / {{events}} events",
+      "selfFiltered": "Self-match removed: the KG entity also named “{{term}}” co-occurs {{count}} times and was the top hit. Taking it as a signal would only say this symbol always occurs with itself.",
+      "selfNone": "Most co-occurring entities are locations, concepts and objects, which is why they are no longer all called “characters” — only character-type entities feed the attachment signal.",
+      "shareOfBody": "{{pct}}% of body occurrences",
+      "noBodyShare": "No body occurrences",
+      "entityType": {
+        "location": "Location",
+        "concept": "Concept",
+        "object": "Object",
+        "organization": "Organization",
+        "character": "Character",
+        "event": "Event"
+      },
+      "characters": {
+        "title": "Character attachment",
+        "sub": "The only co-occurrence signal that feeds ranking",
+        "empty": "No character-type co-occurrence"
+      },
+      "scenes": {
+        "title": "Scenes and objects",
+        "sub": "Not characters. They describe where the symbol appears, and do not feed ranking",
+        "empty": "No scene or object co-occurrence"
+      },
+      "allies": {
+        "title": "Allied symbols",
+        "sub": "Overlaps the entity list; this column counts only symbol identity",
+        "empty": "Never shares a paragraph with another symbol"
+      },
+      "leadHint": "This is the one that feeds narrative load — picked by lift × evidence, not by raw count"
+    },
+    "occ": {
+      "meta": "{{count}} records · {{chapters}} body chapters · {{front}} in front matter",
+      "outsideHeading": "{{label}} (Ch. {{chapter}})",
+      "outsideBadge": "Outside the body · kept as evidence · no reader page",
+      "noJump": "no page",
+      "noJumpTitle": "The reader lists body chapters only, so this passage has no page to open",
+      "frontShow": "Show {{count}} front-matter records",
+      "frontHide": "Hide {{count}} front-matter records",
+      "frontDesc": "Colophon and title page — noise. Never sent to interpretation, and not in the reader.",
+      "metaClean": "{{count}} records · {{chapters}} body chapters"
+    },
+    "cluster": {
+      "crumb": "Cluster",
+      "cardTitle": "Symbol clusters",
+      "cardMeta": "An alliance needs {{min}} shared paragraphs",
+      "title": "The {{term}} cluster",
+      "method": "Centred on “{{term}}”, taking symbols that share at least {{min}} paragraphs with it — {{count}} members",
+      "gridTitle": "On one axis",
+      "gridMeta": "{{count}} members",
+      "seed": "centre",
+      "withSeed": "{{count}} shared",
+      "hot": "Shared landing point: Ch. {{chapters}} — {{count}} of {{total}} members appear there at once",
+      "hotNone": "The members share no body chapter, so this group carries separately rather than together",
+      "boundary": "Scope: this is not a small knowledge graph. Rows are symbols, columns are chapters, shade is occurrence count — it answers what these symbols carry between them. Who is related to whom stays on the knowledge graph page."
+    },
+    "pin": {
+      "set": "Pin for comparison",
+      "clearSelf": "Unpin",
+      "clearOther": "Comparing: {{term}}",
+      "clearTitle": "Drop the comparison and remove the lower row",
+      "note": "Lower row = pinned “{{term}}”, on the same axis and the same scale. Drawn in its type colour so it is not read as part of the density scale above."
+    },
+    "blocked": {
+      "badge": "Blocked",
+      "badgeTitle": "The LLM provider refused this symbol's prompt; no interpretation was produced"
+    }
   },
   "narrative": {
     "heroJourney": "Hero's Journey",

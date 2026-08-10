@@ -17,6 +17,7 @@ from typing import Any
 from pydantic import BaseModel, Field, ValidationError, field_validator
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from storysphere.core.error_handling import llm_text
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event, EventType, NarrativeMode
@@ -317,7 +318,7 @@ class ExtractionService:
 
         set_llm_service_context("extraction")
         response = await asyncio.wait_for(llm.ainvoke(messages), timeout=150)
-        content = response.content if hasattr(response, "content") else str(response)
+        content = llm_text(response)
         return _parse_json_response(content)
 
     @retry(
@@ -354,7 +355,7 @@ class ExtractionService:
 
         set_llm_service_context("extraction")
         response = await asyncio.wait_for(llm.ainvoke(messages), timeout=150)
-        content = response.content if hasattr(response, "content") else str(response)
+        content = llm_text(response)
         return _parse_extraction_response(content)
 
     # -- Parsing helpers -----------------------------------------------------

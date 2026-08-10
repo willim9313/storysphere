@@ -28,6 +28,32 @@ export function typeStyle(t: string): SymbolTypeStyle {
   return TYPE_STYLE[(t as ImageryType) in TYPE_STYLE ? (t as ImageryType) : 'other'];
 }
 
+/**
+ * `entity_type` → the token prefix this repo actually uses.
+ *
+ * The design contract names tokens in full (`--entity-character-*`); tokens.css
+ * has carried abbreviations since before it, and says so on line 6. Without this
+ * table every co-occurrence chip resolves `var(--entity-character-bg)` to nothing
+ * and renders unstyled.
+ */
+const ENTITY_TOKEN_PREFIX: Readonly<Record<string, string>> = {
+  character: 'char',
+  location: 'loc',
+  concept: 'con',
+  object: 'obj',
+  organization: 'org',
+  event: 'evt',
+};
+
+export function entityStyle(entityType: string): SymbolTypeStyle {
+  const p = ENTITY_TOKEN_PREFIX[entityType] ?? 'other';
+  return {
+    bg: `var(--entity-${p}-bg)`,
+    fg: `var(--entity-${p}-fg)`,
+    dot: `var(--entity-${p}-dot)`,
+  };
+}
+
 export interface PolarityStyle {
   icon: LucideIcon;
   bg: string;
@@ -81,10 +107,28 @@ export const REVIEW_STYLE: Record<SymbolReviewStatus, ReviewStyle> = {
   rejected: { fg: 'var(--color-error)', bg: 'var(--color-error-bg)' },
 };
 
-export function densityToken(cnt: number, max: number): string {
-  if (cnt === 0) return 'var(--bg-tertiary)';
-  const ratio = cnt / max;
-  if (ratio >= 0.75) return 'var(--symbol-density-high)';
-  if (ratio >= 0.35) return 'var(--symbol-density-mid)';
-  return 'var(--symbol-density-low)';
+/**
+ * Shade by occurrence count rather than by proportion.
+ *
+ * Per-chapter counts in real books run 1–3, so the steps can mean literally
+ * "once", "twice", "three or more" and a legend can say so. A percentage over a
+ * range that small tells the reader less and invites more doubt. The scale is
+ * shared across every row, so colour is comparable down a column.
+ */
+export function densityStep(count: number): string {
+  if (count <= 1) return 'var(--symbol-density-mid)';
+  if (count === 2) return 'var(--symbol-density-high)';
+  return 'var(--symbol-density-peak)';
+}
+
+/**
+ * Steps a legend can honestly show, given the highest count actually drawn.
+ *
+ * Pass the maximum across every rendered cell, not the body-chapter maximum:
+ * front matter can hold more occurrences of a symbol than any single chapter does
+ * — 「海」 appears 3 times in the colophon and at most twice in a chapter — and a
+ * swatch on screen with no entry in the legend is worse than no legend.
+ */
+export function densityLegendSteps(renderedMax: number): number[] {
+  return [1, 2, 3].filter((step) => step <= Math.max(1, renderedMax));
 }

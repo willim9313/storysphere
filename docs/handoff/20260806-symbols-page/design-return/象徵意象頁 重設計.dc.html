@@ -1,0 +1,1142 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/neo-storysphere-design-system-a070c329-f8c9-40e9-909c-972820471834/colors_and_type.css">
+<link rel="stylesheet" href="_ds/neo-storysphere-design-system-a070c329-f8c9-40e9-909c-972820471834/styles.css">
+<script src="_ds/neo-storysphere-design-system-a070c329-f8c9-40e9-909c-972820471834/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#e6dfd0;font-family:'DM Sans','Noto Sans TC',system-ui,sans-serif}
+a{color:var(--accent);text-decoration:none}
+a:hover{opacity:.85}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:rgba(42,38,32,.18);border-radius:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+
+<section id="1a" style="padding:44px 48px 34px;border-bottom:1px solid rgba(42,38,32,.12)">
+<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:6px">
+<a href="#1a" style="font:600 10px var(--font-mono);padding:3px 7px;background:#2a2620;color:#f8f3e7;border-radius:4px">1a</a>
+<span style="font:600 13px var(--font-sans);color:#2a2620">設計決策 · 回答 brief §8</span>
+</div>
+<p style="margin:0 0 22px;font:400 12px/1.5 var(--font-sans);color:rgba(42,38,32,.55);max-width:1440px">主軸轉向的結論先講：<strong style="color:#2a2620">排序改用「敘事負載」，頻率降為對照欄</strong>。以真實 payload 實算，第一名不是「海」（13 次）而是<strong style="color:#2a2620">「手」（7 次）</strong>——手跨 ch1–10、71% 與伊內絲同段、零非正文污染；海有 5/13 來自版權頁。這就是這頁該有的鑑別度。</p>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1440px">
+<sc-for list="{{ decisions }}" as="d" hint-placeholder-count="6">
+<div style="background:#f8f3e7;border:1px solid #ddceb2;border-radius:12px;padding:18px 18px 16px;box-shadow:0 1px 2px rgba(42,38,32,.07)">
+<div style="font:600 10px var(--font-mono);letter-spacing:.06em;color:#b05a34;margin-bottom:7px">{{ d.tag }}</div>
+<div style="font:600 14px/1.4 var(--font-serif);color:#2a2620;margin-bottom:8px">{{ d.q }}</div>
+<div style="font:400 12.5px/1.6 var(--font-sans);color:#4a4238;margin-bottom:10px">{{ d.a }}</div>
+<div style="font:400 11.5px/1.55 var(--font-sans);color:rgba(42,38,32,.5);padding-top:9px;border-top:1px dashed #ddceb2">{{ d.why }}</div>
+</div>
+</sc-for>
+</div>
+<div style="max-width:1440px;margin-top:18px;display:grid;grid-template-columns:1.15fr 1fr;gap:18px">
+<div style="background:#f1e8d5;border:1px solid #ddceb2;border-radius:12px;padding:18px">
+<div style="font:600 10px var(--font-mono);letter-spacing:.06em;color:#b05a34;margin-bottom:9px">排序公式 · 固定啟發式，權重寫在畫面上</div>
+<div style="font:500 12.5px/1.9 var(--font-mono);color:#2a2620;background:#f8f3e7;border:1px solid #e2d4b8;border-radius:6px;padding:11px 13px">敘事負載 = 證據可信度 × (0.30·角色依附×阻尼 + 0.24·貫穿度<br>&nbsp;&nbsp;+ 0.18·事件依附 + 0.13·意象結盟 + 0.15·√正文頻率)<br><span style="color:#8a5c13">阻尼 = min(1, 正文＋後記次數 / 4)</span></div>
+<div style="font:400 11.5px/1.6 var(--font-sans);color:rgba(42,38,32,.55);margin-top:10px">證據可信度是<strong style="color:#8a3a22">乘數</strong>不是加項——版權頁污染 38% 的意象，其他訊號再強也要整體降權。<strong style="color:#8a5c13">阻尼</strong>則處理另一種假訊號：出現 2 次、兩次都跟同一人同段＝100% 依附，那不是依附是巧合。使用者仍可切主軸（角色依附／貫穿度／事件依附／頻率／首見／審核）；分數組成在列上 hover 可見。</div>
+</div>
+<div style="background:#f6edd6;border:1px solid #dcc08a;border-radius:12px;padding:18px">
+<div style="font:600 10px var(--font-mono);letter-spacing:.06em;color:#8a5c13;margin-bottom:9px">⚠ 示範資料的界線（brief §6）</div>
+<div style="font:400 11.5px/1.65 var(--font-sans);color:#5f4a13">畫面上<strong>真實可算</strong>的：29 個意象、章節分布、非正文比例、分布形狀、登退場、密度色階、「海」的 SEP 共現與 #15c 意象叢、13 筆真實引文、唯一一筆 #15g 詮釋。<br><strong>示範替代值</strong>：除「海」以外的角色依附／事件依附／結盟數（SEP 是 per-symbol 端點，全書總覽拿不到）。實作端一律即時計算，勿抄畫面數字。</div>
+</div>
+</div>
+</section>
+
+<section id="1b" style="padding:40px 48px 34px;border-bottom:1px solid rgba(42,38,32,.12)">
+<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
+<a href="#1b" style="font:600 10px var(--font-mono);padding:3px 7px;background:#2a2620;color:#f8f3e7;border-radius:4px">1b</a>
+<span style="font:600 13px var(--font-sans);color:#2a2620">主原型 · Warm · 1440 定寬</span>
+<span style="font:400 11.5px var(--font-sans);color:rgba(42,38,32,.5)">左欄排序主軸／類型／搜尋、地圖三分區、意象叢並看、詳情三態、批次面板皆可操作</span>
+</div>
+
+<div style="width:1440px;height:1000px;background:var(--bg-primary);border:1px solid var(--border);border-radius:12px;box-shadow:0 4px 14px rgba(42,38,32,.13);overflow:hidden;display:flex;flex-direction:column;color:var(--fg-primary)">
+
+<div style="height:40px;flex:none;display:flex;align-items:center;gap:0;border-bottom:1px solid var(--border);background:var(--bg-primary);padding:0 14px">
+<span style="font:400 12px var(--font-sans);color:var(--fg-muted);margin-right:14px">← 書庫</span>
+<span style="font:600 14px var(--font-serif);color:var(--fg-primary);margin-right:18px">名字的潮汐</span>
+<sc-for list="{{ topnav }}" as="t" hint-placeholder-count="9">
+<span style="font:400 12.5px var(--font-sans);padding:5px 10px;border-radius:6px;color:{{ t.c }};background:{{ t.bg }}">{{ t.label }}</span>
+</sc-for>
+<span style="flex:1"></span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted);letter-spacing:.02em">{{ url }}</span>
+</div>
+
+<div style="flex:1;display:flex;min-height:0">
+
+<div style="width:284px;flex:none;border-right:1px solid var(--border);display:flex;flex-direction:column;min-height:0;background:var(--bg-primary)">
+<div style="padding:12px 12px 10px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:9px">
+<div style="display:flex;align-items:center;gap:6px">
+<span style="font:400 11px var(--font-sans);color:var(--fg-muted);flex:none">排序主軸</span>
+<select onChange="{{ onSort }}" value="{{ sortAxis }}" style="flex:1;font:500 11.5px var(--font-sans);color:var(--fg-primary);background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--control-radius);padding:4px 6px">
+<sc-for list="{{ sortOptions }}" as="o" hint-placeholder-count="7"><option value="{{ o.v }}">{{ o.label }}</option></sc-for>
+</select>
+</div>
+<div style="position:relative">
+<input value="{{ q }}" onInput="{{ onQuery }}" placeholder="搜尋意象…（含異體）" style="width:100%;box-sizing:border-box;font:400 12px var(--font-sans);color:var(--fg-primary);background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--control-radius);padding:6px 9px">
+</div>
+<div style="display:flex;flex-wrap:wrap;gap:5px">
+<sc-for list="{{ typeChips }}" as="c" hint-placeholder-count="6">
+<button onClick="{{ c.on }}" style="font:500 11px var(--font-sans);border:1px solid {{ c.bd }};background:{{ c.bg }};color:{{ c.fg }};border-radius:var(--pill-radius);padding:3px 9px;cursor:pointer">{{ c.label }}</button>
+</sc-for>
+</div>
+</div>
+
+<div style="padding:9px 12px 7px;display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--border)">
+<span style="font:600 11px var(--font-sans);color:var(--fg-secondary);letter-spacing:.02em">{{ listHeading }}</span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted)">{{ listCount }}</span>
+</div>
+
+<div style="flex:1;overflow-y:auto;min-height:0">
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+<div onClick="{{ r.on }}" style="padding:9px 12px 10px;border-bottom:1px solid var(--bg-tertiary);cursor:pointer;background:{{ r.rowBg }};border-left:3px solid {{ r.rail }}">
+<div style="display:flex;align-items:center;gap:6px">
+<span style="width:6px;height:6px;border-radius:50%;flex:none;background:{{ r.dot }}"></span>
+<span style="font:600 14.5px var(--font-serif);color:var(--fg-primary)">{{ r.term }}</span>
+<sc-if value="{{ r.aliases }}" hint-placeholder-val="{{ true }}"><span style="font:400 10.5px var(--font-sans);color:var(--fg-muted)">{{ r.aliases }}</span></sc-if>
+<span style="flex:1"></span>
+<sc-if value="{{ r.polarity }}" hint-placeholder-val="{{ false }}"><span style="width:7px;height:7px;border-radius:50%;flex:none;background:{{ r.polarityDot }}"></span></sc-if>
+<sc-if value="{{ r.review }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:3px;font:500 9.5px var(--font-sans);padding:1.5px 6px;border-radius:var(--badge-radius);background:{{ r.reviewBg }};color:{{ r.reviewFg }};border:1px solid {{ r.reviewBd }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:9px;height:9px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>{{ r.review }}</span></sc-if>
+</div>
+<div style="font:400 11px/1.45 var(--font-sans);color:var(--fg-secondary);margin:3px 0 6px;padding-left:12px">{{ r.behavior }}</div>
+<div style="display:flex;align-items:center;gap:7px;padding-left:12px">
+<div style="flex:1;display:flex;gap:1px;height:9px">
+<sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="13">
+<span style="flex:{{ c.flex }};background:{{ c.barBg }};border-top:{{ c.top }};border-radius:1px"></span>
+</sc-for>
+</div>
+<span style="font:500 10px var(--font-mono);color:{{ r.metricColor }};flex:none;min-width:34px;text-align:right">{{ r.metric }}</span>
+</div>
+</div>
+</sc-for>
+<sc-if value="{{ rowsEmpty }}" hint-placeholder-val="{{ false }}">
+<div style="padding:26px 16px;text-align:center;font:400 12px/1.6 var(--font-sans);color:var(--fg-muted)">無符合結果<br><span style="font-size:11px">單次出現詞收在右側「單次出現詞」區</span></div>
+</sc-if>
+<div style="padding:11px 12px 16px;border-top:1px solid var(--border);background:var(--bg-secondary)">
+<div style="font:400 10.5px/1.5 var(--font-sans);color:var(--fg-muted)">另有 <strong style="color:var(--fg-secondary)">{{ tailCount }}</strong> 個只出現 1 次的詞，未列入排序<br>（行為訊號無法陳述，收在地圖底部詞雲）</div>
+</div>
+</div>
+</div>
+
+<div style="flex:1;min-width:0;overflow-y:auto;background:var(--bg-secondary)">
+
+<sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+<div style="padding:20px 22px 30px;display:flex;flex-direction:column;gap:16px">
+
+<div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px">
+<div>
+<div style="font:600 24px var(--font-serif);color:var(--fg-primary);margin-bottom:5px">全書意象地圖</div>
+<div style="font:400 12px var(--font-sans);color:var(--fg-secondary)">{{ overviewMeta }}</div>
+<div style="display:flex;align-items:center;gap:5px;margin-top:6px;font:400 10.5px var(--font-sans);color:var(--fg-muted)">
+<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>
+<span>標此記號者為 LLM 生成內容或會觸發生成的動作，需消耗 token 並進入 HITL 審核；其餘訊號皆為零成本實算。</span>
+</div>
+</div>
+<div style="display:flex;gap:7px;align-items:center">
+<button onClick="{{ onBatchTop }}" style="display:flex;align-items:center;gap:6px;font:500 12px var(--font-sans);background:var(--accent);color:var(--accent-fg);border:1px solid var(--accent);border-radius:var(--btn-radius);padding:7px 13px;cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>生成訊號最強的前 5 名…</button>
+<button onClick="{{ onBatchAll }}" style="display:flex;align-items:center;gap:6px;font:500 12px var(--font-sans);background:transparent;color:var(--fg-primary);border:var(--btn-border-width) solid var(--border);border-radius:var(--btn-radius);padding:7px 13px;cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>全部 11 個…</button>
+<button onClick="{{ onBatchPick }}" style="font:500 12px var(--font-sans);background:transparent;color:var(--fg-secondary);border:var(--btn-border-width) solid var(--border);border-radius:var(--btn-radius);padding:7px 11px;cursor:pointer">勾選多筆</button>
+</div>
+</div>
+
+<sc-if value="{{ batchRunning }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--bg-primary);border:var(--card-border-width) solid var(--accent);border-radius:var(--card-radius);padding:13px 16px;display:flex;align-items:center;gap:13px">
+<span style="width:14px;height:14px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:spin 900ms linear infinite;flex:none"></span>
+<div style="flex:1">
+<div style="display:flex;align-items:center;gap:6px;font:600 12.5px var(--font-sans);color:var(--fg-primary)"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>LLM 批次生成中 · 2/5 · 正在詮釋「泥」</div>
+<div style="height:3px;background:var(--bg-tertiary);border-radius:2px;margin-top:6px;overflow:hidden"><span style="display:block;height:100%;width:40%;background:var(--accent)"></span></div>
+<div style="font:400 10.5px var(--font-sans);color:var(--fg-muted);margin-top:5px">已生成 2 · 跳過 0 · 失敗 0 · 可離開頁面，結果會保留</div>
+</div>
+<button onClick="{{ onBatchStop }}" style="font:500 11.5px var(--font-sans);background:transparent;color:var(--fg-secondary);border:1px solid var(--border);border-radius:var(--btn-radius);padding:5px 11px;cursor:pointer">中止</button>
+</div>
+</sc-if>
+
+<div>
+<div style="font:600 11px var(--font-sans);letter-spacing:.04em;color:var(--fg-secondary);margin-bottom:8px">該先讀哪幾個 · 依敘事負載</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+<sc-for list="{{ picks }}" as="p" hint-placeholder-count="3">
+<div onClick="{{ p.on }}" style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) {{ p.bd }};border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:14px 15px 13px;cursor:pointer;display:flex;flex-direction:column;gap:8px">
+<div style="display:flex;align-items:center;gap:7px">
+<span style="font:600 10px var(--font-mono);color:var(--accent)">#{{ p.rank }}</span>
+<span style="font:600 19px var(--font-serif);color:var(--fg-primary)">{{ p.term }}</span>
+<span style="font:500 10px var(--font-sans);padding:2px 7px;border-radius:var(--pill-radius);background:{{ p.tbg }};color:{{ p.tfg }};border:var(--pill-border-width) solid {{ p.tdot }}">{{ p.typeLabel }}</span>
+<span style="flex:1"></span>
+<span style="font:500 10.5px var(--font-mono);color:var(--fg-muted)">負載 {{ p.load }}</span>
+</div>
+<div style="font:400 12px/1.6 var(--font-serif);color:var(--fg-secondary)">{{ p.claim }}</div>
+<div style="display:flex;gap:5px;flex-wrap:wrap">
+<sc-for list="{{ p.tags }}" as="t" hint-placeholder-count="3">
+<span style="font:500 10px var(--font-sans);padding:2px 6px;border-radius:3px;background:var(--bg-tertiary);color:var(--fg-secondary)">{{ t }}</span>
+</sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:5px;font:500 11px var(--font-sans);color:{{ p.ctaColor }};padding-top:2px">
+<sc-if value="{{ p.ai }}" hint-placeholder-val="{{ true }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg></sc-if>
+<span>{{ p.cta }}</span>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:15px 17px 13px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+<span style="font:600 12.5px var(--font-sans);color:var(--fg-primary)">章節密度熱圖</span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted)">{{ heatMeta }}</span>
+</div>
+<div style="font:400 10.5px var(--font-sans);color:var(--fg-muted);margin-bottom:11px">色階以跨意象的單章最大值正規化，因此各列可直接互比</div>
+<div style="display:flex;gap:0;margin-bottom:3px;padding-left:96px">
+<span style="width:{{ frontW }}px;flex:none;font:400 9.5px var(--font-sans);color:var(--fg-muted);text-align:center;border-bottom:1px dotted var(--border);padding-bottom:2px">前置頁</span>
+<span style="flex:1;font:400 9.5px var(--font-sans);color:var(--fg-secondary);text-align:center;border-bottom:1px solid var(--border);padding-bottom:2px">正文 第 1–10 章</span>
+<span style="width:{{ afterW }}px;flex:none;font:400 9.5px var(--font-sans);color:var(--fg-muted);text-align:center;border-bottom:1px dotted var(--border);padding-bottom:2px">後記</span>
+</div>
+<sc-for list="{{ heatRows }}" as="h" hint-placeholder-count="11">
+<div onClick="{{ h.on }}" style="display:flex;align-items:center;gap:0;cursor:pointer;background:{{ h.bg }}">
+<div style="width:96px;flex:none;display:flex;align-items:center;gap:5px;padding:2px 8px 2px 2px;box-sizing:border-box">
+<span style="width:5px;height:5px;border-radius:50%;flex:none;background:{{ h.dot }}"></span>
+<span style="font:500 12px var(--font-serif);color:var(--fg-primary);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.term }}</span>
+</div>
+<sc-for list="{{ h.cells }}" as="c" hint-placeholder-count="13">
+<span style="flex:{{ c.flex }};height:15px;margin:1px .5px;background:{{ c.bg }};border-radius:2px;border:{{ c.bd }}"></span>
+</sc-for>
+<span style="width:52px;flex:none;text-align:right;font:500 10.5px var(--font-mono);color:{{ h.metricColor }}">{{ h.metric }}</span>
+</div>
+</sc-for>
+<div style="display:flex;align-items:center;gap:14px;margin-top:10px;padding-top:9px;border-top:1px solid var(--bg-tertiary)">
+<div style="display:flex;align-items:center;gap:5px;font:400 10px var(--font-sans);color:var(--fg-muted)">
+<span style="width:15px;height:9px;border-radius:2px;background:var(--symbol-density-mid)"></span><span>1 次</span>
+<span style="width:15px;height:9px;border-radius:2px;background:var(--symbol-density-high);margin-left:6px"></span><span>2 次</span>
+<span style="width:15px;height:9px;border-radius:2px;background:var(--symbol-density-peak);margin-left:6px"></span><span>3 次以上</span>
+</div>
+<span style="font:400 10px var(--font-sans);color:var(--fg-muted)">虛框格＝非正文出現（不計入分布形狀，計入證據可信度扣分）</span>
+</div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:15px 17px 14px">
+<div style="font:600 12.5px var(--font-sans);color:var(--fg-primary);margin-bottom:4px">行為分群</div>
+<div style="font:400 10.5px var(--font-sans);color:var(--fg-muted);margin-bottom:11px">中途消失與後段才登場是兩種不同的敘事行為，點群組即篩選清單</div>
+<div style="display:flex;flex-direction:column;gap:7px">
+<sc-for list="{{ shapeGroups }}" as="g" hint-placeholder-count="5">
+<div onClick="{{ g.on }}" style="display:flex;align-items:center;gap:9px;padding:7px 9px;border-radius:6px;cursor:pointer;background:{{ g.bg }};border:1px solid {{ g.bd }}">
+<span style="width:22px;flex:none;font:600 12px var(--font-mono);color:var(--accent);text-align:right">{{ g.n }}</span>
+<div style="flex:1;min-width:0">
+<div style="font:500 12px var(--font-sans);color:var(--fg-primary)">{{ g.label }}</div>
+<div style="font:400 10.5px var(--font-sans);color:var(--fg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ g.members }}</div>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:15px 17px 14px">
+<div style="font:600 12.5px var(--font-sans);color:var(--fg-primary);margin-bottom:4px">意象叢</div>
+<div style="font:400 10.5px var(--font-sans);color:var(--fg-muted);margin-bottom:11px">依共現強度分群；結盟的意象一起讀，而不是互相取代彼此</div>
+<div onClick="{{ onCluster }}" style="border:1px solid var(--border);border-radius:8px;padding:11px 12px;cursor:pointer;background:var(--bg-secondary)">
+<div style="font:600 13px var(--font-serif);color:var(--fg-primary);margin-bottom:7px">海叢 · 5 個核心成員</div>
+<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:9px">
+<sc-for list="{{ clusterPills }}" as="p" hint-placeholder-count="5">
+<span style="font:500 11px var(--font-sans);padding:2.5px 8px;border-radius:var(--pill-radius);background:{{ p.bg }};color:{{ p.fg }};border:var(--pill-border-width) solid {{ p.dot }}">{{ p.term }} <span style="opacity:.6">{{ p.n }}</span></span>
+</sc-for>
+</div>
+<div style="font:400 10.5px/1.5 var(--font-sans);color:var(--fg-muted)">共同落點 第 5、7、8、9 章 · 全在退名之潮之後 → <span style="color:var(--accent)">展開群組並看</span></div>
+</div>
+<div style="border:1px dashed var(--border);border-radius:8px;padding:11px 12px;margin-top:9px;font:400 10.5px/1.55 var(--font-sans);color:var(--fg-muted)"><strong style="color:var(--accent)">已定案</strong>：新增一支<strong style="color:var(--fg-secondary)">全書共現批次端點</strong>，此處列出全部意象叢（#15c 為 per-symbol，總覽算不出來；「章節共現」近似會把 9 個意象連成一坨，不採用）。端點到位前，畫面只呈現海叢作為形狀示範。</div>
+</div>
+</div>
+
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:15px 17px 15px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:4px">
+<span style="font:600 12.5px var(--font-sans);color:var(--fg-primary)">單次出現詞 · {{ tailCount }}</span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted)">{{ tailPct }} 的意象只出現一次</span>
+</div>
+<div style="font:400 10.5px/1.5 var(--font-sans);color:var(--fg-muted);margin-bottom:12px">出現一次的詞還不構成象徵——沒有分布、沒有結盟、沒有依附可言。不佔清單列、不進排序、不建議生成詮釋；保留可點與可搜尋，字級隨首見章序漸變以保留一點時序線索。</div>
+<div style="display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline">
+<sc-for list="{{ tail }}" as="t" hint-placeholder-count="18">
+<span onClick="{{ t.on }}" style="font:500 {{ t.size }} var(--font-serif);color:{{ t.color }};cursor:pointer;border-bottom:1px solid {{ t.dot }};line-height:1.5">{{ t.term }}<span style="font:400 9.5px var(--font-mono);color:var(--fg-muted);margin-left:2px">{{ t.ch }}</span></span>
+</sc-for>
+</div>
+</div>
+
+</div>
+</sc-if>
+
+<sc-if value="{{ isCluster }}" hint-placeholder-val="{{ false }}">
+<div style="padding:20px 22px 30px;display:flex;flex-direction:column;gap:15px">
+<div style="display:flex;align-items:center;gap:10px">
+<button onClick="{{ onBack }}" style="font:500 11.5px var(--font-sans);background:var(--bg-primary);color:var(--accent);border:1px solid var(--border);border-radius:var(--btn-radius);padding:5px 11px;cursor:pointer">← 全書意象地圖</button>
+<span style="font:400 11px var(--font-sans);color:var(--fg-muted)">意象叢</span>
+</div>
+<div>
+<div style="font:600 24px var(--font-serif);color:var(--fg-primary);margin-bottom:5px">海叢 · 群組並看</div>
+<div style="font:400 12px/1.6 var(--font-sans);color:var(--fg-secondary);max-width:820px">以「海」的 #15c 共現強度取前 5 名。同一條章節軸上疊看：<strong style="color:var(--fg-primary)">手</strong> 貫穿全書，<strong style="color:var(--fg-primary)">沙／泥／光</strong> 都在第 5 章「退名之潮」之後才密集起來——這叢意象是同一個事件的餘波，不是各自獨立的象徵。共同落點與成員數由下方格線即時算出，不寫死。</div>
+</div>
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:17px 19px 15px">
+<div style="display:flex;gap:0;margin-bottom:5px;padding-left:120px">
+<span style="width:{{ frontW }}px;flex:none;font:400 9.5px var(--font-sans);color:var(--fg-muted);text-align:center">前置</span>
+<span style="flex:1;display:flex">
+<sc-for list="{{ bodyAxis }}" as="b" hint-placeholder-count="10">
+<span style="flex:1;text-align:center;font:400 10px var(--font-mono);color:{{ b.color }}">{{ b.n }}</span>
+</sc-for>
+</span>
+<span style="width:{{ afterW }}px;flex:none;font:400 9.5px var(--font-sans);color:var(--fg-muted);text-align:center">後記</span>
+</div>
+<sc-for list="{{ clusterRows }}" as="r" hint-placeholder-count="5">
+<div style="display:flex;align-items:center;border-top:1px solid var(--bg-tertiary);padding:5px 0">
+<div style="width:120px;flex:none;display:flex;align-items:center;gap:6px">
+<span style="width:6px;height:6px;border-radius:50%;flex:none;background:{{ r.dot }}"></span>
+<span style="font:600 13.5px var(--font-serif);color:var(--fg-primary)">{{ r.term }}</span>
+<span style="font:400 10px var(--font-mono);color:var(--fg-muted)">{{ r.w }}</span>
+</div>
+<sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="13">
+<span style="flex:{{ c.flex }};height:20px;margin:0 .5px;background:{{ c.bg }};border:{{ c.bd }};border-radius:2px"></span>
+</sc-for>
+<span style="width:96px;flex:none;text-align:right;font:400 10.5px var(--font-sans);color:var(--fg-secondary)">{{ r.shape }}</span>
+</div>
+</sc-for>
+<div style="margin-top:11px;padding:9px 11px;background:var(--bg-secondary);border-radius:6px;font:400 11px/1.6 var(--font-sans);color:var(--fg-secondary)">共同落點：<strong style="color:var(--accent)">第 {{ clusterHotList }}</strong> · {{ clusterHotNote }}。第 5 章＝退名之潮開始、海床顯露；第 7 章＝伊內絲發現懷錶、以莉莉安娜的聲音讀記憶。</div>
+</div>
+<div style="font:400 11px/1.6 var(--font-sans);color:var(--fg-muted)">邊界說明：這裡不做小型知識圖譜。節點是<strong style="color:var(--fg-secondary)">意象</strong>、軸是<strong style="color:var(--fg-secondary)">章節</strong>、值是<strong style="color:var(--fg-secondary)">共現強度</strong>——回答「這些意象一起承載了什麼」。「誰跟誰有關係」仍然是知識圖譜頁的事。</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ isDetail }}" hint-placeholder-val="{{ false }}">
+<div style="padding:18px 22px 30px;display:flex;flex-direction:column;gap:14px">
+
+<div style="display:flex;align-items:center;gap:9px">
+<button onClick="{{ onBack }}" style="font:500 11.5px var(--font-sans);background:var(--bg-primary);color:var(--accent);border:1px solid var(--border);border-radius:var(--btn-radius);padding:5px 11px;cursor:pointer">← 全書意象地圖</button>
+<span style="font:400 11px var(--font-sans);color:var(--fg-muted)">{{ crumbTail }}</span>
+<span style="flex:1"></span>
+<button onClick="{{ onPin }}" style="font:500 11.5px var(--font-sans);background:{{ pinBg }};color:{{ pinFg }};border:1px solid {{ pinBd }};border-radius:var(--btn-radius);padding:5px 11px;cursor:pointer">{{ pinLabel }}</button>
+</div>
+
+<div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+<span style="font:600 30px var(--font-serif);color:var(--fg-primary);line-height:1">{{ d.term }}</span>
+<span style="font:500 11px var(--font-sans);padding:3px 9px;border-radius:var(--pill-radius);background:{{ d.tbg }};color:{{ d.tfg }};border:var(--pill-border-width) solid {{ d.tdot }}">{{ d.typeLabel }}</span>
+<span style="font:400 12px var(--font-sans);color:var(--fg-secondary)">{{ d.freqLabel }}</span>
+<span style="flex:1"></span>
+<div style="display:flex;gap:5px;flex-wrap:wrap">
+<sc-for list="{{ d.aliasPills }}" as="a" hint-placeholder-count="3">
+<span style="font:400 10.5px var(--font-sans);padding:2px 7px;border-radius:var(--pill-radius);background:var(--bg-tertiary);color:var(--fg-secondary)">{{ a }}</span>
+</sc-for>
+</div>
+</div>
+
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:16px 18px 15px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px">
+<span style="font:600 11px var(--font-sans);letter-spacing:.04em;color:var(--accent)">行為摘要</span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted)">敘事負載 {{ d.load }} · 全書第 {{ d.rank }} 名</span>
+</div>
+<div style="font:400 10.5px var(--font-sans);color:var(--fg-muted);margin-bottom:9px">由結構化訊號即時算出，不經 LLM、不耗 token</div>
+<div style="font:400 16px/1.75 var(--font-serif);color:var(--fg-primary);margin-bottom:14px">{{ d.claim }}</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+<sc-for list="{{ d.signals }}" as="s" hint-placeholder-count="6">
+<div style="border:1px solid var(--border);border-radius:8px;padding:10px 11px;background:{{ s.bg }}">
+<div style="font:500 10px var(--font-sans);color:var(--fg-muted);margin-bottom:5px">{{ s.label }}</div>
+<div style="font:600 15px var(--font-serif);color:{{ s.color }};margin-bottom:5px">{{ s.value }}</div>
+<div style="height:3px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;margin-bottom:6px"><span style="display:block;height:100%;width:{{ s.pct }};background:{{ s.barColor }}"></span></div>
+<div style="font:400 10px/1.45 var(--font-sans);color:var(--fg-muted)">{{ s.note }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{ d.hasInterp }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:17px 19px 16px">
+<div style="display:flex;align-items:center;gap:9px;margin-bottom:12px">
+<span style="display:inline-flex;align-items:center;gap:5px;font:600 10px var(--font-sans);letter-spacing:.05em;padding:3px 9px;border-radius:var(--badge-radius);background:var(--accent);color:var(--accent-fg)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>LLM 詮釋</span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted)">symbol_analysis_service_v1 · 2026-08-06</span>
+<span style="flex:1"></span>
+<span style="font:500 10.5px var(--font-sans);padding:2.5px 8px;border-radius:var(--badge-radius);background:var(--status-partial-bg);color:var(--status-partial-fg);border:1px solid var(--status-partial-border)">待審</span>
+</div>
+<div style="font:400 18px/1.8 var(--font-serif);font-style:italic;color:var(--fg-primary);margin-bottom:14px;text-wrap:pretty">「海」象徵著記憶、失落與哀悼的載體，它既是逝者歸宿的場所，也是生者尋回與釋懷過去的媒介，體現了記憶的複雜性和情感的深度。</div>
+<div style="display:flex;gap:22px;align-items:center;margin-bottom:14px;flex-wrap:wrap">
+<div style="display:flex;align-items:center;gap:7px">
+<span style="font:400 10.5px var(--font-sans);color:var(--fg-muted)">敘事極性</span>
+<span style="font:500 11.5px var(--font-sans);padding:3px 10px;border-radius:var(--badge-radius);background:var(--polarity-mixed-bg);color:var(--polarity-mixed-fg);border:1px solid var(--polarity-mixed-edge)">複合</span>
+</div>
+<div style="display:flex;align-items:center;gap:7px;flex:1;min-width:220px">
+<span style="font:400 10.5px var(--font-sans);color:var(--fg-muted);flex:none">模型信心</span>
+<span style="flex:1;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden;max-width:180px"><span style="display:block;height:100%;width:90%;background:var(--accent)"></span></span>
+<span style="font:500 11px var(--font-mono);color:var(--fg-secondary);flex:none">0.90</span>
+<span style="font:400 10px var(--font-sans);color:var(--fg-muted)">基於 6 次正文出現的證據</span>
+</div>
+</div>
+<div style="font:400 13px/1.85 var(--font-serif);color:var(--fg-secondary);padding:12px 14px;background:var(--bg-secondary);border-radius:6px;margin-bottom:14px;text-wrap:pretty">「海」在文本中多次被提及，不僅作為故事發生地「臨海市」和「薩爾瑪雷納」的地理背景，更與「退名之潮」這一核心事件緊密相連。它被描述為「憋氣」般安靜（ch.1），又在退潮時露出「七年才裸露一次的海床」（ch.7），承載著逝者的記憶，如泰奧多爾的懷錶和莉莉安娜的結局（ch.7）。作者後記中也明確指出，海是「把哀悼寫進地理、寫進潮汐表裡的地方」，並能「留下溺死者的名字」（ch.11）。</div>
+<div style="display:flex;align-items:center;gap:9px;padding-top:12px;border-top:1px solid var(--bg-tertiary)">
+<span style="font:400 10.5px var(--font-sans);color:var(--fg-muted)">HITL 審核</span>
+<button style="font:500 11.5px var(--font-sans);background:var(--accent);color:var(--accent-fg);border:1px solid var(--accent);border-radius:var(--btn-radius);padding:5px 13px;cursor:pointer">通過</button>
+<button style="font:500 11.5px var(--font-sans);background:transparent;color:var(--fg-primary);border:var(--btn-border-width) solid var(--border);border-radius:var(--btn-radius);padding:5px 13px;cursor:pointer">修訂</button>
+<button style="font:500 11.5px var(--font-sans);background:transparent;color:var(--fg-secondary);border:var(--btn-border-width) solid var(--border);border-radius:var(--btn-radius);padding:5px 13px;cursor:pointer">駁回</button>
+<span style="flex:1"></span>
+<button style="display:flex;align-items:center;gap:5px;font:400 11px var(--font-sans);background:transparent;color:var(--fg-muted);border:none;cursor:pointer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:12px;height:12px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg><span style="text-decoration:underline">覆蓋重新生成</span></button>
+</div>
+<div style="font:400 10.5px/1.55 var(--font-sans);color:var(--fg-muted);margin-top:11px;padding-top:9px;border-top:1px dashed var(--border)">⚠ 這段詮釋的輸入含 5 筆版權頁／書名頁文字。<strong style="color:var(--status-partial-fg)">重新生成時將排除前置頁</strong>，只送 6 筆正文 + 2 筆後記。</div>
+</div>
+</sc-if>
+
+<sc-if value="{{ d.isGenerating }}" hint-placeholder-val="{{ false }}">
+<div style="background:var(--bg-primary);border:var(--card-border-width) solid var(--accent);border-radius:var(--card-radius);padding:20px 22px 18px;display:flex;flex-direction:column;align-items:center;gap:13px">
+<div style="display:flex;align-items:center;gap:9px">
+<span style="width:15px;height:15px;border:2px solid var(--accent);border-right-color:transparent;border-radius:50%;animation:spin 900ms linear infinite"></span>
+<svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:14px;height:14px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg><span style="font:600 13px var(--font-sans);color:var(--fg-primary)">LLM 詮釋進行中 · {{ d.term }}</span>
+<span style="font:400 10px var(--font-mono);color:var(--fg-muted)">TASK 8c41…f0e2</span>
+</div>
+<div style="width:100%;max-width:420px;height:4px;background:var(--bg-tertiary);border-radius:2px;overflow:hidden"><span style="display:block;height:100%;width:40%;background:var(--accent)"></span></div>
+<div style="display:flex;flex-direction:column;gap:6px;width:100%;max-width:420px">
+<sc-for list="{{ genStages }}" as="g" hint-placeholder-count="5">
+<div style="display:flex;align-items:center;gap:8px;font:400 11.5px var(--font-sans);color:{{ g.color }}">
+<span style="width:13px;height:13px;border-radius:50%;border:1.5px solid {{ g.ring }};background:{{ g.fill }};flex:none"></span>
+<span>{{ g.label }}</span>
+<span style="flex:1"></span>
+<span style="font:400 10px var(--font-mono);color:var(--fg-muted)">{{ g.state }}</span>
+</div>
+</sc-for>
+</div>
+<button onClick="{{ onCancelGen }}" style="font:500 11.5px var(--font-sans);background:transparent;color:var(--fg-secondary);border:1px solid var(--border);border-radius:var(--btn-radius);padding:5px 13px;cursor:pointer">取消</button>
+<span style="font:400 10px var(--font-sans);color:var(--fg-muted)">預計 ~12 秒 · 每 2 秒輪詢狀態</span>
+</div>
+</sc-if>
+
+<sc-if value="{{ d.showCta }}" hint-placeholder-val="{{ false }}">
+<div style="background:{{ d.ctaBg }};border:var(--card-border-width) var(--border-style) {{ d.ctaBd }};border-radius:var(--card-radius);padding:15px 18px;display:flex;align-items:center;gap:16px">
+<div style="flex:1">
+<div style="font:600 13px var(--font-sans);color:var(--fg-primary);margin-bottom:5px">{{ d.ctaTitle }}</div>
+<div style="font:400 11.5px/1.65 var(--font-sans);color:var(--fg-secondary);max-width:660px">{{ d.ctaDesc }}</div>
+</div>
+<button onClick="{{ onGenerate }}" disabled="{{ d.ctaDisabled }}" style="flex:none;display:flex;align-items:center;gap:6px;font:500 12.5px var(--font-sans);background:{{ d.ctaBtnBg }};color:{{ d.ctaBtnFg }};border:var(--btn-border-width) solid {{ d.ctaBtnBd }};border-radius:var(--btn-radius);padding:8px 15px;cursor:{{ d.ctaCursor }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:13px;height:13px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>{{ d.ctaBtn }}</button>
+</div>
+</sc-if>
+
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:15px 18px 14px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+<span style="font:600 12.5px var(--font-sans);color:var(--fg-primary)">章節分布</span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted)">{{ d.distMeta }}</span>
+</div>
+<div style="display:flex;align-items:flex-end;gap:0;height:96px;padding-left:2px">
+<sc-for list="{{ d.bars }}" as="b" hint-placeholder-count="13">
+<div style="flex:{{ b.flex }};display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:3px;margin:0 1px">
+<span style="font:400 9px var(--font-mono);color:var(--accent);height:11px">{{ b.peak }}</span>
+<span style="width:100%;height:{{ b.h }};background:{{ b.bg }};border:{{ b.bd }};border-radius:2px 2px 0 0"></span>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;gap:0;padding-left:2px;margin-top:4px;border-top:1px solid var(--border)">
+<sc-for list="{{ d.bars }}" as="b" hint-placeholder-count="13">
+<span style="flex:{{ b.flex }};margin:0 1px;text-align:center;font:400 9.5px var(--font-mono);color:{{ b.labelColor }};padding-top:3px">{{ b.label }}</span>
+</sc-for>
+</div>
+<sc-if value="{{ d.pinBars }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;gap:0;padding-left:2px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border);align-items:flex-end;height:52px">
+<sc-for list="{{ d.pinBars }}" as="b" hint-placeholder-count="13">
+<span style="flex:{{ b.flex }};margin:0 1px;height:{{ b.h }};background:{{ b.bg }};border:{{ b.bd }};border-radius:2px 2px 0 0"></span>
+</sc-for>
+</div>
+<div style="font:400 10.5px var(--font-sans);color:var(--fg-muted);margin-top:5px">並看：{{ pinName }}（下排）</div>
+</sc-if>
+<div style="margin-top:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+<sc-if value="{{ d.frontCount }}" hint-placeholder-val="{{ false }}">
+<button onClick="{{ onToggleFront }}" style="font:500 11px var(--font-sans);background:var(--bg-secondary);color:var(--fg-secondary);border:1px solid var(--border);border-radius:var(--btn-radius);padding:4px 10px;cursor:pointer">{{ d.frontToggle }}</button>
+</sc-if>
+<span style="font:400 10.5px/1.5 var(--font-sans);color:var(--fg-muted);flex:1">{{ d.frontNote }}</span>
+</div>
+</div>
+
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:15px 18px 15px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:5px">
+<span style="font:600 12.5px var(--font-sans);color:var(--fg-primary)">共現網絡 · 依 entity_type 分流</span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted)">{{ d.coMeta }}</span>
+</div>
+<div style="font:400 10.5px/1.5 var(--font-sans);color:var(--fg-muted);margin-bottom:13px">{{ d.selfFilterNote }}</div>
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px">
+<sc-for list="{{ d.coGroups }}" as="g" hint-placeholder-count="3">
+<div>
+<div style="font:600 11px var(--font-sans);color:var(--fg-secondary);margin-bottom:3px">{{ g.title }}</div>
+<div style="font:400 10px/1.45 var(--font-sans);color:var(--fg-muted);margin-bottom:8px;min-height:28px">{{ g.sub }}</div>
+<div style="display:flex;flex-direction:column;gap:5px">
+<sc-for list="{{ g.items }}" as="i" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:7px;padding:5px 8px;border-radius:6px;background:{{ i.bg }};border:1px solid {{ i.bd }}">
+<span style="width:5px;height:5px;border-radius:50%;flex:none;background:{{ i.dot }}"></span>
+<span style="font:500 12px var(--font-serif);color:var(--fg-primary)">{{ i.name }}</span>
+<span style="flex:1"></span>
+<span style="font:400 9.5px var(--font-sans);color:var(--fg-muted)">{{ i.meta }}</span>
+<span style="font:500 10.5px var(--font-mono);color:var(--fg-secondary)">{{ i.n }}</span>
+</div>
+</sc-for>
+<sc-if value="{{ g.empty }}" hint-placeholder-val="{{ false }}">
+<div style="font:400 11px var(--font-sans);color:var(--fg-muted);padding:9px 0">{{ g.empty }}</div>
+</sc-if>
+</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:15px 18px 16px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+<span style="font:600 12.5px var(--font-sans);color:var(--fg-primary)">出現紀錄 · 正文</span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted)">{{ d.occMeta }}</span>
+</div>
+<div style="display:flex;flex-direction:column;gap:11px">
+<sc-for list="{{ d.occGroups }}" as="og" hint-placeholder-count="4">
+<div>
+<div style="display:flex;align-items:center;gap:9px;margin-bottom:6px">
+<span style="font:600 12px var(--font-serif);color:{{ og.chColor }}">{{ og.chapter }}</span>
+<span style="font:400 10px var(--font-sans);color:var(--fg-muted)">{{ og.count }}</span>
+<sc-if value="{{ og.badge }}" hint-placeholder-val="{{ false }}"><span style="font:500 9.5px var(--font-sans);padding:1.5px 6px;border-radius:3px;background:{{ og.badgeBg }};color:{{ og.badgeFg }};border:1px solid {{ og.badgeBd }}">{{ og.badge }}</span></sc-if>
+<span style="flex:1;height:1px;background:var(--bg-tertiary)"></span>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<sc-for list="{{ og.items }}" as="o" hint-placeholder-count="2">
+<div style="display:flex;align-items:flex-start;gap:10px;padding:8px 10px;background:{{ o.bg }};border-radius:6px;border-left:2px solid {{ o.rail }}">
+<span style="font:400 9.5px var(--font-mono);color:var(--fg-muted);flex:none;padding-top:3px">#{{ o.pos }}</span>
+<span style="flex:1;font:400 13.5px/1.85 var(--font-serif);color:var(--fg-primary);text-wrap:pretty">{{ o.text }}</span>
+<span style="font:400 10.5px var(--font-sans);color:{{ o.jumpColor }};flex:none;padding-top:3px;cursor:pointer">{{ o.jump }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+<sc-if value="{{ d.frontOcc }}" hint-placeholder-val="{{ false }}">
+<div style="margin-top:13px;padding-top:12px;border-top:1px dashed var(--border)">
+<div onClick="{{ onToggleFront }}" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+<span style="font:500 11.5px var(--font-sans);color:var(--accent)">{{ frontOccToggle }}</span>
+<span style="font:400 10.5px var(--font-sans);color:var(--fg-muted)">版權頁與書名頁 · 純雜訊，不進詮釋輸入、不可跳閱讀頁</span>
+</div>
+<sc-if value="{{ showFront }}" hint-placeholder-val="{{ false }}">
+<div style="display:flex;flex-direction:column;gap:5px;margin-top:9px">
+<sc-for list="{{ d.frontItems }}" as="f" hint-placeholder-count="3">
+<div style="display:flex;align-items:flex-start;gap:9px;padding:7px 10px;background:var(--bg-tertiary);border-radius:6px;opacity:.75">
+<span style="font:500 9px var(--font-sans);padding:1.5px 5px;border-radius:3px;background:var(--bg-primary);color:var(--fg-muted);border:1px solid var(--border);flex:none">{{ f.tag }}</span>
+<span style="flex:1;font:400 11.5px/1.7 var(--font-sans);color:var(--fg-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ f.text }}</span>
+</div>
+</sc-for>
+</div>
+</sc-if>
+</div>
+</sc-if>
+</div>
+
+</div>
+</sc-if>
+
+</div>
+</div>
+</div>
+</section>
+
+<section id="1c" style="padding:40px 48px 60px">
+<div style="display:flex;align-items:baseline;gap:10px;margin-bottom:16px">
+<a href="#1c" style="font:600 10px var(--font-mono);padding:3px 7px;background:#2a2620;color:#f8f3e7;border-radius:4px">1c</a>
+<span style="font:600 13px var(--font-sans);color:#2a2620">Ink 對照 · 清單列／行為摘要／熱圖</span>
+<span style="font:400 11.5px var(--font-sans);color:rgba(42,38,32,.5)">同一份標記，palette 與 shape 兩層置換：卡片 4px 直角、1.5px 墨線、無陰影、pill 轉方形 tag、密度改灰階</span>
+</div>
+<div data-theme="ink" style="display:flex;gap:20px;align-items:flex-start;background:var(--bg-primary);border:1.5px solid var(--border);padding:22px;color:var(--fg-primary);--symbol-density-mid:#c9c9c9;--symbol-density-high:#8c8c8c;--symbol-density-peak:#111111">
+
+<div style="width:300px;flex:none;border:var(--card-border-width) solid var(--border);border-radius:var(--card-radius)">
+<div style="padding:8px 11px;border-bottom:1px solid var(--border);font:600 11px var(--font-sans);color:var(--fg-secondary)">依敘事負載 · 11 個</div>
+<sc-for list="{{ inkRows }}" as="r" hint-placeholder-count="5">
+<div style="padding:9px 11px 10px;border-bottom:1px solid var(--bg-tertiary);border-left:3px solid {{ r.rail }};background:{{ r.rowBg }}">
+<div style="display:flex;align-items:center;gap:6px">
+<span style="width:6px;height:6px;border-radius:50%;flex:none;background:{{ r.dot }}"></span>
+<span style="font:600 14.5px var(--font-serif);color:var(--fg-primary)">{{ r.term }}</span>
+<span style="flex:1"></span>
+<sc-if value="{{ r.review }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:3px;font:500 9.5px var(--font-sans);padding:1.5px 6px;border-radius:var(--badge-radius);background:{{ r.reviewBg }};color:{{ r.reviewFg }};border:1px solid {{ r.reviewBd }}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:9px;height:9px;flex:none"><path d="M9.94 15.5A2 2 0 0 0 8.5 14.06l-6.14-1.58a.5.5 0 0 1 0-.96L8.5 9.94A2 2 0 0 0 9.94 8.5l1.58-6.14a.5.5 0 0 1 .96 0l1.58 6.14a2 2 0 0 0 1.44 1.44l6.14 1.58a.5.5 0 0 1 0 .96l-6.14 1.58a2 2 0 0 0-1.44 1.44l-1.58 6.14a.5.5 0 0 1-.96 0z"></path><path d="M20 3v4"></path><path d="M22 5h-4"></path><path d="M4 17v2"></path><path d="M5 18H3"></path></svg>{{ r.review }}</span></sc-if>
+<span style="font:500 10px var(--font-mono);color:var(--fg-secondary);min-width:32px;text-align:right">{{ r.metric }}</span>
+</div>
+<div style="font:400 11px/1.45 var(--font-sans);color:var(--fg-secondary);margin:3px 0 6px;padding-left:12px">{{ r.behavior }}</div>
+<div style="display:flex;gap:1px;height:9px;padding-left:12px">
+<sc-for list="{{ r.cells }}" as="c" hint-placeholder-count="13">
+<span style="flex:{{ c.flex }};background:{{ c.barBg }};border-top:{{ c.top }}"></span>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</div>
+
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:18px">
+<div style="border:var(--card-border-width) solid var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);padding:16px 18px 15px">
+<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:9px">
+<span style="font:600 11px var(--font-sans);letter-spacing:.04em;color:var(--accent);flex:none">行為摘要</span>
+<span style="font:400 10.5px var(--font-mono);color:var(--fg-muted);flex:none;white-space:nowrap">敘事負載 {{ inkD.load }} · 全書第 {{ inkD.rank }} 名</span>
+</div>
+<div style="font:400 16px/1.75 var(--font-serif);color:var(--fg-primary);margin-bottom:14px">{{ inkD.claim }}</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+<sc-for list="{{ inkD.signals }}" as="s" hint-placeholder-count="6">
+<div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 11px">
+<div style="font:500 10px var(--font-sans);color:var(--fg-muted);margin-bottom:5px">{{ s.label }}</div>
+<div style="font:600 15px var(--font-serif);color:var(--fg-primary);margin-bottom:5px">{{ s.value }}</div>
+<div style="height:3px;background:var(--bg-tertiary);overflow:hidden;margin-bottom:6px"><span style="display:block;height:100%;width:{{ s.pct }};background:var(--fg-primary)"></span></div>
+<div style="font:400 10px/1.45 var(--font-sans);color:var(--fg-muted)">{{ s.note }}</div>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="border:var(--card-border-width) solid var(--border);border-radius:var(--card-radius);padding:15px 17px 13px">
+<div style="font:600 12.5px var(--font-sans);color:var(--fg-primary);margin-bottom:11px">章節密度熱圖 · 灰階 ramp</div>
+<sc-for list="{{ inkHeat }}" as="h" hint-placeholder-count="8">
+<div style="display:flex;align-items:center">
+<div style="width:88px;flex:none;display:flex;align-items:center;gap:5px">
+<span style="width:5px;height:5px;border-radius:50%;flex:none;background:{{ h.dot }}"></span>
+<span style="font:500 12px var(--font-serif);color:var(--fg-primary)">{{ h.term }}</span>
+</div>
+<sc-for list="{{ h.cells }}" as="c" hint-placeholder-count="13">
+<span style="flex:{{ c.flex }};height:15px;margin:1px .5px;background:{{ c.bg }};border:{{ c.bd }}"></span>
+</sc-for>
+<span style="width:44px;flex:none;text-align:right;font:500 10.5px var(--font-mono);color:var(--fg-secondary)">{{ h.metric }}</span>
+</div>
+</sc-for>
+<div style="display:flex;align-items:center;gap:5px;margin-top:10px;font:400 10px var(--font-sans);color:var(--fg-muted)">
+<span style="width:15px;height:9px;background:var(--symbol-density-mid)"></span><span>1 次</span>
+<span style="width:15px;height:9px;background:var(--symbol-density-high);margin-left:6px"></span><span>2 次</span>
+<span style="width:15px;height:9px;background:var(--symbol-density-peak);margin-left:6px"></span><span>3 次以上 · 極性靠標籤，不靠色相</span>
+</div>
+</div>
+</div>
+</div>
+
+<div style="max-width:1440px;margin-top:26px;background:#f8f3e7;border:1px solid #ddceb2;border-radius:12px;padding:20px 22px">
+<div style="font:600 12.5px var(--font-sans);color:#2a2620;margin-bottom:3px">決議紀錄 · 六點回覆已落進設計</div>
+<div style="font:400 11px var(--font-sans);color:rgba(42,38,32,.5);margin-bottom:13px">01 轉工程議題、02 新增批次端點、03 一律以實算為準、04 明確標不可跳、05 衍生篩選不進 URL、06 權重待實證校準</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:11px 26px">
+<sc-for list="{{ openItems }}" as="o" hint-placeholder-count="6">
+<div style="display:flex;gap:9px;align-items:flex-start;font:400 12px/1.65 var(--font-sans);color:#4a4238">
+<span style="font:600 10px var(--font-mono);color:#b05a34;flex:none;padding-top:3px">{{ o.n }}</span>
+<span style="font:500 10px var(--font-sans);flex:none;padding:2px 7px;border-radius:20px;background:#f1e8d5;border:1px solid #ddceb2;color:#8a5c13;margin-top:1px">{{ o.s }}</span>
+<span>{{ o.t }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</section>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1540},&quot;defaultSort&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;load&quot;,&quot;attach&quot;,&quot;span&quot;,&quot;events&quot;,&quot;freq&quot;],&quot;default&quot;:&quot;load&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;行為訊號&quot;},&quot;ctaThreshold&quot;:{&quot;editor&quot;:&quot;range&quot;,&quot;min&quot;:0.2,&quot;max&quot;:0.7,&quot;step&quot;:0.05,&quot;default&quot;:0.45,&quot;tsType&quot;:&quot;number&quot;,&quot;section&quot;:&quot;行為訊號&quot;},&quot;tailAsCloud&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;長尾處理&quot;}}">
+const SYM = [
+  ['海','nature',['潮汐','岸邊','潮水','海床','海水'],13,{'-1':3,'0':2,'1':1,'5':1,'7':2,'8':1,'9':1,'11':2}],
+  ['手','body',['指尖'],7,{'1':1,'2':1,'4':1,'5':1,'7':1,'8':1,'10':1}],
+  ['血','body',[],4,{'2':1,'6':1,'8':1,'11':1}],
+  ['泥','nature',['泥灘'],4,{'6':1,'7':1,'9':1,'10':1}],
+  ['沙','object',['念珠','頂針','岸'],4,{'-1':1,'5':1,'6':1,'11':1}],
+  ['鹽','other',[],3,{'0':1,'1':1,'2':1}],
+  ['懷錶','object',[],2,{'3':1,'7':1}],
+  ['水','nature',[],2,{'4':1,'10':1}],
+  ['油燈','object',[],2,{'4':1,'5':1}],
+  ['光','nature',[],2,{'8':1,'9':1}],
+  ['爐火','other',['火爐'],2,{'2':1,'6':1}],
+  ['腳印','body',[],1,{'-1':1}],
+  ['門檻','spatial',[],1,{'1':1}],
+  ['門','object',[],1,{'1':1}],
+  ['傷口','other',[],1,{'2':1}],
+  ['馬車','object',[],1,{'3':1}],
+  ['皮箱','object',[],1,{'3':1}],
+  ['掌心','body',[],1,{'3':1}],
+  ['水窪','nature',[],1,{'3':1}],
+  ['船','object',[],1,{'4':1}],
+  ['霧','nature',[],1,{'4':1}],
+  ['月亮','nature',[],1,{'5':1}],
+  ['雪','nature',[],1,{'6':1}],
+  ['臉','body',[],1,{'8':1}],
+  ['礁石','nature',[],1,{'9':1}],
+  ['風','nature',[],1,{'9':1}],
+  ['外套','object',[],1,{'10':1}],
+  ['浪','nature',[],1,{'10':1}],
+  ['戒指','object',[],1,{'11':1}]
+];
+
+// SEP 分流。「海」為 #15d 真實回應（已濾掉同名自我匹配 12 次）；其餘為示範替代值。
+const SEP = {
+  '海':{real:true,ch:[['伊內絲',6],['埃米利安',3],['泰奧多爾',2],['巴爾塔薩神父',2]],
+        scene:[['薩爾瑪雷納',6,'location'],['鹽',5,'concept'],['泥灘',4,'location'],['鹽田',3,'location']],
+        ev:25,al:12,selfHit:12},
+  '手':{ch:[['伊內絲',5],['瑪蒂爾德夫人',2]],scene:[['鹽田',3,'location'],['念珠',2,'object']],ev:14,al:8},
+  '泥':{ch:[['伊內絲',3]],scene:[['泥灘',4,'location'],['海床',2,'location']],ev:9,al:5},
+  '血':{ch:[['伊內絲',2],['莉莉安娜',1]],scene:[['礁石',1,'location']],ev:6,al:4},
+  '沙':{ch:[['伊內絲',2],['巴爾塔薩神父',1]],scene:[['鹽田',2,'location'],['教會',1,'organization']],ev:7,al:4},
+  '鹽':{ch:[['瑪蒂爾德夫人',2],['伊內絲',2]],scene:[['鹽田',3,'location'],['讀鹽人',3,'concept']],ev:8,al:3},
+  '懷錶':{ch:[['泰奧多爾',2],['伊內絲',1]],scene:[['海床',1,'location']],ev:5,al:7},
+  '水':{ch:[['伊內絲',1]],scene:[['水窪',1,'location']],ev:2,al:2},
+  '油燈':{ch:[['瑪蒂爾德夫人',2]],scene:[],ev:3,al:3},
+  '光':{ch:[['伊內絲',2]],scene:[['記憶的光',2,'concept'],['海床',1,'location']],ev:4,al:4},
+  '爐火':{ch:[['瑪蒂爾德夫人',1]],scene:[],ev:2,al:2}
+};
+
+// #15c 真實回應（「海」的共現意象）
+const COOC = [['手',4,'body'],['沙',2,'object'],['泥',2,'nature'],['光',2,'nature'],['腳印',1,'body'],['門檻',1,'spatial'],['鹽',1,'other'],['門',1,'object'],['月亮',1,'nature'],['油燈',1,'object'],['懷錶',1,'object'],['臉',1,'body']];
+
+// #15b 真實回應（13 筆出現紀錄）
+const OCC = [
+  [-1,1,'名字的潮汐 A Maré dos Nomes … 出版霧港文化事業股份有限公司 書系藍鯨譯叢 037 地址臨海市鹽埕區望潮路 118 號 7 樓 …','版權頁'],
+  [-1,1,'獻給所有仍站在岸邊，等一個名字被潮水送回來的人。','獻詞'],
+  [-1,1,'「海不會弄丟任何東西。','題詞'],
+  [0,1,'潮水回填 133','目次'],
+  [0,1,'把海還給海／林紜秋 159','目次'],
+  [1,0,'那一年的春天來得太安靜，安靜得像海在憋氣。',''],
+  [5,0,'眼睛卻死死盯著那片正在退開的海——因為連他自己，也在偷偷等一個名字：他早逝的妹妹。',''],
+  [7,0,'它怎麼會躺在這片七年才裸露一次的海床上，泛著記憶的光？',''],
+  [7,2,'她有一雙總像含著海水的眼睛。',''],
+  [8,0,'她是坐在礁石上走的，臉朝著那片退到天邊的海。',''],
+  [9,0,'海把這個都記得。',''],
+  [11,0,'我是在一個把哀悼寫進地理、寫進潮汐表裡的地方長大的。',''],
+  [11,0,'我是在一個把哀悼寫進地理、寫進潮汐表裡的地方長大的。','']
+];
+
+const TYPE_LABEL = {object:'器物',nature:'自然',spatial:'空間',body:'身體',color:'色彩',other:'其他'};
+const AXIS = [-1,0,1,2,3,4,5,6,7,8,9,10,11];
+const BODY_N = 10;
+const W = {attach:0.30,span:0.24,ev:0.18,al:0.13,freq:0.15};
+
+class Component extends DCLogic {
+  state = {view:'overview',sel:'手',sortAxis:null,type:'all',q:'',shape:null,pin:null,
+           showFront:false,batch:false,gen:null};
+
+  axis(){ return this.state.sortAxis || this.props.defaultSort || 'load'; }
+  strongAt(){ return this.props.ctaThreshold != null ? this.props.ctaThreshold : 0.45; }
+
+  calc(s){
+    const [term,type,aliases,freq,dist] = s;
+    let body=0,front=0,after=0,peakV=0; const hit=[];
+    for(const k in dist){
+      const ch=+k, v=dist[k];
+      if(v>peakV) peakV=v;
+      if(ch<1) front+=v; else if(ch>BODY_N) after+=v; else {body+=v; hit.push(ch);}
+    }
+    hit.sort((a,b)=>a-b);
+    const first=hit.length?hit[0]:null, last=hit.length?hit[hit.length-1]:null;
+    const span = hit.length? (last-first+1)/BODY_N : 0;
+    const sep = SEP[term] || {ch:[],scene:[],ev:0,al:1};
+    const top = sep.ch[0] || null;
+    const attach = top ? top[1]/freq : 0;
+    const trust = (body+after)/freq;
+    // 少量證據的比例不可信：2 次出現算出的 100% 依附不等於 13 次出現算出的 46%
+    const damp = Math.min(1,(body+after)/4);
+    const load = trust*(W.attach*attach*damp + W.span*span + W.ev*Math.min(1,sep.ev/25)
+                 + W.al*Math.min(1,sep.al/12) + W.freq*Math.sqrt(body)/Math.sqrt(7));
+    let shape='none', shapeLabel='僅出現在非正文';
+    if(hit.length===1){shape='single'; shapeLabel='只出現在第 '+first+' 章';}
+    else if(hit.length>=4 && span>=0.6){shape='through'; shapeLabel='跨 '+hit.length+' 章貫穿';}
+    else if(hit.length>1 && last<=3){shape='earlyExit'; shapeLabel='第 '+first+'–'+last+' 章，開場即退場';}
+    else if(hit.length>1 && first>=8){shape='lateEntry'; shapeLabel='第 '+first+' 章才登場';}
+    else if(hit.length>1 && first>=5){shape='back'; shapeLabel='集中在後半段（'+first+'–'+last+' 章）';}
+    else if(hit.length>1 && last<=5){shape='front'; shapeLabel='集中在前半段（'+first+'–'+last+' 章）';}
+    else if(hit.length>1){shape='scatter'; shapeLabel='第 '+first+'–'+last+' 章間斷出現';}
+    return {term,type,aliases,freq,dist,body,front,after,hit,first,last,span,sep,top,attach,
+            trust,load,shape,shapeLabel,peakV,
+            typeLabel:TYPE_LABEL[type],
+            tbg:'var(--symbol-'+type+'-bg)',tfg:'var(--symbol-'+type+'-fg)',tdot:'var(--symbol-'+type+'-dot)'};
+  }
+
+  all(){ if(!this._all) this._all = SYM.map(s=>this.calc(s)); return this._all; }
+  main(){ return this.all().filter(x=>x.freq>1); }
+  tailList(){ return this.all().filter(x=>x.freq===1); }
+  maxCell(){
+    if(this._mc==null){
+      let m=1;
+      this.all().forEach(x=>{ for(const k in x.dist){ if(+k>=1 && x.dist[k]>m) m=x.dist[k]; } });
+      this._mc=m;
+    }
+    return this._mc;
+  }
+
+  densityColor(v){
+    // 值域只有 1–3，直接對應次數而非比例，圖例才站得住
+    if(!v) return 'transparent';
+    if(v===1) return 'var(--symbol-density-mid)';
+    if(v===2) return 'var(--symbol-density-high)';
+    return 'var(--symbol-density-peak)';
+  }
+
+  cells(x,h){
+    return AXIS.map(ch=>{
+      const v = x.dist[String(ch)]||0;
+      const nb = ch<1 || ch>BODY_N;
+      return {flex: nb?0.7:1, bg:this.densityColor(v),
+        bd: v? (nb?'1px dashed var(--fg-muted)':'none') : '1px solid var(--bg-tertiary)',
+        barBg: v? this.densityColor(v) : 'var(--bg-tertiary)',
+        top: nb? (v?'2px solid var(--fg-muted)':'1px dotted var(--fg-muted)') : 'none'};
+    });
+  }
+
+  behavior(x){
+    const p=[x.shapeLabel];
+    if(x.top && x.attach>0) p.push('依附'+x.top[0]+' '+Math.round(x.attach*100)+'%');
+    if(x.front) p.push(x.front+' 次在前置頁');
+    else if(x.sep.ev) p.push('連結 '+x.sep.ev+' 事件');
+    return p.slice(0,3).join(' · ');
+  }
+
+  ranked(){
+    const m=this.main().slice();
+    const key={load:x=>x.load,attach:x=>x.attach,span:x=>x.span,
+               events:x=>x.sep.ev||0,freq:x=>x.body,
+               first:x=>-(x.first==null?99:x.first),review:x=>(x.term==='海'?1:0)}[this.axis()];
+    m.sort((a,b)=>key(b)-key(a) || b.load-a.load);
+    return m;
+  }
+
+  metricFor(x){
+    const a=this.axis();
+    if(a==='load') return x.load.toFixed(2);
+    if(a==='attach') return x.top? Math.round(x.attach*100)+'%' : '—';
+    if(a==='span') return x.hit.length+'/10 章';
+    if(a==='events') return (x.sep.ev||0)+' 事';
+    if(a==='first') return 'ch'+(x.first==null?'—':x.first);
+    if(a==='review') return x.term==='海'?'待審':'未詮釋';
+    return x.body+' 次';
+  }
+
+  interpState(term){
+    if(this.state.gen===term) return 'generating';
+    return term==='海' ? 'done' : 'none';
+  }
+
+  detail(){
+    const term = this.state.sel;
+    const x = this.all().find(y=>y.term===term) || this.all()[0];
+    const r = this.ranked();
+    const rank = r.findIndex(y=>y.term===x.term)+1;
+    const st = this.interpState(x.term);
+    const claimParts = [];
+    claimParts.push('「'+x.term+'」'+x.shapeLabel.replace('跨','跨越'));
+    if(x.top) claimParts.push('，'+Math.round(x.attach*100)+'% 的出現與'+x.top[0]+'同段（'+x.top[1]+'/'+x.freq+'）');
+    if(x.sep.ev) claimParts.push('，牽連 '+x.sep.ev+' 個事件');
+    if(x.front) claimParts.push('；但 '+x.front+'/'+x.freq+' 次來自版權頁與書名頁，頻率排名不可信');
+    else claimParts.push('；全部出現都在正文，證據乾淨');
+    const claim = claimParts.join('')+'。';
+
+    const sig = [
+      {label:'角色依附',value: x.top? x.top[0]+' '+x.top[1]+'/'+x.freq : '無資料',
+       pct: Math.round(x.attach*100)+'%', color:'var(--fg-primary)', barColor:'var(--accent)',
+       bg:'var(--bg-primary)',
+       note: x.top? '已濾掉與意象同名的 KG 實體。需與該角色全書出現率對比才成立（待接 KG baseline）':'SEP 無 character 型共現'},
+      {label:'分布形狀',value:x.shapeLabel,pct:Math.round(x.span*100)+'%',
+       color:'var(--fg-primary)',barColor:'var(--accent)',bg:'var(--bg-primary)',
+       note:'正文第 '+(x.first||'—')+'–'+(x.last||'—')+' 章 · 命中 '+x.hit.length+'/10 章'},
+      {label:'事件依附',value:(x.sep.ev||0)+' 個事件',pct:Math.round(Math.min(1,(x.sep.ev||0)/25)*100)+'%',
+       color:'var(--fg-primary)',barColor:'var(--accent)',bg:'var(--bg-primary)',
+       note: x.sep.ev? 'SEP co_occurring_event_ids · 集中在第 1、5、7、8、9 章':'SEP 無事件共現'},
+      {label:'意象結盟',value:(x.sep.al||0)+' 個意象',pct:Math.round(Math.min(1,(x.sep.al||0)/12)*100)+'%',
+       color:'var(--fg-primary)',barColor:'var(--accent)',bg:'var(--bg-primary)',
+       note:'#15c 共現意象 · 最強者 '+(x.term==='海'?'手（4 次）':'見共現網絡')},
+      {label:'登場／退場',value: x.hit.length? '第 '+x.first+' 章 → 第 '+x.last+' 章':'—',
+       pct: Math.round(x.span*100)+'%',color:'var(--fg-primary)',barColor:'var(--accent)',bg:'var(--bg-primary)',
+       note: x.last===BODY_N?'到最後一章仍在': (x.last<=3?'中途消失':'收在第 '+x.last+' 章')},
+      {label:'證據可信度',value:Math.round(x.trust*100)+'%',pct:Math.round(x.trust*100)+'%',
+       color: x.trust<0.8?'var(--status-partial-fg)':'var(--fg-primary)',
+       barColor: x.trust<0.8?'var(--status-partial-border)':'var(--accent)',
+       bg: x.trust<0.8?'var(--status-partial-bg)':'var(--bg-primary)',
+       note: x.front? x.front+' 次來自前置頁，已作為排序乘數扣分':'無非正文污染'}
+    ];
+
+    const bars = AXIS.map(ch=>{
+      const v = x.dist[String(ch)]||0, nb = ch<1||ch>BODY_N;
+      return {flex: nb?0.7:1, h: v? Math.round(v/this.maxCell()*72)+'px' : '2px',
+        bg: v? this.densityColor(v) : 'var(--bg-tertiary)',
+        bd: v&&nb? '1px dashed var(--fg-muted)':'none',
+        peak: v===x.peakV && v>0 ? '▲' : '',
+        label: ch<0?'前':ch===0?'目':ch>BODY_N?'後':String(ch),
+        labelColor: nb?'var(--fg-muted)':'var(--fg-secondary)'};
+    });
+
+    let pinBars=null;
+    if(this.state.pin && this.state.pin!==x.term){
+      const p=this.all().find(y=>y.term===this.state.pin);
+      if(p) pinBars = AXIS.map(ch=>{
+        const v=p.dist[String(ch)]||0, nb=ch<1||ch>BODY_N;
+        return {flex:nb?0.7:1,h:v?Math.round(v/this.maxCell()*36)+'px':'2px',
+          bg:v?'var(--symbol-'+p.type+'-dot)':'var(--bg-tertiary)',
+          bd:v&&nb?'1px dashed var(--fg-muted)':'none'};
+      });
+    }
+
+    const chars = x.sep.ch.map(c=>({name:c[0],n:c[1],meta:Math.round(c[1]/x.freq*100)+'%',
+      bg:'var(--entity-character-bg)',bd:'var(--entity-character-border)',dot:'var(--entity-character-dot)'}));
+    const ENT_LABEL={location:'地點',concept:'概念',object:'物件',organization:'組織',character:'角色'};
+    const scenes = x.sep.scene.map(c=>{
+      const t=c[2];
+      return {name:c[0],n:c[1],meta:ENT_LABEL[t]||'其他',
+        bg:'var(--entity-'+t+'-bg)',bd:'var(--entity-'+t+'-border)',dot:'var(--entity-'+t+'-dot)'};
+    });
+    const allies = (x.term==='海'?COOC.slice(0,4):[]).map(c=>({name:c[0],n:c[1],meta:TYPE_LABEL[c[2]],
+      bg:'var(--symbol-'+c[2]+'-bg)',bd:'var(--symbol-'+c[2]+'-dot)',dot:'var(--symbol-'+c[2]+'-dot)'}));
+
+    const occ = x.term==='海' ? OCC : null;
+    const occGroups=[];
+    let frontItems=[];
+    if(occ){
+      frontItems = occ.filter(o=>o[0]<1).map(o=>({tag:o[3]||'前置',text:o[2]}));
+      const byCh={};
+      occ.filter(o=>o[0]>=1).forEach(o=>{ (byCh[o[0]]=byCh[o[0]]||[]).push(o); });
+      Object.keys(byCh).map(Number).sort((a,b)=>a-b).forEach(ch=>{
+        const isAfter = ch>BODY_N;
+        occGroups.push({
+          chapter: isAfter? '後記（第 '+ch+' 章）' : '第 '+ch+' 章',
+          chColor: isAfter?'var(--fg-muted)':'var(--accent)',
+          count: byCh[ch].length+' 次',
+          badge: isAfter? '非正文 · 保留 · 不可跳':'',
+          badgeBg:'var(--status-partial-bg)',badgeFg:'var(--status-partial-fg)',badgeBd:'var(--status-partial-border)',
+          items: byCh[ch].map(o=>({pos:o[1],text:o[2],
+            bg: isAfter?'var(--bg-tertiary)':'var(--bg-secondary)',
+            rail: isAfter?'var(--fg-muted)':'var(--symbol-'+x.type+'-dot)',
+            jump: isAfter?'✕ 不可跳閱讀頁':'跳至閱讀頁 ↗',
+            jumpColor: isAfter?'var(--fg-muted)':'var(--accent)'}))
+        });
+      });
+    } else {
+      const chs = x.hit.concat(x.after? [11]:[]);
+      chs.forEach(ch=>{
+        occGroups.push({chapter:'第 '+ch+' 章',chColor:'var(--accent)',count:'1 次',badge:'',
+          badgeBg:'',badgeFg:'',badgeBd:'',
+          items:[{pos:0,text:'（真實引文由 #15b 即時取得）',bg:'var(--bg-secondary)',
+            rail:'var(--symbol-'+x.type+'-dot)',jump:'跳至閱讀頁 ↗',jumpColor:'var(--accent)'}]});
+      });
+    }
+
+    const strong = x.load>=this.strongAt(), weak = x.load<0.2;
+    return {
+      term:x.term, typeLabel:x.typeLabel, tbg:x.tbg, tfg:x.tfg, tdot:x.tdot,
+      freqLabel: x.freq+' 次出現 · 正文 '+x.body+(x.front?' · 前置 '+x.front:'')+(x.after?' · 後記 '+x.after:''),
+      aliasPills: x.aliases.map(a=>'異體 '+a),
+      load:x.load.toFixed(2), rank:rank, claim:claim, signals:sig, bars:bars, pinBars:pinBars,
+      distMeta:'首見第 '+(x.first==null?'—':x.first)+' 章（正文） · 峰值第 '+
+        Object.keys(x.dist).filter(k=>x.dist[k]===x.peakV && +k>=1 && +k<=BODY_N).join('、')+' 章 · 正文單章最大值 '+this.maxCell(),
+      frontNote: x.front? '前置頁 '+x.front+' 次（版權頁／書名頁／目次）已從分布形狀與首見排除，僅計入證據可信度扣分'
+                        : '無前置頁出現，分布形狀與首見即為正文事實',
+      hasInterp: st==='done', isGenerating: st==='generating', showCta: st==='none',
+      frontCount: x.front,
+      frontToggle: x.front? (this.state.showFront? '隱藏前置頁 '+x.front+' 筆' : '顯示前置頁出現（'+x.front+' 筆）') : '',
+      ctaTitle: strong?'訊號夠強 —— 值得把它寫成一段論證':(weak?'證據不足，先不建議生成':'可生成詮釋，但先讀上面的行為摘要'),
+      ctaDesc: strong
+        ? '敘事負載 '+x.load.toFixed(2)+'（全書第 '+rank+' 名）。詮釋會把上面已呈現的六個訊號寫成主題命題與佐證綜述，並進入 HITL 審核；前置頁證據不會送入。'
+        : (weak? '這個意象的分布、依附與結盟都太薄，LLM 只能複述引文。建議先看行為分群裡同型的意象。'
+               : '敘事負載 '+x.load.toFixed(2)+'。行為摘要已回答「它在幹嘛」；詮釋補的是「它承載什麼意義」，需消耗 token。'),
+      ctaBg: strong?'var(--bg-primary)':'var(--bg-secondary)',
+      ctaBd: strong?'var(--accent)':'var(--border)',
+      ctaBtn: weak?'不建議生成':'生成詮釋',
+      ctaBtnBg: strong?'var(--accent)':'transparent',
+      ctaBtnFg: strong?'var(--accent-fg)':(weak?'var(--fg-muted)':'var(--fg-primary)'),
+      ctaBtnBd: strong?'var(--accent)':'var(--border)',
+      ctaDisabled: weak, ctaCursor: weak?'not-allowed':'pointer',
+      coMeta: x.sep.real? '#15d SEP · 19 個實體 / 25 個事件（真實）':'#15d SEP · 示範替代值',
+      selfFilterNote: x.sep.selfHit
+        ? '已過濾自我匹配：與意象同名的 KG 實體「'+x.term+'」共現 '+x.sep.selfHit+' 次（原本的 top-1），取它當訊號等於說「這個意象總是跟自己一起出現」。'
+        : '共現實體多為 location / concept / object，因此不再統稱「共現角色」——只有 character 型才進角色依附訊號。',
+      coGroups:[
+        {title:'角色依附 · character',sub:'唯一進入排序的共現訊號',items:chars,empty:chars.length?'':'SEP 無 character 型共現'},
+        {title:'場景與物件 · location / concept / object',sub:'這些不是角色。它們描述意象出沒的場景，不進排序',items:scenes,empty:scenes.length?'':'無'},
+        {title:'結盟意象 · #15c',sub:'與 KG 實體清單會重複（鹽、懷錶兩邊都有）；此欄只認意象身分',items:allies,empty:allies.length?'':'需 per-symbol 取 #15c'}
+      ],
+      occMeta: x.term==='海'? '正文 6 筆 + 後記 2 筆 · 前置頁 5 筆另計':'依 #15b 即時分組',
+      occGroups:occGroups, frontOcc:frontItems.length>0, frontItems:frontItems
+    };
+  }
+
+  renderVals(){
+    const s=this.state, all=this.all(), ranked=this.ranked(), tail=this.tailList();
+    const set=(k,v)=>()=>this.setState({[k]:v});
+    const pick=t=>()=>this.setState({sel:t,view:'detail',showFront:false});
+
+    let rows = ranked;
+    if(s.type!=='all') rows=rows.filter(x=>x.type===s.type);
+    if(s.shape) rows=rows.filter(x=>x.shape===s.shape);
+    if(s.q){
+      const q=s.q.trim();
+      rows=(s.shape?rows:ranked.concat(tail)).filter(x=>x.term.indexOf(q)>=0||x.aliases.some(a=>a.indexOf(q)>=0));
+      if(s.type!=='all') rows=rows.filter(x=>x.type===s.type);
+    }
+
+    const typeCounts={}; all.forEach(x=>typeCounts[x.type]=(typeCounts[x.type]||0)+1);
+    const typeChips=[{v:'all',label:'全部 '+all.length}].concat(
+      Object.keys(TYPE_LABEL).filter(t=>typeCounts[t]).map(t=>({v:t,label:TYPE_LABEL[t]+' '+typeCounts[t]}))
+    ).map(c=>{
+      const on = s.type===c.v;
+      return {label:c.label,on:set('type',c.v),
+        bg: on? (c.v==='all'?'var(--accent)':'var(--symbol-'+c.v+'-bg)') : 'transparent',
+        fg: on? (c.v==='all'?'var(--accent-fg)':'var(--symbol-'+c.v+'-fg)') : 'var(--fg-secondary)',
+        bd: on? (c.v==='all'?'var(--accent)':'var(--symbol-'+c.v+'-dot)') : 'var(--border)'};
+    });
+
+    const shapeDefs=[['through','貫穿型 · 從頭到尾都在'],['back','後段集中 · 事件之後才密集'],
+      ['earlyExit','開場即退場 · 中途消失'],['lateEntry','結尾才登場'],
+      ['scatter','間斷出現'],['single','單章出現']];
+    const shapeGroups=shapeDefs.map(d=>{
+      const ms=this.main().filter(x=>x.shape===d[0]);
+      return {label:d[1],n:ms.length,members:ms.map(x=>x.term).join('、')||'—',
+        on: ms.length? set('shape', s.shape===d[0]?null:d[0]) : ()=>{},
+        bg: s.shape===d[0]?'var(--bg-tertiary)':'var(--bg-secondary)',
+        bd: s.shape===d[0]?'var(--accent)':'var(--border)'};
+    }).filter(g=>g.n>0);
+
+    const picks = ranked.slice(0,3).map((x,i)=>{
+      const strong=x.load>=this.strongAt();
+      return {rank:i+1,term:x.term,typeLabel:x.typeLabel,tbg:x.tbg,tfg:x.tfg,tdot:x.tdot,
+        load:x.load.toFixed(2),on:pick(x.term),
+        bd: i===0?'var(--accent)':'var(--border)',
+        claim: x.shapeLabel+(x.top?'，'+Math.round(x.attach*100)+'% 的出現與'+x.top[0]+'同段':'')+
+               (x.front? '；但 '+x.front+'/'+x.freq+' 次在前置頁':'；證據乾淨無污染')+'。',
+        tags:[x.hit.length+'/10 章',(x.sep.ev||0)+' 事件','可信度 '+Math.round(x.trust*100)+'%'],
+        cta: this.interpState(x.term)==='done'? '已有詮釋 · 待審 →'
+             : (strong? '訊號夠強，建議生成詮釋 →':'先讀行為摘要 →'),
+        ai: this.interpState(x.term)==='done' || strong,
+        ctaColor: strong?'var(--accent)':'var(--fg-muted)'};
+    });
+
+    const heatRows = ranked.map(x=>({term:x.term,dot:'var(--symbol-'+x.type+'-dot)',cells:this.cells(x),
+      metric:this.metricFor(x),metricColor: x.trust<0.8?'var(--status-partial-fg)':'var(--fg-secondary)',
+      on:pick(x.term), bg: s.sel===x.term && s.view==='detail'?'var(--bg-secondary)':'transparent'}));
+
+    const maxCh = Math.max.apply(null, tail.map(x=>x.first==null?0:x.first));
+    const tailItems = tail.map(x=>{
+      const f = x.first==null?0:x.first;
+      return {term:x.term,on:pick(x.term),ch: f<1?'前':'ch'+f,
+        size: (13 + Math.round((f/Math.max(1,maxCh))*5))+'px',
+        color: f<1?'var(--fg-muted)':'var(--fg-secondary)',
+        dot:'var(--symbol-'+x.type+'-dot)'};
+    });
+
+    const clusterMembers=['手','沙','泥','光'];
+    const clusterAll=['海'].concat(clusterMembers).map(t=>all.find(y=>y.term===t));
+    const perCh={};
+    clusterAll.forEach(x=>{ x.hit.forEach(ch=>{ (perCh[ch]=perCh[ch]||[]).push(x.term); }); });
+    const chMax = Math.max.apply(null, Object.keys(perCh).map(k=>perCh[k].length));
+    const chHot = Object.keys(perCh).filter(k=>perCh[k].length===chMax).map(Number).sort((a,b)=>a-b);
+    const clusterPills=COOC.slice(0,4).map(c=>({term:c[0],n:c[1],
+      bg:'var(--symbol-'+c[2]+'-bg)',fg:'var(--symbol-'+c[2]+'-fg)',dot:'var(--symbol-'+c[2]+'-dot)'}));
+    const clusterRows=['海'].concat(clusterMembers).map(t=>{
+      const x=all.find(y=>y.term===t);
+      const w=t==='海'?'核心':(COOC.find(c=>c[0]===t)||[0,0])[1]+' 次共現';
+      return {term:t,dot:'var(--symbol-'+x.type+'-dot)',w:w,cells:this.cells(x),shape:x.shapeLabel};
+    });
+
+    const analyzed = all.filter(x=>this.interpState(x.term)==='done').length;
+    const polluted = this.main().filter(x=>x.trust<0.8).length;
+    const totalOcc = all.reduce((a,x)=>a+x.freq,0);
+
+    const qs=[];
+    if(s.view==='detail') qs.push('symbol='+encodeURIComponent(s.sel));
+    if(s.view==='cluster') qs.push('cluster=hai');
+    if(this.axis()!=='load') qs.push('sort='+this.axis());
+    if(s.type!=='all') qs.push('type='+s.type);
+    if(s.pin) qs.push('pin='+encodeURIComponent(s.pin));
+    const url = '/books/8f18dd59/symbols'+(qs.length?'?'+qs.join('&'):'');
+
+    const tabs=['閱讀','角色分析','事件分析','敘事結構','知識圖譜','時間軸','張力分析','符號意象','建構概覽'];
+    const topnav=tabs.map(t=>({label:t,c:t==='符號意象'?'var(--accent)':'var(--fg-secondary)',
+      bg:t==='符號意象'?'var(--bg-tertiary)':'transparent'}));
+
+    const d = this.detail();
+    const inkRanked = ranked.slice(0,5).map(x=>({term:x.term,dot:'var(--symbol-'+x.type+'-dot)',
+      behavior:this.behavior(x),cells:this.cells(x),metric:x.load.toFixed(2),
+      review: this.interpState(x.term)==='done'?'待審':'',
+      reviewBg:'var(--status-partial-bg)',reviewFg:'var(--status-partial-fg)',reviewBd:'var(--status-partial-border)',
+      rail: x.term===s.sel?'var(--accent)':'transparent',
+      rowBg: x.term===s.sel?'var(--bg-secondary)':'transparent'}));
+
+    return {
+      url:url, topnav:topnav,
+      sortAxis:this.axis(), q:s.q, showFront:s.showFront,
+      sortOptions:[{v:'load',label:'敘事負載（預設）'},{v:'attach',label:'角色依附'},
+        {v:'span',label:'貫穿度'},{v:'events',label:'事件依附'},{v:'freq',label:'正文頻率（對照）'},
+        {v:'first',label:'首見章序'},{v:'review',label:'審核狀態'}],
+      onSort:e=>this.setState({sortAxis:e.target.value}),
+      onQuery:e=>this.setState({q:e.target.value}),
+      typeChips:typeChips,
+      listHeading: s.q? '搜尋結果' : (s.shape? '行為分群篩選' : '依'+({load:'敘事負載',attach:'角色依附',span:'貫穿度',events:'事件依附',freq:'正文頻率',first:'首見',review:'審核'}[this.axis()])+'排序'),
+      listCount: rows.length+' / '+all.length,
+      rows: rows.map(x=>({
+        term:x.term, on:pick(x.term),
+        aliases: x.aliases.length? x.aliases.slice(0,2).join(' · '):'',
+        dot:'var(--symbol-'+x.type+'-dot)',
+        behavior:this.behavior(x),
+        cells:this.cells(x),
+        metric:this.metricFor(x),
+        metricColor: x.trust<0.8?'var(--status-partial-fg)':'var(--fg-secondary)',
+        polarity: this.interpState(x.term)==='done', polarityDot:'var(--polarity-mixed-dot)',
+        review: this.interpState(x.term)==='done'?'待審':'',
+        reviewBg:'var(--status-partial-bg)',reviewFg:'var(--status-partial-fg)',reviewBd:'var(--status-partial-border)',
+        rail: (s.view==='detail'&&s.sel===x.term)?'var(--accent)':'transparent',
+        rowBg: (s.view==='detail'&&s.sel===x.term)?'var(--bg-secondary)':'transparent'
+      })),
+      rowsEmpty: rows.length===0,
+      tailCount: tail.length, tailPct: Math.round(tail.length/all.length*100)+'%',
+      tail: (this.props.tailAsCloud===false? [] : tailItems),
+      isOverview: s.view==='overview', isCluster: s.view==='cluster', isDetail: s.view==='detail',
+      overviewMeta: all.length+' 個意象 · '+totalOcc+' 次出現 · 行為訊號 '+all.length+'/'+all.length+' 可算 · LLM 詮釋 '+analyzed+'/'+all.length+' · 證據有雜訊 '+polluted+' 個',
+      picks:picks, shapeGroups:shapeGroups,
+      heatRows:heatRows, heatMeta:'11 個主清單意象 × 13 段章節軸 · 正文單章最大值 '+this.maxCell(),
+      frontW:52, afterW:26,
+      bodyAxis:[1,2,3,4,5,6,7,8,9,10].map(n=>({n:n,color:chHot.indexOf(n)>=0?'var(--accent)':'var(--fg-muted)'})),
+      clusterPills:clusterPills, clusterRows:clusterRows,
+      clusterHotList: chHot.map(n=>String(n)).join('、')+' 章',
+      clusterHotNote: chMax+' 個成員同時出現／共 '+clusterAll.length+' 個，全書最高',
+      onCluster:set('view','cluster'),
+      onBack:()=>this.setState({view:'overview',shape:null}),
+      d:d,
+      crumbTail: d.term+' · '+d.typeLabel,
+      pinLabel: s.pin? '取消並看（'+s.pin+'）':'並看另一個意象',
+      pinBg: s.pin?'var(--bg-tertiary)':'var(--bg-primary)',
+      pinFg: s.pin?'var(--fg-primary)':'var(--fg-secondary)',
+      pinBd:'var(--border)',
+      pinName: s.pin||'',
+      onPin: ()=>this.setState({pin: s.pin? null : (s.sel==='海'?'手':'海')}),
+      onToggleFront: ()=>this.setState({showFront:!s.showFront}),
+      frontOccToggle: s.showFront?'▾ 收起前置頁 5 筆':'▸ 另有 5 次位於非正文（前置頁）',
+      onGenerate: ()=>this.setState({gen:s.sel}),
+      onCancelGen: ()=>this.setState({gen:null}),
+      genStages:[{label:'彙整 SEP 證據檔',state:'完成'},{label:'採樣段落脈絡 (6/6)',state:'完成'},
+        {label:'連結 KG 角色 / 事件',state:'完成'},{label:'LLM 詮釋 · 生成主題命題',state:'進行中'},
+        {label:'寫入待審紀錄',state:'等待'}].map((g,i)=>({
+        label:g.label,state:g.state,
+        color: i<3?'var(--fg-secondary)':(i===3?'var(--fg-primary)':'var(--fg-muted)'),
+        ring: i<4?'var(--accent)':'var(--border)',
+        fill: i<3?'var(--accent)':'transparent'})),
+      batchRunning:s.batch,
+      onBatchTop:()=>this.setState({batch:true}), onBatchAll:()=>this.setState({batch:true}),
+      onBatchPick:()=>this.setState({batch:false}), onBatchStop:()=>this.setState({batch:false}),
+      inkRows:inkRanked, inkD:d,
+      inkHeat: ranked.slice(0,8).map(x=>({term:x.term,dot:'var(--symbol-'+x.type+'-dot)',
+        cells:this.cells(x),metric:x.load.toFixed(2)})),
+      decisions:[
+        {tag:'§8.3 長尾',q:'只出現 1 次的意象擺哪裡？',
+         a:'不進清單、不進排序。收在地圖底部「單次出現詞」密集詞雲，字級隨首見章序漸變，保留可點與可搜尋。',
+         why:'出現一次的詞沒有分布、沒有結盟、沒有依附——在行為訊號的框架下它不是資料不足，是還不構成象徵。實算是 18 個而非 brief 寫的 17，請核對。'},
+        {tag:'§8.2 排序',q:'六個訊號怎麼合成？',
+         a:'固定啟發式「敘事負載」為預設，並保留六個訊號各自當排序主軸。可信度是乘數而非加項。',
+         why:'單一黑箱分數不可辯護，純多軸切換又要使用者先懂六個訊號。預設替他決定、主軸讓他反駁——這是研究者要的形狀。'},
+        {tag:'§8.1 非正文',q:'前置頁與後記怎麼處理？',
+         a:'切三段而不是兩段：前置頁（雜訊，摺疊、不進詮釋輸入、不可跳閱讀頁）／正文（主體）／後記（保留，標非正文徽章）。',
+         why:'把「非正文」當一類會誤殺後記。「海」在第 11 章後記的那句「把哀悼寫進地理、寫進潮汐表裡」正是這本書最關鍵的象徵證據，而版權頁的臨海市地址是純噪音。'},
+        {tag:'§3.2 共現',q:'共現實體怎麼跟知識圖譜頁區隔？',
+         a:'一過濾、二分流、三只讓 character 進排序。同名 KG 實體（12 次）過濾並在畫面上交代；location/concept/object 改名「場景與物件」。',
+         why:'不做小型圖譜。這裡的節點是意象、軸是章節、值是共現強度，回答「這個意象承載什麼」；「誰跟誰有關係」留給圖譜頁。'},
+        {tag:'§5.11 並看',q:'共現意象只能跳走怎麼辦？',
+         a:'兩層：詳情頁「並看」在同一條章節軸疊第二個意象；地圖的「意象叢」直接展開群組並看，一次讀 5 個成員。',
+         why:'共現的意義在於一起讀。海叢的四個成員全在第 5 章退名之潮之後密集起來——這個發現在逐個點開的動線裡永遠看不到。'},
+        {tag:'§8.5 批次',q:'批次生成的規模？',
+         a:'三層照事件頁 BatchEepPanel：全部 11 個（不含長尾）／訊號最強前 5 名／勾選多筆。長尾 18 個一律不進批次。',
+         why:'「全部 29 個」是把成本花在 18 個不構成象徵的詞上。批次的預設範圍就該等於清單範圍。'}
+      ],
+      openItems:[
+        {n:'01',s:'轉工程',t:'角色依附 baseline（observed/expected）不是設計端議題——畫面照樣呈現「依附 X%」，只是註記已寫明「需與該角色全書出現率對比才成立」。倍率若補上，顯示格式不變、只換數值來源。'},
+        {n:'02',s:'採納',t:'新增全書共現批次端點。意象叢由該端點算出，總覽列出所有叢而非只有選中意象的叢；未接上前，畫面沿用單叢（海叢）作為形狀示範。'},
+        {n:'03',s:'以實算為準',t:'長尾以實算為準（目前 18 個），畫面所有計數皆由資料即時算出，不寫死、不對齊 brief 的 17。'},
+        {n:'04',s:'定案',t:'後記與前置頁的出現紀錄明確標記「不可跳閱讀頁」，不做隱藏也不做假連結——證據保留、動線關閉。'},
+        {n:'05',s:'定案',t:'衍生篩選不進 URL。URL 只留 ?symbol / &sort / &type（＋&pin、?cluster）；行為分群 shape 與審核狀態皆為畫面內暫態。'},
+        {n:'06',s:'待實證',t:'五個權重（0.30/0.24/0.18/0.13/0.15）與依附阻尼門檻（4 次）集中在單一常數 W，上線後以兩本書的排序回頭校準。'}
+      ]
+    };
+  }
+}
+
+</script>
+</body>
+</html>

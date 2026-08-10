@@ -1,0 +1,27 @@
+{
+    "id": "a9430b7b-212d-4eba-b205-aae70b5f8793",
+    "imagery_id": "f6bef0f0-e8df-4b03-8d7d-6efa8f380a5f",
+    "book_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+    "term": "\u6d77",
+    "theme": "\u300c\u6d77\u300d\u8c61\u5fb5\u8457\u8a18\u61b6\u3001\u5931\u843d\u8207\u54c0\u60bc\u7684\u8f09\u9ad4\uff0c\u5b83\u65e2\u662f\u901d\u8005\u6b78\u5bbf\u7684\u5834\u6240\uff0c\u4e5f\u662f\u751f\u8005\u5c0b\u56de\u8207\u91cb\u61f7\u904e\u53bb\u7684\u5a92\u4ecb\uff0c\u9ad4\u73fe\u4e86\u8a18\u61b6\u7684\u8907\u96dc\u6027\u548c\u60c5\u611f\u7684\u6df1\u5ea6\u3002",
+    "polarity": "mixed",
+    "evidence_summary": "\u300c\u6d77\u300d\u5728\u6587\u672c\u4e2d\u591a\u6b21\u88ab\u63d0\u53ca\uff0c\u4e0d\u50c5\u4f5c\u70ba\u6545\u4e8b\u767c\u751f\u5730\u300c\u81e8\u6d77\u5e02\u300d\u548c\u300c\u85a9\u723e\u746a\u96f7\u7d0d\u300d\u7684\u5730\u7406\u80cc\u666f\uff0c\u66f4\u8207\u300c\u9000\u540d\u4e4b\u6f6e\u300d\u9019\u4e00\u6838\u5fc3\u4e8b\u4ef6\u7dca\u5bc6\u76f8\u9023\u3002\u5b83\u88ab\u63cf\u8ff0\u70ba\u300c\u618b\u6c23\u300d\u822c\u5b89\u975c\uff08ch.1\uff09\uff0c\u53c8\u5728\u9000\u6f6e\u6642\u9732\u51fa\u300c\u4e03\u5e74\u624d\u88f8\u9732\u4e00\u6b21\u7684\u6d77\u5e8a\u300d\uff08ch.7\uff09\uff0c\u627f\u8f09\u8457\u901d\u8005\u7684\u8a18\u61b6\uff0c\u5982\u6cf0\u5967\u591a\u723e\u7684\u61f7\u9336\u548c\u8389\u8389\u5b89\u5a1c\u7684\u7d50\u5c40\uff08ch.7\uff09\u3002\u4f5c\u8005\u5f8c\u8a18\u4e2d\u4e5f\u660e\u78ba\u6307\u51fa\uff0c\u6d77\u662f\u300c\u628a\u54c0\u60bc\u5beb\u9032\u5730\u7406\u3001\u5beb\u9032\u6f6e\u6c50\u8868\u88e1\u7684\u5730\u65b9\u300d\uff0c\u4e26\u80fd\u300c\u7559\u4e0b\u6eba\u6b7b\u8005\u7684\u540d\u5b57\u300d\uff08ch.11\uff09\u3002",
+    "linked_characters": [
+        "08f532d4-2b6b-411a-a750-8dd64f6293ed",
+        "277b7f19-6173-4a2a-8a31-27ed1c7672ca",
+        "4a41e271-9466-4d32-87ef-c1324b3e8d4d",
+        "9464552b-662d-4310-8473-a4f87a2dea47",
+        "fca8e3ff-1bf4-4448-92f8-6995adf9f128"
+    ],
+    "linked_events": [
+        "4e23dac4-e991-47ac-833c-ad695f0b6833",
+        "ce48a708-2c5c-4882-bfcd-28d89aafef24",
+        "31db1a3c-768b-43f9-9956-570a4390ec4e",
+        "c61384ab-4f54-40c8-b429-466faa19ef16",
+        "0783a04a-ce3f-4a8a-8063-65dfb69e35e3"
+    ],
+    "confidence": 0.9,
+    "assembled_by": "symbol_analysis_service_v1",
+    "assembled_at": "2026-08-06T10:43:46.768048",
+    "review_status": "pending"
+}

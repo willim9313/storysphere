@@ -1,0 +1,106 @@
+[
+    {
+        "chapter_number": -1,
+        "position": 1,
+        "context_window": "\u540d\u5b57\u7684\u6f6e\u6c50 A Mar\u00e9 dos Nomes \u4f5c\u3000\u3000\u8005\u4f0a\u838e\u8c9d\u723e\u30fb\u4f69\u5fb7\u7f85\u85a9\uff08Isabel Pedrosa\uff09 \u8b6f\u3000\u3000\u8005\u6797\u7d09\u79cb \u5c0e\u3000\u3000\u8b80\u9673\u58a8\u767d\uff08\u6d77\u5cb8\u5927\u5b78\u6bd4\u8f03\u6587\u5b78\u7cfb\uff09 \u7e3d \u7de8 \u8f2f \u6c88\u6e21 \u8cac\u4efb\u7de8\u8f2f\u67ef\u4e9e\u6f84 \u5c01\u9762\u8a2d\u8a08\u9727\u5ba4\u30fb\u4f55\u4ee5\u67d4 \u5167\u9801\u6392\u7248\u5b57\u7e6a\u5de5\u4f5c\u5ba4 \u51fa\u3000\u3000\u7248\u9727\u6e2f\u6587\u5316\u4e8b\u696d\u80a1\u4efd\u6709\u9650\u516c\u53f8 \u66f8\u3000\u3000\u7cfb\u85cd\u9be8\u8b6f\u53e2 037 \u5730\u3000\u3000\u5740\u81e8\u6d77\u5e02\u9e7d\u57d5\u5340\u671b\u6f6e\u8def 118 \u865f 7 \u6a13 \u96fb\u3000\u3000\u8a71(0X) 2788-0374 \u5370\u3000\u3000\u5237\u5d07\u6587\u5f69\u8272\u5370",
+        "co_occurring_terms": [],
+        "occurrence_id": "e9118172-46cd-44a1-bf69-e76e4dd6a9e2",
+        "paragraph_id": "3222beac-31f5-4506-bb5e-63662d440b6f"
+    },
+    {
+        "chapter_number": -1,
+        "position": 1,
+        "context_window": "\u737b\u7d66\u6240\u6709\u4ecd\u7ad9\u5728\u5cb8\u908a\uff0c \u7b49\u4e00\u500b\u540d\u5b57\u88ab\u6f6e\u6c34\u9001\u56de\u4f86\u7684\u4eba\u3002",
+        "co_occurring_terms": [],
+        "occurrence_id": "742d3ff0-add6-40ea-a823-fa1808f1e839",
+        "paragraph_id": "3222beac-31f5-4506-bb5e-63662d440b6f"
+    },
+    {
+        "chapter_number": -1,
+        "position": 1,
+        "context_window": "\u300c\u6d77\u4e0d\u6703\u5f04\u4e1f\u4efb\u4f55\u6771\u897f\u3002",
+        "co_occurring_terms": [],
+        "occurrence_id": "6756e251-8710-495a-842e-8f156e02d4de",
+        "paragraph_id": "3222beac-31f5-4506-bb5e-63662d440b6f"
+    },
+    {
+        "chapter_number": 0,
+        "position": 1,
+        "context_window": "\u6f6e\u6c34\u56de\u586b 133",
+        "co_occurring_terms": [],
+        "occurrence_id": "376f474b-1255-497f-b2d2-03758a04a29a",
+        "paragraph_id": "eb6b29fa-40b4-4c43-9b57-5ff8a0ca377f"
+    },
+    {
+        "chapter_number": 0,
+        "position": 1,
+        "context_window": "\u628a\u6d77\u9084\u7d66\u6d77\uff0f\u6797\u7d09\u79cb 159",
+        "co_occurring_terms": [],
+        "occurrence_id": "8cac0ab7-415b-48b8-80e8-97c4d6cf64e2",
+        "paragraph_id": "eb6b29fa-40b4-4c43-9b57-5ff8a0ca377f"
+    },
+    {
+        "chapter_number": 1,
+        "position": 0,
+        "context_window": "\u90a3\u4e00\u5e74\u7684\u6625\u5929\u4f86\u5f97\u592a\u5b89\u975c\uff0c\u5b89\u975c\u5f97\u50cf\u6d77\u5728\u618b\u6c23\u3002",
+        "co_occurring_terms": [],
+        "occurrence_id": "8638a2dd-8a36-42d7-8dd5-e2ad76159a02",
+        "paragraph_id": "b2eddc0d-09e9-425f-9073-214207cdbea9"
+    },
+    {
+        "chapter_number": 5,
+        "position": 0,
+        "context_window": "\u773c\u775b\u537b\u6b7b\u6b7b\u76ef\u8457\u90a3\u7247\u6b63\u5728\u9000\u958b\u7684\u6d77\u2014\u2014\u56e0\u70ba\u9023\u4ed6\u81ea\u5df1\uff0c\u4e5f\u5728\u5077\u5077\u7b49 \u4e00\u500b\u540d\u5b57\uff1a\u4ed6\u65e9\u901d\u7684\u59b9\u59b9\u3002",
+        "co_occurring_terms": [],
+        "occurrence_id": "7d4aa0e7-320e-4185-bf4a-5bb7f36258b2",
+        "paragraph_id": "28114589-e62b-4bd4-80ae-c36616c83450"
+    },
+    {
+        "chapter_number": 7,
+        "position": 0,
+        "context_window": "\u5b83\u600e\u9ebc\u6703\u8eba\u5728\u9019\u7247\u4e03\u5e74\u624d\u88f8\u9732\u4e00\u6b21\u7684\u6d77\u5e8a\u4e0a\uff0c \u6cdb\u8457\u8a18\u61b6\u7684\u5149\uff1f",
+        "co_occurring_terms": [],
+        "occurrence_id": "5dcbbef0-34d4-4a01-95ec-7ffd6335c124",
+        "paragraph_id": "ace2a5d6-4e63-4978-a8e2-05535e7c67a9"
+    },
+    {
+        "chapter_number": 7,
+        "position": 2,
+        "context_window": "\u5979\u6709\u4e00\u96d9\u7e3d\u50cf\u542b\u8457\u6d77\u6c34\u7684\u773c\u775b\u3002",
+        "co_occurring_terms": [],
+        "occurrence_id": "93605095-8324-4bf8-a6cb-950bd594e5b5",
+        "paragraph_id": "fd1b3ce0-89d5-44e0-bdf7-fc10d8d2816d"
+    },
+    {
+        "chapter_number": 8,
+        "position": 0,
+        "context_window": "\u5979\u662f\u5750\u5728\u7901\u77f3\u4e0a\u8d70\u7684\uff0c\u81c9\u671d\u8457\u90a3\u7247\u9000\u5230\u5929\u908a\u7684\u6d77\u3002",
+        "co_occurring_terms": [],
+        "occurrence_id": "d76e6cb6-0a03-48f6-b3ab-2e32e06d934a",
+        "paragraph_id": "c15650c2-abb8-4e66-b211-5026a908978d"
+    },
+    {
+        "chapter_number": 9,
+        "position": 0,
+        "context_window": "\u6d77\u628a\u9019\u500b\u90fd\u8a18\u5f97\u3002",
+        "co_occurring_terms": [],
+        "occurrence_id": "0fb37b97-1d05-4a6f-8436-5d513d7bf19f",
+        "paragraph_id": "3224aede-9546-4dcf-af9b-d543b4efc65a"
+    },
+    {
+        "chapter_number": 11,
+        "position": 0,
+        "context_window": "\u6211\u662f\u5728\u4e00\u500b\u628a\u54c0\u60bc\u5beb\u9032\u5730\u7406\u3001\u5beb\u9032\u6f6e\u6c50\u8868\u88e1\u7684\u5730\u65b9\u9577\u5927\u7684\u3002",
+        "co_occurring_terms": [],
+        "occurrence_id": "018a54f4-b672-435e-a4a8-e05b7ba8068d",
+        "paragraph_id": "74b2c44b-a959-4f28-874d-09c3a72520fc"
+    },
+    {
+        "chapter_number": 11,
+        "position": 0,
+        "context_window": "\u6211\u662f\u5728\u4e00\u500b\u628a\u54c0\u60bc\u5beb\u9032\u5730\u7406\u3001\u5beb\u9032\u6f6e\u6c50\u8868\u88e1\u7684\u5730\u65b9\u9577\u5927\u7684\u3002",
+        "co_occurring_terms": [],
+        "occurrence_id": "b4978828-87e3-4a5f-84d3-cc5b70443723",
+        "paragraph_id": "74b2c44b-a959-4f28-874d-09c3a72520fc"
+    }
+]

@@ -8,25 +8,34 @@
   display: flex;
   height: 100%;
   width: 100%;
-  background: var(--bg-primary);
+  /* The list sits on bg-primary and the working area behind it recedes, so cards
+     in the main column read as raised rather than flush. */
+  background: var(--bg-secondary);
   color: var(--fg-primary);
   font-family: var(--font-sans);
   overflow: hidden;
 }
 
 /* ── Left list panel ─────────────────────────────────────── */
+/* Ranking is the point of this column, so each row states what the symbol does
+   and carries the figure it is ranked by. The old row showed a term and a count,
+   which on real books ranked 18 of 29 symbols identically at 1. */
 .sym-list {
-  width: 260px;
+  width: 284px;
   flex-shrink: 0;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border-right: var(--line-weight) var(--border-style) var(--border);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-.sym-list-section {
-  padding: 10px 12px;
+
+.sym-list-controls {
+  padding: 12px 12px 10px;
   border-bottom: var(--line-weight) var(--border-style) var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .sym-list-label {
   font-size: var(--font-size-2xs);
@@ -34,51 +43,32 @@
   color: var(--fg-muted);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  margin-bottom: 6px;
 }
-.sym-chip-row {
+.sym-sort-select {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 4px;
 }
-.sym-chip-all,
-.sym-chip-type {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 20px;
-  border: var(--line-weight) var(--border-style) transparent;
-  background: var(--bg-tertiary);
-  color: var(--fg-secondary);
+.sym-sort-select select {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   font-weight: 500;
+  color: var(--fg-primary);
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--control-radius);
+  padding: 4px 6px;
   cursor: pointer;
-  line-height: 1.2;
-}
-.sym-chip-all.is-active {
-  background: var(--accent);
-  color: var(--bg-primary);
-}
-.sym-chip-count {
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  opacity: 0.8;
 }
 
-.sym-list-tools {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
 .sym-search {
   display: flex;
   align-items: center;
   gap: 6px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-md);
-  padding: 6px 8px;
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--control-radius);
+  padding: 6px 9px;
 }
 .sym-search input {
   flex: 1;
@@ -93,40 +83,64 @@
 .sym-search input::placeholder {
   color: var(--fg-muted);
 }
-.sym-sort {
+
+.sym-chip-row {
   display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.sym-chip-all,
+.sym-chip-type {
+  display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-}
-.sym-sort-label {
-  color: var(--fg-muted);
-  margin-right: 2px;
-}
-.sym-sort-btn {
+  padding: 3px 9px;
+  border-radius: var(--pill-radius);
+  border: var(--line-weight) var(--border-style) var(--border);
   background: transparent;
-  border: 0;
-  padding: 2px 6px;
-  border-radius: 4px;
-  color: var(--fg-muted);
-  cursor: pointer;
+  color: var(--fg-secondary);
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
+  font-weight: 500;
+  cursor: pointer;
+  line-height: 1.2;
 }
-.sym-sort-btn.is-active {
-  background: var(--bg-tertiary);
-  color: var(--fg-primary);
+.sym-chip-all.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.sym-chip-count {
+  font-variant-numeric: tabular-nums;
   font-weight: 600;
+  opacity: 0.8;
+}
+
+.sym-list-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 9px 12px 7px;
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+.sym-list-heading-text {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--fg-secondary);
+}
+.sym-list-heading-count {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
 .sym-list-body {
   flex: 1;
   overflow-y: auto;
-  padding: 6px 4px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
 }
 .sym-list-empty {
   padding: 24px 12px;
@@ -136,55 +150,91 @@
   color: var(--fg-muted);
 }
 
-.sym-row {
-  display: grid;
-  grid-template-columns: 8px 1fr auto;
-  gap: 8px;
-  align-items: start;
-  padding: 8px 10px;
-  border: var(--line-weight) var(--border-style) transparent;
-  border-radius: var(--radius-md);
-  background: transparent;
+.sym-list-check-hint {
+  padding: 7px 12px 8px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-secondary);
+  background: var(--bg-secondary);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+
+/* Checkbox beside the row rather than inside it — see SymbolList for why. The
+   row keeps its own left padding, so the checkbox sits in the gutter the
+   selection border already occupies. */
+.sym-row-wrap {
+  display: flex;
+  align-items: flex-start;
+  gap: 2px;
+  padding-left: 8px;
+}
+.sym-row-wrap > .sym-row {
+  flex: 1;
+  min-width: 0;
+}
+.sym-row-check,
+.sym-row-check-gap {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  /* Level with the term on the row's first line. Centring it against a row four
+     layers tall leaves it floating beside the density strip, pointing at nothing. */
+  margin-top: 11px;
+}
+.sym-row-check {
+  accent-color: var(--accent);
   cursor: pointer;
-  text-align: left;
+}
+
+.sym-row {
+  display: block;
   width: 100%;
+  text-align: left;
+  padding: 9px 12px 10px;
+  background: transparent;
+  border: 0;
+  border-bottom: var(--line-weight) var(--border-style) var(--bg-tertiary);
+  /* Always present, transparent when unselected: a border that appears on
+     selection shifts every row's text sideways as the reader clicks down the list. */
+  border-left: 3px solid transparent;
+  cursor: pointer;
 }
 .sym-row:hover {
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
 }
 .sym-row.is-active {
-  background: var(--bg-primary);
-  border-color: var(--border);
-  box-shadow: var(--shadow-sm);
+  background: var(--bg-secondary);
+  border-left-color: var(--accent);
 }
-.sym-row-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  margin-top: 5px;
+.sym-row.is-picked {
+  background: var(--bg-secondary);
+  border-left-color: var(--accent);
 }
-.sym-row-main {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+/* Rows a run would skip: still readable, still openable, visibly not part of
+   what the picking is choosing between. */
+.sym-row.is-unpickable {
+  opacity: 0.55;
 }
 .sym-row-line1 {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+}
+.sym-row-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 .sym-row-term {
   font-family: var(--font-serif);
-  font-weight: 700;
+  font-weight: 600;
   color: var(--fg-primary);
   font-size: var(--font-size-sm);
   line-height: 1.2;
-}
-.sym-row-pol-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
+  flex-shrink: 0;
 }
 .sym-row-aliases {
   font-family: var(--font-sans);
@@ -193,19 +243,66 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  min-width: 0;
 }
-.sym-row-end {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+.sym-row-spacer {
+  flex: 1;
+  min-width: 0;
 }
-.sym-row-freq {
+.sym-row-pol-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* The row's reason for existing: what this symbol does, in one line. */
+.sym-row-behaviour {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
-  font-weight: 700;
+  line-height: 1.45;
   color: var(--fg-secondary);
+  padding-left: 12px;
+  margin-top: 3px;
+}
+
+.sym-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 1px;
+  height: 9px;
+  margin: 5px 0 0 12px;
+}
+.sym-strip-cell {
+  height: 100%;
+  border-radius: 2px;
+  background: transparent;
+  box-shadow: inset 0 0 0 var(--line-weight) var(--bg-tertiary);
+}
+/* Front and back matter: a rule instead of a filled cell, and narrower, so they
+   stay visible as evidence without joining the story's shape. */
+.sym-strip-cell.is-outside {
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.sym-row-metric {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  text-align: right;
   font-variant-numeric: tabular-nums;
+  margin-top: 4px;
+}
+
+.sym-list-tail-note {
+  padding: 8px 12px 10px;
+  background: var(--bg-secondary);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.45;
+  color: var(--fg-muted);
 }
 
 /* ── Detail container ────────────────────────────────────── */
@@ -228,11 +325,45 @@
   padding-bottom: 14px;
   border-bottom: var(--line-weight) var(--border-style) var(--border);
 }
+.sym-crumbs {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.sym-crumb-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font: inherit;
+  color: var(--fg-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.sym-crumb-back:hover {
+  color: var(--accent);
+}
+.sym-crumb-sep {
+  color: var(--fg-muted);
+}
+.sym-crumb-here {
+  color: var(--fg-muted);
+}
+
 .sym-detail-title-row {
   display: flex;
   align-items: baseline;
   gap: 12px;
   flex-wrap: wrap;
+}
+.sym-detail-rank {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
 }
 .sym-detail-title {
   font-family: var(--font-serif);
@@ -631,6 +762,36 @@
   line-height: 1.55;
   margin: 0;
 }
+/* The accent edge is earned, not default: it marks the one branch that says the
+   evidence justifies spending. */
+.sym-hero-cta.is-strong {
+  border-color: var(--accent);
+}
+.sym-hero-cta.is-weak .sym-hero-cta-icon {
+  background: var(--bg-tertiary);
+  color: var(--fg-muted);
+}
+.sym-hero-cta.is-weak .sym-hero-cta-title {
+  color: var(--fg-secondary);
+}
+.sym-hero-cta-warn,
+.sym-hero-warn {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--status-partial-fg);
+  margin: 8px 0 0;
+}
+.sym-hero-warn {
+  padding: 8px 10px;
+  background: var(--status-partial-bg);
+  border: var(--line-weight) var(--border-style) var(--status-partial-border);
+  border-radius: var(--radius-sm);
+  margin: 12px 0 0;
+}
 .sym-hero-error {
   display: flex;
   align-items: center;
@@ -677,39 +838,160 @@
   padding: 14px;
 }
 
-/* ── Density legend (under chapter chart) ────────────────── */
-.sym-density-legend {
-  display: flex;
-  align-items: center;
-  gap: 4px;
+/* ── Behaviour summary (D3) ──────────────────────────────── */
+.sym-sig-free {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  margin-top: 10px;
+  margin: 0 0 8px;
 }
-.sym-density-step {
-  width: 12px;
-  height: 6px;
-  display: inline-block;
-  margin: 0 2px 0 8px;
+.sym-sig-claim {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: 1.7;
+  color: var(--fg-primary);
+  margin: 0 0 14px;
 }
-.sym-density-step:first-of-type {
-  margin-left: 0;
+.sym-sig-grid {
+  display: grid;
+  /* Three across on a wide pane, one on a narrow one. The cells hold a sentence
+     each, so they cannot be squeezed to a fixed column count. */
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 10px;
 }
-.sym-density-peak {
-  position: relative;
-  background: transparent;
+.sym-sig-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 10px 11px;
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
 }
-.sym-density-peak span {
-  position: absolute;
-  left: 50%;
-  top: -2px;
-  transform: translateX(-50%);
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-top: 5px solid var(--symbol-density-peak);
+.sym-sig-cell.is-warn {
+  background: var(--status-partial-bg);
+  border-color: var(--status-partial-border);
+}
+.sym-sig-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--fg-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.sym-sig-value {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.sym-sig-cell.is-warn .sym-sig-value {
+  color: var(--status-partial-fg);
+}
+.sym-sig-track {
+  height: 4px;
+  border-radius: 2px;
+  background: var(--bg-tertiary);
+  overflow: hidden;
+}
+.sym-sig-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.sym-sig-cell.is-warn .sym-sig-fill {
+  background: var(--status-partial-fg);
+}
+.sym-sig-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.55;
+  color: var(--fg-muted);
+}
+
+/* ── Chapter distribution (D7) ───────────────────────────── */
+.sym-dist {
+  min-width: 420px;
+}
+.sym-dist-plot {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  /* Room for the tallest bar plus the peak marker above it. */
+  height: 88px;
+}
+.sym-dist-col {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 2px;
+  min-width: 0;
+  height: 100%;
+}
+.sym-dist-peak {
+  font-size: 8px;
+  line-height: 1;
+  text-align: center;
+  color: var(--symbol-density-peak);
+  /* Always occupies its line so bars in a row share one baseline whether or not
+     they carry a marker. */
+  min-height: 9px;
+}
+.sym-dist-bar {
+  display: block;
+  border-radius: 2px 2px 0 0;
+}
+.sym-dist-labels {
+  display: flex;
+  gap: 3px;
+  margin-top: 5px;
+}
+.sym-dist-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  text-align: center;
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+  min-width: 0;
+}
+.sym-dist-label.is-outside {
+  color: var(--fg-muted);
+}
+
+.sym-dist-legend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  margin-top: 12px;
+}
+.sym-dist-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sym-dist-legend-swatch {
+  width: 14px;
+  height: 8px;
+  border-radius: 2px;
+}
+.sym-dist-legend-swatch.is-outside {
+  background: var(--symbol-density-mid);
+  border: 1px dashed var(--fg-muted);
+  /* Matches the held-back bars it stands for. */
+  opacity: 0.45;
+}
+.sym-dist-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.55;
+  color: var(--fg-muted);
+  margin: 8px 0 0;
 }
 
 /* ── Tabs (inside card head) ─────────────────────────────── */
@@ -783,6 +1065,95 @@
   font-size: var(--font-size-2xs);
   font-weight: 700;
   font-variant-numeric: tabular-nums;
+}
+
+/* ── Co-occurrence, three columns (D8) ───────────────────── */
+.sym-co-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+  color: var(--fg-muted);
+  margin: 0 0 12px;
+}
+.sym-co-cols {
+  display: grid;
+  /* Three columns of rows, collapsing to one when the pane is narrow. Each row
+     holds a name plus two figures, so they cannot be squeezed further. */
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 14px;
+}
+.sym-co-col {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.sym-co-col-title {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.sym-co-col-sub {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin-bottom: 4px;
+}
+.sym-co-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  /* A long column scrolls inside itself rather than stretching the card: 海 has 16
+     allied symbols, and dropping the tail would put this card's count at odds with
+     the ally figure in the behaviour summary. */
+  max-height: 264px;
+  overflow-y: auto;
+}
+.sym-co-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 5px 8px;
+  border: var(--line-weight) var(--border-style) transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  text-align: left;
+  cursor: pointer;
+}
+.sym-co-row:hover {
+  border-color: currentColor;
+}
+/* The row the behaviour summary named — ranked by attachment score rather than raw
+   count, so the two cards lead with the same name. See CoOccurrencePanel. */
+.sym-co-row.is-lead {
+  border-color: currentColor;
+  font-weight: 700;
+}
+.sym-co-name {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sym-co-meta {
+  margin-left: auto;
+  font-size: var(--font-size-2xs);
+  opacity: 0.75;
+  white-space: nowrap;
+}
+.sym-co-go {
+  flex: none;
+  opacity: 0.5;
+}
+.sym-co-empty {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  margin: 2px 0 0;
 }
 
 .sym-link-list {
@@ -865,6 +1236,61 @@
   flex: 1;
   height: 1px;
   background: var(--border);
+}
+/* A group outside the body: still listed, visibly not part of the story. */
+.sym-occ-ch.is-outside .sym-occ-chnum {
+  color: var(--fg-muted);
+  font-weight: 600;
+}
+.sym-occ-badge {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--status-partial-fg);
+  background: var(--status-partial-bg);
+  border: var(--line-weight) var(--border-style) var(--status-partial-border);
+  border-radius: var(--pill-radius);
+  padding: 1px 8px;
+  white-space: nowrap;
+}
+.sym-occ-row.is-outside .sym-occ-text {
+  color: var(--fg-secondary);
+}
+/* Text, not a disabled button: there is nothing to enable, and a greyed control
+   invites clicking to find out why. */
+.sym-occ-nojump {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+
+.sym-occ-front {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.sym-occ-front-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--fg-secondary);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+.sym-occ-front-toggle:hover {
+  color: var(--accent);
+}
+.sym-occ-front-desc {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin: 3px 0 0;
 }
 .sym-occ-row {
   display: grid;
@@ -1012,40 +1438,252 @@
   flex-direction: column;
   gap: 20px;
 }
-.sym-dash-strip {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
+/* ── Overview header (B1) ────────────────────────────────── */
+/* Replaces four stat tiles. Two of them read 0 until someone spends tokens,
+   which is the state every book starts in and most stay in. */
+.sym-ov-head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.sym-dash-stat {
-  padding: 16px 18px;
-  background: var(--bg-secondary);
-  border: var(--line-weight) var(--border-style) var(--border);
-  border-radius: var(--radius-lg);
-}
-.sym-dash-stat-n {
+.sym-ov-title {
   font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: var(--font-size-3xl);
+  font-weight: 600;
+  font-size: var(--font-size-2xl);
   color: var(--fg-primary);
-  line-height: 1;
+  line-height: 1.2;
+  margin: 0;
 }
-.sym-dash-stat-n-of {
+.sym-ov-meta {
   font-family: var(--font-sans);
-  font-weight: 500;
-  font-size: var(--font-size-lg);
-  color: var(--fg-muted);
-  margin-left: 2px;
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  margin: 0;
 }
-.sym-dash-stat-l {
+/* Sparkles means "this spends money", here and nowhere else on the page. */
+.sym-ov-cost {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin: 2px 0 0;
+  max-width: 72ch;
+}
+.sym-ov-cost svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ── Batch controls (B1 buttons + B2 panel) ──────────────── */
+.sym-ov-head-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.sym-ov-batch-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.sym-ov-batch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 500;
+  color: var(--fg-primary);
+  background: transparent;
+  border: var(--btn-border-width) var(--border-style) var(--border);
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+}
+.sym-ov-batch-btn.is-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+/* Costs nothing on its own — it opens a choice rather than starting a run — so it
+   carries neither the accent fill nor the Sparkles that mark spending. */
+.sym-ov-batch-btn.is-quiet {
+  color: var(--fg-secondary);
+}
+.sym-ov-batch-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+.sym-ov-batch-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sym-ov-batch-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--accent);
+  border-radius: var(--card-radius);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.sym-ov-batch-panel.is-error {
+  border-color: var(--color-error);
+  color: var(--color-error);
+}
+.sym-ov-batch-stage {
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.sym-ov-batch-tally,
+.sym-ov-batch-hint {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.sym-ov-batch-track {
+  flex: 1;
+  min-width: 120px;
+  height: 3px;
+  border: 0;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  overflow: hidden;
+  appearance: none;
+}
+.sym-ov-batch-track::-webkit-progress-bar {
+  background: var(--bg-tertiary);
+}
+.sym-ov-batch-track::-webkit-progress-value {
+  background: var(--accent);
+}
+.sym-ov-batch-track::-moz-progress-bar {
+  background: var(--accent);
+}
+.sym-ov-batch-dismiss {
+  margin-left: auto;
+  background: transparent;
+  border: 0;
+  padding: 0;
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  margin-top: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
 }
+/* The only animation on the page — a run is the one thing here that is genuinely
+   in progress. */
+.sym-ov-batch-spinner {
+  width: 12px;
+  height: 12px;
+  flex: none;
+  border: 2px solid var(--accent);
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: sym-spin 900ms linear infinite;
+}
+@keyframes sym-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Start here (B3) ─────────────────────────────────────── */
+.sym-pick-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 12px;
+}
+.sym-pick {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px 12px;
+  text-align: left;
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  cursor: pointer;
+}
+.sym-pick:hover {
+  background: var(--bg-secondary);
+}
+/* The top pick is the page's actual recommendation, so it is the one thing here
+   with an accent edge. */
+.sym-pick.is-lead {
+  border-color: var(--accent);
+}
+.sym-pick-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+.sym-pick-rank {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.sym-pick-term {
+  font-family: var(--font-serif);
+  font-weight: 600;
+  font-size: var(--font-size-lg);
+  color: var(--fg-primary);
+  line-height: 1.2;
+}
+.sym-pick-spacer {
+  flex: 1;
+  min-width: 0;
+}
+.sym-pick-load {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.sym-pick-claim {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-primary);
+  margin: 0;
+  text-wrap: pretty;
+}
+.sym-pick-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.sym-pick-tag {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  background: var(--bg-tertiary);
+  border-radius: var(--badge-radius);
+  padding: 2px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.sym-pick-cta {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+.sym-pick-cta svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
 .sym-dash-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1075,139 +1713,200 @@
   color: var(--fg-muted);
   margin-left: auto;
 }
-.sym-dash-donut-wrap {
-  display: flex;
-  gap: 20px;
-  align-items: center;
-  padding: 8px 0;
-}
-.sym-dash-donut-legend {
-  flex: 1;
+/* ── Behaviour groups (B5) ───────────────────────────────── */
+.sym-shape-list {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
 }
-.sym-dash-legend-row {
-  display: grid;
-  grid-template-columns: 10px 1fr auto;
-  gap: 8px;
-  align-items: center;
-}
-.sym-dash-legend-dot { width: 10px; height: 10px; border-radius: 50%; }
-.sym-dash-legend-l {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-}
-.sym-dash-legend-n {
-  font-family: var(--font-sans);
-  font-weight: 700;
-  font-size: var(--font-size-sm);
-  color: var(--fg-primary);
-  font-variant-numeric: tabular-nums;
-}
-.sym-dash-polbar {
+.sym-shape-row {
   display: flex;
-  height: 36px;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 6px 8px;
+  background: transparent;
+  border: var(--line-weight) var(--border-style) transparent;
   border-radius: var(--radius-md);
-  overflow: hidden;
-  border: var(--line-weight) var(--border-style) var(--border);
+  cursor: pointer;
 }
-.sym-dash-polseg {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  font-weight: 700;
-  overflow: hidden;
-  white-space: nowrap;
+.sym-shape-row:hover {
+  background: var(--bg-secondary);
 }
-.sym-dash-pollegend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
-}
-.sym-dash-pollegend-item { display: inline-flex; align-items: center; gap: 5px; }
-.sym-dash-freqlist { display: flex; flex-direction: column; gap: 6px; }
-.sym-dash-freq-row {
-  display: grid;
-  grid-template-columns: 140px 1fr 40px;
-  gap: 12px;
-  align-items: center;
-}
-.sym-dash-freq-label { display: flex; align-items: center; gap: 6px; }
-.sym-dash-freq-dot { width: 8px; height: 8px; border-radius: 50%; }
-.sym-dash-freq-term {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: var(--font-size-sm);
-  color: var(--fg-primary);
-}
-.sym-dash-freq-pol { width: 6px; height: 6px; border-radius: 50%; opacity: 0.7; }
-.sym-dash-freq-barwrap {
-  height: 12px;
+.sym-shape-row.is-active {
   background: var(--bg-tertiary);
-  border-radius: 2px;
-  overflow: hidden;
+  border-color: var(--accent);
 }
-.sym-dash-freq-bar { height: 100%; }
-.sym-dash-freq-n {
-  font-family: var(--font-sans);
-  font-weight: 700;
+.sym-shape-n {
+  width: 22px;
+  flex: none;
+  font-family: var(--font-mono);
   font-size: var(--font-size-xs);
-  color: var(--fg-primary);
+  color: var(--accent);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-.sym-dash-heat { display: flex; flex-direction: column; gap: 4px; }
-.sym-dash-heat-axis {
-  display: flex;
-  padding-left: 148px;
-  gap: 2px;
+.sym-shape-label {
   font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-primary);
+  white-space: nowrap;
+}
+/* Members are context, not a list to read: one line, clipped. */
+.sym-shape-members {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: right;
+}
+
+/* ── Single-occurrence cloud (B6) ────────────────────────── */
+.sym-tail-desc {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+  color: var(--fg-muted);
+  margin: -2px 0 12px;
+  max-width: 76ch;
+}
+.sym-tail-cloud {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 6px 10px;
+}
+/* Underlined in the symbol's own type colour: the words differ in kind as well
+   as in where they land, and there is no room for a legend at this size. */
+.sym-tail-word {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 3px;
+  padding: 1px 2px;
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  font-family: var(--font-serif);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.sym-tail-word:hover {
+  background: var(--bg-secondary);
+}
+.sym-tail-ch {
+  font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
-.sym-dash-heat-tick { flex: 1; text-align: center; opacity: 0.55; }
-.sym-dash-heat-tick.is-major { opacity: 1; font-weight: 600; color: var(--fg-secondary); }
-.sym-dash-heat-row {
-  display: grid;
-  grid-template-columns: 140px 1fr 40px;
-  gap: 8px;
-  align-items: center;
+
+/* ── Chapter density heatmap (B4) ────────────────────────── */
+.sym-heat-sub {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  margin: -2px 0 10px;
 }
-.sym-dash-heat-name {
+.sym-heat {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.sym-heat-axis,
+.sym-heat-row {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+.sym-heat-name {
+  width: 96px;
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 8px;
   font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   color: var(--fg-primary);
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
 }
-.sym-dash-heat-cells { display: flex; gap: 2px; }
-.sym-dash-heat-cell { flex: 1; height: 14px; border-radius: 2px; }
-.sym-dash-heat-freq {
-  font-family: var(--font-sans);
-  font-weight: 600;
+.sym-heat-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex: none;
+}
+.sym-heat-metric {
+  width: 52px;
+  flex: none;
+  padding-left: 8px;
+  font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
   font-variant-numeric: tabular-nums;
   text-align: right;
 }
-.sym-dash-heat-legend {
+.sym-heat-axis {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  padding-bottom: 4px;
+}
+/* Front and back matter are ruled with a dashed underline, the body with a solid
+   one: the axis says which part of the book you are reading before the cells do. */
+.sym-heat-axis-run {
+  text-align: center;
+  padding-bottom: 3px;
+  border-bottom: 1px dashed var(--border);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sym-heat-axis-run.is-body {
+  border-bottom-style: solid;
+  color: var(--fg-secondary);
+}
+.sym-heat-cell {
+  height: 15px;
+  border-radius: 2px;
+  box-sizing: border-box;
+}
+.sym-heat-legend {
   display: flex;
   align-items: center;
-  gap: 4px;
+  flex-wrap: wrap;
+  gap: 4px 12px;
   justify-content: flex-end;
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  margin-top: 4px;
+  margin-top: 10px;
+}
+.sym-heat-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.sym-heat-legend-swatch {
+  width: 14px;
+  height: 12px;
+  border-radius: 2px;
+}
+.sym-heat-legend-swatch.is-outside {
+  border: 1px dashed var(--fg-muted);
+}
+.sym-heat-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-muted);
+  margin: 6px 0 0;
 }
 
 /* ── Empty / onboarding (no data at all) ─────────────────── */
@@ -1510,4 +2209,164 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
+}
+
+/* ── Symbol clusters (state C) ───────────────────────────── */
+.sym-cluster-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sym-cluster-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding: 10px 12px;
+  text-align: left;
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.sym-cluster-entry:hover {
+  border-color: var(--accent);
+}
+.sym-cluster-entry-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.sym-cluster-entry-name {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  font-size: var(--font-size-sm);
+  color: var(--fg-primary);
+}
+.sym-cluster-entry-n {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  margin-left: auto;
+}
+.sym-cluster-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.sym-cluster-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: var(--line-weight) solid transparent;
+  border-radius: var(--pill-radius);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+}
+.sym-cluster-pill-n {
+  font-variant-numeric: tabular-nums;
+  opacity: 0.7;
+}
+.sym-cluster-entry-hot {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  color: var(--fg-secondary);
+}
+
+/* Cluster grid rows are buttons, so they get the row layout explicitly rather
+   than inheriting a div's. */
+.sym-cluster-row {
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  text-align: left;
+}
+.sym-cluster-row:hover {
+  background: var(--bg-secondary);
+}
+.sym-cluster-row.is-seed .sym-heat-name {
+  font-weight: 700;
+}
+.sym-cluster-weight {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 400;
+  color: var(--fg-muted);
+  margin-left: 5px;
+  white-space: nowrap;
+}
+.sym-cluster-shape {
+  width: 132px;
+  flex: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  text-align: right;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sym-cluster-hot {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-primary);
+  margin: 12px 0 0;
+}
+.sym-cluster-boundary {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+  color: var(--fg-muted);
+  padding: 10px 12px;
+  border: var(--line-weight) dashed var(--border);
+  border-radius: var(--radius-md);
+  margin: 0;
+}
+
+/* ── Pin for comparison (D1 + D7) ────────────────────────── */
+.sym-pin-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 2px 9px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 500;
+  color: var(--fg-secondary);
+  background: transparent;
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--pill-radius);
+  cursor: pointer;
+}
+.sym-pin-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.sym-pin-btn.is-active {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--bg-secondary);
+}
+
+/* The pinned row hangs below the main plot, separated by a rule so the two are
+   read as two symbols rather than one chart with a gap. */
+.sym-dist-pin {
+  border-top: var(--line-weight) var(--border-style) var(--border);
+  margin-top: 3px;
+  padding-top: 3px;
+}
+.sym-dist-plot.is-pin {
+  height: 40px;
+}
+.sym-dist-pin-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.55;
+  color: var(--fg-muted);
+  margin: 8px 0 0;
 }

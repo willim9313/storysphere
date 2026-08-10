@@ -10,6 +10,11 @@ regenerated, so these entries become unreachable: no read path can name them
 again. They are deleted, because marking them would mark something nobody can
 see, and keeping them only consumes space.
 
+``symbol_overview:`` is keyed by book id but deleted alongside them, because it
+holds no human input — it is a projection of the symbol, entity and event tables,
+so recomputing it costs one assembly pass while keeping it would serve a symbol
+set the book no longer has.
+
 **Keyed by book id** — ``narrative_structure:``, ``hero_journey:``,
 ``temporal_analysis:``, ``tension_lines:``, ``tension_theme:``. These keys
 survive the rerun and stay readable, and they are where the human review state
@@ -42,15 +47,25 @@ _ORPHANED_CACHES: dict[str, tuple[str, ...]] = {
         "event:{book}:%",
         "character:{book}:%",
         "epistemic:{book}:%",
+        # Carries per-symbol event counts.
+        "symbol_overview:{book}",
     ),
     "knowledge-graph": (
         "character:{book}:%",
         "epistemic:{book}:%",
         "voice_profile:{book}:%",
+        # Carries co-occurring entities resolved to name and type.
+        "symbol_overview:{book}",
     ),
     "symbol-discovery": (
         "sep:{book}:%",
         "symbol_analysis:{book}:%",
+        # Needs its own pattern rather than riding on the one above: that one
+        # requires a literal ':' where these keys carry '_', so it never matches
+        # them. (LIKE also reads '_' as a single-char wildcard, which is why the
+        # separation is worth stating instead of leaving to the eye.)
+        "symbol_analysis_block:{book}:%",
+        "symbol_overview:{book}",
     ),
 }
 

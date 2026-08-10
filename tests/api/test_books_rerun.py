@@ -237,7 +237,16 @@ class TestRerunCacheInvalidation:
 
     def test_symbol_discovery_drops_symbol_caches_only(self):
         cache = self._run("symbol-discovery")
-        assert self._patterns(cache) == {"sep:book-x:%", "symbol_analysis:book-x:%"}
+        assert self._patterns(cache) == {
+            "sep:book-x:%",
+            "symbol_analysis:book-x:%",
+            # Keyed by the imagery ids re-discovery replaces, same as the
+            # interpretations — a refusal recorded against a stale id would
+            # otherwise outlive the symbol it refers to.
+            "symbol_analysis_block:book-x:%",
+            # Book-keyed, but a pure projection of the symbol set being replaced.
+            "symbol_overview:book-x",
+        }
 
     def test_feature_extraction_drops_id_keyed_caches_only(self):
         kg = AsyncMock()

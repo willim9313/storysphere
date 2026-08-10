@@ -12,6 +12,7 @@ import logging
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from storysphere.core.error_handling import raise_if_blocked
 from storysphere.core.tracing import update_span as _lf_update_span
 
 logger = logging.getLogger(__name__)
@@ -127,6 +128,10 @@ class SummaryService:
 
         set_llm_service_context("summary")
         response = await llm.ainvoke(messages)
+        # Only the block check here. The empty-summary ValueError below is
+        # retryable on purpose (see this method's tenacity policy) — an empty
+        # response with no reason given may be transient, unlike a refusal.
+        raise_if_blocked(response)
         content = response.content if hasattr(response, "content") else str(response)
         if not content.strip():
             raise ValueError("LLM returned empty summary")
@@ -155,6 +160,10 @@ class SummaryService:
         ]
         set_llm_service_context("summary")
         response = await llm.ainvoke(messages)
+        # Only the block check here. The empty-summary ValueError below is
+        # retryable on purpose (see this method's tenacity policy) — an empty
+        # response with no reason given may be transient, unlike a refusal.
+        raise_if_blocked(response)
         content = response.content if hasattr(response, "content") else str(response)
         if not content.strip():
             raise ValueError("LLM returned empty summary")
