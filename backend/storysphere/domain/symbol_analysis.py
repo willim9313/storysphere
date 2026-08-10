@@ -231,6 +231,19 @@ class InterpretationStatus(BaseModel):
     confidence: float
 
 
+class InterpretationBlockStatus(BaseModel):
+    """The part of an InterpretationBlock a list row needs.
+
+    Trimmed the same way :class:`InterpretationStatus` is: the row already
+    carries ``id``, ``book_id`` and ``term``, and repeating them once per symbol
+    is noise in a payload that already covers every imagery entity in the book.
+    """
+
+    reason: Literal["provider_blocked", "provider_empty"]
+    detail: str
+    blocked_at: datetime
+
+
 class SymbolOverviewItem(BaseModel):
     """One imagery entity with every zero-LLM signal the page ranks on."""
 
@@ -279,6 +292,16 @@ class SymbolOverviewItem(BaseModel):
             "None when no interpretation has been generated. Never set by the "
             "assembler — interpretations change independently of this structural "
             "aggregate, so the router overlays them onto the cached result."
+        ),
+    )
+    interpretation_block: InterpretationBlockStatus | None = Field(
+        default=None,
+        description=(
+            "Set when the LLM provider refused this symbol. Distinguishes 'nobody "
+            "has spent tokens on this yet' from 'this was tried and cannot "
+            "succeed' — without it the two look identical in the list, and a "
+            "high-ranking blocked symbol gets recommended over and over. "
+            "Overlaid by the router for the same reason as interpretation."
         ),
     )
 

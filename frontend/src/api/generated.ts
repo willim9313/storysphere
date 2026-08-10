@@ -3314,6 +3314,28 @@ export interface components {
             total: number;
         };
         /**
+         * InterpretationBlockStatus
+         * @description The part of an InterpretationBlock a list row needs.
+         *
+         *     Trimmed the same way :class:`InterpretationStatus` is: the row already
+         *     carries ``id``, ``book_id`` and ``term``, and repeating them once per symbol
+         *     is noise in a payload that already covers every imagery entity in the book.
+         */
+        InterpretationBlockStatus: {
+            /**
+             * Reason
+             * @enum {string}
+             */
+            reason: "provider_blocked" | "provider_empty";
+            /** Detail */
+            detail: string;
+            /**
+             * Blocked At
+             * Format: date-time
+             */
+            blocked_at: string;
+        };
+        /**
          * InterpretationStatus
          * @description The part of a SymbolInterpretation a list row needs.
          *
@@ -4258,6 +4280,8 @@ export interface components {
             co_occurring_imagery?: components["schemas"]["CoOccurringImageryRef"][];
             /** @description None when no interpretation has been generated. Never set by the assembler — interpretations change independently of this structural aggregate, so the router overlays them onto the cached result. */
             interpretation?: components["schemas"]["InterpretationStatus"] | null;
+            /** @description Set when the LLM provider refused this symbol. Distinguishes 'nobody has spent tokens on this yet' from 'this was tried and cannot succeed' — without it the two look identical in the list, and a high-ranking blocked symbol gets recommended over and over. Overlaid by the router for the same reason as interpretation. */
+            interpretation_block?: components["schemas"]["InterpretationBlockStatus"] | null;
         };
         /** SymbolTimelineEntry */
         SymbolTimelineEntry: {

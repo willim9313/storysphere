@@ -12,6 +12,7 @@ from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolOccurre
 from storysphere.domain.symbol_analysis import (
     CoOccurringEntityRef,
     CoOccurringImageryRef,
+    InterpretationBlock,
     SymbolInterpretation,
     SymbolOverview,
     SymbolOverviewItem,
@@ -99,6 +100,9 @@ def mock_symbol_analysis_svc():
     # No interpretations is the normal state, not the edge case: real books run
     # at 1-of-29 coverage.
     svc.list_interpretations = AsyncMock(return_value={})
+    # Likewise no refusals — must be a real dict, since the router takes a set()
+    # of it and a bare AsyncMock attribute would not be iterable.
+    svc.list_blocks = AsyncMock(return_value={})
     return svc
 
 
@@ -305,6 +309,75 @@ class TestSymbolOverview:
         resp = client.get("/api/v1/symbols/overview?book_id=book-1")
         assert resp.json()["items"][0]["interpretation"] is None
 
+    def test_overlays_a_refusal_onto_items(
+        self, client, mock_symbol_svc, mock_symbol_analysis_svc
+    ):
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        mock_symbol_analysis_svc.list_blocks = AsyncMock(
+            return_value={
+                "img-1": InterpretationBlock(
+                    imagery_id="img-1",
+                    book_id="book-1",
+                    term="mirror",
+                    reason="provider_blocked",
+                    detail="PROHIBITED_CONTENT",
+                )
+            }
+        )
+        resp = client.get("/api/v1/symbols/overview?book_id=book-1")
+        block = resp.json()["items"][0]["interpretation_block"]
+        assert block["reason"] == "provider_blocked"
+        assert block["detail"] == "PROHIBITED_CONTENT"
+        assert block["blocked_at"]
+
+    def test_refusal_is_null_when_none_recorded(self, client, mock_symbol_svc):
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        resp = client.get("/api/v1/symbols/overview?book_id=book-1")
+        assert resp.json()["items"][0]["interpretation_block"] is None
+
+    def test_ignores_refusals_for_other_imagery(
+        self, client, mock_symbol_svc, mock_symbol_analysis_svc
+    ):
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        mock_symbol_analysis_svc.list_blocks = AsyncMock(
+            return_value={
+                "img-other": InterpretationBlock(
+                    imagery_id="img-other",
+                    book_id="book-1",
+                    term="door",
+                    reason="provider_blocked",
+                )
+            }
+        )
+        resp = client.get("/api/v1/symbols/overview?book_id=book-1")
+        assert resp.json()["items"][0]["interpretation_block"] is None
+
+    def test_an_interpreted_symbol_can_also_carry_no_refusal(
+        self, client, mock_symbol_svc, mock_symbol_analysis_svc
+    ):
+        """The two overlays are independent — one must not clobber the other."""
+        mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
+        mock_symbol_analysis_svc.list_interpretations = AsyncMock(
+            return_value={
+                "img-1": SymbolInterpretation(
+                    imagery_id="img-1", book_id="book-1", term="mirror",
+                )
+            }
+        )
+        mock_symbol_analysis_svc.list_blocks = AsyncMock(
+            return_value={
+                "img-1": InterpretationBlock(
+                    imagery_id="img-1",
+                    book_id="book-1",
+                    term="mirror",
+                    reason="provider_empty",
+                )
+            }
+        )
+        item = client.get("/api/v1/symbols/overview?book_id=book-1").json()["items"][0]
+        assert item["interpretation"] is not None
+        assert item["interpretation_block"]["reason"] == "provider_empty"
+
     def test_force_is_passed_through(self, client, mock_symbol_svc):
         mock_symbol_svc.assemble_overview = AsyncMock(return_value=self._overview())
         client.get("/api/v1/symbols/overview?book_id=book-1&force=true")
@@ -481,6 +554,60 @@ class TestAnalyzeAllSymbols:
         }
         assert analyzed == {"img-tail"}
 
+    def test_refused_symbols_are_skipped(
+        self, client, mock_symbol_svc, mock_analysis_agent, mock_symbol_analysis_svc
+    ):
+        """A refusal is deterministic — re-attempting it spends a call to relearn it."""
+        mock_symbol_svc.get_imagery_list = AsyncMock(
+            return_value=self._entities(
+                ("img-1", "mirror", 5), ("img-blocked", "hand", 7)
+            )
+        )
+        mock_symbol_analysis_svc.list_blocks = AsyncMock(
+            return_value={
+                "img-blocked": InterpretationBlock(
+                    imagery_id="img-blocked",
+                    book_id="book-1",
+                    term="hand",
+                    reason="provider_blocked",
+                    detail="PROHIBITED_CONTENT",
+                )
+            }
+        )
+        client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
+        analyzed = {
+            call.kwargs["imagery_id"]
+            for call in mock_analysis_agent.analyze_symbol.await_args_list
+        }
+        assert analyzed == {"img-1"}
+
+    def test_force_refresh_re_attempts_a_refused_symbol(
+        self, client, mock_symbol_svc, mock_analysis_agent, mock_symbol_analysis_svc
+    ):
+        """The escape hatch for when a second provider appears."""
+        mock_symbol_svc.get_imagery_list = AsyncMock(
+            return_value=self._entities(("img-blocked", "hand", 7))
+        )
+        mock_symbol_analysis_svc.list_blocks = AsyncMock(
+            return_value={
+                "img-blocked": InterpretationBlock(
+                    imagery_id="img-blocked",
+                    book_id="book-1",
+                    term="hand",
+                    reason="provider_blocked",
+                )
+            }
+        )
+        client.post(
+            "/api/v1/symbols/analyze-all",
+            json={"book_id": "book-1", "force_refresh": True},
+        )
+        analyzed = {
+            call.kwargs["imagery_id"]
+            for call in mock_analysis_agent.analyze_symbol.await_args_list
+        }
+        assert analyzed == {"img-blocked"}
+
     def test_unknown_imagery_ids_are_silently_excluded(
         self, client, mock_symbol_svc, mock_analysis_agent
     ):
@@ -541,7 +668,7 @@ class TestBatchSymbolAnalysisRunner:
     """The background loop's accounting, which the 202 response cannot show."""
 
     @staticmethod
-    async def _run(agent, imagery_ids, already=None, force=False):
+    async def _run(agent, imagery_ids, skip=None, force=False):
         from uuid import uuid4
 
         from storysphere.api.routers.symbols import _run_batch_symbol_analysis
@@ -556,14 +683,15 @@ class TestBatchSymbolAnalysisRunner:
             imagery_ids=imagery_ids,
             language="zh-TW",
             force_refresh=force,
-            already_interpreted=already or set(),
+            skip_ids=skip or set(),
             agent=agent,
         )
         return task_store.get(task_id)
 
-    async def test_counts_already_interpreted_as_skipped(self):
+    async def test_counts_skipped_ids_as_skipped(self):
+        """Covers both reasons to skip: already interpreted, and refused."""
         agent = AsyncMock()
-        task = await self._run(agent, ["img-1", "img-2"], already={"img-1"})
+        task = await self._run(agent, ["img-1", "img-2"], skip={"img-1"})
         assert task.result == {
             "progress": 2, "total": 2, "failed": 0, "skipped": 1,
         }
@@ -571,7 +699,7 @@ class TestBatchSymbolAnalysisRunner:
 
     async def test_force_refresh_reinterprets_existing(self):
         agent = AsyncMock()
-        task = await self._run(agent, ["img-1"], already={"img-1"}, force=True)
+        task = await self._run(agent, ["img-1"], skip={"img-1"}, force=True)
         assert task.result["skipped"] == 0
         agent.analyze_symbol.assert_awaited_once()
 

@@ -1537,7 +1537,8 @@ interface SymbolOverviewItem {
   co_occurring_event_count: number;    // 只計正文章節的事件
   co_occurring_imagery: CoOccurrenceEntry[];   // 欄位同 #15c
 
-  interpretation: InterpretationStatus | null; // null = 尚未生成
+  interpretation: InterpretationStatus | null;       // null = 尚未生成
+  interpretation_block: InterpretationBlockStatus | null; // null = 未被 provider 拒絕
 }
 
 interface CoOccurringEntityRef {
@@ -1554,6 +1555,12 @@ interface InterpretationStatus {
   polarity: 'positive' | 'negative' | 'neutral' | 'mixed';
   confidence: number;
 }
+
+interface InterpretationBlockStatus {
+  reason: 'provider_blocked' | 'provider_empty';
+  detail: string;        // provider 自己的標籤，如 'PROHIBITED_CONTENT'；provider_empty 時為空字串
+  blocked_at: string;    // ISO 8601
+}
 ```
 
 **Response 404**：書本不存在
@@ -1566,6 +1573,11 @@ interface InterpretationStatus {
   被移除的次數由 `self_match_count` 回報，供 UI 交代而非靜默丟棄。
 - `co_occurring_event_count` **只計 `chapter_roles` 為 `body` 的章節** —— 版權頁所在章的事件
   不構成敘事關聯。
+- **`interpretation_block` 用來分辨「還沒花 token」與「試過且無法成功」。** 少了它，被
+  provider 拒絕的意象在清單裡與從未生成過的長得一模一樣；而被拒絕的往往是訊號強的意象
+  （《名字的潮汐》的「海」旁邊就是「手」），於是頁面會一再把讀者推向唯一產不出來的那個。
+  `interpretation` 與 `interpretation_block` **彼此獨立**，可同時非 null（曾成功、後續重生成
+  被拒）。與 `interpretation` 同樣是請求時即時疊上，不進 `symbol_overview:` 快取。
 - **角色依附必須算成倍率（lift），不能只看比例。** 「71% 的出現與某角色同段」單獨看沒有意義 ——
   若該角色本來就出現在 70% 的段落裡，71% 正是機率該給的數字。因此每個共現實體同時回傳
   分子與基準率：
@@ -1713,6 +1725,9 @@ interface SEP {
   只出現 1 次的詞沒有分布、沒有結盟、沒有依附，佔全書意象多數，
   「全部生成」不該把成本花在它們身上。**明確列進 `imagery_ids` 則照跑** —— 那是使用者的決定。
 - 已有詮釋者計入 `skipped`（除非 `force_refresh`）。
+- **已被 provider 拒絕者同樣計入 `skipped`**（除非 `force_refresh`）。拒絕是確定性的 ——
+  重送同一個 prompt 必然再被拒，掃一輪只是每筆花一次呼叫去換一個已經記錄過的答案。
+  `force_refresh` 是逃生口：日後補上第二家 provider 時用它重跑。
 - **序列執行，非併發**：每一筆都是付費 LLM 呼叫，併發會讓 rate limit 中止時損失已計費的工作。
 - 遇到 rate limit **整批中止**並回報已完成數，不繼續消耗額度。
 - `TaskStatus.result` 用與角色／事件批次共通的 `BatchEepResult`（見 #7g）；

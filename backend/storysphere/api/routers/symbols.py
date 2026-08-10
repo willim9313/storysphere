@@ -14,7 +14,9 @@ PATCH /api/v1/symbols/{imagery_id}/interpretation — HITL review of interpretat
 
 from __future__ import annotations
 
+import asyncio
 import logging
+from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
@@ -45,6 +47,7 @@ from storysphere.core.error_handling import is_rate_limit_error
 from storysphere.domain.imagery import ImageryType
 from storysphere.domain.symbol_analysis import (
     SEP,
+    InterpretationBlockStatus,
     InterpretationStatus,
     SymbolInterpretation,
     SymbolOverview,
@@ -118,22 +121,31 @@ async def get_symbol_overview(
         force=force,
     )
 
-    interpretations = await symbol_analysis_svc.list_interpretations(book_id)
-    if not interpretations:
+    interpretations, blocks = await asyncio.gather(
+        symbol_analysis_svc.list_interpretations(book_id),
+        symbol_analysis_svc.list_blocks(book_id),
+    )
+    if not interpretations and not blocks:
         return overview
 
     items = []
     for item in overview.items:
+        update: dict[str, Any] = {}
         interp = interpretations.get(item.id)
-        if interp is None:
-            items.append(item)
-            continue
-        status = InterpretationStatus(
-            review_status=interp.review_status,
-            polarity=interp.polarity,
-            confidence=interp.confidence,
-        )
-        items.append(item.model_copy(update={"interpretation": status}))
+        if interp is not None:
+            update["interpretation"] = InterpretationStatus(
+                review_status=interp.review_status,
+                polarity=interp.polarity,
+                confidence=interp.confidence,
+            )
+        block = blocks.get(item.id)
+        if block is not None:
+            update["interpretation_block"] = InterpretationBlockStatus(
+                reason=block.reason,
+                detail=block.detail,
+                blocked_at=block.blocked_at,
+            )
+        items.append(item.model_copy(update=update) if update else item)
     return overview.model_copy(update={"items": items})
 
 
@@ -289,7 +301,7 @@ async def _run_batch_symbol_analysis(
     imagery_ids: list[str],
     language: str,
     force_refresh: bool,
-    already_interpreted: set[str],
+    skip_ids: set[str],
     agent,
 ) -> None:
     """Background task: interpret each imagery entity in turn.
@@ -297,6 +309,11 @@ async def _run_batch_symbol_analysis(
     Sequential rather than concurrent: every item is a paid LLM call, and running
     them in parallel makes a rate-limit abort lose work that has already been
     charged for.
+
+    ``skip_ids`` covers both symbols that already have an interpretation and
+    symbols the provider has refused. Both are counted as skipped rather than
+    failed: neither spends a call, and a refusal re-attempted in a sweep spends
+    one to learn what is already recorded.
 
     Progress mirrors the character and event batches (``sub_progress`` /
     ``sub_total``) so BatchEepPanel can render item counts rather than a
@@ -318,7 +335,7 @@ async def _run_batch_symbol_analysis(
         )
 
     for imagery_id in imagery_ids:
-        if not force_refresh and imagery_id in already_interpreted:
+        if not force_refresh and imagery_id in skip_ids:
             skipped += 1
             done += 1
             _report()
@@ -393,9 +410,15 @@ async def analyze_all_symbols(
             detail=f"No imagery to analyze for book '{req.book_id}'",
         )
 
-    already_interpreted = set(
-        await symbol_analysis_svc.list_interpretations(req.book_id)
+    # Refused symbols are skipped alongside interpreted ones. A refusal is
+    # deterministic, so a sweep that re-attempts them spends a call per symbol to
+    # be told again what is already recorded. `force_refresh` still re-attempts
+    # everything — that is the escape hatch for when a second provider appears.
+    interpreted, blocked = await asyncio.gather(
+        symbol_analysis_svc.list_interpretations(req.book_id),
+        symbol_analysis_svc.list_blocks(req.book_id),
     )
+    skip_ids = set(interpreted) | set(blocked)
     language = await doc.get_document_language(req.book_id)
 
     task_id = str(uuid4())
@@ -407,7 +430,7 @@ async def analyze_all_symbols(
         [e.id for e in entities],
         language,
         req.force_refresh,
-        already_interpreted,
+        skip_ids,
         agent,
     )
     logger.info(
