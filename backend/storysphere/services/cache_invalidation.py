@@ -60,6 +60,11 @@ _ORPHANED_CACHES: dict[str, tuple[str, ...]] = {
     "symbol-discovery": (
         "sep:{book}:%",
         "symbol_analysis:{book}:%",
+        # Needs its own pattern rather than riding on the one above: that one
+        # requires a literal ':' where these keys carry '_', so it never matches
+        # them. (LIKE also reads '_' as a single-char wildcard, which is why the
+        # separation is worth stating instead of leaving to the eye.)
+        "symbol_analysis_block:{book}:%",
         "symbol_overview:{book}",
     ),
 }

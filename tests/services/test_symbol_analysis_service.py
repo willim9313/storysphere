@@ -2,13 +2,23 @@
 
 from __future__ import annotations
 
+from enum import Enum
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import TypeAdapter
-from storysphere.domain.symbol_analysis import SEP, SEPOccurrenceContext, SymbolInterpretation
-from storysphere.services.symbol_analysis_service import SymbolAnalysisService
+from storysphere.domain.symbol_analysis import (
+    SEP,
+    InterpretationBlock,
+    SEPOccurrenceContext,
+    SymbolInterpretation,
+)
+from storysphere.services.symbol_analysis_service import (
+    SymbolAnalysisService,
+    SymbolInterpretationBlocked,
+    _block_cache_key,
+)
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +56,33 @@ def _mock_llm(response_json: str):
     llm = AsyncMock()
     llm.ainvoke = AsyncMock(
         return_value=SimpleNamespace(content=response_json)
+    )
+    return llm
+
+
+class _FakeBlockReason(Enum):
+    """Stands in for google.genai's BlockedReason, which arrives as an enum.
+
+    Matters because ``str()`` on it yields "BlockedReason.PROHIBITED_CONTENT" —
+    the class prefix would end up in the card the reader sees.
+    """
+
+    PROHIBITED_CONTENT = "PROHIBITED_CONTENT"
+
+
+def _mock_llm_blocked(reason=_FakeBlockReason.PROHIBITED_CONTENT):
+    """An LLM that refuses the prompt the way Gemini actually does.
+
+    Empty content on a *successfully returned* message — langchain_google_genai
+    does not raise on a block, which is why the refusal used to reach the JSON
+    extractor and surface as ``no_json_found``.
+    """
+    llm = AsyncMock()
+    llm.ainvoke = AsyncMock(
+        return_value=SimpleNamespace(
+            content="",
+            response_metadata={"prompt_feedback": {"block_reason": reason}},
+        )
     )
     return llm
 
@@ -306,3 +343,175 @@ class TestListInterpretations:
         svc = SymbolAnalysisService(cache=mock_cache)
         result = await svc.list_interpretations("book-1")
         assert set(result) == {"img-good"}
+
+
+class TestProviderRefusal:
+    """A refusal must be recorded, not retried, and not mistaken for bad JSON."""
+
+    async def test_blocked_prompt_raises_instead_of_parse_error(
+        self, mock_cache, mock_symbol_service
+    ):
+        svc = SymbolAnalysisService(cache=mock_cache, llm=_mock_llm_blocked())
+
+        with pytest.raises(SymbolInterpretationBlocked) as exc_info:
+            await svc.analyze_symbol(
+                imagery_id="img-1",
+                book_id="book-1",
+                symbol_service=mock_symbol_service,
+                doc_service=AsyncMock(),
+                kg_service=AsyncMock(),
+            )
+
+        assert exc_info.value.reason == "provider_blocked"
+        # Unwrapped from the enum — the class prefix must not reach the reader.
+        assert exc_info.value.detail == "PROHIBITED_CONTENT"
+        assert "no_json_found" not in str(exc_info.value)
+
+    async def test_blocked_prompt_is_not_retried(
+        self, mock_cache, mock_symbol_service
+    ):
+        # A block is deterministic, so tenacity's ValueError/KeyError policy must
+        # not apply — three identical blocked calls is three wasted requests.
+        llm = _mock_llm_blocked()
+        svc = SymbolAnalysisService(cache=mock_cache, llm=llm)
+
+        with pytest.raises(SymbolInterpretationBlocked):
+            await svc.analyze_symbol(
+                imagery_id="img-1",
+                book_id="book-1",
+                symbol_service=mock_symbol_service,
+                doc_service=AsyncMock(),
+                kg_service=AsyncMock(),
+            )
+
+        assert llm.ainvoke.call_count == 1
+
+    async def test_blocked_prompt_is_recorded(
+        self, mock_cache, mock_symbol_service
+    ):
+        svc = SymbolAnalysisService(cache=mock_cache, llm=_mock_llm_blocked())
+
+        with pytest.raises(SymbolInterpretationBlocked):
+            await svc.analyze_symbol(
+                imagery_id="img-1",
+                book_id="book-1",
+                symbol_service=mock_symbol_service,
+                doc_service=AsyncMock(),
+                kg_service=AsyncMock(),
+            )
+
+        key, payload = mock_cache.set.call_args[0]
+        assert key == "symbol_analysis_block:book-1:img-1"
+        assert payload["reason"] == "provider_blocked"
+        assert payload["detail"] == "PROHIBITED_CONTENT"
+        # Carried so the UI can name the symbol without a second lookup.
+        assert payload["term"] == "mirror"
+
+    async def test_empty_response_without_a_reason_is_recorded_separately(
+        self, mock_cache, mock_symbol_service
+    ):
+        # Non-Gemini providers have no prompt_feedback; the empty-content check
+        # is what catches the same shape from them.
+        llm = AsyncMock()
+        llm.ainvoke = AsyncMock(return_value=SimpleNamespace(content="   "))
+        svc = SymbolAnalysisService(cache=mock_cache, llm=llm)
+
+        with pytest.raises(SymbolInterpretationBlocked) as exc_info:
+            await svc.analyze_symbol(
+                imagery_id="img-1",
+                book_id="book-1",
+                symbol_service=mock_symbol_service,
+                doc_service=AsyncMock(),
+                kg_service=AsyncMock(),
+            )
+
+        assert exc_info.value.reason == "provider_empty"
+
+    async def test_a_later_success_clears_the_record(self, mock_cache):
+        # Otherwise a symbol that succeeds once a fallback exists keeps its
+        # badge and stays out of every batch run's default scope forever.
+        svc = SymbolAnalysisService(cache=mock_cache)
+        await svc.save_interpretation(
+            SymbolInterpretation(
+                imagery_id="img-1", book_id="book-1", term="mirror",
+            )
+        )
+        mock_cache.invalidate.assert_awaited_once_with(
+            "symbol_analysis_block:book-1:img-1"
+        )
+
+    async def test_transient_failures_are_not_recorded(
+        self, mock_cache, mock_symbol_service
+    ):
+        # A rate limit is not deterministic. Recording it would make the next
+        # batch run skip a symbol that would have succeeded.
+        llm = AsyncMock()
+        llm.ainvoke = AsyncMock(side_effect=RuntimeError("429 quota exceeded"))
+        svc = SymbolAnalysisService(cache=mock_cache, llm=llm)
+
+        with pytest.raises(RuntimeError):
+            await svc.analyze_symbol(
+                imagery_id="img-1",
+                book_id="book-1",
+                symbol_service=mock_symbol_service,
+                doc_service=AsyncMock(),
+                kg_service=AsyncMock(),
+            )
+
+        mock_cache.set.assert_not_called()
+
+
+class TestListBlocks:
+    @staticmethod
+    def _block(imagery_id: str, **kw) -> InterpretationBlock:
+        defaults = {
+            "imagery_id": imagery_id,
+            "book_id": "book-1",
+            "term": imagery_id,
+            "reason": "provider_blocked",
+        }
+        defaults.update(kw)
+        return InterpretationBlock(**defaults)
+
+    def test_block_key_sits_outside_the_interpretation_prefix(self):
+        # Load-bearing: list_interpretations() bulk-loads on
+        # "symbol_analysis:{book}:" and list_by_prefix matches prefix + "%", so
+        # a colon here would pull every refusal into the interpretation scan.
+        assert not _block_cache_key("book-1", "img-1").startswith(
+            "symbol_analysis:book-1:"
+        )
+
+    async def test_queries_only_this_book(self, mock_cache):
+        mock_cache.list_by_prefix = AsyncMock(return_value=[])
+        svc = SymbolAnalysisService(cache=mock_cache)
+        await svc.list_blocks("book-1")
+        mock_cache.list_by_prefix.assert_awaited_once_with(
+            "symbol_analysis_block:book-1:"
+        )
+
+    async def test_keys_results_by_imagery_id(self, mock_cache):
+        mock_cache.list_by_prefix = AsyncMock(
+            return_value=[
+                self._block("img-1", detail="PROHIBITED_CONTENT").model_dump(
+                    mode="json"
+                ),
+                self._block("img-2", reason="provider_empty").model_dump(
+                    mode="json"
+                ),
+            ]
+        )
+        svc = SymbolAnalysisService(cache=mock_cache)
+        result = await svc.list_blocks("book-1")
+        assert set(result) == {"img-1", "img-2"}
+        assert result["img-1"].detail == "PROHIBITED_CONTENT"
+        assert result["img-2"].reason == "provider_empty"
+
+    async def test_skips_malformed_rows_without_losing_the_rest(self, mock_cache):
+        mock_cache.list_by_prefix = AsyncMock(
+            return_value=[
+                {"imagery_id": "img-bad"},  # no reason / book_id
+                self._block("img-good").model_dump(mode="json"),
+            ]
+        )
+        svc = SymbolAnalysisService(cache=mock_cache)
+        assert set(await svc.list_blocks("book-1")) == {"img-good"}

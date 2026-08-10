@@ -240,6 +240,10 @@ class TestRerunCacheInvalidation:
         assert self._patterns(cache) == {
             "sep:book-x:%",
             "symbol_analysis:book-x:%",
+            # Keyed by the imagery ids re-discovery replaces, same as the
+            # interpretations — a refusal recorded against a stale id would
+            # otherwise outlive the symbol it refers to.
+            "symbol_analysis_block:book-x:%",
             # Book-keyed, but a pure projection of the symbol set being replaced.
             "symbol_overview:book-x",
         }

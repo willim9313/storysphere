@@ -14,7 +14,10 @@ from storysphere.services.cache_invalidation import (
 class TestPatternsFor:
     def test_book_id_is_substituted(self):
         assert patterns_for("symbol-discovery", "book-1") == [
-            "sep:book-1:%", "symbol_analysis:book-1:%", "symbol_overview:book-1"
+            "sep:book-1:%",
+            "symbol_analysis:book-1:%",
+            "symbol_analysis_block:book-1:%",
+            "symbol_overview:book-1",
         ]
 
     def test_summarization_deletes_nothing(self):
@@ -27,7 +30,9 @@ class TestPatternsFor:
     def test_per_entity_families_keep_their_wildcard(self):
         patterns = patterns_for("symbol-discovery", "book-1")
         assert {p for p in patterns if p.endswith("%")} == {
-            "sep:book-1:%", "symbol_analysis:book-1:%"
+            "sep:book-1:%",
+            "symbol_analysis:book-1:%",
+            "symbol_analysis_block:book-1:%",
         }
 
     def test_feature_extraction_deletes_only_id_keyed_families(self):
@@ -54,7 +59,10 @@ class TestInvalidateForSteps:
 
         called = {c.args[0] for c in cache.invalidate.call_args_list}
         assert called == {
-            "sep:book-1:%", "symbol_analysis:book-1:%", "symbol_overview:book-1"
+            "sep:book-1:%",
+            "symbol_analysis:book-1:%",
+            "symbol_analysis_block:book-1:%",
+            "symbol_overview:book-1",
         }
 
     async def test_overlapping_steps_are_deduplicated(self):
@@ -102,6 +110,7 @@ class TestInvalidateForSteps:
             "voice_profile",
             "sep",
             "symbol_analysis",
+            "symbol_analysis_block",
             "symbol_overview",
         }
 

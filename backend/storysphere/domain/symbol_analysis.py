@@ -119,6 +119,46 @@ class SymbolInterpretation(BaseModel):
     review_status: Literal["pending", "approved", "modified", "rejected"] = "pending"
 
 
+class InterpretationBlock(BaseModel):
+    """A record that interpreting this symbol was refused by the LLM provider.
+
+    Stored under ``symbol_analysis_block:{book_id}:{imagery_id}`` — deliberately
+    a separate key family from ``symbol_analysis:``, not a status field on
+    :class:`SymbolInterpretation`. A refusal is not an interpretation: giving it
+    one would hand every consumer an object with an empty ``theme`` and
+    ``evidence_summary`` and rely on each of them checking a flag first.
+
+    The underscore in the prefix is load-bearing. ``list_interpretations()``
+    bulk-loads with the prefix ``symbol_analysis:{book}:``, and
+    ``AnalysisCache.list_by_prefix`` matches on ``prefix + "%"`` — so
+    ``symbol_analysis_block:`` sorts outside that scan rather than into it.
+
+    Only deterministic refusals are recorded. A rate limit is transient, and
+    writing one here would make the next batch run skip a symbol that would have
+    succeeded.
+    """
+
+    imagery_id: str
+    book_id: str
+    term: str = Field(description="Canonical imagery term, for display")
+
+    reason: Literal["provider_blocked", "provider_empty"] = Field(
+        description=(
+            "provider_blocked — the provider reported a block reason for the "
+            "prompt; provider_empty — it returned no content and said nothing "
+            "about why"
+        )
+    )
+    detail: str = Field(
+        default="",
+        description=(
+            "Provider's own label, e.g. 'PROHIBITED_CONTENT'. Shown to the "
+            "reader, so it must stay short enough to sit in a card."
+        ),
+    )
+    blocked_at: datetime = Field(default_factory=datetime.utcnow)
+
+
 # ── Book-wide overview projection ─────────────────────────────────────────────
 
 

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal
 
 from pydantic import ValidationError
 from tenacity import (
@@ -25,7 +25,11 @@ from tenacity import (
 
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
-from storysphere.domain.symbol_analysis import SEP, SymbolInterpretation
+from storysphere.domain.symbol_analysis import (
+    SEP,
+    InterpretationBlock,
+    SymbolInterpretation,
+)
 
 if TYPE_CHECKING:
     from storysphere.services.analysis_cache import AnalysisCache
@@ -36,6 +40,61 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _ANALYZER_TAG = "symbol_analysis_service_v1"
+
+
+class SymbolInterpretationBlocked(Exception):
+    """The provider refused the prompt, or returned nothing at all.
+
+    Deliberately *not* a ``ValueError`` or ``KeyError``: ``_call_llm``'s tenacity
+    policy retries exactly those two, and a refusal is deterministic — the same
+    prompt is refused every time. Before this existed the empty response fell
+    through to the JSON extractor and surfaced as ``no_json_found``, which cost
+    a backlog entry and an investigation aimed at the wrong file.
+    """
+
+    def __init__(
+        self,
+        reason: Literal["provider_blocked", "provider_empty"],
+        detail: str,
+    ) -> None:
+        self.reason = reason
+        self.detail = detail
+        if reason == "provider_blocked":
+            message = (
+                f"LLM provider blocked the prompt ({detail}); no content was "
+                f"returned. This is deterministic — retrying the same prompt "
+                f"will be blocked again."
+            )
+        else:
+            message = (
+                "LLM provider returned an empty response with no reason given."
+            )
+        super().__init__(message)
+
+
+def _detect_block(response: Any) -> SymbolInterpretationBlocked | None:
+    """Spot a refusal that the provider reported as a *successful* call.
+
+    ``langchain_google_genai`` does not raise when Gemini blocks a prompt — it
+    logs a warning and hands back an ``AIMessage`` with empty content, so the
+    refusal is invisible to both the caller and to ``with_fallbacks``, which only
+    switches provider on a raised exception.
+
+    ``prompt_feedback`` is Gemini's; the empty-content check is the generic net
+    that catches the same shape from any other provider.
+    """
+    meta = getattr(response, "response_metadata", None) or {}
+    reason = (meta.get("prompt_feedback") or {}).get("block_reason")
+    if reason is not None:
+        # An enum on the Gemini path — ``str()`` would carry the class prefix
+        # ("BlockedReason.PROHIBITED_CONTENT") into the reader's card.
+        label = getattr(reason, "name", None) or str(reason)
+        return SymbolInterpretationBlocked("provider_blocked", label)
+
+    content = getattr(response, "content", None)
+    if not isinstance(content, str) or not content.strip():
+        return SymbolInterpretationBlocked("provider_empty", "")
+    return None
 
 _SYMBOL_SYSTEM_PROMPT = """\
 You are a literary symbolism analyst. Given a Symbol Evidence Profile (SEP)
@@ -126,7 +185,27 @@ class SymbolAnalysisService:
 
         if progress_callback:
             progress_callback(40, "calling LLM for interpretation")
-        interpretation = await self._call_llm(sep, language)
+        try:
+            interpretation = await self._call_llm(sep, language)
+        except SymbolInterpretationBlocked as exc:
+            # Recorded here rather than in the routers so the single-symbol and
+            # batch paths cannot drift: both reach the LLM through this method.
+            await self.save_block(
+                InterpretationBlock(
+                    imagery_id=imagery_id,
+                    book_id=book_id,
+                    term=sep.term,
+                    reason=exc.reason,
+                    detail=exc.detail,
+                )
+            )
+            logger.warning(
+                "SymbolAnalysisService: provider refused imagery=%s (%s) %s",
+                imagery_id,
+                exc.reason,
+                exc.detail,
+            )
+            raise
 
         if progress_callback:
             progress_callback(90, "saving interpretation")
@@ -136,15 +215,61 @@ class SymbolAnalysisService:
     async def save_interpretation(
         self, interpretation: SymbolInterpretation
     ) -> None:
-        """Persist a SymbolInterpretation to cache."""
+        """Persist a SymbolInterpretation to cache, clearing any refusal record.
+
+        The clear is not optional bookkeeping: a symbol that was refused once and
+        succeeds later — a second provider configured, a prompt change — would
+        otherwise keep its "blocked" badge and stay out of every batch run's
+        default scope forever.
+        """
         key = _interpretation_cache_key(
             interpretation.book_id, interpretation.imagery_id
         )
         await self._cache.set(key, interpretation.model_dump(mode="json"))
+        await self.clear_block(
+            interpretation.imagery_id, interpretation.book_id
+        )
         logger.debug(
             "SymbolAnalysisService: saved interpretation imagery=%s",
             interpretation.imagery_id,
         )
+
+    # ── Provider refusals ─────────────────────────────────────────────────────
+
+    async def save_block(self, block: InterpretationBlock) -> None:
+        """Persist a record that the provider refused this symbol."""
+        await self._cache.set(
+            _block_cache_key(block.book_id, block.imagery_id),
+            block.model_dump(mode="json"),
+        )
+
+    async def list_blocks(self, book_id: str) -> dict[str, InterpretationBlock]:
+        """Return every refusal record for a book, keyed by imagery_id.
+
+        Mirrors :meth:`list_interpretations`, including its tolerance for
+        malformed rows: one bad entry must not cost the caller every other
+        symbol's state.
+        """
+        rows = await self._cache.list_by_prefix(
+            f"symbol_analysis_block:{book_id}:"
+        )
+        by_imagery: dict[str, InterpretationBlock] = {}
+        for row in rows:
+            try:
+                block = InterpretationBlock.model_validate(row)
+            except ValidationError:
+                logger.warning(
+                    "SymbolAnalysisService: skipping malformed block record "
+                    "in book %s",
+                    book_id,
+                )
+                continue
+            by_imagery[block.imagery_id] = block
+        return by_imagery
+
+    async def clear_block(self, imagery_id: str, book_id: str) -> None:
+        """Drop the refusal record for one symbol, if it has one."""
+        await self._cache.invalidate(_block_cache_key(book_id, imagery_id))
 
     async def get_interpretation(
         self, imagery_id: str, book_id: str
@@ -244,6 +369,13 @@ class SymbolAnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
+
+        # Before parsing, not after: a refused prompt yields empty content, and
+        # letting that reach the extractor turns "the provider said no" into
+        # "no_json_found".
+        if (blocked := _detect_block(response)) is not None:
+            raise blocked
+
         raw = response.content if hasattr(response, "content") else str(response)
 
         parsed, err = extract_json_from_text(raw)
@@ -285,6 +417,16 @@ class SymbolAnalysisService:
 
 def _interpretation_cache_key(book_id: str, imagery_id: str) -> str:
     return f"symbol_analysis:{book_id}:{imagery_id}"
+
+
+def _block_cache_key(book_id: str, imagery_id: str) -> str:
+    """Key for a refusal record.
+
+    The underscore separating ``symbol_analysis`` from ``block`` is what keeps
+    these rows out of ``list_interpretations()``, which scans the prefix
+    ``symbol_analysis:{book}:`` — a colon, so this family sorts outside it.
+    """
+    return f"symbol_analysis_block:{book_id}:{imagery_id}"
 
 
 def _format_sep_for_prompt(sep: SEP) -> str:
