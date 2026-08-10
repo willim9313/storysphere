@@ -107,6 +107,11 @@ router 不必各改一次、也不會漂移。
 
 否則永遠卡死。使用者手動重試、或日後補上第二家 provider 時要能重跑。
 
+> **實作修正（2026-08-10）**：改為 **service 完全不因封鎖記錄短路** —— 每次都照常
+> 嘗試（仍受詮釋快取管轄）。若 service 自己擋，一筆舊記錄會在補上第二家 provider 後
+> 永久封殺該意象，除非用 `force`。批次的範圍過濾留在 Phase 2 的端點層（D5 本來就在
+> 那）。這讓 D6 自動成立，不需額外分支。
+
 ### D7. 偵測邏輯
 
 ```python
@@ -132,7 +137,7 @@ def _detect_block(response) -> str | None:
 
 ## 4. 分階段(依 CLAUDE.md「超過 3 檔先拆」)
 
-### Phase 1 — 後端:偵測與記錄
+### Phase 1 — 後端:偵測與記錄 ✅ 已完成(2026-08-10,commit `1e2ef06`)
 
 | 檔案 | 動作 |
 |---|---|
@@ -142,6 +147,28 @@ def _detect_block(response) -> str | None:
 | `tests/services/test_symbol_analysis_service.py` | 被擋回應 → 記錄且不重試;成功 → 清除;rate limit → 不記錄 |
 
 驗收:對「手」重跑,`task.error` 說出真正原因,且快取出現一筆 block 紀錄。
+
+**驗收結果**(真實 Gemini,暫存快取,`var/` 未動):
+
+```
+手    → BLOCKED reason=provider_blocked detail=PROHIBITED_CONTENT
+       task.error: "LLM provider blocked the prompt (PROHIBITED_CONTENT); no
+       content was returned. This is deterministic — retrying the same prompt
+       will be blocked again."
+戒指  → OK, theme=戒指象徵著…
+
+cache: symbol_analysis_block:19ba0017…  /  symbol_analysis:8cc76431…
+list_blocks          → 手（provider_blocked / PROHIBITED_CONTENT）
+list_interpretations → 戒指 only ← 封鎖紀錄未被誤撈
+```
+
+`ruff` 與 main 基線逐條 diff:130 / 130,零新增。`pytest -m "not integration"`:
+1299 passed、0 failed。
+
+**一個 SQLite 陷阱值得記著**:`LIKE` 把 `_` 當單字元萬用字元,所以
+`symbol_analysis:{book}:%` 的底線其實是萬用的。真正擋住誤撈的是 `analysis:` 與
+`analysis_` 在該位置的冒號／底線之差。這不是純字面前綴問題,已用真實 SQLite 實測確認
+（含 `unraveling.py:573` 的 `count_keys`,計數未被污染）。
 
 ### Phase 2 — 後端:端點
 
