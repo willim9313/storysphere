@@ -241,28 +241,32 @@ FOO=       # note   ->  '# note'      ← 註解變成值
 
 #### B-077 傳入 `zh-TW` 但 LLM 回傳簡體中文
 
-**背景**: 2026-08-10 驗證 B-073 Phase 1 時觀察到。以 `language="zh-TW"` 呼叫
-`SymbolAnalysisService.analyze_symbol()`，「戒指」的詮釋回傳為簡體：
+> **2026-08-10 更正：生產路徑沒有這個問題。** 原記載說「傳入 `zh-TW` 回傳簡體」——
+> 那個 `zh-TW`（大寫）是**驗證腳本自己寫死的**，不是系統會傳的值。DB 存的是小寫
+> `zh-tw`，`get_document_language()` 原樣回傳，查表得到 "Traditional Chinese"。
+> 以生產路徑實測，輸出確為繁體。
+
+**但查表本身是個真陷阱，已一併修掉**:
+
+`get_language_display_name()` 原本大小寫敏感，且 fallback 是
+`lang_code.split("-")[0].capitalize()`。因此任何**大寫或帶未知地區碼**的值都會落空：
 
 ```
-戒指象征着作者祖母对早逝弟弟的持久记忆和无声的哀悼…
+zh-TW -> 'Zh'      zh-CN -> 'Zh'      zh-hk -> 'Zh'
 ```
 
-`_localize_prompt()` 的作法是在系統提示**最後**附加一句
-`Respond in {get_language_display_name(language)}.`。
+結果不是報錯，而是 prompt 變成一句沒有意義的「**Respond in Zh.**」，模型只能猜。
+影響 12 個模組、28 個呼叫點。
 
-**尚未釐清**: 是 `get_language_display_name('zh-TW')` 的回傳字串不夠明確、是附加位置
-在 JSON 格式指示之後導致權重不足、還是模型本身對繁簡的遵從度問題。**未實測**。
+**這類 bug 咬過一次**: `tests/core/test_language_detection.py` 早有
+`test_bare_zh_maps_to_chinese_not_capitalized_code`，註解就寫著「the meaningless prompt
+directive "Respond in Zh."」。當時的修法是往表裡補 `zh` 條目，沒動查表邏輯；而
+`test_zh_tw_maps_to_traditional_chinese` 只用小寫問，**測試自己選的大小寫讓大寫變體活了下來**。
 
-**影響範圍**: 走 `_localize_prompt()` 的分析路徑皆可能受影響，不限象徵。對繁體中文
-書籍而言，輸出語言與原文不一致。
+**已完成（2026-08-10）**: 查表改為大小寫不敏感；未知地區碼回退到基礎語言而非代碼本身
+（`zh-hk` → Chinese、`en-GB` → English）。新增大小寫與地區回退的測試。
 
-**待辦內容**:
-- 先確認 `get_language_display_name('zh-TW')` 實際回傳什麼
-- 測試把語言指示移到系統提示開頭、或明確寫「Traditional Chinese (繁體中文)」
-- 確認其他分析路徑（角色 / 事件 / 張力）是否同樣受影響
-
-**觸發時機**: 下次動到任一 LLM prompt 時一併處理。
+**觸發時機**: 2026-08-10 完成。
 
 ---
 
@@ -296,6 +300,39 @@ paragraph／chunk 參照，段落層級目前做不到。
 ---
 
 ### 🟡 中優先（功能完善）
+
+#### B-079 imagery occurrence 指向不含該詞的段落
+
+**背景**: 2026-08-10 驗證 B-074 時發現。「戒指」的詮釋回傳「『戒指』在此後記中並未出現，
+因此無法從文本中推斷其象徵意義」—— 模型是誠實的：存下來的段落文字確實不含該詞。
+
+掃過《名字的潮汐》與另一本書全部已快取的 SEP：
+
+```
+古玉  3/4 筆的段落不含該詞（ch. 3, 4, 4）
+手    1/7 筆                （ch. 7）
+沙    3/4 筆                （ch. 5, 6, 11）
+合計 7/39 筆 ≈ 18%
+```
+
+「戒指」的 `paragraph_text` 是後記首段（直排標題「作 　 者 　 後 　 記」），但
+`context_window` 是對的 —— 兩者來源不同，其中一個對應錯了。
+
+**影響範圍**: `occurrence_contexts` 是送進 LLM 的證據本體。約五分之一的引文與該意象無關，
+詮釋因此可能建立在錯誤段落上。與 B-074（前置頁污染）是不同的問題：那是「不該送的送了」，
+這是「送的內容根本對應錯」。
+
+**待辦內容**:
+- 釐清是 `SymbolOccurrence.paragraph_id` 對應錯，還是 `assemble_sep` 的
+  `paragraph_by_id` 查表落空後靜默填了別的段落
+- 確認是否與直排標題／頁碼雜訊造成的段落切分有關（同一批書上 `#22c` 也踩過）
+- 加一個組裝期的健全性檢查：`term not in paragraph_text and term not in context_window`
+  時至少要 log，而不是靜默送出
+
+**觸發時機**: 下次動到 imagery 抽取或 ingestion 段落切分時。
+
+---
+
 
 #### B-014 Local LLM 選型評估（進行中）
 **背景**: qwen2.5-3b JSON schema 遵從度不穩定（null 代替 []、malformed JSON），已換至 Phi-3.5-mini-instruct Q4_K_M（社群量化），功能正常但速度偏慢。
@@ -1248,7 +1285,8 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 已完成（2026-08-10）；僅剩「海」那筆舊詮釋要不要重生，見條目內 SQL |
 | B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 主體已完成（2026-08-10 `c218cb8`）；剩 `Settings.has_*` 收斂 |
 | B-076 | provider 封鎖在 30+ 呼叫點偽裝成解析失敗 | 🟡 中 | 已完成（2026-08-10）；24 處呼叫點改用共用 `llm_text()` |
-| B-077 | 傳入 `zh-TW` 但 LLM 回傳簡體中文 | 🟢 低 | 待開始（觸發：下次動到任一 LLM prompt） |
+| B-077 | 語言顯示名查表大小寫敏感（`zh-TW` → 「Respond in Zh.」） | 🟢 低 | 已完成（2026-08-10）；原記的「回傳簡體」是驗證腳本的產物，生產路徑無此問題 |
+| B-079 | 18% 的 imagery occurrence 指向不含該詞的段落 | 🟡 中 | 待開始（2026-08-10 查證；送進 LLM 的證據有一部分是錯的） |
 | B-078 | 象徵事件依附與貫穿度共線（`W.ev` 定義待決） | 🟢 低 | 暫不實作（2026-08-10 收攏；觸發：決議 06 權重校準） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | 待開始（觸發：動到 upload / event analysis 時順修） |
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | 待開始（觸發：需用 mock 展示時間軸頁時） |

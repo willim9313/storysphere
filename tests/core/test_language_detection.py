@@ -129,3 +129,21 @@ class TestGetLanguageDisplayName:
 
     def test_zh_tw_maps_to_traditional_chinese(self):
         assert get_language_display_name("zh-tw") == "Traditional Chinese"
+
+    def test_lookup_is_case_insensitive(self):
+        # The table gained a "zh-tw" entry but the lookup stayed case-sensitive,
+        # and this test only ever asked in lowercase. A stored "zh-TW" would have
+        # missed the table and produced "Respond in Zh." — the exact failure the
+        # test above was written to prevent.
+        assert get_language_display_name("zh-TW") == "Traditional Chinese"
+        assert get_language_display_name("zh-CN") == "Simplified Chinese"
+        assert get_language_display_name("EN") == "English"
+
+    def test_unknown_region_falls_back_to_the_base_language(self):
+        # Not "Zh-hk": the name goes straight into "Respond in {name}.", so a
+        # miss has to degrade to something a model can act on.
+        assert get_language_display_name("zh-hk") == "Chinese"
+        assert get_language_display_name("en-GB") == "English"
+
+    def test_an_entirely_unknown_code_still_yields_something_readable(self):
+        assert get_language_display_name("xx") == "Xx"
