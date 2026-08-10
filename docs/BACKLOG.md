@@ -128,13 +128,47 @@ analysis、symbol_analysis、`deps.py`。也就是**全系統每一條 LLM 路�
 **拋例外**時切換，而 langchain 遇到封鎖是回傳空 `AIMessage`。這點已由 B-073 Phase 1
 在象徵路徑修掉（其餘 14 條路徑仍然如此，見 B-076）。
 
-**待辦內容**:
-- 修 `.env` 空值行的註解寫法，或讓 settings 對這種值做 strip／驗證
-- `_has_key()` 排除已知 placeholder 樣式（`your_*`、空白、註解殘留）
-- 決定沒有任何可用 fallback 時的行為：不掛 fallback，優於掛一個必定失敗的
-- 實測全數失敗時的例外語意，確認錯誤訊息不再被污染
+**根因（2026-08-10 查明）**: python-dotenv **只在 `#` 前面有值時才剝除行內註解**：
 
-**觸發時機**: 立即。它擋著 B-073，而且默默影響全系統的錯誤回報。
+```
+FOO=bar    # note   ->  'bar'
+FOO=       # note   ->  '# note'      ← 註解變成值
+```
+
+不是 pydantic-settings 的問題，是上游 dotenv 的行為。因此**每一個**「空值 + 行內註解」
+的設定都會載入成那段註解。
+
+**波及範圍比 LLM 更廣**: `.env.example` 有 4 個設定是這個形狀，而消費端**全部用真值
+判斷** —— 正是這個 bug 專門打穿的寫法：
+
+| 設定 | 消費端 | 後果 |
+|---|---|---|
+| `LOCAL_LLM_MODEL` | `llm_client._has_key` | 假 fallback 掛上 15 個服務 |
+| `QDRANT_API_KEY` | `vector_service.py:89` `or None` | 送垃圾 api-key 給 Qdrant |
+| `LANGFUSE_BASE_URL` | `tracing.py:59` `if ...:` | 垃圾 URL 蓋掉正確預設 |
+| `LOG_FILE` | `main.py:66` `Path(...)` | 嘗試建立檔名為 `# Optional log file path` 的日誌 |
+
+**已完成（2026-08-10，commit `716aef4`）**:
+- `Settings.blank_out_orphaned_comments` —— `field_validator("*", mode="before")`，
+  值若以 `#` 開頭一律視為空。只改 `.env` 不夠：`.env.example` 會把陷阱發給每個新
+  開發者，而且下次再寫一個空值設定又會中
+- `_is_configured()` 取代 `_has_key()` 的裸 `bool()`，排除 `your_*` placeholder
+- `.env.example` 4 行、`.env` 2 行改為註解獨立成行
+- `get_with_local_fallback()` **未改** —— `has_local` 一旦正確回報 False，它本來就
+  回傳裸的 primary
+
+**實環境驗證**: `local=''`、`qdrant_api_key=''`、openai/anthropic 判為未設定，
+`get_with_local_fallback()` 回傳 `ChatGoogleGenerativeAI` 且 `fallbacks=[]`。
+原本「全數失敗時哪個 exception 勝出」的疑問隨之消失 —— 已無 fallback 層可污染錯誤。
+
+**剩餘待辦**:
+- `Settings` 上另有一組 `has_gemini` / `has_openai` / `has_anthropic` 屬性仍用裸
+  `bool()`，未套用 placeholder 判斷。目前僅測試的 skip 條件與 `main.py:185` 使用
+  （後者已由 validator 修好），沒有實際危害。但「provider 是否可用」有兩套判斷是
+  漂移的溫床，值得收斂成一處 —— 本輪刻意未動，避免超出範圍
+
+**觸發時機**: ~~立即~~ 主體已完成。剩餘的收斂項觸發於下次動到 `llm_client` 或
+`settings` 時。
 
 ---
 
@@ -1174,7 +1208,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |
 | B-073 | Gemini 對「手」的提示回報 PROHIBITED_CONTENT | 🔴 高 | 進行中（2026-08-10 重新診斷，原「no_json_found」判斷已推翻；Phase 1 已完成 `1e2ef06`，Phase 2/3 未做） |
 | B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 待開始（2026-08-08 實作 D4/D6 時查證；前端已加警告，後端未修） |
-| B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 待開始（2026-08-10 查出；擋著 B-073，影響 15 個服務） |
+| B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 主體已完成（2026-08-10 `716aef4`）；剩 `Settings.has_*` 收斂 |
 | B-076 | provider 封鎖在 30+ 呼叫點偽裝成解析失敗 | 🟡 中 | 待開始（觸發：B-075 修好後；象徵路徑已有參考實作） |
 | B-077 | 傳入 `zh-TW` 但 LLM 回傳簡體中文 | 🟢 低 | 待開始（觸發：下次動到任一 LLM prompt） |
 | B-078 | 象徵事件依附與貫穿度共線（`W.ev` 定義待決） | 🟢 低 | 暫不實作（2026-08-10 收攏；觸發：決議 06 權重校準） |
