@@ -111,6 +111,26 @@ def test_placeholder_primary_raises_instead_of_being_used():
         client.get_primary()
 
 
+def test_settings_properties_agree_with_has_key():
+    """One judgement, not two.
+
+    _has_key used to test the credentials itself, in parallel with Settings.has_*
+    — so a placeholder read as unconfigured in one and configured in the other.
+    """
+    from storysphere.config.settings import Settings
+    s = Settings(
+        gemini_api_key="real-key",
+        openai_api_key="your_openai_api_key_here",
+        anthropic_api_key="",
+        local_llm_model="# e.g. qwen2.5:3b",
+    )
+    client = LLMClient(settings=s)
+    assert client._has_key(LLMProvider.GEMINI) is s.has_gemini is True
+    assert client._has_key(LLMProvider.OPENAI) is s.has_openai is False
+    assert client._has_key(LLMProvider.ANTHROPIC) is s.has_anthropic is False
+    assert client._has_key(LLMProvider.LOCAL) is s.has_local_llm is False
+
+
 def test_real_key_beginning_with_y_is_not_mistaken_for_a_placeholder():
     from storysphere.config.settings import Settings
     s = Settings(gemini_api_key="yA-real-looking-key", local_llm_model="")

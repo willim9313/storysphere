@@ -11,6 +11,22 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 logger = logging.getLogger(__name__)
 
 
+def is_configured(value: str) -> bool:
+    """Whether a credential setting holds something usable.
+
+    Bare truthiness is not enough. ``.env.example`` ships placeholders in the
+    form ``your_openai_api_key_here``, and a developer who fills in one provider
+    leaves the others sitting there — non-empty, so every check reads them as
+    configured. The consequence is not a clear failure but a wrong choice made
+    confidently: a fallback resolved to a provider that answers 401.
+
+    Lives here rather than in ``llm_client`` so that ``Settings.has_*`` and
+    ``LLMClient._has_key`` cannot answer "is this provider available?"
+    differently. They did, until B-075.
+    """
+    return bool(value) and not value.strip().lower().startswith("your_")
+
+
 class Settings(BaseSettings):
     """StorySphere application settings.
 
@@ -262,19 +278,19 @@ class Settings(BaseSettings):
 
     @property
     def has_gemini(self) -> bool:
-        return bool(self.gemini_api_key)
+        return is_configured(self.gemini_api_key)
 
     @property
     def has_openai(self) -> bool:
-        return bool(self.openai_api_key)
+        return is_configured(self.openai_api_key)
 
     @property
     def has_anthropic(self) -> bool:
-        return bool(self.anthropic_api_key)
+        return is_configured(self.anthropic_api_key)
 
     @property
     def has_local_llm(self) -> bool:
-        return bool(self.local_llm_model)
+        return is_configured(self.local_llm_model)
 
     @field_validator("app_port")
     @classmethod

@@ -10,18 +10,6 @@ from storysphere.config.settings import Settings, get_settings
 logger = logging.getLogger(__name__)
 
 
-def _is_configured(value: str) -> bool:
-    """Whether a credential setting holds something usable.
-
-    Bare truthiness is not enough. ``.env.example`` ships placeholders in the
-    form ``your_openai_api_key_here``, and a developer who fills in one provider
-    leaves the others sitting there — non-empty, so every check reads them as
-    configured. The consequence is not a clear failure but a wrong choice made
-    confidently: a fallback resolved to a provider that answers 401.
-    """
-    return bool(value) and not value.strip().lower().startswith("your_")
-
-
 class LLMProvider(str, Enum):
     GEMINI = "gemini"
     OPENAI = "openai"
@@ -162,15 +150,21 @@ class LLMClient:
         return target
 
     def _has_key(self, provider: LLMProvider) -> bool:
+        """Delegates to Settings so there is one answer, not two.
+
+        These used to test the credentials directly, in parallel with
+        ``Settings.has_*`` — two places deciding whether a provider is available,
+        which is how the two come to disagree (B-075).
+        """
         match provider:
             case LLMProvider.GEMINI:
-                return _is_configured(self._settings.gemini_api_key)
+                return self._settings.has_gemini
             case LLMProvider.OPENAI:
-                return _is_configured(self._settings.openai_api_key)
+                return self._settings.has_openai
             case LLMProvider.ANTHROPIC:
-                return _is_configured(self._settings.anthropic_api_key)
+                return self._settings.has_anthropic
             case LLMProvider.LOCAL:
-                return _is_configured(self._settings.local_llm_model)
+                return self._settings.has_local_llm
 
     def _build(
         self, provider: LLMProvider, temperature: float, **kwargs: object
