@@ -148,7 +148,7 @@ FOO=       # note   ->  '# note'      ← 註解變成值
 | `LANGFUSE_BASE_URL` | `tracing.py:59` `if ...:` | 垃圾 URL 蓋掉正確預設 |
 | `LOG_FILE` | `main.py:66` `Path(...)` | 嘗試建立檔名為 `# Optional log file path` 的日誌 |
 
-**已完成（2026-08-10，commit `716aef4`）**:
+**已完成（2026-08-10，commit `c218cb8`）**:
 - `Settings.blank_out_orphaned_comments` —— `field_validator("*", mode="before")`，
   值若以 `#` 開頭一律視為空。只改 `.env` 不夠：`.env.example` 會把陷阱發給每個新
   開發者，而且下次再寫一個空值設定又會中
@@ -1208,7 +1208,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |
 | B-073 | Gemini 對「手」的提示回報 PROHIBITED_CONTENT | 🔴 高 | 進行中（2026-08-10 重新診斷，原「no_json_found」判斷已推翻；Phase 1 已完成 `1e2ef06`，Phase 2/3 未做） |
 | B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 待開始（2026-08-08 實作 D4/D6 時查證；前端已加警告，後端未修） |
-| B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 主體已完成（2026-08-10 `716aef4`）；剩 `Settings.has_*` 收斂 |
+| B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 主體已完成（2026-08-10 `c218cb8`）；剩 `Settings.has_*` 收斂 |
 | B-076 | provider 封鎖在 30+ 呼叫點偽裝成解析失敗 | 🟡 中 | 待開始（觸發：B-075 修好後；象徵路徑已有參考實作） |
 | B-077 | 傳入 `zh-TW` 但 LLM 回傳簡體中文 | 🟢 低 | 待開始（觸發：下次動到任一 LLM prompt） |
 | B-078 | 象徵事件依附與貫穿度共線（`W.ev` 定義待決） | 🟢 低 | 暫不實作（2026-08-10 收攏；觸發：決議 06 權重校準） |
