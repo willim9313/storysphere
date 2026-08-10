@@ -8,6 +8,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import TypeAdapter
+from storysphere.core.error_handling import LLMResponseBlocked
 from storysphere.domain.symbol_analysis import (
     SEP,
     InterpretationBlock,
@@ -16,7 +17,6 @@ from storysphere.domain.symbol_analysis import (
 )
 from storysphere.services.symbol_analysis_service import (
     SymbolAnalysisService,
-    SymbolInterpretationBlocked,
     _block_cache_key,
 )
 
@@ -353,7 +353,7 @@ class TestProviderRefusal:
     ):
         svc = SymbolAnalysisService(cache=mock_cache, llm=_mock_llm_blocked())
 
-        with pytest.raises(SymbolInterpretationBlocked) as exc_info:
+        with pytest.raises(LLMResponseBlocked) as exc_info:
             await svc.analyze_symbol(
                 imagery_id="img-1",
                 book_id="book-1",
@@ -375,7 +375,7 @@ class TestProviderRefusal:
         llm = _mock_llm_blocked()
         svc = SymbolAnalysisService(cache=mock_cache, llm=llm)
 
-        with pytest.raises(SymbolInterpretationBlocked):
+        with pytest.raises(LLMResponseBlocked):
             await svc.analyze_symbol(
                 imagery_id="img-1",
                 book_id="book-1",
@@ -391,7 +391,7 @@ class TestProviderRefusal:
     ):
         svc = SymbolAnalysisService(cache=mock_cache, llm=_mock_llm_blocked())
 
-        with pytest.raises(SymbolInterpretationBlocked):
+        with pytest.raises(LLMResponseBlocked):
             await svc.analyze_symbol(
                 imagery_id="img-1",
                 book_id="book-1",
@@ -416,7 +416,7 @@ class TestProviderRefusal:
         llm.ainvoke = AsyncMock(return_value=SimpleNamespace(content="   "))
         svc = SymbolAnalysisService(cache=mock_cache, llm=llm)
 
-        with pytest.raises(SymbolInterpretationBlocked) as exc_info:
+        with pytest.raises(LLMResponseBlocked) as exc_info:
             await svc.analyze_symbol(
                 imagery_id="img-1",
                 book_id="book-1",

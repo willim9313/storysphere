@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from typing import TYPE_CHECKING, Any, Literal
+from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
 from tenacity import (
@@ -23,6 +23,7 @@ from tenacity import (
     wait_exponential,
 )
 
+from storysphere.core.error_handling import LLMResponseBlocked, llm_text
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.symbol_analysis import (
@@ -40,61 +41,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _ANALYZER_TAG = "symbol_analysis_service_v1"
-
-
-class SymbolInterpretationBlocked(Exception):
-    """The provider refused the prompt, or returned nothing at all.
-
-    Deliberately *not* a ``ValueError`` or ``KeyError``: ``_call_llm``'s tenacity
-    policy retries exactly those two, and a refusal is deterministic — the same
-    prompt is refused every time. Before this existed the empty response fell
-    through to the JSON extractor and surfaced as ``no_json_found``, which cost
-    a backlog entry and an investigation aimed at the wrong file.
-    """
-
-    def __init__(
-        self,
-        reason: Literal["provider_blocked", "provider_empty"],
-        detail: str,
-    ) -> None:
-        self.reason = reason
-        self.detail = detail
-        if reason == "provider_blocked":
-            message = (
-                f"LLM provider blocked the prompt ({detail}); no content was "
-                f"returned. This is deterministic — retrying the same prompt "
-                f"will be blocked again."
-            )
-        else:
-            message = (
-                "LLM provider returned an empty response with no reason given."
-            )
-        super().__init__(message)
-
-
-def _detect_block(response: Any) -> SymbolInterpretationBlocked | None:
-    """Spot a refusal that the provider reported as a *successful* call.
-
-    ``langchain_google_genai`` does not raise when Gemini blocks a prompt — it
-    logs a warning and hands back an ``AIMessage`` with empty content, so the
-    refusal is invisible to both the caller and to ``with_fallbacks``, which only
-    switches provider on a raised exception.
-
-    ``prompt_feedback`` is Gemini's; the empty-content check is the generic net
-    that catches the same shape from any other provider.
-    """
-    meta = getattr(response, "response_metadata", None) or {}
-    reason = (meta.get("prompt_feedback") or {}).get("block_reason")
-    if reason is not None:
-        # An enum on the Gemini path — ``str()`` would carry the class prefix
-        # ("BlockedReason.PROHIBITED_CONTENT") into the reader's card.
-        label = getattr(reason, "name", None) or str(reason)
-        return SymbolInterpretationBlocked("provider_blocked", label)
-
-    content = getattr(response, "content", None)
-    if not isinstance(content, str) or not content.strip():
-        return SymbolInterpretationBlocked("provider_empty", "")
-    return None
 
 _SYMBOL_SYSTEM_PROMPT = """\
 You are a literary symbolism analyst. Given a Symbol Evidence Profile (SEP)
@@ -187,7 +133,7 @@ class SymbolAnalysisService:
             progress_callback(40, "calling LLM for interpretation")
         try:
             interpretation = await self._call_llm(sep, language)
-        except SymbolInterpretationBlocked as exc:
+        except LLMResponseBlocked as exc:
             # Recorded here rather than in the routers so the single-symbol and
             # batch paths cannot drift: both reach the LLM through this method.
             await self.save_block(
@@ -373,10 +319,7 @@ class SymbolAnalysisService:
         # Before parsing, not after: a refused prompt yields empty content, and
         # letting that reach the extractor turns "the provider said no" into
         # "no_json_found".
-        if (blocked := _detect_block(response)) is not None:
-            raise blocked
-
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):

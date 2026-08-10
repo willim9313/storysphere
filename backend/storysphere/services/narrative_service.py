@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from storysphere.config.hero_journey import get_hero_journey_summary, load_hero_journey
+from storysphere.core.error_handling import llm_text
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.events import Event
@@ -391,7 +392,7 @@ class NarrativeService:
             SystemMessage(content=system_prompt),
             HumanMessage(content=human_content),
         ])
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
             raise ValueError(f"NarrativeService refine: LLM parse failed: {err!r}")
@@ -647,7 +648,7 @@ class NarrativeService:
             SystemMessage(content=system_prompt),
             HumanMessage(content=human_content),
         ])
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, list):
             raise ValueError(f"NarrativeService hero journey: LLM parse failed: {err!r}")
@@ -858,7 +859,7 @@ class NarrativeService:
             SystemMessage(content=system_prompt),
             HumanMessage(content=human_content),
         ])
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
             raise ValueError(f"NarrativeService temporal: LLM parse failed: {err!r}")

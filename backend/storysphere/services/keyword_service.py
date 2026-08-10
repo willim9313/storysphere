@@ -23,6 +23,7 @@ from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from storysphere.core.error_handling import llm_text
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.services.query_models import ChapterKeywordMatch
 
@@ -201,7 +202,7 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
         _lf_update_span(metadata={"max_keywords": max_keywords})
         set_llm_service_context("keyword")
         response = await llm.ainvoke(messages)
-        content = response.content if hasattr(response, "content") else str(response)
+        content = llm_text(response)
         return self._parse_response(content)
 
     @staticmethod

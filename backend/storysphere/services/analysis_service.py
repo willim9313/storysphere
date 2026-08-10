@@ -14,6 +14,7 @@ from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from storysphere.core.error_handling import llm_text
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.core.utils.data_sanitizer import DataSanitizer
@@ -312,7 +313,7 @@ class AnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        content = response.content if hasattr(response, "content") else str(response)
+        content = llm_text(response)
         logger.info("AnalysisService: generated insight for topic=%r  len=%d", topic, len(content))
         return content
 
@@ -545,7 +546,7 @@ class AnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -594,7 +595,7 @@ class AnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -635,7 +636,7 @@ class AnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, list):
@@ -675,7 +676,7 @@ class AnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -896,7 +897,7 @@ class AnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -989,7 +990,7 @@ class AnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -1054,7 +1055,7 @@ class AnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -1121,7 +1122,7 @@ class AnalysisService:
         ]
         set_llm_service_context("analysis")
         response = await llm.ainvoke(messages)
-        raw = response.content if hasattr(response, "content") else str(response)
+        raw = llm_text(response)
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):

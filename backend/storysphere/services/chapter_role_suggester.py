@@ -29,6 +29,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
+from storysphere.core.error_handling import LLMResponseBlocked, llm_text
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.documents import Chapter, ChapterRole, ParagraphRole
@@ -102,7 +103,13 @@ async def _classify_role(llm, text: str, edge: str) -> str | None:
         HumanMessage(content=f"Paragraph:\n\n{text}"),
     ]
     response = await llm.ainvoke(messages)
-    raw = response.content if hasattr(response, "content") else str(response)
+    # Degrades rather than raises: the caller treats None as "no suggestion" and
+    # keeps the deterministic role. Only the log message changes.
+    try:
+        raw = llm_text(response)
+    except LLMResponseBlocked as exc:
+        logger.warning("boundary suggester: %s", exc)
+        return None
 
     parsed, err = extract_json_from_text(raw)
     if err or not isinstance(parsed, dict):

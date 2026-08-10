@@ -20,6 +20,7 @@ from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from storysphere.core.error_handling import llm_text
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.documents import Paragraph
 from storysphere.domain.voice_profile import VoiceProfile
@@ -230,7 +231,7 @@ class VoiceProfilingService:
             )
             return _empty_qualitative()
 
-        raw_text = response.content if hasattr(response, "content") else str(response)
+        raw_text = llm_text(response)
         parsed, err = extract_json_from_text(raw_text)
         if err or not isinstance(parsed, dict):
             raise ValueError(f"LLM returned unexpected structure: {err}")

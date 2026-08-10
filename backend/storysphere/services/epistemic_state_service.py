@@ -20,7 +20,7 @@ from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from storysphere.core.error_handling import is_rate_limit_error
+from storysphere.core.error_handling import is_rate_limit_error, llm_text
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import Entity
 from storysphere.domain.epistemic_state import CharacterEpistemicState, MisbeliefItem
@@ -177,7 +177,7 @@ class EpistemicStateService:
             HumanMessage(content=user_prompt),
         ]
         response = await llm.ainvoke(messages)
-        raw_text = response.content if hasattr(response, "content") else str(response)
+        raw_text = llm_text(response)
 
         parsed, err = extract_json_from_text(raw_text)
         if err or not isinstance(parsed, list):
@@ -285,7 +285,7 @@ class EpistemicStateService:
             HumanMessage(content=f"Classify these events:\n{items}"),
         ]
         response = await llm.ainvoke(messages)
-        raw_text = response.content if hasattr(response, "content") else str(response)
+        raw_text = llm_text(response)
         parsed, err = extract_json_from_text(raw_text)
         if err or not isinstance(parsed, list):
             raise ValueError(f"LLM returned non-list for visibility batch: {err}")

@@ -216,15 +216,26 @@ FOO=       # note   ->  '# note'      ← 註解變成值
 **已完成**: 象徵路徑已於 commit `1e2ef06` 修正（`_detect_block()` +
 `SymbolInterpretationBlocked`），可作為其餘路徑的參考實作。
 
-**待辦內容**:
-- 把 `_detect_block()` 抽到共用層（`core/utils/` 或 `core/error_handling.py`），
-  象徵路徑改為呼叫共用版本
-- 逐一評估其餘 14 條路徑：哪些需要記錄封鎖、哪些只需正確回報即可
-- 注意：`toc_parser` / `chapter_role_suggester` 是 `logger.warning` 後降級而非拋錯，
-  語意不同，不能一概套用
+**已完成（2026-08-10）**:
+- `core/error_handling.py` 新增 `LLMResponseBlocked` / `raise_if_blocked()` / `llm_text()`
+  —— 與既有的 `is_rate_limit_error()` 同一個模組，都是 provider 錯誤分類，不另立新模組
+- **24 處**呼叫點改用共用版（原估 20 處；`extraction_service` 與 `summary_service` 另有
+  4 處不走 extractor，同樣會吞掉封鎖）
+- 象徵路徑刪除本地的 `SymbolInterpretationBlocked` / `_detect_block`，改用共用版
 
-**觸發時機**: B-075 修好之後（屆時 fallback 真的會啟動，錯誤語意才穩定）。優先級視
-是否有實際誤判回報而定。
+**兩個實作時才浮現的差異**:
+
+1. **封鎖與空回應必須分開。** 封鎖是確定性的（同一個 prompt 每次都被拒），空回應不是。
+   `SummaryService` 對空摘要**刻意重試**，一律換成不可重試的例外對它是退步。因此拆成
+   `raise_if_blocked()`（只管確定性的那半）與 `llm_text()`（兩者都管），summary 用前者。
+2. **metadata 必須先確認是 mapping。** `MagicMock.get()` 回傳另一個 MagicMock 而非 None，
+   天真讀取與「有 block_reason」無法區分 —— 這會讓套件裡每個用 MagicMock 模擬 LLM 的測試
+   全部誤判成封鎖（實際踩到 33 個）。真實 provider 附帶的 metadata 形狀也本來就不一。
+
+**維持降級語意**: `toc_parser` / `chapter_role_suggester` 仍是 `logger.warning` 後降級，
+只是 log 現在講真正的原因，不再指控 JSON extractor。
+
+**觸發時機**: ~~B-075 修好之後~~ 2026-08-10 完成。
 
 ---
 
@@ -1236,7 +1247,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-073 | Gemini 對「手」的提示回報 PROHIBITED_CONTENT | 🔴 高 | 工程面已完成（2026-08-10，Phase 1–3）；「手」仍待可用的 fallback provider，見 B-075 |
 | B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 已完成（2026-08-10）；僅剩「海」那筆舊詮釋要不要重生，見條目內 SQL |
 | B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 主體已完成（2026-08-10 `c218cb8`）；剩 `Settings.has_*` 收斂 |
-| B-076 | provider 封鎖在 30+ 呼叫點偽裝成解析失敗 | 🟡 中 | 待開始（觸發：B-075 修好後；象徵路徑已有參考實作） |
+| B-076 | provider 封鎖在 30+ 呼叫點偽裝成解析失敗 | 🟡 中 | 已完成（2026-08-10）；24 處呼叫點改用共用 `llm_text()` |
 | B-077 | 傳入 `zh-TW` 但 LLM 回傳簡體中文 | 🟢 低 | 待開始（觸發：下次動到任一 LLM prompt） |
 | B-078 | 象徵事件依附與貫穿度共線（`W.ev` 定義待決） | 🟢 低 | 暫不實作（2026-08-10 收攏；觸發：決議 06 權重校準） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | 待開始（觸發：動到 upload / event analysis 時順修） |
