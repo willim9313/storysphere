@@ -1340,7 +1340,12 @@
         "discouragedDesc": "Narrative load {{value}}. Its distribution, attachment and allies are all thin, so the model can only paraphrase the quotes. Try a symbol from the same behaviour group instead.",
         "discouragedButton": "Interpret anyway",
         "weakTitle": "Weak signals — the result may only paraphrase the quotes",
-        "frontWarn": "Note: {{count}} front-matter passages will also be sent as evidence."
+        "frontWarn": "Note: {{count}} front-matter passages will also be sent as evidence.",
+        "blockedTitle": "The provider refused this prompt — the signals are not the problem",
+        "blockedDesc": "The LLM provider blocked this symbol's prompt ({{detail}}) and returned nothing. That is a judgement made at the model, so re-sending the same evidence gets the same answer. Worth retrying once a different provider is configured.",
+        "blockedEmptyDesc": "The LLM provider returned empty content and gave no reason. Re-sending the same evidence will most likely get the same result. Worth retrying once a different provider is configured.",
+        "blockedButton": "Try again",
+        "blockedHint": "Retrying re-sends the same evidence; expect the same refusal unless the provider has changed"
       }
     },
     "generating": {
@@ -1456,7 +1461,8 @@
         "ctaAvailable": "Read the behaviour first →",
         "ctaDiscouraged": "Too little evidence to interpret",
         "ctaReviewed": "Interpreted · {{status}} →",
-        "empty": "No symbol in this book occurs more than once."
+        "empty": "No symbol in this book occurs more than once.",
+        "ctaBlocked": "Refused by provider — cannot interpret"
       },
       "heat": {
         "meta": "{{rows}} ranked symbols × {{slots}} axis slots · body chapter maximum {{max}}",
@@ -1636,6 +1642,10 @@
       "clearOther": "Comparing: {{term}}",
       "clearTitle": "Drop the comparison and remove the lower row",
       "note": "Lower row = pinned “{{term}}”, on the same axis and the same scale. Drawn in its type colour so it is not read as part of the density scale above."
+    },
+    "blocked": {
+      "badge": "Blocked",
+      "badgeTitle": "The LLM provider refused this symbol's prompt; no interpretation was produced"
     }
   },
   "narrative": {

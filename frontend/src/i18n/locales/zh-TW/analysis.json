@@ -1340,7 +1340,12 @@
         "discouragedDesc": "敘事負載 {{value}}。這個意象的分布、依附與結盟都太薄，LLM 只能複述引文。建議先看行為分群裡同型的意象。",
         "discouragedButton": "仍要生成",
         "weakTitle": "訊號偏弱，生成結果可能只是複述引文",
-        "frontWarn": "注意：{{count}} 筆前置頁文字也會作為證據送入。"
+        "frontWarn": "注意：{{count}} 筆前置頁文字也會作為證據送入。",
+        "blockedTitle": "供應商拒絕了這個提示,不是訊號不足",
+        "blockedDesc": "LLM 供應商以 {{detail}} 阻擋了這個意象的提示,未回傳任何內容。這是模型端對文本的判定,重送同一份證據會得到同樣的結果。換一家供應商後可再試。",
+        "blockedEmptyDesc": "LLM 供應商回傳空內容,且未說明原因。重送同一份證據多半會得到同樣的結果。換一家供應商後可再試。",
+        "blockedButton": "再試一次",
+        "blockedHint": "重試會重新送出同一份證據;除非已換供應商,否則預期仍會被拒"
       }
     },
     "generating": {
@@ -1456,7 +1461,8 @@
         "ctaAvailable": "先讀行為摘要 →",
         "ctaDiscouraged": "證據不足，先不建議生成",
         "ctaReviewed": "已有詮釋 · {{status}} →",
-        "empty": "這本書還沒有出現超過一次的意象。"
+        "empty": "這本書還沒有出現超過一次的意象。",
+        "ctaBlocked": "供應商拒絕 · 無法詮釋"
       },
       "heat": {
         "meta": "{{rows}} 個主清單意象 × {{slots}} 段章節軸 · 正文單章最大值 {{max}}",
@@ -1636,6 +1642,10 @@
       "clearOther": "並看中：{{term}}",
       "clearTitle": "取消並看，移除下排的對照分布",
       "note": "下排＝並看中的「{{term}}」，同一條軸、同一個高度基準；顏色為其類型色，避免與上排的次數色階混淆"
+    },
+    "blocked": {
+      "badge": "被阻擋",
+      "badgeTitle": "LLM 供應商拒絕了這個意象的提示,尚未產出詮釋"
     }
   },
   "narrative": {

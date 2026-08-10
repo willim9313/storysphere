@@ -489,6 +489,26 @@ describe('provider refusals', () => {
     expect(blocked.distribution).toEqual(clean.distribution);
   });
 
+  it('outranks the load thresholds, including a load that would be recommended', () => {
+    // The whole point: a refusal lands on strong symbols as readily as weak
+    // ones, and a verdict read off load alone would give the page's most
+    // prominent placement to the one symbol it cannot deliver.
+    const strong = { load: LOAD_STRONG, block: refusal } as never;
+    expect(interpretationAdvice(strong)).toBe('blocked');
+    expect(interpretationAdvice({ load: LOAD_STRONG, block: null } as never)).toBe(
+      'recommended',
+    );
+  });
+
+  it('changes the advice for a symbol that is otherwise unremarkable', () => {
+    const before = interpretationAdvice(find(analyse({}), '手'));
+    const after = interpretationAdvice(
+      find(analyse({ interpretation_block: refusal }), '手'),
+    );
+    expect(before).not.toBe('blocked');
+    expect(after).toBe('blocked');
+  });
+
   it('is independent of an interpretation, not an alternative to one', () => {
     // Interpreted once, refused on a later regeneration — both are true, and a
     // single status field would have to forget one of them.

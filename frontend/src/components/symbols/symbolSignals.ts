@@ -395,7 +395,13 @@ export function rankSymbols(
 /** Whether a symbol's signals justify spending tokens on an interpretation. */
 export function interpretationAdvice(
   signals: SymbolSignals,
-): 'recommended' | 'available' | 'discouraged' {
+): 'blocked' | 'recommended' | 'available' | 'discouraged' {
+  // Ahead of the load thresholds, because a refusal is about whether the spend
+  // *can* work, not whether it is worth it. Strong signals are exactly what puts
+  // a symbol at the top of the recommendation cards, so without this the page
+  // gives its most prominent placement to the one thing it cannot deliver — 手
+  // in 名字的潮汐 is refused and ranks near the top.
+  if (signals.block) return 'blocked';
   if (signals.load >= LOAD_STRONG) return 'recommended';
   if (signals.load < LOAD_WEAK) return 'discouraged';
   return 'available';

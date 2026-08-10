@@ -4,7 +4,7 @@ import type { TFunction } from 'i18next';
 import { Search } from 'lucide-react';
 
 import { SYMBOL_TYPES, POLARITY_STYLE, densityStep, typeStyle } from './tokens';
-import { ReviewBadge } from './Badges';
+import { BlockBadge, ReviewBadge } from './Badges';
 import type { ChapterAxis } from './chapterAxis';
 import type { SymbolCheck } from './hooks/useSymbolCheck';
 import { behaviourLine } from './symbolPhrases';
@@ -286,7 +286,10 @@ export function SymbolList({
                       title={t(`symbol.polarity.${s.polarity}`)}
                     />
                   )}
+                  {/* Both can be true: interpreted once, refused on a later
+                      regeneration. Showing only one would hide half the state. */}
                   {s.reviewStatus && <ReviewBadge status={s.reviewStatus} />}
+                  {s.block && <BlockBadge />}
                 </div>
 
                 <div className="sym-row-behaviour">{behaviourLine(t, s)}</div>

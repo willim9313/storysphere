@@ -298,15 +298,23 @@ function PickCard({
   const style = typeStyle(signals.imageryType);
 
   const CTA_KEY = {
+    blocked: 'symbol.overview.picks.ctaBlocked',
     recommended: 'symbol.overview.picks.ctaRecommended',
     available: 'symbol.overview.picks.ctaAvailable',
     discouraged: 'symbol.overview.picks.ctaDiscouraged',
   } as const;
-  const cta = signals.reviewStatus
-    ? t('symbol.overview.picks.ctaReviewed', {
-        status: t(`symbol.review.${signals.reviewStatus}`),
-      })
-    : t(CTA_KEY[advice]);
+  /*
+   * A refusal outranks the review line. A symbol interpreted earlier and refused
+   * on regeneration would otherwise show only 「已核可」, which reads as though
+   * the card is current when the reader's last action failed.
+   */
+  let cta: string;
+  if (advice === 'blocked') cta = t(CTA_KEY.blocked);
+  else if (signals.reviewStatus) {
+    cta = t('symbol.overview.picks.ctaReviewed', {
+      status: t(`symbol.review.${signals.reviewStatus}`),
+    });
+  } else cta = t(CTA_KEY[advice]);
   // Sparkles marks spending, and only spending. It is on the CTA that would start
   // a generation, and on nothing that merely reports one already exists.
   const costsTokens = !signals.reviewStatus && advice === 'recommended';

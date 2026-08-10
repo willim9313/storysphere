@@ -30,14 +30,32 @@ export function InterpretationCta({
 }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const advice = interpretationAdvice(signals);
+  const block = signals.block;
   const strong = advice === 'recommended';
-  const weak = advice === 'discouraged';
+  // Blocked shares the muted treatment with discouraged: neither is an action
+  // the page is asking for. They differ in why, which the copy carries.
+  const weak = advice === 'discouraged' || advice === 'blocked';
   const front = signals.distribution.front;
 
-  const desc = t(`symbol.interpretation.cta.${advice}Desc`, {
-    value: signals.load.toFixed(2),
-    rank,
-  });
+  let buttonTitle: string | undefined;
+  // Not `blockedTitle` — that key is the card heading, via `${advice}Title`.
+  if (block)buttonTitle = t('symbol.interpretation.cta.blockedHint');
+  else if (weak) buttonTitle = t('symbol.interpretation.cta.weakTitle');
+
+  let desc: string;
+  if (block){
+    // provider_empty has no label to quote — the provider said nothing about why.
+    const key =
+      block.reason === 'provider_blocked'
+        ? 'symbol.interpretation.cta.blockedDesc'
+        : 'symbol.interpretation.cta.blockedEmptyDesc';
+    desc = t(key, { detail: block.detail });
+  } else {
+    desc = t(`symbol.interpretation.cta.${advice}Desc`, {
+      value: signals.load.toFixed(2),
+      rank,
+    });
+  }
 
   return (
     <section
@@ -68,8 +86,13 @@ export function InterpretationCta({
         onClick={onGenerate}
         // Discouraged, not forbidden: the reader may know something the signals
         // do not. It costs an extra confirmation rather than being unavailable.
+        //
+        // Blocked stays clickable for the same reason plus a concrete one: a
+        // refusal is recorded against the provider that gave it, and the retry
+        // is how a symbol recovers once a working fallback exists. Disabling it
+        // would make the record permanent.
         disabled={pending}
-        title={weak ? t('symbol.interpretation.cta.weakTitle') : undefined}
+        title={buttonTitle}
       >
         <Sparkles size={13} /> {t(`symbol.interpretation.cta.${advice}Button`)}
       </button>

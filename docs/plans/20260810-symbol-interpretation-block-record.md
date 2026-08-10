@@ -170,18 +170,18 @@ list_interpretations → 戒指 only ← 封鎖紀錄未被誤撈
 `analysis_` 在該位置的冒號／底線之差。這不是純字面前綴問題,已用真實 SQLite 實測確認
 （含 `unraveling.py:573` 的 `count_keys`,計數未被污染）。
 
-### Phase 2 — 後端:端點
+### Phase 2 — 後端:端點 ✅ 已完成(2026-08-10,commit `f98d4e6`)
 
 | 檔案 | 動作 |
 |---|---|
-| `backend/storysphere/api/schemas/symbols.py` | `SymbolOverviewItem` 新增 `interpretation_block` |
+| ~~`backend/storysphere/api/schemas/symbols.py`~~ → `backend/storysphere/domain/symbol_analysis.py` | `SymbolOverviewItem` 新增 `interpretation_block` + `InterpretationBlockStatus`(規劃時把 model 的位置寫錯了 —— 它在 domain,不在 schemas) |
 | `backend/storysphere/api/routers/symbols.py` | overview 疊加 blocks;`analyze-all` 排除 blocked |
 | `docs/API_CONTRACT.md` | 更新 #15i / #15j |
 | `tests/api/test_symbols.py` | overview 回傳 block 欄位;批次跳過 blocked |
 
 完成後在 `frontend/` 跑 `npm run gen:types`。
 
-### Phase 3 — 前端
+### Phase 3 — 前端 ✅ 已完成(3a `eb1366f` / 3b 本次)
 
 | 檔案 | 動作 |
 |---|---|
@@ -193,7 +193,13 @@ list_interpretations → 戒指 only ← 封鎖紀錄未被誤撈
 | `frontend/src/i18n/locales/{en,zh-TW}/analysis.json` | 新文案 |
 | `docs/UI_SPEC.md` | 新狀態 |
 
-檔案數偏多,實作前可能再拆成 3a(資料流)/ 3b(呈現)。
+實際拆成 **3a 資料流**(`symbolSignals` 帶 `block`、`useSymbolCheck` 排除)與
+**3b 呈現**(`interpretationAdvice` 的 `blocked` 判定、CTA、徽章、i18n、UI_SPEC)。
+
+> 拆點與原先設想不同:`interpretationAdvice` 的 `blocked` 判定**必須與文案同一批**。
+> 它會讓 `SymbolsDashboard` 的 `CTA_KEY`(`as const` 完整映射)出現型別錯誤,而
+> `InterpretationCta` 用 template literal 組 key,缺文案時是 runtime 顯示原始 key。
+> 判定放 3a、文案放 3b 會留下一個畫面顯示 i18n key 的中間狀態。
 
 ---
 

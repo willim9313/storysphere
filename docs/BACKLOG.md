@@ -52,11 +52,18 @@ provider 層的封鎖或空回應，在這套程式碼裡都會長成 `no_json_f
 - 封鎖記錄寫入 `symbol_analysis_block:{book}:{imagery}`，成功時自動清除
 - 詳見 `docs/plans/20260810-symbol-interpretation-block-record.md`
 
+**Phase 2 已完成（`f98d4e6`）**: overview 疊加 `interpretation_block`；`analyze-all`
+預設排除已被拒絕者並計入 `skipped`；`docs/API_CONTRACT.md` 已更新 #15i / #15j。
+
+**Phase 3 已完成（3a `eb1366f` / 3b 見下方 commit）**: `SymbolSignals` 帶 `block`；
+`interpretationAdvice()` 新增 **優先於 load 門檻** 的 `blocked` 判定 —— 這是「頁面把
+最顯眼的推薦位給唯一產不出來的意象」真正被修掉的地方；側欄 BlockBadge；CTA 的
+blocked 分支引用 provider 自己的標籤；批次勾選排除已被拒絕者。
+
 **剩餘待辦**:
-- Phase 2：overview 疊加封鎖狀態、批次預設排除已被擋者（計入 `skipped`）
-- Phase 3：側欄徽章與 CTA 改為陳述「已嘗試 · 被 provider 阻擋」，取代目前
-  「訊號夠強 —— 值得把它寫成一段論證」把讀者推向唯一產不出來的意象
-- **真正的解法是可用的 fallback provider —— 見 B-075，那是本條目的前置**
+- **真正的解法是可用的 fallback provider —— 見 B-075**。本條目的工程面已完成：
+  拒絕會被正確辨識、記錄、呈現、且不再重複消耗配額。但「手」在只有 Gemini 的環境下
+  仍然產不出詮釋，那不是這裡能修的。
 
 **明確不做**: prompt 擾動重試（砍掉前一兩段證據再送）。雖然實測可通過，但會讓詮釋
 根據哪些證據產出變得不確定。列為最後手段。
@@ -1206,7 +1213,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-063 | 關係圖角色名冊比對支援 KG 別名 | 🟢 低 | 待開始（觸發：灰圈誤判回報累積） |
 | B-064 | 未分析卡「生成分析」按鈕文字對齊 canvas「建立」 | 🟢 低 | 待開始（觸發：下次動到角色清單卡片） |
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |
-| B-073 | Gemini 對「手」的提示回報 PROHIBITED_CONTENT | 🔴 高 | 進行中（2026-08-10 重新診斷，原「no_json_found」判斷已推翻；Phase 1 已完成 `1e2ef06`，Phase 2/3 未做） |
+| B-073 | Gemini 對「手」的提示回報 PROHIBITED_CONTENT | 🔴 高 | 工程面已完成（2026-08-10，Phase 1–3）；「手」仍待可用的 fallback provider，見 B-075 |
 | B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 待開始（2026-08-08 實作 D4/D6 時查證；前端已加警告，後端未修） |
 | B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 主體已完成（2026-08-10 `c218cb8`）；剩 `Settings.has_*` 收斂 |
 | B-076 | provider 封鎖在 30+ 呼叫點偽裝成解析失敗 | 🟡 中 | 待開始（觸發：B-075 修好後；象徵路徑已有參考實作） |

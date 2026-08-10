@@ -48,7 +48,7 @@ export function useSymbolCheck(analysis: SymbolAnalysis | null): SymbolCheck {
     () =>
       new Set(
         (analysis?.main ?? [])
-          .filter((s) => !s.hasInterpretation && s.block === null)
+          .filter((s) => !s.hasInterpretation && !s.block)
           .map((s) => s.id),
       ),
     [analysis],
