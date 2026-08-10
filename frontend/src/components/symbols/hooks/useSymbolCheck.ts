@@ -37,10 +37,19 @@ export function useSymbolCheck(analysis: SymbolAnalysis | null): SymbolCheck {
   const [active, setActive] = useState(false);
   const [checked, setChecked] = useState<ReadonlySet<string>>(() => new Set());
 
+  /*
+   * A refused symbol is excluded for the same reason an interpreted one is: the
+   * run would skip it. The backend skips refusals by default (#15j) because
+   * re-sending an identical prompt is refused identically, so offering the
+   * checkbox promises work that will not happen — the reader ticks six, the
+   * tally says "1 generated, 5 skipped", and nothing on screen says which five.
+   */
   const candidates = useMemo(
     () =>
       new Set(
-        (analysis?.main ?? []).filter((s) => !s.hasInterpretation).map((s) => s.id),
+        (analysis?.main ?? [])
+          .filter((s) => !s.hasInterpretation && s.block === null)
+          .map((s) => s.id),
       ),
     [analysis],
   );

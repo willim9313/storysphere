@@ -19,6 +19,7 @@
 
 import type {
   CoOccurringEntityRef,
+  InterpretationBlockStatus,
   Polarity,
   SymbolOverview,
   SymbolOverviewItem,
@@ -133,6 +134,19 @@ export interface SymbolSignals {
   /** Null until an interpretation exists — the normal state for most symbols. */
   readonly reviewStatus: SymbolReviewStatus | null;
   readonly polarity: Polarity | null;
+  /**
+   * Set when the provider refused to interpret this symbol.
+   *
+   * Separate from `hasInterpretation` because the two are independent, not two
+   * points on one scale: a symbol can hold an interpretation from an earlier run
+   * and a refusal from a later regeneration. Collapsing them into one status
+   * would have to pick which of the two to forget.
+   *
+   * Without it, a refused symbol is indistinguishable from one nobody has spent
+   * tokens on — and refusals land on strong symbols as readily as weak ones, so
+   * the page ends up recommending the one thing it cannot deliver.
+   */
+  readonly block: InterpretationBlockStatus | null;
 }
 
 /**
@@ -334,6 +348,7 @@ export function analyseSymbols(overview: SymbolOverview): SymbolAnalysis {
       hasInterpretation: interpretation !== null,
       reviewStatus: interpretation?.review_status ?? null,
       polarity: interpretation?.polarity ?? null,
+      block: r.item.interpretation_block ?? null,
     };
   });
 

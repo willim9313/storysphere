@@ -15,6 +15,8 @@ export type SymbolOverviewItem = components['schemas']['SymbolOverviewItem'];
 export type CoOccurringEntityRef = components['schemas']['CoOccurringEntityRef'];
 export type CoOccurringImageryRef = components['schemas']['CoOccurringImageryRef'];
 export type InterpretationStatus = components['schemas']['InterpretationStatus'];
+export type InterpretationBlockStatus =
+  components['schemas']['InterpretationBlockStatus'];
 
 // ── Derived literal types ─────────────────────────────────────────────────────
 // ImageryType: backend exposes imagery_type as plain str (not an OpenAPI enum),

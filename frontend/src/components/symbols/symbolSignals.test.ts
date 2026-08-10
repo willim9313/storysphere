@@ -452,3 +452,59 @@ describe('interpretationAdvice', () => {
     expect(analysis.tail.every((s) => interpretationAdvice(s) === 'discouraged')).toBe(true);
   });
 });
+
+describe('provider refusals', () => {
+  const refusal = {
+    reason: 'provider_blocked',
+    detail: 'PROHIBITED_CONTENT',
+    blocked_at: '2026-08-10T00:00:00Z',
+  } as const;
+
+  const analyse = (overrides: Partial<SymbolOverviewItem>) =>
+    analyseSymbols(
+      makeOverview(
+        TIDE_ROWS.map(([t]) => makeItem(t, t === '手' ? overrides : {})),
+      ),
+    );
+
+  const find = (analysis: ReturnType<typeof analyseSymbols>, term: string) =>
+    analysis.all.find((s) => s.term === term)!;
+
+  it('is null for a symbol nobody has tried', () => {
+    expect(find(analyse({}), '手').block).toBeNull();
+  });
+
+  it('carries the provider label through so the reason can be stated', () => {
+    const block = find(analyse({ interpretation_block: refusal }), '手').block;
+    expect(block?.reason).toBe('provider_blocked');
+    expect(block?.detail).toBe('PROHIBITED_CONTENT');
+  });
+
+  it('does not suppress the symbol or alter its load', () => {
+    // A refusal says nothing about how the symbol behaves in the book. 手 is a
+    // real 名字的潮汐 case: refused, and one of the strongest signals it has.
+    const blocked = find(analyse({ interpretation_block: refusal }), '手');
+    const clean = find(analyse({}), '手');
+    expect(blocked.load).toBe(clean.load);
+    expect(blocked.distribution).toEqual(clean.distribution);
+  });
+
+  it('is independent of an interpretation, not an alternative to one', () => {
+    // Interpreted once, refused on a later regeneration — both are true, and a
+    // single status field would have to forget one of them.
+    const signals = find(
+      analyse({
+        interpretation: {
+          review_status: 'approved',
+          polarity: 'mixed',
+          confidence: 0.8,
+        },
+        interpretation_block: refusal,
+      }),
+      '手',
+    );
+    expect(signals.hasInterpretation).toBe(true);
+    expect(signals.reviewStatus).toBe('approved');
+    expect(signals.block?.reason).toBe('provider_blocked');
+  });
+});
