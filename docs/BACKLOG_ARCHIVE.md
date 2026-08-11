@@ -5,6 +5,36 @@
 
 ---
 
+## B-046 建構概覽：節點「觸發建構」CTA 對接 pipeline endpoint ✅ Phase 1 完成（2026-08-11）
+**背景**: 2026-05-26 的 Direction A · Diagnostic Dashboard 重設計在「status ≠ complete 且無 blockers」時規劃了帶具體動作文字的主色 CTA，但一直以 disabled 灰按鈕（「觸發建構功能規劃中」）占位，pipeline 未接。
+
+**先修的既有 bug**: `POST /books/:bookId/rerun/:step` 的背景協程 `_run_rerun_step` 只呼叫 `update_pipeline_status`，沒有 `save_document`。`SummarizationPipeline` / `FeatureExtractionPipeline` 是就地修改 `Document`、不碰 SQLite（落盤是 workflow 的責任，見 `ingestion.py` 兩處 `save_document`），所以補跑 summarization / feature-extraction 會照呼叫 LLM、照計費，產物卻隨 request 結束消失，只有 `pipeline_status` 被標成 done。CTA 的前兩個節點正好踩在這上面，故一併修掉：
+- 新增 `_DOC_MUTATING_STEPS`（`summarization`、`feature-extraction`）與 `_persist_step_output()` helper
+- **失敗路徑也存**：summarization 會跳過已有摘要的章節，把 rate-limit 中斷前完成的部分存下來，才是下次補跑能「續跑」而非重跑的前提
+- 存檔失敗只記 warning 不讓 task 轉 error（與 ingestion workflow 一致）
+- `knowledge-graph` / `symbol-discovery` 刻意不存：產物寫進 KG / symbol store，重寫整份 chapter/paragraph row 是有成本無效果
+
+**前端實作**（`BuildOverviewPage.tsx`）:
+- `NODE_TO_TRIGGER` 對照表（與既有 `NODE_TO_ROUTE` 同層），`TriggerDef = { run, dropsDerived }`
+- 觸發全部復用既有端點：`rerunStep`（summaries / keywords / symbols / kg_*）、`triggerBatchEntityAnalysis`（cep、character_analysis_result）、`triggerBatchEventAnalysis`（eep、causality_analysis、impact_analysis）。CEP 與 character_analysis_result 回報同一組計數、同一次批次產出，故共用 trigger
+- 確認視窗用既有 `ConfirmDialog`；`dropsDerived` 的 run（三個 rerun step）額外加一句「既有分析結果將被刪除」——只講 token 不足以描述 `invalidate_for_steps` 的後果
+- 輪詢用既有 `useTaskPolling`，不自己寫遞迴 poll
+- **running 狀態用推導而非另存 state**：taskId 保留、由 `task.status` 判斷是否仍在跑。清掉 taskId 會讓輪詢查詢無法回報結束方式，且 `setState` in effect 會觸發 `react-hooks/set-state-in-effect`
+- `<NodeDetail key={selectedNode.nodeId}>`：不加 key 的話切換節點時 CTA state 會殘留，A 節點的執行中狀態會顯示在 B 節點上
+- 未接的節點（`teu`、`voice_profile`、`chronological_rank`、`narrative_structure` 等）維持原本的 disabled 占位
+
+**刻意不接 `narrative_structure`**: `POST /narrative/classify` 對已失去 event EEP 快取的書會覆寫 KG 的 kernel 權重（《名字的潮汐》已受影響）。這種副作用不適合放在一鍵 CTA 後面。
+
+**i18n**: `unraveling.cta.*`（zh-TW + en）——`node.<nodeId>.{partial,empty}` 每個節點兩句具體動作，`generic.*` 作為 `defaultValue` fallback，`confirm.*` 四句組成確認視窗文案（ConfirmDialog 用單一 `<p>` 渲染，故以連續句子而非換行組合）。
+
+**實作**: `backend/storysphere/api/routers/books.py`、`frontend/src/pages/BuildOverviewPage.tsx`、`frontend/src/i18n/locales/{zh-TW,en}/analysis.json`
+
+**測試**: `tests/api/test_books_rerun.py` 新增 `TestRerunPersistsDocumentOutput`（5 tests — 兩個 doc-mutating step 各驗成功與失敗都落盤、兩個非 doc step 不重寫、存檔失敗不讓 task 轉 error）
+
+**驗證**: 真實 app 走過四種狀態——active CTA（cep「分析全書角色」）、`dropsDerived` 確認文案（kg_event）、blocker 版（teu）、無端點占位版（voice_profile）；並用 playwright route mock 驗 POST → 輪詢 → done 後 invalidate `['buildOverview', bookId]` 的完整接線與錯誤訊息呈現，未實際消耗 token。
+
+---
+
 ## B-043 閱讀頁：欄 2 章節搜尋 ✅ 完成（2026-05-14）
 **背景**: 欄 2 章節列表為純線性排列，用戶記得角色或關鍵詞但不記得章節時摩擦極高。
 **實作**:

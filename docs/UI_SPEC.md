@@ -1258,7 +1258,8 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 - **章節分佈 sparkline**（僅 5 個支援的節點：`paragraphs / summaries / keywords / kg_event / symbols`）：12-bar mini chart，資料來自 #19b
 - **行動區**（status ≠ complete 時）：
   - 若有未完成上游依賴：顯示 blocker chips + disabled CTA「需先完成上游 N 個依賴」
-  - 否則：disabled CTA「觸發建構功能規劃中」（Backlog #7 視覺占位）
+  - 否則若節點有對應的建構 pipeline：主色 active CTA，文案依 nodeId × 狀態給具體動作（partial →「補齊剩餘章節摘要」、empty →「生成章節摘要」）。按下先開 token 確認視窗（見 §5.3），確認後觸發並轉為 disabled「建構中…」+ 目前 stage 與百分比；完成後自動重抓 manifest，失敗則在 CTA 下方顯示錯誤訊息並可重試
+  - 否則（尚無對應端點的節點，如 `teu` / `voice_profile` / `chronological_rank` / `narrative_structure`）：disabled CTA「觸發建構功能規劃中」
   - 若節點對應某書內頁面：顯示 secondary CTA「前往對應頁面瀏覽」（連結至 graph / symbols / characters / events / timeline / tension）
 - **原始計數**：`counts` raw key/value 列表
 - **附加資訊**：`meta` raw key/value 列表
@@ -1287,9 +1288,10 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 - 全局進度 Summary Strip
 - 點擊節點 → Inspector 切到節點細節（含進度、章節分佈、blockers、跳轉 CTA）
 - DAG 內 highlight + fade 鄰居節點
+- CTA「觸發建構」（Phase 1，12 個節點）：summaries / keywords / symbols / kg_entity·concept·relation·event / cep / character_analysis_result / eep / causality_analysis / impact_analysis
 
 **規劃中（Backlog）**：
-- Backlog #7：CTA「觸發建構」實際呼叫對應 pipeline endpoint
+- B-046 Phase 2：其餘節點的觸發 CTA（tension / hero journey / temporal 端點已存在；`narrative_structure` 需先讓 classify 對缺 EEP 快取的情況安全；`teu` / `voice_profile` / `chronological_rank` 需新增後端批次端點）
 - 章節分佈擴展到 `kg_entity` / `kg_concept`（需 domain model 加上 chapter linkage）
 
 #### API 參考
@@ -1570,6 +1572,7 @@ WebSocket 連線，含訊息列表 + 輸入框。
 | 一鍵生成全部事件 EEP | 將對 N 個未分析事件執行深度分析，已分析的自動跳過，消耗大量 token |
 | 觸發時序計算 | 此操作將消耗 token，計算事件的故事世界時序排列 |
 | 知識圖譜頁「生成深度分析」 | 確認後消耗 token，結果同步至角色分析頁 |
+| 建構概覽頁節點 CTA「觸發建構」 | 說明即將執行的動作 + 會呼叫 LLM 並消耗 token、已完成部分自動跳過；若該步驟會重新產生實體與事件（`rerun/*`），額外聲明依賴它們的既有分析結果將被刪除 |
 
 ---
 
@@ -1583,7 +1586,7 @@ WebSocket 連線，含訊息列表 + 輸入框。
 4. **框架索引反查角色**：從原型反查書中對應角色，需配合書籍層級資料對接。
 5. **全站搜尋**：sidebar 搜尋 icon 為未來功能佔位。
 6. **知識圖譜 → 閱讀頁定位**：從圖譜段落面板點擊 chunk，跳轉至閱讀頁並定位對應位置。
-7. **建構概覽 — 觸發互動**：在 UnravelingPage 的 Detail Panel 內直接觸發對應 pipeline 建構。
+7. **建構概覽 — 觸發互動**：Phase 1 已實作（見 §3.10）；其餘節點見 Backlog B-046 Phase 2。
 8. **時間軸 — 因果鏈聚焦模式**：toggle 僅顯示 `relation_type = causes` 的邊與相關事件。
 9. **時間軸 — 角色弧線模式**：選定角色後，僅顯示該角色參與的事件。
 10. **設定頁大改版**：當前 KG backend 切換方式過於技術導向，未來改為更清晰的儲存後端設定模式，或由系統自動管理。

@@ -1179,6 +1179,71 @@
       "meta": "附加資訊",
       "triggerSoon": "觸發建構功能規劃中"
     },
+    "cta": {
+      "running": "建構中…",
+      "failed": "觸發失敗",
+      "generic": {
+        "partial": "補齊剩餘部分",
+        "empty": "開始建構"
+      },
+      "node": {
+        "summaries": {
+          "partial": "補齊剩餘章節摘要",
+          "empty": "生成章節摘要"
+        },
+        "keywords": {
+          "partial": "補齊剩餘關鍵字",
+          "empty": "萃取關鍵字"
+        },
+        "symbols": {
+          "partial": "繼續探索象徵",
+          "empty": "探索象徵"
+        },
+        "kg_entity": {
+          "partial": "補齊圖譜實體",
+          "empty": "建立知識圖譜"
+        },
+        "kg_concept": {
+          "partial": "補齊圖譜概念",
+          "empty": "建立知識圖譜"
+        },
+        "kg_relation": {
+          "partial": "補齊圖譜關係",
+          "empty": "建立知識圖譜"
+        },
+        "kg_event": {
+          "partial": "補齊圖譜事件",
+          "empty": "建立知識圖譜"
+        },
+        "cep": {
+          "partial": "分析剩餘角色",
+          "empty": "分析全書角色"
+        },
+        "character_analysis_result": {
+          "partial": "分析剩餘角色",
+          "empty": "分析全書角色"
+        },
+        "eep": {
+          "partial": "分析剩餘事件",
+          "empty": "分析全書事件"
+        },
+        "causality_analysis": {
+          "partial": "分析剩餘事件",
+          "empty": "分析全書事件"
+        },
+        "impact_analysis": {
+          "partial": "分析剩餘事件",
+          "empty": "分析全書事件"
+        }
+      },
+      "confirm": {
+        "title": "確認觸發建構",
+        "intro": "即將執行：{{action}}。",
+        "token": "此操作會呼叫 LLM 並消耗 token，已完成的部分會自動跳過。",
+        "dropsDerived": "此步驟會重新產生實體與事件，依賴它們的既有分析結果將被刪除，需要重新生成。",
+        "start": "開始建構"
+      }
+    },
     "layer": {
       "0": "文本層",
       "1": "知識圖譜",
