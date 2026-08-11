@@ -748,7 +748,9 @@ type TaskListResponse = TaskStatus[];  // TaskStatus 定義見 #8；murmurEvents
 
 **Response 422**：step 名稱無效
 
-**說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `['book', bookId]` query 以重整書籍資料。
+**說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `['book', bookId]` query 以重整書籍資料；若從建構概覽頁觸發，另需 invalidate `['buildOverview', bookId]`。
+
+`summarization` 與 `feature-extraction` 的產物（章節摘要、章節關鍵字）寫在 Document 上，補跑會在步驟結束時落盤，**失敗時也會存下已完成的部分** —— summarization 會跳過已有摘要的章節，因此中斷後再次補跑是續跑而非重跑。`knowledge-graph` 與 `symbol-discovery` 的產物寫在 KG / symbol store，不經此路徑。
 | 事件深度分析（單一） | #7e |
 | 批次事件 EEP | #7g |
 | 時序計算 | #13b |
