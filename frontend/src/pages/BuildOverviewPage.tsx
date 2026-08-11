@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -9,11 +9,16 @@ import {
   ExternalLink,
   Filter,
   Layers,
+  Loader2,
   PlayCircle,
   RotateCw,
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { rerunStep, type RerunStep } from '@/api/ingest';
+import { triggerBatchEntityAnalysis, triggerBatchEventAnalysis } from '@/api/analysis';
 import {
   fetchBuildOverview,
   fetchChapterDistribution,
@@ -127,6 +132,47 @@ const NODE_TO_ROUTE: Record<string, string> = {
   chronological_rank: 'timeline',
   tension_lines: 'tension',
   tension_theme: 'tension',
+};
+
+// Map node → the pipeline that builds it. Nodes absent here have no batch
+// endpoint to call yet (teu, voice_profile, chronological_rank) or are too
+// destructive to put behind a one-click CTA (narrative_structure: classifying
+// a book whose EEP cache is gone rewrites the KG's kernel weights), and keep
+// the disabled placeholder.
+//
+// `dropsDerived` marks the runs that regenerate the ids downstream analyses
+// were keyed by — those cached analyses are deleted, so the confirm dialog has
+// to say more than "this costs tokens".
+interface TriggerDef {
+  run: (bookId: string) => Promise<{ taskId: string }>;
+  dropsDerived: boolean;
+}
+
+function rerunTrigger(step: RerunStep, dropsDerived: boolean): TriggerDef {
+  return { run: (bookId: string) => rerunStep(bookId, step), dropsDerived };
+}
+
+const KG_RERUN = rerunTrigger('knowledge-graph', true);
+const ENTITY_BATCH: TriggerDef = { run: triggerBatchEntityAnalysis, dropsDerived: false };
+const EVENT_BATCH: TriggerDef = { run: triggerBatchEventAnalysis, dropsDerived: false };
+
+const NODE_TO_TRIGGER: Record<string, TriggerDef> = {
+  // Summarization skips chapters that already have a summary, so this fills
+  // the gap rather than rebuilding — and it deletes no derived analysis.
+  summaries: rerunTrigger('summarization', false),
+  keywords: rerunTrigger('feature-extraction', true),
+  symbols: rerunTrigger('symbol-discovery', true),
+  kg_entity: KG_RERUN,
+  kg_concept: KG_RERUN,
+  kg_relation: KG_RERUN,
+  kg_event: KG_RERUN,
+  // CEP is the evidence package the character analysis is built from; both
+  // nodes report the same counts and come from the same batch run.
+  cep: ENTITY_BATCH,
+  character_analysis_result: ENTITY_BATCH,
+  eep: EVENT_BATCH,
+  causality_analysis: EVENT_BATCH,
+  impact_analysis: EVENT_BATCH,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -730,11 +776,52 @@ function NodeDetail({
   node, bookId, manifest, chapterDist, onBack,
 }: Readonly<NodeDetailProps>) {
   const { t } = useTranslation('analysis');
+  const queryClient = useQueryClient();
   const statusLabel = t(`unraveling.status.${node.status}`);
   const progress = progressFor(node, t);
   const blockers = getBlockers(node.nodeId, manifest);
   const hasBlockers = blockers.length > 0 && node.status !== 'complete';
   const route = NODE_TO_ROUTE[node.nodeId];
+
+  const trigger = NODE_TO_TRIGGER[node.nodeId];
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [taskId, setTaskId] = useState<string | null>(null);
+  const [triggerError, setTriggerError] = useState<string | null>(null);
+  const { data: task } = useTaskPolling(taskId);
+
+  // Derived rather than stored: the task's own status already says whether the
+  // run is over, so clearing taskId on completion would only duplicate it (and
+  // stop the polling query from reporting how it ended). Polling halts on its
+  // own once the status is terminal.
+  const taskStatus = task?.status;
+  const running = taskId !== null && taskStatus !== 'done' && taskStatus !== 'error';
+  const ctaError = triggerError
+    ?? (taskStatus === 'error' ? (task?.error ?? t('unraveling.cta.failed')) : null);
+
+  useEffect(() => {
+    if (taskStatus !== 'done') return;
+    // The manifest is where the whole page reads node status from, so refetch
+    // it rather than patching the one node we know changed.
+    void queryClient.invalidateQueries({ queryKey: ['buildOverview', bookId] });
+  }, [taskStatus, queryClient, bookId]);
+
+  const handleConfirm = async () => {
+    setConfirmOpen(false);
+    setTriggerError(null);
+    try {
+      const { taskId: id } = await trigger.run(bookId);
+      setTaskId(id);
+    } catch (e) {
+      setTriggerError(e instanceof Error ? e.message : t('unraveling.cta.failed'));
+    }
+  };
+
+  // Node-specific copy ("補齊剩餘章節摘要"), falling back to a generic phrasing
+  // for nodes whose CTA has no dedicated line yet.
+  const ctaState = node.status === 'partial' ? 'partial' : 'empty';
+  const ctaLabel = t(`unraveling.cta.node.${node.nodeId}.${ctaState}`, {
+    defaultValue: t(`unraveling.cta.generic.${ctaState}`),
+  });
 
   const openPageButton = route ? (
     <Link to={`/books/${bookId}/${route}`} className="bo-cta secondary">
@@ -812,10 +899,31 @@ function NodeDetail({
               </button>
             </>
           ) : (
-            <button type="button" className="bo-cta bo-cta-disabled" disabled>
-              <PlayCircle size={12} />
-              {t('unraveling.detail.triggerSoon')}
-            </button>
+            <>
+              {trigger ? (
+                <button
+                  type="button"
+                  className={`bo-cta ${running ? 'bo-cta-disabled' : ''}`}
+                  disabled={running}
+                  onClick={() => setConfirmOpen(true)}
+                >
+                  {running ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
+                  {running ? t('unraveling.cta.running') : ctaLabel}
+                </button>
+              ) : (
+                <button type="button" className="bo-cta bo-cta-disabled" disabled>
+                  <PlayCircle size={12} />
+                  {t('unraveling.detail.triggerSoon')}
+                </button>
+              )}
+              {running && task?.stage && (
+                <div className="bo-cta-hint">
+                  {task.stage}
+                  {task.progress > 0 ? ` · ${task.progress}%` : ''}
+                </div>
+              )}
+              {ctaError && <div className="bo-cta-hint">{ctaError}</div>}
+            </>
           )}
           {openPageButton}
         </div>
@@ -841,6 +949,24 @@ function NodeDetail({
             ))}
           </div>
         </div>
+      )}
+
+      {/* ConfirmDialog renders its message in a single <p>, so the parts are
+          composed into running sentences rather than separate lines. */}
+      {trigger && (
+        <ConfirmDialog
+          open={confirmOpen}
+          title={t('unraveling.cta.confirm.title')}
+          message={[
+            t('unraveling.cta.confirm.intro', { action: ctaLabel }),
+            t('unraveling.cta.confirm.token'),
+            trigger.dropsDerived ? t('unraveling.cta.confirm.dropsDerived') : '',
+          ].filter(Boolean).join(' ')}
+          confirmLabel={t('unraveling.cta.confirm.start')}
+
+          onConfirm={() => void handleConfirm()}
+          onCancel={() => setConfirmOpen(false)}
+        />
       )}
 
       {Object.keys(node.meta).length > 0 && (
@@ -937,6 +1063,9 @@ export default function BuildOverviewPage() {
           <div className="bo-inspector-body">
             {selectedNode ? (
               <NodeDetail
+                // Keyed so switching nodes resets the CTA state — otherwise a
+                // run started on one node reads as running on the next.
+                key={selectedNode.nodeId}
                 node={selectedNode}
                 bookId={bookId}
                 manifest={manifest}

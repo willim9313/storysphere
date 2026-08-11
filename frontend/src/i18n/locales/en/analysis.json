@@ -1179,6 +1179,71 @@
       "meta": "Metadata",
       "triggerSoon": "Build trigger coming soon"
     },
+    "cta": {
+      "running": "Building…",
+      "failed": "Could not start the run",
+      "generic": {
+        "partial": "Fill in what's missing",
+        "empty": "Start building"
+      },
+      "node": {
+        "summaries": {
+          "partial": "Summarize the remaining chapters",
+          "empty": "Generate chapter summaries"
+        },
+        "keywords": {
+          "partial": "Extract the remaining keywords",
+          "empty": "Extract keywords"
+        },
+        "symbols": {
+          "partial": "Continue symbol discovery",
+          "empty": "Discover symbols"
+        },
+        "kg_entity": {
+          "partial": "Fill in the missing entities",
+          "empty": "Build the knowledge graph"
+        },
+        "kg_concept": {
+          "partial": "Fill in the missing concepts",
+          "empty": "Build the knowledge graph"
+        },
+        "kg_relation": {
+          "partial": "Fill in the missing relations",
+          "empty": "Build the knowledge graph"
+        },
+        "kg_event": {
+          "partial": "Fill in the missing events",
+          "empty": "Build the knowledge graph"
+        },
+        "cep": {
+          "partial": "Analyze the remaining characters",
+          "empty": "Analyze every character"
+        },
+        "character_analysis_result": {
+          "partial": "Analyze the remaining characters",
+          "empty": "Analyze every character"
+        },
+        "eep": {
+          "partial": "Analyze the remaining events",
+          "empty": "Analyze every event"
+        },
+        "causality_analysis": {
+          "partial": "Analyze the remaining events",
+          "empty": "Analyze every event"
+        },
+        "impact_analysis": {
+          "partial": "Analyze the remaining events",
+          "empty": "Analyze every event"
+        }
+      },
+      "confirm": {
+        "title": "Start this build?",
+        "intro": "About to run: {{action}}.",
+        "token": "This calls the LLM and costs tokens; anything already built is skipped.",
+        "dropsDerived": "This step regenerates entities and events, so the analyses derived from them are deleted and will need rebuilding.",
+        "start": "Start building"
+      }
+    },
     "layer": {
       "0": "Text",
       "1": "Knowledge Graph",

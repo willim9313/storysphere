@@ -385,18 +385,21 @@ paragraph／chunk 參照，段落層級目前做不到。
 
 ---
 
-#### B-046 建構概覽：節點「觸發建構」CTA 對接 pipeline endpoint
+#### B-046 建構概覽：節點「觸發建構」CTA 對接 pipeline endpoint ✅ Phase 1 已完成（2026-08-11）
 > 原 B-044，2026-06-30 重編：原號與已歸檔的「閱讀頁 EpistemicSidePanel 入口優化」撞號。
-**背景**: 建構概覽頁（`/books/:bookId/unraveling`）2026-05-26 重設計（Direction A · Diagnostic Dashboard）把 detail panel 升級為含 progress card + 章節分佈 + blocker chips + CTA 的診斷儀表板。設計稿在「status≠complete 且無 blockers」情境下提供主色 active CTA 帶具體動作文字（例：「補齊剩餘章節摘要」「萃取關鍵字」），意圖讓用戶從 unraveling 直接觸發對應 pipeline。
 
-**目前狀態**: CTA 已以 **disabled 灰按鈕** 形式呈現（文案「觸發建構功能規劃中」），誠實標示尚未實作。視覺占位完成，pipeline 觸發未接。
+Phase 1 接上 12 個節點（summaries / keywords / symbols / kg_entity·concept·relation·event /
+cep / character_analysis_result / eep / causality_analysis / impact_analysis），含 token 確認
+視窗與 task 輪詢；同時修好 rerun 端點不落盤章節摘要與關鍵字的既有 bug。詳見
+[BACKLOG_ARCHIVE.md](BACKLOG_ARCHIVE.md)。
 
-**待辦內容**:
-- 為每個 chapter-aware 節點定義對應的觸發 endpoint（例：summaries → `POST /summarize/batch`、kg_entity → `POST /kg/extract`、cep/eep → 既有 `/analysis/*`）
-- 前端：將 `BuildOverviewPage.tsx` 內 `NodeDetail` 的 disabled CTA 改為 active，按下 → 呼叫對應 endpoint + 顯示 task polling 狀態
-- 文案：把設計稿 `data.js:NODE_CTA` 對照表搬到 i18n（`unraveling.cta.*`），每個 nodeId 對 partial / empty 兩種狀態各一句具體動作
-- Token 消耗確認視窗：依 [UI_SPEC.md](UI_SPEC.md) §5.3「Token 消耗提示規則」加 confirm dialog
-- 後端：若對應 pipeline 尚未有獨立 endpoint（如 `kg_temporal_relation`、`teu`、Layer 3+ 衍生分析），需新增；可分階段做（先做最常用的 summaries/keywords/kg_entity/cep/eep）
+**Phase 2 待辦（仍為 disabled 占位的節點）**:
+- `tension_lines` / `tension_theme` / `hero_journey_stage` / `temporal_analysis`：端點已存在
+  （`/tension/analyze`、`/tension/theme/synthesize`、`/narrative/hero-journey`、`/narrative/temporal`），
+  只需補進 `BuildOverviewPage.tsx` 的 `NODE_TO_TRIGGER` 與 i18n `unraveling.cta.node.*`
+- `narrative_structure`：對應的 `POST /narrative/classify` 在書已失去 event EEP 快取時會覆寫 KG 的
+  kernel 權重，放進一鍵 CTA 太危險。需先讓 classify 對缺快取的情況安全，才能接上
+- `teu` / `voice_profile` / `chronological_rank` / `kg_temporal_relation`：無對應批次端點，需先新增後端
 
 **前置依賴**: 對應 pipeline 的後端 endpoint 存在；無則需先新增。
 

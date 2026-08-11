@@ -181,6 +181,88 @@ class TestRunRerunStep:
         assert "ghost-book" in (status.error or "")
 
 
+class TestRerunPersistsDocumentOutput:
+    """Chapter summaries and keywords live on the Document, so a rerun must save it.
+
+    The pipelines mutate the Document in place and never write to SQLite — without
+    an explicit save the LLM output is generated, charged for, and then dropped.
+    """
+
+    def _run(self, step, *, failing: bool = False):
+        """Run the step; return the doc_service mock and the Document it saw."""
+        from storysphere.api.routers.books import _run_rerun_step
+        from storysphere.api.store import task_store
+
+        task_id = f"rerun-{uuid4()}"
+        task_store.create(task_id)
+        doc = TestRunRerunStep()._make_doc()
+
+        doc_svc = AsyncMock()
+        doc_svc.get_document = AsyncMock(return_value=doc)
+        doc_svc.update_pipeline_status = AsyncMock()
+        doc_svc.save_document = AsyncMock()
+
+        wf = TestRunRerunStep()._make_workflow_mock()
+        if failing:
+            attr = {
+                "summarization": "_summarization_pipeline",
+                "feature-extraction": "_feature_pipeline",
+            }[step]
+            getattr(wf, attr).run.side_effect = RuntimeError("rate limited")
+
+        kg = AsyncMock()
+        kg.get_events = AsyncMock(return_value=[])
+        with (
+            patch("storysphere.workflows.ingestion.IngestionWorkflow", return_value=wf),
+            patch("storysphere.services.analysis_cache.AnalysisCache", return_value=AsyncMock()),
+            patch("storysphere.config.settings.get_settings"),
+        ):
+            asyncio.run(_run_rerun_step(task_id, "book-x", step, doc_svc, kg))
+        return doc_svc, doc
+
+    @pytest.mark.parametrize("step", ["summarization", "feature-extraction"])
+    def test_saves_document_after_doc_mutating_step(self, step):
+        doc_svc, doc = self._run(step)
+        doc_svc.save_document.assert_awaited_once_with(doc)
+
+    @pytest.mark.parametrize("step", ["summarization", "feature-extraction"])
+    def test_saves_partial_output_when_step_fails(self, step):
+        """A rate-limited run leaves summaries on the chapters it got through;
+        saving them is what lets the next rerun skip and resume."""
+        doc_svc, doc = self._run(step, failing=True)
+        doc_svc.save_document.assert_awaited_once_with(doc)
+
+    @pytest.mark.parametrize("step", ["knowledge-graph", "symbol-discovery"])
+    def test_does_not_rewrite_document_for_non_doc_steps(self, step):
+        """These write to the KG / symbol store, not the Document — rewriting
+        every chapter and paragraph row would be cost without effect."""
+        doc_svc, _ = self._run(step)
+        doc_svc.save_document.assert_not_awaited()
+
+    def test_persist_failure_does_not_fail_the_task(self):
+        from storysphere.api.routers.books import _run_rerun_step
+        from storysphere.api.store import task_store
+
+        task_id = f"rerun-{uuid4()}"
+        task_store.create(task_id)
+        doc_svc = AsyncMock()
+        doc_svc.get_document = AsyncMock(return_value=TestRunRerunStep()._make_doc())
+        doc_svc.update_pipeline_status = AsyncMock()
+        doc_svc.save_document = AsyncMock(side_effect=RuntimeError("disk full"))
+
+        with (
+            patch("storysphere.workflows.ingestion.IngestionWorkflow",
+                  return_value=TestRunRerunStep()._make_workflow_mock()),
+            patch("storysphere.services.analysis_cache.AnalysisCache", return_value=AsyncMock()),
+            patch("storysphere.config.settings.get_settings"),
+        ):
+            asyncio.run(_run_rerun_step(task_id, "book-x", "summarization", doc_svc, AsyncMock()))
+
+        status = task_store.get(task_id)
+        assert status is not None
+        assert status.status == "done"
+
+
 class TestRerunCacheInvalidation:
     """A successful rerun drops the analyses derived from that step."""
 

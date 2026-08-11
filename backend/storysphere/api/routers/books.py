@@ -410,6 +410,29 @@ _RERUN_STEPS = {
     "symbol-discovery",
 }
 
+# Steps whose output lands on the Document itself (chapter summaries, chapter
+# keywords) rather than in the KG or the vector store. Their pipelines mutate
+# the Document in place and never touch SQLite — persisting is the caller's
+# job, which the ingestion workflow does and a rerun otherwise would not.
+_DOC_MUTATING_STEPS = frozenset({"summarization", "feature-extraction"})
+
+
+async def _persist_step_output(doc_service, document, step: str) -> None:
+    """Write back what a rerun of ``step`` produced on the Document.
+
+    Called on the failure path too: the summarization pipeline skips chapters
+    that already have a summary, so saving what a rate-limited run got through
+    is what lets the next rerun resume instead of paying for those chapters
+    again. Failing to save must not turn a successful step into a failed task,
+    so the error is logged and swallowed — same as the ingestion workflow.
+    """
+    if step not in _DOC_MUTATING_STEPS:
+        return
+    try:
+        await doc_service.save_document(document)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Rerun %s persist failed (non-fatal): %s", step, exc)
+
 
 async def _run_rerun_step(
     task_id: str,
@@ -445,6 +468,7 @@ async def _run_rerun_step(
                 document.pipeline_status.summarization = StepStatus.failed
                 task_store.set_failed(task_id, error=str(exc))
                 await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                await _persist_step_output(doc_service, document, step)
                 return
 
         elif step == "feature-extraction":
@@ -455,6 +479,7 @@ async def _run_rerun_step(
                 document.pipeline_status.feature_extraction = StepStatus.failed
                 task_store.set_failed(task_id, error=str(exc))
                 await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+                await _persist_step_output(doc_service, document, step)
                 return
 
         elif step == "knowledge-graph":
@@ -479,6 +504,7 @@ async def _run_rerun_step(
                 return
 
         await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+        await _persist_step_output(doc_service, document, step)
 
         # Only after the step succeeded — a failed rerun leaves the old data in
         # place, so its analyses are still the ones that describe the book.
