@@ -1730,7 +1730,11 @@
       "mappedStatus": "{{mapped}}／{{total}} 階段已映射",
       "kernelStatus": "{{n}} 個核心事件",
       "notAnalyzed": "尚未分析",
-      "running": "分析中"
+      "running": "分析中",
+      "role3": "旁證",
+      "title3": "其他結構線索",
+      "answers3": "時序結構與張力起伏，疊回同一條章節軸",
+      "crossStatus": "{{done}}／2 已分析"
     },
     "phase": {
       "departure": "啟程",
@@ -1840,6 +1844,40 @@
       "classifyConfirmBody": "會依現有的事件分析（EEP）快取重算全書的核心／衛星分類，不呼叫 LLM、不消耗 token。快取已全數遺失時系統會拒絕執行，避免把既有分類抹成未分類。",
       "refineConfirmTitle": "用 LLM 精煉 {{n}} 件未分類事件？",
       "refineConfirmBody": "會對這 {{n}} 件事件各發一次 LLM 請求逐筆判斷核心／衛星，會消耗 token，件數越多越久。判定結果會覆寫這些事件目前的權重。"
+    },
+    "cross": {
+      "title": "疊在同一條章節軸上",
+      "lead": "上面兩塊的結果，和其他分析頁跑出來的結果，放在同一條軸上比對——哪幾章多層一起隆起，哪幾章只有其中一層。",
+      "rowStages": "階段覆蓋",
+      "rowStagesSub": "最多 {{n}}",
+      "rowKernel": "核心事件",
+      "rowKernelSub": "{{n}} 件",
+      "rowTension": "張力峰值",
+      "rowTensionSub": "每章最高 TEU",
+      "notePeak": "第 {{ch}} 章是各層同時到頂的地方：張力 {{tension}}、階段 {{stages}} 的落點、{{kernels}} 件核心事件。",
+      "noteGap": "第 {{ch}} 章有張力也有階段，卻沒有任何核心事件——那是事件分類只跑到第 {{last}} 章，不是那一章沒有事發生。",
+      "temporalTitle": "時序結構",
+      "temporalSub": "Genette · 敘述順序 vs 故事順序",
+      "temporalPending": "跑完會顯示：全書是線性／部分線性／非線性，以及倒敘、預敘各幾筆——那一層會直接疊回上面這條軸。",
+      "temporalResult": "全書時序判定為{{structure}}。",
+      "temporalLink": "在時間軸頁補齊並執行 →",
+      "coverageOk": "故事時間提示覆蓋率 {{pct}}%，足以執行時序分析。",
+      "coverageLow": "故事時間提示覆蓋率 {{pct}}%，尚不足以識別倒敘與預敘。",
+      "tensionTitle": "張力",
+      "tensionSub": "每章最高 TEU 強度",
+      "teuCount": "{{n}} 個 TEU · 已分析",
+      "tensionPending": "這本書還沒有張力分析結果。",
+      "tensionLink": "在張力分析頁看這幾條線 →",
+      "peakKernel": "核心事件 {{n}} 件",
+      "peakNoStage": "不在任何已識別階段內",
+      "analyzed": "已分析",
+      "notAnalyzed": "尚未分析",
+      "structure": {
+        "linear": "線性",
+        "partially_linear": "部分線性",
+        "non_linear": "非線性",
+        "unknown": "未判定"
+      }
     },
     "source": {
       "heuristic": "啟發式分類",

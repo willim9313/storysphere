@@ -620,6 +620,181 @@ a.nl-sd-ev:hover {
   text-wrap: pretty;
 }
 
+/* ③ Cross-evidence — several analyses on one chapter axis. */
+#nl-cross {
+  scroll-margin-top: 16px;
+}
+.nl-index-n-ghost {
+  background: transparent;
+  color: var(--fg-primary);
+  border: 1px solid var(--fg-primary);
+}
+.nl-cross-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.nl-cross-label {
+  text-align: right;
+  padding-right: 4px;
+}
+.nl-cross-label-t {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-primary);
+}
+.nl-cross-label-s {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-cross-cells {
+  display: grid;
+  gap: 3px;
+  align-items: end;
+  height: 30px;
+}
+.nl-cross-ruler {
+  display: grid;
+  gap: 3px;
+  padding-top: 4px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  text-align: center;
+}
+.nl-cross-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+}
+.nl-cross-note-mark {
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+}
+.nl-cross-note p {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-cross-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  padding-top: 18px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+}
+.nl-cross-right {
+  border-left: var(--border-width) var(--border-style) var(--border);
+  padding-left: 16px;
+}
+.nl-cross-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.nl-cross-head h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-cross-sub {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-cross-badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: var(--border-width) var(--border-style) var(--border);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.nl-cross-badge.is-pending {
+  border-style: dashed;
+  border-color: var(--fg-muted);
+  color: var(--fg-muted);
+}
+.nl-cross-ghost {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+}
+.nl-cross-ghost > div {
+  height: 24px;
+  border: 1px dashed var(--border);
+  border-radius: 2px;
+  background: var(--bg-secondary);
+}
+.nl-cross-body {
+  margin: 10px 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-cross-meta {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+.nl-cross-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+}
+.nl-cross-peaks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.nl-cross-peak {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+}
+.nl-cross-peak-ch {
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+  width: 62px;
+  flex-shrink: 0;
+}
+.nl-cross-peak-v {
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+.nl-cross-peak-note {
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
 /* Unclassified events — the part of the book this page cannot show. */
 .nl-unclass {
   border-width: var(--border-width);

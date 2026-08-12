@@ -1730,7 +1730,11 @@
       "mappedStatus": "{{mapped}}/{{total}} stages mapped",
       "kernelStatus": "{{n}} kernel events",
       "notAnalyzed": "Not analyzed",
-      "running": "Analyzing"
+      "running": "Analyzing",
+      "role3": "Cross-evidence",
+      "title3": "Other structural clues",
+      "answers3": "Temporal structure and tension, back on the same chapter axis",
+      "crossStatus": "{{done}}/2 analyzed"
     },
     "phase": {
       "departure": "Departure",
@@ -1840,6 +1844,40 @@
       "classifyConfirmBody": "Recomputes kernel/satellite for the whole book from the existing event-analysis (EEP) cache. No LLM call, no token cost. If every cache entry is gone the server refuses, so existing classifications cannot be wiped.",
       "refineConfirmTitle": "Refine {{n}} unclassified events with the LLM?",
       "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events\\u2019 current weights."
+    },
+    "cross": {
+      "title": "Laid on one chapter axis",
+      "lead": "What the two blocks above found, next to what the other analysis pages found — which chapters swell on several layers at once, and which carry only one.",
+      "rowStages": "Stage coverage",
+      "rowStagesSub": "max {{n}}",
+      "rowKernel": "Kernel events",
+      "rowKernelSub": "{{n}} total",
+      "rowTension": "Tension peak",
+      "rowTensionSub": "highest TEU per chapter",
+      "notePeak": "Chapter {{ch}} is where the layers peak together: tension {{tension}}, stage {{stages}}, {{kernels}} kernel events.",
+      "noteGap": "Chapter {{ch}} carries tension and a stage but no kernel events at all — event classification stops at chapter {{last}}; the chapter is not empty.",
+      "temporalTitle": "Temporal structure",
+      "temporalSub": "Genette · narrative order vs story order",
+      "temporalPending": "Once run this shows whether the book is linear, partially linear or non-linear, and how many analepses and prolepses there are — that layer then joins the axis above.",
+      "temporalResult": "The book reads as {{structure}}.",
+      "temporalLink": "Fill in and run it on the timeline page →",
+      "coverageOk": "Story-time hints cover {{pct}}% of events — enough to run the temporal analysis.",
+      "coverageLow": "Story-time hints cover {{pct}}% of events — not yet enough to identify analepsis and prolepsis.",
+      "tensionTitle": "Tension",
+      "tensionSub": "highest TEU intensity per chapter",
+      "teuCount": "{{n}} TEUs · analyzed",
+      "tensionPending": "This book has no tension analysis yet.",
+      "tensionLink": "See these lines on the tension page →",
+      "peakKernel": "{{n}} kernel events",
+      "peakNoStage": "outside every identified stage",
+      "analyzed": "Analyzed",
+      "notAnalyzed": "Not analyzed",
+      "structure": {
+        "linear": "linear",
+        "partially_linear": "partially linear",
+        "non_linear": "non-linear",
+        "unknown": "undetermined"
+      }
     },
     "source": {
       "heuristic": "Heuristic",

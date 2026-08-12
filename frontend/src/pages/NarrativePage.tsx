@@ -8,6 +8,8 @@ import { useBook } from '@/hooks/useBook';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
 import { fetchChapters } from '@/api/chapters';
+import { fetchTEUs } from '@/api/tension';
+import { fetchTimeline } from '@/api/timeline';
 import { fetchEventAnalyses } from '@/api/analysis';
 import {
   classifyNarrative,
@@ -16,6 +18,7 @@ import {
   fetchKernelSpine,
   fetchNarrativeStructure,
   fetchRefineTask,
+  fetchTemporalCoverage,
   refineNarrative,
   reviewNarrativeStructure,
   triggerHeroJourney,
@@ -24,6 +27,7 @@ import { STAGE_ORDER, getStageTheory, padStages } from '@/components/narrative/h
 import { HeroJourneySection } from '@/components/narrative/HeroJourneySection';
 import { PlotSpine } from '@/components/narrative/PlotSpine';
 import { UnclassifiedBlock } from '@/components/narrative/UnclassifiedBlock';
+import { CrossEvidence } from '@/components/narrative/CrossEvidence';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { EventInfo } from '@/components/narrative/StageDetail';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -168,6 +172,35 @@ export default function NarrativePage() {
     enabled: !!bookId && !structureQuery.isLoading && !hasHeroJourney,
   });
 
+  // ③ cross-evidence reads what the other analysis pages already produced.
+  // Gated on there being an arc to cross-reference, so books without one pay
+  // for none of it.
+  const crossEnabled = !!bookId && hasHeroJourney;
+  const teuQuery = useQuery({
+    queryKey: ['tension', bookId, 'teus'],
+    queryFn: () => fetchTEUs(bookId!),
+    enabled: crossEnabled,
+  });
+  const timelineQuery = useQuery({
+    queryKey: ['books', bookId, 'timeline', 'narrative'],
+    queryFn: () => fetchTimeline(bookId!),
+    enabled: crossEnabled,
+  });
+  const temporalCoverageQuery = useQuery({
+    queryKey: ['narrative', bookId, 'temporal-coverage'],
+    queryFn: () => fetchTemporalCoverage(bookId!),
+    enabled: crossEnabled,
+    retry: false,
+  });
+
+  const tensionByChapter = useMemo(() => {
+    const out: Record<number, number> = {};
+    for (const teu of teuQuery.data ?? []) {
+      out[teu.chapter] = Math.max(out[teu.chapter] ?? 0, teu.intensity);
+    }
+    return out;
+  }, [teuQuery.data]);
+
   const prereq = useMemo(() => {
     const chapters = chaptersQuery.data;
     const summaryTotal = chapters?.length ?? chapterCount;
@@ -238,6 +271,20 @@ export default function NarrativePage() {
       href: '#nl-spine',
     },
   ];
+  if (hasHeroJourney) {
+    // Only listed once the section it points at exists — a table-of-contents
+    // entry for nothing is worse than no entry.
+    const crossDone =
+      (timelineQuery.data?.temporalAnalyzed ? 1 : 0) + ((teuQuery.data?.length ?? 0) > 0 ? 1 : 0);
+    indexCards.push({
+      n: 3,
+      role: t('narrative.index.role3'),
+      title: t('narrative.index.title3'),
+      answers: t('narrative.index.answers3'),
+      status: t('narrative.index.crossStatus', { done: crossDone }),
+      href: '#nl-cross',
+    });
+  }
 
   const unclassifiedIds = structure?.unclassified_event_ids ?? [];
   const lang = i18n.language.startsWith('zh') ? 'zh' : 'en';
@@ -384,6 +431,19 @@ export default function NarrativePage() {
                 {unclassifiedBlock}
               </PlotSpine>
             </div>
+            <CrossEvidence
+              stages={stages}
+              theory={theory}
+              kernelEvents={kernelSpineQuery.data ?? []}
+              tensionByChapter={tensionByChapter}
+              teuCount={teuQuery.data?.length ?? 0}
+              temporalAnalyzed={timelineQuery.data?.temporalAnalyzed ?? false}
+              temporalStructure={timelineQuery.data?.temporalStructure ?? null}
+              temporalCoverage={temporalCoverageQuery.data?.coverage ?? null}
+              temporalSufficient={temporalCoverageQuery.data?.coverage_sufficient ?? false}
+              chapterCount={chapterCount}
+              bookId={bookId!}
+            />
           </>
         ) : (
           <div className="nl-empty">
