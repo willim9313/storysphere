@@ -1518,9 +1518,22 @@ Prompt Tokens / Completion Tokens / 總請求次數
   - `low`（0 < conf < 0.6）：警示三角（`--color-warning`）+ 虛線邊框。
   - `absent`（chapter_range 空）：虛線空殼顯示「—」，不留空白。
     後端會略過無證據的階段，前端以 `padStages()` 依 `STAGE_ORDER` 補回，故 12 列恆存。
-- **點擊展開詳情（`StageDetail`）**：相位 + 章節 + 階段名 + 狀態徽章 + confidence meter + 系統詮釋 notes + 代表性 Kernel 事件 pill + 理論描述／敘事功能（理論文案取自 `frameworksData.ts` hero_journey，localized）。
-- **ConfidenceMeter**：量表內畫一道 0.6 刻度線（`stageState` 的 filled/low 分界）並標註
-  「系統門檻 0.6」，使裸數值可被判讀為高於或低於門檻。
+- **階段詳情（`StageDetail`）**：相位 + 章節 + 階段名 + 狀態徽章 + 信心區塊 + 系統詮釋 notes
+  + 代表性 Kernel 事件 + 摺疊的理論描述／敘事功能（理論文案取自 `frameworksData.ts`
+  hero_journey，localized，展開後帶方法論頁連結）。
+  在**章節對位帶視圖中為右側 sticky 側欄**（`.nl-band-aside`，最大 340px，`top: 16px`）：
+  12 條軌道加密度列之後，面板放在下方等於點了軌道就把答案捲出畫面。其餘三個視圖維持
+  原有的抽屜／面板位置。
+- **信心區塊（`ConfidenceMeter`）**：0.6 刻度線（`stageState` 的 filled/low 分界）+
+  `0 / 系統門檻 0.6 / 1.0` 標尺 + 高於／低於門檻徽章 + **全書其他階段的分數範圍**。
+  裸數值沒有基準，同書比較範圍才讓「0.90」有意義。
+  下方說明文案分兩支：低於門檻的階段數為 0 時改寫（否則恆顯示「本書有 0 個」）。
+- **代表事件**：卡片形式（章號 + 標題 + significance），整張可點，深連結至
+  `/books/:bookId/events?event=<id>`。另有三種即時計算的說明，皆不得寫死：
+  - 多個階段共用同一段 `chapter_range` 時，說明代表事件為何相同（階段是章節級、事件在
+    章節內，本就不是一對一）。
+  - 階段有章節但事件為空 → 指出全書 kernel 事件止於第幾章（取自實際骨幹最大章號）。
+  - 階段本身缺席 → 說明缺席是結構特徵而非分析失敗。
 - **Legend**：filled / low / absent 三態圖例（短標籤；缺席的解讀在上述缺席說明框）。
 
 #### 空狀態（`.nl-empty`）

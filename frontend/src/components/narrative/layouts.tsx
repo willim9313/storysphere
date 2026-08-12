@@ -391,8 +391,10 @@ export function LayoutBand({ stages, theory, events, chapterCount, kernelChapter
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, minHeight: 0 }}>
-      <div>
+    // Viz left, detail right and sticky: with twelve lanes plus the density row,
+    // a panel below the fold means clicking a lane scrolls the answer out of view.
+    <div className="nl-band-split">
+      <div style={{ flex: '1 1 620px', minWidth: 0 }}>
         {/* chapter ruler */}
         <div style={{ ...grid, marginBottom: 4 }}>
           <div className="nl-band-head">{t('narrative.band.head')}</div>
@@ -503,11 +505,23 @@ export function LayoutBand({ stages, theory, events, chapterCount, kernelChapter
         <p className="nl-band-note">
           {t('narrative.band.axisNote', { n: N })} {t('narrative.band.markNote')}
         </p>
+
+        <Legend />
       </div>
 
-      <Legend />
-
-      <div style={{ ...drawer, padding: 18 }}>{selStage && <StageDetail stage={selStage} theory={theory} events={events} allStages={sorted} bookId={bookId} lastKernelChapter={lastKernelChapter} compact />}</div>
+      <aside className="nl-band-aside">
+        {selStage && (
+          <StageDetail
+            stage={selStage}
+            theory={theory}
+            events={events}
+            allStages={sorted}
+            bookId={bookId}
+            lastKernelChapter={lastKernelChapter}
+            compact
+          />
+        )}
+      </aside>
     </div>
   );
 }

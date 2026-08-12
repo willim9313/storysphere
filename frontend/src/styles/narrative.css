@@ -305,6 +305,27 @@
   text-wrap: pretty;
 }
 
+/* Band view — viz and detail side by side; the detail follows the scroll. */
+.nl-band-split {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.nl-band-aside {
+  flex: 1 1 300px;
+  max-width: 340px;
+  align-self: stretch;
+  position: sticky;
+  top: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+}
+
 /* Stage detail panel. */
 .nl-sd-phase {
   font-family: var(--font-sans);
