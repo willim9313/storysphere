@@ -1,0 +1,443 @@
+{
+  "_readme": "Phase 1 修好之後 GET /narrative 會長成的樣子（12 階段補齊 + 代表事件補算）。這是設計應該對準的形狀，不是目前線上的形狀。representative_events 由 chapter_range ∩ kernel spine 推導，每階段上限 4 筆；state=absent 者無事件。示範資料僅供結構參考，實作一律即時計算。",
+  "book": {
+    "id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+    "title": "名字的潮汐",
+    "chapter_count": 10
+  },
+  "counts": {
+    "kernel": 38,
+    "satellite": 0,
+    "unclassified": 9
+  },
+  "classification_source": "llm_classified",
+  "review_status": "pending",
+  "stages": [
+    {
+      "ordinal": 1,
+      "stage_id": "ordinary_world",
+      "name": "平凡世界",
+      "phase": "啟程",
+      "state": "filled",
+      "chapter_range": [
+        1,
+        2
+      ],
+      "confidence": 0.9,
+      "notes": "伊內絲在薩爾瑪雷納鎮的日常生活，以及她作為讀鹽人學徒的身份，為故事建立了背景。讀鹽的規則和代價也在此階段被確立。",
+      "theory_description": "主角在冒險開始前的日常環境中被介紹給讀者。他的優點、缺點和所熟悉的世界都在這裡建立。",
+      "theory_narrative_function": "建立基準現實，介紹主角，創造讓冒險意義得以成立的對比。",
+      "representative_events": [
+        {
+          "id": "4e23dac4-e991-47ac-833c-ad695f0b6833",
+          "title": "鹽的覺醒",
+          "chapter": 1,
+          "event_type": "revelation",
+          "significance": "這是退名之潮即將來臨的明確信號，對薩爾瑪雷納的居民來說意義重大。"
+        },
+        {
+          "id": "ce48a708-2c5c-4882-bfcd-28d89aafef24",
+          "title": "薩爾瑪雷納的喪葬習俗",
+          "chapter": 1,
+          "event_type": "revelation",
+          "significance": "解釋了退名之潮的深層文化和精神意義，以及讀鹽人的重要性。"
+        },
+        {
+          "id": "31db1a3c-768b-43f9-9956-570a4390ec4e",
+          "title": "伊內絲向瑪蒂爾德夫人報信",
+          "chapter": 1,
+          "event_type": "meeting",
+          "significance": "這是鎮上處理退名之潮的標準程序，也為後續的預言鋪墊。"
+        },
+        {
+          "id": "c61384ab-4f54-40c8-b429-466faa19ef16",
+          "title": "瑪蒂爾德夫人的預言",
+          "chapter": 1,
+          "event_type": "revelation",
+          "significance": "這是章節的關鍵轉折點，將伊內絲推向故事的核心，並賦予她重大的責任。"
+        }
+      ]
+    },
+    {
+      "ordinal": 2,
+      "stage_id": "call_to_adventure",
+      "name": "冒險的召喚",
+      "phase": "啟程",
+      "state": "filled",
+      "chapter_range": [
+        1,
+        2
+      ],
+      "confidence": 0.9,
+      "notes": "退名之潮的到來是外部召喚，而瑪蒂爾德夫人指定伊內絲成為讀鹽人，以及伊內絲內心尋找哥哥埃米利安的願望，則是內部的召喚。",
+      "theory_description": "某件事打破了平凡世界——一個挑戰、問題或機遇出現，邀請或逼迫主角離開舒適圈。",
+      "theory_narrative_function": "觸發情節的導火線。打開第一個重大選擇：主角可以回應召喚或拒絕它。",
+      "representative_events": [
+        {
+          "id": "4e23dac4-e991-47ac-833c-ad695f0b6833",
+          "title": "鹽的覺醒",
+          "chapter": 1,
+          "event_type": "revelation",
+          "significance": "這是退名之潮即將來臨的明確信號，對薩爾瑪雷納的居民來說意義重大。"
+        },
+        {
+          "id": "ce48a708-2c5c-4882-bfcd-28d89aafef24",
+          "title": "薩爾瑪雷納的喪葬習俗",
+          "chapter": 1,
+          "event_type": "revelation",
+          "significance": "解釋了退名之潮的深層文化和精神意義，以及讀鹽人的重要性。"
+        },
+        {
+          "id": "31db1a3c-768b-43f9-9956-570a4390ec4e",
+          "title": "伊內絲向瑪蒂爾德夫人報信",
+          "chapter": 1,
+          "event_type": "meeting",
+          "significance": "這是鎮上處理退名之潮的標準程序，也為後續的預言鋪墊。"
+        },
+        {
+          "id": "c61384ab-4f54-40c8-b429-466faa19ef16",
+          "title": "瑪蒂爾德夫人的預言",
+          "chapter": 1,
+          "event_type": "revelation",
+          "significance": "這是章節的關鍵轉折點，將伊內絲推向故事的核心，並賦予她重大的責任。"
+        }
+      ]
+    },
+    {
+      "ordinal": 3,
+      "stage_id": "refusal_of_call",
+      "name": "拒絕召喚",
+      "phase": "啟程",
+      "state": "filled",
+      "chapter_range": [
+        2,
+        4
+      ],
+      "confidence": 0.8,
+      "notes": "伊內絲對成為讀鹽人感到恐懼（第二章），以及她母親堅決反對她冒險讀鹽（第四章），都體現了對召喚的拒絕。她也拒絕了鐘錶匠泰奧多爾的請求（第三章），這可以看作是她對讀鹽原則的堅持，也是對冒險中潛在誘惑的拒絕。",
+      "theory_description": "主角猶豫或直接拒絕召喚，表現出恐懼、懷疑或不情願。並非所有故事都明確包含這個階段。",
+      "theory_narrative_function": "使主角更具人性，並通過展示內心必須克服的障礙來提升故事賭注。往往很短暫或只是暗示。",
+      "representative_events": [
+        {
+          "id": "c43c5c88-7a08-4210-ab8c-d7c2e156b597",
+          "title": "伊內絲學習讀鹽的領悟",
+          "chapter": 2,
+          "event_type": "revelation",
+          "significance": "揭示了讀鹽的本質和其對讀鹽人造成的犧牲。"
+        },
+        {
+          "id": "bda93e6d-0bbf-4f9b-97a9-1dc97714b29a",
+          "title": "讀鹽的過程與代價",
+          "chapter": 2,
+          "event_type": "revelation",
+          "significance": "解釋了讀鹽的機制及其對讀鹽人記憶的影響。"
+        },
+        {
+          "id": "7b361afd-e84c-42f1-a66f-67de1eae1975",
+          "title": "伊內絲向瑪蒂爾德夫人表達恐懼",
+          "chapter": 2,
+          "event_type": "meeting",
+          "significance": "展現了伊內絲對讀鹽的猶豫和恐懼，以及瑪蒂爾德夫人的教導。"
+        },
+        {
+          "id": "740696bf-e3fc-4e3b-b0d8-5e484ccbdc17",
+          "title": "瑪蒂爾德夫人揭示伊內絲的私心",
+          "chapter": 2,
+          "event_type": "revelation",
+          "significance": "揭示了伊內絲學習讀鹽的真正動機，並預示了潛在的危險。"
+        }
+      ]
+    },
+    {
+      "ordinal": 4,
+      "stage_id": "meeting_the_mentor",
+      "name": "遇見導師",
+      "phase": "啟程",
+      "state": "filled",
+      "chapter_range": [
+        1,
+        2
+      ],
+      "confidence": 0.9,
+      "notes": "瑪蒂爾德夫人是伊內絲的導師，她在第一章告知伊內絲將承擔讀鹽重任，並在第二章教導她讀鹽的本質和代價。",
+      "theory_description": "主角遇到一位嚮導——一個人物、物品或經歷——提供前方旅程所需的智慧、裝備或動力。",
+      "theory_narrative_function": "為跨越門檻做準備。可能在故事中多次出現。導師通常無法陪伴主角進入特殊世界。",
+      "representative_events": [
+        {
+          "id": "4e23dac4-e991-47ac-833c-ad695f0b6833",
+          "title": "鹽的覺醒",
+          "chapter": 1,
+          "event_type": "revelation",
+          "significance": "這是退名之潮即將來臨的明確信號，對薩爾瑪雷納的居民來說意義重大。"
+        },
+        {
+          "id": "ce48a708-2c5c-4882-bfcd-28d89aafef24",
+          "title": "薩爾瑪雷納的喪葬習俗",
+          "chapter": 1,
+          "event_type": "revelation",
+          "significance": "解釋了退名之潮的深層文化和精神意義，以及讀鹽人的重要性。"
+        },
+        {
+          "id": "31db1a3c-768b-43f9-9956-570a4390ec4e",
+          "title": "伊內絲向瑪蒂爾德夫人報信",
+          "chapter": 1,
+          "event_type": "meeting",
+          "significance": "這是鎮上處理退名之潮的標準程序，也為後續的預言鋪墊。"
+        },
+        {
+          "id": "c61384ab-4f54-40c8-b429-466faa19ef16",
+          "title": "瑪蒂爾德夫人的預言",
+          "chapter": 1,
+          "event_type": "revelation",
+          "significance": "這是章節的關鍵轉折點，將伊內絲推向故事的核心，並賦予她重大的責任。"
+        }
+      ]
+    },
+    {
+      "ordinal": 5,
+      "stage_id": "crossing_threshold",
+      "name": "跨越第一道門檻",
+      "phase": "啟程",
+      "state": "filled",
+      "chapter_range": [
+        5
+      ],
+      "confidence": 1.0,
+      "notes": "退名之潮降臨，伊內絲赤腳走上泥灘，開始讀鹽，這標誌著她從平凡世界進入了特殊世界，冒險正式開始。",
+      "theory_description": "主角承諾踏上冒險，完全進入特殊世界。跨越一個不歸點，將平凡世界拋在身後。",
+      "theory_narrative_function": "第一個重大結構轉折點。標誌著已知世界與未知世界的邊界。故事真正的賭注從這裡開始。",
+      "representative_events": [
+        {
+          "id": "68c3c164-2aa3-42f1-921e-9b5423e8b5c4",
+          "title": "退名之潮開始",
+          "chapter": 5,
+          "event_type": "plot",
+          "significance": "這是薩爾瑪雷納鎮每七年一次的重要儀式，揭示了鎮民與海、記憶和逝去親人之間的深刻聯繫。"
+        },
+        {
+          "id": "3d35fcdc-6556-4915-b2c8-0bc05e496971",
+          "title": "海床顯露與記憶之光出現",
+          "chapter": 5,
+          "event_type": "revelation",
+          "significance": "這是退名之潮的核心現象，記憶的光的出現是讀鹽儀式得以進行的基礎。"
+        },
+        {
+          "id": "c1a871cb-e287-47d1-b88e-d6d654f1c807",
+          "title": "伊內絲踏上海床",
+          "chapter": 5,
+          "event_type": "plot",
+          "significance": "這是伊內絲作為讀鹽人執行職責的開始，也是故事情節的關鍵轉折點。"
+        }
+      ]
+    },
+    {
+      "ordinal": 6,
+      "stage_id": "tests_allies_enemies",
+      "name": "考驗、盟友與敵人",
+      "phase": "啟蒙",
+      "state": "filled",
+      "chapter_range": [
+        6,
+        7
+      ],
+      "confidence": 1.0,
+      "notes": "伊內絲在泥灘上讀取了多個物件的記憶，幫助鎮民找回過去，這既是她能力的考驗，也讓她理解了讀鹽的意義。鐘錶匠泰奧多爾的出現和他的記憶，則是一個特殊的考驗，揭示了人性的複雜。",
+      "theory_description": "主角在特殊世界中前行，面對一系列考驗並學習其規則。結盟、識別敵人，信任被建立或打破。",
+      "theory_narrative_function": "最長的階段。建立特殊世界的格局和主角不斷進化的能力。追求多個子目標。",
+      "representative_events": [
+        {
+          "id": "ce28f27b-8570-4e57-8326-86530d5fddbe",
+          "title": "伊內絲讀取頂針記憶",
+          "chapter": 6,
+          "event_type": "revelation",
+          "significance": "這是伊內絲首次在章節中展示其讀鹽能力，並揭示了讀鹽的具體過程和效果。"
+        },
+        {
+          "id": "4a9a2177-da9e-4fd7-84b0-dd4ce85b58ba",
+          "title": "老婦人認回記憶",
+          "chapter": 6,
+          "event_type": "revelation",
+          "significance": "證明了讀鹽能力能夠幫助人們找回失落的記憶，帶來情感上的釋放和慰藉。"
+        },
+        {
+          "id": "818feef6-db1a-4536-9855-15d04c8e823a",
+          "title": "伊內絲持續讀鹽",
+          "chapter": 6,
+          "event_type": "plot",
+          "significance": "展示了伊內絲作為讀鹽人的持續工作和其能力的廣泛應用，同時也揭示了讀鹽對她自身的消耗。"
+        },
+        {
+          "id": "63e4eda2-f573-4f1b-b050-d2b77ca406ce",
+          "title": "伊內絲發現血脈相連的記憶",
+          "chapter": 6,
+          "event_type": "revelation",
+          "significance": "這是章節的轉折點，預示著伊內絲將接觸到與自身密切相關的、可能非常重要的記憶，為後續情節埋下伏筆。"
+        }
+      ]
+    },
+    {
+      "ordinal": 7,
+      "stage_id": "approach_innermost_cave",
+      "name": "逼近最深處的洞穴",
+      "phase": "啟蒙",
+      "state": "filled",
+      "chapter_range": [
+        8
+      ],
+      "confidence": 0.9,
+      "notes": "瑪蒂爾德夫人的最後一課，揭示了埃米利安記憶的危險性以及海索取的代價，這讓伊內絲面臨最深的恐懼和抉擇，為最終的磨難做準備。",
+      "theory_description": "主角和盟友重整旗鼓，為中心磨難做準備。這段逼近往往涉及第二道門檻、內心準備或一個懷疑的時刻。",
+      "theory_narrative_function": "在核心危機前積累張力。主角最深的恐懼浮現。通常包含一個小型磨難或靈魂的黑暗之夜。",
+      "representative_events": [
+        {
+          "id": "a0ad52e1-dbdf-48d7-a303-6347258481ca",
+          "title": "瑪蒂爾德夫人去世",
+          "chapter": 8,
+          "event_type": "death",
+          "significance": "標誌著伊內絲讀鹽學習的結束，也為她接下來的選擇埋下伏筆。"
+        },
+        {
+          "id": "a99377ce-ee60-452c-8ee6-e935e389e93f",
+          "title": "瑪蒂爾德夫人揭示埃米利安的真相",
+          "chapter": 8,
+          "event_type": "revelation",
+          "significance": "揭示了伊內絲哥哥失蹤的真正原因和讀鹽的巨大代價，迫使伊內絲面臨一個生死抉擇。"
+        },
+        {
+          "id": "208a72d5-e727-42e4-8dc7-71b5fe0aa080",
+          "title": "揭示外婆的命運",
+          "chapter": 8,
+          "event_type": "revelation",
+          "significance": "為伊內絲的困境提供了歷史先例，強調了讀鹽的危險性和犧牲的傳統，也解釋了母親為何不讓伊內絲去讀埃米利安。"
+        },
+        {
+          "id": "13942a00-11dd-4aa4-a807-53ea5a9bc398",
+          "title": "瑪蒂爾德夫人傳授讀鹽的最終教誨",
+          "chapter": 8,
+          "event_type": "revelation",
+          "significance": "這是瑪蒂爾德夫人留給伊內絲最重要的遺產，關於愛、記憶、犧牲和生存的哲學，直接影響伊內絲未來的選擇。"
+        }
+      ]
+    },
+    {
+      "ordinal": 8,
+      "stage_id": "ordeal",
+      "name": "磨難",
+      "phase": "啟蒙",
+      "state": "filled",
+      "chapter_range": [
+        9
+      ],
+      "confidence": 1.0,
+      "notes": "伊內絲在泥灘深處面對埃米利安的貝殼手環，面臨用生命換取哥哥記憶的終極抉擇。她最終選擇放下，是她個人成長和蛻變的關鍵時刻。",
+      "theory_description": "主角面對旅程中最大的危機——一個生死存亡的時刻（字面或隱喻意義上）。主角必須在某種意義上「死去」並重生。",
+      "theory_narrative_function": "中心結構轉折點，也是啟蒙階段的情感高潮。主角的蛻變在此鍛造完成。往往是故事最黑暗的時刻。",
+      "representative_events": [
+        {
+          "id": "bacfc7e3-4a6a-4d12-a8c2-e4a9aaa9ea40",
+          "title": "伊內絲走向泥灘",
+          "chapter": 9,
+          "event_type": "plot",
+          "significance": "這是伊內絲面對失去哥哥的痛苦，並試圖尋找解決之道的重要行動，也是她與海之間關係的轉折點。"
+        },
+        {
+          "id": "ffe6dfe6-cb60-4c5c-a5c1-9eec540f6ab0",
+          "title": "發現貝殼手環",
+          "chapter": 9,
+          "event_type": "revelation",
+          "significance": "手環是埃米利安存在的實物證明，激發了伊內絲強烈的情感和讀鹽的衝動。"
+        }
+      ]
+    },
+    {
+      "ordinal": 9,
+      "stage_id": "reward",
+      "name": "獎賞（奪取寶劍）",
+      "phase": "啟蒙",
+      "state": "absent",
+      "chapter_range": [],
+      "confidence": 0.0,
+      "notes": null,
+      "theory_description": "在磨難中倖存後，主角獲得獎賞——寶藏、知識、和解或力量。在回歸開始前的一個慶祝時刻。",
+      "theory_narrative_function": "承認主角的成就，並提出問題：他能守護這份獎賞嗎？為回歸階段埋下伏筆。",
+      "representative_events": []
+    },
+    {
+      "ordinal": 10,
+      "stage_id": "road_back",
+      "name": "回歸之路",
+      "phase": "歸返",
+      "state": "filled",
+      "chapter_range": [
+        9,
+        10
+      ],
+      "confidence": 0.9,
+      "notes": "伊內絲放下手環後，轉身跑向岸邊，並在潮水回填時被救上岸，這代表她從特殊世界回歸的過程。",
+      "theory_description": "主角開始返回平凡世界的旅程，往往遭到追殺或威脅。回歸的決定可能需要犧牲。",
+      "theory_narrative_function": "重新點燃緊迫感。主角必須全力投入回歸，往往面臨最後的追逐或對手的新一輪壓力。",
+      "representative_events": [
+        {
+          "id": "bacfc7e3-4a6a-4d12-a8c2-e4a9aaa9ea40",
+          "title": "伊內絲走向泥灘",
+          "chapter": 9,
+          "event_type": "plot",
+          "significance": "這是伊內絲面對失去哥哥的痛苦，並試圖尋找解決之道的重要行動，也是她與海之間關係的轉折點。"
+        },
+        {
+          "id": "ffe6dfe6-cb60-4c5c-a5c1-9eec540f6ab0",
+          "title": "發現貝殼手環",
+          "chapter": 9,
+          "event_type": "revelation",
+          "significance": "手環是埃米利安存在的實物證明，激發了伊內絲強烈的情感和讀鹽的衝動。"
+        }
+      ]
+    },
+    {
+      "ordinal": 11,
+      "stage_id": "resurrection",
+      "name": "復活",
+      "phase": "歸返",
+      "state": "filled",
+      "chapter_range": [
+        9,
+        10
+      ],
+      "confidence": 0.9,
+      "notes": "伊內絲選擇放下哥哥的記憶，並決定好好活著去記住他，這證明她已經不再是那個被過去束縛的女孩。她向母親坦白，母親也首次說出埃米利安的名字，象徵著集體的釋懷和新生。",
+      "theory_description": "最後一次高潮考驗——主角再次被逼到極限。所有習得的教訓都被應用。最後的「死而復生」在回歸前淨化了主角。",
+      "theory_narrative_function": "蛻變的最終證明。主角展示自己已不再是離開平凡世界時的那個人。",
+      "representative_events": [
+        {
+          "id": "bacfc7e3-4a6a-4d12-a8c2-e4a9aaa9ea40",
+          "title": "伊內絲走向泥灘",
+          "chapter": 9,
+          "event_type": "plot",
+          "significance": "這是伊內絲面對失去哥哥的痛苦，並試圖尋找解決之道的重要行動，也是她與海之間關係的轉折點。"
+        },
+        {
+          "id": "ffe6dfe6-cb60-4c5c-a5c1-9eec540f6ab0",
+          "title": "發現貝殼手環",
+          "chapter": 9,
+          "event_type": "revelation",
+          "significance": "手環是埃米利安存在的實物證明，激發了伊內絲強烈的情感和讀鹽的衝動。"
+        }
+      ]
+    },
+    {
+      "ordinal": 12,
+      "stage_id": "return_with_elixir",
+      "name": "攜帶靈藥歸來",
+      "phase": "歸返",
+      "state": "filled",
+      "chapter_range": [
+        10
+      ],
+      "confidence": 1.0,
+      "notes": "七年後，伊內絲成為薩爾瑪雷納的讀鹽人，並收了學徒，傳授她如何承載悲傷而不被淹沒。這表明她帶回了智慧和經驗，造福了社群，完成了旅程的循環。",
+      "theory_description": "主角帶著有價值的東西回到平凡世界——字面上的寶藏、智慧、自由或愛——使他的社群受益。",
+      "theory_narrative_function": "閉合故事迴圈，確立旅程的意義。靈藥是冒險確實值得的證明。",
+      "representative_events": []
+    }
+  ]
+}
