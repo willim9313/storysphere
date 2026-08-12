@@ -1463,34 +1463,70 @@ Prompt Tokens / Completion Tokens / 總請求次數
 #### 版面結構
 
 ```
+[頁首 — 頁名 + 一句定位 + 書級 meta]
+[索引卡 — ① 詮釋・英雄旅程 / ② 統計・事件骨幹]
 [過期橫條 — 僅 is_stale=true 時出現]
-[英雄旅程區塊 — 主視圖：標題列 + HITL + 佈局切換器 + 選定佈局]
+[英雄旅程區塊 — 主視圖：標題列 + HITL + 視圖切換器 + 缺席說明 + 選定佈局]
 [情節骨幹摘要 — 次區塊：比例條 + 統計 + 核心事件骨幹 + 跳轉]
 ```
 
+#### 頁首與索引卡（`.nl-head` / `.nl-index`）
+
+- **頁首**：h1「敘事結構」+ 同列副標「這本書的結構是什麼形狀」（回答「這頁在答什麼」），
+  下方 mono meta 列：`書名 · N 章 · M 事件 · 分類來源`。
+- **索引卡**：本頁的目錄。每張帶**序號圓點 + 角色標籤（詮釋／統計）+ 右側即時狀態徽章**，
+  標題下一行說明這塊在回答什麼。序號建立閱讀順序；卡片本身是錨點連結
+  （`#nl-hero` / `#nl-spine`），使摺線下的內容在首屏就被宣告存在。
+  空狀態同樣渲染，① 的狀態徽章顯示「尚未分析」。
+
+> 序號索引卡目前僅本頁使用。其他分析頁若要沿用，應先抽為通用元件再登錄於第 4 節。
+
 #### 過期橫條（`.nl-stale`，`role="status"`）
 
-僅在 #21k 回傳 `is_stale=true` 時出現，置於頁面最上方（空狀態也顯示，因為重跑
+僅在 #21k 回傳 `is_stale=true` 時出現，置於索引卡之下（空狀態也顯示，因為重跑
 後結構可能已被判定過期但尚未重新分析）。用 `--color-warning-bg` / `--color-warning`
 （既有 token，未新增），內含 AlertTriangle + 標題 + 以 `stale_reason` 帶入步驟名的說明。
 
-**只做提示，不放操作按鈕**——引導使用者去按既有的分析觸發鈕，避免同一動作有兩個
-入口（與 3.8 張力主題過期卡的原則一致）。
+右側帶「重新分析 →」連結（僅在已有分析結果時出現）。原規格訂為「只做提示，不放操作
+按鈕」，但分析觸發鈕只存在於空狀態，有結果時橫條等於報警而不給滅火器；改為橫條與
+卡片標題列各有一個入口，兩者呼叫同一個 `triggerHeroJourney(force=true)`。
 
-#### 英雄旅程主視圖（`HeroJourneySection`）
+#### 英雄旅程主視圖（`HeroJourneySection`，錨點 `#nl-hero`）
 
-- **標題列**：「英雄旅程」h2（serif）+ 副標（Campbell · Vogler 12 階段）；下方為「已映射 N／12 階段」+「缺席的階段是有意義的敘事選擇，而非未完成」原則註記。右側為**書級** HITL：核可 / 標記不適用 按鈕 + ReviewBadge（走 #21l）。
-- **佈局切換器**：segmented control，四種佈局並存可切換：
-  - **A 水平軌跡（`LayoutTrack`）**：departure→initiation→return 三相位橫向流，12 階段 disc + 底部詳情抽屜。
-  - **B 三相位分欄（`LayoutColumns`）**：三欄堆疊階段列 + 右側固定詳情面板（360px）。
-  - **C 圓環循環（`LayoutRing`）**：Campbell 環形 monomyth，中心顯示選定階段詳情，虛線分隔平凡／特殊世界。
-  - **D 章節對位帶（`LayoutBand`）**：甘特式條帶（x 軸＝章節），一眼可見階段重疊與缺席。
+- **標題列**：「英雄旅程」h2（serif）+ 副標（Campbell · Vogler 12 階段），副標為連往
+  `/methodology?framework=hero_journey` 的連結——術語解釋留在方法論頁，本頁不重述。
+  下方為「已映射 N／12 階段」。右側為**書級** HITL：重新分析 / 核可 / 標記不適用 按鈕
+  + ReviewBadge（走 #21l）。
+- **視圖切換器**（`.nl-views`）：四顆等寬按鈕，各含**視圖名 + 一行「這個視圖適合看什麼」**。
+  不用 tooltip：第一次使用的人不會去 hover 一個他還不知道有差別的東西。順序與預設值
+  由 `LAYOUT_IDS` 決定，**預設為章節對位帶**（真實資料下唯一能同時看出對位、重疊與逆序的視圖）。
+  - **A 章節對位帶（`LayoutBand`）**：甘特式條帶（x 軸＝章節），一眼可見階段重疊與缺席。
+  - **B 水平軌跡（`LayoutTrack`）**：departure→initiation→return 三相位橫向流，12 階段 disc + 底部詳情抽屜。
+  - **C 三相位分欄（`LayoutColumns`）**：三欄堆疊階段列 + 右側固定詳情面板（360px）。
+  - **D 圓環循環（`LayoutRing`）**：Campbell 環形 monomyth，中心顯示選定階段詳情，虛線分隔平凡／特殊世界。
+- **缺席說明（`.nl-absent-note`）**：切換器與視圖之間的虛線框，內含「未識別 · N」與
+  「缺席的階段是有意義的敘事選擇，而非未完成」。此句原為標題列的灰字註腳，與裝飾同權重；
+  移到此處後緊鄰它所描述的視覺符號，且帶上實際缺席數。無缺席時整塊不渲染。
 - **三態視覺語言**（一眼可區分，不用進度條語意）：
   - `filled`（conf ≥ 0.6）：accent 填色，深淺隨 confidence 加深。
   - `low`（0 < conf < 0.6）：警示三角（`--color-warning`）+ 虛線邊框。
   - `absent`（chapter_range 空）：虛線空殼顯示「—」，不留空白。
+    後端會略過無證據的階段，前端以 `padStages()` 依 `STAGE_ORDER` 補回，故 12 列恆存。
 - **點擊展開詳情（`StageDetail`）**：相位 + 章節 + 階段名 + 狀態徽章 + confidence meter + 系統詮釋 notes + 代表性 Kernel 事件 pill + 理論描述／敘事功能（理論文案取自 `frameworksData.ts` hero_journey，localized）。
-- **Legend**：filled / low / absent 三態圖例。
+- **ConfidenceMeter**：量表內畫一道 0.6 刻度線（`stageState` 的 filled/low 分界）並標註
+  「系統門檻 0.6」，使裸數值可被判讀為高於或低於門檻。
+- **Legend**：filled / low / absent 三態圖例（短標籤；缺席的解讀在上述缺席說明框）。
+
+#### 空狀態（`.nl-empty`）
+
+不只說「點擊下方按鈕開始分析」，而是列出**前置條件檢查表**（`.nl-prereq`）：
+
+- **章節摘要**（`done / total 章`）：`map_hero_journey` 的實際前置。缺少時分析會回報成功
+  但寫入 0 個階段，因此缺摘要時觸發鈕 disabled 並在旁說明原因，該列連往建構概覽頁。
+- **事件分析（EEP）**（`done / total 件`）：非必要，但影響代表事件。連往事件分析頁。
+
+已滿足的列不顯示前往連結。摘要完成度取自 `GET /books/{id}/chapters` 的 `summary` 欄位，
+查詢僅在沒有分析結果時啟用。
 
 #### 情節骨幹摘要（`PlotSpine`）
 

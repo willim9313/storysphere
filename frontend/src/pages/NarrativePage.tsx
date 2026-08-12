@@ -15,7 +15,7 @@ import {
   reviewNarrativeStructure,
   triggerHeroJourney,
 } from '@/api/narrative';
-import { getStageTheory, padStages } from '@/components/narrative/heroJourney';
+import { STAGE_ORDER, getStageTheory, padStages } from '@/components/narrative/heroJourney';
 import { HeroJourneySection } from '@/components/narrative/HeroJourneySection';
 import { PlotSpine } from '@/components/narrative/PlotSpine';
 import type { EventInfo } from '@/components/narrative/StageDetail';
@@ -164,6 +164,47 @@ export default function NarrativePage() {
   // events but never whether stages can be produced.
   const triggerBlocked = prereq.known && !prereq.summaryReady;
 
+  const sourceLabel = structure
+    ? {
+        summary_heuristic: t('narrative.source.heuristic'),
+        llm_classified: t('narrative.source.llm'),
+        human_verified: t('narrative.source.human'),
+      }[structure.classification_source]
+    : '';
+  const kernelCount = structure?.kernel_event_ids?.length ?? 0;
+  const eventCount = (structure?.kernel_event_ids?.length ?? 0)
+    + (structure?.satellite_event_ids?.length ?? 0)
+    + (structure?.unclassified_event_ids?.length ?? 0);
+  const mappedStages = useMemo(
+    () => stages.filter((s) => s.chapter_range.length > 0).length,
+    [stages],
+  );
+
+  // Table of contents: what is on this page, in what order, and how far each
+  // one has got — so the fold stops hiding the second half of the page.
+  const indexCards = [
+    {
+      n: 1,
+      role: t('narrative.index.role1'),
+      title: t('narrative.index.title1'),
+      answers: t('narrative.index.answers1'),
+      status: hasHeroJourney
+        ? t('narrative.index.mappedStatus', { mapped: mappedStages, total: STAGE_ORDER.length })
+        : heroJourneyOp.running
+          ? t('narrative.index.running')
+          : t('narrative.index.notAnalyzed'),
+      href: '#nl-hero',
+    },
+    {
+      n: 2,
+      role: t('narrative.index.role2'),
+      title: t('narrative.index.title2'),
+      answers: t('narrative.index.answers2'),
+      status: t('narrative.index.kernelStatus', { n: kernelCount }),
+      href: '#nl-spine',
+    },
+  ];
+
   const staleBanner = structure?.is_stale ? (
     <div className="nl-stale" role="status">
       <AlertTriangle size={16} />
@@ -201,6 +242,41 @@ export default function NarrativePage() {
   return (
     <div className="nl-scroll">
       <div className="nl-page">
+        {!loading && (
+          <>
+            <header className="nl-head">
+              <div className="nl-head-line">
+                <h1 className="nl-head-title">{t('narrative.pageTitle')}</h1>
+                <p className="nl-head-lead">{t('narrative.pageLead')}</p>
+              </div>
+              {book && structure && (
+                <div className="nl-head-meta">
+                  {t('narrative.bookMeta', {
+                    title: book.title,
+                    chapters: chapterCount,
+                    events: eventCount,
+                    source: sourceLabel,
+                  })}
+                </div>
+              )}
+            </header>
+
+            <nav className="nl-index">
+              {indexCards.map((c) => (
+                <a key={c.n} className="nl-index-card" href={c.href}>
+                  <div className="nl-index-top">
+                    <span className="nl-index-n">{c.n}</span>
+                    <span className="nl-index-role">{c.role}</span>
+                    <span className="nl-index-status">{c.status}</span>
+                  </div>
+                  <div className="nl-index-title">{c.title}</div>
+                  <div className="nl-index-answers">{c.answers}</div>
+                </a>
+              ))}
+            </nav>
+          </>
+        )}
+
         {loading ? (
           <LoadingSpinner />
         ) : hasHeroJourney && structure ? (
@@ -218,7 +294,9 @@ export default function NarrativePage() {
               onRerun={() => handleTrigger(true)}
               rerunning={heroJourneyOp.running}
             />
-            <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />
+            <div id="nl-spine">
+              <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />
+            </div>
           </>
         ) : (
           <div className="nl-empty">
@@ -273,7 +351,7 @@ export default function NarrativePage() {
               )}
             </div>
             {structure && (
-              <div style={{ width: '100%', maxWidth: 1100, marginTop: 28 }}>
+              <div id="nl-spine" style={{ width: '100%', maxWidth: 1100, marginTop: 28 }}>
                 <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />
               </div>
             )}

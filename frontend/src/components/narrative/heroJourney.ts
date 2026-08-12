@@ -11,7 +11,10 @@ export type StageState = 'filled' | 'low' | 'absent';
 export const PHASES: Phase[] = ['departure', 'initiation', 'return'];
 
 export type LayoutId = 'track' | 'columns' | 'ring' | 'band';
-export const LAYOUT_IDS: LayoutId[] = ['track', 'columns', 'ring', 'band'];
+// Band leads, and is the default: on real data it is the only view that shows
+// stage/chapter alignment, overlap and reversal at once. Track — the previous
+// default — is the least dense of the four.
+export const LAYOUT_IDS: LayoutId[] = ['band', 'track', 'columns', 'ring'];
 
 // Localized chapter-range label, e.g. "第 18–20 章" / "Ch. 18–20".
 export function formatChapters(range: number[] | undefined, t: TFunction): string {

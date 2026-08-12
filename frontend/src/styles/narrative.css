@@ -22,6 +22,110 @@
   min-height: 100%;
 }
 
+/* Page header — what this page answers, and which book it is about. */
+.nl-head-line {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.nl-head-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-3xl);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--fg-primary);
+}
+.nl-head-lead {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  color: var(--fg-secondary);
+}
+.nl-head-meta {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+
+/* Index cards — the page's table of contents. The numbers establish reading
+   order; the anchors declare that there is more below the fold. */
+.nl-index {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.nl-index-card {
+  display: block;
+  padding: 14px;
+  background: var(--bg-primary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+.nl-index-card:hover {
+  background: var(--bg-secondary);
+}
+.nl-index-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nl-index-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+}
+.nl-index-role {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.nl-index-status {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.nl-index-title {
+  margin-top: 6px;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-index-answers {
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
 /* Section cards — shared shell for hero journey + plot spine. */
 .nl-card {
   display: flex;
@@ -33,6 +137,100 @@
   border-style: var(--border-style);
   border-color: var(--border);
   border-radius: var(--radius-lg);
+}
+/* Index-card anchors land inside .nl-scroll; keep the heading clear of the top. */
+#nl-hero,
+#nl-spine {
+  scroll-margin-top: 16px;
+}
+
+/* Framework name as its own way out to the methodology page. */
+.nl-term-link {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--fg-muted);
+}
+.nl-term-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* View switcher — each option says what it is for, on the control itself. */
+.nl-views {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.nl-view {
+  flex: 1 1 0;
+  min-width: 150px;
+  text-align: left;
+  cursor: pointer;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-family: var(--font-sans);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+.nl-view.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+}
+.nl-view-name {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.nl-view-hint {
+  display: block;
+  margin-top: 1px;
+  font-size: var(--font-size-2xs);
+  opacity: 0.75;
+}
+
+/* Absent-stage reading — states what a gap means, and how many there are. */
+.nl-absent-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: var(--border-width) dashed var(--fg-muted);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.nl-absent-glyph {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--fg-muted);
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+}
+.nl-absent-title {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-absent-body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
 }
 
 /* Jump-to-events button (plot spine). */

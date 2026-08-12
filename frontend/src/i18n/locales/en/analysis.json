@@ -1716,6 +1716,22 @@
   "narrative": {
     "heroJourney": "Hero's Journey",
     "hjSub": "Campbell's monomyth · Vogler's 12 stages",
+    "pageTitle": "Narrative Structure",
+    "pageLead": "What shape is this book's structure",
+    "bookMeta": "{{title}} · {{chapters}} chapters · {{events}} events · {{source}}",
+    "methodLink": "See the full framework on the methodology page →",
+    "index": {
+      "role1": "Interpretation",
+      "title1": "Hero's Journey",
+      "answers1": "Which of Campbell's 12 stages this book takes",
+      "role2": "Statistics",
+      "title2": "Event spine",
+      "answers2": "Which kernel events carry that arc, and where they fall",
+      "mappedStatus": "{{mapped}}/{{total}} stages mapped",
+      "kernelStatus": "{{n}} kernel events",
+      "notAnalyzed": "Not analyzed",
+      "running": "Analyzing"
+    },
     "phase": {
       "departure": "Departure",
       "initiation": "Initiation",
@@ -1724,8 +1740,7 @@
     "state": {
       "filled": "Identified",
       "low": "Low confidence",
-      "absent": "Not identified",
-      "absentLong": "Not identified · the book never takes this step"
+      "absent": "Not identified"
     },
     "confidence": "Confidence",
     "threshold": "Threshold 0.6",
@@ -1748,11 +1763,19 @@
     "coverage": "Mapped {{mapped}}",
     "ofTotal": "/ {{total}} stages",
     "legend": "Legend",
+    "absentSummary": "Not identified · {{count}}",
+    "absentBody": "Absent stages are deliberate narrative choices, not \"incomplete\" — a step this book never takes is itself a finding.",
     "layout": {
       "track": "Horizontal track",
       "columns": "Three-phase columns",
       "ring": "Monomyth ring",
       "band": "Chapter band"
+    },
+    "viewHint": {
+      "band": "Where stages sit in the book",
+      "track": "The order of the 12",
+      "columns": "Departure, initiation, return",
+      "ring": "Where the gap falls on the ring"
     },
     "ring": {
       "knownWorld": "KNOWN WORLD",

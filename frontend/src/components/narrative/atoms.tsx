@@ -180,8 +180,9 @@ export function Legend() {
       </span>
       {item(disc('color-mix(in oklab, var(--accent) 60%, var(--bg-primary))'), t('narrative.state.filled'))}
       {item(disc('color-mix(in oklab, var(--accent) 30%, var(--bg-primary))', { borderColor: 'var(--color-warning)' }), t('narrative.state.low'))}
-      {/* Reads the absence, not just names it — this is where the question gets asked. */}
-      {item(disc('transparent', { borderStyle: 'dashed', borderColor: 'var(--fg-muted)' }), t('narrative.state.absentLong'))}
+      {/* Short label here; the reading of what an absence means, and how many
+          there are, lives in the callout under the switcher. */}
+      {item(disc('transparent', { borderStyle: 'dashed', borderColor: 'var(--fg-muted)' }), t('narrative.state.absent'))}
     </div>
   );
 }

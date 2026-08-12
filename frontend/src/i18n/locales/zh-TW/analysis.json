@@ -1716,6 +1716,22 @@
   "narrative": {
     "heroJourney": "英雄旅程",
     "hjSub": "Campbell《千面英雄》· Vogler 12 階段",
+    "pageTitle": "敘事結構",
+    "pageLead": "這本書的結構是什麼形狀",
+    "bookMeta": "{{title}} · {{chapters}} 章 · {{events}} 事件 · {{source}}",
+    "methodLink": "在方法論頁看完整框架 →",
+    "index": {
+      "role1": "詮釋",
+      "title1": "英雄旅程",
+      "answers1": "這本書走了 Campbell 12 階段裡的哪幾步",
+      "role2": "統計",
+      "title2": "事件骨幹",
+      "answers2": "哪些核心事件撐起那個弧、分佈在哪幾章",
+      "mappedStatus": "{{mapped}}／{{total}} 階段已映射",
+      "kernelStatus": "{{n}} 個核心事件",
+      "notAnalyzed": "尚未分析",
+      "running": "分析中"
+    },
     "phase": {
       "departure": "啟程",
       "initiation": "啟蒙",
@@ -1724,8 +1740,7 @@
     "state": {
       "filled": "已識別",
       "low": "低信心",
-      "absent": "未識別",
-      "absentLong": "未識別 · 這本書沒有這一步"
+      "absent": "未識別"
     },
     "confidence": "信心",
     "threshold": "系統門檻 0.6",
@@ -1748,11 +1763,19 @@
     "coverage": "已映射 {{mapped}}",
     "ofTotal": "／ {{total}} 階段",
     "legend": "圖例",
+    "absentSummary": "未識別 · {{count}}",
+    "absentBody": "缺席的階段是有意義的敘事選擇，而非「未完成」——這本書沒有走過那一步，本身就是結論。",
     "layout": {
       "track": "水平軌跡",
       "columns": "三相位分欄",
       "ring": "圓環循環",
       "band": "章節對位帶"
+    },
+    "viewHint": {
+      "band": "看階段落在哪幾章",
+      "track": "看 12 階段的順序",
+      "columns": "看啟程啟蒙歸返",
+      "ring": "看缺口在環上哪裡"
     },
     "ring": {
       "knownWorld": "平凡世界",
