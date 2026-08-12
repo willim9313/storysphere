@@ -1724,9 +1724,11 @@
     "state": {
       "filled": "Identified",
       "low": "Low confidence",
-      "absent": "Not identified"
+      "absent": "Not identified",
+      "absentLong": "Not identified · the book never takes this step"
     },
     "confidence": "Confidence",
+    "threshold": "Threshold 0.6",
     "chapterLabel": "Ch. {{range}}",
     "noChapters": "No chapters mapped",
     "repEvents": "Representative Kernel events",
@@ -1745,7 +1747,6 @@
     "rerunArrow": "Re-run analysis →",
     "coverage": "Mapped {{mapped}}",
     "ofTotal": "/ {{total}} stages",
-    "notProgress": "Absent stages are deliberate narrative choices — not \"incomplete\"",
     "legend": "Legend",
     "layout": {
       "track": "Horizontal track",
@@ -1779,9 +1780,20 @@
     },
     "empty": {
       "title": "No Hero's Journey yet",
-      "message": "The Hero's Journey relies on chapter summaries to map the whole book onto Campbell's 12-stage arc. Click below to start the analysis.",
+      "message": "This analysis reads chapter summaries, not the source text. With summaries missing it reports success and produces zero stages — so check the two below first.",
       "trigger": "Start Hero's Journey analysis",
-      "running": "Analyzing… {{progress}}%"
+      "running": "Analyzing… {{progress}}%",
+      "prereqTitle": "Prerequisites",
+      "prereqSummary": "Chapter summaries",
+      "prereqEvents": "Event analysis (EEP)",
+      "summaryCount": "{{done}} / {{total}} chapters",
+      "eventCount": "{{done}} / {{total}} events",
+      "summaryHintOk": "Complete",
+      "summaryHintMissing": "{{n}} missing — the analysis would return 0 stages",
+      "eventHint": "Optional, but shapes the representative events",
+      "ctaSummary": "Build summaries",
+      "ctaEvents": "Go to event analysis",
+      "blockedReason": "{{n}} chapter summaries missing; nothing to map until they exist"
     },
     "errors": {
       "triggerHero": "Failed to start the Hero's Journey analysis. Please try again.",

@@ -1724,9 +1724,11 @@
     "state": {
       "filled": "已識別",
       "low": "低信心",
-      "absent": "未識別"
+      "absent": "未識別",
+      "absentLong": "未識別 · 這本書沒有這一步"
     },
     "confidence": "信心",
+    "threshold": "系統門檻 0.6",
     "chapterLabel": "第 {{range}} 章",
     "noChapters": "無對應章節",
     "repEvents": "代表性 Kernel 事件",
@@ -1745,7 +1747,6 @@
     "rerunArrow": "重新分析 →",
     "coverage": "已映射 {{mapped}}",
     "ofTotal": "／ {{total}} 階段",
-    "notProgress": "缺席的階段是有意義的敘事選擇，而非「未完成」",
     "legend": "圖例",
     "layout": {
       "track": "水平軌跡",
@@ -1779,9 +1780,20 @@
     },
     "empty": {
       "title": "尚未產生英雄旅程",
-      "message": "英雄旅程依賴章節摘要，將整本書映射為 Campbell 12 階段的敘事弧。點擊下方按鈕開始分析。",
+      "message": "這段分析讀的是章節摘要，不是原文。摘要沒有備齊時，分析會回報成功但產出 0 個階段——所以先確認下面兩項。",
       "trigger": "開始英雄旅程分析",
-      "running": "分析中… {{progress}}%"
+      "running": "分析中… {{progress}}%",
+      "prereqTitle": "前置條件",
+      "prereqSummary": "章節摘要",
+      "prereqEvents": "事件分析（EEP）",
+      "summaryCount": "{{done}} / {{total}} 章",
+      "eventCount": "{{done}} / {{total}} 件",
+      "summaryHintOk": "已備齊",
+      "summaryHintMissing": "缺 {{n}} 章，分析會回傳 0 階段",
+      "eventHint": "非必要，但會影響代表事件",
+      "ctaSummary": "去補摘要",
+      "ctaEvents": "去事件分析頁",
+      "blockedReason": "缺 {{n}} 章摘要，補齊後才會有可映射的內容"
     },
     "errors": {
       "triggerHero": "觸發英雄旅程分析失敗，請稍後再試。",

@@ -84,15 +84,19 @@ export function ReviewBadge({ status }: { status: NarrativeReviewStatus }) {
 }
 
 // ── Confidence meter ───────────────────────────────────────────────
+// The 0.6 tick is stageState's own filled/low boundary, drawn so a bare
+// "0.90" can be read as high or low without knowing the scale.
 export function ConfidenceMeter({ stage, width = 120 }: { stage: HeroJourneyStage; width?: number }) {
+  const { t } = useTranslation('analysis');
   const st = stageState(stage);
   if (st === 'absent') {
     return <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>—</span>;
   }
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
       <div
         style={{
+          position: 'relative',
           width,
           height: 6,
           borderRadius: 3,
@@ -110,9 +114,13 @@ export function ConfidenceMeter({ stage, width = 120 }: { stage: HeroJourneyStag
             background: st === 'low' ? 'var(--color-warning)' : 'var(--accent)',
           }}
         />
+        <div style={{ position: 'absolute', left: '60%', top: 0, bottom: 0, width: 1, background: 'var(--fg-muted)' }} />
       </div>
       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)', fontVariantNumeric: 'tabular-nums' }}>
         {stage.confidence.toFixed(2)}
+      </span>
+      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>
+        {t('narrative.threshold')}
       </span>
     </div>
   );
@@ -172,7 +180,8 @@ export function Legend() {
       </span>
       {item(disc('color-mix(in oklab, var(--accent) 60%, var(--bg-primary))'), t('narrative.state.filled'))}
       {item(disc('color-mix(in oklab, var(--accent) 30%, var(--bg-primary))', { borderColor: 'var(--color-warning)' }), t('narrative.state.low'))}
-      {item(disc('transparent', { borderStyle: 'dashed', borderColor: 'var(--fg-muted)' }), t('narrative.state.absent'))}
+      {/* Reads the absence, not just names it — this is where the question gets asked. */}
+      {item(disc('transparent', { borderStyle: 'dashed', borderColor: 'var(--fg-muted)' }), t('narrative.state.absentLong'))}
     </div>
   );
 }

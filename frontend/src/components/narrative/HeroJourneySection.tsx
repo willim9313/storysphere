@@ -78,11 +78,11 @@ export function HeroJourneySection({ stages, theory, events, chapterCount, revie
             <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>{t('narrative.hjSub')}</span>
           </div>
           <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)', flexWrap: 'wrap' }}>
+            {/* The "absence is a choice, not a failure" reading now lives in the
+                legend, next to the symbol that raises the question. */}
             <span style={{ whiteSpace: 'nowrap' }}>
               <b style={{ color: 'var(--accent)', fontWeight: 700 }}>{t('narrative.coverage', { mapped })}</b> {t('narrative.ofTotal', { total: STAGE_ORDER.length })}
             </span>
-            <span style={{ width: 3, height: 3, borderRadius: '50%', background: 'var(--fg-muted)', flexShrink: 0 }} />
-            <span style={{ color: 'var(--fg-muted)' }}>{t('narrative.notProgress')}</span>
           </div>
         </div>
 

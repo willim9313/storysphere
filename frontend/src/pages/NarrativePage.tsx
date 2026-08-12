@@ -1,11 +1,12 @@
 import { useEffect, useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Compass } from 'lucide-react';
 import { useBook } from '@/hooks/useBook';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
+import { fetchChapters } from '@/api/chapters';
 import { fetchEventAnalyses } from '@/api/analysis';
 import {
   fetchHeroJourneyTask,
@@ -20,6 +21,40 @@ import { PlotSpine } from '@/components/narrative/PlotSpine';
 import type { EventInfo } from '@/components/narrative/StageDetail';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import '@/styles/narrative.css';
+
+// One prerequisite line: state · what it is · how far along · why it matters · where to fix it.
+function PrereqRow({
+  ready,
+  name,
+  count,
+  hint,
+  cta,
+  to,
+}: {
+  ready: boolean;
+  name: string;
+  count: string;
+  hint: string;
+  cta: string;
+  to: string;
+}) {
+  return (
+    <div className="nl-prereq-row">
+      <span className="nl-prereq-mark" style={{ color: ready ? 'var(--color-success)' : 'var(--fg-muted)' }}>
+        {ready ? '●' : '○'}
+      </span>
+      <span className="nl-prereq-name">{name}</span>
+      <span className="nl-prereq-count">{count}</span>
+      <span className="nl-prereq-hint">{hint}</span>
+      {/* A satisfied row has nothing to go fix. */}
+      {!ready && (
+        <Link className="nl-prereq-cta" to={to}>
+          {cta} →
+        </Link>
+      )}
+    </div>
+  );
+}
 
 export default function NarrativePage() {
   const queryClient = useQueryClient();
@@ -97,6 +132,38 @@ export default function NarrativePage() {
   const hasHeroJourney = (structure?.hero_journey_stages?.length ?? 0) > 0;
   const loading = structureQuery.isLoading || kernelSpineQuery.isLoading;
 
+  // Chapter summaries are what map_hero_journey actually reads: without them the
+  // task reports success and writes zero stages. Only the empty state needs the
+  // per-chapter detail, so this stays off the path where an analysis exists.
+  // Same query key as useChapters — a reader-page visit already warmed it.
+  const chaptersQuery = useQuery({
+    queryKey: ['books', bookId, 'chapters'],
+    queryFn: () => fetchChapters(bookId!),
+    enabled: !!bookId && !structureQuery.isLoading && !hasHeroJourney,
+  });
+
+  const prereq = useMemo(() => {
+    const chapters = chaptersQuery.data;
+    const summaryTotal = chapters?.length ?? chapterCount;
+    const summaryDone = chapters?.filter((c) => c.summary?.trim()).length ?? 0;
+    const ev = eventsQuery.data;
+    const eventTotal = ev ? ev.analyzed.length + ev.unanalyzed.length : 0;
+    return {
+      summaryDone,
+      summaryTotal,
+      summaryMissing: Math.max(0, summaryTotal - summaryDone),
+      summaryReady: summaryTotal > 0 && summaryDone === summaryTotal,
+      eventDone: ev?.analyzed.length ?? 0,
+      eventTotal,
+      eventReady: eventTotal > 0 && ev!.analyzed.length === eventTotal,
+      known: !!chapters,
+    };
+  }, [chaptersQuery.data, chapterCount, eventsQuery.data]);
+
+  // Blocked only on the hard prerequisite; event analysis affects representative
+  // events but never whether stages can be produced.
+  const triggerBlocked = prereq.known && !prereq.summaryReady;
+
   const staleBanner = structure?.is_stale ? (
     <div className="nl-stale" role="status">
       <AlertTriangle size={16} />
@@ -161,12 +228,50 @@ export default function NarrativePage() {
             </div>
             <div className="nl-empty-title">{t('narrative.empty.title')}</div>
             <div className="nl-empty-msg">{t('narrative.empty.message')}</div>
+
+            {/* Prerequisites, stated before the click rather than after it. */}
+            <div className="nl-prereq">
+              <div className="nl-prereq-head">{t('narrative.empty.prereqTitle')}</div>
+              <PrereqRow
+                ready={prereq.summaryReady}
+                name={t('narrative.empty.prereqSummary')}
+                count={t('narrative.empty.summaryCount', { done: prereq.summaryDone, total: prereq.summaryTotal })}
+                hint={
+                  prereq.summaryReady
+                    ? t('narrative.empty.summaryHintOk')
+                    : t('narrative.empty.summaryHintMissing', { n: prereq.summaryMissing })
+                }
+                cta={t('narrative.empty.ctaSummary')}
+                to={`/books/${bookId}/unraveling`}
+              />
+              <PrereqRow
+                ready={prereq.eventReady}
+                name={t('narrative.empty.prereqEvents')}
+                count={t('narrative.empty.eventCount', { done: prereq.eventDone, total: prereq.eventTotal })}
+                hint={t('narrative.empty.eventHint')}
+                cta={t('narrative.empty.ctaEvents')}
+                to={`/books/${bookId}/events`}
+              />
+            </div>
+
             {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
-            <button type="button" className="nl-trigger-btn" onClick={() => handleTrigger()} disabled={heroJourneyOp.running}>
-              {heroJourneyOp.running
-                ? t('narrative.empty.running', { progress: heroJourneyOp.task?.progress ?? 0 })
-                : t('narrative.empty.trigger')}
-            </button>
+            <div className="nl-trigger-row">
+              <button
+                type="button"
+                className={triggerBlocked ? 'nl-trigger-btn is-blocked' : 'nl-trigger-btn'}
+                onClick={() => handleTrigger()}
+                disabled={heroJourneyOp.running || triggerBlocked}
+              >
+                {heroJourneyOp.running
+                  ? t('narrative.empty.running', { progress: heroJourneyOp.task?.progress ?? 0 })
+                  : t('narrative.empty.trigger')}
+              </button>
+              {triggerBlocked && !heroJourneyOp.running && (
+                <span className="nl-trigger-reason">
+                  {t('narrative.empty.blockedReason', { n: prereq.summaryMissing })}
+                </span>
+              )}
+            </div>
             {structure && (
               <div style={{ width: '100%', maxWidth: 1100, marginTop: 28 }}>
                 <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />
