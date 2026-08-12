@@ -113,6 +113,8 @@ def narrative_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_c
 
     mock_narrative = AsyncMock()
     mock_narrative.structure_staleness.return_value = (False, None)
+    # Concrete, so the background classify task has a real structure to dump.
+    mock_narrative.classify_from_eep.return_value = NarrativeStructure(document_id="book-1")
     mock_narrative.get_kernel_events.return_value = [
         _kernel("ev-1", 1),
         _kernel("ev-2", 2),
@@ -185,3 +187,94 @@ class TestGetNarrativeStructure:
         body = narrative_client.get("/api/v1/narrative?book_id=book-1").json()
         assert body["is_stale"] is True
         assert body["stale_reason"] == "event_analysis"
+
+
+# ── Classify guard ───────────────────────────────────────────────────────────
+
+
+def _event(eid: str, weight: str) -> Event:
+    return Event(
+        id=eid,
+        title=eid,
+        event_type=EventType.PLOT,
+        description="…",
+        chapter=1,
+        narrative_weight=weight,
+    )
+
+
+class TestClassifyWouldWipe:
+    """The service refuses a run whose only effect would be losing classifications."""
+
+    def _service(self, events, cached_hits):
+        from storysphere.services.narrative_service import NarrativeService
+
+        kg = AsyncMock()
+        kg.get_events.return_value = events
+        cache = AsyncMock()
+
+        def _get_as(key, _model):
+            if key.startswith("event:"):
+                return object() if key.split(":")[-1] in cached_hits else None
+            return None
+
+        cache.get_as.side_effect = _get_as
+        cache.get.side_effect = lambda _key: None
+        return NarrativeService(kg, AsyncMock(), cache), cache
+
+    @pytest.mark.asyncio
+    async def test_reports_hits_classified_and_total(self):
+        svc, _ = self._service(
+            [_event("a", "kernel"), _event("b", "satellite"), _event("c", "unclassified")],
+            cached_hits={"a"},
+        )
+        assert await svc.eep_coverage("book-1") == (1, 2, 3)
+
+    @pytest.mark.asyncio
+    async def test_aborts_without_writing_when_cache_is_gone(self):
+        events = [_event("a", "kernel"), _event("b", "satellite")]
+        svc, cache = self._service(events, cached_hits=set())
+        await svc.classify_from_eep("book-1")
+        # Nothing written, and the KG weights are left as they were.
+        cache.set.assert_not_awaited()
+        assert [e.narrative_weight for e in events] == ["kernel", "satellite"]
+
+    @pytest.mark.asyncio
+    async def test_runs_on_a_book_that_has_nothing_classified_yet(self):
+        # Overwriting "unclassified" with "unclassified" loses nothing, so a
+        # first run on a fresh book must not be blocked.
+        events = [_event("a", "unclassified"), _event("b", "unclassified")]
+        svc, cache = self._service(events, cached_hits=set())
+        await svc.classify_from_eep("book-1")
+        cache.set.assert_awaited()
+
+    @pytest.mark.asyncio
+    async def test_runs_when_at_least_one_cache_entry_survives(self):
+        events = [_event("a", "kernel"), _event("b", "kernel")]
+        svc, cache = self._service(events, cached_hits={"a"})
+        await svc.classify_from_eep("book-1")
+        cache.set.assert_awaited()
+
+
+class TestClassifyEndpointGuard:
+    def test_409_when_a_run_would_wipe_classifications(self, narrative_client):
+        narrative_client.mock_narrative.eep_coverage.return_value = (0, 38, 47)
+        resp = narrative_client.post(
+            "/api/v1/narrative/classify", json={"document_id": "book-1"}
+        )
+        assert resp.status_code == 409
+        assert "38" in resp.json()["detail"]
+
+    def test_202_when_nothing_is_classified_yet(self, narrative_client):
+        narrative_client.mock_narrative.eep_coverage.return_value = (0, 0, 47)
+        resp = narrative_client.post(
+            "/api/v1/narrative/classify", json={"document_id": "book-1"}
+        )
+        assert resp.status_code == 202
+
+    def test_202_when_the_cache_still_has_entries(self, narrative_client):
+        narrative_client.mock_narrative.eep_coverage.return_value = (12, 38, 47)
+        resp = narrative_client.post(
+            "/api/v1/narrative/classify", json={"document_id": "book-1"}
+        )
+        assert resp.status_code == 202

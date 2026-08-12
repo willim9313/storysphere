@@ -102,7 +102,25 @@ async def classify_narrative(
     """Start heuristic Kernel/Satellite classification for a book.
 
     Returns 202 with ``task_id``. Poll ``GET /narrative/classify/{task_id}``.
+
+    Returns 409 when no EEP cache entries remain while the KG still holds
+    classified events: the run has nothing to classify from, so it would reset
+    every kernel/satellite weight to "unclassified". The service refuses the
+    same case on its own, but a task that "succeeds" having done nothing is not
+    an answer — the caller gets told instead.
     """
+    hits, classified, total = await narrative_service.eep_coverage(req.document_id)
+    if hits == 0 and classified > 0:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Refusing to classify: none of the {total} events still have an "
+                f"event-analysis (EEP) cache entry, so all {classified} currently "
+                f"classified events would be reset to 'unclassified'. Re-run event "
+                f"analysis first."
+            ),
+        )
+
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="敘事模式標註")
     background_tasks.add_task(_run_classify, task_id, req, narrative_service)
