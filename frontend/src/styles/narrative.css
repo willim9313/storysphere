@@ -22,6 +22,110 @@
   min-height: 100%;
 }
 
+/* Page header — what this page answers, and which book it is about. */
+.nl-head-line {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.nl-head-title {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-3xl);
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--fg-primary);
+}
+.nl-head-lead {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  color: var(--fg-secondary);
+}
+.nl-head-meta {
+  margin-top: 4px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+
+/* Index cards — the page's table of contents. The numbers establish reading
+   order; the anchors declare that there is more below the fold. */
+.nl-index {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.nl-index-card {
+  display: block;
+  padding: 14px;
+  background: var(--bg-primary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--transition-fast);
+}
+.nl-index-card:hover {
+  background: var(--bg-secondary);
+}
+.nl-index-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.nl-index-n {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+}
+.nl-index-role {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.nl-index-status {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.nl-index-title {
+  margin-top: 6px;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-index-answers {
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
 /* Section cards — shared shell for hero journey + plot spine. */
 .nl-card {
   display: flex;
@@ -33,6 +137,778 @@
   border-style: var(--border-style);
   border-color: var(--border);
   border-radius: var(--radius-lg);
+}
+/* Index-card anchors land inside .nl-scroll; keep the heading clear of the top. */
+#nl-hero,
+#nl-spine {
+  scroll-margin-top: 16px;
+}
+
+/* Framework name as its own way out to the methodology page. */
+.nl-term-link {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--fg-muted);
+}
+.nl-term-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
+/* View switcher — each option says what it is for, on the control itself. */
+.nl-views {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.nl-view {
+  flex: 1 1 0;
+  min-width: 150px;
+  text-align: left;
+  cursor: pointer;
+  padding: 9px 12px;
+  border-radius: var(--radius-md);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-family: var(--font-sans);
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+.nl-view.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+}
+.nl-view-name {
+  display: block;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+}
+.nl-view-hint {
+  display: block;
+  margin-top: 1px;
+  font-size: var(--font-size-2xs);
+  opacity: 0.75;
+}
+
+/* Chapter-alignment band — the axis is the whole book, always. */
+.nl-band-head {
+  text-align: right;
+  padding-right: 4px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-band-cols {
+  display: grid;
+  gap: 2px;
+}
+.nl-band-tick {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  padding-bottom: 2px;
+  min-width: 0;
+}
+.nl-band-overlap {
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: var(--fg-muted);
+}
+.nl-band-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  text-align: right;
+  cursor: pointer;
+  padding: 5px 6px;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) var(--border-style) transparent;
+  background: transparent;
+  font: inherit;
+  transition: background-color var(--transition-fast);
+}
+.nl-band-label:hover {
+  background: var(--bg-secondary);
+}
+.nl-band-label.is-active {
+  background: var(--bg-tertiary);
+}
+.nl-band-rev {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+}
+.nl-band-n {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-band-name {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+.nl-band-lane {
+  position: relative;
+  height: 26px;
+  border-radius: var(--radius-sm);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  background: var(--bg-primary);
+  overflow: hidden;
+}
+.nl-band-bar {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 7px;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--bg-primary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.nl-band-absent {
+  position: absolute;
+  inset: 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--fg-muted);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+.nl-band-note {
+  margin: 10px 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+  text-wrap: pretty;
+}
+
+/* Band view — viz and detail side by side; the detail follows the scroll. */
+.nl-band-split {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+.nl-band-aside {
+  flex: 1 1 300px;
+  max-width: 340px;
+  align-self: stretch;
+  position: sticky;
+  top: 16px;
+  padding: 16px;
+  background: var(--bg-secondary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Stage detail panel. */
+.nl-sd-phase {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.nl-sd-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.nl-sd-extra {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-sd-note {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-shared {
+  padding: 6px 8px;
+  border-left: 2px solid var(--border);
+  background: var(--bg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-empty {
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-ev {
+  display: block;
+  padding: 7px 9px;
+  background: var(--bg-primary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+a.nl-sd-ev:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+.nl-sd-ev-sig {
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-theory {
+  padding-top: 12px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+}
+.nl-sd-theory > summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
+.nl-sd-theory > summary::-webkit-details-marker {
+  display: none;
+}
+.nl-sd-theory > p {
+  margin-top: 8px;
+}
+.nl-sd-method {
+  display: inline-block;
+  margin-top: 8px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+}
+
+/* Confidence — value, threshold, and what the rest of the book scored. */
+.nl-conf-row,
+.nl-conf-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-conf-scale {
+  font-size: 9px;
+  margin-top: 3px;
+}
+.nl-conf-bar {
+  position: relative;
+  height: 8px;
+  margin-top: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+.nl-conf-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+}
+.nl-conf-tick {
+  position: absolute;
+  left: 60%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--fg-primary);
+}
+.nl-conf-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+}
+.nl-conf-chip {
+  padding: 2px 8px;
+  border-radius: 20px;
+  border-width: var(--border-width);
+  background: var(--bg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.nl-conf-peer {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+
+/* Kernel / satellite proportion. */
+.nl-ratio {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.nl-ratio-lead {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.nl-ratio-n {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+}
+.nl-ratio-of {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
+.nl-ratio-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+}
+.nl-ratio-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+
+/* Kernel events under the chapter they belong to. Columns wrap rather than
+   compress: a long book gets more rows, never unreadable titles. */
+.nl-chgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
+  gap: 10px 8px;
+  align-items: start;
+}
+.nl-chgrid-head {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--border);
+}
+.nl-chgrid-ch {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.nl-chgrid-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+}
+.nl-chgrid-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.nl-ev {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  padding: 6px 7px;
+  border-radius: var(--radius-sm);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  background: var(--bg-secondary);
+  color: var(--fg-primary);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  text-wrap: pretty;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+.nl-ev:hover {
+  border-color: var(--accent);
+}
+.nl-ev.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+}
+.nl-ev-empty {
+  padding: 6px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  text-align: center;
+}
+.nl-evbox {
+  padding: 14px;
+  min-height: 74px;
+  background: var(--bg-secondary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+}
+.nl-evbox-link {
+  margin-left: auto;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.nl-evbox-sig {
+  margin: 5px 0 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
+/* ③ Cross-evidence — several analyses on one chapter axis. */
+#nl-cross {
+  scroll-margin-top: 16px;
+}
+.nl-index-n-ghost {
+  background: transparent;
+  color: var(--fg-primary);
+  border: 1px solid var(--fg-primary);
+}
+.nl-cross-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 6px;
+}
+.nl-cross-label {
+  text-align: right;
+  padding-right: 4px;
+}
+.nl-cross-label-t {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-primary);
+}
+.nl-cross-label-s {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-cross-cells {
+  display: grid;
+  gap: 3px;
+  align-items: end;
+  height: 30px;
+}
+.nl-cross-ruler {
+  display: grid;
+  gap: 3px;
+  padding-top: 4px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  text-align: center;
+}
+.nl-cross-note {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin-top: 14px;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+}
+.nl-cross-note-mark {
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+}
+.nl-cross-note p {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-cross-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  padding-top: 18px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+}
+.nl-cross-right {
+  border-left: var(--border-width) var(--border-style) var(--border);
+  padding-left: 16px;
+}
+.nl-cross-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.nl-cross-head h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-cross-sub {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-cross-badge {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 20px;
+  border: var(--border-width) var(--border-style) var(--border);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.nl-cross-badge.is-pending {
+  border-style: dashed;
+  border-color: var(--fg-muted);
+  color: var(--fg-muted);
+}
+.nl-cross-ghost {
+  display: grid;
+  gap: 3px;
+  margin-top: 10px;
+}
+.nl-cross-ghost > div {
+  height: 24px;
+  border: 1px dashed var(--border);
+  border-radius: 2px;
+  background: var(--bg-secondary);
+}
+.nl-cross-body {
+  margin: 10px 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-cross-meta {
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+.nl-cross-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+}
+.nl-cross-peaks {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+}
+.nl-cross-peak {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+}
+.nl-cross-peak-ch {
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+  width: 62px;
+  flex-shrink: 0;
+}
+.nl-cross-peak-v {
+  font-family: var(--font-mono);
+  color: var(--accent);
+}
+.nl-cross-peak-note {
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
+/* Unclassified events — the part of the book this page cannot show. */
+.nl-unclass {
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.nl-unclass-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
+}
+.nl-unclass-n {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xl);
+  color: var(--fg-primary);
+  line-height: 1;
+}
+.nl-unclass-title {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-unclass-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.nl-unclass-fact {
+  padding: 14px;
+  border-right: var(--border-width) var(--border-style) var(--border);
+}
+.nl-unclass-fact:last-child {
+  border-right: none;
+}
+.nl-unclass-fact-k {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.nl-unclass-fact-v {
+  margin-top: 5px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-unclass-error {
+  padding: 10px 14px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+  background: var(--color-warning-bg);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--color-warning);
+  text-wrap: pretty;
+}
+.nl-unclass-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+}
+.nl-unclass-jump {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  color: var(--accent);
+}
+
+/* Absent-stage reading — states what a gap means, and how many there are. */
+.nl-absent-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border: var(--border-width) dashed var(--fg-muted);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+}
+.nl-absent-glyph {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px dashed var(--fg-muted);
+  border-radius: var(--radius-sm);
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+}
+.nl-absent-title {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-absent-body {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
 }
 
 /* Jump-to-events button (plot spine). */
@@ -89,6 +965,79 @@
   font-size: var(--font-size-xs);
   color: var(--color-error);
 }
+
+/* Prerequisite checklist — map_hero_journey reads chapter summaries, so without
+   them the task succeeds and writes nothing. Stated before the click. */
+.nl-prereq {
+  width: 100%;
+  max-width: 720px;
+  margin-top: 8px;
+  text-align: left;
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.nl-prereq-head {
+  padding: 7px 14px;
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
+}
+.nl-prereq-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 14px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+}
+.nl-prereq-row + .nl-prereq-row {
+  border-top: var(--border-width) var(--border-style) var(--border);
+}
+.nl-prereq-mark {
+  font-family: var(--font-mono);
+  width: 12px;
+  flex-shrink: 0;
+}
+.nl-prereq-name {
+  font-weight: 600;
+  color: var(--fg-primary);
+  white-space: nowrap;
+}
+.nl-prereq-count {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.nl-prereq-hint {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+.nl-prereq-cta {
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  color: var(--accent);
+}
+.nl-trigger-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+.nl-trigger-reason {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
 .nl-trigger-btn {
   margin-top: 14px;
   cursor: pointer;
@@ -106,10 +1055,16 @@
   opacity: 0.6;
   cursor: wait;
 }
+/* Disabled because a prerequisite is missing, not because a run is in flight. */
+.nl-trigger-btn.is-blocked:disabled {
+  cursor: not-allowed;
+  background: var(--bg-tertiary);
+  color: var(--fg-muted);
+}
 
 /* Stale banner — a pipeline step re-ran after this analysis was cached.
-   Advisory only: the action lives on the analysis trigger, not here, so the
-   same job never gets two entry points (mirrors .tn-hero-stale). */
+   Carries a re-run link of its own: the trigger button only exists in the empty
+   state, so without it the warning has no reachable remedy. */
 .nl-stale {
   display: flex;
   align-items: flex-start;

@@ -11,7 +11,10 @@ export type StageState = 'filled' | 'low' | 'absent';
 export const PHASES: Phase[] = ['departure', 'initiation', 'return'];
 
 export type LayoutId = 'track' | 'columns' | 'ring' | 'band';
-export const LAYOUT_IDS: LayoutId[] = ['track', 'columns', 'ring', 'band'];
+// Band leads, and is the default: on real data it is the only view that shows
+// stage/chapter alignment, overlap and reversal at once. Track — the previous
+// default — is the least dense of the four.
+export const LAYOUT_IDS: LayoutId[] = ['band', 'track', 'columns', 'ring'];
 
 // Localized chapter-range label, e.g. "第 18–20 章" / "Ch. 18–20".
 export function formatChapters(range: number[] | undefined, t: TFunction): string {
@@ -69,6 +72,23 @@ export function groupByPhase(stages: HeroJourneyStage[]): Record<Phase, HeroJour
 // Order an arbitrary stage list by the canonical sequence.
 export function sortStages(stages: HeroJourneyStage[]): HeroJourneyStage[] {
   return [...stages].sort((a, b) => stageOrdinal(a.stage_id) - stageOrdinal(b.stage_id));
+}
+
+// Fill out the canonical 12. The mapper omits stages it found no evidence for,
+// so an absent stage arrives as a hole in the sequence rather than as a row —
+// which is why the 'absent' state never reaches the layouts. Padding restores
+// the hole as an explicit row; stages the mapper did produce are untouched.
+// Callers must not use the result to decide whether an analysis exists: this
+// always returns 12 rows, including for an empty input.
+export function padStages(stages: HeroJourneyStage[]): HeroJourneyStage[] {
+  const byId: Record<string, HeroJourneyStage> = {};
+  for (const s of stages) byId[s.stage_id] = s;
+  const padded = STAGE_ORDER.map(
+    (id): HeroJourneyStage =>
+      byId[id] ?? { stage_id: id, stage_name: id, chapter_range: [], confidence: 0, notes: null },
+  );
+  // Keep anything under an id outside the canonical set rather than dropping it.
+  return [...padded, ...stages.filter((s) => !STAGE_ORDER.includes(s.stage_id))];
 }
 
 // ── Three-state visual language ────────────────────────────────────

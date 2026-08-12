@@ -2104,6 +2104,26 @@ interface ChapterDistribution {
 
 **Response 202**：`TaskStatus`（含 taskId）
 
+**Response 409**：本次執行只會摧毀既有分類，拒絕啟動任務。
+
+分類的唯一輸入是 `event:{document_id}:{event_id}` 快取（EEP 分析結果）；**沒有快取的
+事件一律被寫回 `narrative_weight="unclassified"`**。因此當快取全數遺失、而 KG 中仍有
+kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未分類——書庫兩本測試書的
+未分類比例（9/47、59/62）就是這樣來的。
+
+判定條件（最保守，只擋真正會損失資訊的情況）：
+
+> EEP 命中數 == 0 **且** KG 中至少有一個事件目前是 kernel/satellite
+
+全新書（尚無任何分類）不受阻擋：拿 `unclassified` 覆寫 `unclassified` 不損失任何資訊。
+
+`detail` 會帶出實際數字（總事件數、將被抹除的已分類數），前端可直接顯示。
+
+> **同一守衛也存在於 service 層**（`classify_from_eep`），因為 `GET /narrative/kernel-spine`
+> 與 `POST /narrative/refine` 在「全書皆未分類」時會自動呼叫它——前者每次進敘事結構頁
+> 都會執行。service 層命中守衛時記 warning、回傳既有快取結構、**完全不寫 KG**，不拋例外
+> （一個 GET 不該因此讓整頁壞掉）。
+
 **說明**：polling 走 #21b。
 
 ---
@@ -2260,6 +2280,19 @@ interface ChapterDistribution {
 `hero_journey` 快取重建 NarrativeStructure 後回傳 200，不需重跑 #21a／#21e。
 重建無法還原 `review_status`，該欄位會回到 `pending`。
 
+**`hero_journey_stages[].representative_event_ids` 亦為讀取時推導**，與 `is_stale`
+同類：欄位本身早已存在於 `HeroJourneyStage`，但生成端（`map_hero_journey`）從未寫入。
+本端點回傳前以每個階段的 `chapter_range`（取首尾為區間）與 kernel 骨幹取交集補上，
+沿用 #21j 的章節遞增順序，每階段上限 4 筆。**不寫入快取**，因此既有快取無需 force
+重跑即生效，重複呼叫結果穩定。
+
+推導時讀 KG 事件但**不觸發自動分類**（`get_kernel_spine` 在全書皆未分類時會呼叫
+`classify_from_eep` 並寫回 KG；本端點走的是無副作用的讀取路徑）。
+
+階段共用同一段 `chapter_range` 時會拿到相同的事件，落在 kernel 事件範圍之外的階段
+則為空陣列——階段是章節級、事件在章節內，兩者本就不是一對一。快取中若已帶有值，
+一律保留不覆寫。
+
 **Response 404**：尚未執行 #21a，且 KG 中沒有任何已分類事件
 
 ---
@@ -2408,6 +2441,16 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 **Response 200**：`NarrativeStructure`（更新後）
 
+**副作用**：`review_status='approved'` 會一併把 `classification_source` 推進為
+`human_verified`。該列舉值一直存在於 domain model，但先前沒有任何寫入點，導致
+「已核可」與「未審閱」的分類在來源上無法區分。
+
+撤回核可（已是 `human_verified` 時改為 `rejected`）必須把來源放回去，而先前的值
+從未被保存——改由事件自身的 `narrative_weight_source` 還原：任一事件為
+`llm_classified` 則回到 `llm_classified`，否則回到 `summary_heuristic`。
+
+未曾核可過的結構改為 `rejected` 時，`classification_source` 不變。
+
 ---
 
 ## 跨書搜尋
@@ -2514,6 +2557,9 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 - [x] **#20 系列 `/analysis` 路由**：character + event 非同步深度分析，各有專用 polling（`backend/storysphere/api/routers/analysis.py`）
 - [x] **#21 系列 `/narrative` 路由**：Kernel/Satellite 分類 + LLM 精煉 + Hero's Journey + Genette 時間序（`backend/storysphere/api/routers/narrative.py`）
   - 2026-06-01：#21k / #21l 加 `response_model=NarrativeStructure`，#21j 加 `response_model=list[KernelSpineEvent]`（新增 schema），讓 `generated.ts` 取得 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。回傳 JSON shape 不變（皆為既有 snake_case domain dump）。前端封裝於 `frontend/src/api/narrative.ts`，頁面為 `/books/:bookId/narrative`（B-045）。
+  - 2026-08-12：#21k 的 `representative_event_ids` 改為讀取時推導（response schema 不變，欄位早已存在）。詳見 #21k 段落。
+  - 2026-08-12：#21a 新增 409（分類會抹除既有分類時拒絕啟動），service 層同步加守衛。詳見 #21a 段落。
+  - 2026-08-12：#21l 核可時一併寫入 `classification_source='human_verified'`（撤回核可時由事件來源還原）。詳見 #21l 段落。
 - [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
 - [x] **#22a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

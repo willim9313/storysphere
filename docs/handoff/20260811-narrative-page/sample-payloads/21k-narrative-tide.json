@@ -1,0 +1,180 @@
+{
+    "id": "e49eec85-ae67-46d6-8cb2-d31eb9bf89e8",
+    "document_id": "8f18dd59-bd45-4071-a548-58779fcf7ece",
+    "kernel_event_ids": [
+        "4e23dac4-e991-47ac-833c-ad695f0b6833",
+        "ce48a708-2c5c-4882-bfcd-28d89aafef24",
+        "31db1a3c-768b-43f9-9956-570a4390ec4e",
+        "c61384ab-4f54-40c8-b429-466faa19ef16",
+        "0783a04a-ce3f-4a8a-8063-65dfb69e35e3",
+        "c43c5c88-7a08-4210-ab8c-d7c2e156b597",
+        "bda93e6d-0bbf-4f9b-97a9-1dc97714b29a",
+        "7b361afd-e84c-42f1-a66f-67de1eae1975",
+        "740696bf-e3fc-4e3b-b0d8-5e484ccbdc17",
+        "18cd5679-abca-4d40-ba03-9f6cfa0a3d7d",
+        "533d2db8-4a2d-403b-89aa-d58111f52dac",
+        "781c4aeb-90e5-42e4-8042-0a5cc09b3e4e",
+        "58c9e2a0-981f-4b5e-9167-0e24c1e4c581",
+        "7071d17c-7689-46f7-bd12-d64e68a2efe0",
+        "ac438155-fefa-4774-aa56-c8fa002023eb",
+        "902274a7-de99-4087-8f5f-be8d12603e47",
+        "ee427b65-00e6-4a39-b017-d61772ab8b40",
+        "2f4ba6a6-af9d-403e-9c09-2f0930902061",
+        "68c3c164-2aa3-42f1-921e-9b5423e8b5c4",
+        "3d35fcdc-6556-4915-b2c8-0bc05e496971",
+        "c1a871cb-e287-47d1-b88e-d6d654f1c807",
+        "ce28f27b-8570-4e57-8326-86530d5fddbe",
+        "4a9a2177-da9e-4fd7-84b0-dd4ce85b58ba",
+        "818feef6-db1a-4536-9855-15d04c8e823a",
+        "63e4eda2-f573-4f1b-b050-d2b77ca406ce",
+        "df2e68fe-726a-4838-88b5-1bc49cdfcb54",
+        "aaa01f75-eeec-44e2-8a88-5a97af94ece6",
+        "65b58caa-4f81-4bff-bdde-479773474b02",
+        "ba3c594c-20be-4420-b4d0-02f9fe19a0b8",
+        "63146b97-a9c8-441f-9130-542d14e80427",
+        "a303d2d5-3a4e-4e6d-ac12-775cc7520bf8",
+        "4ba094f3-aecc-4696-82b6-02d31cd1c337",
+        "a0ad52e1-dbdf-48d7-a303-6347258481ca",
+        "a99377ce-ee60-452c-8ee6-e935e389e93f",
+        "208a72d5-e727-42e4-8dc7-71b5fe0aa080",
+        "13942a00-11dd-4aa4-a807-53ea5a9bc398",
+        "bacfc7e3-4a6a-4d12-a8c2-e4a9aaa9ea40",
+        "ffe6dfe6-cb60-4c5c-a5c1-9eec540f6ab0"
+    ],
+    "satellite_event_ids": [],
+    "unclassified_event_ids": [
+        "97ad1364-7652-41eb-a99c-32ba1cc2aa48",
+        "24c3a9e9-c441-482b-b161-3b08a76376d8",
+        "8f4935bf-93fb-4ba4-a25a-bfc32a6646a6",
+        "82145f4d-0850-4a28-a624-3d6d7b804564",
+        "4e58a76a-40b3-42ef-8b72-0dc05ca08793",
+        "10cec6e0-57da-4cff-b1ff-2c7882f70e2e",
+        "3203eaa8-fa71-48e2-80ca-785342779e0e",
+        "8bbe7e44-c6e6-4004-949e-e695d6883da1",
+        "565a7297-9fdb-47da-a9dd-936cf870a21c"
+    ],
+    "classification_source": "llm_classified",
+    "hero_journey_stages": [
+        {
+            "stage_id": "ordinary_world",
+            "stage_name": "\u5e73\u51e1\u4e16\u754c",
+            "chapter_range": [
+                1,
+                2
+            ],
+            "representative_event_ids": [],
+            "confidence": 0.9,
+            "notes": "\u4f0a\u5167\u7d72\u5728\u85a9\u723e\u746a\u96f7\u7d0d\u93ae\u7684\u65e5\u5e38\u751f\u6d3b\uff0c\u4ee5\u53ca\u5979\u4f5c\u70ba\u8b80\u9e7d\u4eba\u5b78\u5f92\u7684\u8eab\u4efd\uff0c\u70ba\u6545\u4e8b\u5efa\u7acb\u4e86\u80cc\u666f\u3002\u8b80\u9e7d\u7684\u898f\u5247\u548c\u4ee3\u50f9\u4e5f\u5728\u6b64\u968e\u6bb5\u88ab\u78ba\u7acb\u3002"
+        },
+        {
+            "stage_id": "call_to_adventure",
+            "stage_name": "\u5192\u96aa\u7684\u53ec\u559a",
+            "chapter_range": [
+                1,
+                2
+            ],
+            "representative_event_ids": [],
+            "confidence": 0.9,
+            "notes": "\u9000\u540d\u4e4b\u6f6e\u7684\u5230\u4f86\u662f\u5916\u90e8\u53ec\u559a\uff0c\u800c\u746a\u8482\u723e\u5fb7\u592b\u4eba\u6307\u5b9a\u4f0a\u5167\u7d72\u6210\u70ba\u8b80\u9e7d\u4eba\uff0c\u4ee5\u53ca\u4f0a\u5167\u7d72\u5167\u5fc3\u5c0b\u627e\u54e5\u54e5\u57c3\u7c73\u5229\u5b89\u7684\u9858\u671b\uff0c\u5247\u662f\u5167\u90e8\u7684\u53ec\u559a\u3002"
+        },
+        {
+            "stage_id": "meeting_the_mentor",
+            "stage_name": "\u9047\u898b\u5c0e\u5e2b",
+            "chapter_range": [
+                1,
+                2
+            ],
+            "representative_event_ids": [],
+            "confidence": 0.9,
+            "notes": "\u746a\u8482\u723e\u5fb7\u592b\u4eba\u662f\u4f0a\u5167\u7d72\u7684\u5c0e\u5e2b\uff0c\u5979\u5728\u7b2c\u4e00\u7ae0\u544a\u77e5\u4f0a\u5167\u7d72\u5c07\u627f\u64d4\u8b80\u9e7d\u91cd\u4efb\uff0c\u4e26\u5728\u7b2c\u4e8c\u7ae0\u6559\u5c0e\u5979\u8b80\u9e7d\u7684\u672c\u8cea\u548c\u4ee3\u50f9\u3002"
+        },
+        {
+            "stage_id": "refusal_of_call",
+            "stage_name": "\u62d2\u7d55\u53ec\u559a",
+            "chapter_range": [
+                2,
+                4
+            ],
+            "representative_event_ids": [],
+            "confidence": 0.8,
+            "notes": "\u4f0a\u5167\u7d72\u5c0d\u6210\u70ba\u8b80\u9e7d\u4eba\u611f\u5230\u6050\u61fc\uff08\u7b2c\u4e8c\u7ae0\uff09\uff0c\u4ee5\u53ca\u5979\u6bcd\u89aa\u5805\u6c7a\u53cd\u5c0d\u5979\u5192\u96aa\u8b80\u9e7d\uff08\u7b2c\u56db\u7ae0\uff09\uff0c\u90fd\u9ad4\u73fe\u4e86\u5c0d\u53ec\u559a\u7684\u62d2\u7d55\u3002\u5979\u4e5f\u62d2\u7d55\u4e86\u9418\u9336\u5320\u6cf0\u5967\u591a\u723e\u7684\u8acb\u6c42\uff08\u7b2c\u4e09\u7ae0\uff09\uff0c\u9019\u53ef\u4ee5\u770b\u4f5c\u662f\u5979\u5c0d\u8b80\u9e7d\u539f\u5247\u7684\u5805\u6301\uff0c\u4e5f\u662f\u5c0d\u5192\u96aa\u4e2d\u6f5b\u5728\u8a98\u60d1\u7684\u62d2\u7d55\u3002"
+        },
+        {
+            "stage_id": "crossing_threshold",
+            "stage_name": "\u8de8\u8d8a\u7b2c\u4e00\u9053\u9580\u6abb",
+            "chapter_range": [
+                5
+            ],
+            "representative_event_ids": [],
+            "confidence": 1.0,
+            "notes": "\u9000\u540d\u4e4b\u6f6e\u964d\u81e8\uff0c\u4f0a\u5167\u7d72\u8d64\u8173\u8d70\u4e0a\u6ce5\u7058\uff0c\u958b\u59cb\u8b80\u9e7d\uff0c\u9019\u6a19\u8a8c\u8457\u5979\u5f9e\u5e73\u51e1\u4e16\u754c\u9032\u5165\u4e86\u7279\u6b8a\u4e16\u754c\uff0c\u5192\u96aa\u6b63\u5f0f\u958b\u59cb\u3002"
+        },
+        {
+            "stage_id": "tests_allies_enemies",
+            "stage_name": "\u8003\u9a57\u3001\u76df\u53cb\u8207\u6575\u4eba",
+            "chapter_range": [
+                6,
+                7
+            ],
+            "representative_event_ids": [],
+            "confidence": 1.0,
+            "notes": "\u4f0a\u5167\u7d72\u5728\u6ce5\u7058\u4e0a\u8b80\u53d6\u4e86\u591a\u500b\u7269\u4ef6\u7684\u8a18\u61b6\uff0c\u5e6b\u52a9\u93ae\u6c11\u627e\u56de\u904e\u53bb\uff0c\u9019\u65e2\u662f\u5979\u80fd\u529b\u7684\u8003\u9a57\uff0c\u4e5f\u8b93\u5979\u7406\u89e3\u4e86\u8b80\u9e7d\u7684\u610f\u7fa9\u3002\u9418\u9336\u5320\u6cf0\u5967\u591a\u723e\u7684\u51fa\u73fe\u548c\u4ed6\u7684\u8a18\u61b6\uff0c\u5247\u662f\u4e00\u500b\u7279\u6b8a\u7684\u8003\u9a57\uff0c\u63ed\u793a\u4e86\u4eba\u6027\u7684\u8907\u96dc\u3002"
+        },
+        {
+            "stage_id": "approach_innermost_cave",
+            "stage_name": "\u903c\u8fd1\u6700\u6df1\u8655\u7684\u6d1e\u7a74",
+            "chapter_range": [
+                8
+            ],
+            "representative_event_ids": [],
+            "confidence": 0.9,
+            "notes": "\u746a\u8482\u723e\u5fb7\u592b\u4eba\u7684\u6700\u5f8c\u4e00\u8ab2\uff0c\u63ed\u793a\u4e86\u57c3\u7c73\u5229\u5b89\u8a18\u61b6\u7684\u5371\u96aa\u6027\u4ee5\u53ca\u6d77\u7d22\u53d6\u7684\u4ee3\u50f9\uff0c\u9019\u8b93\u4f0a\u5167\u7d72\u9762\u81e8\u6700\u6df1\u7684\u6050\u61fc\u548c\u6289\u64c7\uff0c\u70ba\u6700\u7d42\u7684\u78e8\u96e3\u505a\u6e96\u5099\u3002"
+        },
+        {
+            "stage_id": "ordeal",
+            "stage_name": "\u78e8\u96e3",
+            "chapter_range": [
+                9
+            ],
+            "representative_event_ids": [],
+            "confidence": 1.0,
+            "notes": "\u4f0a\u5167\u7d72\u5728\u6ce5\u7058\u6df1\u8655\u9762\u5c0d\u57c3\u7c73\u5229\u5b89\u7684\u8c9d\u6bbc\u624b\u74b0\uff0c\u9762\u81e8\u7528\u751f\u547d\u63db\u53d6\u54e5\u54e5\u8a18\u61b6\u7684\u7d42\u6975\u6289\u64c7\u3002\u5979\u6700\u7d42\u9078\u64c7\u653e\u4e0b\uff0c\u662f\u5979\u500b\u4eba\u6210\u9577\u548c\u86fb\u8b8a\u7684\u95dc\u9375\u6642\u523b\u3002"
+        },
+        {
+            "stage_id": "road_back",
+            "stage_name": "\u56de\u6b78\u4e4b\u8def",
+            "chapter_range": [
+                9,
+                10
+            ],
+            "representative_event_ids": [],
+            "confidence": 0.9,
+            "notes": "\u4f0a\u5167\u7d72\u653e\u4e0b\u624b\u74b0\u5f8c\uff0c\u8f49\u8eab\u8dd1\u5411\u5cb8\u908a\uff0c\u4e26\u5728\u6f6e\u6c34\u56de\u586b\u6642\u88ab\u6551\u4e0a\u5cb8\uff0c\u9019\u4ee3\u8868\u5979\u5f9e\u7279\u6b8a\u4e16\u754c\u56de\u6b78\u7684\u904e\u7a0b\u3002"
+        },
+        {
+            "stage_id": "resurrection",
+            "stage_name": "\u5fa9\u6d3b",
+            "chapter_range": [
+                9,
+                10
+            ],
+            "representative_event_ids": [],
+            "confidence": 0.9,
+            "notes": "\u4f0a\u5167\u7d72\u9078\u64c7\u653e\u4e0b\u54e5\u54e5\u7684\u8a18\u61b6\uff0c\u4e26\u6c7a\u5b9a\u597d\u597d\u6d3b\u8457\u53bb\u8a18\u4f4f\u4ed6\uff0c\u9019\u8b49\u660e\u5979\u5df2\u7d93\u4e0d\u518d\u662f\u90a3\u500b\u88ab\u904e\u53bb\u675f\u7e1b\u7684\u5973\u5b69\u3002\u5979\u5411\u6bcd\u89aa\u5766\u767d\uff0c\u6bcd\u89aa\u4e5f\u9996\u6b21\u8aaa\u51fa\u57c3\u7c73\u5229\u5b89\u7684\u540d\u5b57\uff0c\u8c61\u5fb5\u8457\u96c6\u9ad4\u7684\u91cb\u61f7\u548c\u65b0\u751f\u3002"
+        },
+        {
+            "stage_id": "return_with_elixir",
+            "stage_name": "\u651c\u5e36\u9748\u85e5\u6b78\u4f86",
+            "chapter_range": [
+                10
+            ],
+            "representative_event_ids": [],
+            "confidence": 1.0,
+            "notes": "\u4e03\u5e74\u5f8c\uff0c\u4f0a\u5167\u7d72\u6210\u70ba\u85a9\u723e\u746a\u96f7\u7d0d\u7684\u8b80\u9e7d\u4eba\uff0c\u4e26\u6536\u4e86\u5b78\u5f92\uff0c\u50b3\u6388\u5979\u5982\u4f55\u627f\u8f09\u60b2\u50b7\u800c\u4e0d\u88ab\u6df9\u6c92\u3002\u9019\u8868\u660e\u5979\u5e36\u56de\u4e86\u667a\u6167\u548c\u7d93\u9a57\uff0c\u9020\u798f\u4e86\u793e\u7fa4\uff0c\u5b8c\u6210\u4e86\u65c5\u7a0b\u7684\u5faa\u74b0\u3002"
+        }
+    ],
+    "propp_functions": [],
+    "review_status": "pending",
+    "is_stale": false,
+    "stale_reason": null
+}
