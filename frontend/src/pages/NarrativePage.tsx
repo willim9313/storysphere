@@ -109,7 +109,8 @@ export default function NarrativePage() {
   // Resolve representative_event_ids → title/chapter from kernel spine + event list.
   const events = useMemo(() => {
     const map: Record<string, EventInfo> = {};
-    for (const e of kernelSpineQuery.data ?? []) map[e.id] = { title: e.title, chapter: e.chapter };
+    for (const e of kernelSpineQuery.data ?? [])
+      map[e.id] = { title: e.title, chapter: e.chapter, significance: e.significance ?? undefined };
     const ev = eventsQuery.data;
     if (ev) {
       for (const a of ev.analyzed) {
@@ -177,6 +178,9 @@ export default function NarrativePage() {
     () => (kernelSpineQuery.data ?? []).map((e) => e.chapter),
     [kernelSpineQuery.data],
   );
+  // Where the kernel events stop — a stage past this point resolves to none,
+  // and the detail panel says so rather than showing a bare empty list.
+  const lastKernelChapter = kernelChapters.length ? Math.max(...kernelChapters) : 0;
   const eventCount = (structure?.kernel_event_ids?.length ?? 0)
     + (structure?.satellite_event_ids?.length ?? 0)
     + (structure?.unclassified_event_ids?.length ?? 0);
@@ -299,6 +303,8 @@ export default function NarrativePage() {
               onRerun={() => handleTrigger(true)}
               rerunning={heroJourneyOp.running}
               kernelChapters={kernelChapters}
+              lastKernelChapter={lastKernelChapter}
+              bookId={bookId!}
             />
             <div id="nl-spine">
               <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />

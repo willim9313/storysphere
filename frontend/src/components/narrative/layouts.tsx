@@ -24,6 +24,9 @@ export interface LayoutProps {
   chapterCount: number;
   /** Chapter of each kernel event, one entry per event — drives the band's density row. */
   kernelChapters?: number[];
+  /** Last chapter holding a kernel event; explains a stage that resolves to none. */
+  lastKernelChapter?: number;
+  bookId?: string;
 }
 
 function useStageData(stages: HeroJourneyStage[]) {
@@ -67,7 +70,7 @@ const drawer: React.CSSProperties = {
 // ════════════════════════════════════════════════════════════
 // LAYOUT A — Horizontal journey track
 // ════════════════════════════════════════════════════════════
-export function LayoutTrack({ stages, theory, events }: LayoutProps) {
+export function LayoutTrack({ stages, theory, events, bookId, lastKernelChapter }: LayoutProps) {
   const { t } = useTranslation('analysis');
   const { sorted, byId, groups } = useStageData(stages);
   const [sel, setSel] = useState(sorted[0]?.stage_id);
@@ -116,7 +119,7 @@ export function LayoutTrack({ stages, theory, events }: LayoutProps) {
 
       <Legend />
 
-      <div style={{ ...drawer, marginTop: 2 }}>{selStage && <StageDetail stage={selStage} theory={theory} events={events} />}</div>
+      <div style={{ ...drawer, marginTop: 2 }}>{selStage && <StageDetail stage={selStage} theory={theory} events={events} allStages={sorted} bookId={bookId} lastKernelChapter={lastKernelChapter} />}</div>
     </div>
   );
 }
@@ -124,7 +127,7 @@ export function LayoutTrack({ stages, theory, events }: LayoutProps) {
 // ════════════════════════════════════════════════════════════
 // LAYOUT B — Three-phase columns + right detail panel
 // ════════════════════════════════════════════════════════════
-export function LayoutColumns({ stages, theory, events }: LayoutProps) {
+export function LayoutColumns({ stages, theory, events, bookId, lastKernelChapter }: LayoutProps) {
   const { t } = useTranslation('analysis');
   const { sorted, byId, groups } = useStageData(stages);
   const initiation = groups.initiation[0]?.stage_id;
@@ -197,7 +200,7 @@ export function LayoutColumns({ stages, theory, events }: LayoutProps) {
             </div>
           ))}
         </div>
-        <div style={{ width: 360, flexShrink: 0, ...drawer }}>{selStage && <StageDetail stage={selStage} theory={theory} events={events} compact />}</div>
+        <div style={{ width: 360, flexShrink: 0, ...drawer }}>{selStage && <StageDetail stage={selStage} theory={theory} events={events} allStages={sorted} bookId={bookId} lastKernelChapter={lastKernelChapter} compact />}</div>
       </div>
       <Legend />
     </div>
@@ -207,7 +210,7 @@ export function LayoutColumns({ stages, theory, events }: LayoutProps) {
 // ════════════════════════════════════════════════════════════
 // LAYOUT C — Circular monomyth ring (detail in centre)
 // ════════════════════════════════════════════════════════════
-export function LayoutRing({ stages, theory, events }: LayoutProps) {
+export function LayoutRing({ stages, theory, events, bookId, lastKernelChapter }: LayoutProps) {
   const { t } = useTranslation('analysis');
   const { sorted, byId, groups } = useStageData(stages);
   const ordeal = sorted.find((s) => s.stage_id === 'ordeal')?.stage_id;
@@ -308,7 +311,7 @@ export function LayoutRing({ stages, theory, events }: LayoutProps) {
               justifyContent: 'center',
             }}
           >
-            {selStage && <StageDetail stage={selStage} theory={theory} events={events} compact />}
+            {selStage && <StageDetail stage={selStage} theory={theory} events={events} allStages={sorted} bookId={bookId} lastKernelChapter={lastKernelChapter} compact />}
           </div>
         </div>
       </div>
@@ -320,7 +323,7 @@ export function LayoutRing({ stages, theory, events }: LayoutProps) {
 // ════════════════════════════════════════════════════════════
 // LAYOUT D — Chapter-alignment band (gantt; shows overlap + reversal)
 // ════════════════════════════════════════════════════════════
-export function LayoutBand({ stages, theory, events, chapterCount, kernelChapters = [] }: LayoutProps) {
+export function LayoutBand({ stages, theory, events, chapterCount, kernelChapters = [], bookId, lastKernelChapter }: LayoutProps) {
   const { i18n, t } = useTranslation('analysis');
   const { sorted, byId } = useStageData(stages);
   const ordeal = sorted.find((s) => s.stage_id === 'ordeal')?.stage_id;
@@ -504,7 +507,7 @@ export function LayoutBand({ stages, theory, events, chapterCount, kernelChapter
 
       <Legend />
 
-      <div style={{ ...drawer, padding: 18 }}>{selStage && <StageDetail stage={selStage} theory={theory} events={events} compact />}</div>
+      <div style={{ ...drawer, padding: 18 }}>{selStage && <StageDetail stage={selStage} theory={theory} events={events} allStages={sorted} bookId={bookId} lastKernelChapter={lastKernelChapter} compact />}</div>
     </div>
   );
 }

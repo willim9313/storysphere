@@ -84,70 +84,58 @@ export function ReviewBadge({ status }: { status: NarrativeReviewStatus }) {
 }
 
 // ── Confidence meter ───────────────────────────────────────────────
-// The 0.6 tick is stageState's own filled/low boundary, drawn so a bare
-// "0.90" can be read as high or low without knowing the scale.
-export function ConfidenceMeter({ stage, width = 120 }: { stage: HeroJourneyStage; width?: number }) {
+// A bare "0.90" says nothing on its own. The 0.6 tick is stageState's own
+// filled/low boundary; the peer range is what the rest of this book scored.
+export function ConfidenceMeter({ stage, peers = [] }: { stage: HeroJourneyStage; peers?: number[] }) {
   const { t } = useTranslation('analysis');
   const st = stageState(stage);
   if (st === 'absent') {
     return <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>—</span>;
   }
+  const above = stage.confidence >= 0.6;
+  const scored = peers.filter((v) => v > 0);
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-      <div
-        style={{
-          position: 'relative',
-          width,
-          height: 6,
-          borderRadius: 3,
-          background: 'var(--bg-tertiary)',
-          overflow: 'hidden',
-          borderWidth: 'var(--line-weight)',
-          borderStyle: 'var(--border-style)',
-          borderColor: 'var(--border)',
-        }}
-      >
+    <div className="nl-conf">
+      <div className="nl-conf-row">
+        <span>{t('narrative.confidence')}</span>
+        <span>{stage.confidence.toFixed(2)}</span>
+      </div>
+      <div className="nl-conf-bar">
         <div
+          className="nl-conf-fill"
           style={{
             width: `${Math.round(stage.confidence * 100)}%`,
-            height: '100%',
-            background: st === 'low' ? 'var(--color-warning)' : 'var(--accent)',
+            background: above ? 'var(--accent)' : 'var(--color-warning)',
           }}
         />
-        <div style={{ position: 'absolute', left: '60%', top: 0, bottom: 0, width: 1, background: 'var(--fg-muted)' }} />
+        <div className="nl-conf-tick" />
       </div>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)', fontVariantNumeric: 'tabular-nums' }}>
-        {stage.confidence.toFixed(2)}
-      </span>
-      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>
-        {t('narrative.threshold')}
-      </span>
+      <div className="nl-conf-scale">
+        <span>0</span>
+        <span>{t('narrative.threshold')}</span>
+        <span>1.0</span>
+      </div>
+      <div className="nl-conf-state">
+        <span
+          className="nl-conf-chip"
+          style={{
+            color: above ? 'var(--accent)' : 'var(--color-warning)',
+            borderColor: above ? 'var(--accent)' : 'var(--color-warning)',
+            borderStyle: above ? 'var(--border-style)' : 'dashed',
+          }}
+        >
+          {above ? t('narrative.confAbove') : t('narrative.confBelow')}
+        </span>
+        {scored.length > 0 && (
+          <span className="nl-conf-peer">
+            {t('narrative.confPeer', {
+              min: Math.min(...scored).toFixed(2),
+              max: Math.max(...scored).toFixed(2),
+            })}
+          </span>
+        )}
+      </div>
     </div>
-  );
-}
-
-// ── Representative Kernel-event pill ───────────────────────────────
-export function EventPill({ title, chapter }: { title: string; chapter?: number }) {
-  return (
-    <span
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        fontFamily: 'var(--font-sans)',
-        fontSize: 'var(--font-size-xs)',
-        padding: '2px 9px 2px 7px',
-        borderRadius: 20,
-        border: '0.5px solid var(--entity-evt-border)',
-        background: 'var(--entity-evt-bg)',
-        color: 'var(--entity-evt-fg)',
-        whiteSpace: 'nowrap',
-      }}
-    >
-      <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--entity-evt-dot)' }} />
-      {title}
-      {chapter != null && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', opacity: 0.7 }}>· {chapter}</span>}
-    </span>
   );
 }
 

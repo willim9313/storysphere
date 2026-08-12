@@ -305,6 +305,159 @@
   text-wrap: pretty;
 }
 
+/* Stage detail panel. */
+.nl-sd-phase {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.nl-sd-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.nl-sd-extra {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-sd-note {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-shared {
+  padding: 6px 8px;
+  border-left: 2px solid var(--border);
+  background: var(--bg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-empty {
+  padding: 8px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-ev {
+  display: block;
+  padding: 7px 9px;
+  background: var(--bg-primary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+a.nl-sd-ev:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+.nl-sd-ev-sig {
+  margin-top: 2px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.5;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-theory {
+  padding-top: 12px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+}
+.nl-sd-theory > summary {
+  cursor: pointer;
+  list-style: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
+.nl-sd-theory > summary::-webkit-details-marker {
+  display: none;
+}
+.nl-sd-theory > p {
+  margin-top: 8px;
+}
+.nl-sd-method {
+  display: inline-block;
+  margin-top: 8px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+}
+
+/* Confidence — value, threshold, and what the rest of the book scored. */
+.nl-conf-row,
+.nl-conf-scale {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-conf-scale {
+  font-size: 9px;
+  margin-top: 3px;
+}
+.nl-conf-bar {
+  position: relative;
+  height: 8px;
+  margin-top: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 4px;
+}
+.nl-conf-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 4px;
+}
+.nl-conf-tick {
+  position: absolute;
+  left: 60%;
+  top: -3px;
+  bottom: -3px;
+  width: 1px;
+  background: var(--fg-primary);
+}
+.nl-conf-state {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 7px;
+}
+.nl-conf-chip {
+  padding: 2px 8px;
+  border-radius: 20px;
+  border-width: var(--border-width);
+  background: var(--bg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.nl-conf-peer {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+
 /* Kernel / satellite proportion. */
 .nl-ratio {
   display: flex;
