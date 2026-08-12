@@ -2260,6 +2260,19 @@ interface ChapterDistribution {
 `hero_journey` 快取重建 NarrativeStructure 後回傳 200，不需重跑 #21a／#21e。
 重建無法還原 `review_status`，該欄位會回到 `pending`。
 
+**`hero_journey_stages[].representative_event_ids` 亦為讀取時推導**，與 `is_stale`
+同類：欄位本身早已存在於 `HeroJourneyStage`，但生成端（`map_hero_journey`）從未寫入。
+本端點回傳前以每個階段的 `chapter_range`（取首尾為區間）與 kernel 骨幹取交集補上，
+沿用 #21j 的章節遞增順序，每階段上限 4 筆。**不寫入快取**，因此既有快取無需 force
+重跑即生效，重複呼叫結果穩定。
+
+推導時讀 KG 事件但**不觸發自動分類**（`get_kernel_spine` 在全書皆未分類時會呼叫
+`classify_from_eep` 並寫回 KG；本端點走的是無副作用的讀取路徑）。
+
+階段共用同一段 `chapter_range` 時會拿到相同的事件，落在 kernel 事件範圍之外的階段
+則為空陣列——階段是章節級、事件在章節內，兩者本就不是一對一。快取中若已帶有值，
+一律保留不覆寫。
+
 **Response 404**：尚未執行 #21a，且 KG 中沒有任何已分類事件
 
 ---
@@ -2514,6 +2527,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 - [x] **#20 系列 `/analysis` 路由**：character + event 非同步深度分析，各有專用 polling（`backend/storysphere/api/routers/analysis.py`）
 - [x] **#21 系列 `/narrative` 路由**：Kernel/Satellite 分類 + LLM 精煉 + Hero's Journey + Genette 時間序（`backend/storysphere/api/routers/narrative.py`）
   - 2026-06-01：#21k / #21l 加 `response_model=NarrativeStructure`，#21j 加 `response_model=list[KernelSpineEvent]`（新增 schema），讓 `generated.ts` 取得 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。回傳 JSON shape 不變（皆為既有 snake_case domain dump）。前端封裝於 `frontend/src/api/narrative.ts`，頁面為 `/books/:bookId/narrative`（B-045）。
+  - 2026-08-12：#21k 的 `representative_event_ids` 改為讀取時推導（response schema 不變，欄位早已存在）。詳見 #21k 段落。
 - [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
 - [x] **#22a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

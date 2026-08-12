@@ -1464,8 +1464,9 @@ export interface paths {
          *
          *     ``is_stale`` reports that a pipeline step the analysis derives from has
          *     been re-run since it was cached, so the result describes older data;
-         *     ``stale_reason`` names that step. Both are derived per request and never
-         *     persisted.
+         *     ``stale_reason`` names that step. ``representative_event_ids`` on each
+         *     Hero's Journey stage is resolved from the kernel spine. All three are
+         *     derived per request and never persisted.
          *
          *     Returns 404 if neither classify nor hero-journey has been run yet.
          */

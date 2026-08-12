@@ -231,6 +231,19 @@ class NarrativeService:
             await self.classify_from_eep(document_id)
             events = await self._kg.get_events(document_id=document_id)
 
+        return self._sorted_kernels(events)
+
+    async def get_kernel_events(self, document_id: str) -> list[Event]:
+        """Same ordering as get_kernel_spine, without its auto-classify side effect.
+
+        get_kernel_spine() writes to the KG when nothing has been classified yet;
+        callers that are only reading (GET /narrative resolving representative
+        events) must not be able to trigger that.
+        """
+        return self._sorted_kernels(await self._kg.get_events(document_id=document_id))
+
+    @staticmethod
+    def _sorted_kernels(events: list[Event]) -> list[Event]:
         kernels = [e for e in events if e.narrative_weight == "kernel"]
         return sorted(kernels, key=lambda e: (e.chapter, e.narrative_position or 0))
 

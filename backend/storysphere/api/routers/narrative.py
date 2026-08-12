@@ -258,6 +258,41 @@ async def get_kernel_spine(
     ]
 
 
+# A stage spans whole chapters, so a chapter dense with kernel events would
+# otherwise flood the panel. The spine is chapter-ascending, so this keeps the
+# earliest ones.
+_MAX_REPRESENTATIVE_EVENTS = 4
+
+
+def _with_representative_events(stages: list[dict], kernels: list) -> list[dict]:
+    """Fill each stage's representative_event_ids from chapter_range ∩ kernel spine.
+
+    map_hero_journey never writes the field, so it arrives empty on every cached
+    structure. Resolving it here rather than at generation time means existing
+    caches benefit without a re-run, and nothing derived gets persisted — the
+    same contract as is_stale.
+
+    Stages sharing a chapter range legitimately resolve to the same events, and
+    a stage past the last kernel event resolves to none: a stage is
+    chapter-level while an event sits inside a chapter, so the two are not
+    one-to-one.
+    """
+    resolved = []
+    for stage in stages:
+        if stage.get("representative_event_ids"):
+            resolved.append(stage)  # already carries its own; leave it alone
+            continue
+        chapter_range = stage.get("chapter_range") or []
+        ids: list[str] = []
+        if chapter_range:
+            low, high = min(chapter_range), max(chapter_range)
+            ids = [e.id for e in kernels if low <= e.chapter <= high][
+                :_MAX_REPRESENTATIVE_EVENTS
+            ]
+        resolved.append({**stage, "representative_event_ids": ids})
+    return resolved
+
+
 @router.get("", response_model=NarrativeStructureResponse)
 async def get_narrative_structure(
     book_id: str,
@@ -267,8 +302,9 @@ async def get_narrative_structure(
 
     ``is_stale`` reports that a pipeline step the analysis derives from has
     been re-run since it was cached, so the result describes older data;
-    ``stale_reason`` names that step. Both are derived per request and never
-    persisted.
+    ``stale_reason`` names that step. ``representative_event_ids`` on each
+    Hero's Journey stage is resolved from the kernel spine. All three are
+    derived per request and never persisted.
 
     Returns 404 if neither classify nor hero-journey has been run yet.
     """
@@ -279,7 +315,13 @@ async def get_narrative_structure(
             detail="No narrative structure found. Run POST /narrative/classify first.",
         )
     is_stale, reason = await narrative_service.structure_staleness(book_id)
-    return {**structure.model_dump(), "is_stale": is_stale, "stale_reason": reason}
+    payload = structure.model_dump()
+    if payload.get("hero_journey_stages"):
+        kernels = await narrative_service.get_kernel_events(book_id)
+        payload["hero_journey_stages"] = _with_representative_events(
+            payload["hero_journey_stages"], kernels
+        )
+    return {**payload, "is_stale": is_stale, "stale_reason": reason}
 
 
 # ── HITL Review ───────────────────────────────────────────────────────────────
