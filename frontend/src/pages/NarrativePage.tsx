@@ -1,23 +1,30 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Compass } from 'lucide-react';
+import { ApiError } from '@/api/client';
 import { useBook } from '@/hooks/useBook';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
 import { fetchChapters } from '@/api/chapters';
 import { fetchEventAnalyses } from '@/api/analysis';
 import {
+  classifyNarrative,
+  fetchClassifyTask,
   fetchHeroJourneyTask,
   fetchKernelSpine,
   fetchNarrativeStructure,
+  fetchRefineTask,
+  refineNarrative,
   reviewNarrativeStructure,
   triggerHeroJourney,
 } from '@/api/narrative';
 import { STAGE_ORDER, getStageTheory, padStages } from '@/components/narrative/heroJourney';
 import { HeroJourneySection } from '@/components/narrative/HeroJourneySection';
 import { PlotSpine } from '@/components/narrative/PlotSpine';
+import { UnclassifiedBlock } from '@/components/narrative/UnclassifiedBlock';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { EventInfo } from '@/components/narrative/StageDetail';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import '@/styles/narrative.css';
@@ -99,6 +106,24 @@ export default function NarrativePage() {
       () => triggerHeroJourney(bookId!, i18n.language.startsWith('zh') ? 'zh' : 'en', force),
       t('narrative.errors.triggerHero'),
     );
+
+  // Both write narrative_weight back to the KG, so both invalidate the same
+  // queries the page reads.
+  const invalidateNarrative = () => {
+    queryClient.invalidateQueries({ queryKey: ['narrative', bookId] });
+    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+  };
+  const classifyOp = useTensionTask(
+    fetchClassifyTask,
+    invalidateNarrative,
+    t('narrative.errors.classifyFailed'),
+  );
+  const refineOp = useTensionTask(
+    fetchRefineTask,
+    invalidateNarrative,
+    t('narrative.errors.refineFailed'),
+  );
+  const [pendingAction, setPendingAction] = useState<'classify' | 'refine' | null>(null);
 
   const structure = structureQuery.data;
   // Padded to the canonical 12 — so `stages.length` no longer says whether an
@@ -214,6 +239,54 @@ export default function NarrativePage() {
     },
   ];
 
+  const unclassifiedIds = structure?.unclassified_event_ids ?? [];
+  const lang = i18n.language.startsWith('zh') ? 'zh' : 'en';
+
+  const runClassify = () => {
+    setPendingAction(null);
+    classifyOp.trigger(async () => {
+      try {
+        return await classifyNarrative(bookId!);
+      } catch (err) {
+        // 409 means one thing per the API contract (#21a), and the page already
+        // holds every number the server counted — so say it in the user's
+        // language rather than surfacing the server's English string.
+        if (err instanceof ApiError && err.status === 409) {
+          throw new ApiError(
+            409,
+            t('narrative.errors.classifyRefused', {
+              total: eventCount,
+              classified: kernelCount + (structure?.satellite_event_ids?.length ?? 0),
+            }),
+          );
+        }
+        throw err;
+      }
+    }, t('narrative.errors.classifyTrigger'));
+  };
+  const runRefine = () => {
+    setPendingAction(null);
+    refineOp.trigger(
+      () => refineNarrative(bookId!, unclassifiedIds, lang),
+      t('narrative.errors.refineTrigger'),
+    );
+  };
+
+  const unclassifiedBlock = structure ? (
+    <UnclassifiedBlock
+      count={unclassifiedIds.length}
+      eepDone={prereq.eventDone}
+      eepTotal={prereq.eventTotal || eventCount}
+      bookId={bookId!}
+      onClassify={() => setPendingAction('classify')}
+      onRefine={() => setPendingAction('refine')}
+      classifyRunning={classifyOp.running}
+      refineRunning={refineOp.running}
+      progress={(classifyOp.running ? classifyOp.task?.progress : refineOp.task?.progress) ?? 0}
+      error={classifyOp.error ?? refineOp.error}
+    />
+  ) : null;
+
   const staleBanner = structure?.is_stale ? (
     <div className="nl-stale" role="status">
       <AlertTriangle size={16} />
@@ -307,7 +380,9 @@ export default function NarrativePage() {
               bookId={bookId!}
             />
             <div id="nl-spine">
-              <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />
+              <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount}>
+                {unclassifiedBlock}
+              </PlotSpine>
             </div>
           </>
         ) : (
@@ -364,12 +439,31 @@ export default function NarrativePage() {
             </div>
             {structure && (
               <div id="nl-spine" style={{ width: '100%', maxWidth: 1100, marginTop: 28 }}>
-                <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />
+                <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount}>
+                  {unclassifiedBlock}
+                </PlotSpine>
               </div>
             )}
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={pendingAction === 'classify'}
+        title={t('narrative.unclassified.classifyConfirmTitle')}
+        message={t('narrative.unclassified.classifyConfirmBody', { n: unclassifiedIds.length })}
+        confirmLabel={t('narrative.unclassified.classify')}
+        onConfirm={runClassify}
+        onCancel={() => setPendingAction(null)}
+      />
+      <ConfirmDialog
+        open={pendingAction === 'refine'}
+        title={t('narrative.unclassified.refineConfirmTitle', { n: unclassifiedIds.length })}
+        message={t('narrative.unclassified.refineConfirmBody', { n: unclassifiedIds.length })}
+        confirmLabel={t('narrative.unclassified.refineConfirm')}
+        onConfirm={runRefine}
+        onCancel={() => setPendingAction(null)}
+      />
     </div>
   );
 }

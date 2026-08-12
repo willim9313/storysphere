@@ -11,9 +11,11 @@ interface PlotSpineProps {
   kernelEvents: KernelSpineEvent[];
   bookId: string;
   chapterCount?: number;
+  /** Unclassified-events block, wired by the page that owns the tasks. */
+  children?: React.ReactNode;
 }
 
-export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }: PlotSpineProps) {
+export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, children }: PlotSpineProps) {
   const { t } = useTranslation('analysis');
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -162,6 +164,8 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0 }:
           </span>
         )}
       </div>
+
+      {children}
 
       {/* Jump link */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: 'var(--border-width) var(--border-style) var(--border)', paddingTop: 14 }}>

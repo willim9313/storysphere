@@ -29,6 +29,46 @@ export function fetchHeroJourneyTask(taskId: string): Promise<TaskStatus> {
   return apiFetch<TaskStatus>(`/narrative/hero-journey/${taskId}`);
 }
 
+// ── Kernel/Satellite classification (#21a / #21b) ────────────────
+
+/**
+ * Re-derive kernel/satellite from the EEP cache. Reads cache only — no LLM cost.
+ * Rejects with ApiError 409 when every EEP entry is gone but classified events
+ * remain, i.e. when the run would only reset them to "unclassified".
+ */
+export function classifyNarrative(bookId: string, force = false): Promise<TaskStatus> {
+  return apiFetch<TaskStatus>('/narrative/classify', {
+    method: 'POST',
+    body: JSON.stringify({ document_id: bookId, force }),
+  });
+}
+
+export function fetchClassifyTask(taskId: string): Promise<TaskStatus> {
+  return apiFetch<TaskStatus>(`/narrative/classify/${taskId}`);
+}
+
+// ── LLM refinement (#21c / #21d) ─────────────────────────────────
+
+/**
+ * `eventIds` must be given explicitly: the backend default refines all satellite
+ * events, and no book in the library has any, so the default is a no-op.
+ */
+export function refineNarrative(
+  bookId: string,
+  eventIds: string[],
+  language = 'zh',
+  force = false,
+): Promise<TaskStatus> {
+  return apiFetch<TaskStatus>('/narrative/refine', {
+    method: 'POST',
+    body: JSON.stringify({ document_id: bookId, event_ids: eventIds, language, force }),
+  });
+}
+
+export function fetchRefineTask(taskId: string): Promise<TaskStatus> {
+  return apiFetch<TaskStatus>(`/narrative/refine/${taskId}`);
+}
+
 // ── Cached NarrativeStructure (#21k) ─────────────────────────────
 
 export function fetchNarrativeStructure(bookId: string): Promise<NarrativeStructure> {

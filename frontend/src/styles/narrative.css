@@ -620,6 +620,87 @@ a.nl-sd-ev:hover {
   text-wrap: pretty;
 }
 
+/* Unclassified events — the part of the book this page cannot show. */
+.nl-unclass {
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.nl-unclass-head {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  background: var(--bg-secondary);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
+}
+.nl-unclass-n {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xl);
+  color: var(--fg-primary);
+  line-height: 1;
+}
+.nl-unclass-title {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-unclass-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.nl-unclass-fact {
+  padding: 14px;
+  border-right: var(--border-width) var(--border-style) var(--border);
+}
+.nl-unclass-fact:last-child {
+  border-right: none;
+}
+.nl-unclass-fact-k {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.nl-unclass-fact-v {
+  margin-top: 5px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-unclass-error {
+  padding: 10px 14px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+  background: var(--color-warning-bg);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.55;
+  color: var(--color-warning);
+  text-wrap: pretty;
+}
+.nl-unclass-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+}
+.nl-unclass-jump {
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  color: var(--accent);
+}
+
 /* Absent-stage reading — states what a gap means, and how many there are. */
 .nl-absent-note {
   display: flex;

@@ -1823,6 +1823,24 @@
       "evHint": "點任一事件，這裡顯示它的意義與深連結。",
       "openInEvents": "在事件分析頁開啟 →"
     },
+    "unclassified": {
+      "title": "個事件尚未分成核心或衛星",
+      "whyLabel": "為什麼",
+      "whyBody": "事件分析（EEP）目前判定過 {{done}} / {{total}} 件，其餘沒有 kernel／satellite 判定。",
+      "affectLabel": "影響什麼",
+      "affectBody": "逐章事件欄與密度列只反映已分類的事件——未分類的那些在這一頁不會出現在任何地方。",
+      "doLabel": "可以怎麼做",
+      "doBody": "「依 EEP 重新分類」讀既有快取重算，不呼叫 LLM；「LLM 精煉」則逐筆判斷這些未分類事件，會消耗 token。",
+      "classify": "依 EEP 重新分類",
+      "refine": "LLM 精煉未分類（{{n}} 件）",
+      "refineConfirm": "開始精煉",
+      "jump": "前往事件分析頁 →",
+      "running": "處理中… {{progress}}%",
+      "classifyConfirmTitle": "依 EEP 重新分類？",
+      "classifyConfirmBody": "會依現有的事件分析（EEP）快取重算全書的核心／衛星分類，不呼叫 LLM、不消耗 token。快取已全數遺失時系統會拒絕執行，避免把既有分類抹成未分類。",
+      "refineConfirmTitle": "用 LLM 精煉 {{n}} 件未分類事件？",
+      "refineConfirmBody": "會對這 {{n}} 件事件各發一次 LLM 請求逐筆判斷核心／衛星，會消耗 token，件數越多越久。判定結果會覆寫這些事件目前的權重。"
+    },
     "source": {
       "heuristic": "啟發式分類",
       "llm": "LLM 分類",
@@ -1847,7 +1865,12 @@
     },
     "errors": {
       "triggerHero": "觸發英雄旅程分析失敗，請稍後再試。",
-      "heroFailed": "英雄旅程分析失敗。"
+      "heroFailed": "英雄旅程分析失敗。",
+      "classifyTrigger": "觸發重新分類失敗，請稍後再試。",
+      "classifyFailed": "重新分類失敗。",
+      "refineTrigger": "觸發 LLM 精煉失敗，請稍後再試。",
+      "refineFailed": "LLM 精煉失敗。",
+      "classifyRefused": "無法重新分類：全書 {{total}} 個事件都已經沒有事件分析（EEP）快取，執行下去會把目前 {{classified}} 個已分類事件全部抹成未分類。請先在事件分析頁重跑分析。"
     },
     "stale": {
       "title": "此分析可能已過期",

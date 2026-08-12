@@ -1823,6 +1823,24 @@
       "evHint": "Pick an event to see what it signifies, and the way through to it.",
       "openInEvents": "Open in event analysis →"
     },
+    "unclassified": {
+      "title": "events are neither kernel nor satellite yet",
+      "whyLabel": "Why",
+      "whyBody": "Event analysis (EEP) has judged {{done}} of {{total}}; the rest carry no kernel/satellite verdict.",
+      "affectLabel": "What it affects",
+      "affectBody": "The chapter columns and the density row only reflect classified events — the unclassified ones appear nowhere on this page.",
+      "doLabel": "What you can do",
+      "doBody": "\"Reclassify from EEP\" recomputes from the existing cache with no LLM call; \"LLM refinement\" judges each unclassified event individually and does spend tokens.",
+      "classify": "Reclassify from EEP",
+      "refine": "LLM refinement ({{n}})",
+      "refineConfirm": "Start refinement",
+      "jump": "Go to event analysis →",
+      "running": "Working… {{progress}}%",
+      "classifyConfirmTitle": "Reclassify from EEP?",
+      "classifyConfirmBody": "Recomputes kernel/satellite for the whole book from the existing event-analysis (EEP) cache. No LLM call, no token cost. If every cache entry is gone the server refuses, so existing classifications cannot be wiped.",
+      "refineConfirmTitle": "Refine {{n}} unclassified events with the LLM?",
+      "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events\\u2019 current weights."
+    },
     "source": {
       "heuristic": "Heuristic",
       "llm": "LLM-classified",
@@ -1847,7 +1865,12 @@
     },
     "errors": {
       "triggerHero": "Failed to start the Hero's Journey analysis. Please try again.",
-      "heroFailed": "Hero's Journey analysis failed."
+      "heroFailed": "Hero's Journey analysis failed.",
+      "classifyTrigger": "Failed to start reclassification. Please try again.",
+      "classifyFailed": "Reclassification failed.",
+      "refineTrigger": "Failed to start LLM refinement. Please try again.",
+      "refineFailed": "LLM refinement failed.",
+      "classifyRefused": "Cannot reclassify: none of the {{total}} events still have an event-analysis (EEP) cache entry, so all {{classified}} classified events would be reset to unclassified. Re-run event analysis first."
     },
     "stale": {
       "title": "This analysis may be out of date",

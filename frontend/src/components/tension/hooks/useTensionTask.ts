@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { ApiError } from '@/api/client';
 import type { TaskStatus } from '@/api/types';
 
 export interface UseTensionTaskResult {
@@ -38,8 +39,10 @@ export function useTensionTask(
       try {
         const { taskId: id } = await triggerFn();
         setTaskId(id);
-      } catch {
-        setError(triggerError);
+      } catch (err) {
+        // A refusal from the server carries the reason and the numbers behind
+        // it (e.g. #21a's 409); a generic message would throw that away.
+        setError(err instanceof ApiError ? err.detail : triggerError);
       }
     },
     [],
