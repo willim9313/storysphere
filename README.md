@@ -1,67 +1,74 @@
 # StorySphere
 
 > **Intelligent Novel Analysis System — Agent-Driven Architecture**
-> 智能小說分析系統，以 Agent 驅動架構自動解析、理解並探索小說內容。
+
+**Language:** English | [繁體中文](README.zh-TW.md)
 
 ---
 
-## Overview / 概覽
+## Overview
 
-StorySphere ingests novels (PDF / DOCX), runs a multi-stage ETL pipeline to extract entities, relations, events, symbols, and keywords, then exposes the results through a streaming REST + WebSocket API and a React frontend.
+StorySphere ingests novels (PDF / DOCX / EPUB), runs a multi-stage ETL pipeline to extract entities, relations, events, symbols, and keywords, then exposes the results through a REST + WebSocket API and a React frontend.
 
-主要能力：
-- **自動解析** PDF / DOCX 小說，偵測章節、切分段落
-- **知識圖譜** — 自動抽取角色、地點、物品及其關係
-- **陣營偵測** — 社群演算法自動識別角色派系分佈
-- **向量語義搜尋** — 段落級 embedding (Qdrant)
-- **深度分析** — 角色 CEP、Jung/Schmidt 原型分類、成長弧線；事件因果分析
-- **符號分析** — 意象偵測、符號圖譜、跨章節出現趨勢
-- **張力分析** — 敘事張力弧線、衝突極點識別
-- **敘事分析** — 人物聲音側寫、認識論狀態追蹤
-- **建構概覽** — 管線狀態診斷儀表板（各 pipeline 進度 / 阻斷點 / 觸發 CTA）
-- **視覺化** — 知識圖譜、事件時間軸、分析面板
+**Core capabilities:**
+- **Document ingestion** — PDF / DOCX / EPUB parsing, chapter detection, paragraph-level chunking
+- **Knowledge graph** — automatic character/location/item extraction and relationship mapping (NetworkX or Neo4j)
+- **Faction detection** — community-algorithm-based character grouping
+- **Semantic search** — paragraph-level vector embeddings (Qdrant), plus SQLite full-text fallback
+- **Deep analysis** — character CEP extraction, Jung/Schmidt archetype classification, growth arcs; event causality & impact analysis
+- **Symbol analysis** — imagery detection, symbol graph, cross-chapter trend tracking
+- **Tension analysis** — narrative tension arcs, conflict-pole identification, thematic synthesis
+- **Narrative structure** — Hero's Journey mapping, plot spine, temporal ordering, voice profiling, epistemic-state tracking
+- **Build overview** — pipeline diagnostics dashboard (per-pipeline progress, blockers, follow-up CTAs)
+- **Conversational agent** — LangGraph streaming chat agent with tool access, available on every book page
+- **Visualization** — knowledge graph, event timeline, and per-analysis panels
 
-> **目前運行在輕量模式（lightweight）**：Qdrant 以本地檔案儲存，KG 後端固定為 NetworkX，無需額外外部服務。預計後續切回 standard 模式。
+> **Currently running in lightweight deploy mode**: Qdrant uses local file storage, KG backend is fixed to NetworkX — no external services required. Standard mode (remote Qdrant, optional Neo4j) is also supported; see [Deployment Modes](#deployment-modes).
 
 ---
 
-## Tech Stack / 技術棧
+## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| LLM Orchestration | LangChain · LangGraph · Gemini 2.0 Flash (primary) · GPT-4o-mini · Claude Haiku · Local LLM (Ollama / llama.cpp) |
+| LLM Orchestration | LangChain · LangGraph · Gemini (primary) · GPT-4o-mini · Claude · Local LLM (Ollama / llama.cpp) |
 | Backend API | FastAPI · Uvicorn · WebSocket |
 | Knowledge Graph | NetworkX (default) · Neo4j (optional, standard mode only) |
 | Vector DB | Qdrant (local file in lightweight mode / remote in standard mode) |
 | Embeddings | sentence-transformers `all-MiniLM-L6-v2` |
 | Storage | SQLite (aiosqlite · SQLAlchemy) |
 | Keyword Extraction | YAKE · TF-IDF · LLM · Composite |
-| Frontend | React 19 · TypeScript · Vite · React Router |
+| Tracing | Langfuse (optional) |
+| Frontend | React 19 · TypeScript · Vite · React Router v6 · TanStack Query |
+| Graph / Data Viz | Cytoscape.js (+ fcose layout) · D3 |
+| Frontend i18n | i18next / react-i18next (English + Traditional Chinese) |
 | Package Manager (Python) | **uv** |
 
 ---
 
-## Architecture / 架構
+## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        React Frontend                           │
 │  Library · Reader · Graph · Timeline · Analysis · Symbols ·     │
-│  Tension · Build Overview · Upload · Settings · Token Usage     │
+│  Tension · Narrative · Search · Methodology · Build Overview ·  │
+│  Upload · Settings · Token Usage      (ChatWidget on every      │
+│                                         book-scoped route)       │
 └────────────────────────┬────────────────────────────────────────┘
                          │  HTTP / WebSocket
 ┌────────────────────────▼────────────────────────────────────────┐
-│                    FastAPI  (backend/storysphere/api/)              │
-│  /books  /entities  /relations  /search  /analysis             │
-│  /narrative  /tension  /symbols  /factions  /unraveling        │
-│  /kg_settings  /tasks  /metrics  /token-usage                  │
-│  WS /ws/chat (暫停中)                                           │
+│                FastAPI  (backend/storysphere/api/)               │
+│  /api/v1/books  /entities  /relations  /documents  /search      │
+│  /analysis  /narrative  /tension  /symbols  /kg  /settings      │
+│  /tasks  /metrics  /token-usage                                 │
+│  WS /ws/chat                                                     │
 └──┬──────────────────────┬──────────────────────┬───────────────┘
    │                      │                      │
    ▼                      ▼                      ▼
 Chat Agent           Analysis Agent        Ingestion Workflow
-(LangGraph,          (cache-first,         (ETL Pipelines)
- 暫停中)              async, SQLite)
+(LangGraph,          (cache-first,         (ETL Pipelines,
+ streaming)           async, SQLite)        LangGraph + checkpointer)
                           │                      │
                           └──────────┬───────────┘
                                      ▼
@@ -77,104 +84,110 @@ Chat Agent           Analysis Agent        Ingestion Workflow
                    (Knowledge Graph)      (Vector DB)
 ```
 
-### Query Paths / 查詢路徑
+### Query Paths
 
 | Path | Latency | Implementation |
 |---|---|---|
 | **Map / Card Query** | < 100 ms | Sync REST, pure data lookup |
-| **Deep Analysis** | 2–5 s (cache hit < 100 ms) | Async, 7-day SQLite cache, WebSocket push |
-| **Chat** | Streaming 2–5 s | LangGraph Agent, WebSocket（暫停中） |
+| **Deep Analysis** | 2–5 s (cache hit < 100 ms) | Async task, 7-day SQLite cache |
+| **Chat** | Streaming, 2–5 s | LangGraph agent over WebSocket |
 
 ---
 
-## Project Structure / 專案結構
+## Project Structure
 
 ```
 storysphere/
 ├── backend/
-│   └── storysphere/       # 單一 Python 命名空間（import 皆為 from storysphere.*）
-│       ├── api/               # FastAPI routers, schemas, WebSocket managers
+│   └── storysphere/            # single Python namespace (imports as storysphere.*)
+│       ├── api/                # FastAPI app, routers, schemas, task store
+│       │   ├── routers/            # 18 routers — see API Overview below
+│       │   └── schemas/            # Pydantic response/request schemas (camelCase)
 │       ├── agents/
-│       │   ├── chat_agent.py       # LangGraph streaming chat agent（暫停中）
-│       │   ├── chat_agent_base.py  # Chat agent base class
-│       │   ├── analysis_agent.py   # Cache-first deep analysis orchestrator
-│       │   ├── timeline_agent.py   # Timeline event agent
-│       │   ├── pattern_recognizer.py # Pattern recognition utilities
-│       │   └── states.py           # ChatState (Pydantic)
-│       ├── services/          # Business logic
-│       │   ├── kg_service.py / kg_service_neo4j.py
+│       │   ├── chat_agent.py           # LangGraph streaming chat agent (StateGraph + ToolNode)
+│       │   ├── chat_agent_base.py      # Shared prompt/history helpers
+│       │   ├── analysis_agent.py       # Cache-first deep analysis orchestrator
+│       │   ├── timeline_agent.py       # Timeline event agent
+│       │   ├── pattern_recognizer.py   # Query pre-filter for entity tracking
+│       │   └── states.py               # ChatState (Pydantic)
+│       ├── services/           # 28 modules — business logic
+│       │   ├── kg_service.py / kg_service_base.py / kg_service_neo4j.py
 │       │   ├── document_service.py / vector_service.py / summary_service.py
-│       │   ├── analysis_service.py / analysis_cache.py
+│       │   ├── analysis_service.py / analysis_cache.py / cache_invalidation.py
 │       │   ├── symbol_service.py / symbol_analysis_service.py / symbol_graph_service.py
 │       │   ├── tension_service.py / narrative_service.py
 │       │   ├── faction_service.py / global_timeline_service.py
 │       │   ├── epistemic_state_service.py / voice_profiling_service.py
-│       │   └── extraction_service.py / keyword_service.py
-│       ├── tools/
-│       │   ├── graph_tools/        # 7 tools: entity/relation/subgraph/global-timeline queries
-│       │   ├── retrieval_tools/    # 6 tools: vector search, summary, chapter summary, keywords, paragraphs
-│       │   ├── analysis_tools/     # 3 tools: insight, character analysis, event analysis
-│       │   ├── composite_tools/    # 5 tools: entity profile, relationship, character arc, event profile, compare characters
-│       │   └── other_tools/        # 2 tools: compare entities, extract entities
-│       ├── pipelines/         # ETL pipelines
-│       │   ├── document_processing/
-│       │   ├── feature_extraction/
-│       │   ├── knowledge_graph/
-│       │   ├── summarization/
-│       │   ├── symbol_discovery/
+│       │   ├── character_metrics_service.py / link_prediction_service.py
+│       │   └── extraction_service.py / keyword_service.py / toc_parser.py
+│       ├── tools/               # 23 chat-agent tools — see Tools below
+│       │   ├── graph_tools/ (7) · retrieval_tools/ (6) · analysis_tools/ (3)
+│       │   └── composite_tools/ (5) · other_tools/ (2)
+│       ├── pipelines/           # ETL pipelines
+│       │   ├── document_processing/   # loader, chapter detector, chunker
+│       │   ├── feature_extraction/    # embeddings, keywords
+│       │   ├── knowledge_graph/       # entity/relation extraction, linking
+│       │   ├── summarization/         # chapter summarizer
+│       │   ├── symbol_discovery/      # imagery detection
 │       │   ├── temporal_pipeline.py
 │       │   └── concept_inference.py
-│       ├── workflows/         # High-level orchestration (ingestion, HITL chapter review)
-│       ├── domain/            # Entity, Relation, Event, Document Pydantic models
-│       ├── core/              # LLM client factory, metrics, tracing, utilities
-│       └── config/            # Settings (pydantic-settings), archetype JSON configs
+│       ├── workflows/           # High-level orchestration (LangGraph ingestion, HITL review)
+│       ├── domain/              # Entity, Relation, Event, Narrative, Tension, ... Pydantic models
+│       ├── core/                # Multi-provider LLM client (fallback chain), metrics, tracing
+│       └── config/               # Settings (pydantic-settings), archetype/mythos JSON configs
 ├── frontend/
 │   ├── src/
-│   │   ├── pages/         # LibraryPage · ReaderPage · GraphPage · TimelinePage
-│   │   │                  # AnalysisPage · CharacterAnalysisPage · EventAnalysisPage
-│   │   │                  # SymbolsPage · TensionPage · FrameworksPage
-│   │   │                  # BuildOverviewPage · UploadPage · SettingsPage · TokenUsagePage
-│   │   ├── components/    # layout / chat / graph / reader / timeline / analysis
-│   │   │                  # symbols / tension / epistemic / upload / ui
-│   │   └── contexts/      # ThemeContext, ChatContext
+│   │   ├── router.tsx      # React Router v6 route table
+│   │   ├── pages/          # LibraryPage · ReaderPage · GraphPage · TimelinePage
+│   │   │                   # CharacterAnalysisPage · EventAnalysisPage · SymbolsPage
+│   │   │                   # TensionPage · NarrativePage · SearchPage · MethodologyPage
+│   │   │                   # BuildOverviewPage · UploadPage · SettingsPage · TokenUsagePage
+│   │   ├── components/     # analysis / chat / epistemic / graph / layout / library
+│   │   │                   # methodology / narrative / reader / symbols / tension
+│   │   │                   # timeline / tasks / toast / ui / upload
+│   │   └── contexts/       # ThemeContext, ChatContext, ToastContext
 │   └── package.json
 ├── docs/
-│   ├── CORE.md            # Master design document (always read first)
-│   ├── API_CONTRACT.md    # 前後端 API 規格（唯一真相來源）
-│   ├── UI_SPEC.md         # UI 元件設計規格
-│   ├── plans/             # 高複雜度功能規劃文件存檔
-│   ├── guides/            # TESTING.md 等開發指南
-│   └── appendix/          # ADR-001 to ADR-009, tools catalog
-├── tests/                 # 890+ tests (pytest)
+│   ├── CORE.md               # Master design document (start here)
+│   ├── API_CONTRACT.md       # Frontend/backend API spec — single source of truth
+│   ├── UI_SPEC.md            # UI component design spec
+│   ├── DESIGN_TOKENS.md      # CSS token reference
+│   ├── domain-glossary.md    # Domain terminology
+│   ├── BACKLOG.md            # Live backlog / BACKLOG_ARCHIVE.md — resolved items
+│   ├── plans/                # Dated planning docs for high-complexity features
+│   ├── handoff/               # Dated per-feature handoff notes
+│   ├── guides/                # TESTING.md, LANGFUSE_SETUP.md, phase implementation guides
+│   └── appendix/               # ADR-001 .. ADR-009, tools catalog
+├── tests/                     # 1,392+ tests (pytest)
 ├── pyproject.toml
 └── .env.example
 ```
 
 ---
 
-## Deployment Modes / 部署模式
+## Deployment Modes
 
-StorySphere 支援兩種部署模式，透過 `DEPLOY_MODE` 環境變數切換。
+StorySphere supports two deployment modes, switched via the `DEPLOY_MODE` environment variable.
 
-| | **lightweight（預設）** | **standard** |
+| | **lightweight (default)** | **standard** |
 |---|---|---|
-| Qdrant | 本地檔案（`QDRANT_LOCAL_PATH`） | 外部服務（`QDRANT_URL`） |
-| KG 後端 | 固定 NetworkX | NetworkX 或 Neo4j |
-| 前置需求 | 僅 Python 環境 | Qdrant 服務需先啟動 |
-| 資料遷移 | — | 切換模式需執行 Migration CLI |
+| Qdrant | Local file (`QDRANT_LOCAL_PATH`) | External service (`QDRANT_URL`) |
+| KG backend | Fixed to NetworkX | NetworkX or Neo4j |
+| Prerequisites | Python environment only | Qdrant service must be running first |
+| Data migration | — | Switching modes requires the migration CLI (`/api/v1/kg/migrate`) |
 
-> **目前使用 lightweight 模式。** 首次啟動會從 HuggingFace 下載 embedding model（~80MB，一次性）。
+> **Currently running in lightweight mode.** First launch downloads an embedding model from HuggingFace (~80MB, one-time). In lightweight mode, do **not** run with multiple Uvicorn workers (`--workers > 1`) — local Qdrant does not support concurrent multi-process writes.
 
 ---
 
-## Quick Start / 快速開始
+## Quick Start
 
-### Prerequisites / 前置需求
+### Prerequisites
 
-- Python ≥ 3.11（建議使用 pyenv 管理）
+- Python ≥ 3.11
 - Node.js ≥ 18
 - [`uv`](https://github.com/astral-sh/uv) — Python package manager
-- **Gemini API key**（primary LLM）— 或 OpenAI / Anthropic / 本地 LLM 作為替代
+- A **Gemini API key** (primary LLM) — or OpenAI / Anthropic / a local LLM as an alternative
 
 ### Backend
 
@@ -207,65 +220,70 @@ npm run dev
 
 ---
 
-## Configuration / 環境設定
+## Configuration
 
 All settings are loaded from `.env` (see `.env.example`). Key variables:
 
 | Variable | Default | Description |
 |---|---|---|
-| `GEMINI_API_KEY` | — | Google Gemini API key (primary LLM) |
+| `PRIMARY_LLM_PROVIDER` | `gemini` | `gemini` \| `openai` \| `anthropic` \| `local` — fallback order is Gemini → OpenAI → Anthropic → Local |
+| `GEMINI_API_KEY` | — | Google Gemini API key |
 | `OPENAI_API_KEY` | — | OpenAI fallback |
 | `ANTHROPIC_API_KEY` | — | Anthropic fallback |
 | `LOCAL_LLM_MODEL` | `""` | Local model name (e.g. `llama3.2`). Empty = disabled |
 | `LOCAL_LLM_BASE_URL` | `http://localhost:11434/v1` | Ollama / llama.cpp endpoint |
 | `DEPLOY_MODE` | `lightweight` | `lightweight` \| `standard` |
-| `QDRANT_LOCAL_PATH` | `./var/qdrant_local` | Qdrant 本地儲存路徑（lightweight 模式） |
-| `QDRANT_URL` | `http://localhost:6333` | Qdrant 外部服務（standard 模式） |
-| `KG_MODE` | `networkx` | `networkx` \| `neo4j`（lightweight 模式固定 networkx） |
-| `KG_PERSISTENCE_PATH` | `./var/knowledge_graph.json` | NetworkX KG 快照路徑 |
-| `DATABASE_URL` | `sqlite+aiosqlite:///./var/storysphere.db` | 主要 SQLite DB |
+| `QDRANT_LOCAL_PATH` | `./var/qdrant_local` | Qdrant local storage path (lightweight mode) |
+| `QDRANT_URL` | `http://localhost:6333` | External Qdrant service (standard mode) |
+| `KG_MODE` | `networkx` | `networkx` \| `neo4j` (forced to `networkx` in lightweight mode) |
+| `KG_AUTO_SWITCH_THRESHOLD` | `10000` | Entity count above which Neo4j is recommended |
+| `KG_PERSISTENCE_PATH` | `./var/knowledge_graph.json` | NetworkX KG snapshot path |
+| `DATABASE_URL` | `sqlite+aiosqlite:///./var/storysphere.db` | Primary SQLite DB |
+| `TASK_STORE_BACKEND` | `sqlite` | `memory` \| `sqlite` — async task persistence |
 | `KEYWORD_EXTRACTOR_TYPE` | `yake` | `yake` \| `llm` \| `tfidf` \| `composite` \| `none` |
-| `LLM_THINKING_ENABLED` | `false` | 啟用 extended reasoning（額外 token） |
-| `CHAT_AGENT_MAX_ITERATIONS` | `10` | ReAct loop 上限 |
-| `ANALYSIS_CACHE_DB_PATH` | `./var/analysis_cache.db` | 深度分析 SQLite 快取 |
+| `LLM_THINKING_ENABLED` | `false` | Enable extended reasoning (extra tokens) |
+| `LANGFUSE_ENABLED` | `false` | Enable Langfuse tracing |
+| `CHAT_AGENT_MAX_ITERATIONS` | `10` | ReAct loop cap |
+| `ANALYSIS_CACHE_DB_PATH` | `./var/analysis_cache.db` | Deep-analysis SQLite cache |
+| `APP_HOST` | `127.0.0.1` | Loopback by default; only set `0.0.0.0` if you knowingly need LAN access |
 
 ---
 
-## API Overview / API 概覽
+## API Overview
 
-Base path: `/api/v1`
+Base path for all HTTP routes: **`/api/v1`**. The WebSocket route is unprefixed.
 
-| Endpoint | Method | Description |
+| Router | Path | Purpose |
 |---|---|---|
-| `/books` | GET | 書庫列表 |
-| `/books/upload` | POST | 上傳 PDF / DOCX，觸發處理流程 |
-| `/books/{id}` | GET / DELETE | 書籍詳情 / 刪除 |
-| `/entities` | GET | 查詢實體（可按書、類型、名稱篩選） |
-| `/relations` | GET | 查詢關係 |
-| `/factions/{book_id}` | GET | 陣營偵測（社群演算法） |
-| `/search` | GET | 語義向量搜尋 |
-| `/analysis/{book_id}/character/{name}` | POST | 觸發角色深度分析 |
-| `/analysis/{book_id}/event/{event_id}` | POST | 觸發事件深度分析 |
-| `/narrative/{book_id}/...` | GET | 敘事分析（聲音側寫、認識論狀態） |
-| `/tension/{book_id}/...` | GET | 張力弧線、衝突極點 |
-| `/symbols/{book_id}/...` | GET | 符號圖譜、意象趨勢 |
-| `/unraveling/{book_id}` | GET | 建構概覽（管線診斷儀表板） |
-| `/kg_settings` | GET / PUT | 知識圖譜後端設定 |
-| `/tasks/{task_id}` | GET | 非同步任務狀態 |
-| `/metrics` | GET | 效能指標 |
-| `/token-usage` | GET | LLM token 用量統計 |
-| **WS** `/ws/chat` | WebSocket | 串流對話（LangGraph Agent，暫停中） |
+| `books` | `/books` | Upload, list, detail, delete; chapters, graph, timeline, review workflow, rerun-by-step, TOC parsing, role suggestion (largest router) |
+| `unraveling`, `factions`, `character_metrics` | nested under `/books/{id}/...` | Build-overview dashboard, faction detection, character centrality |
+| `entities` | `/entities` | List/detail, relations, timeline, subgraph, relation stats |
+| `relations` | `/relations` | Relation paths, aggregate stats |
+| `documents` | `/documents` | List/detail source documents |
+| `search` | `/search` | Semantic (vector) and full-text search |
+| `analysis` | `/analysis` | Trigger character / event deep analysis (async task pattern) |
+| `narrative` | `/narrative` | Classification, refine, Hero's Journey, temporal ordering, kernel spine, HITL review |
+| `tension` | `/tension` | Tension lines, TEUs, theme synthesis, HITL review |
+| `symbols` | `/symbols` | Imagery, overview, timeline, co-occurrence, interpretation |
+| `kg_settings` | `/kg` | KG backend status, switch, migrate |
+| `settings_info` | `/settings` | Runtime configuration info |
+| `tasks` | `/tasks` | Async task list, status, cancel |
+| `metrics` | `/metrics` | Performance metrics snapshot |
+| `token_usage` | `/token-usage` | LLM token usage stats |
+| `chat_ws` | `WS /ws/chat?session_id=<uuid>` | Streaming chat agent |
+
+Full request/response schemas: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md).
 
 ---
 
-## Ingestion Pipeline / 文本攝取流程
+## Ingestion Pipeline
 
 ```
-Upload PDF / DOCX
+Upload PDF / DOCX / EPUB
       │
       ▼
 DocumentProcessingPipeline
-  ├── Loader (PDF / DOCX → raw text)
+  ├── Loader (→ raw text)
   ├── ChapterDetector
   └── Chunker (paragraph-level)
       │
@@ -287,12 +305,12 @@ SummarizationPipeline
       │
       ▼
 SymbolDiscoveryPipeline
-  └── ImageryDetector → SymbolGraph → CrossChapter trend
+  └── ImageryDetector → SymbolGraph → cross-chapter trend
 ```
 
 ---
 
-## Tools / 工具清單（23 tools）
+## Tools (23 chat-agent tools)
 
 | Category | Tools |
 |---|---|
@@ -302,87 +320,77 @@ SymbolDiscoveryPipeline
 | **Composite** (5) | GetEntityProfile, GetEntityRelationship, GetCharacterArc, GetEventProfile, CompareCharacters |
 | **Other** (2) | CompareEntities, ExtractEntities |
 
+`AnalyzeCharacter` / `AnalyzeEvent` are only exposed to the chat agent when an `analysis_agent` dependency is wired in.
+
 ---
 
-## Deep Analysis / 深度分析
+## Deep Analysis
 
 ### Character Analysis
-1. **CEP Extraction** — 並行蒐集 KG 資料、向量證據、關鍵字
-2. **Archetype Classification** — Jung（12 原型）+ Schmidt（45 原型）JSON 設定
-3. **Character Arc** — 時間軸分段成長曲線
-4. **Voice Profiling** — 語言風格側寫
-5. **Epistemic State** — 認識論狀態追蹤（角色知道什麼、何時知道的）
-6. **Profile Summary** — 自然語言綜合輸出
+1. **CEP Extraction** — parallel collection of KG data, vector evidence, keywords
+2. **Archetype Classification** — Jung (12 archetypes) + Schmidt (45 archetypes) JSON configs
+3. **Character Arc** — timeline-segmented growth curve
+4. **Voice Profiling** — linguistic style profile
+5. **Epistemic State** — tracks what a character knows and when
+6. **Profile Summary** — natural-language synthesis
 
 ### Event Analysis
-1. **EEP Extraction** — 從 KG + 向量搜尋取事件證據
-2. **Causality Analysis** — 因果鏈推理
-3. **Impact Analysis** — 對角色與情節的短 / 長期影響
+1. **EEP Extraction** — event evidence from KG + vector search
+2. **Causality Analysis** — causal chain reasoning
+3. **Impact Analysis** — short/long-term effects on characters and plot
 
-分析結果快取於 SQLite 7 天；快取命中回傳時間 < 100 ms。
-
----
-
-## Monitoring / 監控
-
-`backend/storysphere/core/metrics.py` — `MetricsCollector` singleton（stdlib-only，thread-safe）
-
-- 記錄：工具選擇、工具執行、快取事件、Agent 查詢、LLM 呼叫
-- 統計：P50 / P95 / P99 latency、success rate、cache hit rate
-- JSON-line logs 輸出至 `storysphere.metrics` logger
-- HTTP endpoint：`GET /api/v1/metrics`
+Analysis results are cached in SQLite for 7 days; cache hits return in < 100 ms.
 
 ---
 
-## Testing / 測試
+## Monitoring
+
+`backend/storysphere/core/metrics.py` — `MetricsCollector` singleton (stdlib-only, thread-safe)
+
+- Tracks: tool selection, tool execution, cache events, agent queries, LLM calls
+- Reports: P50 / P95 / P99 latency, success rate, cache hit rate
+- JSON-line logs via the `storysphere.metrics` logger
+- HTTP endpoint: `GET /api/v1/metrics`
+
+Optional distributed tracing via [Langfuse](docs/guides/LANGFUSE_SETUP.md) (`LANGFUSE_ENABLED=true`).
+
+---
+
+## Testing
 
 ```bash
-# Run all unit tests
+# Run all tests
 uv run pytest
 
 # Run with coverage
 uv run pytest --cov=backend/storysphere --cov-report=term-missing
 
-# Skip integration tests (no API key required)
+# Skip tests that call real external LLM APIs
 uv run pytest -m "not integration"
+
+# Include Neo4j-dependent tests (skipped by default)
+uv run pytest --neo4j
 ```
 
-Current test count: **873 passing** across agents, services, tools, pipelines, and core utilities.
+Current test count: **1,392 tests** across agents, services, tools, pipelines, workflows, and API endpoints. See [`docs/guides/TESTING.md`](docs/guides/TESTING.md) for conventions.
 
 ---
 
-## Development Status / 開發進度
+## Docs
 
-| Phase | Status | Description |
-|---|---|---|
-| Phase 1 | ✅ Done | Base layer — config, domain, LLM client |
-| Phase 2 | ✅ Done | ETL pipelines (document, embedding, KG, summarization) |
-| Phase 2b | ✅ Done | Keyword extraction (YAKE / LLM / TF-IDF / Composite) |
-| Phase 3 | ✅ Done | 15 base tools |
-| Phase 4 | ✅ Done | Composite tools + LangGraph Chat Agent |
-| Phase 5 | ✅ Done | Deep Analysis — character (CEP, archetypes, arc) + event |
-| Phase 6 | ✅ Done | Parallel optimization (`asyncio.gather`) |
-| Phase 7 | ✅ Done | Monitoring — `MetricsCollector`, token usage tracking |
-| Phase 8 | ✅ Done | Symbol discovery pipeline + 符號分析頁 |
-| Phase 9 | ✅ Done | Tension analysis + 張力分析頁 |
-| Phase 10 | ✅ Done | Epistemic state tracking + Voice profiling |
-| Phase 11 | ✅ Done | Faction detection (community algorithm) |
-| Phase 12 | ✅ Done | UI 全面重設計（KG / Timeline / Character / Event / Symbols / Tension / Build Overview） |
-| Phase 13 | ✅ Done | Lightweight deployment mode（I-001） |
-| Phase 14 | 🔄 Planned | Standard mode migration CLI（I-002）；Chat Agent 重新啟用 |
-
----
-
-## Docs / 文件
-
-- [`docs/CORE.md`](docs/CORE.md) — Master design document（從這裡開始讀）
-- [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) — 前後端 API 唯一規格
-- [`docs/UI_SPEC.md`](docs/UI_SPEC.md) — UI 元件設計規格
-- [`docs/appendix/`](docs/appendix/) — ADR-001 to ADR-009、工具目錄、並行實作說明
-- [`docs/plans/`](docs/plans/) — 高複雜度功能規劃文件存檔
+- [`docs/CORE.md`](docs/CORE.md) — Master design document (start here)
+- [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) — Frontend/backend API spec, single source of truth
+- [`docs/UI_SPEC.md`](docs/UI_SPEC.md) — UI component design spec
+- [`docs/DESIGN_TOKENS.md`](docs/DESIGN_TOKENS.md) — CSS token reference
+- [`docs/domain-glossary.md`](docs/domain-glossary.md) — Domain terminology
+- [`docs/BACKLOG.md`](docs/BACKLOG.md) — Live backlog (see `docs/BACKLOG_ARCHIVE.md` for resolved items)
+- [`docs/appendix/`](docs/appendix/) — ADR-001 through ADR-009, tools catalog, parallelism notes
+- [`docs/handoff/`](docs/handoff/) — Dated per-feature handoff notes (upload UX, character page, event analysis, timeline, tension, symbols, narrative)
+- [`docs/plans/`](docs/plans/) — Planning docs for high-complexity features, archived by date
+- [`docs/guides/`](docs/guides/) — Testing conventions, Langfuse/LangSmith setup, phase implementation guides
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)
