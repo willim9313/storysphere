@@ -1771,6 +1771,16 @@
       "ring": "Monomyth ring",
       "band": "Chapter band"
     },
+    "band": {
+      "head": "Stage · chapters",
+      "density": "Kernel event density",
+      "absentLane": "Not identified · the book never takes this step",
+      "overlapTag": "shared",
+      "densityTip": "Ch. {{ch}} · {{count}} kernel events",
+      "reversedTip": "Out of chapter order: this stage starts earlier than the one before it",
+      "axisNote": "The axis is fixed to all {{n}} chapters; chapters without data stay blank, never truncated.",
+      "markNote": "\"shared\" = three or more stages on one chapter; ↰ = out of chapter order."
+    },
     "viewHint": {
       "band": "Where stages sit in the book",
       "track": "The order of the 12",

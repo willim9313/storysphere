@@ -1,6 +1,6 @@
 // Hero's Journey — four layout variants (A track / B columns / C ring / D band).
 // Each manages its own selected stage and renders viz + legend + detail.
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle } from 'lucide-react';
 import type { HeroJourneyStage } from '@/api/narrative';
@@ -12,10 +12,7 @@ import {
   phaseWash,
   sortStages,
   stageOrdinal,
-  stagePhase,
   stageState,
-  discFill,
-  discText,
 } from './heroJourney';
 import { Legend, StageDisc, StateBadge } from './atoms';
 import { StageDetail, type EventInfo } from './StageDetail';
@@ -25,6 +22,8 @@ export interface LayoutProps {
   theory: Record<string, StageTheory>;
   events: Record<string, EventInfo>;
   chapterCount: number;
+  /** Chapter of each kernel event, one entry per event — drives the band's density row. */
+  kernelChapters?: number[];
 }
 
 function useStageData(stages: HeroJourneyStage[]) {
@@ -34,6 +33,23 @@ function useStageData(stages: HeroJourneyStage[]) {
     for (const s of sorted) byId[s.stage_id] = s;
     return { sorted, byId, groups: groupByPhase(sorted) };
   }, [stages]);
+}
+
+// Measured, not assumed: the chapter axis always spans the whole book, so how
+// much room each chapter gets depends on the book. Guards below key off the
+// real pixel width rather than a chapter-count threshold, which would be a
+// guess — the library has only two books to generalise from.
+function useMeasuredWidth<T extends HTMLElement>() {
+  const ref = useRef<T>(null);
+  const [width, setWidth] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setWidth(entry.contentRect.width));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, width] as const;
 }
 
 const drawer: React.CSSProperties = {
@@ -302,135 +318,188 @@ export function LayoutRing({ stages, theory, events }: LayoutProps) {
 }
 
 // ════════════════════════════════════════════════════════════
-// LAYOUT D — Chapter-alignment band (gantt; shows overlap + absence)
+// LAYOUT D — Chapter-alignment band (gantt; shows overlap + reversal)
 // ════════════════════════════════════════════════════════════
-export function LayoutBand({ stages, theory, events, chapterCount }: LayoutProps) {
-  const { t } = useTranslation('analysis');
+export function LayoutBand({ stages, theory, events, chapterCount, kernelChapters = [] }: LayoutProps) {
+  const { i18n, t } = useTranslation('analysis');
   const { sorted, byId } = useStageData(stages);
   const ordeal = sorted.find((s) => s.stage_id === 'ordeal')?.stage_id;
   const [sel, setSel] = useState(ordeal ?? sorted[0]?.stage_id);
   const selStage = byId[sel] ?? sorted[0];
+  const [axisRef, axisW] = useMeasuredWidth<HTMLDivElement>();
 
+  // The axis is the whole book. Chapters with nothing in them stay blank rather
+  // than being dropped, so a stage at ch10 and events stopping at ch9 read as
+  // the same fact they are.
   const N = Math.max(
     chapterCount,
     sorted.reduce((m, s) => Math.max(m, s.chapter_range[s.chapter_range.length - 1] ?? 0), 1),
+    1,
   );
-  const labelW = 220;
-  const laneH = 30;
-  const laneGap = 4;
+  const colW = axisW ? axisW / N : 0;
+  const labelW = i18n.language.startsWith('zh') ? 186 : 238;
+
+  const chapters = useMemo(() => {
+    const kernelPerChapter: Record<number, number> = {};
+    for (const ch of kernelChapters) kernelPerChapter[ch] = (kernelPerChapter[ch] ?? 0) + 1;
+    const maxKernel = Math.max(1, ...Object.values(kernelPerChapter));
+    return Array.from({ length: N }, (_, i) => {
+      const ch = i + 1;
+      const covering = sorted.filter((s) => {
+        const r = s.chapter_range;
+        return r.length > 0 && r[0] <= ch && r[r.length - 1] >= ch;
+      }).length;
+      const kernels = kernelPerChapter[ch] ?? 0;
+      return {
+        ch,
+        covering,
+        // Three or more stages on one chapter is the pattern worth flagging:
+        // it means the mapping could not separate them, not that the book is dense.
+        overlap: covering >= 3,
+        kernels,
+        densityPct: kernels ? Math.max(8, Math.round((kernels / maxKernel) * 100)) : 0,
+      };
+    });
+  }, [sorted, N, kernelChapters]);
+
+  // A stage that starts earlier than the stage before it — Campbell order and
+  // chapter order disagreeing is a finding, not a glitch, so it gets a mark.
+  const reversed = useMemo(() => {
+    const out: Record<string, boolean> = {};
+    let prev = 0;
+    for (const s of sorted) {
+      const r = s.chapter_range;
+      if (!r.length) continue;
+      if (prev > 0 && r[0] < prev) out[s.stage_id] = true;
+      prev = r[0];
+    }
+    return out;
+  }, [sorted]);
+
+  // Guards keyed off measured width, never off chapter count.
+  const headStep = colW >= 18 ? 1 : colW >= 9 ? 5 : 10;
+  const showBarLabel = (span: number) => colW * span >= 34;
+
+  const grid: React.CSSProperties = {
+    display: 'grid',
+    gridTemplateColumns: `${labelW}px minmax(0, 1fr)`,
+    gap: 10,
+    alignItems: 'center',
+  };
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, flex: 1, minHeight: 0 }}>
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div>
         {/* chapter ruler */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', marginBottom: 6 }}>
-          <div style={{ width: labelW, flexShrink: 0, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--fg-muted)' }}>
-            {t('narrative.stageColumn')}
-          </div>
-          <div style={{ flex: 1, display: 'flex', position: 'relative', height: 16 }}>
-            {Array.from({ length: N }, (_, i) => (
+        <div style={{ ...grid, marginBottom: 4 }}>
+          <div className="nl-band-head">{t('narrative.band.head')}</div>
+          <div ref={axisRef} className="nl-band-cols" style={{ gridTemplateColumns: `repeat(${N}, 1fr)` }}>
+            {chapters.map((c) => (
               <div
-                key={i}
-                style={{
-                  flex: 1,
-                  textAlign: 'center',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 'var(--font-size-2xs)',
-                  color: 'var(--fg-muted)',
-                  borderLeft: i % 4 === 0 ? '1px solid var(--border)' : 'none',
-                }}
+                key={c.ch}
+                className="nl-band-tick"
+                style={{ color: c.overlap ? 'var(--fg-primary)' : 'var(--fg-muted)' }}
               >
-                {i % 4 === 0 ? i + 1 : ''}
+                {c.ch % headStep === 0 || headStep === 1 ? c.ch : ''}
+                {/* The tag needs a whole word's worth of column to be readable;
+                    the tint on the lane below carries the same signal without it. */}
+                {c.overlap && headStep === 1 && (
+                  <div className="nl-band-overlap">{t('narrative.band.overlapTag')}</div>
+                )}
               </div>
             ))}
           </div>
         </div>
 
-        {/* lanes */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: laneGap }}>
-          {sorted.map((stage) => {
-            const st = stageState(stage);
-            const phase = stagePhase(stage.stage_id);
-            const active = sel === stage.stage_id;
-            const start = stage.chapter_range.length ? stage.chapter_range[0] : null;
-            const end = stage.chapter_range.length ? stage.chapter_range[stage.chapter_range.length - 1] : null;
-            const leftPct = start ? ((start - 1) / N) * 100 : 0;
-            const widthPct = start && end ? ((end - start + 1) / N) * 100 : 100;
-            return (
+        {/* one lane per stage */}
+        {sorted.map((stage) => {
+          const st = stageState(stage);
+          const active = sel === stage.stage_id;
+          const r = stage.chapter_range;
+          const from = r.length ? r[0] : 0;
+          const to = r.length ? r[r.length - 1] : 0;
+          const span = to - from + 1;
+          return (
+            <div key={stage.stage_id} style={{ ...grid, marginBottom: 3 }}>
               <button
-                key={stage.stage_id}
+                type="button"
+                className={active ? 'nl-band-label is-active' : 'nl-band-label'}
                 onClick={() => setSel(stage.stage_id)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  textAlign: 'left',
-                  padding: 0,
-                  border: 'none',
-                  background: active ? 'var(--bg-tertiary)' : 'transparent',
-                  borderRadius: 'var(--radius-sm)',
-                }}
               >
-                <div style={{ width: labelW, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 8, padding: '0 8px' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', width: 16, textAlign: 'right' }}>{stageOrdinal(stage.stage_id)}</span>
-                  <span
+                <span className="nl-band-rev" title={reversed[stage.stage_id] ? t('narrative.band.reversedTip') : undefined}>
+                  {reversed[stage.stage_id] ? '↰' : ''}
+                </span>
+                <span className="nl-band-n">{stageOrdinal(stage.stage_id)}</span>
+                <span
+                  className="nl-band-name"
+                  style={{ color: st === 'absent' ? 'var(--fg-muted)' : 'var(--fg-primary)' }}
+                >
+                  {theory[stage.stage_id]?.name ?? stage.stage_name}
+                </span>
+              </button>
+              <div
+                className="nl-band-lane"
+                style={{ borderColor: active ? 'var(--accent)' : 'var(--border)' }}
+              >
+                <div className="nl-band-cols" style={{ position: 'absolute', inset: 0, gridTemplateColumns: `repeat(${N}, 1fr)`, gap: 0 }}>
+                  {chapters.map((c) => (
+                    <div
+                      key={c.ch}
+                      style={{
+                        borderRight: '1px solid var(--bg-tertiary)',
+                        background: c.overlap ? 'var(--bg-secondary)' : 'transparent',
+                      }}
+                    />
+                  ))}
+                </div>
+                {st === 'absent' ? (
+                  <div className="nl-band-absent">{t('narrative.band.absentLane')}</div>
+                ) : (
+                  <button
+                    type="button"
+                    className="nl-band-bar"
+                    title={formatChapters(stage.chapter_range, t)}
+                    onClick={() => setSel(stage.stage_id)}
                     style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontSize: 'var(--font-size-xs)',
-                      fontWeight: 600,
-                      lineHeight: 1.2,
-                      color: active ? 'var(--accent)' : st === 'absent' ? 'var(--fg-muted)' : 'var(--fg-primary)',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
+                      left: `${((from - 1) / N) * 100}%`,
+                      width: `${(span / N) * 100}%`,
+                      background: st === 'low' ? 'var(--color-warning)' : 'var(--accent)',
+                      boxShadow: active ? '0 0 0 2px var(--timeline-selected-ring)' : 'none',
                     }}
                   >
-                    {theory[stage.stage_id]?.name ?? stage.stage_name}
-                  </span>
-                </div>
-                <div style={{ flex: 1, position: 'relative', height: laneH, background: phaseWash(phase, false), borderRadius: 'var(--radius-sm)', overflow: 'hidden' }}>
-                  {Array.from({ length: N }, (_, i) => (
-                    <div key={i} style={{ position: 'absolute', left: `${(i / N) * 100}%`, top: 0, bottom: 0, width: 1, background: i % 4 === 0 ? 'var(--border)' : 'transparent', opacity: 0.5 }} />
-                  ))}
-                  {st === 'absent' ? (
-                    <div style={{ position: 'absolute', inset: '0 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                      <div style={{ flex: 1, borderTop: '1.5px dashed var(--fg-muted)', opacity: 0.6 }} />
-                      <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>{t('narrative.state.absent')} —</span>
-                      <div style={{ flex: 1, borderTop: '1.5px dashed var(--fg-muted)', opacity: 0.6 }} />
-                    </div>
-                  ) : (
-                    <div
-                      title={formatChapters(stage.chapter_range, t)}
-                      style={{
-                        position: 'absolute',
-                        left: `${leftPct}%`,
-                        width: `${widthPct}%`,
-                        top: 5,
-                        bottom: 5,
-                        borderRadius: 5,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '0 8px',
-                        background: discFill(stage),
-                        borderWidth: 'var(--border-width)',
-                        borderStyle: st === 'low' ? 'dashed' : 'var(--border-style)',
-                        borderColor: st === 'low' ? 'var(--color-warning)' : 'color-mix(in oklab, var(--accent) 55%, var(--bg-primary))',
-                        boxShadow: active ? '0 0 0 2px var(--timeline-selected-ring)' : 'none',
-                      }}
-                    >
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: discText(stage), whiteSpace: 'nowrap' }}>
-                        {start}
-                        {end !== start ? `–${end}` : ''}
-                      </span>
-                      {st === 'low' && <AlertTriangle size={11} color={discText(stage)} />}
-                    </div>
-                  )}
-                </div>
-              </button>
-            );
-          })}
-        </div>
+                    {showBarLabel(span) && (from === to ? `${from}` : `${from}–${to}`)}
+                    {st === 'low' && <AlertTriangle size={11} />}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+
+        {/* where the kernel events actually are, on the same axis */}
+        {kernelChapters.length > 0 && (
+          <div style={{ ...grid, marginTop: 6, alignItems: 'end' }}>
+            <div className="nl-band-head">{t('narrative.band.density')}</div>
+            <div className="nl-band-cols" style={{ gridTemplateColumns: `repeat(${N}, 1fr)`, alignItems: 'end', height: 26 }}>
+              {chapters.map((c) => (
+                <div
+                  key={c.ch}
+                  title={t('narrative.band.densityTip', { ch: c.ch, count: c.kernels })}
+                  style={{
+                    height: c.kernels ? `${c.densityPct}%` : 5,
+                    background: c.kernels ? 'var(--accent)' : 'transparent',
+                    border: `1px ${c.kernels ? 'solid' : 'dashed'} var(--border)`,
+                    borderRadius: 2,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        <p className="nl-band-note">
+          {t('narrative.band.axisNote', { n: N })} {t('narrative.band.markNote')}
+        </p>
       </div>
 
       <Legend />
@@ -439,4 +508,3 @@ export function LayoutBand({ stages, theory, events, chapterCount }: LayoutProps
     </div>
   );
 }
-

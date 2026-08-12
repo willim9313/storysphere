@@ -172,6 +172,11 @@ export default function NarrativePage() {
       }[structure.classification_source]
     : '';
   const kernelCount = structure?.kernel_event_ids?.length ?? 0;
+  // One entry per kernel event, so repeats within a chapter carry the density.
+  const kernelChapters = useMemo(
+    () => (kernelSpineQuery.data ?? []).map((e) => e.chapter),
+    [kernelSpineQuery.data],
+  );
   const eventCount = (structure?.kernel_event_ids?.length ?? 0)
     + (structure?.satellite_event_ids?.length ?? 0)
     + (structure?.unclassified_event_ids?.length ?? 0);
@@ -293,6 +298,7 @@ export default function NarrativePage() {
               reviewPending={reviewMutation.isPending}
               onRerun={() => handleTrigger(true)}
               rerunning={heroJourneyOp.running}
+              kernelChapters={kernelChapters}
             />
             <div id="nl-spine">
               <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />

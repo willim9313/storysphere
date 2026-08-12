@@ -27,9 +27,10 @@ interface HeroJourneySectionProps {
   reviewPending: boolean;
   onRerun: () => void;
   rerunning: boolean;
+  kernelChapters: number[];
 }
 
-export function HeroJourneySection({ stages, theory, events, chapterCount, reviewStatus, onReview, reviewPending, onRerun, rerunning }: HeroJourneySectionProps) {
+export function HeroJourneySection({ stages, theory, events, chapterCount, reviewStatus, onReview, reviewPending, onRerun, rerunning, kernelChapters }: HeroJourneySectionProps) {
   const { t } = useTranslation('analysis');
   const [layout, setLayout] = useState<LayoutId>(LAYOUT_IDS[0]);
   const ActiveLayout = LAYOUTS[layout];
@@ -122,7 +123,7 @@ export function HeroJourneySection({ stages, theory, events, chapterCount, revie
         </div>
       )}
 
-      <ActiveLayout stages={stages} theory={theory} events={events} chapterCount={chapterCount} />
+      <ActiveLayout stages={stages} theory={theory} events={events} chapterCount={chapterCount} kernelChapters={kernelChapters} />
     </section>
   );
 }
