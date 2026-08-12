@@ -1,7 +1,7 @@
 // Hero's Journey — main section: header + book-level HITL + layout switcher.
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Check, X } from 'lucide-react';
+import { Check, RefreshCw, X } from 'lucide-react';
 import type { HeroJourneyStage, NarrativeReviewStatus } from '@/api/narrative';
 import type { LayoutId, StageTheory } from './heroJourney';
 import { LAYOUT_IDS, STAGE_ORDER, stageState } from './heroJourney';
@@ -24,9 +24,11 @@ interface HeroJourneySectionProps {
   reviewStatus: NarrativeReviewStatus;
   onReview: (status: 'approved' | 'rejected') => void;
   reviewPending: boolean;
+  onRerun: () => void;
+  rerunning: boolean;
 }
 
-export function HeroJourneySection({ stages, theory, events, chapterCount, reviewStatus, onReview, reviewPending }: HeroJourneySectionProps) {
+export function HeroJourneySection({ stages, theory, events, chapterCount, reviewStatus, onReview, reviewPending, onRerun, rerunning }: HeroJourneySectionProps) {
   const { t } = useTranslation('analysis');
   const [layout, setLayout] = useState<LayoutId>('track');
   const ActiveLayout = LAYOUTS[layout];
@@ -86,6 +88,14 @@ export function HeroJourneySection({ stages, theory, events, chapterCount, revie
 
         {/* book-level HITL */}
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            disabled={rerunning}
+            style={{ ...hitlBtn(false, 'var(--accent)'), cursor: rerunning ? 'wait' : 'pointer', opacity: rerunning ? 0.6 : 1 }}
+            onClick={onRerun}
+          >
+            <RefreshCw size={12} /> {rerunning ? t('narrative.rerunning') : t('narrative.rerun')}
+          </button>
           <button disabled={reviewPending} style={hitlBtn(reviewStatus === 'approved', 'var(--color-success)')} onClick={() => onReview('approved')}>
             <Check size={12} /> {t('narrative.approve')}
           </button>

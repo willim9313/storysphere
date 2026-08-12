@@ -71,6 +71,23 @@ export function sortStages(stages: HeroJourneyStage[]): HeroJourneyStage[] {
   return [...stages].sort((a, b) => stageOrdinal(a.stage_id) - stageOrdinal(b.stage_id));
 }
 
+// Fill out the canonical 12. The mapper omits stages it found no evidence for,
+// so an absent stage arrives as a hole in the sequence rather than as a row —
+// which is why the 'absent' state never reaches the layouts. Padding restores
+// the hole as an explicit row; stages the mapper did produce are untouched.
+// Callers must not use the result to decide whether an analysis exists: this
+// always returns 12 rows, including for an empty input.
+export function padStages(stages: HeroJourneyStage[]): HeroJourneyStage[] {
+  const byId: Record<string, HeroJourneyStage> = {};
+  for (const s of stages) byId[s.stage_id] = s;
+  const padded = STAGE_ORDER.map(
+    (id): HeroJourneyStage =>
+      byId[id] ?? { stage_id: id, stage_name: id, chapter_range: [], confidence: 0, notes: null },
+  );
+  // Keep anything under an id outside the canonical set rather than dropping it.
+  return [...padded, ...stages.filter((s) => !STAGE_ORDER.includes(s.stage_id))];
+}
+
 // ── Three-state visual language ────────────────────────────────────
 // filled (conf ≥ 0.6) · low (0 < conf < 0.6) · absent (empty chapter_range)
 

@@ -14,7 +14,7 @@ import {
   reviewNarrativeStructure,
   triggerHeroJourney,
 } from '@/api/narrative';
-import { getStageTheory, sortStages } from '@/components/narrative/heroJourney';
+import { getStageTheory, padStages } from '@/components/narrative/heroJourney';
 import { HeroJourneySection } from '@/components/narrative/HeroJourneySection';
 import { PlotSpine } from '@/components/narrative/PlotSpine';
 import type { EventInfo } from '@/components/narrative/StageDetail';
@@ -59,14 +59,16 @@ export default function NarrativePage() {
     t('narrative.errors.heroFailed'),
   );
 
-  const handleTrigger = () =>
+  const handleTrigger = (force = false) =>
     heroJourneyOp.trigger(
-      () => triggerHeroJourney(bookId!, i18n.language.startsWith('zh') ? 'zh' : 'en'),
+      () => triggerHeroJourney(bookId!, i18n.language.startsWith('zh') ? 'zh' : 'en', force),
       t('narrative.errors.triggerHero'),
     );
 
   const structure = structureQuery.data;
-  const stages = useMemo(() => sortStages(structure?.hero_journey_stages ?? []), [structure]);
+  // Padded to the canonical 12 — so `stages.length` no longer says whether an
+  // analysis exists; `hasHeroJourney` reads the raw list for that.
+  const stages = useMemo(() => padStages(structure?.hero_journey_stages ?? []), [structure]);
   const theory = useMemo(() => getStageTheory(i18n.language), [i18n.language]);
 
   // Resolve representative_event_ids → title/chapter from kernel spine + event list.
@@ -92,7 +94,7 @@ export default function NarrativePage() {
   });
 
   const chapterCount = book?.chapterCount ?? 0;
-  const hasHeroJourney = stages.length > 0;
+  const hasHeroJourney = (structure?.hero_journey_stages?.length ?? 0) > 0;
   const loading = structureQuery.isLoading || kernelSpineQuery.isLoading;
 
   const staleBanner = structure?.is_stale ? (
@@ -102,6 +104,30 @@ export default function NarrativePage() {
         <strong>{t('narrative.stale.title')}</strong>
         {t('narrative.stale.body', { step: structure.stale_reason ?? '' })}
       </div>
+      {hasHeroJourney && (
+        <button
+          type="button"
+          onClick={() => handleTrigger(true)}
+          disabled={heroJourneyOp.running}
+          style={{
+            marginLeft: 'auto',
+            flexShrink: 0,
+            alignSelf: 'center',
+            cursor: heroJourneyOp.running ? 'wait' : 'pointer',
+            background: 'none',
+            border: 'none',
+            padding: 0,
+            fontFamily: 'inherit',
+            fontSize: 'var(--font-size-sm)',
+            fontWeight: 600,
+            color: 'inherit',
+            textDecoration: 'underline',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {heroJourneyOp.running ? t('narrative.rerunning') : t('narrative.rerunArrow')}
+        </button>
+      )}
     </div>
   ) : null;
 
@@ -113,6 +139,7 @@ export default function NarrativePage() {
         ) : hasHeroJourney && structure ? (
           <>
             {staleBanner}
+            {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
             <HeroJourneySection
               stages={stages}
               theory={theory}
@@ -121,6 +148,8 @@ export default function NarrativePage() {
               reviewStatus={structure.review_status}
               onReview={(status) => reviewMutation.mutate(status)}
               reviewPending={reviewMutation.isPending}
+              onRerun={() => handleTrigger(true)}
+              rerunning={heroJourneyOp.running}
             />
             <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount} />
           </>
@@ -133,7 +162,7 @@ export default function NarrativePage() {
             <div className="nl-empty-title">{t('narrative.empty.title')}</div>
             <div className="nl-empty-msg">{t('narrative.empty.message')}</div>
             {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
-            <button className="nl-trigger-btn" onClick={handleTrigger} disabled={heroJourneyOp.running}>
+            <button type="button" className="nl-trigger-btn" onClick={() => handleTrigger()} disabled={heroJourneyOp.running}>
               {heroJourneyOp.running
                 ? t('narrative.empty.running', { progress: heroJourneyOp.task?.progress ?? 0 })
                 : t('narrative.empty.trigger')}
