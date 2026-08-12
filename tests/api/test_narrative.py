@@ -278,3 +278,65 @@ class TestClassifyEndpointGuard:
             "/api/v1/narrative/classify", json={"document_id": "book-1"}
         )
         assert resp.status_code == 202
+
+
+# ── Review advances the classification source ────────────────────────────────
+
+
+class TestUpdateReview:
+    """Approving is the only thing that ever writes "human_verified"."""
+
+    def _service(self, source, event_sources):
+        from storysphere.services.narrative_service import NarrativeService
+
+        structure = NarrativeStructure(document_id="book-1", classification_source=source)
+        kg = AsyncMock()
+        kg.get_events.return_value = [
+            Event(
+                id=f"e{i}",
+                title=f"e{i}",
+                event_type=EventType.PLOT,
+                description="…",
+                chapter=1,
+                narrative_weight="kernel",
+                narrative_weight_source=src,
+            )
+            for i, src in enumerate(event_sources)
+        ]
+        cache = AsyncMock()
+        cache.get_as.return_value = structure
+        return NarrativeService(kg, AsyncMock(), cache)
+
+    @pytest.mark.asyncio
+    async def test_approving_marks_the_classification_human_verified(self):
+        svc = self._service("llm_classified", ["llm_classified"])
+        result = await svc.update_review("book-1", "approved")
+        assert result.review_status == "approved"
+        assert result.classification_source == "human_verified"
+
+    @pytest.mark.asyncio
+    async def test_withdrawing_an_approval_restores_the_llm_source(self):
+        svc = self._service("human_verified", ["llm_classified", "summary_heuristic"])
+        result = await svc.update_review("book-1", "rejected")
+        assert result.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_withdrawing_an_approval_falls_back_to_the_heuristic(self):
+        svc = self._service("human_verified", ["summary_heuristic"])
+        result = await svc.update_review("book-1", "rejected")
+        assert result.classification_source == "summary_heuristic"
+
+    @pytest.mark.asyncio
+    async def test_rejecting_something_never_approved_leaves_the_source_alone(self):
+        svc = self._service("llm_classified", ["llm_classified"])
+        result = await svc.update_review("book-1", "rejected")
+        assert result.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_returns_none_when_nothing_is_cached(self):
+        from storysphere.services.narrative_service import NarrativeService
+
+        cache = AsyncMock()
+        cache.get_as.return_value = None
+        svc = NarrativeService(AsyncMock(), AsyncMock(), cache)
+        assert await svc.update_review("no-such-book", "approved") is None

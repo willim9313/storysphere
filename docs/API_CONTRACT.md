@@ -2441,6 +2441,16 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 **Response 200**：`NarrativeStructure`（更新後）
 
+**副作用**：`review_status='approved'` 會一併把 `classification_source` 推進為
+`human_verified`。該列舉值一直存在於 domain model，但先前沒有任何寫入點，導致
+「已核可」與「未審閱」的分類在來源上無法區分。
+
+撤回核可（已是 `human_verified` 時改為 `rejected`）必須把來源放回去，而先前的值
+從未被保存——改由事件自身的 `narrative_weight_source` 還原：任一事件為
+`llm_classified` 則回到 `llm_classified`，否則回到 `summary_heuristic`。
+
+未曾核可過的結構改為 `rejected` 時，`classification_source` 不變。
+
 ---
 
 ## 跨書搜尋
@@ -2549,6 +2559,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
   - 2026-06-01：#21k / #21l 加 `response_model=NarrativeStructure`，#21j 加 `response_model=list[KernelSpineEvent]`（新增 schema），讓 `generated.ts` 取得 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。回傳 JSON shape 不變（皆為既有 snake_case domain dump）。前端封裝於 `frontend/src/api/narrative.ts`，頁面為 `/books/:bookId/narrative`（B-045）。
   - 2026-08-12：#21k 的 `representative_event_ids` 改為讀取時推導（response schema 不變，欄位早已存在）。詳見 #21k 段落。
   - 2026-08-12：#21a 新增 409（分類會抹除既有分類時拒絕啟動），service 層同步加守衛。詳見 #21a 段落。
+  - 2026-08-12：#21l 核可時一併寫入 `classification_source='human_verified'`（撤回核可時由事件來源還原）。詳見 #21l 段落。
 - [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
 - [x] **#22a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）
