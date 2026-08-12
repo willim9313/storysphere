@@ -305,6 +305,147 @@
   text-wrap: pretty;
 }
 
+/* Kernel / satellite proportion. */
+.nl-ratio {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.nl-ratio-lead {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.nl-ratio-n {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xl);
+  font-weight: 600;
+  color: var(--accent);
+  line-height: 1;
+}
+.nl-ratio-of {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
+.nl-ratio-bar {
+  display: flex;
+  height: 14px;
+  border-radius: 3px;
+  overflow: hidden;
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+}
+.nl-ratio-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 5px;
+  flex-wrap: wrap;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+
+/* Kernel events under the chapter they belong to. Columns wrap rather than
+   compress: a long book gets more rows, never unreadable titles. */
+.nl-chgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
+  gap: 10px 8px;
+  align-items: start;
+}
+.nl-chgrid-head {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--border);
+}
+.nl-chgrid-ch {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.nl-chgrid-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+}
+.nl-chgrid-col {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 6px;
+}
+.nl-ev {
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  padding: 6px 7px;
+  border-radius: var(--radius-sm);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  background: var(--bg-secondary);
+  color: var(--fg-primary);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  text-wrap: pretty;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast),
+    color var(--transition-fast);
+}
+.nl-ev:hover {
+  border-color: var(--accent);
+}
+.nl-ev.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+}
+.nl-ev-empty {
+  padding: 6px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  text-align: center;
+}
+.nl-evbox {
+  padding: 14px;
+  min-height: 74px;
+  background: var(--bg-secondary);
+  border-width: var(--border-width);
+  border-style: var(--border-style);
+  border-color: var(--border);
+  border-radius: var(--radius-md);
+}
+.nl-evbox-link {
+  margin-left: auto;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.nl-evbox-sig {
+  margin: 5px 0 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: 1.6;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
 /* Absent-stage reading — states what a gap means, and how many there are. */
 .nl-absent-note {
   display: flex;

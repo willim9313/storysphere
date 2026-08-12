@@ -1501,6 +1501,12 @@ Prompt Tokens / Completion Tokens / 總請求次數
   不用 tooltip：第一次使用的人不會去 hover 一個他還不知道有差別的東西。順序與預設值
   由 `LAYOUT_IDS` 決定，**預設為章節對位帶**（真實資料下唯一能同時看出對位、重疊與逆序的視圖）。
   - **A 章節對位帶（`LayoutBand`）**：甘特式條帶（x 軸＝章節），一眼可見階段重疊與缺席。
+    三個以上階段落在同一章時，欄位標「共用」且軌道內上底色；起點早於前一階段者在編號前
+    掛 ↰（章節逆序）。下方一列核心事件密度共用同一條軸，讓「階段講到第 10 章、kernel
+    事件止於第 9 章」這種落差自明。軸長固定為全書章數，空章留白不截斷。
+    **寬度守衛一律取自 ResizeObserver 量出的實際寬度，不用章數門檻**（書庫樣本只有 7 章與
+    10 章兩本，以章數寫死等於猜測）：每欄 <18px 時章號每 5 章標一次並收起「共用」標籤、
+    <9px 時每 10 章一次；帶寬 <34px 時帶內章號不渲染（範圍仍可由 title 與詳情面板取得）。
   - **B 水平軌跡（`LayoutTrack`）**：departure→initiation→return 三相位橫向流，12 階段 disc + 底部詳情抽屜。
   - **C 三相位分欄（`LayoutColumns`）**：三欄堆疊階段列 + 右側固定詳情面板（360px）。
   - **D 圓環循環（`LayoutRing`）**：Campbell 環形 monomyth，中心顯示選定階段詳情，虛線分隔平凡／特殊世界。
@@ -1528,11 +1534,21 @@ Prompt Tokens / Completion Tokens / 總請求次數
 已滿足的列不顯示前往連結。摘要完成度取自 `GET /books/{id}/chapters` 的 `summary` 欄位，
 查詢僅在沒有分析結果時啟用。
 
-#### 情節骨幹摘要（`PlotSpine`）
+#### 事件骨幹（`PlotSpine`，錨點 `#nl-spine`）
 
-- 標題列 + 分類來源 chip（啟發式／LLM／人工驗證）+ ReviewBadge。
-- Kernel / Satellite / Unclassified 比例條 + 計數 + 總事件數。
-- 核心事件骨幹：依章節排列的 kernel 事件時間線（上下交錯標籤）。
+- 標題列「事件骨幹」+ 副標 `Chatman kernel / satellite` + 一行說明；右側分類來源 chip
+  （啟發式／LLM／人工驗證）+ ReviewBadge。
+- **比例條**：kernel 數為主體，右側為條與圖例。**satellite 為 0 時不佔寬度**，改在圖例
+  註明「衛星 0 · 本書未出現此分類」——兩本測試書的 satellite 皆為 0，保留零寬區段只會
+  在條的右側留下無法解釋的空隙。
+- **逐章事件欄**（`.nl-chgrid`）：每章一欄，欄頭為章號 + 該章 kernel 事件數（無事件時為
+  `—` 且底線改用 `--border`），欄內逐筆列出**事件標題**，無事件的章顯示虛線「無核心事件」。
+  欄以 `repeat(auto-fill, minmax(106px, 1fr))` 換行而非壓縮：長篇只是多幾列，標題不會被壓到
+  不可讀。章數取 `book.chapterCount` 與事件最大章號的較大者，空章不省略。
+  - 取代原本的「上下交錯標籤時間線 + 同章多事件 pill 清單」。原設計預設每章至多一個
+    kernel 事件，真實資料每章 2–7 件，導致整條軌道只顯示「N 件事件」而一個標題都看不到。
+- **選定事件方塊**（`.nl-evbox`）：章號 · 事件類型 + 標題 + significance，右上角
+  「在事件分析頁開啟 →」深連結至 `/books/:bookId/events?event=<id>`。未選時顯示提示。
 - 底部「前往事件分析頁」跳轉（Kernel/Satellite 細節在事件分析頁）。
 
 #### API 參考
