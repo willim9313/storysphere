@@ -2,9 +2,20 @@
 
 **日期：** 2026-08-11
 **對象：** `/books/:bookId/narrative`（`frontend/src/pages/NarrativePage.tsx` + `components/narrative/`）
+**Branch：** `feat/narrative-page-revamp`（自 `origin/main` 切出）
+**設計交付包：** `docs/handoff/20260811-narrative-page/`
 **背景：** 書籍範圍內 9 個頁面中，敘事結構頁是唯一未經翻新的一頁。最後一次設計性改動是
 2026-06-02 的 PlotSpine 重畫，早於 2026-07-10 的 design-system v2（ink-on-paper 雙主題 +
 shape token）。7 月後唯一異動是 8/06 加上的 stale banner（+13/-1）。
+
+**狀態**：✅ **Phase 1–4 全數實作完成（2026-08-12，branch `feat/narrative-page-revamp`）。**
+診斷 A1–A3、B1–B2、C1–C4、D1–D2、E1–E8 皆已結案；本文件保留為決策紀錄。
+**落地後的規格見 [`docs/UI_SPEC.md` §3.14](../UI_SPEC.md) 與
+[`docs/API_CONTRACT.md`](../API_CONTRACT.md) #21a／#21k／#21l——那兩份才是現況，本文件不是。**
+
+> ⚠️ **§一～§九為 2026-08-11 的規劃內容，所述現況已被本次實作改變。**
+> §十為設計稿核對，§十一為實作順序與 Phase 3 重拆。**§十二是實作與計畫的差異紀錄**，
+> 只有那一節記載了計畫沒說、或說錯的事——要快速掌握結果請直接讀 §十二。
 
 ---
 
@@ -445,3 +456,66 @@ Claude Design 交付 canvas 後逐項核對的結果與決議。**實作以 canv
 就知道會失敗」沒有無文字的表達方式。判定為應收的成本。
 
 ---
+
+---
+
+## 十二、實作完成紀錄（2026-08-12）
+
+13 個 commit，46 檔、+12334/−530（其中 9116 行為本文件與交付包）。
+**實作與計畫不同之處全在這一節；其餘照 §十、§十一執行。**
+
+### 12.1 各 Phase 落點
+
+| Phase | commit | 內容 |
+|---|---|---|
+| 1a | `410456a` | `padStages` 補齊 12 階段、重跑入口（header + 過期橫幅） |
+| 1b | `17ad4e8` | 圖例吸收解讀指引、信心 0.6 刻度、空狀態前置條件檢查表 |
+| 1c | `ddbcdca` | 後端補算 `representative_event_ids` + 14 測試 + API Contract |
+| 3a | `952bfad` | 頁首、索引卡、視圖切換器 hint、預設改對位帶、方法論連結 |
+| 3b | `894bbb7` `1fa03ff` | 對位帶重畫（共用／逆序／密度列／寬度守衛）、骨幹改逐章列事件 |
+| 3c | `9a4aa5d` `951011e` | 詳情面板內容重寫、改為 sticky 側欄 |
+| 2a | `d91da82` | classify 破壞性守衛（409 + service 層）+ 7 測試 |
+| 2b | `c100a45` | 未分類區塊接上 classify／refine + ConfirmDialog |
+| 2c | `501a0a6` | 核可推進 `classification_source` 為 `human_verified` + 5 測試 |
+| 4 | `ea922d8` | ③ 旁證卡：三層章節軸 + 時序 + 張力 |
+
+### 12.2 與計畫不符之處
+
+| # | 計畫怎麼寫 | 實際怎麼做 | 為什麼 |
+|---|---|---|---|
+| 1 | §1-4：章節摘要完成度由 `useBook` 推得，不需新增請求 | 改讀 `GET /books/{id}/chapters` 的 `summary` 欄位，僅在無分析結果時啟用 | `BookDetailResponse` 只有 `pipelineStatus.summarization` 這個粗狀態，算不出「缺 4 章」 |
+| 2 | §六：3a 做 ③ 卡的外殼與未分析態 | ③ 卡與其區塊一起延到 Phase 4 | 目錄項先於它指向的內容存在就是死連結；區塊本身需要 Phase 4 的資料 |
+| 3 | §3-5：「Kernel / Satellite」做成 term chip 連出方法論頁 | 只有英雄旅程副標連出，事件骨幹副標維持純文字 | `frameworksData` 沒有 Chatman kernel/satellite 條目，連到方法論總覽反而誤導 |
+| 4 | §五：EEP 命中率門檻 0（一筆都沒命中就中止） | 收緊為「命中 0 **且** 目前至少有一個事件是 kernel/satellite」 | 全新書全是 unclassified，拿 unclassified 覆寫 unclassified 沒有損失，擋下來只會擋住正常的第一次執行 |
+| 5 | canvas 在覆蓋率旁印「需 ≥60%」 | 前端只顯示實際百分比，足夠與否取後端 `coverage_sufficient` | `_TEMPORAL_COVERAGE_THRESHOLD` 是後端常數，前端複寫會漂移 |
+| 6 | §四驗收：新增文字量不超過移除量 | **未達成**。結果視圖 −20 +16，空狀態淨增約 80 字 | 前置條件檢查表本身即為文字；E7 要的「點擊前就知道會失敗」沒有無文字的表達方式 |
+| 7 | （未預期） | `useTensionTask` 改為 `ApiError` 時採用 `detail` | 2a 把數字放進 409，通用文案會把它整個丟掉。張力頁等呼叫端一併受益 |
+| 8 | （未預期） | UI_SPEC 原「過期橫條只做提示，不放操作按鈕」被推翻 | 觸發鈕只存在於空狀態，有結果時橫條等於報警不給滅火器。規格已改寫並註明理由 |
+
+### 12.3 一項先前判斷的更正
+
+實作 2a 時曾判定「classify 的破壞不需要按鈕、進頁就會發生」，據此把守衛放進
+service 層。**該判斷有誤**：`get_kernel_spine` 與 `refine_with_llm` 的自動 classify
+條件是**全書事件皆為未分類**，此時已無分類可損失。守衛放 service 層仍屬正確的
+縱深防禦，但理由不是「進頁會被洗掉」。
+
+實測結果：`名字的潮汐` 47 個事件的 EEP 快取全數遺失，跑 classify 會抹掉 38 個
+kernel，端點正確回 409；`大唐雙龍傳` 尚存 12 筆 EEP 快取，正確放行。
+
+### 12.4 驗證過程對真實資料的異動
+
+| 書 | 異動 | 處置 |
+|---|---|---|
+| `大唐雙龍傳_冊1` | 分類 `3 kernel / 0 satellite / 59 未分類` → `9 / 3 / 50` | **保留**（使用者確認）。依殘存 EEP 快取重算，不耗 LLM，比舊值準確 |
+| `名字的潮汐` | `review_status` `pending` → `approved` → `rejected` | **已還原為 `pending`**。#21l 不接受 `pending`，直接改回快取欄位；`classification_source` 由程式自行還原 |
+
+### 12.5 幾條不會出現在 UI_SPEC、但改動時要知道的事
+
+- **對位帶的寬度守衛一律用 `ResizeObserver` 量出的實際寬度，不得改用章數門檻。**
+  書庫只有 7 章與 10 章兩本，以章數寫死等於猜測。
+- **旁證區塊的判讀句、代表事件的三種說明、`crossNote` 全部即時計算**，不得沿用
+  canvas 的示範句——設計稿寫第 9 章，實測峰值在第 7 章。
+- **`padStages` 回傳恆為 12 列**，不能再用 `stages.length` 判斷分析是否存在；
+  `hasHeroJourney` 讀後端原始的 `hero_journey_stages`。
+- **refine 必須傳明確的 `event_ids`。** 後端 `event_ids=null` 的預設是「精煉全部
+  satellite」，而書庫沒有任何一本有 satellite 事件，該預設是 no-op。

@@ -3,6 +3,11 @@
 日期：2026-08-11
 交付對象：Claude Design
 
+**狀態**：✅ 設計已交回並實作完成（2026-08-12，branch `feat/narrative-page-revamp`）。
+本包保留為決策紀錄。**現況規格見 [`docs/UI_SPEC.md` §3.14](../../UI_SPEC.md)；
+實作與計畫的差異見 [`docs/plans/20260811-narrative-page-revamp.md` §十二](../../plans/20260811-narrative-page-revamp.md)。**
+包內的截圖與 `sample-payloads/` 是 2026-08-11 的實測快照，已不代表現況。
+
 ⚠️ 請掛在**既有的 StorySphere Claude Design 專案**下進行（token 系統、focus ring、
 Warm/Ink 雙主題等契約已在該專案內），不要另開新專案。
 設計完成後以 **`.dc.html` canvas** 交回，開發端依 canvas 實作（不依 prose 重新詮釋）。

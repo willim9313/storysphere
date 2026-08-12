@@ -8,6 +8,15 @@
 > 交付包：`docs/handoff/20260811-narrative-page/`（本文件即該包的 `01-design-brief.md`）。
 > 對應的功能規劃見 `docs/plans/20260811-narrative-page-revamp.md`。
 
+
+**狀態**：✅ **已實作完成（2026-08-12，branch `feat/narrative-page-revamp`）。**
+本文件是交付給 Claude Design 的需求書，保留為決策紀錄；**落地後的規格見**
+[`docs/UI_SPEC.md` §3.14](../UI_SPEC.md)，**實作與計畫的差異見**
+[`20260811-narrative-page-revamp.md` §十二](20260811-narrative-page-revamp.md)。
+
+> ⚠️ §3「資料現實與陷阱」所述為 2026-08-11 的實測現況，其中多項已被本次實作改變
+> （例如 `absent` 態現在會出現、代表事件已補算、satellite 在大唐已非 0）。
+
 ---
 
 ## 1. 主軸：這頁的視覺沒壞，壞的是「進來的人不知道自己在看什麼」
