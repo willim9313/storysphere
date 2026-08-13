@@ -268,6 +268,7 @@
       "stateBefore": "事件前",
       "stateAfter": "事件後",
       "structuralRole": "結構角色",
+      "structuralRoleHint": "編劇慣例（三幕劇），非嚴謹敘事學分類",
       "importance": "重要性",
       "thematicSignificance": "主題意義",
       "participantRoles": "參與者角色",

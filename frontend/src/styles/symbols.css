@@ -481,6 +481,10 @@
   color: var(--fg-secondary);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  text-decoration: none;
+}
+.sym-hero-tag:hover {
+  background: var(--bg-tertiary);
 }
 .sym-hero-sep {
   color: var(--fg-muted);

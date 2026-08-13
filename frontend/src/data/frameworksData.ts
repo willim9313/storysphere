@@ -140,6 +140,52 @@ const OUTPUT_HJ_EN: OutputField[] = [
   { field: 'notes', type: 'string | null', note: 'Optional caveat (e.g. specific character or evidence)' },
 ];
 
+const PIPELINE_CHATMAN_ZH: PipelineStep[] = [
+  { key: 'extract', what: '讀取目標事件的標題、類型、描述、意義與情緒脈絡，並取前後各至多兩個相鄰事件作為因果脈絡。' },
+  { key: 'match', what: '套用核心問題：「如果這個事件被刪除，故事的因果鏈是否會斷裂？」逐一比對目標事件。' },
+  { key: 'synth', what: '由 LLM 輸出 kernel／satellite 分類、信心值，與 1–2 句因果鏈判定理由。' },
+];
+const PIPELINE_CHATMAN_EN: PipelineStep[] = [
+  { key: 'extract', what: "Load the target event's title, type, description, significance, and emotional context, plus up to two adjacent events on each side for causal context." },
+  { key: 'match', what: 'Apply the core question: "If this event were deleted, would the causal chain break?" against the target event.' },
+  { key: 'synth', what: 'The LLM emits a kernel/satellite classification, a confidence value, and a 1–2 sentence causal-chain rationale.' },
+];
+
+const OUTPUT_CHATMAN_ZH: OutputField[] = [
+  { field: 'classification', type: 'enum(2)', note: '事件的結構角色：kernel（核心）或 satellite（衛星）' },
+  { field: 'confidence', type: 'float 0–1', note: 'LLM 自我評估信心值' },
+  { field: 'reasoning', type: 'string', note: '因果鏈判定理由（1–2 句）' },
+];
+const OUTPUT_CHATMAN_EN: OutputField[] = [
+  { field: 'classification', type: 'enum(2)', note: "The event's structural role: kernel or satellite" },
+  { field: 'confidence', type: 'float 0–1', note: 'LLM self-reported confidence' },
+  { field: 'reasoning', type: 'string', note: 'Causal-chain rationale (1–2 sentences)' },
+];
+
+const PIPELINE_GENETTE_ZH: PipelineStep[] = [
+  { key: 'extract', what: '依章節與段落內位置排序全書事件的文本序位，並收集萃取階段標記的 story_time_hint（文本中的時間線索）。' },
+  { key: 'match', what: '將事件送入 LLM，比對時間線索與敘事脈絡，推論其在故事世界時序中的相對位置（故事序位）。時間線索覆蓋率低於 60% 時判定證據不足，不執行以下步驟。' },
+  { key: 'synth', what: '比較每個事件的文本序位與故事序位落差，達門檻即分類為倒敘或預敘；同時為全書判定整體時序結構（線性／部分線性／非線性）。' },
+];
+const PIPELINE_GENETTE_EN: PipelineStep[] = [
+  { key: 'extract', what: "Sort the book's events by text order (chapter + in-paragraph position), and collect the story_time_hint (in-text time cues) tagged during event extraction." },
+  { key: 'match', what: "Send the events to the LLM to weigh the time cues against narrative context and infer each event's relative position in story-world chronology (story rank). Below 60% hint coverage, evidence is judged insufficient and the remaining steps do not run." },
+  { key: 'synth', what: "Compare each event's text-order rank against its story rank; a displacement past the threshold is tagged analepsis or prolepsis. The whole book is also classified by its overall temporal structure (linear / partially linear / non-linear)." },
+];
+
+const OUTPUT_GENETTE_ZH: OutputField[] = [
+  { field: 'coverage', type: 'float 0–1', note: '時間線索覆蓋率；需 ≥ 0.6 才會產生以下判定' },
+  { field: 'story_time_structure', type: 'enum(3) | null', note: '全書整體時序結構（覆蓋率不足時為 null）' },
+  { field: 'displacement_type', type: 'enum(3)', note: '單一事件的時序位移分類：linear／analepsis／prolepsis' },
+  { field: 'displacement', type: 'float', note: '故事序位與文本序位的差值；正值為預敘，負值為倒敘' },
+];
+const OUTPUT_GENETTE_EN: OutputField[] = [
+  { field: 'coverage', type: 'float 0–1', note: 'Time-hint coverage; must be ≥ 0.6 to produce the judgements below' },
+  { field: 'story_time_structure', type: 'enum(3) | null', note: "The book's overall temporal structure (null when coverage is insufficient)" },
+  { field: 'displacement_type', type: 'enum(3)', note: 'Per-event temporal displacement: linear / analepsis / prolepsis' },
+  { field: 'displacement', type: 'float', note: 'Story rank minus text rank; positive is prolepsis, negative is analepsis' },
+];
+
 const PIPELINE_FRYE_ZH: PipelineStep[] = [
   { key: 'extract', what: '彙整全書的 TensionLine（章節層級的張力極對線、強度與審核狀態）。' },
   { key: 'match', what: '將張力模式比對四種神話的核心模式與情緒基調。' },
@@ -219,6 +265,8 @@ const FW_META = {
   jung: { categoryId: 'character' as FrameworkCategory, crossBook: true, hasConfidence: true },
   schmidt: { categoryId: 'character' as FrameworkCategory, crossBook: true, hasConfidence: true },
   hero_journey: { categoryId: 'arc' as FrameworkCategory, crossBook: true, hasConfidence: true },
+  chatman: { categoryId: 'arc' as FrameworkCategory, crossBook: true, hasConfidence: true },
+  genette_temporal_order: { categoryId: 'arc' as FrameworkCategory, crossBook: true, hasConfidence: false },
   frye_mythos: { categoryId: 'tension' as FrameworkCategory, crossBook: true, hasConfidence: false },
   booker_plots: { categoryId: 'tension' as FrameworkCategory, crossBook: true, hasConfidence: false },
   sep_methodology: { categoryId: 'symbol' as FrameworkCategory, crossBook: false, hasConfidence: true },
@@ -228,6 +276,8 @@ const PIPELINE_ZH = {
   jung: PIPELINE_JUNG_ZH,
   schmidt: PIPELINE_SCHMIDT_ZH,
   hero_journey: PIPELINE_HJ_ZH,
+  chatman: PIPELINE_CHATMAN_ZH,
+  genette_temporal_order: PIPELINE_GENETTE_ZH,
   frye_mythos: PIPELINE_FRYE_ZH,
   booker_plots: PIPELINE_BOOKER_ZH,
   sep_methodology: PIPELINE_SEP_ZH,
@@ -236,6 +286,8 @@ const PIPELINE_EN = {
   jung: PIPELINE_JUNG_EN,
   schmidt: PIPELINE_SCHMIDT_EN,
   hero_journey: PIPELINE_HJ_EN,
+  chatman: PIPELINE_CHATMAN_EN,
+  genette_temporal_order: PIPELINE_GENETTE_EN,
   frye_mythos: PIPELINE_FRYE_EN,
   booker_plots: PIPELINE_BOOKER_EN,
   sep_methodology: PIPELINE_SEP_EN,
@@ -244,6 +296,8 @@ const OUTPUT_ZH = {
   jung: OUTPUT_JUNG_ZH,
   schmidt: OUTPUT_SCHMIDT_ZH,
   hero_journey: OUTPUT_HJ_ZH,
+  chatman: OUTPUT_CHATMAN_ZH,
+  genette_temporal_order: OUTPUT_GENETTE_ZH,
   frye_mythos: OUTPUT_FRYE_ZH,
   booker_plots: OUTPUT_BOOKER_ZH,
   sep_methodology: OUTPUT_SEP_ZH,
@@ -252,6 +306,8 @@ const OUTPUT_EN = {
   jung: OUTPUT_JUNG_EN,
   schmidt: OUTPUT_SCHMIDT_EN,
   hero_journey: OUTPUT_HJ_EN,
+  chatman: OUTPUT_CHATMAN_EN,
+  genette_temporal_order: OUTPUT_GENETTE_EN,
   frye_mythos: OUTPUT_FRYE_EN,
   booker_plots: OUTPUT_BOOKER_EN,
   sep_methodology: OUTPUT_SEP_EN,
@@ -378,10 +434,41 @@ const FRAMEWORKS_ZH: RawFramework[] = [
     ],
   },
   {
+    key: 'chatman',
+    name: 'Chatman Kernel / Satellite',
+    category: '敘事弧分析',
+    description: 'Seymour Chatman 在《故事與話語》中提出的情節結構區分：Kernel（核心事件）是推動因果鏈的鉸鏈點，移除後續事件會失去意義；Satellite（衛星事件）是鋪陳與修飾，移除後故事仍然完整。系統對每個已分析事件套用此判準，逐一標定其結構角色，組成全書的「事件骨幹」。',
+    itemLabel: '類型',
+    references: [
+      { author: 'Chatman, S.', year: 1978, title: 'Story and Discourse: Narrative Structure in Fiction and Film', publisher: 'Cornell University Press', note: '提出 Kernel（核心）與 Satellite（衛星）事件區分，敘事結構分析的核心文本' },
+      { author: 'Barthes, R.', year: 1966, title: 'Introduction à l’analyse structurale des récits（敘事結構分析導論）', publisher: 'Communications, no. 8', note: '區分「核心功能（noyaux）」與「催化功能（catalyses）」，是 Chatman Kernel/Satellite 概念的直接前身' },
+    ],
+    items: [
+      { id: 'kernel', name: '核心事件', subtitle: 'kernel', details: [{ label: '定義', value: '推動情節的鉸鏈點；此事件被移除，後續的因果鏈會斷裂，其後事件無法發生或失去意義。' }, { label: '判準', value: '「如果刪除這個事件，故事的因果邏輯還說得通嗎？」回答「不」即為核心事件。' }, { label: '敘事功能', value: '開啟或關閉敘事中的可能性分支，是情節推進的必要節點。' }] },
+      { id: 'satellite', name: '衛星事件', subtitle: 'satellite', details: [{ label: '定義', value: '對核心事件的擴展或修飾；此事件被移除，故事仍然完整、因果邏輯不受影響。' }, { label: '判準', value: '「如果刪除這個事件，故事的因果邏輯還說得通嗎？」回答「是」即為衛星事件。' }, { label: '敘事功能', value: '填充核心事件之間的空隙，提供細節、氛圍與人物刻劃，但不改變情節走向。' }] },
+    ],
+  },
+  {
+    key: 'genette_temporal_order',
+    name: 'Genette 敘事時序',
+    category: '敘事弧分析',
+    description: 'Gérard Genette 在《敘事話語》中提出的時序分析框架，比較「故事時間」（事件在虛構世界中實際發生的先後）與「敘事時間」（事件在文本中被敘述的順序）之間的落差。系統將每個事件的文本序位與 LLM 推論出的故事序位相比對，落差達門檻即標記為倒敘或預敘，同時為全書判定整體時序結構。此分析僅在事件的時間線索覆蓋率達 60% 以上才會執行，是本系統目前唯一實作的 Genette 分析面向——聚焦、聲音等其他面向尚未系統化。',
+    itemLabel: '類型',
+    references: [
+      { author: 'Genette, G.', year: 1972, title: 'Discours du récit（收錄於 Figures III）', publisher: 'Éditions du Seuil', note: '原始法文版，提出敘事時序分析框架，區分故事時間與敘事時間的落差（anachronie）' },
+      { author: 'Genette, G.（Lewin, J. E. 英譯）', year: 1980, title: 'Narrative Discourse: An Essay in Method', publisher: 'Cornell University Press', note: '通行英譯本，本系統採用的 analepsis（倒敘）／prolepsis（預敘）術語出自此版本' },
+    ],
+    items: [
+      { id: 'linear', name: '順序', subtitle: 'linear', details: [{ label: '定義', value: '事件的故事序位與文本序位相近，敘事順序與事件實際發生順序大致一致。' }, { label: '判準', value: '故事序位與文本序位的差值絕對值小於系統門檻（3）。' }] },
+      { id: 'analepsis', name: '倒敘', subtitle: 'analepsis', details: [{ label: '定義', value: '事件在故事世界中發生得比文本敘述的位置更早——常見的「回憶」、「補敘」手法。' }, { label: '判準', value: '故事序位早於文本序位，且落差達門檻。' }, { label: '敘事功能', value: '補充讀者尚未掌握的背景，或延遲揭露關鍵資訊以製造懸念。' }] },
+      { id: 'prolepsis', name: '預敘', subtitle: 'prolepsis', details: [{ label: '定義', value: '事件在故事世界中發生得比文本敘述的位置更晚——常見的「預告」、「伏筆揭曉」手法。' }, { label: '判準', value: '故事序位晚於文本序位，且落差達門檻。' }, { label: '敘事功能', value: '預示未來走向，製造期待或戲劇反諷。' }] },
+    ],
+  },
+  {
     key: 'frye_mythos',
     name: 'Frye 四季神話',
     category: '張力分析',
-    description: 'Northrop Frye 的《批評的解剖》將所有敘事歸納為四種神話模式，各對應一個季節與情感基調。系統使用此框架為全書定性其主神話。實作上，這個判定與 Booker 七情節在同一個分析步驟中產出——餵入相同的 TensionLine（章節層級的張力極對線、強度與審核狀態），由 LLM 一次回傳兩個分類選擇與綜合命題。',
+    description: 'Northrop Frye 的《批評的解剖》將所有敘事歸納為四種神話模式，各對應一個季節與情感基調。系統使用此框架為全書定性其主神話。實作上，這個判定與 Booker 七情節在同一個分析步驟中產出——餵入相同的 TensionLine（章節層級的張力極對線、強度與審核狀態），由 LLM 一次回傳兩個分類選擇與綜合命題。再往下一層，構成 TensionLine 的個別 TEU（張力證據單元，即場景中的對立雙極本身）在概念上受亞里斯多德《詩學》的衝突論、Greimas 符號方陣、Peter Brooks《Reading for the Plot》與 Mieke Bal 敘事學啟發，但系統只抽取二元對立，並非這些理論的精確實作。',
     itemLabel: '神話',
     references: [
       { author: 'Frye, N.', year: 1957, title: 'Anatomy of Criticism: Four Essays', publisher: 'Princeton University Press', note: '以四季隱喻建立文學模式理論，提出浪漫傳奇、喜劇、悲劇、諷刺四種神話（mythos）' },
@@ -398,7 +485,7 @@ const FRAMEWORKS_ZH: RawFramework[] = [
     key: 'booker_plots',
     name: 'Booker 七種基本情節',
     category: '張力分析',
-    description: 'Christopher Booker 的《七種基本情節》主張所有故事都由七種原型情節構成。系統使用此框架辨識全書的主情節類型。實作上，這個判定與 Frye 四神話在同一個分析步驟中產出——餵入相同的 TensionLine（章節層級的張力極對線、強度與審核狀態），由 LLM 一次回傳兩個分類選擇與綜合命題。',
+    description: 'Christopher Booker 的《七種基本情節》主張所有故事都由七種原型情節構成。系統使用此框架辨識全書的主情節類型。實作上，這個判定與 Frye 四神話在同一個分析步驟中產出——餵入相同的 TensionLine（章節層級的張力極對線、強度與審核狀態），由 LLM 一次回傳兩個分類選擇與綜合命題。再往下一層，構成 TensionLine 的個別 TEU（張力證據單元，即場景中的對立雙極本身）在概念上受亞里斯多德《詩學》的衝突論、Greimas 符號方陣、Peter Brooks《Reading for the Plot》與 Mieke Bal 敘事學啟發，但系統只抽取二元對立，並非這些理論的精確實作。',
     itemLabel: '情節',
     references: [
       { author: 'Booker, C.', year: 2004, title: 'The Seven Basic Plots: Why We Tell Stories', publisher: 'Continuum', note: '歷時 34 年寫作，從榮格心理學與神話學角度，論證所有故事皆可歸類為七種原型情節' },
@@ -547,10 +634,41 @@ const FRAMEWORKS_EN: RawFramework[] = [
     ],
   },
   {
+    key: 'chatman',
+    name: 'Chatman Kernel / Satellite',
+    category: 'Narrative Arc',
+    description: "Seymour Chatman's distinction, from Story and Discourse, between two kinds of plot event: kernels are hinge points that drive the causal chain — remove one and subsequent events lose their meaning; satellites are elaborations or decorations that can be removed without breaking the story's logic. The system applies this test to every analysed event, tagging its structural role to assemble the book's plot spine.",
+    itemLabel: 'Type',
+    references: [
+      { author: 'Chatman, S.', year: 1978, title: 'Story and Discourse: Narrative Structure in Fiction and Film', publisher: 'Cornell University Press', note: 'Introduces the kernel/satellite distinction; a core text of structuralist narrative analysis' },
+      { author: 'Barthes, R.', year: 1966, title: 'Introduction to the Structural Analysis of Narratives', publisher: 'Communications, no. 8', note: "Distinguishes 'cardinal functions' (noyaux) from 'catalysers' (catalyses), the direct precursor to Chatman's kernel/satellite pair" },
+    ],
+    items: [
+      { id: 'kernel', name: 'Kernel', subtitle: 'kernel', details: [{ label: 'Definition', value: 'A hinge point that drives the plot. If removed, the causal chain breaks — subsequent events cannot occur or lose their meaning.' }, { label: 'Test', value: '"If this event were deleted, would the causal logic still hold?" A "no" answer marks it as a kernel.' }, { label: 'Narrative Function', value: 'Opens or closes branches of possibility in the narrative; a necessary node for plot progression.' }] },
+      { id: 'satellite', name: 'Satellite', subtitle: 'satellite', details: [{ label: 'Definition', value: 'An expansion or decoration of a kernel. If removed, the story remains coherent and the causal logic is unaffected.' }, { label: 'Test', value: '"If this event were deleted, would the causal logic still hold?" A "yes" answer marks it as a satellite.' }, { label: 'Narrative Function', value: 'Fills the space between kernels with detail, atmosphere, and characterisation, without altering the plot direction.' }] },
+    ],
+  },
+  {
+    key: 'genette_temporal_order',
+    name: "Genette's Narrative Order",
+    category: 'Narrative Arc',
+    description: "Gérard Genette's temporal-order framework from Narrative Discourse, comparing \"story time\" (when events actually happen in the fictional world) against \"discourse time\" (the order in which they are narrated). The system compares each event's text-order rank against an LLM-inferred story rank; a displacement past the threshold is tagged analepsis or prolepsis, and the whole book is also classified by its overall temporal structure. This analysis only runs once story-time-hint coverage reaches 60% — it is the only Genette dimension this system currently implements; focalization and voice are not yet systematised.",
+    itemLabel: 'Type',
+    references: [
+      { author: 'Genette, G.', year: 1972, title: 'Discours du récit (in Figures III)', publisher: 'Éditions du Seuil', note: 'The original French text, introducing the narrative-order framework and the story time / discourse time gap (anachronie)' },
+      { author: 'Genette, G. (trans. Lewin, J. E.)', year: 1980, title: 'Narrative Discourse: An Essay in Method', publisher: 'Cornell University Press', note: 'The standard English translation; source of the analepsis/prolepsis terminology this system uses' },
+    ],
+    items: [
+      { id: 'linear', name: 'Linear', subtitle: 'linear', details: [{ label: 'Definition', value: "An event's story rank and text rank are close together; narration order roughly matches the order events actually happened." }, { label: 'Test', value: 'The absolute difference between story rank and text rank is below the system threshold (3).' }] },
+      { id: 'analepsis', name: 'Analepsis', subtitle: 'analepsis', details: [{ label: 'Definition', value: 'An event that happens earlier in the story world than where it is narrated — the common "flashback" or "backfill" device.' }, { label: 'Test', value: 'Story rank precedes text rank by at least the threshold.' }, { label: 'Narrative Function', value: 'Fills in background the reader does not yet have, or delays a key reveal to build suspense.' }] },
+      { id: 'prolepsis', name: 'Prolepsis', subtitle: 'prolepsis', details: [{ label: 'Definition', value: 'An event that happens later in the story world than where it is narrated — the common "flash-forward" or "foreshadowing payoff" device.' }, { label: 'Test', value: 'Story rank follows text rank by at least the threshold.' }, { label: 'Narrative Function', value: 'Signals what is to come, building anticipation or dramatic irony.' }] },
+    ],
+  },
+  {
     key: 'frye_mythos',
     name: "Frye's Four Mythoi",
     category: 'Tension Analysis',
-    description: "Northrop Frye's Anatomy of Criticism reduces all narrative to four mythic modes, each tied to a season and emotional register. The system uses this framework to characterise a book's primary mythos. In practice, this judgement is produced in the same analysis step as Booker's Seven Basic Plots — both consume the same TensionLine input (chapter-level polar opposites, intensity, and review status), and a single LLM call returns both classification choices plus a synthesised proposition.",
+    description: "Northrop Frye's Anatomy of Criticism reduces all narrative to four mythic modes, each tied to a season and emotional register. The system uses this framework to characterise a book's primary mythos. In practice, this judgement is produced in the same analysis step as Booker's Seven Basic Plots — both consume the same TensionLine input (chapter-level polar opposites, intensity, and review status), and a single LLM call returns both classification choices plus a synthesised proposition. One layer further down, the individual TEUs (Tension Evidence Units — the binary oppositions found in a scene) that make up a TensionLine are conceptually informed by Aristotelian conflict theory, Greimas's semiotic square, Peter Brooks's Reading for the Plot, and Mieke Bal's narratology — though the system only extracts a binary opposition and is not a precise implementation of any of these theories.",
     itemLabel: 'Mythos',
     references: [
       { author: 'Frye, N.', year: 1957, title: 'Anatomy of Criticism: Four Essays', publisher: 'Princeton University Press', note: 'Establishes a theory of literary modes using seasonal metaphor, proposing the four mythoi: romance, comedy, tragedy, and irony/satire' },
@@ -567,7 +685,7 @@ const FRAMEWORKS_EN: RawFramework[] = [
     key: 'booker_plots',
     name: "Booker's Seven Basic Plots",
     category: 'Tension Analysis',
-    description: "Christopher Booker's The Seven Basic Plots argues all stories are built from seven archetypal plots. The system uses this framework to identify a book's overall plot type. In practice, this judgement is produced in the same analysis step as Frye's Four Mythoi — both consume the same TensionLine input (chapter-level polar opposites, intensity, and review status), and a single LLM call returns both classification choices plus a synthesised proposition.",
+    description: "Christopher Booker's The Seven Basic Plots argues all stories are built from seven archetypal plots. The system uses this framework to identify a book's overall plot type. In practice, this judgement is produced in the same analysis step as Frye's Four Mythoi — both consume the same TensionLine input (chapter-level polar opposites, intensity, and review status), and a single LLM call returns both classification choices plus a synthesised proposition. One layer further down, the individual TEUs (Tension Evidence Units — the binary oppositions found in a scene) that make up a TensionLine are conceptually informed by Aristotelian conflict theory, Greimas's semiotic square, Peter Brooks's Reading for the Plot, and Mieke Bal's narratology — though the system only extracts a binary opposition and is not a precise implementation of any of these theories.",
     itemLabel: 'Plot',
     references: [
       { author: 'Booker, C.', year: 2004, title: 'The Seven Basic Plots: Why We Tell Stories', publisher: 'Continuum', note: 'Written over 34 years; argues from Jungian psychology and mythology that all stories can be classified into seven archetypal plots' },

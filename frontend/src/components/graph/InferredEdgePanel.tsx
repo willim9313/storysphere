@@ -74,6 +74,22 @@ export function InferredEdgePanel({ bookId, focusInferredId, onClose }: Inferred
             <span>{t('v1.inferred.review.banner', { n: items.length })}</span>
           </div>
         )}
+        {!isLoading && items.length > 0 && (
+          <p
+            style={{
+              fontSize: 'var(--font-size-2xs)',
+              color: 'var(--fg-muted)',
+              lineHeight: 1.6,
+              border: '1px dashed var(--border)',
+              borderRadius: 'var(--radius-sm)',
+              backgroundColor: 'var(--bg-secondary)',
+              padding: '9px 10px',
+              margin: 0,
+            }}
+          >
+            {t('v1.inferred.review.mechanism')}
+          </p>
+        )}
         {isLoading && (
           <div className="flex items-center gap-2 py-4 justify-center">
             <Loader size={14} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />

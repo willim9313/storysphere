@@ -78,6 +78,10 @@ function StateSection({ data }: { data: EventAnalysisDetailType }) {
             <div className="ea-state-meta-item">
               <span className="label">{t('event.sections.structuralRole')}</span>
               <p className="value">{eep.structuralRole}</p>
+              {/* Borrowed screenwriting vocabulary, not the Chatman kernel/satellite
+                  judgement sitting right next to it — say so, so the two don't
+                  read as the same tier of theoretical grounding. */}
+              <p className="hint">{t('event.sections.structuralRoleHint')}</p>
             </div>
           )}
           {eep.eventImportance && (

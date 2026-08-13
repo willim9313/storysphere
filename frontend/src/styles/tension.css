@@ -288,6 +288,10 @@
   border-radius: 20px;
   font-size: var(--font-size-xs);
   font-weight: 500;
+  text-decoration: none;
+}
+.tn-frye-badge:hover, .tn-booker-badge:hover {
+  opacity: 0.85;
 }
 .tn-frye-badge { border: 1px solid; }
 .tn-frye-badge[data-mode="romance"]      { background: var(--frye-romance-bg); color: var(--frye-romance-fg); border-color: var(--frye-romance-border); }

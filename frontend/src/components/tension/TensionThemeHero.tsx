@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CheckCircle, Edit3, Loader2, Sparkles, XCircle } from 'lucide-react';
 import type { components } from '@/api/generated';
@@ -92,17 +93,18 @@ export function TensionThemeHero({
         <span className="tn-hero-eyebrow">{t('tension.theme.eyebrow')}</span>
         <span className="tn-hero-badge">{t('tension.theme.fresh')}</span>
         {/* Not in the design canvas — kept per the cross-check decision to
-            retain the Frye / Booker classification. */}
+            retain the Frye / Booker classification. Badge doubles as the way
+            out to its full description, so the term needs no explaining here. */}
         {theme.frye_mythos && (
-          <span className="tn-frye-badge" data-mode={theme.frye_mythos}>
+          <Link className="tn-frye-badge" data-mode={theme.frye_mythos} to="/methodology?framework=frye_mythos">
             <span className="tn-frye-dot" />
             {t(`tension.frye.${theme.frye_mythos}`, { defaultValue: theme.frye_mythos })}
-          </span>
+          </Link>
         )}
         {theme.booker_plot && (
-          <span className="tn-booker-badge">
+          <Link className="tn-booker-badge" to="/methodology?framework=booker_plots">
             {t(`tension.booker.${theme.booker_plot}`, { defaultValue: theme.booker_plot })}
-          </span>
+          </Link>
         )}
       </div>
 

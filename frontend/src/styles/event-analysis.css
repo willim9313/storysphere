@@ -414,6 +414,13 @@
   line-height: 1.5;
   margin: 0;
 }
+.ea-state-meta-item .hint {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-style: italic;
+  color: var(--fg-muted);
+  margin: 3px 0 0;
+}
 
 /* Participants */
 .ea-participants {

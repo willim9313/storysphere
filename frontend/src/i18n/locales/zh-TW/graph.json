@@ -142,6 +142,7 @@
       "communityScope": {
         "heading": "此檢視範圍",
         "explain": "分群僅計入角色之間的正向關係（如結盟、家族、友誼）。",
+        "mechanism": "怎麼分的：Newman modularity（模組度）演算法，讓群內連結盡量密、群間連結盡量疏——純粹依關係密度運算，不判讀情節或立場。",
         "otherEntities": "{{n}} 個非角色/未分群實體不在此檢視"
       },
       "drillIn": {
@@ -204,6 +205,7 @@
       "review": {
         "title": "推斷關係審查 · {{n}} 條",
         "banner": "以下 {{n}} 筆為圖論推算的推測關係（非正式關係）。採納後升級為正式邊進入圖譜。",
+        "mechanism": "怎麼算的：兩人共同認識的角色越多、且該共同角色越少見（Adamic-Adar 加權），代表社交圈重疊度越高——純圖論計算，不判讀文本語意。",
         "evidence": "證據",
         "evidenceFallback": "共同鄰居 {{common}} 個 · Adamic-Adar {{score}}",
         "adopt": "採用",
