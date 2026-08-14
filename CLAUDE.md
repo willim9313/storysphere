@@ -120,3 +120,14 @@
 例如：`20250428-tension-scoring-algorithm.md`
 
 **存檔時機：** 開始實作前，規劃內容確認後立即存檔。
+
+**存檔後：** 在 `docs/plans/README.md` 的表格補一列（日期 + 主題連結）。
+`tests/docs/test_docs_drift.py::TestPlansIndex` 會檢查索引與目錄是否一致，漏補會失敗。
+
+**已存檔的文件不回頭修改。** plans 是規劃當下的評估快照，實作後即凍結；後續開發
+推翻其中內容時，改的是程式碼與 `API_CONTRACT.md` / `UI_SPEC.md`，不是回去改舊計畫。
+因此**引用 plans 的內容時不可當作現況**。
+
+**搜尋注意：** `docs/plans/` 已列入根目錄 `.ignore`，`rg`（含 Grep 工具）預設不搜這裡，
+避免舊規劃混進現況查詢。需要時明確指定路徑（`rg <pattern> docs/plans`）或加 `-u`。
+這只影響搜尋，git 照常追蹤。
