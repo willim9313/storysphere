@@ -324,6 +324,114 @@ function SepFlow() {
   );
 }
 
+// ── Chatman — kernel/satellite causal chain ────────────────────────────
+function ChatmanChain() {
+  const { t } = useTranslation('frameworks');
+  const cy = 58;
+  const sy = 148;
+  const kx = [70, 280, 490];
+  const satX = [175, 385];
+  return (
+    <ConceptFrame caption={t('concept.chatmanCaption')}>
+      <svg viewBox="0 0 560 190" className="md-svg" style={{ maxWidth: 560 }}>
+        <defs>
+          <marker id="chatman-arrow" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto">
+            <path d="M1,1 L8,4.5 L1,8" fill="none" stroke={TINT.red.fg} strokeWidth="1.5" />
+          </marker>
+        </defs>
+        <text x={kx[0]} y={cy - 34} className="md-svg-band" style={{ fill: TINT.red.fg }}>
+          {t('concept.chatmanKernel')}
+        </text>
+        {kx.slice(0, -1).map((x, i) => (
+          <line
+            key={i}
+            x1={x + 22} y1={cy} x2={kx[i + 1] - 22} y2={cy}
+            stroke={TINT.red.fg} strokeWidth="2" markerEnd="url(#chatman-arrow)"
+          />
+        ))}
+        {kx.map((x, i) => (
+          <g key={i}>
+            <circle cx={x} cy={cy} r="20" fill={TINT.red.bg} stroke={TINT.red.edge} strokeWidth="1.5" />
+            <text x={x} y={cy + 4} textAnchor="middle" className="md-svg-box">{`K${i + 1}`}</text>
+          </g>
+        ))}
+        {satX.map((x, i) => (
+          <g key={i}>
+            <line
+              x1={x} y1={cy + 20} x2={x} y2={sy - 15}
+              stroke="var(--fg-muted)" strokeWidth="1.5" strokeDasharray="3 3"
+            />
+            <circle cx={x} cy={sy} r="14" fill="var(--bg-primary)" stroke="var(--border)" strokeWidth="1.5" strokeDasharray="3 3" />
+            <text x={x} y={sy + 4} textAnchor="middle" className="md-svg-boxnum">{`S${i + 1}`}</text>
+          </g>
+        ))}
+        <text x={satX[0]} y={sy + 32} className="md-svg-band" style={{ fill: 'var(--fg-muted)' }}>
+          {t('concept.chatmanSatellite')}
+        </text>
+      </svg>
+    </ConceptFrame>
+  );
+}
+
+// ── Genette — text order vs story order, crossed by anachrony ──────────
+function GenetteOrder() {
+  const { t } = useTranslation('frameworks');
+  const topY = 50;
+  const botY = 170;
+  const x = [90, 230, 370];
+  const analepsisColor = TINT.blue.fg;
+  const prolepsisColor = TINT.violet.fg;
+  return (
+    <ConceptFrame caption={t('concept.genetteCaption')}>
+      <svg viewBox="0 0 460 230" className="md-svg" style={{ maxWidth: 460 }}>
+        <text x="40" y="26" className="md-svg-band" style={{ fill: 'var(--fg-secondary)' }}>
+          {t('concept.genetteTextAxis')}
+        </text>
+        <line x1="40" y1={topY} x2="420" y2={topY} stroke="var(--border)" strokeWidth="1.5" />
+        <text x="40" y="206" className="md-svg-band" style={{ fill: 'var(--fg-secondary)' }}>
+          {t('concept.genetteStoryAxis')}
+        </text>
+        <line x1="40" y1={botY} x2="420" y2={botY} stroke="var(--border)" strokeWidth="1.5" />
+
+        {/* A: narrated first, happens last → prolepsis */}
+        <line x1={x[0]} y1={topY + 16} x2={x[2]} y2={botY - 16} stroke={prolepsisColor} strokeWidth="2" strokeDasharray="5 4" />
+        {/* B: linear, no displacement */}
+        <line x1={x[1]} y1={topY + 16} x2={x[1]} y2={botY - 16} stroke="var(--fg-muted)" strokeWidth="2" />
+        {/* C: narrated last, happens first → analepsis */}
+        <line x1={x[2]} y1={topY + 16} x2={x[0]} y2={botY - 16} stroke={analepsisColor} strokeWidth="2" strokeDasharray="5 4" />
+
+        {x.map((cx, i) => (
+          <g key={cx}>
+            <circle cx={cx} cy={topY} r="16" fill="var(--bg-primary)" stroke="var(--border)" strokeWidth="1.5" />
+            <text x={cx} y={topY + 4} textAnchor="middle" className="md-svg-box">{['A', 'B', 'C'][i]}</text>
+          </g>
+        ))}
+        {[x[2], x[1], x[0]].map((cx, i) => (
+          <g key={cx}>
+            <circle
+              cx={cx} cy={botY} r="16"
+              fill={i === 0 ? TINT.blue.bg : i === 2 ? TINT.violet.bg : 'var(--bg-primary)'}
+              stroke={i === 0 ? TINT.blue.edge : i === 2 ? TINT.violet.edge : 'var(--border)'}
+              strokeWidth="1.5"
+            />
+            <text x={cx} y={botY + 4} textAnchor="middle" className="md-svg-box">{['C', 'B', 'A'][i]}</text>
+          </g>
+        ))}
+
+        <text x={x[1]} y={topY - 26} textAnchor="middle" className="md-svg-loop" style={{ fill: 'var(--fg-muted)' }}>
+          {t('concept.genetteLinear')}
+        </text>
+        <text x={(x[0] + x[2]) / 2 - 70} y={botY + 30} textAnchor="middle" className="md-svg-loop" style={{ fill: analepsisColor }}>
+          {t('concept.genetteAnalepsis')}
+        </text>
+        <text x={(x[0] + x[2]) / 2 + 70} y={botY + 30} textAnchor="middle" className="md-svg-loop" style={{ fill: prolepsisColor }}>
+          {t('concept.genetteProlepsis')}
+        </text>
+      </svg>
+    </ConceptFrame>
+  );
+}
+
 export function ConceptDiagram({ fw }: { fw: Framework }) {
   switch (fw.key) {
     case 'jung':
@@ -338,6 +446,10 @@ export function ConceptDiagram({ fw }: { fw: Framework }) {
       return <SchmidtPairs />;
     case 'sep_methodology':
       return <SepFlow />;
+    case 'chatman':
+      return <ChatmanChain />;
+    case 'genette_temporal_order':
+      return <GenetteOrder />;
     default:
       return null;
   }

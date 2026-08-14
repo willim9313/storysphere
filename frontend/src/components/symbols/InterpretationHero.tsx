@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles, RefreshCw, ExternalLink, AlertCircle, User, Flag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ImageryEntity, Polarity, SymbolInterpretation } from '@/api/symbols';
@@ -54,9 +54,11 @@ export function InterpretationHero({
   return (
     <section className="sym-hero">
       <div className="sym-hero-meta">
-        <span className="sym-hero-tag">
+        {/* The tag doubles as the way out to the SEP methodology's full
+            description, so the term needs no explaining here. */}
+        <Link className="sym-hero-tag" to="/methodology?framework=sep_methodology">
           <Sparkles size={11} /> {t('symbol.interpretation.tag')}
-        </span>
+        </Link>
         {interpretation.assembled_by && (
           <>
             <span className="sym-hero-sep">·</span>

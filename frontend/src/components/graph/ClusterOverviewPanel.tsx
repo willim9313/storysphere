@@ -271,6 +271,12 @@ function CommunityScopeCard({
           defaultValue: '分群僅計入角色之間的正向關係（如結盟、家族、友誼）。',
         })}
       </p>
+      <p className="leading-relaxed">
+        {t('v1.cluster.communityScope.mechanism', {
+          defaultValue:
+            '怎麼分的：Newman modularity（模組度）演算法，讓群內連結盡量密、群間連結盡量疏——純粹依關係密度運算，不判讀情節或立場。',
+        })}
+      </p>
       {unaffiliatedNames.length > 0 && (
         <p className="leading-relaxed">
           {t('v1.cluster.unaffiliated', {

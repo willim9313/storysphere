@@ -12,6 +12,7 @@
  */
 
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { SlidersHorizontal, Sparkles } from 'lucide-react';
 import type { FilterMode } from './filterState';
 
@@ -153,6 +154,7 @@ export function TimelineToolbar({
         />
         <ActionRow
           name={t('timeline.action.displacement')}
+          nameHref="/methodology?framework=genette_temporal_order"
           state={displacement}
           onRun={onRunDisplacement}
           onCancel={onCancelDisplacement}
@@ -164,12 +166,17 @@ export function TimelineToolbar({
 
 function ActionRow({
   name,
+  nameHref,
   state,
   onRun,
   onCancel,
   emphasis,
 }: {
   name: string;
+  /** When set, `name` doubles as the way out to its methodology page entry —
+   *  the term needs no explaining here. Optional: only `displacement` names a
+   *  specific theory (Genette); `storyOrder` is plain chronological sorting. */
+  nameHref?: string;
   state: ActionRowState;
   onRun: () => void;
   onCancel: () => void;
@@ -181,7 +188,13 @@ function ActionRow({
     <div className={`tl-action-row${emphasis ? ' emphasis' : ''}`}>
       <span className={`tl-action-dot${state.ready || state.running ? ' on' : ''}`} />
       <span className={`tl-action-name${state.ready || state.running ? '' : ' muted'}`}>
-        {name}
+        {nameHref ? (
+          <Link to={nameHref} className="tl-action-name-link">
+            {name}
+          </Link>
+        ) : (
+          name
+        )}
       </span>
       <span className="tl-action-text">
         <span className="tl-action-status">{state.status}</span>

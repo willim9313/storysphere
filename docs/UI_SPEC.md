@@ -541,7 +541,7 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
 
 | 分頁 | 內容 |
 |------|------|
-| 概覽 | 主題意義 + 摘要 hero、事件前後狀態、參與者角色（含色彩圖例） |
+| 概覽 | 主題意義 + 摘要 hero、事件前後狀態、參與者角色（含色彩圖例）。事件前後狀態區塊裡的「結構角色」（`eep.structuralRole`，Setup/Inciting Incident/Climax 等英文標籤）與緊鄰的「重要性」（Chatman kernel/satellite，見 3.14）並列，容易被讀成同一級理論——前者是三幕劇編劇慣例、非嚴謹敘事學分類，故其值下方加一行 `structuralRoleHint` 小字澄清，不開方法論頁條目。 |
 | 因果與影響 | 因果分析（根因 / 因果鏈 / 摘要）、影響分析（含 `failedParts` 降級態）、因果因素與後果 |
 | 上下文位置 | 見下方「事件脈絡與鄰接」 |
 | 證據 | 關鍵引言、關鍵詞（`eep.topTerms` 降冪取前 12） |
@@ -673,6 +673,9 @@ Row 2: [型別 filter chips ×7]   [推論控制]
 - 三態：未執行（「執行推論」popover 預告）/ 執行中（spinner）/ 有紀錄（「重新推論」menu ＋「待審核 N」badge ＋「顯示推測邊」toggle）
 - 「安全重跑 / 強制重跑」收入 menu，強制重跑帶破壞性紅字警示 + confirm
 - 開啟審核 → 右側 **InferredEdgePanel**；點推測邊亦開該面板並聚焦該筆（C10）
+  - 面板頂部警示橫幅下方，2026-08-13 追加一則機制說明（Common Neighbors + Adamic-Adar：
+    共同認識的角色越多、該共同角色越少見，重疊度越高；純圖論計算），與社群說明卡的
+    Newman modularity 說明同一批補上，理由見 D 類方法論盤點結論（同上）
 
 **深連結**（Phase 6 / F4）：見下方〈深連結〉。（分享連結與匯出 PNG 已於 2026-07 移除——體感雞肋。）
 
@@ -726,7 +729,10 @@ Shift+Click 第 2 個 → 並排比較；第 3 個 → 踢掉最早選的。共�
 - **社群**：接後端 `GET /books/:bookId/analysis/factions`（F-16，已上線），改用 **FactionCanvas**（SVG 陣營圈＋成分點）
   - **陣營錨點命名**（Phase 4）：前端由 `topMemberNames[0]`＋「陣營」推導（如「寇仲陣營」），核心成員未登場則 fallback 後端 label；後端不動
   - **時間軸連動**（Phase 4）：faction 分析帶 `?chapter=`（chapter 模式且 position>0），派系劃分隨章節重算
-  - **社群說明卡**（Phase 4）：交代分群僅計入角色正向關係、未歸屬角色數、非角色/未分群實體數
+  - **社群說明卡**（Phase 4）：交代分群僅計入角色正向關係、未歸屬角色數、非角色/未分群實體數。
+    2026-08-13 追加一行機制說明（Newman modularity：群內連結盡量密、群間盡量疏，純圖論非語意判讀）——
+    這是圖論方法論的盤點結論（見 `docs/notes/methodology_page_alignment_audit.md` D 類）：
+    不進 `/methodology` 頁（調性與其他 8 個文學理論條目不合、且無法跨書比對），改在此說明卡 inline 交代
   - **drill-in**（C8）：點陣營 → 該陣營置中展開成員、其餘陣營淡出；成員點擊切回個別模式並選取
   - 分群參數（resolution / minClusterSize）收進進階抽屜，預設收合（draft/applied，不即時重算）
 
@@ -837,6 +843,12 @@ outlier      = |deviation| > 0.15       // OUTLIER_THRESHOLD
 `timeline.action.displacementStale`（帶入 `temporalStaleReason` 的步驟名），取代
 原本的「已完成 N 個倒敘／預敘」。**不另加橫條**——重跑按鈕就在同一列，另開一個
 提示區塊等於同一動作有兩個入口。
+
+- **「倒敘與預敘」的 `name` 標籤**（`ActionRow` 的 `nameHref` prop，2026-08-13 補）
+  連往 `/methodology?framework=genette_temporal_order`，比照其他分析頁術語連結的做法。
+  `故事時序`（`storyOrder`）不連——它是排序，不是具名理論。此前只有空狀態的
+  `TimelineOnboardingHero`（Step 03「Genette 分析」）點過名，資料跑出來後那張卡片就
+  消失，工具列本身沒有連結入口，是 B 類（Genette）方法論盤點漏掉的一塊，此次補上。
 
 > 按鈕外觀：`.tl button` 的頁面級 reset 已收斂為 `.tl button:not([class])`，
 > 否則其特異性 (0,1,1) 會蓋掉 `.tl-btn` (0,1,0) 的 border 與 background，
@@ -1022,7 +1034,15 @@ Step 1 跑完不再顯示「請先執行 Step 1」——舊版此處文案自相
 - **Footer 三顆按鈕**：核准 / 改命題 / 拒絕（→ #14j）。**設計稿未畫這三顆**，
   2026-08-04 決定保留：砍掉現有可用功能應該是獨立決定，不是設計稿沒畫就順手拿掉。
   程式碼中已標註這段不在 canvas 內。
-- Frye / Booker badge 設計稿亦未畫，保留在標籤列右側（`--frye-*` / `--booker-*` token）
+- Frye / Booker badge 設計稿亦未畫，保留在標籤列右側（`--frye-*` / `--booker-*` token）。
+  兩個 badge 皆為連往方法論頁的連結（`/methodology?framework=frye_mythos` /
+  `/methodology?framework=booker_plots`），與敘事結構頁的做法一致。
+- **TensionLine／TEU 抽取層的理論定位**：Frye/Booker 是對已聚合完成的 TensionLine 做
+  書級分類，其方法論頁條目已完整引用。再往下一層——TEU 本身「找出場景對立雙極」的
+  抽取邏輯——只在概念上受 Aristotle 衝突論／Greimas 符號方陣／Peter Brooks／Mieke Bal
+  啟發，不是任一理論的精確實作（尤其 Greimas 符號方陣是四項式結構，系統只抽兩極）。
+  **不為此開獨立方法論頁條目**，改在 Frye 與 Booker 兩個條目的 description 末段各加一句
+  誠實聲明，避免被誤讀成系統精確實作了這些理論。
 
 #### 模式切換（`.tn-mode-seg`）
 
@@ -1154,7 +1174,8 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 2. **詮釋區（依狀態切換）**：
    - **生成中**（`InterpretationGenerating`）：中央卡片含五階段 checklist（彙整 SEP 證據檔 / 採樣段落脈絡 N/N / 連結 KG 角色 / LLM 詮釋 / 寫入待審紀錄），上方為整體進度條 + taskId，下方為取消按鈕與輪詢註記。後端 `_run_symbol_analysis` 只 emit 3 個 progress event（10/40/90），前端把 10 之前的三個敘事步視為「assemble SEP」原子塊，達 10 後一起標 done；採樣 N/N 顯示的是 `entity.frequency`（與 `len(sep.occurrence_contexts)` 等價），非逐筆計數。詳見 [`InterpretationGenerating.tsx`](../frontend/src/components/symbols/InterpretationGenerating.tsx) 的 `deriveStages` 註解。
    - **已生成**（`InterpretationHero`）：
-     - 上：`LLM 詮釋` tag + assembled_by + 日期 + ReviewBadge（右）
+     - 上：`LLM 詮釋` tag（連往 `/methodology?framework=sep_methodology`，與其他分析頁的
+       術語連結做法一致）+ assembled_by + 日期 + ReviewBadge（右）
      - 主題命題（serif italic）
      - polarity 方塊（圖示 + 標籤）+ confidence meter
      - 證據綜述（evidence_summary）
@@ -1326,6 +1347,8 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 | Jung 原型 | 12 原型輪盤 + 4 動機取向象限 |
 | Schmidt 類型 | 性別對偶雙欄（8 女性 + 8 男性 + 配角／反派 = 45） |
 | 英雄旅程 | 12 階段環形圖（平凡／非常世界雙半球） |
+| Chatman Kernel/Satellite | 因果鏈：核心事件串連主軸，衛星事件以虛線懸掛其下 |
+| Genette 敘事時序 | 雙軸對位：文本順序 vs 故事順序，連線垂直為順序、交叉為倒敘／預敘 |
 | Frye 四季神話 | 四季 × 四神話圓環 |
 | Booker 七情節 | 七條「故事形狀」曲線 |
 | SEP 象徵分析 | 資料層 → 詮釋層狀態流程（含 HITL 退回回饋線） |
@@ -1350,7 +1373,7 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 | 區塊 | 位置 |
 |------|------|
 | 頁面入口 | `frontend/src/pages/MethodologyPage.tsx` |
-| 概念圖（六種） | `frontend/src/components/methodology/ConceptDiagram.tsx` |
+| 概念圖（八種） | `frontend/src/components/methodology/ConceptDiagram.tsx` |
 | 範圍 CSS | `frontend/src/styles/methodology.css` |
 | 資料來源 | `frontend/src/data/frameworksData.ts`（含 `pipeline / output / categoryId / crossBook`） |
 
@@ -1554,7 +1577,8 @@ Prompt Tokens / Completion Tokens / 總請求次數
 #### 事件骨幹（`PlotSpine`，錨點 `#nl-spine`）
 
 - 標題列「事件骨幹」+ 副標 `Chatman kernel / satellite` + 一行說明；右側分類來源 chip
-  （啟發式／LLM／人工驗證）+ ReviewBadge。
+  （啟發式／LLM／人工驗證）+ ReviewBadge。副標為連往 `/methodology?framework=chatman` 的
+  連結（與英雄旅程區塊的做法一致，術語解釋留在方法論頁，本頁不重述）。
 - **比例條**：kernel 數為主體，右側為條與圖例。**satellite 為 0 時不佔寬度**，改在圖例
   註明「衛星 0 · 本書未出現此分類」——兩本測試書的 satellite 皆為 0，保留零寬區段只會
   在條的右側留下無法解釋的空隙。
@@ -1594,7 +1618,9 @@ Prompt Tokens / Completion Tokens / 總請求次數
 - **時序結構**（Genette）：讀 `fetchTimeline` 的 `temporalAnalyzed` / `temporalStructure`
   與 `fetchTemporalCoverage`。未分析時顯示虛線佔位與「跑完會顯示什麼」，並列出實際
   覆蓋率；**是否足夠一律取後端的 `coverage_sufficient`，不在前端複寫門檻數字**
-  （設計稿寫「需 ≥60%」，那是後端常數，抄過來會漂移）。深連結至時間軸頁。
+  （設計稿寫「需 ≥60%」，那是後端常數，抄過來會漂移）。深連結至時間軸頁。副標
+  `Genette · 敘述順序 vs 故事順序` 為連往 `/methodology?framework=genette_temporal_order`
+  的連結，與英雄旅程、事件骨幹兩處的做法一致。
 - **張力**：讀 `fetchTEUs`，列出強度最高的三章，各章標出涵蓋它的階段與核心事件數。
   深連結至張力分析頁。
 
@@ -1650,7 +1676,12 @@ WebSocket 連線，含訊息列表 + 輸入框。
 | 首頁最近開啟 | 點擊「深度分析」 | `/books/:bookId/characters` |
 | 上傳完成列表 | 點擊「進入書籍」 | `/books/:bookId` |
 | 角色分析頁 | 點擊「在圖譜中查看 ↗」 | `/books/:bookId/graph?entity=:entityId` |
-| 角色分析頁 | 點擊「框架索引 ↗」 | `/frameworks?framework=jung` |
+| 角色分析頁 | 點擊「框架索引 ↗」 | `/methodology?framework=jung`（原 `/frameworks`，2026-05-30 已更名） |
+| 敘事結構頁（事件骨幹副標） | 點擊 `Chatman kernel / satellite` | `/methodology?framework=chatman` |
+| 敘事結構頁（其他結構線索副標） | 點擊 `Genette · 敘述順序 vs 故事順序` | `/methodology?framework=genette_temporal_order` |
+| 張力分析頁（主題 Frye badge） | 點擊 Frye 神話 badge | `/methodology?framework=frye_mythos` |
+| 張力分析頁（主題 Booker badge） | 點擊 Booker 情節 badge | `/methodology?framework=booker_plots` |
+| 符號分析頁（詮釋區 `LLM 詮釋` tag） | 點擊 tag | `/methodology?framework=sep_methodology` |
 | 知識圖譜頁 | 點擊「查看分析 ↗」（EntityDetailPanel） | 推出 AnalysisPanel（第三層，不跳頁） |
 | 時間軸頁 | 點擊事件面板「前驅/後續事件」 | 同頁 scroll + 選中 |
 | 時間軸頁 | 點擊「尚未分析」引導連結 | `/books/:bookId/events` |

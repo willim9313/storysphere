@@ -1,6 +1,6 @@
 // Event Spine — book-level Kernel/Satellite stats + kernel events, by chapter.
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ArrowRight, Sparkles } from 'lucide-react';
 import type { KernelSpineEvent, NarrativeStructure } from '@/api/narrative';
@@ -58,9 +58,11 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
             <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--fg-primary)', letterSpacing: '-0.01em' }}>
               {t('narrative.spine.title')}
             </h2>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
+            {/* The framework name doubles as the way out to its full
+                description, so the terms need no explaining here. */}
+            <Link className="nl-term-link" to="/methodology?framework=chatman">
               {t('narrative.spine.subtitle')}
-            </span>
+            </Link>
           </div>
           <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)', textWrap: 'pretty' }}>
             {t('narrative.spine.lead')}

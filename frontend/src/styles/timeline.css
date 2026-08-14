@@ -260,6 +260,15 @@
 .tl-action-name.muted {
   color: var(--fg-muted);
 }
+.tl-action-name-link {
+  color: inherit;
+  text-decoration: none;
+  border-bottom: 1px dotted var(--fg-muted);
+}
+.tl-action-name-link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
 /* Two lines, always. One line at ~314px truncates any real sentence.
    `overflow: hidden` lets the text column absorb the squeeze so the action
    button stays on screen instead of being pushed past the viewport edge. */

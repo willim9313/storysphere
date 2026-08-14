@@ -142,6 +142,7 @@
       "communityScope": {
         "heading": "Scope of this view",
         "explain": "Clustering only counts positive relations between characters (e.g. alliance, family, friendship).",
+        "mechanism": "How it's grouped: the Newman modularity algorithm, which packs connections tightly within a group and loosely between groups — pure relation-density computation, not a reading of plot or allegiance.",
         "otherEntities": "{{n}} non-character/unclustered entities not shown in this view"
       },
       "drillIn": {
@@ -204,6 +205,7 @@
       "review": {
         "title": "Inferred review · {{n}}",
         "banner": "The following {{n}} are graph-theory inferred relations (not formal). Adopting promotes them to formal edges in the graph.",
+        "mechanism": "How it's scored: the more characters two people both know — and the rarer those shared characters are (Adamic-Adar weighting) — the higher the overlap. Pure graph computation, not a reading of the text.",
         "evidence": "Evidence",
         "evidenceFallback": "{{common}} common neighbors · Adamic-Adar {{score}}",
         "adopt": "Adopt",

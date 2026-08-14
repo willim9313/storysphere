@@ -185,7 +185,11 @@ export function CrossEvidence({
         <div>
           <div className="nl-cross-head">
             <h3>{t('narrative.cross.temporalTitle')}</h3>
-            <span className="nl-cross-sub">{t('narrative.cross.temporalSub')}</span>
+            {/* The framework name doubles as the way out to its full
+                description, so the terms need no explaining here. */}
+            <Link className="nl-cross-sub nl-term-link" to="/methodology?framework=genette_temporal_order">
+              {t('narrative.cross.temporalSub')}
+            </Link>
             <span className={temporalAnalyzed ? 'nl-cross-badge' : 'nl-cross-badge is-pending'}>
               {temporalAnalyzed ? t('narrative.cross.analyzed') : t('narrative.cross.notAnalyzed')}
             </span>
