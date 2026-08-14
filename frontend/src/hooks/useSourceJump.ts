@@ -15,7 +15,7 @@ export interface SourceJumpOptions {
  * Shared "click cited/quoted text -> jump to its paragraph in the reader"
  * affordance for the character analysis page (#2 persona evidence & quotes,
  * #4 epistemic events). Mirrors the reader's own cognitive-panel lookup
- * (`EpistemicSidePanel`, #22a) via the shared `findBestPassage` util so both
+ * (`EpistemicSidePanel`, #23a) via the shared `findBestPassage` util so both
  * surfaces stay behaviorally identical: same query construction, same
  * single-lookup-at-a-time guard.
  *

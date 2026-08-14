@@ -20,7 +20,7 @@ export function getTitle(ev: Record<string, unknown>): string {
 }
 
 /** #4 source-jump query text: same "title + description" construction the
- * reader's cognitive panel uses for its #22a passage lookup. */
+ * reader's cognitive panel uses for its #23a passage lookup. */
 export function getDescription(ev: Record<string, unknown>): string {
   return String(ev.description ?? '');
 }

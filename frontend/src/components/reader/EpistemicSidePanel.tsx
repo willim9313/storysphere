@@ -14,7 +14,7 @@ interface EpistemicSidePanelProps {
   onClose: () => void;
   /** Fallback: chapter-level jump, used when the passage lookup finds nothing. */
   onJumpToChapter: (chapterNumber: number) => void;
-  /** Paragraph-level jump — chunkId comes from the #22a passage lookup below. */
+  /** Paragraph-level jump — chunkId comes from the #23a passage lookup below. */
   onJumpToChunk: (chapterNumber: number, chunkId: string) => void;
 }
 
@@ -58,7 +58,7 @@ function EventItemButton({
   chapterNumber: number | null;
   color: string;
   bgColor: string;
-  /** True while this item's passage lookup (#22a) is in flight. */
+  /** True while this item's passage lookup (#23a) is in flight. */
   locating: boolean;
   locatingLabel: string;
   onJump: () => void;
@@ -143,7 +143,7 @@ export function EpistemicSidePanel({
   };
 
   // Paragraph-level jump: the epistemic API only carries a chapter number per
-  // event, so the exact passage is resolved on demand — #22a semantic search
+  // event, so the exact passage is resolved on demand — #23a semantic search
   // over the event's title+description, restricted to hits in that chapter.
   // Falls back to a chapter-level jump when nothing in-chapter surfaces (or
   // the search fails). One lookup in flight at a time.

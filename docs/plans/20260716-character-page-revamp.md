@@ -19,7 +19,7 @@
 |---|------|------|------|------|------|
 | 0 | **修復 #6a 提及數全為 0(Ch.0)** | 資料缺陷 | **P0,其他項的前置** | **需要(小)** | — |
 | 1 | 角色總覽 landing(cast overview) | 新功能 | P0 | 依賴 #0(Phase 2 另計) | #0 + 需設計稿 |
-| 2 | 引言/證據溯源 → 閱讀頁段落跳轉 | 新功能 | P1 | 無(#22a 語意搜尋現成) | reader-revamp 合併 + 設計稿 |
+| 2 | 引言/證據溯源 → 閱讀頁段落跳轉 | 新功能 | P1 | 無(#23a 語意搜尋現成) | reader-revamp 合併 + 設計稿 |
 | 3 | 關係頁 target 可點擊 → 切換角色 | 新功能 | P1 | v1 無;v2 補 `targetEntityId` | 需設計稿(affordance) |
 | 4 | 認知狀態事件 → 閱讀頁跳轉 | 新功能 | P1 | 無 | reader-revamp 合併 |
 | 5 | 行為頁 keyEvents ↔ 事件分析頁互通 | 新功能 | P1 | v1 名稱比對;v2 補 eventId | — |
@@ -114,7 +114,7 @@
 | RelationsPane 引言 | `cep.quotes[]` |
 | VoiceProfilingPanel 代表引言 | `representativeQuotes[]` |
 
-機制:點擊 → `POST /api/v1/search/`(#22a 語意搜尋,現成)以引言文字定位段落 → 導向閱讀頁並跳至該段(複用 reader-revamp 的認知面板段落級跳轉機制,commit `175fc38`)。
+機制:點擊 → `POST /api/v1/search/`(#23a 語意搜尋,現成)以引言文字定位段落 → 導向閱讀頁並跳至該段(複用 reader-revamp 的認知面板段落級跳轉機制,commit `175fc38`)。
 
 **依賴:`feat/reader-page-revamp` 先合併 main。**
 
@@ -245,7 +245,7 @@ Canvas 在左欄框架選擇器下方新增「依原型篩選已分析角色」:
 | 結構重要性 + 關係連結數(象限 Y 軸與泡泡大小、hero 關係數) | 新端點:角色子圖每角色 `{pagerank, degree}`(NetworkX 現成,模式同 #6d) | **需新增(小)**,設計定稿已轉正式 |
 | 認知對照 | #12e 對兩個 characterId 各打一次 | 現成 |
 | 分層批次 | batch endpoint 增 `entityIds` 子集參數 | **需新增(小)**(或前端迴圈 #7b) |
-| 引言定位 | #22a `POST /api/v1/search/` | 現成 |
+| 引言定位 | #23a `POST /api/v1/search/` | 現成 |
 | 段落跳轉機制 | reader 認知面板段落級跳轉 | 在 `feat/reader-page-revamp`,待合併 |
 | Voice 狀態判定 | #16a 增 `cached_only` 參數 | **需新增(小)** |
 | relations `targetEntityId` / keyEvents `eventId` | #7a CEP 欄位擴充 | v2 可後做 |

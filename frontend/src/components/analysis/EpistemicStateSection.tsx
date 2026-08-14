@@ -283,7 +283,7 @@ export function EpistemicStateSection({
 }
 
 /** #4: a known/unknown event row, clickable when its chapter is known — jumps
- * to the reader passage via #22a semantic search (same-chapter filtered,
+ * to the reader passage via #23a semantic search (same-chapter filtered,
  * mirroring the reader's own cognitive-panel lookup). Falls back to a plain
  * (non-interactive) row when `onJump` is omitted, i.e. the event carries no
  * chapter to anchor a lookup to. */

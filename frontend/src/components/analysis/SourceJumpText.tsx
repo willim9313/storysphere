@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 interface Props {
   /** Citation text rendered inline (evidence line / quote body). */
   text: string;
-  /** True while this item's #22a passage lookup is in flight. */
+  /** True while this item's #23a passage lookup is in flight. */
   pending: boolean;
   onJump: () => void;
   className?: string;

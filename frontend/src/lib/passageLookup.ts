@@ -1,7 +1,7 @@
 import { searchPassages, type SearchResult } from '@/api/search';
 
 /**
- * #22a semantic-search passage lookup, shared by the reader's cognitive panel
+ * #23a semantic-search passage lookup, shared by the reader's cognitive panel
  * (`EpistemicSidePanel`) and the character-analysis page's citation/quote/
  * event "jump to passage" affordances (Batch 4, #2/#4). Queries by the given
  * text (title/description/quote, truncated to keep the request small),

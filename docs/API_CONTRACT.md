@@ -6,6 +6,33 @@
 
 ---
 
+## 本文件與 `generated.ts` 的分工
+
+本文件的 TypeScript 區塊**不是**型別來源。兩者各自負責的部分如下，衝突時依此判定：
+
+| 資訊 | 準據 | 原因 |
+|------|------|------|
+| 欄位名稱、是否 optional、nullability | `frontend/src/api/generated.ts` | 由 `openapi.json` 自動產生，不會漂移 |
+| 字串欄位的**值域**（如 `status: 'ready' \| 'error'`） | **本文件** | 後端多數為 `str`，OpenAPI 無從表達 |
+| 欄位語意、邊界條件、已知未實作項 | **本文件** | 註解形式，產生器帶不出來 |
+| UI 使用頁面、polling 方式、錯誤語意 | **本文件** | 契約層資訊，非型別 |
+
+實作時型別一律 `import type { components } from "@/api/generated"`（見 CLAUDE.md）；
+本文件的 TS 區塊供**理解語意**用。若兩者的欄位形狀不一致，以 `generated.ts` 為準並回頭修正本文件。
+
+---
+
+## 端點編號規則
+
+`#N` 為端點的永久識別碼，UI_SPEC 與程式碼註解均以此引用，**編號一經指派不重用、不回收**。
+同一資源群組共用數字、以字母區分（`#22a`–`#22d` 皆為章節審閱）；新增群組取下一個數字。
+
+標題格式固定為 `### #<編號> <METHOD> <path>`，路徑省略 `/api/v1` 前綴（見 Base URL）。
+本文件中**每一個 `###` 標題都是一個端點**，不作他用——說明性小節一律用 `##`。
+自動化漂移檢查依賴此規則解析本文件，破壞格式會讓檢查靜默失效。
+
+---
+
 ## Base URL
 
 ```
@@ -724,11 +751,11 @@ type TaskListResponse = TaskStatus[];  // TaskStatus 定義見 #8；murmurEvents
 
 **說明**：
 - 書進庫**前**取消 → 書不存在，等同上傳失敗
-- 書進庫**後**取消 → 書留在庫裡，剩餘 enrichment 步驟中斷，`pipelineStatus` 中未完成步驟標為 `failed`，可透過 #8c 補跑
+- 書進庫**後**取消 → 書留在庫裡，剩餘 enrichment 步驟中斷，`pipelineStatus` 中未完成步驟標為 `failed`，可透過 #8d 補跑
 
 ---
 
-### #8c POST /books/:bookId/rerun/:step
+### #8d POST /books/:bookId/rerun/:step
 
 對單一失敗步驟觸發補跑，回傳 taskId 供 polling（走 #8）。
 
@@ -2455,7 +2482,9 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 ## 跨書搜尋
 
-### #22a `POST /api/v1/search/` — 語意搜尋
+### #23a POST /search/
+
+跨書語意搜尋。注意路徑**含尾斜線**（router `prefix="/search"` + route `"/"`），前端 `api/search.ts` 亦以 `/search/` 呼叫。
 
 **Request body**（camelCase）：
 
@@ -2544,7 +2573,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 ---
 
-## 實作狀態（2026-04-28 更新）
+## 實作狀態（滾動更新，最後異動 2026-08-14）
 
 - [x] **後端路由對齊**：`backend/storysphere/api/routers/` 已對齊本合約所有已知端點
 - [x] **camelCase / snake_case 分區**：`api/schemas/` 輸出 camelCase；`domain/` 輸出 snake_case（見 `docs/type-generation.md`）
@@ -2561,5 +2590,5 @@ HITL 審核 NarrativeStructure（approved / rejected）。
   - 2026-08-12：#21a 新增 409（分類會抹除既有分類時拒絕啟動），service 層同步加守衛。詳見 #21a 段落。
   - 2026-08-12：#21l 核可時一併寫入 `classification_source='human_verified'`（撤回核可時由事件來源還原）。詳見 #21l 段落。
 - [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
-- [x] **#22a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
+- [x] **#23a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

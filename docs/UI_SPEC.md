@@ -1,7 +1,7 @@
 # StorySphere — UI 規格文件 (UI_SPEC)
 
 > 本文件為前端開發的頁面規格參考，供 Claude Code 開發時使用。
-> API 對接細節未來將整理至 `API_CONTRACT.md`（尚未建立）。
+> API 對接細節見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)；本文件出現的 `#N` 均為該文件的端點編號。
 > 術語定義見 `docs/domain-glossary.md`。
 
 ---
@@ -321,7 +321,7 @@ chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正�
 
 #### 認知狀態側欄 — `EpistemicSidePanel`（288px，預設關）
 
-由欄 3 工具列「認知狀態」開關。角色下拉 → 三組事件：已知（綠）/未知（黃）/誤信（紅），色點 + label + count 標頭；**事件項可點跳到對應段落**——點擊時以事件標題+描述做 #22a 語意搜尋（限定該章命中，搜尋中顯示 spinner），跳段 + flash 高亮；查無同章段落或搜尋失敗時退回章節級跳轉（同章 fallback = 捲回頂部）。誤信經 sourceEventId 反查來源事件，查無則不可點。
+由欄 3 工具列「認知狀態」開關。角色下拉 → 三組事件：已知（綠）/未知（黃）/誤信（紅），色點 + label + count 標頭；**事件項可點跳到對應段落**——點擊時以事件標題+描述做 #23a 語意搜尋（限定該章命中，搜尋中顯示 spinner），跳段 + flash 高亮；查無同章段落或搜尋失敗時退回章節級跳轉（同章 fallback = 捲回頂部）。誤信經 sourceEventId 反查來源事件，查無則不可點。
 
 #### 專注模式 + Aa 排版
 
