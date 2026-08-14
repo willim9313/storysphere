@@ -1,7 +1,7 @@
-# Phase 3 實施指南 — 工具層 (Tool Layer)
+# Tools Layer — Agent 工具層
 
-**版本**: v1.0
-**狀態**: ✅ 已實作完成
+**狀態**: ✅ 已實作 · `backend/storysphere/tools/`
+**內容**: 工具層架構與設計原則（thin wrapper、service injection、ADR-008 description 寫法）
 
 ---
 

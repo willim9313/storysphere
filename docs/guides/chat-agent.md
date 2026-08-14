@@ -1,7 +1,7 @@
-# Phase 4 實施指南 — Composite Tools + Chat Agent
+# Chat Agent — Composite Tools 與對話 Agent
 
-**版本**: v1.0
-**狀態**: ✅ 已實作完成（實作已演進，見下方註記）
+**狀態**: ✅ 已實作，但**與本文所述的原始設計有落差**，見下方註記
+**實作位置**: `backend/storysphere/agents/chat_agent.py`
 
 > ⚠️ **與實作的落差**：本文描述 Phase 4 的原始設計。實作後續演進為：
 > 1. **手動 `StateGraph`（agent node + `ToolNode`）而非 `create_react_agent`**——保留對串流與節點的控制。

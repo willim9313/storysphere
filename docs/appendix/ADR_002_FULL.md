@@ -158,7 +158,7 @@ Qdrant 每個 chunk 的 metadata payload：
 
 ### Keyword Extraction & Aggregation（Phase 2b 計畫）
 
-📄 詳細實施指南: [guides/PHASE_2B_KEYWORDS.md](../guides/PHASE_2B_KEYWORDS.md)
+📄 詳細實施指南: [guides/keyword-extraction.md](../guides/keyword-extraction.md)
 
 **Phase 2b** 將在 `FeatureExtractionPipeline` 中加入 keyword extraction：
 

@@ -1,7 +1,8 @@
-# Phase 5b: 事件分析實施指南 (Event Analysis)
+# Deep Analysis：事件分析
 
-**前置**: Phase 5a（角色分析）完成、Phase 4（Chat Agent）完成
-**目標**: 實作 `EventAnalysisResult`，使用事件證據檔案（EEP）、4 步驟 LLM pipeline，以及快取優先的 AnalysisAgent 整合，填補現有的 `AnalyzeEventTool` stub
+**狀態**: ✅ 已實作 · `AnalysisAgent.analyze_event()`
+**內容**: EEP 抽取 + 4 步 LLM pipeline（EEP → 因果 → 影響 → 摘要）
+**前置**: 角色分析（見 `deep-analysis-character.md`）、Chat Agent
 
 ---
 

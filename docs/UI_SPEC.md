@@ -777,7 +777,7 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 
 ### 3.7 時間軸頁 `/books/:bookId/timeline`
 
-> 後端設計見 [`docs/guides/PHASE_9_TEMPORAL_TIMELINE.md`](guides/PHASE_9_TEMPORAL_TIMELINE.md)
+> 後端設計見 [`docs/guides/temporal-timeline.md`](guides/temporal-timeline.md)
 > 設計交付包見 `docs/handoff/20260725-timeline-page/`（Claude Design 決策稿）
 > 工程分期見 [`docs/plans/20260725-timeline-page-enhancements.md`](plans/20260725-timeline-page-enhancements.md)
 > **本節於 2026-07-27 全頁重做後改寫**；V2（2026-05-19）的版面已不再存在。

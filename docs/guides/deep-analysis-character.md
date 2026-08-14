@@ -1,8 +1,7 @@
-# Phase 5: Deep Analysis Workflow 實施指南
+# Deep Analysis：角色分析
 
-**前置**: Phase 4（Chat Agent）完成、Phase 2b（Keyword Extraction）完成
-**目標**: 實現異步深度分析系統（角色分析、事件分析）
-**預估**: 2-3 週
+**狀態**: ✅ 已實作 · `AnalysisAgent.analyze_character()`
+**內容**: 快取優先的非同步分析、CEP 抽取、原型分類、角色弧線
 
 ---
 

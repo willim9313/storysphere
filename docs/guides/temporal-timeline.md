@@ -1,7 +1,7 @@
-# Phase 9: 事件時間維度與全域時間線
+# 時序與全域時間線
 
-**前置**：Phase 5b（事件分析 / EEP）完成、Phase 3（Knowledge Graph Tools）完成
-**目標**：讓每個事件同時擁有「敘事位置」與「故事世界時間位置」，以 DAG 拓撲排序計算全域時序，支援前端時間維度探索與主題框架分析的時序證據需求
+**狀態**: ✅ 已實作 · `backend/storysphere/pipelines/temporal_pipeline.py`
+**內容**: 讓事件同時具備「敘事位置」與「故事世界時間位置」，以 DAG 拓撲排序計算全域時序
 
 ---
 

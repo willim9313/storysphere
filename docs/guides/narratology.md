@@ -1,8 +1,8 @@
-# Phase 11 — Narratology Analysis
+# 敘事學分析（Narratology）
 
+**狀態**: ✅ 已實作 · `backend/storysphere/api/routers/narrative.py`
 **理論基礎**: 查特曼（Kernel/Satellite）、坎伯（英雄旅程）、熱奈特（時序）
-**完成日期**: 2026-04-02
-**相關 Backlog**: B-031 ~ B-038
+**相關 Backlog**: B-031 ~ B-038（已歸檔）
 
 ---
 

@@ -325,7 +325,7 @@ interface EventAnalysisDetail {
 - API 規格：`docs/API_CONTRACT.md` § 13a / 13b / 7d / 8
 - Token 對照表：`docs/DESIGN_TOKENS.md`（重點看 narrative-* / timeline-* / panel-* / entity-* 系列）
 - 領域術語（narrative_mode / event_importance / chronological_rank / Fabula-Sjuzhet）：`docs/domain-glossary.md`
-- 後端時序計算演算法：`docs/guides/PHASE_9_TEMPORAL_TIMELINE.md`
+- 後端時序計算演算法：`docs/guides/temporal-timeline.md`
 
 ### 既有檔案清單（受重設計影響）
 

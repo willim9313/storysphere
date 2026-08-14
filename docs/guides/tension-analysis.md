@@ -1,4 +1,7 @@
-# Phase 10 — Tension Analysis (B-023 ~ B-030)
+# 張力分析（Tension Analysis）
+
+**狀態**: ✅ 已實作 · `backend/storysphere/api/routers/tension.py`
+**相關 Backlog**: B-023 ~ B-030（已歸檔）
 
 ## 概覽
 

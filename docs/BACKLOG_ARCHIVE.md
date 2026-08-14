@@ -431,7 +431,7 @@ directive "Respond in Zh."」。當時的修法是往表裡補 `zh` 條目，沒
 **背景**: 將 B-023 ~ B-029 所有元件串連為完整端到端工作流：ingestion → TEU → TensionLine（HITL）→ TensionTheme（人工審核）。
 **前置依賴**: B-028, B-029
 **實作**:
-- 完整流程文件：`docs/guides/PHASE_10_TENSION_ANALYSIS.md`
+- 完整流程文件：`docs/guides/tension-analysis.md`
 - 前端：張力分析儀表板（TensionLine 軌跡圖、TEU 列表、TensionTheme 命題展示）
 
 ---
@@ -498,7 +498,7 @@ directive "Respond in Zh."」。當時的修法是往表裡補 `zh` 條目，沒
 **實作**:
 - `AnalysisAgent.analyze_narrative(document_id)` — 依序執行 heuristic → LLM refine → hero journey
 - `AnalysisAgent.__init__` 加入 `narrative_service` 參數
-- `docs/guides/PHASE_11_NARRATOLOGY.md`：完整流程文件
+- `docs/guides/narratology.md`：完整流程文件
 
 ---
 

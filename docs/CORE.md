@@ -295,7 +295,7 @@ storysphere/
 │   │   └── ...
 │   └── guides/                      # 實施指南（按 Phase）
 │       ├── PHASE_1_REFACTOR.md
-│       ├── PHASE_3_TOOLS.md
+│       ├── tools-layer.md
 │       └── ...
 ├── backend/
 │   └── storysphere/                 # 單一 Python 命名空間（from storysphere.*）
@@ -329,10 +329,10 @@ storysphere/
 → 📄 [guides/PHASE_1_REFACTOR.md](guides/PHASE_1_REFACTOR.md)
 
 ### Phase 2: Pipelines 實現 (2-3 週)
-→ 📄 [guides/PHASE_2_PIPELINES.md](guides/PHASE_2_PIPELINES.md)
+→ 📄 [guides/pipelines.md](guides/pipelines.md)
 
 ### Phase 2b: Keyword Extraction (1 週)
-→ 📄 [guides/PHASE_2B_KEYWORDS.md](guides/PHASE_2B_KEYWORDS.md)
+→ 📄 [guides/keyword-extraction.md](guides/keyword-extraction.md)
 - **Ingestion 時觸發**（嵌入 FeatureExtractionPipeline，文檔載入即產出 keywords）
 - **多策略可插拔**：`BaseKeywordExtractor` 介面 + LLM / PKE / TF-IDF / Composite
 - `KeywordAggregator`（chunk → chapter → book 階層聚合）
@@ -340,19 +340,19 @@ storysphere/
 - **Phase 5 前置條件**（CEP `top_terms` 依賴此功能）
 
 ### Phase 3: 基礎工具實現 (2-3 週) ⭐
-→ 📄 [guides/PHASE_3_TOOLS.md](guides/PHASE_3_TOOLS.md)
+→ 📄 [guides/tools-layer.md](guides/tools-layer.md)
 - 實現 15-18 個基礎工具
 - **精確 Description 編寫**（關鍵）
 - 單元測試
 
 ### Phase 4: 組合工具 + Chat Agent (3-4 週)
-→ 📄 [guides/PHASE_4_CHAT_AGENT.md](guides/PHASE_4_CHAT_AGENT.md)
+→ 📄 [guides/chat-agent.md](guides/chat-agent.md)
 - 組合工具（Sequential）
 - ChatState 實現
 - Chat Agent（LangGraph）
 
 ### Phase 5a: Deep Analysis — 角色分析 ✅ DONE
-→ 📄 [guides/PHASE_5_DEEP_ANALYSIS.md](guides/PHASE_5_DEEP_ANALYSIS.md)
+→ 📄 [guides/deep-analysis-character.md](guides/deep-analysis-character.md)
 - 優先緩存邏輯（SQLite，保留至明確 invalidate，無 TTL）
 - Pydantic + Retry (3次 + exponential backoff)
 - Character Evidence Profile (CEP) extraction
@@ -361,7 +361,7 @@ storysphere/
 - `AnalyzeCharacterTool` → `AnalysisAgent` → `AnalysisService`
 
 ### Phase 5b: Deep Analysis — 事件分析 ✅ DONE
-→ 📄 [guides/PHASE_5B_EVENT_ANALYSIS.md](guides/PHASE_5B_EVENT_ANALYSIS.md)
+→ 📄 [guides/deep-analysis-event.md](guides/deep-analysis-event.md)
 - Event Evidence Profile (EEP) extraction
 - 4 步 LLM pipeline（EEP → 因果分析 → 影響分析 → 摘要）
 - `KGService.get_event()` 單筆查詢
@@ -369,17 +369,17 @@ storysphere/
 - 緩存 key: `event:{document_id}:{event_id}`
 
 ### Phase 6: Parallel 優化 (1-2 週)
-→ 📄 [guides/PHASE_6_OPTIMIZATION.md](guides/PHASE_6_OPTIMIZATION.md)
+→ 📄 [guides/performance.md](guides/performance.md)
 - asyncio.gather
 - 性能測試
 
 ### Phase 7: 監控 & 調優 (持續)
-→ 📄 [guides/PHASE_7_MONITORING.md](guides/PHASE_7_MONITORING.md)
+→ 📄 [guides/monitoring.md](guides/monitoring.md)
 - 日誌和統計
 - 工具選擇準確率追蹤
 
 ### Phase 8: FastAPI 層 (2-3 週)
-→ 📄 [guides/PHASE_8_API.md](guides/PHASE_8_API.md)
+→ 📄 [guides/api-layer.md](guides/api-layer.md)
 - **同步查詢 API** (`GET /api/v1/entities`, `/relations` 等) — <100ms
 - **文件上傳 API** (`POST /api/v1/ingest`) — 觸發 IngestionWorkflow
 - **Deep Analysis API** (`POST /api/v1/analysis/character|event`) — task_id + 輪詢
@@ -437,15 +437,15 @@ storysphere/
 
 ### 實施指南（按 Phase）
 - [Phase 1: Refactor](guides/PHASE_1_REFACTOR.md)
-- [Phase 2: Pipelines](guides/PHASE_2_PIPELINES.md)
-- [Phase 2b: Keyword Extraction](guides/PHASE_2B_KEYWORDS.md)
-- [Phase 3: 工具層](guides/PHASE_3_TOOLS.md)
-- [Phase 4: Chat Agent](guides/PHASE_4_CHAT_AGENT.md)
-- [Phase 5a: Deep Analysis — 角色](guides/PHASE_5_DEEP_ANALYSIS.md)
-- [Phase 5b: Deep Analysis — 事件](guides/PHASE_5B_EVENT_ANALYSIS.md)
-- [Phase 6: Optimization](guides/PHASE_6_OPTIMIZATION.md)
-- [Phase 7: Monitoring](guides/PHASE_7_MONITORING.md)
-- [Phase 8: FastAPI 層](guides/PHASE_8_API.md)
+- [Phase 2: Pipelines](guides/pipelines.md)
+- [Phase 2b: Keyword Extraction](guides/keyword-extraction.md)
+- [Phase 3: 工具層](guides/tools-layer.md)
+- [Phase 4: Chat Agent](guides/chat-agent.md)
+- [Phase 5a: Deep Analysis — 角色](guides/deep-analysis-character.md)
+- [Phase 5b: Deep Analysis — 事件](guides/deep-analysis-event.md)
+- [Phase 6: Optimization](guides/performance.md)
+- [Phase 7: Monitoring](guides/monitoring.md)
+- [Phase 8: FastAPI 層](guides/api-layer.md)
 
 ---
 

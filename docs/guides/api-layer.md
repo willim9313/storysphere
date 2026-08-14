@@ -1,8 +1,9 @@
-# Phase 8 實施指南：FastAPI 層
+# API Layer — FastAPI 層
 
-**版本**: v2.0
-**日期**: 2026-03-17
-**前置條件**: Phase 1–7 全部完成
+**狀態**: ✅ 已實作 · `backend/storysphere/api/`
+
+> ⚠️ 本文是 2026-03 的**原始設計**，端點列表早已被實作超越。
+> **現行 API 規格一律以 [`docs/API_CONTRACT.md`](../API_CONTRACT.md) 為準**，本文僅供理解當初的分層與依賴注入決策。
 
 ---
 

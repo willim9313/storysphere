@@ -1,9 +1,10 @@
-# Phase 2b: Keyword Extraction 實施指南
+# Keyword Extraction — 多策略關鍵詞抽取與階層聚合
 
-**前置**: Phase 2（Pipelines）完成
-**目標**: 為 FeatureExtractionPipeline 加入可插拔的多策略 keyword extraction 與 hierarchical aggregation
-**預估**: 1 週
-**狀態**: 📋 計畫中
+**狀態**: ✅ 已實作 · `backend/storysphere/services/keyword_service.py`、`tools/retrieval_tools/get_keywords.py`
+**依賴方**: 角色分析的 CEP `top_terms`
+
+> ⚠️ 本文以**實作前的規劃語氣**書寫（下方仍有「尚未實作」等敘述，指的是撰寫當時的狀態）。
+> 功能已上線，正文請當作設計理由來讀，不是待辦清單。
 
 ---
 
@@ -488,8 +489,8 @@ class KeywordService:
 ## 相關文檔
 
 - [ADR-002: Pipelines & Workflows](../appendix/ADR_002_FULL.md) — Keyword Extraction 節
-- [Phase 2: Pipelines](PHASE_2_PIPELINES.md) — 已完成的基礎
-- [Phase 5: Deep Analysis](PHASE_5_DEEP_ANALYSIS.md) — CEP `top_terms` 依賴
+- [Pipelines](pipelines.md) — 已完成的基礎
+- [Deep Analysis：角色分析](deep-analysis-character.md) — CEP `top_terms` 依賴
 
 ---
 

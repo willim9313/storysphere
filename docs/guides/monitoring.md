@@ -1,4 +1,7 @@
-# Phase 7：監控 & 調優 (Monitoring & Tuning)
+# 監控 — 可觀測性層
+
+**狀態**: ✅ 已實作 · `backend/storysphere/core/metrics.py`，快照端點見 API_CONTRACT #25b
+**內容**: 追蹤 ADR-006/007 定義的成功指標
 
 ## 目標
 

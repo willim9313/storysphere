@@ -1,8 +1,7 @@
-# Phase 2: Pipelines 實施指南
+# Pipelines — 文件處理與特徵抽取
 
-**版本**: v1.0
-**更新日期**: 2026-02-26
-**狀態**: ✅ 已實作完成
+**狀態**: ✅ 已實作 · `backend/storysphere/pipelines/`
+**內容**: 原始設計與職責切分（Pipelines = 確定性 ETL，Workflows = 業務編排）
 
 ---
 

@@ -1,4 +1,7 @@
-# Phase 6：並行優化實施指南
+# 效能 — 並行化優化
+
+**狀態**: ✅ 已實作 · `asyncio.gather` 用於 16 個模組
+**內容**: Sequential → Parallel 的優化策略與目標延遲
 
 ## 目標
 

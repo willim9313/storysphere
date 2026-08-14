@@ -437,7 +437,7 @@ class HeroJourneyStage(BaseModel):
   - 預期產出：`NarrativeService.analyze_temporal_order(book_id)` — 文本位置排名 vs 故事時間排名的差值計算，識別倒敘/預敘節點
 - [ ] **[B-038]** 敘事結構視覺化 + Deep Analysis Workflow 完整整合
   - 前置依賴：B-033, B-035, B-036
-  - 預期產出：前端情節骨幹圖（Kernel 節點高亮）、英雄旅程對應圖；完整流程文件 `docs/guides/PHASE_11_NARRATOLOGY.md`
+  - 預期產出：前端情節骨幹圖（Kernel 節點高亮）、英雄旅程對應圖；完整流程文件 `docs/guides/narratology.md`
 
 ---
 
