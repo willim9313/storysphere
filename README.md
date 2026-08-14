@@ -148,7 +148,7 @@ storysphere/
 │   │   └── contexts/       # ThemeContext, ChatContext, ToastContext
 │   └── package.json
 ├── docs/
-│   ├── CORE.md               # Master design document (start here)
+│   ├── CORE.md               # Architecture decisions index (start here)
 │   ├── API_CONTRACT.md       # Frontend/backend API spec — single source of truth
 │   ├── UI_SPEC.md            # UI component design spec
 │   ├── DESIGN_TOKENS.md      # CSS token reference
@@ -378,7 +378,7 @@ Current test count: **1,392 tests** across agents, services, tools, pipelines, w
 
 ## Docs
 
-- [`docs/CORE.md`](docs/CORE.md) — Master design document (start here)
+- [`docs/CORE.md`](docs/CORE.md) — Architecture decision index — the *why* behind the design (start here)
 - [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) — Frontend/backend API spec, single source of truth
 - [`docs/UI_SPEC.md`](docs/UI_SPEC.md) — UI component design spec
 - [`docs/DESIGN_TOKENS.md`](docs/DESIGN_TOKENS.md) — CSS token reference
@@ -387,7 +387,7 @@ Current test count: **1,392 tests** across agents, services, tools, pipelines, w
 - [`docs/appendix/`](docs/appendix/) — ADR-001 through ADR-009, tools catalog, parallelism notes
 - [`docs/handoff/`](docs/handoff/) — Dated per-feature handoff notes (upload UX, character page, event analysis, timeline, tension, symbols, narrative)
 - [`docs/plans/`](docs/plans/) — Planning docs for high-complexity features, archived by date
-- [`docs/guides/`](docs/guides/) — Testing conventions, Langfuse/LangSmith setup, phase implementation guides
+- [`docs/guides/`](docs/guides/) — Per-subsystem architecture references (pipelines, tools layer, chat agent, …) plus testing and Langfuse/LangSmith setup
 
 ---
 

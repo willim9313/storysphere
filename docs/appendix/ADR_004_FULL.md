@@ -159,7 +159,8 @@ async def generate_analysis_with_llm(data: dict) -> dict:
 
 ## 參考文檔
 
-- [Pydantic 模型定義](PYDANTIC_MODELS.md)
+- Pydantic 模型定義 → `backend/storysphere/api/schemas/` 與 `backend/storysphere/domain/`
+  （原本指向的 `PYDANTIC_MODELS.md` 從未建立）
 
 ---
 

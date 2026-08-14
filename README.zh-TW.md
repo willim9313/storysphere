@@ -148,7 +148,7 @@ storysphere/
 │   │   └── contexts/       # ThemeContext、ChatContext、ToastContext
 │   └── package.json
 ├── docs/
-│   ├── CORE.md               # 主設計文件（從這裡開始讀）
+│   ├── CORE.md               # 架構決策索引（從這裡開始讀）
 │   ├── API_CONTRACT.md       # 前後端 API 規格，唯一真相來源
 │   ├── UI_SPEC.md            # UI 元件設計規格
 │   ├── DESIGN_TOKENS.md      # CSS token 對照表
@@ -378,7 +378,7 @@ uv run pytest --neo4j
 
 ## 文件
 
-- [`docs/CORE.md`](docs/CORE.md) — 主設計文件（從這裡開始讀）
+- [`docs/CORE.md`](docs/CORE.md) — 架構決策索引 —— 記錄「為什麼這樣設計」（從這裡開始讀）
 - [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) — 前後端 API 規格，唯一真相來源
 - [`docs/UI_SPEC.md`](docs/UI_SPEC.md) — UI 元件設計規格
 - [`docs/DESIGN_TOKENS.md`](docs/DESIGN_TOKENS.md) — CSS token 對照表
@@ -387,7 +387,7 @@ uv run pytest --neo4j
 - [`docs/appendix/`](docs/appendix/) — ADR-001 至 ADR-009、工具目錄、並行實作說明
 - [`docs/handoff/`](docs/handoff/) — 各功能區塊交接筆記（上傳體驗、角色頁、事件分析、時間軸、張力頁、符號頁、敘事頁）
 - [`docs/plans/`](docs/plans/) — 高複雜度功能規劃文件存檔
-- [`docs/guides/`](docs/guides/) — 測試規範、Langfuse / LangSmith 設定、各階段實作指南
+- [`docs/guides/`](docs/guides/) — 各子系統的架構參考（pipelines、工具層、chat agent…）＋ 測試規範與 Langfuse / LangSmith 設定
 
 ---
 

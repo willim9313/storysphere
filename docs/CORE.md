@@ -1,480 +1,208 @@
 # StorySphere 核心設計文檔
 
-**版本**: v2.1
-**更新日期**: 2026-03-07
-**用途**: 開發時的核心參考（始終載入，~2K tokens）
+**用途**: 架構決策的索引與摘要 —— 「為什麼是這樣設計的」
+**更新日期**: 2026-08-14
 
 ---
 
-## 🚀 快速開始（30 秒）
+## 本文件的定位
 
-**StorySphere** 是一個智能小說分析系統，使用 **Agent-Driven 架構**自動提取和分析小說內容。
+**這份文件擁有的是決策與理由，不是規格。**
 
-**核心能力**：
-- 📖 自動解析 PDF/DOCX 小說
-- 🧠 提取實體、關係、事件
-- 💬 Chat 對話式探索
-- 🔍 深度角色/事件分析
-- 🗺️ 知識圖譜可視化
+凡是程式碼或自動產生的文件能說得更準的東西（型別、欄位、端點、工具清單、目錄結構），
+這裡一律**只給指標，不複製**——複製品會漂移，而讀者無從察覺。
 
-**技術棧**：LangChain + LangGraph + Gemini + FastAPI + Neo4j/NetworkX
+現況要查什麼，去哪裡看：
 
----
+| 想知道 | 準據 |
+|--------|------|
+| API 端點、請求／回應形狀 | [`docs/API_CONTRACT.md`](API_CONTRACT.md) |
+| 前端頁面規格、導航結構 | [`docs/UI_SPEC.md`](UI_SPEC.md) |
+| CSS token 與主題對照 | [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md) |
+| TypeScript 型別 | `frontend/src/api/generated.ts`（由 openapi.json 產生） |
+| ChatState 欄位 | `backend/storysphere/agents/states.py` |
+| 工具清單與 description | `backend/storysphere/tools/`、[`appendix/TOOLS_CATALOG.md`](appendix/TOOLS_CATALOG.md) |
+| 領域模型 | `backend/storysphere/domain/` |
+| 待辦事項 | [`docs/BACKLOG.md`](BACKLOG.md)（已結案者見 [`BACKLOG_ARCHIVE.md`](BACKLOG_ARCHIVE.md)） |
+| 環境設置與執行 | [`README.md`](../README.md#quick-start) |
 
-## 🎯 8 個關鍵決策（ADR 摘要）
-
-### ADR-001: Agent 架構
-**決策**: LangChain + LangGraph  
-**路徑**: 三個並行處理路徑
-- **Map/Card Query**: 同步 <100ms（純數據查詢）
-- **Deep Analysis**: 非同步 2-5s（優先讀緩存，緩存保留至明確 invalidate）
-- **Chat Interface**: 流式 2-5s（Reasoning Agent）
-
-📄 [完整版](appendix/ADR_001_FULL.md)
+> `docs/API_CONTRACT.md` 與 `docs/DESIGN_TOKENS.md` 的同步由
+> `tests/docs/test_docs_drift.py` 自動把關；本文件不在該檢查範圍內，因為它刻意不含規格。
 
 ---
 
-### ADR-002: Pipelines & Workflows
-**決策**: 完全重構，職責分離  
-**原則**:
-- **Pipelines** = 確定的 ETL（文檔處理、特徵提取、KG 構建）
-- **Workflows** = 業務編排（可能涉及 Agent）
+## 這是什麼
 
-📄 [完整版](appendix/ADR_002_FULL.md)
+**StorySphere** 是小說分析系統，用 Agent-Driven 架構自動提取與分析小說內容。
 
----
+- 解析 PDF / DOCX，切分章節與段落
+- 提取實體、關係、事件，建成知識圖譜
+- 深度分析：角色、事件、象徵、敘事結構
+- Chat 對話式探索
+- 前端視覺化：閱讀、圖譜、時間軸、張力、象徵、敘事等頁面
 
-### ADR-003: 工具層設計 ⭐
-**決策**: 細粒度基礎工具 + 組合工具 + Services Thin Wrapper  
-**結構**:
-- **基礎工具**: 15-18 個（單一職責，精確 description）
-- **組合工具**: 3-5 個（常見場景，內部並行）
-- **Thin Wrapper**: 業務邏輯在 Services
+**技術棧**：LangChain + LangGraph · Gemini（主）/ OpenAI / Anthropic（備援）·
+FastAPI · Qdrant · NetworkX ↔ Neo4j 可切換 · React 19 + TypeScript + Vite
 
-📄 [完整版](appendix/ADR_003_FULL.md) | [工具目錄](appendix/TOOLS_CATALOG.md)
+完整依賴見 [`pyproject.toml`](../pyproject.toml) 與 [ADR-009](appendix/ADR_009_FULL.md)。
 
 ---
 
-### ADR-004: Deep Analysis 執行
-**決策**: 優先緩存 + 實時觸發 + 異步處理  
-**流程**:
-```
-檢查緩存 → 命中返回 <100ms
-    ↓ 未命中
-創建任務 → task_id → 後台執行 → WebSocket 推送
-    ↓
-存入資料庫（緩存保留至明確 invalidate）
-```
+## 9 個架構決策（ADR 摘要）
 
-📄 [完整版](appendix/ADR_004_FULL.md)
+每份 ADR 都是 Context → Decision → Rationale → Consequences 的完整格式，並帶有狀態與日期。
+**決策被推翻時，ADR 本體會加上註明日期與 PR 的更正區塊**——下方摘要已納入這些更正。
 
----
+### [ADR-001: 系統架構轉向 Agent-Driven](appendix/ADR_001_FULL.md)
+**決策**: LangChain + LangGraph，三條並行處理路徑
+- Map/Card Query — 同步，純數據查詢
+- Deep Analysis — 非同步，優先讀快取
+- Chat — 串流，Reasoning Agent
 
-### ADR-005: Chat 上下文管理 ⭐
-**決策**: 同對話內，無跨對話記憶  
-**ChatState** (8 字段):
-- 對話歷史（5-10 輪）
-- 檢測實體
-- **當前焦點實體**（指代消解）
-- **實體提及次數**
-- **工具結果緩存**（5 分鐘）
+### [ADR-002: Pipelines & Workflows 分層](appendix/ADR_002_FULL.md)
+**決策**: 職責分離 —— **Pipelines** = 確定性 ETL（文件處理、特徵抽取、KG 建構）；
+**Workflows** = 業務編排（可能涉及 Agent）。
 
-📄 [完整版](appendix/ADR_005_FULL.md) | [ChatState 實現](appendix/CHATSTATE_DESIGN.md)
+### [ADR-003: 工具層設計](appendix/ADR_003_FULL.md) ⭐
+**決策**: 細粒度基礎工具 + 組合工具 + Services thin wrapper。
+業務邏輯放在 Services，工具只負責驗證輸入、轉發、格式化輸出。
+→ 設計原則見 [`guides/tools-layer.md`](guides/tools-layer.md)
 
----
+### [ADR-004: Deep Analysis 執行策略](appendix/ADR_004_FULL.md)
+**決策**: 快取優先 + 非同步任務。未命中則建任務、回 taskId、背景執行、輪詢取結果。
 
-### ADR-006: 性能目標
-**決策**: Sequential → Parallel 漸進式優化  
-**目標**:
-- Phase 1 (Sequential): 3-5s
-- Phase 2 (Parallel): 2-3s（asyncio.gather）
+> **快取沒有 TTL。** 條目保留至明確 `invalidate()`，由重跑 pipeline 步驟或刪書觸發
+> （`services/cache_invalidation.py`）。
 
-📄 [完整版](appendix/ADR_006_FULL.md) | [並行化實現](appendix/PARALLEL_IMPL.md)
+### [ADR-005: Chat 上下文管理](appendix/ADR_005_FULL.md) ⭐
+**決策**: 記憶只存在於同一段對話內，無跨對話記憶。ChatState 負責對話歷史、
+實體追蹤與指代消解（`current_focus_entity`）。
 
----
+> **沒有工具結果快取。** ChatState 的欄位以 `backend/storysphere/agents/states.py` 為準；
+> 除對話歷史與實體追蹤外，另含頁面上下文（book / chapter / page_context / analysis_tab）
+> 與語言欄位，讓 chat 知道使用者正在看哪一頁。
 
-### ADR-007: 風險管理 ⭐
-**決策**: 三層體系（預防、檢測、降級）
-**六大風險**:
-1. 工具選擇錯誤 → 精確 description + 限制工具集
-2. 結構化輸出失敗 → Pydantic + Retry (3次)
-3. 工具執行失敗 → 超時管理 + 降級
-4. LLM 調用失敗 → 多提供商備份
-5. JSON 解析脆弱性 → 4 步 fallback chain（✅ 已移植至 `backend/storysphere/core/utils/output_extractor.py`）
-6. Prompt Injection → DataSanitizer（✅ 已移植至 `backend/storysphere/core/utils/data_sanitizer.py`）
+### [ADR-006: 延遲預期與性能目標](appendix/ADR_006_FULL.md)
+**決策**: Sequential → Parallel 漸進式優化，以 `asyncio.gather` 並行化工具呼叫。
+→ 策略見 [`guides/performance.md`](guides/performance.md)；實際指標見 [`guides/monitoring.md`](guides/monitoring.md)
 
-📄 [完整版](appendix/ADR_007_FULL.md)
+### [ADR-007: 風險管理與降級](appendix/ADR_007_FULL.md) ⭐
+**決策**: 預防、檢測、降級三層。六大風險中兩項已落地為程式碼：
+- JSON 解析脆弱性 → 4 步 fallback chain（`core/utils/output_extractor.py`）
+- Prompt Injection → DataSanitizer（`core/utils/data_sanitizer.py`）
 
----
+### [ADR-008: 工具選擇準確性](appendix/ADR_008_FULL.md) ⭐
+**決策**: 五大策略提升選擇準確率 —— 精確 description（含適用／不適用場景）、
+限制工具集、few-shot、查詢模式識別、選擇後驗證。
 
-### ADR-008: 工具選擇準確性 ⭐
-**決策**: 五大策略提升準確率 >85%  
-**策略**:
-1. 精確 Description（含示例、適用/不適用場景）
-2. 限制工具集（Chat ≠ Deep Analysis）
-3. Few-shot Examples（System Prompt）
-4. 查詢模式識別（快速路由）
-5. 工具選擇驗證（Post-Selection）
+> 其中「查詢模式識別」**不做快速路由**：`QueryPatternRecognizer` 只負責實體追蹤
+> （更新 `current_focus_entity` 供代名詞解析），回應一律由 agent loop 生成。
 
-📄 [完整版](appendix/ADR_008_FULL.md)
+### [ADR-009: Tech Stack](appendix/ADR_009_FULL.md) ⭐
+**決策**: MVP 輕量、生產可選升級。
+- 套件管理 **uv**（不用 pip）
+- 關聯式 SQLite → PostgreSQL（可選）
+- 向量 Qdrant（in-memory / local file / remote 三模式）
+- 知識圖譜 NetworkX（預設）↔ Neo4j（可執行期切換，見 API_CONTRACT #18b）
+- 任務 FastAPI BackgroundTasks
 
 ---
 
-### ADR-009: Tech Stack ⭐ NEW
-**決策**: MVP 輕量 → 生產可選升級
-
-**核心**:
-- Agent: LangChain + LangGraph
-- LLM: Gemini (Primary), OpenAI/Anthropic (Fallback)
-- Web: FastAPI + WebSocket
-- **包管理: uv** ⭐
-
-**數據存儲**:
-- 關係型: SQLite (開發) → PostgreSQL (可選)
-- 向量: Qdrant
-- 知識圖譜: NetworkX (默認) ↔ Neo4j (Docker, 大規模備案)
-
-**緩存 & 任務**:
-- 緩存: SQLite (AnalysisCache，無 TTL，重跑 pipeline 步驟時失效)
-- 任務: FastAPI BackgroundTasks
-
-📄 [完整版](appendix/ADR_009_FULL.md) | [pyproject.toml](../pyproject.toml)
-
----
-
-## 🏗️ 系統架構（一圖）
+## 系統分層
 
 ```
 ┌─────────────────────────────────────────────┐
-│         UI Layer (用戶交互)                  │
-├─────────────┬──────────────┬────────────────┤
-│ Map View    │ Card Details │ Chat Interface │
-└─────────────┴──────────────┴────────────────┘
-       ↑             ↑                ↑
+│  Frontend (React SPA)                       │
+│  閱讀 / 圖譜 / 角色 / 事件 / 時間軸 /        │
+│  張力 / 象徵 / 敘事 / 建構概覽 …             │
+└─────────────────────────────────────────────┘
+                    ↕  REST + WebSocket
 ┌─────────────────────────────────────────────┐
-│    API Handler / Agent Orchestration         │
-├─────────────┬──────────────┬────────────────┤
-│ 同步查詢API │ Deep Analysis│ Chat Handler   │
-│  <100ms     │ 優先讀緩存   │ 流式 WebSocket │
-└─────────────┴──────────────┴────────────────┘
-       ↑             ↑                ↑
+│  API Layer (FastAPI)                        │
+│  同步查詢 · 非同步任務 · Chat WebSocket      │
+└─────────────────────────────────────────────┘
+                    ↕
 ┌─────────────────────────────────────────────┐
-│    Tools Layer (18-22 個工具)               │
-├─────────────┬──────────────┬────────────────┤
-│ 基礎工具    │ 組合工具     │ 分析工具      │
-│ 15-18 個    │ 3-5 個       │ LLM-based     │
-└─────────────┴──────────────┴────────────────┘
-       ↑             ↑                ↑
+│  Agents          │  Workflows               │
+│  ChatAgent       │  IngestionGraph (HITL)   │
+│  AnalysisAgent   │                          │
+└─────────────────────────────────────────────┘
+                    ↕
 ┌─────────────────────────────────────────────┐
-│      Services Layer (業務邏輯)               │
-├─────────────┬──────────────┬────────────────┤
-│ KGService   │ NLPService   │ AnalysisService│
-└─────────────┴──────────────┴────────────────┘
-       ↑             ↑                ↑
+│  Tools Layer                                │
+│  graph / retrieval / analysis / composite   │
+└─────────────────────────────────────────────┘
+                    ↕
 ┌─────────────────────────────────────────────┐
-│      Data Layer (資料和存儲)                 │
-├─────────────┬──────────────┬────────────────┤
-│ Knowledge   │ Qdrant       │ SQLite/PG      │
-│ Graph (KG)  │ VectorDB     │ Cache + Data   │
-│ NX / Neo4j  │              │                │
-└─────────────┴──────────────┴────────────────┘
+│  Services Layer（業務邏輯）                  │
+│  KGService · DocumentService · Analysis …   │
+└─────────────────────────────────────────────┘
+                    ↕
+┌─────────────────────────────────────────────┐
+│  Data                                       │
+│  KG (NetworkX/Neo4j) · Qdrant · SQLite      │
+└─────────────────────────────────────────────┘
 ```
 
----
+**依賴方向**：`tools/ → services/`、`pipelines/ → services/`；tools 不得 import pipelines。
 
-## 🛠️ 工具目錄（18-22 個）
-
-### 基礎工具（15-18 個）
-
-**圖查詢（6 個）**:
-1. GetEntityAttributesTool - 實體屬性
-2. GetEntityRelationsTool - 實體關係
-3. GetEntityTimelineTool - 實體時間線
-4. GetRelationPathsTool - 關係路徑
-5. GetSubgraphTool - 子圖
-6. GetRelationStatsTool - 關係統計
-
-**檢索（3 個）**:
-7. VectorSearchTool - 語義搜索
-8. GetSummaryTool - 獲取摘要
-9. GetParagraphsTool - 獲取段落
-
-**分析（3 個）**:
-10. GenerateInsightTool - 生成洞見
-11. AnalyzeCharacterTool - 角色分析
-12. AnalyzeEventTool - 事件分析
-
-**其他（3-6 個）**:
-13. ExtractEntitiesFromTextTool
-14. CompareEntitiesTool
-15. GetChapterSummaryTool
-16-18. (預留)
-
-### 組合工具（3-5 個）
-
-1. **GetEntityProfileTool** - 實體檔案（attrs + summary + paragraphs）
-2. **GetEntityRelationshipTool** - 關係分析（兩實體完整信息）
-3. **GetCharacterArcTool** - 角色弧線（timeline + events + analysis）
-4. **CompareCharactersTool** - 角色對比
-5. (預留)
-
-📄 [完整 Description](appendix/TOOLS_CATALOG.md)
+目錄結構請直接看 `backend/storysphere/`——這裡不複製一份會漂移的樹狀圖。
 
 ---
 
-## 🧩 KG Schema
+## KG Schema
 
 ```
-Entity Types (6): character, location, organization, object, concept, other
-Relation Types (10): family, friendship, romance, enemy, ally, subordinate,
-                     located_in, member_of, owns, other
+EntityType   (6): character, location, organization, object, concept, other
+RelationType (10): family, friendship, romance, enemy, ally, subordinate,
+                   located_in, member_of, owns, other
 ```
 
-📄 [Schema 演進備註](appendix/ADR_002_FULL.md#kg-schema-定義)
+定義在 `backend/storysphere/domain/entities.py` 與 `domain/relations.py`。
+演進備註見 [ADR-002](appendix/ADR_002_FULL.md#kg-schema-定義)。
 
 ---
 
-## 💬 ChatState 定義
+## 架構參考（依主題）
 
-```python
-class ChatState(BaseModel):
-    # 對話歷史
-    conversation_history: List[Message] = []
-    
-    # 實體追蹤
-    detected_entities: List[str] = []
-    
-    # 當前意圖
-    intent: Optional[str] = None
-    
-    # 工具結果
-    tool_results: Dict[str, Any] = {}
-    
-    # ===== 指代消解 =====
-    current_focus_entity: Optional[str] = None
-    entity_mentions: Dict[str, int] = {}
-    
-    # ===== 緩存 (5min) =====
-    last_tool_results: Dict[str, Any] = {}
-    
-    # 上次查詢類型
-    last_query_type: Optional[str] = None
-```
+`docs/guides/` 下的架構文件記錄**各子系統的設計與理由**，全部已實作。
+檔頭標明狀態與實作位置；部分文件以實作前的語氣書寫，請當設計理由讀，不是待辦清單。
 
-📄 [完整實現](appendix/CHATSTATE_DESIGN.md)
+| 主題 | 文件 |
+|------|------|
+| 文件處理與特徵抽取 | [pipelines.md](guides/pipelines.md) |
+| 關鍵詞抽取與階層聚合 | [keyword-extraction.md](guides/keyword-extraction.md) |
+| Agent 工具層 | [tools-layer.md](guides/tools-layer.md) |
+| Chat Agent | [chat-agent.md](guides/chat-agent.md) |
+| 深度分析：角色 | [deep-analysis-character.md](guides/deep-analysis-character.md) |
+| 深度分析：事件 | [deep-analysis-event.md](guides/deep-analysis-event.md) |
+| 時序與全域時間線 | [temporal-timeline.md](guides/temporal-timeline.md) |
+| 張力分析 | [tension-analysis.md](guides/tension-analysis.md) |
+| 敘事學分析 | [narratology.md](guides/narratology.md) |
+| 效能與並行化 | [performance.md](guides/performance.md) |
+| 監控與可觀測性 | [monitoring.md](guides/monitoring.md) |
+| API 分層（原始設計） | [api-layer.md](guides/api-layer.md) |
+
+**操作指南**（與架構參考分開）：
+[TESTING.md](guides/TESTING.md) · [API_TESTING.md](guides/API_TESTING.md) ·
+[LANGFUSE_SETUP.md](guides/LANGFUSE_SETUP.md) · [LANGSMITH_SETUP.md](guides/LANGSMITH_SETUP.md)
 
 ---
 
-## 📊 性能目標
+## 附錄
 
-| 路徑 | Phase 1 | Phase 2 | 緩存 |
-|------|---------|---------|------|
-| Map/Card | <100ms | - | 不需 |
-| Chat | 3-5s | 2-3s | ChatState 5min |
-| Deep Analysis | 3-5s (首次) | - | SQLite，無 TTL |
-
-**優化策略**:
-- 工具並行（asyncio.gather）
-- 結果緩存（兩層）
-- 智能工具選擇（限制集合）
-- 快速路由（跳過 Agent）
+- [ADR-001 ~ ADR-009 完整版](appendix/)
+- [工具目錄（完整 description）](appendix/TOOLS_CATALOG.md)
+- [並行化實現細節](appendix/PARALLEL_IMPL.md)
 
 ---
 
-## 📁 項目結構
-
-```
-storysphere/
-├── docs/                            # 文檔
-│   ├── CORE.md                      # 本文件（始終載入）
-│   ├── appendix/                    # 詳細參考（按需）
-│   │   ├── ADR_00X_FULL.md (9個)
-│   │   ├── TOOLS_CATALOG.md
-│   │   ├── CHATSTATE_DESIGN.md
-│   │   ├── PYDANTIC_MODELS.md
-│   │   └── ...
-│   └── guides/                      # 實施指南（按 Phase）
-│       ├── PHASE_1_REFACTOR.md
-│       ├── tools-layer.md
-│       └── ...
-├── backend/
-│   └── storysphere/                 # 單一 Python 命名空間（from storysphere.*）
-│       ├── config/                  # 配置
-│       ├── domain/                  # 領域模型
-│       ├── core/                    # 核心（LLM 客戶端等）
-│       ├── services/                # 業務邏輯
-│       ├── pipelines/               # ETL 流程
-│       ├── tools/                   # Agent 工具
-│       │   ├── graph_tools/
-│       │   ├── retrieval_tools/
-│       │   ├── analysis_tools/
-│       │   └── composite_tools/
-│       ├── agents/                  # Agent 實現
-│       │   ├── chat_agent.py
-│       │   ├── analysis_agent.py
-│       │   └── states.py (ChatState)
-│       └── workflows/               # 高級工作流
-├── frontend/                        # React SPA
-├── var/                             # runtime 資料（SQLite DB / qdrant / KG 快照）
-├── tests/
-├── pyproject.toml
-└── README.md
-```
-
----
-
-## 🚀 開發路線（Phase 1-7）
-
-### Phase 1: 基礎層 Refactor (2-3 週)
-→ 📄 [guides/PHASE_1_REFACTOR.md](guides/PHASE_1_REFACTOR.md)
-
-### Phase 2: Pipelines 實現 (2-3 週)
-→ 📄 [guides/pipelines.md](guides/pipelines.md)
-
-### Phase 2b: Keyword Extraction (1 週)
-→ 📄 [guides/keyword-extraction.md](guides/keyword-extraction.md)
-- **Ingestion 時觸發**（嵌入 FeatureExtractionPipeline，文檔載入即產出 keywords）
-- **多策略可插拔**：`BaseKeywordExtractor` 介面 + LLM / PKE / TF-IDF / Composite
-- `KeywordAggregator`（chunk → chapter → book 階層聚合）
-- Qdrant metadata `keywords` + `keyword_scores` 寫入
-- **Phase 5 前置條件**（CEP `top_terms` 依賴此功能）
-
-### Phase 3: 基礎工具實現 (2-3 週) ⭐
-→ 📄 [guides/tools-layer.md](guides/tools-layer.md)
-- 實現 15-18 個基礎工具
-- **精確 Description 編寫**（關鍵）
-- 單元測試
-
-### Phase 4: 組合工具 + Chat Agent (3-4 週)
-→ 📄 [guides/chat-agent.md](guides/chat-agent.md)
-- 組合工具（Sequential）
-- ChatState 實現
-- Chat Agent（LangGraph）
-
-### Phase 5a: Deep Analysis — 角色分析 ✅ DONE
-→ 📄 [guides/deep-analysis-character.md](guides/deep-analysis-character.md)
-- 優先緩存邏輯（SQLite，保留至明確 invalidate，無 TTL）
-- Pydantic + Retry (3次 + exponential backoff)
-- Character Evidence Profile (CEP) extraction
-- Archetype classification（Jung 12 + Schmidt 45）
-- 角色弧線分析（ArcSegment）
-- `AnalyzeCharacterTool` → `AnalysisAgent` → `AnalysisService`
-
-### Phase 5b: Deep Analysis — 事件分析 ✅ DONE
-→ 📄 [guides/deep-analysis-event.md](guides/deep-analysis-event.md)
-- Event Evidence Profile (EEP) extraction
-- 4 步 LLM pipeline（EEP → 因果分析 → 影響分析 → 摘要）
-- `KGService.get_event()` 單筆查詢
-- `AnalyzeEventTool` → `AnalysisAgent.analyze_event()`
-- 緩存 key: `event:{document_id}:{event_id}`
-
-### Phase 6: Parallel 優化 (1-2 週)
-→ 📄 [guides/performance.md](guides/performance.md)
-- asyncio.gather
-- 性能測試
-
-### Phase 7: 監控 & 調優 (持續)
-→ 📄 [guides/monitoring.md](guides/monitoring.md)
-- 日誌和統計
-- 工具選擇準確率追蹤
-
-### Phase 8: FastAPI 層 (2-3 週)
-→ 📄 [guides/api-layer.md](guides/api-layer.md)
-- **同步查詢 API** (`GET /api/v1/entities`, `/relations` 等) — <100ms
-- **文件上傳 API** (`POST /api/v1/ingest`) — 觸發 IngestionWorkflow
-- **Deep Analysis API** (`POST /api/v1/analysis/character|event`) — task_id + 輪詢
-- **Chat WebSocket** (`WS /ws/chat`) — 流式串流
-- 依賴注入（Services/Agents 單例）、錯誤處理、API 文件（OpenAPI）
-
-**總計**: ~14-19 週
-
----
-
-## 🌐 多語系策略
+## 多語系策略
 
 - **Core prompts**: 統一英文
-- **Output language**: 透過 `output_language` 參數控制（`"Respond in {language}"`）
-- **UI 層**: 未來 i18n 框架（不影響 core）
-
----
-
-## 🎯 成功指標
-
-| 指標 | 目標 | 測量 |
-|------|------|------|
-| 工具選擇準確率 | >85% | 日誌分析 |
-| 結構化輸出成功率 | >98% | Pydantic 驗證 |
-| 工具執行成功率 | >95% | 成功/總調用 |
-| Agent 端到端成功率 | >90% | 完整流程 |
-| 緩存命中率 | >60% | Cache hit / Total |
-| Chat 延遲 P95 | <5s (P1), <3s (P2) | 監控 |
-| 用戶滿意度 | >4/5 | 反饋 |
-
----
-
-## 📖 附錄索引
-
-### 決策文檔（ADR 完整版）
-- [ADR-001: Agent 架構](appendix/ADR_001_FULL.md)
-- [ADR-002: Pipelines & Workflows](appendix/ADR_002_FULL.md)
-- [ADR-003: 工具層設計](appendix/ADR_003_FULL.md)
-- [ADR-004: Deep Analysis](appendix/ADR_004_FULL.md)
-- [ADR-005: Chat 上下文](appendix/ADR_005_FULL.md)
-- [ADR-006: 性能目標](appendix/ADR_006_FULL.md)
-- [ADR-007: 風險管理](appendix/ADR_007_FULL.md)
-- [ADR-008: 工具選擇準確性](appendix/ADR_008_FULL.md)
-- [ADR-009: Tech Stack](appendix/ADR_009_FULL.md)
-
-### 設計細節
-- [工具目錄（18-22 個完整 Description）](appendix/TOOLS_CATALOG.md)
-- [ChatState 完整實現](appendix/CHATSTATE_DESIGN.md)
-- [Pydantic 模型定義](appendix/PYDANTIC_MODELS.md)
-- [並行化實現細節](appendix/PARALLEL_IMPL.md)
-- [風險管理策略](appendix/RISK_MANAGEMENT.md)
-
-### 待辦 & 缺口
-- [開發 Backlog](BACKLOG.md)
-
-### 實施指南（按 Phase）
-- [Phase 1: Refactor](guides/PHASE_1_REFACTOR.md)
-- [Phase 2: Pipelines](guides/pipelines.md)
-- [Phase 2b: Keyword Extraction](guides/keyword-extraction.md)
-- [Phase 3: 工具層](guides/tools-layer.md)
-- [Phase 4: Chat Agent](guides/chat-agent.md)
-- [Phase 5a: Deep Analysis — 角色](guides/deep-analysis-character.md)
-- [Phase 5b: Deep Analysis — 事件](guides/deep-analysis-event.md)
-- [Phase 6: Optimization](guides/performance.md)
-- [Phase 7: Monitoring](guides/monitoring.md)
-- [Phase 8: FastAPI 層](guides/api-layer.md)
-
----
-
-## 🔗 快速導航
-
-| 我想... | 查看 |
-|--------|------|
-| 了解決策原因 | appendix/ADR_00X_FULL.md |
-| 查看工具 description | appendix/TOOLS_CATALOG.md |
-| 實現 ChatState | appendix/CHATSTATE_DESIGN.md |
-| 開始開發 Phase X | guides/PHASE_X_*.md |
-| 查看 Tech Stack | appendix/ADR_009_FULL.md + pyproject.toml |
-
----
-
-## ✅ 開發前檢查清單
-
-- [ ] 閱讀本文件（CORE.md）
-- [ ] 確認 Tech Stack（pyproject.toml）
-- [ ] 審視當前 Phase 的 Guide
-- [ ] 查閱相關 Appendix（按需）
-- [ ] 設置開發環境
-- [ ] 開始編碼
+- **Output language**: 由 `output_language` 參數控制
+- **UI**: i18n 於前端處理（`frontend/src/i18n/`），不影響 core
 
 ---
 
 **維護者**: William
-**最後更新**: 2026-03-07
-**版本**: v2.1
-**Token 估算**: ~2K tokens（始終載入）
-
-🚀 祝開發順利！
