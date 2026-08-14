@@ -2484,7 +2484,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 ### #23a POST /search/
 
-跨書語意搜尋。注意路徑**含尾斜線**（router `prefix="/search"` + route `"/"`），前端 `api/search.ts` 亦以 `/search/` 呼叫。
+跨書段落搜尋，全文與語意兩種模式。注意路徑**含尾斜線**（router `prefix="/search"` + route `"/"`），前端 `api/search.ts` 亦以 `/search/` 呼叫。
 
 **Request body**（camelCase）：
 
@@ -2492,15 +2492,19 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 {
   "query": "描述主角內心動搖的段落",
   "bookId": null,
-  "topK": 20
+  "topK": 20,
+  "mode": "fulltext"
 }
 ```
 
 | 欄位 | 型別 | 說明 |
 |------|------|------|
-| `query` | `string` | 自然語言查詢 |
+| `query` | `string` | 查詢字串 |
 | `bookId` | `string \| null` | `null` = 跨書；傳入 UUID = 限定單書 |
-| `topK` | `integer` | 回傳筆數，1–50，預設 20 |
+| `topK` | `integer` | 回傳筆數，1–50，**後端預設 10**（前端一律明給 20） |
+| `mode` | `'fulltext' \| 'semantic'` | 預設 `fulltext`。`fulltext` 走 SQLite 全文檢索（`DocumentService.search_paragraphs_by_text`）；`semantic` 走 Qdrant 向量檢索（`VectorService.search`） |
+
+> **`score` 的意義隨 `mode` 改變**，見下方 Response 說明——兩種模式的數值不可互相比較。
 
 **Response 200**：`SearchResult[]`
 
@@ -2521,7 +2525,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 | 欄位 | 說明 |
 |------|------|
-| `score` | Qdrant 語意相關度，0–1 |
+| `score` | **語意隨 `mode` 改變**：`semantic` = Qdrant 相關度 0–1（前端顯示為百分比）；`fulltext` = 關鍵詞命中次數（整數，前端顯示為「N 次」） |
 | `metadata.documentId` | 所屬書籍 UUID，對應 `GET /api/v1/books/` 的 `id` |
 | `metadata.chapterNumber` | 所在章節（1-based） |
 | `metadata.position` | 段落在章節內的位置（1-based） |

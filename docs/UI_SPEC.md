@@ -65,25 +65,25 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 | Home | 書庫首頁 | `/` | 已實作 |
 | Upload | 上傳 & 處理進度 | `/upload` | 已實作 |
 | BookOpen | 方法論 | `/methodology` | 已實作（前身 `/frameworks`） |
-| Search | 全站搜尋 | — | 佔位（disabled） |
+| Search | 全站搜尋 | `/search` | 已實作 |
 | BarChart3 | Token 用量 | `/token-usage` | 已實作 |
 | Settings | 設定 | `/settings` | 已實作 |
 | Globe（底部）| 語言切換（zh-TW ↔ EN） | — | 已實作 |
 
 ### 2.2 書籍層級（Top Nav Tab）
 
-進入特定書籍後，top nav 顯示書名、「← 書庫」返回入口，以及 8 個 tab（窄螢幕時分頁列可橫向滑動、書名以 `min(200px, 30vw)` 自動縮短，避免擠壓分頁）：
+進入特定書籍後，top nav 顯示書名、「← 書庫」返回入口，以及 9 個 tab（窄螢幕時分頁列可橫向滑動、書名以 `min(200px, 30vw)` 自動縮短，避免擠壓分頁）。**表列順序即畫面順序**（`BookNav.tsx`）：
 
 | Tab | 路由 |
 |-----|------|
 | 閱讀 | `/books/:bookId` |
 | 角色分析 | `/books/:bookId/characters` |
 | 事件分析 | `/books/:bookId/events` |
+| 敘事結構 | `/books/:bookId/narrative` |
 | 知識圖譜 | `/books/:bookId/graph` |
 | 時間軸 | `/books/:bookId/timeline` |
 | 張力分析 | `/books/:bookId/tension` |
 | 象徵意象 | `/books/:bookId/symbols` |
-| 敘事結構 | `/books/:bookId/narrative` |
 | 建構概覽 | `/books/:bookId/unraveling` |
 
 ### 2.3 頁面層級關係
@@ -211,7 +211,7 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 轉 done / partial / awaiting_review / error 時觸發對應 toast 與跳轉；首次輪詢
 靜默 seed，避免對載入前已終結的任務發通知。
 
-#### HITL 章節審閱（`ChapterReviewPage`）
+#### HITL 章節審閱（`ChapterReviewPage`，路由 `/upload/review/:bookId?taskId=`）
 
 左欄章節列表 + 右側段落卡，讓使用者確認 / 調整偵測到的章節邊界與角色。
 
@@ -1629,6 +1629,81 @@ Prompt Tokens / Completion Tokens / 總請求次數
 #### API 參考
 
 見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#21e（觸發英雄旅程）、#21f（polling）、#21k（取 NarrativeStructure）、#21j（kernel-spine）、#21l（HITL 書級審核）、#21a／#21b（分類）、#21c／#21d（LLM 精煉）、#21g（時序覆蓋率）。另讀時間軸與張力頁既有端點（`fetchTimeline`、`fetchTEUs`）。封裝於 `frontend/src/api/narrative.ts`。
+
+---
+
+### 3.15 全站搜尋頁 `/search`
+
+全站層級（非書籍頁面），由 Sidebar 的 Search 圖示進入。跨書搜尋段落，結果**依書籍分組**。
+
+#### 版面結構
+
+```
+[Hero 搜尋列]
+[分頁列：段落 | 角色(soon) | 原型(soon)          模式切換：全文 | 語意]
+[摘要行：找到 N 個段落，來自 M 本書籍            依相關度排序]
+[範圍 chips（可移除）]
+[書籍分組區塊 × M]
+```
+
+#### Hero 搜尋列（`form`，Enter 送出）
+
+放大鏡 icon + 輸入框（`autoFocus`）+ 清除鈕（`X`，已搜尋後才出現）+ 範圍標示 + 送出鈕。
+送出鈕在 `loading` 或查詢字串為空時 disabled。
+
+#### 分頁與模式
+
+- **分頁**：`段落`（唯一可用，顯示結果總數）、`角色`、`原型`——後兩者為 `comingSoon` 佔位，不可點。
+- **模式切換**：`全文` / `語意`，**預設全文**。切換會以同一查詢字串重新搜尋，並重置範圍 chips。
+
+> **兩種模式的 `score` 意義不同**：語意為 0–1 相關度、顯示為百分比；全文為命中次數、顯示為「N 次」。
+> 數值不可跨模式比較。見 API_CONTRACT #23a。
+
+#### 搜尋範圍與 chips
+
+首次送出時**不帶 bookId**（跨全書，`topK: 20`），並以回傳結果出現過的書籍**自動種下** chips。
+移除任一 chip 後改為**逐書並行查詢**（每本 `topK: 10`，`Promise.allSettled`），
+合併後依 score 排序取前 30 筆；個別書籍失敗會被略過，不影響其餘結果。
+chips 全部移除則回到跨全書模式。
+
+> 搜尋以遞增的 generation 序號防競態：舊請求回來時若序號已過期，結果直接丟棄。
+
+#### 書籍分組區塊（`BookGroupSection`）
+
+group header：收合 chevron + 書名 + 段落數 + 分隔線 + 「前往書籍」（`ArrowUpRight`）。
+各列為可點按鈕，三欄：`第N章·§NN` 位置標 / 段落文字（**查詢詞以 `<mark>` 高亮**）/ score。
+
+書名取自 `useBooks()` 的書庫列表；查無對應時退回顯示 `documentId`。
+
+#### 跳轉行為
+
+| 動作 | 目的地 |
+|------|--------|
+| 「前往書籍」 | `/books/:bookId` |
+| 點擊結果列 | `/books/:bookId`，並以 router state 帶 `{ paragraphId, chapterNumber }` 供閱讀頁定位 |
+
+#### 狀態
+
+| 狀態 | 呈現 |
+|------|------|
+| 未搜尋 · 有書 | 置中 icon + 標題 + 副標的引導畫面 |
+| 未搜尋 · 無書 | 空狀態：Upload icon + 提示 + 「立即上傳」→ `/upload` |
+| 搜尋中 | `SkeletonLoader`（3 組骨架，每組 1 標題列 + 2 結果列） |
+| 失敗 | 空狀態樣式顯示錯誤訊息 |
+| 無結果 | 空狀態：`empty.noResults` + 提示 |
+
+#### 實作位置
+
+| 項目 | 檔案 |
+|------|------|
+| 頁面 | `frontend/src/pages/SearchPage.tsx` |
+| API 封裝 | `frontend/src/api/search.ts` |
+| 範圍 CSS | `frontend/src/styles/search.css`（`srch-` 前綴） |
+| i18n | `search` namespace |
+
+#### API 參考
+
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#23a（`POST /search/`，注意路徑含尾斜線）
 
 ---
 
