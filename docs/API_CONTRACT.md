@@ -2633,24 +2633,23 @@ interface MetricsSnapshot {
 
 ## 未納入契約的端點
 
-以下路由存在於程式碼，但**沒有任何呼叫端**——前端 API 層（`frontend/src/api/`）
-沒有對應的包裝函式，也沒有繞過 `apiFetch` 的直接呼叫，`tests/` 亦無覆蓋。
+以下路由存在於程式碼，但**沒有任何呼叫端**——前端 API 層沒有對應的包裝函式，
+也沒有繞過 `apiFetch` 的直接呼叫，`tests/` 亦無覆蓋。
 
-**已判定移除，另案執行。** 列在此處是為了：讓漂移檢查知道它們是刻意不寫規格的，
-以及留下「為什麼不該再引用它們」的依據。**新功能請勿接這些端點。**
+**已判定移除，另案執行。新功能請勿接這些端點。**
 
-| 路徑 | Router | 證據 |
-|------|--------|------|
-| `GET /documents` | `documents.py` | 前端曾經呼叫，於 `ad0154c`（前端對齊契約的重構）連同 `frontend/src/api/documents.ts` 整檔移除 |
-| `GET /documents/:documentId` | `documents.py` | 同上 |
-| `GET /documents/:documentId/chapters/:chapterNumber/paragraphs` | `documents.py` | 同上 |
-| `GET /entities` | `entities.py` | 全 git 歷史中前端從未呼叫 |
-| `GET /entities/:entityId/relations` | `entities.py` | 同上 |
-| `GET /entities/:entityId/timeline` | `entities.py` | 同上 |
-| `GET /entities/:entityId/subgraph` | `entities.py` | 同上 |
-| `GET /entities/:entityId/relation-stats` | `entities.py` | 同上 |
-| `GET /relations/paths` | `relations.py` | 同上 |
-| `GET /relations/stats` | `relations.py` | 同上 |
+| 路徑 | Router |
+|------|--------|
+| `GET /documents` | `documents.py` |
+| `GET /documents/:documentId` | `documents.py` |
+| `GET /documents/:documentId/chapters/:chapterNumber/paragraphs` | `documents.py` |
+| `GET /entities` | `entities.py` |
+| `GET /entities/:entityId/relations` | `entities.py` |
+| `GET /entities/:entityId/timeline` | `entities.py` |
+| `GET /entities/:entityId/subgraph` | `entities.py` |
+| `GET /entities/:entityId/relation-stats` | `entities.py` |
+| `GET /relations/paths` | `relations.py` |
+| `GET /relations/stats` | `relations.py` |
 
 **移除它們不會影響 chat agent。** 這些端點與 `tools/graph_tools/` 下的工具是同一組
 `KGService` 方法的兩個平行外殼——agent 走工具那條路，直接呼叫 service，不經 HTTP：

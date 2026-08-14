@@ -170,7 +170,6 @@ Agent:
 ## 參考文檔
 
 - ChatState 完整實現 → `backend/storysphere/agents/states.py`
-  （原本指向的 `CHATSTATE_DESIGN.md` 從未建立）
 
 ---
 

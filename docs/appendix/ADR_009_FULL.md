@@ -402,7 +402,7 @@ Neo4j: $65/month（Neo4j Aura Starter）
 
 - [pyproject.toml](../../pyproject.toml) - 完整依賴配置
 - [CORE.md](../CORE.md) - 核心設計文檔
-- [README.md](../../README.md#quick-start) - 環境設置（原本指向的 `guides/PHASE_1_REFACTOR.md` 從未建立）
+- [README.md](../../README.md#quick-start) - 環境設置
 
 ---
 
