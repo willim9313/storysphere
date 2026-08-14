@@ -1,18 +1,21 @@
 """文件漂移檢查 —— 讓契約文件與實作的落差在 CI 就爆掉，而不是靠人工比對。
 
-涵蓋兩份文件：
+涵蓋四項：
 
 * ``docs/API_CONTRACT.md`` —— 每個 ``/api/v1`` 路由都必須要嘛有規格、要嘛被明確
   列進「未納入契約的端點」表。反向也檢查：文件寫了但程式碼沒有的端點。
 * ``docs/DESIGN_TOKENS.md`` —— ``tokens.css`` 的每個 token 都必須在對照表裡找得到。
+* ``docs/plans/README.md`` —— 索引與目錄內容一致（雙向）。
+* 全文件的**相對連結**都指向存在的檔案。
 
-兩者都只讀檔案，不需要啟動後端。
+全部只讀檔案，不需要啟動後端。
 """
 
 from __future__ import annotations
 
 import re
 from pathlib import Path
+from urllib.parse import unquote
 
 import pytest
 
@@ -22,6 +25,12 @@ DESIGN_TOKENS = REPO_ROOT / "docs" / "DESIGN_TOKENS.md"
 TOKENS_CSS = REPO_ROOT / "frontend" / "src" / "styles" / "tokens.css"
 PLANS_DIR = REPO_ROOT / "docs" / "plans"
 PLANS_INDEX = PLANS_DIR / "README.md"
+
+# 連結檢查的掃描範圍：docs/ 全部 + repo 根目錄的三份說明文件。
+LINK_SCAN_EXTRA = ("README.md", "README.zh-TW.md", "CLAUDE.md")
+# 例外：plans/ 是凍結的日期快照，CLAUDE.md 明定不回頭修改（索引 README 除外）。
+# 強制它們的連結永遠有效，等於逼人去改歷史紀錄。
+LINK_SCAN_SKIP_DIRS = (REPO_ROOT / "docs" / "plans",)
 
 API_PREFIX = "/api/v1"
 
@@ -200,6 +209,65 @@ class TestDesignTokenCoverage:
             "以下 token 出現在 docs/DESIGN_TOKENS.md，但 tokens.css 裡已不存在：\n  "
             + "\n  ".join(stale)
         )
+
+
+FENCE_RE = re.compile(r"^\s*(```|~~~)")
+INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
+LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
+
+
+def _markdown_links(path: Path) -> list[tuple[int, str]]:
+    """抽出檔案裡的 markdown 連結目標，回傳 (行號, target)。
+
+    兩層過濾，都是踩過坑才加的：
+
+    * **跳過 ``` 圍欄區塊** —— 裡面的「連結」是範例程式碼或示範片段，不是導覽。
+      歸檔的 DOCS_STRUCTURE_PROPOSAL 就有一段示範 CORE.md 未來長相的 markdown
+      區塊，不跳過會誤報 5 條。
+    * **移除行內 code span** —— 反引號裡的連結語法同理是舉例，不是真連結。
+    """
+    out: list[tuple[int, str]] = []
+    in_fence = False
+    for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if FENCE_RE.match(raw):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        line = INLINE_CODE_RE.sub("", raw)
+        out.extend((lineno, m.group(1)) for m in LINK_RE.finditer(line))
+    return out
+
+
+def _scanned_docs() -> list[Path]:
+    files = [
+        p
+        for p in (REPO_ROOT / "docs").rglob("*.md")
+        if not any(skip in p.parents for skip in LINK_SCAN_SKIP_DIRS)
+    ]
+    files += [REPO_ROOT / name for name in LINK_SCAN_EXTRA]
+    return sorted(p for p in files if p.is_file())
+
+
+class TestDocumentLinks:
+    """相對連結必須指向存在的檔案。
+
+    只驗**檔案是否存在**，不驗 ``#anchor`` 是否對得上標題 —— 各家 markdown 渲染器
+    對中文標題的 slug 規則不一致，驗了會製造假警報。外部 URL 同樣不驗（不連網）。
+    """
+
+    def test_no_broken_relative_links(self) -> None:
+        broken: list[str] = []
+        for doc in _scanned_docs():
+            for lineno, target in _markdown_links(doc):
+                if target.startswith(("http://", "https://", "mailto:", "#")):
+                    continue
+                rel = unquote(target.split("#", 1)[0]).strip()
+                if not rel:
+                    continue
+                if not (doc.parent / rel).resolve().exists():
+                    broken.append(f"{doc.relative_to(REPO_ROOT)}:{lineno} → {target}")
+        assert not broken, "以下相對連結指向不存在的檔案：\n  " + "\n  ".join(broken)
 
 
 class TestPlansIndex:
