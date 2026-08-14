@@ -169,7 +169,7 @@ class AnalysisCache:
     """SQLite-based analysis store; entries kept until invalidated."""
 
     async def get(self, key: str) -> Optional[dict]:
-        """Return cached result if < 7 days old."""
+        """Return cached result, if any (no expiry)."""
 
     async def set(self, key: str, result: dict):
         """Store result with current timestamp."""

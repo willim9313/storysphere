@@ -89,7 +89,7 @@ Chat Agent           Analysis Agent        Ingestion Workflow
 | 路徑 | 延遲 | 實作方式 |
 |---|---|---|
 | **Map / Card 查詢** | < 100 ms | 同步 REST，純資料查詢 |
-| **深度分析** | 2–5 秒（快取命中 < 100 ms） | 非同步任務，7 天 SQLite 快取 |
+| **深度分析** | 2–5 秒（快取命中 < 100 ms） | 非同步任務，SQLite 快取（無 TTL） |
 | **對話** | 串流，2–5 秒 | LangGraph agent，透過 WebSocket |
 
 ---
@@ -156,8 +156,9 @@ storysphere/
 │   ├── BACKLOG.md            # 現行 backlog（已結案項目見 BACKLOG_ARCHIVE.md）
 │   ├── plans/                # 高複雜度功能規劃文件存檔
 │   ├── handoff/               # 各功能區塊的交接筆記（依日期）
-│   ├── guides/                # TESTING.md、LANGFUSE_SETUP.md、各階段實作指南
-│   └── appendix/               # ADR-001 至 ADR-009、工具目錄
+│   ├── guides/                # 各子系統架構參考 ＋ TESTING.md、LANGFUSE_SETUP.md
+│   ├── appendix/               # ADR-001 至 ADR-009、工具目錄
+│   └── archive/                # 已被取代的規劃文件，保留作歷史
 ├── tests/                     # 1,392+ 測試（pytest）
 ├── pyproject.toml
 └── .env.example
@@ -339,7 +340,7 @@ SymbolDiscoveryPipeline
 2. **因果分析** — 因果鏈推理
 3. **影響分析** — 對角色與情節的短 / 長期影響
 
-分析結果快取於 SQLite 7 天；快取命中回傳時間 < 100 ms。
+分析結果快取於 SQLite，無 TTL —— 條目保留至明確失效（重跑 pipeline 步驟或刪除書籍時觸發）。快取命中回傳時間 < 100 ms。
 
 ---
 

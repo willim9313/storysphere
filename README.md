@@ -89,7 +89,7 @@ Chat Agent           Analysis Agent        Ingestion Workflow
 | Path | Latency | Implementation |
 |---|---|---|
 | **Map / Card Query** | < 100 ms | Sync REST, pure data lookup |
-| **Deep Analysis** | 2–5 s (cache hit < 100 ms) | Async task, 7-day SQLite cache |
+| **Deep Analysis** | 2–5 s (cache hit < 100 ms) | Async task, SQLite cache (no TTL) |
 | **Chat** | Streaming, 2–5 s | LangGraph agent over WebSocket |
 
 ---
@@ -156,8 +156,9 @@ storysphere/
 │   ├── BACKLOG.md            # Live backlog / BACKLOG_ARCHIVE.md — resolved items
 │   ├── plans/                # Dated planning docs for high-complexity features
 │   ├── handoff/               # Dated per-feature handoff notes
-│   ├── guides/                # TESTING.md, LANGFUSE_SETUP.md, phase implementation guides
-│   └── appendix/               # ADR-001 .. ADR-009, tools catalog
+│   ├── guides/                # Per-subsystem architecture refs + TESTING.md, LANGFUSE_SETUP.md
+│   ├── appendix/               # ADR-001 .. ADR-009, tools catalog
+│   └── archive/                # Superseded planning docs, kept for history
 ├── tests/                     # 1,392+ tests (pytest)
 ├── pyproject.toml
 └── .env.example
@@ -339,7 +340,7 @@ SymbolDiscoveryPipeline
 2. **Causality Analysis** — causal chain reasoning
 3. **Impact Analysis** — short/long-term effects on characters and plot
 
-Analysis results are cached in SQLite for 7 days; cache hits return in < 100 ms.
+Analysis results are cached in SQLite with no TTL — entries are kept until explicitly invalidated (by re-running a pipeline step or deleting the book). Cache hits return in < 100 ms.
 
 ---
 
