@@ -2532,6 +2532,141 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 ---
 
+## 全域實體查詢
+
+本節的端點**不帶 book 範圍**，走獨立的 `/entities` router（`backend/storysphere/api/routers/entities.py`）。
+同 router 下的其餘路由沒有呼叫端，見「未納入契約的端點」。
+
+### #24a GET /entities/:entityId
+
+單一實體詳情，不需 bookId。象徵意象頁用它把 SEP 的 `relatedEntityIds` 換成實體名稱與類型。
+
+> **欄位為 snake_case。** `EntityResponse` 定義在 `api/schemas/entity.py` 但**沒有**
+> `alias_generator=to_camel`，因此輸出與 `domain/` 同樣是 snake_case，與同目錄下多數
+> schema 的慣例相反。接這條時別套 camelCase。
+
+**Response 200**
+```ts
+interface EntityResponse {
+  id: string;
+  name: string;
+  entity_type: 'character' | 'location' | 'organization' | 'object' | 'concept' | 'other';
+  aliases: string[];
+  attributes: Record<string, unknown>;
+  description: string | null;
+  first_appearance_chapter: number | null;
+  mention_count: number;
+}
+```
+
+**Response 404**：實體不存在
+
+**UI 使用頁面**：象徵意象頁 `/books/:bookId/symbols`（`fetchEntityById`）
+
+---
+
+## 系統資訊
+
+### #25a GET /settings/info
+
+執行環境的唯讀快照，供設定頁顯示。不含祕密：`databaseUrl` 已遮罩（`_mask_db_url`）。
+
+**Response 200**（camelCase）
+```ts
+interface SettingsInfoResponse {
+  appVersion: string;
+  appEnv: string;
+  primaryLlmProvider: string;      // 'gemini' | 'openai' | 'anthropic' | 'local'
+  primaryModel: string;            // 依 primaryLlmProvider 解析出的實際 model 名
+  analysisTemperature: number;
+  chatAgentTemperature: number;
+  localLlmModel: string;           // 未設定時為 '(none)'
+  databaseUrl: string;             // 已遮罩
+  analysisCacheDbPath: string;
+  qdrantLocalPath: string;
+  kgPersistencePath: string;
+  frontendPackages: string[][];    // [[名稱, 版本], ...]
+  backendPackages: string[][];     // 同上；版本由 importlib.metadata 取得，取不到為 '(not installed)'
+}
+```
+
+**UI 使用頁面**：設定頁 `/settings`（`fetchSettingsInfo`）
+
+---
+
+### #25b GET /metrics
+
+`MetricsCollector` 的即時快照。**ops / 除錯用途，前端沒有頁面接它**，保留是因為
+收集端是活的：`core/token_callback.py` 記 LLM 呼叫、`agents/chat_agent.py` 記
+agent query 的延遲與成功率。對應 CORE.md 的 Phase 7 監控。
+
+**Response 200**（snake_case，無 Pydantic schema —— 直接回傳 `get_stats()` 的 dict）
+```ts
+interface MetricsSnapshot {
+  tool_selection: Record<string, Record<string, number>>;
+  tool_execution: Record<string, {
+    total: number; success: number; failure: number; success_rate: number;
+    latency_p50_ms: number; latency_p95_ms: number; latency_p99_ms: number;
+  }>;
+  cache_events: Record<string, {
+    total: number; hit: number; miss: number; hit_rate: number;
+  }>;
+  agent_query: { all: {
+    total: number; success: number; failure: number; success_rate: number;
+    latency_p50_ms: number; latency_p95_ms: number; latency_p99_ms: number;
+    routes: Record<string, number>; errors: Record<string, number>;
+  } };
+  llm_calls: {
+    total: number; success: number; failure: number;
+    prompt_tokens: number; completion_tokens: number; total_tokens: number;
+    by_provider: Record<string, Record<string, number>>;
+    by_service: Record<string, Record<string, number>>;
+  };
+}
+```
+
+計數器在進程記憶體中，重啟即歸零；不做持久化。永不回傳 404。
+
+**UI 使用頁面**：無
+
+---
+
+## 未納入契約的端點
+
+以下路由存在於程式碼，但**沒有任何呼叫端**——前端 API 層（`frontend/src/api/`）
+沒有對應的包裝函式，也沒有繞過 `apiFetch` 的直接呼叫，`tests/` 亦無覆蓋。
+
+**已判定移除，另案執行。** 列在此處是為了：讓漂移檢查知道它們是刻意不寫規格的，
+以及留下「為什麼不該再引用它們」的依據。**新功能請勿接這些端點。**
+
+| 路徑 | Router | 證據 |
+|------|--------|------|
+| `GET /documents` | `documents.py` | 前端曾經呼叫，於 `ad0154c`（前端對齊契約的重構）連同 `frontend/src/api/documents.ts` 整檔移除 |
+| `GET /documents/:documentId` | `documents.py` | 同上 |
+| `GET /documents/:documentId/chapters/:chapterNumber/paragraphs` | `documents.py` | 同上 |
+| `GET /entities` | `entities.py` | 全 git 歷史中前端從未呼叫 |
+| `GET /entities/:entityId/relations` | `entities.py` | 同上 |
+| `GET /entities/:entityId/timeline` | `entities.py` | 同上 |
+| `GET /entities/:entityId/subgraph` | `entities.py` | 同上 |
+| `GET /entities/:entityId/relation-stats` | `entities.py` | 同上 |
+| `GET /relations/paths` | `relations.py` | 同上 |
+| `GET /relations/stats` | `relations.py` | 同上 |
+
+**移除它們不會影響 chat agent。** 這些端點與 `tools/graph_tools/` 下的工具是同一組
+`KGService` 方法的兩個平行外殼——agent 走工具那條路，直接呼叫 service，不經 HTTP：
+
+| KGService 方法 | agent 走這條（活的） | HTTP 外殼（無呼叫端） |
+|---|---|---|
+| `get_entity_relations` | `tools/graph_tools/get_entity_relations.py` | `GET /entities/:id/relations` |
+| `get_entity_timeline` | `tools/graph_tools/get_entity_timeline.py` | `GET /entities/:id/timeline` |
+| `get_subgraph` | `tools/graph_tools/get_subgraph.py` | `GET /entities/:id/subgraph` |
+| `get_relation_paths` | `tools/graph_tools/get_relation_paths.py` | `GET /relations/paths` |
+| `get_relation_stats` | `tools/graph_tools/get_relation_stats.py` | `GET /relations/stats` |
+
+> 維護方式：路由刪除後，這張表也要一併清掉——`tests/docs/test_docs_drift.py::TestApiContractCoverage::test_unlisted_routes_still_exist` 會檢查表裡的路由是否仍存在。
+
+---
+
 ## TanStack Query Key 對照
 
 ```ts

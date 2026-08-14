@@ -306,11 +306,54 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--timeline-parallel-bg/-border` | `rgba(158,97,129,0.06)` / `rgba(158,97,129,0.3)` | `rgba(0,0,0,0.02)` / `rgba(0,0,0,0.12)` |
 | `--timeline-causal-stroke` | `#b05a34` | `#151515` |
 | `--timeline-selected-ring` | `rgba(176,90,52,0.3)` | `rgba(0,0,0,0.2)` |
-| `--shadow-sm/md/lg` | 暖影 `rgba(42,38,32,0.07–0.11)` | 中性 `rgba(0,0,0,0.08–0.12)` |
 | `--splash-image-opacity` | `0.62` | `0.70` |
 | `--splash-image-filter` | `sepia(0.10) contrast(0.98)` | `grayscale(1) brightness(1.06) contrast(1.05)` |
 
 > Splash 兩 token 的值以設計 canvas（Claude Design 專案 `splash/splash.css` 的 per-theme fade tuning）為準；該專案 `colors_and_type.css` 內殘留的舊值（0.22 / 0.10）為未同步殘骸，不作依據。
+
+### 3.18 原始尺度（Primitive scales）
+
+間距、圓角、陰影、過場的原始階。**元件 CSS 原則上不直接取用圓角與陰影**——那兩族
+請走 §3.15 的 shape token（`--card-radius`、`--card-shadow` 等），本節是它們的底層來源。
+間距與過場則直接使用。
+
+**間距（跨主題共用）**
+
+| Token | 值 | px |
+|-------|-----|-----|
+| `--space-xs` | `0.25rem` | 4px |
+| `--space-sm` | `0.5rem` | 8px |
+| `--space-md` | `1rem` | 16px |
+| `--space-lg` | `1.5rem` | 24px |
+| `--space-xl` | `2rem` | 32px |
+| `--space-2xl` | `3rem` | 48px |
+
+**圓角（跨主題共用；主題分化發生在 §3.15）**
+
+| Token | 值 | px | §3.15 消費者 |
+|-------|-----|-----|-------------|
+| `--radius-sm` | `0.25rem` | 4px | Ink 的 `--card-radius` / `--btn-radius` / `--control-radius` |
+| `--radius-md` | `0.5rem` | 8px | Warm 的 `--btn-radius` / `--control-radius` |
+| `--radius-lg` | `0.75rem` | 12px | Warm 的 `--card-radius` |
+| `--radius-xl` | `1rem` | 16px | 目前無 shape token 消費 |
+
+**陰影（主題分化：warm 帶暖色調，ink 轉中性且多數元件不用陰影）**
+
+| Token | warm | ink |
+|-------|------|-----|
+| `--shadow-sm` | `0 1px 2px rgba(42,38,32,0.07)` | `0 1px 2px rgba(0,0,0,0.08)` |
+| `--shadow-md` | `0 2px 8px rgba(42,38,32,0.09)` | `0 2px 8px rgba(0,0,0,0.10)` |
+| `--shadow-lg` | `0 4px 16px rgba(42,38,32,0.11)` | `0 4px 16px rgba(0,0,0,0.12)` |
+
+> Ink 主題雖覆寫了這三個值，但 `--card-shadow` 在 Ink 為 `none`（§3.15），
+> 因此實際畫面上 Ink 幾乎不出現陰影。覆寫值是為了萬一有元件直接取用時不會露出暖調。
+
+**過場（跨主題共用）**
+
+| Token | 值 |
+|-------|-----|
+| `--transition-fast` | `150ms ease` |
+| `--transition-normal` | `250ms ease` |
 
 ---
 
