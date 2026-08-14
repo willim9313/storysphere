@@ -20,6 +20,8 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 API_CONTRACT = REPO_ROOT / "docs" / "API_CONTRACT.md"
 DESIGN_TOKENS = REPO_ROOT / "docs" / "DESIGN_TOKENS.md"
 TOKENS_CSS = REPO_ROOT / "frontend" / "src" / "styles" / "tokens.css"
+PLANS_DIR = REPO_ROOT / "docs" / "plans"
+PLANS_INDEX = PLANS_DIR / "README.md"
 
 API_PREFIX = "/api/v1"
 
@@ -200,7 +202,34 @@ class TestDesignTokenCoverage:
         )
 
 
-@pytest.mark.parametrize("path", [API_CONTRACT, DESIGN_TOKENS, TOKENS_CSS])
+class TestPlansIndex:
+    """`docs/plans/README.md` 必須列出目錄下的每一份規劃文件。
+
+    只驗**完整性**，不驗狀態 —— plans 是凍結的日期快照，實作後不再維護，
+    一個沒人更新的狀態欄比沒有更危險（判斷是否落地請看 git log 或 BACKLOG_ARCHIVE）。
+    """
+
+    @staticmethod
+    def _plan_files() -> set[str]:
+        return {p.name for p in PLANS_DIR.glob("*.md") if p.name != "README.md"}
+
+    def test_every_plan_is_indexed(self) -> None:
+        index = PLANS_INDEX.read_text(encoding="utf-8")
+        missing = sorted(name for name in self._plan_files() if name not in index)
+        assert not missing, (
+            "以下規劃文件不在 docs/plans/README.md 索引中，請補上一列：\n  "
+            + "\n  ".join(missing)
+        )
+
+    def test_index_has_no_dead_entries(self) -> None:
+        listed = set(re.findall(r"\]\(\./([^)]+\.md)\)", PLANS_INDEX.read_text(encoding="utf-8")))
+        stale = sorted(listed - self._plan_files())
+        assert not stale, (
+            "docs/plans/README.md 列了不存在的檔案（已改名或刪除？）：\n  " + "\n  ".join(stale)
+        )
+
+
+@pytest.mark.parametrize("path", [API_CONTRACT, DESIGN_TOKENS, TOKENS_CSS, PLANS_INDEX])
 def test_source_files_exist(path: Path) -> None:
     """路徑寫死在本檔，檔案搬家時要立刻知道，而不是讓檢查悄悄變成空集合。"""
     assert path.is_file(), f"找不到 {path}，本檢查已失效"

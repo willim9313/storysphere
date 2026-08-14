@@ -336,7 +336,7 @@ chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正�
 ### 3.4 角色分析頁 `/books/:bookId/characters`
 
 > 2026-05-16 重新設計：3-tab 平級結構（人物概覽 / 語音風格 / 認知狀態）、Overview 內 4 個 sub-tab、Framework 切換只在左清單、新增「框架對照」抽屜。設計交接見 `docs/plans/20260516-character-analysis-page-redesign.md` 與設計 project HANDOFF.md。
-> 2026-07-17 canvas 對稿翻新：角色總覽 landing（排行/象限雙視圖）、清單排序與提及量 bar、ego-network、弧線時間軸、認知游標雙軌聚合、認知對照 drawer、生成中 checklist、原型篩選。計畫見 `docs/plans/20260716-character-page-revamp.md`，canvas 存檔於 `docs/handoff/20260716-character-page/design-return/`。
+> 2026-07-17 canvas 對稿翻新：角色總覽 landing（排行/象限雙視圖）、清單排序與提及量 bar、ego-network、弧線時間軸、認知游標雙軌聚合、認知對照 drawer、生成中 checklist、原型篩選。計畫見 `docs/plans/20260716-character-page-revamp.md`。
 
 #### 版面結構
 
@@ -778,7 +778,6 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 ### 3.7 時間軸頁 `/books/:bookId/timeline`
 
 > 後端設計見 [`docs/guides/temporal-timeline.md`](guides/temporal-timeline.md)
-> 設計交付包見 `docs/handoff/20260725-timeline-page/`（Claude Design 決策稿）
 > 工程分期見 [`docs/plans/20260725-timeline-page-enhancements.md`](plans/20260725-timeline-page-enhancements.md)
 > **本節於 2026-07-27 全頁重做後改寫**；V2（2026-05-19）的版面已不再存在。
 

@@ -155,7 +155,6 @@ storysphere/
 │   ├── domain-glossary.md    # Domain terminology
 │   ├── BACKLOG.md            # Live backlog / BACKLOG_ARCHIVE.md — resolved items
 │   ├── plans/                # Dated planning docs for high-complexity features
-│   ├── handoff/               # Dated per-feature handoff notes
 │   ├── guides/                # Per-subsystem architecture refs + TESTING.md, LANGFUSE_SETUP.md
 │   ├── appendix/               # ADR-001 .. ADR-009, tools catalog
 │   └── archive/                # Superseded planning docs, kept for history
@@ -386,7 +385,6 @@ Current test count: **1,392 tests** across agents, services, tools, pipelines, w
 - [`docs/domain-glossary.md`](docs/domain-glossary.md) — Domain terminology
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — Live backlog (see `docs/BACKLOG_ARCHIVE.md` for resolved items)
 - [`docs/appendix/`](docs/appendix/) — ADR-001 through ADR-009, tools catalog, parallelism notes
-- [`docs/handoff/`](docs/handoff/) — Dated per-feature handoff notes (upload UX, character page, event analysis, timeline, tension, symbols, narrative)
 - [`docs/plans/`](docs/plans/) — Planning docs for high-complexity features, archived by date
 - [`docs/guides/`](docs/guides/) — Per-subsystem architecture references (pipelines, tools layer, chat agent, …) plus testing and Langfuse/LangSmith setup
 

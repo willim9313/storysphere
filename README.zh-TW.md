@@ -155,7 +155,6 @@ storysphere/
 │   ├── domain-glossary.md    # 領域術語表
 │   ├── BACKLOG.md            # 現行 backlog（已結案項目見 BACKLOG_ARCHIVE.md）
 │   ├── plans/                # 高複雜度功能規劃文件存檔
-│   ├── handoff/               # 各功能區塊的交接筆記（依日期）
 │   ├── guides/                # 各子系統架構參考 ＋ TESTING.md、LANGFUSE_SETUP.md
 │   ├── appendix/               # ADR-001 至 ADR-009、工具目錄
 │   └── archive/                # 已被取代的規劃文件，保留作歷史
@@ -386,7 +385,6 @@ uv run pytest --neo4j
 - [`docs/domain-glossary.md`](docs/domain-glossary.md) — 領域術語表
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — 現行 backlog（已結案項目見 `docs/BACKLOG_ARCHIVE.md`）
 - [`docs/appendix/`](docs/appendix/) — ADR-001 至 ADR-009、工具目錄、並行實作說明
-- [`docs/handoff/`](docs/handoff/) — 各功能區塊交接筆記（上傳體驗、角色頁、事件分析、時間軸、張力頁、符號頁、敘事頁）
 - [`docs/plans/`](docs/plans/) — 高複雜度功能規劃文件存檔
 - [`docs/guides/`](docs/guides/) — 各子系統的架構參考（pipelines、工具層、chat agent…）＋ 測試規範與 Langfuse / LangSmith 設定
 
