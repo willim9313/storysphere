@@ -98,70 +98,27 @@ Chat Agent           Analysis Agent        Ingestion Workflow
 
 ```
 storysphere/
-├── backend/
-│   └── storysphere/            # single Python namespace (imports as storysphere.*)
-│       ├── api/                # FastAPI app, routers, schemas, task store
-│       │   ├── routers/            # 18 routers — see API Overview below
-│       │   └── schemas/            # Pydantic response/request schemas (camelCase)
-│       ├── agents/
-│       │   ├── chat_agent.py           # LangGraph streaming chat agent (StateGraph + ToolNode)
-│       │   ├── chat_agent_base.py      # Shared prompt/history helpers
-│       │   ├── analysis_agent.py       # Cache-first deep analysis orchestrator
-│       │   ├── timeline_agent.py       # Timeline event agent
-│       │   ├── pattern_recognizer.py   # Query pre-filter for entity tracking
-│       │   └── states.py               # ChatState (Pydantic)
-│       ├── services/           # 28 modules — business logic
-│       │   ├── kg_service.py / kg_service_base.py / kg_service_neo4j.py
-│       │   ├── document_service.py / vector_service.py / summary_service.py
-│       │   ├── analysis_service.py / analysis_cache.py / cache_invalidation.py
-│       │   ├── symbol_service.py / symbol_analysis_service.py / symbol_graph_service.py
-│       │   ├── tension_service.py / narrative_service.py
-│       │   ├── faction_service.py / global_timeline_service.py
-│       │   ├── epistemic_state_service.py / voice_profiling_service.py
-│       │   ├── character_metrics_service.py / link_prediction_service.py
-│       │   └── extraction_service.py / keyword_service.py / toc_parser.py
-│       ├── tools/               # 23 chat-agent tools — see Tools below
-│       │   ├── graph_tools/ (7) · retrieval_tools/ (6) · analysis_tools/ (3)
-│       │   └── composite_tools/ (5) · other_tools/ (2)
-│       ├── pipelines/           # ETL pipelines
-│       │   ├── document_processing/   # loader, chapter detector, chunker
-│       │   ├── feature_extraction/    # embeddings, keywords
-│       │   ├── knowledge_graph/       # entity/relation extraction, linking
-│       │   ├── summarization/         # chapter summarizer
-│       │   ├── symbol_discovery/      # imagery detection
-│       │   ├── temporal_pipeline.py
-│       │   └── concept_inference.py
-│       ├── workflows/           # High-level orchestration (LangGraph ingestion, HITL review)
-│       ├── domain/              # Entity, Relation, Event, Narrative, Tension, ... Pydantic models
-│       ├── core/                # Multi-provider LLM client (fallback chain), metrics, tracing
-│       └── config/               # Settings (pydantic-settings), archetype/mythos JSON configs
-├── frontend/
-│   ├── src/
-│   │   ├── router.tsx      # React Router v6 route table
-│   │   ├── pages/          # LibraryPage · ReaderPage · GraphPage · TimelinePage
-│   │   │                   # CharacterAnalysisPage · EventAnalysisPage · SymbolsPage
-│   │   │                   # TensionPage · NarrativePage · SearchPage · MethodologyPage
-│   │   │                   # BuildOverviewPage · UploadPage · SettingsPage · TokenUsagePage
-│   │   ├── components/     # analysis / chat / epistemic / graph / layout / library
-│   │   │                   # methodology / narrative / reader / symbols / tension
-│   │   │                   # timeline / tasks / toast / ui / upload
-│   │   └── contexts/       # ThemeContext, ChatContext, ToastContext
-│   └── package.json
-├── docs/
-│   ├── CORE.md               # Architecture decisions index (start here)
-│   ├── API_CONTRACT.md       # Frontend/backend API spec — single source of truth
-│   ├── UI_SPEC.md            # UI component design spec
-│   ├── DESIGN_TOKENS.md      # CSS token reference
-│   ├── domain-glossary.md    # Domain terminology
-│   ├── BACKLOG.md            # Live backlog / BACKLOG_ARCHIVE.md — resolved items
-│   ├── plans/                # Dated planning docs for high-complexity features
-│   ├── guides/                # Per-subsystem architecture refs + TESTING.md, LANGFUSE_SETUP.md
-│   ├── appendix/               # ADR-001 .. ADR-009, tools catalog
-│   └── archive/                # Superseded planning docs, kept for history
-├── tests/                     # 1,392+ tests (pytest)
+├── backend/storysphere/   # single Python namespace (imports as storysphere.*)
+│   ├── api/               # FastAPI app, routers, schemas (camelCase), task store
+│   ├── agents/            # ChatAgent (LangGraph streaming), AnalysisAgent (cache-first), ChatState
+│   ├── services/          # business logic — KG, document, vector, symbol, tension, narrative, …
+│   ├── tools/             # chat-agent tools: graph / retrieval / analysis / composite / other
+│   ├── pipelines/         # ETL — document processing, feature extraction, KG, summarization,
+│   │                      #       symbol discovery, temporal
+│   ├── workflows/         # LangGraph ingestion with HITL chapter review
+│   ├── domain/            # Pydantic domain models (snake_case)
+│   ├── core/              # multi-provider LLM client (fallback chain), metrics, tracing
+│   └── config/            # settings, archetype / mythos JSON configs
+├── frontend/src/          # React 19 + Vite — pages/, components/, contexts/, api/, i18n/
+├── docs/                  # see the Docs section below
+├── tests/                 # pytest
 ├── pyproject.toml
 └── .env.example
 ```
+
+The per-file layout is deliberately **not** mirrored here — it drifts silently. Read
+`backend/storysphere/` directly; the layering and dependency rules are in
+[`docs/CORE.md`](docs/CORE.md).
 
 ---
 
@@ -251,28 +208,17 @@ All settings are loaded from `.env` (see `.env.example`). Key variables:
 
 ## API Overview
 
-Base path for all HTTP routes: **`/api/v1`**. The WebSocket route is unprefixed.
+Base path for all HTTP routes: **`/api/v1`**. The WebSocket route (`WS /ws/chat?session_id=<uuid>`,
+streaming chat agent) is unprefixed.
 
-| Router | Path | Purpose |
-|---|---|---|
-| `books` | `/books` | Upload, list, detail, delete; chapters, graph, timeline, review workflow, rerun-by-step, TOC parsing, role suggestion (largest router) |
-| `unraveling`, `factions`, `character_metrics` | nested under `/books/{id}/...` | Build-overview dashboard, faction detection, character centrality |
-| `entities` | `/entities` | List/detail, relations, timeline, subgraph, relation stats |
-| `relations` | `/relations` | Relation paths, aggregate stats |
-| `documents` | `/documents` | List/detail source documents |
-| `search` | `/search` | Semantic (vector) and full-text search |
-| `analysis` | `/analysis` | Trigger character / event deep analysis (async task pattern) |
-| `narrative` | `/narrative` | Classification, refine, Hero's Journey, temporal ordering, kernel spine, HITL review |
-| `tension` | `/tension` | Tension lines, TEUs, theme synthesis, HITL review |
-| `symbols` | `/symbols` | Imagery, overview, timeline, co-occurrence, interpretation |
-| `kg_settings` | `/kg` | KG backend status, switch, migrate |
-| `settings_info` | `/settings` | Runtime configuration info |
-| `tasks` | `/tasks` | Async task list, status, cancel |
-| `metrics` | `/metrics` | Performance metrics snapshot |
-| `token_usage` | `/token-usage` | LLM token usage stats |
-| `chat_ws` | `WS /ws/chat?session_id=<uuid>` | Streaming chat agent |
+Routes are grouped by domain — books (upload, chapters, review workflow, rerun-by-step),
+knowledge graph (entities, relations, factions, character metrics), search, deep analysis,
+narrative, tension, symbols, plus operational routes for tasks, metrics, token usage and settings.
 
-Full request/response schemas: [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md).
+**[`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) is the single source of truth** for every
+endpoint, its request/response shape and its error semantics — the router inventory is not
+duplicated here because it drifts. A drift test (`tests/docs/test_docs_drift.py`) asserts that
+every live `/api/v1` route is either specified in that document or explicitly declared unlisted.
 
 ---
 
@@ -310,17 +256,24 @@ SymbolDiscoveryPipeline
 
 ---
 
-## Tools (23 chat-agent tools)
+## Tools
 
-| Category | Tools |
+The chat agent works through a tool layer split into five categories:
+
+| Category | What it covers |
 |---|---|
-| **Graph** (7) | GetEntityAttrs, GetEntityRelations, GetRelationPaths, GetSubgraph, GetRelationStats, GetEntityTimeline, GetGlobalTimeline |
-| **Retrieval** (6) | VectorSearch, GetSummary, GetChapterSummary, GenSummary, GetParagraphs, GetKeywords |
-| **Analysis** (3) | GenerateInsight, AnalyzeCharacter, AnalyzeEvent |
-| **Composite** (5) | GetEntityProfile, GetEntityRelationship, GetCharacterArc, GetEventProfile, CompareCharacters |
-| **Other** (2) | CompareEntities, ExtractEntities |
+| **Graph** | Entity attributes and relations, relation paths, subgraphs, relation stats, entity and global timelines |
+| **Retrieval** | Vector search, book / chapter summaries, paragraphs, keywords |
+| **Analysis** | Insight generation, character and event deep analysis |
+| **Composite** | Multi-step combinations — entity profile, relationship, character arc, event profile, character comparison |
+| **Other** | Entity comparison, entity extraction |
 
-`AnalyzeCharacter` / `AnalyzeEvent` are only exposed to the chat agent when an `analysis_agent` dependency is wired in.
+`AnalyzeCharacter` / `AnalyzeEvent` are only exposed to the chat agent when an `analysis_agent`
+dependency is wired in.
+
+The tool inventory with full descriptions lives in
+[`docs/appendix/TOOLS_CATALOG.md`](docs/appendix/TOOLS_CATALOG.md); the design rules for writing
+one are in [`docs/guides/tools-layer.md`](docs/guides/tools-layer.md).
 
 ---
 
@@ -372,7 +325,9 @@ uv run pytest -m "not integration"
 uv run pytest --neo4j
 ```
 
-Current test count: **1,392 tests** across agents, services, tools, pipelines, workflows, and API endpoints. See [`docs/guides/TESTING.md`](docs/guides/TESTING.md) for conventions.
+Tests cover agents, services, tools, pipelines, workflows and API endpoints. Conventions —
+the three test layers, fixture rules, naming — are in
+[`docs/guides/TESTING.md`](docs/guides/TESTING.md).
 
 ---
 
@@ -384,9 +339,14 @@ Current test count: **1,392 tests** across agents, services, tools, pipelines, w
 - [`docs/DESIGN_TOKENS.md`](docs/DESIGN_TOKENS.md) — CSS token reference
 - [`docs/domain-glossary.md`](docs/domain-glossary.md) — Domain terminology
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — Live backlog (see `docs/BACKLOG_ARCHIVE.md` for resolved items)
+- [`docs/type-generation.md`](docs/type-generation.md) — Why TypeScript types are generated, and the camelCase / snake_case rule
 - [`docs/appendix/`](docs/appendix/) — ADR-001 through ADR-009, tools catalog, parallelism notes
-- [`docs/plans/`](docs/plans/) — Planning docs for high-complexity features, archived by date
 - [`docs/guides/`](docs/guides/) — Per-subsystem architecture references (pipelines, tools layer, chat agent, …) plus testing and Langfuse setup
+
+These two deliberately do **not** reflect the current state — read them as history, not as a spec:
+
+- [`docs/plans/`](docs/plans/README.md) — Dated planning snapshots, frozen once implemented. Where they conflict with the code, `API_CONTRACT.md` or `UI_SPEC.md`, those win.
+- [`docs/archive/`](docs/archive/README.md) — Superseded or obsolete documents, kept for archaeology only
 
 ---
 

@@ -98,70 +98,25 @@ Chat Agent           Analysis Agent        Ingestion Workflow
 
 ```
 storysphere/
-├── backend/
-│   └── storysphere/            # 單一 Python 命名空間（import 皆為 from storysphere.*）
-│       ├── api/                # FastAPI app、routers、schemas、task store
-│       │   ├── routers/            # 18 個 router — 詳見下方〈API 概覽〉
-│       │   └── schemas/            # Pydantic request/response schema（camelCase）
-│       ├── agents/
-│       │   ├── chat_agent.py           # LangGraph 串流 chat agent（StateGraph + ToolNode）
-│       │   ├── chat_agent_base.py      # 共用 prompt / history 建構邏輯
-│       │   ├── analysis_agent.py       # cache-first 深度分析協調器
-│       │   ├── timeline_agent.py       # 時間軸事件 agent
-│       │   ├── pattern_recognizer.py   # 查詢預過濾（實體追蹤）
-│       │   └── states.py               # ChatState（Pydantic）
-│       ├── services/           # 28 個模組 — 商業邏輯
-│       │   ├── kg_service.py / kg_service_base.py / kg_service_neo4j.py
-│       │   ├── document_service.py / vector_service.py / summary_service.py
-│       │   ├── analysis_service.py / analysis_cache.py / cache_invalidation.py
-│       │   ├── symbol_service.py / symbol_analysis_service.py / symbol_graph_service.py
-│       │   ├── tension_service.py / narrative_service.py
-│       │   ├── faction_service.py / global_timeline_service.py
-│       │   ├── epistemic_state_service.py / voice_profiling_service.py
-│       │   ├── character_metrics_service.py / link_prediction_service.py
-│       │   └── extraction_service.py / keyword_service.py / toc_parser.py
-│       ├── tools/               # 23 個 chat agent 工具 — 詳見下方〈工具清單〉
-│       │   ├── graph_tools/ (7) · retrieval_tools/ (6) · analysis_tools/ (3)
-│       │   └── composite_tools/ (5) · other_tools/ (2)
-│       ├── pipelines/           # ETL 管線
-│       │   ├── document_processing/   # loader、章節偵測、切分
-│       │   ├── feature_extraction/    # embeddings、關鍵字
-│       │   ├── knowledge_graph/       # 實體 / 關係抽取與連結
-│       │   ├── summarization/         # 章節摘要
-│       │   ├── symbol_discovery/      # 意象偵測
-│       │   ├── temporal_pipeline.py
-│       │   └── concept_inference.py
-│       ├── workflows/           # 高階流程協調（LangGraph 攝取流程、HITL 審閱）
-│       ├── domain/              # Entity / Relation / Event / Narrative / Tension 等 Pydantic model
-│       ├── core/                # 多供應商 LLM client（含 fallback chain）、metrics、tracing
-│       └── config/               # Settings（pydantic-settings）、原型 / mythos JSON 設定
-├── frontend/
-│   ├── src/
-│   │   ├── router.tsx      # React Router v6 路由表
-│   │   ├── pages/          # LibraryPage · ReaderPage · GraphPage · TimelinePage
-│   │   │                   # CharacterAnalysisPage · EventAnalysisPage · SymbolsPage
-│   │   │                   # TensionPage · NarrativePage · SearchPage · MethodologyPage
-│   │   │                   # BuildOverviewPage · UploadPage · SettingsPage · TokenUsagePage
-│   │   ├── components/     # analysis / chat / epistemic / graph / layout / library
-│   │   │                   # methodology / narrative / reader / symbols / tension
-│   │   │                   # timeline / tasks / toast / ui / upload
-│   │   └── contexts/       # ThemeContext、ChatContext、ToastContext
-│   └── package.json
-├── docs/
-│   ├── CORE.md               # 架構決策索引（從這裡開始讀）
-│   ├── API_CONTRACT.md       # 前後端 API 規格，唯一真相來源
-│   ├── UI_SPEC.md            # UI 元件設計規格
-│   ├── DESIGN_TOKENS.md      # CSS token 對照表
-│   ├── domain-glossary.md    # 領域術語表
-│   ├── BACKLOG.md            # 現行 backlog（已結案項目見 BACKLOG_ARCHIVE.md）
-│   ├── plans/                # 高複雜度功能規劃文件存檔
-│   ├── guides/                # 各子系統架構參考 ＋ TESTING.md、LANGFUSE_SETUP.md
-│   ├── appendix/               # ADR-001 至 ADR-009、工具目錄
-│   └── archive/                # 已被取代的規劃文件，保留作歷史
-├── tests/                     # 1,392+ 測試（pytest）
+├── backend/storysphere/   # 單一 Python 命名空間（import 皆為 from storysphere.*）
+│   ├── api/               # FastAPI app、routers、schemas（camelCase）、task store
+│   ├── agents/            # ChatAgent（LangGraph 串流）、AnalysisAgent（cache-first）、ChatState
+│   ├── services/          # 商業邏輯 — KG、文件、向量、象徵、張力、敘事 …
+│   ├── tools/             # chat agent 工具：graph / retrieval / analysis / composite / other
+│   ├── pipelines/         # ETL — 文件處理、特徵抽取、知識圖譜、摘要、意象偵測、時序
+│   ├── workflows/         # LangGraph 攝取流程（含 HITL 章節審閱）
+│   ├── domain/            # Pydantic 領域模型（snake_case）
+│   ├── core/              # 多供應商 LLM client（含 fallback chain）、metrics、tracing
+│   └── config/            # Settings、原型 / mythos JSON 設定
+├── frontend/src/          # React 19 + Vite — pages/、components/、contexts/、api/、i18n/
+├── docs/                  # 見下方〈文件〉一節
+├── tests/                 # pytest
 ├── pyproject.toml
 └── .env.example
 ```
+
+**逐檔結構刻意不在這裡鏡射一份**——那會無聲漂移。請直接看 `backend/storysphere/`；
+分層與依賴方向規則見 [`docs/CORE.md`](docs/CORE.md)。
 
 ---
 
@@ -251,28 +206,17 @@ npm run dev
 
 ## API 概覽
 
-所有 HTTP 路由的基礎路徑為 **`/api/v1`**；WebSocket 路由不帶此前綴。
+所有 HTTP 路由的基礎路徑為 **`/api/v1`**；WebSocket 路由（`WS /ws/chat?session_id=<uuid>`，
+串流對話 agent）不帶此前綴。
 
-| Router | 路徑 | 用途 |
-|---|---|---|
-| `books` | `/books` | 上傳、列表、詳情、刪除；章節、圖譜、時間軸、審閱流程、分步重跑、目錄解析、角色建議（規模最大的 router） |
-| `unraveling`、`factions`、`character_metrics` | 掛載於 `/books/{id}/...` | 建構概覽儀表板、陣營偵測、角色中心性 |
-| `entities` | `/entities` | 列表 / 詳情、關係、時間軸、子圖、關係統計 |
-| `relations` | `/relations` | 關係路徑、彙總統計 |
-| `documents` | `/documents` | 來源文件列表 / 詳情 |
-| `search` | `/search` | 語意（向量）與全文搜尋 |
-| `analysis` | `/analysis` | 觸發角色 / 事件深度分析（非同步任務模式） |
-| `narrative` | `/narrative` | 分類、精修、英雄旅程、時序排列、kernel spine、HITL 審閱 |
-| `tension` | `/tension` | 張力線、TEU、主題綜合、HITL 審閱 |
-| `symbols` | `/symbols` | 意象、總覽、時間軸、共現、詮釋 |
-| `kg_settings` | `/kg` | KG 後端狀態、切換、遷移 |
-| `settings_info` | `/settings` | 執行期設定資訊 |
-| `tasks` | `/tasks` | 非同步任務列表、狀態、取消 |
-| `metrics` | `/metrics` | 效能指標快照 |
-| `token_usage` | `/token-usage` | LLM token 用量統計 |
-| `chat_ws` | `WS /ws/chat?session_id=<uuid>` | 串流對話 agent |
+路由依領域分組——書籍（上傳、章節、審閱流程、分步重跑）、知識圖譜（實體、關係、陣營、
+角色中心性）、搜尋、深度分析、敘事結構、張力、象徵，以及任務、指標、token 用量、
+設定等維運路由。
 
-完整請求 / 回應規格請見 [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md)。
+**[`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) 是每個端點的唯一規格來源**，涵蓋請求 /
+回應形狀與錯誤語意——router 清單不在此重複一份，因為它會漂移。漂移測試
+（`tests/docs/test_docs_drift.py`）會驗證每個實際存在的 `/api/v1` 路由，
+要嘛在該文件中有規格、要嘛被明確標記為未納入契約。
 
 ---
 
@@ -310,17 +254,23 @@ SymbolDiscoveryPipeline
 
 ---
 
-## 工具清單（23 個 chat agent 工具）
+## 工具清單
 
-| 類別 | 工具 |
+Chat agent 透過一層工具存取系統能力，分為五類：
+
+| 類別 | 涵蓋範圍 |
 |---|---|
-| **Graph**（7） | GetEntityAttrs, GetEntityRelations, GetRelationPaths, GetSubgraph, GetRelationStats, GetEntityTimeline, GetGlobalTimeline |
-| **Retrieval**（6） | VectorSearch, GetSummary, GetChapterSummary, GenSummary, GetParagraphs, GetKeywords |
-| **Analysis**（3） | GenerateInsight, AnalyzeCharacter, AnalyzeEvent |
-| **Composite**（5） | GetEntityProfile, GetEntityRelationship, GetCharacterArc, GetEventProfile, CompareCharacters |
-| **Other**（2） | CompareEntities, ExtractEntities |
+| **Graph** | 實體屬性與關係、關係路徑、子圖、關係統計、實體與全域時間軸 |
+| **Retrieval** | 向量搜尋、書籍 / 章節摘要、段落、關鍵字 |
+| **Analysis** | 洞察生成、角色與事件深度分析 |
+| **Composite** | 多步驟組合 — 實體檔案、關係、角色弧線、事件檔案、角色比較 |
+| **Other** | 實體比較、實體抽取 |
 
 `AnalyzeCharacter` / `AnalyzeEvent` 僅在有注入 `analysis_agent` 依賴時才會暴露給 chat agent。
+
+完整工具清單與 description 見
+[`docs/appendix/TOOLS_CATALOG.md`](docs/appendix/TOOLS_CATALOG.md)；
+撰寫工具的設計原則見 [`docs/guides/tools-layer.md`](docs/guides/tools-layer.md)。
 
 ---
 
@@ -372,7 +322,8 @@ uv run pytest -m "not integration"
 uv run pytest --neo4j
 ```
 
-目前測試數：**1,392 個測試**，涵蓋 agents、services、tools、pipelines、workflows 與 API endpoints。撰寫慣例請見 [`docs/guides/TESTING.md`](docs/guides/TESTING.md)。
+測試涵蓋 agents、services、tools、pipelines、workflows 與 API endpoints。撰寫慣例——
+三層測試分工、fixture 規則、命名——見 [`docs/guides/TESTING.md`](docs/guides/TESTING.md)。
 
 ---
 
@@ -384,9 +335,14 @@ uv run pytest --neo4j
 - [`docs/DESIGN_TOKENS.md`](docs/DESIGN_TOKENS.md) — CSS token 對照表
 - [`docs/domain-glossary.md`](docs/domain-glossary.md) — 領域術語表
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — 現行 backlog（已結案項目見 `docs/BACKLOG_ARCHIVE.md`）
+- [`docs/type-generation.md`](docs/type-generation.md) — 為何 TypeScript 型別要自動產生，以及 camelCase / snake_case 規則
 - [`docs/appendix/`](docs/appendix/) — ADR-001 至 ADR-009、工具目錄、並行實作說明
-- [`docs/plans/`](docs/plans/) — 高複雜度功能規劃文件存檔
 - [`docs/guides/`](docs/guides/) — 各子系統的架構參考（pipelines、工具層、chat agent…）＋ 測試規範與 Langfuse 設定
+
+以下兩處**刻意不反映現況**，請當歷史讀，不要當規格：
+
+- [`docs/plans/`](docs/plans/README.md) — 規劃當下的凍結快照，實作後不再更新。與程式碼、`API_CONTRACT.md`、`UI_SPEC.md` 衝突時，以後者為準
+- [`docs/archive/`](docs/archive/README.md) — 已失效或已被取代的文件，只作考古用
 
 ---
 
