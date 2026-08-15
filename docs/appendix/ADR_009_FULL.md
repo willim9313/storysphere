@@ -12,6 +12,13 @@
 > pipeline 步驟或刪書時失效（見 `backend/storysphere/services/cache_invalidation.py`）。
 > 文中的 ChatState 5 分鐘工具結果快取從未實作，`CHAT_CACHE_TTL_SECONDS` 設定已移除。
 > 目前行為以 `docs/CORE.md` 為準。
+>
+> **⚠️ 監控選型已被取代（2026-03-31, `5c31810`）**
+> 「監控 → 生產階段（可選）」列的 **LangSmith 未被採用**，改用 **Langfuse**——
+> 理由與原文的「付費」定位相反：選 Langfuse 正是因為它可自託管，不必把 trace 資料
+> 交給付費 SaaS。LangSmith 整合曾於 2026-03-11（`5f1de99`）上線，2026-03-31 完整移除。
+> 現行設定方式見 [`guides/LANGFUSE_SETUP.md`](../guides/LANGFUSE_SETUP.md)，
+> 決策背景見 [`BACKLOG_ARCHIVE.md`](../BACKLOG_ARCHIVE.md) 的 B-004。
 
 ## 背景 (Context)
 

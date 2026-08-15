@@ -386,7 +386,7 @@ uv run pytest --neo4j
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — 現行 backlog（已結案項目見 `docs/BACKLOG_ARCHIVE.md`）
 - [`docs/appendix/`](docs/appendix/) — ADR-001 至 ADR-009、工具目錄、並行實作說明
 - [`docs/plans/`](docs/plans/) — 高複雜度功能規劃文件存檔
-- [`docs/guides/`](docs/guides/) — 各子系統的架構參考（pipelines、工具層、chat agent…）＋ 測試規範與 Langfuse / LangSmith 設定
+- [`docs/guides/`](docs/guides/) — 各子系統的架構參考（pipelines、工具層、chat agent…）＋ 測試規範與 Langfuse 設定
 
 ---
 

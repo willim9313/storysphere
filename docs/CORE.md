@@ -185,7 +185,7 @@ RelationType (10): family, friendship, romance, enemy, ally, subordinate,
 
 **操作指南**（與架構參考分開）：
 [TESTING.md](guides/TESTING.md) · [API_TESTING.md](guides/API_TESTING.md) ·
-[LANGFUSE_SETUP.md](guides/LANGFUSE_SETUP.md) · [LANGSMITH_SETUP.md](guides/LANGSMITH_SETUP.md)
+[LANGFUSE_SETUP.md](guides/LANGFUSE_SETUP.md)
 
 ---
 

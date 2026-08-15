@@ -386,7 +386,7 @@ Current test count: **1,392 tests** across agents, services, tools, pipelines, w
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — Live backlog (see `docs/BACKLOG_ARCHIVE.md` for resolved items)
 - [`docs/appendix/`](docs/appendix/) — ADR-001 through ADR-009, tools catalog, parallelism notes
 - [`docs/plans/`](docs/plans/) — Planning docs for high-complexity features, archived by date
-- [`docs/guides/`](docs/guides/) — Per-subsystem architecture references (pipelines, tools layer, chat agent, …) plus testing and Langfuse/LangSmith setup
+- [`docs/guides/`](docs/guides/) — Per-subsystem architecture references (pipelines, tools layer, chat agent, …) plus testing and Langfuse setup
 
 ---
 
