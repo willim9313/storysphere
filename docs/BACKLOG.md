@@ -992,7 +992,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 
 #### F-13 Role Agent 系統
 **分類**: 體驗功能 — Wave 4（核心沉浸功能）
-**設計文件**: `docs/guides/PHASE_X_ROLE_AGENT.md`（待建立，因複雜度需完整 guide）
+**設計文件**: `docs/plans/<YYYYMMDD>-role-agent.md`（待建立，因複雜度需完整 guide）
 
 **背景**: 讓每個角色成為可以對話的 Agent，有認識論邊界（不知道他不該知道的事）、有聲音風格、有性格約束。支援四種使用模式：視角重述、單角色對話、多角色聊天室、世界觀建構中的角色測試。
 
@@ -1066,7 +1066,7 @@ CEP 的性格結構 + 原型標籤
 
 #### F-19 What-If 完整系統
 **分類**: 整合 — Wave 5
-**設計文件**: `docs/guides/PHASE_X_WHATIF_SYSTEM.md`（待建立）
+**設計文件**: `docs/plans/<YYYYMMDD>-whatif-system.md`（待建立）
 
 **內容**: F-05 的延伸，加入多分支管理 UI、分支事件鏈的完整視覺化、分支之間的比對工具，以及將 Role Agent（F-13）帶入 What-If 分支進行角色對話驗證。
 
@@ -1076,7 +1076,7 @@ CEP 的性格結構 + 原型標籤
 
 #### F-20 Role Agent 完整系統
 **分類**: 整合 — Wave 5
-**設計文件**: `docs/guides/PHASE_X_ROLE_AGENT.md`（同 F-13）
+**設計文件**: `docs/plans/<YYYYMMDD>-role-agent.md`（同 F-13）
 
 **內容**: F-13 的完整實作，加入視角重述模式（角色日記 / 回憶錄生成）、對話記錄掛回 KG 作為「平行事件」、多角色聊天室的完整 orchestration 邏輯。
 
@@ -1086,7 +1086,7 @@ CEP 的性格結構 + 原型標籤
 
 #### F-15 世界觀建構完整系統
 **分類**: 整合 — Wave 5（新使用模式）
-**設計文件**: `docs/guides/PHASE_X_WORLDBUILDING.md`（待建立）
+**設計文件**: `docs/plans/<YYYYMMDD>-worldbuilding.md`（待建立）
 
 **背景**: 把整個系統的使用方向翻轉——從「輸入文本 → 分析理解」變成「輸入設定碎片 → 系統幫你結構化、補全、檢查一致性」。用戶不需要完整小說文本，可以自定義角色卡、地點描述、事件設定，系統自動建構 KG、檢查邏輯、並提供 Role Agent 和 What-If 功能。
 

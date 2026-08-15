@@ -1,12 +1,14 @@
 """文件漂移檢查 —— 讓契約文件與實作的落差在 CI 就爆掉，而不是靠人工比對。
 
-涵蓋四項：
+涵蓋五項：
 
 * ``docs/API_CONTRACT.md`` —— 每個 ``/api/v1`` 路由都必須要嘛有規格、要嘛被明確
   列進「未納入契約的端點」表。反向也檢查：文件寫了但程式碼沒有的端點。
 * ``docs/DESIGN_TOKENS.md`` —— ``tokens.css`` 的每個 token 都必須在對照表裡找得到。
 * ``docs/plans/README.md`` —— 索引與目錄內容一致（雙向）。
 * 全文件的**相對連結**都指向存在的檔案。
+* 全文件**反引號裡的 ``docs/**.md`` 路徑**都指向存在的檔案 —— 文件之間多半是用
+  code span 而非 markdown link 互相引用，這條補的是搬檔後靜默斷鏈的缺口。
 
 全部只讀檔案，不需要啟動後端。
 """
@@ -215,6 +217,18 @@ FENCE_RE = re.compile(r"^\s*(```|~~~)")
 INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 
+# 反引號裡的文件路徑，如 `docs/API_CONTRACT.md`。一律視為 repo 根目錄相對。
+CODE_SPAN_DOC_RE = re.compile(r"^docs/[\w./-]+\.md$")
+# `docs/plans/<YYYYMMDD>-foo.md` 這種佔位寫法不算路徑 —— `<>` 不在字元集內，自然被排除。
+
+# 只驗 `docs/**.md`，**不驗** `.py` / `.tsx` 等程式碼路徑：BACKLOG 大量引用
+# 「將建立」的未來檔案（`services/rhythm_service.py` 之類），那是規劃的正常寫法，
+# 驗了會一律誤判。實測驗程式碼路徑會產生 72 筆違規，真問題只有個位數。
+CODE_SPAN_SKIP_DIRS = (
+    REPO_ROOT / "docs" / "plans",
+    REPO_ROOT / "docs" / "archive",
+)
+
 
 def _markdown_links(path: Path) -> list[tuple[int, str]]:
     """抽出檔案裡的 markdown 連結目標，回傳 (行號, target)。
@@ -268,6 +282,53 @@ class TestDocumentLinks:
                 if not (doc.parent / rel).resolve().exists():
                     broken.append(f"{doc.relative_to(REPO_ROOT)}:{lineno} → {target}")
         assert not broken, "以下相對連結指向不存在的檔案：\n  " + "\n  ".join(broken)
+
+
+def _code_span_doc_paths(path: Path) -> list[tuple[int, str]]:
+    """抽出反引號裡的 ``docs/**.md`` 路徑，回傳 (行號, 路徑)。
+
+    與 :func:`_markdown_links` 相反 —— 那個把 code span *移除*，這個只看 code span。
+    圍欄區塊同樣跳過（裡面是範例與示意樹狀圖，不是引用）。
+    """
+    out: list[tuple[int, str]] = []
+    in_fence = False
+    for lineno, raw in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        if FENCE_RE.match(raw):
+            in_fence = not in_fence
+            continue
+        if in_fence:
+            continue
+        for m in INLINE_CODE_RE.finditer(raw):
+            token = m.group(0).strip("`").strip()
+            if CODE_SPAN_DOC_RE.match(token):
+                out.append((lineno, token))
+    return out
+
+
+class TestCodeSpanDocPaths:
+    """反引號裡的 ``docs/**.md`` 路徑也必須指向存在的檔案。
+
+    為什麼要單獨驗這個：文件之間**大多不是用 markdown link 互相引用的**，而是寫成
+    `` `docs/API_CONTRACT.md` `` 這種 code span。:class:`TestDocumentLinks` 只看
+    markdown link，看不到這些——2026-08-15 撤銷 ``docs/notes/`` 那次，12 處引用
+    全是 code span，測試一條都沒攔到，靠人工掃才發現。這個檢查補的就是那個缺口。
+
+    ``plans/`` 與 ``archive/`` 跳過：兩者都是凍結文件，明訂不回頭修改，
+    強制它們的路徑永遠有效等於逼人去改歷史紀錄。
+    """
+
+    def test_no_missing_doc_paths_in_code_spans(self) -> None:
+        broken: list[str] = []
+        for doc in _scanned_docs():
+            if any(skip in doc.parents for skip in CODE_SPAN_SKIP_DIRS):
+                continue
+            for lineno, target in _code_span_doc_paths(doc):
+                if not (REPO_ROOT / target).exists():
+                    broken.append(f"{doc.relative_to(REPO_ROOT)}:{lineno} → {target}")
+        assert not broken, (
+            "以下反引號路徑指向不存在的文件（搬檔或改名後忘了同步？）：\n  "
+            + "\n  ".join(broken)
+        )
 
 
 class TestPlansIndex:
