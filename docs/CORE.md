@@ -19,7 +19,9 @@
 | API 端點、請求／回應形狀 | [`docs/API_CONTRACT.md`](API_CONTRACT.md) |
 | 前端頁面規格、導航結構 | [`docs/UI_SPEC.md`](UI_SPEC.md) |
 | CSS token 與主題對照 | [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md) |
+| 領域術語（TEU、CEP、kernel/satellite …） | [`docs/domain-glossary.md`](domain-glossary.md) |
 | TypeScript 型別 | `frontend/src/api/generated.ts`（由 openapi.json 產生） |
+| 欄位命名規則（camelCase／snake_case） | [`docs/type-generation.md`](type-generation.md) |
 | ChatState 欄位 | `backend/storysphere/agents/states.py` |
 | 工具清單與 description | `backend/storysphere/tools/`、[`appendix/TOOLS_CATALOG.md`](appendix/TOOLS_CATALOG.md) |
 | 領域模型 | `backend/storysphere/domain/` |
@@ -28,6 +30,13 @@
 
 > `docs/API_CONTRACT.md` 與 `docs/DESIGN_TOKENS.md` 的同步由
 > `tests/docs/test_docs_drift.py` 自動把關；本文件不在該檢查範圍內，因為它刻意不含規格。
+
+**以下兩處刻意不反映現況**，查現況時別誤用：
+
+| 目錄 | 是什麼 | 怎麼讀 |
+|------|--------|--------|
+| [`docs/plans/`](plans/README.md) | 規劃當下的評估快照，實作後即凍結，被推翻也不回頭改 | 讀「當初為什麼這樣打算」。**衝突時一律以程式碼、API_CONTRACT、UI_SPEC 為準**。已列入根目錄 `.ignore`，`rg` 預設不搜這裡 |
+| [`docs/archive/`](archive/README.md) | 已失效或已被取代的文件 | 只作考古用，不作依據 |
 
 ---
 
