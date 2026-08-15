@@ -107,7 +107,7 @@
 
 - 所有顏色、字體 token 一律使用 CSS variable（`var(--*)`），禁止在元件中硬編碼色碼
 - Token 實作位於 `frontend/src/styles/tokens.css`；新增或修改任何 token 時，必須同步更新 `docs/DESIGN_TOKENS.md` 的對照表
-- `FRONTEND_DEV_GUIDE.md` 為歷史參考文件，不得修改
+- `docs/archive/FRONTEND_DEV_GUIDE.md` 為歷史參考文件，不得修改（其中的舊 token 定義已失效，一律以 `DESIGN_TOKENS.md` 為準）
 - 主題切換邏輯唯一入口為 ThemeContext，不得在元件內直接讀寫 localStorage 或操作 `data-theme`
 
 ---

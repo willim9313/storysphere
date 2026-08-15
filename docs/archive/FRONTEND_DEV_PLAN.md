@@ -13,7 +13,7 @@
 
 ## Context
 後端已完整實作（FastAPI + WebSocket + LangGraph + 深度分析），前端尚未建立。
-規格文件：`docs/FRONTEND_DEV_GUIDE.md`。本計劃分 5 個階段，由基礎到複雜逐步推進。
+規格文件：`docs/archive/FRONTEND_DEV_GUIDE.md`。本計劃分 5 個階段，由基礎到複雜逐步推進。
 
 ---
 
