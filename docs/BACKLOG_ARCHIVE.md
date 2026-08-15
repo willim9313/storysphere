@@ -365,7 +365,7 @@ directive "Respond in Zh."」。當時的修法是往表裡補 `zh` 條目，沒
 
 ## B-023 Event 節點張力欄位強化 ✅ 完成
 **背景**: 張力分析的觸發機制依賴 Event 節點的 `tension_signal` 標記。原 ingestion pipeline 提取 Event 節點時未產出此欄位，TEU 組裝無法啟動。
-**設計文件**: `docs/notes/tension_analysis_design_notes.md` Section 五
+**設計文件**: `docs/plans/20260331-tension-analysis-design-notes.md` Section 五
 **實作**:
 - 更新 `backend/storysphere/domain/models.py` EventNode schema，新增三個欄位：`tension_signal`, `emotional_intensity`, `emotional_valence`
 - 更新 `backend/storysphere/pipelines/entity_extractor.py` 的 Event 提取 prompt
@@ -375,7 +375,7 @@ directive "Respond in Zh."」。當時的修法是往表裡補 `zh` 條目，沒
 
 ## B-024 Concept 節點 surface/inferred 分類強化 ✅ 完成
 **背景**: 張力分析用 Concept 節點描述對立極點，需區分「文本直接說出的概念」（surface）和「LLM 推斷的命題」（inferred），兩者可信度不同。
-**設計文件**: `docs/notes/tension_analysis_design_notes.md` Section 四
+**設計文件**: `docs/plans/20260331-tension-analysis-design-notes.md` Section 四
 **實作**:
 - 更新 ConceptNode schema，新增：`extraction_method`, `source_spans`, `inferred_by`, `confidence`
 - Ingestion pipeline 自動標記 `extraction_method="ner"`
@@ -438,7 +438,7 @@ directive "Respond in Zh."」。當時的修法是往表裡補 `zh` 條目，沒
 
 ## B-031 Event 節點敘事學欄位預留 ✅ 完成（已與 B-023 合併）
 **背景**: Kernel/Satellite 分類和熱奈特時序分析都依賴 Event 節點的新欄位，應在 ingestion 時以預設值填入。
-**設計文件**: `docs/notes/narratology_analysis_design_notes.md` Section 五
+**設計文件**: `docs/plans/20260331-narratology-analysis-design-notes.md` Section 五
 **實作**（與 B-023 合併為一次 migration）:
 - 更新 `backend/storysphere/domain/models.py` EventNode，新增：`narrative_weight`, `narrative_weight_source`, `story_time`
 - 新增 `StoryTimeRef` schema（`relative_order`, `time_anchor`, `absolute_time`, `confidence`）
@@ -671,7 +671,7 @@ directive "Respond in Zh."」。當時的修法是往表裡補 `zh` 條目，沒
 
 ## B-017 意象實體識別策略研究（符號學前置依賴）✅ 完成
 **背景**: 符號學分析模組的核心技術挑戰。評估三種識別策略（詞嵌入聚類、LLM 輔助標注、人工種子+擴展）。
-**設計文件**: `docs/notes/symbolic_analysis_design_notes.md` Section 四
+**設計文件**: `docs/plans/20260331-symbolic-analysis-design-notes.md` Section 四
 **結論**: 採用 LLM 輔助標注（主）+ 詞嵌入聚類（同義詞合併），為 B-018~B-022 的前置依賴。
 
 ---

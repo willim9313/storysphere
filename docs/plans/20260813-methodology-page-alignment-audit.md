@@ -56,7 +56,7 @@ EEP 的 `structural_role`（Setup / Inciting Incident / Turning Point / Escalati
 
 - 書級主題（TensionTheme）已對齊：`frye_mythos` / `booker_plots` 都在方法論頁，但**張力分析頁本身沒有連過去**（未在 UI_SPEC 或元件裡找到 `/methodology` 連結）。
   - **缺口**：純補連結，方法論頁條目已存在。
-- 章節級張力抽取（TEU / TensionLine，即 `_TEU_SYSTEM_PROMPT` 產出「對立雙極」的那一層）依據的理論——Aristotle agon、Greimas 符號方陣、Peter Brooks《Reading for the Plot》、Mieke Bal——**只寫在 `docs/notes/tension_analysis_design_notes.md`，完全沒有進 `frameworksData.ts`，程式碼 prompt 裡也沒有點名**。
+- 章節級張力抽取（TEU / TensionLine，即 `_TEU_SYSTEM_PROMPT` 產出「對立雙極」的那一層）依據的理論——Aristotle agon、Greimas 符號方陣、Peter Brooks《Reading for the Plot》、Mieke Bal——**只寫在 `docs/plans/20260331-tension-analysis-design-notes.md`，完全沒有進 `frameworksData.ts`，程式碼 prompt 裡也沒有點名**。
   - 這是張力分析頁**最大的方法論真空**：讀者在頁面上看到的「對立雙極」抽取邏輯，完全沒有可供學習的方法論頁條目——現有 `frye_mythos`/`booker_plots` 只解釋了「書級主題怎麼從一堆張力線合成」，沒有解釋「張力線本身怎麼從場景抽出來」這一層的理論依據。
 
 ### 2.6 符號分析頁
@@ -73,7 +73,7 @@ EEP 的 `structural_role`（Setup / Inciting Incident / Turning Point / Escalati
 
 ### 2.8 認識論狀態（Epistemic State）
 
-概念上呼應 Genette「聚焦（focalization）」——「誰在特定章節知道什麼」——但程式碼、設計筆記都沒有引用理論家名字（`docs/notes/narratology_analysis_design_notes.md` 甚至明確把「聚焦」標為「❌ 現階段不可行」，理由是自由間接引語辨識準確率不足）。
+概念上呼應 Genette「聚焦（focalization）」——「誰在特定章節知道什麼」——但程式碼、設計筆記都沒有引用理論家名字（`docs/plans/20260331-narratology-analysis-design-notes.md` 甚至明確把「聚焦」標為「❌ 現階段不可行」，理由是自由間接引語辨識準確率不足）。
 
 - 這條**不建議现在勉强對齊**：設計筆記已經明確說這個概念在系統裡是刻意迴避嚴謹理論宣稱的（避免自由間接引語辨識不準卻打著 Genette 的名號）。如果 `EpistemicStateService` 有讀者可見的呈現頁面，文案上應該維持「概念呼應但非正式引用」的說法，不要因為要湊方法論頁而過度宣稱。
 
@@ -150,5 +150,5 @@ EEP 的 `structural_role`（Setup / Inciting Incident / Turning Point / Escalati
 
 ## 五、參考
 
-- 完整的 prompt 原文與 docstring 節錄見本次盤點對話（分析功能方法論總覽），未另存檔，如需要可要求補一份 `docs/notes/analysis_prompts_theory_sources.md` 彙整逐字稿。
-- 理論書目本身已在 `docs/notes/narratology_analysis_design_notes.md`、`symbolic_analysis_design_notes.md`、`tension_analysis_design_notes.md` 三份筆記列出，本筆記不重複抄錄書目，只記「哪裡缺對齊」。
+- 完整的 prompt 原文與 docstring 節錄見本次盤點對話（分析功能方法論總覽），未另存檔，如需要可要求補一份 `docs/plans/<YYYYMMDD>-analysis-prompts-theory-sources.md` 彙整逐字稿。
+- 理論書目本身已在 `docs/plans/20260331-narratology-analysis-design-notes.md`、`20260331-symbolic-analysis-design-notes.md`、`20260331-tension-analysis-design-notes.md` 三份筆記列出，本筆記不重複抄錄書目，只記「哪裡缺對齊」。

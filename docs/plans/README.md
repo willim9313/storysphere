@@ -15,10 +15,19 @@
 > 避免舊規劃的內容混進現況查詢。要搜時明確指定路徑（`rg <pattern> docs/plans`）
 > 或加 `-u`。這只影響搜尋工具，git 照常追蹤。
 
+> **關於 2026-03-31 那三份**：它們原本放在 `docs/notes/`——那是本目錄成立（2026-04-29）
+> 之前的舊慣例，當時的規矩是「會回頭更新」，與這裡的凍結原則相反，且該慣例實際上只被
+> 執行過一次就遭遺棄。2026-08-15 併入本目錄，`docs/notes/` 同時撤銷。
+> 併入時**未修改內容**，因此其中的狀態自述（如「B-035~B-038 待開發」，實際四項皆已完成）
+> 一律以上方免責為準。
+
 ---
 
 | 日期 | 主題 |
 |------|------|
+| 2026-03-31 | [符號學分析模組 — 規劃與設計筆記](./20260331-symbolic-analysis-design-notes.md) |
+| 2026-03-31 | [張力分析模組 — 規劃與設計筆記](./20260331-tension-analysis-design-notes.md) |
+| 2026-03-31 | [敘事學分析模組 — 規劃與設計筆記](./20260331-narratology-analysis-design-notes.md) |
 | 2026-04-29 | [StorySphere UI Theme Design Specification](./20260429-theme-system-bw.md) |
 | 2026-05-05 | [I-001 輕量化部署模式 — 實作規劃](./20260505-i001-lightweight-deployment.md) |
 | 2026-05-05 | [I-003 主要 LLM Provider 可配置化 — 實作規劃](./20260505-i003-primary-llm-provider.md) |
@@ -80,3 +89,4 @@
 | 2026-08-10 | [象徵詮釋:讓 provider 封鎖被記住](./20260810-symbol-interpretation-block-record.md) |
 | 2026-08-11 | [敘事結構頁重設計 — Claude Design Brief](./20260811-narrative-page-redesign-brief.md) |
 | 2026-08-11 | [敘事結構頁翻新計畫](./20260811-narrative-page-revamp.md) |
+| 2026-08-13 | [方法論頁 × 功能頁對齊盤點](./20260813-methodology-page-alignment-audit.md) |

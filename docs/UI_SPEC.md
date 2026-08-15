@@ -731,7 +731,7 @@ Shift+Click 第 2 個 → 並排比較；第 3 個 → 踢掉最早選的。共�
   - **時間軸連動**（Phase 4）：faction 分析帶 `?chapter=`（chapter 模式且 position>0），派系劃分隨章節重算
   - **社群說明卡**（Phase 4）：交代分群僅計入角色正向關係、未歸屬角色數、非角色/未分群實體數。
     2026-08-13 追加一行機制說明（Newman modularity：群內連結盡量密、群間盡量疏，純圖論非語意判讀）——
-    這是圖論方法論的盤點結論（見 `docs/notes/methodology_page_alignment_audit.md` D 類）：
+    這是圖論方法論的盤點結論（見 `docs/plans/20260813-methodology-page-alignment-audit.md` D 類）：
     不進 `/methodology` 頁（調性與其他 8 個文學理論條目不合、且無法跨書比對），改在此說明卡 inline 交代
   - **drill-in**（C8）：點陣營 → 該陣營置中展開成員、其餘陣營淡出；成員點擊切回個別模式並選取
   - 分群參數（resolution / minClusterSize）收進進階抽屜，預設收合（draft/applied，不即時重算）

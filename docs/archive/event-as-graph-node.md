@@ -1,5 +1,10 @@
 # 事件節點化：現況調查與開發筆記
 
+> **已歸檔（2026-03-21，於 2026-08-15 隨 `docs/notes/` 撤銷移入本目錄）。**
+> 本文是當時的現況調查快照，「現況」一節描述的是 2026-03 的程式碼，不反映今日狀態。
+> 事件的資料結構請直接看 `backend/storysphere/domain/events.py`，
+> 端點以 [`docs/API_CONTRACT.md`](../API_CONTRACT.md) 為準。
+
 ## 現況
 
 ### 事件的資料結構 (`backend/storysphere/domain/events.py`)

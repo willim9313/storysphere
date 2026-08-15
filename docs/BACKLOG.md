@@ -708,7 +708,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 
 #### F-06 敘事節奏分析器
 **分類**: 分析功能 — Wave 2
-**設計文件**: `docs/notes/narrative_rhythm_design_notes.md`（待建立，可與 F-07 合併）
+**設計文件**: `docs/plans/<YYYYMMDD>-narrative-rhythm.md`（待建立，可與 F-07 合併）
 
 **背景**: 把全書投影成多維節奏曲線，讓讀者一眼看出作者的敘事節奏型態，也讓創作者可以檢查自己的節奏是否過於平均或集中。
 
@@ -769,7 +769,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 
 #### F-12 閱讀記憶外化系統
 **分類**: 體驗功能 — Wave 2
-**設計文件**: `docs/notes/reading_memory_design_notes.md`（待建立）
+**設計文件**: `docs/plans/<YYYYMMDD>-reading-memory.md`（待建立）
 
 **背景**: 閱讀時的疑問、感想、預測是讀者最有價值的思考，但通常消散在閱讀過程中。F-12 讓這些標注與 KG 結構對齊，並在後續閱讀中主動提醒「你之前的疑問現在有答案了」。
 
@@ -848,7 +848,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 
 #### F-05 What-If 情境推演
 **分類**: 分析功能 — Wave 3（核心體驗功能）
-**設計文件**: `docs/notes/what_if_design_notes.md`（待建立）
+**設計文件**: `docs/plans/<YYYYMMDD>-what-if.md`（待建立）
 
 **背景**: 讓讀者在 KG 的任意事件節點上標記「反轉此事件」，系統基於因果鏈和角色一致性約束，推演出一條替代敘事分支。多條分支可以並存，形成平行時間軸結構。
 
@@ -884,7 +884,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 
 #### F-07 主題共鳴地圖
 **分類**: 分析功能 — Wave 3
-**設計文件**: `docs/notes/thematic_map_design_notes.md`（待建立）
+**設計文件**: `docs/plans/<YYYYMMDD>-thematic-map.md`（待建立）
 
 **背景**: 把全書的 Concept 節點投影到語義空間，讓讀者一眼看出「這本書真正在談的幾組核心對立」，以及概念之間的共鳴結構。
 
@@ -912,7 +912,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 
 #### F-10 敘事視角分析
 **分類**: 分析功能 — Wave 3
-**設計文件**: `docs/notes/narrative_focalization_design_notes.md`（待建立）
+**設計文件**: `docs/plans/<YYYYMMDD>-narrative-focalization.md`（待建立）
 
 **背景**: 誰在講這個故事？哪些資訊是被刻意過濾的？F-10 分析每章節的敘事視角與資訊不對稱結構，讓讀者理解「故事是怎麼被講的」，讓創作者可以分析技法。
 
@@ -966,7 +966,7 @@ Wave 0（前置）✅  →  Wave 1（底層）✅  →  Wave 2（輕量分析）
 
 #### F-11 角色命運相似度
 **分類**: 分析功能 — Wave 4
-**設計文件**: `docs/notes/character_similarity_design_notes.md`（待建立）
+**設計文件**: `docs/plans/<YYYYMMDD>-character-similarity.md`（待建立）
 
 **背景**: 計算不同角色的命運模式相似度——不是外貌或性格，而是他們經歷的事件弧線、在關係網中的位置、角色弧線類型的相似程度。跨書比較讓讀者看到更深的敘事原型。
 
@@ -1033,7 +1033,7 @@ CEP 的性格結構 + 原型標籤
 
 #### F-14 生圖整合（角色縮圖 + 場景圖）
 **分類**: 體驗功能 — Wave 4
-**設計文件**: `docs/notes/image_generation_design_notes.md`（待建立）
+**設計文件**: `docs/plans/<YYYYMMDD>-image-generation.md`（待建立）
 
 **背景**: 利用 CEP 的外貌描述和 Location 節點的場景描述，自動組裝圖像生成 prompt，為角色和場景生成視覺呈現。書級共享風格設定，保持視覺一致性。
 
