@@ -323,15 +323,33 @@ class IngestionWorkflow:
         skip_keywords: bool = False,
         skip_symbols: bool = False,
     ) -> None:
-        """
+        """Build the workflow, defaulting every collaborator from settings.
+
+        All parameters are injection points. Production callers
+        (``ingestion_graph`` and the rerun endpoint) pass only ``kg_service``
+        and ``document_service``; everything else is constructed here.
+
         Args:
             document_pipeline: Inject a custom ``DocumentProcessingPipeline``.
             feature_pipeline: Inject a custom ``FeatureExtractionPipeline``.
             kg_pipeline: Inject a custom ``KnowledgeGraphPipeline``.
+            summarization_pipeline: Inject a custom ``SummarizationPipeline``.
+            symbol_pipeline: Inject a custom ``SymbolDiscoveryPipeline``.
             document_service: Inject a ``DocumentService`` (SQLite storage).
-            kg_service: Inject a ``KGService`` (NetworkX KG).
-            skip_qdrant: Set True to skip Qdrant upsert (e.g. no Qdrant running).
-            skip_kg: Set True to skip KG extraction (text-only ingestion).
+            kg_service: Inject a ``KGService`` (NetworkX or Neo4j).
+
+        The ``skip_*`` flags below are **test-only**: no production caller sets
+        any of them, and ingestion has no user-facing "skip a step" mode. They
+        exist so tests can build a workflow without standing up Qdrant, an LLM,
+        or a KG backend. Do not reach for them to express a runtime decision —
+        that belongs in settings or in the caller's step selection.
+
+        Args:
+            skip_qdrant: Skip Qdrant upsert (no vector store running).
+            skip_kg: Skip KG extraction entirely.
+            skip_summarization: Skip chapter/book summarization.
+            skip_keywords: Build no keyword extractor.
+            skip_symbols: Skip symbol discovery.
         """
         self._doc_pipeline = document_pipeline or DocumentProcessingPipeline()
         self._kg_service = kg_service or self._build_kg_service()
@@ -470,7 +488,6 @@ class IngestionWorkflow:
         self,
         doc_id: str,
         *,
-        task_id: str | None = None,
         progress_cb: Callable | None = None,
         murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
     ) -> IngestionResult:
