@@ -284,12 +284,9 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
     def _remove_merged_relations(
         relations: list[Relation], to_remove: set[int]
     ) -> None:
-        i = 0
-        while i < len(relations):
-            if id(relations[i]) in to_remove:
-                relations.pop(i)
-            else:
-                i += 1
+        # Slice assignment keeps the in-place contract the caller relies on,
+        # without list.pop(i) shifting every later element on each removal.
+        relations[:] = [r for r in relations if id(r) not in to_remove]
 
     @staticmethod
     def _fill_entity_valid_to(
