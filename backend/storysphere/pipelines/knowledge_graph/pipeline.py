@@ -134,8 +134,14 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
                     )
                     if murmur_cb:
                         try:
+                            # EntityType is a (str, Enum) mixin, not a StrEnum:
+                            # str(EntityType.LOCATION) is "EntityType.LOCATION",
+                            # which matches no key. Read .value for the bare
+                            # "location" the map is actually keyed on.
+                            entity_type = getattr(entity, "entity_type", "")
                             murmur_type = self._ENTITY_TYPE_MAP.get(
-                                str(getattr(entity, "entity_type", "")).lower(), "topic"
+                                str(getattr(entity_type, "value", entity_type)).lower(),
+                                "topic",
                             )
                             role = getattr(entity, "role", None) or getattr(entity, "description", None)
                             await murmur_cb(

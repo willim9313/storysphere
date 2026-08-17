@@ -418,23 +418,22 @@ class TestCallbacks:
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize(
-        "entity_type",
-        [EntityType.LOCATION, EntityType.CHARACTER, EntityType.ORGANIZATION],
+        ("entity_type", "expected"),
+        [
+            (EntityType.LOCATION, "location"),
+            (EntityType.CHARACTER, "character"),
+            (EntityType.ORGANIZATION, "org"),
+            # No map entry → documented fallback, not a lookup failure.
+            (EntityType.OTHER, "topic"),
+        ],
     )
-    async def test_murmur_type_always_falls_back_to_topic(self, entity_type):
-        """PINS A BUG: ``_ENTITY_TYPE_MAP`` never matches, so every entity
-        is emitted as "topic" regardless of its actual type.
+    async def test_murmur_type_is_mapped_from_entity_type(self, entity_type, expected):
+        """``_ENTITY_TYPE_MAP`` translates the entity type for the murmur stream.
 
-        ``run()`` looks the type up with ``str(entity.entity_type).lower()``.
-        ``EntityType`` is a ``(str, Enum)`` mixin, not a ``StrEnum``, so
-        ``str(EntityType.LOCATION)`` is ``"EntityType.LOCATION"`` — lowercased
-        to ``"entitytype.location"``, which matches no key in the map. The
-        whole 11-entry table at pipeline.py:60-70 is therefore dead, and the
-        murmur stream shows characters/locations/orgs all as "topic".
-
-        This test asserts the buggy behaviour on purpose: it is a
-        characterization test. Fixing the lookup (``.value``) should make it
-        fail, at which point update the expectation to the mapped type.
+        Regression guard: the lookup must read ``EntityType.value``. Reading
+        ``str(entity_type)`` yields ``"EntityType.LOCATION"`` (it is a
+        ``(str, Enum)`` mixin, not a ``StrEnum``), which matches no key and
+        silently collapses every type to the "topic" fallback.
         """
         doc = _doc([_chapter(1, ["Somewhere."])])
         subject = _entity("Somewhere", 1, entity_type=entity_type)
@@ -446,7 +445,7 @@ class TestCallbacks:
 
         await pipeline.run(doc, murmur_cb=_murmur)
 
-        assert events == [("featureExtraction", "topic", "Somewhere")]
+        assert events == [("featureExtraction", expected, "Somewhere")]
 
     @pytest.mark.asyncio
     async def test_murmur_failure_does_not_break_the_run(self):
