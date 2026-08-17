@@ -11,6 +11,7 @@ They assert what the code does *today*, not what it ideally would do.
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -69,11 +70,15 @@ def _make_pipeline(
     linked: list[Entity] | None = None,
     relations_events: list[tuple[list[Relation], list[Event]]] | None = None,
     kg_service=None,
+    concurrency: int | None = 1,
 ) -> KnowledgeGraphPipeline:
     """Build a pipeline with every collaborator mocked.
 
     ``entities_by_call`` yields one list per *paragraph* extraction call;
     ``relations_events`` yields one (relations, events) pair per *chapter*.
+
+    ``concurrency`` defaults to 1 so ``entities_by_call``'s pop-in-call-order
+    stays meaningful; the concurrency tests below set it explicitly.
     """
     entity_extractor = AsyncMock()
     calls = list(entities_by_call or [])
@@ -101,6 +106,7 @@ def _make_pipeline(
         relation_extractor=relation_extractor,
         entity_linker=entity_linker,
         kg_service=kg_service,
+        concurrency=concurrency,
     )
     pipeline._paragraph_entity_linker = MagicMock()
     return pipeline
@@ -470,3 +476,127 @@ class TestParagraphEntityLinking:
         await pipeline.run(doc)
 
         pipeline._paragraph_entity_linker.link.assert_called_once_with(doc, [alice])
+
+
+class TestEntityExtractionConcurrency:
+    """The per-paragraph entity pass runs bounded-concurrently.
+
+    Concurrency applies to the LLM calls only. Everything downstream —
+    the murmur stream and the order entities reach EntityLinker — must stay
+    in paragraph order, or the canonical-name choice and the user-visible
+    stream both become non-deterministic.
+    """
+
+    def _chapter_of(self, n: int) -> Chapter:
+        return _chapter(1, [f"Paragraph {i}." for i in range(n)])
+
+    @pytest.mark.asyncio
+    async def test_calls_are_bounded_by_the_configured_limit(self):
+        in_flight = 0
+        peak = 0
+
+        async def _extract(text, chapter_number, language="en"):
+            nonlocal in_flight, peak
+            in_flight += 1
+            peak = max(peak, in_flight)
+            await asyncio.sleep(0.002)
+            in_flight -= 1
+            return []
+
+        pipeline = _make_pipeline(concurrency=3)
+        pipeline._entity_extractor.extract.side_effect = _extract
+
+        await pipeline.run(_doc([self._chapter_of(12)]))
+
+        assert peak == 3
+
+    @pytest.mark.asyncio
+    async def test_concurrency_one_is_sequential(self):
+        in_flight = 0
+        peak = 0
+
+        async def _extract(text, chapter_number, language="en"):
+            nonlocal in_flight, peak
+            in_flight += 1
+            peak = max(peak, in_flight)
+            await asyncio.sleep(0.002)
+            in_flight -= 1
+            return []
+
+        pipeline = _make_pipeline(concurrency=1)
+        pipeline._entity_extractor.extract.side_effect = _extract
+
+        await pipeline.run(_doc([self._chapter_of(6)]))
+
+        assert peak == 1
+
+    @pytest.mark.asyncio
+    async def test_murmur_order_follows_paragraphs_not_completion(self):
+        """Earlier paragraphs resolve last; the stream must not reorder."""
+
+        async def _extract(text, chapter_number, language="en"):
+            index = int(text.split()[1].rstrip("."))
+            await asyncio.sleep((5 - index) / 500)  # paragraph 0 is slowest
+            return [_entity(f"E{index}", 1)]
+
+        pipeline = _make_pipeline(concurrency=5)
+        pipeline._entity_extractor.extract.side_effect = _extract
+
+        emitted: list[str] = []
+
+        async def _murmur(step_key, murmur_type, content, meta=None):
+            emitted.append(content)
+
+        await pipeline.run(_doc([self._chapter_of(5)]), murmur_cb=_murmur)
+
+        assert emitted == ["E0", "E1", "E2", "E3", "E4"]
+
+    @pytest.mark.asyncio
+    async def test_entity_order_reaching_the_linker_follows_paragraphs(self):
+        async def _extract(text, chapter_number, language="en"):
+            index = int(text.split()[1].rstrip("."))
+            await asyncio.sleep((5 - index) / 500)
+            return [_entity(f"E{index}", 1)]
+
+        pipeline = _make_pipeline(concurrency=5)
+        pipeline._entity_extractor.extract.side_effect = _extract
+
+        await pipeline.run(_doc([self._chapter_of(5)]))
+
+        linked_arg = pipeline._entity_linker.link.call_args.args[0]
+        assert [e.name for e in linked_arg] == ["E0", "E1", "E2", "E3", "E4"]
+
+    @pytest.mark.asyncio
+    async def test_extraction_failure_still_aborts_the_step(self):
+        """Unchanged from the sequential loop: nothing is swallowed."""
+
+        class RateLimited(Exception):
+            pass
+
+        async def _extract(text, chapter_number, language="en"):
+            if text.endswith("2."):
+                raise RateLimited("429 quota exceeded")
+            await asyncio.sleep(0.001)
+            return []
+
+        pipeline = _make_pipeline(concurrency=4)
+        pipeline._entity_extractor.extract.side_effect = _extract
+
+        with pytest.raises(RateLimited, match="429"):
+            await pipeline.run(_doc([self._chapter_of(8)]))
+
+    @pytest.mark.asyncio
+    async def test_falls_back_to_settings_when_unset(self, monkeypatch):
+        """concurrency=None means read settings at run time, not construction."""
+        from types import SimpleNamespace
+
+        import storysphere.config.settings as settings_mod
+
+        monkeypatch.setattr(
+            settings_mod,
+            "get_settings",
+            lambda: SimpleNamespace(ingestion_concurrency=1),
+        )
+        pipeline = _make_pipeline(concurrency=None)
+
+        assert pipeline._resolve_concurrency() == 1
