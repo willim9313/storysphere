@@ -4,6 +4,18 @@
 **日期**: 2026-02-22  
 **決策者**: William, AI Architect
 
+> **⚠️ `BaseWorkflow` 抽象已移除（2026-08-17）**
+> 本文「實作細節補充」一節提到的 `backend/storysphere/workflows/base.py` 已刪除。
+> 該抽象自始至終只有 `IngestionWorkflow` 一個子類，其 `__call__` 與泛型參數
+> 從未被使用，實際被繼承的只有 3 行的 `_log_step`（已內聯至 `IngestionWorkflow`）。
+> 真正的代價是 `run()` 的 `@abstractmethod` 契約：它強迫子類保留一個零呼叫者的
+> 端到端進入點，而該進入點的行為（不暫停章節審閱）正是 LangGraph HITL 流程
+> 刻意排除的。
+>
+> **被推翻的只有「workflow 需要共用抽象基底」這一點，分層決策本身仍然成立**——
+> `IngestionWorkflow` 依舊是 pipelines 與 services 的組裝根，與 `BasePipeline`
+> （8 個子類，持續有效）的職責區分未變。
+
 ---
 
 ## 背景 (Context)
@@ -88,7 +100,8 @@ class BasePipeline(ABC, Generic[InputT, OutputT]):
     def _log_step(self, step: str, **kwargs): ...
 ```
 
-`BaseWorkflow` 介面相同，定義於 `backend/storysphere/workflows/base.py`。
+`BaseWorkflow` 介面原本相同，定義於 `workflows/base.py`；該檔已於 2026-08-17
+移除（見文首更正區塊），`IngestionWorkflow` 現為獨立 class。
 
 ### Pipeline 輸入/輸出合約
 

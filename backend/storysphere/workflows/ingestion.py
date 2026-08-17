@@ -12,7 +12,10 @@ Pipeline order:
 The workflow is split into two phases for LangGraph HITL chapter review:
   - run_phase1(): Parse → language detect → save document
   - run_phase2(doc_id): Summarization → KG → finalize
-  - run(): Backward-compat wrapper that calls phase1 + phase2 directly.
+
+Both phases are driven by ``workflows/ingestion_graph.py``, which pauses
+between them for chapter review. There is deliberately no single end-to-end
+entry point: skipping the review pause is not a supported ingestion mode.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from storysphere.api.schemas.common import MurmurEvent
 from storysphere.core.tracing import update_span as _lf_update_span
@@ -37,7 +41,6 @@ from storysphere.pipelines.symbol_discovery import SymbolDiscoveryPipeline
 from storysphere.pipelines.symbol_discovery.pipeline import SymbolDiscoveryResult
 from storysphere.services.document_service import DocumentService
 from storysphere.services.kg_service import KGService
-from storysphere.workflows.base import BaseWorkflow
 
 logger = logging.getLogger(__name__)
 
@@ -194,15 +197,22 @@ def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
     return new_chapters
 
 
-class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
-    """End-to-end novel ingestion workflow.
+class IngestionWorkflow:
+    """Composition root for ingestion: owns the pipelines and services.
 
-    Usage::
+    Driven by ``workflows/ingestion_graph.py``, which calls the two phases
+    around a chapter-review pause::
 
-        workflow = IngestionWorkflow()
-        result = await workflow.run(Path("novel.pdf"))
+        workflow = IngestionWorkflow(kg_service=kg_service)
+        doc = await workflow.run_phase1(Path("novel.pdf"))
+        # ... reviewer edits the detected chapter structure ...
+        result = await workflow.run_phase2(doc.id)
         print(result.entities)   # number of entities extracted
     """
+
+    def _log_step(self, step: str, **kwargs: Any) -> None:
+        extras = "  ".join(f"{k}={v}" for k, v in kwargs.items())
+        logger.debug("[%s] %s  %s", self.__class__.__name__, step, extras)
 
     def __init__(
         self,
@@ -626,38 +636,6 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             len(errors),
         )
         return result
-
-    async def run(
-        self,
-        input_data: Path,
-        *,
-        task_id: str | None = None,
-        title: str | None = None,
-        author: str | None = None,
-        language: str | None = None,
-        progress_cb: Callable | None = None,
-        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
-    ) -> IngestionResult:
-        """Ingest a novel file end-to-end (Phase 1 + Phase 2, no review pause).
-
-        For the interactive chapter-review flow use the LangGraph ingestion
-        graph (``src/workflows/ingestion_graph.py``) — it pauses between
-        phases for HITL chapter review.
-        """
-        doc = await self.run_phase1(
-            file_path=input_data,
-            title=title,
-            author=author,
-            language=language,
-            progress_cb=progress_cb,
-            murmur_cb=murmur_cb,
-        )
-        return await self.run_phase2(
-            doc.id,
-            task_id=task_id,
-            progress_cb=progress_cb,
-            murmur_cb=murmur_cb,
-        )
 
     # ── private helpers ──────────────────────────────────────────────────────
 
