@@ -113,6 +113,10 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
             if not chapter_text.strip():
                 continue
             chapter_texts[chapter.number] = chapter_text
+            # Lowered once per chapter, not once per entity: mention counting
+            # below runs for every entity of every paragraph, and each call
+            # would otherwise copy the whole chapter string.
+            chapter_text_lower = chapter_text.lower()
 
             for para, body_text in body_texts_ch:
                 self._log_step(
@@ -125,7 +129,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
                 )
                 # Count mentions across the full chapter text for context
                 for entity in para_entities:
-                    entity.mention_count = chapter_text.lower().count(
+                    entity.mention_count = chapter_text_lower.count(
                         entity.name.lower()
                     )
                     if murmur_cb:
