@@ -198,8 +198,13 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
                 sub_cb(rel_done, total_chapters, "關係抽取")
 
         # ── Step 3.5: link entities to paragraphs ─────────────────────────────
+        # Regex-scans every paragraph of the book synchronously — offloaded to
+        # the executor for the same reason as the entity linker above, so a
+        # long book cannot stall the event loop (and with it progress reporting).
         self._log_step("paragraph_entity_link")
-        self._paragraph_entity_linker.link(doc, unique_entities)
+        await asyncio.get_running_loop().run_in_executor(
+            None, self._paragraph_entity_linker.link, doc, unique_entities
+        )
 
         self._fill_relation_valid_to(all_relations)
         self._fill_entity_valid_to(unique_entities, all_events)
