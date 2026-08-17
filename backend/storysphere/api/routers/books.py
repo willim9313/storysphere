@@ -638,15 +638,22 @@ async def submit_review(
             detail="Review window has already been closed",
         )
 
-    # chapters omitted = accept the detected structure as-is; resume with None
-    # so chapter_review_node skips the rebuild entirely.
-    resume_value = None
-    if body.chapters is not None:
-        resume_value = {
-            "chapters": [ch.model_dump(by_alias=False) for ch in body.chapters],
-            "role_overrides": body.role_overrides,
-            "paragraph_splits": body.paragraph_splits,
-        }
+    # chapters omitted = accept the detected structure as-is; chapter_review_node
+    # skips the rebuild when the list is absent or empty.
+    #
+    # This must NOT be plain None. Command(resume=None) trips an UnboundLocalError
+    # inside LangGraph itself (pregel/_loop.py assigns `resume_is_map` only inside
+    # the `resume is not None` branch, then reads it outside). Present in every
+    # published version from 0.5.4 through 1.2.11, so the caller has to avoid it.
+    resume_value = {
+        "chapters": (
+            [ch.model_dump(by_alias=False) for ch in body.chapters]
+            if body.chapters is not None
+            else None
+        ),
+        "role_overrides": body.role_overrides,
+        "paragraph_splits": body.paragraph_splits,
+    }
     # Await the write so the frontend sees 'running' on its very next poll —
     # the sync fire-and-forget path would race with the immediately-following navigate.
     from storysphere.api.store import set_task_running  # noqa: PLC0415

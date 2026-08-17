@@ -89,17 +89,24 @@ async def chapter_review_node(state: IngestionState) -> dict:
 
     resume_value: list[dict] | dict | None = interrupt({"doc_id": state["doc_id"]})
 
-    if resume_value:
-        # Support both old list format and new dict format for resume values
-        if isinstance(resume_value, list):
-            chapters_data = resume_value
-            role_overrides: dict[str, str] = {}
-            paragraph_splits: dict[str, list[int]] = {}
-        else:
-            chapters_data = resume_value.get("chapters", [])
-            role_overrides = resume_value.get("role_overrides", {})
-            paragraph_splits = resume_value.get("paragraph_splits", {})
+    chapters_data: list[dict] | None
+    role_overrides: dict[str, str] = {}
+    paragraph_splits: dict[str, list[int]] = {}
+    if isinstance(resume_value, list):
+        chapters_data = resume_value  # legacy format: bare chapter list
+    elif isinstance(resume_value, dict):
+        chapters_data = resume_value.get("chapters")
+        role_overrides = resume_value.get("role_overrides") or {}
+        paragraph_splits = resume_value.get("paragraph_splits") or {}
+    else:
+        chapters_data = None
 
+    # An empty or absent chapter list means "accept the detected structure":
+    # there is nothing to rebuild. Rebuilding from an empty list would produce
+    # a document with zero chapters, and replace_chapters would then delete
+    # every chapter and paragraph row the book has — so this guard is also what
+    # keeps a malformed payload from wiping the book.
+    if chapters_data:
         doc_svc = DocumentService()
         await doc_svc.init_db()
         doc = await doc_svc.get_document(state["doc_id"])

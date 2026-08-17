@@ -169,7 +169,14 @@ class TestAcceptReviewShortcut:
         task_store.set_awaiting_review(task_id, book_id)
         return task_id
 
-    def test_accept_returns_204_and_resumes_with_none(self, client):
+    def test_accept_returns_204_and_resumes_without_chapters(self, client):
+        """Resume must carry chapters=None — and must not itself be None.
+
+        Command(resume=None) raises UnboundLocalError inside LangGraph
+        (pregel/_loop.py reads `resume_is_map` outside the branch that assigns
+        it), in every published version from 0.5.4 through 1.2.11. This test
+        previously asserted the None that caused it.
+        """
         import uuid
         book_id = f"book-{uuid.uuid4()}"
         self._setup_awaiting(book_id)
@@ -179,8 +186,30 @@ class TestAcceptReviewShortcut:
         ) as mock_resume:
             resp = client.post(f"/api/v1/books/{book_id}/review", json={})
         assert resp.status_code == 204
-        # Resume value must be None so chapter_review_node skips the rebuild
-        assert mock_resume.call_args.args[1] is None
+
+        resume_value = mock_resume.call_args.args[1]
+        assert resume_value is not None
+        assert resume_value["chapters"] is None
+
+    def test_submitted_chapters_are_forwarded(self, client):
+        import uuid
+        book_id = f"book-{uuid.uuid4()}"
+        self._setup_awaiting(book_id)
+        payload = {
+            "chapters": [{"title": "One", "role": "body", "startParagraphIndex": 0}],
+            "roleOverrides": {"0": "separator"},
+        }
+        with patch(
+            "storysphere.api.routers.books._resume_ingestion_graph",
+            new_callable=AsyncMock,
+        ) as mock_resume:
+            resp = client.post(f"/api/v1/books/{book_id}/review", json=payload)
+        assert resp.status_code == 204
+
+        resume_value = mock_resume.call_args.args[1]
+        assert len(resume_value["chapters"]) == 1
+        assert resume_value["chapters"][0]["title"] == "One"
+        assert resume_value["role_overrides"] == {"0": "separator"}
 
     def test_accept_registers_cancellable_task(self, client):
         import uuid
