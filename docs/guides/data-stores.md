@@ -32,9 +32,9 @@ uv run uvicorn storysphere.api.main:app --host 0.0.0.0 --port 8000 --reload
 | `qdrant_local/` | `services/vector_service.py` | `qdrant_local_path` | 段落向量，每本書一個 collection。非 lightweight 模式改連遠端 Qdrant |
 | `analysis_cache.db` | `services/analysis_cache.py` | `analysis_cache_db_path` | 深度分析結果快取。key 形如 `character:{book}:{entity}`，永不自動過期，靠 `services/cache_invalidation.py` 明確清除 |
 | `symbol_store.db` | `services/symbol_service.py` | **無**（見下方註記） | 意象實體與出現位置 |
-| `token_usage.db` | `core/token_store.py` | `token_usage_db_path` | LLM token 用量記錄。非書本綁定 |
+| `token_usage.db` | `core/token_store.py` | `token_usage_db_path` | LLM token 用量記錄。**有 `book_id` 欄位但實際從未填入**（見下） |
 | `inferred_relations.db` | `services/link_prediction_store.py` | `link_prediction_db_path` | 隱性關係推論結果（F-01）與人工審核狀態 |
-| `tasks.db` | `api/store.py` | `task_store_db_path` | 背景任務狀態。`task_store_backend` **預設就是 `sqlite`**，所以這個檔平常有在用 |
+| `tasks.db` | `api/store.py` | `task_store_db_path` | 背景任務狀態。settings 預設是 `sqlite`，但 repo 的 `.env` 覆寫成 `memory`，所以**開發環境下這個檔是死的**，任務狀態一重啟就沒了 |
 | `ingestion_checkpoints.db` | LangGraph（`api/main.py` 的 lifespan 建立） | `ingestion_checkpoint_db_path` | 章節審閱的 HITL checkpoint，`thread_id` == `task_id` |
 
 > **`symbol_store.db` 是唯一不可設定的**：路徑寫死在 `SymbolService.__init__` 的
@@ -60,7 +60,9 @@ uv run uvicorn storysphere.api.main:app --host 0.0.0.0 --port 8000 --reload
 | `symbol_store.db` | `symbols.delete_by_book(book_id)` |
 | `storysphere.db` | `doc.delete_document(book_id)`，最後一步 |
 
-九個檔案中只有 `token_usage.db` 不參與——它記錄的是全域 LLM 用量，不綁書。
+`token_usage.db` **刻意不參與**：它是花費記錄，刪掉書不代表沒花那筆錢。
+（`book_id` 欄位存在、`core/token_callback.py` 三處也有傳，但實測 4,136 列全是
+NULL——用量目前無法歸因到書，這是另一個獨立的缺口。）
 
 > **歷史註記**：`symbol_store.db` 一度是漏掉的那一個。`SymbolService.delete_by_book()`
 > 早就存在，但唯一的呼叫端是 `pipelines/symbol_discovery/pipeline.py`（重新匯入前
@@ -86,8 +88,8 @@ book id，無法用 pattern 匹配，KG 的列一旦刪掉就再也找不回那�
 | `symbol_store.db` | 意象與出現位置全失。需重跑 symbol-discovery |
 | `token_usage.db` | 只失去歷史統計，不影響功能 |
 | `inferred_relations.db` | 推論結果與人工審核狀態全失，需重跑推論 |
-| `tasks.db` | 失去歷史任務清單；進行中的任務會在下次啟動被標記為失敗 |
-| `ingestion_checkpoints.db` | 正在等待章節審閱的上傳無法續跑；已完成的書不受影響 |
+| `tasks.db` | 目前無影響（`.env` 用 memory backend）。切到 sqlite 後才會失去歷史任務清單 |
+| `ingestion_checkpoints.db` | 正在等待章節審閱的上傳無法續跑；已完成的書不受影響。這個檔會累積——見下 |
 
 ---
 
@@ -104,3 +106,18 @@ book id，無法用 pattern 匹配，KG 的列一旦刪掉就再也找不回那�
   的完整輸出。
 
 要合併並非不可行，但那是一次會動到八個服務的重構，目前沒有排程。
+
+---
+
+## 已知的殘留（2026-08-18 稽核）
+
+刪書路徑補上 `symbol_store.db` 之後仍有兩處會累積，兩者都不是刪書造成的：
+
+- **`symbol_store.db` 的歷史殘留**：修正只對之後的刪除生效。稽核當下 28 個
+  `book_id` 中有 25 個已無對應書籍。
+- **`ingestion_checkpoints.db` 持續累積**：稽核當下 34 個 thread、125 個
+  checkpoint，但只有 3 本書。暫停等審閱的匯入若一直沒有 resume，checkpoint 會
+  永遠留著；而 `.env` 用 memory task store，伺服器一重啟任務狀態全失，
+  `_reconcile_stale_tasks` 就再也找不到該清哪一個。
+
+處理計畫見 [`docs/plans/20260818-data-store-orphan-cleanup.md`](../plans/20260818-data-store-orphan-cleanup.md)。
