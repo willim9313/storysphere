@@ -91,3 +91,4 @@
 | 2026-08-11 | [敘事結構頁翻新計畫](./20260811-narrative-page-revamp.md) |
 | 2026-08-13 | [方法論頁 × 功能頁對齊盤點](./20260813-methodology-page-alignment-audit.md) |
 | 2026-08-17 | [Ingestion 後端效率與可讀性改善](./20260817-ingestion-refactor.md) |
+| 2026-08-18 | [持久化落點的孤兒資料清理](./20260818-data-store-orphan-cleanup.md) |

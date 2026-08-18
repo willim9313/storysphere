@@ -18,6 +18,7 @@ from storysphere.api.deps import (
     DocServiceDep,
     KGServiceDep,
     LinkPredictionServiceDep,
+    SymbolServiceDep,
     VectorServiceDep,
 )
 from storysphere.api.routers._book_shared import cleanup_ingestion_checkpoint, now_iso
@@ -28,7 +29,7 @@ from storysphere.api.schemas.books import (
     TaskIdResponse,
 )
 from storysphere.api.store import task_store
-from storysphere.domain.documents import PipelineStatus, StepStatus
+from storysphere.domain.documents import PipelineStatus
 
 logger = logging.getLogger(__name__)
 
@@ -169,8 +170,14 @@ async def delete_book(
     kg: KGServiceDep,
     cache: AnalysisCacheDep,
     lp: LinkPredictionServiceDep,
+    symbols: SymbolServiceDep,
 ) -> None:
-    """Delete a book, its vector collection, KG data, analysis cache, and DB records."""
+    """Delete a book and everything derived from it.
+
+    Every store is book-scoped and cleaned by an explicit call — there is no
+    transaction across them, so the order matters where one store's keys are
+    read from another (see the TEU note below).
+    """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
@@ -206,6 +213,9 @@ async def delete_book(
     if teu_keys:
         await asyncio.gather(*[cache.invalidate(k) for k in teu_keys])
     await lp.delete_by_document(book_id)
+    # Imagery rows are keyed by book_id only, so nothing else would ever read
+    # them again — but nothing would delete them either.
+    await symbols.delete_by_book(book_id)
     await doc.delete_document(book_id)
     return None
 
@@ -230,61 +240,25 @@ async def _run_rerun_step(
     doc_service,
     kg_service,
 ) -> None:
+    """Background task: drive one rerun and mirror it into the task store.
+
+    The rerun's own policy — what a failed KG save means, and which analyses a
+    successful step invalidates — lives on ``IngestionWorkflow.rerun_step``,
+    next to the step contract it builds on. What stays here is the task-store
+    wiring and the registry slot.
+    """
     task_store.set_running(task_id)
     try:
-        document = await doc_service.get_document(book_id)
-        if document is None:
-            task_store.set_failed(task_id, error=f"Book '{book_id}' not found")
-            return
-
         from storysphere.workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
-        # document_service is injected so run_step persists through the service
-        # the endpoint already resolved, rather than opening a second one.
+        # document_service is injected so the workflow persists through the
+        # service the endpoint already resolved, rather than opening a second one.
         wf = IngestionWorkflow(kg_service=kg_service, document_service=doc_service)
 
-        # TEU keys name event ids that this step is about to regenerate, so
-        # collect them while the current events still exist.
-        teu_keys: list[str] = []
-        if step == "feature-extraction":
-            from storysphere.services.cache_invalidation import teu_keys_for  # noqa: PLC0415
-            teu_keys = teu_keys_for(
-                [e.id for e in await kg_service.get_events(document_id=book_id)]
-            )
-
-        # run_step owns the per-step contract (status transition, status
-        # persistence, and saving the Document for steps whose output lands on
-        # it) — the same one ingestion uses. What differs is only the reaction:
-        # a rerun runs exactly one step, so a failure ends the task.
-        outcome = await wf.run_step(step, document)
-
-        # Unlike ingestion, a rerun treats a failed KG save as a failed step:
-        # it was triggered precisely to get this step's output persisted, so
-        # reporting success with nothing on disk would defeat the point.
-        if outcome.ok and step == "knowledge-graph":
-            try:
-                await kg_service.save()
-            except Exception as exc:  # noqa: BLE001
-                logger.error("Rerun knowledge-graph save failed: %s", exc)
-                outcome.error = str(exc)
-                document.pipeline_status.knowledge_graph = StepStatus.failed
-                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
+        outcome = await wf.rerun_step(step, book_id)
 
         if not outcome.ok:
             task_store.set_failed(task_id, error=outcome.error)
             return
-
-        # Only after the step succeeded — a failed rerun leaves the old data in
-        # place, so its analyses are still the ones that describe the book.
-        from storysphere.config.settings import get_settings  # noqa: PLC0415
-        from storysphere.services.analysis_cache import AnalysisCache  # noqa: PLC0415
-        from storysphere.services.cache_invalidation import invalidate_for_steps  # noqa: PLC0415
-        await invalidate_for_steps(
-            AnalysisCache(db_path=get_settings().analysis_cache_db_path),
-            book_id,
-            [step],
-            teu_keys,
-        )
-
         task_store.set_completed(task_id, result={"bookId": book_id, "step": step})
 
     except asyncio.CancelledError:
