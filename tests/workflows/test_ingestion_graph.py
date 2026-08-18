@@ -29,12 +29,30 @@ from langgraph.types import Command
 DOC_ID = "book-under-review"
 
 
-async def _fake_phase1(state):
+async def _fake_phase1(state, **_deps):
     return {"doc_id": DOC_ID}
 
 
-async def _fake_phase2(state):
+async def _fake_phase2(state, **_deps):
     return {"chapters": 3, "errors": []}
+
+
+class _FakeReporter:
+    """Stands in for the API-layer reporter the graph is built with."""
+
+    def __init__(self, task_id: str) -> None:
+        self.task_id = task_id
+
+    def progress(self, pct, stage, **kwargs) -> None: ...
+
+    async def murmur(self, step_key, event_type, content, **kwargs) -> None: ...
+
+    def awaiting_review(self, doc_id: str) -> None: ...
+
+    def running(self) -> None: ...
+
+    def completed(self, result) -> dict:
+        return {}
 
 
 def _initial_state(task_id: str) -> dict:
@@ -82,17 +100,18 @@ class _GraphHarness:
             return_value=self.doc_service,
         )
         self._doc_patch.start()
-        self._store_patch = patch("storysphere.api.store.task_store")
-        self._store_patch.start()
 
-        self.graph = mod.build_ingestion_graph(MemorySaver())
+        self.graph = mod.build_ingestion_graph(
+            MemorySaver(),
+            kg_service=AsyncMock(),
+            make_reporter=_FakeReporter,
+        )
         return self
 
     def __exit__(self, *exc):
         for p in self._patches[:2]:
             p.stop()
         self._doc_patch.stop()
-        self._store_patch.stop()
         return False
 
 
