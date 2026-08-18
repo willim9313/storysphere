@@ -94,7 +94,7 @@ def epistemic_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_c
 
 class TestBuildEntitySegments:
     def _seg(self, text: str, entities: list):
-        from storysphere.api.routers.books import _build_entity_segments
+        from storysphere.api.routers.book_reader import _build_entity_segments
         return _build_entity_segments(text, entities)
 
     def _make_entity(self, name: str, eid: str = "e1", aliases: list | None = None) -> Entity:
@@ -173,7 +173,7 @@ class TestBuildEntitySegments:
 
 class TestBuildSegmentsFromStored:
     def _seg(self, text: str, entities: list[ParagraphEntity]):
-        from storysphere.api.routers.books import _build_segments_from_stored
+        from storysphere.api.routers.book_reader import _build_segments_from_stored
         return _build_segments_from_stored(text, entities)
 
     def _ent(self, eid: str, name: str, start: int, end: int, etype: str = "character") -> ParagraphEntity:

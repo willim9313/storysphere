@@ -18,6 +18,12 @@ from fastapi.responses import JSONResponse
 
 from storysphere.api.routers import (
     analysis,
+    book_entity_analysis,
+    book_event_analysis,
+    book_graph,
+    book_ingestion,
+    book_reader,
+    book_timeline,
     books,
     character_metrics,
     chat_ws,
@@ -260,6 +266,12 @@ def create_app() -> FastAPI:
     prefix = "/api/v1"
     # Frontend-facing (aligned with API_CONTRACT.md)
     app.include_router(books.router, prefix=prefix)
+    app.include_router(book_timeline.router, prefix=prefix)
+    app.include_router(book_reader.router, prefix=prefix)
+    app.include_router(book_graph.router, prefix=prefix)
+    app.include_router(book_entity_analysis.router, prefix=prefix)
+    app.include_router(book_event_analysis.router, prefix=prefix)
+    app.include_router(book_ingestion.router, prefix=prefix)
     app.include_router(unraveling.router, prefix=prefix)
     app.include_router(tasks.router, prefix=prefix)
     # Internal / tool-facing (kept for chat agent and direct queries)
