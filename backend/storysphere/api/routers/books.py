@@ -18,6 +18,7 @@ from storysphere.api.deps import (
     DocServiceDep,
     KGServiceDep,
     LinkPredictionServiceDep,
+    SymbolServiceDep,
     VectorServiceDep,
 )
 from storysphere.api.routers._book_shared import cleanup_ingestion_checkpoint, now_iso
@@ -169,8 +170,14 @@ async def delete_book(
     kg: KGServiceDep,
     cache: AnalysisCacheDep,
     lp: LinkPredictionServiceDep,
+    symbols: SymbolServiceDep,
 ) -> None:
-    """Delete a book, its vector collection, KG data, analysis cache, and DB records."""
+    """Delete a book and everything derived from it.
+
+    Every store is book-scoped and cleaned by an explicit call — there is no
+    transaction across them, so the order matters where one store's keys are
+    read from another (see the TEU note below).
+    """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
@@ -206,6 +213,9 @@ async def delete_book(
     if teu_keys:
         await asyncio.gather(*[cache.invalidate(k) for k in teu_keys])
     await lp.delete_by_document(book_id)
+    # Imagery rows are keyed by book_id only, so nothing else would ever read
+    # them again — but nothing would delete them either.
+    await symbols.delete_by_book(book_id)
     await doc.delete_document(book_id)
     return None
 

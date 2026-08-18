@@ -57,14 +57,16 @@ uv run uvicorn storysphere.api.main:app --host 0.0.0.0 --port 8000 --reload
 | `analysis_cache.db` | `cache.invalidate("%{book_id}%")` + 逐一清 TEU key |
 | `inferred_relations.db` | `lp.delete_by_document(book_id)` |
 | `ingestion_checkpoints.db` | `cleanup_ingestion_checkpoint(task_id)`（僅當該書還有進行中的任務） |
+| `symbol_store.db` | `symbols.delete_by_book(book_id)` |
 | `storysphere.db` | `doc.delete_document(book_id)`，最後一步 |
-| **`symbol_store.db`** | **沒有清**——見下 |
 
-> ⚠️ **刪書不會清 `symbol_store.db`。** `SymbolService.delete_by_book()` 存在，
-> 但唯一的呼叫端是 `pipelines/symbol_discovery/pipeline.py`（重新匯入前先清空），
-> `delete_book` 沒有呼叫它。因此刪掉一本書會在 `symbol_store.db` 留下該書的
-> 意象與出現位置。這些孤兒資料不會被任何查詢讀到（所有查詢都帶 `book_id`），
-> 但會一直佔空間。
+九個檔案中只有 `token_usage.db` 不參與——它記錄的是全域 LLM 用量，不綁書。
+
+> **歷史註記**：`symbol_store.db` 一度是漏掉的那一個。`SymbolService.delete_by_book()`
+> 早就存在，但唯一的呼叫端是 `pipelines/symbol_discovery/pipeline.py`（重新匯入前
+> 先清空），`delete_book` 沒有呼叫它，所以刪書會留下孤兒意象資料。2026-08-18 補上。
+> 在那之前刪過的書，其意象列仍留在 `symbol_store.db` 裡；不影響功能（所有查詢都
+> 帶 `book_id`），只是佔空間。
 
 TEU key 必須在 `kg.remove_by_document` **之前**收集：它們只帶 event id、不帶
 book id，無法用 pattern 匹配，KG 的列一旦刪掉就再也找不回那些 id。
@@ -94,8 +96,9 @@ book id，無法用 pattern 匹配，KG 的列一旦刪掉就再也找不回那�
 這是演進的結果，不是設計決定。每個服務加進來時各自選了自己的儲存方式，共通點
 只有「都放在 `var/`」。實務上的後果：
 
-- **沒有跨檔一致性**。刪書靠 `delete_book` 逐一清，漏一處就留孤兒——上面
-  `symbol_store.db` 那條就是漏掉的那一處。
+- **沒有跨檔一致性**。刪書靠 `delete_book` 逐一清，漏一處就留孤兒，而且沒有任何
+  機制會提醒你漏了——`symbol_store.db` 就這樣被漏了一段時間。新增 book-scoped
+  的儲存時，記得回來補這裡。
 - **備份要整個目錄一起做**，單獨備份 `storysphere.db` 沒有意義。
 - **`analysis_cache.db` 會長得很大**（實測 2.8 MB 對 3 本書），因為它存的是 LLM
   的完整輸出。
