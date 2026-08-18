@@ -439,11 +439,9 @@ class VectorService:
     async def _embed(self, text: str) -> list[float]:
         """Embed a single query string (lazy-loads the embedding model)."""
         if self._embedding_fn is None:
-            from storysphere.pipelines.feature_extraction.embedding_generator import (
-                _get_embeddings,
-            )
+            from storysphere.core.embeddings import get_embeddings  # noqa: PLC0415
 
-            self._embedding_fn = _get_embeddings()
+            self._embedding_fn = get_embeddings()
 
         import asyncio
 

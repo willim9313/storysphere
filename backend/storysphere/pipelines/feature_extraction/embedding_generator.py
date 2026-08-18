@@ -1,35 +1,17 @@
 """Paragraph embedding generator using langchain-huggingface.
 
 Wraps ``HuggingFaceEmbeddings`` (sentence-transformers) so the rest of the
-pipeline stays provider-agnostic.  Settings are read from ``get_settings()``.
+pipeline stays provider-agnostic.  The model handle itself lives in
+``core.embeddings`` because ``VectorService`` needs it too.
 """
 
 from __future__ import annotations
 
 import logging
-from functools import lru_cache
+
+from storysphere.core.embeddings import get_embeddings as _get_embeddings
 
 logger = logging.getLogger(__name__)
-
-
-@lru_cache(maxsize=1)
-def _get_embeddings():  # type: ignore[return]
-    """Return a cached HuggingFaceEmbeddings instance."""
-    from langchain_huggingface import HuggingFaceEmbeddings  # noqa: PLC0415
-
-    from storysphere.config.settings import get_settings
-
-    settings = get_settings()
-    logger.info(
-        "Loading embedding model '%s' on device '%s'",
-        settings.embedding_model_name,
-        settings.embedding_device,
-    )
-    return HuggingFaceEmbeddings(
-        model_name=settings.embedding_model_name,
-        model_kwargs={"device": settings.embedding_device},
-        encode_kwargs={"batch_size": settings.embedding_batch_size, "normalize_embeddings": True},
-    )
 
 
 class EmbeddingGenerator:

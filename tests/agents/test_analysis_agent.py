@@ -131,3 +131,86 @@ class TestCharacterCacheId:
         agent = self._agent(kg=kg)
 
         assert await agent._character_cache_id("doc-1", "Nobody", None) == "Nobody"
+
+
+class TestAnalyzeSymbolsBatch:
+    """The sweep the symbols page's three buttons drive.
+
+    These moved here from ``tests/api/test_symbols.py`` when the loop was
+    lifted out of the router: the accounting is the agent's now, and the
+    router only mirrors the summary into the task store.
+    """
+
+    @staticmethod
+    def _agent() -> AnalysisAgent:
+        agent = AnalysisAgent(analysis_service=AsyncMock())
+        agent.analyze_symbol = AsyncMock()
+        return agent
+
+    async def test_skipped_ids_are_counted_not_analysed(self):
+        """Covers both reasons to skip: already interpreted, and refused."""
+        agent = self._agent()
+        summary = await agent.analyze_symbols_batch(
+            "book-1", ["img-1", "img-2"], skip_ids={"img-1"}
+        )
+
+        assert summary == {
+            "progress": 2, "total": 2, "failed": 0, "skipped": 1, "aborted": False,
+        }
+        agent.analyze_symbol.assert_awaited_once()
+
+    async def test_force_refresh_reinterprets_a_skipped_id(self):
+        agent = self._agent()
+        summary = await agent.analyze_symbols_batch(
+            "book-1", ["img-1"], skip_ids={"img-1"}, force_refresh=True
+        )
+
+        assert summary["skipped"] == 0
+        agent.analyze_symbol.assert_awaited_once()
+
+    async def test_one_failure_does_not_stop_the_rest(self):
+        agent = self._agent()
+
+        def _analyze(imagery_id, **kw):
+            if imagery_id == "img-1":
+                raise RuntimeError("LLM returned garbage")
+            return None
+
+        agent.analyze_symbol.side_effect = _analyze
+        summary = await agent.analyze_symbols_batch("book-1", ["img-1", "img-2"])
+
+        assert summary["failed"] == 1
+        assert summary["total"] == 2
+        assert agent.analyze_symbol.await_count == 2
+
+    async def test_rate_limit_aborts_the_whole_sweep(self):
+        """Continuing past a quota wall just burns the remaining items."""
+        agent = self._agent()
+        agent.analyze_symbol.side_effect = RuntimeError("429 rate limit exceeded")
+        summary = await agent.analyze_symbols_batch(
+            "book-1", ["img-1", "img-2", "img-3"]
+        )
+
+        assert summary["aborted"] is True
+        assert summary["progress"] == 0
+        assert summary["total"] == 3
+        assert agent.analyze_symbol.await_count == 1
+
+    async def test_progress_is_reported_per_item(self):
+        agent = self._agent()
+        seen: list[tuple[int, int]] = []
+        await agent.analyze_symbols_batch(
+            "book-1",
+            ["img-1", "img-2", "img-3"],
+            progress_callback=lambda done, total: seen.append((done, total)),
+        )
+
+        assert seen == [(1, 3), (2, 3), (3, 3)]
+
+    async def test_empty_list_completes_without_calling_the_llm(self):
+        agent = self._agent()
+        summary = await agent.analyze_symbols_batch("book-1", [])
+
+        assert summary["total"] == 0
+        assert summary["aborted"] is False
+        agent.analyze_symbol.assert_not_awaited()

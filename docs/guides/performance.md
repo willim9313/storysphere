@@ -171,3 +171,43 @@ uv run pytest -m "not integration" --tb=short
 2. **Mock 測試**：AsyncMock 與 gather 相容，測試不需改動
 3. **重試邏輯**：tenacity retry 裝飾器在 gather 內部正常運作
 4. **關鍵詞去重**：`_extract_cep` 並行版消除了重複的 keyword service 呼叫
+
+---
+
+## 函式內的延遲 import 是刻意的，不要「順手清乾淨」
+
+`backend/storysphere/` 有 214 個寫在函式內、標著 `# noqa: PLC0415` 的
+`storysphere.*` import。它們看起來像沒清乾淨的技術債，實際上是**啟動成本的閘門**。
+
+原因：`core/llm_client.py` 透過 `langchain_huggingface` 拉進 `torch` +
+`transformers`，一次約 2,000 個模組。幾乎每個 service 都會間接碰到它，所以
+任何一個 service 的 import 都會付這個代價。
+
+實測（把無守衛的 108 個提到檔案頂端後）：
+
+| import | 提頂前 | 提頂後 |
+|--------|--------|--------|
+| `storysphere.api.main`（uvicorn 啟動路徑） | 2.13s / 2,582 模組 | **3.42s / 3,477 模組** |
+| `storysphere.api.deps` | 0.18s / 353 模組 | **2.65s / 3,321 模組** |
+
+**不是為了打斷循環相依。** 169 個模組的扁平 import 圖是 DAG，零循環——提頂不會
+炸循環，只會變慢。
+
+另有 48 個包在 `if` / `try` 裡，那些連語意都不能動，例如 `api/deps.py` 依
+`kg_backend` 設定二選一載入 Neo4j 或 NetworkX——提頂會讓 NetworkX 模式也無條件
+把 `neo4j` 拉進來。
+
+### 什麼情況可以提頂
+
+只有一種：**該模組被 import 時，目標本來就已經被間接載入**（提頂等於零成本）。
+目前符合這條的有 31 個。驗證方式是在乾淨的直譯器裡 `import <模組>`，再檢查目標
+是否已在 `sys.modules`：
+
+```bash
+python -c "
+import sys; base=set(sys.modules)
+import storysphere.services.narrative_service
+print('storysphere.services.kg_service' in sys.modules)"
+```
+
+除非跑過這個檢查，否則不要動這些 import。
