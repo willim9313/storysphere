@@ -324,6 +324,72 @@ class IngestionWorkflow:
 
         return outcome
 
+    async def rerun_step(self, step: str, doc_id: str) -> StepOutcome:
+        """Re-run one step against an already-ingested book.
+
+        Builds on :meth:`run_step`, which owns the per-step contract shared with
+        ingestion. What a rerun adds is the reaction to the outcome, and it
+        differs from ingestion's on two points:
+
+        - **A failed KG save fails the step.** Ingestion logs it and moves on,
+          because the run has other steps to finish; a rerun was triggered
+          precisely to get this step's output on disk, so reporting success
+          with nothing persisted would defeat the point.
+        - **Analyses derived from the step are invalidated, but only on
+          success.** A failed rerun leaves the old data in place, so the old
+          analyses still describe the book.
+
+        Returns:
+            The outcome of the step. A missing document is reported as a failed
+            outcome rather than raised — the caller reports it the same way it
+            reports any other failure.
+
+        Raises:
+            KeyError: *step* is not a key of ``INGESTION_STEPS``.
+        """
+        from storysphere.config.settings import get_settings  # noqa: PLC0415
+        from storysphere.services.analysis_cache import AnalysisCache  # noqa: PLC0415
+        from storysphere.services.cache_invalidation import (  # noqa: PLC0415
+            invalidate_for_steps,
+            teu_keys_for,
+        )
+
+        doc = await self._document_service.get_document(doc_id)
+        if doc is None:
+            return StepOutcome(step=step, error=f"Book '{doc_id}' not found")
+
+        # TEU keys name the event ids this step is about to regenerate, so they
+        # have to be collected while the current events still exist.
+        teu_keys: list[str] = []
+        if step == "feature-extraction":
+            teu_keys = teu_keys_for(
+                [e.id for e in await self._kg_service.get_events(document_id=doc_id)]
+            )
+
+        outcome = await self.run_step(step, doc)
+
+        if outcome.ok and step == "knowledge-graph":
+            try:
+                await self._kg_service.save()
+            except Exception as exc:  # noqa: BLE001
+                logger.error("Rerun knowledge-graph save failed: %s", exc)
+                outcome.error = str(exc)
+                doc.pipeline_status.knowledge_graph = StepStatus.failed
+                await self._document_service.update_pipeline_status(
+                    doc_id, doc.pipeline_status
+                )
+
+        if not outcome.ok:
+            return outcome
+
+        await invalidate_for_steps(
+            AnalysisCache(db_path=get_settings().analysis_cache_db_path),
+            doc_id,
+            [step],
+            teu_keys,
+        )
+        return outcome
+
     def __init__(
         self,
         document_pipeline: DocumentProcessingPipeline | None = None,

@@ -191,6 +191,7 @@ RelationType (10): family, friendship, romance, enemy, ally, subordinate,
 | 效能與並行化 | [performance.md](guides/performance.md) |
 | 監控與可觀測性 | [monitoring.md](guides/monitoring.md) |
 | API 分層（原始設計） | [api-layer.md](guides/api-layer.md) |
+| 持久化落點與擁有者 | [data-stores.md](guides/data-stores.md) |
 
 **操作指南**（與架構參考分開）：
 [TESTING.md](guides/TESTING.md) · [API_TESTING.md](guides/API_TESTING.md) ·
