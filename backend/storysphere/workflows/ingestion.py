@@ -12,7 +12,10 @@ Pipeline order:
 The workflow is split into two phases for LangGraph HITL chapter review:
   - run_phase1(): Parse → language detect → save document
   - run_phase2(doc_id): Summarization → KG → finalize
-  - run(): Backward-compat wrapper that calls phase1 + phase2 directly.
+
+Both phases are driven by ``workflows/ingestion_graph.py``, which pauses
+between them for chapter review. There is deliberately no single end-to-end
+entry point: skipping the review pause is not a supported ingestion mode.
 """
 
 from __future__ import annotations
@@ -21,6 +24,7 @@ import logging
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 from storysphere.api.schemas.common import MurmurEvent
 from storysphere.core.tracing import update_span as _lf_update_span
@@ -37,7 +41,6 @@ from storysphere.pipelines.symbol_discovery import SymbolDiscoveryPipeline
 from storysphere.pipelines.symbol_discovery.pipeline import SymbolDiscoveryResult
 from storysphere.services.document_service import DocumentService
 from storysphere.services.kg_service import KGService
-from storysphere.workflows.base import BaseWorkflow
 
 logger = logging.getLogger(__name__)
 
@@ -47,6 +50,44 @@ except ImportError:
     def _lf_observe(**_kw):  # type: ignore[misc]
         def _d(fn): return fn
         return _d
+
+
+@dataclass(frozen=True)
+class StepSpec:
+    """How one analysis step maps onto the workflow's pipelines and status."""
+
+    pipeline_attr: str
+    #: Field on ``PipelineStatus`` this step reports into.
+    status_field: str
+    #: True when the pipeline writes its output onto the Document itself
+    #: (chapter summaries, chapter keywords) rather than into the KG or the
+    #: vector store — those need an explicit save or the LLM output is
+    #: generated, charged for, and then dropped.
+    mutates_document: bool
+
+
+#: The analysis steps that run after chapter review, keyed by the step name the
+#: rerun endpoint exposes. Single source of truth for both callers:
+#: ``run_phase2`` runs all four in order, the rerun endpoint runs exactly one.
+INGESTION_STEPS: dict[str, StepSpec] = {
+    "summarization": StepSpec("_summarization_pipeline", "summarization", True),
+    "feature-extraction": StepSpec("_feature_pipeline", "feature_extraction", True),
+    "knowledge-graph": StepSpec("_kg_pipeline", "knowledge_graph", False),
+    "symbol-discovery": StepSpec("_symbol_pipeline", "symbol_discovery", False),
+}
+
+
+@dataclass
+class StepOutcome:
+    """What running one step produced, and whether it failed."""
+
+    step: str
+    result: Any = None
+    error: str | None = None
+
+    @property
+    def ok(self) -> bool:
+        return self.error is None
 
 
 @dataclass
@@ -194,15 +235,77 @@ def _rebuild_chapters(doc: Document, reviewed: list[dict]) -> list[Chapter]:
     return new_chapters
 
 
-class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
-    """End-to-end novel ingestion workflow.
+class IngestionWorkflow:
+    """Composition root for ingestion: owns the pipelines and services.
 
-    Usage::
+    Driven by ``workflows/ingestion_graph.py``, which calls the two phases
+    around a chapter-review pause::
 
-        workflow = IngestionWorkflow()
-        result = await workflow.run(Path("novel.pdf"))
+        workflow = IngestionWorkflow(kg_service=kg_service)
+        doc = await workflow.run_phase1(Path("novel.pdf"))
+        # ... reviewer edits the detected chapter structure ...
+        result = await workflow.run_phase2(doc.id)
         print(result.entities)   # number of entities extracted
     """
+
+    def _log_step(self, step: str, **kwargs: Any) -> None:
+        extras = "  ".join(f"{k}={v}" for k, v in kwargs.items())
+        logger.debug("[%s] %s  %s", self.__class__.__name__, step, extras)
+
+    async def run_step(
+        self,
+        step: str,
+        doc: Document,
+        *,
+        sub_cb: Callable | None = None,
+        murmur_cb: Callable | None = None,
+    ) -> StepOutcome:
+        """Run one analysis step against *doc* and record how it went.
+
+        Runs the step's pipeline, moves ``doc.pipeline_status`` to done or
+        failed, persists that status, and — for steps whose output lands on the
+        Document — saves the Document so partial output survives a later
+        failure.
+
+        Pipeline failures are returned in the outcome rather than raised: the
+        steps are independent, and callers differ on whether to continue
+        (``run_phase2``) or abort (the rerun endpoint). Persist failures are
+        logged and swallowed — they must not turn a step that actually produced
+        output into a failed one.
+
+        ``KGService.save()`` is deliberately NOT called here. The two callers
+        disagree on whether a failed KG save fails the step, so that policy
+        stays where the disagreement is visible.
+
+        Args:
+            step: A key of ``INGESTION_STEPS``.
+            doc: The Document to run against; mutated in place by the pipeline.
+
+        Raises:
+            KeyError: *step* is not a known step name.
+        """
+        spec = INGESTION_STEPS[step]
+        pipeline = getattr(self, spec.pipeline_attr)
+        outcome = StepOutcome(step=step)
+
+        self._log_step(spec.status_field)
+        try:
+            outcome.result = await pipeline.run(doc, sub_cb=sub_cb, murmur_cb=murmur_cb)
+            doc.pipeline_status.mark_done(spec.status_field)
+        except Exception as exc:  # noqa: BLE001
+            logger.error("Step '%s' failed: %s", step, exc)
+            outcome.error = str(exc)
+            setattr(doc.pipeline_status, spec.status_field, StepStatus.failed)
+
+        await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
+
+        if spec.mutates_document:
+            try:
+                await self._document_service.save_document(doc)
+            except Exception as exc:  # noqa: BLE001
+                logger.warning("Step '%s' persist failed (non-fatal): %s", step, exc)
+
+        return outcome
 
     def __init__(
         self,
@@ -220,15 +323,33 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         skip_keywords: bool = False,
         skip_symbols: bool = False,
     ) -> None:
-        """
+        """Build the workflow, defaulting every collaborator from settings.
+
+        All parameters are injection points. Production callers
+        (``ingestion_graph`` and the rerun endpoint) pass only ``kg_service``
+        and ``document_service``; everything else is constructed here.
+
         Args:
             document_pipeline: Inject a custom ``DocumentProcessingPipeline``.
             feature_pipeline: Inject a custom ``FeatureExtractionPipeline``.
             kg_pipeline: Inject a custom ``KnowledgeGraphPipeline``.
+            summarization_pipeline: Inject a custom ``SummarizationPipeline``.
+            symbol_pipeline: Inject a custom ``SymbolDiscoveryPipeline``.
             document_service: Inject a ``DocumentService`` (SQLite storage).
-            kg_service: Inject a ``KGService`` (NetworkX KG).
-            skip_qdrant: Set True to skip Qdrant upsert (e.g. no Qdrant running).
-            skip_kg: Set True to skip KG extraction (text-only ingestion).
+            kg_service: Inject a ``KGService`` (NetworkX or Neo4j).
+
+        The ``skip_*`` flags below are **test-only**: no production caller sets
+        any of them, and ingestion has no user-facing "skip a step" mode. They
+        exist so tests can build a workflow without standing up Qdrant, an LLM,
+        or a KG backend. Do not reach for them to express a runtime decision —
+        that belongs in settings or in the caller's step selection.
+
+        Args:
+            skip_qdrant: Skip Qdrant upsert (no vector store running).
+            skip_kg: Skip KG extraction entirely.
+            skip_summarization: Skip chapter/book summarization.
+            skip_keywords: Build no keyword extractor.
+            skip_symbols: Skip symbol discovery.
         """
         self._doc_pipeline = document_pipeline or DocumentProcessingPipeline()
         self._kg_service = kg_service or self._build_kg_service()
@@ -367,7 +488,6 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
         self,
         doc_id: str,
         *,
-        task_id: str | None = None,
         progress_cb: Callable | None = None,
         murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
     ) -> IngestionResult:
@@ -429,30 +549,33 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
 
         # ── Step 2: summarization ─────────────────────────────────────────
         _progress(25, "章節摘要", step_key="summarization")
+        def _step_sub_cb(pct: int, stage: str, step_key: str, default_label: str):
+            """Build the per-step progress callback the pipelines expect."""
+            return lambda cur, tot, label=default_label: _progress(
+                pct, stage, step_key=step_key,
+                sub_progress=cur, sub_total=tot, sub_stage=label,
+            )
+
         summ_result = SummarizationResult(document_id=doc.id)
         if not self._skip_summarization:
-            self._log_step("summarization")
-            try:
-                async def _summ_murmur_cb(chapter_number: int) -> None:
-                    chapter = next((c for c in doc.chapters if c.number == chapter_number), None)
-                    if chapter and chapter.summary:
-                        sentences = [s.strip() for s in chapter.summary.split("。") if s.strip()]
-                        preview = "。".join(sentences[:2]) + ("。" if sentences else "")
-                        await _murmur(
-                            "summarization", "topic",
-                            preview or chapter.summary,
-                            meta={"chapter": chapter_number},
-                        )
+            async def _summ_murmur_cb(chapter_number: int) -> None:
+                chapter = next((c for c in doc.chapters if c.number == chapter_number), None)
+                if chapter and chapter.summary:
+                    sentences = [s.strip() for s in chapter.summary.split("。") if s.strip()]
+                    preview = "。".join(sentences[:2]) + ("。" if sentences else "")
+                    await _murmur(
+                        "summarization", "topic",
+                        preview or chapter.summary,
+                        meta={"chapter": chapter_number},
+                    )
 
-                summ_result = await self._summarization_pipeline.run(
-                    doc,
-                    sub_cb=lambda cur, tot, label="章節摘要": _progress(
-                        25, "章節摘要", step_key="summarization",
-                        sub_progress=cur, sub_total=tot, sub_stage=label,
-                    ),
-                    murmur_cb=_summ_murmur_cb,
-                )
-                doc.pipeline_status.mark_done("summarization")
+            outcome = await self.run_step(
+                "summarization", doc,
+                sub_cb=_step_sub_cb(25, "章節摘要", "summarization", "章節摘要"),
+                murmur_cb=_summ_murmur_cb,
+            )
+            if outcome.ok:
+                summ_result = outcome.result
                 if (
                     summ_result.chapters_total > 0
                     and summ_result.chapters_summarized < summ_result.chapters_total
@@ -461,91 +584,55 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
                     errors.append(
                         f"summarization: {skipped}/{summ_result.chapters_total} chapters skipped"
                     )
-            except Exception as exc:  # noqa: BLE001
-                logger.error("Summarization failed: %s", exc)
-                errors.append(f"summarization: {exc}")
-                doc.pipeline_status.summarization = StepStatus.failed
-            await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
-            # Persist chapter summaries immediately so they survive a later KG failure
-            try:
-                await self._document_service.save_document(doc)
-            except Exception as exc:  # noqa: BLE001
-                logger.warning("Summary persist failed (non-fatal): %s", exc)
+            else:
+                errors.append(f"summarization: {outcome.error}")
 
         # ── Step 3: feature extraction (embeddings) ───────────────────────
         _progress(45, "特徵擷取", step_key="featureExtraction")
-        self._log_step("feature_extraction")
-        feat_result: FeatureExtractionResult
-        try:
-            feat_result = await self._feature_pipeline.run(
-                doc,
-                sub_cb=lambda cur, tot, label="章節特徵": _progress(
-                    45, "特徵擷取", step_key="featureExtraction",
-                    sub_progress=cur, sub_total=tot, sub_stage=label,
-                ),
-                murmur_cb=_murmur,
-            )
-            doc.pipeline_status.mark_done("feature_extraction")
-        except Exception as exc:  # noqa: BLE001
-            logger.error("Feature extraction failed: %s", exc)
-            errors.append(f"feature_extraction: {exc}")
-            feat_result = FeatureExtractionResult(
-                document_id=doc.id, paragraphs_embedded=0
-            )
-            doc.pipeline_status.feature_extraction = StepStatus.failed
-        await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
-        # Persist chapter keywords immediately so they survive a later KG failure
-        try:
-            await self._document_service.save_document(doc)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("Feature extraction persist failed (non-fatal): %s", exc)
+        outcome = await self.run_step(
+            "feature-extraction", doc,
+            sub_cb=_step_sub_cb(45, "特徵擷取", "featureExtraction", "章節特徵"),
+            murmur_cb=_murmur,
+        )
+        if outcome.ok:
+            feat_result = outcome.result
+        else:
+            errors.append(f"feature_extraction: {outcome.error}")
+            feat_result = FeatureExtractionResult(document_id=doc.id, paragraphs_embedded=0)
 
         # ── Step 4: knowledge graph extraction ───────────────────────────
         _progress(65, "知識圖譜擷取", step_key="knowledgeGraph")
         kg_result: KGExtractionResult = KGExtractionResult()
         if not self._skip_kg:
-            self._log_step("kg_extraction")
-            try:
-                kg_result = await self._kg_pipeline.run(
-                    doc,
-                    sub_cb=lambda cur, tot, label="": _progress(
-                        65, "知識圖譜擷取", step_key="knowledgeGraph",
-                        sub_progress=cur, sub_total=tot, sub_stage=label,
-                    ),
-                    murmur_cb=_murmur,
-                )
-                doc.pipeline_status.mark_done("knowledge_graph")
-            except Exception as exc:  # noqa: BLE001
-                logger.error("KG extraction failed: %s", exc)
-                errors.append(f"kg_extraction: {exc}")
-                doc.pipeline_status.knowledge_graph = StepStatus.failed
-            await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
-            if doc.pipeline_status.knowledge_graph == StepStatus.done:
+            outcome = await self.run_step(
+                "knowledge-graph", doc,
+                sub_cb=_step_sub_cb(65, "知識圖譜擷取", "knowledgeGraph", ""),
+                murmur_cb=_murmur,
+            )
+            if outcome.ok:
+                kg_result = outcome.result
+                # Non-fatal here: extraction already succeeded, and the KG is
+                # rebuildable — a persist error must not discard that work.
                 try:
                     await self._kg_service.save()
                 except Exception as exc:  # noqa: BLE001
                     logger.warning("KG save failed (non-fatal): %s", exc)
+            else:
+                errors.append(f"kg_extraction: {outcome.error}")
 
         # ── Step 4b: symbol discovery ─────────────────────────────────────
         _progress(82, "符號探索", step_key="symbolExploration")
         symbol_result = SymbolDiscoveryResult(book_id=doc.id)
         if not self._skip_symbols:
-            self._log_step("symbol_discovery")
-            try:
-                symbol_result = await self._symbol_pipeline.run(
-                    doc,
-                    sub_cb=lambda cur, tot, label="章節符號": _progress(
-                        82, "符號探索", step_key="symbolExploration",
-                        sub_progress=cur, sub_total=tot, sub_stage=label,
-                    ),
-                    murmur_cb=_murmur,
-                )
-                doc.pipeline_status.mark_done("symbol_discovery")
-            except Exception as exc:  # noqa: BLE001
-                logger.error("Symbol discovery failed (non-fatal): %s", exc)
-                errors.append(f"symbol_discovery: {exc}")
-                doc.pipeline_status.symbol_discovery = StepStatus.failed
-            await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
+            outcome = await self.run_step(
+                "symbol-discovery", doc,
+                sub_cb=_step_sub_cb(82, "符號探索", "symbolExploration", "章節符號"),
+                murmur_cb=_murmur,
+            )
+            if outcome.ok:
+                symbol_result = outcome.result
+            else:
+                errors.append(f"symbol_discovery: {outcome.error}")
 
         # ── Step 4c: timeline detection ───────────────────────────────────
         timeline_detection: TimelineDetectionResult | None = None
@@ -626,38 +713,6 @@ class IngestionWorkflow(BaseWorkflow[Path, IngestionResult]):
             len(errors),
         )
         return result
-
-    async def run(
-        self,
-        input_data: Path,
-        *,
-        task_id: str | None = None,
-        title: str | None = None,
-        author: str | None = None,
-        language: str | None = None,
-        progress_cb: Callable | None = None,
-        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
-    ) -> IngestionResult:
-        """Ingest a novel file end-to-end (Phase 1 + Phase 2, no review pause).
-
-        For the interactive chapter-review flow use the LangGraph ingestion
-        graph (``src/workflows/ingestion_graph.py``) — it pauses between
-        phases for HITL chapter review.
-        """
-        doc = await self.run_phase1(
-            file_path=input_data,
-            title=title,
-            author=author,
-            language=language,
-            progress_cb=progress_cb,
-            murmur_cb=murmur_cb,
-        )
-        return await self.run_phase2(
-            doc.id,
-            task_id=task_id,
-            progress_cb=progress_cb,
-            murmur_cb=murmur_cb,
-        )
 
     # ── private helpers ──────────────────────────────────────────────────────
 

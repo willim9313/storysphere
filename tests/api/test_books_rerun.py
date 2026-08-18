@@ -92,14 +92,25 @@ class TestRunRerunStep:
             ),
         )
 
-    def _make_workflow_mock(self):
-        wf = MagicMock()
-        wf._summarization_pipeline = MagicMock(run=AsyncMock())
-        wf._feature_pipeline = MagicMock(run=AsyncMock())
-        wf._kg_pipeline = MagicMock(run=AsyncMock())
-        wf._kg_service = MagicMock(save=AsyncMock())
-        wf._symbol_pipeline = MagicMock(run=AsyncMock())
-        return wf
+    def _make_workflow_mock(self, doc_service=None, kg_service=None):
+        """A real IngestionWorkflow with mocked pipelines.
+
+        Deliberately not a bare MagicMock: the per-step contract (status
+        transition, status persistence, saving the Document) lives in
+        ``IngestionWorkflow.run_step``, so mocking the whole workflow would
+        leave these tests asserting against the mock instead of that logic.
+        Only the pipelines — the slow, LLM-backed parts — are stubbed.
+        """
+        from storysphere.workflows.ingestion import IngestionWorkflow
+
+        return IngestionWorkflow(
+            summarization_pipeline=MagicMock(run=AsyncMock()),
+            feature_pipeline=MagicMock(run=AsyncMock()),
+            kg_pipeline=MagicMock(run=AsyncMock()),
+            symbol_pipeline=MagicMock(run=AsyncMock()),
+            document_service=doc_service or AsyncMock(),
+            kg_service=kg_service or MagicMock(save=AsyncMock()),
+        )
 
     @pytest.mark.parametrize(
         "step,status_attr",
@@ -122,7 +133,7 @@ class TestRunRerunStep:
         doc_svc = AsyncMock()
         doc_svc.get_document = AsyncMock(return_value=doc)
         doc_svc.update_pipeline_status = AsyncMock()
-        wf = self._make_workflow_mock()
+        wf = self._make_workflow_mock(doc_service=doc_svc)
 
         with patch("storysphere.workflows.ingestion.IngestionWorkflow", return_value=wf):
             asyncio.run(_run_rerun_step(task_id, "book-x", step, doc_svc, AsyncMock()))
@@ -147,7 +158,7 @@ class TestRunRerunStep:
         doc_svc.get_document = AsyncMock(return_value=doc)
         doc_svc.update_pipeline_status = AsyncMock()
 
-        wf = self._make_workflow_mock()
+        wf = self._make_workflow_mock(doc_service=doc_svc)
         wf._feature_pipeline.run.side_effect = RuntimeError("boom")
 
         with patch("storysphere.workflows.ingestion.IngestionWorkflow", return_value=wf):
@@ -202,7 +213,7 @@ class TestRerunPersistsDocumentOutput:
         doc_svc.update_pipeline_status = AsyncMock()
         doc_svc.save_document = AsyncMock()
 
-        wf = TestRunRerunStep()._make_workflow_mock()
+        wf = TestRunRerunStep()._make_workflow_mock(doc_service=doc_svc)
         if failing:
             attr = {
                 "summarization": "_summarization_pipeline",
@@ -252,7 +263,7 @@ class TestRerunPersistsDocumentOutput:
 
         with (
             patch("storysphere.workflows.ingestion.IngestionWorkflow",
-                  return_value=TestRunRerunStep()._make_workflow_mock()),
+                  return_value=TestRunRerunStep()._make_workflow_mock(doc_service=doc_svc)),
             patch("storysphere.services.analysis_cache.AnalysisCache", return_value=AsyncMock()),
             patch("storysphere.config.settings.get_settings"),
         ):
@@ -279,14 +290,26 @@ class TestRerunCacheInvalidation:
             ),
         )
 
-    def _make_workflow_mock(self, failing: str | None = None):
-        wf = MagicMock()
-        for attr in ("_summarization_pipeline", "_feature_pipeline",
-                     "_kg_pipeline", "_symbol_pipeline"):
-            run = AsyncMock(side_effect=RuntimeError("boom")) if attr == failing else AsyncMock()
-            setattr(wf, attr, MagicMock(run=run))
-        wf._kg_service = MagicMock(save=AsyncMock())
-        return wf
+    def _make_workflow_mock(self, failing: str | None = None, doc_service=None):
+        """Real IngestionWorkflow, pipelines stubbed — see TestRunRerunStep."""
+        from storysphere.workflows.ingestion import IngestionWorkflow
+
+        def _pipeline(attr: str):
+            run = (
+                AsyncMock(side_effect=RuntimeError("boom"))
+                if attr == failing
+                else AsyncMock()
+            )
+            return MagicMock(run=run)
+
+        return IngestionWorkflow(
+            summarization_pipeline=_pipeline("_summarization_pipeline"),
+            feature_pipeline=_pipeline("_feature_pipeline"),
+            kg_pipeline=_pipeline("_kg_pipeline"),
+            symbol_pipeline=_pipeline("_symbol_pipeline"),
+            document_service=doc_service or AsyncMock(),
+            kg_service=MagicMock(save=AsyncMock()),
+        )
 
     def _run(self, step, kg=None, failing=None):
         """Run the step with a mocked cache; return the cache mock."""
@@ -302,7 +325,7 @@ class TestRerunCacheInvalidation:
         cache = AsyncMock()
         with (
             patch("storysphere.workflows.ingestion.IngestionWorkflow",
-                  return_value=self._make_workflow_mock(failing)),
+                  return_value=self._make_workflow_mock(failing, doc_service=doc_svc)),
             patch("storysphere.services.analysis_cache.AnalysisCache", return_value=cache),
             patch("storysphere.config.settings.get_settings"),
         ):
@@ -386,7 +409,7 @@ class TestPipelineStepTimestamps:
 
         with (
             patch("storysphere.workflows.ingestion.IngestionWorkflow",
-                  return_value=cache_run._make_workflow_mock()),
+                  return_value=cache_run._make_workflow_mock(doc_service=doc_svc)),
             patch("storysphere.services.analysis_cache.AnalysisCache", return_value=AsyncMock()),
             patch("storysphere.config.settings.get_settings"),
         ):
@@ -395,3 +418,71 @@ class TestPipelineStepTimestamps:
 
         assert doc.pipeline_status.symbol_discovery_at is not None
         assert doc.pipeline_status.summarization_at is None
+
+
+class TestRerunStepRegistry:
+    """The endpoint's step vocabulary must stay in step with the workflow's."""
+
+    def test_rerun_steps_match_the_workflow_registry(self):
+        from storysphere.api.routers.books import _RERUN_STEPS
+        from storysphere.workflows.ingestion import INGESTION_STEPS
+
+        assert _RERUN_STEPS == set(INGESTION_STEPS)
+
+    def test_valid_steps_constant_matches_too(self):
+        from storysphere.workflows.ingestion import INGESTION_STEPS
+
+        assert set(VALID_STEPS) == set(INGESTION_STEPS)
+
+
+class TestRerunKgSavePolicy:
+    """A rerun is stricter than ingestion about persisting the KG.
+
+    ``run_phase2`` treats a failed ``KGService.save()`` as non-fatal — the
+    extraction succeeded and the rest of the run should continue. A rerun of
+    the knowledge-graph step exists precisely to get that output on disk, so
+    reporting success with nothing written would defeat the point.
+    """
+
+    def _run(self, *, save_error: Exception | None = None):
+        from storysphere.api.routers.books import _run_rerun_step
+        from storysphere.api.store import task_store
+
+        task_id = f"rerun-{uuid4()}"
+        task_store.create(task_id)
+        doc = TestRunRerunStep()._make_doc()
+
+        doc_svc = AsyncMock()
+        doc_svc.get_document = AsyncMock(return_value=doc)
+        doc_svc.update_pipeline_status = AsyncMock()
+
+        kg = AsyncMock()
+        kg.get_events = AsyncMock(return_value=[])
+        if save_error is not None:
+            kg.save = AsyncMock(side_effect=save_error)
+
+        wf = TestRunRerunStep()._make_workflow_mock(doc_service=doc_svc)
+        with (
+            patch("storysphere.workflows.ingestion.IngestionWorkflow", return_value=wf),
+            patch("storysphere.services.analysis_cache.AnalysisCache", return_value=AsyncMock()),
+            patch("storysphere.config.settings.get_settings"),
+        ):
+            asyncio.run(_run_rerun_step(task_id, "book-x", "knowledge-graph", doc_svc, kg))
+        return task_store.get(task_id), doc, kg
+
+    def test_kg_is_saved_on_success(self):
+        status, doc, kg = self._run()
+        from storysphere.domain.documents import StepStatus
+
+        assert kg.save.await_count == 1
+        assert doc.pipeline_status.knowledge_graph == StepStatus.done
+        assert status.status == "done"
+
+    def test_failed_kg_save_fails_the_step_and_the_task(self):
+        from storysphere.domain.documents import StepStatus
+
+        status, doc, _ = self._run(save_error=RuntimeError("disk full"))
+
+        assert doc.pipeline_status.knowledge_graph == StepStatus.failed
+        assert status.status == "error"
+        assert "disk full" in (status.error or "")

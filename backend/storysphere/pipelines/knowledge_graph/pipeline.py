@@ -6,6 +6,7 @@ import asyncio
 import logging
 from dataclasses import dataclass, field
 
+from storysphere.core.concurrency import gather_bounded
 from storysphere.domain.documents import ChapterRole, Document, extract_body_text
 from storysphere.domain.entities import Entity
 from storysphere.domain.events import Event, EventType
@@ -49,12 +50,16 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         relation_extractor: RelationExtractor | None = None,
         entity_linker: EntityLinker | None = None,
         kg_service=None,
+        concurrency: int | None = None,
     ) -> None:
         self._entity_extractor = entity_extractor or EntityExtractor()
         self._relation_extractor = relation_extractor or RelationExtractor()
         self._entity_linker = entity_linker or EntityLinker()
         self._paragraph_entity_linker = ParagraphEntityLinker()
         self._kg_service = kg_service  # optional KGService; pass None to skip write
+        # None = read settings.ingestion_concurrency at run time, so a config
+        # change takes effect without rebuilding the pipeline.
+        self._concurrency = concurrency
 
     # entity_type → murmur type mapping
     _ENTITY_TYPE_MAP: dict[str, str] = {
@@ -68,6 +73,19 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
         "object": "topic",
         "concept": "topic",
     }
+
+    def _resolve_concurrency(self) -> int:
+        """Concurrency for the per-paragraph entity pass.
+
+        Read per run rather than cached at construction so operators can dial
+        it back to 1 (sequential) without a code change when a provider starts
+        rate-limiting.
+        """
+        if self._concurrency is not None:
+            return self._concurrency
+        from storysphere.config.settings import get_settings  # noqa: PLC0415
+
+        return get_settings().ingestion_concurrency
 
     async def run(self, input_data: Document, *, sub_cb=None, murmur_cb=None) -> KGExtractionResult:
         """Extract KG data from all chapters in the document.
@@ -113,25 +131,46 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
             if not chapter_text.strip():
                 continue
             chapter_texts[chapter.number] = chapter_text
+            # Lowered once per chapter, not once per entity: mention counting
+            # below runs for every entity of every paragraph, and each call
+            # would otherwise copy the whole chapter string.
+            chapter_text_lower = chapter_text.lower()
 
-            for para, body_text in body_texts_ch:
+            async def _extract(pair, _chapter=chapter):
+                para, body_text = pair
                 self._log_step(
                     "entity_extract",
-                    chapter=chapter.number,
+                    chapter=_chapter.number,
                     para=para.position,
                 )
-                para_entities = await self._entity_extractor.extract(
-                    body_text, chapter.number, language=doc.language
+                return await self._entity_extractor.extract(
+                    body_text, _chapter.number, language=doc.language
                 )
+
+            per_paragraph = await gather_bounded(
+                body_texts_ch, _extract, limit=self._resolve_concurrency()
+            )
+
+            # Post-processing stays sequential and in paragraph order: the
+            # murmur stream is user-visible, and all_raw_entities order feeds
+            # EntityLinker's canonical-name choice. Only the LLM calls above
+            # run concurrently.
+            for para_entities in per_paragraph:
                 # Count mentions across the full chapter text for context
                 for entity in para_entities:
-                    entity.mention_count = chapter_text.lower().count(
+                    entity.mention_count = chapter_text_lower.count(
                         entity.name.lower()
                     )
                     if murmur_cb:
                         try:
+                            # EntityType is a (str, Enum) mixin, not a StrEnum:
+                            # str(EntityType.LOCATION) is "EntityType.LOCATION",
+                            # which matches no key. Read .value for the bare
+                            # "location" the map is actually keyed on.
+                            entity_type = getattr(entity, "entity_type", "")
                             murmur_type = self._ENTITY_TYPE_MAP.get(
-                                str(getattr(entity, "entity_type", "")).lower(), "topic"
+                                str(getattr(entity_type, "value", entity_type)).lower(),
+                                "topic",
                             )
                             role = getattr(entity, "role", None) or getattr(entity, "description", None)
                             await murmur_cb(
@@ -194,8 +233,13 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
                 sub_cb(rel_done, total_chapters, "關係抽取")
 
         # ── Step 3.5: link entities to paragraphs ─────────────────────────────
+        # Regex-scans every paragraph of the book synchronously — offloaded to
+        # the executor for the same reason as the entity linker above, so a
+        # long book cannot stall the event loop (and with it progress reporting).
         self._log_step("paragraph_entity_link")
-        self._paragraph_entity_linker.link(doc, unique_entities)
+        await asyncio.get_running_loop().run_in_executor(
+            None, self._paragraph_entity_linker.link, doc, unique_entities
+        )
 
         self._fill_relation_valid_to(all_relations)
         self._fill_entity_valid_to(unique_entities, all_events)
@@ -280,12 +324,9 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
     def _remove_merged_relations(
         relations: list[Relation], to_remove: set[int]
     ) -> None:
-        i = 0
-        while i < len(relations):
-            if id(relations[i]) in to_remove:
-                relations.pop(i)
-            else:
-                i += 1
+        # Slice assignment keeps the in-place contract the caller relies on,
+        # without list.pop(i) shifting every later element on each removal.
+        relations[:] = [r for r in relations if id(r) not in to_remove]
 
     @staticmethod
     def _fill_entity_valid_to(

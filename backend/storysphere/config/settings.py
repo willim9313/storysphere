@@ -78,6 +78,17 @@ class Settings(BaseSettings):
     qdrant_collection_prefix: str = "storysphere_book"
     qdrant_local_path: str = "./var/qdrant_local"
 
+    # ── Ingestion ──────────────────────────────────────────────────────────────
+    ingestion_concurrency: int = Field(
+        default=2,
+        ge=1,
+        description=(
+            "Max concurrent LLM calls during per-paragraph entity extraction. "
+            "1 = fully sequential (the rollback setting). Raise only as far as "
+            "the provider's rate limit allows — a 429 aborts the whole step."
+        ),
+    )
+
     # ── Knowledge Graph ────────────────────────────────────────────────────────
     kg_mode: Literal["networkx", "neo4j"] = "networkx"
     kg_persistence_path: str = "./var/knowledge_graph.json"

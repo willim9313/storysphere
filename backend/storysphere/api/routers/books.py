@@ -403,35 +403,15 @@ async def delete_book(
 
 # ── Rerun endpoints ──────────────────────────────────────────────────────────
 
+# Kept as a literal so the endpoint's 422 message does not depend on importing
+# the workflow at module load. Must stay in step with the workflow's step
+# registry — test_books_rerun.py::TestRerunStepRegistry asserts they match.
 _RERUN_STEPS = {
     "summarization",
     "feature-extraction",
     "knowledge-graph",
     "symbol-discovery",
 }
-
-# Steps whose output lands on the Document itself (chapter summaries, chapter
-# keywords) rather than in the KG or the vector store. Their pipelines mutate
-# the Document in place and never touch SQLite — persisting is the caller's
-# job, which the ingestion workflow does and a rerun otherwise would not.
-_DOC_MUTATING_STEPS = frozenset({"summarization", "feature-extraction"})
-
-
-async def _persist_step_output(doc_service, document, step: str) -> None:
-    """Write back what a rerun of ``step`` produced on the Document.
-
-    Called on the failure path too: the summarization pipeline skips chapters
-    that already have a summary, so saving what a rate-limited run got through
-    is what lets the next rerun resume instead of paying for those chapters
-    again. Failing to save must not turn a successful step into a failed task,
-    so the error is logged and swallowed — same as the ingestion workflow.
-    """
-    if step not in _DOC_MUTATING_STEPS:
-        return
-    try:
-        await doc_service.save_document(document)
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Rerun %s persist failed (non-fatal): %s", step, exc)
 
 
 async def _run_rerun_step(
@@ -449,7 +429,9 @@ async def _run_rerun_step(
             return
 
         from storysphere.workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
-        wf = IngestionWorkflow(kg_service=kg_service)
+        # document_service is injected so run_step persists through the service
+        # the endpoint already resolved, rather than opening a second one.
+        wf = IngestionWorkflow(kg_service=kg_service, document_service=doc_service)
 
         # TEU keys name event ids that this step is about to regenerate, so
         # collect them while the current events still exist.
@@ -460,51 +442,27 @@ async def _run_rerun_step(
                 [e.id for e in await kg_service.get_events(document_id=book_id)]
             )
 
-        if step == "summarization":
-            try:
-                await wf._summarization_pipeline.run(document)
-                document.pipeline_status.mark_done("summarization")
-            except Exception as exc:  # noqa: BLE001
-                document.pipeline_status.summarization = StepStatus.failed
-                task_store.set_failed(task_id, error=str(exc))
-                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
-                await _persist_step_output(doc_service, document, step)
-                return
+        # run_step owns the per-step contract (status transition, status
+        # persistence, and saving the Document for steps whose output lands on
+        # it) — the same one ingestion uses. What differs is only the reaction:
+        # a rerun runs exactly one step, so a failure ends the task.
+        outcome = await wf.run_step(step, document)
 
-        elif step == "feature-extraction":
+        # Unlike ingestion, a rerun treats a failed KG save as a failed step:
+        # it was triggered precisely to get this step's output persisted, so
+        # reporting success with nothing on disk would defeat the point.
+        if outcome.ok and step == "knowledge-graph":
             try:
-                await wf._feature_pipeline.run(document)
-                document.pipeline_status.mark_done("feature_extraction")
+                await kg_service.save()
             except Exception as exc:  # noqa: BLE001
-                document.pipeline_status.feature_extraction = StepStatus.failed
-                task_store.set_failed(task_id, error=str(exc))
-                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
-                await _persist_step_output(doc_service, document, step)
-                return
-
-        elif step == "knowledge-graph":
-            try:
-                await wf._kg_pipeline.run(document)
-                await wf._kg_service.save()
-                document.pipeline_status.mark_done("knowledge_graph")
-            except Exception as exc:  # noqa: BLE001
+                logger.error("Rerun knowledge-graph save failed: %s", exc)
+                outcome.error = str(exc)
                 document.pipeline_status.knowledge_graph = StepStatus.failed
-                task_store.set_failed(task_id, error=str(exc))
                 await doc_service.update_pipeline_status(book_id, document.pipeline_status)
-                return
 
-        elif step == "symbol-discovery":
-            try:
-                await wf._symbol_pipeline.run(document)
-                document.pipeline_status.mark_done("symbol_discovery")
-            except Exception as exc:  # noqa: BLE001
-                document.pipeline_status.symbol_discovery = StepStatus.failed
-                task_store.set_failed(task_id, error=str(exc))
-                await doc_service.update_pipeline_status(book_id, document.pipeline_status)
-                return
-
-        await doc_service.update_pipeline_status(book_id, document.pipeline_status)
-        await _persist_step_output(doc_service, document, step)
+        if not outcome.ok:
+            task_store.set_failed(task_id, error=outcome.error)
+            return
 
         # Only after the step succeeded — a failed rerun leaves the old data in
         # place, so its analyses are still the ones that describe the book.
