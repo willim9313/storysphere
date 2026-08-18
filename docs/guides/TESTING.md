@@ -53,7 +53,7 @@ tests/
 ```python
 class TestBuildEntitySegments:
     def _seg(self, text, entities):
-        from api.routers.books import _build_entity_segments
+        from api.routers.book_reader import _build_entity_segments
         return _build_entity_segments(text, entities)
 
     def test_no_entities_returns_single_segment(self):

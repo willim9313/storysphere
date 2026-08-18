@@ -99,7 +99,7 @@ def test_ingest_without_author_still_accepted(client):
 def test_ingest_rejects_file_over_size_limit(client, monkeypatch):
     """Oversized uploads are rejected with 413. The limit is monkeypatched to a
     small value so the test doesn't need to allocate a real multi-MB payload."""
-    from storysphere.api.routers import books as books_router
+    from storysphere.api.routers import book_ingestion as books_router
 
     monkeypatch.setattr(books_router, "MAX_UPLOAD_BYTES", 10)
     payload = b"x" * 100
