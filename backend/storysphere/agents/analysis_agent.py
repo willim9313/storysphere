@@ -316,6 +316,89 @@ class AnalysisAgent:
         )
         return result
 
+    async def analyze_symbols_batch(
+        self,
+        book_id: str,
+        imagery_ids: list[str],
+        *,
+        language: str = "en",
+        force_refresh: bool = False,
+        skip_ids: set[str] | None = None,
+        progress_callback: Callable[[int, int], None] | None = None,
+    ) -> dict:
+        """Interpret every imagery entity in *imagery_ids*, one at a time.
+
+        Sequential rather than concurrent: every item is a paid LLM call, and
+        running them in parallel makes a rate-limit abort lose work that has
+        already been charged for.
+
+        ``skip_ids`` covers both symbols that already have an interpretation and
+        symbols the provider has refused. Both are counted as skipped rather
+        than failed: neither spends a call, and a refusal re-attempted in a
+        sweep spends one to learn what is already recorded.
+
+        Hitting the provider's rate limit stops the sweep — continuing would
+        only burn the remaining items on the same error. That is reported as
+        ``aborted`` in the summary rather than raised, so the caller keeps the
+        counts of what did get through and decides how to surface it.
+
+        Returns:
+            ``{"progress", "total", "failed", "skipped", "aborted"}``.
+        """
+        from storysphere.core.error_handling import is_rate_limit_error  # noqa: PLC0415
+
+        skip_ids = skip_ids or set()
+        total = len(imagery_ids)
+        done = failed = skipped = 0
+
+        def _report() -> None:
+            if progress_callback is not None:
+                progress_callback(done, total)
+
+        for imagery_id in imagery_ids:
+            if not force_refresh and imagery_id in skip_ids:
+                skipped += 1
+                done += 1
+                _report()
+                continue
+            try:
+                await self.analyze_symbol(
+                    imagery_id=imagery_id,
+                    book_id=book_id,
+                    language=language,
+                    force_refresh=force_refresh,
+                )
+                done += 1
+            except Exception as exc:  # noqa: BLE001
+                if is_rate_limit_error(exc):
+                    logger.warning("Batch symbol analysis aborted — rate limit: %s", exc)
+                    return {
+                        "progress": done,
+                        "total": total,
+                        "failed": failed,
+                        "skipped": skipped,
+                        "aborted": True,
+                    }
+                logger.warning("Batch symbol analysis failed for %s: %s", imagery_id, exc)
+                failed += 1
+                done += 1
+            _report()
+
+        logger.info(
+            "Batch symbol analysis complete: book=%s total=%d skipped=%d failed=%d",
+            book_id,
+            total,
+            skipped,
+            failed,
+        )
+        return {
+            "progress": total,
+            "total": total,
+            "failed": failed,
+            "skipped": skipped,
+            "aborted": False,
+        }
+
     @_langfuse_observe(name="AnalysisAgent.analyze_narrative")
     async def analyze_narrative(
         self,

@@ -109,6 +109,13 @@ def mock_symbol_analysis_svc():
 @pytest.fixture
 def mock_analysis_agent():
     agent = AsyncMock()
+    # The sweep itself lives on the agent now; endpoint tests only care about
+    # what gets handed to it, so a benign summary is enough.
+    agent.analyze_symbols_batch = AsyncMock(
+        return_value={
+            "progress": 0, "total": 0, "failed": 0, "skipped": 0, "aborted": False,
+        }
+    )
     return agent
 
 
@@ -509,6 +516,14 @@ class TestAnalyzeAllSymbols:
             for eid, term, freq in specs
         ]
 
+    @staticmethod
+    def _batch_call(agent):
+        """The single call the endpoint makes into the agent's sweep."""
+        agent.analyze_symbols_batch.assert_awaited_once()
+        call = agent.analyze_symbols_batch.await_args
+        ids = call.args[1] if len(call.args) > 1 else call.kwargs["imagery_ids"]
+        return set(ids), call.kwargs
+
     def test_returns_202_with_a_task_id(self, client, mock_symbol_svc):
         mock_symbol_svc.get_imagery_list = AsyncMock(
             return_value=self._entities(("img-1", "mirror", 5))
@@ -529,11 +544,8 @@ class TestAnalyzeAllSymbols:
             )
         )
         client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
-        analyzed = {
-            call.kwargs["imagery_id"]
-            for call in mock_analysis_agent.analyze_symbol.await_args_list
-        }
-        assert analyzed == {"img-1"}
+        selected, _ = self._batch_call(mock_analysis_agent)
+        assert selected == {"img-1"}
 
     def test_imagery_ids_overrides_the_frequency_floor(
         self, client, mock_symbol_svc, mock_analysis_agent
@@ -548,11 +560,8 @@ class TestAnalyzeAllSymbols:
             "/api/v1/symbols/analyze-all",
             json={"book_id": "book-1", "imagery_ids": ["img-tail"]},
         )
-        analyzed = {
-            call.kwargs["imagery_id"]
-            for call in mock_analysis_agent.analyze_symbol.await_args_list
-        }
-        assert analyzed == {"img-tail"}
+        selected, _ = self._batch_call(mock_analysis_agent)
+        assert selected == {"img-tail"}
 
     def test_refused_symbols_are_skipped(
         self, client, mock_symbol_svc, mock_analysis_agent, mock_symbol_analysis_svc
@@ -575,11 +584,11 @@ class TestAnalyzeAllSymbols:
             }
         )
         client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
-        analyzed = {
-            call.kwargs["imagery_id"]
-            for call in mock_analysis_agent.analyze_symbol.await_args_list
-        }
-        assert analyzed == {"img-1"}
+        selected, kwargs = self._batch_call(mock_analysis_agent)
+        assert selected == {"img-1", "img-blocked"}
+        # The refusal is handed over as a skip rather than dropped, so a later
+        # force_refresh can still re-attempt it.
+        assert kwargs["skip_ids"] == {"img-blocked"}
 
     def test_force_refresh_re_attempts_a_refused_symbol(
         self, client, mock_symbol_svc, mock_analysis_agent, mock_symbol_analysis_svc
@@ -602,11 +611,9 @@ class TestAnalyzeAllSymbols:
             "/api/v1/symbols/analyze-all",
             json={"book_id": "book-1", "force_refresh": True},
         )
-        analyzed = {
-            call.kwargs["imagery_id"]
-            for call in mock_analysis_agent.analyze_symbol.await_args_list
-        }
-        assert analyzed == {"img-blocked"}
+        selected, kwargs = self._batch_call(mock_analysis_agent)
+        assert selected == {"img-blocked"}
+        assert kwargs["force_refresh"] is True
 
     def test_unknown_imagery_ids_are_silently_excluded(
         self, client, mock_symbol_svc, mock_analysis_agent
@@ -619,11 +626,8 @@ class TestAnalyzeAllSymbols:
             json={"book_id": "book-1", "imagery_ids": ["img-1", "img-ghost"]},
         )
         assert resp.status_code == 202
-        analyzed = {
-            call.kwargs["imagery_id"]
-            for call in mock_analysis_agent.analyze_symbol.await_args_list
-        }
-        assert analyzed == {"img-1"}
+        selected, _ = self._batch_call(mock_analysis_agent)
+        assert selected == {"img-1"}
 
     def test_returns_400_when_nothing_is_in_scope(self, client, mock_symbol_svc):
         mock_symbol_svc.get_imagery_list = AsyncMock(
@@ -665,10 +669,14 @@ class TestAnalyzeAllSymbols:
 
 
 class TestBatchSymbolAnalysisRunner:
-    """The background loop's accounting, which the 202 response cannot show."""
+    """The runner's only job now: mirror the agent's sweep into the task store.
+
+    The sweep's own accounting (skip / failure tolerance / rate-limit abort)
+    moved to ``AnalysisAgent.analyze_symbols_batch`` and is tested there.
+    """
 
     @staticmethod
-    async def _run(agent, imagery_ids, skip=None, force=False):
+    async def _run(agent, imagery_ids):
         from uuid import uuid4
 
         from storysphere.api.routers.symbols import _run_batch_symbol_analysis
@@ -682,48 +690,66 @@ class TestBatchSymbolAnalysisRunner:
             book_id="book-1",
             imagery_ids=imagery_ids,
             language="zh-TW",
-            force_refresh=force,
-            skip_ids=skip or set(),
+            force_refresh=False,
+            skip_ids=set(),
             agent=agent,
         )
         return task_store.get(task_id)
 
-    async def test_counts_skipped_ids_as_skipped(self):
-        """Covers both reasons to skip: already interpreted, and refused."""
+    async def test_summary_is_stored_without_the_internal_aborted_flag(self):
         agent = AsyncMock()
-        task = await self._run(agent, ["img-1", "img-2"], skip={"img-1"})
-        assert task.result == {
-            "progress": 2, "total": 2, "failed": 0, "skipped": 1,
-        }
-        agent.analyze_symbol.assert_awaited_once()
-
-    async def test_force_refresh_reinterprets_existing(self):
-        agent = AsyncMock()
-        task = await self._run(agent, ["img-1"], skip={"img-1"}, force=True)
-        assert task.result["skipped"] == 0
-        agent.analyze_symbol.assert_awaited_once()
-
-    async def test_one_failure_does_not_stop_the_rest(self):
-        agent = AsyncMock()
-
-        def _analyze(imagery_id, **kw):
-            if imagery_id == "img-1":
-                raise RuntimeError("LLM returned garbage")
-            return None
-
-        agent.analyze_symbol.side_effect = _analyze
+        agent.analyze_symbols_batch = AsyncMock(
+            return_value={
+                "progress": 2, "total": 2, "failed": 0, "skipped": 1, "aborted": False,
+            }
+        )
         task = await self._run(agent, ["img-1", "img-2"])
-        assert task.result["failed"] == 1
-        assert task.result["total"] == 2
-        assert agent.analyze_symbol.await_count == 2
+        assert task.status == "done"
+        assert task.result == {"progress": 2, "total": 2, "failed": 0, "skipped": 1}
 
-    async def test_rate_limit_aborts_the_whole_batch(self):
-        """Continuing past a quota wall just burns the remaining items."""
+    async def test_abort_becomes_a_failed_task_naming_what_got_through(self):
         agent = AsyncMock()
-        agent.analyze_symbol.side_effect = RuntimeError("429 rate limit exceeded")
+        agent.analyze_symbols_batch = AsyncMock(
+            return_value={
+                "progress": 1, "total": 3, "failed": 0, "skipped": 0, "aborted": True,
+            }
+        )
         task = await self._run(agent, ["img-1", "img-2", "img-3"])
         assert task.status == "error"
-        assert agent.analyze_symbol.await_count == 1
+        assert "1/3" in task.error
+
+    async def test_progress_callback_reaches_the_task_store(self):
+        from storysphere.api.store import task_store
+
+        seen = {}
+
+        async def _batch(book_id, imagery_ids, **kwargs):
+            kwargs["progress_callback"](1, 2)
+            return {
+                "progress": 2, "total": 2, "failed": 0, "skipped": 0, "aborted": False,
+            }
+
+        agent = AsyncMock()
+        agent.analyze_symbols_batch = _batch
+
+        from uuid import uuid4
+
+        from storysphere.api.routers.symbols import _run_batch_symbol_analysis
+
+        task_id = str(uuid4())
+        task_store.create(task_id, kind="symbol", title="test")
+        await _run_batch_symbol_analysis(
+            task_id=task_id,
+            book_id="book-1",
+            imagery_ids=["img-1", "img-2"],
+            language="zh-TW",
+            force_refresh=False,
+            skip_ids=set(),
+            agent=agent,
+        )
+        seen = task_store.get(task_id)
+        # completed overwrote progress, but sub_total proves the callback landed
+        assert seen.sub_total == 2
 
 
 class TestSymbolInterpretationGet:

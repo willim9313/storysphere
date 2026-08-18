@@ -43,7 +43,6 @@ from storysphere.api.schemas.symbols import (
     SymbolTimelineEntry,
 )
 from storysphere.api.store import get_task, task_store
-from storysphere.core.error_handling import is_rate_limit_error
 from storysphere.domain.imagery import ImageryType
 from storysphere.domain.symbol_analysis import (
     SEP,
@@ -304,79 +303,46 @@ async def _run_batch_symbol_analysis(
     skip_ids: set[str],
     agent,
 ) -> None:
-    """Background task: interpret each imagery entity in turn.
-
-    Sequential rather than concurrent: every item is a paid LLM call, and running
-    them in parallel makes a rate-limit abort lose work that has already been
-    charged for.
-
-    ``skip_ids`` covers both symbols that already have an interpretation and
-    symbols the provider has refused. Both are counted as skipped rather than
-    failed: neither spends a call, and a refusal re-attempted in a sweep spends
-    one to learn what is already recorded.
+    """Background task: drive the batch sweep and mirror it into the task store.
 
     Progress mirrors the character and event batches (``sub_progress`` /
     ``sub_total``) so BatchEepPanel can render item counts rather than a
-    percentage.
+    percentage. The sweep itself — ordering, skip and rate-limit policy — lives
+    on the agent; what stays here is the task-store wiring and the wording the
+    user sees.
     """
     task_store.set_running(task_id)
     total = len(imagery_ids)
-    done = 0
-    failed = 0
-    skipped = 0
 
-    def _report() -> None:
+    def _report(done: int, item_total: int) -> None:
         task_store.set_progress(
             task_id,
-            progress=int(done / total * 100) if total else 0,
-            stage=f"詮釋意象 {done}/{total}",
+            progress=int(done / item_total * 100) if item_total else 0,
+            stage=f"詮釋意象 {done}/{item_total}",
             sub_progress=done,
-            sub_total=total,
+            sub_total=item_total,
         )
 
-    for imagery_id in imagery_ids:
-        if not force_refresh and imagery_id in skip_ids:
-            skipped += 1
-            done += 1
-            _report()
-            continue
-        try:
-            await agent.analyze_symbol(
-                imagery_id=imagery_id,
-                book_id=book_id,
-                language=language,
-                force_refresh=force_refresh,
-            )
-            done += 1
-        except Exception as exc:
-            if is_rate_limit_error(exc):
-                logger.warning("Batch symbol analysis aborted — rate limit: %s", exc)
-                task_store.set_failed(
-                    task_id,
-                    error=f"API 配額已達上限，已處理 {done}/{total} 個意象。請稍後再試。",
-                )
-                return
-            logger.warning("Batch symbol analysis failed for %s: %s", imagery_id, exc)
-            failed += 1
-            done += 1
-        _report()
-
-    task_store.set_completed(
-        task_id,
-        result={
-            "progress": total,
-            "total": total,
-            "failed": failed,
-            "skipped": skipped,
-        },
-    )
-    logger.info(
-        "Batch symbol analysis complete: book=%s total=%d skipped=%d failed=%d",
+    summary = await agent.analyze_symbols_batch(
         book_id,
-        total,
-        skipped,
-        failed,
+        imagery_ids,
+        language=language,
+        force_refresh=force_refresh,
+        skip_ids=skip_ids,
+        progress_callback=_report,
     )
+
+    if summary.pop("aborted", False):
+        task_store.set_failed(
+            task_id,
+            error=(
+                f"API 配額已達上限，已處理 {summary['progress']}/{total} 個意象。"
+                "請稍後再試。"
+            ),
+        )
+        return
+
+    task_store.set_completed(task_id, result=summary)
 
 
 @router.post("/analyze-all", response_model=TaskStatus, status_code=202)
