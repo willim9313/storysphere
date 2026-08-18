@@ -154,6 +154,7 @@ async def lifespan(app: FastAPI):
         get_vector_service,
         set_ingestion_graph,
     )
+    from storysphere.api.ingestion_reporter import TaskStoreReporter  # noqa: PLC0415
     from storysphere.config.settings import get_settings  # noqa: PLC0415
     from storysphere.core.llm_client import get_llm_client  # noqa: PLC0415
     from storysphere.core.token_callback import set_main_event_loop  # noqa: PLC0415
@@ -201,7 +202,13 @@ async def lifespan(app: FastAPI):
     Path(settings.ingestion_checkpoint_db_path).parent.mkdir(parents=True, exist_ok=True)
     async with AsyncSqliteSaver.from_conn_string(settings.ingestion_checkpoint_db_path) as checkpointer:
         await checkpointer.setup()
-        set_ingestion_graph(build_ingestion_graph(checkpointer))
+        set_ingestion_graph(
+            build_ingestion_graph(
+                checkpointer,
+                kg_service=kg,
+                make_reporter=TaskStoreReporter,
+            )
+        )
         logger.info(
             "Ingestion graph ready (checkpoint db: %s)", settings.ingestion_checkpoint_db_path
         )

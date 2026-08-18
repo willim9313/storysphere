@@ -14,13 +14,59 @@ does not lose progress.  thread_id == task_id.
 from __future__ import annotations
 
 import logging
+from functools import partial
 from pathlib import Path
-from typing import TypedDict
+from typing import TYPE_CHECKING, Protocol, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
 
+if TYPE_CHECKING:
+    from storysphere.workflows.ingestion import IngestionResult
+
 logger = logging.getLogger(__name__)
+
+
+class IngestionReporter(Protocol):
+    """Where a single ingestion run reports its progress to.
+
+    Implemented by the API layer (which owns the task store and the wire
+    format); the graph only knows this interface, so nothing here has to
+    import from ``storysphere.api``.
+    """
+
+    def progress(
+        self,
+        pct: int,
+        stage: str,
+        *,
+        step_key: str | None = None,
+        sub_progress: int | None = None,
+        sub_total: int | None = None,
+        sub_stage: str | None = None,
+    ) -> None: ...
+
+    async def murmur(
+        self,
+        step_key: str,
+        event_type: str,
+        content: str,
+        *,
+        meta: dict | None = None,
+        raw_content: str | None = None,
+    ) -> None: ...
+
+    def awaiting_review(self, doc_id: str) -> None: ...
+
+    def running(self) -> None: ...
+
+    def completed(self, result: IngestionResult) -> dict: ...
+
+
+class ReporterFactory(Protocol):
+    """Builds the reporter for one task. The graph is shared across tasks."""
+
+    def __call__(self, task_id: str) -> IngestionReporter: ...
 
 
 class IngestionState(TypedDict):
@@ -47,13 +93,13 @@ class IngestionState(TypedDict):
     timeline_detection: dict | None
 
 
-async def phase1_node(state: IngestionState) -> dict:
-    from storysphere.api.deps import get_kg_service  # noqa: PLC0415
-    from storysphere.api.store import task_store  # noqa: PLC0415
+async def phase1_node(
+    state: IngestionState, *, kg_service, make_reporter: ReporterFactory
+) -> dict:
     from storysphere.workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
 
     task_id = state["task_id"]
-    kg_service = get_kg_service()
+    reporter = make_reporter(task_id)
     workflow = IngestionWorkflow(kg_service=kg_service)
 
     doc = await workflow.run_phase1(
@@ -61,25 +107,25 @@ async def phase1_node(state: IngestionState) -> dict:
         title=state.get("title"),
         author=state.get("author"),
         language=state.get("language"),
-        progress_cb=lambda pct, stage, *, step_key=None, sub_progress=None, sub_total=None, sub_stage=None:
-            task_store.set_progress(task_id, pct, stage, step_key=step_key, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
-        murmur_cb=lambda event: task_store.append_murmur(task_id, event),
+        progress_cb=reporter.progress,
+        murmur_cb=reporter.murmur,
     )
 
     # Signal frontend that review is needed — must happen after run_phase1 returns
-    task_store.set_awaiting_review(task_id, doc.id)
+    reporter.awaiting_review(doc.id)
     logger.info("phase1_node done: doc_id=%s, task=%s awaiting review", doc.id, task_id)
     return {"doc_id": doc.id}
 
 
-async def chapter_review_node(state: IngestionState) -> dict:
+async def chapter_review_node(
+    state: IngestionState, *, make_reporter: ReporterFactory
+) -> dict:
     """Pause here for HITL chapter review.
 
     On the first pass, interrupt() checkpoints the graph and raises GraphInterrupt.
     When the graph is resumed with Command(resume=chapters_data), execution
     continues from this point with chapters_data as the return value of interrupt().
     """
-    from storysphere.api.store import task_store  # noqa: PLC0415
     from storysphere.services.document_service import DocumentService  # noqa: PLC0415
     from storysphere.workflows.ingestion import (  # noqa: PLC0415
         _apply_paragraph_splits,
@@ -123,39 +169,30 @@ async def chapter_review_node(state: IngestionState) -> dict:
                 state["doc_id"],
             )
 
-    task_store.set_running(state["task_id"])
+    make_reporter(state["task_id"]).running()
     return {}
 
 
-async def phase2_node(state: IngestionState) -> dict:
-    from storysphere.api.deps import get_kg_service  # noqa: PLC0415
-    from storysphere.api.schemas.books import TimelineDetectionResponse  # noqa: PLC0415
-    from storysphere.api.store import task_store  # noqa: PLC0415
+async def phase2_node(
+    state: IngestionState, *, kg_service, make_reporter: ReporterFactory
+) -> dict:
     from storysphere.workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
 
     task_id = state["task_id"]
     doc_id = state["doc_id"]
 
-    kg_service = get_kg_service()
+    reporter = make_reporter(task_id)
     workflow = IngestionWorkflow(kg_service=kg_service)
 
     result = await workflow.run_phase2(
         doc_id,
-        progress_cb=lambda pct, stage, *, step_key=None, sub_progress=None, sub_total=None, sub_stage=None:
-            task_store.set_progress(task_id, pct, stage, step_key=step_key, sub_progress=sub_progress, sub_total=sub_total, sub_stage=sub_stage),
-        murmur_cb=lambda event: task_store.append_murmur(task_id, event),
+        progress_cb=reporter.progress,
+        murmur_cb=reporter.murmur,
     )
 
-    task_result: dict = {
-        "bookId": result.document_id,
-        "failedSteps": result.errors,
-    }
-    if result.timeline_detection is not None:
-        task_result["timelineDetection"] = TimelineDetectionResponse.model_validate(
-            result.timeline_detection.model_dump()
-        ).model_dump(by_alias=True)
-
-    task_store.set_completed(task_id, result=task_result)
+    # The reporter owns the wire shape of the task result and hands back what
+    # it stored, so the graph can echo the same payload into its own state.
+    task_result = reporter.completed(result)
     logger.info(
         "phase2_node done: task=%s entities=%d relations=%d events=%d errors=%d",
         task_id,
@@ -181,12 +218,19 @@ async def phase2_node(state: IngestionState) -> dict:
     }
 
 
-def build_ingestion_graph(checkpointer):
-    """Compile the ingestion graph with the given LangGraph checkpointer."""
+def build_ingestion_graph(checkpointer, *, kg_service, make_reporter: ReporterFactory):
+    """Compile the ingestion graph with the given LangGraph checkpointer.
+
+    ``kg_service`` and ``make_reporter`` are supplied by the composition root
+    (the API lifespan) so this module stays free of any dependency on the API
+    layer.  The nodes are looked up as module globals here, which keeps them
+    patchable in tests.
+    """
+    deps = {"kg_service": kg_service, "make_reporter": make_reporter}
     graph: StateGraph = StateGraph(IngestionState)
-    graph.add_node("phase1", phase1_node)
-    graph.add_node("chapter_review", chapter_review_node)
-    graph.add_node("phase2", phase2_node)
+    graph.add_node("phase1", partial(phase1_node, **deps))
+    graph.add_node("chapter_review", partial(chapter_review_node, make_reporter=make_reporter))
+    graph.add_node("phase2", partial(phase2_node, **deps))
     graph.add_edge(START, "phase1")
     graph.add_edge("phase1", "chapter_review")
     graph.add_edge("chapter_review", "phase2")

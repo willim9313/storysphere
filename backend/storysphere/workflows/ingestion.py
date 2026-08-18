@@ -21,12 +21,11 @@ entry point: skipping the review pause is not a supported ingestion mode.
 from __future__ import annotations
 
 import logging
-from collections.abc import Awaitable, Callable
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Protocol
 
-from storysphere.api.schemas.common import MurmurEvent
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.domain.documents import Chapter, Document, Paragraph, StepStatus
 from storysphere.domain.timeline import TimelineConfig, TimelineDetectionResult
@@ -43,6 +42,24 @@ from storysphere.services.document_service import DocumentService
 from storysphere.services.kg_service import KGService
 
 logger = logging.getLogger(__name__)
+
+
+class MurmurEmitter(Protocol):
+    """Sink for the murmur tidbits the ingestion emits as it works.
+
+    Deliberately takes plain fields rather than a model: the wire shape of a
+    murmur event is an API concern, so the caller in the API layer builds it.
+    """
+
+    async def __call__(
+        self,
+        step_key: str,
+        event_type: str,
+        content: str,
+        *,
+        meta: dict | None = None,
+        raw_content: str | None = None,
+    ) -> None: ...
 
 try:
     from langfuse import observe as _lf_observe
@@ -392,7 +409,7 @@ class IngestionWorkflow:
         author: str | None = None,
         language: str | None = None,
         progress_cb: Callable | None = None,
-        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
+        murmur_cb: MurmurEmitter | None = None,
     ) -> Document:
         """Phase 1: Parse file → detect language → save document.
 
@@ -423,15 +440,13 @@ class IngestionWorkflow:
             if murmur_cb is None:
                 return
             try:
-                event = MurmurEvent(
-                    seq=0,
-                    step_key=step_key,
-                    type=event_type,
-                    content=content[:1024],
+                await murmur_cb(
+                    step_key,
+                    event_type,
+                    content[:1024],
                     meta=meta,
                     raw_content=raw_content[:4096] if raw_content else None,
                 )
-                await murmur_cb(event)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("murmur emit failed (%s): %s", step_key, exc)
 
@@ -489,7 +504,7 @@ class IngestionWorkflow:
         doc_id: str,
         *,
         progress_cb: Callable | None = None,
-        murmur_cb: Callable[[MurmurEvent], Awaitable[None]] | None = None,
+        murmur_cb: MurmurEmitter | None = None,
     ) -> IngestionResult:
         """Phase 2: Summarization → feature extraction → KG → symbols → finalize.
 
@@ -533,15 +548,13 @@ class IngestionWorkflow:
             if murmur_cb is None:
                 return
             try:
-                event = MurmurEvent(
-                    seq=0,
-                    step_key=step_key,
-                    type=event_type,
-                    content=content[:1024],
+                await murmur_cb(
+                    step_key,
+                    event_type,
+                    content[:1024],
                     meta=meta,
                     raw_content=raw_content[:4096] if raw_content else None,
                 )
-                await murmur_cb(event)
             except Exception as exc:  # noqa: BLE001
                 logger.warning("murmur emit failed (%s): %s", step_key, exc)
 
