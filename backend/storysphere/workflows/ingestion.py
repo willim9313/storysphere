@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.domain.documents import Chapter, Document, Paragraph, StepStatus
 from storysphere.domain.timeline import TimelineConfig, TimelineDetectionResult
@@ -301,6 +302,7 @@ class IngestionWorkflow:
         Raises:
             KeyError: *step* is not a known step name.
         """
+        set_llm_service_context("ingestion", book_id=doc.id)
         spec = INGESTION_STEPS[step]
         pipeline = getattr(self, spec.pipeline_attr)
         outcome = StepOutcome(step=step)
@@ -523,6 +525,10 @@ class IngestionWorkflow:
         _progress(5, "文件解析", step_key="pdfParsing")
         self._log_step("doc_processing", file=str(file_path))
         doc: Document = await self._doc_pipeline(file_path)
+        # From here on every LLM call belongs to this book. The book id rides a
+        # contextvar read by TokenTrackingHandler, so the services underneath
+        # keep setting only their own name and still get attributed.
+        set_llm_service_context("ingestion", book_id=doc.id)
 
         if title:
             doc.title = title
@@ -580,6 +586,7 @@ class IngestionWorkflow:
         doc = await self._document_service.get_document(doc_id)
         if doc is None:
             raise ValueError(f"Document '{doc_id}' not found — Phase 1 may not have completed")
+        set_llm_service_context("ingestion", book_id=doc.id)
 
         _lf_update_span(metadata={
             "doc_id": doc_id,

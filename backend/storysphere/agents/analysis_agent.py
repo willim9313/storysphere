@@ -18,6 +18,7 @@ except ImportError:  # pragma: no cover
             return fn
         return noop
 
+from storysphere.core.token_callback import set_llm_service_context
 from storysphere.domain.symbol_analysis import SymbolInterpretation
 from storysphere.services.analysis_cache import AnalysisCache
 from storysphere.services.analysis_models import CharacterAnalysisResult, EventAnalysisResult
@@ -107,6 +108,7 @@ class AnalysisAgent:
 
         from storysphere.core.metrics import get_metrics  # noqa: PLC0415
 
+        set_llm_service_context("analysis", book_id=document_id)
         _metrics = get_metrics()
         _t0 = time.perf_counter()
         cache_key = AnalysisCache.make_key(
@@ -195,6 +197,7 @@ class AnalysisAgent:
 
         from storysphere.core.metrics import get_metrics  # noqa: PLC0415
 
+        set_llm_service_context("analysis", book_id=document_id)
         _metrics = get_metrics()
         _t0 = time.perf_counter()
         cache_key = f"event:{document_id}:{event_id}"
@@ -276,6 +279,7 @@ class AnalysisAgent:
         if self._symbol_analysis is None:
             raise RuntimeError("AnalysisAgent: symbol_analysis_service not configured")
 
+        set_llm_service_context("imagery", book_id=book_id)
         _metrics = get_metrics()
         _t0 = time.perf_counter()
         cache_key = f"symbol_analysis:{book_id}:{imagery_id}"
@@ -426,6 +430,8 @@ class AnalysisAgent:
         """
         if self._narrative is None:
             raise RuntimeError("AnalysisAgent: narrative_service not configured")
+
+        set_llm_service_context("analysis", book_id=document_id)
 
         structure = await self._narrative.refine_with_llm(
             document_id=document_id,

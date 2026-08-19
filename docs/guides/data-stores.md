@@ -32,7 +32,7 @@ uv run uvicorn storysphere.api.main:app --host 0.0.0.0 --port 8000 --reload
 | `qdrant_local/` | `services/vector_service.py` | `qdrant_local_path` | 段落向量，每本書一個 collection。非 lightweight 模式改連遠端 Qdrant |
 | `analysis_cache.db` | `services/analysis_cache.py` | `analysis_cache_db_path` | 深度分析結果快取。key 形如 `character:{book}:{entity}`，永不自動過期，靠 `services/cache_invalidation.py` 明確清除 |
 | `symbol_store.db` | `services/symbol_service.py` | **無**（見下方註記） | 意象實體與出現位置 |
-| `token_usage.db` | `core/token_store.py` | `token_usage_db_path` | LLM token 用量記錄。**有 `book_id` 欄位但實際從未填入**（見下） |
+| `token_usage.db` | `core/token_store.py` | `token_usage_db_path` | LLM token 用量記錄。`book_id` 自 2026-08-19 起才真的填入（見下） |
 | `inferred_relations.db` | `services/link_prediction_store.py` | `link_prediction_db_path` | 隱性關係推論結果（F-01）與人工審核狀態 |
 | `tasks.db` | `api/store.py` | `task_store_db_path` | 背景任務狀態。settings 預設是 `sqlite`，但 repo 的 `.env` 覆寫成 `memory`，所以**開發環境下這個檔是死的**，任務狀態一重啟就沒了 |
 | `ingestion_checkpoints.db` | LangGraph（`api/main.py` 的 lifespan 建立） | `ingestion_checkpoint_db_path`、`ingestion_checkpoint_ttl_days` | 章節審閱的 HITL checkpoint，`thread_id` == `task_id`。啟動時清掉閒置超過 TTL 的 thread |
@@ -61,8 +61,11 @@ uv run uvicorn storysphere.api.main:app --host 0.0.0.0 --port 8000 --reload
 | `storysphere.db` | `doc.delete_document(book_id)`，最後一步 |
 
 `token_usage.db` **刻意不參與**：它是花費記錄，刪掉書不代表沒花那筆錢。
-（`book_id` 欄位存在、`core/token_callback.py` 三處也有傳，但實測 4,136 列全是
-NULL——用量目前無法歸因到書，這是另一個獨立的缺口。）
+（`book_id` 欄位一直存在，`set_llm_service_context()` 的第二個參數也一直在，但
+沒有任何呼叫端傳過，所以到 2026-08-19 為止的 4,136 列全是 NULL。現在由
+`IngestionWorkflow.run_phase1/run_phase2/run_step` 與 `AnalysisAgent` 的
+analyze_* 在進入點設一次 contextvar，底下的服務照舊只設自己的名字就會被歸屬；
+舊的 NULL 列無法回填，統計只能從這之後開始累積。）
 
 > **歷史註記**：`symbol_store.db` 一度是漏掉的那一個。`SymbolService.delete_by_book()`
 > 早就存在，但唯一的呼叫端是 `pipelines/symbol_discovery/pipeline.py`（重新匯入前
