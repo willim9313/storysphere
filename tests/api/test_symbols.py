@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import hanging_call, poll_until_terminal
+
 from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
 from storysphere.domain.symbol_analysis import (
     CoOccurringEntityRef,
@@ -517,8 +519,15 @@ class TestAnalyzeAllSymbols:
         ]
 
     @staticmethod
-    def _batch_call(agent):
-        """The single call the endpoint makes into the agent's sweep."""
+    def _batch_call(agent, client, resp):
+        """The single call the endpoint makes into the agent's sweep.
+
+        The endpoint launches the sweep with ``task_runner.launch`` now, which
+        does not block the response the way ``BackgroundTasks`` did under
+        TestClient — so the task has to be driven to completion before the
+        agent can be asserted on, or the assertion races the runner.
+        """
+        poll_until_terminal(client, resp.json()["taskId"])
         agent.analyze_symbols_batch.assert_awaited_once()
         call = agent.analyze_symbols_batch.await_args
         ids = call.args[1] if len(call.args) > 1 else call.kwargs["imagery_ids"]
@@ -543,8 +552,8 @@ class TestAnalyzeAllSymbols:
                 ("img-1", "mirror", 5), ("img-tail", "dust", 1)
             )
         )
-        client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
-        selected, _ = self._batch_call(mock_analysis_agent)
+        resp = client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
+        selected, _ = self._batch_call(mock_analysis_agent, client, resp)
         assert selected == {"img-1"}
 
     def test_imagery_ids_overrides_the_frequency_floor(
@@ -556,11 +565,11 @@ class TestAnalyzeAllSymbols:
                 ("img-1", "mirror", 5), ("img-tail", "dust", 1)
             )
         )
-        client.post(
+        resp = client.post(
             "/api/v1/symbols/analyze-all",
             json={"book_id": "book-1", "imagery_ids": ["img-tail"]},
         )
-        selected, _ = self._batch_call(mock_analysis_agent)
+        selected, _ = self._batch_call(mock_analysis_agent, client, resp)
         assert selected == {"img-tail"}
 
     def test_refused_symbols_are_skipped(
@@ -583,8 +592,8 @@ class TestAnalyzeAllSymbols:
                 )
             }
         )
-        client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
-        selected, kwargs = self._batch_call(mock_analysis_agent)
+        resp = client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
+        selected, kwargs = self._batch_call(mock_analysis_agent, client, resp)
         assert selected == {"img-1", "img-blocked"}
         # The refusal is handed over as a skip rather than dropped, so a later
         # force_refresh can still re-attempt it.
@@ -607,11 +616,11 @@ class TestAnalyzeAllSymbols:
                 )
             }
         )
-        client.post(
+        resp = client.post(
             "/api/v1/symbols/analyze-all",
             json={"book_id": "book-1", "force_refresh": True},
         )
-        selected, kwargs = self._batch_call(mock_analysis_agent)
+        selected, kwargs = self._batch_call(mock_analysis_agent, client, resp)
         assert selected == {"img-blocked"}
         assert kwargs["force_refresh"] is True
 
@@ -626,7 +635,7 @@ class TestAnalyzeAllSymbols:
             json={"book_id": "book-1", "imagery_ids": ["img-1", "img-ghost"]},
         )
         assert resp.status_code == 202
-        selected, _ = self._batch_call(mock_analysis_agent)
+        selected, _ = self._batch_call(mock_analysis_agent, client, resp)
         assert selected == {"img-1"}
 
     def test_returns_400_when_nothing_is_in_scope(self, client, mock_symbol_svc):
@@ -677,22 +686,31 @@ class TestBatchSymbolAnalysisRunner:
 
     @staticmethod
     async def _run(agent, imagery_ids):
+        """Drive the runner through the supervisor, as the endpoint does.
+
+        The runner no longer writes to the store itself — it returns a summary
+        or raises ``TaskAborted``, and ``task_runner`` turns that into the task
+        status. Going through ``launch`` is what keeps this a test of the pair.
+        """
         from uuid import uuid4
 
-        from storysphere.api.routers.symbols import _run_batch_symbol_analysis
+        from storysphere.api import task_runner
+        from storysphere.api.routers.symbols import _batch_symbol_analysis
         from storysphere.api.store import task_store
 
-        # task_store is a global singleton; a unique id keeps tests isolated.
         task_id = str(uuid4())
         task_store.create(task_id, kind="symbol", title="test")
-        await _run_batch_symbol_analysis(
-            task_id=task_id,
-            book_id="book-1",
-            imagery_ids=imagery_ids,
-            language="zh-TW",
-            force_refresh=False,
-            skip_ids=set(),
-            agent=agent,
+        await task_runner.launch(
+            task_id,
+            _batch_symbol_analysis(
+                task_id=task_id,
+                book_id="book-1",
+                imagery_ids=imagery_ids,
+                language="zh-TW",
+                force_refresh=False,
+                skip_ids=set(),
+                agent=agent,
+            ),
         )
         return task_store.get(task_id)
 
@@ -719,10 +737,6 @@ class TestBatchSymbolAnalysisRunner:
         assert "1/3" in task.error
 
     async def test_progress_callback_reaches_the_task_store(self):
-        from storysphere.api.store import task_store
-
-        seen = {}
-
         async def _batch(book_id, imagery_ids, **kwargs):
             kwargs["progress_callback"](1, 2)
             return {
@@ -732,22 +746,7 @@ class TestBatchSymbolAnalysisRunner:
         agent = AsyncMock()
         agent.analyze_symbols_batch = _batch
 
-        from uuid import uuid4
-
-        from storysphere.api.routers.symbols import _run_batch_symbol_analysis
-
-        task_id = str(uuid4())
-        task_store.create(task_id, kind="symbol", title="test")
-        await _run_batch_symbol_analysis(
-            task_id=task_id,
-            book_id="book-1",
-            imagery_ids=["img-1", "img-2"],
-            language="zh-TW",
-            force_refresh=False,
-            skip_ids=set(),
-            agent=agent,
-        )
-        seen = task_store.get(task_id)
+        seen = await self._run(agent, ["img-1", "img-2"])
         # completed overwrote progress, but sub_total proves the callback landed
         assert seen.sub_total == 2
 
@@ -858,3 +857,55 @@ class TestIngestionRegression:
             skip_symbols=True,
         )
         assert wf._skip_symbols is True
+
+
+# ── Batch symbol interpretation: cancellation ────────────────────────────────
+
+
+class TestBatchSymbolCancellation:
+    """Batch interpretation is one LLM call per imagery term — the run a user
+    is most likely to want to stop once the quota starts draining.
+
+    Before the migration it went through ``BackgroundTasks.add_task``, which
+    hands back no task handle, so ``POST /tasks/:id/cancel`` could only answer
+    409 "not cancellable".
+    """
+
+    def _start(self, client) -> str:
+        resp = client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
+        assert resp.status_code == 202
+        return resp.json()["taskId"]
+
+    def test_running_batch_can_be_cancelled(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_symbols_batch = AsyncMock(side_effect=hanging_call())
+
+        task_id = self._start(client)
+
+        resp = client.post(f"/api/v1/tasks/{task_id}/cancel")
+        assert resp.status_code == 204, "runner was not registered as cancellable"
+
+    def test_cancelled_batch_ends_up_failed(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_symbols_batch = AsyncMock(side_effect=hanging_call())
+
+        task_id = self._start(client)
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+        status = poll_until_terminal(client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "cancelled"
+
+    def test_agent_failure_reaches_the_task(self, client, mock_analysis_agent):
+        """The runner has no try/except of its own — the supervisor is the net.
+
+        Under ``BackgroundTasks`` an exception here was swallowed by starlette
+        and the task sat at "running" forever.
+        """
+        mock_analysis_agent.analyze_symbols_batch = AsyncMock(
+            side_effect=RuntimeError("Qdrant 連不上")
+        )
+
+        task_id = self._start(client)
+
+        status = poll_until_terminal(client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "Qdrant 連不上"

@@ -16,6 +16,7 @@ from storysphere.services.analysis_models import (  # noqa: E402
     ImpactAnalysis,
 )
 
+from tests.api.conftest import poll_until_terminal
 from tests.conftest import attach_get_as
 
 
@@ -82,6 +83,10 @@ class TestRetryFailedMode:
         resp = client.post(
             "/api/v1/books/book-1/entities/ent-1/analyze", json={"mode": "retryFailed"})
         assert resp.status_code in (200, 202)
+        # The analysis runs under ``task_runner`` now, which does not block the
+        # response the way ``BackgroundTasks`` did — drive the task before
+        # asking what the agent was called with.
+        poll_until_terminal(client, resp.json()["taskId"])
         _, kwargs = mock_analysis_agent.analyze_character.call_args
         assert kwargs.get("retry_parts") == ["archetype:jung"]
 

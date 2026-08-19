@@ -19,8 +19,9 @@ import logging
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
+from storysphere.api import task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -238,28 +239,20 @@ async def get_sep(
 # ── Symbol Analysis (B-040) ───────────────────────────────────────────────────
 
 
-async def _run_symbol_analysis(
+async def _symbol_analysis(
     task_id: str,
     imagery_id: str,
     req: SymbolAnalysisRequest,
     agent,
-) -> None:
-    task_store.set_running(task_id)
-    try:
-        def _on_progress(pct: int, stage: str) -> None:
-            task_store.set_progress(task_id, progress=pct, stage=stage)
-
-        result = await agent.analyze_symbol(
-            imagery_id=imagery_id,
-            book_id=req.book_id,
-            language=req.language,
-            force_refresh=req.force_refresh,
-            progress_callback=_on_progress,
-        )
-        task_store.set_completed(task_id, result=result.model_dump(mode="json"))
-    except Exception as exc:
-        logger.exception("Symbol analysis task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+) -> dict:
+    result = await agent.analyze_symbol(
+        imagery_id=imagery_id,
+        book_id=req.book_id,
+        language=req.language,
+        force_refresh=req.force_refresh,
+        progress_callback=task_runner.progress(task_id),
+    )
+    return result.model_dump(mode="json")
 
 
 @router.post(
@@ -268,7 +261,6 @@ async def _run_symbol_analysis(
 async def analyze_symbol(
     imagery_id: str,
     req: SymbolAnalysisRequest,
-    background_tasks: BackgroundTasks,
     agent: AnalysisAgentDep,
     symbol_svc: SymbolServiceDep,
     doc: DocServiceDep,
@@ -290,11 +282,11 @@ async def analyze_symbol(
 
     task_id = str(uuid4())
     task_store.create(task_id, kind="symbol", title="符號意象抽取")
-    background_tasks.add_task(_run_symbol_analysis, task_id, imagery_id, req, agent)
+    task_runner.launch(task_id, _symbol_analysis(task_id, imagery_id, req, agent))
     return TaskStatus(task_id=task_id, status="pending")
 
 
-async def _run_batch_symbol_analysis(
+async def _batch_symbol_analysis(
     task_id: str,
     book_id: str,
     imagery_ids: list[str],
@@ -302,8 +294,8 @@ async def _run_batch_symbol_analysis(
     force_refresh: bool,
     skip_ids: set[str],
     agent,
-) -> None:
-    """Background task: drive the batch sweep and mirror it into the task store.
+) -> dict:
+    """Background task: drive the batch sweep and hand back its summary.
 
     Progress mirrors the character and event batches (``sub_progress`` /
     ``sub_total``) so BatchEepPanel can render item counts rather than a
@@ -311,14 +303,13 @@ async def _run_batch_symbol_analysis(
     on the agent; what stays here is the task-store wiring and the wording the
     user sees.
     """
-    task_store.set_running(task_id)
     total = len(imagery_ids)
+    report = task_runner.progress(task_id)
 
     def _report(done: int, item_total: int) -> None:
-        task_store.set_progress(
-            task_id,
-            progress=int(done / item_total * 100) if item_total else 0,
-            stage=f"詮釋意象 {done}/{item_total}",
+        report(
+            int(done / item_total * 100) if item_total else 0,
+            f"詮釋意象 {done}/{item_total}",
             sub_progress=done,
             sub_total=item_total,
         )
@@ -333,22 +324,19 @@ async def _run_batch_symbol_analysis(
     )
 
     if summary.pop("aborted", False):
-        task_store.set_failed(
-            task_id,
-            error=(
-                f"API 配額已達上限，已處理 {summary['progress']}/{total} 個意象。"
-                "請稍後再試。"
-            ),
+        # Not a ``return``: the supervisor completes a task that returns,
+        # which would report a quota-exhausted sweep as a success.
+        raise task_runner.TaskAborted(
+            f"API 配額已達上限，已處理 {summary['progress']}/{total} 個意象。"
+            "請稍後再試。"
         )
-        return
 
-    task_store.set_completed(task_id, result=summary)
+    return summary
 
 
 @router.post("/analyze-all", response_model=TaskStatus, status_code=202)
 async def analyze_all_symbols(
     req: SymbolBatchAnalysisRequest,
-    background_tasks: BackgroundTasks,
     agent: AnalysisAgentDep,
     symbol_svc: SymbolServiceDep,
     symbol_analysis_svc: SymbolAnalysisServiceDep,
@@ -389,15 +377,17 @@ async def analyze_all_symbols(
 
     task_id = str(uuid4())
     task_store.create(task_id, kind="symbol", title="批次象徵詮釋")
-    background_tasks.add_task(
-        _run_batch_symbol_analysis,
+    task_runner.launch(
         task_id,
-        req.book_id,
-        [e.id for e in entities],
-        language,
-        req.force_refresh,
-        skip_ids,
-        agent,
+        _batch_symbol_analysis(
+            task_id,
+            req.book_id,
+            [e.id for e in entities],
+            language,
+            req.force_refresh,
+            skip_ids,
+            agent,
+        ),
     )
     logger.info(
         "Triggered batch symbol analysis: book=%s imagery=%d task=%s",
