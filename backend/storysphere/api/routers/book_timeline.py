@@ -21,18 +21,20 @@ from storysphere.api.deps import (
     KGServiceDep,
     TemporalPipelineDep,
 )
-from storysphere.api.schemas.books import (
+from storysphere.api.schemas.book_timeline import (
     LocationRef,
     ParticipantRef,
-    TaskIdResponse,
     TemporalDisplacementEntry,
     TemporalRelationEntry,
     TimelineConfigResponse,
     TimelineConfigUpdate,
-    TimelineDetectionResponse,
     TimelineEventEntry,
     TimelineQuality,
     TimelineResponse,
+)
+from storysphere.api.schemas.books import (
+    TaskIdResponse,
+    TimelineDetectionResponse,
 )
 from storysphere.api.store import task_store
 
