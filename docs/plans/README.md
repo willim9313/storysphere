@@ -92,3 +92,4 @@
 | 2026-08-13 | [方法論頁 × 功能頁對齊盤點](./20260813-methodology-page-alignment-audit.md) |
 | 2026-08-17 | [Ingestion 後端效率與可讀性改善](./20260817-ingestion-refactor.md) |
 | 2026-08-18 | [持久化落點的孤兒資料清理](./20260818-data-store-orphan-cleanup.md) |
+| 2026-08-19 | [Token 用量頁：按書籍區分消耗](./20260819-token-usage-by-book.md) |
