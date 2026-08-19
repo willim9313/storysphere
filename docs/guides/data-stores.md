@@ -112,19 +112,29 @@ book id，無法用 pattern 匹配，KG 的列一旦刪掉就再也找不回那�
 
 ---
 
-## 已知的殘留（2026-08-18 稽核）
+## 殘留清理紀錄（2026-08-18 稽核 → 2026-08-19 處理完畢）
 
-刪書路徑補上 `symbol_store.db` 之後仍有兩處會累積，兩者都不是刪書造成的：
+刪書路徑補上 `symbol_store.db` 之後，稽核找到兩處仍會累積的資料，兩者都不是刪書
+造成的。兩處現在都已處理：
 
-- **`symbol_store.db` 的歷史殘留**：修正只對之後的刪除生效。稽核當下 28 個
-  `book_id` 中有 25 個已無對應書籍。用 `scripts/prune_orphan_symbols.py` 清理
-  （預設 dry-run，`--apply` 前會備份到 `var/backup-<timestamp>/`）。
+- **`symbol_store.db` 的歷史殘留**：修正只對之後的刪除生效，稽核當下 28 個
+  `book_id` 中有 25 個已無對應書籍。2026-08-19 以
+  `scripts/prune_orphan_symbols.py --apply` 清乾淨：刪掉 1,502 列、檔案
+  647KB → 106KB，備份留在 `var/backup-20260819-001323/`。腳本保留備用——預設
+  dry-run，`--apply` 前會自動備份，日後再出現孤兒可直接重跑。
 - **`ingestion_checkpoints.db` 持續累積**：稽核當下 34 個 thread、125 個
   checkpoint，但只有 3 本書。暫停等審閱的匯入若一直沒有 resume，checkpoint 會
   永遠留著；而 `.env` 用 memory task store，伺服器一重啟任務狀態全失，
   `_reconcile_stale_tasks` 就再也找不到該清哪一個。
-  已補上 TTL 清理：lifespan 啟動時，以 thread 內最新 checkpoint 的 `ts` 判斷閒置
+  已補上 TTL 清理：lifespan 啟動時以 thread 內最新 checkpoint 的 `ts` 判斷閒置
   天數，超過 `ingestion_checkpoint_ttl_days`（預設 30，設 0 停用）就整個 thread
   刪掉。代價是擱置超過 TTL 的章節審閱不再能續跑，只能重新上傳。
 
-處理計畫見 [`docs/plans/20260818-data-store-orphan-cleanup.md`](../plans/20260818-data-store-orphan-cleanup.md)。
+  > **升級後第一次啟動會清掉當時全部的 checkpoint。** 稽核當下那 125 個
+  > checkpoint 無一例外都已閒置超過 30 天，所以 TTL 一上線、伺服器一啟動就會把
+  > 34 個 thread 全數刪除。要保留請先把 `INGESTION_CHECKPOINT_TTL_DAYS` 設為 0
+  > 或更大的天數，再啟動。
+
+當時的處理計畫見
+[`docs/plans/20260818-data-store-orphan-cleanup.md`](../plans/20260818-data-store-orphan-cleanup.md)
+（規劃快照，不反映現況）。
