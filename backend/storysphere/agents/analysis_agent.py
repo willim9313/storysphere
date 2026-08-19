@@ -10,8 +10,8 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from storysphere.core.tracing import observe as _langfuse_observe
 from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.tracing import observe as _langfuse_observe
 from storysphere.domain.symbol_analysis import SymbolInterpretation
 from storysphere.services.analysis_cache import AnalysisCache
 from storysphere.services.analysis_models import CharacterAnalysisResult, EventAnalysisResult

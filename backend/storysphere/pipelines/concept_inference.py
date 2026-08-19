@@ -20,10 +20,9 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
-
 from storysphere.core.error_handling import llm_text
 from storysphere.core.language_detection import localize_prompt
+from storysphere.core.llm_call import llm_retry
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import Entity, EntityType
@@ -172,12 +171,7 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
             self._llm = get_llm_client().get_with_local_fallback(temperature=0.3)
         return self._llm
 
-    @retry(
-        retry=retry_if_exception_type(ValueError),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry(ValueError)
     async def _infer_concepts(
         self,
         passage_texts: list[str],

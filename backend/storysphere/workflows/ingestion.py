@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.domain.documents import Chapter, Document, Paragraph, StepStatus
 from storysphere.domain.timeline import TimelineConfig, TimelineDetectionResult
@@ -62,7 +63,6 @@ class MurmurEmitter(Protocol):
         raw_content: str | None = None,
     ) -> None: ...
 
-from storysphere.core.tracing import observe as _lf_observe
 
 @dataclass(frozen=True)
 class StepSpec:

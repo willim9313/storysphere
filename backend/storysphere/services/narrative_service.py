@@ -21,11 +21,10 @@ import logging
 from collections.abc import Callable
 from typing import TYPE_CHECKING
 
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
-
 from storysphere.config.hero_journey import get_hero_journey_summary, load_hero_journey
 from storysphere.core.error_handling import llm_text
 from storysphere.core.language_detection import localize_prompt
+from storysphere.core.llm_call import llm_retry
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.events import Event
@@ -436,12 +435,7 @@ class NarrativeService:
 
         return get_llm_client().get_with_local_fallback(temperature=0.2)
 
-    @retry(
-        retry=retry_if_exception_type(ValueError),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry(ValueError)
     async def _call_refine_llm(
         self,
         event: Event,
@@ -710,12 +704,7 @@ class NarrativeService:
         )
         return stages
 
-    @retry(
-        retry=retry_if_exception_type(ValueError),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry(ValueError)
     async def _call_hero_journey_llm(self, chapters, language: str) -> list[HeroJourneyStage]:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
@@ -911,12 +900,7 @@ class NarrativeService:
             ))
         return displacements, analepsis_ids, prolepsis_ids
 
-    @retry(
-        retry=retry_if_exception_type(ValueError),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry(ValueError)
     async def _call_temporal_order_llm(
         self, events, language: str
     ) -> tuple[str, dict[str, float]]:

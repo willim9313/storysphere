@@ -16,15 +16,10 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any
 
 from pydantic import ValidationError
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 from storysphere.core.error_handling import LLMResponseBlocked, llm_text
 from storysphere.core.language_detection import localize_prompt
+from storysphere.core.llm_call import LLM_RETRY
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.symbol_analysis import (
@@ -292,12 +287,7 @@ class SymbolAnalysisService:
             self._llm = get_llm_client().get_with_local_fallback(temperature=0.3)
         return self._llm
 
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @LLM_RETRY
     async def _call_llm(self, sep: SEP, language: str) -> SymbolInterpretation:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 

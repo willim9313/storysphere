@@ -18,9 +18,8 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
-
 from storysphere.core.error_handling import is_rate_limit_error, llm_text
+from storysphere.core.llm_call import llm_retry
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import Entity
 from storysphere.domain.epistemic_state import CharacterEpistemicState, MisbeliefItem
@@ -136,12 +135,7 @@ class EpistemicStateService:
         await cache.set(key, _serialize_state(result))
         return result
 
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True,
-    )
+    @llm_retry(min_wait=2, max_wait=10)
     async def _infer_misbeliefs(
         self,
         character: Entity,
@@ -267,12 +261,7 @@ class EpistemicStateService:
         )
         return {"classified": classified, "skipped": skipped}
 
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True,
-    )
+    @llm_retry(min_wait=2, max_wait=10)
     async def _classify_batch(self, events: list[Event]) -> list[dict]:
         items = "\n".join(
             f"- id={e.id!r}  title={e.title!r}  desc={e.description[:120]!r}"

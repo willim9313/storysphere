@@ -12,10 +12,9 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
-
 from storysphere.core.error_handling import llm_text
 from storysphere.core.language_detection import localize_prompt
+from storysphere.core.llm_call import LLM_RETRY
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
@@ -428,12 +427,7 @@ class AnalysisService:
     # ── Private: CEP Extraction ────────────────────────────────────────────────
 
     @_lf_observe(name="analysis.character.cep", as_type="chain", capture_input=False, capture_output=False)
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @LLM_RETRY
     async def _extract_cep(
         self, entity_name: str, document_id: str, language: str = "en"
     ) -> CEPResult:
@@ -550,12 +544,7 @@ class AnalysisService:
     # ── Private: Archetype Classification ──────────────────────────────────────
 
     @_lf_observe(name="analysis.character.archetype", as_type="chain", capture_input=False, capture_output=False)
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @LLM_RETRY
     async def _classify_archetype(
         self, cep: CEPResult, framework: str, language: str
     ) -> ArchetypeResult:
@@ -600,12 +589,7 @@ class AnalysisService:
     # ── Private: Character Arc Generation ──────────────────────────────────────
 
     @_lf_observe(name="analysis.character.arc", as_type="chain", capture_input=False, capture_output=False)
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @LLM_RETRY
     async def _generate_character_arc(
         self, cep: CEPResult, language: str = "en"
     ) -> list[ArcSegment]:
@@ -640,12 +624,7 @@ class AnalysisService:
     # ── Private: Profile Summary ───────────────────────────────────────────────
 
     @_lf_observe(name="analysis.character.profile", as_type="chain", capture_input=False, capture_output=False)
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @LLM_RETRY
     async def _generate_profile(
         self, entity_name: str, cep: CEPResult, language: str = "en"
     ) -> CharacterProfile:
@@ -772,12 +751,7 @@ class AnalysisService:
     # ── Private: EEP Extraction ────────────────────────────────────────────────
 
     @_lf_observe(name="analysis.event.eep", as_type="chain", capture_input=False, capture_output=False)
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @LLM_RETRY
     async def _extract_eep(
         self, event: Any, document_id: str, language: str = "en"
     ) -> EventEvidenceProfile:
@@ -933,12 +907,7 @@ class AnalysisService:
     # ── Private: Causality Analysis ────────────────────────────────────────────
 
     @_lf_observe(name="analysis.event.causality", as_type="chain", capture_input=False, capture_output=False)
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @LLM_RETRY
     async def _analyze_causality(
         self, eep: EventEvidenceProfile, event: Any, language: str = "en"
     ) -> CausalityAnalysis:
@@ -992,12 +961,7 @@ class AnalysisService:
     # ── Private: Impact Analysis ───────────────────────────────────────────────
 
     @_lf_observe(name="analysis.event.impact", as_type="chain", capture_input=False, capture_output=False)
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @LLM_RETRY
     async def _analyze_impact(
         self, eep: EventEvidenceProfile, event: Any, language: str = "en"
     ) -> ImpactAnalysis:
@@ -1058,12 +1022,7 @@ class AnalysisService:
     # ── Private: Event Summary ─────────────────────────────────────────────────
 
     @_lf_observe(name="analysis.event.summary", as_type="chain", capture_input=False, capture_output=False)
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @LLM_RETRY
     async def _generate_event_summary(
         self,
         event: Any,

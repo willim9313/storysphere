@@ -18,10 +18,9 @@ import re
 from datetime import datetime, timezone
 from typing import Any
 
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
-
 from storysphere.core.error_handling import llm_text
 from storysphere.core.language_detection import localize_prompt
+from storysphere.core.llm_call import llm_retry
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.documents import Paragraph
 from storysphere.domain.voice_profile import VoiceProfile
@@ -189,12 +188,7 @@ class VoiceProfilingService:
         for lang in ("en", "zh", "zh-cn", "zh-tw"):
             await cache.invalidate(f"{base}:{lang}")
 
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=False,  # degrade gracefully — return empty qualitative on final failure
-    )
+    @llm_retry(min_wait=2, max_wait=10, reraise=False)
     async def _llm_qualitative(
         self,
         char_name: str,
