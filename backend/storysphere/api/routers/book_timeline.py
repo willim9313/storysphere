@@ -12,8 +12,9 @@ import logging
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
+from storysphere.api import task_runner
 from storysphere.api.deps import (
     AnalysisCacheDep,
     DocServiceDep,
@@ -328,32 +329,24 @@ async def get_book_timeline(
     ).model_dump(by_alias=True)
 
 
-async def _run_temporal_pipeline(
+async def _temporal_pipeline(
     task_id: str,
     book_id: str,
     pipeline: Any,
     language: str,
-) -> None:
+) -> dict:
     """Background task for temporal pipeline computation."""
-    try:
-        task_store.set_running(task_id)
-        result = await pipeline.run(
-            book_id,
-            language=language,
-            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
-        )
-        task_store.set_completed(
-            task_id,
-            result={
-                "temporal_relations": result.temporal_relations,
-                "events_ranked": result.events_ranked,
-                "cycles_resolved": result.cycles_resolved,
-                "errors": result.errors,
-            },
-        )
-    except Exception as exc:
-        logger.error("Temporal pipeline failed: %s", exc)
-        task_store.set_failed(task_id, error=str(exc))
+    result = await pipeline.run(
+        book_id,
+        language=language,
+        progress_callback=task_runner.progress(task_id),
+    )
+    return {
+        "temporal_relations": result.temporal_relations,
+        "events_ranked": result.events_ranked,
+        "cycles_resolved": result.cycles_resolved,
+        "errors": result.errors,
+    }
 
 
 @router.post(
@@ -366,7 +359,6 @@ async def compute_book_timeline(
     doc: DocServiceDep,
     kg: KGServiceDep,
     pipeline: TemporalPipelineDep,
-    background_tasks: BackgroundTasks,
 ) -> dict:
     """Trigger temporal timeline computation for a book.
 
@@ -383,8 +375,8 @@ async def compute_book_timeline(
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="時間軸生成")
-    background_tasks.add_task(
-        _run_temporal_pipeline, task_id, book_id, pipeline, language
+    task_runner.launch(
+        task_id, _temporal_pipeline(task_id, book_id, pipeline, language)
     )
 
     logger.info("Triggered temporal pipeline: book=%s, task=%s", book_id, task_id)
