@@ -114,7 +114,8 @@ book id，無法用 pattern 匹配，KG 的列一旦刪掉就再也找不回那�
 刪書路徑補上 `symbol_store.db` 之後仍有兩處會累積，兩者都不是刪書造成的：
 
 - **`symbol_store.db` 的歷史殘留**：修正只對之後的刪除生效。稽核當下 28 個
-  `book_id` 中有 25 個已無對應書籍。
+  `book_id` 中有 25 個已無對應書籍。用 `scripts/prune_orphan_symbols.py` 清理
+  （預設 dry-run，`--apply` 前會備份到 `var/backup-<timestamp>/`）。
 - **`ingestion_checkpoints.db` 持續累積**：稽核當下 34 個 thread、125 個
   checkpoint，但只有 3 本書。暫停等審閱的匯入若一直沒有 resume，checkpoint 會
   永遠留著；而 `.env` 用 memory task store，伺服器一重啟任務狀態全失，
