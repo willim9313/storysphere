@@ -13,11 +13,11 @@ from uuid import uuid4
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     HTTPException,
     Query,
 )
 
+from storysphere.api import task_runner
 from storysphere.api.deps import (
     DocServiceDep,
     EpistemicStateServiceDep,
@@ -360,26 +360,16 @@ async def get_entity_epistemic_state(
 # TODO: replace with re-ingest pipeline once a per-book re-extraction endpoint exists
 
 
-async def _run_classify_visibility(
-    task_id: str, book_id: str, svc: Any
-) -> None:
-    task_store.set_running(task_id)
-    try:
-        counts = await svc.classify_event_visibility(
-            document_id=book_id,
-            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
-        )
-        task_store.set_completed(
-            task_id,
-            result=ClassifyVisibilityResponse(
-                classified=counts["classified"],
-                skipped=counts["skipped"],
-                total=counts["classified"] + counts["skipped"],
-            ).model_dump(by_alias=True),
-        )
-    except Exception as exc:  # noqa: BLE001
-        logger.error("classify_visibility task %s failed: %s", task_id, exc)
-        task_store.set_failed(task_id, error=str(exc))
+async def _classify_visibility(task_id: str, book_id: str, svc: Any) -> dict:
+    counts = await svc.classify_event_visibility(
+        document_id=book_id,
+        progress_callback=task_runner.progress(task_id),
+    )
+    return ClassifyVisibilityResponse(
+        classified=counts["classified"],
+        skipped=counts["skipped"],
+        total=counts["classified"] + counts["skipped"],
+    ).model_dump(by_alias=True)
 
 
 @router.post(
@@ -389,7 +379,6 @@ async def _run_classify_visibility(
 )
 async def classify_book_visibility(
     book_id: str,
-    background_tasks: BackgroundTasks,
     epistemic_svc: EpistemicStateServiceDep = None,
     doc: DocServiceDep = None,
 ) -> dict:
@@ -403,5 +392,5 @@ async def classify_book_visibility(
 
     task_id = str(uuid4())
     task_store.create(task_id, title="可見性分類")
-    background_tasks.add_task(_run_classify_visibility, task_id, book_id, epistemic_svc)
+    task_runner.launch(task_id, _classify_visibility(task_id, book_id, epistemic_svc))
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)

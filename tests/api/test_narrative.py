@@ -9,6 +9,8 @@ from fastapi.testclient import TestClient
 from storysphere.domain.events import Event, EventType
 from storysphere.domain.narrative import HeroJourneyStage, NarrativeStructure
 
+from tests.api.conftest import hanging_call, poll_until_terminal
+
 
 def _kernel(eid: str, chapter: int, title: str = "Event") -> Event:
     return Event(
@@ -340,3 +342,59 @@ class TestUpdateReview:
         cache.get_as.return_value = None
         svc = NarrativeService(AsyncMock(), AsyncMock(), cache)
         assert await svc.update_review("no-such-book", "approved") is None
+
+
+# ── Background tasks are cancellable ─────────────────────────────────────────
+
+
+class TestCancellation:
+    """The point of moving these runners onto ``task_runner``.
+
+    Before the migration all four narrative runners went through
+    ``BackgroundTasks.add_task``, which hands back no task handle — so
+    ``POST /tasks/:id/cancel`` could only ever answer 409 "not cancellable".
+    """
+
+    def _start_classify(self, client) -> str:
+        client.mock_narrative.eep_coverage.return_value = (12, 38, 47)
+        resp = client.post("/api/v1/narrative/classify", json={"document_id": "book-1"})
+        assert resp.status_code == 202
+        return resp.json()["taskId"]
+
+    def test_running_task_can_be_cancelled(self, narrative_client):
+        narrative_client.mock_narrative.classify_from_eep.side_effect = hanging_call()
+
+        task_id = self._start_classify(narrative_client)
+
+        resp = narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        assert resp.status_code == 204, "runner was not registered as cancellable"
+
+    def test_cancelled_task_ends_up_failed(self, narrative_client):
+        narrative_client.mock_narrative.classify_from_eep.side_effect = hanging_call()
+
+        task_id = self._start_classify(narrative_client)
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+        status = poll_until_terminal(narrative_client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "cancelled"
+
+    def test_completion_still_works(self, narrative_client):
+        """The migration must not cost the ordinary path."""
+        task_id = self._start_classify(narrative_client)
+
+        status = poll_until_terminal(narrative_client, task_id)
+        assert status["status"] == "done"
+        assert status["result"]["document_id"] == "book-1"
+
+    def test_failure_still_reaches_the_task(self, narrative_client):
+        narrative_client.mock_narrative.eep_coverage.return_value = (12, 38, 47)
+        narrative_client.mock_narrative.classify_from_eep.side_effect = RuntimeError("KG 掛了")
+
+        resp = narrative_client.post("/api/v1/narrative/classify", json={"document_id": "book-1"})
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(narrative_client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "KG 掛了"
+

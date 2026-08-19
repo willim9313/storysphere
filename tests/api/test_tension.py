@@ -10,7 +10,7 @@ from fastapi.testclient import TestClient
 from storysphere.domain.entities import EntityType
 from storysphere.domain.tension import TEU, TensionLine, TensionPole
 
-from tests.api.conftest import make_entity
+from tests.api.conftest import hanging_call, make_entity, poll_until_terminal
 
 BOOK = "book-1"
 
@@ -247,3 +247,57 @@ class TestListTEUs:
         ]
         body = tension_client.get(f"/api/v1/tension/teus?book_id={BOOK}").json()
         assert [t["chapter"] for t in body] == [1, 4, 9]
+
+
+# ── Background tasks are cancellable ─────────────────────────────────────────
+
+
+class TestCancellation:
+    """``POST /tension/analyze`` is the batch TEU assembly — the longest run
+    on this router, and the one a user is most likely to want to stop.
+
+    Before the migration it went through ``BackgroundTasks.add_task``, which
+    hands back no task handle, so ``POST /tasks/:id/cancel`` could only answer
+    409 "not cancellable".
+    """
+
+    def _start(self, client) -> str:
+        resp = client.post("/api/v1/tension/analyze", json={"document_id": BOOK})
+        assert resp.status_code == 202
+        return resp.json()["taskId"]
+
+    def test_running_batch_can_be_cancelled(self, tension_client, mock_tension):
+        mock_tension.analyze_book_tensions.side_effect = hanging_call()
+
+        task_id = self._start(tension_client)
+
+        resp = tension_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        assert resp.status_code == 204, "runner was not registered as cancellable"
+
+    def test_cancelled_batch_ends_up_failed(self, tension_client, mock_tension):
+        mock_tension.analyze_book_tensions.side_effect = hanging_call()
+
+        task_id = self._start(tension_client)
+        tension_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+        status = poll_until_terminal(tension_client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "cancelled"
+
+    def test_completion_carries_the_summary(self, tension_client, mock_tension):
+        mock_tension.analyze_book_tensions.return_value = {"assembled": 12, "failed": 0}
+
+        task_id = self._start(tension_client)
+
+        status = poll_until_terminal(tension_client, task_id)
+        assert status["status"] == "done"
+        assert status["result"] == {"assembled": 12, "failed": 0}
+
+    def test_failure_reaches_the_task(self, tension_client, mock_tension):
+        mock_tension.analyze_book_tensions.side_effect = RuntimeError("Qdrant 連不上")
+
+        task_id = self._start(tension_client)
+
+        status = poll_until_terminal(tension_client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "Qdrant 連不上"

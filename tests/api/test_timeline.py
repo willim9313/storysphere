@@ -1,5 +1,6 @@
 """Tests for the timeline endpoint (#13a)."""
 
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -7,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from tests.conftest import attach_get_as
 
-from .conftest import make_event
+from .conftest import hanging_call, make_event, poll_until_terminal
 
 ANALYZED = make_event(title="Analyzed event", chapter=1)
 PLAIN = make_event(title="Unanalyzed event", chapter=2)
@@ -218,3 +219,78 @@ class TestTimelineTemporalStaleness:
         body = temporal_client.get("/api/v1/books/doc-1/timeline").json()
         assert body["temporalIsStale"] is False
         assert body["temporalStaleReason"] is None
+
+
+# ── Timeline computation is cancellable ──────────────────────────────────────
+
+
+@pytest.fixture
+def compute_client(timeline_client, mock_doc):
+    """timeline_client with the temporal pipeline stubbed.
+
+    ``get_temporal_pipeline`` is not covered by the shared fixtures, so it is
+    extended here per the local-fixture convention. ``get_document`` is wired
+    too — the endpoint 404s on a missing book before it ever reaches the task.
+    """
+    from storysphere.api import deps
+
+    mock_doc.get_document = AsyncMock(return_value=SimpleNamespace(id="book-1"))
+    mock_doc.get_document_language = AsyncMock(return_value="zh-TW")
+
+    pipeline = AsyncMock()
+    pipeline.run = AsyncMock(return_value=SimpleNamespace(
+        temporal_relations=3, events_ranked=2, cycles_resolved=0, errors=[],
+    ))
+    timeline_client.app.dependency_overrides[deps.get_temporal_pipeline] = lambda: pipeline
+    timeline_client.pipeline = pipeline
+    return timeline_client
+
+
+class TestComputeCancellation:
+    """Temporal computation walks every event in the book — long enough that
+    stopping it has to work.
+
+    Before the migration it went through ``BackgroundTasks.add_task``, which
+    hands back no task handle, so ``POST /tasks/:id/cancel`` could only answer
+    409 "not cancellable".
+    """
+
+    def _start(self, client) -> str:
+        resp = client.post("/api/v1/books/book-1/timeline/compute")
+        assert resp.status_code == 202
+        return resp.json()["taskId"]
+
+    def test_running_computation_can_be_cancelled(self, compute_client):
+        compute_client.pipeline.run = AsyncMock(side_effect=hanging_call())
+
+        task_id = self._start(compute_client)
+
+        resp = compute_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        assert resp.status_code == 204, "runner was not registered as cancellable"
+
+    def test_cancelled_computation_ends_up_failed(self, compute_client):
+        compute_client.pipeline.run = AsyncMock(side_effect=hanging_call())
+
+        task_id = self._start(compute_client)
+        compute_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+        status = poll_until_terminal(compute_client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "cancelled"
+
+    def test_completion_carries_the_counts(self, compute_client):
+        task_id = self._start(compute_client)
+
+        status = poll_until_terminal(compute_client, task_id)
+        assert status["status"] == "done"
+        assert status["result"]["temporal_relations"] == 3
+        assert status["result"]["events_ranked"] == 2
+
+    def test_failure_reaches_the_task(self, compute_client):
+        compute_client.pipeline.run = AsyncMock(side_effect=RuntimeError("KG 讀取失敗"))
+
+        task_id = self._start(compute_client)
+
+        status = poll_until_terminal(compute_client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "KG 讀取失敗"

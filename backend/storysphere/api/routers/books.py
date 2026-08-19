@@ -9,9 +9,9 @@ import asyncio
 import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
-from storysphere.api import task_registry
+from storysphere.api import task_registry, task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -233,42 +233,31 @@ _RERUN_STEPS = {
 }
 
 
-async def _run_rerun_step(
-    task_id: str,
+async def _rerun_step(
     book_id: str,
     step: str,
     doc_service,
     kg_service,
-) -> None:
-    """Background task: drive one rerun and mirror it into the task store.
+) -> dict:
+    """Background task: drive one rerun and hand its outcome back.
 
     The rerun's own policy — what a failed KG save means, and which analyses a
     successful step invalidates — lives on ``IngestionWorkflow.rerun_step``,
-    next to the step contract it builds on. What stays here is the task-store
-    wiring and the registry slot.
+    next to the step contract it builds on.
     """
-    task_store.set_running(task_id)
-    try:
-        from storysphere.workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
-        # document_service is injected so the workflow persists through the
-        # service the endpoint already resolved, rather than opening a second one.
-        wf = IngestionWorkflow(kg_service=kg_service, document_service=doc_service)
+    from storysphere.workflows.ingestion import IngestionWorkflow  # noqa: PLC0415
 
-        outcome = await wf.rerun_step(step, book_id)
+    # document_service is injected so the workflow persists through the
+    # service the endpoint already resolved, rather than opening a second one.
+    wf = IngestionWorkflow(kg_service=kg_service, document_service=doc_service)
 
-        if not outcome.ok:
-            task_store.set_failed(task_id, error=outcome.error)
-            return
-        task_store.set_completed(task_id, result={"bookId": book_id, "step": step})
+    outcome = await wf.rerun_step(step, book_id)
+    if not outcome.ok:
+        # A refused step is a real outcome with a message for the user, not a
+        # crash — and not a success either, which a bare return would make it.
+        raise task_runner.TaskAborted(outcome.error)
 
-    except asyncio.CancelledError:
-        task_store.set_failed(task_id, error="cancelled")
-        raise
-    except Exception as exc:
-        logger.exception("Rerun task %s (%s) failed", task_id, step)
-        task_store.set_failed(task_id, error=str(exc))
-    finally:
-        task_registry.unregister(task_id)
+    return {"bookId": book_id, "step": step}
 
 
 @router.post("/{book_id}/rerun/{step}", response_model=TaskIdResponse, status_code=202)
@@ -290,8 +279,7 @@ async def rerun_pipeline_step(
 
     task_id = str(uuid4())
     task_store.create(task_id, kind="ingestion", title="重跑處理步驟")
-    task = asyncio.create_task(_run_rerun_step(task_id, book_id, step, doc, kg))
-    task_registry.register(task_id, task)
+    task_runner.launch(task_id, _rerun_step(book_id, step, doc, kg))
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
 
@@ -304,7 +292,6 @@ async def trigger_book_analysis(
     doc: DocServiceDep,
     kg: KGServiceDep,
     agent: AnalysisAgentDep,
-    background_tasks: BackgroundTasks,
 ) -> dict:
     """Trigger full-book analysis for all entities."""
     document = await doc.get_document(book_id)
@@ -332,7 +319,6 @@ async def regenerate_analysis(
     section: str,
     item_id: str,
     agent: AnalysisAgentDep,
-    background_tasks: BackgroundTasks,
 ) -> dict:
     """Regenerate a single analysis item."""
     task_id = str(uuid4())

@@ -11,8 +11,9 @@ from __future__ import annotations
 import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
+from storysphere.api import task_runner
 from storysphere.api.schemas.common import TaskStatus
 from storysphere.api.schemas.kg_settings import (
     KgMigrateRequest,
@@ -161,7 +162,6 @@ async def switch_kg_mode(body: KgSwitchRequest) -> KgSwitchResponse:
 @router.post("/migrate", response_model=TaskStatus, status_code=202)
 async def start_migration(
     body: KgMigrateRequest,
-    background_tasks: BackgroundTasks,
 ) -> TaskStatus:
     """Start an async migration between KG backends.
 
@@ -172,7 +172,7 @@ async def start_migration(
     """
     task_id = str(uuid4())
     task_store.create(task_id, title="知識圖譜遷移")
-    background_tasks.add_task(_run_migration, task_id, body.direction)
+    task_runner.launch(task_id, _migration(body.direction))
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -188,8 +188,8 @@ async def get_migration_status(task_id: str) -> TaskStatus:
 # ── Background task ───────────────────────────────────────────────────────────
 
 
-async def _run_migration(task_id: str, direction: str) -> None:
-    """Background coroutine: execute migration and update task store."""
+async def _migration(direction: str) -> dict:
+    """Background coroutine: run the migration and hand back its counts."""
     from storysphere.config.settings import get_settings  # noqa: PLC0415
     from storysphere.services.kg_migration import (  # noqa: PLC0415
         migrate_neo4j_to_networkx,
@@ -197,31 +197,22 @@ async def _run_migration(task_id: str, direction: str) -> None:
     )
 
     settings = get_settings()
-    task_store.set_running(task_id)
+    if direction == "nx_to_neo4j":
+        counts = await migrate_networkx_to_neo4j(
+            json_path=settings.kg_persistence_path,
+            neo4j_url=settings.neo4j_url,
+            user=settings.neo4j_user,
+            password=settings.neo4j_password,
+            verbose=True,
+        )
+    else:  # neo4j_to_nx
+        counts = await migrate_neo4j_to_networkx(
+            neo4j_url=settings.neo4j_url,
+            user=settings.neo4j_user,
+            password=settings.neo4j_password,
+            json_path=settings.kg_persistence_path,
+            verbose=True,
+        )
 
-    try:
-        if direction == "nx_to_neo4j":
-            counts = await migrate_networkx_to_neo4j(
-                json_path=settings.kg_persistence_path,
-                neo4j_url=settings.neo4j_url,
-                user=settings.neo4j_user,
-                password=settings.neo4j_password,
-                verbose=True,
-            )
-        else:  # neo4j_to_nx
-            counts = await migrate_neo4j_to_networkx(
-                neo4j_url=settings.neo4j_url,
-                user=settings.neo4j_user,
-                password=settings.neo4j_password,
-                json_path=settings.kg_persistence_path,
-                verbose=True,
-            )
-
-        task_store.set_completed(task_id, result={
-            "direction": direction,
-            **counts,
-        })
-        logger.info("Migration task %s completed: %s", task_id, counts)
-    except Exception as exc:
-        logger.exception("Migration task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+    logger.info("Migration completed: %s", counts)
+    return {"direction": direction, **counts}

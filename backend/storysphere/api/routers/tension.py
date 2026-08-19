@@ -14,11 +14,11 @@ PATCH /api/v1/tension/theme/{id}/review    — update HITL review status
 
 from __future__ import annotations
 
-import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
+from storysphere.api import task_runner
 from storysphere.api.deps import DocServiceDep, KGServiceDep, TensionServiceDep
 from storysphere.api.schemas.common import TaskStatus
 from storysphere.api.schemas.tension import (
@@ -36,45 +36,29 @@ from storysphere.api.schemas.tension import (
 )
 from storysphere.api.store import get_task, task_store
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/tension", tags=["tension"])
 
 
 # ── Grouping (async) ───────────────────────────────────────────────────────────
 
 
-async def _run_group_lines(
-    task_id: str,
-    req: GroupTensionLinesRequest,
-    tension_service,
-    kg_service,
-) -> None:
-    task_store.set_running(task_id)
-    try:
-        grouped = await tension_service.group_teus(
-            document_id=req.document_id,
-            kg_service=kg_service,
-            language=req.language,
-            force=req.force,
-            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
-        )
-        task_store.set_completed(
-            task_id,
-            result={
-                "lines": [line.model_dump() for line in grouped["lines"]],
-                "coverage": grouped["coverage"],
-            },
-        )
-    except Exception as exc:
-        logger.exception("TensionLine grouping task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+async def _group_lines(task_id: str, req, tension_service, kg_service) -> dict:
+    grouped = await tension_service.group_teus(
+        document_id=req.document_id,
+        kg_service=kg_service,
+        language=req.language,
+        force=req.force,
+        progress_callback=task_runner.progress(task_id),
+    )
+    return {
+        "lines": [line.model_dump() for line in grouped["lines"]],
+        "coverage": grouped["coverage"],
+    }
 
 
 @router.post("/lines/group", response_model=TaskStatus, status_code=202)
 async def group_tension_lines(
     req: GroupTensionLinesRequest,
-    background_tasks: BackgroundTasks,
     tension_service: TensionServiceDep,
     kg_service: KGServiceDep,
 ) -> TaskStatus:
@@ -85,7 +69,7 @@ async def group_tension_lines(
     """
     task_id = str(uuid4())
     task_store.create(task_id, kind="tension", title="張力線分組")
-    background_tasks.add_task(_run_group_lines, task_id, req, tension_service, kg_service)
+    task_runner.launch(task_id, _group_lines(task_id, req, tension_service, kg_service))
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -296,38 +280,33 @@ async def review_tension_line(
 # ── Mode A: Full-book batch TEU assembly (B-028) ───────────────────────────────
 
 
-async def _run_analyze_book(
+async def _analyze_book(
     task_id: str,
     req: AnalyzeBookTensionsRequest,
     tension_service,
     kg_service,
     doc_service,
-) -> None:
-    task_store.set_running(task_id)
-    try:
-        def _on_progress(done: int, total: int) -> None:
-            pct = int(done / total * 100) if total else 0
-            task_store.set_progress(task_id, progress=pct, stage=f"組裝 TEU {done}/{total}")
+) -> dict:
+    report = task_runner.progress(task_id)
 
-        summary = await tension_service.analyze_book_tensions(
-            document_id=req.document_id,
-            kg_service=kg_service,
-            doc_service=doc_service,
-            language=req.language,
-            force=req.force,
-            concurrency=req.concurrency,
-            progress_callback=_on_progress,
-        )
-        task_store.set_completed(task_id, result=summary)
-    except Exception as exc:
-        logger.exception("Batch TEU assembly task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+    def _on_progress(done: int, total: int) -> None:
+        pct = int(done / total * 100) if total else 0
+        report(pct, f"組裝 TEU {done}/{total}")
+
+    return await tension_service.analyze_book_tensions(
+        document_id=req.document_id,
+        kg_service=kg_service,
+        doc_service=doc_service,
+        language=req.language,
+        force=req.force,
+        concurrency=req.concurrency,
+        progress_callback=_on_progress,
+    )
 
 
 @router.post("/analyze", response_model=TaskStatus, status_code=202)
 async def analyze_book_tensions(
     req: AnalyzeBookTensionsRequest,
-    background_tasks: BackgroundTasks,
     tension_service: TensionServiceDep,
     kg_service: KGServiceDep,
     doc_service: DocServiceDep,
@@ -340,8 +319,8 @@ async def analyze_book_tensions(
     """
     task_id = str(uuid4())
     task_store.create(task_id, kind="tension", title="張力曲線分析")
-    background_tasks.add_task(
-        _run_analyze_book, task_id, req, tension_service, kg_service, doc_service
+    task_runner.launch(
+        task_id, _analyze_book(task_id, req, tension_service, kg_service, doc_service)
     )
     return TaskStatus(task_id=task_id, status="pending")
 
@@ -357,32 +336,23 @@ async def get_analyze_book_tensions(task_id: str) -> TaskStatus:
 # ── TensionTheme synthesis (B-029) ────────────────────────────────────────────
 
 
-async def _run_synthesize_theme(
-    task_id: str,
-    req: SynthesizeThemeRequest,
-    tension_service,
-) -> None:
-    task_store.set_running(task_id)
-    try:
-        task_store.set_progress(task_id, 15, "loading tension lines")
-        task_store.set_progress(task_id, 25, "calling LLM for theme synthesis")
-        theme = await tension_service.synthesize_theme(
-            document_id=req.document_id,
-            language=req.language,
-            force=req.force,
-        )
-        task_store.set_progress(task_id, 90, "saving theme result")
-        await tension_service.save_theme(theme)
-        task_store.set_completed(task_id, result=theme.model_dump())
-    except Exception as exc:
-        logger.exception("TensionTheme synthesis task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+async def _synthesize_theme(task_id: str, req: SynthesizeThemeRequest, tension_service) -> dict:
+    progress = task_runner.progress(task_id)
+    progress(15, "loading tension lines")
+    progress(25, "calling LLM for theme synthesis")
+    theme = await tension_service.synthesize_theme(
+        document_id=req.document_id,
+        language=req.language,
+        force=req.force,
+    )
+    progress(90, "saving theme result")
+    await tension_service.save_theme(theme)
+    return theme.model_dump()
 
 
 @router.post("/theme/synthesize", response_model=TaskStatus, status_code=202)
 async def synthesize_tension_theme(
     req: SynthesizeThemeRequest,
-    background_tasks: BackgroundTasks,
     tension_service: TensionServiceDep,
 ) -> TaskStatus:
     """Start TensionTheme synthesis for a book.
@@ -393,7 +363,7 @@ async def synthesize_tension_theme(
     """
     task_id = str(uuid4())
     task_store.create(task_id, kind="tension", title="張力主題綜合")
-    background_tasks.add_task(_run_synthesize_theme, task_id, req, tension_service)
+    task_runner.launch(task_id, _synthesize_theme(task_id, req, tension_service))
     return TaskStatus(task_id=task_id, status="pending")
 
 

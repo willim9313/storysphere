@@ -16,11 +16,11 @@ PATCH /api/v1/narrative/{document_id}/review  — update review_status
 
 from __future__ import annotations
 
-import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
+from storysphere.api import task_runner
 from storysphere.api.deps import NarrativeServiceDep
 from storysphere.api.schemas.common import TaskStatus
 from storysphere.api.schemas.narrative import (
@@ -36,58 +36,42 @@ from storysphere.api.store import get_task, task_store
 from storysphere.domain.narrative import NarrativeStructure
 from storysphere.services.query_models import TemporalCoverageStats
 
-logger = logging.getLogger(__name__)
-
 router = APIRouter(prefix="/narrative", tags=["narrative"])
 
 
 # ── Background runners ────────────────────────────────────────────────────────
 
 
-async def _run_classify(task_id: str, req: ClassifyNarrativeRequest, narrative_service) -> None:
-    task_store.set_running(task_id)
-    try:
-        structure = await narrative_service.classify_from_eep(
-            req.document_id,
-            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
-        )
-        task_store.set_completed(task_id, result=structure.model_dump())
-    except Exception as exc:
-        logger.exception("Narrative classify task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+async def _classify(task_id: str, req: ClassifyNarrativeRequest, narrative_service) -> dict:
+    structure = await narrative_service.classify_from_eep(
+        req.document_id,
+        progress_callback=task_runner.progress(task_id),
+    )
+    return structure.model_dump()
 
 
-async def _run_refine(task_id: str, req: RefineNarrativeRequest, narrative_service) -> None:
-    task_store.set_running(task_id)
-    try:
-        structure = await narrative_service.refine_with_llm(
-            document_id=req.document_id,
-            event_ids=req.event_ids,
-            language=req.language,
-            force=req.force,
-            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
-        )
-        task_store.set_completed(task_id, result=structure.model_dump())
-    except Exception as exc:
-        logger.exception("Narrative refine task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+async def _refine(task_id: str, req: RefineNarrativeRequest, narrative_service) -> dict:
+    structure = await narrative_service.refine_with_llm(
+        document_id=req.document_id,
+        event_ids=req.event_ids,
+        language=req.language,
+        force=req.force,
+        progress_callback=task_runner.progress(task_id),
+    )
+    return structure.model_dump()
 
 
-async def _run_hero_journey(task_id: str, req: HeroJourneyRequest, narrative_service) -> None:
-    task_store.set_running(task_id)
-    try:
-        task_store.set_progress(task_id, 10, "loading chapter summaries")
-        task_store.set_progress(task_id, 20, "calling LLM for hero journey mapping")
-        stages = await narrative_service.map_hero_journey(
-            document_id=req.document_id,
-            language=req.language,
-            force=req.force,
-        )
-        task_store.set_progress(task_id, 90, "parsing hero journey stages")
-        task_store.set_completed(task_id, result={"stages": [s.model_dump() for s in stages]})
-    except Exception as exc:
-        logger.exception("Hero journey task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+async def _hero_journey(task_id: str, req: HeroJourneyRequest, narrative_service) -> dict:
+    progress = task_runner.progress(task_id)
+    progress(10, "loading chapter summaries")
+    progress(20, "calling LLM for hero journey mapping")
+    stages = await narrative_service.map_hero_journey(
+        document_id=req.document_id,
+        language=req.language,
+        force=req.force,
+    )
+    progress(90, "parsing hero journey stages")
+    return {"stages": [s.model_dump() for s in stages]}
 
 
 # ── Classify (async) ──────────────────────────────────────────────────────────
@@ -96,7 +80,6 @@ async def _run_hero_journey(task_id: str, req: HeroJourneyRequest, narrative_ser
 @router.post("/classify", response_model=TaskStatus, status_code=202)
 async def classify_narrative(
     req: ClassifyNarrativeRequest,
-    background_tasks: BackgroundTasks,
     narrative_service: NarrativeServiceDep,
 ) -> TaskStatus:
     """Start heuristic Kernel/Satellite classification for a book.
@@ -123,7 +106,7 @@ async def classify_narrative(
 
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="敘事模式標註")
-    background_tasks.add_task(_run_classify, task_id, req, narrative_service)
+    task_runner.launch(task_id, _classify(task_id, req, narrative_service))
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -141,7 +124,6 @@ async def get_classify_task(task_id: str) -> TaskStatus:
 @router.post("/refine", response_model=TaskStatus, status_code=202)
 async def refine_narrative(
     req: RefineNarrativeRequest,
-    background_tasks: BackgroundTasks,
     narrative_service: NarrativeServiceDep,
 ) -> TaskStatus:
     """Start LLM refinement of Kernel/Satellite classification.
@@ -151,7 +133,7 @@ async def refine_narrative(
     """
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="敘事模式校正")
-    background_tasks.add_task(_run_refine, task_id, req, narrative_service)
+    task_runner.launch(task_id, _refine(task_id, req, narrative_service))
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -169,7 +151,6 @@ async def get_refine_task(task_id: str) -> TaskStatus:
 @router.post("/hero-journey", response_model=TaskStatus, status_code=202)
 async def map_hero_journey(
     req: HeroJourneyRequest,
-    background_tasks: BackgroundTasks,
     narrative_service: NarrativeServiceDep,
 ) -> TaskStatus:
     """Start Campbell's Hero's Journey stage mapping for a book.
@@ -178,7 +159,7 @@ async def map_hero_journey(
     """
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="英雄旅程對應")
-    background_tasks.add_task(_run_hero_journey, task_id, req, narrative_service)
+    task_runner.launch(task_id, _hero_journey(task_id, req, narrative_service))
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -193,19 +174,14 @@ async def get_hero_journey_task(task_id: str) -> TaskStatus:
 # ── Temporal analysis (async) ────────────────────────────────────────────────
 
 
-async def _run_temporal(task_id: str, req: TemporalAnalysisRequest, narrative_service) -> None:
-    task_store.set_running(task_id)
-    try:
-        result = await narrative_service.analyze_temporal_order(
-            document_id=req.document_id,
-            language=req.language,
-            force=req.force,
-            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
-        )
-        task_store.set_completed(task_id, result=result.model_dump())
-    except Exception as exc:
-        logger.exception("Temporal analysis task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+async def _temporal(task_id: str, req: TemporalAnalysisRequest, narrative_service) -> dict:
+    result = await narrative_service.analyze_temporal_order(
+        document_id=req.document_id,
+        language=req.language,
+        force=req.force,
+        progress_callback=task_runner.progress(task_id),
+    )
+    return result.model_dump()
 
 
 @router.get("/temporal/coverage")
@@ -224,7 +200,6 @@ async def temporal_coverage(
 @router.post("/temporal", response_model=TaskStatus, status_code=202)
 async def analyze_temporal(
     req: TemporalAnalysisRequest,
-    background_tasks: BackgroundTasks,
     narrative_service: NarrativeServiceDep,
 ) -> TaskStatus:
     """Start Genette temporal order analysis for a book.
@@ -234,7 +209,7 @@ async def analyze_temporal(
     """
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="時序分析")
-    background_tasks.add_task(_run_temporal, task_id, req, narrative_service)
+    task_runner.launch(task_id, _temporal(task_id, req, narrative_service))
     return TaskStatus(task_id=task_id, status="pending")
 
 

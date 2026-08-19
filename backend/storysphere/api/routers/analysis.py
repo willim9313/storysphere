@@ -8,17 +8,15 @@ GET  /api/v1/analysis/event/{task_id}   — poll result
 
 from __future__ import annotations
 
-import logging
 from uuid import uuid4
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+from fastapi import APIRouter, HTTPException
 
+from storysphere.api import task_runner
 from storysphere.api.deps import AnalysisAgentDep
 from storysphere.api.schemas.analysis import CharacterAnalysisRequest, EventAnalysisRequest
 from storysphere.api.schemas.common import TaskStatus
 from storysphere.api.store import get_task, task_store
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/analysis", tags=["analysis"])
 
@@ -26,26 +24,20 @@ router = APIRouter(prefix="/analysis", tags=["analysis"])
 # ── Character ──────────────────────────────────────────────────────────────────
 
 
-async def _run_character_analysis(task_id: str, req: CharacterAnalysisRequest, agent) -> None:
-    task_store.set_running(task_id)
-    try:
-        result = await agent.analyze_character(
-            entity_name=req.entity_name,
-            document_id=req.document_id,
-            archetype_frameworks=req.archetype_frameworks,
-            language=req.language,
-            force_refresh=req.force_refresh,
-        )
-        task_store.set_completed(task_id, result=result.model_dump())
-    except Exception as exc:
-        logger.exception("Character analysis task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+async def _character_analysis(req: CharacterAnalysisRequest, agent) -> dict:
+    result = await agent.analyze_character(
+        entity_name=req.entity_name,
+        document_id=req.document_id,
+        archetype_frameworks=req.archetype_frameworks,
+        language=req.language,
+        force_refresh=req.force_refresh,
+    )
+    return result.model_dump()
 
 
 @router.post("/character", response_model=TaskStatus, status_code=202)
 async def analyze_character(
     req: CharacterAnalysisRequest,
-    background_tasks: BackgroundTasks,
     agent: AnalysisAgentDep,
 ) -> TaskStatus:
     """Start a deep character analysis.
@@ -55,7 +47,7 @@ async def analyze_character(
     """
     task_id = str(uuid4())
     task_store.create(task_id, kind="character", title="角色深度分析")
-    background_tasks.add_task(_run_character_analysis, task_id, req, agent)
+    task_runner.launch(task_id, _character_analysis(req, agent))
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -70,31 +62,25 @@ async def get_character_analysis(task_id: str) -> TaskStatus:
 # ── Event ──────────────────────────────────────────────────────────────────────
 
 
-async def _run_event_analysis(task_id: str, req: EventAnalysisRequest, agent) -> None:
-    task_store.set_running(task_id)
-    try:
-        result = await agent.analyze_event(
-            event_id=req.event_id,
-            document_id=req.document_id,
-            language=req.language,
-            force_refresh=req.force_refresh,
-        )
-        task_store.set_completed(task_id, result=result.model_dump())
-    except Exception as exc:
-        logger.exception("Event analysis task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+async def _event_analysis(req: EventAnalysisRequest, agent) -> dict:
+    result = await agent.analyze_event(
+        event_id=req.event_id,
+        document_id=req.document_id,
+        language=req.language,
+        force_refresh=req.force_refresh,
+    )
+    return result.model_dump()
 
 
 @router.post("/event", response_model=TaskStatus, status_code=202)
 async def analyze_event(
     req: EventAnalysisRequest,
-    background_tasks: BackgroundTasks,
     agent: AnalysisAgentDep,
 ) -> TaskStatus:
     """Start a deep event analysis.  Returns 202 with ``task_id``."""
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="事件分析")
-    background_tasks.add_task(_run_event_analysis, task_id, req, agent)
+    task_runner.launch(task_id, _event_analysis(req, agent))
     return TaskStatus(task_id=task_id, status="pending")
 
 

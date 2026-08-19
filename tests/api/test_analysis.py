@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import hanging_call, poll_until_terminal
 from tests.conftest import attach_get_as
 
 sys.path.insert(0, "src")
@@ -627,3 +628,196 @@ class TestEventSourcePassages:
         resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
         assert resp.status_code == 200
         assert resp.json()["passages"] == []
+
+
+# ── Background tasks are cancellable ─────────────────────────────────────────
+
+
+class TestCancellation:
+    """Deep character/event analysis are single LLM-heavy runs.
+
+    Before the migration both went through ``BackgroundTasks.add_task``, which
+    hands back no task handle, so ``POST /tasks/:id/cancel`` could only answer
+    409 "not cancellable".
+    """
+
+    def _start_character(self, client) -> str:
+        resp = client.post("/api/v1/analysis/character", json={
+            "entity_name": "Alice",
+            "document_id": "doc-1",
+            "archetype_frameworks": ["jung"],
+            "language": "en",
+        })
+        assert resp.status_code == 202
+        return resp.json()["taskId"]
+
+    def test_running_analysis_can_be_cancelled(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = hanging_call()
+
+        task_id = self._start_character(client)
+
+        resp = client.post(f"/api/v1/tasks/{task_id}/cancel")
+        assert resp.status_code == 204, "runner was not registered as cancellable"
+
+    def test_cancelled_analysis_ends_up_failed(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = hanging_call()
+
+        task_id = self._start_character(client)
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+        status = poll_until_terminal(client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "cancelled"
+
+    def test_failure_reaches_the_task(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("LLM 配額用盡")
+
+        task_id = self._start_character(client)
+
+        status = poll_until_terminal(client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "LLM 配額用盡"
+
+
+# ── Batch event analysis: cancellation and abort ─────────────────────────────
+
+
+class TestBatchEventCancellation:
+    """The batch run is the longest and most expensive task on this router.
+
+    Before the migration it went through ``BackgroundTasks.add_task``, which
+    hands back no task handle, so ``POST /tasks/:id/cancel`` could only answer
+    409 "not cancellable" — on exactly the run a user most wants to stop.
+    """
+
+    def _start(self, client) -> str:
+        resp = client.post("/api/v1/books/doc-1/events/analyze-all")
+        assert resp.status_code == 202
+        return resp.json()["taskId"]
+
+    def test_running_batch_can_be_cancelled(self, event_batch_client, mock_analysis_agent):
+        mock_analysis_agent.analyze_event.side_effect = hanging_call()
+
+        task_id = self._start(event_batch_client)
+
+        resp = event_batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        assert resp.status_code == 204, "runner was not registered as cancellable"
+
+    def test_cancelled_batch_ends_up_failed(self, event_batch_client, mock_analysis_agent):
+        mock_analysis_agent.analyze_event.side_effect = hanging_call()
+
+        task_id = self._start(event_batch_client)
+        event_batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+        status = poll_until_terminal(event_batch_client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "cancelled"
+
+
+class TestBatchEventAbort:
+    """A quota-exhausted run must fail, not quietly report success.
+
+    The runner used to ``set_failed(...)`` then ``return``.  Once the
+    supervisor owns ``set_completed``, a bare ``return`` would turn the abort
+    into a "done" task — which is why it raises ``TaskAborted`` instead.
+    """
+
+    def test_rate_limit_fails_the_task_with_its_message(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        mock_analysis_agent.analyze_event.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(event_batch_client, task_id)
+        assert status["status"] == "error"
+        assert "配額已達上限" in status["error"]
+
+    def test_abort_never_reports_done(self, event_batch_client, mock_analysis_agent):
+        mock_analysis_agent.analyze_event.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(event_batch_client, task_id)
+        assert status["status"] != "done"
+
+    def test_ordinary_failure_is_counted_not_aborted(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        """A non-quota error on one event must not stop the whole batch."""
+        mock_analysis_agent.analyze_event.side_effect = RuntimeError("boom")
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(event_batch_client, task_id)
+        assert status["status"] == "done"
+        assert status["result"]["failed"] == status["result"]["total"]
+
+
+# ── Batch character analysis: cancellation and abort ─────────────────────────
+
+
+class TestBatchEntityCancellation:
+    """Same contract as the event batch — the two runners are twins."""
+
+    def _start(self, client) -> str:
+        resp = client.post("/api/v1/books/doc-1/entities/analyze-all")
+        assert resp.status_code == 202
+        return resp.json()["taskId"]
+
+    def test_running_batch_can_be_cancelled(self, batch_client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = hanging_call()
+
+        task_id = self._start(batch_client)
+
+        resp = batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        assert resp.status_code == 204, "runner was not registered as cancellable"
+
+    def test_cancelled_batch_ends_up_failed(self, batch_client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = hanging_call()
+
+        task_id = self._start(batch_client)
+        batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+        status = poll_until_terminal(batch_client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "cancelled"
+
+
+class TestBatchEntityAbort:
+    def test_rate_limit_fails_the_task_with_its_message(
+        self, batch_client, mock_analysis_agent
+    ):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(batch_client, task_id)
+        assert status["status"] == "error"
+        assert "配額已達上限" in status["error"]
+        assert "個角色" in status["error"], "borrowed the event batch's wording"
+
+    def test_abort_never_reports_done(self, batch_client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(batch_client, task_id)
+        assert status["status"] != "done"
+
+    def test_ordinary_failure_is_counted_not_aborted(
+        self, batch_client, mock_analysis_agent
+    ):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("boom")
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(batch_client, task_id)
+        assert status["status"] == "done"
+        assert status["result"]["failed"] == status["result"]["total"]

@@ -12,10 +12,10 @@ from uuid import uuid4
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     HTTPException,
 )
 
+from storysphere.api import task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -179,26 +179,21 @@ async def list_event_analyses(
 # ── #7d POST /books/:bookId/events/:eventId/analyze ─────────────────────────
 
 
-async def _run_event_analysis(
+async def _event_analysis(
     task_id: str, event_id: str, document_id: str, agent, language: str = "en",
     retry_parts: list[str] | None = None, force_refresh: bool = False,
-) -> None:
+) -> dict:
     logger.info("Event analysis task %s started: event=%s, doc=%s", task_id, event_id, document_id)
-    task_store.set_running(task_id)
-    try:
-        result = await agent.analyze_event(
-            event_id=event_id,
-            document_id=document_id,
-            language=language,
-            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
-            retry_parts=retry_parts,
-            force_refresh=force_refresh,
-        )
-        task_store.set_completed(task_id, result=result.model_dump())
-        logger.info("Event analysis task %s completed: event=%s", task_id, event_id)
-    except Exception as exc:
-        logger.exception("Event analysis task %s failed: event=%s", task_id, event_id)
-        task_store.set_failed(task_id, error=str(exc))
+    result = await agent.analyze_event(
+        event_id=event_id,
+        document_id=document_id,
+        language=language,
+        progress_callback=task_runner.progress(task_id),
+        retry_parts=retry_parts,
+        force_refresh=force_refresh,
+    )
+    logger.info("Event analysis task %s completed: event=%s", task_id, event_id)
+    return result.model_dump()
 
 
 @router.post(
@@ -212,7 +207,6 @@ async def trigger_event_analysis(
     doc: DocServiceDep,
     agent: AnalysisAgentDep,
     cache: AnalysisCacheDep,
-    background_tasks: BackgroundTasks,
     body: AnalyzeTriggerRequest = AnalyzeTriggerRequest(),
 ) -> dict:
     """Trigger deep analysis for a single event.
@@ -242,9 +236,11 @@ async def trigger_event_analysis(
     )
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="事件分析")
-    background_tasks.add_task(
-        _run_event_analysis, task_id, event_id, book_id, agent, language,
-        retry_parts, force_refresh,
+    task_runner.launch(
+        task_id,
+        _event_analysis(
+            task_id, event_id, book_id, agent, language, retry_parts, force_refresh
+        ),
     )
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -403,7 +399,7 @@ async def get_event_source_passages(
 # ── #7f POST /books/:bookId/events/analyze-all ───────────────────────────────
 
 
-async def _run_batch_event_analysis(
+async def _batch_event_analysis(
     task_id: str,
     document_id: str,
     agent,
@@ -411,13 +407,12 @@ async def _run_batch_event_analysis(
     cache,
     language: str = "en",
     event_ids: list[str] | None = None,
-) -> None:
+) -> dict:
     """Background task: analyze all unanalyzed events.
 
     ``event_ids``, when provided, restricts the run to that subset (any ids
     that don't match an existing event are silently excluded).
     """
-    task_store.set_running(task_id)
     events = await kg_service.get_events(document_id=document_id)
     if event_ids is not None:
         wanted = set(event_ids)
@@ -426,12 +421,12 @@ async def _run_batch_event_analysis(
     done = 0
     failed = 0
     skipped = 0
+    report = task_runner.progress(task_id)
 
     def _report() -> None:
-        task_store.set_progress(
-            task_id,
-            progress=int(done / total * 100) if total else 0,
-            stage=f"分析事件 {done}/{total}",
+        report(
+            int(done / total * 100) if total else 0,
+            f"分析事件 {done}/{total}",
             # The panel needs the item count, not just the percentage — it
             # renders "已分析 N/M" alongside the bar.
             sub_progress=done,
@@ -457,11 +452,11 @@ async def _run_batch_event_analysis(
         except Exception as exc:
             if _is_rate_limit_error(exc):
                 logger.warning("Batch event analysis aborted — rate limit: %s", exc)
-                task_store.set_failed(
-                    task_id,
-                    error=f"API 配額已達上限，已處理 {done}/{total} 個事件。請稍後再試。",
-                )
-                return
+                # Not a ``return``: the supervisor completes a task that
+                # returns, which would report an aborted run as a success.
+                raise task_runner.TaskAborted(
+                    f"API 配額已達上限，已處理 {done}/{total} 個事件。請稍後再試。"
+                ) from exc
             logger.warning(
                 "Batch event analysis failed for %s: %s",
                 ev.id, exc,
@@ -471,20 +466,17 @@ async def _run_batch_event_analysis(
 
         _report()
 
-    task_store.set_completed(
-        task_id,
-        result={
-            "progress": total,
-            "total": total,
-            "failed": failed,
-            "skipped": skipped,
-        },
-    )
     logger.info(
         "Batch event analysis complete: doc=%s, "
         "total=%d, skipped=%d, failed=%d",
         document_id, total, skipped, failed,
     )
+    return {
+        "progress": total,
+        "total": total,
+        "failed": failed,
+        "skipped": skipped,
+    }
 
 
 @router.post(
@@ -498,7 +490,6 @@ async def trigger_batch_event_analysis(
     kg: KGServiceDep,
     cache: AnalysisCacheDep,
     agent: AnalysisAgentDep,
-    background_tasks: BackgroundTasks,
     body: BatchEventAnalysisRequest = BatchEventAnalysisRequest(),
 ) -> dict:
     """Trigger deep analysis for ALL (or a subset of) events in a book.
@@ -528,9 +519,11 @@ async def trigger_batch_event_analysis(
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="批次事件分析")
-    background_tasks.add_task(
-        _run_batch_event_analysis,
-        task_id, book_id, agent, kg, cache, language, body.event_ids,
+    task_runner.launch(
+        task_id,
+        _batch_event_analysis(
+            task_id, book_id, agent, kg, cache, language, body.event_ids
+        ),
     )
 
     logger.info(
