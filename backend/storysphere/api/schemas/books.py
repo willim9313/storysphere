@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any, Literal
+from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 # ── Shared config ────────────────────────────────────────────────────────────
@@ -63,68 +62,16 @@ class BookDetailResponse(BookResponse):
 # ── Chapter review ───────────────────────────────────────────────────────────
 
 
-class ReviewParagraphResponse(BaseModel):
-    model_config = _CAMEL
-
-    paragraph_index: int
-    text: str
-    role: str = "body"
-    title_span: list[int] | None = None  # [start, end] char offsets, or null
-    sentences: list[str]
 
 
-class ReviewChapterResponse(BaseModel):
-    model_config = _CAMEL
-
-    chapter_idx: int
-    title: str | None = None
-    role: str = "body"
-    paragraphs: list[ReviewParagraphResponse]
 
 
-class ReviewDataResponse(BaseModel):
-    model_config = _CAMEL
-
-    chapters: list[ReviewChapterResponse]
 
 
-class ReviewChapterInput(BaseModel):
-    model_config = _CAMEL
-
-    title: str = ""
-    role: str = "body"
-    start_paragraph_index: int
 
 
-class ReviewSubmitRequest(BaseModel):
-    model_config = _CAMEL
-
-    # None (field omitted) = accept the detected structure as-is: the pipeline
-    # resumes without rebuilding chapters, and role_overrides/paragraph_splits
-    # are ignored. Spares the "接受系統判斷" path the round-trip of the full
-    # book text.
-    chapters: list[ReviewChapterInput] | None = None
-    role_overrides: dict[str, str] = {}  # str(globalIdx) → role value
-    # str(pre-split globalIdx) → ascending char offsets to split that paragraph
-    # at. Splits are applied first; chapters/role_overrides use post-split
-    # indices. Optional so old payloads keep working unchanged.
-    paragraph_splits: dict[str, list[int]] = {}
 
 
-class SuggestRolesResponse(BaseModel):
-    """LLM-proposed front/back matter boundaries for the review UI to split on.
-
-    ``frontMatterEnd`` is exclusive, ``backMatterStart`` inclusive, both in
-    book-global paragraph index space (matching review-data). ``null`` on a side
-    means no matter found there.
-    """
-
-    model_config = _CAMEL
-
-    front_matter_end: int | None = None
-    back_matter_start: int | None = None
-    front_role: str | None = None
-    back_role: str | None = None
 
 
 class TocEntry(BaseModel):
@@ -143,31 +90,8 @@ class TocEntry(BaseModel):
     is_body: bool = True
 
 
-class ParseTocRequest(BaseModel):
-    """Body for POST /books/:bookId/parse-toc (目錄對照提示).
-
-    ``tocText`` is the reviewer's *currently edited* table-of-contents text
-    (concatenated paragraphs of the chapters they have marked ``toc`` in the
-    review UI). When provided, the backend parses it instead of the stale
-    detected TOC in the persisted document, so re-parsing reflects live edits.
-    When omitted/empty, the backend falls back to the persisted document.
-    """
-
-    model_config = _CAMEL
-
-    toc_text: str | None = None
 
 
-class ParseTocResponse(BaseModel):
-    """LLM-parsed table-of-contents entries for the review cross-check drawer.
-
-    Ordered as declared in the book. Empty ``entries`` = no TOC chapter, or the
-    detected block could not be parsed (the UI shows a friendly fallback).
-    """
-
-    model_config = _CAMEL
-
-    entries: list[TocEntry] = []
 
 
 # ── Chapter / chunk ──────────────────────────────────────────────────────────
@@ -210,78 +134,22 @@ class Segment(BaseModel):
     entity: SegmentEntity | None = None
 
 
-class ChunkResponse(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    chapter_id: str
-    order: int
-    content: str
-    keywords: list[str] = []
-    segments: list[Segment] = []
 
 
 # ── Graph ────────────────────────────────────────────────────────────────────
 
 
-class GraphNode(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    name: str
-    type: str
-    description: str | None = None
-    chunk_count: int = 0
-    event_type: str | None = None
-    chapter: int | None = None
 
 
-class GraphEdge(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    source: str
-    target: str
-    label: str | None = None
-    weight: float | None = None
-    # F-01 inferred relation fields
-    inferred: bool = False
-    confidence: float | None = None
-    inferred_id: str | None = None
 
 
-class GraphDataResponse(BaseModel):
-    model_config = _CAMEL
-
-    nodes: list[GraphNode] = []
-    edges: list[GraphEdge] = []
 
 
 # ── Timeline config ──────────────────────────────────────────────────────────
 
 
-class TimelineConfigResponse(BaseModel):
-    model_config = _CAMEL
-
-    chapter_mode_enabled: bool = False
-    story_mode_enabled: bool = False
-    default_mode: Literal["chapter", "story"] = "chapter"
-    total_chapters: int = 0
-    total_events: int = 0
-    total_ranked_events: int = 0
-    chapter_mode_configured: bool = False
-    story_mode_configured: bool = False
-    configured_at: datetime | None = None
 
 
-class TimelineConfigUpdate(BaseModel):
-    model_config = _CAMEL
-
-    chapter_mode_enabled: bool | None = None
-    story_mode_enabled: bool | None = None
-    default_mode: Literal["chapter", "story"] | None = None
-    chapter_mode_configured: bool | None = None
-    story_mode_configured: bool | None = None
 
 
 class TimelineDetectionResponse(BaseModel):
@@ -298,99 +166,23 @@ class TimelineDetectionResponse(BaseModel):
 # ── Event detail ─────────────────────────────────────────────────────────────
 
 
-class EventParticipant(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    name: str
-    type: str
 
 
-class EventLocation(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    name: str
 
 
-class EventDetailResponse(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    title: str
-    event_type: str
-    description: str
-    chapter: int
-    significance: str | None = None
-    consequences: list[str] = []
-    participants: list[EventParticipant] = []
-    location: EventLocation | None = None
 
 
 # ── Event analysis (structured response instead of hand-rolled dict) ─────────
 
 
-class EepParticipantRole(BaseModel):
-    model_config = _CAMEL
-
-    entity_id: str
-    entity_name: str
-    role: str
-    impact_description: str
 
 
-class EepResponse(BaseModel):
-    model_config = _CAMEL
-
-    state_before: str
-    state_after: str
-    causal_factors: list[str]
-    prior_event_ids: list[str]
-    subsequent_event_ids: list[str]
-    participant_roles: list[EepParticipantRole]
-    consequences: list[str]
-    structural_role: str
-    event_importance: str
-    thematic_significance: str
-    text_evidence: list[str]
-    key_quotes: list[str]
-    top_terms: dict[str, float]
 
 
-class CausalityResponse(BaseModel):
-    model_config = _CAMEL
-
-    root_cause: str
-    causal_chain: list[str]
-    trigger_event_ids: list[str]
-    chain_summary: str
 
 
-class ImpactResponse(BaseModel):
-    model_config = _CAMEL
-
-    affected_participant_ids: list[str]
-    participant_impacts: list[str]
-    relation_changes: list[str]
-    subsequent_event_ids: list[str]
-    impact_summary: str
 
 
-class EventAnalysisFullResponse(BaseModel):
-    model_config = _CAMEL
-
-    event_id: str
-    title: str
-    eep: EepResponse
-    causality: CausalityResponse
-    impact: ImpactResponse
-    summary: dict[str, str]
-    status: str = "complete"            # "complete" | "partial"
-    failed_parts: list[str] = []
-    analyzed_at: str | None = None
-    chapter: int | None = None
-    chunk: int | None = None
-    narrative_mode: str | None = None
 
 
 # ── Analysis list ────────────────────────────────────────────────────────────
@@ -443,47 +235,12 @@ class EntityAnalysisResponse(BaseModel):
     generated_at: str
 
 
-class CepResponse(BaseModel):
-    model_config = _CAMEL
-
-    actions: list[str] = []
-    traits: list[str] = []
-    relations: list[dict[str, str]] = []
-    key_events: list[dict[str, Any]] = []
-    quotes: list[str] = []
-    top_terms: dict[str, float] = {}
 
 
-class ArchetypeDetailResponse(BaseModel):
-    model_config = _CAMEL
-
-    framework: str
-    primary: str
-    secondary: str | None = None
-    confidence: float = 0.0
-    evidence: list[str] = []
 
 
-class ArcSegmentResponse(BaseModel):
-    model_config = _CAMEL
-
-    chapter_range: str
-    phase: str
-    description: str
 
 
-class CharacterAnalysisDetailResponse(BaseModel):
-    model_config = _CAMEL
-
-    entity_id: str
-    entity_name: str
-    profile_summary: str
-    archetypes: list[ArchetypeDetailResponse] = []
-    cep: CepResponse | None = None
-    arc: list[ArcSegmentResponse] = []
-    status: str = "complete"            # "complete" | "partial"
-    failed_parts: list[str] = []
-    generated_at: str
 
 
 class AnalyzeTriggerRequest(BaseModel):
@@ -492,40 +249,15 @@ class AnalyzeTriggerRequest(BaseModel):
     mode: Literal["full", "retryFailed"] = "full"
 
 
-class BatchAnalysisRequest(BaseModel):
-    model_config = _CAMEL
-
-    entity_ids: list[str] | None = None
 
 
-class BatchEventAnalysisRequest(BaseModel):
-    model_config = _CAMEL
-
-    event_ids: list[str] | None = None
 
 
 # ── Entity chunks ────────────────────────────────────────────────────────────
 
 
-class EntityChunkItem(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    chapter_id: str
-    chapter_title: str | None = None
-    chapter_number: int
-    order: int
-    content: str
-    segments: list[Segment] = []
 
 
-class EntityChunksResponse(BaseModel):
-    model_config = _CAMEL
-
-    entity_id: str
-    entity_name: str
-    total: int
-    chunks: list[EntityChunkItem] = []
 
 
 # ── Task / misc ──────────────────────────────────────────────────────────────
@@ -537,243 +269,56 @@ class TaskIdResponse(BaseModel):
     task_id: str
 
 
-class UploadResponse(BaseModel):
-    model_config = _CAMEL
-
-    task_id: str
-    duplicate_title: bool = False
 
 
-class DetectLanguageResponse(BaseModel):
-    model_config = _CAMEL
-
-    language: str
 
 
 # ── Timeline ─────────────────────────────────────────────────────────────────
 
 
-class ParticipantRef(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    name: str
-    type: str
 
 
-class LocationRef(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    name: str
 
 
-class TemporalDisplacementEntry(BaseModel):
-    """Per-event verdict from the Genette temporal analysis (#21h).
-
-    Not the same thing as the deviation the timeline page derives from
-    ``chronological_rank``: that is geometry available for every ranked event,
-    this is the LLM's judgement and is absent until the analysis has run with
-    sufficient ``story_time_hint`` coverage.
-    """
-
-    model_config = _CAMEL
-
-    type: str
-    """analepsis (flashback) | prolepsis (flash-forward) | linear."""
-    displacement: float
-    """story_rank - text_rank; negative = told later than it happened."""
-    text_rank: int
-    story_rank: float
 
 
-class TimelineEventEntry(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    title: str
-    event_type: str
-    description: str
-    chapter: int
-    chapter_title: str | None = None
-    narrative_mode: str = "unknown"
-    chronological_rank: float | None = None
-    story_time_hint: str | None = None
-    event_importance: str | None = None
-    has_analysis: bool = False
-    temporal_displacement: TemporalDisplacementEntry | None = None
-    participants: list[ParticipantRef] = []
-    location: LocationRef | None = None
 
 
-class TemporalRelationEntry(BaseModel):
-    model_config = _CAMEL
-
-    source: str
-    target: str
-    type: str
-    confidence: float
 
 
-class TimelineQuality(BaseModel):
-    model_config = _CAMEL
-
-    total_count: int = 0
-    analyzed_count: int = 0
-    eep_coverage: float = 0.0
-    has_chronological_ranks: bool = False
-    last_computed: str | None = None
 
 
-class TimelineResponse(BaseModel):
-    model_config = _CAMEL
-
-    book_id: str
-    order: str
-    events: list[TimelineEventEntry]
-    temporal_relations: list[TemporalRelationEntry]
-    quality: TimelineQuality
-    temporal_analyzed: bool = False
-    """True when a temporal analysis with sufficient coverage is cached."""
-    temporal_structure: str | None = None
-    """linear | partially_linear | non_linear | unknown; None when never run."""
-    temporal_is_stale: bool = False
-    """True when a pipeline step re-ran after the temporal analysis was cached."""
-    temporal_stale_reason: str | None = None
-    """Pipeline step whose rerun overtook the cached temporal analysis."""
 
 
 # ── Epistemic State (F-03) ───────────────────────────────────────────────────
 
 
-class MisbeliefItemSchema(BaseModel):
-    model_config = _CAMEL
-
-    character_belief: str
-    actual_truth: str
-    source_event_id: str
-    confidence: float
 
 
-class EpistemicStateResponse(BaseModel):
-    model_config = _CAMEL
-
-    character_id: str
-    character_name: str
-    up_to_chapter: int
-    known_events: list[dict[str, Any]]
-    unknown_events: list[dict[str, Any]]
-    misbeliefs: list[MisbeliefItemSchema]
-    data_complete: bool
 
 
-class ClassifyVisibilityResponse(BaseModel):
-    """Result of retroactive visibility classification.
-
-    Temporary feature — may be replaced by a dedicated re-ingest pipeline.
-    """
-
-    model_config = _CAMEL
-
-    classified: int
-    skipped: int
-    total: int
 
 
 # ── Link Prediction / Inferred Relations (F-01) ───────────────────────────────
 
 
-class InferredRelationResponse(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    document_id: str
-    source_id: str
-    target_id: str
-    source_name: str
-    target_name: str
-    common_neighbor_count: int
-    adamic_adar_score: float
-    confidence: float
-    suggested_relation_type: str
-    reasoning: str
-    status: str
-    visible_from_chapter: int | None = None
-    confirmed_relation_id: str | None = None
-    created_at: float
 
 
-class InferredRelationsResponse(BaseModel):
-    model_config = _CAMEL
-
-    items: list[InferredRelationResponse] = []
-    total: int = 0
 
 
-class RunInferenceRequest(BaseModel):
-    model_config = _CAMEL
-
-    force_refresh: bool = False
 
 
-class ConfirmInferredRequest(BaseModel):
-    model_config = _CAMEL
-
-    # Optional override; when absent, the confirm endpoint promotes the
-    # InferredRelationType to its canonical RelationType (see
-    # domain.inferred_relations.promote_inferred_type).
-    relation_type: str | None = None
 
 
 # ── Voice Profile (F-04) ─────────────────────────────────────────────────────
 
 
-class ToneSegmentResponse(BaseModel):
-    model_config = _CAMEL
-
-    label: str
-    value: float
-
-
-class HistogramBucketResponse(BaseModel):
-    model_config = _CAMEL
-
-    bucket: str
-    value: int
-
-
-class VoiceProfileResponse(BaseModel):
-    model_config = _CAMEL
-
-    character_id: str
-    character_name: str
-    document_id: str
-    avg_sentence_length: float
-    question_ratio: float
-    exclamation_ratio: float
-    lexical_diversity: float
-    paragraphs_analyzed: int
-    tone_distribution: list[ToneSegmentResponse] = Field(default_factory=list)
-    sentence_length_histogram: list[HistogramBucketResponse] = Field(default_factory=list)
-    speech_style: str
-    distinctive_patterns: list[str]
-    tone: str
-    representative_quotes: list[str]
-    analyzed_at: datetime
 
 
 
-class EventSourcePassage(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    text: str
-    chapter_number: int | None = None
-    score: float
 
 
-class EventSourceResponse(BaseModel):
-    model_config = _CAMEL
 
-    event_id: str
-    passages: list[EventSourcePassage] = Field(default_factory=list)
+
+
+

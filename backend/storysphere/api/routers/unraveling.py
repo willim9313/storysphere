@@ -10,11 +10,9 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
 
 from storysphere.api.deps import (
     AnalysisCacheDep,
@@ -22,121 +20,20 @@ from storysphere.api.deps import (
     KGServiceDep,
     SymbolServiceDep,
 )
-from storysphere.domain.documents import ChapterRole
-from storysphere.domain.entities import EntityType
-from storysphere.domain.events import Event
+from storysphere.api.schemas.unraveling import (
+    ChapterDistribution,
+    EdgeData,
+    UnravelingManifest,
+)
+from storysphere.api.unraveling_manifest import (
+    EDGES,
+    build_nodes,
+    compute_chapter_distributions,
+)
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/books", tags=["unraveling"])
-
-# ── Static DAG edges ──────────────────────────────────────────────────────────
-
-_EDGES: list[tuple[str, str]] = [
-    # ── Source text ───────────────────────────────────────────────────────────
-    ("book_meta", "chapters"),
-    ("chapters", "paragraphs"),
-    # ── Ingest outputs (layer 1) ──────────────────────────────────────────────
-    ("chapters", "summaries"),
-    ("paragraphs", "keywords"),
-    ("paragraphs", "symbols"),
-    ("paragraphs", "kg_entity"),
-    ("paragraphs", "kg_concept"),
-    ("paragraphs", "kg_relation"),
-    ("paragraphs", "kg_event"),
-    # ── KG on-demand sub-nodes ────────────────────────────────────────────────
-    ("eep", "kg_temporal_relation"),
-    ("kg_event", "kg_temporal_relation"),
-    # ── Layer 2: analysis intermediates ──────────────────────────────────────
-    ("kg_entity", "cep"),
-    ("paragraphs", "cep"),
-    ("keywords", "cep"),
-    ("kg_event", "eep"),
-    ("kg_entity", "eep"),
-    ("paragraphs", "eep"),
-    ("kg_event", "teu"),
-    ("kg_concept", "teu"),
-    ("summaries", "teu"),
-    ("symbols", "sep"),
-    ("kg_entity", "sep"),
-    # ── Layer 3: derived results ──────────────────────────────────────────────
-    ("sep", "symbol_analysis_result"),
-    ("kg_entity", "symbol_analysis_result"),
-    ("kg_event", "symbol_analysis_result"),
-    ("cep", "character_analysis_result"),
-    ("eep", "causality_analysis"),
-    ("kg_event", "causality_analysis"),
-    ("eep", "impact_analysis"),
-    ("kg_event", "impact_analysis"),
-    ("teu", "tension_lines"),
-    ("summaries", "narrative_structure"),
-    ("kg_event", "narrative_structure"),
-    ("eep", "narrative_structure"),
-    ("summaries", "hero_journey_stage"),
-    ("eep", "temporal_analysis"),
-    ("kg_event", "temporal_analysis"),
-    # ── Layer 3: voice profile ────────────────────────────────────────────────
-    ("kg_entity", "voice_profile"),
-    ("paragraphs", "voice_profile"),
-    # ── Layer 4 ───────────────────────────────────────────────────────────────
-    ("tension_lines", "tension_theme"),
-    ("kg_temporal_relation", "chronological_rank"),
-]
-
-# ── Response schemas ──────────────────────────────────────────────────────────
-
-NodeStatus = Literal["complete", "partial", "empty"]
-
-
-class NodeData(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True, alias_generator=to_camel
-    )
-
-    node_id: str
-    layer: int
-    label: str
-    status: NodeStatus
-    counts: dict[str, int]
-    meta: dict[str, Any] = {}
-    parent_id: str | None = None
-
-
-class EdgeData(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True, alias_generator=to_camel
-    )
-
-    source: str
-    target: str
-
-
-class UnravelingManifest(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True, alias_generator=to_camel
-    )
-
-    book_id: str
-    nodes: list[NodeData]
-    edges: list[EdgeData]
-
-
-class ChapterDistribution(BaseModel):
-    """Per-chapter counts for chapter-aware nodes.
-
-    Only nodes whose underlying data is naturally indexed by chapter
-    appear in ``distributions``. Other nodes (book-level synthesis,
-    cache-keyed analyses, KG entities without chapter linkage) are omitted.
-    """
-
-    model_config = ConfigDict(
-        populate_by_name=True, alias_generator=to_camel
-    )
-
-    book_id: str
-    total_chapters: int
-    distributions: dict[str, list[int]]
-
 
 # ── Private helpers ───────────────────────────────────────────────────────────
 
@@ -157,349 +54,6 @@ async def _count_teu_keys(cache: Any, event_ids: list[str]) -> int:
         *[cache.count_keys(f"teu:{eid}") for eid in event_ids]
     )
     return sum(results)
-
-
-def _status(complete: bool, partial: bool) -> NodeStatus:
-    if complete:
-        return "complete"
-    if partial:
-        return "partial"
-    return "empty"
-
-
-def _build_nodes(
-    *,
-    doc: Any,
-    entities: list[Any],
-    events: list[Event],
-    temporal_rels: list[Any],
-    imagery: list[Any],
-    relation_count_global: int,
-    cep_count: int,
-    eep_count: int,
-    temporal_analysis_present: bool,
-    narrative_present: bool,
-    hero_journey_present: bool,
-    tension_lines_present: bool,
-    tension_theme_present: bool,
-    teu_count: int,
-    sep_count: int,
-    symbol_analysis_count: int,
-    voice_profile_count: int,
-) -> list[NodeData]:
-    nodes: list[NodeData] = []
-
-    # ── Layer 0: 原生文本層 ────────────────────────────────────────────────────
-
-    nodes.append(NodeData(
-        node_id="book_meta",
-        layer=0,
-        label="Book Meta",
-        status="complete",
-        counts={},
-        meta={
-            "title": doc.title or "",
-            "author": doc.author or "",
-            "language": doc.language or "",
-        },
-    ))
-
-    # Everything on this page counts body chapters only. The pipeline never
-    # summarises, indexes or extracts from front/back matter, so including it
-    # would leave downstream nodes permanently short of their own total and
-    # reading as "still running" long after ingestion finished.
-    body_chapters = [ch for ch in doc.chapters if ch.role == ChapterRole.body]
-    chapter_count = len(body_chapters)
-    nodes.append(NodeData(
-        node_id="chapters",
-        layer=0,
-        label="Chapters",
-        status=_status(complete=chapter_count > 0, partial=False),
-        counts={"chapters": chapter_count},
-    ))
-
-    all_paras = [p for ch in body_chapters for p in ch.paragraphs]
-    para_count = len(all_paras)
-    nodes.append(NodeData(
-        node_id="paragraphs",
-        layer=0,
-        label="Chunks",
-        status=_status(complete=para_count > 0, partial=False),
-        counts={"paragraphs": para_count},
-    ))
-
-    # ── Layer 1: 知識抽取層 ────────────────────────────────────────────────────
-
-    chapters_with_summary = sum(1 for ch in body_chapters if ch.summary)
-    nodes.append(NodeData(
-        node_id="summaries",
-        layer=1,
-        label="Summaries",
-        status=_status(
-            complete=chapter_count > 0 and chapters_with_summary == chapter_count,
-            partial=chapter_count > 0 and 0 < chapters_with_summary < chapter_count,
-        ),
-        counts={"generated": chapters_with_summary, "total": chapter_count},
-    ))
-
-    chapters_with_keywords = sum(1 for ch in body_chapters if ch.keywords)
-    nodes.append(NodeData(
-        node_id="keywords",
-        layer=1,
-        label="Keywords",
-        status=_status(
-            complete=chapter_count > 0 and chapters_with_keywords == chapter_count,
-            partial=chapter_count > 0 and 0 < chapters_with_keywords < chapter_count,
-        ),
-        counts={"generated": chapters_with_keywords, "total": chapter_count},
-    ))
-
-    imagery_count = len(imagery)
-    occurrence_count = sum(img.frequency for img in imagery)
-    nodes.append(NodeData(
-        node_id="symbols",
-        layer=1,
-        label="Symbols",
-        status=_status(complete=imagery_count > 0, partial=False),
-        counts={"imagery_entities": imagery_count, "symbol_occurrences": occurrence_count},
-    ))
-
-    # ── Layer 1: KG 子節點（compound group = kg_features）────────────────────
-
-    # Partition entities: concepts vs non-concepts
-    concept_entities = [e for e in entities if e.entity_type == EntityType.CONCEPT]
-    non_concept_entities = [e for e in entities if e.entity_type != EntityType.CONCEPT]
-
-    by_type: dict[str, int] = {t.value: 0 for t in EntityType if t != EntityType.CONCEPT}
-    for e in non_concept_entities:
-        by_type[e.entity_type.value] = by_type.get(e.entity_type.value, 0) + 1
-
-    entity_count = len(non_concept_entities)
-    nodes.append(NodeData(
-        node_id="kg_entity",
-        layer=1,
-        label="Entities",
-        status=_status(complete=entity_count > 0, partial=False),
-        counts={"total": entity_count, **by_type},
-        parent_id="kg_features",
-    ))
-
-    concept_ner = sum(1 for e in concept_entities if e.extraction_method == "ner")
-    concept_inferred = sum(1 for e in concept_entities if e.extraction_method == "inferred")
-    nodes.append(NodeData(
-        node_id="kg_concept",
-        layer=1,
-        label="Concepts",
-        status=_status(complete=len(concept_entities) > 0, partial=False),
-        counts={"ner": concept_ner, "inferred": concept_inferred, "total": len(concept_entities)},
-        parent_id="kg_features",
-    ))
-
-    nodes.append(NodeData(
-        node_id="kg_relation",
-        layer=1,
-        label="Relations",
-        status=_status(complete=relation_count_global > 0, partial=False),
-        counts={"relations": relation_count_global},
-        meta={"scope": "global"},
-        parent_id="kg_features",
-    ))
-
-    event_count = len(events)
-    events_classified = sum(
-        1 for ev in events
-        if ev.narrative_weight and ev.narrative_weight != "unclassified"
-    )
-    nodes.append(NodeData(
-        node_id="kg_event",
-        layer=1,
-        label="Events",
-        status=_status(
-            complete=event_count > 0 and events_classified == event_count,
-            partial=event_count > 0 and events_classified < event_count,
-        ),
-        counts={"events": event_count, "events_classified": events_classified},
-        parent_id="kg_features",
-    ))
-
-    tr_count = len(temporal_rels)
-    events_ranked = sum(1 for ev in events if ev.chronological_rank is not None)
-    nodes.append(NodeData(
-        node_id="kg_temporal_relation",
-        layer=1,
-        label="Temporal\nRelations",
-        status=_status(
-            complete=tr_count > 0 and events_ranked == event_count and event_count > 0,
-            partial=tr_count > 0,
-        ),
-        counts={"temporal_relations": tr_count, "events_ranked": events_ranked},
-        parent_id="kg_features",
-    ))
-
-    # ── Layer 2: 分析中間層 ────────────────────────────────────────────────────
-
-    total_chars = by_type.get(EntityType.CHARACTER.value, 0)
-    nodes.append(NodeData(
-        node_id="cep",
-        layer=2,
-        label="CEP",
-        status=_status(
-            complete=cep_count > 0 and total_chars > 0 and cep_count >= total_chars,
-            partial=cep_count > 0 and cep_count < total_chars,
-        ),
-        counts={"analyzed": cep_count, "total_characters": total_chars},
-    ))
-
-    nodes.append(NodeData(
-        node_id="eep",
-        layer=2,
-        label="EEP",
-        status=_status(
-            complete=eep_count > 0 and event_count > 0 and eep_count >= event_count,
-            partial=eep_count > 0 and eep_count < event_count,
-        ),
-        counts={"analyzed": eep_count, "total_events": event_count},
-    ))
-
-    nodes.append(NodeData(
-        node_id="teu",
-        layer=2,
-        label="TEU",
-        status=_status(
-            complete=teu_count > 0 and event_count > 0 and teu_count >= event_count,
-            partial=teu_count > 0 and teu_count < event_count,
-        ),
-        counts={"analyzed": teu_count, "total_events": event_count},
-    ))
-
-    nodes.append(NodeData(
-        node_id="sep",
-        layer=2,
-        label="SEP",
-        status=_status(
-            complete=sep_count > 0 and imagery_count > 0 and sep_count >= imagery_count,
-            partial=sep_count > 0 and sep_count < imagery_count,
-        ),
-        counts={"analyzed": sep_count, "total_imagery": imagery_count},
-    ))
-
-    # ── Layer 3: 合成結果層 ────────────────────────────────────────────────────
-
-    nodes.append(NodeData(
-        node_id="character_analysis_result",
-        layer=3,
-        label="Character\nAnalysis",
-        status=_status(
-            complete=cep_count > 0 and total_chars > 0 and cep_count >= total_chars,
-            partial=cep_count > 0 and cep_count < total_chars,
-        ),
-        counts={"analyzed": cep_count, "total_characters": total_chars},
-    ))
-
-    # Voice profiles are built on-demand per character; no batch endpoint exists yet,
-    # so "complete" is never set — partial once any profile exists.
-    nodes.append(NodeData(
-        node_id="voice_profile",
-        layer=3,
-        label="Voice\nProfile",
-        status=_status(
-            complete=False,
-            partial=voice_profile_count > 0,
-        ),
-        counts={"analyzed": voice_profile_count, "total_characters": total_chars},
-    ))
-
-    nodes.append(NodeData(
-        node_id="symbol_analysis_result",
-        layer=3,
-        label="Symbol\nAnalysis",
-        status=_status(
-            complete=(
-                symbol_analysis_count > 0
-                and imagery_count > 0
-                and symbol_analysis_count >= imagery_count
-            ),
-            partial=symbol_analysis_count > 0 and symbol_analysis_count < imagery_count,
-        ),
-        counts={"analyzed": symbol_analysis_count, "total_imagery": imagery_count},
-    ))
-
-    nodes.append(NodeData(
-        node_id="causality_analysis",
-        layer=3,
-        label="Causality\nAnalysis",
-        status=_status(
-            complete=eep_count > 0 and event_count > 0 and eep_count >= event_count,
-            partial=eep_count > 0 and eep_count < event_count,
-        ),
-        counts={"analyzed": eep_count, "total_events": event_count},
-    ))
-
-    nodes.append(NodeData(
-        node_id="impact_analysis",
-        layer=3,
-        label="Impact\nAnalysis",
-        status=_status(
-            complete=eep_count > 0 and event_count > 0 and eep_count >= event_count,
-            partial=eep_count > 0 and eep_count < event_count,
-        ),
-        counts={"analyzed": eep_count, "total_events": event_count},
-    ))
-
-    nodes.append(NodeData(
-        node_id="tension_lines",
-        layer=3,
-        label="Tension Lines",
-        status=_status(complete=tension_lines_present, partial=False),
-        counts={"built": int(tension_lines_present)},
-    ))
-
-    nodes.append(NodeData(
-        node_id="narrative_structure",
-        layer=3,
-        label="Narrative\nStructure",
-        status=_status(complete=narrative_present, partial=False),
-        counts={"has_ks_classification": int(narrative_present)},
-    ))
-
-    nodes.append(NodeData(
-        node_id="hero_journey_stage",
-        layer=3,
-        label="Hero Journey",
-        status=_status(complete=hero_journey_present, partial=False),
-        counts={"built": int(hero_journey_present)},
-    ))
-
-    nodes.append(NodeData(
-        node_id="temporal_analysis",
-        layer=3,
-        label="Temporal\nAnalysis",
-        status=_status(complete=temporal_analysis_present, partial=False),
-        counts={"built": int(temporal_analysis_present)},
-    ))
-
-    # ── Layer 4: 書籍層面合成 ─────────────────────────────────────────────────
-
-    nodes.append(NodeData(
-        node_id="tension_theme",
-        layer=4,
-        label="Tension Theme",
-        status=_status(complete=tension_theme_present, partial=False),
-        counts={"built": int(tension_theme_present)},
-    ))
-
-    nodes.append(NodeData(
-        node_id="chronological_rank",
-        layer=4,
-        label="Chronological\nRank",
-        status=_status(
-            complete=event_count > 0 and events_ranked == event_count,
-            partial=events_ranked > 0 and events_ranked < event_count,
-        ),
-        counts={"events_ranked": events_ranked, "total_events": event_count},
-    ))
-
-    return nodes
 
 
 # ── Endpoint ──────────────────────────────────────────────────────────────────
@@ -574,7 +128,7 @@ async def get_unraveling(
         cache.count_keys(f"voice_profile:{book_id}:%"),
     )
 
-    nodes = _build_nodes(
+    nodes = build_nodes(
         doc=doc,
         entities=entities,
         events=events,
@@ -595,7 +149,7 @@ async def get_unraveling(
     )
 
     edges = [
-        EdgeData(source=src, target=tgt) for src, tgt in _EDGES
+        EdgeData(source=src, target=tgt) for src, tgt in EDGES
     ]
 
     return UnravelingManifest(
@@ -606,55 +160,6 @@ async def get_unraveling(
 
 
 # ── Chapter distribution endpoint ─────────────────────────────────────────────
-
-
-def _compute_chapter_distributions(
-    *,
-    doc: Any,
-    events: list[Event],
-    imagery: list[Any],
-) -> dict[str, list[int]]:
-    """Build per-chapter counts for chapter-aware nodes.
-
-    Only body chapters are emitted — front/back matter carries no story
-    chapter number, so it has no slot on a chapter axis. Output lists are
-    ordered by chapter number and their length is the book's body chapter
-    count; positions are looked up by number rather than assumed.
-    """
-    chapters = sorted(
-        (c for c in doc.chapters if c.role == ChapterRole.body),
-        key=lambda c: c.number,
-    )
-    n = len(chapters)
-    out: dict[str, list[int]] = {}
-
-    if n == 0:
-        return out
-
-    # paragraphs / summaries / keywords — derived directly from chapters
-    out["paragraphs"] = [len(ch.paragraphs) for ch in chapters]
-    out["summaries"] = [1 if ch.summary else 0 for ch in chapters]
-    out["keywords"] = [1 if ch.keywords else 0 for ch in chapters]
-
-    # kg_event — count of events per chapter
-    event_dist = [0] * n
-    chapter_index_by_number = {ch.number: i for i, ch in enumerate(chapters)}
-    for ev in events:
-        idx = chapter_index_by_number.get(ev.chapter)
-        if idx is not None:
-            event_dist[idx] += 1
-    out["kg_event"] = event_dist
-
-    # symbols — sum chapter_distribution across all imagery entities
-    sym_dist = [0] * n
-    for img in imagery:
-        for ch_num, count in (img.chapter_distribution or {}).items():
-            idx = chapter_index_by_number.get(ch_num)
-            if idx is not None:
-                sym_dist[idx] += count
-    out["symbols"] = sym_dist
-
-    return out
 
 
 @router.get(
@@ -686,7 +191,7 @@ async def get_chapter_distribution(
             detail=f"Book '{book_id}' not found.",
         )
 
-    distributions = _compute_chapter_distributions(
+    distributions = compute_chapter_distributions(
         doc=doc, events=events, imagery=imagery,
     )
 

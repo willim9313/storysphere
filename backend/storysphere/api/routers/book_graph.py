@@ -24,7 +24,7 @@ from storysphere.api.deps import (
     KGServiceDep,
     LinkPredictionServiceDep,
 )
-from storysphere.api.schemas.books import (
+from storysphere.api.schemas.book_graph import (
     ClassifyVisibilityResponse,
     ConfirmInferredRequest,
     EpistemicStateResponse,
@@ -35,6 +35,8 @@ from storysphere.api.schemas.books import (
     InferredRelationsResponse,
     MisbeliefItemSchema,
     RunInferenceRequest,
+)
+from storysphere.api.schemas.books import (
     TaskIdResponse,
 )
 from storysphere.api.store import task_store

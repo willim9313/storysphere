@@ -26,7 +26,7 @@ from fastapi import (
 from storysphere.api import task_registry
 from storysphere.api.deps import DocServiceDep
 from storysphere.api.routers._book_shared import cleanup_ingestion_checkpoint
-from storysphere.api.schemas.books import (
+from storysphere.api.schemas.book_ingestion import (
     DetectLanguageResponse,
     ParseTocRequest,
     ParseTocResponse,
@@ -35,8 +35,10 @@ from storysphere.api.schemas.books import (
     ReviewParagraphResponse,
     ReviewSubmitRequest,
     SuggestRolesResponse,
-    TocEntry,
     UploadResponse,
+)
+from storysphere.api.schemas.books import (
+    TocEntry,
 )
 from storysphere.api.store import task_store
 from storysphere.core.language_detection import detect_language

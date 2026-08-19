@@ -15,11 +15,13 @@ from storysphere.api.deps import (
     DocServiceDep,
     KGServiceDep,
 )
-from storysphere.api.schemas.books import (
-    ChapterResponse,
+from storysphere.api.schemas.book_reader import (
     ChunkResponse,
     EntityChunkItem,
     EntityChunksResponse,
+)
+from storysphere.api.schemas.books import (
+    ChapterResponse,
     Segment,
     SegmentEntity,
     TopEntity,
