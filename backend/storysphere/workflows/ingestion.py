@@ -62,13 +62,7 @@ class MurmurEmitter(Protocol):
         raw_content: str | None = None,
     ) -> None: ...
 
-try:
-    from langfuse import observe as _lf_observe
-except ImportError:
-    def _lf_observe(**_kw):  # type: ignore[misc]
-        def _d(fn): return fn
-        return _d
-
+from storysphere.core.tracing import observe as _lf_observe
 
 @dataclass(frozen=True)
 class StepSpec:

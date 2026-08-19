@@ -15,18 +15,12 @@ from typing import Any
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from storysphere.core.error_handling import llm_text
+from storysphere.core.language_detection import localize_prompt
 from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.core.utils.data_sanitizer import DataSanitizer
 from storysphere.core.utils.output_extractor import extract_json_from_text
-
-try:
-    from langfuse import observe as _lf_observe
-except ImportError:
-    def _lf_observe(**_kw):  # type: ignore[misc]
-        def _d(fn): return fn
-        return _d
-
 from storysphere.services.analysis_models import (
     ArchetypeResult,
     ArcSegment,
@@ -285,14 +279,6 @@ class AnalysisService:
             self._llm = get_llm_client().get_with_local_fallback(temperature=t)
         return self._llm
 
-    @staticmethod
-    def _localize_prompt(prompt: str, language: str) -> str:
-        """Append a language instruction to a system prompt."""
-        from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
-
-        lang_name = get_language_display_name(language)
-        return prompt + f"\nRespond in {lang_name}."
-
     # ── Public: generate_insight (Phase 3) ─────────────────────────────────────
 
     @_lf_observe(name="analysis.insight", as_type="chain", capture_input=False, capture_output=False)
@@ -303,7 +289,7 @@ class AnalysisService:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
-        prompt = self._localize_prompt(_INSIGHT_SYSTEM_PROMPT, language)
+        prompt = localize_prompt(_INSIGHT_SYSTEM_PROMPT, language)
         messages = [
             SystemMessage(content=prompt),
             HumanMessage(
@@ -539,7 +525,7 @@ class AnalysisService:
         context = "\n\n".join(context_parts) if context_parts else "(No context available)"
 
         llm = self._get_llm()
-        prompt = self._localize_prompt(_CEP_SYSTEM_PROMPT, language)
+        prompt = localize_prompt(_CEP_SYSTEM_PROMPT, language)
         messages = [
             SystemMessage(content=prompt),
             HumanMessage(content=f"Character: {entity_name}\n\n{context}"),
@@ -579,7 +565,7 @@ class AnalysisService:
         from storysphere.config.archetypes import get_archetype_summary  # noqa: PLC0415
 
         archetype_list = get_archetype_summary(framework, language)
-        system_prompt = self._localize_prompt(
+        system_prompt = localize_prompt(
             _ARCHETYPE_SYSTEM_PROMPT.format(
                 framework=framework, archetype_list=archetype_list
             ),
@@ -629,7 +615,7 @@ class AnalysisService:
         cep_text = cep.model_dump_json(indent=2)
 
         llm = self._get_llm()
-        prompt = self._localize_prompt(_ARC_SYSTEM_PROMPT, language)
+        prompt = localize_prompt(_ARC_SYSTEM_PROMPT, language)
         messages = [
             SystemMessage(content=prompt),
             HumanMessage(content=f"Character Evidence Profile:\n{cep_text}"),
@@ -669,7 +655,7 @@ class AnalysisService:
         cep_text = cep.model_dump_json(indent=2)
 
         llm = self._get_llm()
-        prompt = self._localize_prompt(_PROFILE_SYSTEM_PROMPT, language)
+        prompt = localize_prompt(_PROFILE_SYSTEM_PROMPT, language)
         messages = [
             SystemMessage(content=prompt),
             HumanMessage(content=f"Character: {entity_name}\n\nEvidence:\n{cep_text}"),
@@ -890,7 +876,7 @@ class AnalysisService:
         )
 
         llm = self._get_llm()
-        prompt = self._localize_prompt(_EEP_SYSTEM_PROMPT, language)
+        prompt = localize_prompt(_EEP_SYSTEM_PROMPT, language)
         messages = [
             SystemMessage(content=prompt),
             HumanMessage(content=human_content),
@@ -983,7 +969,7 @@ class AnalysisService:
         )
 
         llm = self._get_llm()
-        prompt = self._localize_prompt(_CAUSALITY_SYSTEM_PROMPT, language)
+        prompt = localize_prompt(_CAUSALITY_SYSTEM_PROMPT, language)
         messages = [
             SystemMessage(content=prompt),
             HumanMessage(content=human_content),
@@ -1048,7 +1034,7 @@ class AnalysisService:
         )
 
         llm = self._get_llm()
-        prompt = self._localize_prompt(_IMPACT_SYSTEM_PROMPT, language)
+        prompt = localize_prompt(_IMPACT_SYSTEM_PROMPT, language)
         messages = [
             SystemMessage(content=prompt),
             HumanMessage(content=human_content),
@@ -1115,7 +1101,7 @@ class AnalysisService:
         )
 
         llm = self._get_llm()
-        prompt = self._localize_prompt(_EVENT_SUMMARY_SYSTEM_PROMPT, language)
+        prompt = localize_prompt(_EVENT_SUMMARY_SYSTEM_PROMPT, language)
         messages = [
             SystemMessage(content=prompt),
             HumanMessage(content=human_content),

@@ -24,6 +24,7 @@ from tenacity import (
 )
 
 from storysphere.core.error_handling import LLMResponseBlocked, llm_text
+from storysphere.core.language_detection import localize_prompt
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.symbol_analysis import (
@@ -291,12 +292,6 @@ class SymbolAnalysisService:
             self._llm = get_llm_client().get_with_local_fallback(temperature=0.3)
         return self._llm
 
-    @staticmethod
-    def _localize_prompt(prompt: str, language: str) -> str:
-        from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
-
-        return prompt + f"\nRespond in {get_language_display_name(language)}."
-
     @retry(
         retry=retry_if_exception_type((ValueError, KeyError)),
         stop=stop_after_attempt(3),
@@ -307,7 +302,7 @@ class SymbolAnalysisService:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
-        prompt = self._localize_prompt(_SYMBOL_SYSTEM_PROMPT, language)
+        prompt = localize_prompt(_SYMBOL_SYSTEM_PROMPT, language)
         user_content = _format_sep_for_prompt(sep)
         messages = [
             SystemMessage(content=prompt),

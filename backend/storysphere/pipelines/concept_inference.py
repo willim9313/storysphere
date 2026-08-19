@@ -23,6 +23,7 @@ from typing import TYPE_CHECKING
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from storysphere.core.error_handling import llm_text
+from storysphere.core.language_detection import localize_prompt
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import Entity, EntityType
@@ -189,7 +190,7 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
         if len(combined) > 12_000:
             combined = combined[:12_000] + "\n\n[passages truncated]"
 
-        system_prompt = self._localize_prompt(_SYSTEM_PROMPT, language)
+        system_prompt = localize_prompt(_SYSTEM_PROMPT, language)
         llm = self._get_llm()
         messages = [
             SystemMessage(content=system_prompt),
@@ -235,9 +236,3 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
         )
         return entities
 
-    @staticmethod
-    def _localize_prompt(prompt: str, language: str) -> str:
-        from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
-
-        lang_name = get_language_display_name(language)
-        return prompt + f"\nRespond in {lang_name}."

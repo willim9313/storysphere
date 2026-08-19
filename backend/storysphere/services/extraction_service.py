@@ -25,13 +25,7 @@ from storysphere.domain.relations import Relation, RelationType
 
 logger = logging.getLogger(__name__)
 
-try:
-    from langfuse import observe as _lf_observe
-except ImportError:
-    def _lf_observe(**_kw):  # type: ignore[misc]
-        def _d(fn): return fn
-        return _d
-
+from storysphere.core.tracing import observe as _lf_observe
 
 # -- Pydantic schemas for entity extraction LLM output -----------------------
 

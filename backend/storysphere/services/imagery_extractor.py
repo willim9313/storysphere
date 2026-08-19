@@ -23,17 +23,13 @@ from tenacity import (
 )
 
 from storysphere.core.error_handling import llm_text
+from storysphere.core.language_detection import localize_prompt
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolCluster, SymbolOccurrence
 
 logger = logging.getLogger(__name__)
 
-try:
-    from langfuse import observe as _lf_observe
-except ImportError:
-    def _lf_observe(**_kw):  # type: ignore[misc]
-        def _d(fn): return fn
-        return _d
+from storysphere.core.tracing import observe as _lf_observe
 
 _IMAGERY_EXTRACTION_SYSTEM_PROMPT = """\
 Identify concrete imagery elements with symbolic potential from the given passage.
@@ -281,14 +277,6 @@ class ImageryExtractor:
 
     # ── private ────────────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _localize_prompt(prompt: str, language: str) -> str:
-        """Append a language instruction to a system prompt."""
-        from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
-
-        lang_name = get_language_display_name(language)
-        return prompt + f"\nRespond in {lang_name}."
-
     @retry(
         retry=retry_if_exception_type(
             (json.JSONDecodeError, ValueError, KeyError, ConnectionError, TimeoutError)
@@ -309,7 +297,7 @@ class ImageryExtractor:
         from storysphere.core.token_callback import set_llm_service_context  # noqa: PLC0415
 
         _lf_update_span(metadata={"chapter": chapter_number})
-        prompt = self._localize_prompt(
+        prompt = localize_prompt(
             _IMAGERY_EXTRACTION_SYSTEM_PROMPT.format(max_items=_MAX_ITEMS_PER_PARAGRAPH),
             language,
         )

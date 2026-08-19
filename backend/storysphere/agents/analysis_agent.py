@@ -10,14 +10,7 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
-try:
-    from langfuse import observe as _langfuse_observe
-except ImportError:  # pragma: no cover
-    def _langfuse_observe(**_kw):  # type: ignore[misc]
-        def noop(fn):
-            return fn
-        return noop
-
+from storysphere.core.tracing import observe as _langfuse_observe
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.domain.symbol_analysis import SymbolInterpretation
 from storysphere.services.analysis_cache import AnalysisCache
