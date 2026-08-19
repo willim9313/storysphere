@@ -10,17 +10,22 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, Literal
+from typing import Any
 
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, ConfigDict
-from pydantic.alias_generators import to_camel
 
 from storysphere.api.deps import (
     AnalysisCacheDep,
     DocServiceDep,
     KGServiceDep,
     SymbolServiceDep,
+)
+from storysphere.api.schemas.unraveling import (
+    ChapterDistribution,
+    EdgeData,
+    NodeData,
+    NodeStatus,
+    UnravelingManifest,
 )
 from storysphere.domain.documents import ChapterRole
 from storysphere.domain.entities import EntityType
@@ -82,61 +87,6 @@ _EDGES: list[tuple[str, str]] = [
     ("tension_lines", "tension_theme"),
     ("kg_temporal_relation", "chronological_rank"),
 ]
-
-# ── Response schemas ──────────────────────────────────────────────────────────
-
-NodeStatus = Literal["complete", "partial", "empty"]
-
-
-class NodeData(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True, alias_generator=to_camel
-    )
-
-    node_id: str
-    layer: int
-    label: str
-    status: NodeStatus
-    counts: dict[str, int]
-    meta: dict[str, Any] = {}
-    parent_id: str | None = None
-
-
-class EdgeData(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True, alias_generator=to_camel
-    )
-
-    source: str
-    target: str
-
-
-class UnravelingManifest(BaseModel):
-    model_config = ConfigDict(
-        populate_by_name=True, alias_generator=to_camel
-    )
-
-    book_id: str
-    nodes: list[NodeData]
-    edges: list[EdgeData]
-
-
-class ChapterDistribution(BaseModel):
-    """Per-chapter counts for chapter-aware nodes.
-
-    Only nodes whose underlying data is naturally indexed by chapter
-    appear in ``distributions``. Other nodes (book-level synthesis,
-    cache-keyed analyses, KG entities without chapter linkage) are omitted.
-    """
-
-    model_config = ConfigDict(
-        populate_by_name=True, alias_generator=to_camel
-    )
-
-    book_id: str
-    total_chapters: int
-    distributions: dict[str, list[int]]
-
 
 # ── Private helpers ───────────────────────────────────────────────────────────
 
