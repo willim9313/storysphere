@@ -851,7 +851,7 @@ class TensionService:
             SystemMessage(content=system_prompt),
             HumanMessage(content=human_content),
         ]
-        set_llm_service_context("analysis")
+        set_llm_service_context("analysis", book_id=document_id)
         response = await llm.ainvoke(messages)
         raw = llm_text(response)
 
@@ -970,7 +970,7 @@ class TensionService:
             SystemMessage(content=system_prompt),
             HumanMessage(content=human_content),
         ]
-        set_llm_service_context("analysis")
+        set_llm_service_context("analysis", book_id=document_id)
         response = await llm.ainvoke(messages)
         raw = llm_text(response)
 
@@ -1046,7 +1046,7 @@ class TensionService:
             SystemMessage(content=system_prompt),
             HumanMessage(content=human_content),
         ]
-        set_llm_service_context("analysis")
+        set_llm_service_context("analysis", book_id=document_id)
         response = await llm.ainvoke(messages)
         raw = llm_text(response)
 

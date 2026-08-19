@@ -176,3 +176,31 @@ class TestAnalysisAgentAttribution:
         await agent.analyze_narrative("doc-narrative-attr")
 
         assert seen == [("analysis", "doc-narrative-attr")]
+
+
+class TestTensionAttribution:
+    """Every tension LLM call already holds the document id it belongs to."""
+
+    @pytest.mark.asyncio
+    async def test_grouping_call_carries_the_document_id(self):
+        from storysphere.services.tension_service import TensionService
+
+        seen: list[tuple[str, str | None]] = []
+
+        class _LLM:
+            async def ainvoke(self, _messages):
+                seen.append(get_llm_service_context())
+                raise ValueError("stop here — the context is already set")
+
+        service = TensionService(cache=AsyncMock())
+        service._get_llm = lambda: _LLM()
+
+        with pytest.raises(ValueError):
+            await service._call_grouping_llm(
+                teus=[], document_id="doc-tension-group", language="en"
+            )
+
+        # The call is wrapped in a retry, so what matters is that every attempt
+        # was attributed — not how many there were.
+        assert seen  # the LLM was actually reached
+        assert set(seen) == {("analysis", "doc-tension-group")}
