@@ -24,18 +24,20 @@ from storysphere.api.deps import (
     VoiceProfilingServiceDep,
 )
 from storysphere.api.routers._book_shared import now_iso
-from storysphere.api.schemas.books import (
-    AnalysisItem,
-    AnalysisListResponse,
-    AnalyzeTriggerRequest,
+from storysphere.api.schemas.book_entity_analysis import (
     ArchetypeDetailResponse,
     ArcSegmentResponse,
     BatchAnalysisRequest,
     CepResponse,
     CharacterAnalysisDetailResponse,
+    VoiceProfileResponse,
+)
+from storysphere.api.schemas.books import (
+    AnalysisItem,
+    AnalysisListResponse,
+    AnalyzeTriggerRequest,
     TaskIdResponse,
     UnanalyzedEntity,
-    VoiceProfileResponse,
 )
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
