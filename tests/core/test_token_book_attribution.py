@@ -17,7 +17,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from storysphere.agents.analysis_agent import AnalysisAgent
-from storysphere.core.token_callback import get_llm_service_context
+from storysphere.core.token_callback import (
+    get_llm_service_context,
+    set_llm_book_context,
+)
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 from storysphere.pipelines.feature_extraction.pipeline import FeatureExtractionResult
 from storysphere.pipelines.knowledge_graph.pipeline import KGExtractionResult
@@ -176,3 +179,97 @@ class TestAnalysisAgentAttribution:
         await agent.analyze_narrative("doc-narrative-attr")
 
         assert seen == [("analysis", "doc-narrative-attr")]
+
+
+class TestTensionAttribution:
+    """Every tension LLM call already holds the document id it belongs to."""
+
+    @pytest.mark.asyncio
+    async def test_grouping_call_carries_the_document_id(self):
+        from storysphere.services.tension_service import TensionService
+
+        seen: list[tuple[str, str | None]] = []
+
+        class _LLM:
+            async def ainvoke(self, _messages):
+                seen.append(get_llm_service_context())
+                raise ValueError("stop here — the context is already set")
+
+        service = TensionService(cache=AsyncMock())
+        service._get_llm = lambda: _LLM()
+
+        with pytest.raises(ValueError):
+            await service._call_grouping_llm(
+                teus=[], document_id="doc-tension-group", language="en"
+            )
+
+        # The call is wrapped in a retry, so what matters is that every attempt
+        # was attributed — not how many there were.
+        assert seen  # the LLM was actually reached
+        assert set(seen) == {("analysis", "doc-tension-group")}
+
+
+class TestChatAttribution:
+    """Chat is billed to the book the page context names — and only to it."""
+
+    def _agent(self):
+        from storysphere.agents.chat_agent import ChatAgent
+
+        agent = ChatAgent.__new__(ChatAgent)  # no graph, no services needed
+        agent._build_messages = lambda *_a, **_kw: []
+        return agent
+
+    def _state(self, book_id):
+        return SimpleNamespace(book_id=book_id)
+
+    @pytest.mark.asyncio
+    async def test_book_scoped_chat_is_attributed(self):
+        seen: list[tuple[str, str | None]] = []
+        agent = self._agent()
+
+        class _Graph:
+            async def ainvoke(self, _payload):
+                seen.append(get_llm_service_context())
+                return {"messages": []}
+
+        agent._graph = _Graph()
+        await agent._agent_invoke("hi", state=self._state("doc-chat-attr"))
+
+        assert seen == [("chat", "doc-chat-attr")]
+
+    @pytest.mark.asyncio
+    async def test_leaving_a_book_clears_the_attribution(self):
+        """One WebSocket connection is one context: the old book must not stick.
+
+        The page context is re-sent per message, so a session that moves from a
+        book page to a global one would otherwise keep billing the book it left.
+        """
+        seen: list[tuple[str, str | None]] = []
+        agent = self._agent()
+
+        class _Graph:
+            async def ainvoke(self, _payload):
+                seen.append(get_llm_service_context())
+                return {"messages": []}
+
+        agent._graph = _Graph()
+        await agent._agent_invoke("hi", state=self._state("doc-chat-attr"))
+        await agent._agent_invoke("hi again", state=self._state(None))
+
+        assert seen == [("chat", "doc-chat-attr"), ("chat", None)]
+
+    @pytest.mark.asyncio
+    async def test_stateless_invoke_is_unattributed(self):
+        seen: list[tuple[str, str | None]] = []
+        agent = self._agent()
+
+        class _Graph:
+            async def ainvoke(self, _payload):
+                seen.append(get_llm_service_context())
+                return {"messages": []}
+
+        agent._graph = _Graph()
+        set_llm_book_context("doc-left-over")
+        await agent._agent_invoke("hi")
+
+        assert seen == [("chat", None)]

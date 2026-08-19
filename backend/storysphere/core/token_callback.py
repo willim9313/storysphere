@@ -63,6 +63,22 @@ def set_llm_service_context(service: str, book_id: str | None = None) -> None:
         _current_book_id.set(book_id)
 
 
+def set_llm_book_context(book_id: str | None) -> None:
+    """Attribute the current LLM calls to *book_id*, or to no book at all.
+
+    Unlike the ``book_id`` argument of :func:`set_llm_service_context`, which
+    leaves an already-set value alone so entry points can set it once and let
+    the services underneath inherit it, this always writes — ``None``
+    included.
+
+    Chat is why the difference matters: one WebSocket connection is one
+    context, and the page context is re-sent with every message. A session
+    that moves from a book page to a global one has to be able to stop
+    billing the book it left.
+    """
+    _current_book_id.set(book_id)
+
+
 def get_llm_service_context() -> tuple[str, str | None]:
     """Return ``(service, book_id)`` from the current context."""
     return _current_service.get(), _current_book_id.get()
