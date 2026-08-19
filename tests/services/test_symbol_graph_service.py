@@ -11,7 +11,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
-
 from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
 from storysphere.services.symbol_graph_service import SymbolGraphService
 

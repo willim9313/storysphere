@@ -10,7 +10,6 @@ decides what a reader is actually shown.
 from __future__ import annotations
 
 import pytest
-
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.inferred_relations import InferredRelationType
 from storysphere.domain.relations import RelationType
