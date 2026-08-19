@@ -28,7 +28,10 @@ from storysphere.agents.chat_agent_base import (
 )
 from storysphere.agents.pattern_recognizer import QueryPatternRecognizer
 from storysphere.agents.states import ChatState
-from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.token_callback import (
+    set_llm_book_context,
+    set_llm_service_context,
+)
 from storysphere.tools.tool_registry import get_chat_tools
 
 logger = logging.getLogger(__name__)
@@ -299,6 +302,7 @@ class ChatAgent:
 
             messages = self._build_messages(query, language, state)
             set_llm_service_context("chat")
+            set_llm_book_context(state.book_id)
             full_response = ""
             # Captured from the "values" stream so the tool exchange persists.
             output_messages: list | None = None
@@ -375,6 +379,7 @@ class ChatAgent:
         _metrics = get_metrics()
         messages = self._build_messages(query, language, state)
         set_llm_service_context("chat")
+        set_llm_book_context(state.book_id if state else None)
         result = await self._graph.ainvoke({"messages": messages})
 
         # Extract the last AI message; record tool selections from ToolMessages
