@@ -10,6 +10,7 @@ import asyncio
 import logging
 import logging.handlers
 from contextlib import asynccontextmanager
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -140,6 +141,64 @@ async def _reconcile_stale_tasks() -> None:
         )
 
 
+async def _prune_stale_checkpoints(checkpointer, *, older_than_days: int) -> int:
+    """Delete ingestion checkpoint threads untouched for ``older_than_days``.
+
+    A checkpoint is kept as long as its import might still be resumed, and an
+    import awaiting chapter review can sit idle indefinitely — so there is no
+    signal from task state to prune on. ``_reconcile_stale_tasks`` covers
+    orphaned tasks, but only when the task store survives the restart; the
+    default memory backend loses its list entirely, leaving nothing to clean
+    up by. Age is the one signal that survives a restart.
+
+    Threads are aged as a unit, by their most recent checkpoint: an active
+    thread's older checkpoints are part of a live history, not stale rows.
+    A thread whose timestamp cannot be read is kept — deleting something we
+    failed to understand is the wrong way to fail.
+
+    Best-effort, like :func:`delete_ingestion_checkpoint`: a cleanup failure
+    must never stop the server from starting. Returns the threads deleted.
+    """
+    cutoff = datetime.now(timezone.utc) - timedelta(days=older_than_days)
+    last_seen: dict[str, datetime] = {}
+
+    try:
+        async for tup in checkpointer.alist(None):
+            thread_id = tup.config.get("configurable", {}).get("thread_id")
+            raw_ts = (tup.checkpoint or {}).get("ts")
+            if not thread_id or not raw_ts:
+                continue
+            try:
+                ts = datetime.fromisoformat(raw_ts)
+            except (TypeError, ValueError):
+                continue
+            previous = last_seen.get(thread_id)
+            if previous is None or ts > previous:
+                last_seen[thread_id] = ts
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Checkpoint prune skipped — listing failed: %s", exc)
+        return 0
+
+    stale = [tid for tid, ts in last_seen.items() if ts < cutoff]
+    deleted = 0
+    for thread_id in stale:
+        try:
+            await checkpointer.adelete_thread(thread_id)
+            deleted += 1
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Checkpoint prune failed for thread %s: %s", thread_id, exc)
+
+    if deleted:
+        logger.info(
+            "Pruned %d ingestion checkpoint thread(s) idle for over %d days "
+            "(%d thread(s) retained)",
+            deleted,
+            older_than_days,
+            len(last_seen) - deleted,
+        )
+    return deleted
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Warm up singletons on startup so the first request is not slow."""
@@ -212,6 +271,10 @@ async def lifespan(app: FastAPI):
         logger.info(
             "Ingestion graph ready (checkpoint db: %s)", settings.ingestion_checkpoint_db_path
         )
+        if settings.ingestion_checkpoint_ttl_days > 0:
+            await _prune_stale_checkpoints(
+                checkpointer, older_than_days=settings.ingestion_checkpoint_ttl_days
+            )
         await _reconcile_stale_tasks()
         logger.info("All services ready.")
         yield

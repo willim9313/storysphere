@@ -35,7 +35,7 @@ uv run uvicorn storysphere.api.main:app --host 0.0.0.0 --port 8000 --reload
 | `token_usage.db` | `core/token_store.py` | `token_usage_db_path` | LLM token 用量記錄。**有 `book_id` 欄位但實際從未填入**（見下） |
 | `inferred_relations.db` | `services/link_prediction_store.py` | `link_prediction_db_path` | 隱性關係推論結果（F-01）與人工審核狀態 |
 | `tasks.db` | `api/store.py` | `task_store_db_path` | 背景任務狀態。settings 預設是 `sqlite`，但 repo 的 `.env` 覆寫成 `memory`，所以**開發環境下這個檔是死的**，任務狀態一重啟就沒了 |
-| `ingestion_checkpoints.db` | LangGraph（`api/main.py` 的 lifespan 建立） | `ingestion_checkpoint_db_path` | 章節審閱的 HITL checkpoint，`thread_id` == `task_id` |
+| `ingestion_checkpoints.db` | LangGraph（`api/main.py` 的 lifespan 建立） | `ingestion_checkpoint_db_path`、`ingestion_checkpoint_ttl_days` | 章節審閱的 HITL checkpoint，`thread_id` == `task_id`。啟動時清掉閒置超過 TTL 的 thread |
 
 > **`symbol_store.db` 是唯一不可設定的**：路徑寫死在 `SymbolService.__init__` 的
 > 預設參數 `db_path: str = "./var/symbol_store.db"`，沒有對應的 settings 欄位，
@@ -89,7 +89,7 @@ book id，無法用 pattern 匹配，KG 的列一旦刪掉就再也找不回那�
 | `token_usage.db` | 只失去歷史統計，不影響功能 |
 | `inferred_relations.db` | 推論結果與人工審核狀態全失，需重跑推論 |
 | `tasks.db` | 目前無影響（`.env` 用 memory backend）。切到 sqlite 後才會失去歷史任務清單 |
-| `ingestion_checkpoints.db` | 正在等待章節審閱的上傳無法續跑；已完成的書不受影響。這個檔會累積——見下 |
+| `ingestion_checkpoints.db` | 正在等待章節審閱的上傳無法續跑；已完成的書不受影響 |
 
 ---
 
@@ -119,5 +119,8 @@ book id，無法用 pattern 匹配，KG 的列一旦刪掉就再也找不回那�
   checkpoint，但只有 3 本書。暫停等審閱的匯入若一直沒有 resume，checkpoint 會
   永遠留著；而 `.env` 用 memory task store，伺服器一重啟任務狀態全失，
   `_reconcile_stale_tasks` 就再也找不到該清哪一個。
+  已補上 TTL 清理：lifespan 啟動時，以 thread 內最新 checkpoint 的 `ts` 判斷閒置
+  天數，超過 `ingestion_checkpoint_ttl_days`（預設 30，設 0 停用）就整個 thread
+  刪掉。代價是擱置超過 TTL 的章節審閱不再能續跑，只能重新上傳。
 
 處理計畫見 [`docs/plans/20260818-data-store-orphan-cleanup.md`](../plans/20260818-data-store-orphan-cleanup.md)。

@@ -226,6 +226,14 @@ class Settings(BaseSettings):
         default="./var/ingestion_checkpoints.db",
         description="SQLite path for LangGraph ingestion graph checkpoints",
     )
+    ingestion_checkpoint_ttl_days: int = Field(
+        default=30,
+        description=(
+            "Days to retain ingestion checkpoints since their last activity "
+            "(0 = keep forever). A chapter review left unresumed past this "
+            "window can no longer be continued."
+        ),
+    )
 
     # ── Application ────────────────────────────────────────────────────────────
     app_env: Literal["development", "production"] = "development"
