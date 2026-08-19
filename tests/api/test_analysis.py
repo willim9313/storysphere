@@ -755,3 +755,69 @@ class TestBatchEventAbort:
         status = poll_until_terminal(event_batch_client, task_id)
         assert status["status"] == "done"
         assert status["result"]["failed"] == status["result"]["total"]
+
+
+# ── Batch character analysis: cancellation and abort ─────────────────────────
+
+
+class TestBatchEntityCancellation:
+    """Same contract as the event batch — the two runners are twins."""
+
+    def _start(self, client) -> str:
+        resp = client.post("/api/v1/books/doc-1/entities/analyze-all")
+        assert resp.status_code == 202
+        return resp.json()["taskId"]
+
+    def test_running_batch_can_be_cancelled(self, batch_client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = hanging_call()
+
+        task_id = self._start(batch_client)
+
+        resp = batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        assert resp.status_code == 204, "runner was not registered as cancellable"
+
+    def test_cancelled_batch_ends_up_failed(self, batch_client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = hanging_call()
+
+        task_id = self._start(batch_client)
+        batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+        status = poll_until_terminal(batch_client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "cancelled"
+
+
+class TestBatchEntityAbort:
+    def test_rate_limit_fails_the_task_with_its_message(
+        self, batch_client, mock_analysis_agent
+    ):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(batch_client, task_id)
+        assert status["status"] == "error"
+        assert "配額已達上限" in status["error"]
+        assert "個角色" in status["error"], "borrowed the event batch's wording"
+
+    def test_abort_never_reports_done(self, batch_client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(batch_client, task_id)
+        assert status["status"] != "done"
+
+    def test_ordinary_failure_is_counted_not_aborted(
+        self, batch_client, mock_analysis_agent
+    ):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("boom")
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        task_id = resp.json()["taskId"]
+
+        status = poll_until_terminal(batch_client, task_id)
+        assert status["status"] == "done"
+        assert status["result"]["failed"] == status["result"]["total"]

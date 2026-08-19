@@ -12,10 +12,10 @@ from uuid import uuid4
 
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     HTTPException,
 )
 
+from storysphere.api import task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -46,29 +46,24 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/books", tags=["books"])
 
 
-async def _run_entity_analysis(
+async def _entity_analysis(
     task_id: str, entity_name: str, document_id: str, agent, language: str = "en",
     retry_parts: list[str] | None = None, force_refresh: bool = False,
     entity_id: str | None = None,
-) -> None:
+) -> dict:
     logger.info("Entity analysis task %s started: entity=%s, doc=%s", task_id, entity_name, document_id)
-    task_store.set_running(task_id)
-    try:
-        result = await agent.analyze_character(
-            entity_name=entity_name,
-            entity_id=entity_id,
-            document_id=document_id,
-            archetype_frameworks=["jung", "schmidt"],
-            language=language,
-            progress_callback=lambda pct, stage: task_store.set_progress(task_id, pct, stage),
-            retry_parts=retry_parts,
-            force_refresh=force_refresh,
-        )
-        task_store.set_completed(task_id, result=result.model_dump())
-        logger.info("Entity analysis task %s completed: entity=%s", task_id, entity_name)
-    except Exception as exc:
-        logger.exception("Entity analysis task %s failed: entity=%s", task_id, entity_name)
-        task_store.set_failed(task_id, error=str(exc))
+    result = await agent.analyze_character(
+        entity_name=entity_name,
+        entity_id=entity_id,
+        document_id=document_id,
+        archetype_frameworks=["jung", "schmidt"],
+        language=language,
+        progress_callback=task_runner.progress(task_id),
+        retry_parts=retry_parts,
+        force_refresh=force_refresh,
+    )
+    logger.info("Entity analysis task %s completed: entity=%s", task_id, entity_name)
+    return result.model_dump()
 
 
 # ── #6a GET /books/:bookId/analysis/characters ───────────────────────────────
@@ -217,7 +212,6 @@ async def trigger_entity_analysis(
     doc: DocServiceDep,
     agent: AnalysisAgentDep,
     cache: AnalysisCacheDep,
-    background_tasks: BackgroundTasks,
     body: AnalyzeTriggerRequest = AnalyzeTriggerRequest(),
 ) -> dict:
     """Trigger deep analysis for a single entity.
@@ -248,9 +242,12 @@ async def trigger_entity_analysis(
     )
     task_id = str(uuid4())
     task_store.create(task_id, kind="character", title=f"角色深度分析 — {entity.name}")
-    background_tasks.add_task(
-        _run_entity_analysis, task_id, entity.name, book_id, agent, language,
-        retry_parts, force_refresh, entity.id,
+    task_runner.launch(
+        task_id,
+        _entity_analysis(
+            task_id, entity.name, book_id, agent, language,
+            retry_parts, force_refresh, entity.id,
+        ),
     )
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
@@ -276,7 +273,7 @@ async def delete_entity_analysis(
 # ── #7h POST /books/:bookId/entities/analyze-all ─────────────────────────────
 
 
-async def _run_batch_entity_analysis(
+async def _batch_entity_analysis(
     task_id: str,
     document_id: str,
     agent,
@@ -284,7 +281,7 @@ async def _run_batch_entity_analysis(
     cache,
     language: str = "en",
     entity_ids: list[str] | None = None,
-) -> None:
+) -> dict:
     """Background task: analyze all unanalyzed character entities.
 
     ``entity_ids``, when provided, restricts the run to that subset (any ids
@@ -292,7 +289,6 @@ async def _run_batch_entity_analysis(
     """
     from storysphere.domain.entities import EntityType  # noqa: PLC0415
 
-    task_store.set_running(task_id)
     characters = await kg_service.list_entities(
         entity_type=EntityType.CHARACTER, document_id=document_id
     )
@@ -303,12 +299,12 @@ async def _run_batch_entity_analysis(
     done = 0
     failed = 0
     skipped = 0
+    report = task_runner.progress(task_id)
 
     def _report() -> None:
-        task_store.set_progress(
-            task_id,
-            progress=int(done / total * 100) if total else 0,
-            stage=f"分析角色 {done}/{total}",
+        report(
+            int(done / total * 100) if total else 0,
+            f"分析角色 {done}/{total}",
             # Shared with the event batch: BatchEepPanel renders the item
             # count, not the percentage.
             sub_progress=done,
@@ -334,11 +330,11 @@ async def _run_batch_entity_analysis(
         except Exception as exc:
             if _is_rate_limit_error(exc):
                 logger.warning("Batch character analysis aborted — rate limit: %s", exc)
-                task_store.set_failed(
-                    task_id,
-                    error=f"API 配額已達上限，已處理 {done}/{total} 個角色。請稍後再試。",
-                )
-                return
+                # Not a ``return``: the supervisor completes a task that
+                # returns, which would report an aborted run as a success.
+                raise task_runner.TaskAborted(
+                    f"API 配額已達上限，已處理 {done}/{total} 個角色。請稍後再試。"
+                ) from exc
             logger.warning(
                 "Batch character analysis failed for %s: %s",
                 entity.name, exc,
@@ -348,20 +344,17 @@ async def _run_batch_entity_analysis(
 
         _report()
 
-    task_store.set_completed(
-        task_id,
-        result={
-            "progress": total,
-            "total": total,
-            "failed": failed,
-            "skipped": skipped,
-        },
-    )
     logger.info(
         "Batch character analysis complete: doc=%s, "
         "total=%d, skipped=%d, failed=%d",
         document_id, total, skipped, failed,
     )
+    return {
+        "progress": total,
+        "total": total,
+        "failed": failed,
+        "skipped": skipped,
+    }
 
 
 @router.post(
@@ -375,7 +368,6 @@ async def trigger_batch_entity_analysis(
     kg: KGServiceDep,
     cache: AnalysisCacheDep,
     agent: AnalysisAgentDep,
-    background_tasks: BackgroundTasks,
     body: BatchAnalysisRequest = BatchAnalysisRequest(),
 ) -> dict:
     """Trigger deep analysis for ALL (or a subset of) character entities in a book.
@@ -409,9 +401,11 @@ async def trigger_batch_entity_analysis(
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
     task_store.create(task_id, kind="character", title="批次角色分析")
-    background_tasks.add_task(
-        _run_batch_entity_analysis,
-        task_id, book_id, agent, kg, cache, language, body.entity_ids,
+    task_runner.launch(
+        task_id,
+        _batch_entity_analysis(
+            task_id, book_id, agent, kg, cache, language, body.entity_ids
+        ),
     )
 
     logger.info(
