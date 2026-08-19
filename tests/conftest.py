@@ -2,10 +2,65 @@
 
 from __future__ import annotations
 
+import sys
 from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import TypeAdapter, ValidationError
+
+
+@pytest.fixture(autouse=True)
+def isolated_task_store(monkeypatch):
+    """Give every test its own empty task store.
+
+    ``task_store`` is a process-level singleton whose backend comes from
+    ``Settings.task_store_backend`` — and that setting **defaults to
+    ``"sqlite"``**, with only a local ``.env`` overriding it to ``"memory"``.
+    So on any machine without a ``.env`` (fresh clone, container, CI, a git
+    worktree) a plain ``pytest`` run used to:
+
+    * write into the **real** ``./var/tasks.db`` — a persistent file that is
+      also the running app's task history, and
+    * let every test see rows left by every earlier test *and every earlier
+      run*, because nothing ever cleared it.
+
+    That is not hypothetical: the file had accumulated 647 rows, among them 35
+    ``awaiting_review`` tasks for ``doc-1`` plus one stale ``error`` task for
+    the same book.  ``get_task_id_by_book_id`` is ``LIMIT 1`` with no
+    ``ORDER BY``, so whichever row SQLite reached first decided the result and
+    three chapter-review tests failed depending on that.
+
+    Patching one module attribute is not enough: routers bind the singleton at
+    import time (``from storysphere.api.store import task_store``), so each
+    holder needs replacing.  The sweep matches **by identity** rather than by
+    module name, which is what makes it self-maintaining — a new holder is
+    caught automatically, and test modules that bind the singleton at import
+    time (``test_ingestion_murmur_seam.py`` does) are covered by the same rule
+    instead of needing a special case.
+
+    Modules that import later read the patched module attribute and get the
+    same instance.  Tests that want a specific backend build their own store
+    directly (see ``test_sqlite_task_store.py``) and are unaffected.
+    """
+    import storysphere.api.store as store_module
+
+    original = store_module.task_store
+    fresh = store_module.MemoryTaskStore()
+    monkeypatch.setattr(store_module, "task_store", fresh)
+
+    for module in list(sys.modules.values()):
+        if module is None or module is store_module:
+            continue
+        # ``vars()`` rather than ``getattr()`` on purpose: lazy module proxies
+        # (torch, transformers) implement ``__getattr__`` to import submodules
+        # on demand, so probing them by attribute drags in optional deps that
+        # are not installed and turns the whole suite into import errors.
+        # A module-level ``from ... import task_store`` binding is in
+        # ``__dict__``, which is all this needs to see.
+        if vars(module).get("task_store") is original:
+            monkeypatch.setattr(module, "task_store", fresh)
+
+    return fresh
 
 
 def attach_get_as(cache):
