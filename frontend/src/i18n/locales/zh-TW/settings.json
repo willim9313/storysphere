@@ -135,13 +135,19 @@
     "colCompletion": "Completion",
     "colTotal": "合計",
     "colCalls": "呼叫",
+    "byBook": "書籍別用量",
+    "allBooks": "全部書籍",
+    "unattributed": "未歸屬",
+    "deletedBook": "已刪除的書 · {{id}}",
     "services": {
       "analysis": "深度分析",
       "chat": "對話",
       "summary": "摘要",
       "extraction": "擷取",
       "keyword": "關鍵字",
-      "unknown": "其他"
+      "unknown": "其他",
+      "imagery": "意象",
+      "ingestion": "匯入"
     }
   }
 }

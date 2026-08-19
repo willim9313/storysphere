@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useTokenUsage } from '@/hooks/useTokenUsage';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
-import type { TokenBucket } from '@/api/tokenUsage';
+import type { BookUsage, TokenBucket } from '@/api/tokenUsage';
+import { UNATTRIBUTED } from '@/api/tokenUsage';
 
 type Range = 'today' | '7d' | '30d' | 'all';
 
@@ -11,9 +12,20 @@ function fmt(n: number): string {
   return n.toLocaleString();
 }
 
+/** A book row's key. `null` is a real group but cannot be an object key. */
+function bookKey(bookId: string | null): string {
+  return bookId ?? UNATTRIBUTED;
+}
+
 export default function TokenUsagePage() {
   const [range, setRange] = useState<Range>('7d');
-  const { data, isLoading, error } = useTokenUsage(range);
+  const [bookId, setBookId] = useState<string | null>(null);
+
+  // Two queries, one cache entry while nothing is selected: the unfiltered one
+  // is what the book list is built from, so picking a book never hides the
+  // other books you might want to switch to.
+  const allBooks = useTokenUsage(range);
+  const { data, isLoading, error } = useTokenUsage(range, bookId ?? undefined);
   const { t } = useTranslation('settings');
 
   const RANGES: { key: Range; label: string }[] = [
@@ -27,6 +39,27 @@ export default function TokenUsagePage() {
   if (error) return <ErrorMessage message={error.message} />;
 
   const empty = !data || data.summary.totalCalls === 0;
+  const books = allBooks.data?.byBook ?? [];
+
+  const bookLabel = (book: BookUsage): string => {
+    if (book.bookId === null) return t('token.unattributed');
+    // A deleted book keeps its spending but loses its title; the id stub is
+    // the only handle left, and it still tells two deleted books apart.
+    return book.title ?? t('token.deletedBook', { id: book.bookId.slice(0, 8) });
+  };
+
+  const bookLabels = new Map(books.map((b) => [bookKey(b.bookId), bookLabel(b)]));
+  const byBookTable = Object.fromEntries(
+    books.map((b) => [
+      bookKey(b.bookId),
+      {
+        promptTokens: b.promptTokens,
+        completionTokens: b.completionTokens,
+        totalTokens: b.totalTokens,
+        calls: b.calls,
+      },
+    ]),
+  );
 
   return (
     <div className="p-6 overflow-y-auto h-full">
@@ -34,7 +67,27 @@ export default function TokenUsagePage() {
         <h2 className="text-lg font-bold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
           {t('token.title')}
         </h2>
-        <div className="flex gap-1.5">
+        <div className="flex items-center gap-3">
+          {books.length > 0 && (
+            <select
+              value={bookId ?? ''}
+              onChange={(e) => setBookId(e.target.value === '' ? null : e.target.value)}
+              className="px-3 py-1 text-xs rounded-full font-medium"
+              style={{
+                backgroundColor: 'var(--bg-secondary)',
+                color: 'var(--fg-secondary)',
+                border: '1px solid var(--border)',
+              }}
+            >
+              <option value="">{t('token.allBooks')}</option>
+              {books.map((b) => (
+                <option key={bookKey(b.bookId)} value={bookKey(b.bookId)}>
+                  {bookLabel(b)}
+                </option>
+              ))}
+            </select>
+          )}
+          <div className="flex gap-1.5">
           {RANGES.map(({ key, label }) => (
             <button
               key={key}
@@ -48,6 +101,7 @@ export default function TokenUsagePage() {
               {label}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
@@ -65,6 +119,18 @@ export default function TokenUsagePage() {
             <SummaryCard label="Completion Tokens" value={fmt(data!.summary.totalCompletionTokens)} />
             <SummaryCard label={t('token.totalCalls')} value={fmt(data!.summary.totalCalls)} />
           </div>
+
+          {books.length > 0 && (
+            <Section title={t('token.byBook')}>
+              <BreakdownTable
+                data={byBookTable}
+                labelFn={(k) => bookLabels.get(k) ?? k}
+                t={t}
+                selectedKey={bookId}
+                onSelect={(k) => setBookId(bookId === k ? null : k)}
+              />
+            </Section>
+          )}
 
           {Object.keys(data!.byService).length > 0 && (
             <Section title={t('token.byService')}>
@@ -118,10 +184,14 @@ function BreakdownTable({
   data,
   labelFn,
   t,
+  selectedKey,
+  onSelect,
 }: {
   data: Record<string, TokenBucket>;
   labelFn: (key: string) => string;
   t: (key: string) => string;
+  selectedKey?: string | null;
+  onSelect?: (key: string) => void;
 }) {
   const entries = Object.entries(data).sort(([, a], [, b]) => b.totalTokens - a.totalTokens);
 
@@ -143,7 +213,16 @@ function BreakdownTable({
         </thead>
         <tbody>
           {entries.map(([key, bucket]) => (
-            <tr key={key} style={{ borderBottom: '1px solid var(--border)' }}>
+            <tr
+              key={key}
+              onClick={onSelect ? () => onSelect(key) : undefined}
+              style={{
+                borderBottom: '1px solid var(--border)',
+                cursor: onSelect ? 'pointer' : undefined,
+                backgroundColor:
+                  selectedKey === key ? 'var(--bg-secondary)' : undefined,
+              }}
+            >
               <td className="px-4 py-2 font-medium" style={{ color: 'var(--fg-primary)' }}>{labelFn(key)}</td>
               <td className="px-4 py-2 tabular-nums" style={{ color: 'var(--fg-secondary)' }}>{fmt(bucket.promptTokens)}</td>
               <td className="px-4 py-2 tabular-nums" style={{ color: 'var(--fg-secondary)' }}>{fmt(bucket.completionTokens)}</td>

@@ -9,6 +9,7 @@ from __future__ import annotations
 import logging
 import time
 from datetime import datetime, timezone
+from typing import Any
 
 import aiosqlite
 
@@ -34,7 +35,14 @@ CREATE TABLE IF NOT EXISTS token_usage (
 _CREATE_INDEXES = [
     "CREATE INDEX IF NOT EXISTS idx_token_usage_ts ON token_usage(ts)",
     "CREATE INDEX IF NOT EXISTS idx_token_usage_service ON token_usage(service)",
+    "CREATE INDEX IF NOT EXISTS idx_token_usage_book ON token_usage(book_id)",
 ]
+
+#: Stands for ``book_id IS NULL`` in a filter. Calls made before attribution
+#: existed — and any call that genuinely belongs to no book, such as global
+#: chat — land in this bucket. It is a real group, not a missing value, so it
+#: has to be selectable like any other book.
+UNATTRIBUTED = "__unattributed__"
 
 
 class TokenUsageStore:
@@ -103,9 +111,18 @@ class TokenUsageStore:
         self,
         since: float | None = None,
         until: float | None = None,
+        book_id: str | None = None,
     ) -> dict:
-        """Return aggregated usage: summary + by_service + by_model."""
-        where, params = self._time_filter(since, until)
+        """Return aggregated usage: summary + by_service + by_model + by_book.
+
+        ``book_id`` narrows every section, so the service and model breakdowns
+        answer "what did this book spend it on". Pass :data:`UNATTRIBUTED` to
+        narrow to the rows that carry no book.
+
+        ``by_book`` is a list rather than a dict because ``None`` is a
+        meaningful key there and would not survive as one.
+        """
+        where, params = self._filter(since, until, book_id)
 
         async with aiosqlite.connect(self._db_path) as db:
             db.row_factory = aiosqlite.Row
@@ -173,19 +190,46 @@ class TokenUsageStore:
                 async for r in cur
             }
 
+            # By book. Deleted books keep their rows — token usage is a
+            # spending record, and deleting the book does not un-spend it —
+            # so ids with no surviving book are expected here.
+            cur = await db.execute(
+                f"""SELECT book_id,
+                        SUM(prompt_tokens)     AS prompt_tokens,
+                        SUM(completion_tokens)  AS completion_tokens,
+                        SUM(total_tokens)       AS total_tokens,
+                        COUNT(*)               AS calls
+                    FROM token_usage {where}
+                    GROUP BY book_id
+                    ORDER BY total_tokens DESC""",
+                params,
+            )
+            by_book = [
+                {
+                    "bookId": r["book_id"],
+                    "promptTokens": r["prompt_tokens"],
+                    "completionTokens": r["completion_tokens"],
+                    "totalTokens": r["total_tokens"],
+                    "calls": r["calls"],
+                }
+                async for r in cur
+            ]
+
         return {
             "summary": summary,
             "byService": by_service,
             "byModel": by_model,
+            "byBook": by_book,
         }
 
     async def get_daily_usage(
         self,
         since: float | None = None,
         until: float | None = None,
+        book_id: str | None = None,
     ) -> list[dict]:
-        """Return per-day aggregated usage."""
-        where, params = self._time_filter(since, until)
+        """Return per-day aggregated usage, optionally for one book."""
+        where, params = self._filter(since, until, book_id)
 
         async with aiosqlite.connect(self._db_path) as db:
             db.row_factory = aiosqlite.Row
@@ -217,19 +261,25 @@ class TokenUsageStore:
     # ------------------------------------------------------------------
 
     @staticmethod
-    def _time_filter(
+    def _filter(
         since: float | None,
         until: float | None,
-    ) -> tuple[str, list[float]]:
-        """Build a WHERE clause for time-range filtering."""
+        book_id: str | None = None,
+    ) -> tuple[str, list[Any]]:
+        """Build the WHERE clause shared by every aggregation."""
         conditions: list[str] = []
-        params: list[float] = []
+        params: list[Any] = []
         if since is not None:
             conditions.append("ts >= ?")
             params.append(since)
         if until is not None:
             conditions.append("ts < ?")
             params.append(until)
+        if book_id == UNATTRIBUTED:
+            conditions.append("book_id IS NULL")
+        elif book_id is not None:
+            conditions.append("book_id = ?")
+            params.append(book_id)
         where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
         return where, params
 

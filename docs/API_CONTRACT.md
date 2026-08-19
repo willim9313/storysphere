@@ -1898,7 +1898,11 @@ sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
 
 取得 Token 用量統計。
 
-**Query Params**：`range=today|7d|30d|all`
+**Query Params**：
+- `range=today|7d|30d|all`
+- `bookId`（選填）：限定單一本書。傳 `__unattributed__` 代表歸不了書的呼叫
+  （全站 chat、2026-08-19 歸因修正之前的舊記錄）。**篩選會作用在每一個區塊**
+  ——`summary`、`byService`、`byModel`、`daily` 全部跟著限定。
 
 **Response 200**
 ```ts
@@ -1911,6 +1915,7 @@ interface TokenUsageResponse {
   };
   byService: Record<string, TokenBucket>;
   byModel: Record<string, TokenBucket>;
+  byBook: BookUsage[];
   daily: DailyUsage[];
 }
 
@@ -1921,10 +1926,21 @@ interface TokenBucket {
   calls: number;
 }
 
+interface BookUsage extends TokenBucket {
+  bookId: string | null;   // null = 歸不了書的呼叫
+  title: string | null;    // null 但 bookId 有值 = 書已被刪除
+}
+
 interface DailyUsage extends TokenBucket {
   date: string;   // 'YYYY-MM-DD'
 }
 ```
+
+`byBook` 是陣列而非 `Record`：`bookId` 為 `null` 是有意義的一組，當不了物件的
+key。各列 `totalTokens` 相加等於 `summary.totalTokens`。
+
+刪書時**刻意不清** `token_usage`（花費記錄，刪書不代表沒花那筆錢），所以
+`byBook` 會出現查不到書名的 `bookId`，`title` 為 `null`。
 
 **UI 使用頁面**：Token 用量頁 `/token-usage`
 
@@ -2704,7 +2720,7 @@ interface MetricsSnapshot {
 ['narrative', bookId]                                       // #21k
 ['narrative', bookId, 'kernel-spine']                       // #21j
 ['narrative', bookId, 'temporal-coverage']                  // #21g
-['token-usage', range]                                      // #17
+['token-usage', range, bookId ?? null]                      // #17
 ['kg', 'status']                                            // #18a
 ['tasks', taskId]                                           // #8（polling）
 ```

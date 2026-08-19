@@ -135,13 +135,19 @@
     "colCompletion": "Completion",
     "colTotal": "Total",
     "colCalls": "Calls",
+    "byBook": "Usage by Book",
+    "allBooks": "All books",
+    "unattributed": "Unattributed",
+    "deletedBook": "Deleted book · {{id}}",
     "services": {
       "analysis": "Deep Analysis",
       "chat": "Chat",
       "summary": "Summary",
       "extraction": "Extraction",
       "keyword": "Keywords",
-      "unknown": "Other"
+      "unknown": "Other",
+      "imagery": "Imagery",
+      "ingestion": "Ingestion"
     }
   }
 }
