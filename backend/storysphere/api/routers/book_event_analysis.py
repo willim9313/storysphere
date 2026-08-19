@@ -24,10 +24,7 @@ from storysphere.api.deps import (
     VectorServiceDep,
 )
 from storysphere.api.routers._book_shared import now_iso
-from storysphere.api.schemas.books import (
-    AnalysisItem,
-    AnalysisListResponse,
-    AnalyzeTriggerRequest,
+from storysphere.api.schemas.book_event_analysis import (
     BatchEventAnalysisRequest,
     EventAnalysisFullResponse,
     EventDetailResponse,
@@ -35,6 +32,11 @@ from storysphere.api.schemas.books import (
     EventParticipant,
     EventSourcePassage,
     EventSourceResponse,
+)
+from storysphere.api.schemas.books import (
+    AnalysisItem,
+    AnalysisListResponse,
+    AnalyzeTriggerRequest,
     TaskIdResponse,
     UnanalyzedEntity,
 )
