@@ -21,8 +21,7 @@ from abc import ABC, abstractmethod
 from collections import Counter
 from typing import Any
 
-from storysphere.core.error_handling import llm_text
-from storysphere.core.llm_call import llm_retry
+from storysphere.core.llm_call import call_llm, llm_retry
 from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.services.query_models import ChapterKeywordMatch
@@ -170,7 +169,6 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
     async def _call_llm(
         self, text: str, max_keywords: int, language: str = "en"
     ) -> dict[str, float]:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
 
@@ -180,16 +178,14 @@ class LLMKeywordExtractor(BaseKeywordExtractor):
             + f"\nExtract keywords in {lang_name}."
         )
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=text[:8000]),
-        ]
-        from storysphere.core.token_callback import set_llm_service_context  # noqa: PLC0415
-
         _lf_update_span(metadata={"max_keywords": max_keywords})
-        set_llm_service_context("keyword")
-        response = await llm.ainvoke(messages)
-        content = llm_text(response)
+        content = await call_llm(
+            llm,
+            system=prompt,
+            human=text[:8000],
+            service="keyword",
+            book_id=None,
+        )
         return self._parse_response(content)
 
     @staticmethod

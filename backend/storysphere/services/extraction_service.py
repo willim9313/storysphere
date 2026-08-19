@@ -16,8 +16,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
 
-from storysphere.core.error_handling import llm_text
-from storysphere.core.llm_call import llm_retry
+from storysphere.core.llm_call import call_llm, llm_retry
 from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.domain.entities import Entity, EntityType
@@ -291,7 +290,6 @@ class ExtractionService:
         max_wait=10,
     )
     async def _call_entity_llm(self, text: str, language: str = "en") -> _EntityList:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
 
@@ -301,15 +299,14 @@ class ExtractionService:
             + f"\nAll descriptions must be written in {lang_name}."
         )
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=f"Chapter text:\n\n{text[:8000]}"),
-        ]
-        from storysphere.core.token_callback import set_llm_service_context  # noqa: PLC0415
-
-        set_llm_service_context("extraction")
-        response = await asyncio.wait_for(llm.ainvoke(messages), timeout=150)
-        content = llm_text(response)
+        content = await call_llm(
+            llm,
+            system=prompt,
+            human=f"Chapter text:\n\n{text[:8000]}",
+            service="extraction",
+            book_id=None,
+            timeout=150,
+        )
         return _parse_json_response(content)
 
     @llm_retry(
@@ -320,7 +317,6 @@ class ExtractionService:
     async def _call_relation_llm(
         self, text: str, entity_names: list[str], language: str = "en"
     ) -> _ExtractionResult:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
 
@@ -335,15 +331,14 @@ class ExtractionService:
             f"Chapter text:\n\n{text[:8000]}"
         )
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=user_content),
-        ]
-        from storysphere.core.token_callback import set_llm_service_context  # noqa: PLC0415
-
-        set_llm_service_context("extraction")
-        response = await asyncio.wait_for(llm.ainvoke(messages), timeout=150)
-        content = llm_text(response)
+        content = await call_llm(
+            llm,
+            system=prompt,
+            human=user_content,
+            service="extraction",
+            book_id=None,
+            timeout=150,
+        )
         return _parse_extraction_response(content)
 
     # -- Parsing helpers -----------------------------------------------------

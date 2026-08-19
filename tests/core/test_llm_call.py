@@ -7,11 +7,10 @@ import inspect
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from storysphere.core.error_handling import LLMResponseBlocked
 from storysphere.core.llm_call import (
-    RETRYABLE,
     LLM_RETRY,
+    RETRYABLE,
     call_llm,
     llm_retry,
 )
@@ -216,42 +215,39 @@ class TestCallLlm:
             )
 
     @pytest.mark.asyncio
-    async def test_on_context_set_runs_after_context_and_before_invoke(self):
-        order = []
-
-        llm = MagicMock()
-
-        async def _invoke(_messages):
-            order.append(("invoke", get_llm_service_context()))
-            response = MagicMock()
-            response.content = "ok"
-            return response
-
-        llm.ainvoke = _invoke
-
-        def _hook():
-            order.append(("hook", get_llm_service_context()))
-
-        await call_llm(
-            llm,
-            system="s",
-            human="h",
-            service="keyword",
-            book_id="book-2",
-            on_context_set=_hook,
-        )
-        assert [step for step, _ in order] == ["hook", "invoke"]
-        assert order[0][1] == ("keyword", "book-2")
-
-    @pytest.mark.asyncio
-    async def test_no_hook_is_fine(self):
+    async def test_timeout_none_does_not_wrap_the_invoke(self):
         llm = _fake_llm("x")
         assert (
-            await call_llm(
-                llm, system="s", human="h", service="analysis", book_id="b"
-            )
+            await call_llm(llm, system="s", human="h", service="analysis", book_id="b")
             == "x"
         )
+
+    @pytest.mark.asyncio
+    async def test_timeout_cancels_a_slow_call(self):
+        """Three services wrap ainvoke in wait_for; the helper has to honour that."""
+        llm = MagicMock()
+
+        async def _slow(_messages):
+            await asyncio.sleep(5)
+
+        llm.ainvoke = _slow
+        with pytest.raises(asyncio.TimeoutError):
+            await call_llm(
+                llm,
+                system="s",
+                human="h",
+                service="extraction",
+                book_id="b",
+                timeout=0.01,
+            )
+
+    @pytest.mark.asyncio
+    async def test_timeout_not_hit_returns_normally(self):
+        llm = _fake_llm("fast enough")
+        out = await call_llm(
+            llm, system="s", human="h", service="extraction", book_id="b", timeout=5
+        )
+        assert out == "fast enough"
 
 
 class TestNoTracingInTheSharedPath:

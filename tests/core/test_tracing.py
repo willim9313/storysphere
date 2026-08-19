@@ -53,7 +53,15 @@ def _settings(**overrides):
 
 
 class TestConfigureLangfuseSampleRate:
+    """These two patch inside langfuse, so they need it actually installed.
+
+    Tracing is optional (see tests/core/test_tracing_observe.py) and the suite
+    has to stay green on a machine without it — hence the skips rather than a
+    hard import.
+    """
+
     def test_sample_rate_propagated_to_env(self, clean_langfuse_env):
+        pytest.importorskip("langfuse")
         from storysphere.core import tracing
 
         with patch("langfuse.langchain.CallbackHandler"):
@@ -63,6 +71,7 @@ class TestConfigureLangfuseSampleRate:
         assert os.environ["LANGFUSE_SAMPLE_RATE"] == "0.25"
 
     def test_default_sample_rate_is_full(self, clean_langfuse_env):
+        pytest.importorskip("langfuse")
         from storysphere.core import tracing
 
         with patch("langfuse.langchain.CallbackHandler"):

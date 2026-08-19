@@ -12,10 +12,8 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import Any
 
-from storysphere.core.error_handling import llm_text
 from storysphere.core.language_detection import localize_prompt
-from storysphere.core.llm_call import LLM_RETRY
-from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.llm_call import LLM_RETRY, call_llm
 from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.core.utils.data_sanitizer import DataSanitizer
@@ -285,20 +283,20 @@ class AnalysisService:
         self, topic: str, context: str = "", language: str = "en"
     ) -> str:
         _lf_update_span(metadata={"topic": topic[:200], "language": language, "has_context": bool(context)})
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         llm = self._get_llm()
         prompt = localize_prompt(_INSIGHT_SYSTEM_PROMPT, language)
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(
-                content=f"Topic: {topic}\n\nContext:\n{context}" if context
+        content = await call_llm(
+            llm,
+            system=prompt,
+            human=(
+                f"Topic: {topic}\n\nContext:\n{context}"
+                if context
                 else f"Topic: {topic}\n\n(No additional context provided.)"
             ),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        content = llm_text(response)
+            service="analysis",
+            book_id=None,
+        )
         logger.info("AnalysisService: generated insight for topic=%r  len=%d", topic, len(content))
         return content
 
@@ -433,7 +431,6 @@ class AnalysisService:
     ) -> CEPResult:
         """Extract Character Evidence Profile from KG + vector + keywords + LLM."""
         _lf_update_span(metadata={"entity_name": entity_name, "document_id": document_id, "language": language})
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # --- Parallel data gathering: KG, vector search, keywords ---
 
@@ -520,13 +517,13 @@ class AnalysisService:
 
         llm = self._get_llm()
         prompt = localize_prompt(_CEP_SYSTEM_PROMPT, language)
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=f"Character: {entity_name}\n\n{context}"),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=prompt,
+            human=f"Character: {entity_name}\n\n{context}",
+            service="analysis",
+            book_id=document_id,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -549,7 +546,6 @@ class AnalysisService:
         self, cep: CEPResult, framework: str, language: str
     ) -> ArchetypeResult:
         _lf_update_span(metadata={"framework": framework, "language": language})
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         from storysphere.config.archetypes import get_archetype_summary  # noqa: PLC0415
 
@@ -564,13 +560,13 @@ class AnalysisService:
         cep_text = cep.model_dump_json(indent=2)
 
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Character Evidence Profile:\n{cep_text}"),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=system_prompt,
+            human=f"Character Evidence Profile:\n{cep_text}",
+            service="analysis",
+            book_id=None,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -594,19 +590,18 @@ class AnalysisService:
         self, cep: CEPResult, language: str = "en"
     ) -> list[ArcSegment]:
         _lf_update_span(metadata={"language": language})
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         cep_text = cep.model_dump_json(indent=2)
 
         llm = self._get_llm()
         prompt = localize_prompt(_ARC_SYSTEM_PROMPT, language)
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=f"Character Evidence Profile:\n{cep_text}"),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=prompt,
+            human=f"Character Evidence Profile:\n{cep_text}",
+            service="analysis",
+            book_id=None,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, list):
@@ -629,19 +624,18 @@ class AnalysisService:
         self, entity_name: str, cep: CEPResult, language: str = "en"
     ) -> CharacterProfile:
         _lf_update_span(metadata={"entity_name": entity_name, "language": language})
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         cep_text = cep.model_dump_json(indent=2)
 
         llm = self._get_llm()
         prompt = localize_prompt(_PROFILE_SYSTEM_PROMPT, language)
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=f"Character: {entity_name}\n\nEvidence:\n{cep_text}"),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=prompt,
+            human=f"Character: {entity_name}\n\nEvidence:\n{cep_text}",
+            service="analysis",
+            book_id=None,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -762,7 +756,6 @@ class AnalysisService:
             "document_id": document_id,
             "language": language,
         })
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Collect participant entities
         participants = []
@@ -851,13 +844,13 @@ class AnalysisService:
 
         llm = self._get_llm()
         prompt = localize_prompt(_EEP_SYSTEM_PROMPT, language)
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=prompt,
+            human=human_content,
+            service="analysis",
+            book_id=document_id,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -913,7 +906,6 @@ class AnalysisService:
     ) -> CausalityAnalysis:
         """Construct narrative causal chain leading to this event."""
         _lf_update_span(metadata={"event_id": event.id, "language": language})
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Fetch prior event details
         prior_details: list[str] = []
@@ -939,13 +931,13 @@ class AnalysisService:
 
         llm = self._get_llm()
         prompt = localize_prompt(_CAUSALITY_SYSTEM_PROMPT, language)
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=prompt,
+            human=human_content,
+            service="analysis",
+            book_id=None,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -967,7 +959,6 @@ class AnalysisService:
     ) -> ImpactAnalysis:
         """Trace what happened because of this event."""
         _lf_update_span(metadata={"event_id": event.id, "language": language})
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Fetch subsequent event details
         subsequent_details: list[str] = []
@@ -999,13 +990,13 @@ class AnalysisService:
 
         llm = self._get_llm()
         prompt = localize_prompt(_IMPACT_SYSTEM_PROMPT, language)
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=prompt,
+            human=human_content,
+            service="analysis",
+            book_id=None,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -1033,7 +1024,6 @@ class AnalysisService:
     ) -> EventSummary:
         """Synthesize all analysis into a ~150-word narrative paragraph."""
         _lf_update_span(metadata={"event_id": event.id, "language": language})
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         participants_text = ", ".join(
             f"{r.entity_name} ({r.role.value})" for r in eep.participant_roles
@@ -1061,13 +1051,13 @@ class AnalysisService:
 
         llm = self._get_llm()
         prompt = localize_prompt(_EVENT_SUMMARY_SYSTEM_PROMPT, language)
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=prompt,
+            human=human_content,
+            service="analysis",
+            book_id=None,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):

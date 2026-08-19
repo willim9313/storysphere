@@ -85,9 +85,11 @@ class TestCallLlm:
         extractor = ImageryExtractor(llm=mock_llm)
 
         with patch("storysphere.services.imagery_extractor.ImageryExtractor._parse_response", return_value=[]):
-            with patch("storysphere.core.token_callback.set_llm_service_context") as mock_ctx:
+            # `call_llm` holds the binding now, so that is what has to be patched;
+            # patching the defining module would leave the imported name alone.
+            with patch("storysphere.core.llm_call.set_llm_service_context") as mock_ctx:
                 await extractor._call_llm("text", 1)
-                mock_ctx.assert_called_once_with("imagery")
+                mock_ctx.assert_called_once_with("imagery", book_id=None)
 
 
 class TestExtractChapterImagery:

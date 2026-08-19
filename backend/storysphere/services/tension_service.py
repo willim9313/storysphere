@@ -20,10 +20,8 @@ from typing import TYPE_CHECKING
 from pydantic import BaseModel, Field
 
 from storysphere.config.mythos import get_mythos_summary, resolve_mythos_id
-from storysphere.core.error_handling import llm_text
 from storysphere.core.language_detection import localize_prompt
-from storysphere.core.llm_call import llm_retry
-from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.llm_call import call_llm, llm_retry
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import EntityType
 from storysphere.domain.tension import (
@@ -835,7 +833,6 @@ class TensionService:
         document_id: str,
         language: str,
     ) -> TEU:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         human_content = self._build_human_content(
             event, characters, concepts, chapter_summary
@@ -843,13 +840,13 @@ class TensionService:
         system_prompt = localize_prompt(_TEU_SYSTEM_PROMPT, language)
 
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis", book_id=document_id)
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=system_prompt,
+            human=human_content,
+            service="analysis",
+            book_id=document_id,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -943,7 +940,6 @@ class TensionService:
         document_id: str,
         language: str,
     ) -> list[TensionLine]:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         teu_index = {t.id: t for t in teus}
         lines_input = []
@@ -957,13 +953,13 @@ class TensionService:
 
         system_prompt = localize_prompt(_GROUPING_SYSTEM_PROMPT, language)
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis", book_id=document_id)
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=system_prompt,
+            human=human_content,
+            service="analysis",
+            book_id=document_id,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, list):
@@ -1003,7 +999,6 @@ class TensionService:
         document_id: str,
         language: str,
     ) -> TensionTheme:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         lang_key = "zh" if language.lower().startswith("zh") else "en"
         frye_summary = get_mythos_summary("frye", lang_key)
@@ -1028,13 +1023,13 @@ class TensionService:
 
         system_prompt = localize_prompt(_THEME_SYSTEM_PROMPT, language)
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis", book_id=document_id)
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=system_prompt,
+            human=human_content,
+            service="analysis",
+            book_id=document_id,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):

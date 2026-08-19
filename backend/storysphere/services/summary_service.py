@@ -116,9 +116,12 @@ class SummaryService:
 
         set_llm_service_context("summary")
         response = await llm.ainvoke(messages)
-        # Only the block check here. The empty-summary ValueError below is
-        # retryable on purpose (see this method's llm_retry policy) — an empty
-        # response with no reason given may be transient, unlike a refusal.
+        # Deliberately not `core.llm_call.call_llm`: that returns text through
+        # `llm_text`, which collapses "provider refused" and "came back empty"
+        # into one LLMResponseBlocked. Summarisation needs them apart — only the
+        # block check happens here, and the empty-summary ValueError below is
+        # retryable on purpose (see this method's llm_retry policy), because an
+        # empty response with no reason given may be transient unlike a refusal.
         raise_if_blocked(response)
         content = response.content if hasattr(response, "content") else str(response)
         if not content.strip():
@@ -143,9 +146,12 @@ class SummaryService:
         ]
         set_llm_service_context("summary")
         response = await llm.ainvoke(messages)
-        # Only the block check here. The empty-summary ValueError below is
-        # retryable on purpose (see this method's llm_retry policy) — an empty
-        # response with no reason given may be transient, unlike a refusal.
+        # Deliberately not `core.llm_call.call_llm`: that returns text through
+        # `llm_text`, which collapses "provider refused" and "came back empty"
+        # into one LLMResponseBlocked. Summarisation needs them apart — only the
+        # block check happens here, and the empty-summary ValueError below is
+        # retryable on purpose (see this method's llm_retry policy), because an
+        # empty response with no reason given may be transient unlike a refusal.
         raise_if_blocked(response)
         content = response.content if hasattr(response, "content") else str(response)
         if not content.strip():

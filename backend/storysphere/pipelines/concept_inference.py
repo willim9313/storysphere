@@ -20,10 +20,8 @@ import logging
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from storysphere.core.error_handling import llm_text
 from storysphere.core.language_detection import localize_prompt
-from storysphere.core.llm_call import llm_retry
-from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.llm_call import call_llm, llm_retry
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.pipelines.base import BasePipeline
@@ -177,7 +175,6 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
         passage_texts: list[str],
         language: str,
     ) -> list[Entity]:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         # Truncate to avoid exceeding context window
         combined = "\n\n---\n\n".join(passage_texts)
@@ -186,13 +183,13 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
 
         system_prompt = localize_prompt(_SYSTEM_PROMPT, language)
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=f"Passages:\n\n{combined}"),
-        ]
-        set_llm_service_context("analysis")
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=system_prompt,
+            human=f"Passages:\n\n{combined}",
+            service="analysis",
+            book_id=None,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, list):

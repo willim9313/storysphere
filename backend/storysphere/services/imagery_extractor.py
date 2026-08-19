@@ -16,9 +16,8 @@ from typing import Any
 
 import numpy as np
 
-from storysphere.core.error_handling import llm_text
 from storysphere.core.language_detection import localize_prompt
-from storysphere.core.llm_call import llm_retry
+from storysphere.core.llm_call import call_llm, llm_retry
 from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolCluster, SymbolOccurrence
@@ -280,9 +279,7 @@ class ImageryExtractor:
         chapter_number: int,
         language: str = "en",
     ) -> list[dict]:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
-        from storysphere.core.token_callback import set_llm_service_context  # noqa: PLC0415
 
         _lf_update_span(metadata={"chapter": chapter_number})
         prompt = localize_prompt(
@@ -290,13 +287,13 @@ class ImageryExtractor:
             language,
         )
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=text[:12000]),
-        ]
-        set_llm_service_context("imagery")
-        response = await llm.ainvoke(messages)
-        content = llm_text(response)
+        content = await call_llm(
+            llm,
+            system=prompt,
+            human=text[:12000],
+            service="imagery",
+            book_id=None,
+        )
         return self._parse_response(content)
 
     @staticmethod

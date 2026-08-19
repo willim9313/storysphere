@@ -19,15 +19,13 @@ What this module deliberately leaves alone:
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Any
+import asyncio
+from typing import Any
 
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from storysphere.core.error_handling import llm_text
 from storysphere.core.token_callback import set_llm_service_context
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 # Three attempts is the number every call site had independently arrived at.
 _ATTEMPTS = 3
@@ -82,7 +80,7 @@ async def call_llm(
     human: str,
     service: str,
     book_id: str | None,
-    on_context_set: Callable[[], None] | None = None,
+    timeout: float | None = None,
 ) -> str:
     """Send one system/human exchange to *llm* and return its text.
 
@@ -107,10 +105,9 @@ async def call_llm(
             value. Requiring the argument turns "someone forgot" into a
             signature error, and makes inheritance something a reader can
             see was chosen rather than omitted.
-        on_context_set: Run after the attribution context is set and before
-            the model is invoked.  A couple of call sites annotate the
-            active tracing span there; they need the ordering, and this
-            keeps the span work in their hands rather than this function's.
+        timeout: Seconds to wait before giving up, or ``None`` for no limit.
+            Three call sites wrap the invoke in ``asyncio.wait_for``; the
+            rest rely on the provider's own timeout.
 
     Returns:
         The response text, via ``llm_text`` so that a provider-side block
@@ -120,7 +117,6 @@ async def call_llm(
 
     messages = [SystemMessage(content=system), HumanMessage(content=human)]
     set_llm_service_context(service, book_id=book_id)
-    if on_context_set is not None:
-        on_context_set()
-    response = await llm.ainvoke(messages)
+    pending = llm.ainvoke(messages)
+    response = await (asyncio.wait_for(pending, timeout) if timeout else pending)
     return llm_text(response)
