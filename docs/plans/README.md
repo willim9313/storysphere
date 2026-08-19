@@ -93,3 +93,8 @@
 | 2026-08-17 | [Ingestion 後端效率與可讀性改善](./20260817-ingestion-refactor.md) |
 | 2026-08-18 | [持久化落點的孤兒資料清理](./20260818-data-store-orphan-cleanup.md) |
 | 2026-08-19 | [Token 用量頁：按書籍區分消耗](./20260819-token-usage-by-book.md) |
+| 2026-08-19 | [背景任務 runner 收斂與取消能力補齊](./20260819-background-task-runner.md) |
+| 2026-08-19 | [TaskStore 介面收成 async（拆掉 sync-over-async 橋接）](./20260819-task-store-async-interface.md) |
+| 2026-08-19 | [LLM 呼叫慣例收斂（retry / 語言 / token 歸屬 / 追蹤 shim）](./20260819-llm-call-convention-consolidation.md) |
+| 2026-08-19 | [無測試覆蓋的後端服務：補齊計畫](./20260819-untested-backend-services.md) |
+| 2026-08-19 | [後端結構性殘留清理](./20260819-backend-structural-residue.md) |
