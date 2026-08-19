@@ -41,6 +41,35 @@ from storysphere.services.analysis_models import (
 from datetime import datetime
 
 
+def poll_until_terminal(client, task_id: str, attempts: int = 20) -> dict:
+    """Drive a background task to completion and return its final status body.
+
+    Each request runs the app's event loop, which is what lets a task launched
+    by ``task_runner`` make progress under the synchronous ``TestClient``.
+    """
+    body: dict = {}
+    for _ in range(attempts):
+        body = client.get(f"/api/v1/tasks/{task_id}/status").json()
+        if body.get("status") in ("done", "error"):
+            return body
+    raise AssertionError(f"task {task_id} never settled: {body}")
+
+
+def hanging_call():
+    """A stand-in for an awaited service call that never returns.
+
+    Lets a test observe a task while it is still running — needed to check that
+    cancellation reaches it, since a mocked service otherwise finishes before
+    the next request is made.
+    """
+    import asyncio
+
+    async def _never(*_args, **_kwargs):
+        await asyncio.sleep(30)
+
+    return _never
+
+
 # ── Domain helpers ────────────────────────────────────────────────────────────
 
 def make_entity(name="Alice", eid="ent-alice", etype=EntityType.CHARACTER, **kw) -> Entity:
