@@ -2720,7 +2720,7 @@ interface MetricsSnapshot {
 ['narrative', bookId]                                       // #21k
 ['narrative', bookId, 'kernel-spine']                       // #21j
 ['narrative', bookId, 'temporal-coverage']                  // #21g
-['token-usage', range]                                      // #17
+['token-usage', range, bookId ?? null]                      // #17
 ['kg', 'status']                                            // #18a
 ['tasks', taskId]                                           // #8（polling）
 ```
