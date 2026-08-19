@@ -2,11 +2,23 @@
 
 Two backends are available, selected via ``Settings.task_store_backend``:
 
-- ``"memory"`` (default): in-process dict, fast but lost on restart / not
-  shared across worker processes.
-- ``"sqlite"``: aiosqlite-backed store, survives restarts and works safely
-  with multiple uvicorn workers (each worker gets its own connection but
-  writes to the same file via SQLite's serialised WAL mode).
+- ``"memory"``: in-process dict, fast but lost on restart / not shared across
+  worker processes.
+- ``"sqlite"`` (the default): survives restarts and works safely with multiple
+  uvicorn workers (each worker opens its own connection but writes to the same
+  file via SQLite's serialised WAL mode).
+
+Both backends are **synchronous**, and deliberately so.  The SQLite one used
+to wrap an async implementation (``aiosqlite`` behind ``_run()``), which meant
+that under a running event loop — i.e. always, under uvicorn — writes became
+fire-and-forget and ``get()`` returned ``None`` unconditionally.  A single-row
+operation on a local SQLite file takes tens of microseconds, so doing it
+inline costs less than the machinery needed to avoid it; that is the same
+trade ``MemoryTaskStore`` makes with its ``threading.Lock``.
+
+The ``_async_*`` methods and the module-level ``get_task`` / ``list_tasks``
+helpers are kept as thin awaitable wrappers so router code reads naturally,
+not because anything underneath needs awaiting.
 
 Usage::
 
@@ -19,7 +31,6 @@ Usage::
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 import threading
@@ -196,55 +207,44 @@ CREATE TABLE IF NOT EXISTS task_murmur_events (
 
 
 class SQLiteTaskStore:
-    """Async SQLite-backed store. Works across multiple uvicorn workers."""
+    """SQLite-backed store. Works across multiple uvicorn workers."""
 
     def __init__(self, db_path: str = "./var/tasks.db") -> None:
         self._db_path = db_path
         Path(db_path).parent.mkdir(parents=True, exist_ok=True)
         self._initialised = False
-        self._init_lock = asyncio.Lock()
+        self._init_lock = threading.Lock()
 
-    async def _ensure_init(self) -> None:
+    def _connect(self):
+        import sqlite3  # noqa: PLC0415
+
+        return sqlite3.connect(self._db_path)
+
+    def _ensure_init(self) -> None:
         if self._initialised:
             return
-        async with self._init_lock:
+        with self._init_lock:
             if self._initialised:
                 return
-            import aiosqlite  # noqa: PLC0415
-            async with aiosqlite.connect(self._db_path) as db:
-                await db.execute("PRAGMA journal_mode=WAL")
-                await db.execute(_CREATE_TABLE)
-                await db.execute(_CREATE_MURMUR_TABLE)
-                # Migrate existing DBs that lack the created_at column
-                try:
-                    await db.execute(_ADD_CREATED_AT)
-                except Exception:
-                    pass  # column already exists
-                try:
-                    await db.execute(_ADD_SUB_PROGRESS)
-                except Exception:
-                    pass  # column already exists
-                try:
-                    await db.execute(_ADD_SUB_TOTAL)
-                except Exception:
-                    pass  # column already exists
-                try:
-                    await db.execute(_ADD_SUB_STAGE)
-                except Exception:
-                    pass  # column already exists
-                try:
-                    await db.execute(_ADD_KIND)
-                except Exception:
-                    pass  # column already exists
-                try:
-                    await db.execute(_ADD_TITLE)
-                except Exception:
-                    pass  # column already exists
-                try:
-                    await db.execute(_ADD_STEP_KEY)
-                except Exception:
-                    pass  # column already exists
-                await db.commit()
+            with self._connect() as db:
+                db.execute("PRAGMA journal_mode=WAL")
+                db.execute(_CREATE_TABLE)
+                db.execute(_CREATE_MURMUR_TABLE)
+                # Migrate existing DBs that predate a column.
+                for migration in (
+                    _ADD_CREATED_AT,
+                    _ADD_SUB_PROGRESS,
+                    _ADD_SUB_TOTAL,
+                    _ADD_SUB_STAGE,
+                    _ADD_KIND,
+                    _ADD_TITLE,
+                    _ADD_STEP_KEY,
+                ):
+                    try:
+                        db.execute(migration)
+                    except Exception:
+                        pass  # column already exists
+                db.commit()
             self._initialised = True
 
     async def cleanup(self, older_than_days: int = 30) -> int:
@@ -252,12 +252,10 @@ class SQLiteTaskStore:
 
         Returns the number of rows deleted.
         """
-        import aiosqlite  # noqa: PLC0415
-
-        await self._ensure_init()
-        async with aiosqlite.connect(self._db_path) as db:
+        self._ensure_init()
+        with self._connect() as db:
             # Cascade delete murmur events for old tasks in the same transaction
-            await db.execute(
+            db.execute(
                 """
                 DELETE FROM task_murmur_events
                 WHERE task_id IN (
@@ -269,7 +267,7 @@ class SQLiteTaskStore:
                 """,
                 (f"-{older_than_days}",),
             )
-            cursor = await db.execute(
+            cursor = db.execute(
                 """
                 DELETE FROM tasks
                 WHERE status IN ('done', 'error')
@@ -278,36 +276,27 @@ class SQLiteTaskStore:
                 """,
                 (f"-{older_than_days}",),
             )
-            await db.commit()
+            db.commit()
             deleted = cursor.rowcount
         if deleted:
             logger.info("TaskStore cleanup: removed %d tasks older than %d days", deleted, older_than_days)
         return deleted
 
-    async def _execute(self, sql: str, params: tuple = ()) -> None:
-        import aiosqlite  # noqa: PLC0415
-        await self._ensure_init()
-        async with aiosqlite.connect(self._db_path) as db:
-            await db.execute(sql, params)
-            await db.commit()
+    def _execute(self, sql: str, params: tuple = ()) -> None:
+        self._ensure_init()
+        with self._connect() as db:
+            db.execute(sql, params)
+            db.commit()
 
-    async def _fetchone(self, sql: str, params: tuple = ()) -> tuple | None:
-        import aiosqlite  # noqa: PLC0415
-        await self._ensure_init()
-        async with aiosqlite.connect(self._db_path) as db:
-            async with db.execute(sql, params) as cursor:
-                return await cursor.fetchone()
+    def _fetchone(self, sql: str, params: tuple = ()) -> tuple | None:
+        self._ensure_init()
+        with self._connect() as db:
+            return db.execute(sql, params).fetchone()
 
-    def _run(self, coro):
-        """Run an async method from sync context (background tasks call sync methods)."""
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.ensure_future(coro)
-            else:
-                loop.run_until_complete(coro)
-        except RuntimeError:
-            asyncio.run(coro)
+    def _fetchall(self, sql: str, params: tuple = ()) -> list[tuple]:
+        self._ensure_init()
+        with self._connect() as db:
+            return db.execute(sql, params).fetchall()
 
     # ── Public sync interface (mirrors MemoryTaskStore) ───────────────────────
 
@@ -318,25 +307,21 @@ class SQLiteTaskStore:
         kind: str | None = None,
         title: str | None = None,
     ) -> TaskStatus:
-        self._run(self._execute(
+        self._execute(
             "INSERT OR IGNORE INTO tasks (task_id, status, kind, title) "
             "VALUES (?, 'pending', ?, ?)",
             (task_id, kind, title),
-        ))
+        )
         return TaskStatus(
             task_id=task_id, status="pending", kind=kind, title=title
         )
 
     def get(self, task_id: str) -> TaskStatus | None:
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                # Can't block — schedule and return None (caller should await)
-                _future = asyncio.ensure_future(self._async_get(task_id))  # fire-and-forget
-                return None  # polling will pick it up shortly
-            return loop.run_until_complete(self._async_get(task_id))
-        except RuntimeError:
-            return asyncio.run(self._async_get(task_id))
+        row = self._fetchone(
+            f"SELECT {self._SELECT_COLS} FROM tasks WHERE task_id = ?",
+            (task_id,),
+        )
+        return self._row_to_task(row) if row else None
 
     _SELECT_COLS = (
         "task_id, status, progress, stage, sub_progress, sub_total, "
@@ -362,70 +347,52 @@ class SQLiteTaskStore:
         )
 
     async def _async_get(self, task_id: str) -> TaskStatus | None:
-        row = await self._fetchone(
-            f"SELECT {self._SELECT_COLS} FROM tasks WHERE task_id = ?",
-            (task_id,),
-        )
-        if row is None:
-            return None
-        return self._row_to_task(row)
+        """Awaitable alias for :meth:`get`, kept for router-side readability."""
+        return self.get(task_id)
 
     async def _async_list(self, *, recent_limit: int = 20) -> list[TaskStatus]:
+        """Awaitable alias for :meth:`list`, kept for router-side readability."""
+        return self.list(recent_limit=recent_limit)
+
+    def list(self, *, recent_limit: int = 20) -> list[TaskStatus]:
         """All non-terminal tasks + recent terminal tasks, newest-first."""
-        import aiosqlite  # noqa: PLC0415
-        await self._ensure_init()
-        async with aiosqlite.connect(self._db_path) as db:
-            async with db.execute(
-                f"SELECT {self._SELECT_COLS} FROM tasks "
-                "WHERE status NOT IN ('done', 'error') "
-                "ORDER BY created_at DESC, rowid DESC"
-            ) as cursor:
-                active = await cursor.fetchall()
-            async with db.execute(
-                f"SELECT {self._SELECT_COLS} FROM tasks "
-                "WHERE status IN ('done', 'error') "
-                "ORDER BY created_at DESC, rowid DESC LIMIT ?",
-                (recent_limit,),
-            ) as cursor:
-                recent = await cursor.fetchall()
+        active = self._fetchall(
+            f"SELECT {self._SELECT_COLS} FROM tasks "
+            "WHERE status NOT IN ('done', 'error') "
+            "ORDER BY created_at DESC, rowid DESC"
+        )
+        recent = self._fetchall(
+            f"SELECT {self._SELECT_COLS} FROM tasks "
+            "WHERE status IN ('done', 'error') "
+            "ORDER BY created_at DESC, rowid DESC LIMIT ?",
+            (recent_limit,),
+        )
         return [self._row_to_task(r) for r in active] + [
             self._row_to_task(r) for r in recent
         ]
 
-    def list(self, *, recent_limit: int = 20) -> list[TaskStatus]:
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.ensure_future(self._async_list(recent_limit=recent_limit))
-                return []  # use async variant in router code
-            return loop.run_until_complete(
-                self._async_list(recent_limit=recent_limit)
-            )
-        except RuntimeError:
-            return asyncio.run(self._async_list(recent_limit=recent_limit))
-
     def set_awaiting_review(self, task_id: str, book_id: str) -> None:
-        self._run(self._execute(
+        self._execute(
             "UPDATE tasks SET status = 'awaiting_review', stage = '章節審閱', result = ? WHERE task_id = ?",
             (json.dumps({"bookId": book_id}), task_id),
-        ))
+        )
 
     def set_running(self, task_id: str) -> None:
-        self._run(self._execute(
+        self._execute(
             "UPDATE tasks SET status = 'running' WHERE task_id = ?", (task_id,)
-        ))
+        )
 
     def set_completed(self, task_id: str, result: Any) -> None:
-        self._run(self._execute(
+        self._execute(
             "UPDATE tasks SET status = 'done', progress = 100, stage = '完成', result = ? WHERE task_id = ?",
             (json.dumps(result), task_id),
-        ))
+        )
 
     def set_failed(self, task_id: str, error: str) -> None:
-        self._run(self._execute(
+        self._execute(
             "UPDATE tasks SET status = 'error', stage = '失敗', error = ? WHERE task_id = ?",
             (error, task_id),
-        ))
+        )
 
     def set_progress(
         self,
@@ -438,22 +405,21 @@ class SQLiteTaskStore:
         sub_total: int | None = None,
         sub_stage: str | None = None,
     ) -> None:
-        self._run(self._execute(
+        self._execute(
             "UPDATE tasks SET progress = ?, stage = ?, step_key = ?, sub_progress = ?, sub_total = ?, sub_stage = ? WHERE task_id = ?",
             (progress, stage, step_key, sub_progress, sub_total, sub_stage, task_id),
-        ))
+        )
 
     async def append_murmur(self, task_id: str, event: MurmurEvent) -> None:
-        import aiosqlite  # noqa: PLC0415
-        await self._ensure_init()
-        async with aiosqlite.connect(self._db_path) as db:
+        self._ensure_init()
+        with self._connect() as db:
             # Atomically assign seq = MAX(seq)+1 within the same transaction
-            row = await (await db.execute(
+            row = db.execute(
                 "SELECT COALESCE(MAX(seq) + 1, 0) FROM task_murmur_events WHERE task_id = ?",
                 (task_id,),
-            )).fetchone()
+            ).fetchone()
             seq = row[0] if row else 0
-            await db.execute(
+            db.execute(
                 "INSERT INTO task_murmur_events (task_id, seq, step_key, type, content, meta, raw_content) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     task_id,
@@ -465,17 +431,13 @@ class SQLiteTaskStore:
                     event.raw_content,
                 ),
             )
-            await db.commit()
+            db.commit()
 
     async def get_murmur_events(self, task_id: str, after: int = 0) -> list[MurmurEvent]:
-        import aiosqlite  # noqa: PLC0415
-        await self._ensure_init()
-        async with aiosqlite.connect(self._db_path) as db:
-            async with db.execute(
-                "SELECT seq, step_key, type, content, meta, raw_content FROM task_murmur_events WHERE task_id = ? AND seq >= ? ORDER BY seq",
-                (task_id, after),
-            ) as cursor:
-                rows = await cursor.fetchall()
+        rows = self._fetchall(
+            "SELECT seq, step_key, type, content, meta, raw_content FROM task_murmur_events WHERE task_id = ? AND seq >= ? ORDER BY seq",
+            (task_id, after),
+        )
         return [
             MurmurEvent(
                 seq=row[0],
@@ -489,21 +451,15 @@ class SQLiteTaskStore:
         ]
 
     async def _async_get_task_id_by_book_id(self, book_id: str) -> str | None:
-        row = await self._fetchone(
+        """Awaitable alias for :meth:`get_task_id_by_book_id`."""
+        return self.get_task_id_by_book_id(book_id)
+
+    def get_task_id_by_book_id(self, book_id: str) -> str | None:
+        row = self._fetchone(
             "SELECT task_id FROM tasks WHERE json_extract(result, '$.bookId') = ? LIMIT 1",
             (book_id,),
         )
         return row[0] if row else None
-
-    def get_task_id_by_book_id(self, book_id: str) -> str | None:
-        """Sync interface — prefer the module-level async helper in router code."""
-        try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                return None  # use async variant
-            return loop.run_until_complete(self._async_get_task_id_by_book_id(book_id))
-        except RuntimeError:
-            return asyncio.run(self._async_get_task_id_by_book_id(book_id))
 
 
 # ── Async-native GET for router use ──────────────────────────────────────────
@@ -530,26 +486,19 @@ async def get_task_id_by_book_id(book_id: str) -> str | None:
 
 
 async def set_task_running(task_id: str) -> None:
-    """Async-native set_running — use this in router handlers so the write commits
-    before the HTTP response is sent (avoids frontend seeing stale awaiting_review)."""
-    if isinstance(task_store, SQLiteTaskStore):
-        await task_store._execute(
-            "UPDATE tasks SET status = 'running' WHERE task_id = ?", (task_id,)
-        )
-    else:
-        task_store.set_running(task_id)
+    """Awaitable ``set_running`` for router handlers.
+
+    Used to bypass the fire-and-forget sync path so the write landed before the
+    HTTP response went out.  Writes are synchronous on both backends now, so
+    that guarantee holds everywhere and this is a plain alias — kept so the
+    call sites stay untouched.
+    """
+    task_store.set_running(task_id)
 
 
 async def set_task_failed(task_id: str, error: str) -> None:
-    """Async-native set_failed — use this in router handlers so the write commits
-    before the HTTP response is sent."""
-    if isinstance(task_store, SQLiteTaskStore):
-        await task_store._execute(
-            "UPDATE tasks SET status = 'error', stage = '失敗', error = ? WHERE task_id = ?",
-            (error, task_id),
-        )
-    else:
-        task_store.set_failed(task_id, error)
+    """Awaitable ``set_failed`` for router handlers. See :func:`set_task_running`."""
+    task_store.set_failed(task_id, error)
 
 
 # ── Process-level singleton ───────────────────────────────────────────────────
