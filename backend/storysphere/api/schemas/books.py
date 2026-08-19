@@ -210,15 +210,6 @@ class Segment(BaseModel):
     entity: SegmentEntity | None = None
 
 
-class ChunkResponse(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    chapter_id: str
-    order: int
-    content: str
-    keywords: list[str] = []
-    segments: list[Segment] = []
 
 
 # ── Graph ────────────────────────────────────────────────────────────────────
@@ -487,25 +478,8 @@ class BatchEventAnalysisRequest(BaseModel):
 # ── Entity chunks ────────────────────────────────────────────────────────────
 
 
-class EntityChunkItem(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    chapter_id: str
-    chapter_title: str | None = None
-    chapter_number: int
-    order: int
-    content: str
-    segments: list[Segment] = []
 
 
-class EntityChunksResponse(BaseModel):
-    model_config = _CAMEL
-
-    entity_id: str
-    entity_name: str
-    total: int
-    chunks: list[EntityChunkItem] = []
 
 
 # ── Task / misc ──────────────────────────────────────────────────────────────
