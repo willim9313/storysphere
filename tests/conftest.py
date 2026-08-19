@@ -44,7 +44,7 @@ def isolated_task_store(monkeypatch):
     """
     import storysphere.api.store as store_module
 
-    original = store_module.task_store
+    stores = (store_module.MemoryTaskStore, store_module.SQLiteTaskStore)
     fresh = store_module.MemoryTaskStore()
     monkeypatch.setattr(store_module, "task_store", fresh)
 
@@ -57,7 +57,16 @@ def isolated_task_store(monkeypatch):
         # are not installed and turns the whole suite into import errors.
         # A module-level ``from ... import task_store`` binding is in
         # ``__dict__``, which is all this needs to see.
-        if vars(module).get("task_store") is original:
+        #
+        # Matching on **type** rather than on "is the original singleton" is
+        # what makes this self-healing.  A router module first imported *during*
+        # a test — any test whose fixture calls ``create_app()`` — binds that
+        # test's store, and monkeypatch never learnt about it, so it keeps a
+        # dead store once the test ends.  An identity check would then skip it
+        # forever: the router would write to the stale store while ``get_task``
+        # read the current one, and the endpoint would answer 404 for a task it
+        # had just created.
+        if isinstance(vars(module).get("task_store"), stores):
             monkeypatch.setattr(module, "task_store", fresh)
 
     return fresh
