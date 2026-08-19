@@ -156,10 +156,19 @@ class MemoryTaskStore:
             return list(self._murmur.get(task_id, [])[after:])
 
     def get_task_id_by_book_id(self, book_id: str) -> str | None:
+        """The book's most recent task, or None.
+
+        Reverse insertion order rather than forward: a book processed more than
+        once has several tasks pointing at it, and both callers are asking a
+        present-tense question ("is it awaiting review *now*", "is ingestion
+        *still* running"), so the newest is the only useful answer.  Insertion
+        order tracks ``created_at``, which :meth:`create` stamps at insert.
+        """
         with self._lock:
-            for task_id, status in self._store.items():
-                if isinstance(status.result, dict) and status.result.get("bookId") == book_id:
-                    return task_id
+            items = list(self._store.items())
+        for task_id, status in reversed(items):
+            if isinstance(status.result, dict) and status.result.get("bookId") == book_id:
+                return task_id
         return None
 
 
@@ -455,8 +464,18 @@ class SQLiteTaskStore:
         return self.get_task_id_by_book_id(book_id)
 
     def get_task_id_by_book_id(self, book_id: str) -> str | None:
+        """The book's most recent task, or None.
+
+        ``LIMIT 1`` without ``ORDER BY`` left this to whichever row SQLite
+        reached first — in practice the oldest, which is the one answer both
+        callers must not get (see :meth:`MemoryTaskStore.get_task_id_by_book_id`).
+        ``created_at`` has second precision here, so ``rowid`` breaks ties for
+        tasks created within the same second; that is the ordering
+        :meth:`list` already uses.
+        """
         row = self._fetchone(
-            "SELECT task_id FROM tasks WHERE json_extract(result, '$.bookId') = ? LIMIT 1",
+            "SELECT task_id FROM tasks WHERE json_extract(result, '$.bookId') = ? "
+            "ORDER BY created_at DESC, rowid DESC LIMIT 1",
             (book_id,),
         )
         return row[0] if row else None
