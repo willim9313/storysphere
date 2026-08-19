@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
 from storysphere.domain.events import Event, EventType
 from storysphere.domain.narrative import HeroJourneyStage, NarrativeStructure
+
+from tests.api.conftest import hanging_call, poll_until_terminal
 
 
 def _kernel(eid: str, chapter: int, title: str = "Event") -> Event:
@@ -346,20 +347,6 @@ class TestUpdateReview:
 # ── Background tasks are cancellable ─────────────────────────────────────────
 
 
-def _poll_until_terminal(client, task_id: str, attempts: int = 20) -> dict:
-    """Poll the status endpoint until the task settles.
-
-    Each request drives the app's event loop, which is what lets the background
-    task make progress under TestClient.
-    """
-    body: dict = {}
-    for _ in range(attempts):
-        body = client.get(f"/api/v1/tasks/{task_id}/status").json()
-        if body["status"] in ("done", "error"):
-            return body
-    raise AssertionError(f"task {task_id} never settled: {body}")
-
-
 class TestCancellation:
     """The point of moving these runners onto ``task_runner``.
 
@@ -368,15 +355,6 @@ class TestCancellation:
     ``POST /tasks/:id/cancel`` could only ever answer 409 "not cancellable".
     """
 
-    @staticmethod
-    def _hang():
-        """An awaited call that never finishes, so the task is still running."""
-
-        async def _never(*_a, **_kw):
-            await asyncio.sleep(30)
-
-        return _never
-
     def _start_classify(self, client) -> str:
         client.mock_narrative.eep_coverage.return_value = (12, 38, 47)
         resp = client.post("/api/v1/narrative/classify", json={"document_id": "book-1"})
@@ -384,7 +362,7 @@ class TestCancellation:
         return resp.json()["taskId"]
 
     def test_running_task_can_be_cancelled(self, narrative_client):
-        narrative_client.mock_narrative.classify_from_eep.side_effect = self._hang()
+        narrative_client.mock_narrative.classify_from_eep.side_effect = hanging_call()
 
         task_id = self._start_classify(narrative_client)
 
@@ -392,12 +370,12 @@ class TestCancellation:
         assert resp.status_code == 204, "runner was not registered as cancellable"
 
     def test_cancelled_task_ends_up_failed(self, narrative_client):
-        narrative_client.mock_narrative.classify_from_eep.side_effect = self._hang()
+        narrative_client.mock_narrative.classify_from_eep.side_effect = hanging_call()
 
         task_id = self._start_classify(narrative_client)
         narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
 
-        status = _poll_until_terminal(narrative_client, task_id)
+        status = poll_until_terminal(narrative_client, task_id)
         assert status["status"] == "error"
         assert status["error"] == "cancelled"
 
@@ -405,7 +383,7 @@ class TestCancellation:
         """The migration must not cost the ordinary path."""
         task_id = self._start_classify(narrative_client)
 
-        status = _poll_until_terminal(narrative_client, task_id)
+        status = poll_until_terminal(narrative_client, task_id)
         assert status["status"] == "done"
         assert status["result"]["document_id"] == "book-1"
 
@@ -416,7 +394,7 @@ class TestCancellation:
         resp = narrative_client.post("/api/v1/narrative/classify", json={"document_id": "book-1"})
         task_id = resp.json()["taskId"]
 
-        status = _poll_until_terminal(narrative_client, task_id)
+        status = poll_until_terminal(narrative_client, task_id)
         assert status["status"] == "error"
         assert status["error"] == "KG 掛了"
 

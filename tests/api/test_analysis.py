@@ -10,6 +10,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi.testclient import TestClient
 
+from tests.api.conftest import hanging_call, poll_until_terminal
 from tests.conftest import attach_get_as
 
 sys.path.insert(0, "src")
@@ -627,3 +628,52 @@ class TestEventSourcePassages:
         resp = source_client.get("/api/v1/books/doc-1/events/evt-1/source")
         assert resp.status_code == 200
         assert resp.json()["passages"] == []
+
+
+# ── Background tasks are cancellable ─────────────────────────────────────────
+
+
+class TestCancellation:
+    """Deep character/event analysis are single LLM-heavy runs.
+
+    Before the migration both went through ``BackgroundTasks.add_task``, which
+    hands back no task handle, so ``POST /tasks/:id/cancel`` could only answer
+    409 "not cancellable".
+    """
+
+    def _start_character(self, client) -> str:
+        resp = client.post("/api/v1/analysis/character", json={
+            "entity_name": "Alice",
+            "document_id": "doc-1",
+            "archetype_frameworks": ["jung"],
+            "language": "en",
+        })
+        assert resp.status_code == 202
+        return resp.json()["taskId"]
+
+    def test_running_analysis_can_be_cancelled(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = hanging_call()
+
+        task_id = self._start_character(client)
+
+        resp = client.post(f"/api/v1/tasks/{task_id}/cancel")
+        assert resp.status_code == 204, "runner was not registered as cancellable"
+
+    def test_cancelled_analysis_ends_up_failed(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = hanging_call()
+
+        task_id = self._start_character(client)
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+        status = poll_until_terminal(client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "cancelled"
+
+    def test_failure_reaches_the_task(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("LLM 配額用盡")
+
+        task_id = self._start_character(client)
+
+        status = poll_until_terminal(client, task_id)
+        assert status["status"] == "error"
+        assert status["error"] == "LLM 配額用盡"
