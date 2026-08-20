@@ -934,3 +934,59 @@ dd129f3d 是併發驗證的實驗書，同一步驟被反覆跑才中了三次�
 ---
 
 **完成**: PR #62。四處補 `set_llm_service_context`、narrative 三處補 `book_id`，全部設在**公開進入點**（四者本來就都收 `document_id`，原記「需從 router 往下穿、會動公開簽章」不成立）。service bucket 依裁示併入 `analysis`，前端零改動。另加 AST 掃描測試，要求每個含 `ainvoke` 的模組都設 context —— 該測試當場找出人工清點漏掉的第八處（`book_ingestion.py` 的 `graph.ainvoke`，查證為 LangGraph 非 LLM，已豁免）。
+
+## B-083 pypdf 在 CJK 字中插空白，逐字元比對因此漏數 ✅ 完成（2026-08-20）
+
+**背景**: 2026-08-20 修 B-079 時查出。原本把一筆定位不到的意象判成 LLM 幻覺，
+用戶指出「意象都是從文本拉出來的，不可能不存在」才回頭查真因。
+
+`loader.py:104` 的 `pypdf` `page.extract_text()` 依字形座標推斷空白，CJK 遇到行末
+斷字就把一個詞切成兩半 —— 段落實際存的是 `走下了礁 石`，不是 `走下了礁石`。
+
+**盛行率**（「中文字 + 空白 + 中文字」的段落佔比）:
+
+| 書 | 來源 | 佔比 |
+|---|---|---|
+| 3pigredhood | pdf | **85.7%** |
+| Age of Fire | pdf | **71.4%** |
+| 名字的潮汐 | pdf | **66.0%** |
+| 大唐雙龍傳 | txt | 12.1% |
+
+**已修的**: 意象定位（B-079）已在 `symbol_discovery/pipeline.py` 加 `_squash()`，
+比對前兩邊都去空白。
+
+**未修的 —— 本條目**: `knowledge_graph/pipeline.py:161` 的
+`chapter_text_lower.count(entity.name.lower())` 是同一種逐字元比對。實測 470 個實體
+中 **41 個（8.7%）漏數**，累計漏掉 48 次：
+
+```
+薩爾瑪雷納   15 → 18        退名之潮   6 → 10   （漏 40%）
+讀鹽人      22 → 24        母親      27 → 29
+```
+
+**為什麼值得修**: `mention_count` 不只是顯示用的數字。
+
+| 消費端 | 用途 | 漏數的後果 |
+|---|---|---|
+| `entity_linker.py:96` | `max(group, key=mention_count)` 選**正規名稱** | 可能翻轉哪個字面成為正式名 |
+| `faction_service.py:136` | 派系權重 | 權重偏移 |
+| `book_graph.py:93` | 圖譜節點大小（`chunk_count`） | 節點大小失真 |
+| `AnalysisListItems.tsx` | 角色列表的提及長條與數字 | 使用者直接看到 |
+
+**待辦內容**:
+- 決定正規化的落點：在 `pipeline.py` 就地 squash，或在 loader 端就把字中空白修掉
+  （後者影響所有下游，但會改動已入庫文本的語意，且無法回溯既有書）
+- 若採前者，`symbol_discovery/pipeline.py` 的 `_squash()` 可抽成共用 helper
+- 英文書要留意：去空白會讓兩個相鄰單字接成一個假命中（中文無此問題）
+
+**觸發時機**: 下次動到 KG 實體抽取或 EntityLinker 時。
+
+---
+
+**完成**: PR #64。新增 `core/utils/text_matching.squash_spacing()`，`mention_count` 與意象定位共用（後者原本在 `symbol_discovery` 就地寫了一份，一併收斂）。
+
+規劃時列的「英文書要留意去空白會接出假命中」促使一度打算只去 CJK 之間的空白，**但那是錯的**：書裡的版權頁存的是 `霧  港  文  化 　 F O G  H A R B O R  P R E S S`，拉丁文一樣被逐字元加空白，只去 CJK 空白的話 `Fog Harbor Press` 這種實體永遠對不上。兩種算法在 470 個實體上結果完全相同（41 vs 41），測量分不出高下，故依證據選全部去空白；突變測試把這個決策釘住（改成只去 CJK 空白，拉丁文那項即紅）。代價（`"these ashes"` 含有 `"sea"`）寫成測試，讓它是已知取捨而非日後的意外。
+
+小資料實跑（真實章節 + 真實 pipeline，只換掉 LLM 抽取）：ch9 礁石 **0 → 1**（確實出現在該章卻被算成零次）、ch8 瑪蒂爾德 5 → 6、ch10 瑪蒂爾德 3 → 4。
+
+既有資料不寫遷移腳本 —— `mention_count` 是抽取階段算的，重跑 `rerun/knowledge-graph` 即重算，而該路徑已於 PR #60 修成冪等。
