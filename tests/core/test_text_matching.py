@@ -22,8 +22,21 @@ class TestSquashSpacing:
         assert "霧港文化" in squashed
         assert "FOGHARBORPRESS" in squashed
 
-    def test_newlines_and_tabs_go_too(self):
-        assert squash_spacing("a\nb\tc") == "abc"
+    def test_tabs_go_but_newlines_stay(self):
+        """A newline is a structural seam — a chapter title against its body, or
+        one paragraph against the next once ``"\n".join`` builds the chapter
+        text. Squashing it would let two paragraphs fabricate a name across the
+        join. A word broken by ``pypdf`` always arrives as a space, never a
+        newline, so keeping the newline costs nothing."""
+        assert squash_spacing("a\tb") == "ab"
+        assert squash_spacing("a\nb") == "a\nb"
+
+    def test_a_name_cannot_be_fabricated_across_a_paragraph_join(self):
+        """The seam this guards: ``"…父母" + "\n" + "親戚…"`` must not read as
+        「母親」."""
+        chapter_text = "\n".join(["她想起父母", "親戚都來了"])
+
+        assert "母親" not in squash_spacing(chapter_text)
 
     def test_ideographic_space_is_whitespace(self):
         """U+3000 is what separates columns in the corpus, and ``\\s`` covers it."""

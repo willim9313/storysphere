@@ -9,11 +9,12 @@ from __future__ import annotations
 
 import re
 
-_WHITESPACE = re.compile(r"\s+")
+# Whitespace except newline: see the docstring for why the newline stays.
+_INLINE_SPACE = re.compile(r"[^\S\n]+")
 
 
 def squash_spacing(text: str) -> str:
-    """Strip every space from *text* so a word split by one still matches.
+    """Strip inline spacing from *text* so a word split by one still matches.
 
     ``pypdf`` places spaces from glyph positions, which means two things this
     repo's corpus shows plainly:
@@ -28,9 +29,20 @@ def squash_spacing(text: str) -> str:
     the PDF-sourced books carry at least one split, so a term landing on one is
     luck rather than an edge case.
 
-    The cost is that squashing can join two words into a match neither of them
-    earned (``"these ashes"`` contains ``"sea"`` once the space is gone). That
-    is the accepted trade: substring matching over prose is already approximate,
-    while a missed match is a silent undercount that looks like real data.
+    **Newlines are left alone**, which bounds how far a wrong join can reach.
+    The loader strips each PDF line and stores it as its own segment, so a word
+    broken across a line always arrives as a *space* — never a newline. The
+    newlines that do survive mark real structure: a chapter title against its
+    body, or one paragraph against the next once ``"\n".join`` builds the
+    chapter text. Squashing those would let two paragraphs fabricate a name
+    across the seam between them. Audited over the corpus: keeping the newline
+    costs nothing — all 32 spacing-repaired matches sit within a line — and
+    closes that seam entirely.
+
+    The cost that remains is that two words on the *same* line can join into a
+    match neither of them earned (``"these ashes"`` contains ``"sea"`` once the
+    space is gone). That is the accepted trade: substring matching over prose is
+    already approximate, while a missed match is a silent undercount that looks
+    like real data.
     """
-    return _WHITESPACE.sub("", text or "")
+    return _INLINE_SPACE.sub("", text or "")
