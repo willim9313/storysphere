@@ -26,7 +26,10 @@ from storysphere.domain.documents import (
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event, EventType
 from storysphere.domain.relations import Relation, RelationType
-from storysphere.pipelines.knowledge_graph.pipeline import KnowledgeGraphPipeline
+from storysphere.pipelines.knowledge_graph.pipeline import (
+    KGExtractionResult,
+    KnowledgeGraphPipeline,
+)
 
 # ── fixtures / builders ──────────────────────────────────────────────────────
 
@@ -405,6 +408,111 @@ class TestPersistence:
         result = await pipeline.run(doc)
 
         assert len(result.entities) == 1
+
+
+class TestRerunIdempotency:
+    """B-082 — a second run must replace the first, not stack on top of it.
+
+    Every ``add_*`` keys on the object's own id and that id is a fresh
+    ``uuid4`` per extraction, so nothing downstream can tell a re-run's output
+    apart from the previous run's. The only thing standing between a re-run and
+    a doubled graph is the clear at the top of ``_persist_to_kg``.
+    """
+
+    @pytest.mark.asyncio
+    async def test_clear_happens_before_any_write(self):
+        doc = _doc([_chapter(1, ["Alice."])])
+        kg = AsyncMock()
+        pipeline = _make_pipeline(
+            entities_by_call=[[_entity("Alice", 1)]],
+            relations_events=[([], [])],
+            kg_service=kg,
+        )
+
+        await pipeline.run(doc)
+
+        names = [c[0] for c in kg.mock_calls]
+        assert "remove_by_document" in names
+        # Ordering is the whole point: clearing after the writes would delete
+        # what we just wrote.
+        assert names.index("remove_by_document") < names.index("add_entity")
+        kg.remove_by_document.assert_awaited_once_with("doc-kg")
+
+    @pytest.mark.asyncio
+    async def test_no_document_id_means_no_clear(self):
+        """``_persist_to_kg`` is reachable with ``document_id=None``.
+
+        Clearing on a falsy id would target every document at once, so the
+        guard is load-bearing rather than defensive.
+        """
+        kg = AsyncMock()
+        pipeline = _make_pipeline(kg_service=kg)
+
+        await pipeline._persist_to_kg(
+            KGExtractionResult(entities=[_entity("Alice", 1)]), document_id=None
+        )
+
+        kg.remove_by_document.assert_not_awaited()
+        assert kg.add_entity.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_second_run_replaces_rather_than_appends(self, tmp_path):
+        """The regression itself, against a real ``KGService``."""
+        from storysphere.services.kg_service import KGService
+
+        kg = KGService(persistence_path=str(tmp_path / "kg.json"))
+        doc = _doc([_chapter(1, ["Alice."])])
+
+        async def _run_once():
+            # Fresh objects each run — same content, new uuid4 ids, exactly as a
+            # real re-extraction produces.
+            alice = _entity("Alice", 1)
+            evt = Event(
+                title="Alice arrives", event_type=EventType.PLOT,
+                description="", chapter=1, participants=[],
+            )
+            await _make_pipeline(
+                entities_by_call=[[alice]],
+                linked=[alice],
+                relations_events=[([], [evt])],
+                kg_service=kg,
+            ).run(doc)
+
+        await _run_once()
+        after_first = (kg.entity_count, kg.relation_count, kg.event_count)
+
+        await _run_once()
+
+        assert (kg.entity_count, kg.relation_count, kg.event_count) == after_first
+
+    @pytest.mark.asyncio
+    async def test_rerunning_one_book_leaves_another_alone(self, tmp_path):
+        from storysphere.services.kg_service import KGService
+
+        kg = KGService(persistence_path=str(tmp_path / "kg.json"))
+
+        other = _entity("Bob", 1)
+        other.document_id = "other-book"
+        await kg.add_entity(other)
+        await kg.add_event(
+            Event(
+                title="Bob leaves", event_type=EventType.PLOT, description="",
+                chapter=1, participants=[], document_id="other-book",
+            )
+        )
+
+        doc = _doc([_chapter(1, ["Alice."])])
+        for _ in range(2):
+            alice = _entity("Alice", 1)
+            await _make_pipeline(
+                entities_by_call=[[alice]], linked=[alice],
+                relations_events=[([], [])], kg_service=kg,
+            ).run(doc)
+
+        survivors = [e for e in kg._entities.values() if e.document_id == "other-book"]
+        assert len(survivors) == 1
+        assert len(await kg.get_events(document_id="other-book")) == 1
+        assert len([e for e in kg._entities.values() if e.document_id == "doc-kg"]) == 1
 
 
 class TestCallbacks:

@@ -267,6 +267,23 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
     async def _persist_to_kg(
         self, result: KGExtractionResult, document_id: str | None = None
     ) -> None:
+        """Write the extraction to the KG, replacing any previous run's output.
+
+        The clear is what makes a re-run idempotent. ``add_entity`` /
+        ``add_relation`` / ``add_event`` all key on the object's own id, and
+        that id is a fresh ``uuid4`` every extraction — so without this, a
+        second run appends a whole second graph instead of replacing the first.
+        Symbol discovery has had the same ``delete_by_book()`` since it was
+        written; this is the KG side catching up (B-082).
+
+        On a first ingestion the clear is a no-op.
+        """
+        if document_id:
+            removed = await self._kg_service.remove_by_document(document_id)
+            logger.info(
+                "KGPipeline cleared prior graph for %s: %s", document_id, removed
+            )
+
         for entity in result.entities:
             if document_id:
                 entity.document_id = document_id
