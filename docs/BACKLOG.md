@@ -188,14 +188,19 @@ FOO=       # note   ->  '# note'      ← 註解變成值
 `get_with_local_fallback()` 回傳 `ChatGoogleGenerativeAI` 且 `fallbacks=[]`。
 原本「全數失敗時哪個 exception 勝出」的疑問隨之消失 —— 已無 fallback 層可污染錯誤。
 
-**剩餘待辦**:
-- `Settings` 上另有一組 `has_gemini` / `has_openai` / `has_anthropic` 屬性仍用裸
-  `bool()`，未套用 placeholder 判斷。目前僅測試的 skip 條件與 `main.py:185` 使用
-  （後者已由 validator 修好），沒有實際危害。但「provider 是否可用」有兩套判斷是
-  漂移的溫床，值得收斂成一處 —— 本輪刻意未動，避免超出範圍
+**~~剩餘待辦~~ 已完成（2026-08-20 複查）**:
 
-**觸發時機**: ~~立即~~ 主體已完成。剩餘的收斂項觸發於下次動到 `llm_client` 或
-`settings` 時。
+原記「`Settings.has_*` 仍用裸 `bool()`，兩套判斷是漂移的溫床」—— 該收斂**已經落地**，
+只是沒回頭更新本條目。現況：
+
+- `config/settings.py:14` 的 `is_configured()` 是唯一判準，四個 `has_*` 屬性全部走它
+- `core/llm_client.py:152` 的 `_has_key()` 已改為純委派 `Settings.has_*`，
+  docstring 直接寫「Delegates to Settings so there is one answer, not two... They did, until B-075.」
+- `.env` 的 `LOCAL_LLM_MODEL=` 已是乾淨空值，行內註解清除
+
+實測載入：`local_llm_model=''`、`has_local_llm=False`、僅 `has_gemini=True`。
+
+**本條目結案。**
 
 ---
 
@@ -251,19 +256,116 @@ paragraph／chunk 參照，段落層級目前做不到。
 詮釋因此可能建立在錯誤段落上。與 B-074（前置頁污染）是不同的問題：那是「不該送的送了」，
 這是「送的內容根本對應錯」。
 
-**待辦內容**:
-- 釐清是 `SymbolOccurrence.paragraph_id` 對應錯，還是 `assemble_sep` 的
-  `paragraph_by_id` 查表落空後靜默填了別的段落
-- 確認是否與直排標題／頁碼雜訊造成的段落切分有關（同一批書上 `#22c` 也踩過）
-- 加一個組裝期的健全性檢查：`term not in paragraph_text and term not in context_window`
-  時至少要 log，而不是靜默送出
+**根因已查明（2026-08-20）**: 上面列的兩個候選**都不是**。問題在抽取端，不在組裝端 ——
+`paragraph_id` 查無此段的筆數是 **0**，`chapter_number` 的正確率是 **142/142**。
 
-**觸發時機**: 下次動到 imagery 抽取或 ingestion 段落切分時。
+`pipelines/symbol_discovery/pipeline.py:159` 的 `_find_paragraph_id` 拿 LLM 生成的
+`context_sentence` 去跟段落文字做子字串比對，**比對失敗就靜默退回該章第一段**
+（`_find_position` 同型，退回 `0`）。而 `context_sentence` 從來就沒有「必須逐字引用」的約束 ——
+142 筆裡有 25 筆連 `term` 本身都不含，模型是在轉述。
+
+實測 22/142（15.5%）當初走了那個 fallback 分支；對不上的 28 筆只有 19 個相異
+`paragraph_id`，因為不同意象一起掉進同一個「第一段」。
+
+**修法與實測可行性**: 改用「詞優先、句子作 tiebreaker」後正確率由 80.3% → 99.3%
+（83 筆唯一命中、44 筆需 tiebreaker、14 筆靠別名、1 筆確為 LLM 幻覺）。
+完整規劃見 [`docs/plans/20260820-imagery-occurrence-anchoring.md`](plans/20260820-imagery-occurrence-anchoring.md)。
+
+**觸發時機**: 已排入實作（2026-08-20）。
 
 ---
 
 
-#### B-081 三個服務完全沒有 token 歸屬呼叫
+#### B-082 重跑 KG 抽取會累積重複的實體 / 關係 / 事件
+
+**背景**: 2026-08-20 複查後端缺陷時，從 `var/knowledge_graph.json` 的實測資料反推出來的。
+
+**症狀**（四本書實測）:
+
+| 書 | entities | 相異 | events | 相異 | edges | 相異 |
+|---|---|---|---|---|---|---|
+| **dd129f3d** Age of Fire (併發驗證) | **195** | 73 | **101** | 67 | **326** | 168 |
+| 1a1a7266 大唐雙龍傳 | 202 | 202 | 62 | 62 | 224 | 222 |
+| 8f18dd59 名字的潮汐 | 39 | 39 | 47 | 47 | 84 | 84 |
+| be6b8d99 3pigredhood | 34 | 34 | 25 | 25 | 62 | 62 |
+
+edges 的簽章含 `chapters`，以免把 `_fill_relation_valid_to` 產生的**合法時序分期**
+誤算成重複。dd129f3d 的事件是逐字同名的三胞胎（「林素卿召集家人宣讀遺囑」×3 等）。
+
+**根因**: `_persist_to_kg`（`pipelines/knowledge_graph/pipeline.py:266`）呼叫的三個
+`add_entity` / `add_relation` / `add_event` 都**以物件自己的 id 為 key**，而那個 id 是
+每次抽取現生的 `uuid4`。memory backend 的 dict 賦值與 neo4j 的
+`MERGE (ev:Event {id: $id})` 在語意上都是「覆蓋同一個 id」，實際上永遠是新增。
+去重只發生在單次執行內（`EntityLinker`、`_remove_merged_relations`），跨執行無人看得到上一次的產出。
+
+**對照**: `symbol_discovery/pipeline.py:63` 有 `delete_by_book()`，docstring 明寫
+"Re-ingest safe"。**同一個 repo 裡兩條平行 pipeline，一條做了、一條沒做。**
+
+**與 B-068 的區別**: B-068 是「同一場戲被切成多個 event」（抽取粒度），
+這條是「同一個 event 被存了三次」（持久化）。兩者症狀都是「事件太多」，容易混淆。
+
+**觸發條件**: 按第二次 `POST /books/{id}/rerun/knowledge-graph` 就會發生。
+dd129f3d 是併發驗證的實驗書，同一步驟被反覆跑才中了三次。
+
+**修法**: `remove_by_document()` 已存在（刪書路徑在用，且 entity / relation / event 三者都清），
+在 `_persist_to_kg` 開頭 delete-first 即可。連帶要補 `inferred_relations` 的清理 ——
+它存 entity id，而 rerun 路徑沒有對應的 `delete_by_document`。
+完整規劃見 [`docs/plans/20260820-kg-rerun-idempotency.md`](plans/20260820-kg-rerun-idempotency.md)。
+
+**既有髒資料**: 不寫遷移腳本。dd129f3d 是可丟棄的實驗書，直接刪書重跑即可；
+修法落地後真實書中招也會在下次重跑時自癒。
+
+---
+
+#### B-083 pypdf 在 CJK 字中插空白，逐字元比對因此漏數
+
+**背景**: 2026-08-20 修 B-079 時查出。原本把一筆定位不到的意象判成 LLM 幻覺，
+用戶指出「意象都是從文本拉出來的，不可能不存在」才回頭查真因。
+
+`loader.py:104` 的 `pypdf` `page.extract_text()` 依字形座標推斷空白，CJK 遇到行末
+斷字就把一個詞切成兩半 —— 段落實際存的是 `走下了礁 石`，不是 `走下了礁石`。
+
+**盛行率**（「中文字 + 空白 + 中文字」的段落佔比）:
+
+| 書 | 來源 | 佔比 |
+|---|---|---|
+| 3pigredhood | pdf | **85.7%** |
+| Age of Fire | pdf | **71.4%** |
+| 名字的潮汐 | pdf | **66.0%** |
+| 大唐雙龍傳 | txt | 12.1% |
+
+**已修的**: 意象定位（B-079）已在 `symbol_discovery/pipeline.py` 加 `_squash()`，
+比對前兩邊都去空白。
+
+**未修的 —— 本條目**: `knowledge_graph/pipeline.py:161` 的
+`chapter_text_lower.count(entity.name.lower())` 是同一種逐字元比對。實測 470 個實體
+中 **41 個（8.7%）漏數**，累計漏掉 48 次：
+
+```
+薩爾瑪雷納   15 → 18        退名之潮   6 → 10   （漏 40%）
+讀鹽人      22 → 24        母親      27 → 29
+```
+
+**為什麼值得修**: `mention_count` 不只是顯示用的數字。
+
+| 消費端 | 用途 | 漏數的後果 |
+|---|---|---|
+| `entity_linker.py:96` | `max(group, key=mention_count)` 選**正規名稱** | 可能翻轉哪個字面成為正式名 |
+| `faction_service.py:136` | 派系權重 | 權重偏移 |
+| `book_graph.py:93` | 圖譜節點大小（`chunk_count`） | 節點大小失真 |
+| `AnalysisListItems.tsx` | 角色列表的提及長條與數字 | 使用者直接看到 |
+
+**待辦內容**:
+- 決定正規化的落點：在 `pipeline.py` 就地 squash，或在 loader 端就把字中空白修掉
+  （後者影響所有下游，但會改動已入庫文本的語意，且無法回溯既有書）
+- 若採前者，`symbol_discovery/pipeline.py` 的 `_squash()` 可抽成共用 helper
+- 英文書要留意：去空白會讓兩個相鄰單字接成一個假命中（中文無此問題）
+
+**觸發時機**: 下次動到 KG 實體抽取或 EntityLinker 時。
+
+---
+
+#### B-081 四個服務的 token 歸屬缺口（共 7 處）
 
 **背景**: 2026-08-19 執行「LLM 呼叫慣例收斂」計畫 P4 時清點出來的。計畫只
 盤點了「有呼叫 `set_llm_service_context` 但漏帶 `book_id`」的站點，因此漏掉
@@ -284,10 +386,21 @@ paragraph／chunk 參照，段落層級目前做不到。
 而那會直接改變 token 帳目的分類結果。那是資料語意的決定，不是「收斂呼叫
 慣例」的範圍（CLAUDE.md 紅線：任務範圍外的改動另開任務）。
 
-**修的時候要決定的事**:
-- 這三者各自該歸到哪個 service bucket（`analysis`？還是各自獨立？）
-- `timeline_agent` 最單純，`document_id` 就在手上，一行就好
-- epistemic / voice 的 `book_id` 需要從 router 往下穿，會動到公開方法簽章
+**2026-08-20 複查：漏了第四個服務，而且穿透簽章那點是錯的**
+
+`narrative_service` 的三處（`_call_refine_llm` / `_call_hero_journey_llm` /
+`_call_temporal_order_llm`）**有**呼叫 `set_llm_service_context("analysis")`，
+但不帶 `book_id`；而 `api/routers/` 底下**沒有任何一支 router 設過 book context**，
+所以它靠不到上游。症狀與上表四處不同（不是 `"unknown"`，是 `service="analysis"` +
+`book_id=NULL`），按「沒呼叫過」去找會直接漏掉。**缺口總數是 7 處，不是 4 處。**
+
+原記「epistemic / voice 的 `book_id` 需要從 router 往下穿，會動到公開方法簽章」**不成立**：
+`get_character_knowledge` / `classify_event_visibility` / `get_voice_profile`
+三個公開方法**早就都有 `document_id`**，缺的是私有方法。而 contextvar 的語意本來就是
+「進入點設一次、下游沿用」，所以設在公開進入點即可 —— **不動任何簽章、不動任何 router**。
+
+**裁示（2026-08-20）**: service bucket 選**併入 `analysis`**，前端零改動。
+完整規劃見 [`docs/plans/20260820-token-attribution-remaining.md`](plans/20260820-token-attribution-remaining.md)。
 
 **與該計畫的關係**: 這是 `docs/plans/20260819-llm-call-convention-consolidation.md`
 §2.1 那個缺口的**第二層** —— 該計畫修掉了「有呼叫但漏帶書」，這條是「連
@@ -1256,12 +1369,14 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |
 | B-073 | Gemini 對「手」的提示回報 PROHIBITED_CONTENT | 🔴 高 | 工程面已完成（2026-08-10，Phase 1–3）；「手」仍待可用的 fallback provider，見 B-075 |
 | B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 已完成（2026-08-10）；僅剩「海」那筆舊詮釋要不要重生，見條目內 SQL |
-| B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | 主體已完成（2026-08-10 `c218cb8`）；剩 `Settings.has_*` 收斂 |
+| B-075 | 全系統 LLM fallback 鏈是壞的（假 local model + placeholder 誤判） | 🔴 高 | ✅ 已完成（2026-08-20 複查：`Settings.has_*` 收斂早已落地——`is_configured()` 是唯一判準，`llm_client._has_key` 已改為純委派；`.env` 的行內註解也已清除） |
 | B-076 | provider 封鎖在 30+ 呼叫點偽裝成解析失敗 | 🟡 中 | 已完成（2026-08-10）；24 處呼叫點改用共用 `llm_text()` |
 | B-077 | 語言顯示名查表大小寫敏感（`zh-TW` → 「Respond in Zh.」） | 🟢 低 | 已完成（2026-08-10）；原記的「回傳簡體」是驗證腳本的產物，生產路徑無此問題 |
-| B-079 | 18% 的 imagery occurrence 指向不含該詞的段落 | 🟡 中 | 待開始（2026-08-10 查證；送進 LLM 的證據有一部分是錯的） |
+| B-079 | 19.7% 的 imagery occurrence 指向不含該詞的段落 | 🟡 中 | 已排入實作（2026-08-20 查明根因：`_find_paragraph_id` 比對失敗靜默退回該章第一段；修法可將正確率 80.3% → 99.3%） |
 | B-078 | 象徵事件依附與貫穿度共線（`W.ev` 定義待決） | 🟢 低 | 暫不實作（2026-08-10 收攏；觸發：決議 06 權重校準） |
-| B-081 | 三個服務完全沒有 token 歸屬呼叫 | 🟡 中 | 待處理（2026-08-19 清點出：timeline_agent / epistemic_state / voice_profiling，共 4 個 LLM 呼叫處） |
+| B-081 | 四個服務的 token 歸屬缺口（共 7 處） | 🟡 中 | 已排入實作（2026-08-20 複查補上 narrative 三處；service bucket 裁示為併入 `analysis`，前端零改動） |
+| B-082 | 重跑 KG 抽取會累積重複的實體 / 關係 / 事件 | 🔴 高 | 已排入實作（2026-08-20 開立；`Age of Fire (併發驗證)` 已被灌成 2.7 倍，按第二次「重新執行」即觸發） |
+| B-083 | pypdf 在 CJK 字中插空白，`mention_count` 漏數 | 🟡 中 | 待開始（2026-08-20 開立；470 個實體中 41 個漏數，影響 EntityLinker 的正規名稱選擇） |
 | B-080 | 後端 deferred import 分類 | 🟢 低 | **不做**（2026-08-19 分類：276 處中僅 ~5.4% 可搬；75% 是循環依賴迴避） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | 待開始（觸發：動到 upload / event analysis 時順修） |
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | 待開始（觸發：需用 mock 展示時間軸頁時） |
@@ -1327,4 +1442,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-08-19（新增 B-081：三個服務完全沒有 token 歸屬呼叫）
+**最後更新**: 2026-08-20（新增 B-082：KG 重跑累積重複、B-083：pypdf 字中空白；B-079 補根因、B-081 補第四個服務、B-075 結案）

@@ -98,3 +98,6 @@
 | 2026-08-19 | [LLM 呼叫慣例收斂（retry / 語言 / token 歸屬 / 追蹤 shim）](./20260819-llm-call-convention-consolidation.md) |
 | 2026-08-19 | [無測試覆蓋的後端服務：補齊計畫](./20260819-untested-backend-services.md) |
 | 2026-08-19 | [後端結構性殘留清理](./20260819-backend-structural-residue.md) |
+| 2026-08-20 | [KG 重跑非冪等：實體 / 關係 / 事件三者都會累積](./20260820-kg-rerun-idempotency.md) |
+| 2026-08-20 | [意象出現位置的段落定位（B-079 根因與修法）](./20260820-imagery-occurrence-anchoring.md) |
+| 2026-08-20 | [Token 歸屬的最後七個缺口（B-081 擴充）](./20260820-token-attribution-remaining.md) |
