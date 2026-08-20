@@ -21,6 +21,7 @@ from typing import Any
 from storysphere.core.error_handling import llm_text
 from storysphere.core.language_detection import localize_prompt
 from storysphere.core.llm_call import llm_retry
+from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.documents import Paragraph
 from storysphere.domain.voice_profile import VoiceProfile
@@ -121,6 +122,7 @@ class VoiceProfilingService:
         ``cached_only=True`` never triggers generation: returns the cached
         profile if present, otherwise ``None`` (no LLM call, no cache write).
         """
+        set_llm_service_context("analysis", book_id=document_id)
         cache = self._get_cache()
         key = f"voice_profile:{document_id}:{character_id}:{language}"
 

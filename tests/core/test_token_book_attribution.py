@@ -344,3 +344,79 @@ class TestChatAttribution:
         await agent._agent_invoke("hi")
 
         assert seen == [("chat", None)]
+
+
+class TestEveryLlmCallSiteIsAttributed:
+    """B-081 — the gap kept reappearing because nothing enforced it.
+
+    ``call_llm()`` made ``book_id`` a required argument, so a new call site that
+    goes through it cannot forget. Sites that reach for ``llm.ainvoke`` directly
+    have no such protection, and that is exactly where all seven gaps were. This
+    walks the AST and requires each of those to sit under a function that either
+    is, or is called beneath, something that sets the context.
+
+    The check is deliberately structural rather than behavioural: a behavioural
+    test only covers the paths someone remembered to write a test for.
+    """
+
+    # Sites that set no context on purpose, with the reason.
+    _EXEMPT = {
+        # Docstring examples and the shared entry point's own call.
+        "core/token_callback.py",
+        "core/llm_call.py",
+        "core/llm_client.py",
+        # summary_service uses raise_if_blocked rather than llm_text to keep
+        # "provider refused" and "came back empty" apart; it sets its own
+        # context and inherits book_id from the ingestion entry point.
+        "services/summary_service.py",
+        # Drives the LangGraph ingestion graph, not an LLM — the ``ainvoke`` here
+        # is the graph's. Its nodes set the context themselves
+        # (``IngestionWorkflow.run_phase1`` / ``run_phase2`` / ``run_step``).
+        "api/routers/book_ingestion.py",
+    }
+
+    @staticmethod
+    def _module_files():
+        from pathlib import Path
+
+        import storysphere
+
+        root = Path(storysphere.__file__).parent
+        return sorted(root.rglob("*.py"))
+
+    def test_no_unattributed_ainvoke_sites(self):
+        import ast
+        from pathlib import Path
+
+        import storysphere
+
+        root = Path(storysphere.__file__).parent
+        offenders: list[str] = []
+
+        for path in self._module_files():
+            rel = path.relative_to(root).as_posix()
+            if rel in self._EXEMPT:
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+
+            calls_ainvoke = any(
+                isinstance(n, ast.Attribute) and n.attr == "ainvoke"
+                for n in ast.walk(tree)
+            )
+            if not calls_ainvoke:
+                continue
+
+            sets_context = any(
+                isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Name)
+                and n.func.id
+                in {"set_llm_service_context", "set_llm_book_context", "call_llm"}
+                for n in ast.walk(tree)
+            )
+            if not sets_context:
+                offenders.append(rel)
+
+        assert offenders == [], (
+            "these modules call llm.ainvoke without ever setting the token "
+            f"attribution context: {offenders}"
+        )

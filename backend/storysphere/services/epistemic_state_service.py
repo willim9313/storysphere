@@ -20,6 +20,7 @@ from typing import Any
 
 from storysphere.core.error_handling import is_rate_limit_error, llm_text
 from storysphere.core.llm_call import llm_retry
+from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import Entity
 from storysphere.domain.epistemic_state import CharacterEpistemicState, MisbeliefItem
@@ -92,6 +93,7 @@ class EpistemicStateService:
         language: str = "en",
     ) -> CharacterEpistemicState:
         """Return what character knows and doesn't know up to a given chapter."""
+        set_llm_service_context("analysis", book_id=document_id)
         cache = self._get_cache()
         key = f"epistemic:{document_id}:{character_id}:{up_to_chapter}"
 
@@ -217,6 +219,8 @@ class EpistemicStateService:
 
         if not events:
             return {"classified": 0, "skipped": 0}
+
+        set_llm_service_context("analysis", book_id=document_id)
 
         classified = 0
         skipped = 0
