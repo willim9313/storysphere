@@ -542,6 +542,35 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
+#### B-084 後端實體類別欄位是純 `str`，擋住四個前端型別接回 generated.ts
+**背景**: 2026-08-20 前端批次 4 把 `api/types.ts` 手抄的型別接回 `generated.ts` 時，
+15 個候選裡有 11 個零成本接上，4 個接不了：`GraphNode`、`Segment`、`EntityChunkItem`、
+`EntityChunksResponse`。
+
+原因不是前端寫錯，而是**後端把實體類別宣告成純 `str`**——`generated.ts` 的
+`GraphNode.type` 與 `SegmentEntity.type` 都是 `string`。前端手寫版把它窄化成
+`EntityType`（`'character' | 'location' | 'organization' | 'object' | 'concept' |
+'other' | 'event'`），而全站有十幾處靠這個窄化做窮舉比對與 `Record<EntityType, …>`
+索引（`ClusterOverviewPanel`、`FactionCanvas`、`PairModeOverlay`、`SegmentRenderer`、
+`kgClustering` 等）。實測接回去會產生 12 個 `string is not assignable to EntityType`，
+只能靠補 cast 消掉——那是把型別資訊丟掉再假裝有，比手抄更糟。
+
+後兩者（`EntityChunkItem` / `EntityChunksResponse`）本身沒問題，是巢狀帶著
+`Segment` 才一起卡住。
+
+**待辦內容**:
+- 找出後端輸出這些欄位的 Pydantic model，把 `type: str` 改成 `Literal[...]` 或 `Enum`
+- 前端重跑 `npm run gen:types`，確認 `GraphNode.type` 產出的是 union 而非 string
+- 把這四個型別也改成 `components['schemas'][…]` 的 alias，並移除 `api/types.ts` 裡
+  的 `EntityType` 手寫 union（改為從 generated 推導）
+- 注意 `type` 的實際值域要先盤點，後端可能有前端 union 未涵蓋的值
+
+**注意**: 這是後端改動帶動前端收斂，順序不能反。前端先接回去只會逼出一堆 cast。
+
+**觸發時機**: 下次動到 KG 圖譜 schema 或實體型別定義時。
+
+---
+
 #### B-065 各功能頁操作說明缺乏統一機制
 **背景**: 9 個功能頁裡只有角色分析、事件分析兩頁有常駐操作說明，而且是兩套各自實作的元件（`CharacterTipRibbon` 用單一 `STORAGE_KEY`，`EventGuideRibbon` 用 overview/detail 兩個 surface key）。閱讀、符號、敘事結構、建構概覽四頁完全沒有；圖譜、時間軸、張力只有 `*OnboardingHero`——那是「資料還沒產生」時的空狀態引導，不是操作說明，有資料後就消失。其餘說明散落成各元件內的 caption / footnote / legendNote，沒有統一位置、樣式或收合行為。
 
@@ -1170,6 +1199,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-082 | 重跑 KG 抽取會累積重複的實體 / 關係 / 事件 | 🔴 高 | ✅ 已完成（2026-08-20 PR #60；`_persist_to_kg` delete-first，連帶清 `inferred_relations`） |
 | B-083 | pypdf 在 CJK 字中插空白，`mention_count` 漏數 | 🟡 中 | ✅ 已完成（2026-08-20 PR #64；`core/utils/text_matching.squash_spacing()`，41 個實體的漏數修正） |
 | B-080 | 後端 deferred import 分類 | 🟢 低 | **不做**（2026-08-19 分類：276 處中僅 ~5.4% 可搬；75% 是循環依賴迴避） |
+| B-084 | 後端實體類別欄位是純 `str`，擋住 4 個前端型別接回 generated | 🟢 低 | 待開始（觸發：下次動到 KG schema 或實體型別定義） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | ✅ 已完成（2026-08-20；10 項全清，`npm run build` 於 main 首次 exit 0） |
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | **不做**（2026-08-20；`api/mock/` 整層已移除，前提消失） |
 | B-068 | 事件抽取把同一場戲切成多個 event | 🟡 中 | 待開始（觸發：下次動到 ingestion / event extraction） |

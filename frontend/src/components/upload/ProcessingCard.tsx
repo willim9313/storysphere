@@ -227,7 +227,7 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
       }
     } else if (status.status === 'error' || isError) {
       doneRef.current = true;
-      onError(task.taskId, task.fileName, status.error);
+      onError(task.taskId, task.fileName, status.error ?? undefined);
     }
   }, [status, isError, failedSteps, task, onDone, onError]);
 

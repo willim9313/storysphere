@@ -15,7 +15,9 @@ function node(id: string): GraphNode {
 }
 
 function edge(id: string, source: string, target: string, weight?: number): GraphEdge {
-  return { id, source, target, weight };
+  // `inferred` is required on the wire; the fixture used to omit it, which the
+  // hand-written type allowed and the generated one does not.
+  return { id, source, target, weight, inferred: false };
 }
 
 function graph(nodeIds: string[], edges: GraphEdge[]): GraphData {

@@ -12,7 +12,7 @@ const fetchTaskStatus = vi.hoisted(() => vi.fn());
 vi.mock('@/api/ingest', () => ({ fetchTaskStatus }));
 
 function task(over: Partial<TaskStatus> = {}): TaskStatus {
-  return { taskId: 't1', status: 'running', progress: 0, stage: '', ...over };
+  return { taskId: 't1', status: 'running', progress: 0, stage: '', murmurEvents: [], ...over };
 }
 
 let queryClient: QueryClient;
