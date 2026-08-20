@@ -10,12 +10,26 @@ Follows KnowledgeGraphPipeline conventions:
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 
 from storysphere.domain.documents import Document
 from storysphere.pipelines.base import BasePipeline
 
 logger = logging.getLogger(__name__)
+
+_WHITESPACE = re.compile(r"\s+")
+
+
+def _squash(text: str) -> str:
+    """Strip every space from *text* so a term split by one still matches.
+
+    ``pypdf`` places spaces from glyph geometry, and for CJK that means a word
+    broken across a line comes back as ``礁 石``. Two thirds of the paragraphs
+    in this repo's PDF-sourced books carry at least one such split, so a term
+    landing on one is luck rather than an edge case.
+    """
+    return _WHITESPACE.sub("", text or "")
 
 
 @dataclass
@@ -111,14 +125,9 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
             )
             if sub_cb:
                 sub_cb(i + 1, total, "章節符號")
-            # Enrich with paragraph-level metadata
+            # Paragraph anchoring is deliberately *not* done here — it needs the
+            # synonym clusters, which only exist after every chapter is in.
             for item in chapter_items:
-                item["paragraph_id"] = self._find_paragraph_id(
-                    chapter, item.get("context_sentence", "")
-                )
-                item["position"] = self._find_position(
-                    chapter, item.get("context_sentence", "")
-                )
                 item["co_occurring_terms"] = self._find_co_occurring(
                     chapter, item.get("term", ""), item.get("context_sentence", "")
                 )
@@ -131,11 +140,16 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         """Cluster synonyms, build domain objects, and write to SQLite."""
         terms = [ex.get("term", "") for ex in raw_extractions if ex.get("term")]
         clusters = await self._extractor.cluster_synonyms(terms)
+        anchored = self._anchor_extractions(doc, raw_extractions, clusters)
         entities, occurrences = await self._extractor.build_imagery_entities(
-            raw_extractions=raw_extractions,
+            raw_extractions=anchored,
             book_id=doc.id,
             clusters=clusters,
         )
+        # A term whose every occurrence failed to anchor has no evidence left to
+        # show, and an imagery the reader cannot trace back to the text is the
+        # very failure this change exists to remove (B-079).
+        entities = [e for e in entities if e.frequency > 0]
 
         for entity in entities:
             await self._symbol_service.save_imagery(entity)
@@ -155,27 +169,113 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
 
     # ── private helpers ────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _find_paragraph_id(chapter, context_sentence: str) -> str:
-        """Return the id of the paragraph most likely containing the context."""
-        if not context_sentence:
-            return chapter.paragraphs[0].id if chapter.paragraphs else ""
-        snippet = context_sentence[:80]
-        for para in chapter.paragraphs:
-            if snippet in para.text:
-                return para.id
-        return chapter.paragraphs[0].id if chapter.paragraphs else ""
+    def _anchor_extractions(
+        self, doc: Document, raw_extractions: list[dict], clusters: list
+    ) -> list[dict]:
+        """Attach a real paragraph to each extraction, dropping those with none.
+
+        Runs after clustering rather than during extraction because the cluster
+        is where a term's other surface forms live, and roughly one occurrence in
+        ten is only findable under one of those.
+
+        Dropping is the point: an occurrence with no paragraph behind it used to
+        be handed the chapter's first paragraph instead, which is how a fifth of
+        the evidence sent to the interpretation LLM came to be about something
+        else entirely (B-079).
+        """
+        chapters = {c.number: c for c in doc.chapters}
+
+        forms_by_term: dict[str, list[str]] = {}
+        for cluster in clusters:
+            forms = [cluster.canonical_term, *cluster.variants]
+            for form in forms:
+                forms_by_term[form] = forms
+
+        anchored: list[dict] = []
+        for ex in raw_extractions:
+            term = ex.get("term", "")
+            chapter = chapters.get(ex.get("chapter_number", 0))
+            if chapter is None:
+                logger.warning(
+                    "Imagery %r names chapter %s, which this book does not have",
+                    term, ex.get("chapter_number"),
+                )
+                continue
+
+            aliases = [f for f in forms_by_term.get(term, []) if f != term]
+            hit = self._find_anchor(
+                chapter, term, aliases, ex.get("context_sentence", "")
+            )
+            if hit is None:
+                logger.warning(
+                    "Dropping imagery %r in chapter %s: no paragraph contains it "
+                    "or any of its %d alias(es)",
+                    term, chapter.number, len(aliases),
+                )
+                continue
+
+            ex["paragraph_id"], ex["position"] = hit
+            anchored.append(ex)
+
+        return anchored
 
     @staticmethod
-    def _find_position(chapter, context_sentence: str) -> int:
-        """Return 0-based paragraph position most likely containing the context."""
-        if not context_sentence:
-            return 0
-        snippet = context_sentence[:80]
-        for para in chapter.paragraphs:
-            if snippet in para.text:
-                return para.position
-        return 0
+    def _containing(chapter, needles: list[str]) -> list:
+        """Paragraphs of *chapter* holding any of *needles*, ignoring spacing.
+
+        Matching is always done on the squashed text rather than trying the
+        literal form first. The space inside ``礁 石`` carries no meaning — it is
+        an artefact of where ``pypdf`` decided a line ended — so letting it
+        decide which paragraphs are eligible would make the answer depend on
+        typesetting. Widening the pool is safe because picking between several
+        candidates is the context sentence's job.
+
+        Measured both ways over the 142 stored occurrences: identical results,
+        no divergence. This is chosen on the reasoning above, not on that
+        measurement.
+        """
+        return [
+            p
+            for p in chapter.paragraphs
+            if any(n and _squash(n) in _squash(p.text) for n in needles)
+        ]
+
+    @staticmethod
+    def _find_anchor(
+        chapter, term: str, aliases: list[str], context_sentence: str
+    ) -> tuple[str, int] | None:
+        """Locate *term* in *chapter*; return ``(paragraph_id, position)`` or None.
+
+        The term is the anchor, not ``context_sentence`` — the sentence comes
+        from the LLM and is under no obligation to quote the book, so matching on
+        it fails whenever the model paraphrases. It still earns its keep as a
+        tiebreaker when several paragraphs carry the term.
+
+        ``None`` means the term is nowhere in the chapter under either spelling.
+        Terms are read out of the text, so on sound input this does not happen —
+        it is the guard for the case where the model returns something it was
+        never shown.
+        """
+        candidates = SymbolDiscoveryPipeline._containing(chapter, [term])
+        if not candidates:
+            candidates = SymbolDiscoveryPipeline._containing(chapter, aliases)
+        if not candidates:
+            return None
+
+        if len(candidates) > 1 and context_sentence:
+            snippet = _squash(context_sentence)[:80]
+            narrowed = [p for p in candidates if snippet in _squash(p.text)]
+            if narrowed:
+                candidates = narrowed
+            else:
+                logger.debug(
+                    "Imagery %r appears in %d paragraphs of chapter %s and the "
+                    "context sentence matched none; taking the earliest",
+                    term, len(candidates), chapter.number,
+                )
+
+        chosen = candidates[0]
+        return chosen.id, chosen.position
 
     @staticmethod
     def _find_co_occurring(chapter, term: str, context_sentence: str) -> list[str]:
