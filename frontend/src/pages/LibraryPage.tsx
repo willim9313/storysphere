@@ -12,6 +12,7 @@ import { EmptyLibrary } from '@/components/library/EmptyLibrary';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import type { BookStatus } from '@/api/types';
+import { qk } from '@/api/queryKeys';
 
 interface PendingTask { taskId: string; fileName: string; title?: string }
 
@@ -41,7 +42,7 @@ function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; o
     if (done && !notified.current) {
       notified.current = true;
       removePendingTask(task.taskId);
-      queryClient.invalidateQueries({ queryKey: ['books'] });
+      queryClient.invalidateQueries({ queryKey: qk.books });
       onSettled();
     }
   }, [status, isError, task.taskId, queryClient, onSettled]);

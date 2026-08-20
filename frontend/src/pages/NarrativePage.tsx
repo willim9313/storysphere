@@ -32,6 +32,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { EventInfo } from '@/components/narrative/StageDetail';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import '@/styles/narrative.css';
+import { qk } from '@/api/queryKeys';
 
 // One prerequisite line: state · what it is · how far along · why it matters · where to fix it.
 function PrereqRow({
@@ -94,7 +95,7 @@ export default function NarrativePage() {
   });
 
   const eventsQuery = useQuery({
-    queryKey: ['books', bookId, 'analysis', 'events'],
+    queryKey: qk.analysis.events(bookId),
     queryFn: () => fetchEventAnalyses(bookId!),
     enabled: !!bookId,
   });
@@ -115,7 +116,7 @@ export default function NarrativePage() {
   // queries the page reads.
   const invalidateNarrative = () => {
     queryClient.invalidateQueries({ queryKey: ['narrative', bookId] });
-    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+    queryClient.invalidateQueries({ queryKey: qk.analysis.events(bookId) });
   };
   const classifyOp = useTensionTask(
     fetchClassifyTask,
@@ -167,7 +168,7 @@ export default function NarrativePage() {
   // per-chapter detail, so this stays off the path where an analysis exists.
   // Same query key as useChapters — a reader-page visit already warmed it.
   const chaptersQuery = useQuery({
-    queryKey: ['books', bookId, 'chapters'],
+    queryKey: qk.chapters(bookId),
     queryFn: () => fetchChapters(bookId!),
     enabled: !!bookId && !structureQuery.isLoading && !hasHeroJourney,
   });
@@ -177,12 +178,12 @@ export default function NarrativePage() {
   // for none of it.
   const crossEnabled = !!bookId && hasHeroJourney;
   const teuQuery = useQuery({
-    queryKey: ['tension', bookId, 'teus'],
+    queryKey: qk.tension.teus(bookId),
     queryFn: () => fetchTEUs(bookId!),
     enabled: crossEnabled,
   });
   const timelineQuery = useQuery({
-    queryKey: ['books', bookId, 'timeline', 'narrative'],
+    queryKey: qk.timeline.order(bookId, 'narrative'),
     queryFn: () => fetchTimeline(bookId!),
     enabled: crossEnabled,
   });

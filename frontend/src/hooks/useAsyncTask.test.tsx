@@ -6,6 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { TaskStatus } from '@/api/types';
 import { useAsyncTask } from './useAsyncTask';
 import { useBatchTask } from './useBatchTask';
+import { qk } from '@/api/queryKeys';
 
 /** useBatchTask polls through the default fetcher, so that one gets mocked. */
 const fetchTaskStatus = vi.hoisted(() => vi.fn());
@@ -24,7 +25,7 @@ function wrapper({ children }: { children: ReactNode }) {
 /** Re-poll without waiting out the 2s interval. */
 async function poll() {
   await act(async () => {
-    await queryClient.refetchQueries({ queryKey: ['tasks'] });
+    await queryClient.refetchQueries({ queryKey: qk.tasks.all });
   });
 }
 

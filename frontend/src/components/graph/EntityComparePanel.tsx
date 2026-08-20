@@ -9,6 +9,7 @@ import {
 } from '@/api/graph';
 import type { InferredRelation } from '@/api/graph';
 import type { GraphNode } from '@/api/types';
+import { qk } from '@/api/queryKeys';
 
 interface EntityComparePanelProps {
   bookId: string;
@@ -23,7 +24,7 @@ export function EntityComparePanel({ bookId, a, b, onClose, onEnterPairMode }: E
   const queryClient = useQueryClient();
 
   const { data: inferredData } = useQuery({
-    queryKey: ['books', bookId, 'inferred-relations'],
+    queryKey: qk.inferred.all(bookId),
     queryFn: () => fetchInferredRelations(bookId, 'pending'),
   });
 
@@ -42,16 +43,16 @@ export function EntityComparePanel({ bookId, a, b, onClose, onEnterPairMode }: E
     mutationFn: ({ id, type }: { id: string; type: string }) =>
       confirmInferred(bookId, id, type),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
+      queryClient.invalidateQueries({ queryKey: qk.inferred.all(bookId) });
+      queryClient.invalidateQueries({ queryKey: qk.graph.all(bookId) });
     },
   });
 
   const reject = useMutation({
     mutationFn: (id: string) => rejectInferred(bookId, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
+      queryClient.invalidateQueries({ queryKey: qk.inferred.all(bookId) });
+      queryClient.invalidateQueries({ queryKey: qk.graph.all(bookId) });
     },
   });
 

@@ -6,6 +6,7 @@ import { X, Loader } from 'lucide-react';
 import { fetchEntityAnalysis } from '@/api/analysis';
 import { useEntityChunks } from '@/hooks/useEntityChunks';
 import type { EntityType } from '@/api/types';
+import { qk } from '@/api/queryKeys';
 
 const pillClass: Record<EntityType, string> = {
   character: 'pill-char',
@@ -45,7 +46,7 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
   // same inline-useQuery pattern EntityDetailPanel (graph page) already uses.
   const isCharacter = type === 'character';
   const { data: analysis, isLoading: analysisLoading } = useQuery({
-    queryKey: ['books', bookId, 'entities', entityId, 'analysis'],
+    queryKey: qk.entity.analysis(bookId, entityId),
     queryFn: () => fetchEntityAnalysis(bookId, entityId),
     enabled: isCharacter,
     retry: false,

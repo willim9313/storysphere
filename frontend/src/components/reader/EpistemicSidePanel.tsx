@@ -6,6 +6,7 @@ import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibil
 import { findBestPassage } from '@/lib/passageLookup';
 import { useQueryClient } from '@tanstack/react-query';
 import type { Chapter } from '@/api/types';
+import { qk } from '@/api/queryKeys';
 
 interface EpistemicSidePanelProps {
   bookId: string;
@@ -217,7 +218,7 @@ export function EpistemicSidePanel({
               bookId={bookId}
               onComplete={() =>
                 queryClient.invalidateQueries({
-                  queryKey: ['books', bookId, 'epistemic-state'],
+                  queryKey: qk.epistemic.all(bookId),
                 })
               }
             />

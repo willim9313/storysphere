@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { apiFetch, apiDelete } from './client';
 import type { components } from './generated';
+import { qk } from './queryKeys';
 
 export type VoiceProfile = components['schemas']['VoiceProfileResponse'];
 
@@ -31,7 +32,7 @@ export function useCachedVoiceProfile(
   entityId: string | null | undefined,
 ) {
   return useQuery({
-    queryKey: ['books', bookId, 'entities', entityId, 'voice'] as const,
+    queryKey: qk.entity.voice(bookId, entityId),
     queryFn: () => fetchVoiceProfile(bookId!, entityId!, true),
     enabled: !!bookId && !!entityId,
     retry: false,

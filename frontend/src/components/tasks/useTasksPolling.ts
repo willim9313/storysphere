@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { fetchTasks, type TaskStatus } from '@/api/tasks';
+import { qk } from '@/api/queryKeys';
 
 /**
  * Polls GET /tasks for the Task Center panel.
@@ -9,7 +10,7 @@ import { fetchTasks, type TaskStatus } from '@/api/tasks';
  */
 export function useTasksPolling(enabled: boolean) {
   return useQuery<TaskStatus[]>({
-    queryKey: ['tasks', 'list'],
+    queryKey: qk.tasks.list(),
     queryFn: () => fetchTasks(),
     enabled,
     refetchInterval: enabled ? 2000 : false,

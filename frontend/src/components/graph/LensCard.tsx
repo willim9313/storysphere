@@ -11,6 +11,7 @@ import { resolveEpistemicChapter, stepTimelinePlayback } from '@/lib/graphLens';
 import type { ClusterMode } from './GraphToolbar';
 import type { GraphNode } from '@/api/types';
 import type { TimelineDetectionResponse } from '@/api/graph';
+import { qk } from '@/api/queryKeys';
 
 export interface TimelineState {
   mode: 'chapter' | 'story';
@@ -84,14 +85,14 @@ export function LensCard({
   }, []);
 
   const { data: config } = useQuery({
-    queryKey: ['books', bookId, 'timeline-config'],
+    queryKey: qk.timeline.config(bookId),
     queryFn: () => fetchTimelineConfig(bookId),
   });
 
   const detectMutation = useMutation({
     mutationFn: () => detectTimeline(bookId),
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'timeline-config'] });
+      queryClient.invalidateQueries({ queryKey: qk.timeline.config(bookId) });
       setPendingDetection(data);
     },
   });
@@ -491,7 +492,7 @@ export function LensCard({
                 <ClassifyVisibilityButton
                   bookId={bookId}
                   onComplete={() =>
-                    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'epistemic-state'] })
+                    queryClient.invalidateQueries({ queryKey: qk.epistemic.all(bookId) })
                   }
                 />
               </div>

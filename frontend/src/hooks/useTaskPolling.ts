@@ -8,6 +8,7 @@ import {
   getMurmurCursor,
   getMurmurEvents,
 } from '@/store/murmurStore';
+import { qk } from '@/api/queryKeys';
 
 export function useTaskPolling(
   taskId: string | null,
@@ -17,7 +18,7 @@ export function useTaskPolling(
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
 
   const query = useQuery<TaskStatus>({
-    queryKey: ['tasks', taskId],
+    queryKey: qk.tasks.one(taskId),
     queryFn: async () => {
       const after = getMurmurCursor(taskId!);
       const result = await (fetcher ?? fetchTaskStatus)(taskId!, after);

@@ -44,6 +44,7 @@ import {
 } from '@/components/tension/reviewTypes';
 import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
 import '@/styles/tension.css';
+import { qk } from '@/api/queryKeys';
 
 export default function TensionPage() {
   const queryClient = useQueryClient();
@@ -72,13 +73,13 @@ export default function TensionPage() {
     isLoading: linesLoading,
     refetch: refetchLines,
   } = useQuery({
-    queryKey: ['books', bookId, 'tension', 'lines'],
+    queryKey: qk.tension.lines(bookId),
     queryFn: () => fetchTensionLines(bookId!),
     enabled: !!bookId,
   });
 
   const { data: teus = [] } = useQuery({
-    queryKey: ['books', bookId, 'tension', 'teus'],
+    queryKey: qk.tension.teus(bookId),
     queryFn: () => fetchTEUs(bookId!),
     enabled: !!bookId,
   });
@@ -88,7 +89,7 @@ export default function TensionPage() {
     isLoading: themeLoading,
     refetch: refetchTheme,
   } = useQuery({
-    queryKey: ['books', bookId, 'tension', 'theme'],
+    queryKey: qk.tension.theme(bookId),
     queryFn: () => fetchTensionTheme(bookId!),
     enabled: !!bookId,
     retry: false,
@@ -135,7 +136,7 @@ export default function TensionPage() {
   );
 
   const onLineReviewed = () => {
-    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'tension', 'lines'] });
+    queryClient.invalidateQueries({ queryKey: qk.tension.lines(bookId) });
   };
 
   const themeReviewMutation = useMutation({
@@ -147,7 +148,7 @@ export default function TensionPage() {
       proposition?: string;
     }) => reviewTensionTheme(theme!.id, bookId!, status, proposition),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'tension', 'theme'] });
+      queryClient.invalidateQueries({ queryKey: qk.tension.theme(bookId) });
     },
   });
 
@@ -189,8 +190,8 @@ export default function TensionPage() {
     onSuccess: () => {
       // Both queries move: the line gains a TEU and recomputed rollups, and the
       // TEU's line_id flips out of the orphan set.
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'tension', 'lines'] });
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'tension', 'teus'] });
+      queryClient.invalidateQueries({ queryKey: qk.tension.lines(bookId) });
+      queryClient.invalidateQueries({ queryKey: qk.tension.teus(bookId) });
     },
   });
 

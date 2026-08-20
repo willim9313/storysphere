@@ -40,6 +40,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAsyncTask } from '@/hooks/useAsyncTask';
 import { useBatchTask } from '@/hooks/useBatchTask';
+import { qk } from '@/api/queryKeys';
 
 /** Search matches the name, and for analyzed characters, also the current
  *  framework's archetype label (e.g. searching "統治者" finds that archetype). */
@@ -104,16 +105,16 @@ export default function CharacterAnalysisPage() {
     defaultError: t('triggerFailed'),
     onDone: (_task, { reset }) => {
       queryClient.invalidateQueries({
-        queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'],
+        queryKey: qk.entity.analysis(bookId, selectedEntityId),
       });
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
+      queryClient.invalidateQueries({ queryKey: qk.analysis.characters(bookId) });
       reset();
       setGeneratingId(null);
     },
   });
 
   const { data: entityAnalysis, isLoading: analysisLoading } = useQuery({
-    queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'],
+    queryKey: qk.entity.analysis(bookId, selectedEntityId),
     queryFn: () => fetchEntityAnalysis(bookId!, selectedEntityId!),
     // Pause while a generation task runs: the old analysis is deleted at that
     // point, so a refetch would only 404 and pin stale data on screen.
@@ -164,17 +165,17 @@ export default function CharacterAnalysisPage() {
   const handleRegenerate = () => {
     if (!selectedEntityId || !bookId) return;
     deleteEntityAnalysis(bookId, selectedEntityId).then(() => {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
+      queryClient.invalidateQueries({ queryKey: qk.analysis.characters(bookId) });
       // removeQueries (not invalidate): the analysis row is gone, and
       // invalidate would keep serving the stale result on refetch error —
       // the screen must drop to the generating view instead.
-      queryClient.removeQueries({ queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'] });
+      queryClient.removeQueries({ queryKey: qk.entity.analysis(bookId, selectedEntityId) });
       triggerMutation.mutate(selectedEntityId);
     });
   };
 
   const refreshCast = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] }),
+    () => queryClient.invalidateQueries({ queryKey: qk.analysis.characters(bookId) }),
     [queryClient, bookId],
   );
 

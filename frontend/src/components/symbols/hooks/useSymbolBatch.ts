@@ -3,8 +3,7 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import { analyzeAllSymbols } from '@/api/symbols';
 import { useBatchTask, type BatchTask } from '@/hooks/useBatchTask';
-
-import { SYMBOL_OVERVIEW_KEY } from './useSymbolAnalysis';
+import { qk } from '@/api/queryKeys';
 
 export type SymbolBatch = BatchTask<string[]>;
 
@@ -20,7 +19,7 @@ export function useSymbolBatch(bookId: string | undefined, failureMessage: strin
   const queryClient = useQueryClient();
 
   const refreshOverview = useCallback(() => {
-    if (bookId) queryClient.invalidateQueries({ queryKey: SYMBOL_OVERVIEW_KEY(bookId) });
+    if (bookId) queryClient.invalidateQueries({ queryKey: qk.symbols.overview(bookId) });
   }, [bookId, queryClient]);
 
   return useBatchTask<string[]>({

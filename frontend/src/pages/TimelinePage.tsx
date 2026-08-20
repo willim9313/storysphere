@@ -63,6 +63,7 @@ import {
 } from '@/components/timeline/filterState';
 import type { TimelineOrder } from '@/api/types';
 import '@/styles/timeline.css';
+import { qk } from '@/api/queryKeys';
 
 type ViewKey = 'chapter' | 'story' | 'matrix';
 
@@ -319,7 +320,7 @@ export default function TimelinePage() {
   useEffect(() => {
     if (computeTask?.status === 'done') {
       setComputeTaskId(null);
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'timeline'] });
+      queryClient.invalidateQueries({ queryKey: qk.timeline.all(bookId) });
       push({ type: 'success', title: t('timeline.toast.storyOrderDone') });
     } else if (computeTask?.status === 'error') {
       setComputeTaskId(null);
@@ -330,7 +331,7 @@ export default function TimelinePage() {
   useEffect(() => {
     if (displacementTask?.status === 'done') {
       setDisplacementTaskId(null);
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'timeline'] });
+      queryClient.invalidateQueries({ queryKey: qk.timeline.all(bookId) });
       /* The service returns `done` even when it bailed on insufficient
          coverage without calling the LLM. Reporting that as success is how a
          run that analyzed nothing came to look like one that worked. */
@@ -353,7 +354,7 @@ export default function TimelinePage() {
   useEffect(() => {
     if (eventsTask?.status === 'done') {
       setEventsTaskId(null);
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'timeline'] });
+      queryClient.invalidateQueries({ queryKey: qk.timeline.all(bookId) });
       push({ type: 'success', title: t('timeline.toast.eventsDone') });
     } else if (eventsTask?.status === 'error') {
       setEventsTaskId(null);

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchEventAnalysisDetail } from '@/api/analysis';
 import type { AnalysisItem, EventAnalysisDetail } from '@/api/types';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { qk } from '@/api/queryKeys';
 
 interface EventCompareDrawerProps {
   open: boolean;
@@ -18,7 +19,7 @@ interface EventCompareDrawerProps {
 
 function useEventDetail(bookId: string, eventId: string | null) {
   return useQuery({
-    queryKey: ['books', bookId, 'events', eventId, 'analysis'],
+    queryKey: qk.event.analysis(bookId, eventId),
     queryFn: () => fetchEventAnalysisDetail(bookId, eventId!),
     enabled: !!eventId,
   });

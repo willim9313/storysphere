@@ -33,6 +33,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAsyncTask } from '@/hooks/useAsyncTask';
 import { useBatchTask } from '@/hooks/useBatchTask';
 import '@/styles/event-analysis.css';
+import { qk } from '@/api/queryKeys';
 
 /** Rough per-event wall-clock estimate for the batch ETA. Not measured — a
  *  planning hint only, and the label says "estimated". Replace when per-event
@@ -120,9 +121,9 @@ export default function EventAnalysisPage() {
   const gen = useAsyncTask({
     defaultError: t('triggerFailed'),
     onDone: (_task, { reset }) => {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+      queryClient.invalidateQueries({ queryKey: qk.analysis.events(bookId) });
       queryClient.invalidateQueries({
-        queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
+        queryKey: qk.event.analysis(bookId, selectedEntityId),
       });
       if (generatingId) markJustDone(generatingId);
       reset();
@@ -131,7 +132,7 @@ export default function EventAnalysisPage() {
   });
 
   const { data: eventDetail, isLoading: detailLoading } = useQuery({
-    queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
+    queryKey: qk.event.analysis(bookId, selectedEntityId),
     queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
     enabled: !!bookId && !!selectedEntityId && !gen.taskId && isSelectedAnalyzed,
   });
@@ -139,7 +140,7 @@ export default function EventAnalysisPage() {
   // #7i — retrieved source passages, only useful while the event is still
   // unanalyzed (that is the "is this worth spending LLM budget on" moment).
   const { data: sourceData, isLoading: sourceLoading } = useQuery({
-    queryKey: ['books', bookId, 'events', selectedEntityId, 'source'],
+    queryKey: qk.event.source(bookId, selectedEntityId),
     queryFn: () => fetchEventSourcePassages(bookId!, selectedEntityId!, 2),
     enabled: !!bookId && !!selectedEntityId && !isSelectedAnalyzed && !gen.taskId,
   });
@@ -200,7 +201,7 @@ export default function EventAnalysisPage() {
   };
 
   const refreshEvents = useCallback(
-    () => queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] }),
+    () => queryClient.invalidateQueries({ queryKey: qk.analysis.events(bookId) }),
     [queryClient, bookId],
   );
 
