@@ -209,6 +209,77 @@ class TestTensionAttribution:
         assert set(seen) == {("analysis", "doc-tension-group")}
 
 
+class TestNarrativeAttribution:
+    """B-081 — narrative set its own service name but never the book.
+
+    ``set_llm_service_context("analysis")`` leaves ``book_id`` alone when the
+    argument is omitted, by design: an entry point sets it once and the services
+    underneath inherit. Narrative had no such entry point above it — no router in
+    ``api/routers/`` sets a book context — so the contextvar sat at its default
+    and every narrative row landed under no book.
+
+    Each test reads the context inside the *first* collaborator the public method
+    awaits. That pins the attribution to the entry itself rather than to a
+    particular ``ainvoke``, which is what makes it survive later refactors of the
+    private call sites.
+    """
+
+    @staticmethod
+    def _service(seen: list, *, first: str):
+        from storysphere.services.narrative_service import NarrativeService
+
+        kg, doc, cache = AsyncMock(), AsyncMock(), AsyncMock()
+
+        def _record(*_a, **_kw):
+            seen.append(get_llm_service_context())
+            return []          # no events / no cached stages → early return
+
+        if first == "kg":
+            kg.get_events.side_effect = _record
+        else:
+            cache.get_as.side_effect = _record
+
+        return NarrativeService(kg_service=kg, document_service=doc, cache=cache)
+
+    @pytest.mark.asyncio
+    async def test_refine_carries_the_document_id(self):
+        seen: list[tuple[str, str | None]] = []
+        service = self._service(seen, first="kg")
+
+        await service.refine_with_llm("doc-refine-attr")
+
+        assert seen[0] == ("analysis", "doc-refine-attr")
+
+    @pytest.mark.asyncio
+    async def test_hero_journey_carries_the_document_id(self):
+        seen: list[tuple[str, str | None]] = []
+        service = self._service(seen, first="cache")
+
+        await service.map_hero_journey("doc-hero-attr")
+
+        assert seen[0] == ("analysis", "doc-hero-attr")
+
+    @pytest.mark.asyncio
+    async def test_temporal_order_carries_the_document_id(self):
+        seen: list[tuple[str, str | None]] = []
+        service = self._service(seen, first="cache")
+
+        await service.analyze_temporal_order("doc-temporal-attr")
+
+        assert seen[0] == ("analysis", "doc-temporal-attr")
+
+    @pytest.mark.asyncio
+    async def test_attribution_is_set_before_any_work_happens(self):
+        """A cache hit must not be able to bill the previous book."""
+        seen: list[tuple[str, str | None]] = []
+        service = self._service(seen, first="cache")
+        set_llm_book_context("some-earlier-book")
+
+        await service.map_hero_journey("doc-hero-second")
+
+        assert seen[0] == ("analysis", "doc-hero-second")
+
+
 class TestChatAttribution:
     """Chat is billed to the book the page context names — and only to it."""
 
@@ -273,3 +344,79 @@ class TestChatAttribution:
         await agent._agent_invoke("hi")
 
         assert seen == [("chat", None)]
+
+
+class TestEveryLlmCallSiteIsAttributed:
+    """B-081 — the gap kept reappearing because nothing enforced it.
+
+    ``call_llm()`` made ``book_id`` a required argument, so a new call site that
+    goes through it cannot forget. Sites that reach for ``llm.ainvoke`` directly
+    have no such protection, and that is exactly where all seven gaps were. This
+    walks the AST and requires each of those to sit under a function that either
+    is, or is called beneath, something that sets the context.
+
+    The check is deliberately structural rather than behavioural: a behavioural
+    test only covers the paths someone remembered to write a test for.
+    """
+
+    # Sites that set no context on purpose, with the reason.
+    _EXEMPT = {
+        # Docstring examples and the shared entry point's own call.
+        "core/token_callback.py",
+        "core/llm_call.py",
+        "core/llm_client.py",
+        # summary_service uses raise_if_blocked rather than llm_text to keep
+        # "provider refused" and "came back empty" apart; it sets its own
+        # context and inherits book_id from the ingestion entry point.
+        "services/summary_service.py",
+        # Drives the LangGraph ingestion graph, not an LLM — the ``ainvoke`` here
+        # is the graph's. Its nodes set the context themselves
+        # (``IngestionWorkflow.run_phase1`` / ``run_phase2`` / ``run_step``).
+        "api/routers/book_ingestion.py",
+    }
+
+    @staticmethod
+    def _module_files():
+        from pathlib import Path
+
+        import storysphere
+
+        root = Path(storysphere.__file__).parent
+        return sorted(root.rglob("*.py"))
+
+    def test_no_unattributed_ainvoke_sites(self):
+        import ast
+        from pathlib import Path
+
+        import storysphere
+
+        root = Path(storysphere.__file__).parent
+        offenders: list[str] = []
+
+        for path in self._module_files():
+            rel = path.relative_to(root).as_posix()
+            if rel in self._EXEMPT:
+                continue
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+
+            calls_ainvoke = any(
+                isinstance(n, ast.Attribute) and n.attr == "ainvoke"
+                for n in ast.walk(tree)
+            )
+            if not calls_ainvoke:
+                continue
+
+            sets_context = any(
+                isinstance(n, ast.Call)
+                and isinstance(n.func, ast.Name)
+                and n.func.id
+                in {"set_llm_service_context", "set_llm_book_context", "call_llm"}
+                for n in ast.walk(tree)
+            )
+            if not sets_context:
+                offenders.append(rel)
+
+        assert offenders == [], (
+            "these modules call llm.ainvoke without ever setting the token "
+            f"attribution context: {offenders}"
+        )

@@ -16,6 +16,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 
 from storysphere.core.error_handling import llm_text
 from storysphere.core.llm_call import llm_retry
+from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.events import Event, NarrativeMode
 from storysphere.domain.temporal import TemporalRelation, TemporalRelationType
@@ -98,6 +99,11 @@ class TimelineAgent:
             "TimelineAgent: %d candidate pairs for %s",
             len(pairs), document_id,
         )
+
+        # Nothing upstream sets this — the agent is injected straight into its
+        # router — so without it the usage is filed under whatever service name
+        # the previous piece of work happened to leave in the contextvar.
+        set_llm_service_context("analysis", book_id=document_id)
 
         all_relations: list[TemporalRelation] = []
         for i in range(
