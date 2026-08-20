@@ -7,6 +7,7 @@ import logging
 from dataclasses import dataclass, field
 
 from storysphere.core.concurrency import gather_bounded
+from storysphere.core.utils.text_matching import squash_spacing
 from storysphere.domain.documents import ChapterRole, Document, extract_body_text
 from storysphere.domain.entities import Entity
 from storysphere.domain.events import Event, EventType
@@ -134,7 +135,12 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
             # Lowered once per chapter, not once per entity: mention counting
             # below runs for every entity of every paragraph, and each call
             # would otherwise copy the whole chapter string.
-            chapter_text_lower = chapter_text.lower()
+            #
+            # Spacing is squashed for the same reason the lowering is hoisted —
+            # once per chapter, not once per entity. pypdf breaks words across
+            # lines into `礁 石` and letter-spaces display type, so counting on
+            # the raw text silently undercounts (B-083).
+            chapter_text_lower = squash_spacing(chapter_text).lower()
 
             async def _extract(pair, _chapter=chapter):
                 para, body_text = pair
@@ -159,7 +165,7 @@ class KnowledgeGraphPipeline(BasePipeline[Document, KGExtractionResult]):
                 # Count mentions across the full chapter text for context
                 for entity in para_entities:
                     entity.mention_count = chapter_text_lower.count(
-                        entity.name.lower()
+                        squash_spacing(entity.name).lower()
                     )
                     if murmur_cb:
                         try:

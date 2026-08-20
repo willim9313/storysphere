@@ -10,26 +10,13 @@ Follows KnowledgeGraphPipeline conventions:
 from __future__ import annotations
 
 import logging
-import re
 from dataclasses import dataclass, field
 
+from storysphere.core.utils.text_matching import squash_spacing
 from storysphere.domain.documents import Document
 from storysphere.pipelines.base import BasePipeline
 
 logger = logging.getLogger(__name__)
-
-_WHITESPACE = re.compile(r"\s+")
-
-
-def _squash(text: str) -> str:
-    """Strip every space from *text* so a term split by one still matches.
-
-    ``pypdf`` places spaces from glyph geometry, and for CJK that means a word
-    broken across a line comes back as ``礁 石``. Two thirds of the paragraphs
-    in this repo's PDF-sourced books carry at least one such split, so a term
-    landing on one is luck rather than an edge case.
-    """
-    return _WHITESPACE.sub("", text or "")
 
 
 @dataclass
@@ -237,7 +224,7 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         return [
             p
             for p in chapter.paragraphs
-            if any(n and _squash(n) in _squash(p.text) for n in needles)
+            if any(n and squash_spacing(n) in squash_spacing(p.text) for n in needles)
         ]
 
     @staticmethod
@@ -263,8 +250,8 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
             return None
 
         if len(candidates) > 1 and context_sentence:
-            snippet = _squash(context_sentence)[:80]
-            narrowed = [p for p in candidates if snippet in _squash(p.text)]
+            snippet = squash_spacing(context_sentence)[:80]
+            narrowed = [p for p in candidates if snippet in squash_spacing(p.text)]
             if narrowed:
                 candidates = narrowed
             else:

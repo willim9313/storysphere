@@ -194,6 +194,36 @@ class TestMentionCount:
         assert alice.mention_count == 3
 
     @pytest.mark.asyncio
+    async def test_name_split_by_a_pdf_space_is_still_counted(self):
+        """B-083 — ``pypdf`` breaks words across lines into ``礁 石``.
+
+        Two thirds of the paragraphs in this repo's PDF-sourced books carry at
+        least one such split. Counting on the raw text undercounts silently, and
+        ``mention_count`` is not just a display number: ``EntityLinker`` picks
+        the canonical name with ``max(group, key=mention_count)``.
+        """
+        doc = _doc([_chapter(1, ["伊內絲走下了礁 石。", "礁石很滑，伊內 絲扶著它。"])])
+        pipeline = _make_pipeline(
+            entities_by_call=[[_entity("礁石")], []],
+        )
+
+        result = await pipeline.run(doc)
+
+        assert result.entities[0].mention_count == 2
+
+    @pytest.mark.asyncio
+    async def test_letter_spaced_display_type_is_counted(self):
+        """Colophons come back with a space between every character:
+        ``霧  港  文  化 　 F O G  H A R B O R  P R E S S``. Latin is affected
+        too, which is why all whitespace goes rather than only CJK gaps."""
+        doc = _doc([_chapter(1, ["F O G  H A R B O R  P R E S S"])])
+        pipeline = _make_pipeline(entities_by_call=[[_entity("Fog Harbor Press")]])
+
+        result = await pipeline.run(doc)
+
+        assert result.entities[0].mention_count == 1
+
+    @pytest.mark.asyncio
     async def test_mention_count_zero_when_name_absent(self):
         doc = _doc([_chapter(1, ["Nothing here."])])
         pipeline = _make_pipeline(entities_by_call=[[_entity("Ghost", 1)]])
