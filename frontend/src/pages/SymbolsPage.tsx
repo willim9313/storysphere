@@ -4,7 +4,7 @@ import { useQuery, useQueries, useQueryClient, useMutation } from '@tanstack/rea
 import { useTranslation } from 'react-i18next';
 import { Telescope, BookOpen, GitBranch, RefreshCw } from 'lucide-react';
 
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ApiError } from '@/api/client';
@@ -76,7 +76,7 @@ function toImageryEntity(item: SymbolOverviewItem): ImageryEntity {
 
 export default function SymbolsPage() {
   const { bookId } = useParams<{ bookId: string }>();
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t } = useTranslation('analysis');
   const queryClient = useQueryClient();

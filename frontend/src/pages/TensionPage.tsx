@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import {
   triggerTensionAnalysis,
@@ -49,7 +49,7 @@ export default function TensionPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t } = useTranslation('analysis');
 

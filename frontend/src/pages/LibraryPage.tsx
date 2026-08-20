@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Plus, Loader2, BookOpen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useQueryClient } from '@tanstack/react-query';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBooks } from '@/hooks/useBooks';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { BookCard } from '@/components/library/BookCard';
@@ -107,7 +107,7 @@ function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; o
 type Filter = 'all' | 'analyzed' | 'ready' | 'processing';
 
 export default function LibraryPage() {
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: books, isLoading, error } = useBooks();
   const [filter, setFilter] = useState<Filter>('all');
   const [pendingTasks, setPendingTasks] = useState<PendingTask[]>(readPendingTasks);

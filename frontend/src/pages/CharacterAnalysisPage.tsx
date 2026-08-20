@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import '@/styles/character-analysis.css';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
@@ -41,6 +41,14 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 
+/** Search matches the name, and for analyzed characters, also the current
+ *  framework's archetype label (e.g. searching "統治者" finds that archetype). */
+function matchesQuery(query: string, name: string, archetype?: string): boolean {
+  if (!query) return true;
+  const q = query.toLowerCase();
+  return name.toLowerCase().includes(q) || !!archetype?.toLowerCase().includes(q);
+}
+
 type Framework = 'jung' | 'schmidt';
 type PrimaryTab = 'overview' | 'voice' | 'epistemic';
 
@@ -49,7 +57,7 @@ const PRIMARY_TABS: PrimaryTab[] = ['overview', 'voice', 'epistemic'];
 export default function CharacterAnalysisPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t } = useTranslation('analysis');
   const { t: tc } = useTranslation('common');
@@ -219,22 +227,27 @@ export default function CharacterAnalysisPage() {
   const selectedAnalyzed = charData?.analyzed.find((a) => a.entityId === selectedEntityId);
   const selectedUnanalyzed = charData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
-  // Search matches the name, and for analyzed characters, also the current
-  // framework's archetype label (e.g. searching "統治者" finds that archetype).
-  const filterFn = (name: string, archetype?: string) => {
-    if (!searchQuery) return true;
-    const q = searchQuery.toLowerCase();
-    return name.toLowerCase().includes(q) || !!archetype?.toLowerCase().includes(q);
-  };
+  // Both lists are memoized, and deliberately so: `flatNavList` below takes them
+  // as deps, and the ↑/↓ keyboard effect takes `flatNavList`. Rebuilding these
+  // arrays every render made that useMemo miss every time, which in turn tore
+  // down and re-attached the window keydown listener on every single render.
   // #14 archetype filter only applies to the analyzed group (dropdown is
   // scoped to "篩選已分析角色"), and resets whenever the framework switches.
-  const filteredAnalyzed = (charData?.analyzed ?? [])
-    .filter((a) => filterFn(a.title, a.archetypes?.[framework]))
-    .filter((a) => archFilter.length === 0 || archFilter.includes(a.archetypes?.[framework] ?? ''))
-    .sort((a, b) => b.mentionCount - a.mentionCount);
-  const filteredUnanalyzed = (charData?.unanalyzed ?? [])
-    .filter((u) => filterFn(u.name))
-    .sort((a, b) => b.mentionCount - a.mentionCount);
+  const filteredAnalyzed = useMemo(
+    () =>
+      (charData?.analyzed ?? [])
+        .filter((a) => matchesQuery(searchQuery, a.title, a.archetypes?.[framework]))
+        .filter((a) => archFilter.length === 0 || archFilter.includes(a.archetypes?.[framework] ?? ''))
+        .sort((a, b) => b.mentionCount - a.mentionCount),
+    [charData, searchQuery, framework, archFilter],
+  );
+  const filteredUnanalyzed = useMemo(
+    () =>
+      (charData?.unanalyzed ?? [])
+        .filter((u) => matchesQuery(searchQuery, u.name))
+        .sort((a, b) => b.mentionCount - a.mentionCount),
+    [charData, searchQuery],
+  );
 
   const totalCharacters = (charData?.analyzed.length ?? 0) + (charData?.unanalyzed.length ?? 0);
   const maxMentionCount = Math.max(

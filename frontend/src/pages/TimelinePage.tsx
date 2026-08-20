@@ -24,7 +24,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Loader2, Sparkles } from 'lucide-react';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useBook } from '@/hooks/useBook';
 import { useTimeline } from '@/hooks/useTimeline';
@@ -138,7 +138,7 @@ export default function TimelinePage() {
 
   /* ── Data ──────────────────────────────────────────────────── */
 
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   /* Always fetch narrative order. Every view is derived from it client-side
      (story order sorts by rank, the matrix reads rank as its Y axis), and

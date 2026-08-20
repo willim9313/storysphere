@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { AlertTriangle, Compass } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { useBook } from '@/hooks/useBook';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
 import { fetchChapters } from '@/api/chapters';
 import { fetchTEUs } from '@/api/tension';
@@ -71,7 +71,7 @@ export default function NarrativePage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
   const { i18n, t } = useTranslation('analysis');
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
 
   useEffect(() => {

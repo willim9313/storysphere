@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader, Shapes } from 'lucide-react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
@@ -71,7 +71,7 @@ const RIGHT_PANEL_WIDTH: Record<NonNullable<RightPanel>, number> = {
 export default function GraphPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const [searchParams] = useSearchParams();
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t, t: tStats } = useTranslation('graph');
   const queryClient = useQueryClient();

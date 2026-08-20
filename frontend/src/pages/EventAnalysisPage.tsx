@@ -14,7 +14,7 @@ import {
   BookOpen,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import {
@@ -51,7 +51,7 @@ function formatEta(count: number, t: TFunc): string {
 export default function EventAnalysisPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const location = useLocation();
 
