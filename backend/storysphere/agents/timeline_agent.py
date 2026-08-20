@@ -13,14 +13,9 @@ from itertools import groupby
 from typing import Any
 
 from langchain_core.messages import HumanMessage, SystemMessage
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
 from storysphere.core.error_handling import llm_text
+from storysphere.core.llm_call import llm_retry
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.events import Event, NarrativeMode
 from storysphere.domain.temporal import TemporalRelation, TemporalRelationType
@@ -270,11 +265,7 @@ class TimelineAgent:
     # Batch LLM processing
     # ----------------------------------------------------------
 
-    @retry(
-        retry=retry_if_exception_type((ValueError, KeyError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(min=1, max=5),
-    )
+    @llm_retry(reraise=False)
     async def _process_batch(
         self,
         pairs: list[tuple[str, str]],

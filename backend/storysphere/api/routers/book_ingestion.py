@@ -288,7 +288,7 @@ async def suggest_roles(
     )
 
     try:
-        result = await suggest_boundary_roles(document.chapters)
+        result = await suggest_boundary_roles(document.chapters, book_id=book_id)
     except RuntimeError as exc:
         raise HTTPException(
             status_code=503,
@@ -344,14 +344,14 @@ async def parse_toc(
     toc_text = (body.toc_text or "").strip() if body else ""
     try:
         if toc_text:
-            entries = await parse_toc_text(toc_text)
+            entries = await parse_toc_text(toc_text, book_id=book_id)
         else:
             document = await doc.get_document(book_id)
             if document is None:
                 raise HTTPException(
                     status_code=404, detail=f"Book '{book_id}' not found"
                 )
-            entries = await parse_toc_entries(document.chapters)
+            entries = await parse_toc_entries(document.chapters, book_id=book_id)
     except RuntimeError as exc:
         raise HTTPException(
             status_code=503,

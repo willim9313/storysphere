@@ -6,8 +6,10 @@ is passed via ``config={"callbacks": [handler]}`` to each invoke/stream call.
 Call ``configure_langfuse()`` once at application startup.  Use
 ``get_langfuse_handler()`` to retrieve the singleton handler for injection.
 
-For non-LangChain code, use the ``@observe`` decorator from ``langfuse``
-to create custom spans that nest inside the active trace.
+For non-LangChain code, use the ``@observe`` decorator re-exported below
+to create custom spans that nest inside the active trace.  Import it from
+here rather than from ``langfuse`` directly: the local version degrades to a
+no-op when langfuse is not installed, which keeps tracing optional.
 """
 
 from __future__ import annotations
@@ -18,6 +20,34 @@ import os
 logger = logging.getLogger(__name__)
 
 _handler: object | None = None
+
+
+try:
+    from langfuse import observe
+except ImportError:  # pragma: no cover - langfuse is an optional dev dependency
+    def observe(**_kw):  # type: ignore[misc]
+        """No-op stand-in for ``langfuse.observe`` when langfuse is absent.
+
+        Langfuse is a development-time observability tool, not part of the
+        execution path.  Every ``@observe`` in this codebase has to survive
+        langfuse not being installed, and this decorator is what makes that
+        true: it accepts the same keyword arguments and returns the function
+        untouched.
+
+        This is the single place in the backend that names the ``langfuse``
+        package for span decoration.  Swapping or dropping the tracing vendor
+        means editing here, not seven modules.
+
+        What this deliberately does **not** do is decorate anything itself.
+        Span names and boundaries (``analysis.character.cep``,
+        ``extract.keywords``) are semantic choices made by the author of each
+        call site.  No shared LLM helper opens a span on their behalf — see
+        ``core/llm_call.py``, which calls the model without touching tracing.
+        """
+        def _decorate(fn):
+            return fn
+
+        return _decorate
 
 
 def configure_langfuse(settings=None) -> bool:

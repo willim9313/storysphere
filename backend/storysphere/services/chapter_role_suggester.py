@@ -29,8 +29,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from storysphere.core.error_handling import LLMResponseBlocked, llm_text
-from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.error_handling import LLMResponseBlocked
+from storysphere.core.llm_call import call_llm
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.documents import Chapter, ChapterRole, ParagraphRole
 
@@ -89,24 +89,23 @@ class BoundaryResult:
     back_role: str | None = None
 
 
-async def _classify_role(llm, text: str, edge: str) -> str | None:
+async def _classify_role(llm, text: str, edge: str, book_id: str | None) -> str | None:
     """Classify one paragraph into a ChapterRole value (body/toc/preface/…).
 
     Returns ``None`` when the LLM response can't be parsed into a valid role —
     callers treat that as a conservative stop (never over-mark real story).
     """
-    from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
-
     where = "beginning" if edge == "front" else "end"
-    messages = [
-        SystemMessage(content=_SYSTEM_PROMPT.format(edge=where)),
-        HumanMessage(content=f"Paragraph:\n\n{text}"),
-    ]
-    response = await llm.ainvoke(messages)
     # Degrades rather than raises: the caller treats None as "no suggestion" and
     # keeps the deterministic role. Only the log message changes.
     try:
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=_SYSTEM_PROMPT.format(edge=where),
+            human=f"Paragraph:\n\n{text}",
+            service="ingestion",
+            book_id=book_id,
+        )
     except LLMResponseBlocked as exc:
         logger.warning("boundary suggester: %s", exc)
         return None
@@ -122,6 +121,7 @@ async def _classify_role(llm, text: str, edge: str) -> str | None:
 async def suggest_boundary_roles(
     chapters: list[Chapter],
     *,
+    book_id: str | None,
     snippet_chars: int = DEFAULT_SNIPPET_CHARS,
     max_scan: int = DEFAULT_MAX_SCAN,
     llm=None,
@@ -131,6 +131,10 @@ async def suggest_boundary_roles(
     Walks the body-chapter body paragraphs inward from each end, one LLM call per
     paragraph, stopping each walk at the first story-body paragraph. Returns the
     boundaries (book-global paragraph indices) for the reviewer to accept.
+
+    ``book_id`` attributes the token spend. This runs from the review router
+    with no ingestion workflow in progress, so nothing upstream sets the book
+    for it — and one call per paragraph adds up.
 
     Raises ``RuntimeError`` (from the LLM client) if no LLM is configured.
     """
@@ -151,7 +155,6 @@ async def suggest_boundary_roles(
         from storysphere.core.llm_client import get_llm_client  # noqa: PLC0415
 
         llm = get_llm_client().get_with_local_fallback(temperature=0.0)
-    set_llm_service_context("ingestion")
 
     n = len(flat)
     _BODY = ChapterRole.body.value
@@ -165,7 +168,7 @@ async def suggest_boundary_roles(
         snippet = flat[k][1].strip()[:snippet_chars]
         if not snippet:
             continue
-        role = await _classify_role(llm, snippet, "front")
+        role = await _classify_role(llm, snippet, "front", book_id)
         if role is None or role == _BODY:
             if front_roles:
                 front_end = flat[k][0]  # first story paragraph's global index
@@ -183,7 +186,7 @@ async def suggest_boundary_roles(
         snippet = flat[k][1].strip()[:snippet_chars]
         if not snippet:
             continue
-        role = await _classify_role(llm, snippet, "back")
+        role = await _classify_role(llm, snippet, "back", book_id)
         scanned += 1
         if role is None or role == _BODY:
             break

@@ -104,7 +104,7 @@ class TestParseTocEndpoint:
 
         assert resp.status_code == 200
         assert [e["title"] for e in resp.json()["entries"]] == ["第一章 新標題"]
-        parse_text.assert_awaited_once_with("第一章 新標題 …… 3")
+        parse_text.assert_awaited_once_with("第一章 新標題 …… 3", book_id=doc_id)
 
     def test_empty_body_toc_text_falls_back_to_doc(self, client, mock_doc):
         """A blank tocText falls back to the persisted document's detected TOC."""

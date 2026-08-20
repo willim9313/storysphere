@@ -18,11 +18,10 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from pydantic import BaseModel, Field
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from storysphere.config.mythos import get_mythos_summary, resolve_mythos_id
-from storysphere.core.error_handling import llm_text
-from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.language_detection import localize_prompt
+from storysphere.core.llm_call import call_llm, llm_retry
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.entities import EntityType
 from storysphere.domain.tension import (
@@ -824,12 +823,7 @@ class TensionService:
             self._llm = get_llm_client().get_with_local_fallback(temperature=0.3)
         return self._llm
 
-    @retry(
-        retry=retry_if_exception_type(ValueError),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry(ValueError)
     async def _call_llm(
         self,
         event,
@@ -839,21 +833,20 @@ class TensionService:
         document_id: str,
         language: str,
     ) -> TEU:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         human_content = self._build_human_content(
             event, characters, concepts, chapter_summary
         )
-        system_prompt = self._localize_prompt(_TEU_SYSTEM_PROMPT, language)
+        system_prompt = localize_prompt(_TEU_SYSTEM_PROMPT, language)
 
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis", book_id=document_id)
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=system_prompt,
+            human=human_content,
+            service="analysis",
+            book_id=document_id,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -940,19 +933,13 @@ class TensionService:
             assembled_by=_ASSEMBLER_TAG,
         )
 
-    @retry(
-        retry=retry_if_exception_type(ValueError),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry(ValueError)
     async def _call_grouping_llm(
         self,
         teus: list[TEU],
         document_id: str,
         language: str,
     ) -> list[TensionLine]:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         teu_index = {t.id: t for t in teus}
         lines_input = []
@@ -964,15 +951,15 @@ class TensionService:
             )
         human_content = "TEUs:\n" + "\n".join(lines_input)
 
-        system_prompt = self._localize_prompt(_GROUPING_SYSTEM_PROMPT, language)
+        system_prompt = localize_prompt(_GROUPING_SYSTEM_PROMPT, language)
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis", book_id=document_id)
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=system_prompt,
+            human=human_content,
+            service="analysis",
+            book_id=document_id,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, list):
@@ -1005,19 +992,13 @@ class TensionService:
         logger.debug("TensionService grouping: produced %d TensionLines", len(result))
         return result
 
-    @retry(
-        retry=retry_if_exception_type(ValueError),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry(ValueError)
     async def _call_theme_llm(
         self,
         lines: list[TensionLine],
         document_id: str,
         language: str,
     ) -> TensionTheme:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         lang_key = "zh" if language.lower().startswith("zh") else "en"
         frye_summary = get_mythos_summary("frye", lang_key)
@@ -1040,15 +1021,15 @@ class TensionService:
         ]
         human_content = "\n".join(human_parts)
 
-        system_prompt = self._localize_prompt(_THEME_SYSTEM_PROMPT, language)
+        system_prompt = localize_prompt(_THEME_SYSTEM_PROMPT, language)
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=system_prompt),
-            HumanMessage(content=human_content),
-        ]
-        set_llm_service_context("analysis", book_id=document_id)
-        response = await llm.ainvoke(messages)
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=system_prompt,
+            human=human_content,
+            service="analysis",
+            book_id=document_id,
+        )
 
         parsed, err = extract_json_from_text(raw)
         if err or not isinstance(parsed, dict):
@@ -1079,9 +1060,3 @@ class TensionService:
             )
         return resolved
 
-    @staticmethod
-    def _localize_prompt(prompt: str, language: str) -> str:
-        from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
-
-        lang_name = get_language_display_name(language)
-        return prompt + f"\nRespond in {lang_name}."

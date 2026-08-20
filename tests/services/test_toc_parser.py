@@ -53,7 +53,7 @@ class TestParseTocEntries:
             )
         ]
         llm = _fake_llm('{"entries": []}')
-        result = await parse_toc_entries(chapters, llm=llm)
+        result = await parse_toc_entries(chapters, llm=llm, book_id="book-1")
         assert result == []
         llm.ainvoke.assert_not_awaited()
 
@@ -68,7 +68,7 @@ class TestParseTocEntries:
             '{"title": "跋", "page": 86, "level": 0, "isBody": false}'
             ']}'
         )
-        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm(content))
+        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm(content), book_id="book-1")
         assert [e.title for e in result] == ["第一章 開端", "第二章 潮汐", "跋"]
         assert result[0].page == 15
         assert result[2].is_body is False
@@ -77,14 +77,14 @@ class TestParseTocEntries:
     async def test_non_json_response_returns_empty(self):
         from storysphere.services.toc_parser import parse_toc_entries
 
-        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm("not json at all"))
+        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm("not json at all"), book_id="book-1")
         assert result == []
 
     @pytest.mark.asyncio
     async def test_entries_not_a_list_returns_empty(self):
         from storysphere.services.toc_parser import parse_toc_entries
 
-        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm('{"entries": "oops"}'))
+        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm('{"entries": "oops"}'), book_id="book-1")
         assert result == []
 
     @pytest.mark.asyncio
@@ -98,7 +98,7 @@ class TestParseTocEntries:
             '{"page": 5}'
             ']}'
         )
-        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm(content))
+        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm(content), book_id="book-1")
         assert [e.title for e in result] == ["第一章"]
         assert result[0].page is None
         assert result[0].level == 0
@@ -109,7 +109,7 @@ class TestParseTocEntries:
         from storysphere.services.toc_parser import parse_toc_entries
 
         content = '{"entries": [{"title": "序", "level": -3, "isBody": false}]}'
-        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm(content))
+        result = await parse_toc_entries(_make_toc_chapters("目錄 …"), llm=_fake_llm(content), book_id="book-1")
         assert result[0].level == 0
 
 
@@ -121,7 +121,7 @@ class TestParseTocText:
         from storysphere.services.toc_parser import parse_toc_text
 
         llm = _fake_llm('{"entries": []}')
-        result = await parse_toc_text("   \n  ", llm=llm)
+        result = await parse_toc_text("   \n  ", llm=llm, book_id="book-1")
         assert result == []
         llm.ainvoke.assert_not_awaited()
 
@@ -135,6 +135,6 @@ class TestParseTocText:
             '{"title": "跋", "page": 86, "level": 0, "isBody": false}'
             ']}'
         )
-        result = await parse_toc_text("第一章 開端 …… 15", llm=_fake_llm(content))
+        result = await parse_toc_text("第一章 開端 …… 15", llm=_fake_llm(content), book_id="book-1")
         assert [e.title for e in result] == ["第一章 開端", "跋"]
         assert result[1].is_body is False

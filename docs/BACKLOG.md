@@ -263,6 +263,40 @@ paragraph／chunk 參照，段落層級目前做不到。
 ---
 
 
+#### B-081 三個服務完全沒有 token 歸屬呼叫
+
+**背景**: 2026-08-19 執行「LLM 呼叫慣例收斂」計畫 P4 時清點出來的。計畫只
+盤點了「有呼叫 `set_llm_service_context` 但漏帶 `book_id`」的站點，因此漏掉
+更嚴重的一類 —— **根本沒有呼叫過的**：
+
+| 位置 | LLM 呼叫處 | 作用域裡有書嗎 |
+|---|---|---|
+| `agents/timeline_agent.py:_process_batch` | 1 | **有** —— 簽章就帶 `document_id` |
+| `services/epistemic_state_service.py:_infer_misbeliefs` | 1 | 沒有 |
+| `services/epistemic_state_service.py:_classify_batch` | 1 | 沒有 |
+| `services/voice_profiling_service.py:_llm_qualitative` | 1 | 沒有 |
+
+這三個服務都由 `api/deps.py` 直接注入 router，**不經過任何會設 context 的
+入口**。它們的 token 因此記在 contextvar 的預設值 `"unknown"` 上，或更糟 ——
+同一個 context 裡前一段程式留下的服務名。
+
+**為什麼本次沒順手修**: 要遷移它們就必須替它們指定一個 `service` 標籤，
+而那會直接改變 token 帳目的分類結果。那是資料語意的決定，不是「收斂呼叫
+慣例」的範圍（CLAUDE.md 紅線：任務範圍外的改動另開任務）。
+
+**修的時候要決定的事**:
+- 這三者各自該歸到哪個 service bucket（`analysis`？還是各自獨立？）
+- `timeline_agent` 最單純，`document_id` 就在手上，一行就好
+- epistemic / voice 的 `book_id` 需要從 router 往下穿，會動到公開方法簽章
+
+**與該計畫的關係**: 這是 `docs/plans/20260819-llm-call-convention-consolidation.md`
+§2.1 那個缺口的**第二層** —— 該計畫修掉了「有呼叫但漏帶書」，這條是「連
+呼叫都沒有」。
+
+**觸發時機**: 下次要讓 `GET /tokens/usage?bookId=...` 的 by-book 加總逼近總量時。
+
+---
+
 #### B-080 後端 deferred import 分類（結論：不搬）
 
 **背景**: 2026-08-19 執行「後端結構性殘留清理」計畫 §3 時做的分類。全後端有
@@ -1227,6 +1261,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-077 | 語言顯示名查表大小寫敏感（`zh-TW` → 「Respond in Zh.」） | 🟢 低 | 已完成（2026-08-10）；原記的「回傳簡體」是驗證腳本的產物，生產路徑無此問題 |
 | B-079 | 18% 的 imagery occurrence 指向不含該詞的段落 | 🟡 中 | 待開始（2026-08-10 查證；送進 LLM 的證據有一部分是錯的） |
 | B-078 | 象徵事件依附與貫穿度共線（`W.ev` 定義待決） | 🟢 低 | 暫不實作（2026-08-10 收攏；觸發：決議 06 權重校準） |
+| B-081 | 三個服務完全沒有 token 歸屬呼叫 | 🟡 中 | 待處理（2026-08-19 清點出：timeline_agent / epistemic_state / voice_profiling，共 4 個 LLM 呼叫處） |
 | B-080 | 後端 deferred import 分類 | 🟢 低 | **不做**（2026-08-19 分類：276 處中僅 ~5.4% 可搬；75% 是循環依賴迴避） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | 待開始（觸發：動到 upload / event analysis 時順修） |
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | 待開始（觸發：需用 mock 展示時間軸頁時） |
@@ -1292,4 +1327,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-08-19（新增 B-080：deferred import 分類，結論為不搬）
+**最後更新**: 2026-08-19（新增 B-081：三個服務完全沒有 token 歸屬呼叫）

@@ -58,7 +58,7 @@ class _FakeLLM:
 class TestSuggestBoundaryRoles:
     @pytest.mark.asyncio
     async def test_empty_chapters(self):
-        r = await suggest_boundary_roles([])
+        r = await suggest_boundary_roles([], book_id="book-1")
         assert r.front_matter_end is None and r.back_matter_start is None
 
     @pytest.mark.asyncio
@@ -68,7 +68,7 @@ class TestSuggestBoundaryRoles:
         toc = _chapter(1, _body("copyright", "contents"), role=ChapterRole.toc)
         body = _chapter(2, _body("the story begins"))
         llm = _FakeLLM(["body"])  # only the one body paragraph is classified
-        r = await suggest_boundary_roles([toc, body], llm=llm)
+        r = await suggest_boundary_roles([toc, body], llm=llm, book_id="book-1")
         assert r.front_matter_end is None
         assert r.back_matter_start is None
         assert llm.calls == 1
@@ -78,7 +78,7 @@ class TestSuggestBoundaryRoles:
         ch = _chapter(1, _body("copyright page", "story A", "story B"))
         # front: g0 other, g1 body (stop); back: g2 body (stop)
         llm = _FakeLLM(["other", "body", "body"])
-        r = await suggest_boundary_roles([ch], llm=llm)
+        r = await suggest_boundary_roles([ch], llm=llm, book_id="book-1")
         assert r.front_matter_end == 1
         assert r.front_role == "other"
         assert r.back_matter_start is None
@@ -88,7 +88,7 @@ class TestSuggestBoundaryRoles:
         # Front block = [copyright(other), preface] → aggregates to "preface".
         ch = _chapter(1, _body("copyright", "preface note", "story"))
         llm = _FakeLLM(["other", "preface", "body"])
-        r = await suggest_boundary_roles([ch], llm=llm)
+        r = await suggest_boundary_roles([ch], llm=llm, book_id="book-1")
         assert r.front_matter_end == 2
         assert r.front_role == "preface"
 
@@ -100,7 +100,7 @@ class TestSuggestBoundaryRoles:
         ]
         # front: g0 body → stop. back: g2 afterword, g1 body → stop.
         llm = _FakeLLM(["body", "afterword", "body"])
-        r = await suggest_boundary_roles(chapters, llm=llm)
+        r = await suggest_boundary_roles(chapters, llm=llm, book_id="book-1")
         assert r.back_matter_start == 2
         assert r.back_role == "afterword"
         assert r.front_matter_end is None
@@ -109,7 +109,7 @@ class TestSuggestBoundaryRoles:
     async def test_both_edges(self):
         ch = _chapter(1, _body("copyright", "story A", "story B", "afterword"))
         llm = _FakeLLM(["other", "body", "afterword", "body"])
-        r = await suggest_boundary_roles([ch], llm=llm)
+        r = await suggest_boundary_roles([ch], llm=llm, book_id="book-1")
         assert r.front_matter_end == 1
         assert r.front_role == "other"
         assert r.back_matter_start == 3
@@ -119,7 +119,7 @@ class TestSuggestBoundaryRoles:
     async def test_unparseable_response_stops_conservatively(self):
         ch = _chapter(1, _body("p0", "p1", "p2"))
         llm = _FakeLLM(["__bad__", "body"])  # front bad → stop; back body → stop
-        r = await suggest_boundary_roles([ch], llm=llm)
+        r = await suggest_boundary_roles([ch], llm=llm, book_id="book-1")
         assert r.front_matter_end is None
         assert r.back_matter_start is None
 
@@ -127,7 +127,7 @@ class TestSuggestBoundaryRoles:
     async def test_max_scan_caps_each_edge(self):
         ch = _chapter(1, _body(*[f"p{i}" for i in range(10)]))
         llm = _FakeLLM(["other"] * 10)  # everything looks like matter
-        r = await suggest_boundary_roles([ch], max_scan=2, llm=llm)
+        r = await suggest_boundary_roles([ch], max_scan=2, llm=llm, book_id="book-1")
         # front never finds a body within the cap → no front boundary; back caps
         # after 2 paragraphs at g9,g8 → back_matter_start = g8.
         assert r.front_matter_end is None

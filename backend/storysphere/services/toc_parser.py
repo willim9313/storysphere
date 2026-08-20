@@ -24,8 +24,8 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from storysphere.core.error_handling import LLMResponseBlocked, llm_text
-from storysphere.core.token_callback import set_llm_service_context
+from storysphere.core.error_handling import LLMResponseBlocked
+from storysphere.core.llm_call import call_llm
 from storysphere.core.utils.output_extractor import extract_json_from_text
 from storysphere.domain.documents import Chapter, ChapterRole
 
@@ -96,6 +96,7 @@ def _coerce_entry(raw: object) -> TocEntry | None:
 async def parse_toc_entries(
     chapters: list[Chapter],
     *,
+    book_id: str | None,
     max_chars: int = DEFAULT_MAX_CHARS,
     llm=None,
 ) -> list[TocEntry]:
@@ -105,6 +106,10 @@ async def parse_toc_entries(
     LLM for a single extraction call. Returns the ordered entries for the reviewer
     to eyeball; returns ``[]`` when there is no TOC chapter or none can be parsed.
 
+    ``book_id`` attributes the token spend. Chapter review calls this straight
+    from the router with no ingestion run in progress, so nothing upstream sets
+    the book for it — passing it here is the whole reason the argument exists.
+
     Raises ``RuntimeError`` (from the LLM client) if no LLM is configured.
     """
     toc_text = "\n".join(
@@ -113,12 +118,15 @@ async def parse_toc_entries(
         if chapter.role == ChapterRole.toc
         for para in chapter.paragraphs
     ).strip()
-    return await parse_toc_text(toc_text, max_chars=max_chars, llm=llm)
+    return await parse_toc_text(
+        toc_text, book_id=book_id, max_chars=max_chars, llm=llm
+    )
 
 
 async def parse_toc_text(
     toc_text: str,
     *,
+    book_id: str | None,
     max_chars: int = DEFAULT_MAX_CHARS,
     llm=None,
 ) -> list[TocEntry]:
@@ -128,6 +136,8 @@ async def parse_toc_text(
     than the stored document, so the review UI can send the *currently edited*
     TOC (the reviewer may have re-assigned roles or edited the block since the
     document was persisted) instead of the stale detected version.
+
+    ``book_id`` attributes the token spend; see :func:`parse_toc_entries`.
 
     Returns ``[]`` for empty/unparseable text. Raises ``RuntimeError`` (from the
     LLM client) if no LLM is configured.
@@ -140,20 +150,17 @@ async def parse_toc_text(
         from storysphere.core.llm_client import get_llm_client  # noqa: PLC0415
 
         llm = get_llm_client().get_with_local_fallback(temperature=0.0)
-    set_llm_service_context("ingestion")
-
-    from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
-
-    messages = [
-        SystemMessage(content=_SYSTEM_PROMPT),
-        HumanMessage(content=f"Table of contents:\n\n{toc_text[:max_chars]}"),
-    ]
-    response = await llm.ainvoke(messages)
     # Kept degrading rather than raising — a missing TOC is recoverable and the
-    # caller falls back to the deterministic detector. The log now names the real
+    # caller falls back to the deterministic detector. The log names the real
     # cause instead of blaming the JSON extractor.
     try:
-        raw = llm_text(response)
+        raw = await call_llm(
+            llm,
+            system=_SYSTEM_PROMPT,
+            human=f"Table of contents:\n\n{toc_text[:max_chars]}",
+            service="ingestion",
+            book_id=book_id,
+        )
     except LLMResponseBlocked as exc:
         logger.warning("toc parser: %s", exc)
         return []

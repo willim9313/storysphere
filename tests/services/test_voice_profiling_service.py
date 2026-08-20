@@ -176,7 +176,7 @@ class TestBucketHistogram:
 class TestLlmQualitativeLocalization:
     """Regression guard for the bug where voice profiling emitted English
     qualitative fields against Chinese passages because the system prompt
-    lacked a Respond-in directive (parity with AnalysisService._localize_prompt).
+    lacked a Respond-in directive (parity with core.language_detection.localize_prompt).
     """
 
     def _make_service_with_captured_llm(self):

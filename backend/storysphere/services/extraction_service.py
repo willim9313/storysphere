@@ -4,7 +4,7 @@ Consolidates the LLM extraction capabilities from the former
 EntityExtractor and RelationExtractor pipeline classes.  Pipelines and
 tools delegate to this service.
 
-Uses tenacity retry (3 attempts, exponential backoff).
+Retries via ``core.llm_call.llm_retry`` (see there for the policy).
 """
 
 from __future__ import annotations
@@ -15,22 +15,15 @@ import logging
 from typing import Any
 
 from pydantic import BaseModel, Field, ValidationError, field_validator
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
-from storysphere.core.error_handling import llm_text
+from storysphere.core.llm_call import call_llm, llm_retry
+from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event, EventType, NarrativeMode
 from storysphere.domain.relations import Relation, RelationType
 
 logger = logging.getLogger(__name__)
-
-try:
-    from langfuse import observe as _lf_observe
-except ImportError:
-    def _lf_observe(**_kw):  # type: ignore[misc]
-        def _d(fn): return fn
-        return _d
 
 
 # -- Pydantic schemas for entity extraction LLM output -----------------------
@@ -291,16 +284,12 @@ class ExtractionService:
 
     # -- LLM calls with retry -----------------------------------------------
 
-    @retry(
-        retry=retry_if_exception_type(
-            (ValidationError, json.JSONDecodeError, ValueError, asyncio.TimeoutError, TimeoutError)
-        ),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True,
+    @llm_retry(
+        (ValidationError, json.JSONDecodeError, ValueError, asyncio.TimeoutError, TimeoutError),
+        min_wait=2,
+        max_wait=10,
     )
     async def _call_entity_llm(self, text: str, language: str = "en") -> _EntityList:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
 
@@ -310,29 +299,24 @@ class ExtractionService:
             + f"\nAll descriptions must be written in {lang_name}."
         )
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=f"Chapter text:\n\n{text[:8000]}"),
-        ]
-        from storysphere.core.token_callback import set_llm_service_context  # noqa: PLC0415
-
-        set_llm_service_context("extraction")
-        response = await asyncio.wait_for(llm.ainvoke(messages), timeout=150)
-        content = llm_text(response)
+        content = await call_llm(
+            llm,
+            system=prompt,
+            human=f"Chapter text:\n\n{text[:8000]}",
+            service="extraction",
+            book_id=None,
+            timeout=150,
+        )
         return _parse_json_response(content)
 
-    @retry(
-        retry=retry_if_exception_type(
-            (ValidationError, json.JSONDecodeError, ValueError, asyncio.TimeoutError, TimeoutError)
-        ),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        reraise=True,
+    @llm_retry(
+        (ValidationError, json.JSONDecodeError, ValueError, asyncio.TimeoutError, TimeoutError),
+        min_wait=2,
+        max_wait=10,
     )
     async def _call_relation_llm(
         self, text: str, entity_names: list[str], language: str = "en"
     ) -> _ExtractionResult:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
         from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
 
@@ -347,15 +331,14 @@ class ExtractionService:
             f"Chapter text:\n\n{text[:8000]}"
         )
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=user_content),
-        ]
-        from storysphere.core.token_callback import set_llm_service_context  # noqa: PLC0415
-
-        set_llm_service_context("extraction")
-        response = await asyncio.wait_for(llm.ainvoke(messages), timeout=150)
-        content = llm_text(response)
+        content = await call_llm(
+            llm,
+            system=prompt,
+            human=user_content,
+            service="extraction",
+            book_id=None,
+            timeout=150,
+        )
         return _parse_extraction_response(content)
 
     # -- Parsing helpers -----------------------------------------------------

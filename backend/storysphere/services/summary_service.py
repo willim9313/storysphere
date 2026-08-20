@@ -3,26 +3,19 @@
 All LLM summarization capability lives here. Pipelines and tools
 delegate to this service (ADR: tools/pipelines never own LLM logic).
 
-Uses tenacity retry (3 attempts, exponential backoff).
+Retries via ``core.llm_call.llm_retry`` (see there for the policy).
 """
 
 from __future__ import annotations
 
 import logging
 
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
-
 from storysphere.core.error_handling import raise_if_blocked
+from storysphere.core.llm_call import llm_retry
+from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
 
 logger = logging.getLogger(__name__)
-
-try:
-    from langfuse import observe as _lf_observe
-except ImportError:
-    def _lf_observe(**_kw):  # type: ignore[misc]
-        def _d(fn): return fn
-        return _d
 
 
 _CHAPTER_SYSTEM_PROMPT = """\
@@ -104,12 +97,7 @@ class SummaryService:
 
     # -- LLM calls with retry ------------------------------------------------
 
-    @retry(
-        retry=retry_if_exception_type((ValueError, RuntimeError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry((ValueError, RuntimeError))
     async def _call_llm_chapter(
         self, text: str, header: str, language: str = "en"
     ) -> str:
@@ -128,21 +116,19 @@ class SummaryService:
 
         set_llm_service_context("summary")
         response = await llm.ainvoke(messages)
-        # Only the block check here. The empty-summary ValueError below is
-        # retryable on purpose (see this method's tenacity policy) — an empty
-        # response with no reason given may be transient, unlike a refusal.
+        # Deliberately not `core.llm_call.call_llm`: that returns text through
+        # `llm_text`, which collapses "provider refused" and "came back empty"
+        # into one LLMResponseBlocked. Summarisation needs them apart — only the
+        # block check happens here, and the empty-summary ValueError below is
+        # retryable on purpose (see this method's llm_retry policy), because an
+        # empty response with no reason given may be transient unlike a refusal.
         raise_if_blocked(response)
         content = response.content if hasattr(response, "content") else str(response)
         if not content.strip():
             raise ValueError("LLM returned empty summary")
         return content.strip()
 
-    @retry(
-        retry=retry_if_exception_type((ValueError, RuntimeError)),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry((ValueError, RuntimeError))
     async def _call_llm_book(
         self, chapter_text: str, header: str, language: str = "en"
     ) -> str:
@@ -160,9 +146,12 @@ class SummaryService:
         ]
         set_llm_service_context("summary")
         response = await llm.ainvoke(messages)
-        # Only the block check here. The empty-summary ValueError below is
-        # retryable on purpose (see this method's tenacity policy) — an empty
-        # response with no reason given may be transient, unlike a refusal.
+        # Deliberately not `core.llm_call.call_llm`: that returns text through
+        # `llm_text`, which collapses "provider refused" and "came back empty"
+        # into one LLMResponseBlocked. Summarisation needs them apart — only the
+        # block check happens here, and the empty-summary ValueError below is
+        # retryable on purpose (see this method's llm_retry policy), because an
+        # empty response with no reason given may be transient unlike a refusal.
         raise_if_blocked(response)
         content = response.content if hasattr(response, "content") else str(response)
         if not content.strip():

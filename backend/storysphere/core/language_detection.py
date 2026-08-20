@@ -209,3 +209,17 @@ def get_language_display_name(lang_code: str) -> str:
         return _LANGUAGE_DISPLAY_NAMES[key]
     base = key.split("-")[0]
     return _LANGUAGE_DISPLAY_NAMES.get(base, base.capitalize())
+
+
+def localize_prompt(prompt: str, language: str) -> str:
+    """Append a "respond in this language" instruction to a system prompt.
+
+    Six services carried a byte-identical private copy of this before it was
+    lifted here.  It is pure string work with no state, so the duplication
+    bought nothing.
+
+    ``language`` is a code such as ``"zh-TW"``, not a display name — the
+    translation to "Traditional Chinese" happens here via
+    :func:`get_language_display_name`.
+    """
+    return prompt + f"\nRespond in {get_language_display_name(language)}."

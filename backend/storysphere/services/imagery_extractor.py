@@ -1,7 +1,7 @@
 """LLM-based imagery extraction and semantic clustering service.
 
 Follows LLMKeywordExtractor conventions from src/services/keyword_service.py:
-- @retry with tenacity (3 attempts, exponential backoff)
+- @llm_retry from core.llm_call (see there for the policy)
 - extract_json_from_text() for robust JSON parsing
 - set_llm_service_context("imagery") before LLM calls
 - Lazy LLM initialisation via _get_llm()
@@ -15,25 +15,15 @@ from collections import Counter
 from typing import Any
 
 import numpy as np
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
 
-from storysphere.core.error_handling import llm_text
+from storysphere.core.language_detection import localize_prompt
+from storysphere.core.llm_call import call_llm, llm_retry
+from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
 from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolCluster, SymbolOccurrence
 
 logger = logging.getLogger(__name__)
 
-try:
-    from langfuse import observe as _lf_observe
-except ImportError:
-    def _lf_observe(**_kw):  # type: ignore[misc]
-        def _d(fn): return fn
-        return _d
 
 _IMAGERY_EXTRACTION_SYSTEM_PROMPT = """\
 Identify concrete imagery elements with symbolic potential from the given passage.
@@ -281,22 +271,7 @@ class ImageryExtractor:
 
     # ── private ────────────────────────────────────────────────────────────────
 
-    @staticmethod
-    def _localize_prompt(prompt: str, language: str) -> str:
-        """Append a language instruction to a system prompt."""
-        from storysphere.core.language_detection import get_language_display_name  # noqa: PLC0415
-
-        lang_name = get_language_display_name(language)
-        return prompt + f"\nRespond in {lang_name}."
-
-    @retry(
-        retry=retry_if_exception_type(
-            (json.JSONDecodeError, ValueError, KeyError, ConnectionError, TimeoutError)
-        ),
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=5),
-        reraise=True,
-    )
+    @llm_retry((json.JSONDecodeError, ValueError, KeyError, ConnectionError, TimeoutError))
     @_lf_observe(name="extract.imagery", as_type="chain", capture_input=False, capture_output=False)
     async def _call_llm(
         self,
@@ -304,23 +279,21 @@ class ImageryExtractor:
         chapter_number: int,
         language: str = "en",
     ) -> list[dict]:
-        from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
-        from storysphere.core.token_callback import set_llm_service_context  # noqa: PLC0415
 
         _lf_update_span(metadata={"chapter": chapter_number})
-        prompt = self._localize_prompt(
+        prompt = localize_prompt(
             _IMAGERY_EXTRACTION_SYSTEM_PROMPT.format(max_items=_MAX_ITEMS_PER_PARAGRAPH),
             language,
         )
         llm = self._get_llm()
-        messages = [
-            SystemMessage(content=prompt),
-            HumanMessage(content=text[:12000]),
-        ]
-        set_llm_service_context("imagery")
-        response = await llm.ainvoke(messages)
-        content = llm_text(response)
+        content = await call_llm(
+            llm,
+            system=prompt,
+            human=text[:12000],
+            service="imagery",
+            book_id=None,
+        )
         return self._parse_response(content)
 
     @staticmethod
