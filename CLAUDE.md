@@ -56,18 +56,26 @@
 - 有無孤兒腳本或文件因改動而與實作漂移
 
 **程式碼品質：**
-- 執行 `ruff check backend/` 無新增錯誤
-- 執行 `cd frontend && npm run lint` 無新增錯誤
-- 執行 `cd frontend && npm run build` 無新增型別錯誤
+- 執行 `ruff check backend/` 全綠
+- 執行 `cd frontend && npm run lint` 全綠
+- 執行 `cd frontend && npm run build` 全綠
 - 實作範疇未超出 checkpoint 所列的檔案與 endpoint
 
-上述三項在 main 上都還有既有錯誤，**判準是「無新增」而非「全綠」**。比對時先用
-`git worktree add <tmp> main` 取基線（前端需 `ln -s` 既有 `node_modules`），兩邊輸出
-抹掉行號後再 diff（`sed -E 's/:[0-9]+:[0-9]+:/::/'` → `sort` → `comm -13`），否則
-上游多幾行就會讓下游行號整批位移、誤報成新增。
+**判準是「全綠」，也就是 exit code 為 0——不是「沒有比之前更糟」。** 三道閘門已於
+2026-08-20（PR #66）全數清乾淨，所以不必再取基線比對，直接看 exit code 即可。
 
 `npm run build` 是必跑項：`lint` 攔不到型別問題（typescript-eslint 關掉了
 `no-undef`），刪掉變數卻漏改使用端這類 runtime ReferenceError 只有 `tsc` 會抓到。
+
+**沒有任何 CI 在盯這三道閘門**（2026-08-20 評估後決定暫不建，見 B-085），所以綠不綠
+完全靠提交前自己跑。B-066 是這件事的反例：`tsc -b` 長期紅著，紅久了就沒人看，錯誤
+一路累積到 10 個才被清掉——其中還混著一個已經不存在的 interface 引用。閘門會腐化，
+而腐化是靜默的。
+
+**若閘門日後又變紅**（有紅的東西進了 main，「全綠」暫時做不到）：退回「無新增」判準，
+用 `git worktree add <tmp> main` 取基線（前端需 `ln -s` 既有 `node_modules`），兩邊輸出
+抹掉行號後再 diff（`sed -E 's/:[0-9]+:[0-9]+:/::/'` → `sort` → `comm -13`），否則上游
+多幾行就會讓下游行號整批位移、誤報成新增。清乾淨後改回「全綠」。
 
 ---
 

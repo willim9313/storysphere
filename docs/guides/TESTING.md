@@ -164,6 +164,6 @@ async def _get(doc_id):
 
 ## Definition of Done（測試面）
 
-- `python -m pytest` 無新增失敗
-- `ruff check tests/` 無新增錯誤
+- `python -m pytest` 全綠（判準與 CLAUDE.md 一致：exit code 0，不是「沒有比之前更糟」）
+- `ruff check tests/` 全綠
 - 新增的 endpoint / helper 有對應測試（參考上表）
