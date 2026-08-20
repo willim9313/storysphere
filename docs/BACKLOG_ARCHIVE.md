@@ -802,3 +802,191 @@ directive "Respond in Zh."」。當時的修法是往表裡補 `zh` 條目，沒
 **未做（刻意）**:
 - credit 大小寫校正：新 credit 為全新字串、格式已一致，原「Library of Books/books」大小寫問題隨舊圖移除而消失。
 - `tone`（light/dark）欄位：目前 `SplashScreen` 無任何 consumer 讀取 tone，加了即死資料，依「不為未來可能用到加東西」原則不補；日後真有 overlay 對比需求時再一併補欄位與 consumer。
+
+## B-082 重跑 KG 抽取會累積重複的實體 / 關係 / 事件 ✅ 完成（2026-08-20）
+
+**背景**: 2026-08-20 複查後端缺陷時，從 `var/knowledge_graph.json` 的實測資料反推出來的。
+
+**症狀**（四本書實測）:
+
+| 書 | entities | 相異 | events | 相異 | edges | 相異 |
+|---|---|---|---|---|---|---|
+| **dd129f3d** Age of Fire (併發驗證) | **195** | 73 | **101** | 67 | **326** | 168 |
+| 1a1a7266 大唐雙龍傳 | 202 | 202 | 62 | 62 | 224 | 222 |
+| 8f18dd59 名字的潮汐 | 39 | 39 | 47 | 47 | 84 | 84 |
+| be6b8d99 3pigredhood | 34 | 34 | 25 | 25 | 62 | 62 |
+
+edges 的簽章含 `chapters`，以免把 `_fill_relation_valid_to` 產生的**合法時序分期**
+誤算成重複。dd129f3d 的事件是逐字同名的三胞胎（「林素卿召集家人宣讀遺囑」×3 等）。
+
+**根因**: `_persist_to_kg`（`pipelines/knowledge_graph/pipeline.py:266`）呼叫的三個
+`add_entity` / `add_relation` / `add_event` 都**以物件自己的 id 為 key**，而那個 id 是
+每次抽取現生的 `uuid4`。memory backend 的 dict 賦值與 neo4j 的
+`MERGE (ev:Event {id: $id})` 在語意上都是「覆蓋同一個 id」，實際上永遠是新增。
+去重只發生在單次執行內（`EntityLinker`、`_remove_merged_relations`），跨執行無人看得到上一次的產出。
+
+**對照**: `symbol_discovery/pipeline.py:63` 有 `delete_by_book()`，docstring 明寫
+"Re-ingest safe"。**同一個 repo 裡兩條平行 pipeline，一條做了、一條沒做。**
+
+**與 B-068 的區別**: B-068 是「同一場戲被切成多個 event」（抽取粒度），
+這條是「同一個 event 被存了三次」（持久化）。兩者症狀都是「事件太多」，容易混淆。
+
+**觸發條件**: 按第二次 `POST /books/{id}/rerun/knowledge-graph` 就會發生。
+dd129f3d 是併發驗證的實驗書，同一步驟被反覆跑才中了三次。
+
+**修法**: `remove_by_document()` 已存在（刪書路徑在用，且 entity / relation / event 三者都清），
+在 `_persist_to_kg` 開頭 delete-first 即可。連帶要補 `inferred_relations` 的清理 ——
+它存 entity id，而 rerun 路徑沒有對應的 `delete_by_document`。
+完整規劃見 [`docs/plans/20260820-kg-rerun-idempotency.md`](plans/20260820-kg-rerun-idempotency.md)。
+
+**既有髒資料**: 不寫遷移腳本。dd129f3d 是可丟棄的實驗書，直接刪書重跑即可；
+修法落地後真實書中招也會在下次重跑時自癒。
+
+---
+
+**完成**: PR #60。`_persist_to_kg` 開頭以既有的 `remove_by_document()` delete-first；連帶在 `rerun_step` 成功後清掉 `inferred_relations`（它存 entity id）。順帶修掉一個測試污染：`_rerun` 把 `get_settings` patch 成 MagicMock，真的 `LinkPredictionStore` 會拿 mock 的 repr 當檔名，SQLite 照建不誤，跑完在 repo 根目錄留下三個垃圾 db 而測試仍回報綠。既有髒資料不寫遷移腳本 —— `Age of Fire (併發驗證)` 是可丟棄的實驗書，真實書中招則重跑一次即自癒。
+
+## B-079 imagery occurrence 指向不含該詞的段落 ✅ 完成（2026-08-20）
+
+**背景**: 2026-08-10 驗證 B-074 時發現。「戒指」的詮釋回傳「『戒指』在此後記中並未出現，
+因此無法從文本中推斷其象徵意義」—— 模型是誠實的：存下來的段落文字確實不含該詞。
+
+掃過《名字的潮汐》與另一本書全部已快取的 SEP：
+
+```
+古玉  3/4 筆的段落不含該詞（ch. 3, 4, 4）
+手    1/7 筆                （ch. 7）
+沙    3/4 筆                （ch. 5, 6, 11）
+合計 7/39 筆 ≈ 18%
+```
+
+「戒指」的 `paragraph_text` 是後記首段（直排標題「作 　 者 　 後 　 記」），但
+`context_window` 是對的 —— 兩者來源不同，其中一個對應錯了。
+
+**影響範圍**: `occurrence_contexts` 是送進 LLM 的證據本體。約五分之一的引文與該意象無關，
+詮釋因此可能建立在錯誤段落上。與 B-074（前置頁污染）是不同的問題：那是「不該送的送了」，
+這是「送的內容根本對應錯」。
+
+**根因已查明（2026-08-20）**: 上面列的兩個候選**都不是**。問題在抽取端，不在組裝端 ——
+`paragraph_id` 查無此段的筆數是 **0**，`chapter_number` 的正確率是 **142/142**。
+
+`pipelines/symbol_discovery/pipeline.py:159` 的 `_find_paragraph_id` 拿 LLM 生成的
+`context_sentence` 去跟段落文字做子字串比對，**比對失敗就靜默退回該章第一段**
+（`_find_position` 同型，退回 `0`）。而 `context_sentence` 從來就沒有「必須逐字引用」的約束 ——
+142 筆裡有 25 筆連 `term` 本身都不含，模型是在轉述。
+
+實測 22/142（15.5%）當初走了那個 fallback 分支；對不上的 28 筆只有 19 個相異
+`paragraph_id`，因為不同意象一起掉進同一個「第一段」。
+
+**修法與實測可行性**: 改用「詞優先、句子作 tiebreaker」後正確率由 80.3% → 99.3%
+（83 筆唯一命中、44 筆需 tiebreaker、14 筆靠別名、1 筆確為 LLM 幻覺）。
+完整規劃見 [`docs/plans/20260820-imagery-occurrence-anchoring.md`](plans/20260820-imagery-occurrence-anchoring.md)。
+
+**觸發時機**: 已排入實作（2026-08-20）。
+
+---
+
+**完成**: PR #61。查出**兩個**根因：(1) `_find_paragraph_id` 拿 LLM 生成的 `context_sentence` 比對，失敗就靜默退回該章第一段；(2) pypdf 在 CJK 字中插空白，`礁石` 實際存成 `礁 石`。改為 `_find_anchor`：詞優先、別名次之、`context_sentence` 只當 tiebreaker，且比對前兩邊都去空白；定位不到就丟棄，空殼意象不落庫。真實資料重放 80.3% → **100%**，丟棄 0。第二個根因另立 B-083 追蹤未修的部分。
+
+## B-081 四個服務的 token 歸屬缺口（共 7 處）✅ 完成（2026-08-20）
+
+**背景**: 2026-08-19 執行「LLM 呼叫慣例收斂」計畫 P4 時清點出來的。計畫只
+盤點了「有呼叫 `set_llm_service_context` 但漏帶 `book_id`」的站點，因此漏掉
+更嚴重的一類 —— **根本沒有呼叫過的**：
+
+| 位置 | LLM 呼叫處 | 作用域裡有書嗎 |
+|---|---|---|
+| `agents/timeline_agent.py:_process_batch` | 1 | **有** —— 簽章就帶 `document_id` |
+| `services/epistemic_state_service.py:_infer_misbeliefs` | 1 | 沒有 |
+| `services/epistemic_state_service.py:_classify_batch` | 1 | 沒有 |
+| `services/voice_profiling_service.py:_llm_qualitative` | 1 | 沒有 |
+
+這三個服務都由 `api/deps.py` 直接注入 router，**不經過任何會設 context 的
+入口**。它們的 token 因此記在 contextvar 的預設值 `"unknown"` 上，或更糟 ——
+同一個 context 裡前一段程式留下的服務名。
+
+**為什麼本次沒順手修**: 要遷移它們就必須替它們指定一個 `service` 標籤，
+而那會直接改變 token 帳目的分類結果。那是資料語意的決定，不是「收斂呼叫
+慣例」的範圍（CLAUDE.md 紅線：任務範圍外的改動另開任務）。
+
+**2026-08-20 複查：漏了第四個服務，而且穿透簽章那點是錯的**
+
+`narrative_service` 的三處（`_call_refine_llm` / `_call_hero_journey_llm` /
+`_call_temporal_order_llm`）**有**呼叫 `set_llm_service_context("analysis")`，
+但不帶 `book_id`；而 `api/routers/` 底下**沒有任何一支 router 設過 book context**，
+所以它靠不到上游。症狀與上表四處不同（不是 `"unknown"`，是 `service="analysis"` +
+`book_id=NULL`），按「沒呼叫過」去找會直接漏掉。**缺口總數是 7 處，不是 4 處。**
+
+原記「epistemic / voice 的 `book_id` 需要從 router 往下穿，會動到公開方法簽章」**不成立**：
+`get_character_knowledge` / `classify_event_visibility` / `get_voice_profile`
+三個公開方法**早就都有 `document_id`**，缺的是私有方法。而 contextvar 的語意本來就是
+「進入點設一次、下游沿用」，所以設在公開進入點即可 —— **不動任何簽章、不動任何 router**。
+
+**裁示（2026-08-20）**: service bucket 選**併入 `analysis`**，前端零改動。
+完整規劃見 [`docs/plans/20260820-token-attribution-remaining.md`](plans/20260820-token-attribution-remaining.md)。
+
+**與該計畫的關係**: 這是 `docs/plans/20260819-llm-call-convention-consolidation.md`
+§2.1 那個缺口的**第二層** —— 該計畫修掉了「有呼叫但漏帶書」，這條是「連
+呼叫都沒有」。
+
+**觸發時機**: 下次要讓 `GET /tokens/usage?bookId=...` 的 by-book 加總逼近總量時。
+
+---
+
+**完成**: PR #62。四處補 `set_llm_service_context`、narrative 三處補 `book_id`，全部設在**公開進入點**（四者本來就都收 `document_id`，原記「需從 router 往下穿、會動公開簽章」不成立）。service bucket 依裁示併入 `analysis`，前端零改動。另加 AST 掃描測試，要求每個含 `ainvoke` 的模組都設 context —— 該測試當場找出人工清點漏掉的第八處（`book_ingestion.py` 的 `graph.ainvoke`，查證為 LangGraph 非 LLM，已豁免）。
+
+## B-083 pypdf 在 CJK 字中插空白，逐字元比對因此漏數 ✅ 完成（2026-08-20）
+
+**背景**: 2026-08-20 修 B-079 時查出。原本把一筆定位不到的意象判成 LLM 幻覺，
+用戶指出「意象都是從文本拉出來的，不可能不存在」才回頭查真因。
+
+`loader.py:104` 的 `pypdf` `page.extract_text()` 依字形座標推斷空白，CJK 遇到行末
+斷字就把一個詞切成兩半 —— 段落實際存的是 `走下了礁 石`，不是 `走下了礁石`。
+
+**盛行率**（「中文字 + 空白 + 中文字」的段落佔比）:
+
+| 書 | 來源 | 佔比 |
+|---|---|---|
+| 3pigredhood | pdf | **85.7%** |
+| Age of Fire | pdf | **71.4%** |
+| 名字的潮汐 | pdf | **66.0%** |
+| 大唐雙龍傳 | txt | 12.1% |
+
+**已修的**: 意象定位（B-079）已在 `symbol_discovery/pipeline.py` 加 `_squash()`，
+比對前兩邊都去空白。
+
+**未修的 —— 本條目**: `knowledge_graph/pipeline.py:161` 的
+`chapter_text_lower.count(entity.name.lower())` 是同一種逐字元比對。實測 470 個實體
+中 **41 個（8.7%）漏數**，累計漏掉 48 次：
+
+```
+薩爾瑪雷納   15 → 18        退名之潮   6 → 10   （漏 40%）
+讀鹽人      22 → 24        母親      27 → 29
+```
+
+**為什麼值得修**: `mention_count` 不只是顯示用的數字。
+
+| 消費端 | 用途 | 漏數的後果 |
+|---|---|---|
+| `entity_linker.py:96` | `max(group, key=mention_count)` 選**正規名稱** | 可能翻轉哪個字面成為正式名 |
+| `faction_service.py:136` | 派系權重 | 權重偏移 |
+| `book_graph.py:93` | 圖譜節點大小（`chunk_count`） | 節點大小失真 |
+| `AnalysisListItems.tsx` | 角色列表的提及長條與數字 | 使用者直接看到 |
+
+**待辦內容**:
+- 決定正規化的落點：在 `pipeline.py` 就地 squash，或在 loader 端就把字中空白修掉
+  （後者影響所有下游，但會改動已入庫文本的語意，且無法回溯既有書）
+- 若採前者，`symbol_discovery/pipeline.py` 的 `_squash()` 可抽成共用 helper
+- 英文書要留意：去空白會讓兩個相鄰單字接成一個假命中（中文無此問題）
+
+**觸發時機**: 下次動到 KG 實體抽取或 EntityLinker 時。
+
+---
+
+**完成**: PR #64。新增 `core/utils/text_matching.squash_spacing()`，`mention_count` 與意象定位共用（後者原本在 `symbol_discovery` 就地寫了一份，一併收斂）。
+
+規劃時列的「英文書要留意去空白會接出假命中」促使一度打算只去 CJK 之間的空白，**但那是錯的**：書裡的版權頁存的是 `霧  港  文  化 　 F O G  H A R B O R  P R E S S`，拉丁文一樣被逐字元加空白，只去 CJK 空白的話 `Fog Harbor Press` 這種實體永遠對不上。兩種算法在 470 個實體上結果完全相同（41 vs 41），測量分不出高下，故依證據選全部去空白；突變測試把這個決策釘住（改成只去 CJK 空白，拉丁文那項即紅）。代價（`"these ashes"` 含有 `"sea"`）寫成測試，讓它是已知取捨而非日後的意外。
+
+小資料實跑（真實章節 + 真實 pipeline，只換掉 LLM 抽取）：ch9 礁石 **0 → 1**（確實出現在該章卻被算成零次）、ch8 瑪蒂爾德 5 → 6、ch10 瑪蒂爾德 3 → 4。
+
+既有資料不寫遷移腳本 —— `mention_count` 是抽取階段算的，重跑 `rerun/knowledge-graph` 即重算，而該路徑已於 PR #60 修成冪等。
