@@ -245,9 +245,45 @@ class TestFindAnchor:
 
         assert self._anchor(ch, "mirror", ctx="Somewhere a mirror gleamed.") == ("p0", 0)
 
+    def test_term_split_by_a_pdf_space_is_still_found(self):
+        """``pypdf`` breaks CJK words across lines into ``礁 石``.
+
+        Two thirds of the paragraphs in this repo's PDF books carry at least one
+        such split, so this is the ordinary case, not a curiosity — and before
+        this, the one occurrence that landed on a split was written off as an
+        LLM hallucination.
+        """
+        ch = _chapter(["她站起來，走下了礁 石。", "海退開了。"])
+
+        assert self._anchor(ch, "礁石") == ("p0", 0)
+
+    def test_a_split_paragraph_still_competes_with_an_unsplit_one(self):
+        """Where ``pypdf`` put a space must not decide which paragraph is
+        eligible — otherwise the answer depends on typesetting. Both are
+        candidates and the context sentence picks."""
+        ch = _chapter(["那塊礁石很滑。", "她走下了礁 石，海在退。"])
+
+        assert self._anchor(ch, "礁石", ctx="她走下了礁石，海在退。") == ("p1", 1)
+        # With no context to go on, the earliest candidate still wins.
+        assert self._anchor(ch, "礁石") == ("p0", 0)
+
+    def test_alias_split_by_a_pdf_space_is_still_found(self):
+        ch = _chapter(["The looking- glass hung crooked.", "Nothing else here."])
+
+        assert self._anchor(ch, "mirror", aliases=["looking-glass"]) == ("p0", 0)
+
+    def test_context_tiebreaker_ignores_pdf_spacing(self):
+        ch = _chapter(["礁石很滑。", "她走下了礁 石，海在退。"])
+
+        assert self._anchor(ch, "礁石", ctx="她走下了礁石，海在退。") == ("p1", 1)
+
     def test_absent_term_and_aliases_yield_none(self):
         """The one case the old code could not express, and the reason a fifth
-        of stored occurrences pointed at the wrong paragraph."""
+        of stored occurrences pointed at the wrong paragraph.
+
+        Terms come out of the text, so a sound run never gets here — this is the
+        guard for a model returning something it was never shown.
+        """
         ch = _chapter(["She looked into the mirror.", "The door creaked open."])
 
         assert self._anchor(ch, "reef", aliases=["shoal"]) is None

@@ -10,12 +10,26 @@ Follows KnowledgeGraphPipeline conventions:
 from __future__ import annotations
 
 import logging
+import re
 from dataclasses import dataclass, field
 
 from storysphere.domain.documents import Document
 from storysphere.pipelines.base import BasePipeline
 
 logger = logging.getLogger(__name__)
+
+_WHITESPACE = re.compile(r"\s+")
+
+
+def _squash(text: str) -> str:
+    """Strip every space from *text* so a term split by one still matches.
+
+    ``pypdf`` places spaces from glyph geometry, and for CJK that means a word
+    broken across a line comes back as ``礁 石``. Two thirds of the paragraphs
+    in this repo's PDF-sourced books carry at least one such split, so a term
+    landing on one is luck rather than an edge case.
+    """
+    return _WHITESPACE.sub("", text or "")
 
 
 @dataclass
@@ -206,6 +220,27 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         return anchored
 
     @staticmethod
+    def _containing(chapter, needles: list[str]) -> list:
+        """Paragraphs of *chapter* holding any of *needles*, ignoring spacing.
+
+        Matching is always done on the squashed text rather than trying the
+        literal form first. The space inside ``礁 石`` carries no meaning — it is
+        an artefact of where ``pypdf`` decided a line ended — so letting it
+        decide which paragraphs are eligible would make the answer depend on
+        typesetting. Widening the pool is safe because picking between several
+        candidates is the context sentence's job.
+
+        Measured both ways over the 142 stored occurrences: identical results,
+        no divergence. This is chosen on the reasoning above, not on that
+        measurement.
+        """
+        return [
+            p
+            for p in chapter.paragraphs
+            if any(n and _squash(n) in _squash(p.text) for n in needles)
+        ]
+
+    @staticmethod
     def _find_anchor(
         chapter, term: str, aliases: list[str], context_sentence: str
     ) -> tuple[str, int] | None:
@@ -215,20 +250,21 @@ class SymbolDiscoveryPipeline(BasePipeline[Document, SymbolDiscoveryResult]):
         from the LLM and is under no obligation to quote the book, so matching on
         it fails whenever the model paraphrases. It still earns its keep as a
         tiebreaker when several paragraphs carry the term.
+
+        ``None`` means the term is nowhere in the chapter under either spelling.
+        Terms are read out of the text, so on sound input this does not happen —
+        it is the guard for the case where the model returns something it was
+        never shown.
         """
-        candidates = [p for p in chapter.paragraphs if term and term in p.text]
+        candidates = SymbolDiscoveryPipeline._containing(chapter, [term])
         if not candidates:
-            candidates = [
-                p
-                for p in chapter.paragraphs
-                if any(alias and alias in p.text for alias in aliases)
-            ]
+            candidates = SymbolDiscoveryPipeline._containing(chapter, aliases)
         if not candidates:
             return None
 
         if len(candidates) > 1 and context_sentence:
-            snippet = context_sentence[:80]
-            narrowed = [p for p in candidates if snippet in p.text]
+            snippet = _squash(context_sentence)[:80]
+            narrowed = [p for p in candidates if snippet in _squash(p.text)]
             if narrowed:
                 candidates = narrowed
             else:
