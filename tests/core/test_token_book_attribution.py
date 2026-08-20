@@ -209,6 +209,77 @@ class TestTensionAttribution:
         assert set(seen) == {("analysis", "doc-tension-group")}
 
 
+class TestNarrativeAttribution:
+    """B-081 — narrative set its own service name but never the book.
+
+    ``set_llm_service_context("analysis")`` leaves ``book_id`` alone when the
+    argument is omitted, by design: an entry point sets it once and the services
+    underneath inherit. Narrative had no such entry point above it — no router in
+    ``api/routers/`` sets a book context — so the contextvar sat at its default
+    and every narrative row landed under no book.
+
+    Each test reads the context inside the *first* collaborator the public method
+    awaits. That pins the attribution to the entry itself rather than to a
+    particular ``ainvoke``, which is what makes it survive later refactors of the
+    private call sites.
+    """
+
+    @staticmethod
+    def _service(seen: list, *, first: str):
+        from storysphere.services.narrative_service import NarrativeService
+
+        kg, doc, cache = AsyncMock(), AsyncMock(), AsyncMock()
+
+        def _record(*_a, **_kw):
+            seen.append(get_llm_service_context())
+            return []          # no events / no cached stages → early return
+
+        if first == "kg":
+            kg.get_events.side_effect = _record
+        else:
+            cache.get_as.side_effect = _record
+
+        return NarrativeService(kg_service=kg, document_service=doc, cache=cache)
+
+    @pytest.mark.asyncio
+    async def test_refine_carries_the_document_id(self):
+        seen: list[tuple[str, str | None]] = []
+        service = self._service(seen, first="kg")
+
+        await service.refine_with_llm("doc-refine-attr")
+
+        assert seen[0] == ("analysis", "doc-refine-attr")
+
+    @pytest.mark.asyncio
+    async def test_hero_journey_carries_the_document_id(self):
+        seen: list[tuple[str, str | None]] = []
+        service = self._service(seen, first="cache")
+
+        await service.map_hero_journey("doc-hero-attr")
+
+        assert seen[0] == ("analysis", "doc-hero-attr")
+
+    @pytest.mark.asyncio
+    async def test_temporal_order_carries_the_document_id(self):
+        seen: list[tuple[str, str | None]] = []
+        service = self._service(seen, first="cache")
+
+        await service.analyze_temporal_order("doc-temporal-attr")
+
+        assert seen[0] == ("analysis", "doc-temporal-attr")
+
+    @pytest.mark.asyncio
+    async def test_attribution_is_set_before_any_work_happens(self):
+        """A cache hit must not be able to bill the previous book."""
+        seen: list[tuple[str, str | None]] = []
+        service = self._service(seen, first="cache")
+        set_llm_book_context("some-earlier-book")
+
+        await service.map_hero_journey("doc-hero-second")
+
+        assert seen[0] == ("analysis", "doc-hero-second")
+
+
 class TestChatAttribution:
     """Chat is billed to the book the page context names — and only to it."""
 

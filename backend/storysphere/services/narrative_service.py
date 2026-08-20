@@ -334,6 +334,12 @@ class NarrativeService:
         Returns:
             Updated NarrativeStructure persisted to cache.
         """
+        # Attribution is set once here rather than beside each ``ainvoke``:
+        # the contextvar carries it down, and this is the level that knows
+        # which book is being analysed. Nothing upstream sets it — no router
+        # does — so without this the usage lands under no book at all.
+        set_llm_service_context("analysis", book_id=document_id)
+
         # Ensure EEP-based classification has run first
         all_events = await self._kg.get_events(document_id=document_id)
         all_unclassified = all(e.narrative_weight == "unclassified" for e in all_events)
@@ -452,7 +458,6 @@ class NarrativeService:
         system_prompt = localize_prompt(_REFINE_SYSTEM_PROMPT, language)
 
         llm = self._get_llm()
-        set_llm_service_context("analysis")
         response = await llm.ainvoke([
             SystemMessage(content=system_prompt),
             HumanMessage(content=human_content),
@@ -663,6 +668,12 @@ class NarrativeService:
             List of HeroJourneyStage (only stages with evidence, in order).
             Also persisted to cache and merged into NarrativeStructure.
         """
+        # Attribution is set once here rather than beside each ``ainvoke``:
+        # the contextvar carries it down, and this is the level that knows
+        # which book is being analysed. Nothing upstream sets it — no router
+        # does — so without this the usage lands under no book at all.
+        set_llm_service_context("analysis", book_id=document_id)
+
         cache_key = f"{_HERO_JOURNEY_CACHE_PREFIX}:{document_id}"
         if not force:
             stages = await self._cache.get_as(cache_key, list[HeroJourneyStage])
@@ -716,7 +727,6 @@ class NarrativeService:
         system_prompt = localize_prompt(_HERO_JOURNEY_SYSTEM_PROMPT, language)
 
         llm = self._get_llm()
-        set_llm_service_context("analysis")
         response = await llm.ainvoke([
             SystemMessage(content=system_prompt),
             HumanMessage(content=human_content),
@@ -783,6 +793,12 @@ class NarrativeService:
         5. Update event.story_time.relative_order in KGService in-memory store.
         6. Persist TemporalAnalysis to cache.
         """
+        # Attribution is set once here rather than beside each ``ainvoke``:
+        # the contextvar carries it down, and this is the level that knows
+        # which book is being analysed. Nothing upstream sets it — no router
+        # does — so without this the usage lands under no book at all.
+        set_llm_service_context("analysis", book_id=document_id)
+
         cache_key = f"{_TEMPORAL_CACHE_PREFIX}:{document_id}"
         if not force:
             cached = await self._cache.get_as(cache_key, TemporalAnalysis)
@@ -922,7 +938,6 @@ class NarrativeService:
         system_prompt = localize_prompt(_TEMPORAL_ORDER_SYSTEM_PROMPT, language)
 
         llm = self._get_llm()
-        set_llm_service_context("analysis")
         response = await llm.ainvoke([
             SystemMessage(content=system_prompt),
             HumanMessage(content=human_content),
