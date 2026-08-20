@@ -191,3 +191,51 @@ class TestSymbolDiscoveryPipelineRun:
         entities = await svc.get_imagery_list(doc.id)
         assert len(entities) == 1
         assert entities[0].term == "mirror"
+
+
+def _chapter(texts: list[str], number: int = 1) -> Chapter:
+    return Chapter(
+        number=number,
+        title=f"Ch{number}",
+        paragraphs=[
+            Paragraph(id=f"p{i}", text=t, chapter_number=number, position=i)
+            for i, t in enumerate(texts)
+        ],
+    )
+
+
+class TestOccurrenceAnchoringToday:
+    """B-079 characterization — what the anchoring helpers do *right now*.
+
+    These pin the parts that must survive the fix (chapter fidelity, paragraph
+    ordering) and record the part that is the bug, so the change shows up as an
+    explicit flip rather than a silent one.
+    """
+
+    def test_exact_context_match_finds_its_paragraph(self):
+        ch = _chapter(["She looked into the mirror.", "The door creaked open."])
+
+        assert SymbolDiscoveryPipeline._find_paragraph_id(ch, "The door creaked") == "p1"
+        assert SymbolDiscoveryPipeline._find_position(ch, "The door creaked") == 1
+
+    def test_empty_chapter_yields_empty_id(self):
+        ch = Chapter(number=1, title="Ch1", paragraphs=[])
+
+        assert SymbolDiscoveryPipeline._find_paragraph_id(ch, "anything") == ""
+        assert SymbolDiscoveryPipeline._find_position(ch, "anything") == 0
+
+    def test_unmatched_context_silently_falls_back_to_first_paragraph(self):
+        """**This is B-079.**
+
+        ``context_sentence`` is LLM-generated and under no obligation to quote
+        the text. When the substring match fails the helpers hand back a
+        perfectly legal-looking paragraph that has nothing to do with the term —
+        19.7% of stored occurrences got their paragraph this way.
+        """
+        ch = _chapter(["She looked into the mirror.", "The door creaked open."])
+
+        # A paraphrase of paragraph 1 — the model's words, not the book's.
+        paraphrase = "A door opened with a creak."
+
+        assert SymbolDiscoveryPipeline._find_paragraph_id(ch, paraphrase) == "p0"
+        assert SymbolDiscoveryPipeline._find_position(ch, paraphrase) == 0
