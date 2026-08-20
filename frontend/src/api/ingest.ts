@@ -1,6 +1,4 @@
-import { MOCK_ENABLED } from './mock';
 import { apiFetch, apiUpload } from './client';
-import * as mock from './mock/mockClient';
 import type { components } from './generated';
 import type { TaskStatus } from './types';
 
@@ -16,7 +14,6 @@ export function uploadBook(
   language?: string,
   signal?: AbortSignal,
 ): Promise<{ taskId: string; duplicateTitle: boolean }> {
-  if (MOCK_ENABLED) return mock.uploadBook(file);
   const form = new FormData();
   form.append('file', file);
   form.append('title', title);
@@ -27,7 +24,6 @@ export function uploadBook(
 
 // #2b — Detect a file's language before upload is confirmed
 export function detectLanguage(file: File): Promise<{ language: string }> {
-  if (MOCK_ENABLED) return mock.detectLanguage(file);
   const form = new FormData();
   form.append('file', file);
   return apiUpload<{ language: string }>('/books/detect-language', form);
@@ -35,7 +31,6 @@ export function detectLanguage(file: File): Promise<{ language: string }> {
 
 // #8 — Poll task status
 export function fetchTaskStatus(taskId: string, after = 0): Promise<TaskStatus> {
-  if (MOCK_ENABLED) return mock.fetchTaskStatus(taskId);
   const params = after > 0 ? `?after=${after}` : '';
   return apiFetch<TaskStatus>(`/tasks/${taskId}/status${params}`);
 }

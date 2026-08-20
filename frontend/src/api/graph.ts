@@ -1,6 +1,4 @@
-import { MOCK_ENABLED } from './mock';
 import { apiFetch } from './client';
-import * as mock from './mock/mockClient';
 import type { GraphData, EventDetail } from './types';
 import type { components } from './generated';
 
@@ -24,7 +22,6 @@ export function fetchGraphData(
   params?: GraphSnapshotParams,
   includeInferred?: boolean,
 ): Promise<GraphData> {
-  if (MOCK_ENABLED) return mock.fetchGraphData(bookId);
   const qp = new URLSearchParams();
   if (params?.mode != null && params?.position != null) {
     qp.set('mode', params.mode);

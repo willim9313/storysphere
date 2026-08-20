@@ -560,39 +560,6 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-066 前端 `tsc -b` 既有 10 項型別錯誤
-**背景**: `npm run build` 已納入 DoD（見 `CLAUDE.md`「完成後必報」），但判準是「無新增」而非「全綠」——因為 main 上本來就有 10 項既有錯誤。這些錯誤不影響 build 產物（vite 走 esbuild，不做型別檢查），但會讓 `tsc -b` 永遠是紅的，久了就沒人看，等於閘門形同虛設。2026-07-30 就有一個 runtime ReferenceError（`BatchEepPanel` 引用已刪除的 `runningAnalyzed`）混在噪音裡差點進 main。
-
-**清單**（2026-07-30 於 main 實測）:
-- `components/upload/MurmurWindow.tsx` × 3 — `Cannot find name 'MurmurWindowProps'`（型別定義整個不見），連帶兩個 implicit any
-- `components/upload/ProcessingCard.tsx` × 2 — 讀 `TaskStatus.createdAt`，但該欄位不存在於型別上
-- `pages/EventAnalysisPage.tsx` × 3 — `sourceData.passages` possibly undefined × 2、`TFunction` 傳入自訂 `(k, o?) => string` 簽章不相容
-- `components/graph/EntityDetailPanel.tsx` × 1 — `factionData.factions` possibly undefined
-- `hooks/useTaskNotifications.ts` × 1 — `string | null | undefined` 傳給只收 `string | undefined` 的參數
-
-**待辦內容**:
-- 逐項修掉（多數是補 optional chaining 或缺失的 props 型別，`MurmurWindowProps` 需確認是被誤刪還是從未定義）
-- `ProcessingCard` 的 `createdAt` 要先確認後端是否真的有回傳——若有，是 `generated.ts` 沒重新產生；若沒有，是前端讀錯欄位
-- 清完後把 DoD 的判準從「無新增」改成「全綠」，並考慮加進 CI
-
-**注意**: 這是獨立的清理任務，不要夾帶在功能 PR 裡。
-
-**觸發時機**: 下次動到 upload 或 event analysis 相關檔案時順修，或決定把 `tsc -b` 加進 CI 之前。
-
----
-
-#### B-067 mock 模式下時間軸覆蓋率恆為 0%
-**背景**: 時間軸頁新增了「已分析／未分析」的虛線圈與覆蓋率列，靠每個事件的 `hasAnalysis` 欄位驅動。但 `frontend/src/api/mock/data.ts` 裡 29 筆時間軸事件的 `hasAnalysis` 全是 `false`——因為這些事件用 `evt-t*` 命名空間，而 mock 的事件分析（`mockEventAnalyses`）走的是 `ent-*`，兩邊根本對不起來。結果是 mock 模式下覆蓋率永遠 0%，這個新視覺完全展示不出對比。
-
-**待辦內容**:
-- 決定 mock 的事件分析要不要與時間軸事件共用 id 命名空間（目前 `evt-t*` vs `ent-*` 是分裂的）
-- 若要讓覆蓋率可展示，需要一組有意義的混合值，而非隨手填——建議與 `mockEventAnalyses` 對齊後由真實對應關係推導，不寫死
-- 一併確認 `temporalAnalyzed: false` 的設定是否也讓其他時序視覺在 mock 下失效
-
-**觸發時機**: 需要用 mock 模式展示或截圖時間軸頁時，或下次整理 mock 資料時。
-
----
-
 #### B-068 事件抽取把同一場戲切成多個 event
 **背景**: 2026-08-02 為張力頁 `scene_group_id` 驗證判準時發現的**根因**。`名字的潮汐` ch3 有三則 TEU 描述的是同一場戲（伊內絲 vs 泰奧多爾，「記憶不能買賣」），但它們來自**三個不同的 `event_id`**——TEU 快取鍵是 `teu:{event_id}`，一 event 一 TEU，所以重複源頭在事件抽取階段，不在 TEU 組裝。
 
@@ -1203,8 +1170,8 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-082 | 重跑 KG 抽取會累積重複的實體 / 關係 / 事件 | 🔴 高 | ✅ 已完成（2026-08-20 PR #60；`_persist_to_kg` delete-first，連帶清 `inferred_relations`） |
 | B-083 | pypdf 在 CJK 字中插空白，`mention_count` 漏數 | 🟡 中 | ✅ 已完成（2026-08-20 PR #64；`core/utils/text_matching.squash_spacing()`，41 個實體的漏數修正） |
 | B-080 | 後端 deferred import 分類 | 🟢 低 | **不做**（2026-08-19 分類：276 處中僅 ~5.4% 可搬；75% 是循環依賴迴避） |
-| B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | 待開始（觸發：動到 upload / event analysis 時順修） |
-| B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | 待開始（觸發：需用 mock 展示時間軸頁時） |
+| B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | ✅ 已完成（2026-08-20；10 項全清，`npm run build` 於 main 首次 exit 0） |
+| B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | **不做**（2026-08-20；`api/mock/` 整層已移除，前提消失） |
 | B-068 | 事件抽取把同一場戲切成多個 event | 🟡 中 | 待開始（觸發：下次動到 ingestion / event extraction） |
 | B-069 | 張力證據「同場景摺疊」無可用判準 | 🟢 低 | 擱置（判準已驗證失敗；待 B-068 或改用 embedding） |
 | B-070 | 張力分析頁 RWD 未做 | 🟡 中 | 待開始（觸發：窄視窗回報，或與時間軸頁 RWD 一起做） |

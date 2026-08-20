@@ -1004,3 +1004,73 @@ dd129f3d 是併發驗證的實驗書，同一步驟被反覆跑才中了三次�
 小資料實跑（真實章節 + 真實 pipeline，只換掉 LLM 抽取）：ch9 礁石 **0 → 1**（確實出現在該章卻被算成零次）、ch8 瑪蒂爾德 5 → 6、ch10 瑪蒂爾德 3 → 4。
 
 既有資料不寫遷移腳本 —— `mention_count` 是抽取階段算的，重跑 `rerun/knowledge-graph` 即重算，而該路徑已於 PR #60 修成冪等。
+
+---
+
+#### B-066 前端 `tsc -b` 既有 10 項型別錯誤
+**背景**: `npm run build` 已納入 DoD（見 `CLAUDE.md`「完成後必報」），但判準是「無新增」而非「全綠」——因為 main 上本來就有 10 項既有錯誤。這些錯誤不影響 build 產物（vite 走 esbuild，不做型別檢查），但會讓 `tsc -b` 永遠是紅的，久了就沒人看，等於閘門形同虛設。2026-07-30 就有一個 runtime ReferenceError（`BatchEepPanel` 引用已刪除的 `runningAnalyzed`）混在噪音裡差點進 main。
+
+**清單**（2026-07-30 於 main 實測）:
+- `components/upload/MurmurWindow.tsx` × 3 — `Cannot find name 'MurmurWindowProps'`（型別定義整個不見），連帶兩個 implicit any
+- `components/upload/ProcessingCard.tsx` × 2 — 讀 `TaskStatus.createdAt`，但該欄位不存在於型別上
+- `pages/EventAnalysisPage.tsx` × 3 — `sourceData.passages` possibly undefined × 2、`TFunction` 傳入自訂 `(k, o?) => string` 簽章不相容
+- `components/graph/EntityDetailPanel.tsx` × 1 — `factionData.factions` possibly undefined
+- `hooks/useTaskNotifications.ts` × 1 — `string | null | undefined` 傳給只收 `string | undefined` 的參數
+
+**待辦內容**:
+- 逐項修掉（多數是補 optional chaining 或缺失的 props 型別，`MurmurWindowProps` 需確認是被誤刪還是從未定義）
+- `ProcessingCard` 的 `createdAt` 要先確認後端是否真的有回傳——若有，是 `generated.ts` 沒重新產生；若沒有，是前端讀錯欄位
+- 清完後把 DoD 的判準從「無新增」改成「全綠」，並考慮加進 CI
+
+**注意**: 這是獨立的清理任務，不要夾帶在功能 PR 裡。
+
+**觸發時機**: 下次動到 upload 或 event analysis 相關檔案時順修，或決定把 `tsc -b` 加進 CI 之前。
+
+---
+
+**完成**: 2026-08-20，批次 1（前端重構）。10 項逐條對應清完，`npm run build` 在 main 上
+首次 exit 0。
+
+規劃時的兩個未決問題都有了答案：
+
+`MurmurWindowProps` 是**被誤刪**的，不是從未定義——`MurmurWindow` 一直在解構
+`{ events, characterSrc }`，只是型別註解指向一個不存在的名字，所以 runtime 正常、
+只有 tsc 紅。補回定義即可。
+
+`ProcessingCard` 的 `createdAt` **後端確實有回**：`generated.ts` 的 `TaskStatus`
+有 `createdAt` / `kind` / `title` 三個欄位，是手寫的 `api/types.ts` 那份沒跟上。
+正解是把 `TaskStatus` 接回 generated schema，但實測那樣做會浮出 7 個真實的
+nullability 缺口（generated 的 `subProgress` 是 `number | null`，而
+`useSymbolBatch` / 角色頁 / 事件頁三份批次進度複製碼都假設它不會是 null），
+範圍超出本次任務，故先補欄位並在型別上留註記。手寫型別遮蔽真實缺口這件事本身
+待另開任務處理。
+
+DoD 判準要不要從「無新增」改成「全綠」、要不要進 CI，留給使用者決定——`tsc -b`
+與 `eslint` 現在都是全綠，但那是本次觀測，未與後端 ruff 的現況一起評估。
+
+---
+
+#### B-067 mock 模式下時間軸覆蓋率恆為 0%
+**背景**: 時間軸頁新增了「已分析／未分析」的虛線圈與覆蓋率列，靠每個事件的 `hasAnalysis` 欄位驅動。但 `frontend/src/api/mock/data.ts` 裡 29 筆時間軸事件的 `hasAnalysis` 全是 `false`——因為這些事件用 `evt-t*` 命名空間，而 mock 的事件分析（`mockEventAnalyses`）走的是 `ent-*`，兩邊根本對不起來。結果是 mock 模式下覆蓋率永遠 0%，這個新視覺完全展示不出對比。
+
+**待辦內容**:
+- 決定 mock 的事件分析要不要與時間軸事件共用 id 命名空間（目前 `evt-t*` vs `ent-*` 是分裂的）
+- 若要讓覆蓋率可展示，需要一組有意義的混合值，而非隨手填——建議與 `mockEventAnalyses` 對齊後由真實對應關係推導，不寫死
+- 一併確認 `temporalAnalyzed: false` 的設定是否也讓其他時序視覺在 mock 下失效
+
+**觸發時機**: 需要用 mock 模式展示或截圖時間軸頁時，或下次整理 mock 資料時。
+
+---
+
+**不做**: 2026-08-20，批次 1（前端重構）。`api/mock/` 整層（2,166 行）連同 7 個
+`api/*.ts` 裡的 `MOCK_ENABLED` 分支已一併移除，這條的前提隨之消失。
+
+移除的理由不是「沒在用」，而是**它已經做不到它存在的目的**：19 個 endpoint 模組
+裡只有 7 個有 mock 分支，缺的 12 個正好是後來才做的功能（tension、symbols、
+narrative、buildOverview、voice、search、tokenUsage…）。把 `VITE_MOCK=true`
+打開會得到一個書庫與閱讀頁能動、其他頁全空的 app。要讓它重新可用，得補 12 個
+模組的 mock 並讓 19 個模組永遠跟著後端同步，而它依賴的 `api/types.ts` 本身
+正在與 `generated.ts` 漂移。
+
+順帶一提，本條描述的 `evt-t*` vs `ent-*` 命名空間分裂確實存在，但那是 mock
+資料內部的問題，不影響真實資料路徑。
