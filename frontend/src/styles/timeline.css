@@ -1741,13 +1741,8 @@
   animation: tl-pulse 1.4s ease-in-out infinite;
 }
 .tl-spinner {
-  animation: tl-spin 1s linear infinite;
+  animation: spin 1s linear infinite;
   color: var(--accent);
-}
-@keyframes tl-spin {
-  to {
-    transform: rotate(360deg);
-  }
 }
 @keyframes tl-pulse {
   0%,

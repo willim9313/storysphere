@@ -1591,12 +1591,8 @@
   border: 2px solid var(--accent);
   border-right-color: transparent;
   border-radius: 50%;
-  animation: sym-spin 900ms linear infinite;
+  animation: spin 900ms linear infinite;
 }
-@keyframes sym-spin {
-  to { transform: rotate(360deg); }
-}
-
 /* ── Start here (B3) ─────────────────────────────────────── */
 .sym-pick-grid {
   display: grid;
@@ -2172,12 +2168,7 @@
   border-radius: 50%;
   border: 2px solid var(--bg-primary);
   border-top-color: transparent;
-  animation: sym-spin 700ms linear infinite;
-}
-@keyframes sym-spin {
-  to {
-    transform: rotate(360deg);
-  }
+  animation: spin 700ms linear infinite;
 }
 .sym-gen-stage-label {
   font-family: var(--font-sans);
