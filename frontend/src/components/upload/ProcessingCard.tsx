@@ -9,6 +9,7 @@ import { useToast } from '@/contexts/ToastContext';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { ProcessingTimeline } from './ProcessingTimeline';
 import { MurmurWindow } from './MurmurWindow';
+import { qk } from '@/api/queryKeys';
 
 // Backend failedSteps prefix (underscore) → rerun endpoint step + label.
 const RERUN_META: Record<string, { step: RerunStep; label: string }> = {
@@ -96,8 +97,8 @@ function PartialRerunCard({ bookId, failedSteps }: Readonly<{ bookId: string; fa
           if (s.status === 'done') {
             setState((prev) => ({ ...prev, [fs.id]: 'done' }));
             push({ type: 'success', title: `${fs.label} 重跑完成`, body: '結果已補齊，可前往書庫查看。' });
-            void queryClient.invalidateQueries({ queryKey: ['book', bookId] });
-            void queryClient.invalidateQueries({ queryKey: ['tasks', 'list'] });
+            void queryClient.invalidateQueries({ queryKey: qk.book(bookId) });
+            void queryClient.invalidateQueries({ queryKey: qk.tasks.list() });
             return;
           }
           if (s.status === 'error') {
@@ -227,7 +228,7 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
       }
     } else if (status.status === 'error' || isError) {
       doneRef.current = true;
-      onError(task.taskId, task.fileName, status.error);
+      onError(task.taskId, task.fileName, status.error ?? undefined);
     }
   }, [status, isError, failedSteps, task, onDone, onError]);
 
@@ -237,10 +238,10 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
     try {
       await acceptReview(bookId);
       setReviewError(null);
-      queryClient.invalidateQueries({ queryKey: ['tasks', task.taskId] });
+      queryClient.invalidateQueries({ queryKey: qk.tasks.one(task.taskId) });
     } catch {
       setReviewError('章節審閱提交失敗，pipeline 可能已中斷，請刪除此書並重新上傳。');
-      queryClient.invalidateQueries({ queryKey: ['tasks', task.taskId] });
+      queryClient.invalidateQueries({ queryKey: qk.tasks.one(task.taskId) });
     } finally {
       setAcceptingChapters(false);
     }

@@ -4,7 +4,7 @@ import { useQuery, useQueries, useQueryClient, useMutation } from '@tanstack/rea
 import { useTranslation } from 'react-i18next';
 import { Telescope, BookOpen, GitBranch, RefreshCw } from 'lucide-react';
 
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ApiError } from '@/api/client';
@@ -30,7 +30,6 @@ import { CoOccurrencePanel } from '@/components/symbols/CoOccurrencePanel';
 import { OccurrencesTimeline } from '@/components/symbols/OccurrencesTimeline';
 import { useSymbolInterpretationTask } from '@/components/symbols/hooks/useSymbolInterpretationTask';
 import {
-  SYMBOL_OVERVIEW_KEY,
   useSymbolAnalysis,
 } from '@/components/symbols/hooks/useSymbolAnalysis';
 import { useSymbolBatch } from '@/components/symbols/hooks/useSymbolBatch';
@@ -51,9 +50,7 @@ import {
 import { densityStep } from '@/components/symbols/tokens';
 
 import '@/styles/symbols.css';
-
-const INTERPRETATION_KEY = (bookId: string | undefined, imageryId: string | null) =>
-  ['books', bookId, 'symbols', imageryId, 'interpretation'] as const;
+import { qk } from '@/api/queryKeys';
 
 /**
  * Narrow an overview row to the list shape the charts still expect.
@@ -76,7 +73,7 @@ function toImageryEntity(item: SymbolOverviewItem): ImageryEntity {
 
 export default function SymbolsPage() {
   const { bookId } = useParams<{ bookId: string }>();
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t } = useTranslation('analysis');
   const queryClient = useQueryClient();
@@ -172,7 +169,7 @@ export default function SymbolsPage() {
   // The selected symbol still needs the full interpretation: the overview carries
   // review state, not the theme or the evidence synthesis.
   const { data: interpretation = null } = useQuery({
-    queryKey: INTERPRETATION_KEY(bookId, selectedId),
+    queryKey: qk.symbols.interpretation(bookId, selectedId),
     queryFn: async () => {
       try {
         return await fetchSymbolInterpretation(selectedId!, bookId!);
@@ -186,7 +183,7 @@ export default function SymbolsPage() {
   });
 
   const { data: timeline = [], isLoading: timelineLoading } = useQuery({
-    queryKey: ['books', bookId, 'symbols', selectedId, 'timeline'],
+    queryKey: qk.symbols.timeline(bookId, selectedId),
     queryFn: () => fetchSymbolTimeline(selectedId!),
     enabled: !!selectedId,
   });
@@ -258,9 +255,9 @@ export default function SymbolsPage() {
    */
   const refetchInterpretation = () => {
     if (!bookId) return;
-    void queryClient.invalidateQueries({ queryKey: SYMBOL_OVERVIEW_KEY(bookId) });
+    void queryClient.invalidateQueries({ queryKey: qk.symbols.overview(bookId) });
     if (selectedId) {
-      void queryClient.invalidateQueries({ queryKey: INTERPRETATION_KEY(bookId, selectedId) });
+      void queryClient.invalidateQueries({ queryKey: qk.symbols.interpretation(bookId, selectedId) });
     }
   };
 
@@ -378,7 +375,7 @@ export default function SymbolsPage() {
         />
       );
     } else {
-      detailBody = <EmptyState bookId={bookId!} onRefresh={() => queryClient.invalidateQueries({ queryKey: ['books', bookId, 'symbols'] })} />;
+      detailBody = <EmptyState bookId={bookId!} onRefresh={() => queryClient.invalidateQueries({ queryKey: qk.symbols.list(bookId) })} />;
     }
   } else {
     detailBody = (

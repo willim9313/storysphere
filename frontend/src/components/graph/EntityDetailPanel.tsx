@@ -9,6 +9,7 @@ import { deriveFactionLabel } from '@/services/kgClustering';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 
 import type { GraphNode, EntityType } from '@/api/types';
+import { qk } from '@/api/queryKeys';
 
 const PILL_KEY: Record<EntityType, string> = {
   character: 'char',
@@ -50,7 +51,7 @@ export function EntityDetailPanel({
   const { t } = useTranslation('graph');
 
   const { data: chunksData } = useQuery({
-    queryKey: ['books', bookId, 'entities', node.id, 'chunks'],
+    queryKey: qk.entity.chunks(bookId, node.id),
     queryFn: () => fetchEntityChunks(bookId, node.id),
   });
   const paragraphCount = chunksData?.total ?? null;
@@ -65,14 +66,14 @@ export function EntityDetailPanel({
   // Faction affiliation pill — characters only (faction detection clusters
   // characters; non-character entities are never affiliated). Cached once.
   const { data: factionData } = useQuery({
-    queryKey: ['books', bookId, 'factions', 'panel'],
+    queryKey: qk.factionsPanel(bookId),
     queryFn: () => fetchFactionAnalysis(bookId, {}),
     enabled: node.type === 'character',
     staleTime: 5 * 60 * 1000,
   });
   const factionLabel = useMemo(() => {
     if (node.type !== 'character' || !factionData) return null;
-    const f = factionData.factions.find((f) => (f.memberIds ?? []).includes(node.id));
+    const f = (factionData.factions ?? []).find((f) => (f.memberIds ?? []).includes(node.id));
     return f ? deriveFactionLabel(f.topMemberNames, f.label) : t('panel.unaffiliated');
   }, [factionData, node.type, node.id, t]);
 
@@ -254,7 +255,7 @@ function AnalysisSection({
   const [triggerError, setTriggerError] = useState<string | null>(null);
 
   const { data: analysis, isLoading } = useQuery({
-    queryKey: ['books', bookId, 'entities', entityId, 'analysis'],
+    queryKey: qk.entity.analysis(bookId, entityId),
     queryFn: () => fetchEntityAnalysis(bookId, entityId),
     retry: false,
   });

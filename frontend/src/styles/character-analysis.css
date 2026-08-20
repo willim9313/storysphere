@@ -1107,11 +1107,7 @@
   font-size: var(--font-size-xs);
   max-width: 360px;
   z-index: 9;
-  animation: ca-toast-in 220ms ease;
-}
-@keyframes ca-toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  animation: toast-in 220ms ease;
 }
 .ca-toast-icon { flex-shrink: 0; color: var(--color-success); margin-top: 1px; }
 .ca-toast-main { flex: 1; min-width: 0; }
@@ -1130,9 +1126,7 @@
 }
 
 /* ═══ Overview landing (角色群像) — Batch 2A ═══ */
-.ca-ov-landing { max-width: 1180px; margin: 0 auto; animation: ca-ov-fade var(--transition-normal) ease; }
-@keyframes ca-ov-fade { from { opacity: 0; } to { opacity: 1; } }
-
+.ca-ov-landing { max-width: 1180px; margin: 0 auto; animation: fade-in var(--transition-normal) ease; }
 .ca-ov-head {
   display: flex; align-items: center; gap: 18px; flex-wrap: wrap;
   margin-bottom: 18px;
@@ -1360,7 +1354,7 @@
   padding: 24px;
 }
 .ca-gen-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
-.ca-gen-spin { color: var(--accent); display: inline-flex; animation: ca-gen-spin 1s linear infinite; }
+.ca-gen-spin { color: var(--accent); display: inline-flex; animation: spin 1s linear infinite; }
 .ca-gen-title { font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 700; margin: 0; }
 .ca-gen-eyebrow { font-size: var(--font-size-sm); color: var(--fg-muted); }
 .ca-gen-task {
@@ -1389,7 +1383,7 @@
 .ca-gen-spinner {
   width: 11px; height: 11px; border-radius: 50%;
   border: 1.5px solid var(--accent); border-top-color: transparent;
-  animation: ca-gen-spin 700ms linear infinite;
+  animation: spin 700ms linear infinite;
 }
 .ca-gen-stage-label { font-size: var(--font-size-sm); color: var(--fg-muted); }
 .ca-gen-stage.is-running .ca-gen-stage-label,
@@ -1397,4 +1391,3 @@
 .ca-gen-foot {
   margin-top: 16px; font-size: var(--font-size-2xs); color: var(--fg-muted); text-align: center;
 }
-@keyframes ca-gen-spin { to { transform: rotate(360deg); } }

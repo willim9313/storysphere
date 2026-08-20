@@ -4,9 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { fetchSymbolOverview } from '@/api/symbols';
 
 import { analyseSymbols, type SymbolAnalysis } from '../symbolSignals';
+import { qk } from '@/api/queryKeys';
 
-export const SYMBOL_OVERVIEW_KEY = (bookId: string | undefined) =>
-  ['symbols', bookId, 'overview'] as const;
 
 /**
  * Every symbol's behavioural signals, from one request.
@@ -23,7 +22,7 @@ export const SYMBOL_OVERVIEW_KEY = (bookId: string | undefined) =>
  */
 export function useSymbolAnalysis(bookId: string | undefined) {
   const query = useQuery({
-    queryKey: SYMBOL_OVERVIEW_KEY(bookId),
+    queryKey: qk.symbols.overview(bookId),
     queryFn: () => fetchSymbolOverview(bookId!),
     enabled: !!bookId,
   });

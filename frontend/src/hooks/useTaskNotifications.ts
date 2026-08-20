@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchTasks, type TaskStatus } from '@/api/tasks';
 import { useToast, type PushToastInput } from '@/contexts/ToastContext';
+import { qk } from '@/api/queryKeys';
 
 /** Strip the trailing " 解析" the backend appends to ingestion task titles so
  *  the toast shows the bare book title. */
@@ -36,7 +37,7 @@ function phaseOf(task: TaskStatus): Phase | null {
 /**
  * App-level watcher: polls the task list on every page and fires a global toast
  * when an ingestion task reaches an actionable phase (done / partial /
- * awaiting_review / error). Shares the `['tasks', 'list']` query cache with the
+ * awaiting_review / error). Shares the `qk.tasks.list()` query cache with the
  * Task Center, so this adds no extra network beyond the poll interval.
  *
  * The first poll after mount seeds the last-seen phases silently — tasks that
@@ -48,7 +49,7 @@ export function useTaskNotifications() {
   const { push } = useToast();
 
   const { data } = useQuery<TaskStatus[]>({
-    queryKey: ['tasks', 'list'],
+    queryKey: qk.tasks.list(),
     queryFn: () => fetchTasks(),
     // Only poll while some task is still in flight; when everything is terminal
     // (done/error) the app is idle and polling stops so we don't hammer /tasks
@@ -77,7 +78,7 @@ export function useTaskNotifications() {
 
       const title = bookTitleOf(task);
       const bookId = bookIdOf(task);
-      const toast = buildToast(phase, title, bookId, task.error, t, navigate);
+      const toast = buildToast(phase, title, bookId, task.error ?? undefined, t, navigate);
       if (toast) push({ ...toast, dedupeKey: `${task.taskId}:${phase}` });
     }
     seededRef.current = true;

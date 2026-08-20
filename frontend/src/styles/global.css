@@ -40,6 +40,27 @@
   }
 }
 
+/* ── Shared keyframes ───────────────────────────────────────────
+   這三段原本在各頁樣式表各寫一份（spin 六份、fade 兩份、toast 兩份），
+   內容逐字元相同。頁面樣式表隨頁分包，但 global.css 進 index chunk、
+   永遠先載入，所以各頁引用這裡的名字是安全的。
+   刻意沒有收進來的：ea-pulse / srch-pulse / tl-pulse 三者數值各不相同；
+   rd-pop / rd-fade / splash-bar / chunk-jump-flash-anim 各只有一份。
+   ─────────────────────────────────────────────────────────────── */
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Splash screen (outside @layer for specificity) ─────────────── */
 @keyframes splash-bar {
   0%   { transform: translateX(-100%); }

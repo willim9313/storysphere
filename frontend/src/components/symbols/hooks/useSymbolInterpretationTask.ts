@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { useCallback, useState } from 'react';
+import { useAsyncTask } from '@/hooks/useAsyncTask';
 import {
   fetchSymbolAnalysisTask,
   triggerSymbolAnalysis,
@@ -16,14 +16,22 @@ export interface UseSymbolInterpretationTaskResult {
   reset: () => void;
 }
 
+/**
+ * Symbol interpretation for one imagery item.
+ *
+ * The finished task is deliberately kept after it lands, so the modal can go on
+ * showing the result until the user dismisses it.
+ *
+ * `cancel` only takes down the local overlay: there is no server-side cancel for
+ * symbol analysis, so the backend run continues and its result still reaches the
+ * cache. Dropping the id lets the user re-trigger or move on.
+ */
 export function useSymbolInterpretationTask(
   onDone: (task: TaskStatus) => void,
   defaultError: string,
   triggerError: string,
 ): UseSymbolInterpretationTaskResult {
-  const [taskId, setTaskId] = useState<string | null>(null);
   const [imageryId, setImageryId] = useState<string | null>(null);
-  const [triggerErr, setTriggerErr] = useState<string | null>(null);
 
   const fetcher = useCallback(
     (id: string) => {
@@ -33,50 +41,24 @@ export function useSymbolInterpretationTask(
     [imageryId],
   );
 
-  const { data: task } = useTaskPolling(taskId, fetcher);
-  const onDoneRef = useRef(onDone);
-  useEffect(() => {
-    onDoneRef.current = onDone;
-  }, [onDone]);
-
-  useEffect(() => {
-    if (task?.status === 'done') {
-      onDoneRef.current(task);
-    }
-  }, [task]);
+  const { task, error, running, run, reset: resetTask } = useAsyncTask({
+    fetcher,
+    defaultError,
+    onDone,
+  });
 
   const trigger = useCallback(
     async (id: string, opts: TriggerSymbolAnalysisOpts) => {
-      setTriggerErr(null);
-      try {
-        setImageryId(id);
-        const status = await triggerSymbolAnalysis(id, opts);
-        setTaskId(status.taskId);
-      } catch {
-        setTriggerErr(triggerError);
-        setImageryId(null);
-      }
+      setImageryId(id);
+      await run(() => triggerSymbolAnalysis(id, opts), triggerError);
     },
-    [triggerError],
+    [run, triggerError],
   );
 
   const reset = useCallback(() => {
-    setTaskId(null);
+    resetTask();
     setImageryId(null);
-    setTriggerErr(null);
-  }, []);
+  }, [resetTask]);
 
-  // Cancel only stops the UI overlay; the backend task continues to run and
-  // its result will still land in the cache. There is no server-side cancel
-  // endpoint for symbol analysis, so we drop the local taskId to close the
-  // modal and let the user re-trigger or move on.
-  const cancel = reset;
-
-  const running = !!taskId && task?.status !== 'done' && task?.status !== 'error';
-  let error: string | null = triggerErr;
-  if (!error && task?.status === 'error') {
-    error = task.error ?? defaultError;
-  }
-
-  return { task, error, running, trigger, cancel, reset };
+  return { task, error, running, trigger, cancel: reset, reset };
 }

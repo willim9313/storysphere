@@ -5,6 +5,7 @@ import { fetchVoiceProfile, deleteVoiceProfile, useCachedVoiceProfile, type Voic
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { SourceJumpText } from './SourceJumpText';
+import { qk } from '@/api/queryKeys';
 
 const TONE_PALETTE: readonly string[] = [
   'var(--accent)',
@@ -23,7 +24,7 @@ interface Props {
 export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const queryClient = useQueryClient();
-  const voiceQueryKey = ['books', bookId, 'entities', entityId, 'voice'] as const;
+  const voiceQueryKey = qk.entity.voice(bookId, entityId);
 
   // #8: server-judged status. cached_only=true probes for an existing result
   // without triggering lazy generation; a 404 here is the normal "not

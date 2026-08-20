@@ -89,6 +89,12 @@ function MurmurEventRow({ event, isNew }: Readonly<{ event: MurmurEvent; isNew: 
   );
 }
 
+interface MurmurWindowProps {
+  events: MurmurEvent[];
+  /** Optional mascot art for the pinned CharacterSlot; falls back to its icon. */
+  characterSrc?: string;
+}
+
 export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProps>) {
   const containerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);

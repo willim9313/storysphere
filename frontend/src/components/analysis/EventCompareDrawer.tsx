@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchEventAnalysisDetail } from '@/api/analysis';
 import type { AnalysisItem, EventAnalysisDetail } from '@/api/types';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { qk } from '@/api/queryKeys';
 
 interface EventCompareDrawerProps {
   open: boolean;
@@ -17,7 +19,7 @@ interface EventCompareDrawerProps {
 
 function useEventDetail(bookId: string, eventId: string | null) {
   return useQuery({
-    queryKey: ['books', bookId, 'events', eventId, 'analysis'],
+    queryKey: qk.event.analysis(bookId, eventId),
     queryFn: () => fetchEventAnalysisDetail(bookId, eventId!),
     enabled: !!eventId,
   });
@@ -47,14 +49,7 @@ export function EventCompareDrawer({
   }, [open, defaultA, defaultB]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  useEscapeKey(open, onClose);
 
   const a = useEventDetail(bookId, open ? aId : null);
   const b = useEventDetail(bookId, open ? bId : null);

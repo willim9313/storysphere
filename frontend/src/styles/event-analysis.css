@@ -829,17 +829,15 @@
   border: 2px solid var(--bg-tertiary);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: ea-spin 800ms linear infinite;
+  animation: spin 800ms linear infinite;
 }
-@keyframes ea-spin { to { transform: rotate(360deg); } }
-
 .ea-mini-spinner {
   display: inline-block;
   width: 11px; height: 11px;
   border: 1.5px solid var(--bg-tertiary);
   border-top-color: var(--accent);
   border-radius: 50%;
-  animation: ea-spin 800ms linear infinite;
+  animation: spin 800ms linear infinite;
   vertical-align: -1px;
 }
 
@@ -871,11 +869,7 @@
   font-size: var(--font-size-xs);
   max-width: 360px;
   z-index: 9;
-  animation: ea-toast-in 220ms ease;
-}
-@keyframes ea-toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+  animation: toast-in 220ms ease;
 }
 .ea-toast-icon { flex-shrink: 0; color: var(--color-success); margin-top: 1px; }
 .ea-toast-main { flex: 1; min-width: 0; }
@@ -901,10 +895,8 @@
 
 .ea-ov-landing {
   max-width: 1180px; margin: 0 auto;
-  animation: ea-ov-fade var(--transition-normal) ease;
+  animation: fade-in var(--transition-normal) ease;
 }
-@keyframes ea-ov-fade { from { opacity: 0; } to { opacity: 1; } }
-
 .ea-ov-empty-banner {
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 13px 16px; margin-bottom: 16px;

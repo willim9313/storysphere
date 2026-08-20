@@ -1,4 +1,19 @@
-/* API types — aligned with API_CONTRACT.md */
+/* API types — aligned with API_CONTRACT.md
+ *
+ * CLAUDE.md 的規則是「API response type 一律從 generated.ts 取用」。凡是後端
+ * 已有對應 schema 的，這裡都寫成 re-export alias（見下方 `components['schemas'][…]`
+ * 那幾行），呼叫端不必改，但欄位定義以後端為準。
+ *
+ * 四個刻意留在手寫的：GraphNode、Segment、EntityChunkItem、EntityChunksResponse。
+ * 原因是後端把實體類別宣告成純 `str`（generated 的 GraphNode.type、
+ * SegmentEntity.type 都是 string），而前端這裡把它窄化成 EntityType union，
+ * 全站有十幾處靠這個窄化做窮舉比對與 Record 索引。接回 generated 等於把窄化
+ * 丟掉、再補十幾個 cast——那是變糟不是變好。後兩者是因為 segments 巢狀帶著
+ * 同一個問題。
+ *
+ * 正解在後端：把那些欄位改成 Literal / Enum，openapi 就會產出 union，這四個
+ * 也能一併收掉。屬於後端範圍，見 BACKLOG 的 B-084。
+ */
 
 // ── Entity type ─────────────────────────────────────────────────
 
@@ -130,17 +145,7 @@ export interface EventDetail {
   location?: { id: string; name: string };
 }
 
-export interface GraphEdge {
-  id: string;
-  source: string;
-  target: string;
-  label?: string;
-  weight?: number;
-  // F-01 inferred relation fields
-  inferred?: boolean;
-  confidence?: number;
-  inferredId?: string;
-}
+export type GraphEdge = components['schemas']['GraphEdge'];
 
 
 export interface GraphData {
@@ -155,10 +160,7 @@ export interface GraphData {
 export type AnalysisItem = components['schemas']['AnalysisItem'];
 export type UnanalyzedEntity = components['schemas']['UnanalyzedEntity'];
 
-export interface AnalysisListResponse {
-  analyzed: AnalysisItem[];
-  unanalyzed: UnanalyzedEntity[];
-}
+export type AnalysisListResponse = components['schemas']['AnalysisListResponse'];
 
 export interface EntityAnalysis {
   entityId: string;
@@ -235,23 +237,7 @@ export interface ReviewSubmitChapter {
   startParagraphIndex: number;
 }
 
-export interface TaskStatus {
-  taskId: string;
-  status: 'pending' | 'running' | 'done' | 'error' | 'awaiting_review';
-  progress: number;
-  stage: string;
-  /** Machine-readable pipeline step; mirrors generated.ts TaskStatus.stepKey */
-  stepKey?: string | null;
-  subProgress?: number;
-  subTotal?: number;
-  subStage?: string;
-  result?: {
-    bookId?: string;
-    [key: string]: unknown;
-  };
-  error?: string;
-  murmurEvents?: MurmurEvent[];
-}
+export type TaskStatus = components['schemas']['TaskStatus'];
 
 /** Result shape for batch event analysis tasks */
 export interface BatchEepResult {
@@ -292,12 +278,7 @@ export interface TemporalRelation {
   confidence: number;
 }
 
-export interface TimelineQuality {
-  eepCoverage: number;
-  analyzedCount: number;
-  totalCount: number;
-  hasChronologicalRanks: boolean;
-}
+export type TimelineQuality = components['schemas']['TimelineQuality'];
 
 /** Per-event verdict from the #21h temporal analysis — null until that run has
  *  happened with sufficient coverage. Sourced from generated.ts, not
@@ -344,24 +325,9 @@ export interface TEU {
   review_status: 'pending' | 'approved' | 'rejected';
 }
 
-export interface Carrier {
-  id: string | null;
-  name: string;
-  /** KG entity type; null when the carrier name resolves to no entity. */
-  entity_type: string | null;
-}
+export type Carrier = components['schemas']['Carrier'];
 
-export interface TEUSummary {
-  id: string;
-  chapter: number;
-  intensity: number;
-  tension_description: string;
-  evidence: string[];
-  pole_a_carriers: Carrier[];
-  pole_b_carriers: Carrier[];
-  pole_a_stance?: string | null;
-  pole_b_stance?: string | null;
-}
+export type TEUSummary = components['schemas']['TEUSummary'];
 
 export interface TensionLine {
   id: string;

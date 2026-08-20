@@ -7,6 +7,7 @@ import { useSourceJump } from '@/hooks/useSourceJump';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
 import { ChapterTimeline, type TimelineMarker } from './ChapterTimeline';
 import { getChapter, getTitle, getDescription, getId } from './epistemicEventUtils';
+import { qk } from '@/api/queryKeys';
 
 interface EpistemicStateSectionProps {
   bookId: string;
@@ -119,7 +120,7 @@ export function EpistemicStateSection({
           bookId={bookId}
           onComplete={() =>
             queryClient.invalidateQueries({
-              queryKey: ['books', bookId, 'epistemic-state'],
+              queryKey: qk.epistemic.all(bookId),
             })
           }
         />

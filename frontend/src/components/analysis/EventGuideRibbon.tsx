@@ -22,7 +22,13 @@ export function EventGuideRibbon({ surface }: Readonly<{ surface: Surface }>) {
   if (dismissed) return null;
 
   const handleDismiss = () => {
-    localStorage.setItem(key, '1');
+    // Safari private browsing reports a zero quota, so setItem throws. The
+    // dismissal is a nicety; losing it must not take the component down.
+    try {
+      localStorage.setItem(key, '1');
+    } catch {
+      /* ignore quota / disabled storage */
+    }
     setDismissed(true);
   };
 

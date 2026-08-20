@@ -979,8 +979,7 @@
 .tn-empty-msg { font-size: var(--font-size-sm); }
 
 /* Spin animation (used by inline Loader icons) */
-@keyframes tn-spin { to { transform: rotate(360deg); } }
-.tn-spin { animation: tn-spin 1s linear infinite; }
+.tn-spin { animation: spin 1s linear infinite; }
 
 /* ─────────────────────────────────────────────────────────────────────────
    Review toolbar + line table (張力線審核主視圖)

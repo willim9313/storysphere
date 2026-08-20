@@ -542,6 +542,57 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
+#### B-085 四道閘門沒有任何 CI 在盯
+**背景**: 2026-08-20 前端批次 1–4（PR #66）把 `npm run build` 修綠之後，四道閘門
+（`ruff check backend/`、`pytest -m "not integration"`、`npm run lint`、
+`npm run build`）首次同時全綠，CLAUDE.md 的 DoD 判準也隨之從「無新增」改為「全綠」。
+評估後決定**暫不建 CI**，此條記錄這個決定與它的代價。
+
+代價很具體：**B-066 就是「沒人盯」的產物**。那 10 個型別錯誤不是一次寫出來的，
+是因為 `tsc -b` 長期紅著、紅久了沒人看，才從 0 慢慢累積到 10 個——其中還混著一個
+引用了已不存在 interface 的檔案。把閘門弄綠而沒有東西在盯，等於只是把碼表歸零重跑。
+
+**待辦內容**:
+- 建 `.github/workflows/`，跑四道閘門（repo 是 public，Actions 免費；實測合計約 3 分鐘）
+- Python 依賴用 `uv`；測試跑 `-m "not integration"`（`integration` 那組需要真實 API key）
+- 注意 `task_store_backend` 預設是 sqlite、`.env` 才是 memory，兩種 backend 的行為不同
+  （見 2026-08-19 那次 22 項紅測試），CI 要明確指定用哪一種
+- 建起來之後，CLAUDE.md 裡「沒有任何 CI 在盯這三道閘門」那段要一併改掉
+
+**觸發時機**: 下次發現閘門又變紅時，或有第二個人開始提交時（單人開發靠自律還撐得住，
+多人就撐不住）。
+
+---
+
+#### B-084 後端實體類別欄位是純 `str`，擋住四個前端型別接回 generated.ts
+**背景**: 2026-08-20 前端批次 4 把 `api/types.ts` 手抄的型別接回 `generated.ts` 時，
+15 個候選裡有 11 個零成本接上，4 個接不了：`GraphNode`、`Segment`、`EntityChunkItem`、
+`EntityChunksResponse`。
+
+原因不是前端寫錯，而是**後端把實體類別宣告成純 `str`**——`generated.ts` 的
+`GraphNode.type` 與 `SegmentEntity.type` 都是 `string`。前端手寫版把它窄化成
+`EntityType`（`'character' | 'location' | 'organization' | 'object' | 'concept' |
+'other' | 'event'`），而全站有十幾處靠這個窄化做窮舉比對與 `Record<EntityType, …>`
+索引（`ClusterOverviewPanel`、`FactionCanvas`、`PairModeOverlay`、`SegmentRenderer`、
+`kgClustering` 等）。實測接回去會產生 12 個 `string is not assignable to EntityType`，
+只能靠補 cast 消掉——那是把型別資訊丟掉再假裝有，比手抄更糟。
+
+後兩者（`EntityChunkItem` / `EntityChunksResponse`）本身沒問題，是巢狀帶著
+`Segment` 才一起卡住。
+
+**待辦內容**:
+- 找出後端輸出這些欄位的 Pydantic model，把 `type: str` 改成 `Literal[...]` 或 `Enum`
+- 前端重跑 `npm run gen:types`，確認 `GraphNode.type` 產出的是 union 而非 string
+- 把這四個型別也改成 `components['schemas'][…]` 的 alias，並移除 `api/types.ts` 裡
+  的 `EntityType` 手寫 union（改為從 generated 推導）
+- 注意 `type` 的實際值域要先盤點，後端可能有前端 union 未涵蓋的值
+
+**注意**: 這是後端改動帶動前端收斂，順序不能反。前端先接回去只會逼出一堆 cast。
+
+**觸發時機**: 下次動到 KG 圖譜 schema 或實體型別定義時。
+
+---
+
 #### B-065 各功能頁操作說明缺乏統一機制
 **背景**: 9 個功能頁裡只有角色分析、事件分析兩頁有常駐操作說明，而且是兩套各自實作的元件（`CharacterTipRibbon` 用單一 `STORAGE_KEY`，`EventGuideRibbon` 用 overview/detail 兩個 surface key）。閱讀、符號、敘事結構、建構概覽四頁完全沒有；圖譜、時間軸、張力只有 `*OnboardingHero`——那是「資料還沒產生」時的空狀態引導，不是操作說明，有資料後就消失。其餘說明散落成各元件內的 caption / footnote / legendNote，沒有統一位置、樣式或收合行為。
 
@@ -557,39 +608,6 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 **注意**: 這是規範先行的任務，不是逐頁補文案。先有放置準則與元件，再談各頁內容，否則會重演「想補說明卻沒地方放」。
 
 **觸發時機**: 下次翻新任一功能頁時一併設計，或使用者對某頁資料來源產生誤解的回報再次出現時。
-
----
-
-#### B-066 前端 `tsc -b` 既有 10 項型別錯誤
-**背景**: `npm run build` 已納入 DoD（見 `CLAUDE.md`「完成後必報」），但判準是「無新增」而非「全綠」——因為 main 上本來就有 10 項既有錯誤。這些錯誤不影響 build 產物（vite 走 esbuild，不做型別檢查），但會讓 `tsc -b` 永遠是紅的，久了就沒人看，等於閘門形同虛設。2026-07-30 就有一個 runtime ReferenceError（`BatchEepPanel` 引用已刪除的 `runningAnalyzed`）混在噪音裡差點進 main。
-
-**清單**（2026-07-30 於 main 實測）:
-- `components/upload/MurmurWindow.tsx` × 3 — `Cannot find name 'MurmurWindowProps'`（型別定義整個不見），連帶兩個 implicit any
-- `components/upload/ProcessingCard.tsx` × 2 — 讀 `TaskStatus.createdAt`，但該欄位不存在於型別上
-- `pages/EventAnalysisPage.tsx` × 3 — `sourceData.passages` possibly undefined × 2、`TFunction` 傳入自訂 `(k, o?) => string` 簽章不相容
-- `components/graph/EntityDetailPanel.tsx` × 1 — `factionData.factions` possibly undefined
-- `hooks/useTaskNotifications.ts` × 1 — `string | null | undefined` 傳給只收 `string | undefined` 的參數
-
-**待辦內容**:
-- 逐項修掉（多數是補 optional chaining 或缺失的 props 型別，`MurmurWindowProps` 需確認是被誤刪還是從未定義）
-- `ProcessingCard` 的 `createdAt` 要先確認後端是否真的有回傳——若有，是 `generated.ts` 沒重新產生；若沒有，是前端讀錯欄位
-- 清完後把 DoD 的判準從「無新增」改成「全綠」，並考慮加進 CI
-
-**注意**: 這是獨立的清理任務，不要夾帶在功能 PR 裡。
-
-**觸發時機**: 下次動到 upload 或 event analysis 相關檔案時順修，或決定把 `tsc -b` 加進 CI 之前。
-
----
-
-#### B-067 mock 模式下時間軸覆蓋率恆為 0%
-**背景**: 時間軸頁新增了「已分析／未分析」的虛線圈與覆蓋率列，靠每個事件的 `hasAnalysis` 欄位驅動。但 `frontend/src/api/mock/data.ts` 裡 29 筆時間軸事件的 `hasAnalysis` 全是 `false`——因為這些事件用 `evt-t*` 命名空間，而 mock 的事件分析（`mockEventAnalyses`）走的是 `ent-*`，兩邊根本對不起來。結果是 mock 模式下覆蓋率永遠 0%，這個新視覺完全展示不出對比。
-
-**待辦內容**:
-- 決定 mock 的事件分析要不要與時間軸事件共用 id 命名空間（目前 `evt-t*` vs `ent-*` 是分裂的）
-- 若要讓覆蓋率可展示，需要一組有意義的混合值，而非隨手填——建議與 `mockEventAnalyses` 對齊後由真實對應關係推導，不寫死
-- 一併確認 `temporalAnalyzed: false` 的設定是否也讓其他時序視覺在 mock 下失效
-
-**觸發時機**: 需要用 mock 模式展示或截圖時間軸頁時，或下次整理 mock 資料時。
 
 ---
 
@@ -1203,8 +1221,10 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-082 | 重跑 KG 抽取會累積重複的實體 / 關係 / 事件 | 🔴 高 | ✅ 已完成（2026-08-20 PR #60；`_persist_to_kg` delete-first，連帶清 `inferred_relations`） |
 | B-083 | pypdf 在 CJK 字中插空白，`mention_count` 漏數 | 🟡 中 | ✅ 已完成（2026-08-20 PR #64；`core/utils/text_matching.squash_spacing()`，41 個實體的漏數修正） |
 | B-080 | 後端 deferred import 分類 | 🟢 低 | **不做**（2026-08-19 分類：276 處中僅 ~5.4% 可搬；75% 是循環依賴迴避） |
-| B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | 待開始（觸發：動到 upload / event analysis 時順修） |
-| B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | 待開始（觸發：需用 mock 展示時間軸頁時） |
+| B-084 | 後端實體類別欄位是純 `str`，擋住 4 個前端型別接回 generated | 🟢 低 | 待開始（觸發：下次動到 KG schema 或實體型別定義） |
+| B-085 | 四道閘門沒有任何 CI 在盯 | 🟡 中 | 待開始（2026-08-20 評估後暫不建；觸發：閘門再度變紅，或第二個人加入） |
+| B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | ✅ 已完成（2026-08-20；10 項全清，`npm run build` 於 main 首次 exit 0） |
+| B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | **不做**（2026-08-20；`api/mock/` 整層已移除，前提消失） |
 | B-068 | 事件抽取把同一場戲切成多個 event | 🟡 中 | 待開始（觸發：下次動到 ingestion / event extraction） |
 | B-069 | 張力證據「同場景摺疊」無可用判準 | 🟢 低 | 擱置（判準已驗證失敗；待 B-068 或改用 embedding） |
 | B-070 | 張力分析頁 RWD 未做 | 🟡 中 | 待開始（觸發：窄視窗回報，或與時間軸頁 RWD 一起做） |

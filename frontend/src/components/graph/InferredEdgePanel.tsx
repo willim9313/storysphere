@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchInferredRelations, confirmInferred, rejectInferred } from '@/api/graph';
 import type { InferredRelation } from '@/api/graph';
+import { qk } from '@/api/queryKeys';
 
 interface InferredReviewPanelProps {
   bookId: string;
@@ -15,14 +16,14 @@ interface InferredReviewPanelProps {
 // panel is review-only. Query key carries a 'pending' suffix so it doesn't
 // collide with GraphPage's unfiltered 'inferred-relations' query (used for
 // the idle/ready state + pending badge count); both share the
-// ['books', bookId, 'inferred-relations'] prefix so either mutation's
+// qk.inferred.all(bookId) prefix so either mutation's
 // invalidateQueries call refreshes both.
 export function InferredEdgePanel({ bookId, focusInferredId, onClose }: InferredReviewPanelProps) {
   const { t } = useTranslation('graph');
   const queryClient = useQueryClient();
 
   const { data, isLoading } = useQuery({
-    queryKey: ['books', bookId, 'inferred-relations', 'pending'],
+    queryKey: qk.inferred.pending(bookId),
     queryFn: () => fetchInferredRelations(bookId, 'pending'),
   });
 
@@ -111,11 +112,11 @@ export function InferredEdgePanel({ bookId, focusInferredId, onClose }: Inferred
             focus={focusInferredId === ir.id}
             onSuccess={() =>
               queryClient.invalidateQueries({
-                queryKey: ['books', bookId, 'inferred-relations'],
+                queryKey: qk.inferred.all(bookId),
               })
             }
             onGraphInvalidate={() =>
-              queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] })
+              queryClient.invalidateQueries({ queryKey: qk.graph.all(bookId) })
             }
           />
         ))}

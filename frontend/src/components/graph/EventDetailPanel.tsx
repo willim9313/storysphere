@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { fetchEventDetail } from '@/api/graph';
 
 import type { GraphNode } from '@/api/types';
+import { qk } from '@/api/queryKeys';
 
 interface EventDetailPanelProps {
   node: GraphNode;
@@ -18,7 +19,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
   const [openSections, setOpenSections] = useState<Set<string>>(new Set(['info', 'participants', 'analysis']));
 
   const { data: detail, isLoading } = useQuery({
-    queryKey: ['books', bookId, 'events', node.id],
+    queryKey: qk.event.detail(bookId, node.id),
     queryFn: () => fetchEventDetail(bookId, node.id),
   });
 

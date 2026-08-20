@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Brain, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, ArrowUp, Maximize } from 'lucide-react';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
 import { useChapters } from '@/hooks/useChapters';
@@ -104,7 +104,7 @@ export default function ReaderPage() {
   // clearing it doesn't trip react-hooks/set-state-in-effect.
   const pendingJumpChunkRef = useRef<string | null>(null);
 
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { theme } = useTheme();
   const { data: book, isLoading: bookLoading, error: bookError } = useBook(bookId);
   const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId);

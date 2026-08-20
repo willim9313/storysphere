@@ -10,6 +10,7 @@ import { useBooks } from '@/hooks/useBooks';
 import { DropZone } from '@/components/upload/DropZone';
 import { ProcessingCard } from '@/components/upload/ProcessingCard';
 import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
+import { qk } from '@/api/queryKeys';
 
 interface UploadTask {
   taskId: string;
@@ -220,7 +221,7 @@ export default function UploadPage() {
       // Wake the app-level task-notification watcher: it stops polling /tasks
       // when idle, so a freshly started ingestion must invalidate the shared
       // list query to resume polling and eventually fire its completion toast.
-      void queryClient.invalidateQueries({ queryKey: ['tasks', 'list'] });
+      void queryClient.invalidateQueries({ queryKey: qk.tasks.list() });
       // Advance to the next queued file.
       setQueue((q) => q.slice(1));
     },

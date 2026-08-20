@@ -3,6 +3,7 @@ import { BookOpen, Clock, X, CheckCircle } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { updateTimelineConfig, type TimelineConfigResponse, type TimelineDetectionResponse } from '@/api/graph';
+import { qk } from '@/api/queryKeys';
 
 interface TimelineConfigModalProps {
   bookId: string;
@@ -31,7 +32,7 @@ export function TimelineConfigModal({ bookId, detection, onClose }: TimelineConf
         chapterModeConfigured: true,
       }),
     onSuccess: (data: TimelineConfigResponse) => {
-      queryClient.setQueryData(['books', bookId, 'timeline-config'], data);
+      queryClient.setQueryData(qk.timeline.config(bookId), data);
       onClose();
     },
   });

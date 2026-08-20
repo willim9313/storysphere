@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import type { PipelineStatus } from '@/api/types';
 import { rerunStep, fetchTaskStatus } from '@/api/ingest';
 import type { RerunStep } from '@/api/ingest';
+import { qk } from '@/api/queryKeys';
 
 interface StepDef {
   key: keyof PipelineStatus;
@@ -106,7 +107,7 @@ export function PipelineRerunPanel({ bookId, pipelineStatus }: Readonly<Pipeline
   if (failedSteps.length === 0) return null;
 
   const handleComplete = () => {
-    void queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    void queryClient.invalidateQueries({ queryKey: qk.book(bookId) });
   };
 
   return (

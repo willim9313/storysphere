@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader, Shapes } from 'lucide-react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useChatContext } from '@/contexts/ChatContext';
+import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
@@ -43,6 +43,7 @@ import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
 import { runInference, fetchInferredRelations, fetchGraphData } from '@/api/graph';
 import { pairEvolution, shortestPath, isInsufficientChange } from '@/lib/graphPair';
 import type { EntityType, GraphNode, GraphData, EntityChunkItem } from '@/api/types';
+import { qk } from '@/api/queryKeys';
 
 const readCssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
@@ -71,7 +72,7 @@ const RIGHT_PANEL_WIDTH: Record<NonNullable<RightPanel>, number> = {
 export default function GraphPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const [searchParams] = useSearchParams();
-  const { setPageContext } = useChatContext();
+  const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t, t: tStats } = useTranslation('graph');
   const queryClient = useQueryClient();
@@ -121,7 +122,7 @@ export default function GraphPage() {
   const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined, showInferred);
 
   const { data: chapters } = useQuery({
-    queryKey: ['books', bookId, 'chapters'],
+    queryKey: qk.chapters(bookId),
     queryFn: () => fetchChapters(bookId!),
     enabled: !!bookId,
   });
@@ -133,7 +134,7 @@ export default function GraphPage() {
   // Only enabled while pair mode is active.
   const pairSnapshotQueries = useQueries({
     queries: Array.from({ length: pairTotalChapters }, (_, i) => i + 1).map((ch) => ({
-      queryKey: ['books', bookId, 'graph', 'chapter', ch, false],
+      queryKey: qk.graph.view(bookId, 'chapter', ch, false),
       queryFn: () => fetchGraphData(bookId!, { mode: 'chapter', position: ch }, false),
       enabled: !!pairState && !!bookId,
     })),
@@ -180,8 +181,8 @@ export default function GraphPage() {
     mutationFn: () => runInference(bookId!),
     onSuccess: () => {
       setShowInferred(true);
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
+      queryClient.invalidateQueries({ queryKey: qk.graph.all(bookId) });
+      queryClient.invalidateQueries({ queryKey: qk.inferred.all(bookId) });
     },
   });
 
@@ -191,8 +192,8 @@ export default function GraphPage() {
     mutationFn: () => runInference(bookId!, true),
     onSuccess: () => {
       setShowInferred(true);
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'graph'] });
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'inferred-relations'] });
+      queryClient.invalidateQueries({ queryKey: qk.graph.all(bookId) });
+      queryClient.invalidateQueries({ queryKey: qk.inferred.all(bookId) });
     },
   });
 
@@ -207,12 +208,12 @@ export default function GraphPage() {
   // fetching when the panel is open. `allInferredData.total` (unfiltered)
   // is the "有紀錄" signal for idle vs ready.
   const { data: pendingInferredData } = useQuery({
-    queryKey: ['books', bookId, 'inferred-relations', 'pending'],
+    queryKey: qk.inferred.pending(bookId),
     queryFn: () => fetchInferredRelations(bookId!, 'pending'),
     enabled: !!bookId,
   });
   const { data: allInferredData } = useQuery({
-    queryKey: ['books', bookId, 'inferred-relations', 'all'],
+    queryKey: qk.inferred.list(bookId),
     queryFn: () => fetchInferredRelations(bookId!),
     enabled: !!bookId,
   });
@@ -1117,14 +1118,14 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
   const isEvent = node.type === 'event';
 
   const { data: entityAnalysis, isLoading: entityLoading } = useQuery({
-    queryKey: ['books', bookId, 'entities', node.id, 'analysis'],
+    queryKey: qk.entity.analysis(bookId, node.id),
     queryFn: () => fetchEntityAnalysis(bookId, node.id),
     retry: false,
     enabled: !isEvent,
   });
 
   const { data: eventAnalyses, isLoading: eventLoading } = useQuery({
-    queryKey: ['books', bookId, 'analysis', 'events'],
+    queryKey: qk.analysis.events(bookId),
     queryFn: () => fetchEventAnalyses(bookId),
     retry: false,
     enabled: isEvent,
@@ -1194,7 +1195,7 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
 function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: GraphNode; onClose: () => void }) {
   const { t } = useTranslation('graph');
   const { data, isLoading } = useQuery({
-    queryKey: ['books', bookId, 'entities', node.id, 'chunks'],
+    queryKey: qk.entity.chunks(bookId, node.id),
     queryFn: () => fetchEntityChunks(bookId, node.id),
   });
 
