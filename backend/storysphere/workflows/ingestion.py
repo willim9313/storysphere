@@ -384,7 +384,39 @@ class IngestionWorkflow:
             [step],
             teu_keys,
         )
+
+        if step == "knowledge-graph":
+            await self._drop_inferred_relations(doc_id)
+
         return outcome
+
+    @staticmethod
+    async def _drop_inferred_relations(doc_id: str) -> None:
+        """Discard link-prediction output after the KG it was inferred from is gone.
+
+        A KG re-run replaces every entity, and the replacements carry new ids
+        (B-082). ``inferred_relations`` stores ``source_id`` / ``target_id`` as
+        those ids, so the rows survive the re-run pointing at entities that no
+        longer exist. The delete-book path already does this
+        (``api/routers/books.py``); the rerun path never did.
+
+        Built here from settings rather than injected, matching how
+        ``AnalysisCache`` is handled a few lines above — the workflow's
+        constructor stays free of downstream stores it only touches on cleanup.
+        """
+        from storysphere.config.settings import get_settings  # noqa: PLC0415
+        from storysphere.services.link_prediction_store import (  # noqa: PLC0415
+            LinkPredictionStore,
+        )
+
+        store = LinkPredictionStore(db_path=get_settings().link_prediction_db_path)
+        dropped = await store.delete_by_document(doc_id)
+        if dropped:
+            logger.info(
+                "Rerun knowledge-graph: dropped %d inferred relations for %s",
+                dropped,
+                doc_id,
+            )
 
     def __init__(
         self,

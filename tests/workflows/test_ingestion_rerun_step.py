@@ -72,11 +72,24 @@ def _workflow(doc: Document | None, *, failing: str | None = None, kg=None):
     return wf, doc_svc, kg
 
 
-async def _rerun(wf, step: str, *, cache=None):
-    """Run a rerun with the analysis cache stubbed; return the cache mock."""
+async def _rerun(wf, step: str, *, cache=None, lp_store=None):
+    """Run a rerun with the analysis cache stubbed; return the cache mock.
+
+    ``LinkPredictionStore`` is stubbed for the same reason ``AnalysisCache`` is:
+    ``get_settings`` is a MagicMock here, so a real store would take the mock's
+    ``repr`` as a file path and create it — SQLite happily makes a database out
+    of any name it is handed. Without this patch the suite litters the repo root
+    with ``<MagicMock name='get_settings()...'>`` files and still reports green.
+    """
     cache = cache if cache is not None else AsyncMock()
+    lp_store = lp_store if lp_store is not None else AsyncMock()
+    lp_store.delete_by_document = AsyncMock(return_value=0)
     with (
         patch("storysphere.services.analysis_cache.AnalysisCache", return_value=cache),
+        patch(
+            "storysphere.services.link_prediction_store.LinkPredictionStore",
+            return_value=lp_store,
+        ),
         patch("storysphere.config.settings.get_settings"),
     ):
         outcome = await wf.rerun_step(step, DOC_ID)
@@ -299,6 +312,52 @@ class TestKgSavePolicy:
         # A failed save must not drop the analyses either.
         cache.invalidate.assert_not_called()
 
+class TestInferredRelationCleanup:
+    """B-082 連帶 — 重跑 KG 之後，推論關係指向的 entity 已經不存在了。
+
+    ``inferred_relations`` 存的是 entity id，而重跑會把整批 entity 換成新的 id。
+    刪書路徑一直有清（``api/routers/books.py``），重跑路徑沒有。
+    """
+
+    @pytest.mark.asyncio
+    async def test_kg_rerun_drops_inferred_relations(self):
+        wf, _, _ = _workflow(_make_doc())
+        lp = AsyncMock()
+
+        await _rerun(wf, "knowledge-graph", lp_store=lp)
+
+        lp.delete_by_document.assert_awaited_once_with(DOC_ID)
+
+    @pytest.mark.parametrize(
+        "step", ["summarization", "feature-extraction", "symbol-discovery"]
+    )
+    @pytest.mark.asyncio
+    async def test_other_steps_leave_inferred_relations_alone(self, step):
+        """Only the KG re-run invalidates the entity ids they point at."""
+        wf, _, _ = _workflow(_make_doc())
+        lp = AsyncMock()
+
+        await _rerun(wf, step, lp_store=lp)
+
+        lp.delete_by_document.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_failed_kg_rerun_keeps_inferred_relations(self):
+        """A failed re-run leaves the old graph in place, so its ids stay valid."""
+        doc = _make_doc()
+        kg = AsyncMock()
+        kg.get_events = AsyncMock(return_value=[])
+        kg.save = AsyncMock(side_effect=RuntimeError("disk full"))
+        wf, _, _ = _workflow(doc, kg=kg)
+        lp = AsyncMock()
+
+        outcome, _ = await _rerun(wf, "knowledge-graph", lp_store=lp)
+
+        assert not outcome.ok
+        lp.delete_by_document.assert_not_awaited()
+
+
+class TestUnknownStep:
     @pytest.mark.asyncio
     async def test_unknown_step_raises(self):
         wf, _, _ = _workflow(_make_doc())
