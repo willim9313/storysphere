@@ -983,7 +983,7 @@ CSS 入口：`frontend/src/styles/tension.css`（class prefix `.tn-*`）。
 元件入口：`frontend/src/components/tension/` —— `TensionStepperStrip` / `TensionStateCards`
 （Empty / Step1 / Running / Error 四張）/ `TensionThemeHero` / `TensionChapterGrid` /
 `TensionReviewToolbar` / `TensionLineTable` / `TensionReviewDrawer` / `TensionTEUInspector` /
-`TensionRerunDialog` / `TensionStatusBadge` / `intensity.ts` / `drawerData.ts` /
+`TensionRerunDialog` / `intensity.ts` / `drawerData.ts` /
 `reviewTypes.ts` / `hooks/useTensionTask`。
 
 #### 五段 Stepper Strip（`.tn-stepper`）
