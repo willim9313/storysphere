@@ -30,8 +30,8 @@ import { EventGroupedList } from '@/components/analysis/EventGroupedList';
 import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
 import { EventGuideRibbon } from '@/components/analysis/EventGuideRibbon';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
-import type { BatchEepResult } from '@/api/types';
+import { useAsyncTask } from '@/hooks/useAsyncTask';
+import { useBatchTask } from '@/hooks/useBatchTask';
 import '@/styles/event-analysis.css';
 
 /** Rough per-event wall-clock estimate for the batch ETA. Not measured — a
@@ -82,7 +82,6 @@ export default function EventAnalysisPage() {
   }, [legacySelectId, selectedEntityId, setSelectedEntityId]);
 
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
-  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [triggerError, setTriggerError] = useState<string | null>(null);
   const [justDoneIds, setJustDoneIds] = useState<Set<string>>(new Set());
@@ -91,10 +90,6 @@ export default function EventAnalysisPage() {
   const { t: tc } = useTranslation('common');
 
   const [confirmBatchEep, setConfirmBatchEep] = useState(false);
-  const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
-  const [batchError, setBatchError] = useState<string | null>(null);
-  const [batchSummary, setBatchSummary] = useState<BatchEepResult | null>(null);
-  const [prevBatchProgress, setPrevBatchProgress] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [checkMode, setCheckMode] = useState(false);
@@ -119,10 +114,26 @@ export default function EventAnalysisPage() {
   // 404, so the query stays parked until the list says the analysis exists.
   const isSelectedAnalyzed = !!evtData?.analyzed.some((a) => a.entityId === selectedEntityId);
 
+  // Generation task for the selected event. The id is deliberately kept after a
+  // failure: the error panel below is rendered from `gen.task`, and clearing
+  // the id would take it off screen.
+  const gen = useAsyncTask({
+    defaultError: t('triggerFailed'),
+    onDone: (_task, { reset }) => {
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
+      queryClient.invalidateQueries({
+        queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
+      });
+      if (generatingId) markJustDone(generatingId);
+      reset();
+      setGeneratingId(null);
+    },
+  });
+
   const { data: eventDetail, isLoading: detailLoading } = useQuery({
     queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
     queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
-    enabled: !!bookId && !!selectedEntityId && !generateTaskId && isSelectedAnalyzed,
+    enabled: !!bookId && !!selectedEntityId && !gen.taskId && isSelectedAnalyzed,
   });
 
   // #7i — retrieved source passages, only useful while the event is still
@@ -130,7 +141,7 @@ export default function EventAnalysisPage() {
   const { data: sourceData, isLoading: sourceLoading } = useQuery({
     queryKey: ['books', bookId, 'events', selectedEntityId, 'source'],
     queryFn: () => fetchEventSourcePassages(bookId!, selectedEntityId!, 2),
-    enabled: !!bookId && !!selectedEntityId && !isSelectedAnalyzed && !generateTaskId,
+    enabled: !!bookId && !!selectedEntityId && !isSelectedAnalyzed && !gen.taskId,
   });
 
   const markJustDone = (id: string) => {
@@ -164,7 +175,7 @@ export default function EventAnalysisPage() {
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id),
     onSuccess: (data) => {
       setTriggerError(null);
-      setGenerateTaskId(data.taskId);
+      gen.adopt(data.taskId);
     },
     onError: () => {
       setGeneratingId(null);
@@ -177,7 +188,7 @@ export default function EventAnalysisPage() {
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id, 'retryFailed'),
     onSuccess: (data) => {
       setTriggerError(null);
-      setGenerateTaskId(data.taskId);
+      gen.adopt(data.taskId);
     },
     onError: () => setTriggerError(t('triggerFailed')),
   });
@@ -188,66 +199,20 @@ export default function EventAnalysisPage() {
     triggerMutation.mutate(id);
   };
 
-  const { data: genTask } = useTaskPolling(generateTaskId);
+  const refreshEvents = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] }),
+    [queryClient, bookId],
+  );
 
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (genTask?.status === 'done') {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
-      queryClient.invalidateQueries({
-        queryKey: ['books', bookId, 'events', selectedEntityId, 'analysis'],
-      });
-      if (generatingId) markJustDone(generatingId);
-      setGenerateTaskId(null);
-      setGeneratingId(null);
-    }
-  }, [genTask?.status, bookId, selectedEntityId, queryClient, generatingId]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  const batchMutation = useMutation({
-    mutationFn: (eventIds?: string[]) => triggerBatchEventAnalysis(bookId!, eventIds),
-    onSuccess: (data) => {
-      setBatchError(null);
-      setBatchSummary(null);
-      setPrevBatchProgress(0);
-      setBatchTaskId(data.taskId);
-    },
-    onError: () => setBatchError(t('batchTriggerFailed')),
-  });
-
-  const { data: batchTask } = useTaskPolling(batchTaskId);
-  const isBatchRunning =
-    !!batchTaskId &&
-    !!batchTask &&
-    batchTask.status !== 'done' &&
-    batchTask.status !== 'error';
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  /* Refetch the list as the batch advances, so events flip to 已分析 while the
-     run is still going. Keyed off `subProgress` (the live per-item counter) —
-     this used to read `result.progress`, which the backend only writes when
-     the task completes, so it never fired and the list stayed stale until the
-     user reloaded the page. */
-  useEffect(() => {
-    const processed = batchTask?.subProgress;
-    if (processed === undefined || processed <= prevBatchProgress) return;
-    setPrevBatchProgress(processed);
-    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
-  }, [batchTask?.subProgress, prevBatchProgress, bookId, queryClient]);
-
-  useEffect(() => {
-    if (batchTask?.status === 'done') {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'events'] });
-      const result = batchTask.result as unknown as BatchEepResult;
-      setBatchSummary(result);
-      setBatchTaskId(null);
+  const batch = useBatchTask<string[]>({
+    trigger: (eventIds) => triggerBatchEventAnalysis(bookId!, eventIds),
+    onProgress: refreshEvents,
+    onDone: () => {
+      refreshEvents();
       setToastVisible(true);
-    } else if (batchTask?.status === 'error') {
-      setBatchError(batchTask.error ?? t('batchTriggerFailed'));
-      setBatchTaskId(null);
-    }
-  }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient, t]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+    },
+    failureMessage: t('batchTriggerFailed'),
+  });
 
   // Auto-dismiss toast after 5s
   useEffect(() => {
@@ -295,22 +260,22 @@ export default function EventAnalysisPage() {
             <BatchEepPanel
               analyzedCount={evtData.analyzed.length}
               totalCount={totalCount}
-              batchTask={batchTask}
-              isBatchRunning={isBatchRunning}
-              batchError={batchError}
-              batchSummary={batchSummary}
+              batchTask={batch.task}
+              isBatchRunning={batch.running}
+              batchError={batch.error}
+              batchSummary={batch.summary}
               onTrigger={() => setConfirmBatchEep(true)}
-              onDismissSummary={() => setBatchSummary(null)}
-              isPending={batchMutation.isPending}
+              onDismissSummary={batch.dismiss}
+              isPending={batch.pending}
               subset={{
                 kernelRemaining,
                 onBatchKernel: () =>
-                  batchMutation.mutate(
+                  batch.start(
                     unanalyzed.filter((u) => u.importance === 'KERNEL').map((u) => u.id),
                   ),
                 currentChapter: selectedChapter,
                 onBatchChapter: () =>
-                  batchMutation.mutate(
+                  batch.start(
                     unanalyzed.filter((u) => u.chapter === selectedChapter).map((u) => u.id),
                   ),
                 checkMode,
@@ -319,7 +284,7 @@ export default function EventAnalysisPage() {
                   setCheckedIds(new Set());
                 },
                 checkedCount: checkedIds.size,
-                onBatchChecked: () => batchMutation.mutate([...checkedIds]),
+                onBatchChecked: () => batch.start([...checkedIds]),
                 etaLabel,
               }}
             />
@@ -458,20 +423,20 @@ export default function EventAnalysisPage() {
                   onSelectEvent={(id) => setSelectedEntityId(id)}
                 />
               </>
-            ) : genTask?.status === 'error' ? (
+            ) : gen.task?.status === 'error' ? (
               <div className="ea-empty">
                 <div className="ea-empty-icon error">
                   <AlertTriangle size={24} />
                 </div>
                 <h2 className="ea-empty-title">{t('analysisFailed')}</h2>
                 <p className="ea-empty-sub">
-                  {genTask.error ? genTask.error : t('triggerFailed')}
+                  {gen.task.error ? gen.task.error : t('triggerFailed')}
                 </p>
                 <button
                   type="button"
                   className="ea-btn"
                   onClick={() => {
-                    setGenerateTaskId(null);
+                    gen.reset();
                     triggerMutation.reset();
                     setTriggerError(null);
                   }}
@@ -479,7 +444,7 @@ export default function EventAnalysisPage() {
                   <RefreshCw size={12} /> {tc('retry')}
                 </button>
               </div>
-            ) : generateTaskId && genTask && genTask.status !== 'done' ? (
+            ) : gen.taskId && gen.task && gen.task.status !== 'done' ? (
               <div className="ea-empty">
                 <div className="ea-spinner" />
                 <p className="ea-empty-title" style={{ fontSize: 'var(--font-size-base)' }}>
@@ -488,8 +453,8 @@ export default function EventAnalysisPage() {
                 <span className="ea-stage-chip">
                   <span className="ea-mini-spinner" />
                   {t('event.generating.stage', {
-                    stage: genTask.stage || t('analyzing'),
-                    progress: genTask.progress ?? 0,
+                    stage: gen.task.stage || t('analyzing'),
+                    progress: gen.task.progress ?? 0,
                   })}
                 </span>
               </div>
@@ -571,7 +536,7 @@ export default function EventAnalysisPage() {
                 onGenerate={handleGenerate}
                 generatingId={generatingId}
                 onBatchAll={() => setConfirmBatchEep(true)}
-                isBatchRunning={isBatchRunning}
+                isBatchRunning={batch.running}
               />
             ) : (
               // Only reached if the #6b list query itself failed (isLoading
@@ -586,7 +551,7 @@ export default function EventAnalysisPage() {
           </div>
 
           {/* Toast */}
-          {toastVisible && batchSummary && (
+          {toastVisible && batch.summary && (
             <div className="ea-toast" role="status">
               <div className="ea-toast-icon">
                 <Check size={18} strokeWidth={2.2} />
@@ -596,9 +561,9 @@ export default function EventAnalysisPage() {
                 <div className="ea-toast-body">
                   {t('batch.toastBody', {
                     generated:
-                      batchSummary.progress - batchSummary.skipped - batchSummary.failed,
-                    skipped: batchSummary.skipped,
-                    failed: batchSummary.failed,
+                      batch.summary.progress - batch.summary.skipped - batch.summary.failed,
+                    skipped: batch.summary.skipped,
+                    failed: batch.summary.failed,
                   })}
                 </div>
               </div>
@@ -646,7 +611,7 @@ export default function EventAnalysisPage() {
         confirmLabel={t('event.batchConfirm')}
         onConfirm={() => {
           setConfirmBatchEep(false);
-          batchMutation.mutate(undefined);
+          batch.start(undefined);
         }}
         onCancel={() => setConfirmBatchEep(false)}
       />

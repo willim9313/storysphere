@@ -23,7 +23,6 @@ import {
   deleteEntityAnalysis,
   triggerBatchEntityAnalysis,
 } from '@/api/analysis';
-import type { BatchEepResult } from '@/api/types';
 import {
   CharacterAnalysisDetail,
   type OverviewSubTab,
@@ -39,7 +38,8 @@ import { ArchetypeFilterDropdown } from '@/components/analysis/ArchetypeFilterDr
 import { CharacterOverviewLanding } from '@/components/analysis/overview/CharacterOverviewLanding';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { useAsyncTask } from '@/hooks/useAsyncTask';
+import { useBatchTask } from '@/hooks/useBatchTask';
 
 /** Search matches the name, and for analyzed characters, also the current
  *  framework's archetype label (e.g. searching "統治者" finds that archetype). */
@@ -80,17 +80,12 @@ export default function CharacterAnalysisPage() {
   // Seeds the epistemic-compare drawer's shared cursor with whatever chapter
   // the epistemic tab's own cursor was on when "對照另一角色" was clicked.
   const [epistemicCompareChapter, setEpistemicCompareChapter] = useState(1);
-  const [generateTaskId, setGenerateTaskId] = useState<string | null>(null);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [triggerError, setTriggerError] = useState<string | null>(null);
 
   // #11 tiered batch: 'top10' analyzes the top-10-by-mentionCount unanalyzed
   // characters (entityIds subset), 'all' analyzes everything unanalyzed.
   const [batchMode, setBatchMode] = useState<'top10' | 'all' | null>(null);
-  const [batchTaskId, setBatchTaskId] = useState<string | null>(null);
-  const [batchError, setBatchError] = useState<string | null>(null);
-  const [batchSummary, setBatchSummary] = useState<BatchEepResult | null>(null);
-  const [prevBatchProgress, setPrevBatchProgress] = useState(0);
   const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
@@ -102,19 +97,34 @@ export default function CharacterAnalysisPage() {
   // #5 behavior-pane keyEvents -> event analysis page name matching.
   const { data: eventData } = useEventAnalysis(bookId);
 
+  // Generation task for the selected character. The id is deliberately kept
+  // after a failure: the error panel below is rendered from `gen.task`, and
+  // clearing the id would take it off screen.
+  const gen = useAsyncTask({
+    defaultError: t('triggerFailed'),
+    onDone: (_task, { reset }) => {
+      queryClient.invalidateQueries({
+        queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'],
+      });
+      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
+      reset();
+      setGeneratingId(null);
+    },
+  });
+
   const { data: entityAnalysis, isLoading: analysisLoading } = useQuery({
     queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'],
     queryFn: () => fetchEntityAnalysis(bookId!, selectedEntityId!),
     // Pause while a generation task runs: the old analysis is deleted at that
     // point, so a refetch would only 404 and pin stale data on screen.
-    enabled: !!bookId && !!selectedEntityId && !generateTaskId,
+    enabled: !!bookId && !!selectedEntityId && !gen.taskId,
   });
 
   const triggerMutation = useMutation({
     mutationFn: (id: string) => triggerEntityAnalysis(bookId!, id),
     onSuccess: (data) => {
       setTriggerError(null);
-      setGenerateTaskId(data.taskId);
+      gen.adopt(data.taskId);
     },
     onError: () => {
       setGeneratingId(null);
@@ -127,7 +137,7 @@ export default function CharacterAnalysisPage() {
     mutationFn: (id: string) => triggerEntityAnalysis(bookId!, id, 'retryFailed'),
     onSuccess: (data) => {
       setTriggerError(null);
-      setGenerateTaskId(data.taskId);
+      gen.adopt(data.taskId);
     },
     onError: () => setTriggerError(t('triggerFailed')),
   });
@@ -163,60 +173,20 @@ export default function CharacterAnalysisPage() {
     });
   };
 
-  const { data: genTask } = useTaskPolling(generateTaskId);
+  const refreshCast = useCallback(
+    () => queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] }),
+    [queryClient, bookId],
+  );
 
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (genTask?.status === 'done') {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'entities', selectedEntityId, 'analysis'] });
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
-      setGenerateTaskId(null);
-      setGeneratingId(null);
-    }
-  }, [genTask?.status, bookId, selectedEntityId, queryClient]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  const batchMutation = useMutation({
-    mutationFn: (entityIds?: string[]) => triggerBatchEntityAnalysis(bookId!, entityIds),
-    onSuccess: (data) => {
-      setBatchError(null);
-      setBatchSummary(null);
-      setPrevBatchProgress(0);
-      setBatchTaskId(data.taskId);
-    },
-    onError: () => setBatchError(t('character.batch.triggerFailed')),
-  });
-
-  const { data: batchTask } = useTaskPolling(batchTaskId);
-  const isBatchRunning =
-    !!batchTaskId &&
-    !!batchTask &&
-    batchTask.status !== 'done' &&
-    batchTask.status !== 'error';
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  /* Keyed off `subProgress` (live per-item counter), not `result.progress`,
-     which the backend only writes on completion — see EventAnalysisPage. */
-  useEffect(() => {
-    const processed = batchTask?.subProgress;
-    if (processed === undefined || processed <= prevBatchProgress) return;
-    setPrevBatchProgress(processed);
-    queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
-  }, [batchTask?.subProgress, prevBatchProgress, bookId, queryClient]);
-
-  useEffect(() => {
-    if (batchTask?.status === 'done') {
-      queryClient.invalidateQueries({ queryKey: ['books', bookId, 'analysis', 'characters'] });
-      const result = batchTask.result as unknown as BatchEepResult;
-      setBatchSummary(result);
-      setBatchTaskId(null);
+  const batch = useBatchTask<string[]>({
+    trigger: (entityIds) => triggerBatchEntityAnalysis(bookId!, entityIds),
+    onProgress: refreshCast,
+    onDone: () => {
+      refreshCast();
       setToastVisible(true);
-    } else if (batchTask?.status === 'error') {
-      setBatchError(batchTask.error ?? t('character.batch.triggerFailed'));
-      setBatchTaskId(null);
-    }
-  }, [batchTask?.status, batchTask?.result, batchTask?.error, bookId, queryClient, t]);
-  /* eslint-enable react-hooks/set-state-in-effect */
+    },
+    failureMessage: t('character.batch.triggerFailed'),
+  });
 
   useEffect(() => {
     if (!toastVisible) return;
@@ -534,7 +504,7 @@ export default function CharacterAnalysisPage() {
                     onRegenerate={handleRegenerate}
                     isRegenerating={
                       triggerMutation.isPending ||
-                      (!!generateTaskId && genTask?.status !== 'done')
+                      (!!gen.taskId && gen.task?.status !== 'done')
                     }
                     bookId={bookId!}
                     chapterCount={book?.chapterCount ?? 0}
@@ -558,20 +528,20 @@ export default function CharacterAnalysisPage() {
                   />
                 )}
               </>
-            ) : genTask?.status === 'error' ? (
+            ) : gen.task?.status === 'error' ? (
               <div className="ca-empty">
                 <div className="ca-empty-icon">
                   <AlertTriangle size={22} />
                 </div>
                 <div className="ca-empty-title">{t('analysisFailed')}</div>
-                {genTask.error && (
-                  <p className="ca-empty-sub">{genTask.error}</p>
+                {gen.task.error && (
+                  <p className="ca-empty-sub">{gen.task.error}</p>
                 )}
                 <button
                   type="button"
                   className="ca-btn"
                   onClick={() => {
-                    setGenerateTaskId(null);
+                    gen.reset();
                     triggerMutation.reset();
                     setTriggerError(null);
                   }}
@@ -579,9 +549,9 @@ export default function CharacterAnalysisPage() {
                   {tc('retry')}
                 </button>
               </div>
-            ) : generateTaskId && genTask?.status !== 'done' ? (
+            ) : gen.taskId && gen.task?.status !== 'done' ? (
               <CharacterGenerating
-                task={genTask}
+                task={gen.task}
                 name={selectedUnanalyzed?.name ?? selectedAnalyzed?.title ?? ''}
               />
             ) : selectedUnanalyzed ? (
@@ -619,14 +589,14 @@ export default function CharacterAnalysisPage() {
                 onGenerate={handleGenerate}
                 generatingId={generatingId}
                 onOpenBatchModal={setBatchMode}
-                isBatchRunning={isBatchRunning}
+                isBatchRunning={batch.running}
                 batchProgressLabel={
-                  isBatchRunning
-                    ? t('character.overview.batchProgress', { progress: batchTask?.progress ?? 0 })
+                  batch.running
+                    ? t('character.overview.batchProgress', { progress: batch.task?.progress ?? 0 })
                     : undefined
                 }
-                batchError={batchError}
-                onDismissBatchError={() => setBatchError(null)}
+                batchError={batch.error}
+                onDismissBatchError={batch.dismiss}
               />
             ) : (
               // Only reached if the #6a list query itself failed (isLoading
@@ -641,7 +611,7 @@ export default function CharacterAnalysisPage() {
           </div>
 
           {/* Batch completion toast */}
-          {toastVisible && batchSummary && (
+          {toastVisible && batch.summary && (
             <div className="ca-toast" role="status">
               <div className="ca-toast-icon">
                 <Check size={18} strokeWidth={2.2} />
@@ -651,9 +621,9 @@ export default function CharacterAnalysisPage() {
                 <div className="ca-toast-body">
                   {t('character.batch.toastBody', {
                     generated:
-                      batchSummary.progress - batchSummary.skipped - batchSummary.failed,
-                    skipped: batchSummary.skipped,
-                    failed: batchSummary.failed,
+                      batch.summary.progress - batch.summary.skipped - batch.summary.failed,
+                    skipped: batch.summary.skipped,
+                    failed: batch.summary.failed,
                   })}
                 </div>
               </div>
@@ -715,7 +685,7 @@ export default function CharacterAnalysisPage() {
         onConfirm={() => {
           const ids = batchMode === 'top10' ? top10UnanalyzedIds : undefined;
           setBatchMode(null);
-          batchMutation.mutate(ids);
+          batch.start(ids);
         }}
         onCancel={() => setBatchMode(null)}
       />

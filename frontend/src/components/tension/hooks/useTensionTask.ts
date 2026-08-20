@@ -1,6 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
-import { ApiError } from '@/api/client';
+import { useCallback } from 'react';
+import { useAsyncTask } from '@/hooks/useAsyncTask';
 import type { TaskStatus } from '@/api/types';
 
 export interface UseTensionTaskResult {
@@ -10,43 +9,30 @@ export interface UseTensionTaskResult {
   trigger: (triggerFn: () => Promise<{ taskId: string }>, triggerError: string) => Promise<void>;
 }
 
+/**
+ * Tension pipeline task. Stops polling once the task lands, either way —
+ * on failure the message has already been captured, so there is nothing left
+ * to poll for.
+ */
 export function useTensionTask(
   fetcher: (id: string, after: number) => Promise<TaskStatus>,
   onDone: (task: TaskStatus) => void,
   defaultError: string,
 ): UseTensionTaskResult {
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const { data: task } = useTaskPolling(taskId, fetcher);
-  const onDoneRef = useRef(onDone);
-  useLayoutEffect(() => { onDoneRef.current = onDone; });
-
-  /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => {
-    if (task?.status === 'done') {
-      onDoneRef.current(task);
-      setTaskId(null);
-    } else if (task?.status === 'error') {
-      setError(task.error ?? defaultError);
-      setTaskId(null);
-    }
-  }, [task, defaultError]);
-  /* eslint-enable react-hooks/set-state-in-effect */
-
-  const trigger = useCallback(
-    async (triggerFn: () => Promise<{ taskId: string }>, triggerError: string) => {
-      setError(null);
-      try {
-        const { taskId: id } = await triggerFn();
-        setTaskId(id);
-      } catch (err) {
-        // A refusal from the server carries the reason and the numbers behind
-        // it (e.g. #21a's 409); a generic message would throw that away.
-        setError(err instanceof ApiError ? err.detail : triggerError);
-      }
+  const handleDone = useCallback(
+    (task: TaskStatus, { reset }: { reset: () => void }) => {
+      onDone(task);
+      reset();
     },
-    [],
+    [onDone],
   );
 
-  return { task, error, running: !!taskId, trigger };
+  const { task, error, running, run } = useAsyncTask({
+    fetcher,
+    defaultError,
+    onDone: handleDone,
+    onError: useCallback((_message: string, { reset }: { reset: () => void }) => reset(), []),
+  });
+
+  return { task, error, running, trigger: run };
 }
