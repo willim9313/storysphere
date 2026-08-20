@@ -925,6 +925,20 @@ dd129f3d 是併發驗證的實驗書，同一步驟被反覆跑才中了三次�
 **裁示（2026-08-20）**: service bucket 選**併入 `analysis`**，前端零改動。
 完整規劃見 [`docs/plans/20260820-token-attribution-remaining.md`](plans/20260820-token-attribution-remaining.md)。
 
+> **該計畫的 §5 Task 3 不必做（2026-08-20 查證）。** 計畫 §4.2 記「3 筆
+> `summary` + `book_id=NULL` 是從 rerun 入口進來的」，並據此開了「Task 3：
+> 查清 rerun 路徑的 summary NULL」。**那個判讀是錯的**：歸因修正 `7e5f4af`
+> 落地於 **2026-08-19 10:08**，而那 3 筆的時間是 **2026-08-18 00:03** ——
+> 修正當時還不存在，它們就是普通的修正前資料，rerun 路徑沒有缺口。
+>
+> 錯誤來源是拿日期粗估當分界（用「08-18 之後」代表「修正之後」），而沒查
+> 修正 commit 的實際時間戳。以真正的分界重查：**之前 4,136 列全部 NULL
+> （每個 service 都 100%），之後 70 列零 NULL**。
+>
+> 但「之後零 NULL」**不能**反證 B-081 沒必要做：那 70 列只涵蓋當時實際跑過的
+> analysis / extraction / keyword / summary / imagery，本條目修的七處是潛伏的，
+> 要那些功能被跑到才會現形。
+
 **與該計畫的關係**: 這是 `docs/plans/20260819-llm-call-convention-consolidation.md`
 §2.1 那個缺口的**第二層** —— 該計畫修掉了「有呼叫但漏帶書」，這條是「連
 呼叫都沒有」。
