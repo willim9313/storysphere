@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchEventAnalysisDetail } from '@/api/analysis';
 import type { AnalysisItem, EventAnalysisDetail } from '@/api/types';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface EventCompareDrawerProps {
   open: boolean;
@@ -47,14 +48,7 @@ export function EventCompareDrawer({
   }, [open, defaultA, defaultB]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  useEscapeKey(open, onClose);
 
   const a = useEventDetail(bookId, open ? aId : null);
   const b = useEventDetail(bookId, open ? bId : null);

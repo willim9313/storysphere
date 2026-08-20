@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ArchetypeDetail, CharacterAnalysisDetail } from '@/api/types';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 
 interface Props {
   open: boolean;
@@ -12,14 +12,7 @@ interface Props {
 export function FrameworkCompareDrawer({ open, data, onClose }: Props) {
   const { t } = useTranslation('analysis');
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  useEscapeKey(open, onClose);
 
   if (!open || !data) return null;
 

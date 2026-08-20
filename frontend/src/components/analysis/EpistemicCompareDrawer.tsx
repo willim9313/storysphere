@@ -3,6 +3,7 @@ import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { useSourceJump } from '@/hooks/useSourceJump';
+import { useEscapeKey } from '@/hooks/useEscapeKey';
 import type { EpistemicStateResponse } from '@/api/graph';
 import { ChapterTimeline } from './ChapterTimeline';
 import { getChapter, getId, getTitle } from './epistemicEventUtils';
@@ -81,14 +82,7 @@ export function EpistemicCompareDrawer({
     return () => clearTimeout(tid);
   }, [displayedChapter, queriedChapter]);
 
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [open, onClose]);
+  useEscapeKey(open, onClose);
 
   const { data: stateA } = useEpistemicState(bookId, characterAId, queriedChapter);
   const { data: stateB, isFetching: isFetchingB } = useEpistemicState(
