@@ -96,7 +96,7 @@ function PartialRerunCard({ bookId, failedSteps }: Readonly<{ bookId: string; fa
           if (s.status === 'done') {
             setState((prev) => ({ ...prev, [fs.id]: 'done' }));
             push({ type: 'success', title: `${fs.label} 重跑完成`, body: '結果已補齊，可前往書庫查看。' });
-            void queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+            void queryClient.invalidateQueries({ queryKey: ['books', bookId] });
             void queryClient.invalidateQueries({ queryKey: ['tasks', 'list'] });
             return;
           }

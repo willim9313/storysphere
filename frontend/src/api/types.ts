@@ -251,6 +251,12 @@ export interface TaskStatus {
   };
   error?: string;
   murmurEvents?: MurmurEvent[];
+  /** Task creation time (ISO). Drives ProcessingCard's live "已處理 mm:ss" clock.
+   *  NOTE: this whole interface duplicates generated.ts's TaskStatus by hand and
+   *  had drifted — `kind` / `title` are still missing here. Aliasing it to the
+   *  generated schema is the real fix, but that surfaces 7 genuine nullability
+   *  gaps in the batch-progress code, so it belongs in its own task. */
+  createdAt?: string | null;
 }
 
 /** Result shape for batch event analysis tasks */

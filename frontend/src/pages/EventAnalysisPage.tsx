@@ -39,7 +39,9 @@ import '@/styles/event-analysis.css';
  *  timings are actually recorded. */
 const SECONDS_PER_EVENT = 8;
 
-function formatEta(count: number, t: (k: string, o?: object) => string): string {
+type TFunc = ReturnType<typeof useTranslation>['t'];
+
+function formatEta(count: number, t: TFunc): string {
   const seconds = count * SECONDS_PER_EVENT;
   return seconds >= 60
     ? t('event.batch.etaMinutes', { n: Math.ceil(seconds / 60) })
@@ -520,11 +522,11 @@ export default function EventAnalysisPage() {
                   {sourceLoading && (
                     <p className="ea-source-empty">{t('analyzing')}</p>
                   )}
-                  {!sourceLoading && (sourceData?.passages.length ?? 0) === 0 && (
+                  {!sourceLoading && (sourceData?.passages?.length ?? 0) === 0 && (
                     <p className="ea-source-empty">{t('event.source.empty')}</p>
                   )}
                   {!sourceLoading &&
-                    sourceData?.passages.map((p) => (
+                    sourceData?.passages?.map((p) => (
                       <div key={p.id} className="ea-source-passage">
                         <div className="ea-source-meta">
                           {p.chapterNumber !== null &&

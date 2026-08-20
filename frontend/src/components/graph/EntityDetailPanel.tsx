@@ -72,7 +72,7 @@ export function EntityDetailPanel({
   });
   const factionLabel = useMemo(() => {
     if (node.type !== 'character' || !factionData) return null;
-    const f = factionData.factions.find((f) => (f.memberIds ?? []).includes(node.id));
+    const f = (factionData.factions ?? []).find((f) => (f.memberIds ?? []).includes(node.id));
     return f ? deriveFactionLabel(f.topMemberNames, f.label) : t('panel.unaffiliated');
   }, [factionData, node.type, node.id, t]);
 

@@ -106,7 +106,7 @@ export function PipelineRerunPanel({ bookId, pipelineStatus }: Readonly<Pipeline
   if (failedSteps.length === 0) return null;
 
   const handleComplete = () => {
-    void queryClient.invalidateQueries({ queryKey: ['book', bookId] });
+    void queryClient.invalidateQueries({ queryKey: ['books', bookId] });
   };
 
   return (

@@ -77,7 +77,7 @@ export function useTaskNotifications() {
 
       const title = bookTitleOf(task);
       const bookId = bookIdOf(task);
-      const toast = buildToast(phase, title, bookId, task.error, t, navigate);
+      const toast = buildToast(phase, title, bookId, task.error ?? undefined, t, navigate);
       if (toast) push({ ...toast, dedupeKey: `${task.taskId}:${phase}` });
     }
     seededRef.current = true;
