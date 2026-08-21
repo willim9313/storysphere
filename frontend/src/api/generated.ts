@@ -60,7 +60,11 @@ export interface paths {
         post?: never;
         /**
          * Delete Book
-         * @description Delete a book, its vector collection, KG data, analysis cache, and DB records.
+         * @description Delete a book and everything derived from it.
+         *
+         *     Every store is book-scoped and cleaned by an explicit call — there is no
+         *     transaction across them, so the order matters where one store's keys are
+         *     read from another (see the TEU note below).
          */
         delete: operations["delete_book_api_v1_books__book_id__delete"];
         options?: never;
@@ -82,6 +86,609 @@ export interface paths {
          * @description Trigger a rerun of a single failed pipeline step for a book.
          */
         post: operations["rerun_pipeline_step_api_v1_books__book_id__rerun__step__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Book Analysis
+         * @description Trigger full-book analysis for all entities.
+         */
+        post: operations["trigger_book_analysis_api_v1_books__book_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/analysis/{section}/{item_id}/regenerate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Regenerate Analysis
+         * @description Regenerate a single analysis item.
+         */
+        post: operations["regenerate_analysis_api_v1_books__book_id__analysis__section___item_id__regenerate_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/timeline-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Timeline Config
+         * @description Get the timeline snapshot configuration for a book.
+         */
+        get: operations["get_timeline_config_api_v1_books__book_id__timeline_config_get"];
+        /**
+         * Update Timeline Config
+         * @description Update (confirm or change) the timeline snapshot configuration.
+         */
+        put: operations["update_timeline_config_api_v1_books__book_id__timeline_config_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/detect-timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Detect Timeline
+         * @description Re-run timeline structure detection for a book.
+         */
+        post: operations["detect_timeline_api_v1_books__book_id__detect_timeline_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/timeline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Book Timeline
+         * @description Get the global event timeline for a book.
+         *
+         *     Query params:
+         *         order: "narrative" (chapter order) or "chronological".
+         *         event_type: optional filter by event type.
+         */
+        get: operations["get_book_timeline_api_v1_books__book_id__timeline_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/timeline/compute": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Compute Book Timeline
+         * @description Trigger temporal timeline computation for a book.
+         *
+         *     Requires EEP (event analysis) to have been run first for best results.
+         */
+        post: operations["compute_book_timeline_api_v1_books__book_id__timeline_compute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/chapters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Chapters
+         * @description List chapters for a book.
+         *
+         *     Non-body chapters (table of contents, prefaces, afterwords) are front/
+         *     back matter, not part of the reading flow — they're excluded here even
+         *     though they remain stored (e.g. for a future cross-book lookup).
+         */
+        get: operations["list_chapters_api_v1_books__book_id__chapters_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/chapters/{chapter_id}/chunks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Chapter Chunks
+         * @description Get chunks (paragraphs) for a chapter with entity segments.
+         */
+        get: operations["get_chapter_chunks_api_v1_books__book_id__chapters__chapter_id__chunks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/entities/{entity_id}/chunks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Entity Chunks
+         * @description Get all chunks (paragraphs) where a specific entity appears.
+         */
+        get: operations["get_entity_chunks_api_v1_books__book_id__entities__entity_id__chunks_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/graph": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Book Graph
+         * @description Get knowledge graph data for a book.
+         *
+         *     Optional snapshot parameters:
+         *     - mode: "chapter" (reading order) or "story" (chronological)
+         *     - position: chapter number or chron_index depending on mode
+         */
+        get: operations["get_book_graph_api_v1_books__book_id__graph_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-relations/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Link Inference
+         * @description Run Common Neighbors + Adamic-Adar inference on the full book graph.
+         */
+        post: operations["run_link_inference_api_v1_books__book_id__inferred_relations_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-relations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Inferred Relations
+         * @description List inferred relation candidates for a book.
+         */
+        get: operations["list_inferred_relations_api_v1_books__book_id__inferred_relations_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-relations/{ir_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Inferred Relation
+         * @description Confirm an inferred relation; writes it as a real Relation to the KG.
+         *
+         *     Body is optional. When `relationType` is omitted, the inferred relation's
+         *     suggested_relation_type is promoted to its canonical RelationType via
+         *     INFERRED_TO_CANONICAL (see domain.inferred_relations).
+         */
+        post: operations["confirm_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-relations/{ir_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Inferred Relation
+         * @description Reject (dismiss) an inferred relation candidate.
+         */
+        post: operations["reject_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/entities/{entity_id}/epistemic-state": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Entity Epistemic State
+         * @description Return what a character knows and doesn't know up to a given chapter.
+         */
+        get: operations["get_entity_epistemic_state_api_v1_books__book_id__entities__entity_id__epistemic_state_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/classify-visibility": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Classify Book Visibility
+         * @description Retroactively classify event visibility for a book using LLM.
+         *
+         *     Temporary endpoint — may be replaced once a full re-ingest pipeline is available.
+         */
+        post: operations["classify_book_visibility_api_v1_books__book_id__classify_visibility_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/analysis/characters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Character Analyses
+         * @description List character analyses (analyzed + unanalyzed).
+         */
+        get: operations["list_character_analyses_api_v1_books__book_id__analysis_characters_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/entities/{entity_id}/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Entity Analysis
+         * @description Get full analysis result for a specific character entity.
+         */
+        get: operations["get_entity_analysis_api_v1_books__book_id__entities__entity_id__analysis_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Entity Analysis
+         * @description Delete entity analysis from cache.
+         */
+        delete: operations["delete_entity_analysis_api_v1_books__book_id__entities__entity_id__analysis_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/entities/{entity_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Entity Analysis
+         * @description Trigger deep analysis for a single entity.
+         *
+         *     ``mode='retryFailed'`` re-runs only the cached result's failed parts
+         *     (reusing the cached CEP); ``mode='full'`` forces a complete re-analysis.
+         */
+        post: operations["trigger_entity_analysis_api_v1_books__book_id__entities__entity_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/entities/analyze-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Batch Entity Analysis
+         * @description Trigger deep analysis for ALL (or a subset of) character entities in a book.
+         *
+         *     ``entityIds``, when provided, restricts the run to that subset (still
+         *     skipping any that already have cached analysis); ids that don't match an
+         *     existing character entity are silently excluded. Omitted → all characters.
+         *     Returns a task_id for progress tracking.
+         */
+        post: operations["trigger_batch_entity_analysis_api_v1_books__book_id__entities_analyze_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/entities/{entity_id}/voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Entity Voice Profile
+         * @description Return the voice profile for a character.
+         *
+         *     Computes quantitative linguistic metrics and LLM qualitative description
+         *     on first call; subsequent calls are served from SQLite cache.
+         *
+         *     ``cached_only=true``: only reads the cache, never triggers generation —
+         *     404 if no cached profile exists yet.
+         */
+        get: operations["get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Entity Voice Profile
+         * @description Invalidate the cached voice profile so the next GET recomputes it.
+         */
+        delete: operations["delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/events/{event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Event Detail
+         * @description Get event detail with resolved participant and location names.
+         */
+        get: operations["get_event_detail_api_v1_books__book_id__events__event_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/analysis/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Event Analyses
+         * @description List event analyses (analyzed + unanalyzed).
+         */
+        get: operations["list_event_analyses_api_v1_books__book_id__analysis_events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/events/{event_id}/analyze": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Event Analysis
+         * @description Trigger deep analysis for a single event.
+         *
+         *     ``mode='retryFailed'`` re-runs only the cached result's failed parts;
+         *     ``mode='full'`` forces a complete re-analysis.
+         */
+        post: operations["trigger_event_analysis_api_v1_books__book_id__events__event_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/events/{event_id}/analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Event Analysis
+         * @description Return cached EEP / causality / impact analysis for a single event.
+         */
+        get: operations["get_event_analysis_api_v1_books__book_id__events__event_id__analysis_get"];
+        put?: never;
+        post?: never;
+        /**
+         * Delete Event Analysis
+         * @description Delete event analysis from cache.
+         */
+        delete: operations["delete_event_analysis_api_v1_books__book_id__events__event_id__analysis_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/events/{event_id}/source": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Event Source Passages
+         * @description Return the source paragraphs most likely to describe this event.
+         *
+         *     Events carry no chunk reference, so the passage is *retrieved*, not looked
+         *     up: the same vector query the EEP builder uses for ``text_evidence``
+         *     (``"{title} {description}"``). Callers must present the result as "most
+         *     relevant passages", not as the event's canonical source text.
+         */
+        get: operations["get_event_source_passages_api_v1_books__book_id__events__event_id__source_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/events/analyze-all": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Trigger Batch Event Analysis
+         * @description Trigger deep analysis for ALL (or a subset of) events in a book.
+         *
+         *     ``eventIds``, when provided, restricts the run to that subset (still
+         *     skipping any that already have cached analysis); ids that don't match an
+         *     existing event are silently excluded. Omitted → all events.
+         *     Returns a task_id for progress tracking.
+         */
+        post: operations["trigger_batch_event_analysis_api_v1_books__book_id__events_analyze_all_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -224,609 +831,6 @@ export interface paths {
          */
         post: operations["detect_language_from_upload_api_v1_books_detect_language_post"];
         delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/chapters": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Chapters
-         * @description List chapters for a book.
-         *
-         *     Non-body chapters (table of contents, prefaces, afterwords) are front/
-         *     back matter, not part of the reading flow — they're excluded here even
-         *     though they remain stored (e.g. for a future cross-book lookup).
-         */
-        get: operations["list_chapters_api_v1_books__book_id__chapters_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/chapters/{chapter_id}/chunks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Chapter Chunks
-         * @description Get chunks (paragraphs) for a chapter with entity segments.
-         */
-        get: operations["get_chapter_chunks_api_v1_books__book_id__chapters__chapter_id__chunks_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/graph": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Book Graph
-         * @description Get knowledge graph data for a book.
-         *
-         *     Optional snapshot parameters:
-         *     - mode: "chapter" (reading order) or "story" (chronological)
-         *     - position: chapter number or chron_index depending on mode
-         */
-        get: operations["get_book_graph_api_v1_books__book_id__graph_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/inferred-relations/run": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Run Link Inference
-         * @description Run Common Neighbors + Adamic-Adar inference on the full book graph.
-         */
-        post: operations["run_link_inference_api_v1_books__book_id__inferred_relations_run_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/inferred-relations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Inferred Relations
-         * @description List inferred relation candidates for a book.
-         */
-        get: operations["list_inferred_relations_api_v1_books__book_id__inferred_relations_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/inferred-relations/{ir_id}/confirm": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Confirm Inferred Relation
-         * @description Confirm an inferred relation; writes it as a real Relation to the KG.
-         *
-         *     Body is optional. When `relationType` is omitted, the inferred relation's
-         *     suggested_relation_type is promoted to its canonical RelationType via
-         *     INFERRED_TO_CANONICAL (see domain.inferred_relations).
-         */
-        post: operations["confirm_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__confirm_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/inferred-relations/{ir_id}/reject": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Reject Inferred Relation
-         * @description Reject (dismiss) an inferred relation candidate.
-         */
-        post: operations["reject_inferred_relation_api_v1_books__book_id__inferred_relations__ir_id__reject_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/timeline-config": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Timeline Config
-         * @description Get the timeline snapshot configuration for a book.
-         */
-        get: operations["get_timeline_config_api_v1_books__book_id__timeline_config_get"];
-        /**
-         * Update Timeline Config
-         * @description Update (confirm or change) the timeline snapshot configuration.
-         */
-        put: operations["update_timeline_config_api_v1_books__book_id__timeline_config_put"];
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/detect-timeline": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Detect Timeline
-         * @description Re-run timeline structure detection for a book.
-         */
-        post: operations["detect_timeline_api_v1_books__book_id__detect_timeline_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/events/{event_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Event Detail
-         * @description Get event detail with resolved participant and location names.
-         */
-        get: operations["get_event_detail_api_v1_books__book_id__events__event_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/analyze": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Trigger Book Analysis
-         * @description Trigger full-book analysis for all entities.
-         */
-        post: operations["trigger_book_analysis_api_v1_books__book_id__analyze_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/analysis/characters": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Character Analyses
-         * @description List character analyses (analyzed + unanalyzed).
-         */
-        get: operations["list_character_analyses_api_v1_books__book_id__analysis_characters_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/analysis/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Event Analyses
-         * @description List event analyses (analyzed + unanalyzed).
-         */
-        get: operations["list_event_analyses_api_v1_books__book_id__analysis_events_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/analysis/{section}/{item_id}/regenerate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Regenerate Analysis
-         * @description Regenerate a single analysis item.
-         */
-        post: operations["regenerate_analysis_api_v1_books__book_id__analysis__section___item_id__regenerate_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/entities/{entity_id}/chunks": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Entity Chunks
-         * @description Get all chunks (paragraphs) where a specific entity appears.
-         */
-        get: operations["get_entity_chunks_api_v1_books__book_id__entities__entity_id__chunks_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/entities/{entity_id}/analysis": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Entity Analysis
-         * @description Get full analysis result for a specific character entity.
-         */
-        get: operations["get_entity_analysis_api_v1_books__book_id__entities__entity_id__analysis_get"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete Entity Analysis
-         * @description Delete entity analysis from cache.
-         */
-        delete: operations["delete_entity_analysis_api_v1_books__book_id__entities__entity_id__analysis_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/entities/{entity_id}/analyze": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Trigger Entity Analysis
-         * @description Trigger deep analysis for a single entity.
-         *
-         *     ``mode='retryFailed'`` re-runs only the cached result's failed parts
-         *     (reusing the cached CEP); ``mode='full'`` forces a complete re-analysis.
-         */
-        post: operations["trigger_entity_analysis_api_v1_books__book_id__entities__entity_id__analyze_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/entities/analyze-all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Trigger Batch Entity Analysis
-         * @description Trigger deep analysis for ALL (or a subset of) character entities in a book.
-         *
-         *     ``entityIds``, when provided, restricts the run to that subset (still
-         *     skipping any that already have cached analysis); ids that don't match an
-         *     existing character entity are silently excluded. Omitted → all characters.
-         *     Returns a task_id for progress tracking.
-         */
-        post: operations["trigger_batch_entity_analysis_api_v1_books__book_id__entities_analyze_all_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/entities/{entity_id}/epistemic-state": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Entity Epistemic State
-         * @description Return what a character knows and doesn't know up to a given chapter.
-         */
-        get: operations["get_entity_epistemic_state_api_v1_books__book_id__entities__entity_id__epistemic_state_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/classify-visibility": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Classify Book Visibility
-         * @description Retroactively classify event visibility for a book using LLM.
-         *
-         *     Temporary endpoint — may be replaced once a full re-ingest pipeline is available.
-         */
-        post: operations["classify_book_visibility_api_v1_books__book_id__classify_visibility_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/events/{event_id}/analyze": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Trigger Event Analysis
-         * @description Trigger deep analysis for a single event.
-         *
-         *     ``mode='retryFailed'`` re-runs only the cached result's failed parts;
-         *     ``mode='full'`` forces a complete re-analysis.
-         */
-        post: operations["trigger_event_analysis_api_v1_books__book_id__events__event_id__analyze_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/events/{event_id}/analysis": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Event Analysis
-         * @description Return cached EEP / causality / impact analysis for a single event.
-         */
-        get: operations["get_event_analysis_api_v1_books__book_id__events__event_id__analysis_get"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete Event Analysis
-         * @description Delete event analysis from cache.
-         */
-        delete: operations["delete_event_analysis_api_v1_books__book_id__events__event_id__analysis_delete"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/events/{event_id}/source": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Event Source Passages
-         * @description Return the source paragraphs most likely to describe this event.
-         *
-         *     Events carry no chunk reference, so the passage is *retrieved*, not looked
-         *     up: the same vector query the EEP builder uses for ``text_evidence``
-         *     (``"{title} {description}"``). Callers must present the result as "most
-         *     relevant passages", not as the event's canonical source text.
-         */
-        get: operations["get_event_source_passages_api_v1_books__book_id__events__event_id__source_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/events/analyze-all": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Trigger Batch Event Analysis
-         * @description Trigger deep analysis for ALL (or a subset of) events in a book.
-         *
-         *     ``eventIds``, when provided, restricts the run to that subset (still
-         *     skipping any that already have cached analysis); ids that don't match an
-         *     existing event are silently excluded. Omitted → all events.
-         *     Returns a task_id for progress tracking.
-         */
-        post: operations["trigger_batch_event_analysis_api_v1_books__book_id__events_analyze_all_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/timeline": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Book Timeline
-         * @description Get the global event timeline for a book.
-         *
-         *     Query params:
-         *         order: "narrative" (chapter order) or "chronological".
-         *         event_type: optional filter by event type.
-         */
-        get: operations["get_book_timeline_api_v1_books__book_id__timeline_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/timeline/compute": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Compute Book Timeline
-         * @description Trigger temporal timeline computation for a book.
-         *
-         *     Requires EEP (event analysis) to have been run first for best results.
-         */
-        post: operations["compute_book_timeline_api_v1_books__book_id__timeline_compute_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/books/{book_id}/entities/{entity_id}/voice": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Entity Voice Profile
-         * @description Return the voice profile for a character.
-         *
-         *     Computes quantitative linguistic metrics and LLM qualitative description
-         *     on first call; subsequent calls are served from SQLite cache.
-         *
-         *     ``cached_only=true``: only reads the cache, never triggers generation —
-         *     404 if no cached profile exists yet.
-         */
-        get: operations["get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get"];
-        put?: never;
-        post?: never;
-        /**
-         * Delete Entity Voice Profile
-         * @description Invalidate the cached voice profile so the next GET recomputes it.
-         */
-        delete: operations["delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1261,6 +1265,12 @@ export interface paths {
          * @description Start heuristic Kernel/Satellite classification for a book.
          *
          *     Returns 202 with ``task_id``. Poll ``GET /narrative/classify/{task_id}``.
+         *
+         *     Returns 409 when no EEP cache entries remain while the KG still holds
+         *     classified events: the run has nothing to classify from, so it would reset
+         *     every kernel/satellite weight to "unclassified". The service refuses the
+         *     same case on its own, but a task that "succeeds" having done nothing is not
+         *     an answer — the caller gets told instead.
          */
         post: operations["classify_narrative_api_v1_narrative_classify_post"];
         delete?: never;
@@ -2178,10 +2188,15 @@ export interface paths {
         };
         /**
          * Token usage statistics
-         * @description Return aggregated token usage with daily breakdown.
+         * @description Return aggregated token usage with daily and per-book breakdowns.
          *
-         *     Query params:
-         *         range: ``today`` | ``7d`` | ``30d`` | ``all``
+         *     Book titles are joined in here rather than in the store: token usage and
+         *     documents live in separate SQLite files with no relation between them, and
+         *     the store must not reach across into the document service.
+         *
+         *     A row in ``byBook`` can have a ``bookId`` with ``title: null`` — the book
+         *     was deleted but its spending is still on record. ``bookId: null`` is the
+         *     separate case of a call that was never attributed to any book.
          */
         get: operations["get_token_usage_api_v1_token_usage_get"];
         put?: never;
@@ -2387,6 +2402,11 @@ export interface components {
              *     }
              */
             pipelineStatus: components["schemas"]["PipelineStatusResponse"];
+            /**
+             * Language
+             * @default en
+             */
+            language: string;
             /** Summary */
             summary?: string | null;
             /**
@@ -5152,7 +5172,7 @@ export interface operations {
             };
         };
     };
-    get_review_data_api_v1_books__book_id__review_data_get: {
+    trigger_book_analysis_api_v1_books__book_id__analyze_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5169,7 +5189,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReviewDataResponse"];
+                    "application/json": components["schemas"]["TaskIdResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5183,27 +5203,27 @@ export interface operations {
             };
         };
     };
-    submit_review_api_v1_books__book_id__review_post: {
+    regenerate_analysis_api_v1_books__book_id__analysis__section___item_id__regenerate_post: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 book_id: string;
+                section: string;
+                item_id: string;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ReviewSubmitRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["TaskIdResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -5216,7 +5236,7 @@ export interface operations {
             };
         };
     };
-    suggest_roles_api_v1_books__book_id__suggest_roles_post: {
+    get_timeline_config_api_v1_books__book_id__timeline_config_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -5233,7 +5253,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SuggestRolesResponse"];
+                    "application/json": components["schemas"]["TimelineConfigResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5247,7 +5267,7 @@ export interface operations {
             };
         };
     };
-    parse_toc_api_v1_books__book_id__parse_toc_post: {
+    update_timeline_config_api_v1_books__book_id__timeline_config_put: {
         parameters: {
             query?: never;
             header?: never;
@@ -5256,9 +5276,9 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: {
+        requestBody: {
             content: {
-                "application/json": components["schemas"]["ParseTocRequest"] | null;
+                "application/json": components["schemas"]["TimelineConfigUpdate"];
             };
         };
         responses: {
@@ -5268,7 +5288,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ParseTocResponse"];
+                    "application/json": components["schemas"]["TimelineConfigResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5282,18 +5302,81 @@ export interface operations {
             };
         };
     };
-    upload_book_api_v1_books_upload_post: {
+    detect_timeline_api_v1_books__book_id__detect_timeline_post: {
         parameters: {
             query?: never;
             header?: never;
-            path?: never;
+            path: {
+                book_id: string;
+            };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_upload_book_api_v1_books_upload_post"];
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelineDetectionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
+    };
+    get_book_timeline_api_v1_books__book_id__timeline_get: {
+        parameters: {
+            query?: {
+                order?: string;
+                event_type?: string | null;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TimelineResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    compute_book_timeline_api_v1_books__book_id__timeline_compute_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             202: {
@@ -5301,40 +5384,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UploadResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    detect_language_from_upload_api_v1_books_detect_language_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "multipart/form-data": components["schemas"]["Body_detect_language_from_upload_api_v1_books_detect_language_post"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DetectLanguageResponse"];
+                    "application/json": components["schemas"]["TaskIdResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5398,6 +5448,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChunkResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_entity_chunks_api_v1_books__book_id__entities__entity_id__chunks_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntityChunksResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5582,12 +5664,15 @@ export interface operations {
             };
         };
     };
-    get_timeline_config_api_v1_books__book_id__timeline_config_get: {
+    get_entity_epistemic_state_api_v1_books__book_id__entities__entity_id__epistemic_state_get: {
         parameters: {
-            query?: never;
+            query: {
+                up_to_chapter: number;
+            };
             header?: never;
             path: {
                 book_id: string;
+                entity_id: string;
             };
             cookie?: never;
         };
@@ -5599,7 +5684,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TimelineConfigResponse"];
+                    "application/json": components["schemas"]["EpistemicStateResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5613,42 +5698,7 @@ export interface operations {
             };
         };
     };
-    update_timeline_config_api_v1_books__book_id__timeline_config_put: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                book_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TimelineConfigUpdate"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TimelineConfigResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    detect_timeline_api_v1_books__book_id__detect_timeline_post: {
+    classify_book_visibility_api_v1_books__book_id__classify_visibility_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5660,70 +5710,7 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TimelineDetectionResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_event_detail_api_v1_books__book_id__events__event_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                book_id: string;
-                event_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EventDetailResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    trigger_book_analysis_api_v1_books__book_id__analyze_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                book_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -5760,102 +5747,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AnalysisListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_event_analyses_api_v1_books__book_id__analysis_events_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                book_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["AnalysisListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    regenerate_analysis_api_v1_books__book_id__analysis__section___item_id__regenerate_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                book_id: string;
-                section: string;
-                item_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskIdResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_entity_chunks_api_v1_books__book_id__entities__entity_id__chunks_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                book_id: string;
-                entity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EntityChunksResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6002,10 +5893,10 @@ export interface operations {
             };
         };
     };
-    get_entity_epistemic_state_api_v1_books__book_id__entities__entity_id__epistemic_state_get: {
+    get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get: {
         parameters: {
-            query: {
-                up_to_chapter: number;
+            query?: {
+                cached_only?: boolean;
             };
             header?: never;
             path: {
@@ -6022,7 +5913,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EpistemicStateResponse"];
+                    "application/json": components["schemas"]["VoiceProfileResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6036,7 +5927,69 @@ export interface operations {
             };
         };
     };
-    classify_book_visibility_api_v1_books__book_id__classify_visibility_post: {
+    delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                entity_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_event_detail_api_v1_books__book_id__events__event_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventDetailResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_event_analyses_api_v1_books__book_id__analysis_events_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -6048,12 +6001,12 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            202: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TaskIdResponse"];
+                    "application/json": components["schemas"]["AnalysisListResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6234,12 +6187,9 @@ export interface operations {
             };
         };
     };
-    get_book_timeline_api_v1_books__book_id__timeline_get: {
+    get_review_data_api_v1_books__book_id__review_data_get: {
         parameters: {
-            query?: {
-                order?: string;
-                event_type?: string | null;
-            };
+            query?: never;
             header?: never;
             path: {
                 book_id: string;
@@ -6254,7 +6204,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["TimelineResponse"];
+                    "application/json": components["schemas"]["ReviewDataResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6268,7 +6218,7 @@ export interface operations {
             };
         };
     };
-    compute_book_timeline_api_v1_books__book_id__timeline_compute_post: {
+    submit_review_api_v1_books__book_id__review_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -6277,73 +6227,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TaskIdResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewSubmitRequest"];
             };
         };
-    };
-    get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get: {
-        parameters: {
-            query?: {
-                cached_only?: boolean;
-            };
-            header?: never;
-            path: {
-                book_id: string;
-                entity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["VoiceProfileResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                book_id: string;
-                entity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description Successful Response */
             204: {
@@ -6351,6 +6239,138 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    suggest_roles_api_v1_books__book_id__suggest_roles_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestRolesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    parse_toc_api_v1_books__book_id__parse_toc_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["ParseTocRequest"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ParseTocResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    upload_book_api_v1_books_upload_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_upload_book_api_v1_books_upload_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    detect_language_from_upload_api_v1_books_detect_language_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["Body_detect_language_from_upload_api_v1_books_detect_language_post"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DetectLanguageResponse"];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -8377,6 +8397,8 @@ export interface operations {
             query?: {
                 /** @description Time range: today | 7d | 30d | all */
                 range?: string;
+                /** @description Narrow every section to one book. Pass '__unattributed__' for the calls that carry no book. */
+                bookId?: string | null;
             };
             header?: never;
             path?: never;
