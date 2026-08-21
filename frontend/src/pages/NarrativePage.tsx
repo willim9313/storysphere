@@ -108,7 +108,7 @@ export default function NarrativePage() {
 
   const handleTrigger = (force = false) =>
     heroJourneyOp.trigger(
-      () => triggerHeroJourney(bookId!, i18n.language.startsWith('zh') ? 'zh' : 'en', force),
+      () => triggerHeroJourney(bookId!, book?.language ?? 'en', force),
       t('narrative.errors.triggerHero'),
     );
 
@@ -288,7 +288,9 @@ export default function NarrativePage() {
   }
 
   const unclassifiedIds = structure?.unclassified_event_ids ?? [];
-  const lang = i18n.language.startsWith('zh') ? 'zh' : 'en';
+  // The book's language, not the UI's — this used to read i18n.language, which
+  // made an English UI request English analysis of a Chinese book.
+  const lang = book?.language ?? 'en';
 
   const runClassify = () => {
     setPendingAction(null);

@@ -13,7 +13,7 @@ type TensionThemeResponse = components['schemas']['TensionThemeResponse'];
 
 export function triggerTensionAnalysis(
   bookId: string,
-  language = 'zh',
+  language: string,
   force = false,
   concurrency = 5,
 ): Promise<{ taskId: string }> {
@@ -31,7 +31,7 @@ export function fetchTensionAnalysisTask(taskId: string): Promise<TaskStatus> {
 
 export function triggerGroupTensionLines(
   bookId: string,
-  language = 'zh',
+  language: string,
   force = false,
 ): Promise<{ taskId: string }> {
   return apiFetch<{ taskId: string }>('/tension/lines/group', {
@@ -99,7 +99,7 @@ export function reviewTensionLine(
 
 export function triggerSynthesizeTensionTheme(
   bookId: string,
-  language = 'zh',
+  language: string,
   force = false,
 ): Promise<{ taskId: string }> {
   return apiFetch<{ taskId: string }>('/tension/theme/synthesize', {

@@ -439,9 +439,9 @@ export default function TimelinePage() {
   const runDisplacement = useCallback(async () => {
     if (!bookId || isRunningDisplacement) return;
     setConfirm(null);
-    const task = await triggerTemporalAnalysis(bookId);
+    const task = await triggerTemporalAnalysis(bookId, book?.language ?? 'en');
     setDisplacementTaskId(task.taskId);
-  }, [bookId, isRunningDisplacement]);
+  }, [bookId, book?.language, isRunningDisplacement]);
 
   /** What #21h actually produced for this book — the signal that was missing
    *  when 倒敘與預敘 could not tell a first run from a re-run. */

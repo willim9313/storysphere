@@ -111,28 +111,36 @@ export default function TensionPage() {
     t('tension.errors.synthFailed'),
   );
 
+  // The book's language, not the UI's. The backend turns this into the prompt's
+  // "Respond in {name}.", so the two must not be confused: an English UI reading
+  // a Traditional-Chinese book still wants Traditional-Chinese analysis.
+  // The fallback matches `Document.language`'s own default, so the unreachable
+  // case (a trigger fired before the book loads) sends what the backend assumes
+  // anyway rather than inventing a third answer.
+  const bookLang = book?.language ?? 'en';
+
   // `force` has to be true to re-run a completed step: without it the backend
   // returns the cached result, reports success, and nothing changes.
   const runStep = useCallback(
     (key: 1 | 2 | 3, force: boolean) => {
       if (key === 1) {
         analyzeOp.trigger(
-          () => triggerTensionAnalysis(bookId!, 'zh', force),
+          () => triggerTensionAnalysis(bookId!, bookLang, force),
           t('tension.errors.triggerAnalysis'),
         );
       } else if (key === 2) {
         groupOp.trigger(
-          () => triggerGroupTensionLines(bookId!, 'zh', force),
+          () => triggerGroupTensionLines(bookId!, bookLang, force),
           t('tension.errors.triggerGroup'),
         );
       } else {
         synthesizeOp.trigger(
-          () => triggerSynthesizeTensionTheme(bookId!, 'zh', force),
+          () => triggerSynthesizeTensionTheme(bookId!, bookLang, force),
           t('tension.errors.triggerSynth'),
         );
       }
     },
-    [bookId, analyzeOp, groupOp, synthesizeOp, t],
+    [bookId, bookLang, analyzeOp, groupOp, synthesizeOp, t],
   );
 
   const onLineReviewed = () => {

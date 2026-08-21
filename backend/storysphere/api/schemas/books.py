@@ -50,6 +50,12 @@ class EntityStats(BaseModel):
 
 
 class BookDetailResponse(BookResponse):
+    # The book's own language, not the UI's. Analysis endpoints take a language
+    # and feed it to `get_language_display_name` for the prompt's "Respond in
+    # {name}." — so a caller that guesses instead of reading this gets the model
+    # answering in whatever it infers. Deliberately not on `BookResponse`: the
+    # library list has no use for it.
+    language: str = "en"
     summary: str | None = None
     chunk_count: int = 0
     entity_count: int = 0
