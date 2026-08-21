@@ -278,19 +278,6 @@ paragraph／chunk 參照，段落層級目前做不到。
 
 ---
 
-#### B-062 tension / narrative 前端寫死 language='zh'
-**背景**: `frontend/src/api/tension.ts` 與 `narrative.ts` 呼叫後端時預設寫死 `language = 'zh'`（NarrativePage 另以 i18n 語言判斷），而非書籍實際語言。籠統 `zh` 經 `get_language_display_name` 只能得到 "Chinese"，不保證繁簡變體——與 2026-07-17 角色分析簡體漂移是同一類 bug（該次已修 upload/ingestion/analysis 鏈，此兩處為殘留）。
-
-**待辦內容**:
-- 兩支 API helper 的 `language` 改由書籍 meta（document language，`zh-tw`/`zh-cn`）帶入，不用 i18n 語言、不寫死
-- 檢查其他 `language` 參數呼叫端是否有同樣寫法（`symbols.ts` 等）
-
-**觸發時機**: 張力 / 敘事分析輸出出現繁簡漂移回報時（或下次動到該兩頁時順修）。
-
----
-
-### 🟢 低優先（可選升級）
-
 #### B-041 章節審閱 UI 需要專用 Design Token
 **背景**: 章節審閱功能（`/upload/review/:bookId`）的視覺語言（切分點指示線、章節 tag、標題高亮）暫時沿用 `--entity-con-*`（靛紫）token，但這組 token 在 manuscript / minimal-ink / pulp 三個主題下會被覆蓋為灰色，紫色語意在非預設主題下失效。
 
@@ -568,6 +555,11 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 **背景**: 2026-08-20 前端批次 4 把 `api/types.ts` 手抄的型別接回 `generated.ts` 時，
 15 個候選裡有 11 個零成本接上，4 個接不了：`GraphNode`、`Segment`、`EntityChunkItem`、
 `EntityChunksResponse`。
+
+**2026-08-21 補充：實際是 6 個，不是 4 個。** 做 B-062 時發現 `Book` / `BookDetail` 卡在
+同一個問題上，只是當時沒被列進來——`generated.ts` 的 `BookResponse.status` 是 `string`，
+前端窄化成 `BookStatus` union，而 `StatusBadge.tsx:4` 有 `Record<BookStatus, …>` 靠這個
+窄化。`api/types.ts` 的檔頭註解已一併更正。
 
 原因不是前端寫錯，而是**後端把實體類別宣告成純 `str`**——`generated.ts` 的
 `GraphNode.type` 與 `SegmentEntity.type` 都是 `string`。前端手寫版把它窄化成
@@ -1232,7 +1224,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-059 | 派系語意命名（LLM 為 F-16 社群取名） | 🟢 低 | 待開始（前置：角色頁翻新 #1 派系分群上線） |
 | B-060 | 原型篩選 facet 改以 archetype id 比對 | 🟢 低 | 待開始（觸發：EN 介面使用需求） |
 | B-061 | 前後端原型 taxonomy 漂移防護測試 | 🟢 低 | 待開始（觸發：taxonomy 再變動前） |
-| B-062 | tension / narrative 前端寫死 language='zh' | 🟡 中 | 待開始（2026-08-05 張力頁翻新未順修——該輪不動 `api/tension.ts` 的呼叫參數） |
+| B-062 | tension / narrative 前端寫死 language='zh' | 🟡 中 | ✅ 已完成（2026-08-21；後端補 `language` + 前端六個呼叫點接上，影響比原記載大，見 ARCHIVE） |
 | B-063 | 關係圖角色名冊比對支援 KG 別名 | 🟢 低 | 待開始（觸發：灰圈誤判回報累積） |
 | B-064 | 未分析卡「生成分析」按鈕文字對齊 canvas「建立」 | 🟢 低 | 待開始（觸發：下次動到角色清單卡片） |
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |

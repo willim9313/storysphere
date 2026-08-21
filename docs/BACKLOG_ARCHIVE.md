@@ -1111,3 +1111,49 @@ grid rather than the page.」與 `overflow-x: auto`，但欄寬寫成 `1fr`—�
 **未做**: B-071（a11y）仍獨立開著；本輪只動版面，沒有碰非視覺替代與 tab order。
 
 ---
+
+#### B-062 tension / narrative 前端寫死 language='zh'
+**背景**: `frontend/src/api/tension.ts` 與 `narrative.ts` 呼叫後端時預設寫死 `language = 'zh'`（NarrativePage 另以 i18n 語言判斷），而非書籍實際語言。籠統 `zh` 經 `get_language_display_name` 只能得到 "Chinese"，不保證繁簡變體——與 2026-07-17 角色分析簡體漂移是同一類 bug（該次已修 upload/ingestion/analysis 鏈，此兩處為殘留）。
+
+**待辦內容**:
+- 兩支 API helper 的 `language` 改由書籍 meta（document language，`zh-tw`/`zh-cn`）帶入，不用 i18n 語言、不寫死
+- 檢查其他 `language` 參數呼叫端是否有同樣寫法（`symbols.ts` 等）
+
+**觸發時機**: 張力 / 敘事分析輸出出現繁簡漂移回報時（或下次動到該兩頁時順修）。
+
+---
+
+### 🟢 低優先（可選升級）
+
+**完成**: 2026-08-21，分支 `feat/book-language-field`（後端 Step 1 + 前端 Step 2）。
+
+**影響比本條目記載的大。** 條目說「籠統 `zh` 只能得到 Chinese，不保證繁簡變體」，語氣像是
+邊緣狀況。實測 DB 四本書**全部**存 `zh-tw`，而 `get_language_display_name` 是
+`"zh" → "Chinese"`、`"zh-tw" → "Traditional Chinese"`，這字串直接進 prompt 的
+`"Respond in {name}."`。所以每一本書的張力／敘事分析都在被告知「用中文回答」而非
+「用繁體中文回答」，繁簡交給模型猜。**不是潛伏 bug，是四本書全部正在踩。**
+
+**根因不是前端偷懶**: `BookResponse` / `BookDetailResponse` 都沒有 `language` 欄位，前端
+根本拿不到書的語言。Step 1 先把輸入補上（只加在 `BookDetailResponse`，列表用不到）。
+
+**範圍比條目記的廣**: 條目只提 tension / narrative 兩頁，實際是**三頁六個呼叫點**——
+`TimelinePage.tsx:442` 的 `triggerTemporalAnalysis(bookId)` 連傳都沒傳，靜默吃預設值。
+
+**做法**: 移除 `api/tension.ts` / `api/narrative.ts` 六處 `language = 'zh'` 預設值，改為必填。
+**但這只擋得住「忘記傳」，擋不住「傳錯」**——實測 `tsc` 只抓到 TimelinePage 那一個，
+其餘五處本來就有傳值（`'zh'` 字面量或 `i18n.language`），型別看不出語意錯誤。
+
+`NarrativePage` 原本的兩處**比寫死更糟**：跟的是 `i18n.language`，也就是**介面語言**。
+英文介面讀中文書會請求英文分析。與 B-060「EN 介面 + 中文書計數全 0」是同一個模式。
+
+**驗證**（`/verify`，攔截 POST body，不讓請求打到後端以免燒 LLM 呼叫）:
+- `GET /books/{id}` 回傳 `language: 'zh-tw'`
+- `POST /tension/theme/synthesize` body 帶 `"language":"zh-tw"`（原為 `"zh"`）
+- **英文介面 + 中文書**：`POST /narrative/hero-journey` 帶 `"language":"zh-tw"`（原為 `"en"`）
+- `TimelinePage` 那條**只有 compile 層驗證**：觸發鈕被覆蓋率門檻擋住（見 B-065 記的同一情境），
+  強制解除 `disabled` 後 handler 自己還有守衛，runtime 沒走到
+
+**順帶產出**: `npm run gen:types` 帶出既有漂移（`bookId` 從未重生過）；`api/types.ts` 檔頭
+「四個刻意留在手寫」更正為六個，見 B-084。
+
+---
