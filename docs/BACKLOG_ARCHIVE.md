@@ -1074,3 +1074,40 @@ narrative、buildOverview、voice、search、tokenUsage…）。把 `VITE_MOCK=t
 
 順帶一提，本條描述的 `evt-t*` vs `ent-*` 命名空間分裂確實存在，但那是 mock
 資料內部的問題，不影響真實資料路徑。
+
+#### B-070 張力分析頁 RWD 未做
+**背景**: 2026-08-05 張力頁翻新（Phase 3）以設計交付包的 1440px 定寬為基準落地，`frontend/src/styles/tension.css` 目前**一個 `@media` 都沒有**。設計交付包本身也只出 1440px 一稿，未涵蓋 1280 / 1024 / 窄視窗。這與時間軸頁 (`docs/UI_SPEC.md` §3.7「已知缺口」) 是同一類缺口。
+
+**具體待決**:
+- 右側 `TensionReviewDrawer` 固定 432px：窄視窗改 overlay 蓋住主體，還是推擠主體？
+- 章節格點 `grid-template-columns: 320px repeat(N, 1fr)`：章節數多的書（如大唐雙龍傳）超過 N 章時橫捲、分頁、還是按區間聚合？
+- `TensionLineTable` 7 欄在 1024px 怎麼收（哪幾欄可折、可否改雙行）？
+
+**注意**: 格點的收斂策略會影響 `TensionChapterGrid` 的資料聚合方式，不是純 CSS 題。
+
+**觸發時機**: 窄視窗使用回報，或統一處理全站 RWD 時（與時間軸頁 RWD 缺口一起做較省）。
+
+**完成**: 2026-08-21，分支 `feat/tension-rwd`。三項待決的結論與理由記在
+`docs/UI_SPEC.md` §3.8「已知缺口」，此處只記關鍵發現：
+
+**橫捲本來就是設計意圖，是實作漏了一半。** `tension.css` 早有註解「Wide books scroll the
+grid rather than the page.」與 `overflow-x: auto`，但欄寬寫成 `1fr`——展開是
+`minmax(auto, 1fr)`，長章節書的欄位會一路壓縮到剩柱子寬，溢出永遠不發生，捲軸也就永遠不出現。
+補上 `minmax(var(--tn-grid-cell-w), 1fr)` 的下限之後才真的會捲；標籤欄同時要 `sticky`，
+否則捲動後看不出那排柱子屬於哪條張力線。**兩個半成品互相掩護，所以缺陷一直沒被看見。**
+
+**實測**（`/verify`，《名字的潮汐》10 章 / 6 條張力線）:
+- 1440 / 1200：版面與 main 一致，格點 `320px + 10 欄`、表格維持 7 欄
+- 1080：表格收成 5 欄，極點欄從 515px 回升到 557px；抽屜轉 `absolute`，主欄不再被壓縮
+- 900：章節與證據數確實落到第二行（實測 bounding box row2），列高 48 → 86px
+- 360（強制溢出）：`scrollWidth 430 > clientWidth 234`，捲動 0 → 196 標籤欄 `left` 恆為 87
+- Ink 主題：sticky 欄背景為不透明白、右框線為黑，`--card-shadow: none` 下靠框線分隔
+- 四個寬度下 `document.documentElement` 皆無水平捲動；console 0 errors
+
+**未修（不在範圍）**: `審核` 欄 152px 裝不下「核准／修改標籤／拒絕」，三顆按鈕在 1440px
+就已經是兩行（實測 44px 高，各寬 42 / 59 / 40）。**這是 main 既有的問題，非 RWD 造成**——
+1440 / 1200 / 900 三個寬度量到的數值完全相同。
+
+**未做**: B-071（a11y）仍獨立開著；本輪只動版面，沒有碰非視覺替代與 tab order。
+
+---

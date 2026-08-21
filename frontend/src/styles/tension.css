@@ -1761,14 +1761,27 @@
   border-left: 1px solid var(--border);
 }
 
-/* Wide books scroll the grid rather than the page. */
-.tn-grid { display: grid; align-items: stretch; overflow-x: auto; }
+/* Wide books scroll the grid rather than the page. The column widths are consumed
+   by TensionChapterGrid's inline gridTemplateColumns; --tn-grid-cell-w is the floor
+   that makes the scroll actually happen instead of the columns collapsing. */
+.tn-grid {
+  display: grid;
+  align-items: stretch;
+  overflow-x: auto;
+  --tn-grid-label-w: 320px;
+  --tn-grid-cell-w: 28px;
+}
 .tn-grid-rowgroup { display: contents; }
 .tn-grid-corner {
   font: 500 10px var(--font-sans);
   letter-spacing: 0.07em;
   color: var(--fg-muted);
   padding-bottom: 8px;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: var(--bg-primary);
+  border-right: 1px solid var(--border);
 }
 .tn-grid-colhead {
   text-align: center;
@@ -1780,15 +1793,21 @@
 
 .tn-grid-rowlabel {
   text-align: left;
-  background: none;
+  background: var(--bg-primary);
   border: none;
   border-bottom: 1px solid var(--border);
   border-left: 3px solid transparent;
+  border-right: 1px solid var(--border);
   padding: 10px 12px 10px 9px;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  /* Frozen while the chapter columns scroll under it — without this the row label
+     scrolls away and the bars belong to no identifiable tension line. */
+  position: sticky;
+  left: 0;
+  z-index: 1;
 }
 .tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel,
 .tn-grid-rowgroup[data-open="true"] .tn-grid-cell { background: var(--bg-secondary); }
@@ -2033,3 +2052,61 @@
   color: var(--fg-muted);
 }
 .tn-teu-card-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Responsive
+   The design package shipped a single 1440px board, so every breakpoint below
+   is a decision made here rather than a spec being followed. Breakpoint values
+   reuse the two already in the codebase (methodology.css 1080, timeline.css 640)
+   rather than inventing a third scale — there are no breakpoint tokens.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@media (max-width: 1080px) {
+  /* The frozen label column costs the chapter columns their width, so it gives
+     some back before they hit --tn-grid-cell-w and the grid starts scrolling. */
+  .tn-grid { --tn-grid-label-w: 200px; }
+  .tn-grid-poles { font-size: 13px; }
+
+  /* The drawer overlays rather than pushing. Docked at 432px it would leave the
+     main column under 650px, which breaks the chapter grid and the line table at
+     the same time — one panel's layout should not cost two others theirs.
+     z-index stays below the global chat launcher (50), whose footprint
+     .tn-drawer-foot already reserves padding for. */
+  .tn-shell { position: relative; }
+  .tn-drawer {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: min(432px, 100%);
+    z-index: 40;
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* The line table's six fixed columns total 550px, leaving the poles column
+     nothing to wrap into once the viewport tightens. Chapters and evidence drop
+     to a second line under the poles; both stay on screen, since a review
+     decision needs to see how much evidence backs the line. */
+  .tn-table-head,
+  .tn-row {
+    grid-template-columns: 36px 1fr 124px 76px 152px;
+    row-gap: 3px;
+  }
+  /* Orphaned once their values move under the poles column. */
+  .tn-table-head > span:nth-child(3),
+  .tn-table-head > span:nth-child(4) { display: none; }
+  .tn-row > .tn-check { grid-column: 1; grid-row: 1 / span 2; align-self: start; }
+  .tn-row > .tn-row-poles { grid-column: 2; grid-row: 1; }
+  .tn-row > .tn-row-chapters { grid-column: 2; grid-row: 2; }
+  .tn-row > .tn-row-evidence { grid-column: 3; grid-row: 2; }
+  .tn-row > .tn-row-intensity { grid-column: 3; grid-row: 1; }
+  .tn-row > .tn-status-badge { grid-column: 4; grid-row: 1; }
+  .tn-row > .tn-row-actions { grid-column: 5; grid-row: 1; }
+}
+
+@media (max-width: 640px) {
+  .tn-grid { --tn-grid-label-w: 150px; }
+  .tn-grid-rowmeta { flex-wrap: wrap; gap: 4px; }
+  /* min(432px, 100%) above already collapses the drawer to full width here. */
+  .tn-page { padding: 16px 14px 64px; }
+}

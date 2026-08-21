@@ -62,7 +62,13 @@ export function TensionChapterGrid({ lines, teus, openId, onOpen, onAssign }: Pr
     (ch) => !teus.some((teu) => teu.chapter === ch && teu.line_id != null),
   );
 
-  const gridStyle = { gridTemplateColumns: `320px repeat(${Math.max(maxChapter, 1)}, 1fr)` };
+  // Column widths come from CSS custom properties so the responsive rules live in
+  // tension.css. The cell floor is what makes `overflow-x: auto` on .tn-grid actually
+  // fire: a bare `1fr` is `minmax(auto, 1fr)`, which lets long books squeeze columns
+  // down to the bars instead of scrolling.
+  const gridStyle = {
+    gridTemplateColumns: `var(--tn-grid-label-w) repeat(${Math.max(maxChapter, 1)}, minmax(var(--tn-grid-cell-w), 1fr))`,
+  };
 
   return (
     <section className="tn-grid-card">
