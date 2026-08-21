@@ -66,6 +66,25 @@ export function TensionChapterGrid({ lines, teus, openId, onOpen, onAssign }: Pr
   // tension.css. The cell floor is what makes `overflow-x: auto` on .tn-grid actually
   // fire: a bare `1fr` is `minmax(auto, 1fr)`, which lets long books squeeze columns
   // down to the bars instead of scrolling.
+  // The bars inside a cell are aria-hidden decoration, so the cell's own label is
+  // the only place their intensity survives. Enumerated rather than aggregated:
+  // one band per bar, matching what a sighted reader counts in the cell. Empty
+  // cells fall back to the plain label so nothing announces a dangling "強度".
+  const cellLabel = (key: string, chapter: number, cellTeus: { intensity: number }[]) => {
+    if (cellTeus.length === 0) return t(key, { chapter, count: 0 });
+    const bands = cellTeus.map((teu) => {
+      const bucket = scale(teu.intensity).bucket;
+      return t(`tension.table.band${bucket[0].toUpperCase()}${bucket.slice(1)}`);
+    });
+    return t(`${key}Intensity`, {
+      chapter,
+      count: cellTeus.length,
+      // A speech-only string, so this is a spoken separator, not the design's
+      // visual interpunct.
+      intensities: bands.join(t('tension.grid.intensitySep')),
+    });
+  };
+
   const gridStyle = {
     gridTemplateColumns: `var(--tn-grid-label-w) repeat(${Math.max(maxChapter, 1)}, minmax(var(--tn-grid-cell-w), 1fr))`,
   };
@@ -127,28 +146,27 @@ export function TensionChapterGrid({ lines, teus, openId, onOpen, onAssign }: Pr
                   </span>
                 </span>
               </button>
-              {chapters.map((ch) => (
-                <button
-                  type="button"
-                  key={ch}
-                  className="tn-grid-cell"
-                  onClick={() => onOpen(line.id)}
-                  aria-label={t('tension.grid.cellLabel', {
-                    chapter: ch,
-                    count: lineTeus.filter((teu) => teu.chapter === ch).length,
-                  })}
-                >
-                  {lineTeus
-                    .filter((teu) => teu.chapter === ch)
-                    .map((teu) => (
+              {chapters.map((ch) => {
+                const cellTeus = lineTeus.filter((teu) => teu.chapter === ch);
+                return (
+                  <button
+                    type="button"
+                    key={ch}
+                    className="tn-grid-cell"
+                    onClick={() => onOpen(line.id)}
+                    aria-label={cellLabel('tension.grid.cellLabel', ch, cellTeus)}
+                  >
+                    {cellTeus.map((teu) => (
                       <i
                         key={teu.id}
+                        aria-hidden="true"
                         data-band={scale(teu.intensity).bucket}
                         style={{ height: `${barHeight(teu.intensity)}px` }}
                       />
                     ))}
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
           );
         })}
@@ -172,24 +190,23 @@ export function TensionChapterGrid({ lines, teus, openId, onOpen, onAssign }: Pr
                 ` · ${t('tension.grid.lostChapters', { list: lostChapters.map((c) => `ch${c}`).join(' · ') })}`}
             </span>
           </button>
-          {chapters.map((ch) => (
+          {chapters.map((ch) => {
+            const cellOrphans = orphans.filter((o) => o.chapter === ch);
+            return (
             <button
               type="button"
               key={ch}
               className="tn-grid-cell"
               onClick={() => setOrphansOpen((v) => !v)}
-              aria-label={t('tension.grid.orphanCellLabel', {
-                chapter: ch,
-                count: orphans.filter((o) => o.chapter === ch).length,
-              })}
+              aria-label={cellLabel('tension.grid.orphanCellLabel', ch, cellOrphans)}
             >
-              {orphans
-                .filter((o) => o.chapter === ch)
+              {cellOrphans
                 .map((o) => (
-                  <i key={o.id} data-orphan="true" style={{ height: `${barHeight(o.intensity)}px` }} />
+                  <i key={o.id} aria-hidden="true" data-orphan="true" style={{ height: `${barHeight(o.intensity)}px` }} />
                 ))}
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
