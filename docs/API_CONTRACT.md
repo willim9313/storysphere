@@ -176,6 +176,10 @@ file    (PDF、DOCX、TXT 或 EPUB 檔案，必填)
 **Response 200**
 ```ts
 interface BookDetail extends Book {
+  language: string;        // 書籍本身的語言（非 UI 語言），如 'zh-tw' / 'en'；預設 'en'
+                           // 分析類 endpoint 的 language 參數應取自這裡，不要用 UI 語言或寫死值：
+                           // 後端以 get_language_display_name() 轉成 prompt 的 "Respond in {name}."，
+                           // 'zh' 只會得到 "Chinese"，'zh-tw' 才是 "Traditional Chinese"
   summary?: string;
   chunkCount: number;
   entityCount: number;

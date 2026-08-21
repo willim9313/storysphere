@@ -144,6 +144,7 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         title=document.title,
         author=document.author,
         status="ready",
+        language=document.language,
         summary=document.summary,
         chapter_count=document.body_chapter_count,
         chunk_count=document.total_paragraphs,
