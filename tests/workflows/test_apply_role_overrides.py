@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import sys
+
 sys.path.insert(0, "src")
 
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphRole
 from storysphere.workflows.ingestion import _apply_role_overrides
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

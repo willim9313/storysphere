@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, patch
-
-import pytest
+from unittest.mock import AsyncMock
 
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolCluster, SymbolOccurrence
-from storysphere.pipelines.symbol_discovery.pipeline import SymbolDiscoveryPipeline, SymbolDiscoveryResult
+from storysphere.pipelines.symbol_discovery.pipeline import (
+    SymbolDiscoveryPipeline,
+    SymbolDiscoveryResult,
+)
 
 
 def _make_doc(book_id: str = "book-1") -> Document:

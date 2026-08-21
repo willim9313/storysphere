@@ -7,9 +7,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
-
-from tests.api.conftest import hanging_call, poll_until_terminal
-
 from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
 from storysphere.domain.symbol_analysis import (
     CoOccurringEntityRef,
@@ -20,6 +17,7 @@ from storysphere.domain.symbol_analysis import (
     SymbolOverviewItem,
 )
 
+from tests.api.conftest import hanging_call, poll_until_terminal
 
 # ── helpers ───────────────────────────────────────────────────────────────────
 
@@ -135,8 +133,8 @@ def client(
 
     sys.path.insert(0, "src")
 
-    from storysphere.api.main import create_app
     from storysphere.api import deps
+    from storysphere.api.main import create_app
 
     app = create_app()
 

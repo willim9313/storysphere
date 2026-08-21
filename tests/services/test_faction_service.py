@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.relations import Relation, RelationType
 from storysphere.services.faction_service import FactionService

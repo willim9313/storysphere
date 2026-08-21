@@ -5,10 +5,12 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from storysphere.domain.documents import Chapter, ChapterRole, Document, FileType, Paragraph
 from storysphere.pipelines.feature_extraction.embedding_generator import EmbeddingGenerator
-from storysphere.pipelines.feature_extraction.pipeline import FeatureExtractionPipeline, FeatureExtractionResult
+from storysphere.pipelines.feature_extraction.pipeline import (
+    FeatureExtractionPipeline,
+    FeatureExtractionResult,
+)
 
 
 def _make_document(num_chapters: int = 2, paras_per_chapter: int = 3) -> Document:

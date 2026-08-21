@@ -7,9 +7,7 @@ to ensure test isolation.
 from __future__ import annotations
 
 import pytest
-
 from storysphere.core.metrics import MetricsCollector, get_metrics
-
 
 # ---------------------------------------------------------------------------
 # TestMetricsCollectorBasic

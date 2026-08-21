@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
-
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event, EventType

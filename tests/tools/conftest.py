@@ -9,12 +9,10 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event, EventType
 from storysphere.domain.relations import Relation, RelationType
-
 
 # ── Test data factories ───────────────────────────────────────────────────────
 

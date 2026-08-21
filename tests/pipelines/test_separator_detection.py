@@ -10,15 +10,15 @@ Coverage:
 from __future__ import annotations
 
 import sys
+
 sys.path.insert(0, "src")
 
 import pytest
+from storysphere.domain.documents import ParagraphRole
 from storysphere.pipelines.document_processing.pipeline import (
     _is_separator_segment,
     _split_at_separators,
 )
-from storysphere.domain.documents import ParagraphRole
-
 
 # ── _is_separator_segment ─────────────────────────────────────────────────────
 
@@ -128,9 +128,9 @@ class TestPipelineSeparatorIntegration:
 
     def _chunk_with_separators(self, segs, chapter_number=1, title=None):
         """Run the separator-aware chunking logic from the pipeline."""
-        from storysphere.pipelines.document_processing.pipeline import _split_at_separators
-        from storysphere.pipelines.document_processing.chunker import chunk_segments
         from storysphere.domain.documents import Paragraph
+        from storysphere.pipelines.document_processing.chunker import chunk_segments
+        from storysphere.pipelines.document_processing.pipeline import _split_at_separators
 
         groups = _split_at_separators(segs)
         paragraphs: list[Paragraph] = []

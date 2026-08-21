@@ -14,12 +14,10 @@ import os
 
 import pytest
 import pytest_asyncio
-
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event, EventType
 from storysphere.domain.relations import Relation, RelationType
 from storysphere.domain.temporal import TemporalRelation, TemporalRelationType
-
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
 

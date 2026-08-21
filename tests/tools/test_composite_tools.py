@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 
 import pytest
-
 from storysphere.tools.composite_tools import (
     CompareCharactersTool,
     GetCharacterArcTool,
@@ -75,7 +74,7 @@ class TestGetEntityRelationshipTool:
 class TestGetCharacterArcTool:
     @pytest.mark.asyncio
     async def test_returns_arc(self, mock_kg_service, mock_vector_service, mock_llm):
-        from unittest.mock import AsyncMock, MagicMock
+        from unittest.mock import AsyncMock
 
         analysis = AsyncMock()
         analysis.generate_insight = AsyncMock(return_value="Alice grows from naive to wise.")

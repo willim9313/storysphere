@@ -18,7 +18,6 @@ from contextlib import asynccontextmanager
 from unittest.mock import AsyncMock
 
 import pytest
-
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.epistemic_state import CharacterEpistemicState
@@ -51,7 +50,6 @@ def _make_document(chapters: list[Chapter], doc_id: str = "book-1") -> Document:
 def epistemic_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_agent):
     """TestClient that additionally mocks the epistemic-state service dependency."""
     from fastapi.testclient import TestClient
-
     from storysphere.api import deps
     from storysphere.api.main import create_app
 

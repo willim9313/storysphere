@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import sys
+
 sys.path.insert(0, "src")
 
 import pytest
 from storysphere.domain.documents import Paragraph, ParagraphRole, extract_body_text
-
 
 # ── extract_body_text ─────────────────────────────────────────────────────────
 

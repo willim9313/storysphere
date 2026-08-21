@@ -1,7 +1,6 @@
 """Tests for config.archetypes — archetype config loader."""
 
 import pytest
-
 from storysphere.config.archetypes import (
     get_archetype_summary,
     load_archetypes,
@@ -45,5 +44,5 @@ class TestGetArchetypeSummary:
         assert "Hero" in summary
         assert "Sage" in summary
         # Each archetype gets one line
-        lines = [l for l in summary.strip().split("\n") if l.strip()]
+        lines = [line for line in summary.strip().split("\n") if line.strip()]
         assert len(lines) == 12

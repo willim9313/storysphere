@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
-
 
 def test_get_relation_paths(client):
     resp = client.get("/api/v1/relations/paths?source_id=ent-alice&target_id=ent-bob")

@@ -3,8 +3,7 @@
 from __future__ import annotations
 
 import pytest
-
-from storysphere.domain.events import Event, EventType, NarrativeMode
+from storysphere.domain.events import Event, EventType
 from storysphere.domain.temporal import TemporalRelation, TemporalRelationType
 from storysphere.services.global_timeline_service import GlobalTimelineService
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.services.extraction_service import (
     ExtractionService,

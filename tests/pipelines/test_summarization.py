@@ -5,7 +5,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock
 
 import pytest
-
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 from storysphere.pipelines.summarization.pipeline import SummarizationPipeline, SummarizationResult
 from storysphere.pipelines.summarization.summarizer import ChapterSummarizer

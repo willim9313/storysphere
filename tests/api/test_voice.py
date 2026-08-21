@@ -8,7 +8,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
-
 from storysphere.domain.voice_profile import VoiceProfile
 
 BOOK_ID = "doc-1"

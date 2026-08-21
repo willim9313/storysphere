@@ -3,11 +3,9 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from storysphere.services.analysis_models import (
     CausalityAnalysis,
     EventAnalysisResult,
@@ -19,7 +17,6 @@ from storysphere.services.analysis_models import (
     ParticipantRoleType,
 )
 from storysphere.services.analysis_service import AnalysisService
-
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 

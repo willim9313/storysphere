@@ -55,19 +55,27 @@
 - 若功能對應 BACKLOG.md 條目，已將詳細內容移至 `docs/BACKLOG_ARCHIVE.md`，並更新 `docs/BACKLOG.md` 狀態表
 - 有無孤兒腳本或文件因改動而與實作漂移
 
-**程式碼品質：**
+**程式碼品質——五道閘門，這裡是唯一的清單：**
 - 執行 `ruff check backend/` 全綠
+- 執行 `ruff check tests/` 全綠
+- 執行 `python -m pytest -m "not integration"` 全綠
 - 執行 `cd frontend && npm run lint` 全綠
 - 執行 `cd frontend && npm run build` 全綠
 - 實作範疇未超出 checkpoint 所列的檔案與 endpoint
 
-**判準是「全綠」，也就是 exit code 為 0——不是「沒有比之前更糟」。** 三道閘門已於
-2026-08-20（PR #66）全數清乾淨，所以不必再取基線比對，直接看 exit code 即可。
+**判準是「全綠」，也就是 exit code 為 0——不是「沒有比之前更糟」。** 前三道於 2026-08-20
+（PR #66）清乾淨，`ruff check tests/` 於 2026-08-21 補上（126 條），所以不必再取基線比對，
+直接看 exit code 即可。
+
+**「幾道閘門」以本節為準。** 這個數字一度在三份文件裡各說各話——CLAUDE.md 說三道
+（漏了 pytest）、B-085 說四道、`docs/guides/TESTING.md` 另外要求 `ruff check tests/`
+而那道當時根本是紅的。清單散在多處就會各自漂移，所以現在只有這裡列全，
+TESTING.md 與 B-085 都改為指回這裡。
 
 `npm run build` 是必跑項：`lint` 攔不到型別問題（typescript-eslint 關掉了
 `no-undef`），刪掉變數卻漏改使用端這類 runtime ReferenceError 只有 `tsc` 會抓到。
 
-**沒有任何 CI 在盯這三道閘門**（2026-08-20 評估後決定暫不建，見 B-085），所以綠不綠
+**沒有任何 CI 在盯這五道閘門**（2026-08-20 評估後決定暫不建，見 B-085），所以綠不綠
 完全靠提交前自己跑。B-066 是這件事的反例：`tsc -b` 長期紅著，紅久了就沒人看，錯誤
 一路累積到 10 個才被清掉——其中還混著一個已經不存在的 interface 引用。閘門會腐化，
 而腐化是靜默的。

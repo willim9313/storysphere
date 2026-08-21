@@ -529,22 +529,26 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-085 四道閘門沒有任何 CI 在盯
-**背景**: 2026-08-20 前端批次 1–4（PR #66）把 `npm run build` 修綠之後，四道閘門
-（`ruff check backend/`、`pytest -m "not integration"`、`npm run lint`、
-`npm run build`）首次同時全綠，CLAUDE.md 的 DoD 判準也隨之從「無新增」改為「全綠」。
-評估後決定**暫不建 CI**，此條記錄這個決定與它的代價。
+#### B-085 五道閘門沒有任何 CI 在盯
+**背景**: 2026-08-20 前端批次 1–4（PR #66）把 `npm run build` 修綠之後，閘門首次同時
+全綠，CLAUDE.md 的 DoD 判準也隨之從「無新增」改為「全綠」。評估後決定**暫不建 CI**，
+此條記錄這個決定與它的代價。
+
+**閘門清單以 CLAUDE.md「程式碼品質」為準，此處不重列。** 本條原本自己列了四道，
+而 `docs/guides/TESTING.md` 另外要求 `ruff check tests/`、CLAUDE.md 又說三道——
+三份文件三個數字。2026-08-21 已收斂：`ruff check tests/` 補綠（126 條），
+清單統一放在 CLAUDE.md，本條與 TESTING.md 都改為指回去。
 
 代價很具體：**B-066 就是「沒人盯」的產物**。那 10 個型別錯誤不是一次寫出來的，
 是因為 `tsc -b` 長期紅著、紅久了沒人看，才從 0 慢慢累積到 10 個——其中還混著一個
 引用了已不存在 interface 的檔案。把閘門弄綠而沒有東西在盯，等於只是把碼表歸零重跑。
 
 **待辦內容**:
-- 建 `.github/workflows/`，跑四道閘門（repo 是 public，Actions 免費；實測合計約 3 分鐘）
+- 建 `.github/workflows/`，跑 CLAUDE.md 列的那幾道（repo 是 public，Actions 免費；實測合計約 3 分鐘）
 - Python 依賴用 `uv`；測試跑 `-m "not integration"`（`integration` 那組需要真實 API key）
 - 注意 `task_store_backend` 預設是 sqlite、`.env` 才是 memory，兩種 backend 的行為不同
   （見 2026-08-19 那次 22 項紅測試），CI 要明確指定用哪一種
-- 建起來之後，CLAUDE.md 裡「沒有任何 CI 在盯這三道閘門」那段要一併改掉
+- 建起來之後，CLAUDE.md 裡「沒有任何 CI 在盯這五道閘門」那段要一併改掉
 
 **觸發時機**: 下次發現閘門又變紅時，或有第二個人開始提交時（單人開發靠自律還撐得住，
 多人就撐不住）。
@@ -1240,7 +1244,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-083 | pypdf 在 CJK 字中插空白，`mention_count` 漏數 | 🟡 中 | ✅ 已完成（2026-08-20 PR #64；`core/utils/text_matching.squash_spacing()`，41 個實體的漏數修正） |
 | B-080 | 後端 deferred import 分類 | 🟢 低 | **不做**（2026-08-19 分類：276 處中僅 ~5.4% 可搬；75% 是循環依賴迴避） |
 | B-084 | 後端實體類別欄位是純 `str`，擋住 4 個前端型別接回 generated | 🟢 低 | 待開始（觸發：下次動到 KG schema 或實體型別定義） |
-| B-085 | 四道閘門沒有任何 CI 在盯 | 🟡 中 | 待開始（2026-08-20 評估後暫不建；觸發：閘門再度變紅，或第二個人加入） |
+| B-085 | 五道閘門沒有任何 CI 在盯 | 🟡 中 | 待開始（2026-08-20 評估後暫不建；觸發：閘門再度變紅，或第二個人加入） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | ✅ 已完成（2026-08-20；10 項全清，`npm run build` 於 main 首次 exit 0） |
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | **不做**（2026-08-20；`api/mock/` 整層已移除，前提消失） |
 | B-068 | 事件抽取把同一場戲切成多個 event | 🟡 中 | 待開始（觸發：下次動到 ingestion / event extraction） |

@@ -5,10 +5,8 @@ Run with:
     uv run pytest tests/test_llm_client.py -v -s
 """
 import pytest
-
-from storysphere.core.llm_client import LLMClient, LLMProvider, get_llm_client
 from storysphere.config.settings import get_settings
-
+from storysphere.core.llm_client import LLMClient, LLMProvider, get_llm_client
 
 # ── Unit tests (no API call) ───────────────────────────────────────────────────
 

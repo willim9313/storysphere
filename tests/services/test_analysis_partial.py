@@ -95,9 +95,13 @@ class TestAgentPartial:
 
 class TestEventPartialFailure:
     def _svc(self):
-        from storysphere.services.analysis_service import AnalysisService
         from storysphere.services.analysis_models import (
-            CausalityAnalysis, EventCoverageMetrics, EventEvidenceProfile, EventSummary)
+            CausalityAnalysis,
+            EventCoverageMetrics,
+            EventEvidenceProfile,
+            EventSummary,
+        )
+        from storysphere.services.analysis_service import AnalysisService
         svc = AnalysisService.__new__(AnalysisService)
         ev = type("E", (), {"title": "T"})()
         svc._kg_service = AsyncMock()
@@ -120,8 +124,13 @@ class TestEventPartialFailure:
 
     def test_event_retry_reuses_eep(self):
         from storysphere.services.analysis_models import (
-            CausalityAnalysis, EventAnalysisResult, EventCoverageMetrics,
-            EventEvidenceProfile, EventSummary, ImpactAnalysis)
+            CausalityAnalysis,
+            EventAnalysisResult,
+            EventCoverageMetrics,
+            EventEvidenceProfile,
+            EventSummary,
+            ImpactAnalysis,
+        )
         svc = self._svc()
         base = EventAnalysisResult(
             event_id="e1", title="T", document_id="doc1",

@@ -6,39 +6,37 @@ real DBs, Qdrant, or LLM API keys.
 
 from __future__ import annotations
 
+from datetime import datetime
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi.testclient import TestClient
-
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event, EventType
 from storysphere.domain.relations import Relation, RelationType
+from storysphere.services.analysis_models import (
+    ArchetypeResult,
+    ArcSegment,
+    CausalityAnalysis,
+    CEPResult,
+    CharacterAnalysisResult,
+    CharacterProfile,
+    CoverageMetrics,
+    EventAnalysisResult,
+    EventCoverageMetrics,
+    EventEvidenceProfile,
+    EventSummary,
+    ImpactAnalysis,
+)
 from storysphere.services.query_models import (
     DocumentSummary,
     PathNode,
     RelationPath,
     RelationStats,
     Subgraph,
-    SubgraphEdge,
     SubgraphNode,
     VectorSearchResult,
 )
-from storysphere.services.analysis_models import (
-    ArcSegment,
-    ArchetypeResult,
-    CEPResult,
-    CharacterAnalysisResult,
-    CharacterProfile,
-    CoverageMetrics,
-    EventAnalysisResult,
-    EventEvidenceProfile,
-    CausalityAnalysis,
-    ImpactAnalysis,
-    EventSummary,
-    EventCoverageMetrics,
-)
-from datetime import datetime
 
 
 def poll_until_terminal(client, task_id: str, attempts: int = 20) -> dict:
@@ -220,8 +218,8 @@ def client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_agent)
 
     sys.path.insert(0, "src")
 
-    from storysphere.api.main import create_app
     from storysphere.api import deps
+    from storysphere.api.main import create_app
 
     app = create_app()
 

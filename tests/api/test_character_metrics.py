@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
-
 from storysphere.domain.character_metrics import CharacterMetric, CharacterMetricsAnalysis
 
 BOOK_ID = "doc-1"

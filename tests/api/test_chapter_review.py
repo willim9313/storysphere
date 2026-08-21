@@ -10,12 +10,9 @@ Coverage:
 
 from __future__ import annotations
 
-import asyncio
+import sys
 from unittest.mock import AsyncMock, patch
 
-import pytest
-
-import sys
 sys.path.insert(0, "src")
 
 
@@ -38,7 +35,6 @@ class TestTaskStoreAwaitingReview:
         store.set_awaiting_review("nonexistent", "book-xyz")
 
     def test_sqlite_store_sets_book_id_in_result(self, tmp_path):
-        import json
         from storysphere.api.store import SQLiteTaskStore
         db = str(tmp_path / "tasks.db")
         store = SQLiteTaskStore(db)
@@ -59,6 +55,7 @@ class TestTaskStoreAwaitingReview:
 
     def test_sqlite_get_task_id_by_book_id(self, tmp_path):
         import asyncio as _asyncio
+
         from storysphere.api.store import SQLiteTaskStore
         db = str(tmp_path / "tasks.db")
         store = SQLiteTaskStore(db)
@@ -77,6 +74,7 @@ class TestReviewDataEndpoint:
     def _setup_awaiting(self, book_id: str) -> str:
         """Create a task in awaiting_review state for book_id; return task_id."""
         import uuid
+
         from storysphere.api.store import task_store
         task_id = f"test-{uuid.uuid4()}"
         task_store.create(task_id)
@@ -123,6 +121,7 @@ class TestReviewDataEndpoint:
 class TestSubmitReviewEndpoint:
     def _setup_awaiting(self, book_id: str) -> str:
         import uuid
+
         from storysphere.api.store import task_store
         task_id = f"test-{uuid.uuid4()}"
         task_store.create(task_id)
@@ -364,6 +363,7 @@ class TestReviewDataRoleField:
     def _setup_awaiting(self) -> tuple[str, str]:
         """Return fresh (book_id, task_id) to avoid cross-test task_store pollution."""
         import uuid
+
         from storysphere.api.store import task_store
         book_id = f"book-role-rd-{uuid.uuid4()}"
         task_id = f"task-role-rd-{uuid.uuid4()}"
@@ -389,8 +389,9 @@ class TestReviewDataRoleField:
 
         book_id, _ = self._setup_awaiting()
         # Map the unique book_id to our doc
-        from storysphere.api.store import task_store
         import uuid
+
+        from storysphere.api.store import task_store
         task_id2 = f"task-rrd-{uuid.uuid4()}"
         task_store.create(task_id2)
         task_store.set_awaiting_review(task_id2, "doc-role-rd")
@@ -404,9 +405,10 @@ class TestReviewDataRoleField:
 
     def test_default_role_is_body(self, client, mock_doc):
         """Paragraphs created without a role default to 'body'."""
-        from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
         import uuid as _uuid
+
         from storysphere.api.store import task_store
+        from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 
         doc_id = f"doc-body-{_uuid.uuid4()}"
         doc = Document(
@@ -434,7 +436,13 @@ class TestReviewDataRoleField:
 
     def test_separator_paragraph_role_returned(self, client, mock_doc):
         """A paragraph with role=separator is surfaced through the endpoint."""
-        from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphRole
+        from storysphere.domain.documents import (
+            Chapter,
+            Document,
+            FileType,
+            Paragraph,
+            ParagraphRole,
+        )
 
         sep_para = Paragraph(
             id="sep-p",
@@ -461,8 +469,8 @@ class TestReviewDataRoleField:
         )
 
         import uuid
+
         from storysphere.api.store import task_store
-        from unittest.mock import AsyncMock
 
         task_id = f"test-{uuid.uuid4()}"
         task_store.create(task_id)
@@ -488,9 +496,10 @@ class TestReviewDataRoleField:
     def test_chapter_level_role_returned(self, client, mock_doc):
         """ReviewChapterResponse.role reflects the chapter's classification,
         not just each paragraph's role."""
-        from storysphere.domain.documents import Chapter, ChapterRole, Document, FileType, Paragraph
         import uuid as _uuid
+
         from storysphere.api.store import task_store
+        from storysphere.domain.documents import Chapter, ChapterRole, Document, FileType, Paragraph
 
         doc_id = f"doc-chrole-{_uuid.uuid4()}"
         doc = Document(
@@ -530,6 +539,7 @@ class TestSubmitReviewRoleOverrides:
     def _setup_awaiting(self) -> tuple[str, str]:
         """Return a fresh (book_id, task_id) pair so each test is isolated."""
         import uuid
+
         from storysphere.api.store import task_store
         book_id = f"book-role-{uuid.uuid4()}"
         task_id = f"task-role-{uuid.uuid4()}"

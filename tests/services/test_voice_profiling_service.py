@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from storysphere.services.voice_profiling_service import (
     VoiceProfilingService,
     _bucket_histogram,
@@ -13,7 +12,6 @@ from storysphere.services.voice_profiling_service import (
     _empty_qualitative,
     _tone_distribution,
 )
-
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

@@ -3,23 +3,23 @@
 from __future__ import annotations
 
 import networkx as nx
-
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event, EventType
+
 from tests.api.conftest import ALICE, BOB
 
 
 def _evt(**overrides) -> Event:
     """Create a test event with sensible defaults."""
-    defaults = dict(
-        id="evt-1",
-        title="The Meeting",
-        event_type=EventType.MEETING,
-        description="Alice met Bob.",
-        chapter=1,
-        participants=["ent-alice"],
-        document_id="doc-1",
-    )
+    defaults = {
+        "id": "evt-1",
+        "title": "The Meeting",
+        "event_type": EventType.MEETING,
+        "description": "Alice met Bob.",
+        "chapter": 1,
+        "participants": ["ent-alice"],
+        "document_id": "doc-1",
+    }
     defaults.update(overrides)
     return Event(**defaults)
 

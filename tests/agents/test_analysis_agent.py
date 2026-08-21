@@ -17,16 +17,16 @@ from storysphere.services.analysis_models import (
 
 
 def _make_result(**overrides) -> CharacterAnalysisResult:
-    defaults = dict(
-        entity_id="ent-1",
-        entity_name="Alice",
-        document_id="doc-1",
-        profile=CharacterProfile(summary="Alice is brave."),
-        cep=CEPResult(actions=["fought"]),
-        archetypes=[],
-        arc=[],
-        coverage=CoverageMetrics(action_count=1),
-    )
+    defaults = {
+        "entity_id": "ent-1",
+        "entity_name": "Alice",
+        "document_id": "doc-1",
+        "profile": CharacterProfile(summary="Alice is brave."),
+        "cep": CEPResult(actions=["fought"]),
+        "archetypes": [],
+        "arc": [],
+        "coverage": CoverageMetrics(action_count=1),
+    }
     defaults.update(overrides)
     return CharacterAnalysisResult(**defaults)
 

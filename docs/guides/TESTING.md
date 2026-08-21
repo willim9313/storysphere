@@ -164,6 +164,8 @@ async def _get(doc_id):
 
 ## Definition of Done（測試面）
 
-- `python -m pytest` 全綠（判準與 CLAUDE.md 一致：exit code 0，不是「沒有比之前更糟」）
-- `ruff check tests/` 全綠
+- **五道閘門全綠**——完整清單與判準見 CLAUDE.md「程式碼品質」。與測試直接相關的兩道是
+  `python -m pytest -m "not integration"` 與 `ruff check tests/`，但**五道都要跑**。
+  這裡刻意不再重列：先前這份文件自己多列了一道 `ruff check tests/`，而它在 main 上
+  紅了 126 條沒人發現——正因為清單有兩份副本，沒有一份是權威。
 - 新增的 endpoint / helper 有對應測試（參考上表）
