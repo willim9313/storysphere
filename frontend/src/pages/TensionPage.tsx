@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -230,6 +230,42 @@ export default function TensionPage() {
   );
   const openIndex = openLine ? filteredLines.indexOf(openLine) : -1;
 
+  // Below this width the review drawer overlays the main column instead of
+  // sitting beside it (see the Responsive block in tension.css). The value is
+  // duplicated here because a media query is not readable from CSS — keep the
+  // two in sync.
+  const [drawerOverlays, setDrawerOverlays] = useState(
+    () => window.matchMedia('(max-width: 1080px)').matches,
+  );
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 1080px)');
+    const onChange = (e: MediaQueryListEvent) => setDrawerOverlays(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+
+  // Content under an overlaying drawer is covered but still tabbable, so focus
+  // walks into rows and buttons the reader cannot see. `inert` takes the whole
+  // subtree out of the tab order and the accessibility tree. Only while the
+  // drawer actually overlays: docked beside the content it is an ordinary side
+  // panel, and making the page inert next to it would be hostile.
+  const drawerOverlaying = openLine != null && mode === 'lines' && drawerOverlays;
+
+  const drawerRef = useRef<HTMLElement>(null);
+  const focusReturnRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!drawerOverlaying) return;
+    // `inert` is about to drop focus to <body>, so remember where it was first.
+    focusReturnRef.current = document.activeElement as HTMLElement | null;
+    drawerRef.current?.focus();
+    return () => {
+      // Cleanup runs after the DOM commit that removed `inert`, so the element
+      // is focusable again by the time we reach for it.
+      focusReturnRef.current?.focus();
+      focusReturnRef.current = null;
+    };
+  }, [drawerOverlaying]);
+
   const saveLabelsMutation = useMutation({
     mutationFn: ({ id, a, b, note }: { id: string; a: string; b: string; note: string }) =>
       reviewTensionLine(id, bookId!, 'modified', a, b, note || undefined),
@@ -438,7 +474,7 @@ export default function TensionPage() {
 
   return (
     <div className="tn-shell" style={{ background: 'var(--bg-primary)', height: '100%' }}>
-      <div className="tn-shell-main tn-scroll">
+      <div className="tn-shell-main tn-scroll" inert={drawerOverlaying}>
         <div className="tn-page">
         <TensionStepperStrip stages={stages} />
 
@@ -607,6 +643,7 @@ export default function TensionPage() {
 
       {openLine && mode === 'lines' && (
         <TensionReviewDrawer
+          ref={drawerRef}
           line={openLine}
           position={{ index: openIndex + 1, total: filteredLines.length }}
           teuIntensities={teuIntensities}
