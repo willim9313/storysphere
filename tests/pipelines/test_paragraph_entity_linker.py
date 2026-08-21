@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-import pytest
-
-from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, ParagraphEntity
+from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.pipelines.knowledge_graph.paragraph_entity_linker import ParagraphEntityLinker
 

@@ -2,13 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
-
 from storysphere.domain.entities import Entity, EntityType
-from storysphere.domain.events import Event, EventType
-from storysphere.domain.relations import Relation, RelationType
 from storysphere.pipelines.knowledge_graph.entity_linker import EntityLinker
-
 
 # ── EntityLinker tests ───────────────────────────────────────────────────────
 
@@ -123,7 +118,9 @@ class TestEntityExtractorParsing:
 
 class TestRelationExtractorParsing:
     def test_parse_valid_extraction_result(self):
-        from storysphere.pipelines.knowledge_graph.relation_extractor import _parse_extraction_response
+        from storysphere.pipelines.knowledge_graph.relation_extractor import (
+            _parse_extraction_response,
+        )
 
         json_str = """{
             "relations": [
@@ -140,7 +137,9 @@ class TestRelationExtractorParsing:
         assert result.events[0].title == "First Meeting"
 
     def test_empty_result(self):
-        from storysphere.pipelines.knowledge_graph.relation_extractor import _parse_extraction_response
+        from storysphere.pipelines.knowledge_graph.relation_extractor import (
+            _parse_extraction_response,
+        )
 
         result = _parse_extraction_response('{"relations": [], "events": []}')
         assert result.relations == []

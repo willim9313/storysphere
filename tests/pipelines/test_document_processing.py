@@ -8,19 +8,17 @@ Tests cover:
 """
 
 from __future__ import annotations
+
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 from storysphere.domain.documents import ChapterRole
 from storysphere.pipelines.document_processing.chapter_detector import (
-    ChapterSpan,
     _is_inline_title,
     _match_heading,
     detect_chapters,
 )
 from storysphere.pipelines.document_processing.chunker import chunk_segments
-
 
 # ── chapter_detector ────────────────────────────────────────────────────────
 

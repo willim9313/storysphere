@@ -1,6 +1,5 @@
 """Tests for core.utils.output_extractor — 4-step JSON fallback parser."""
 
-import pytest
 
 from storysphere.core.utils.output_extractor import extract_json_from_text
 

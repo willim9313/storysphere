@@ -6,7 +6,6 @@ import json
 from unittest.mock import AsyncMock
 
 import pytest
-
 from storysphere.tools.composite_tools.get_event_profile import GetEventProfileTool
 
 

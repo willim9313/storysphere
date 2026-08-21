@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 
 def test_get_entity_ok(client):
     resp = client.get("/api/v1/entities/ent-alice")
@@ -50,8 +48,9 @@ def test_get_entity_relations_not_found(client):
 
 
 def test_get_entity_relations_filter(client, mock_kg):
-    from storysphere.domain.relations import Relation, RelationType
     from unittest.mock import AsyncMock
+
+    from storysphere.domain.relations import Relation, RelationType
 
     mock_kg.get_relations = AsyncMock(return_value=[
         Relation(source_id="ent-alice", target_id="ent-bob", relation_type=RelationType.FRIENDSHIP),

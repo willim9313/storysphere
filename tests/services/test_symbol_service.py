@@ -6,7 +6,6 @@ from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
-
 from storysphere.domain.documents import ChapterRole
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.imagery import ImageryEntity, ImageryType, SymbolOccurrence
@@ -20,28 +19,28 @@ def svc(tmp_path):
 
 
 def _make_entity(**kw) -> ImageryEntity:
-    defaults = dict(
-        book_id="book-1",
-        term="mirror",
-        imagery_type=ImageryType.OBJECT,
-        aliases=["looking glass"],
-        frequency=3,
-        chapter_distribution={1: 2, 3: 1},
-    )
+    defaults = {
+        "book_id": "book-1",
+        "term": "mirror",
+        "imagery_type": ImageryType.OBJECT,
+        "aliases": ["looking glass"],
+        "frequency": 3,
+        "chapter_distribution": {1: 2, 3: 1},
+    }
     defaults.update(kw)
     return ImageryEntity(**defaults)
 
 
 def _make_occurrence(imagery_id: str, **kw) -> SymbolOccurrence:
-    defaults = dict(
-        imagery_id=imagery_id,
-        book_id="book-1",
-        paragraph_id="para-1",
-        chapter_number=1,
-        position=0,
-        context_window="She gazed into the mirror.",
-        co_occurring_terms=["door"],
-    )
+    defaults = {
+        "imagery_id": imagery_id,
+        "book_id": "book-1",
+        "paragraph_id": "para-1",
+        "chapter_number": 1,
+        "position": 0,
+        "context_window": "She gazed into the mirror.",
+        "co_occurring_terms": ["door"],
+    }
     defaults.update(kw)
     return SymbolOccurrence(**defaults)
 

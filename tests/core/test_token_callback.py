@@ -6,13 +6,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
 import pytest
-
 from storysphere.core.token_callback import (
     TokenTrackingHandler,
     get_llm_service_context,
     set_llm_service_context,
 )
-
 
 # ---------------------------------------------------------------------------
 # contextvars helpers

@@ -6,8 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import numpy as np
 import pytest
-
-from storysphere.domain.imagery import ImageryType, SymbolCluster
+from storysphere.domain.imagery import SymbolCluster
 from storysphere.services.imagery_extractor import ImageryExtractor
 
 

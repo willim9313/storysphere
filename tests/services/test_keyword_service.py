@@ -6,7 +6,6 @@ import json
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from storysphere.services.keyword_service import (
     BaseKeywordExtractor,
     CompositeKeywordExtractor,

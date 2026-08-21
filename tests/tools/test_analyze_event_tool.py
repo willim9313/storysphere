@@ -7,7 +7,6 @@ from datetime import datetime, timezone
 from unittest.mock import AsyncMock
 
 import pytest
-
 from storysphere.services.analysis_models import (
     CausalityAnalysis,
     EventAnalysisResult,

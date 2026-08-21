@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import AsyncMock
 
 import pytest
-
-from storysphere.tools.retrieval_tools import GenSummaryTool, GetParagraphsTool, GetSummaryTool, VectorSearchTool
+from storysphere.tools.retrieval_tools import (
+    GenSummaryTool,
+    GetParagraphsTool,
+    GetSummaryTool,
+    VectorSearchTool,
+)
 
 
 class TestVectorSearchTool:

@@ -6,7 +6,6 @@ import json
 from unittest.mock import AsyncMock
 
 import pytest
-
 from storysphere.tools.retrieval_tools.get_keywords import GetKeywordsTool
 
 

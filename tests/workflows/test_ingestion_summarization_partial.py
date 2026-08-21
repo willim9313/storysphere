@@ -10,12 +10,9 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, patch
 
 import pytest
-
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph, StepStatus
 from storysphere.pipelines.feature_extraction.pipeline import FeatureExtractionResult
-from storysphere.pipelines.knowledge_graph.pipeline import KGExtractionResult
 from storysphere.pipelines.summarization.pipeline import SummarizationResult
-from storysphere.pipelines.symbol_discovery.pipeline import SymbolDiscoveryResult
 from storysphere.workflows.ingestion import IngestionWorkflow
 
 

@@ -7,7 +7,6 @@ from unittest.mock import AsyncMock
 
 import pytest
 from fastapi.testclient import TestClient
-
 from storysphere.domain.faction import Faction, FactionAnalysis, FactionRelation
 
 BOOK_ID = "doc-1"

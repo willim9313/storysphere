@@ -2,10 +2,6 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock
-
-from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
-
 
 def test_list_documents(client):
     resp = client.get("/api/v1/documents/")

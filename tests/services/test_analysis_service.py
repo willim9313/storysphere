@@ -3,17 +3,15 @@
 from __future__ import annotations
 
 import json
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-
 from storysphere.services.analysis_models import (
-    ArcSegment,
     ArchetypeResult,
+    ArcSegment,
     CEPResult,
     CharacterAnalysisResult,
     CharacterProfile,
-    CoverageMetrics,
 )
 from storysphere.services.analysis_service import (
     AnalysisService,

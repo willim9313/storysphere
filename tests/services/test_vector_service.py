@@ -6,7 +6,6 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from qdrant_client import QdrantClient
-
 from storysphere.services.vector_service import VectorService
 
 

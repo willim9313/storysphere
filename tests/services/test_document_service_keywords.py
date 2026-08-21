@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import pytest
-
 from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 from storysphere.services.document_service import DocumentService
 

@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 
 import pytest
-
 from storysphere.tools.graph_tools import (
     GetEntityAttributesTool,
     GetEntityRelationsTool,
