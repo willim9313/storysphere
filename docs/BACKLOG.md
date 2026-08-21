@@ -653,20 +653,6 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-070 張力分析頁 RWD 未做
-**背景**: 2026-08-05 張力頁翻新（Phase 3）以設計交付包的 1440px 定寬為基準落地，`frontend/src/styles/tension.css` 目前**一個 `@media` 都沒有**。設計交付包本身也只出 1440px 一稿，未涵蓋 1280 / 1024 / 窄視窗。這與時間軸頁 (`docs/UI_SPEC.md` §3.7「已知缺口」) 是同一類缺口。
-
-**具體待決**:
-- 右側 `TensionReviewDrawer` 固定 432px：窄視窗改 overlay 蓋住主體，還是推擠主體？
-- 章節格點 `grid-template-columns: 320px repeat(N, 1fr)`：章節數多的書（如大唐雙龍傳）超過 N 章時橫捲、分頁、還是按區間聚合？
-- `TensionLineTable` 7 欄在 1024px 怎麼收（哪幾欄可折、可否改雙行）？
-
-**注意**: 格點的收斂策略會影響 `TensionChapterGrid` 的資料聚合方式，不是純 CSS 題。
-
-**觸發時機**: 窄視窗使用回報，或統一處理全站 RWD 時（與時間軸頁 RWD 缺口一起做較省）。
-
----
-
 #### B-071 張力頁格點與迷你柱狀圖無非視覺替代
 **背景**: 2026-08-05 翻新已加入完整鍵盤快捷鍵（J/K/A/X/E/Space/V/Esc）與 `aria-pressed` / `aria-label`，比舊版好很多，但 P1-9 未完全解決。
 
@@ -1227,7 +1213,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | **不做**（2026-08-20；`api/mock/` 整層已移除，前提消失） |
 | B-068 | 事件抽取把同一場戲切成多個 event | 🟡 中 | 待開始（觸發：下次動到 ingestion / event extraction） |
 | B-069 | 張力證據「同場景摺疊」無可用判準 | 🟢 低 | 擱置（判準已驗證失敗；待 B-068 或改用 embedding） |
-| B-070 | 張力分析頁 RWD 未做 | 🟡 中 | 待開始（觸發：窄視窗回報，或與時間軸頁 RWD 一起做） |
+| B-070 | 張力分析頁 RWD 未做 | 🟡 中 | ✅ 已完成（2026-08-21；三項待決全數收斂，見 ARCHIVE 與 UI_SPEC §3.8） |
 | B-071 | 張力頁格點與迷你柱狀圖無非視覺替代 | 🟢 低 | 待開始（觸發：a11y 稽核或下次動到格點） |
 | B-072 | 張力 Step 1 組裝失敗的 TEU 無清單可看 | 🟢 低 | 待開始（前置：確認後端 task 是否留有失敗清單） |
 

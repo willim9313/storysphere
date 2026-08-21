@@ -1107,9 +1107,25 @@ Modal 遮罩是平的 `rgba(42,38,32,0.42)`，不用 `backdrop-filter`。Ink 主
 
 #### 已知缺口
 
-- **RWD 未做**：`tension.css` 目前 0 個 `@media`。設計交付包是 1440px 定寬、432px 固定抽屜、
-  格點 `320px + repeat(N, 1fr)`，未涵蓋窄視窗與章節數極多的書。待決：抽屜在窄視窗改 overlay
-  還是推擠、格點超過 N 章時橫捲／分頁／聚合、表格 7 欄在 1024px 怎麼收。
+- ~~**RWD 未做**~~ **已做（2026-08-21，B-070）**：`tension.css` 檔尾新增 Responsive 區塊，
+  斷點沿用專案既有的 `1080px`（methodology.css）與 `640px`（timeline.css），未新增 breakpoint
+  token。三項待決事項的結論：
+  - **格點超過 N 章 → 橫捲。** 不做分頁或區間聚合（那會改到 `TensionChapterGrid` 的資料聚合）。
+    `.tn-grid` 本來就有 `overflow-x: auto`，失效的原因是欄寬用 `1fr`（＝`minmax(auto, 1fr)`），
+    長書的欄位會一路壓到柱子寬而永遠不觸發溢出。改為 `minmax(var(--tn-grid-cell-w), 1fr)` 補下限，
+    並把標籤欄 `position: sticky` 凍結——否則捲動後那排柱子屬於哪條張力線就無從辨認。
+    欄寬改由 `--tn-grid-label-w` / `--tn-grid-cell-w` 兩個 custom property 控制，
+    `TensionChapterGrid` 的 inline `gridTemplateColumns` 讀取它們，響應式規則因此全留在 CSS。
+  - **抽屜在窄視窗 → overlay**（`position: absolute`，`z-index: 40`，在全域聊天啟動鈕的 50 之下）。
+    不推擠：抽屜 docked 在 1080px 會讓主欄掉到 650px 以下，格點與表格會同時垮，
+    一個面板的版面不該賠上另外兩個。
+  - **表格 7 欄 → 收成 5 欄**，章節與證據數落到極點對下方第二行。六個固定欄合計 550px，
+    視窗一縮極點欄就沒有可換行的空間。兩者都保留不隱藏：審核決策需要看得到證據量。
+- **RWD 缺口是全站性的，不只張力頁**：13 份樣式表裡只有 `timeline.css`（2 個）與
+  `methodology.css`（1 個）有 `@media`，`symbols` / `narrative` / `character-analysis` /
+  `event-analysis` / `build-overview` / `search` / `settings` 全是 0。本輪只處理張力頁。
+- **審核欄按鈕在所有寬度都換行**：`152px` 的 `審核` 欄裝不下「核准／修改標籤／拒絕」，
+  三顆按鈕在 1440px 就已經是兩行（實測 44px 高）。**與 RWD 無關，是既有問題**，本輪未動。
 - **a11y 未竟**：快捷鍵與 aria-pressed / aria-label 已有，但格點的格子與 TEU 迷你柱狀圖仍是
   純視覺，鍵盤與螢幕閱讀器取不到 `tension_description`；tab order 未整理。
 - **P0-5 失敗清單未做**：stepper 只有 `failed` 旗標與警示 note，沒有可展開的失敗 TEU 清單。
