@@ -18,6 +18,9 @@ interface Props {
   onReview: (status: Exclude<ReviewStatus, 'pending'>) => void;
   onClose: () => void;
   onOpenChapter: (chapter: number) => void;
+  /** Set by TensionPage so it can move focus in here when the drawer overlays
+   *  the content instead of sitting beside it. */
+  ref?: React.Ref<HTMLElement>;
 }
 
 export function TensionReviewDrawer({
@@ -31,6 +34,7 @@ export function TensionReviewDrawer({
   onReview,
   onClose,
   onOpenChapter,
+  ref,
 }: Props) {
   const { t } = useTranslation('analysis');
   const view = buildDrawerView(line);
@@ -38,8 +42,11 @@ export function TensionReviewDrawer({
 
   const teus = line.teus ?? [];
 
+  // tabIndex -1 makes the panel itself a focus target: when it overlays the
+  // content, focus has to land somewhere inside it, and the panel announces its
+  // own aria-label rather than dropping the reader mid-list.
   return (
-    <aside className="tn-drawer" aria-label={t('tension.drawer.title')}>
+    <aside ref={ref} tabIndex={-1} className="tn-drawer" aria-label={t('tension.drawer.title')}>
       <header className="tn-drawer-head">
         <div className="tn-drawer-head-top">
           <span className="tn-drawer-pos">

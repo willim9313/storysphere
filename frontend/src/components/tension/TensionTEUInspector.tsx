@@ -89,7 +89,10 @@ export function TensionTEUInspector({ teus, lines, onAssign, onOpenChapter }: Pr
             >
               <span className="tn-teu-ch-label">{t('tension.drawer.chapter', { n: chapter })}</span>
               <span className="tn-teu-ch-count">{t('tension.teu.count', { count: items.length })}</span>
-              <span className="tn-teu-mini">
+              {/* Decorative preview: expanding the chapter lists every TEU's
+                  intensity as text, so announcing the bars here would read the
+                  same values twice. */}
+              <span className="tn-teu-mini" aria-hidden="true">
                 {items.map((teu) => (
                   <i
                     key={teu.id}
@@ -121,7 +124,7 @@ export function TensionTEUInspector({ teus, lines, onAssign, onOpenChapter }: Pr
                   return (
                     <article key={teu.id} className="tn-teu-card" data-orphan={orphan}>
                       <div className="tn-teu-card-top">
-                        <i className="tn-bar md">
+                        <i className="tn-bar md" aria-hidden="true">
                           <i
                             className="tn-bar-fill"
                             data-band={band.bucket}

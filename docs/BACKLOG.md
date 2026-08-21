@@ -656,12 +656,52 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 #### B-071 張力頁格點與迷你柱狀圖無非視覺替代
 **背景**: 2026-08-05 翻新已加入完整鍵盤快捷鍵（J/K/A/X/E/Space/V/Esc）與 `aria-pressed` / `aria-label`，比舊版好很多，但 P1-9 未完全解決。
 
-**待辦內容**:
-- `TensionChapterGrid` 的格子與 `TensionTEUInspector` 的迷你柱狀圖仍是純視覺，鍵盤與螢幕閱讀器取不到背後的 `tension_description`
-- tab order 未整理（抽屜開啟時是否該 focus trap 未定）
-- Ink 主題下 success / warning / error 會塌成同一個黑，**語意不能只靠顏色**——stepper 已用「圓形 machine / 方形 gate」處理，其餘狀態指示尚未逐一檢查
+**✅ 已完成（2026-08-21）**:
 
-**觸發時機**: a11y 稽核，或下次動到格點 / TEU inspector 時順做。
+- **抽屜焦點處理**。B-070 把抽屜在 1080px 以下改成 overlay 之後，這條從「未定」變成有實害：
+  被蓋住的主體沒有 `inert` 也沒有 focus trap，tab 會走進看不見的內容。改法是 `.tn-shell-main`
+  在 overlay 且抽屜開啟時掛 `inert`，開啟時記住原焦點並移入抽屜、關閉時歸還。
+  **刻意不是傳統 focus trap**：Tab 走完抽屜會到左側導覽列，而導覽列在 x<48、沒有被抽屜蓋住，
+  鎖住它反而是敵意行為。`inert` 只拿掉真正被遮蔽的內容，比硬 trap 更貼近實際的視覺狀態。
+  用平台原生 `inert`（React 19 支援 boolean prop），未裝 focus-trap 套件、未新增 `useMediaQuery`
+  hook——照 `useEscapeKey` 註解自陳的紀律，一個呼叫端先內聯。
+- **非視覺替代**。格子的 `aria-label` 逐個列出強度、裝飾用的 `<i>` 柱子全標 `aria-hidden`。
+
+**原記載有誤，一併更正**: 本條原寫「鍵盤與螢幕閱讀器取不到背後的 `tension_description`」——
+**這句是錯的**。`tension_description` 在 `TensionTEUInspector.tsx:145` 與
+`TensionReviewDrawer.tsx:148` 都是**可見的 `<p>` 純文字**，一直讀得到。格子的 `aria-label`
+（`tension.grid.cellLabel`）也早就存在，會念出章節與 TEU 數。真正缺的一直是**強度**——
+柱子的高度與 low/mid/high 色帶完全沒有非視覺出口。
+
+`TensionTEUInspector` 的迷你柱只標 `aria-hidden`、未加朗讀內容：展開該章之後每個 TEU 的強度
+本來就是可見文字（`:131` 的 `formatIntensity`），在收合標題再念一串只是把同樣的數字念兩遍。
+格點格子的情況不同，那裡的強度沒有其他出口。
+
+**剩餘待辦**:
+- Ink 主題下 success / warning / error 會塌成同一個黑，**語意不能只靠顏色**——已拆為 **B-086**，
+  因為那是全站議題（stepper 已用「圓形 machine / 方形 gate」處理，其餘狀態指示尚未逐一檢查），
+  且會動到 `tokens.css` 與 `DESIGN_TOKENS.md`，範圍與本條不同。
+
+**觸發時機**: 本條剩下的部分已移出，見 B-086。
+
+---
+
+#### B-086 Ink 主題下狀態語意只靠顏色
+**背景**: 2026-08-21 做 B-071 時從該條拆出。Ink 主題把 success / warning / error 塌成同一個黑，
+所以任何「只用顏色區分狀態」的指示在 Ink 下都失去語意。stepper 已經處理過（用「圓形 machine /
+方形 gate」的形狀差異），但其餘狀態指示**尚未逐一檢查**。
+
+**為什麼獨立成條**: 這不是張力頁的問題。判準是全站的，且修法可能要動 `tokens.css` 與
+`docs/DESIGN_TOKENS.md` 的對照表——與 B-071 其餘兩項（單頁、純元件層）的範圍不同，
+混在一起做會讓一個 PR 同時改單頁行為與全站 token。
+
+**待辦內容**:
+- 先盤點：哪些元件的狀態指示只靠顏色（`tn-status-badge`、各頁的 review 狀態點、
+  `--color-success` / `--color-warning` / `--color-error` 的所有使用端）
+- 決定替代載體：形狀、圖示、或文字標籤——stepper 用形狀，可作為既有前例
+- 若需新增 token，同步更新 `docs/DESIGN_TOKENS.md` 的對照表
+
+**觸發時機**: a11y 稽核，或下次動到狀態指示元件時。
 
 ---
 
@@ -1214,7 +1254,8 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-068 | 事件抽取把同一場戲切成多個 event | 🟡 中 | 待開始（觸發：下次動到 ingestion / event extraction） |
 | B-069 | 張力證據「同場景摺疊」無可用判準 | 🟢 低 | 擱置（判準已驗證失敗；待 B-068 或改用 embedding） |
 | B-070 | 張力分析頁 RWD 未做 | 🟡 中 | ✅ 已完成（2026-08-21；三項待決全數收斂，見 ARCHIVE 與 UI_SPEC §3.8） |
-| B-071 | 張力頁格點與迷你柱狀圖無非視覺替代 | 🟢 低 | 待開始（觸發：a11y 稽核或下次動到格點） |
+| B-071 | 張力頁格點與迷你柱狀圖無非視覺替代 | 🟢 低 | 🔶 部分完成（2026-08-21；抽屜焦點與非視覺替代已做，Ink 語意拆為 B-086） |
+| B-086 | Ink 主題下狀態語意只靠顏色 | 🟢 低 | 待開始（2026-08-21 自 B-071 拆出；觸發：a11y 稽核或下次動到狀態指示） |
 | B-072 | 張力 Step 1 組裝失敗的 TEU 無清單可看 | 🟢 低 | 待開始（前置：確認後端 task 是否留有失敗清單） |
 
 ### F 系列

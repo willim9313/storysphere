@@ -1126,8 +1126,21 @@ Modal 遮罩是平的 `rgba(42,38,32,0.42)`，不用 `backdrop-filter`。Ink 主
   `event-analysis` / `build-overview` / `search` / `settings` 全是 0。本輪只處理張力頁。
 - **審核欄按鈕在所有寬度都換行**：`152px` 的 `審核` 欄裝不下「核准／修改標籤／拒絕」，
   三顆按鈕在 1440px 就已經是兩行（實測 44px 高）。**與 RWD 無關，是既有問題**，本輪未動。
-- **a11y 未竟**：快捷鍵與 aria-pressed / aria-label 已有，但格點的格子與 TEU 迷你柱狀圖仍是
-  純視覺，鍵盤與螢幕閱讀器取不到 `tension_description`；tab order 未整理。
+- **a11y**（2026-08-21，B-071 三項中的兩項已做）：
+  - **抽屜焦點**：抽屜在 1080px 以下 overlay 時，`.tn-shell-main` 掛 `inert`，開啟時焦點移入
+    抽屜、關閉時歸還原處。**刻意不是傳統 focus trap**——Tab 走完抽屜會到左側導覽列，導覽列
+    沒有被抽屜蓋住，鎖住它反而是敵意行為；`inert` 只拿掉真正被遮蔽的內容。1080px 以上抽屜
+    docked，不掛 `inert`、不搶焦點。
+  - **非視覺替代**：格子的 `aria-label` 逐個列出強度（`第 3 章 2 個 TEU，強度 高、中`），
+    裝飾用的 `<i>` 柱子全標 `aria-hidden`。分隔符用口語的「、」而非設計數字排版的間隔號「·」，
+    因為這是純語音字串。`TensionTEUInspector` 的迷你柱只標 `aria-hidden` 不加朗讀內容：
+    展開後每個 TEU 的強度本來就是可見文字，再念一次是重複。
+  - **前一版的記載有誤**：舊文寫「螢幕閱讀器取不到 `tension_description`」，但它在
+    `TensionTEUInspector.tsx:145` 與 `TensionReviewDrawer.tsx:148` 都是可見的 `<p>` 純文字。
+    真正缺的一直是強度。
+  - **未做**：Ink 主題下 success / warning / error 塌成同一個黑，已拆為 B-086（全站議題）。
+  - `1080px` 這個斷點同時寫在 `tension.css` 與 `TensionPage.tsx`（media query 無法從 CSS 讀回
+    JS），兩邊改動必須同步。
 - **P0-5 失敗清單未做**：stepper 只有 `failed` 旗標與警示 note，沒有可展開的失敗 TEU 清單。
 - zh-TW locale 中 `tension.onboarding.*`、`heroEyebrow`、`trajectory*` 等舊版遺留 key 尚未清除。
 
