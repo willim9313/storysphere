@@ -16,7 +16,7 @@ export type NarrativeReviewStatus = 'pending' | 'approved' | 'rejected';
 
 export function triggerHeroJourney(
   bookId: string,
-  language = 'zh',
+  language: string,
   force = false,
 ): Promise<TaskStatus> {
   return apiFetch<TaskStatus>('/narrative/hero-journey', {
@@ -56,7 +56,7 @@ export function fetchClassifyTask(taskId: string): Promise<TaskStatus> {
 export function refineNarrative(
   bookId: string,
   eventIds: string[],
-  language = 'zh',
+  language: string,
   force = false,
 ): Promise<TaskStatus> {
   return apiFetch<TaskStatus>('/narrative/refine', {
@@ -89,7 +89,7 @@ export function fetchTemporalCoverage(bookId: string): Promise<TemporalCoverageS
 
 export function triggerTemporalAnalysis(
   bookId: string,
-  language = 'zh',
+  language: string,
   force = false,
 ): Promise<TaskStatus> {
   return apiFetch<TaskStatus>('/narrative/temporal', {

@@ -4,12 +4,14 @@
  * 已有對應 schema 的，這裡都寫成 re-export alias（見下方 `components['schemas'][…]`
  * 那幾行），呼叫端不必改，但欄位定義以後端為準。
  *
- * 四個刻意留在手寫的：GraphNode、Segment、EntityChunkItem、EntityChunksResponse。
- * 原因是後端把實體類別宣告成純 `str`（generated 的 GraphNode.type、
- * SegmentEntity.type 都是 string），而前端這裡把它窄化成 EntityType union，
- * 全站有十幾處靠這個窄化做窮舉比對與 Record 索引。接回 generated 等於把窄化
- * 丟掉、再補十幾個 cast——那是變糟不是變好。後兩者是因為 segments 巢狀帶著
- * 同一個問題。
+ * 刻意留在手寫的：GraphNode、Segment、EntityChunkItem、EntityChunksResponse，
+ * 外加 Book / BookDetail —— 後兩者過去沒被列進來，但卡的是同一個問題：
+ * 後端把這些欄位宣告成純 `str`（generated 的 GraphNode.type、SegmentEntity.type
+ * 都是 string；BookResponse.status 同樣是 string），而前端這裡把它們窄化成
+ * EntityType / BookStatus union，全站有十幾處靠這個窄化做窮舉比對與 Record 索引
+ * （例如 StatusBadge.tsx 的 `Record<BookStatus, …>`）。接回 generated 等於把窄化
+ * 丟掉、再補一堆 cast——那是變糟不是變好。EntityChunkItem / EntityChunksResponse
+ * 則是因為巢狀帶著 Segment 而一起卡住。
  *
  * 正解在後端：把那些欄位改成 Literal / Enum，openapi 就會產出 union，這四個
  * 也能一併收掉。屬於後端範圍，見 BACKLOG 的 B-084。
@@ -48,6 +50,11 @@ export interface RerunTaskResult {
 }
 
 export interface BookDetail extends Book {
+  /** 書籍本身的語言（非 UI 語言），如 'zh-tw' / 'en'。分析類 endpoint 的
+   *  language 參數應取自這裡：後端以 get_language_display_name() 轉成 prompt 的
+   *  "Respond in {name}."，'zh' 只得到 "Chinese"，'zh-tw' 才是 "Traditional
+   *  Chinese"。見 API_CONTRACT #3。 */
+  language: string;
   summary?: string;
   chunkCount: number;
   entityCount: number;
