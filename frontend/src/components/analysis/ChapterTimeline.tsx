@@ -57,6 +57,13 @@ export function ChapterTimeline({ chapter, totalChapters, markers, onChange }: P
 
   return (
     <div className="ca-epi-timeline">
+      {/* The two pill rows carry their meaning in colour and vertical position
+          only, and the Ink theme collapses --color-success / --color-warning to
+          the same black — leaving two rows of identical dots with nothing
+          saying which is which. The legend above is no help: its dots collapse
+          too. These labels say it outright, in every theme. */}
+      <span className="ca-epi-row-label known">{t('character.epistemic.knownLabel')}</span>
+      <span className="ca-epi-row-label unknown">{t('character.epistemic.unknownLabel')}</span>
       <div className="ca-epi-axis">
         <div className="ca-epi-axis-track" />
         <div className="ca-epi-axis-progress" style={{ width: pctFor(chapter) }} />

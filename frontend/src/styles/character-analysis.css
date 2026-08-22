@@ -751,7 +751,12 @@
 /* Chapter timeline / slider */
 .ca-epi-timeline {
   position: relative;
-  padding: 28px 12px 22px;
+  /* Left padding is a gutter for the row labels. Widened from 12px: both the
+     axis and the ticks below are block children, so they shrink together and
+     stay aligned with each other. Sized for the longest label across locales
+     (en "Unknown"), not the shortest — at 64px it overlapped the chapter-1
+     pill by 3px, which only showed up in English. */
+  padding: 28px 12px 22px 84px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -761,6 +766,20 @@
   position: relative;
   height: 64px;
 }
+/* Vertically aligned with the pill rows: 28px of timeline padding plus each
+   row's own 16px / 48px offset inside the axis. */
+.ca-epi-row-label {
+  position: absolute;
+  left: 10px;
+  transform: translateY(-50%);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 500;
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.ca-epi-row-label.known { top: 44px; }
+.ca-epi-row-label.unknown { top: 76px; }
 .ca-epi-axis-track {
   position: absolute; left: 0; right: 0; top: 50%; transform: translateY(-50%);
   height: 4px;
