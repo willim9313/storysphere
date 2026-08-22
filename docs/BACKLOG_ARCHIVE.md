@@ -1215,5 +1215,60 @@ grid rather than the page.」與 `overflow-x: auto`，但欄寬寫成 `1fr`—�
 **額外加了一道 `pytest --collect-only`**：`integration` 那 3 條平常被 deselect，import
 若被刪壞不會在一般測試裡顯示，只有 collect 會抓到。這是 2026-08-21 清 `tests/` lint 時
 學到的——當時刪了 42 個未使用 import。
+#### B-086 Ink 主題下狀態語意只靠顏色
+**背景**: 2026-08-21 做 B-071 時從該條拆出。Ink 主題把 success / warning / error 塌成同一個黑，
+所以任何「只用顏色區分狀態」的指示在 Ink 下都失去語意。stepper 已經處理過（用「圓形 machine /
+方形 gate」的形狀差異），但其餘狀態指示**尚未逐一檢查**。
+
+**為什麼獨立成條**: 這不是張力頁的問題。判準是全站的，且修法可能要動 `tokens.css` 與
+`docs/DESIGN_TOKENS.md` 的對照表——與 B-071 其餘兩項（單頁、純元件層）的範圍不同，
+混在一起做會讓一個 PR 同時改單頁行為與全站 token。
+
+**待辦內容**:
+- 先盤點：哪些元件的狀態指示只靠顏色（`tn-status-badge`、各頁的 review 狀態點、
+  `--color-success` / `--color-warning` / `--color-error` 的所有使用端）
+- 決定替代載體：形狀、圖示、或文字標籤——stepper 用形狀，可作為既有前例
+- 若需新增 token，同步更新 `docs/DESIGN_TOKENS.md` 的對照表
+
+**觸發時機**: a11y 稽核，或下次動到狀態指示元件時。
+
+**完成**: 2026-08-22，分支 `fix/epistemic-timeline-row-labels`。
+
+**盤點結果與條目的描述差很多。** 條目寫得像全站議題，實際上：
+
+- **是四個 token 塌陷，不是三個**。本條原本只寫 success / warning / error，但 `--color-info`
+  也在 Ink 下變成 `#151515`（`tokens.css:304`）。
+- **109 處使用，但只有 14 組是「同一元件多種語意色」**。其餘 95 處是單一狀態（例如錯誤橫幅
+  永遠是錯誤），沒有可混淆的對象，塌了也不影響語意。
+- **14 組裡有 11 組本來就有非顏色載體**，顏色只是冗餘強化：
+
+  | 元件 | 非顏色載體 |
+  |---|---|
+  | `.tn-stage` / `-dot` / `-kicker` | `done`→`<Check>`、`failed`→`<AlertTriangle>`，加 machine/gate 形狀，加標題文字 |
+  | `.tn-status-badge` | badge 內就是狀態文字 |
+  | `.ca-epi-block` / `-title` | `<Eye>` icon + 標題文字 |
+  | `.ca-epi-count-dot` ×3 | 點旁邊就是數字 + 文字標籤 |
+  | `.ea-participant-role` / `-legend-item` | `roleLabel()` 文字 |
+  | `.st-input-flag` / `.st-nav-badge` | 各自的 badge 文字 |
+
+- **2 組是死 CSS**（零 TSX 引用）→ 拆為 B-087，沒有順手刪。
+
+**唯一的真問題是 `.ca-epi-pill`**（`ChapterTimeline`）。pill 內容只有數字，`title` tooltip 是
+`Ch.3 · 事件A、事件B`——**不說 known 還是 unknown**，元件內也沒有圖例。兩列只靠
+`top: 16px` vs `48px` 區分。預設主題下讀者是靠**顏色**把上方 `.ca-epi-counts` 的圖例對應到
+下方 pill；Ink 下那些圖例點也全變黑，**對應關係整條斷掉**。計數本身還讀得到（有文字），
+斷的是「哪一列 pill 是已知」。
+
+**修法**: 在 timeline 左側加行首標籤，重用既有的 `knownLabel` / `unknownLabel`，未新增 i18n key。
+選它而不選「pill 分形狀」，是因為形狀本身不自明——圓代表什麼仍然要查圖例，只是把「顏色要查
+圖例」換成「形狀要查圖例」，而圖例在 Ink 下同樣是黑的。行首標籤所有主題、所有使用者都受益。
+
+**實測**:
+- 中文：標籤 top 351 / known pill top 350 —— 對齊；標籤右緣 377、最左 pill 400，間隙 23px
+- **英文先撞了**：`Unknown` 右緣 403 > 最左 pill 400，**重疊 3px**。gutter 從 64px 加寬到 84px
+  後間隙 17px。這個只在英文出現——gutter 要以最長的語系為準，不是最短的
+- Ink：兩種 pill 背景皆 `rgb(21,21,21)`（**逐字相同**，證實塌陷屬實），標籤 `rgb(140,140,140)` 可讀
+- `EpistemicCompareDrawer` 共用同一元件，容器 720px 扣掉 gutter 仍有 600px+ ——
+  **此處是從寬度推算，未實測**（compare drawer 要先選兩個角色，pair mode 無法用合成事件驅動）
 
 ---
