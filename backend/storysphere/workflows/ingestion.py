@@ -29,6 +29,7 @@ from typing import Any, Protocol
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
+from storysphere.core.utils.url_masking import mask_url
 from storysphere.domain.documents import Chapter, Document, Paragraph, StepStatus
 from storysphere.domain.timeline import TimelineConfig, TimelineDetectionResult
 from storysphere.pipelines.document_processing import DocumentProcessingPipeline
@@ -843,7 +844,9 @@ class IngestionWorkflow:
             if settings.kg_mode == "neo4j":
                 from storysphere.services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
 
-                logger.info("IngestionWorkflow: using Neo4j KG backend (%s)", settings.neo4j_url)
+                logger.info(
+                    "IngestionWorkflow: using Neo4j KG backend (%s)", mask_url(settings.neo4j_url)
+                )
                 return Neo4jKGService(
                     url=settings.neo4j_url,
                     user=settings.neo4j_user,

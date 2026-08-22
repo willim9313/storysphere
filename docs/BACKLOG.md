@@ -391,19 +391,6 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-052 log 中 `neo4j_url` / `qdrant_url` 遮罩
-> 來源：2026-07-08 防禦性安全稽核（低風險項）。
-**背景**: 啟動時會把 `neo4j_url`、`qdrant_url` 寫入 log。目前這兩個 URL 無內嵌帳密故無實害，但一旦改用含帳密的連線字串（如 `neo4j://user:pass@host`）即會外洩到 log。
-
-**待辦內容**:
-- 在 log 這些 URL 前套用遮罩，只保留 scheme/host。可複用 `api/routers/settings_info.py` 的 `_mask_db_url` 遮罩模式。
-
-**觸發時機**: **首次要在連線 URL 內放帳密之前**。
-
-**前置依賴**: 無。
-
----
-
 #### B-053 Secret 管理（prod）
 > 來源：2026-07-08 防禦性安全稽核（低風險項）。
 **背景**: GEMINI / Langfuse key 現存於 `.env`（已 gitignore、本機夠用）。正式對外部署時應改用 secret manager，避免明文檔案外流。
@@ -1161,7 +1148,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-048 | Neo4j Link Prediction 支援缺口 | 🟢 低 | 待開始（前置：B-011） |
 | B-049 | 累積 Lint 債清理（ruff + eslint） | 🟢 低 | ✅ 已完成 |
 | B-051 | WebSocket 連線身分認證 | 🟢 低 | 待開始（前置：部署方向 + 認證決策） |
-| B-052 | log 中 neo4j/qdrant URL 遮罩 | 🟢 低 | 待開始（觸發：連線 URL 放帳密前） |
+| B-052 | log 中 neo4j/qdrant URL 遮罩 | 🟢 低 | ✅ 已完成（2026-08-22；7 處，其中 1 處是回應 body 不是 log，見 ARCHIVE） |
 | B-053 | Secret 管理（prod） | 🟢 低 | 待開始（前置：部署方向確定） |
 | B-054 | Splash 圖庫更換 + wording 同步 | ✅ | 完成（2026-07-16，歸檔於 ARCHIVE） |
 | B-055 | 章節審閱 review-data 分章載入 | 🟢 低 | 待開始（觸發：上傳流程 UX 重構） |
