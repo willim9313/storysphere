@@ -125,7 +125,7 @@ export function UnanalyzedItem({
         }}
         disabled={isGenerating}
       >
-        {isGenerating ? '…' : t('generate')}
+        {isGenerating ? '…' : t('character.list.createBtn')}
       </button>
     </div>
   );

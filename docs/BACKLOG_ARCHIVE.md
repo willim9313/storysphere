@@ -1358,6 +1358,45 @@ grep 結果更有說服力：grep 證明「現在沒人用」，註解證明「�
 `services/vector_service.py`、`workflows/ingestion.py`；`tests/api/test_settings_info.py`
 → `tests/core/test_url_masking.py`。無新依賴（`urllib.parse` 是標準庫）。五道閘門全綠。
 
+#### B-064 未分析卡「生成分析」按鈕文字對齊 canvas「建立」
+**背景**: 角色清單未分析卡的按鈕文字取自 `analysis.json` 的 `generate` key（「生成分析」），
+設計稿 canvas 為「建立」。該 key 被多處共用，不能直接改值。
+
+**完成**: 2026-08-22，分支 `fix/b064-create-btn-wording`。
+
+**共用者是 4 個，不是條目寫的 3 個** —— 漏了 `EventRankingView`。逐一對 UI_SPEC 查過用字後
+只改其中兩處：
+
+| 呼叫點 | 介面 | UI_SPEC 用字 | 處置 |
+|---|---|---|---|
+| `AnalysisListItems.tsx:128` | 角色清單卡 | `:359`「建立」 | 改用新 key |
+| `RankingView.tsx:110` | 角色排行列 | 未載明（同一顆 `ca-item-mini-btn`） | 改用新 key |
+| `EventListItems.tsx:175` | 事件清單 | `:550`「建立分析」 | 不動 |
+| `EventRankingView.tsx:134` | 事件排行列 | 未載明 | 不動 |
+| `CharacterAnalysisPage.tsx:568` | 角色空狀態主 CTA | 未載明 | 不動 |
+
+**`RankingView` 一併改的判準**（條目留的待確認項）: 排行列與清單卡是**同一顆按鈕** ——
+都是掛在角色列右側的 `ca-item-mini-btn`，而 UI_SPEC `:425` 描述整條流程時寫的就是
+「點擊『建立』（未分析角色）」。同一個檔案裡的 Hero 卡早已用 `character.overview.ranking.createHero`
+=「建立核心角色分析」對過稿，只有排行列漏掉，是同一次對稿的殘留。
+
+**事件兩處刻意不動**: 那是另一種介面，UI_SPEC 給的用字也不同（`:550`「建立分析」）。
+把它們一起改成「建立」會是在本條範圍外替事件頁做對稿決定。
+
+**新 key 放 `character.list.createBtn`**（zh-TW「建立」/ en `Create`）: `character.list`
+namespace 已存在（`searchPlaceholder` / `frameworkLabel` / `mentionCount`），不建新結構。
+`RankingView` 的排行列雖然在 `character.overview.ranking` 底下，仍取用這個 key —— 它渲染的是
+`ca-ov-rank-list` 裡的角色列，與清單卡同一種 affordance，複製一份同值的 key 只會讓下次改字時
+漏掉一邊。
+
+`generate` key 保留，仍有三個呼叫端在用。
+
+**UI_SPEC 未改**: `:359` 本來就寫「建立」，是實作沒跟上，spec 不需修正。
+
+**異動**: `frontend/src/i18n/locales/{zh-TW,en}/analysis.json`、
+`frontend/src/components/analysis/AnalysisListItems.tsx`、
+`frontend/src/components/analysis/overview/RankingView.tsx`。無新依賴。五道閘門全綠。
+
 #### B-084 後端實體類別欄位是純 `str`，擋住四個前端型別接回 generated.ts
 **背景**: 2026-08-20 前端批次 4 把 `api/types.ts` 手抄的型別接回 `generated.ts` 時，
 15 個候選裡 11 個零成本接上，4 個接不了：`GraphNode`、`Segment`、`EntityChunkItem`、

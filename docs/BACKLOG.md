@@ -505,17 +505,6 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-064 未分析卡「生成分析」按鈕文字對齊 canvas「建立」
-**背景**: 角色清單未分析卡的按鈕文字取自 `analysis.json` 的 `generate` key（「生成分析」），設計稿 canvas 為「建立」。該 key 另被 `EventListItems`、`RankingView`、`CharacterAnalysisPage` 空狀態共用，不能直接改值。
-
-**待辦內容**:
-- 為清單卡按鈕新增獨立 key（如 `character.list.createBtn` =「建立」/ en `Create`），`AnalysisListItems` 改用之
-- 確認 `RankingView` 排行列按鈕是否一併對齊 canvas 用字
-
-**觸發時機**: 下次動到角色清單卡片時順修。
-
----
-
 #### B-088 `BookResponse.status` 只吐 `"ready"`，前端卻預期 4 種狀態
 **背景**: 2026-08-22 做 B-084 時盤點出來的。後端 `books.py:109` 與 `:146` 兩個建構點
 **都硬寫 `status="ready"`**，從不輸出別的值；而前端 `api/types.ts` 的
@@ -1160,7 +1149,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-061 | 前後端原型 taxonomy 漂移防護測試 | 🟢 低 | 待開始（觸發：taxonomy 再變動前） |
 | B-062 | tension / narrative 前端寫死 language='zh' | 🟡 中 | ✅ 已完成（2026-08-21；後端補 `language` + 前端六個呼叫點接上，影響比原記載大，見 ARCHIVE） |
 | B-063 | 關係圖角色名冊比對支援 KG 別名 | 🟢 低 | 待開始（觸發：灰圈誤判回報累積） |
-| B-064 | 未分析卡「生成分析」按鈕文字對齊 canvas「建立」 | 🟢 低 | 待開始（觸發：下次動到角色清單卡片） |
+| B-064 | 未分析卡「生成分析」按鈕文字對齊 canvas「建立」 | 🟢 低 | ✅ 已完成（2026-08-22；清單卡 + 排行列兩處改用新 key，事件兩處按 UI_SPEC 不動，見 ARCHIVE） |
 | B-065 | 各功能頁操作說明缺乏統一機制 | 🟡 中 | 待開始（觸發：下次翻新任一功能頁時一併設計） |
 | B-073 | Gemini 對「手」的提示回報 PROHIBITED_CONTENT | 🔴 高 | 工程面已完成（2026-08-10，Phase 1–3）；「手」仍待可用的 fallback provider，見 B-075 |
 | B-074 | SEP 把前置頁文字當證據送進 LLM | 🔴 高 | 已完成（2026-08-10）；僅剩「海」那筆舊詮釋要不要重生，見條目內 SQL |
