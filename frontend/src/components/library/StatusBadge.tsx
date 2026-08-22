@@ -4,7 +4,6 @@ import type { BookStatus } from '@/api/types';
 const statusStyle: Record<BookStatus, { bg: string; fg: string }> = {
   analyzed: { bg: 'var(--color-success-bg)', fg: 'var(--color-success)' },
   ready: { bg: 'var(--color-info-bg)', fg: 'var(--color-info)' },
-  processing: { bg: 'var(--color-warning-bg)', fg: 'var(--color-warning)' },
   error: { bg: 'var(--color-error-bg)', fg: 'var(--color-error)' },
 };
 

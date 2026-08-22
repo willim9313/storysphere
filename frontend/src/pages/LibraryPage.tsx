@@ -11,7 +11,6 @@ import { RecentBookCard } from '@/components/library/RecentBookCard';
 import { EmptyLibrary } from '@/components/library/EmptyLibrary';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
-import type { BookStatus } from '@/api/types';
 import { qk } from '@/api/queryKeys';
 
 interface PendingTask { taskId: string; fileName: string; title?: string }
@@ -135,9 +134,12 @@ export default function LibraryPage() {
     .sort((a, b) => new Date(b.lastOpenedAt!).getTime() - new Date(a.lastOpenedAt!).getTime())
     .slice(0, 3);
 
-  const filtered = filter === 'all'
-    ? safeBooks
-    : safeBooks.filter((b) => b.status === (filter as BookStatus));
+  // 'processing' 篩不到任何書：還在跑 ingestion 的書不會出現在 #1 的回應裡
+  // （後端明確濾掉），這個篩選下呈現的是下方的 pendingTasks 卡片。
+  const filtered =
+    filter === 'all' ? safeBooks
+    : filter === 'processing' ? []
+    : safeBooks.filter((b) => b.status === filter);
 
   return (
     <div className="p-6 overflow-y-auto h-full">
