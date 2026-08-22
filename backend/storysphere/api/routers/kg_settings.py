@@ -22,6 +22,7 @@ from storysphere.api.schemas.kg_settings import (
     KgSwitchResponse,
 )
 from storysphere.api.store import get_task, task_store
+from storysphere.core.utils.url_masking import mask_url
 
 logger = logging.getLogger(__name__)
 
@@ -136,7 +137,7 @@ async def switch_kg_mode(body: KgSwitchRequest) -> KgSwitchResponse:
         except Exception as exc:
             raise HTTPException(
                 status_code=503,
-                detail=f"Neo4j unreachable at {settings.neo4j_url}: {exc}",
+                detail=f"Neo4j unreachable at {mask_url(settings.neo4j_url)}: {exc}",
             ) from exc
 
     # Close old Neo4j driver if switching away from it

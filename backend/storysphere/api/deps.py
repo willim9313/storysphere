@@ -12,6 +12,8 @@ from typing import Annotated, Any
 
 from fastapi import Depends
 
+from storysphere.core.utils.url_masking import mask_url
+
 logger = logging.getLogger(__name__)
 
 # ── Ingestion graph singleton (initialised in lifespan) ─────────────────────
@@ -88,7 +90,7 @@ def get_kg_service():
             user=settings.neo4j_user,
             password=settings.neo4j_password,
         )
-        logger.info("KGService initialised (mode=neo4j, url=%s)", settings.neo4j_url)
+        logger.info("KGService initialised (mode=neo4j, url=%s)", mask_url(settings.neo4j_url))
     else:
         from storysphere.services.kg_service import KGService  # noqa: PLC0415
 

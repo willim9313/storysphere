@@ -20,6 +20,7 @@ from typing import Any
 
 from qdrant_client import QdrantClient, models
 
+from storysphere.core.utils.url_masking import mask_url
 from storysphere.services.query_models import KeywordSearchResult, VectorSearchResult
 
 logger = logging.getLogger(__name__)
@@ -92,10 +93,10 @@ class VectorService:
                 self._client.get_collections()
             except Exception as exc:
                 raise RuntimeError(
-                    f"VectorService: cannot connect to Qdrant at {settings.qdrant_url} "
+                    f"VectorService: cannot connect to Qdrant at {mask_url(settings.qdrant_url)} "
                     f"(DEPLOY_MODE=standard requires Qdrant service running): {exc}"
                 ) from exc
-            logger.info("VectorService: connected to %s", settings.qdrant_url)
+            logger.info("VectorService: connected to %s", mask_url(settings.qdrant_url))
 
         self._embedding_fn = None  # lazy
         self._created_collections: set[str] = set()
