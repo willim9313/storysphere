@@ -643,24 +643,6 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-087 張力頁兩段零引用的狀態色 CSS
-**背景**: 2026-08-22 盤點 B-086 時發現 `frontend/src/styles/tension.css` 有兩組狀態色規則
-在 TSX 裡**零引用**，推測是張力頁翻新（2026-08-05 Phase 3）的殘留：
-
-- `.tn-summary-chip-dot.{approved,modified,rejected}`（`:603-605`）
-- `.tn-traj-status.{s-approved,s-modified,s-rejected}`（`:551-553`）
-
-**沒有順手刪除**，因為 CLAUDE.md 的紅線寫明「禁止憑『看起來沒用』就刪程式——有疑問先問
-使用者」。零引用是用 `grep -rn --include=*.tsx --include=*.ts` 查出來的，不涵蓋動態組出的
-class 名（雖然這兩組看起來不像）。
-
-**待辦內容**:
-- 確認確實無用（含動態 className 的可能）後刪除，順帶檢查同一輪翻新是否還留下其他殘留
-
-**觸發時機**: 下次動到 `tension.css` 時。
-
----
-
 #### B-072 張力 Step 1 組裝失敗的 TEU 無清單可看
 **背景**: stepper step 1 顯示 `{{assembled}} / {{candidates}} 場景`，兩數不等時 `TensionStepperStrip` 只亮一個 `failed` 旗標與 AlertTriangle warning note（P0-5 的最小落點），**看不到是哪些場景失敗、為何失敗**。設計交付包沒有為失敗清單留位置，也沒出失敗態樣式。
 
@@ -1212,7 +1194,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-070 | 張力分析頁 RWD 未做 | 🟡 中 | ✅ 已完成（2026-08-21；三項待決全數收斂，見 ARCHIVE 與 UI_SPEC §3.8） |
 | B-071 | 張力頁格點與迷你柱狀圖無非視覺替代 | 🟢 低 | 🔶 部分完成（2026-08-21；抽屜焦點與非視覺替代已做，Ink 語意拆為 B-086） |
 | B-086 | Ink 主題下狀態語意只靠顏色 | 🟢 低 | ✅ 已完成（2026-08-22；盤點 109 處只有 1 處是真問題，見 ARCHIVE） |
-| B-087 | 張力頁兩段零引用的狀態色 CSS | 🟢 低 | 待開始（2026-08-22 盤點 B-086 時發現；觸發：下次動到 tension.css） |
+| B-087 | 張力頁零引用的狀態色 CSS | 🟢 低 | ✅ 已完成（2026-08-22；實際範圍是兩整段共 243 行，非原記的 6 行，見 ARCHIVE） |
 | B-072 | 張力 Step 1 組裝失敗的 TEU 無清單可看 | 🟢 低 | 待開始（前置：確認後端 task 是否留有失敗清單） |
 
 ### F 系列
