@@ -496,17 +496,6 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-061 前後端原型 taxonomy 漂移防護測試
-**背景**: `frontend/src/data/frameworksData.ts` 的 jung/schmidt item 名稱必須與 `backend/storysphere/config/character_analysis/*.json` 逐字一致（原型篩選以字串相等計數），此跨層契約過去無任何防護，導致 Schmidt 佔位 5 筆、Jung 兩筆名稱漂移半年未被發現（2026-07-18 已修）。目前僅靠 frameworksData.ts 開頭的 CONSTRAINT 註解提醒。
-
-**待辦內容**:
-- 加自動化測試：解析 frameworksData.ts 的 jung/schmidt items（regex 或 ts-node 匯出），與後端 config JSON 名稱逐字比對，zh/en 各一組
-- 放置層級：後端 pytest（讀前端檔案）或前端 vitest 皆可，擇一納入 CI
-
-**觸發時機**: 任一側 taxonomy 再次變動前；若 B-060 改以 id 比對，本項可降級為 id 集合一致性檢查。
-
----
-
 #### B-063 關係圖角色名冊比對支援 KG 別名
 **背景**: 角色分析頁關係 ego 圖的節點可點擊性（橘圈）取決於 CEP relation target 名稱與角色名冊（#6a analyzed+unanalyzed）**精確字串相等**。CEP 寫的名字若是別名 / 異體字（實例：傅君婥在徐子陵關係圖中呈灰圈不可點），即使該角色存在也無法跳轉。
 
@@ -1200,7 +1189,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-058 | 處理卡系統吉祥物欄 | 🟢 低 | 待開始（觸發：吉祥物資產備妥） |
 | B-059 | 派系語意命名（LLM 為 F-16 社群取名） | 🟢 低 | 待開始（前置：角色頁翻新 #1 派系分群上線） |
 | B-060 | 原型篩選 facet 改以 archetype id 比對 | 🟢 低 | 待開始（觸發：EN 介面使用需求） |
-| B-061 | 前後端原型 taxonomy 漂移防護測試 | 🟢 低 | 待開始（觸發：taxonomy 再變動前） |
+| B-061 | 前後端原型 taxonomy 漂移防護測試 | 🟢 低 | ✅ 已完成（2026-08-22；後端 pytest 讀前端檔案，8 項，四組現況皆一致，見 ARCHIVE） |
 | B-062 | tension / narrative 前端寫死 language='zh' | 🟡 中 | ✅ 已完成（2026-08-21；後端補 `language` + 前端六個呼叫點接上，影響比原記載大，見 ARCHIVE） |
 | B-063 | 關係圖角色名冊比對支援 KG 別名 | 🟢 低 | 待開始（觸發：灰圈誤判回報累積） |
 | B-064 | 未分析卡「生成分析」按鈕文字對齊 canvas「建立」 | 🟢 低 | 待開始（觸發：下次動到角色清單卡片） |
