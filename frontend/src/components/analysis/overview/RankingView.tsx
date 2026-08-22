@@ -107,7 +107,7 @@ export function RankingView({ characters, onSelect, onGenerate, generatingId }: 
                   }}
                   disabled={generatingId === c.entityId}
                 >
-                  {generatingId === c.entityId ? '…' : t('generate')}
+                  {generatingId === c.entityId ? '…' : t('character.list.createBtn')}
                 </button>
               )}
             </div>

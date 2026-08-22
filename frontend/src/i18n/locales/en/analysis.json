@@ -95,7 +95,8 @@
     "list": {
       "searchPlaceholder": "Search {{count}} characters",
       "frameworkLabel": "Analysis framework",
-      "mentionCount": "{{count}} mentions"
+      "mentionCount": "{{count}} mentions",
+      "createBtn": "Create"
     },
     "archFilter": {
       "label": "Filter analyzed characters by archetype",
