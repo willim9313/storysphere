@@ -1272,3 +1272,38 @@ grid rather than the page.」與 `overflow-x: auto`，但欄寬寫成 `1fr`—�
   **此處是從寬度推算，未實測**（compare drawer 要先選兩個角色，pair mode 無法用合成事件驅動）
 
 ---
+
+#### B-087 張力頁零引用的狀態色 CSS
+**背景**: 2026-08-22 盤點 B-086 時發現，記為 `frontend/src/styles/tension.css` 有兩組狀態色規則
+在 TSX 裡零引用（`.tn-summary-chip-dot.{approved,modified,rejected}` 與
+`.tn-traj-status.{s-approved,s-modified,s-rejected}`，共 6 行），推測是張力頁翻新的殘留。
+當時沒有順手刪除，因為 CLAUDE.md 的紅線寫明「禁止憑『看起來沒用』就刪程式」。
+
+**完成**: 2026-08-22，分支 `chore/b087-dead-tension-css`。
+
+**範圍比原記載大 40 倍：不是 6 行，是 243 行。** 原條目只查了那 6 行狀態色，沒有往上查父層。
+實際零引用的是**兩個完整 section**：
+
+| Section | 選擇器 | 規則數 |
+|---|---|---|
+| `/* Trajectory dashboard */` | `.tn-traj*`（含 `-legend`、`-chart`、`-density`、`-row-*`、`-axis-*`、`-status`） | 38 |
+| `/* Summary chip bar */` | `.tn-summary*`（含 `-label`、`-chip`、`-chip-dot`、`-spacer`、`-actions`、`-hide-rejected`） | 13 |
+
+原本的 6 行只是這兩段各自的最後幾條規則。刪除 `tension.css:379-621`，檔案 2112 → 1869 行。
+
+**查證方法（比原條目的 grep 嚴格）**:
+- 全 repo 搜尋不限副檔名，只有 `tension.css` 本身、worktree 副本、與 `BACKLOG.md` 提到這些字串
+- 排除動態組出 class 名的可能：搜過 `` className={`tn-${ ``、`"tn-" +` 等組合形式，零命中
+- 檔案內其餘部分（含 B-070 加的 RWD media query）沒有任何一處引用這兩組 class
+- 刪除區間 379-621 內只有 `.tn-traj*` / `.tn-summary*` 選擇器，未夾雜其他規則
+
+**旁證**: `TensionChapterGrid.tsx:25` 的註解自陳「This replaces the trajectory chart, which
+encoded a line's chapter span as a…」——`.tn-traj*` 正是被它取代的那個元件留下來的。這比
+grep 結果更有說服力：grep 證明「現在沒人用」，註解證明「為什麼沒人用」。
+
+**教訓**: 盤點時查到零引用的葉節點，要往上查父層是不是也零引用。B-087 原本記成「兩段狀態色」，
+是因為盤點 B-086 時只關心狀態色，看到 `.tn-summary-chip-dot.approved` 就停在那一行，沒有問
+`.tn-summary-chip` 本身有沒有人用。結果把一次元件下架的殘留記成了幾行雜訊。
+
+**異動**: `frontend/src/styles/tension.css`（-243 行，純刪除，無新增）。無 token 異動
+（只是移除使用端），無 API 異動，無元件異動。五道閘門全綠。
