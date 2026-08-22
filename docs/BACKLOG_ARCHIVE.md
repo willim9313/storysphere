@@ -1157,3 +1157,63 @@ grid rather than the page.」與 `overflow-x: auto`，但欄寬寫成 `1fr`—�
 「四個刻意留在手寫」更正為六個，見 B-084。
 
 ---
+
+#### B-085 五道閘門沒有任何 CI 在盯
+**背景**: 2026-08-20 前端批次 1–4（PR #66）把 `npm run build` 修綠之後，閘門首次同時
+全綠，CLAUDE.md 的 DoD 判準也隨之從「無新增」改為「全綠」。評估後決定**暫不建 CI**，
+此條記錄這個決定與它的代價。
+
+**閘門清單以 CLAUDE.md「程式碼品質」為準，此處不重列。** 本條原本自己列了四道，
+而 `docs/guides/TESTING.md` 另外要求 `ruff check tests/`、CLAUDE.md 又說三道——
+三份文件三個數字。2026-08-21 已收斂：`ruff check tests/` 補綠（126 條），
+清單統一放在 CLAUDE.md，本條與 TESTING.md 都改為指回去。
+
+代價很具體：**B-066 就是「沒人盯」的產物**。那 10 個型別錯誤不是一次寫出來的，
+是因為 `tsc -b` 長期紅著、紅久了沒人看，才從 0 慢慢累積到 10 個——其中還混著一個
+引用了已不存在 interface 的檔案。把閘門弄綠而沒有東西在盯，等於只是把碼表歸零重跑。
+
+**待辦內容**:
+- 建 `.github/workflows/`，跑 CLAUDE.md 列的那幾道（repo 是 public，Actions 免費；實測合計約 3 分鐘）
+- Python 依賴用 `uv`；測試跑 `-m "not integration"`（`integration` 那組需要真實 API key）
+- 注意 `task_store_backend` 預設是 sqlite、`.env` 才是 memory，兩種 backend 的行為不同
+  （見 2026-08-19 那次 22 項紅測試），CI 要明確指定用哪一種
+- 建起來之後，CLAUDE.md 裡「沒有任何 CI 在盯這五道閘門」那段要一併改掉
+
+**觸發時機**: 下次發現閘門又變紅時，或有第二個人開始提交時（單人開發靠自律還撐得住，
+多人就撐不住）。
+
+**完成**: 2026-08-22，`.github/workflows/gates.yml`。
+
+**觸發條件是自己滿足的，不是改變主意。** 本條原本寫的觸發時機是「下次發現閘門又變紅時，
+或有第二個人開始提交時」。2026-08-21 一輪工作裡同時撞到三件事，全部都是「沒有東西在盯」
+的直接產物：
+
+- `ruff check tests/` 紅著 **126 條**，而且查下來**從來沒綠過**——B-049 清的是 `src/`，
+  PR #66 的 `14ffaf2` 對齊的是判準措辭，兩次都不含 `tests/`
+- `generated.ts` 落後於後端，`bookId` 這個 query 參數前端手寫了型別、產生器從未重生
+- 「幾道閘門」在三份文件裡三個數字（CLAUDE.md 三道、本條四道、TESTING.md 多一道且是紅的），
+  沒有一個對
+
+第三件最能說明問題：腐化的不只是閘門，還有**關於閘門的記載**。
+
+**動工前查證的事**（決定了 workflow 長什麼樣）:
+
+- **CI 上沒有 `.env`**（`.gitignore:11`）。實測把 `.env` 移開後 `pytest -m "not integration"`
+  仍然 1822 passed，**所以 CI 不需要任何 secret**。這是最大的未知數，先確認才動工。
+- **`TASK_STORE_BACKEND` 在 workflow 裡明確釘成 `sqlite`**。`.env` 設 `memory`，程式碼預設
+  是 `sqlite`，CI 沒有 `.env` 所以會落到 `sqlite`——那是本機從沒跑過的路徑。兩種都實測過
+  （各 1822 passed），但釘死而非放任預設：這兩條是真的不同的 code path，2026-08-19 的
+  22 條紅測試就是這個差異造成的。
+- **版本對齊本機**（Python 3.13、Node 24）。`pyproject` 只寫 `>=3.11`、`package.json` 沒有
+  `engines`，若 CI 用比本機舊的版本，會產生本機重現不了的失敗。
+- `uv.lock` 與 `package-lock.json` 都在 → `uv sync --frozen` / `npm ci`。無 extras，
+  所以 `--all-extras` 拿掉了。
+
+**指令逐字照抄 CLAUDE.md 的五道**，不發明變體——否則「CI 綠」與「閘門綠」會是兩件事，
+而那份剛收斂成唯一權威的清單就不再是權威。
+
+**額外加了一道 `pytest --collect-only`**：`integration` 那 3 條平常被 deselect，import
+若被刪壞不會在一般測試裡顯示，只有 collect 會抓到。這是 2026-08-21 清 `tests/` lint 時
+學到的——當時刪了 42 個未使用 import。
+
+---

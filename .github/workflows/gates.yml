@@ -1,0 +1,95 @@
+# The five gates from CLAUDE.md's "程式碼品質" section.
+#
+# Commands here are copied verbatim from that list on purpose. If CI runs a
+# variant — an extra flag, a different marker — then "CI is green" and "the
+# gates are green" stop meaning the same thing, and the list stops being the
+# single authority it was just consolidated into.
+#
+# Built 2026-08-22 (B-085). The trigger was three findings in one session that
+# all came from nothing watching: `ruff check tests/` had been red 126 errors
+# and had never once been green, `generated.ts` had drifted behind the backend,
+# and the gate list itself disagreed across three documents.
+name: gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A new push supersedes the previous run on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      # CI has no .env — it is gitignored — so settings fall back to their code
+      # defaults, which is `sqlite`. Pinned explicitly rather than left implicit:
+      # dev's .env sets `memory`, the two backends are genuinely different code
+      # paths, and on 2026-08-19 that difference showed up as 22 red tests. Both
+      # pass as of 2026-08-22. If they diverge again, this is the knob.
+      TASK_STORE_BACKEND: sqlite
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        # Pinned to an exact version, unlike the actions/* above: setup-uv
+        # publishes no floating major tag, so @v10 does not resolve.
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        # Matches the local runtime. pyproject says >=3.11, but a CI older than
+        # the machine the code is written on produces failures nobody can
+        # reproduce locally.
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        # The dev group (pytest, ruff) installs by default; there are no extras.
+        run: uv sync --frozen
+
+      - name: Gate 1 — ruff check backend/
+        run: uv run ruff check backend/
+
+      - name: Gate 2 — ruff check tests/
+        run: uv run ruff check tests/
+
+      - name: Gate 3 — pytest
+        # `integration` needs real API keys and is excluded from the gate, but
+        # those tests must still import cleanly: a deleted import in a
+        # deselected file is invisible to the run itself.
+        run: |
+          uv run pytest -m "not integration"
+          uv run pytest --collect-only -q > /dev/null
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Gate 4 — npm run lint
+        run: npm run lint
+
+      - name: Gate 5 — npm run build
+        # Not redundant with lint: typescript-eslint has no-undef off, so a
+        # deleted variable with a live use site is a runtime ReferenceError that
+        # only tsc catches.
+        run: npm run build
