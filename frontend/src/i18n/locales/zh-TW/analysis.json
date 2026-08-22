@@ -95,7 +95,8 @@
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 位角色",
       "frameworkLabel": "分析框架",
-      "mentionCount": "提及 {{count}} 次"
+      "mentionCount": "提及 {{count}} 次",
+      "createBtn": "建立"
     },
     "archFilter": {
       "label": "依原型篩選已分析角色",
