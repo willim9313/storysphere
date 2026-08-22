@@ -1443,3 +1443,64 @@ bug——2026-07-18 那次修正到現在沒有再漂移。
 
 **異動**: 新增 `tests/config/test_archetype_taxonomy_drift.py`（8 項測試）；
 `frontend/src/data/frameworksData.ts` 註解 +2 行。無新依賴。五道閘門全綠（1830 passed）。
+
+#### B-084 後端實體類別欄位是純 `str`，擋住四個前端型別接回 generated.ts
+**背景**: 2026-08-20 前端批次 4 把 `api/types.ts` 手抄的型別接回 `generated.ts` 時，
+15 個候選裡 11 個零成本接上，4 個接不了：`GraphNode`、`Segment`、`EntityChunkItem`、
+`EntityChunksResponse`。原因是後端把實體類別宣告成純 `str`，而前端手寫版窄化成
+`EntityType` union，全站十幾處靠這個窄化做窮舉比對與 `Record<EntityType, …>` 索引。
+當時實測接回去會產生 12 個 `string is not assignable to EntityType`。
+
+**完成**: 2026-08-22，分支 `refactor/b084-entity-type-literal`。
+
+**值域盤點**（條目指定的第一步）:
+
+| 欄位 | 實際值域 | 與前端 union 比對 |
+|---|---|---|
+| `GraphNode.type` | `EntityType` 6 值 ∪ `"event"` = 7 值（`routers/book_graph.py:91` 取 `e.entity_type.value`；`:113` 硬寫 `"event"`） | **完全相同** |
+| `SegmentEntity.type` | `EntityType` 6 值（`book_reader.py:165` 的 enum，與 `:196` 的 `ParagraphEntity.entity_type: str`） | 前端多一個 `'event'` |
+
+DB 實查（`var/storysphere.db`，93 個段落、2839 筆 entity）：character 1961 / location 428
+/ object 225 / concept 130 / organization 95 —— 全在 6 值內，沒有野值，也沒有 `other`。
+條目擔心的「後端可能有前端 union 未涵蓋的值」不成立，實際是反過來：前端多的 `'event'`
+是圖譜獨有，domain enum 裡沒有。
+
+**用 domain enum，不另寫一份 Literal 清單**: `api/schemas/entity.py:7` 已有
+`from storysphere.domain.entities import EntityType` 的前例（方向 api → domain，正確），
+且 `generated.ts` 早就有 `EntityType: "character" | … | "other"` 這個 component。另寫一份
+值清單會製造第二個真相來源——那正是 B-061 剛補防護的那類漂移。
+
+`GraphNode.type` 寫成 `EntityType | Literal["event"]` 而非擴充 enum：`"event"` 只在圖譜
+成立，塞進 domain enum 會讓所有實體端點都多一個永遠不會出現的值。
+
+**API_CONTRACT 不需更新**: `:261` 早就把 `EntityType` 定義成 7 值（含 `'event'`），`:816`
+也早就寫 `GraphNode.type: EntityType`。**是後端沒跟上自己的契約**，這次是實作追上文件。
+
+**只需改 1 個消費端，不是預期的 12 個 cast。** 因為後端收窄後產出的 union 與前端手寫的
+逐字相同，十幾處 `Record<EntityType, …>` 全部原封不動。唯一要改的是
+`GraphPage.tsx:1203` 的區域 Map 型別——generated 的 `chapterTitle` 是 `string | null`
+（Pydantic 的 `str | None`），而該 Map 宣告成 `string | undefined`。改成
+`string | null | undefined`；下游是 `group.title || fallback`，`null` 與 `undefined`
+行為相同。
+
+**`EntityType` 改為從 generated 推導**: `components['schemas']['GraphNode']['type']`，
+不再手寫。
+
+**驗證方式**: `npm run build` 綠只證明編得過，不證明型別正確——若收窄失敗、`EntityType`
+退化成 `string`，`Record<string, …>` 一樣編得過。所以另外寫了一個臨時的型別斷言檔跑
+`tsc --noEmit`，用雙向 `extends` 驗四件事：`EntityType` 恰好是那 7 個字面值、不是 `string`、
+`Segment.entity.type` 恰好是 6 值、`GraphNode.type` 恰好是 7 值。四項皆通過；又把預期值
+改成 6 個確認斷言本身會紅（`_1` / `_4` 失敗），才刪掉臨時檔。
+
+**產生 `generated.ts` 的方式**: `npm run gen:types` 需要跑著的後端。改用離線
+`create_app().openapi()` 產 spec 再餵 `openapi-typescript`。先用**未改動**的 spec 重產一次
+與現有 `generated.ts` 比對，**byte-identical**，確認兩條路徑等價後才用它產新版。
+後端改動只讓 `generated.ts` 動了 2 行。
+
+**沒做的那一半 → B-088**: `Book` / `BookDetail` 卡的是 `BookResponse.status`。盤點發現
+後端兩個建構點都硬寫 `status="ready"`，從不輸出別的值，而前端 `BookStatus` 有 4 個值。
+這不是型別宣告問題，是要先回答「那 4 種狀態是未實作的設計還是已廢棄的舊設計」，故拆出。
+
+**異動**: `api/schemas/book_graph.py`、`api/schemas/books.py`、`frontend/src/api/generated.ts`
+（重新產生）、`frontend/src/api/types.ts`、`frontend/src/pages/GraphPage.tsx`。無新依賴。
+五道閘門全綠。

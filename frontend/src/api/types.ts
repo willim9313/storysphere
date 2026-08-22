@@ -4,22 +4,22 @@
  * 已有對應 schema 的，這裡都寫成 re-export alias（見下方 `components['schemas'][…]`
  * 那幾行），呼叫端不必改，但欄位定義以後端為準。
  *
- * 刻意留在手寫的：GraphNode、Segment、EntityChunkItem、EntityChunksResponse，
- * 外加 Book / BookDetail —— 後兩者過去沒被列進來，但卡的是同一個問題：
- * 後端把這些欄位宣告成純 `str`（generated 的 GraphNode.type、SegmentEntity.type
- * 都是 string；BookResponse.status 同樣是 string），而前端這裡把它們窄化成
- * EntityType / BookStatus union，全站有十幾處靠這個窄化做窮舉比對與 Record 索引
- * （例如 StatusBadge.tsx 的 `Record<BookStatus, …>`）。接回 generated 等於把窄化
- * 丟掉、再補一堆 cast——那是變糟不是變好。EntityChunkItem / EntityChunksResponse
- * 則是因為巢狀帶著 Segment 而一起卡住。
+ * 刻意留在手寫的：Book / BookDetail —— 後端 `BookResponse.status` 宣告成純
+ * `str`，而前端這裡窄化成 BookStatus union，`StatusBadge.tsx` 的
+ * `Record<BookStatus, …>` 靠這個窄化。接回 generated 等於把窄化丟掉再補 cast。
+ * 後端實際只吐 `"ready"`，前端卻預期 4 種狀態——那不是型別問題，要先決定那 4 種
+ * 是未實作的設計還是已廢棄的舊設計。見 BACKLOG 的 B-088。
  *
- * 正解在後端：把那些欄位改成 Literal / Enum，openapi 就會產出 union，這四個
- * 也能一併收掉。屬於後端範圍，見 BACKLOG 的 B-084。
+ * GraphNode / Segment / EntityChunkItem / EntityChunksResponse 原本也卡在同一
+ * 類問題（後端的 type 欄位是純 `str`），已於 B-084 從後端收窄成 EntityType，
+ * 這四個因此都改回 generated alias。
  */
 
 // ── Entity type ─────────────────────────────────────────────────
 
-export type EntityType = 'character' | 'location' | 'organization' | 'object' | 'concept' | 'other' | 'event';
+/** 後端 `EntityType` enum 的 6 個值，加上圖譜獨有的 'event'（事件節點不是實體，
+ *  domain enum 裡沒有它）。從 GraphNode 推導而非手寫，兩邊就不會再各自漂移。 */
+export type EntityType = components['schemas']['GraphNode']['type'];
 
 // ── Books ───────────────────────────────────────────────────────
 
@@ -91,14 +91,7 @@ export interface Chapter {
 
 // ── Chunks & Segments ───────────────────────────────────────────
 
-export interface Segment {
-  text: string;
-  entity?: {
-    type: EntityType;
-    entityId: string;
-    name: string;
-  };
-}
+export type Segment = components['schemas']['Segment'];
 
 export interface Chunk {
   id: string;
@@ -111,34 +104,13 @@ export interface Chunk {
 
 // ── Entity Chunks ──────────────────────────────────────────────
 
-export interface EntityChunkItem {
-  id: string;
-  chapterId: string;
-  chapterTitle?: string;
-  chapterNumber: number;
-  order: number;
-  content: string;
-  segments: Segment[];
-}
+export type EntityChunkItem = components['schemas']['EntityChunkItem'];
 
-export interface EntityChunksResponse {
-  entityId: string;
-  entityName: string;
-  total: number;
-  chunks: EntityChunkItem[];
-}
+export type EntityChunksResponse = components['schemas']['EntityChunksResponse'];
 
 // ── Graph ───────────────────────────────────────────────────────
 
-export interface GraphNode {
-  id: string;
-  name: string;
-  type: EntityType;
-  description?: string;
-  chunkCount: number;
-  eventType?: string;
-  chapter?: number;
-}
+export type GraphNode = components['schemas']['GraphNode'];
 
 export interface EventDetail {
   id: string;
