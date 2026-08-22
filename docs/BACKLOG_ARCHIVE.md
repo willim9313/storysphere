@@ -1397,6 +1397,53 @@ namespace 已存在（`searchPlaceholder` / `frameworkLabel` / `mentionCount`）
 `frontend/src/components/analysis/AnalysisListItems.tsx`、
 `frontend/src/components/analysis/overview/RankingView.tsx`。無新依賴。五道閘門全綠。
 
+#### B-061 前後端原型 taxonomy 漂移防護測試
+**背景**: `frontend/src/data/frameworksData.ts` 的 jung/schmidt item 名稱必須與
+`backend/storysphere/config/character_analysis/*.json` 逐字一致（原型篩選以字串相等計數），
+此跨層契約過去無任何防護，導致 Schmidt 佔位 5 筆、Jung 兩筆名稱漂移半年未被發現
+（2026-07-18 已修）。當時僅靠 `frameworksData.ts` 開頭的 CONSTRAINT 註解提醒。
+
+**完成**: 2026-08-22，分支 `test/b061-archetype-taxonomy-drift`。
+
+**放後端 pytest，不是前端 vitest。** 條目說兩者「擇一納入 CI」，但兩者不等價：五道閘門
+（CLAUDE.md）裡有 `pytest -m "not integration"`，**沒有** `npm run test`。vitest 前端雖然
+裝了、`package.json` 也有 `test` script，寫進去卻不會在 CI 跑，除非再加第六道閘門——
+而那份清單才剛在 B-085 收斂成單一權威，為一個測試去動它不划算。放 pytest 則自動落在
+既有閘門裡，零 CI 改動。
+
+前例是 `tests/docs/test_docs_drift.py`：它同樣是後端 pytest 讀前端檔案
+（`frontend/src/styles/tokens.css`）做跨層契約檢查。本檔案沿用它的 `REPO_ROOT` 路徑模式。
+
+**檔案放 `tests/config/test_archetype_taxonomy_drift.py`**，與既有的 `test_archetypes.py`
+同層（同一個主題），但分開檔案：那份測的是 loader 的行為（純後端單元測試），這份是解析
+前端檔案的跨層契約，混在一起會讓「這個檔案在測什麼」失焦。後端側取值用既有的
+`config.archetypes.load_archetypes()`，不自己讀 JSON。
+
+**比對的是 `{id: name}` 對應，不是有序清單。** 真正的契約是「同一個 id，兩邊顯示名相同」；
+要求陣列順序一致會比契約更嚴，前端排版調整就會誤報。dict 相等同時涵蓋名稱漂移、少一筆、
+多一筆三種情況。
+
+**解析器哨兵**：檔案解析型測試的典型失效是「regex 抓不到東西 → 空對空 → 靜默通過」。
+所以除了比對本身，另有一條 `test_parser_finds_items` 專門驗解析結果非空，且
+`_array_region` / `_framework_items` 在找不到錨點時直接 assert 失敗並說明「解析器需要更新」。
+
+**已實測會失敗**（改壞再還原，三種情境）:
+
+| 情境 | 結果 |
+|---|---|
+| 名稱漂移（`英雄` → `英雄角色`） | 1 failed |
+| 前端少一筆（刪掉 `ruler`） | 1 failed |
+| 解析器失效（改掉陣列名 `FRAMEWORKS_ZH`） | 4 failed |
+
+**現況**: 四組（jung/schmidt × zh/en）目前全部一致，共 12 + 45 筆。本次補的是防護，不是修
+bug——2026-07-18 那次修正到現在沒有再漂移。
+
+`frameworksData.ts` 的 CONSTRAINT 註解補了兩行，指向這個測試並說明它會解析下方的
+`{ id: '…', name: '…'` 形狀，改格式時要一併更新解析器。
+
+**異動**: 新增 `tests/config/test_archetype_taxonomy_drift.py`（8 項測試）；
+`frontend/src/data/frameworksData.ts` 註解 +2 行。無新依賴。五道閘門全綠（1830 passed）。
+
 #### B-084 後端實體類別欄位是純 `str`，擋住四個前端型別接回 generated.ts
 **背景**: 2026-08-20 前端批次 4 把 `api/types.ts` 手抄的型別接回 `generated.ts` 時，
 15 個候選裡 11 個零成本接上，4 個接不了：`GraphNode`、`Segment`、`EntityChunkItem`、
