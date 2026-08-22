@@ -22,6 +22,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from storysphere.core.utils.url_masking import mask_url
+
 logger = logging.getLogger(__name__)
 
 
@@ -68,7 +70,7 @@ async def migrate_networkx_to_neo4j(
 
     svc = Neo4jKGService(url=neo4j_url, user=user, password=password)
     await svc.verify_connectivity()
-    logger.info("Connected to Neo4j at %s", neo4j_url)
+    logger.info("Connected to Neo4j at %s", mask_url(neo4j_url))
 
     counts: dict[str, int] = {
         "entities": 0,
@@ -176,7 +178,7 @@ async def migrate_neo4j_to_networkx(
 
     neo4j_svc = Neo4jKGService(url=neo4j_url, user=user, password=password)
     await neo4j_svc.verify_connectivity()
-    logger.info("Connected to Neo4j at %s", neo4j_url)
+    logger.info("Connected to Neo4j at %s", mask_url(neo4j_url))
 
     nx_svc = KGService(persistence_path=json_path)
 

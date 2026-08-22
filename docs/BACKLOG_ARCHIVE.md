@@ -1308,6 +1308,56 @@ grep 結果更有說服力：grep 證明「現在沒人用」，註解證明「�
 **異動**: `frontend/src/styles/tension.css`（-243 行，純刪除，無新增）。無 token 異動
 （只是移除使用端），無 API 異動，無元件異動。五道閘門全綠。
 
+#### B-052 log 中 `neo4j_url` / `qdrant_url` 遮罩
+> 來源：2026-07-08 防禦性安全稽核（低風險項）。
+
+**背景**: 啟動時會把 `neo4j_url`、`qdrant_url` 寫入 log。這兩個 URL 目前無內嵌帳密故無實害，
+但一旦改用含帳密的連線字串（如 `neo4j://user:pass@host`）即會外洩。
+
+**完成**: 2026-08-22，分支 `chore/b052-mask-db-urls`。
+
+**盤點出 7 處，其中 1 處不是 log。** 條目寫的是「log 中」，但同一批變數還流進兩種非 log 的出口：
+
+| # | 位置 | 型態 | 洩漏到哪 |
+|---|---|---|---|
+| 1 | `api/deps.py:91` | `logger.info` | log |
+| 2 | `workflows/ingestion.py:846` | `logger.info` | log |
+| 3 | `services/vector_service.py:99` | `logger.info` | log |
+| 4 | `services/kg_migration.py:71` | `logger.info` | log |
+| 5 | `services/kg_migration.py:179` | `logger.info` | log |
+| 6 | `services/vector_service.py:95` | `RuntimeError` 訊息 | 例外訊息 → 進 log / traceback |
+| 7 | `api/routers/kg_settings.py:139` | `HTTPException(detail=…)` | **HTTP response body** |
+
+**#7 比原本要修的 log 更嚴重**，且純看條目標題不會發現：它把 URL 送進 503 的 response body
+回給前端，一旦帶帳密就是外洩到瀏覽器，不只是本機 log 檔。決定一起做——同一個變數、同一種
+洩漏、同一個 helper，把它留到另一條 backlog 只是讓已知的洞多開一陣子。
+
+其餘 `neo4j_url` / `qdrant_url` 的出現處（`kg_settings.py:67/131/203/210`、`deps.py:87`、
+`ingestion.py:848`、`vector_service.py:88`）都是把 URL 傳給 driver 或 migration 函式，
+不是輸出，未動。URL 從來不是任何 response schema 的欄位（只出現在 `detail` 字串），
+`API_CONTRACT.md` 也沒載明那段 503 文字，故 contract 無需更新。
+
+**helper 搬到 `core/utils/url_masking.py`，不是複製。** 條目建議「複用 `settings_info.py` 的
+`_mask_db_url` 遮罩模式」——照字面做會變成把同一段 `urlsplit` 邏輯抄五份。但直接 import 也
+不行：`_mask_db_url` 是 api router 的私有函式，而要用它的是 `services/` 與 `workflows/`，
+讓 service 去 import api router 是把依賴方向反過來。
+
+所以搬到 `core/utils/`（`text_matching.py`、`output_extractor.py` 的同層），實作逐字不變。
+沒有放進 `data_sanitizer.py`：那個模組管的是 LLM prompt 的注入防護，與連線字串遮罩是不同
+關注點，同一個檔名下擺兩種「sanitize」只會讓之後的人找錯地方。
+
+`settings_info.py` 的私有版本已刪除，四個既有測試隨受測對象移到 `tests/core/test_url_masking.py`
+（依 TESTING.md「新測試依照受測程式碼的層級放入對應子目錄」），另補兩個：bolt URL 帶帳密、
+無帳密 URL 不被改動。
+
+**未做（可另開條目）**: 防回歸測試——以 AST 掃描確保新的 log 呼叫不會直接印 `settings.neo4j_url`
+/ `qdrant_url`。B-081 用過這個手法。本次未做，因為條目沒要求，且 7 處已收斂到單一 helper。
+
+**異動**: 新增 `backend/storysphere/core/utils/url_masking.py`；修改 `api/deps.py`、
+`api/routers/kg_settings.py`、`api/routers/settings_info.py`、`services/kg_migration.py`、
+`services/vector_service.py`、`workflows/ingestion.py`；`tests/api/test_settings_info.py`
+→ `tests/core/test_url_masking.py`。無新依賴（`urllib.parse` 是標準庫）。五道閘門全綠。
+
 #### B-064 未分析卡「生成分析」按鈕文字對齊 canvas「建立」
 **背景**: 角色清單未分析卡的按鈕文字取自 `analysis.json` 的 `generate` key（「生成分析」），
 設計稿 canvas 為「建立」。該 key 被多處共用，不能直接改值。
