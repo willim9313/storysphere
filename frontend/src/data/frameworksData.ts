@@ -322,6 +322,8 @@ const OUTPUT_EN = {
 // backend/storysphere/config/character_analysis/ verbatim (zh and en) —
 // ArchetypeFilterDropdown facet counts compare them by string equality
 // against analyzed[].archetypes values, which store backend config names.
+// Enforced by tests/config/test_archetype_taxonomy_drift.py, which parses the
+// items below; keep the `{ id: '…', name: '…'` shape or update that parser.
 type RawFramework = Omit<Framework, 'categoryId' | 'crossBook' | 'hasConfidence' | 'pipeline' | 'output'>;
 
 const FRAMEWORKS_ZH: RawFramework[] = [
