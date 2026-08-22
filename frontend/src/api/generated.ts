@@ -2374,8 +2374,9 @@ export interface components {
             /**
              * Status
              * @default ready
+             * @enum {string}
              */
-            status: string;
+            status: "ready" | "analyzed" | "error";
             /**
              * Chaptercount
              * @default 0
@@ -2451,8 +2452,9 @@ export interface components {
             /**
              * Status
              * @default ready
+             * @enum {string}
              */
-            status: string;
+            status: "ready" | "analyzed" | "error";
             /**
              * Chaptercount
              * @default 0
@@ -3667,26 +3669,14 @@ export interface components {
         };
         /** PipelineStatusResponse */
         PipelineStatusResponse: {
-            /**
-             * Summarization
-             * @default pending
-             */
-            summarization: string;
-            /**
-             * Featureextraction
-             * @default pending
-             */
-            featureExtraction: string;
-            /**
-             * Knowledgegraph
-             * @default pending
-             */
-            knowledgeGraph: string;
-            /**
-             * Symboldiscovery
-             * @default pending
-             */
-            symbolDiscovery: string;
+            /** @default pending */
+            summarization: components["schemas"]["StepStatus"];
+            /** @default pending */
+            featureExtraction: components["schemas"]["StepStatus"];
+            /** @default pending */
+            knowledgeGraph: components["schemas"]["StepStatus"];
+            /** @default pending */
+            symbolDiscovery: components["schemas"]["StepStatus"];
         };
         /**
          * ProppFunctionRef
@@ -4034,6 +4024,11 @@ export interface components {
             /** Backendpackages */
             backendPackages: string[][];
         };
+        /**
+         * StepStatus
+         * @enum {string}
+         */
+        StepStatus: "pending" | "done" | "failed";
         /** SubgraphResponse */
         SubgraphResponse: {
             /** Nodes */

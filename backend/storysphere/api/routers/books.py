@@ -29,7 +29,7 @@ from storysphere.api.schemas.books import (
     TaskIdResponse,
 )
 from storysphere.api.store import task_store
-from storysphere.domain.documents import PipelineStatus
+from storysphere.domain.documents import PipelineStatus, StepStatus
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +55,38 @@ def _entity_type_counts(entities: list) -> EntityStats:
     )
 
 
-def _pipeline_status_response(pipeline_status_json: str | None):
-    from storysphere.api.schemas.books import PipelineStatusResponse  # noqa: PLC0415
+def _book_status(ps: PipelineStatus) -> str:
+    """Collapse the four pipeline steps into the one badge the library shows.
+
+    - ``error``    — a step failed; the book is readable but something went wrong
+    - ``analyzed`` — every step ran; the deep analysis pages all have data
+    - ``ready``    — parsed and readable, analysis not finished
+
+    There is no ``processing``: ``GET /books`` filters out books whose ingestion
+    task is still active (the frontend draws those as ProcessingBookCard), and
+    ``StepStatus`` has no ``running`` — a step sitting at ``pending`` may be
+    mid-flight or may never have been asked to run, and this function cannot
+    tell the two apart. Reporting "processing" from ``pending`` would mark every
+    partially-analysed book as busy forever.
+    """
+    steps = (
+        ps.summarization,
+        ps.feature_extraction,
+        ps.knowledge_graph,
+        ps.symbol_discovery,
+    )
+    if any(step == StepStatus.failed for step in steps):
+        return "error"
+    if all(step == StepStatus.done for step in steps):
+        return "analyzed"
+    return "ready"
+
+
+def _parse_pipeline_status(pipeline_status_json: str | None) -> PipelineStatus:
+    """Stored JSON → domain object. Absent JSON means nothing has run yet."""
     if pipeline_status_json is None:
-        return PipelineStatusResponse()
-    ps = PipelineStatus.model_validate_json(pipeline_status_json)
-    return _pipeline_status_response_from_domain(ps)
+        return PipelineStatus()
+    return PipelineStatus.model_validate_json(pipeline_status_json)
 
 
 def _pipeline_status_response_from_domain(ps: PipelineStatus):
@@ -102,17 +128,19 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
     entity_lists = await asyncio.gather(
         *[kg.list_entities(document_id=item.id) for item in settled]
     )
+    # Parsed once per book: both the badge and the per-step breakdown need it.
+    pipeline_statuses = [_parse_pipeline_status(item.pipeline_status_json) for item in settled]
     return [
         BookResponse(
             id=item.id,
             title=item.title,
-            status="ready",
+            status=_book_status(ps),
             chapter_count=item.chapter_count,
             entity_count=len(entities),
             uploaded_at="",
-            pipeline_status=_pipeline_status_response(item.pipeline_status_json),
+            pipeline_status=_pipeline_status_response_from_domain(ps),
         ).model_dump(by_alias=True)
-        for item, entities in zip(settled, entity_lists, strict=False)
+        for item, entities, ps in zip(settled, entity_lists, pipeline_statuses, strict=False)
     ]
 
 
@@ -143,7 +171,7 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         id=document.id,
         title=document.title,
         author=document.author,
-        status="ready",
+        status=_book_status(document.pipeline_status),
         language=document.language,
         summary=document.summary,
         chapter_count=document.body_chapter_count,

@@ -23,8 +23,6 @@ export function RecentBookCard({ book }: RecentBookCardProps) {
           { label: t('shortcuts.startReading'), to: base },
           { label: t('shortcuts.triggerAnalysis'), to: base },
         ];
-      case 'processing':
-        return [{ label: t('shortcuts.viewProgress'), to: '/upload' }];
       case 'error':
         return [{ label: t('shortcuts.viewError'), to: '/upload' }];
     }

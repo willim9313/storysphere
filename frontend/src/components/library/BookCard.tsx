@@ -14,7 +14,6 @@ const STEP_LABELS: Record<keyof PipelineStatus, string> = {
 };
 
 export function BookCard({ book }: Readonly<{ book: Book }>) {
-  const isProcessing = book.status === 'processing';
   const [confirmDelete, setConfirmDelete] = useState(false);
   const { mutate: deleteBook, isPending: isDeleting } = useDeleteBook();
   const { t } = useTranslation('library');
@@ -45,7 +44,7 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
   return (
     <div className="relative group">
       <Link
-        to={isProcessing ? '/upload' : `/books/${book.id}`}
+        to={`/books/${book.id}`}
         className="card flex flex-col gap-2 hover:shadow-md transition-shadow p-3 block"
       >
         <div

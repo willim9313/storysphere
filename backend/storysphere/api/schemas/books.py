@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+from storysphere.domain.documents import StepStatus
 from storysphere.domain.entities import EntityType
 
 # ── Shared config ────────────────────────────────────────────────────────────
@@ -20,10 +21,10 @@ _CAMEL = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 class PipelineStatusResponse(BaseModel):
     model_config = _CAMEL
 
-    summarization: str = "pending"
-    feature_extraction: str = "pending"
-    knowledge_graph: str = "pending"
-    symbol_discovery: str = "pending"
+    summarization: StepStatus = StepStatus.pending
+    feature_extraction: StepStatus = StepStatus.pending
+    knowledge_graph: StepStatus = StepStatus.pending
+    symbol_discovery: StepStatus = StepStatus.pending
 
 
 class BookResponse(BaseModel):
@@ -32,7 +33,11 @@ class BookResponse(BaseModel):
     id: str
     title: str
     author: str | None = None
-    status: str = "ready"
+    # Derived from pipeline_status, not stored — see routers/books.py::_book_status.
+    # "processing" is deliberately absent: GET /books excludes books with an active
+    # ingestion task (the frontend draws those as ProcessingBookCard), and StepStatus
+    # has no "running", so the backend cannot tell "in flight" from "never ran".
+    status: Literal["ready", "analyzed", "error"] = "ready"
     chapter_count: int = 0
     entity_count: int | None = None
     uploaded_at: str = ""

@@ -1504,3 +1504,74 @@ DB 實查（`var/storysphere.db`，93 個段落、2839 筆 entity）：character
 **異動**: `api/schemas/book_graph.py`、`api/schemas/books.py`、`frontend/src/api/generated.ts`
 （重新產生）、`frontend/src/api/types.ts`、`frontend/src/pages/GraphPage.tsx`。無新依賴。
 五道閘門全綠。
+
+#### B-088 書卡狀態徽章永遠是「已就緒」
+**背景**: 2026-08-22 做 B-084 時盤點出來的。書庫書卡右上角（`BookCard.tsx:70`）與閱讀頁
+書籍概覽（`BookOverview.tsx:118`）的 `StatusBadge` 設計上有四種樣子——已分析（綠）／
+已就緒（藍）／處理中（琥珀）／錯誤（紅）——但後端 `books.py` 的兩個建構點都硬寫
+`status="ready"`，所以**每本書都是藍色的「已就緒」，「已分析」篩選點下去永遠是空的**。
+
+`Book` / `BookDetail` 也因此卡著接不回 `generated.ts`，是 B-084 唯一沒收掉的兩個型別。
+
+**完成**: 2026-08-22，分支 `feat/b088-book-status`。
+
+**條目原本假設要在 4 個值裡二選一，查證後發現只有 3 個是真的。** 原記載把問題寫成
+「那 4 種狀態是未實作的設計還是已廢棄的舊設計」，但 `processing` 兩者都不是——它**結構上
+就產不出來**：
+
+- `GET /books` 的 docstring 自己寫明會濾掉還在跑 ingestion 的書（`books.py:81-84`），
+  前端另外用 `ProcessingBookCard` 畫。所以列表裡的書永遠不可能是「處理中」
+- `StepStatus` 只有 `pending` / `done` / `failed`，**沒有 `running`**。停在 `pending` 的步驟
+  可能正在跑、也可能根本沒被要求跑，後端分不出來。用 `pending` 推 `processing` 會讓每本
+  只跑了一半的書永遠顯示「處理中」
+- `ProcessingBookCard` **完全沒用到** `StatusBadge` 或 `BookStatus`——它自己有 spinner、
+  階段文字、進度百分比
+- 「處理中」那顆篩選 pill **現在就是能用的**（`LibraryPage.tsx:190` 在該篩選下渲染
+  `pendingTasks`），只是走另一條路。`safeBooks.filter(b => b.status === 'processing')`
+  那半恆為空，對畫面沒有任何貢獻
+
+所以 `processing` 從 `BookStatus` 移除，pill 與 `ProcessingBookCard` 一行沒動，畫面行為不變。
+
+**判定規則**（`routers/books.py::_book_status`）:
+
+| 條件 | 值 | 徽章 |
+|---|---|---|
+| 任一步 `failed` | `error` | 🔴 錯誤 |
+| 四步全 `done` | `analyzed` | 🟢 已分析 |
+| 其餘 | `ready` | 🔵 已就緒 |
+
+「已分析」採「四步全 `done`」而非「知識圖譜跑完就算」。判定資料全在既有的
+`PipelineStatus`，沒有新欄位、沒有 DB 遷移——只是把早就存著的東西收斂成一個值。
+
+**順帶收掉 `PipelineStatusResponse`（必要，非順手）**: 接回 `BookDetail` 時 `tsc` 抓到
+第四個錯誤——該 model 的四個欄位也是純 `str`，而前端手寫版窄化成 `StepStatus`。這是 B-084
+同一個模式的再現，且不修就無法完成本條待辦的第三點（「之後 Book / BookDetail 才能接回
+generated」）。改成 `StepStatus` enum 後 `PipelineStatus` / `StepStatus` 兩個前端型別也一併
+接回 generated。
+
+**至此 `api/types.ts` 不再有任何手寫的 response 型別**——B-084 收掉 4 個，本條收掉 4 個
+（`Book`、`BookDetail`、`PipelineStatus`、`StepStatus`）。
+
+**API_CONTRACT 這次是真的改了**（B-084 那次沒有）: `:79` 的 `status` 值域從 4 個改為 3 個，
+並註明推導規則與為什麼沒有 `processing`。反過來，`PipelineStatus` 的部分**不需要改**——
+`:69-72` 早就寫著 `'pending' | 'done' | 'failed'`，同樣是後端沒跟上自己的契約。
+
+**移除的前端死碼**（都是 `processing` 恆假造成的，`tsc` 逐一指出，不是靠肉眼判斷）:
+- `StatusBadge.tsx` 的 `processing` 樣式
+- `BookCard.tsx` 的 `isProcessing`——只影響連結目標，恆假故連結固定指向書籍頁
+- `RecentBookCard.tsx` 的 `case 'processing'`
+- `LibraryPage.tsx:140` 的 `filter as BookStatus` cast——改寫成明確的三分支，把
+  「processing 篩不到書是刻意的」寫進註解，而不是靠一個會說謊的 cast
+
+**驗證**: 11 項純函數測試（三條分支、四個步驟各自失敗、無 JSON、帶 `*_at` 額外欄位的真實
+資料）。另用臨時型別斷言檔跑 `tsc --noEmit` 驗 `BookStatus` 恰好 3 值、不是 `string`、
+`StepStatus` 恰好 3 值、`Book`/`BookDetail`/`PipelineStatus` 的欄位型別對得上，並確認斷言
+本身改錯會紅後才刪除。
+
+**實際資料**: 現有 4 本書四步全 `done`，所以徽章會從「全部藍色」變成「全部綠色」——
+一樣整齊，但這次是真的。
+
+**異動**: `api/schemas/books.py`、`api/routers/books.py`、`tests/api/test_book_status_badge.py`
+（新增）、`frontend/src/api/{generated.ts,types.ts}`、`frontend/src/components/library/`
+三個元件、`frontend/src/pages/LibraryPage.tsx`、`docs/API_CONTRACT.md`。無新依賴。
+五道閘門全綠。

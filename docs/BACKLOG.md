@@ -494,28 +494,6 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-088 `BookResponse.status` 只吐 `"ready"`，前端卻預期 4 種狀態
-**背景**: 2026-08-22 做 B-084 時盤點出來的。後端 `books.py:109` 與 `:146` 兩個建構點
-**都硬寫 `status="ready"`**，從不輸出別的值；而前端 `api/types.ts` 的
-`BookStatus = 'processing' | 'ready' | 'analyzed' | 'error'`，`StatusBadge.tsx:4` 的
-`Record<BookStatus, …>` 有 4 個分支、`LibraryPage.tsx:140` 也依這 4 個值篩選。
-
-`Book` / `BookDetail` 因此仍留在手寫，是 B-084 唯一沒收掉的兩個型別。
-
-**為什麼不併進 B-084**: 這不是型別宣告問題。要先回答**那 4 種狀態是未實作的設計，
-還是已廢棄的舊設計**——前者該補後端，後者該刪前端。在沒答案前，兩種收斂都是猜：
-宣告 `Literal["processing","ready","analyzed","error"]` 是把「未來可能會用到」寫進契約；
-宣告 `Literal["ready"]` 則讓前端 3 個分支變死碼，範圍明顯變大。
-
-**待辦內容**:
-- 先查清 `processing` / `analyzed` / `error` 是否曾經被輸出過（git log 或舊版 API_CONTRACT）
-- 依結論擇一：補後端狀態機，或刪前端未使用分支
-- 之後 `Book` / `BookDetail` 才能接回 `components['schemas']['BookResponse']`
-
-**觸發時機**: 下次動到書籍狀態顯示或上傳流程狀態時。
-
----
-
 #### B-065 各功能頁操作說明缺乏統一機制
 **背景**: 9 個功能頁裡只有角色分析、事件分析兩頁有常駐操作說明，而且是兩套各自實作的元件（`CharacterTipRibbon` 用單一 `STORAGE_KEY`，`EventGuideRibbon` 用 overview/detail 兩個 surface key）。閱讀、符號、敘事結構、建構概覽四頁完全沒有；圖譜、時間軸、張力只有 `*OnboardingHero`——那是「資料還沒產生」時的空狀態引導，不是操作說明，有資料後就消失。其餘說明散落成各元件內的 caption / footnote / legendNote，沒有統一位置、樣式或收合行為。
 
@@ -1162,7 +1140,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-086 | Ink 主題下狀態語意只靠顏色 | 🟢 低 | ✅ 已完成（2026-08-22；盤點 109 處只有 1 處是真問題，見 ARCHIVE） |
 | B-087 | 張力頁零引用的狀態色 CSS | 🟢 低 | ✅ 已完成（2026-08-22；實際範圍是兩整段共 243 行，非原記的 6 行，見 ARCHIVE） |
 | B-072 | 張力 Step 1 組裝失敗的 TEU 無清單可看 | 🟢 低 | 待開始（前置：確認後端 task 是否留有失敗清單） |
-| B-088 | `BookResponse.status` 只吐 `"ready"`，前端卻預期 4 種狀態 | 🟢 低 | 待開始（2026-08-22 做 B-084 時發現；前置：先決定那 4 種狀態是未實作還是已廢棄） |
+| B-088 | 書卡狀態徽章永遠是「已就緒」 | 🟢 低 | ✅ 已完成（2026-08-22；改由 pipeline_status 推導 3 值，`processing` 證實產不出來已移除；順帶收掉 PipelineStatusResponse，見 ARCHIVE） |
 
 ### F 系列
 

@@ -4,15 +4,10 @@
  * 已有對應 schema 的，這裡都寫成 re-export alias（見下方 `components['schemas'][…]`
  * 那幾行），呼叫端不必改，但欄位定義以後端為準。
  *
- * 刻意留在手寫的：Book / BookDetail —— 後端 `BookResponse.status` 宣告成純
- * `str`，而前端這裡窄化成 BookStatus union，`StatusBadge.tsx` 的
- * `Record<BookStatus, …>` 靠這個窄化。接回 generated 等於把窄化丟掉再補 cast。
- * 後端實際只吐 `"ready"`，前端卻預期 4 種狀態——那不是型別問題，要先決定那 4 種
- * 是未實作的設計還是已廢棄的舊設計。見 BACKLOG 的 B-088。
- *
- * GraphNode / Segment / EntityChunkItem / EntityChunksResponse 原本也卡在同一
- * 類問題（後端的 type 欄位是純 `str`），已於 B-084 從後端收窄成 EntityType，
- * 這四個因此都改回 generated alias。
+ * GraphNode / Segment / EntityChunkItem / EntityChunksResponse 曾卡在「後端的
+ * type 欄位是純 `str`」，已於 B-084 從後端收窄成 EntityType；Book / BookDetail
+ * 卡在同一類問題的 `BookResponse.status`，已於 B-088 由 pipeline_status 推導。
+ * 六個都已改回 generated alias，這裡不再有手寫的 response 型別。
  */
 
 // ── Entity type ─────────────────────────────────────────────────
@@ -23,53 +18,20 @@ export type EntityType = components['schemas']['GraphNode']['type'];
 
 // ── Books ───────────────────────────────────────────────────────
 
-export type BookStatus = 'processing' | 'ready' | 'analyzed' | 'error';
-export type StepStatus = 'pending' | 'done' | 'failed';
+/** 書卡徽章。`processing` 不是書的狀態：還在跑 ingestion 的書不會出現在 #1 的
+ *  回應裡，前端另外用 ProcessingBookCard 畫（見 LibraryPage）。 */
+export type BookStatus = components['schemas']['BookResponse']['status'];
+export type StepStatus = components['schemas']['StepStatus'];
 
-export interface PipelineStatus {
-  summarization: StepStatus;
-  featureExtraction: StepStatus;
-  knowledgeGraph: StepStatus;
-  symbolDiscovery: StepStatus;
-}
+export type PipelineStatus = components['schemas']['PipelineStatusResponse'];
 
-export interface Book {
-  id: string;
-  title: string;
-  author?: string;
-  status: BookStatus;
-  chapterCount: number;
-  entityCount?: number;
-  uploadedAt: string;
-  lastOpenedAt?: string;
-  pipelineStatus: PipelineStatus;
-}
+export type Book = components['schemas']['BookResponse'];
 
 export interface RerunTaskResult {
   taskId: string;
 }
 
-export interface BookDetail extends Book {
-  /** 書籍本身的語言（非 UI 語言），如 'zh-tw' / 'en'。分析類 endpoint 的
-   *  language 參數應取自這裡：後端以 get_language_display_name() 轉成 prompt 的
-   *  "Respond in {name}."，'zh' 只得到 "Chinese"，'zh-tw' 才是 "Traditional
-   *  Chinese"。見 API_CONTRACT #3。 */
-  language: string;
-  summary?: string;
-  chunkCount: number;
-  entityCount: number;
-  relationCount: number;
-  eventCount: number;
-  entityStats: {
-    character: number;
-    location: number;
-    organization: number;
-    object: number;
-    concept: number;
-    other: number;
-  };
-  keywords?: Record<string, number>;
-}
+export type BookDetail = components['schemas']['BookDetailResponse'];
 
 // ── Chapters ────────────────────────────────────────────────────
 

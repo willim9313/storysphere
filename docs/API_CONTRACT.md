@@ -76,7 +76,10 @@ interface Book {
   id: string;
   title: string;
   author?: string;
-  status: 'processing' | 'ready' | 'analyzed' | 'error';
+  // pipeline_status 推導：任一步 failed → error；四步全 done → analyzed；其餘 ready。
+  // 沒有 'processing'：還在跑 ingestion 的書被 #1 濾掉（前端畫 ProcessingBookCard），
+  // 且 StepStatus 沒有 running，後端分不出「正在跑」與「從沒跑過」。
+  status: 'ready' | 'analyzed' | 'error';
   chapterCount: number;    // 只計 body 章；序/目次/後記不計入（與閱讀頁章節列表一致）
   entityCount?: number;
   uploadedAt: string;
