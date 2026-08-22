@@ -1201,7 +1201,7 @@ function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: Grap
 
   const grouped = useMemo(() => {
     if (!data?.chunks) return [];
-    const map = new Map<number, { chapterId: string; title: string | undefined; chunks: EntityChunkItem[] }>();
+    const map = new Map<number, { chapterId: string; title: string | null | undefined; chunks: EntityChunkItem[] }>();
     for (const chunk of data.chunks) {
       let group = map.get(chunk.chapterNumber);
       if (!group) {

@@ -529,37 +529,25 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-084 後端實體類別欄位是純 `str`，擋住四個前端型別接回 generated.ts
-**背景**: 2026-08-20 前端批次 4 把 `api/types.ts` 手抄的型別接回 `generated.ts` 時，
-15 個候選裡有 11 個零成本接上，4 個接不了：`GraphNode`、`Segment`、`EntityChunkItem`、
-`EntityChunksResponse`。
+#### B-088 `BookResponse.status` 只吐 `"ready"`，前端卻預期 4 種狀態
+**背景**: 2026-08-22 做 B-084 時盤點出來的。後端 `books.py:109` 與 `:146` 兩個建構點
+**都硬寫 `status="ready"`**，從不輸出別的值；而前端 `api/types.ts` 的
+`BookStatus = 'processing' | 'ready' | 'analyzed' | 'error'`，`StatusBadge.tsx:4` 的
+`Record<BookStatus, …>` 有 4 個分支、`LibraryPage.tsx:140` 也依這 4 個值篩選。
 
-**2026-08-21 補充：實際是 6 個，不是 4 個。** 做 B-062 時發現 `Book` / `BookDetail` 卡在
-同一個問題上，只是當時沒被列進來——`generated.ts` 的 `BookResponse.status` 是 `string`，
-前端窄化成 `BookStatus` union，而 `StatusBadge.tsx:4` 有 `Record<BookStatus, …>` 靠這個
-窄化。`api/types.ts` 的檔頭註解已一併更正。
+`Book` / `BookDetail` 因此仍留在手寫，是 B-084 唯一沒收掉的兩個型別。
 
-原因不是前端寫錯，而是**後端把實體類別宣告成純 `str`**——`generated.ts` 的
-`GraphNode.type` 與 `SegmentEntity.type` 都是 `string`。前端手寫版把它窄化成
-`EntityType`（`'character' | 'location' | 'organization' | 'object' | 'concept' |
-'other' | 'event'`），而全站有十幾處靠這個窄化做窮舉比對與 `Record<EntityType, …>`
-索引（`ClusterOverviewPanel`、`FactionCanvas`、`PairModeOverlay`、`SegmentRenderer`、
-`kgClustering` 等）。實測接回去會產生 12 個 `string is not assignable to EntityType`，
-只能靠補 cast 消掉——那是把型別資訊丟掉再假裝有，比手抄更糟。
-
-後兩者（`EntityChunkItem` / `EntityChunksResponse`）本身沒問題，是巢狀帶著
-`Segment` 才一起卡住。
+**為什麼不併進 B-084**: 這不是型別宣告問題。要先回答**那 4 種狀態是未實作的設計，
+還是已廢棄的舊設計**——前者該補後端，後者該刪前端。在沒答案前，兩種收斂都是猜：
+宣告 `Literal["processing","ready","analyzed","error"]` 是把「未來可能會用到」寫進契約；
+宣告 `Literal["ready"]` 則讓前端 3 個分支變死碼，範圍明顯變大。
 
 **待辦內容**:
-- 找出後端輸出這些欄位的 Pydantic model，把 `type: str` 改成 `Literal[...]` 或 `Enum`
-- 前端重跑 `npm run gen:types`，確認 `GraphNode.type` 產出的是 union 而非 string
-- 把這四個型別也改成 `components['schemas'][…]` 的 alias，並移除 `api/types.ts` 裡
-  的 `EntityType` 手寫 union（改為從 generated 推導）
-- 注意 `type` 的實際值域要先盤點，後端可能有前端 union 未涵蓋的值
+- 先查清 `processing` / `analyzed` / `error` 是否曾經被輸出過（git log 或舊版 API_CONTRACT）
+- 依結論擇一：補後端狀態機，或刪前端未使用分支
+- 之後 `Book` / `BookDetail` 才能接回 `components['schemas']['BookResponse']`
 
-**注意**: 這是後端改動帶動前端收斂，順序不能反。前端先接回去只會逼出一堆 cast。
-
-**觸發時機**: 下次動到 KG 圖譜 schema 或實體型別定義時。
+**觸發時機**: 下次動到書籍狀態顯示或上傳流程狀態時。
 
 ---
 
@@ -1216,7 +1204,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-082 | 重跑 KG 抽取會累積重複的實體 / 關係 / 事件 | 🔴 高 | ✅ 已完成（2026-08-20 PR #60；`_persist_to_kg` delete-first，連帶清 `inferred_relations`） |
 | B-083 | pypdf 在 CJK 字中插空白，`mention_count` 漏數 | 🟡 中 | ✅ 已完成（2026-08-20 PR #64；`core/utils/text_matching.squash_spacing()`，41 個實體的漏數修正） |
 | B-080 | 後端 deferred import 分類 | 🟢 低 | **不做**（2026-08-19 分類：276 處中僅 ~5.4% 可搬；75% 是循環依賴迴避） |
-| B-084 | 後端實體類別欄位是純 `str`，擋住 4 個前端型別接回 generated | 🟢 低 | 待開始（觸發：下次動到 KG schema 或實體型別定義） |
+| B-084 | 後端實體類別欄位是純 `str`，擋住 4 個前端型別接回 generated | 🟢 低 | ✅ 已完成（2026-08-22；4 個型別已接回，只需改 1 個消費端而非預期的 12 個 cast；`status` 那半拆為 B-088，見 ARCHIVE） |
 | B-085 | 五道閘門沒有任何 CI 在盯 | 🟡 中 | ✅ 已完成（2026-08-22；`.github/workflows/gates.yml`，觸發條件在 2026-08-21 滿足） |
 | B-066 | 前端 `tsc -b` 既有 10 項型別錯誤 | 🟡 中 | ✅ 已完成（2026-08-20；10 項全清，`npm run build` 於 main 首次 exit 0） |
 | B-067 | mock 模式下時間軸覆蓋率恆為 0% | 🟢 低 | **不做**（2026-08-20；`api/mock/` 整層已移除，前提消失） |
@@ -1227,6 +1215,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-086 | Ink 主題下狀態語意只靠顏色 | 🟢 低 | ✅ 已完成（2026-08-22；盤點 109 處只有 1 處是真問題，見 ARCHIVE） |
 | B-087 | 張力頁兩段零引用的狀態色 CSS | 🟢 低 | 待開始（2026-08-22 盤點 B-086 時發現；觸發：下次動到 tension.css） |
 | B-072 | 張力 Step 1 組裝失敗的 TEU 無清單可看 | 🟢 低 | 待開始（前置：確認後端 task 是否留有失敗清單） |
+| B-088 | `BookResponse.status` 只吐 `"ready"`，前端卻預期 4 種狀態 | 🟢 低 | 待開始（2026-08-22 做 B-084 時發現；前置：先決定那 4 種狀態是未實作還是已廢棄） |
 
 ### F 系列
 

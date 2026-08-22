@@ -8,10 +8,12 @@ module. Class names are unchanged, so the OpenAPI component names — and
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
+
+from storysphere.domain.entities import EntityType
 
 _CAMEL = ConfigDict(populate_by_name=True, alias_generator=to_camel)
 
@@ -21,7 +23,11 @@ class GraphNode(BaseModel):
 
     id: str
     name: str
-    type: str
+    # Entity nodes carry their EntityType; event nodes are the one value the
+    # domain enum does not have (see routers/book_graph.py, where events are
+    # appended with type="event"). Declared as a union rather than a widened
+    # enum so the extra value stays visibly graph-only.
+    type: EntityType | Literal["event"]
     description: str | None = None
     chunk_count: int = 0
     event_type: str | None = None

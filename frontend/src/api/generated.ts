@@ -3160,7 +3160,7 @@ export interface components {
             /** Name */
             name: string;
             /** Type */
-            type: string;
+            type: components["schemas"]["EntityType"] | "event";
             /** Description */
             description?: string | null;
             /**
@@ -3999,8 +3999,7 @@ export interface components {
         };
         /** SegmentEntity */
         SegmentEntity: {
-            /** Type */
-            type: string;
+            type: components["schemas"]["EntityType"];
             /** Entityid */
             entityId: string;
             /** Name */

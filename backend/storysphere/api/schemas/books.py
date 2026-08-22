@@ -7,6 +7,8 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
+from storysphere.domain.entities import EntityType
+
 # ── Shared config ────────────────────────────────────────────────────────────
 
 _CAMEL = ConfigDict(populate_by_name=True, alias_generator=to_camel)
@@ -128,7 +130,7 @@ class ChapterResponse(BaseModel):
 class SegmentEntity(BaseModel):
     model_config = _CAMEL
 
-    type: str
+    type: EntityType
     entity_id: str
     name: str
 
