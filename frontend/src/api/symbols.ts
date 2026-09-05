@@ -42,13 +42,6 @@ export function fetchSymbolTimeline(imageryId: string): Promise<SymbolTimelineEn
   return apiFetch<SymbolTimelineEntry[]>(`/symbols/${imageryId}/timeline`);
 }
 
-export function fetchCoOccurrences(
-  imageryId: string,
-  topK = 10,
-): Promise<CoOccurrenceEntry[]> {
-  return apiFetch<CoOccurrenceEntry[]>(`/symbols/${imageryId}/co-occurrences?top_k=${topK}`);
-}
-
 export function fetchSep(
   imageryId: string,
   force = false,
