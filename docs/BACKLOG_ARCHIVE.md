@@ -1619,3 +1619,37 @@ CTA 會從隱藏變成顯示，而它對應的 `KG_RERUN` 只重跑 NER、永遠
 `tests/api/test_unraveling.py`。無新依賴。五道閘門全綠（1847 passed）。PR #79。
 
 **後續**: 接上 pipeline 本身、以及它「彙集整章卻截掉七成」的問題，見 B-092。
+
+---
+
+## B-090 零引用符號清除（第一批）✅ 完成（2026-09-05）
+
+**背景**: 以 AST 掃描 `backend/storysphere` 全部 top-level 定義與 class 方法，比對
+`backend + tests + scripts` 的引用數，排除兩類偽陽性（route handler 有 decorator、
+不以名字呼叫；pydantic validator 由 `field_validator` 註冊）後，得到 5 個零引用符號。
+
+**處置結果（三種，不是一種）**:
+
+| 符號 | 處置 |
+|------|------|
+| `api/schemas/books.py` `EntityAnalysisResponse` | 刪除。端點實際用 `CharacterAnalysisDetailResponse` |
+| `core/tracing.py` `is_tracing_enabled()` | 刪除。手足 `update_span` 7 處、`get_langfuse_handler` 3 處 |
+| `frontend/src/api/types.ts` `EntityAnalysis` | 刪除。上者的前端雙胞胎，欄位一字不差 |
+| `tools/schemas.py` `CharacterAnalysisOutput` | **不刪，改為讓工具用它** —— 見下 |
+| `core/llm_client.py` `LLMClient.get_fallback()` | **暫緩**。零引用很可能就是 B-075「fallback 鏈是壞的」的成因，不是死碼 |
+
+`CharacterAnalysisOutput` 是本批最值得記的一筆：它零引用，但 `analyze_character.py`
+手刻了一個欄位逐字相同的 dict literal（`model_fields.keys()` 實比對，順序都一樣）。
+同層手足 `analyze_event.py:52` 則直接建構 `EventAnalysisOutput`。所以那不是死碼，
+是**被抄了一份的 schema**，兩者漂移不會有人發現。改為讓工具用它，順帶補上哨兵測試。
+
+刪除 `EntityAnalysisResponse` 對 OpenAPI 的影響**用重產比對證明而非推論**：離線
+`create_app().openapi()` → `openapi-typescript`，與 commit 版 `generated.ts` byte-identical，
+故 `API_CONTRACT.md` 與 `generated.ts` 都不需更動。
+
+**觸發時機**: 已執行。方法論與後續全面掃描見 B-091。
+
+**異動**: `api/schemas/books.py`、`core/tracing.py`、`frontend/src/api/types.ts`（三處刪除）、
+`tools/analysis_tools/analyze_character.py`、`tests/tools/test_analysis_tools.py`（+2 哨兵測試）。
+無新依賴。五道閘門全綠（1849 passed）。PR #80。
+
