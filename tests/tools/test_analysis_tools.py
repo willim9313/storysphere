@@ -19,6 +19,7 @@ from storysphere.tools.analysis_tools import (
     AnalyzeEventTool,
     GenerateInsightTool,
 )
+from storysphere.tools.schemas import CharacterAnalysisOutput
 
 
 class TestGenerateInsightTool:
@@ -80,6 +81,36 @@ class TestAnalyzeCharacterTool:
         assert "brave" in result["traits"]
         assert len(result["archetypes"]) == 1
         assert result["archetypes"][0]["primary"] == "hero"
+
+    @pytest.mark.asyncio
+    async def test_output_matches_schema(self):
+        """The tool builds its payload through CharacterAnalysisOutput, so the
+        schema and the emitted JSON cannot drift apart unnoticed — the failure
+        this guards is silent, which is why it needs a test of its own."""
+        agent = self._make_mock_agent()
+        tool = AnalyzeCharacterTool(analysis_agent=agent)
+        raw = await tool._arun("Alice", document_id="doc-1")
+
+        output = CharacterAnalysisOutput(**json.loads(raw))
+
+        assert output.entity_id == "ent-1"
+        assert output.entity_name == "Alice"
+        assert output.document_id == "doc-1"
+        assert output.summary == "Alice is a brave hero."
+        assert output.traits == ["brave", "determined"]
+        assert output.arc[0]["phase"] == "Setup"
+
+    @pytest.mark.asyncio
+    async def test_non_ascii_names_are_not_escaped(self):
+        """model_dump_json() replaces json.dumps(ensure_ascii=False); CJK names
+        must still reach the chat agent as characters, not \\uXXXX escapes."""
+        agent = self._make_mock_agent()
+        agent.analyze_character.return_value.entity_name = "寇仲"
+        tool = AnalyzeCharacterTool(analysis_agent=agent)
+        raw = await tool._arun("寇仲", document_id="doc-1")
+
+        assert "寇仲" in raw
+        assert "\\u" not in raw
 
     @pytest.mark.asyncio
     async def test_no_agent_returns_error(self):
