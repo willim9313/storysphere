@@ -86,14 +86,6 @@ export function fetchEventSourcePassages(
   );
 }
 
-// #7e — Delete event analysis
-export function deleteEventAnalysis(
-  bookId: string,
-  eventId: string,
-): Promise<void> {
-  return apiDelete(`/books/${bookId}/events/${eventId}/analysis`);
-}
-
 // #7f — Batch event analysis (analyze all unanalyzed events)
 export function triggerBatchEventAnalysis(
   bookId: string,
