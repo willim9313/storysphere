@@ -405,6 +405,34 @@
     background-color var(--transition-fast),
     color var(--transition-fast);
 }
+/* Active-filter bar: what the toolbar's count actually stands for. The chips
+   reuse .tl-filter-chip so a filter looks the same whether you are picking it
+   in the sheet or dropping it here; .removable only adds the × spacing. */
+.tl-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px var(--space-4);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
+}
+.tl-active-filters-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  letter-spacing: 0.04em;
+}
+.tl-filter-chip.removable {
+  padding-right: 6px;
+  color: var(--fg-primary);
+}
+.tl-filter-chip.removable svg {
+  opacity: 0.55;
+}
+.tl-filter-chip.removable:hover svg {
+  opacity: 1;
+}
+
 .tl-filter-chip:hover {
   background: var(--bg-secondary);
 }

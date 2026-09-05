@@ -7,10 +7,6 @@ import type {
 } from './types';
 
 // #6 — Trigger full-book analysis
-export function triggerBookAnalysis(bookId: string): Promise<{ taskId: string }> {
-  return apiFetch<{ taskId: string }>(`/books/${bookId}/analyze`, { method: 'POST' });
-}
-
 // #6a — Character analysis list
 export function fetchCharacterAnalyses(bookId: string): Promise<AnalysisListResponse> {
   return apiFetch<AnalysisListResponse>(`/books/${bookId}/analysis/characters`);
@@ -19,18 +15,6 @@ export function fetchCharacterAnalyses(bookId: string): Promise<AnalysisListResp
 // #6b — Event analysis list
 export function fetchEventAnalyses(bookId: string): Promise<AnalysisListResponse> {
   return apiFetch<AnalysisListResponse>(`/books/${bookId}/analysis/events`);
-}
-
-// #6c — Regenerate analysis item
-export function regenerateAnalysis(
-  bookId: string,
-  section: string,
-  itemId: string,
-): Promise<{ taskId: string }> {
-  return apiFetch<{ taskId: string }>(
-    `/books/${bookId}/analysis/${section}/${itemId}/regenerate`,
-    { method: 'POST' },
-  );
 }
 
 // #7a — Entity analysis detail (full structured result)

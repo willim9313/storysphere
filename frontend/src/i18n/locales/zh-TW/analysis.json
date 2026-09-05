@@ -820,7 +820,7 @@
     "layoutToggle": "佈局切換",
     "appliedPrefix": "已套用：",
     "clearAll": "全部清除",
-    "removeFilter": "移除篩選",
+    "removeFilter": "移除「{{label}}」篩選",
     "analyzedShort": "已分析",
     "gotoAnalysis": "前往深度分析頁觸發 EEP",
     "banner": {
@@ -862,6 +862,7 @@
       "cta": "前往事件分析"
     },
     "filter": "篩選",
+    "activeFilters": "生效中",
     "filterSections": {
       "eventTypes": "事件類型",
       "narrativeModes": "敘事模式",
