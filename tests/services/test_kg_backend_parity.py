@@ -20,7 +20,10 @@ import textwrap
 
 import pytest
 from storysphere.services.kg_service import KGService
-from storysphere.services.kg_service_base import KGServiceBase
+from storysphere.services.kg_service_base import (
+    KG_DEPENDENT_FEATURES,
+    KGServiceBase,
+)
 from storysphere.services.kg_service_neo4j import Neo4jKGService
 
 BACKENDS = [KGService, Neo4jKGService]
@@ -211,9 +214,26 @@ class TestUnsupportedMembers:
     @pytest.mark.parametrize("backend", BACKENDS, ids=lambda c: c.__name__)
     def test_every_gap_names_what_it_breaks(self, backend):
         """A gap recorded without its blast radius is a name, not a warning —
-        the switch endpoint shows these strings to the person deciding."""
-        for member, reason in backend.UNSUPPORTED.items():
-            assert reason.strip(), f"{backend.__name__}.{member} has no reason recorded"
+        the settings page turns these ids into the list of features a person
+        is about to lose."""
+        for member, features in backend.UNSUPPORTED.items():
+            assert features, (
+                f"{backend.__name__}.{member} names no affected feature; "
+                f"a gap nobody can describe cannot be warned about"
+            )
+
+    @pytest.mark.parametrize("backend", BACKENDS, ids=lambda c: c.__name__)
+    def test_gap_features_are_known_ids(self, backend):
+        """Ids only mean something if both sides agree on the vocabulary. An
+        id outside ``KG_DEPENDENT_FEATURES`` reaches the UI with no translation
+        and renders as a raw key."""
+        for member, features in backend.UNSUPPORTED.items():
+            unknown = sorted(set(features) - KG_DEPENDENT_FEATURES)
+            assert unknown == [], (
+                f"{backend.__name__}.{member} names unknown feature ids "
+                f"{unknown} — add them to KG_DEPENDENT_FEATURES (and give them "
+                f"an i18n key) or fix the typo"
+            )
 
     @pytest.mark.parametrize("backend", BACKENDS, ids=lambda c: c.__name__)
     def test_gaps_are_declared_abstract_members(self, backend):

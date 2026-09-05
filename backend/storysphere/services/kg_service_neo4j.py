@@ -65,15 +65,12 @@ class Neo4jKGService(KGServiceBase):
     #: ``tests/services/test_kg_backend_parity.py`` keeps this honest in both
     #: directions — adding a gap without declaring it fails, and so does
     #: leaving a declaration behind after the gap is closed.
-    UNSUPPORTED: ClassVar[dict[str, str]] = {
-        "list_relations": (
-            "breaks the graph page (book_graph.py), character metrics, "
-            "faction analysis and link prediction"
-        ),
-        "get_snapshot": (
-            "breaks the graph page (book_graph.py), epistemic state and "
-            "faction analysis"
-        ),
+    UNSUPPORTED: ClassVar[dict[str, tuple[str, ...]]] = {
+        # book_graph.py:82, character_metrics_service.py:37,
+        # faction_service.py:69, link_prediction_service.py:126
+        "list_relations": ("graph", "character_metrics", "factions", "link_prediction"),
+        # book_graph.py:79, epistemic_state_service.py:105, faction_service.py:55
+        "get_snapshot": ("graph", "epistemic_state", "factions"),
     }
 
     def __init__(self, url: str, user: str, password: str) -> None:
