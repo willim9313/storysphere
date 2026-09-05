@@ -6,6 +6,7 @@ Both NetworkX (default) and Neo4j implementations must satisfy this contract.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event
@@ -13,9 +14,41 @@ from storysphere.domain.relations import Relation
 from storysphere.domain.temporal import TemporalRelation
 from storysphere.services.query_models import RelationPath, RelationStats, Subgraph
 
+#: Features that stop working when a KG backend cannot serve some member.
+#: Ids, not prose: the settings page turns them into the reader's language, so
+#: only one side needs to know English and only one side needs to know which
+#: page is called what. Extend this when a new feature starts depending on the
+#: graph — ``UNSUPPORTED`` may only name ids listed here, and the parity test
+#: enforces it.
+KG_DEPENDENT_FEATURES: frozenset[str] = frozenset({
+    "graph",             # 知識圖譜頁 / book_graph.py
+    "character_metrics",  # 角色指標
+    "factions",          # 派系分析
+    "link_prediction",   # 推斷關係 (F-01)
+    "epistemic_state",   # 認知狀態
+})
+
 
 class KGServiceBase(ABC):
     """Abstract async interface for the StorySphere knowledge graph."""
+
+    #: Abstract members this backend declares but cannot serve, each mapped to
+    #: the ``KG_DEPENDENT_FEATURES`` ids that break when something calls it.
+    #: Empty means "everything on this interface works".
+    #:
+    #: Satisfying the ABC only proves a method *exists*. A backend can pass
+    #: every structural check and still raise on call, which is how Neo4j came
+    #: to serve a green parity suite while the graph page would 500 on it. This
+    #: is where that admission lives, so callers — the settings page above all
+    #: — can ask any backend what it cannot do without knowing which one it is.
+    #:
+    #: Feature ids rather than prose, because the answer is shown to a person
+    #: choosing a backend and has to be translated. Prose here would mean the
+    #: frontend keeping its own copy of which methods break which pages.
+    #:
+    #: ``tests/services/test_kg_backend_parity.py`` keeps every backend's value
+    #: equal to what its source actually raises on, in both directions.
+    UNSUPPORTED: ClassVar[dict[str, tuple[str, ...]]] = {}
 
     # ── Entity operations ────────────────────────────────────────────────────
 

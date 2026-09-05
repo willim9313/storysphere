@@ -29,7 +29,7 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import Any, ClassVar
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
 
@@ -52,6 +52,26 @@ logger = logging.getLogger(__name__)
 
 class Neo4jKGService(KGServiceBase):
     """Neo4j async-driver-backed knowledge graph service."""
+
+    #: Abstract members this backend declares but cannot serve — calling one
+    #: raises at runtime. Declared here rather than only in the parity test so
+    #: that callers (notably the ``/kg/switch`` endpoint) can read the same
+    #: list instead of keeping a second copy that drifts.
+    #:
+    #: This is not the same thing as ``entity_count`` / ``relation_count`` /
+    #: ``event_count``, which also raise: those are deliberate redirects to the
+    #: awaitable variants and have a working alternative. These two have none.
+    #:
+    #: ``tests/services/test_kg_backend_parity.py`` keeps this honest in both
+    #: directions — adding a gap without declaring it fails, and so does
+    #: leaving a declaration behind after the gap is closed.
+    UNSUPPORTED: ClassVar[dict[str, tuple[str, ...]]] = {
+        # book_graph.py:82, character_metrics_service.py:37,
+        # faction_service.py:69, link_prediction_service.py:126
+        "list_relations": ("graph", "character_metrics", "factions", "link_prediction"),
+        # book_graph.py:79, epistemic_state_service.py:105, faction_service.py:55
+        "get_snapshot": ("graph", "epistemic_state", "factions"),
+    }
 
     def __init__(self, url: str, user: str, password: str) -> None:
         self._driver: AsyncDriver = AsyncGraphDatabase.driver(
