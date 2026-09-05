@@ -6,6 +6,7 @@ Both NetworkX (default) and Neo4j implementations must satisfy this contract.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from typing import ClassVar
 
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.events import Event
@@ -16,6 +17,20 @@ from storysphere.services.query_models import RelationPath, RelationStats, Subgr
 
 class KGServiceBase(ABC):
     """Abstract async interface for the StorySphere knowledge graph."""
+
+    #: Abstract members this backend declares but cannot serve, mapped to the
+    #: features that break when something calls one. Empty means "everything on
+    #: this interface works".
+    #:
+    #: Satisfying the ABC only proves a method *exists*. A backend can pass
+    #: every structural check and still raise on call, which is how Neo4j came
+    #: to serve a green parity suite while the graph page would 500 on it. This
+    #: is where that admission lives, so callers — ``/kg/switch`` above all —
+    #: can ask any backend what it cannot do without knowing which one it is.
+    #:
+    #: ``tests/services/test_kg_backend_parity.py`` keeps every backend's value
+    #: equal to what its source actually raises on, in both directions.
+    UNSUPPORTED: ClassVar[dict[str, str]] = {}
 
     # ── Entity operations ────────────────────────────────────────────────────
 
