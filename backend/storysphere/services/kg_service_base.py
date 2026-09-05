@@ -29,6 +29,17 @@ KG_DEPENDENT_FEATURES: frozenset[str] = frozenset({
 })
 
 
+def unsupported_features(backend: type[KGServiceBase]) -> list[str]:
+    """Feature ids that stop working on ``backend``, deduplicated and sorted.
+
+    ``UNSUPPORTED`` is keyed by the member that raises, because that is what
+    the parity test can verify against the source. Callers asking "what breaks
+    if I pick this backend" want the other axis, and they want it without
+    caring how many methods happen to be involved.
+    """
+    return sorted({f for ids in backend.UNSUPPORTED.values() for f in ids})
+
+
 class KGServiceBase(ABC):
     """Abstract async interface for the StorySphere knowledge graph."""
 

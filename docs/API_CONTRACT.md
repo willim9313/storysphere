@@ -1961,7 +1961,23 @@ key。各列 `totalTokens` 相加等於 `summary.totalTokens`。
 
 **Response 200**：`KgStatusResponse`（見 generated.ts）
 
-**UI 使用頁面**：設定頁 `/settings`
+`unsupportedByMode` 回報**每一個可選後端**會停擺的功能 id，含沒有缺口的那個
+（值為 `[]`）。刻意不只回報當前後端：設定頁要在**按下切換之前**就警告，
+而當前 instance 只答得出自己那一邊。
+
+```ts
+unsupportedByMode: {
+  networkx: [],
+  neo4j: ['character_metrics', 'epistemic_state', 'factions', 'graph', 'link_prediction'],
+}
+```
+
+值域是 `KG_DEPENDENT_FEATURES`（`services/kg_service_base.py`）。
+id 而非文案：翻譯歸前端，「哪個方法壞哪些功能」的對照歸後端，避免兩邊各存一份。
+來源是各後端類別的 `UNSUPPORTED` 宣告，由
+`tests/services/test_kg_backend_parity.py` 釘住其與原始碼實際會 raise 的成員相符。
+
+**UI 使用頁面**：設定頁 `/settings`（KG 後端切換區）
 
 ---
 

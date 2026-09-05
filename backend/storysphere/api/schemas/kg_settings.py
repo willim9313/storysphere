@@ -20,6 +20,10 @@ class KgStatusResponse(BaseModel):
     persistence_path: str | None
     qdrant_local_path: str | None
     vector_count: int | None
+    #: Feature ids that stop working under each selectable backend, including
+    #: the ones with nothing to report — the settings page needs to warn before
+    #: the switch, so it has to be able to ask about a backend it is not on.
+    unsupported_by_mode: dict[str, list[str]] = {}
 
 
 class KgSwitchRequest(BaseModel):
