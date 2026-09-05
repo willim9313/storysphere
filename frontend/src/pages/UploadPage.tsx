@@ -9,6 +9,7 @@ import { fetchTasks } from '@/api/tasks';
 import { useBooks } from '@/hooks/useBooks';
 import { DropZone } from '@/components/upload/DropZone';
 import { ProcessingCard } from '@/components/upload/ProcessingCard';
+import { clearMurmur } from '@/store/murmurStore';
 import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
 import { qk } from '@/api/queryKeys';
 
@@ -286,6 +287,12 @@ export default function UploadPage() {
   const handleTaskError = useCallback((taskId: string, fileName: string, message?: string) => {
     const meta = uploadMetaRef.current.get(taskId);
     setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+    // Only removal point for a task, and the errored entry below keeps just
+    // {taskId, fileName, message, meta} — so the murmur buffer becomes
+    // unreachable here. The store is module-level by design (it has to survive
+    // remount and navigation), which also means nothing reclaims it unless
+    // someone says so.
+    clearMurmur(taskId);
     setErroredTasks((prev) => [
       ...prev,
       { taskId, fileName, message, meta: meta ? { title: meta.title, author: meta.author, language: meta.language } : undefined },
