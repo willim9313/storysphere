@@ -163,7 +163,11 @@ const NODE_TO_TRIGGER: Record<string, TriggerDef> = {
   keywords: rerunTrigger('feature-extraction', true),
   symbols: rerunTrigger('symbol-discovery', true),
   kg_entity: KG_RERUN,
-  kg_concept: KG_RERUN,
+  // kg_concept deliberately has no trigger. A KG rerun only refills the `ner`
+  // half; the `inferred` half comes from a pre-analysis step (B-025) that has
+  // no endpoint yet. Wiring KG_RERUN here offered a button that could never
+  // move the count off zero, so the node falls back to the disabled
+  // "triggerSoon" state until that endpoint exists.
   kg_relation: KG_RERUN,
   kg_event: KG_RERUN,
   // CEP is the evidence package the character analysis is built from; both

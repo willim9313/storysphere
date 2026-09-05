@@ -330,6 +330,50 @@ class TestNodeStatus:
         # Concept entities should NOT appear in kg_entity counts
         assert nodes["kg_entity"]["counts"]["concept"] == 0 if "concept" in nodes["kg_entity"]["counts"] else True
 
+    def test_concept_partial_when_only_ner_present(self, client_factory):
+        """NER output alone is half the node — the inferred half is a separate step."""
+        entities = [
+            _make_entity("Power", "c1", EntityType.CONCEPT, extraction_method="ner"),
+            _make_entity("Grief", "c2", EntityType.CONCEPT, extraction_method="ner"),
+        ]
+        with client_factory(*_make_mocks(entities=entities)) as client:
+            resp = client.get("/api/v1/books/book-1/unraveling")
+
+        node = {n["nodeId"]: n for n in resp.json()["nodes"]}["kg_concept"]
+        assert node["counts"] == {"ner": 2, "inferred": 0, "total": 2}
+        assert node["status"] == "partial"
+
+    def test_concept_complete_only_when_both_halves_present(self, client_factory):
+        entities = [
+            _make_entity("Power", "c1", EntityType.CONCEPT, extraction_method="ner"),
+            _make_entity("Freedom", "c2", EntityType.CONCEPT, extraction_method="inferred"),
+        ]
+        with client_factory(*_make_mocks(entities=entities)) as client:
+            resp = client.get("/api/v1/books/book-1/unraveling")
+
+        node = {n["nodeId"]: n for n in resp.json()["nodes"]}["kg_concept"]
+        assert node["status"] == "complete"
+
+    def test_concept_partial_when_only_inferred_present(self, client_factory):
+        """The reverse gap still counts as started, not as nothing built."""
+        entities = [
+            _make_entity("Freedom", "c1", EntityType.CONCEPT, extraction_method="inferred"),
+        ]
+        with client_factory(*_make_mocks(entities=entities)) as client:
+            resp = client.get("/api/v1/books/book-1/unraveling")
+
+        node = {n["nodeId"]: n for n in resp.json()["nodes"]}["kg_concept"]
+        assert node["status"] == "partial"
+
+    def test_concept_empty_when_no_concepts(self, client_factory):
+        entities = [_make_entity("Alice", "e1", EntityType.CHARACTER)]
+        with client_factory(*_make_mocks(entities=entities)) as client:
+            resp = client.get("/api/v1/books/book-1/unraveling")
+
+        node = {n["nodeId"]: n for n in resp.json()["nodes"]}["kg_concept"]
+        assert node["counts"] == {"ner": 0, "inferred": 0, "total": 0}
+        assert node["status"] == "empty"
+
     def test_chronological_rank_complete_when_all_events_ranked(self, client_factory):
         events = [
             _make_event("e1", chronological_rank=1),

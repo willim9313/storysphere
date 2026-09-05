@@ -206,7 +206,16 @@ def build_nodes(
         node_id="kg_concept",
         layer=1,
         label="Concepts",
-        status=status_of(complete=len(concept_entities) > 0, partial=False),
+        # Two halves, two producers: NER fills `ner` during ingestion, while the
+        # `inferred` half is a separate pre-analysis step (B-025) that nothing
+        # currently triggers. Counting either half alone as complete let 27
+        # surface concepts report this node as built while `inferred` had never
+        # been anything but zero — on the one page whose job is to say what is
+        # still missing.
+        status=status_of(
+            complete=concept_ner > 0 and concept_inferred > 0,
+            partial=len(concept_entities) > 0,
+        ),
         counts={"ner": concept_ner, "inferred": concept_inferred, "total": len(concept_entities)},
         parent_id="kg_features",
     ))
