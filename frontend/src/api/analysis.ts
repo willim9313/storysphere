@@ -1,4 +1,4 @@
-import { apiFetch, apiDelete } from './client';
+import { apiFetch } from './client';
 import type {
   AnalysisListResponse,
   CharacterAnalysisDetail,
@@ -35,14 +35,6 @@ export function triggerEntityAnalysis(
     `/books/${bookId}/entities/${entityId}/analyze`,
     { method: 'POST', body: JSON.stringify({ mode }) },
   );
-}
-
-// #7c — Delete entity analysis
-export function deleteEntityAnalysis(
-  bookId: string,
-  entityId: string,
-): Promise<void> {
-  return apiDelete(`/books/${bookId}/entities/${entityId}/analysis`);
 }
 
 // #7d — Trigger event analysis

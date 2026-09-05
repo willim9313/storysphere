@@ -20,7 +20,6 @@ import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import {
   fetchEntityAnalysis,
   triggerEntityAnalysis,
-  deleteEntityAnalysis,
   triggerBatchEntityAnalysis,
 } from '@/api/analysis';
 import {
@@ -116,8 +115,10 @@ export default function CharacterAnalysisPage() {
   const { data: entityAnalysis, isLoading: analysisLoading } = useQuery({
     queryKey: qk.entity.analysis(bookId, selectedEntityId),
     queryFn: () => fetchEntityAnalysis(bookId!, selectedEntityId!),
-    // Pause while a generation task runs: the old analysis is deleted at that
-    // point, so a refetch would only 404 and pin stale data on screen.
+    // Pause while a generation task runs. The old analysis is no longer
+    // deleted up front, so this is not about avoiding a 404 any more — it just
+    // keeps the cached result untouched until the run lands, which is what
+    // makes a failed re-run recoverable.
     enabled: !!bookId && !!selectedEntityId && !gen.taskId,
   });
 
@@ -164,14 +165,13 @@ export default function CharacterAnalysisPage() {
 
   const handleRegenerate = () => {
     if (!selectedEntityId || !bookId) return;
-    deleteEntityAnalysis(bookId, selectedEntityId).then(() => {
-      queryClient.invalidateQueries({ queryKey: qk.analysis.characters(bookId) });
-      // removeQueries (not invalidate): the analysis row is gone, and
-      // invalidate would keep serving the stale result on refetch error —
-      // the screen must drop to the generating view instead.
-      queryClient.removeQueries({ queryKey: qk.entity.analysis(bookId, selectedEntityId) });
-      triggerMutation.mutate(selectedEntityId);
-    });
+    // No delete first. `mode: 'full'` re-analyses server-side and only
+    // overwrites the cache once the new result lands, so deleting up front
+    // would throw away a working analysis whenever the re-run then fails.
+    // EventAnalysisPage has always done it this way; this page was the
+    // outlier. The generating view no longer depends on the data being gone —
+    // the branch below keys off `gen.taskId` instead.
+    triggerMutation.mutate(selectedEntityId);
   };
 
   const refreshCast = useCallback(
@@ -424,7 +424,7 @@ export default function CharacterAnalysisPage() {
 
             {selectedEntityId && analysisLoading ? (
               <LoadingSpinner />
-            ) : selectedEntityId && entityAnalysis ? (
+            ) : selectedEntityId && entityAnalysis && !gen.taskId ? (
               <>
                 {/* Title bar */}
                 <div className="ca-titlebar">
