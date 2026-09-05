@@ -667,10 +667,42 @@ PR #83 的作法（把宣告放進生產程式碼、用測試釘住宣告等於�
 - `scripts/` 下的孤兒腳本
 - 已註冊但從未被觸發的 chat tool（20 個全註冊給 agent，實際被呼叫幾個要看 log 不是讀 code）
 
+**進度（2026-09-05）**
+
+掃描器已固定為 `scripts/scan_dead_code.py`，四個子命令：
+`backend` / `exports` / `i18n` / `css`。沒有引入 `ts-prune` 或 `knip`——
+自己寫的那份要處理本專案特有的偽陽性（見下），外部工具還是得配一層例外。
+
+| 範圍 | 現況 |
+|------|------|
+| backend 符號 | **3**：`hero_journey.py` 的 `STAGE_IDS` / `PHASES`（見 B-093）、`LLMClient.get_fallback`（暫緩，見 B-090） |
+| frontend 匯出 | **0**（起始 15，12 刪 3 接） |
+| i18n key | **340 / 2327** 未引用 |
+| CSS class | **86 / 1894** 未引用（`tension.css` 佔 54） |
+
+**前端匯出那 15 個的三種結局**（比例值得記：**五分之一是要接不是要刪**）：
+- 刪 12：`fetchCoOccurrences`（被 aggregate 取代）、`fetchTemporalTask`（被
+  `useTaskPolling` 取代）、`intensityBarFill/Edge`、`PolarityPill`、`isSuperNode`、
+  `MurmurStepKey`、`RerunTaskResult`、`triggerBookAnalysis`、`regenerateAnalysis`、
+  `fetchSep`、`deleteEventAnalysis` / `deleteEntityAnalysis`
+- 接 3：`clearMurmur`（上傳失敗路徑的緩衝從未回收）、`aggregatedEdgeWidth`
+  （聚合邊寬度不反映權重）、`buildActiveFilterTags`（生效中的篩選只看得到數字）
+
+**偵測器本身就是偽陽性的來源，這點必須寫下來**：
+第一版的 i18n 掃描只認 `t(\`ns.x.${v}\`)`，漏掉
+`const key = \`ns.x.${v}\`; t(key)`，把 `VoiceProfilingPanel` 執行期組出來的
+三個 key 判成未用。修法是不再看 `t()`，改成**取所有含插值的模板字面值的靜態
+前綴**——不管那個值怎麼傳遞都涵蓋得到。CSS 掃描有一模一樣的問題
+（`` `tl-pill-${type}` ``），同一套修法。
+
 **待辦**:
-- 把 B-090 用的 AST 掃描腳本固定下來（放 `scripts/`），含 route handler 與
-  pydantic validator 的偽陽性排除
-- 前端對應的掃描方式（`ts-prune` 或 `knip` 之類，需評估；本專案目前無此依賴）
+- i18n 那 340 筆與 CSS 那 86 筆**不宜批次刪**。CSS 刪錯只是掉樣式、看得見；
+  i18n 刪錯會在畫面上顯示裸 key，而 167 處「開頭即插值」的模板取不到前綴、
+  無法被守衛涵蓋。兩者各自是一次獨立的逐項走查。
+- `tension.css` 的 54 筆值得優先看：B-087 才剛清掉兩整段 243 行，還剩這麼多，
+  像是某一版張力卡片設計的整片殘留。
+- 尚未掃描：巢狀與私有方法、只被測試引用而生產路徑無呼叫者的符號、
+  `scripts/` 孤兒、已註冊但從未被觸發的 chat tool。
 - 決定要不要變成第六道閘門。**傾向不要** —— 判定需要人走查，做成閘門會逼人
   用刪除來消紅燈，正好製造上面第 2、3 種錯誤。比較合適的是定期跑、產出候選清單。
 
@@ -795,6 +827,34 @@ B-061 保護的 jung/schmidt 則是**用名稱字串相等計數**，差一個�
 沒有 `npm run test`，vitest 寫了不會在 CI 跑。
 
 **觸發時機**: 待排。屬全面徹查零使用程式碼的一部分。
+
+---
+
+#### B-094 pytest 有一個間歇性失敗（約 1/8）
+
+**背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
+其後連跑 7 次全綠（含刻意與 `npm run build` 併行以複製當時的資源競爭），
+無法重現，也因此**沒有拿到失敗的測試名稱**。
+
+**不是當時那批造成的**: 該分支 `git diff origin/main --name-only` 對
+`backend/` 與 `tests/` 的異動是零，全部落在 `frontend/` 與 `docs/`。
+所以這是既有的 flaky，只是剛好被撞見。
+
+**唯一線索**: 輸出裡有大量 `RuntimeError: Event loop is closed`，指向
+async 測試的 teardown。那些訊息平時也會出現（成功的執行也有），所以不能
+直接當成兇手，但嫌疑集中在會起背景 task 的那幾組。
+
+**為什麼值得追**: 這專案已經有過一次「閘門紅著沒人看」的教訓（B-066，
+`tsc -b` 長期紅到累積 10 個錯誤）。1/8 的 flaky 比長紅更糟——它會讓
+「重跑一次就過了」變成習慣動作，等到真的壞掉時沒人相信那個紅燈。
+
+**待辦**:
+- 下次撞見時**先把測試名稱留下來**再重跑（`-ra` 或 `--tb=short`，別只看摘要行）
+- 若能重現，優先查會建立背景 task 的那幾組（`task_runner`、`sqlite_task_store`、
+  `checkpoint_ttl`）—— 已單獨連跑 6 次未重現，所以可能是跨檔案的交互作用
+- 考慮在 CI 加 `-p no:cacheprovider` 之外的種子紀錄，讓失敗可回放
+
+**觸發時機**: 下次 CI 或本地再次撞見時。在那之前不值得為它停下手邊工作。
 
 ---
 
@@ -1345,9 +1405,10 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-088 | 書卡狀態徽章永遠是「已就緒」 | 🟢 低 | ✅ 已完成（2026-08-22；改由 pipeline_status 推導 3 值，`processing` 證實產不出來已移除；順帶收掉 PipelineStatusResponse，見 ARCHIVE） |
 | B-089 | 建構概覽把從未執行過的步驟標成「已完成」 | 🟡 中 | ✅ 已完成（2026-09-05 PR #79；`kg_concept` 兩半都非零才 complete，並移除永遠推不動它的 CTA，見 ARCHIVE） |
 | B-090 | 零引用符號清除（第一批） | 🟢 低 | ✅ 已完成（2026-09-05 PR #80；5 個候選三種結局——3 刪、1 因是被手抄的 schema 改為讓工具用它、1 暫緩待 B-075，見 ARCHIVE） |
-| B-091 | 全面徹查零使用程式碼 | 🟡 中 | 待開始（B-090 為第一批；前端、私有方法、只被測試引用者尚未掃描） |
+| B-091 | 全面徹查零使用程式碼 | 🟡 中 | 🔶 進行中（2026-09-05；掃描器固定為 `scripts/scan_dead_code.py`；前端匯出 15→0、backend 3；i18n 340 與 CSS 86 待逐項走查）|
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | 待開始（hero_journey 英文已漂移 5/12，靠 id 查所以不會壞；booker 的 id 後綴是刻意的，別誤修） |
+| B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
 
 ### F 系列
 
