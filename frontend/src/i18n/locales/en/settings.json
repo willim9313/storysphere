@@ -91,6 +91,15 @@
     "neoUser": "NEO4J_USER",
     "neoPass": "NEO4J_PASSWORD",
     "neoNote": "Neo4j switching is the runtime exception (POST /api/v1/kg/switch) — no restart needed.",
+    "kgGapsNow": "The current backend cannot provide:",
+    "kgGapsIfSwitch": "Switching to {{mode}} disables:",
+    "kgFeature": {
+      "graph": "Knowledge graph page",
+      "character_metrics": "Character metrics",
+      "factions": "Faction analysis",
+      "link_prediction": "Inferred relations",
+      "epistemic_state": "Epistemic state"
+    },
     "migTitle": "Data migration",
     "migIdem": "Migration is idempotent — re-running will not create duplicates.",
     "migQdrant": "Qdrant: local → service",
