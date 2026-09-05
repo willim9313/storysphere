@@ -712,6 +712,78 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
+#### B-093 前後端 taxonomy 漂移防護只蓋了五分之二
+
+**背景**: B-061 建立了「`frameworksData.ts` 的 item 名稱必須與後端 config JSON 逐字一致」
+的防護，但 `tests/config/test_archetype_taxonomy_drift.py:55` 是
+`@pytest.mark.parametrize("framework", ["jung", "schmidt"])` —— 只跑兩個。
+`frameworksData.ts` 實際有 8 個 framework，其中 **5 個有後端對應檔**。
+
+**盤點結果（2026-09-05 實比對）**:
+
+| framework | 後端對應 | B-061 涵蓋 | 現況 |
+|-----------|---------|-----------|------|
+| `jung` | `config/character_analysis/jung_archetypes_{en,zh}.json` | ✅ | 一致 |
+| `schmidt` | `config/character_analysis/schmidt_archetypes_{en,zh}.json` | ✅ | 一致 |
+| `frye_mythos` | `config/mythos/frye_mythos_{en,zh}.json` | ❌ | 一致（4/4 逐字相同） |
+| `booker_plots` | `config/mythos/booker_plots_{en,zh}.json` | ❌ | id 有**刻意**差異，見下 |
+| `hero_journey` | `config/hero_journey/hero_journey_{en,zh}.json` | ❌ | **英文名稱已漂移 5/12** |
+| `chatman` | 無 | — | 純前端理論文字，無從比對 |
+| `genette_temporal_order` | 無 | — | 同上 |
+| `sep_methodology` | 無 | — | 同上 |
+
+**已發生的漂移（`hero_journey`，僅英文）**:
+
+| id | 前端 | 後端 |
+|----|------|------|
+| `ordinary_world` | Ordinary World | The Ordinary World |
+| `call_to_adventure` | Call to Adventure | The Call to Adventure |
+| `meeting_the_mentor` | Meeting the Mentor | Meeting with the Mentor |
+| `ordeal` | Ordeal | The Ordeal |
+| `resurrection` | Resurrection | The Resurrection |
+
+中文版 12 筆逐字相同。
+
+**目前不會壞，但理由與 jung/schmidt 不同 —— 這點決定了修法**:
+`CrossEvidence.tsx:62` 是 `theory[s.stage_id]?.name ?? s.stage_name`，靠 **id** 查、
+後端 name 只是 fallback，而 id 完全一致所以 fallback 從不觸發。
+B-061 保護的 jung/schmidt 則是**用名稱字串相等計數**，差一個字該原型的 facet 就是 0、
+篩選恆空。所以英雄旅程這組是顯示層潛伏（哪天走到 fallback 才會冒出兩種叫法），
+不是當下故障，優先度因此是低而非中。
+
+**實作前必讀 —— `booker_plots` 的 id 差異是刻意的，不要「修掉」**:
+前端是 `tragedy_booker` / `comedy_booker`，後端是 `tragedy` / `comedy`。
+原因是 Frye 的四個 mythos 也有 `comedy` 與 `tragedy`，而前端把八個 framework 放在
+同一份清單裡需要唯一 id，故加後綴消歧義。其餘 5 個 id 與名稱皆相同。
+天真地比對 id 會在這裡誤報。
+
+**另一個順帶發現（零引用）**: `config/hero_journey.py` 的 `STAGE_IDS` 與 `PHASES`
+是全 repo 零引用。英雄旅程的 taxonomy 目前有**四份拷貝**：
+
+1. `config/hero_journey/hero_journey_{en,zh}.json` —— 真相來源，`load_hero_journey()` 讀它
+2. `config/hero_journey.py` `STAGE_IDS` / `PHASES` —— 零引用，內容與 JSON 相符
+3. `frontend/src/components/narrative/heroJourney.ts` `STAGE_ORDER` / `STAGE_PHASE`
+   —— 有在用（`stageOrdinal()` 靠它算序號），順序與 JSON 相符
+4. `frontend/src/data/frameworksData.ts` `hero_journey` —— 顯示名，英文已漂移
+
+第 2 份可刪：JSON 才是來源，且日後的漂移測試應照 B-061 的做法直接讀 JSON，
+不需要經過 Python 常數。第 3 份不可刪但目前無防護 —— 它帶順序，漂了會讓階段序號錯位。
+
+**待辦**:
+- 把 B-061 的 `parametrize` 從 2 個擴到 5 個，並處理 `booker_plots` 的刻意後綴
+- 修 `hero_journey` 英文那 5 筆。**先決定以哪邊為準**：後端 JSON 的「The …」是
+  Campbell / Vogler 的慣用寫法，前端的簡寫較適合 UI 標籤。也可能該讓測試比對
+  id 集合而非顯示名、另立文案規則 —— 這是決定不是對齊，別直接改字了事
+- 刪 `config/hero_journey.py` 的 `STAGE_IDS` / `PHASES`
+- 評估 `heroJourney.ts` 的 `STAGE_ORDER` / `STAGE_PHASE` 是否納入防護
+
+**放後端 pytest 而非前端 vitest**: 同 B-061 的理由 —— 五道閘門裡有 pytest，
+沒有 `npm run test`，vitest 寫了不會在 CI 跑。
+
+**觸發時機**: 待排。屬全面徹查零使用程式碼的一部分。
+
+---
+
 ## F 系列（新功能）
 
 **前置閱讀**: `docs/CORE.md`
@@ -1261,6 +1333,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-090 | 零引用符號清除（第一批） | 🟢 低 | 進行中（5 個候選三種結局：3 刪、1 改為讓工具用它、1 暫緩待 B-075） |
 | B-091 | 全面徹查零使用程式碼 | 🟡 中 | 待開始（B-090 為第一批；前端、私有方法、只被測試引用者尚未掃描） |
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
+| B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | 待開始（hero_journey 英文已漂移 5/12，靠 id 查所以不會壞；booker 的 id 後綴是刻意的，別誤修） |
 
 ### F 系列
 
