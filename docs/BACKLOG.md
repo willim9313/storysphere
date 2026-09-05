@@ -596,35 +596,6 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-090 零引用符號清除（第一批）
-
-**背景**: 以 AST 掃描 `backend/storysphere` 全部 top-level 定義與 class 方法，比對
-`backend + tests + scripts` 的引用數，排除兩類偽陽性（route handler 有 decorator、
-不以名字呼叫；pydantic validator 由 `field_validator` 註冊）後，得到 5 個零引用符號。
-
-**處置結果（三種，不是一種）**:
-
-| 符號 | 處置 |
-|------|------|
-| `api/schemas/books.py` `EntityAnalysisResponse` | 刪除。端點實際用 `CharacterAnalysisDetailResponse` |
-| `core/tracing.py` `is_tracing_enabled()` | 刪除。手足 `update_span` 7 處、`get_langfuse_handler` 3 處 |
-| `frontend/src/api/types.ts` `EntityAnalysis` | 刪除。上者的前端雙胞胎，欄位一字不差 |
-| `tools/schemas.py` `CharacterAnalysisOutput` | **不刪，改為讓工具用它** —— 見下 |
-| `core/llm_client.py` `LLMClient.get_fallback()` | **暫緩**。零引用很可能就是 B-075「fallback 鏈是壞的」的成因，不是死碼 |
-
-`CharacterAnalysisOutput` 是本批最值得記的一筆：它零引用，但 `analyze_character.py`
-手刻了一個欄位逐字相同的 dict literal（`model_fields.keys()` 實比對，順序都一樣）。
-同層手足 `analyze_event.py:52` 則直接建構 `EventAnalysisOutput`。所以那不是死碼，
-是**被抄了一份的 schema**，兩者漂移不會有人發現。改為讓工具用它，順帶補上哨兵測試。
-
-刪除 `EntityAnalysisResponse` 對 OpenAPI 的影響**用重產比對證明而非推論**：離線
-`create_app().openapi()` → `openapi-typescript`，與 commit 版 `generated.ts` byte-identical，
-故 `API_CONTRACT.md` 與 `generated.ts` 都不需更動。
-
-**觸發時機**: 已執行。方法論與後續全面掃描見 B-091。
-
----
-
 #### B-091 全面徹查零使用程式碼
 
 **背景**: B-090 只掃了 `backend/storysphere` 的 top-level 定義與 class 方法，就掃出
@@ -1330,7 +1301,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-072 | 張力 Step 1 組裝失敗的 TEU 無清單可看 | 🟢 低 | 待開始（前置：確認後端 task 是否留有失敗清單） |
 | B-088 | 書卡狀態徽章永遠是「已就緒」 | 🟢 低 | ✅ 已完成（2026-08-22；改由 pipeline_status 推導 3 值，`processing` 證實產不出來已移除；順帶收掉 PipelineStatusResponse，見 ARCHIVE） |
 | B-089 | 建構概覽把從未執行過的步驟標成「已完成」 | 🟡 中 | ✅ 已完成（2026-09-05 PR #79；`kg_concept` 兩半都非零才 complete，並移除永遠推不動它的 CTA，見 ARCHIVE） |
-| B-090 | 零引用符號清除（第一批） | 🟢 低 | 進行中（5 個候選三種結局：3 刪、1 改為讓工具用它、1 暫緩待 B-075） |
+| B-090 | 零引用符號清除（第一批） | 🟢 低 | ✅ 已完成（2026-09-05 PR #80；5 個候選三種結局——3 刪、1 因是被手抄的 schema 改為讓工具用它、1 暫緩待 B-075，見 ARCHIVE） |
 | B-091 | 全面徹查零使用程式碼 | 🟡 中 | 待開始（B-090 為第一批；前端、私有方法、只被測試引用者尚未掃描） |
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | 待開始（hero_journey 英文已漂移 5/12，靠 id 查所以不會壞；booker 的 id 後綴是刻意的，別誤修） |
