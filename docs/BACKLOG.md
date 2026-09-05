@@ -596,6 +596,122 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
+#### B-090 零引用符號清除（第一批）
+
+**背景**: 以 AST 掃描 `backend/storysphere` 全部 top-level 定義與 class 方法，比對
+`backend + tests + scripts` 的引用數，排除兩類偽陽性（route handler 有 decorator、
+不以名字呼叫；pydantic validator 由 `field_validator` 註冊）後，得到 5 個零引用符號。
+
+**處置結果（三種，不是一種）**:
+
+| 符號 | 處置 |
+|------|------|
+| `api/schemas/books.py` `EntityAnalysisResponse` | 刪除。端點實際用 `CharacterAnalysisDetailResponse` |
+| `core/tracing.py` `is_tracing_enabled()` | 刪除。手足 `update_span` 7 處、`get_langfuse_handler` 3 處 |
+| `frontend/src/api/types.ts` `EntityAnalysis` | 刪除。上者的前端雙胞胎，欄位一字不差 |
+| `tools/schemas.py` `CharacterAnalysisOutput` | **不刪，改為讓工具用它** —— 見下 |
+| `core/llm_client.py` `LLMClient.get_fallback()` | **暫緩**。零引用很可能就是 B-075「fallback 鏈是壞的」的成因，不是死碼 |
+
+`CharacterAnalysisOutput` 是本批最值得記的一筆：它零引用，但 `analyze_character.py`
+手刻了一個欄位逐字相同的 dict literal（`model_fields.keys()` 實比對，順序都一樣）。
+同層手足 `analyze_event.py:52` 則直接建構 `EventAnalysisOutput`。所以那不是死碼，
+是**被抄了一份的 schema**，兩者漂移不會有人發現。改為讓工具用它，順帶補上哨兵測試。
+
+刪除 `EntityAnalysisResponse` 對 OpenAPI 的影響**用重產比對證明而非推論**：離線
+`create_app().openapi()` → `openapi-typescript`，與 commit 版 `generated.ts` byte-identical，
+故 `API_CONTRACT.md` 與 `generated.ts` 都不需更動。
+
+**觸發時機**: 已執行。方法論與後續全面掃描見 B-091。
+
+---
+
+#### B-091 全面徹查零使用程式碼
+
+**背景**: B-090 只掃了 `backend/storysphere` 的 top-level 定義與 class 方法，就掃出
+5 個零引用符號、其中 2 個不是死碼而是**做到一半被放掉的接線**。同期另外查出
+`ConceptInferencePipeline`（229 行，B-092）從誕生至今從未被呼叫，以及
+`pipelines/concept_inference.py` 是唯一從未被 import 的模組。
+
+也就是說「開發到一半莫名其妙放掉」在這個 repo 是有母體的現象，不是零星個案。
+目標是**讓零使用的程式碼段落不存在**，並且不是清一次就算，而是有辦法重複執行。
+
+**關鍵教訓：零引用 ≠ 死碼。** 目前已遇到三種結局，掃描只能給出候選，判定必須逐一走查：
+
+1. **真死碼** —— 有取代者，或功能已移除。刪。
+2. **被手抄的來源** —— 有人把它複製成 literal（`CharacterAnalysisOutput`）。
+   刪掉會把重複固化，正解是讓抄的那一方改用它。
+3. **未接線的生產者** —— 消費端活著但讀到的永遠是空值
+   （`ConceptInferencePipeline` → `tension_service.py:879` 的 `if inferred:` 分支、
+   `unraveling_manifest.py:204` 的計數）。這是產品決定，不是清理決定。
+
+**尚未掃描的範圍**:
+- 前端 `frontend/src`：元件、hook、util、i18n key、CSS class
+  （B-087 的兩段死 CSS 是手動發現的，沒有系統性掃描）
+- 巢狀函式與 class 內部的私有方法（B-090 只掃 top-level 與 class 方法）
+- 只被測試引用、生產路徑沒有呼叫者的符號 —— 這類最危險，因為測試會讓它看起來活著
+- 只出現在 docstring / 註解 / 文件裡的「已規劃但未接」項目
+- `scripts/` 下的孤兒腳本
+- 已註冊但從未被觸發的 chat tool（20 個全註冊給 agent，實際被呼叫幾個要看 log 不是讀 code）
+
+**待辦**:
+- 把 B-090 用的 AST 掃描腳本固定下來（放 `scripts/`），含 route handler 與
+  pydantic validator 的偽陽性排除
+- 前端對應的掃描方式（`ts-prune` 或 `knip` 之類，需評估；本專案目前無此依賴）
+- 決定要不要變成第六道閘門。**傾向不要** —— 判定需要人走查，做成閘門會逼人
+  用刪除來消紅燈，正好製造上面第 2、3 種錯誤。比較合適的是定期跑、產出候選清單。
+
+**明確不做**: 不以「掃描說零引用」為由直接刪除。每一筆都要先判定屬於上述哪一種。
+
+**觸發時機**: B-090 已完成第一批；其餘範圍待排。
+
+---
+
+#### B-092 ConceptInferencePipeline 從未接線，張力分析一直少一段證據
+
+**背景**: `pipelines/concept_inference.py`（229 行，B-025，2026-04-01 產出）**從誕生至今
+沒有任何呼叫端**。`git log -S "ConceptInferencePipeline" --all` 只掃到 3 個純 docs commit
+與它自己的誕生 commit；全 DB 470 筆實體 `extraction_method` 全是 `ner`，`inferred` 0 筆，
+2026-07-28 的備份快照同樣是零。
+
+**它不是死碼，因為有兩個活著的消費者讀它該產出的東西**:
+- `services/tension_service.py:879` —— TEU prompt 的 `## Inferred Concepts (thematic)`
+  區段，`if inferred:` 分支從未進入過。已組裝的 99 筆 TEU 全數少了這段證據。
+- `api/unraveling_manifest.py:204` —— 建構概覽的 `{"ner": …, "inferred": 0}` 計數。
+
+**文件互相矛盾**: 設計文件（`docs/plans/20260331-tension-analysis-design-notes.md:141`）
+寫它是硬性前置「完成後才能進行 TEU 組裝」，B-026 的前置依賴也列了 B-025；
+`docs/guides/tension-analysis.md:25` 卻降級成「非必要但可提升品質」。
+失效機制是 B-026 的「前置依賴 B-025」被「檔案存在」滿足，而不是被「流程會跑」滿足。
+
+**成本實算（非估計）**: 整本書**一次** LLM 呼叫，輸入硬截 12,000 字元。以本專案
+`token_usage.db` 校準得 0.73 tokens/字元，單本約 9,500 tokens ——
+約當一次 Step 1 TEU 組裝（99 次呼叫、約 22 萬 tokens）的 **4%**。
+
+**接上之前要先修的 bug**: 它蒐集段落的方式是「取候選事件所在章節 → 抓那些章的全部段落」，
+而非抓高張力段落本身，然後硬截前 12,000 字元。《大唐雙龍傳》彙集 39,998 字元只送出
+12,000，**丟棄 70% 且丟的一律是後段**，命題只看得到書的前段。書越長偏得越嚴重。
+
+**三段拆法**:
+1. ~~建構概覽 `kg_concept` 節點不再把只有一半當成完成~~ ✅ 已完成（B-089）
+2. 新增後端端點，`kg_concept` 拆成 ner / inferred 兩節點，後者接進 `NODE_TO_TRIGGER`。
+   沿用 B-046 Phase 1 的確認視窗與 task 輪詢；`cta.node.kg_concept` 的 i18n key 已保留。
+   屬 B-046 Phase 2「無對應批次端點，需先新增後端」那一類。
+3. 張力頁 Step 1 前提示「概念推論尚未執行」並跳建構概覽。
+   現成樣式：`SymbolsPage.tsx:561` 已在做 `navigate('/books/:id/unraveling')`。
+
+**待決（第 2 段才需要決定）**: 要不要照 F-01 推斷關係的形狀加側存 + pending/confirm。
+目前 `save=True` 是預設，LLM 一吐出來就 `add_entity()` 進 KG，沒有任何審核關卡；
+而保守得多的圖演算法（F-01）反而有。命題進 KG 後會被 `assemble_teu` 當既有事實
+餵給下一輪 LLM，錯的版本會被當前提繼續傳。
+
+**入口位置已定**: 建構概覽，不是知識圖譜頁。節點已存在、CTA 機制已備妥，
+且知識圖譜頁工具列已有「推斷關係」，再放一個「推斷概念」是撞名陷阱。
+結果仍會出現在圖譜上（inferred concept 就是 `entity_type=concept` 的節點）。
+
+**觸發時機**: 第 2 段待排；決定側存與否之後即可動工。
+
+---
+
 ## F 系列（新功能）
 
 **前置閱讀**: `docs/CORE.md`
@@ -1141,6 +1257,10 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-087 | 張力頁零引用的狀態色 CSS | 🟢 低 | ✅ 已完成（2026-08-22；實際範圍是兩整段共 243 行，非原記的 6 行，見 ARCHIVE） |
 | B-072 | 張力 Step 1 組裝失敗的 TEU 無清單可看 | 🟢 低 | 待開始（前置：確認後端 task 是否留有失敗清單） |
 | B-088 | 書卡狀態徽章永遠是「已就緒」 | 🟢 低 | ✅ 已完成（2026-08-22；改由 pipeline_status 推導 3 值，`processing` 證實產不出來已移除；順帶收掉 PipelineStatusResponse，見 ARCHIVE） |
+| B-089 | 建構概覽把從未執行過的步驟標成「已完成」 | 🟡 中 | ✅ 已完成（2026-09-05 PR #79；`kg_concept` 兩半都非零才 complete，並移除永遠推不動它的 CTA，見 ARCHIVE） |
+| B-090 | 零引用符號清除（第一批） | 🟢 低 | 進行中（5 個候選三種結局：3 刪、1 改為讓工具用它、1 暫緩待 B-075） |
+| B-091 | 全面徹查零使用程式碼 | 🟡 中 | 待開始（B-090 為第一批；前端、私有方法、只被測試引用者尚未掃描） |
+| B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 
 ### F 系列
 

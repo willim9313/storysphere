@@ -103,13 +103,6 @@ export type UnanalyzedEntity = components['schemas']['UnanalyzedEntity'];
 
 export type AnalysisListResponse = components['schemas']['AnalysisListResponse'];
 
-export interface EntityAnalysis {
-  entityId: string;
-  entityName: string;
-  content: string;
-  generatedAt: string;
-}
-
 export interface CepData {
   actions: string[];
   traits: string[];

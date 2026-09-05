@@ -239,15 +239,6 @@ class AnalysisListResponse(BaseModel):
     unanalyzed: list[UnanalyzedEntity] = []
 
 
-class EntityAnalysisResponse(BaseModel):
-    model_config = _CAMEL
-
-    entity_id: str
-    entity_name: str
-    content: str
-    generated_at: str
-
-
 
 
 

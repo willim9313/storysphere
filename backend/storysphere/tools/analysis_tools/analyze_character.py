@@ -18,7 +18,7 @@ from typing import Any
 
 from langchain_core.tools import BaseTool
 
-from storysphere.tools.schemas import AnalyzeCharacterInput
+from storysphere.tools.schemas import AnalyzeCharacterInput, CharacterAnalysisOutput
 
 logger = logging.getLogger(__name__)
 
@@ -59,19 +59,19 @@ class AnalyzeCharacterTool(BaseTool):
                 language=language,
             )
 
-            output = {
-                "entity_id": result.entity_id,
-                "entity_name": result.entity_name,
-                "document_id": result.document_id,
-                "summary": result.profile.summary,
-                "actions": result.cep.actions,
-                "traits": result.cep.traits,
-                "relations": result.cep.relations,
-                "archetypes": [a.model_dump() for a in result.archetypes],
-                "arc": [s.model_dump() for s in result.arc],
-                "coverage_gaps": result.coverage.gaps,
-            }
-            return json.dumps(output, ensure_ascii=False, default=str)
+            output = CharacterAnalysisOutput(
+                entity_id=result.entity_id,
+                entity_name=result.entity_name,
+                document_id=result.document_id,
+                summary=result.profile.summary,
+                actions=result.cep.actions,
+                traits=result.cep.traits,
+                relations=result.cep.relations,
+                archetypes=[a.model_dump() for a in result.archetypes],
+                arc=[s.model_dump() for s in result.arc],
+                coverage_gaps=result.coverage.gaps,
+            )
+            return output.model_dump_json()
         except Exception as e:
             logger.error("AnalyzeCharacterTool failed: %s", e, exc_info=True)
             return json.dumps({"error": str(e)})
