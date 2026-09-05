@@ -343,19 +343,62 @@ cep / character_analysis_result / eep / causality_analysis / impact_analysis）�
 
 ---
 
-#### B-048 Neo4j Link Prediction 支援缺口
+#### B-048 Neo4j 能力缺口（切過去等於整個圖譜功能面停擺）
 > 原 B-035，2026-06-30 重編：原號與已歸檔的「坎伯英雄旅程 LLM 結構對應」撞號。
-**背景**: F-01 隱性關係推論（Link Prediction）的算法層直接使用 `nx.adamic_adar_index()`，耦合 NetworkX。Neo4j backend 無法執行此功能。Neo4j GDS library 有對應的 `gds.alpha.linkprediction.adamicAdar()` Cypher 呼叫，但介面完全不同。
+> **2026-09-05 大幅改寫。** 原標題與內容只記 Link Prediction 一項，實際盤點後
+> 發現有三項，而且漏記的兩項比記下來的那項嚴重。原文的診斷沒有錯，錯在範圍。
 
-**原則**: 這是「輕量 NetworkX vs 完整 Neo4j 資料庫」功能分拆的第一個具體案例。後續所有新功能若有類似的 backend 差異，均需在此記錄，確保 Neo4j 用戶的功能完整性有明確的追蹤路徑。
+**原本的框架已被推翻**: 這條目原先寫著「這是輕量 NetworkX vs 完整 Neo4j 功能分拆的
+**第一個具體案例**。後續所有新功能若有類似的 backend 差異，均需在此記錄」。
+那條原則**沒有被遵守**——2026-09-05 盤點時，Neo4j 已有三項能力缺口，只有一項在案，
+而漏掉的兩項打掉的是知識圖譜頁本身，不是附屬功能。原則寫下來但沒有機制守，
+結果就是它自己記錄的那一項反而是影響最小的。
 
-**待辦內容**:
-- `KGService` 新增抽象方法 `get_neighbor_ids(entity_id: str) -> list[str]`，讓算法層與 backend 解耦
-- NetworkX 版本：直接用現有圖結構實作
-- Neo4j 版本：用 `CALL gds.alpha.linkprediction.adamicAdar(...)` Cypher query 實作
-- `LinkPredictionService.run_inference()` 改用抽象方法，不直接 import networkx
+**完整清單（2026-09-05）**:
 
-**前置依賴**: B-011（Neo4j docker-compose 環境）
+| 缺口 | 位置 | 停擺的功能 |
+|------|------|-----------|
+| `list_relations` | `kg_service_neo4j.py` `raise NotImplementedError` | 知識圖譜頁、角色指標、派系分析、推斷關係 |
+| `get_snapshot` | 同上 | 知識圖譜頁、認知狀態、派系分析 |
+| Link Prediction 演算法耦合 | `link_prediction_service.py:62` 直接讀 `self._kg._graph` 私有屬性取 networkx 圖物件 | 推斷關係 |
+
+`KG_DEPENDENT_FEATURES` 目前列了 5 個功能（`graph` / `character_metrics` /
+`factions` / `link_prediction` / `epistemic_state`），**5 個全部被牽連**。
+切到 Neo4j 不是「部分功能降級」，是整個圖譜功能面停擺。
+
+**為什麼沒人發現**: `tests/services/test_kg_backend_parity.py` 驗的是結構——抽象覆蓋、
+簽章一致、無未宣告分歧。那兩個方法簽章正確、通過每一項檢查，執行時才拋。
+一套全綠的 parity 測試，旁邊擺著一個服務不了圖譜頁的後端。
+而 `POST /kg/switch` 只驗連線不驗能力，切過去回一句 `"Switched to neo4j."`。
+
+**已完成（不含任何 Neo4j 實作）**:
+- **2026-09-05 PR #83** —— `KGServiceBase.UNSUPPORTED` 把缺口寫成介面的一部分，
+  值是 `KG_DEPENDENT_FEATURES` 的 id 而非散文（翻譯歸前端、對照歸後端）；
+  parity 測試 AST 掃描兩個實作，釘住宣告等於原始碼實際會 raise 的成員，雙向都擋。
+  下一個缺口無法再靜默增加。
+- **2026-09-05 PR #84** —— `GET /kg/status` 的 `unsupportedByMode` 回報每個可選後端
+  的缺口（讀類別而非 instance，才答得出「切過去會怎樣」）；設定頁在**按下之前**
+  就列出會停用哪些功能。
+
+**待辦（真正的實作，尚未動）**:
+- `list_relations` 的 Cypher 實作
+- `get_snapshot` 的 Cypher 實作
+- `KGServiceBase` 新增抽象方法 `get_neighbor_ids(entity_id: str) -> list[str]`，
+  讓 Link Prediction 的算法層與 backend 解耦
+  - NetworkX：用現有圖結構實作
+  - Neo4j：用 `CALL gds.alpha.linkprediction.adamicAdar(...)`
+- `LinkPredictionService.run_inference()` 改用抽象方法，**不再讀 `self._kg._graph`**
+  這個私有屬性
+- 每補完一項，把它從 `Neo4jKGService.UNSUPPORTED` 移除——parity 測試會擋住
+  陳舊宣告，所以忘了拿掉會紅
+
+**前置依賴**: B-011（Neo4j docker-compose 環境）。沒有可跑的 Neo4j 就驗不了 Cypher，
+這也是上面「已完成」的兩項刻意都不碰實作的原因。
+
+**這次學到的**: 「原則寫在 backlog 但沒有機制守」等於沒有。B-048 自己就是反例——
+它明文要求後續缺口都要記在這裡，然後兩個缺口在它眼皮底下長出來沒人記。
+PR #83 的作法（把宣告放進生產程式碼、用測試釘住宣告等於現實）才是那條原則的
+可執行版本。
 
 ---
 
@@ -1260,7 +1303,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-045 | 敘事結構頁：英雄旅程主視圖 + 情節骨幹摘要 | 🟡 中 | ✅ 已完成 |
 | B-046 | 建構概覽：節點觸發建構 CTA 對接 pipeline | 🟢 低 | 待開始（前置：對應 pipeline endpoint） |
 | B-047 | 知識圖譜：非預設主題下節點類型識別困難 | 🟢 低 | ✅ 已解（design system v2 兩主題共用 entity 色環，問題不復存在） |
-| B-048 | Neo4j Link Prediction 支援缺口 | 🟢 低 | 待開始（前置：B-011） |
+| B-048 | Neo4j 能力缺口（切過去等於整個圖譜功能面停擺） | 🟡 中 | 🔶 部分完成（2026-09-05；PR #83 防護、PR #84 事前警告；三項缺口的實作待 B-011）|
 | B-049 | 累積 Lint 債清理（ruff + eslint） | 🟢 低 | ✅ 已完成 |
 | B-051 | WebSocket 連線身分認證 | 🟢 低 | 待開始（前置：部署方向 + 認證決策） |
 | B-052 | log 中 neo4j/qdrant URL 遮罩 | 🟢 低 | ✅ 已完成（2026-08-22；7 處，其中 1 處是回應 body 不是 log，見 ARCHIVE） |
