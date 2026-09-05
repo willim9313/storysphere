@@ -3435,6 +3435,13 @@ export interface components {
             qdrantLocalPath: string | null;
             /** Vectorcount */
             vectorCount: number | null;
+            /**
+             * Unsupportedbymode
+             * @default {}
+             */
+            unsupportedByMode: {
+                [key: string]: string[];
+            };
         };
         /** KgSwitchRequest */
         KgSwitchRequest: {

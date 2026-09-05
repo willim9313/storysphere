@@ -328,6 +328,15 @@ function EnvPanel() {
     }
   };
 
+  // Which features each backend cannot serve. Reported for every selectable
+  // mode, not just the live one, so the warning can appear before the switch
+  // rather than as a 500 on the graph page afterwards.
+  const gapsByMode = kg?.unsupportedByMode ?? {};
+  const currentGaps = gapsByMode[kgBackend] ?? [];
+  const otherMode = kgBackend === 'networkx' ? 'neo4j' : 'networkx';
+  const otherGaps = gapsByMode[otherMode] ?? [];
+  const featureLabel = (id: string) => t(`env.kgFeature.${id}`, { defaultValue: id });
+
   const isStd = uiMode === 'standard';
   const actualDeployMode = kg?.deployMode ?? 'lightweight';
   const kgEnabled = isStd && kgBackend === 'neo4j' && !migrateMutation.isPending && !migrationTaskId;
@@ -479,6 +488,23 @@ function EnvPanel() {
               </div>
               {switchError && (
                 <p style={{ fontSize: 'var(--font-size-xs)', marginTop: 6, color: 'var(--color-error)' }}>{switchError}</p>
+              )}
+              {currentGaps.length > 0 && (
+                <p
+                  className="st-input-note"
+                  style={{ marginTop: 8, color: 'var(--color-error)' }}
+                >
+                  {t('env.kgGapsNow')}{currentGaps.map(featureLabel).join('、')}
+                </p>
+              )}
+              {currentGaps.length === 0 && otherGaps.length > 0 && (
+                <p
+                  className="st-input-note"
+                  style={{ marginTop: 8, color: 'var(--color-warning)' }}
+                >
+                  {t('env.kgGapsIfSwitch', { mode: otherMode === 'neo4j' ? 'Neo4j' : 'NetworkX' })}
+                  {otherGaps.map(featureLabel).join('、')}
+                </p>
               )}
               <p className="st-input-note" style={{ marginTop: 8 }}>{t('env.neoNote')}</p>
 

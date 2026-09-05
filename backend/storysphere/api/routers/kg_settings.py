@@ -37,11 +37,21 @@ async def get_kg_status() -> KgStatusResponse:
     """Return current KG backend mode and data counts."""
     from storysphere.api.deps import _runtime_kg_mode, get_kg_service  # noqa: PLC0415
     from storysphere.config.settings import get_settings  # noqa: PLC0415
+    from storysphere.services.kg_service import KGService  # noqa: PLC0415
+    from storysphere.services.kg_service_base import unsupported_features  # noqa: PLC0415
     from storysphere.services.kg_service_neo4j import Neo4jKGService  # noqa: PLC0415
 
     settings = get_settings()
     kg = get_kg_service()
     mode = _runtime_kg_mode or settings.kg_mode
+
+    # Read the classes, not the live instance: the page asks what would break
+    # after a switch, and the instance can only answer for the mode it is
+    # already on.
+    unsupported_by_mode = {
+        "networkx": unsupported_features(KGService),
+        "neo4j": unsupported_features(Neo4jKGService),
+    }
 
     neo4j_connected = False
     entity_count = 0
@@ -101,6 +111,7 @@ async def get_kg_status() -> KgStatusResponse:
             else None
         ),
         vector_count=vector_count,
+        unsupported_by_mode=unsupported_by_mode,
     )
 
 

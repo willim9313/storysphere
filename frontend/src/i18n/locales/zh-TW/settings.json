@@ -91,6 +91,15 @@
     "neoUser": "NEO4J_USER",
     "neoPass": "NEO4J_PASSWORD",
     "neoNote": "Neo4j 切換為 runtime 生效的例外（POST /api/v1/kg/switch），不需重啟。",
+    "kgGapsNow": "目前後端無法提供這些功能：",
+    "kgGapsIfSwitch": "切換到 {{mode}} 會停用這些功能：",
+    "kgFeature": {
+      "graph": "知識圖譜頁",
+      "character_metrics": "角色指標",
+      "factions": "派系分析",
+      "link_prediction": "推斷關係",
+      "epistemic_state": "認知狀態"
+    },
     "migTitle": "資料遷移",
     "migIdem": "遷移為冪等操作，重複執行不會產生重複資料。",
     "migQdrant": "Qdrant：local → service",
