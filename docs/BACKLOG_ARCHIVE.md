@@ -1575,3 +1575,47 @@ generated」）。改成 `StepStatus` enum 後 `PipelineStatus` / `StepStatus` �
 （新增）、`frontend/src/api/{generated.ts,types.ts}`、`frontend/src/components/library/`
 三個元件、`frontend/src/pages/LibraryPage.tsx`、`docs/API_CONTRACT.md`。無新依賴。
 五道閘門全綠。
+
+---
+
+## B-089 建構概覽把從未執行過的步驟標成「已完成」✅ 完成（2026-09-05）
+
+**背景**: `unraveling_manifest.py` 的 `kg_concept` 節點狀態判定是
+`len(concept_entities) > 0`。但 Concept 有兩個來源：ingestion 的 NER 填 `counts.ner`，
+pre-analysis（B-025 `ConceptInferencePipeline`）填 `counts.inferred`。27 筆 surface
+concept 因此讓節點恆為 `complete` —— 而 `inferred` 從來沒有非零過。
+
+**專門用來回答「什麼還沒建」的那一頁，把一個從未執行過的步驟標成已完成。**
+
+**查證依據**（不是推論）:
+
+| 來源 | 結果 |
+|------|------|
+| `var/knowledge_graph.json` | 470 筆實體，`extraction_method` 全 `ner`，`inferred` **0 筆** |
+| `var/backup-20260728-*/` | 241 筆歷史快照，同樣全零 |
+| `git log -S "ConceptInferencePipeline" --all` | 4 個 commit：3 個純 docs + 它自己 2026-04-01 的誕生。**從未有過呼叫端** |
+| `var/analysis_cache.db` | 99 筆 `teu` 前綴（張力分析確實跑過），無任何 concept 相關前綴 |
+
+**實作**:
+- `unraveling_manifest.py`：兩半都非零才 `complete`，任一半有值是 `partial`，
+  都沒有才 `empty`
+- `BuildOverviewPage.tsx`：從 `NODE_TO_TRIGGER` 移除 `kg_concept`
+- `tests/api/test_unraveling.py`：4 個新測試（只有 ner／兩半皆有／只有 inferred／完全沒有）
+
+**移除 CTA 是必要而非順手**: `ctaState` 由 `status === 'partial'` 推導，只改後端的話
+CTA 會從隱藏變成顯示，而它對應的 `KG_RERUN` 只重跑 NER、永遠推不動 `inferred` 那半。
+等於用「按不動的按鈕」取代「假綠燈」，比改之前更糟。移除後落回既有的 disabled
+「觸發建構功能規劃中」佔位，與 B-046 Phase 2 其餘待接節點一致。
+
+**保留不刪**: i18n 的 `cta.node.kg_concept` —— 端點補上後（B-092 第 2 段）會用回來。
+
+**副作用（預期內）**: 建構概覽整體分數會下降，`score = (complete + partial * 0.5) / total`
+使 `kg_concept` 從 1.0 變 0.5。那是正確的下降，先前的分數高估了。
+
+**API_CONTRACT 未改也不需改**: #19 只定義 `status` 的三值域與 `counts` 形狀，
+沒有記載各節點的推導規則，回傳 schema 一字未動。
+
+**異動**: `api/unraveling_manifest.py`、`frontend/src/pages/BuildOverviewPage.tsx`、
+`tests/api/test_unraveling.py`。無新依賴。五道閘門全綠（1847 passed）。PR #79。
+
+**後續**: 接上 pipeline 本身、以及它「彙集整章卻截掉七成」的問題，見 B-092。
