@@ -5,7 +5,7 @@ from storysphere.domain.documents import (
     Paragraph,
     ParagraphEntity,
 )
-from storysphere.domain.entities import Entity, EntityType, SpanRef
+from storysphere.domain.entities import Entity, EntityType
 from storysphere.domain.epistemic_state import CharacterEpistemicState, MisbeliefItem
 from storysphere.domain.events import Event, EventType, NarrativeMode, StoryTimeRef
 from storysphere.domain.relations import Relation, RelationType
@@ -16,7 +16,6 @@ from storysphere.domain.timeline import TimelineConfig, TimelineDetectionResult
 __all__ = [
     "Entity",
     "EntityType",
-    "SpanRef",
     "Relation",
     "RelationType",
     "TEU",

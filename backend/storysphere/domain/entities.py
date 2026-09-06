@@ -16,15 +16,6 @@ class EntityType(str, Enum):
     OTHER = "other"
 
 
-class SpanRef(BaseModel):
-    """A reference to a text span where a surface concept appears."""
-
-    chunk_id: str
-    start: int
-    end: int
-    text: str
-
-
 class Entity(BaseModel):
     """A named entity extracted from a novel (character, location, org, …)."""
 
@@ -40,7 +31,6 @@ class Entity(BaseModel):
 
     # --- Concept provenance fields (B-024) ---
     extraction_method: Literal["ner", "inferred"] = "ner"
-    source_spans: list[SpanRef] | None = None
     inferred_by: str | None = None
     confidence: float | None = Field(default=None, ge=0.0, le=1.0)
 
