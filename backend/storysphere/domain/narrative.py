@@ -23,23 +23,11 @@ class KernelSatelliteResult(BaseModel):
     reasoning: str | None = None
 
 
-class ProppFunctionRef(BaseModel):
-    """Reference to a Propp narrative function mapped to an event.
-
-    Only populated when B-034 LLM refinement runs Propp analysis.
-    """
-
-    function_id: str = Field(description="Propp function code, e.g. 'A' (villainy), 'D' (task)")
-    function_name: str
-    event_id: str
-    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
-
-
 class HeroJourneyStage(BaseModel):
     """One stage of Campbell's Hero's Journey, mapped to chapter ranges.
 
     Populated by NarrativeService.map_hero_journey() (B-035).
-    Stages are defined in src/config/hero_journey.py.
+    Stages come from config/hero_journey/hero_journey_{en,zh}.json via load_hero_journey().
     """
 
     stage_id: str = Field(description="Stage identifier, e.g. 'ordinary_world'")
@@ -108,9 +96,6 @@ class TemporalAnalysis(BaseModel):
         default_factory=list, description="Event IDs identified as flash-forwards"
     )
 
-    # HITL review
-    review_status: Literal["pending", "approved", "rejected"] = "pending"
-
 
 class NarrativeStructure(BaseModel):
     """Book-level narrative structure analysis result.
@@ -132,9 +117,6 @@ class NarrativeStructure(BaseModel):
 
     # Hero's Journey mapping (populated by map_hero_journey, B-035)
     hero_journey_stages: list[HeroJourneyStage] = Field(default_factory=list)
-
-    # Propp functions (populated by B-034 LLM refinement, optional)
-    propp_functions: list[ProppFunctionRef] = Field(default_factory=list)
 
     # HITL review
     review_status: Literal["pending", "approved", "rejected"] = "pending"

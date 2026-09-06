@@ -1653,3 +1653,64 @@ CTA 會從隱藏變成顯示，而它對應的 `KG_RERUN` 只重跑 NER、永遠
 `tools/analysis_tools/analyze_character.py`、`tests/tools/test_analysis_tools.py`（+2 哨兵測試）。
 無新依賴。五道閘門全綠（1849 passed）。PR #80。
 
+
+---
+
+## B-093 前後端 taxonomy 漂移防護只蓋了五分之二 ✅ 完成（2026-09-06）
+
+**背景**: B-061 建立了「`frameworksData.ts` 的 item 名稱必須與後端 config JSON 逐字一致」
+的防護，但 `tests/config/test_archetype_taxonomy_drift.py` 只 `parametrize` 了
+`jung` / `schmidt` 兩個。`frameworksData.ts` 實際有 8 個 framework，其中 **5 個有後端對應檔**，
+`frye_mythos` / `booker_plots` / `hero_journey` 三組跨層契約一直沒有守衛。
+
+**盤點結果（2026-09-05 實比對）**:
+
+| framework | 後端對應 | 修前涵蓋 | 修前現況 |
+|-----------|---------|---------|---------|
+| `jung` | `config/character_analysis/jung_archetypes_{en,zh}.json` | ✅ | 一致 |
+| `schmidt` | `config/character_analysis/schmidt_archetypes_{en,zh}.json` | ✅ | 一致 |
+| `frye_mythos` | `config/mythos/frye_mythos_{en,zh}.json` | ❌ | 一致（4/4 逐字相同） |
+| `booker_plots` | `config/mythos/booker_plots_{en,zh}.json` | ❌ | id 有**刻意**差異 |
+| `hero_journey` | `config/hero_journey/hero_journey_{en,zh}.json` | ❌ | **英文名稱已漂移 5/12** |
+| `chatman` / `genette_temporal_order` / `sep_methodology` | 無 | — | 純前端理論文字，無從比對 |
+
+**處置（PR #87，四件事）**:
+
+1. **新增 id 集合對等測試**，五個 framework 都跑。名稱漂移是顯示問題，**id 漂移是功能
+   問題** —— 英雄旅程的 UI 是拿 `stage_id` 去 `frameworksData` 查顯示名
+   （`CrossEvidence.tsx:62`），少一個 id 就直接掉 fallback。
+2. **名稱逐字相同測試從 2 個擴到 5 個**。對 jung / schmidt 這是功能契約（原型篩選用
+   字串相等計數，差一個字 facet 就是 0、篩選恆空）；對其餘三個目前只是一致性，
+   但維持同一條規則比「除了某某以外」好記。
+3. **修掉已發生的漂移**：`hero_journey` 英文 5 筆對齊到後端（`Ordinary World` →
+   `The Ordinary World` 等）。方向是**前端追後端**，理由有三：B-061 建立的規則本來
+   就是這個方向；後端 JSON 用的是 Vogler 的正式命名，前端那份是有人自行縮寫；
+   維持一條規則比多一條例外好。中文版 12 筆本來就逐字相同，未動。
+4. **刪除 `config/hero_journey.py` 的 `STAGE_IDS` / `PHASES`**（21 行，全 repo 零引用）。
+
+**`booker_plots` 的 id 差異是刻意的，不要「修掉」**: 前端是 `tragedy_booker` /
+`comedy_booker`，後端是 `tragedy` / `comedy`。原因是 Frye 的四個 mythos 也有 `comedy`
+與 `tragedy`，而前端把八個 framework 放在同一份清單裡需要唯一 id，故加後綴消歧義。
+天真地比對 id 會在這裡誤報，故以 `_FRONTEND_ID_SUFFIX` 換算後才比對，理由寫在常數旁邊。
+
+**英雄旅程的 taxonomy 原有四份拷貝**，這次刪掉沒人讀的那份：
+
+1. `config/hero_journey/hero_journey_{en,zh}.json` —— 真相來源，`load_hero_journey()` 讀它
+2. `config/hero_journey.py` 的 `STAGE_IDS` / `PHASES` —— **已刪**。零引用，且漂移測試
+   照 B-061 的做法直接讀 JSON，不需要經過 Python 常數
+3. `frontend/src/components/narrative/heroJourney.ts` 的 `STAGE_ORDER` / `STAGE_PHASE`
+   —— 有在用（`stageOrdinal()` 靠它算序號），**不可刪且仍無防護，見 B-095**
+4. `frontend/src/data/frameworksData.ts` —— 顯示名，英文已對齊
+
+**哨兵實測四種漂移各紅、還原 30 綠**：① jung 名稱漂移 ② hero_journey 少一個 id
+③ booker 的刻意後綴被「修掉」 ④ frye 名稱漂移。（B-061 建立的慣例：新增的漂移防護
+必須實測自己會紅。）
+
+**放後端 pytest 而非前端 vitest**: 同 B-061 的理由 —— 五道閘門裡有 pytest，
+沒有 `npm run test`，vitest 寫了不會在 CI 跑。
+
+**異動**: `tests/config/test_archetype_taxonomy_drift.py`、
+`frontend/src/data/frameworksData.ts`、`backend/storysphere/config/hero_journey.py`。
+無新依賴。PR #87。
+
+**未做的一項**: 第 3 份拷貝（`heroJourney.ts` 的順序常數）的防護，另立 **B-095**。

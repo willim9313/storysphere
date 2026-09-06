@@ -675,7 +675,7 @@ PR #83 的作法（把宣告放進生產程式碼、用測試釘住宣告等於�
 
 | 範圍 | 現況 |
 |------|------|
-| backend 符號 | **3**：`hero_journey.py` 的 `STAGE_IDS` / `PHASES`（見 B-093）、`LLMClient.get_fallback`（暫緩，見 B-090） |
+| backend 符號 | **1**（起始 3）：只剩 `LLMClient.get_fallback`（暫緩，見 B-090）。`hero_journey.py` 的 `STAGE_IDS` / `PHASES` 已隨 B-093 刪除 |
 | frontend 匯出 | **0**（起始 15，12 刪 3 接） |
 | i18n key | **340 / 2327** 未引用 |
 | CSS class | **86 / 1894** 未引用（`tension.css` 佔 54） |
@@ -687,6 +687,34 @@ PR #83 的作法（把宣告放進生產程式碼、用測試釘住宣告等於�
   `fetchSep`、`deleteEventAnalysis` / `deleteEntityAnalysis`
 - 接 3：`clearMurmur`（上傳失敗路徑的緩衝從未回收）、`aggregatedEdgeWidth`
   （聚合邊寬度不反映權重）、`buildActiveFilterTags`（生效中的篩選只看得到數字）
+
+**掃描器掃不到的一類：model 欄位**（2026-09-06）。判準是「**同組手足都有人讀寫、
+只有它沒有**」，只能手動掃，`scan_dead_code.py` 看不到（欄位在 model 裡被宣告，
+語法上不是零引用）。目前三筆，全部屬第 1 種（真死碼）而刪除：
+
+| 欄位 | 為什麼是死的 | PR |
+|------|------------|----|
+| `TEU.review_status` | 沒有端點能改它、不在任何 response schema、快取裡 99 筆全是 `pending`。註解說是 B-027 grouping 用的，但 `group_teus` 載入全部 TEU、不依它篩選 | #88 |
+| `Entity.source_spans`（連同 `SpanRef`） | B-024 一次加的四個 provenance 欄位，三個手足在 domain 外有 19 / 3 / 79 處引用，只有它是 0。`concept_inference` 也不寫它（證據塞進 `attributes["evidence"]`） | #89 |
+| `StoryTimeRef.absolute_time` | 兩個手足在 `narrative_service.py:852-853` 被填入，唯獨它從未被傳 | #89 |
+| `NarrativeStructure.propp_functions`（連同 `ProppFunctionRef`） | 全 repo 零寫入零讀取。docstring 說「B-034 LLM refinement 跑 Propp 分析時才填」，但 B-034 已標 ✅ 完成、實作只有 `refine_with_llm`，Propp 從來不在裡面 | E 敘事走查 |
+| `TemporalAnalysis.review_status` | 兩處建構都不傳、`_read_temporal_analysis` 不讀、`PATCH /narrative/:id/review` 走的是 `NarrativeStructure`。與 `TEU.review_status` 同形 | E 敘事走查 |
+
+**`propp_functions` 不是「被手抄的來源」，查證過才刪**: `docs/guides/deep-analysis-event.md`
+把 Propp 記在 `eep.structural_role` 名下，但那個欄位的值域是 Setup / Inciting Incident /
+Turning Point 一類的敘事節拍，**不是 Propp 的 function code**，兩者不是同一份資料的兩份拷貝。
+Propp function 對應的設計意圖只存在於 `docs/plans/20260331-narratology-analysis-design-notes.md`，
+真要做是一次獨立的功能開發，不是把一個永遠回傳空陣列的欄位留在 API 回應裡當佔位。
+移除**會改到 OpenAPI**（`GET /narrative` 的回應 schema），已重產 `generated.ts`，
+diff 僅為該欄位與 `ProppFunctionRef` 定義的移除。
+
+**這五筆共同的形狀**：B-024 / B-033 / B-034 三張票**都標示 ✅ 完成，卻都沒填上自己
+宣告的欄位**（B-034 命中兩次：`absolute_time` 的 docstring 引錯到它，`propp_functions`
+則是真的宣告在它名下卻沒做）。`TEU.review_status` 的處置另有設計理由（審核關卡設在合成層 TensionLine /
+TensionTheme，不設在原料層 TEU），已寫進 `docs/guides/tension-analysis.md` 免得日後
+有人以為是漏做又加回來。三者的 `extra` 都是預設 `ignore`，舊快取多出來的鍵會被靜默
+忽略，不需遷移；OpenAPI 以離線重產 `generated.ts` 比對為 byte-identical，
+`API_CONTRACT.md` 無需更動。
 
 **偵測器本身就是偽陽性的來源，這點必須寫下來**：
 第一版的 i18n 掃描只認 `t(\`ns.x.${v}\`)`，漏掉
@@ -703,6 +731,8 @@ PR #83 的作法（把宣告放進生產程式碼、用測試釘住宣告等於�
   像是某一版張力卡片設計的整片殘留。
 - 尚未掃描：巢狀與私有方法、只被測試引用而生產路徑無呼叫者的符號、
   `scripts/` 孤兒、已註冊但從未被觸發的 chat tool。
+- model 欄位的手動判準（同組手足都有人讀寫、只有它沒有）已在張力與角色／事件兩域
+  各跑過一次，尚未掃過其餘功能域。
 - 決定要不要變成第六道閘門。**傾向不要** —— 判定需要人走查，做成閘門會逼人
   用刪除來消紅燈，正好製造上面第 2、3 種錯誤。比較合適的是定期跑、產出候選清單。
 
@@ -758,75 +788,62 @@ PR #83 的作法（把宣告放進生產程式碼、用測試釘住宣告等於�
 
 ---
 
-#### B-093 前後端 taxonomy 漂移防護只蓋了五分之二
+#### B-096 classify 的洗白守衛只擋全損，不擋部分損失
 
-**背景**: B-061 建立了「`frameworksData.ts` 的 item 名稱必須與後端 config JSON 逐字一致」
-的防護，但 `tests/config/test_archetype_taxonomy_drift.py:55` 是
-`@pytest.mark.parametrize("framework", ["jung", "schmidt"])` —— 只跑兩個。
-`frameworksData.ts` 實際有 8 個 framework，其中 **5 個有後端對應檔**。
+**背景**: 「對已失去 `event:{doc}:{id}` 快取的書跑 `POST /narrative/classify` 會把 KG 的
+kernel/satellite 權重洗成 `unclassified`」這件事已經有守衛了——服務層
+`NarrativeService._would_wipe()` 會中止，端點層回 409。但兩層的條件都是
+**`hits == 0 and classified > 0`**，也就是**只有 EEP 快取一筆不剩才擋**。
 
-**盤點結果（2026-09-05 實比對）**:
+**還開著的洞**: 部分損失照跑。`eep_coverage` 回 `(12, 38, 47)` 時端點回 202、服務照寫，
+結果是 12 個事件重新分類、**另外 26 個已分類事件被靜默重設為 `unclassified`**。
+`tests/api/test_narrative.py:278` 正是把這個行為釘成 202（測試名
+`test_202_when_the_cache_still_has_entries`）。
 
-| framework | 後端對應 | B-061 涵蓋 | 現況 |
-|-----------|---------|-----------|------|
-| `jung` | `config/character_analysis/jung_archetypes_{en,zh}.json` | ✅ | 一致 |
-| `schmidt` | `config/character_analysis/schmidt_archetypes_{en,zh}.json` | ✅ | 一致 |
-| `frye_mythos` | `config/mythos/frye_mythos_{en,zh}.json` | ❌ | 一致（4/4 逐字相同） |
-| `booker_plots` | `config/mythos/booker_plots_{en,zh}.json` | ❌ | id 有**刻意**差異，見下 |
-| `hero_journey` | `config/hero_journey/hero_journey_{en,zh}.json` | ❌ | **英文名稱已漂移 5/12** |
-| `chatman` | 無 | — | 純前端理論文字，無從比對 |
-| `genette_temporal_order` | 無 | — | 同上 |
-| `sep_methodology` | 無 | — | 同上 |
+**諷刺之處**: `eep_coverage()` 自己的 docstring 寫的是「How much of a classification run
+would survive」——需要的數字早就算出來了，門檻設在 0。
 
-**已發生的漂移（`hero_journey`，僅英文）**:
+**要決定的是門檻不是程式**（所以先立條目而非直接改）:
+- 擋在哪？`hits < classified` 就擋（任何淨損失都擋）過於嚴格，正常補跑會被誤擋——
+  新事件本來就還沒有 EEP
+- 比較可能的形狀是：**只重寫有 EEP 的事件，沒有 EEP 的保留原權重**，讓 classify 從
+  「全量覆寫」變成「增量更新」。那樣連守衛都不太需要了，但會改變 `unclassified_event_ids`
+  的語意（現在它是「這次沒分到的」，改後是「從來沒分到的」）
+- 若維持全量覆寫，至少要讓端點在有淨損失時回 409 並把數字寫進 detail，
+  與現有 409 的文案一致
 
-| id | 前端 | 後端 |
-|----|------|------|
-| `ordinary_world` | Ordinary World | The Ordinary World |
-| `call_to_adventure` | Call to Adventure | The Call to Adventure |
-| `meeting_the_mentor` | Meeting the Mentor | Meeting with the Mentor |
-| `ordeal` | Ordeal | The Ordeal |
-| `resurrection` | Resurrection | The Resurrection |
+**不是整潔問題**: 《名字的潮汐》已經因為這條路徑掉過權重（見 B-091 走查紀錄），
+現行守衛擋掉的是它的極端情形，不是全部。
 
-中文版 12 筆逐字相同。
+**觸發時機**: 待排。E 敘事走查（2026-09-06）發現。
 
-**目前不會壞，但理由與 jung/schmidt 不同 —— 這點決定了修法**:
-`CrossEvidence.tsx:62` 是 `theory[s.stage_id]?.name ?? s.stage_name`，靠 **id** 查、
-後端 name 只是 fallback，而 id 完全一致所以 fallback 從不觸發。
-B-061 保護的 jung/schmidt 則是**用名稱字串相等計數**，差一個字該原型的 facet 就是 0、
-篩選恆空。所以英雄旅程這組是顯示層潛伏（哪天走到 fallback 才會冒出兩種叫法），
-不是當下故障，優先度因此是低而非中。
+---
 
-**實作前必讀 —— `booker_plots` 的 id 差異是刻意的，不要「修掉」**:
-前端是 `tragedy_booker` / `comedy_booker`，後端是 `tragedy` / `comedy`。
-原因是 Frye 的四個 mythos 也有 `comedy` 與 `tragedy`，而前端把八個 framework 放在
-同一份清單裡需要唯一 id，故加後綴消歧義。其餘 5 個 id 與名稱皆相同。
-天真地比對 id 會在這裡誤報。
+#### B-095 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護
 
-**另一個順帶發現（零引用）**: `config/hero_journey.py` 的 `STAGE_IDS` 與 `PHASES`
-是全 repo 零引用。英雄旅程的 taxonomy 目前有**四份拷貝**：
+**背景**: B-093 把 taxonomy 漂移防護從 2 個 framework 擴到 5 個，並刪掉英雄旅程四份
+拷貝中沒人讀的那份（`config/hero_journey.py`）。剩下三份都有人用，其中
+`frontend/src/components/narrative/heroJourney.ts` 的 `STAGE_ORDER` / `STAGE_PHASE`
+**仍在防護之外**。
 
-1. `config/hero_journey/hero_journey_{en,zh}.json` —— 真相來源，`load_hero_journey()` 讀它
-2. `config/hero_journey.py` `STAGE_IDS` / `PHASES` —— 零引用，內容與 JSON 相符
-3. `frontend/src/components/narrative/heroJourney.ts` `STAGE_ORDER` / `STAGE_PHASE`
-   —— 有在用（`stageOrdinal()` 靠它算序號），順序與 JSON 相符
-4. `frontend/src/data/frameworksData.ts` `hero_journey` —— 顯示名，英文已漂移
-
-第 2 份可刪：JSON 才是來源，且日後的漂移測試應照 B-061 的做法直接讀 JSON，
-不需要經過 Python 常數。第 3 份不可刪但目前無防護 —— 它帶順序，漂了會讓階段序號錯位。
+**為什麼它比顯示名危險**: 現行的漂移測試比對的是 **id 集合**與**顯示名**，
+兩者都不含順序。而 `STAGE_ORDER` 帶的是階段序號 —— `stageOrdinal()` 靠它算
+「第幾階段」。後端 JSON 若調換或增刪階段，id 集合與顯示名可以完全一致，
+序號卻已錯位，而且**畫面照常渲染**，只是每個階段的號碼都是錯的。
+這正是本輪走查在找的形狀：意圖（兩份順序要一致）沒有任何東西在驗。
 
 **待辦**:
-- 把 B-061 的 `parametrize` 從 2 個擴到 5 個，並處理 `booker_plots` 的刻意後綴
-- 修 `hero_journey` 英文那 5 筆。**先決定以哪邊為準**：後端 JSON 的「The …」是
-  Campbell / Vogler 的慣用寫法，前端的簡寫較適合 UI 標籤。也可能該讓測試比對
-  id 集合而非顯示名、另立文案規則 —— 這是決定不是對齊，別直接改字了事
-- 刪 `config/hero_journey.py` 的 `STAGE_IDS` / `PHASES`
-- 評估 `heroJourney.ts` 的 `STAGE_ORDER` / `STAGE_PHASE` 是否納入防護
+- 在 `tests/config/test_archetype_taxonomy_drift.py` 加一項：解析 `heroJourney.ts`
+  的 `STAGE_ORDER`，與 `config/hero_journey/hero_journey_zh.json` 的 stage 順序**逐位**
+  相等（不只是集合相等）
+- `STAGE_PHASE` 的 phase 歸屬同理。**先確認後端 JSON 有沒有 phase 欄位** ——
+  若沒有，這份是前端獨有的知識，那就不是漂移而是單一來源，只需在常數旁註明
+- 沿用 B-061 慣例：新守衛要實測自己會紅（調換兩個階段的順序）
 
-**放後端 pytest 而非前端 vitest**: 同 B-061 的理由 —— 五道閘門裡有 pytest，
-沒有 `npm run test`，vitest 寫了不會在 CI 跑。
+**放後端 pytest 而非前端 vitest**: 同 B-061 / B-093 —— 五道閘門裡有 pytest，
+沒有 `npm run test`。
 
-**觸發時機**: 待排。屬全面徹查零使用程式碼的一部分。
+**觸發時機**: 待排。B-093 的殘項，屬跨層契約防護的一部分。
 
 ---
 
@@ -1405,10 +1422,12 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-088 | 書卡狀態徽章永遠是「已就緒」 | 🟢 低 | ✅ 已完成（2026-08-22；改由 pipeline_status 推導 3 值，`processing` 證實產不出來已移除；順帶收掉 PipelineStatusResponse，見 ARCHIVE） |
 | B-089 | 建構概覽把從未執行過的步驟標成「已完成」 | 🟡 中 | ✅ 已完成（2026-09-05 PR #79；`kg_concept` 兩半都非零才 complete，並移除永遠推不動它的 CTA，見 ARCHIVE） |
 | B-090 | 零引用符號清除（第一批） | 🟢 低 | ✅ 已完成（2026-09-05 PR #80；5 個候選三種結局——3 刪、1 因是被手抄的 schema 改為讓工具用它、1 暫緩待 B-075，見 ARCHIVE） |
-| B-091 | 全面徹查零使用程式碼 | 🟡 中 | 🔶 進行中（2026-09-05；掃描器固定為 `scripts/scan_dead_code.py`；前端匯出 15→0、backend 3；i18n 340 與 CSS 86 待逐項走查）|
+| B-091 | 全面徹查零使用程式碼 | 🟡 中 | 🔶 進行中（2026-09-06；掃描器固定為 `scripts/scan_dead_code.py`；前端匯出 15→0、backend 3→1、model 欄位 3 筆已刪（PR #88 #89）；i18n 340 與 CSS 86 待逐項走查）|
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
-| B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | 待開始（hero_journey 英文已漂移 5/12，靠 id 查所以不會壞；booker 的 id 後綴是刻意的，別誤修） |
+| B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-095 | 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護 | 🟢 低 | 待開始（2026-09-06 由 B-093 分出；id 與顯示名都有守衛了，順序沒有——漂了會讓階段序號錯位且畫面照常渲染） |
+| B-096 | classify 的洗白守衛只擋全損，不擋部分損失 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；`hits == 0` 才擋，`(12, 38, 47)` 會靜默把 26 個已分類事件重設為 unclassified） |
 
 ### F 系列
 
@@ -1466,4 +1485,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-08-20（B-079 / B-081 / B-082 / B-083 完成並歸檔；B-075 結案）
+**最後更新**: 2026-09-06（B-093 完成並歸檔，殘項分出 B-095；B-091 補記 model 欄位那批與 backend 符號 3→1；E 敘事走查產出 B-096）
