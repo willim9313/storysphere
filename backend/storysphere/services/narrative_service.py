@@ -5,7 +5,7 @@ Phase 1 (B-033):
   get_kernel_spine(document_id)  — returns kernel events sorted by narrative position
 
 Phase 2 (B-034):
-  refine_with_llm(document_id)        — LLM refinement of low-confidence classifications
+  refine_with_llm(document_id)        — LLM re-classification of satellite events
 
 Phase 3 (B-035):
   map_hero_journey(document_id)       — Campbell 12-stage structure mapping
@@ -70,9 +70,6 @@ Return ONLY a JSON object with:
     {"event_id": str, "story_rank": float, "reasoning": str | null}
   ]
 """
-
-# Heuristic confidence threshold below which LLM refinement is triggered
-_REFINEMENT_CONFIDENCE_THRESHOLD = 0.70
 
 _HERO_JOURNEY_SYSTEM_PROMPT = """\
 You are a literary scholar applying Campbell's Hero's Journey framework to a novel.
@@ -314,11 +311,13 @@ class NarrativeService:
         force: bool = False,
         progress_callback: Callable[[int, str], None] | None = None,
     ) -> NarrativeStructure:
-        """Phase 2: LLM refinement of low-confidence heuristic classifications.
+        """Phase 2: LLM re-classification of satellite events.
 
-        By default refines events whose heuristic confidence is below
-        _REFINEMENT_CONFIDENCE_THRESHOLD (satellite classifications, which are
-        the most likely to be misclassified chapter-level kernels).
+        By default every satellite is re-classified — satellites are the ones
+        most likely to be misclassified chapter-level kernels. There is no
+        per-event confidence to threshold on: ``classify_from_eep`` copies the
+        EEP verdict without one, and the confidence the LLM returns here is not
+        persisted either.
 
         Args:
             document_id: Book document ID.
@@ -408,14 +407,26 @@ class NarrativeService:
         satellite_ids = [e.id for e in refreshed if e.narrative_weight == "satellite"]
         unclassified_ids = [e.id for e in refreshed if e.narrative_weight == "unclassified"]
 
+        # Preserve hero_journey_stages and review_status, as classify_from_eep
+        # does: a refinement changes which events are kernels, not whether the
+        # book's structure has been reviewed, and the Hero's Journey mapping is
+        # an independent analysis. Dropping review_status here silently sent an
+        # approved structure back to "pending" — and unlike the stages, which
+        # get_cached_structure can restore from the hero_journey cache entry,
+        # nothing can recover it.
+        cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
+        existing_raw = await self._cache.get(cache_key)
+        existing = NarrativeStructure(**existing_raw) if existing_raw else None
+
         structure = NarrativeStructure(
             document_id=document_id,
             kernel_event_ids=kernel_ids,
             satellite_event_ids=satellite_ids,
             unclassified_event_ids=unclassified_ids,
             classification_source="llm_classified",
+            hero_journey_stages=existing.hero_journey_stages if existing else [],
+            review_status=existing.review_status if existing else "pending",
         )
-        cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
         await self._cache.set(cache_key, structure.model_dump())
         return structure
 

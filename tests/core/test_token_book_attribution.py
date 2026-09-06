@@ -229,6 +229,10 @@ class TestNarrativeAttribution:
         from storysphere.services.narrative_service import NarrativeService
 
         kg, doc, cache = AsyncMock(), AsyncMock(), AsyncMock()
+        # refine_with_llm reads the existing structure before rewriting it, and a
+        # bare AsyncMock would hand it something that is not a dict. "No cached
+        # structure" is the right answer for a test about attribution.
+        cache.get.return_value = None
 
         def _record(*_a, **_kw):
             seen.append(get_llm_service_context())
