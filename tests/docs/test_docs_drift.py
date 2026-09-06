@@ -1,9 +1,10 @@
 """文件漂移檢查 —— 讓契約文件與實作的落差在 CI 就爆掉，而不是靠人工比對。
 
-涵蓋五項：
+涵蓋六項：
 
 * ``docs/API_CONTRACT.md`` —— 每個 ``/api/v1`` 路由都必須要嘛有規格、要嘛被明確
   列進「未納入契約的端點」表。反向也檢查：文件寫了但程式碼沒有的端點。
+* 契約的「**UI 使用頁面**」欄位 —— 宣告了頁面的端點，前端必須真的呼叫得到它。
 * ``docs/DESIGN_TOKENS.md`` —— ``tokens.css`` 的每個 token 都必須在對照表裡找得到。
 * ``docs/plans/README.md`` —— 索引與目錄內容一致（雙向）。
 * 全文件的**相對連結**都指向存在的檔案。
@@ -51,6 +52,77 @@ UNLISTED_SECTION_RE = re.compile(
     r"^## 未納入契約的端點\s*$(.*?)(?=^## |\Z)", re.MULTILINE | re.DOTALL
 )
 UNLISTED_ROW_RE = re.compile(r"`((?:GET|POST|PUT|PATCH|DELETE)) ([^`]+)`")
+
+
+# 「**UI 使用頁面**：…」—— 契約用這一行宣告誰在呼叫這個端點。
+UI_PAGE_RE = re.compile(r"^\*\*UI 使用頁面\*\*[：:]\s*(.+)$", re.MULTILINE)
+# 這些開頭代表「沒有前端呼叫端」，是合法宣告而非漏填。
+NO_UI_PREFIXES = ("無", "—", "-", "ops", "（無")
+FRONTEND_SRC = REPO_ROOT / "frontend" / "src"
+# 路徑字面值：至少含一個 `/`，取單行的引號／反引號字串。
+PATH_LITERAL_RE = re.compile(r"[`\'\"]([^`\'\"\n]*/[^`\'\"\n]*)[`\'\"]")
+
+
+def _strip_js_comments(src: str) -> str:
+    """剝掉 ``//`` 與 ``/* */``，但保留字串內容。
+
+    為什麼要剝：第一版沒剝，於是 ``api/symbols.ts`` 的 JSDoc 裡那句
+    「``GET /symbols/:id/sep`` still exists but has no client here」被當成
+    真的呼叫，而它寫的正好是「沒有呼叫端」。**檢查器把說明文字讀成事實**，
+    與 B-098 在後端掃描器上撞到的是同一個形狀。
+
+    為什麼不能用單純的 regex 砍 ``//``：URL 字面值裡就有 ``//``
+    （``https://…``），砍下去會把字串攔腰切斷、反而生出假的路徑。所以要
+    一個知道自己在不在字串裡的小掃描器。
+    """
+    out: list[str] = []
+    i, n = 0, len(src)
+    while i < n:
+        ch = src[i]
+        if ch in "\'\"`":
+            quote = ch
+            out.append(ch)
+            i += 1
+            while i < n:
+                if src[i] == "\\":
+                    out.append(src[i : i + 2])
+                    i += 2
+                    continue
+                out.append(src[i])
+                if src[i] == quote:
+                    i += 1
+                    break
+                i += 1
+            continue
+        if ch == "/" and i + 1 < n:
+            if src[i + 1] == "/":
+                while i < n and src[i] != "\n":
+                    i += 1
+                continue
+            if src[i + 1] == "*":
+                end = src.find("*/", i + 2)
+                i = n if end == -1 else end + 2
+                continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
+
+
+def _frontend_path_literals() -> set[str]:
+    """前端原始碼裡出現過的路徑字面值，正規化成與契約可比對的形式。
+
+    ``generated.ts`` 排除在外：它是從 OpenAPI 產生的型別，列出每一條路徑，
+    納入等於讓這項檢查恆真。
+    """
+    literals: set[str] = set()
+    for path in FRONTEND_SRC.rglob("*.ts*"):
+        if path.name == "generated.ts":
+            continue
+        code = _strip_js_comments(path.read_text(encoding="utf-8", errors="ignore"))
+        for match in PATH_LITERAL_RE.finditer(code):
+            raw = match.group(1).split("?")[0]
+            literals.add(re.sub(r"\$\{[^}]*\}", ":P", raw).rstrip("/") or "/")
+    return literals
 
 
 def _normalise(method: str, path: str) -> str:
@@ -130,6 +202,40 @@ class TestApiContractCoverage:
             "以下端點寫在 docs/API_CONTRACT.md，但 app 上找不到對應路由"
             "（已刪除或路徑變更？）：\n  "
             + "\n  ".join(f"{documented[k]} {k}" for k in phantom)
+        )
+
+    def test_ui_page_claims_have_a_frontend_caller(self) -> None:
+        """契約說「這一頁在用」，前端就必須真的呼叫得到。
+
+        這條抓的是**單向刪除**：client 被移除、端點與契約留在原地。PR #86 清掉
+        `triggerBookAnalysis` 與 `regenerateAnalysis` 兩個零引用 client 之後，
+        #6 與 #6c 的「UI 使用頁面」就一直指著不存在的呼叫端——而那是一次**正確**
+        的清理，只是契約沒跟上。宣告沒有機制守，就會這樣慢慢變成假的。
+
+        比對刻意寬鬆（只看路徑前綴出現過），因為它要抓的是「完全沒人呼叫」，
+        不是「呼叫方式對不對」。沒有前端呼叫端是合法狀態——把該行寫成「無」即可，
+        那正是這條檢查要求的：**講出來**。
+        """
+        literals = _frontend_path_literals()
+        contract = _contract_text()
+        headings = list(HEADING_RE.finditer(contract))
+        orphaned: list[str] = []
+        for index, heading in enumerate(headings):
+            end = headings[index + 1].start() if index + 1 < len(headings) else len(contract)
+            claim = UI_PAGE_RE.search(contract[heading.start() : end])
+            if claim is None or claim.group(1).strip().startswith(NO_UI_PREFIXES):
+                continue
+            eid, method, path = heading.groups()
+            wanted = re.sub(r":[A-Za-z_][A-Za-z0-9_]*", ":P", path).rstrip("/")
+            if not any(
+                literal == wanted or literal.startswith(f"{wanted}/") or wanted in literal
+                for literal in literals
+            ):
+                orphaned.append(f"{eid} {method} {path} —— 契約說：{claim.group(1).strip()}")
+        assert not orphaned, (
+            "以下端點在 docs/API_CONTRACT.md 宣告了「UI 使用頁面」，但 frontend/src "
+            "裡找不到任何呼叫它的路徑字面值。若確實已無前端呼叫端，把該行改成"
+            "「**UI 使用頁面**：無」並說明原因：\n  " + "\n  ".join(orphaned)
         )
 
     def test_unlisted_routes_still_exist(self) -> None:

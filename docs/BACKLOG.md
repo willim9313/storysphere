@@ -938,6 +938,61 @@ anthropic，排除 primary），而 `get_with_local_fallback` 的 docstring 明�
 
 ---
 
+#### B-101 前置頁排除數有兩套規則，而且不是同一條
+
+**背景**: C 象徵走查（2026-09-06）。象徵詮釋只送正文與後記的證據給 LLM，前置頁
+（版權頁、書名頁、目次）排除在外——這是 B-074 的修正，理由很硬：《名字的潮汐》
+「海」的 13 筆出現有 5 筆是版權頁，而 prompt 只帶前 20 筆且依章節排序，所以那 5 筆
+不只是「被包含」，它們是模型**最先讀到**的證據。
+
+**問題不在排除，在於「排除了幾筆」被算了兩次**:
+
+| | 規則 | 位置 |
+|---|---|---|
+| 後端 | **純位置**：`occ.chapter_number < first_body_chapter`（`first_body` = 最小的 body 章號） | `symbol_service.py:358` |
+| 前端 | **角色優先**：`toc`/`preface`→front、`afterword`→back、`body`→body；**只有 `other` 與未宣告的角色**才落回位置 | `chapter_axis.ts:196` `buildSegmentMap` |
+
+`_first_body_chapter()` 的 docstring 明寫「Deriving both from the same rule is what
+makes `excluded_front_matter_count` equal the `front` count already on screen；
+two rules would let the page say 5 while the backend dropped 4」——**擔心的正是這件事，
+而兩邊本來就不是同一條規則。**
+
+**畫面上那句話用的是前端那份**：`InterpretationHero.tsx:223` 的
+「這個意象有 N 筆出現在前置頁（版權頁／書名頁），未列入詮釋證據」，N 來自
+`signals.distribution.front`。後端算出來的 `excluded_front_matter_count` 隨 SEP 回傳，
+而**前端沒有 SEP 的 client**，所以那個權威數字沒有任何讀者。
+
+**現在不會錯，但那是編號碰巧**（2026-09-06 實測 4 本書）:
+
+| 書 | 章號與角色 | 分歧 |
+|---|---|---|
+| 大唐雙龍傳 / Age of Fire / 3pigredhood | 全部 body，1..N | 無 |
+| 名字的潮汐 | `-1: preface`、`0: toc`、`1..10: body` | 無 |
+
+四本書的前置頁都編號 ≤ 0 而 `first_body` 都是 1，所以兩條規則**恰好**給出同一個答案。
+**會分歧的形狀**：一個 `role=other`、章號 ≥ 1 但排在第一個 body 章之前的章節 ——
+後端把它算進前置頁（證據被丟掉），前端算成正文（不計入警告）。那時畫面會說
+「3 筆未列入」而實際丟掉 4 筆，正是 docstring 擔心的情境。
+
+**要決定的**（三條路，不該由走查代決）:
+1. **讓前端讀後端的數字** —— 把 `excluded_front_matter_count` 搬進 #15i overview
+   （象徵頁唯一會呼叫的端點）。最徹底，但 overview 是每本書一份、SEP 是每個象徵一份，
+   要確認語意搬得過去
+2. **統一規則** —— 後端也改成角色優先。要先確認 `other` 章節該算哪一側，那是產品判斷
+3. **接受兩份，加一道守衛** —— 但跨語言（Python / TypeScript）的規則等價很難用測試釘死，
+   B-093 的做法是解析 TS 檔比對常數，規則邏輯不是常數
+
+**順帶記下的兩個小事**（不另立條目）:
+- **overview 的快取沒有版本閘門，SEP 有**。`SEP` 讀快取時比對 `assembled_by ==
+  "symbol_service_v2"`，不符即重組；`SymbolOverview` 直接 `get_as` 收下。目前 3 筆快取
+  的欄位都是新的，所以還沒咬到人，但手足之間這條保護是不對稱的
+- **SEP 快取有 10 筆 `symbol_service_v1` 殘留**（共 11 筆）。版本閘門正確地忽略它們，
+  但沒有人清
+
+**觸發時機**: 待排。C 象徵走查（2026-09-06）發現。
+
+---
+
 #### B-094 pytest 有一個間歇性失敗（約 1/8）
 
 **背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
@@ -1606,6 +1661,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
 | B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟡 中 | 待開始（2026-09-06 core/ 走查；B-075 已結案故舊理由不成立，但它是唯一的跨雲 fallback 實作，正是 B-073 缺的那塊） |
 | B-100 | token 歸屬修好之後沒有任何資料驗證過 | 🟢 低 | 待開始（2026-09-06 core/ 走查；DB 最後一筆 8/19、最後一次修正 8/20，98.3% 未歸屬是歷史數字） |
+| B-101 | 前置頁排除數有兩套規則，而且不是同一條 | 🟢 低 | 待開始（2026-09-06 C 象徵走查；後端純位置、前端角色優先，目前 4 本書編號碰巧一致；權威數字 `excluded_front_matter_count` 沒有讀者） |
 | B-095 | 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護 | 🟢 低 | 待開始（2026-09-06 由 B-093 分出；id 與顯示名都有守衛了，順序沒有——漂了會讓階段序號錯位且畫面照常渲染） |
 | B-096 | classify 的洗白守衛只擋全損，不擋部分損失 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；`hits == 0` 才擋，`(12, 38, 47)` 會靜默把 26 個已分類事件重設為 unclassified） |
 | B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；三個方法都只改記憶體物件、從不 `kg.save()`，磁碟上 satellite 0 筆、`story_time` 0 筆） |
@@ -1667,4 +1723,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-06（B-098 完成、core/ 走查產出 B-099 / B-100、私有方法範圍掃過並清空；B-091 的 CSS 那 86 筆清完 86 → 0，剩 i18n 340 筆待逐項走查）
+**最後更新**: 2026-09-06（B-098 完成、core/ 走查產出 B-099 / B-100、私有方法範圍掃過並清空；B-091 的 CSS 那 86 筆清完 86 → 0，剩 i18n 340 筆待逐項走查；C 象徵走查產出 B-101，契約「UI 使用頁面」新增漂移守衛並修掉 4 條假宣告）
