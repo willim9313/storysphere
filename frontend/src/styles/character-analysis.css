@@ -244,13 +244,6 @@
   font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 500;
   color: var(--fg-muted); cursor: pointer;
 }
-.ca-tab .ca-tab-count {
-  font-size: var(--font-size-2xs); padding: 1px 6px;
-  border-radius: 20px;
-  background: var(--bg-tertiary);
-  color: var(--fg-muted);
-  font-feature-settings: 'tnum';
-}
 .ca-tab:hover { color: var(--fg-secondary); }
 .ca-tab.active { color: var(--fg-primary); font-weight: 600; }
 .ca-tab.active::after {
@@ -260,7 +253,6 @@
   background: var(--accent);
   border-radius: 1px;
 }
-.ca-tab.active .ca-tab-count { background: var(--accent); color: var(--bg-primary); }
 
 /* ─── Sub-tab pill bar (Overview) ─── */
 .ca-subtabs {
@@ -329,10 +321,6 @@
 .ca-conf {
   display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
   min-width: 180px;
-}
-.ca-conf-label {
-  font-size: var(--font-size-2xs); letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--fg-muted);
 }
 .ca-conf-track {
   width: 180px; height: 6px;

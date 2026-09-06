@@ -583,25 +583,6 @@
   text-wrap: pretty;
 }
 
-/* Pill */
-.md-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  padding: 1px 8px;
-  border-radius: 20px;
-  border: 0.5px solid;
-  vertical-align: baseline;
-}
-.md-pill-dot {
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  opacity: 0.85;
-}
-
 /* References */
 .md-refs { padding: var(--space-md) var(--space-lg); }
 .md-ref {
@@ -886,12 +867,6 @@
   font-size: 0.65rem;
   color: var(--fg-muted);
   font-family: var(--font-mono);
-}
-
-.md-divider {
-  border: 0;
-  border-top: var(--border-width) var(--border-style) var(--border);
-  margin: var(--space-xl) 0;
 }
 
 @media (max-width: 1080px) {

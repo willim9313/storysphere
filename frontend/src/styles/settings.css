@@ -385,12 +385,6 @@
 .st-stat-label { font-size: var(--font-size-2xs); color: var(--fg-muted); margin-bottom: 4px; }
 .st-stat-val { font-size: var(--font-size-xl); font-weight: 700; color: var(--fg-primary); font-variant-numeric: tabular-nums; }
 
-/* status dot line */
-.st-dot-line { display: flex; align-items: center; gap: 7px; font-size: var(--font-size-xs); color: var(--fg-muted); margin-top: 12px; }
-.st-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-.st-dot.on { background: var(--color-success); }
-.st-dot.off { background: var(--fg-muted); }
-
 /* mode badge */
 .st-modebadge { font-size: var(--font-size-2xs); font-weight: 600; padding: 3px 9px; border-radius: var(--radius-sm); }
 .st-modebadge.nx { background: var(--bg-tertiary); color: var(--fg-secondary); }

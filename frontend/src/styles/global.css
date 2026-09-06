@@ -366,106 +366,6 @@
     color: var(--fg-muted);
   }
 
-  /* ── ProcessLog ────────────────────────────────────────────────── */
-  .ss-log {
-    background: var(--bg-secondary);
-    border: var(--line-weight) var(--border-style) var(--border);
-    border-radius: var(--radius-md);
-    padding: 14px;
-    max-height: 148px;
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-  }
-  .ss-log-entry { display: flex; flex-direction: column; gap: 2px; }
-  .ss-log-key {
-    font-family: var(--font-mono);
-    font-size: var(--font-size-2xs);
-    color: var(--fg-muted);
-    letter-spacing: 0.03em;
-  }
-  .ss-log-val {
-    font-family: var(--font-sans);
-    font-size: var(--font-size-xs);
-    color: var(--fg-secondary);
-    line-height: 1.55;
-  }
-
-  /* ── StatRow ───────────────────────────────────────────────────── */
-  .ss-stats-row {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    border: var(--line-weight) var(--border-style) var(--border);
-    border-radius: var(--radius-md);
-    overflow: hidden;
-    background: var(--bg-secondary);
-  }
-  .ss-stat {
-    padding: var(--space-md);
-    text-align: center;
-    border-right: var(--line-weight) var(--border-style) var(--border);
-  }
-  .ss-stat:last-child { border-right: none; }
-  .ss-stat-value {
-    display: block;
-    font-family: var(--font-serif);
-    font-size: var(--font-size-xl);
-    font-weight: 700;
-    color: var(--fg-primary);
-  }
-  .ss-stat-label {
-    display: block;
-    font-family: var(--font-sans);
-    font-size: var(--font-size-2xs);
-    color: var(--fg-muted);
-    margin-top: 3px;
-  }
-
-  /* ── OptionCard ────────────────────────────────────────────────── */
-  .ss-option-cards { display: flex; flex-direction: column; gap: 8px; }
-  .ss-option-card {
-    border: var(--line-weight) var(--border-style) var(--border);
-    border-radius: var(--radius-md);
-    padding: var(--space-md);
-    display: flex;
-    align-items: flex-start;
-    gap: var(--space-md);
-    transition: border-color var(--transition-fast), background-color var(--transition-fast);
-  }
-  .ss-option-card.is-on {
-    border-color: var(--accent);
-    background: var(--bg-secondary);
-  }
-  [data-theme="ink"] .ss-option-card.is-on { border-color: var(--fg-primary); }
-  .ss-option-card.is-disabled { opacity: 0.52; }
-  .ss-option-card-body { flex: 1; }
-  .ss-option-title {
-    font-family: var(--font-sans);
-    font-size: var(--font-size-sm);
-    font-weight: 600;
-    color: var(--fg-primary);
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .ss-option-desc {
-    font-family: var(--font-sans);
-    font-size: var(--font-size-2xs);
-    color: var(--fg-muted);
-    margin-top: 3px;
-    line-height: 1.55;
-  }
-  .ss-option-action {
-    font-family: var(--font-sans);
-    font-size: var(--font-size-2xs);
-    color: var(--accent);
-    cursor: pointer;
-    display: inline-block;
-    margin-top: 4px;
-  }
-  [data-theme="ink"] .ss-option-action { color: var(--fg-primary); text-decoration: underline; }
-
   /* ── Toggle ────────────────────────────────────────────────────── */
   .ss-toggle {
     width: 36px;
@@ -496,19 +396,6 @@
   }
   .ss-toggle.is-on::after { transform: translateX(16px); }
   .ss-toggle.is-disabled { cursor: not-allowed; opacity: 0.45; }
-
-  /* ── btn-danger ────────────────────────────────────────────────── */
-  .ss-btn-danger {
-    color: var(--color-error);
-    background: transparent;
-    border-color: transparent;
-  }
-  .ss-btn-danger:hover { background: var(--color-error-bg); }
-  [data-theme="ink"] .ss-btn-danger {
-    color: var(--fg-primary);
-    border: var(--btn-border-width) var(--border-style) var(--fg-primary);
-  }
-  [data-theme="ink"] .ss-btn-danger:hover { background: var(--bg-tertiary); }
 }
 
 /* Deep-link jump highlight — used when navigating into a specific paragraph

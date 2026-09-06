@@ -362,7 +362,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | 主題 | 差異項目 | 說明 |
 |------|---------|------|
 | `ink` | Badge | 單色 badge 外加 `--border-width` 墨線外框（`[data-theme="ink"] .ss-badge` 模式，見設計 kit.css） |
-| `ink` | Danger 按鈕 | `--color-error` 在 ink 為單色，`.ss-btn-danger` 轉為 `--fg-primary` 外框樣式 |
+| `ink` | Danger 按鈕 | **無專屬處理**。此列原本描述 `.ss-btn-danger` 的外框樣式，但那個 class 從未被任何元件套用，已於 2026-09-06 隨死 CSS 清除。實際唯一的 danger 按鈕是 `.tn-modal-danger`（實心 `--color-error`），ink 下與其他實心按鈕同色——B-086 盤點判定可接受：它是單一狀態、沒有可混淆的語意色手足，按鈕內本身就有文字 |
 | 共通 | KG 節點 | `border-width` 讀 `--line-weight`（兩主題皆 1px）；`--node-shadow` 恆 `none`；entity/graph 色兩主題共用 |
 | 共通 | KG 圖例 | **必須涵蓋完整 7 類**（4 類 demo 子集不是 spec）；swatch = 12px 圓、`--graph-*-fill` 底 + `--graph-*-stroke` 框（repo `LegendCard.tsx`） |
 | 共通 | 行內實體標註 | `.entity-mark`（= contract `.ss-emark`）：`text-decoration` 1.5px 底線、offset 2px、hover 浮出類型淡色塊；內文用 mark、其餘場景用 pill |

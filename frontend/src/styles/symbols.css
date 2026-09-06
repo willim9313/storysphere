@@ -422,7 +422,6 @@
   border-radius: 50%;
 }
 
-/* ── Polarity pill ───────────────────────────────────────── */
 /* ── Review badge ────────────────────────────────────────── */
 .sym-review-badge {
   display: inline-flex;
@@ -985,65 +984,6 @@
   color: var(--fg-muted);
   margin: 8px 0 0;
 }
-
-/* ── Tabs (inside card head) ─────────────────────────────── */
-.sym-tabs {
-  display: flex;
-  gap: 2px;
-  margin-left: auto;
-  padding: 2px;
-  background: var(--bg-tertiary);
-  border-radius: var(--radius-md);
-}
-.sym-tab {
-  padding: 4px 10px;
-  border: 0;
-  background: transparent;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  border-radius: 4px;
-  font-weight: 600;
-}
-.sym-tab.is-active {
-  background: var(--bg-primary);
-  color: var(--fg-primary);
-  box-shadow: var(--shadow-sm);
-}
-.sym-tab-count {
-  margin-left: 4px;
-  padding: 0 4px;
-  border-radius: 6px;
-  background: var(--bg-secondary);
-  color: var(--fg-muted);
-  font-size: var(--font-size-2xs);
-  font-weight: 700;
-}
-.sym-tab.is-active .sym-tab-count {
-  background: var(--bg-tertiary);
-  color: var(--fg-secondary);
-}
-
-/* ── Co-occurrence pills + linked rows ───────────────────── */
-.sym-pill-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-}
-.sym-co-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 10px;
-  border-radius: 20px;
-  background: var(--bg-tertiary);
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  border: 1px solid transparent;
-}
 .sym-co-dot {
   width: 6px;
   height: 6px;
@@ -1146,45 +1086,6 @@
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   margin: 2px 0 0;
-}
-
-.sym-link-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.sym-link-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 7px 10px;
-  border-radius: var(--radius-md);
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-  width: 100%;
-  text-align: left;
-}
-.sym-link-row:hover {
-  background: var(--bg-tertiary);
-}
-.sym-link-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-.sym-link-name {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--fg-primary);
-  flex: 1;
-}
-.sym-link-meta {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  font-variant-numeric: tabular-nums;
 }
 .sym-card-empty {
   font-family: var(--font-sans);
