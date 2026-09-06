@@ -17,27 +17,6 @@ _CONFIG_DIR = Path(__file__).parent / "hero_journey"
 
 SUPPORTED_LANGUAGES = ("en", "zh")
 
-STAGE_IDS = (
-    "ordinary_world",
-    "call_to_adventure",
-    "refusal_of_call",
-    "meeting_the_mentor",
-    "crossing_threshold",
-    "tests_allies_enemies",
-    "approach_innermost_cave",
-    "ordeal",
-    "reward",
-    "road_back",
-    "resurrection",
-    "return_with_elixir",
-)
-
-PHASES = {
-    "departure": ("ordinary_world", "call_to_adventure", "refusal_of_call", "meeting_the_mentor", "crossing_threshold"),
-    "initiation": ("tests_allies_enemies", "approach_innermost_cave", "ordeal", "reward"),
-    "return": ("road_back", "resurrection", "return_with_elixir"),
-}
-
 
 @lru_cache(maxsize=4)
 def load_hero_journey(language: str = "en") -> list[dict]:

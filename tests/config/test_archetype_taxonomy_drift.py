@@ -19,6 +19,8 @@ from pathlib import Path
 
 import pytest
 from storysphere.config.archetypes import load_archetypes
+from storysphere.config.hero_journey import load_hero_journey
+from storysphere.config.mythos import load_mythos
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FRAMEWORKS_DATA = REPO_ROOT / "frontend" / "src" / "data" / "frameworksData.ts"
@@ -52,7 +54,33 @@ def _framework_items(region: str, key: str) -> dict[str, str]:
     return dict(_ITEM_RE.findall(block[items_at.end() :]))
 
 
-@pytest.mark.parametrize("framework", ["jung", "schmidt"])
+# 前端 key → 後端載入方式。B-061 只蓋了 jung / schmidt 兩個，但
+# frameworksData.ts 有 8 個 framework、其中 5 個有後端對應檔；剩下三個
+# （chatman / genette_temporal_order / sep_methodology）是純前端理論文字，
+# 沒有後端來源可比對，故不在此列（B-093）。
+_BACKEND_LOADER = {
+    "jung": lambda lang: load_archetypes("jung", lang),
+    "schmidt": lambda lang: load_archetypes("schmidt", lang),
+    "hero_journey": load_hero_journey,
+    # load_mythos 收的是 'frye' / 'booker'，與前端 key 不同名。
+    "frye_mythos": lambda lang: load_mythos("frye", lang),
+    "booker_plots": lambda lang: load_mythos("booker", lang),
+}
+
+# 前端把八個 framework 放在同一份清單裡，id 必須全域唯一；Frye 的四個 mythos
+# 已經佔用了 comedy 與 tragedy，所以 Booker 那兩個加了後綴。這是**刻意**的
+# 消歧義，不是漂移——天真地比對 id 會在這裡誤報。
+_FRONTEND_ID_SUFFIX = {
+    "booker_plots": {"comedy": "comedy_booker", "tragedy": "tragedy_booker"},
+}
+
+
+def _expected_frontend_ids(framework: str, backend: dict[str, str]) -> set[str]:
+    rename = _FRONTEND_ID_SUFFIX.get(framework, {})
+    return {rename.get(i, i) for i in backend}
+
+
+@pytest.mark.parametrize("framework", sorted(_BACKEND_LOADER))
 @pytest.mark.parametrize("lang", ["zh", "en"])
 class TestArchetypeTaxonomyParity:
     def _frontend(self, framework: str, lang: str) -> dict[str, str]:
@@ -66,8 +94,30 @@ class TestArchetypeTaxonomyParity:
             "多半是檔案格式變了，解析器需要更新"
         )
 
+    def _backend(self, framework: str, lang: str) -> dict[str, str]:
+        return {a["id"]: a["name"] for a in _BACKEND_LOADER[framework](lang)}
+
+    def test_ids_match_backend_config(self, framework: str, lang: str):
+        """id 集合必須對等——那才是真正跨越邊界的東西。
+
+        名稱漂移是顯示問題，id 漂移是功能問題：英雄旅程的 UI 是拿
+        `stage_id` 去 frameworksData 查顯示名（`CrossEvidence.tsx:62`），
+        id 少一個就直接掉到 fallback。Booker 的刻意後綴在
+        `_FRONTEND_ID_SUFFIX` 換算後才比對。
+        """
+        backend = self._backend(framework, lang)
+        assert set(self._frontend(framework, lang)) == _expected_frontend_ids(
+            framework, backend
+        )
+
     def test_names_match_backend_config_verbatim(self, framework: str, lang: str):
-        """id → name 的對應必須兩邊逐字相同（不比對順序，前端排版可自訂）。"""
-        frontend = self._frontend(framework, lang)
-        backend = {a["id"]: a["name"] for a in load_archetypes(framework, lang)}
-        assert frontend == backend
+        """名稱也必須逐字相同（不比對順序，前端排版可自訂）。
+
+        對 jung / schmidt 這是功能契約：原型篩選用字串相等計數，差一個字
+        facet 就是 0。對其餘三個目前只是一致性——但維持**同一條規則**比
+        「除了某某以外」好記，也省得日後有人得先查清楚哪個 framework 適用
+        哪套判準。
+        """
+        rename = _FRONTEND_ID_SUFFIX.get(framework, {})
+        backend = {rename.get(i, i): n for i, n in self._backend(framework, lang).items()}
+        assert self._frontend(framework, lang) == backend
