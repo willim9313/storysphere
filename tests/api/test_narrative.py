@@ -282,6 +282,77 @@ class TestClassifyEndpointGuard:
         assert resp.status_code == 202
 
 
+# ── Refinement keeps what it did not classify ────────────────────────────────
+
+
+class TestRefinePreservesBookLevelState:
+    """refine_with_llm rewrites the classification, not the whole structure.
+
+    classify_from_eep already preserves ``hero_journey_stages`` and
+    ``review_status``; the sibling that refines the same classification used to
+    rebuild the structure from scratch and drop both. Stages survived only
+    because get_cached_structure can restore them from the hero_journey cache
+    entry — ``review_status`` had nothing to restore it from, so an approved
+    structure silently went back to "pending".
+    """
+
+    def _service(self, events, existing: dict | None):
+        from storysphere.services.narrative_service import NarrativeService
+
+        kg = AsyncMock()
+        kg.get_events.return_value = events
+        cache = AsyncMock()
+        cache.get.side_effect = lambda key: (
+            existing if key.startswith("narrative_structure:") else None
+        )
+        cache.get_as.side_effect = lambda _key, _model: None
+        return NarrativeService(kg, AsyncMock(), cache), cache
+
+    @staticmethod
+    def _existing(review_status: str) -> dict:
+        return NarrativeStructure(
+            document_id="book-1",
+            kernel_event_ids=["a"],
+            hero_journey_stages=[
+                HeroJourneyStage(
+                    stage_id="ordinary_world",
+                    stage_name="The Ordinary World",
+                    chapter_range=[1, 2],
+                )
+            ],
+            review_status=review_status,
+        ).model_dump()
+
+    @staticmethod
+    def _written(cache) -> NarrativeStructure:
+        key, payload = cache.set.await_args.args
+        assert key == "narrative_structure:book-1"
+        return NarrativeStructure(**payload)
+
+    @pytest.mark.asyncio
+    async def test_keeps_an_approved_review_status(self):
+        # No satellites to refine, so the LLM is never called — the point is
+        # what the rebuilt structure carries over.
+        svc, cache = self._service([_event("a", "kernel")], self._existing("approved"))
+        await svc.refine_with_llm("book-1")
+        assert self._written(cache).review_status == "approved"
+
+    @pytest.mark.asyncio
+    async def test_keeps_hero_journey_stages(self):
+        svc, cache = self._service([_event("a", "kernel")], self._existing("pending"))
+        await svc.refine_with_llm("book-1")
+        stages = self._written(cache).hero_journey_stages
+        assert [s.stage_id for s in stages] == ["ordinary_world"]
+
+    @pytest.mark.asyncio
+    async def test_defaults_to_pending_when_there_is_no_cached_structure(self):
+        svc, cache = self._service([_event("a", "kernel")], None)
+        await svc.refine_with_llm("book-1")
+        written = self._written(cache)
+        assert written.review_status == "pending"
+        assert written.hero_journey_stages == []
+
+
 # ── Review advances the classification source ────────────────────────────────
 
 

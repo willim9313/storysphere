@@ -875,6 +875,85 @@ async 測試的 teardown。那些訊息平時也會出現（成功的執行也�
 
 ---
 
+#### B-097 NarrativeService 對 KG 的寫入從不落盤
+
+**背景**: `classify_from_eep` / `refine_with_llm` / `analyze_temporal_order` 都會改
+`Event.narrative_weight`、`narrative_weight_source`、`story_time`，但三者**都只改
+`KGService.get_events()` 回傳的記憶體物件，從不呼叫 `self._kg.save()`**。
+`api/main.py` 也沒有 lifespan/shutdown 的自動存檔。全檔 12 處 `self._kg.` 全是
+`get_events()`。
+
+**所以權重能不能活下來全看運氣**: 只有當同一個 process 裡稍後剛好有別人呼叫
+`kg.save()`（`epistemic_state_service`、`link_prediction_service`、`temporal_pipeline`、
+`ingestion`、`remove_by_document`）才會被順手寫出去。重啟後端就回到磁碟上的舊值。
+
+**這與已寫下的宣告牴觸**: `_rebuild_structure_from_kg` 的 docstring 明說
+「Event.narrative_weight is stored in the KG ... a NarrativeStructure that the cache
+lost can be rebuilt from both」——把 KG 當成比快取更耐久的一側。實際上快取
+（AnalysisCache，SQLite）才是落盤的那一側，KG 的權重是揮發的。
+
+**實測 `var/knowledge_graph.json`（235 事件 / 4 本書）**:
+
+| 觀察 | 數字 | 解讀 |
+|------|------|------|
+| `narrative_weight` | kernel 41、unclassified 194、**satellite 0** | 落盤過的只有某次剛好被別人 flush 出去的狀態 |
+| `narrative_weight_source` | llm_classified 41、其餘 None | 與上面一致 |
+| 帶 `story_time` 的事件 | **0** | `analyze_temporal_order` 的第 5 步（寫回 `story_time`）沒有任何一次落盤 |
+
+**順帶得到一個鑑識指紋**: `classify_from_eep` 在「事件沒有 EEP」時只寫
+`narrative_weight = "unclassified"`、**不動 `narrative_weight_source`**。所以被
+B-096 那條路徑洗過的事件會留下 `(weight=unclassified, source=llm_classified)` 這組
+矛盾的搭配。目前磁碟上 0 筆——洗白如果發生過，也跟著沒落盤。
+
+**要決定的是存在哪一層**（所以先立條目）:
+- 在 `NarrativeService` 每次寫完就 `await self._kg.save()` —— 最簡單，但整份圖
+  重寫一次 JSON，refine 逐事件迴圈裡呼叫會很貴（要改成迴圈結束後存一次）
+- 或由呼叫端（router 的背景任務）負責存，與 B-046 修 rerun 時採的
+  `_persist_step_output()` 同一形狀
+- 或維持揮發，但把 `_rebuild_structure_from_kg` 的 docstring 與那條復原路徑一起改掉
+  ——那條路徑正是建立在「KG 比快取耐久」這個現在不成立的前提上
+
+**觸發時機**: 待排。E 敘事走查（2026-09-06）發現。
+
+---
+
+#### B-098 scan_dead_code 會把「自己 docstring 裡的提及」算成引用
+
+**背景**: `scripts/scan_dead_code.py` 的 `refs()` 是對整份檔案文字做
+`\b<name>\b` 計數，**沒有排除註解與 docstring**，只扣掉定義自身那一次。
+所以一個符號只要在自己檔案的說明文字裡被提到一次，就永遠不會被判為零引用。
+
+**這是偽陰性，與已記錄的偽陽性教訓互為鏡像**：B-091 記的是掃描器把活的判成死的
+（i18n 模板前綴那次）；這次是把死的判成活的，而後者更難發現——沒有紅燈可看。
+
+**實測差異**（把註解與字串 token 濾掉後重跑同一套邏輯）:
+
+| 現行掃描器 | 濾掉說明文字後 |
+|-----------|--------------|
+| backend 符號 **1** | **3** |
+
+多出來的兩個：
+
+- `ConceptInferencePipeline`（已知，B-092）—— 它現在只活在別處的 docstring 裡，
+  所以現行掃描器看不到它。**掃描器本來應該要能自己找到 B-092 的**
+- `VectorService.search_by_keyword`（57 行）+ `_scroll_keyword` + `KeywordSearchResult`
+  —— 全 repo 零呼叫者，唯一的其他提及是 `query_models.py:47` 的一句 docstring。
+  手足 `VectorService.search`（語意檢索）有 5 個消費者，只有它沒有。
+  `GetKeywordsTool` 走的是相反方向（給文件取關鍵字），不是它的消費者
+
+私有常數同理：`_REFINEMENT_CONFIDENCE_THRESHOLD` 撐到現在就是因為
+`refine_with_llm` 的 docstring 提了它一次。（該常數已於本次 E 走查移除。）
+
+**修法**: `refs()` 計數前先用 `tokenize` 濾掉 `COMMENT` 與 `STRING` token。
+實測整個 backend 跑得動，不需要另建索引。
+
+**注意**: 濾掉之後 `search_by_keyword` 這類候選要照 B-091 的三種結局逐一走查，
+**不可批次刪**。
+
+**觸發時機**: 待排。屬 B-091 的一部分。
+
+---
+
 ## F 系列（新功能）
 
 **前置閱讀**: `docs/CORE.md`
@@ -1428,6 +1507,8 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
 | B-095 | 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護 | 🟢 低 | 待開始（2026-09-06 由 B-093 分出；id 與顯示名都有守衛了，順序沒有——漂了會讓階段序號錯位且畫面照常渲染） |
 | B-096 | classify 的洗白守衛只擋全損，不擋部分損失 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；`hits == 0` 才擋，`(12, 38, 47)` 會靜默把 26 個已分類事件重設為 unclassified） |
+| B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；三個方法都只改記憶體物件、從不 `kg.save()`，磁碟上 satellite 0 筆、`story_time` 0 筆） |
+| B-098 | scan_dead_code 會把自己 docstring 裡的提及算成引用 | 🟢 低 | 待開始（2026-09-06；濾掉註解與字串 token 後 backend 符號 1 → 3，多出 `ConceptInferencePipeline` 與 `VectorService.search_by_keyword`） |
 
 ### F 系列
 
@@ -1485,4 +1566,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-06（B-093 完成並歸檔，殘項分出 B-095；B-091 補記 model 欄位那批與 backend 符號 3→1；E 敘事走查產出 B-096）
+**最後更新**: 2026-09-06（B-093 完成並歸檔，殘項分出 B-095；B-091 補記 model 欄位那批與 backend 符號 3→1；E 敘事走查產出 B-096 / B-097 / B-098，refine 不保留 review_status 已修）
