@@ -18,20 +18,64 @@ Usage:
 
 False positives are the whole difficulty. Each scanner below documents what it
 excludes and what it still cannot see; read that before believing a number.
+
+**Known gap (B-098)**: only the backend scan strips comments and string literals
+before counting references (see ``_code_only``). The three frontend scans still
+count prose, so a TS export named only in a comment reads as referenced. Doing it
+exactly there needs a real parser — a regex stripper trips over regex literals,
+nested template literals and quotes inside comments, and inventing false
+positives is the failure mode this file exists to avoid.
 """
 
 from __future__ import annotations
 
 import ast
 import collections
+import io
 import json
 import pathlib
 import re
 import sys
+import tokenize
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 BACKEND = ROOT / "backend" / "storysphere"
 FRONTEND = ROOT / "frontend" / "src"
+
+
+# COMMENT and STRING carry prose, not references. FSTRING_MIDDLE is the same
+# text in 3.12+, where f-strings stopped arriving as a single STRING token;
+# the expressions inside an f-string still tokenize as ordinary NAMEs and stay.
+_PROSE_TOKENS = {tokenize.COMMENT, tokenize.STRING} | (
+    {tokenize.FSTRING_MIDDLE} if hasattr(tokenize, "FSTRING_MIDDLE") else set()
+)
+
+
+def _code_only(src: str) -> str:
+    """Drop comments and string literals, keeping only executable tokens.
+
+    Counting references over the raw file text makes a symbol look alive when
+    its only other mention is prose in its own docstring. That is a false
+    *negative*, and it is worse than the false positives documented elsewhere in
+    this file: an over-eager scanner shows you a name you can dismiss, while this
+    one shows you nothing at all.
+
+    Two symbols were hidden this way — ``_REFINEMENT_CONFIDENCE_THRESHOLD``,
+    named once in the docstring of the function that stopped using it, and
+    ``ConceptInferencePipeline`` (B-092), which this scanner should have been
+    able to find on its own instead of waiting to be found by hand.
+
+    An unparseable file keeps its raw text: counting a few prose mentions is the
+    safe direction to fail, since it can only hide a candidate, never invent one.
+    """
+    out: list[str] = []
+    try:
+        for tok in tokenize.generate_tokens(io.StringIO(src).readline):
+            if tok.type not in _PROSE_TOKENS:
+                out.append(tok.string)
+    except (tokenize.TokenError, IndentationError, SyntaxError):
+        return src
+    return " ".join(out)
 
 
 def _frontend_code() -> str:
@@ -63,10 +107,10 @@ def _dynamic_prefixes(code: str) -> set[str]:
 
 def scan_backend() -> int:
     files = [p for p in BACKEND.rglob("*.py") if "__pycache__" not in str(p)]
-    corpus = {p: p.read_text(errors="ignore") for p in files}
+    corpus = {p: _code_only(p.read_text(errors="ignore")) for p in files}
     for extra in ("tests", "scripts"):
         for p in (ROOT / extra).rglob("*.py"):
-            corpus[p] = p.read_text(errors="ignore")
+            corpus[p] = _code_only(p.read_text(errors="ignore"))
 
     def refs(name: str, own: pathlib.Path) -> int:
         return sum(
