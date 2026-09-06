@@ -95,16 +95,23 @@ class LLMClient:
     def get_with_local_fallback(
         self, temperature: float = 0.1, **kwargs: object
     ) -> BaseChatModel:
-        """Return a cloud LLM chained with local fallback: cloud fails → local.
+        """Return the primary LLM, chained with local fallback when both exist.
 
-        Fallback chain is intentionally flat (cloud → local only).
-        Multiple cloud providers are NOT chained — only the highest-priority
-        configured cloud is used as primary.
+        Fallback chain is intentionally flat (cloud → local only). Multiple
+        cloud providers are NOT chained; ``get_fallback`` is the only code that
+        picks a second cloud, and nothing calls it.
 
-        Scenarios:
+        **What decides each case is PRIMARY_LLM_PROVIDER, not what happens to be
+        configured.** The primary is whichever provider that setting names, and
+        ``get_primary`` raises if that one is not configured — so "a cloud key is
+        missing but local is set up" does not silently fall back to local, it
+        fails loudly. Running local-only means setting PRIMARY_LLM_PROVIDER=local.
+
+        Scenarios (in every one, "cloud" means PRIMARY_LLM_PROVIDER names a
+        cloud provider *and* that provider is configured):
         - cloud + local configured : primary.with_fallbacks([local])
         - cloud only               : primary (no fallback)
-        - local only               : local (no fallback)
+        - PRIMARY_LLM_PROVIDER=local : local (no fallback)
         """
         has_cloud = LLMProvider(self._settings.primary_llm_provider) in (
             LLMProvider.GEMINI, LLMProvider.OPENAI, LLMProvider.ANTHROPIC
