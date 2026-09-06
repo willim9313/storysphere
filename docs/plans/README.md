@@ -101,3 +101,4 @@
 | 2026-08-20 | [KG 重跑非冪等：實體 / 關係 / 事件三者都會累積](./20260820-kg-rerun-idempotency.md) |
 | 2026-08-20 | [意象出現位置的段落定位（B-079 根因與修法）](./20260820-imagery-occurrence-anchoring.md) |
 | 2026-08-20 | [Token 歸屬的最後七個缺口（B-081 擴充）](./20260820-token-attribution-remaining.md) |
+| 2026-09-06 | [後端全面走查：進度盤點與續作計畫](./20260906-backend-review-sweep.md) |
