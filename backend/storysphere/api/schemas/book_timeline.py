@@ -110,7 +110,6 @@ class TimelineQuality(BaseModel):
     analyzed_count: int = 0
     eep_coverage: float = 0.0
     has_chronological_ranks: bool = False
-    last_computed: str | None = None
 
 
 class TimelineResponse(BaseModel):

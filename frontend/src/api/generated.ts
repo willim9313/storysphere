@@ -4798,8 +4798,6 @@ export interface components {
              * @default false
              */
             hasChronologicalRanks: boolean;
-            /** Lastcomputed */
-            lastComputed?: string | null;
         };
         /** TimelineResponse */
         TimelineResponse: {
