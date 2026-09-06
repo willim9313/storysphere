@@ -3215,7 +3215,7 @@ export interface components {
          * @description One stage of Campbell's Hero's Journey, mapped to chapter ranges.
          *
          *     Populated by NarrativeService.map_hero_journey() (B-035).
-         *     Stages are defined in src/config/hero_journey.py.
+         *     Stages come from config/hero_journey/hero_journey_{en,zh}.json via load_hero_journey().
          */
         HeroJourneyStage: {
             /**
@@ -3536,8 +3536,6 @@ export interface components {
             classification_source: "summary_heuristic" | "llm_classified" | "human_verified";
             /** Hero Journey Stages */
             hero_journey_stages?: components["schemas"]["HeroJourneyStage"][];
-            /** Propp Functions */
-            propp_functions?: components["schemas"]["ProppFunctionRef"][];
             /**
              * Review Status
              * @default pending
@@ -3572,8 +3570,6 @@ export interface components {
             classification_source: "summary_heuristic" | "llm_classified" | "human_verified";
             /** Hero Journey Stages */
             hero_journey_stages?: components["schemas"]["HeroJourneyStage"][];
-            /** Propp Functions */
-            propp_functions?: components["schemas"]["ProppFunctionRef"][];
             /**
              * Review Status
              * @default pending
@@ -3684,28 +3680,6 @@ export interface components {
             knowledgeGraph: components["schemas"]["StepStatus"];
             /** @default pending */
             symbolDiscovery: components["schemas"]["StepStatus"];
-        };
-        /**
-         * ProppFunctionRef
-         * @description Reference to a Propp narrative function mapped to an event.
-         *
-         *     Only populated when B-034 LLM refinement runs Propp analysis.
-         */
-        ProppFunctionRef: {
-            /**
-             * Function Id
-             * @description Propp function code, e.g. 'A' (villainy), 'D' (task)
-             */
-            function_id: string;
-            /** Function Name */
-            function_name: string;
-            /** Event Id */
-            event_id: string;
-            /**
-             * Confidence
-             * @default 0
-             */
-            confidence: number;
         };
         /** RefineNarrativeRequest */
         RefineNarrativeRequest: {
