@@ -33,13 +33,12 @@ class NarrativeMode(str, Enum):
 class StoryTimeRef(BaseModel):
     """Structured story-world time reference.
 
-    Populated by downstream classifiers (B-033/B-034), not by ingestion LLM.
-    The raw-text source is kept in Event.story_time_hint.
+    Not filled by the ingestion LLM — ``narrative_service`` writes it after
+    temporal ranking, from ``Event.story_time_hint`` (which keeps the raw text).
     """
 
     relative_order: float | None = None
     time_anchor: str | None = None
-    absolute_time: str | None = None
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
