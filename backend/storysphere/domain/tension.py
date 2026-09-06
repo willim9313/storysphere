@@ -77,9 +77,6 @@ class TEU(BaseModel):
     )
     assembled_at: datetime = Field(default_factory=datetime.utcnow)
 
-    # HITL review (used by B-027 grouping step)
-    review_status: Literal["pending", "approved", "rejected"] = "pending"
-
 
 class TensionLineEdit(BaseModel):
     """What a human changed when they rewrote a TensionLine's pole labels.

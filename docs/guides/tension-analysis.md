@@ -155,8 +155,12 @@ class TEU:
     intensity: float           # 0.0–1.0
     evidence: list[str]
     thematic_note: str | None
-    review_status: "pending" | "approved" | "rejected"
 ```
+
+> **TEU 沒有 review_status，這是刻意的。** 審核要回答的是「這個結論值不值得參考」，
+> 而 TEU 是 LLM 從單一場景整理出來的原料，不是結論。人工關卡因此設在往上合成的
+> 兩層——TensionLine（分組是否成立）與 TensionTheme（全書命題是否成立）。
+> 這個欄位曾經存在但從未有任何寫入路徑，2026-09-06 移除。
 
 ### TensionLine
 
