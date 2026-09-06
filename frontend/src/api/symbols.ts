@@ -42,27 +42,14 @@ export function fetchSymbolTimeline(imageryId: string): Promise<SymbolTimelineEn
   return apiFetch<SymbolTimelineEntry[]>(`/symbols/${imageryId}/timeline`);
 }
 
-export function fetchCoOccurrences(
-  imageryId: string,
-  topK = 10,
-): Promise<CoOccurrenceEntry[]> {
-  return apiFetch<CoOccurrenceEntry[]>(`/symbols/${imageryId}/co-occurrences?top_k=${topK}`);
-}
-
-export function fetchSep(
-  imageryId: string,
-  force = false,
-): Promise<SEP> {
-  const qs = force ? '?force=true' : '';
-  return apiFetch<SEP>(`/symbols/${imageryId}/sep${qs}`);
-}
-
 /**
  * Every imagery entity with its zero-LLM behavioural signals — one request (#15i).
  *
- * This is what the page opens with. Do not rebuild it from `fetchSymbols` +
- * per-symbol `fetchSymbolSep` / `fetchSymbolInterpretation`: ranking needs signals
- * for every symbol, and each SEP call re-loads the whole book server-side.
+ * This is what the page opens with. Do not rebuild it from `fetchSymbols` plus
+ * per-symbol calls: ranking needs signals for every symbol, and the per-symbol
+ * SEP endpoint re-loads the whole book server-side. That endpoint
+ * (`GET /symbols/:id/sep`) still exists but has no client here — the overview
+ * carries what the page needs.
  */
 export function fetchSymbolOverview(
   bookId: string,

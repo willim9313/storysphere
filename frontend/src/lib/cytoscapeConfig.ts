@@ -1,4 +1,6 @@
 import type cytoscape from 'cytoscape';
+import { aggregatedEdgeWidth } from '@/services/kgClustering';
+import type { AggregatedEdge } from '@/services/kgClustering';
 
 const v = (name: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
@@ -191,6 +193,19 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         opacity: ((ele: cytoscape.EdgeSingular) =>
           0.42 + (Number(ele.data('confidence')) || 0) * 0.25) as cytoscape.Css.PropertyValueEdge<number>,
         color: fgSecondary,
+      },
+    },
+    // Aggregated edges carry how many underlying relations they stand for
+    // (`weight`, already shown as the edge label). Width encodes the same
+    // number so the shape of a clustered graph reads without counting labels.
+    // Capped at 6: past that the line starts to look like a node.
+    {
+      selector: 'edge[?aggregated]',
+      style: {
+        width: ((ele: cytoscape.EdgeSingular) =>
+          aggregatedEdgeWidth(
+            ele.data() as AggregatedEdge,
+          )) as cytoscape.Css.PropertyValueEdge<number>,
       },
     },
     {

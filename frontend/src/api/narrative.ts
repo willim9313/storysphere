@@ -98,10 +98,6 @@ export function triggerTemporalAnalysis(
   });
 }
 
-export function fetchTemporalTask(taskId: string): Promise<TaskStatus> {
-  return apiFetch<TaskStatus>(`/narrative/temporal/${taskId}`);
-}
-
 // ── HITL review (#21l) — book-level review_status ────────────────
 
 export function reviewNarrativeStructure(

@@ -27,10 +27,6 @@ export type PipelineStatus = components['schemas']['PipelineStatusResponse'];
 
 export type Book = components['schemas']['BookResponse'];
 
-export interface RerunTaskResult {
-  taskId: string;
-}
-
 export type BookDetail = components['schemas']['BookDetailResponse'];
 
 // ── Chapters ────────────────────────────────────────────────────
@@ -143,7 +139,6 @@ export interface CharacterAnalysisDetail {
 import type { components } from './generated';
 
 export type MurmurEvent = components['schemas']['MurmurEvent'];
-export type MurmurStepKey = MurmurEvent['stepKey'];
 export type MurmurEventType = MurmurEvent['type'];
 
 export interface ReviewParagraph {

@@ -23,7 +23,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Loader2, Sparkles } from 'lucide-react';
+import { AlertTriangle, Loader2, Sparkles, X } from 'lucide-react';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useBook } from '@/hooks/useBook';
@@ -54,6 +54,7 @@ import { CharacterLanes } from '@/components/timeline/CharacterLanes';
 import { EventDetailPanel } from '@/components/timeline/EventDetailPanel';
 import {
   activeFilterCount,
+  buildActiveFilterTags,
   buildFilterOptions,
   createDefaultFilter,
   eventPassesFilter,
@@ -181,6 +182,20 @@ export default function TimelinePage() {
 
   const filterActive = isFilterActive(filter);
   const filterCount = activeFilterCount(filter) + (onlyAnalyzed ? 1 : 0);
+
+  // Same label lambdas the FilterSheet passes down, so a chip and the option
+  // it came from can never disagree.
+  const activeTags = useMemo(
+    () =>
+      buildActiveFilterTags(
+        filter,
+        setFilter,
+        filterOptions,
+        (m) => t(`timeline.narrativeModes.${m}`, m),
+        (ty) => t(`timeline.eventTypes.${ty}`, ty),
+      ),
+    [filter, filterOptions, t],
+  );
 
   const matches = useMemo(() => {
     const set = new Set<string>();
@@ -694,6 +709,24 @@ export default function TimelinePage() {
           </div>
         )}
       </TimelineToolbar>
+
+      {activeTags.length > 0 && (
+        <div className="tl-active-filters">
+          <span className="tl-active-filters-label">{t('timeline.activeFilters')}</span>
+          {activeTags.map((tag) => (
+            <button
+              key={tag.key}
+              type="button"
+              className="tl-filter-chip removable"
+              onClick={tag.remove}
+              aria-label={t('timeline.removeFilter', { label: tag.label })}
+            >
+              {tag.label}
+              <X size={11} aria-hidden="true" />
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className={`tl-main${panelOpen && selectedDatum ? ' with-panel' : ''}`}>
         <div className="tl-canvas">

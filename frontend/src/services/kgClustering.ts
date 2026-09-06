@@ -188,10 +188,6 @@ export function isSuperNodeId(id: string): boolean {
   return id.startsWith('cluster:');
 }
 
-export function isSuperNode(node: GraphNode | SuperNode): node is SuperNode {
-  return (node as SuperNode).kind === 'super';
-}
-
 export function aggregatedEdgeWidth(edge: AggregatedEdge | GraphEdge): number {
   const w = 'weight' in edge && typeof edge.weight === 'number' ? edge.weight : 1;
   return Math.min(1 + w * 0.6, 6);

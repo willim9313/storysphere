@@ -423,18 +423,6 @@
 }
 
 /* ── Polarity pill ───────────────────────────────────────── */
-.sym-pol-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 9px;
-  border-radius: 20px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  line-height: 1.2;
-}
-
 /* ── Review badge ────────────────────────────────────────── */
 .sym-review-badge {
   display: inline-flex;

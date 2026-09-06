@@ -42,11 +42,5 @@ export function formatIntensity(v: number): string {
   return v.toFixed(2).replace(/^0/, '');
 }
 
-export function intensityBarFill(bucket: IntensityBucket): string {
-  return `var(--tension-intensity-${bucket}-bg)`;
-}
 
-export function intensityBarEdge(bucket: IntensityBucket): string {
-  return `var(--tension-intensity-${bucket}-edge)`;
-}
 

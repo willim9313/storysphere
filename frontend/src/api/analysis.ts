@@ -1,4 +1,4 @@
-import { apiFetch, apiDelete } from './client';
+import { apiFetch } from './client';
 import type {
   AnalysisListResponse,
   CharacterAnalysisDetail,
@@ -7,10 +7,6 @@ import type {
 } from './types';
 
 // #6 — Trigger full-book analysis
-export function triggerBookAnalysis(bookId: string): Promise<{ taskId: string }> {
-  return apiFetch<{ taskId: string }>(`/books/${bookId}/analyze`, { method: 'POST' });
-}
-
 // #6a — Character analysis list
 export function fetchCharacterAnalyses(bookId: string): Promise<AnalysisListResponse> {
   return apiFetch<AnalysisListResponse>(`/books/${bookId}/analysis/characters`);
@@ -19,18 +15,6 @@ export function fetchCharacterAnalyses(bookId: string): Promise<AnalysisListResp
 // #6b — Event analysis list
 export function fetchEventAnalyses(bookId: string): Promise<AnalysisListResponse> {
   return apiFetch<AnalysisListResponse>(`/books/${bookId}/analysis/events`);
-}
-
-// #6c — Regenerate analysis item
-export function regenerateAnalysis(
-  bookId: string,
-  section: string,
-  itemId: string,
-): Promise<{ taskId: string }> {
-  return apiFetch<{ taskId: string }>(
-    `/books/${bookId}/analysis/${section}/${itemId}/regenerate`,
-    { method: 'POST' },
-  );
 }
 
 // #7a — Entity analysis detail (full structured result)
@@ -51,14 +35,6 @@ export function triggerEntityAnalysis(
     `/books/${bookId}/entities/${entityId}/analyze`,
     { method: 'POST', body: JSON.stringify({ mode }) },
   );
-}
-
-// #7c — Delete entity analysis
-export function deleteEntityAnalysis(
-  bookId: string,
-  entityId: string,
-): Promise<void> {
-  return apiDelete(`/books/${bookId}/entities/${entityId}/analysis`);
 }
 
 // #7d — Trigger event analysis
@@ -84,14 +60,6 @@ export function fetchEventSourcePassages(
   return apiFetch<EventSourceResponse>(
     `/books/${bookId}/events/${eventId}/source?limit=${limit}`,
   );
-}
-
-// #7e — Delete event analysis
-export function deleteEventAnalysis(
-  bookId: string,
-  eventId: string,
-): Promise<void> {
-  return apiDelete(`/books/${bookId}/events/${eventId}/analysis`);
 }
 
 // #7f — Batch event analysis (analyze all unanalyzed events)

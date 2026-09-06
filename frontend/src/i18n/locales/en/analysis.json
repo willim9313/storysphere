@@ -820,7 +820,7 @@
     "layoutToggle": "Layout",
     "appliedPrefix": "Active:",
     "clearAll": "Clear all",
-    "removeFilter": "Remove filter",
+    "removeFilter": "Remove filter “{{label}}”",
     "analyzedShort": "analyzed",
     "gotoAnalysis": "Open Event Analysis to generate EEP",
     "banner": {
@@ -862,6 +862,7 @@
       "cta": "Go to Event Analysis"
     },
     "filter": "Filter",
+    "activeFilters": "Active",
     "filterSections": {
       "eventTypes": "Event Types",
       "narrativeModes": "Narrative Modes",
