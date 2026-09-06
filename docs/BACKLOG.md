@@ -661,7 +661,8 @@ PR #83 的作法（把宣告放進生產程式碼、用測試釘住宣告等於�
 **尚未掃描的範圍**:
 - 前端 `frontend/src`：元件、hook、util、i18n key、CSS class
   （B-087 的兩段死 CSS 是手動發現的，沒有系統性掃描）
-- 巢狀函式與 class 內部的私有方法（B-090 只掃 top-level 與 class 方法）
+- ~~巢狀函式與 class 內部的私有方法~~ —— **私有方法已於 2026-09-06 納入掃描器
+  （B-098），整個 backend 0 筆**。仍未掃的是「函式裡面再定義的巢狀函式」
 - 只被測試引用、生產路徑沒有呼叫者的符號 —— 這類最危險，因為測試會讓它看起來活著
 - 只出現在 docstring / 註解 / 文件裡的「已規劃但未接」項目
 - `scripts/` 下的孤兒腳本
@@ -847,6 +848,71 @@ would survive」——需要的數字早就算出來了，門檻設在 0。
 
 ---
 
+#### B-099 `LLMClient.get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback
+
+**背景**: B-090 把 `get_fallback` 列為零引用但**暫緩不刪**，理由記為「很可能就是
+B-075『fallback 鏈是壞的』的成因」。2026-09-06 走查 core/ 時複查，**那個理由已經
+不成立**：B-075 早在 2026-08-20 結案（`is_configured()` 收斂、行內註解清除、
+`_has_key` 改為純委派）。
+
+**但結論仍然是不刪，只是換了個理由——而且是更強的理由**:
+
+`get_with_local_fallback()`（15 個服務全走它）的鏈是 **cloud → local**，而 B-075
+修好之後 `has_local` 正確回報 False，所以它回傳的是**裸的 primary、`fallbacks=[]`**。
+也就是說：**現在全系統每一條 LLM 路徑都沒有任何 fallback**。這是 B-075 修正的正確
+結果（原本掛著的是一個必定失敗的假 local），但它同時意味著跨雲 fallback 從未存在過。
+
+`get_fallback()` 是**唯一**實作「換另一家雲端」的程式碼（gemini → openai →
+anthropic，排除 primary），而 `get_with_local_fallback` 的 docstring 明寫
+「Multiple cloud providers are NOT chained」。所以它不是死碼，是**寫好沒接的能力**，
+屬 B-091 的第 3 種結局。
+
+**這正是 B-073 缺的那一塊**: Gemini 對「手」回報 PROHIBITED_CONTENT 時需要的是
+**換一家 provider**，不是重試同一家（`RETRYABLE` 刻意不含 `LLMResponseBlocked`，
+理由正是「同一家會再拒一次」）。local 那條路在沒有本地模型時等於沒有。
+
+**要決定的**:
+- 接上去：讓 `get_with_local_fallback`（或一個新的入口）在 local 不可用時改鏈第二家雲端
+- 還是維持現狀、把 `get_fallback` 刪掉並明白記下「本專案不做跨雲 fallback」
+
+兩者都可以，**不可接受的是繼續讓它以一個過期的理由躺著**——理由過期的暫緩，
+下一輪走查會再翻案一次。
+
+**觸發時機**: 待排。與 B-073 綁在一起決定。
+
+---
+
+#### B-100 token 歸屬修好之後沒有任何資料驗證過
+
+**背景**: 走查 core/ 時查 `var/token_usage.db`：**4206 筆、8.6M tokens，只有 70 筆
+帶 `book_id`**。乍看像是歸屬壞掉，但比對時間就不是這個故事：
+
+| | |
+|---|---|
+| DB 最早 / 最晚一筆 | 2026-03-21 / **2026-08-19 11:49** |
+| ingestion / imagery 補上 `set_llm_service_context` | 2026-08-19 |
+| epistemic / voice / timeline 補上 | **2026-08-20**（B-081 PR #62） |
+
+也就是說**最後一次修正之後，這個 store 一筆新資料都沒有**。98.3% 未歸屬是歷史，
+不是現況；而現況**未經任何實測**。
+
+**架構本身是好的**（走查結論）: `call_llm()` 把 `service` 與 `book_id` 設為**必填
+參數、刻意不給預設值**，docstring 寫得很清楚——「忘記傳」因此變成簽章錯誤而不是
+靜默的錯誤歸屬。20 個 `service=` 呼叫點分成 5 個 bucket（`analysis` 佔 14 個，
+那是 B-081 刻意的併入）。
+
+**待辦**: 下次真的跑一次分析之後查一次
+`select service, count(*), sum(book_id is not null) from token_usage where ts > <該次時間> group by service`，
+確認新資料帶得上 `book_id`。帶不上才是新的 bug。
+
+**為什麼值得記**: B-081 標示 ✅ 完成、也加了 AST 掃描測試防回歸，但那個測試驗的是
+「呼叫點有沒有設 context」，不是「資料庫裡真的有歸屬」。**宣告與現實之間還差一次
+實測**——這輪走查一再撞見的正是這個形狀。
+
+**觸發時機**: 下次跑分析時順手查，不值得為它專門跑一次。
+
+---
+
 #### B-094 pytest 有一個間歇性失敗（約 1/8）
 
 **背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
@@ -950,7 +1016,15 @@ B-096 那條路徑洗過的事件會留下 `(weight=unclassified, source=llm_cla
 **注意**: 濾掉之後 `search_by_keyword` 這類候選要照 B-091 的三種結局逐一走查，
 **不可批次刪**。
 
-**觸發時機**: 待排。屬 B-091 的一部分。
+**已完成（2026-09-06）**: `_code_only()` 以 `tokenize` 濾掉 COMMENT / STRING /
+FSTRING_MIDDLE 後再計數。同一次順帶把**私有方法**納入掃描（原本 `startswith("_")`
+整批跳過，那是 B-091 明列的未掃範圍）—— 啟用後整個 backend 0 筆，範圍就此掃清。
+前端三支掃描刻意不動：要在 TS 精確剝掉註解與字串得有真的 parser，regex 版會被
+regex literal、巢狀模板、註解裡的引號絆倒，而憑空生出偽陽性正是那份檔案要避免的事；
+改為在模組 docstring 標明這個已知缺口。測試放 `tests/scripts/`（`scripts/` 不在
+`pythonpath`，以 importlib 依路徑載入），6 項，哨兵實測會紅。
+
+**觸發時機**: 已執行。留下的候選 `VectorService.search_by_keyword` 待逐一走查。
 
 ---
 
@@ -1505,10 +1579,12 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟡 中 | 待開始（2026-09-06 core/ 走查；B-075 已結案故舊理由不成立，但它是唯一的跨雲 fallback 實作，正是 B-073 缺的那塊） |
+| B-100 | token 歸屬修好之後沒有任何資料驗證過 | 🟢 低 | 待開始（2026-09-06 core/ 走查；DB 最後一筆 8/19、最後一次修正 8/20，98.3% 未歸屬是歷史數字） |
 | B-095 | 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護 | 🟢 低 | 待開始（2026-09-06 由 B-093 分出；id 與顯示名都有守衛了，順序沒有——漂了會讓階段序號錯位且畫面照常渲染） |
 | B-096 | classify 的洗白守衛只擋全損，不擋部分損失 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；`hits == 0` 才擋，`(12, 38, 47)` 會靜默把 26 個已分類事件重設為 unclassified） |
 | B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；三個方法都只改記憶體物件、從不 `kg.save()`，磁碟上 satellite 0 筆、`story_time` 0 筆） |
-| B-098 | scan_dead_code 會把自己 docstring 裡的提及算成引用 | 🟢 低 | 待開始（2026-09-06；濾掉註解與字串 token 後 backend 符號 1 → 3，多出 `ConceptInferencePipeline` 與 `VectorService.search_by_keyword`） |
+| B-098 | scan_dead_code 會把自己 docstring 裡的提及算成引用 | 🟢 低 | ✅ 已完成（2026-09-06；`_code_only()` 以 tokenize 濾掉註解與字串，backend 符號 1 → 3；順帶納入私有方法，該範圍 0 筆） |
 
 ### F 系列
 
@@ -1566,4 +1642,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-06（B-093 完成並歸檔，殘項分出 B-095；B-091 補記 model 欄位那批與 backend 符號 3→1；E 敘事走查產出 B-096 / B-097 / B-098，refine 不保留 review_status 已修）
+**最後更新**: 2026-09-06（B-098 完成；core/ 走查產出 B-099 / B-100；B-091 的私有方法範圍已掃過並清空）
