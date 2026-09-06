@@ -993,6 +993,48 @@ two rules would let the page say 5 while the backend dropped 4」——**擔心�
 
 ---
 
+#### B-102 段落層 keywords 產得出來、送得出去，就是沒有存
+
+**背景**: 閱讀頁 / document_service 走查（2026-09-06）。這條鏈的每一段都活著，
+只有中間少一節：
+
+| 環節 | 狀態 |
+|---|---|
+| 產生 | `feature_extraction/pipeline.py:141` `para.keywords = kws`，逐段抽 |
+| 送進 Qdrant | 同檔 258–259 / 309–310，payload 帶 `keywords` 與 `keyword_scores` |
+| **存進 SQLite** | **沒有。`paragraphs` 表沒有 keywords 欄位**（只有 embedding / entities / title_span / role） |
+| 讀回來 | 三個 `Paragraph(...)` 建構點都不帶 `keywords` |
+| API 回應 | `book_reader.py:260` `keywords=list(p.keywords.keys()) if p.keywords else []` |
+| UI 渲染 | `ChunkCard.tsx:103` `{chunk.keywords.length > 0 && <KeywordTags …>}` |
+
+**所以閱讀頁的 chunk 關鍵字標籤永遠不會出現**——從 SQLite 讀出來的段落，
+`keywords` 恆為 `None`，回應恆為 `[]`，那個條件式恆假。屬 B-091 的第 3 種結局
+（未接線的生產者：消費端活著但永遠讀到空值）。
+
+**實測（2026-09-06）**: 《大唐雙龍傳》第 1 章 13 個段落，帶 keywords 的 **0** 個；
+同一個載入路徑的 entities 有 9 個——證明不是載入壞掉，是那個欄位根本沒被存。
+
+**成本沒有白花，別誤記**: 段落 keywords 會被 `_keyword_aggregator` 聚合成
+**章節 keywords**，那份有存（`chapters.keywords_json`）也有顯示（`ChapterCard`）。
+本環境 `KEYWORD_EXTRACTOR_TYPE=llm`（`token_usage` 有 1371 筆 `service='keyword'`），
+但那些呼叫換到了章節層的產出，掉的只是段落層的細節。
+
+**另一個連結**: Qdrant payload 裡的 `keywords` 唯一的讀取者是
+`VectorService.search_by_keyword` —— **正是 B-098 掃出來的零呼叫者**。
+也就是說段落層 keywords 目前在兩條路上都沒有讀者：SQLite 那條沒存，Qdrant 那條沒人查。
+
+**要決定的**:
+1. **存起來** —— `paragraphs` 加一個 `keywords_json` 欄位，寫入與讀取各補一處。
+   既有書要重跑 feature-extraction 才會有值（或從 Qdrant 回填）
+2. **拿掉這個功能** —— 從 `ChunkResponse`、`ChunkCard` 與契約 #5 移除 `keywords`。
+   若同時決定 `search_by_keyword` 也不接（B-098 留下的候選），那連 Qdrant payload
+   要不要繼續帶 `keywords` 都可以一起收
+3. 兩者之間還有一條：只在**搜尋**用途保留 Qdrant 那份，閱讀頁不顯示
+
+**觸發時機**: 待排。與 B-098 留下的 `search_by_keyword` 處置一起決定比較省事。
+
+---
+
 #### B-094 pytest 有一個間歇性失敗（約 1/8）
 
 **背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
@@ -1659,6 +1701,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | 待開始（2026-09-06 閱讀頁走查；`paragraphs` 表無 keywords 欄位，閱讀頁 chunk 關鍵字標籤恆不顯示；與 B-098 的 `search_by_keyword` 綁一起決定） |
 | B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟡 中 | 待開始（2026-09-06 core/ 走查；B-075 已結案故舊理由不成立，但它是唯一的跨雲 fallback 實作，正是 B-073 缺的那塊） |
 | B-100 | token 歸屬修好之後沒有任何資料驗證過 | 🟢 低 | 待開始（2026-09-06 core/ 走查；DB 最後一筆 8/19、最後一次修正 8/20，98.3% 未歸屬是歷史數字） |
 | B-101 | 前置頁排除數有兩套規則，而且不是同一條 | 🟢 低 | 待開始（2026-09-06 C 象徵走查；後端純位置、前端角色優先，目前 4 本書編號碰巧一致；權威數字 `excluded_front_matter_count` 沒有讀者） |
@@ -1723,4 +1766,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-06（B-098 完成、core/ 走查產出 B-099 / B-100、私有方法範圍掃過並清空；B-091 的 CSS 那 86 筆清完 86 → 0，剩 i18n 340 筆待逐項走查；C 象徵走查產出 B-101，契約「UI 使用頁面」新增漂移守衛並修掉 4 條假宣告）
+**最後更新**: 2026-09-06（上傳與閱讀頁走查：ingestion 的 `total_chapters` 已修；閱讀頁產出 B-102）
