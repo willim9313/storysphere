@@ -129,7 +129,14 @@ def scan_backend() -> int:
                 for m in node.body:
                     if not isinstance(m, ast.FunctionDef | ast.AsyncFunctionDef):
                         continue
-                    if m.name.startswith("_"):
+                    # Private methods are included: `self._x()` counts as a
+                    # reference like any other name, so a helper nobody calls
+                    # shows up the same way a public one does. They were skipped
+                    # until B-098; enabling them found nothing across the whole
+                    # backend, which is the useful answer — that range was listed
+                    # as unscanned in B-091 and is now scanned. Dunders stay out:
+                    # they are called by the interpreter, never by name.
+                    if m.name.startswith("__"):
                         continue
                     deco = " ".join(ast.unparse(d) for d in m.decorator_list)
                     # Route handlers and validators are called by name nowhere.
