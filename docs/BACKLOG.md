@@ -1035,6 +1035,45 @@ two rules would let the page say 5 while the backend dropped 4」——**擔心�
 
 ---
 
+#### B-103 建構概覽的 Relations 節點顯示的是全庫計數，不是這本書的
+
+**背景**: 任務儲存 / unraveling 走查（2026-09-07）。`GET /books/:bookId/unraveling`
+是**per-book** 端點，頁面也是每本書一頁，但其中的 `kg_relation` 節點吃的是
+`kg_service.relation_count` —— 那是 `self._graph.number_of_edges()`，**整個圖譜、
+所有書一起算**。
+
+```python
+# unraveling_manifest.py:227
+status=status_of(complete=relation_count_global > 0, partial=False),
+counts={"relations": relation_count_global},
+meta={"scope": "global"},
+```
+
+**`meta.scope` 沒有任何讀者**：前端 `BuildOverviewPage.tsx` 從不讀 `meta.scope`，
+所以「這是跨書計數」這件事只存在於 payload 裡，畫面上看不到。
+
+**兩個後果**:
+1. **數字對不上**。實測 `var/knowledge_graph.json` 共 696 條 edge，分屬四本書
+   （224 / 84 / 326 / 62）。每本書的建構概覽都顯示 **696**
+2. **B-089 的同型問題**：一本剛上傳、還沒跑 KG 抽取的書，這個節點會直接是
+   `complete`（因為別本書有 696 條）。B-089 修掉的正是「把從未執行的步驟標成完成」
+
+**資料支援分書計數**：每條 edge 都帶 `document_id`（實測 696/696 都有）。
+
+**為什麼不順手修**: `KGService` 沒有 per-book 的關聯計數方法——只有
+`get_relations(entity_id)` 與全域的 `relation_count` property。要加一個就會動到
+**雙後端介面**，NetworkX 與 Neo4j 兩邊都要實作，還要更新 B-048 建立的 27/27
+parity 測試。那是一次獨立的小開發，不是走查順手能做的。
+
+**要決定的**:
+- 改成分書計數（需新增 `KGService.relation_count_for(document_id)`，雙後端各一份）
+- 或維持全域但**讓畫面說出來**（前端讀 `meta.scope`，標示「全庫」）—— 便宜得多，
+  但一本新書仍會顯示 `complete`，第 2 個後果沒解決
+
+**觸發時機**: 待排。優先度低（顯示問題，不影響資料），但第 2 點與 B-089 同型。
+
+---
+
 #### B-094 pytest 有一個間歇性失敗（約 1/8）
 
 **背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
@@ -1722,6 +1761,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | 待開始（2026-09-07 unraveling 走查；per-book 頁面顯示 696 條全庫 edge，且新書會直接顯示 complete——B-089 同型；`meta.scope` 前端不讀） |
 | B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | 待開始（2026-09-06 閱讀頁走查；`paragraphs` 表無 keywords 欄位，閱讀頁 chunk 關鍵字標籤恆不顯示；與 B-098 的 `search_by_keyword` 綁一起決定） |
 | B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟡 中 | 待開始（2026-09-06 core/ 走查；B-075 已結案故舊理由不成立，但它是唯一的跨雲 fallback 實作，正是 B-073 缺的那塊） |
 | B-100 | token 歸屬修好之後沒有任何資料驗證過 | 🟢 低 | 待開始（2026-09-06 core/ 走查；DB 最後一筆 8/19、最後一次修正 8/20，98.3% 未歸屬是歷史數字） |
@@ -1787,4 +1827,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-07（時間軸走查：刪掉零讀寫的 `TimelineQuality.last_computed`；B-097 補上 `story_time` 零讀者的實證）
+**最後更新**: 2026-09-07（任務儲存走查：補上兩個 TaskStore 的 parity 測試；unraveling 產出 B-103）
