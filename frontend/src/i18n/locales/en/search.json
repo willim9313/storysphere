@@ -12,16 +12,8 @@
     "character": "Characters",
     "archetype": "Archetypes"
   },
-  "summary": {
-    "found": "Found <strong>{{count}}</strong> passages from <strong>{{books}}</strong> books",
-    "more": "+{{count}} more"
-  },
   "result": {
-    "relevance": "Relevance",
-    "mentions": "Mentions: ",
-    "goToReader": "Go to reader",
-    "goToBook": "Go to book",
-    "chapterPos": "Ch.{{chapter}} · §{{position}}"
+    "goToBook": "Go to book"
   },
   "empty": {
     "noResults": "No passages found",

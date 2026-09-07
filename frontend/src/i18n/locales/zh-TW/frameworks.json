@@ -1,6 +1,5 @@
 {
   "toc": "目錄",
-  "references": "參考文獻",
   "globalNotice": "全站參考，不屬於特定書籍",
   "brand": "方法論",
   "brandSub": "METHODOLOGY",
@@ -52,12 +51,6 @@
     "frye_mythos": "四季對應的敘事模式",
     "booker_plots": "七種「故事形狀」",
     "sep_methodology": "證據聚合到詮釋的狀態流程"
-  },
-  "categories": {
-    "character": "角色分析",
-    "arc": "敘事弧分析",
-    "tension": "張力分析",
-    "symbol": "象徵分析"
   },
   "concept": {
     "jungCaption": "十二原型沿輪盤排列，依核心動機歸入四種取向；系統判定主／次原型在輪上的位置。",

@@ -1,6 +1,5 @@
 {
   "toc": "Contents",
-  "references": "References",
   "globalNotice": "Site-wide reference · not tied to a book",
   "brand": "Methodology",
   "brandSub": "METHODOLOGY",
@@ -52,12 +51,6 @@
     "frye_mythos": "narrative modes mapped to four seasons",
     "booker_plots": "seven shapes of story",
     "sep_methodology": "a state flow from evidence to interpretation"
-  },
-  "categories": {
-    "character": "Character Analysis",
-    "arc": "Narrative Arc",
-    "tension": "Tension Analysis",
-    "symbol": "Symbol Analysis"
   },
   "concept": {
     "jungCaption": "Twelve archetypes on a wheel, grouped into four motivational orientations; the system places a primary/secondary reading on the rim.",

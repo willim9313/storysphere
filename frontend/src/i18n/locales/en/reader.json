@@ -13,8 +13,7 @@
     "entities": "{{count}} entities",
     "keywords": "Keywords",
     "entityCount": "Entities · {{count}}",
-    "toggleExpand": "Expand/collapse chapter",
-    "viewContent": "View Content"
+    "toggleExpand": "Expand/collapse chapter"
   },
   "chapterListHeader": "Chapters · {{count}}",
   "expandAll": "Expand all",
@@ -51,9 +50,17 @@
   "typography": {
     "trigger": "Aa",
     "fontSize": "Font Size",
-    "fs": { "small": "Small", "standard": "Standard", "large": "Large" },
+    "fs": {
+      "small": "Small",
+      "standard": "Standard",
+      "large": "Large"
+    },
     "lineHeight": "Line Height",
-    "lh": { "tight": "Tight", "standard": "Standard", "wide": "Wide" },
+    "lh": {
+      "tight": "Tight",
+      "standard": "Standard",
+      "wide": "Wide"
+    },
     "warmth": "Paper Warmth",
     "warmthSwatch": "Paper color {{n}}",
     "fadeIn": "Fade in paragraphs"

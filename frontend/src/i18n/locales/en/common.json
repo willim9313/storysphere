@@ -4,7 +4,6 @@
   "loading": "Loading…",
   "search": "Search…",
   "retry": "Retry",
-  "create": "Create",
   "triggerFailed": "Failed to trigger analysis. Please try again later.",
   "status": {
     "analyzed": "Analyzed",

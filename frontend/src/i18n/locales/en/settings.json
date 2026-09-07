@@ -58,7 +58,6 @@
     "sub": "DEPLOY_MODE governs all storage-layer behavior. A developer option — most users need not adjust it.",
     "deployTitle": "Deploy mode",
     "lightweight": "Lightweight",
-    "lightweightCur": "(current)",
     "standard": "Standard",
     "lwDesc": "Works out of the box, no extra services",
     "stDesc": "Requires running external services yourself",

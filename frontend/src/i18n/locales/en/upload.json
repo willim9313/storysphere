@@ -16,16 +16,13 @@
   "languageRu": "Русский",
   "authorPlaceholder": "Leave blank to auto-detect from file metadata",
   "confirmUpload": "Confirm Upload",
-  "enterBook": "Enter Book",
   "processingSection": "Processing",
   "duplicateTitleWarning": "A book titled \"{{title}}\" already exists — this upload will still proceed.",
-  "completedSection": "Completed",
   "dropzone": {
     "dragText": "Drag file here, or click to select",
     "supportText": ".pdf, .docx, .txt, .epub · multiple allowed · max 50 MB",
     "errorInvalidFormat": "Please upload a PDF, DOCX, TXT or EPUB file",
-    "errorTooLarge": "File exceeds the {{max}} MB size limit",
-    "errorOneFileOnly": "Only one file can be uploaded at a time"
+    "errorTooLarge": "File exceeds the {{max}} MB size limit"
   },
   "review": {
     "title": "Review Chapter Structure",
@@ -64,7 +61,6 @@
     "discard": "Discard upload",
     "discardConfirm": "Delete the whole book and discard this upload? This cannot be undone.",
     "discardConfirmBtn": "Discard",
-    "goToBook": "Go to \"{{title}}\"",
     "errorLoad": "Failed to load chapter data. Please try again later.",
     "errorSubmit": "Submission failed. Please try again later.",
     "spineTitle": "Book structure",
@@ -72,10 +68,7 @@
     "spineToggle": "Collapse / expand book structure",
     "railHint": "Chapter length by paragraph count (click to jump)",
     "infoRow": "Set chapter roles in the left spine, paragraph roles via the menu on each paragraph's right · role definitions in the guide on the right",
-    "roleTooltipChTitle": "Chapter role (applies to the whole chapter)",
-    "roleTooltipPaTitle": "Paragraph role (in-chapter exception)",
     "suggestRoles": "Detect boundaries",
-    "suggestRolesHint": "Uses AI to scan the book's opening and closing paragraphs for non-body matter (copyright/contents/preface/afterword/bio…). Consumes tokens.",
     "suggesting": "Detecting…",
     "suggestDone": "AI suggestions applied",
     "aiScanBanner": "AI is scanning inward from the first and last pages, classifying body / non-body…",
