@@ -50,6 +50,7 @@ function makeItem(term: string): SymbolOverviewItem {
     book_id: 'book-1',
     term,
     imagery_type: 'other',
+    excluded_front_matter_count: 0,
     aliases: [],
     frequency,
     chapter_distribution: distribution,

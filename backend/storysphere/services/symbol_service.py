@@ -484,6 +484,14 @@ class SymbolService:
             document, is_body
         )
 
+        # Deliberately *not* `is_body`: this number answers "what did the LLM not
+        # see", and the exclusion in `assemble_sep` is positional — everything
+        # before the first body chapter. Deriving it from roles here would make
+        # the page state a number the interpretation was not actually built on
+        # (B-101). The two agree today only because front matter happens to be
+        # numbered <= 0 in every book in the library.
+        first_body_chapter = _first_body_chapter(document)
+
         body_events_by_chapter: dict[int, int] = {}
         for ev in events:
             if is_body(ev.chapter):
@@ -514,6 +522,7 @@ class SymbolService:
                     entity_paragraph_counts=entity_paragraph_counts,
                     body_events_by_chapter=body_events_by_chapter,
                     is_body=is_body,
+                    first_body_chapter=first_body_chapter,
                     co_pairs=co_pairs,
                     imagery_by_term=imagery_by_term,
                 )
@@ -566,9 +575,14 @@ def _first_body_chapter(document: Document) -> int | None:
     Positional rather than role-by-role, because that is how the UI splits the
     axis: anything before the first body chapter is front matter, anything after
     the last is back matter, and the same ``other`` role can land on either side
-    depending on where it sits. Deriving both from the same rule is what makes
-    ``excluded_front_matter_count`` equal the ``front`` count already on screen;
-    two rules would let the page say 5 while the backend dropped 4.
+    depending on where it sits.
+
+    Both the per-symbol SEP and the book-wide overview count exclusions with
+    this one rule, and since B-101 the page reads that number rather than
+    deriving its own from chapter roles. It used to derive one — a genuinely
+    different rule — and the two agreed only because front matter happens to be
+    numbered <= 0 in every book in the library. Two rules are what let the page
+    say 5 while the backend dropped 4.
 
     Returns None when a document has no body chapters at all, in which case
     nothing is excluded — with no body to be "before", every occurrence is as
@@ -655,11 +669,17 @@ def _build_overview_item(
     entity_paragraph_counts: dict[str, int],
     body_events_by_chapter: dict[int, int],
     is_body: Callable[[int], bool],
+    first_body_chapter: int | None,
     co_pairs: list[tuple[str, int]],
     imagery_by_term: dict[str, ImageryEntity],
 ) -> SymbolOverviewItem:
     """Assemble one imagery entity's overview row from pre-loaded book data."""
     body_occurrences = [o for o in occurrences if is_body(o.chapter_number)]
+    excluded_front_matter = (
+        sum(1 for o in occurrences if o.chapter_number < first_body_chapter)
+        if first_body_chapter is not None
+        else 0
+    )
     _, entity_counts = _count_co_occurring_entities(occurrences, paragraph_by_id)
     _, body_counts = _count_co_occurring_entities(body_occurrences, paragraph_by_id)
     resolved, self_match_count = _resolve_co_occurring_entities(
@@ -705,6 +725,7 @@ def _build_overview_item(
         ),
         co_occurring_entities=resolved,
         self_match_count=self_match_count,
+        excluded_front_matter_count=excluded_front_matter,
         co_occurring_event_count=event_count,
         co_occurring_imagery=allies,
     )

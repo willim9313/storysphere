@@ -291,6 +291,17 @@ class SymbolOverviewItem(BaseModel):
             "Reported so the UI can say so rather than silently dropping it."
         ),
     )
+    excluded_front_matter_count: int = Field(
+        default=0,
+        description=(
+            "Occurrences this symbol's SEP drops before sending evidence to the "
+            "LLM, i.e. those sitting before the first body chapter. Carried here "
+            "because the symbols page needs it and never requests a SEP — the "
+            "page used to derive its own number from chapter_roles, a *different* "
+            "rule from the one the exclusion actually uses, so the two agreed "
+            "only while front matter happened to be numbered <= 0 (B-101)."
+        ),
+    )
     co_occurring_event_count: int = Field(
         default=0,
         description=(

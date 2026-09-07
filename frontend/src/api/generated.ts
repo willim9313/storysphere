@@ -4276,6 +4276,12 @@ export interface components {
              */
             self_match_count?: number | null;
             /**
+             * Excluded Front Matter Count
+             * @description Occurrences this symbol's SEP drops before sending evidence to the LLM, i.e. those sitting before the first body chapter. Carried here because the symbols page needs it and never requests a SEP — the page used to derive its own number from chapter_roles, a *different* rule from the one the exclusion actually uses, so the two agreed only while front matter happened to be numbered <= 0 (B-101).
+             * @default 0
+             */
+            excluded_front_matter_count: number;
+            /**
              * Co Occurring Event Count
              * @description Events located in *body* chapters where this imagery occurs. Front and back matter are excluded: colophon-chapter events are not narrative attachment.
              * @default 0
