@@ -121,3 +121,50 @@ class TestArchetypeTaxonomyParity:
         rename = _FRONTEND_ID_SUFFIX.get(framework, {})
         backend = {rename.get(i, i): n for i, n in self._backend(framework, lang).items()}
         assert self._frontend(framework, lang) == backend
+
+
+# ── 英雄旅程的順序常數 —— B-095 ────────────────────────────────────────────────
+
+HERO_JOURNEY_TS = REPO_ROOT / "frontend" / "src" / "components" / "narrative" / "heroJourney.ts"
+
+
+def _ts_stage_order(source: str) -> list[str]:
+    m = re.search(r"export const STAGE_ORDER: string\[\] = \[(.*?)\];", source, re.S)
+    assert m, "heroJourney.ts 裡找不到 STAGE_ORDER——解析器需要更新"
+    return re.findall(r"'([a-z_]+)'", m.group(1))
+
+
+def _ts_stage_phase(source: str) -> dict[str, str]:
+    m = re.search(r"export const STAGE_PHASE: Record<string, Phase> = \{(.*?)\};", source, re.S)
+    assert m, "heroJourney.ts 裡找不到 STAGE_PHASE——解析器需要更新"
+    return dict(re.findall(r"([a-z_]+):\s*'(\w+)'", m.group(1)))
+
+
+class TestHeroJourneyOrder:
+    """`heroJourney.ts` 的順序與 phase 必須與後端 JSON 一致 —— B-095。
+
+    B-093 把名稱與 id 集合都納入防護後，英雄旅程還剩第三份拷貝沒有守衛：
+    `STAGE_ORDER` / `STAGE_PHASE`。它們**帶順序**，而既有的檢查比的是 id 集合與
+    顯示名，兩者都不含順序——後端 JSON 調換階段時，id 與名稱可以完全一致而
+    `stageOrdinal()` 算出的「第幾階段」已經錯位，**畫面照常渲染**。
+
+    這是與名稱漂移不同的一類：名稱錯了會篩不出東西（看得見的空），順序錯了
+    每個階段都有內容，只是號碼是錯的（看不見的錯）。
+    """
+
+    def test_stage_order_matches_the_backend_json(self):
+        backend = [s["id"] for s in load_hero_journey("zh")]
+        assert _ts_stage_order(HERO_JOURNEY_TS.read_text(encoding="utf-8")) == backend, (
+            "heroJourney.ts 的 STAGE_ORDER 與 config/hero_journey/*.json 的階段順序"
+            "不一致——stageOrdinal() 算出的階段序號會錯位"
+        )
+
+    def test_stage_phase_matches_the_backend_json(self):
+        backend = {s["id"]: s["phase"] for s in load_hero_journey("zh")}
+        assert _ts_stage_phase(HERO_JOURNEY_TS.read_text(encoding="utf-8")) == backend
+
+    def test_both_languages_agree_on_order(self):
+        """順序是結構不是文案，兩個語系的 JSON 必須一致——否則上面兩條要看哪一份就成了問題。"""
+        assert [s["id"] for s in load_hero_journey("zh")] == [
+            s["id"] for s in load_hero_journey("en")
+        ]
