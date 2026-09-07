@@ -993,6 +993,141 @@ two rules would let the page say 5 while the backend dropped 4」——**擔心�
 
 ---
 
+#### B-102 段落層 keywords 產得出來、送得出去，就是沒有存
+
+**背景**: 閱讀頁 / document_service 走查（2026-09-06）。這條鏈的每一段都活著，
+只有中間少一節：
+
+| 環節 | 狀態 |
+|---|---|
+| 產生 | `feature_extraction/pipeline.py:141` `para.keywords = kws`，逐段抽 |
+| 送進 Qdrant | 同檔 258–259 / 309–310，payload 帶 `keywords` 與 `keyword_scores` |
+| **存進 SQLite** | **沒有。`paragraphs` 表沒有 keywords 欄位**（只有 embedding / entities / title_span / role） |
+| 讀回來 | 三個 `Paragraph(...)` 建構點都不帶 `keywords` |
+| API 回應 | `book_reader.py:260` `keywords=list(p.keywords.keys()) if p.keywords else []` |
+| UI 渲染 | `ChunkCard.tsx:103` `{chunk.keywords.length > 0 && <KeywordTags …>}` |
+
+**所以閱讀頁的 chunk 關鍵字標籤永遠不會出現**——從 SQLite 讀出來的段落，
+`keywords` 恆為 `None`，回應恆為 `[]`，那個條件式恆假。屬 B-091 的第 3 種結局
+（未接線的生產者：消費端活著但永遠讀到空值）。
+
+**實測（2026-09-06）**: 《大唐雙龍傳》第 1 章 13 個段落，帶 keywords 的 **0** 個；
+同一個載入路徑的 entities 有 9 個——證明不是載入壞掉，是那個欄位根本沒被存。
+
+**成本沒有白花，別誤記**: 段落 keywords 會被 `_keyword_aggregator` 聚合成
+**章節 keywords**，那份有存（`chapters.keywords_json`）也有顯示（`ChapterCard`）。
+本環境 `KEYWORD_EXTRACTOR_TYPE=llm`（`token_usage` 有 1371 筆 `service='keyword'`），
+但那些呼叫換到了章節層的產出，掉的只是段落層的細節。
+
+**另一個連結**: Qdrant payload 裡的 `keywords` 唯一的讀取者是
+`VectorService.search_by_keyword` —— **正是 B-098 掃出來的零呼叫者**。
+也就是說段落層 keywords 目前在兩條路上都沒有讀者：SQLite 那條沒存，Qdrant 那條沒人查。
+
+**要決定的**:
+1. **存起來** —— `paragraphs` 加一個 `keywords_json` 欄位，寫入與讀取各補一處。
+   既有書要重跑 feature-extraction 才會有值（或從 Qdrant 回填）
+2. **拿掉這個功能** —— 從 `ChunkResponse`、`ChunkCard` 與契約 #5 移除 `keywords`。
+   若同時決定 `search_by_keyword` 也不接（B-098 留下的候選），那連 Qdrant payload
+   要不要繼續帶 `keywords` 都可以一起收
+3. 兩者之間還有一條：只在**搜尋**用途保留 Qdrant 那份，閱讀頁不顯示
+
+**觸發時機**: 待排。與 B-098 留下的 `search_by_keyword` 處置一起決定比較省事。
+
+---
+
+#### B-103 建構概覽的 Relations 節點顯示的是全庫計數，不是這本書的
+
+**背景**: 任務儲存 / unraveling 走查（2026-09-07）。`GET /books/:bookId/unraveling`
+是**per-book** 端點，頁面也是每本書一頁，但其中的 `kg_relation` 節點吃的是
+`kg_service.relation_count` —— 那是 `self._graph.number_of_edges()`，**整個圖譜、
+所有書一起算**。
+
+```python
+# unraveling_manifest.py:227
+status=status_of(complete=relation_count_global > 0, partial=False),
+counts={"relations": relation_count_global},
+meta={"scope": "global"},
+```
+
+**`meta.scope` 沒有任何讀者**：前端 `BuildOverviewPage.tsx` 從不讀 `meta.scope`，
+所以「這是跨書計數」這件事只存在於 payload 裡，畫面上看不到。
+
+**兩個後果**:
+1. **數字對不上**。實測 `var/knowledge_graph.json` 共 696 條 edge，分屬四本書
+   （224 / 84 / 326 / 62）。每本書的建構概覽都顯示 **696**
+2. **B-089 的同型問題**：一本剛上傳、還沒跑 KG 抽取的書，這個節點會直接是
+   `complete`（因為別本書有 696 條）。B-089 修掉的正是「把從未執行的步驟標成完成」
+
+**資料支援分書計數**：每條 edge 都帶 `document_id`（實測 696/696 都有）。
+
+**為什麼不順手修**: `KGService` 沒有 per-book 的關聯計數方法——只有
+`get_relations(entity_id)` 與全域的 `relation_count` property。要加一個就會動到
+**雙後端介面**，NetworkX 與 Neo4j 兩邊都要實作，還要更新 B-048 建立的 27/27
+parity 測試。那是一次獨立的小開發，不是走查順手能做的。
+
+**要決定的**:
+- 改成分書計數（需新增 `KGService.relation_count_for(document_id)`，雙後端各一份）
+- 或維持全域但**讓畫面說出來**（前端讀 `meta.scope`，標示「全庫」）—— 便宜得多，
+  但一本新書仍會顯示 `complete`，第 2 個後果沒解決
+
+**觸發時機**: 待排。優先度低（顯示問題，不影響資料），但第 2 點與 B-089 同型。
+
+---
+
+#### B-104 兩個已完整實作的深度分析工具永遠註冊不進 chat agent
+
+**背景**: F chat / tools 走查（2026-09-07，讀 code 可查證的那一半）。
+
+`tool_registry.get_chat_tools()` 共 23 個工具，其中 **21 個無條件註冊**，另外兩個
+（`analyze_character`、`analyze_event`）是 `if analysis_agent is not None` 才加。
+而**唯一的呼叫端 `ChatAgent.__init__` 從不傳這個參數** —— `deps.get_chat_agent()`
+傳了 8 個 service，就是沒有 `analysis_agent`。所以那兩個工具在生產環境從未被建構過。
+
+**它們不是 stub**（這是最容易誤判的一點）: `AnalyzeCharacterTool._arun` 呼叫真的
+`AnalysisAgent.analyze_character()`、映射成 `CharacterAnalysisOutput`、有錯誤處理。
+`deps.get_analysis_agent()` 存在，`main.py:249` 啟動時還會預熱它。**接線就是一行。**
+
+**兩份文件把它們寫成未實作**，方向與現況相反:
+- `docs/appendix/TOOLS_CATALOG.md` 標「❌ STUB / Phase 5 — needs domain knowledge」
+- `tool_registry.py` 的註解寫「stubs excluded from chat」
+
+兩處已於本次改為記錄實況。這是這輪少見的**反向漂移**：通常是文件比程式碼樂觀，
+這次是文件比程式碼悲觀，於是一個做好的能力被自己的註解擋在門外。
+
+**本輪走查自己踩過一次**: PR #80 為了消除重複，把 `analyze_character.py` 改成使用
+`CharacterAnalysisOutput` —— 改的是一段**永遠不會執行**的程式碼。當時判定它是
+「被手抄的來源」是對的，但沒有人發現那個工具根本註冊不進去。
+
+**決定：接上去**（2026-09-07）。理由是使用者的：chat 沒道理問不了「分析這個角色」，
+而功能本來就做好了。`deps.get_chat_agent()` 補上 `analysis_agent=get_analysis_agent()`，
+`ChatAgent.__init__` 加一個選填參數轉給 registry。
+
+**選填的條件分支保留**：沒有 `AnalysisAgent` 的呼叫端仍應拿到可用的工具組。
+
+**補上守衛** `tests/tools/test_chat_tool_wiring.py`：registry 那端（給了 agent 就要加、
+沒給就不加、其餘工具不受影響）與 `deps` 那端（AST 檢查 `ChatAgent(...)` 有傳
+`analysis_agent`）各釘一次。拆掉任一端測試就會紅——實測過。deps 那條用 AST 而非
+實際呼叫，因為 `get_chat_agent()` 會建起整條真的 service 依賴鏈。
+
+**未做、留給有 langfuse 資料時再看**：ADR-008 訂了工具選擇準確率 >85% 的目標，
+工具從 21 個變 23 個是否影響選擇正確率，沒有基線就無從判斷。深度分析每次呼叫的
+token 成本也遠高於其他工具，目前唯一的節流是工具 description 的 DO NOT USE 段落。
+
+**順帶記下（不另立條目）**: `get_all_tool_names()` 沒有任何呼叫端，只在
+`tools/__init__.py` 被轉出一次。docstring 說它是「for documentation」，但沒有任何
+文件產生流程用它。掃描器看不到它是因為那行 `from ... import` 在語法上就是一次引用
+—— **轉出而無下游消費**是 B-098 修完之後仍然存在的一類盲點。
+
+**這一塊還沒查完的部分**: 另外 21 個工具**結構上都進得去**（服務依賴在
+`deps.get_chat_agent()` 全部有實例，25 個 args_schema 與 `_arun` 簽章全部對得上，
+23 個工具名稱與 `get_all_tool_names()` 完全一致）。但「**實際被 LLM 選中過幾個**」
+讀 code 查不出來，要看 langfuse / log —— 那半仍未做。
+
+**觸發時機**: 待排。第 1 條路要先有 langfuse 資料才知道現有 21 個工具的選擇準確率
+基線，否則加了工具也無從判斷是否變差。
+
+---
+
 #### B-094 pytest 有一個間歇性失敗（約 1/8）
 
 **背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
@@ -1050,6 +1185,27 @@ lost can be rebuilt from both」——把 KG 當成比快取更耐久的一側�
 `narrative_weight = "unclassified"`、**不動 `narrative_weight_source`**。所以被
 B-096 那條路徑洗過的事件會留下 `(weight=unclassified, source=llm_classified)` 這組
 矛盾的搭配。目前磁碟上 0 筆——洗白如果發生過，也跟著沒落盤。
+
+**補充（2026-09-07，時間軸走查）—— 這一點會改變上面的決策**:
+三個方法寫進 KG 的東西**價值不一樣**，不該一起處理：
+
+| 寫入 | 讀者 |
+|---|---|
+| `narrative_weight` / `narrative_weight_source` | **多**：`get_kernel_spine`、`unraveling_manifest`、`_rebuild_structure_from_kg`、前端劇情骨幹 |
+| `Event.story_time`（`analyze_temporal_order` 第 5 步） | **零**。全 repo 只有一個寫入點（`narrative_service.py:862`），唯一的「讀取」是 `kg_service_neo4j.py` 的序列化來回（存進去再取出來，不消費值）。**不進 API、不進前端** |
+
+也就是說「故事時序」在這個 repo 有**兩套獨立實作**，只有一套有消費者：
+
+- `TemporalPipeline` + `TimelineAgent` → `temporal_relations` + `Event.chronological_rank`
+  —— 落盤了（實測 235 個事件有 99 個帶 rank），且被時間軸端點、`get_global_timeline`
+  工具、建構概覽的 `chronological_rank` 節點消費
+- `NarrativeService.analyze_temporal_order`（B-037 Genette）→ `Event.story_time`
+  —— 沒落盤（本條目主旨），而且**就算落盤了也沒有人讀**
+
+所以 `story_time` 這一項的正確處置多半不是「補上存檔」，而是**跟著它的
+`StoryTimeRef` 一起移除**（#89 已經因為從未被填寫而拿掉它的 `absolute_time`，
+剩下的 `relative_order` / `time_anchor` 是有人寫、沒人讀）。Genette 分析真正被
+消費的產出是 `TemporalAnalysis` 快取裡的 `displacements`，那條路徑是活的。
 
 **要決定的是存在哪一層**（所以先立條目）:
 - 在 `NarrativeService` 每次寫完就 `await self._kg.save()` —— 最簡單，但整份圖
@@ -1659,12 +1815,15 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
+| B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | 待開始（2026-09-07 unraveling 走查；per-book 頁面顯示 696 條全庫 edge，且新書會直接顯示 complete——B-089 同型；`meta.scope` 前端不讀） |
+| B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | 待開始（2026-09-06 閱讀頁走查；`paragraphs` 表無 keywords 欄位，閱讀頁 chunk 關鍵字標籤恆不顯示；與 B-098 的 `search_by_keyword` 綁一起決定） |
 | B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟡 中 | 待開始（2026-09-06 core/ 走查；B-075 已結案故舊理由不成立，但它是唯一的跨雲 fallback 實作，正是 B-073 缺的那塊） |
 | B-100 | token 歸屬修好之後沒有任何資料驗證過 | 🟢 低 | 待開始（2026-09-06 core/ 走查；DB 最後一筆 8/19、最後一次修正 8/20，98.3% 未歸屬是歷史數字） |
 | B-101 | 前置頁排除數有兩套規則，而且不是同一條 | 🟢 低 | 待開始（2026-09-06 C 象徵走查；後端純位置、前端角色優先，目前 4 本書編號碰巧一致；權威數字 `excluded_front_matter_count` 沒有讀者） |
 | B-095 | 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護 | 🟢 低 | 待開始（2026-09-06 由 B-093 分出；id 與顯示名都有守衛了，順序沒有——漂了會讓階段序號錯位且畫面照常渲染） |
 | B-096 | classify 的洗白守衛只擋全損，不擋部分損失 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；`hits == 0` 才擋，`(12, 38, 47)` 會靜默把 26 個已分類事件重設為 unclassified） |
-| B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；三個方法都只改記憶體物件、從不 `kg.save()`，磁碟上 satellite 0 筆、`story_time` 0 筆） |
+| B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；三個方法都只改記憶體物件、從不 `kg.save()`。2026-09-07 補充：`story_time` 那一項零讀者，正確處置多半是移除而非補存） |
 | B-098 | scan_dead_code 會把自己 docstring 裡的提及算成引用 | 🟢 低 | ✅ 已完成（2026-09-06；`_code_only()` 以 tokenize 濾掉註解與字串，backend 符號 1 → 3；順帶納入私有方法，該範圍 0 筆） |
 
 ### F 系列
@@ -1723,4 +1882,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-06（B-098 完成、core/ 走查產出 B-099 / B-100、私有方法範圍掃過並清空；B-091 的 CSS 那 86 筆清完 86 → 0，剩 i18n 340 筆待逐項走查；C 象徵走查產出 B-101，契約「UI 使用頁面」新增漂移守衛並修掉 4 條假宣告）
+**最後更新**: 2026-09-07（F chat/tools 走查：兩個深度分析工具接上 chat agent，B-104 完成）

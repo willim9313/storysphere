@@ -268,6 +268,8 @@ type EntityType =
 
 **說明**：一次拉取整個章節所有 chunks，TanStack Query key：`['books', bookId, 'chapters', chapterId, 'chunks']`。
 
+> **`keywords` 目前恆為空陣列**（2026-09-06 查明）。段落層 keywords 在 feature-extraction 階段確實產生、也寫進 Qdrant payload，但 `paragraphs` 表沒有對應欄位，讀回來時 `Paragraph.keywords` 一律是 `None`。章節層的 keywords（#3）不受影響。見 BACKLOG B-102。
+
 **UI 使用頁面**：閱讀頁欄 3
 
 ---

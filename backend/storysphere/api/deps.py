@@ -277,6 +277,11 @@ def get_chat_agent():
         summary_service=get_summary_service(),
         analysis_service=get_analysis_service(),
         keyword_service=get_keyword_service(),
+        # Without this the two deep-analysis tools are silently dropped from the
+        # agent's toolset — `get_chat_tools` adds them only when it is passed
+        # (B-104). The agent is already built lazily and this provider is warmed
+        # at startup, so it costs nothing until a tool call actually runs.
+        analysis_agent=get_analysis_agent(),
     )
 
 

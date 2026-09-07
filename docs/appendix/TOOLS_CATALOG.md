@@ -176,23 +176,25 @@
 
 ---
 
-### 14. `analyze_character` ❌ STUB
+### 14. `analyze_character` ✅
 **Description:** Deep character analysis — personality, relationships, arc, motivations.
 
 | Aspect | Details |
 |--------|---------|
-| **Status** | Phase 5 — needs domain knowledge |
-| **Workaround** | Use `get_entity_attributes` + `get_entity_timeline` + `generate_insight` |
+| **Status** | 實作完整，**2026-09-07 接上 chat agent**（B-104）。`AnalyzeCharacterTool._arun` 呼叫 `AnalysisAgent.analyze_character()` 並映射成 `CharacterAnalysisOutput` |
+| **這條曾經斷過** | 它長期沒有註冊：`get_chat_tools()` 只在收到 `analysis_agent` 時加入，而沒有任何呼叫端傳它。本欄原本寫「❌ STUB / Phase 5 — needs domain knowledge」，方向與現況相反，反而讓那個缺口看起來是預期行為 |
+| **成本** | 每次呼叫都跑完整深度分析，比其他工具貴得多。工具 description 的 DO NOT USE 段落是主要的節流手段 |
+| **守衛** | `tests/tools/test_chat_tool_wiring.py` 釘住 registry 與 `deps.get_chat_agent()` 兩端 |
 
 ---
 
-### 15. `analyze_event` ❌ STUB
+### 15. `analyze_event` ✅
 **Description:** Deep event analysis — significance, causes, consequences, affected characters.
 
 | Aspect | Details |
 |--------|---------|
-| **Status** | Phase 5 — needs domain knowledge |
-| **Workaround** | Use `get_entity_timeline` + `generate_insight` |
+| **Status** | 實作完整，**2026-09-07 一併接上**（B-104），情況與 `analyze_character` 完全相同 |
+| **成本** | 同上 |
 
 ---
 

@@ -19,6 +19,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from storysphere.domain.documents import (
     Chapter,
+    ChapterRole,
     Document,
     FileType,
     Paragraph,
@@ -294,6 +295,37 @@ class TestTimelineDetection:
         assert doc.timeline_config.total_ranked_events == 1
         assert doc.timeline_config.chapter_mode_configured is False
         assert doc.timeline_config.story_mode_configured is False
+
+    @pytest.mark.asyncio
+    async def test_total_chapters_is_the_story_length_not_the_event_count(self):
+        """`total_chapters` counts body chapters; `chapter_count` counts events.
+
+        The two are equal only while every body chapter happens to hold an
+        event, which is why this drifted unnoticed: the case above uses a
+        2-chapter book with events in both. `total_chapters` feeds the KG page's
+        chapter-mode slider (`LensCard` reads `config.totalChapters` as its max),
+        so deriving it from events clamps the slider short of the book's ending —
+        exactly what `detect_timeline` documents and avoids.
+        """
+        doc = _make_doc(n_chapters=5)
+        events = [_event(1), _event(2, rank=1.0)]
+        wf = _make_workflow(doc, kg_result=KGExtractionResult(events=events))
+
+        await _run(wf, doc.id)
+
+        assert doc.timeline_config.total_chapters == 5   # 全書章數
+        assert doc.timeline_config.total_events == 2
+
+    @pytest.mark.asyncio
+    async def test_non_body_chapters_do_not_lengthen_the_story(self):
+        """前置頁不算進 total_chapters —— 與 Document.body_chapter_count 同一條線。"""
+        doc = _make_doc(n_chapters=3)
+        doc.chapters[0].role = ChapterRole.preface
+        wf = _make_workflow(doc, kg_result=KGExtractionResult(events=[_event(2)]))
+
+        await _run(wf, doc.id)
+
+        assert doc.timeline_config.total_chapters == 2
 
     @pytest.mark.asyncio
     async def test_skip_kg_suppresses_timeline_detection(self):

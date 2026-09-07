@@ -762,7 +762,13 @@ class IngestionWorkflow:
                 story_mode_viable=ranked_count > 0,
             )
             doc.timeline_config = TimelineConfig(
-                total_chapters=chapter_count,
+                # The story's length, not how many chapters happen to carry an
+                # event: chapter-mode sliders run over the book's chapters, so a
+                # book whose last chapters yielded no events would clamp early.
+                # `detect_timeline` (book_timeline.py) has always used this; this
+                # site was left on the event-derived count, and the two only
+                # agree while every body chapter holds an event.
+                total_chapters=doc.body_chapter_count,
                 total_events=len(kg_result.events),
                 total_ranked_events=ranked_count,
                 chapter_mode_configured=False,
