@@ -1074,6 +1074,60 @@ parity 測試。那是一次獨立的小開發，不是走查順手能做的。
 
 ---
 
+#### B-104 兩個已完整實作的深度分析工具永遠註冊不進 chat agent
+
+**背景**: F chat / tools 走查（2026-09-07，讀 code 可查證的那一半）。
+
+`tool_registry.get_chat_tools()` 共 23 個工具，其中 **21 個無條件註冊**，另外兩個
+（`analyze_character`、`analyze_event`）是 `if analysis_agent is not None` 才加。
+而**唯一的呼叫端 `ChatAgent.__init__` 從不傳這個參數** —— `deps.get_chat_agent()`
+傳了 8 個 service，就是沒有 `analysis_agent`。所以那兩個工具在生產環境從未被建構過。
+
+**它們不是 stub**（這是最容易誤判的一點）: `AnalyzeCharacterTool._arun` 呼叫真的
+`AnalysisAgent.analyze_character()`、映射成 `CharacterAnalysisOutput`、有錯誤處理。
+`deps.get_analysis_agent()` 存在，`main.py:249` 啟動時還會預熱它。**接線就是一行。**
+
+**兩份文件把它們寫成未實作**，方向與現況相反:
+- `docs/appendix/TOOLS_CATALOG.md` 標「❌ STUB / Phase 5 — needs domain knowledge」
+- `tool_registry.py` 的註解寫「stubs excluded from chat」
+
+兩處已於本次改為記錄實況。這是這輪少見的**反向漂移**：通常是文件比程式碼樂觀，
+這次是文件比程式碼悲觀，於是一個做好的能力被自己的註解擋在門外。
+
+**本輪走查自己踩過一次**: PR #80 為了消除重複，把 `analyze_character.py` 改成使用
+`CharacterAnalysisOutput` —— 改的是一段**永遠不會執行**的程式碼。當時判定它是
+「被手抄的來源」是對的，但沒有人發現那個工具根本註冊不進去。
+
+**決定：接上去**（2026-09-07）。理由是使用者的：chat 沒道理問不了「分析這個角色」，
+而功能本來就做好了。`deps.get_chat_agent()` 補上 `analysis_agent=get_analysis_agent()`，
+`ChatAgent.__init__` 加一個選填參數轉給 registry。
+
+**選填的條件分支保留**：沒有 `AnalysisAgent` 的呼叫端仍應拿到可用的工具組。
+
+**補上守衛** `tests/tools/test_chat_tool_wiring.py`：registry 那端（給了 agent 就要加、
+沒給就不加、其餘工具不受影響）與 `deps` 那端（AST 檢查 `ChatAgent(...)` 有傳
+`analysis_agent`）各釘一次。拆掉任一端測試就會紅——實測過。deps 那條用 AST 而非
+實際呼叫，因為 `get_chat_agent()` 會建起整條真的 service 依賴鏈。
+
+**未做、留給有 langfuse 資料時再看**：ADR-008 訂了工具選擇準確率 >85% 的目標，
+工具從 21 個變 23 個是否影響選擇正確率，沒有基線就無從判斷。深度分析每次呼叫的
+token 成本也遠高於其他工具，目前唯一的節流是工具 description 的 DO NOT USE 段落。
+
+**順帶記下（不另立條目）**: `get_all_tool_names()` 沒有任何呼叫端，只在
+`tools/__init__.py` 被轉出一次。docstring 說它是「for documentation」，但沒有任何
+文件產生流程用它。掃描器看不到它是因為那行 `from ... import` 在語法上就是一次引用
+—— **轉出而無下游消費**是 B-098 修完之後仍然存在的一類盲點。
+
+**這一塊還沒查完的部分**: 另外 21 個工具**結構上都進得去**（服務依賴在
+`deps.get_chat_agent()` 全部有實例，25 個 args_schema 與 `_arun` 簽章全部對得上，
+23 個工具名稱與 `get_all_tool_names()` 完全一致）。但「**實際被 LLM 選中過幾個**」
+讀 code 查不出來，要看 langfuse / log —— 那半仍未做。
+
+**觸發時機**: 待排。第 1 條路要先有 langfuse 資料才知道現有 21 個工具的選擇準確率
+基線，否則加了工具也無從判斷是否變差。
+
+---
+
 #### B-094 pytest 有一個間歇性失敗（約 1/8）
 
 **背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
@@ -1761,6 +1815,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | 待開始（2026-09-07 unraveling 走查；per-book 頁面顯示 696 條全庫 edge，且新書會直接顯示 complete——B-089 同型；`meta.scope` 前端不讀） |
 | B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | 待開始（2026-09-06 閱讀頁走查；`paragraphs` 表無 keywords 欄位，閱讀頁 chunk 關鍵字標籤恆不顯示；與 B-098 的 `search_by_keyword` 綁一起決定） |
 | B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟡 中 | 待開始（2026-09-06 core/ 走查；B-075 已結案故舊理由不成立，但它是唯一的跨雲 fallback 實作，正是 B-073 缺的那塊） |
@@ -1827,4 +1882,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-07（任務儲存走查：補上兩個 TaskStore 的 parity 測試；unraveling 產出 B-103）
+**最後更新**: 2026-09-07（F chat/tools 走查：兩個深度分析工具接上 chat agent，B-104 完成）

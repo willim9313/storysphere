@@ -91,6 +91,7 @@ class ChatAgent:
         summary_service: Any = None,
         analysis_service: Any = None,
         keyword_service: Any = None,
+        analysis_agent: Any = None,
         system_prompt: str | None = None,
     ) -> None:
         self._kg_service = kg_service
@@ -108,6 +109,7 @@ class ChatAgent:
             summary_service=summary_service,
             analysis_service=analysis_service,
             keyword_service=keyword_service,
+            analysis_agent=analysis_agent,
         )
         self._tool_map = {t.name: t for t in self._tools}
 

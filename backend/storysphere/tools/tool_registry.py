@@ -87,12 +87,16 @@ def get_chat_tools(
         GetParagraphsTool(doc_service=doc_service),
         GenSummaryTool(doc_service=doc_service, summarizer=summary_service),
         GetKeywordsTool(keyword_service=keyword_service),
-        # Analysis tools (1 — stubs excluded from chat)
+        # Analysis tools (1)
         GenerateInsightTool(analysis_service=analysis_service),
         # Other tools (2)
         ExtractEntitiesFromTextTool(extraction_service=extraction_service),
         CompareEntitiesTool(kg_service=kg_service),
-        # Analysis tools — deep (1-2, if analysis_agent is available)
+        # Deep analysis tools. These stayed unregistered for a long time because
+        # nobody passed `analysis_agent`, and both the catalog and this comment
+        # called them stubs — they never were (B-104, wired 2026-09-07). The
+        # guard stays because the argument is optional: a caller that has no
+        # AnalysisAgent still gets a working agent, minus these two.
         *(
             [AnalyzeCharacterTool(analysis_agent=analysis_agent)]
             if analysis_agent is not None
