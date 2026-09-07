@@ -30,18 +30,6 @@ class NarrativeMode(str, Enum):
     UNKNOWN = "unknown"
 
 
-class StoryTimeRef(BaseModel):
-    """Structured story-world time reference.
-
-    Not filled by the ingestion LLM — ``narrative_service`` writes it after
-    temporal ranking, from ``Event.story_time_hint`` (which keeps the raw text).
-    """
-
-    relative_order: float | None = None
-    time_anchor: str | None = None
-    confidence: float = Field(default=0.0, ge=0.0, le=1.0)
-
-
 class Event(BaseModel):
     """A significant plot event extracted from a novel chapter."""
 
@@ -73,7 +61,6 @@ class Event(BaseModel):
     # --- Narratology fields (B-031) ---
     narrative_weight: Literal["kernel", "satellite", "unclassified"] = "unclassified"
     narrative_weight_source: Literal["summary_heuristic", "llm_classified", "human_verified"] | None = None
-    story_time: StoryTimeRef | None = None
 
     # --- Epistemic visibility (F-03) ---
     # public  = information naturally known to all (public battles, announced deaths, spread gossip)

@@ -1237,7 +1237,20 @@ B-096 那條路徑洗過的事件會留下 `(weight=unclassified, source=llm_cla
 剩下的 `relative_order` / `time_anchor` 是有人寫、沒人讀）。Genette 分析真正被
 消費的產出是 `TemporalAnalysis` 快取裡的 `displacements`，那條路徑是活的。
 
-**要決定的是存在哪一層**（所以先立條目）:
+**已完成（2026-09-07），分兩半處理，因為兩者的正確答案相反**:
+
+**第一半 —— `narrative_weight` 補上落盤**。`classify_from_eep` 與 `refine_with_llm`
+在權重真的改變時呼叫 `self._kg.save()`。用 diff 而非無條件：classify 每次進敘事頁
+都可能被 `get_kernel_spine` 自動觸發，而「什麼都沒變」是常態，為了記錄「沒有變化」
+重寫整份圖譜 JSON 是有成本無產出。存檔失敗只記 log 不讓任務轉紅（與 ingestion 一致）。
+Neo4j 的 `save()` 是 no-op，所以雙後端都正確。
+
+**第二半 —— `Event.story_time` 與 `StoryTimeRef` 移除**。它有一個寫入者、零讀者：
+不進 API、不進前端，唯一再碰到它的是 Neo4j 序列化的來回。消費端讀的是
+`Event.chronological_rank`（TemporalPipeline）與 `TemporalAnalysis.displacements`。
+`analyze_temporal_order` 的第 5 步因此整段拿掉。OpenAPI 不受影響（domain model 未直接曝露）。
+
+**原本記的「要決定的是存在哪一層」**:
 - 在 `NarrativeService` 每次寫完就 `await self._kg.save()` —— 最簡單，但整份圖
   重寫一次 JSON，refine 逐事件迴圈裡呼叫會很貴（要改成迴圈結束後存一次）
 - 或由呼叫端（router 的背景任務）負責存，與 B-046 修 rerun 時採的
@@ -1853,7 +1866,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-101 | 前置頁排除數有兩套規則，而且不是同一條 | 🟢 低 | 待開始（2026-09-06 C 象徵走查；後端純位置、前端角色優先，目前 4 本書編號碰巧一致；權威數字 `excluded_front_matter_count` 沒有讀者） |
 | B-095 | 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護 | 🟢 低 | 待開始（2026-09-06 由 B-093 分出；id 與顯示名都有守衛了，順序沒有——漂了會讓階段序號錯位且畫面照常渲染） |
 | B-096 | classify 的洗白守衛只擋全損，不擋部分損失 | 🟡 中 | ✅ 已完成（2026-09-07；成因是把「沒有 EEP」讀成「判定為未分類」，改為保留無法重現的權重，`_would_wipe` 隨之移除） |
-| B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；三個方法都只改記憶體物件、從不 `kg.save()`。2026-09-07 補充：`story_time` 那一項零讀者，正確處置多半是移除而非補存） |
+| B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | ✅ 已完成（2026-09-07；`narrative_weight` 改為有變化才落盤，`story_time` / `StoryTimeRef` 因零讀者移除） |
 | B-098 | scan_dead_code 會把自己 docstring 裡的提及算成引用 | 🟢 低 | ✅ 已完成（2026-09-06；`_code_only()` 以 tokenize 濾掉註解與字串，backend 符號 1 → 3；順帶納入私有方法，該範圍 0 筆） |
 
 ### F 系列
@@ -1912,4 +1925,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-07（B-096 完成：classify 不再把「沒有 EEP」當成「判定為未分類」）
+**最後更新**: 2026-09-07（B-096 與 B-097 完成——classify 的判準與 KG 落盤）

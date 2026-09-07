@@ -842,8 +842,14 @@ class NarrativeService:
         2. Send events + hints to LLM → story-world chronological ranking.
         3. Compare text-order rank vs story-rank → displacement per event.
         4. Classify displacements as analepsis / prolepsis / linear.
-        5. Update event.story_time.relative_order in KGService in-memory store.
-        6. Persist TemporalAnalysis to cache.
+        5. Persist TemporalAnalysis to cache.
+
+        The ranks are **not** written back onto the events. They used to be, as
+        ``Event.story_time`` — a structure with one writer and no readers: it
+        never reached the API or the UI, and the only code that touched it again
+        was the Neo4j serialiser round-tripping it. What consumers actually read
+        for story order is ``Event.chronological_rank`` (TemporalPipeline) and
+        the ``displacements`` on this result. Removed in B-097.
         """
         # Attribution is set once here rather than beside each ``ainvoke``:
         # the contextvar carries it down, and this is the level that knows
@@ -893,18 +899,7 @@ class NarrativeService:
             text_sorted, language
         )
         if progress_callback:
-            progress_callback(65, "updating event story_time")
-
-        # Update events in KGService in-memory store
-        from storysphere.domain.events import StoryTimeRef  # noqa: PLC0415
-        for event in events:
-            rank = story_ranks.get(event.id)
-            if rank is not None:
-                event.story_time = StoryTimeRef(
-                    relative_order=rank,
-                    time_anchor=event.story_time_hint,
-                    confidence=0.7,
-                )
+            progress_callback(65, "computing temporal displacements")
 
         # Compute displacements
         displacements, analepsis_ids, prolepsis_ids = self._compute_displacements(

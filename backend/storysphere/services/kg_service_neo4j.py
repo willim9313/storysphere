@@ -628,9 +628,6 @@ def _relation_props(relation: Relation) -> dict[str, Any]:
 
 
 def _event_props(event: Event) -> dict[str, Any]:
-    story_time_json = None
-    if event.story_time is not None:
-        story_time_json = event.story_time.model_dump_json()
     return {
         "document_id": event.document_id,
         "title": event.title,
@@ -650,7 +647,6 @@ def _event_props(event: Event) -> dict[str, Any]:
         "emotional_valence": event.emotional_valence,
         "narrative_weight": event.narrative_weight,
         "narrative_weight_source": event.narrative_weight_source,
-        "story_time": story_time_json,
     }
 
 
@@ -688,15 +684,7 @@ def _node_to_entity(node: Any) -> Entity:
 
 
 def _node_to_event(node: Any) -> Event:
-    from storysphere.domain.events import StoryTimeRef  # noqa: PLC0415
-
     data = dict(node)
-    story_time = None
-    if data.get("story_time"):
-        try:
-            story_time = StoryTimeRef.model_validate_json(data["story_time"])
-        except Exception:
-            story_time = None
     return Event(
         id=data["id"],
         document_id=data.get("document_id"),
@@ -717,7 +705,6 @@ def _node_to_event(node: Any) -> Event:
         emotional_valence=data.get("emotional_valence"),
         narrative_weight=data.get("narrative_weight", "unclassified"),
         narrative_weight_source=data.get("narrative_weight_source"),
-        story_time=story_time,
     )
 
 

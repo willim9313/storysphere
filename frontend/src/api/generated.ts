@@ -1266,11 +1266,11 @@ export interface paths {
          *
          *     Returns 202 with ``task_id``. Poll ``GET /narrative/classify/{task_id}``.
          *
-         *     Returns 409 when no EEP cache entries remain while the KG still holds
-         *     classified events: the run has nothing to classify from, so it would reset
-         *     every kernel/satellite weight to "unclassified". The service refuses the
-         *     same case on its own, but a task that "succeeds" having done nothing is not
-         *     an answer — the caller gets told instead.
+         *     Returns 409 when not one event has an event-analysis (EEP) entry: the run
+         *     has nothing to classify from and would do nothing at all. Since B-096 that
+         *     is genuinely nothing — a run no longer resets weights it cannot reproduce —
+         *     but a task that "succeeds" having done nothing is not an answer, so the
+         *     caller is told instead of watching a no-op complete.
          */
         post: operations["classify_narrative_api_v1_narrative_classify_post"];
         delete?: never;
