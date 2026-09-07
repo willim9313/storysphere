@@ -28,13 +28,11 @@ from storysphere.api.routers import (
     books,
     character_metrics,
     chat_ws,
-    documents,
     entities,
     factions,
     kg_settings,
     metrics,
     narrative,
-    relations,
     search,
     settings_info,
     symbols,
@@ -346,8 +344,6 @@ def create_app() -> FastAPI:
     app.include_router(tasks.router, prefix=prefix)
     # Internal / tool-facing (kept for chat agent and direct queries)
     app.include_router(entities.router, prefix=prefix)
-    app.include_router(relations.router, prefix=prefix)
-    app.include_router(documents.router, prefix=prefix)
     app.include_router(search.router, prefix=prefix)
     app.include_router(analysis.router, prefix=prefix)
     app.include_router(narrative.router, prefix=prefix)

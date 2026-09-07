@@ -1207,6 +1207,43 @@ token 成本也遠高於其他工具，目前唯一的節流是工具 descriptio
 
 ---
 
+#### B-105 移除 10 個無呼叫端的 HTTP 端點 ✅ 已完成（2026-09-07）
+
+**背景**: `API_CONTRACT.md` 的「未納入契約的端點」表列了 10 個路由，標記為
+**「已判定移除，另案執行」**——判定早就做過，只是沒人執行。本次執行。
+
+| 檔案 | 移除 | 保留 |
+|---|---|---|
+| `documents.py` | 3 個（整檔刪除） | — |
+| `entities.py` | 5 個 | `GET /entities/:entityId`（#24a，象徵頁的 `fetchEntityById` 在用）|
+| `relations.py` | 2 個（整檔刪除） | — |
+
+**移除不影響 chat agent**：那些端點與 `tools/graph_tools/` 下的工具是同一組
+`KGService` 方法的兩個平行外殼，agent 走工具那條路直接呼叫 service，不經 HTTP。
+移除前逐一確認過：外部對 `get_entity_relations` / `get_relation_paths` 等名稱的引用
+全部指向**同名的 service 方法與 chat 工具**，不是 HTTP handler。
+
+**連同清掉的殘骸**（移除的直接後果，不是順手整理）:
+- response schema 7 個：`EntityListResponse`、`RelationResponse`、`TimelineEntry`、
+  `SubgraphResponse`、`RelationStatsResponse`、`DocumentResponse`、`ParagraphResponse`
+  ——移除後只剩「自己的定義 + `schemas/__init__.py` 轉出」，正是 B-104 記下的
+  「轉出而無下游消費」那類掃描盲點
+- `schemas/documents.py` 的 `ChapterResponse` 一併刪除：它與 `schemas/books.py` 的
+  **同名 class** 並存，活的是後者（`book_reader` 用它）。同名並存本身就是誤刪的陷阱，
+  所以刪前特地分辨了 4 處引用指向哪一個
+- 測試檔 `test_documents.py` / `test_relations.py` 刪除，`test_entities.py` 裁到只剩
+  留下的那個端點
+
+**`generated.ts` 少 673 行**（重產）。
+
+**契約那一節保留而非刪除**：`test_docs_drift.py::TestApiContractCoverage` 的兩條檢查
+都以它為錨。內容改為「目前沒有」，並記下日後若又出現「存在但不打算支援」的路由，
+列進來是一個刻意的動作。
+
+**觸發時機**: 已執行。
+
+---
+
 #### B-094 pytest 有一個間歇性失敗（約 1/8）
 
 **背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
@@ -1907,6 +1944,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-105 | 移除 10 個無呼叫端的 HTTP 端點 | 🟢 低 | ✅ 已完成（2026-09-07；`documents.py` / `relations.py` 整檔刪除、`entities.py` 只留 `GET /:entityId`，連同 7 個孤兒 schema 與兩個測試檔；generated.ts 少 673 行） |
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | ✅ 已完成（2026-09-07；雙後端新增 `relation_count_for()`，雙向關聯去重，實測 696 → 分書 203/69/259/55） |
 | B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | ✅ 已完成（2026-09-07；`paragraphs.keywords_json` + 寫入 2 處讀取 3 處；既有書需重跑 feature-extraction 才有值） |
@@ -1974,4 +2012,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-07（T2 四張票 B-095 / B-101 / B-102 / B-103 全數完成）
+**最後更新**: 2026-09-07（T2 四張票 B-095 / B-101 / B-102 / B-103 完成；B-105 移除 10 個「已判定移除」的端點）
