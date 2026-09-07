@@ -103,3 +103,54 @@ class TestSearchChaptersByKeyword:
 
         results = await service.search_chapters_by_keyword(doc.id, "nonexistent")
         assert results == []
+
+
+class TestParagraphKeywords:
+    """段落層 keywords 要能存回來 —— B-102。
+
+    這一段鏈原本只缺中間一節：feature-extraction 逐段抽 keywords、也寫進 Qdrant
+    payload，但 `paragraphs` 表沒有欄位，讀回來永遠是 None。閱讀頁的 chunk 關鍵字
+    標籤（`ChunkCard`）因此**恆不顯示**——條件式 `chunk.keywords.length > 0` 永遠假。
+
+    三條讀取路徑各測一次：整份文件、逐章段落、依實體查段落。少補任何一條，
+    畫面上就是某些地方有標籤、某些地方沒有。
+    """
+
+    @pytest.mark.asyncio
+    async def test_get_document_round_trips_them(self, service):
+        doc = _make_document()
+        doc.chapters[0].paragraphs[0].keywords = {"劍": 0.9, "雨": 0.4}
+        await service.save_document(doc)
+
+        back = await service.get_document(doc.id)
+        assert back.chapters[0].paragraphs[0].keywords == {"劍": 0.9, "雨": 0.4}
+
+    @pytest.mark.asyncio
+    async def test_get_paragraphs_round_trips_them(self, service):
+        doc = _make_document()
+        doc.chapters[0].paragraphs[0].keywords = {"劍": 0.9}
+        await service.save_document(doc)
+
+        paragraphs = await service.get_paragraphs(doc.id, 1)
+        assert paragraphs[0].keywords == {"劍": 0.9}
+
+    @pytest.mark.asyncio
+    async def test_a_paragraph_without_keywords_stays_none(self, service):
+        """空 dict 與「沒抽過」是兩回事，但兩者都不該變成 `{}` 之外的東西。"""
+        doc = _make_document()
+        await service.save_document(doc)
+
+        paragraphs = await service.get_paragraphs(doc.id, 1)
+        assert paragraphs[0].keywords is None
+
+    @pytest.mark.asyncio
+    async def test_replace_chapters_keeps_them(self, service):
+        """章節審閱會走 replace_chapters —— 那條路徑也要帶上 keywords。"""
+        doc = _make_document()
+        await service.save_document(doc)
+
+        doc.chapters[0].paragraphs[0].keywords = {"風": 0.5}
+        await service.replace_chapters(doc)
+
+        paragraphs = await service.get_paragraphs(doc.id, 1)
+        assert paragraphs[0].keywords == {"風": 0.5}

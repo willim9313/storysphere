@@ -584,6 +584,16 @@ class Neo4jKGService(KGServiceBase):
             record = await result.single()
         return int(record["cnt"]) if record else 0
 
+    async def relation_count_for(self, document_id: str) -> int:
+        async with self._driver.session() as session:
+            result = await session.run(
+                "MATCH ()-[r:RELATION {document_id: $doc}]->() "
+                "RETURN count(DISTINCT r.id) AS cnt",
+                doc=document_id,
+            )
+            record = await result.single()
+            return record["cnt"] if record else 0
+
     async def async_relation_count(self) -> int:
         async with self._driver.session() as session:
             result = await session.run("MATCH ()-[r:RELATION]->() RETURN count(r) AS cnt")

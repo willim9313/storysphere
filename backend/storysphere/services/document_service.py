@@ -86,6 +86,7 @@ class _ParagraphRow(_Base):
     embedding_json = Column(Text, nullable=True)  # JSON-encoded list[float]
     entities_json = Column(Text, nullable=True)  # JSON-encoded list[ParagraphEntity]
     title_span_json = Column(Text, nullable=True)  # JSON-encoded [start, end] or null
+    keywords_json = Column(Text, nullable=True)  # JSON-encoded dict[str, float]
     role = Column(String, nullable=False, server_default="body")
 
 
@@ -127,6 +128,9 @@ class DocumentService:
                 "ALTER TABLE paragraphs ADD COLUMN title_span_json TEXT",
                 "ALTER TABLE paragraphs ADD COLUMN role TEXT NOT NULL DEFAULT 'body'",
                 "ALTER TABLE chapters ADD COLUMN role TEXT NOT NULL DEFAULT 'body'",
+                # B-102: 段落層 keywords 一直產得出來也送進 Qdrant，只是沒有欄位存。
+                # 既有的書要重跑 feature-extraction 才會有值。
+                "ALTER TABLE paragraphs ADD COLUMN keywords_json TEXT",
             ]:
                 try:
                     await conn.execute(sa_text(stmt))
@@ -201,6 +205,11 @@ class DocumentService:
                                 embedding_json=(
                                     json.dumps(para.embedding) if para.embedding else None
                                 ),
+                                keywords_json=(
+                                    json.dumps(para.keywords, ensure_ascii=False)
+                                    if para.keywords
+                                    else None
+                                ),
                                 entities_json=(
                                     json.dumps(
                                         [e.model_dump() for e in para.entities],
@@ -271,6 +280,11 @@ class DocumentService:
                                 embedding_json=(
                                     json.dumps(para.embedding) if para.embedding else None
                                 ),
+                                keywords_json=(
+                                    json.dumps(para.keywords, ensure_ascii=False)
+                                    if para.keywords
+                                    else None
+                                ),
                                 entities_json=(
                                     json.dumps(
                                         [e.model_dump() for e in para.entities],
@@ -333,6 +347,9 @@ class DocumentService:
                             [ParagraphEntity(**e) for e in json.loads(pr.entities_json)]
                             if pr.entities_json
                             else None
+                        ),
+                        keywords=(
+                            json.loads(pr.keywords_json) if pr.keywords_json else None
                         ),
                         title_span=(
                             tuple(json.loads(pr.title_span_json))
@@ -501,6 +518,9 @@ class DocumentService:
                         if pr.entities_json
                         else None
                     ),
+                    keywords=(
+                        json.loads(pr.keywords_json) if pr.keywords_json else None
+                    ),
                 )
                 for pr in result.scalars().all()
             ]
@@ -543,6 +563,9 @@ class DocumentService:
                     json.loads(pr.embedding_json) if pr.embedding_json else None
                 ),
                 entities=[ParagraphEntity(**e) for e in entities_list],
+                keywords=(
+                    json.loads(pr.keywords_json) if pr.keywords_json else None
+                ),
             )
             matches.append((ch_id, pr.chapter_number, ch_title, paragraph))
         return matches

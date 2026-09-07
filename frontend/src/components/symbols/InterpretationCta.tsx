@@ -35,7 +35,8 @@ export function InterpretationCta({
   // Blocked shares the muted treatment with discouraged: neither is an action
   // the page is asking for. They differ in why, which the copy carries.
   const weak = advice === 'discouraged' || advice === 'blocked';
-  const front = signals.distribution.front;
+  // 與 InterpretationHero 同源：後端實際排除的筆數（B-101）。
+  const front = signals.item.excluded_front_matter_count ?? 0;
 
   let buttonTitle: string | undefined;
   // Not `blockedTitle` — that key is the card heading, via `${advice}Title`.

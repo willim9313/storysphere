@@ -70,6 +70,7 @@ function makeItem(
     book_id: 'book-1',
     term,
     imagery_type: type,
+    excluded_front_matter_count: 0,
     aliases: [],
     frequency,
     chapter_distribution: distribution,
@@ -368,6 +369,7 @@ describe('analyseSymbols', () => {
       book_id: 'book-1',
       term: 'x',
       imagery_type: 'other',
+      excluded_front_matter_count: 0,
       frequency: 2,
       co_occurring_event_count: 0,
     };

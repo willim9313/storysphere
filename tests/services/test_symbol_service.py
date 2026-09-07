@@ -651,6 +651,81 @@ class TestAssembleOverview:
             ("salt", 2)
         ]
 
+    async def test_front_matter_occurrences_are_reported_on_the_item(self, svc, cache):
+        """Overview 帶 `excluded_front_matter_count` —— B-101。
+
+        象徵頁**不呼叫 SEP 端點**（`api/symbols.ts` 有註明），所以它原本自己從
+        `chapter_roles` 推一份「前置頁筆數」出來。那是另一條規則，只是四本書的前置頁
+        剛好都編號 ≤ 0 才與後端一致。這個欄位讓畫面上那句「N 筆未列入詮釋證據」
+        直接讀**實際排除的那一方**算出來的數字。
+        """
+        sea, _ = await self._setup_sea_book(svc)
+        await svc.save_occurrence(
+            _make_occurrence(sea.id, paragraph_id="pf", chapter_number=-1, position=0)
+        )
+
+        overview = await self._overview(svc, cache)
+        item = next(i for i in overview.items if i.term == "sea")
+        assert item.excluded_front_matter_count == 1
+
+    async def test_the_afterword_is_not_excluded(self, svc, cache):
+        """判準是「早於第一個 body 章」，不是「不是 body 章」—— 後記要留著。
+
+        這是 B-074 立下的線，理由很硬：版權頁的「臨海市」是雜訊，但後記某一句可能是
+        全書最清楚的象徵陳述，兩者一起丟等於丟掉好的那一半。overview 這個計數必須
+        與 `assemble_sep` 實際排除的完全一致——它描述的就是那次排除。
+
+        用「不是 body」來算會把後記也算進去，於是畫面說「2 筆未列入」而 LLM 其實
+        看了其中一筆。
+        """
+        entity = _make_entity(
+            term="tide", imagery_type=ImageryType.NATURE, frequency=2,
+            chapter_distribution={-1: 1, 3: 1},
+        )
+        await svc.save_imagery(entity)
+        await svc.save_occurrence(
+            _make_occurrence(entity.id, paragraph_id="p-front", chapter_number=-1, position=0)
+        )
+        await svc.save_occurrence(
+            _make_occurrence(entity.id, paragraph_id="p-after", chapter_number=3, position=0)
+        )
+
+        doc_svc = self._doc_service([
+            self._chapter(-1, ChapterRole.preface, []),
+            self._chapter(1, ChapterRole.body, []),
+            self._chapter(3, ChapterRole.afterword, []),
+        ])
+        overview = await svc.assemble_overview(
+            book_id="book-1",
+            doc_service=doc_svc,
+            kg_service=self._kg_service([], []),
+            symbol_graph=self._graph([]),
+            cache=cache,
+        )
+
+        item = next(i for i in overview.items if i.term == "tide")
+        assert item.excluded_front_matter_count == 1  # 只有前置頁那筆，後記不算
+
+    async def test_a_book_with_no_body_chapter_excludes_nothing(self, svc, cache):
+        """沒有 body 章就沒有「正文之前」可言——與 `_first_body_chapter` 的約定一致。"""
+        entity = _make_entity(
+            term="dusk", imagery_type=ImageryType.NATURE, frequency=1,
+            chapter_distribution={1: 1},
+        )
+        await svc.save_imagery(entity)
+        await svc.save_occurrence(
+            _make_occurrence(entity.id, paragraph_id="p1", chapter_number=1, position=0)
+        )
+
+        overview = await svc.assemble_overview(
+            book_id="book-1",
+            doc_service=self._doc_service([self._chapter(1, ChapterRole.other, [])]),
+            kg_service=self._kg_service([], []),
+            symbol_graph=self._graph([]),
+            cache=cache,
+        )
+        assert next(i for i in overview.items if i.term == "dusk").excluded_front_matter_count == 0
+
     async def test_builds_the_graph_when_it_is_missing(self, svc, cache):
         await self._setup_sea_book(svc)
         doc_svc, kg_svc, _ = self._sea_book_deps()

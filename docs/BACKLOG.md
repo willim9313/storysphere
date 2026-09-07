@@ -899,7 +899,13 @@ EEP 只在有人明確分析那個事件時才產生——上傳流程完全不�
 **放後端 pytest 而非前端 vitest**: 同 B-061 / B-093 —— 五道閘門裡有 pytest，
 沒有 `npm run test`。
 
-**觸發時機**: 待排。B-093 的殘項，屬跨層契約防護的一部分。
+**已完成（2026-09-07）**: 三項守衛加在 `tests/config/test_archetype_taxonomy_drift.py`
+——順序逐位相等、phase 對照相等、兩個語系的 JSON 順序一致（順序是結構不是文案，
+兩份不一致的話「以哪一份為準」本身就會變成問題）。後端 JSON 確認有 `phase` 欄位，
+所以兩份常數都比對得到。實測目前一致，哨兵驗過兩種漂移各自會紅：調換兩個階段的順序、
+把某個階段的 phase 標錯。
+
+**觸發時機**: 已執行。
 
 ---
 
@@ -1021,13 +1027,20 @@ two rules would let the page say 5 while the backend dropped 4」——**擔心�
 後端把它算進前置頁（證據被丟掉），前端算成正文（不計入警告）。那時畫面會說
 「3 筆未列入」而實際丟掉 4 筆，正是 docstring 擔心的情境。
 
-**要決定的**（三條路，不該由走查代決）:
-1. **讓前端讀後端的數字** —— 把 `excluded_front_matter_count` 搬進 #15i overview
-   （象徵頁唯一會呼叫的端點）。最徹底，但 overview 是每本書一份、SEP 是每個象徵一份，
-   要確認語意搬得過去
-2. **統一規則** —— 後端也改成角色優先。要先確認 `other` 章節該算哪一側，那是產品判斷
-3. **接受兩份，加一道守衛** —— 但跨語言（Python / TypeScript）的規則等價很難用測試釘死，
-   B-093 的做法是解析 TS 檔比對常數，規則邏輯不是常數
+**已完成（2026-09-07）：讓前端讀後端的數字**（使用者決定）。
+
+`SymbolOverviewItem` 新增 `excluded_front_matter_count`，用**與 `assemble_sep` 完全
+相同的規則**計算（早於第一個 body 章）。語意搬得過去——SEP 是每個象徵一份，而
+overview 的 item 也是每個象徵一份，數字掛在 item 上剛好對應。前端兩個出口
+（`InterpretationHero` 的警告、`InterpretationCta` 的提示）都改讀它，不再自己從
+`chapter_roles` 推。
+
+**為什麼不能用 overview 現成的 `is_body`**：那是第三條規則。用「不是 body」來算會把
+**後記**也算進去，而 B-074 立的線是「前置頁排除、後記保留」——版權頁的「臨海市」是
+雜訊，但後記某一句可能是全書最清楚的象徵陳述。畫面會說「2 筆未列入」而 LLM 其實看了
+其中一筆。測試把這條釘住了（哨兵實測改用 `is_body` → 2 紅）。
+
+**三個測試**：前置頁出現被計入、後記不被計入、沒有 body 章時不排除任何筆數。
 
 **順帶記下的兩個小事**（不另立條目）:
 - **overview 的快取沒有版本閘門，SEP 有**。`SEP` 讀快取時比對 `assembled_by ==
@@ -1070,15 +1083,21 @@ two rules would let the page say 5 while the backend dropped 4」——**擔心�
 `VectorService.search_by_keyword` —— **正是 B-098 掃出來的零呼叫者**。
 也就是說段落層 keywords 目前在兩條路上都沒有讀者：SQLite 那條沒存，Qdrant 那條沒人查。
 
-**要決定的**:
-1. **存起來** —— `paragraphs` 加一個 `keywords_json` 欄位，寫入與讀取各補一處。
-   既有書要重跑 feature-extraction 才會有值（或從 Qdrant 回填）
-2. **拿掉這個功能** —— 從 `ChunkResponse`、`ChunkCard` 與契約 #5 移除 `keywords`。
-   若同時決定 `search_by_keyword` 也不接（B-098 留下的候選），那連 Qdrant payload
-   要不要繼續帶 `keywords` 都可以一起收
-3. 兩者之間還有一條：只在**搜尋**用途保留 Qdrant 那份，閱讀頁不顯示
+**已完成（2026-09-07）：存起來**（使用者決定）。`paragraphs` 加 `keywords_json`
+欄位，走 `init_db` 既有的 migration 慣例（`ALTER TABLE ... ADD COLUMN`，失敗即視為
+已存在）。**寫入兩處**（`save_document` / `replace_chapters`）、**讀取三處**
+（`get_document` / `get_paragraphs` / `get_paragraphs_by_entity`）各補一次——少補任何
+一條，畫面上就會是某些地方有標籤、某些地方沒有。四項測試把三條讀取路徑與
+「沒抽過仍是 None」都釘住，哨兵驗過拿掉任一讀取會紅。
 
-**觸發時機**: 待排。與 B-098 留下的 `search_by_keyword` 處置一起決定比較省事。
+**既有的四本書仍是空的**：keywords 的產生點在 feature-extraction，要重跑那一步才會
+有值。契約 #5 已註明這件事。
+
+**`search_by_keyword` 的處置仍未決**（B-098 留下的候選）：Qdrant payload 那份
+keywords 的唯一讀取者還是它，而它沒有呼叫端。這條與本題脫鉤了——SQLite 這側已經
+自給自足。
+
+**觸發時機**: 已執行。
 
 ---
 
@@ -1112,12 +1131,25 @@ meta={"scope": "global"},
 **雙後端介面**，NetworkX 與 Neo4j 兩邊都要實作，還要更新 B-048 建立的 27/27
 parity 測試。那是一次獨立的小開發，不是走查順手能做的。
 
-**要決定的**:
-- 改成分書計數（需新增 `KGService.relation_count_for(document_id)`，雙後端各一份）
-- 或維持全域但**讓畫面說出來**（前端讀 `meta.scope`，標示「全庫」）—— 便宜得多，
-  但一本新書仍會顯示 `complete`，第 2 個後果沒解決
+**已完成（2026-09-07）：改成分書計數**（使用者決定，取徹底的那條）。
 
-**觸發時機**: 待排。優先度低（顯示問題，不影響資料），但第 2 點與 B-089 同型。
+`KGServiceBase` 新增抽象方法 `relation_count_for(document_id)`，NetworkX 與 Neo4j
+各一份實作。**設計成 async 而非 property**：Neo4j 需要一次往返，NetworkX 從記憶體
+即答、只是立刻 await ——沿用該檔既有的 `async_*` 慣例，但這次放在 base 上，兩邊都得實作。
+
+**NetworkX 那份有一個坑**：關聯 id 是 edge 的 **key** 不是屬性，而雙向關聯存成兩條
+邊、反向那條的 key 是 `<id>_rev`。直接數邊會把一個關聯報成兩個。剝掉後綴再數 distinct
+才是「這本書有幾個關聯」。實測：全域 696 條邊 → 分書 203 / 69 / 259 / 55（合計 586），
+差的 110 正好是 220 條 bidirectional 邊的一半。
+
+`meta={"scope": "global"}` 隨之移除——它是為了標註那個全域計數而存在的，而前端從來
+沒讀過它。
+
+**測試**：三項——只數指定的書、沒有關聯的書是 0（**這正是舊版會誤報 complete 的
+情境**）、雙向關聯只算一次。`test_unraveling.py` 的 mock 也從舊的全域 property 改為
+新方法。
+
+**觸發時機**: 已執行。
 
 ---
 
@@ -1876,12 +1908,12 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
-| B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | 待開始（2026-09-07 unraveling 走查；per-book 頁面顯示 696 條全庫 edge，且新書會直接顯示 complete——B-089 同型；`meta.scope` 前端不讀） |
-| B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | 待開始（2026-09-06 閱讀頁走查；`paragraphs` 表無 keywords 欄位，閱讀頁 chunk 關鍵字標籤恆不顯示；與 B-098 的 `search_by_keyword` 綁一起決定） |
+| B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | ✅ 已完成（2026-09-07；雙後端新增 `relation_count_for()`，雙向關聯去重，實測 696 → 分書 203/69/259/55） |
+| B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | ✅ 已完成（2026-09-07；`paragraphs.keywords_json` + 寫入 2 處讀取 3 處；既有書需重跑 feature-extraction 才有值） |
 | B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟢 低 | 暫不實作（2026-09-07 收攏：一般使用者不會備多家 LLM key，前提不成立；`get_fallback` 保留，理由換成有效的那個。技術前提已查明留在條目裡） |
 | B-100 | token 歸屬修好之後沒有任何資料驗證過 | 🟢 低 | 待開始（2026-09-06 core/ 走查；DB 最後一筆 8/19、最後一次修正 8/20，98.3% 未歸屬是歷史數字） |
-| B-101 | 前置頁排除數有兩套規則，而且不是同一條 | 🟢 低 | 待開始（2026-09-06 C 象徵走查；後端純位置、前端角色優先，目前 4 本書編號碰巧一致；權威數字 `excluded_front_matter_count` 沒有讀者） |
-| B-095 | 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護 | 🟢 低 | 待開始（2026-09-06 由 B-093 分出；id 與顯示名都有守衛了，順序沒有——漂了會讓階段序號錯位且畫面照常渲染） |
+| B-101 | 前置頁排除數有兩套規則，而且不是同一條 | 🟢 低 | ✅ 已完成（2026-09-07；數字搬進 #15i overview item，前端兩個出口改讀後端值，規則收斂為一條） |
+| B-095 | 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護 | 🟢 低 | ✅ 已完成（2026-09-07；順序、phase、兩語系一致三項守衛，哨兵各驗過會紅） |
 | B-096 | classify 的洗白守衛只擋全損，不擋部分損失 | 🟡 中 | ✅ 已完成（2026-09-07；成因是把「沒有 EEP」讀成「判定為未分類」，改為保留無法重現的權重，`_would_wipe` 隨之移除） |
 | B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | ✅ 已完成（2026-09-07；`narrative_weight` 改為有變化才落盤，`story_time` / `StoryTimeRef` 因零讀者移除） |
 | B-098 | scan_dead_code 會把自己 docstring 裡的提及算成引用 | 🟢 低 | ✅ 已完成（2026-09-06；`_code_only()` 以 tokenize 濾掉註解與字串，backend 符號 1 → 3；順帶納入私有方法，該範圍 0 筆） |
@@ -1942,4 +1974,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-07（B-096 / B-097 完成；B-099 收攏為暫不實作）
+**最後更新**: 2026-09-07（T2 四張票 B-095 / B-101 / B-102 / B-103 全數完成）

@@ -134,7 +134,7 @@ async def get_unraveling(
         events=events,
         temporal_rels=temporal_rels,
         imagery=imagery,
-        relation_count_global=kg_service.relation_count,
+        relation_count=await kg_service.relation_count_for(book_id),
         cep_count=cep_count,
         eep_count=eep_count,
         temporal_analysis_present=temporal_analysis_present,

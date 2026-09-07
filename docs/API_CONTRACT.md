@@ -268,7 +268,7 @@ type EntityType =
 
 **說明**：一次拉取整個章節所有 chunks，TanStack Query key：`['books', bookId, 'chapters', chapterId, 'chunks']`。
 
-> **`keywords` 目前恆為空陣列**（2026-09-06 查明）。段落層 keywords 在 feature-extraction 階段確實產生、也寫進 Qdrant payload，但 `paragraphs` 表沒有對應欄位，讀回來時 `Paragraph.keywords` 一律是 `None`。章節層的 keywords（#3）不受影響。見 BACKLOG B-102。
+> **`keywords` 對既有的書仍是空陣列**（2026-09-07）。段落層 keywords 在 feature-extraction 階段一直有產生、也寫進 Qdrant payload，但 `paragraphs` 表原本沒有欄位可存，讀回來永遠是 `None`（B-102）。欄位已補上（`keywords_json`，`init_db` 的 migration 自動加），**但既有的書要重跑 feature-extraction 才會有值**——那一步是 keywords 的產生點。章節層的 keywords（#3）不受影響。
 
 **UI 使用頁面**：閱讀頁欄 3
 
@@ -1631,6 +1631,8 @@ interface InterpretationBlockStatus {
 - 結構性彙整快取於 `symbol_overview:{book_id}`；`interpretation` 每次請求即時疊上
   （HITL 審核會獨立變動，混進同一份快取會回傳過期的審核狀態）。
 
+> **`items[].excluded_front_matter_count`**：該象徵有幾筆出現被排除在 LLM 證據之外（早於第一個 body 章；**後記保留**，見 #15d 的 B-074 說明）。與 #15d 的同名欄位同一條規則、同一個數字——象徵頁不呼叫 #15d，所以這裡帶一份（B-101）。
+
 **UI 使用頁面**：象徵意象頁左欄清單、排序、全書意象地圖
 
 ---
@@ -1726,7 +1728,7 @@ interface SEP {
   是版權頁與書名頁，正好佔據 `[1]`–`[5]`。
 - `frequency` 與 `chapter_distribution` **不受影響**，仍是全書計數 —— 被過濾的只有送進
   LLM 的證據。
-- **`excluded_front_matter_count` 目前沒有讀者。** 原本記載「前端用它說明可用比例」，但象徵頁不呼叫本端點，畫面上那句「N 筆出現在前置頁未列入證據」是前端自己從 `chapter_roles` 推出來的——**兩套規則，且不相同**（後端純位置：早於第一個 body 章；前端角色優先、`other` 才落回位置）。目前 4 本書的前置頁都編號 ≤ 0 所以兩者相等，那是編號碰巧而非規則保證。見 BACKLOG B-101。
+- **`excluded_front_matter_count` 的讀者在 #15i，不在這裡**（2026-09-07，B-101）。象徵頁不呼叫本端點，所以同一個數字也放進了 `SymbolOverviewItem`，用**同一條規則**（早於第一個 body 章）計算。畫面上那句「N 筆出現在前置頁未列入證據」現在讀的是後端算的值；先前它是前端自己從 `chapter_roles` 推的，那是另一條規則，只因四本書的前置頁都編號 ≤ 0 才恰好相等。
 - 若整份文件沒有任何 `body` 章節，則不排除任何筆數（沒有「正文之前」可言）。
 - **`assembled_by` 是版本閘門**：讀快取時比對，不符即視為 miss 重新組裝。v1 的快取
   帶著前置頁證據，直接沿用等於對所有既有書繼續餵版權頁文字。**不需清除腳本。**

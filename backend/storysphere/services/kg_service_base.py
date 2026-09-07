@@ -210,7 +210,18 @@ class KGServiceBase(ABC):
     @property
     @abstractmethod
     def relation_count(self) -> int:
-        """Number of relation edges."""
+        """Number of relation edges **across every book in the graph**."""
+
+    @abstractmethod
+    async def relation_count_for(self, document_id: str) -> int:
+        """Number of relation edges belonging to one book.
+
+        Async rather than a property because Neo4j needs a round trip; the
+        NetworkX side answers from memory and just awaits immediately. The
+        book-scoped count is what a per-book view wants — ``relation_count``
+        answers a different question and using it per book reports every other
+        book's edges as this one's (B-103).
+        """
 
     @property
     @abstractmethod

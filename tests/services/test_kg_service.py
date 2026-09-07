@@ -147,6 +147,52 @@ class TestKGServiceRelations:
 # ── Event operations ─────────────────────────────────────────────────────────
 
 
+class TestRelationCountPerBook:
+    """`relation_count_for` 只數這本書的關聯 —— B-103。
+
+    建構概覽是 per-book 頁面，先前那個節點吃的是全域的 `relation_count`
+    property（`self._graph.number_of_edges()`），於是每本書都顯示整個圖譜的邊數
+    ——實測 696 條分屬四本書，四本都顯示 696。更麻煩的是一本剛上傳、還沒跑 KG
+    抽取的書會直接顯示 `complete`，與 B-089 修掉的是同一個形狀。
+    """
+
+    async def _rel(self, service, doc_id: str, *, bidirectional: bool = False):
+        a, b = _make_entity("A"), _make_entity("B")
+        a.document_id = b.document_id = doc_id
+        await service.add_entity(a)
+        await service.add_entity(b)
+        rel = Relation(
+            source_id=a.id,
+            target_id=b.id,
+            relation_type=RelationType.FRIENDSHIP,
+            chapters=[1],
+            document_id=doc_id,
+            is_bidirectional=bidirectional,
+        )
+        await service.add_relation(rel)
+
+    @pytest.mark.asyncio
+    async def test_counts_only_the_requested_book(self, service):
+        await self._rel(service, "book-1")
+        await self._rel(service, "book-2")
+        await self._rel(service, "book-2")
+
+        assert await service.relation_count_for("book-1") == 1
+        assert await service.relation_count_for("book-2") == 2
+
+    @pytest.mark.asyncio
+    async def test_a_book_with_no_relations_counts_zero(self, service):
+        """新上傳的書必須是 0——這正是舊版會誤報 complete 的情境。"""
+        await self._rel(service, "book-1")
+        assert await service.relation_count_for("book-2") == 0
+
+    @pytest.mark.asyncio
+    async def test_a_bidirectional_relation_counts_once(self, service):
+        """雙向關聯在圖上是兩條邊（反向那條的 key 帶 `_rev`），但它是一個關聯。"""
+        await self._rel(service, "book-1", bidirectional=True)
+        assert await service.relation_count_for("book-1") == 1
+
+
 class TestKGServiceEvents:
     @pytest.mark.asyncio
     async def test_add_and_get_event(self, service):
