@@ -147,8 +147,10 @@ class NarrativeService:
         - ``classified_now`` — events currently carrying kernel/satellite in the
           KG, i.e. what a run stands to overwrite.
 
-        Callers use this to decide whether a run would add information or
-        destroy it. See ``_would_wipe``.
+        Callers use this to decide whether a run is worth starting: since
+        B-096 a classify run cannot destroy classifications, but one with no
+        EEP hits at all still has nothing to say, and a task that "succeeds"
+        having done nothing is not an answer.
         """
         from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
 
@@ -160,21 +162,6 @@ class NarrativeService:
         classified = sum(1 for e in events if e.narrative_weight in ("kernel", "satellite"))
         return hits, classified, len(events)
 
-    async def _would_wipe(self, document_id: str) -> bool:
-        """True when a classify run would only destroy existing classifications.
-
-        The EEP cache is the sole input: an event without one is written back as
-        "unclassified". So if nothing is cached any more while the KG still holds
-        kernel/satellite weights, running would replace real classifications with
-        "unclassified" — the exact way two books in the library lost theirs.
-
-        A book that has nothing classified yet is not protected: overwriting
-        "unclassified" with "unclassified" loses nothing, and guarding it would
-        block the normal first run.
-        """
-        hits, classified, _ = await self.eep_coverage(document_id)
-        return hits == 0 and classified > 0
-
     async def classify_from_eep(
         self,
         document_id: str,
@@ -184,17 +171,25 @@ class NarrativeService:
 
         Events with EEP event_importance=KERNEL  → narrative_weight="kernel"
         Events with EEP event_importance=SATELLITE → narrative_weight="satellite"
-        Events without an EEP result              → narrative_weight="unclassified"
+        Events with no EEP entry                  → **left alone** if they
+        already carry a weight, otherwise "unclassified"
 
         Side-effect: updates Event.narrative_weight and narrative_weight_source
         in KGService's in-memory store.
 
-        Aborts without writing anything when the run would only destroy existing
-        classifications (see ``_would_wipe``) and returns the cached structure
-        unchanged. The abort is a backstop for the callers that reach this method
-        automatically — ``get_kernel_spine`` runs on every narrative page load,
-        so raising here would break the page rather than protect it. Callers that
-        can report to a user should check ``eep_coverage`` first.
+        **Absence of an EEP entry is not evidence of anything** (B-096). EEP is
+        written only when someone analyses that specific event, so most events
+        never have one — 12 of 62 in one library book, 0 in two others. Treating
+        that absence as "this event is unclassified" is what let a classify run
+        silently undo ``refine_with_llm``, which assigns weights from its own LLM
+        call and which the narrative page feeds *precisely* the unclassified ids.
+        Two buttons sitting side by side in the same panel pulled in opposite
+        directions on the same events.
+
+        This method is reached automatically as well as on request —
+        ``get_kernel_spine`` runs it on every narrative page load when nothing is
+        classified yet — so it must be safe to run at any coverage. It now is:
+        a run with no EEP entries at all writes nothing but the cache entry.
 
         Returns:
             NarrativeStructure with classified event ID lists, persisted to cache.
@@ -205,18 +200,6 @@ class NarrativeService:
         if not events:
             logger.warning("classify_from_eep: no events for document=%s", document_id)
             return NarrativeStructure(document_id=document_id)
-
-        if await self._would_wipe(document_id):
-            logger.warning(
-                "classify_from_eep: refusing to run for document=%s — no EEP cache "
-                "entries remain, so every currently classified event would be reset "
-                "to unclassified",
-                document_id,
-            )
-            cached = await self._cache.get_as(
-                f"{_CACHE_KEY_PREFIX}:{document_id}", NarrativeStructure
-            )
-            return cached if cached is not None else NarrativeStructure(document_id=document_id)
 
         kernel_ids: list[str] = []
         satellite_ids: list[str] = []
@@ -239,6 +222,19 @@ class NarrativeService:
                 except Exception:
                     unclassified_ids.append(event.id)
                     event.narrative_weight = "unclassified"
+            elif event.narrative_weight in ("kernel", "satellite"):
+                # Has a weight from somewhere else — keep it. An event without an
+                # EEP entry is the normal case, not evidence that it is
+                # unclassified: EEP is written only when someone analyses that
+                # specific event, and coverage runs low (12 of 62 in one library
+                # book). Overwriting here is what let a classify run undo
+                # `refine_with_llm`, which assigns weights from its own LLM call
+                # and is fed *precisely* the unclassified ids by the narrative
+                # page. The two features pulled in opposite directions on the
+                # same events (B-096).
+                (kernel_ids if event.narrative_weight == "kernel" else satellite_ids).append(
+                    event.id
+                )
             else:
                 unclassified_ids.append(event.id)
                 event.narrative_weight = "unclassified"
