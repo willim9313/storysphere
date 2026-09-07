@@ -205,6 +205,7 @@ class NarrativeService:
         satellite_ids: list[str] = []
         unclassified_ids: list[str] = []
         total = len(events)
+        before = [(e.narrative_weight, e.narrative_weight_source) for e in events]
 
         for idx, event in enumerate(events):
             result = await self._cache.get_as(
@@ -248,6 +249,7 @@ class NarrativeService:
             "classify_from_eep: document=%s kernel=%d satellite=%d unclassified=%d",
             document_id, len(kernel_ids), len(satellite_ids), len(unclassified_ids),
         )
+        await self._persist_weights(events, before, "classify_from_eep", document_id)
 
         # Preserve hero_journey_stages and review_status that may already exist
         cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
@@ -370,6 +372,7 @@ class NarrativeService:
             )
 
         total = len(targets)
+        before = [(e.narrative_weight, e.narrative_weight_source) for e in targets]
         for idx, event in enumerate(targets):
             prev_event, next_event = self._get_adjacent(event.id, sorted_ids, event_by_id)
             chapter_summary = await self._doc.get_chapter_summary(document_id, event.chapter)
@@ -396,6 +399,8 @@ class NarrativeService:
                 logger.exception("refine_with_llm: failed for event=%s, keeping heuristic", event.id)
             if progress_callback:
                 progress_callback(int((idx + 1) / total * 100) if total else 0, f"refining event {idx + 1}/{total}")
+
+        await self._persist_weights(targets, before, "refine_with_llm", document_id)
 
         # Rebuild and persist NarrativeStructure
         refreshed = await self._kg.get_events(document_id=document_id)
@@ -425,6 +430,46 @@ class NarrativeService:
         )
         await self._cache.set(cache_key, structure.model_dump())
         return structure
+
+    async def _persist_weights(
+        self,
+        events: list[Event],
+        before: list[tuple[str | None, str | None]],
+        caller: str,
+        document_id: str,
+    ) -> None:
+        """Write the KG to disk when a classification actually changed something.
+
+        ``Event.narrative_weight`` lives in the KG, and every consumer treats it
+        as durable: ``get_kernel_spine`` reads it on each page load,
+        ``unraveling_manifest`` counts it, and ``_rebuild_structure_from_kg``
+        rebuilds a lost NarrativeStructure *from* it — that last one is only
+        honest if the weights outlive the process. Until B-097 nothing here
+        called ``save()``, so they survived only when some later, unrelated
+        caller happened to flush the graph (epistemic state, link prediction,
+        a temporal run). On disk that showed as 41 kernels, 0 satellites and no
+        `story_time` at all.
+
+        Guarded by an actual diff rather than saved unconditionally: a classify
+        run that changes nothing is the common case — ``get_kernel_spine``
+        triggers one on every narrative page load of an unclassified book — and
+        rewriting the whole graph JSON to record no change is a cost with no
+        product.
+
+        Neo4j's ``save()`` is a no-op (it persists on write), so this is correct
+        for both backends rather than only the JSON one.
+        """
+        after = [(e.narrative_weight, e.narrative_weight_source) for e in events]
+        if after == before:
+            logger.debug("%s: no weight changed for document=%s, not saving", caller, document_id)
+            return
+        try:
+            await self._kg.save()
+        except Exception:
+            # A lost save is recoverable by re-running; failing the task the user
+            # just watched succeed is not what they asked for (same call as
+            # ingestion's save-failure handling).
+            logger.exception("%s: failed to persist KG for document=%s", caller, document_id)
 
     @staticmethod
     def _get_adjacent(

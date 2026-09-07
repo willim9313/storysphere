@@ -205,6 +205,70 @@ def _event(eid: str, weight: str) -> Event:
     )
 
 
+def _eep(importance: str):
+    """最小的 EEP 替身：classify 只讀 `result.eep.event_importance.name`。"""
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        eep=SimpleNamespace(event_importance=SimpleNamespace(name=importance))
+    )
+
+
+class TestWeightsArePersisted:
+    """分類結果要落盤 —— B-097。
+
+    `Event.narrative_weight` 存在 KG 裡，而每個消費端都當它是耐久的：
+    `get_kernel_spine` 每次進頁面讀它、`unraveling_manifest` 數它、
+    `_rebuild_structure_from_kg` 更是**從它重建**遺失的 NarrativeStructure ——
+    最後那個只有在權重活得比 process 久的時候才誠實。
+
+    在此之前 NarrativeService 一次 `save()` 都沒有：權重只在別人（epistemic、
+    link prediction、時序管線）剛好刷過圖譜時才順便落盤。磁碟上因此是
+    41 個 kernel、0 個 satellite。
+    """
+
+    def _service(self, events, cached_hits):
+        from storysphere.services.narrative_service import NarrativeService
+
+        kg = AsyncMock()
+        kg.get_events.return_value = events
+        cache = AsyncMock()
+
+        def _get_as(key, _model):
+            if key.startswith("event:"):
+                return _eep("KERNEL") if key.split(":")[-1] in cached_hits else None
+            return None
+
+        cache.get_as.side_effect = _get_as
+        cache.get.side_effect = lambda _key: None
+        return NarrativeService(kg, AsyncMock(), cache), kg
+
+    @pytest.mark.asyncio
+    async def test_saves_when_a_weight_changed(self):
+        events = [_event("a", "unclassified")]
+        svc, kg = self._service(events, cached_hits={"a"})
+        await svc.classify_from_eep("book-1")
+        assert events[0].narrative_weight == "kernel"
+        kg.save.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_does_not_save_when_nothing_changed(self):
+        """每次進敘事頁都會觸發一次 classify —— 沒有變化就不該重寫整份圖譜。"""
+        events = [_event("a", "unclassified")]
+        svc, kg = self._service(events, cached_hits=set())
+        await svc.classify_from_eep("book-1")
+        kg.save.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_a_failed_save_does_not_fail_the_run(self):
+        """存檔失敗可以靠重跑救回；讓使用者剛看著成功的任務轉紅不行。"""
+        events = [_event("a", "unclassified")]
+        svc, kg = self._service(events, cached_hits={"a"})
+        kg.save.side_effect = OSError("disk full")
+        structure = await svc.classify_from_eep("book-1")
+        assert structure.kernel_event_ids == ["a"]
+
+
 class TestClassifyKeepsWeightsItCannotReproduce:
     """A classify run rewrites what EEP covers and leaves the rest alone — B-096.
 
