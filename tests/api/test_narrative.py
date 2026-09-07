@@ -205,8 +205,79 @@ def _event(eid: str, weight: str) -> Event:
     )
 
 
-class TestClassifyWouldWipe:
-    """The service refuses a run whose only effect would be losing classifications."""
+def _eep(importance: str):
+    """最小的 EEP 替身：classify 只讀 `result.eep.event_importance.name`。"""
+    from types import SimpleNamespace
+
+    return SimpleNamespace(
+        eep=SimpleNamespace(event_importance=SimpleNamespace(name=importance))
+    )
+
+
+class TestWeightsArePersisted:
+    """分類結果要落盤 —— B-097。
+
+    `Event.narrative_weight` 存在 KG 裡，而每個消費端都當它是耐久的：
+    `get_kernel_spine` 每次進頁面讀它、`unraveling_manifest` 數它、
+    `_rebuild_structure_from_kg` 更是**從它重建**遺失的 NarrativeStructure ——
+    最後那個只有在權重活得比 process 久的時候才誠實。
+
+    在此之前 NarrativeService 一次 `save()` 都沒有：權重只在別人（epistemic、
+    link prediction、時序管線）剛好刷過圖譜時才順便落盤。磁碟上因此是
+    41 個 kernel、0 個 satellite。
+    """
+
+    def _service(self, events, cached_hits):
+        from storysphere.services.narrative_service import NarrativeService
+
+        kg = AsyncMock()
+        kg.get_events.return_value = events
+        cache = AsyncMock()
+
+        def _get_as(key, _model):
+            if key.startswith("event:"):
+                return _eep("KERNEL") if key.split(":")[-1] in cached_hits else None
+            return None
+
+        cache.get_as.side_effect = _get_as
+        cache.get.side_effect = lambda _key: None
+        return NarrativeService(kg, AsyncMock(), cache), kg
+
+    @pytest.mark.asyncio
+    async def test_saves_when_a_weight_changed(self):
+        events = [_event("a", "unclassified")]
+        svc, kg = self._service(events, cached_hits={"a"})
+        await svc.classify_from_eep("book-1")
+        assert events[0].narrative_weight == "kernel"
+        kg.save.assert_awaited_once()
+
+    @pytest.mark.asyncio
+    async def test_does_not_save_when_nothing_changed(self):
+        """每次進敘事頁都會觸發一次 classify —— 沒有變化就不該重寫整份圖譜。"""
+        events = [_event("a", "unclassified")]
+        svc, kg = self._service(events, cached_hits=set())
+        await svc.classify_from_eep("book-1")
+        kg.save.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_a_failed_save_does_not_fail_the_run(self):
+        """存檔失敗可以靠重跑救回；讓使用者剛看著成功的任務轉紅不行。"""
+        events = [_event("a", "unclassified")]
+        svc, kg = self._service(events, cached_hits={"a"})
+        kg.save.side_effect = OSError("disk full")
+        structure = await svc.classify_from_eep("book-1")
+        assert structure.kernel_event_ids == ["a"]
+
+
+class TestClassifyKeepsWeightsItCannotReproduce:
+    """A classify run rewrites what EEP covers and leaves the rest alone — B-096.
+
+    An event without an EEP entry is the **normal** case: EEP is written only
+    when someone analyses that specific event (12 of 62 in one library book, 0
+    in two others). Reading that absence as "unclassified" is what let a
+    classify run undo `refine_with_llm`, which writes weights from its own LLM
+    call and which the narrative page feeds precisely the unclassified ids.
+    """
 
     def _service(self, events, cached_hits):
         from storysphere.services.narrative_service import NarrativeService
@@ -233,21 +304,30 @@ class TestClassifyWouldWipe:
         assert await svc.eep_coverage("book-1") == (1, 2, 3)
 
     @pytest.mark.asyncio
-    async def test_aborts_without_writing_when_cache_is_gone(self):
+    async def test_weights_survive_when_every_eep_entry_is_gone(self):
         events = [_event("a", "kernel"), _event("b", "satellite")]
-        svc, cache = self._service(events, cached_hits=set())
+        svc, _ = self._service(events, cached_hits=set())
         await svc.classify_from_eep("book-1")
-        # Nothing written, and the KG weights are left as they were.
-        cache.set.assert_not_awaited()
+        # The weights survive: nothing about a missing EEP entry contradicts them.
         assert [e.narrative_weight for e in events] == ["kernel", "satellite"]
 
     @pytest.mark.asyncio
-    async def test_runs_on_a_book_that_has_nothing_classified_yet(self):
-        # Overwriting "unclassified" with "unclassified" loses nothing, so a
-        # first run on a fresh book must not be blocked.
+    async def test_kept_weights_still_land_in_the_structure(self):
+        """Kept ≠ forgotten: the cached structure must still list them."""
+        events = [_event("a", "kernel"), _event("b", "satellite")]
+        svc, cache = self._service(events, cached_hits=set())
+        structure = await svc.classify_from_eep("book-1")
+        assert structure.kernel_event_ids == ["a"]
+        assert structure.satellite_event_ids == ["b"]
+        assert structure.unclassified_event_ids == []
+        cache.set.assert_awaited()
+
+    @pytest.mark.asyncio
+    async def test_events_with_no_weight_and_no_eep_stay_unclassified(self):
         events = [_event("a", "unclassified"), _event("b", "unclassified")]
         svc, cache = self._service(events, cached_hits=set())
-        await svc.classify_from_eep("book-1")
+        structure = await svc.classify_from_eep("book-1")
+        assert structure.unclassified_event_ids == ["a", "b"]
         cache.set.assert_awaited()
 
     @pytest.mark.asyncio
@@ -259,7 +339,7 @@ class TestClassifyWouldWipe:
 
 
 class TestClassifyEndpointGuard:
-    def test_409_when_a_run_would_wipe_classifications(self, narrative_client):
+    def test_409_when_the_run_would_change_nothing(self, narrative_client):
         narrative_client.mock_narrative.eep_coverage.return_value = (0, 38, 47)
         resp = narrative_client.post(
             "/api/v1/narrative/classify", json={"document_id": "book-1"}
@@ -267,12 +347,20 @@ class TestClassifyEndpointGuard:
         assert resp.status_code == 409
         assert "38" in resp.json()["detail"]
 
-    def test_202_when_nothing_is_classified_yet(self, narrative_client):
+    def test_409_when_no_event_has_an_eep_entry_at_all(self, narrative_client):
+        """A fresh book gets told to run event analysis, not a no-op task.
+
+        This used to return 202: the guard only fired when there were weights to
+        lose. Since B-096 a run cannot lose weights, so the question the endpoint
+        answers changed from "would this destroy anything?" to "would this do
+        anything?" — and with zero EEP entries the answer is no.
+        """
         narrative_client.mock_narrative.eep_coverage.return_value = (0, 0, 47)
         resp = narrative_client.post(
             "/api/v1/narrative/classify", json={"document_id": "book-1"}
         )
-        assert resp.status_code == 202
+        assert resp.status_code == 409
+        assert "47" in resp.json()["detail"]
 
     def test_202_when_the_cache_still_has_entries(self, narrative_client):
         narrative_client.mock_narrative.eep_coverage.return_value = (12, 38, 47)

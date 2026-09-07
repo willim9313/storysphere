@@ -829,7 +829,37 @@ kernel/satellite 權重洗成 `unclassified`」這件事已經有守衛了——
 **諷刺之處**: `eep_coverage()` 自己的 docstring 寫的是「How much of a classification run
 would survive」——需要的數字早就算出來了，門檻設在 0。
 
-**要決定的是門檻不是程式**（所以先立條目而非直接改）:
+**已完成（2026-09-07）—— 但修的不是門檻，是判準**:
+
+走查成因時發現這不是「守衛不夠嚴」的問題。`classify_from_eep` 把**沒有 EEP 當成
+「判定為未分類」**，也就是把「沒有證據」讀成「證據顯示沒有」。而沒有 EEP 是**常態**：
+
+| 書 | 事件 | 有 EEP |
+|---|---|---|
+| 大唐雙龍傳 | 62 | 12 |
+| 名字的潮汐 | 47 | 47 |
+| 其餘兩本 | 126 | **0** |
+
+EEP 只在有人明確分析那個事件時才產生——上傳流程完全不產生（ingestion 五個步驟裡沒有
+事件分析）。批次「一鍵生成全部 EEP」撞到 rate limit 會 `TaskAborted`，已完成的保留、
+其餘不補；非配額的失敗則 `failed += 1` 繼續，**且不留清單**（與 B-072 同形）。
+孤兒鍵實測 0 筆，所以與重跑 KG 造成的 id 漂移無關。
+
+**兩個功能對「權重從哪來」的認知不一致**：`classify` 認為只有 EEP 算數，
+`refine_with_llm` 用自己的 LLM 判斷寫回權重——而敘事頁把 `unclassified_event_ids`
+**原封不動餵給 refine**（`NarrativePage.tsx:320`）。兩顆按鈕並排在同一個
+`UnclassifiedBlock` 裡，對同一批事件的方向相反。按錯順序就把前一次的產出丟掉。
+
+**修法**：沒有 EEP 但已帶 kernel/satellite 權重的事件**保留原權重**，只有兩者皆無的
+才是 unclassified。`_would_wipe()` 隨之刪除——它存在的理由是防止全量覆寫，而全量
+覆寫沒了。端點的 409 改為 `hits == 0`，語意從「這會毀掉東西」變成「這什麼都不會做」。
+
+**行為改變一處**：EEP 全空的書按 classify 從 202（跑一個什麼都不做的 task）改為 409
+（告訴使用者先跑事件分析）。自動觸發路徑不受影響——`get_kernel_spine` 走的是服務層。
+
+**未做**：UI 那邊 classify 與 refine 並排且沒有說明彼此會互相覆蓋，屬文案／版面決定。
+
+**原本記的「要決定的是門檻不是程式」**:
 - 擋在哪？`hits < classified` 就擋（任何淨損失都擋）過於嚴格，正常補跑會被誤擋——
   新事件本來就還沒有 EEP
 - 比較可能的形狀是：**只重寫有 EEP 的事件，沒有 EEP 的保留原權重**，讓 classify 從
@@ -896,12 +926,29 @@ anthropic，排除 primary），而 `get_with_local_fallback` 的 docstring 明�
 **換一家 provider**，不是重試同一家（`RETRYABLE` 刻意不含 `LLMResponseBlocked`，
 理由正是「同一家會再拒一次」）。local 那條路在沒有本地模型時等於沒有。
 
-**要決定的**:
-- 接上去：讓 `get_with_local_fallback`（或一個新的入口）在 local 不可用時改鏈第二家雲端
-- 還是維持現狀、把 `get_fallback` 刪掉並明白記下「本專案不做跨雲 fallback」
+**決定：暫不接，但理由換掉了**（2026-09-07）
 
-兩者都可以，**不可接受的是繼續讓它以一個過期的理由躺著**——理由過期的暫緩，
-下一輪走查會再翻案一次。
+使用者的判斷：**一般使用者不會為了備援去準備好幾家 LLM 的 API key**。跨雲 fallback
+的前提是「手上有第二把可用的 key」，而那個前提在這個專案的實際使用情境下多半不成立
+——`.env` 目前也確實只有 Gemini 是真的設定好的（OpenAI / Anthropic 是 placeholder，
+已被 `is_configured()` 正確判為未設定）。接了也不會生效，直到有人填一把真的 key。
+
+**所以 `get_fallback()` 繼續留著不刪，但這次的理由是有效的**：它是唯一的跨雲切換
+實作，而「要不要跨雲」是一個懸而未決的產品問題，不是遺留物。**與 B-090 當初記的
+理由（「很可能是 B-075 的成因」）不同，那個已經過期；這個不會。**
+
+**接線的技術前提（查過，留給日後）**: 不能只是把 `get_fallback()` 塞進
+`with_fallbacks([...])`。`with_fallbacks` 只在 LLM 物件**拋例外**時切換，而 Gemini 的
+封鎖不是例外——langchain 收到的是空的 `AIMessage`，是 `llm_text(response)` 在 invoke
+**回傳之後**才看出 `block_reason` 並拋 `LLMResponseBlocked`，那個位置在 LLM 物件外面。
+真正要改的是呼叫層：捕捉 `LLMResponseBlocked` → 換 provider → 重跑一次。呼叫點分布是
+**20 處走 `call_llm()`**（改一個地方就全涵蓋，且象徵詮釋那條在內）、**13 處直接
+`ainvoke`**（各自處理，或先收斂）。
+
+**這對 B-073 的意思**: 「手」的詮釋在可預見的未來不會靠 fallback 解決。剩下的槓桿是
+**改提示讓 Gemini 不拒絕**，或接受它產不出來。前者沒試過。
+
+**觸發時機**: 待排。若哪天有第二家 provider 是實際可用的，第一步只需改 `call_llm()`。
 
 **觸發時機**: 待排。與 B-073 綁在一起決定。
 
@@ -1207,7 +1254,20 @@ B-096 那條路徑洗過的事件會留下 `(weight=unclassified, source=llm_cla
 剩下的 `relative_order` / `time_anchor` 是有人寫、沒人讀）。Genette 分析真正被
 消費的產出是 `TemporalAnalysis` 快取裡的 `displacements`，那條路徑是活的。
 
-**要決定的是存在哪一層**（所以先立條目）:
+**已完成（2026-09-07），分兩半處理，因為兩者的正確答案相反**:
+
+**第一半 —— `narrative_weight` 補上落盤**。`classify_from_eep` 與 `refine_with_llm`
+在權重真的改變時呼叫 `self._kg.save()`。用 diff 而非無條件：classify 每次進敘事頁
+都可能被 `get_kernel_spine` 自動觸發，而「什麼都沒變」是常態，為了記錄「沒有變化」
+重寫整份圖譜 JSON 是有成本無產出。存檔失敗只記 log 不讓任務轉紅（與 ingestion 一致）。
+Neo4j 的 `save()` 是 no-op，所以雙後端都正確。
+
+**第二半 —— `Event.story_time` 與 `StoryTimeRef` 移除**。它有一個寫入者、零讀者：
+不進 API、不進前端，唯一再碰到它的是 Neo4j 序列化的來回。消費端讀的是
+`Event.chronological_rank`（TemporalPipeline）與 `TemporalAnalysis.displacements`。
+`analyze_temporal_order` 的第 5 步因此整段拿掉。OpenAPI 不受影響（domain model 未直接曝露）。
+
+**原本記的「要決定的是存在哪一層」**:
 - 在 `NarrativeService` 每次寫完就 `await self._kg.save()` —— 最簡單，但整份圖
   重寫一次 JSON，refine 逐事件迴圈裡呼叫會很貴（要改成迴圈結束後存一次）
 - 或由呼叫端（router 的背景任務）負責存，與 B-046 修 rerun 時採的
@@ -1818,12 +1878,12 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | 待開始（2026-09-07 unraveling 走查；per-book 頁面顯示 696 條全庫 edge，且新書會直接顯示 complete——B-089 同型；`meta.scope` 前端不讀） |
 | B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | 待開始（2026-09-06 閱讀頁走查；`paragraphs` 表無 keywords 欄位，閱讀頁 chunk 關鍵字標籤恆不顯示；與 B-098 的 `search_by_keyword` 綁一起決定） |
-| B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟡 中 | 待開始（2026-09-06 core/ 走查；B-075 已結案故舊理由不成立，但它是唯一的跨雲 fallback 實作，正是 B-073 缺的那塊） |
+| B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟢 低 | 暫不實作（2026-09-07 收攏：一般使用者不會備多家 LLM key，前提不成立；`get_fallback` 保留，理由換成有效的那個。技術前提已查明留在條目裡） |
 | B-100 | token 歸屬修好之後沒有任何資料驗證過 | 🟢 低 | 待開始（2026-09-06 core/ 走查；DB 最後一筆 8/19、最後一次修正 8/20，98.3% 未歸屬是歷史數字） |
 | B-101 | 前置頁排除數有兩套規則，而且不是同一條 | 🟢 低 | 待開始（2026-09-06 C 象徵走查；後端純位置、前端角色優先，目前 4 本書編號碰巧一致；權威數字 `excluded_front_matter_count` 沒有讀者） |
 | B-095 | 英雄旅程的順序常數 `STAGE_ORDER` / `STAGE_PHASE` 無防護 | 🟢 低 | 待開始（2026-09-06 由 B-093 分出；id 與顯示名都有守衛了，順序沒有——漂了會讓階段序號錯位且畫面照常渲染） |
-| B-096 | classify 的洗白守衛只擋全損，不擋部分損失 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；`hits == 0` 才擋，`(12, 38, 47)` 會靜默把 26 個已分類事件重設為 unclassified） |
-| B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | 待開始（2026-09-06 E 敘事走查；三個方法都只改記憶體物件、從不 `kg.save()`。2026-09-07 補充：`story_time` 那一項零讀者，正確處置多半是移除而非補存） |
+| B-096 | classify 的洗白守衛只擋全損，不擋部分損失 | 🟡 中 | ✅ 已完成（2026-09-07；成因是把「沒有 EEP」讀成「判定為未分類」，改為保留無法重現的權重，`_would_wipe` 隨之移除） |
+| B-097 | NarrativeService 對 KG 的寫入從不落盤 | 🟡 中 | ✅ 已完成（2026-09-07；`narrative_weight` 改為有變化才落盤，`story_time` / `StoryTimeRef` 因零讀者移除） |
 | B-098 | scan_dead_code 會把自己 docstring 裡的提及算成引用 | 🟢 低 | ✅ 已完成（2026-09-06；`_code_only()` 以 tokenize 濾掉註解與字串，backend 符號 1 → 3；順帶納入私有方法，該範圍 0 筆） |
 
 ### F 系列
@@ -1882,4 +1942,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-07（F chat/tools 走查：兩個深度分析工具接上 chat agent，B-104 完成）
+**最後更新**: 2026-09-07（B-096 / B-097 完成；B-099 收攏為暫不實作）

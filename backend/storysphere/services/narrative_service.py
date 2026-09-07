@@ -147,8 +147,10 @@ class NarrativeService:
         - ``classified_now`` — events currently carrying kernel/satellite in the
           KG, i.e. what a run stands to overwrite.
 
-        Callers use this to decide whether a run would add information or
-        destroy it. See ``_would_wipe``.
+        Callers use this to decide whether a run is worth starting: since
+        B-096 a classify run cannot destroy classifications, but one with no
+        EEP hits at all still has nothing to say, and a task that "succeeds"
+        having done nothing is not an answer.
         """
         from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
 
@@ -160,21 +162,6 @@ class NarrativeService:
         classified = sum(1 for e in events if e.narrative_weight in ("kernel", "satellite"))
         return hits, classified, len(events)
 
-    async def _would_wipe(self, document_id: str) -> bool:
-        """True when a classify run would only destroy existing classifications.
-
-        The EEP cache is the sole input: an event without one is written back as
-        "unclassified". So if nothing is cached any more while the KG still holds
-        kernel/satellite weights, running would replace real classifications with
-        "unclassified" — the exact way two books in the library lost theirs.
-
-        A book that has nothing classified yet is not protected: overwriting
-        "unclassified" with "unclassified" loses nothing, and guarding it would
-        block the normal first run.
-        """
-        hits, classified, _ = await self.eep_coverage(document_id)
-        return hits == 0 and classified > 0
-
     async def classify_from_eep(
         self,
         document_id: str,
@@ -184,17 +171,25 @@ class NarrativeService:
 
         Events with EEP event_importance=KERNEL  → narrative_weight="kernel"
         Events with EEP event_importance=SATELLITE → narrative_weight="satellite"
-        Events without an EEP result              → narrative_weight="unclassified"
+        Events with no EEP entry                  → **left alone** if they
+        already carry a weight, otherwise "unclassified"
 
         Side-effect: updates Event.narrative_weight and narrative_weight_source
         in KGService's in-memory store.
 
-        Aborts without writing anything when the run would only destroy existing
-        classifications (see ``_would_wipe``) and returns the cached structure
-        unchanged. The abort is a backstop for the callers that reach this method
-        automatically — ``get_kernel_spine`` runs on every narrative page load,
-        so raising here would break the page rather than protect it. Callers that
-        can report to a user should check ``eep_coverage`` first.
+        **Absence of an EEP entry is not evidence of anything** (B-096). EEP is
+        written only when someone analyses that specific event, so most events
+        never have one — 12 of 62 in one library book, 0 in two others. Treating
+        that absence as "this event is unclassified" is what let a classify run
+        silently undo ``refine_with_llm``, which assigns weights from its own LLM
+        call and which the narrative page feeds *precisely* the unclassified ids.
+        Two buttons sitting side by side in the same panel pulled in opposite
+        directions on the same events.
+
+        This method is reached automatically as well as on request —
+        ``get_kernel_spine`` runs it on every narrative page load when nothing is
+        classified yet — so it must be safe to run at any coverage. It now is:
+        a run with no EEP entries at all writes nothing but the cache entry.
 
         Returns:
             NarrativeStructure with classified event ID lists, persisted to cache.
@@ -206,22 +201,11 @@ class NarrativeService:
             logger.warning("classify_from_eep: no events for document=%s", document_id)
             return NarrativeStructure(document_id=document_id)
 
-        if await self._would_wipe(document_id):
-            logger.warning(
-                "classify_from_eep: refusing to run for document=%s — no EEP cache "
-                "entries remain, so every currently classified event would be reset "
-                "to unclassified",
-                document_id,
-            )
-            cached = await self._cache.get_as(
-                f"{_CACHE_KEY_PREFIX}:{document_id}", NarrativeStructure
-            )
-            return cached if cached is not None else NarrativeStructure(document_id=document_id)
-
         kernel_ids: list[str] = []
         satellite_ids: list[str] = []
         unclassified_ids: list[str] = []
         total = len(events)
+        before = [(e.narrative_weight, e.narrative_weight_source) for e in events]
 
         for idx, event in enumerate(events):
             result = await self._cache.get_as(
@@ -239,6 +223,19 @@ class NarrativeService:
                 except Exception:
                     unclassified_ids.append(event.id)
                     event.narrative_weight = "unclassified"
+            elif event.narrative_weight in ("kernel", "satellite"):
+                # Has a weight from somewhere else — keep it. An event without an
+                # EEP entry is the normal case, not evidence that it is
+                # unclassified: EEP is written only when someone analyses that
+                # specific event, and coverage runs low (12 of 62 in one library
+                # book). Overwriting here is what let a classify run undo
+                # `refine_with_llm`, which assigns weights from its own LLM call
+                # and is fed *precisely* the unclassified ids by the narrative
+                # page. The two features pulled in opposite directions on the
+                # same events (B-096).
+                (kernel_ids if event.narrative_weight == "kernel" else satellite_ids).append(
+                    event.id
+                )
             else:
                 unclassified_ids.append(event.id)
                 event.narrative_weight = "unclassified"
@@ -252,6 +249,7 @@ class NarrativeService:
             "classify_from_eep: document=%s kernel=%d satellite=%d unclassified=%d",
             document_id, len(kernel_ids), len(satellite_ids), len(unclassified_ids),
         )
+        await self._persist_weights(events, before, "classify_from_eep", document_id)
 
         # Preserve hero_journey_stages and review_status that may already exist
         cache_key = f"{_CACHE_KEY_PREFIX}:{document_id}"
@@ -374,6 +372,7 @@ class NarrativeService:
             )
 
         total = len(targets)
+        before = [(e.narrative_weight, e.narrative_weight_source) for e in targets]
         for idx, event in enumerate(targets):
             prev_event, next_event = self._get_adjacent(event.id, sorted_ids, event_by_id)
             chapter_summary = await self._doc.get_chapter_summary(document_id, event.chapter)
@@ -400,6 +399,8 @@ class NarrativeService:
                 logger.exception("refine_with_llm: failed for event=%s, keeping heuristic", event.id)
             if progress_callback:
                 progress_callback(int((idx + 1) / total * 100) if total else 0, f"refining event {idx + 1}/{total}")
+
+        await self._persist_weights(targets, before, "refine_with_llm", document_id)
 
         # Rebuild and persist NarrativeStructure
         refreshed = await self._kg.get_events(document_id=document_id)
@@ -429,6 +430,46 @@ class NarrativeService:
         )
         await self._cache.set(cache_key, structure.model_dump())
         return structure
+
+    async def _persist_weights(
+        self,
+        events: list[Event],
+        before: list[tuple[str | None, str | None]],
+        caller: str,
+        document_id: str,
+    ) -> None:
+        """Write the KG to disk when a classification actually changed something.
+
+        ``Event.narrative_weight`` lives in the KG, and every consumer treats it
+        as durable: ``get_kernel_spine`` reads it on each page load,
+        ``unraveling_manifest`` counts it, and ``_rebuild_structure_from_kg``
+        rebuilds a lost NarrativeStructure *from* it — that last one is only
+        honest if the weights outlive the process. Until B-097 nothing here
+        called ``save()``, so they survived only when some later, unrelated
+        caller happened to flush the graph (epistemic state, link prediction,
+        a temporal run). On disk that showed as 41 kernels, 0 satellites and no
+        `story_time` at all.
+
+        Guarded by an actual diff rather than saved unconditionally: a classify
+        run that changes nothing is the common case — ``get_kernel_spine``
+        triggers one on every narrative page load of an unclassified book — and
+        rewriting the whole graph JSON to record no change is a cost with no
+        product.
+
+        Neo4j's ``save()`` is a no-op (it persists on write), so this is correct
+        for both backends rather than only the JSON one.
+        """
+        after = [(e.narrative_weight, e.narrative_weight_source) for e in events]
+        if after == before:
+            logger.debug("%s: no weight changed for document=%s, not saving", caller, document_id)
+            return
+        try:
+            await self._kg.save()
+        except Exception:
+            # A lost save is recoverable by re-running; failing the task the user
+            # just watched succeed is not what they asked for (same call as
+            # ingestion's save-failure handling).
+            logger.exception("%s: failed to persist KG for document=%s", caller, document_id)
 
     @staticmethod
     def _get_adjacent(
@@ -801,8 +842,14 @@ class NarrativeService:
         2. Send events + hints to LLM → story-world chronological ranking.
         3. Compare text-order rank vs story-rank → displacement per event.
         4. Classify displacements as analepsis / prolepsis / linear.
-        5. Update event.story_time.relative_order in KGService in-memory store.
-        6. Persist TemporalAnalysis to cache.
+        5. Persist TemporalAnalysis to cache.
+
+        The ranks are **not** written back onto the events. They used to be, as
+        ``Event.story_time`` — a structure with one writer and no readers: it
+        never reached the API or the UI, and the only code that touched it again
+        was the Neo4j serialiser round-tripping it. What consumers actually read
+        for story order is ``Event.chronological_rank`` (TemporalPipeline) and
+        the ``displacements`` on this result. Removed in B-097.
         """
         # Attribution is set once here rather than beside each ``ainvoke``:
         # the contextvar carries it down, and this is the level that knows
@@ -852,18 +899,7 @@ class NarrativeService:
             text_sorted, language
         )
         if progress_callback:
-            progress_callback(65, "updating event story_time")
-
-        # Update events in KGService in-memory store
-        from storysphere.domain.events import StoryTimeRef  # noqa: PLC0415
-        for event in events:
-            rank = story_ranks.get(event.id)
-            if rank is not None:
-                event.story_time = StoryTimeRef(
-                    relative_order=rank,
-                    time_anchor=event.story_time_hint,
-                    confidence=0.7,
-                )
+            progress_callback(65, "computing temporal displacements")
 
         # Compute displacements
         displacements, analepsis_ids, prolepsis_ids = self._compute_displacements(
