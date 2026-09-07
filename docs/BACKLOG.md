@@ -1076,15 +1076,21 @@ two rules would let the page say 5 while the backend dropped 4」——**擔心�
 `VectorService.search_by_keyword` —— **正是 B-098 掃出來的零呼叫者**。
 也就是說段落層 keywords 目前在兩條路上都沒有讀者：SQLite 那條沒存，Qdrant 那條沒人查。
 
-**要決定的**:
-1. **存起來** —— `paragraphs` 加一個 `keywords_json` 欄位，寫入與讀取各補一處。
-   既有書要重跑 feature-extraction 才會有值（或從 Qdrant 回填）
-2. **拿掉這個功能** —— 從 `ChunkResponse`、`ChunkCard` 與契約 #5 移除 `keywords`。
-   若同時決定 `search_by_keyword` 也不接（B-098 留下的候選），那連 Qdrant payload
-   要不要繼續帶 `keywords` 都可以一起收
-3. 兩者之間還有一條：只在**搜尋**用途保留 Qdrant 那份，閱讀頁不顯示
+**已完成（2026-09-07）：存起來**（使用者決定）。`paragraphs` 加 `keywords_json`
+欄位，走 `init_db` 既有的 migration 慣例（`ALTER TABLE ... ADD COLUMN`，失敗即視為
+已存在）。**寫入兩處**（`save_document` / `replace_chapters`）、**讀取三處**
+（`get_document` / `get_paragraphs` / `get_paragraphs_by_entity`）各補一次——少補任何
+一條，畫面上就會是某些地方有標籤、某些地方沒有。四項測試把三條讀取路徑與
+「沒抽過仍是 None」都釘住，哨兵驗過拿掉任一讀取會紅。
 
-**觸發時機**: 待排。與 B-098 留下的 `search_by_keyword` 處置一起決定比較省事。
+**既有的四本書仍是空的**：keywords 的產生點在 feature-extraction，要重跑那一步才會
+有值。契約 #5 已註明這件事。
+
+**`search_by_keyword` 的處置仍未決**（B-098 留下的候選）：Qdrant payload 那份
+keywords 的唯一讀取者還是它，而它沒有呼叫端。這條與本題脫鉤了——SQLite 這側已經
+自給自足。
+
+**觸發時機**: 已執行。
 
 ---
 
@@ -1883,7 +1889,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | 待開始（2026-09-07 unraveling 走查；per-book 頁面顯示 696 條全庫 edge，且新書會直接顯示 complete——B-089 同型；`meta.scope` 前端不讀） |
-| B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | 待開始（2026-09-06 閱讀頁走查；`paragraphs` 表無 keywords 欄位，閱讀頁 chunk 關鍵字標籤恆不顯示；與 B-098 的 `search_by_keyword` 綁一起決定） |
+| B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | ✅ 已完成（2026-09-07；`paragraphs.keywords_json` + 寫入 2 處讀取 3 處；既有書需重跑 feature-extraction 才有值） |
 | B-099 | `get_fallback` 的暫緩理由已過期，全系統實際上沒有任何 fallback | 🟢 低 | 暫不實作（2026-09-07 收攏：一般使用者不會備多家 LLM key，前提不成立；`get_fallback` 保留，理由換成有效的那個。技術前提已查明留在條目裡） |
 | B-100 | token 歸屬修好之後沒有任何資料驗證過 | 🟢 低 | 待開始（2026-09-06 core/ 走查；DB 最後一筆 8/19、最後一次修正 8/20，98.3% 未歸屬是歷史數字） |
 | B-101 | 前置頁排除數有兩套規則，而且不是同一條 | 🟢 低 | 待開始（2026-09-06 C 象徵走查；後端純位置、前端角色優先，目前 4 本書編號碰巧一致；權威數字 `excluded_front_matter_count` 沒有讀者） |
@@ -1948,4 +1954,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-07（B-095 完成——英雄旅程的順序常數補上守衛）
+**最後更新**: 2026-09-07（B-095 / B-102 完成）
