@@ -90,7 +90,7 @@ def build_nodes(
     events: list[Event],
     temporal_rels: list[Any],
     imagery: list[Any],
-    relation_count_global: int,
+    relation_count: int,
     cep_count: int,
     eep_count: int,
     temporal_analysis_present: bool,
@@ -224,9 +224,8 @@ def build_nodes(
         node_id="kg_relation",
         layer=1,
         label="Relations",
-        status=status_of(complete=relation_count_global > 0, partial=False),
-        counts={"relations": relation_count_global},
-        meta={"scope": "global"},
+        status=status_of(complete=relation_count > 0, partial=False),
+        counts={"relations": relation_count},
         parent_id="kg_features",
     ))
 

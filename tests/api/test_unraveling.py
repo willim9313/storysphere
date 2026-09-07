@@ -104,7 +104,9 @@ def _make_mocks(
     mock_kg.list_entities = AsyncMock(return_value=entities)
     mock_kg.get_events = AsyncMock(return_value=events)
     mock_kg.get_temporal_relations = AsyncMock(return_value=temporal_rels)
-    mock_kg.relation_count = 5
+    # 分書計數（B-103）：舊版是全域 property `relation_count`，per-book 端點拿它
+    # 等於把別本書的邊算進來。
+    mock_kg.relation_count_for = AsyncMock(return_value=5)
 
     mock_symbol_svc = AsyncMock()
     mock_symbol_svc.get_imagery_list = AsyncMock(return_value=imagery)

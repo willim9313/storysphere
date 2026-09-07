@@ -475,6 +475,18 @@ class KGService(KGServiceBase):
     def relation_count(self) -> int:
         return self._graph.number_of_edges()
 
+    async def relation_count_for(self, document_id: str) -> int:
+        # The relation id is the edge **key**, not an attribute. A bidirectional
+        # relation is stored as two edges whose reverse carries `<id>_rev`, so
+        # counting raw edges would report one relation as two — strip the suffix
+        # and count distinct ids, which is what "how many relations does this
+        # book have" means.
+        return len({
+            key[: -len("_rev")] if str(key).endswith("_rev") else key
+            for _, _, key, attrs in self._graph.edges(keys=True, data=True)
+            if attrs.get("document_id") == document_id
+        })
+
     @property
     def event_count(self) -> int:
         return len(self._events)
