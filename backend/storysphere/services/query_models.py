@@ -43,19 +43,6 @@ class VectorSearchResult(BaseModel):
     position: int = Field(description="Paragraph position within chapter")
 
 
-class KeywordSearchResult(BaseModel):
-    """Single hit returned by ``VectorService.search_by_keyword``."""
-
-    id: str = Field(description="Qdrant point ID")
-    text: str = Field(description="Paragraph text")
-    document_id: str = Field(description="Parent document UUID")
-    chapter_number: int = Field(description="Chapter number (1-based)")
-    position: int = Field(description="Paragraph position within chapter")
-    keyword_scores: dict[str, float] = Field(
-        default_factory=dict, description="Keyword → score mapping for matched keywords"
-    )
-
-
 # ── Knowledge-graph paths ─────────────────────────────────────────────────────
 
 

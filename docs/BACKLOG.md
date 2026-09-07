@@ -1381,6 +1381,25 @@ Neo4j 的 `save()` 是 no-op，所以雙後端都正確。
 **注意**: 濾掉之後 `search_by_keyword` 這類候選要照 B-091 的三種結局逐一走查，
 **不可批次刪**。
 
+**`VectorService.search_by_keyword` 的處置（2026-09-08）：刪除**（判定為第 1 種）。
+三個理由，第一個是決定性的：
+
+1. **它搜的不是文字，是關鍵字欄位**。`MatchValue(key="keywords")` 比對的是每段
+   **最多 10 個抽取出來的關鍵字**，不是段落內文。使用者問「哪裡提到劍」，它只答得出
+   「哪些段落的前 10 個關鍵字包含劍」——召回率天生很差
+2. **真正的文字搜尋已經存在**：`DocumentService.search_paragraphs_by_text`，
+   由 `routers/search.py`（搜尋頁）在用
+3. **語意搜尋也已經存在**：`vector_search` 工具，chat agent 一直有。再加一個重疊的
+   工具會直接影響 ADR-008 的選擇準確率目標（工具數剛從 21 變 23，見 B-104）
+
+也就是說它夾在兩個更好的方案之間，能力比兩者都弱。連同 `_scroll_keyword` 與
+`KeywordSearchResult` 一併移除，共 83 行。**掃描器候選 3 → 2**，剩下的兩個
+（`get_fallback`、`ConceptInferencePipeline`）都有有效的暫緩理由。
+
+**這也收掉了 B-102 留下的線頭**：Qdrant payload 裡的 `keywords` 從此無人讀取。
+payload 要不要繼續帶它是另一題——它不佔 LLM 成本，寫入端也不需要為它多做事，
+所以沒有一併處理。
+
 **已完成（2026-09-06）**: `_code_only()` 以 `tokenize` 濾掉 COMMENT / STRING /
 FSTRING_MIDDLE 後再計數。同一次順帶把**私有方法**納入掃描（原本 `startswith("_")`
 整批跳過，那是 B-091 明列的未掃範圍）—— 啟用後整個 backend 0 筆，範圍就此掃清。
@@ -2012,4 +2031,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-07（T2 四張票 B-095 / B-101 / B-102 / B-103 完成；B-105 移除 10 個「已判定移除」的端點）
+**最後更新**: 2026-09-08（B-105 端點移除；`search_by_keyword` 判定為死碼並刪除，掃描器候選 3 → 2）

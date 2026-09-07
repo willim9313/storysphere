@@ -21,7 +21,7 @@ from typing import Any
 from qdrant_client import QdrantClient, models
 
 from storysphere.core.utils.url_masking import mask_url
-from storysphere.services.query_models import KeywordSearchResult, VectorSearchResult
+from storysphere.services.query_models import VectorSearchResult
 
 logger = logging.getLogger(__name__)
 
@@ -299,89 +299,6 @@ class VectorService:
                     document_id=payload.get("document_id", ""),
                     chapter_number=payload.get("chapter_number", 0),
                     position=payload.get("position", 0),
-                )
-            )
-        return results
-
-    # ── Keyword search ──────────────────────────────────────────────────
-
-    async def search_by_keyword(
-        self,
-        keyword: str,
-        top_k: int = 10,
-        document_id: str | None = None,
-    ) -> list[KeywordSearchResult]:
-        """Search paragraphs by keyword match on the ``keywords`` payload field.
-
-        When *document_id* is provided, searches only that book's collection.
-        When *document_id* is None, searches across all book collections.
-
-        Returns list of dicts with: ``id``, ``text``, ``document_id``,
-        ``chapter_number``, ``position``, ``keyword_scores``.
-        """
-        kw_filter = models.Filter(
-            must=[
-                models.FieldCondition(
-                    key="keywords",
-                    match=models.MatchValue(value=keyword.lower()),
-                )
-            ]
-        )
-
-        if document_id is not None:
-            loop = asyncio.get_running_loop()
-            return await loop.run_in_executor(
-                None,
-                # _col() is evaluated inside the executor, not on the event loop.
-                lambda: self._scroll_keyword(self._col(document_id), kw_filter, top_k),
-            )
-
-        # Cross-book keyword search
-        doc_ids = self.list_book_collections()
-        if not doc_ids:
-            return []
-
-        loop = asyncio.get_running_loop()
-        kw_tasks = [
-            loop.run_in_executor(
-                None,
-                # did= default-arg capture; _col(did) runs inside the executor.
-                lambda did=did: self._scroll_keyword(self._col(did), kw_filter, top_k),
-            )
-            for did in doc_ids
-        ]
-        results_lists = await asyncio.gather(*kw_tasks, return_exceptions=True)
-        merged: list[KeywordSearchResult] = []
-        for res in results_lists:
-            if isinstance(res, Exception):
-                logger.warning("Cross-book keyword search error: %s", res)
-                continue
-            merged.extend(res)
-        return merged[:top_k]
-
-    def _scroll_keyword(
-        self, collection_name: str, kw_filter: models.Filter, top_k: int
-    ) -> list[KeywordSearchResult]:
-        """Scroll a single collection for keyword matches."""
-        scroll_result = self._client.scroll(
-            collection_name=collection_name,
-            scroll_filter=kw_filter,
-            limit=top_k,
-            with_payload=True,
-        )
-
-        results: list[KeywordSearchResult] = []
-        points = scroll_result[0] if isinstance(scroll_result, tuple) else scroll_result
-        for point in points:
-            payload = point.payload or {}
-            results.append(
-                KeywordSearchResult(
-                    id=str(point.id),
-                    text=payload.get("text", ""),
-                    document_id=payload.get("document_id", ""),
-                    chapter_number=payload.get("chapter_number", 0),
-                    position=payload.get("position", 0),
-                    keyword_scores=payload.get("keyword_scores", {}),
                 )
             )
         return results
