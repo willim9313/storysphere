@@ -957,7 +957,7 @@ interface InferredRelationsResponse {
 
 非同步（回 task id 輪詢），與 #10a 不同——#10a 是圖演算法、直接回結果。
 
-**UI 使用頁面**：無（前端接線是 B-092 第 2d 段）
+**UI 使用頁面**：建構概覽頁 `kg_concept_inferred` 節點的 CTA
 
 ---
 
@@ -974,7 +974,7 @@ interface InferredConceptsResponse {
 }
 ```
 
-**UI 使用頁面**：無（前端接線是 B-092 第 2d 段）
+**UI 使用頁面**：建構概覽頁節點詳情的「待審查命題」清單
 
 ---
 
@@ -986,7 +986,7 @@ interface InferredConceptsResponse {
 
 重複確認回傳既有 entity，不寫第二個節點。`conceptId` 不屬於該書時回 404。
 
-**UI 使用頁面**：無（前端接線是 B-092 第 2d 段）
+**UI 使用頁面**：建構概覽頁節點詳情「採用」按鈕
 
 ---
 
@@ -996,7 +996,7 @@ interface InferredConceptsResponse {
 
 **Response 204**
 
-**UI 使用頁面**：無（前端接線是 B-092 第 2d 段）
+**UI 使用頁面**：建構概覽頁節點詳情「否決」按鈕
 
 ---
 

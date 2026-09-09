@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
@@ -9,9 +9,11 @@ import {
   ExternalLink,
   Filter,
   Layers,
+  Check,
   Loader2,
   PlayCircle,
   RotateCw,
+  X,
 } from 'lucide-react';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
@@ -19,6 +21,13 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { rerunStep, type RerunStep } from '@/api/ingest';
 import { triggerBatchEntityAnalysis, triggerBatchEventAnalysis } from '@/api/analysis';
+import {
+  confirmInferredConcept,
+  fetchInferredConcepts,
+  rejectInferredConcept,
+  triggerConceptInference,
+} from '@/api/graph';
+import { qk } from '@/api/queryKeys';
 import {
   fetchBuildOverview,
   fetchChapterDistribution,
@@ -49,10 +58,11 @@ const NODE_POS: Record<string, { x: number; y: number }> = {
   symbols:   { x: 280, y: 200 },
   // Layer 1 KG group children
   kg_entity:            { x: 280, y: 268 },
-  kg_concept:           { x: 280, y: 320 },
-  kg_relation:          { x: 280, y: 372 },
-  kg_event:             { x: 280, y: 424 },
-  kg_temporal_relation: { x: 280, y: 476 },
+  kg_concept:           { x: 280, y: 316 },
+  kg_concept_inferred:  { x: 280, y: 364 },
+  kg_relation:          { x: 280, y: 412 },
+  kg_event:             { x: 280, y: 460 },
+  kg_temporal_relation: { x: 280, y: 508 },
   // Layer 2
   cep: { x: 470, y: 200 },
   eep: { x: 470, y: 270 },
@@ -73,9 +83,10 @@ const NODE_POS: Record<string, { x: number; y: number }> = {
   chronological_rank: { x: 880, y: 360 },
 };
 
-const KG_GROUP = { x: 215, y: 240, w: 130, h: 270 };
+const KG_GROUP = { x: 215, y: 240, w: 130, h: 302 };
 const KG_CHILD_IDS = new Set([
-  'kg_entity', 'kg_concept', 'kg_relation', 'kg_event', 'kg_temporal_relation',
+  'kg_entity', 'kg_concept', 'kg_concept_inferred', 'kg_relation', 'kg_event',
+  'kg_temporal_relation',
 ]);
 
 const LAYERS = [0, 1, 2, 3, 4] as const;
@@ -113,6 +124,7 @@ const NODE_TO_ROUTE: Record<string, string> = {
   keywords: '',
   kg_entity: 'graph',
   kg_concept: 'graph',
+  kg_concept_inferred: 'graph',
   kg_relation: 'graph',
   kg_event: 'graph',
   kg_temporal_relation: 'timeline',
@@ -163,11 +175,12 @@ const NODE_TO_TRIGGER: Record<string, TriggerDef> = {
   keywords: rerunTrigger('feature-extraction', true),
   symbols: rerunTrigger('symbol-discovery', true),
   kg_entity: KG_RERUN,
-  // kg_concept deliberately has no trigger. A KG rerun only refills the `ner`
-  // half; the `inferred` half comes from a pre-analysis step (B-025) that has
-  // no endpoint yet. Wiring KG_RERUN here offered a button that could never
-  // move the count off zero, so the node falls back to the disabled
-  // "triggerSoon" state until that endpoint exists.
+  // A KG rerun refills only the NER concepts — which is now all this node
+  // claims, since B-092 split the inference half into `kg_concept_inferred`.
+  // While the two shared a node the button could never move the count off
+  // zero, so B-089 removed it; the split is what makes it honest again.
+  kg_concept: KG_RERUN,
+  kg_concept_inferred: { run: triggerConceptInference, dropsDerived: false },
   kg_relation: KG_RERUN,
   kg_event: KG_RERUN,
   // CEP is the evidence package the character analysis is built from; both
@@ -216,6 +229,7 @@ function nodeSubLabel(t: TFunction, n: BuildOverviewNode): string {
       return `${c.events ?? 0}`;
     case 'kg_entity':
     case 'kg_concept':
+    case 'kg_concept_inferred':
       return `${c.total ?? 0}`;
     case 'kg_relation':
       return `${c.relations ?? 0}`;
@@ -698,6 +712,91 @@ function ChapterDistMini({ values }: Readonly<{ values: number[] }>) {
   );
 }
 
+// ── Inferred concept review (B-092) ───────────────────────────────────────────
+//
+// Propositions the LLM inferred wait in a side-store rather than going straight
+// into the graph: TEU assembly reads Concept nodes into its prompt as
+// established fact, so a wrong one would keep being handed forward as a
+// premise. This is where someone rules on them — the same place the run is
+// triggered, so the result is visible where the button was.
+
+function InferredConceptReview({ bookId }: Readonly<{ bookId: string }>) {
+  const { t } = useTranslation('analysis');
+  const queryClient = useQueryClient();
+
+  const { data, isLoading } = useQuery({
+    queryKey: qk.inferredConcepts.pending(bookId),
+    queryFn: () => fetchInferredConcepts(bookId, 'pending'),
+  });
+
+  const settle = () => {
+    void queryClient.invalidateQueries({ queryKey: qk.inferredConcepts.all(bookId) });
+    // Adopting writes a Concept node, so the node's own counts move too.
+    void queryClient.invalidateQueries({ queryKey: ['buildOverview', bookId] });
+  };
+
+  const adopt = useMutation({
+    mutationFn: (conceptId: string) => confirmInferredConcept(bookId, conceptId),
+    onSuccess: settle,
+  });
+  const dismiss = useMutation({
+    mutationFn: (conceptId: string) => rejectInferredConcept(bookId, conceptId),
+    onSuccess: settle,
+  });
+
+  const items = data?.items ?? [];
+  if (isLoading || items.length === 0) return null;
+
+  const busy = adopt.isPending || dismiss.isPending;
+
+  return (
+    <div className="bo-detail-section">
+      <div className="bo-detail-section-h">
+        {t('unraveling.concepts.pendingTitle', { n: items.length })}
+      </div>
+      <div className="bo-concept-review">
+        {items.map(c => (
+          <div key={c.id} className="bo-concept-card">
+            <div className="bo-concept-name">{c.name}</div>
+            {c.description && <div className="bo-concept-desc">{c.description}</div>}
+            {c.evidence.length > 0 && (
+              <ul className="bo-concept-evidence">
+                {c.evidence.map(e => <li key={e}>{e}</li>)}
+              </ul>
+            )}
+            <div className="bo-concept-actions">
+              <span className="bo-concept-conf">
+                {t('unraveling.concepts.confidence', {
+                  v: Math.round(c.confidence * 100),
+                })}
+              </span>
+              <button
+                type="button"
+                className="bo-cta"
+                disabled={busy}
+                onClick={() => adopt.mutate(c.id)}
+              >
+                <Check size={12} />
+                {t('unraveling.concepts.adopt')}
+              </button>
+              <button
+                type="button"
+                className="bo-cta secondary"
+                disabled={busy}
+                onClick={() => dismiss.mutate(c.id)}
+              >
+                <X size={12} />
+                {t('unraveling.concepts.dismiss')}
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
 // ── Inspector — node detail ───────────────────────────────────────────────────
 
 interface NodeDetailProps {
@@ -937,6 +1036,10 @@ function NodeDetail({
         <div className="bo-detail-section">
           {openPageButton}
         </div>
+      )}
+
+      {node.nodeId === 'kg_concept_inferred' && (
+        <InferredConceptReview bookId={bookId} />
       )}
 
       {Object.keys(node.counts).length > 0 && (

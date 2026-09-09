@@ -91,6 +91,12 @@ export const qk = {
       ['books', bookId, 'inferred-relations', 'pending'] as const,
   },
 
+  inferredConcepts: {
+    all: (bookId: Id) => ['books', bookId, 'inferred-concepts'] as const,
+    pending: (bookId: Id) =>
+      ['books', bookId, 'inferred-concepts', 'pending'] as const,
+  },
+
   symbols: {
     list: (bookId: Id) => ['books', bookId, 'symbols'] as const,
     timeline: (bookId: Id, imageryId: Id) =>

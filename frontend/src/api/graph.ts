@@ -6,6 +6,9 @@ export type InferredRelation = components['schemas']['InferredRelationResponse']
 export type InferredRelationsResponse = components['schemas']['InferredRelationsResponse'];
 export type InferenceStatus = 'pending' | 'confirmed' | 'rejected';
 
+export type InferredConcept = components['schemas']['InferredConceptResponse'];
+export type InferredConceptsResponse = components['schemas']['InferredConceptsResponse'];
+
 export type TimelineConfigResponse = components['schemas']['TimelineConfigResponse'];
 export type TimelineConfigUpdate = components['schemas']['TimelineConfigUpdate'];
 export type TimelineDetectionResponse = components['schemas']['TimelineDetectionResponse'];
@@ -70,6 +73,41 @@ export function confirmInferred(
 
 export function rejectInferred(bookId: string, irId: string): Promise<void> {
   return apiFetch<void>(`/books/${bookId}/inferred-relations/${irId}/reject`, {
+    method: 'POST',
+  });
+}
+
+// ── B-092 inferred concepts ─────────────────────────────────────────────────
+// Same review flow as the inferred relations above, one step later in the
+// pipeline. Unlike `runInference`, this one is asynchronous — it makes an LLM
+// call, so it hands back a task id to poll.
+
+export function triggerConceptInference(bookId: string): Promise<{ taskId: string }> {
+  return apiFetch<{ taskId: string }>(`/books/${bookId}/inferred-concepts/run`, {
+    method: 'POST',
+  });
+}
+
+export function fetchInferredConcepts(
+  bookId: string,
+  status?: InferenceStatus,
+): Promise<InferredConceptsResponse> {
+  const qs = status ? `?status=${status}` : '';
+  return apiFetch<InferredConceptsResponse>(`/books/${bookId}/inferred-concepts${qs}`);
+}
+
+export function confirmInferredConcept(
+  bookId: string,
+  conceptId: string,
+): Promise<{ entityId: string }> {
+  return apiFetch<{ entityId: string }>(
+    `/books/${bookId}/inferred-concepts/${conceptId}/confirm`,
+    { method: 'POST' },
+  );
+}
+
+export function rejectInferredConcept(bookId: string, conceptId: string): Promise<void> {
+  return apiFetch<void>(`/books/${bookId}/inferred-concepts/${conceptId}/reject`, {
     method: 'POST',
   });
 }

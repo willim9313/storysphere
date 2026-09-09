@@ -955,6 +955,10 @@
           "partial": "Fill in the missing concepts",
           "empty": "Build the knowledge graph"
         },
+        "kg_concept_inferred": {
+          "partial": "Infer the remaining concepts",
+          "empty": "Infer thematic propositions"
+        },
         "kg_relation": {
           "partial": "Fill in the missing relations",
           "empty": "Build the knowledge graph"
@@ -1015,6 +1019,7 @@
       "symbols": "Symbols",
       "kg_entity": "Entity",
       "kg_concept": "Concept",
+      "kg_concept_inferred": "Inferred Concepts",
       "kg_relation": "Relation",
       "kg_event": "Event",
       "kg_temporal_relation": "Temporal Rel.",
@@ -1064,6 +1069,12 @@
       "total_characters": "total characters",
       "has_ks_classification": "K/S classification built",
       "built": "built"
+    },
+    "concepts": {
+      "pendingTitle": "Awaiting review ({{n}})",
+      "confidence": "Confidence {{v}}%",
+      "adopt": "Adopt",
+      "dismiss": "Dismiss"
     }
   },
   "symbol": {

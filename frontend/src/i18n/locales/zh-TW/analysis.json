@@ -955,6 +955,10 @@
           "partial": "補齊圖譜概念",
           "empty": "建立知識圖譜"
         },
+        "kg_concept_inferred": {
+          "partial": "補齊推斷概念",
+          "empty": "推斷主題命題"
+        },
         "kg_relation": {
           "partial": "補齊圖譜關係",
           "empty": "建立知識圖譜"
@@ -1015,6 +1019,7 @@
       "symbols": "象徵",
       "kg_entity": "實體",
       "kg_concept": "概念",
+      "kg_concept_inferred": "推斷概念",
       "kg_relation": "關係",
       "kg_event": "事件",
       "kg_temporal_relation": "時序關係",
@@ -1064,6 +1069,12 @@
       "total_characters": "角色總數",
       "has_ks_classification": "K/S 分類已建立",
       "built": "已建立"
+    },
+    "concepts": {
+      "pendingTitle": "待審查命題（{{n}}）",
+      "confidence": "信心 {{v}}%",
+      "adopt": "採用",
+      "dismiss": "否決"
     }
   },
   "symbol": {

@@ -564,3 +564,51 @@
   color: var(--fg-primary);
   font-variant-numeric: tabular-nums;
 }
+
+/* Inferred concept review (B-092) — the pending list inside the node detail */
+.bo-concept-review {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 6px;
+}
+.bo-concept-card {
+  padding: 8px 10px;
+  background: var(--bg-secondary);
+  border: var(--border-width) var(--border-style) var(--border);
+  border-radius: var(--radius-sm);
+}
+.bo-concept-name {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--fg-primary);
+  line-height: 1.4;
+}
+.bo-concept-desc {
+  margin-top: 3px;
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  line-height: 1.5;
+}
+.bo-concept-evidence {
+  margin: 5px 0 0;
+  padding-left: 14px;
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+.bo-concept-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 8px;
+}
+.bo-concept-conf {
+  flex: 1;
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.bo-concept-actions .bo-cta {
+  width: auto;
+  padding: 3px 10px;
+}
