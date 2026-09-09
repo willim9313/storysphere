@@ -102,3 +102,4 @@
 | 2026-08-20 | [意象出現位置的段落定位（B-079 根因與修法）](./20260820-imagery-occurrence-anchoring.md) |
 | 2026-08-20 | [Token 歸屬的最後七個缺口（B-081 擴充）](./20260820-token-attribution-remaining.md) |
 | 2026-09-06 | [後端全面走查：進度盤點與續作計畫](./20260906-backend-review-sweep.md) |
+| 2026-09-09 | [走查之後：下一階段的開發計畫](./20260909-post-sweep-development-plan.md) |
