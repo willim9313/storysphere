@@ -394,6 +394,89 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/inferred-concepts/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Run Concept Inference
+         * @description Infer thematic Concept candidates for a book; returns a task id.
+         *
+         *     Asynchronous because it makes an LLM call — unlike the graph-algorithm
+         *     inference above, which returns its results inline.
+         */
+        post: operations["run_concept_inference_api_v1_books__book_id__inferred_concepts_run_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-concepts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Inferred Concepts
+         * @description List inferred concept candidates for a book.
+         */
+        get: operations["list_inferred_concepts_api_v1_books__book_id__inferred_concepts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-concepts/{concept_id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm Inferred Concept
+         * @description Adopt a proposition; writes it to the KG as a Concept entity.
+         */
+        post: operations["confirm_inferred_concept_api_v1_books__book_id__inferred_concepts__concept_id__confirm_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/inferred-concepts/{concept_id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reject Inferred Concept
+         * @description Reject (dismiss) an inferred concept candidate.
+         */
+        post: operations["reject_inferred_concept_api_v1_books__book_id__inferred_concepts__concept_id__reject_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/entities/{entity_id}/epistemic-state": {
         parameters: {
             query?: never;
@@ -3096,6 +3179,58 @@ export interface components {
             /** Impactsummary */
             impactSummary: string;
         };
+        /**
+         * InferredConceptResponse
+         * @description A thematic proposition awaiting review (B-092).
+         */
+        InferredConceptResponse: {
+            /** Id */
+            id: string;
+            /** Documentid */
+            documentId: string;
+            /** Name */
+            name: string;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /**
+             * Evidence
+             * @default []
+             */
+            evidence: string[];
+            /**
+             * Confidence
+             * @default 0.5
+             */
+            confidence: number;
+            /**
+             * Inferredby
+             * @default
+             */
+            inferredBy: string;
+            /**
+             * Status
+             * @default pending
+             */
+            status: string;
+            /** Confirmedentityid */
+            confirmedEntityId?: string | null;
+        };
+        /** InferredConceptsResponse */
+        InferredConceptsResponse: {
+            /**
+             * Items
+             * @default []
+             */
+            items: components["schemas"]["InferredConceptResponse"][];
+            /**
+             * Total
+             * @default 0
+             */
+            total: number;
+        };
         /** InferredRelationResponse */
         InferredRelationResponse: {
             /** Id */
@@ -5294,6 +5429,134 @@ export interface operations {
             path: {
                 book_id: string;
                 ir_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    run_concept_inference_api_v1_books__book_id__inferred_concepts_run_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_inferred_concepts_api_v1_books__book_id__inferred_concepts_get: {
+        parameters: {
+            query?: {
+                status?: string | null;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InferredConceptsResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    confirm_inferred_concept_api_v1_books__book_id__inferred_concepts__concept_id__confirm_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                concept_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reject_inferred_concept_api_v1_books__book_id__inferred_concepts__concept_id__reject_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                concept_id: string;
             };
             cookie?: never;
         };

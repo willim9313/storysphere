@@ -116,6 +116,29 @@ class InferredRelationsResponse(BaseModel):
     total: int = 0
 
 
+class InferredConceptResponse(BaseModel):
+    """A thematic proposition awaiting review (B-092)."""
+
+    model_config = _CAMEL
+
+    id: str
+    document_id: str
+    name: str
+    description: str = ""
+    evidence: list[str] = []
+    confidence: float = 0.5
+    inferred_by: str = ""
+    status: str = "pending"
+    confirmed_entity_id: str | None = None
+
+
+class InferredConceptsResponse(BaseModel):
+    model_config = _CAMEL
+
+    items: list[InferredConceptResponse] = []
+    total: int = 0
+
+
 class RunInferenceRequest(BaseModel):
     model_config = _CAMEL
 

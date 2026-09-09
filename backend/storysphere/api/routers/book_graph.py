@@ -19,6 +19,7 @@ from fastapi import (
 
 from storysphere.api import task_runner
 from storysphere.api.deps import (
+    ConceptInferenceServiceDep,
     DocServiceDep,
     EpistemicStateServiceDep,
     KGServiceDep,
@@ -31,6 +32,8 @@ from storysphere.api.schemas.book_graph import (
     GraphDataResponse,
     GraphEdge,
     GraphNode,
+    InferredConceptResponse,
+    InferredConceptsResponse,
     InferredRelationResponse,
     InferredRelationsResponse,
     MisbeliefItemSchema,
@@ -279,6 +282,145 @@ async def reject_inferred_relation(
 
     await lp.reject(ir_id)
     return None
+
+
+# ── B-092 inferred concepts ──────────────────────────────────────────────────
+#
+# Same review shape as inferred relations above, one step later in the pipeline:
+# these are LLM-proposed thematic propositions, and they wait in a side-store
+# rather than going into the graph, because TEU assembly reads Concept nodes
+# straight into its prompt as established fact.
+
+
+async def _run_concept_inference(task_id: str, book_id: str, ci, language: str) -> dict:
+    """Background task: one LLM call for the whole book, then file for review."""
+    report = task_runner.progress(task_id)
+    report(10, "彙集高張力段落")
+    pending = await ci.run_inference(document_id=book_id, language=language)
+    report(100, f"待審查命題 {len(pending)}")
+    return {"pending": len(pending)}
+
+
+@router.post(
+    "/{book_id}/inferred-concepts/run",
+    response_model=TaskIdResponse,
+    status_code=202,
+)
+async def run_concept_inference(
+    book_id: str,
+    doc: DocServiceDep,
+    ci: ConceptInferenceServiceDep,
+) -> dict:
+    """Infer thematic Concept candidates for a book; returns a task id.
+
+    Asynchronous because it makes an LLM call — unlike the graph-algorithm
+    inference above, which returns its results inline.
+    """
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    language = await doc.get_document_language(book_id)
+    task_id = str(uuid4())
+    task_store.create(task_id, kind="concept", title="概念推論")
+    task_runner.launch(
+        task_id, _run_concept_inference(task_id, book_id, ci, language)
+    )
+    logger.info("Triggered concept inference: book=%s, task=%s", book_id, task_id)
+    return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+@router.get("/{book_id}/inferred-concepts", response_model=InferredConceptsResponse)
+async def list_inferred_concepts(
+    book_id: str,
+    doc: DocServiceDep,
+    ci: ConceptInferenceServiceDep,
+    status: str | None = Query(default=None),
+) -> dict:
+    """List inferred concept candidates for a book."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    from storysphere.domain.inferred_concepts import InferenceStatus  # noqa: PLC0415
+
+    status_filter = None
+    if status is not None:
+        try:
+            status_filter = InferenceStatus(status)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=422, detail=f"Invalid status '{status}'"
+            ) from exc
+
+    items = [
+        _concept_to_response(c) for c in await ci.list_concepts(book_id, status_filter)
+    ]
+    return InferredConceptsResponse(items=items, total=len(items)).model_dump(
+        by_alias=True
+    )
+
+
+@router.post("/{book_id}/inferred-concepts/{concept_id}/confirm", status_code=201)
+async def confirm_inferred_concept(
+    book_id: str,
+    concept_id: str,
+    doc: DocServiceDep,
+    ci: ConceptInferenceServiceDep,
+) -> dict:
+    """Adopt a proposition; writes it to the KG as a Concept entity."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    candidate = await ci.get_concept(concept_id)
+    if candidate is None or candidate.document_id != book_id:
+        raise HTTPException(
+            status_code=404, detail=f"InferredConcept '{concept_id}' not found"
+        )
+
+    entity = await ci.confirm(concept_id)
+    if entity is None:
+        raise HTTPException(
+            status_code=404, detail=f"InferredConcept '{concept_id}' not found"
+        )
+    return {"entityId": entity.id}
+
+
+@router.post("/{book_id}/inferred-concepts/{concept_id}/reject", status_code=204)
+async def reject_inferred_concept(
+    book_id: str,
+    concept_id: str,
+    doc: DocServiceDep,
+    ci: ConceptInferenceServiceDep,
+) -> None:
+    """Reject (dismiss) an inferred concept candidate."""
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    candidate = await ci.get_concept(concept_id)
+    if candidate is None or candidate.document_id != book_id:
+        raise HTTPException(
+            status_code=404, detail=f"InferredConcept '{concept_id}' not found"
+        )
+
+    await ci.reject(concept_id)
+    return None
+
+
+def _concept_to_response(c: Any) -> InferredConceptResponse:
+    return InferredConceptResponse(
+        id=c.id,
+        document_id=c.document_id,
+        name=c.name,
+        description=c.description,
+        evidence=c.evidence,
+        confidence=c.confidence,
+        inferred_by=c.inferred_by,
+        status=c.status.value,
+        confirmed_entity_id=c.confirmed_entity_id,
+    )
 
 
 def _ir_to_response(ir: Any, entity_map: dict) -> InferredRelationResponse:

@@ -381,6 +381,42 @@ def get_link_prediction_service():
 LinkPredictionServiceDep = Annotated[Any, Depends(get_link_prediction_service)]
 
 
+# ── Concept inference (B-092) ────────────────────────────────────────────────
+
+
+@lru_cache(maxsize=1)
+def get_concept_inference_store():
+    from storysphere.services.concept_inference_store import (  # noqa: PLC0415
+        ConceptInferenceStore,
+    )
+
+    # No settings knob: unlike the F-01 store there is nothing that redirects
+    # this path today, and the constructor default already points at ./var/.
+    return ConceptInferenceStore()
+
+
+@lru_cache(maxsize=1)
+def get_concept_inference_service():
+    from storysphere.pipelines.concept_inference import (  # noqa: PLC0415
+        ConceptInferencePipeline,
+    )
+    from storysphere.services.concept_inference_service import (  # noqa: PLC0415
+        ConceptInferenceService,
+    )
+
+    return ConceptInferenceService(
+        kg_service=get_kg_service(),
+        store=get_concept_inference_store(),
+        pipeline=ConceptInferencePipeline(
+            kg_service=get_kg_service(),
+            doc_service=get_doc_service(),
+        ),
+    )
+
+
+ConceptInferenceServiceDep = Annotated[Any, Depends(get_concept_inference_service)]
+
+
 # ── Faction detection (F-16) ─────────────────────────────────────────────────
 
 
