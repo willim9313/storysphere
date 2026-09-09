@@ -228,7 +228,7 @@ class TestUnravelingManifestStructure:
             ("kg_event", "eep"),
             ("kg_concept", "teu"),
             ("kg_concept_inferred", "teu"),
-            ("kg_event", "kg_concept_inferred"),
+            ("paragraphs", "kg_concept_inferred"),
             ("summaries", "teu"),
             ("cep", "character_analysis_result"),
             ("eep", "causality_analysis"),
@@ -336,6 +336,24 @@ class TestNodeStatus:
         assert nodes["kg_concept_inferred"]["counts"]["inferred"] == 1
         # Concept entities should NOT appear in kg_entity counts
         assert nodes["kg_entity"]["counts"]["concept"] == 0 if "concept" in nodes["kg_entity"]["counts"] else True
+
+    def test_concept_inference_hangs_only_off_paragraphs(self, client_factory):
+        """An incoming edge is a precondition, and blockers read it that way.
+
+        `kg_event` looks like an upstream — concept inference does read events —
+        but that node only reaches `complete` once every event carries a
+        narrative weight, which concept inference does not need. Wiring it up
+        left the trigger permanently blocked on any book with unclassified
+        events, i.e. nearly all of them.
+        """
+        with client_factory(*_make_mocks()) as client:
+            resp = client.get("/api/v1/books/book-1/unraveling")
+
+        sources = {
+            e["source"] for e in resp.json()["edges"]
+            if e["target"] == "kg_concept_inferred"
+        }
+        assert sources == {"paragraphs"}
 
     def test_ner_concepts_alone_complete_their_own_node(self, client_factory):
         """Before B-092 split them, NER output alone could only be `partial` —

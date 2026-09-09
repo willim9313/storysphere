@@ -38,10 +38,18 @@ EDGES: list[tuple[str, str]] = [
     # ── KG on-demand sub-nodes ────────────────────────────────────────────────
     ("eep", "kg_temporal_relation"),
     ("kg_event", "kg_temporal_relation"),
-    # Concept inference reads the paragraphs of high-tension events (B-092),
-    # so it hangs off both — it is not a second producer for `kg_concept`.
+    # Concept inference reads paragraphs, not `kg_concept` — it is a second
+    # producer of Concept nodes, not a second step of the NER one (B-092).
+    #
+    # It also reads events, but there is deliberately no `kg_event` edge: an
+    # incoming edge means "this must be complete before you may run me", and
+    # `kg_event` only reaches complete once every event carries a narrative
+    # weight. Concept inference needs none of that — it filters on
+    # `tension_signal` / `emotional_intensity`, which event extraction sets.
+    # With the edge in place the trigger was blocked on the seeded book (62
+    # events, partial), which is how this was found: in the browser, not in a
+    # test.
     ("paragraphs", "kg_concept_inferred"),
-    ("kg_event", "kg_concept_inferred"),
     # ── Layer 2: analysis intermediates ──────────────────────────────────────
     ("kg_entity", "cep"),
     ("paragraphs", "cep"),
