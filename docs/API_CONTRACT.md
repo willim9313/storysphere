@@ -2681,36 +2681,20 @@ interface MetricsSnapshot {
 
 ## 未納入契約的端點
 
-以下路由存在於程式碼，但**沒有任何呼叫端**——前端 API 層沒有對應的包裝函式，
-也沒有繞過 `apiFetch` 的直接呼叫，`tests/` 亦無覆蓋。
+目前沒有。
 
-**已判定移除，另案執行。新功能請勿接這些端點。**
+先前這裡列著 10 個無呼叫端的路由（`documents.py` 3 個、`entities.py` 5 個、
+`relations.py` 2 個），標記為「已判定移除，另案執行」。**2026-09-07 執行完畢**：
+三個 router 移除（`documents.py` 與 `relations.py` 整檔刪除，`entities.py` 只留
+`GET /entities/:entityId`——象徵頁的 `fetchEntityById` 在用），連同它們專屬的
+response schema 與測試檔。
 
-| 路徑 | Router |
-|------|--------|
-| `GET /documents` | `documents.py` |
-| `GET /documents/:documentId` | `documents.py` |
-| `GET /documents/:documentId/chapters/:chapterNumber/paragraphs` | `documents.py` |
-| `GET /entities` | `entities.py` |
-| `GET /entities/:entityId/relations` | `entities.py` |
-| `GET /entities/:entityId/timeline` | `entities.py` |
-| `GET /entities/:entityId/subgraph` | `entities.py` |
-| `GET /entities/:entityId/relation-stats` | `entities.py` |
-| `GET /relations/paths` | `relations.py` |
-| `GET /relations/stats` | `relations.py` |
+移除不影響 chat agent：那些端點與 `tools/graph_tools/` 下的工具是同一組 `KGService`
+方法的兩個平行外殼，agent 走工具那條路直接呼叫 service，不經 HTTP。
 
-**移除它們不會影響 chat agent。** 這些端點與 `tools/graph_tools/` 下的工具是同一組
-`KGService` 方法的兩個平行外殼——agent 走工具那條路，直接呼叫 service，不經 HTTP：
-
-| KGService 方法 | agent 走這條（活的） | HTTP 外殼（無呼叫端） |
-|---|---|---|
-| `get_entity_relations` | `tools/graph_tools/get_entity_relations.py` | `GET /entities/:id/relations` |
-| `get_entity_timeline` | `tools/graph_tools/get_entity_timeline.py` | `GET /entities/:id/timeline` |
-| `get_subgraph` | `tools/graph_tools/get_subgraph.py` | `GET /entities/:id/subgraph` |
-| `get_relation_paths` | `tools/graph_tools/get_relation_paths.py` | `GET /relations/paths` |
-| `get_relation_stats` | `tools/graph_tools/get_relation_stats.py` | `GET /relations/stats` |
-
-> 維護方式：路由刪除後，這張表也要一併清掉——`tests/docs/test_docs_drift.py::TestApiContractCoverage::test_unlisted_routes_still_exist` 會檢查表裡的路由是否仍存在。
+> 這一節保留而非刪除：`tests/docs/test_docs_drift.py::TestApiContractCoverage` 的兩條
+> 檢查（未寫進契約的端點、表裡已不存在的路由）都以它為錨。日後若又出現「存在但
+> 不打算支援」的路由，列進來是一個刻意的動作。
 
 ---
 

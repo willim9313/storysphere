@@ -14,13 +14,6 @@
     "intro": "The knowledge graph is built from entities and relations extracted from each chapter. This book has no nodes yet — make sure processing has finished, or re-upload it.",
     "cta": "Go to Upload"
   },
-  "toolbar": {
-    "searchPlaceholder": "Search entities...",
-    "resetView": "Reset View",
-    "animationMode": "Entry animation",
-    "anim_fade": "Fade",
-    "anim_stagger": "Stagger"
-  },
   "timeline": {
     "modal": {
       "title": "Timeline Structure Detected",
@@ -41,13 +34,9 @@
       "saving": "Saving…"
     },
     "controls": {
-      "title": "Timeline Snapshot",
       "reconfigure": "Reconfigure timeline",
-      "enable": "Enable snapshot",
       "modeReading": "Reading",
-      "modeStory": "Story",
-      "upToChapter": "Up to chapter",
-      "upToEvent": "Up to event"
+      "modeStory": "Story"
     }
   },
   "stats": "{{nodes}} nodes · {{edges}} relations",
@@ -58,13 +47,11 @@
   "statsAggregatedEdgeLabel": "aggregated",
   "statsUnderlyingNodeLabel": "underlying nodes",
   "panel": {
-    "entityInfo": "Entity Info",
     "deepAnalysis": "Deep Analysis",
     "relatedParagraphs": "Related Paragraphs",
     "eventInfo": "Event Info",
     "participants": "Participants",
     "eventAnalysis": "Event Analysis",
-    "appearancesMeta": "{{count}} appearances",
     "bookmark": "Bookmark",
     "bookmarked": "Bookmarked",
     "regenerate": "Regenerate",
@@ -79,7 +66,6 @@
     "chunkRef": "Ch.{{chapter}} · Chunk {{order}}"
   },
   "entity": {
-    "appearances": "Appears in {{count}} paragraphs",
     "triggerFailed": "Failed to trigger analysis. Please try again later.",
     "loading": "Loading...",
     "generated": "Generated · {{date}}",
@@ -89,7 +75,6 @@
     "analysisDone": "Deep analysis complete. Reload to view.",
     "noAnalysis": "No deep analysis yet. This will consume tokens.",
     "generate": "Generate Deep Analysis →",
-    "paragraphCount": "{{count}} paragraphs total",
     "viewParagraphs": "View Related Paragraphs →"
   },
   "event": {
@@ -117,8 +102,7 @@
   "v1": {
     "toolbar": {
       "searchPlaceholder": "Search entities…",
-      "reset": "Reset View",
-      "inferredChip": "Inferred · {{n}}"
+      "reset": "Reset View"
     },
     "cluster": {
       "label": "Cluster mode",
@@ -131,13 +115,10 @@
       "drillInTitle": "{{typeName}} cluster · {{n}} members",
       "drillInFactionTitle": "{{name}} · {{n}} members",
       "members": "{{n}} members",
-      "memberCount": "{{n}}",
-      "noTopMembers": "(no members)",
       "sortImportance": "By importance",
       "sortName": "By name",
       "back": "Back",
       "toggleSort": "Toggle sort",
-      "cohesion": "Cohesion {{v}}",
       "unaffiliated": "Unaffiliated ({{n}})",
       "communityScope": {
         "heading": "Scope of this view",
@@ -211,12 +192,7 @@
         "adopt": "Adopt",
         "reject": "Reject",
         "empty": "No inferred relations awaiting review",
-        "rerun": "Re-run",
-        "rerunTitle": "Recompute scores (keeps past decisions)",
-        "rerunForce": "Reset",
-        "rerunForceTitle": "Reset all decisions and recompute",
-        "rerunForceConfirm": "This resets every adopted / rejected decision back to pending. Relations already written to the graph remain, but they will reappear here for review. Continue?",
-        "rerunning": "Recomputing…"
+        "rerunForceConfirm": "This resets every adopted / rejected decision back to pending. Relations already written to the graph remain, but they will reappear here for review. Continue?"
       }
     },
     "compare": {
@@ -224,15 +200,11 @@
       "suggested": "Suggested inferences",
       "noSuggested": "No candidate inferences between them yet.",
       "basicInfo": "Basic info",
-      "appearances": "Appearances",
       "attributes": "Attributes",
       "type": "Type",
       "appearanceCount": "Appearance count"
     },
     "legend": {
-      "title": "Legend / Layers",
-      "inferred": "Inferred",
-      "edgeSemantics": "Edge semantics",
       "edgeCooperative": "Cooperative",
       "edgeHostile": "Hostile",
       "edgeNeutral": "Neutral",
@@ -240,12 +212,6 @@
       "circleSizeHint": "Circle size = appearance frequency"
     },
     "lens": {
-      "title": "Lens",
-      "subtitle": "Lens · Chapter {{n}} / {{total}}",
-      "subtitleAll": "Lens · All chapters",
-      "timeline": "Time Range",
-      "epistemic": "Perspective",
-      "bookmarks": "Bookmarks",
       "tabTimeline": "Timeline",
       "tabEpistemic": "Perspective",
       "tabBookmarks": "Bookmarks",
@@ -259,7 +225,6 @@
       "epistemicIntro": "See the world through one character's knowledge",
       "selectPerspective": "Choose perspective",
       "perspectiveOf": "{{name}}'s view",
-      "perspectiveHint": "depends on ↑ chapter {{chapter}}",
       "clearPerspective": "Clear perspective",
       "noCharacters": "No characters available",
       "epistemicToggleLabel": "Enable perspective",

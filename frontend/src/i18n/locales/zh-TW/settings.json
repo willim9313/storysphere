@@ -58,7 +58,6 @@
     "sub": "DEPLOY_MODE 決定所有儲存層的行為。為開發者選項，一般使用者無需調整。",
     "deployTitle": "部署模式",
     "lightweight": "Lightweight",
-    "lightweightCur": "（目前）",
     "standard": "Standard",
     "lwDesc": "開箱即用，無需額外服務",
     "stDesc": "需自行啟動外部服務",

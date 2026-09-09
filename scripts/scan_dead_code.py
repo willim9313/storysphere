@@ -93,6 +93,10 @@ def _dynamic_prefixes(code: str) -> set[str]:
     missed ``const key = `ns.x.${v}`; t(key)`` and reported three keys as unused
     that VoiceProfilingPanel builds at runtime. Taking the prefix from *any*
     template literal costs nothing and does not care how the value travels.
+
+    The prefix is kept **without** requiring a trailing dot, because the
+    interpolation can land mid-segment: ``nav.badge${cap(kind)}`` builds
+    ``nav.badgeDev``. See the matching side in :func:`scan_i18n`.
     """
     out: set[str] = set()
     for m in re.finditer(r"`([^`]*?)\$\{", code):
@@ -231,7 +235,15 @@ def scan_i18n() -> int:
     for f in sorted((FRONTEND / "i18n/locales/zh-TW").glob("*.json")):
         for path in leaves(json.loads(f.read_text())):
             total += 1
-            if any(path == p or path.startswith(p + ".") for p in dyn):
+            # `p + "."` alone is not enough: the interpolation can land in the
+            # *middle of a segment*, as in `nav.badge${cap(kind)}` — the prefix
+            # is "nav.badge" and the key is "nav.badgeDev", which shares no dot
+            # boundary with it. That gap deleted three live keys in the 2026-09-08
+            # sweep and the settings page rendered bare `nav.badgeDev` until a
+            # browser check caught it. Plain `startswith` covers both shapes; it
+            # is looser, but the failure it prevents (a live key deleted) is worse
+            # than the one it risks (a dead key kept).
+            if any(path == p or path.startswith(p) for p in dyn):
                 guarded += 1
                 continue
             if re.search(rf"['\"`]{re.escape(path)}['\"`]", code):

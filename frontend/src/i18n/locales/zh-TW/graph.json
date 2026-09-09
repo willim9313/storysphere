@@ -14,13 +14,6 @@
     "intro": "知識圖譜由各章節的實體與關係萃取而成。這本書還沒有節點——請確認書籍已完成處理，或重新上傳。",
     "cta": "前往上傳"
   },
-  "toolbar": {
-    "searchPlaceholder": "搜尋實體...",
-    "resetView": "重置視圖",
-    "animationMode": "入場動畫",
-    "anim_fade": "淡入",
-    "anim_stagger": "逐個"
-  },
   "timeline": {
     "modal": {
       "title": "偵測到時間結構",
@@ -41,13 +34,9 @@
       "saving": "儲存中…"
     },
     "controls": {
-      "title": "時間軸快照",
       "reconfigure": "重新設定時間軸",
-      "enable": "啟用快照",
       "modeReading": "閱讀",
-      "modeStory": "故事",
-      "upToChapter": "截至第...章",
-      "upToEvent": "截至第...事件"
+      "modeStory": "故事"
     }
   },
   "stats": "{{nodes}} 節點 · {{edges}} 關係",
@@ -58,13 +47,11 @@
   "statsAggregatedEdgeLabel": "聚合關係",
   "statsUnderlyingNodeLabel": "底層節點",
   "panel": {
-    "entityInfo": "實體資訊",
     "deepAnalysis": "深度分析",
     "relatedParagraphs": "相關段落",
     "eventInfo": "事件資訊",
     "participants": "參與者",
     "eventAnalysis": "事件分析",
-    "appearancesMeta": "登場 {{count}} 段",
     "bookmark": "標記",
     "bookmarked": "已標記",
     "regenerate": "覆蓋重生成",
@@ -79,7 +66,6 @@
     "chunkRef": "章節 {{chapter}} · 片段 {{order}}"
   },
   "entity": {
-    "appearances": "出現於 {{count}} 個段落",
     "triggerFailed": "觸發分析失敗，請稍後再試。",
     "loading": "載入中...",
     "generated": "已生成 · {{date}}",
@@ -89,7 +75,6 @@
     "analysisDone": "深度分析已完成。重新載入後即可查看。",
     "noAnalysis": "尚未生成深度分析。此操作將消耗 token。",
     "generate": "生成深度分析 →",
-    "paragraphCount": "共 {{count}} 個段落",
     "viewParagraphs": "查看相關段落 →"
   },
   "event": {
@@ -117,8 +102,7 @@
   "v1": {
     "toolbar": {
       "searchPlaceholder": "搜尋實體…",
-      "reset": "重設視圖",
-      "inferredChip": "推斷 · {{n}}"
+      "reset": "重設視圖"
     },
     "cluster": {
       "label": "群集模式",
@@ -131,13 +115,10 @@
       "drillInTitle": "{{typeName}}群集 · {{n}} 個成員",
       "drillInFactionTitle": "{{name}} · {{n}} 名成員",
       "members": "{{n}} 個成員",
-      "memberCount": "{{n}}",
-      "noTopMembers": "（無成員）",
       "sortImportance": "依重要性",
       "sortName": "依名稱",
       "back": "上一階",
       "toggleSort": "切換排序",
-      "cohesion": "凝聚 {{v}}",
       "unaffiliated": "無派系 ({{n}})",
       "communityScope": {
         "heading": "此檢視範圍",
@@ -211,12 +192,7 @@
         "adopt": "採用",
         "reject": "否決",
         "empty": "尚無待審查推斷關係",
-        "rerun": "重跑",
-        "rerunTitle": "重新計算（保留歷史決定）",
-        "rerunForce": "重跡",
-        "rerunForceTitle": "強制重算",
-        "rerunForceConfirm": "重跡會把所有「已採用 / 已否決」的決定重設為待審查，原本寫入圖譜的關係不會被刪除，但會以待審查狀態再次出現。確定繼續嗎？",
-        "rerunning": "重新計算中…"
+        "rerunForceConfirm": "重跡會把所有「已採用 / 已否決」的決定重設為待審查，原本寫入圖譜的關係不會被刪除，但會以待審查狀態再次出現。確定繼續嗎？"
       }
     },
     "compare": {
@@ -224,15 +200,11 @@
       "suggested": "建議推斷關係",
       "noSuggested": "兩者之間目前沒有候選推斷關係。",
       "basicInfo": "基本資料",
-      "appearances": "出場章節",
       "attributes": "屬性",
       "type": "類型",
       "appearanceCount": "出現段數"
     },
     "legend": {
-      "title": "圖例 / 圖層",
-      "inferred": "推斷",
-      "edgeSemantics": "邊語意",
       "edgeCooperative": "合作",
       "edgeHostile": "敵對",
       "edgeNeutral": "一般",
@@ -240,12 +212,6 @@
       "circleSizeHint": "圓圈大小＝登場頻率"
     },
     "lens": {
-      "title": "視角",
-      "subtitle": "Lens · 章節 {{n}} / {{total}}",
-      "subtitleAll": "Lens · 全部章節",
-      "timeline": "時間範圍 · Timeline",
-      "epistemic": "認知視角 · Epistemic",
-      "bookmarks": "已標記 · Bookmarks",
       "tabTimeline": "時間軸",
       "tabEpistemic": "認知視角",
       "tabBookmarks": "書籤",
@@ -259,7 +225,6 @@
       "epistemicIntro": "從某角色的認知看世界",
       "selectPerspective": "選擇視角",
       "perspectiveOf": "{{name}} 視角",
-      "perspectiveHint": "依賴 ↑ 章節 {{chapter}}",
       "clearPerspective": "清除視角",
       "noCharacters": "無可選角色",
       "epistemicToggleLabel": "啟用認知視角",

@@ -4,7 +4,6 @@
   "loading": "載入中…",
   "search": "搜尋…",
   "retry": "重試",
-  "create": "建立",
   "triggerFailed": "觸發分析失敗，請稍後再試。",
   "status": {
     "analyzed": "已分析",

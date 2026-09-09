@@ -725,9 +725,37 @@ TensionTheme，不設在原料層 TEU），已寫進 `docs/guides/tension-analys
 （`` `tl-pill-${type}` ``），同一套修法。
 
 **待辦**:
-- ~~CSS 那 86 筆~~ **已於 2026-09-06 清完**（見下）。i18n 那 340 筆仍**不宜批次刪**：
-  刪錯會在畫面上顯示裸 key，而 167 處「開頭即插值」的模板取不到前綴、無法被守衛涵蓋。
-  那是一次獨立的逐項走查。
+- ~~CSS 那 86 筆~~ **已於 2026-09-06 清完**（見下）。~~i18n 那 340 筆~~
+  **已於 2026-09-08 清完**：340 → 19（見下）。
+
+**i18n 那 340 筆的走查結果（2026-09-08）**：**刪 309、留 31**（19 個受動態前綴保護 +
+12 個誤刪後還原）。
+
+**「167 處開頭即插值」這個 caveat 被解決了，不是繞過**：逐一檢視後，其中 **166 處是
+SVG／CSS 座標**（`` `${x} ${y}` ``），長得像 i18n key 的**只有一處** ——
+`BatchEepPanel` 的 `` `${i18nPrefix}.${suffix}` ``。它唯一的呼叫端
+（`EventAnalysisPage`）不傳 `i18nPrefix`，所以只會組出 `batch.*`；那 19 個 key
+**正在事件分析頁上顯示**，批次刪除會讓整片面板變成裸 key。先扣掉它們，剩下的 321
+才逐項走查。
+
+**另外兩種動態組法也查過**：字串相加組 key（0 處）、`t(變數)`（3 處，其中兩處的
+變數來自**字串字面值對照表**，掃描器的子字串比對找得到；一處是
+`VoiceProfilingPanel` 的 `` `character.voice.tones.${raw}` ``，有靜態前綴、擋得住）。
+
+**踩到一個掃描器的洞，靠瀏覽器實測抓回來**：刪完之後跑 15 頁的 DOM 掃描（找形如
+`a.b.c` 的文字節點），設定頁出現三個裸 `nav.badge*`。成因是 `_dynamic_prefixes` 有取到
+前綴 `nav.badge`，但**比對端**只認 `path == p` 或 `path.startswith(p + ".")` ——
+插值落在**段之間**（`ns.x.${v}`）擋得住，落在**字中間**
+（`` nav.badge${cap(kind)} `` → `nav.badgeDev`）就擋不住，兩者不共享 `.` 邊界。
+
+用同一個判準回頭重掃，又找出 9 個（象徵頁空狀態 6、張力頁排序 3）——**那 9 個視覺
+掃描沒抓到，因為那些狀態當時沒出現在畫面上**。12 個全部還原，並修掉掃描器的比對
+（改為 `startswith(p)`），shielded 從 376 升到 401。
+
+**這印證了 B-091 記過兩次的那句話**：不要把掃描器說的當成事實。這次是第三次，而且是
+唯一一次「照掃描器做了才發現它錯」——前兩次都是在動手前發現的。
+
+**驗證**：15 個頁面逐頁掃 DOM 文字節點找裸 key，全部乾淨。
 
 **CSS 那 86 筆的走查結果（2026-09-06）**：**全部是第 1 種（真死碼），沒有第 2、3 種。**
 兩種來源，形狀完全不同：
@@ -1207,6 +1235,43 @@ token 成本也遠高於其他工具，目前唯一的節流是工具 descriptio
 
 ---
 
+#### B-105 移除 10 個無呼叫端的 HTTP 端點 ✅ 已完成（2026-09-07）
+
+**背景**: `API_CONTRACT.md` 的「未納入契約的端點」表列了 10 個路由，標記為
+**「已判定移除，另案執行」**——判定早就做過，只是沒人執行。本次執行。
+
+| 檔案 | 移除 | 保留 |
+|---|---|---|
+| `documents.py` | 3 個（整檔刪除） | — |
+| `entities.py` | 5 個 | `GET /entities/:entityId`（#24a，象徵頁的 `fetchEntityById` 在用）|
+| `relations.py` | 2 個（整檔刪除） | — |
+
+**移除不影響 chat agent**：那些端點與 `tools/graph_tools/` 下的工具是同一組
+`KGService` 方法的兩個平行外殼，agent 走工具那條路直接呼叫 service，不經 HTTP。
+移除前逐一確認過：外部對 `get_entity_relations` / `get_relation_paths` 等名稱的引用
+全部指向**同名的 service 方法與 chat 工具**，不是 HTTP handler。
+
+**連同清掉的殘骸**（移除的直接後果，不是順手整理）:
+- response schema 7 個：`EntityListResponse`、`RelationResponse`、`TimelineEntry`、
+  `SubgraphResponse`、`RelationStatsResponse`、`DocumentResponse`、`ParagraphResponse`
+  ——移除後只剩「自己的定義 + `schemas/__init__.py` 轉出」，正是 B-104 記下的
+  「轉出而無下游消費」那類掃描盲點
+- `schemas/documents.py` 的 `ChapterResponse` 一併刪除：它與 `schemas/books.py` 的
+  **同名 class** 並存，活的是後者（`book_reader` 用它）。同名並存本身就是誤刪的陷阱，
+  所以刪前特地分辨了 4 處引用指向哪一個
+- 測試檔 `test_documents.py` / `test_relations.py` 刪除，`test_entities.py` 裁到只剩
+  留下的那個端點
+
+**`generated.ts` 少 673 行**（重產）。
+
+**契約那一節保留而非刪除**：`test_docs_drift.py::TestApiContractCoverage` 的兩條檢查
+都以它為錨。內容改為「目前沒有」，並記下日後若又出現「存在但不打算支援」的路由，
+列進來是一個刻意的動作。
+
+**觸發時機**: 已執行。
+
+---
+
 #### B-094 pytest 有一個間歇性失敗（約 1/8）
 
 **背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
@@ -1343,6 +1408,25 @@ Neo4j 的 `save()` 是 no-op，所以雙後端都正確。
 
 **注意**: 濾掉之後 `search_by_keyword` 這類候選要照 B-091 的三種結局逐一走查，
 **不可批次刪**。
+
+**`VectorService.search_by_keyword` 的處置（2026-09-08）：刪除**（判定為第 1 種）。
+三個理由，第一個是決定性的：
+
+1. **它搜的不是文字，是關鍵字欄位**。`MatchValue(key="keywords")` 比對的是每段
+   **最多 10 個抽取出來的關鍵字**，不是段落內文。使用者問「哪裡提到劍」，它只答得出
+   「哪些段落的前 10 個關鍵字包含劍」——召回率天生很差
+2. **真正的文字搜尋已經存在**：`DocumentService.search_paragraphs_by_text`，
+   由 `routers/search.py`（搜尋頁）在用
+3. **語意搜尋也已經存在**：`vector_search` 工具，chat agent 一直有。再加一個重疊的
+   工具會直接影響 ADR-008 的選擇準確率目標（工具數剛從 21 變 23，見 B-104）
+
+也就是說它夾在兩個更好的方案之間，能力比兩者都弱。連同 `_scroll_keyword` 與
+`KeywordSearchResult` 一併移除，共 83 行。**掃描器候選 3 → 2**，剩下的兩個
+（`get_fallback`、`ConceptInferencePipeline`）都有有效的暫緩理由。
+
+**這也收掉了 B-102 留下的線頭**：Qdrant payload 裡的 `keywords` 從此無人讀取。
+payload 要不要繼續帶它是另一題——它不佔 LLM 成本，寫入端也不需要為它多做事，
+所以沒有一併處理。
 
 **已完成（2026-09-06）**: `_code_only()` 以 `tokenize` 濾掉 COMMENT / STRING /
 FSTRING_MIDDLE 後再計數。同一次順帶把**私有方法**納入掃描（原本 `startswith("_")`
@@ -1903,10 +1987,11 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-088 | 書卡狀態徽章永遠是「已就緒」 | 🟢 低 | ✅ 已完成（2026-08-22；改由 pipeline_status 推導 3 值，`processing` 證實產不出來已移除；順帶收掉 PipelineStatusResponse，見 ARCHIVE） |
 | B-089 | 建構概覽把從未執行過的步驟標成「已完成」 | 🟡 中 | ✅ 已完成（2026-09-05 PR #79；`kg_concept` 兩半都非零才 complete，並移除永遠推不動它的 CTA，見 ARCHIVE） |
 | B-090 | 零引用符號清除（第一批） | 🟢 低 | ✅ 已完成（2026-09-05 PR #80；5 個候選三種結局——3 刪、1 因是被手抄的 schema 改為讓工具用它、1 暫緩待 B-075，見 ARCHIVE） |
-| B-091 | 全面徹查零使用程式碼 | 🟡 中 | 🔶 進行中（2026-09-06；掃描器固定為 `scripts/scan_dead_code.py`；前端匯出 15→0、backend 3→1、model 欄位 3 筆已刪（PR #88 #89）；i18n 340 與 CSS 86 待逐項走查）|
+| B-091 | 全面徹查零使用程式碼 | 🟡 中 | ✅ 已完成（2026-09-08；backend 3→2、前端匯出 15→0、CSS 86→0、i18n 340→19、model 欄位 5 筆、私有方法範圍清空；掃描器修掉三個判準缺陷） |
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 1 段已完成（B-089）；第 2/3 段待排，需先決定要不要加側存 + HITL |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-105 | 移除 10 個無呼叫端的 HTTP 端點 | 🟢 低 | ✅ 已完成（2026-09-07；`documents.py` / `relations.py` 整檔刪除、`entities.py` 只留 `GET /:entityId`，連同 7 個孤兒 schema 與兩個測試檔；generated.ts 少 673 行） |
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | ✅ 已完成（2026-09-07；雙後端新增 `relation_count_for()`，雙向關聯去重，實測 696 → 分書 203/69/259/55） |
 | B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | ✅ 已完成（2026-09-07；`paragraphs.keywords_json` + 寫入 2 處讀取 3 處；既有書需重跑 feature-extraction 才有值） |
@@ -1974,4 +2059,4 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 > ✅ **ID 撞號已解（2026-06-30）**：原先 Active backlog 與 BACKLOG_ARCHIVE.md 有三組 ID 撞號，已重編 Active 側的開放項：建構概覽 CTA B-044→**B-046**、KG 節點識別 B-043→**B-047**、Neo4j Link Prediction B-035→**B-048**。已歸檔的閱讀頁 B-043/B-044 與坎伯英雄旅程 B-035 保留原號。同時補回先前漏列於狀態表的 B-042。
 
 **維護者**: William
-**最後更新**: 2026-09-07（T2 四張票 B-095 / B-101 / B-102 / B-103 全數完成）
+**最後更新**: 2026-09-08（i18n 340 → 19，B-091 全面走查告一段落）

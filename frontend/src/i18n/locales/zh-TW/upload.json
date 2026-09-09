@@ -17,16 +17,13 @@
   "titleHint": "可在書庫中隨時修改",
   "authorPlaceholder": "未偵測到，可稍後填寫",
   "confirmUpload": "確認上傳",
-  "enterBook": "進入書籍",
   "processingSection": "處理中",
   "duplicateTitleWarning": "已有同名書籍《{{title}}》，本次上傳仍會繼續進行。",
-  "completedSection": "已完成",
   "dropzone": {
     "dragText": "拖曳檔案至此，或點擊選擇檔案",
     "supportText": "支援 .pdf、.docx、.txt、.epub 格式，可多選 · 檔案大小上限 50 MB",
     "errorInvalidFormat": "請上傳 PDF、DOCX、TXT 或 EPUB 格式的檔案",
-    "errorTooLarge": "檔案大小超過 {{max}} MB 上限",
-    "errorOneFileOnly": "一次只能上傳一個檔案"
+    "errorTooLarge": "檔案大小超過 {{max}} MB 上限"
   },
   "review": {
     "title": "審閱章節結構",
@@ -65,7 +62,6 @@
     "discard": "放棄上傳",
     "discardConfirm": "刪除整本書並放棄上傳？此動作無法復原。",
     "discardConfirmBtn": "確定放棄",
-    "goToBook": "前往《{{title}}》",
     "errorLoad": "無法載入章節資料，請稍後再試。",
     "errorSubmit": "提交失敗，請稍後再試。",
     "spineTitle": "全書結構脊",
@@ -73,10 +69,7 @@
     "spineToggle": "收合／展開全書結構",
     "railHint": "各章段落長度比例（點一下跳到該章）",
     "infoRow": "左側結構脊可標記章節角色、每段右側選單可標記段落角色 · 角色定義見右側對照表",
-    "roleTooltipChTitle": "章節角色（整章適用）",
-    "roleTooltipPaTitle": "段落角色（章內例外標記）",
     "suggestRoles": "邊界輔助辨識",
-    "suggestRolesHint": "由 AI 從書籍頭尾逐段判讀是否為非正文（版權／目錄／序／跋／作者簡介等），會消耗 token。",
     "suggesting": "偵測中…",
     "suggestDone": "已套用 AI 建議",
     "aiScanBanner": "AI 正從書首、書尾逐段回推，判定正文 / 非正文…",

@@ -972,191 +972,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/entities/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Entities */
-        get: operations["list_entities_api_v1_entities__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/entities/{entity_id}/relations": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Entity Relations */
-        get: operations["get_entity_relations_api_v1_entities__entity_id__relations_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/entities/{entity_id}/timeline": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Entity Timeline */
-        get: operations["get_entity_timeline_api_v1_entities__entity_id__timeline_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/entities/{entity_id}/subgraph": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Entity Subgraph */
-        get: operations["get_entity_subgraph_api_v1_entities__entity_id__subgraph_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/entities/{entity_id}/relation-stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Entity Relation Stats */
-        get: operations["get_entity_relation_stats_api_v1_entities__entity_id__relation_stats_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/relations/paths": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Relation Paths
-         * @description Find all simple paths between two entities in the knowledge graph.
-         */
-        get: operations["get_relation_paths_api_v1_relations_paths_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/relations/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Relation Stats
-         * @description Return relation-type distribution and weight statistics.
-         */
-        get: operations["get_relation_stats_api_v1_relations_stats_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/documents/": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Documents
-         * @description List all ingested documents (lightweight).
-         */
-        get: operations["list_documents_api_v1_documents__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/documents/{document_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Document
-         * @description Return full document details including chapter list.
-         */
-        get: operations["get_document_api_v1_documents__document_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/documents/{document_id}/chapters/{chapter_number}/paragraphs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Chapter Paragraphs
-         * @description Return all paragraphs for a specific chapter.
-         */
-        get: operations["get_chapter_paragraphs_api_v1_documents__document_id__chapters__chapter_number__paragraphs_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/search/": {
         parameters: {
             query?: never;
@@ -2563,6 +2378,35 @@ export interface components {
                 [key: string]: number[];
             };
         };
+        /** ChapterResponse */
+        ChapterResponse: {
+            /** Id */
+            id: string;
+            /** Bookid */
+            bookId: string;
+            /** Title */
+            title: string;
+            /** Order */
+            order: number;
+            /**
+             * Chunkcount
+             * @default 0
+             */
+            chunkCount: number;
+            /**
+             * Entitycount
+             * @default 0
+             */
+            entityCount: number;
+            /** Summary */
+            summary?: string | null;
+            /** Topentities */
+            topEntities?: components["schemas"]["TopEntity"][] | null;
+            /** Keywords */
+            keywords?: {
+                [key: string]: number;
+            } | null;
+        };
         /** CharacterAnalysisDetailResponse */
         CharacterAnalysisDetailResponse: {
             /** Entityid */
@@ -2764,37 +2608,6 @@ export interface components {
             /** Language */
             language: string;
         };
-        /** DocumentResponse */
-        DocumentResponse: {
-            /** Id */
-            id: string;
-            /** Title */
-            title: string;
-            /** Author */
-            author: string | null;
-            /** File Type */
-            file_type: string;
-            /** Summary */
-            summary: string | null;
-            /** Total Chapters */
-            total_chapters: number;
-            /** Total Paragraphs */
-            total_paragraphs: number;
-            /** Chapters */
-            chapters: components["schemas"]["storysphere__api__schemas__documents__ChapterResponse"][];
-        };
-        /**
-         * DocumentSummary
-         * @description Lightweight document entry for list responses.
-         */
-        DocumentSummary: {
-            /** Id */
-            id: string;
-            /** Title */
-            title: string;
-            /** File Type */
-            file_type: string;
-        };
         /** EdgeData */
         EdgeData: {
             /** Source */
@@ -2877,13 +2690,6 @@ export interface components {
              * @default []
              */
             chunks: components["schemas"]["EntityChunkItem"][];
-        };
-        /** EntityListResponse */
-        EntityListResponse: {
-            /** Items */
-            items: components["schemas"]["EntityResponse"][];
-            /** Total */
-            total: number;
         };
         /** EntityResponse */
         EntityResponse: {
@@ -3616,24 +3422,6 @@ export interface components {
             parentId?: string | null;
         };
         /**
-         * ParagraphResponse
-         * @description Single paragraph within a chapter.
-         */
-        ParagraphResponse: {
-            /** Id */
-            id: string;
-            /** Text */
-            text: string;
-            /** Chapter Number */
-            chapter_number: number;
-            /** Position */
-            position: number;
-            /** Keywords */
-            keywords?: {
-                [key: string]: number;
-            } | null;
-        };
-        /**
          * ParseTocRequest
          * @description Body for POST /books/:bookId/parse-toc (目錄對照提示).
          *
@@ -3701,47 +3489,6 @@ export interface components {
              */
             force: boolean;
         };
-        /** RelationPathsResponse */
-        RelationPathsResponse: {
-            /** Source Id */
-            source_id: string;
-            /** Target Id */
-            target_id: string;
-            /** Paths */
-            paths: {
-                [key: string]: unknown;
-            }[][];
-        };
-        /** RelationResponse */
-        RelationResponse: {
-            /** Id */
-            id: string;
-            /** Source Id */
-            source_id: string;
-            /** Target Id */
-            target_id: string;
-            relation_type: components["schemas"]["RelationType"];
-            /** Description */
-            description: string | null;
-            /** Weight */
-            weight: number;
-            /** Chapters */
-            chapters: number[];
-            /** Is Bidirectional */
-            is_bidirectional: boolean;
-        };
-        /** RelationStatsResponse */
-        RelationStatsResponse: {
-            /** Stats */
-            stats: {
-                [key: string]: unknown;
-            };
-        };
-        /**
-         * RelationType
-         * @enum {string}
-         */
-        RelationType: "family" | "friendship" | "romance" | "enemy" | "ally" | "subordinate" | "located_in" | "member_of" | "owns" | "other";
         /** ReviewChapterInput */
         ReviewChapterInput: {
             /**
@@ -4010,17 +3757,6 @@ export interface components {
          * @enum {string}
          */
         StepStatus: "pending" | "done" | "failed";
-        /** SubgraphResponse */
-        SubgraphResponse: {
-            /** Nodes */
-            nodes: {
-                [key: string]: unknown;
-            }[];
-            /** Edges */
-            edges: {
-                [key: string]: unknown;
-            }[];
-        };
         /**
          * SuggestRolesResponse
          * @description LLM-proposed front/back matter boundaries for the review UI to split on.
@@ -4726,24 +4462,6 @@ export interface components {
             /** Storymodeviable */
             storyModeViable: boolean;
         };
-        /** TimelineEntry */
-        TimelineEntry: {
-            /** Event Id */
-            event_id: string;
-            /** Title */
-            title: string;
-            /** Chapter */
-            chapter: number | null;
-            /** Description */
-            description: string | null;
-            /** Chronological Rank */
-            chronological_rank?: number | null;
-            /**
-             * Narrative Mode
-             * @default unknown
-             */
-            narrative_mode: string;
-        };
         /** TimelineEventEntry */
         TimelineEventEntry: {
             /** Id */
@@ -4963,50 +4681,6 @@ export interface components {
              * Format: date-time
              */
             analyzedAt: string;
-        };
-        /** ChapterResponse */
-        storysphere__api__schemas__books__ChapterResponse: {
-            /** Id */
-            id: string;
-            /** Bookid */
-            bookId: string;
-            /** Title */
-            title: string;
-            /** Order */
-            order: number;
-            /**
-             * Chunkcount
-             * @default 0
-             */
-            chunkCount: number;
-            /**
-             * Entitycount
-             * @default 0
-             */
-            entityCount: number;
-            /** Summary */
-            summary?: string | null;
-            /** Topentities */
-            topEntities?: components["schemas"]["TopEntity"][] | null;
-            /** Keywords */
-            keywords?: {
-                [key: string]: number;
-            } | null;
-        };
-        /** ChapterResponse */
-        storysphere__api__schemas__documents__ChapterResponse: {
-            /** Id */
-            id: string;
-            /** Number */
-            number: number;
-            /** Title */
-            title: string | null;
-            /** Summary */
-            summary: string | null;
-            /** Word Count */
-            word_count: number;
-            /** Paragraph Count */
-            paragraph_count: number;
         };
     };
     responses: never;
@@ -5394,7 +5068,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["storysphere__api__schemas__books__ChapterResponse"][];
+                    "application/json": components["schemas"]["ChapterResponse"][];
                 };
             };
             /** @description Validation Error */
@@ -6537,323 +6211,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EntityResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_entities_api_v1_entities__get: {
-        parameters: {
-            query?: {
-                /** @description Filter by entity type */
-                entity_type?: string | null;
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["EntityListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_entity_relations_api_v1_entities__entity_id__relations_get: {
-        parameters: {
-            query?: {
-                relation_type?: string | null;
-                /** @description 'outgoing', 'incoming', or 'both' */
-                direction?: string;
-            };
-            header?: never;
-            path: {
-                entity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RelationResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_entity_timeline_api_v1_entities__entity_id__timeline_get: {
-        parameters: {
-            query?: {
-                /** @description 'narrative' or 'chronological' */
-                order?: string;
-            };
-            header?: never;
-            path: {
-                entity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TimelineEntry"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_entity_subgraph_api_v1_entities__entity_id__subgraph_get: {
-        parameters: {
-            query?: {
-                k_hops?: number;
-            };
-            header?: never;
-            path: {
-                entity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SubgraphResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_entity_relation_stats_api_v1_entities__entity_id__relation_stats_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                entity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RelationStatsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_relation_paths_api_v1_relations_paths_get: {
-        parameters: {
-            query: {
-                /** @description Source entity ID */
-                source_id: string;
-                /** @description Target entity ID */
-                target_id: string;
-                max_length?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RelationPathsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_relation_stats_api_v1_relations_stats_get: {
-        parameters: {
-            query?: {
-                /** @description Scope to a specific entity (optional) */
-                entity_id?: string | null;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["RelationStatsResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_documents_api_v1_documents__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentSummary"][];
-                };
-            };
-        };
-    };
-    get_document_api_v1_documents__document_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_chapter_paragraphs_api_v1_documents__document_id__chapters__chapter_number__paragraphs_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                document_id: string;
-                chapter_number: number;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ParagraphResponse"][];
                 };
             };
             /** @description Validation Error */

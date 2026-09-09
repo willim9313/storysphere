@@ -5,7 +5,6 @@ from typing import Any
 from pydantic import BaseModel
 
 from storysphere.domain.entities import Entity, EntityType
-from storysphere.domain.relations import Relation, RelationType
 
 
 class EntityResponse(BaseModel):
@@ -30,50 +29,3 @@ class EntityResponse(BaseModel):
             first_appearance_chapter=e.first_appearance_chapter,
             mention_count=e.mention_count,
         )
-
-
-class EntityListResponse(BaseModel):
-    items: list[EntityResponse]
-    total: int
-
-
-class RelationResponse(BaseModel):
-    id: str
-    source_id: str
-    target_id: str
-    relation_type: RelationType
-    description: str | None
-    weight: float
-    chapters: list[int]
-    is_bidirectional: bool
-
-    @classmethod
-    def from_domain(cls, r: Relation) -> RelationResponse:
-        return cls(
-            id=r.id,
-            source_id=r.source_id,
-            target_id=r.target_id,
-            relation_type=r.relation_type,
-            description=r.description,
-            weight=r.weight,
-            chapters=r.chapters,
-            is_bidirectional=r.is_bidirectional,
-        )
-
-
-class TimelineEntry(BaseModel):
-    event_id: str
-    title: str
-    chapter: int | None
-    description: str | None
-    chronological_rank: float | None = None
-    narrative_mode: str = "unknown"
-
-
-class SubgraphResponse(BaseModel):
-    nodes: list[dict[str, Any]]
-    edges: list[dict[str, Any]]
-
-
-class RelationStatsResponse(BaseModel):
-    stats: dict[str, Any]

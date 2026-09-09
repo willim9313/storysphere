@@ -12,16 +12,8 @@
     "character": "人物",
     "archetype": "原型"
   },
-  "summary": {
-    "found": "找到 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> 本書籍",
-    "more": "+{{count}} 本"
-  },
   "result": {
-    "relevance": "相關度",
-    "mentions": "提及：",
-    "goToReader": "前往閱讀",
-    "goToBook": "前往該書",
-    "chapterPos": "第{{chapter}}章·§{{position}}"
+    "goToBook": "前往該書"
   },
   "empty": {
     "noResults": "找不到相關段落",
