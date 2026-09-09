@@ -183,7 +183,8 @@ class TestUnravelingManifestStructure:
         expected = {
             "book_meta", "chapters", "paragraphs",
             "summaries", "keywords", "symbols",
-            "kg_entity", "kg_concept", "kg_relation", "kg_event", "kg_temporal_relation",
+            "kg_entity", "kg_concept", "kg_concept_inferred", "kg_relation", "kg_event",
+            "kg_temporal_relation",
             "cep", "eep", "teu", "sep",
             "character_analysis_result", "symbol_analysis_result",
             "causality_analysis", "impact_analysis",
@@ -199,7 +200,10 @@ class TestUnravelingManifestStructure:
             resp = client.get("/api/v1/books/book-1/unraveling")
 
         nodes_by_id = {n["nodeId"]: n for n in resp.json()["nodes"]}
-        for child_id in ("kg_entity", "kg_concept", "kg_relation", "kg_event", "kg_temporal_relation"):
+        for child_id in (
+            "kg_entity", "kg_concept", "kg_concept_inferred", "kg_relation", "kg_event",
+            "kg_temporal_relation",
+        ):
             assert nodes_by_id[child_id]["parentId"] == "kg_features", f"{child_id} should have parentId=kg_features"
 
     def test_non_kg_nodes_have_no_parent_id(self, client_factory):
@@ -223,6 +227,8 @@ class TestUnravelingManifestStructure:
             ("keywords", "cep"),
             ("kg_event", "eep"),
             ("kg_concept", "teu"),
+            ("kg_concept_inferred", "teu"),
+            ("kg_event", "kg_concept_inferred"),
             ("summaries", "teu"),
             ("cep", "character_analysis_result"),
             ("eep", "causality_analysis"),
@@ -326,14 +332,14 @@ class TestNodeStatus:
             resp = client.get("/api/v1/books/book-1/unraveling")
 
         nodes = {n["nodeId"]: n for n in resp.json()["nodes"]}
-        concept_node = nodes["kg_concept"]
-        assert concept_node["counts"]["ner"] == 1
-        assert concept_node["counts"]["inferred"] == 1
+        assert nodes["kg_concept"]["counts"]["ner"] == 1
+        assert nodes["kg_concept_inferred"]["counts"]["inferred"] == 1
         # Concept entities should NOT appear in kg_entity counts
         assert nodes["kg_entity"]["counts"]["concept"] == 0 if "concept" in nodes["kg_entity"]["counts"] else True
 
-    def test_concept_partial_when_only_ner_present(self, client_factory):
-        """NER output alone is half the node — the inferred half is a separate step."""
+    def test_ner_concepts_alone_complete_their_own_node(self, client_factory):
+        """Before B-092 split them, NER output alone could only be `partial` —
+        the node was also speaking for an inference step that had never run."""
         entities = [
             _make_entity("Power", "c1", EntityType.CONCEPT, extraction_method="ner"),
             _make_entity("Grief", "c2", EntityType.CONCEPT, extraction_method="ner"),
@@ -341,40 +347,41 @@ class TestNodeStatus:
         with client_factory(*_make_mocks(entities=entities)) as client:
             resp = client.get("/api/v1/books/book-1/unraveling")
 
-        node = {n["nodeId"]: n for n in resp.json()["nodes"]}["kg_concept"]
-        assert node["counts"] == {"ner": 2, "inferred": 0, "total": 2}
-        assert node["status"] == "partial"
+        nodes = {n["nodeId"]: n for n in resp.json()["nodes"]}
+        assert nodes["kg_concept"]["counts"] == {"ner": 2, "total": 2}
+        assert nodes["kg_concept"]["status"] == "complete"
 
-    def test_concept_complete_only_when_both_halves_present(self, client_factory):
+    def test_the_inference_step_reports_its_own_emptiness(self, client_factory):
         entities = [
             _make_entity("Power", "c1", EntityType.CONCEPT, extraction_method="ner"),
-            _make_entity("Freedom", "c2", EntityType.CONCEPT, extraction_method="inferred"),
         ]
         with client_factory(*_make_mocks(entities=entities)) as client:
             resp = client.get("/api/v1/books/book-1/unraveling")
 
-        node = {n["nodeId"]: n for n in resp.json()["nodes"]}["kg_concept"]
-        assert node["status"] == "complete"
+        node = {n["nodeId"]: n for n in resp.json()["nodes"]}["kg_concept_inferred"]
+        assert node["counts"] == {"inferred": 0, "total": 0}
+        assert node["status"] == "empty"
 
-    def test_concept_partial_when_only_inferred_present(self, client_factory):
-        """The reverse gap still counts as started, not as nothing built."""
+    def test_inferred_concepts_do_not_count_towards_the_ner_node(self, client_factory):
         entities = [
             _make_entity("Freedom", "c1", EntityType.CONCEPT, extraction_method="inferred"),
         ]
         with client_factory(*_make_mocks(entities=entities)) as client:
             resp = client.get("/api/v1/books/book-1/unraveling")
 
-        node = {n["nodeId"]: n for n in resp.json()["nodes"]}["kg_concept"]
-        assert node["status"] == "partial"
+        nodes = {n["nodeId"]: n for n in resp.json()["nodes"]}
+        assert nodes["kg_concept"]["counts"] == {"ner": 0, "total": 0}
+        assert nodes["kg_concept"]["status"] == "empty"
+        assert nodes["kg_concept_inferred"]["status"] == "complete"
 
-    def test_concept_empty_when_no_concepts(self, client_factory):
+    def test_both_nodes_empty_when_no_concepts(self, client_factory):
         entities = [_make_entity("Alice", "e1", EntityType.CHARACTER)]
         with client_factory(*_make_mocks(entities=entities)) as client:
             resp = client.get("/api/v1/books/book-1/unraveling")
 
-        node = {n["nodeId"]: n for n in resp.json()["nodes"]}["kg_concept"]
-        assert node["counts"] == {"ner": 0, "inferred": 0, "total": 0}
-        assert node["status"] == "empty"
+        nodes = {n["nodeId"]: n for n in resp.json()["nodes"]}
+        assert nodes["kg_concept"]["status"] == "empty"
+        assert nodes["kg_concept_inferred"]["status"] == "empty"
 
     def test_chronological_rank_complete_when_all_events_ranked(self, client_factory):
         events = [
@@ -450,7 +457,10 @@ class TestChapterDistribution:
 
         keys = set(resp.json()["distributions"].keys())
         # Layer 2+/KG-non-event nodes must not appear
-        for nid in ("cep", "eep", "teu", "kg_entity", "kg_concept", "tension_lines", "chronological_rank"):
+        for nid in (
+            "cep", "eep", "teu", "kg_entity", "kg_concept", "kg_concept_inferred",
+            "tension_lines", "chronological_rank",
+        ):
             assert nid not in keys
 
     def test_404_for_unknown_book(self, client_factory):
