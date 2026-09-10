@@ -564,6 +564,8 @@
     "state": {
       "emptyTitle": "No tension analysis yet",
       "emptyBody": "Starting from scene-level TEUs, the system aggregates them into cross-scene TensionLines and finally synthesizes a book-wide proposition. Each layer has a manual review gate.",
+      "conceptsMissing": "Concept inference has not run, so the TEUs assembled here will be missing a layer of thematic evidence.",
+      "conceptsMissingCta": "Infer them in the build overview",
       "startStep1": "Start Step 1 · TEU Assembly",
       "tokenHintLong": "This step calls the LLM, consumes tokens, and takes a few minutes",
       "tokenHintShort": "Calls the LLM, consumes tokens",
