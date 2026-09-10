@@ -144,6 +144,10 @@ named entities already identified in that chapter, extract:
 1. RELATIONS between pairs of entities.
 2. Significant EVENTS that occur in the chapter.
 
+List the events in the order they occur in the chapter text. That order is
+what fixes each event's position within the chapter, so it must follow the
+text rather than importance or any other ranking.
+
 Return ONLY a JSON object with two keys:
 
 "relations": list of objects with:
@@ -404,8 +408,21 @@ class ExtractionService:
         name_to_id: dict[str, str],
         chapter_number: int,
     ) -> list[Event]:
+        """Build Events, numbering them by their order in the LLM's response.
+
+        ``narrative_position`` comes from the response order rather than from a
+        field the model fills in: the prompt asks for the events in text order,
+        and counting them here is guaranteed to be dense, unique and ordered,
+        which a model-supplied integer is not.
+
+        It is 1-based on purpose. Four consumers sort with
+        ``(e.chapter, e.narrative_position or 0)``, so a real position must
+        never be falsy — otherwise the first event of every chapter would be
+        indistinguishable from the events extracted before B-106, which have
+        no position at all and legitimately collapse to 0.
+        """
         events: list[Event] = []
-        for raw in raw_events:
+        for index, raw in enumerate(raw_events, start=1):
             try:
                 etype = EventType(raw.event_type.lower())
             except ValueError:
@@ -423,6 +440,7 @@ class ExtractionService:
                     event_type=etype,
                     description=raw.description,
                     chapter=chapter_number,
+                    narrative_position=index,
                     participants=participant_ids,
                     significance=raw.significance,
                     consequences=raw.consequences,
