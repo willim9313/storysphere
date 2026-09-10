@@ -1714,3 +1714,124 @@ CTA 會從隱藏變成顯示，而它對應的 `KG_RERUN` 只重跑 NER、永遠
 無新依賴。PR #87。
 
 **未做的一項**: 第 3 份拷貝（`heroJourney.ts` 的順序常數）的防護，另立 **B-095**。
+
+---
+
+#### B-092 ConceptInferencePipeline 從未接線，張力分析一直少一段證據
+
+**背景**: `pipelines/concept_inference.py`（229 行，B-025，2026-04-01 產出）**從誕生至今
+沒有任何呼叫端**。`git log -S "ConceptInferencePipeline" --all` 只掃到 3 個純 docs commit
+與它自己的誕生 commit；全 DB 470 筆實體 `extraction_method` 全是 `ner`，`inferred` 0 筆，
+2026-07-28 的備份快照同樣是零。
+
+**它不是死碼，因為有兩個活著的消費者讀它該產出的東西**:
+- `services/tension_service.py:879` —— TEU prompt 的 `## Inferred Concepts (thematic)`
+  區段，`if inferred:` 分支從未進入過。已組裝的 99 筆 TEU 全數少了這段證據。
+- `api/unraveling_manifest.py:204` —— 建構概覽的 `{"ner": …, "inferred": 0}` 計數。
+
+**文件互相矛盾**: 設計文件（`docs/plans/20260331-tension-analysis-design-notes.md:141`）
+寫它是硬性前置「完成後才能進行 TEU 組裝」，B-026 的前置依賴也列了 B-025；
+`docs/guides/tension-analysis.md:25` 卻降級成「非必要但可提升品質」。
+失效機制是 B-026 的「前置依賴 B-025」被「檔案存在」滿足，而不是被「流程會跑」滿足。
+
+**成本實算（非估計）**: 整本書**一次** LLM 呼叫，輸入硬截 12,000 字元。以本專案
+`token_usage.db` 校準得 0.73 tokens/字元，單本約 9,500 tokens ——
+約當一次 Step 1 TEU 組裝（99 次呼叫、約 22 萬 tokens）的 **4%**。
+
+**接上之前要先修的 bug**: 它蒐集段落的方式是「取候選事件所在章節 → 抓那些章的全部段落」，
+而非抓高張力段落本身，然後硬截前 12,000 字元。《大唐雙龍傳》彙集 39,998 字元只送出
+12,000，**丟棄 70% 且丟的一律是後段**，命題只看得到書的前段。書越長偏得越嚴重。
+
+**三段拆法**:
+1. ~~建構概覽 `kg_concept` 節點不再把只有一半當成完成~~ ✅ 已完成（B-089）
+2. 新增後端端點，`kg_concept` 拆成 ner / inferred 兩節點，後者接進 `NODE_TO_TRIGGER`。
+   沿用 B-046 Phase 1 的確認視窗與 task 輪詢；`cta.node.kg_concept` 的 i18n key 已保留。
+   屬 B-046 Phase 2「無對應批次端點，需先新增後端」那一類。
+3. 張力頁 Step 1 前提示「概念推論尚未執行」並跳建構概覽。
+   現成樣式：`SymbolsPage.tsx:561` 已在做 `navigate('/books/:id/unraveling')`。
+
+**第 0 段已完成（2026-09-09）—— 而且不只截斷那一個 bug**:
+
+接線前先修截斷 bug 時發現，這個 pipeline 就算接上去也**跑不起來**。從未有呼叫端，
+所以三個缺陷全都沒被執行過：
+
+| 缺陷 | 後果 |
+|------|------|
+| 讀 `p.content`，但 `Paragraph` 的欄位叫 `text` | 第一個段落就 `AttributeError`，**每次必炸** |
+| 產出的 `Entity` 沒設 `document_id` | 唯一的消費者 `tension_service.py:205` 用 `list_entities(..., document_id=…)` 撈，**跑成功也照樣看不到** |
+| 硬截前 12,000 字元 | 如原本記載 |
+
+前兩個比截斷更根本：截斷只是「證據偏前段」，這兩個是「根本不會有證據」。
+`call_llm` 的 `book_id=None` 也一併改成 `document_id`——它上游沒有任何入口會設
+contextvar，維持 None 等於保證不歸屬（B-081 同形）。
+
+截斷改成 stride 取樣 + 補滿，預算不變（12,000 字元），改的是**哪些字元**。實測四本：
+
+| 書 | 候選章 | 全文字元 | 舊：涵蓋章 | 新：涵蓋章 |
+|---|---|---|---|---|
+| 大唐雙龍傳 | 7 | 39,557 | ch1–2（**2/7**） | ch1–7（7/7） |
+| 名字的潮汐 | 10 | 13,148 | ch1–10 | ch1–10 |
+| 其餘兩本 | 5 / 3 | 未超預算 | 全含 | 全含 |
+
+補了 `tests/pipelines/test_concept_inference.py`（原本 0 個測試，10 項），
+三個缺陷各自實測會紅。
+
+**已決（2026-09-09）—— 照 F-01 的形狀加側存 + pending/confirm**: LLM 產出先進側存、
+狀態 pending，人工確認後才 `add_entity()` 進 KG。決定理由是命題進 KG 後會被
+`assemble_teu` 當既有事實餵給下一輪 LLM，**錯的版本會被當前提繼續傳**——這正是
+保守得多的圖演算法（F-01）反而設了關卡的原因。原本 `save=True` 直接寫入沒有任何關卡。
+
+**入口位置已定**: 建構概覽，不是知識圖譜頁。節點已存在、CTA 機制已備妥，
+且知識圖譜頁工具列已有「推斷關係」，再放一個「推斷概念」是撞名陷阱。
+結果仍會出現在圖譜上（inferred concept 就是 `entity_type=concept` 的節點）。
+
+**觸發時機**: 第 2 段待排；決定側存與否之後即可動工（第 0 段已排除技術障礙）。
+
+**已完成（2026-09-10）—— 四段全部落地**
+
+| 段 | 內容 | PR |
+|---|---|---|
+| 0 | pipeline 三個從未被執行過的缺陷 | #101 |
+| 1 | 建構概覽不再把只有一半當成完成（B-089） | #79 |
+| 2a–2d | 側存 + 審核流程 + 四個端點 + 節點拆分 + 前端接線 | #102 |
+| 3 | 張力頁 Step 1 前提示「概念推論尚未執行」 | #103 |
+
+**第 0 段揭露的事**: 接線前先修截斷 bug 時發現，這個 pipeline **就算接上去也跑不起來**。
+從誕生至今沒有呼叫端，所以三個缺陷一次都沒被執行過：讀 `p.content`（`Paragraph` 的欄位
+叫 `text`，第一個段落就 AttributeError）、產出的 `Entity` 沒設 `document_id`（唯一的消費者
+用 `list_entities(..., document_id=…)` 撈，跑成功也看不到）、以及原本記載的硬截。**前兩個
+比截斷更根本**：截斷只是「證據偏前段」，那兩個是「根本不會有證據」。
+
+截斷改成 stride 取樣 + 補滿，預算不變（12,000 字元），改的是哪些字元。實測：大唐雙龍傳
+39,557 字元從涵蓋 ch1–2（**2/7 章**）變成 ch1–7。
+
+**待決的側存問題定案為「加」**: LLM 產出先落 `var/inferred_concepts.db`、狀態 pending，
+人工確認後才 `add_entity()` 進 KG。理由是命題進 KG 後會被 `assemble_teu` 當既有事實餵給
+下一輪 LLM，錯的版本會被當前提繼續傳。`ConceptInferenceStore.upsert` 刻意不照抄 F-01 的
+`ON CONFLICT DO UPDATE SET status = excluded.status`——F-01 有一條 force_refresh 破壞性
+重跑路徑（前端獨立按鈕 + confirm() 揭露），概念側存沒有，所以既有列一律保留
+id / status / confirmed_entity_id / created_at。
+
+**節點拆分**: `kg_concept` 保留原 id、語意收斂成 NER 那半，新增 `kg_concept_inferred`。
+共用一個節點時它只能靠回報 partial 才誠實（B-089）——一個狀態說不了兩件事。拆開後
+`kg_concept` 也把 `KG_RERUN` 接回去了：KG 重跑填滿的正好就是它現在宣稱的全部。
+
+**瀏覽器實測抓到一個測試看不見的 bug**: `kg_concept_inferred` 原本掛了一條
+`("kg_event", …)` 入邊。入邊在這張圖上的意思是「上游 complete 才准跑我」，而 `kg_event`
+只有在每一個事件都帶敘事權重時才 complete——概念推論完全不需要那件事。結果是觸發按鈕
+在種子書上被換成停用的「需先完成上游 1 個依賴」，而幾乎每本書都是那個狀態。**單元測試
+驗的是邊存在，不是按鈕按得下去。** 已改成唯一入邊 `paragraphs` 並補守衛。
+
+**端到端實測**（大唐雙龍傳，真實 LLM）: 觸發 → 5 筆命題落側存 → 清單渲染 → 採用寫進 KG
+並回填 `confirmedEntityId`、節點翻成完整 → 否決移出待審。
+
+**異動**: `pipelines/concept_inference.py`、`domain/inferred_concepts.py`、
+`services/concept_inference_store.py`、`services/concept_inference_service.py`、
+`api/routers/book_graph.py`、`api/schemas/book_graph.py`、`api/deps.py`、
+`api/unraveling_manifest.py`、`pages/BuildOverviewPage.tsx`、`pages/TensionPage.tsx`、
+`components/tension/TensionStateCards.tsx`、`api/graph.ts`、`api/queryKeys.ts`、
+兩個 locale 的 `analysis.json`、`styles/build-overview.css`、`styles/tension.css`。
+新增測試 33 項。無新依賴。`API_CONTRACT.md` #10e–#10h。
+
+**未做**: B-069（張力證據同場景摺疊）仍等 B-068，與本項無關。
+

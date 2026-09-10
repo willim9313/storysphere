@@ -644,7 +644,8 @@ PR #83 的作法（把宣告放進生產程式碼、用測試釘住宣告等於�
 **背景**: B-090 只掃了 `backend/storysphere` 的 top-level 定義與 class 方法，就掃出
 5 個零引用符號、其中 2 個不是死碼而是**做到一半被放掉的接線**。同期另外查出
 `ConceptInferencePipeline`（229 行，B-092）從誕生至今從未被呼叫，以及
-`pipelines/concept_inference.py` 是唯一從未被 import 的模組。
+`pipelines/concept_inference.py` 是唯一從未被 import 的模組
+（2026-09-10 更新：B-092 已接線，這兩句是當時的觀測，不是現況）。
 
 也就是說「開發到一半莫名其妙放掉」在這個 repo 是有母體的現象，不是零星個案。
 目標是**讓零使用的程式碼段落不存在**，並且不是清一次就算，而是有辦法重複執行。
@@ -793,78 +794,6 @@ SVG／CSS 座標**（`` `${x} ${y}` ``），長得像 i18n key 的**只有一處
 **明確不做**: 不以「掃描說零引用」為由直接刪除。每一筆都要先判定屬於上述哪一種。
 
 **觸發時機**: B-090 已完成第一批；其餘範圍待排。
-
----
-
-#### B-092 ConceptInferencePipeline 從未接線，張力分析一直少一段證據
-
-**背景**: `pipelines/concept_inference.py`（229 行，B-025，2026-04-01 產出）**從誕生至今
-沒有任何呼叫端**。`git log -S "ConceptInferencePipeline" --all` 只掃到 3 個純 docs commit
-與它自己的誕生 commit；全 DB 470 筆實體 `extraction_method` 全是 `ner`，`inferred` 0 筆，
-2026-07-28 的備份快照同樣是零。
-
-**它不是死碼，因為有兩個活著的消費者讀它該產出的東西**:
-- `services/tension_service.py:879` —— TEU prompt 的 `## Inferred Concepts (thematic)`
-  區段，`if inferred:` 分支從未進入過。已組裝的 99 筆 TEU 全數少了這段證據。
-- `api/unraveling_manifest.py:204` —— 建構概覽的 `{"ner": …, "inferred": 0}` 計數。
-
-**文件互相矛盾**: 設計文件（`docs/plans/20260331-tension-analysis-design-notes.md:141`）
-寫它是硬性前置「完成後才能進行 TEU 組裝」，B-026 的前置依賴也列了 B-025；
-`docs/guides/tension-analysis.md:25` 卻降級成「非必要但可提升品質」。
-失效機制是 B-026 的「前置依賴 B-025」被「檔案存在」滿足，而不是被「流程會跑」滿足。
-
-**成本實算（非估計）**: 整本書**一次** LLM 呼叫，輸入硬截 12,000 字元。以本專案
-`token_usage.db` 校準得 0.73 tokens/字元，單本約 9,500 tokens ——
-約當一次 Step 1 TEU 組裝（99 次呼叫、約 22 萬 tokens）的 **4%**。
-
-**接上之前要先修的 bug**: 它蒐集段落的方式是「取候選事件所在章節 → 抓那些章的全部段落」，
-而非抓高張力段落本身，然後硬截前 12,000 字元。《大唐雙龍傳》彙集 39,998 字元只送出
-12,000，**丟棄 70% 且丟的一律是後段**，命題只看得到書的前段。書越長偏得越嚴重。
-
-**三段拆法**:
-1. ~~建構概覽 `kg_concept` 節點不再把只有一半當成完成~~ ✅ 已完成（B-089）
-2. 新增後端端點，`kg_concept` 拆成 ner / inferred 兩節點，後者接進 `NODE_TO_TRIGGER`。
-   沿用 B-046 Phase 1 的確認視窗與 task 輪詢；`cta.node.kg_concept` 的 i18n key 已保留。
-   屬 B-046 Phase 2「無對應批次端點，需先新增後端」那一類。
-3. 張力頁 Step 1 前提示「概念推論尚未執行」並跳建構概覽。
-   現成樣式：`SymbolsPage.tsx:561` 已在做 `navigate('/books/:id/unraveling')`。
-
-**第 0 段已完成（2026-09-09）—— 而且不只截斷那一個 bug**:
-
-接線前先修截斷 bug 時發現，這個 pipeline 就算接上去也**跑不起來**。從未有呼叫端，
-所以三個缺陷全都沒被執行過：
-
-| 缺陷 | 後果 |
-|------|------|
-| 讀 `p.content`，但 `Paragraph` 的欄位叫 `text` | 第一個段落就 `AttributeError`，**每次必炸** |
-| 產出的 `Entity` 沒設 `document_id` | 唯一的消費者 `tension_service.py:205` 用 `list_entities(..., document_id=…)` 撈，**跑成功也照樣看不到** |
-| 硬截前 12,000 字元 | 如原本記載 |
-
-前兩個比截斷更根本：截斷只是「證據偏前段」，這兩個是「根本不會有證據」。
-`call_llm` 的 `book_id=None` 也一併改成 `document_id`——它上游沒有任何入口會設
-contextvar，維持 None 等於保證不歸屬（B-081 同形）。
-
-截斷改成 stride 取樣 + 補滿，預算不變（12,000 字元），改的是**哪些字元**。實測四本：
-
-| 書 | 候選章 | 全文字元 | 舊：涵蓋章 | 新：涵蓋章 |
-|---|---|---|---|---|
-| 大唐雙龍傳 | 7 | 39,557 | ch1–2（**2/7**） | ch1–7（7/7） |
-| 名字的潮汐 | 10 | 13,148 | ch1–10 | ch1–10 |
-| 其餘兩本 | 5 / 3 | 未超預算 | 全含 | 全含 |
-
-補了 `tests/pipelines/test_concept_inference.py`（原本 0 個測試，10 項），
-三個缺陷各自實測會紅。
-
-**已決（2026-09-09）—— 照 F-01 的形狀加側存 + pending/confirm**: LLM 產出先進側存、
-狀態 pending，人工確認後才 `add_entity()` 進 KG。決定理由是命題進 KG 後會被
-`assemble_teu` 當既有事實餵給下一輪 LLM，**錯的版本會被當前提繼續傳**——這正是
-保守得多的圖演算法（F-01）反而設了關卡的原因。原本 `save=True` 直接寫入沒有任何關卡。
-
-**入口位置已定**: 建構概覽，不是知識圖譜頁。節點已存在、CTA 機制已備妥，
-且知識圖譜頁工具列已有「推斷關係」，再放一個「推斷概念」是撞名陷阱。
-結果仍會出現在圖譜上（inferred concept 就是 `entity_type=concept` 的節點）。
-
-**觸發時機**: 第 2 段待排；決定側存與否之後即可動工（第 0 段已排除技術障礙）。
 
 ---
 
@@ -1419,8 +1348,9 @@ Neo4j 的 `save()` 是 no-op，所以雙後端都正確。
 
 多出來的兩個：
 
-- `ConceptInferencePipeline`（已知，B-092）—— 它現在只活在別處的 docstring 裡，
+- `ConceptInferencePipeline`（已知，B-092）—— 當時它只活在別處的 docstring 裡，
   所以現行掃描器看不到它。**掃描器本來應該要能自己找到 B-092 的**
+  （2026-09-10：B-092 已接線，這一筆不再是零引用；掃描器的缺口本身仍未補）
 - `VectorService.search_by_keyword`（57 行）+ `_scroll_keyword` + `KeywordSearchResult`
   —— 全 repo 零呼叫者，唯一的其他提及是 `query_models.py:47` 的一句 docstring。
   手足 `VectorService.search`（語意檢索）有 5 個消費者，只有它沒有。
@@ -2014,7 +1944,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-089 | 建構概覽把從未執行過的步驟標成「已完成」 | 🟡 中 | ✅ 已完成（2026-09-05 PR #79；`kg_concept` 兩半都非零才 complete，並移除永遠推不動它的 CTA，見 ARCHIVE） |
 | B-090 | 零引用符號清除（第一批） | 🟢 低 | ✅ 已完成（2026-09-05 PR #80；5 個候選三種結局——3 刪、1 因是被手抄的 schema 改為讓工具用它、1 暫緩待 B-075，見 ARCHIVE） |
 | B-091 | 全面徹查零使用程式碼 | 🟡 中 | ✅ 已完成（2026-09-08；backend 3→2、前端匯出 15→0、CSS 86→0、i18n 340→19、model 欄位 5 筆、私有方法範圍清空；掃描器修掉三個判準缺陷） |
-| B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | 第 0 段（pipeline 三個缺陷）與第 1 段（B-089）已完成；第 2/3 段待排，需先決定要不要加側存 + HITL |
+| B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | ✅ 已完成（2026-09-10 PR #101/#102/#103；四段全數落地，見 ARCHIVE） |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
 | B-105 | 移除 10 個無呼叫端的 HTTP 端點 | 🟢 低 | ✅ 已完成（2026-09-07；`documents.py` / `relations.py` 整檔刪除、`entities.py` 只留 `GET /:entityId`，連同 7 個孤兒 schema 與兩個測試檔；generated.ts 少 673 行） |

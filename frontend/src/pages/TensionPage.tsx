@@ -18,6 +18,7 @@ import {
   reviewTensionLine,
   reviewTensionTheme,
 } from '@/api/tension';
+import { fetchBuildOverview } from '@/api/buildOverview';
 import { TensionRerunDialog } from '@/components/tension/TensionRerunDialog';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import {
@@ -118,6 +119,18 @@ export default function TensionPage() {
   // case (a trigger fired before the book loads) sends what the backend assumes
   // anyway rather than inventing a third answer.
   const bookLang = book?.language ?? 'en';
+
+  // Read the count off the build manifest rather than asking the concept
+  // endpoints: this is the number TEU assembly will actually see (Concept nodes
+  // in the graph), and the build overview already derives it. Two sources for
+  // one fact is how they drift.
+  const { data: manifest } = useQuery({
+    queryKey: ['buildOverview', bookId],
+    queryFn: () => fetchBuildOverview(bookId!),
+    enabled: !!bookId,
+  });
+  const conceptsMissing =
+    (manifest?.nodes.find((n) => n.nodeId === 'kg_concept_inferred')?.counts.total ?? 0) === 0;
 
   // `force` has to be true to re-run a completed step: without it the backend
   // returns the cached result, reports success, and nothing changes.
@@ -489,7 +502,11 @@ export default function TensionPage() {
         {linesLoading || themeLoading ? <LoadingSpinner /> : null}
 
         {!linesLoading && !themeLoading && !hasTeus && !analyzeOp.running && (
-          <TensionEmptyCard onStart={() => runStep(1, false)} />
+          <TensionEmptyCard
+            onStart={() => runStep(1, false)}
+            bookId={bookId!}
+            conceptsMissing={conceptsMissing}
+          />
         )}
 
         {analyzeOp.running && (

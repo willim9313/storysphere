@@ -564,6 +564,8 @@
     "state": {
       "emptyTitle": "尚未進行張力分析",
       "emptyBody": "系統會從場景級的 TEU 出發，向上聚合為跨章節 TensionLine，最終合成全書命題。三層之間各有一次人工審核。",
+      "conceptsMissing": "概念推論尚未執行，這一步組出的 TEU 會少一段主題證據。",
+      "conceptsMissingCta": "前往建構概覽推斷",
       "startStep1": "開始 Step 1 · TEU 組裝",
       "tokenHintLong": "此步驟會呼叫 LLM，消耗 token，約需數分鐘",
       "tokenHintShort": "會呼叫 LLM，消耗 token",

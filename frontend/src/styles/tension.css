@@ -853,6 +853,31 @@
 }
 .tn-token-hint svg { color: var(--accent); flex: none; }
 
+/* Step 1 pre-run notice (B-092) — an advisory, not a blocker, so it sits
+   below the body text rather than replacing the CTA. */
+.tn-state-notice {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  max-width: 420px;
+  margin: 0 auto 4px;
+  padding: 8px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  font: 400 11.5px/1.6 var(--font-sans);
+  color: var(--fg-secondary);
+  text-align: left;
+}
+.tn-state-notice svg { color: var(--accent); flex: none; margin-top: 2px; }
+.tn-state-notice-link {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  /* Wrap as a unit — the default broke it mid-phrase ("前往建構概 / 覽推斷"). */
+  white-space: nowrap;
+}
+
 .tn-density { display: grid; gap: 6px; align-items: end; }
 .tn-density-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .tn-density-col > i {
