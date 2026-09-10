@@ -17,12 +17,14 @@ Usage (lazy, triggered when tension analysis is requested):
 from __future__ import annotations
 
 import logging
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from storysphere.core.language_detection import localize_prompt
 from storysphere.core.llm_call import call_llm, llm_retry
 from storysphere.core.utils.output_extractor import extract_json_from_text
+from storysphere.domain.documents import extract_body_text
 from storysphere.domain.entities import Entity, EntityType
 from storysphere.pipelines.base import BasePipeline
 
@@ -34,6 +36,10 @@ logger = logging.getLogger(__name__)
 
 # Versioned tag so downstream components know who produced these nodes.
 INFERRED_BY_TAG = "tension_pre_analysis_v1"
+
+#: How much passage text one inference call may carry.  Kept at the original
+#: value — what changed is *which* text fills it, see ``_gather_passages``.
+PASSAGE_CHAR_BUDGET = 12_000
 
 _SYSTEM_PROMPT = """\
 You are a literary analysis assistant specialising in thematic interpretation.
@@ -132,10 +138,7 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
 
         # 2. Gather passage texts (one fetch per chapter, de-duplicated)
         chapter_numbers = sorted({e.chapter for e in candidate_events})
-        passage_texts: list[str] = []
-        for ch in chapter_numbers:
-            paragraphs = await self._doc_service.get_paragraphs(document_id, chapter_number=ch)
-            passage_texts.extend(p.content for p in paragraphs if p.content)
+        passage_texts = await self._gather_passages(document_id, chapter_numbers)
 
         if not passage_texts:
             logger.warning(
@@ -146,7 +149,7 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
 
         # 3. Call LLM
         self._log_step("infer_concepts", passages=len(passage_texts))
-        concepts = await self._infer_concepts(passage_texts, language)
+        concepts = await self._infer_concepts(passage_texts, language, document_id)
 
         # 4. Optionally persist
         if save:
@@ -169,17 +172,73 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
             self._llm = get_llm_client().get_with_local_fallback(temperature=0.3)
         return self._llm
 
+    async def _gather_passages(
+        self,
+        document_id: str,
+        chapter_numbers: list[int],
+    ) -> list[str]:
+        """Return body passages from *chapter_numbers*, within the char budget.
+
+        The budget used to be applied by front-truncating the joined text, which
+        on a long book threw away the whole back half — 《大唐雙龍傳》 collected
+        39,998 characters and sent the first 12,000, so every proposition was
+        inferred from the opening third (B-092).  Sampling at a stride instead
+        keeps the same budget but spreads it over the entire span of candidate
+        chapters, and never cuts a paragraph mid-sentence.
+        """
+        bodies: list[str] = []
+        for ch in chapter_numbers:
+            paragraphs = await self._doc_service.get_paragraphs(
+                document_id, chapter_number=ch
+            )
+            bodies.extend(
+                body for body in (extract_body_text(p) for p in paragraphs) if body
+            )
+
+        total = sum(len(b) for b in bodies)
+        if total <= PASSAGE_CHAR_BUDGET:
+            return bodies
+
+        # Pass 1 samples at a stride so every stretch of the book is
+        # represented; pass 2 then spends whatever uneven paragraph lengths
+        # left on the table.  Overlong paragraphs are skipped rather than
+        # breaking the loop, so one wall of text cannot cost us later chapters.
+        step = math.ceil(total / PASSAGE_CHAR_BUDGET)
+        chosen = [False] * len(bodies)
+        spent = 0
+        for i in range(0, len(bodies), step):
+            if spent + len(bodies[i]) <= PASSAGE_CHAR_BUDGET:
+                chosen[i] = True
+                spent += len(bodies[i])
+        for i, body in enumerate(bodies):
+            if chosen[i] or spent + len(body) > PASSAGE_CHAR_BUDGET:
+                continue
+            chosen[i] = True
+            spent += len(body)
+
+        kept = [b for b, keep in zip(bodies, chosen, strict=True) if keep]
+        if not kept:
+            # Every paragraph is longer than the whole budget on its own.
+            kept = [bodies[0][:PASSAGE_CHAR_BUDGET]]
+            spent = PASSAGE_CHAR_BUDGET
+
+        self._log_step(
+            "gather_passages",
+            chapters=len(chapter_numbers),
+            collected=len(bodies),
+            sent=len(kept),
+            chars=spent,
+        )
+        return kept
+
     @llm_retry(ValueError)
     async def _infer_concepts(
         self,
         passage_texts: list[str],
         language: str,
+        document_id: str,
     ) -> list[Entity]:
-
-        # Truncate to avoid exceeding context window
         combined = "\n\n---\n\n".join(passage_texts)
-        if len(combined) > 12_000:
-            combined = combined[:12_000] + "\n\n[passages truncated]"
 
         system_prompt = localize_prompt(_SYSTEM_PROMPT, language)
         llm = self._get_llm()
@@ -188,7 +247,7 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
             system=system_prompt,
             human=f"Passages:\n\n{combined}",
             service="analysis",
-            book_id=None,
+            book_id=document_id,
         )
 
         parsed, err = extract_json_from_text(raw)
@@ -215,6 +274,10 @@ class ConceptInferencePipeline(BasePipeline[ConceptInferenceInput, list[Entity]]
                     name=name,
                     entity_type=EntityType.CONCEPT,
                     description=description,
+                    # Without this the only consumer never sees them: TEU
+                    # assembly loads concepts with
+                    # ``list_entities(..., document_id=document_id)``.
+                    document_id=document_id,
                     extraction_method="inferred",
                     inferred_by=INFERRED_BY_TAG,
                     confidence=confidence,
