@@ -117,6 +117,87 @@ class TestExtractRelations:
 # -- JSON parsers ------------------------------------------------------------
 
 
+class TestNarrativePosition:
+    """B-106 — the field had five consumers sorting by it and no producer.
+
+    Every one of them does ``sorted(key=lambda e: (e.chapter, e.narrative_position
+    or 0))``, so an unfilled field does not fail loudly: it ties every event in a
+    chapter and the order silently becomes arbitrary.
+    """
+
+    @staticmethod
+    def _events_payload(*titles: str) -> str:
+        items = ", ".join(
+            f'{{"title": "{t}", "event_type": "other", "description": "d"}}'
+            for t in titles
+        )
+        return f'{{"relations": [], "events": [{items}]}}'
+
+    @pytest.fixture
+    def entities(self):
+        return [Entity(id="e1", name="Alice", entity_type=EntityType.CHARACTER)]
+
+    @pytest.mark.asyncio
+    async def test_events_are_numbered_in_response_order(
+        self, service, mock_llm, entities
+    ):
+        mock_llm.ainvoke = AsyncMock(
+            return_value=MagicMock(
+                content=self._events_payload("First", "Second", "Third")
+            )
+        )
+
+        _, events = await service.extract_relations("Text.", entities, 3)
+
+        assert [e.title for e in events] == ["First", "Second", "Third"]
+        assert [e.narrative_position for e in events] == [1, 2, 3]
+
+    @pytest.mark.asyncio
+    async def test_every_event_gets_a_position(self, service, mock_llm, entities):
+        """The guard against it becoming a zero-writer field again."""
+        mock_llm.ainvoke = AsyncMock(
+            return_value=MagicMock(content=self._events_payload("A", "B"))
+        )
+
+        _, events = await service.extract_relations("Text.", entities, 1)
+
+        assert events
+        assert all(e.narrative_position is not None for e in events)
+
+    @pytest.mark.asyncio
+    async def test_numbering_is_one_based(self, service, mock_llm, entities):
+        """0 would be falsy, and the consumers' ``or 0`` cannot tell a real
+        first-in-chapter position from a pre-B-106 event that has none."""
+        mock_llm.ainvoke = AsyncMock(
+            return_value=MagicMock(content=self._events_payload("Only"))
+        )
+
+        _, events = await service.extract_relations("Text.", entities, 1)
+
+        assert events[0].narrative_position == 1
+
+    @pytest.mark.asyncio
+    async def test_positions_restart_each_chapter(self, service, mock_llm, entities):
+        """Position is within-chapter; consumers always sort on (chapter, pos)."""
+        mock_llm.ainvoke = AsyncMock(
+            return_value=MagicMock(content=self._events_payload("A", "B"))
+        )
+
+        _, ch1 = await service.extract_relations("Text.", entities, 1)
+        _, ch7 = await service.extract_relations("Text.", entities, 7)
+
+        assert [e.narrative_position for e in ch1] == [1, 2]
+        assert [e.narrative_position for e in ch7] == [1, 2]
+
+    def test_the_prompt_asks_for_text_order(self):
+        """The numbering is only meaningful if the model was told to order by
+        the text — nothing downstream can detect a model that ranked by
+        importance instead."""
+        from storysphere.services.extraction_service import _RELATION_SYSTEM_PROMPT
+
+        assert "order they occur in the chapter text" in _RELATION_SYSTEM_PROMPT
+
+
 class TestParseJsonResponse:
     def test_valid_json(self):
         result = _parse_json_response(
