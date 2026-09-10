@@ -54,6 +54,13 @@ _ORPHANED_CACHES: dict[str, tuple[str, ...]] = {
         "character:{book}:%",
         "epistemic:{book}:%",
         "voice_profile:{book}:%",
+        # This is the step that re-extracts events, so every event id in a
+        # cache key stops existing here (B-108). Left off originally because
+        # the event-derived rules were all hung on "feature-extraction", which
+        # only embeds paragraphs and extracts keywords — it never touches an
+        # Event. The keys were not merely stale afterwards, they were
+        # unreachable: nothing can ask for an id the graph no longer has.
+        "event:{book}:%",
         # Carries co-occurring entities resolved to name and type.
         "symbol_overview:{book}",
     ),
@@ -75,7 +82,8 @@ _STALED_CACHES: dict[str, tuple[str, ...]] = {
     "summarization": (
         "hero_journey:{book}",
     ),
-    # Events are re-extracted, so every book-level analysis built on them ages.
+    # Kept as-is: whether these genuinely age with re-embedding is a separate
+    # question from B-108, which was about the step that was missing them.
     "feature-extraction": (
         "narrative_structure:{book}",
         "hero_journey:{book}",
@@ -83,7 +91,16 @@ _STALED_CACHES: dict[str, tuple[str, ...]] = {
         "tension_lines:{book}",
         "tension_theme:{book}",
     ),
-    "knowledge-graph": (),
+    # Events are re-extracted here — the comment above used to say this while
+    # sitting on the wrong step (B-108). Every book-level analysis built on
+    # events ages when they are regenerated.
+    "knowledge-graph": (
+        "narrative_structure:{book}",
+        "hero_journey:{book}",
+        "temporal_analysis:{book}",
+        "tension_lines:{book}",
+        "tension_theme:{book}",
+    ),
     "symbol-discovery": (),
 }
 
@@ -164,7 +181,7 @@ def teu_keys_for(event_ids: list[str]) -> list[str]:
 
     TEUs are keyed by event id alone, with no book id, so they cannot be
     matched by pattern — the ids have to be collected from the KG *before* the
-    step regenerates them.
+    step regenerates them, which is "knowledge-graph" (B-108).
     """
     return [f"teu:{eid}" for eid in event_ids]
 

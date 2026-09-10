@@ -1324,6 +1324,36 @@ model 裡。缺的只有生產者。
 順序上排在 B-106 / B-068 之後——那兩項也要重跑，一次做完即可。
 
 **觸發時機**: B-106 與 B-068 落地後，一併重跑。
+#### B-108 事件衍生的快取失效規則掛在錯的步驟上
+
+**背景**: 2026-09-10 為 B-106 / B-107 重跑資料前查證影響範圍時發現。
+
+| 步驟 | 重新產生 event id？ | 收 TEU keys | 清 `event:` 快取 | `_STALED_CACHES` |
+|---|---|---|---|---|
+| `feature-extraction` | ❌ 只做 embedding / 關鍵字，**完全不 import Event** | ✅ | ✅ | 5 個事件衍生分析 |
+| `knowledge-graph` | ✅ 全部經 `RelationExtractor` 重生 | ❌ | ❌ | **空的 `()`** |
+
+**兩者剛好相反。** `_STALED_CACHES` 裡那句註解
+「Events are re-extracted, so every book-level analysis built on them ages」
+就寫在 `feature-extraction` 底下——它描述的是 `knowledge-graph` 的行為。
+
+**後果不是「快取過期」，是「永遠讀不到」**: `event:{book}:{event_id}` 與
+`teu:{event_id}` 的鍵裡含 event id。KG 重跑之後那些 id 不存在了，沒有任何東西能再
+去要那幾列，但列還在——會被任何數列數的東西算進去。《名字的潮汐》若在修正前重跑，
+會留下 38 + 47 = **85 筆這種列**。
+
+**修正（2026-09-10）**: 把 `event:{book}:%` 加進 `knowledge-graph` 的
+`_ORPHANED_CACHES`、把五個事件衍生分析加進它的 `_STALED_CACHES`，並讓
+`ingestion.py` 在 `knowledge-graph` 時也收集 TEU keys（必須在步驟執行**之前**收，
+否則收到的是新 id）。
+
+**刻意沒做的事**: 沒有把這些規則從 `feature-extraction` 移除。它確實不碰 Event，
+所以那邊的規則多半是多餘的（會白白丟掉還有效的快取），但「多丟」與「漏丟」的嚴重性
+差很多，而且要證明那些分析不隨 re-embedding 老化是另一個命題。**留成獨立的一題。**
+
+**測試側的同一個誤解**: `test_narrative_structure_ages_with_event_extraction` 這個
+測試名把 `feature-extraction` 叫成 event extraction，並斷言它是唯一來源——**測試在
+釘住這個 bug**。已改名並改判準。
 
 ---
 
@@ -2050,6 +2080,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-105 | 移除 10 個無呼叫端的 HTTP 端點 | 🟢 低 | ✅ 已完成（2026-09-07；`documents.py` / `relations.py` 整檔刪除、`entities.py` 只留 `GET /:entityId`，連同 7 個孤兒 schema 與兩個測試檔；generated.ts 少 673 行） |
 | B-106 | `narrative_position` 有五個讀者、零個寫者 | 🟡 中 | 待開始（2026-09-10 B-068 走查；填充率 0/235，四處排序退化成任意、`chunk` 欄位永遠 null；B-068 的前置） |
 | B-107 | Age of Fire 的事件資料停留在 B-082 修好之前 | 🟢 低 | 待開始（2026-09-10 B-068 走查；60/101 筆重複標題是 08-17 的舊資料，B-082 已於 08-20 修好；待與 B-106 / B-068 一併重跑） |
+| B-108 | 事件衍生的快取失效規則掛在錯的步驟上 | 🟡 中 | ✅ 已完成（2026-09-10；`knowledge-graph` 才是重生 event id 的步驟，卻既不清 `event:` 也不收 TEU keys；`feature-extraction` 那份多餘規則留作獨立一題） |
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | ✅ 已完成（2026-09-07；雙後端新增 `relation_count_for()`，雙向關聯去重，實測 696 → 分書 203/69/259/55） |
 | B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | ✅ 已完成（2026-09-07；`paragraphs.keywords_json` + 寫入 2 處讀取 3 處；既有書需重跑 feature-extraction 才有值） |

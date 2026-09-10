@@ -44,6 +44,28 @@ class TestPatternsFor:
         assert "tension_lines:book-1" not in patterns
 
 
+class TestKnowledgeGraphRerun:
+    """B-108 — the step that regenerates event ids must drop the keys holding them.
+
+    Event-keyed caches (`event:{book}:{event_id}`, `teu:{event_id}`) do not go
+    merely stale when the graph is re-extracted: the ids in the keys stop
+    existing, so nothing can ever ask for those rows again. The rules for all of
+    this were hung on "feature-extraction", which never touches an Event.
+    """
+
+    def test_eep_is_dropped_by_the_step_that_regenerates_event_ids(self):
+        assert "event:book-1:%" in patterns_for("knowledge-graph", "book-1")
+
+    def test_event_derived_analyses_are_reported_stale(self):
+        for family in (
+            "narrative_structure",
+            "temporal_analysis",
+            "tension_lines",
+            "tension_theme",
+        ):
+            assert "knowledge-graph" in stale_sources(f"{family}:book-1"), family
+
+
 class TestTeuKeysFor:
     def test_builds_keys_from_event_ids(self):
         assert teu_keys_for(["ev-1", "ev-2"]) == ["teu:ev-1", "teu:ev-2"]
@@ -130,14 +152,20 @@ class TestInvalidateForSteps:
 class TestStaleSources:
     """Book-keyed families report the steps that can age them."""
 
-    def test_narrative_structure_ages_with_event_extraction(self):
-        assert stale_sources("narrative_structure:book-1") == ("feature-extraction",)
+    def test_narrative_structure_ages_with_the_step_that_extracts_events(self):
+        """This used to name only "feature-extraction" (B-108).
+
+        That step embeds paragraphs and extracts keywords; it never touches an
+        Event. "knowledge-graph" is the one that re-extracts them, and it was
+        the one missing.
+        """
+        assert "knowledge-graph" in stale_sources("narrative_structure:book-1")
 
     def test_hero_journey_ages_with_both_its_inputs(self):
         """It reads chapter summaries and resolves events."""
-        assert set(stale_sources("hero_journey:book-1")) == {
-            "summarization", "feature-extraction",
-        }
+        sources = set(stale_sources("hero_journey:book-1"))
+        assert "summarization" in sources
+        assert "knowledge-graph" in sources
 
     def test_deleted_families_are_never_stale(self):
         """They are gone after a rerun, so there is nothing to date."""
