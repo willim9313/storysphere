@@ -267,6 +267,37 @@ class TestCacheInvalidation:
         assert "teu:ev-new" not in patterns
 
     @pytest.mark.asyncio
+    async def test_knowledge_graph_drops_the_event_keyed_caches(self):
+        """B-108 — this is the step that regenerates event ids.
+
+        The rules were all hung on "feature-extraction", which only embeds
+        paragraphs and extracts keywords and never touches an Event. A KG rerun
+        therefore left every `event:{book}:{id}` row addressed by an id the
+        graph no longer had: not stale, unreachable.
+        """
+        wf, _, _ = _workflow(_make_doc())
+        _, cache = await _rerun(wf, "knowledge-graph")
+
+        assert "event:book-x:%" in self._patterns(cache)
+
+    @pytest.mark.asyncio
+    async def test_knowledge_graph_collects_teu_keys_before_regenerating(self):
+        kg = AsyncMock()
+        kg.get_events = AsyncMock(return_value=[SimpleNamespace(id="ev-old")])
+        wf, _, _ = _workflow(_make_doc(), kg=kg)
+
+        async def _regenerate(*_a, **_kw):
+            kg.get_events = AsyncMock(return_value=[SimpleNamespace(id="ev-new")])
+
+        wf._kg_pipeline.run = AsyncMock(side_effect=_regenerate)
+
+        _, cache = await _rerun(wf, "knowledge-graph")
+        patterns = self._patterns(cache)
+
+        assert "teu:ev-old" in patterns
+        assert "teu:ev-new" not in patterns
+
+    @pytest.mark.asyncio
     async def test_failed_step_leaves_caches_alone(self):
         """The old data is still in place, so its analyses still describe the book."""
         wf, _, _ = _workflow(_make_doc(), failing="summarization")

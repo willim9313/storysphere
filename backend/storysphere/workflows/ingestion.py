@@ -357,8 +357,12 @@ class IngestionWorkflow:
 
         # TEU keys name the event ids this step is about to regenerate, so they
         # have to be collected while the current events still exist.
+        #
+        # "knowledge-graph" is the step that actually regenerates them, and it
+        # was missing from this check (B-108): a KG rerun left every
+        # `teu:{event_id}` row pointing at an id the graph no longer had.
         teu_keys: list[str] = []
-        if step == "feature-extraction":
+        if step in ("feature-extraction", "knowledge-graph"):
             teu_keys = teu_keys_for(
                 [e.id for e in await self._kg_service.get_events(document_id=doc_id)]
             )
