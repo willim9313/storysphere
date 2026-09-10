@@ -144,9 +144,9 @@ named entities already identified in that chapter, extract:
 1. RELATIONS between pairs of entities.
 2. Significant EVENTS that occur in the chapter.
 
-List the events in the order they occur in the chapter text. That order is
-what fixes each event's position within the chapter, so it must follow the
-text rather than importance or any other ranking.
+Order your output by where each event first appears in the chapter text, rather
+than by importance. This governs the order of the list only — decide what counts
+as one event exactly as you would without this instruction.
 
 Return ONLY a JSON object with two keys:
 

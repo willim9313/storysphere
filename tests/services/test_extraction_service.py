@@ -195,7 +195,23 @@ class TestNarrativePosition:
         importance instead."""
         from storysphere.services.extraction_service import _RELATION_SYSTEM_PROMPT
 
-        assert "order they occur in the chapter text" in _RELATION_SYSTEM_PROMPT
+        assert "where each event first appears in the chapter text" in _RELATION_SYSTEM_PROMPT
+
+    def test_the_prompt_keeps_ordering_away_from_granularity(self):
+        """Asking for order also asks the model to place each event on the
+        chapter's timeline, and a passage that summarises a stretch of backstory
+        has no single place on it — so it gets split into beats that do.
+
+        The first wording shipped for B-106 raised ch7 of 名字的潮汐 from 5.4
+        to 9.0 events on a ten-run average. Saying the instruction governs the
+        list order alone brought that to 7.0. It does not remove the effect —
+        nothing tested did — so this pins the half of the wording that is doing
+        the work, which a later reword would otherwise drop as redundant.
+        See docs/plans/20260910-event-granularity-ordering-experiments.md.
+        """
+        from storysphere.services.extraction_service import _RELATION_SYSTEM_PROMPT
+
+        assert "governs the order of the list only" in _RELATION_SYSTEM_PROMPT
 
 
 class TestParseJsonResponse:
