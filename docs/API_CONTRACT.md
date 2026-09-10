@@ -942,6 +942,64 @@ interface InferredRelationsResponse {
 
 ---
 
+## 推斷概念（B-092）
+
+推斷關係（#10a–#10d）之後一步的同型審核流程：LLM 從高張力段落推斷出的主題命題，
+先落側存等人工確認，確認後才寫進圖譜成為 `entityType=concept`、
+`extractionMethod=inferred` 的節點。不直接寫入的理由是 TEU 組裝會把 Concept 節點
+當既有事實讀進 prompt。
+
+### #10e POST /books/:bookId/inferred-concepts/run
+
+對整本書跑一次概念推論（單次 LLM 呼叫），結果落側存等審核。
+
+**Response 202**：`{ taskId: string }`
+
+非同步（回 task id 輪詢），與 #10a 不同——#10a 是圖演算法、直接回結果。
+
+**UI 使用頁面**：建構概覽頁 `kg_concept_inferred` 節點的 CTA
+
+---
+
+### #10f GET /books/:bookId/inferred-concepts
+
+取得推斷概念列表。
+
+**Query Params**（選填）：`status=pending|confirmed|rejected`，無效值回 422
+
+**Response 200**
+```ts
+interface InferredConceptsResponse {
+  // 結構見 generated.ts: components['schemas']['InferredConceptsResponse']
+}
+```
+
+**UI 使用頁面**：建構概覽頁節點詳情的「待審查命題」清單
+
+---
+
+### #10g POST /books/:bookId/inferred-concepts/:conceptId/confirm
+
+採用命題，寫入圖譜成為 Concept 節點。
+
+**Response 201**：`{ entityId: string }`
+
+重複確認回傳既有 entity，不寫第二個節點。`conceptId` 不屬於該書時回 404。
+
+**UI 使用頁面**：建構概覽頁節點詳情「採用」按鈕
+
+---
+
+### #10h POST /books/:bookId/inferred-concepts/:conceptId/reject
+
+否決命題。被否決的命題不會因為重跑推論而復活成待審查。
+
+**Response 204**
+
+**UI 使用頁面**：建構概覽頁節點詳情「否決」按鈕
+
+---
+
 ## 事件詳情
 
 ### #11 GET /books/:bookId/events/:eventId

@@ -38,6 +38,18 @@ EDGES: list[tuple[str, str]] = [
     # ── KG on-demand sub-nodes ────────────────────────────────────────────────
     ("eep", "kg_temporal_relation"),
     ("kg_event", "kg_temporal_relation"),
+    # Concept inference reads paragraphs, not `kg_concept` — it is a second
+    # producer of Concept nodes, not a second step of the NER one (B-092).
+    #
+    # It also reads events, but there is deliberately no `kg_event` edge: an
+    # incoming edge means "this must be complete before you may run me", and
+    # `kg_event` only reaches complete once every event carries a narrative
+    # weight. Concept inference needs none of that — it filters on
+    # `tension_signal` / `emotional_intensity`, which event extraction sets.
+    # With the edge in place the trigger was blocked on the seeded book (62
+    # events, partial), which is how this was found: in the browser, not in a
+    # test.
+    ("paragraphs", "kg_concept_inferred"),
     # ── Layer 2: analysis intermediates ──────────────────────────────────────
     ("kg_entity", "cep"),
     ("paragraphs", "cep"),
@@ -47,6 +59,7 @@ EDGES: list[tuple[str, str]] = [
     ("paragraphs", "eep"),
     ("kg_event", "teu"),
     ("kg_concept", "teu"),
+    ("kg_concept_inferred", "teu"),
     ("summaries", "teu"),
     ("symbols", "sep"),
     ("kg_entity", "sep"),
@@ -202,21 +215,26 @@ def build_nodes(
 
     concept_ner = sum(1 for e in concept_entities if e.extraction_method == "ner")
     concept_inferred = sum(1 for e in concept_entities if e.extraction_method == "inferred")
+    # Two producers, so two nodes (B-092). They used to share one, which meant
+    # the node could only be honest by reporting `partial` forever (B-089):
+    # ingestion's NER half was genuinely finished, the inference half had never
+    # run, and one status cannot say both. Split, each half states its own case
+    # — and only the inferred one can carry a trigger that actually moves it.
     nodes.append(NodeData(
         node_id="kg_concept",
         layer=1,
         label="Concepts",
-        # Two halves, two producers: NER fills `ner` during ingestion, while the
-        # `inferred` half is a separate pre-analysis step (B-025) that nothing
-        # currently triggers. Counting either half alone as complete let 27
-        # surface concepts report this node as built while `inferred` had never
-        # been anything but zero — on the one page whose job is to say what is
-        # still missing.
-        status=status_of(
-            complete=concept_ner > 0 and concept_inferred > 0,
-            partial=len(concept_entities) > 0,
-        ),
-        counts={"ner": concept_ner, "inferred": concept_inferred, "total": len(concept_entities)},
+        status=status_of(complete=concept_ner > 0, partial=False),
+        counts={"ner": concept_ner, "total": concept_ner},
+        parent_id="kg_features",
+    ))
+
+    nodes.append(NodeData(
+        node_id="kg_concept_inferred",
+        layer=1,
+        label="Inferred Concepts",
+        status=status_of(complete=concept_inferred > 0, partial=False),
+        counts={"inferred": concept_inferred, "total": concept_inferred},
         parent_id="kg_features",
     ))
 
