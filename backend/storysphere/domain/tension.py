@@ -41,7 +41,11 @@ class TensionPole(BaseModel):
 class TEU(BaseModel):
     """Tension Evidence Unit — smallest unit of tension analysis.
 
-    Describes the opposing dynamic within a single scene (Event).
+    Describes the opposing dynamic within a single **Event**. Event and scene
+    are not the same thing: extraction produces beats, so one scene routinely
+    yields several Events and therefore several TEUs (B-068). Counting TEUs as
+    scenes overstates the evidence — use ``domain.scenes.group_scenes`` to fold
+    the beats of one scene back together.
     """
 
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
