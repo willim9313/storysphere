@@ -109,14 +109,17 @@ class TEUDetail(BaseModel):
     pole_b_carriers: list[Carrier] = Field(default_factory=list)
     pole_a_stance: str | None = None
     pole_b_stance: str | None = None
-    scene_index: int | None = Field(
+    narrative_run_index: int | None = Field(
         default=None,
         description=(
-            "1-based scene ordinal within the chapter. Extraction produces "
-            "beats, so several TEUs of one chapter routinely describe one "
-            "scene (B-068); TEUs sharing a chapter and a scene_index are "
-            "evidence from the same scene, not independent corroboration. "
-            "Null when the TEU's source event is no longer in the graph."
+            "1-based ordinal of the narrative-layer run this TEU sits in, "
+            "within its chapter. A run breaks where narration switches between "
+            "present and flashback, so TEUs sharing a chapter and a run index "
+            "are continuous narration rather than independent corroboration. "
+            "**Not a scene count**: a scene change inside one layer is "
+            "invisible to it, and a chapter with no flashback is a single run "
+            "however many scenes it holds (B-068). Null when the TEU's source "
+            "event is no longer in the graph."
         ),
     )
     line_id: str | None = Field(

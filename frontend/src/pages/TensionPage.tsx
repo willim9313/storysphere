@@ -376,25 +376,29 @@ export default function TensionPage() {
   const orphanCount = teus.filter((teu) => teu.line_id === null).length;
   const themeReady = hasLines && unreviewedCount === 0;
 
-  // Both counts, not one: extraction yields beats, so a chapter's TEU count
-  // overstates how much of the book the evidence covers (B-068). The TEU count
-  // still matters — it is what Step 2 has to group — so neither is dropped.
-  // A TEU whose source event is gone has no scene_index and stands alone.
+  // Both counts. The bars stay on the TEU count: a narrative run is not a
+  // scene, and drawing it as density flattened the chart to near-uniform stubs
+  // — every chapter of Age of Fire has no flashback, so all five collapsed to
+  // one run and the columns became identical (B-068). The run total is kept as
+  // text beside the TEU total, where it cannot be read as a density.
+  // A TEU whose source event is gone has no run index and stands alone.
   const teuChapterCounts = useMemo(() => {
-    const byChapter = new Map<number, { teus: number; scenes: Set<string> }>();
+    const byChapter = new Map<number, { teus: number; runs: Set<string> }>();
     for (const teu of teus) {
-      const entry = byChapter.get(teu.chapter) ?? { teus: 0, scenes: new Set<string>() };
+      const entry = byChapter.get(teu.chapter) ?? { teus: 0, runs: new Set<string>() };
       entry.teus += 1;
-      entry.scenes.add(teu.scene_index == null ? `teu:${teu.id}` : `scene:${teu.scene_index}`);
+      entry.runs.add(
+        teu.narrative_run_index == null ? `teu:${teu.id}` : `run:${teu.narrative_run_index}`,
+      );
       byChapter.set(teu.chapter, entry);
     }
     return [...byChapter.entries()]
       .sort((a, b) => a[0] - b[0])
-      .map(([chapter, e]) => [chapter, e.teus, e.scenes.size]) as [number, number, number][];
+      .map(([chapter, e]) => [chapter, e.teus, e.runs.size]) as [number, number, number][];
   }, [teus]);
 
-  const sceneTotal = useMemo(
-    () => teuChapterCounts.reduce((n, [, , scenes]) => n + scenes, 0),
+  const runTotal = useMemo(
+    () => teuChapterCounts.reduce((n, [, , runs]) => n + runs, 0),
     [teuChapterCounts],
   );
 
@@ -567,7 +571,7 @@ export default function TensionPage() {
         {hasTeus && !hasLines && !groupOp.running && !groupOp.error && (
           <TensionStep1Card
             teuCount={teus.length}
-            sceneCount={sceneTotal}
+            runCount={runTotal}
             chapterCounts={teuChapterCounts}
             onGroup={() => runStep(2, false)}
           />

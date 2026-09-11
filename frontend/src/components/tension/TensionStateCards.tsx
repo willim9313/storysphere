@@ -58,14 +58,14 @@ export function TensionEmptyCard({
 
 export function TensionStep1Card({
   teuCount,
-  sceneCount,
+  runCount,
   chapterCounts,
   onGroup,
 }: {
   teuCount: number;
-  /** Distinct scenes across the book; equals teuCount when nothing groups. */
-  sceneCount: number;
-  /** [chapter, teuCount, sceneCount] in chapter order. */
+  /** Stretches of continuous narration; equals teuCount when nothing groups. */
+  runCount: number;
+  /** [chapter, teuCount, runCount] in chapter order. */
   chapterCounts: [number, number, number][];
   onGroup: () => void;
 }) {
@@ -73,25 +73,25 @@ export function TensionStep1Card({
   return (
     <div className="tn-state-card">
       <div className="tn-state-title">
-        {t('tension.state.step1Title', { count: teuCount, scenes: sceneCount })}
+        {t('tension.state.step1Title', { count: teuCount, runs: runCount })}
       </div>
-      {/* The bar is the scene count, not the TEU count: one scene rendered as
-          three beats used to draw a bar three times too tall, which is exactly
-          the inflation B-068 reports. The TEU count stays in the title and in
-          each column's tooltip, so nothing is hidden — only the shape of the
-          chart stops overstating coverage. Where nothing groups the two counts
-          are equal and the chart is unchanged. */}
+      {/* The bar is the TEU count. Drawing it from the run count was tried and
+          reverted: a run is not a scene, so a chapter with no flashback is one
+          run whatever its length, and Age of Fire's five chapters all became
+          identical 15px stubs — the chart stopped saying anything at all. The
+          TEU count overstates coverage where one scene was cut into beats, but
+          it at least preserves the relative density between chapters. */}
       <div
         className="tn-density"
         style={{ gridTemplateColumns: `repeat(${Math.max(chapterCounts.length, 1)}, 1fr)` }}
       >
-        {chapterCounts.map(([chapter, teus, scenes]) => (
+        {chapterCounts.map(([chapter, teus, runs]) => (
           <div
             key={chapter}
             className="tn-density-col"
-            title={t('tension.state.chapterDensity', { n: chapter, teus, scenes })}
+            title={t('tension.state.chapterDensity', { n: chapter, teus, runs })}
           >
-            <i style={{ height: `${8 + scenes * 7}px` }} />
+            <i style={{ height: `${8 + teus * 7}px` }} />
             <span>{t('tension.state.chapterShort', { n: chapter })}</span>
           </div>
         ))}

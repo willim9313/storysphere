@@ -35,7 +35,7 @@ from storysphere.api.schemas.tension import (
     TEUSummary,
 )
 from storysphere.api.store import get_task, task_store
-from storysphere.domain.scenes import group_scenes
+from storysphere.domain.narrative_runs import group_narrative_runs
 
 router = APIRouter(prefix="/tension", tags=["tension"])
 
@@ -189,12 +189,10 @@ async def list_teus(
     lines = await tension_service.get_lines(book_id)
     types_by_id = await _entity_types(kg_service, book_id)
     line_by_teu = {tid: line.id for line in lines for tid in line.teu_ids}
-    # One TEU per Event, and extraction yields beats rather than scenes, so a
-    # chapter's TEU count overstates how much of the book the evidence covers
-    # (B-068). Grouping is derived here rather than stored on the TEU: it is a
-    # property of the events as they stand now, and a TEU cached weeks ago
-    # should not carry a stale answer.
-    scenes = group_scenes(await kg_service.get_events(document_id=book_id))
+    # Which stretch of continuous narration each TEU belongs to. Derived here
+    # rather than stored on the TEU: it is a property of the events as they
+    # stand now, and a TEU cached weeks ago should not carry a stale answer.
+    runs = group_narrative_runs(await kg_service.get_events(document_id=book_id))
     return [
         TEUDetail(
             id=teu.id,
@@ -208,7 +206,7 @@ async def list_teus(
             pole_b_carriers=_carriers(teu.pole_b.model_dump(), types_by_id),
             pole_a_stance=teu.pole_a.stance,
             pole_b_stance=teu.pole_b.stance,
-            scene_index=scenes.get(teu.event_id),
+            narrative_run_index=runs.get(teu.event_id),
             line_id=line_by_teu.get(teu.id),
         )
         for teu in teus

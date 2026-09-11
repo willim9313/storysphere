@@ -1269,23 +1269,25 @@ interface TEUDetail {
   pole_b_carriers: Carrier[];
   pole_a_stance: string | null;
   pole_b_stance: string | null;
-  scene_index: number | null;   // 章內場景序號（1 起算）；null = 來源事件已不在圖譜中
+  narrative_run_index: number | null;  // 章內敘事段序號（1 起算）；null = 來源事件已不在圖譜中
   line_id: string | null;       // null = 未被任何張力線收錄
 }
 ```
 
 尚未執行 Step 1 時回傳空陣列（非 404）。
 
-**`scene_index` 的用途**：事件抽取產出的是**節拍**不是場景，一場戲常被切成數個
-event，而 TEU 是一 event 一筆。**同章且同 `scene_index` 的 TEU 是同一場戲的證據，
-不是互相independent的佐證**（B-068）。分組在讀取時即時計算、不儲存，判準見
-`docs/plans/20260911-scene-grouping-criteria.md`。
+**`narrative_run_index` 的用途**：一段敘事段是「敘述層未切換的連續事件」——邊界出現
+在現在式敘述與插敘之間。同章同序號的 TEU 屬於同一段連續敘述，不是互相獨立的佐證。
 
-判準刻意保守：**漏抓邊界只是維持現狀，錯併會讓證據看起來更少且錯置**。書籍若在
-B-106 之前上傳（事件沒有 `narrative_position`），該章每個 TEU 各自成一場。
+**它不是場景數。** 同一敘述層內的換場景看不見，所以一章只要沒有插敘就整章一段，
+不論裡面有幾場戲（B-068；實測 Age of Fire 五章全部塌成一段，其中一章把 16 個事件
+併成一段）。**不可拿它繪製任何密度圖形。**
 
-**UI 使用頁面**：張力分析頁 Step 1 卡片的章節密度圖（長條改以場景數繪製，TEU 數
-保留在標題與各欄 tooltip）
+分組在讀取時即時計算、不儲存。書籍若在 B-106 之前上傳（事件沒有
+`narrative_position`），該章每個 TEU 各自成一段。
+
+**UI 使用頁面**：張力分析頁 Step 1 卡片的標題與各欄 tooltip（純文字；長條仍以 TEU
+數繪製）
 
 > 欄位為 snake_case：此 schema 未套用 `alias_generator=to_camel`，與同區的
 > `TensionLineDetail` 一致。
