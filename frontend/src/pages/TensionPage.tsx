@@ -175,7 +175,13 @@ export default function TensionPage() {
 
 
   const hasLines = lines.length > 0;
-  const hasTeus = analyzeResult !== null || hasLines;
+  // `teus.length` has to be in here: without it the page only knows Step 1 ran
+  // if it ran *in this session*, so a reload threw away the evidence of 23
+  // assembled TEUs and showed the "not analysed yet" empty state instead —
+  // offering to spend a full LLM pass redoing work that was already done
+  // (B-110). `analyzeResult` stays first because it arrives before the TEU
+  // query refetches, so the card does not flicker through the empty state.
+  const hasTeus = analyzeResult !== null || hasLines || teus.length > 0;
   const hasTheme = !!theme;
 
   // One filter dimension only. The old page had status chips *and* a "hide
