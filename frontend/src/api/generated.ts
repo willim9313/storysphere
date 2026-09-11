@@ -4227,6 +4227,11 @@ export interface components {
             /** Pole B Stance */
             pole_b_stance?: string | null;
             /**
+             * Narrative Run Index
+             * @description 1-based ordinal of the narrative-layer run this TEU sits in, within its chapter. A run breaks where narration switches between present and flashback, so TEUs sharing a chapter and a run index are continuous narration rather than independent corroboration. **Not a scene count**: a scene change inside one layer is invisible to it, and a chapter with no flashback is a single run however many scenes it holds (B-068). Null when the TEU's source event is no longer in the graph.
+             */
+            narrative_run_index?: number | null;
+            /**
              * Line Id
              * @description TensionLine claiming this TEU; null means grouping left it out and the TEU appears nowhere else in the analysis
              */

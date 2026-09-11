@@ -104,3 +104,4 @@
 | 2026-09-06 | [後端全面走查：進度盤點與續作計畫](./20260906-backend-review-sweep.md) |
 | 2026-09-09 | [走查之後：下一階段的開發計畫](./20260909-post-sweep-development-plan.md) |
 | 2026-09-10 | [事件顆粒度與章內順序：提示措辭的對照實驗](./20260910-event-granularity-ordering-experiments.md) |
+| 2026-09-11 | [場景分組判準：在真實資料上的試算與提案](./20260911-scene-grouping-criteria.md) |

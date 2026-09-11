@@ -58,25 +58,40 @@ export function TensionEmptyCard({
 
 export function TensionStep1Card({
   teuCount,
+  runCount,
   chapterCounts,
   onGroup,
 }: {
   teuCount: number;
-  /** [chapter, count] in chapter order. */
-  chapterCounts: [number, number][];
+  /** Stretches of continuous narration; equals teuCount when nothing groups. */
+  runCount: number;
+  /** [chapter, teuCount, runCount] in chapter order. */
+  chapterCounts: [number, number, number][];
   onGroup: () => void;
 }) {
   const { t } = useTranslation('analysis');
   return (
     <div className="tn-state-card">
-      <div className="tn-state-title">{t('tension.state.step1Title', { count: teuCount })}</div>
+      <div className="tn-state-title">
+        {t('tension.state.step1Title', { count: teuCount, runs: runCount })}
+      </div>
+      {/* The bar is the TEU count. Drawing it from the run count was tried and
+          reverted: a run is not a scene, so a chapter with no flashback is one
+          run whatever its length, and Age of Fire's five chapters all became
+          identical 15px stubs — the chart stopped saying anything at all. The
+          TEU count overstates coverage where one scene was cut into beats, but
+          it at least preserves the relative density between chapters. */}
       <div
         className="tn-density"
         style={{ gridTemplateColumns: `repeat(${Math.max(chapterCounts.length, 1)}, 1fr)` }}
       >
-        {chapterCounts.map(([chapter, count]) => (
-          <div key={chapter} className="tn-density-col">
-            <i style={{ height: `${8 + count * 7}px` }} />
+        {chapterCounts.map(([chapter, teus, runs]) => (
+          <div
+            key={chapter}
+            className="tn-density-col"
+            title={t('tension.state.chapterDensity', { n: chapter, teus, runs })}
+          >
+            <i style={{ height: `${8 + teus * 7}px` }} />
             <span>{t('tension.state.chapterShort', { n: chapter })}</span>
           </div>
         ))}

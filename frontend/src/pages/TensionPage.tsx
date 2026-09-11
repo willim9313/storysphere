@@ -175,7 +175,13 @@ export default function TensionPage() {
 
 
   const hasLines = lines.length > 0;
-  const hasTeus = analyzeResult !== null || hasLines;
+  // `teus.length` has to be in here: without it the page only knows Step 1 ran
+  // if it ran *in this session*, so a reload threw away the evidence of 23
+  // assembled TEUs and showed the "not analysed yet" empty state instead —
+  // offering to spend a full LLM pass redoing work that was already done
+  // (B-110). `analyzeResult` stays first because it arrives before the TEU
+  // query refetches, so the card does not flicker through the empty state.
+  const hasTeus = analyzeResult !== null || hasLines || teus.length > 0;
   const hasTheme = !!theme;
 
   // One filter dimension only. The old page had status chips *and* a "hide
@@ -370,11 +376,31 @@ export default function TensionPage() {
   const orphanCount = teus.filter((teu) => teu.line_id === null).length;
   const themeReady = hasLines && unreviewedCount === 0;
 
+  // Both counts. The bars stay on the TEU count: a narrative run is not a
+  // scene, and drawing it as density flattened the chart to near-uniform stubs
+  // — every chapter of Age of Fire has no flashback, so all five collapsed to
+  // one run and the columns became identical (B-068). The run total is kept as
+  // text beside the TEU total, where it cannot be read as a density.
+  // A TEU whose source event is gone has no run index and stands alone.
   const teuChapterCounts = useMemo(() => {
-    const byChapter = new Map<number, number>();
-    for (const teu of teus) byChapter.set(teu.chapter, (byChapter.get(teu.chapter) ?? 0) + 1);
-    return [...byChapter.entries()].sort((a, b) => a[0] - b[0]) as [number, number][];
+    const byChapter = new Map<number, { teus: number; runs: Set<string> }>();
+    for (const teu of teus) {
+      const entry = byChapter.get(teu.chapter) ?? { teus: 0, runs: new Set<string>() };
+      entry.teus += 1;
+      entry.runs.add(
+        teu.narrative_run_index == null ? `teu:${teu.id}` : `run:${teu.narrative_run_index}`,
+      );
+      byChapter.set(teu.chapter, entry);
+    }
+    return [...byChapter.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([chapter, e]) => [chapter, e.teus, e.runs.size]) as [number, number, number][];
   }, [teus]);
+
+  const runTotal = useMemo(
+    () => teuChapterCounts.reduce((n, [, , runs]) => n + runs, 0),
+    [teuChapterCounts],
+  );
 
   // Lines cached before provenance existed have no timestamp; show the version
   // alone rather than inventing a time.
@@ -545,6 +571,7 @@ export default function TensionPage() {
         {hasTeus && !hasLines && !groupOp.running && !groupOp.error && (
           <TensionStep1Card
             teuCount={teus.length}
+            runCount={runTotal}
             chapterCounts={teuChapterCounts}
             onGroup={() => runStep(2, false)}
           />
