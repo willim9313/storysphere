@@ -58,25 +58,40 @@ export function TensionEmptyCard({
 
 export function TensionStep1Card({
   teuCount,
+  sceneCount,
   chapterCounts,
   onGroup,
 }: {
   teuCount: number;
-  /** [chapter, count] in chapter order. */
-  chapterCounts: [number, number][];
+  /** Distinct scenes across the book; equals teuCount when nothing groups. */
+  sceneCount: number;
+  /** [chapter, teuCount, sceneCount] in chapter order. */
+  chapterCounts: [number, number, number][];
   onGroup: () => void;
 }) {
   const { t } = useTranslation('analysis');
   return (
     <div className="tn-state-card">
-      <div className="tn-state-title">{t('tension.state.step1Title', { count: teuCount })}</div>
+      <div className="tn-state-title">
+        {t('tension.state.step1Title', { count: teuCount, scenes: sceneCount })}
+      </div>
+      {/* The bar is the scene count, not the TEU count: one scene rendered as
+          three beats used to draw a bar three times too tall, which is exactly
+          the inflation B-068 reports. The TEU count stays in the title and in
+          each column's tooltip, so nothing is hidden — only the shape of the
+          chart stops overstating coverage. Where nothing groups the two counts
+          are equal and the chart is unchanged. */}
       <div
         className="tn-density"
         style={{ gridTemplateColumns: `repeat(${Math.max(chapterCounts.length, 1)}, 1fr)` }}
       >
-        {chapterCounts.map(([chapter, count]) => (
-          <div key={chapter} className="tn-density-col">
-            <i style={{ height: `${8 + count * 7}px` }} />
+        {chapterCounts.map(([chapter, teus, scenes]) => (
+          <div
+            key={chapter}
+            className="tn-density-col"
+            title={t('tension.state.chapterDensity', { n: chapter, teus, scenes })}
+          >
+            <i style={{ height: `${8 + scenes * 7}px` }} />
             <span>{t('tension.state.chapterShort', { n: chapter })}</span>
           </div>
         ))}

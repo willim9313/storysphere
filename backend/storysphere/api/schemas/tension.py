@@ -109,6 +109,16 @@ class TEUDetail(BaseModel):
     pole_b_carriers: list[Carrier] = Field(default_factory=list)
     pole_a_stance: str | None = None
     pole_b_stance: str | None = None
+    scene_index: int | None = Field(
+        default=None,
+        description=(
+            "1-based scene ordinal within the chapter. Extraction produces "
+            "beats, so several TEUs of one chapter routinely describe one "
+            "scene (B-068); TEUs sharing a chapter and a scene_index are "
+            "evidence from the same scene, not independent corroboration. "
+            "Null when the TEU's source event is no longer in the graph."
+        ),
+    )
     line_id: str | None = Field(
         default=None,
         description=(

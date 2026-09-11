@@ -370,11 +370,27 @@ export default function TensionPage() {
   const orphanCount = teus.filter((teu) => teu.line_id === null).length;
   const themeReady = hasLines && unreviewedCount === 0;
 
+  // Both counts, not one: extraction yields beats, so a chapter's TEU count
+  // overstates how much of the book the evidence covers (B-068). The TEU count
+  // still matters — it is what Step 2 has to group — so neither is dropped.
+  // A TEU whose source event is gone has no scene_index and stands alone.
   const teuChapterCounts = useMemo(() => {
-    const byChapter = new Map<number, number>();
-    for (const teu of teus) byChapter.set(teu.chapter, (byChapter.get(teu.chapter) ?? 0) + 1);
-    return [...byChapter.entries()].sort((a, b) => a[0] - b[0]) as [number, number][];
+    const byChapter = new Map<number, { teus: number; scenes: Set<string> }>();
+    for (const teu of teus) {
+      const entry = byChapter.get(teu.chapter) ?? { teus: 0, scenes: new Set<string>() };
+      entry.teus += 1;
+      entry.scenes.add(teu.scene_index == null ? `teu:${teu.id}` : `scene:${teu.scene_index}`);
+      byChapter.set(teu.chapter, entry);
+    }
+    return [...byChapter.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([chapter, e]) => [chapter, e.teus, e.scenes.size]) as [number, number, number][];
   }, [teus]);
+
+  const sceneTotal = useMemo(
+    () => teuChapterCounts.reduce((n, [, , scenes]) => n + scenes, 0),
+    [teuChapterCounts],
+  );
 
   // Lines cached before provenance existed have no timestamp; show the version
   // alone rather than inventing a time.
@@ -545,6 +561,7 @@ export default function TensionPage() {
         {hasTeus && !hasLines && !groupOp.running && !groupOp.error && (
           <TensionStep1Card
             teuCount={teus.length}
+            sceneCount={sceneTotal}
             chapterCounts={teuChapterCounts}
             onGroup={() => runStep(2, false)}
           />

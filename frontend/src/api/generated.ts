@@ -4227,6 +4227,11 @@ export interface components {
             /** Pole B Stance */
             pole_b_stance?: string | null;
             /**
+             * Scene Index
+             * @description 1-based scene ordinal within the chapter. Extraction produces beats, so several TEUs of one chapter routinely describe one scene (B-068); TEUs sharing a chapter and a scene_index are evidence from the same scene, not independent corroboration. Null when the TEU's source event is no longer in the graph.
+             */
+            scene_index?: number | null;
+            /**
              * Line Id
              * @description TensionLine claiming this TEU; null means grouping left it out and the TEU appears nowhere else in the analysis
              */

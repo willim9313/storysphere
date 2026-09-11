@@ -167,6 +167,66 @@ class TestListTEUs:
         assert item["chapter"] == 3
         assert item["evidence"] == ["「記憶不能買賣。」"]
 
+    def test_beats_of_one_scene_share_a_scene_index(self, tension_client, mock_tension, mock_kg):
+        """Three TEUs, one scene — 《名字的潮汐》 ch3's well conversation.
+
+        Without this the tension page counts three pieces of evidence where
+        there is one scene, and a reviewer reads it as triple corroboration
+        (B-068).
+        """
+        from storysphere.domain.events import Event, EventType, NarrativeMode
+
+        mock_kg.get_events.return_value = [
+            Event(
+                id=f"event-t{i}",
+                document_id=BOOK,
+                title=f"beat {i}",
+                event_type=EventType.PLOT,
+                description="d",
+                chapter=3,
+                narrative_position=i,
+                narrative_mode=NarrativeMode.PRESENT,
+            )
+            for i in (1, 2, 3)
+        ]
+        mock_tension.get_teus.return_value = [_make_teu(f"t{i}", 3) for i in (1, 2, 3)]
+
+        items = tension_client.get(f"/api/v1/tension/teus?book_id={BOOK}").json()
+
+        assert [i["scene_index"] for i in items] == [1, 1, 1]
+
+    def test_a_narrative_mode_change_splits_the_scene(self, tension_client, mock_tension, mock_kg):
+        from storysphere.domain.events import Event, EventType, NarrativeMode
+
+        modes = {1: NarrativeMode.PRESENT, 2: NarrativeMode.FLASHBACK, 3: NarrativeMode.PRESENT}
+        mock_kg.get_events.return_value = [
+            Event(
+                id=f"event-t{i}",
+                document_id=BOOK,
+                title=f"beat {i}",
+                event_type=EventType.PLOT,
+                description="d",
+                chapter=3,
+                narrative_position=i,
+                narrative_mode=modes[i],
+            )
+            for i in (1, 2, 3)
+        ]
+        mock_tension.get_teus.return_value = [_make_teu(f"t{i}", 3) for i in (1, 2, 3)]
+
+        items = tension_client.get(f"/api/v1/tension/teus?book_id={BOOK}").json()
+
+        assert [i["scene_index"] for i in items] == [1, 2, 3]
+
+    def test_a_teu_whose_event_is_gone_reports_no_scene(self, tension_client, mock_tension, mock_kg):
+        """Better null than a number that quietly means "its own scene"."""
+        mock_kg.get_events.return_value = []
+        mock_tension.get_teus.return_value = [_make_teu("t1", 3)]
+
+        items = tension_client.get(f"/api/v1/tension/teus?book_id={BOOK}").json()
+
+        assert items[0]["scene_index"] is None
+
     def test_carrier_gets_its_kg_entity_type(self, tension_client, mock_tension, mock_kg):
         mock_kg.list_entities.return_value = [
             make_entity(name="伊內絲", eid="ent-1", etype=EntityType.CHARACTER),
