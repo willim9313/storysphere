@@ -23,7 +23,7 @@ from storysphere.api.deps import (
     KGServiceDep,
     VoiceProfilingServiceDep,
 )
-from storysphere.api.routers._book_shared import now_iso
+from storysphere.api.routers._book_shared import analysis_staleness, now_iso
 from storysphere.api.schemas.book_entity_analysis import (
     ArchetypeDetailResponse,
     ArcSegmentResponse,
@@ -92,6 +92,7 @@ async def list_character_analyses(
         cache_key = AnalysisCache.make_key("character", book_id, e.id)
         result = await cache.get_as(cache_key, CharacterAnalysisResult)
         if result is not None:
+            is_stale, stale_reason = await analysis_staleness(cache, cache_key, document)
             try:
                 archetypes = {a.framework: a.primary for a in result.archetypes}
                 analyzed.append(
@@ -109,6 +110,8 @@ async def list_character_analyses(
                             if result.analyzed_at
                             else now_iso()
                         ),
+                        is_stale=is_stale,
+                        stale_reason=stale_reason,
                     ).model_dump(by_alias=True)
                 )
             except Exception:
@@ -145,6 +148,7 @@ async def get_entity_analysis(
     entity_id: str,
     cache: AnalysisCacheDep,
     kg: KGServiceDep,
+    doc: DocServiceDep,
 ) -> dict:
     """Get full analysis result for a specific character entity."""
     entity = await kg.get_entity(entity_id)
@@ -157,6 +161,9 @@ async def get_entity_analysis(
         result = await cache.get_as(cache_key, CharacterAnalysisResult)
         if result is not None:
             logger.info("Entity analysis cache HIT: key=%s", cache_key)
+            is_stale, stale_reason = await analysis_staleness(
+                cache, cache_key, await doc.get_document(book_id)
+            )
             return CharacterAnalysisDetailResponse(
                 entity_id=entity_id,
                 entity_name=entity.name,
@@ -192,6 +199,8 @@ async def get_entity_analysis(
                 generated_at=(
                     result.analyzed_at.isoformat() if result.analyzed_at else now_iso()
                 ),
+                is_stale=is_stale,
+                stale_reason=stale_reason,
             ).model_dump(by_alias=True)
         logger.info("Entity analysis cache MISS: key=%s", cache_key)
     except Exception:

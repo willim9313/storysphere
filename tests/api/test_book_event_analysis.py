@@ -9,7 +9,7 @@ and there was no test that made one.
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock
 
 import pytest
@@ -81,6 +81,22 @@ def cache_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_
     cache = AsyncMock()
     cache.get_as = AsyncMock(return_value=None)
 
+    # Own Document rather than conftest's: staleness dates an entry against
+    # `pipeline_status`, so the tests need to set that field directly.
+    from storysphere.domain.documents import Document, FileType
+
+    document = Document(
+        id=BOOK_ID,
+        title="Test Novel",
+        author="Author",
+        file_path="/tmp/test.pdf",
+        file_type=FileType.PDF,
+        chapters=[],
+    )
+    mock_doc.get_document = AsyncMock(
+        side_effect=lambda doc_id: document if doc_id == BOOK_ID else None
+    )
+
     mock_kg.get_event = AsyncMock(return_value=_make_event())
 
     app.dependency_overrides[deps.get_kg_service] = lambda: mock_kg
@@ -93,6 +109,7 @@ def cache_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_chat_
     with TestClient(app, raise_server_exceptions=True) as c:
         c.cache = cache
         c.kg = mock_kg
+        c.doc_fixture = document
         yield c
 
     app.dependency_overrides.clear()
@@ -144,3 +161,73 @@ class TestGetEventAnalysis:
         cache_client.kg.get_event = AsyncMock(return_value=None)
 
         assert self._get(cache_client, "no-such-event").status_code == 404
+
+
+class TestStaleReporting:
+    """B-111 — a feature-extraction rerun ages an EEP instead of deleting it.
+
+    The step replaces the vector evidence and keywords the analysis was built
+    from but regenerates no id, so the entry stays readable. Saying so is the
+    whole point of keeping it: a preserved analysis nobody flags as outdated is
+    worse than a deleted one, because it looks current.
+    """
+
+    CREATED = datetime(2026, 8, 1, tzinfo=UTC)
+
+    def _get(self, client):
+        return client.get(f"/api/v1/books/{BOOK_ID}/events/{EVENT_ID}/analysis")
+
+    def _arm(self, client, ran_at):
+        client.cache.get_as.return_value = _make_result()
+        client.cache.created_at = AsyncMock(return_value=self.CREATED.timestamp())
+        client.doc_fixture.pipeline_status.feature_extraction_at = ran_at
+
+    def test_rerun_after_the_analysis_reports_stale(self, cache_client):
+        self._arm(cache_client, self.CREATED + timedelta(days=1))
+
+        body = self._get(cache_client).json()
+
+        assert body["isStale"] is True
+        assert body["staleReason"] == "feature-extraction"
+
+    def test_rerun_before_the_analysis_reports_fresh(self, cache_client):
+        self._arm(cache_client, self.CREATED - timedelta(days=1))
+
+        body = self._get(cache_client).json()
+
+        assert body["isStale"] is False
+        assert body["staleReason"] is None
+
+    def test_step_never_run_reports_fresh(self, cache_client):
+        """No recorded completion means the run predates these timestamps.
+
+        Guessing "stale" there would flag the entire library at once.
+        """
+        self._arm(cache_client, None)
+
+        assert self._get(cache_client).json()["isStale"] is False
+
+    def test_a_failing_staleness_read_does_not_hide_the_analysis(self, cache_client):
+        """The endpoint must still answer 200 with the payload.
+
+        Reported fresh rather than raising — an exception here would surface as
+        a 500 and take a perfectly readable analysis off screen.
+        """
+        self._arm(cache_client, self.CREATED + timedelta(days=1))
+        cache_client.cache.created_at = AsyncMock(side_effect=RuntimeError("db gone"))
+
+        resp = self._get(cache_client)
+
+        assert resp.status_code == 200
+        assert resp.json()["isStale"] is False
+
+    def test_list_carries_the_flag_too(self, cache_client):
+        """#6b is where the reader scans; the badge has to be visible there."""
+        self._arm(cache_client, self.CREATED + timedelta(days=1))
+        cache_client.kg.get_events = AsyncMock(return_value=[_make_event()])
+
+        body = cache_client.get(f"/api/v1/books/{BOOK_ID}/analysis/events").json()
+
+        assert len(body["analyzed"]) == 1
+        assert body["analyzed"][0]["isStale"] is True
+        assert body["analyzed"][0]["staleReason"] == "feature-extraction"
