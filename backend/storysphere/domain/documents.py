@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -51,6 +52,32 @@ class ParagraphRole(str, Enum):
     section = "section"    # v2
     epigraph = "epigraph"  # v2
     preamble = "preamble"  # v2
+
+
+# Separator detection lives here rather than in the ingestion pipeline because
+# "what counts as a visual divider" is a rule about paragraphs, and two callers
+# now need it: ingestion, which turns such a line into a `separator` paragraph,
+# and scene grouping, which re-checks stored ones before trusting them.
+_CONTENT_CHAR = re.compile(r"\w", re.UNICODE)
+_MAX_SEP_LEN = 40
+
+# Punctuation that belongs to running text rather than to a decorative rule.
+# A line made of nothing but these is a line-wrap artifact — a PDF that breaks
+# right before a closing quote emits a segment of just "。」" — and carries no
+# `\w`, so the content-char test alone lets it through as a divider (B-115).
+# Note the fix cannot be "require length ≥ n": the real separator "～" is one
+# character, shorter than the "。」" this excludes.
+_TEXT_PUNCT = frozenset('。．.！!？?，,、；;：:…⋯「」『』（）()【】《》〈〉〔〕｛｝[]{}“”‘’"\'')
+
+
+def is_separator_segment(text: str) -> bool:
+    """True if a raw segment looks like a visual divider (e.g. ***, ---, ◇◇◇)."""
+    stripped = text.strip()
+    if not stripped or len(stripped) > _MAX_SEP_LEN:
+        return False
+    if _CONTENT_CHAR.search(stripped):
+        return False
+    return not all(c in _TEXT_PUNCT or c.isspace() for c in stripped)
 
 
 class ChapterRole(str, Enum):
