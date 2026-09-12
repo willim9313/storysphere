@@ -23,7 +23,7 @@ from storysphere.api.deps import (
     KGServiceDep,
     VectorServiceDep,
 )
-from storysphere.api.routers._book_shared import now_iso
+from storysphere.api.routers._book_shared import analysis_staleness, now_iso
 from storysphere.api.schemas.book_event_analysis import (
     BatchEventAnalysisRequest,
     EventAnalysisFullResponse,
@@ -124,6 +124,7 @@ async def list_event_analyses(
         cache_key = f"event:{book_id}:{ev.id}"
         result = await cache.get_as(cache_key, EventAnalysisResult)
         if result is not None:
+            is_stale, stale_reason = await analysis_staleness(cache, cache_key, document)
             try:
                 importance = (
                     result.eep.event_importance.name
@@ -146,6 +147,8 @@ async def list_event_analyses(
                         chapter=ev.chapter,
                         narrative_mode=narrative_mode,
                         importance=importance,
+                        is_stale=is_stale,
+                        stale_reason=stale_reason,
                     ).model_dump(by_alias=True)
                 )
             except Exception:
@@ -256,14 +259,15 @@ async def trigger_event_analysis(
     response_model=EventAnalysisFullResponse,
 )
 async def get_event_analysis(
-    book_id: str, event_id: str, cache: AnalysisCacheDep, kg: KGServiceDep
+    book_id: str, event_id: str, cache: AnalysisCacheDep, kg: KGServiceDep,
+    doc: DocServiceDep,
 ) -> EventAnalysisFullResponse:
     """Return cached EEP / causality / impact analysis for a single event."""
     event = await kg.get_event(event_id)
     if event is None:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
-    from storysphere.api.schemas.books import (  # noqa: PLC0415
+    from storysphere.api.schemas.book_event_analysis import (  # noqa: PLC0415
         CausalityResponse,
         EepParticipantRole,
         EepResponse,
@@ -275,6 +279,10 @@ async def get_event_analysis(
     result = await cache.get_as(cache_key, EventAnalysisResult)
     if result is None:
         raise HTTPException(status_code=404, detail="Event analysis not found. Run analysis first.")
+
+    is_stale, stale_reason = await analysis_staleness(
+        cache, cache_key, await doc.get_document(book_id)
+    )
     return EventAnalysisFullResponse(
         event_id=result.event_id,
         title=result.title,
@@ -325,6 +333,8 @@ async def get_event_analysis(
             if event.narrative_mode is not None and hasattr(event.narrative_mode, "value")
             else (event.narrative_mode if isinstance(event.narrative_mode, str) else None)
         ),
+        is_stale=is_stale,
+        stale_reason=stale_reason,
     )
 
 

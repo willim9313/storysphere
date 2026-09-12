@@ -4,24 +4,43 @@ Re-running a step regenerates the entities and events the downstream analyses
 were built from, so their cached results stop describing the book. What to do
 about that depends on how the cache entry is keyed:
 
-**Keyed by entity or event id** — ``event:``, ``character:``, ``epistemic:``,
-``voice_profile:``, ``sep:``, ``symbol_analysis:``, ``teu:``. The ids are
-regenerated, so these entries become unreachable: no read path can name them
-again. They are deleted, because marking them would mark something nobody can
-see, and keeping them only consumes space.
+The question is **not** how an entry is keyed but whether *this* step
+regenerates what the key names. Both maps below are per-step for that reason:
+the same family is deleted by one step and reported stale by another.
+
+**Deleted** — the step regenerates the ids in the key, so the entries become
+unreachable: no read path can name them again. ``event:`` and ``teu:`` under
+"knowledge-graph", which re-extracts every Event; ``character:``,
+``epistemic:`` and ``voice_profile:`` likewise, since entity ids are reborn
+with the graph; ``sep:`` and ``symbol_analysis:`` under "symbol-discovery".
+Marking these would mark something nobody can see, and keeping them only
+consumes space.
 
 ``symbol_overview:`` is keyed by book id but deleted alongside them, because it
 holds no human input — it is a projection of the symbol, entity and event tables,
 so recomputing it costs one assembly pass while keeping it would serve a symbol
 set the book no longer has.
 
-**Keyed by book id** — ``narrative_structure:``, ``hero_journey:``,
-``temporal_analysis:``, ``tension_lines:``, ``tension_theme:``. These keys
-survive the rerun and stay readable, and they are where the human review state
-lives: NarrativeStructure.review_status, and TensionLine / TensionTheme
-review_status together with the text a ``modified`` review rewrote. Deleting
-them would throw away work that cannot be recomputed, so they are left in
-place and reported as stale instead.
+**Reported stale** — the entry stays reachable but was built from output the
+step has since replaced. Two kinds sit here:
+
+- Keyed by book id — ``narrative_structure:``, ``hero_journey:``,
+  ``temporal_analysis:``, ``tension_lines:``, ``tension_theme:``. These are
+  where the human review state lives: NarrativeStructure.review_status, and
+  TensionLine / TensionTheme review_status together with the text a
+  ``modified`` review rewrote. Deleting them would throw away work that cannot
+  be recomputed.
+- Keyed by an id **this** step does not regenerate — ``event:`` and
+  ``character:`` under "feature-extraction" (B-111). That step embeds
+  paragraphs and extracts keywords; it holds no reference to the KG, so the
+  ids in those keys survive it untouched. They are not orphaned, merely built
+  on evidence that moved, and deleting them destroyed LLM output that was
+  still perfectly reachable.
+
+A family named in neither map for a step is one that step cannot affect:
+``epistemic:`` under "feature-extraction" is the worked example —
+EpistemicStateService takes only kg_service, llm and cache, so re-embedding
+paragraphs neither orphans nor ages it.
 
 Staleness is derived, not stored: an entry is stale when its ``created``
 predates the last run of a step it derives from. That needs no field on the
@@ -43,10 +62,12 @@ logger = logging.getLogger(__name__)
 # Entries keyed by an id the step regenerates — unreachable afterwards, deleted.
 _ORPHANED_CACHES: dict[str, tuple[str, ...]] = {
     "summarization": (),
+    # Embeds paragraphs and extracts keywords. It regenerates no id at all —
+    # it holds no reference to the KG — so nothing keyed by an entity or event
+    # id becomes unreachable here (B-111). `event:` and `character:` do derive
+    # from its output and are reported stale below; `epistemic:` does not
+    # derive from it at all and is named nowhere.
     "feature-extraction": (
-        "event:{book}:%",
-        "character:{book}:%",
-        "epistemic:{book}:%",
         # Carries per-symbol event counts.
         "symbol_overview:{book}",
     ),
@@ -82,9 +103,17 @@ _STALED_CACHES: dict[str, tuple[str, ...]] = {
     "summarization": (
         "hero_journey:{book}",
     ),
-    # Kept as-is: whether these genuinely age with re-embedding is a separate
-    # question from B-108, which was about the step that was missing them.
+    # B-111 settled the question B-108 left open. These do age with a re-run:
+    # `AnalysisService` builds EEP text evidence from a vector search
+    # (analysis_service.py:789) and CEP from a vector search plus
+    # `get_entity_keywords` (:471, :485) — both are this step's output. So the
+    # two id-keyed families belong here, not in the delete list: their ids
+    # survive, and deleting them threw away LLM output nobody asked to lose.
+    # `epistemic:` is absent from both lists on purpose — EpistemicStateService
+    # takes only kg_service / llm / cache, so this step cannot age it.
     "feature-extraction": (
+        "event:{book}:%",
+        "character:{book}:%",
         "narrative_structure:{book}",
         "hero_journey:{book}",
         "temporal_analysis:{book}",

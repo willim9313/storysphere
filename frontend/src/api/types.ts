@@ -99,40 +99,10 @@ export type UnanalyzedEntity = components['schemas']['UnanalyzedEntity'];
 
 export type AnalysisListResponse = components['schemas']['AnalysisListResponse'];
 
-export interface CepData {
-  actions: string[];
-  traits: string[];
-  relations: Array<{ target: string; type: string; description: string }>;
-  keyEvents: Array<Record<string, unknown>>;
-  quotes: string[];
-  topTerms: Record<string, number>;
-}
+export type ArchetypeDetail = components['schemas']['ArchetypeDetailResponse'];
 
-export interface ArchetypeDetail {
-  framework: string;
-  primary: string;
-  secondary: string | null;
-  confidence: number;
-  evidence: string[];
-}
-
-export interface ArcSegment {
-  chapterRange: string;
-  phase: string;
-  description: string;
-}
-
-export interface CharacterAnalysisDetail {
-  entityId: string;
-  entityName: string;
-  profileSummary: string;
-  archetypes: ArchetypeDetail[];
-  cep: CepData | null;
-  arc: ArcSegment[];
-  status?: 'complete' | 'partial';
-  failedParts?: string[];
-  generatedAt: string;
-}
+export type CharacterAnalysisDetail =
+  components['schemas']['CharacterAnalysisDetailResponse'];
 
 // ── Tasks ───────────────────────────────────────────────────────
 
@@ -297,22 +267,6 @@ export interface ParticipantRole {
   impactDescription: string;
 }
 
-export interface EventEvidenceProfile {
-  stateBefore: string;
-  stateAfter: string;
-  causalFactors: string[];
-  priorEventIds: string[];
-  subsequentEventIds: string[];
-  participantRoles: ParticipantRole[];
-  consequences: string[];
-  structuralRole: string;
-  eventImportance: string;
-  thematicSignificance: string;
-  textEvidence: string[];
-  keyQuotes: string[];
-  topTerms: Record<string, number>;
-}
-
 export interface CausalityAnalysis {
   rootCause: string;
   causalChain: string[];
@@ -331,17 +285,5 @@ export interface ImpactAnalysis {
 export type EventSourceResponse = components['schemas']['EventSourceResponse'];
 export type EventSourcePassage = components['schemas']['EventSourcePassage'];
 
-export interface EventAnalysisDetail {
-  eventId: string;
-  title: string;
-  eep: EventEvidenceProfile;
-  causality: CausalityAnalysis;
-  impact: ImpactAnalysis;
-  summary: { summary: string };
-  analyzedAt: string;
-  status?: 'complete' | 'partial';
-  failedParts?: string[];
-  chapter?: number | null;
-  chunk?: number | null;
-  narrativeMode?: string | null;
-}
+export type EventAnalysisDetail =
+  components['schemas']['EventAnalysisFullResponse'];

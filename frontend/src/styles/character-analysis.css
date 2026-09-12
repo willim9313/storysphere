@@ -1398,3 +1398,15 @@
 .ca-gen-foot {
   margin-top: 16px; font-size: var(--font-size-2xs); color: var(--fg-muted); text-align: center;
 }
+
+/* B-111 — the CEP survived a feature-extraction rerun but the vector evidence
+   and keywords it was built from were replaced. Info rather than warning:
+   nothing failed. */
+.ca-title-stale {
+  padding: 2px 8px;
+  border-radius: var(--badge-radius);
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+}

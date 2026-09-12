@@ -104,6 +104,14 @@ class EventAnalysisFullResponse(BaseModel):
     chapter: int | None = None
     chunk: int | None = None
     narrative_mode: str | None = None
+    is_stale: bool = Field(
+        default=False,
+        description="Cached analysis predates a pipeline step it derives from",
+    )
+    stale_reason: str | None = Field(
+        default=None,
+        description="Pipeline step whose rerun overtook the cached analysis",
+    )
 
 
 class BatchEventAnalysisRequest(BaseModel):

@@ -314,6 +314,8 @@ interface AnalysisItem {
   chapter?: number | null;            // 事件所在章節（單一章節編號）
   narrativeMode?: string | null;      // 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown'
   importance?: string | null;         // 'KERNEL' | 'SATELLITE'
+  isStale: boolean;                   // B-111：快取早於它所依賴的 pipeline 步驟的最近一次執行
+  staleReason?: string | null;        // 覆蓋過它的步驟名，目前只會是 'feature-extraction'
 }
 
 interface UnanalyzedEntity {
@@ -338,6 +340,12 @@ interface UnanalyzedEntity {
 取得事件分析清單（含已分析與未分析）。
 
 **Response 200**：同 #6a 格式，`section: 'events'`；事件清單會額外填入 `chapter` / `narrativeMode` / `importance` 三個欄位（已分析事件的 `importance` 來自 cached EEP；未分析事件 `importance` 為 `null`）。`status` 同 #6a：`partial` = 該事件分析有子步驟（causality / impact）失敗，左側清單狀態點據此上色（complete=綠 / partial=琥珀）。`mentionCount` 為角色專用欄位，事件清單不填，恆為 `0`。
+
+`isStale` / `staleReason`（#6a / #6b / #7a / #7d 四處同語意，B-111）：EEP 的文本證據
+來自向量檢索、CEP 另外還用關鍵字，兩者都是 `feature-extraction` 的產物。該步驟重跑
+會換掉這些證據，但**不會**重生 event / entity id，所以快取不是被孤立而是過期——保留
+並在此回報，不刪除。判斷方式是比對快取的 `created` 與 `pipelineStatus.featureExtractionAt`；
+無法判斷時（文件不存在、該步驟從未執行、快取讀取失敗）一律回報 `false`，不猜。
 
 **UI 使用頁面**：事件分析頁左側清單 — KERNEL/SATELLITE letter badge、章節標籤、narrative_mode mini-chip 皆依賴這三個欄位
 
@@ -440,6 +448,8 @@ interface CharacterAnalysisDetail {
   status: 'complete' | 'partial';   // partial = 部分子步驟生成失敗
   failedParts: string[];            // 失敗 part，如 ['archetype:jung']；前端據此區分「生成失敗，可重試」與「未生成」
   generatedAt: string;
+  isStale: boolean;                 // B-111：快取早於 feature-extraction 的最近一次執行
+  staleReason?: string | null;      // 覆蓋過它的步驟名，目前只會是 'feature-extraction'
 }
 
 interface ArchetypeDetail {
@@ -532,6 +542,8 @@ interface EventAnalysisDetail {
   chapter?: number | null;        // 事件所在章節
   chunk?: number | null;          // 事件在章節內的位置（目前對應 Event.narrative_position，未來改用 chunk_id 時不變動此欄位語意）
   narrativeMode?: string | null;  // present | flashback | flashforward | parallel | unknown
+  isStale: boolean;               // B-111：快取早於 feature-extraction 的最近一次執行
+  staleReason?: string | null;    // 覆蓋過它的步驟名，目前只會是 'feature-extraction'
 }
 
 interface EventEvidenceProfile {

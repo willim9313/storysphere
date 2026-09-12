@@ -5,6 +5,99 @@
 
 ---
 
+## B-111 `feature-extraction` 刪掉四個家族的快取，但它不重生那些 id ✅ 完成（2026-09-12）
+
+**背景**: 2026-09-12 為修中文關鍵字（YAKE 無 CJK 斷詞器）重跑
+`feature-extraction` 時實測撞見。B-108 當時已看出這裡有問題並寫下
+「**留成獨立的一題**」，但**那一題從來沒有被開出來**——B-109 是 `location_id`、
+B-110 是張力頁，都不是它。這張票補上。
+
+**`_ORPHANED_CACHES` 的判準是什麼**: 模組 docstring 寫得很清楚——
+「Keyed by entity or event id ... **The ids are regenerated**, so these entries
+become unreachable」。刪除的理由是**讀不到**，不是**過期**。過期的歸
+`_STALED_CACHES`（保留並回報）。
+
+**事實一：`feature-extraction` 不重生任何 id。** 三路獨立證據：
+
+| 證據 | 內容 |
+|---|---|
+| 靜態 | `pipelines/feature_extraction/pipeline.py` 全檔**零個** KG 參照 |
+| 檔案 | 重跑（10:25:39）後 `var/knowledge_graph.json` mtime 仍是 09:58——沒被寫過 |
+| 行為 | 重跑後把 `event:` / `character:` 快取列原樣寫回，`#6b` 照列、`#7a` 回 200——代表那些 id 在 KG 裡從頭到尾都在 |
+
+所以 `event:` / `character:` / `epistemic:` 放在 `feature-extraction` 的
+`_ORPHANED_CACHES` 底下，**判準不成立**：它們不是 unreachable，只是被刪了。
+
+**事實二：但這些規則不是「多餘」的**——B-108 推測「那邊的規則多半是多餘的」，
+這點要更正。`AnalysisService` 確實吃 `feature-extraction` 的產物：
+
+| 分析 | 依賴 | 位置 |
+|---|---|---|
+| EEP（事件） | `_vector_service.search()` 取 text evidence | `analysis_service.py:789` |
+| CEP（角色） | `_vector_service.search()` + `_keyword_service.get_entity_keywords()` | `analysis_service.py:471` / `:485` |
+| Epistemic | **無**——`EpistemicStateService.__init__` 只收 `kg_service` / `llm` / `cache` | `epistemic_state_service.py:64` |
+
+所以正確的分類不是「移除」而是**改判**：
+
+- `event:{book}:%`、`character:{book}:%` → 它們**真的會隨重跑老化**（2026-09-12
+  這次就是實例：關鍵字從整句變成詞，舊 CEP 是建立在已經不存在的關鍵字證據上），
+  但老化的處置是 `_STALED_CACHES`，不是刪除。
+- `epistemic:{book}:%` → 對 `feature-extraction` **完全沒有依賴**，這一條才是真正多餘的，應直接移除。
+- `symbol_overview:{book}` → 維持刪除可辯護（docstring 的理由是「無人工輸入、
+  重算只花一次組裝」），但它掛在此步驟的註記「Carries per-symbol event counts」
+  同樣站不住腳——事件數在這一步不會變。
+
+**實測代價**: 2026-09-12 對 `ageoffire` 重跑一次，刪掉 5 列仍然有效的快取——
+2 筆事件分析、1 筆角色分析（林志豪）、2 筆 epistemic（Ch.1 / Ch.5）。全部是真金
+白銀的 LLM 產出，事後由備份逐位元組還原。使用者沒有被詢問，也沒有被告知。
+
+**卡住的地方（這題不是把兩行從一個 dict 搬到另一個就好）**: staleness 的**回報
+路徑只存在於 book-keyed 家族**。`staleness()` 目前的消費者只有
+`tension_service.py:659`、`narrative_service.py:660`、`book_timeline.py:277`，
+全部是書級分析。把 `event:` / `character:` 搬進 `_STALED_CACHES` 會保住資料，
+但沒有任何 UI 會說它過期了——使用者看到的是一份靜默的舊分析。要嘛一併補上
+entity-keyed 家族的回報路徑（`#6b` 清單與 `#7d` 詳情各加一個 stale 旗標），
+要嘛這題只做 `epistemic:` 的移除、其餘維持現狀並在文件寫明權衡。
+
+**待辦內容**:
+1. 從 `feature-extraction` 的 `_ORPHANED_CACHES` 移除 `epistemic:{book}:%`（無依賴，純多餘）
+2. 決定 `event:` / `character:` 要不要改判為 stale，以及是否一併補 entity-keyed 的回報路徑
+3. 更新 `cache_invalidation.py` 模組 docstring 與 B-108 留下的那段註解——目前那段說
+   `feature-extraction`「never touches an Event」是對的，但沒說它其實供給了 EEP 的證據
+4. 補測試：釘住「`feature-extraction` 重跑後 event/character 快取仍可讀」
+
+**修正（2026-09-12）**:
+
+1. `cache_invalidation.py` 改判——`event:` / `character:` 從 `_ORPHANED_CACHES`
+   移到 `_STALED_CACHES`；`epistemic:` 兩份 map 都不列。模組 docstring 原本把
+   「用 entity/event id 當鍵」等同於「一定刪除」，改寫成以步驟為準。
+2. **第四個家族**: 寫票時漏了 `teu:`。`ingestion.py` 原本在 feature-extraction
+   也收 TEU keys（B-108 補上 knowledge-graph 時沒把舊的拿掉），而 TensionService
+   只收 cache、TEU 由事件組成，同樣零依賴。已一併移除。
+3. **回報路徑**（這題卡住的地方，已一併做完）: #6a / #6b / #7a / #7d 各加
+   `is_stale` / `stale_reason`，判斷交給既有的 `staleness()`。守衛抽成
+   `_book_shared.analysis_staleness()`——兩個清單端點的 `except` 會把項目移進
+   unanalyzed、角色詳情的 `except` 會變成 404，所以 staleness 在那些位置丟例外
+   不會顯示成錯誤，而會靜默地把「有這份分析」改寫成「沒有」。
+4. 前端兩頁顯示「證據已更新」徽章，清單列以 info 色圓點標示。`--color-info`
+   為既有 token，未新增。
+5. 型別接回 generated：`CharacterAnalysisDetail` / `EventAnalysisDetail` /
+   `ArchetypeDetail` 原本手寫在 `types.ts`。
+
+**五項既有測試在釘住舊行為**，全部改判準並在 docstring 寫明理由，另補 13 項守衛。
+其中 `test_teu_keys_collected_before_events_are_regenerated` 把 feature-extraction
+的 pipeline mock 成會替換事件——那是該步驟做不到的事，改由 knowledge-graph 驅動。
+
+**孤兒清理**: `CepData` / `ArcSegment` / `EventEvidenceProfile` 的唯一引用者就是那兩個
+改為別名的 detail 型別，因此失去使用端。經全 repo 掃描確認後刪除——前端零殘留、無
+barrel re-export、無命名空間匯入（兩者都會讓具名搜尋失效），`generated.ts` 的命中是
+`ArcSegmentResponse` 的子字串而非引用。`ParticipantRole` / `CausalityAnalysis` /
+`ImpactAnalysis` 不連帶：`EventAnalysisDetail.tsx` 直接使用它們。其餘命中全在後端
+Python（`analysis_models` 的同名 Pydantic model，不同語言不同符號）與文件
+（`API_CONTRACT.md` 在自己的 ts 區塊裡宣告，不依賴 `types.ts`）。
+
+---
+
 ## B-046 建構概覽：節點「觸發建構」CTA 對接 pipeline endpoint ✅ Phase 1 完成（2026-08-11）
 **背景**: 2026-05-26 的 Direction A · Diagnostic Dashboard 重設計在「status ≠ complete 且無 blockers」時規劃了帶具體動作文字的主色 CTA，但一直以 disabled 灰按鈕（「觸發建構功能規劃中」）占位，pipeline 未接。
 

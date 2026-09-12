@@ -58,6 +58,14 @@ class CharacterAnalysisDetailResponse(BaseModel):
     status: str = "complete"            # "complete" | "partial"
     failed_parts: list[str] = []
     generated_at: str
+    is_stale: bool = Field(
+        default=False,
+        description="Cached analysis predates a pipeline step it derives from",
+    )
+    stale_reason: str | None = Field(
+        default=None,
+        description="Pipeline step whose rerun overtook the cached analysis",
+    )
 
 
 class BatchAnalysisRequest(BaseModel):

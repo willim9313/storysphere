@@ -1,4 +1,5 @@
 import sys
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
@@ -136,3 +137,83 @@ class TestEventListStatus:
         _override_cache(client, _event_cached([]))
         resp = client.get("/api/v1/books/book-1/analysis/events")
         assert resp.json()["analyzed"][0]["status"] == "complete"
+
+
+class TestCharacterStaleReporting:
+    """B-111 — a feature-extraction rerun ages a CEP instead of deleting it.
+
+    CEP is built from a vector search plus ``get_entity_keywords``, both this
+    step's output, while the entity id it is keyed by survives untouched. The
+    character side needs the flag for the same reason the event side does:
+    preserving an analysis without saying it is outdated is worse than
+    deleting it, because it looks current.
+    """
+
+    CREATED = datetime(2026, 8, 1, tzinfo=timezone.utc)
+
+    @staticmethod
+    def _document(feature_extraction_at):
+        from storysphere.domain.documents import Document, FileType, PipelineStatus
+
+        return Document(
+            id="book-1", title="T", author="A", file_path="/tmp/x.pdf",
+            file_type=FileType.PDF, chapters=[],
+            pipeline_status=PipelineStatus(feature_extraction_at=feature_extraction_at),
+        )
+
+    def _arm(self, client, mock_kg, mock_doc, ran_at):
+        mock_doc.get_document = AsyncMock(return_value=self._document(ran_at))
+        mock_kg.get_entity = AsyncMock(
+            return_value=SimpleNamespace(id="ent-1", name="Bob"))
+        mock_kg.list_entities = AsyncMock(
+            return_value=[SimpleNamespace(id="ent-1", name="Bob", mention_count=5)])
+        cached = CharacterAnalysisResult(
+            entity_id="ent-1", entity_name="Bob", document_id="book-1",
+            profile=CharacterProfile(summary="s"), cep=CEPResult(),
+            archetypes=[], arc=[], coverage=CoverageMetrics(),
+            failed_parts=[]).model_dump(mode="json")
+        cache = _override_cache(client, cached)
+        cache.created_at = AsyncMock(return_value=self.CREATED.timestamp())
+        return cache
+
+    def test_detail_reports_stale_after_a_rerun(self, client, mock_kg, mock_doc):
+        self._arm(client, mock_kg, mock_doc, self.CREATED + timedelta(days=1))
+
+        body = client.get("/api/v1/books/book-1/entities/ent-1/analysis").json()
+
+        assert body["isStale"] is True
+        assert body["staleReason"] == "feature-extraction"
+
+    def test_detail_reports_fresh_when_the_rerun_predates_it(
+        self, client, mock_kg, mock_doc
+    ):
+        self._arm(client, mock_kg, mock_doc, self.CREATED - timedelta(days=1))
+
+        body = client.get("/api/v1/books/book-1/entities/ent-1/analysis").json()
+
+        assert body["isStale"] is False
+        assert body["staleReason"] is None
+
+    def test_list_reports_stale_after_a_rerun(self, client, mock_kg, mock_doc):
+        self._arm(client, mock_kg, mock_doc, self.CREATED + timedelta(days=1))
+
+        body = client.get("/api/v1/books/book-1/analysis/characters").json()
+
+        assert body["analyzed"][0]["isStale"] is True
+
+    def test_a_failing_staleness_read_keeps_the_analysis_visible(
+        self, client, mock_kg, mock_doc
+    ):
+        """The enclosing try turns anything it catches into a 404 / unanalyzed.
+
+        So the guard has to sit inside the staleness call, not around it.
+        """
+        cache = self._arm(client, mock_kg, mock_doc, self.CREATED + timedelta(days=1))
+        cache.created_at = AsyncMock(side_effect=RuntimeError("db gone"))
+
+        detail = client.get("/api/v1/books/book-1/entities/ent-1/analysis")
+        listing = client.get("/api/v1/books/book-1/analysis/characters")
+
+        assert detail.status_code == 200
+        assert detail.json()["isStale"] is False
+        assert len(listing.json()["analyzed"]) == 1

@@ -442,6 +442,11 @@ export default function CharacterAnalysisPage() {
                         {t('character.list.mentionCount', { count: selectedAnalyzed.mentionCount })}
                       </span>
                     )}
+                    {entityAnalysis.isStale && (
+                      <span className="ca-title-stale" title={t('character.stale.tooltip')}>
+                        {t('character.stale.badge')}
+                      </span>
+                    )}
                   </div>
                   <div className="ca-titlebar-actions">
                     <Link

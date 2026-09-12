@@ -2157,6 +2157,17 @@ export interface components {
             narrativeMode?: string | null;
             /** Importance */
             importance?: string | null;
+            /**
+             * Isstale
+             * @description Cached analysis predates a pipeline step it derives from
+             * @default false
+             */
+            isStale: boolean;
+            /**
+             * Stalereason
+             * @description Pipeline step whose rerun overtook the cached analysis
+             */
+            staleReason?: string | null;
         };
         /** AnalysisListResponse */
         AnalysisListResponse: {
@@ -2521,6 +2532,17 @@ export interface components {
             failedParts: string[];
             /** Generatedat */
             generatedAt: string;
+            /**
+             * Isstale
+             * @description Cached analysis predates a pipeline step it derives from
+             * @default false
+             */
+            isStale: boolean;
+            /**
+             * Stalereason
+             * @description Pipeline step whose rerun overtook the cached analysis
+             */
+            staleReason?: string | null;
         };
         /** CharacterAnalysisRequest */
         CharacterAnalysisRequest: {
@@ -2884,6 +2906,17 @@ export interface components {
             chunk?: number | null;
             /** Narrativemode */
             narrativeMode?: string | null;
+            /**
+             * Isstale
+             * @description Cached analysis predates a pipeline step it derives from
+             * @default false
+             */
+            isStale: boolean;
+            /**
+             * Stalereason
+             * @description Pipeline step whose rerun overtook the cached analysis
+             */
+            staleReason?: string | null;
         };
         /** EventAnalysisRequest */
         EventAnalysisRequest: {
