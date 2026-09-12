@@ -106,3 +106,4 @@
 | 2026-09-10 | [事件顆粒度與章內順序：提示措辭的對照實驗](./20260910-event-granularity-ordering-experiments.md) |
 | 2026-09-11 | [場景分組判準：在真實資料上的試算與提案](./20260911-scene-grouping-criteria.md) |
 | 2026-09-12 | [場景邊界改用排版分隔符：重上傳後的重新試算與提案](./20260912-scene-boundary-from-typographic-dividers.md) |
+| 2026-09-12 | [三個沒試過的方向：兩段式抽取、schema 內顆粒度、後處理合併](./20260912-untried-granularity-directions.md) |
