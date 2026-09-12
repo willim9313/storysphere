@@ -1038,9 +1038,17 @@ interface EventDetail {
   significance?: string;
   consequences: string[];
   participants: { id: string; name: string; type: EntityType }[];
-  location?: { id: string; name: string };
 }
 ```
+
+**沒有獨立的 `location` 欄位（B-109 移除）。** 地點以 `type: "location"` 的參與者形式
+出現在 `participants` 裡——抽取提示要的是「entity names involved」且不限型別，所以場景
+所在的地點跟其他實體一樣落在那裡。原本的 `location` 欄位**從未被任何程式寫入**
+（提示裡根本沒有這個欄位），四個消費端讀到的永遠是 null。
+
+**讀法是「涉及這個地點的事件」，不是「發生在這裡的事件」**：實測 16% 的事件會列出
+多個地點（角色路過三個地方去報信），資料裡沒有任何東西指出哪一個是場景所在。要有
+那個語意得叫模型多判斷一次，代價見 B-109。
 
 **UI 使用頁面**：知識圖譜頁 EventDetailPanel、時間軸頁事件詳情面板
 
@@ -1138,7 +1146,6 @@ interface TimelineEvent {
   temporalDisplacement?: TemporalDisplacement | null;  // #21h 判定，null = 該筆無判定
   storyTimeHint?: string;
   participants: { id: string; name: string; type: EntityType }[];
-  location?: { id: string; name: string };
 }
 
 interface TemporalDisplacement {

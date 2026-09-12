@@ -650,7 +650,7 @@ export interface paths {
         };
         /**
          * Get Event Detail
-         * @description Get event detail with resolved participant and location names.
+         * @description Get event detail with resolved participant names.
          */
         get: operations["get_event_detail_api_v1_books__book_id__events__event_id__get"];
         put?: never;
@@ -2967,14 +2967,6 @@ export interface components {
              * @default []
              */
             participants: components["schemas"]["EventParticipant"][];
-            location?: components["schemas"]["EventLocation"] | null;
-        };
-        /** EventLocation */
-        EventLocation: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
         };
         /** EventParticipant */
         EventParticipant: {
@@ -3431,13 +3423,6 @@ export interface components {
             mode: string;
             /** Message */
             message: string;
-        };
-        /** LocationRef */
-        LocationRef: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
         };
         /** MisbeliefItemSchema */
         MisbeliefItemSchema: {
@@ -4676,7 +4661,6 @@ export interface components {
              * @default []
              */
             participants: components["schemas"]["ParticipantRef"][];
-            location?: components["schemas"]["LocationRef"] | null;
         };
         /** TimelineQuality */
         TimelineQuality: {

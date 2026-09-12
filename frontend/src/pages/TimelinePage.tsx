@@ -233,8 +233,18 @@ export default function TimelinePage() {
       if (d.event.eventImportance) bump(`importance:${d.event.eventImportance}`);
       for (const p of d.event.participants) {
         if (p.type === 'character') bump(`characters:${p.id}`);
+        // Locations arrive as participants, not in a field of their own: the
+        // extraction prompt asks for "entity names involved" and does not
+        // restrict the type, so a place lands there like anyone else. The
+        // dedicated `location` field was removed in B-109 — nothing ever wrote
+        // it, and this facet was empty for as long as it existed.
+        //
+        // Read it as "events involving this place", not "events set here":
+        // 16% of events name more than one place (a character crossing three
+        // of them on the way somewhere), and nothing in the data says which
+        // one is the setting.
+        if (p.type === 'location') bump(`locations:${p.id}`);
       }
-      if (d.event.location) bump(`locations:${d.event.location.id}`);
     }
     return counts;
   }, [timelineData]);

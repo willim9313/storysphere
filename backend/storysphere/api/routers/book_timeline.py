@@ -22,7 +22,6 @@ from storysphere.api.deps import (
     TemporalPipelineDep,
 )
 from storysphere.api.schemas.book_timeline import (
-    LocationRef,
     ParticipantRef,
     TemporalDisplacementEntry,
     TemporalRelationEntry,
@@ -245,15 +244,15 @@ async def get_book_timeline(
     else:
         events.sort(key=lambda e: e.chapter)
 
-    # Batch-fetch all participant + location entities
+    # Batch-fetch participant entities. Locations ride in `participants` — the
+    # extraction prompt asks for "entity names involved" without restricting the
+    # type, so a place the scene happens in lands there like anything else
+    # (B-109). There is no separate location to fetch.
     participant_ids: set[str] = set()
-    location_ids: set[str] = set()
     for ev in events:
         participant_ids.update(ev.participants)
-        if ev.location_id is not None:
-            location_ids.add(ev.location_id)
 
-    all_entity_ids = list(participant_ids | location_ids)
+    all_entity_ids = list(participant_ids)
     if all_entity_ids:
         entity_results = await asyncio.gather(
             *[kg.get_entity(eid) for eid in all_entity_ids],
@@ -305,14 +304,6 @@ async def get_book_timeline(
                     )
                     for pid in e.participants
                 ],
-                location=(
-                    LocationRef(
-                        id=e.location_id,
-                        name=entity_map[e.location_id].name,
-                    )
-                    if e.location_id and e.location_id in entity_map
-                    else None
-                ),
             )
             for e in events
         ],

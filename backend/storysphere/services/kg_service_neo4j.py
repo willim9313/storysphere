@@ -9,7 +9,7 @@ Nodes
               document_id, first_appearance_chapter, mention_count,
               extraction_method, confidence})
     (:Event  {id, document_id, title, event_type, description, chapter,
-              participants, location_id, significance, consequences,
+              participants, significance, consequences,
               narrative_mode, chronological_rank, story_time_hint})
 
 Relationships
@@ -645,7 +645,6 @@ def _event_props(event: Event) -> dict[str, Any]:
         "description": event.description,
         "chapter": event.chapter,
         "participants": event.participants,
-        "location_id": event.location_id,
         "significance": event.significance,
         "consequences": event.consequences,
         "narrative_position": event.narrative_position,
@@ -703,7 +702,6 @@ def _node_to_event(node: Any) -> Event:
         description=data.get("description", ""),
         chapter=int(data.get("chapter") or 0),
         participants=list(data.get("participants") or []),
-        location_id=data.get("location_id"),
         significance=data.get("significance"),
         consequences=list(data.get("consequences") or []),
         narrative_position=data.get("narrative_position"),

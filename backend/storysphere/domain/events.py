@@ -40,7 +40,6 @@ class Event(BaseModel):
     description: str
     chapter: int
     participants: list[str] = Field(default_factory=list, description="Entity IDs involved")
-    location_id: str | None = None
     significance: str | None = None
     consequences: list[str] = Field(default_factory=list)
 

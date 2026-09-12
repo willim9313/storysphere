@@ -28,7 +28,6 @@ from storysphere.api.schemas.book_event_analysis import (
     BatchEventAnalysisRequest,
     EventAnalysisFullResponse,
     EventDetailResponse,
-    EventLocation,
     EventParticipant,
     EventSourcePassage,
     EventSourceResponse,
@@ -56,7 +55,7 @@ router = APIRouter(prefix="/books", tags=["books"])
 async def get_event_detail(
     book_id: str, event_id: str, doc: DocServiceDep, kg: KGServiceDep
 ) -> dict:
-    """Get event detail with resolved participant and location names."""
+    """Get event detail with resolved participant names."""
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
@@ -76,15 +75,6 @@ async def get_event_detail(
                 ).model_dump(by_alias=True)
             )
 
-    # Resolve location name
-    location = None
-    if event.location_id:
-        loc_entity = await kg.get_entity(event.location_id)
-        if loc_entity:
-            location = EventLocation(
-                id=loc_entity.id, name=loc_entity.name
-            ).model_dump(by_alias=True)
-
     return EventDetailResponse(
         id=event.id,
         title=event.title,
@@ -94,7 +84,6 @@ async def get_event_detail(
         significance=event.significance,
         consequences=event.consequences,
         participants=participants,
-        location=location,
     ).model_dump(by_alias=True)
 
 
