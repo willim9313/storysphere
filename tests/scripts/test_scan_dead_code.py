@@ -55,3 +55,40 @@ def f():
         # 失敗方向要安全：多算幾筆說明文字只會漏掉候選，不會憑空生出候選。
         broken = "def f(:\n  # WIDGET_LIMIT\n"
         assert "WIDGET_LIMIT" in self._strip(broken)
+
+
+class TestCorpusSplit:
+    """B-091 §3-1: 'only the tests use it' must not read as 'referenced'."""
+
+    def test_framework_callbacks_are_excluded(self):
+        """`on_*` on a CallbackHandler is invoked by LangChain, never by name."""
+        import ast
+
+        mod = _load()
+
+        cls = ast.parse(
+            "class H(BaseCallbackHandler):\n"
+            "    def on_llm_end(self): ...\n"
+            "    def helper(self): ...\n"
+        ).body[0]
+
+        assert mod._is_framework_callback(cls, "on_llm_end") is True
+        assert mod._is_framework_callback(cls, "helper") is False
+
+    def test_non_handler_on_methods_are_not_excluded(self):
+        """The exclusion keys on the base class, not on the `on_` prefix."""
+        import ast
+
+        mod = _load()
+
+        cls = ast.parse("class Widget:\n    def on_click(self): ...\n").body[0]
+
+        assert mod._is_framework_callback(cls, "on_click") is False
+
+    def test_not_dead_entries_carry_a_reason(self):
+        """An entry without one is indistinguishable from an unjudged symbol."""
+        not_dead = _load()._NOT_DEAD
+
+        assert not_dead
+        for name, reason in not_dead.items():
+            assert reason.strip(), f"{name} has no reason"

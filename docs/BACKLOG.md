@@ -1687,6 +1687,44 @@ key 與刪後留下的 9 筆都攤開給使用者確認。
 
 ---
 
+#### B-118 「只被測試引用」的 8 筆已走查，掃描器補上兩個缺口
+
+**背景**: `20260909-post-sweep-development-plan.md` §3-1 列的三個未掃範圍之一。
+B-091 標 ✅ 結案，但那三個範圍只寫在它的內文裡，從沒開成票——計畫自己警告過
+「不收進來就會徹底遺失」。
+
+**✅ 逐一走查完成（2026-09-12）**，依 B-091 的三種結局分類：
+
+| 符號 | 結局 |
+|---|---|
+| `TokenTrackingHandler.on_llm_start` / `on_llm_end` / `on_llm_error` | **不是死碼**——LangChain 框架呼叫，永遠不會有具名呼叫端 |
+| `MetricsCollector.reset` | **不是死碼**——docstring 明寫「Intended for use in tests」 |
+| `AnalysisAgent.analyze_narrative` | **有取代者**：它串的兩個階段在 `narrative.py:54` / `:68` 各有呼叫端，前端也是分開的按鈕。是被繞過的便利入口 |
+| `DocumentService.save_chapter_keywords` / `save_book_keywords` | **有取代者**：pipeline 設在物件上、由 `save_document` / `replace_chapters` 整批寫 `keywords_json` |
+| `VectorService.collection_name_for` | **有取代者且是陷阱**：它是 `f"{prefix}_{id}"` 的天真版，而真正的 `_col()` 有四段解析。用它會繞過 slug 解析 |
+
+**掃描器補了兩個缺口**（這比走查結果重要——結果會過期，機制不會）:
+
+1. **corpus 拆成生產／測試兩份。** 原本 backend + tests + scripts 併成一個 corpus，
+   於是「只有測試在用」看起來就是「有人用」。新增獨立的
+   「referenced ONLY by tests/scripts」區段——B-091 把這類標為**最危險**，正因為
+   測試會讓死碼看起來活著。§3-1 提的掃描方式至此才真的內建。
+2. **框架回呼排除。** `CallbackHandler` 子類的 `on_*` 由框架呼叫，列進候選只會
+   訓練讀者略過清單——而那正是真條目被漏掉的方式。判斷依基底類別名稱，不是
+   `on_` 前綴。另有 `_NOT_DEAD` 允許清單，**每筆必須附理由**，並有測試釘住這件事。
+
+跑出來的現況：zero-reference **1 筆**（`get_fallback`，B-099 刻意保留）、
+只被測試引用 **5 筆**——上表四筆，**外加 `group_scenes`**：那是本輪新寫的場景分組，
+消費端還沒接。掃描器抓到自己人，是它正常運作的證據。
+
+**未做**: 上表四個「有取代者」**沒有刪**。CLAUDE.md 明令不得憑判斷刪程式，
+需使用者確認。四筆合計約 60 行，刪除時要連同各自的測試一起。
+
+**§3-1 還剩兩個範圍**: `scripts/` 三個孤兒（`explore_api.py` /
+`prune_orphan_symbols.py` / `renumber_chapters.py`）與 45 個巢狀函式，本次未掃。
+
+---
+
 #### B-116 `temperature=0` 之下 Gemini 仍然不可重現
 
 **背景**: `docs/plans/20260910-event-granularity-ordering-experiments.md` 第五節把這件事
@@ -2564,6 +2602,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-115 | 只有收尾標點的一行被判成場景分隔線 | 🟡 中 | ✅ 已完成（2026-09-12；`_is_separator_segment` 排除整段皆行文標點者。實測 16 筆真分隔全留、4 筆偽陽性全除；刻意不用長度判準——真分隔 `～` 只有 1 字。既有資料需重跑 ingestion，B-068 實作應於讀取端再套一次） |
 | B-116 | `temperature=0` 之下 Gemini 仍然不可重現 | 🟡 中 | ✅ 已查明 + 基線已量（2026-09-12；來源是供應端非 llm_retry。N=30 基線：ch1 事件數 range 2、ch7 range 0——雜訊不一定打到你在量的指標，需逐章逐指標量。先前根據 N=5 說「效應不可靠」已更正） |
 | B-117 | 已刪書籍的殘留快取 | 🟢 低 | ✅ 已完成（2026-09-12；`analysis_cache` 清掉 17 筆孤兒、26→9，備份在專案外並逐項核對。連帶讓走查 §3-3 的 40 筆 pending 推斷關係失去前提——該表已空） |
+| B-118 | 「只被測試引用」的 8 筆已走查，掃描器補上 corpus 拆分與框架回呼排除 | 🟡 中 | 🔶 走查完成、掃描器已補（2026-09-12）；四個「有取代者」待使用者確認後才刪。§3-1 另兩個範圍（scripts 孤兒、45 個巢狀函式）未掃 |
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | ✅ 已完成（2026-09-07；雙後端新增 `relation_count_for()`，雙向關聯去重，實測 696 → 分書 203/69/259/55） |
 | B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | ✅ 已完成（2026-09-07；`paragraphs.keywords_json` + 寫入 2 處讀取 3 處；既有書需重跑 feature-extraction 才有值） |

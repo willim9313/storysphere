@@ -109,18 +109,50 @@ def _dynamic_prefixes(code: str) -> set[str]:
 # ── backend ──────────────────────────────────────────────────────────────────
 
 
+#: Symbols that are genuinely called, just never by name from our code.
+#: Each needs a reason — an entry without one is indistinguishable from a
+#: symbol somebody could not be bothered to judge.
+_NOT_DEAD = {
+    "MetricsCollector.reset": "docstring says it exists for tests; no production caller is correct",
+}
+
+
+def _is_framework_callback(cls: ast.ClassDef, method: str) -> bool:
+    """``on_*`` hooks on a LangChain callback handler are invoked by LangChain.
+
+    They can never have a caller in this repo, so listing them as candidates
+    only teaches the reader to skim the list — which is how a real entry gets
+    missed.
+    """
+    bases = {ast.unparse(b).rsplit(".", 1)[-1] for b in cls.bases}
+    return method.startswith("on_") and any(b.endswith("CallbackHandler") for b in bases)
+
+
 def scan_backend() -> int:
     files = [p for p in BACKEND.rglob("*.py") if "__pycache__" not in str(p)]
-    corpus = {p: _code_only(p.read_text(errors="ignore")) for p in files}
+    prod = {p: _code_only(p.read_text(errors="ignore")) for p in files}
+    # Tests and scripts are a SEPARATE corpus, not extra production files.
+    # Counting them together is how "only the tests use it" hides: a symbol no
+    # production path calls looks alive because its own test names it. B-091
+    # listed that range as unscanned; splitting the corpora is what scans it.
+    aux: dict[pathlib.Path, str] = {}
     for extra in ("tests", "scripts"):
         for p in (ROOT / extra).rglob("*.py"):
-            corpus[p] = _code_only(p.read_text(errors="ignore"))
+            aux[p] = _code_only(p.read_text(errors="ignore"))
 
-    def refs(name: str, own: pathlib.Path) -> int:
+    def _count(corpus: dict, name: str, own: pathlib.Path) -> int:
         return sum(
             len(re.findall(rf"\b{re.escape(name)}\b", text)) - (1 if p == own else 0)
             for p, text in corpus.items()
         )
+
+    def refs(name: str, own: pathlib.Path) -> int:
+        return _count(prod, name, own) + _count(aux, name, own)
+
+    def test_only(name: str, own: pathlib.Path) -> bool:
+        return _count(prod, name, own) == 0 and _count(aux, name, own) > 0
+
+    test_only_hits: list[tuple[pathlib.Path, int, str]] = []
 
     hits = []
     for p in sorted(files):
@@ -142,6 +174,10 @@ def scan_backend() -> int:
                     # they are called by the interpreter, never by name.
                     if m.name.startswith("__"):
                         continue
+                    if _is_framework_callback(node, m.name):
+                        continue
+                    if f"{node.name}.{m.name}" in _NOT_DEAD:
+                        continue
                     deco = " ".join(ast.unparse(d) for d in m.decorator_list)
                     # Route handlers and validators are called by name nowhere.
                     if any(
@@ -151,6 +187,8 @@ def scan_backend() -> int:
                         continue
                     if refs(m.name, p) == 0:
                         hits.append((p, m.lineno, f"{node.name}.{m.name}"))
+                    elif test_only(m.name, p):
+                        test_only_hits.append((p, m.lineno, f"{node.name}.{m.name}"))
             if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef | ast.ClassDef):
                 if node.name.startswith("__"):
                     continue
@@ -159,6 +197,8 @@ def scan_backend() -> int:
                     continue
                 if refs(node.name, p) == 0:
                     hits.append((p, node.lineno, node.name))
+                elif test_only(node.name, p):
+                    test_only_hits.append((p, node.lineno, node.name))
             for tgt in (
                 [t.id for t in node.targets if isinstance(t, ast.Name)]
                 if isinstance(node, ast.Assign)
@@ -171,6 +211,14 @@ def scan_backend() -> int:
 
     print(f"backend: {len(hits)} zero-reference symbols")
     for p, line, name in hits:
+        print(f"  {p.relative_to(ROOT)}:{line}  {name}")
+
+    # Reported separately because the judgement differs: a zero-reference symbol
+    # might never have been wired, while one of these *is* exercised — just only
+    # by the thing that exists to check it. That is the shape B-091 called the
+    # most dangerous, because the test makes it look alive.
+    print(f"\nbackend: {len(test_only_hits)} symbols referenced ONLY by tests/scripts")
+    for p, line, name in test_only_hits:
         print(f"  {p.relative_to(ROOT)}:{line}  {name}")
     return len(hits)
 
