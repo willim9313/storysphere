@@ -356,3 +356,89 @@ class TestCancellation:
         status = poll_until_terminal(tension_client, task_id)
         assert status["status"] == "error"
         assert status["error"] == "Qdrant 連不上"
+
+
+@pytest.fixture
+def scene_client(tension_client, mock_doc, mock_kg, mock_tension):
+    """Two chapters: ch1 has a divider, ch2 has none.
+
+    Local rather than in conftest, per docs/guides/TESTING.md — only this file
+    needs paragraphs shaped around a separator.
+    """
+    from unittest.mock import AsyncMock
+
+    from storysphere.domain.documents import Paragraph, ParagraphRole
+    from storysphere.domain.events import Event
+    from storysphere.domain.tension import TEU, TensionPole
+
+    def _para(ch, pos, text, role=ParagraphRole.body):
+        return Paragraph(text=text, chapter_number=ch, position=pos, role=role)
+
+    mock_doc.get_paragraphs = AsyncMock(return_value=[
+        _para(1, 0, "鹹水井邊相遇"),
+        _para(1, 1, "✦ ✦ ✦", ParagraphRole.separator),
+        _para(1, 2, "泥灘上的懷錶"),
+        _para(2, 0, "母親補襯衫，針腳細密，一針一針。"),
+    ])
+
+    def _ev(eid, ch, pos, title):
+        return Event(
+            id=eid, document_id="book-1", title=title, event_type="meeting",
+            description=title, chapter=ch, narrative_position=pos,
+            tension_signal="explicit",
+        )
+
+    mock_kg.get_events = AsyncMock(return_value=[
+        _ev("e1", 1, 1, "鹹水井邊相遇"),
+        _ev("e2", 1, 2, "泥灘上的懷錶"),
+        _ev("e3", 2, 1, "母親補襯衫"),
+    ])
+
+    def _teu(tid, eid, ch):
+        return TEU(
+            id=tid, event_id=eid, document_id="book-1", chapter=ch,
+            pole_a=TensionPole(concept_name="A"), pole_b=TensionPole(concept_name="B"),
+            tension_description="…",
+        )
+
+    mock_tension.get_teus = AsyncMock(return_value=[
+        _teu("t1", "e1", 1), _teu("t2", "e2", 1), _teu("t3", "e3", 2),
+    ])
+    mock_tension.get_lines = AsyncMock(return_value=[])
+    return tension_client
+
+
+class TestTeuSceneIndex:
+    """B-068: scenes reach the page, and 'not known' stays distinguishable."""
+
+    def _by_id(self, resp):
+        return {t["id"]: t for t in resp.json()}
+
+    def test_divider_splits_the_chapter_into_two_scenes(self, scene_client):
+        resp = scene_client.get("/api/v1/tension/teus?book_id=book-1")
+
+        teus = self._by_id(resp)
+        assert teus["t1"]["scene_index"] == 1
+        assert teus["t2"]["scene_index"] == 2
+
+    def test_chapter_without_a_divider_reports_null_not_one(self, scene_client):
+        """Null means 'not known'. Reporting 1 would assert the opposite."""
+        resp = scene_client.get("/api/v1/tension/teus?book_id=book-1")
+
+        assert self._by_id(resp)["t3"]["scene_index"] is None
+
+    def test_scene_index_is_separate_from_narrative_run_index(self, scene_client):
+        """Two different criteria; conflating them is what B-068 corrected.
+
+        All three events are `present`, so every run index is 1 — while the
+        scene indices differ. One field cannot stand in for the other.
+
+        Note the snake_case keys: TEUDetail is a plain BaseModel, not one of
+        the `to_camel` schemas. An earlier version of these tests asserted
+        `sceneIndex` and passed — against an empty list, so the loop body never
+        ran. A vacuous assertion is worse than none.
+        """
+        teus = self._by_id(scene_client.get("/api/v1/tension/teus?book_id=book-1"))
+
+        assert [teus[t]["narrative_run_index"] for t in ("t1", "t2")] == [1, 1]
+        assert [teus[t]["scene_index"] for t in ("t1", "t2")] == [1, 2]

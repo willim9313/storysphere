@@ -1311,11 +1311,20 @@ interface TEUDetail {
   pole_a_stance: string | null;
   pole_b_stance: string | null;
   narrative_run_index: number | null;  // 章內敘事段序號（1 起算）；null = 來源事件已不在圖譜中
+  scene_index: number | null;   // 章內場景序號（1 起算）；null = 該章沒有分隔符，場景未知
   line_id: string | null;       // null = 未被任何張力線收錄
 }
 ```
 
 尚未執行 Step 1 時回傳空陣列（非 404）。
+
+**`scene_index` 的 null 不是「一個場景」，是「不知道」**（B-068）。場景來自原文排版的
+分隔符（`✦ ✦ ✦`、`❦`、`～`），所以**沒有分隔符的章節整章不回傳分組**——該章每個 TEU
+的 `scene_index` 都是 null。排版時沒用分隔符的書（如 ageoffire）則整本皆為 null。
+
+把 null 畫成「1 個場景」會**斷言與已知相反的事**：那一章可能有五場戲，只是這個判準
+看不見。前端必須呈現為「無法判定」而不是計數。判準在標註過的 10 章上 F1 0.79，
+`narrative_run_index` 只有 0.50——兩者是不同判準，不可互相取代。
 
 **`narrative_run_index` 的用途**：一段敘事段是「敘述層未切換的連續事件」——邊界出現
 在現在式敘述與插敘之間。同章同序號的 TEU 屬於同一段連續敘述，不是互相獨立的佐證。
