@@ -59,14 +59,17 @@ export function TensionEmptyCard({
 export function TensionStep1Card({
   teuCount,
   runCount,
+  sceneSummary,
   chapterCounts,
   onGroup,
 }: {
   teuCount: number;
   /** Stretches of continuous narration; equals teuCount when nothing groups. */
   runCount: number;
-  /** [chapter, teuCount, runCount] in chapter order. */
-  chapterCounts: [number, number, number][];
+  /** Scenes, kept apart from the chapters that have no answer — see below. */
+  sceneSummary: { total: number; knownChapters: number; unknownChapters: number };
+  /** [chapter, teuCount, runCount, sceneCount | null] in chapter order. */
+  chapterCounts: [number, number, number, number | null][];
   onGroup: () => void;
 }) {
   const { t } = useTranslation('analysis');
@@ -75,6 +78,27 @@ export function TensionStep1Card({
       <div className="tn-state-title">
         {t('tension.state.step1Title', { count: teuCount, runs: runCount })}
       </div>
+      {/* Scenes are text, never a bar: the density chart is deliberately drawn
+          from the TEU count (see below), and a second number on the same chart
+          would invite reading one as the other.
+
+          The chapters with no answer are stated rather than folded into the
+          total. Scenes come from the typographic dividers the prose is set
+          with, so a book without them yields nothing — and "0 scenes" or
+          "1 scene" would both assert something the criterion cannot see
+          (B-068). Saying so costs a line and prevents the reader concluding
+          the book has one scene per chapter. */}
+      <p className="tn-state-scenes">
+        {sceneSummary.knownChapters === 0
+          ? t('tension.state.scenesNone')
+          : sceneSummary.unknownChapters === 0
+            ? t('tension.state.scenes', { count: sceneSummary.total })
+            : t('tension.state.scenesPartial', {
+                count: sceneSummary.total,
+                chapters: sceneSummary.knownChapters,
+                unknown: sceneSummary.unknownChapters,
+              })}
+      </p>
       {/* The bar is the TEU count. Drawing it from the run count was tried and
           reverted: a run is not a scene, so a chapter with no flashback is one
           run whatever its length, and Age of Fire's five chapters all became
@@ -85,11 +109,17 @@ export function TensionStep1Card({
         className="tn-density"
         style={{ gridTemplateColumns: `repeat(${Math.max(chapterCounts.length, 1)}, 1fr)` }}
       >
-        {chapterCounts.map(([chapter, teus, runs]) => (
+        {chapterCounts.map(([chapter, teus, runs, scenes]) => (
           <div
             key={chapter}
             className="tn-density-col"
-            title={t('tension.state.chapterDensity', { n: chapter, teus, runs })}
+            title={
+              t('tension.state.chapterDensity', { n: chapter, teus, runs }) +
+              ' · ' +
+              (scenes == null
+                ? t('tension.state.chapterScenesUnknown')
+                : t('tension.state.chapterScenes', { count: scenes }))
+            }
           >
             <i style={{ height: `${8 + teus * 7}px` }} />
             <span>{t('tension.state.chapterShort', { n: chapter })}</span>

@@ -66,6 +66,37 @@ class TestIsSeparatorSegment:
     def test_empty_string_not_separator(self):
         assert _is_separator_segment("") is False
 
+    # B-115: a PDF that wraps right before a closing quote emits a segment of
+    # just "。」". It carries no \w, so the content-char test alone called it a
+    # divider — and every one of ageoffire's four separators was this.
+    @pytest.mark.parametrize("text", [
+        "。」",
+        "？」",
+        "！」",
+        "。』",
+        "」",
+        "。",
+        "…",
+        "⋯⋯",
+        "...",
+        "，",
+        "）",
+        '."',
+        "  。」  ",
+    ])
+    def test_running_text_punctuation_is_not_a_separator(self, text):
+        assert _is_separator_segment(text) is False
+
+    # The guard against "just require length >= 3": real separators can be
+    # shorter than the punctuation runs above.
+    @pytest.mark.parametrize("text", ["～", "❦", "✦", "※"])
+    def test_single_char_decorative_marks_stay_separators(self, text):
+        assert _is_separator_segment(text) is True
+
+    def test_punctuation_mixed_with_decoration_is_still_a_separator(self):
+        """Only an *entirely* punctuational line is excluded."""
+        assert _is_separator_segment("…✦…") is True
+
 
 # ── _split_at_separators ─────────────────────────────────────────────────────
 

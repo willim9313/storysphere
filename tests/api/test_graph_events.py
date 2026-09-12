@@ -62,24 +62,6 @@ def test_graph_event_edges_participates_in(client, mock_kg):
     assert targets == {"ent-alice", "ent-bob"}
 
 
-def test_graph_event_edge_occurs_at(client, mock_kg):
-    """Location edge is created when location_id is in entity_ids."""
-    loc = Entity(id="ent-loc", name="Forest", entity_type=EntityType.LOCATION)
-    mock_kg.list_entities = _async_return([ALICE, BOB, loc])
-
-    evt = _evt(participants=["ent-alice"], location_id="ent-loc")
-    mock_kg.get_events = _async_return([evt])
-    mock_kg._graph = nx.MultiDiGraph()
-
-    resp = client.get("/api/v1/books/doc-1/graph")
-    data = resp.json()
-
-    loc_edges = [e for e in data["edges"] if e["label"] == "occurs_at"]
-    assert len(loc_edges) == 1
-    assert loc_edges[0]["source"] == "evt-1"
-    assert loc_edges[0]["target"] == "ent-loc"
-
-
 def test_graph_event_skips_unknown_participant(client, mock_kg):
     """Participant IDs not in entity_ids don't get edges."""
     evt = _evt(participants=["ent-alice", "ent-unknown"])
@@ -113,8 +95,7 @@ def test_event_detail_success(client, mock_kg):
     """GET /books/:bookId/events/:eventId returns full event detail."""
     evt = _evt(
         title="The Battle",
-        participants=["ent-alice", "ent-bob"],
-        location_id="ent-loc",
+        participants=["ent-alice", "ent-bob", "ent-loc"],
         significance="A turning point.",
         consequences=["Alliance formed"],
     )
@@ -135,8 +116,11 @@ def test_event_detail_success(client, mock_kg):
     assert data["chapter"] == 1
     assert data["significance"] == "A turning point."
     assert data["consequences"] == ["Alliance formed"]
-    assert len(data["participants"]) == 2
-    assert data["location"]["name"] == "Forest"
+    # B-109: there is no dedicated location field any more. A place the scene
+    # happens in arrives as a participant, because that is what the extraction
+    # prompt asks for — "entity names involved", with no type restriction.
+    assert len(data["participants"]) == 3
+    assert {p["name"] for p in data["participants"]} == {"Alice", "Bob", "Forest"}
 
 
 def test_event_detail_not_found(client, mock_kg):

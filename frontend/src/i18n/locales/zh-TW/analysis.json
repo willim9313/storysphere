@@ -436,7 +436,13 @@
     "chapterOnlyDisabled": "先選一個事件，才知道要生成哪一章",
     "checkModeOn": "勾選多筆",
     "checkModeOff": "取消勾選",
-    "generateChecked": "生成已勾選"
+    "generateChecked": "生成已勾選",
+    "failures": {
+      "summary": "{{count}} 項未完成",
+      "chapter": "第 {{chapter}} 章",
+      "unnamed": "（無名稱）",
+      "hint": "其餘項目已正常產出。重跑會再試一次這些項目；此清單只屬於剛才那次執行，重新整理後不會保留。"
+    }
   },
   "tension": {
     "status": {
@@ -551,7 +557,8 @@
       "teuTitle": "TEU 組裝",
       "teuIdle": "尚未執行",
       "teuRunning": "組裝中 · {{progress}}%",
-      "teuDone": "{{assembled}} / {{candidates}} 場景",
+      "teuDone": "{{assembled}} / {{candidates}} 個 TEU",
+      "teuPartial": "{{assembled}} / {{candidates}} 個 TEU · {{failed}} 則失敗",
       "reviewTeuTitle": "檢視 {{count}} 個 TEU",
       "reviewTeuWaiting": "待組裝後開始",
       "reviewTeuOrphans": "{{count}} 個未歸入，待確認",
@@ -573,6 +580,11 @@
       "themeStale": "主題已過期",
       "synthesize": "合成全書主題"
     },
+    "failures": {
+      "summary": "{{count}} 個 TEU 組裝失敗",
+      "chapter": "第 {{chapter}} 章",
+      "hint": "其餘 TEU 已正常組裝。重跑 Step 1 會再試一次這些事件；此清單只屬於剛才那次執行，重新整理後不會保留。"
+    },
     "state": {
       "emptyTitle": "尚未進行張力分析",
       "emptyBody": "系統會從場景級的 TEU 出發，向上聚合為跨章節 TensionLine，最終合成全書命題。三層之間各有一次人工審核。",
@@ -582,6 +594,11 @@
       "tokenHintLong": "此步驟會呼叫 LLM，消耗 token，約需數分鐘",
       "tokenHintShort": "會呼叫 LLM，消耗 token",
       "step1Title": "{{count}} 個 TEU 已就緒 · {{runs}} 段連續敘事",
+      "scenes": "場景 {{count}} 個",
+      "scenesPartial": "場景 {{count}} 個（僅 {{chapters}} 章可判定，另 {{unknown}} 章無排版分隔符）",
+      "scenesNone": "場景無法判定——這本書的排版沒有分隔符",
+      "chapterScenes": "場景 {{count}}",
+      "chapterScenesUnknown": "場景無法判定",
       "step1Body": "下一步是把它們聚合成跨章節的張力線。聚合是單次 LLM 呼叫，模型可能略過部分 TEU——聚合後這裡會標出未歸入的項目。",
       "chapterShort": "ch{{n}}",
       "chapterDensity": "ch{{n}}：{{teus}} 個 TEU · {{runs}} 段連續敘事",

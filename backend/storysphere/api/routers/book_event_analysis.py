@@ -28,7 +28,6 @@ from storysphere.api.schemas.book_event_analysis import (
     BatchEventAnalysisRequest,
     EventAnalysisFullResponse,
     EventDetailResponse,
-    EventLocation,
     EventParticipant,
     EventSourcePassage,
     EventSourceResponse,
@@ -56,7 +55,7 @@ router = APIRouter(prefix="/books", tags=["books"])
 async def get_event_detail(
     book_id: str, event_id: str, doc: DocServiceDep, kg: KGServiceDep
 ) -> dict:
-    """Get event detail with resolved participant and location names."""
+    """Get event detail with resolved participant names."""
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
@@ -76,15 +75,6 @@ async def get_event_detail(
                 ).model_dump(by_alias=True)
             )
 
-    # Resolve location name
-    location = None
-    if event.location_id:
-        loc_entity = await kg.get_entity(event.location_id)
-        if loc_entity:
-            location = EventLocation(
-                id=loc_entity.id, name=loc_entity.name
-            ).model_dump(by_alias=True)
-
     return EventDetailResponse(
         id=event.id,
         title=event.title,
@@ -94,7 +84,6 @@ async def get_event_detail(
         significance=event.significance,
         consequences=event.consequences,
         participants=participants,
-        location=location,
     ).model_dump(by_alias=True)
 
 
@@ -431,8 +420,12 @@ async def _batch_event_analysis(
         events = [ev for ev in events if ev.id in wanted]
     total = len(events)
     done = 0
-    failed = 0
     skipped = 0
+    # A bare count says something broke but not which event. The warning below
+    # only reaches the server log, where whoever pressed the button never looks
+    # (B-113). Title and chapter travel with the id because a failed analysis
+    # leaves nothing to look the event up from.
+    failures: list[dict] = []
     report = task_runner.progress(task_id)
 
     def _report() -> None:
@@ -473,7 +466,14 @@ async def _batch_event_analysis(
                 "Batch event analysis failed for %s: %s",
                 ev.id, exc,
             )
-            failed += 1
+            failures.append(
+                {
+                    "event_id": ev.id,
+                    "title": ev.title,
+                    "chapter": ev.chapter,
+                    "reason": f"{type(exc).__name__}: {exc}",
+                }
+            )
             done += 1
 
         _report()
@@ -481,12 +481,14 @@ async def _batch_event_analysis(
     logger.info(
         "Batch event analysis complete: doc=%s, "
         "total=%d, skipped=%d, failed=%d",
-        document_id, total, skipped, failed,
+        document_id, total, skipped, len(failures),
     )
+    failures.sort(key=lambda f: (f["chapter"], f["title"]))
     return {
         "progress": total,
         "total": total,
-        "failed": failed,
+        "failed": len(failures),
+        "failures": failures,
         "skipped": skipped,
     }
 

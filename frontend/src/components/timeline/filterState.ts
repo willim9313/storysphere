@@ -72,7 +72,10 @@ export function eventPassesFilter(event: TimelineEvent, filter: FilterState): bo
     if (!hasMatch) return false;
   }
   if (filter.locations.size > 0) {
-    if (!event.location || !filter.locations.has(event.location.id)) return false;
+    const hasPlace = event.participants.some(
+      (p) => p.type === 'location' && filter.locations.has(p.id),
+    );
+    if (!hasPlace) return false;
   }
   return true;
 }
@@ -136,8 +139,8 @@ export function buildFilterOptions(events: TimelineEvent[]): FilterOptions {
     narrativeModes.add(e.narrativeMode);
     for (const p of e.participants) {
       if (p.type === 'character') characters.set(p.id, p.name);
+      if (p.type === 'location') locations.set(p.id, p.name);
     }
-    if (e.location) locations.set(e.location.id, e.location.name);
   }
 
   const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name);
@@ -145,7 +148,11 @@ export function buildFilterOptions(events: TimelineEvent[]): FilterOptions {
     eventTypes: [...eventTypes].sort(),
     narrativeModes: [...narrativeModes].sort(),
     characters: [...characters].map(([id, name]) => ({ id, name })).sort(byName),
-    // `location` is empty in real data today; the section hides itself when so.
+    // Built from participants, not from a field of their own: the extraction
+    // prompt asks for "entity names involved" and does not restrict the type,
+    // so places land there. The dedicated field this used to read was never
+    // written by anything and was removed in B-109 — which is why the comment
+    // that used to sit here said the list was "empty in real data today".
     locations: [...locations].map(([id, name]) => ({ id, name })).sort(byName),
   };
 }

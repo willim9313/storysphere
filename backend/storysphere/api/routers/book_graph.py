@@ -131,15 +131,6 @@ async def get_book_graph(
                         label="participates_in",
                     ).model_dump(by_alias=True)
                 )
-        if event.location_id and event.location_id in entity_ids:
-            edges.append(
-                GraphEdge(
-                    id=f"evt-{event.id}-loc",
-                    source=event.id,
-                    target=event.location_id,
-                    label="occurs_at",
-                ).model_dump(by_alias=True)
-            )
 
     if include_inferred:
         from storysphere.domain.inferred_relations import InferenceStatus  # noqa: PLC0415

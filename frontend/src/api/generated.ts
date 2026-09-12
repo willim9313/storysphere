@@ -650,7 +650,7 @@ export interface paths {
         };
         /**
          * Get Event Detail
-         * @description Get event detail with resolved participant and location names.
+         * @description Get event detail with resolved participant names.
          */
         get: operations["get_event_detail_api_v1_books__book_id__events__event_id__get"];
         put?: never;
@@ -2967,14 +2967,6 @@ export interface components {
              * @default []
              */
             participants: components["schemas"]["EventParticipant"][];
-            location?: components["schemas"]["EventLocation"] | null;
-        };
-        /** EventLocation */
-        EventLocation: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
         };
         /** EventParticipant */
         EventParticipant: {
@@ -3431,13 +3423,6 @@ export interface components {
             mode: string;
             /** Message */
             message: string;
-        };
-        /** LocationRef */
-        LocationRef: {
-            /** Id */
-            id: string;
-            /** Name */
-            name: string;
         };
         /** MisbeliefItemSchema */
         MisbeliefItemSchema: {
@@ -4265,6 +4250,11 @@ export interface components {
              */
             narrative_run_index?: number | null;
             /**
+             * Scene Index
+             * @description 1-based ordinal of the scene this TEU sits in, within its chapter (B-068). Scenes come from the typographic dividers the prose is typeset with, so TEUs sharing a chapter and a scene index are one scene rather than independent corroboration. **Null does not mean 'one scene'** — it means the chapter carries no divider, so nothing is known about its scenes. A book typeset without dividers returns null for every TEU. Rendering null as a count of 1 asserts the opposite of what is known; show it as unavailable instead.
+             */
+            scene_index?: number | null;
+            /**
              * Line Id
              * @description TensionLine claiming this TEU; null means grouping left it out and the TEU appears nowhere else in the analysis
              */
@@ -4671,7 +4661,6 @@ export interface components {
              * @default []
              */
             participants: components["schemas"]["ParticipantRef"][];
-            location?: components["schemas"]["LocationRef"] | null;
         };
         /** TimelineQuality */
         TimelineQuality: {

@@ -46,7 +46,6 @@ def format_event(event: Any) -> dict:
         "description": event.description,
         "chapter": event.chapter,
         "participants": event.participants,
-        "location_id": event.location_id,
         "significance": event.significance,
         "consequences": event.consequences,
         "narrative_mode": getattr(event, "narrative_mode", "unknown"),

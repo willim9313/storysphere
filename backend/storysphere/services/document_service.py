@@ -604,22 +604,6 @@ class DocumentService:
 
     # ── Keywords ─────────────────────────────────────────────────────────────
 
-    async def save_chapter_keywords(
-        self, document_id: str, chapter_number: int, keywords: dict[str, float]
-    ) -> None:
-        """Store keyword scores for a chapter."""
-        async with self._session_factory() as session:
-            async with session.begin():
-                result = await session.execute(
-                    select(_ChapterRow).where(
-                        _ChapterRow.document_id == document_id,
-                        _ChapterRow.number == chapter_number,
-                    )
-                )
-                row = result.scalar_one_or_none()
-                if row is not None:
-                    row.keywords_json = json.dumps(keywords, ensure_ascii=False)
-
     async def get_chapter_keywords(
         self, document_id: str, chapter_number: int
     ) -> dict[str, float] | None:
@@ -635,16 +619,6 @@ class DocumentService:
             if raw is None:
                 return None
             return json.loads(raw)
-
-    async def save_book_keywords(
-        self, document_id: str, keywords: dict[str, float]
-    ) -> None:
-        """Store keyword scores for a book."""
-        async with self._session_factory() as session:
-            async with session.begin():
-                row = await session.get(_DocumentRow, document_id)
-                if row is not None:
-                    row.keywords_json = json.dumps(keywords, ensure_ascii=False)
 
     async def get_book_keywords(self, document_id: str) -> dict[str, float] | None:
         """Return keyword scores for a book, or None."""

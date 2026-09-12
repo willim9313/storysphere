@@ -91,8 +91,10 @@
 }
 
 /* ── Focus ring — 鍵盤 a11y（:focus-visible 才畫，滑鼠點擊不出現）。
-   :where() 零 specificity：元件自帶的 focus 樣式可蓋過它。 ── */
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+   :where() 零 specificity：元件自帶的 focus 樣式可蓋過它。
+   `summary` 要明列：它原生可聚焦，卻**沒有 tabindex 屬性**，所以 `[tabindex]`
+   選不到它，三個用 <details> 的元件裡有兩個一直吃瀏覽器預設的藍圈（B-114）。 ── */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }

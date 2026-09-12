@@ -642,10 +642,19 @@ interface EventSourceResponse {
 interface BatchEepResult {
   progress: number;
   total: number;
-  failed: number;
+  failed: number;          // === failures.length
   skipped: number;
+  failures: Array<{        // B-113；依 (chapter, title) 排序，全成功時為 []
+    event_id: string;
+    title: string;         // 分析失敗就沒有結果可回查，故隨清單帶出
+    chapter: number;
+    reason: string;        // "RuntimeError: Qdrant 連不上"
+  }>;
 }
 ```
+
+單筆失敗不中止整批。**角色批次（#7h）共用這個形狀，但識別欄位不同**：
+`{ entity_id, name, reason }`，依 `name` 排序。
 
 **UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」、批次子集（只生成本章 / 勾選多筆）
 
@@ -1029,9 +1038,17 @@ interface EventDetail {
   significance?: string;
   consequences: string[];
   participants: { id: string; name: string; type: EntityType }[];
-  location?: { id: string; name: string };
 }
 ```
+
+**沒有獨立的 `location` 欄位（B-109 移除）。** 地點以 `type: "location"` 的參與者形式
+出現在 `participants` 裡——抽取提示要的是「entity names involved」且不限型別，所以場景
+所在的地點跟其他實體一樣落在那裡。原本的 `location` 欄位**從未被任何程式寫入**
+（提示裡根本沒有這個欄位），四個消費端讀到的永遠是 null。
+
+**讀法是「涉及這個地點的事件」，不是「發生在這裡的事件」**：實測 16% 的事件會列出
+多個地點（角色路過三個地方去報信），資料裡沒有任何東西指出哪一個是場景所在。要有
+那個語意得叫模型多判斷一次，代價見 B-109。
 
 **UI 使用頁面**：知識圖譜頁 EventDetailPanel、時間軸頁事件詳情面板
 
@@ -1129,7 +1146,6 @@ interface TimelineEvent {
   temporalDisplacement?: TemporalDisplacement | null;  // #21h 判定，null = 該筆無判定
   storyTimeHint?: string;
   participants: { id: string; name: string; type: EntityType }[];
-  location?: { id: string; name: string };
 }
 
 interface TemporalDisplacement {
@@ -1205,6 +1221,26 @@ Step 1：觸發全書 TEU 組裝。
 Step 1 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`（同 #8）
+
+`status === 'done'` 時 `result` 的形狀（`TaskStatus.result` 是 `dict[str, Any]`，
+故不出現在 `generated.ts`，前端需自行 narrow）：
+
+```ts
+{
+  total_events: number;   // 全書事件數
+  candidates: number;     // tension_signal !== 'none' 的事件數
+  assembled: number;      // 成功組裝的 TEU 數
+  failed: number;         // === failures.length
+  failures: Array<{       // B-072；依 chapter 排序，成功時為 []
+    event_id: string;
+    title: string;        // 事件標題——組裝失敗就沒有 TEU 可回查，故隨清單帶出
+    chapter: number;
+    reason: string;       // "RuntimeError: Qdrant 連不上"
+  }>;
+}
+```
+
+`assembled + failed === candidates`。單一事件失敗不會中止整批。
 
 ---
 
@@ -1282,11 +1318,20 @@ interface TEUDetail {
   pole_a_stance: string | null;
   pole_b_stance: string | null;
   narrative_run_index: number | null;  // 章內敘事段序號（1 起算）；null = 來源事件已不在圖譜中
+  scene_index: number | null;   // 章內場景序號（1 起算）；null = 該章沒有分隔符，場景未知
   line_id: string | null;       // null = 未被任何張力線收錄
 }
 ```
 
 尚未執行 Step 1 時回傳空陣列（非 404）。
+
+**`scene_index` 的 null 不是「一個場景」，是「不知道」**（B-068）。場景來自原文排版的
+分隔符（`✦ ✦ ✦`、`❦`、`～`），所以**沒有分隔符的章節整章不回傳分組**——該章每個 TEU
+的 `scene_index` 都是 null。排版時沒用分隔符的書（如 ageoffire）則整本皆為 null。
+
+把 null 畫成「1 個場景」會**斷言與已知相反的事**：那一章可能有五場戲，只是這個判準
+看不見。前端必須呈現為「無法判定」而不是計數。判準在標註過的 10 章上 F1 0.79，
+`narrative_run_index` 只有 0.50——兩者是不同判準，不可互相取代。
 
 **`narrative_run_index` 的用途**：一段敘事段是「敘述層未切換的連續事件」——邊界出現
 在現在式敘述與插敘之間。同章同序號的 TEU 屬於同一段連續敘述，不是互相獨立的佐證。
@@ -1869,6 +1914,9 @@ interface SEP {
   重送同一個 prompt 必然再被拒，掃一輪只是每筆花一次呼叫去換一個已經記錄過的答案。
   `force_refresh` 是逃生口：日後補上第二家 provider 時用它重跑。
 - **序列執行，非併發**：每一筆都是付費 LLM 呼叫，併發會讓 rate limit 中止時損失已計費的工作。
+- **`result.failures` 列出失敗的意象**（B-113）：`{ imagery_id, reason }`，`failed` 為其長度。
+  這裡**只有 id 沒有名稱**——與事件／角色批次不同，這個迴圈拿到的就只有 id。
+  rate limit 中止時回傳的摘要同樣帶著這份清單，那正是最需要知道「哪些已經跑掉」的時候。
 - 遇到 rate limit **整批中止**並回報已完成數，不繼續消耗額度。
 - `TaskStatus.result` 用與角色／事件批次共通的 `BatchEepResult`（見 #7g）；
   進度另填 `sub_progress` / `sub_total`，讓 BatchEepPanel 顯示件數而非百分比。

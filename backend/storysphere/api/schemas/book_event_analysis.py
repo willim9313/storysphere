@@ -22,13 +22,6 @@ class EventParticipant(BaseModel):
     type: str
 
 
-class EventLocation(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    name: str
-
-
 class EventDetailResponse(BaseModel):
     model_config = _CAMEL
 
@@ -40,7 +33,6 @@ class EventDetailResponse(BaseModel):
     significance: str | None = None
     consequences: list[str] = []
     participants: list[EventParticipant] = []
-    location: EventLocation | None = None
 
 
 class EepParticipantRole(BaseModel):

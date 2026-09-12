@@ -89,18 +89,73 @@ def configure_langfuse(settings=None) -> bool:
     if settings.langfuse_base_url:
         os.environ["LANGFUSE_BASE_URL"] = settings.langfuse_base_url
 
+    host = settings.langfuse_base_url or "https://cloud.langfuse.com"
     try:
         from langfuse.langchain import CallbackHandler  # noqa: PLC0415
 
         _handler = CallbackHandler()
-        logger.info(
-            "Langfuse tracing enabled — host: %s",
-            settings.langfuse_base_url or "https://cloud.langfuse.com",
-        )
-        return True
     except Exception as exc:
         logger.warning("Failed to initialise Langfuse CallbackHandler: %s", exc)
         return False
+
+    # Constructing the handler proves nothing about the keys — it does not talk
+    # to the server. Without this probe, wrong credentials produce a process
+    # that logs "tracing enabled", answers every request normally, and silently
+    # drops every span; the only way to notice is to go count traces in the UI.
+    # That happened on 2026-09-12 (public/secret pasted into each other's slot),
+    # and it cost a full measurement run to spot.
+    if not _auth_ok(host):
+        _handler = None
+        return False
+
+    logger.info("Langfuse tracing enabled — host: %s", host)
+    return True
+
+
+def _auth_ok(host: str) -> bool:
+    """Verify the configured keys against the server.
+
+    Three outcomes, deliberately not two:
+
+    - verified      → tracing proceeds.
+    - **rejected**  → ERROR naming the two things that actually go wrong, and
+      the caller disables tracing. A handler that cannot authenticate is pure
+      per-call overhead, and leaving it installed would keep the "enabled" log
+      line lying.
+    - unverifiable  → a network blip at startup is not a configuration error,
+      so this warns and lets tracing proceed. Being unable to *check* the keys
+      is not evidence that they are wrong.
+    """
+    try:
+        from langfuse import get_client  # noqa: PLC0415
+        from langfuse.api import UnauthorizedError  # noqa: PLC0415
+
+        if get_client().auth_check():
+            return True
+    except UnauthorizedError:
+        # `auth_check()` RAISES on rejection rather than returning False, so a
+        # bare `except Exception` here would file "wrong keys" under "could not
+        # check" and leave tracing on — which is the exact failure this probe
+        # exists to catch. Verified by running it with the keys swapped
+        # (B-061: a new guard has to be seen going red).
+        pass
+    except Exception as exc:
+        logger.warning(
+            "Langfuse credentials could not be verified (%s: %s) — tracing left "
+            "on; if spans never appear, check the keys and host first",
+            type(exc).__name__,
+            exc,
+        )
+        return True
+
+    logger.error(
+        "Langfuse rejected the configured credentials (host: %s) — tracing "
+        "DISABLED. Check that LANGFUSE_PUBLIC_KEY holds the pk-lf-… value and "
+        "LANGFUSE_SECRET_KEY the sk-lf-… one (swapping them is the usual "
+        "cause), and that LANGFUSE_BASE_URL names the right region.",
+        host,
+    )
+    return False
 
 
 def get_langfuse_handler():

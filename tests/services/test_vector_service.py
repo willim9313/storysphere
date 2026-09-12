@@ -22,10 +22,6 @@ def service(qdrant_client):
 
 
 class TestCollectionNaming:
-    def test_collection_name_for(self):
-        assert VectorService.collection_name_for("doc1") == "storysphere_book_doc1"
-        assert VectorService.collection_name_for("doc1", "custom") == "custom_doc1"
-
     def test_col_uses_instance_prefix(self, service):
         assert service._col("abc") == "test_abc"
 

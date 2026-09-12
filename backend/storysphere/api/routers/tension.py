@@ -36,6 +36,7 @@ from storysphere.api.schemas.tension import (
 )
 from storysphere.api.store import get_task, task_store
 from storysphere.domain.narrative_runs import group_narrative_runs
+from storysphere.domain.scene_groups import group_scenes
 
 router = APIRouter(prefix="/tension", tags=["tension"])
 
@@ -177,6 +178,7 @@ async def list_teus(
     book_id: str,
     tension_service: TensionServiceDep,
     kg_service: KGServiceDep,
+    doc_service: DocServiceDep,
 ) -> list[TEUDetail]:
     """Return every assembled TEU for a book, ordered by chapter.
 
@@ -192,7 +194,13 @@ async def list_teus(
     # Which stretch of continuous narration each TEU belongs to. Derived here
     # rather than stored on the TEU: it is a property of the events as they
     # stand now, and a TEU cached weeks ago should not carry a stale answer.
-    runs = group_narrative_runs(await kg_service.get_events(document_id=book_id))
+    events = await kg_service.get_events(document_id=book_id)
+    runs = group_narrative_runs(events)
+    # Scenes come from the paragraphs, so they are derived here for the same
+    # reason as runs: a TEU cached weeks ago must not carry a stale answer.
+    # A chapter with no divider is absent from `scenes`, and `.get` turning
+    # that into None is the intended reading — "not known", not "one scene".
+    scenes = group_scenes(events, await doc_service.get_paragraphs(book_id))
     return [
         TEUDetail(
             id=teu.id,
@@ -207,6 +215,7 @@ async def list_teus(
             pole_a_stance=teu.pole_a.stance,
             pole_b_stance=teu.pole_b.stance,
             narrative_run_index=runs.get(teu.event_id),
+            scene_index=scenes.get(teu.event_id),
             line_id=line_by_teu.get(teu.id),
         )
         for teu in teus

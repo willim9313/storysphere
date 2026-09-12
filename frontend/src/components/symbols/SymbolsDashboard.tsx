@@ -1,5 +1,7 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+
+import { BatchFailureList } from '@/components/analysis/BatchFailureList';
 import { CheckSquare, Sparkles } from 'lucide-react';
 import type { TFunction } from 'i18next';
 import { AxisHeader, ChapterCells } from './ChapterGrid';
@@ -228,16 +230,20 @@ function BatchProgress({ batch }: Readonly<{ batch: SymbolBatch }>) {
 
   const s = batch.summary!;
   return (
-    <div className="sym-ov-batch-panel">
-      <span className="sym-ov-batch-stage">{t('symbol.overview.batch.done')}</span>
-      <span className="sym-ov-batch-tally">
-        {s.progress - s.skipped - s.failed} {t('symbol.overview.batch.statGenerated')} ·{' '}
-        {s.skipped} {t('symbol.overview.batch.statSkipped')} · {s.failed}{' '}
-        {t('symbol.overview.batch.statFailed')}
-      </span>
-      <button type="button" className="sym-ov-batch-dismiss" onClick={batch.dismiss}>
-        {t('symbol.overview.batch.dismiss')}
-      </button>
+    <div className="sym-ov-batch-panel is-done">
+      <div className="sym-ov-batch-line">
+        <span className="sym-ov-batch-stage">{t('symbol.overview.batch.done')}</span>
+        <span className="sym-ov-batch-tally">
+          {s.progress - s.skipped - s.failed} {t('symbol.overview.batch.statGenerated')} ·{' '}
+          {s.skipped} {t('symbol.overview.batch.statSkipped')} · {s.failed}{' '}
+          {t('symbol.overview.batch.statFailed')}
+        </span>
+        <button type="button" className="sym-ov-batch-dismiss" onClick={batch.dismiss}>
+          {t('symbol.overview.batch.dismiss')}
+        </button>
+      </div>
+      {/* This sweep is the one with only ids to report — see BatchFailureList. */}
+      <BatchFailureList failures={s.failures ?? []} />
     </div>
   );
 }

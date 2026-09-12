@@ -38,6 +38,7 @@ import { CharacterOverviewLanding } from '@/components/analysis/overview/Charact
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAsyncTask } from '@/hooks/useAsyncTask';
+import { BatchFailureList } from '@/components/analysis/BatchFailureList';
 import { useBatchTask } from '@/hooks/useBatchTask';
 import { qk } from '@/api/queryKeys';
 
@@ -191,9 +192,10 @@ export default function CharacterAnalysisPage() {
 
   useEffect(() => {
     if (!toastVisible) return;
+    if ((batch.summary?.failures?.length ?? 0) > 0) return;
     const timer = setTimeout(() => setToastVisible(false), 5000);
     return () => clearTimeout(timer);
-  }, [toastVisible]);
+  }, [toastVisible, batch.summary]);
 
   const selectedAnalyzed = charData?.analyzed.find((a) => a.entityId === selectedEntityId);
   const selectedUnanalyzed = charData?.unanalyzed.find((u) => u.id === selectedEntityId);
@@ -632,6 +634,11 @@ export default function CharacterAnalysisPage() {
                     failed: batch.summary.failed,
                   })}
                 </div>
+                {/* The character page has no persistent batch panel — only this
+                    toast — so the list lives here despite the toast being
+                    dismissible. Closing it is the reader's own choice, unlike
+                    the events page where a panel keeps the answer on screen. */}
+                <BatchFailureList failures={batch.summary.failures ?? []} />
               </div>
               <button
                 type="button"

@@ -7,11 +7,25 @@ from storysphere.domain.documents import Chapter, Document, FileType, Paragraph
 from storysphere.services.document_service import DocumentService
 
 
-def _make_document() -> Document:
+def _make_document(
+    *,
+    chapter_keywords: dict[int, dict[str, float]] | None = None,
+    book_keywords: dict[str, float] | None = None,
+) -> Document:
+    """A document whose keywords are seeded the way production seeds them.
+
+    The feature-extraction pipeline sets ``chapter.keywords`` / ``doc.keywords``
+    on the objects and lets ``save_document`` persist them; there is no
+    single-field writer in the production path (B-118 removed the two that
+    nothing called). Seeding through the bulk path is therefore not a
+    workaround — it is what these getters actually read in production.
+    """
+    chapter_keywords = chapter_keywords or {}
     chapters = [
         Chapter(
             number=1,
             title="The Beginning",
+            keywords=chapter_keywords.get(1),
             paragraphs=[
                 Paragraph(text="It was a fine day.", chapter_number=1, position=0),
             ],
@@ -19,6 +33,7 @@ def _make_document() -> Document:
         Chapter(
             number=2,
             title="The Journey",
+            keywords=chapter_keywords.get(2),
             paragraphs=[
                 Paragraph(text="The road was long.", chapter_number=2, position=0),
             ],
@@ -29,6 +44,7 @@ def _make_document() -> Document:
         author="Author",
         file_path="/tmp/test.pdf",
         file_type=FileType.PDF,
+        keywords=book_keywords,
         chapters=chapters,
     )
 
@@ -42,11 +58,9 @@ async def service():
 
 class TestChapterKeywords:
     async def test_save_and_get_chapter_keywords(self, service):
-        doc = _make_document()
-        await service.save_document(doc)
-
         keywords = {"hero": 0.9, "villain": 0.7, "quest": 0.5}
-        await service.save_chapter_keywords(doc.id, 1, keywords)
+        doc = _make_document(chapter_keywords={1: keywords})
+        await service.save_document(doc)
 
         result = await service.get_chapter_keywords(doc.id, 1)
         assert result == keywords
@@ -66,11 +80,9 @@ class TestChapterKeywords:
 
 class TestBookKeywords:
     async def test_save_and_get_book_keywords(self, service):
-        doc = _make_document()
-        await service.save_document(doc)
-
         keywords = {"adventure": 0.95, "friendship": 0.8}
-        await service.save_book_keywords(doc.id, keywords)
+        doc = _make_document(book_keywords=keywords)
+        await service.save_document(doc)
 
         result = await service.get_book_keywords(doc.id)
         assert result == keywords
@@ -84,11 +96,11 @@ class TestBookKeywords:
 
 class TestSearchChaptersByKeyword:
     async def test_search_finds_matching_chapters(self, service):
-        doc = _make_document()
+        doc = _make_document(chapter_keywords={
+            1: {"hero": 0.9, "quest": 0.5},
+            2: {"hero": 0.7, "journey": 0.8},
+        })
         await service.save_document(doc)
-
-        await service.save_chapter_keywords(doc.id, 1, {"hero": 0.9, "quest": 0.5})
-        await service.save_chapter_keywords(doc.id, 2, {"hero": 0.7, "journey": 0.8})
 
         results = await service.search_chapters_by_keyword(doc.id, "hero")
         assert len(results) == 2
@@ -97,9 +109,8 @@ class TestSearchChaptersByKeyword:
         assert results[1].chapter_number == 2
 
     async def test_search_no_match(self, service):
-        doc = _make_document()
+        doc = _make_document(chapter_keywords={1: {"hero": 0.9}})
         await service.save_document(doc)
-        await service.save_chapter_keywords(doc.id, 1, {"hero": 0.9})
 
         results = await service.search_chapters_by_keyword(doc.id, "nonexistent")
         assert results == []

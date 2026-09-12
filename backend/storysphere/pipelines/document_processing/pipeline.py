@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,6 +14,7 @@ from storysphere.domain.documents import (
     Paragraph,
     ParagraphRole,
     assign_chapter_numbers,
+    is_separator_segment,
 )
 from storysphere.pipelines.base import BasePipeline
 
@@ -26,14 +26,11 @@ logger = logging.getLogger(__name__)
 
 # ── Separator detection ───────────────────────────────────────────────────────
 
-_CONTENT_CHAR = re.compile(r'\w', re.UNICODE)
-_MAX_SEP_LEN = 40
-
-
-def _is_separator_segment(text: str) -> bool:
-    """True if a raw segment looks like a visual divider (e.g. ***, ---, ◇◇◇)."""
-    stripped = text.strip()
-    return bool(stripped) and len(stripped) <= _MAX_SEP_LEN and not _CONTENT_CHAR.search(stripped)
+# The predicate itself lives in `domain.documents`: scene grouping needs the
+# same rule to re-check separators it reads back, and domain must not import
+# a pipeline. Re-exported under the old private name so callers here read
+# unchanged.
+_is_separator_segment = is_separator_segment
 
 
 def _split_at_separators(

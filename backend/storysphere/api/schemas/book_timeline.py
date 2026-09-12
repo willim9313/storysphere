@@ -49,13 +49,6 @@ class ParticipantRef(BaseModel):
     type: str
 
 
-class LocationRef(BaseModel):
-    model_config = _CAMEL
-
-    id: str
-    name: str
-
-
 class TemporalDisplacementEntry(BaseModel):
     """Per-event verdict from the Genette temporal analysis (#21h).
 
@@ -91,7 +84,6 @@ class TimelineEventEntry(BaseModel):
     has_analysis: bool = False
     temporal_displacement: TemporalDisplacementEntry | None = None
     participants: list[ParticipantRef] = []
-    location: LocationRef | None = None
 
 
 class TemporalRelationEntry(BaseModel):

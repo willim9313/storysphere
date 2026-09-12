@@ -1,4 +1,5 @@
-import { AlertTriangle, Check, Sparkles } from 'lucide-react';
+import type { CSSProperties } from 'react';
+import { AlertTriangle, Check, Minus, Sparkles } from 'lucide-react';
 
 /**
  * The pipeline has five stages, not three.
@@ -23,6 +24,13 @@ export interface TensionStageSpec {
   done?: boolean;
   running?: boolean;
   failed?: boolean;
+  /**
+   * Ran to completion, but not everything made it — e.g. 12 of 15 TEUs
+   * assembled. Distinct from `failed`, which means the step itself broke and
+   * produced nothing. A partial step still unblocks what comes after it, so it
+   * is normally set alongside `done`.
+   */
+  partial?: boolean;
   /** Reachable but not yet satisfiable — drawn dashed and dimmed. */
   notReady?: boolean;
   /** Everything upstream is finished; the stage offers its action. */
@@ -47,11 +55,15 @@ export function TensionStepperStrip({ stages }: Props) {
           <div
             key={s.id}
             className="tn-stage"
-            style={{ flex: FLEX[s.kind] }}
+            // Handed to CSS as a custom property rather than `flex` directly:
+            // an inline `flex` would beat the stacking media query below 640px
+            // and could only be undone with `!important`.
+            style={{ '--tn-stage-flex': FLEX[s.kind] } as CSSProperties}
             data-kind={s.kind}
             data-done={!!s.done}
             data-running={!!s.running}
             data-failed={!!s.failed}
+            data-partial={!!s.partial}
             data-notready={!!s.notReady}
             data-ready={!!s.ready}
           >
@@ -59,8 +71,13 @@ export function TensionStepperStrip({ stages }: Props) {
               {/* Machine steps get a circle, gates a square: the shape says
                   "the system does this" vs "you do this" without relying on
                   colour, which collapses to one black in the Ink theme. */}
+              {/* A dash for "some but not all" — the same glyph a tri-state
+                  checkbox uses for indeterminate. It has to differ from ✓ and ▲
+                  in *shape*, not tone: the Ink theme flattens success, warning
+                  and error into one black. */}
               <span className="tn-stage-dot" data-kind={s.kind}>
-                {s.done && <Check size={9} />}
+                {s.done && !s.partial && <Check size={9} />}
+                {s.partial && <Minus size={9} />}
                 {s.failed && <AlertTriangle size={9} />}
               </span>
               <span className="tn-stage-kicker">{s.kicker}</span>

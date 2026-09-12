@@ -220,12 +220,16 @@ export default function EventAnalysisPage() {
     failureMessage: t('batchTriggerFailed'),
   });
 
-  // Auto-dismiss toast after 5s
+  // Auto-dismiss only when there is nothing to read. A run with failures leaves
+  // a named list in the toast, and five seconds is not long enough to notice
+  // it, open it and read it — the timer would take the only answer to "which
+  // ones?" off screen (B-113). Those stay until dismissed by hand.
   useEffect(() => {
     if (!toastVisible) return;
+    if ((batch.summary?.failures?.length ?? 0) > 0) return;
     const timer = setTimeout(() => setToastVisible(false), 5000);
     return () => clearTimeout(timer);
-  }, [toastVisible]);
+  }, [toastVisible, batch.summary]);
 
   const selectedUnanalyzed = evtData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
