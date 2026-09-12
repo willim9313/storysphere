@@ -197,7 +197,11 @@ class Settings(BaseSettings):
 
     # ── Langfuse Tracing ───────────────────────────────────────────────────────
     langfuse_enabled: bool = Field(
-        default=False, description="Enable Langfuse tracing (LANGFUSE_TRACING_ENABLED)"
+        default=False,
+        description="Enable Langfuse tracing (LANGFUSE_ENABLED). The name here is "
+        "the env var pydantic-settings actually reads — this said "
+        "LANGFUSE_TRACING_ENABLED until 2026-09-12, which reads as a valid "
+        "setting and silently does nothing.",
     )
     langfuse_public_key: str = Field(default="", description="Langfuse public key (pk-lf-...)")
     langfuse_secret_key: str = Field(default="", description="Langfuse secret key (sk-lf-...)")
