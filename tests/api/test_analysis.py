@@ -821,3 +821,86 @@ class TestBatchEntityAbort:
         status = poll_until_terminal(batch_client, task_id)
         assert status["status"] == "done"
         assert status["result"]["failed"] == status["result"]["total"]
+
+
+class TestBatchFailureLists:
+    """B-113: a failed item leaves a named entry, not just a counter.
+
+    Same shape as the tension Step 1 list (B-072): whoever pressed the button
+    can see which item broke and why, instead of a number whose detail only
+    reached the server log.
+    """
+
+    def test_event_batch_names_the_failed_event(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        ok = mock_analysis_agent.analyze_event.return_value
+
+        def _analyze(**kwargs):
+            if kwargs.get("event_id") == "evt-2":
+                raise RuntimeError("Qdrant 連不上")
+            return ok
+
+        mock_analysis_agent.analyze_event.side_effect = _analyze
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        final = _await_task(event_batch_client, resp.json()["taskId"])
+        result = final["result"]
+
+        assert result["failed"] == 1
+        assert result["failures"] == [
+            {
+                "event_id": "evt-2",
+                "title": "The Duel",
+                "chapter": 1,
+                "reason": "RuntimeError: Qdrant 連不上",
+            }
+        ]
+
+    def test_event_batch_still_analyses_the_rest(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        ok = mock_analysis_agent.analyze_event.return_value
+
+        def _analyze(**kwargs):
+            if kwargs.get("event_id") == "evt-1":
+                raise RuntimeError("boom")
+            return ok
+
+        mock_analysis_agent.analyze_event.side_effect = _analyze
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        result = _await_task(event_batch_client, resp.json()["taskId"])["result"]
+
+        assert result["failed"] == 1
+        assert result["total"] - result["failed"] - result["skipped"] == 1
+
+    def test_event_batch_reports_an_empty_list_when_all_succeed(
+        self, event_batch_client
+    ):
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        result = _await_task(event_batch_client, resp.json()["taskId"])["result"]
+
+        assert (result["failed"], result["failures"]) == (0, [])
+
+    def test_entity_batch_names_the_failed_character(
+        self, batch_client, mock_analysis_agent
+    ):
+        def _analyze(**kwargs):
+            raise RuntimeError("LLM 拒絕回應")
+
+        mock_analysis_agent.analyze_character.side_effect = _analyze
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        result = _await_task(batch_client, resp.json()["taskId"])["result"]
+
+        assert result["failed"] == len(result["failures"]) > 0
+        entry = result["failures"][0]
+        assert set(entry) == {"entity_id", "name", "reason"}
+        assert entry["reason"] == "RuntimeError: LLM 拒絕回應"
+
+    def test_entity_batch_reports_an_empty_list_when_all_succeed(self, batch_client):
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        result = _await_task(batch_client, resp.json()["taskId"])["result"]
+
+        assert (result["failed"], result["failures"]) == (0, [])

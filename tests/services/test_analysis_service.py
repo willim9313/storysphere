@@ -367,3 +367,4 @@ class TestResultFieldAccessor:
             if DataSanitizer.result_field(h, "text")
         ]
         assert texts == ["Alice entered."]
+

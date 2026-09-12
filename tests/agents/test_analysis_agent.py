@@ -155,7 +155,8 @@ class TestAnalyzeSymbolsBatch:
         )
 
         assert summary == {
-            "progress": 2, "total": 2, "failed": 0, "skipped": 1, "aborted": False,
+            "progress": 2, "total": 2, "failed": 0, "failures": [],
+            "skipped": 1, "aborted": False,
         }
         agent.analyze_symbol.assert_awaited_once()
 
@@ -214,3 +215,58 @@ class TestAnalyzeSymbolsBatch:
         assert summary["total"] == 0
         assert summary["aborted"] is False
         agent.analyze_symbol.assert_not_awaited()
+
+
+class TestSymbolBatchFailureList:
+    """B-113: the sweep records what it could not interpret, not just a count."""
+
+    @staticmethod
+    def _agent(failing: set[str]) -> AnalysisAgent:
+        agent = AnalysisAgent(analysis_service=AsyncMock())
+
+        async def _one(*, imagery_id, **kw):
+            if imagery_id in failing:
+                raise RuntimeError("provider 拒絕")
+            return object()
+
+        agent.analyze_symbol = AsyncMock(side_effect=_one)
+        return agent
+
+    async def test_failure_carries_id_and_reason(self):
+        agent = self._agent({"img-2"})
+
+        result = await agent.analyze_symbols_batch("book-1", ["img-1", "img-2"])
+
+        assert result["failed"] == 1
+        assert result["failures"] == [
+            {"imagery_id": "img-2", "reason": "RuntimeError: provider 拒絕"}
+        ]
+
+    async def test_all_succeeded_reports_an_empty_list(self):
+        agent = self._agent(set())
+
+        result = await agent.analyze_symbols_batch("book-1", ["img-1"])
+
+        assert (result["failed"], result["failures"]) == (0, [])
+
+    async def test_rate_limit_exit_still_carries_what_broke_before_it(self):
+        """The aborted summary is exactly when the partial list matters."""
+        agent = self._agent({"img-1"})
+        calls = {"n": 0}
+        inner = agent.analyze_symbol.side_effect
+
+        async def _one(*, imagery_id, **kw):
+            calls["n"] += 1
+            if calls["n"] == 2:
+                # is_rate_limit_error() matches on the message, not a type.
+                raise RuntimeError("429 rate limit exceeded")
+            return await inner(imagery_id=imagery_id, **kw)
+
+        agent.analyze_symbol.side_effect = _one
+
+        result = await agent.analyze_symbols_batch(
+            "book-1", ["img-1", "img-2", "img-3"]
+        )
+
+        assert result["aborted"] is True
+        assert [f["imagery_id"] for f in result["failures"]] == ["img-1"]

@@ -642,10 +642,19 @@ interface EventSourceResponse {
 interface BatchEepResult {
   progress: number;
   total: number;
-  failed: number;
+  failed: number;          // === failures.length
   skipped: number;
+  failures: Array<{        // B-113；依 (chapter, title) 排序，全成功時為 []
+    event_id: string;
+    title: string;         // 分析失敗就沒有結果可回查，故隨清單帶出
+    chapter: number;
+    reason: string;        // "RuntimeError: Qdrant 連不上"
+  }>;
 }
 ```
+
+單筆失敗不中止整批。**角色批次（#7h）共用這個形狀，但識別欄位不同**：
+`{ entity_id, name, reason }`，依 `name` 排序。
 
 **UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」、批次子集（只生成本章 / 勾選多筆）
 
@@ -1889,6 +1898,9 @@ interface SEP {
   重送同一個 prompt 必然再被拒，掃一輪只是每筆花一次呼叫去換一個已經記錄過的答案。
   `force_refresh` 是逃生口：日後補上第二家 provider 時用它重跑。
 - **序列執行，非併發**：每一筆都是付費 LLM 呼叫，併發會讓 rate limit 中止時損失已計費的工作。
+- **`result.failures` 列出失敗的意象**（B-113）：`{ imagery_id, reason }`，`failed` 為其長度。
+  這裡**只有 id 沒有名稱**——與事件／角色批次不同，這個迴圈拿到的就只有 id。
+  rate limit 中止時回傳的摘要同樣帶著這份清單，那正是最需要知道「哪些已經跑掉」的時候。
 - 遇到 rate limit **整批中止**並回報已完成數，不繼續消耗額度。
 - `TaskStatus.result` 用與角色／事件批次共通的 `BatchEepResult`（見 #7g）；
   進度另填 `sub_progress` / `sub_total`，讓 BatchEepPanel 顯示件數而非百分比。
