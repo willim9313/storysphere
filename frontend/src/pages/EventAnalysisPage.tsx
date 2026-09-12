@@ -131,7 +131,12 @@ export default function EventAnalysisPage() {
     },
   });
 
-  const { data: eventDetail, isLoading: detailLoading } = useQuery({
+  const {
+    data: eventDetail,
+    isLoading: detailLoading,
+    error: detailError,
+    refetch: refetchDetail,
+  } = useQuery({
     queryKey: qk.event.analysis(bookId, selectedEntityId),
     queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
     enabled: !!bookId && !!selectedEntityId && !gen.taskId && isSelectedAnalyzed,
@@ -424,6 +429,21 @@ export default function EventAnalysisPage() {
                   onSelectEvent={(id) => setSelectedEntityId(id)}
                 />
               </>
+            ) : selectedEntityId && detailError && isSelectedAnalyzed ? (
+              // The list says this event has a #7d payload but fetching it
+              // failed. Without this branch the cascade falls through to the
+              // overview landing, which reads as "the detail vanished" — the
+              // shape a 500 from #7d took before it was found.
+              <div className="ea-empty">
+                <div className="ea-empty-icon error">
+                  <AlertTriangle size={24} />
+                </div>
+                <h2 className="ea-empty-title">{t('event.detailError.title')}</h2>
+                <p className="ea-empty-sub">{t('event.detailError.body')}</p>
+                <button type="button" className="ea-btn" onClick={() => refetchDetail()}>
+                  <RefreshCw size={12} /> {tc('retry')}
+                </button>
+              </div>
             ) : gen.task?.status === 'error' ? (
               <div className="ea-empty">
                 <div className="ea-empty-icon error">

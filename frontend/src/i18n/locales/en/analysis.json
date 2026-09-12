@@ -398,6 +398,10 @@
       "shared": "shares {{names}}",
       "more": "{{count}} more",
       "collapse": "Collapse"
+    },
+    "detailError": {
+      "title": "Couldn't load event detail",
+      "body": "This event has an analysis, but fetching it failed. Try again; if it keeps failing, check the backend service."
     }
   },
   "batch": {

@@ -263,7 +263,7 @@ async def get_event_analysis(
     if event is None:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
-    from storysphere.api.schemas.books import (  # noqa: PLC0415
+    from storysphere.api.schemas.book_event_analysis import (  # noqa: PLC0415
         CausalityResponse,
         EepParticipantRole,
         EepResponse,
