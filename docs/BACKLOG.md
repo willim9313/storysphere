@@ -1704,7 +1704,15 @@ log**。走查時已點名（`20260909-post-sweep-development-plan.md` 第五節
 **順帶一提**: 這種漏網只有跑瀏覽器查 computed style 才看得到——`lint` 與 `tsc` 都不會
 說話，畫面上也只是「藍圈而不是橘圈」，不盯著看不會發現。
 
-**觸發時機**: 下次動到任一 `<details>` 元件，或做 a11y 巡檢時。
+**✅ 已完成（2026-09-12）**: `:where()` 清單加入 `summary`。三個 `<details>` 元件
+一次涵蓋，`tension.css` 裡那條 local 規則同時刪除。實測注入的裸 `<details>` 與張力頁
+的失敗面板，兩者都拿到 `#b05a34` / 2px / offset 2px。
+
+**量測方法的教訓**: 第一次量到「warning 色、3px」以為規則沒生效——那是假象。
+**沒有 outline 時 `outlineColor` 回報 `currentColor`、`outlineWidth` 回報 `medium`
+（3px）**，而該 summary 的 `color` 正好是 warning。真正的判準是 `outlineStyle`
+是否為 `none`。另外程式化 `focus()` 在剛用滑鼠點擊過之後不算 `:focus-visible`，
+要用鍵盤或 `focus({focusVisible:true})`。
 
 ---
 
@@ -2437,7 +2445,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-110 | 張力頁重新整理後就忘記 Step 1 跑過 | 🟡 中 | ✅ 已完成（2026-09-11；`hasTeus` 不看 `teus` query，導致 23 筆 TEU 的書顯示空狀態並引導使用者重跑一次完整 LLM pass） |
 | B-111 | `feature-extraction` 刪掉四個家族的快取，但它不重生那些 id | 🟡 中 | ✅ 已完成（2026-09-12；B-108 說要開卻從未開出的那一題。`event:` / `character:` 改判為 stale 並補上 #6a/#6b/#7a/#7d 的回報路徑與兩頁徽章，`epistemic:` / `teu:` 零依賴直接移除；五項測試在釘住舊行為已改判準） |
 | B-113 | 「`failed += 1` 然後繼續、不留清單」還有三處 | 🟢 低 | 待開始（2026-09-12 做 B-072 時確認；analysis_agent / 事件批次 / 角色批次三處，可沿用 B-072 的後端與面板形狀） |
-| B-114 | 全站焦點環漏掉 `<summary>` | 🟢 低 | 待開始（2026-09-12 B-072 瀏覽器實測；`:where()` 清單沒有 summary，三個 details 元件中兩個吃到瀏覽器預設藍圈。修法是加一個字） |
+| B-114 | 全站焦點環漏掉 `<summary>` | 🟢 低 | ✅ 已完成（2026-09-12；`:where()` 加入 `summary`，三個 details 元件一次涵蓋，tension.css 的 local 規則同時刪除） |
 | B-115 | 只有收尾標點的一行被判成場景分隔線 | 🟡 中 | ✅ 已完成（2026-09-12；`_is_separator_segment` 排除整段皆行文標點者。實測 16 筆真分隔全留、4 筆偽陽性全除；刻意不用長度判準——真分隔 `～` 只有 1 字。既有資料需重跑 ingestion，B-068 實作應於讀取端再套一次） |
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | ✅ 已完成（2026-09-07；雙後端新增 `relation_count_for()`，雙向關聯去重，實測 696 → 分書 203/69/259/55） |

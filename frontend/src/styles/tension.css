@@ -179,16 +179,6 @@
   font: 500 12px var(--font-sans);
   color: var(--color-warning);
 }
-/* global.css draws the site-wide focus ring on
-   `:where(a, button, input, select, textarea, [tabindex])`. A native `summary`
-   is focusable without carrying a tabindex *attribute*, so it matches none of
-   those and falls back to the UA's blue ring. Same tokens, applied locally —
-   see B-114 for the one-word fix that would cover every `<details>` at once. */
-.tn-teu-failures > summary:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
-  outline-offset: var(--focus-ring-offset);
-}
-
 /* `display:flex` above drops summary's default `list-item` marker, and with it
    the only sign that this row expands — cursor:pointer shows up on hover, which
    is too late to be an affordance. This chevron puts one back. */
