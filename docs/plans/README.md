@@ -105,3 +105,4 @@
 | 2026-09-09 | [走查之後：下一階段的開發計畫](./20260909-post-sweep-development-plan.md) |
 | 2026-09-10 | [事件顆粒度與章內順序：提示措辭的對照實驗](./20260910-event-granularity-ordering-experiments.md) |
 | 2026-09-11 | [場景分組判準：在真實資料上的試算與提案](./20260911-scene-grouping-criteria.md) |
+| 2026-09-12 | [場景邊界改用排版分隔符：重上傳後的重新試算與提案](./20260912-scene-boundary-from-typographic-dividers.md) |
