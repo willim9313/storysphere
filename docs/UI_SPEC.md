@@ -1021,9 +1021,28 @@ CSS 入口：`frontend/src/styles/tension.css`（class prefix `.tn-*`）。
 
 - **形狀即語意**：machine 步驟是圓形 num badge，gate 是方形——不只靠顏色區分（Ink 主題下
   success / warning / error 會塌成同一個黑）
-- 寬度分配 `machine:1.15 / gate:0.95`，gate 不做成細分隔線，避免讀成「附屬品」
-- `failed` 旗標在該段顯示 AlertTriangle + warning 色 note（P0-5 的最小落點；**完整的失敗
-  TEU 清單未做**，見「已知缺口」）
+- 寬度分配 `machine:1.15 / gate:0.95`，gate 不做成細分隔線，避免讀成「附屬品」。
+  這個比例**由 TSX 以 CSS 自訂屬性 `--tn-stage-flex` 交給 CSS**，不直接寫 inline
+  `flex`——inline 值會壓過下面那個斷點，只能靠 `!important` 扳回來
+- **`max-width: 640px` 改為直向堆疊**。實測：641px 時每格 100px、標題還在一行；
+  640px 以下標題開始折行，400px 折成三行，整條 strip 讀起來像五欄直排文字，
+  「TensionLine 聚合」還會疊到隔壁。堆疊後每格滿寬，標題在 360px 都維持一行。
+  **此斷點純 CSS**，與 1080px 那個抽屜斷點不同，不需要 JS 同步
+- **四個狀態旗標，dot 的字符即語意**（不靠顏色——Ink 主題下 success / warning / error
+  會塌成同一個黑）：
+
+  | 旗標 | dot 字符 | 意思 |
+  |---|---|---|
+  | `done` | `Check` ✓ | 跑完，全數產出 |
+  | `partial` | `Minus` — | **跑完了，但有缺口**（12 / 15），下游照樣解鎖 |
+  | `failed` | `AlertTriangle` ▲ | 這一段整個壞掉、什麼都沒產出 |
+  | `running` | 無 | 進行中 |
+
+  `partial` 與 `done` **同時為真**，而 dot 上 `partial` 優先——否則畫面會一邊打綠勾
+  一邊說「3 則失敗」。破折號沿用三態 checkbox 的 indeterminate 慣例：
+  「有一些但不是全部」。`partial` 不解鎖與 `failed` 不同的路徑，它只換 dot 與框色
+  （warning），因為那一段**確實**產出了其餘場景，把下游擋住反而會逼使用者重跑一次
+  完整 LLM pass（B-110 踩過的坑）。
 - 已完成的 machine 步驟 CTA 為 `↻`，點擊先開 `TensionRerunDialog`，確認後才以 `force=true`
   送出。`force` 是必要的：後端在 `force=false` 時直接回快取並回報成功，畫面看起來執行過但
   毫無變化。
@@ -1161,7 +1180,18 @@ Modal 遮罩是平的 `rgba(42,38,32,0.42)`，不用 `backdrop-filter`。Ink 主
   - **未做**：Ink 主題下 success / warning / error 塌成同一個黑，已拆為 B-086（全站議題）。
   - `1080px` 這個斷點同時寫在 `tension.css` 與 `TensionPage.tsx`（media query 無法從 CSS 讀回
     JS），兩邊改動必須同步。
-- **P0-5 失敗清單未做**：stepper 只有 `failed` 旗標與警示 note，沒有可展開的失敗 TEU 清單。
+- ~~**P0-5 失敗清單未做**~~ **已做（2026-09-12，B-072）**：strip 下方的 `.tn-teu-failures`
+  是可展開的 `<details>`，每列為「第 N 章 · 事件標題 · 例外字串」，依章排序。預設收合——
+  多數事件成功了，這是註腳不是標題。**兩個限制寫在這裡而不是留給人踩**：
+  （a）清單只存在於剛結束那次執行的 task result，**重新整理即消失**（與 B-110 同一個形狀，
+  後端沒有按書留存失敗紀錄）；面板內的 hint 文案已據實說明，不假裝它會留著。
+  （b）`reason` 是原始例外字串（`RuntimeError: …`），不是給終端使用者的翻譯文案——
+  失敗原因來自後端例外，硬要翻譯只會讓它與 log 對不起來。
+  **`summary` 的兩條規則不是裝飾，是補回被 CSS 拿掉的東西**：`display: flex` 會讓
+  summary 失去預設的 `list-item` marker，所以 `::after` 補一個 chevron（收合 ▸ /
+  展開 ▾）——否則畫面上沒有任何東西表示這一列可以展開；`:focus-visible` 則是因為
+  原生 `summary` 沒有 `tabindex` 屬性，接不到 `global.css` 的全站焦點環（見 B-114），
+  在那條修好之前這裡用同一組 token 自己畫。
 - zh-TW locale 中 `tension.onboarding.*`、`heroEyebrow`、`trajectory*` 等舊版遺留 key 尚未清除。
 
 #### 狀態流程
