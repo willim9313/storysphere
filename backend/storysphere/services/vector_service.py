@@ -105,13 +105,6 @@ class VectorService:
 
     # ── Collection naming ──────────────────────────────────────────────────
 
-    @staticmethod
-    def collection_name_for(
-        document_id: str, prefix: str = "storysphere_book"
-    ) -> str:
-        """Derive the Qdrant collection name for a given book."""
-        return f"{prefix}_{document_id}"
-
     def _col(self, document_id: str) -> str:
         """Resolve document_id (UUID or slug) → Qdrant collection name.
 

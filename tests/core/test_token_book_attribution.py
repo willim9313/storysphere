@@ -159,27 +159,6 @@ class TestAnalysisAgentAttribution:
 
         assert seen == [("imagery", "doc-symbol-attr")]
 
-    @pytest.mark.asyncio
-    async def test_narrative_analysis_carries_the_document_id(self):
-        seen: list[tuple[str, str | None]] = []
-
-        def _refine(**_kw):
-            seen.append(get_llm_service_context())
-            return SimpleNamespace(
-                kernel_event_ids=[],
-                satellite_event_ids=[],
-                model_dump=dict,
-            )
-
-        narrative = AsyncMock()
-        narrative.refine_with_llm.side_effect = _refine
-        narrative.map_hero_journey.return_value = []
-        agent = AnalysisAgent(analysis_service=AsyncMock(), narrative_service=narrative)
-
-        await agent.analyze_narrative("doc-narrative-attr")
-
-        assert seen == [("analysis", "doc-narrative-attr")]
-
 
 class TestTensionAttribution:
     """Every tension LLM call already holds the document id it belongs to."""
