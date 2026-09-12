@@ -361,8 +361,14 @@ class IngestionWorkflow:
         # "knowledge-graph" is the step that actually regenerates them, and it
         # was missing from this check (B-108): a KG rerun left every
         # `teu:{event_id}` row pointing at an id the graph no longer had.
+        #
+        # It is also the *only* step that does. "feature-extraction" was listed
+        # here too until B-111: it embeds paragraphs and extracts keywords,
+        # touching neither the KG nor anything a TEU is built from
+        # (TensionService takes only a cache), so every key collected here was
+        # a row it then deleted for no reason.
         teu_keys: list[str] = []
-        if step in ("feature-extraction", "knowledge-graph"):
+        if step == "knowledge-graph":
             teu_keys = teu_keys_for(
                 [e.id for e in await self._kg_service.get_events(document_id=doc_id)]
             )

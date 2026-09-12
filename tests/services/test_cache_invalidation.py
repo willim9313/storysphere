@@ -35,13 +35,34 @@ class TestPatternsFor:
             "symbol_analysis_block:book-1:%",
         }
 
-    def test_feature_extraction_deletes_only_id_keyed_families(self):
-        """Book-keyed analyses survive the delete so they can be reported stale."""
-        patterns = patterns_for("feature-extraction", "book-1")
+    def test_feature_extraction_deletes_only_the_projection(self):
+        """B-111 — it regenerates no id, so it orphans nothing.
+
+        This used to assert ``event:book-1:%`` was in the delete list. That is
+        the bug: the step embeds paragraphs and extracts keywords, holding no
+        reference to the KG, so every id in those keys survives it. The
+        entries were reachable the whole time and deleting them threw away LLM
+        output. Only ``symbol_overview:`` stays, and only because it is a
+        cheap projection holding no human input.
+        """
+        assert patterns_for("feature-extraction", "book-1") == ["symbol_overview:book-1"]
+
+    def test_feature_extraction_does_not_touch_epistemic(self):
+        """EpistemicStateService takes only kg_service / llm / cache (B-111).
+
+        Nothing it holds comes from this step, so the family belongs in
+        neither map — not deleted here, and not stale here either.
+        """
+        assert "epistemic:book-1:%" not in patterns_for("feature-extraction", "book-1")
+        assert stale_sources("epistemic:book-1:ent-1") == ()
+
+    def test_knowledge_graph_still_orphans_the_id_keyed_families(self):
+        """B-111 moved rules off feature-extraction; it must not disarm B-108."""
+        patterns = patterns_for("knowledge-graph", "book-1")
 
         assert "event:book-1:%" in patterns
-        assert "narrative_structure:book-1" not in patterns
-        assert "tension_lines:book-1" not in patterns
+        assert "character:book-1:%" in patterns
+        assert "epistemic:book-1:%" in patterns
 
 
 class TestKnowledgeGraphRerun:
@@ -167,10 +188,22 @@ class TestStaleSources:
         assert "summarization" in sources
         assert "knowledge-graph" in sources
 
-    def test_deleted_families_are_never_stale(self):
-        """They are gone after a rerun, so there is nothing to date."""
-        assert stale_sources("event:book-1:ev-1") == ()
-        assert stale_sources("character:book-1:ent-1") == ()
+    def test_families_deleted_by_every_step_that_touches_them_are_never_stale(self):
+        """Nothing dates an entry that no longer exists to be read."""
+        assert stale_sources("voice_profile:book-1:ent-1") == ()
+        assert stale_sources("sep:book-1:sym-1") == ()
+
+    def test_eep_and_cep_age_with_the_step_that_feeds_their_evidence(self):
+        """B-111 — they are id-keyed but not orphaned by feature-extraction.
+
+        EEP text evidence comes from a vector search and CEP from a vector
+        search plus ``get_entity_keywords`` — both are feature-extraction's
+        output. The ids survive the step, so these report stale rather than
+        being deleted. "knowledge-graph" is absent on purpose: there they are
+        deleted, and a deleted entry has no staleness to report.
+        """
+        assert stale_sources("event:book-1:ev-1") == ("feature-extraction",)
+        assert stale_sources("character:book-1:ent-1") == ("feature-extraction",)
 
     def test_unknown_family_is_never_stale(self):
         assert stale_sources("no_such_family:book-1") == ()
@@ -230,8 +263,13 @@ class TestStaleness:
             self._cache(None), "narrative_structure:b1", self._status()
         ) == (False, None)
 
-    async def test_deleted_family_is_never_stale(self):
-        """event: is removed on rerun, so it never has staleness to report."""
+    async def test_eep_is_stale_after_the_step_that_feeds_its_evidence(self):
+        """B-111 — this asserted ``(False, None)`` and was pinning the bug.
+
+        A feature-extraction rerun postdating the entry means the vector
+        evidence and keywords the EEP was built from have been replaced. The
+        entry is still readable, so the honest answer is "stale", not "fresh".
+        """
         from datetime import UTC, datetime, timedelta
 
         from storysphere.services.cache_invalidation import staleness
@@ -241,6 +279,19 @@ class TestStaleness:
 
         assert await staleness(
             self._cache(created.timestamp()), "event:b1:ev-1", status
+        ) == (True, "feature-extraction")
+
+    async def test_family_deleted_on_rerun_is_never_stale(self):
+        """voice_profile: is dropped by the only step that touches it."""
+        from datetime import UTC, datetime, timedelta
+
+        from storysphere.services.cache_invalidation import staleness
+
+        created = datetime(2026, 8, 1, tzinfo=UTC)
+        status = self._status(feature_extraction_at=created + timedelta(days=1))
+
+        assert await staleness(
+            self._cache(created.timestamp()), "voice_profile:b1:ent-1", status
         ) == (False, None)
 
     async def test_any_source_step_can_stale_an_entry(self):

@@ -233,14 +233,20 @@ class TestCacheInvalidation:
         }
 
     @pytest.mark.asyncio
-    async def test_feature_extraction_drops_id_keyed_caches_only(self):
+    async def test_feature_extraction_drops_only_the_projection(self):
+        """B-111 — it regenerates no id, so it orphans nothing.
+
+        This used to assert ``event:book-x:%`` was dropped. The step embeds
+        paragraphs and extracts keywords and holds no reference to the KG, so
+        every id in those keys survives it; the rows were reachable the whole
+        time. EEP and CEP do age with it and are reported stale instead —
+        ``narrative_structure`` and ``tension_lines`` were already handled that
+        way and stay out of the delete list for the same reason.
+        """
         wf, _, _ = _workflow(_make_doc())
         _, cache = await _rerun(wf, "feature-extraction")
-        patterns = self._patterns(cache)
 
-        assert "event:book-x:%" in patterns
-        assert "narrative_structure:book-x" not in patterns
-        assert "tension_lines:book-x" not in patterns
+        assert self._patterns(cache) == {"symbol_overview:book-x"}
 
     @pytest.mark.asyncio
     async def test_teu_keys_collected_before_events_are_regenerated(self):
@@ -250,6 +256,10 @@ class TestCacheInvalidation:
         The KG returns different events before and after the step runs, so a
         collection that happened afterwards would invalidate the new ids and
         silently orphan the TEUs belonging to the replaced ones.
+
+        Driven through "knowledge-graph": this used to run the same scenario on
+        "feature-extraction" by mocking its pipeline into replacing the events,
+        which that step cannot do — it never reaches the KG (B-111).
         """
         kg = AsyncMock()
         kg.get_events = AsyncMock(return_value=[SimpleNamespace(id="ev-old")])
@@ -258,13 +268,30 @@ class TestCacheInvalidation:
         async def _regenerate(*_a, **_kw):
             kg.get_events = AsyncMock(return_value=[SimpleNamespace(id="ev-new")])
 
-        wf._feature_pipeline.run = AsyncMock(side_effect=_regenerate)
+        wf._kg_pipeline.run = AsyncMock(side_effect=_regenerate)
 
-        _, cache = await _rerun(wf, "feature-extraction")
+        _, cache = await _rerun(wf, "knowledge-graph")
         patterns = self._patterns(cache)
 
         assert "teu:ev-old" in patterns
+        # The new id must be absent: its presence would mean the collection ran
+        # after the step, which is the failure mode this test exists to catch.
         assert "teu:ev-new" not in patterns
+
+    @pytest.mark.asyncio
+    async def test_feature_extraction_does_not_collect_teu_keys(self):
+        """B-111 — it cannot orphan a TEU, so it must not delete one.
+
+        TEUs are built from events and TensionService takes only a cache;
+        nothing in one comes from embeddings or keywords.
+        """
+        kg = AsyncMock()
+        kg.get_events = AsyncMock(return_value=[SimpleNamespace(id="ev-1")])
+        wf, _, _ = _workflow(_make_doc(), kg=kg)
+
+        _, cache = await _rerun(wf, "feature-extraction")
+
+        assert "teu:ev-1" not in self._patterns(cache)
 
     @pytest.mark.asyncio
     async def test_knowledge_graph_drops_the_event_keyed_caches(self):
