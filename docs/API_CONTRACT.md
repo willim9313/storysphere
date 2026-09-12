@@ -1206,6 +1206,26 @@ Step 1 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`（同 #8）
 
+`status === 'done'` 時 `result` 的形狀（`TaskStatus.result` 是 `dict[str, Any]`，
+故不出現在 `generated.ts`，前端需自行 narrow）：
+
+```ts
+{
+  total_events: number;   // 全書事件數
+  candidates: number;     // tension_signal !== 'none' 的事件數
+  assembled: number;      // 成功組裝的 TEU 數
+  failed: number;         // === failures.length
+  failures: Array<{       // B-072；依 chapter 排序，成功時為 []
+    event_id: string;
+    title: string;        // 事件標題——組裝失敗就沒有 TEU 可回查，故隨清單帶出
+    chapter: number;
+    reason: string;       // "RuntimeError: Qdrant 連不上"
+  }>;
+}
+```
+
+`assembled + failed === candidates`。單一事件失敗不會中止整批。
+
 ---
 
 ### #14c POST /tension/lines/group

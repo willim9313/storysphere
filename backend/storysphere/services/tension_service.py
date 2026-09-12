@@ -747,7 +747,13 @@ class TensionService:
             progress_callback: Optional async callable(done: int, total: int).
 
         Returns:
-            dict with total_events, candidates, assembled, failed counts.
+            dict with total_events, candidates, assembled, failed counts, plus
+            ``failures``: one entry per event that could not be assembled.
+
+        A bare ``failed`` count is not actionable — it says something broke but
+        not what, and the warning is logged server-side where the person who
+        pressed the button never sees it. ``failures`` carries the event back
+        out so the page can name it (B-072).
         """
         import asyncio  # noqa: PLC0415
 
@@ -765,14 +771,15 @@ class TensionService:
                 "candidates": 0,
                 "assembled": 0,
                 "failed": 0,
+                "failures": [],
             }
 
         sem = asyncio.Semaphore(concurrency)
         assembled = 0
-        failed = 0
+        failures: list[dict] = []
 
         async def _assemble_one(event):
-            nonlocal assembled, failed
+            nonlocal assembled
             async with sem:
                 try:
                     teu = await self.assemble_teu(
@@ -785,33 +792,49 @@ class TensionService:
                     )
                     await self.save_teu(teu)
                     assembled += 1
-                except Exception:
+                except Exception as exc:
                     logger.warning(
                         "analyze_book_tensions: failed for event=%s",
                         event.id,
                         exc_info=True,
                     )
-                    failed += 1
+                    # Chapter and title travel with the id because the page has
+                    # no other way to resolve a failed event: assembly failed,
+                    # so there is no TEU to look it up from.
+                    failures.append(
+                        {
+                            "event_id": event.id,
+                            "title": event.title,
+                            "chapter": event.chapter,
+                            "reason": f"{type(exc).__name__}: {exc}",
+                        }
+                    )
             if progress_callback:
-                progress_callback(assembled + failed, total)
+                progress_callback(assembled + len(failures), total)
 
         await asyncio.gather(
             *[_assemble_one(e) for e in candidates],
             return_exceptions=True,
         )
 
+        # Completion order is whatever the semaphore happened to release, which
+        # would shuffle the list between two runs of the same book. Chapter
+        # order matches how the page reads everything else.
+        failures.sort(key=lambda f: (f["chapter"], f["title"]))
+
         logger.info(
             "analyze_book_tensions: document=%s candidates=%d assembled=%d failed=%d",
             document_id,
             total,
             assembled,
-            failed,
+            len(failures),
         )
         return {
             "total_events": len(events),
             "candidates": total,
             "assembled": assembled,
-            "failed": failed,
+            "failed": len(failures),
+            "failures": failures,
         }
 
     # ── Private ───────────────────────────────────────────────────────────────

@@ -632,3 +632,89 @@ class TestThemeStalenessPipelineRerun:
 
         stale, reason = await svc.theme_staleness("doc-1", self._theme(["l1"]))
         assert (stale, reason) == (True, "no_lines")
+
+
+class TestAnalyzeBookTensionsFailures:
+    """B-072: a failed assembly leaves a named entry, not just a counter."""
+
+    def _event(self, event_id: str, chapter: int, title: str):
+        from storysphere.domain.events import Event
+
+        return Event(
+            id=event_id,
+            document_id=DOC,
+            title=title,
+            event_type="conflict",
+            description="…",
+            chapter=chapter,
+            tension_signal="explicit",
+        )
+
+    def _service(self, failing_ids: set[str]):
+        from unittest.mock import AsyncMock
+
+        svc = TensionService(cache=AsyncMock())
+
+        async def _assemble(event_id, **kw):
+            if event_id in failing_ids:
+                raise RuntimeError("Qdrant 連不上")
+            return _make_teu(event_id, 1)
+
+        svc.assemble_teu = AsyncMock(side_effect=_assemble)
+        svc.save_teu = AsyncMock()
+        return svc
+
+    async def _run(self, svc, events):
+        from unittest.mock import AsyncMock
+
+        kg = AsyncMock()
+        kg.get_events.return_value = events
+        return await svc.analyze_book_tensions(
+            document_id=DOC, kg_service=kg, doc_service=AsyncMock()
+        )
+
+    async def test_failure_carries_event_identity_and_reason(self):
+        events = [self._event("e1", 3, "伊內絲拒絕泰奧多爾的請求")]
+        result = await self._run(self._service({"e1"}), events)
+
+        assert result["failed"] == 1
+        assert result["failures"] == [
+            {
+                "event_id": "e1",
+                "title": "伊內絲拒絕泰奧多爾的請求",
+                "chapter": 3,
+                "reason": "RuntimeError: Qdrant 連不上",
+            }
+        ]
+
+    async def test_partial_failure_still_assembles_the_rest(self):
+        events = [
+            self._event("e1", 1, "A"),
+            self._event("e2", 2, "B"),
+            self._event("e3", 3, "C"),
+        ]
+        result = await self._run(self._service({"e2"}), events)
+
+        assert (result["assembled"], result["failed"]) == (2, 1)
+        assert [f["event_id"] for f in result["failures"]] == ["e2"]
+
+    async def test_failures_are_ordered_by_chapter(self):
+        """Completion order is whatever the semaphore released; chapter order is stable."""
+        events = [
+            self._event("e1", 7, "late"),
+            self._event("e2", 2, "early"),
+        ]
+        result = await self._run(self._service({"e1", "e2"}), events)
+
+        assert [f["chapter"] for f in result["failures"]] == [2, 7]
+
+    async def test_all_assembled_reports_an_empty_list(self):
+        result = await self._run(self._service(set()), [self._event("e1", 1, "A")])
+
+        assert (result["failed"], result["failures"]) == (0, [])
+
+    async def test_no_candidates_reports_an_empty_list(self):
+        """The early return is a second exit; it must carry the key too."""
+        result = await self._run(self._service(set()), [])
+
+        assert result["failures"] == []
