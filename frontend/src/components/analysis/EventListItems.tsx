@@ -100,6 +100,9 @@ export function EventAnalyzedItem({
         </span>
       </span>
       <span className="ea-item-right">
+        {item.isStale && (
+          <span className="ea-item-stale" title={t('event.stale.tooltip')} />
+        )}
         <span
           className="ea-item-dot"
           style={item.status === 'partial' ? { background: 'var(--color-warning)' } : undefined}

@@ -108,13 +108,7 @@ export interface CepData {
   topTerms: Record<string, number>;
 }
 
-export interface ArchetypeDetail {
-  framework: string;
-  primary: string;
-  secondary: string | null;
-  confidence: number;
-  evidence: string[];
-}
+export type ArchetypeDetail = components['schemas']['ArchetypeDetailResponse'];
 
 export interface ArcSegment {
   chapterRange: string;
@@ -122,17 +116,8 @@ export interface ArcSegment {
   description: string;
 }
 
-export interface CharacterAnalysisDetail {
-  entityId: string;
-  entityName: string;
-  profileSummary: string;
-  archetypes: ArchetypeDetail[];
-  cep: CepData | null;
-  arc: ArcSegment[];
-  status?: 'complete' | 'partial';
-  failedParts?: string[];
-  generatedAt: string;
-}
+export type CharacterAnalysisDetail =
+  components['schemas']['CharacterAnalysisDetailResponse'];
 
 // ── Tasks ───────────────────────────────────────────────────────
 
@@ -331,17 +316,5 @@ export interface ImpactAnalysis {
 export type EventSourceResponse = components['schemas']['EventSourceResponse'];
 export type EventSourcePassage = components['schemas']['EventSourcePassage'];
 
-export interface EventAnalysisDetail {
-  eventId: string;
-  title: string;
-  eep: EventEvidenceProfile;
-  causality: CausalityAnalysis;
-  impact: ImpactAnalysis;
-  summary: { summary: string };
-  analyzedAt: string;
-  status?: 'complete' | 'partial';
-  failedParts?: string[];
-  chapter?: number | null;
-  chunk?: number | null;
-  narrativeMode?: string | null;
-}
+export type EventAnalysisDetail =
+  components['schemas']['EventAnalysisFullResponse'];

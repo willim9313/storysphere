@@ -224,6 +224,10 @@
         "arc": "Developmental arc",
         "write": "Writing analysis result"
       }
+    },
+    "stale": {
+      "badge": "Evidence moved",
+      "tooltip": "Built on the vector evidence and keywords from before a feature-extraction rerun. Still readable, but no longer reflects the current data — regenerate if you need it current."
     }
   },
   "event": {
@@ -402,6 +406,10 @@
     "detailError": {
       "title": "Couldn't load event detail",
       "body": "This event has an analysis, but fetching it failed. Try again; if it keeps failing, check the backend service."
+    },
+    "stale": {
+      "badge": "Evidence moved",
+      "tooltip": "Built on the vector evidence and keywords from before a feature-extraction rerun. Still readable, but no longer reflects the current data — regenerate if you need it current."
     }
   },
   "batch": {

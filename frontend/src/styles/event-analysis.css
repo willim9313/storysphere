@@ -190,6 +190,7 @@
   display: flex;
   align-items: center;
   align-self: center;
+  gap: 5px;  /* separates the stale dot from the status dot (B-111) */
 }
 .ea-item-dot {
   width: 6px; height: 6px; border-radius: 50%;
@@ -1300,6 +1301,21 @@
 .ea-detail-partial {
   padding: 2px 8px; border-radius: var(--badge-radius);
   background: var(--color-warning-bg); color: var(--color-warning); font-weight: 600;
+}
+
+/* B-111 — the analysis survived a feature-extraction rerun but the evidence it
+   was built from did not. Info rather than warning: nothing failed, and it is
+   orthogonal to `partial`, so both can show at once. */
+.ea-detail-stale {
+  padding: 2px 8px; border-radius: var(--badge-radius);
+  background: var(--color-info-bg); color: var(--color-info); font-weight: 600;
+}
+
+/* List rows have no room for a label, so the badge becomes a second dot
+   ahead of the status one, carrying its explanation in `title`. */
+.ea-item-stale {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-info); flex: none;
 }
 
 /* ── Researcher guide ribbon ──────────────────────────────────────────────── */

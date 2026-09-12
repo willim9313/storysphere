@@ -419,6 +419,11 @@ export default function EventAnalysisPage() {
                     {eventDetail.status === 'partial' && (
                       <span className="ea-detail-partial">{t('event.partialBadge')}</span>
                     )}
+                    {eventDetail.isStale && (
+                      <span className="ea-detail-stale" title={t('event.stale.tooltip')}>
+                        {t('event.stale.badge')}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <EventGuideRibbon surface="detail" />

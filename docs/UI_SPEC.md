@@ -335,6 +335,13 @@ chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正�
 
 ### 3.4 角色分析頁 `/books/:bookId/characters`
 
+**證據已更新徽章（`isStale`，B-111）**：`feature-extraction` 重跑會換掉 EEP 的向量證據
+與 CEP 的關鍵字，但**不**重生 event / entity id，所以快取保留而非刪除。保留卻不標示
+等於讓一份過期分析看起來是最新的，因此四個端點（#6a / #6b / #7a / #7d）都回報
+`isStale` / `staleReason`，而兩頁都必須顯示。用 `--color-info` 而非 warning：沒有任何
+東西失敗，它與 `partial` 是正交的，可以同時出現。清單列沒有放文字的空間，所以在狀態點
+之前多一顆 info 色圓點、說明放 `title`；完整文案的徽章在詳情標題列。
+
 > 2026-05-16 重新設計：3-tab 平級結構（人物概覽 / 語音風格 / 認知狀態）、Overview 內 4 個 sub-tab、Framework 切換只在左清單、新增「框架對照」抽屜。設計交接見 `docs/plans/20260516-character-analysis-page-redesign.md` 與設計 project HANDOFF.md。
 > 2026-07-17 canvas 對稿翻新：角色總覽 landing（排行/象限雙視圖）、清單排序與提及量 bar、ego-network、弧線時間軸、認知游標雙軌聚合、認知對照 drawer、生成中 checklist、原型篩選。計畫見 `docs/plans/20260716-character-page-revamp.md`。
 
@@ -536,6 +543,13 @@ dismiss 記於 localStorage）。整本未分析時另有引導橫幅直接觸�
 
 **標題列**：事件名（serif）+ 重要度 pill，meta 列為 `Ch.N · 敘事模式 · impTagline`，
 partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
+
+**證據已更新徽章（`isStale`，B-111）**：`feature-extraction` 重跑會換掉 EEP 的向量證據
+與 CEP 的關鍵字，但**不**重生 event / entity id，所以快取保留而非刪除。保留卻不標示
+等於讓一份過期分析看起來是最新的，因此四個端點（#6a / #6b / #7a / #7d）都回報
+`isStale` / `staleReason`，而兩頁都必須顯示。用 `--color-info` 而非 warning：沒有任何
+東西失敗，它與 `partial` 是正交的，可以同時出現。清單列沒有放文字的空間，所以在狀態點
+之前多一顆 info 色圓點、說明放 `title`；完整文案的徽章在詳情標題列。
 
 **詳情載入失敗**：#6b 說某事件已分析、但 #7d 取不回來時，內容區顯示錯誤態
 （`event.detailError` + 重試鈕），**不得掉回總覽落地頁**。條件判斷本身要帶
