@@ -552,6 +552,7 @@
       "teuIdle": "尚未執行",
       "teuRunning": "組裝中 · {{progress}}%",
       "teuDone": "{{assembled}} / {{candidates}} 場景",
+      "teuPartial": "{{assembled}} / {{candidates}} 場景 · {{failed}} 則失敗",
       "reviewTeuTitle": "檢視 {{count}} 個 TEU",
       "reviewTeuWaiting": "待組裝後開始",
       "reviewTeuOrphans": "{{count}} 個未歸入，待確認",
@@ -572,6 +573,11 @@
       "themeDone": "主題已合成",
       "themeStale": "主題已過期",
       "synthesize": "合成全書主題"
+    },
+    "failures": {
+      "summary": "{{count}} 則場景組裝失敗",
+      "chapter": "第 {{chapter}} 章",
+      "hint": "其餘場景已正常組裝。重跑 Step 1 會再試一次這些事件；此清單只屬於剛才那次執行，重新整理後不會保留。"
     },
     "state": {
       "emptyTitle": "尚未進行張力分析",

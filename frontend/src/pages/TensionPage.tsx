@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AlertTriangle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
@@ -47,6 +48,29 @@ import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
 import '@/styles/tension.css';
 import { qk } from '@/api/queryKeys';
 
+/**
+ * Shape of the Step 1 task result (API_CONTRACT #14b).
+ *
+ * Hand-written rather than pulled from `generated.ts` because `TaskStatus.result`
+ * is `dict[str, Any]` on the backend — there is no schema to generate from.
+ * Fields stay snake_case: this dict is built by the service and never passes
+ * through an `alias_generator=to_camel` model.
+ */
+interface TeuFailure {
+  event_id: string;
+  title: string;
+  chapter: number;
+  reason: string;
+}
+
+interface AnalyzeResult {
+  total_events?: number;
+  candidates?: number;
+  assembled?: number;
+  failed?: number;
+  failures?: TeuFailure[];
+}
+
 export default function TensionPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
@@ -60,7 +84,7 @@ export default function TensionPage() {
     return () => setPageContext({ page: 'other' });
   }, [book, bookId, setPageContext]);
 
-  const [analyzeResult, setAnalyzeResult] = useState<Record<string, number> | null>(null);
+  const [analyzeResult, setAnalyzeResult] = useState<AnalyzeResult | null>(null);
   const [statusFilter, setStatusFilter] = useState<ReviewFilter>('all');
   const [sort, setSort] = useState<ReviewSort>('intensity');
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -98,7 +122,7 @@ export default function TensionPage() {
 
   const analyzeOp = useTensionTask(
     fetchTensionAnalysisTask,
-    (task) => setAnalyzeResult(task.result as Record<string, number>),
+    (task) => setAnalyzeResult(task.result as AnalyzeResult),
     t('tension.errors.analysisFailed'),
   );
   const groupOp = useTensionTask(
@@ -402,6 +426,11 @@ export default function TensionPage() {
     [teuChapterCounts],
   );
 
+  // Only the run that just finished carries a failure list: it lives in the
+  // task result, and nothing persists it per-book. A refresh drops it (same
+  // shape as B-110), so the panel below is honest about being run-scoped.
+  const teuFailures = analyzeResult?.failures ?? [];
+
   // Lines cached before provenance existed have no timestamp; show the version
   // alone rather than inventing a time.
   const lineProvenance = useMemo(() => {
@@ -420,13 +449,24 @@ export default function TensionPage() {
       note: analyzeOp.running
         ? t('tension.stage.teuRunning', { progress: analyzeOp.task?.progress ?? 0 })
         : analyzeResult
-          ? t('tension.stage.teuDone', {
-              assembled: analyzeResult.assembled ?? 0,
-              candidates: analyzeResult.candidates ?? 0,
-            })
+          ? teuFailures.length > 0
+            ? t('tension.stage.teuPartial', {
+                assembled: analyzeResult.assembled ?? 0,
+                candidates: analyzeResult.candidates ?? 0,
+                failed: teuFailures.length,
+              })
+            : t('tension.stage.teuDone', {
+                assembled: analyzeResult.assembled ?? 0,
+                candidates: analyzeResult.candidates ?? 0,
+              })
           : hasTeus
             ? t('tension.stage.teuDone', { assembled: teus.length, candidates: teus.length })
             : t('tension.stage.teuIdle'),
+      noteWarning: teuFailures.length > 0,
+      // Not `failed` — that means the step broke and produced nothing, while a
+      // partial run did assemble the rest. `partial` rides alongside `done` so
+      // the downstream gate still unblocks; only the dot changes.
+      partial: teuFailures.length > 0,
       done: hasTeus && !analyzeOp.running,
       running: analyzeOp.running,
       failed: !!analyzeOp.error,
@@ -524,6 +564,30 @@ export default function TensionPage() {
       <div className="tn-shell-main tn-scroll" inert={drawerOverlaying}>
         <div className="tn-page">
         <TensionStepperStrip stages={stages} />
+
+        {/* A bare "12 / 15" leaves the reader to guess which three are missing
+            and why. Collapsed by default — the run succeeded for most events,
+            so this is a footnote, not the headline. */}
+        {teuFailures.length > 0 && (
+          <details className="tn-teu-failures">
+            <summary>
+              <AlertTriangle size={12} aria-hidden="true" />
+              {t('tension.failures.summary', { count: teuFailures.length })}
+            </summary>
+            <ul>
+              {teuFailures.map((f) => (
+                <li key={f.event_id}>
+                  <span className="tn-teu-failure-where">
+                    {t('tension.failures.chapter', { chapter: f.chapter })}
+                  </span>
+                  <span className="tn-teu-failure-title">{f.title}</span>
+                  <code className="tn-teu-failure-reason">{f.reason}</code>
+                </li>
+              ))}
+            </ul>
+            <p className="tn-teu-failure-hint">{t('tension.failures.hint')}</p>
+          </details>
+        )}
 
         {linesLoading || themeLoading ? <LoadingSpinner /> : null}
 

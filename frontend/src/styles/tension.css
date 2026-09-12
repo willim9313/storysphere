@@ -30,6 +30,7 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
+  flex: var(--tn-stage-flex, 1);
   gap: 5px;
   padding: 11px 13px;
   margin: 0 4px;
@@ -54,6 +55,18 @@
   border-style: dashed;
   border-color: var(--border);
   opacity: 0.7;
+}
+
+/* Below 640px the five cells get narrower than their own titles. Measured on
+   the real strip: 640px keeps every title on one line (cell 106px), 560px wraps
+   to two, 400px to three — at which point the row reads as five columns of
+   vertical text with "TensionLine 聚合" overlapping its neighbour. Stack them
+   instead: taller, but every step stays readable and none hides behind a
+   scroll. Breakpoint is CSS-only — unlike the 1080px drawer one, no JS needs
+   to know about it. */
+@media (max-width: 640px) {
+  .tn-stepper { flex-direction: column; gap: 6px; }
+  .tn-stage { flex: none; margin: 0; }
 }
 
 .tn-stage-top { display: flex; align-items: center; gap: 7px; }
@@ -85,6 +98,14 @@
   background: var(--accent);
   border-color: var(--accent);
 }
+/* Partial: ran to completion with a shortfall. It outranks `done` on the dot
+   (both are set) so the step never claims a clean ✓ while the note says three
+   scenes failed. Warning tone, not error — the step did produce the rest. */
+.tn-stage[data-partial="true"] .tn-stage-dot {
+  background: var(--color-warning);
+  border-color: var(--color-warning);
+}
+.tn-stage[data-partial="true"] { border-color: var(--color-warning); }
 
 .tn-stage-kicker {
   font: 500 9.5px var(--font-sans);
@@ -138,6 +159,82 @@
   gap: 5px;
   font: 400 10.5px var(--font-sans);
   color: var(--color-error);
+}
+
+/* ── Step 1 failure list (B-072) ───────────────────────────────── */
+
+.tn-teu-failures {
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+.tn-teu-failures > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font: 500 12px var(--font-sans);
+  color: var(--color-warning);
+}
+/* global.css draws the site-wide focus ring on
+   `:where(a, button, input, select, textarea, [tabindex])`. A native `summary`
+   is focusable without carrying a tabindex *attribute*, so it matches none of
+   those and falls back to the UA's blue ring. Same tokens, applied locally —
+   see B-114 for the one-word fix that would cover every `<details>` at once. */
+.tn-teu-failures > summary:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* `display:flex` above drops summary's default `list-item` marker, and with it
+   the only sign that this row expands — cursor:pointer shows up on hover, which
+   is too late to be an affordance. This chevron puts one back. */
+.tn-teu-failures > summary::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  margin-left: auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--transition-fast);
+}
+.tn-teu-failures[open] > summary::after { transform: rotate(45deg); }
+.tn-teu-failures > ul {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tn-teu-failures > ul > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px;
+  font: 400 11.5px var(--font-sans);
+  color: var(--fg-primary);
+}
+.tn-teu-failure-where {
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.tn-teu-failure-title { font-weight: 500; }
+/* The reason is a raw exception string — monospace stops it reading as prose,
+   and it wraps because "RuntimeError: …" can be arbitrarily long. */
+.tn-teu-failure-reason {
+  font: 400 10.5px var(--font-mono);
+  color: var(--color-error);
+  overflow-wrap: anywhere;
+}
+.tn-teu-failure-hint {
+  margin: 8px 0 0;
+  font: 400 10.5px var(--font-sans);
+  color: var(--fg-secondary);
 }
 
 /* ── Theme hero ────────────────────────────────────────────────── */

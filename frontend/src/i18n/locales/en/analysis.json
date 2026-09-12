@@ -552,6 +552,7 @@
       "teuIdle": "Not started",
       "teuRunning": "Assembling · {{progress}}%",
       "teuDone": "{{assembled}} / {{candidates}} scenes",
+      "teuPartial": "{{assembled}} / {{candidates}} scenes · {{failed}} failed",
       "reviewTeuTitle": "Inspect {{count}} TEUs",
       "reviewTeuWaiting": "Starts after assembly",
       "reviewTeuOrphans": "{{count}} ungrouped, needs review",
@@ -572,6 +573,11 @@
       "themeDone": "Theme synthesized",
       "themeStale": "Theme is out of date",
       "synthesize": "Synthesize book theme"
+    },
+    "failures": {
+      "summary": "{{count}} scenes failed to assemble",
+      "chapter": "Ch. {{chapter}}",
+      "hint": "The remaining scenes assembled normally. Re-running Step 1 retries these events; this list belongs to that one run and does not survive a refresh."
     },
     "state": {
       "emptyTitle": "No tension analysis yet",
