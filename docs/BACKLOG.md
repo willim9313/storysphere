@@ -1745,6 +1745,31 @@ B-091 標 ✅ 結案，但那三個範圍只寫在它的內文裡，從沒開成
 
 ---
 
+**§3-2 `pipelines/` 結構分歧：規律已經在那裡，只是沒人寫下來（2026-09-12）**
+
+走查計畫問「要不要在目錄上分開 ingestion 步驟與 on-demand orchestrator」。
+**查證後：已經分開了**，七個 pipeline 無一例外——
+
+| 形狀 | pipeline | 呼叫端 |
+|---|---|---|
+| package | document_processing / feature_extraction / knowledge_graph / summarization / **symbol_discovery** | `workflows/ingestion.py` |
+| 裸模組 | concept_inference / temporal_pipeline | `api/deps.py` |
+
+**`symbol_discovery/` 是規律成立的證據，不是反例。** 它只有 `pipeline.py`、沒有任何
+helper，卻仍是 package——唯一的解釋就是「ingestion 驅動它」。計畫說「形狀由呼叫端
+決定而非 pipeline 自身」，完全正確。
+
+**處置：寫下來 + 加守衛，不重構目錄。** 重構是範圍外的順手整理（CLAUDE.md 紅線），
+而且沒有任何東西壞掉。真正的風險是這條慣例**沒有任何地方陳述**——下一個人把
+`symbol_discovery/` 攤平成單檔會通過「整理孤零零的檔案」這種 review，訊號就沒了。
+已寫進 `pipelines/__init__.py`，並加 `tests/pipelines/test_pipeline_shape.py`
+四項守衛，**兩個哨兵實測會紅**（把 on-demand 做成 package、把 symbol_discovery
+攤平），其中一項專門釘住 symbol_discovery。
+
+**§3-2 至此收束。走查 §3 只剩 3-4 langfuse 基線（只有使用者能做）。**
+
+---
+
 #### B-116 `temperature=0` 之下 Gemini 仍然不可重現
 
 **背景**: `docs/plans/20260910-event-granularity-ordering-experiments.md` 第五節把這件事
