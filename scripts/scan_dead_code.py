@@ -128,6 +128,60 @@ def _is_framework_callback(cls: ast.ClassDef, method: str) -> bool:
     return method.startswith("on_") and any(b.endswith("CallbackHandler") for b in bases)
 
 
+def _direct_nested_defs(fn: ast.AST):
+    """Nested defs whose *nearest* enclosing function is ``fn``.
+
+    Not ``ast.walk``: that would report a doubly-nested helper once for every
+    function above it, and the same symbol appearing twice in a candidate list
+    is how a reader learns to stop trusting the list.
+    """
+    out = []
+
+    def visit(node, top: bool) -> None:
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, ast.FunctionDef | ast.AsyncFunctionDef):
+                if not top:
+                    continue
+                out.append(child)
+                continue  # its own nested defs belong to it, not to fn
+            visit(child, top)
+
+    for stmt in fn.body:
+        if isinstance(stmt, ast.FunctionDef | ast.AsyncFunctionDef):
+            out.append(stmt)
+        else:
+            visit(stmt, True)
+    return out
+
+
+def _nested_unreferenced(tree: ast.Module, path: pathlib.Path):
+    """Nested functions never named inside the function that defines them.
+
+    A nested def is only reachable from its enclosing scope, so the enclosing
+    function's own source is the whole search space — no cross-file counting,
+    and no corpus split needed. B-091 listed this range as unscanned.
+    """
+    hits = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef):
+            continue
+        for nested in _direct_nested_defs(node):
+            if nested.name.startswith("__"):
+                continue
+            # Same exclusion as the top-level scan: a decorator can register a
+            # function with a framework, which then calls it without ever
+            # naming it here. `@app.exception_handler` inside `create_app()`
+            # is exactly that, and was this scan's only hit before the filter.
+            deco = " ".join(ast.unparse(d) for d in nested.decorator_list)
+            if re.search(r"\b(router|app)\.", deco):
+                continue
+            src = ast.unparse(node)
+            # The `def <name>` line itself always contributes one occurrence.
+            if len(re.findall(rf"\b{re.escape(nested.name)}\b", src)) <= 1:
+                hits.append((path, nested.lineno, f"{node.name}() -> {nested.name}"))
+    return hits
+
+
 def scan_backend() -> int:
     files = [p for p in BACKEND.rglob("*.py") if "__pycache__" not in str(p)]
     prod = {p: _code_only(p.read_text(errors="ignore")) for p in files}
@@ -219,6 +273,16 @@ def scan_backend() -> int:
     # most dangerous, because the test makes it look alive.
     print(f"\nbackend: {len(test_only_hits)} symbols referenced ONLY by tests/scripts")
     for p, line, name in test_only_hits:
+        print(f"  {p.relative_to(ROOT)}:{line}  {name}")
+
+    nested: list[tuple[pathlib.Path, int, str]] = []
+    for p in sorted(files):
+        try:
+            nested += _nested_unreferenced(ast.parse(p.read_text()), p)
+        except SyntaxError:
+            continue
+    print(f"\nbackend: {len(nested)} nested functions never named in their own scope")
+    for p, line, name in nested:
         print(f"  {p.relative_to(ROOT)}:{line}  {name}")
     return len(hits)
 

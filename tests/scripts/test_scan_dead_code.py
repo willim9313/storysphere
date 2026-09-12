@@ -92,3 +92,55 @@ class TestCorpusSplit:
         assert not_dead
         for name, reason in not_dead.items():
             assert reason.strip(), f"{name} has no reason"
+
+
+class TestNestedScan:
+    """B-091 §3-1's last unscanned range: functions defined inside functions."""
+
+    def _hits(self, src: str):
+        import ast
+        import pathlib
+
+        mod = _load()
+        return mod._nested_unreferenced(ast.parse(src), pathlib.Path("x.py"))
+
+    def test_unreferenced_nested_function_is_a_hit(self):
+        hits = self._hits("def outer():\n    def helper(): ...\n    return 1\n")
+
+        assert len(hits) == 1
+        assert "helper" in hits[0][2]
+
+    def test_called_nested_function_is_not_a_hit(self):
+        hits = self._hits("def outer():\n    def helper(): ...\n    return helper()\n")
+
+        assert hits == []
+
+    def test_framework_registered_nested_function_is_not_a_hit(self):
+        """`@app.exception_handler` inside create_app() — called by FastAPI."""
+        hits = self._hits(
+            "def create_app():\n"
+            "    @app.exception_handler(Exception)\n"
+            "    async def _global_handler(r, e): ...\n"
+            "    return app\n"
+        )
+
+        assert hits == []
+
+    def test_doubly_nested_is_reported_once(self):
+        """ast.walk would attribute it to every function above it."""
+        hits = self._hits(
+            "def a():\n"
+            "    def b():\n"
+            "        def c(): ...\n"
+            "        return 1\n"
+            "    return b()\n"
+        )
+
+        assert [h[2] for h in hits] == ["b() -> c"]
+
+    def test_nested_inside_a_with_block_is_found(self):
+        hits = self._hits(
+            "def outer():\n    with open('f') as fh:\n        def helper(): ...\n"
+        )
+
+        assert len(hits) == 1
