@@ -99,22 +99,7 @@ export type UnanalyzedEntity = components['schemas']['UnanalyzedEntity'];
 
 export type AnalysisListResponse = components['schemas']['AnalysisListResponse'];
 
-export interface CepData {
-  actions: string[];
-  traits: string[];
-  relations: Array<{ target: string; type: string; description: string }>;
-  keyEvents: Array<Record<string, unknown>>;
-  quotes: string[];
-  topTerms: Record<string, number>;
-}
-
 export type ArchetypeDetail = components['schemas']['ArchetypeDetailResponse'];
-
-export interface ArcSegment {
-  chapterRange: string;
-  phase: string;
-  description: string;
-}
 
 export type CharacterAnalysisDetail =
   components['schemas']['CharacterAnalysisDetailResponse'];
@@ -280,22 +265,6 @@ export interface ParticipantRole {
   entityName: string;
   role: string;
   impactDescription: string;
-}
-
-export interface EventEvidenceProfile {
-  stateBefore: string;
-  stateAfter: string;
-  causalFactors: string[];
-  priorEventIds: string[];
-  subsequentEventIds: string[];
-  participantRoles: ParticipantRole[];
-  consequences: string[];
-  structuralRole: string;
-  eventImportance: string;
-  thematicSignificance: string;
-  textEvidence: string[];
-  keyQuotes: string[];
-  topTerms: Record<string, number>;
 }
 
 export interface CausalityAnalysis {

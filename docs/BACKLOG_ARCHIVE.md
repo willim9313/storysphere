@@ -88,8 +88,13 @@ entity-keyed 家族的回報路徑（`#6b` 清單與 `#7d` 詳情各加一個 st
 其中 `test_teu_keys_collected_before_events_are_regenerated` 把 feature-extraction
 的 pipeline mock 成會替換事件——那是該步驟做不到的事，改由 knowledge-graph 驅動。
 
-**遺留**: `CepData` / `ArcSegment` / `EventEvidenceProfile` 因為唯一的引用者變成
-別名而失去使用端，依紅線未擅自刪除。
+**孤兒清理**: `CepData` / `ArcSegment` / `EventEvidenceProfile` 的唯一引用者就是那兩個
+改為別名的 detail 型別，因此失去使用端。經全 repo 掃描確認後刪除——前端零殘留、無
+barrel re-export、無命名空間匯入（兩者都會讓具名搜尋失效），`generated.ts` 的命中是
+`ArcSegmentResponse` 的子字串而非引用。`ParticipantRole` / `CausalityAnalysis` /
+`ImpactAnalysis` 不連帶：`EventAnalysisDetail.tsx` 直接使用它們。其餘命中全在後端
+Python（`analysis_models` 的同名 Pydantic model，不同語言不同符號）與文件
+（`API_CONTRACT.md` 在自己的 ts 區塊裡宣告，不依賴 `types.ts`）。
 
 ---
 
