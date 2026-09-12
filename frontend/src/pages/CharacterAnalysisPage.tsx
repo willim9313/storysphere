@@ -192,9 +192,10 @@ export default function CharacterAnalysisPage() {
 
   useEffect(() => {
     if (!toastVisible) return;
+    if ((batch.summary?.failures?.length ?? 0) > 0) return;
     const timer = setTimeout(() => setToastVisible(false), 5000);
     return () => clearTimeout(timer);
-  }, [toastVisible]);
+  }, [toastVisible, batch.summary]);
 
   const selectedAnalyzed = charData?.analyzed.find((a) => a.entityId === selectedEntityId);
   const selectedUnanalyzed = charData?.unanalyzed.find((u) => u.id === selectedEntityId);
