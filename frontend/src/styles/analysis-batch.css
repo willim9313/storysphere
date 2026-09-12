@@ -224,6 +224,21 @@
   flex-direction: column;
   gap: 5px;
 }
+/* Only the copy inside the character page's toast is capped, and only because
+   that toast is `position:absolute; bottom:24px` — it grows *upward*, so a long
+   list pushes the toast's own title and close button off the top of the screen.
+   Measured: 20 failures made it 1199px tall in a 900px viewport, `top:-336px`.
+   That is unreachable rather than merely ugly, and B-113 stops this toast
+   auto-hiding whenever there are failures, so it would sit there permanently.
+   The list is what scrolls; the title and the dismiss control must not.
+
+   The other two placements (events panel, symbols dashboard) sit in normal
+   flow and are deliberately left uncapped — there the page scrolls, which
+   beats a nested scroller inside a page that already has one. */
+.ca-toast .ea-batch-failures > ul {
+  max-height: 40vh;
+  overflow-y: auto;
+}
 .ea-batch-failures > ul > li {
   display: flex;
   flex-wrap: wrap;
