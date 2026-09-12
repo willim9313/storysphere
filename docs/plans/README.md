@@ -107,3 +107,4 @@
 | 2026-09-11 | [場景分組判準：在真實資料上的試算與提案](./20260911-scene-grouping-criteria.md) |
 | 2026-09-12 | [場景邊界改用排版分隔符：重上傳後的重新試算與提案](./20260912-scene-boundary-from-typographic-dividers.md) |
 | 2026-09-12 | [三個沒試過的方向：兩段式抽取、schema 內顆粒度、後處理合併](./20260912-untried-granularity-directions.md) |
+| 2026-09-12 | [Chat 工具選擇：ADR-008 的 >85% 第一次被實測](./20260912-chat-tool-selection-baseline.md) |

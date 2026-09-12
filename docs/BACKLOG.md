@@ -2002,6 +2002,47 @@ ch7 在 09-10 的措辭實驗裡從 5.40 動到 9.00，證明它對**措辭**敏
 
 ---
 
+#### B-119 系統提示硬寫工具名，與註冊表會各自漂移
+
+**背景**: 2026-09-12 量 §3-4 的工具選擇基線時撞到。跑 21 工具對照組（`analysis_agent=None`）
+時，模型叫了 `analyze_event`——**那個工具根本沒被提供**。獨立重驗 5/5 全中，
+參數還編得像模像樣（`{"event_id": "泰奧多爾背叛婚約"}`）。
+
+**不是幻覺，是提示在指揮。** `chat_agent_base.SYSTEM_PROMPT` 硬寫了 **16/23 個工具名**
+當路由規則：
+
+```
+For "What happened in event X?" … → get_event_profile …;
+for deep causal/impact analysis → analyze_event
+```
+
+而 `get_chat_tools()` 在 `analysis_agent is None` 時把 `analyze_character` /
+`analyze_event` 拿掉。**提示說有、schema 說沒有，模型聽提示的。**
+
+**這推翻了 `tool_registry.py:96` 寫下的保證**：
+
+> The guard stays because the argument is optional: a caller that has no
+> AnalysisAgent still gets a working agent, minus these two.
+
+拿到的不是「少兩個工具的正常 agent」，是一個會發出 `ToolNode` 解不掉的工具呼叫的 agent。
+
+**目前不是活的 bug**: `api/deps.py:284` 永遠傳 `analysis_agent`，正式路徑一直是 23 個
+工具，21 那個狀態在跑著的程式裡不會發生。**這是潛伏的**——而潛伏處正是 B-092 / B-104
+踩過的同一個坑：工具存在、沒接線、沒人發現。
+
+**處置方向（未定，要先想清楚再動）**:
+- 最小改法：把那個條件註冊拿掉，讓 `analysis_agent=None` 直接失敗而不是靜默降級
+  ——「可選參數」這個設計本身就是矛盾的來源
+- 或讓提示裡的工具清單由 `get_chat_tools()` 產生，而不是手寫兩份
+- **不要只改註解了事**：那句保證是錯的，但真正的問題是兩份真相，不是那句話
+
+**量測見** `docs/plans/20260912-chat-tool-selection-baseline.md` 第六節。
+
+**觸發時機**: 下次動 chat 工具清單或 `SYSTEM_PROMPT` 時；或有任何呼叫端真的不帶
+`analysis_agent` 時（那時它會從潛伏變成活的）。
+
+---
+
 #### B-114 全站焦點環漏掉 `<summary>`
 
 **背景**: 2026-09-12 做 B-072 的瀏覽器實測時發現。`global.css:95` 的焦點環是
@@ -2777,6 +2818,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-116 | `temperature=0` 之下 Gemini 仍然不可重現 | 🟡 中 | ✅ 已查明 + 基線已量（2026-09-12；來源是供應端非 llm_retry。N=30 基線：ch1 事件數 range 2、ch7 range 0——雜訊不一定打到你在量的指標，需逐章逐指標量。先前根據 N=5 說「效應不可靠」已更正。**2026-09-12 再更正「不要用 ch7」那句——零變異是零底噪、鑑別力最高；另量到措辭會讓雜訊搬家但不會變少**） |
 | B-117 | 已刪書籍的殘留快取 | 🟢 低 | ✅ 已完成（2026-09-12；`analysis_cache` 清掉 17 筆孤兒、26→9，備份在專案外並逐項核對。連帶讓走查 §3-3 的 40 筆 pending 推斷關係失去前提——該表已空） |
 | B-118 | 走查 §3-1 三個未掃範圍全數收束，掃描器補上 corpus 拆分／框架回呼／巢狀函式 | 🟡 中 | 🔶 走查完成、掃描器已補（2026-09-12）；巢狀函式 0 筆、scripts 三個裡一個有文件化用法另兩個是已用畢的 one-off。六個刪除候選待使用者確認 |
+| B-119 | 系統提示硬寫工具名，與註冊表會各自漂移 | 🟡 中 | 待開始（2026-09-12 量工具選擇基線時撞到：21 工具臂 5/5 叫了沒被提供的 `analyze_event`。目前潛伏——`deps.py` 永遠傳 `analysis_agent`，但 `tool_registry.py:96` 那句「少兩個工具仍可運作」的保證是錯的） |
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | ✅ 已完成（2026-09-07；雙後端新增 `relation_count_for()`，雙向關聯去重，實測 696 → 分書 203/69/259/55） |
 | B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | ✅ 已完成（2026-09-07；`paragraphs.keywords_json` + 寫入 2 處讀取 3 處；既有書需重跑 feature-extraction 才有值） |
