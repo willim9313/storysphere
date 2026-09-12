@@ -180,3 +180,69 @@
   display: block;
   margin-top: 2px;
 }
+
+/* ── Batch failure list (B-113) ─────────────────────────────────────
+   Shared by the events, characters and symbols batches. Deliberately the same
+   shape as the tension Step 1 list (.tn-teu-failures): the two mean the same
+   thing, so they should not need learning twice. */
+
+.ea-batch-failures {
+  margin-top: 8px;
+  border: 1px solid var(--border);
+  border-left: 2px solid var(--color-warning);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  padding: 7px 11px;
+  text-align: left;
+}
+.ea-batch-failures > summary {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  font: 500 11.5px var(--font-sans);
+  color: var(--color-warning);
+}
+/* `display:flex` drops summary's default list-item marker, and with it the
+   only sign that this row expands. Same chevron as .tn-teu-failures. */
+.ea-batch-failures > summary::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  margin-left: auto;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform var(--transition-fast);
+}
+.ea-batch-failures[open] > summary::after { transform: rotate(45deg); }
+.ea-batch-failures > ul {
+  list-style: none;
+  margin: 7px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.ea-batch-failures > ul > li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 7px;
+  font: 400 11px var(--font-sans);
+  color: var(--fg-primary);
+}
+.ea-batch-failure-where { color: var(--fg-secondary); white-space: nowrap; }
+.ea-batch-failure-label { font-weight: 500; }
+/* Raw exception text: monospace stops it reading as prose, and it wraps
+   because the message can be arbitrarily long. */
+.ea-batch-failure-reason {
+  font: 400 10px var(--font-mono);
+  color: var(--color-error);
+  overflow-wrap: anywhere;
+}
+.ea-batch-failure-hint {
+  margin: 7px 0 0;
+  font: 400 10px var(--font-sans);
+  color: var(--fg-secondary);
+}

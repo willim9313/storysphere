@@ -436,7 +436,13 @@
     "chapterOnlyDisabled": "先選一個事件，才知道要生成哪一章",
     "checkModeOn": "勾選多筆",
     "checkModeOff": "取消勾選",
-    "generateChecked": "生成已勾選"
+    "generateChecked": "生成已勾選",
+    "failures": {
+      "summary": "{{count}} 項未完成",
+      "chapter": "第 {{chapter}} 章",
+      "unnamed": "（無名稱）",
+      "hint": "其餘項目已正常產出。重跑會再試一次這些項目；此清單只屬於剛才那次執行，重新整理後不會保留。"
+    }
   },
   "tension": {
     "status": {

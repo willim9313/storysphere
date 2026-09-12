@@ -1,5 +1,7 @@
 import { Sparkles, Check, Play, CheckSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+
+import { BatchFailureList } from '@/components/analysis/BatchFailureList';
 import type { TaskStatus, BatchEepResult } from '@/api/types';
 
 interface BatchEepPanelProps {
@@ -120,6 +122,13 @@ export function BatchEepPanel({
             <span className="ea-batch-stat-l">{t(k('stat.failed'))}</span>
           </div>
         </div>
+      )}
+
+      {/* Next to the count it explains, not in the toast: the toast is
+          dismissible and auto-hides, so a list inside it would take the only
+          answer to "which ones?" off screen with it (B-113). */}
+      {showSummary && batchSummary && (
+        <BatchFailureList failures={batchSummary.failures ?? []} />
       )}
 
       {isBatchRunning ? (

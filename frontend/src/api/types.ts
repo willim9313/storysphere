@@ -139,11 +139,32 @@ export interface ReviewSubmitChapter {
 export type TaskStatus = components['schemas']['TaskStatus'];
 
 /** Result shape for batch event analysis tasks */
+/**
+ * One item a batch run could not finish (B-113).
+ *
+ * The identity fields differ by batch because the three loops hold different
+ * things: events and characters carry an object, the symbol sweep only ever
+ * receives ids. `imagery_id` alone is therefore not an oversight — it is all
+ * there is, and the list says so rather than inventing a label.
+ */
+export interface BatchFailure {
+  reason: string;
+  event_id?: string;
+  title?: string;
+  chapter?: number;
+  entity_id?: string;
+  name?: string;
+  imagery_id?: string;
+}
+
 export interface BatchEepResult {
   progress: number;
   total: number;
+  /** Always equals `failures.length`. */
   failed: number;
   skipped: number;
+  /** Empty when everything succeeded; absent on runs from before B-113. */
+  failures?: BatchFailure[];
 }
 
 // ── Timeline ───────────────────────────────────────────────────

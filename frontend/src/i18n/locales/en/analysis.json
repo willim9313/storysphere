@@ -436,7 +436,13 @@
     "chapterOnlyDisabled": "Select an event first so the chapter is known",
     "checkModeOn": "Select multiple",
     "checkModeOff": "Cancel selection",
-    "generateChecked": "Generate selected"
+    "generateChecked": "Generate selected",
+    "failures": {
+      "summary": "{{count}} items did not finish",
+      "chapter": "Ch. {{chapter}}",
+      "unnamed": "(unnamed)",
+      "hint": "The rest completed normally. Re-running retries these; this list belongs to that one run and does not survive a refresh."
+    }
   },
   "tension": {
     "status": {
