@@ -551,8 +551,8 @@
       "teuTitle": "TEU Assembly",
       "teuIdle": "Not started",
       "teuRunning": "Assembling · {{progress}}%",
-      "teuDone": "{{assembled}} / {{candidates}} scenes",
-      "teuPartial": "{{assembled}} / {{candidates}} scenes · {{failed}} failed",
+      "teuDone": "{{assembled}} / {{candidates}} TEUs",
+      "teuPartial": "{{assembled}} / {{candidates}} TEUs · {{failed}} failed",
       "reviewTeuTitle": "Inspect {{count}} TEUs",
       "reviewTeuWaiting": "Starts after assembly",
       "reviewTeuOrphans": "{{count}} ungrouped, needs review",
@@ -575,9 +575,9 @@
       "synthesize": "Synthesize book theme"
     },
     "failures": {
-      "summary": "{{count}} scenes failed to assemble",
+      "summary": "{{count}} TEUs failed to assemble",
       "chapter": "Ch. {{chapter}}",
-      "hint": "The remaining scenes assembled normally. Re-running Step 1 retries these events; this list belongs to that one run and does not survive a refresh."
+      "hint": "The remaining TEUs assembled normally. Re-running Step 1 retries these events; this list belongs to that one run and does not survive a refresh."
     },
     "state": {
       "emptyTitle": "No tension analysis yet",
@@ -588,6 +588,11 @@
       "tokenHintLong": "This step calls the LLM, consumes tokens, and takes a few minutes",
       "tokenHintShort": "Calls the LLM, consumes tokens",
       "step1Title": "{{count}} TEUs ready · {{runs}} narrative runs",
+      "scenes": "{{count}} scenes",
+      "scenesPartial": "{{count}} scenes across {{chapters}} chapters · {{unknown}} without dividers, not determinable",
+      "scenesNone": "Scenes not determinable — this book is typeset without dividers",
+      "chapterScenes": "{{count}} scenes",
+      "chapterScenesUnknown": "scenes not determinable",
       "step1Body": "Next, group them into cross-scene tension lines. Grouping is a single LLM call and the model may skip some TEUs — anything left ungrouped will be flagged here afterwards.",
       "chapterShort": "ch{{n}}",
       "chapterDensity": "ch{{n}}: {{teus}} TEUs · {{runs}} narrative runs",

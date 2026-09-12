@@ -407,24 +407,49 @@ export default function TensionPage() {
   // text beside the TEU total, where it cannot be read as a density.
   // A TEU whose source event is gone has no run index and stands alone.
   const teuChapterCounts = useMemo(() => {
-    const byChapter = new Map<number, { teus: number; runs: Set<string> }>();
+    const byChapter = new Map<
+      number,
+      { teus: number; runs: Set<string>; scenes: Set<number> }
+    >();
     for (const teu of teus) {
-      const entry = byChapter.get(teu.chapter) ?? { teus: 0, runs: new Set<string>() };
+      const entry =
+        byChapter.get(teu.chapter) ??
+        { teus: 0, runs: new Set<string>(), scenes: new Set<number>() };
       entry.teus += 1;
       entry.runs.add(
         teu.narrative_run_index == null ? `teu:${teu.id}` : `run:${teu.narrative_run_index}`,
       );
+      // A chapter with no typographic divider is omitted from the grouping
+      // entirely, so every TEU in it has a null index and the set stays empty.
+      // That empty set becomes `null` below — "not known", never 0 or 1.
+      if (teu.scene_index != null) entry.scenes.add(teu.scene_index);
       byChapter.set(teu.chapter, entry);
     }
     return [...byChapter.entries()]
       .sort((a, b) => a[0] - b[0])
-      .map(([chapter, e]) => [chapter, e.teus, e.runs.size]) as [number, number, number][];
+      .map(([chapter, e]) => [chapter, e.teus, e.runs.size, e.scenes.size || null]) as [
+      number,
+      number,
+      number,
+      number | null,
+    ][];
   }, [teus]);
 
   const runTotal = useMemo(
     () => teuChapterCounts.reduce((n, [, , runs]) => n + runs, 0),
     [teuChapterCounts],
   );
+
+  // Counted separately from the chapters that have no answer, because summing
+  // them would turn "we cannot tell" into "zero scenes there" (B-068).
+  const sceneSummary = useMemo(() => {
+    const known = teuChapterCounts.filter(([, , , scenes]) => scenes != null);
+    return {
+      total: known.reduce((n, [, , , scenes]) => n + (scenes ?? 0), 0),
+      knownChapters: known.length,
+      unknownChapters: teuChapterCounts.length - known.length,
+    };
+  }, [teuChapterCounts]);
 
   // Only the run that just finished carries a failure list: it lives in the
   // task result, and nothing persists it per-book. A refresh drops it (same
@@ -636,6 +661,7 @@ export default function TensionPage() {
           <TensionStep1Card
             teuCount={teus.length}
             runCount={runTotal}
+            sceneSummary={sceneSummary}
             chapterCounts={teuChapterCounts}
             onGroup={() => runStep(2, false)}
           />

@@ -1553,3 +1553,11 @@
   /* min(432px, 100%) above already collapses the drawer to full width here. */
   .tn-page { padding: 16px 14px 64px; }
 }
+
+/* Scene line on the Step 1 card (B-068). Set apart from the body copy because
+   it carries a "not determinable" case that must not read as a stat. */
+.tn-state-scenes {
+  margin: 4px 0 0;
+  font: 400 11.5px var(--font-sans);
+  color: var(--fg-secondary);
+}
