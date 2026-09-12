@@ -431,8 +431,12 @@ async def _batch_event_analysis(
         events = [ev for ev in events if ev.id in wanted]
     total = len(events)
     done = 0
-    failed = 0
     skipped = 0
+    # A bare count says something broke but not which event. The warning below
+    # only reaches the server log, where whoever pressed the button never looks
+    # (B-113). Title and chapter travel with the id because a failed analysis
+    # leaves nothing to look the event up from.
+    failures: list[dict] = []
     report = task_runner.progress(task_id)
 
     def _report() -> None:
@@ -473,7 +477,14 @@ async def _batch_event_analysis(
                 "Batch event analysis failed for %s: %s",
                 ev.id, exc,
             )
-            failed += 1
+            failures.append(
+                {
+                    "event_id": ev.id,
+                    "title": ev.title,
+                    "chapter": ev.chapter,
+                    "reason": f"{type(exc).__name__}: {exc}",
+                }
+            )
             done += 1
 
         _report()
@@ -481,12 +492,14 @@ async def _batch_event_analysis(
     logger.info(
         "Batch event analysis complete: doc=%s, "
         "total=%d, skipped=%d, failed=%d",
-        document_id, total, skipped, failed,
+        document_id, total, skipped, len(failures),
     )
+    failures.sort(key=lambda f: (f["chapter"], f["title"]))
     return {
         "progress": total,
         "total": total,
-        "failed": failed,
+        "failed": len(failures),
+        "failures": failures,
         "skipped": skipped,
     }
 

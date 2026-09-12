@@ -308,8 +308,10 @@ async def _batch_entity_analysis(
         characters = [c for c in characters if c.id in wanted]
     total = len(characters)
     done = 0
-    failed = 0
     skipped = 0
+    # See B-113: a count alone cannot tell you which character to retry, and
+    # the warning below never leaves the server log.
+    failures: list[dict] = []
     report = task_runner.progress(task_id)
 
     def _report() -> None:
@@ -350,7 +352,13 @@ async def _batch_entity_analysis(
                 "Batch character analysis failed for %s: %s",
                 entity.name, exc,
             )
-            failed += 1
+            failures.append(
+                {
+                    "entity_id": entity.id,
+                    "name": entity.name,
+                    "reason": f"{type(exc).__name__}: {exc}",
+                }
+            )
             done += 1
 
         _report()
@@ -358,12 +366,14 @@ async def _batch_entity_analysis(
     logger.info(
         "Batch character analysis complete: doc=%s, "
         "total=%d, skipped=%d, failed=%d",
-        document_id, total, skipped, failed,
+        document_id, total, skipped, len(failures),
     )
+    failures.sort(key=lambda f: f["name"])
     return {
         "progress": total,
         "total": total,
-        "failed": failed,
+        "failed": len(failures),
+        "failures": failures,
         "skipped": skipped,
     }
 

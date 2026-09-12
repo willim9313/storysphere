@@ -340,13 +340,21 @@ class AnalysisAgent:
         counts of what did get through and decides how to surface it.
 
         Returns:
-            ``{"progress", "total", "failed", "skipped", "aborted"}``.
+            ``{"progress", "total", "failed", "failures", "skipped",
+            "aborted"}``. ``failures`` names what broke and why; ``failed`` is
+            its length (B-113). The rate-limit exit carries the list too —
+            that is exactly when knowing what got through matters.
         """
         from storysphere.core.error_handling import is_rate_limit_error  # noqa: PLC0415
 
         skip_ids = skip_ids or set()
         total = len(imagery_ids)
-        done = failed = skipped = 0
+        done = skipped = 0
+        # A bare count says something broke but not what, and the warning is
+        # logged server-side where the person who pressed the button never sees
+        # it (B-113). Unlike the event and character batches there is no name to
+        # carry here — this loop only ever receives ids.
+        failures: list[dict] = []
 
         def _report() -> None:
             if progress_callback is not None:
@@ -372,12 +380,15 @@ class AnalysisAgent:
                     return {
                         "progress": done,
                         "total": total,
-                        "failed": failed,
+                        "failed": len(failures),
+                        "failures": failures,
                         "skipped": skipped,
                         "aborted": True,
                     }
                 logger.warning("Batch symbol analysis failed for %s: %s", imagery_id, exc)
-                failed += 1
+                failures.append(
+                    {"imagery_id": imagery_id, "reason": f"{type(exc).__name__}: {exc}"}
+                )
                 done += 1
             _report()
 
@@ -386,12 +397,13 @@ class AnalysisAgent:
             book_id,
             total,
             skipped,
-            failed,
+            len(failures),
         )
         return {
             "progress": total,
             "total": total,
-            "failed": failed,
+            "failed": len(failures),
+            "failures": failures,
             "skipped": skipped,
             "aborted": False,
         }
