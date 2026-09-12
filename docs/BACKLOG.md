@@ -1458,6 +1458,69 @@ model 裡。缺的只有生產者。
 
 ---
 
+#### B-111 `feature-extraction` 刪掉三個家族的快取，但它不重生那些 id
+
+**背景**: 2026-09-12 為修中文關鍵字（YAKE 無 CJK 斷詞器）重跑
+`feature-extraction` 時實測撞見。B-108 當時已看出這裡有問題並寫下
+「**留成獨立的一題**」，但**那一題從來沒有被開出來**——B-109 是 `location_id`、
+B-110 是張力頁，都不是它。這張票補上。
+
+**`_ORPHANED_CACHES` 的判準是什麼**: 模組 docstring 寫得很清楚——
+「Keyed by entity or event id ... **The ids are regenerated**, so these entries
+become unreachable」。刪除的理由是**讀不到**，不是**過期**。過期的歸
+`_STALED_CACHES`（保留並回報）。
+
+**事實一：`feature-extraction` 不重生任何 id。** 三路獨立證據：
+
+| 證據 | 內容 |
+|---|---|
+| 靜態 | `pipelines/feature_extraction/pipeline.py` 全檔**零個** KG 參照 |
+| 檔案 | 重跑（10:25:39）後 `var/knowledge_graph.json` mtime 仍是 09:58——沒被寫過 |
+| 行為 | 重跑後把 `event:` / `character:` 快取列原樣寫回，`#6b` 照列、`#7a` 回 200——代表那些 id 在 KG 裡從頭到尾都在 |
+
+所以 `event:` / `character:` / `epistemic:` 放在 `feature-extraction` 的
+`_ORPHANED_CACHES` 底下，**判準不成立**：它們不是 unreachable，只是被刪了。
+
+**事實二：但這些規則不是「多餘」的**——B-108 推測「那邊的規則多半是多餘的」，
+這點要更正。`AnalysisService` 確實吃 `feature-extraction` 的產物：
+
+| 分析 | 依賴 | 位置 |
+|---|---|---|
+| EEP（事件） | `_vector_service.search()` 取 text evidence | `analysis_service.py:789` |
+| CEP（角色） | `_vector_service.search()` + `_keyword_service.get_entity_keywords()` | `analysis_service.py:471` / `:485` |
+| Epistemic | **無**——`EpistemicStateService.__init__` 只收 `kg_service` / `llm` / `cache` | `epistemic_state_service.py:64` |
+
+所以正確的分類不是「移除」而是**改判**：
+
+- `event:{book}:%`、`character:{book}:%` → 它們**真的會隨重跑老化**（2026-09-12
+  這次就是實例：關鍵字從整句變成詞，舊 CEP 是建立在已經不存在的關鍵字證據上），
+  但老化的處置是 `_STALED_CACHES`，不是刪除。
+- `epistemic:{book}:%` → 對 `feature-extraction` **完全沒有依賴**，這一條才是真正多餘的，應直接移除。
+- `symbol_overview:{book}` → 維持刪除可辯護（docstring 的理由是「無人工輸入、
+  重算只花一次組裝」），但它掛在此步驟的註記「Carries per-symbol event counts」
+  同樣站不住腳——事件數在這一步不會變。
+
+**實測代價**: 2026-09-12 對 `ageoffire` 重跑一次，刪掉 5 列仍然有效的快取——
+2 筆事件分析、1 筆角色分析（林志豪）、2 筆 epistemic（Ch.1 / Ch.5）。全部是真金
+白銀的 LLM 產出，事後由備份逐位元組還原。使用者沒有被詢問，也沒有被告知。
+
+**卡住的地方（這題不是把兩行從一個 dict 搬到另一個就好）**: staleness 的**回報
+路徑只存在於 book-keyed 家族**。`staleness()` 目前的消費者只有
+`tension_service.py:659`、`narrative_service.py:660`、`book_timeline.py:277`，
+全部是書級分析。把 `event:` / `character:` 搬進 `_STALED_CACHES` 會保住資料，
+但沒有任何 UI 會說它過期了——使用者看到的是一份靜默的舊分析。要嘛一併補上
+entity-keyed 家族的回報路徑（`#6b` 清單與 `#7d` 詳情各加一個 stale 旗標），
+要嘛這題只做 `epistemic:` 的移除、其餘維持現狀並在文件寫明權衡。
+
+**待辦內容**:
+1. 從 `feature-extraction` 的 `_ORPHANED_CACHES` 移除 `epistemic:{book}:%`（無依賴，純多餘）
+2. 決定 `event:` / `character:` 要不要改判為 stale，以及是否一併補 entity-keyed 的回報路徑
+3. 更新 `cache_invalidation.py` 模組 docstring 與 B-108 留下的那段註解——目前那段說
+   `feature-extraction`「never touches an Event」是對的，但沒說它其實供給了 EEP 的證據
+4. 補測試：釘住「`feature-extraction` 重跑後 event/character 快取仍可讀」
+
+---
+
 #### B-094 pytest 有一個間歇性失敗（約 1/8）
 
 **背景**: 2026-09-05 跑 B-091 的閘門時遇到 `1 failed, 1864 passed`，
@@ -2184,6 +2247,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-108 | 事件衍生的快取失效規則掛在錯的步驟上 | 🟡 中 | ✅ 已完成（2026-09-10；`knowledge-graph` 才是重生 event id 的步驟，卻既不清 `event:` 也不收 TEU keys；`feature-extraction` 那份多餘規則留作獨立一題） |
 | B-109 | `Event.location_id` 是第二個零寫者欄位 | 🟢 低 | 待開始（2026-09-11 B-068 試算；填充率 0/201，無消費者故嚴重性低，但擋住「同地點」判準；與 B-068 第二層一併決定） |
 | B-110 | 張力頁重新整理後就忘記 Step 1 跑過 | 🟡 中 | ✅ 已完成（2026-09-11；`hasTeus` 不看 `teus` query，導致 23 筆 TEU 的書顯示空狀態並引導使用者重跑一次完整 LLM pass） |
+| B-111 | `feature-extraction` 刪掉三個家族的快取，但它不重生那些 id | 🟡 中 | 待開始（2026-09-12 重跑關鍵字時實測；B-108 說要開卻從未開出的那一題。實測一次重跑刪掉 5 列仍有效的快取；`epistemic:` 對此步驟零依賴屬純多餘，`event:` / `character:` 則是該判 stale 卻被判成 orphaned） |
 | B-104 | 兩個已完整實作的深度分析工具永遠註冊不進 chat agent | 🟡 中 | ✅ 已完成（2026-09-07 F 走查；已接上 chat agent 並補雙端守衛，文件反向漂移一併修正；選擇準確率影響待 langfuse 基線） |
 | B-103 | 建構概覽的 Relations 節點顯示全庫計數 | 🟢 低 | ✅ 已完成（2026-09-07；雙後端新增 `relation_count_for()`，雙向關聯去重，實測 696 → 分書 203/69/259/55） |
 | B-102 | 段落層 keywords 產得出來、送得出去，就是沒有存 | 🟢 低 | ✅ 已完成（2026-09-07；`paragraphs.keywords_json` + 寫入 2 處讀取 3 處；既有書需重跑 feature-extraction 才有值） |
