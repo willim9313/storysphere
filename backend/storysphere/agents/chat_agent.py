@@ -157,7 +157,7 @@ class ChatAgent:
         from langchain_core.messages import SystemMessage  # noqa: PLC0415
 
         if state is not None:
-            context_prompt = build_context_prompt(state, language)
+            context_prompt = build_context_prompt(state, language, self._tool_map.keys())
             history = build_history_messages(state)
         else:
             context_prompt = (
