@@ -1299,12 +1299,12 @@
       },
       "heat": {
         "meta": "{{rows}} ranked symbols × {{slots}} axis slots · body chapter maximum {{max}}",
-        "subtitle": "Shaded against the highest single-chapter count across all symbols, so rows compare directly",
+        "subtitle": "Shading is an absolute count (once / twice / three or more), never rescaled per symbol or chapter, so rows compare directly",
         "axisBody": "Body, ch {{first}}–{{last}}",
         "legendStep": "{{count}}×",
         "legendMore": "{{count}}× or more",
         "legendOutside": "Outside the body",
-        "note": "Dashed cells fall outside the body text: excluded from shape and first appearance, counted against evidence trust."
+        "note": "Dashed cells fall outside the body text: always excluded from shape and first appearance. Only front matter (title page, contents) lowers evidence trust — an afterword counts as real evidence."
       },
       "shapes": {
         "title": "Behaviour groups",
