@@ -683,7 +683,7 @@ export default function GraphPage() {
 
       {/* Legend bar (bottom, just right of the LensCard) — design-canvas layout */}
       <div className="absolute z-10" style={{ bottom: 16, left: 348 }}>
-        <LegendCard />
+        <LegendCard clusterMode={clusterMode} />
       </div>
 
       {/* Lens card (bottom-left) — consolidates timeline / epistemic / bookmarks */}
