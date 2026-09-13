@@ -811,7 +811,7 @@
       "displacementBlocked": "尚不可執行 · 需 60% 事件帶有故事時間提示，目前 {{pct}}%",
       "displacementRunning": "分析中…",
       "displacementCost": "約數分鐘 · 比對敘述順序與故事順序",
-      "displacementUnblock": "故事時間提示要在事件分析頁逐筆補，跑「故事時序」不會增加 →",
+      "displacementUnblock": "故事時間提示在知識圖譜抽取時決定 · 跑故事時序或事件分析都不會增加 · 到建構概覽重跑知識圖譜 →",
       "leavePageOk": "可離開本頁，完成後在通知中心告知",
       "cancel": "中止",
       "displacementStale": "時序分析已過期：「{{step}}」步驟在分析之後又執行過，以下判定描述的是舊的事件。"

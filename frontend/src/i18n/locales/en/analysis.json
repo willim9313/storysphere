@@ -811,7 +811,7 @@
       "displacementBlocked": "Not available · needs hints on 60% of events, currently {{pct}}%",
       "displacementRunning": "Analyzing…",
       "displacementCost": "A few minutes · compares narrative order against story order",
-      "displacementUnblock": "Story-time hints are added per event on the event analysis page; running story order does not add them →",
+      "displacementUnblock": "Story-time hints are set during knowledge-graph extraction · neither story order nor event analysis adds them · re-run the knowledge graph from Build Overview →",
       "leavePageOk": "You can leave this page; you'll be notified when it finishes",
       "cancel": "Stop",
       "displacementStale": "Temporal analysis is out of date: the \"{{step}}\" step has run since, so these verdicts describe older events."
