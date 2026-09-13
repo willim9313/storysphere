@@ -31,6 +31,8 @@
     "computing": "計算中…",
     "noVisibilityData": "尚無 visibility 資料",
     "selectPrompt": "請選擇角色以查看認知狀態",
+    "rosterNote": "名單來自你讀到這一章為止、各章的實體摘錄（每章 5 個），不是全書角色表——章裡出現過的角色不一定在上面，往後讀名單會變長。",
+    "rule": "已知＝他是該事件的參與者，或該事件是公開的；未知＝兩者皆非。只算第 1 章到這一章的事件。",
     "known": "已知事件",
     "unknown": "未知事件",
     "misbeliefs": "誤信",
@@ -88,5 +90,9 @@
     "chapterEntry": "第 {{number}} 章 · {{title}}",
     "chapterNumber": "第 {{number}} 章",
     "noAppearances": "尚無出現段落"
+  },
+  "guide": {
+    "prefix": "研究者導覽：",
+    "body": "這頁是<strong>檢視器</strong>，用來核對處理結果對不對——章節怎麼切、實體抓到哪些、關鍵字是什麼——<strong>不是連續閱讀的介面</strong>。左欄是全書統計與關鍵字，中欄選章節，右欄顯示該章在第 N 章的認知狀態。"
   }
 }

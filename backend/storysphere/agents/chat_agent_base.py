@@ -7,7 +7,8 @@ update logic, and default LLM factory.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
+import re
+from collections.abc import Callable, Iterable
 
 from langchain_core.messages import (
     AIMessage,
@@ -60,9 +61,69 @@ DO NOT use vector_search for entity lookups. DO NOT use get_entity_attributes wh
 """
 
 
-def build_context_prompt(state: ChatState, language: str) -> str:
-    """Build the full system prompt: static rules + dynamic page context."""
-    parts: list[str] = [SYSTEM_PROMPT]
+def prune_prompt_for_tools(prompt: str, bound: Iterable[str]) -> str:
+    """Drop routing advice for tools that are not actually bound (B-119).
+
+    ``SYSTEM_PROMPT`` hard-codes 16 of the 23 tool names as routing rules
+    ("For X → get_entity_profile"), while ``get_chat_tools()`` omits
+    ``analyze_character`` / ``analyze_event`` when no ``AnalysisAgent`` is
+    given. That made two sources of truth that could disagree, and when they
+    did **the prompt won**: measured 2026-09-12, an agent built without an
+    AnalysisAgent called ``analyze_event`` on 5 of 5 attempts — a tool the
+    model was never offered, with plausible-looking arguments. ``ToolNode``
+    cannot resolve such a call.
+
+    ``tool_registry`` documented the opposite: "a caller that has no
+    AnalysisAgent still gets a working agent, minus these two". This function
+    is what makes that sentence true rather than deleting it.
+
+    Pruning is by **clause**, not by line, because one line can route to two
+    tools::
+
+        - For "What happened in event X?" … → get_event_profile (full data,
+          no LLM); for deep causal/impact analysis → analyze_event
+
+    Dropping the whole line would take ``get_event_profile``'s guidance with
+    it. Clauses are separated by ``;``; a line whose every clause is dropped
+    goes too.
+
+    Only names in the tool registry are considered, so prose that happens to
+    contain an underscore is left alone.
+    """
+    from storysphere.tools.tool_registry import get_all_tool_names  # noqa: PLC0415
+
+    missing = set(get_all_tool_names()) - set(bound)
+    if not missing:
+        return prompt
+
+    def mentions_missing(text: str) -> bool:
+        return any(re.search(rf"\b{re.escape(name)}\b", text) for name in missing)
+
+    kept: list[str] = []
+    for line in prompt.split("\n"):
+        if not mentions_missing(line):
+            kept.append(line)
+            continue
+        clauses = [c for c in line.split(";") if not mentions_missing(c)]
+        if clauses:
+            kept.append(";".join(clauses).rstrip())
+        # every clause named a missing tool → the line has nothing left to say
+    return "\n".join(kept)
+
+
+def build_context_prompt(
+    state: ChatState, language: str, bound_tools: Iterable[str] | None = None
+) -> str:
+    """Build the full system prompt: static rules + dynamic page context.
+
+    Args:
+        bound_tools: Names of the tools actually bound to the model. Routing
+            advice for anything absent is pruned (B-119). ``None`` keeps the
+            prompt whole — for callers that only want the context text.
+    """
+    parts: list[str] = [
+        SYSTEM_PROMPT if bound_tools is None else prune_prompt_for_tools(SYSTEM_PROMPT, bound_tools)
+    ]
 
     if language and language.lower() not in ("auto", ""):
         parts.append(f"Always respond in {language}.")

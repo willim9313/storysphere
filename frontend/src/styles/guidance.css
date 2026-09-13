@@ -1,0 +1,93 @@
+/* Guidance carriers — the three layers of page explanation (B-065).
+ *
+ * Imported from global.css rather than from each page stylesheet, which is the
+ * convention everywhere else (see analysis-batch.css, @import-ed by the two
+ * pages that use it). The deviation is deliberate: guidance belongs on every
+ * feature page, so "which pages import it" would be the whole list, and a page
+ * that forgot the import would render an unstyled ribbon rather than none.
+ *
+ * Class prefix `sg-` (StorySphere guidance) and not a page prefix, because the
+ * last two carriers were named `ca-tip` and `ea-guide` after the first page
+ * that happened to need them — which is exactly why nobody reused them.
+ *
+ * Placement rules live in docs/UI_SPEC.md; this file only carries the looks. */
+
+/* ── Layer 1 · page-level ribbon ─────────────────────────────────────────── */
+
+.sg-ribbon {
+  display: flex;
+  gap: 11px;
+  align-items: flex-start;
+  padding: 12px 15px;
+  margin-bottom: 20px;
+  border: 1px solid var(--border);
+  /* A nicety in the warm theme, not the signal. Ink flattens --accent to
+     #111111, where a 3px edge against a #1a1a1a border is invisible — the
+     glyph is what has to carry the meaning there. See the icon's comment. */
+  border-left: 3px solid var(--accent);
+  border-radius: var(--card-radius);
+  background: var(--bg-secondary);
+}
+
+.sg-ribbon-icon {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.sg-ribbon-body {
+  flex: 1;
+  font-size: var(--font-size-xs);
+  line-height: 1.65;
+  color: var(--fg-secondary);
+}
+
+.sg-ribbon-body strong {
+  color: var(--fg-primary);
+  font-weight: 600;
+}
+
+.sg-ribbon-close {
+  flex: none;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--fg-muted);
+}
+
+.sg-ribbon-close:hover {
+  color: var(--fg-primary);
+}
+
+/* Canvas pages have no document flow to sit in — the knowledge graph is a
+   full-bleed viewport whose overlays are absolutely positioned.
+   Capped in width so it never becomes the thing covering the graph it is
+   explaining, and pushed below the lens toolbar (個別 / 類型 / 社群, which
+   occupies y 52–127 and is drawn by a child component, so it does not show up
+   in a grep of the page file). The first version used top:16px and buried that
+   toolbar — a page's primary control must never be what the help text hides. */
+.sg-ribbon.sg-ribbon-float {
+  position: absolute;
+  top: 140px;
+  left: 16px;
+  z-index: 10;
+  max-width: 430px;
+  margin-bottom: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .sg-ribbon.sg-ribbon-float {
+    right: 16px;
+    max-width: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .sg-ribbon {
+    padding: 10px 12px;
+    margin-bottom: 14px;
+  }
+}

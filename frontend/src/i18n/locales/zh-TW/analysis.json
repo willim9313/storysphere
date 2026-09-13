@@ -381,8 +381,7 @@
     "guide": {
       "prefix": "研究者導覽：",
       "overview": "總覽用視圖回答「這本書的關鍵節點在哪」——<strong>故事骨幹圖</strong>沿章節鋪開全書事件、核心事件放大；<strong>重要度排行</strong>依重要度與參與者數排序。點任一事件進入詳情（左上可返回總覽），或用右上「對比」挑兩個事件並排。",
-      "detail": "本頁把單一事件拆成三層——<strong>概覽</strong>看「發生了什麼」，<strong>因果與影響</strong>看「為何發生、改變了什麼」，<strong>證據</strong>看支撐分析的原文引言與關鍵詞。",
-      "dismiss": "關閉導覽"
+      "detail": "本頁把單一事件拆成三層——<strong>概覽</strong>看「發生了什麼」，<strong>因果與影響</strong>看「為何發生、改變了什麼」，<strong>證據</strong>看支撐分析的原文引言與關鍵詞。"
     },
     "source": {
       "title": "原文段落 · 生成前先判斷",
@@ -667,6 +666,10 @@
       "teu": "TEU 逐章 {{count}}",
       "hintLines": "一行一線、一格一章；點任一列開右側審核抽屜",
       "hintTeu": "場景級的原始輸出，含 {{count}} 個未被聚合歸入的 TEU"
+    },
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "本頁把張力由下往上組成三層——<strong>場景級</strong>先為每個事件組出 TEU，<strong>跨場景</strong>把 TEU 聚合成 TensionLine，<strong>全書級</strong>再合成 TensionTheme。每層之間有一次人工審核，三步都會呼叫 LLM。"
     }
   },
   "timeline": {
@@ -812,7 +815,7 @@
       "displacementBlocked": "尚不可執行 · 需 60% 事件帶有故事時間提示，目前 {{pct}}%",
       "displacementRunning": "分析中…",
       "displacementCost": "約數分鐘 · 比對敘述順序與故事順序",
-      "displacementUnblock": "故事時間提示要在事件分析頁逐筆補，跑「故事時序」不會增加 →",
+      "displacementUnblock": "故事時間提示在知識圖譜抽取時決定 · 跑故事時序或事件分析都不會增加 · 到建構概覽重跑知識圖譜 →",
       "leavePageOk": "可離開本頁，完成後在通知中心告知",
       "cancel": "中止",
       "displacementStale": "時序分析已過期：「{{step}}」步驟在分析之後又執行過，以下判定描述的是舊的事件。"
@@ -925,6 +928,10 @@
       "analepsis": "倒敘",
       "prolepsis": "預敘",
       "linear": "順敘"
+    },
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "三個視圖問的是不同問題——<strong>章節順序</strong>是書中敘述的先後，<strong>故事時序</strong>是事件實際發生的先後，<strong>矩陣視圖</strong>看兩者的偏離，交叉處就是倒敘或預敘。故事時序要先跑事件分析（EEP）；倒敘與預敘另需 60% 事件帶有故事時間提示，<strong>而那個提示在知識圖譜抽取時就決定了</strong>。"
     }
   },
   "unravelingLoadError": "無法載入建構概覽資料",
@@ -1107,6 +1114,10 @@
       "confidence": "信心 {{v}}%",
       "adopt": "採用",
       "dismiss": "否決"
+    },
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "本頁是這本書的<strong>產出清單</strong>，分 L0 文本層到 L4 五層，<strong>下層是上層的輸入</strong>。節點顏色表示已建立／部分／未建立。從這裡可以重跑任一層——<strong>但重跑會丟掉依賴它的下游產物</strong>，執行前的確認框會列出會被影響的東西。"
     }
   },
   "symbol": {
@@ -1288,12 +1299,12 @@
       },
       "heat": {
         "meta": "{{rows}} 個主清單意象 × {{slots}} 段章節軸 · 正文單章最大值 {{max}}",
-        "subtitle": "色階以跨意象的單章最大值正規化，因此各列可直接互比",
+        "subtitle": "色階是絕對出現次數，不隨意象或章節重新縮放，所以各列可直接互比——級距見下方圖例",
         "axisBody": "正文 第 {{first}}–{{last}} 章",
         "legendStep": "{{count}} 次",
         "legendMore": "{{count}} 次以上",
         "legendOutside": "非正文",
-        "note": "虛框格＝非正文出現：不計入分布形狀與首見章，但計入證據可信度扣分。"
+        "note": "虛框格＝正文之外的出現：一律不計入分布形狀與首見章。其中只有前置頁（書名頁／目次）會扣證據可信度，後記算有效證據。"
       },
       "shapes": {
         "title": "行為分群",
@@ -1471,7 +1482,11 @@
     "emptyStep2Title": "至建構概覽頁確認狀態",
     "emptyStep2Desc": "建構概覽 DAG 會明確標示「Symbols」節點為 empty / partial / complete。",
     "emptyStep3Title": "必要時手動觸發",
-    "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。"
+    "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。",
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "本頁把全書意象排成一張地圖。<strong>排序主軸</strong>決定「重要」怎麼算——敘事負載是綜合指標，<strong>正文頻率只是對照組</strong>，出現得多不等於分量重。左側可依類別與審核狀態篩選。"
+    }
   },
   "narrative": {
     "heroJourney": "英雄旅程",
@@ -1666,6 +1681,10 @@
     "stale": {
       "title": "此分析可能已過期",
       "body": "「{{step}}」步驟在這份分析產出之後又執行過，因此以下內容描述的是舊的資料。要更新的話，重新執行分析即可。"
+    },
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "本頁分三塊——<strong>敘事結構</strong>看整本書是什麼形狀，<strong>英雄旅程</strong>對照 Campbell 的 12 階段，<strong>事件骨幹</strong>看哪些核心事件撐起那個弧。<strong>這三塊讀的是章節摘要，不是原文</strong>；摘要沒備齊時分析會回報成功卻產出 0 個階段，所以先看下方的前置條件。"
     }
   }
 }

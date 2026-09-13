@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueries, useQueryClient, useMutation } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Telescope, BookOpen, GitBranch, RefreshCw } from 'lucide-react';
 
 import { useChatDispatch } from '@/contexts/ChatContext';
@@ -48,6 +48,7 @@ import {
   type ChapterAxis,
 } from '@/components/symbols/chapterAxis';
 import { densityStep } from '@/components/symbols/tokens';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 
 import '@/styles/symbols.css';
 import { qk } from '@/api/queryKeys';
@@ -455,7 +456,13 @@ export default function SymbolsPage() {
         setSearch={setSearch}
       />
 
-      <main className="sym-detail">{detailBody}</main>
+      <main className="sym-detail">
+        <GuidanceRibbon surface="symbols">
+          <strong>{t('symbol.guide.prefix')}</strong>{' '}
+          <Trans i18nKey="symbol.guide.body" ns="analysis" components={{ strong: <strong /> }} />
+        </GuidanceRibbon>
+        {detailBody}
+      </main>
     </div>
   );
 }

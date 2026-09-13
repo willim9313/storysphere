@@ -31,6 +31,8 @@
     "computing": "Computing…",
     "noVisibilityData": "No visibility data yet",
     "selectPrompt": "Select a character to view epistemic state",
+    "rosterNote": "This list comes from each chapter's entity excerpt (5 per chapter) up to the chapter you are on — not the book's full cast. A character can appear in a chapter and still be missing here; reading further lengthens the list.",
+    "rule": "Known = they take part in the event, or the event is public. Unknown = neither. Only events from chapter 1 up to this one are counted.",
     "known": "Known Events",
     "unknown": "Unknown Events",
     "misbeliefs": "Misbeliefs",
@@ -88,5 +90,9 @@
     "chapterEntry": "Ch. {{number}} · {{title}}",
     "chapterNumber": "Chapter {{number}}",
     "noAppearances": "No appearances found"
+  },
+  "guide": {
+    "prefix": "Researcher guide:",
+    "body": "This page is an <strong>inspector</strong> for checking that the processing came out right — how chapters were split, which entities were found, what the keywords are. It is <strong>not a continuous reading view</strong>. The left column holds book-wide counts and keywords, the middle picks a chapter, and the right shows what is known as of that chapter."
   }
 }

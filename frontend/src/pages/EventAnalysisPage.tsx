@@ -13,7 +13,7 @@ import {
   Columns2,
   BookOpen,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
@@ -28,7 +28,7 @@ import { EventAnalysisDetail } from '@/components/analysis/EventAnalysisDetail';
 import { EventOverviewLanding } from '@/components/analysis/overview/EventOverviewLanding';
 import { EventGroupedList } from '@/components/analysis/EventGroupedList';
 import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
-import { EventGuideRibbon } from '@/components/analysis/EventGuideRibbon';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAsyncTask } from '@/hooks/useAsyncTask';
 import { useBatchTask } from '@/hooks/useBatchTask';
@@ -430,7 +430,14 @@ export default function EventAnalysisPage() {
                     )}
                   </div>
                 </div>
-                <EventGuideRibbon surface="detail" />
+                <GuidanceRibbon surface="event-detail">
+                  <strong>{t('event.guide.prefix')}</strong>{' '}
+                  <Trans
+                    i18nKey="event.guide.detail"
+                    ns="analysis"
+                    components={{ strong: <strong /> }}
+                  />
+                </GuidanceRibbon>
                 <EventAnalysisDetail
                   data={eventDetail}
                   causalVariant="stepped"

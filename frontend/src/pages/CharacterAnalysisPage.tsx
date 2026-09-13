@@ -11,7 +11,7 @@ import {
   Check,
   X,
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import '@/styles/character-analysis.css';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
@@ -31,7 +31,7 @@ import { VoiceProfilingPanel } from '@/components/analysis/VoiceProfilingPanel';
 import { FrameworkCompareDrawer } from '@/components/analysis/FrameworkCompareDrawer';
 import { EpistemicCompareDrawer } from '@/components/analysis/EpistemicCompareDrawer';
 import { CharacterGenerating } from '@/components/analysis/CharacterGenerating';
-import { CharacterTipRibbon } from '@/components/analysis/CharacterTipRibbon';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
 import { ArchetypeFilterDropdown } from '@/components/analysis/ArchetypeFilterDropdown';
 import { CharacterOverviewLanding } from '@/components/analysis/overview/CharacterOverviewLanding';
@@ -422,7 +422,14 @@ export default function CharacterAnalysisPage() {
         {/* ── Content area ── */}
         <div className="ca-content">
           <div className="ca-content-scroll">
-            <CharacterTipRibbon />
+            <GuidanceRibbon surface="character-analysis">
+              <strong>{t('character.tip.prefix')}</strong>{' '}
+              <Trans
+                i18nKey="character.tip.body"
+                ns="analysis"
+                components={{ strong: <strong /> }}
+              />
+            </GuidanceRibbon>
 
             {selectedEntityId && analysisLoading ? (
               <LoadingSpinner />

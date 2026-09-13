@@ -206,6 +206,19 @@ export function EpistemicSidePanel({
             <option key={id} value={id}>{name}</option>
           ))}
         </select>
+        {/* Field provenance (B-065, layer 3). The roster is not the book's
+            cast: it is every `character` inside `topEntities` for chapters 1..N,
+            and `top_entities` is `unique_ents[:5]` on the backend — the first
+            five distinct entities in paragraph order, not the five most
+            frequent. On the seed book that yields one name in chapter 1 out of
+            eleven characters, and 伊內絲 — the protagonist, tagged all over the
+            same page — is not among them. Without this line the panel reads as
+            broken, and the repair a reader would reach for (re-running an
+            analysis, at token cost) is not the one that works: reading further
+            is. Non-dismissible, per UI_SPEC §4.2. */}
+        <p className="text-xs mt-1" style={{ color: 'var(--fg-muted)', lineHeight: 1.5 }}>
+          {t('epistemicPanel.rosterNote')}
+        </p>
         {isFetching && (
           <p className="text-xs mt-1" style={{ color: 'var(--fg-muted)' }}>{t('epistemicPanel.computing')}</p>
         )}
@@ -234,6 +247,16 @@ export function EpistemicSidePanel({
 
         {state && selectedCharacterId && (
           <>
+            {/* Block note (B-065, layer 2): the known/unknown split is a rule,
+                not a judgement, and the rule is short enough to state. Copied
+                from EpistemicStateService.get_character_knowledge:
+                  known   = character_id in e.participants or e.visibility == "public"
+                  unknown = character_id not in e.participants and e.visibility != "public"
+                over `kg.get_snapshot(document_id, "chapter", up_to_chapter)`. */}
+            <p className="text-xs" style={{ color: 'var(--fg-muted)', lineHeight: 1.5 }}>
+              {t('epistemicPanel.rule')}
+            </p>
+
             {/* Known events */}
             <section>
               <EventGroupHeader

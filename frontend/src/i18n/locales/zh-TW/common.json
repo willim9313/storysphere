@@ -13,5 +13,8 @@
     "completed": "已完成",
     "error": "錯誤"
   },
-  "remove": "移除"
+  "remove": "移除",
+  "guidance": {
+    "dismiss": "關閉說明"
+  }
 }

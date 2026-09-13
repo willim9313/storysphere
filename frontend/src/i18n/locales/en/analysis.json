@@ -381,8 +381,7 @@
     "guide": {
       "prefix": "Researcher guide: ",
       "overview": "The overview answers \"where are this book's pivotal moments\" — <strong>story backbone</strong> lays every event out by chapter with kernel events enlarged; <strong>by importance</strong> ranks them by importance and participant count. Click any event for its detail (return via the top left), or use \"Compare\" to view two side by side.",
-      "detail": "This page splits one event into three layers — <strong>Overview</strong> for what happened, <strong>Cause & impact</strong> for why it happened and what it changed, and <strong>Evidence</strong> for the quotes and key terms behind the analysis.",
-      "dismiss": "Dismiss guide"
+      "detail": "This page splits one event into three layers — <strong>Overview</strong> for what happened, <strong>Cause & impact</strong> for why it happened and what it changed, and <strong>Evidence</strong> for the quotes and key terms behind the analysis."
     },
     "source": {
       "title": "Source passages · judge before generating",
@@ -667,6 +666,10 @@
       "teu": "TEU by Chapter {{count}}",
       "hintLines": "One row per line, one cell per chapter; click any row to open the review drawer",
       "hintTeu": "Raw scene-level output, including {{count}} TEUs that grouping left out"
+    },
+    "guide": {
+      "prefix": "Researcher guide:",
+      "body": "Tension is built upward in three layers: <strong>scene level</strong> assembles a TEU per event, <strong>cross-scene</strong> aggregates TEUs into TensionLines, and <strong>book level</strong> synthesises TensionThemes. Each layer has a human review gate, and all three call the LLM."
     }
   },
   "timeline": {
@@ -812,7 +815,7 @@
       "displacementBlocked": "Not available · needs hints on 60% of events, currently {{pct}}%",
       "displacementRunning": "Analyzing…",
       "displacementCost": "A few minutes · compares narrative order against story order",
-      "displacementUnblock": "Story-time hints are added per event on the event analysis page; running story order does not add them →",
+      "displacementUnblock": "Story-time hints are set during knowledge-graph extraction · neither story order nor event analysis adds them · re-run the knowledge graph from Build Overview →",
       "leavePageOk": "You can leave this page; you'll be notified when it finishes",
       "cancel": "Stop",
       "displacementStale": "Temporal analysis is out of date: the \"{{step}}\" step has run since, so these verdicts describe older events."
@@ -925,6 +928,10 @@
       "analepsis": "flashback",
       "prolepsis": "flashforward",
       "linear": "linear"
+    },
+    "guide": {
+      "prefix": "Researcher guide:",
+      "body": "The three views ask different questions: <strong>chapter order</strong> is the order the book narrates events in, <strong>story order</strong> is the order they happened, and the <strong>matrix</strong> shows the gap between them — a crossing is an analepsis or prolepsis. Story order needs event analysis (EEP) first; flashback detection additionally needs story-time hints on 60% of events, and <strong>those hints are set during knowledge-graph extraction</strong>."
     }
   },
   "unravelingLoadError": "Failed to load build overview data",
@@ -1107,6 +1114,10 @@
       "confidence": "Confidence {{v}}%",
       "adopt": "Adopt",
       "dismiss": "Dismiss"
+    },
+    "guide": {
+      "prefix": "Researcher guide:",
+      "body": "This page is the book's <strong>build inventory</strong>, in five layers from L0 (text) to L4, where <strong>each layer feeds the ones above it</strong>. Node colour shows built / partial / not built. Any layer can be re-run from here — <strong>but re-running discards whatever downstream depends on it</strong>, and the confirmation lists what that includes."
     }
   },
   "symbol": {
@@ -1288,12 +1299,12 @@
       },
       "heat": {
         "meta": "{{rows}} ranked symbols × {{slots}} axis slots · body chapter maximum {{max}}",
-        "subtitle": "Shaded against the highest single-chapter count across all symbols, so rows compare directly",
+        "subtitle": "Shading is an absolute occurrence count, never rescaled per symbol or chapter, so rows compare directly — the steps are in the legend below",
         "axisBody": "Body, ch {{first}}–{{last}}",
         "legendStep": "{{count}}×",
         "legendMore": "{{count}}× or more",
         "legendOutside": "Outside the body",
-        "note": "Dashed cells fall outside the body text: excluded from shape and first appearance, counted against evidence trust."
+        "note": "Dashed cells fall outside the body text: always excluded from shape and first appearance. Only front matter (title page, contents) lowers evidence trust — an afterword counts as real evidence."
       },
       "shapes": {
         "title": "Behaviour groups",
@@ -1471,7 +1482,11 @@
     "emptyStep2Title": "Check status on the Build Overview page",
     "emptyStep2Desc": "The Build Overview DAG will clearly mark the \"Symbols\" node as empty, partial, or complete.",
     "emptyStep3Title": "Trigger manually if needed",
-    "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Build Overview page."
+    "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Build Overview page.",
+    "guide": {
+      "prefix": "Researcher guide:",
+      "body": "This page lays the book's imagery out as a map. The <strong>sort axis</strong> decides what \"important\" means — narrative load is the composite measure, while <strong>raw frequency is only a control</strong>: appearing often is not the same as carrying weight. Filter by category and review state on the left."
+    }
   },
   "narrative": {
     "heroJourney": "Hero's Journey",
@@ -1666,6 +1681,10 @@
     "stale": {
       "title": "This analysis may be out of date",
       "body": "The \"{{step}}\" step has run since this analysis was produced, so what follows describes older data. Re-run the analysis to refresh it."
+    },
+    "guide": {
+      "prefix": "Researcher guide:",
+      "body": "Three sections: <strong>narrative structure</strong> for the shape of the book, <strong>hero's journey</strong> against Campbell's twelve stages, and <strong>event spine</strong> for which kernel events hold that arc up. <strong>All three read chapter summaries, not the source text</strong> — with summaries missing, the analysis reports success and produces zero stages, so check the prerequisites below first."
     }
   }
 }

@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { Plus, Minus, X, Loader, Shapes } from 'lucide-react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
@@ -40,6 +40,7 @@ import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
 import { fetchChapters } from '@/api/chapters';
 import { SegmentRenderer } from '@/components/reader/SegmentRenderer';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { runInference, fetchInferredRelations, fetchGraphData } from '@/api/graph';
 import { pairEvolution, shortestPath, isInsufficientChange } from '@/lib/graphPair';
 import type { EntityType, GraphNode, GraphData, EntityChunkItem } from '@/api/types';
@@ -661,6 +662,11 @@ export default function GraphPage() {
       />
 
 
+      <GuidanceRibbon surface="graph" float>
+        <strong>{t('guide.prefix')}</strong>{' '}
+        <Trans i18nKey="guide.body" ns="graph" components={{ strong: <strong /> }} />
+      </GuidanceRibbon>
+
       {/* Orphan drawer (top-right) — shifts left when right panel is open */}
       {clusterMode === 'node' && orphans.length > 0 && (
         <div
@@ -677,7 +683,7 @@ export default function GraphPage() {
 
       {/* Legend bar (bottom, just right of the LensCard) — design-canvas layout */}
       <div className="absolute z-10" style={{ bottom: 16, left: 348 }}>
-        <LegendCard />
+        <LegendCard clusterMode={clusterMode} />
       </div>
 
       {/* Lens card (bottom-left) — consolidates timeline / epistemic / bookmarks */}

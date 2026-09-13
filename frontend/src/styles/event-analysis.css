@@ -1318,25 +1318,6 @@
   background: var(--color-info); flex: none;
 }
 
-/* ── Researcher guide ribbon ──────────────────────────────────────────────── */
-
-.ea-guide {
-  display: flex; gap: 11px; align-items: flex-start;
-  padding: 12px 15px; margin-bottom: 20px;
-  border: 1px solid var(--border); border-left: 3px solid var(--accent);
-  border-radius: var(--card-radius); background: var(--bg-secondary);
-}
-.ea-guide-body {
-  flex: 1;
-  font-size: var(--font-size-xs); line-height: 1.65; color: var(--fg-secondary);
-}
-.ea-guide-body strong { color: var(--fg-primary); font-weight: 600; }
-.ea-guide-close {
-  flex: none; height: 16px; padding: 0;
-  border: none; background: none; cursor: pointer; color: var(--fg-muted);
-}
-.ea-guide-close:hover { color: var(--fg-primary); }
-
 /* ── Batch panel subset controls (canvas parity) ──────────────────────────── */
 
 .ea-batch-subset { display: flex; flex-direction: column; gap: 5px; margin-top: 6px; }

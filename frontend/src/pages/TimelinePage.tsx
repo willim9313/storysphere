@@ -22,7 +22,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { AlertTriangle, Loader2, Sparkles, X } from 'lucide-react';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -52,6 +52,7 @@ import { StoryOrderView } from '@/components/timeline/StoryOrderView';
 import { MatrixCanvas } from '@/components/timeline/MatrixCanvas';
 import { CharacterLanes } from '@/components/timeline/CharacterLanes';
 import { EventDetailPanel } from '@/components/timeline/EventDetailPanel';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import {
   activeFilterCount,
   buildActiveFilterTags,
@@ -556,9 +557,16 @@ export default function TimelinePage() {
         : 'timeline.action.displacementRun',
     ),
     blocked: !displacementReady && !isRunningDisplacement,
+    /* Build Overview, not the event analysis page (B-065). `story_time_hint` has
+       exactly one writer — `_parse_events` during knowledge-graph extraction —
+       and there is no endpoint or UI anywhere that edits it afterwards. The old
+       copy sent the reader to the event analysis page to "add them one by one",
+       an action that does not exist; following it costs a batch of tokens and
+       moves coverage not at all. Re-running the knowledge graph is the only
+       thing that re-reads them, and that lives here. */
     onSubClick:
       !displacementReady && !isRunningDisplacement
-        ? () => navigate(`/books/${bookId}/events`)
+        ? () => navigate(`/books/${bookId}/unraveling`)
         : undefined,
   };
 
@@ -668,6 +676,11 @@ export default function TimelinePage() {
 
   return (
     <div className="tl">
+      <GuidanceRibbon surface="timeline">
+        <strong>{t('timeline.guide.prefix')}</strong>{' '}
+        <Trans i18nKey="timeline.guide.body" ns="analysis" components={{ strong: <strong /> }} />
+      </GuidanceRibbon>
+
       <nav className="tl-tabs" aria-label={t('timeline.viewTabs')}>
         {VIEWS.map((v) => (
           <button

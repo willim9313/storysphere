@@ -209,7 +209,10 @@
       "edgeHostile": "Hostile",
       "edgeNeutral": "Neutral",
       "edgeInferred": "Inferred",
-      "circleSizeHint": "Circle size = appearance frequency"
+      "circleSizeHint": "Circle size = appearance frequency",
+      "circleSizeMembers": "Circle size = member count",
+      "edgeWidthAggregated": "Thickness = merged relations (the number on the edge)",
+      "edgeWidthFaction": "Thickness = strength between factions (the number on the edge)"
     },
     "lens": {
       "tabTimeline": "Timeline",
@@ -262,5 +265,9 @@
       "insufficientChange": "There isn't enough change in their shared neighbors to animate yet.",
       "noPath": "No path connects these two entities."
     }
+  },
+  "guide": {
+    "prefix": "Researcher guide:",
+    "body": "Three lenses onto one graph: <strong>individual</strong> for how a single entity connects, <strong>type</strong> for grouping by character / place / object, and <strong>community</strong> for algorithmically detected factions; <strong>the legend changes with the lens</strong>. \"Run inference\" uses a common-neighbours score to propose relationships the text implies but never states; it calls no LLM and costs no tokens, <strong>but inferred edges need human confirmation before they enter the graph</strong>."
   }
 }
