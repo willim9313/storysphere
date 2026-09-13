@@ -209,7 +209,10 @@
       "edgeHostile": "敵對",
       "edgeNeutral": "一般",
       "edgeInferred": "推測",
-      "circleSizeHint": "圓圈大小＝登場頻率"
+      "circleSizeHint": "圓圈大小＝登場頻率",
+      "circleSizeMembers": "圓圈大小＝成員數",
+      "edgeWidthAggregated": "粗細＝合併的關係數（邊上的數字）",
+      "edgeWidthFaction": "粗細＝派系間的強度（邊上的數字）"
     },
     "lens": {
       "tabTimeline": "時間軸",
@@ -265,6 +268,6 @@
   },
   "guide": {
     "prefix": "研究者導覽：",
-    "body": "三種鏡頭看同一張圖——<strong>個別</strong>看單一實體的連法，<strong>類型</strong>按角色／地點／物品等分群，<strong>社群</strong>用演算法找出自動聚成的派系。邊的粗細是關係權重；「執行推論」會請 LLM 補可能存在但沒被明寫的關係，<strong>推論結果需人工確認才會進圖</strong>。"
+    "body": "三種鏡頭看同一張圖——<strong>個別</strong>看單一實體的連法，<strong>類型</strong>按角色／地點／物品等分群，<strong>社群</strong>用演算法找出自動聚成的派系；<strong>圖例會跟著鏡頭換</strong>。「執行推論」用共同鄰居演算法補可能存在但沒被明寫的關係，不呼叫 LLM、不耗 token，<strong>但推論結果需人工確認才會進圖</strong>。"
   }
 }
