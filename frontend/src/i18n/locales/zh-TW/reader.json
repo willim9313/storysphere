@@ -88,5 +88,9 @@
     "chapterEntry": "第 {{number}} 章 · {{title}}",
     "chapterNumber": "第 {{number}} 章",
     "noAppearances": "尚無出現段落"
+  },
+  "guide": {
+    "prefix": "研究者導覽：",
+    "body": "這頁是<strong>檢視器</strong>，用來核對處理結果對不對——章節怎麼切、實體抓到哪些、關鍵字是什麼——<strong>不是連續閱讀的介面</strong>。左欄是全書統計與關鍵字，中欄選章節，右欄顯示該章在第 N 章的認知狀態。"
   }
 }

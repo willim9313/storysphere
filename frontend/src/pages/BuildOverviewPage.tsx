@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
   AlertTriangle,
@@ -18,6 +18,7 @@ import {
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { rerunStep, type RerunStep } from '@/api/ingest';
 import { triggerBatchEntityAnalysis, triggerBatchEventAnalysis } from '@/api/analysis';
@@ -1126,6 +1127,11 @@ export default function BuildOverviewPage() {
 
   return (
     <div className="bo-page">
+      <GuidanceRibbon surface="build-overview">
+        <strong>{t('unraveling.guide.prefix')}</strong>{' '}
+        <Trans i18nKey="unraveling.guide.body" ns="analysis" components={{ strong: <strong /> }} />
+      </GuidanceRibbon>
+
       <SummaryStrip manifest={manifest} />
 
       <div className="bo-body">

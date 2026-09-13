@@ -88,5 +88,9 @@
     "chapterEntry": "Ch. {{number}} · {{title}}",
     "chapterNumber": "Chapter {{number}}",
     "noAppearances": "No appearances found"
+  },
+  "guide": {
+    "prefix": "Researcher guide:",
+    "body": "This page is an <strong>inspector</strong> for checking that the processing came out right — how chapters were split, which entities were found, what the keywords are. It is <strong>not a continuous reading view</strong>. The left column holds book-wide counts and keywords, the middle picks a chapter, and the right shows what is known as of that chapter."
   }
 }

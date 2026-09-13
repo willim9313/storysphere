@@ -262,5 +262,9 @@
       "insufficientChange": "There isn't enough change in their shared neighbors to animate yet.",
       "noPath": "No path connects these two entities."
     }
+  },
+  "guide": {
+    "prefix": "Researcher guide:",
+    "body": "Three lenses onto one graph: <strong>individual</strong> for how a single entity connects, <strong>type</strong> for grouping by character / place / object, and <strong>community</strong> for algorithmically detected factions. Edge weight is relationship strength. \"Run inference\" asks the LLM for relationships the text implies but never states — <strong>inferred edges need human confirmation before they enter the graph</strong>."
   }
 }

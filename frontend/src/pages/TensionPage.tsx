@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import {
@@ -26,6 +26,7 @@ import {
   TensionStepperStrip,
   type TensionStageSpec,
 } from '@/components/tension/TensionStepperStrip';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { TensionThemeHero } from '@/components/tension/TensionThemeHero';
 import {
   TensionEmptyCard,
@@ -588,6 +589,11 @@ export default function TensionPage() {
     <div className="tn-shell" style={{ background: 'var(--bg-primary)', height: '100%' }}>
       <div className="tn-shell-main tn-scroll" inert={drawerOverlaying}>
         <div className="tn-page">
+        <GuidanceRibbon surface="tension">
+          <strong>{t('tension.guide.prefix')}</strong>{' '}
+          <Trans i18nKey="tension.guide.body" ns="analysis" components={{ strong: <strong /> }} />
+        </GuidanceRibbon>
+
         <TensionStepperStrip stages={stages} />
 
         {/* A bare "12 / 15" leaves the reader to guess which three are missing

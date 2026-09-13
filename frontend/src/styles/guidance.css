@@ -61,6 +61,30 @@
   color: var(--fg-primary);
 }
 
+/* Canvas pages have no document flow to sit in — the knowledge graph is a
+   full-bleed viewport whose overlays are absolutely positioned.
+   Capped in width so it never becomes the thing covering the graph it is
+   explaining, and pushed below the lens toolbar (個別 / 類型 / 社群, which
+   occupies y 52–127 and is drawn by a child component, so it does not show up
+   in a grep of the page file). The first version used top:16px and buried that
+   toolbar — a page's primary control must never be what the help text hides. */
+.sg-ribbon.sg-ribbon-float {
+  position: absolute;
+  top: 140px;
+  left: 16px;
+  z-index: 10;
+  max-width: 430px;
+  margin-bottom: 0;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .sg-ribbon.sg-ribbon-float {
+    right: 16px;
+    max-width: none;
+  }
+}
+
 @media (max-width: 640px) {
   .sg-ribbon {
     padding: 10px 12px;

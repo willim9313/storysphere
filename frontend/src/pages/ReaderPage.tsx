@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useLocation } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Brain, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, ArrowUp, Maximize } from 'lucide-react';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -18,6 +18,7 @@ import { TypographyPanel, DEFAULT_READER_PREFS, type ReaderPrefs } from '@/compo
 import { EntityMarkClickProvider, type EntityMarkClickPayload } from '@/components/reader/SegmentRenderer';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import type { EntityType } from '@/api/types';
 
 const EPISTEMIC_HINT_KEY = 'storysphere:reader-epistemic-hint-shown';
@@ -734,8 +735,15 @@ export default function ReaderPage() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm" style={{ color: 'var(--fg-muted)' }}>
+          /* The ribbon lives in the landing state, not above the reading pane:
+             this is where a first visit starts, and once a chapter is open the
+             reader wants the text, not a banner eating the top of it. */
+          <div className="h-full" style={{ overflowY: 'auto', padding: '20px 24px' }}>
+            <GuidanceRibbon surface="reader">
+              <strong>{t('guide.prefix')}</strong>{' '}
+              <Trans i18nKey="guide.body" ns="reader" components={{ strong: <strong /> }} />
+            </GuidanceRibbon>
+            <p className="text-sm" style={{ color: 'var(--fg-muted)', textAlign: 'center' }}>
               {t('selectChapter')}
             </p>
           </div>

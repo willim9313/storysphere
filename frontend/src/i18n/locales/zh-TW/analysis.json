@@ -666,6 +666,10 @@
       "teu": "TEU 逐章 {{count}}",
       "hintLines": "一行一線、一格一章；點任一列開右側審核抽屜",
       "hintTeu": "場景級的原始輸出，含 {{count}} 個未被聚合歸入的 TEU"
+    },
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "本頁把張力由下往上組成三層——<strong>場景級</strong>先為每個事件組出 TEU，<strong>跨場景</strong>把 TEU 聚合成 TensionLine，<strong>全書級</strong>再合成 TensionTheme。每層之間有一次人工審核，三步都會呼叫 LLM。"
     }
   },
   "timeline": {
@@ -924,6 +928,10 @@
       "analepsis": "倒敘",
       "prolepsis": "預敘",
       "linear": "順敘"
+    },
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "三個視圖問的是不同問題——<strong>章節順序</strong>是書中敘述的先後，<strong>故事時序</strong>是事件實際發生的先後，<strong>矩陣視圖</strong>看兩者的偏離，交叉處就是倒敘或預敘。故事時序要先跑事件分析（EEP）；倒敘與預敘另需 60% 事件帶有故事時間提示，<strong>而那個提示在知識圖譜抽取時就決定了</strong>。"
     }
   },
   "unravelingLoadError": "無法載入建構概覽資料",
@@ -1106,6 +1114,10 @@
       "confidence": "信心 {{v}}%",
       "adopt": "採用",
       "dismiss": "否決"
+    },
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "本頁是這本書的<strong>產出清單</strong>，分 L0 文本層到 L4 五層，<strong>下層是上層的輸入</strong>。節點顏色表示已建立／部分／未建立。從這裡可以重跑任一層——<strong>但重跑會丟掉依賴它的下游產物</strong>，執行前的確認框會列出會被影響的東西。"
     }
   },
   "symbol": {
@@ -1470,7 +1482,11 @@
     "emptyStep2Title": "至建構概覽頁確認狀態",
     "emptyStep2Desc": "建構概覽 DAG 會明確標示「Symbols」節點為 empty / partial / complete。",
     "emptyStep3Title": "必要時手動觸發",
-    "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。"
+    "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。",
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "本頁把全書意象排成一張地圖。<strong>排序主軸</strong>決定「重要」怎麼算——敘事負載是綜合指標，<strong>正文頻率只是對照組</strong>，出現得多不等於分量重。左側可依類別與審核狀態篩選。"
+    }
   },
   "narrative": {
     "heroJourney": "英雄旅程",
@@ -1665,6 +1681,10 @@
     "stale": {
       "title": "此分析可能已過期",
       "body": "「{{step}}」步驟在這份分析產出之後又執行過，因此以下內容描述的是舊的資料。要更新的話，重新執行分析即可。"
+    },
+    "guide": {
+      "prefix": "研究者導覽：",
+      "body": "本頁分三塊——<strong>敘事結構</strong>看整本書是什麼形狀，<strong>英雄旅程</strong>對照 Campbell 的 12 階段，<strong>事件骨幹</strong>看哪些核心事件撐起那個弧。<strong>這三塊讀的是章節摘要，不是原文</strong>；摘要沒備齊時分析會回報成功卻產出 0 個階段，所以先看下方的前置條件。"
     }
   }
 }

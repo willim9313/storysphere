@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { AlertTriangle, Compass } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { useBook } from '@/hooks/useBook';
@@ -31,6 +31,7 @@ import { CrossEvidence } from '@/components/narrative/CrossEvidence';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { EventInfo } from '@/components/narrative/StageDetail';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import '@/styles/narrative.css';
 import { qk } from '@/api/queryKeys';
 
@@ -392,6 +393,15 @@ export default function NarrativePage() {
                 </div>
               )}
             </header>
+
+            <GuidanceRibbon surface="narrative">
+              <strong>{t('narrative.guide.prefix')}</strong>{' '}
+              <Trans
+                i18nKey="narrative.guide.body"
+                ns="analysis"
+                components={{ strong: <strong /> }}
+              />
+            </GuidanceRibbon>
 
             <nav className="nl-index">
               {indexCards.map((c) => (

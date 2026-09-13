@@ -32,11 +32,15 @@ import '@/styles/guidance.css';
  * @param surface Identifies what is being dismissed, not which page shows it.
  *   The event page has two (`event-overview`, `event-detail`) because they
  *   explain different things and closing one must not hide the other.
+ * @param float For canvas pages with no document flow to sit in — the
+ *   knowledge graph is a full-bleed viewport whose overlays are absolutely
+ *   positioned. Anchors the ribbon in the one free corner instead.
  */
 export function GuidanceRibbon({
   surface,
   children,
-}: Readonly<{ surface: string; children: ReactNode }>) {
+  float = false,
+}: Readonly<{ surface: string; children: ReactNode; float?: boolean }>) {
   const { t } = useTranslation('common');
   const key = `storysphere:guidance-dismissed:${surface}`;
   const [dismissed, setDismissed] = useState(
@@ -57,7 +61,7 @@ export function GuidanceRibbon({
   };
 
   return (
-    <div className="sg-ribbon">
+    <div className={float ? 'sg-ribbon sg-ribbon-float' : 'sg-ribbon'}>
       {/* The glyph, not the accent edge, is what marks this as guidance. The
           ink theme flattens every semantic colour to the same near-black —
           `tokens.css` states the rule outright: 狀態由 icon 字形承載 — so an
