@@ -268,6 +268,6 @@
   },
   "guide": {
     "prefix": "研究者導覽：",
-    "body": "三種鏡頭看同一張圖——<strong>個別</strong>看單一實體的連法，<strong>類型</strong>按角色／地點／物品等分群，<strong>社群</strong>用演算法找出自動聚成的派系。<strong>圖例會跟著鏡頭換</strong>，粗細與圓圈大小在三個鏡頭裡代表不同的東西。「執行推論」用共同鄰居演算法補可能存在但沒被明寫的關係，不呼叫 LLM、不耗 token，<strong>但推論結果需人工確認才會進圖</strong>。"
+    "body": "三種鏡頭看同一張圖——<strong>個別</strong>看單一實體的連法，<strong>類型</strong>按角色／地點／物品等分群，<strong>社群</strong>用演算法找出自動聚成的派系；<strong>圖例會跟著鏡頭換</strong>。「執行推論」用共同鄰居演算法補可能存在但沒被明寫的關係，不呼叫 LLM、不耗 token，<strong>但推論結果需人工確認才會進圖</strong>。"
   }
 }

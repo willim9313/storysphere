@@ -1299,7 +1299,7 @@
       },
       "heat": {
         "meta": "{{rows}} ranked symbols × {{slots}} axis slots · body chapter maximum {{max}}",
-        "subtitle": "Shading is an absolute count (once / twice / three or more), never rescaled per symbol or chapter, so rows compare directly",
+        "subtitle": "Shading is an absolute occurrence count, never rescaled per symbol or chapter, so rows compare directly — the steps are in the legend below",
         "axisBody": "Body, ch {{first}}–{{last}}",
         "legendStep": "{{count}}×",
         "legendMore": "{{count}}× or more",
