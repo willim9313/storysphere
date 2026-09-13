@@ -13,5 +13,8 @@
     "completed": "Completed",
     "error": "Error"
   },
-  "remove": "Remove"
+  "remove": "Remove",
+  "guidance": {
+    "dismiss": "Dismiss guidance"
+  }
 }

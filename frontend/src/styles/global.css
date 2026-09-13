@@ -1,4 +1,7 @@
 @import './tokens.css';
+/* Guidance carriers (B-065): every feature page may show these, so they are
+   imported once here rather than per page. Rules: docs/UI_SPEC.md. */
+@import './guidance.css';
 
 @tailwind base;
 @tailwind components;

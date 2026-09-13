@@ -1034,34 +1034,6 @@
 .ca-epicompare-empty { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 
 /* ─── Tip ribbon ─── */
-.ca-tip {
-  display: flex; align-items: center; gap: 10px;
-  padding: 9px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  margin-bottom: 14px;
-  font-size: var(--font-size-xs); color: var(--fg-secondary);
-}
-.ca-tip-icon {
-  flex-shrink: 0;
-  width: 22px; height: 22px;
-  border-radius: 50%;
-  background: var(--accent);
-  color: var(--bg-primary);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--font-serif); font-style: italic; font-size: var(--font-size-xs);
-  font-weight: 700;
-}
-.ca-tip-body { flex: 1; line-height: 1.5; }
-.ca-tip-body strong { color: var(--fg-primary); }
-.ca-tip-close {
-  background: none; border: none; cursor: pointer;
-  color: var(--fg-muted); font-size: var(--font-size-base); line-height: 1;
-  padding: 0 4px;
-  display: flex; align-items: center;
-}
-
 /* ─── Empty / loading states ─── */
 .ca-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;

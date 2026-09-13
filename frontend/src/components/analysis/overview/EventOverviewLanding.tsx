@@ -1,9 +1,9 @@
 import { useMemo, useState } from 'react';
 import { BarChart3, GitBranch, Sparkles, Waypoints } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import type { AnalysisListResponse } from '@/api/types';
 import { useTimeline } from '@/hooks/useTimeline';
-import { EventGuideRibbon } from '@/components/analysis/EventGuideRibbon';
+import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { EventBackboneMap } from './EventBackboneMap';
 import { EventFlowView } from './EventFlowView';
 import { EventRankingView } from './EventRankingView';
@@ -78,7 +78,10 @@ export function EventOverviewLanding({
         </div>
       </div>
 
-      <EventGuideRibbon surface="overview" />
+      <GuidanceRibbon surface="event-overview">
+        <strong>{t('event.guide.prefix')}</strong>{' '}
+        <Trans i18nKey="event.guide.overview" ns="analysis" components={{ strong: <strong /> }} />
+      </GuidanceRibbon>
 
       <div className="ea-ov-toolbar">
         <div className="ea-ov-toggle">
