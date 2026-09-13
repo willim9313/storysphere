@@ -2286,6 +2286,72 @@ input 價格估（$0.10–0.30 / 1M），**每題省 $0.0002–0.0007**——要
 
 ---
 
+**查證完成（2026-09-13）——沒重現，但排除掉的東西比原本多**
+
+**94 次 pytest 呼叫、0 次失敗。** 其中整套 suite 跑 42 次（30 次預設 sqlite backend
+＋ 12 次 `TASK_STORE_BACKEND=memory`，三串平行製造時序壓力，每次不同
+`PYTHONHASHSEED`），全部 `2077 passed`。
+
+**最有份量的一條是 CI 統計。** `gates.yml` 至今 **102 次成功、1 次失敗**，而那 1 次是
+已知的 2026-08-21 `ruff check tests/` 還紅著的那次。若真是 1/8，102 次全綠的機率
+約 **1.2e-6**。**所以「約 1/8」是一次觀測，不是量到的比率**——標題已改。
+
+**`Event loop is closed` 已從「疑犯」升格為「證明無罪」。** 原條目只說「成功的執行也會
+出現」；更硬的理由是它**在結構上不可能弄紅測試**：來源是 `aiosqlite` 在已關閉的
+loop 上呼叫 `call_soon_threadsafe`，pytest 的 `threadexception` 外掛把它變成
+`PytestUnhandledThreadExceptionWarning`，而那只有在 `-W error` 下才會變成錯誤——
+`pyproject.toml` 沒設 `filterwarnings`、CI 沒設 `PYTHONWARNINGS`、**全 repo 沒有任何
+測試用 `pytest.warns` / `catch_warnings` / `simplefilter`**（已獨立複驗）。它的出現次數
+確實隨機（42 次裡是 0、4、12…36），但結果從不改變。
+
+**其餘排除**:
+- **Qdrant 本機儲存的跨行程鎖**：`kg_settings.py:89-96` 繞過 DI 直接建真的
+  `QdrantClient`，所以本機後端跑著時會持有 `var/qdrant_local` 的 flock。實測在持鎖
+  狀態下跑 `tests/api`，結果與未持鎖**逐字相同**——例外被 `except Exception: pass` 吃掉
+- **測試順序不可能是變因**：`pytest-randomly` / `pytest-repeat` / `pytest-xdist`
+  **三個都沒裝**（以 import 複驗，不只看 `pyproject.toml`）。收集順序固定
+- **背景任務外洩是確定性的**：`tests/api/test_ingest.py` 那 8 個 `202` 上傳每次都留
+  8 筆 `Task exception was never retrieved`，42 次都是 8——是噪音地板不是變異源
+
+**唯一的重播把手是 `PYTHONHASHSEED`**（既然沒有隨機化外掛）。建議 CI 印出它，
+未來真的紅了才有辦法重放。**未實作**——那是 CI 改動，另行決定。
+
+**沒能排除的**: 沒重現就無法指認成因，以上全是排除法。而且是在**沒有 `.env`** 的
+worktree 裡跑的（`TASK_STORE_BACKEND` 有另外覆蓋，因為專案記憶點名過它），
+LLM / langfuse 的真實值未套用。2026-09-05 之後 suite 從 1864 長到 2077、
+落了 129 個 commit——**那個 flake 可能已經自己消失了**。
+
+**處置**: 保持開著但降級。真的再撞見時，**先留測試名稱與 `PYTHONHASHSEED` 再重跑**。
+
+---
+
+#### B-124 三條單元測試實際上在對開發者的 `.env` 下斷言
+
+**背景**: 2026-09-13 查 B-094 時順帶發現，**與那個 flake 無關**（這種錯會每次都紅，
+不是 1/8）。
+
+`tests/config/test_lightweight_mode.py` 多處呼叫不帶參數的 `Settings()`，而
+`SettingsConfigDict(env_file=".env")` 會去讀**開發者本機的 `.env`**。於是這些測試斷言的
+不是預設值，是那台機器當下的設定。
+
+**實測**：`DEPLOY_MODE=full python -m pytest tests/config/test_lightweight_mode.py`
+→ **3 failed, 8 passed**：
+
+- `TestDeployMode::test_default_deploy_mode_is_lightweight`
+- `TestQdrantMode::test_qdrant_local_path_absolute_is_absolute`
+- `TestQdrantMode::test_qdrant_local_path_absolute_resolves_relative`
+
+今天全綠只是因為目前的 `.env` 剛好沒設 `DEPLOY_MODE`（全庫只剩 5 個鍵有值）。
+**有人補一行就紅，而紅的原因與程式碼無關。**
+
+**待辦內容**:
+- 讓這些測試明確與 `.env` 隔離（`Settings(_env_file=None)`，或 fixture 清掉相關環境變數）
+- 掃一次還有沒有別的測試呼叫不帶參數的 `Settings()`
+
+**觸發時機**: 補 `.env` 的鍵時（會當場撞到）；或下次動 `settings.py` 時。
+
+---
+
 #### B-120 Langfuse 憑證錯誤是沉默失敗（已修）
 
 **背景**: 2026-09-12 為走查 §3-4 開啟追蹤時踩到。`.env` 裡 public / secret 兩個金鑰
@@ -3036,7 +3102,8 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-091 | 全面徹查零使用程式碼 | 🟡 中 | ✅ 已完成（2026-09-08；backend 3→2、前端匯出 15→0、CSS 86→0、i18n 340→19、model 欄位 5 筆、私有方法範圍清空；掃描器修掉三個判準缺陷） |
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | ✅ 已完成（2026-09-10 PR #101/#102/#103；四段全數落地，見 ARCHIVE） |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
-| B-094 | pytest 有一個間歇性失敗（約 1/8） | 🟢 低 | 待開始（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-094 | pytest 撞見過一次間歇性失敗（原記「約 1/8」） | 🟢 低 | 🔶 查證完成、未重現（2026-09-13；94 次 pytest 呼叫 0 失敗 + CI 102 次全綠 → 「約 1/8」是**一次觀測不是量到的比率**。`Event loop is closed` 已證明在結構上不可能弄紅測試。無隨機化外掛，`PYTHONHASHSEED` 是唯一的重播把手）（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-124 | 三條單元測試實際上在對開發者的 `.env` 下斷言 | 🟢 低 | 待開始（2026-09-13 查 B-094 時順帶發現，與那個 flake 無關。`Settings()` 不帶參數會讀本機 `.env`；實測 `DEPLOY_MODE=full` 就讓 3 條變紅。今天綠只是因為 `.env` 剛好沒設那個鍵） |
 | B-105 | 移除 10 個無呼叫端的 HTTP 端點 | 🟢 低 | ✅ 已完成（2026-09-07；`documents.py` / `relations.py` 整檔刪除、`entities.py` 只留 `GET /:entityId`，連同 7 個孤兒 schema 與兩個測試檔；generated.ts 少 673 行） |
 | B-106 | `narrative_position` 有五個讀者、零個寫者 | 🟡 中 | ✅ 已完成（2026-09-10 PR #104 + B2 措辭；兩本書已重跑填滿。代價：要求章內序會推高事件顆粒度 +30%。**2026-09-12 三個「沒試過的方向」全部量完、全部不成立，顆粒度稅確認付不掉**；處置是 B-068 的讀取端場景層） |
 | B-107 | Age of Fire 的事件資料停留在 B-082 修好之前 | 🟢 低 | ✅ 已完成（2026-09-10 重跑 KG；101 → 49 事件，60 筆重複標題歸零） |
