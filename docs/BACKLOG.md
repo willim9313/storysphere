@@ -323,9 +323,9 @@ PR #83 的作法（把宣告放進生產程式碼、用測試釘住宣告等於�
 - 前端：圖譜頁 ClusterOverviewPanel 與角色頁總覽派系卡自動受益，無需改版面
 - API contract：#6d `label` 欄位語意更新
 
-**觸發時機**: 角色頁總覽派系分群（20260716 計畫 #1）上線後，佔位稱呼被回報不夠用時。
+**觸發時機**: ~~角色頁總覽派系分群（20260716 計畫 #1）上線後~~ —— **前置已滿足**（見下），現在的觸發條件只剩「佔位稱呼被回報不夠用時」。
 
-**前置依賴**: `docs/plans/20260716-character-page-revamp.md` #1 完成。
+**前置依賴（2026-09-13 查證：已滿足）**: `docs/plans/20260716-character-page-revamp.md` #1 已於 2026-07-17 `cd7c315` 上線——`CharacterOverviewLanding` 已在跑 `useFactions()` + `applyFactionsAndMetrics()`，`QuadrantView` 也吃 `factions`。與 F-16 同一類漂移：被另一張票順手完成，沒人回頭更新這裡。
 
 ---
 
@@ -1106,11 +1106,11 @@ python -m cli.migrate standard-to-lightweight
 ```
 
 **實作分階段**:
-- **I-002 階段（本票）**: 建立 `src/cli/migrate.py` 骨架，接入現有 `services/kg_migration.py` 處理 KG 方向的 lightweight → standard（NetworkX → Neo4j）
+- **I-002 階段（本票）**: 建立 `backend/storysphere/cli/migrate.py` 骨架，接入現有 `services/kg_migration.py` 處理 KG 方向的 lightweight → standard（NetworkX → Neo4j）
 - **I-003 後續**: Vector migration（Qdrant local path → Qdrant service）實作
 
 **修改範圍**:
-- 新增 `src/cli/` 目錄與 `migrate.py`
+- 新增 `backend/storysphere/cli/` 目錄與 `migrate.py`（2026-09-13 更正：原寫 `src/cli/`，`src/` 已於 2026-07-01 `3004d7a` 改名為 `backend/`）
 - 接入 `backend/storysphere/services/kg_migration.py`（已有 NetworkX → Neo4j 路徑）
 
 **前置依賴**: I-001（`deploy_mode` 設定必須先就位）
@@ -1162,7 +1162,7 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-056 | Phase 1 文件解析 sub-progress | 🟢 低 | 待開始（觸發：大檔解析體感回報） |
 | B-057 | 批次上傳（含跳過審閱選項） | 🟢 低 | 待開始（觸發：批次需求出現） |
 | B-058 | 處理卡系統吉祥物欄 | 🟢 低 | 待開始（觸發：吉祥物資產備妥） |
-| B-059 | 派系語意命名（LLM 為 F-16 社群取名） | 🟢 低 | 待開始（前置：角色頁翻新 #1 派系分群上線） |
+| B-059 | 派系語意命名（LLM 為 F-16 社群取名） | 🟢 低 | 待開始（2026-09-13 查證：**前置已滿足**——角色頁派系分群 2026-07-17 `cd7c315` 就上線了。觸發條件只剩「`Faction N` 佔位稱呼被回報不夠用時」；命名策略三選一仍待決） |
 | B-060 | 原型篩選 facet 改以 archetype id 比對 | 🟢 低 | 待開始（觸發：EN 介面使用需求） |
 | B-061 | 前後端原型 taxonomy 漂移防護測試 | 🟢 低 | ✅ 已完成（2026-08-22；後端 pytest 讀前端檔案，8 項，四組現況皆一致，見 ARCHIVE） |
 | B-062 | tension / narrative 前端寫死 language='zh' | 🟡 中 | ✅ 已完成（2026-08-21；後端補 `language` + 前端六個呼叫點接上，影響比原記載大，見 ARCHIVE） |
