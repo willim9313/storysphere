@@ -124,3 +124,15 @@ class TestGetCachedStructureRecovery:
         assert structure.kernel_event_ids == ["cached-1", "cached-2"]
         assert structure.review_status == "approved"
         mock_kg.get_events.assert_not_called()
+
+
+class TestHeroJourneyLanguage:
+    """BCP 47 codes like 'zh-tw' must map onto the 'zh' stage config."""
+
+    @pytest.mark.parametrize("language", ["zh-tw", "zh-TW", "zh-cn", "zh"])
+    async def test_chinese_variants_load_zh_stages(self, service, monkeypatch, language):
+        llm = AsyncMock()
+        llm.ainvoke.return_value.content = "[]"
+        monkeypatch.setattr(service, "_get_llm", lambda: llm)
+
+        assert await service._call_hero_journey_llm([], language) == []

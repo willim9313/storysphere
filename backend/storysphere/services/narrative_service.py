@@ -771,10 +771,9 @@ class NarrativeService:
     async def _call_hero_journey_llm(self, chapters, language: str) -> list[HeroJourneyStage]:
         from langchain_core.messages import HumanMessage, SystemMessage  # noqa: PLC0415
 
-        stage_defs = load_hero_journey(language if language.startswith(("en", "zh")) else "en")
-        stage_summary = get_hero_journey_summary(
-            language if language.startswith(("en", "zh")) else "en"
-        )
+        lang_key = "zh" if language.lower().startswith("zh") else "en"
+        stage_defs = load_hero_journey(lang_key)
+        stage_summary = get_hero_journey_summary(lang_key)
         human_content = self._build_hero_journey_human_content(chapters, stage_summary)
         system_prompt = localize_prompt(_HERO_JOURNEY_SYSTEM_PROMPT, language)
 
