@@ -1958,6 +1958,37 @@ WebSocket 連線，含訊息列表 + 輸入框。
 | 泡泡拖離軌（含閱讀頁） | 24 |
 | 聊天視窗壓到軌 | 視窗上緣 − 8 |
 
+### 4.5 TaskCenter（任務中心 · DS v3 0-7）
+
+`components/tasks/{TaskCenter,TaskRow,taskKinds,taskRoute,useTasksPolling}`，樣式在 `styles/ss-kit.css` 的
+`.ss-taskc*`（面板）與 `.ss-task-*`（列）。由側欄任務中心鈕開關（`AppLayout` 持有 `tasksOpen`）。
+
+- **性質**：320px 寬的 **flex sibling**，開啟時 `main` 被壓窄 320，**不是覆蓋層**（勿改）。外框 `border-left` 走
+  `--card-border-width`、`--shadow-md`。
+- **標頭**：內距 `--space-5 --space-6`、下邊線；`loader` 16px（Warm `--accent`／Ink `--fg-primary`）＋「任務中心」serif sm 600
+  ＋進行中數量膠囊（mono 2xs 700、min 16×16、radius 9）；右側 X 15px muted。內容區內距 `--space-4 --space-4 --space-5`。
+- **三態**（文案逐字、不分「都做完」與「從沒跑過」）：載入（`loader` 22px、1s linear、「載入任務中…」xs muted）／
+  空態（`check-check` 26px＋「目前沒有進行中的任務」sm secondary＋兩行 2xs muted 副句）／列表。
+- **分組標頭**：「進行中 · N」「已完成 · N」，2xs 600 muted、letter-spacing .06em、**不用 uppercase**；左右內距 `--space-5`、
+  標頭到列 `--space-4`、組與組 `--space-6`。「已完成」可收合；右側「清除」（2xs accent）只把 taskId 寫進
+  `localStorage['taskCenter.hiddenIds']`——是隱藏不是刪除。`awaiting_review` 算進行中。
+- **TaskRow**（動作列）：grid `28px minmax(0,1fr) auto 12px`、欄距 `--space-4`、padding `--space-4 --space-5`、`--radius-md`、
+  列距 `--space-1`；可導覽的列 hover `--bg-tertiary`，不可導覽（缺 kind／缺 `result.bookId`）無 hover、無 chevron。
+  **28px kind chip 是 TaskRow 自己的元件尺寸**（其餘動作列是 24px）。標題 sm 500、ellipsis 不折行（列高穩定）；
+  kind 標籤 2xs 500、**保留原始英文字串**（缺 kind 為 `hourglass`＋「任務」）。
+  - Warm：chip／標籤 `--entity-*-bg` 底＋`-dot` 色；Ink：透明底＋1px `--entity-*-border`＋`-fg` 色。色盤由 `kindVars()` 以
+    `--tk-{bg,border,fg,dot}` 傳入列。
+  - 進行中：4px 進度條（`--bg-tertiary` 軌；Warm kind 色／Ink `--fg-primary` 填）＋mono 2xs 百分比＋stage 2xs muted ellipsis。
+    **進度條不做寬度過渡**：輪詢最快 2s，補間會假裝不存在的更新頻率。無 ETA（後端沒有）。
+  - 完成：相對時間（見下「已知缺口」）；`failed_parts` 非空顯示「部分完成」warning 色（Ink 加粗）。失敗：`alert` 12＋
+    「失敗 · 前往該頁處理」（可導覽）／「失敗」，error 色（Ink 加粗）。
+  - 狀態點 8px，優先序：部分完成 warning → done success → error error → awaiting_review warning → kind 色；未終態脈動 1.6s
+    （`prefers-reduced-motion` 關閉）。Ink 下跑動點 `--fg-primary`、其餘語意色 token 本身已單色。
+  - 收尾槽 12px 永遠佔位，chevron 14px 只切換 opacity。
+- **輪詢**：面板開啟 2000ms（`useTasksPolling`）、全域通知 4000ms（`useTaskNotifications`），共用 `qk.tasks.list()`。
+- **已知缺口（後端）**：`TaskStatus` 只有 `createdAt`，沒有完成時間；「{n} 分鐘前完成」算的是建立至今，長任務會偏大。
+  `error` 原文、`stepKey`／`subProgress` 等欄位目前不顯示。
+
 ---
 
 ## 5. 跨頁面互動與資料連動
