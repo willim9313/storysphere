@@ -44,8 +44,11 @@ logger = logging.getLogger(__name__)
 
 
 def _utc_now() -> str:
-    """UTC ISO-8601 to the second with a trailing "Z" — the finished_at format
-    both stores emit, so the frontend's Date parsing never guesses a timezone."""
+    """UTC ISO-8601 to the second with a trailing "Z" — the format both stores
+    emit for created_at and finished_at, so the frontend's Date parsing never
+    guesses a timezone. (created_at used to be local time in the memory store
+    and offset-less UTC in SQLite; JS reads both as local, so under SQLite in
+    UTC+8 the upload card's elapsed timer started at "8 hours".)"""
     return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
@@ -72,7 +75,7 @@ class MemoryTaskStore:
             status="pending",
             kind=kind,
             title=title,
-            created_at=datetime.now().isoformat(),
+            created_at=_utc_now(),
         )
         with self._lock:
             self._store[task_id] = task
@@ -217,6 +220,10 @@ _ADD_FINISHED_AT = "ALTER TABLE tasks ADD COLUMN finished_at TEXT"
 # SQLite expression for finished_at — same shape as _utc_now() (UTC, "Z").
 _SQL_UTC_NOW = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')"
 
+# Rows written before created_at carried a "Z" are UTC already (SQLite's 'now'
+# is UTC); only the marker is missing. Idempotent.
+_NORMALISE_CREATED_AT = "UPDATE tasks SET created_at = created_at || 'Z' WHERE created_at NOT LIKE '%Z'"
+
 _CREATE_MURMUR_TABLE = """
 CREATE TABLE IF NOT EXISTS task_murmur_events (
     task_id   TEXT    NOT NULL,
@@ -270,6 +277,7 @@ class SQLiteTaskStore:
                         db.execute(migration)
                     except Exception:
                         pass  # column already exists
+                db.execute(_NORMALISE_CREATED_AT)
                 db.commit()
             self._initialised = True
 
@@ -287,7 +295,7 @@ class SQLiteTaskStore:
                 WHERE task_id IN (
                     SELECT task_id FROM tasks
                     WHERE status IN ('done', 'error')
-                      AND created_at < strftime('%Y-%m-%dT%H:%M:%S',
+                      AND created_at < strftime('%Y-%m-%dT%H:%M:%SZ',
                             datetime('now', ? || ' days'))
                 )
                 """,
@@ -297,7 +305,7 @@ class SQLiteTaskStore:
                 """
                 DELETE FROM tasks
                 WHERE status IN ('done', 'error')
-                  AND created_at < strftime('%Y-%m-%dT%H:%M:%S',
+                  AND created_at < strftime('%Y-%m-%dT%H:%M:%SZ',
                         datetime('now', ? || ' days'))
                 """,
                 (f"-{older_than_days}",),
@@ -333,13 +341,17 @@ class SQLiteTaskStore:
         kind: str | None = None,
         title: str | None = None,
     ) -> TaskStatus:
+        # created_at is written explicitly rather than left to the column
+        # default: the default predates the "Z" format, and SQLite cannot alter
+        # a column default in place.
+        created_at = _utc_now()
         self._execute(
-            "INSERT OR IGNORE INTO tasks (task_id, status, kind, title) "
-            "VALUES (?, 'pending', ?, ?)",
-            (task_id, kind, title),
+            "INSERT OR IGNORE INTO tasks (task_id, status, kind, title, created_at) "
+            "VALUES (?, 'pending', ?, ?, ?)",
+            (task_id, kind, title, created_at),
         )
         return TaskStatus(
-            task_id=task_id, status="pending", kind=kind, title=title
+            task_id=task_id, status="pending", kind=kind, title=title, created_at=created_at
         )
 
     def get(self, task_id: str) -> TaskStatus | None:
