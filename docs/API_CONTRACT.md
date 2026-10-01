@@ -709,6 +709,8 @@ interface TaskStatus {
   kind?: string;           // 任務種類（如 'tension' / 'symbol' / 'ingestion'），任務中心據此導向；未提供則不可跳轉
   title?: string;          // 顯示標題；未提供時前端 fallback 用 stage
   createdAt?: string;      // ISO 時間字串，任務中心排序用
+  finishedAt?: string;     // 進入 done / error 的時間，UTC ISO-8601 帶尾端 Z（如 2026-10-01T13:41:55Z）；
+                           // 未終態（pending / running / awaiting_review）為 null。任務中心「N 分鐘前完成」以此起算
   murmurEvents?: MurmurEvent[];  // delta slice（seq >= after 的事件）
 }
 ```

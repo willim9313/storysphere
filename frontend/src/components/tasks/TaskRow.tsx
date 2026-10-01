@@ -82,7 +82,9 @@ export function TaskRow({ task, onNavigate }: TaskRowProps) {
 
         {isDone && (
           <div className={`ss-task-note${isPartial ? ' ss-task-note-warn' : ''}`}>
-            {isPartial ? '部分完成' : relTime(task.createdAt)}
+            {/* finishedAt, not createdAt: a long run would otherwise read as finished
+                long ago the moment it lands. Rows that predate the field show 已完成. */}
+            {isPartial ? '部分完成' : relTime(task.finishedAt)}
           </div>
         )}
 

@@ -4343,6 +4343,8 @@ export interface components {
             title?: string | null;
             /** Createdat */
             createdAt?: string | null;
+            /** Finishedat */
+            finishedAt?: string | null;
             /**
              * Murmurevents
              * @default []
