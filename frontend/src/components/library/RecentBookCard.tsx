@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { Book } from '@/api/types';
 
-interface RecentBookCardProps {
-  book: Book;
-}
-
-export function RecentBookCard({ book }: RecentBookCardProps) {
+/**
+ * 最近開啟 card (01 決議紀錄 C 區). The shortcut set follows `book.status` —
+ * a recommended next step, not a fixed link row (§6). Every shortcut is
+ * navigation, 觸發分析 included (it only opens the book page), so none carries
+ * the LLM glyph (DS_V3_DESIGN_FEEDBACK 1-C).
+ */
+export function RecentBookCard({ book }: Readonly<{ book: Book }>) {
   const { t } = useTranslation('library');
   const base = `/books/${book.id}`;
 
@@ -28,35 +30,12 @@ export function RecentBookCard({ book }: RecentBookCardProps) {
     }
   }
 
-  const shortcuts = statusShortcuts();
-
   return (
-    <div
-      className="card relative overflow-hidden"
-      style={{ borderTop: '3px solid var(--accent)' }}
-    >
-      <h3
-        className="text-sm font-semibold mb-1 truncate"
-        style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
-      >
-        {book.title}
-      </h3>
-      {book.author && (
-        <p className="text-xs mb-3" style={{ color: 'var(--fg-muted)' }}>
-          {book.author}
-        </p>
-      )}
-      <div className="flex flex-wrap gap-1.5">
-        {shortcuts.map(({ label, to }) => (
-          <Link
-            key={label}
-            to={to}
-            className="text-xs px-2 py-1 rounded-md transition-colors"
-            style={{
-              backgroundColor: 'var(--bg-secondary)',
-              color: 'var(--accent)',
-            }}
-          >
+    <div className="lib-recent-card">
+      <div className="lib-recent-title">{book.title}</div>
+      <div className="lib-recent-actions">
+        {statusShortcuts().map(({ label, to }) => (
+          <Link key={label} to={to} className="ss-btn ss-btn-sm ss-btn-secondary">
             {label}
           </Link>
         ))}

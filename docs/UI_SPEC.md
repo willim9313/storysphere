@@ -125,43 +125,59 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 
 ---
 
-### 3.1 首頁 `/`
+### 3.1 首頁 `/`（書庫 · DS v3 第 1 批）
 
-#### 版面結構
+`pages/LibraryPage.tsx`、`components/library/{BookCard,StatusBadge,RecentBookCard,libraryModel}`，樣式 `styles/library.css`（`lib-`）
+與 kit `.ss-bookcard*`／`.ss-badge*`。依 01 決議紀錄 A–F frame。
 
-```
-[Left Sidebar] [主內容區]
-                ├─ 最近開啟（橫向 3 張卡）
-                ├─ 分隔線
-                └─ 書庫（卡片 grid + filter）
-```
+#### 密度（C 入口，兩套）
 
-#### 最近開啟區塊
+| 狀態 | padding | section | card | row | max-w |
+|---|---|---|---|---|---|
+| 稀疏（預設） | 32 | 24 | 16 | 12 | 960 |
+| 滿載（`.lib-page-full`） | 24 | 16 | 12 | 8 | 1280 |
 
-> **待實作**：前端 conditional render 已存在（依 `lastOpenedAt` 篩選前 3 本），但後端目前未追蹤此欄位，section 永遠不會出現。需後端在用戶開啟書籍時寫入 `lastOpenedAt` 才會啟用。
+- 書卡＋處理中任務 **> 8 張**切滿載（`FULL_DENSITY_AFTER`），以全書庫計、不隨篩選變。只換間距、欄數與封面高（90／76），
+  書卡 anatomy、字級、圓角兩套相同。格線 `repeat(auto-fill, minmax(180px, 1fr))`。下內距一律 `--space-8`。
 
-- 顯示最近開啟的前 3 本書（依 `lastOpenedAt` 降序）
-- 每張卡片頂部有 3px accent bar
-- 依書籍 `status` 顯示不同快捷入口：
+#### 由上到下
 
-| status | 快捷入口 |
-|--------|---------|
-| `analyzed` | 繼續閱讀、知識圖譜、角色分析 |
-| `ready` | 開始閱讀、觸發分析 |
-| `processing` | 查看處理進度 |
-| `error` | 查看錯誤 |
+1. **標題「書庫」** serif 3xl ＋右側計數「{n} 本書 · {a} 已分析 · {r} 已就緒 · {e} 錯誤」（為 0 的狀態不列）。
+2. **人工閘門帶**（只在有 `awaiting_review` 的 ingestion 任務時）：標頭「等待章節審閱」＋accent 細線；每個任務一張卡——
+   BookOpen 40px 方塊、書名 serif base、「等待章節審閱」、primary「審閱章節 →」連 `/upload/review/:bookId?taskId=…`。
+   位在篩選列之上，獨立成帶。
+3. **最近開啟**（有 `lastOpenedAt` 的書才出現，前 3 本、新到舊）：`--bg-secondary` 卡、書名 serif sm、
+   依 `status` 的捷徑組（analyzed：繼續閱讀／知識圖譜／深度分析；ready：開始閱讀／觸發分析；error：查看錯誤），
+   全是導覽、都不帶 LLM 字符。`lastOpenedAt` 由 `BookLayout` 進書時 `POST /books/:id/opened` 寫入。
+4. **篩選 chip** 四顆單選：全部／已分析／已就緒／處理中。「處理中」是結構性空集合——`GET /books` 不含 ingest 中的書，
+   它只列 in-flight 任務；不 disable、不加 0 徽章。
+5. **書卡格線**：處理中任務（`GET /tasks` 共用輪詢，pending／running 的 ingestion）排最前，用 BookCard 處理中態——
+   warning badge「… 處理中」、旋轉 `loader`、透明度 0.78、`{stage} · {progress}%`、進度 > 0 才畫進度條、「查看進度 →」。
+   最後一格「上傳新書」虛線卡。
 
-#### 書庫區塊
+#### BookCard
 
-- 卡片 grid，`repeat(auto-fill, minmax(180px, 1fr))`
-- 每張卡片：書名、作者、status badge、章節數、實體數、最後開啟時間（**待實作**：同 lastOpenedAt，後端未寫入，目前不顯示）
-- 頂部 filter chip：全部 / 已分析 / 已就緒 / 處理中
-- 最後一格為「上傳新書」入口卡（dashed border）
-- 處理中的書顯示 2px 進度條 + 階段文字（取代一般卡片內容）
+- 封面 `--bg-secondary` 方塊＋accent `FileText`。整張卡是一個連結（標題連結 `::after` 撐滿）。
+- **StatusBadge** 三態色彩不變，加字符冗餘編碼：✓ 已分析、i 已就緒、✕ 錯誤（Ink 下 status 色都收成同一黑）。
+  `StatusBadge` 為共用元件，書籍總覽頁一併換新外觀。
+- **降級告警**：`failedSteps.join('、') + ' 不可用'`＋`AlertTriangle`、warning 底，位在 badge 之下、meta 之上。
+- **刪除兩段式**：hover／focus 才出現 28px 垃圾桶；點了只進確認態——error 底列「刪除？」＋danger「確認」＋ghost「取消」。
+  不是 modal、沒有 undo toast。
+- 卡上不再顯示最後開啟日期（稿上 anatomy 沒有）。
+
+#### 狀態
+
+- **載入**：骨架（標題塊、四顆 chip 塊、12 張卡塊），無微光動畫。
+- **空**（三種份量，`EmptyState`）：書庫為空＝`ready`（BookOpen 28、「書庫尚無書籍」、手寫字副標、primary「上傳新書」，無頁標題）；
+  「處理中」篩選為空＝`prerequisite`（upload 26、「沒有正在處理的上傳任務」／「這個篩選只列出正在處理的上傳任務。」、
+  accent 描邊「上傳新書」）；其他篩選為空＝`filtered`（「沒有{狀態}的書籍」＋「清除篩選」）。
+- **失敗**（`PageFailure`，pageName「書庫」，見 §4.6）：頁標題常駐；單頁失敗另給 secondary「上傳新書」與技術細節。
+  不做頂部橫幅、不承諾自動重試。
+- **刻意不做**：`pipelineStatus` 四階段進度化、作者行。
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#1（書庫列表）、#2-b（刪除書籍）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#1（書庫列表）、#2-b（刪除書籍）、`GET /tasks`、`POST /books/:id/opened`
 
 ---
 
