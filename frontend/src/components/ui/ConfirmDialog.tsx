@@ -10,6 +10,11 @@ interface ConfirmDialogProps {
    *  glyph on the execute button. Zero-cost confirms leave it off: the absence
    *  of the glyph is itself the "free" signal. */
   spendsTokens?: boolean;
+  /** Loss-list variant: what the action removes, itemised between the body
+   *  and the buttons. Nothing else about the dialog changes. */
+  items?: string[];
+  /** Destructive confirm — `.ss-btn-danger` instead of primary. */
+  danger?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -20,6 +25,8 @@ export function ConfirmDialog({
   message,
   confirmLabel,
   spendsTokens = false,
+  items,
+  danger = false,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -41,12 +48,19 @@ export function ConfirmDialog({
       <div className="ss-dialog-body">
         <h3 className="ss-dialog-title">{title}</h3>
         <p className="ss-dialog-text">{message}</p>
+        {items && items.length > 0 && (
+          <ul className="ss-dialog-list">
+            {items.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ul>
+        )}
         <div className="ss-dialog-actions">
           <button className="ss-btn ss-btn-md ss-btn-ghost" onClick={onCancel}>
             {t('cancel')}
           </button>
           <button
-            className={`ss-btn ss-btn-md ss-btn-primary${spendsTokens ? ' ss-btn-llm' : ''}`}
+            className={`ss-btn ss-btn-md ${danger ? 'ss-btn-danger' : 'ss-btn-primary'}${spendsTokens ? ' ss-btn-llm' : ''}`}
             onClick={onConfirm}
           >
             {confirmLabel ?? t('confirm')}

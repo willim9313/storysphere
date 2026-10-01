@@ -1946,8 +1946,9 @@ WebSocket 連線，含訊息列表 + 輸入框。
   內文仍要用文字寫明是否消耗 token——字符負責掃視、文字負責精確，兩者並存。
   現有呼叫端：建構概覽「觸發建構」、事件頁「覆蓋重新生成」與「一鍵生成全部 EEP」、
   敘事頁「LLM 精煉」帶字符；敘事頁「依 EEP 重新分類」不呼叫 LLM，不帶。
-- **未做**：規格卡的「損失清單」變體，目前沒有使用者。規格卡按鈕列左側那行
-  「會呼叫 LLM，消耗 token」是卡片註解，不是產品元素（2026-10-01 裁決），不做。
+- **損失清單版**（`items`）：body 與按鈕列之間插入一份清單（`.ss-dialog-list`，xs、左內距 `--space-7`），其餘不變。
+  破壞性動作另傳 `danger`，執行鈕改 `ss-btn-danger`（不帶字符）。使用者：上傳頁「終止處理」（DS v3 第 1 批）。
+- **未做**：規格卡按鈕列左側那行「會呼叫 LLM，消耗 token」是卡片註解，不是產品元素（2026-10-01 裁決），不做。
   張力頁的 `TensionRerunDialog` 是獨立元件，隨該頁批次再評估是否併入。
 
 ### 4.4 浮動軌（右下角位置契約 · DS v3）
@@ -2000,6 +2001,25 @@ WebSocket 連線，含訊息列表 + 輸入框。
 - **輪詢**：面板開啟 2000ms（`useTasksPolling`）、全域通知 4000ms（`useTaskNotifications`），共用 `qk.tasks.list()`。
 - **完成時間**：「{n} 分鐘前完成」以 `TaskStatus.finishedAt`（UTC，2026-10-01 新增）起算；欄位新增前就結束的任務沒有
   這個值，顯示「已完成」而不猜一個時間。`error` 原文、`stepKey`／`subProgress` 等欄位目前不顯示。
+
+### 4.6 PageFailure 與 EmptyState（狀態元件 · DS v3 第 1 批）
+
+`components/ui/PageFailure.tsx`、`components/ui/EmptyState.tsx`，樣式在 `styles/ss-kit.css` 的 `.ss-state*`。
+書庫、上傳、章節審閱共用，後續批次直接沿用。
+
+- **失敗分類**：`api/failureKind.ts` 的 `failureKind(err)`——判準是**回應有無應用層 JSON body**（`ApiError.hasBody`），
+  不看狀態碼。應用層自帶 JSON 的 4xx／5xx（含未設定 LLM 的 503）→ `page`；fetch 失敗或代理回的裸狀態碼 → `backend`。
+- **PageFailure**：只替換內容區，側欄與頁標題常駐；**不承諾自動重試**，只有「重試」。
+  - `page`：`alert-triangle` 26 error 色＋「無法載入{頁名}」／「其他分頁不受影響，導航仍可使用。」＋重試（primary）
+    ＋可選 `secondaryAction`。`title` 可覆寫標題（章節審閱送出失敗用「提交失敗，請稍後再試。」）。
+  - `backend`：`unplug` 26 `--illustration-stroke-soft`＋「伺服器沒有回應」／「後端無法連線，導航仍可使用。」＋重試。
+  - `techDetail`：可展開的「技術細節」，展開後顯示 mono 狀態碼（`techDetailOf(err)`）。
+  - {頁名}取側欄／麵包屑名，不取頁標題：書庫、上傳、章節審閱。
+- **EmptyState** 三種份量：
+  - `ready`：整頁舞台，28px 圖示、serif 2xl 700、`--space-6` 間距；`hand` 副標走 `--font-hand`——**全站唯一手寫字落點**
+    （書庫為空）。
+  - `prerequisite`：半頁，26px 圖示、serif lg 600、一句說明（max 52ch）。
+  - `filtered`：`--bg-secondary` 小框、無圖示、serif sm 600 secondary＋小按鈕；篩選列仍在。
 
 ---
 

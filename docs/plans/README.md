@@ -110,3 +110,4 @@
 | 2026-09-12 | [Chat 工具選擇：ADR-008 的 >85% 第一次被實測](./20260912-chat-tool-selection-baseline.md) |
 | 2026-09-13 | [全站風格統整 — 規劃與現況盤點](./20260913-design-system-unification.md) |
 | 2026-10-01 | [DS v3 第 0 批：基礎外框 + 共通控制項 + tokens —— 實作計畫](./20261001-ds-v3-batch0-foundation.md) |
+| 2026-10-01 | [DS v3 第 1 批：入口流程（書庫・上傳・章節審閱）—— 實作計畫](./20261001-ds-v3-batch1-entry.md) |
