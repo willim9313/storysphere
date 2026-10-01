@@ -6,6 +6,9 @@ import { queryClient } from '@/api/queryClient';
 import { AppRoot } from '@/components/AppRoot';
 import './i18n';
 import './styles/global.css';
+// After global.css on purpose: Tailwind preflight's `[type='button']` rule has
+// the same specificity as a kit class and would otherwise win on source order.
+import './styles/ss-kit.css';
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

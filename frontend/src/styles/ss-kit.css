@@ -1,0 +1,94 @@
+/* StorySphere UI kit（DS v3）—— 共用元件樣式，全部走 token。
+   來源：DS v3 handoff 的 tokens/ss-kit.css 與 ds-cards/preview 規格卡（衝突時以規格卡為準）。
+   只收已有使用者的元件；舊的 .btn / 各頁 *-btn 在遷移該元件時同一個 PR 拔掉（B-126）。
+
+   動態規則（motion-states 卡）：只過渡 color / background-color / opacity / box-shadow，
+   只用 ease；按下不縮放、不位移；hover 不長陰影。
+   注意 --transition-fast 本身已含 ease（150ms ease），不要再接一次 ease。 */
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.ss-btn {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  border-radius: var(--btn-radius); cursor: pointer;
+  font-family: var(--font-sans); font-weight: 500;
+  border: var(--btn-border-width) solid transparent;
+  box-shadow: var(--btn-shadow);
+  white-space: nowrap;
+  transition:
+    opacity var(--transition-fast),
+    background-color var(--transition-fast),
+    color var(--transition-fast);
+}
+.ss-btn-md { padding: var(--space-4) var(--space-6); font-size: var(--font-size-xs); }
+.ss-btn-sm { padding: var(--space-2) var(--space-5); font-size: var(--font-size-2xs); }
+
+/* accent 填色：hover 0.9 / active 0.95 */
+.ss-btn-primary { background: var(--accent); color: var(--accent-fg); }
+.ss-btn-primary:hover  { opacity: 0.9; }
+.ss-btn-primary:active { opacity: 0.95; }
+
+/* 面色元件：hover 降一階、active 再降一階 */
+.ss-btn-secondary {
+  background: var(--bg-primary); color: var(--fg-primary);
+  border-color: var(--border); border-style: var(--border-style);
+}
+.ss-btn-secondary:hover  { background: var(--bg-secondary); }
+.ss-btn-secondary:active { background: var(--bg-tertiary); }
+
+/* ghost：字轉 accent，active 同 hover */
+.ss-btn-ghost { background: transparent; color: var(--fg-secondary); }
+.ss-btn-ghost:hover,
+.ss-btn-ghost:active { color: var(--accent); }
+
+/* 破壞性動作（描邊式）；Ink 不靠色相，改 fg-primary 描邊 */
+.ss-btn-danger {
+  background: transparent; color: var(--color-error);
+  border-color: var(--color-error); border-style: var(--border-style);
+}
+.ss-btn-danger:hover { background: var(--color-error-bg); }
+[data-theme="ink"] .ss-btn-danger { color: var(--fg-primary); border-color: var(--fg-primary); }
+[data-theme="ink"] .ss-btn-danger:hover { background: var(--bg-tertiary); }
+
+/* ── LLM 成本字符 ─────────────────────────────────────────
+   凡會呼叫 LLM、消耗 token 的控制項都要帶。可組合，不是變體：
+     .ss-btn.ss-btn-md.ss-btn-primary.ss-btn-llm
+   字符由 ::before 以 mask 繪製、background 用 currentColor，markup 不放 SVG。
+   停用時仍在；零成本動作不加（沒有字符本身就是「免費」）。
+   按鈕外的載體用 <span class="ss-llm-glyph">。 */
+.ss-btn-llm::before {
+  content: ""; width: 14px; height: 14px; flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--ss-llm-glyph) no-repeat center / contain;
+  mask: var(--ss-llm-glyph) no-repeat center / contain;
+}
+.ss-llm-glyph {
+  display: inline-block; width: 12px; height: 12px; flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--ss-llm-glyph) no-repeat center / contain;
+  mask: var(--ss-llm-glyph) no-repeat center / contain;
+}
+
+/* ── Confirm dialog（components-dialog 卡）────────────────
+   單一遮罩、無模糊；440 寬、--space-7 內距、--space-6 間距。
+   按鈕列靠右：取消（ghost）→ 執行鈕。
+   規格卡的「按鈕列左側成本提示」目前不做：現有五個呼叫端的內文都已寫明是否消耗 token，
+   再放一條會重複。 */
+.ss-dialog {
+  width: 440px; max-width: calc(100vw - 32px);
+  padding: var(--space-7); margin: auto;
+  background: var(--bg-primary); color: var(--fg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-lg);
+}
+.ss-dialog::backdrop { background: var(--scrim); }
+.ss-dialog-body { display: flex; flex-direction: column; gap: var(--space-6); }
+.ss-dialog-title {
+  margin: 0; font-family: var(--font-sans);
+  font-size: var(--font-size-base); font-weight: 600;
+}
+.ss-dialog-text {
+  margin: 0; font-family: var(--font-sans);
+  font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary);
+}
+.ss-dialog-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); }

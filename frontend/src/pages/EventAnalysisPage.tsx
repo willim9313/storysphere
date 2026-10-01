@@ -631,6 +631,7 @@ export default function EventAnalysisPage() {
         open={confirmRegenerate}
         title={t('regenerateTitle')}
         message={t('regenerateMessage')}
+        spendsTokens
         onConfirm={() => {
           setConfirmRegenerate(false);
           // `mode: 'full'` already forces a re-analysis server-side and only
@@ -646,6 +647,7 @@ export default function EventAnalysisPage() {
         title={t('event.batchTitle')}
         message={t('event.batchMessage', { count: evtData?.unanalyzed.length ?? 0 })}
         confirmLabel={t('event.batchConfirm')}
+        spendsTokens
         onConfirm={() => {
           setConfirmBatchEep(false);
           batch.start(undefined);

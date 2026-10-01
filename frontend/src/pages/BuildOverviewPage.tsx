@@ -1071,7 +1071,7 @@ function NodeDetail({
             trigger.dropsDerived ? t('unraveling.cta.confirm.dropsDerived') : '',
           ].filter(Boolean).join(' ')}
           confirmLabel={t('unraveling.cta.confirm.start')}
-
+          spendsTokens
           onConfirm={() => void handleConfirm()}
           onCancel={() => setConfirmOpen(false)}
         />

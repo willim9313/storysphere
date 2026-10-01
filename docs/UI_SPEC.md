@@ -1911,6 +1911,23 @@ WebSocket 連線，含訊息列表 + 輸入框。
 
 第三點最常被漏掉，而漏掉的代價是使用者照著提示跑一次沒有用的分析、付了 token。
 
+### 4.3 ConfirmDialog（確認對話框 · DS v3）
+
+`components/ui/ConfirmDialog.tsx`，樣式在 `styles/ss-kit.css` 的 `.ss-dialog*`（components-dialog 規格卡）。
+
+- **外框**：原生 `<dialog>` + `showModal()`；440 寬（max `calc(100vw − 32px)`）、`--card-*` 形狀、`--shadow-lg`、
+  內距 `--space-7`、區塊間距 `--space-6`。
+- **遮罩**：`--scrim`（Warm `rgba(42,38,32,.40)`／Ink `rgba(0,0,0,.40)`），單一種、無模糊。
+- **內容**：標題 sans `--font-size-base` 600；內文 sans `--font-size-xs`、`--fg-secondary`、line-height 1.7。
+  無右上角 X——取消鈕與 Esc 即關閉途徑。
+- **按鈕列**：靠右，取消（`ss-btn-ghost`）→ 執行（`ss-btn-primary`）。
+- **`spendsTokens`**：執行動作會呼叫 LLM 時傳入，執行鈕帶 sparkles 字符（`ss-btn-llm`）。零成本的確認**不傳**。
+  內文仍要用文字寫明是否消耗 token——字符負責掃視、文字負責精確，兩者並存。
+  現有呼叫端：建構概覽「觸發建構」、事件頁「覆蓋重新生成」與「一鍵生成全部 EEP」、
+  敘事頁「LLM 精煉」帶字符；敘事頁「依 EEP 重新分類」不呼叫 LLM，不帶。
+- **未做**：規格卡的「損失清單」變體與按鈕列左側成本提示，目前沒有使用者。
+  張力頁的 `TensionRerunDialog` 是獨立元件，隨該頁批次再評估是否併入。
+
 ---
 
 ## 5. 跨頁面互動與資料連動
