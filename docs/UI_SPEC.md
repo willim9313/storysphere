@@ -58,7 +58,15 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 
 ### 2.1 全站層級（左側 Sidebar）
 
-固定在所有頁面左側，預設寬度 48px、icon-only（label 以原生 tooltip 提示）；頂部有釘選按鈕可展開為 180px（icon + 中文標籤，主內容區自動變窄），展開狀態記於 localStorage（`sidebar-expanded`）。底部有語言切換按鈕（Globe icon）。
+固定在所有頁面左側，三態（`Sidebar.tsx`，樣式 `.ss-sidebar*` / `.ss-rail-*` 於 `ss-kit.css`）：
+
+- **收合 48px**（預設）：icon-only，標籤由共用 `Tooltip`（`components/ui/Tooltip.tsx`，hover 400ms／鍵盤 focus 立即，朝右）提示。
+- **浮層 180px**：游標停在頂部收合鈕上約 200ms 展開，蓋在內容上、不推擠（`--shadow-lg`）；離開側欄、按 Esc 或點選任一項即收回。
+- **釘選 180px**：點頂部收合鈕（收合 → 釘選）；主內容區被推擠。再點一次（此時鈕為「收合側欄」）回到收合。釘選記於 localStorage（`sidebar-pinned`）；該 key 尚無值時沿用舊 key `sidebar-expanded`（舊 `true` → 釘選）。
+
+系統群由上而下：書庫、上傳、方法論、搜尋、任務中心、Token 用量，系統設定經 spacer 置底。任務中心是全側欄唯一的 `<button>`（開關右側任務面板），帶任務徽章：計數 = 狀態不是 `done`／`error` 的任務（含 `awaiting_review`），0 不顯示；收合態貼右上（top 1 / right 1），展開態垂直置中靠右（right 8）。
+
+**書籍層（路由 `/books/:bookId/*`）**：收合鈕下方多一組九格書籍功能（底 `--bg-tertiary`，順序同 §2.2）與 24px 分隔線，再接系統群。視窗高度 < 632px 時系統群除「書庫」外收進底部溢出選單（`…` 鈕），九格與書庫永遠可見（書庫是離開書籍的唯一出口）。
 
 | Icon | 目的地 | 路由 | 狀態 |
 |------|--------|------|------|
@@ -67,7 +75,7 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 | BookOpen | 方法論 | `/methodology` | 已實作（前身 `/frameworks`） |
 | Search | 全站搜尋 | `/search` | 已實作 |
 | BarChart3 | Token 用量 | `/token-usage` | 已實作 |
-| Settings | 設定 | `/settings` | 已實作 |
+| SlidersHorizontal | 設定 | `/settings` | 已實作 |
 | Globe（底部）| 語言切換（zh-TW ↔ EN） | — | 已實作 |
 
 ### 2.2 書籍層級（Top Nav Tab）

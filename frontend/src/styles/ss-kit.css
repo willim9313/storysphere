@@ -271,3 +271,94 @@
 .ss-task-trail { display: flex; justify-content: center; margin-top: var(--space-2); color: var(--fg-muted); }
 .ss-task-trail svg { flex: none; opacity: 0; transition: opacity var(--transition-fast); }
 .ss-task-row-nav:hover .ss-task-trail svg { opacity: 1; }
+
+/* ── Rail / Sidebar（0-6；LibraryRail + components-tooltip 卡）────────────
+   三態：收合 48（預設）／浮層 180（蓋在內容上、不推擠、--shadow-lg）／釘選 180（推擠）。
+   slot 在版面裡佔位（48 或 180），nav 以絕對定位填滿它——浮層時 nav 長到 180 但 slot
+   仍是 48，所以不推擠。只過渡 color / background-color，寬度不做過渡。
+   36px 命中區、10px 圖示間距／左內距、徽章 15／1.5／9 是元件固有尺寸，不進 8 階。 */
+.ss-sidebar-slot { position: relative; flex-shrink: 0; width: 48px; }
+.ss-sidebar-slot[data-mode="pinned"] { width: 180px; }
+
+.ss-sidebar {
+  position: absolute; top: 0; bottom: 0; left: 0; width: 100%;
+  display: flex; flex-direction: column; align-items: center;
+  padding: var(--space-5) 0; gap: var(--space-2);
+  background: var(--bg-secondary);
+  border-right: var(--line-weight) var(--border-style) var(--border);
+}
+.ss-sidebar[data-expanded="true"] { align-items: stretch; padding: var(--space-5) var(--space-4); }
+.ss-sidebar[data-mode="overlay"] { width: 180px; z-index: 45; box-shadow: var(--shadow-lg); }
+.ss-sidebar-spacer { flex: 1; }
+
+.ss-rail-item {
+  position: relative; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; padding: 0;
+  border: 0; border-radius: var(--radius-md);
+  background: transparent; color: var(--fg-secondary);
+  font-family: var(--font-sans); font-size: var(--font-size-sm);
+  text-decoration: none; cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.ss-rail-item:hover { background: var(--bg-tertiary); }
+.ss-rail-item.is-active { background: var(--bg-tertiary); color: var(--accent); }
+.ss-rail-item:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+.ss-rail-item-row { width: 100%; justify-content: flex-start; padding-left: 10px; gap: 10px; }
+.ss-rail-icon { flex-shrink: 0; }
+.ss-rail-label { white-space: nowrap; overflow: hidden; }
+/* Tooltip 的包裹層：不能破壞側欄的置中／stretch 排列 */
+.ss-tooltip-anchor { display: inline-flex; }
+
+/* 書籍群：底色與格子同為 bg-tertiary，hover／active 改用上一階，否則看不出來 */
+.ss-rail-book {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  padding: var(--space-2); margin: var(--space-3) 0;
+  background: var(--bg-tertiary); border-radius: var(--radius-md);
+}
+.ss-sidebar[data-expanded="true"] .ss-rail-book { align-items: stretch; }
+.ss-rail-book .ss-rail-item:hover,
+.ss-rail-book .ss-rail-item.is-active { background: var(--bg-secondary); }
+.ss-rail-divider {
+  align-self: center; flex-shrink: 0;
+  width: 24px; height: var(--line-weight); margin: var(--space-2) 0;
+  background: var(--border);
+}
+
+/* 任務徽章：外圈 = 側欄底色（挖空不是描邊）。收合 top 1 / right 1；列形態垂直置中靠右 */
+.ss-rail-badge {
+  position: absolute; top: 1px; right: 1px;
+  box-sizing: content-box; min-width: 15px; height: 15px; padding: 0 3px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1.5px solid var(--bg-secondary); border-radius: 8px;
+  background: var(--accent); color: var(--accent-fg);
+  font-family: var(--font-mono); font-size: 9px; font-weight: 700; line-height: 1;
+}
+.ss-rail-item-row .ss-rail-badge { top: 50%; right: 8px; transform: translateY(-50%); }
+
+/* 矮視窗（高 < 632px）溢出選單：系統群除書庫外收進這裡 */
+.ss-rail-more { position: relative; display: flex; justify-content: center; }
+.ss-sidebar[data-expanded="true"] .ss-rail-more { display: block; }
+.ss-rail-menu {
+  position: absolute; bottom: 0; left: calc(100% + var(--space-4)); z-index: 45;
+  min-width: 160px; display: flex; flex-direction: column; gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--bg-secondary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius); box-shadow: var(--shadow-lg);
+}
+.ss-rail-menu .ss-rail-badge { border-color: var(--bg-secondary); }
+
+/* Tooltip（components-tooltip 卡）：反相小籤、無動畫、不攔截滑鼠。
+   最寬 240 可換行；rail 標籤加 -nowrap 不換行。位置由元件以 fixed 座標給。 */
+.ss-tooltip {
+  position: fixed; z-index: 70; max-width: 240px; pointer-events: none;
+  padding: var(--space-2) var(--space-4);
+  background: var(--fg-primary); color: var(--bg-primary);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); line-height: 1.5;
+  border-radius: var(--radius-sm);
+}
+.ss-tooltip-nowrap { white-space: nowrap; max-width: none; }
