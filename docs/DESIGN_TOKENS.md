@@ -95,7 +95,7 @@
 | `--font-serif` | `'Spectral', 'Noto Serif TC', Georgia, serif` | 內容本身：書名、章名、正文、頁面標題 |
 | `--font-sans` | `'DM Sans', 'Noto Sans TC', system-ui, sans-serif` | chrome：按鈕、meta、badge、nav |
 | `--font-hand` | `'Caveat', 'Noto Serif TC', cursive` | **僅限插畫語彙**（doodle 標註、empty-state 說明、splash 花飾）；禁用於 chrome 與正文 |
-| `--font-mono` | `'Fira Code', 'Courier New', monospace` | log、key、code |
+| `--font-mono` | `'Fira Code', 'Noto Sans TC', 'Courier New', monospace` | log、key、code（Noto Sans TC 讓 mono 內的中文不退回系統字） |
 | `--font-cjk` | `'Noto Sans TC', sans-serif` | CJK fallback |
 
 判準：一個東西**是**內容 → serif；**關於**內容 → sans。
@@ -275,8 +275,14 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--pill-border-width` | `0.5px` | `1px` | pill 外框 |
 | `--badge-radius` | `20px` | `4px` | status badge |
 | `--control-radius` | `var(--radius-md)` | `var(--radius-sm)` | input、toggle、select |
+| `--input-radius` | `var(--control-radius)` | `var(--control-radius)` | 文字框、搜尋、select 共用的框 |
+| `--input-border-width` | `1px` | `1.5px` | 同上 |
+| `--input-bg` | `var(--bg-primary)` | `var(--bg-primary)` | 同上 |
 
-兩主題需要進一步分化時在此層加 token（如 `--tab-radius`、`--input-border-width`），保持 palette 層與 shape 層分離。
+兩主題需要進一步分化時在此層加 token（如 `--tab-radius`），保持 palette 層與 shape 層分離。
+
+> `--input-radius` / `--input-bg` 在 Ink 區塊**必須重新宣告**：`var()` 在宣告處解析，
+> 只寫在 `:root` 會把 Warm 的值凍結進 Ink。
 
 ### 3.16 插畫語彙（Illustration）
 
@@ -306,10 +312,19 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--timeline-parallel-bg/-border` | `rgba(158,97,129,0.06)` / `rgba(158,97,129,0.3)` | `rgba(0,0,0,0.02)` / `rgba(0,0,0,0.12)` |
 | `--timeline-causal-stroke` | `#b05a34` | `#151515` |
 | `--timeline-selected-ring` | `rgba(176,90,52,0.3)` | `rgba(0,0,0,0.2)` |
-| `--splash-image-opacity` | `0.62` | `0.70` |
-| `--splash-image-filter` | `sepia(0.10) contrast(0.98)` | `grayscale(1) brightness(1.06) contrast(1.05)` |
+| `--splash-image-opacity` | `0.42` | `0.28` |
+| `--splash-image-filter` | `sepia(0.15) contrast(1.05)` | `grayscale(1) contrast(1.3)` |
 
-> Splash 兩 token 的值以設計 canvas（Claude Design 專案 `splash/splash.css` 的 per-theme fade tuning）為準；該專案 `colors_and_type.css` 內殘留的舊值（0.22 / 0.10）為未同步殘骸，不作依據。
+> Splash 兩 token 的值以 DS v3 design system 的 `colors_and_type.css` 為準（2026-10-01 裁決，B-126）。
+> 17 稿決議紀錄另寫 0.22 / 0.10，兩者取較濃者。
+
+### 3.17.1 LLM 成本字符
+
+| Token | 值 | 作用對象 |
+|-------|-----|---------|
+| `--ss-llm-glyph` | Lucide `sparkles` 的 SVG data URI（兩主題共用） | 任何會消耗 token 的控制項；以 `mask` 繪製、`background: currentColor` 上色 |
+
+一頁只用一種字形。零成本動作不加——沒有字符本身就是「免費」的標記。
 
 ### 3.18 原始尺度（Primitive scales）
 
@@ -317,7 +332,21 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 請走 §3.15 的 shape token（`--card-radius`、`--card-shadow` 等），本節是它們的底層來源。
 間距與過場則直接使用。
 
-**間距（跨主題共用）**
+**間距（跨主題共用）—— DS v3 八階**
+
+| Token | 值 | px |
+|-------|-----|-----|
+| `--space-1` | `0.125rem` | 2px |
+| `--space-2` | `0.25rem` | 4px |
+| `--space-3` | `0.375rem` | 6px |
+| `--space-4` | `0.5rem` | 8px |
+| `--space-5` | `0.75rem` | 12px |
+| `--space-6` | `1rem` | 16px |
+| `--space-7` | `1.5rem` | 24px |
+| `--space-8` | `2rem` | 32px |
+
+**舊間距（legacy，新程式碼不要用）**：各頁隨 DS v3 重寫遷移，遷完後移除。
+名稱與新階**不對應**（例如 `--space-sm` 是 8px，不是 `--space-2` 的 4px），不可直接改名替換。
 
 | Token | 值 | px |
 |-------|-----|-----|
