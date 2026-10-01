@@ -1,77 +1,33 @@
-import { AlertTriangle, Check, Info, X, XCircle } from 'lucide-react';
+import { Check, Info, TriangleAlert, X } from 'lucide-react';
 import { useToast, useToastState, type Toast, type ToastType } from '@/contexts/ToastContext';
 
+// Status is encoded twice — disc colour AND glyph shape — so Ink, where every
+// status collapses to one ink, still reads. error shares warning's triangle:
+// the components-toast spec card draws three shapes, not four.
 const ICONS: Record<ToastType, typeof Check> = {
   success: Check,
-  warning: AlertTriangle,
-  error: XCircle,
+  warning: TriangleAlert,
+  error: TriangleAlert,
   info: Info,
 };
 
 function ToastRow({ toast, onDismiss }: Readonly<{ toast: Toast; onDismiss: (id: number) => void }>) {
   const Icon = ICONS[toast.type];
-  const fg = `var(--color-${toast.type})`;
-  const bg = `var(--color-${toast.type}-bg)`;
   return (
-    <div
-      className="toast-row"
-      style={{
-        width: '100%',
-        display: 'flex',
-        gap: 11,
-        alignItems: 'flex-start',
-        padding: '13px 14px',
-        background: 'var(--bg-primary)',
-        border: '1px solid var(--border)',
-        borderLeft: `3px solid ${fg}`,
-        borderRadius: 'var(--card-radius)',
-        boxShadow: 'var(--shadow-lg)',
-      }}
-    >
-      <span
-        style={{
-          flex: 'none',
-          width: 26,
-          height: 26,
-          borderRadius: '50%',
-          display: 'grid',
-          placeItems: 'center',
-          background: bg,
-          color: fg,
-        }}
-      >
-        <Icon size={15} strokeWidth={2.1} />
+    <div className="ss-toast">
+      <span className={`ss-toast-disc ss-toast-disc-${toast.type}`}>
+        <Icon size={15} strokeWidth={2} />
       </span>
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ font: '600 13px/1.4 var(--font-sans)', color: 'var(--fg-primary)' }}>
-          {toast.title}
-        </div>
-        {toast.body && (
-          <div
-            style={{
-              font: '400 12px/1.5 var(--font-sans)',
-              color: 'var(--fg-secondary)',
-              marginTop: 2,
-            }}
-          >
-            {toast.body}
-          </div>
-        )}
+      <div className="ss-toast-main">
+        <div className="ss-toast-title">{toast.title}</div>
+        {toast.body && <div className="ss-toast-body">{toast.body}</div>}
         {toast.action && (
           <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-secondary ss-toast-action"
             onClick={() => {
               toast.action?.onClick();
               onDismiss(toast.id);
-            }}
-            style={{
-              marginTop: 9,
-              font: '600 12px/1 var(--font-sans)',
-              color: fg,
-              background: 'transparent',
-              border: `1px solid ${fg}`,
-              borderRadius: 'var(--btn-radius)',
-              padding: '6px 11px',
-              cursor: 'pointer',
             }}
           >
             {toast.action.label} →
@@ -79,17 +35,10 @@ function ToastRow({ toast, onDismiss }: Readonly<{ toast: Toast; onDismiss: (id:
         )}
       </div>
       <button
+        type="button"
+        className="ss-toast-close"
         onClick={() => onDismiss(toast.id)}
         aria-label="關閉"
-        style={{
-          flex: 'none',
-          border: 'none',
-          background: 'transparent',
-          color: 'var(--fg-muted)',
-          cursor: 'pointer',
-          padding: 2,
-          lineHeight: 0,
-        }}
       >
         <X size={15} />
       </button>
@@ -111,7 +60,7 @@ export function ToastHost() {
         zIndex: 60,
         display: 'flex',
         flexDirection: 'column',
-        gap: 10,
+        gap: 'var(--space-5)',
         width: 340,
         alignItems: 'flex-end',
         pointerEvents: 'none',

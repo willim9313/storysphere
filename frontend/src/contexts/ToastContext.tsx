@@ -25,6 +25,10 @@ export interface Toast {
    *  first is still visible. Used by task-transition notifications so one task
    *  reaching `done` can't stack duplicate toasts across polls. */
   dedupeKey?: string;
+  /** Never auto-dismiss — only the close button removes it. For a result the
+   *  reader must not miss, e.g. a batch run that had failures (its list lives
+   *  in the page's persistent panel; the toast only says how many). */
+  persist?: boolean;
 }
 
 export interface PushToastInput {
@@ -33,10 +37,11 @@ export interface PushToastInput {
   body?: string;
   action?: ToastAction;
   dedupeKey?: string;
+  persist?: boolean;
 }
 
 /** Auto-dismiss delays (ms). Toasts with an action linger longer so the user
- *  has time to click through. Mirrors the design prototype (5.2s / 9s). */
+ *  has time to click through. Three lifetimes: 5.2s / 9s / persist. */
 const DISMISS_MS = 5200;
 const DISMISS_WITH_ACTION_MS = 9000;
 
@@ -73,6 +78,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       const id = seqRef.current++;
       if (input.dedupeKey) liveKeysRef.current.add(input.dedupeKey);
       setToasts((prev) => [...prev, { ...input, id }]);
+      if (input.persist) return;
       const delay = input.action ? DISMISS_WITH_ACTION_MS : DISMISS_MS;
       const timer = setTimeout(() => dismiss(id), delay);
       timersRef.current.set(id, timer);

@@ -8,12 +8,11 @@ import {
   AlertTriangle,
   GitCompare,
   ArrowLeft,
-  Check,
-  X,
 } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import '@/styles/character-analysis.css';
 import { useChatDispatch } from '@/contexts/ChatContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
@@ -61,6 +60,7 @@ export default function CharacterAnalysisPage() {
   const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t } = useTranslation('analysis');
+  const { push } = useToast();
   const { t: tc } = useTranslation('common');
 
   const location = useLocation();
@@ -87,7 +87,6 @@ export default function CharacterAnalysisPage() {
   // #11 tiered batch: 'top10' analyzes the top-10-by-mentionCount unanalyzed
   // characters (entityIds subset), 'all' analyzes everything unanalyzed.
   const [batchMode, setBatchMode] = useState<'top10' | 'all' | null>(null);
-  const [toastVisible, setToastVisible] = useState(false);
 
   useEffect(() => {
     if (book) setPageContext({ page: 'analysis', bookId, bookTitle: book.title, analysisTab: 'characters' });
@@ -183,19 +182,28 @@ export default function CharacterAnalysisPage() {
   const batch = useBatchTask<string[]>({
     trigger: (entityIds) => triggerBatchEntityAnalysis(bookId!, entityIds),
     onProgress: refreshCast,
-    onDone: () => {
+    onDone: (summary) => {
       refreshCast();
-      setToastVisible(true);
+      if (!summary) return;
+      // Same split as the events page (DS v3 · 17 決議 T4): the toast only says
+      // how many failed and persists; the named list stays in the left-column
+      // panel below, which survives until dismissed.
+      const hasFailures = (summary.failures?.length ?? 0) > 0;
+      push({
+        type: hasFailures ? 'warning' : 'success',
+        title: t('character.batch.toastTitle'),
+        body: t('character.batch.toastBody', {
+          generated: summary.progress - summary.skipped - summary.failed,
+          skipped: summary.skipped,
+          failed: summary.failed,
+        }),
+        persist: hasFailures,
+      });
     },
     failureMessage: t('character.batch.triggerFailed'),
   });
 
-  useEffect(() => {
-    if (!toastVisible) return;
-    if ((batch.summary?.failures?.length ?? 0) > 0) return;
-    const timer = setTimeout(() => setToastVisible(false), 5000);
-    return () => clearTimeout(timer);
-  }, [toastVisible, batch.summary]);
+  const batchFailures = !batch.running ? (batch.summary?.failures ?? []) : [];
 
   const selectedAnalyzed = charData?.analyzed.find((a) => a.entityId === selectedEntityId);
   const selectedUnanalyzed = charData?.unanalyzed.find((u) => u.id === selectedEntityId);
@@ -318,6 +326,19 @@ export default function CharacterAnalysisPage() {
       <div className="ca-body">
         {/* ── Left panel ── */}
         <aside className="ca-left">
+          {/* Persistent home for a batch run's failure list — a toast that can
+              vanish must not be the only place "which ones?" is answered. */}
+          {batchFailures.length > 0 && (
+            <div className="ea-batch">
+              <p className="ea-batch-hint row">
+                <span>{t('character.batch.toastTitle')}</span>
+                <button type="button" className="dismiss" onClick={batch.dismiss}>
+                  {t('character.batch.toastClose')}
+                </button>
+              </p>
+              <BatchFailureList failures={batchFailures} />
+            </div>
+          )}
           <div className="ca-left-section">
             <p className="ca-left-section-label">{t('character.list.frameworkLabel')}</p>
             <div className="ca-fw-chips">
@@ -624,39 +645,6 @@ export default function CharacterAnalysisPage() {
               </div>
             )}
           </div>
-
-          {/* Batch completion toast */}
-          {toastVisible && batch.summary && (
-            <div className="ca-toast" role="status">
-              <div className="ca-toast-icon">
-                <Check size={18} strokeWidth={2.2} />
-              </div>
-              <div className="ca-toast-main">
-                <div className="ca-toast-title">{t('character.batch.toastTitle')}</div>
-                <div className="ca-toast-body">
-                  {t('character.batch.toastBody', {
-                    generated:
-                      batch.summary.progress - batch.summary.skipped - batch.summary.failed,
-                    skipped: batch.summary.skipped,
-                    failed: batch.summary.failed,
-                  })}
-                </div>
-                {/* The character page has no persistent batch panel — only this
-                    toast — so the list lives here despite the toast being
-                    dismissible. Closing it is the reader's own choice, unlike
-                    the events page where a panel keeps the answer on screen. */}
-                <BatchFailureList failures={batch.summary.failures ?? []} />
-              </div>
-              <button
-                type="button"
-                className="ca-toast-close"
-                onClick={() => setToastVisible(false)}
-                aria-label={t('character.batch.toastClose')}
-              >
-                <X size={12} />
-              </button>
-            </div>
-          )}
 
           {/* Compare drawers overlay content area only; page-level drawerOpen
               guarantees only one of the two is ever open at once. */}
