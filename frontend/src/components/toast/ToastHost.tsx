@@ -1,5 +1,6 @@
 import { Check, Info, TriangleAlert, X } from 'lucide-react';
-import { useToast, useToastState, type Toast, type ToastType } from '@/contexts/ToastContext';
+import { useToast, useToastAnchor, useToastState, type Toast, type ToastType } from '@/contexts/ToastContext';
+import { RAIL } from '@/contexts/FloatRailContext';
 
 // Status is encoded twice — disc colour AND glyph shape — so Ink, where every
 // status collapses to one ink, still reads. error shares warning's triangle:
@@ -49,19 +50,20 @@ function ToastRow({ toast, onDismiss }: Readonly<{ toast: Toast; onDismiss: (id:
 export function ToastHost() {
   const toasts = useToastState();
   const { dismiss } = useToast();
+  const bottom = useToastAnchor();
   if (toasts.length === 0) return null;
 
   return (
     <div
       style={{
         position: 'fixed',
-        right: 24,
-        bottom: 24,
-        zIndex: 60,
+        right: RAIL.right,
+        bottom,
+        zIndex: RAIL.z.toast,
         display: 'flex',
         flexDirection: 'column',
         gap: 'var(--space-5)',
-        width: 340,
+        width: RAIL.width,
         alignItems: 'flex-end',
         pointerEvents: 'none',
       }}

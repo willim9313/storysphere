@@ -1,5 +1,6 @@
 import { MessageCircle, X } from 'lucide-react';
 import type { MouseEvent } from 'react';
+import { RAIL } from '@/contexts/FloatRailContext';
 
 interface ChatBubbleProps {
   readonly isOpen: boolean;
@@ -24,7 +25,7 @@ export function ChatBubble({ isOpen, onToggle, pos, isDragging, onDragMouseDown,
         position: 'fixed',
         left: pos.x,
         top: pos.y,
-        zIndex: 50,
+        zIndex: RAIL.z.bubble,
         width: 48,
         height: 48,
         borderRadius: '50%',

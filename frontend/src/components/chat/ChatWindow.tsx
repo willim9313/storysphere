@@ -3,6 +3,7 @@ import { SquarePen } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MouseEvent } from 'react';
 import type { PageContext } from '@/contexts/ChatContext';
+import { RAIL } from '@/contexts/FloatRailContext';
 import type { UseWebSocketChatReturn } from '@/hooks/useWebSocketChat';
 import { ChatMessage } from './ChatMessage';
 import { ChatInput } from './ChatInput';
@@ -142,7 +143,7 @@ export function ChatWindow({
         position: 'fixed',
         left: pos.x,
         top: pos.y,
-        zIndex: 51,
+        zIndex: RAIL.z.window,
         width: WINDOW_WIDTH,
         height: WINDOW_HEIGHT,
         maxWidth: 'calc(100vw - 16px)',
