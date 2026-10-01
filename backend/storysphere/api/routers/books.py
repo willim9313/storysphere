@@ -138,6 +138,7 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
             chapter_count=item.chapter_count,
             entity_count=len(entities),
             uploaded_at="",
+            last_opened_at=item.last_opened_at,
             pipeline_status=_pipeline_status_response_from_domain(ps),
         ).model_dump(by_alias=True)
         for item, entities, ps in zip(settled, entity_lists, pipeline_statuses, strict=False)
@@ -184,8 +185,19 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         uploaded_at=(
             document.processed_at.isoformat() if document.processed_at else now_iso()
         ),
+        last_opened_at=document.last_opened_at,
         pipeline_status=_pipeline_status_response_from_domain(document.pipeline_status),
     ).model_dump(by_alias=True)
+
+
+# ── #2-c POST /books/:bookId/opened ──────────────────────────────────────────
+
+
+@router.post("/{book_id}/opened", status_code=204)
+async def mark_book_opened(book_id: str, doc: DocServiceDep) -> None:
+    """Stamp ``lastOpenedAt``. Called by the frontend once when a book route is entered."""
+    if not await doc.mark_opened(book_id):
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
 
 # ── #2-b DELETE /books/:bookId ───────────────────────────────────────────────

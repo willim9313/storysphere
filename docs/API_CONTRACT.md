@@ -83,7 +83,7 @@ interface Book {
   chapterCount: number;    // 只計 body 章；序/目次/後記不計入（與閱讀頁章節列表一致）
   entityCount?: number;
   uploadedAt: string;
-  lastOpenedAt?: string;   // 後端尚未實作寫入，目前永遠為 undefined
+  lastOpenedAt?: string;   // UTC ISO-8601（結尾 Z），由 #2-c 寫入；從未開啟則為 null。#1 / #2-a / #3 皆回傳
   pipelineStatus: PipelineStatus;
 }
 ```
@@ -101,6 +101,20 @@ interface Book {
 **Response 404**：書籍不存在
 
 **UI 使用頁面**：閱讀頁、知識圖譜頁（取書名、status 顯示用）
+
+---
+
+### #2-c POST /books/:bookId/opened
+
+蓋「最近開啟」時戳（`documents.last_opened_at`，UTC `YYYY-MM-DDTHH:MM:SSZ`）。
+前端進入任一書籍路由（`BookLayout`，依 `bookId`）時呼叫一次，fire-and-forget、失敗不提示；
+成功後前端 invalidate 書庫列表 query。GET 端點不會寫入此欄位。
+
+**Response 204**：成功，無 body
+
+**Response 404**：書籍不存在，`{ "detail": "Book '...' not found" }`
+
+**UI 使用頁面**：首頁「最近開啟」列（讀 `lastOpenedAt`）；寫入端為 `BookLayout`
 
 ---
 
@@ -2898,6 +2912,6 @@ response schema 與測試檔。
   - 2026-08-12：#21k 的 `representative_event_ids` 改為讀取時推導（response schema 不變，欄位早已存在）。詳見 #21k 段落。
   - 2026-08-12：#21a 新增 409（分類會抹除既有分類時拒絕啟動），service 層同步加守衛。詳見 #21a 段落。
   - 2026-08-12：#21l 核可時一併寫入 `classification_source='human_verified'`（撤回核可時由事件來源還原）。詳見 #21l 段落。
-- [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
+- [x] **#2-a / #3 lastOpenedAt**：`POST /books/:bookId/opened`（#2-c）寫入，#1 / #2-a / #3 回傳 `lastOpenedAt`
 - [x] **#23a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

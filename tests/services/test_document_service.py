@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
+from sqlalchemy import text as sa_text
+from sqlalchemy.ext.asyncio import create_async_engine
 from storysphere.domain.documents import (
     Chapter,
     ChapterRole,
@@ -251,3 +255,59 @@ class TestDocumentServiceIdempotency:
 
         docs = await service.list_documents()
         assert len(docs) == 1
+
+
+class TestDocumentServiceLastOpened:
+    @pytest.mark.asyncio
+    async def test_never_opened_is_none(self, service):
+        doc = _make_document()
+        await service.save_document(doc)
+        assert (await service.get_document(doc.id)).last_opened_at is None
+        assert (await service.list_documents())[0].last_opened_at is None
+
+    @pytest.mark.asyncio
+    async def test_mark_opened_is_returned_by_get_and_list(self, service):
+        doc = _make_document()
+        await service.save_document(doc)
+        assert await service.mark_opened(doc.id) is True
+        stamp = (await service.get_document(doc.id)).last_opened_at
+        assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", stamp)
+        assert (await service.list_documents())[0].last_opened_at == stamp
+
+    @pytest.mark.asyncio
+    async def test_mark_opened_unknown_document_returns_false(self, service):
+        assert await service.mark_opened("no-such-doc") is False
+
+    @pytest.mark.asyncio
+    async def test_resaving_document_keeps_last_opened_at(self, service):
+        doc = _make_document()
+        await service.save_document(doc)
+        await service.mark_opened(doc.id)
+        stamp = (await service.get_document(doc.id)).last_opened_at
+        await service.save_document(doc)
+        assert (await service.get_document(doc.id)).last_opened_at == stamp
+
+    @pytest.mark.asyncio
+    async def test_init_db_adds_column_to_old_schema(self, tmp_path):
+        url = f"sqlite+aiosqlite:///{tmp_path}/old.db"
+        engine = create_async_engine(url)
+        async with engine.begin() as conn:
+            await conn.execute(
+                sa_text(
+                    "CREATE TABLE documents (id TEXT PRIMARY KEY, title TEXT NOT NULL, "
+                    "author TEXT, file_path TEXT NOT NULL, file_type TEXT NOT NULL, "
+                    "processed_at TEXT, summary TEXT, keywords_json TEXT)"
+                )
+            )
+            await conn.execute(
+                sa_text(
+                    "INSERT INTO documents (id, title, file_path, file_type) "
+                    "VALUES ('old-1', 'Old', '/x.pdf', 'pdf')"
+                )
+            )
+        await engine.dispose()
+
+        svc = DocumentService(database_url=url)
+        await svc.init_db()
+        assert await svc.mark_opened("old-1") is True
+        assert (await svc.list_documents())[0].last_opened_at is not None
