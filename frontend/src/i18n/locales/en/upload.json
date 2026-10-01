@@ -140,5 +140,12 @@
   "queueTitle": "Upload queue · fill in one by one",
   "queueWaiting": "Waiting to upload",
   "langDetected": "Auto-detected: {{lang}} · editable",
-  "retry": "Retry · keeps title/author, just re-pick the file"
+  "retry": "Retry · keeps title/author, just re-pick the file",
+  "terminate": {
+    "title": "Stop processing \"{{title}}\"?",
+    "message": "The following will be removed and cannot be undone.",
+    "itemTask": "The current processing task",
+    "itemBook": "This book in the library (if already created)",
+    "confirm": "Stop processing"
+  }
 }
