@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { SquarePen } from 'lucide-react';
+import { Microscope, Network, ScrollText, SquarePen, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MouseEvent } from 'react';
 import type { PageContext } from '@/contexts/ChatContext';
@@ -23,31 +23,30 @@ interface ChatWindowProps {
   onDragMouseDown: (e: MouseEvent) => void;
 }
 
+// timeline／other 沒有圖示，維持沒有
+const CONTEXT_ICONS: Partial<Record<PageContext['page'], LucideIcon>> = {
+  reader: ScrollText,
+  graph: Network,
+  analysis: Microscope,
+};
+
 function ContextBadge({ pageContext }: { pageContext: PageContext }) {
   const { page, bookTitle, chapterTitle, selectedEntity } = pageContext;
   if (page === 'library') return null;
 
-  const icons: Record<string, string> = { reader: '📖', graph: '🔗', analysis: '🔬' };
-  const parts = [icons[page] ?? '', bookTitle].filter(Boolean);
+  const Icon = CONTEXT_ICONS[page];
+  const parts = [bookTitle].filter(Boolean);
   if (chapterTitle) parts.push(chapterTitle);
   if (selectedEntity) parts.push(selectedEntity.name);
 
   return (
-    <span
-      style={{
-        fontSize: 'var(--font-size-xs)',
-        color: 'var(--fg-muted)',
-        background: 'var(--bg-secondary)',
-        padding: '2px 8px',
-        borderRadius: 12,
-        whiteSpace: 'nowrap',
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        maxWidth: 260,
-        display: 'inline-block',
-      }}
-    >
-      {parts.join(' · ')}
+    <span className="ss-chat-context">
+      {Icon && (
+        <span className="ss-chat-context-icon">
+          <Icon size={13} />
+        </span>
+      )}
+      <span className="ss-chat-context-text">{parts.join(' · ')}</span>
     </span>
   );
 }
@@ -56,35 +55,14 @@ function NewChatConfirm({ onConfirm, onCancel }: { onConfirm: () => void; onCanc
   const { t } = useTranslation('chat');
   const { t: tc } = useTranslation('common');
   return (
-    <div
-      style={{
-        position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-        background: 'rgba(0,0,0,0.3)', zIndex: 10,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        borderRadius: 'var(--radius-xl)',
-      }}
-    >
-      <div
-        style={{
-          background: 'var(--bg-primary)', border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-lg)', padding: '20px 24px',
-          boxShadow: 'var(--shadow-lg)', maxWidth: 280, textAlign: 'center',
-        }}
-      >
-        <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--fg-primary)', fontFamily: 'var(--font-sans)', marginBottom: 16 }}>
-          {t('newChatConfirm')}
-        </p>
-        <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
-          <button
-            onClick={onCancel}
-            style={{ padding: '6px 16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border)', background: 'var(--bg-secondary)', color: 'var(--fg-secondary)', fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}
-          >
+    <div className="ss-chat-overlay">
+      <div className="ss-chat-confirm">
+        <p className="ss-chat-confirm-text">{t('newChatConfirm')}</p>
+        <div className="ss-chat-confirm-actions">
+          <button className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onCancel}>
             {tc('cancel')}
           </button>
-          <button
-            onClick={onConfirm}
-            style={{ padding: '6px 16px', borderRadius: 'var(--radius-md)', border: 'none', background: 'var(--accent)', color: 'white', fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-sans)', cursor: 'pointer' }}
-          >
+          <button className="ss-btn ss-btn-sm ss-btn-primary" onClick={onConfirm}>
             {tc('confirm')}
           </button>
         </div>
@@ -109,15 +87,18 @@ export function ChatWindow({
 
   const entityName = pageContext.selectedEntity?.name;
 
+  // timeline／other 沒有專屬建議，沿用 graph 無選中實體那組
+  const fallbackPrompts = () => [t('prompts.mainCharacters'), t('prompts.importantEvents')];
   const SUGGESTED_PROMPTS: Record<string, (entity?: string) => string[]> = {
     graph: (entity) => entity
       ? [t('prompts.whoIs', { entity }), t('prompts.relationNetwork', { entity }), t('prompts.mainCharacters')]
-      : [t('prompts.mainCharacters'), t('prompts.importantEvents')],
+      : fallbackPrompts(),
     reader: () => [t('prompts.chapterSummary'), t('prompts.chapterCharacters'), t('prompts.chapterEvents')],
     analysis: (entity) => entity
       ? [t('prompts.deepAnalysis', { entity }), t('prompts.archetype', { entity })]
       : [t('prompts.mainCharacters')],
-    library: () => [t('prompts.recommend')],
+    timeline: fallbackPrompts,
+    other: fallbackPrompts,
   };
 
   useEffect(() => {
@@ -139,66 +120,25 @@ export function ChatWindow({
 
   return (
     <div
-      style={{
-        position: 'fixed',
-        left: pos.x,
-        top: pos.y,
-        zIndex: RAIL.z.window,
-        width: WINDOW_WIDTH,
-        height: WINDOW_HEIGHT,
-        maxWidth: 'calc(100vw - 16px)',
-        maxHeight: 'calc(100vh - 16px)',
-        borderRadius: 'var(--radius-xl)',
-        border: '1px solid var(--border)',
-        background: 'var(--bg-primary)',
-        boxShadow: isDragging ? 'var(--shadow-lg), 0 0 0 2px var(--accent)' : 'var(--shadow-lg)',
-        display: 'flex',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        animation: 'chatWindowIn 150ms ease',
-        userSelect: isDragging ? 'none' : 'auto',
-        transition: isDragging ? 'box-shadow 80ms ease' : 'box-shadow 150ms ease',
-      }}
+      className={`ss-chat-window${isDragging ? ' is-dragging' : ''}`}
+      style={{ left: pos.x, top: pos.y, zIndex: RAIL.z.window }}
     >
       {showNewChatConfirm && (
         <NewChatConfirm onConfirm={confirmNewChat} onCancel={() => setShowNewChatConfirm(false)} />
       )}
 
       {/* Header — drag handle */}
-      <div
-        onMouseDown={onDragMouseDown}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 16px',
-          borderBottom: '1px solid var(--border)',
-          gap: 8,
-          flexShrink: 0,
-          cursor: isDragging ? 'grabbing' : 'grab',
-        }}
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0, pointerEvents: 'none' }}>
-          <span style={{ fontFamily: 'var(--font-sans)', fontWeight: 600, fontSize: 'var(--font-size-sm)', color: 'var(--fg-primary)' }}>
-            {t('title')}
-          </span>
+      <div className="ss-chat-header" onMouseDown={onDragMouseDown}>
+        <div className="ss-chat-header-main">
+          <span className="ss-chat-title">{t('title')}</span>
           <ContextBadge pageContext={pageContext} />
         </div>
         {/* New chat button — stop drag propagation so click still works */}
         <button
+          className="ss-chat-new"
           onMouseDown={(e) => e.stopPropagation()}
           onClick={handleNewChat}
           title={t('newChat')}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: messages.length > 0 ? 'pointer' : 'default',
-            color: messages.length > 0 ? 'var(--fg-muted)' : 'var(--bg-tertiary)',
-            padding: 4,
-            borderRadius: 'var(--radius-sm)',
-            transition: 'color var(--transition-fast)',
-            pointerEvents: 'auto',
-          }}
           disabled={messages.length === 0}
         >
           <SquarePen size={16} />
@@ -206,32 +146,14 @@ export function ChatWindow({
       </div>
 
       {/* Messages */}
-      <div
-        style={{
-          flex: 1, overflowY: 'auto', padding: '12px 16px',
-          display: 'flex', flexDirection: 'column', gap: 12,
-        }}
-      >
+      <div className="ss-chat-messages">
         {messages.length === 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, gap: 12, padding: '24px 0' }}>
-            <span style={{ color: 'var(--fg-muted)', fontSize: 'var(--font-size-sm)', textAlign: 'center' }}>
-              {t('emptyPrompt')}
-            </span>
+          <div className="ss-chat-empty">
+            <span className="ss-chat-empty-text">{t('emptyPrompt')}</span>
             {suggestions.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%' }}>
+              <div className="ss-chat-suggestions">
                 {suggestions.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => handleSend(s)}
-                    style={{
-                      background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-                      borderRadius: 'var(--radius-md)', padding: '8px 12px', cursor: 'pointer',
-                      textAlign: 'left', fontSize: 'var(--font-size-sm)', color: 'var(--fg-secondary)',
-                      fontFamily: 'var(--font-sans)', transition: 'background var(--transition-fast)',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.background = 'var(--bg-tertiary)')}
-                    onMouseLeave={(e) => (e.currentTarget.style.background = 'var(--bg-secondary)')}
-                  >
+                  <button key={s} className="ss-chat-suggestion" onClick={() => handleSend(s)}>
                     {s}
                   </button>
                 ))}
@@ -243,51 +165,22 @@ export function ChatWindow({
         {messages.map((msg, i) => <ChatMessage key={i} message={msg} />)}
 
         {isThinking && (
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', gap: 6, padding: '8px 12px',
-              borderRadius: '12px 12px 12px 0', background: 'var(--bg-secondary)',
-              alignSelf: 'flex-start', maxWidth: '85%',
-            }}
-          >
-            <span style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
-              {[0, 1, 2].map((i) => (
-                <span
-                  key={i}
-                  style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', opacity: 0.5, animation: `thinkingDot 1.4s ease-in-out ${i * 0.2}s infinite` }}
-                />
-              ))}
+          <div className="ss-chat-thinking">
+            <span className="ss-chat-dots">
+              {[0, 1, 2].map((i) => <span key={i} className="ss-chat-dot" />)}
             </span>
-            <span style={{ color: 'var(--fg-muted)', fontSize: 'var(--font-size-xs)', fontFamily: 'var(--font-sans)' }}>
-              {t('thinking')}
-            </span>
+            <span className="ss-chat-thinking-text">{t('thinking')}</span>
           </div>
         )}
 
-        {isStreaming && messages.at(-1)?.role === 'assistant' && (
-          <span style={{ display: 'inline-block', width: 6, height: 14, background: 'var(--accent)', marginLeft: 2, animation: 'blink 1s step-end infinite' }} />
-        )}
+        {isStreaming && messages.at(-1)?.role === 'assistant' && <span className="ss-chat-cursor" />}
 
-        {isConnecting && (
-          <span style={{ color: 'var(--fg-muted)', fontSize: 'var(--font-size-xs)' }}>Connecting...</span>
-        )}
+        {isConnecting && <span className="ss-chat-connecting">Connecting...</span>}
 
         <div ref={messagesEndRef} />
       </div>
 
       <ChatInput onSend={handleSend} disabled={isStreaming || isThinking} />
-
-      <style>{`
-        @keyframes chatWindowIn {
-          from { opacity: 0; transform: scale(0.95) translateY(10px); }
-          to { opacity: 1; transform: scale(1) translateY(0); }
-        }
-        @keyframes blink { 50% { opacity: 0; } }
-        @keyframes thinkingDot {
-          0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
-          40% { opacity: 1; transform: scale(1.1); }
-        }
-      `}</style>
     </div>
   );
 }

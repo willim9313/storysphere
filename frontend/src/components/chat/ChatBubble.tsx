@@ -16,31 +16,13 @@ export function ChatBubble({ isOpen, onToggle, pos, isDragging, onDragMouseDown,
 
   return (
     <button
+      className={`ss-chat-bubble${isDragging ? ' is-dragging' : ''}`}
       onMouseDown={onDragMouseDown}
       onClick={() => {
         if (draggedRef.current) return;
         onToggle();
       }}
-      style={{
-        position: 'fixed',
-        left: pos.x,
-        top: pos.y,
-        zIndex: RAIL.z.bubble,
-        width: 48,
-        height: 48,
-        borderRadius: '50%',
-        background: 'var(--accent)',
-        color: 'white',
-        border: 'none',
-        cursor: isDragging ? 'grabbing' : 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow: 'var(--shadow-lg)',
-        transition: isDragging ? 'none' : 'transform var(--transition-fast)',
-      }}
-      onMouseEnter={(e) => { if (!isDragging) e.currentTarget.style.transform = 'scale(1.08)'; }}
-      onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
+      style={{ left: pos.x, top: pos.y, zIndex: RAIL.z.bubble }}
       aria-label={isOpen ? 'Close chat' : 'Open chat'}
     >
       <Icon size={22} />

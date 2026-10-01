@@ -1847,7 +1847,7 @@ group header：收合 chevron + 書名 + 段落數 + 分隔線 + 「前往書籍
 
 ### 4.1 ChatWidget（浮動聊天泡泡）
 
-掛載在 `AppLayout`，**所有頁面均可使用**。
+只掛載在 `BookLayout`（`/books/:id/*`）；書庫、上傳、搜尋、方法論、Token 用量、系統設定沒有聊天。
 
 #### 外觀結構
 

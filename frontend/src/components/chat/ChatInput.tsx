@@ -36,18 +36,10 @@ export function ChatInput({ onSend, disabled }: Props) {
   };
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        alignItems: 'flex-end',
-        gap: 8,
-        padding: '12px 16px',
-        borderTop: '1px solid var(--border)',
-        flexShrink: 0,
-      }}
-    >
+    <div className="ss-chat-input-row">
       <textarea
         ref={textareaRef}
+        className="ss-chat-input"
         value={text}
         onChange={(e) => {
           setText(e.target.value);
@@ -57,38 +49,11 @@ export function ChatInput({ onSend, disabled }: Props) {
         placeholder="Ask about this story..."
         rows={1}
         disabled={disabled}
-        style={{
-          flex: 1,
-          resize: 'none',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          padding: '8px 12px',
-          fontSize: 'var(--font-size-sm)',
-          fontFamily: 'var(--font-sans)',
-          background: 'var(--bg-secondary)',
-          color: 'var(--fg-primary)',
-          outline: 'none',
-          lineHeight: 1.5,
-          maxHeight: 72,
-        }}
       />
       <button
+        className="ss-chat-send"
         onClick={handleSend}
         disabled={disabled || !text.trim()}
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: 'var(--radius-md)',
-          background: text.trim() && !disabled ? 'var(--accent)' : 'var(--bg-tertiary)',
-          color: text.trim() && !disabled ? 'white' : 'var(--fg-muted)',
-          border: 'none',
-          cursor: text.trim() && !disabled ? 'pointer' : 'default',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          transition: 'background var(--transition-fast)',
-        }}
         aria-label="Send message"
       >
         <Send size={16} />
