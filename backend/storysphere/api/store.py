@@ -34,13 +34,19 @@ from __future__ import annotations
 import json
 import logging
 import threading
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from storysphere.api.schemas.common import MurmurEvent, TaskStatus
 
 logger = logging.getLogger(__name__)
+
+
+def _utc_now() -> str:
+    """UTC ISO-8601 to the second with a trailing "Z" — the finished_at format
+    both stores emit, so the frontend's Date parsing never guesses a timezone."""
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # ── In-memory backend ─────────────────────────────────────────────────────────
@@ -109,14 +115,20 @@ class MemoryTaskStore:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"status": "done", "result": result, "progress": 100, "stage": "完成"}
+                    update={
+                        "status": "done",
+                        "result": result,
+                        "progress": 100,
+                        "stage": "完成",
+                        "finished_at": _utc_now(),
+                    }
                 )
 
     def set_failed(self, task_id: str, error: str) -> None:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"status": "error", "error": error, "stage": "失敗"}
+                    update={"status": "error", "error": error, "stage": "失敗", "finished_at": _utc_now()}
                 )
 
     def set_progress(
@@ -200,6 +212,10 @@ _ADD_SUB_STAGE = "ALTER TABLE tasks ADD COLUMN sub_stage TEXT"
 _ADD_KIND = "ALTER TABLE tasks ADD COLUMN kind TEXT"
 _ADD_TITLE = "ALTER TABLE tasks ADD COLUMN title TEXT"
 _ADD_STEP_KEY = "ALTER TABLE tasks ADD COLUMN step_key TEXT"
+_ADD_FINISHED_AT = "ALTER TABLE tasks ADD COLUMN finished_at TEXT"
+
+# SQLite expression for finished_at — same shape as _utc_now() (UTC, "Z").
+_SQL_UTC_NOW = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')"
 
 _CREATE_MURMUR_TABLE = """
 CREATE TABLE IF NOT EXISTS task_murmur_events (
@@ -248,6 +264,7 @@ class SQLiteTaskStore:
                     _ADD_KIND,
                     _ADD_TITLE,
                     _ADD_STEP_KEY,
+                    _ADD_FINISHED_AT,
                 ):
                     try:
                         db.execute(migration)
@@ -334,7 +351,7 @@ class SQLiteTaskStore:
 
     _SELECT_COLS = (
         "task_id, status, progress, stage, sub_progress, sub_total, "
-        "sub_stage, result, error, kind, title, created_at, step_key"
+        "sub_stage, result, error, kind, title, created_at, step_key, finished_at"
     )
 
     @staticmethod
@@ -353,6 +370,7 @@ class SQLiteTaskStore:
             title=row[10],
             created_at=row[11],
             step_key=row[12],
+            finished_at=row[13],
         )
 
     async def _async_get(self, task_id: str) -> TaskStatus | None:
@@ -393,13 +411,15 @@ class SQLiteTaskStore:
 
     def set_completed(self, task_id: str, result: Any) -> None:
         self._execute(
-            "UPDATE tasks SET status = 'done', progress = 100, stage = '完成', result = ? WHERE task_id = ?",
+            "UPDATE tasks SET status = 'done', progress = 100, stage = '完成', result = ?, "
+            f"finished_at = {_SQL_UTC_NOW} WHERE task_id = ?",
             (json.dumps(result), task_id),
         )
 
     def set_failed(self, task_id: str, error: str) -> None:
         self._execute(
-            "UPDATE tasks SET status = 'error', stage = '失敗', error = ? WHERE task_id = ?",
+            "UPDATE tasks SET status = 'error', stage = '失敗', error = ?, "
+            f"finished_at = {_SQL_UTC_NOW} WHERE task_id = ?",
             (error, task_id),
         )
 

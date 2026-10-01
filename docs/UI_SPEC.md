@@ -1992,14 +1992,14 @@ WebSocket 連線，含訊息列表 + 輸入框。
     `--tk-{bg,border,fg,dot}` 傳入列。
   - 進行中：4px 進度條（`--bg-tertiary` 軌；Warm kind 色／Ink `--fg-primary` 填）＋mono 2xs 百分比＋stage 2xs muted ellipsis。
     **進度條不做寬度過渡**：輪詢最快 2s，補間會假裝不存在的更新頻率。無 ETA（後端沒有）。
-  - 完成：相對時間（見下「已知缺口」）；`failed_parts` 非空顯示「部分完成」warning 色（Ink 加粗）。失敗：`alert` 12＋
+  - 完成：相對時間（見下「完成時間」）；`failed_parts` 非空顯示「部分完成」warning 色（Ink 加粗）。失敗：`alert` 12＋
     「失敗 · 前往該頁處理」（可導覽）／「失敗」，error 色（Ink 加粗）。
   - 狀態點 8px，優先序：部分完成 warning → done success → error error → awaiting_review warning → kind 色；未終態脈動 1.6s
     （`prefers-reduced-motion` 關閉）。Ink 下跑動點 `--fg-primary`、其餘語意色 token 本身已單色。
   - 收尾槽 12px 永遠佔位，chevron 14px 只切換 opacity。
 - **輪詢**：面板開啟 2000ms（`useTasksPolling`）、全域通知 4000ms（`useTaskNotifications`），共用 `qk.tasks.list()`。
-- **已知缺口（後端）**：`TaskStatus` 只有 `createdAt`，沒有完成時間；「{n} 分鐘前完成」算的是建立至今，長任務會偏大。
-  `error` 原文、`stepKey`／`subProgress` 等欄位目前不顯示。
+- **完成時間**：「{n} 分鐘前完成」以 `TaskStatus.finishedAt`（UTC，2026-10-01 新增）起算；欄位新增前就結束的任務沒有
+  這個值，顯示「已完成」而不猜一個時間。`error` 原文、`stepKey`／`subProgress` 等欄位目前不顯示。
 
 ---
 

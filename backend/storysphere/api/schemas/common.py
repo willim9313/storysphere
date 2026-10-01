@@ -42,6 +42,11 @@ class TaskStatus(BaseModel):
     kind: str | None = None
     title: str | None = None
     created_at: str | None = None
+    # When the task reached done / error — UTC ISO-8601 with a trailing "Z".
+    # The task center's "N 分鐘前完成" is measured from this, not created_at:
+    # a 20-minute ingestion would otherwise read "20 分鐘前完成" the moment it
+    # lands. None while the task is still pending / running / awaiting_review.
+    finished_at: str | None = None
     murmur_events: list[MurmurEvent] = []
 
 

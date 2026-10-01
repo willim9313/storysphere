@@ -77,6 +77,49 @@ class TestLifecycle:
         assert store.get("nope") is None
 
 
+
+class TestFinishedAt:
+    """任務中心的「N 分鐘前完成」以 finished_at 起算 —— 兩邊格式必須一致（UTC、尾端 Z），
+    否則前端 Date 解析會把沒有時區的字串當本地時間，差出整個時區。"""
+
+    _FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+    def _assert_recent_utc(self, value):
+        from datetime import UTC, datetime, timedelta
+
+        assert value is not None
+        stamped = datetime.strptime(value, self._FORMAT).replace(tzinfo=UTC)
+        assert abs(datetime.now(UTC) - stamped) < timedelta(minutes=1)
+
+    def test_unset_until_the_task_ends(self, store):
+        store.create("t1")
+        assert store.get("t1").finished_at is None
+        store.set_running("t1")
+        store.set_progress("t1", 40, "x")
+        assert store.get("t1").finished_at is None
+
+    def test_awaiting_review_is_not_finished(self, store):
+        store.create("t1")
+        store.set_awaiting_review("t1", "book-1")
+        assert store.get("t1").finished_at is None
+
+    def test_completed_stamps_utc(self, store):
+        store.create("t1")
+        store.set_completed("t1", {})
+        self._assert_recent_utc(store.get("t1").finished_at)
+
+    def test_failed_stamps_utc(self, store):
+        store.create("t1")
+        store.set_failed("t1", "boom")
+        self._assert_recent_utc(store.get("t1").finished_at)
+
+    def test_list_carries_it(self, store):
+        store.create("t1")
+        store.set_completed("t1", {})
+        (task,) = store.list()
+        self._assert_recent_utc(task.finished_at)
+
+
 class TestProgress:
     def test_every_progress_field_is_written(self, store):
         store.create("t1")
