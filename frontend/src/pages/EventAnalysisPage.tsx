@@ -7,14 +7,13 @@ import {
   RefreshCw,
   Sparkles,
   ExternalLink,
-  Check,
-  X,
   ArrowLeft,
   Columns2,
   BookOpen,
 } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useChatDispatch } from '@/contexts/ChatContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useBook } from '@/hooks/useBook';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import {
@@ -88,10 +87,10 @@ export default function EventAnalysisPage() {
   const [justDoneIds, setJustDoneIds] = useState<Set<string>>(new Set());
   const justDoneTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const { t } = useTranslation('analysis');
+  const { push } = useToast();
   const { t: tc } = useTranslation('common');
 
   const [confirmBatchEep, setConfirmBatchEep] = useState(false);
-  const [toastVisible, setToastVisible] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [checkMode, setCheckMode] = useState(false);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
@@ -213,23 +212,26 @@ export default function EventAnalysisPage() {
   const batch = useBatchTask<string[]>({
     trigger: (eventIds) => triggerBatchEventAnalysis(bookId!, eventIds),
     onProgress: refreshEvents,
-    onDone: () => {
+    onDone: (summary) => {
       refreshEvents();
-      setToastVisible(true);
+      if (!summary) return;
+      // A run with failures persists: the toast only says how many, the named
+      // list stays in BatchEepPanel — but five seconds is not long enough to
+      // notice the count and go read it (B-113). Clean runs auto-dismiss.
+      const hasFailures = (summary.failures?.length ?? 0) > 0;
+      push({
+        type: hasFailures ? 'warning' : 'success',
+        title: t('batch.toastTitle'),
+        body: t('batch.toastBody', {
+          generated: summary.progress - summary.skipped - summary.failed,
+          skipped: summary.skipped,
+          failed: summary.failed,
+        }),
+        persist: hasFailures,
+      });
     },
     failureMessage: t('batchTriggerFailed'),
   });
-
-  // Auto-dismiss only when there is nothing to read. A run with failures leaves
-  // a named list in the toast, and five seconds is not long enough to notice
-  // it, open it and read it — the timer would take the only answer to "which
-  // ones?" off screen (B-113). Those stay until dismissed by hand.
-  useEffect(() => {
-    if (!toastVisible) return;
-    if ((batch.summary?.failures?.length ?? 0) > 0) return;
-    const timer = setTimeout(() => setToastVisible(false), 5000);
-    return () => clearTimeout(timer);
-  }, [toastVisible, batch.summary]);
 
   const selectedUnanalyzed = evtData?.unanalyzed.find((u) => u.id === selectedEntityId);
 
@@ -587,33 +589,6 @@ export default function EventAnalysisPage() {
             )}
           </div>
 
-          {/* Toast */}
-          {toastVisible && batch.summary && (
-            <div className="ea-toast" role="status">
-              <div className="ea-toast-icon">
-                <Check size={18} strokeWidth={2.2} />
-              </div>
-              <div className="ea-toast-main">
-                <div className="ea-toast-title">{t('batch.toastTitle')}</div>
-                <div className="ea-toast-body">
-                  {t('batch.toastBody', {
-                    generated:
-                      batch.summary.progress - batch.summary.skipped - batch.summary.failed,
-                    skipped: batch.summary.skipped,
-                    failed: batch.summary.failed,
-                  })}
-                </div>
-              </div>
-              <button
-                type="button"
-                className="ea-toast-close"
-                onClick={() => setToastVisible(false)}
-                aria-label={t('batch.toastClose')}
-              >
-                <X size={12} />
-              </button>
-            </div>
-          )}
         </div>
       </div>
 

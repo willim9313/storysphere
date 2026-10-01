@@ -71,8 +71,7 @@
 /* ── Confirm dialog（components-dialog 卡）────────────────
    單一遮罩、無模糊；440 寬、--space-7 內距、--space-6 間距。
    按鈕列靠右：取消（ghost）→ 執行鈕。
-   規格卡的「按鈕列左側成本提示」目前不做：現有五個呼叫端的內文都已寫明是否消耗 token，
-   再放一條會重複。 */
+   規格卡按鈕列左側那行「會呼叫 LLM，消耗 token」是卡片註解，不是產品元素（2026-10-01 裁決）。 */
 .ss-dialog {
   width: 440px; max-width: calc(100vw - 32px);
   padding: var(--space-7); margin: auto;
@@ -92,3 +91,40 @@
   font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary);
 }
 .ss-dialog-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); }
+
+/* ── Toast（components-toast 卡）────────────────────────────
+   全站唯一一份（ToastHost）。340 寬由 host 容器給；卡片外框＋shadow-lg。
+   狀態由 26px 圖示盤承載（色＋形雙重編碼）——**不用左邊框**。
+   位置、z 序、生命週期（5.2s / 9s / persist）屬外框，見 ToastHost / ToastContext。 */
+.ss-toast {
+  display: flex; align-items: flex-start; gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--shadow-lg);
+}
+.ss-toast-disc {
+  flex: none; width: 26px; height: 26px; border-radius: 50%;
+  display: grid; place-items: center;
+}
+.ss-toast-disc-success { background: var(--color-success-bg); color: var(--color-success); }
+.ss-toast-disc-warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.ss-toast-disc-error   { background: var(--color-error-bg);   color: var(--color-error); }
+.ss-toast-disc-info    { background: var(--color-info-bg);    color: var(--color-info); }
+.ss-toast-main { flex: 1; min-width: 0; }
+.ss-toast-title {
+  font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 600;
+  line-height: 1.4; color: var(--fg-primary);
+}
+.ss-toast-body {
+  font-family: var(--font-sans); font-size: var(--font-size-xs);
+  line-height: 1.5; color: var(--fg-secondary); margin-top: var(--space-1);
+}
+.ss-toast-action { margin-top: var(--space-4); }
+.ss-toast-close {
+  flex: none; padding: var(--space-1); line-height: 0;
+  background: transparent; border: none; cursor: pointer; color: var(--fg-muted);
+  transition: color var(--transition-fast);
+}
+.ss-toast-close:hover { color: var(--fg-primary); }

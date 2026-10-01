@@ -205,8 +205,14 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 
 #### 全域通知（`ToastHost` / `ToastContext`）
 
-右下角堆疊 toast（success/warning/error/info 四型，左 3px 色條 + 圓形圖示 +
-標題 + 內文 + 可選行動鈕，滑入動畫、5.2s／帶行動 9s 自動消失）。
+**全站唯一一份 toast**（DS v3 · 17 決議 T1；角色／事件頁的頁內 toast 已移除，改 push 進這裡）。
+右下角堆疊（success/warning/error/info 四型）。外觀依 components-toast 規格卡：卡片外框 + `--shadow-lg`、
+內距 `--space-5 --space-6`，狀態由 26px 圖示盤以**色＋形**雙重編碼（Check／TriangleAlert／TriangleAlert／Info），
+**無左邊框**；標題 sans sm 600、內文 xs secondary、行動鈕 `ss-btn-sm secondary`（標籤後補「 →」）、X 永遠在。
+樣式在 `styles/ss-kit.css` 的 `.ss-toast*`。
+生命週期三檔：無行動鈕 5.2s／有行動鈕 9s／`persist`（只能手動關）。
+批次分析（角色、事件）完成即 push：無失敗 success 5.2s；有失敗 warning + `persist`，toast 只報數字，
+**失敗清單留在頁面的常駐面板**（事件頁 `BatchEepPanel`、角色頁左欄頂端），不放 toast（17 決議 T4）。
 `useTaskNotifications`（掛在 `AppLayout`）輪詢 `GET /tasks`，於 ingestion 任務
 轉 done / partial / awaiting_review / error 時觸發對應 toast 與跳轉；首次輪詢
 靜默 seed，避免對載入前已終結的任務發通知。
@@ -355,6 +361,9 @@ chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正�
 
 由上至下：
 
+0. **批次失敗面板**（DS v3，2026-10-01）：只在批次分析跑完且有失敗時出現——「批次角色分析完成」＋「關閉」＋
+   `BatchFailureList`，手動關閉（`batch.dismiss`）。沿用事件頁面板的 `.ea-batch` 樣式。位置是工程端代為裁決，
+   設計稿未畫，已記入 `docs/DS_V3_DESIGN_FEEDBACK.md` 0-A 待同步
 1. **框架選擇**：Jung 12 / Schmidt 45 chip + 「對照 Jung vs Schmidt」按鈕（觸發 drawer）+「框架索引 ↗」連結
 2. **原型篩選 dropdown**（`ArchetypeFilterDropdown`，2026-07 新增）：可搜尋多選 popover，列出當前 framework 的原型分類與各原型已分析角色數；選中值以可移除的 accent pill 呈現，只過濾「已分析」清單；切換 framework 時重置
 3. **「← 角色總覽」返回鈕**（選中角色時顯示，2026-07 新增）：全寬、`--bg-secondary` 底、accent 字；點擊回到角色總覽 landing（清空選中角色）
@@ -1925,7 +1934,8 @@ WebSocket 連線，含訊息列表 + 輸入框。
   內文仍要用文字寫明是否消耗 token——字符負責掃視、文字負責精確，兩者並存。
   現有呼叫端：建構概覽「觸發建構」、事件頁「覆蓋重新生成」與「一鍵生成全部 EEP」、
   敘事頁「LLM 精煉」帶字符；敘事頁「依 EEP 重新分類」不呼叫 LLM，不帶。
-- **未做**：規格卡的「損失清單」變體與按鈕列左側成本提示，目前沒有使用者。
+- **未做**：規格卡的「損失清單」變體，目前沒有使用者。規格卡按鈕列左側那行
+  「會呼叫 LLM，消耗 token」是卡片註解，不是產品元素（2026-10-01 裁決），不做。
   張力頁的 `TensionRerunDialog` 是獨立元件，隨該頁批次再評估是否併入。
 
 ---
