@@ -4,14 +4,17 @@ import { Sidebar } from './Sidebar';
 import { TaskCenter } from '@/components/tasks/TaskCenter';
 import { useTasksPolling } from '@/components/tasks/useTasksPolling';
 import { ToastProvider } from '@/contexts/ToastContext';
+import { FloatRailProvider } from '@/contexts/FloatRailContext';
 import { ToastHost } from '@/components/toast/ToastHost';
 import { useTaskNotifications } from '@/hooks/useTaskNotifications';
 
 export function AppLayout() {
   return (
-    <ToastProvider>
-      <AppLayoutInner />
-    </ToastProvider>
+    <FloatRailProvider>
+      <ToastProvider>
+        <AppLayoutInner />
+      </ToastProvider>
+    </FloatRailProvider>
   );
 }
 

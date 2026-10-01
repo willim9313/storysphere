@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
+import { RAIL, toastBottom, useFloatRail } from '@/contexts/FloatRailContext';
 
 export type ToastType = 'success' | 'warning' | 'error' | 'info';
 
@@ -51,6 +52,10 @@ interface ToastDispatch {
 }
 
 const ToastStateContext = createContext<Toast[]>([]);
+/** The stack's `bottom` (px). Chosen when the stack goes from empty to
+ *  non-empty and held until it empties again — a toast must not jump while
+ *  it is being read (floating rail R2). */
+const ToastAnchorContext = createContext<number>(RAIL.slots[0]);
 const ToastDispatchContext = createContext<ToastDispatch | null>(null);
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -58,6 +63,9 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const seqRef = useRef(1);
   const timersRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(new Map());
   const liveKeysRef = useRef<Set<string>>(new Set());
+  const liveIdsRef = useRef<Set<number>>(new Set());
+  const [anchor, setAnchor] = useState<number>(RAIL.slots[0]);
+  const rail = useFloatRail();
 
   const dismiss = useCallback((id: number) => {
     const timer = timersRef.current.get(id);
@@ -65,6 +73,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       timersRef.current.delete(id);
     }
+    liveIdsRef.current.delete(id);
     setToasts((prev) => {
       const gone = prev.find((t) => t.id === id);
       if (gone?.dedupeKey) liveKeysRef.current.delete(gone.dedupeKey);
@@ -77,20 +86,26 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       if (input.dedupeKey && liveKeysRef.current.has(input.dedupeKey)) return;
       const id = seqRef.current++;
       if (input.dedupeKey) liveKeysRef.current.add(input.dedupeKey);
+      if (liveIdsRef.current.size === 0) {
+        setAnchor(toastBottom(rail.read(), window.innerWidth, window.innerHeight));
+      }
+      liveIdsRef.current.add(id);
       setToasts((prev) => [...prev, { ...input, id }]);
       if (input.persist) return;
       const delay = input.action ? DISMISS_WITH_ACTION_MS : DISMISS_MS;
       const timer = setTimeout(() => dismiss(id), delay);
       timersRef.current.set(id, timer);
     },
-    [dismiss],
+    [dismiss, rail],
   );
 
   const dispatch = useMemo(() => ({ push, dismiss }), [push, dismiss]);
 
   return (
     <ToastDispatchContext.Provider value={dispatch}>
-      <ToastStateContext.Provider value={toasts}>{children}</ToastStateContext.Provider>
+      <ToastStateContext.Provider value={toasts}>
+        <ToastAnchorContext.Provider value={anchor}>{children}</ToastAnchorContext.Provider>
+      </ToastStateContext.Provider>
     </ToastDispatchContext.Provider>
   );
 }
@@ -109,6 +124,11 @@ export function useToast(): ToastDispatch {
 // eslint-disable-next-line react-refresh/only-export-components
 export function useToastState(): Toast[] {
   return useContext(ToastStateContext);
+}
+
+// eslint-disable-next-line react-refresh/only-export-components
+export function useToastAnchor(): number {
+  return useContext(ToastAnchorContext);
 }
 
 const NO_OP_DISPATCH: ToastDispatch = { push: () => {}, dismiss: () => {} };

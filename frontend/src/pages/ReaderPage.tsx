@@ -4,6 +4,7 @@ import { Trans, useTranslation } from 'react-i18next';
 import { Brain, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, ArrowUp, Maximize } from 'lucide-react';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
+import { RAIL, useRailOccupant } from '@/contexts/FloatRailContext';
 import { useBook } from '@/hooks/useBook';
 import { useChapters } from '@/hooks/useChapters';
 import { useChunks } from '@/hooks/useChunks';
@@ -53,6 +54,9 @@ const collapseButtonStyle: React.CSSProperties = {
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { t } = useTranslation('reader');
+  // The back-to-top FAB flickers in and out with scrolling, so its rail slot
+  // is held for the whole route, not just while it is visible (rail R2).
+  useRailOccupant('fabReserved', true);
   // viewingChapterId doubles as "selected chapter" — there is only one chapter
   // being read in column 3 at a time. expandedChapters is the independent,
   // multi-open accordion state for column 2's chapter cards.
@@ -792,9 +796,9 @@ export default function ReaderPage() {
           title={t('nav.backToTop')}
           style={{
             position: 'fixed',
-            right: 24,
-            bottom: 88,
-            zIndex: 30,
+            right: RAIL.right,
+            bottom: RAIL.slots[1],
+            zIndex: RAIL.z.fab,
             width: 40,
             height: 40,
             borderRadius: '50%',
