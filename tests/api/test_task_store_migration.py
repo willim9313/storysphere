@@ -7,8 +7,8 @@
 from __future__ import annotations
 
 
-class TestFinishedAtMigration:
-    """`var/tasks.db` 是使用者資料，升級時不能要求砍掉重建 —— 缺 finished_at 欄位的舊庫
+class TestMigration:
+    """`var/tasks.db` 是使用者資料，升級時不能要求砍掉重建 —— 缺欄位、舊格式的舊庫
     要在第一次存取時被補上，舊列讀回來是 None，新寫的終態才有值。"""
 
     def test_db_without_the_column_is_migrated_in_place(self, tmp_path):
@@ -34,4 +34,20 @@ class TestFinishedAtMigration:
         store.create("new")
         store.set_completed("new", {})
         assert store.get("new").finished_at is not None
+
+    def test_old_created_at_gains_the_utc_marker(self, tmp_path):
+        """舊列的 created_at 本來就是 UTC（SQLite 的 'now'），只缺 Z；補上後不變更時間本身。"""
+        import sqlite3
+
+        from storysphere.api.store import SQLiteTaskStore
+
+        db_path = tmp_path / "tasks.db"
+        SQLiteTaskStore(str(db_path)).create("seed")  # 建表
+        with sqlite3.connect(db_path) as db:
+            db.execute("INSERT INTO tasks (task_id, created_at) VALUES ('old', '2026-09-30T12:00:00')")
+
+        store = SQLiteTaskStore(str(db_path))  # 新實例 → 重跑 _ensure_init
+        assert store.get("old").created_at == "2026-09-30T12:00:00Z"
+        # 冪等：再跑一次不會變成 ZZ
+        assert SQLiteTaskStore(str(db_path)).get("old").created_at == "2026-09-30T12:00:00Z"
 
