@@ -156,6 +156,104 @@ class TestSubmitReviewEndpoint:
         assert resp.status_code in (204, 409, 422)
 
 
+class TestReviewConflictCode:
+    """The four review endpoints 409 with a top-level `code` so the frontend can
+    tell "already submitted" from "terminated" from "never opened"."""
+
+    _PAYLOAD = {"chapters": [{"title": "Ch1", "startParagraphIndex": 0}]}
+
+    def _task(self, book_id: str, how: str) -> str:
+        import uuid
+
+        from storysphere.api.store import task_store
+        task_id = f"test-{uuid.uuid4()}"
+        task_store.create(task_id)
+        task_store.set_awaiting_review(task_id, book_id)  # writes result.bookId
+        if how == "running":
+            task_store.set_running(task_id)
+        elif how == "done":
+            task_store.set_completed(task_id, {"bookId": book_id})
+        elif how == "error":
+            task_store.set_failed(task_id, error="boom")
+        elif how == "cancelled":
+            task_store.set_failed(task_id, error="cancelled")
+        return task_id
+
+    def _book(self) -> str:
+        import uuid
+        return f"book-{uuid.uuid4()}"
+
+    def _get(self, client, book_id):
+        return client.get(f"/api/v1/books/{book_id}/review-data")
+
+    def _post(self, client, book_id):
+        return client.post(f"/api/v1/books/{book_id}/review", json=self._PAYLOAD)
+
+    def test_no_task_is_review_not_open(self, client):
+        for resp in (self._get(client, self._book()), self._post(client, self._book())):
+            assert resp.status_code == 409
+            assert resp.json()["code"] == "review_not_open"
+
+    def test_error_task_is_review_closed(self, client):
+        book = self._book()
+        self._task(book, "error")
+        for resp in (self._get(client, book), self._post(client, book)):
+            assert resp.status_code == 409
+            assert resp.json()["code"] == "review_closed"
+
+    def test_cancelled_task_is_review_closed(self, client):
+        book = self._book()
+        self._task(book, "cancelled")
+        assert self._get(client, book).json()["code"] == "review_closed"
+
+    def test_running_after_review_is_review_submitted(self, client):
+        book = self._book()
+        self._task(book, "running")
+        for resp in (self._get(client, book), self._post(client, book)):
+            assert resp.status_code == 409
+            assert resp.json()["code"] == "review_submitted"
+
+    def test_done_is_review_submitted(self, client):
+        book = self._book()
+        self._task(book, "done")
+        assert self._get(client, book).json()["code"] == "review_submitted"
+
+    def test_double_submit_is_review_submitted(self, client):
+        book = "doc-1"
+        self._task(book, "awaiting")
+        with patch("storysphere.api.routers.book_ingestion._resume_ingestion_graph", new_callable=AsyncMock):
+            self._post(client, book)
+            resp = self._post(client, book)
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "review_submitted"
+
+    def test_detail_strings_are_unchanged(self, client):
+        book = self._book()
+        self._task(book, "running")
+        assert self._get(client, book).json()["detail"] == "Book is not currently awaiting chapter review"
+        assert self._post(client, book).json()["detail"] == "Review window has already been closed"
+
+    def test_suggest_roles_and_parse_toc_carry_code(self, client):
+        book = self._book()
+        self._task(book, "error")
+        for path in ("suggest-roles", "parse-toc"):
+            resp = client.post(f"/api/v1/books/{book}/{path}")
+            assert resp.status_code == 409
+            assert resp.json()["code"] == "review_closed"
+
+    def test_pending_with_book_id_is_review_not_open(self):
+        from storysphere.api.routers.book_ingestion import _review_conflict_code
+        from storysphere.api.schemas.common import TaskStatus
+        pending = TaskStatus(task_id="t", status="pending", result={"bookId": "b"})
+        assert _review_conflict_code(pending) == "review_not_open"
+
+    def test_running_without_book_id_is_review_not_open(self):
+        from storysphere.api.routers.book_ingestion import _review_conflict_code
+        from storysphere.api.schemas.common import TaskStatus
+        running = TaskStatus(task_id="t", status="running")
+        assert _review_conflict_code(running) == "review_not_open"
+
+
 class TestAcceptReviewShortcut:
     """POST /review without chapters = accept the detected structure as-is."""
 

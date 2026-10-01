@@ -2508,7 +2508,16 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 404**：書籍不存在
 
-**Response 409**：書籍目前不在 `awaiting_review` 狀態（包含已完成、尚未開始、重複呼叫）
+**Response 409**：書籍目前不在 `awaiting_review` 狀態（包含已完成、尚未開始、重複呼叫）。
+本節的 409 同時適用 #22a / #22b / #22c / #22d 四個審閱端點，body 為
+`{ "detail": string, "code": string }`（形狀同 `ErrorResponse`；`detail` 文字不變），
+前端依 `code` 區分：
+
+| `code` | 條件 | 意義 |
+|---|---|---|
+| `review_not_open` | 找不到任務；或任務尚在審閱點之前（`pending`，或 `running` 但 `result` 無 `bookId`） | 審閱從未開啟 |
+| `review_closed` | 任務 `status == "error"`（含使用者終止：`error: "cancelled"`） | 任務已終止，無可審閱 |
+| `review_submitted` | 任務 `running` / `done` 且 `result.bookId` 存在 | 已越過審閱點（已提交，含重複提交） |
 
 **Response 200**
 ```ts
@@ -2557,7 +2566,7 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 204**：無 body
 
-**409**：任務不在 `awaiting_review` 狀態（包含重複提交）
+**Response 409**：任務不在 `awaiting_review` 狀態（包含重複提交，`code` 通常為 `review_submitted`）；body 與 `code` 定義見 #22a
 
 ---
 
@@ -2576,7 +2585,7 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 404**：書籍不存在
 
-**Response 409**：書籍目前不在 `awaiting_review` 狀態
+**Response 409**：書籍目前不在 `awaiting_review` 狀態；body 含 `code`，定義見 #22a
 
 **Response 503**：未設定可用的 LLM provider（AI 判讀不可用）
 
@@ -2614,7 +2623,7 @@ LLM 讀取偵測到的目錄段落文字，抽出**書本自己聲明的章節�
 
 **Response 404**：書籍不存在（僅 fallback 讀檔路徑；有帶 `tocText` 時不讀檔）
 
-**Response 409**：書籍目前不在 `awaiting_review` 狀態
+**Response 409**：書籍目前不在 `awaiting_review` 狀態；body 含 `code`，定義見 #22a
 
 **Response 503**：未設定可用的 LLM provider（AI 解析不可用）
 

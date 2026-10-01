@@ -22,6 +22,7 @@ from fastapi import (
     HTTPException,
     UploadFile,
 )
+from fastapi.responses import JSONResponse
 
 from storysphere.api import task_registry
 from storysphere.api.deps import DocServiceDep
@@ -40,6 +41,7 @@ from storysphere.api.schemas.book_ingestion import (
 from storysphere.api.schemas.books import (
     TocEntry,
 )
+from storysphere.api.schemas.common import ErrorResponse, TaskStatus
 from storysphere.api.store import task_store
 from storysphere.core.language_detection import detect_language
 from storysphere.pipelines.document_processing import DocumentProcessingPipeline
@@ -140,6 +142,33 @@ async def _resume_ingestion_graph(task_id: str, chapters_data: dict | None) -> N
         await cleanup_ingestion_checkpoint(task_id)
 
 
+# ── review-window 409 ────────────────────────────────────────────────────────
+
+
+def _review_conflict_code(status: TaskStatus | None) -> str:
+    """Why the review window is not open, as a machine-readable code.
+
+    - ``review_closed``    — the task ended in ``error`` (includes user
+      cancellation, ``error="cancelled"``): there is nothing left to review.
+    - ``review_submitted`` — ``running`` / ``done`` with ``result.bookId``: the
+      task already got past the review point, i.e. the review was submitted.
+    - ``review_not_open``  — no task, or it has not reached the review point.
+    """
+    if status is None:
+        return "review_not_open"
+    if status.status == "error":
+        return "review_closed"
+    if status.status in ("running", "done") and (status.result or {}).get("bookId"):
+        return "review_submitted"
+    return "review_not_open"
+
+
+def _review_conflict(status: TaskStatus | None, detail: str) -> JSONResponse:
+    """409 for the four review endpoints: ``{"detail", "code"}`` (see ErrorResponse)."""
+    body = ErrorResponse(detail=detail, code=_review_conflict_code(status))
+    return JSONResponse(status_code=409, content=body.model_dump())
+
+
 # ── #8d GET /books/:bookId/review-data ───────────────────────────────────────
 
 _SENTENCE_END = re.compile(r"(?<=[.!?])\s+|(?<=[。！？])")
@@ -155,16 +184,10 @@ async def get_review_data(
 
     task_id = await get_task_id_by_book_id(book_id)
     if task_id is None:
-        raise HTTPException(
-            status_code=409,
-            detail="Book is not currently awaiting chapter review",
-        )
+        return _review_conflict(None, "Book is not currently awaiting chapter review")
     status = await get_task(task_id)
     if status is None or status.status != "awaiting_review":
-        raise HTTPException(
-            status_code=409,
-            detail="Book is not currently awaiting chapter review",
-        )
+        return _review_conflict(status, "Book is not currently awaiting chapter review")
 
     document = await doc.get_document(book_id)
     if document is None:
@@ -213,16 +236,10 @@ async def submit_review(
 
     task_id = await get_task_id_by_book_id(book_id)
     if task_id is None:
-        raise HTTPException(
-            status_code=409,
-            detail="Book is not currently awaiting chapter review",
-        )
+        return _review_conflict(None, "Book is not currently awaiting chapter review")
     status = await get_task(task_id)
     if status is None or status.status != "awaiting_review":
-        raise HTTPException(
-            status_code=409,
-            detail="Review window has already been closed",
-        )
+        return _review_conflict(status, "Review window has already been closed")
 
     # chapters omitted = accept the detected structure as-is; chapter_review_node
     # skips the rebuild when the list is absent or empty.
@@ -268,16 +285,10 @@ async def suggest_roles(
 
     task_id = await get_task_id_by_book_id(book_id)
     if task_id is None:
-        raise HTTPException(
-            status_code=409,
-            detail="Book is not currently awaiting chapter review",
-        )
+        return _review_conflict(None, "Book is not currently awaiting chapter review")
     status = await get_task(task_id)
     if status is None or status.status != "awaiting_review":
-        raise HTTPException(
-            status_code=409,
-            detail="Book is not currently awaiting chapter review",
-        )
+        return _review_conflict(status, "Book is not currently awaiting chapter review")
 
     document = await doc.get_document(book_id)
     if document is None:
@@ -325,16 +336,10 @@ async def parse_toc(
 
     task_id = await get_task_id_by_book_id(book_id)
     if task_id is None:
-        raise HTTPException(
-            status_code=409,
-            detail="Book is not currently awaiting chapter review",
-        )
+        return _review_conflict(None, "Book is not currently awaiting chapter review")
     status = await get_task(task_id)
     if status is None or status.status != "awaiting_review":
-        raise HTTPException(
-            status_code=409,
-            detail="Book is not currently awaiting chapter review",
-        )
+        return _review_conflict(status, "Book is not currently awaiting chapter review")
 
     from storysphere.services.toc_parser import (  # noqa: PLC0415
         parse_toc_entries,
