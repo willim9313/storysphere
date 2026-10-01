@@ -68,6 +68,18 @@
     "spineSummary": "{{total}} 段 · {{body}} 正文章 / {{nonBody}} 非正文 · 點一段即跳到該章",
     "spineToggle": "收合／展開全書結構",
     "railHint": "各章段落長度比例（點一下跳到該章）",
+    "crumb": "章節審閱",
+    "spineModeChapter": "逐章",
+    "spineModeOverview": "總覽",
+    "conflict": {
+      "gotoUpload": "前往上傳 & 處理進度",
+      "submittedTitle": "這本書的章節審閱已經送出",
+      "submittedBody": "審閱結果已寫入，pipeline 已繼續往下跑。這一頁的編輯不會再被接受。",
+      "closedTitle": "這本書的處理已終止",
+      "closedBody": "審閱視窗已關閉，這一頁的編輯不會被接受。",
+      "notOpenTitle": "這本書目前不在章節審閱階段",
+      "notOpenBody": "這一頁的編輯不會被接受。"
+    },
     "infoRow": "左側結構脊可標記章節角色、每段右側選單可標記段落角色 · 角色定義見右側對照表",
     "suggestRoles": "邊界輔助辨識",
     "suggesting": "偵測中…",

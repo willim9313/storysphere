@@ -67,6 +67,18 @@
     "spineSummary": "{{total}} paras · {{body}} body / {{nonBody}} non-body · click a block to jump",
     "spineToggle": "Collapse / expand book structure",
     "railHint": "Chapter length by paragraph count (click to jump)",
+    "crumb": "Chapter review",
+    "spineModeChapter": "By chapter",
+    "spineModeOverview": "Overview",
+    "conflict": {
+      "gotoUpload": "Go to Upload & progress",
+      "submittedTitle": "This book's chapter review has already been submitted",
+      "submittedBody": "The review was saved and the pipeline has moved on. Edits on this page will no longer be accepted.",
+      "closedTitle": "Processing of this book was stopped",
+      "closedBody": "The review window is closed; edits on this page will not be accepted.",
+      "notOpenTitle": "This book is not in chapter review right now",
+      "notOpenBody": "Edits on this page will not be accepted."
+    },
     "infoRow": "Set chapter roles in the left spine, paragraph roles via the menu on each paragraph's right · role definitions in the guide on the right",
     "suggestRoles": "Detect boundaries",
     "suggesting": "Detecting…",

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import {
   Palette, Languages, Cpu, Server, Database, Info, Keyboard,
   FlaskConical, Check, ArrowRight, ArrowLeft, AlertTriangle,
@@ -713,7 +714,9 @@ function PlannedPanel({ kind }: { kind: 'shortcuts' | 'experimental' }) {
 
 export default function SettingsPage() {
   const { t } = useTranslation('settings');
-  const [active, setActive] = useState<PanelId>('appearance');
+  // `/settings#llm` opens the LLM panel — the 503「前往 LLM 設定 →」links land here.
+  const { hash } = useLocation();
+  const [active, setActive] = useState<PanelId>(hash === '#llm' ? 'llm' : 'appearance');
 
   const { data: settingsInfo } = useQuery<SettingsInfo>({
     queryKey: ['settings-info'],
