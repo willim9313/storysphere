@@ -534,6 +534,7 @@ export default function NarrativePage() {
         title={t('narrative.unclassified.refineConfirmTitle', { n: unclassifiedIds.length })}
         message={t('narrative.unclassified.refineConfirmBody', { n: unclassifiedIds.length })}
         confirmLabel={t('narrative.unclassified.refineConfirm')}
+        spendsTokens
         onConfirm={runRefine}
         onCancel={() => setPendingAction(null)}
       />
