@@ -1,30 +1,43 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Check, ChevronLeft, ChevronRight, List, Loader2, RotateCw, Sparkles, X } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CircleCheck, Info, Loader2, PanelLeft, X } from 'lucide-react';
 import { fetchReviewData, parseToc, submitReview, suggestRoles } from '@/api/ingest';
 import type { SuggestRolesResponse, TocEntry } from '@/api/ingest';
 import { deleteBook } from '@/api/books';
+import { ApiError } from '@/api/client';
+import { failureKind, techDetailOf } from '@/api/failureKind';
 import type { ReviewChapter } from '@/api/types';
+import { useBook } from '@/hooks/useBook';
+import { PageFailure } from '@/components/ui/PageFailure';
 import { applyBoundaries } from './applyBoundaries';
 import { buildSubmitPayload, normalizeSplitOffsets, pieceKey, splitPiece } from './paragraphSplits';
+import {
+  OVERVIEW_LABEL_MIN,
+  isMisSplit,
+  overviewHeights,
+  railBarHeight,
+  spineBlockHeight,
+} from './spineLayout';
+import '@/styles/chapter-review.css';
 
 const CHAPTER_ROLES = ['body', 'toc', 'preface', 'afterword', 'other'] as const;
 const PARA_ROLES = ['body', 'separator', 'section', 'epigraph', 'preamble'] as const;
+/** 「前往 LLM 設定 →」target — SettingsPage opens its LLM panel on this hash. */
+const LLM_SETTINGS_PATH = '/settings#llm';
 
-type Phase = 'reviewing' | 'submitting' | 'cancelling' | 'error';
+type Phase = 'reviewing' | 'submitting' | 'cancelling';
 /** A validated in-paragraph text selection, plus where to float the split button. */
 type SelSplit = { ci: number; pi: number; start: number; end: number; x: number; y: number };
 type AiStatus = 'idle' | 'loading' | 'done';
-type TocStatus = 'idle' | 'loading' | 'done' | 'empty' | 'error';
-type NoteKind = 'info' | 'success' | 'error';
-type Note = { text: string; kind: NoteKind } | null;
+type TocStatus = 'idle' | 'loading' | 'done' | 'empty' | 'error' | 'unconfigured';
+type SpineMode = 'chapter' | 'overview';
+type NoteKind = 'info' | 'success' | 'error' | 'warning';
+/** `settings`: append the in-page「前往 LLM 設定 →」link (the 503 state). */
+type Note = { text: string; kind: NoteKind; settings?: boolean } | null;
+/** A load / submit failure that replaces the content area (H frame). */
+type Failure = { op: 'load' | 'submit'; err: unknown } | null;
 
-const BANNER_COLORS: Record<NoteKind, { bg: string; fg: string }> = {
-  error: { bg: 'var(--color-error-bg)', fg: 'var(--color-error)' },
-  success: { bg: 'var(--color-success-bg)', fg: 'var(--color-success)' },
-  info: { bg: 'var(--color-info-bg)', fg: 'var(--color-info)' },
-};
 const AI_LABEL_KEY: Record<AiStatus, string> = {
   idle: 'review.suggestRoles',
   loading: 'review.suggesting',
@@ -36,14 +49,28 @@ function reindex(chapters: ReviewChapter[]): ReviewChapter[] {
   return chapters.map((c, i) => ({ ...c, chapterIdx: i }));
 }
 
-function spineBlockBg(isBody: boolean, selected: boolean): string {
-  if (selected) return 'var(--entity-con-bg)';
-  return isBody ? 'var(--bg-primary)' : 'var(--bg-tertiary)';
+/** The app's own 503 (no LLM provider configured) — a feature state, not an outage. */
+function isLlmUnconfigured(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 503 && err.hasBody;
 }
 
-function railBg(isBody: boolean, flagged: boolean): string {
-  if (flagged) return 'var(--color-warning)';
-  return isBody ? 'var(--accent)' : 'var(--border)';
+/** 409 = the review window is not open (any more). `code` comes from sub-task 1-3a. */
+function conflictCode(err: unknown): string | null {
+  if (!(err instanceof ApiError) || err.status !== 409) return null;
+  return err.code || 'review_not_open';
+}
+
+function Banner({ kind, children, action }: Readonly<{ kind: NoteKind; children: ReactNode; action?: ReactNode }>) {
+  let icon: ReactNode = <Info size={16} />;
+  if (kind === 'success') icon = '✓';
+  else if (kind === 'error' || kind === 'warning') icon = <AlertTriangle size={16} />;
+  return (
+    <div className={`cr-banner cr-banner-${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
+      <span className="cr-banner-icon">{icon}</span>
+      <p className="cr-banner-text">{children}</p>
+      {action}
+    </div>
+  );
 }
 
 export default function ChapterReviewPage() {
@@ -53,13 +80,20 @@ export default function ChapterReviewPage() {
   const { t } = useTranslation('upload');
   const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
+  // Book title for the breadcrumb only; the review data itself carries none.
+  const { data: book } = useBook(bookId);
 
   const [phase, setPhase] = useState<Phase>('reviewing');
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [failure, setFailure] = useState<Failure>(null);
+  const [conflict, setConflict] = useState<string | null>(null);
+  const [reloadKey, setReloadKey] = useState(0);
   const [chapters, setChapters] = useState<ReviewChapter[]>([]);
   const [selCi, setSelCi] = useState(0);
   const [flashCi, setFlashCi] = useState<number | null>(null);
   const [spineOpen, setSpineOpen] = useState(true);
+  // 逐章 is the default and the spine never switches on its own (B′).
+  const [spineMode, setSpineMode] = useState<SpineMode>('chapter');
+  const [ovAvail, setOvAvail] = useState(0);
   const [glossaryOpen, setGlossaryOpen] = useState(false);
   const [aiStatus, setAiStatus] = useState<AiStatus>('idle');
   const [aiNote, setAiNote] = useState<Note>(null);
@@ -80,11 +114,14 @@ export default function ChapterReviewPage() {
   // sparse roleOverrides map (paragraphIndex → role) for changed paragraphs.
   const originalRolesRef = useRef<Record<number, string>>({});
   const readRef = useRef<HTMLDivElement>(null);
+  const ovObserver = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
     if (!bookId) return;
+    let alive = true;
     fetchReviewData(bookId)
       .then((data) => {
+        if (!alive) return;
         const rec: Record<number, string> = {};
         for (const ch of data.chapters) {
           for (const p of ch.paragraphs) rec[p.paragraphIndex] = p.role ?? 'body';
@@ -92,11 +129,27 @@ export default function ChapterReviewPage() {
         originalRolesRef.current = rec;
         setChapters(reindex(data.chapters));
       })
-      .catch(() => {
-        setPhase('error');
-        setErrorMsg(t('review.errorLoad'));
+      .catch((err: unknown) => {
+        if (!alive) return;
+        const code = conflictCode(err);
+        if (code) setConflict(code);
+        else setFailure({ op: 'load', err });
       });
-  }, [bookId, t]);
+    return () => {
+      alive = false;
+    };
+  }, [bookId, reloadKey]);
+
+  // The overview fits the whole book into whatever height the spine has, so it
+  // tracks that height (callback ref: attaches/detaches with the overview list).
+  const ovRef = useCallback((el: HTMLDivElement | null) => {
+    ovObserver.current?.disconnect();
+    ovObserver.current = null;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => setOvAvail(Math.floor(entry.contentRect.height)));
+    ro.observe(el);
+    ovObserver.current = ro;
+  }, []);
 
   // ── Structure mutations ──────────────────────────────────────────────────
   const splitAt = useCallback((ci: number, pi: number) => {
@@ -184,11 +237,21 @@ export default function ChapterReviewPage() {
       setUndoChapters(null);
       setChapters((prev) => reindex(applyBoundaries(prev, b)));
       setAiStatus('done');
-    } catch {
+    } catch (err) {
       setAiStatus('idle');
-      setAiNote({ text: t('review.suggestError'), kind: 'error' });
+      // 409 on any review endpoint = the window closed under us (same state as load/submit).
+      const code = conflictCode(err);
+      if (code) {
+        setConflict(code);
+        return;
+      }
+      setAiNote(
+        isLlmUnconfigured(err)
+          ? { text: tc('failure.llmUnconfigured'), kind: 'warning', settings: true }
+          : { text: t('review.suggestError'), kind: 'error' },
+      );
     }
-  }, [bookId, aiStatus, t]);
+  }, [bookId, aiStatus, t, tc]);
 
   // ── TOC cross-check (#22d) ───────────────────────────────────────────────
   // The *currently edited* TOC text: paragraphs of every chapter the reviewer
@@ -203,6 +266,7 @@ export default function ChapterReviewPage() {
         .trim(),
     [chapters],
   );
+  const hasToc = useMemo(() => chapters.some((c) => (c.role ?? 'body') === 'toc'), [chapters]);
   // The tocText that produced the current tocEntries. Null until first parsed;
   // stale once the reviewer edits the TOC (tocText !== parsedTocText), which is
   // what flips the entry button back to "re-parse".
@@ -223,13 +287,18 @@ export default function ChapterReviewPage() {
       setTocEntries(entries);
       setTocStatus(entries.length > 0 ? 'done' : 'empty');
       setParsedTocText(tocText); // only on a completed parse, never on error
-    } catch {
-      setTocStatus('error');
+    } catch (err) {
+      const code = conflictCode(err);
+      if (code) {
+        setConflict(code);
+        return;
+      }
+      setTocStatus(isLlmUnconfigured(err) ? 'unconfigured' : 'error');
     }
   }, [bookId, tocText]);
 
   // Entry button in "view" mode: reopen the drawer showing the cached parse
-  // without hitting the LLM. The drawer's ↻ stays the force-reparse path.
+  // without hitting the LLM. The drawer's 重新解析 stays the force-reparse path.
   const openTocDrawer = useCallback(() => setTocOpen(true), []);
 
   // ── In-paragraph split (selection → new paragraph) ───────────────────────
@@ -318,8 +387,11 @@ export default function ChapterReviewPage() {
   }, [undoChapters]);
 
   // ── Submit / discard ─────────────────────────────────────────────────────
+  const uploadPath = taskId ? `/upload#${taskId}` : '/upload';
+
   const handleSubmit = useCallback(async () => {
     if (!bookId) return;
+    setFailure(null);
     setPhase('submitting');
     setSelSplit(null);
     setUndoChapters(null);
@@ -330,12 +402,14 @@ export default function ChapterReviewPage() {
       );
       await submitReview(bookId, payload, roleOverrides, paragraphSplits);
       setSubmitted(true);
-      setTimeout(() => navigate(taskId ? `/upload#${taskId}` : '/upload'), 600);
-    } catch {
-      setPhase('error');
-      setErrorMsg(t('review.errorSubmit'));
+      setTimeout(() => navigate(uploadPath), 600);
+    } catch (err) {
+      setPhase('reviewing');
+      const code = conflictCode(err);
+      if (code) setConflict(code);
+      else setFailure({ op: 'submit', err });
     }
-  }, [bookId, chapters, t, navigate, taskId]);
+  }, [bookId, chapters, navigate, uploadPath]);
 
   const handleConfirmDiscard = useCallback(async () => {
     if (!bookId) return;
@@ -366,6 +440,15 @@ export default function ChapterReviewPage() {
     }
   }, [bookId, taskId, navigate]);
 
+  const retryFailure = useCallback(() => {
+    if (failure?.op === 'submit') {
+      void handleSubmit();
+      return;
+    }
+    setFailure(null);
+    setReloadKey((k) => k + 1);
+  }, [failure, handleSubmit]);
+
   // ── Derived view ─────────────────────────────────────────────────────────
   const view = useMemo(() => {
     let bodyCount = 0;
@@ -376,16 +459,22 @@ export default function ChapterReviewPage() {
         bodyCount += 1;
         displayNo = bodyCount;
       }
-      const titleCount = ch.paragraphs.filter((p) => p.titleSpan).length;
-      const flagged = isBody && titleCount > 1;
+      const flagged = isMisSplit(ch);
       const headLabel = isBody
         ? t('review.chapterLabel', { n: displayNo })
         : t(`review.chapterType.${ch.role ?? 'body'}`);
-      return { ch, ci, isBody, flagged, headLabel, paraCount: ch.paragraphs.length };
+      // Overview label: the body chapter's running number, or the role name.
+      const shortLabel = isBody ? String(displayNo) : t(`review.chapterType.${ch.role ?? 'body'}`);
+      return { ch, ci, isBody, flagged, headLabel, shortLabel, paraCount: ch.paragraphs.length };
     });
     const totalParas = chapters.reduce((a, c) => a + c.paragraphs.length, 0);
     return { rows, bodyCount, nonBodyCount: chapters.length - bodyCount, totalParas };
   }, [chapters, t]);
+
+  const ovHeights = useMemo(
+    () => overviewHeights(view.rows.map((r) => r.paraCount), ovAvail),
+    [view.rows, ovAvail],
+  );
 
   // Count comparison: book-declared body chapters (from the parsed TOC) vs the
   // chapters actually detected. delta > 0 = suspected under-split (merged), < 0 =
@@ -402,7 +491,7 @@ export default function ChapterReviewPage() {
     let n = 0;
     return tocEntries.map((e) => {
       if (e.isBody) n += 1;
-      return { ...e, label: e.isBody ? String(n) : '' };
+      return { ...e, label: e.isBody ? String(n).padStart(2, '0') : '—' };
     });
   }, [tocEntries]);
 
@@ -413,212 +502,376 @@ export default function ChapterReviewPage() {
     return aiNote;
   }, [submitted, aiStatus, aiNote, t]);
 
-  if (phase === 'error') {
+  // ── Render ───────────────────────────────────────────────────────────────
+  const crumb = (
+    <div className="ss-booknav">
+      <Link to="/upload" className="ss-booknav-back">
+        <ArrowLeft size={12} />
+        {t('title')}
+      </Link>
+      {book?.title && (
+        <>
+          <span className="cr-crumb-sep" aria-hidden="true">/</span>
+          <span className="ss-booknav-title">{book.title}</span>
+        </>
+      )}
+      <span className="cr-crumb-sep" aria-hidden="true">/</span>
+      <span className="ss-booknav-view" aria-current="page">{t('review.crumb')}</span>
+    </div>
+  );
+
+  // 409: a normal answer — the review window is closed. No retry (H frame).
+  if (conflict) {
+    const ok = conflict === 'review_submitted';
+    let copy = 'notOpen';
+    if (ok) copy = 'submitted';
+    else if (conflict === 'review_closed') copy = 'closed';
     return (
-      <div className="cr-error">
-        <p style={{ color: 'var(--color-error)', font: '600 13px var(--font-sans)' }}>{errorMsg ?? tc('error')}</p>
-        <button className="cr-link" onClick={() => navigate('/upload')}>
-          ← {t('title')}
-        </button>
+      <div className="cr-root">
+        {crumb}
+        <div className="cr-main">
+          <div className="ss-state ss-state-stage" role="status">
+            <span className={ok ? 'ss-state-icon cr-conflict-icon-ok' : 'ss-state-icon'}>
+              {ok ? <CircleCheck size={26} /> : <Info size={26} />}
+            </span>
+            <h4 className="ss-state-title">{t(`review.conflict.${copy}Title`)}</h4>
+            <p className="ss-state-text">{t(`review.conflict.${copy}Body`)}</p>
+            <div className="ss-state-actions">
+              <button type="button" className="ss-btn ss-btn-sm ss-btn-primary" onClick={() => navigate(uploadPath)}>
+                {t('review.conflict.gotoUpload')}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (failure) {
+    return (
+      <div className="cr-root">
+        {crumb}
+        <div className="cr-main">
+          <PageFailure
+            variant={failureKind(failure.err)}
+            pageName={t('review.crumb')}
+            title={failure.op === 'submit' ? t('review.errorSubmit') : undefined}
+            onRetry={retryFailure}
+            techDetail={techDetailOf(failure.err)}
+          />
+        </div>
       </div>
     );
   }
 
   const busy = phase === 'submitting' || phase === 'cancelling';
-  const bannerColor = BANNER_COLORS[banner?.kind ?? 'info'];
-  const aiIcon = {
-    idle: <Sparkles size={13} />,
-    loading: <Loader2 size={13} className="cr-spin" />,
-    done: <Check size={13} />,
-  }[aiStatus];
+  const llmLink = (
+    <Link to={LLM_SETTINGS_PATH} className="cr-banner-link">
+      {tc('failure.llmSettings')}
+    </Link>
+  );
 
   return (
     <div className="cr-root">
-      <style>{CR_STYLES}</style>
+      {crumb}
 
-      {/* Toolbar */}
-      <div className="cr-toolbar">
-        <div className="cr-toolbar-title">
-          <span className="cr-book-title">{t('review.title')}</span>
-          <span className="cr-book-sub">{t('review.subtitle')}</span>
-        </div>
-        <div style={{ flex: 1 }} />
-        <button className="cr-btn cr-btn-ghost" disabled={aiStatus !== 'idle' || busy} onClick={runAI}>
-          {aiIcon}
-          {t(AI_LABEL_KEY[aiStatus])}
-        </button>
-        <button className="cr-btn cr-btn-discard" disabled={busy} onClick={() => setConfirmDiscard(true)}>
-          {t('review.discard')}
-        </button>
-        <button className="cr-btn cr-btn-submit" disabled={busy || chapters.length === 0} onClick={handleSubmit}>
-          {phase === 'submitting' && <Loader2 size={12} className="cr-spin" />}
-          {phase === 'submitting' ? t('review.submitting') : t('review.submit')}
-        </button>
-      </div>
-
-      {/* Banner */}
-      {banner && (
-        <div className="cr-banner" style={{ background: bannerColor.bg, color: bannerColor.fg }}>
-          {banner.text}
-        </div>
-      )}
-
-      {/* Undo bar for the last in-paragraph split */}
-      {undoChapters && !busy && (
-        <div className="cr-banner" style={{ background: BANNER_COLORS.info.bg, color: BANNER_COLORS.info.fg }}>
-          <span>{t('review.splitBanner')}</span>
-          <button className="cr-undo-split" onClick={handleUndoSplit}>
-            {t('review.splitUndo')}
-          </button>
-        </div>
-      )}
-
-      {/* Discard confirmation */}
-      {confirmDiscard && (
-        <div className="cr-confirm">
-          <span style={{ font: '600 12px var(--font-sans)', color: 'var(--color-error)' }}>
-            {t('review.discardConfirm')}
-          </span>
-          <div style={{ flex: 1 }} />
-          <button className="cr-confirm-yes" disabled={busy} onClick={handleConfirmDiscard}>
-            {phase === 'cancelling' ? <Loader2 size={11} className="cr-spin" /> : null}
-            {t('review.discardConfirmBtn')}
-          </button>
-          <button className="cr-confirm-no" disabled={busy} onClick={() => setConfirmDiscard(false)}>
-            {tc('cancel')}
-          </button>
-        </div>
-      )}
-
-      {/* Body: spine + reading column */}
-      <div className="cr-body">
-        <aside className="cr-spine" style={{ width: spineOpen ? 206 : 40 }}>
-          <button className="cr-spine-toggle" title={t('review.spineToggle')} onClick={() => setSpineOpen((s) => !s)}>
-            {spineOpen ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
-          </button>
-
-          {spineOpen ? (
-            <>
-              <div className="cr-spine-head">{t('review.spineTitle')}</div>
-              <div className="cr-spine-summary">
-                {t('review.spineSummary', {
-                  total: view.totalParas,
-                  body: view.bodyCount,
-                  nonBody: view.nonBodyCount,
-                })}
-              </div>
-              {view.rows.map(({ ch, ci, isBody, flagged, headLabel, paraCount }) => (
-                <button
-                  key={ci}
-                  className="cr-spine-block"
-                  onClick={() => jumpTo(ci)}
-                  style={{
-                    minHeight: 30 + paraCount * 15,
-                    borderLeft: `4px solid ${isBody ? 'var(--accent)' : 'var(--fg-muted)'}`,
-                    background: spineBlockBg(isBody, selCi === ci),
-                  }}
-                >
-                  <span className="cr-spine-label">
-                    {headLabel}
-                    {flagged && <span className="cr-flag-dot" title={t('review.flagMisSplit')} />}
-                  </span>
-                  {ch.title && <span className="cr-spine-title">{ch.title}</span>}
-                  <span className="cr-spine-count">{t('review.paraCount', { n: paraCount })}</span>
-                </button>
-              ))}
-            </>
-          ) : (
-            <div title={t('review.railHint')}>
-              {view.rows.map(({ ci, isBody, flagged, paraCount }) => (
-                <button
-                  key={ci}
-                  className="cr-rail"
-                  onClick={() => jumpTo(ci)}
-                  style={{
-                    minHeight: 14 + paraCount * 8,
-                    background: railBg(isBody, flagged),
-                    outline: selCi === ci ? '2px solid var(--fg-primary)' : undefined,
-                    outlineOffset: selCi === ci ? 1 : undefined,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-        </aside>
-
-        {/* Reading column */}
-        <div
-          className="cr-read"
-          ref={readRef}
-          onScroll={() => setSelSplit((s) => (s ? null : s))}
-        >
-          <div className="cr-read-inner">
-            {/* Info row + on-demand role guide (opens as an overlay, so it
-                never pushes the reading flow down) */}
-            <div className="cr-inforow">
-              <span className="cr-info-text">{t('review.infoRow')}</span>
+      <div className="cr-main">
+        {/* Title + actions */}
+        <div className="cr-head">
+          <div className="cr-head-text">
+            <h2 className="cr-title">{t('review.title')}</h2>
+            <span className="cr-sub">{t('review.subtitle')}</span>
+          </div>
+          <div className="cr-head-actions">
+            {/* Only when some chapter is marked 目錄. Glyph only on the state
+                that calls the LLM; the cached state just reopens the drawer. */}
+            {hasToc && (
               <button
-                className="cr-guide-trigger"
+                type="button"
+                className={`ss-btn ss-btn-sm ss-btn-secondary${tocViewMode ? '' : ' ss-btn-llm'}`}
+                title={t('review.toc.detectedHint')}
+                disabled={tocStatus === 'loading'}
+                onClick={tocViewMode ? openTocDrawer : runTocParse}
+              >
+                {t(tocViewMode ? 'review.toc.viewBtn' : 'review.toc.readBtn')}
+              </button>
+            )}
+            {/* Three states carried by the button itself; one-shot. */}
+            <button
+              type="button"
+              className={`ss-btn ss-btn-sm ss-btn-secondary${aiStatus === 'idle' ? ' ss-btn-llm' : ''}`}
+              disabled={aiStatus !== 'idle' || busy}
+              onClick={runAI}
+            >
+              {aiStatus === 'loading' && <Loader2 size={14} className="cr-spin" />}
+              {t(AI_LABEL_KEY[aiStatus])}
+            </button>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-ghost"
+              disabled={busy}
+              onClick={() => setConfirmDiscard(true)}
+            >
+              {t('review.discard')}
+            </button>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-primary"
+              disabled={busy || chapters.length === 0}
+              onClick={handleSubmit}
+            >
+              {phase === 'submitting' && <Loader2 size={14} className="cr-spin" />}
+              {phase === 'submitting' ? t('review.submitting') : t('review.submit')}
+            </button>
+          </div>
+        </div>
+
+        {banner && (
+          <Banner kind={banner.kind}>
+            {banner.text}
+            {banner.settings && <>{'\u3000'}{llmLink}</>}
+          </Banner>
+        )}
+
+        {/* One-step undo for the last in-paragraph split */}
+        {undoChapters && !busy && (
+          <Banner
+            kind="info"
+            action={
+              <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={handleUndoSplit}>
+                {t('review.splitUndo')}
+              </button>
+            }
+          >
+            {t('review.splitBanner')}
+          </Banner>
+        )}
+
+        {/* Discard, second step: only this row actually deletes */}
+        {confirmDiscard && (
+          <div className="cr-banner cr-banner-error cr-confirm" role="alert">
+            <span className="cr-banner-icon">
+              <AlertTriangle size={16} />
+            </span>
+            <p className="cr-banner-text">{t('review.discardConfirm')}</p>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-danger"
+              disabled={busy}
+              onClick={handleConfirmDiscard}
+            >
+              {phase === 'cancelling' && <Loader2 size={14} className="cr-spin" />}
+              {t('review.discardConfirmBtn')}
+            </button>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-ghost"
+              disabled={busy}
+              onClick={() => setConfirmDiscard(false)}
+            >
+              {tc('cancel')}
+            </button>
+          </div>
+        )}
+
+        {/* Body: spine + reading flow (+ TOC drawer overlay) */}
+        <div className="cr-body">
+          <aside className={spineOpen ? 'cr-spine' : 'cr-spine is-collapsed'}>
+            {spineOpen ? (
+              <>
+                <div className="cr-spine-head">
+                  <span className="cr-spine-name">{t('review.spineTitle')}</span>
+                  <div className="cr-spine-tools">
+                    <div className="ss-seg" role="group">
+                      {(['chapter', 'overview'] as const).map((m) => (
+                        <button
+                          key={m}
+                          type="button"
+                          className={spineMode === m ? 'ss-seg-item active' : 'ss-seg-item'}
+                          aria-pressed={spineMode === m}
+                          onClick={() => setSpineMode(m)}
+                        >
+                          {t(m === 'chapter' ? 'review.spineModeChapter' : 'review.spineModeOverview')}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="cr-spine-toggle"
+                      title={t('review.spineToggle')}
+                      aria-label={t('review.spineToggle')}
+                      onClick={() => setSpineOpen(false)}
+                    >
+                      <PanelLeft size={16} />
+                    </button>
+                  </div>
+                </div>
+                <p className="cr-spine-summary">
+                  {t('review.spineSummary', {
+                    total: view.totalParas,
+                    body: view.bodyCount,
+                    nonBody: view.nonBodyCount,
+                  })}
+                </p>
+
+                {spineMode === 'chapter' ? (
+                  <div className="cr-spine-list">
+                    {view.rows.map(({ ch, ci, isBody, flagged, headLabel, paraCount }) => (
+                      <button
+                        key={ci}
+                        type="button"
+                        className={[
+                          'cr-block',
+                          isBody ? '' : 'is-nonbody',
+                          selCi === ci ? 'is-selected' : '',
+                        ].filter(Boolean).join(' ')}
+                        style={{ minHeight: spineBlockHeight(paraCount) }}
+                        onClick={() => jumpTo(ci)}
+                      >
+                        <span className="cr-block-head">
+                          <span className={isBody ? 'cr-mark' : 'cr-mark is-nonbody'} />
+                          <span className="cr-block-label">{headLabel}</span>
+                          {flagged && <span className="cr-flag" title={t('review.flagMisSplit')} />}
+                        </span>
+                        {ch.title && <span className="cr-block-title">{ch.title}</span>}
+                        <span className="cr-block-count">{t('review.paraCount', { n: paraCount })}</span>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="cr-ov" ref={ovRef}>
+                    {view.rows.map(({ ch, ci, isBody, flagged, headLabel, shortLabel, paraCount }) => {
+                      const h = ovHeights[ci] ?? 2;
+                      const tip = [headLabel, ch.title, t('review.paraCount', { n: paraCount })]
+                        .filter(Boolean)
+                        .join(' · ');
+                      return (
+                        <button
+                          key={ci}
+                          type="button"
+                          className="cr-ov-row"
+                          style={{ height: h }}
+                          title={tip}
+                          aria-label={tip}
+                          onClick={() => jumpTo(ci)}
+                        >
+                          <span className="cr-ov-label">{h >= OVERVIEW_LABEL_MIN ? shortLabel : ''}</span>
+                          <span
+                            className={[
+                              'cr-ov-bar',
+                              isBody ? '' : 'is-nonbody',
+                              selCi === ci ? 'is-selected' : '',
+                            ].filter(Boolean).join(' ')}
+                          />
+                          <span className={flagged ? 'cr-ov-flag is-flagged' : 'cr-ov-flag'} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="cr-spine-toggle"
+                  title={t('review.spineToggle')}
+                  aria-label={t('review.spineToggle')}
+                  onClick={() => setSpineOpen(true)}
+                >
+                  <PanelLeft size={16} />
+                </button>
+                <div className="cr-rail" title={t('review.railHint')}>
+                  {view.rows.map(({ ci, isBody, flagged, paraCount }) => (
+                    <button
+                      key={ci}
+                      type="button"
+                      aria-label={view.rows[ci].headLabel}
+                      className={[
+                        'cr-rail-bar',
+                        isBody ? '' : 'is-nonbody',
+                        flagged ? 'is-flagged' : '',
+                        selCi === ci ? 'is-selected' : '',
+                      ].filter(Boolean).join(' ')}
+                      style={{ height: railBarHeight(paraCount) }}
+                      onClick={() => jumpTo(ci)}
+                    />
+                  ))}
+                </div>
+              </>
+            )}
+          </aside>
+
+          {/* Reading flow */}
+          <div className="cr-read-col">
+            {/* Info row + on-demand role guide (an overlay, so it never pushes
+                the reading flow down) */}
+            <div className="cr-inforow">
+              <p className="cr-info-text">{t('review.infoRow')}</p>
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
                 aria-expanded={glossaryOpen}
                 onClick={() => setGlossaryOpen((g) => !g)}
               >
                 {t('review.glossaryTag')}
-                <span className="cr-chevron">{glossaryOpen ? '▾' : '▸'}</span>
               </button>
+
+              {glossaryOpen && (
+                <div className="cr-guide" role="dialog" aria-label={t('review.glossaryToggle')}>
+                  <div className="cr-guide-head">
+                    <h3 className="cr-guide-title">{t('review.glossaryToggle')}</h3>
+                    <button
+                      type="button"
+                      className="cr-icon-btn"
+                      title={t('review.toc.close')}
+                      aria-label={t('review.toc.close')}
+                      onClick={() => setGlossaryOpen(false)}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                  <p className="cr-guide-intro">{t('review.glossaryIntro')}</p>
+                  <div className="cr-guide-grid">
+                    <div className="cr-guide-col">
+                      <div className="cr-guide-col-head is-chapter">{t('review.glossaryChHead')}</div>
+                      {CHAPTER_ROLES.map((r) => (
+                        <div className="cr-guide-item" key={r}>
+                          <span className={r === 'body' ? 'cr-role-pill is-solid' : 'cr-role-pill is-soft'}>
+                            {t(`review.chapterType.${r}`)}
+                          </span>
+                          <span className="cr-guide-desc">{t(`review.chDesc.${r}`)}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="cr-guide-col">
+                      <div className="cr-guide-col-head">{t('review.glossaryPaHead')}</div>
+                      {PARA_ROLES.map((r) => (
+                        <div className="cr-guide-item" key={r}>
+                          <span className={r === 'body' ? 'cr-role-pill is-accent' : 'cr-role-pill is-line'}>
+                            {t(`review.paraType.${r}`)}
+                          </span>
+                          <span className="cr-guide-desc">{t(`review.paDesc.${r}`)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {glossaryOpen && (
-              <div className="cr-guide-pop">
-                <div className="cr-guide-pop-head">
-                  <span className="cr-guide-pop-title">{t('review.glossaryToggle')}</span>
-                  <button className="cr-guide-close" title={tc('cancel')} onClick={() => setGlossaryOpen(false)}>
-                    ✕
-                  </button>
-                </div>
-                <p className="cr-glossary-intro">{t('review.glossaryIntro')}</p>
-                <div className="cr-glossary-grid">
-                  <div>
-                    <div className="cr-glossary-col-head cr-ch">
-                      <span className="cr-swatch" style={{ background: 'var(--accent)' }} />
-                      {t('review.glossaryChHead')}
-                    </div>
-                    {CHAPTER_ROLES.map((r) => (
-                      <div className="cr-glossary-item" key={r}>
-                        <span className={`cr-tag ${r === 'body' ? 'cr-tag-ch-body' : 'cr-tag-ch'}`}>
-                          {t(`review.chapterType.${r}`)}
-                        </span>
-                        <span className="cr-glossary-desc">{t(`review.chDesc.${r}`)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div>
-                    <div className="cr-glossary-col-head cr-pa">
-                      <span className="cr-swatch" style={{ background: 'var(--entity-char-dot)' }} />
-                      {t('review.glossaryPaHead')}
-                    </div>
-                    {PARA_ROLES.map((r) => (
-                      <div className="cr-glossary-item" key={r}>
-                        <span className={`cr-tag ${r === 'body' ? 'cr-tag-pa-body' : 'cr-tag-pa'}`}>
-                          {t(`review.paraType.${r}`)}
-                        </span>
-                        <span className="cr-glossary-desc">{t(`review.paDesc.${r}`)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Chapters */}
-            {view.rows.map(({ ch, ci, headLabel }) => (
-              <div key={ci} data-chapter-anchor={ci} style={{ scrollMarginTop: 8 }}>
-                <div
-                  className="cr-divider"
-                  style={{ background: ci === flashCi ? 'var(--color-warning-bg)' : 'transparent' }}
-                >
-                  <div className="cr-hair" style={{ background: selCi === ci ? 'var(--accent)' : 'var(--border)' }} />
-                  <div className="cr-divider-cluster">
-                    <span className="cr-ch-badge">{t('review.chapterBadge')}</span>
+            <div className="cr-read" ref={readRef} onScroll={() => setSelSplit((s) => (s ? null : s))}>
+              {view.rows.map(({ ch, ci, isBody, headLabel }) => (
+                <div key={ci} className="cr-chapter" data-chapter-anchor={ci}>
+                  <div
+                    className={[
+                      'cr-divider',
+                      isBody ? '' : 'is-nonbody',
+                      selCi === ci ? 'is-selected' : '',
+                      ci === flashCi ? 'is-flash' : '',
+                    ].filter(Boolean).join(' ')}
+                  >
+                    <span className="ss-badge cr-ch-badge">{t('review.chapterBadge')}</span>
                     <span className="cr-ch-no">{headLabel}</span>
                     <input
                       className="cr-ch-title"
@@ -627,7 +880,7 @@ export default function ChapterReviewPage() {
                       onChange={(e) => setChapterTitle(ci, e.target.value)}
                     />
                     <select
-                      className="cr-ch-role"
+                      className="cr-select cr-ch-role"
                       value={ch.role ?? 'body'}
                       onChange={(e) => setChapterRole(ci, e.target.value)}
                     >
@@ -638,7 +891,8 @@ export default function ChapterReviewPage() {
                       ))}
                     </select>
                     <button
-                      className="cr-merge"
+                      type="button"
+                      className="ss-btn ss-btn-sm ss-btn-ghost"
                       disabled={ci === 0}
                       title={t('review.mergePrevTitle')}
                       onClick={() => mergeIntoPrev(ci)}
@@ -646,7 +900,8 @@ export default function ChapterReviewPage() {
                       {t('review.mergePrev')}
                     </button>
                     <button
-                      className="cr-merge"
+                      type="button"
+                      className="ss-btn ss-btn-sm ss-btn-ghost"
                       disabled={ci === chapters.length - 1}
                       title={t('review.mergeNextTitle')}
                       onClick={() => mergeIntoNext(ci)}
@@ -654,43 +909,32 @@ export default function ChapterReviewPage() {
                       {t('review.mergeNext')}
                     </button>
                   </div>
-                  <div className="cr-hair" style={{ background: selCi === ci ? 'var(--accent)' : 'var(--border)' }} />
-                </div>
 
-                {(ch.role ?? 'body') === 'toc' && (
-                  <div className="cr-toc-cue">
-                    <span className="cr-toc-cue-text">{t('review.toc.detectedHint')}</span>
-                    <button
-                      className="cr-toc-cue-btn"
-                      disabled={tocStatus === 'loading'}
-                      onClick={tocViewMode ? openTocDrawer : runTocParse}
-                    >
-                      {tocViewMode ? <List size={13} /> : <Sparkles size={13} />}
-                      {t(tocViewMode ? 'review.toc.viewBtn' : 'review.toc.readBtn')}
-                    </button>
-                  </div>
-                )}
-
-                {ch.paragraphs.map((p, pi) => {
-                  const pIsBody = (p.role ?? 'body') === 'body';
-                  const titlePart = p.titleSpan ? p.text.slice(p.titleSpan[0], p.titleSpan[1]) : null;
-                  const bodyPart = p.titleSpan ? p.text.slice(p.titleSpan[1]) : p.text;
-                  return (
-                    <div className="cr-para" key={pieceKey(p)} style={{ opacity: pIsBody ? 1 : 0.55 }}>
-                      <div className="cr-split-gutter">
-                        {pi > 0 && (
-                          <button className="cr-split" title={t('review.splitHere')} onClick={() => splitAt(ci, pi)}>
-                            ＋
-                          </button>
-                        )}
-                      </div>
-                      <div className="cr-para-text" data-para-ci={ci} data-para-pi={pi}>
-                        {titlePart && <span style={{ fontWeight: 700 }}>{titlePart}</span>}
-                        {bodyPart}
-                      </div>
-                      <div className="cr-para-role-wrap">
+                  {ch.paragraphs.map((p, pi) => {
+                    // A non-body chapter is excluded wholesale, so its paragraphs
+                    // dim too (02 B), not only paragraphs tagged non-body.
+                    const pIsBody = isBody && (p.role ?? 'body') === 'body';
+                    const titlePart = p.titleSpan ? p.text.slice(p.titleSpan[0], p.titleSpan[1]) : null;
+                    const bodyPart = p.titleSpan ? p.text.slice(p.titleSpan[1]) : p.text;
+                    return (
+                      <div className={pIsBody ? 'cr-para' : 'cr-para is-nonbody'} key={pieceKey(p)}>
+                        <button
+                          type="button"
+                          className={pi > 0 ? 'cr-split' : 'cr-split is-first'}
+                          title={t('review.splitHere')}
+                          aria-label={t('review.splitHere')}
+                          tabIndex={pi > 0 ? undefined : -1}
+                          disabled={pi === 0}
+                          onClick={() => splitAt(ci, pi)}
+                        >
+                          ＋
+                        </button>
+                        <p className="cr-para-text" data-para-ci={ci} data-para-pi={pi}>
+                          {titlePart && <span className="cr-para-lead">{titlePart}</span>}
+                          {bodyPart}
+                        </p>
                         <select
-                          className="cr-para-role"
+                          className="cr-select cr-para-role"
                           value={p.role ?? 'body'}
                           onChange={(e) => setParaRole(ci, pi, e.target.value)}
                         >
@@ -702,109 +946,122 @@ export default function ChapterReviewPage() {
                           ))}
                         </select>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* TOC cross-check drawer (#22d): AI-parsed book contents, read-only.
-            Sibling of the reading column so it overlays the right edge without
-            reflowing it; the two lists (this + the spine) stay unlinked. */}
-        {tocOpen && (
-          <aside className="cr-toc-drawer">
-            <div className="cr-toc-head">
-              <span className="cr-toc-title">{t('review.toc.drawerTitle')}</span>
-              <span className="cr-toc-badge">{t('review.toc.drawerBadge')}</span>
-              <div style={{ flex: 1 }} />
-              <button
-                className="cr-toc-icon"
-                title={t('review.toc.reparse')}
-                disabled={tocStatus === 'loading'}
-                onClick={runTocParse}
-              >
-                <RotateCw size={13} />
-              </button>
-              <button className="cr-toc-icon" title={t('review.toc.close')} onClick={() => setTocOpen(false)}>
-                <X size={13} />
-              </button>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
+          </div>
 
-            {tocStatus === 'loading' && (
-              <div className="cr-toc-loading">
-                <Loader2 size={14} className="cr-spin" />
-                {t('review.toc.loading')}
-              </div>
-            )}
-
-            {(tocStatus === 'empty' || tocStatus === 'error') && (
-              <div className="cr-toc-fallback">
-                <span>{t(tocStatus === 'empty' ? 'review.toc.empty' : 'review.toc.error')}</span>
-                <button className="cr-toc-relink" onClick={runTocParse}>
-                  {t('review.toc.reparse')}
-                </button>
-              </div>
-            )}
-
-            {tocStatus === 'done' && (
-              <>
-                <div
-                  className="cr-toc-summary"
-                  style={{
-                    background: tocCompare.match ? 'var(--color-success-bg)' : 'var(--color-warning-bg)',
-                    color: tocCompare.match ? 'var(--color-success)' : 'var(--color-warning)',
-                  }}
-                >
-                  <div className="cr-toc-summary-top">
-                    {tocCompare.match && <Check size={13} />}
-                    <span className="cr-toc-summary-label">{t('review.toc.compareLabel')}</span>
-                    <div style={{ flex: 1 }} />
-                    {!tocCompare.match && (
-                      <span
-                        className="cr-toc-delta"
-                        style={{ background: 'var(--color-warning)', color: '#fff' }}
-                      >
-                        {tocCompare.delta > 0
-                          ? t('review.toc.deltaUnder', { n: tocCompare.delta })
-                          : t('review.toc.deltaOver', { n: -tocCompare.delta })}
-                      </span>
-                    )}
-                  </div>
-                  <span className="cr-toc-summary-text">
-                    {t(tocCompare.match ? 'review.toc.summaryMatch' : 'review.toc.summaryMismatch', {
-                      toc: tocCompare.tocBody,
-                      detected: tocCompare.detected,
-                    })}
-                  </span>
+          {/* TOC cross-check drawer (#22d): AI-parsed book contents, read-only.
+              It overlays the right edge without reflowing the reading flow; the
+              two lists (this + the spine) are deliberately never paired. */}
+          {tocOpen && (
+            <aside className="cr-toc">
+              <div className="cr-toc-head">
+                <div className="cr-toc-head-title">
+                  <span className="cr-toc-title">{t('review.toc.drawerTitle')}</span>
+                  <span className="ss-badge cr-ch-badge">{t('review.toc.drawerBadge')}</span>
                 </div>
-
-                <p className="cr-toc-note">{t('review.toc.note')}</p>
-
-                <div className="cr-toc-list">
-                  {tocRows.map((e) => (
-                    <div
-                      className="cr-toc-entry"
-                      key={`${e.level}:${e.title}:${e.page ?? ''}`}
-                      style={{ paddingLeft: 11 + e.level * 14 }}
+                <div className="cr-toc-tools">
+                  {tocStatus !== 'unconfigured' && (
+                    <button
+                      type="button"
+                      className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm"
+                      disabled={tocStatus === 'loading'}
+                      onClick={runTocParse}
                     >
-                      <span className="cr-toc-entry-label">{e.label}</span>
-                      <span
-                        className="cr-toc-entry-title"
-                        style={{ color: e.isBody ? 'var(--fg-primary)' : 'var(--fg-muted)' }}
-                      >
-                        {e.title}
-                      </span>
-                      {!e.isBody && <span className="cr-toc-entry-tag">{t('review.toc.notBody')}</span>}
-                      {e.page != null && <span className="cr-toc-entry-page">p.{e.page}</span>}
-                    </div>
-                  ))}
+                      {t('review.toc.reparse')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    className="cr-icon-btn"
+                    title={t('review.toc.close')}
+                    aria-label={t('review.toc.close')}
+                    onClick={() => setTocOpen(false)}
+                  >
+                    <X size={15} />
+                  </button>
                 </div>
-              </>
-            )}
-          </aside>
-        )}
+              </div>
+
+              <div className="cr-toc-body">
+                {tocStatus === 'loading' && (
+                  <div className="cr-toc-loading">
+                    <Loader2 size={16} className="cr-spin" />
+                    {t('review.toc.loading')}
+                  </div>
+                )}
+
+                {(tocStatus === 'empty' || tocStatus === 'error') && (
+                  <div className="cr-toc-state">
+                    <p className={tocStatus === 'error' ? 'cr-toc-msg is-error' : 'cr-toc-msg'}>
+                      {t(tocStatus === 'empty' ? 'review.toc.empty' : 'review.toc.error')}
+                    </p>
+                    <button
+                      type="button"
+                      className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                      onClick={runTocParse}
+                    >
+                      {t('review.toc.reparse')}
+                    </button>
+                  </div>
+                )}
+
+                {/* 503 (app JSON): a feature state inside the drawer only; no
+                    re-parse — it would fail the same way until configured. */}
+                {tocStatus === 'unconfigured' && (
+                  <div className="cr-toc-state">
+                    <p className="cr-toc-msg is-plain">{tc('failure.llmUnconfigured')}</p>
+                    {llmLink}
+                  </div>
+                )}
+
+                {tocStatus === 'done' && (
+                  <>
+                    <div className="cr-toc-label">{t('review.toc.compareLabel')}</div>
+                    <div className={tocCompare.match ? 'cr-toc-summary is-match' : 'cr-toc-summary'}>
+                      <span className="cr-toc-glyph">{tocCompare.match ? '✓' : '!'}</span>
+                      <span className="cr-toc-summary-text">
+                        {t(tocCompare.match ? 'review.toc.summaryMatch' : 'review.toc.summaryMismatch', {
+                          toc: tocCompare.tocBody,
+                          detected: tocCompare.detected,
+                        })}
+                      </span>
+                      {!tocCompare.match && (
+                        <span className="cr-toc-delta">
+                          {tocCompare.delta > 0
+                            ? t('review.toc.deltaUnder', { n: tocCompare.delta })
+                            : t('review.toc.deltaOver', { n: -tocCompare.delta })}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="cr-toc-list">
+                      {tocRows.map((e) => (
+                        <div
+                          className={e.isBody ? 'cr-toc-entry' : 'cr-toc-entry is-nonbody'}
+                          key={`${e.level}:${e.title}:${e.page ?? ''}`}
+                          style={{ paddingLeft: `calc(${e.level} * var(--space-6))` }}
+                        >
+                          <span className="cr-toc-no">{e.label}</span>
+                          <span className="cr-toc-entry-title">
+                            {e.title}
+                            {!e.isBody && <> <span className="cr-toc-notbody">{t('review.toc.notBody')}</span></>}
+                          </span>
+                          {e.page != null && <span className="cr-toc-page">p.{e.page}</span>}
+                        </div>
+                      ))}
+                    </div>
+
+                    <p className="cr-toc-note">{t('review.toc.note')}</p>
+                  </>
+                )}
+              </div>
+            </aside>
+          )}
+        </div>
       </div>
 
       {/* Floating action for a validated in-paragraph selection. Lives outside
@@ -812,7 +1069,8 @@ export default function ChapterReviewPage() {
           mousedown is swallowed so the selection survives until onClick. */}
       {selSplit && phase === 'reviewing' && !submitted && (
         <button
-          className="cr-splitsel"
+          type="button"
+          className="ss-btn ss-btn-sm ss-btn-primary cr-splitsel"
           style={{ left: selSplit.x, top: selSplit.y }}
           onMouseDown={(e) => e.preventDefault()}
           onClick={handleSplitSelection}
@@ -823,138 +1081,3 @@ export default function ChapterReviewPage() {
     </div>
   );
 }
-
-// Scoped styles. Every color is a design token (var(--*)); the two one-off
-// durations (500ms jump-flash, 200ms spine collapse) match the design spec.
-const CR_STYLES = `
-.cr-root { display:flex; flex-direction:column; height:100%; min-height:0; background:var(--bg-primary); color:var(--fg-primary); font-family:var(--font-sans); overflow:hidden; }
-.cr-root :focus-visible { outline:2px solid var(--accent); outline-offset:1px; }
-.cr-spin { animation:cr-spin 1s linear infinite; }
-@keyframes cr-spin { to { transform:rotate(360deg); } }
-
-.cr-error { display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; gap:12px; }
-.cr-link { border:none; background:transparent; color:var(--fg-muted); font:12px var(--font-sans); cursor:pointer; }
-.cr-link:hover { color:var(--accent); }
-
-.cr-toolbar { flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--border); background:var(--bg-secondary); }
-.cr-toolbar-title { display:flex; flex-direction:column; line-height:1.15; }
-.cr-book-title { font:700 13px var(--font-serif); color:var(--fg-primary); }
-.cr-book-sub { font:10px var(--font-sans); color:var(--fg-muted); }
-.cr-btn { display:inline-flex; align-items:center; gap:6px; border-radius:var(--radius-md); font:600 11px var(--font-sans); cursor:pointer; }
-.cr-btn:disabled { opacity:.55; cursor:default; }
-.cr-btn-ghost { padding:6px 11px; border:1px solid var(--border); background:var(--bg-primary); color:var(--fg-secondary); }
-.cr-btn-ghost:not(:disabled):hover { background:var(--bg-tertiary); }
-.cr-btn-discard { padding:6px 11px; border:1px solid var(--border); background:transparent; color:var(--color-error); }
-.cr-btn-discard:not(:disabled):hover { background:var(--color-error-bg); }
-.cr-btn-submit { padding:6px 14px; border:1px solid var(--accent); background:var(--accent); color:#fff; font-weight:700; }
-.cr-btn-submit:not(:disabled):hover { opacity:.88; }
-
-.cr-banner { flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:7px 14px; font:600 11.5px var(--font-sans); border-bottom:1px solid var(--border); }
-.cr-undo-split { flex:0 0 auto; padding:3px 10px; border:1px solid currentColor; border-radius:var(--radius-sm); background:transparent; color:inherit; font:700 11px var(--font-sans); cursor:pointer; }
-.cr-undo-split:hover { background:var(--bg-primary); }
-.cr-splitsel { position:fixed; z-index:20; transform:translateX(-50%); padding:6px 12px; border:1px solid var(--accent); border-radius:999px; background:var(--accent); color:#fff; font:700 11.5px var(--font-sans); cursor:pointer; box-shadow:var(--shadow-lg); white-space:nowrap; }
-.cr-splitsel:hover { opacity:.88; }
-.cr-confirm { flex:0 0 auto; display:flex; align-items:center; gap:10px; padding:8px 14px; background:var(--color-error-bg); border-bottom:1px solid var(--color-error); }
-.cr-confirm-yes { display:inline-flex; align-items:center; gap:5px; padding:4px 12px; border:none; border-radius:var(--radius-sm); background:var(--color-error); color:#fff; font:700 11px var(--font-sans); cursor:pointer; }
-.cr-confirm-no { padding:4px 12px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--fg-secondary); font:600 11px var(--font-sans); cursor:pointer; }
-.cr-confirm-yes:disabled, .cr-confirm-no:disabled { opacity:.55; cursor:default; }
-
-.cr-body { flex:1; display:flex; min-height:0; position:relative; }
-.cr-spine { flex:0 0 auto; border-right:1px solid var(--border); background:var(--bg-secondary); overflow:auto; padding:8px 7px; transition:width 200ms ease; }
-.cr-spine-toggle { width:100%; box-sizing:border-box; display:flex; align-items:center; justify-content:center; padding:4px 2px 8px; border:none; background:transparent; cursor:pointer; color:var(--fg-muted); }
-.cr-spine-toggle:hover { color:var(--accent); }
-.cr-spine-head { font:600 10.5px var(--font-sans); letter-spacing:.04em; color:var(--fg-muted); padding:2px 4px 4px; }
-.cr-spine-summary { font:10px var(--font-sans); color:var(--fg-muted); padding:0 4px 9px; line-height:1.5; }
-.cr-spine-block { width:100%; box-sizing:border-box; text-align:left; display:flex; flex-direction:column; justify-content:center; gap:3px; padding:7px 9px; margin-bottom:5px; border:1px solid var(--border); border-radius:6px; cursor:pointer; }
-.cr-spine-block:hover { filter:brightness(0.97); }
-.cr-spine-label { display:flex; align-items:center; gap:6px; font:700 12px var(--font-sans); color:var(--fg-primary); }
-.cr-flag-dot { width:7px; height:7px; border-radius:50%; background:var(--color-warning); }
-.cr-spine-title { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font:12px var(--font-serif); color:var(--fg-secondary); }
-.cr-spine-count { font:10px var(--font-sans); color:var(--fg-muted); }
-.cr-rail { display:block; width:100%; box-sizing:border-box; border:none; padding:0; border-radius:4px; cursor:pointer; margin-bottom:4px; }
-
-.cr-read { flex:1; overflow:auto; position:relative; background:var(--bg-primary); padding:4px 0 60px; }
-.cr-read-inner { max-width:960px; margin:0 auto; padding:0 40px; position:relative; }
-
-.cr-inforow { display:flex; align-items:center; gap:8px; padding:10px 2px 4px; border-bottom:1px solid var(--border); margin-bottom:6px; }
-.cr-info-text { flex:1; min-width:0; font:11px var(--font-sans); color:var(--fg-muted); }
-.cr-guide-trigger { flex:0 0 auto; display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border:1px solid var(--border); border-radius:999px; background:var(--bg-secondary); color:var(--fg-secondary); font:600 11px var(--font-sans); cursor:pointer; white-space:nowrap; }
-.cr-guide-trigger:hover { background:var(--bg-tertiary); color:var(--accent); border-color:var(--accent); }
-.cr-chevron { font:10px var(--font-sans); color:var(--fg-muted); }
-
-.cr-guide-pop { position:absolute; top:38px; left:40px; right:40px; z-index:6; background:var(--bg-primary); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:16px; }
-.cr-guide-pop-head { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-.cr-guide-pop-title { flex:1; font:700 12.5px var(--font-sans); color:var(--fg-primary); }
-.cr-guide-close { flex:0 0 auto; width:22px; height:22px; border:1px solid var(--border); border-radius:var(--radius-sm); background:transparent; color:var(--fg-muted); font:12px var(--font-sans); cursor:pointer; display:flex; align-items:center; justify-content:center; }
-.cr-guide-close:hover { background:var(--bg-tertiary); color:var(--fg-primary); }
-.cr-glossary-intro { margin:0 0 14px; font:12px/1.6 var(--font-sans); color:var(--fg-secondary); }
-.cr-glossary-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
-.cr-glossary-col-head { font:700 11.5px var(--font-sans); margin-bottom:8px; display:flex; align-items:center; gap:6px; }
-.cr-glossary-col-head.cr-ch { color:var(--accent); }
-.cr-glossary-col-head.cr-pa { color:var(--entity-char-fg); }
-.cr-swatch { width:8px; height:8px; border-radius:2px; }
-.cr-glossary-item { display:flex; gap:9px; align-items:baseline; margin-bottom:9px; }
-.cr-glossary-desc { font:12px/1.5 var(--font-sans); color:var(--fg-secondary); }
-.cr-tag { flex:0 0 auto; min-width:44px; padding:2px 8px; border-radius:5px; font:700 10.5px var(--font-sans); text-align:center; }
-.cr-tag-ch-body { background:var(--accent); color:#fff; }
-.cr-tag-ch { background:var(--bg-tertiary); color:var(--fg-secondary); border:1px solid var(--border); }
-.cr-tag-pa-body { background:var(--entity-char-bg); color:var(--entity-char-fg); border:1px solid var(--entity-char-border); }
-.cr-tag-pa { background:var(--bg-primary); color:var(--fg-muted); border:1px solid var(--border); }
-
-.cr-divider { display:flex; align-items:center; gap:10px; margin:24px -8px 14px; padding:4px 8px; border-radius:8px; transition:background-color 500ms ease; }
-.cr-hair { height:1px; flex:1; }
-.cr-divider-cluster { display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:center; }
-.cr-ch-badge { display:inline-flex; align-items:center; padding:2px 8px; border-radius:5px; font:700 10px var(--font-sans); background:var(--accent); color:#fff; }
-.cr-ch-no { font:600 12px var(--font-sans); color:var(--fg-secondary); }
-.cr-ch-title { width:140px; padding:4px 8px; border:1px solid var(--accent); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--fg-primary); font:14px var(--font-serif); }
-.cr-ch-role { padding:4px 8px; border:1px solid var(--accent); border-radius:var(--radius-md); background:var(--bg-tertiary); color:var(--accent); font:600 11px var(--font-sans); cursor:pointer; }
-.cr-merge { padding:4px 8px; border-radius:var(--radius-md); border:1px solid var(--accent); background:transparent; color:var(--accent); font:600 11px var(--font-sans); white-space:nowrap; cursor:pointer; }
-.cr-merge:not(:disabled):hover { background:var(--accent); color:#fff; }
-.cr-merge:disabled { border-color:var(--border); color:var(--fg-muted); opacity:.4; cursor:not-allowed; }
-
-.cr-para { display:flex; gap:8px; align-items:flex-start; margin:0 0 4px; }
-.cr-split-gutter { width:24px; flex:0 0 auto; display:flex; justify-content:center; padding-top:5px; }
-.cr-split { width:22px; height:22px; border-radius:50%; border:1px dashed var(--accent); background:var(--bg-secondary); color:var(--accent); font:700 13px var(--font-sans); cursor:pointer; line-height:1; display:flex; align-items:center; justify-content:center; }
-.cr-split:hover { background:var(--accent); color:#fff; }
-.cr-para-text { flex:1; min-width:0; font:16px/1.9 var(--font-serif); color:var(--fg-primary); text-wrap:pretty; }
-.cr-para-role-wrap { width:80px; flex:0 0 auto; padding-top:2px; }
-.cr-para-role { width:100%; padding:3px 4px; border:1px solid var(--entity-char-border); border-radius:var(--radius-sm); background:var(--bg-primary); color:var(--entity-char-fg); font:500 10.5px var(--font-sans); cursor:pointer; }
-
-/* TOC cross-check (#22d): in-flow cue on a detected toc chapter + right drawer. */
-.cr-toc-cue { display:flex; flex-direction:column; align-items:center; gap:5px; margin:0 0 16px; padding:11px 14px; border:1px solid var(--accent); border-radius:var(--radius-md); background:var(--bg-secondary); }
-.cr-toc-cue-text { font:11px/1.5 var(--font-sans); color:var(--fg-secondary); text-align:center; }
-.cr-toc-cue-btn { display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--accent); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--accent); font:600 11px var(--font-sans); cursor:pointer; }
-.cr-toc-cue-btn:not(:disabled):hover { background:var(--bg-tertiary); }
-.cr-toc-cue-btn:disabled { opacity:.55; cursor:default; }
-
-.cr-toc-drawer { position:absolute; top:0; right:0; bottom:0; width:326px; box-sizing:border-box; background:var(--bg-secondary); border-left:1px solid var(--border); box-shadow:var(--shadow-lg); z-index:5; overflow:auto; padding:14px 15px; }
-.cr-toc-head { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
-.cr-toc-title { font:700 13px var(--font-serif); color:var(--fg-primary); }
-.cr-toc-badge { padding:1px 7px; border-radius:4px; font:600 9.5px var(--font-sans); background:var(--bg-tertiary); color:var(--fg-muted); border:1px solid var(--border); }
-.cr-toc-icon { width:24px; height:22px; flex:0 0 auto; display:flex; align-items:center; justify-content:center; padding:0; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--bg-primary); color:var(--fg-muted); cursor:pointer; }
-.cr-toc-icon:not(:disabled):hover { background:var(--bg-tertiary); }
-.cr-toc-icon:disabled { opacity:.55; cursor:default; }
-
-.cr-toc-loading { display:flex; align-items:center; gap:8px; padding:12px 2px; color:var(--fg-muted); font:12px var(--font-sans); }
-.cr-toc-fallback { display:flex; flex-direction:column; gap:8px; padding:10px 11px; border:1px solid var(--border); border-radius:var(--radius-md); background:var(--bg-primary); font:11px/1.6 var(--font-sans); color:var(--fg-secondary); }
-.cr-toc-relink { align-self:flex-start; padding:0; border:none; background:transparent; color:var(--accent); font:600 11px var(--font-sans); cursor:pointer; }
-.cr-toc-relink:hover { text-decoration:underline; }
-
-.cr-toc-summary { display:flex; flex-direction:column; gap:6px; margin-bottom:9px; padding:9px 11px; border:1px solid var(--border); border-radius:var(--radius-md); }
-.cr-toc-summary-top { display:flex; align-items:center; gap:6px; }
-.cr-toc-summary-label { font:700 12px var(--font-sans); }
-.cr-toc-delta { padding:2px 10px; border-radius:999px; font:700 11px var(--font-sans); white-space:nowrap; }
-.cr-toc-summary-text { font:600 11.5px/1.5 var(--font-sans); }
-.cr-toc-note { margin:0 0 9px; font:11px/1.5 var(--font-sans); color:var(--fg-muted); }
-.cr-toc-list { border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; background:var(--bg-primary); }
-.cr-toc-entry { display:flex; align-items:baseline; gap:8px; padding:7px 11px; border-bottom:1px solid var(--border); }
-.cr-toc-entry:last-child { border-bottom:none; }
-.cr-toc-entry-label { flex:0 0 auto; min-width:22px; font:600 11px var(--font-sans); color:var(--fg-muted); }
-.cr-toc-entry-title { flex:1; min-width:0; font:13px var(--font-serif); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.cr-toc-entry-tag { flex:0 0 auto; padding:1px 6px; border-radius:4px; font:600 9.5px var(--font-sans); background:var(--bg-tertiary); color:var(--fg-muted); border:1px solid var(--border); }
-.cr-toc-entry-page { flex:0 0 auto; font:11px var(--font-mono); color:var(--fg-muted); }
-
-@media (prefers-reduced-motion: reduce) {
-  .cr-spine, .cr-divider, .cr-spin { transition:none !important; animation:none !important; }
-}
-`;

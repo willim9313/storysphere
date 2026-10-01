@@ -296,65 +296,75 @@ CircleCheck success「所有步驟皆已補齊。」。底部分隔線下固定�
 
 #### HITL 章節審閱（`ChapterReviewPage`，路由 `/upload/review/:bookId?taskId=`）
 
-左欄章節列表 + 右側段落卡，讓使用者確認 / 調整偵測到的章節邊界與角色。
+DS v3 第 1 批 1-3b。權威稿：02 章節審閱決議紀錄 frame A–H。全站唯一會卡住 pipeline 的人工閘門。
+樣式在 `styles/chapter-review.css`（`cr-` 前綴，全走 token）；純函式在 `pages/upload/`
+（`applyBoundaries.ts`、`paragraphSplits.ts`、`spineLayout.ts`，皆有測試）。
 
-- **角色感知編號**：左欄僅 `body` 章節計入「第 N 章」且從 1 連號；非正文章節
-  （`toc`/`preface`/`afterword`/`other`）改顯示角色標籤（目錄／序／跋／其他），
-  右側標頭共用同一標籤。編號由章節 state 推導，切換章節角色時即時重算——
-  避免正文因前置內容而顯示成「第 3 章」起跳。
-- **非正文分色**：非正文章節在左欄以 `--bg-tertiary` 淡底 + `--fg-muted` 斜體字 +
-  左側 `--fg-muted` 色條標示；選中該章時右側段落區底色亦轉為 `--bg-tertiary`，
-  與一般正文（`--bg-primary`/`--bg-secondary`）視覺區隔。段落層級的非 body 角色
-  另以 opacity 0.6 淡化（沿用既有處理）。
-- **邊界輔助辨識**（左欄底部按鈕，submit 之上）：使用者觸發，呼叫 `#22c
-  POST /books/:bookId/suggest-roles`，由 AI 從書籍**頭尾逐段回推**、找出黏在
-  邊緣的非正文（版權頁／作者・譯者簡介／推薦語／跋…），回傳前後附的**段落邊界**。
-  前端據此把受影響的 body 章節**切開**：前/後附段落被切成獨立的非正文章節
-  （角色由 LLM 依內容判定，目錄/序/跋/其他，非一律 other），**左側章節列表即時更新**
-  （新章節以非正文樣式呈現），供使用者覆核後走既有 submit（章節 `startParagraphIndex`
-  + `role` 持久化）。非正文章節不進閱讀頁、也不進 KG/摘要。專門處理**融進正文章節頭尾**、
-  章節偵測切不出來的邊界（例如整坨後附黏在最後一章尾巴）；已是非正文的章節（目錄）
-  不會被再次進入。按鈕 `hover` 顯示 tooltip（`suggestRolesHint`）明確告知「仰賴 AI
-  逐段判讀、會消耗 token」；辨識中顯示 spinner + `suggesting`，完成後在按鈕下方顯示
-  `suggestApplied`（n = 切出的邊界數）／`suggestNone`／`suggestError` 提示。輪廓樣式
-  （`--accent` 邊框 + `--accent-bg` 底），與實心 submit 主按鈕區隔為輔助動作。
-  限制：切點只能落在段落（~1200 字 chunk）邊界，故事尾與後附頭同段時整段一起切；
-  切點在段落中間時改用下述「段內切分」先把段落修細。
-- **段內切分（選取文字 → 新段落）**：處理「真正的章節邊界困在段落中間」的情況
-  （預處理把多個邏輯段落融成一段，如版權頁＋獻詞＋題詞整坨一段）。使用者在閱讀欄
-  **反白選取要分出去的文字**（限單一段落內），選取處下方浮出 pill 按鈕
-  `splitSelection`（`--accent` 實心、`position:fixed` 錨定選取範圍）；點擊後該段
-  就地拆成 2–3 段（選取前｜選取｜選取後，空白邊緣自動修剪、空片段不產生），
-  新段落**繼承原段落角色**，之後用段落間既有的「＋」分章——不引入第二套章節
-  切分概念。「＋」在**所有章節**（含非正文）的段落間都會出現；「＋」切出的新章節
-  **繼承原章節角色**（切非正文大雜燴時不會冒出正文章節）。切分後 banner 顯示
-  `splitBanner` + `splitUndo` 一步復原；任何其他結構／角色異動會清除復原快照。
-  選取容錯：以**選取起點所在段落**為準，超出該段的部分（反白過衝到段尾之後、
-  跨到下一段、或拖出閱讀欄才放開滑鼠）自動夾回段內再計算。選取邊界切進章節標題
-  （`titleSpan`）內、或會產生純空白片段的選取不顯示按鈕。送審時前端以 `paragraphSplits`
-  （原段落索引 → 字元 offset）連同**切分後**索引的 `startParagraphIndex`／
-  `roleOverrides` 提交（見 #22b）。
-- **目錄對照提示（TOC cross-check）**：純輔助、唯讀。閱讀欄中被判為 `toc` 的章節
-  divider 下方出現置中提示框（`--accent` 邊框 + `--bg-secondary` 底）＋一顆入口鈕
-  （`--accent` 描邊輔助樣式）；**僅在有 `toc` 章節時出現**。**入口鈕有兩態，避免無謂的
-  LLM 呼叫**：（a）尚未解析、或目錄文字自上次解析後**有變動** → 顯示「解析目錄並對照」
-  （✦ Sparkles），點擊**呼叫 LLM**；（b）當前這份目錄文字**已解析過** → 顯示「目錄對照」
-  （List icon），點擊**只重開 drawer 看快取結果、不呼叫 LLM**。判斷依據＝比對當前串接的
-  `tocText` 與「上次成功解析時的 `tocText`」，因此審閱者一改目錄角色/內容，入口鈕就自動
-  變回「解析目錄並對照」提示重按。**drawer 內的「重新解析」（↻）則永遠強制呼叫 LLM**
-  （也是空/失敗狀態下的重試入口）。呼叫時串接**當前審閱狀態下**所有 `role==toc` 章節的
-  段落文字，作為 `tocText` 送 `#22d POST /books/:bookId/parse-toc`——因此重新解析會反映
-  最新編輯（而非偵測時的舊目錄）。由 AI 解析出書本聲明的章節清單與順序，從
-  **右側 drawer**（`width:326px`、`--bg-secondary`、`--shadow-lg`、絕對定位覆蓋閱讀欄
-  右緣、不 reflow 兩欄）滑出。drawer header：標題「書本目錄」＋「AI 解析 · 唯讀」徽章＋
-  重新解析（`RotateCw`）＋關閉（`X`）。**五態**：idle（只有入口）/ loading（spinner +
-  `toc.loading`）/ done / empty（`toc.empty`）/ error（503 或網路，`toc.error`），
-  empty 與 error 附「重新解析」。done 顯示**數量對比摘要行**（整條依吻合換底色：吻合
-  `--color-success-bg`/`--color-success`，不吻合 `--color-warning-bg`/`--color-warning` +
-  差額徽章「漏切／多切 N 章」）＋**有序條目清單**（label 為 body 條目流水號、標題 serif、
-  `isBody=false` 標「非正文」徽章、有頁碼顯示 `p.N`、依 `level` 縮排）。比對＝目錄 body
-  條目數 vs 偵測 body 章節數，**由前端計算**。刻意設計：drawer（書本目錄）與左側結構脊
-  （偵測結構）兩份**各自獨立、中間不連線、不自動配對**，比對由人眼完成；不驅動任何切分。
+- **外框**：基本外框＋28px 麵包屑（kit `.ss-booknav`）「上傳 & 處理進度 / {書名} / 章節審閱」，退出路徑回
+  `/upload`（書還沒落地，不回書庫）。書名取 `useBook(bookId)`（#2-a），取不到就省略該段。B 檢視密度：
+  padding `--space-7`、區段 `--space-6`、卡內 `--space-5`、列 `--space-4`。
+- **標題列**：「審閱章節結構」serif 2xl 700＋副標「審核章節結構 · 送出前最後一道人工閘門」；右側按鈕依序：
+  目錄入口（僅有章被標為目錄時）、邊界輔助辨識、放棄上傳（ghost）、送出審核（primary，**不帶字符**）。
+- **橫幅**（標題列下、全寬、`--card-radius`、`--color-*-bg` 底＋同色圖示，文字 `--fg-primary`）：
+  邊界輔助進行中／完成／無發現／失敗／503、切分後「復原切分」、放棄確認紅列、送出成功。
+- **結構脊**（206px ↔ 收合 40px，切換鈕 `PanelLeft`，tooltip「收合／展開全書結構」）：
+  - 標頭「全書結構脊」＋右側 segmented「逐章／總覽」（kit `.ss-seg`，預設逐章，不依章數自動切換）＋收合鈕；
+    其下第一行摘要「{total} 段 · {body} 正文章 / {nonBody} 非正文 · 點一段即跳到該章」（兩態共用同一句）。
+  - **逐章態**：每章一 block，`min-height = 30 + paraCount × 15`（`spineBlockHeight`），可捲動。章標雙軌：正文章重新編號
+    「第 N 章」、非正文章顯示角色名。章標前 8px 角色方塊：正文實心 `--accent`、非正文空心 `--fg-muted` 描邊。
+    疑似漏切（`isMisSplit`：正文章內 >1 個 `titleSpan`）＝章標旁 6px `--color-warning` 圓點，tooltip「疑似漏切一章」。
+    選中 block `--bg-tertiary`。
+  - **總覽態**（B′）：全書塞進可視高度、不捲動。章高 `max(2, round(paraCount / 總段數 × (可視高 − 章距)))`
+    （`overviewHeights`，ResizeObserver 量高），章距 1px。列＝章號 28px｜條｜6px 旗標點；正文條 `--accent`、非正文
+    `--fg-muted`；選中 `outline: 2px solid var(--fg-primary)`、offset 1px；章號（正文流水號／非正文角色名）只在章高 ≥ 12px
+    時顯示於條左側；tooltip「第 {n} 章 · {title} · {count} 段」（非正文章以角色名代入、無標題省略，見 FEEDBACK 1-U）。
+    點章跳轉並**留在總覽態**。
+  - **收合導軌**（C）：條高 `14 + paraCount × 8`（`railBarHeight`）；正文 `--accent`、非正文 `--fg-muted`；
+    疑似漏切 warning 填色＋條中央 3px `--bg-primary` 缺口（兩主題皆畫）；選中 outline 同上；
+    容器 tooltip「各章段落長度比例（點一下跳到該章）」。
+  - 點任一 block／條／列 → 正文流捲到該章，分隔列閃 1.3s `--color-warning-bg`。
+- **正文流**：
+  - 頂端說明列「左側結構脊可標記章節角色、每段右側選單可標記段落角色 · 角色定義見右側對照表」＋右側
+    「章節角色 · 段落角色對照」（secondary sm）。說明列不隨正文捲動。
+  - 章分隔列：`ss-badge`「章」＋章標（雙軌）＋標題輸入框（flex 1）＋章角色下拉＋「↑ 併上」「↓ 併下」（ghost，首章／末章 disabled）。
+    正文章 `--bg-secondary`、非正文章 `--bg-tertiary`；選中章內緣 1px accent 描邊（FEEDBACK 1-X）。
+  - 段落列：左「＋」在此分章（首段隱藏；新章繼承原章角色）、serif sm 1.75 正文（`titleSpan` 片段 700）、右段角色下拉
+    （「段·正文」…）。章或段任一為非正文 → 整列 `opacity: 0.55`（含下拉，FEEDBACK 1-X）。
+  - **段內切分**：選取文字（夾回起點所在段落）→ 選區以 `--timeline-selected-ring` 標示，浮鈕「✂ 切分為新段落」
+    （primary sm，`position: fixed` 跟著選區）→ 拆成 2–3 段並出現 info 橫幅＋「復原切分」。**只有一步**，任何其他結構或角色
+    變更都會清掉快照。送出時以 `paragraphSplits` 提交（見 #22b）。
+- **角色對照表**（D）：說明列下方的 overlay（不推擠正文流）。標題「不確定「章」跟「段」的角色該選哪個？點這裡看說明」＋✕、
+  方法論段（serif）、兩欄標頭與 10 條定義全文逐字。角色名為 pill：章欄正文實心 accent、其餘 `--bg-tertiary` 淡底；
+  段欄正文 accent 描邊、其餘 hairline。
+- **目錄對照**（E，#22d）：
+  - 入口在標頭按鈕列：目錄文字自上次成功解析後未變 →「目錄對照」（純開抽屜，不帶字符）；否則「解析目錄並對照」
+    （`.ss-btn-llm`，送出**目前編輯中**的目錄文字）。tooltip 為 `toc.detectedHint`。
+  - 抽屜：蓋在正文流右緣的 420px 卡（不 reflow），標頭「書本目錄」＋「AI 解析 · 唯讀」徽章＋「重新解析」（ghost＋字符）＋✕。
+    狀態：解析中（spinner＋`toc.loading`）／完成（「數量對比」標籤 → 摘要列：吻合 success ✓「數量吻合 · 目錄 X = 偵測 Y」、
+    不吻合 warning !「目錄 X · 偵測 Y」＋描邊 delta 徽章「漏切／多切 N 章」→ 有序條目：body 流水號 01…、非正文「—」＋
+    「非正文」、`p.N`、依 `level` 縮排 → 告誡「「書本目錄」在此、「偵測結構」在左側結構脊，兩份各自獨立、不自動配對，
+    請自行核對。」）／為空（`toc.empty`＋「重新解析」）／失敗（error 色 `toc.error`＋「重新解析」）／**503**（應用層 JSON：
+    「尚未設定 LLM provider，無法執行 LLM 分析。」＋「前往 LLM 設定 →」，不給重新解析，標頭的也隱藏）。
+    **刻意不做**任何與結構脊並排配對或連線的視覺。
+- **邊界輔助辨識**（F，#22c）：按鈕三態由按鈕本身承載——idle（secondary＋`.ss-btn-llm`）／「偵測中…」（spinner、disabled、
+  無字符）／「已套用 AI 建議」（永久 disabled、無字符，只能用一次）。橫幅五態：進行中 info／完成 success
+  （「已依 AI 建議切出頭尾非正文章節，請覆核。這只是建議，需按「送出審核」才生效。」）／無發現 info（按鈕回 idle）／
+  失敗 error「辨識失敗，請稍後再試。」（回 idle）／**503** warning「尚未設定 LLM provider，無法執行 LLM 分析。」＋
+  「前往 LLM 設定 →」（頁內，回 idle，手動審閱照常可送出）。503 判準：`ApiError.status === 503 && hasBody`。
+  成功時前端以 `applyBoundaries` 把頭尾段落切成非正文章節。
+- **「前往 LLM 設定 →」**連到 `/settings#llm`；`SettingsPage` 只在初始狀態讀 hash，`#llm` 時預設開 LLM 面板。
+- **送出／放棄**（G）：送出成功 → success 橫幅「已送出審核，pipeline 繼續執行下游分析。」，0.6s 後導回
+  `/upload#{taskId}`（無 taskId 則 `/upload`）。放棄兩段式：標頭「放棄上傳」只開紅色確認列
+  「刪除整本書並放棄上傳？此動作無法復原。」＋「確定放棄」（`ss-btn-danger`）／「取消」（ghost）；確定後 `DELETE /books/:id`、
+  清 sessionStorage 的任務紀錄、回 `/upload`。
+- **錯誤態**（H，判準 `failureKind`：有無應用層 JSON body）：麵包屑常駐，其下換成 `PageFailure`（{頁名}＝章節審閱）。
+  - 載入失敗：單頁「無法載入章節審閱」或後端「伺服器沒有回應」，「重試」重新抓 review-data。
+  - 送出失敗：單頁版標題覆寫為「提交失敗，請稍後再試。」＋定案內文；後端版定案三句；「重試」**重新送出**同一份編輯。
+  - **409**（四個審閱端點皆然，依 `ApiError.code`）：主版型狀態、不給重試，主鈕「前往上傳 & 處理進度」。
+    `review_submitted` → `CircleCheck` 26 success 色「這本書的章節審閱已經送出」／「審閱結果已寫入，pipeline 已繼續往下跑。
+    這一頁的編輯不會再被接受。」；`review_closed` → 中性 `Info`「這本書的處理已終止」／「審閱視窗已關閉，這一頁的編輯不會被接受。」；
+    `review_not_open` 或無 code →「這本書目前不在章節審閱階段」／「這一頁的編輯不會被接受。」。
+    **後兩組為草稿，待設計定案**（FEEDBACK 1-H）。
 
 #### API 參考
 
