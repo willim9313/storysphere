@@ -62,11 +62,11 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 
 - **收合 48px**（預設）：icon-only，標籤由共用 `Tooltip`（`components/ui/Tooltip.tsx`，hover 400ms／鍵盤 focus 立即，朝右）提示。
 - **浮層 180px**：游標停在頂部收合鈕上約 200ms 展開，蓋在內容上、不推擠（`--shadow-lg`）；離開側欄、按 Esc 或點選任一項即收回。
-- **釘選 180px**：點頂部收合鈕（收合 → 釘選）；主內容區被推擠。再點一次（此時鈕為「收合側欄」）回到收合。釘選記於 localStorage（`sidebar-pinned`）；該 key 尚無值時沿用舊 key `sidebar-expanded`（舊 `true` → 釘選）。
+- **釘選 180px**：點頂部收合鈕（收合 → 釘選）；主內容區被推擠。再點一次（此時鈕為「收合側欄」）回到收合。釘選沿用既有的 localStorage 偏好 `sidebar-expanded`（`true` = 釘選；舊版兩態的 `true` 即推擠版面的 180px，語意相同，不需遷移）。
 
 系統群由上而下：書庫、上傳、方法論、搜尋、任務中心、Token 用量，系統設定經 spacer 置底。任務中心是全側欄唯一的 `<button>`（開關右側任務面板），帶任務徽章：計數 = 狀態不是 `done`／`error` 的任務（含 `awaiting_review`），0 不顯示；收合態貼右上（top 1 / right 1），展開態垂直置中靠右（right 8）。
 
-**書籍層（路由 `/books/:bookId/*`）**：收合鈕下方多一組九格書籍功能（底 `--bg-tertiary`，順序同 §2.2）與 24px 分隔線，再接系統群。視窗高度 < 632px 時系統群除「書庫」外收進底部溢出選單（`…` 鈕），九格與書庫永遠可見（書庫是離開書籍的唯一出口）。
+**書籍層（路由 `/books/:bookId/*`）**：收合鈕下方多一組九格書籍功能（底 `--bg-tertiary`，順序同 §2.2）與 24px 分隔線，再接系統群。視窗高度 < 632px 時系統群除「書庫」外收進底部溢出選單（`…` 鈕，標籤「更多」），九格與書庫永遠可見（書庫是離開書籍的唯一出口）；< 452px 時側欄改為可捲動，底部漸層提示還有下文。九格的定義（路由、順序、label、icon）集中在 `components/layout/bookViews.ts`，側欄與書名列共用。
 
 | Icon | 目的地 | 路由 | 狀態 |
 |------|--------|------|------|
@@ -76,23 +76,27 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 | Search | 全站搜尋 | `/search` | 已實作 |
 | BarChart3 | Token 用量 | `/token-usage` | 已實作 |
 | SlidersHorizontal | 設定 | `/settings` | 已實作 |
-| Globe（底部）| 語言切換（zh-TW ↔ EN） | — | 已實作 |
 
-### 2.2 書籍層級（Top Nav Tab）
+### 2.2 書籍層級（書名列 28px · DS v3）
 
-進入特定書籍後，top nav 顯示書名、「← 書庫」返回入口，以及 9 個 tab（窄螢幕時分頁列可橫向滑動、書名以 `min(200px, 30vw)` 自動縮短，避免擠壓分頁）。**表列順序即畫面順序**（`BookNav.tsx`）：
+進入書籍後，主內容區頂端是 28px 常駐**書名列**（`BookNav.tsx`，樣式 `.ss-booknav*`）：
+`← 書庫 | 書名 › 目前功能`。書名 serif sm 600、最寬 200px ellipsis；目前功能取自 `bookViews.ts` 的 label。
+**書名列不放導航**——九個書籍功能的切換只在側欄書籍群（§2.1），導航從兩處收攏成一處、上緣保持安靜
+（框架 §4）。DS v3 之前這裡是 40px 的九格文字分頁列，已移除。
 
-| Tab | 路由 |
-|-----|------|
-| 閱讀 | `/books/:bookId` |
-| 角色分析 | `/books/:bookId/characters` |
-| 事件分析 | `/books/:bookId/events` |
-| 敘事結構 | `/books/:bookId/narrative` |
-| 知識圖譜 | `/books/:bookId/graph` |
-| 時間軸 | `/books/:bookId/timeline` |
-| 張力分析 | `/books/:bookId/tension` |
-| 象徵意象 | `/books/:bookId/symbols` |
-| 建構概覽 | `/books/:bookId/unraveling` |
+九個功能（**表列順序即側欄書籍群順序**）：
+
+| 功能 | 路由 | 側欄 icon |
+|-----|------|------|
+| 閱讀 | `/books/:bookId` | ScrollText |
+| 角色分析 | `/books/:bookId/characters` | UserSearch |
+| 事件分析 | `/books/:bookId/events` | Flag |
+| 敘事結構 | `/books/:bookId/narrative` | Mountain |
+| 知識圖譜 | `/books/:bookId/graph` | Network |
+| 時間軸 | `/books/:bookId/timeline` | ChartGantt |
+| 張力分析 | `/books/:bookId/tension` | Activity |
+| 象徵意象 | `/books/:bookId/symbols` | Shapes |
+| 建構概覽 | `/books/:bookId/unraveling` | Layers |
 
 ### 2.3 頁面層級關係
 

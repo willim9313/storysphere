@@ -11,24 +11,15 @@ import {
   PanelLeft,
   PanelLeftClose,
   Ellipsis,
-  ScrollText,
-  UserSearch,
-  Flag,
-  Mountain,
-  Network,
-  ChartGantt,
-  Activity,
-  Shapes,
-  Layers,
   type LucideIcon,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { BOOK_VIEWS } from './bookViews';
 
-// 釘選狀態持久化。舊版是兩態 boolean（'sidebar-expanded'，true = 推擠版面的 180px），
-// 語意即新版的「釘選」，所以新 key 還沒有值時沿用舊 key 的值（舊 true → pinned）。
-const PINNED_KEY = 'sidebar-pinned';
-const LEGACY_KEY = 'sidebar-expanded';
+// 釘選狀態持久化。沿用既有的 'sidebar-expanded' 偏好（框架 §4）：舊版兩態的 true
+// 就是推擠版面的 180px，語意等同新版的「釘選」，所以 key 與值都不必遷移。
+const PINNED_KEY = 'sidebar-expanded';
 
 // 浮層：游標停在收合鈕上這麼久才展開，掃過頂端不會誤觸。
 const OVERLAY_HOVER_DELAY_MS = 200;
@@ -40,9 +31,7 @@ type RailMode = 'collapsed' | 'overlay' | 'pinned';
 
 function readPinned(): boolean {
   try {
-    const v = localStorage.getItem(PINNED_KEY);
-    if (v !== null) return v === 'true';
-    return localStorage.getItem(LEGACY_KEY) === 'true';
+    return localStorage.getItem(PINNED_KEY) === 'true';
   } catch {
     return false;
   }
@@ -141,17 +130,7 @@ export function Sidebar({ tasksOpen, activeCount, onToggleTasks }: SidebarProps)
     setOverlay(false);
   };
 
-  const bookItems: BookItem[] = [
-    { path: '', icon: ScrollText, label: t('tabs.read') },
-    { path: '/characters', icon: UserSearch, label: t('tabs.characterAnalysis') },
-    { path: '/events', icon: Flag, label: t('tabs.eventAnalysis') },
-    { path: '/narrative', icon: Mountain, label: t('tabs.narrativeStructure') },
-    { path: '/graph', icon: Network, label: t('tabs.knowledgeGraph') },
-    { path: '/timeline', icon: ChartGantt, label: t('tabs.timeline') },
-    { path: '/tension', icon: Activity, label: t('tabs.tensionAnalysis') },
-    { path: '/symbols', icon: Shapes, label: t('tabs.symbolImagery') },
-    { path: '/unraveling', icon: Layers, label: t('tabs.unraveling') },
-  ];
+  const bookItems: BookItem[] = BOOK_VIEWS.map((v) => ({ path: v.path, icon: v.icon, label: t(v.labelKey) }));
 
   const startsWith = (to: string) => location.pathname.startsWith(to);
   const systemItems: SystemItem[] = [
@@ -266,15 +245,19 @@ export function Sidebar({ tasksOpen, activeCount, onToggleTasks }: SidebarProps)
 
         {inMenu.length > 0 && (
           <div className="ss-rail-more" ref={moreRef}>
-            <button
-              type="button"
-              className={`ss-rail-item${expanded ? ' ss-rail-item-row' : ''}${menuOpen ? ' is-active' : ''}`}
-              aria-haspopup="menu"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((v) => !v)}
-            >
-              <Ellipsis size={18} strokeWidth={2} className="ss-rail-icon" />
-            </button>
+            <Tooltip label={t('more')} placement="right" nowrap disabled={expanded || menuOpen}>
+              <button
+                type="button"
+                className={`ss-rail-item${expanded ? ' ss-rail-item-row' : ''}${menuOpen ? ' is-active' : ''}`}
+                aria-label={t('more')}
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+                onClick={() => setMenuOpen((v) => !v)}
+              >
+                <Ellipsis size={18} strokeWidth={2} className="ss-rail-icon" />
+                {expanded && <span className="ss-rail-label">{t('more')}</span>}
+              </button>
+            </Tooltip>
             {menuOpen && (
               <div className="ss-rail-menu" role="menu">
                 {inMenu.map((i) => renderItem(i, true))}
