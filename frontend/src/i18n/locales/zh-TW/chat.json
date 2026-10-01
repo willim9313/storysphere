@@ -13,7 +13,6 @@
     "chapterCharacters": "這章的重要角色？",
     "chapterEvents": "這章發生了什麼事件？",
     "deepAnalysis": "深入分析 {{entity}}",
-    "archetype": "{{entity}} 的角色原型？",
-    "recommend": "推薦我先分析哪本書？"
+    "archetype": "{{entity}} 的角色原型？"
   }
 }

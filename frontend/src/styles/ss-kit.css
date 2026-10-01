@@ -403,3 +403,195 @@
   .ss-rail-menu { position: fixed; left: calc(48px + var(--space-4)); bottom: var(--space-5); }
   .ss-sidebar[data-expanded="true"] .ss-rail-menu { left: calc(180px + var(--space-4)); }
 }
+
+/* ── Chat widget（0-8）──────────────────────────────────────
+   泡泡 48 圓、視窗 380×520。定位（left/top）與 z-index 由元件以 inline 給（拖曳座標、RAIL.z）。
+   accent 填色：hover 0.9 / active 0.95；不縮放、不位移。 */
+.ss-chat-bubble {
+  position: fixed; width: 48px; height: 48px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--accent); color: var(--accent-fg);
+  border: none; cursor: pointer; box-shadow: var(--shadow-lg);
+  transition: opacity var(--transition-fast);
+}
+.ss-chat-bubble:hover  { opacity: 0.9; }
+.ss-chat-bubble:active { opacity: 0.95; }
+.ss-chat-bubble.is-dragging { cursor: grabbing; transition: none; }
+.ss-chat-bubble:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.ss-chat-window {
+  position: fixed; width: 380px; height: 520px;
+  max-width: calc(100vw - 16px); max-height: calc(100vh - 16px);
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);
+  animation: ss-chat-in 150ms ease;
+  transition: box-shadow var(--transition-fast);
+}
+.ss-chat-window.is-dragging {
+  box-shadow: var(--shadow-lg), 0 0 0 2px var(--accent);
+  user-select: none; transition: box-shadow 80ms ease;
+}
+
+.ss-chat-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: var(--space-4); padding: var(--space-5) var(--space-6); flex-shrink: 0;
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+  cursor: grab;
+}
+.ss-chat-window.is-dragging .ss-chat-header { cursor: grabbing; }
+.ss-chat-header-main {
+  display: flex; flex-direction: column; gap: var(--space-1);
+  min-width: 0; pointer-events: none;
+}
+.ss-chat-title {
+  font-family: var(--font-sans); font-weight: 600;
+  font-size: var(--font-size-sm); color: var(--fg-primary);
+}
+.ss-chat-context {
+  display: inline-flex; align-items: center; align-self: flex-start; gap: var(--space-3);
+  max-width: 260px; overflow: hidden; white-space: nowrap;
+  padding: var(--space-1) var(--space-4);
+  font-size: var(--font-size-xs); color: var(--fg-muted);
+  background: var(--bg-secondary); border-radius: var(--pill-radius);
+}
+.ss-chat-context-icon { display: inline-flex; flex-shrink: 0; }
+.ss-chat-context-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+/* 新對話鈕：無訊息時 disabled 且降到 bg-tertiary（刻意幾乎看不見）。ghost：hover 字轉 accent */
+.ss-chat-new {
+  display: inline-flex; padding: var(--space-2); border: none; background: none;
+  border-radius: var(--radius-sm); cursor: pointer; pointer-events: auto;
+  color: var(--fg-muted); transition: color var(--transition-fast);
+}
+.ss-chat-new:hover:not(:disabled) { color: var(--accent); }
+.ss-chat-new:disabled { cursor: default; color: var(--bg-tertiary); }
+.ss-chat-new:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.ss-chat-messages {
+  flex: 1; min-height: 0; overflow-y: auto;
+  display: flex; flex-direction: column; gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+}
+.ss-chat-empty {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-5); padding: var(--space-7) 0;
+}
+.ss-chat-empty-text { color: var(--fg-muted); font-size: var(--font-size-sm); text-align: center; }
+.ss-chat-suggestions { display: flex; flex-direction: column; gap: var(--space-4); width: 100%; }
+.ss-chat-suggestion {
+  padding: var(--space-4) var(--space-5); text-align: left; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-sm); color: var(--fg-secondary);
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--control-radius);
+  transition: background-color var(--transition-fast);
+}
+.ss-chat-suggestion:hover { background: var(--bg-tertiary); }
+.ss-chat-suggestion:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+.ss-chat-row { display: flex; }
+.ss-chat-row.is-user { justify-content: flex-end; }
+.ss-chat-msg {
+  max-width: 85%; padding: var(--space-4) var(--space-5);
+  font-family: var(--font-sans); font-size: var(--font-size-sm); line-height: 1.5;
+  word-break: break-word;
+  background: var(--bg-secondary); color: var(--fg-primary);
+  border-radius: 12px 12px 12px 0;
+}
+.ss-chat-msg.is-user {
+  background: var(--accent); color: var(--accent-fg);
+  border-radius: 12px 12px 0 12px;
+}
+
+.ss-chat-thinking {
+  display: flex; align-items: center; align-self: flex-start; gap: var(--space-3);
+  max-width: 85%; padding: var(--space-4) var(--space-5);
+  background: var(--bg-secondary); border-radius: 12px 12px 12px 0;
+}
+.ss-chat-dots { display: flex; align-items: center; gap: var(--space-2); }
+.ss-chat-dot {
+  width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+  animation: ss-dot 1.4s ease-in-out infinite;
+}
+.ss-chat-dot:nth-child(2) { animation-delay: 0.2s; }
+.ss-chat-dot:nth-child(3) { animation-delay: 0.4s; }
+.ss-chat-thinking-text {
+  font-family: var(--font-sans); font-size: var(--font-size-xs); color: var(--fg-muted);
+}
+.ss-chat-cursor {
+  display: inline-block; width: 6px; height: 14px; margin-left: var(--space-1);
+  background: var(--accent); animation: ss-blink 1s step-end infinite;
+}
+.ss-chat-connecting { font-size: var(--font-size-xs); color: var(--fg-muted); }
+
+.ss-chat-input-row {
+  display: flex; align-items: flex-end; gap: var(--space-4); flex-shrink: 0;
+  padding: var(--space-5) var(--space-6);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.ss-chat-input {
+  flex: 1; max-height: 72px; resize: none; outline: none;
+  padding: var(--space-4) var(--space-5);
+  font-family: var(--font-sans); font-size: var(--font-size-sm); line-height: 1.5;
+  background: var(--bg-secondary); color: var(--fg-primary);
+  border: var(--input-border-width) var(--border-style) var(--border);
+  border-radius: var(--input-radius);
+}
+.ss-chat-input::placeholder { color: var(--fg-muted); }
+.ss-chat-input:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+.ss-chat-send {
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  width: 36px; height: 36px; border: none; cursor: pointer;
+  border-radius: var(--control-radius);
+  background: var(--accent); color: var(--accent-fg);
+  transition: opacity var(--transition-fast), background-color var(--transition-fast);
+}
+.ss-chat-send:hover:not(:disabled)  { opacity: 0.9; }
+.ss-chat-send:active:not(:disabled) { opacity: 0.95; }
+.ss-chat-send:disabled { cursor: default; background: var(--bg-tertiary); color: var(--fg-muted); }
+.ss-chat-send:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* 新對話確認：視窗內覆蓋 modal（不是 inline 條） */
+.ss-chat-overlay {
+  position: absolute; inset: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--scrim); border-radius: var(--radius-xl);
+}
+.ss-chat-confirm {
+  max-width: 280px; padding: var(--space-6) var(--space-7); text-align: center;
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius); box-shadow: var(--shadow-lg);
+}
+.ss-chat-confirm-text {
+  margin: 0 0 var(--space-6); font-family: var(--font-sans);
+  font-size: var(--font-size-sm); line-height: 1.6; color: var(--fg-primary);
+}
+.ss-chat-confirm-actions { display: flex; justify-content: center; gap: var(--space-4); }
+
+@keyframes ss-chat-in {
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes ss-blink { 50% { opacity: 0; } }
+@keyframes ss-dot {
+  0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
+  40% { opacity: 1; transform: scale(1.1); }
+}
