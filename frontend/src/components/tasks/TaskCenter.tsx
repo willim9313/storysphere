@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader, X, ChevronRight, ChevronDown, CheckCheck } from 'lucide-react';
 import type { TaskStatus } from '@/api/tasks';
-import { useTheme } from '@/contexts/ThemeContext';
 import { TaskRow } from './TaskRow';
 
 const HIDDEN_KEY = 'taskCenter.hiddenIds';
@@ -26,15 +25,6 @@ function saveHidden(ids: Set<string>): void {
 
 const isTerminal = (t: TaskStatus) => t.status === 'done' || t.status === 'error';
 
-const SECTION_LABEL: React.CSSProperties = {
-  fontFamily: 'var(--font-sans)',
-  fontSize: 10,
-  fontWeight: 600,
-  letterSpacing: '.06em',
-  textTransform: 'uppercase',
-  color: 'var(--fg-muted)',
-};
-
 interface TaskCenterProps {
   readonly onClose: () => void;
   readonly tasks: TaskStatus[];
@@ -43,8 +33,6 @@ interface TaskCenterProps {
 
 export function TaskCenter({ onClose, tasks, isLoading }: TaskCenterProps) {
   const navigate = useNavigate();
-  const { theme } = useTheme();
-  const mono = theme === 'ink';
   const [hidden, setHidden] = useState<Set<string>>(loadHidden);
   const [doneOpen, setDoneOpen] = useState(true);
 
@@ -68,184 +56,72 @@ export function TaskCenter({ onClose, tasks, isLoading }: TaskCenterProps) {
   const showLoading = isLoading && tasks.length === 0;
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        flexDirection: 'column',
-        width: 320,
-        height: '100%',
-        minHeight: 0,
-        background: 'var(--bg-primary)',
-        fontFamily: 'var(--font-sans)',
-        borderLeft: 'var(--border-width) var(--border-style) var(--border)',
-        boxShadow: 'var(--shadow-md)',
-        overflow: 'hidden',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '11px 14px',
-          borderBottom: 'var(--border-width) var(--border-style) var(--border)',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <Loader size={16} style={{ color: 'var(--accent)' }} />
-          <span
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 14,
-              fontWeight: 600,
-              color: 'var(--fg-primary)',
-            }}
-          >
-            任務中心
-          </span>
-          {running.length > 0 && (
-            <span
-              style={{
-                fontFamily: 'var(--font-mono)',
-                fontSize: 10,
-                fontWeight: 700,
-                color: 'var(--accent-fg)',
-                background: 'var(--accent)',
-                minWidth: 16,
-                height: 16,
-                padding: '0 4px',
-                borderRadius: 9,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {running.length}
-            </span>
-          )}
+    <div className="ss-taskc">
+      <div className="ss-taskc-head">
+        <div className="ss-taskc-title">
+          <Loader size={16} className="ss-taskc-icon" />
+          <span className="ss-taskc-name">任務中心</span>
+          {running.length > 0 && <span className="ss-taskc-count">{running.length}</span>}
         </div>
-        <button
-          onClick={onClose}
-          style={{ color: 'var(--fg-muted)', background: 'none', border: 0, cursor: 'pointer', display: 'flex' }}
-          aria-label="關閉任務中心"
-        >
+        <button type="button" className="ss-taskc-close" onClick={onClose} aria-label="關閉任務中心">
           <X size={15} />
         </button>
       </div>
 
-      {/* Body */}
       {showLoading ? (
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            color: 'var(--fg-muted)',
-          }}
-        >
-          <Loader size={22} className="animate-spin" />
-          <span style={{ fontSize: 12 }}>載入任務中…</span>
+        <div className="ss-taskc-state">
+          <Loader size={22} strokeWidth={1.5} className="animate-spin" />
+          <span className="ss-taskc-state-sub">載入任務中…</span>
         </div>
       ) : showEmpty ? (
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 10,
-            padding: 30,
-            textAlign: 'center',
-          }}
-        >
-          <CheckCheck size={26} style={{ color: 'var(--fg-muted)' }} />
-          <span style={{ fontSize: 13, color: 'var(--fg-secondary)' }}>
-            目前沒有進行中的任務
-          </span>
-          <span style={{ fontSize: 11, color: 'var(--fg-muted)', lineHeight: 1.5 }}>
+        <div className="ss-taskc-state ss-taskc-state-empty">
+          <CheckCheck size={26} className="ss-taskc-empty-icon" />
+          <span className="ss-taskc-empty-main">目前沒有進行中的任務</span>
+          <span className="ss-taskc-state-sub ss-taskc-empty-sub">
             啟動分析後，這裡會即時顯示
             <br />
             所有 LLM 任務的進度。
           </span>
         </div>
       ) : (
-        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '8px 8px 12px' }}>
+        <div className="ss-taskc-body">
           {running.length > 0 && (
-            <>
-              <div style={{ ...SECTION_LABEL, padding: '6px 6px 4px' }}>
-                進行中 · {running.length}
+            <section className="ss-taskc-group">
+              <div className="ss-taskc-group-head">
+                <span className="ss-taskc-group-label">進行中 · {running.length}</span>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div className="ss-taskc-list">
                 {running.map((t) => (
-                  <TaskRow key={t.taskId} task={t} mono={mono} onNavigate={handleNavigate} />
+                  <TaskRow key={t.taskId} task={t} onNavigate={handleNavigate} />
                 ))}
               </div>
-            </>
+            </section>
           )}
 
           {done.length > 0 && (
-            <>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  padding: '8px 6px 4px',
-                  marginTop: running.length > 0 ? 6 : 0,
-                }}
-              >
+            <section className="ss-taskc-group">
+              <div className="ss-taskc-group-head">
                 <button
                   type="button"
+                  className="ss-taskc-group-toggle"
                   onClick={() => setDoneOpen((v) => !v)}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    flex: 1,
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    textAlign: 'left',
-                    padding: 0,
-                  }}
                 >
-                  {doneOpen ? (
-                    <ChevronDown size={13} style={{ color: 'var(--fg-muted)' }} />
-                  ) : (
-                    <ChevronRight size={13} style={{ color: 'var(--fg-muted)' }} />
-                  )}
-                  <span style={SECTION_LABEL}>已完成 · {done.length}</span>
+                  {doneOpen ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
+                  <span className="ss-taskc-group-label">已完成 · {done.length}</span>
                 </button>
-                <button
-                  type="button"
-                  onClick={clearCompleted}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 10,
-                    color: 'var(--accent)',
-                  }}
-                >
+                <button type="button" className="ss-taskc-clear" onClick={clearCompleted}>
                   清除
                 </button>
               </div>
 
               {doneOpen && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 2, opacity: 0.92 }}>
+                <div className="ss-taskc-list ss-taskc-list-done">
                   {done.map((t) => (
-                    <TaskRow key={t.taskId} task={t} mono={mono} onNavigate={handleNavigate} />
+                    <TaskRow key={t.taskId} task={t} onNavigate={handleNavigate} />
                   ))}
                 </div>
               )}
-            </>
+            </section>
           )}
         </div>
       )}

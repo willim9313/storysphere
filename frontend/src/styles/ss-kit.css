@@ -128,3 +128,146 @@
   transition: color var(--transition-fast);
 }
 .ss-toast-close:hover { color: var(--fg-primary); }
+
+/* ── Task center（0-7 · TaskCenter / TaskRow）──────────────────
+   320px 的 flex sibling（推擠 main，不是覆蓋層）。外框走 --card-border-width，--shadow-md。
+   TaskRow 是動作列（components-rows 卡）：grid `28px 1fr auto 12px`——前導欄 28px 是 TaskRow
+   自己的元件尺寸（README §2.4：TaskRow 保留 28px chip），其餘照卡。
+   進度條**不做寬度過渡**（README §1.4／§2.2 例外）：輪詢最快 2s，補間會假裝一個不存在的更新頻率。
+   Kind 色盤由 TaskRow 以 --tk-{bg,border,fg,dot} 傳入；Ink 改描邊、進度條與跑動點改 --fg-primary。 */
+.ss-taskc {
+  display: flex; flex-direction: column; flex: none;
+  width: 320px; height: 100%; min-height: 0; overflow: hidden;
+  background: var(--bg-primary);
+  font-family: var(--font-sans);
+  border-left: var(--card-border-width) var(--border-style) var(--border);
+  box-shadow: var(--shadow-md);
+}
+.ss-taskc-head {
+  display: flex; align-items: center; justify-content: space-between; flex: none;
+  padding: var(--space-5) var(--space-6);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
+}
+.ss-taskc-title { display: flex; align-items: center; gap: var(--space-4); }
+.ss-taskc-icon { color: var(--accent); }
+[data-theme="ink"] .ss-taskc-icon { color: var(--fg-primary); }
+.ss-taskc-name {
+  font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;
+  color: var(--fg-primary);
+}
+.ss-taskc-count {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; padding: 0 var(--space-2); border-radius: 9px;
+  font-family: var(--font-mono); font-size: var(--font-size-2xs); font-weight: 700;
+  color: var(--accent-fg); background: var(--accent);
+}
+.ss-taskc-close {
+  display: flex; padding: 0; background: none; border: 0; cursor: pointer;
+  color: var(--fg-muted); transition: color var(--transition-fast);
+}
+.ss-taskc-close:hover { color: var(--accent); }
+
+.ss-taskc-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  padding: var(--space-4) var(--space-4) var(--space-5);
+}
+.ss-taskc-state {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-5); color: var(--fg-muted);
+}
+.ss-taskc-state-empty { padding: var(--space-8); text-align: center; }
+.ss-taskc-state-sub { font-size: var(--font-size-xs); color: var(--fg-muted); }
+.ss-taskc-empty-sub { font-size: var(--font-size-2xs); line-height: 1.5; }
+.ss-taskc-empty-main { font-size: var(--font-size-sm); color: var(--fg-secondary); }
+
+/* 分組標頭：2xs 600 muted、letter-spacing .06em、不用 uppercase（C2） */
+.ss-taskc-group + .ss-taskc-group { margin-top: var(--space-6); }
+.ss-taskc-group-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  padding: 0 var(--space-5); margin-bottom: var(--space-4);
+}
+.ss-taskc-group-label {
+  font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: .06em; color: var(--fg-muted);
+}
+.ss-taskc-group-toggle {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  padding: 0; background: transparent; border: none; cursor: pointer; color: var(--fg-muted);
+}
+.ss-taskc-clear {
+  padding: 0; background: transparent; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--accent);
+  transition: opacity var(--transition-fast);
+}
+.ss-taskc-clear:hover  { opacity: 0.9; }
+.ss-taskc-clear:active { opacity: 0.95; }
+.ss-taskc-list { display: flex; flex-direction: column; gap: var(--space-1); }
+.ss-taskc-list-done { opacity: 0.92; }
+
+.ss-task-row {
+  display: grid; grid-template-columns: 28px minmax(0, 1fr) auto 12px;
+  gap: var(--space-4); align-items: start;
+  padding: var(--space-4) var(--space-5); border-radius: var(--radius-md);
+  transition: background-color var(--transition-fast);
+}
+.ss-task-row-nav { cursor: pointer; }
+.ss-task-row-nav:hover { background: var(--bg-tertiary); }
+
+/* kind chip：Warm 實底＋dot 色圖示；Ink 透明底＋1px 描邊＋fg 色圖示 */
+.ss-task-chip {
+  box-sizing: border-box; width: 28px; height: 28px; border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  background: var(--tk-bg); color: var(--tk-dot);
+}
+[data-theme="ink"] .ss-task-chip,
+[data-theme="ink"] .ss-task-kind {
+  background: transparent; color: var(--tk-fg); border: 1px solid var(--tk-border);
+}
+
+.ss-task-main { min-width: 0; }
+.ss-task-head { display: flex; align-items: center; gap: var(--space-3); }
+.ss-task-title {
+  font-size: var(--font-size-sm); font-weight: 500; color: var(--fg-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ss-task-kind {
+  flex: none; padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm);
+  font-size: var(--font-size-2xs); font-weight: 500; letter-spacing: .02em;
+  background: var(--tk-bg); color: var(--tk-dot);
+}
+
+.ss-task-progress { display: flex; align-items: center; gap: var(--space-4); margin-top: var(--space-3); }
+.ss-task-bar { flex: 1; height: 4px; border-radius: 2px; background: var(--bg-tertiary); overflow: hidden; }
+.ss-task-bar-fill { height: 100%; border-radius: 2px; background: var(--tk-dot); }
+[data-theme="ink"] .ss-task-bar-fill { background: var(--fg-primary); }
+.ss-task-pct {
+  flex: none; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-secondary);
+}
+.ss-task-stage {
+  margin-top: var(--space-2); font-size: var(--font-size-2xs); color: var(--fg-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.ss-task-note {
+  display: flex; align-items: center; gap: var(--space-3);
+  margin-top: var(--space-3); font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+.ss-task-note-warn { color: var(--color-warning); }
+.ss-task-note-err  { color: var(--color-error); }
+[data-theme="ink"] .ss-task-note-warn,
+[data-theme="ink"] .ss-task-note-err { font-weight: 600; }
+
+/* 狀態點 8px：running 以 kind 色並脈動 1.6s；Ink 下語意由分組與文字承擔，跑動點用 fg-primary */
+.ss-task-dot { width: 8px; height: 8px; margin-top: var(--space-3); border-radius: 50%; }
+.ss-task-dot-run  { background: var(--tk-dot); }
+[data-theme="ink"] .ss-task-dot-run { background: var(--fg-primary); }
+.ss-task-dot-ok   { background: var(--color-success); }
+.ss-task-dot-warn { background: var(--color-warning); }
+.ss-task-dot-err  { background: var(--color-error); }
+.ss-task-dot-live { animation: ss-task-pulse 1.6s ease-in-out infinite; }
+@keyframes ss-task-pulse { 50% { opacity: 0.5; } }
+@media (prefers-reduced-motion: reduce) { .ss-task-dot-live { animation: none; } }
+
+/* 收尾槽永遠佔位 12px；chevron 14px 置中溢出，hover 才顯示 */
+.ss-task-trail { display: flex; justify-content: center; margin-top: var(--space-2); color: var(--fg-muted); }
+.ss-task-trail svg { flex: none; opacity: 0; transition: opacity var(--transition-fast); }
+.ss-task-row-nav:hover .ss-task-trail svg { opacity: 1; }

@@ -1,12 +1,10 @@
-import { useState } from 'react';
 import { ChevronRight, AlertTriangle } from 'lucide-react';
 import type { TaskStatus } from '@/api/tasks';
-import { kindMeta } from './taskKinds';
+import { kindMeta, kindVars } from './taskKinds';
 import { taskRoute } from './taskRoute';
 
 interface TaskRowProps {
   readonly task: TaskStatus;
-  readonly mono: boolean;
   readonly onNavigate: (path: string) => void;
 }
 
@@ -23,8 +21,7 @@ function relTime(iso: string | null | undefined): string {
   return `${Math.floor(h / 24)} 天前完成`;
 }
 
-export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
-  const [hover, setHover] = useState(false);
+export function TaskRow({ task, onNavigate }: TaskRowProps) {
   const meta = kindMeta(task.kind);
   const route = taskRoute(task);
   const navigable = route !== null;
@@ -37,26 +34,16 @@ export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
   const failedParts = (task.result as { failed_parts?: unknown } | null | undefined)?.failed_parts;
   const isPartial = isDone && Array.isArray(failedParts) && failedParts.length > 0;
 
-  // Neutral = B&W theme only (chip outlined, accents → fg-primary).
-  const chipBg = mono ? 'transparent' : meta.bg;
-  const chipFg = mono ? 'var(--fg-secondary)' : meta.fg;
-  const chipBorder = mono
-    ? 'var(--border-width) var(--border-style) var(--border)'
-    : '0px solid transparent';
-  const labelFg = mono ? 'var(--fg-secondary)' : meta.fg;
-  const labelBg = mono ? 'transparent' : meta.bg;
-  const barColor = mono ? 'var(--fg-primary)' : meta.fg;
-
-  const statusDot = isPartial
-    ? 'var(--color-warning)'
+  // Dot colour priority: partial → done → error → awaiting_review → kind.
+  const dotTone = isPartial
+    ? 'warn'
     : isDone
-      ? 'var(--color-success)'
+      ? 'ok'
       : isError
-        ? 'var(--color-error)'
+        ? 'err'
         : status === 'awaiting_review'
-          ? 'var(--color-warning)'
-          : meta.fg;
-  const dotColor = mono && running ? 'var(--fg-primary)' : statusDot;
+          ? 'warn'
+          : 'run';
 
   const Icon = meta.Icon;
   const title = task.title || task.stage || '處理中';
@@ -64,176 +51,53 @@ export function TaskRow({ task, mono, onNavigate }: TaskRowProps) {
 
   return (
     <div
-      onMouseEnter={() => setHover(true)}
-      onMouseLeave={() => setHover(false)}
+      className={`ss-task-row${navigable ? ' ss-task-row-nav' : ''}`}
+      style={kindVars(meta)}
       onClick={navigable ? () => onNavigate(route) : undefined}
-      style={{
-        display: 'flex',
-        gap: 10,
-        padding: '9px 12px',
-        alignItems: 'flex-start',
-        borderRadius: 'var(--radius-md)',
-        cursor: navigable ? 'pointer' : 'default',
-        transition: 'background-color var(--transition-fast)',
-        background: hover && navigable ? 'var(--bg-tertiary)' : 'transparent',
-      }}
     >
-      {/* kind chip */}
-      <div
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: 'var(--radius-md)',
-          background: chipBg,
-          color: chipFg,
-          border: chipBorder,
-          boxSizing: 'border-box',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          flexShrink: 0,
-          marginTop: 1,
-        }}
-      >
+      <div className="ss-task-chip">
         <Icon size={15} />
       </div>
 
-      {/* content */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-          <span
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 13,
-              fontWeight: 500,
-              color: 'var(--fg-primary)',
-              whiteSpace: 'nowrap',
-              overflow: 'hidden',
-              textOverflow: 'ellipsis',
-            }}
-          >
-            {title}
-          </span>
-          <span
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 10,
-              fontWeight: 500,
-              letterSpacing: '.02em',
-              color: labelFg,
-              background: labelBg,
-              border: chipBorder,
-              padding: '1px 6px',
-              borderRadius: 'var(--radius-sm)',
-              flexShrink: 0,
-            }}
-          >
-            {meta.label}
-          </span>
+      <div className="ss-task-main">
+        <div className="ss-task-head">
+          <span className="ss-task-title">{title}</span>
+          <span className="ss-task-kind">{meta.label}</span>
         </div>
 
         {running && (
           <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 7 }}>
-              <div
-                style={{
-                  flex: 1,
-                  height: 4,
-                  borderRadius: 2,
-                  background: 'var(--bg-tertiary)',
-                  overflow: 'hidden',
-                }}
-              >
+            <div className="ss-task-progress">
+              <div className="ss-task-bar">
                 <div
-                  style={{
-                    width: `${Math.min(100, Math.max(0, task.progress))}%`,
-                    height: '100%',
-                    borderRadius: 2,
-                    background: barColor,
-                  }}
+                  className="ss-task-bar-fill"
+                  style={{ width: `${Math.min(100, Math.max(0, task.progress))}%` }}
                 />
               </div>
-              <span
-                style={{
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: 11,
-                  color: 'var(--fg-secondary)',
-                  flexShrink: 0,
-                }}
-              >
-                {task.progress}%
-              </span>
+              <span className="ss-task-pct">{task.progress}%</span>
             </div>
-            {task.stage && (
-              <div
-                style={{
-                  fontFamily: 'var(--font-sans)',
-                  fontSize: 11,
-                  color: 'var(--fg-muted)',
-                  marginTop: 4,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
-                {task.stage}
-              </div>
-            )}
+            {task.stage && <div className="ss-task-stage">{task.stage}</div>}
           </>
         )}
 
         {isDone && (
-          <div
-            style={{
-              fontFamily: 'var(--font-sans)',
-              fontSize: 11,
-              color: isPartial ? 'var(--color-warning)' : 'var(--fg-muted)',
-              marginTop: 5,
-            }}
-          >
+          <div className={`ss-task-note${isPartial ? ' ss-task-note-warn' : ''}`}>
             {isPartial ? '部分完成' : relTime(task.createdAt)}
           </div>
         )}
 
         {isError && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 5 }}>
-            <AlertTriangle size={12} style={{ color: 'var(--color-error)' }} />
-            <span
-              style={{ fontFamily: 'var(--font-sans)', fontSize: 11, color: 'var(--color-error)' }}
-            >
-              {errorText}
-            </span>
+          <div className="ss-task-note ss-task-note-err">
+            <AlertTriangle size={12} />
+            <span>{errorText}</span>
           </div>
         )}
       </div>
 
-      {/* status dot */}
-      <span
-        className={running ? 'animate-pulse' : undefined}
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: '50%',
-          background: dotColor,
-          marginTop: 6,
-          flexShrink: 0,
-        }}
-      />
+      <span className={`ss-task-dot ss-task-dot-${dotTone}${running ? ' ss-task-dot-live' : ''}`} />
 
-      {/* hover chevron (rendered when navigable, fades in) */}
-      {navigable && (
-        <ChevronRight
-          size={14}
-          style={{
-            color: 'var(--fg-muted)',
-            marginTop: 4,
-            marginLeft: -3,
-            flexShrink: 0,
-            opacity: hover ? 1 : 0,
-            transition: 'opacity var(--transition-fast)',
-          }}
-        />
-      )}
+      {/* trail slot is always reserved; chevron only drawn when navigable */}
+      <span className="ss-task-trail">{navigable && <ChevronRight size={14} />}</span>
     </div>
   );
 }
