@@ -1,75 +1,38 @@
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { BOOK_VIEWS } from './bookViews';
 
 interface BookNavProps {
   bookId: string;
   bookTitle: string;
 }
 
+/**
+ * 28px book title bar (DS v3 · framework §4): `← 書庫 | 書名 › 目前功能`.
+ * Navigation between the nine views lives in the rail's book group; this bar
+ * only says where you are, so the top edge stays quiet.
+ */
 export function BookNav({ bookId, bookTitle }: BookNavProps) {
   const location = useLocation();
   const { t } = useTranslation('nav');
   const base = `/books/${bookId}`;
-
-  const tabs = [
-    { label: t('tabs.read'), path: '' },
-    { label: t('tabs.characterAnalysis'), path: '/characters' },
-    { label: t('tabs.eventAnalysis'), path: '/events' },
-    { label: t('tabs.narrativeStructure'), path: '/narrative' },
-    { label: t('tabs.knowledgeGraph'), path: '/graph' },
-    { label: t('tabs.timeline'), path: '/timeline' },
-    { label: t('tabs.tensionAnalysis'), path: '/tension' },
-    { label: t('tabs.symbolImagery'), path: '/symbols' },
-    { label: t('tabs.unraveling'), path: '/unraveling' },
-  ];
+  const current = BOOK_VIEWS.find((v) => location.pathname === `${base}${v.path}`);
 
   return (
-    <div
-      className="flex items-center gap-4 px-4 h-10 flex-shrink-0"
-      style={{
-        borderBottom: '1px solid var(--border)',
-        backgroundColor: 'white',
-      }}
-    >
-      <Link
-        to="/"
-        className="flex items-center gap-1 text-xs flex-shrink-0"
-        style={{ color: 'var(--fg-muted)' }}
-      >
-        <ArrowLeft size={14} />
+    <div className="ss-booknav">
+      <Link to="/" className="ss-booknav-back">
+        <ArrowLeft size={12} />
         {t('library')}
       </Link>
-
-      <span
-        className="text-sm font-medium truncate"
-        style={{ color: 'var(--fg-primary)', maxWidth: 'min(200px, 30vw)', minWidth: 0 }}
-      >
-        {bookTitle}
-      </span>
-
-      <div className="flex gap-0.5 ml-4 flex-1 min-w-0 overflow-x-auto no-scrollbar">
-        {tabs.map(({ label, path }) => {
-          const fullPath = `${base}${path}`;
-          const active = path === ''
-            ? location.pathname === base
-            : location.pathname === fullPath;
-
-          return (
-            <Link
-              key={path}
-              to={fullPath}
-              className="px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap flex-shrink-0"
-              style={{
-                backgroundColor: active ? 'var(--bg-tertiary)' : 'transparent',
-                color: active ? 'var(--accent)' : 'var(--fg-secondary)',
-              }}
-            >
-              {label}
-            </Link>
-          );
-        })}
-      </div>
+      <span className="ss-booknav-sep" aria-hidden="true">|</span>
+      <span className="ss-booknav-title">{bookTitle}</span>
+      {current && (
+        <>
+          <span className="ss-booknav-chev" aria-hidden="true">›</span>
+          <span className="ss-booknav-view" aria-current="page">{t(current.labelKey)}</span>
+        </>
+      )}
     </div>
   );
 }

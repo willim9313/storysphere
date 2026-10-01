@@ -19,23 +19,16 @@ describe('Sidebar', () => {
     vi.unstubAllGlobals();
   });
 
-  describe('釘選狀態遷移', () => {
+  describe('釘選狀態持久化', () => {
     it('沒有任何 key 時預設收合', () => {
       const { container } = renderAt('/');
       expect(container.querySelector('.ss-sidebar')?.getAttribute('data-mode')).toBe('collapsed');
     });
 
-    it('舊 key sidebar-expanded=true 對應到釘選', () => {
+    it('既有偏好 sidebar-expanded=true 即釘選（沿用舊 key，不遷移）', () => {
       localStorage.setItem('sidebar-expanded', 'true');
       const { container } = renderAt('/');
       expect(container.querySelector('.ss-sidebar')?.getAttribute('data-mode')).toBe('pinned');
-    });
-
-    it('新 key 有值時以新 key 為準，不再看舊 key', () => {
-      localStorage.setItem('sidebar-expanded', 'true');
-      localStorage.setItem('sidebar-pinned', 'false');
-      const { container } = renderAt('/');
-      expect(container.querySelector('.ss-sidebar')?.getAttribute('data-mode')).toBe('collapsed');
     });
   });
 

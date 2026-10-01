@@ -344,15 +344,6 @@
     background-color: var(--accent);
   }
 
-  /* 隱藏捲軸但保留可捲動（用於窄螢幕橫向滑動的 tab 列等） */
-  .no-scrollbar {
-    scrollbar-width: none;          /* Firefox */
-    -ms-overflow-style: none;       /* IE / old Edge */
-  }
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;                  /* WebKit */
-  }
-
   /* ── Keyword tag styles ────────────────────────────────────────── */
   .kw-tag {
     display: inline-flex;
