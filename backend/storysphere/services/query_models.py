@@ -19,6 +19,7 @@ class DocumentSummary(BaseModel):
     file_type: str = Field(description="Source file type (pdf | docx)")
     chapter_count: int = Field(description="Number of chapters")
     pipeline_status_json: str | None = Field(default=None, description="JSON-encoded PipelineStatus")
+    last_opened_at: str | None = Field(default=None, description="UTC ISO-8601 (Z) of the last open, or None")
 
 
 class ChapterKeywordMatch(BaseModel):

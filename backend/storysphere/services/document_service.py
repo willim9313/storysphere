@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+from datetime import UTC, datetime
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, and_, func, select
 from sqlalchemy import delete as sa_delete
@@ -60,6 +61,7 @@ class _DocumentRow(_Base):
     language = Column(String, nullable=False, server_default="en")
     timeline_config_json = Column(Text, nullable=True)  # JSON-encoded TimelineConfig
     pipeline_status_json = Column(Text, nullable=True)  # JSON-encoded PipelineStatus
+    last_opened_at = Column(String, nullable=True)  # UTC ISO-8601 with trailing "Z"
 
 
 class _ChapterRow(_Base):
@@ -131,6 +133,7 @@ class DocumentService:
                 # B-102: 段落層 keywords 一直產得出來也送進 Qdrant，只是沒有欄位存。
                 # 既有的書要重跑 feature-extraction 才會有值。
                 "ALTER TABLE paragraphs ADD COLUMN keywords_json TEXT",
+                "ALTER TABLE documents ADD COLUMN last_opened_at TEXT",
             ]:
                 try:
                     await conn.execute(sa_text(stmt))
@@ -408,6 +411,7 @@ class DocumentService:
                     if doc_row.pipeline_status_json
                     else PipelineStatus()
                 ),
+                last_opened_at=doc_row.last_opened_at,
             )
 
     async def update_pipeline_status(self, document_id: str, pipeline_status: PipelineStatus) -> None:
@@ -420,6 +424,20 @@ class DocumentService:
                     ),
                     {"json": pipeline_status.model_dump_json(), "id": document_id},
                 )
+
+    async def mark_opened(self, document_id: str) -> bool:
+        """Stamp ``last_opened_at`` with the current UTC time (``...Z``).
+
+        Returns False when the document does not exist.
+        """
+        stamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        async with self._session_factory() as session:
+            async with session.begin():
+                result = await session.execute(
+                    sa_text("UPDATE documents SET last_opened_at = :ts WHERE id = :id"),
+                    {"ts": stamp, "id": document_id},
+                )
+                return result.rowcount > 0
 
     async def get_document_language(self, document_id: str) -> str:
         """Return the detected/configured language for a document, or ``'en'``."""
@@ -449,6 +467,7 @@ class DocumentService:
                     _DocumentRow.title,
                     _DocumentRow.file_type,
                     _DocumentRow.pipeline_status_json,
+                    _DocumentRow.last_opened_at,
                     chapter_count,
                 )
                 # Body chapters only: the count is shown as the book's length,
@@ -469,6 +488,7 @@ class DocumentService:
                     file_type=row.file_type,
                     chapter_count=row.chapter_count,
                     pipeline_status_json=row.pipeline_status_json,
+                    last_opened_at=row.last_opened_at,
                 )
                 for row in result.all()
             ]

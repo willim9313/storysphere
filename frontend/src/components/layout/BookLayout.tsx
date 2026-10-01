@@ -1,4 +1,8 @@
+import { useEffect } from 'react';
 import { Outlet, useParams } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { markBookOpened } from '@/api/books';
+import { qk } from '@/api/queryKeys';
 import { useBook } from '@/hooks/useBook';
 import { BookNav } from './BookNav';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -9,6 +13,15 @@ import { ChatWidget } from '@/components/chat/ChatWidget';
 export function BookLayout() {
   const { bookId } = useParams<{ bookId: string }>();
   const { data: book, isLoading, error } = useBook(bookId);
+  const queryClient = useQueryClient();
+
+  // 進入任一書籍路由時蓋一次「最近開啟」；失敗不打擾使用者。
+  useEffect(() => {
+    if (!bookId) return;
+    markBookOpened(bookId)
+      .then(() => queryClient.invalidateQueries({ queryKey: qk.books, exact: true }))
+      .catch(() => {});
+  }, [bookId, queryClient]);
 
   if (isLoading) return <LoadingSpinner />;
   if (error) return <ErrorMessage message={error.message} />;
