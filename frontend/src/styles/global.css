@@ -66,25 +66,107 @@
   100% { transform: translateX(380%); }
 }
 
+/* ── Splash（DS v3 0-9，值以決議紀錄 17 A 區為準）。
+   左內距與字標字級是品牌尺寸，保留 clamp，不收斂進 token。
+   opacity 由元件 state 驅動（淡入／淡出），留在 inline。 ── */
+.splash-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: clamp(2rem, 8vw, 8rem);
+  background: var(--bg-primary);
+  transition: opacity 0.4s ease;
+  cursor: pointer;
+  overflow: hidden;
+  outline: none;
+}
+
+.splash-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
 /* Warm: line art sits gently on paper. Ink: pure ink line on white. */
 .splash-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right center;
+  display: block;
+  user-select: none;
+  mix-blend-mode: multiply;
   opacity: var(--splash-image-opacity);
   filter: var(--splash-image-filter);
 }
 
+.splash-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 62% 92% at 20% 50%, var(--bg-primary) 0%, transparent 70%);
+}
+
+.splash-fg {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: var(--space-6);
+}
+
+.splash-wordmark {
+  font-family: var(--font-serif);
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--fg-primary);
+  letter-spacing: -0.01em;
+  margin: 0;
+  user-select: none;
+}
+
+.splash-subtitle {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  color: var(--fg-secondary);
+  letter-spacing: 0.14em;
+  margin: 0;
+  user-select: none;
+}
+
+.splash-credit {
+  position: absolute;
+  right: var(--space-6);
+  bottom: var(--space-5);
+  z-index: 2;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  user-select: none;
+}
+
 .splash-loader-track {
   width: 90px;
-  height: 2px;
+  height: var(--space-1);
   background: var(--bg-tertiary);
   border-radius: 1px;
   overflow: hidden;
-  margin-top: 4px;
+  margin-top: var(--space-2);
 }
 
 .splash-loader-bar {
   width: 30%;
   height: 100%;
   background: var(--accent);
+  border-radius: 1px;
   animation: splash-bar 1.4s ease-in-out infinite;
 }
 
