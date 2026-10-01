@@ -10,12 +10,17 @@
   },
   "empty": {
     "title": "書庫尚無書籍",
-    "description": "把一本 PDF 拖進來，故事就從這裡開始"
+    "description": "把一本 PDF 拖進來，故事就從這裡開始",
+    "processingTitle": "沒有正在處理的上傳任務",
+    "processingBody": "這個篩選只列出正在處理的上傳任務。",
+    "filteredTitle": "沒有{{status}}的書籍",
+    "clearFilter": "清除篩選"
   },
   "card": {
     "chapters": "章",
     "entities": "實體",
-    "deleteBook": "刪除書籍"
+    "deleteBook": "刪除書籍",
+    "deleteConfirm": "刪除？"
   },
   "shortcuts": {
     "continueReading": "繼續閱讀",
@@ -28,6 +33,10 @@
   "processing": {
     "awaitingReview": "等待章節審閱",
     "reviewChapters": "審閱章節",
-    "viewProgress": "查看進度"
+    "viewProgress": "查看進度",
+    "fallbackTitle": "書籍處理中"
+  },
+  "summary": {
+    "books": "{{count}} 本書"
   }
 }

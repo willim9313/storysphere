@@ -1,216 +1,294 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Loader2, BookOpen } from 'lucide-react';
+import { Plus, Loader, BookOpen, Upload } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBooks } from '@/hooks/useBooks';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { fetchTasks, type TaskStatus } from '@/api/tasks';
+import { failureKind, techDetailOf } from '@/api/failureKind';
 import { BookCard } from '@/components/library/BookCard';
 import { RecentBookCard } from '@/components/library/RecentBookCard';
-import { EmptyLibrary } from '@/components/library/EmptyLibrary';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import {
+  FULL_DENSITY_AFTER,
+  bookIdOf,
+  filterBooks,
+  ingestionTasks,
+  libraryCounts,
+  recentBooks,
+  taskBookTitle,
+  type LibraryFilter,
+} from '@/components/library/libraryModel';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageFailure } from '@/components/ui/PageFailure';
 import { qk } from '@/api/queryKeys';
+import '@/styles/library.css';
 
-interface PendingTask { taskId: string; fileName: string; title?: string }
+const FILTERS: LibraryFilter[] = ['all', 'analyzed', 'ready', 'processing'];
 
-function readPendingTasks(): PendingTask[] {
-  try {
-    const raw = sessionStorage.getItem('upload-tasks');
-    return raw ? (JSON.parse(raw) as PendingTask[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-function removePendingTask(taskId: string) {
-  const tasks = readPendingTasks().filter((t) => t.taskId !== taskId);
-  if (tasks.length === 0) sessionStorage.removeItem('upload-tasks');
-  else sessionStorage.setItem('upload-tasks', JSON.stringify(tasks));
-}
-
-function ProcessingBookCard({ task, onSettled }: Readonly<{ task: PendingTask; onSettled: () => void }>) {
+/** In-flight ingestion task, drawn in the BookCard processing state. */
+function ProcessingBookCard({ task }: Readonly<{ task: TaskStatus }>) {
   const { t } = useTranslation('library');
-  const queryClient = useQueryClient();
-  const { data: status, isError } = useTaskPolling(task.taskId);
-  const notified = useRef(false);
-
-  useEffect(() => {
-    const done = status?.status === 'done' || status?.status === 'error' || isError;
-    if (done && !notified.current) {
-      notified.current = true;
-      removePendingTask(task.taskId);
-      queryClient.invalidateQueries({ queryKey: qk.books });
-      onSettled();
-    }
-  }, [status, isError, task.taskId, queryClient, onSettled]);
-
-  const isAwaitingReview = status?.status === 'awaiting_review';
-  const bookId = isAwaitingReview
-    ? (status?.result as Record<string, string> | null)?.bookId
-    : undefined;
-
+  const { t: tc } = useTranslation('common');
   return (
-    <div
-      className="card flex flex-col gap-2 p-3"
-      style={{ border: `1px solid ${isAwaitingReview ? 'var(--accent)' : 'var(--border)'}`, opacity: 0.9 }}
-    >
-      <div
-        className="flex items-center justify-center h-24 rounded-md"
-        style={{ backgroundColor: 'var(--bg-secondary)' }}
-      >
-        {isAwaitingReview
-          ? <BookOpen size={28} style={{ color: 'var(--accent)' }} />
-          : <Loader2 size={28} className="animate-spin" style={{ color: 'var(--accent)' }} />
-        }
+    <div className="ss-bookcard lib-card lib-card-processing">
+      <div className="ss-bookcard-cover lib-cover">
+        <Loader size={16} className="animate-spin" />
       </div>
-      <h3
-        className="font-semibold text-xs line-clamp-2"
-        style={{ fontFamily: 'var(--font-serif)' }}
-      >
-        {task.title ?? task.fileName}
-      </h3>
-      {task.title && (
-        <p className="text-xs truncate" style={{ color: 'var(--fg-muted)' }}>
-          {task.fileName}
-        </p>
-      )}
-      <span className="text-xs" style={{ color: isAwaitingReview ? 'var(--accent)' : 'var(--fg-muted)' }}>
-        {isAwaitingReview
-          ? t('processing.awaitingReview')
-          : `${status?.stage || t('filters.processing')}${status?.progress != null ? ` ${status.progress}%` : ''}`
-        }
+      <div className="ss-bookcard-title">{taskBookTitle(task) ?? t('processing.fallbackTitle')}</div>
+      <span className="ss-badge ss-badge-warning">
+        <span className="ss-badge-glyph" aria-hidden="true">…</span>
+        {tc('status.processing')}
       </span>
-      {isAwaitingReview && bookId ? (
-        <Link
-          to={`/upload/review/${bookId}?taskId=${task.taskId}`}
-          className="text-xs font-medium mt-auto"
-          style={{ color: 'var(--accent)' }}
-        >
-          {t('processing.reviewChapters')} →
-        </Link>
-      ) : (
-        <Link
-          to={`/upload#${task.taskId}`}
-          className="text-xs font-medium mt-auto"
-          style={{ color: 'var(--accent)' }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {t('processing.viewProgress')} →
-        </Link>
+      {task.stage && (
+        <div className="ss-bookcard-meta">
+          <span>
+            {task.stage} · <span className="lib-mono">{task.progress}%</span>
+          </span>
+        </div>
       )}
+      {/* Only draw a bar when the backend reports a percentage. */}
+      {task.progress > 0 && (
+        <div className="ss-progress">
+          <div className="ss-progress-fill" style={{ width: `${task.progress}%` }} />
+        </div>
+      )}
+      <Link to={`/upload#${task.taskId}`} className="lib-card-cta">
+        {t('processing.viewProgress')} →
+      </Link>
     </div>
   );
 }
 
-type Filter = 'all' | 'analyzed' | 'ready' | 'processing';
+/** The site's only pipeline-blocking node gets its own band above the filters:
+ *  BookOpen icon + accent border + 審閱章節 → change together (§6). */
+function ReviewGate({ tasks }: Readonly<{ tasks: TaskStatus[] }>) {
+  const { t } = useTranslation('library');
+  return (
+    <section className="lib-gate">
+      <div className="lib-gate-head">
+        <span>{t('processing.awaitingReview')}</span>
+        <span className="lib-gate-rule" />
+      </div>
+      {tasks.map((task) => (
+        <div key={task.taskId} className="lib-gate-card">
+          <div className="lib-gate-icon">
+            <BookOpen size={20} />
+          </div>
+          <div className="lib-gate-main">
+            <div className="lib-gate-title">{taskBookTitle(task) ?? t('processing.fallbackTitle')}</div>
+            <div className="lib-gate-sub">{t('processing.awaitingReview')}</div>
+          </div>
+          <Link
+            to={`/upload/review/${bookIdOf(task)}?taskId=${task.taskId}`}
+            className="ss-btn ss-btn-md ss-btn-primary"
+          >
+            {t('processing.reviewChapters')} →
+          </Link>
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function LibrarySkeleton() {
+  return (
+    <div className="lib-page lib-page-full" aria-busy="true">
+      <div className="lib-inner">
+        <div className="lib-skel lib-skel-title" />
+        <div className="lib-filters">
+          {[56, 64, 64, 64].map((w, i) => (
+            <div key={i} className="lib-skel lib-skel-chip" style={{ width: w }} />
+          ))}
+        </div>
+        <div className="lib-grid">
+          {Array.from({ length: 12 }, (_, i) => (
+            <div key={i} className="lib-skel-card">
+              <div className="lib-skel lib-skel-cover" />
+              <div className="lib-skel lib-skel-line" style={{ width: '70%' }} />
+              <div className="lib-skel lib-skel-badge" />
+              <div className="lib-skel lib-skel-line lib-skel-meta" style={{ width: '56%' }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function LibraryPage() {
   const { setPageContext } = useChatDispatch();
-  const { data: books, isLoading, error } = useBooks();
-  const [filter, setFilter] = useState<Filter>('all');
-  const [pendingTasks, setPendingTasks] = useState<PendingTask[]>(readPendingTasks);
+  const queryClient = useQueryClient();
+  const { data: books, isLoading, error, refetch } = useBooks();
+  const [filter, setFilter] = useState<LibraryFilter>('all');
   const { t } = useTranslation('library');
+  const { t: tc } = useTranslation('common');
 
-  const filters: { key: Filter; label: string }[] = [
-    { key: 'all', label: t('filters.all') },
-    { key: 'analyzed', label: t('filters.analyzed') },
-    { key: 'ready', label: t('filters.ready') },
-    { key: 'processing', label: t('filters.processing') },
-  ];
+  // Shares the app-level task poll (useTaskNotifications) — same key, same
+  // cadence; no extra traffic.
+  const { data: tasks } = useQuery<TaskStatus[]>({
+    queryKey: qk.tasks.list(),
+    queryFn: () => fetchTasks(),
+    refetchInterval: (query) =>
+      query.state.data?.some((x) => x.status !== 'done' && x.status !== 'error') ? 4000 : false,
+  });
+  const { processing, awaiting } = ingestionTasks(tasks);
+
+  // A task leaving the in-flight set means its book just landed (or failed):
+  // refresh the list so the card appears without a reload.
+  const inFlightKey = [...processing, ...awaiting].map((x) => x.taskId).join(',');
+  const inFlightRef = useRef<string[] | null>(null);
+  useEffect(() => {
+    const now = inFlightKey ? inFlightKey.split(',') : [];
+    const prev = inFlightRef.current;
+    inFlightRef.current = now;
+    if (prev && prev.some((id) => !now.includes(id))) {
+      void queryClient.invalidateQueries({ queryKey: qk.books });
+    }
+  }, [inFlightKey, queryClient]);
 
   useEffect(() => {
     setPageContext({ page: 'library' });
   }, [setPageContext]);
 
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message={error.message} />;
-  if (!books?.length && pendingTasks.length === 0) return <EmptyLibrary />;
+  if (isLoading) return <LibrarySkeleton />;
+
+  const title = <h1 className="lib-title">{t('allBooks')}</h1>;
+
+  if (error) {
+    return (
+      <div className="lib-page">
+        <div className="lib-inner">
+          {title}
+          <PageFailure
+            variant={failureKind(error)}
+            pageName={t('allBooks')}
+            onRetry={() => void refetch()}
+            techDetail={techDetailOf(error)}
+            secondaryAction={
+              <Link to="/upload" className="ss-btn ss-btn-md ss-btn-secondary">
+                {t('uploadNew')}
+              </Link>
+            }
+          />
+        </div>
+      </div>
+    );
+  }
 
   const safeBooks = books ?? [];
-  const recent = [...safeBooks]
-    .filter((b) => b.lastOpenedAt)
-    .sort((a, b) => new Date(b.lastOpenedAt!).getTime() - new Date(a.lastOpenedAt!).getTime())
-    .slice(0, 3);
-
-  // 'processing' 篩不到任何書：還在跑 ingestion 的書不會出現在 #1 的回應裡
-  // （後端明確濾掉），這個篩選下呈現的是下方的 pendingTasks 卡片。
-  const filtered =
-    filter === 'all' ? safeBooks
-    : filter === 'processing' ? []
-    : safeBooks.filter((b) => b.status === filter);
-
-  return (
-    <div className="p-6 overflow-y-auto h-full">
-      {recent.length > 0 && (
-        <>
-          <h2
-            className="text-lg font-bold mb-4"
-            style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
-          >
-            {t('recentlyOpened')}
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {recent.map((book) => (
-              <RecentBookCard key={book.id} book={book} />
-            ))}
-          </div>
-          <hr style={{ borderColor: 'var(--border)' }} className="mb-6" />
-        </>
-      )}
-
-      <div className="flex items-center justify-between mb-4">
-        <h2
-          className="text-lg font-bold"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
-        >
-          {t('allBooks')}
-        </h2>
-      </div>
-
-      <div className="flex gap-1.5 mb-4">
-        {filters.map(({ key, label }) => (
-          <button
-            key={key}
-            onClick={() => setFilter(key)}
-            className="px-3 py-1 text-xs rounded-full font-medium transition-colors"
-            style={{
-              backgroundColor: filter === key ? 'var(--accent)' : 'var(--bg-secondary)',
-              color: filter === key ? 'var(--accent-fg)' : 'var(--fg-secondary)',
-            }}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div
-        className="grid gap-4"
-        style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))' }}
-      >
-        {(filter === 'all' || filter === 'processing') && pendingTasks.map((task) => (
-          <ProcessingBookCard
-            key={task.taskId}
-            task={task}
-            onSettled={() => setPendingTasks((prev) => prev.filter((t) => t.taskId !== task.taskId))}
+  if (safeBooks.length === 0 && processing.length === 0 && awaiting.length === 0) {
+    return (
+      <div className="lib-page">
+        <div className="lib-inner">
+          <EmptyState
+            weight="ready"
+            icon={<BookOpen size={28} />}
+            title={t('empty.title')}
+            description={t('empty.description')}
+            hand
+            action={
+              <Link to="/upload" className="ss-btn ss-btn-md ss-btn-primary">
+                {t('uploadNew')}
+              </Link>
+            }
           />
-        ))}
+        </div>
+      </div>
+    );
+  }
+
+  const full = safeBooks.length + processing.length > FULL_DENSITY_AFTER;
+  const counts = libraryCounts(safeBooks);
+  const summary = [
+    t('summary.books', { count: counts.total }),
+    ...(['analyzed', 'ready', 'error'] as const)
+      .filter((k) => counts[k] > 0)
+      .map((k) => `${counts[k]} ${tc(`status.${k}`)}`),
+  ].join(' · ');
+  const recent = recentBooks(safeBooks);
+  const filtered = filterBooks(safeBooks, filter);
+  const showTasks = filter === 'all' || filter === 'processing';
+
+  let grid;
+  if (filter === 'processing' && processing.length === 0) {
+    grid = (
+      <EmptyState
+        weight="prerequisite"
+        icon={<Upload size={26} />}
+        title={t('empty.processingTitle')}
+        description={t('empty.processingBody')}
+        action={
+          <Link to="/upload" className="ss-btn ss-btn-md ss-btn-secondary lib-btn-accent">
+            {t('uploadNew')}
+          </Link>
+        }
+      />
+    );
+  } else if (filter !== 'all' && filter !== 'processing' && filtered.length === 0) {
+    grid = (
+      <EmptyState
+        weight="filtered"
+        title={t('empty.filteredTitle', { status: tc(`status.${filter}`) })}
+        action={
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={() => setFilter('all')}>
+            {t('empty.clearFilter')}
+          </button>
+        }
+      />
+    );
+  } else {
+    grid = (
+      <div className="lib-grid">
+        {showTasks && processing.map((task) => <ProcessingBookCard key={task.taskId} task={task} />)}
         {filtered.map((book) => (
           <BookCard key={book.id} book={book} />
         ))}
-        <Link
-          to="/upload"
-          className="flex flex-col items-center justify-center gap-2 rounded-lg p-6 transition-colors"
-          style={{
-            border: '2px dashed var(--border)',
-            color: 'var(--fg-muted)',
-            minHeight: 180,
-          }}
-        >
-          <Plus size={24} />
-          <span className="text-xs font-medium">{t('uploadNew')}</span>
+        <Link to="/upload" className="ss-bookcard ss-bookcard-upload lib-card">
+          <Plus size={20} />
+          <span>{t('uploadNew')}</span>
         </Link>
+      </div>
+    );
+  }
+
+  return (
+    <div className={full ? 'lib-page lib-page-full' : 'lib-page'}>
+      <div className="lib-inner">
+        <div className="lib-head">
+          {title}
+          <span className="lib-summary">{summary}</span>
+        </div>
+
+        {awaiting.length > 0 && <ReviewGate tasks={awaiting} />}
+
+        {recent.length > 0 && (
+          <section className="lib-recent">
+            <div className="lib-section-head">{t('recentlyOpened')}</div>
+            <div className="lib-recent-row">
+              {recent.map((book) => (
+                <RecentBookCard key={book.id} book={book} />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <div className="lib-filters" role="tablist">
+          {FILTERS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={filter === key}
+              className={filter === key ? 'lib-chip active' : 'lib-chip'}
+              onClick={() => setFilter(key)}
+            >
+              {t(`filters.${key}`)}
+            </button>
+          ))}
+        </div>
+
+        {grid}
       </div>
     </div>
   );

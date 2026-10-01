@@ -10,12 +10,17 @@
   },
   "empty": {
     "title": "No books in library",
-    "description": "Drop in a PDF — the story starts here"
+    "description": "Drop in a PDF — the story starts here",
+    "processingTitle": "No uploads in progress",
+    "processingBody": "This filter only lists uploads that are still being processed.",
+    "filteredTitle": "No {{status}} books",
+    "clearFilter": "Clear filter"
   },
   "card": {
     "chapters": "ch",
     "entities": "entities",
-    "deleteBook": "Delete Book"
+    "deleteBook": "Delete Book",
+    "deleteConfirm": "Delete?"
   },
   "shortcuts": {
     "continueReading": "Continue Reading",
@@ -28,6 +33,11 @@
   "processing": {
     "awaitingReview": "Awaiting chapter review",
     "reviewChapters": "Review chapters",
-    "viewProgress": "View progress"
+    "viewProgress": "View progress",
+    "fallbackTitle": "Processing book"
+  },
+  "summary": {
+    "books_one": "{{count}} book",
+    "books_other": "{{count}} books"
   }
 }
