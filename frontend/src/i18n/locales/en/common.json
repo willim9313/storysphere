@@ -16,5 +16,14 @@
   "remove": "Remove",
   "guidance": {
     "dismiss": "Dismiss guidance"
+  },
+  "failure": {
+    "pageTitle": "Couldn't load {{page}}",
+    "pageBody": "Other pages are unaffected; navigation still works.",
+    "backendTitle": "The server isn't responding",
+    "backendBody": "Can't reach the backend; navigation still works.",
+    "techDetail": "Technical details",
+    "llmUnconfigured": "No LLM provider is configured, so LLM analysis can't run.",
+    "llmSettings": "Go to LLM settings →"
   }
 }

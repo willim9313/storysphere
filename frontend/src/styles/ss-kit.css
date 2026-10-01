@@ -91,6 +91,13 @@
   font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary);
 }
 .ss-dialog-actions { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-3); }
+/* 損失清單版：body 與按鈕列之間插一份清單，其餘不變（components-dialog 卡）。 */
+.ss-dialog-list {
+  margin: 0; padding-left: var(--space-7);
+  display: flex; flex-direction: column; gap: var(--space-2);
+  font-family: var(--font-sans); font-size: var(--font-size-xs); line-height: 1.6;
+  color: var(--fg-primary);
+}
 
 /* ── Toast（components-toast 卡）────────────────────────────
    全站唯一一份（ToastHost）。340 寬由 host 容器給；卡片外框＋shadow-lg。
@@ -594,4 +601,138 @@
 @keyframes ss-dot {
   0%, 80%, 100% { opacity: 0.3; transform: scale(0.8); }
   40% { opacity: 1; transform: scale(1.1); }
+}
+
+/* ── Badges · pills · progress（第 1 批引入；kit 原文，entity 名走產品縮寫橋接）── */
+.ss-badge {
+  display: inline-flex; align-items: center; gap: var(--space-2); align-self: flex-start;
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 500;
+  padding: var(--space-1) var(--space-4); border-radius: var(--badge-radius);
+}
+.ss-badge-success { background: var(--color-success-bg); color: var(--color-success); }
+.ss-badge-info    { background: var(--color-info-bg);    color: var(--color-info); }
+.ss-badge-warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.ss-badge-error   { background: var(--color-error-bg);   color: var(--color-error); }
+[data-theme="ink"] .ss-badge {
+  background: var(--bg-tertiary); color: var(--fg-primary);
+  border: var(--border-width) var(--border-style) var(--fg-primary);
+}
+
+.ss-pill {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  white-space: nowrap; flex-shrink: 0;
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  padding: var(--space-1) var(--space-4); border-radius: var(--pill-radius);
+  border: var(--pill-border-width) solid; cursor: default;
+  margin: 0 var(--space-1); vertical-align: baseline;
+}
+.ss-pill-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.8; }
+.ss-pill-character    { background: var(--entity-char-bg);  border-color: var(--entity-char-border);  color: var(--entity-char-fg); }
+.ss-pill-location     { background: var(--entity-loc-bg);   border-color: var(--entity-loc-border);   color: var(--entity-loc-fg); }
+.ss-pill-organization { background: var(--entity-org-bg);   border-color: var(--entity-org-border);   color: var(--entity-org-fg); }
+.ss-pill-object       { background: var(--entity-obj-bg);   border-color: var(--entity-obj-border);   color: var(--entity-obj-fg); }
+.ss-pill-concept      { background: var(--entity-con-bg);   border-color: var(--entity-con-border);   color: var(--entity-con-fg); }
+.ss-pill-event        { background: var(--entity-evt-bg);   border-color: var(--entity-evt-border);   color: var(--entity-evt-fg); }
+.ss-pill-other        { background: var(--entity-other-bg); border-color: var(--entity-other-border); color: var(--entity-other-fg); }
+
+.ss-progress { height: 3px; background: var(--bg-tertiary); border-radius: 2px; overflow: hidden; }
+.ss-progress-fill { height: 100%; background: var(--accent); transition: width var(--transition-normal); }
+
+/* ── Segmented（components-tabs 卡：同一份資料換檢視）──────────
+   次級底軌，選中格浮到 --bg-primary。 */
+.ss-seg {
+  display: inline-flex; gap: 2px; padding: 2px;
+  background: var(--bg-secondary);
+  border: var(--border-width) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+}
+.ss-seg-item {
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 500;
+  padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm);
+  background: transparent; border: none; cursor: pointer; color: var(--fg-secondary);
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.ss-seg-item:hover { color: var(--fg-primary); }
+.ss-seg-item.active { background: var(--bg-primary); color: var(--fg-primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+
+/* ── Book card（設計系統 components-library-cards；書庫）──── */
+.ss-bookcard {
+  position: relative;
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--bc-pad, var(--space-6));
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: var(--card-shadow);
+  color: inherit; text-decoration: none; cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+.ss-bookcard:hover { background: var(--bg-secondary); }
+.ss-bookcard-cover {
+  height: 90px; border-radius: var(--radius-md);
+  background: var(--bg-secondary); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+}
+.ss-bookcard:hover .ss-bookcard-cover { background: var(--bg-tertiary); }
+.ss-bookcard-title {
+  font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;
+  color: var(--fg-primary); line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ss-bookcard-author { font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.ss-bookcard-meta {
+  display: flex; gap: var(--space-5); margin-top: auto;
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+.ss-bookcard-upload {
+  border-style: dashed; border-width: 2px; box-shadow: none;
+  align-items: center; justify-content: center;
+  color: var(--fg-muted); min-height: 200px;
+  font-family: var(--font-sans); font-size: var(--font-size-xs);
+}
+
+/* ── State（空狀態三種份量＋兩種失敗；書庫 D/E frame，三頁共用）──
+   失敗態只替換內容區，側欄與頁標題常駐。 */
+.ss-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; font-family: var(--font-sans);
+}
+.ss-state-stage { flex: 1; gap: var(--space-5); padding: var(--space-8) 0; }
+.ss-state-icon { display: inline-flex; color: var(--illustration-stroke-soft); }
+.ss-state-icon-error { color: var(--color-error); }
+.ss-state-title {
+  margin: 0; font-family: var(--font-serif);
+  font-size: var(--font-size-lg); font-weight: 600; color: var(--fg-primary);
+}
+.ss-state-text {
+  margin: 0; max-width: 46ch;
+  font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-secondary);
+}
+.ss-state-actions { display: flex; gap: var(--space-4); }
+.ss-state-ready { gap: var(--space-6); }
+.ss-state-ready .ss-state-title { font-size: var(--font-size-2xl); font-weight: 700; }
+.ss-state-prereq .ss-state-text { max-width: 52ch; }
+/* 全站唯一的手寫字落點：書庫為空的副標。 */
+.ss-state-hand { margin: 0; font-family: var(--font-hand); font-size: var(--font-size-xl); color: var(--fg-secondary); }
+.ss-state-filtered {
+  gap: var(--space-4); padding: var(--space-7) var(--space-6);
+  background: var(--bg-secondary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+}
+.ss-state-filtered .ss-state-title { font-size: var(--font-size-sm); color: var(--fg-secondary); }
+.ss-state-detail {
+  display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-4);
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+.ss-state-detail-toggle {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; color: inherit;
+}
+.ss-state-detail-toggle svg { transition: transform var(--transition-fast); }
+.ss-state-chev-open { transform: rotate(90deg); }
+.ss-state-code {
+  font-family: var(--font-mono); font-size: var(--font-size-2xs);
+  padding: 0 var(--space-2); border-radius: var(--radius-sm); background: var(--bg-secondary);
 }
