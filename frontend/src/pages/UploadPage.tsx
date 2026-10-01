@@ -2,16 +2,20 @@ import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, FileText, Loader2, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
+import { AlertTriangle, FileText, Loader2, X } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 import { detectLanguage, uploadBook } from '@/api/ingest';
 import { fetchTasks } from '@/api/tasks';
+import { failureKind, techDetailOf } from '@/api/failureKind';
 import { useBooks } from '@/hooks/useBooks';
 import { DropZone } from '@/components/upload/DropZone';
 import { ProcessingCard } from '@/components/upload/ProcessingCard';
+import { ACCEPT_ATTR, MAX_FILE_MB, partitionFiles, queueNo, type Rejection } from '@/components/upload/uploadModel';
+import { PageFailure } from '@/components/ui/PageFailure';
 import { clearMurmur } from '@/store/murmurStore';
 import { TimelineConfigModal } from '@/components/graph/TimelineConfigModal';
 import { qk } from '@/api/queryKeys';
+import '@/styles/upload.css';
 
 interface UploadTask {
   taskId: string;
@@ -91,6 +95,7 @@ export default function UploadPage() {
   const { t } = useTranslation('upload');
   const queryClient = useQueryClient();
   const { t: tc } = useTranslation('common');
+  const { t: tn } = useTranslation('nav');
 
   // queue[0] is the file shown in the metadata form; the rest wait their turn.
   const [queue, setQueue] = useState<PendingFile[]>([]);
@@ -104,6 +109,12 @@ export default function UploadPage() {
   });
   const [doneTaskIds, setDoneTaskIds] = useState<Set<string>>(new Set());
   const [erroredTasks, setErroredTasks] = useState<ErroredTask[]>([]);
+  // One row per file the last drop/pick turned away; valid files in the same
+  // drop still go to the queue, so this outlives the DropZone (03 A 區).
+  const [rejections, setRejections] = useState<Rejection[]>([]);
+  // The entry GET /tasks (cross-tab recovery) failed — 03 H 區 page failure.
+  const [recoveryError, setRecoveryError] = useState<unknown>(null);
+  const [recoverySeq, setRecoverySeq] = useState(0);
   const [timelineModal, setTimelineModal] = useState<{ bookId: string; detection: TimelineDetectionResponse } | null>(null);
   const completedTaskIdsRef = useRef<Set<string>>(
     (() => {
@@ -148,6 +159,7 @@ export default function UploadPage() {
     fetchTasks(0)
       .then((server) => {
         if (cancelled) return;
+        setRecoveryError(null);
         const activeServer = server.filter(
           (task) => task.kind === 'ingestion' && task.status !== 'done' && task.status !== 'error',
         );
@@ -163,13 +175,15 @@ export default function UploadPage() {
           return recovered.length > 0 ? [...prev, ...recovered] : prev;
         });
       })
-      .catch(() => {
-        // Server unreachable — the sessionStorage-backed list still renders.
+      .catch((err: unknown) => {
+        // Not swallowed any more: without this list the page can't tell what
+        // is still running, so it shows the page failure with a manual retry.
+        if (!cancelled) setRecoveryError(err);
       });
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [recoverySeq]);
 
   useEffect(() => {
     if (!location.hash) return;
@@ -223,8 +237,9 @@ export default function UploadPage() {
       // when idle, so a freshly started ingestion must invalidate the shared
       // list query to resume polling and eventually fire its completion toast.
       void queryClient.invalidateQueries({ queryKey: qk.tasks.list() });
-      // Advance to the next queued file.
+      // Advance to the next queued file; the last drop's rejections are moot now.
       setQueue((q) => q.slice(1));
+      setRejections([]);
     },
     onError: (err: Error) => {
       if (err.name === 'AbortError') return;
@@ -237,8 +252,11 @@ export default function UploadPage() {
 
   const handleFilesSelected = useCallback(
     (files: File[]) => {
+      const { valid, rejected } = partitionFiles(files);
+      setRejections(rejected);
+      if (valid.length === 0) return;
       upload.reset();
-      setQueue((q) => [...q, ...files.map((f) => toPending(f))]);
+      setQueue((q) => [...q, ...valid.map((f) => toPending(f))]);
     },
     [upload],
   );
@@ -261,6 +279,7 @@ export default function UploadPage() {
     abortRef.current = null;
     upload.reset();
     setQueue((q) => q.slice(1));
+    setRejections([]);
   }, [upload]);
 
   const removeQueued = useCallback((id: string) => {
@@ -318,245 +337,229 @@ export default function UploadPage() {
     retryMetaRef.current = null;
   }, [upload]);
 
+
   const titleDup = active ? libraryTitles.has(active.title.trim()) : false;
+  // Density switches inside the page: entry (drop / form) is C 入口; once a
+  // task is on the page the whole page becomes a work surface (B 檢視).
+  const density = tasks.length > 0 ? 'view' : 'entry';
+  const detectedLabel = active?.langDetected
+    ? t(LANGUAGE_OPTIONS.find((opt) => opt.value === active.language)?.labelKey ?? 'languageAuto')
+    : null;
+
+  const rejectionBox = rejections.length > 0 && (
+    <div className="up-notice up-notice-error" role="alert">
+      <span className="up-notice-icon"><AlertTriangle size={16} /></span>
+      <div className="up-notice-lines">
+        {rejections.map((r, i) => (
+          <span key={`${r.name}-${i}`}>
+            {r.name} · {r.reason === 'format'
+              ? t('dropzone.errorInvalidFormat')
+              : t('dropzone.errorTooLarge', { max: MAX_FILE_MB })}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
 
   return (
-    <div className="overflow-y-auto flex-1">
-      <div className="py-9 px-9 max-w-2xl mx-auto">
-      <h1
-        className="font-bold mb-6"
-        style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', color: 'var(--fg-primary)' }}
-      >
-        {t('title')}
-      </h1>
+    <div className="up-page">
+      <div className="up-wrap" data-density={density}>
+        <div className="up-inner">
+          <h1 className="up-title">{t('title')}</h1>
 
-      {/* Hidden input driven by an error card's retry button */}
-      <input
-        ref={retryInputRef}
-        type="file"
-        accept=".pdf,.docx,.txt,.epub"
-        className="hidden"
-        onChange={handleRetryFilePicked}
-      />
+          {/* Hidden input driven by an error card's retry button */}
+          <input
+            ref={retryInputRef}
+            type="file"
+            accept={ACCEPT_ATTR}
+            className="up-hidden"
+            onChange={handleRetryFilePicked}
+          />
 
-      {/* Upload zone — idle (only when nothing is queued) */}
-      {!active && <DropZone onFilesSelected={handleFilesSelected} />}
-
-      {/* Metadata form for the active file */}
-      {active && (
-        <>
-          <div
-            style={{
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-lg)',
-              backgroundColor: 'var(--bg-primary)',
-              padding: '14px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 12,
-            }}
-          >
-            <FileText size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--fg-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {active.file.name}
-              </div>
-              <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginTop: 2 }}>
-                {sizeLabel(active.file)}
-              </div>
-            </div>
-            <button
-              onClick={handleCancelActive}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', flexShrink: 0 }}
-            >
-              {t('removeFile')}
-            </button>
-          </div>
-
-          <div className="card mt-4" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-md)' }}>
-            <div>
-              <label style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--fg-secondary)', marginBottom: 6 }}>
-                {t('bookTitle')}
-              </label>
-              <input
-                className="w-full"
-                style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-sm)', color: 'var(--fg-primary)', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', outline: 'none', boxSizing: 'border-box', transition: 'border-color var(--transition-fast)' }}
-                value={active.title}
-                onChange={(e) => updateActive({ title: e.target.value })}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleConfirmUpload(); }}
-                autoFocus
-              />
-              {titleDup ? (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--color-warning)' }}>
-                  <AlertTriangle size={13} />
-                  {t('duplicateTitleWarning', { title: active.title.trim() })}
-                </div>
-              ) : (
-                <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', margin: '7px 0 0' }}>
-                  {t('titleHint')}
-                </p>
+          {recoveryError != null ? (
+            <PageFailure
+              variant={failureKind(recoveryError)}
+              pageName={tn('upload')}
+              onRetry={() => setRecoverySeq((s) => s + 1)}
+              techDetail={techDetailOf(recoveryError)}
+            />
+          ) : (
+            <>
+              {/* A · Idle — only when nothing is queued */}
+              {!active && (
+                <>
+                  <DropZone onFiles={handleFilesSelected} invalid={rejections.length > 0} />
+                  {rejectionBox}
+                </>
               )}
-            </div>
 
-            <div>
-              <label style={{ display: 'block', fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--fg-secondary)', marginBottom: 6 }}>
-                {t('author')}
-              </label>
-              <input
-                className="w-full"
-                style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-sm)', color: 'var(--fg-primary)', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', outline: 'none', boxSizing: 'border-box', transition: 'border-color var(--transition-fast)' }}
-                placeholder={t('authorPlaceholder')}
-                value={active.author}
-                onChange={(e) => updateActive({ author: e.target.value })}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleConfirmUpload(); }}
-              />
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
-                <label style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--fg-secondary)' }}>
-                  {t('language')}
-                </label>
-                {active.langDetected && (
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 500, color: 'var(--color-info)', background: 'var(--color-info-bg)', padding: '3px 7px', borderRadius: 'var(--badge-radius)' }}>
-                    <Sparkles size={11} />
-                    {t('langDetected', { lang: t(LANGUAGE_OPTIONS.find((opt) => opt.value === active.language)?.labelKey ?? 'languageAuto') })}
-                  </span>
-                )}
-              </div>
-              <select
-                className="w-full"
-                style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-sm)', color: 'var(--fg-primary)', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--radius-md)', padding: '8px 12px', outline: 'none', boxSizing: 'border-box', transition: 'border-color var(--transition-fast)', cursor: 'pointer' }}
-                value={active.language}
-                onChange={(e) => updateActive({ language: e.target.value, langDetected: false })}
-              >
-                {LANGUAGE_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {t(opt.labelKey)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {upload.error && upload.error.name !== 'AbortError' && (
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--color-error)', margin: 0 }}>
-                {upload.error.message}
-              </p>
-            )}
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 'var(--space-sm)', borderTop: '1px solid var(--border)' }}>
-              <button className="btn btn-secondary" onClick={handleCancelActive}>
-                {tc('cancel')}
-              </button>
-              <button className="btn btn-primary" disabled={!active.title.trim() || upload.isPending} onClick={handleConfirmUpload}>
-                {upload.isPending && <Loader2 size={13} className="animate-spin" />}
-                {t('confirmUpload')}
-              </button>
-            </div>
-          </div>
-
-          {/* Waiting queue (files after the active one) */}
-          {queue.length > 1 && (
-            <div className="mt-5">
-              <p style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginBottom: 9 }}>
-                {t('queueTitle')}
-              </p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {queue.slice(1).map((p, i) => (
-                  <div
-                    key={p.id}
-                    style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '12px 14px', border: '1px solid var(--border)', borderRadius: 'var(--card-radius)', background: 'var(--bg-primary)' }}
-                  >
-                    <span style={{ flex: 'none', width: 24, height: 24, borderRadius: '50%', border: '1px dashed var(--border)', display: 'grid', placeItems: 'center', fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600, color: 'var(--fg-muted)' }}>
-                      {i + 1}
-                    </span>
-                    <FileText size={17} style={{ color: 'var(--fg-muted)', flexShrink: 0 }} />
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--fg-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {p.file.name}
-                      </div>
-                      <div style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginTop: 3 }}>
-                        {t('queueWaiting')}
-                      </div>
-                    </div>
-                    <button onClick={() => removeQueued(p.id)} aria-label={tc('remove')} style={{ flex: 'none', border: 'none', background: 'transparent', color: 'var(--fg-muted)', cursor: 'pointer', padding: 3, lineHeight: 0 }}>
-                      <Trash2 size={15} />
+              {/* B · metadata form for queue[0] */}
+              {active && (
+                <>
+                  {rejectionBox}
+                  <div className="up-file">
+                    <span className="up-file-icon"><FileText size={18} strokeWidth={1.5} /></span>
+                    <span className="up-file-name">{active.file.name}</span>
+                    <span className="up-mono-meta">{sizeLabel(active.file)}</span>
+                    <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={handleCancelActive}>
+                      {t('removeFile')}
                     </button>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </>
-      )}
 
-      {/* Processing tasks */}
-      {tasks.length > 0 && (
-        <div className="mt-8">
-          <p
-            className="mb-3"
-            style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 500, color: 'var(--fg-muted)', letterSpacing: '0.06em', textTransform: 'uppercase' }}
-          >
-            {t('processingSection')}
-          </p>
-          <div className="space-y-4">
-            {tasks.map((task) => (
-              <div key={task.taskId} id={task.taskId}>
-                {task.duplicateTitle && (
-                  <p
-                    className="text-xs mb-1.5 px-2 py-1 rounded-md"
-                    style={{ color: 'var(--color-warning)', backgroundColor: 'var(--color-warning-bg)' }}
+                  <div className="up-card up-form">
+                    <div className="up-field">
+                      <label className="up-label" htmlFor="up-title-input">{t('bookTitle')}</label>
+                      <input
+                        id="up-title-input"
+                        className="up-input"
+                        value={active.title}
+                        onChange={(e) => updateActive({ title: e.target.value })}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleConfirmUpload(); }}
+                        autoFocus
+                      />
+                      <span className="up-hint">{t('titleHint')}</span>
+                    </div>
+
+                    <div className="up-grid2">
+                      <div className="up-field">
+                        <label className="up-label" htmlFor="up-author-input">{t('author')}</label>
+                        <input
+                          id="up-author-input"
+                          className="up-input"
+                          placeholder={t('authorPlaceholder')}
+                          value={active.author}
+                          onChange={(e) => updateActive({ author: e.target.value })}
+                          onKeyDown={(e) => { if (e.key === 'Enter' && !e.nativeEvent.isComposing) handleConfirmUpload(); }}
+                        />
+                      </div>
+                      <div className="up-field">
+                        <label className="up-label" htmlFor="up-lang-input">{t('language')}</label>
+                        <select
+                          id="up-lang-input"
+                          className="up-input"
+                          value={active.language}
+                          onChange={(e) => updateActive({ language: e.target.value, langDetected: false })}
+                        >
+                          {LANGUAGE_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {t(opt.labelKey)}
+                            </option>
+                          ))}
+                        </select>
+                        {detectedLabel && (
+                          <span className="up-detect">
+                            <span className="ss-llm-glyph" aria-hidden="true" />
+                            {t('langDetected', { lang: detectedLabel })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {titleDup && (
+                      <div className="up-notice up-notice-warning">
+                        <span className="up-notice-icon"><AlertTriangle size={16} /></span>
+                        <span>{t('duplicateTitleWarning', { title: active.title.trim() })}</span>
+                      </div>
+                    )}
+
+                    {upload.error && upload.error.name !== 'AbortError' && (
+                      <div className="up-notice up-notice-error up-notice-inset" role="alert">
+                        <span className="up-notice-icon"><AlertTriangle size={16} /></span>
+                        <span>{upload.error.message}</span>
+                      </div>
+                    )}
+
+                    <div className="up-actions">
+                      <button
+                        type="button"
+                        className="ss-btn ss-btn-md ss-btn-primary"
+                        disabled={!active.title.trim() || upload.isPending}
+                        onClick={handleConfirmUpload}
+                      >
+                        {upload.isPending && <Loader2 size={12} className="up-spin" />}
+                        {t('confirmUpload')}
+                      </button>
+                      <button type="button" className="ss-btn ss-btn-md ss-btn-ghost" onClick={handleCancelActive}>
+                        {tc('cancel')}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Waiting queue (files after the active one) */}
+                  {queue.length > 1 && (
+                    <div className="up-queue">
+                      <span className="up-queue-title">{t('queueTitle')}</span>
+                      {queue.slice(1).map((p, i) => (
+                        <div key={p.id} className="up-queue-row">
+                          <span className="up-mono-meta">{queueNo(i)}</span>
+                          <span className="up-queue-name">{p.file.name}</span>
+                          <span className="up-muted-2xs">{t('queueWaiting')}</span>
+                          <button
+                            type="button"
+                            className="up-icon-btn"
+                            onClick={() => removeQueued(p.id)}
+                            aria-label={tc('remove')}
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* C–F · processing / awaiting review / partial / done */}
+              {tasks.length > 0 && (
+                <div className="up-tasks">
+                  <span className="up-section-label">{t('processingSection')}</span>
+                  {tasks.map((task) => (
+                    <div key={task.taskId} id={task.taskId} className="up-task-slot">
+                      {task.duplicateTitle && (
+                        <div className="up-notice up-notice-warning">
+                          <span className="up-notice-icon"><AlertTriangle size={14} /></span>
+                          <span>{t('duplicateTitleWarning', { title: task.title })}</span>
+                        </div>
+                      )}
+                      <ProcessingCard task={task} onDone={handleTaskDone} onError={handleTaskError} />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* F · errored tasks — retry only reopens the file picker (zero cost) */}
+              {erroredTasks.map((et) => (
+                <div key={et.taskId} className="up-failed">
+                  <span className="up-failed-icon"><AlertTriangle size={18} /></span>
+                  <div className="up-failed-main">
+                    <span className="up-failed-name">{et.fileName}</span>
+                    {et.message && <code className="up-code">{et.message}</code>}
+                  </div>
+                  <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={() => handleRetry(et)}>
+                    {t('retry')}
+                  </button>
+                  <button
+                    type="button"
+                    className="up-icon-btn"
+                    onClick={() => dismissErroredTask(et.taskId)}
+                    aria-label={tc('remove')}
                   >
-                    {t('duplicateTitleWarning', { title: task.title })}
-                  </p>
-                )}
-                <ProcessingCard task={task} onDone={handleTaskDone} onError={handleTaskError} />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+                    <X size={15} />
+                  </button>
+                </div>
+              ))}
+            </>
+          )}
 
-      {/* Errored tasks */}
-      {erroredTasks.length > 0 && (
-        <div className="mt-6 space-y-2">
-          {erroredTasks.map((et) => (
-            <div
-              key={et.taskId}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '14px 16px', borderRadius: 'var(--card-radius)', backgroundColor: 'var(--color-error-bg)', border: '1px solid var(--color-error)' }}
-            >
-              <span className="w-2 h-2 rounded-full mt-1.5" style={{ backgroundColor: 'var(--color-error)', flexShrink: 0 }} />
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', color: 'var(--fg-primary)' }}>{et.fileName}</div>
-                {et.message && (
-                  <p className="text-xs mt-0.5" style={{ color: 'var(--color-error)' }}>
-                    {et.message}
-                  </p>
-                )}
-                <button
-                  onClick={() => handleRetry(et)}
-                  style={{ marginTop: 10, display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600, color: 'var(--color-error)', background: 'transparent', border: '1px solid var(--color-error)', borderRadius: 'var(--btn-radius)', padding: '7px 13px', cursor: 'pointer' }}
-                >
-                  <RefreshCw size={12} />
-                  {t('retry')}
-                </button>
-              </div>
-              <button onClick={() => dismissErroredTask(et.taskId)} style={{ color: 'var(--fg-muted)', flexShrink: 0 }} aria-label={tc('remove')}>
-                <X size={14} />
-              </button>
-            </div>
-          ))}
+          {timelineModal && (
+            <TimelineConfigModal
+              bookId={timelineModal.bookId}
+              detection={timelineModal.detection}
+              onClose={() => setTimelineModal(null)}
+            />
+          )}
         </div>
-      )}
-
-      {timelineModal && (
-        <TimelineConfigModal
-          bookId={timelineModal.bookId}
-          detection={timelineModal.detection}
-          onClose={() => setTimelineModal(null)}
-        />
-      )}
-    </div>
+      </div>
     </div>
   );
 }

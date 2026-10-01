@@ -1,17 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { AlertTriangle, Check, CheckCircle, Clock, Loader2, RefreshCw, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { AlertTriangle, CircleCheck, Clock, Loader2, ShieldAlert } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 import { deleteBook } from '@/api/books';
 import { acceptReview, cancelTask, fetchTaskStatus, rerunStep, type RerunStep } from '@/api/ingest';
 import { useToast } from '@/contexts/ToastContext';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ProcessingTimeline } from './ProcessingTimeline';
 import { MurmurWindow } from './MurmurWindow';
+import { formatElapsed } from './uploadModel';
 import { qk } from '@/api/queryKeys';
 
 // Backend failedSteps prefix (underscore) → rerun endpoint step + label.
+// A prefix missing here is listed without a button (no disabled button, no
+// "unsupported" copy — 03 E 區).
 const RERUN_META: Record<string, { step: RerunStep; label: string }> = {
   summarization: { step: 'summarization', label: '章節摘要' },
   feature_extraction: { step: 'feature-extraction', label: '特徵擷取' },
@@ -41,39 +46,21 @@ function parseFailedSteps(failed: string[]): FailedStep[] {
 function RerunButton({ st, canRerun, onRerun }: Readonly<{ st: RerunState; canRerun: boolean; onRerun: () => void }>) {
   if (st === 'loading') {
     return (
-      <span style={{ flex: 'none', display: 'inline-flex', alignItems: 'center', gap: 5, font: '600 12px/1 var(--font-sans)', color: 'var(--fg-muted)', padding: '7px 12px' }}>
-        <Loader2 size={12} className="animate-spin" />
+      <span className="up-rerun-busy">
+        <Loader2 size={12} className="up-spin" />
         重跑中…
       </span>
     );
   }
   if (!canRerun) return null;
-  const failed = st === 'failed';
-  const color = failed ? 'var(--color-error)' : 'var(--accent)';
   return (
-    <button
-      onClick={onRerun}
-      style={{
-        flex: 'none',
-        display: 'inline-flex',
-        alignItems: 'center',
-        gap: 5,
-        font: '600 12px/1 var(--font-sans)',
-        color,
-        background: 'transparent',
-        border: `1px solid ${color}`,
-        borderRadius: 'var(--btn-radius)',
-        padding: '7px 12px',
-        cursor: 'pointer',
-      }}
-    >
-      <RefreshCw size={12} />
-      {failed ? '再試' : '重跑'}
+    <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm" onClick={onRerun}>
+      {st === 'failed' ? '再試' : '重跑'}
     </button>
   );
 }
 
-function PartialRerunCard({ bookId, failedSteps }: Readonly<{ bookId: string; failedSteps: string[] }>) {
+function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: string; title: string; failedSteps: string[] }>) {
   const { push } = useToast();
   const queryClient = useQueryClient();
   const [state, setState] = useState<Record<string, RerunState>>({});
@@ -119,56 +106,37 @@ function PartialRerunCard({ bookId, failedSteps }: Readonly<{ bookId: string; fa
   );
 
   return (
-    <div
-      style={{
-        padding: '15px 16px',
-        background: 'var(--color-warning-bg)',
-        border: '1px solid var(--color-warning)',
-        borderRadius: 'var(--card-radius)',
-      }}
-    >
-      <div style={{ font: '500 12.5px/1.5 var(--font-sans)', color: 'var(--fg-primary)', marginBottom: 12 }}>
-        書籍已儲存，但以下步驟未能完成 · 可直接重跑
+    <div className="up-card up-task">
+      <div className="up-task-head up-task-head-ruled">
+        <span className="up-task-title">{title}</span>
+        <span className="ss-badge ss-badge-warning">
+          <span className="up-badge-icon"><AlertTriangle size={12} /></span>
+          部分完成
+        </span>
       </div>
-      {!allResolved && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {pending.map((fs) => (
-            <div
-              key={fs.id}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 11,
-                padding: '10px 12px',
-                background: 'var(--bg-primary)',
-                border: '1px solid var(--border)',
-                borderRadius: 'var(--btn-radius)',
-              }}
-            >
-              <span style={{ width: 20, height: 20, borderRadius: '50%', background: 'var(--color-error-bg)', display: 'grid', placeItems: 'center', color: 'var(--color-error)', flex: 'none' }}>
-                <X size={11} strokeWidth={2.4} />
-              </span>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ font: '600 12.5px/1.3 var(--font-sans)', color: 'var(--fg-primary)' }}>{fs.label}</div>
-                {fs.detail && (
-                  <div style={{ font: '400 11px/1.4 var(--font-mono)', color: 'var(--fg-muted)', marginTop: 2 }}>{fs.detail}</div>
-                )}
+      <div className="up-partial">
+        <p className="up-partial-lead">書籍已儲存，但以下步驟未能完成 · 可直接重跑</p>
+        {allResolved ? (
+          <div className="up-resolved">
+            <span className="up-resolved-icon"><CircleCheck size={18} strokeWidth={1.5} /></span>
+            所有步驟皆已補齊。
+          </div>
+        ) : (
+          pending.map((fs) => (
+            <div key={fs.id} className="up-rerun-row">
+              <div className="up-rerun-main">
+                <span className="up-rerun-name">{fs.label}</span>
+                {fs.detail && <code className="up-code">{fs.detail}</code>}
               </div>
               <RerunButton st={state[fs.id] ?? 'idle'} canRerun={fs.step !== null} onRerun={() => handleRerun(fs)} />
             </div>
-          ))}
+          ))
+        )}
+        <div className="up-partial-foot">
+          <Link to={`/books/${bookId}`} className="up-link">
+            前往書庫查看 →
+          </Link>
         </div>
-      )}
-      {allResolved && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6, font: '500 12.5px/1.4 var(--font-sans)', color: 'var(--color-success)' }}>
-          <CheckCircle size={14} />
-          所有步驟皆已補齊。
-        </div>
-      )}
-      <div style={{ marginTop: 13, paddingTop: 12, borderTop: '1px solid var(--color-warning)' }}>
-        <Link to={`/books/${bookId}`} style={{ font: '600 12.5px/1 var(--font-sans)', color: 'var(--accent)' }}>
-          前往書庫查看 →
-        </Link>
       </div>
     </div>
   );
@@ -186,18 +154,14 @@ interface ProcessingCardProps {
   onError: (taskId: string, fileName: string, message?: string) => void;
 }
 
-function formatElapsed(sec: number): string {
-  const m = Math.floor(sec / 60);
-  const s = sec % 60;
-  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-}
-
 export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCardProps>) {
+  const { t } = useTranslation('upload');
   const { data: status, isError, murmurEvents } = useTaskPolling(task.taskId);
   const queryClient = useQueryClient();
   const doneRef = useRef(false);
   const [acceptingChapters, setAcceptingChapters] = useState(false);
   const [terminating, setTerminating] = useState(false);
+  const [confirmTerminate, setConfirmTerminate] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
   // Tick every second so the "已處理 mm:ss" clock advances live while running.
   const [nowTick, setNowTick] = useState(() => Date.now());
@@ -207,10 +171,10 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
     const id = setInterval(() => setNowTick(Date.now()), 1000);
     return () => clearInterval(id);
   }, [isActive]);
+  // Counted from the task's createdAt (decision Q2), so a task picked up from
+  // another tab shows its real age rather than a fresh "just started".
   const elapsedText =
-    status?.createdAt != null
-      ? formatElapsed(Math.max(0, Math.floor((nowTick - Date.parse(status.createdAt)) / 1000)))
-      : null;
+    status?.createdAt != null ? formatElapsed((nowTick - Date.parse(status.createdAt)) / 1000) : null;
 
   const failedSteps     = status?.result?.failedSteps as string[] | undefined;
   const isPartialSuccess = status?.status === 'done' && !!status.result?.bookId && failedSteps && failedSteps.length > 0;
@@ -248,6 +212,7 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
   }, [bookId, queryClient, task.taskId]);
 
   const handleTerminate = useCallback(async () => {
+    setConfirmTerminate(false);
     setTerminating(true);
     try {
       // Cancel first so the pipeline stops writing, then remove the book if
@@ -263,169 +228,123 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
   /* ── Done ── */
   if (isDone && bookId) {
     return (
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 12,
-          padding: '15px 18px',
-          border: '1px solid var(--color-success)',
-          borderRadius: 'var(--card-radius)',
-          background: 'var(--color-success-bg)',
-        }}
-      >
-        <span style={{ width: 26, height: 26, borderRadius: '50%', background: 'var(--color-success)', display: 'grid', placeItems: 'center', color: '#fff', flex: 'none' }}>
-          <Check size={14} strokeWidth={2.6} />
-        </span>
-        <h3 style={{ font: '700 16px/1.2 var(--font-serif)', color: 'var(--fg-primary)', margin: 0, flex: 1, minWidth: 0 }}>
-          {task.title}
-        </h3>
-        <Link to={`/books/${bookId}`} style={{ font: '600 12.5px/1 var(--font-sans)', color: 'var(--accent)', whiteSpace: 'nowrap' }}>
+      <div className="up-done">
+        <span className="up-done-icon"><CircleCheck size={18} strokeWidth={1.5} /></span>
+        <span className="up-done-title">{task.title}</span>
+        <span className="up-spacer" />
+        <Link to={`/books/${bookId}`} className="up-link">
           前往《{task.title}》→
         </Link>
       </div>
     );
   }
 
-  const progress = status?.progress ?? 0;
-  const stageLabel = status?.stage ? `${status.stage} · ` : '';
+  /* ── Partial ── */
+  if (isPartialSuccess && bookId && failedSteps) {
+    return <PartialRerunCard bookId={bookId} title={task.title} failedSteps={failedSteps} />;
+  }
 
-  return (
-    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-      {/* Card header */}
-      <div
-        style={{
-          padding: '14px 20px',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'baseline',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}
-      >
-        <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-base)', fontWeight: 700, color: 'var(--fg-primary)' }}>
-          {task.title}
-        </span>
-        {status && !isPartialSuccess && !isAwaitingReview && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)' }}>
-              {stageLabel}{progress}%
-            </span>
-            {isActive && elapsedText && (
-              <>
-                <span style={{ width: 1, height: 11, background: 'var(--border)' }} />
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
-                  <Clock size={11} />
-                  已處理 {elapsedText}
-                </span>
-              </>
-            )}
-          </span>
-        )}
-        {isPartialSuccess && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--color-warning)', background: 'var(--color-warning-bg)', padding: '5px 9px', borderRadius: 'var(--badge-radius)', flexShrink: 0 }}>
-            <AlertTriangle size={12} />
-            部分完成
-          </span>
-        )}
-        {isAwaitingReview && (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', fontWeight: 500, color: 'var(--color-warning)', background: 'var(--color-warning-bg)', padding: '5px 9px', borderRadius: 'var(--badge-radius)', flexShrink: 0 }}>
-            <Clock size={12} />
-            等待審閱
-          </span>
-        )}
-      </div>
+  // Shared by the running and awaiting-review cards: the loss-list confirm.
+  const terminateButton = (size: 'sm' | 'md') => (
+    <button
+      type="button"
+      className={`ss-btn ss-btn-${size} ss-btn-danger`}
+      disabled={acceptingChapters || terminating}
+      onClick={() => setConfirmTerminate(true)}
+    >
+      {terminating && <Loader2 size={12} className="up-spin" />}
+      終止處理
+    </button>
+  );
+  const terminateDialog = (
+    <ConfirmDialog
+      open={confirmTerminate}
+      title={t('terminate.title', { title: task.title })}
+      message={t('terminate.message')}
+      items={[t('terminate.itemTask'), t('terminate.itemBook')]}
+      confirmLabel={t('terminate.confirm')}
+      danger
+      onConfirm={handleTerminate}
+      onCancel={() => setConfirmTerminate(false)}
+    />
+  );
 
-      {/* Progress bar (shown during active processing only) */}
-      {status && !isPartialSuccess && !isAwaitingReview && (
-        <div style={{ height: 2, backgroundColor: 'var(--bg-tertiary)' }}>
-          <div
-            className="theme-progress-fill"
-            style={{ height: '100%', width: `${progress}%`, transition: 'width 800ms ease' }}
-          />
+  /* ── Awaiting review — the only human gate ── */
+  if (isAwaitingReview && bookId) {
+    return (
+      <div className="up-gate">
+        <div className="up-gate-main">
+          <span className="up-gate-icon"><ShieldAlert size={24} strokeWidth={1.5} /></span>
+          <div className="up-gate-text">
+            <div className="up-gate-meta">
+              <span className="ss-badge ss-badge-warning">
+                <span className="up-badge-icon"><AlertTriangle size={12} /></span>
+                等待審閱
+              </span>
+              <span className="up-gate-book">{task.title}</span>
+            </div>
+            <h3 className="up-gate-title">系統偵測到章節結構，請確認是否正確</h3>
+            <p className="up-gate-sub">這是送出前最後一道人工閘門</p>
+          </div>
+          <div className="up-gate-actions">
+            <button
+              type="button"
+              className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+              disabled={acceptingChapters || terminating}
+              onClick={handleAcceptChapters}
+            >
+              {acceptingChapters && <Loader2 size={12} className="up-spin" />}
+              接受系統判斷
+            </button>
+            <Link to={`/upload/review/${bookId}?taskId=${task.taskId}`} className="ss-btn ss-btn-md ss-btn-secondary">
+              開始審閱 →
+            </Link>
+            {terminateButton('md')}
+          </div>
         </div>
-      )}
-
-      {/* Card body */}
-      <div style={{ padding: 20 }}>
-        {/* Awaiting review prompt */}
-        {isAwaitingReview && bookId && (
-          <div
-            style={{
-              padding: '15px 16px',
-              background: 'var(--color-warning-bg)',
-              border: '1px solid var(--color-warning)',
-              borderRadius: 'var(--card-radius)',
-            }}
-          >
-            <div style={{ font: '600 13.5px/1.4 var(--font-sans)', color: 'var(--fg-primary)', marginBottom: 3 }}>
-              系統偵測到章節結構，請確認是否正確
-            </div>
-            <div style={{ font: '400 12px/1.5 var(--font-sans)', color: 'var(--fg-secondary)', marginBottom: 13 }}>
-              這是送出前最後一道人工閘門
-            </div>
-            {reviewError && (
-              <p className="text-xs mb-2" style={{ color: 'var(--color-error)' }}>
-                {reviewError}
-              </p>
-            )}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap' }}>
-              <button
-                style={{ font: '600 12.5px/1 var(--font-sans)', color: 'var(--accent-fg)', background: 'var(--accent)', border: '1px solid var(--accent)', borderRadius: 'var(--btn-radius)', padding: '9px 15px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                disabled={acceptingChapters || terminating}
-                onClick={handleAcceptChapters}
-              >
-                {acceptingChapters && <Loader2 size={11} className="animate-spin" />}
-                接受系統判斷
-              </button>
-              <Link
-                to={`/upload/review/${bookId}?taskId=${task.taskId}`}
-                style={{ font: '600 12.5px/1 var(--font-sans)', color: 'var(--fg-primary)', background: 'var(--bg-primary)', border: '1px solid var(--border)', borderRadius: 'var(--btn-radius)', padding: '9px 15px' }}
-              >
-                開始審閱 →
-              </Link>
-              <button
-                style={{ marginLeft: 'auto', font: '600 12.5px/1 var(--font-sans)', color: 'var(--color-error)', background: 'transparent', border: '1px solid var(--color-error)', borderRadius: 'var(--btn-radius)', padding: '9px 14px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6 }}
-                disabled={acceptingChapters || terminating}
-                onClick={handleTerminate}
-              >
-                {terminating && <Loader2 size={10} className="animate-spin" />}
-                終止處理
-              </button>
-            </div>
+        {reviewError && (
+          <div className="up-notice up-notice-error up-notice-inset" role="alert">
+            <span className="up-notice-icon"><AlertTriangle size={16} /></span>
+            <span>{reviewError}</span>
           </div>
         )}
+        {terminateDialog}
+      </div>
+    );
+  }
 
-        {/* Partial success — per-step inline rerun */}
-        {isPartialSuccess && bookId && failedSteps && (
-          <PartialRerunCard bookId={bookId} failedSteps={failedSteps} />
+  /* ── Processing ── */
+  const progress = status?.progress ?? 0;
+  return (
+    <div className="up-card up-task">
+      <div className="up-task-head">
+        <span className="up-task-title">{task.title}</span>
+        {status && (
+          <span className="up-task-stage">
+            {status.stage ? `${status.stage} · ` : ''}
+            {progress}%
+          </span>
         )}
-
-        {/* Timeline + murmur (normal processing) */}
-        {status && !isPartialSuccess && !isAwaitingReview && (
+        {isActive && elapsedText && (
           <>
-            <div className="flex gap-4">
-              <div style={{ minWidth: 160 }}>
-                <ProcessingTimeline task={status} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <MurmurWindow events={murmurEvents} />
-              </div>
-            </div>
-            <div className="flex justify-end mt-3">
-              <button
-                className="btn text-xs flex items-center gap-1"
-                style={{ color: 'var(--color-error)', borderColor: 'var(--color-error)' }}
-                disabled={terminating}
-                onClick={handleTerminate}
-              >
-                {terminating && <Loader2 size={10} className="animate-spin" />}
-                終止處理
-              </button>
-            </div>
+            <span className="up-task-sep" />
+            <span className="up-task-clock"><Clock size={13} strokeWidth={1.5} /></span>
+            <span className="up-task-elapsed">已處理 {elapsedText}</span>
           </>
         )}
+        <span className="up-spacer" />
+        {terminateButton('sm')}
       </div>
+      <div className="up-task-bar">
+        <div className="up-task-bar-fill" style={{ width: `${progress}%` }} />
+      </div>
+      {status && (
+        <div className="up-task-body">
+          <ProcessingTimeline task={status} />
+          <MurmurWindow events={murmurEvents} />
+        </div>
+      )}
+      {terminateDialog}
     </div>
   );
 }

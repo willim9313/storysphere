@@ -192,44 +192,93 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
                 └─ 處理中 / 完成 / 失敗（卡片列表）
 ```
 
-> 2026-07-11 依 Claude Design canvas（`Upload Flow Redesign.dc.html`）重設計。
-> 設計核對見 `docs/plans/20260711-upload-ux-design-crosscheck.md`。
+> DS v3 第 1 批（2026-10）依 `03 上傳 Upload 決議紀錄.dc.html` A–F、H frame 重做。
+> `pages/UploadPage.tsx`、`components/upload/{DropZone,ProcessingCard,ProcessingTimeline,MurmurWindow,CharacterSlot,uploadModel}`，
+> 樣式 `styles/upload.css`（`up-` 前綴）＋ kit `.ss-btn*`／`.ss-badge*`／`.ss-pill*`。頁標題「上傳 & 處理進度」不動。
+> 工程端代為裁決處見 `docs/DS_V3_DESIGN_FEEDBACK.md` 第 1 批 1-A、1-E、1-F、1-I、1-J、1-M～1-S。
 
-#### 上傳區塊（`DropZone`）
+#### 密度（同一頁內換檔）
 
-- 拖曳或點擊觸發檔案選擇，**支援多選**；格式 `.pdf/.docx/.txt/.epub`，單檔上限 50 MB
-- 多選後：第一個檔案進 metadata 表單，其餘進「待上傳佇列 · 逐本填寫」列表
-  （序號圓圈 + 檔名 + 移除鈕），確認上傳後依序遞補
+| 狀態 | padding | section | card | max-w |
+|---|---|---|---|---|
+| C 入口（頁上沒有任務：投件、填表單） | 32 | 24 | 16 | 960 |
+| B 檢視（頁上有任一任務卡，`data-density="view"`） | 24 | 16 | 12 | 1280 |
 
-#### Metadata 表單
+內容區靠左、不置中。任務跑著時投件區仍在最上方，可繼續投下一本；任務卡列上方保留既有小標「處理中」。
 
-- 書籍名稱 / 作者 / 語系。**書名同名前置警告**：即時比對書庫（`useBooks`），
-  命中顯示 `--color-warning` 提示（不擋上傳）。**語系自動偵測 badge**：
-  預偵測成功時語系標籤旁顯示「已自動偵測：X · 可修改」（`--color-info`），
-  手動改動下拉即消失。>15MB 檔案跳過預偵測。
+#### A · 投件（`DropZone`）
 
-#### 處理中卡片（`ProcessingCard`，5 態）
+- 2px 虛線框、`--space-8` 內距：Upload 28（`--illustration-stroke-soft`）＋「拖曳檔案至此，或點擊選擇檔案」（base 600）
+  ＋副標「支援 .pdf、.docx、.txt、.epub 格式，可多選 · 檔案大小上限 50 MB」。拖曳中 accent 框＋`--bg-secondary`。
+- **就地拒絕每檔一列**：`--color-error-bg` 框＋AlertTriangle，每列「{檔名} · 既有訊息」（`dropzone.errorInvalidFormat`／
+  `errorTooLarge`，Q3）。同一次投件的好檔照常進佇列；此時拒絕列移到 B 態最上方（1-R）。全被擋時投件框描 error 色。
+  判斷由 `uploadModel.partitionFiles`（先看格式、再看大小）。
 
-- **處理中（running）**：header 顯示 `stage · progress%` + 分隔線 + 「已處理 mm:ss」
-  即時時鐘（由 `createdAt` 每秒累加）＋ 卡底 2px 進度條。Body 左為垂直步驟
-  timeline，右為 murmur 即時日誌。
-- 步驟 timeline（垂直，**7 步**）：PDF 解析 → 語言偵測 → 摘要生成 → 特徵提取 →
-  知識圖譜 → 符號探索 → 資料儲存。步驟狀態由 `TaskStatus.stepKey` 驅動
-  （`done` 綠圈 ✓ / `running` accent 圈 + 旋轉 Loader + 子進度「章節特徵 3/7」/
-  `pending` 空心圈數字），缺 `stepKey` 時 fallback 進度百分比區間。
-- **murmur 日誌（`MurmurWindow`）**：mono eyebrow（`stepKey · ch.NN`）+ 內容：
-  topic 為 serif 摘要、character/location/org/event/symbol 為實體色 pill
-  （`--entity-<type>-*` + 色點 + 角色說明）、raw 為 mono。恆自動捲到底
-  （terminal print 概念，無暫停控制）。
-- **等待審閱（awaiting_review）**：`--color-warning-bg` 框 + 「等待審閱」badge，
-  三動作：接受系統判斷（accent，走 accept 捷徑）/ 開始審閱 →（導 `ChapterReviewPage`）/ 終止處理。
-- **部分完成（partial）**：`--color-warning-bg` 框逐列出失敗步驟（label + mono detail）
-  + 內嵌「重跑／再試」（idle/loading/failed/done 狀態機，呼叫 `/rerun/:step` 並輪詢，
-  推「排入任務中心」/ 成功 / 失敗 toast）；全補齊顯示綠色完成列。
-- **完成（done）**：`--color-success-bg` 卡，實心綠勾圈 + 書名 + 「前往《…》→」；
-  上方另有同名細條（若 `duplicateTitle`）。
-- **失敗（error）**：`--color-error-bg` 框 + 錯誤訊息 + 「重試」（沿用原
-  書名/作者/語系，僅需重新選檔）。
+#### B · 有檔待填（表單只服務 `queue[0]`）
+
+- 檔案列（`--bg-secondary`）：FileText accent、檔名 serif sm 600、mono「x.x MB · PDF」、ghost sm「更換檔案」（＝取消這個檔）。
+- 表單卡：書籍名稱＋輔助字「可在書庫中隨時修改」（**同名警告出現時也保留**）；作者／語系兩欄。
+  **語言偵測徽章**「已自動偵測：{語言} · 可修改」緊貼在語系下拉下方，`--bg-secondary` 圓角徽章＋kit `.ss-llm-glyph`
+  （機器判斷標記，不是 `.ss-btn-llm`）；手動改下拉即清掉。>15 MB 不打預偵測、沒有徽章、不另寫說明。
+- **同名書警告**「已有同名書籍《…》，本次上傳仍會繼續進行。」為 `--color-warning-bg` 列，放在送出鈕之上。
+- 「確認上傳」primary、**不帶 sparkles**，書名空白時 disabled（頁內 `.up-page .ss-btn:disabled` 0.5，1-S）；「取消」ghost。
+  按鈕旁的成本說明是稿上註解，不做（1-E）。
+- 佇列「待上傳佇列 · 逐本填寫」（serif base 600）：每列 mono 序號（02、03…）、檔名、「等待上傳」、X 移除。
+
+#### C · 處理中（`ProcessingCard`）
+
+- 卡頭：書名 serif base 600、「{stage} · {progress}%」（2xs muted）、分隔線、Clock＋mono「已處理 mm:ss」（每秒跳；
+  由 `createdAt` 回推，Q2）、右側 `ss-btn-sm ss-btn-danger`「終止處理」。卡頭下 2px 進度條，與 timeline 並存。
+- **7 步 timeline**（左欄 200px，`ProcessingTimeline`）：PDF 解析 5／語言偵測 10／摘要生成 20／特徵提取 40／知識圖譜 60／
+  符號探索 80／資料儲存 90，每列右側 mono 錨點百分比。marker 18px 四態：done success 實心＋check、running Loader 旋轉＋
+  accent 標籤 600、pending 描邊圓＋序號、error error 實心＋x 並在下方就地展開 `task.error` 原文（mono 細節框）。
+  步驟狀態由 `TaskStatus.stepKey` 驅動，缺時 fallback 百分比區間。running 只有後端給 `subTotal` 時才顯示
+  mono「{subStage} {subProgress} / {subTotal}」，**沒有就不畫任何條**（不再有假的脈動條）。
+- **MurmurWindow**：固定 260px、自有捲動、`--bg-primary` 框。每筆 mono eyebrow `stepKey · ch.NN`（章號補零）＋內容三型：
+  實體 pill `.ss-pill .ss-pill-<type> .ss-pill-dot`（character→character、location→location、org→organization、
+  event→event、symbol→concept，`uploadModel.murmurPillVariant`）＋serif 角色說明；topic serif sm 散文；raw mono muted。
+  delta 累積、長度無上限；新事件只在使用者已在底部時貼底，往上捲閱讀時不強制拉回。空態「等待系統開始處理…」置中。
+  右下吉祥物槽（44px 虛線方框、Sprout、上下浮動，reduced-motion 停），內容右側讓出槽的車道。
+
+#### D · 等待審閱（唯一人工閘門）
+
+整張卡換成閘門卡：2px `--color-warning` 邊框、`--space-7` 內距；ShieldAlert 24 warning、`ss-badge-warning`「等待審閱」
+＋書名（1-O）、主標「系統偵測到章節結構，請確認是否正確」（serif xl 700）、副標「這是送出前最後一道人工閘門」（xs，不縮不移）。
+右側三顆並列：「接受系統判斷」primary＋`.ss-btn-llm`（走 accept 捷徑）、「開始審閱 →」secondary（導
+`/upload/review/:bookId?taskId=`，不帶字符）、`ss-btn-danger`「終止處理」。接受失敗時卡內紅框就地顯示
+「章節審閱提交失敗，pipeline 可能已中斷，請刪除此書並重新上傳。」。
+
+#### 終止確認（處理中與等待審閱共用）
+
+「終止處理」先開 `ConfirmDialog` 損失清單版：標題「終止處理《{書名}》？」、內文「以下內容會被移除，無法復原。」、
+清單「目前的處理任務」「已寫入書庫的這本書（若已建立）」、`danger` 確認鈕「終止處理」、取消維持 ghost（1-I）。
+**這三句是草稿・待設計定案**（i18n `upload.terminate.*`；JSON 不能寫註解，故記在此）。確認後流程不變：
+先 `POST /tasks/:id/cancel`，書已落地才 `DELETE /books/:id`，卡片轉失敗卡。
+
+#### E · 部分完成（`PartialRerunCard`）
+
+與「已完成」是兩種版型。卡頭書名＋`ss-badge-warning`「部分完成」（AlertTriangle），卡頭下分隔線；內文先保留既有句
+「書籍已儲存，但以下步驟未能完成 · 可直接重跑」（1-F），再逐步驟列：步驟名 xs 600、後端細節 mono 細節框
+（`--bg-tertiary`）、右側 `ss-btn-sm ss-btn-secondary ss-btn-llm`「重跑」（失敗後「再試」，進行中「重跑中…」）。
+對映不到 rerun endpoint 的前綴只列出、不給鈕、不寫說明（符號探索有 endpoint，保留鈕，1-M）。全部補齊換成
+CircleCheck success「所有步驟皆已補齊。」。底部分隔線下固定「前往書庫查看 →」。重跑 toast 不變。
+
+#### F · 已完成 · 失敗
+
+- 已完成：`--color-success-bg` 單列，CircleCheck、書名 serif sm 600、右側「前往《書名》→」；同名任務上方另有 warning 細條。
+  `result.timelineDetection.chapterModeViable` 為真時彈 `TimelineConfigModal`（不變）。
+- 失敗卡：`--color-error-bg`，AlertTriangle 18、檔名 xs 600 error 色、錯誤原文 mono 細節框；右側 `ss-btn-sm ss-btn-secondary`
+  「重試 · 沿用原書名/作者，只需重新選檔」（整句沿用既有字串，1-N；只開檔案選擇器、零成本）＋X 關閉。
+
+#### H · 頁面失敗
+
+進頁的 `GET /tasks`（跨分頁復原）失敗不再吞掉：標題之下整個內容區換成 `PageFailure`（`pageName`＝nav「上傳」，
+`variant` 由 `failureKind` 判：有 JSON body → 單頁失敗「無法載入上傳」；裸 502／斷線 → 後端失敗），「重試」重打一次 `GET /tasks`，
+成功才回到正常內容。內容區撐滿高度，失敗態垂直置中。
+
+#### LLM 字符
+
+只有「接受系統判斷」與「重跑／再試」帶 sparkles；確認上傳、開始審閱、終止處理、失敗卡重試、更換檔案／取消／移除、各導覽都不帶。
 
 #### 全域通知（`ToastHost` / `ToastContext`）
 

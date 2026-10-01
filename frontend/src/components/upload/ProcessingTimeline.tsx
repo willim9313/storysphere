@@ -11,6 +11,7 @@ type StepKey =
   | 'symbolExploration'
   | 'dataStorage';
 
+// Seven steps and their progress anchors are a fixed contract (spec §6).
 const STEPS: { key: StepKey; pct: number }[] = [
   { key: 'pdfParsing',        pct: 5  },
   { key: 'languageDetect',    pct: 10 },
@@ -21,11 +22,13 @@ const STEPS: { key: StepKey; pct: number }[] = [
   { key: 'dataStorage',       pct: 90 },
 ];
 
+type StepState = 'done' | 'running' | 'pending' | 'error';
+
 interface ProcessingTimelineProps {
   task: TaskStatus;
 }
 
-function stepState(stepIdx: number, task: TaskStatus): 'done' | 'running' | 'pending' | 'error' {
+function stepState(stepIdx: number, task: TaskStatus): StepState {
   if (task.status === 'done') return 'done';
 
   // Prefer the machine-readable step key sent by the backend; the
@@ -51,64 +54,42 @@ function stepState(stepIdx: number, task: TaskStatus): 'done' | 'running' | 'pen
   return 'running';
 }
 
+function Marker({ state, n }: Readonly<{ state: StepState; n: number }>) {
+  if (state === 'done') return <span className="up-marker up-marker-done"><Check size={12} strokeWidth={2} /></span>;
+  if (state === 'error') return <span className="up-marker up-marker-error"><X size={12} strokeWidth={2} /></span>;
+  if (state === 'running') {
+    return (
+      <span className="up-marker up-marker-running">
+        <Loader size={14} strokeWidth={1.5} className="up-spin" />
+      </span>
+    );
+  }
+  return <span className="up-marker up-marker-pending">{n}</span>;
+}
+
 export function ProcessingTimeline({ task }: Readonly<ProcessingTimelineProps>) {
   const { t } = useTranslation('upload');
 
   return (
-    <div className="ss-steps">
+    <div className="up-steps">
       {STEPS.map((step, idx) => {
         const state = stepState(idx, task);
-        const hasSubProgress = state === 'running' && task.subTotal != null;
-
-        const cls =
-          state === 'done'    ? 'ss-step ss-step-done' :
-          state === 'running' ? 'ss-step ss-step-active' :
-          'ss-step';
-
         return (
-          <div key={step.key} className={cls}>
-            <div
-              className="ss-step-marker"
-              style={state === 'error' ? {
-                backgroundColor: 'var(--color-error)',
-                borderColor:     'var(--color-error)',
-                color:           'var(--bg-primary)',
-              } : undefined}
-            >
-              {state === 'done'    && <Check  size={12} strokeWidth={2.5} />}
-              {state === 'running' && <Loader size={13} strokeWidth={2} className="animate-spin" />}
-              {state === 'error'   && <X      size={12} />}
-              {state === 'pending' && <span>{idx + 1}</span>}
+          <div key={step.key} className="up-step" data-state={state}>
+            <div className="up-step-row">
+              <Marker state={state} n={idx + 1} />
+              <span className="up-step-label">{t(`steps.${step.key}`)}</span>
+              <span className="up-step-pct">{step.pct}%</span>
             </div>
-
-            <div className="ss-step-content">
-              <span className="ss-step-label">{t(`steps.${step.key}`)}</span>
-
-              {state === 'running' && (
-                hasSubProgress ? (
-                  <span className="ss-step-sub">
-                    {task.subStage ? `${task.subStage} ` : ''}
-                    {task.subProgress ?? 0}&nbsp;/&nbsp;{task.subTotal}
-                  </span>
-                ) : (
-                  <div
-                    className="mt-1 h-0.5 w-16 rounded overflow-hidden"
-                    style={{ backgroundColor: 'var(--bg-tertiary)' }}
-                  >
-                    <div
-                      className="h-full animate-pulse"
-                      style={{ width: '40%', backgroundColor: 'var(--accent)' }}
-                    />
-                  </div>
-                )
-              )}
-
-              {state === 'error' && task.error && (
-                <span className="ss-step-sub" style={{ color: 'var(--color-error)' }}>
-                  {task.error}
-                </span>
-              )}
-            </div>
+            {/* Real sub-progress only: without subTotal the spinner already says
+                "still running" — a fake bar would be read as progress. */}
+            {state === 'running' && task.subTotal != null && (
+              <span className="up-step-sub">
+                {task.subStage ? `${task.subStage} ` : ''}
+                {task.subProgress ?? 0} / {task.subTotal}
+              </span>
+            )}
+            {state === 'error' && task.error && <code className="up-code">{task.error}</code>}
           </div>
         );
       })}
