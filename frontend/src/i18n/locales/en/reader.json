@@ -40,7 +40,8 @@
     "misbelief": "Misbelief:",
     "actualTruth": "Actual truth:",
     "confidence": "Confidence {{percent}}%",
-    "locating": "Locating passage…"
+    "locating": "Locating passage…",
+    "cutoff": "Up to chapter {{n}}"
   },
   "annotation": {
     "title": "Marks",
@@ -65,7 +66,10 @@
     },
     "warmth": "Paper Warmth",
     "warmthSwatch": "Paper color {{n}}",
-    "fadeIn": "Fade in paragraphs"
+    "fadeIn": "Fade in paragraphs",
+    "modeDefault": "Default for this mode",
+    "current": "Current",
+    "resetToDefault": "Back to this mode's default"
   },
   "col1Expand": "Expand book info",
   "col1Collapse": "Collapse book info",
@@ -94,5 +98,37 @@
   "guide": {
     "prefix": "Researcher guide:",
     "body": "This page is an <strong>inspector</strong> for checking that the processing came out right — how chapters were split, which entities were found, what the keywords are. It is <strong>not a continuous reading view</strong>. The left column holds book-wide counts and keywords, the middle picks a chapter, and the right shows what is known as of that chapter."
-  }
+  },
+  "viewLabel": "View",
+  "bookKeywordsHint": "Top 12 · by weight",
+  "entityDistributionHint": "All 6 types",
+  "notFound": "Book not found",
+  "failure": {
+    "backToOverview": "Back to book overview"
+  },
+  "rerun": {
+    "title": "Incomplete features",
+    "rerun": "Re-run",
+    "running": "Running",
+    "failed": "Run failed",
+    "hint": "Calls the LLM and uses tokens; overwrites this step's output.",
+    "steps": {
+      "summarization": "Chapter summaries",
+      "featureExtraction": "Feature extraction",
+      "knowledgeGraph": "Knowledge graph",
+      "symbolDiscovery": "Symbol discovery"
+    }
+  },
+  "classify": {
+    "label": "Backfill visibility",
+    "temp": " (temporary)",
+    "tooltip": "Backfill event visibility with the LLM (temporary feature, may change)",
+    "hint": "Calls the LLM and uses tokens; writes data.",
+    "running": "Classifying…",
+    "done": "Classified {{classified}}/{{total}} events",
+    "triggerFailed": "Could not start, please try again later",
+    "failed": "Failed"
+  },
+  "failurePageName": "this book",
+  "col2Rail": "Chapters"
 }

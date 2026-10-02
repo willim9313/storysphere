@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Outlet, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { markBookOpened } from '@/api/books';
 import { qk } from '@/api/queryKeys';
@@ -14,6 +14,7 @@ export function BookLayout() {
   const { bookId } = useParams<{ bookId: string }>();
   const { data: book, isLoading, error } = useBook(bookId);
   const queryClient = useQueryClient();
+  const { pathname } = useLocation();
 
   // 進入任一書籍路由時蓋一次「最近開啟」；失敗不打擾使用者。
   useEffect(() => {
@@ -23,8 +24,13 @@ export function BookLayout() {
       .catch(() => {});
   }, [bookId, queryClient]);
 
+  // The reader (`/books/:bookId`) renders its own PageFailure inside the
+  // content area so the sidebar and title bar stay; every other book page
+  // still gets the layout-level ErrorMessage.
+  const isReaderRoute = pathname.replace(/\/$/, '') === `/books/${bookId}`;
+
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message={error.message} />;
+  if (error && !isReaderRoute) return <ErrorMessage message={error.message} />;
 
   return (
     <ChatContextProvider>

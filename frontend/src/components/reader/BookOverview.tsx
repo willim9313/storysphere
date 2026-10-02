@@ -1,18 +1,20 @@
 import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { StatusBadge } from '@/components/library/StatusBadge';
 import { KeywordTags } from './KeywordTags';
 import { PipelineRerunPanel } from './PipelineRerunPanel';
+import { entityDistributionRows } from './readerModel';
 import type { BookDetail, EntityType } from '@/api/types';
 
 const entityTypeCls: Record<EntityType, string> = {
-  character: 'pill-char',
-  location: 'pill-loc',
-  organization: 'pill-org',
-  object: 'pill-obj',
-  concept: 'pill-con',
-  other: 'pill-other',
-  event: 'pill-evt',
+  character: 'ss-pill-character',
+  location: 'ss-pill-location',
+  organization: 'ss-pill-organization',
+  object: 'ss-pill-object',
+  concept: 'ss-pill-concept',
+  other: 'ss-pill-other',
+  event: 'ss-pill-event',
 };
 
 interface BookOverviewProps {
@@ -28,35 +30,15 @@ export function BookOverview({ book, collapsed, onToggleCollapse }: Readonly<Boo
 
   if (collapsed) {
     return (
-      <button
-        onClick={onToggleCollapse}
-        aria-label={t('col1Expand')}
-        className="flex flex-col items-center w-full"
-        style={{
-          background: 'none',
-          border: 'none',
-          cursor: 'pointer',
-          paddingTop: 12,
-          gap: 16,
-        }}
-      >
-        <ChevronRight size={16} style={{ color: 'var(--fg-muted)' }} />
+      <button onClick={onToggleCollapse} aria-label={t('col1Expand')} className="rd-rail-btn">
+        <ChevronRight size={16} />
         <FileText size={20} style={{ color: 'var(--accent)' }} />
-        <span
-          style={{
-            writingMode: 'vertical-rl',
-            fontFamily: 'var(--font-sans)',
-            fontSize: 'var(--font-size-2xs)',
-            color: 'var(--fg-muted)',
-            letterSpacing: '2px',
-          }}
-        >
-          {t('bookInfo')}
-        </span>
+        <span className="rd-rail-label">{t('bookInfo')}</span>
       </button>
     );
   }
 
+  // 事件數量由統計格承擔（實體分佈 6 型不含事件），所以第 5 格保留，整列寬。
   const stats = [
     { key: 'chapters', value: book.chapterCount },
     { key: 'chunks', value: book.chunkCount },
@@ -66,90 +48,33 @@ export function BookOverview({ book, collapsed, onToggleCollapse }: Readonly<Boo
   ];
 
   return (
-    <div className="p-3 space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-medium" style={{ color: 'var(--fg-secondary)' }}>
-          {t('bookInfo')}
-        </span>
-        <button
-          onClick={onToggleCollapse}
-          aria-label={t('col1Collapse')}
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--fg-muted)',
-            padding: 2,
-            display: 'flex',
-          }}
-        >
-          <ChevronLeft size={16} />
-        </button>
+    <div className="rd-book">
+      <div className="rd-cover">
+        <FileText size={26} />
       </div>
 
-      {/* Cover placeholder */}
-      <div
-        className="flex items-center justify-center rounded-md"
-        style={{ height: 76, backgroundColor: 'var(--bg-tertiary)' }}
-      >
-        <FileText size={26} style={{ color: 'var(--accent)' }} />
-      </div>
-
-      {/* Title / author / status */}
-      <div>
-        <h2
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'var(--font-size-lg)',
-            fontWeight: 700,
-            lineHeight: 1.35,
-            color: 'var(--fg-primary)',
-          }}
-        >
-          {book.title}
-        </h2>
-        {book.author && (
-          <p className="text-xs mt-0.5" style={{ color: 'var(--fg-muted)' }}>
-            {book.author}
-          </p>
-        )}
-        <div className="mt-1">
-          <StatusBadge status={book.status} />
+      <div className="rd-book-head">
+        <div className="rd-book-titles">
+          <h2 className="rd-book-title">{book.title}</h2>
+          {/* 作者是下一期功能：版位保留，沒有作者時也佔一行。 */}
+          <span className="rd-book-author">{book.author}</span>
         </div>
+        <Tooltip label={t('col1Collapse')}>
+          <button onClick={onToggleCollapse} aria-label={t('col1Collapse')} className="rd-icon-btn">
+            <ChevronLeft size={16} />
+          </button>
+        </Tooltip>
       </div>
 
-      {/* Summary */}
-      {book.summary && (
-        <p
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'var(--font-size-sm)',
-            lineHeight: 1.7,
-            color: 'var(--fg-secondary)',
-          }}
-        >
-          {book.summary}
-        </p>
-      )}
+      <StatusBadge status={book.status} />
 
-      {/* Stats grid */}
-      <div className="grid grid-cols-2 gap-2 text-center">
+      {book.summary && <p className="rd-book-summary">{book.summary}</p>}
+
+      <div className="rd-stats">
         {stats.map(({ key, value }) => (
-          <div
-            key={key}
-            className="rounded-md py-1.5 px-2"
-            style={{
-              backgroundColor: 'var(--bg-secondary)',
-              ...(key === 'events' ? { gridColumn: '1 / -1' } : {}),
-            }}
-          >
-            <div className="text-sm font-semibold" style={{ color: 'var(--fg-primary)' }}>
-              {value}
-            </div>
-            <div className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-              {t(`stats.${key}`)}
-            </div>
+          <div key={key} className={key === 'events' ? 'rd-stat rd-stat-wide' : 'rd-stat'}>
+            <span className="rd-stat-value">{value}</span>
+            <span className="rd-stat-label">{t(`stats.${key}`)}</span>
           </div>
         ))}
       </div>
@@ -161,31 +86,27 @@ export function BookOverview({ book, collapsed, onToggleCollapse }: Readonly<Boo
 
       {/* Book keywords */}
       {book.keywords && Object.keys(book.keywords).length > 0 && (
-        <div>
-          <h3 className="text-xs font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>
-            {t('bookKeywords')}
+        <div className="rd-section">
+          <h3 className="rd-label">
+            {t('bookKeywords')} <span className="rd-label-hint">{t('bookKeywordsHint')}</span>
           </h3>
           <KeywordTags keywords={book.keywords} limit={12} />
         </div>
       )}
 
       {/* Entity distribution */}
-      <div>
-        <h3 className="text-xs font-medium mb-2" style={{ color: 'var(--fg-secondary)' }}>
-          {t('entityDistribution')}
+      <div className="rd-section">
+        <h3 className="rd-label">
+          {t('entityDistribution')} <span className="rd-label-hint">{t('entityDistributionHint')}</span>
         </h3>
-        <div className="flex flex-wrap gap-1.5">
-          {(Object.entries(book.entityStats) as [EntityType, number][]).map(
-            ([type, count]) => {
-              const cls = entityTypeCls[type];
-              return (
-                <span key={type} className={`pill ${cls}`}>
-                  <span className="pill-dot" />
-                  {tg(`entityTypes.${type}`)} {count}
-                </span>
-              );
-            },
-          )}
+        <div className="rd-chips">
+          {entityDistributionRows(book.entityStats).map(({ type, count }) => (
+            <span key={type} className={`ss-pill ${entityTypeCls[type]}`}>
+              <span className="ss-pill-dot" />
+              {tg(`entityTypes.${type}`)}
+              <span className="rd-pill-count">{count}</span>
+            </span>
+          ))}
         </div>
       </div>
     </div>
