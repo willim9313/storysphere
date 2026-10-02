@@ -29,6 +29,8 @@
   "honestTitle": "信心值是什麼，不是什麼",
   "honestBody": "信心值反映模型對單一判定的把握程度，由 LLM 在推論當下自我評估，而非一個可逐項稽核的確定性公式。它會受文本證據是否明確、段落長度、跨章描述是否一致等因素影響，但本質上仍是機率性的判斷。請把它當作「人工複核的優先序」，而非客觀真值——低信心不代表錯誤，高信心也不保證正確。",
   "tierLegend": "三個層級",
+  "confBadgeHas": "附信心值",
+  "confBadgeNone": "不產生信心值",
   "noConfidenceTitle": "此方法不產生信心值",
   "noConfidenceBody": "後端在這個方法的輸出物件中未保存 confidence 欄位。判定品質由 LLM 寫的 reasoning 文字（兩個分類選擇的理由）與 HITL 審核流程共同反映；下方的三層級對映不適用於此方法。",
   "tier": {
@@ -101,6 +103,7 @@
     "schmidtEqFem": "女性",
     "schmidtEqMasc": "男性",
     "schmidtEqSupp": "配角 · 反派",
+    "schmidtNote": "圖中 16 位是主角原型；類型一覽的 45 張卡另以 badge 標性別：女性 17、男性 18、中性 10。",
     "sepCaption": "SEP 先在「資料層」純粹從文本聚合證據，再交「詮釋層」由 LLM 解讀；人工審核可退回重新詮釋，形成回饋迴圈。",
     "sepDataLayer": "資料層 · 純文本證據",
     "sepAiLayer": "AI 詮釋層",

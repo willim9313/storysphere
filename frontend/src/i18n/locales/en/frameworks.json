@@ -29,6 +29,8 @@
   "honestTitle": "What the confidence value is — and is not",
   "honestBody": "The confidence value reflects how sure the model is about a single judgement. It is the LLM's own assessment made during inference — not a deterministic, line-by-line auditable formula. It is shaped by how explicit the textual evidence is, passage length, and cross-chapter consistency, but it remains a probabilistic judgement. Treat it as a triage priority for human review, not objective truth — low confidence is not proof of error, and high confidence is no guarantee of correctness.",
   "tierLegend": "Three tiers",
+  "confBadgeHas": "With confidence",
+  "confBadgeNone": "No confidence value",
   "noConfidenceTitle": "This method does not produce a confidence value",
   "noConfidenceBody": "The backend output object for this method has no confidence field. Judgement quality is reflected by the LLM's reasoning string (justifying both classification choices) and the HITL review process; the three-tier mapping below does not apply to this method.",
   "tier": {
@@ -101,6 +103,7 @@
     "schmidtEqFem": "feminine",
     "schmidtEqMasc": "masculine",
     "schmidtEqSupp": "supporting · villains",
+    "schmidtNote": "The 16 shown here are the protagonist archetypes; the 45 cards in the type overview also carry a gender badge: Female 17, Male 18, Neutral 10.",
     "sepCaption": "SEP first aggregates evidence purely from text in the data layer, then hands it to the interpretation layer; human review can send it back, forming a feedback loop.",
     "sepDataLayer": "Data layer · text evidence",
     "sepAiLayer": "Interpretation layer",
