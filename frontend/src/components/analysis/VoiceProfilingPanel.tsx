@@ -1,7 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { Mic, RefreshCw } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { fetchVoiceProfile, deleteVoiceProfile, useCachedVoiceProfile, type VoiceProfile } from '@/api/voice';
+import { fetchVoiceProfile, regenerateVoiceProfile, useCachedVoiceProfile, type VoiceProfile } from '@/api/voice';
+import { isLlmUnconfigured } from '@/api/failureKind';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { SourceJumpText } from './SourceJumpText';
@@ -39,11 +42,14 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
     },
   });
 
+  // ENG-001: regenerate server-side (force=true) — the old profile is replaced
+  // only once the new one exists. A failure leaves the cache (and `data`) as it
+  // was; the profile is shown again with the error above it.
   const regenerateMutation = useMutation({
-    mutationFn: () => deleteVoiceProfile(bookId, entityId),
-    onSuccess: () => {
+    mutationFn: () => regenerateVoiceProfile(bookId, entityId),
+    onSuccess: (result) => {
       analyzeMutation.reset();
-      queryClient.invalidateQueries({ queryKey: voiceQueryKey });
+      queryClient.setQueryData(voiceQueryKey, result);
     },
   });
 
@@ -78,6 +84,16 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
 
   return (
     <div>
+      {regenerateMutation.isError && (
+        <div style={{ marginBottom: 'var(--space-6)' }}>
+          {isLlmUnconfigured(regenerateMutation.error) ? (
+            <LlmUnconfiguredNotice />
+          ) : (
+            <ErrorMessage message={t('character.voice.regenerateFailed')} />
+          )}
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 14 }}>
         <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>

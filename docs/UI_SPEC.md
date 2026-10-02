@@ -484,7 +484,7 @@ chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正�
 | Tab | 內容 |
 |-----|------|
 | 人物概覽 (overview) | 4 個 sub-tab pill segmented control → 對應 4 個 pane |
-| 語音風格 (voice) | VoiceProfilingPanel — 進 tab 先以 #16a `cached_only=1` 探測（200→直接顯示 / 404→空狀態+「分析語音風格」鈕；不再使用 localStorage gate）；內容為 4 stat card + ToneDistribution 堆疊條 + SentenceHistogram 直方圖 + 質性 section |
+| 語音風格 (voice) | VoiceProfilingPanel — 進 tab 先以 #16a `cached_only=1` 探測（200→直接顯示 / 404→空狀態+「分析語音風格」鈕；不再使用 localStorage gate）；內容為 4 stat card + ToneDistribution 堆疊條 + SentenceHistogram 直方圖 + 質性 section。「覆蓋重新生成」走 #16a `force=true`（ENG-001，成功才覆蓋）：失敗時舊 profile 照常顯示，上方 503 接 LlmUnconfiguredNotice、其他錯誤顯示「重新生成失敗，已保留原有語音風格。」（**這 1 句是草稿・待設計定案**，i18n `analysis:character.voice.regenerateFailed`） |
 | 認知狀態 (epistemic) | EpistemicStateSection — Summary 列（「第 N 章」hero 計數 + 已知/未知/誤信 +「對照另一角色」鈕）+ 章節游標卡 + 已知/未知並排 + 誤信欄（三欄皆隨游標樂觀過濾） |
 
 **Overview sub-tabs**（pill segmented control，2026-07 canvas 對稿重構）：
@@ -548,7 +548,7 @@ chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正�
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#6a（角色清單）、#6c（重新生成）、#6d（派系，角色總覽象限視圖顏色）、#6e（角色中心性，角色總覽象限視圖 Y 軸/泡泡大小）、#7a（角色分析詳情）、#7b（觸發分析）、#7c（清除分析）、#7h（批次分析，支援 `entityIds` 子集）、#8（任務 polling）、#12e（認知狀態）、#16a（語音風格，含新增的 toneDistribution / sentenceLengthHistogram）、#16b（清除語音風格）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#6a（角色清單）、#6c（重新生成）、#6d（派系，角色總覽象限視圖顏色）、#6e（角色中心性，角色總覽象限視圖 Y 軸/泡泡大小）、#7a（角色分析詳情）、#7b（觸發分析）、#7c（清除分析）、#7h（批次分析，支援 `entityIds` 子集）、#8（任務 polling）、#12e（認知狀態）、#16a（語音風格，含新增的 toneDistribution / sentenceLengthHistogram）
 
 #### 元件對照（檔案路徑）
 
@@ -2227,6 +2227,11 @@ WebSocket 連線，含訊息列表 + 輸入框。
     （書庫為空）。
   - `prerequisite`：半頁，26px 圖示、serif lg 600、一句說明（max 52ch）。
   - `filtered`：`--bg-secondary` 小框、無圖示、serif sm 600 secondary＋小按鈕；篩選列仍在。
+- **LlmUnconfiguredNotice**（DS v3 第 3 批共用層）：`components/ui/LlmUnconfiguredNotice.tsx`。後端對「未設定 LLM provider」回的
+  應用層 503（`api/failureKind.ts` 的 `isLlmUnconfigured(err)`：503＋有 JSON body）是**功能狀態而非頁面失敗**——就地顯示、不換掉整頁、不給「重試」。
+  版型沿用 `.ss-state-filtered` 小框：「尚未設定 LLM provider，無法執行 LLM 分析。」（`common.failure.llmUnconfigured`）＋
+  secondary 小鈕「前往 LLM 設定 →」（`common.failure.llmSettings`）連到 `LLM_SETTINGS_PATH`（`/settings#llm`）。
+  章節審閱自有 Banner 呈現，不使用本元件；角色／事件／符號／閱讀頁的 LLM 觸發失敗處接它。
 
 ---
 

@@ -17,6 +17,27 @@ class LLMProvider(str, Enum):
     LOCAL = "local"  # OpenAI-compat local (llama.cpp / Ollama / LM Studio)
 
 
+class UnconfiguredLLM:
+    """Stand-in chat model handed to services when no provider is configured.
+
+    The app must start without a provider (books, reader and every zero-cost
+    view stay usable), so constructing a service must not need one — but
+    *using* the model must fail loudly with the message the client would have
+    raised. Any attribute access (``ainvoke``, ``bind_tools``…) raises
+    ``RuntimeError``. Code with an optional LLM step can test for this type and
+    skip the step instead.
+    """
+
+    def __init__(self, error: str) -> None:
+        object.__setattr__(self, "_error", error)
+
+    def __getattr__(self, name: str):
+        raise RuntimeError(object.__getattribute__(self, "_error"))
+
+    def __repr__(self) -> str:
+        return "UnconfiguredLLM()"
+
+
 class LLMClient:
     """LangChain LLM factory.
 
@@ -141,20 +162,32 @@ class LLMClient:
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
-    def _resolve_primary(self) -> LLMProvider:
+    def primary_config_error(self) -> str | None:
+        """Why the primary provider cannot be used, or ``None`` when it can.
+
+        The single source of the "PRIMARY_LLM_PROVIDER names X but X is not set"
+        message: ``_resolve_primary`` raises it, and the API layer's
+        pre-flight check (``api/llm_guard.py``) reports it as a 503.
+        """
         target = LLMProvider(self._settings.primary_llm_provider)
-        if not self._has_key(target):
-            key_hint = {
-                LLMProvider.GEMINI: "GEMINI_API_KEY",
-                LLMProvider.OPENAI: "OPENAI_API_KEY",
-                LLMProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
-                LLMProvider.LOCAL: "LOCAL_LLM_MODEL",
-            }[target]
-            raise RuntimeError(
-                f"PRIMARY_LLM_PROVIDER={target.value} but {key_hint} is not set. "
-                f"Set {key_hint} in .env or change PRIMARY_LLM_PROVIDER."
-            )
-        return target
+        if self._has_key(target):
+            return None
+        key_hint = {
+            LLMProvider.GEMINI: "GEMINI_API_KEY",
+            LLMProvider.OPENAI: "OPENAI_API_KEY",
+            LLMProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
+            LLMProvider.LOCAL: "LOCAL_LLM_MODEL",
+        }[target]
+        return (
+            f"PRIMARY_LLM_PROVIDER={target.value} but {key_hint} is not set. "
+            f"Set {key_hint} in .env or change PRIMARY_LLM_PROVIDER."
+        )
+
+    def _resolve_primary(self) -> LLMProvider:
+        error = self.primary_config_error()
+        if error is not None:
+            raise RuntimeError(error)
+        return LLMProvider(self._settings.primary_llm_provider)
 
     def _has_key(self, provider: LLMProvider) -> bool:
         """Delegates to Settings so there is one answer, not two.

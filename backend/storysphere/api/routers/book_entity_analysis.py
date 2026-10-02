@@ -23,6 +23,7 @@ from storysphere.api.deps import (
     KGServiceDep,
     VoiceProfilingServiceDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.routers._book_shared import analysis_staleness, now_iso
 from storysphere.api.schemas.book_entity_analysis import (
     ArchetypeDetailResponse,
@@ -42,6 +43,7 @@ from storysphere.api.schemas.books import (
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
 from storysphere.services.analysis_cache import AnalysisCache
+from storysphere.services.voice_profiling_service import VoiceGenerationError
 
 logger = logging.getLogger(__name__)
 
@@ -251,6 +253,7 @@ async def trigger_entity_analysis(
         "Triggering entity analysis: entity=%s (%s), book=%s, lang=%s, mode=%s",
         entity.name, entity_id, book_id, language, body.mode,
     )
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="character", title=f"角色深度分析 — {entity.name}")
     task_runner.launch(
@@ -419,6 +422,7 @@ async def trigger_batch_entity_analysis(
             detail="No characters found for this book",
         )
 
+    require_llm_provider()
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
     task_store.create(task_id, kind="character", title="批次角色分析")
@@ -453,6 +457,7 @@ async def get_entity_voice_profile(
     doc: DocServiceDep,
     kg: KGServiceDep,
     cached_only: bool = False,
+    force: bool = False,
 ) -> dict:
     """Return the voice profile for a character.
 
@@ -461,6 +466,10 @@ async def get_entity_voice_profile(
 
     ``cached_only=true``: only reads the cache, never triggers generation —
     404 if no cached profile exists yet.
+
+    ``force=true``: skip the cache, regenerate, and overwrite the cache only if
+    generation succeeds. Any failure (LLM error, timeout, unparsable output)
+    answers 502 and leaves the existing cached profile untouched.
     """
     document = await doc.get_document(book_id)
     if document is None:
@@ -471,15 +480,31 @@ async def get_entity_voice_profile(
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
     language = await doc.get_document_language(book_id)
+    profile = None
     try:
-        profile = await voice_svc.get_voice_profile(
-            document_id=book_id,
-            character_id=entity_id,
-            language=language,
-            cached_only=cached_only,
-        )
+        if cached_only or not force:
+            profile = await voice_svc.get_voice_profile(
+                document_id=book_id,
+                character_id=entity_id,
+                language=language,
+                cached_only=True,
+            )
+        if profile is None and not cached_only:
+            # Only a request that will actually call the LLM needs a provider.
+            require_llm_provider()
+            profile = await voice_svc.get_voice_profile(
+                document_id=book_id,
+                character_id=entity_id,
+                language=language,
+                force=force,
+            )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except VoiceGenerationError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Voice profile generation failed; the existing profile was kept: {exc}",
+        ) from exc
 
     if profile is None:
         raise HTTPException(status_code=404, detail="Voice profile not cached yet")
@@ -507,24 +532,3 @@ async def get_entity_voice_profile(
         representative_quotes=profile.representative_quotes,
         analyzed_at=profile.analyzed_at,
     ).model_dump(by_alias=True)
-
-
-@router.delete("/{book_id}/entities/{entity_id}/voice", status_code=204)
-async def delete_entity_voice_profile(
-    book_id: str,
-    entity_id: str,
-    voice_svc: VoiceProfilingServiceDep,
-    doc: DocServiceDep,
-    kg: KGServiceDep,
-) -> None:
-    """Invalidate the cached voice profile so the next GET recomputes it."""
-    document = await doc.get_document(book_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
-
-    entity = await kg.get_entity(entity_id)
-    if entity is None:
-        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
-
-    await voice_svc.invalidate(document_id=book_id, character_id=entity_id)
-    logger.info("Invalidated voice profile cache: book=%s entity=%s", book_id, entity_id)

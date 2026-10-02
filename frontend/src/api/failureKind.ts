@@ -21,3 +21,16 @@ export function techDetailOf(err: unknown): string | undefined {
   if (err instanceof Error) return err.message || undefined;
   return undefined;
 }
+
+/** 「前往 LLM 設定 →」target — SettingsPage opens its LLM panel on this hash. */
+export const LLM_SETTINGS_PATH = '/settings#llm';
+
+/**
+ * The app's own 503 (no LLM provider configured) — a feature state, not an
+ * outage. The backend answers it up front from every endpoint that would spend
+ * LLM tokens (see API_CONTRACT「LLM provider 未設定」); `hasBody` keeps it apart
+ * from a gateway's bare 503.
+ */
+export function isLlmUnconfigured(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 503 && err.hasBody;
+}

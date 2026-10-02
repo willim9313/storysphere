@@ -6,7 +6,7 @@ import { fetchReviewData, parseToc, submitReview, suggestRoles } from '@/api/ing
 import type { SuggestRolesResponse, TocEntry } from '@/api/ingest';
 import { deleteBook } from '@/api/books';
 import { ApiError } from '@/api/client';
-import { failureKind, techDetailOf } from '@/api/failureKind';
+import { failureKind, isLlmUnconfigured, LLM_SETTINGS_PATH, techDetailOf } from '@/api/failureKind';
 import type { ReviewChapter } from '@/api/types';
 import { useBook } from '@/hooks/useBook';
 import { PageFailure } from '@/components/ui/PageFailure';
@@ -23,8 +23,6 @@ import '@/styles/chapter-review.css';
 
 const CHAPTER_ROLES = ['body', 'toc', 'preface', 'afterword', 'other'] as const;
 const PARA_ROLES = ['body', 'separator', 'section', 'epigraph', 'preamble'] as const;
-/** 「前往 LLM 設定 →」target — SettingsPage opens its LLM panel on this hash. */
-const LLM_SETTINGS_PATH = '/settings#llm';
 
 type Phase = 'reviewing' | 'submitting' | 'cancelling';
 /** A validated in-paragraph text selection, plus where to float the split button. */
@@ -47,11 +45,6 @@ const AI_LABEL_KEY: Record<AiStatus, string> = {
 /** Re-index chapters so chapterIdx matches array position after a mutation. */
 function reindex(chapters: ReviewChapter[]): ReviewChapter[] {
   return chapters.map((c, i) => ({ ...c, chapterIdx: i }));
-}
-
-/** The app's own 503 (no LLM provider configured) — a feature state, not an outage. */
-function isLlmUnconfigured(err: unknown): boolean {
-  return err instanceof ApiError && err.status === 503 && err.hasBody;
 }
 
 /** 409 = the review window is not open (any more). `code` comes from sub-task 1-3a. */

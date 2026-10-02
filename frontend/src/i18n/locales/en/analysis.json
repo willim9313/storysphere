@@ -147,6 +147,7 @@
       "triggerFailed": "Failed to trigger batch analysis. Please try again later."
     },
     "voice": {
+      "regenerateFailed": "Regeneration failed; the existing voice profile was kept.",
       "avgSentenceLength": "Avg. Sentence Length",
       "questionRatio": "Question Ratio",
       "exclamationRatio": "Exclamation Ratio",
