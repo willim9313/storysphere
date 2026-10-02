@@ -484,7 +484,7 @@ chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正�
 | Tab | 內容 |
 |-----|------|
 | 人物概覽 (overview) | 4 個 sub-tab pill segmented control → 對應 4 個 pane |
-| 語音風格 (voice) | VoiceProfilingPanel — 進 tab 先以 #16a `cached_only=1` 探測（200→直接顯示 / 404→空狀態+「分析語音風格」鈕；不再使用 localStorage gate）；內容為 4 stat card + ToneDistribution 堆疊條 + SentenceHistogram 直方圖 + 質性 section |
+| 語音風格 (voice) | VoiceProfilingPanel — 進 tab 先以 #16a `cached_only=1` 探測（200→直接顯示 / 404→空狀態+「分析語音風格」鈕；不再使用 localStorage gate）；內容為 4 stat card + ToneDistribution 堆疊條 + SentenceHistogram 直方圖 + 質性 section。「覆蓋重新生成」走 #16a `force=true`（ENG-001，成功才覆蓋）：失敗時舊 profile 照常顯示，上方 503 接 LlmUnconfiguredNotice、其他錯誤顯示「重新生成失敗，已保留原有語音風格。」（**這 1 句是草稿・待設計定案**，i18n `analysis:character.voice.regenerateFailed`） |
 | 認知狀態 (epistemic) | EpistemicStateSection — Summary 列（「第 N 章」hero 計數 + 已知/未知/誤信 +「對照另一角色」鈕）+ 章節游標卡 + 已知/未知並排 + 誤信欄（三欄皆隨游標樂觀過濾） |
 
 **Overview sub-tabs**（pill segmented control，2026-07 canvas 對稿重構）：
@@ -548,7 +548,7 @@ chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正�
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#6a（角色清單）、#6c（重新生成）、#6d（派系，角色總覽象限視圖顏色）、#6e（角色中心性，角色總覽象限視圖 Y 軸/泡泡大小）、#7a（角色分析詳情）、#7b（觸發分析）、#7c（清除分析）、#7h（批次分析，支援 `entityIds` 子集）、#8（任務 polling）、#12e（認知狀態）、#16a（語音風格，含新增的 toneDistribution / sentenceLengthHistogram）、#16b（清除語音風格）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#6a（角色清單）、#6c（重新生成）、#6d（派系，角色總覽象限視圖顏色）、#6e（角色中心性，角色總覽象限視圖 Y 軸/泡泡大小）、#7a（角色分析詳情）、#7b（觸發分析）、#7c（清除分析）、#7h（批次分析，支援 `entityIds` 子集）、#8（任務 polling）、#12e（認知狀態）、#16a（語音風格，含新增的 toneDistribution / sentenceLengthHistogram）
 
 #### 元件對照（檔案路徑）
 

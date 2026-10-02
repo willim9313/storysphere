@@ -123,8 +123,18 @@ VectorServiceDep = Annotated[Any, Depends(get_vector_service)]
 
 @lru_cache(maxsize=1)
 def get_llm():
+    from storysphere.api.llm_guard import primary_config_error  # noqa: PLC0415
     from storysphere.config.settings import get_settings  # noqa: PLC0415
-    from storysphere.core.llm_client import get_llm_client  # noqa: PLC0415
+    from storysphere.core.llm_client import UnconfiguredLLM, get_llm_client  # noqa: PLC0415
+
+    # Without a provider the services below must still be constructible — they
+    # back zero-cost endpoints too — so they get a stand-in that only fails when
+    # an LLM call is actually attempted. Endpoints that would spend tokens
+    # answer 503 before getting that far (``require_llm_provider``).
+    error = primary_config_error()
+    if error is not None:
+        logger.warning("No LLM provider configured; LLM features disabled: %s", error)
+        return UnconfiguredLLM(error)
 
     settings = get_settings()
     return get_llm_client().get_with_local_fallback(temperature=settings.chat_agent_temperature)
@@ -266,7 +276,16 @@ TemporalPipelineDep = Annotated[Any, Depends(get_temporal_pipeline)]
 
 @lru_cache(maxsize=1)
 def get_chat_agent():
+    """The chat agent, or ``None`` when no LLM provider is configured.
+
+    It binds its tools to the LLM at construction, so it cannot be built
+    without one; the chat socket reports the error instead (``chat_ws.py``).
+    """
     from storysphere.agents.chat_agent import ChatAgent  # noqa: PLC0415
+    from storysphere.api.llm_guard import primary_config_error  # noqa: PLC0415
+
+    if primary_config_error() is not None:
+        return None
 
     return ChatAgent(
         kg_service=get_kg_service(),

@@ -89,7 +89,7 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
           {isLlmUnconfigured(regenerateMutation.error) ? (
             <LlmUnconfiguredNotice />
           ) : (
-            <ErrorMessage message={t('analysisFailed')} />
+            <ErrorMessage message={t('character.voice.regenerateFailed')} />
           )}
         </div>
       )}

@@ -195,3 +195,43 @@ class TestCaching:
         assert DOC in key
         assert ALICE in key
         assert "7" in key, "chapter missing from the key — a re-read would be wrong"
+
+
+# ── No LLM provider configured ───────────────────────────────────────────────
+
+
+class TestWithoutProvider:
+    """Known/unknown is set arithmetic; only misbeliefs need the LLM.
+
+    With no provider the zero-cost part must still be answered (the reader's
+    epistemic panel stays usable), and nothing is cached so misbeliefs fill in
+    once a provider is configured.
+    """
+
+    @pytest.fixture
+    def unconfigured(self, kg, cache):
+        from storysphere.core.llm_client import UnconfiguredLLM
+
+        return EpistemicStateService(
+            kg_service=kg, llm=UnconfiguredLLM("no provider"), cache=cache
+        )
+
+    async def test_partition_is_answered_without_misbeliefs(self, unconfigured, kg):
+        kg.get_snapshot.return_value = (
+            [
+                _event("in", participants=[ALICE], visibility="secret"),
+                _event("out", participants=["other"], visibility="secret"),
+            ],
+            None, None,
+        )
+
+        state = await _knowledge(unconfigured)
+
+        assert [e.id for e in state.known_events] == ["in"]
+        assert [e.id for e in state.unknown_events] == ["out"]
+        assert state.misbeliefs == []
+
+    async def test_the_partial_result_is_not_cached(self, unconfigured, cache):
+        await _knowledge(unconfigured)
+
+        cache.set.assert_not_called()

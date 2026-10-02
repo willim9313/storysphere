@@ -532,24 +532,3 @@ async def get_entity_voice_profile(
         representative_quotes=profile.representative_quotes,
         analyzed_at=profile.analyzed_at,
     ).model_dump(by_alias=True)
-
-
-@router.delete("/{book_id}/entities/{entity_id}/voice", status_code=204)
-async def delete_entity_voice_profile(
-    book_id: str,
-    entity_id: str,
-    voice_svc: VoiceProfilingServiceDep,
-    doc: DocServiceDep,
-    kg: KGServiceDep,
-) -> None:
-    """Invalidate the cached voice profile so the next GET recomputes it."""
-    document = await doc.get_document(book_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
-
-    entity = await kg.get_entity(entity_id)
-    if entity is None:
-        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
-
-    await voice_svc.invalidate(document_id=book_id, character_id=entity_id)
-    logger.info("Invalidated voice profile cache: book=%s entity=%s", book_id, entity_id)

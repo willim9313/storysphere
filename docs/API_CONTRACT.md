@@ -56,6 +56,9 @@
   （英文一句，指出要設哪個 env key），**不建立 task**。判準是「有應用層 JSON body 的 503」，與 gateway 的裸 503 區分（前端 `isLlmUnconfigured`）。
   適用端點（各端點段落內亦有 `Response 503` 一行）：#7b、#7h、#7e、#7g、#8d（僅會用到 LLM 的步驟）、#12d、#15e、#15j、#16a（僅會生成時）。
   章節審閱的 #22 系列另有自己的 503（見該節），語意相同。
+  **沒有 provider 時後端照常啟動**（零成本端點全部可用）：服務拿到一個「用到才報錯」的替身 LLM；
+  聊天 WebSocket `WS /ws/chat` 保持連線、每則訊息回 `{"type":"error","detail":"LLM provider is not configured: …"}`；
+  #12e 認知狀態照常回已知／未知，`misbeliefs` 為空陣列且**不寫快取**（設定 provider 後重查即補上）。
 
 ---
 
@@ -2039,7 +2042,7 @@ HITL 審核 / 修改 SymbolInterpretation。
 - `force` (boolean, optional, default `false`) — **覆蓋重新生成，成功才覆蓋（ENG-001）**。`true` 時略過快取讀取、照常計算並呼叫 LLM，**取得結果後才寫入快取覆蓋舊 profile**；
   任何失敗（LLM 錯誤、逾時、輸出無法解析）回 **502** 並**原封保留**舊快取（不會先刪）。與一般首次生成不同：首次生成逾時會退化成空的質性欄位並寫入快取（既有行為不變），
   `force` 下這種空結果視為失敗、不覆蓋。與 `cached_only=true` 同時給時以 `cached_only` 為準（只讀快取，忽略 `force`）。
-  前端「覆蓋重新生成」呼叫它，**不再先 `DELETE`（#16b）**。
+  前端「覆蓋重新生成」呼叫它。原本先清快取的 #16b `DELETE /books/:bookId/entities/:entityId/voice` 已於 2026-10-02 隨 ENG-001 移除（無呼叫端）。
 
 **Response 200**：`VoiceProfileResponse`（見 generated.ts）
 
@@ -2069,16 +2072,6 @@ sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
 **Response 503**：未設定 LLM provider（見「通用規則」）。**只在會生成時檢查**：`cached_only=true`、以及非 `force` 且快取命中時都不檢查（不會呼叫 LLM）；404 優先於 503
 
 **UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel（ToneDistribution 堆疊條 + SentenceHistogram 直方圖）；`cached_only` 供 #8 伺服器判定生成狀態用（取代 localStorage gate）
-
----
-
-### #16b DELETE /books/:bookId/entities/:entityId/voice
-
-清除語音風格分析結果。端點保留，**但前端「覆蓋重新生成」已改走 #16a 的 `force=true`（成功才覆蓋），不再呼叫本端點**。
-
-**Response 204**
-
-**UI 使用頁面**：（目前無呼叫端）
 
 ---
 

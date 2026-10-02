@@ -17,6 +17,27 @@ class LLMProvider(str, Enum):
     LOCAL = "local"  # OpenAI-compat local (llama.cpp / Ollama / LM Studio)
 
 
+class UnconfiguredLLM:
+    """Stand-in chat model handed to services when no provider is configured.
+
+    The app must start without a provider (books, reader and every zero-cost
+    view stay usable), so constructing a service must not need one — but
+    *using* the model must fail loudly with the message the client would have
+    raised. Any attribute access (``ainvoke``, ``bind_tools``…) raises
+    ``RuntimeError``. Code with an optional LLM step can test for this type and
+    skip the step instead.
+    """
+
+    def __init__(self, error: str) -> None:
+        object.__setattr__(self, "_error", error)
+
+    def __getattr__(self, name: str):
+        raise RuntimeError(object.__getattribute__(self, "_error"))
+
+    def __repr__(self) -> str:
+        return "UnconfiguredLLM()"
+
+
 class LLMClient:
     """LangChain LLM factory.
 

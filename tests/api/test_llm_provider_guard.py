@@ -247,3 +247,67 @@ class TestRequireLlmProvider:
 
     def test_silent_when_configured(self):
         require_llm_provider()  # autouse stub: configured
+
+
+# ── Starting without a provider ──────────────────────────────────────────────
+
+
+class TestStartsWithoutProvider:
+    """No provider must not stop the app: services get a stand-in LLM that
+    fails only when used, and chat answers an error frame."""
+
+    def test_stand_in_raises_the_config_message_on_use(self):
+        from storysphere.core.llm_client import UnconfiguredLLM
+
+        llm = UnconfiguredLLM(UNCONFIGURED)
+        assert llm  # truthy: ``llm or default`` must not silently swap it
+        with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+            llm.ainvoke  # noqa: B018
+        with pytest.raises(RuntimeError, match="GEMINI_API_KEY"):
+            llm.bind_tools([])
+
+    def test_get_llm_hands_out_the_stand_in(self, monkeypatch):
+        from storysphere.api import deps
+        from storysphere.core.llm_client import UnconfiguredLLM
+
+        monkeypatch.setattr(
+            "storysphere.api.llm_guard._primary_config_error", lambda: UNCONFIGURED
+        )
+        deps.get_llm.cache_clear()
+        try:
+            assert isinstance(deps.get_llm(), UnconfiguredLLM)
+        finally:
+            deps.get_llm.cache_clear()
+
+    def test_no_chat_agent_without_provider(self, monkeypatch):
+        from storysphere.api import deps
+
+        monkeypatch.setattr(
+            "storysphere.api.llm_guard._primary_config_error", lambda: UNCONFIGURED
+        )
+        deps.get_chat_agent.cache_clear()
+        try:
+            assert deps.get_chat_agent() is None
+        finally:
+            deps.get_chat_agent.cache_clear()
+
+    def test_chat_socket_answers_an_error_frame(self, client, monkeypatch):
+        from storysphere.api.deps import get_chat_agent
+
+        monkeypatch.setattr(
+            "storysphere.api.llm_guard._primary_config_error", lambda: UNCONFIGURED
+        )
+        overrides = client.app.dependency_overrides
+        previous = overrides.get(get_chat_agent)
+        overrides[get_chat_agent] = lambda: None
+        try:
+            with client.websocket_connect("/ws/chat?session_id=no-llm") as ws:
+                ws.send_json({"message": "Who is Alice?"})
+                msg = ws.receive_json()
+                assert msg["type"] == "error"
+                assert "not configured" in msg["detail"]
+                # The socket stays open: a second message gets the same answer.
+                ws.send_json({"message": "again"})
+                assert ws.receive_json()["type"] == "error"
+        finally:
+            overrides[get_chat_agent] = previous

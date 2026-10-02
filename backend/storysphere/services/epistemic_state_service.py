@@ -123,7 +123,17 @@ class EpistemicStateService:
             if character_id not in e.participants and e.visibility != "public"
         ]
 
-        misbeliefs = await self._infer_misbeliefs(character, known, unknown, language)
+        # Known/unknown is pure set arithmetic; only the misbelief step needs the
+        # LLM. Without a provider, answer the zero-cost part and skip caching so
+        # the misbeliefs fill in once a provider is configured.
+        from storysphere.core.llm_client import UnconfiguredLLM  # noqa: PLC0415
+
+        llm_available = not isinstance(self._llm, UnconfiguredLLM)
+        misbeliefs = (
+            await self._infer_misbeliefs(character, known, unknown, language)
+            if llm_available
+            else []
+        )
 
         result = CharacterEpistemicState(
             character_id=character_id,
@@ -134,7 +144,8 @@ class EpistemicStateService:
             misbeliefs=misbeliefs,
         )
 
-        await cache.set(key, _serialize_state(result))
+        if llm_available:
+            await cache.set(key, _serialize_state(result))
         return result
 
     @llm_retry(min_wait=2, max_wait=10)

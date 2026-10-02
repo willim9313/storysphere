@@ -655,11 +655,7 @@ export interface paths {
         get: operations["get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get"];
         put?: never;
         post?: never;
-        /**
-         * Delete Entity Voice Profile
-         * @description Invalidate the cached voice profile so the next GET recomputes it.
-         */
-        delete: operations["delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -5914,36 +5910,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["VoiceProfileResponse"];
                 };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                book_id: string;
-                entity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Validation Error */
             422: {

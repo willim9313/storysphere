@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch, apiDelete } from './client';
+import { apiFetch } from './client';
 import type { components } from './generated';
 import { qk } from './queryKeys';
 
@@ -27,9 +27,6 @@ export function regenerateVoiceProfile(bookId: string, entityId: string): Promis
   return apiFetch<VoiceProfile>(`/books/${bookId}/entities/${entityId}/voice?force=true`);
 }
 
-export function deleteVoiceProfile(bookId: string, entityId: string): Promise<void> {
-  return apiDelete(`/books/${bookId}/entities/${entityId}/voice`);
-}
 
 /**
  * #8: server-judged generation status — probes the cache (cached_only=true)

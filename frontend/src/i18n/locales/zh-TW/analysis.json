@@ -147,6 +147,7 @@
       "triggerFailed": "觸發批次分析失敗，請稍後再試。"
     },
     "voice": {
+      "regenerateFailed": "重新生成失敗，已保留原有語音風格。",
       "avgSentenceLength": "平均句長",
       "questionRatio": "問句比例",
       "exclamationRatio": "感嘆句比例",
