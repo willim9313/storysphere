@@ -240,7 +240,7 @@ function HeroJourney({ fw }: { fw: Framework }) {
         <line x1={cx - R} y1={cy} x2={cx + R} y2={cy} stroke="var(--border)" strokeDasharray="3 3" />
         <text x={cx} y={cy - R + 26} textAnchor="middle" className="md-svg-world">{t('concept.hjOrdinary')}</text>
         <text x={cx} y={cy + R - 14} textAnchor="middle" className="md-svg-world">{t('concept.hjSpecial')}</text>
-        <text x={cx} y={cy + 5} textAnchor="middle" className="md-svg-ring">{`${fw.items.length} ${fw.itemLabel}`}</text>
+        <text x={cx} y={cy + 18} textAnchor="middle" className="md-svg-ring">{`${fw.items.length} ${fw.itemLabel}`}</text>
         {stages.map((s, i) => {
           const act = acts[s.act];
           const p = polar(cx, cy, R, (i / 12) * 360 + 15);
