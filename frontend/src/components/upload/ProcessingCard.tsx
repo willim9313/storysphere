@@ -6,8 +6,9 @@ import { AlertTriangle, CircleCheck, Clock, Loader2, ShieldAlert } from 'lucide-
 import type { TimelineDetectionResponse } from '@/api/graph';
 import { deleteBook } from '@/api/books';
 import { acceptReview, cancelTask, fetchTaskStatus, rerunStep, type RerunStep } from '@/api/ingest';
+import { isCancelled } from '@/api/tasks';
 import { useToast } from '@/contexts/ToastContext';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { isGone, useTaskPolling } from '@/hooks/useTaskPolling';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { ProcessingTimeline } from './ProcessingTimeline';
 import { MurmurWindow } from './MurmurWindow';
@@ -152,11 +153,14 @@ interface ProcessingCardProps {
   task: UploadTask;
   onDone: (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => void;
   onError: (taskId: string, fileName: string, message?: string) => void;
+  /** The task is over without a failure: the user terminated it, or it no
+   *  longer exists on the server. The card just leaves — no retry card. */
+  onGone: (taskId: string) => void;
 }
 
-export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCardProps>) {
+export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<ProcessingCardProps>) {
   const { t } = useTranslation('upload');
-  const { data: status, isError, murmurEvents } = useTaskPolling(task.taskId);
+  const { data: status, isError, error: pollError, murmurEvents } = useTaskPolling(task.taskId);
   const queryClient = useQueryClient();
   const doneRef = useRef(false);
   const [acceptingChapters, setAcceptingChapters] = useState(false);
@@ -183,8 +187,19 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
   const isAwaitingReview = status?.status === 'awaiting_review' && !!bookId;
 
   useEffect(() => {
-    if (!status || doneRef.current) return;
-    if (status.status === 'done' && status.result?.bookId) {
+    if (doneRef.current) return;
+    // Remembered in sessionStorage but unknown to the server (404): without
+    // this the card waits forever on a status that will never arrive.
+    if (isGone(pollError)) {
+      doneRef.current = true;
+      onGone(task.taskId);
+      return;
+    }
+    if (!status) return;
+    if (isCancelled(status)) {
+      doneRef.current = true;
+      onGone(task.taskId);
+    } else if (status.status === 'done' && status.result?.bookId) {
       doneRef.current = true;
       if (!failedSteps || failedSteps.length === 0) {
         const detection = status.result.timelineDetection as TimelineDetectionResponse | undefined;
@@ -194,7 +209,7 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
       doneRef.current = true;
       onError(task.taskId, task.fileName, status.error ?? undefined);
     }
-  }, [status, isError, failedSteps, task, onDone, onError]);
+  }, [status, isError, pollError, failedSteps, task, onDone, onError, onGone]);
 
   const handleAcceptChapters = useCallback(async () => {
     if (!bookId) return;
@@ -221,9 +236,11 @@ export function ProcessingCard({ task, onDone, onError }: Readonly<ProcessingCar
       await cancelTask(task.taskId).catch(() => {});
       if (bookId) await deleteBook(bookId);
     } finally {
-      onError(task.taskId, task.fileName);
+      // A terminated upload is not a failure: no error card, no retry.
+      doneRef.current = true;
+      onGone(task.taskId);
     }
-  }, [bookId, task.taskId, task.fileName, onError]);
+  }, [bookId, task.taskId, onGone]);
 
   /* ── Done ── */
   if (isDone && bookId) {

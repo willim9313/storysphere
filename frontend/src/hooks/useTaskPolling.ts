@@ -1,5 +1,6 @@
 import { useReducer } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { ApiError } from '@/api/client';
 import { fetchTaskStatus } from '@/api/ingest';
 import type { MurmurEvent, TaskStatus } from '@/api/types';
 import {
@@ -9,6 +10,11 @@ import {
   getMurmurEvents,
 } from '@/store/murmurStore';
 import { qk } from '@/api/queryKeys';
+
+/** The status endpoint answered 404: the task is gone for good. */
+export function isGone(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 404;
+}
 
 export function useTaskPolling(
   taskId: string | null,
@@ -31,7 +37,11 @@ export function useTaskPolling(
       return result;
     },
     enabled: !!taskId,
+    // 404 = the task no longer exists (memory store restarted, or the 30-day
+    // cleanup removed it). Retrying or polling it again cannot change that.
+    retry: (count, err) => !isGone(err) && count < 3,
     refetchInterval: (query) => {
+      if (isGone(query.state.error)) return false;
       const status = query.state.data?.status;
       if (status === 'done' || status === 'error') return false;
       return 2000;
