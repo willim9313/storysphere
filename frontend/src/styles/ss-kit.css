@@ -736,3 +736,24 @@
   font-family: var(--font-mono); font-size: var(--font-size-2xs);
   padding: 0 var(--space-2); border-radius: var(--radius-sm); background: var(--bg-secondary);
 }
+
+/* ── StatRow（第 2 批引入；kit 原文，10px 標籤改走 --font-size-2xs）──
+   .ss-stats-row > .ss-stat > .ss-stat-value + .ss-stat-label */
+.ss-stats-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4);
+}
+.ss-stat {
+  display: flex; flex-direction: column; gap: var(--space-1);
+  padding: var(--space-4) var(--space-6);
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+}
+.ss-stat-value {
+  font-family: var(--font-sans); font-size: var(--font-size-xl); font-weight: 700;
+  color: var(--fg-primary); line-height: 1.15; font-variant-numeric: tabular-nums;
+}
+.ss-stat-label {
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  color: var(--fg-muted); letter-spacing: 0.05em;
+}
