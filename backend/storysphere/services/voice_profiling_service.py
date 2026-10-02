@@ -66,6 +66,15 @@ _WORD_SPLIT = re.compile(r"\s+|(?<=[一-鿿])(?=[一-鿿])")
 _WORD_CLEAN = re.compile(r"^[^\w一-鿿]+|[^\w一-鿿]+$")
 
 
+class VoiceGenerationError(RuntimeError):
+    """A forced regeneration did not produce a usable profile.
+
+    Raised only by ``get_voice_profile(force=True)``. The cached profile is left
+    exactly as it was — the whole point of ``force`` is that a failed rerun
+    must not cost the user the result they already have.
+    """
+
+
 class VoiceProfilingService:
     """Compute and cache character voice profiles."""
 
@@ -112,6 +121,7 @@ class VoiceProfilingService:
         character_id: str,
         language: str = "en",
         cached_only: bool = False,
+        force: bool = False,
     ) -> VoiceProfile | None:
         """Return the voice profile for a character, computing and caching on first call.
 
@@ -121,14 +131,21 @@ class VoiceProfilingService:
 
         ``cached_only=True`` never triggers generation: returns the cached
         profile if present, otherwise ``None`` (no LLM call, no cache write).
+
+        ``force=True`` skips the cache read, recomputes, and overwrites the cache
+        **only once a profile has been produced**. Any LLM failure — including the
+        timeout that normal generation tolerates by returning empty qualitative
+        fields — raises :class:`VoiceGenerationError` and leaves the old entry
+        untouched. Ignored when ``cached_only`` is set.
         """
         set_llm_service_context("analysis", book_id=document_id)
         cache = self._get_cache()
         key = f"voice_profile:{document_id}:{character_id}:{language}"
 
-        cached = await cache.get_as(key, VoiceProfile)
-        if cached:
-            return cached
+        if cached_only or not force:
+            cached = await cache.get_as(key, VoiceProfile)
+            if cached:
+                return cached
 
         if cached_only:
             return None
@@ -155,9 +172,24 @@ class VoiceProfilingService:
 
         llm_paragraphs = paragraphs[:_MAX_PARAGRAPHS]
         metrics = _compute_metrics(paragraphs)
-        qualitative = await self._llm_qualitative(
-            character.name, llm_paragraphs, language=language
-        )
+        if force:
+            try:
+                qualitative = await self._llm_qualitative(
+                    character.name, llm_paragraphs, language=language, strict=True
+                )
+            except Exception as exc:  # noqa: BLE001
+                # Includes tenacity.RetryError after exhausted retries. Not
+                # chained: its repr is noise, the cause is in the log.
+                logger.warning(
+                    "Forced voice regeneration failed for char=%s: %s", character_id, exc
+                )
+                raise VoiceGenerationError(
+                    f"{type(exc).__name__}: {exc}" if str(exc) else type(exc).__name__
+                ) from exc
+        else:
+            qualitative = await self._llm_qualitative(
+                character.name, llm_paragraphs, language=language
+            )
 
         profile = VoiceProfile(
             character_id=character_id,
@@ -196,7 +228,10 @@ class VoiceProfilingService:
         char_name: str,
         paragraphs: list[Paragraph],
         language: str = "en",
+        strict: bool = False,
     ) -> dict:
+        # ``strict``: a timeout raises instead of returning empty fields, so the
+        # caller (a forced regeneration) can tell "failed" from "nothing found".
         # Delimited passage block resists prompt injection from story text
         passage_block = "\n".join(
             f"<<<PASSAGE {i + 1}>>>\n{p.text}\n<<<END>>>"
@@ -223,6 +258,8 @@ class VoiceProfilingService:
                 "Voice profiling LLM call timed out after %ds for char=%s",
                 _LLM_TIMEOUT, char_name,
             )
+            if strict:
+                raise
             return _empty_qualitative()
 
         raw_text = llm_text(response)

@@ -141,20 +141,32 @@ class LLMClient:
 
     # ── Internal helpers ───────────────────────────────────────────────────────
 
-    def _resolve_primary(self) -> LLMProvider:
+    def primary_config_error(self) -> str | None:
+        """Why the primary provider cannot be used, or ``None`` when it can.
+
+        The single source of the "PRIMARY_LLM_PROVIDER names X but X is not set"
+        message: ``_resolve_primary`` raises it, and the API layer's
+        pre-flight check (``api/llm_guard.py``) reports it as a 503.
+        """
         target = LLMProvider(self._settings.primary_llm_provider)
-        if not self._has_key(target):
-            key_hint = {
-                LLMProvider.GEMINI: "GEMINI_API_KEY",
-                LLMProvider.OPENAI: "OPENAI_API_KEY",
-                LLMProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
-                LLMProvider.LOCAL: "LOCAL_LLM_MODEL",
-            }[target]
-            raise RuntimeError(
-                f"PRIMARY_LLM_PROVIDER={target.value} but {key_hint} is not set. "
-                f"Set {key_hint} in .env or change PRIMARY_LLM_PROVIDER."
-            )
-        return target
+        if self._has_key(target):
+            return None
+        key_hint = {
+            LLMProvider.GEMINI: "GEMINI_API_KEY",
+            LLMProvider.OPENAI: "OPENAI_API_KEY",
+            LLMProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
+            LLMProvider.LOCAL: "LOCAL_LLM_MODEL",
+        }[target]
+        return (
+            f"PRIMARY_LLM_PROVIDER={target.value} but {key_hint} is not set. "
+            f"Set {key_hint} in .env or change PRIMARY_LLM_PROVIDER."
+        )
+
+    def _resolve_primary(self) -> LLMProvider:
+        error = self.primary_config_error()
+        if error is not None:
+            raise RuntimeError(error)
+        return LLMProvider(self._settings.primary_llm_provider)
 
     def _has_key(self, provider: LLMProvider) -> bool:
         """Delegates to Settings so there is one answer, not two.

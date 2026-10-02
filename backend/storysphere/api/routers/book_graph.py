@@ -25,6 +25,7 @@ from storysphere.api.deps import (
     KGServiceDep,
     LinkPredictionServiceDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.schemas.book_graph import (
     ClassifyVisibilityResponse,
     ConfirmInferredRequest,
@@ -525,6 +526,7 @@ async def classify_book_visibility(
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, title="可見性分類")
     task_runner.launch(task_id, _classify_visibility(task_id, book_id, epistemic_svc))

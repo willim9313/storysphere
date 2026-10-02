@@ -2227,6 +2227,11 @@ WebSocket 連線，含訊息列表 + 輸入框。
     （書庫為空）。
   - `prerequisite`：半頁，26px 圖示、serif lg 600、一句說明（max 52ch）。
   - `filtered`：`--bg-secondary` 小框、無圖示、serif sm 600 secondary＋小按鈕；篩選列仍在。
+- **LlmUnconfiguredNotice**（DS v3 第 3 批共用層）：`components/ui/LlmUnconfiguredNotice.tsx`。後端對「未設定 LLM provider」回的
+  應用層 503（`api/failureKind.ts` 的 `isLlmUnconfigured(err)`：503＋有 JSON body）是**功能狀態而非頁面失敗**——就地顯示、不換掉整頁、不給「重試」。
+  版型沿用 `.ss-state-filtered` 小框：「尚未設定 LLM provider，無法執行 LLM 分析。」（`common.failure.llmUnconfigured`）＋
+  secondary 小鈕「前往 LLM 設定 →」（`common.failure.llmSettings`）連到 `LLM_SETTINGS_PATH`（`/settings#llm`）。
+  章節審閱自有 Banner 呈現，不使用本元件；角色／事件／符號／閱讀頁的 LLM 觸發失敗處接它。
 
 ---
 

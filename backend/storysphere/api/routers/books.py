@@ -21,6 +21,7 @@ from storysphere.api.deps import (
     SymbolServiceDep,
     VectorServiceDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.routers._book_shared import cleanup_ingestion_checkpoint, now_iso
 from storysphere.api.schemas.books import (
     BookDetailResponse,
@@ -273,6 +274,21 @@ _RERUN_STEPS = {
     "symbol-discovery",
 }
 
+# Steps whose pipeline calls the LLM. "feature-extraction" is not one of them
+# (embeddings + keyword extraction) — except when the configured keyword
+# extractor itself is LLM-backed; see ``_rerun_uses_llm``.
+_LLM_RERUN_STEPS = {"summarization", "knowledge-graph", "symbol-discovery"}
+
+
+def _rerun_uses_llm(step: str) -> bool:
+    if step in _LLM_RERUN_STEPS:
+        return True
+    if step == "feature-extraction":
+        from storysphere.config.settings import get_settings  # noqa: PLC0415
+
+        return get_settings().keyword_extractor_type.lower() in {"llm", "composite"}
+    return False
+
 
 async def _rerun_step(
     book_id: str,
@@ -317,6 +333,9 @@ async def rerun_pipeline_step(
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    if _rerun_uses_llm(step):
+        require_llm_provider()
 
     task_id = str(uuid4())
     task_store.create(task_id, kind="ingestion", title="重跑處理步驟")

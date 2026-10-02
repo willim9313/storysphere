@@ -18,6 +18,15 @@ export function fetchVoiceProfile(
   return apiFetch<VoiceProfile>(`/books/${bookId}/entities/${entityId}/voice${qs}`);
 }
 
+/**
+ * ENG-001 `force=true`: regenerate and overwrite the cache only if generation
+ * succeeds. On failure the request throws and the existing profile is intact,
+ * so callers must keep showing it.
+ */
+export function regenerateVoiceProfile(bookId: string, entityId: string): Promise<VoiceProfile> {
+  return apiFetch<VoiceProfile>(`/books/${bookId}/entities/${entityId}/voice?force=true`);
+}
+
 export function deleteVoiceProfile(bookId: string, entityId: string): Promise<void> {
   return apiDelete(`/books/${bookId}/entities/${entityId}/voice`);
 }

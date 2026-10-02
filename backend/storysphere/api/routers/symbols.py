@@ -31,6 +31,7 @@ from storysphere.api.deps import (
     SymbolGraphServiceDep,
     SymbolServiceDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.schemas.analysis import (
     SymbolAnalysisRequest,
     SymbolBatchAnalysisRequest,
@@ -280,6 +281,7 @@ async def analyze_symbol(
     language = await doc.get_document_language(req.book_id)
     req = req.model_copy(update={"language": language})
 
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="symbol", title="符號意象抽取")
     task_runner.launch(task_id, _symbol_analysis(task_id, imagery_id, req, agent))
@@ -375,6 +377,7 @@ async def analyze_all_symbols(
     skip_ids = set(interpreted) | set(blocked)
     language = await doc.get_document_language(req.book_id)
 
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="symbol", title="批次象徵詮釋")
     task_runner.launch(

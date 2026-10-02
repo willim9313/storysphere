@@ -50,6 +50,12 @@
 - 單一用戶平台，所有 API 不帶用戶識別參數
 - 錯誤回傳格式統一：`{ "error": { "code": string, "message": string } }`
 - 時間欄位格式：ISO 8601 字串（`"2024-01-01T00:00:00Z"`）
+- **LLM provider 未設定 → `503`（DS v3 第 3 批）**：會實際呼叫 LLM 的觸發端點，在**既有的 404／409／422／400 驗證之後**、
+  建立背景任務**之前**檢查 `PRIMARY_LLM_PROVIDER` 指的 provider 是否已設定（對應的 `GEMINI_API_KEY`／`OPENAI_API_KEY`／
+  `ANTHROPIC_API_KEY`／`LOCAL_LLM_MODEL`）；未設定回 `503`，body `{ "detail": "LLM provider is not configured: PRIMARY_LLM_PROVIDER=gemini but GEMINI_API_KEY is not set. …" }`
+  （英文一句，指出要設哪個 env key），**不建立 task**。判準是「有應用層 JSON body 的 503」，與 gateway 的裸 503 區分（前端 `isLlmUnconfigured`）。
+  適用端點（各端點段落內亦有 `Response 503` 一行）：#7b、#7h、#7e、#7g、#8d（僅會用到 LLM 的步驟）、#12d、#15e、#15j、#16a（僅會生成時）。
+  章節審閱的 #22 系列另有自己的 503（見該節），語意相同。
 
 ---
 
@@ -497,6 +503,8 @@ interface ArcSegment {
 
 **Response 200**：`{ taskId: string }`
 
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（實體不存在）優先於 503
+
 **說明**：每次觸發**一律同時產生 Jung 與 Schmidt 兩種 archetype**，無需傳 framework 參數。前端的 framework 切換僅影響顯示，不影響 trigger 行為。
 
 **UI 使用頁面**：知識圖譜頁「生成深度分析」按鈕、角色分析頁「建立」按鈕
@@ -528,6 +536,7 @@ interface BatchAnalysisRequest {
 
 **Response 404**：書本不存在
 **Response 400**：書本內無 character 類型實體（含 `entityIds` 提供但子集內無任何有效角色的情況——視為同一種空結果）
+**Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
 
 **說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）；`total` 為實際執行的角色數（有 `entityIds` 時為子集大小，非全書角色數）。`entityIds` 中不存在的 id 直接排除，不計入任何統計欄位（不算 skipped/failed）。仍會 skip 已分析角色（cache hit）。polling #8。
 
@@ -591,6 +600,8 @@ interface EventEvidenceProfile {
 
 **Response 200**：`{ taskId: string }`
 
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（事件不存在）優先於 503
+
 **UI 使用頁面**：事件分析頁「建立」按鈕
 
 ---
@@ -649,6 +660,8 @@ interface EventSourceResponse {
 語意與 #7c 的 `entityIds` 一致。
 
 **Response 202**：`{ taskId: string }`
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
 
 **說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。
 
@@ -820,6 +833,10 @@ type TaskListResponse = TaskStatus[];  // TaskStatus 定義見 #8；murmurEvents
 **Response 404**：書籍不存在
 
 **Response 422**：step 名稱無效
+
+**Response 503**：未設定 LLM provider（見「通用規則」）。**只有會用到 LLM 的步驟才檢查**：`summarization`（章節／全書摘要）、
+`knowledge-graph`（實體／關係／事件抽取）、`symbol-discovery`（意象抽取）。`feature-extraction`（embedding＋關鍵字）不呼叫 LLM，
+不檢查；唯一例外是 `KEYWORD_EXTRACTOR_TYPE` 設為 `llm` 或 `composite`（關鍵字抽取器本身走 LLM）時也檢查。422／404 優先於 503。
 
 **說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `['book', bookId]` query 以重整書籍資料；若從建構概覽頁觸發，另需 invalidate `['buildOverview', bookId]`。
 
@@ -1109,6 +1126,8 @@ interface EventDetail {
 觸發事件可見性分類（epistemic 視角所需前置步驟）。
 
 **Response 202**：`{ taskId: string }`
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（書不存在）優先於 503
 
 **說明**：polling #8。
 
@@ -1897,6 +1916,8 @@ interface SEP {
 
 **Response 202**：`TaskStatus`（含 taskId）
 
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（意象不存在）優先於 503
+
 **說明**：polling 走 #15f（不走 #8）。完成後結果存入快取，可由 #15g 取得。
 
 **UI 使用頁面**：象徵意象頁詳情區「生成詮釋」按鈕
@@ -1919,6 +1940,7 @@ interface SEP {
 
 **Response 202**：`TaskStatus`（含 `taskId`）
 **Response 400**：範圍內無任何意象（含 `imagery_ids` 提供但子集內無有效 id 的情況）
+**Response 503**：未設定 LLM provider（見「通用規則」）；在 400 之後檢查
 
 **說明**
 
@@ -2014,6 +2036,10 @@ HITL 審核 / 修改 SymbolInterpretation。
 
 **Query Params**：
 - `cached_only` (boolean, optional, default `false`) — `true` 時只讀快取，絕不觸發生成：有快取 → 200（同一般行為）；無快取 → **404**（此時才代表「尚未生成」）。`false`（省略）維持既有 lazy 生成行為不變。
+- `force` (boolean, optional, default `false`) — **覆蓋重新生成，成功才覆蓋（ENG-001）**。`true` 時略過快取讀取、照常計算並呼叫 LLM，**取得結果後才寫入快取覆蓋舊 profile**；
+  任何失敗（LLM 錯誤、逾時、輸出無法解析）回 **502** 並**原封保留**舊快取（不會先刪）。與一般首次生成不同：首次生成逾時會退化成空的質性欄位並寫入快取（既有行為不變），
+  `force` 下這種空結果視為失敗、不覆蓋。與 `cached_only=true` 同時給時以 `cached_only` 為準（只讀快取，忽略 `force`）。
+  前端「覆蓋重新生成」呼叫它，**不再先 `DELETE`（#16b）**。
 
 **Response 200**：`VoiceProfileResponse`（見 generated.ts）
 
@@ -2038,17 +2064,21 @@ sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
 
 **Response 422**：entity 無對話段落可分析
 
+**Response 502**：`force=true` 且生成失敗；`detail` 為「Voice profile generation failed; the existing profile was kept: <原因>」。舊快取未被改動
+
+**Response 503**：未設定 LLM provider（見「通用規則」）。**只在會生成時檢查**：`cached_only=true`、以及非 `force` 且快取命中時都不檢查（不會呼叫 LLM）；404 優先於 503
+
 **UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel（ToneDistribution 堆疊條 + SentenceHistogram 直方圖）；`cached_only` 供 #8 伺服器判定生成狀態用（取代 localStorage gate）
 
 ---
 
 ### #16b DELETE /books/:bookId/entities/:entityId/voice
 
-清除語音風格分析結果（搭配重新生成使用）。
+清除語音風格分析結果。端點保留，**但前端「覆蓋重新生成」已改走 #16a 的 `force=true`（成功才覆蓋），不再呼叫本端點**。
 
 **Response 204**
 
-**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel「重新生成」
+**UI 使用頁面**：（目前無呼叫端）
 
 ---
 

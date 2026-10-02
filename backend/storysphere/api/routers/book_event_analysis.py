@@ -23,6 +23,7 @@ from storysphere.api.deps import (
     KGServiceDep,
     VectorServiceDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.routers._book_shared import analysis_staleness, now_iso
 from storysphere.api.schemas.book_event_analysis import (
     BatchEventAnalysisRequest,
@@ -228,6 +229,7 @@ async def trigger_event_analysis(
         "Triggering event analysis: event=%s (%s), book=%s, lang=%s, mode=%s",
         event.title, event_id, book_id, language, body.mode,
     )
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="事件分析")
     task_runner.launch(
@@ -531,6 +533,7 @@ async def trigger_batch_event_analysis(
         )
 
     language = await doc.get_document_language(book_id)
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="批次事件分析")
     task_runner.launch(
