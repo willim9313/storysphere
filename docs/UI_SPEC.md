@@ -1627,67 +1627,73 @@ Prompt Tokens / Completion Tokens / 總請求次數
 
 ---
 
-### 3.13 設定頁 `/settings`
+### 3.13 設定頁 `/settings`（DS v3 第 2 批）
 
-> **注意**：此頁目前定位為系統管理工具，預計未來有較大改版（涉及複雜的後端遷移流程）。當前規格以現況記錄為主。
+`pages/SettingsPage.tsx`、`components/settings/settingsModel.ts`（純邏輯，含 vitest），樣式 `styles/settings.css`（`st-`）
+與 kit `.ss-seg*`／`.ss-btn*`／`.ss-stats-row`。依 04 決議紀錄 A–G frame。
 
-#### 版面結構
+#### 密度與骨架（C 入口）
 
-```
-[Left Sidebar] [主內容區，單欄表單佈局]
-  ├─ 介面主題區塊
-  ├─ KG Backend 區塊
-  └─ 資料遷移區塊
-```
+- 內容區 padding 32、section 24、card 16、面板 `max-width: 960`；左側 nav 172px，一次只顯示一個面板。
+- nav：頁首「設定」serif＋分隔線；三組（偏好設定／系統／其他）、七項 Lucide 圖示（`palette`／`languages`／`cpu`／`server`／
+  `keyboard`／`flask-conical`／`info`）；底部版本號上方分隔線。列 padding `--space-4`、gap `--space-4`、`--radius-sm`、xs；
+  **選中＝`--bg-tertiary` 底＋accent 字 600，無左緣條**。
+- **研究者導覽（04 A2）本批不畫**：nav 維持三組七項，不放空項（FEEDBACK 2-ST-3，待第 19 稿 nav 項與面板一起做）。
+- **三種徽章視覺分化**（文字互不相同，Ink 下不另掛圖示）：開發者＝warning 底、整合＝success 底、規劃中＝虛線描邊＋muted 字且整列 opacity 0.55。
+  面板標題旁同框：語言「整合」、環境「開發者」。
+- 區段小標（accent 圖示＋serif）：介面主題、目前設定、部署模式、目前狀態、資料遷移。其餘小標（Qdrant Service、知識圖譜後端、
+  Neo4j 連線、前端／後端套件、資料路徑）是無圖示的 2xs 小字。
+- `/settings#llm` 開 LLM 面板（第 1 批 02 章節審閱 503「前往 LLM 設定 →」的落點）。
 
-#### 介面主題區塊
+#### 面板
 
-標題「介面主題」。
+- **外觀與主題**：副標「點擊即時套用，無需確認。」緊貼標題。兩張主題卡：頂部滿版四色帶（bg-primary／bg-secondary／accent／fg-primary，
+  帶間 hairline，無 1px radius）；「✓ 目前」角標右上（Lucide `check`）；選中卡 2px accent 外框；名稱 sans。
+  Ink 色帶包一層 `data-theme="ink"` 讀真實 token；**Warm 色帶保留文件化的 hex 例外**（Warm 是 `:root` 預設，Ink 文件下巢狀
+  `data-theme` 讀不回 Warm 值；改 Warm token 時要連動 `settings.css`）。選擇後立即套用，走 ThemeContext，頁面不碰 localStorage。
+- **語言**：介面語言用 `.ss-seg`（選中升到 bg-primary）；分析輸出語言整塊 opacity 0.55、「即將推出」虛線徽章、兩顆 disabled 鈕
+  維持既有「跟隨介面語言／自訂語言」。兩條 hint 逐字各貼欄位下。
+- **LLM 設定**：唯讀 text row（hairline 分隔；值為 `(none)` 用 muted）；副標與底註兩條唯讀宣告都在、不合併；不加編輯鈕、不加 .env 連結。
+- **環境設定**：
+  - 部署雙卡（`role="radiogroup"`）：radio＋tagline＋Qdrant／KG 規格。「（目前）」跟著實際 `deployMode`，選中框跟著使用者點選；
+    兩者不一致時選中的那張另掛「**預覽中**」（`deployBadges`）。
+  - **Lightweight**：目前狀態 text row（Vector 數量 null → 「—」）＋三張 KG 統計磚（kit `StatRow`：tinted 底、sans tabular）。
+  - **Standard 預覽**：最上方警告橫幅；Qdrant Service 欄位與 **Neo4j 連線**欄位（常駐，不再只在選 Neo4j 時出現）一律只有
+    placeholder、無 value／onChange，旗標「需重啟」（warning 底）；KG 後端 `.ss-seg`，旗標「即時生效」（success 底）只掛在這裡，
+    其下是能力落差層，再往下是 Neo4j 例外註記（在 Neo4j 連線欄位之後）。Neo4j 欄位名為既有 `NEO4J_URL`／`NEO4J_USER`／`NEO4J_PASSWORD`
+    （稿上 `NEO4J_URI`＋「即時生效」與後端不符，見 FEEDBACK 2-ST-2）。輸入框用 `--input-*`、文字 xs。
+  - **能力落差層**（位置在 segmented 之下、切換之前；`gapLayer`）：措辭一「目前後端無法提供這些功能：」＝error 底、Lucide `circle-x`、
+    功能名**實心**；措辭二「切換到 {Neo4j|NetworkX} 會停用這些功能：」＝warning 底、`alert-triangle`、功能名**描邊**。兩者互斥、不合併；
+    圖示形狀與填色極性是 Ink 下的非色相載體。功能 id 一律中文（`env.kgFeature.*`）；**不認得的 id 不裸露**，合併成一顆「其他功能」。
+  - **資料遷移**：三列（方向箭頭，第三列朝左）＋冪等註記＋其後 ghost 鈕「重新整理狀態」（`refresh-cw` 圖示，手動重取 `GET /kg/status`）。
+    另有每 15 秒背景刷新，**無任何視覺提示**。
+    - 遷移三態（`MigrationState`）：進行中「遷移中…」（`loader`，既有 2 秒輪詢）；完成計數列（`circle-check`；3 秒後自收並刷新 KG 狀態，
+      畫面不寫倒數）；失敗後端原文（`circle-x`，不改寫不翻譯）。啟動遷移的請求本身失敗，也走同一個失敗態顯示原文。
+    - 兩種「功能尚未實作」：Qdrant 列＝**永久**（虛線外框＋降階＋**無鈕**＋無門檻說明，旗標「功能尚未實作」）；
+      KG 兩列＝**條件性**（實線外框＋「執行遷移」鈕在場但 opacity 0.5＋門檻說明「門檻未達成：需 Standard 態 · KG 後端為 Neo4j」；
+      達標（Standard＋KG 後端為 Neo4j，`kgMigrationGate`）後門檻說明消失、旗標換「即時生效」、鈕可按；遷移進行中鈕再度 disabled）。
+- **關於 & 版本**：hero（S 方塊、StorySphere、版號＋`appEnv`）、前後端套件兩欄、資料路徑——key 保留原始欄位名（mono），
+  `databaseUrl` 照後端遮罩顯示，不可展開、無眼睛圖示。
+- **規劃中面板**（快捷鍵、實驗性功能）：圖示＋徽章＋標題＋一句說明四件，無 CTA、無時程暗示。
 
-以**卡片選擇器（card picker）**呈現兩個主題（Warm / Ink），每張卡片顯示：
-- 主題名稱
-- 簡短描述
-- 縮圖色塊預覽：四段等寬色帶 `--bg-primary` / `--bg-secondary` / `--bg-tertiary` / `--accent`（設計 kit `.ss-theme-swatch` 規格）
+#### 載入與失敗（面板內，nav 全程可用）
 
-選中狀態：accent 色邊框。
+- 載入：行內 spinner＋「載入中…」。
+- 失敗：紅字一行（「無法載入 LLM 設定」／「無法載入狀態」／「無法載入版本資訊」逐字）＋手動「重試」（`common.json` 的 `retry`，secondary sm）；
+  不自動重送、不寫倒數。環境面板只在「完全沒有資料」時才顯示失敗（15 秒背景刷新失敗時保留舊資料）。
+  這三條是面板層紅字，不用整頁 `PageFailure`。
 
-選擇後**立即套用**（即時預覽），並寫入 `localStorage`（key：`storysphere:theme`）。
+#### 字串
 
-**狀態流程**：
-
-```
-進入頁面
-  → 從 localStorage 讀取目前主題
-  → 對應卡片顯示選中狀態
-
-點擊主題卡片
-  → ThemeContext 更新 <html data-theme="..."> → 全站即時套用
-  → 寫入 localStorage
-```
-
-**API**：無，純前端 localStorage。主題清單見 [`DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。
-
-#### KG Backend 區塊
-
-顯示當前後端模式（NetworkX / Neo4j）及 Neo4j 連線狀態（綠點/灰點）。
-
-數量統計卡片：實體數 / 關係數 / 事件數。
-
-切換後端按鈕：`NetworkX` / `Neo4j`（目前模式按鈕 disabled）。切換後顯示 loading，完成後刷新狀態。
-
-#### 資料遷移區塊
-
-兩個操作按鈕（idempotent）：
-- NetworkX → Neo4j：將 NetworkX 記憶體圖譜資料寫入 Neo4j
-- Neo4j → NetworkX：從 Neo4j 讀回記憶體
-
-遷移 polling 進度（2 秒間隔），完成後顯示遷移數量（entities / relations / events）。
-
-> **未來改版方向**：目前的搬遷流程對用戶而言過於技術，且操作後果難以直覺理解。未來應改為更清晰的「儲存後端」設定模式，或完全隱藏底層切換，由系統自動管理。
+**這 2 句是已裁決的新字串**（i18n `settings.env.previewTag`、`gateNote`）：「預覽中」、「門檻未達成：需 Standard 態 · KG 後端為 Neo4j」。
+**這 3 句是草稿・待設計定案**（i18n `settings.env.runMigration`、`neoSectionTitle`、`kgFeatureUnknown`；JSON 不能寫註解，故記在此）：
+「執行遷移」（稿上有按鈕、既有 i18n 沒有）、「Neo4j 連線」（稿上有段標、既有 i18n 沒有）、「其他功能」（不認得的功能 id 的泛稱，稿上沒有）。
+en 對應：Previewing／Requirement not met: Standard mode · KG backend set to Neo4j／Run migration／Neo4j connection／Other features。
+其餘文案皆為既有字串逐字。
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#18a（KG 狀態）、#18b（切換後端）、#18c（觸發遷移）、#18d（遷移 polling）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#18a（KG 狀態，含 `unsupportedByMode`）、#18b（切換後端）、#18c（觸發遷移）、#18d（遷移 polling）、#25a（`GET /settings/info`）
 
 > 注意：KG 遷移 polling 走 #18d 專用 endpoint，不走 #8。
 

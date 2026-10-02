@@ -111,7 +111,12 @@
     "loadError": "無法載入狀態",
     "migrating": "遷移中…",
     "refresh": "重新整理狀態",
-    "currentTag": "（目前）"
+    "currentTag": "（目前）",
+    "previewTag": "預覽中",
+    "gateNote": "門檻未達成：需 Standard 態 · KG 後端為 Neo4j",
+    "runMigration": "執行遷移",
+    "neoSectionTitle": "Neo4j 連線",
+    "kgFeatureUnknown": "其他功能"
   },
   "about": {
     "title": "關於 & 版本",

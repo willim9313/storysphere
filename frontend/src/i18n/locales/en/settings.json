@@ -111,7 +111,12 @@
     "loadError": "Unable to load status",
     "migrating": "Migrating…",
     "refresh": "Refresh status",
-    "currentTag": "(current)"
+    "currentTag": "(current)",
+    "previewTag": "Previewing",
+    "gateNote": "Requirement not met: Standard mode · KG backend set to Neo4j",
+    "runMigration": "Run migration",
+    "neoSectionTitle": "Neo4j connection",
+    "kgFeatureUnknown": "Other features"
   },
   "about": {
     "title": "About & version",
