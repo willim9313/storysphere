@@ -64,7 +64,11 @@
 }
 .st-nav-item:hover { background: var(--bg-secondary); }
 .st-nav-ico { display: inline-flex; flex-shrink: 0; color: var(--fg-secondary); }
-.st-nav-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* 暫時修法（feedback 2-ST-13）：172px 放不下「標籤＋徽章」時，徽章換到第二行靠右，不再把標籤截成「Envi…」。
+   標籤本身仍不換行；單獨就超寬時才省略。 */
+.st-nav-item { flex-wrap: wrap; row-gap: var(--space-1); }
+.st-nav-label { flex: 1 0 auto; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.st-nav-item > .st-badge { margin-left: auto; }
 /* 選中：bg-tertiary 底 + accent 字 600，無左緣條 */
 .st-nav-item.active { background: var(--bg-tertiary); color: var(--accent); font-weight: 600; }
 .st-nav-item.active .st-nav-ico { color: var(--accent); }

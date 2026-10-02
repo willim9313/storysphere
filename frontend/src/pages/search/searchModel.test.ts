@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 
 import type { SearchResult } from '@/api/search';
 import {
-  formatLocator,
   formatScore,
+  padPosition,
   groupResults,
   hitOffsets,
   mergeBookSearches,
@@ -18,18 +18,20 @@ const res = (id: string, doc: string, score: number): SearchResult => ({
 });
 
 describe('formatScore', () => {
-  it('keyword mode shows a hit count, semantic mode a rounded percentage', () => {
-    expect(formatScore(16, 'fulltext')).toBe('16次');
-    expect(formatScore(0.254, 'semantic')).toBe('25%');
-    expect(formatScore(0.116, 'semantic')).toBe('12%');
+  const hits = (n: number) => `${n}次`;
+  it('keyword mode words the hit count through the locale, semantic mode a rounded percentage', () => {
+    expect(formatScore(16, 'fulltext', hits)).toBe('16次');
+    expect(formatScore(16, 'fulltext', (n) => `${n} hits`)).toBe('16 hits');
+    expect(formatScore(0.254, 'semantic', hits)).toBe('25%');
+    expect(formatScore(0.116, 'semantic', hits)).toBe('12%');
   });
 });
 
-describe('formatLocator', () => {
+describe('padPosition', () => {
   it('zero-pads the position to two digits only', () => {
-    expect(formatLocator(3, 7)).toBe('第3章·§07');
-    expect(formatLocator(11, 21)).toBe('第11章·§21');
-    expect(formatLocator(2, 123)).toBe('第2章·§123');
+    expect(padPosition(7)).toBe('07');
+    expect(padPosition(21)).toBe('21');
+    expect(padPosition(123)).toBe('123');
   });
 });
 

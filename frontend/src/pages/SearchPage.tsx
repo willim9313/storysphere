@@ -9,11 +9,11 @@ import { failureKind, techDetailOf } from '@/api/failureKind';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { PageFailure } from '@/components/ui/PageFailure';
 import {
-  formatLocator,
   formatScore,
   groupResults,
   hitOffsets,
   mergeBookSearches,
+  padPosition,
   splitHighlight,
   type BookGroup,
 } from '@/pages/search/searchModel';
@@ -138,12 +138,15 @@ function BookGroupSection({
               onClick={() => onNavigatePassage(group.documentId, result)}
             >
               <code className="srch-row-pos">
-                {formatLocator(result.metadata.chapterNumber, result.metadata.position)}
+                {t('result.locator', {
+                  chapter: result.metadata.chapterNumber,
+                  position: padPosition(result.metadata.position),
+                })}
               </code>
               <ResultBody text={result.text} query={query} mode={mode} />
               <span className="srch-row-score">
                 <span className="srch-row-score-label">{scoreHeading}</span>
-                <span className="srch-row-score-value">{formatScore(result.score, mode)}</span>
+                <span className="srch-row-score-value">{formatScore(result.score, mode, (count) => t('score.hitCount', { count }))}</span>
               </span>
             </button>
           ))}

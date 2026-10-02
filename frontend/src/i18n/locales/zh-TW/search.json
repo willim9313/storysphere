@@ -13,7 +13,8 @@
     "archetype": "原型"
   },
   "result": {
-    "goToBook": "前往該書"
+    "goToBook": "前往該書",
+    "locator": "第{{chapter}}章·§{{position}}"
   },
   "empty": {
     "noResults": "找不到相關段落",
@@ -25,7 +26,8 @@
   "summary": "找到 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> 本書籍",
   "score": {
     "hits": "命中次數",
-    "relevance": "相關度"
+    "relevance": "相關度",
+    "hitCount": "{{count}}次"
   },
   "error": {
     "searchFailed": "搜尋失敗，請稍後再試。"
