@@ -7,16 +7,17 @@ export interface BookGroup {
   results: SearchResult[];
 }
 
-/** Keyword-mode: count of hits; semantic-mode: cosine similarity as a percentage.
+/** Keyword-mode: count of hits (worded by the locale, 「16次」／"16 hits");
+ *  semantic-mode: cosine similarity as a percentage.
  *  The two are deliberately not comparable (see 05 決議紀錄 C). */
-export function formatScore(score: number, mode: SearchMode): string {
-  if (mode === 'fulltext') return `${score}次`;
+export function formatScore(score: number, mode: SearchMode, hits: (count: number) => string): string {
+  if (mode === 'fulltext') return hits(score);
   return `${Math.round(score * 100)}%`;
 }
 
-/** 「第N章·§NN」— position is zero-padded to two digits. */
-export function formatLocator(chapterNumber: number, position: number): string {
-  return `第${chapterNumber}章·§${String(position).padStart(2, '0')}`;
+/** The § part of the locator 「第N章·§NN」— zero-padded to two digits. */
+export function padPosition(position: number): string {
+  return String(position).padStart(2, '0');
 }
 
 export interface TextSegment {

@@ -238,8 +238,9 @@ function HeroJourney({ fw }: { fw: Framework }) {
         <path d={`M ${cx + R} ${cy} A ${R} ${R} 0 0 1 ${cx - R} ${cy} Z`} fill="var(--bg-tertiary)" />
         <circle cx={cx} cy={cy} r={R} fill="none" stroke="var(--border)" />
         <line x1={cx - R} y1={cy} x2={cx + R} y2={cy} stroke="var(--border)" strokeDasharray="3 3" />
-        <text x={cx} y={cy - R + 26} textAnchor="middle" className="md-svg-world">{t('concept.hjOrdinary')}</text>
-        <text x={cx} y={cy + R - 14} textAnchor="middle" className="md-svg-world">{t('concept.hjSpecial')}</text>
+        {/* 暫時修法（feedback 2-MT-9）：往圓內移，避開 12／1、6／7 號節點——英文標籤較長會被壓住。 */}
+        <text x={cx} y={cy - R + 44} textAnchor="middle" className="md-svg-world">{t('concept.hjOrdinary')}</text>
+        <text x={cx} y={cy + R - 34} textAnchor="middle" className="md-svg-world">{t('concept.hjSpecial')}</text>
         <text x={cx} y={cy + 18} textAnchor="middle" className="md-svg-ring">{`${fw.items.length} ${fw.itemLabel}`}</text>
         {stages.map((s, i) => {
           const act = acts[s.act];

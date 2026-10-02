@@ -13,7 +13,8 @@
     "archetype": "Archetypes"
   },
   "result": {
-    "goToBook": "Go to book"
+    "goToBook": "Go to book",
+    "locator": "Ch. {{chapter}} · §{{position}}"
   },
   "empty": {
     "noResults": "No passages found",
@@ -25,7 +26,9 @@
   "summary": "Found <strong>{{count}}</strong> passages across <strong>{{books}}</strong> books",
   "score": {
     "hits": "Hits",
-    "relevance": "Relevance"
+    "relevance": "Relevance",
+    "hitCount_one": "{{count}} hit",
+    "hitCount_other": "{{count}} hits"
   },
   "error": {
     "searchFailed": "Search failed. Please try again later."
