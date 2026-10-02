@@ -1586,14 +1586,14 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 padding 24／section 16／card 12／row 8，內容 max-w 1280。
 
 ```
-[標題「Token 用量」        範圍 pill ×4  書籍下拉]
+[標題「Token 用量」        書籍下拉  範圍 pill ×4]
 [摘要 3 張]
 [書籍別用量（byBook）]
-[服務別用量 | 模型別用量]      ← 並排兩欄（≤900px 疊成一欄）
+[服務別用量 | 模型別用量]      ← 並排 1.25fr／1fr（≤900px 疊成一欄）
 [每日趨勢]
 ```
 
-標題列右側順序：**範圍 pill 在前、書籍下拉在後**。
+標題列右側順序：**書籍下拉在前、範圍 pill 在後**（依 06 決議紀錄 A／C；README §3.1 寫反，FEEDBACK 2-TU-4）。標題 serif 2xl，區段標 serif base 600。
 
 - 範圍 pill：四顆獨立 chip「今天／7 天／30 天／全部」，`--pill-radius`，idle `--bg-secondary`，選中 accent 實心；切換時重新請求。
 - 書籍下拉：`--input-bg`／`--input-radius`／`--input-border-width`，min-width 180。選項「全部書籍」＋各書＋「未歸屬」。
@@ -1626,14 +1626,14 @@ kit `.ss-stats-row`／`.ss-stat`（數值在上、標籤在下）：Prompt Token
 #### 細分表格
 
 三張表（byBook／byService／byModel）表頭逐字「名稱／Prompt／Completion／合計／呼叫」（「Prompt」寫死，維持現況）。
-數字欄右對齊＋tabular-nums；合計欄加粗，呼叫欄淡化；依 totalTokens 降冪。服務中文名走既有 `token.services.*`，旁邊不標 slug；
+數字欄 mono 2xs、右對齊＋tabular-nums；合計欄加粗，呼叫欄淡化；依 totalTokens 降冪。服務中文名走既有 `token.services.*`，旁邊不標 slug；
 byModel 顯示原始 model id。
 
 #### 每日趨勢
 
 與表同框的容器；每列：日期（mono、44px）＋ 12px 高長條（accent，全同色、不標峰值、無透明度差）＋ 數值（92px 右對齊）。
 **無軸線、刻度、格線、tooltip**——長條是本期相對值，數值才是量值來源。長條寬＝該日／期間最大值（`dailyScale`）。
-標題下的刻度註記帶入最大值那天的 MM-DD 與數值（千分位）。
+標題右側（同一行）的刻度註記帶入最大值那天的 MM-DD 與數值（千分位）；日期與數值皆 mono。
 
 #### 狀態
 

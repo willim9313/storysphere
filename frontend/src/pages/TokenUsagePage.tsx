@@ -133,14 +133,16 @@ export default function TokenUsagePage() {
 
         {daily && (
           <section className="tu-section">
-            <h3 className="tu-section-title">{t('token.dailyTrend')}</h3>
-            <p className="tu-daily-note">
-              {t('token.dailyNote', { date: daily.baseLabel, value: fmt(daily.baseValue) })}
-            </p>
+            <div className="tu-section-head">
+              <h3 className="tu-section-title">{t('token.dailyTrend')}</h3>
+              <span className="tu-daily-note">
+                {t('token.dailyNote', { date: daily.baseLabel, value: fmt(daily.baseValue) })}
+              </span>
+            </div>
             <div className="tu-daily">
               {daily.rows.map((d) => (
                 <div key={d.label} className="tu-daily-row">
-                  <span className="tu-daily-date">{d.label}</span>
+                  <code className="tu-daily-date">{d.label}</code>
                   <div className="tu-daily-track">
                     <div className="tu-daily-bar" style={{ width: `${d.pct}%` }} />
                   </div>
@@ -160,19 +162,6 @@ export default function TokenUsagePage() {
         <div className="tu-head">
           <h2 className="tu-title">{t('token.title')}</h2>
           <div className="tu-controls">
-            <div className="tu-ranges">
-              {RANGES.map(({ key, label }) => (
-                <button
-                  key={key}
-                  type="button"
-                  className="tu-range"
-                  aria-pressed={range === key}
-                  onClick={() => setRange(key)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
             {books.length > 0 && (
               <select
                 className="tu-book-select"
@@ -187,6 +176,19 @@ export default function TokenUsagePage() {
                 ))}
               </select>
             )}
+            <div className="tu-ranges">
+              {RANGES.map(({ key, label }) => (
+                <button
+                  key={key}
+                  type="button"
+                  className="tu-range"
+                  aria-pressed={range === key}
+                  onClick={() => setRange(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
         {body}
@@ -239,8 +241,8 @@ function BreakdownTable({
                         onSelect(key);
                       }}
                     >
+                      {isSelected && <Check size={12} className="tu-check" aria-hidden />}
                       {labelFn(key)}
-                      {isSelected && <Check size={14} className="tu-check" aria-hidden />}
                     </button>
                   ) : (
                     labelFn(key)
