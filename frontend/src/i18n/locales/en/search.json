@@ -22,6 +22,25 @@
     "noBooksHint": "Upload a novel to start cross-book search.",
     "uploadNow": "Upload now"
   },
+  "summary": "Found <strong>{{count}}</strong> passages across <strong>{{books}}</strong> books",
+  "score": {
+    "hits": "Hits",
+    "relevance": "Relevance"
+  },
+  "error": {
+    "searchFailed": "Search failed. Please try again later."
+  },
+  "partial": {
+    "message": "{{count}} book queries failed; results are incomplete",
+    "retry": "Search again"
+  },
+  "aria": {
+    "collapse": "Collapse",
+    "expand": "Expand",
+    "removeBook": "Remove {{title}}",
+    "clear": "Clear search",
+    "mode": "Search mode"
+  },
   "loading": "Searching…",
   "mode": {
     "fulltext": "Keyword",

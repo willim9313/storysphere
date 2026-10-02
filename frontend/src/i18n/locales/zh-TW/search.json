@@ -22,6 +22,25 @@
     "noBooksHint": "上傳一本小說即可開始跨書搜尋。",
     "uploadNow": "立即上傳"
   },
+  "summary": "找到 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> 本書籍",
+  "score": {
+    "hits": "命中次數",
+    "relevance": "相關度"
+  },
+  "error": {
+    "searchFailed": "搜尋失敗，請稍後再試。"
+  },
+  "partial": {
+    "message": "{{count}} 本書籍查詢失敗，結果不完整",
+    "retry": "重新搜尋"
+  },
+  "aria": {
+    "collapse": "收合",
+    "expand": "展開",
+    "removeBook": "移除 {{title}}",
+    "clear": "清除搜尋",
+    "mode": "搜尋模式"
+  },
   "loading": "搜尋中…",
   "mode": {
     "fulltext": "關鍵字",

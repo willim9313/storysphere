@@ -1853,41 +1853,73 @@ Prompt Tokens / Completion Tokens / 總請求次數
 #### 版面結構
 
 ```
-[Hero 搜尋列]
-[分頁列：段落 | 角色(soon) | 原型(soon)          模式切換：全文 | 語意]
-[摘要行：找到 N 個段落，來自 M 本書籍            依相關度排序]
-[範圍 chips（可移除）]
+[搜尋列：[🔍 輸入框 …… 所有書籍⌄]  [關鍵字|語意]  [🔍 搜尋]]
+[分頁列：段落(計數) | 人物 即將推出 | 原型 即將推出]      （未搜尋態也在）
+[摘要行：找到 N 個段落，來自 M 本書籍              依相關度排序⌄]
+[部分失敗行（僅部分書查詢失敗時）]
+[範圍：chip × M（可移除）]
 [書籍分組區塊 × M]
 ```
 
-#### Hero 搜尋列（`form`，Enter 送出）
+DS v3 第 2 批（`docs/plans/20261002-ds-v3-batch2-system.md`、決議紀錄 05）。分級 B 檢視。
+頁寬 `max-width: 1280px`；間距全用 `--space-1…8`，輸入框用 `--input-*` token，不掛 sparkles（兩種模式都零成本）。
 
-放大鏡 icon + 輸入框（`autoFocus`）+ 清除鈕（`X`，已搜尋後才出現）+ 範圍標示 + 送出鈕。
-送出鈕在 `loading` 或查詢字串為空時 disabled。
+#### 搜尋列（`form`，Enter 送出）
+
+- **輸入框容器**（`--input-bg`／`--input-radius`／`--input-border-width`，padding `--space-3 --space-5`）：accent 放大鏡 + 輸入框（`autoFocus`）+ 清除鈕（`X`，已搜尋後才出現）+ 右側「所有書籍 ⌄」。
+  placeholder 逐字沿用。「所有書籍 ⌄」是 `<span>`：純標示、無 hover、無邊框，chevron 為 Lucide `chevron-down`。
+- **「關鍵字／語意」`.ss-seg`** 在搜尋列內、緊鄰搜尋鈕（不在分頁列右端）；選中升到 `bg-primary`。
+- **搜尋鈕**：`.ss-btn-primary` 帶 search 圖示，兩種模式同為「搜尋」、不附成本提示；`loading` 或查詢為空時 disabled（`srch-submit:disabled` 降到 0.5 透明度，kit 沒有 disabled 樣式）。
 
 #### 分頁與模式
 
-- **分頁**：`段落`（唯一可用，顯示結果總數）、`角色`、`原型`——後兩者為 `comingSoon` 佔位，不可點。
-- **模式切換**：`全文` / `語意`，**預設全文**。切換會以同一查詢字串重新搜尋，並重置範圍 chips。
+- **分頁列**（未搜尋、載入中、結果態都在）：`段落`（active，搜尋過後帶計數徽章，`bg-secondary` 中性底）；`人物`、`原型`降階（opacity 0.55）＋虛線「即將推出」。
+  後兩者是 `<div>`，**無 onClick、無 hover**（不是 `<button>`）。
+- **模式切換**：`關鍵字` / `語意`，**預設關鍵字**。切換會以同一查詢字串重新搜尋，並重置範圍 chips。
 
-> **兩種模式的 `score` 意義不同**：語意為 0–1 相關度、顯示為百分比；全文為命中次數、顯示為「N 次」。
-> 數值不可跨模式比較。見 API_CONTRACT #23a。
+> **兩種模式的 `score` 意義不同、不可比**：語意為 0–1 相似度、顯示為「N%」；關鍵字為命中次數、顯示為「N次」。
+> 不做條狀圖、不換算、不做動畫；單位字貼在數字後面，每列另有欄標題（關鍵字「命中次數」、語意「相關度」）。
+> 語意模式跨組連續遞減，不在每組重排。見 API_CONTRACT #23a。
 
 #### 搜尋範圍與 chips
 
 首次送出時**不帶 bookId**（跨全書，`topK: 20`），並以回傳結果出現過的書籍**自動種下** chips。
 移除任一 chip 後改為**逐書並行查詢**（每本 `topK: 10`，`Promise.allSettled`），
-合併後依 score 排序取前 30 筆；個別書籍失敗會被略過，不影響其餘結果。
-chips 全部移除則回到跨全書模式。
+合併後依 score 排序取前 30 筆；chips 全部移除則回到跨全書模式。
+chips 只能移除：沒有全選、重設、加回，也不列未命中的書；chip 為細框、`--pill-radius`。
 
 > 搜尋以遞增的 generation 序號防競態：舊請求回來時若序號已過期，結果直接丟棄。
 
+#### 部分失敗（**草稿・待設計定案**）
+
+逐書查詢路徑下，`mergeBookSearches` 保留 rejected 的書（與 `bookIds` 同序），不再靜默丟棄。
+至少一本失敗、但仍有結果時，在摘要下一行顯示警示行（`color-warning-bg` 底＋警示三角圖示＋文字＋次要「重新搜尋」鈕）：
+
+- 「{n} 本書籍查詢失敗，結果不完整」（i18n `partial.message`）
+- 「重新搜尋」（i18n `partial.retry`）
+
+**這 2 句是草稿・待設計定案**（README §5；i18n `partial.*`，zh-TW 與 en 皆已補）。不列書名。
+「重新搜尋」重送**同一查詢＋目前範圍**。若範圍內**每一本**都失敗，視為搜尋失敗，走下方失敗分類。
+首次跨全書查詢是單一請求，不會出現這一行。
+
 #### 書籍分組區塊（`BookGroupSection`）
 
-group header：收合 chevron + 書名 + 段落數 + 分隔線 + 「前往書籍」（`ArrowUpRight`）。
-各列為可點按鈕，三欄：`第N章·§NN` 位置標 / 段落文字（**查詢詞以 `<mark>` 高亮**）/ score。
+group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（serif base 700 accent）+ 「{n} 段落」+ 延伸細線 + 「前往該書 ↗」。**收合後計數與連結都還在。**
 
-書名取自 `useBooks()` 的書庫列表；查無對應時退回顯示 `documentId`。
+各列為可點按鈕，**三欄 grid `96px / 1fr / 76px`**，列間 hairline、`--space-6 0`，無 hover 填色、無左緣直條、無卡片底：
+
+1. **定位碼**（96px，mono）：`第N章·§NN`，pos 補零兩位，`position: sticky; top: 0`——長段落滾動時留在視線內。
+2. **正文**：serif sm、行高 1.85、`max-width: 72ch`、靠左。**段落全文完整渲染，不截斷**——沒有 line-clamp、展開全文、顯示更多或漸層遮罩。
+   查詢詞以 `<mark class="srch-mark">` 高亮（`color-warning-bg` 底＋1.5px 下緣線）。
+   關鍵字模式且至少一個命中時，正文左側多一條 3px **命中軌**：每個命中畫一個 4px warning 刻痕，位置＝命中處在段落文字中的字元 offset ÷ 文字長度。
+   純計數，**不承諾點擊跳轉**，也沒有「{n} 處命中」標籤（Q2 裁決；分數「N次」就是同一個數）。語意模式沒有軌。
+3. **分數**（76px，右對齊）：欄標題 2xs muted（「命中次數」／「相關度」）+ 數值 base 700 accent、tabular。
+
+書名取自 `useBooks()` 的書庫列表；查無對應時退回顯示 `documentId`。純邏輯（分組、分數格式、命中位置、部分失敗彙整）在 `frontend/src/pages/search/searchModel.ts`（有 vitest）。
+
+#### 摘要
+
+「找到 {n} 個段落，來自 {m} 本書籍」（sans sm，數字加粗；i18n `summary`，原本寫死中文）＋「依相關度排序 ⌄」（`<span>`，無行為）。
 
 #### 跳轉行為
 
@@ -1900,17 +1932,24 @@ group header：收合 chevron + 書名 + 段落數 + 分隔線 + 「前往書籍
 
 | 狀態 | 呈現 |
 |------|------|
-| 未搜尋 · 有書 | 置中 icon + 標題 + 副標的引導畫面 |
-| 未搜尋 · 無書 | 空狀態：Upload icon + 提示 + 「立即上傳」→ `/upload` |
-| 搜尋中 | `SkeletonLoader`（3 組骨架，每組 1 標題列 + 2 結果列） |
-| 失敗 | 空狀態樣式顯示錯誤訊息 |
-| 無結果 | 空狀態：`empty.noResults` + 提示 |
+| 未搜尋 · 書單載入中 | 內容區留白（**不得**顯示「書庫尚無書籍」） |
+| 未搜尋 · 有書 | 置中圓形底 accent 搜尋圖示 + 標題 + 副標 |
+| 未搜尋 · 無書 | `EmptyState`：Upload icon + 「書庫尚無書籍」+ 說明 + 「立即上傳」→ `/upload` |
+| `GET /books` 失敗 | 整頁替換為 `PageFailure`（`pageName`＝「跨書搜尋」；有 JSON body → 「無法載入跨書搜尋」，無回應或裸 502/503/504 → 「伺服器沒有回應」）＋重試（refetch）。**絕不落成「書庫尚無書籍」** |
+| 搜尋中 | `SkeletonLoader`，不用 spinner：3 組骨架，每組 22px 標題條 + 2 條結果列（欄寬 96／彈性／76） |
+| 搜尋失敗 · 功能層（`failureKind` = page） | 「搜尋失敗，請稍後再試。」（i18n `error.searchFailed`，原寫死）＋手動「重試」（重送同一查詢＋目前範圍） |
+| 搜尋失敗 · 後端層（`failureKind` = backend） | `PageFailure variant="backend"`（「伺服器沒有回應」定案三句）＋重試 |
+| 無結果 | `empty.noResults` + `empty.noResultsHint`（最輕，無圖示） |
+| 部分失敗 | 結果照常，摘要下加警示行（見上，草稿） |
+
+各失敗都不倒數、不自動重送。
 
 #### 實作位置
 
 | 項目 | 檔案 |
 |------|------|
 | 頁面 | `frontend/src/pages/SearchPage.tsx` |
+| 純邏輯 + 測試 | `frontend/src/pages/search/searchModel.ts`、`searchModel.test.ts` |
 | API 封裝 | `frontend/src/api/search.ts` |
 | 範圍 CSS | `frontend/src/styles/search.css`（`srch-` 前綴） |
 | i18n | `search` namespace |
