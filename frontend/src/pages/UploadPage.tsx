@@ -318,6 +318,14 @@ export default function UploadPage() {
     ]);
   }, []);
 
+  // Terminated by the user, or no longer known to the server: the card just
+  // leaves. Not an error, so no errored entry / retry offer.
+  const handleTaskGone = useCallback((taskId: string) => {
+    setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
+    uploadMetaRef.current.delete(taskId);
+    clearMurmur(taskId);
+  }, []);
+
   const dismissErroredTask = useCallback((taskId: string) => {
     setErroredTasks((prev) => prev.filter((t) => t.taskId !== taskId));
   }, []);
@@ -521,7 +529,7 @@ export default function UploadPage() {
                           <span>{t('duplicateTitleWarning', { title: task.title })}</span>
                         </div>
                       )}
-                      <ProcessingCard task={task} onDone={handleTaskDone} onError={handleTaskError} />
+                      <ProcessingCard task={task} onDone={handleTaskDone} onError={handleTaskError} onGone={handleTaskGone} />
                     </div>
                   ))}
                 </div>

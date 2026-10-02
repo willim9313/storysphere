@@ -253,7 +253,10 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 「終止處理」先開 `ConfirmDialog` 損失清單版：標題「終止處理《{書名}》？」、內文「以下內容會被移除，無法復原。」、
 清單「目前的處理任務」「已寫入書庫的這本書（若已建立）」、`danger` 確認鈕「終止處理」、取消維持 ghost（1-I）。
 **這三句是草稿・待設計定案**（i18n `upload.terminate.*`；JSON 不能寫註解，故記在此）。確認後流程不變：
-先 `POST /tasks/:id/cancel`，書已落地才 `DELETE /books/:id`，卡片轉失敗卡。
+先 `POST /tasks/:id/cancel`，書已落地才 `DELETE /books/:id`，**卡片直接移除**——使用者主動終止不是失敗，
+不留失敗卡、不提供重試。從別處終止（輪詢讀到 `status: "error"` 且 `error: "cancelled"`）同樣移除。
+sessionStorage 記著、但 `GET /tasks/:id/status` 回 404 的任務（記憶體 store 重啟、30 天清理）也直接移除，
+不再卡成一張等不到狀態的空卡；404 不重試、不再輪詢。
 
 #### E · 部分完成（`PartialRerunCard`）
 
@@ -292,7 +295,7 @@ CircleCheck success「所有步驟皆已補齊。」。底部分隔線下固定�
 **失敗清單留在頁面的常駐面板**（事件頁 `BatchEepPanel`、角色頁左欄頂端），不放 toast（17 決議 T4）。
 `useTaskNotifications`（掛在 `AppLayout`）輪詢 `GET /tasks`，於 ingestion 任務
 轉 done / partial / awaiting_review / error 時觸發對應 toast 與跳轉；首次輪詢
-靜默 seed，避免對載入前已終結的任務發通知。
+靜默 seed，避免對載入前已終結的任務發通知。使用者終止（`error: "cancelled"`）不發 toast——那不是「解析失敗」。
 
 #### HITL 章節審閱（`ChapterReviewPage`，路由 `/upload/review/:bookId?taskId=`）
 

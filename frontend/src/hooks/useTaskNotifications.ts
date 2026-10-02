@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { fetchTasks, type TaskStatus } from '@/api/tasks';
+import { fetchTasks, isCancelled, type TaskStatus } from '@/api/tasks';
 import { useToast, type PushToastInput } from '@/contexts/ToastContext';
 import { qk } from '@/api/queryKeys';
 
@@ -27,7 +27,9 @@ function failedStepsOf(task: TaskStatus): string[] {
  *  success vs partial by whether any pipeline step failed. */
 type Phase = 'done' | 'partial' | 'awaiting_review' | 'error';
 
-function phaseOf(task: TaskStatus): Phase | null {
+export function phaseOf(task: TaskStatus): Phase | null {
+  // The user terminated it: nothing to announce, and "解析失敗" would be false.
+  if (isCancelled(task)) return null;
   if (task.status === 'error') return 'error';
   if (task.status === 'awaiting_review') return 'awaiting_review';
   if (task.status === 'done') return failedStepsOf(task).length > 0 ? 'partial' : 'done';
