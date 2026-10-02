@@ -1578,48 +1578,76 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 
 ### 3.12 Token 用量頁 `/token-usage`
 
-全站層級（非書籍頁面）。
+全站層級（非書籍頁面）。DS v3 第 2 批改版（決議紀錄 06）：B 檢視、頁面 CSS `frontend/src/styles/token-usage.css`
+（`tu-` 前綴），純邏輯在 `components/tokenUsage/tokenUsageModel.ts`。**純讀取儀表板——零 token、零寫入，不掛 sparkles。**
 
-#### 版面結構
+#### 密度與版面
+
+padding 24／section 16／card 12／row 8，內容 max-w 1280。
 
 ```
-[Header + 書籍選擇器 + 時間範圍選擇器]
-[統計卡片] [按書籍細分表格] [按服務細分表格] [按模型細分表格] [每日趨勢圖]
+[標題「Token 用量」        書籍下拉  範圍 pill ×4]
+[摘要 3 張]
+[書籍別用量（byBook）]
+[服務別用量 | 模型別用量]      ← 並排 1.25fr／1fr（≤900px 疊成一欄）
+[每日趨勢]
 ```
 
-#### 時間範圍
+標題列右側順序：**書籍下拉在前、範圍 pill 在後**（依 06 決議紀錄 A／C；README §3.1 寫反，FEEDBACK 2-TU-4）。標題 serif 2xl，區段標 serif base 600。
 
-`今天 / 近 7 天 / 近 30 天 / 全部`，切換時重新請求。
+- 範圍 pill：四顆獨立 chip「今天／7 天／30 天／全部」，`--pill-radius`，idle `--bg-secondary`，選中 accent 實心；切換時重新請求。
+- 書籍下拉：`--input-bg`／`--input-radius`／`--input-border-width`，min-width 180。選項「全部書籍」＋各書＋「未歸屬」。
+  書清單為空（含全部查詢失敗）時不渲染。它是唯一能選到「未歸屬」的入口，所以不能拿掉。
 
 #### 書籍選擇器與下鑽
 
-下拉選單，預設「全部書籍」。選定一本書時，**下方每一個區塊都跟著限定**——統計
-卡片、服務別、模型別、每日趨勢，不是只有卡片變。
+選定一本書時，**byService、byModel、daily、摘要卡都跟著限定**；byBook 不縮。
 
-「按書籍」表格的每一列都可點選，等同於用選擇器選它；點已選中的那列取消選取。
-表格本身**永遠顯示全部書籍**（資料取自未篩選的請求），所以選定一本之後仍能直接
-換到另一本。
+byBook 表的每一列都可點選，等同於用下拉選它，**兩者是同一個狀態**；點已選中的列取消選取。表格**永遠顯示全部書籍**
+（資料取自未過濾的請求），所以選定一本之後仍能直接換到另一本。選定時表上方出現說明
+「這張表永遠顯示全部書籍——點另一列即可切換」。
 
-兩種沒有書名的列必須看得見，不得隱藏或併入其他列：
+- 只有 byBook 的列有 cursor 與 hover；byService／byModel 不可點、無 hover。
+- 選中列：`--bg-secondary` 底＋加粗＋Lucide `check`（accent）。**不用左緣／inset 強調**；check 讓 Ink 下不靠底色也讀得出。
+- 名稱格內是一顆 button（`aria-pressed`），鍵盤可達；整列 click 也等效。
+
+兩種沒有書名的列必須看得見，不得隱藏、併入其他列或降階成灰字：
 
 | 情況 | 顯示 | 為什麼 |
 |------|------|--------|
 | `bookId` 為 `null` | 「未歸屬」 | 全站對話、以及 2026-08-19 歸因修正之前的舊記錄。那些錢花過了，藏起來會讓總數對不上 |
 | `bookId` 有值但 `title` 為 `null` | 「已刪除的書 · <id 前 8 碼>」 | 刪書刻意不清 `token_usage`；id 前綴是僅存的辨識依據，也足以區分兩本已刪的書 |
 
-#### 統計卡片（3 格）
+#### 摘要（3 張，刻意不是 4 張）
 
-Prompt Tokens / Completion Tokens / 總請求次數
+kit `.ss-stats-row`／`.ss-stat`（數值在上、標籤在下）：Prompt Tokens／Completion Tokens／總呼叫次數。
+`totalTokens` **不上卡**，合計只出現在各表的「合計」欄。
 
-#### 細分表格（BreakdownTable）
+#### 細分表格
 
-依服務分組（按 totalTokens 降序排列），欄位：名稱 / Prompt / Completion / Total / 次數。
+三張表（byBook／byService／byModel）表頭逐字「名稱／Prompt／Completion／合計／呼叫」（「Prompt」寫死，維持現況）。
+數字欄 mono 2xs、右對齊＋tabular-nums；合計欄加粗，呼叫欄淡化；依 totalTokens 降冪。服務中文名走既有 `token.services.*`，旁邊不標 slug；
+byModel 顯示原始 model id。
 
-按模型、按書籍分組同樣格式；只有按書籍那張可點選。
+#### 每日趨勢
 
-#### 每日趨勢圖（DailyChart）
+與表同框的容器；每列：日期（mono、44px）＋ 12px 高長條（accent，全同色、不標峰值、無透明度差）＋ 數值（92px 右對齊）。
+**無軸線、刻度、格線、tooltip**——長條是本期相對值，數值才是量值來源。長條寬＝該日／期間最大值（`dailyScale`）。
+標題右側（同一行）的刻度註記帶入最大值那天的 MM-DD 與數值（千分位）；日期與數值皆 mono。
 
-水平長條圖，每列一天，長條寬度代表當日 totalTokens。
+#### 狀態
+
+| 狀態 | 呈現 |
+|------|------|
+| 載入中 | 內容區整塊 spinner＋「載入中…」（common `loading`），**不換骨架**（節數隨資料變）。標題列與範圍 pill 保留 |
+| 全頁空（`summary.totalCalls === 0`） | 虛線框＋置中灰字「尚無使用記錄」；範圍 pill 仍在，無 CTA |
+| 空區段 | byBook／byService／byModel／daily 為空時**整節隱藏**——不留空表、不寫「無資料」、不畫虛線框 |
+| 失敗 | 頁面打兩個查詢（未過濾、選定書），**任一失敗都走失敗態**。依 `failureKind`：`page` →「無法載入Token 用量」＋定案兩句＋技術細節；`backend` →「伺服器沒有回應」。**標題列與範圍 pill 保留**（換範圍是新請求）；「重試」重打兩個查詢 |
+
+#### 字串來源
+
+既有字串逐字保留（`settings.json` 的 `token.*`）。**新字串 2 句，皆為已裁決**（README §5／決議紀錄 06）：
+`token.dailyNote`（刻度註記）、`token.byBookScope`（byBook 範圍說明）；失敗標題用 common 的 `failure.pageTitle`。無草稿字串。
 
 #### API 參考
 
