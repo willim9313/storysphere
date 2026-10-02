@@ -143,6 +143,8 @@
     "colCompletion": "Completion",
     "colTotal": "Total",
     "colCalls": "Calls",
+    "dailyNote": "Bar length is relative to this period (relative to {{value}} on {{date}}), not an absolute scale; lengths cannot be compared across time ranges.",
+    "byBookScope": "This table always shows all books — click another row to switch.",
     "byBook": "Usage by Book",
     "allBooks": "All books",
     "unattributed": "Unattributed",

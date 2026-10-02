@@ -1,0 +1,201 @@
+/* Token 用量 /token-usage — DS v3 第 2 批（決議紀錄 06）。前綴 tu-。
+   B 檢視：padding 24 / section 16 / card 12 / row 8 / max-w 1280。
+   純讀取頁：零 token、零寫入，不掛 sparkles。 */
+
+.tu-page {
+  height: 100%;
+  overflow-y: auto;
+  padding: var(--space-7);
+}
+.tu-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+/* ── 標題列：範圍 pill 在前、書籍下拉在後 ── */
+.tu-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+.tu-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--fg-primary);
+  margin: 0;
+}
+.tu-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+.tu-ranges { display: flex; gap: var(--space-3); }
+.tu-range {
+  padding: var(--space-2) var(--space-5);
+  border: none;
+  border-radius: var(--pill-radius);
+  background: var(--bg-secondary);
+  color: var(--fg-secondary);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+.tu-range[aria-pressed='true'] {
+  background: var(--accent);
+  color: var(--accent-fg);
+}
+.tu-book-select {
+  min-width: 180px;
+  padding: var(--space-3) var(--space-5);
+  background: var(--input-bg);
+  color: var(--fg-primary);
+  border: var(--input-border-width) var(--border-style) var(--border);
+  border-radius: var(--input-radius);
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+}
+
+/* ── 區段 ── */
+.tu-section { display: flex; flex-direction: column; gap: var(--space-5); }
+.tu-section-title {
+  margin: 0;
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--fg-secondary);
+}
+.tu-scope-note,
+.tu-daily-note {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+  line-height: 1.5;
+}
+.tu-pair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+  align-items: start;
+}
+.tu-pair > .tu-section:only-child { grid-column: 1 / -1; }
+@media (max-width: 900px) {
+  .tu-pair { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ── 表 ── */
+.tu-table-wrap {
+  overflow-x: auto;
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-lg);
+}
+.tu-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-xs);
+}
+.tu-table th,
+.tu-table td {
+  padding: var(--space-4) var(--space-6);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.tu-table th:first-child,
+.tu-table td:first-child { text-align: left; white-space: normal; }
+.tu-table thead tr { background: var(--bg-secondary); }
+.tu-table th {
+  font-weight: 500;
+  color: var(--fg-muted);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+.tu-table tbody tr + tr td { border-top: var(--line-weight) var(--border-style) var(--border); }
+.tu-table td { color: var(--fg-secondary); }
+.tu-table td.tu-name { color: var(--fg-primary); font-weight: 500; }
+.tu-table td.tu-total { color: var(--fg-primary); font-weight: 700; }
+.tu-table td.tu-calls { color: var(--fg-muted); }
+
+/* byBook：唯一可點的表。選中 = bg-secondary + 加粗 + check（不用左緣強調） */
+.tu-row-pick { cursor: pointer; }
+.tu-row-pick:hover { background: var(--bg-secondary); }
+.tu-row-selected { background: var(--bg-secondary); }
+.tu-row-selected td { font-weight: 700; }
+.tu-pick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 0;
+  border: none;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.tu-check { color: var(--accent); flex-shrink: 0; }
+
+/* ── 每日趨勢：與表同框，無軸線／刻度／格線／tooltip ── */
+.tu-daily {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-lg);
+}
+.tu-daily-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  font-size: var(--font-size-xs);
+}
+.tu-daily-date {
+  width: 44px;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  color: var(--fg-muted);
+}
+.tu-daily-track { flex: 1; min-width: 0; }
+.tu-daily-bar {
+  height: 12px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+}
+.tu-daily-value {
+  width: 92px;
+  flex-shrink: 0;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-secondary);
+}
+
+/* ── 全頁空 ── */
+.tu-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8) var(--space-6);
+  min-height: 200px;
+  border: 2px dashed var(--border);
+  border-radius: var(--radius-lg);
+  color: var(--fg-muted);
+  font-size: var(--font-size-sm);
+}
+
+/* ── Loading ── */
+.tu-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-8) 0;
+  color: var(--fg-muted);
+  font-size: var(--font-size-sm);
+}

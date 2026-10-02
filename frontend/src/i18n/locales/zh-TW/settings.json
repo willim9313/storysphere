@@ -143,6 +143,8 @@
     "colCompletion": "Completion",
     "colTotal": "合計",
     "colCalls": "呼叫",
+    "dailyNote": "長條寬度為本期相對值（相對 {{date}} 的 {{value}}），非絕對刻度；換時間範圍後長度不可跨期比較",
+    "byBookScope": "這張表永遠顯示全部書籍——點另一列即可切換",
     "byBook": "書籍別用量",
     "allBooks": "全部書籍",
     "unattributed": "未歸屬",
