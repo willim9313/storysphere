@@ -1520,50 +1520,98 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 
 ---
 
-### 3.11 方法論頁 `/methodology`
+### 3.11 方法論頁 `/methodology`（DS v3 第 2 批）
 
-> **2026-05-30 重新設計**：原 `/frameworks` 重新定位為 **Methodology（方法論）** 頁面，作為整套分析方法的說明與教育中心。「方法論」「Methodology」皆為暫定佔位名稱，等產品語言確定後一起調整。設計交接見 `methodology-page/` 設計包。
+全站層級、不屬於任何書籍的教育中心。**零 API、零 token、零寫入**：資料全是前端靜態檔
+（`frameworksData.ts`，隨 UI 語言切 zh／en），所以**沒有 loading／error／empty 態**，唯一的「空」是 rail 搜尋無命中。
+全頁**不掛 Sparkles**（它專屬 LLM 成本）：節頭改編號 01–06，分類卡不放圖示。決議紀錄 07、批次計畫
+`docs/plans/20261002-ds-v3-batch2-system.md`。
 
-全站層級，不屬於任何書籍。**三欄閱讀結構**：
-
-```
-[Left Sidebar 48px] [方法論導覽 262px] [主內容 flex] [本頁目錄 188px]
-```
-
-- **左欄方法論導覽**：依分析類型分群（角色分析 / 敘事弧 / 張力 / 象徵），每群可收合（搜尋時自動展開）；首項為「總覽」入口。
-- **主內容**：總覽頁顯示分類卡 + 方法列；點任一方法進入單一方法頁。
-- **頂部分頁**：理論與方法（About）/ 跨書查閱（Cross-book）；流程型方法（如 SEP）自動停用跨書分頁。
-- **右側本頁目錄**：sticky 錨點 TOC，scroll-spy 高亮當前章節。
-
-#### 單一方法頁閱讀流程
-
-引言 → **概念架構**（每個方法獨立設計的概念圖）→ 類型一覽（卡片網格）→ 系統如何分析（pipeline + 輸出欄位）→ **分析品質與信心值**（amber 誠實說明框 + 三層級唯讀說明）→ 參考文獻。
-
-| 方法 | 概念圖 |
-|------|--------|
-| Jung 原型 | 12 原型輪盤 + 4 動機取向象限 |
-| Schmidt 類型 | 性別對偶雙欄（8 女性 + 8 男性 + 配角／反派 = 45） |
-| 英雄旅程 | 12 階段環形圖（平凡／非常世界雙半球） |
-| Chatman Kernel/Satellite | 因果鏈：核心事件串連主軸，衛星事件以虛線懸掛其下 |
-| Genette 敘事時序 | 雙軸對位：文本順序 vs 故事順序，連線垂直為順序、交叉為倒敘／預敘 |
-| Frye 四季神話 | 四季 × 四神話圓環 |
-| Booker 七情節 | 七條「故事形狀」曲線 |
-| SEP 象徵分析 | 資料層 → 詮釋層狀態流程（含 HITL 退回回饋線） |
-
-#### 信心值說明（amber 誠實框）
-
-刻意保留的設計重點：信心值是 LLM 推論當下的自我評估，非可逐項稽核的確定性公式。三個層級為唯讀說明（已確立 / 推定 / 暫定），**頁面內不提供滑桿類互動**——避免暗示信心值是可計算的。
-
-#### 跨書查閱（Coming soon）
-
-當前為佔位空殼，標「即將推出」。需接後端真實聚合結果，計劃支援列表與矩陣兩種視圖、右側細節面板。
-
-#### 從角色分析頁跳入
+#### 版型（C 入口密度）
 
 ```
-/methodology?framework=jung     → 自動選中 Jung 原型（About 分頁）
-/methodology?framework=schmidt  → 自動選中 Schmidt 類型
+[Left Sidebar 48px] [rail 232px] [內容：標題列＋分頁 → 文章 flex ＋ 本頁目錄 188px]
 ```
+
+page padding `--space-8`（32）、節距 `--space-8`／標題列 `--space-7`（24）、卡 padding `--space-6`／`--space-7`（16／24）。
+**頂列併入內容區標題列**：標題（serif 2xl）＋分類 chip（單一方法頁）＋「全站參考，不屬於特定書籍」（總覽與單一方法頁都有，
+是本頁的資訊架構定位宣告）；總覽標題旁多一個「說明文件」標。分頁「理論與方法／跨書查閱」是 **underline 樣式**，放在標題下方。
+
+#### rail（232px，`methodologyModel.buildRailGroups`）
+
+- 品牌區（「方法論」＋「說明文件」＋ mono `METHODOLOGY`）→ 搜尋框 → 「總覽」→ 四組分類。
+- 搜尋框用 `--input-bg`／`--input-radius`／`--input-border-width`，padding `--space-3 --space-5`。
+- 分類（角色分析／敘事弧分析／張力分析／象徵分析）與方法名逐字；每個方法下一行 **mono 規模數字**
+  （12 類型／45 類型／12 階段／2 類型／3 類型／4 神話／7 情節／5 步驟）；分類標頭右側是該組方法數
+  （2xs muted sans、tabular-nums，**不隨狀態換色**）。
+- 選中態＝`--bg-secondary` 底＋accent 字＋加粗，**不用左緣／inset 強調**（本頁目錄同）。
+- 搜尋同時比對**方法名、item 名、分類名**（不分大小寫）；搜尋期間「總覽」仍在、所有分組強制展開（無折疊箭頭）；
+  無命中的組**整組不渲染、標頭一併消失**。查「英雄」→ 角色分析 2／敘事弧分析 1。
+- 分類組平時可個別收合（`collapsed` 本地狀態）。
+
+#### 總覽
+
+標題列 → lead（serif，逐字）→ 分隔線 →「概念架構」節頭（無編號、無圖示）→ 四張分類卡（2 欄）。
+每張卡列出該類方法，每列右側 mono accent 規模數字；點卡片本身跳該分類第一個方法（`firstOfCategory`），點方法列跳該方法。
+
+#### 單一方法六節（`?framework=` 驅動，`replace: true`）
+
+| # | 節 | 內容 |
+|---|----|------|
+| 01 | 引言 | `description` 逐字（serif）＋兩個計數（items 數／理論來源數） |
+| 02 | 概念架構 | 節頭副標＝`conceptSub.*`；八張專屬概念圖（下節）＋ caption |
+| 03 | 類型一覽 | 三欄卡：序號（mono accent）、名稱（serif）、英文 id（mono）、badge、`details.slice(0, 2)`；**Schmidt 例外**見下 |
+| 04 | 系統如何分析 | 三步 pipeline 卡（mono accent 階段標記「輸入／處理／輸出」＋序號＋描述），步間 Lucide `arrow-right`；其下「輸出欄位」schema 表（欄位名 mono｜型別 mono｜註記，無表頭列） |
+| 05 | 分析品質與信心值 | 見「信心值分歧」 |
+| 06 | 參考文獻 | `[n]`（mono accent）＋「作者 (年份). *書名*. 出版社. — 註記」 |
+
+右側「本頁目錄」編號 01–06，沿用 IntersectionObserver 高亮目前所在節、點擊平滑捲動。<1080px 隱藏目錄。
+
+**Schmidt 45 類型**：依 badge 首詞分三組（`groupItemsByBadge`；zh 女性 17／男性 18／中性 10，en Female／Male／Neutral 同數），
+每組一條 **sticky 標頭**（組名＋數量，捲動容器為 `.md-content`），組內保留資料原序與**原序號**；
+不分頁、不加「顯示更多」、不縮成列表。每卡：名稱、id、badge、核心驅力、最大恐懼。
+
+#### 八張概念圖（`ConceptDiagram.tsx`）
+
+各自不同結構，**不正規化成同一版型**；viewBox、marker、節點座標、分組順序照原始碼。圖卡右上帶「附信心值」或
+「不產生信心值」標（後者虛線框）。**Ink 下 `--entity-*` 與 status 色會退成同一個灰，所以每個分類層都帶非色相載體**：
+填色之上疊 0／45／90／135° hatch（SVG `<pattern>`，id 前綴 `md-`）、節點分組用記號形狀（實圓／空圓／實方／空方）＋半徑差、
+邊用實線／虛線與有無箭頭。不新增色相，SVG 內一律 `var(--*)`。
+
+| 方法 | 結構 | 非色相載體 |
+|------|------|-----------|
+| Jung | 輪盤 460×410：四取向象限（楔內標取向名）＋12 節點 | 象限 hatch 0／45／90／135°、節點 實圓／實方／空圓／空方；圖例色塊同載體＋每組 3 |
+| Schmidt | 性別對偶脊：左八女神、右八男神，同列為一組對偶 | 兩欄表頭自帶文字；算式「8 女性 + 8 男性 + 配角 · 反派 = 45」下一行交代句（草稿，見下） |
+| 英雄旅程 | 階段環 400×400：兩個世界（虛線直徑為閾限）× 三幕 × 12 階段順序 | 三幕 實圓／實方／空圓；環外圖例按幕分組列階段名（`hjStageList`） |
+| Chatman | 因果鏈 560×190：kernel（半徑 20、實線填色、有箭頭）／satellite（半徑 14、虛線空心、無箭頭） | 半徑、填充、線型、箭頭四重 |
+| Genette | 雙軸交叉 460×230：上軸文本順序 A／B／C、下軸**故事順序 C／B／A**（C 最先發生在左） | 順序＝實線、倒敘＝密虛線、預敘＝疏虛線；下軸節點底色標型別；位移標籤放在兩線之間 |
+| Frye | 四季圓環 400×410：季節／神話名／登錄詞三層文字＋**四段外弧順時針循環箭頭**（`frye-arrow`） | 四季 hatch |
+| Booker | 曲線族 120×40 ×7：**兩欄七格**，每格同尺寸小框＋同一條虛線中性線＋同筆色 | 中性線之上為升、之下為降 |
+| SEP | 流程迴圈 660×250：資料層（四步有向序列）→ AI 詮釋層（LLM → HITL）＋退回邊 | 兩層帶 hatch 0／90°；實線推進、虛線退回 |
+
+#### 信心值分歧（本頁最重要的分析層）
+
+- `hasConfidence === true`（jung／schmidt／hero_journey／chatman／sep_methodology）：導言「每一項判定都附帶一個 0–1 的信心值…」
+  ＋ **HonestCallout**（標題「信心值是什麼，不是什麼」＋全文逐字，serif、`--bg-secondary` 面、72ch，不分行重組、不縮成 tooltip）
+  ＋ **三層級圖例**：已確立 `0.80 – 1.00`／推定 `0.55 – 0.79`／暫定 `0.00 – 0.54`（區間 mono accent，不可省），各帶一句描述與
+  ●●●／●●○／●○○ 非色相圓點；**不畫成連續漸層條**。
+- `hasConfidence === false`（genette_temporal_order／frye_mythos／booker_plots）：只顯示 **NoConfidenceNote** 全文逐字；
+  三層級圖例**完全不顯示**（不灰掉、不寫「不適用」、不折疊）。
+- 兩種 callout 共用同一外框＋Lucide `alert-triangle`（`--color-warning`）。
+
+#### 跨書查閱（兩種佔位，不合併）
+
+- `crossBook === true`（7 個方法）：分頁可點；內容＝虛線徽章「跨書查閱即將推出」＋說明全文（`crossSoonBody`）。
+- `sep_methodology`：分頁 **disabled**，`components/ui/Tooltip.tsx` 掛在外層 wrapper（取代原生 `title`），tooltip 與內容是同一句
+  `noCross`。「還沒做」與「不會有」是兩件事。
+
+#### 字串來源與草稿
+
+字串一律優先用既有 `frameworks.json`（`conceptSub.*`、`concept.*`、`hjStageList` 等稿標「缺」者其實都在）；圖內標籤與稿不同時用既有，
+第 05 節標題用既有「分析品質與信心值」。決議紀錄每張卡的「設計註」不進產品。
+**這 3 句是草稿・待設計定案**（i18n `frameworks.confBadgeHas`／`confBadgeNone`／`concept.schmidtNote`；JSON 不能寫註解，故記在此）：
+「附信心值」「不產生信心值」（圖卡右上標）、Schmidt 算式下的「圖中 16 位是主角原型；類型一覽的 45 張卡另以 badge 標性別：
+女性 17、男性 18、中性 10。」（數字已以 `frameworksData` 實算核對相符，`methodologyModel.test.ts` 鎖住 17／18／10）。
 
 #### 元件位置
 
@@ -1571,8 +1619,16 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 |------|------|
 | 頁面入口 | `frontend/src/pages/MethodologyPage.tsx` |
 | 概念圖（八種） | `frontend/src/components/methodology/ConceptDiagram.tsx` |
-| 範圍 CSS | `frontend/src/styles/methodology.css` |
-| 資料來源 | `frontend/src/data/frameworksData.ts`（含 `pipeline / output / categoryId / crossBook`） |
+| 純邏輯（rail 搜尋比對、Schmidt 依 badge 首詞分組）＋ vitest | `frontend/src/components/methodology/methodologyModel.ts`／`.test.ts` |
+| 範圍 CSS（`md-` 前綴） | `frontend/src/styles/methodology.css` |
+| 資料來源 | `frontend/src/data/frameworksData.ts`（含 `pipeline / output / categoryId / crossBook / hasConfidence`） |
+
+#### 從角色分析頁跳入
+
+```
+/methodology?framework=jung     → 自動選中 Jung 原型（About 分頁）
+/methodology?framework=schmidt  → 自動選中 Schmidt 類型
+```
 
 ---
 

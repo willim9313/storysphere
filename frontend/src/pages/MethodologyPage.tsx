@@ -1,119 +1,65 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import {
-  AlertTriangle,
-  ChevronRight,
-  Search,
-  Sparkles,
-  Users,
-  Route,
-  Activity,
-  Grid3x3,
-  Quote,
-  ArrowRight,
-} from 'lucide-react';
+import { AlertTriangle, ArrowRight, ChevronRight, Search } from 'lucide-react';
 import {
   getFrameworks,
   getFrameworkCategories,
   type Framework,
-  type FrameworkCategory,
+  type FrameworkItem,
 } from '@/data/frameworksData';
 import { ConceptDiagram } from '@/components/methodology/ConceptDiagram';
+import {
+  buildRailGroups,
+  firstOfCategory,
+  groupItemsByBadge,
+  normalizeQuery,
+  scaleLabel,
+} from '@/components/methodology/methodologyModel';
+import { Tooltip } from '@/components/ui/Tooltip';
 import '@/styles/methodology.css';
 
 type Mode = 'about' | 'cross';
 type Tier = 'established' | 'presumed' | 'tentative';
 
-const CAT_ICON: Record<FrameworkCategory, typeof Users> = {
-  character: Users,
-  arc: Route,
-  tension: Activity,
-  symbol: Sparkles,
-};
-
-function HonestCallout() {
-  const { t } = useTranslation('frameworks');
+/** 兩種告誡框（HonestCallout／NoConfidenceNote）共用同一外框＋alert-triangle。 */
+function Callout({ title, body }: { title: string; body: string }) {
   return (
     <div className="md-callout" role="note">
       <span className="md-callout-icon">
-        <AlertTriangle size={16} color="var(--color-warning)" />
+        <AlertTriangle size={16} color="var(--color-warning)" aria-hidden="true" />
       </span>
-      <div>
-        <div className="md-callout-title">{t('honestTitle')}</div>
-        <p className="md-callout-body">{t('honestBody')}</p>
+      <div className="md-callout-text">
+        <div className="md-callout-title">{title}</div>
+        <p className="md-callout-body">{body}</p>
       </div>
     </div>
   );
 }
 
-function NoConfidenceNote() {
-  const { t } = useTranslation('frameworks');
-  return (
-    <div className="md-callout" role="note">
-      <span className="md-callout-icon">
-        <AlertTriangle size={16} color="var(--color-warning)" />
-      </span>
-      <div>
-        <div className="md-callout-title">{t('noConfidenceTitle')}</div>
-        <p className="md-callout-body">{t('noConfidenceBody')}</p>
-      </div>
-    </div>
-  );
-}
-
-function tierColors(tier: Tier) {
-  if (tier === 'established') {
-    return {
-      bg: 'var(--status-complete-bg)',
-      fg: 'var(--status-complete-fg)',
-      edge: 'var(--status-complete-border)',
-    };
-  }
-  if (tier === 'presumed') {
-    return {
-      bg: 'var(--status-partial-bg)',
-      fg: 'var(--status-partial-fg)',
-      edge: 'var(--status-partial-border)',
-    };
-  }
-  return {
-    bg: 'var(--status-empty-bg)',
-    fg: 'var(--status-empty-fg)',
-    edge: 'var(--status-empty-border)',
-  };
-}
+// 三層級：圓點數是非色相編碼（●●● / ●●○ / ●○○）；不畫成連續漸層條。
+const TIERS: { tier: Tier; dots: number }[] = [
+  { tier: 'established', dots: 3 },
+  { tier: 'presumed', dots: 2 },
+  { tier: 'tentative', dots: 1 },
+];
 
 function TierLegend() {
   const { t } = useTranslation('frameworks');
-  const tiers: Tier[] = ['established', 'presumed', 'tentative'];
   return (
     <div className="md-tierlegend">
-      {tiers.map((tier) => {
-        const c = tierColors(tier);
-        return (
-          <div className="md-tier" key={tier} style={{ borderColor: c.edge }}>
-            <div className="md-tier-head">
-              <span
-                style={{
-                  fontSize: '0.625rem',
-                  fontWeight: 600,
-                  padding: '1px 8px',
-                  borderRadius: 20,
-                  border: '1px solid',
-                  background: c.bg,
-                  color: c.fg,
-                  borderColor: c.edge,
-                }}
-              >
-                {t(`tier.${tier}`)}
-              </span>
-              <span className="md-tier-range">{t(`tier.${tier}Range`)}</span>
-            </div>
-            <p className="md-tier-desc">{t(`tier.${tier}Desc`)}</p>
-          </div>
-        );
-      })}
+      {TIERS.map(({ tier, dots }) => (
+        <div className="md-tier" key={tier}>
+          <span className="md-tier-dots" aria-hidden="true">
+            {[0, 1, 2].map((i) => (
+              <span key={i} className={`md-tier-dot ${i < dots ? 'on' : ''}`} />
+            ))}
+          </span>
+          <span className="md-tier-name">{t(`tier.${tier}`)}</span>
+          <code className="md-tier-range">{t(`tier.${tier}Range`)}</code>
+          <span className="md-tier-desc">{t(`tier.${tier}Desc`)}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -130,38 +76,16 @@ function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery }:
   const { t, i18n } = useTranslation('frameworks');
   const categories = getFrameworkCategories(i18n.language);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
-  const q = query.trim().toLowerCase();
-
-  const filtered = useMemo(() => {
-    if (!q) return frameworks;
-    return frameworks.filter(
-      (fw) =>
-        fw.name.toLowerCase().includes(q) ||
-        fw.items.some((it) => it.name.toLowerCase().includes(q)) ||
-        fw.category.toLowerCase().includes(q),
-    );
-  }, [frameworks, q]);
+  const searching = normalizeQuery(query) !== '';
+  const groups = useMemo(
+    () => buildRailGroups(frameworks, categories, query),
+    [frameworks, categories, query],
+  );
 
   const toggle = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
 
-  const renderItem = (fw: Framework) => (
-    <button
-      key={fw.key}
-      className={`md-railitem ${selectedKey === fw.key ? 'active' : ''}`}
-      onClick={() => onSelect(fw.key)}
-    >
-      <span className="md-railitem-dot" />
-      <span className="md-railitem-text">
-        <div className="md-railitem-name">{fw.name}</div>
-        <div className="md-railitem-meta">
-          {fw.items.length} {fw.itemLabel}
-        </div>
-      </span>
-    </button>
-  );
-
   return (
-    <div className="md-rail">
+    <nav className="md-rail" aria-label={t('brand')}>
       <div className="md-rail-head">
         <div className="md-rail-brand">
           {t('brand')}
@@ -169,41 +93,74 @@ function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery }:
         </div>
         <div className="md-rail-sub">{t('brandSub')}</div>
       </div>
-      <div className="md-search">
-        <Search size={14} />
+      <label className="md-search">
+        <Search size={14} aria-hidden="true" />
         <input
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('searchPh')}
+          aria-label={t('searchPh')}
         />
-      </div>
+      </label>
       <div className="md-rail-scroll">
         <button
+          type="button"
           className={`md-railitem ${selectedKey === 'overview' ? 'active' : ''}`}
           onClick={() => onSelect('overview')}
-          style={{ marginBottom: 8 }}
         >
-          <Sparkles size={15} style={{ marginTop: 1, flexShrink: 0 }} />
-          <span className="md-railitem-text">
-            <div className="md-railitem-name">{t('overview')}</div>
-          </span>
+          <span className="md-railitem-name">{t('overview')}</span>
         </button>
-        {categories.map((cat) => {
-          const list = filtered.filter((f) => f.categoryId === cat.id);
-          if (!list.length) return null;
-          const isOpen = q ? true : !collapsed[cat.id];
+        {groups.map(({ category, frameworks: list }) => {
+          // 搜尋期間所有分組強制展開
+          const isOpen = searching || !collapsed[category.id];
           return (
-            <div className="md-railgroup" key={cat.id}>
-              <button className="md-railgroup-label" aria-expanded={isOpen} onClick={() => toggle(cat.id)}>
-                <ChevronRight size={12} className={`md-railgroup-chev ${isOpen ? 'open' : ''}`} />
-                <span className="md-railgroup-name">{cat.name}</span>
+            <div className="md-railgroup" key={category.id}>
+              <button
+                type="button"
+                className="md-railgroup-label"
+                aria-expanded={isOpen}
+                onClick={() => toggle(category.id)}
+                disabled={searching}
+              >
+                {!searching && (
+                  <ChevronRight size={12} className={`md-railgroup-chev ${isOpen ? 'open' : ''}`} aria-hidden="true" />
+                )}
+                <span className="md-railgroup-name">{category.name}</span>
                 <span className="md-railgroup-count">{list.length}</span>
               </button>
-              {isOpen && list.map(renderItem)}
+              {isOpen &&
+                list.map((fw) => (
+                  <button
+                    type="button"
+                    key={fw.key}
+                    className={`md-railitem ${selectedKey === fw.key ? 'active' : ''}`}
+                    onClick={() => onSelect(fw.key)}
+                  >
+                    <span className="md-railitem-name">{fw.name}</span>
+                    <span className="md-railitem-meta">{scaleLabel(fw)}</span>
+                  </button>
+                ))}
             </div>
           );
         })}
       </div>
+    </nav>
+  );
+}
+
+interface SectionHeadProps {
+  no?: string;
+  title: string;
+  sub?: string;
+}
+
+function SectionHead({ no, title, sub }: SectionHeadProps) {
+  return (
+    <div className="md-sechead">
+      {no && <span className="md-sechead-no">{no}</span>}
+      <h2 className="md-sechead-title">{title}</h2>
+      {sub && <span className="md-sechead-sub">{sub}</span>}
+      <span className="md-sechead-rule" />
     </div>
   );
 }
@@ -242,28 +199,77 @@ function AboutTOC({ sections, scrollerRef }: AboutTOCProps) {
     const root = scrollerRef.current;
     const el = document.getElementById(id);
     if (!root || !el) return;
-    const offset = el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - 14;
+    const offset = el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - 24;
     root.scrollTo({ top: offset, behavior: 'smooth' });
   };
 
   return (
     <aside className="md-toc">
-      <div className="md-toc-inner">
-        <div className="md-toc-label">{t('onThisPage')}</div>
-        <nav>
-          {sections.map((s, i) => (
-            <button
-              key={s.id}
-              className={`md-toc-item ${active === s.id ? 'active' : ''}`}
-              onClick={() => go(s.id)}
-            >
-              <span className="md-toc-n">{String(i + 1).padStart(2, '0')}</span>
-              {s.label}
-            </button>
-          ))}
-        </nav>
-      </div>
+      <div className="md-toc-label">{t('onThisPage')}</div>
+      <nav>
+        {sections.map((s, i) => (
+          <button
+            type="button"
+            key={s.id}
+            className={`md-toc-item ${active === s.id ? 'active' : ''}`}
+            onClick={() => go(s.id)}
+          >
+            <span className="md-toc-n">{String(i + 1).padStart(2, '0')}</span>
+            <span className="md-toc-t">{s.label}</span>
+          </button>
+        ))}
+      </nav>
     </aside>
+  );
+}
+
+function ItemCard({ item, n }: { item: FrameworkItem; n: number }) {
+  return (
+    <div className="md-itemcard">
+      <div className="md-itemcard-top">
+        <span className="md-itemcard-num">{n}</span>
+        <div className="md-itemcard-id">
+          <span className="md-itemcard-name">{item.name}</span>
+          {item.subtitle && <span className="md-itemcard-sub">{item.subtitle}</span>}
+        </div>
+        {item.badge && <span className="md-itemcard-badge">{item.badge}</span>}
+      </div>
+      {item.details.slice(0, 2).map((d) => (
+        <span className="md-itemcard-detail" key={d.label}>
+          <b>{d.label}</b> {d.value}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+/** 類型一覽。Schmidt 45 張依 badge 首詞分組、組標頭 sticky；不分頁、不縮列表。 */
+function ItemsGrid({ fw }: { fw: Framework }) {
+  if (fw.key !== 'schmidt') {
+    return (
+      <div className="md-items">
+        {fw.items.map((it, i) => (
+          <ItemCard key={it.id} item={it} n={i + 1} />
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="md-wall">
+      {groupItemsByBadge(fw.items).map((g) => (
+        <section key={g.label} className="md-wall-group">
+          <div className="md-wall-head">
+            <span>{g.label}</span>
+            <span className="md-wall-count">{g.entries.length}</span>
+          </div>
+          <div className="md-items">
+            {g.entries.map(({ item, n }) => (
+              <ItemCard key={item.id} item={item} n={n} />
+            ))}
+          </div>
+        </section>
+      ))}
+    </div>
   );
 }
 
@@ -276,10 +282,12 @@ function AboutMode({ fw, sections }: AboutModeProps) {
   const { t } = useTranslation('frameworks');
   const pipeMeta = [t('input'), t('process'), t('output')];
   const conceptSub = t(`conceptSub.${fw.key}`, { defaultValue: '' });
+  const no = (i: number) => String(i + 1).padStart(2, '0');
 
   return (
     <article className="md-article">
       <section id={sections[0].id} className="md-section">
+        <SectionHead no={no(0)} title={t('secIntro')} />
         <p className="md-lead">{fw.description}</p>
         <div className="md-metarow">
           <div className="md-meta">
@@ -294,93 +302,39 @@ function AboutMode({ fw, sections }: AboutModeProps) {
       </section>
 
       <section id={sections[1].id} className="md-section">
-        <div className="md-sechead">
-          <h2 className="md-sechead-title">
-            <Sparkles size={15} color="var(--accent)" />
-            {t('secConcept')}
-          </h2>
-          {conceptSub && <span className="md-sechead-sub">{conceptSub}</span>}
-        </div>
+        <SectionHead no={no(1)} title={t('secConcept')} sub={conceptSub || undefined} />
         <ConceptDiagram fw={fw} />
       </section>
 
       <section id={sections[2].id} className="md-section">
-        <div className="md-sechead">
-          <h2 className="md-sechead-title">
-            <Grid3x3 size={15} color="var(--accent)" />
-            {t('secItems')}
-          </h2>
-          <span className="md-sechead-sub">
-            {fw.items.length} {fw.itemLabel}
-          </span>
-        </div>
-        <div className="md-items">
-          {fw.items.map((it, i) => (
-            <div key={it.id} className="md-card md-itemcard">
-              <div className="md-itemcard-top">
-                <span className="md-itemcard-num">{i + 1}</span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="md-itemcard-name">{it.name}</div>
-                  {it.subtitle && <div className="md-itemcard-sub">{it.subtitle}</div>}
-                </div>
-                {it.badge && <span className="md-itemcard-badge">{it.badge}</span>}
-              </div>
-              {it.details.slice(0, 2).map((d) => (
-                <div className="md-itemcard-detail" key={d.label}>
-                  <b>{d.label}</b>
-                  {' '}
-                  {d.value}
-                </div>
-              ))}
-            </div>
-          ))}
-        </div>
+        <SectionHead no={no(2)} title={t('secItems')} sub={scaleLabel(fw)} />
+        <ItemsGrid fw={fw} />
       </section>
 
       <section id={sections[3].id} className="md-section">
-        <div className="md-sechead">
-          <h2 className="md-sechead-title">
-            <Route size={15} color="var(--accent)" />
-            {t('secPipeline')}
-          </h2>
-          <span className="md-sechead-sub">{t('pipelineSub')}</span>
+        <SectionHead no={no(3)} title={t('secPipeline')} sub={t('pipelineSub')} />
+        <div className="md-pipe">
+          {fw.pipeline.map((s, i) => (
+            <div className="md-pipe-slot" key={s.key}>
+              <div className="md-pipe-step">
+                <span className="md-pipe-kicker">{pipeMeta[i]}</span>
+                <span className="md-pipe-title">{i + 1}</span>
+                <span className="md-pipe-desc">{s.what}</span>
+              </div>
+              {i < fw.pipeline.length - 1 && (
+                <span className="md-pipe-arrow" aria-hidden="true">
+                  <ArrowRight size={16} />
+                </span>
+              )}
+            </div>
+          ))}
         </div>
-        <div className="md-card">
-          <div className="md-pipe">
-            {fw.pipeline.map((s, i) => (
-              <span key={s.key} style={{ display: 'contents' }}>
-                <div className="md-pipe-step">
-                  <span className="md-pipe-kicker">{pipeMeta[i]}</span>
-                  <span className="md-pipe-title">{i + 1}</span>
-                  <span className="md-pipe-desc">{s.what}</span>
-                </div>
-                {i < fw.pipeline.length - 1 && (
-                  <div className="md-pipe-arrow">
-                    <ArrowRight size={16} />
-                  </div>
-                )}
-              </span>
-            ))}
-          </div>
-        </div>
-        <div style={{ height: 'var(--space-md)' }} />
-        <div
-          style={{
-            fontSize: '0.625rem',
-            fontWeight: 600,
-            letterSpacing: '0.06em',
-            textTransform: 'uppercase',
-            color: 'var(--fg-muted)',
-            marginBottom: 6,
-          }}
-        >
-          {t('secOutput')}
-        </div>
-        <div className="md-card md-schema">
+        <div className="md-subhead">{t('secOutput')}</div>
+        <div className="md-schema">
           {fw.output.map((o) => (
             <div className="md-schema-row" key={o.field}>
-              <span className="md-schema-field">{o.field}</span>
-              <span className="md-schema-type">{o.type}</span>
+              <code className="md-schema-field">{o.field}</code>
+              <code className="md-schema-type">{o.type}</code>
               <span className="md-schema-note">{o.note}</span>
             </div>
           ))}
@@ -388,56 +342,29 @@ function AboutMode({ fw, sections }: AboutModeProps) {
       </section>
 
       <section id={sections[4].id} className="md-section">
-        <div className="md-sechead">
-          <h2 className="md-sechead-title">
-            <Activity size={15} color="var(--accent)" />
-            {t('secConfidence')}
-          </h2>
-        </div>
+        <SectionHead no={no(4)} title={t('secConfidence')} />
         {fw.hasConfidence ? (
           <>
-            <p className="md-lead" style={{ marginBottom: 'var(--space-md)' }}>
-              {t('confIntro')}
-            </p>
-            <HonestCallout />
-            <div style={{ height: 'var(--space-md)' }} />
-            <div
-              style={{
-                fontSize: '0.625rem',
-                fontWeight: 600,
-                letterSpacing: '0.06em',
-                textTransform: 'uppercase',
-                color: 'var(--fg-muted)',
-                marginBottom: 6,
-              }}
-            >
-              {t('tierLegend')}
-            </div>
+            <p className="md-conf-intro">{t('confIntro')}</p>
+            <Callout title={t('honestTitle')} body={t('honestBody')} />
             <TierLegend />
           </>
         ) : (
-          <NoConfidenceNote />
+          // 不產生信心值：只放 NoConfidenceNote，三層級圖例完全不顯示（不灰掉、不寫「不適用」、不折疊）
+          <Callout title={t('noConfidenceTitle')} body={t('noConfidenceBody')} />
         )}
       </section>
 
       <section id={sections[5].id} className="md-section">
-        <div className="md-sechead">
-          <h2 className="md-sechead-title">
-            <Quote size={15} color="var(--accent)" />
-            {t('secTheory')}
-          </h2>
-        </div>
-        <div className="md-card md-refs">
+        <SectionHead no={no(5)} title={t('secTheory')} />
+        <div className="md-refs">
           {fw.references.map((r, i) => (
-            <div className="md-ref" key={`${r.author}-${r.year}-${i}`}>
+            <div className="md-ref" key={`${r.author}-${r.year}-${r.title}`}>
               <span className="md-ref-marker">[{i + 1}]</span>
-              <div className="md-ref-body">
-                <span className="au">
-                  {r.author} ({r.year}).{' '}
-                </span>
-                <em>{r.title}</em>. {r.publisher}.
+              <span className="md-ref-body">
+                {r.author} ({r.year}). <em>{r.title}</em>. {r.publisher}.
                 {r.note && <span className="md-ref-note"> — {r.note}</span>}
-              </div>
+              </span>
             </div>
           ))}
         </div>
@@ -450,44 +377,45 @@ function OverviewPage({ frameworks, onGoto }: { frameworks: Framework[]; onGoto:
   const { t, i18n } = useTranslation('frameworks');
   const categories = getFrameworkCategories(i18n.language);
 
+  const onCardKey = (e: KeyboardEvent, key?: string) => {
+    if (e.target !== e.currentTarget) return;
+    if (key && (e.key === 'Enter' || e.key === ' ')) {
+      e.preventDefault();
+      onGoto(key);
+    }
+  };
+
   return (
-    <div>
+    <div className="md-overview">
       <div className="md-ov-hero">
-        <h1 className="md-ov-title">
-          {t('brand')}
-          <span className="tag">{t('placeholder')}</span>
-        </h1>
+        <div className="md-titlerow">
+          <h1 className="md-title">{t('brand')}</h1>
+          <span className="md-tag">{t('placeholder')}</span>
+          <span className="md-notice">{t('globalNotice')}</span>
+        </div>
         <p className="md-ov-lead">{t('ovLead')}</p>
       </div>
-
-      <div className="md-sechead">
-        <h2 className="md-sechead-title">
-          <Sparkles size={15} color="var(--accent)" />
-          {t('secConcept')}
-        </h2>
-      </div>
+      <hr className="md-rule" />
+      <SectionHead title={t('secConcept')} />
       <div className="md-ov-cats">
         {categories.map((cat) => {
           const list = frameworks.filter((f) => f.categoryId === cat.id);
           if (!list.length) return null;
-          const CatIcon = CAT_ICON[cat.id];
+          const first = firstOfCategory(frameworks, cat.id);
           return (
             <div
               key={cat.id}
               className="md-ov-catcard"
-              onClick={() => list[0] && onGoto(list[0].key)}
+              onClick={() => first && onGoto(first.key)}
+              onKeyDown={(e) => onCardKey(e, first?.key)}
               role="button"
               tabIndex={0}
             >
-              <div className="md-ov-cathead">
-                <span className="md-ov-caticon">
-                  <CatIcon size={18} />
-                </span>
-                <span className="md-ov-catname">{cat.name}</span>
-              </div>
+              <span className="md-ov-catname">{cat.name}</span>
               <div className="md-ov-catmethods">
                 {list.map((fw) => (
                   <button
+                    type="button"
                     key={fw.key}
                     className="md-ov-catmethod"
                     onClick={(e) => {
@@ -495,10 +423,8 @@ function OverviewPage({ frameworks, onGoto }: { frameworks: Framework[]; onGoto:
                       onGoto(fw.key);
                     }}
                   >
-                    {fw.name}
-                    <span className="cnt">
-                      {fw.items.length} {fw.itemLabel}
-                    </span>
+                    <span className="nm">{fw.name}</span>
+                    <span className="cnt">{scaleLabel(fw)}</span>
                   </button>
                 ))}
               </div>
@@ -506,24 +432,24 @@ function OverviewPage({ frameworks, onGoto }: { frameworks: Framework[]; onGoto:
           );
         })}
       </div>
-      <div style={{ height: 'var(--space-2xl)' }} />
     </div>
   );
 }
 
-function CrossBookComingSoon({ disabled }: { disabled: boolean }) {
+function CrossBookComingSoon({ crossBook }: { crossBook: boolean }) {
   const { t } = useTranslation('frameworks');
+  // 兩種佔位不合併：「即將推出」（時間問題）與「此方法不適用」（性質問題）。
+  if (!crossBook) {
+    return (
+      <div className="md-cross">
+        <p className="md-cross-body">{t('noCross')}</p>
+      </div>
+    );
+  }
   return (
-    <div className="md-cross-coming">
-      <span className="md-cross-coming-tag">
-        {disabled ? t('noCross') : t('crossSoonTitle')}
-      </span>
-      <h3 className="md-cross-coming-title">
-        {disabled ? t('tabCross') : t('crossSoonTitle')}
-      </h3>
-      <p className="md-cross-coming-body">
-        {disabled ? t('noCross') : t('crossSoonBody')}
-      </p>
+    <div className="md-cross">
+      <span className="md-cross-soon">{t('crossSoonTitle')}</span>
+      <p className="md-cross-body">{t('crossSoonBody')}</p>
     </div>
   );
 }
@@ -581,65 +507,57 @@ export default function MethodologyPage() {
       />
 
       <div className="md-main">
-        <div className="md-topbar">
-          <div className="md-topbar-titlewrap">
-            {fw ? (
+        <div className="md-content" ref={contentRef}>
+          <div className="md-page">
+            {!fw && <OverviewPage frameworks={frameworks} onGoto={goto} />}
+            {fw && (
               <>
-                <div className="md-topbar-titlerow">
-                  <span className="md-topbar-title">{fw.name}</span>
-                  <span className="md-cat-chip">{fw.category}</span>
-                </div>
-                <span className="md-topbar-sub">{t('globalNotice')}</span>
-              </>
-            ) : (
-              <>
-                <span className="md-topbar-title">{t('brand')}</span>
-                <span className="md-topbar-sub">{t('globalNotice')}</span>
+                <header className="md-head">
+                  <div className="md-titlerow">
+                    <h1 className="md-title">{fw.name}</h1>
+                    <span className="md-cat-chip">{fw.category}</span>
+                    <span className="md-notice">{t('globalNotice')}</span>
+                  </div>
+                  <div className="md-tabs" role="tablist">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={mode === 'about'}
+                      className={`md-tab ${mode === 'about' ? 'active' : ''}`}
+                      onClick={() => setMode('about')}
+                    >
+                      {t('tabAbout')}
+                    </button>
+                    {fw.crossBook ? (
+                      <button
+                        type="button"
+                        role="tab"
+                        aria-selected={mode === 'cross'}
+                        className={`md-tab ${mode === 'cross' ? 'active' : ''}`}
+                        onClick={() => setMode('cross')}
+                      >
+                        {t('tabCross')}
+                      </button>
+                    ) : (
+                      // disabled 控制項不觸發滑鼠事件，Tooltip 掛在外層 wrapper
+                      <Tooltip label={t('noCross')}>
+                        <button type="button" role="tab" aria-selected={false} className="md-tab" disabled>
+                          {t('tabCross')}
+                        </button>
+                      </Tooltip>
+                    )}
+                  </div>
+                </header>
+                {mode === 'about' && (
+                  <div className="md-reading">
+                    <AboutMode fw={fw} sections={sections} />
+                    <AboutTOC key={fw.key + i18n.language} sections={sections} scrollerRef={contentRef} />
+                  </div>
+                )}
+                {mode === 'cross' && <CrossBookComingSoon crossBook={fw.crossBook} />}
               </>
             )}
           </div>
-
-          {fw && (
-            <div className="md-modetabs">
-              <button
-                className={`md-modetab ${mode === 'about' ? 'active' : ''}`}
-                onClick={() => setMode('about')}
-              >
-                {t('tabAbout')}
-              </button>
-              <button
-                className={`md-modetab ${mode === 'cross' ? 'active' : ''}`}
-                disabled={!fw.crossBook}
-                title={!fw.crossBook ? t('noCross') : ''}
-                onClick={() => fw.crossBook && setMode('cross')}
-              >
-                {t('tabCross')}
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="md-content" ref={contentRef}>
-          {!fw && (
-            <div className="md-content-inner">
-              <OverviewPage frameworks={frameworks} onGoto={goto} />
-            </div>
-          )}
-          {fw && mode === 'about' && (
-            <div className="md-reading">
-              <AboutMode fw={fw} sections={sections} />
-              <AboutTOC
-                key={fw.key + i18n.language}
-                sections={sections}
-                scrollerRef={contentRef}
-              />
-            </div>
-          )}
-          {fw && mode === 'cross' && (
-            <div className="md-content-inner">
-              <CrossBookComingSoon disabled={!fw.crossBook} />
-            </div>
-          )}
         </div>
       </div>
     </div>

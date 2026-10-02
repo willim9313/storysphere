@@ -619,6 +619,10 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 | 2-MT-2 | 矛盾 · 概念圖內標籤與既有 i18n 不同 | 待同步 |
 | 2-MT-3 | 矛盾 · 第 05 節標題 | 待同步 |
 | 2-MT-4 | 遺漏 · Schmidt 圖下交代句是草稿 | 待同步 |
+| 2-MT-5 | 遺漏 · 圖卡右上「附信心值／不產生信心值」標是新字串 | 待同步 |
+| 2-MT-6 | 矛盾 · rail 規模數字：README 寫 mono、稿畫成 sans | 待同步 |
+| 2-MT-7 | 遺漏 · SEP「跨書查閱」disabled 後內容那一句幾乎看不到 | 待同步 |
+| 2-MT-8 | 遺漏 · 稿上的結構標註與英雄旅程中心字不在產品字串裡 | 待同步 |
 
 #### 2-MT-1 標為「缺、不代寫」的字串其實都在 i18n
 
@@ -645,5 +649,38 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 #### 2-MT-4 Schmidt 圖下交代句是草稿
 
 - **出處**：07 D 區 Schmidt 卡算式下一行；README §5 草稿。
-- **目前處置**：進 i18n、標 TODO（比照第 1 批草稿處理）。
+- **目前處置**：進 i18n（`concept.schmidtNote`）、UI_SPEC 標「草稿・待設計定案」（比照第 1 批草稿處理）。
+  句中數字已以 `frameworksData` 實算核對：女性 17、男性 18、中性 10，合計 45，zh／en 兩語系皆相符（vitest 鎖住），無不符。
 - **請設計端**：定案文案。
+
+#### 2-MT-5 圖卡右上「附信心值／不產生信心值」標是新字串
+
+- **出處**：07 D 區八張圖卡右上；README §4.5 末句。
+- **問題**：`frameworks.json` 沒有這兩個詞（現有的是 `noConfidenceTitle`「此方法不產生信心值」，語意相近但不是同一個字串，
+  且「附信心值」完全沒有）。README §5 的新字串清單也沒列。
+- **目前處置**：進 i18n（`confBadgeHas`／`confBadgeNone`，zh-TW 與 en 兩套），UI_SPEC 標「草稿・待設計定案」。
+  「不產生信心值」用虛線框（非色相載體，Ink 下 warning 色會退灰）。
+- **請設計端**：定案這兩個詞；若要沿用既有「此方法不產生信心值」請說明。
+
+#### 2-MT-6 rail 規模數字：README 寫 mono、稿畫成 sans
+
+- **出處**：README §4.1「每項下方一行 mono 規模數字」；07 A／C／B 區 rail 的規模行用的是 sans 2xs muted。
+- **目前處置**：照 README 與任務裁決用 mono（`--font-mono`、2xs、muted）；分類標頭右側方法數維持 2xs muted sans tabular。
+  總覽卡的規模數字稿上是 mono accent，兩者一致。
+- **請設計端**：確認 rail 規模行是 mono，稿補上。
+
+#### 2-MT-7 SEP「跨書查閱」disabled 後內容那一句幾乎看不到
+
+- **出處**：07 F 區下格（`crossBook === false`）：分頁 disabled，分頁下方又畫了一段與 tooltip 同句的內文。
+- **問題**：disabled 的分頁點不到，這段內文在正常操作下不會出現（只有瀏覽器上一頁／下一頁讓 `?framework=` 變成 SEP、
+  而分頁狀態還停在「跨書查閱」時才看得到）。
+- **目前處置**：保留這個 fallback（`CrossBookComingSoon` 的 `crossBook === false` 分支，內文＝`noCross`），不為此多畫第三種畫面；
+  正常路徑上使用者只會從 tooltip 讀到這句。
+- **請設計端**：確認這句內文是否只當 fallback，或 disabled 態要有別的常駐說明位置。
+
+#### 2-MT-8 稿上的結構標註與英雄旅程中心字不在產品字串裡
+
+- **出處**：07 D 區各卡標頭的「輪盤 wheel · 460×410」等結構標註；英雄旅程環心「12 階段」；Jung 圖例色塊後的「3」。
+- **目前處置**：結構標註視為設計標註、不進產品（圖卡標頭只留右上標）；環心「12 階段」由資料即時算（`items.length` + `itemLabel`），
+  Jung 圖例的「3」是各取向的節點數（資料算出），都不新增字串。
+- **請設計端**：確認這幾處可由資料產生、稿不需另立字串。
