@@ -149,7 +149,11 @@
 .st-note { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); margin: 0; }
 
 /* ── 外觀：兩張主題卡 ─────────────────────────────────────── */
-.st-theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6); }
+.st-theme-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-6);
+  /* 帶間 hairline 取外層主題的 --border：Ink 卡內的 --border 是深色，壓在兩條深帶之間會看不見。 */
+  --st-swatch-rule: var(--border);
+}
 .st-theme-card {
   position: relative;
   display: flex; flex-direction: column;
@@ -172,7 +176,7 @@
 /* 四帶：bg-primary／bg-secondary／accent／fg-primary；帶間 hairline，否則 Ink 讀成三帶。
    Ink 卡包一層 data-theme="ink" 直接讀真實 token。 */
 .st-theme-swatch > span { flex: 1; }
-.st-theme-swatch > span:not(:last-child) { border-right: var(--line-weight) var(--border-style) var(--border); }
+.st-theme-swatch > span:not(:last-child) { border-right: var(--line-weight) var(--border-style) var(--st-swatch-rule); }
 .st-theme-swatch > span:nth-child(1) { background: var(--bg-primary); }
 .st-theme-swatch > span:nth-child(2) { background: var(--bg-secondary); }
 .st-theme-swatch > span:nth-child(3) { background: var(--accent); }
