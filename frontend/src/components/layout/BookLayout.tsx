@@ -29,7 +29,11 @@ export function BookLayout() {
   // still gets the layout-level ErrorMessage.
   const isReaderRoute = pathname.replace(/\/$/, '') === `/books/${bookId}`;
 
-  if (isLoading) return <LoadingSpinner />;
+  // The reader owns its loading state too: if the layout swapped it for a
+  // spinner, the reader's own useBook would refetch the errored query on every
+  // remount — react-query resets an errored, data-less query to pending — and
+  // loop forever (mount → refetch → spinner → error → mount …).
+  if (isLoading && !isReaderRoute) return <LoadingSpinner />;
   if (error && !isReaderRoute) return <ErrorMessage message={error.message} />;
 
   return (
