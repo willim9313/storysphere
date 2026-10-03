@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { importanceClass, type Importance, type OverviewEvent } from './eventTypes';
 
 interface EventRankingViewProps {
@@ -49,12 +50,11 @@ export function EventRankingView({
         <div className="ea-ov-hero-body">
           <div className="ea-ov-hero-title">
             <span className="ea-ov-hero-name">{hero.title}</span>
-            <span
-              className={'ea-imp ' + importanceClass(hero.importance)}
-              title={importanceLabel(hero.importance)}
-            >
-              {importanceAbbr(hero.importance)}
-            </span>
+            <Tooltip label={importanceLabel(hero.importance)}>
+              <span className={'ea-imp ' + importanceClass(hero.importance)}>
+                {importanceAbbr(hero.importance)}
+              </span>
+            </Tooltip>
           </div>
           <div className="ea-ov-hero-sub">
             {t('event.overview.ranking.heroSub', {
@@ -67,7 +67,7 @@ export function EventRankingView({
         {hero.analyzed ? (
           <button
             type="button"
-            className="ea-btn ea-btn-primary"
+            className="ss-btn ss-btn-md ss-btn-primary"
             onClick={() => onSelectEvent(hero.id)}
           >
             {t('event.overview.ranking.viewAnalysis')}
@@ -75,11 +75,11 @@ export function EventRankingView({
         ) : (
           <button
             type="button"
-            className="ea-btn ea-btn-primary"
+            className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
             onClick={() => onGenerate(hero.id)}
             disabled={generatingId === hero.id}
           >
-            <Sparkles size={13} /> {t('event.overview.ranking.createHero')}
+            {t('event.overview.ranking.createHero')}
           </button>
         )}
       </div>
@@ -100,12 +100,11 @@ export function EventRankingView({
             }}
           >
             <span className="ea-ov-rank-n">{i + 2}</span>
-            <span
-              className={'ea-imp ' + importanceClass(e.importance)}
-              title={importanceLabel(e.importance)}
-            >
-              {importanceAbbr(e.importance)}
-            </span>
+            <Tooltip label={importanceLabel(e.importance)}>
+              <span className={'ea-imp ' + importanceClass(e.importance)}>
+                {importanceAbbr(e.importance)}
+              </span>
+            </Tooltip>
             <span className={'ea-ov-rank-name' + (e.analyzed ? '' : ' muted')}>{e.title}</span>
             {e.chapter !== null && (
               <span className="ea-ov-rank-ch">
@@ -124,7 +123,7 @@ export function EventRankingView({
             {!e.analyzed && (
               <button
                 type="button"
-                className="ea-ov-rank-gen"
+                className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm"
                 onClick={(ev) => {
                   ev.stopPropagation();
                   onGenerate(e.id);
@@ -141,7 +140,7 @@ export function EventRankingView({
       {rest.length > DEFAULT_ROWS && (
         <button
           type="button"
-          className="ea-btn ea-ov-expand-btn"
+          className="ss-btn ss-btn-sm ss-btn-ghost ea-ov-expand-btn"
           onClick={() => setExpanded((v) => !v)}
         >
           {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}

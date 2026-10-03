@@ -686,6 +686,35 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
 ### 3.5 事件分析頁 `/books/:bookId/events`
 
+#### DS v3 第 3 批 · 10 改版後的現況（優先於下方舊描述）
+
+決議紀錄 10、批次計畫 `docs/plans/20261002-ds-v3-batch3-analysis.md`。下方舊版面描述與本段衝突處以本段為準。
+
+- **密度**：B 檢視。內容區 padding `--space-7`（24）／下 `--space-8`（32）、內層 `max-width: 1280` 置中、區塊間距 `--space-6`（16）；
+  左欄 268 固定、背景 `--bg-primary`、右緣 `--line-weight` 分隔線。間距只用 `--space-1…8`。
+- **批次面板（`BatchEepPanel`）**：主鈕「一鍵生成全部 EEP」`ss-btn-primary ss-btn-llm`，走確認框。
+  子集區在主鈕正下方**同一張卡**、不收折疊；三顆子集鈕（只生成核心 (N)／只生成本章／生成已勾選 (N)）都掛 `ss-btn-llm`、
+  筆數寫在標籤裡、**直接執行不開確認框**（不對稱是設計決定）。disabled 的鈕外層掛 `Tooltip`（逐字 `batch.kernelOnlyDisabled`／`batch.chapterOnlyDisabled`）。
+  執行中整區子集隱藏、主鈕變 disabled「分析中 N/M…」＋ stage ＋ ▶ live（stage 太長時 Tooltip 顯全文）。
+  **完成後面板只顯示三格計數＋失敗清單，不再有「批次 EEP 分析完成」那一列（只在 toast）**，也沒有面板內關閉鈕（見 feedback 3-EV-7）。
+- **清單列（`EventListItems`，動作列·行內按鈕變體）**：一行格線 `24px · 1fr · 12px`，第二行固定 28px（章號、非順敘 chip、stale 小點、未分析列的「生成分析」`ss-btn-llm`）。
+  狀態點與按鈕二擇一（已分析＝success 點、partial＝空心 warning 環、生成中＝accent 脈衝點）。選中＝`--bg-secondary` 底＋加粗，無邊框／inset。
+  剛完成**不整列高亮**，只有狀態點短暫放大後落定為 success。組標頭（list-group-head）「{總數} · 已析 {已分析數}」逐字。
+  勾選模式：只有未分析列長 checkbox。
+- **骨幹圖**：核心帶節點名超過 **5 字**截斷（`eventBackboneModel.truncateNodeLabel`，以 code point 計）；帶高＝該帶最密集章節節點數 × 行距 ＋ 上下各 14
+  （`bandHeight`）；核心／衛星有帶標籤、未定沒有；節點的懸停說明改走 `Tooltip`。
+- **LLM 字符**：英雄卡「建立事件分析」、排行未分析列「生成分析」、整本零分析橫幅、詳情工具列「重試失敗部分」「覆蓋重新生成」、
+  未分析詳情「建立分析」（旁附「會呼叫 LLM，消耗 token」，沿用 `tension.state.tokenHintShort`）都掛 `ss-btn-llm`；導航／模式切換／勾選模式不掛。
+- **錯誤態四分**：{頁名}＝`nav:tabs.eventAnalysis`。
+  1. 清單載入失敗 → `PageFailure`（`failureKind` 判 page／backend，page 版帶「回書籍總覽」＝既有 `analysis:character.error.backToBook`、技術細節）。
+     原本落成 `event.empty.subtitle` 空狀態文案的行為已移除。
+  2. 詳情載入失敗（清單說已分析但抓取失敗）→ 獨立分支，兩句逐字（`event.detailError.*`）＋重試；**裸 502（無應用層 body）改走後端失敗變體**。
+  3. 所有花 token 的觸發（單件生成、覆蓋重新生成、重試失敗部分、一鍵全部、三個子集）失敗先判 `isLlmUnconfigured` → 就地 `LlmUnconfiguredNotice`
+     （單件／覆蓋／重試顯示在內容區頂；批次顯示在左欄面板內，取代一般批次錯誤文字）。
+- **原生 `title=`** 全部換成 `Tooltip`（14 處；值為 "·" 的那個直接拿掉）。
+- **新字串**：無。
+- **維持現況（記 feedback）**：landing 沒有對比入口（3-EV-2）、victim 顯示「承受者」（3-EV-3）。
+
 #### 路由與選取狀態
 
 | Query param | 語意 |

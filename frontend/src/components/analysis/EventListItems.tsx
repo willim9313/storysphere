@@ -1,5 +1,13 @@
 import { useTranslation } from 'react-i18next';
 import type { AnalysisItem, UnanalyzedEntity } from '@/api/types';
+import { Tooltip } from '@/components/ui/Tooltip';
+
+/**
+ * 左欄事件列（動作列·行內按鈕變體，DS v3 第 3 批 · 10）。
+ *   一行格線：24px 徽章 · 1fr 本文 · 12px 狀態點；第二行固定 28px（章號、敘事 chip、「生成分析」）。
+ *   狀態點與按鈕二擇一：已分析列有點，未分析列有按鈕（無點的列 body 併入點欄）。
+ *   剛完成的列不整列高亮，只由狀態點轉 success 表達。
+ */
 
 type NarrativeMode = 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown';
 
@@ -20,34 +28,84 @@ function normalizeNarrative(value: string | null | undefined): NarrativeMode | n
   return null;
 }
 
-function NarrativeChip({ mode }: { mode: NarrativeMode }) {
+function NarrativeChip({ mode }: Readonly<{ mode: NarrativeMode }>) {
   const { t } = useTranslation('analysis');
   // present mode = dominant case, don't display chip
   if (mode === 'present') return null;
   return <span className={'ea-narr ' + mode}>{t(NARRATIVE_KEYS[mode])}</span>;
 }
 
-function ImportanceBadge({ importance }: { importance: string | null }) {
+export function ImportanceBadge({
+  importance,
+  analyzed = true,
+}: Readonly<{ importance: string | null; analyzed?: boolean }>) {
   const { t } = useTranslation('analysis');
   if (importance === 'KERNEL') {
     return (
-      <span className="ea-imp kernel" title={t('event.importance.kernel')}>
-        {t('event.list.kernelAbbr')}
-      </span>
+      <Tooltip label={t('event.importance.kernel')}>
+        <span className="ea-imp kernel">{t('event.list.kernelAbbr')}</span>
+      </Tooltip>
     );
   }
   if (importance === 'SATELLITE') {
     return (
-      <span className="ea-imp satellite" title={t('event.importance.satellite')}>
-        {t('event.list.satelliteAbbr')}
-      </span>
+      <Tooltip label={t('event.importance.satellite')}>
+        <span className="ea-imp satellite">{t('event.list.satelliteAbbr')}</span>
+      </Tooltip>
     );
   }
+  // Undetermined: the dotted "·" has no label of its own (it used to carry a
+  // native title of "·", which said nothing); unanalyzed rows explain it.
+  if (!analyzed) {
+    return (
+      <Tooltip label={t('notAnalyzed')}>
+        <span className="ea-imp unknown">·</span>
+      </Tooltip>
+    );
+  }
+  return <span className="ea-imp unknown">·</span>;
+}
+
+function RowMeta({
+  chapter,
+  mode,
+  stale,
+  children,
+}: Readonly<{
+  chapter: number | null;
+  mode: NarrativeMode | null;
+  stale?: boolean;
+  children?: React.ReactNode;
+}>) {
+  const { t } = useTranslation('analysis');
   return (
-    <span className="ea-imp unknown" title="·">
-      ·
+    <span className="ea-row-meta">
+      {chapter !== null && <span>{t('event.list.chapterShort', { n: chapter })}</span>}
+      {mode && mode !== 'present' && (
+        <>
+          <span className="dot" />
+          <NarrativeChip mode={mode} />
+        </>
+      )}
+      {stale && (
+        <Tooltip label={t('event.stale.tooltip')}>
+          <span className="ea-row-stale" role="img" aria-label={t('event.stale.tooltip')} />
+        </Tooltip>
+      )}
+      {children}
     </span>
   );
+}
+
+function activateOnKey(onSelect: () => void) {
+  return (e: React.KeyboardEvent<HTMLElement>) => {
+    // The inline 生成分析 button handles its own keys; only react to the row itself.
+    if (e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onSelect();
+    }
+  };
 }
 
 export function EventAnalyzedItem({
@@ -55,59 +113,36 @@ export function EventAnalyzedItem({
   isSelected,
   onSelect,
   justDone,
-  showImportance,
-  showNarrative,
-}: {
+}: Readonly<{
   item: AnalysisItem;
   isSelected: boolean;
   onSelect: () => void;
   justDone?: boolean;
-  showImportance: boolean;
-  showNarrative: boolean;
-}) {
+}>) {
   const { t } = useTranslation('analysis');
   const mode = normalizeNarrative(item.narrativeMode);
-  const chapter = item.chapter ?? null;
+  const partial = item.status === 'partial';
 
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      className={'ea-item' + (isSelected ? ' selected' : '') + (justDone ? ' just-done' : '')}
+      onKeyDown={activateOnKey(onSelect)}
+      className={'ea-row' + (isSelected ? ' selected' : '')}
     >
-      {showImportance ? (
-        <ImportanceBadge importance={item.importance ?? null} />
+      <ImportanceBadge importance={item.importance ?? null} />
+      <span className="ea-row-body">
+        <span className="ea-row-name">{item.title}</span>
+        <RowMeta chapter={item.chapter ?? null} mode={mode} stale={item.isStale} />
+      </span>
+      {partial ? (
+        <Tooltip label={t('event.partialBadge')}>
+          <span className="ea-row-dot partial" role="img" aria-label={t('event.partialBadge')} />
+        </Tooltip>
       ) : (
-        <span className="ea-imp-spacer" />
+        <span className={'ea-row-dot' + (justDone ? ' is-just-done' : '')} />
       )}
-      <span className="ea-item-body">
-        <span className="ea-item-name">{item.title}</span>
-        <span className="ea-item-meta">
-          {chapter !== null && <span>{t('event.list.chapterShort', { n: chapter })}</span>}
-          {showNarrative && mode && mode !== 'present' && (
-            <>
-              <span className="dot" />
-              <NarrativeChip mode={mode} />
-            </>
-          )}
-        </span>
-      </span>
-      <span className="ea-item-right">
-        {item.isStale && (
-          <span className="ea-item-stale" title={t('event.stale.tooltip')} />
-        )}
-        <span
-          className="ea-item-dot"
-          style={item.status === 'partial' ? { background: 'var(--color-warning)' } : undefined}
-        />
-      </span>
     </div>
   );
 }
@@ -118,67 +153,43 @@ export function EventUnanalyzedItem({
   onSelect,
   onGenerate,
   isGenerating,
-  showImportance,
-  showNarrative,
-}: {
+}: Readonly<{
   item: UnanalyzedEntity;
   isSelected: boolean;
   onSelect: () => void;
   onGenerate: () => void;
   isGenerating: boolean;
-  showImportance: boolean;
-  showNarrative: boolean;
-}) {
+}>) {
   const { t } = useTranslation('analysis');
   const mode = normalizeNarrative(item.narrativeMode);
-  const chapter = item.chapter ?? null;
 
   return (
     <div
       role="button"
       tabIndex={0}
       onClick={onSelect}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
-      className={'ea-item' + (isSelected ? ' selected' : '')}
+      onKeyDown={activateOnKey(onSelect)}
+      className={'ea-row pending' + (isGenerating ? ' is-generating' : '') + (isSelected ? ' selected' : '')}
     >
-      {showImportance ? (
-        <span className="ea-imp unknown" title={t('notAnalyzed')}>·</span>
-      ) : (
-        <span className="ea-imp-spacer" />
-      )}
-      <span className="ea-item-body">
-        <span className="ea-item-name muted">{item.name}</span>
-        <span className="ea-item-meta">
-          {chapter !== null && <span>{t('event.list.chapterShort', { n: chapter })}</span>}
-          {showNarrative && mode && mode !== 'present' && (
-            <>
-              <span className="dot" />
-              <NarrativeChip mode={mode} />
-            </>
+      <ImportanceBadge importance={null} analyzed={false} />
+      <span className="ea-row-body">
+        <span className="ea-row-name">{item.name}</span>
+        <RowMeta chapter={item.chapter ?? null} mode={mode}>
+          {!isGenerating && (
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm ea-row-create"
+              onClick={(e) => {
+                e.stopPropagation();
+                onGenerate();
+              }}
+            >
+              {t('generate')}
+            </button>
           )}
-        </span>
+        </RowMeta>
       </span>
-      <span className="ea-item-right">
-        {isGenerating ? (
-          <span className="ea-item-dot running" />
-        ) : (
-          <button
-            type="button"
-            className="ea-item-mini-btn"
-            onClick={(e) => {
-              e.stopPropagation();
-              onGenerate();
-            }}
-          >
-            {t('generate')}
-          </button>
-        )}
-      </span>
+      {isGenerating && <span className="ea-row-dot running" />}
     </div>
   );
 }

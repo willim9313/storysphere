@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { NarrativeMode, OverviewEvent } from './eventTypes';
+import { BAND_PAD, bandHeight, truncateNodeLabel } from './eventBackboneModel';
 
 interface EventBackboneMapProps {
   events: OverviewEvent[];
@@ -32,9 +34,6 @@ const BANDS: BandSpec[] = [
   { key: 'UNDETERMINED', node: 18, rowH: 24, labelled: false, labelKey: null },
   { key: 'SATELLITE', node: 22, rowH: 28, labelled: false, labelKey: 'event.overview.map.bandSatellite' },
 ];
-
-const BAND_PAD = 14;
-const LABEL_MAX = 6;
 
 function bandOf(e: OverviewEvent): BandKey {
   if (e.importance === 'KERNEL') return 'KERNEL';
@@ -69,7 +68,7 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
         (max, ch) => Math.max(max, inBand.filter((e) => e.chapter === ch).length),
         0,
       );
-      const h = Math.max(1, densest) * spec.rowH + BAND_PAD * 2;
+      const h = bandHeight(densest, spec.rowH);
       rows.push({ spec, top: cursor, height: h });
       cursor += h;
     }
@@ -131,35 +130,38 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
         <div className="ea-ov-map-midline" style={{ top: `${midline}px` }} />
 
         {nodes.map((n) => (
-          <button
+          <div
             key={n.event.id}
-            type="button"
-            className="ea-ov-map-node"
+            className="ea-ov-map-node-pos"
             style={{ left: `${n.x}%`, top: `${n.y}px` }}
-            onClick={() => onSelectEvent(n.event.id)}
-            title={`${n.event.title} · ${t('event.list.chapterShort', { n: n.event.chapter })}`}
           >
-            <span
-              className={'ea-ov-map-dot' + (n.event.analyzed ? '' : ' unanalyzed')}
-              style={{
-                width: `${n.size}px`,
-                height: `${n.size}px`,
-                ...(n.event.analyzed
-                  ? {
-                      background: `var(--narrative-${n.event.narrativeMode}-bg)`,
-                      borderColor: `var(--narrative-${n.event.narrativeMode}-border)`,
-                    }
-                  : {}),
-              }}
-            />
-            {n.labelled && (
-              <span className="ea-ov-map-node-label">
-                {n.event.title.length > LABEL_MAX
-                  ? n.event.title.slice(0, LABEL_MAX) + '…'
-                  : n.event.title}
-              </span>
-            )}
-          </button>
+            <Tooltip
+              label={`${n.event.title} · ${t('event.list.chapterShort', { n: n.event.chapter })}`}
+            >
+              <button
+                type="button"
+                className="ea-ov-map-node"
+                onClick={() => onSelectEvent(n.event.id)}
+              >
+                <span
+                  className={'ea-ov-map-dot' + (n.event.analyzed ? '' : ' is-unanalyzed')}
+                  style={{
+                    width: `${n.size}px`,
+                    height: `${n.size}px`,
+                    ...(n.event.analyzed
+                      ? {
+                          background: `var(--narrative-${n.event.narrativeMode}-bg)`,
+                          borderColor: `var(--narrative-${n.event.narrativeMode}-border)`,
+                        }
+                      : {}),
+                  }}
+                />
+                {n.labelled && (
+                  <span className="ea-ov-map-node-label">{truncateNodeLabel(n.event.title)}</span>
+                )}
+              </button>
+            </Tooltip>
+          </div>
         ))}
       </div>
 

@@ -206,8 +206,6 @@ export function EventGroupedList({
                       isSelected={selectedEntityId === row.id}
                       onSelect={() => onSelect(row.id)}
                       justDone={justDoneIds.has(row.id)}
-                      showImportance
-                      showNarrative
                     />
                   ) : (
                     <div key={row.id} className="ea-row-wrap">
@@ -226,8 +224,6 @@ export function EventGroupedList({
                         onSelect={() => onSelect(row.id)}
                         onGenerate={() => onGenerate(row.id)}
                         isGenerating={generatingId === row.id}
-                        showImportance
-                        showNarrative
                       />
                     </div>
                   ),
@@ -243,7 +239,7 @@ export function EventGroupedList({
             {hasFilters && (
               <button
                 type="button"
-                className="ea-btn"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
                 onClick={() => {
                   setImpFilter(new Set());
                   setModeFilter(new Set());

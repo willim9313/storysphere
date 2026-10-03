@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { BarChart3, GitBranch, Sparkles, Waypoints } from 'lucide-react';
+import { BarChart3, GitBranch, Waypoints } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import type { AnalysisListResponse } from '@/api/types';
 import { useTimeline } from '@/hooks/useTimeline';
@@ -50,11 +50,11 @@ export function EventOverviewLanding({
           </div>
           <button
             type="button"
-            className="ea-btn ea-btn-primary"
+            className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
             onClick={onBatchAll}
             disabled={isBatchRunning}
           >
-            <Sparkles size={12} /> {t('event.overview.emptyBatch')}
+            {t('event.overview.emptyBatch')}
           </button>
         </div>
       )}

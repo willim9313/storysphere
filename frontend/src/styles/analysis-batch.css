@@ -4,7 +4,7 @@
  * without updating BatchEepPanel.tsx. */
 
 .ea-batch {
-  padding: 14px 14px 12px;
+  padding: var(--space-6) var(--space-5);
   border-bottom: 1px solid var(--border);
   background: var(--bg-secondary);
   position: relative;
@@ -13,7 +13,7 @@
   display: flex;
   align-items: baseline;
   justify-content: space-between;
-  margin-bottom: 8px;
+  margin-bottom: var(--space-4);
 }
 .ea-batch-label {
   font-size: var(--font-size-2xs);
@@ -35,7 +35,7 @@
   font-weight: 400;
   color: var(--fg-muted);
   font-size: var(--font-size-2xs);
-  margin-left: 2px;
+  margin-left: var(--space-1);
 }
 
 /* Progress track */
@@ -45,7 +45,7 @@
   background: var(--bg-tertiary);
   border-radius: 4px;
   overflow: hidden;
-  margin-bottom: 4px;
+  margin-bottom: var(--space-2);
 }
 .ea-batch-fill {
   position: absolute;
@@ -80,8 +80,8 @@
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   font-feature-settings: 'tnum';
-  margin-bottom: 12px;
-  gap: 8px;
+  margin-bottom: var(--space-5);
+  gap: var(--space-4);
 }
 .ea-batch-pct > span {
   white-space: nowrap;
@@ -97,39 +97,10 @@
   color: var(--accent);
 }
 
-.ea-batch-btn {
-  display: inline-flex;
-  align-items: center; justify-content: center;
-  gap: 6px;
-  width: 100%;
-  padding: 8px 12px;
-  background: var(--accent);
-  color: var(--bg-primary);
-  border: none;
-  border-radius: var(--radius-md);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity var(--transition-fast) ease;
-}
-.ea-batch-btn:hover:not(:disabled) { opacity: 0.9; }
-.ea-batch-btn:disabled {
-  background: var(--bg-tertiary);
-  color: var(--fg-muted);
-  cursor: not-allowed;
-}
-.ea-batch-btn.running {
-  background: var(--bg-primary);
-  color: var(--accent);
-  border: 1px solid var(--accent);
-  cursor: progress;
-}
-
 .ea-batch-hint {
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  margin-top: 6px;
+  margin-top: var(--space-3);
   line-height: 1.4;
   font-family: var(--font-sans);
 }
@@ -151,14 +122,14 @@
 .ea-batch-stats {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 4px;
-  margin-bottom: 10px;
+  gap: var(--space-2);
+  margin-bottom: var(--space-4);
 }
 .ea-batch-stat {
   background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  padding: 6px 4px;
+  padding: var(--space-3) var(--space-2);
   text-align: center;
 }
 .ea-batch-stat-n {
@@ -178,7 +149,7 @@
   text-transform: uppercase;
   color: var(--fg-muted);
   display: block;
-  margin-top: 2px;
+  margin-top: var(--space-1);
 }
 
 /* ── Batch failure list (B-113) ─────────────────────────────────────
