@@ -1,13 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueries, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
-import { Telescope, BookOpen, GitBranch, RefreshCw } from 'lucide-react';
+import { Shapes } from 'lucide-react';
 
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { PageFailure } from '@/components/ui/PageFailure';
 import { ApiError } from '@/api/client';
+import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import {
   fetchSymbolTimeline,
   fetchSymbolInterpretation,
@@ -48,6 +52,7 @@ import {
   type ChapterAxis,
 } from '@/components/symbols/chapterAxis';
 import { densityStep } from '@/components/symbols/tokens';
+import { densityLegend } from '@/components/symbols/symbolViewModel';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 
 import '@/styles/symbols.css';
@@ -77,6 +82,8 @@ export default function SymbolsPage() {
   const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t } = useTranslation('analysis');
+  const { t: tc } = useTranslation('common');
+  const { t: tn } = useTranslation('nav');
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -109,7 +116,13 @@ export default function SymbolsPage() {
   // returned to.
   const [shapeFilter, setShapeFilter] = useState<DistributionShape | null>(null);
 
-  const { analysis, isLoading: listLoading } = useSymbolAnalysis(bookId);
+  const {
+    analysis,
+    data: overview,
+    isLoading: listLoading,
+    error: listError,
+    refetch: refetchOverview,
+  } = useSymbolAnalysis(bookId);
   const batch = useSymbolBatch(bookId, t('symbol.overview.batch.failed'));
   const check = useSymbolCheck(analysis);
 
@@ -265,7 +278,6 @@ export default function SymbolsPage() {
   const interpretationTask = useSymbolInterpretationTask(
     refetchInterpretation,
     t('symbol.error.generic'),
-    t('symbol.error.triggerFailed'),
   );
 
   const handleGenerate = (force = false) => {
@@ -313,7 +325,9 @@ export default function SymbolsPage() {
         task={interpretationTask.task}
         term={selected?.term ?? ''}
         occurrenceCount={selected?.frequency}
-        onCancel={interpretationTask.cancel}
+        onCancel={() => void interpretationTask.cancel()}
+        cancelling={interpretationTask.cancelling}
+        cancelFailed={interpretationTask.cancelFailed}
       />
     );
   } else if (interpretation) {
@@ -347,6 +361,13 @@ export default function SymbolsPage() {
     ) : null;
   }
 
+  const pageName = tn('tabs.symbolImagery');
+  const backToBook = (
+    <Link to={`/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary">
+      {t('character.error.backToBook')}
+    </Link>
+  );
+
   let detailBody: React.ReactNode;
   if (listLoading) {
     detailBody = (
@@ -354,7 +375,19 @@ export default function SymbolsPage() {
         <LoadingSpinner />
       </div>
     );
-  } else if (cluster !== null && analysis) {
+  } else if (analysis === null) {
+    // The overview did not load. Falling through to the empty state here would
+    // report a failure as a book with no symbols — the one thing it must not say.
+    detailBody = (
+      <PageFailure
+        variant={failureKind(listError)}
+        pageName={pageName}
+        onRetry={() => void refetchOverview()}
+        secondaryAction={backToBook}
+        techDetail={techDetailOf(listError)}
+      />
+    );
+  } else if (cluster !== null) {
     detailBody = (
       <ClusterView
         cluster={cluster}
@@ -368,6 +401,7 @@ export default function SymbolsPage() {
       detailBody = (
         <SymbolsDashboard
           analysis={analysis}
+          serverRowCount={overview?.items?.length ?? 0}
           batch={batch}
           check={check}
           sortAxis={sortAxis}
@@ -378,7 +412,15 @@ export default function SymbolsPage() {
         />
       );
     } else {
-      detailBody = <EmptyState bookId={bookId!} onRefresh={() => queryClient.invalidateQueries({ queryKey: qk.symbols.list(bookId) })} />;
+      detailBody = (
+        <NoSymbolsYet
+          bookId={bookId!}
+          // The page reads the overview, so that is the cache to drop. This used to
+          // invalidate `qk.symbols.list`, a different key under a different root:
+          // the button looked like it worked and refetched nothing.
+          onRefresh={() => queryClient.invalidateQueries({ queryKey: qk.symbols.overview(bookId) })}
+        />
+      );
     }
   } else {
     detailBody = (
@@ -440,6 +482,40 @@ export default function SymbolsPage() {
     );
   }
 
+  // Every token-spending trigger (single or batch) fails one of three ways, and the
+  // page says which. The app's own 503 means no LLM provider is configured: a
+  // feature state, so a notice in place and the page carries on. A response with
+  // no body at all is the backend being unreachable: a compact banner with a
+  // retry, since there is content on screen worth keeping. Anything else is the
+  // trigger failing on its own.
+  const triggerFailure = interpretationTask.triggerFailure;
+  const showLlmNotice = batch.llmBlocked || isLlmUnconfigured(triggerFailure);
+  let triggerBanner: React.ReactNode = null;
+  if (triggerFailure && !isLlmUnconfigured(triggerFailure)) {
+    const unreachable = failureKind(triggerFailure) === 'backend';
+    triggerBanner = (
+      <div className="sym-inline-banner" role="alert">
+        <span>{unreachable ? tc('failure.backendTitle') : t('symbol.error.triggerFailed')}</span>
+        {unreachable && (
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-secondary"
+            onClick={() => void interpretationTask.retry()}
+          >
+            {tc('retry')}
+          </button>
+        )}
+        <button
+          type="button"
+          className="ss-btn ss-btn-sm ss-btn-ghost"
+          onClick={interpretationTask.reset}
+        >
+          {t('symbol.overview.batch.dismiss')}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="sym-page">
       <SymbolList
@@ -452,16 +528,21 @@ export default function SymbolsPage() {
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
         shapeFilter={shapeFilter}
+        setShapeFilter={setShapeFilter}
         search={search}
         setSearch={setSearch}
       />
 
       <main className="sym-detail">
-        <GuidanceRibbon surface="symbols">
-          <strong>{t('symbol.guide.prefix')}</strong>{' '}
-          <Trans i18nKey="symbol.guide.body" ns="analysis" components={{ strong: <strong /> }} />
-        </GuidanceRibbon>
-        {detailBody}
+        <div className="sym-detail-inner">
+          <GuidanceRibbon surface="symbols">
+            <strong>{t('symbol.guide.prefix')}</strong>{' '}
+            <Trans i18nKey="symbol.guide.body" ns="analysis" components={{ strong: <strong /> }} />
+          </GuidanceRibbon>
+          {showLlmNotice && <LlmUnconfiguredNotice />}
+          {triggerBanner}
+          {detailBody}
+        </div>
       </main>
     </div>
   );
@@ -500,8 +581,7 @@ function ChapterCard({
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <BookOpen size={13} style={{ color: 'var(--accent)' }} />
-        <span className="sym-card-title">{t('symbol.chapterDist')}</span>
+        <h3 className="sym-card-title">{t('symbol.chapterDist')}</h3>
         <span className="sym-card-meta">{meta.join(' · ')}</span>
       </div>
       <div className="sym-card-body" style={{ overflowX: 'auto' }}>
@@ -512,19 +592,17 @@ function ChapterCard({
           </p>
         )}
         <div className="sym-dist-legend">
-          {[1, 2, 3]
-            .filter((step) => step <= scale)
-            .map((step) => (
-              <span key={step} className="sym-dist-legend-item">
-                <span
-                  className="sym-dist-legend-swatch"
-                  style={{ background: densityStep(step) }}
-                />
-                {step === 3
-                  ? t('symbol.overview.heat.legendMore', { count: step })
-                  : t('symbol.overview.heat.legendStep', { count: step })}
-              </span>
-            ))}
+          {densityLegend(scale).map((step) => (
+            <span key={step} className="sym-dist-legend-item">
+              <span
+                className="sym-dist-legend-swatch"
+                style={{ background: densityStep(step) }}
+              />
+              {step === 2
+                ? t('symbol.overview.heat.legendMore', { count: step })
+                : t('symbol.overview.heat.legendStep', { count: step })}
+            </span>
+          ))}
           <span className="sym-dist-legend-item">
             <span className="sym-dist-legend-swatch is-outside" />
             {t('symbol.overview.heat.legendOutside')}
@@ -542,39 +620,51 @@ function ChapterCard({
   );
 }
 
-function EmptyState({ bookId, onRefresh }: Readonly<{ bookId: string; onRefresh: () => void }>) {
+/**
+ * The book has no symbols (as opposed to: they failed to load, or a filter matched
+ * none). Whole-stage empty — a book that has not been through extraction is the
+ * one case where the page has nothing to draw.
+ *
+ * The three steps use the Build Overview's own words (段落, 象徵節點, 已建立／部分／
+ * 未建立, 前置) rather than the pipeline's (token, empty / partial / complete),
+ * and the third carries the cost line, since every trigger on that page spends
+ * tokens. The sidebar goes empty at the same time — 「全部 0」 — and both must, or
+ * the page contradicts itself.
+ */
+function NoSymbolsYet({ bookId, onRefresh }: Readonly<{ bookId: string; onRefresh: () => void }>) {
   const { t } = useTranslation('analysis');
   const navigate = useNavigate();
   return (
-    <div className="sym-empty">
-      <div className="sym-empty-illust">
-        <Telescope size={56} strokeWidth={1.25} />
-      </div>
-      <h2 className="sym-empty-title">{t('symbol.emptyTitle')}</h2>
-      <p className="sym-empty-desc">{t('symbol.emptyHint')}</p>
-      <div className="sym-empty-steps">
-        {([1, 2, 3] as const).map((n) => (
-          <div key={n} className="sym-empty-step">
-            <div className="sym-empty-step-n">{n}</div>
-            <div>
-              <div className="sym-empty-step-t">{t(`symbol.emptyStep${n}Title`)}</div>
-              <div className="sym-empty-step-d">{t(`symbol.emptyStep${n}Desc`)}</div>
-            </div>
+    <EmptyState
+      weight="ready"
+      icon={<Shapes size={28} aria-hidden="true" />}
+      title={t('symbol.emptyTitle')}
+      description={t('symbol.emptyHint')}
+      action={
+        <>
+          <div className="sym-empty-steps">
+            {([1, 2, 3] as const).map((n) => (
+              <div key={n} className="sym-empty-step">
+                <span className="sym-empty-step-n">{n}</span>
+                <span className="sym-empty-step-t">{t(`symbol.empty.steps.${n}.title`)}</span>
+                <span className="sym-empty-step-d">{t(`symbol.empty.steps.${n}.desc`)}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="sym-empty-cta">
-        <button
-          type="button"
-          className="sym-btn-secondary"
-          onClick={() => navigate(`/books/${bookId}/unraveling`)}
-        >
-          <GitBranch size={13} /> {t('symbol.emptyUnravelingBtn')}
-        </button>
-        <button type="button" className="sym-btn-ghost-large" onClick={onRefresh}>
-          <RefreshCw size={13} /> {t('symbol.emptyRecheckBtn')}
-        </button>
-      </div>
-    </div>
+          <div className="ss-state-actions">
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-primary"
+              onClick={() => navigate(`/books/${bookId}/unraveling`)}
+            >
+              {t('symbol.emptyUnravelingBtn')}
+            </button>
+            <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onRefresh}>
+              {t('symbol.emptyRecheckBtn')}
+            </button>
+          </div>
+        </>
+      }
+    />
   );
 }

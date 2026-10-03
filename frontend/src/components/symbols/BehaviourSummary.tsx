@@ -1,13 +1,10 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Gauge } from 'lucide-react';
 
 import { claimSentence, shapeLabel } from './symbolPhrases';
 import { normalise, type SymbolAnalysis, type SymbolSignals } from './symbolSignals';
-
-/** Below this, a ranking figure rests mostly on front matter and is marked as such. */
-const TRUST_FLOOR = 0.8;
+import { isBelowTrustFloor } from './symbolViewModel';
 
 interface Cell {
   key: string;
@@ -18,6 +15,14 @@ interface Cell {
   /** What the figure is measured against, or why there is no figure. */
   note: string;
   warn?: boolean;
+  /** Small accent text beside the label (「唯一進入排序的共現訊號」). */
+  badge?: string;
+  /**
+   * A second line under the note, for something the cell must own up to.
+   * Only the attachment cell uses it: the same-named KG entity is filtered out of
+   * its input, and the reader has to be told that is why it may look short.
+   */
+  extra?: string;
 }
 
 /**
@@ -61,6 +66,14 @@ function cells(
             lift: s.attachment.lift.toFixed(1),
           })
         : t('symbol.signal.attachNoteNone'),
+      badge: t('symbol.co.characters.sub'),
+      // Owned up to here rather than in the co-occurrence card: this is the cell
+      // whose input lost a row. Only when there is something to say — the
+      // same-named KG entity exists — so most symbols never see it.
+      extra:
+        s.item.self_match_count != null && s.item.self_match_count > 0
+          ? t('symbol.co.selfFiltered', { term: s.term, count: s.item.self_match_count })
+          : undefined,
     },
     {
       key: 'shape',
@@ -124,7 +137,7 @@ function cells(
       // clause is dropped entirely at zero — 「後記 0 次計為有效證據」 is not a fact
       // about the symbol, it is a template showing through.
       note: trustNote(t, front, back),
-      warn: s.trust < TRUST_FLOOR,
+      warn: isBelowTrustFloor(s),
     },
   ];
 }
@@ -170,8 +183,7 @@ export function BehaviourSummary({
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <Gauge size={13} style={{ color: 'var(--accent)' }} />
-        <span className="sym-card-title">{t('symbol.signal.title')}</span>
+        <h3 className="sym-card-title">{t('symbol.signal.title')}</h3>
         <span className="sym-card-meta">
           {rank === null
             ? t('symbol.signal.loadUnranked', { value: signals.load.toFixed(2) })
@@ -182,13 +194,19 @@ export function BehaviourSummary({
         <p className="sym-sig-free">{t('symbol.signal.free')}</p>
         <p className="sym-sig-claim">{claimSentence(t, signals)}</p>
 
+        {/* Three plus three: the first row is the three that say where and how
+            strongly it attaches (the attachment is the one co-occurrence signal
+            that enters the ranking); the second is the rest. */}
         <div className="sym-sig-grid">
           {rows.map((cell) => (
             <div
               key={cell.key}
               className={'sym-sig-cell' + (cell.warn ? ' is-warn' : '')}
             >
-              <div className="sym-sig-label">{cell.label}</div>
+              <div className="sym-sig-head">
+                <span className="sym-sig-label">{cell.label}</span>
+                {cell.badge && <span className="sym-sig-badge">{cell.badge}</span>}
+              </div>
               <div className="sym-sig-value">{cell.value}</div>
               <div className="sym-sig-track">
                 <span
@@ -197,6 +215,7 @@ export function BehaviourSummary({
                 />
               </div>
               <div className="sym-sig-note">{cell.note}</div>
+              {cell.extra && <div className="sym-sig-note">{cell.extra}</div>}
             </div>
           ))}
         </div>

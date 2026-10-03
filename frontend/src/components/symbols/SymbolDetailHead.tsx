@@ -1,11 +1,10 @@
 import { useTranslation } from 'react-i18next';
 import { ArrowLeft, Pin, PinOff } from 'lucide-react';
 
+import { Tooltip } from '@/components/ui/Tooltip';
 import { TypePill } from './Badges';
 import type { SymbolSignals } from './symbolSignals';
-
-/** Below this, a symbol's evidence is partly front matter and is flagged as such. */
-const TRUST_FLOOR = 0.8;
+import { isBelowTrustFloor } from './symbolViewModel';
 
 interface Props {
   signals: SymbolSignals;
@@ -73,15 +72,12 @@ function PinControl({
   }
   const isSelf = pinned.id === signals.id;
   return (
-    <button
-      type="button"
-      className="sym-pin-btn is-active"
-      onClick={() => setPinned(null)}
-      title={t('symbol.pin.clearTitle')}
-    >
-      <PinOff size={11} aria-hidden="true" />
-      {isSelf ? t('symbol.pin.clearSelf') : t('symbol.pin.clearOther', { term: pinned.term })}
-    </button>
+    <Tooltip label={t('symbol.pin.clearTitle')}>
+      <button type="button" className="sym-pin-btn is-active" onClick={() => setPinned(null)}>
+        <PinOff size={11} aria-hidden="true" />
+        {isSelf ? t('symbol.pin.clearSelf') : t('symbol.pin.clearOther', { term: pinned.term })}
+      </button>
+    </Tooltip>
   );
 }
 
@@ -93,7 +89,7 @@ export function SymbolDetailHead({
   setPinned,
 }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
-  const noisy = signals.trust < TRUST_FLOOR;
+  const noisy = isBelowTrustFloor(signals);
 
   return (
     <header className="sym-detail-head">
