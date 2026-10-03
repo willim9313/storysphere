@@ -131,7 +131,7 @@ export function FactionLegend({
         <p className="ca-ov-legend-empty">{t('character.overview.quadrant.legendEmpty')}</p>
       )}
       <div className="ca-ov-legend-row static muted ca-ov-legend-ring">
-        <span className="ca-swatch ring" />
+        <span className="ca-swatch is-ring" />
         <span className="ca-ov-legend-label">{t('character.overview.quadrant.legendAnalyzedRing')}</span>
       </div>
       {hasFactions && <p className="ca-ov-legend-note">{t('character.overview.quadrant.legendNote')}</p>}

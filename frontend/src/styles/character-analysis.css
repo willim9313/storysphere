@@ -423,14 +423,14 @@
 .ca-ego-caption { font-size: var(--font-size-2xs); color: var(--fg-muted); margin-bottom: var(--space-2); }
 .ca-ego-stage { position: relative; }
 .ca-ego-svg { display: block; }
-.ca-ego-midlabel { font-family: var(--font-sans); font-size: 10px; font-weight: 700; }
+.ca-ego-midlabel { font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 700; }
 .ca-ego-node-circle { fill: var(--bg-primary); stroke-width: 1.8; }
 .ca-ego-node-label { font-family: var(--font-serif); font-weight: 600; }
 .ca-ego-hub-circle { fill: var(--accent); stroke: var(--bg-primary); stroke-width: 2; }
-.ca-ego-hub-label { font-family: var(--font-serif); font-size: 12px; font-weight: 700; fill: var(--accent-fg); }
+.ca-ego-hub-label { font-family: var(--font-serif); font-size: var(--font-size-xs); font-weight: 700; fill: var(--accent-fg); }
 /* 多段關係的「N 段」角標 */
 .ca-ego-badge rect { fill: var(--accent); }
-.ca-ego-badge text { fill: var(--accent-fg); font-family: var(--font-sans); font-size: 9px; font-weight: 600; }
+.ca-ego-badge text { fill: var(--accent-fg); font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600; }
 /* 節點上的透明 HTML 命中區：給 DS Tooltip 掛（Tooltip 不能包 SVG <g>），可點節點是真正的 button。 */
 .ca-ego-hitpos { position: absolute; transform: translate(-50%, -50%); }
 .ca-ego-hitpos > .ss-tooltip-anchor { display: flex; width: 100%; }
@@ -921,10 +921,10 @@
 .ca-ov-bubble:focus-visible { outline: none; }
 .ca-ov-bubble:focus-visible circle:last-of-type { stroke: var(--accent); stroke-width: 2.5; }
 .ca-ov-median-line { stroke: var(--border); stroke-width: 1.5; stroke-dasharray: 4 4; }
-.ca-ov-axis-label { fill: var(--fg-muted); font-family: var(--font-sans); font-size: 12px; font-weight: 500; }
-.ca-ov-corner-label { fill: var(--fg-muted); font-family: var(--font-sans); font-size: 11px; font-style: italic; opacity: 0.6; }
-.ca-ov-bubble-label { fill: var(--fg-primary); font-family: var(--font-serif); font-size: 11px; font-weight: 600; }
-.ca-ov-bubble-detail { fill: var(--fg-muted); font-family: var(--font-sans); font-size: 10px; font-weight: 400; }
+.ca-ov-axis-label { fill: var(--fg-muted); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 500; }
+.ca-ov-corner-label { fill: var(--fg-muted); font-family: var(--font-sans); font-size: var(--font-size-xs); font-style: italic; opacity: 0.6; }
+.ca-ov-bubble-label { fill: var(--fg-primary); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 500; }
+.ca-ov-bubble-detail { fill: var(--fg-muted); font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 400; }
 .ca-ov-footnote { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); margin: 0; text-wrap: pretty; }
 .ca-ov-error {
   padding: var(--space-5);
@@ -963,7 +963,7 @@ button.ca-ov-legend-row:hover { background: var(--bg-secondary); }
 /* 色票：有派系＝填色；無＝只描邊（資料本身沒有歸屬）；ring＝已分析外環 */
 .ca-swatch { display: block; flex-shrink: 0; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; }
 .ca-swatch.none { background: transparent; border: var(--line-weight) var(--border-style) var(--border); }
-.ca-swatch.ring { background: transparent; border: 1px solid var(--accent); }
+.ca-swatch.is-ring { background: transparent; border: 1px solid var(--accent); }
 .ca-ov-ranking .ca-swatch { width: 10px; height: 10px; }
 
 /* ─── Ranking view ─── */
